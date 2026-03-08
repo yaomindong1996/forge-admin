@@ -1,0 +1,63 @@
+/**
+ * 响应式字体变量
+ * 通过CSS变量实现字体大小的自动缩放
+ */
+
+:root {
+  /* 字体缩放比例，默认为1 */
+  --font-scale: 1;
+  
+  /* 基础字体大小 */
+  --font-size-xs: calc(12px * var(--font-scale));
+  --font-size-sm: calc(14px * var(--font-scale));
+  --font-size-base: calc(16px * var(--font-scale));
+  --font-size-lg: calc(18px * var(--font-scale));
+  --font-size-xl: calc(20px * var(--font-scale));
+  --font-size-2xl: calc(24px * var(--font-scale));
+  --font-size-3xl: calc(30px * var(--font-scale));
+  --font-size-4xl: calc(36px * var(--font-scale));
+  --font-size-5xl: calc(48px * var(--font-scale));
+}
+
+/* 响应式断点 */
+@media (max-width: 1600px) {
+  :root {
+    --font-scale: 0.95;
+  }
+}
+
+@media (max-width: 1400px) {
+  :root {
+    --font-scale: 0.9;
+  }
+}
+
+@media (max-width: 1200px) {
+  :root {
+    --font-scale: 0.85;
+  }
+}
+
+@media (max-width: 992px) {
+  :root {
+    --font-scale: 0.8;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --font-scale: 0.75;
+  }
+}
+
+@media (max-width: 576px) {
+  :root {
+    --font-scale: 0.7;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --font-scale: 0.65;
+  }
+}

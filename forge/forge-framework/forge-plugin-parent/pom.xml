@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <artifactId>forge-framework</artifactId>
+        <groupId>com.mdframe.forge</groupId>
+        <version>${revision}</version>
+    </parent>
+    <artifactId>forge-plugin-parent</artifactId>
+    <name>forge-plugin-parent</name>
+    <description>forge-plugin-parent</description>
+    <packaging>pom</packaging>
+    
+    <properties>
+    </properties>
+    
+    <modules>
+        <module>forge-plugin-system</module>
+        <module>forge-plugin-job</module>
+        <module>forge-plugin-message</module>
+        <module>forge-plugin-generator</module>
+    </modules>
+
+</project>

@@ -1,0 +1,54 @@
+package ${packageName}.${moduleName}.service;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.IService;
+import ${packageName}.${moduleName}.dto.${className}DTO;
+import ${packageName}.${moduleName}.dto.${className}Query;
+import ${packageName}.${moduleName}.entity.${className};
+import com.mdframe.forge.starter.core.domain.PageQuery;
+
+import java.util.List;
+
+/**
+ * ${functionName}Service接口
+ * 
+ * @author ${author}
+ * @date ${datetime}
+ */
+public interface I${className}Service extends IService<${className}> {
+
+    /**
+     * 分页查询${functionName}列表
+     */
+    Page<${className}> select${className}Page(PageQuery pageQuery, ${className}Query query);
+
+    /**
+     * 查询${functionName}列表
+     */
+    List<${className}> select${className}List(${className}Query query);
+
+    /**
+     * 根据ID查询${functionName}详情
+     */
+    ${className} select${className}ById(Long ${pkColumn.javaField});
+
+    /**
+     * 新增${functionName}
+     */
+    boolean insert${className}(${className}DTO dto);
+
+    /**
+     * 修改${functionName}
+     */
+    boolean update${className}(${className}DTO dto);
+
+    /**
+     * 删除${functionName}
+     */
+    boolean delete${className}ById(Long ${pkColumn.javaField});
+
+    /**
+     * 批量删除${functionName}
+     */
+    boolean delete${className}ByIds(Long[] ${pkColumn.javaField}s);
+}

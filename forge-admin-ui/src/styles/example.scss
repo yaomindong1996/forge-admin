@@ -1,0 +1,17 @@
+// SCSS 使用示例
+
+// 导入变量和混入
+@import './variables.scss';
+@import './mixins.scss';
+// 响应式示例
+.responsive-example {
+  padding: $spacing-md;
+
+  @include responsive(sm) {
+    padding: $spacing-sm;
+  }
+
+  @include responsive(xs) {
+    padding: $spacing-xs;
+  }
+}

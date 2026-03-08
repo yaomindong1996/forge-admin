@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.starter.apiconfig.mapper.SysApiConfigMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.starter.apiconfig.domain.entity.SysApiConfig">
+        <id column="id" property="id"/>
+        <result column="api_name" property="apiName"/>
+        <result column="api_code" property="apiCode"/>
+        <result column="req_method" property="reqMethod"/>
+        <result column="url_path" property="urlPath"/>
+        <result column="api_version" property="apiVersion"/>
+        <result column="module_code" property="moduleCode"/>
+        <result column="service_id" property="serviceId"/>
+        <result column="auth_flag" property="authFlag"/>
+        <result column="encrypt_flag" property="encryptFlag"/>
+        <result column="tenant_flag" property="tenantFlag"/>
+        <result column="limit_flag" property="limitFlag"/>
+        <result column="sensitive_fields" property="sensitiveFields"/>
+        <result column="status" property="status"/>
+        <result column="remark" property="remark"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="tenant_id" property="tenantId"/>
+    </resultMap>
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Column_List">
+        id, api_name, api_code, req_method, url_path, api_version, module_code, service_id,
+        auth_flag, encrypt_flag, tenant_flag, limit_flag, sensitive_fields, status, remark,
+        create_by, create_time, update_by, update_time, tenant_id
+    </sql>
+
+    <!-- 根据请求路径和方法查询配置 -->
+    <select id="selectByUrlAndMethod" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_api_config
+        WHERE url_path = #{urlPath}
+        AND req_method = #{reqMethod}
+        AND status = 1
+        LIMIT 1
+    </select>
+
+    <!-- 根据接口编码查询配置 -->
+    <select id="selectByApiCode" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_api_config
+        WHERE api_code = #{apiCode}
+        LIMIT 1
+    </select>
+
+    <!-- 根据模块编码查询配置列表 -->
+    <select id="selectByModuleCode" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_api_config
+        WHERE module_code = #{moduleCode}
+        ORDER BY id ASC
+    </select>
+
+    <!-- 查询所有启用的配置 -->
+    <select id="selectAllEnabled" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM sys_api_config
+        WHERE status = 1
+        ORDER BY id ASC
+    </select>
+
+</mapper>

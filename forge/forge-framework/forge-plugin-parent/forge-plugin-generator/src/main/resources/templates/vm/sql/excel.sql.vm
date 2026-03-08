@@ -1,0 +1,19 @@
+-- ${functionName}Excel导出配置
+
+-- 导出配置主表
+INSERT INTO sys_excel_export_config (config_key, export_name, sheet_name, file_name_template, data_source_bean, query_method, auto_trans, pageable, max_rows, status, remark) VALUES
+('${moduleName}_${businessName}_export', '${functionName}导出', '${functionName}数据', '${functionName}列表_{date}.xlsx', '${classname}Service', 'select${className}List', 1, 0, 50000, 1, '${functionName}数据导出配置');
+
+-- 列配置（根据实际表字段生成）
+#set($columnIndex = 0)
+#foreach($column in $columns)
+#if($column.isList == 1 && !$column.isPk)
+#set($columnIndex = $columnIndex + 1)
+INSERT INTO sys_excel_column_config (config_key, field_name, column_name, width, order_num, export, dict_type) VALUES
+('${moduleName}_${businessName}_export', '${column.javaField}', '${column.columnComment}', 20, ${columnIndex}, 1, #if($column.dictType && $column.dictType != '')'${column.dictType}'#else NULL#end);
+#end
+#end
+
+-- 使用说明：
+-- 1. 在Service层注入ExcelExportService
+-- 2. 调用excelExportService.export("${moduleName}_${businessName}_export", queryParams)即可导出

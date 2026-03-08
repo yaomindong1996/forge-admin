@@ -1,0 +1,15 @@
+-- ${functionName}菜单和权限配置
+
+-- 菜单SQL（父菜单ID需要根据实际情况调整）
+INSERT INTO sys_resource (tenant_id, resource_name, parent_id, resource_type, path, component, sort, is_public, menu_status, perms, remark) VALUES
+(000000, '${functionName}管理', 0, 2, '/${moduleName}/${businessName}', '/${moduleName}/${businessName}/index', 1, 0, 1, '${moduleName}:${businessName}:view', '${functionName}管理菜单');
+
+-- 获取刚插入的菜单ID（实际使用时需要查询）
+SET @menuId = LAST_INSERT_ID();
+
+-- 按钮权限SQL
+INSERT INTO sys_resource (tenant_id, resource_name, parent_id, resource_type, sort, is_public, menu_status, perms, remark) VALUES
+(000000, '查询${functionName}', @menuId, 3, 1, 0, 1, '${moduleName}:${businessName}:query', '查询${functionName}按钮'),
+(000000, '新增${functionName}', @menuId, 3, 2, 0, 1, '${moduleName}:${businessName}:add', '新增${functionName}按钮'),
+(000000, '修改${functionName}', @menuId, 3, 3, 0, 1, '${moduleName}:${businessName}:edit', '修改${functionName}按钮'),
+(000000, '删除${functionName}', @menuId, 3, 4, 0, 1, '${moduleName}:${businessName}:remove', '删除${functionName}按钮');

@@ -1,0 +1,57 @@
+package ${packageName}.${moduleName}.entity;
+
+import com.baomidou.mybatisplus.annotation.*;
+#if(${hasBaseEntity})
+import com.mdframe.forge.starter.core.domain.BaseEntity;
+#end
+#if(${hasDictTrans})
+import com.mdframe.forge.starter.trans.annotation.DictTrans;
+import com.mdframe.forge.starter.trans.annotation.TransField;
+#end
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+#if(${hasDate})
+import java.time.LocalDateTime;
+#end
+#if(${hasBigDecimal})
+import java.math.BigDecimal;
+#end
+
+/**
+ * ${functionName}实体类
+ * 
+ * @author ${author}
+ * @date ${datetime}
+ */
+@Data
+#if(${hasBaseEntity})
+@EqualsAndHashCode(callSuper = true)
+#end
+@TableName("${tableName}")
+#if(${hasDictTrans})
+@DictTrans
+#end
+public class ${className}#if(${hasBaseEntity}) extends BaseEntity#end {
+
+    private static final long serialVersionUID = 1L;
+
+#foreach ($column in $columns)
+    /**
+     * $column.columnComment
+     */
+#if($column.isPk)
+    @TableId(value = "$column.columnName", type = IdType.AUTO)
+#end
+#if($column.dictType && $column.dictType != "")
+    @TransField(dictType = "$column.dictType")
+#end
+    private $column.javaType $column.javaField;
+
+#if($column.dictType && $column.dictType != "")
+    @TableField(exist = false)
+    private String ${column.javaField}Name;
+
+#end
+#end
+}

@@ -1,0 +1,83 @@
+// SCSS Mixins
+
+// 清除浮动
+@mixin clearfix() {
+  &::before,
+  &::after {
+    display: table;
+    content: '';
+  }
+
+  &::after {
+    clear: both;
+  }
+}
+
+// 文本省略
+@mixin text-ellipsis() {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+// 多行文本省略
+@mixin text-ellipsis-multi($lines: 2) {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: $lines;
+  -webkit-box-orient: vertical;
+}
+
+// Flex 居中对齐
+@mixin flex-center() {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// 绝对定位居中
+@mixin absolute-center() {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+// 响应式媒体查询
+@mixin responsive($breakpoint) {
+  @if $breakpoint == xs {
+    @media (max-width: $screen-xs) {
+      @content;
+    }
+  }
+
+  @if $breakpoint == sm {
+    @media (max-width: $screen-sm) {
+      @content;
+    }
+  }
+
+  @if $breakpoint == md {
+    @media (max-width: $screen-md) {
+      @content;
+    }
+  }
+
+  @if $breakpoint == lg {
+    @media (max-width: $screen-lg) {
+      @content;
+    }
+  }
+
+  @if $breakpoint == xl {
+    @media (max-width: $screen-xl) {
+      @content;
+    }
+  }
+
+  @if $breakpoint == xxl {
+    @media (max-width: $screen-xxl) {
+      @content;
+    }
+  }
+}

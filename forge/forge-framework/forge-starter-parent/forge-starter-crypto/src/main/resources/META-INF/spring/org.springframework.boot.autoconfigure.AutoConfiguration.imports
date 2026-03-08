@@ -1,0 +1,2 @@
+com.mdframe.forge.starter.crypto.config.CryptoAutoConfiguration
+com.mdframe.forge.starter.crypto.config.JacksonCryptoConfiguration

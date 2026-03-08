@@ -1,0 +1,23 @@
+#  cache 重启频率为24*12次/天, 可支持37个节点以整体并发量2400 UID/s的速度持续运行34年.
+uid:
+  cache:
+    timeBits: 30
+    workerBits: 27
+    seqBits: 6
+    epochStr: 2021-04-07
+  default:
+    timeBits: 23
+    workerBits: 31
+    seqBits: 9
+    epochStr: 2021-04-07
+
+# 序列生成器配置
+forge:
+  id:
+    sequence:
+      # 是否启用HTTP API
+      enable-api: true
+      # 默认步长
+      default-step: 1000
+      # 预取阈值（剩余量低于此值时触发预取）
+      prefetch-threshold: 100

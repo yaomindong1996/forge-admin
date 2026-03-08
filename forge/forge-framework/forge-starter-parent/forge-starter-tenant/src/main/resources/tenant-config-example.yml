@@ -1,0 +1,50 @@
+# ====================================================================
+# 多租户配置示例
+# ====================================================================
+
+forge:
+  tenant:
+    # 是否启用多租户功能（默认：true）
+    enabled: true
+    
+    # 租户字段名称（默认：tenant_id）
+    # 所有需要租户隔离的表都应该有这个字段
+    column: tenant_id
+    
+    # 严格模式（默认：false）
+    # true: 当获取不到租户ID时抛出异常
+    # false: 当获取不到租户ID时记录警告日志
+    strict-mode: false
+    
+    # 忽略租户的表名列表
+    # 这些表不会自动添加租户条件
+    ignore-tables:
+      # 租户表本身
+      - sys_tenant
+      
+      # 系统配置相关表（通常为全局配置）
+      - sys_config
+      - sys_dict_type
+      - sys_dict_data
+      
+      # 文件存储配置（通常为系统级）
+      - sys_file_storage_config
+      - sys_file_metadata
+      
+      # Excel配置（如果是系统级）
+      - sys_excel_export_config
+      - sys_excel_column_config
+      
+      # 日志表（可选，看业务需求）
+      # 如果需要查看所有租户的日志，则添加到忽略列表
+      - sys_login_log
+      - sys_operation_log
+      
+      # 其他系统级表
+      # - your_system_table
+    
+    # 忽略租户的SQL关键字（可选）
+    # 包含这些关键字的SQL不会添加租户条件
+    ignore-sql-keywords:
+      # - COUNT(*)
+      # - DISTINCT

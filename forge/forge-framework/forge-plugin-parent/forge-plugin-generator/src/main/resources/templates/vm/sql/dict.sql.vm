@@ -1,0 +1,48 @@
+-- ${functionName}字典数据初始化
+
+#foreach($column in $columns)
+#if($column.dictType && $column.dictType != '')
+#set($comment = $column.columnComment)
+#set($leftParen = $comment.indexOf("("))
+#set($rightParen = $comment.indexOf(")"))
+#if($leftParen >= 0 && $rightParen > $leftParen)
+#set($dictName = $comment.substring(0, $leftParen).trim())
+#set($dictItems = $comment.substring($leftParen + 1, $rightParen))
+-- ${dictName}字典
+INSERT INTO sys_dict_type (tenant_id, dict_name, dict_type, dict_status, remark) VALUES
+(000000, '${dictName}', '${column.dictType}', 1, '${functionName}${dictName}字典');
+
+-- 字典数据项
+#set($items = $dictItems.split(",|，"))
+#set($sortIndex = 1)
+#foreach($item in $items)
+#set($item = $item.trim())
+#set($colonIndex = $item.indexOf(":"))
+#set($dashIndex = $item.indexOf("-"))
+#set($separatorIndex = -1)
+#if($colonIndex >= 0)
+#set($separatorIndex = $colonIndex)
+#elseif($dashIndex >= 0)
+#set($separatorIndex = $dashIndex)
+#end
+#if($separatorIndex >= 0)
+#set($dictValue = $item.substring(0, $separatorIndex).trim())
+#set($dictLabel = $item.substring($separatorIndex + 1).trim())
+INSERT INTO sys_dict_data (tenant_id, dict_sort, dict_label, dict_value, dict_type, dict_status, remark) VALUES
+(000000, ${sortIndex}, '${dictLabel}', '${dictValue}', '${column.dictType}', 1, '');
+#set($sortIndex = $sortIndex + 1)
+#end
+#end
+
+#else
+-- ${column.columnComment}字典
+INSERT INTO sys_dict_type (tenant_id, dict_name, dict_type, dict_status, remark) VALUES
+(000000, '${column.columnComment}', '${column.dictType}', 1, '${functionName}${column.columnComment}字典');
+
+-- 注意：需要手动填充字典数据项
+-- INSERT INTO sys_dict_data (tenant_id, dict_sort, dict_label, dict_value, dict_type, dict_status, remark) VALUES
+-- (000000, 1, '选项1', '1', '${column.dictType}', 1, '');
+
+#end
+#end
+#end

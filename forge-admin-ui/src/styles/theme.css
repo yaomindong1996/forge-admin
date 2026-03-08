@@ -1,0 +1,258 @@
+/**
+ * 主题样式变量
+ * 这些变量会被 theme.config.js 动态设置
+ */
+
+:root {
+  --base-primary-color:#d12723FF;
+  /* 字体大小配置 */
+  --font-size-base: calc(14px * var(--font-scale, 1));
+  --font-size-lg: calc(16px * var(--font-scale, 1));
+  --font-size-sm: calc(12px * var(--font-scale, 1));
+
+  /* Header 配置 */
+  --layout-header-bg-color: #d12723FF;
+  --layout-header-text-color: #FFFFFFFF;
+  --layout-header-font-size: var(--font-size-base);
+  --layout-header-height: 60px;
+  --layout-header-border-color: #FFFFFFFF;
+
+  /* 顶部菜单配置 */
+  --top-menu-text-color: #FFFFFFFF;
+  --top-menu-text-color-hover: #FFFFFFFF;
+  --top-menu-text-color-active: #FFFFFFFF;
+  --top-menu-text-color-active-hover: #FFFFFFFF;
+  --top-menu-text-color-active-horizontal: #333333;
+  --top-menu-bg-color: transparent;
+  --top-menu-bg-color-hover: rgba(255, 255, 255, 0.1);
+  --top-menu-bg-color-active: rgba(255, 255, 255, 0.2);
+  --top-menu-bg-color-active-hover: rgba(255, 255, 255, 0.15);
+  --top-menu-font-size: var(--font-size-base);
+  --top-menu-font-weight: 500;
+  --top-menu-icon-color:#333333;
+  --top-menu-icon-color-active:#333333;
+  --n-item-text-color-child-active-horizontal:#ffffff;
+
+  /* 侧边菜单配置 */
+  --side-menu-bg-color: #ffffff;
+  --side-menu-text-color: #333333;
+  --side-menu-text-color-hover: #316cfa;
+  --side-menu-text-color-active: #316cfa;
+  --side-menu-bg-color-hover: #f5f5f5;
+  --side-menu-bg-color-active: #e8f0fe;
+  --side-menu-border-color: #e5e7eb;
+  --side-menu-font-size: var(--font-size-base);
+  --side-menu-font-weight: 400;
+  --side-menu-icon-color: #666666;
+  --side-menu-icon-color-active: #d12723FF;
+  --side-menu-collapsed-width: 64px;
+  --side-menu-width: 220px;
+}
+
+/* 应用 Header 样式 */
+.layout-header {
+  background-color: var(--layout-header-bg-color) !important;
+  color: var(--layout-header-text-color) !important;
+  /*font-size: var(--layout-header-font-size) !important;*/
+  height: var(--layout-header-height) !important;
+  border-color: var(--layout-header-border-color) !important;
+}
+.side-header{
+  background-color: var(--layout-header-bg-color) !important;
+  color: var(--layout-header-text-color) !important;
+  height: var(--layout-header-height) !important;
+}
+.layout-header * {
+  /*color: var(--layout-header-text-color);*/
+}
+
+/* 应用顶部菜单样式 */
+.top-menu-wrapper .n-menu,
+.top-menu {
+  background-color: transparent !important;
+}
+
+.top-menu-wrapper .n-menu-item-content,
+.top-menu .n-menu-item-content {
+  color: var(--top-menu-text-color) !important;
+  font-size: calc(var(--top-menu-font-size) * var(--font-scale, 1)) !important;
+  font-weight: var(--top-menu-font-weight) !important;
+}
+.top-menu-wrapper .n-menu-item-content:hover,
+.top-menu .n-menu-item-content:hover {
+  color: var(--top-menu-icon-color-active) !important;
+  background-color: var(--top-menu-bg-color-hover) !important;
+}
+
+.top-menu-wrapper .n-menu-item-content--selected,
+.top-menu .n-menu-item-content--selected:hover {
+  color: var(--top-menu-text-color-active) !important;
+  background-color: var(--top-menu-bg-color-active) !important;
+}
+.top-menu-wrapper.n-menu.n-menu--horizontal .n-menu-item-content:not(.n-menu-item-content--disabled).n-menu-item-content--selected:hover .n-menu-item-content-header{
+  color: var(--top-menu-text-color-active) !important;
+  background-color: var(--top-menu-bg-color-active) !important;
+}
+
+.top-menu-wrapper .n-menu-item-content--selected,
+.top-menu .n-menu-item-content--selected {
+  color: var(--top-menu-text-color-active) !important;
+  background-color: var(--top-menu-bg-color-active) !important;
+}
+
+.top-menu-wrapper .n-menu-item-content__icon,
+.top-menu .n-menu-item-content__icon {
+  color: var(--top-menu-icon-color) !important;
+  margin-left: 0 !important;
+}
+
+.top-menu-wrapper .n-menu-item-content--selected .n-menu-item-content__icon,
+.top-menu .n-menu-item-content--selected .n-menu-item-content__icon {
+  color: var(--top-menu-icon-color-active) !important;
+}
+
+/* 应用侧边菜单样式 */
+.side-menu-wrapper,
+.side-menu-wrapper .n-menu {
+  background-color: var(--side-menu-bg-color) !important;
+  border-color: var(--side-menu-border-color) !important;
+}
+
+.side-menu-wrapper .n-menu-item-content {
+  color: var(--side-menu-text-color) !important;
+  font-size: calc(var(--side-menu-font-size) * var(--font-scale, 1)) !important;
+  font-weight: var(--side-menu-font-weight) !important;
+  padding-left: 12px !important;
+}
+
+.side-menu-wrapper .n-menu-item-content:hover {
+  color: var(--side-menu-text-color-hover) !important;
+  background-color: var(--side-menu-bg-color-hover) !important;
+}
+
+.side-menu-wrapper .n-menu-item-content--selected {
+  color: var(--side-menu-text-color-active) !important;
+  background-color: var(--side-menu-bg-color-active) !important;
+  padding-left: 12px !important;
+}
+.side-menu-wrapper .n-menu-item-content--selected:hover{
+  background-color: var(--side-menu-bg-color-active) !important;
+}
+.side-menu-wrapper .n-menu-item-content__icon {
+  color: var(--side-menu-icon-color) !important;
+}
+.side-menu-wrapper .n-menu .n-menu-item-content.n-menu-item-content--selected .n-menu-item-content-header{
+  color: var(--side-menu-text-color-active) !important;
+}
+.n-menu .n-menu-item-content.n-menu-item-content--selected .n-menu-item-content-header{
+  color: var(--side-menu-text-color-active) !important;
+}
+.layout-header .n-menu.n-menu--horizontal .n-menu-item-content.n-menu-item-content--selected .n-menu-item-content-header{
+  color: var(--n-item-text-color-active-horizontal) !important;
+}
+.side-menu-wrapper .n-menu-item-content--selected .n-menu-item-content__icon {
+  color: var(--side-menu-icon-color-active) !important;
+}
+
+/* 侧边栏宽度 */
+.side-menu-wrapper:not(.collapsed) {
+  width: var(--side-menu-width) !important;
+}
+
+.side-menu-wrapper.collapsed {
+  width: var(--side-menu-collapsed-width) !important;
+}
+.n-button{
+  border-radius:0 !important;
+}
+.n-button--small-type{
+  /*font-size: 13px !important;*/
+}
+.top-menu-wrapper .n-menu-item-content--selected, .top-menu .n-menu-item-content--selected{
+  color: var(--top-menu-icon-color-active) !important;
+}
+.n-menu .n-menu-item-content .n-menu-item-content__icon{
+  margin-left: 8px;
+}
+.n-menu.n-menu--horizontal .n-menu-item-content.n-menu-item-content--child-active .n-menu-item-content__icon{
+  color: var(--top-menu-icon-color-active) !important;
+}
+.n-menu.n-menu--horizontal .n-menu-item-content.n-menu-item-content--child-active{
+  background: var(--top-menu-bg-color-active);
+}
+.n-menu.n-menu--horizontal .n-menu-item-content.n-menu-item-content--child-active:hover{
+  background: var(--top-menu-bg-color-active) !important;
+}
+.n-dialog .n-dialog__icon{
+  color: var(--base-primary-color) !important;
+}
+.n-button{
+  font-size: calc(var(--n-font-size) * var(--font-scale, 1)) !important;
+}
+.n-form-item .n-form-item-label{
+  font-size: calc(var(--n-label-font-size) * var(--font-scale, 1)) !important;
+}
+.n-input{
+  font-size: calc(var(--n-font-size) * var(--font-scale, 1)) !important;
+}
+.n-form-item .n-form-item-feedback-wrapper{
+  font-size: calc(var(--n-feedback-font-size) * var(--font-scale, 1)) !important;
+  min-height: calc(var(--n-feedback-height) * var(--font-scale, 1)) !important;
+}
+.n-data-table .n-data-table-th{
+  font-size: calc(var(--font-size-base - 1) * var(--font-scale, 1)) !important;
+}
+
+/* 全局分页器响应式样式 */
+.n-pagination {
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+@media (max-width: 992px) {
+  .n-pagination {
+    padding: 12px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .n-pagination {
+    justify-content: center !important;
+    padding: 16px 8px !important;
+  }
+
+  .n-pagination .n-pagination-item {
+    min-width: 32px !important;
+    height: 32px !important;
+    font-size: 13px !important;
+  }
+
+  .n-pagination .n-pagination-item__button {
+    padding: 0 6px !important;
+  }
+
+  .n-pagination-size-picker {
+    font-size: 13px !important;
+  }
+
+  .n-pagination-quick-jumper {
+    font-size: 13px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .n-pagination {
+    padding: 12px 4px !important;
+    gap: 4px !important;
+  }
+
+  .n-pagination .n-pagination-item {
+    min-width: 28px !important;
+    height: 28px !important;
+    font-size: 12px !important;
+  }
+
+  .n-pagination .n-pagination-item__button {
+    padding: 0 4px !important;
+  }
+}

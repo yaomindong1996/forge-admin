@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <artifactId>forge-framework</artifactId>
+        <groupId>com.mdframe.forge</groupId>
+        <version>${revision}</version>
+    </parent>
+    <artifactId>forge-starter-parent</artifactId>
+    <name>forge-starter-parent</name>
+    <description>forge-starter-parent</description>
+    <packaging>pom</packaging>
+    
+    <modules>
+        <module>forge-starter-core</module>
+        <module>forge-starter-orm</module>
+        <module>forge-starter-web</module>
+        <module>forge-starter-cache</module>
+        <module>forge-starter-auth</module>
+        <module>forge-starter-log</module>
+        <module>forge-starter-trans</module>
+        <module>forge-starter-file</module>
+        <module>forge-starter-excel</module>
+        <module>forge-starter-config</module>
+        <module>forge-starter-job</module>
+        <module>forge-starter-id</module>
+        <module>forge-starter-datascope</module>
+        <module>forge-starter-message</module>
+        <module>forge-starter-tenant</module>
+        <module>forge-starter-crypto</module>
+        <module>forge-starter-websocket</module>
+        <module>forge-starter-api-config</module>
+    </modules>
+    
+</project>

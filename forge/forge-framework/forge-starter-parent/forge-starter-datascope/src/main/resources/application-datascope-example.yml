@@ -1,0 +1,9 @@
+# 数据权限配置示例
+forge:
+  datascope:
+    # 是否启用数据权限控制
+    enabled: true
+    # 是否打印SQL改写日志
+    print-sql: true
+    # 是否启用API接口
+    enable-api: true

@@ -1,0 +1,52 @@
+{
+  "properties": [
+    {
+      "name": "forge.auth.enable-api-permission",
+      "type": "java.lang.Boolean",
+      "description": "是否启用API接口权限校验",
+      "defaultValue": true
+    },
+    {
+      "name": "forge.auth.api-permission-exclude-paths",
+      "type": "java.lang.String[]",
+      "description": "API权限校验排除路径（支持通配符）",
+      "defaultValue": ["/auth/**"]
+    },
+    {
+      "name": "forge.auth.enable-login-lock",
+      "type": "java.lang.Boolean",
+      "description": "是否启用登录失败锁定功能",
+      "defaultValue": true
+    },
+    {
+      "name": "forge.auth.max-login-attempts",
+      "type": "java.lang.Integer",
+      "description": "最大登录失败尝试次数",
+      "defaultValue": 4
+    },
+    {
+      "name": "forge.auth.lock-duration",
+      "type": "java.lang.Long",
+      "description": "账号锁定时长（分钟）",
+      "defaultValue": 30
+    },
+    {
+      "name": "forge.auth.fail-record-expire",
+      "type": "java.lang.Long",
+      "description": "登录失败记录保留时长（分钟）",
+      "defaultValue": 15
+    },
+    {
+      "name": "forge.auth.same-account-login-strategy",
+      "type": "java.lang.String",
+      "description": "同一账号登录策略: allow_concurrent(允许并发), replace_old(新登录踢出旧登录), reject_new(拒绝新登录)",
+      "defaultValue": "replace_old"
+    },
+    {
+      "name": "forge.auth.enable-online-user-management",
+      "type": "java.lang.Boolean",
+      "description": "是否启用在线用户管理",
+      "defaultValue": true
+    }
+  ]
+}
