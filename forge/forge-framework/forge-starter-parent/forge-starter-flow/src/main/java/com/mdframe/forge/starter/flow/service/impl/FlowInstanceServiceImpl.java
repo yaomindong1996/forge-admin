@@ -1,0 +1,160 @@
+package com.mdframe.forge.starter.flow.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mdframe.forge.starter.flow.entity.FlowBusiness;
+import com.mdframe.forge.starter.flow.entity.FlowModel;
+import com.mdframe.forge.starter.flow.mapper.FlowBusinessMapper;
+import com.mdframe.forge.starter.flow.service.FlowInstanceService;
+import lombok.extern.slf4j.Slf4j;
+import org.flowable.engine.ProcessEngine;
+import org.flowable.engine.RuntimeService;
+import org.flowable.engine.repository.ProcessDefinition;
+import org.flowable.engine.runtime.ProcessInstance;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * 流程实例服务实现
+ */
+@Slf4j
+@Service
+public class FlowInstanceServiceImpl implements FlowInstanceService {
+
+    @Autowired
+    private ProcessEngine processEngine;
+
+    @Autowired
+    private RuntimeService runtimeService;
+
+    @Autowired
+    private FlowBusinessMapper flowBusinessMapper;
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String startProcess(String modelKey, String businessKey, String title,
+                               Map<String, Object> variables, String userId, String userName,
+                               String deptId, String deptName) {
+        return startProcess(modelKey, businessKey, null, title, variables, 
+                userId, userName, deptId, deptName);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String startProcess(String modelKey, String businessKey, String businessType,
+                                String title, Map<String, Object> variables, String userId,
+                                String userName, String deptId, String deptName) {
+        // 1. 获取流程定义
+        ProcessDefinition processDefinition = processEngine.getRepositoryService()
+                .createProcessDefinitionQuery()
+                .processDefinitionKey(modelKey)
+                .latestVersion()
+                .singleResult();
+
+        if (processDefinition == null) {
+            throw new RuntimeException("流程定义不存在：" + modelKey);
+        }
+
+        // 2. 构建流程变量
+        Map<String, Object> vars = variables != null ? new HashMap<>(variables) : new HashMap<>();
+        vars.put("initiator", userId);
+        vars.put("startUserId", userId);
+        vars.put("startUserName", userName);
+        vars.put("startDeptId", deptId);
+        vars.put("startDeptName", deptName);
+
+        // 3. 启动流程
+        ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(
+                modelKey,
+                businessKey,
+                vars
+        );
+
+        // 4. 保存业务关联
+        FlowBusiness business = new FlowBusiness();
+        business.setBusinessKey(businessKey);
+        business.setBusinessType(businessType);
+        business.setProcessInstanceId(processInstance.getId());
+        business.setProcessDefId(processDefinition.getId());
+        business.setProcessDefKey(processDefinition.getKey());
+        business.setTitle(title);
+        business.setStatus("running");
+        business.setApplyUserId(userId);
+        business.setApplyUserName(userName);
+        business.setApplyDeptId(deptId);
+        business.setApplyDeptName(deptName);
+        business.setApplyTime(LocalDateTime.now());
+        business.setCreateTime(LocalDateTime.now());
+        business.setUpdateTime(LocalDateTime.now());
+
+        flowBusinessMapper.insert(business);
+
+        log.info("启动流程成功：businessKey={}, processInstanceId={}", 
+                businessKey, processInstance.getId());
+
+        return processInstance.getId();
+    }
+
+    @Override
+    public FlowBusiness getProcessStatus(String businessKey) {
+        LambdaQueryWrapper<FlowBusiness> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(FlowBusiness::getBusinessKey, businessKey);
+        return flowBusinessMapper.selectOne(wrapper);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void terminateProcess(String businessKey, String userId, String reason) {
+        FlowBusiness business = getProcessStatus(businessKey);
+        if (business == null) {
+            throw new RuntimeException("流程实例不存在");
+        }
+
+        runtimeService.deleteProcessInstance(business.getProcessInstanceId(), reason);
+
+        business.setStatus("canceled");
+        business.setEndTime(LocalDateTime.now());
+        flowBusinessMapper.updateById(business);
+
+        log.info("终止流程：businessKey={}, reason={}", businessKey, reason);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteProcess(String businessKey, String userId) {
+        FlowBusiness business = getProcessStatus(businessKey);
+        if (business != null && business.getProcessInstanceId() != null) {
+            runtimeService.deleteProcessInstance(business.getProcessInstanceId(), "删除");
+            flowBusinessMapper.deleteById(business.getId());
+            log.info("删除流程实例：businessKey={}", businessKey);
+        }
+    }
+
+    @Override
+    public Map<String, Object> getProcessVariables(String businessKey) {
+        FlowBusiness business = getProcessStatus(businessKey);
+        if (business == null || business.getProcessInstanceId() == null) {
+            return new HashMap<>();
+        }
+        return runtimeService.getVariables(business.getProcessInstanceId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateProcessVariables(String businessKey, Map<String, Object> variables) {
+        FlowBusiness business = getProcessStatus(businessKey);
+        if (business == null || business.getProcessInstanceId() == null) {
+            throw new RuntimeException("流程实例不存在");
+        }
+        
+        for (Map.Entry<String, Object> entry : variables.entrySet()) {
+            runtimeService.setVariable(business.getProcessInstanceId(), entry.getKey(), entry.getValue());
+        }
+        
+        log.info("更新流程变量：businessKey={}", businessKey);
+    }
+}
