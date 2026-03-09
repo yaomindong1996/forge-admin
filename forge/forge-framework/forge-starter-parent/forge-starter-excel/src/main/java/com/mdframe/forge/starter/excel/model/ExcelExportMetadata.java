@@ -68,4 +68,14 @@ public class ExcelExportMetadata {
      * 状态（1-启用，0-禁用）
      */
     private Integer status;
+    
+    /**
+     * 是否包含示例数据（用于模板）
+     */
+    private Boolean includeSample;
+    
+    /**
+     * 是否允许导入
+     */
+    private Boolean allowImport;
 }

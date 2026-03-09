@@ -1,6 +1,7 @@
 package com.mdframe.forge.starter.excel.controller;
 
 import com.mdframe.forge.starter.excel.model.AsyncExportTask;
+import com.mdframe.forge.starter.excel.model.GenericRowData;
 import com.mdframe.forge.starter.excel.model.ImportResult;
 import com.mdframe.forge.starter.excel.service.AsyncExportService;
 import com.mdframe.forge.starter.excel.service.ExcelImportService;
@@ -64,9 +65,9 @@ public class ExcelEnhancedController {
         log.info("导入 Excel 数据：configKey={}, fileName={}", configKey, file.getOriginalFilename());
         
         try {
-            // 使用 Map 作为通用类型，具体业务校验由调用方处理
-            ImportResult<Map<String, Object>> result = importService.importData(
-                    file, configKey, Map.class);
+            // 使用 GenericRowData 作为通用类型，解决 Map 接口无法实例化的问题
+            ImportResult<GenericRowData> result = importService.importData(
+                    file, configKey, GenericRowData.class);
             
             return ResponseEntity.ok(result);
             

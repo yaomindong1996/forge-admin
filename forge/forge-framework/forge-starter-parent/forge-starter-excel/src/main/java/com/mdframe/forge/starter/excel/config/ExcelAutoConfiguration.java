@@ -1,6 +1,7 @@
 package com.mdframe.forge.starter.excel.config;
 
 import com.mdframe.forge.starter.excel.controller.ExcelEnhancedController;
+import com.mdframe.forge.starter.excel.core.DynamicExportEngine;
 import com.mdframe.forge.starter.excel.core.ExcelExporter;
 import com.mdframe.forge.starter.excel.service.AsyncExportService;
 import com.mdframe.forge.starter.excel.service.ExcelImportService;
@@ -24,6 +25,11 @@ public class ExcelAutoConfiguration {
         return new ExcelExporter();
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public AsyncExportService asyncExportService(DynamicExportEngine dynamicExportEngine) {
+        return new AsyncExportServiceImpl(dynamicExportEngine);
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -31,4 +37,9 @@ public class ExcelAutoConfiguration {
         return new ExcelImportServiceImpl();
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public ExcelEnhancedController excelEnhancedController(ExcelImportService importService, AsyncExportService exportService) {
+        return new ExcelEnhancedController(importService, exportService);
+    }
 }

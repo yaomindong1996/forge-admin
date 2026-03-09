@@ -81,12 +81,8 @@ public class AsyncExportServiceImpl implements AsyncExportService {
             // 使用 ByteArrayOutputStream 捕获输出
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             
-            // 创建包装的 HttpServletResponse 来捕获输出
-            MockHttpServletResponse mockResponse = new MockHttpServletResponse();
-            mockResponse.setOutputStream(outputStream);
-            
-            // 执行导出
-            dynamicExportEngine.export(mockResponse, configKey, queryParams);
+            // 使用简化的输出包装方式
+            dynamicExportEngine.exportToStream(outputStream, configKey, queryParams);
             
             // 写入文件
             String filePath = TEMP_DIR + taskId + ".xlsx";

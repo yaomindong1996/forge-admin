@@ -505,4 +505,64 @@ public class DynamicExportEngine {
             }
         }
     }
+
+    /**
+     * 导出到输出流（用于异步导出）
+     *
+     * @param outputStream 输出流
+     * @param configKey    配置键
+     * @param queryParams  查询参数
+     */
+    public void exportToStream(java.io.OutputStream outputStream, String configKey, Map<String, Object> queryParams) {
+        try {
+            ExcelExportMetadata metadata = loadMetadata(configKey);
+            if (metadata == null || metadata.getStatus() == 0) {
+                throw new RuntimeException("导出配置不存在或已禁用：" + configKey);
+            }
+
+            List<ExcelColumnConfig> columnConfigs = loadColumnConfigs(configKey);
+            if (columnConfigs == null || columnConfigs.isEmpty()) {
+                throw new RuntimeException("未配置导出列：" + configKey);
+            }
+
+            List<?> dataList = queryData(metadata, queryParams);
+            if (dataList == null || dataList.isEmpty()) {
+                log.warn("导出数据为空：{}", configKey);
+                dataList = Collections.emptyList();
+            }
+
+            if (Boolean.TRUE.equals(metadata.getAutoTrans()) && transManager != null) {
+                translateData(dataList);
+            }
+
+            if (metadata.getMaxRows() != null && dataList.size() > metadata.getMaxRows()) {
+                dataList = dataList.subList(0, metadata.getMaxRows());
+                log.warn("导出数据超过最大限制，已截断至{}条", metadata.getMaxRows());
+            }
+
+            exportToStreamInternal(outputStream, metadata, columnConfigs, dataList);
+
+        } catch (Exception e) {
+            log.error("动态导出到流失败：{}", configKey, e);
+            throw new RuntimeException("导出失败：" + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 导出到输出流内部方法
+     */
+    private void exportToStreamInternal(java.io.OutputStream outputStream, ExcelExportMetadata metadata,
+                                         List<ExcelColumnConfig> columnConfigs, List<?> dataList) throws IOException {
+        List<List<String>> headers = columnConfigs.stream()
+                .map(c -> Collections.singletonList(c.getColumnName()))
+                .collect(Collectors.toList());
+
+        List<List<Object>> mappedData = mapDataToList(dataList, columnConfigs);
+
+        String sheetName = metadata.getSheetName() != null ? metadata.getSheetName() : "Sheet1";
+        EasyExcel.write(outputStream)
+                .head(headers)
+                .sheet(sheetName)
+                .doWrite(mappedData);
+    }
 }

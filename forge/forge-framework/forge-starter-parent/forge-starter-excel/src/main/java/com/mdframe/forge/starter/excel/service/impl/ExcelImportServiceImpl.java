@@ -7,6 +7,7 @@ import com.alibaba.excel.write.builder.ExcelWriterBuilder;
 import com.alibaba.excel.write.metadata.WriteSheet;
 import com.mdframe.forge.starter.excel.model.ExcelColumnConfig;
 import com.mdframe.forge.starter.excel.model.ExcelExportMetadata;
+import com.mdframe.forge.starter.excel.model.GenericRowData;
 import com.mdframe.forge.starter.excel.model.ImportErrorRecord;
 import com.mdframe.forge.starter.excel.model.ImportResult;
 import com.mdframe.forge.starter.excel.service.ExcelImportService;
@@ -138,11 +139,22 @@ public class ExcelImportServiceImpl implements ExcelImportService {
             }
             
             // 解析 Excel
-            ImportListener<T> listener = new ImportListener<>(clazz, columnConfigMap, result);
-            EasyExcel.read(inputStream, clazz, listener).sheet().doRead();
+            // 特殊处理 GenericRowData 类型，使用 Map 模式读取
+            if (clazz == GenericRowData.class) {
+                // 使用 EasyExcel 的 Map 读取模式
+                @SuppressWarnings("unchecked")
+                ImportResult<GenericRowData> genericResult = (ImportResult<GenericRowData>) result;
+                GenericRowDataListener listener = new GenericRowDataListener(columnConfigMap, genericResult);
+                EasyExcel.read(inputStream, null, listener).sheet().doRead();
+                result.setTotalRows(listener.getRowCount());
+            } else {
+                // 使用普通对象模式
+                ImportListener<T> listener = new ImportListener<>(clazz, columnConfigMap, result);
+                EasyExcel.read(inputStream, clazz, listener).sheet().doRead();
+                result.setTotalRows(listener.getRowCount());
+            }
             
             // 设置汇总信息
-            result.setTotalRows(listener.getRowCount());
             result.setSuccessRows(result.getSuccessData().size());
             result.setFailedRows(result.getErrors().size());
             result.buildSummary();
