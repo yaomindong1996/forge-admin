@@ -52,4 +52,29 @@ public class ExcelColumnConfig {
      * 字典类型
      */
     private String dictType;
+
+    /**
+     * 是否可导入
+     */
+    private Boolean importable;
+
+    /**
+     * 是否必填
+     */
+    private Boolean required;
+
+    /**
+     * 示例值（用于模板）
+     */
+    private String exampleValue;
+
+    /**
+     * 校验规则（正则表达式）
+     */
+    private String validationRule;
+
+    /**
+     * 校验失败提示信息
+     */
+    private String validationMessage;
 }
