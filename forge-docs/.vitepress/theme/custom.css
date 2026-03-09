@@ -1,0 +1,106 @@
+/* 自定义CSS样式 */
+
+/* Hero 图片容器 */
+.VPHero .image {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Hero 图片背景光晕 */
+.VPHero .image-bg {
+  background: linear-gradient(135deg, #1f6ade 0%, #4f8de7 100%);
+  filter: blur(72px);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 320px;
+  height: 320px;
+  z-index: 0;
+  opacity: 0.4;
+  animation: pulse 4s ease-in-out infinite;
+}
+
+/* Logo 图片样式 */
+.VPHero .image-src {
+  filter: drop-shadow(0 10px 30px rgba(31, 152, 231, 0.3));
+  transition: transform 0.3s ease;
+}
+
+
+/* 光晕脉冲动画 */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+/* Logo 浮动动画 */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* 标题渐变效果 */
+.VPHero .name {
+  background: linear-gradient(135deg, #1f6ade 0%, #4f8de7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+/* 主标题渐变效果 */
+.VPHero .text {
+  background: linear-gradient(135deg, #1a1a1a 0%, #4a4a4a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+}
+
+/* 副标题样式 */
+.VPHero .tagline {
+  color: #666;
+}
+
+/* 暗色模式适配 */
+.dark .VPHero .image-bg {
+  background: linear-gradient(135deg, #1f6ade 0%, #4f8de7 100%);
+  opacity: 0.3;
+}
+
+.dark .VPHero .text {
+  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dark .VPHero .tagline {
+  color: #a0a0a0;
+}
+
+/* Features 卡片样式优化 */
+.VPFeature .title {
+  font-weight: 600;
+}
+
+.VPFeature .details {
+  color: #666;
+}
+
+.dark .VPFeature .details {
+  color: #a0a0a0;
+}
