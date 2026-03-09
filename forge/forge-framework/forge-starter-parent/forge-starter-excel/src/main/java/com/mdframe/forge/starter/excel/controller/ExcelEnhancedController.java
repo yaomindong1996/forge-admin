@@ -155,7 +155,7 @@ public class ExcelEnhancedController {
             byte[] fileContent = exportService.downloadFile(taskId);
             
             AsyncExportTask task = exportService.getTaskStatus(taskId);
-            String fileName = task != null && task.getFileName() != null 
+            String fileName = task != null && task.getFileName() != null
                     ? task.getFileName() : "export_" + taskId + ".xlsx";
             
             response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -203,7 +203,9 @@ public class ExcelEnhancedController {
     }
     
     private String getStatusText(Integer status) {
-        if (status == null) return "未知";
+        if (status == null) {
+            return "未知";
+        }
         switch (status) {
             case 0: return "处理中";
             case 1: return "完成";

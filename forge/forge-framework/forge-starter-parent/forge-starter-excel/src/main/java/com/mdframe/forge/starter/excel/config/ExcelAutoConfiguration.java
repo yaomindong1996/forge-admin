@@ -24,11 +24,6 @@ public class ExcelAutoConfiguration {
         return new ExcelExporter();
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public AsyncExportService asyncExportService() {
-        return new AsyncExportServiceImpl();
-    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -36,9 +31,4 @@ public class ExcelAutoConfiguration {
         return new ExcelImportServiceImpl();
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public ExcelEnhancedController excelEnhancedController() {
-        return new ExcelEnhancedController();
-    }
 }
