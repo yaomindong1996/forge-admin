@@ -19,6 +19,7 @@
         <module>forge-plugin-system</module>
         <module>forge-plugin-job</module>
         <module>forge-plugin-message</module>
+        <module>forge-plugin-flow</module>
         <module>forge-plugin-generator</module>
     </modules>
 

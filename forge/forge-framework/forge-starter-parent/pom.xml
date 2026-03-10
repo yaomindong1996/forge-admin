@@ -31,7 +31,6 @@
         <module>forge-starter-crypto</module>
         <module>forge-starter-websocket</module>
         <module>forge-starter-api-config</module>
-        <module>forge-starter-flow</module>
     </modules>
     
 </project>
