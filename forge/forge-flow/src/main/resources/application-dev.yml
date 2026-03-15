@@ -1,0 +1,60 @@
+spring:
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    dynamic:
+      primary: master
+      strict: true
+      datasource:
+        master:
+          type: ${spring.datasource.type}
+          driverClassName: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://120.48.96.178:3306/forge_admin_new?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true
+          username: rdsroot
+          password: '!Ymd199606'
+      hikari:
+        maxPoolSize: 20
+        minIdle: 10
+        connectionTimeout: 30000
+        validationTimeout: 5000
+        idleTimeout: 600000
+        maxLifetime: 1800000
+        keepaliveTime: 30000
+
+spring.data:
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+    password: forge123456
+    timeout: 10s
+    ssl.enabled: false
+    redisson:
+      config: |
+        singleServerConfig:
+          address: "redis://localhost:6379"
+          database: 0
+          password: forge123456
+          connectTimeout: 10000
+          timeout: 3000
+          retryAttempts: 3
+          retryInterval: 1500
+          connectionPoolSize: 64
+          connectionMinimumIdleSize: 10
+        threads: 16
+        nettyThreads: 32
+
+config:
+  datasource:
+    url: ${spring.datasource.dynamic.datasource.master.url}
+    username: ${spring.datasource.dynamic.datasource.master.username}
+    password: ${spring.datasource.dynamic.datasource.master.password}
+    driverClassName: ${spring.datasource.dynamic.datasource.master.driverClassName}
+
+# Flowable 流程引擎配置
+flowable:
+  database-schema-update: false
+  async-executor-activate: true
+  history-level: full
+  activity-font-name: 宋体
+  label-font-name: 宋体
+  annotation-font-name: 宋体

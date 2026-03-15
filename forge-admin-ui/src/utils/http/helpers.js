@@ -2,9 +2,18 @@ import { useAuthStore } from '@/store'
 
 let isConfirming = false
 export function resolveResError(code, message, needTip = true) {
+  // 检查是否在登录页面
+  const isLoginPage = window.location.pathname === '/login'
+  
   switch (code) {
     case '-8':  // 令牌无效
     case 401:
+      // 如果在登录页面，静默清除 token，不弹对话框
+      if (isLoginPage) {
+        const authStore = useAuthStore()
+        authStore.resetToken()
+        return false
+      }
       if (isConfirming || !needTip){
         return
       }

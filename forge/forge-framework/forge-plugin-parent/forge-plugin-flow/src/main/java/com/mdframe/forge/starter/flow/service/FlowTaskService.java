@@ -27,6 +27,18 @@ public interface FlowTaskService {
     IPage<FlowTask> startedTasks(Page<FlowTask> page, String userId, String title, String category);
 
     /**
+     * 候选任务（未签收的任务）
+     * 支持按用户ID和/或组ID查询
+     *
+     * @param page    分页参数
+     * @param userId  用户ID（可选）
+     * @param groupId 组ID（可选）
+     * @param title   标题过滤
+     * @return 候选任务列表
+     */
+    IPage<FlowTask> candidateTasks(Page<FlowTask> page, String userId, String groupId, String title);
+
+    /**
      * 签收任务
      */
     void claimTask(String taskId, String userId);
@@ -62,7 +74,10 @@ public interface FlowTaskService {
     FlowTask getTaskDetail(String taskId);
 
     /**
-     * 获取流程图
+     * 获取流程图（高亮当前节点）
+     *
+     * @param processInstanceId 流程实例ID
+     * @return PNG图片字节数组
      */
     byte[] getProcessDiagram(String processInstanceId);
 

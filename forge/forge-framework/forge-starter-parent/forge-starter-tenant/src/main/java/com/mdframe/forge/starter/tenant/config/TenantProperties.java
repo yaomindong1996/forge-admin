@@ -42,6 +42,15 @@ public class TenantProperties {
      */
     private Boolean strictMode = false;
 
+    /**
+     * 是否自动检测租户字段
+     * true: 在应用启动时自动扫描数据库表结构，检测哪些表包含租户字段
+     *       不包含租户字段的表会自动跳过租户过滤
+     * false: 使用 ignoreTables 配置来指定忽略的表
+     * 默认: true（推荐）
+     */
+    private Boolean autoDetectTenantColumn = true;
+    
     public TenantProperties() {
         // 默认忽略系统配置表
         ignoreTables.add("sys_tenant");

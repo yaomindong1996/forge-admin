@@ -114,6 +114,7 @@
     <modules>
         <module>forge-admin</module>
         <module>forge-framework</module>
+        <module>forge-flow</module>
     </modules>
     
     <packaging>pom</packaging>

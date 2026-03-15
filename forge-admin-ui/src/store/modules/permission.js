@@ -84,7 +84,7 @@ export const usePermissionStore = defineStore('permission', {
 
         items.forEach(item => {
           // 只为菜单类型(非目录)且有 path 和 component 的项生成路由
-          if (item.type === 'MENU' && item.path && item.component) {
+          if (item.type === 'menu' && item.path && item.component) {
             // 确保路径以 "/" 开头
             let routePath = item.path.trim()
             if (!routePath.startsWith('/') && !isExternal(routePath)) {

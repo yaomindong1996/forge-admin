@@ -57,6 +57,14 @@ export default defineConfig(({ mode }) => {
       port: VITE_HTTP_PORT,
       open: false,
       proxy: {
+        // 流程服务代理 - 必须在主代理之前，匹配更具体的路径
+        '/dev-api/api/flow': {
+          target: 'http://localhost:8081',
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path.replace(/^\/dev-api/, ''),
+        },
+        // 主代理 - 匹配所有其他请求
         [VITE_REQUEST_PREFIX]: {
           secure: false,
           target: VITE_HTTP_PROXY_TARGET,

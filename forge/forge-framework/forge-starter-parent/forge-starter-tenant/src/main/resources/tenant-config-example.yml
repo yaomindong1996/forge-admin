@@ -16,35 +16,52 @@ forge:
     # false: 当获取不到租户ID时记录警告日志
     strict-mode: false
     
-    # 忽略租户的表名列表
+    # 自动检测租户字段（默认：true）
+    # 启用后，应用启动时会自动扫描数据库表结构
+    # 检测哪些表包含租户字段，不包含的表自动跳过租户过滤
+    # 推荐开启，可以省去手动配置 ignore-tables
+    auto-detect-tenant-column: true
+    
+    # 忽略租户的表名列表（仅在 auto-detect-tenant-column=false 时需要配置）
     # 这些表不会自动添加租户条件
+    # 如果开启了自动检测，此项配置可选，作为额外的忽略表
     ignore-tables:
+      # 以下配置仅作为示例，开启自动检测后无需配置
+      
       # 租户表本身
-      - sys_tenant
+      # - sys_tenant
       
       # 系统配置相关表（通常为全局配置）
-      - sys_config
-      - sys_dict_type
-      - sys_dict_data
-      
-      # 文件存储配置（通常为系统级）
-      - sys_file_storage_config
-      - sys_file_metadata
-      
-      # Excel配置（如果是系统级）
-      - sys_excel_export_config
-      - sys_excel_column_config
-      
-      # 日志表（可选，看业务需求）
-      # 如果需要查看所有租户的日志，则添加到忽略列表
-      - sys_login_log
-      - sys_operation_log
-      
-      # 其他系统级表
-      # - your_system_table
+      # - sys_config
+      # - sys_dict_type
+      # - sys_dict_data
     
     # 忽略租户的SQL关键字（可选）
     # 包含这些关键字的SQL不会添加租户条件
     ignore-sql-keywords:
       # - COUNT(*)
       # - DISTINCT
+
+# ====================================================================
+# 配置说明
+# ====================================================================
+#
+# 1. 自动检测模式（推荐）
+#    auto-detect-tenant-column: true
+#    - 应用启动时自动扫描数据库表结构
+#    - 检测哪些表包含 tenant_id 字段
+#    - 不包含的表自动跳过租户过滤
+#    - 无需手动配置 ignore-tables
+#
+# 2. 手动配置模式
+#    auto-detect-tenant-column: false
+#    - 需要在 ignore-tables 中手动配置忽略的表
+#    - 适用于对启动性能有极致要求的场景
+#
+# 3. 混合模式
+#    auto-detect-tenant-column: true
+#    ignore-tables:
+#      - some_special_table
+#    - 自动检测 + 手动配置额外忽略的表
+#    - 手动配置的表会优先处理
+# ====================================================================

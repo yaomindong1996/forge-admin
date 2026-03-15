@@ -95,15 +95,34 @@ export function createPermissionGuard(router) {
           next()
           return
         }
-        next({ path: 'login', query: { ...to.query, redirect: to.path } })
+        next({ path: '/login', query: { ...to.query, redirect: to.path } })
         return
       }
 
       // 有token的情况
       if (to.path === '/login') {
-        appStore.setRouteGuardCompleted(true) // 设置路由守卫完成
-        next({ path: '/' })
-        return
+        // 访问登录页面时，先尝试验证 token 是否有效
+        // 如果 token 无效，允许继续访问登录页面
+        try {
+          // 先进行密钥交换
+          await initKeyExchange(request)
+          // 尝试获取用户信息来验证 token
+          const userStore = useUserStore()
+          if (!userStore.userInfo) {
+            await getUserInfo()
+          }
+          // token 有效，重定向到首页
+          appStore.setRouteGuardCompleted(true)
+          next({ path: '/' })
+          return
+        } catch (error) {
+          // token 无效，清除 token 并允许访问登录页面
+          console.log('Token 验证失败，允许访问登录页面')
+          authStore.resetToken()
+          appStore.setRouteGuardCompleted(true)
+          next()
+          return
+        }
       }
       if (WHITE_LIST.includes(to.path)) {
         appStore.setRouteGuardCompleted(true) // 设置路由守卫完成

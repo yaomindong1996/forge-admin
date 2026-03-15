@@ -1,14 +1,16 @@
 package com.mdframe.forge.starter.tenant.config;
 
 import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
-import com.mdframe.forge.starter.apiconfig.service.IApiConfigManager;
 import com.mdframe.forge.starter.tenant.aspect.IgnoreTenantAspect;
 import com.mdframe.forge.starter.tenant.handler.DefaultTenantLineHandler;
+import com.mdframe.forge.starter.tenant.handler.TenantTableChecker;
 import com.mdframe.forge.starter.tenant.interceptor.TenantInterceptor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureOrder;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -16,6 +18,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.Ordered;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import javax.sql.DataSource;
+import java.util.Optional;
 
 /**
  * 多租户自动配置类
@@ -36,9 +41,15 @@ public class TenantAutoConfiguration implements WebMvcConfigurer {
      */
     @Bean
     @ConditionalOnMissingBean
-    public DefaultTenantLineHandler tenantLineHandler() {
-        log.info("初始化多租户处理器，租户字段: {}", tenantProperties.getColumn());
-        return new DefaultTenantLineHandler(tenantProperties);
+    public DefaultTenantLineHandler tenantLineHandler(
+            @Autowired(required = false) TenantTableChecker tenantTableChecker) {
+        log.info("初始化多租户处理器，租户字段: {}, 自动检测: {}",
+                tenantProperties.getColumn(), tenantProperties.getAutoDetectTenantColumn());
+        DefaultTenantLineHandler handler = new DefaultTenantLineHandler(tenantProperties);
+        if (tenantTableChecker != null) {
+            handler.setTenantTableChecker(tenantTableChecker);
+        }
+        return handler;
     }
 
     /**
@@ -72,6 +83,19 @@ public class TenantAutoConfiguration implements WebMvcConfigurer {
     public IgnoreTenantAspect ignoreTenantAspect() {
         log.info("租户忽略注解切面已启用");
         return new IgnoreTenantAspect();
+    }
+    
+    
+    
+    /**
+     * 租户表结构检测器
+     * 在应用启动时自动扫描数据库表结构，检测哪些表包含租户字段
+     */
+    @Bean
+    @ConditionalOnProperty(prefix = "forge.tenant", name = "auto-detect-tenant-column", havingValue = "true", matchIfMissing = true)
+    public TenantTableChecker tenantTableChecker(DataSource dataSource) {
+        log.info("初始化租户表结构检测器，自动检测字段: {}", tenantProperties.getColumn());
+        return new TenantTableChecker(dataSource, tenantProperties);
     }
 
     /**

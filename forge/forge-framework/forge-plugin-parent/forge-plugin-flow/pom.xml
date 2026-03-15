@@ -15,6 +15,18 @@
     <description>Forge Flow 流程管理插件 - 基于 Flowable</description>
 
     <dependencies>
+        <!-- Forge Core (RespInfo等) -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-core</artifactId>
+        </dependency>
+
+        <!-- Forge Message (消息通知) -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-plugin-message</artifactId>
+        </dependency>
+
         <!-- Spring Boot Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

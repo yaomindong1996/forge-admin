@@ -628,6 +628,9 @@ async function onLoginSuccess(data = {}) {
 
   $message.loading('登录中...', { key: 'login' })
   try {
+    // 先获取菜单数据，再跳转
+    await loadAndSetMenuData()
+    
     $message.success('登录成功', { key: 'login' })
     // 使用环境变量中的默认跳转路径
     const defaultRedirectPath = import.meta.env.VITE_HOME_PATH || '/'

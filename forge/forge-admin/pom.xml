@@ -72,6 +72,14 @@
             <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-starter-api-config</artifactId>
         </dependency>
+        
+        <!-- Flow Client（如需调用流程服务） -->
+        <!--
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-flow-client</artifactId>
+        </dependency>
+        -->
     
     </dependencies>
     

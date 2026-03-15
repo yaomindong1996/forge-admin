@@ -408,6 +408,12 @@
                 <version>${revision}</version>
             </dependency>
             
+            <dependency>
+                <groupId>com.mdframe.forge</groupId>
+                <artifactId>forge-plugin-flow</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            
             
         </dependencies>
     </dependencyManagement>

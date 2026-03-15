@@ -1,0 +1,68 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /
+  undertow:
+    max-http-post-size: -1
+    buffer-size: 512
+    direct-buffers: true
+    threads:
+      io: 4
+      worker: 128
+
+logging:
+  level:
+    com.forge: @logging.level@
+    org.springframework: error
+    org.mybatis.spring.mapper: error
+  config: classpath:logback.xml
+
+spring:
+  application:
+    name: forge-flow-service
+  profiles:
+    active: dev
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+  mvc:
+    static-path-pattern: /static/**
+    format:
+      date-time: yyyy-MM-dd HH:mm:ss
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    serialization:
+      indent_output: false
+      fail_on_empty_beans: false
+    deserialization:
+      fail_on_unknown_properties: false
+
+mybatis-plus:
+  mapperPackage: com.mdframe.forge.**.mapper
+  mapperLocations: classpath*:mapper/**/*Mapper.xml
+  typeAliasesPackage: com.mdframe.forge.**.domain
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: true
+    useGeneratedKeys: true
+    defaultExecutorType: SIMPLE
+    logImpl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    dbConfig:
+      idType: ASSIGN_ID
+
+sa-token:
+  alone-redis:
+    database: 1
+    host: ${spring.data.redis.host}
+    port: ${spring.data.redis.port}
+    password: ${spring.data.redis.password}
+    timeout: 10000
+
+# 多租户配置
+forge:
+  tenant:
+    enabled: true
+    column: tenant_id
+    auto-detect-tenant-column: true
