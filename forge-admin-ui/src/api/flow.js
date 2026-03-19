@@ -290,4 +290,154 @@ export default {
    */
   getTaskComments: (taskId) =>
     request.get(`/api/flow/comment/task/${taskId}`),
+
+  // ========== 流程模板 ==========
+
+  /**
+   * 分页查询流程模板
+   */
+  getTemplatePage: (params) =>
+    request.get('/api/flow/template/page', { params }),
+
+  /**
+   * 获取启用的模板列表
+   */
+  getEnabledTemplates: (category) =>
+    request.get('/api/flow/template/enabled', { params: { category } }),
+
+  /**
+   * 获取模板详情
+   */
+  getTemplateDetail: (id) =>
+    request.get(`/api/flow/template/${id}`),
+
+  /**
+   * 根据Key获取模板详情
+   */
+  getTemplateByKey: (templateKey) =>
+    request.get(`/api/flow/template/key/${templateKey}`),
+
+  /**
+   * 创建模板
+   */
+  createTemplate: (data) =>
+    request.post('/api/flow/template', data),
+
+  /**
+   * 更新模板
+   */
+  updateTemplate: (data) =>
+    request.put('/api/flow/template', data),
+
+  /**
+   * 删除模板
+   */
+  deleteTemplate: (id) =>
+    request.delete(`/api/flow/template/${id}`),
+
+  /**
+   * 启用模板
+   */
+  enableTemplate: (id) =>
+    request.post(`/api/flow/template/${id}/enable`),
+
+  /**
+   * 禁用模板
+   */
+  disableTemplate: (id) =>
+    request.post(`/api/flow/template/${id}/disable`),
+
+  /**
+   * 从模板创建流程模型
+   */
+  createModelFromTemplate: (templateKey, modelName, modelKey) =>
+    request.post(`/api/flow/template/createModel/${templateKey}`, null, {
+      params: { modelName, modelKey }
+    }),
+
+  /**
+   * 复制模板
+   */
+  copyTemplate: (id, newName) =>
+    request.post(`/api/flow/template/copy/${id}`, null, {
+      params: { newName }
+    }),
+
+  // ========== 表单定义 ==========
+
+  /**
+   * 获取表单定义分页列表
+   */
+  getFormPage: (params) =>
+    request.get('/api/flow/form/page', { params }),
+
+  /**
+   * 获取所有启用的表单定义
+   */
+  getEnabledForms: () =>
+    request.get('/api/flow/form/enabled'),
+
+  /**
+   * 获取表单定义详情
+   */
+  getFormById: (id) =>
+    request.get(`/api/flow/form/${id}`),
+
+  /**
+   * 根据表单Key获取表单定义
+   */
+  getFormByKey: (formKey) =>
+    request.get(`/api/flow/form/key/${formKey}`),
+
+  /**
+   * 创建表单定义
+   */
+  createForm: (data) =>
+    request.post('/api/flow/form', data),
+
+  /**
+   * 更新表单定义
+   */
+  updateForm: (data) =>
+    request.put('/api/flow/form', data),
+
+  /**
+   * 删除表单定义
+   */
+  deleteForm: (id) =>
+    request.delete(`/api/flow/form/${id}`),
+
+  /**
+   * 启用表单
+   */
+  enableForm: (id) =>
+    request.post(`/api/flow/form/${id}/enable`),
+
+  /**
+   * 禁用表单
+   */
+  disableForm: (id) =>
+    request.post(`/api/flow/form/${id}/disable`),
+
+  /**
+   * 复制表单
+   */
+  copyForm: (id, newName) =>
+    request.post(`/api/flow/form/${id}/copy`, null, {
+      params: { newName }
+    }),
+
+  /**
+   * 检查表单Key是否存在
+   */
+  checkFormKeyExists: (formKey, excludeId) =>
+    request.get('/api/flow/form/checkKey', {
+      params: { formKey, excludeId }
+    }),
+
+  /**
+   * 预览表单（获取表单Schema）
+   */
+  previewForm: (id) =>
+    request.get(`/api/flow/form/${id}/preview`),
 }

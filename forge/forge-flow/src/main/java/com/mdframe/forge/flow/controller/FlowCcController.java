@@ -2,6 +2,9 @@ package com.mdframe.forge.flow.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
+import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
+import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.flow.entity.FlowCc;
 import com.mdframe.forge.starter.flow.service.FlowCcService;
@@ -18,6 +21,9 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/flow/cc")
 @RequiredArgsConstructor
+@ApiDecrypt
+@ApiEncrypt
+@IgnoreTenant
 public class FlowCcController {
 
     private final FlowCcService flowCcService;

@@ -48,6 +48,10 @@ VALUES (0, '流程分类', @flow_admin_id, 2, 2, '/flow/admin/category', '/flow/
 
 SET @flow_category_id = LAST_INSERT_ID();
 
+-- 流程设计页面（隐藏菜单，通过流程模型页面进入）
+INSERT INTO sys_resource (tenant_id, resource_name, parent_id, resource_type, sort, path, component, is_external, is_public, menu_status, visible, icon, keep_alive, always_show, remark, create_time, update_time)
+VALUES (0, '流程设计', @flow_admin_id, 2, 3, '/flow/design', '/flow/design', 0, 0, 1, 0, 'mdi:pencil-ruler', 0, 0, '流程设计器', NOW(), NOW());
+
 -- =============================================
 -- 按钮权限
 -- =============================================

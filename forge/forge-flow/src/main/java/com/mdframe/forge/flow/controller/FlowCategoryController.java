@@ -2,6 +2,9 @@ package com.mdframe.forge.flow.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
+import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
+import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.flow.entity.FlowCategory;
 import com.mdframe.forge.starter.flow.service.FlowCategoryService;
@@ -16,6 +19,9 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/flow/category")
 @RequiredArgsConstructor
+@ApiDecrypt
+@ApiEncrypt
+@IgnoreTenant
 public class FlowCategoryController {
 
     private final FlowCategoryService flowCategoryService;

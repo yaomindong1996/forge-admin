@@ -56,9 +56,19 @@ public class FlowModel {
     private String formJson;
 
     /**
+     * BPMN流程定义XML
+     */
+    private String bpmnXml;
+
+    /**
      * 版本号
      */
     private Integer version;
+
+    /**
+     * Flowable流程定义ID
+     */
+    private String processDefinitionId;
 
     /**
      * Flowable部署ID
@@ -71,7 +81,7 @@ public class FlowModel {
     private String deploymentKey;
 
     /**
-     * 状态（0-设计/1-已发布/2-禁用）
+     * 状态（0-设计/1-已发布/2-已挂起/3-已禁用）
      */
     private Integer status;
 
@@ -79,6 +89,11 @@ public class FlowModel {
      * 发布时间
      */
     private LocalDateTime deployTime;
+
+    /**
+     * 最后修改人
+     */
+    private String lastUpdateBy;
 
     /**
      * 创建人

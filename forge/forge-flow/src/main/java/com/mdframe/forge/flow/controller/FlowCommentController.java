@@ -1,5 +1,8 @@
 package com.mdframe.forge.flow.controller;
 
+import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
+import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
+import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.flow.entity.FlowComment;
 import com.mdframe.forge.starter.flow.service.FlowCommentService;
@@ -15,6 +18,9 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/flow/comment")
 @RequiredArgsConstructor
+@ApiDecrypt
+@ApiEncrypt
+@IgnoreTenant
 public class FlowCommentController {
 
     private final FlowCommentService flowCommentService;

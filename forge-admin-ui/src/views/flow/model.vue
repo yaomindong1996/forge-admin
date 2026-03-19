@@ -105,8 +105,11 @@
 
 <script setup>
 import { ref, reactive, h, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { NTag, NButton, NSpace, NSwitch } from 'naive-ui'
 import flowApi from '@/api/flow'
+
+const router = useRouter()
 
 // 状态选项
 const statusOptions = [
@@ -192,6 +195,11 @@ const columns = [
     width: 280,
     render: (row) => {
       const actions = [
+        h(NButton, {
+          size: 'small',
+          type: 'info',
+          onClick: () => handleDesign(row),
+        }, { default: () => '设计' }),
         h(NButton, {
           size: 'small',
           onClick: () => handleEdit(row),
@@ -342,6 +350,14 @@ function handleAdd() {
     description: '',
   })
   showModal.value = true
+}
+
+// 设计流程
+function handleDesign(row) {
+  router.push({
+    path: '/flow/design',
+    query: { id: row.id }
+  })
 }
 
 // 编辑
