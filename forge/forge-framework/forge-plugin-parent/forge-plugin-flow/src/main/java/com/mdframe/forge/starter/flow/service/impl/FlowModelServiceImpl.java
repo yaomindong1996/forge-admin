@@ -9,15 +9,18 @@ import com.mdframe.forge.starter.flow.mapper.FlowModelMapper;
 import com.mdframe.forge.starter.flow.service.FlowModelService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.flowable.bpmn.model.BpmnModel;
+import org.flowable.common.engine.impl.util.io.BytesStreamSource;
+import org.flowable.engine.ProcessEngineConfiguration;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.repository.Deployment;
 import org.flowable.engine.repository.ProcessDefinition;
-import org.flowable.bpmn.model.BpmnModel;
 import org.flowable.image.ProcessDiagramGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -33,6 +36,9 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
 
     @Autowired(required = false)
     private RepositoryService repositoryService;
+    
+    @Autowired(required = false)
+    private ProcessEngineConfiguration processEngineConfiguration;
 
     @Override
     public IPage<FlowModel> pageFlowModel(Page<FlowModel> page, String modelName, String category, Integer status) {
@@ -123,26 +129,73 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
             throw new RuntimeException("流程模型不存在");
         }
         
-        if (model.getStatus() == 1) {
-            throw new RuntimeException("流程模型已发布，请勿重复发布");
-        }
-        
         if (model.getBpmnXml() == null || model.getBpmnXml().isEmpty()) {
             throw new RuntimeException("请先设计流程图");
         }
+        
+        // 检查 BPMN XML 是否包含图形信息
+        String bpmnXml = model.getBpmnXml();
+        if (!bpmnXml.contains("BPMNDiagram") && !bpmnXml.contains("bpmndi:BPMNDiagram")) {
+            log.error("BPMN XML 缺少图形信息，无法部署。XML 长度: {}, 内容预览: {}",
+                    bpmnXml.length(),
+                    bpmnXml.length() > 500 ? bpmnXml.substring(0, 500) + "..." : bpmnXml);
+            throw new RuntimeException("流程图数据不完整，缺少图形坐标信息。请在流程设计器中重新设计流程图并保存后再部署。");
+        }
+        
+        // 将 BPMN XML 中的 process id 替换为 modelKey，确保启动流程时能找到正确的流程定义
+        String modelKey = model.getModelKey();
+        bpmnXml = replaceProcessId(bpmnXml, modelKey);
+        log.info("已将流程ID替换为：{}", modelKey);
 
         try {
             if (repositoryService == null) {
                 throw new RuntimeException("Flowable未初始化");
             }
             
-            String deploymentKey = model.getModelKey() + "_v" + model.getVersion();
+            // 如果已发布，增加版本号后重新部署
+            int newVersion = model.getVersion();
+            if (model.getStatus() == 1) {
+                // 已发布的模型，版本号+1后重新部署
+                newVersion = model.getVersion() + 1;
+                log.info("重新部署流程模型：{}，新版本：{}", model.getModelKey(), newVersion);
+            } else {
+                // 未发布的模型，使用当前版本
+                newVersion = model.getVersion() > 0 ? model.getVersion() : 1;
+            }
             
-            Deployment deployment = repositoryService.createDeployment()
-                    .name(model.getModelName())
-                    .key(deploymentKey)
-                    .addString(model.getModelKey() + ".bpmn20.xml", model.getBpmnXml())
-                    .deploy();
+            String deploymentKey = model.getModelKey() + "_v" + newVersion;
+            String bpmnResourceName = model.getModelKey() + ".bpmn20.xml";
+            
+            // 生成流程图（使用替换后的 bpmnXml）
+            byte[] diagramBytes = null;
+            String diagramResourceName = model.getModelKey() + ".png";
+            try {
+                diagramBytes = generateProcessDiagram(bpmnXml);
+                if (diagramBytes != null) {
+                    log.info("成功生成流程图：{}，大小：{} bytes", diagramResourceName, diagramBytes.length);
+                }
+            } catch (Exception e) {
+                log.warn("生成流程图失败，将跳过流程图资源：{}", e.getMessage());
+            }
+            
+            // 创建部署（使用替换后的 bpmnXml）
+            Deployment deployment;
+            if (diagramBytes != null) {
+                // 部署 BPMN XML 和流程图
+                deployment = repositoryService.createDeployment()
+                        .name(model.getModelName())
+                        .key(deploymentKey)
+                        .addString(bpmnResourceName, bpmnXml)
+                        .addBytes(diagramResourceName, diagramBytes)
+                        .deploy();
+            } else {
+                // 仅部署 BPMN XML
+                deployment = repositoryService.createDeployment()
+                        .name(model.getModelName())
+                        .key(deploymentKey)
+                        .addString(bpmnResourceName, bpmnXml)
+                        .deploy();
+            }
             
             // 获取流程定义
             ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
@@ -153,6 +206,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
             model.setDeploymentId(deployment.getId());
             model.setDeploymentKey(deploymentKey);
             model.setProcessDefinitionId(processDefinition != null ? processDefinition.getId() : null);
+            model.setVersion(newVersion);
             model.setStatus(1);
             model.setDeployTime(LocalDateTime.now());
             model.setVersion(model.getVersion() + 1);
@@ -164,6 +218,79 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
         } catch (Exception e) {
             log.error("部署流程模型失败", e);
             throw new RuntimeException("部署失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 生成流程图
+     */
+    private byte[] generateProcessDiagram(String bpmnXml) {
+        if (processEngineConfiguration == null) {
+            log.warn("ProcessEngineConfiguration 未注入，无法生成流程图");
+            return null;
+        }
+        
+        try {
+            // 打印 BPMN XML 内容用于调试（只打印前500字符）
+            if (bpmnXml != null && bpmnXml.length() > 0) {
+                String preview = bpmnXml.length() > 500 ? bpmnXml.substring(0, 500) + "..." : bpmnXml;
+                log.info("BPMN XML 内容预览: {}", preview);
+                log.info("BPMN XML 是否包含 BPMNDiagram: {}", bpmnXml.contains("BPMNDiagram"));
+                log.info("BPMN XML 是否包含 bpmndi:BPMNDiagram: {}", bpmnXml.contains("bpmndi:BPMNDiagram"));
+            }
+            
+            // 解析 BPMN XML（第三个参数 true 表示解析图形信息）
+            BpmnModel bpmnModel = new org.flowable.bpmn.converter.BpmnXMLConverter()
+                    .convertToBpmnModel(new BytesStreamSource(bpmnXml.getBytes(java.nio.charset.StandardCharsets.UTF_8)), false, true);
+            
+            // 打印解析结果
+            log.info("BPMN 模型解析完成，进程数: {}", bpmnModel.getProcesses() != null ? bpmnModel.getProcesses().size() : 0);
+            log.info("LocationMap 大小: {}", bpmnModel.getLocationMap() != null ? bpmnModel.getLocationMap().size() : 0);
+            log.info("FlowLocationMap 大小: {}", bpmnModel.getFlowLocationMap() != null ? bpmnModel.getFlowLocationMap().size() : 0);
+            
+            // 检查是否有图形信息
+            if (bpmnModel.getLocationMap() == null || bpmnModel.getLocationMap().isEmpty()) {
+                log.warn("BPMN 模型没有图形坐标信息，无法生成流程图");
+                return null;
+            }
+            
+            // 使用流程图生成器生成图片
+            ProcessDiagramGenerator diagramGenerator = processEngineConfiguration.getProcessDiagramGenerator();
+            
+            // 设置中文字体
+            String activityFontName = "宋体";
+            String labelFontName = "宋体";
+            String annotationFontName = "宋体";
+            
+            // 生成流程图（无高亮）
+            InputStream diagramStream = diagramGenerator.generateDiagram(
+                    bpmnModel,
+                    "png",
+                    Collections.emptyList(),  // 无高亮已完成节点
+                    Collections.emptyList(),  // 无高亮当前节点
+                    activityFontName,
+                    labelFontName,
+                    annotationFontName,
+                    null,
+                    1.0,
+                    true
+            );
+            
+            if (diagramStream != null) {
+                java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+                byte[] buffer = new byte[4096];
+                int bytesRead;
+                while ((bytesRead = diagramStream.read(buffer)) != -1) {
+                    output.write(buffer, 0, bytesRead);
+                }
+                diagramStream.close();
+                return output.toByteArray();
+            }
+            
+            return null;
+        } catch (Exception e) {
+            log.error("生成流程图失败", e);
+            return null;
         }
     }
 
@@ -387,6 +514,53 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
         } catch (Exception e) {
             log.warn("提取流程Key失败", e);
             return null;
+        }
+    }
+    
+    /**
+     * 将 BPMN XML 中的 process id 替换为 modelKey
+     * 这样启动流程时使用 modelKey 就能找到正确的流程定义
+     */
+    private String replaceProcessId(String bpmnXml, String modelKey) {
+        try {
+            // 提取当前的 process id
+            String currentProcessId = extractProcessKey(bpmnXml);
+            if (currentProcessId == null) {
+                log.warn("无法提取当前流程ID，跳过替换");
+                return bpmnXml;
+            }
+            
+            if (currentProcessId.equals(modelKey)) {
+                log.info("流程ID已经是 {}，无需替换", modelKey);
+                return bpmnXml;
+            }
+            
+            log.info("将流程ID从 {} 替换为 {}", currentProcessId, modelKey);
+            
+            // 替换 process id（需要替换多个地方）
+            // 1. <bpmn:process id="xxx" 或 <process id="xxx"
+            // 2. bpmnElement="xxx" 在 BPMNPlane 中
+            // 3. 可能还有其他引用
+            
+            // 替换 <bpmn:process id="xxx"
+            bpmnXml = bpmnXml.replace(
+                    "<bpmn:process id=\"" + currentProcessId + "\"",
+                    "<bpmn:process id=\"" + modelKey + "\"");
+            
+            // 替换 <process id="xxx"（无命名空间的情况）
+            bpmnXml = bpmnXml.replace(
+                    "<process id=\"" + currentProcessId + "\"",
+                    "<process id=\"" + modelKey + "\"");
+            
+            // 替换 BPMNPlane 中的 bpmnElement
+            bpmnXml = bpmnXml.replace(
+                    "bpmnElement=\"" + currentProcessId + "\"",
+                    "bpmnElement=\"" + modelKey + "\"");
+            
+            return bpmnXml;
+        } catch (Exception e) {
+            log.warn("替换流程ID失败", e);
+            return bpmnXml;
         }
     }
 }

@@ -61,6 +61,10 @@
       <groupId>com.mdframe.forge</groupId>
       <artifactId>forge-starter-api-config</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-plugin-flow</artifactId>
+    </dependency>
   </dependencies>
   <build>
     <finalName>${project.artifactId}</finalName>

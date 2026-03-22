@@ -60,6 +60,12 @@ public class EncryptResponseBodyAdvice implements ResponseBodyAdvice<Object> {
                 || !Boolean.TRUE.equals(properties.getEnableApiCrypto())) {
             return false;
         }
+        
+        // 跳过 ResponseEntity<byte[]> 类型（用于返回二进制数据如图片、文件等）
+        if (isBinaryResponseType(returnType)) {
+            return false;
+        }
+        
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
             return false;
@@ -73,6 +79,28 @@ public class EncryptResponseBodyAdvice implements ResponseBodyAdvice<Object> {
             return AnnotatedElementUtils.hasAnnotation(returnType.getContainingClass(), ApiEncrypt.class)
                     || returnType.hasMethodAnnotation(ApiEncrypt.class);
         }
+    }
+    
+    /**
+     * 检查是否为二进制响应类型（如 ResponseEntity<byte[]>）
+     */
+    private boolean isBinaryResponseType(MethodParameter returnType) {
+        Class<?> parameterType = returnType.getParameterType();
+        // 检查是否为 ResponseEntity 且泛型参数为 byte[]
+        if (org.springframework.http.ResponseEntity.class.isAssignableFrom(parameterType)) {
+            java.lang.reflect.Type genericType = returnType.getGenericParameterType();
+            if (genericType instanceof java.lang.reflect.ParameterizedType paramType) {
+                java.lang.reflect.Type[] typeArgs = paramType.getActualTypeArguments();
+                if (typeArgs.length > 0) {
+                    java.lang.reflect.Type typeArg = typeArgs[0];
+                    // 检查是否为 byte[] 或 byte 类型的数组
+                    if (typeArg == byte[].class || typeArg.equals(byte[].class)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     @Override

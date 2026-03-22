@@ -70,6 +70,12 @@ export default {
     request.get(`/api/flow/task/diagram/${processInstanceId}`, { responseType: 'blob' }),
 
   /**
+   * 获取流程图详情信息（包含节点状态）
+   */
+  getProcessDiagramInfo: (processInstanceId) =>
+    request.get(`/api/flow/task/diagram-info/${processInstanceId}`),
+
+  /**
    * 催办任务
    */
   remindTask: (taskId) =>
@@ -156,6 +162,26 @@ export default {
    */
   enableModel: (id) =>
     request.post(`/api/flow/model/${id}/enable`),
+
+  /**
+   * 挂起流程模型
+   */
+  suspendModel: (id) =>
+    request.post(`/api/flow/model/${id}/suspend`),
+
+  /**
+   * 激活流程模型
+   */
+  activateModel: (id) =>
+    request.post(`/api/flow/model/${id}/activate`),
+
+  /**
+   * 复制流程模型
+   */
+  copyModel: (id, newName) =>
+    request.post(`/api/flow/model/${id}/copy`, null, {
+      params: { newName }
+    }),
 
   /**
    * 获取流程模型列表

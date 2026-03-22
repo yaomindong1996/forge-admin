@@ -80,6 +80,18 @@
             <artifactId>forge-flow-client</artifactId>
         </dependency>
         -->
+        
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-plugin-flow</artifactId>
+            <exclusions>
+                <!-- 排除 Spring Security，admin 使用 Sa-Token 认证 -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-security</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     
     </dependencies>
     

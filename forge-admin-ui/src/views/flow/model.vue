@@ -106,7 +106,7 @@
 <script setup>
 import { ref, reactive, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { NTag, NButton, NSpace, NSwitch } from 'naive-ui'
+import { NTag, NButton, NSpace, NDropdown } from 'naive-ui'
 import flowApi from '@/api/flow'
 
 const router = useRouter()
@@ -148,19 +148,86 @@ const statusText = {
   2: '已禁用',
 }
 
+// 获取操作下拉选项
+function getActionOptions(row) {
+  const options = [
+    { label: '设计流程', key: 'design' },
+    { label: '编辑信息', key: 'edit' },
+    { label: '复制模型', key: 'copy' },
+  ]
+  
+  // 已部署状态可以查看实例
+  if (row.status === 1) {
+    options.push({ label: '查看实例', key: 'instances' })
+  }
+  
+  // 设计中状态可以部署
+  if (row.status === 0) {
+    options.push({ label: '部署', key: 'deploy' })
+  }
+  
+  // 已部署状态可以禁用
+  if (row.status === 1) {
+    options.push({ label: '挂起', key: 'suspend' })
+  }
+  
+  // 已挂起状态可以激活
+  if (row.status === 2) {
+    options.push({ label: '激活', key: 'activate' })
+  }
+  
+  options.push({ type: 'divider', key: 'd1' })
+  options.push({ label: '删除', key: 'delete', props: { style: 'color: #d03050' } })
+  
+  return options
+}
+
+// 处理操作下拉点击
+function handleActionSelect(key, row) {
+  switch (key) {
+    case 'design':
+      handleDesign(row)
+      break
+    case 'edit':
+      handleEdit(row)
+      break
+    case 'copy':
+      handleCopy(row)
+      break
+    case 'instances':
+      handleViewInstances(row)
+      break
+    case 'deploy':
+      handleDeploy(row)
+      break
+    case 'suspend':
+      handleSuspend(row)
+      break
+    case 'activate':
+      handleActivate(row)
+      break
+    case 'delete':
+      handleDelete(row)
+      break
+  }
+}
+
 // 表格列
 const columns = [
   {
     title: '模型名称',
     key: 'modelName',
+    width: 180,
   },
   {
     title: '模型Key',
     key: 'modelKey',
+    width: 150,
   },
   {
     title: '分类',
     key: 'category',
+    width: 100,
   },
   {
     title: '版本',
@@ -192,54 +259,32 @@ const columns = [
   {
     title: '操作',
     key: 'actions',
-    width: 280,
+    width: 200,
     render: (row) => {
-      const actions = [
-        h(NButton, {
-          size: 'small',
-          type: 'info',
-          onClick: () => handleDesign(row),
-        }, { default: () => '设计' }),
-        h(NButton, {
-          size: 'small',
-          onClick: () => handleEdit(row),
-        }, { default: () => '编辑' }),
-      ]
-      
-      // 设计中状态可以部署
-      if (row.status === 0) {
-        actions.push(h(NButton, {
-          size: 'small',
-          type: 'primary',
-          onClick: () => handleDeploy(row),
-        }, { default: () => '部署' }))
-      }
-      
-      // 已部署状态可以禁用
-      if (row.status === 1) {
-        actions.push(h(NButton, {
-          size: 'small',
-          type: 'warning',
-          onClick: () => handleDisable(row),
-        }, { default: () => '禁用' }))
-      }
-      
-      // 已禁用状态可以启用
-      if (row.status === 2) {
-        actions.push(h(NButton, {
-          size: 'small',
-          type: 'success',
-          onClick: () => handleEnable(row),
-        }, { default: () => '启用' }))
-      }
-      
-      actions.push(h(NButton, {
-        size: 'small',
-        type: 'error',
-        onClick: () => handleDelete(row),
-      }, { default: () => '删除' }))
-      
-      return h(NSpace, { size: 'small' }, { default: () => actions })
+      return h(NSpace, { size: 'small' }, {
+        default: () => [
+          // 主要操作按钮：设计
+          h(NButton, {
+            size: 'small',
+            type: 'primary',
+            onClick: () => handleDesign(row),
+          }, { default: () => '设计' }),
+          // 已部署状态显示查看实例按钮
+          row.status === 1 ? h(NButton, {
+            size: 'small',
+            type: 'info',
+            onClick: () => handleViewInstances(row),
+          }, { default: () => '实例' }) : null,
+          // 更多操作下拉
+          h(NDropdown, {
+            options: getActionOptions(row),
+            trigger: 'click',
+            onSelect: (key) => handleActionSelect(key, row),
+          }, {
+            default: () => h(NButton, { size: 'small' }, { default: () => '更多' })
+          }),
+        ].filter(Boolean)
+      })
     },
   },
 ]
@@ -414,33 +459,72 @@ async function handleDeploy(row) {
   })
 }
 
-// 禁用
-async function handleDisable(row) {
-  try {
-    const res = await flowApi.disableModel(row.id)
-    if (res.code === 200) {
-      window.$message?.success('禁用成功')
-      fetchData()
-    } else {
-      window.$message?.error(res.message || '禁用失败')
-    }
-  } catch (error) {
-    console.error('禁用失败:', error)
-  }
+// 查看流程实例
+function handleViewInstances(row) {
+  router.push({
+    path: '/flow/monitor',
+    query: { modelKey: row.modelKey }
+  })
 }
 
-// 启用
-async function handleEnable(row) {
+// 复制模型
+async function handleCopy(row) {
+  window.$dialog?.info({
+    title: '复制模型',
+    content: `确定要复制模型"${row.modelName}"吗？`,
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        const res = await flowApi.copyModel(row.id, `${row.modelName} - 副本`)
+        if (res.code === 200) {
+          window.$message?.success('复制成功')
+          fetchData()
+        } else {
+          window.$message?.error(res.message || '复制失败')
+        }
+      } catch (error) {
+        console.error('复制失败:', error)
+      }
+    },
+  })
+}
+
+// 挂起
+async function handleSuspend(row) {
+  window.$dialog?.warning({
+    title: '确认挂起',
+    content: `确定要挂起模型"${row.modelName}"吗？挂起后流程实例将暂停运行。`,
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        const res = await flowApi.suspendModel(row.id)
+        if (res.code === 200) {
+          window.$message?.success('挂起成功')
+          fetchData()
+        } else {
+          window.$message?.error(res.message || '挂起失败')
+        }
+      } catch (error) {
+        console.error('挂起失败:', error)
+      }
+    },
+  })
+}
+
+// 激活
+async function handleActivate(row) {
   try {
-    const res = await flowApi.enableModel(row.id)
+    const res = await flowApi.activateModel(row.id)
     if (res.code === 200) {
-      window.$message?.success('启用成功')
+      window.$message?.success('激活成功')
       fetchData()
     } else {
-      window.$message?.error(res.message || '启用失败')
+      window.$message?.error(res.message || '激活失败')
     }
   } catch (error) {
-    console.error('启用失败:', error)
+    console.error('激活失败:', error)
   }
 }
 

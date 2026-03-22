@@ -2,6 +2,8 @@ package com.mdframe.forge.starter.flow.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mdframe.forge.starter.flow.dto.ProcessDiagramInfo;
+import com.mdframe.forge.starter.flow.dto.TaskFormInfo;
 import com.mdframe.forge.starter.flow.entity.FlowTask;
 
 import java.util.Map;
@@ -82,7 +84,24 @@ public interface FlowTaskService {
     byte[] getProcessDiagram(String processInstanceId);
 
     /**
+     * 获取流程图详情（包含节点信息，用于交互式展示）
+     *
+     * @param processInstanceId 流程实例ID
+     * @return 流程图详情
+     */
+    ProcessDiagramInfo getProcessDiagramInfo(String processInstanceId);
+
+    /**
      * 催办
      */
     void remind(String taskId);
+
+    /**
+     * 获取任务表单信息
+     * 包含表单类型、表单配置、流程变量等
+     *
+     * @param taskId 任务ID
+     * @return 任务表单信息
+     */
+    TaskFormInfo getTaskFormInfo(String taskId);
 }

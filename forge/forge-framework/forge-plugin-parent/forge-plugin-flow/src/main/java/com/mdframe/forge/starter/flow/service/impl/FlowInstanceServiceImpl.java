@@ -67,18 +67,10 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
         vars.put("startDeptId", deptId);
         vars.put("startDeptName", deptName);
 
-        // 3. 启动流程
-        ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(
-                modelKey,
-                businessKey,
-                vars
-        );
-
-        // 4. 保存业务关联
+        // 3. 先保存业务关联（必须在启动流程之前，否则事件监听器查询不到业务信息）
         FlowBusiness business = new FlowBusiness();
         business.setBusinessKey(businessKey);
         business.setBusinessType(businessType);
-        business.setProcessInstanceId(processInstance.getId());
         business.setProcessDefId(processDefinition.getId());
         business.setProcessDefKey(processDefinition.getKey());
         business.setTitle(title);
@@ -92,8 +84,20 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
         business.setUpdateTime(LocalDateTime.now());
 
         flowBusinessMapper.insert(business);
+        log.info("保存业务信息成功：businessKey={}", businessKey);
 
-        log.info("启动流程成功：businessKey={}, processInstanceId={}", 
+        // 4. 启动流程（会触发 TASK_CREATED 事件，此时业务信息已存在）
+        ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(
+                modelKey,
+                businessKey,
+                vars
+        );
+
+        // 5. 更新流程实例ID
+        business.setProcessInstanceId(processInstance.getId());
+        flowBusinessMapper.updateById(business);
+
+        log.info("启动流程成功：businessKey={}, processInstanceId={}",
                 businessKey, processInstance.getId());
 
         return processInstance.getId();

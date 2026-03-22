@@ -60,8 +60,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     public boolean insertUser(SysUserDTO dto) {
         SysUser user = new SysUser();
         BeanUtil.copyProperties(dto, user);
-        // TODO: 密码加密处理
-        // user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        user.setPassword(PasswordUtil.encrypt(dto.getPassword()));
         return userMapper.insert(user) > 0;
     }
 

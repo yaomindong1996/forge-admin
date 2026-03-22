@@ -6,6 +6,8 @@ import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import com.mdframe.forge.starter.core.domain.RespInfo;
+import com.mdframe.forge.starter.flow.dto.ProcessDiagramInfo;
+import com.mdframe.forge.starter.flow.dto.TaskFormInfo;
 import com.mdframe.forge.starter.flow.entity.FlowTask;
 import com.mdframe.forge.starter.flow.service.FlowTaskService;
 import lombok.RequiredArgsConstructor;
@@ -107,9 +109,9 @@ public class FlowTaskController {
      */
     @PostMapping("/approve")
     public RespInfo<Void> approve(@RequestBody Map<String, Object> params) {
-        String taskId = (String) params.get("taskId");
-        String userId = (String) params.get("userId");
-        String comment = (String) params.get("comment");
+        String taskId = String.valueOf(params.get("taskId"));
+        String userId = String.valueOf(params.get("userId"));
+        String comment = params.get("comment") != null ? String.valueOf(params.get("comment")) : null;
         @SuppressWarnings("unchecked")
         Map<String, Object> variables = (Map<String, Object>) params.get("variables");
         
@@ -122,9 +124,9 @@ public class FlowTaskController {
      */
     @PostMapping("/reject")
     public RespInfo<Void> reject(@RequestBody Map<String, Object> params) {
-        String taskId = (String) params.get("taskId");
-        String userId = (String) params.get("userId");
-        String comment = (String) params.get("comment");
+        String taskId = String.valueOf(params.get("taskId"));
+        String userId = String.valueOf(params.get("userId"));
+        String comment = params.get("comment") != null ? String.valueOf(params.get("comment")) : null;
         
         flowTaskService.reject(taskId, userId, comment);
         return RespInfo.success("已驳回", null);
@@ -185,11 +187,33 @@ public class FlowTaskController {
     }
 
     /**
+     * 获取流程图详情（包含节点信息，用于交互式展示）
+     */
+    @GetMapping("/diagram-info/{processInstanceId}")
+    public RespInfo<ProcessDiagramInfo> getProcessDiagramInfo(@PathVariable String processInstanceId) {
+        ProcessDiagramInfo diagramInfo = flowTaskService.getProcessDiagramInfo(processInstanceId);
+        if (diagramInfo == null) {
+            return RespInfo.error("流程图信息不存在");
+        }
+        return RespInfo.success(diagramInfo);
+    }
+
+    /**
      * 催办
      */
     @PostMapping("/remind")
     public RespInfo<Void> remind(@RequestParam String taskId) {
         flowTaskService.remind(taskId);
         return RespInfo.success("催办成功", null);
+    }
+
+    /**
+     * 获取任务表单信息
+     * 包含表单类型、表单配置、流程变量等
+     */
+    @GetMapping("/form/{taskId}")
+    public RespInfo<TaskFormInfo> getTaskFormInfo(@PathVariable String taskId) {
+        TaskFormInfo formInfo = flowTaskService.getTaskFormInfo(taskId);
+        return RespInfo.success(formInfo);
     }
 }
