@@ -1,5 +1,37 @@
 <template>
   <div class="node-properties-panel">
+    <!-- 用户选择弹窗 -->
+    <UserSelectModal
+      v-model:show="showUserSelect"
+      :title="userSelectTitle"
+      :multiple="userSelectMultiple"
+      :selected-users="currentSelectedUsers"
+      @confirm="handleUserSelectConfirm"
+    />
+    
+    <!-- 角色选择弹窗 -->
+    <n-modal
+      v-model:show="showRoleSelect"
+      preset="card"
+      title="选择角色"
+      style="width: 600px"
+      :mask-closable="false"
+    >
+      <n-data-table
+        :columns="roleColumns"
+        :data="roleList"
+        :loading="roleLoading"
+        :row-key="row => row.id"
+        :checked-row-keys="checkedRoleKeys"
+        @update:checked-row-keys="handleRoleCheck"
+      />
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showRoleSelect = false">取消</n-button>
+          <n-button type="primary" @click="handleRoleConfirm">确定</n-button>
+        </n-space>
+      </template>
+    </n-modal>
     <!-- 基础属性 -->
     <n-collapse :default-expanded-names="['basic']">
       <n-collapse-item title="基础属性" name="basic">
@@ -60,59 +92,142 @@
           <!-- 指定审批人 -->
           <template v-if="properties.taskType === 'assignee'">
             <n-form-item label="审批人">
-              <n-select
-                v-model:value="properties.assignee"
-                :options="assigneeOptions"
-                @update:value="updateUserTaskAssignee"
-                placeholder="选择审批人"
-                filterable
-              />
+              <n-space vertical size="small" style="width: 100%">
+                <n-select
+                  v-model:value="properties.assignee"
+                  :options="assigneeOptions"
+                  @update:value="updateUserTaskAssignee"
+                  placeholder="选择审批人类型"
+                  filterable
+                  tag
+                />
+                <n-button
+                  v-if="properties.assignee === 'custom'"
+                  type="primary"
+                  dashed
+                  block
+                  @click="openUserSelect('assignee')"
+                >
+                  <template #icon>
+                    <i class="i-material-symbols:person-add" />
+                  </template>
+                  从用户列表选择
+                </n-button>
+              </n-space>
             </n-form-item>
             <n-form-item label="自定义表达式" v-if="properties.assignee === 'custom'">
-              <n-input 
-                v-model:value="properties.assigneeExpr" 
+              <n-input
+                v-model:value="properties.assigneeExpr"
                 @blur="updateCustomAssignee"
-                placeholder="${user.id}" 
+                placeholder="${user.id}"
               />
+            </n-form-item>
+            <n-form-item label="已选用户" v-if="properties.assigneeUserName">
+              <n-tag type="info" closable @close="clearAssigneeUser">
+                {{ properties.assigneeUserName }}
+              </n-tag>
             </n-form-item>
           </template>
 
           <!-- 候选用户 -->
           <template v-if="properties.taskType === 'candidateUsers'">
             <n-form-item label="候选用户">
-              <n-select
-                v-model:value="properties.candidateUsers"
-                :options="userOptions"
-                multiple
-                filterable
-                @update:value="updateCandidateUsers"
-                placeholder="选择候选用户"
-              />
+              <n-space vertical size="small" style="width: 100%">
+                <n-button
+                  type="primary"
+                  dashed
+                  block
+                  @click="openUserSelect('candidateUsers')"
+                >
+                  <template #icon>
+                    <i class="i-material-symbols:group-add" />
+                  </template>
+                  从用户列表选择
+                </n-button>
+                <div v-if="properties.candidateUserNames.length > 0" style="margin-top: 8px">
+                  <n-tag
+                    v-for="(name, index) in properties.candidateUserNames"
+                    :key="index"
+                    type="info"
+                    closable
+                    @close="removeCandidateUser(index)"
+                    style="margin: 2px"
+                  >
+                    {{ name }}
+                  </n-tag>
+                </div>
+              </n-space>
             </n-form-item>
           </template>
 
           <!-- 候选组 -->
           <template v-if="properties.taskType === 'candidateGroups'">
             <n-form-item label="候选组(角色)">
-              <n-select
-                v-model:value="properties.candidateGroups"
-                :options="roleOptions"
-                multiple
-                filterable
-                @update:value="updateCandidateGroups"
-                placeholder="选择候选组"
-              />
+              <n-space vertical size="small" style="width: 100%">
+                <n-button
+                  type="primary"
+                  dashed
+                  block
+                  @click="openRoleSelect"
+                >
+                  <template #icon>
+                    <i class="i-material-symbols:shield" />
+                  </template>
+                  从角色列表选择
+                </n-button>
+                <div v-if="properties.candidateGroupNames.length > 0" style="margin-top: 8px">
+                  <n-tag
+                    v-for="(name, index) in properties.candidateGroupNames"
+                    :key="index"
+                    type="success"
+                    closable
+                    @close="removeCandidateGroup(index)"
+                    style="margin: 2px"
+                  >
+                    {{ name }}
+                  </n-tag>
+                </div>
+              </n-space>
             </n-form-item>
           </template>
 
-          <!-- 表单Key -->
-          <n-form-item label="表单Key">
-            <n-input 
-              v-model:value="properties.formKey" 
-              @blur="updateExtensionProperty('formKey')"
-              placeholder="表单标识" 
+          <!-- 表单配置 -->
+          <n-form-item label="表单类型">
+            <n-select
+              v-model:value="properties.formType"
+              :options="formTypeOptions"
+              @update:value="updateFormType"
             />
           </n-form-item>
+          
+          <template v-if="properties.formType === 'dynamic'">
+            <n-form-item label="表单Key">
+              <n-input
+                v-model:value="properties.formKey"
+                @blur="updateExtensionProperty('formKey')"
+                placeholder="表单标识"
+              />
+            </n-form-item>
+            <n-form-item label="表单JSON">
+              <n-input
+                v-model:value="properties.formJson"
+                type="textarea"
+                :rows="3"
+                @blur="updateExtensionProperty('formJson')"
+                placeholder="表单JSON配置"
+              />
+            </n-form-item>
+          </template>
+          
+          <template v-if="properties.formType === 'external'">
+            <n-form-item label="表单URL">
+              <n-input
+                v-model:value="properties.formUrl"
+                @blur="updateExtensionProperty('formUrl')"
+                placeholder="外部表单URL"
+              />
+            </n-form-item>
+          </template>
 
           <!-- 优先级 -->
           <n-form-item label="优先级">
@@ -357,7 +472,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, inject } from 'vue'
+import { ref, reactive, computed, watch, inject, toRaw } from 'vue'
+import UserSelectModal from './UserSelectModal.vue'
+import { request } from '@/utils/http'
 
 const props = defineProps({
   element: {
@@ -374,8 +491,11 @@ const emit = defineEmits(['update'])
 // 使用全局 message 实例
 const message = window.$message
 
+// 获取原始元素（避免 Vue 代理与 bpmn-js 冲突）
+const rawElement = computed(() => toRaw(props.element))
+
 // 元素类型
-const elementType = computed(() => props.element?.type || '')
+const elementType = computed(() => rawElement.value?.type || '')
 
 // 是否显示执行监听器
 const showExecutionListener = computed(() => {
@@ -391,9 +511,15 @@ const properties = reactive({
   taskType: 'assignee',
   assignee: '',
   assigneeExpr: '',
+  assigneeUserName: '',
   candidateUsers: [],
+  candidateUserNames: [],
   candidateGroups: [],
+  candidateGroupNames: [],
+  formType: 'dynamic',
   formKey: '',
+  formJson: '',
+  formUrl: '',
   priority: 50,
   dueDate: 0,
   // 多实例
@@ -436,6 +562,32 @@ const assigneeOptions = [
   { label: '自定义表达式', value: 'custom' }
 ]
 
+const formTypeOptions = [
+  { label: '动态表单', value: 'dynamic' },
+  { label: '外部表单', value: 'external' },
+  { label: '无表单', value: 'none' }
+]
+
+// 用户选择相关
+const showUserSelect = ref(false)
+const userSelectTitle = ref('选择用户')
+const userSelectMultiple = ref(false)
+const userSelectType = ref('')
+const currentSelectedUsers = ref([])
+
+// 角色选择相关
+const showRoleSelect = ref(false)
+const roleList = ref([])
+const roleLoading = ref(false)
+const checkedRoleKeys = ref([])
+
+// 角色表格列
+const roleColumns = [
+  { type: 'selection' },
+  { title: '角色名称', key: 'roleName' },
+  { title: '角色编码', key: 'roleKey' }
+]
+
 const userOptions = ref([])
 const roleOptions = ref([])
 
@@ -473,13 +625,143 @@ const scriptFormatOptions = [
 // 监听元素变化，加载属性
 watch(() => props.element, (newElement) => {
   if (newElement) {
-    loadElementProperties(newElement)
+    loadElementProperties(toRaw(newElement))
   }
 }, { immediate: true })
+
+// 打开用户选择弹窗
+function openUserSelect(type) {
+  userSelectType.value = type
+  if (type === 'assignee') {
+    userSelectTitle.value = '选择审批人'
+    userSelectMultiple.value = false
+    // 如果已有选中的用户，回显
+    if (properties.assigneeExpr && properties.assigneeExpr.startsWith('${user_')) {
+      // 从表达式中提取用户ID，格式: ${user_1}
+      const match = properties.assigneeExpr.match(/\$\{user_(\d+)\}/)
+      if (match) {
+        currentSelectedUsers.value = [{
+          id: parseInt(match[1]),
+          nickName: properties.assigneeUserName
+        }]
+      } else {
+        currentSelectedUsers.value = []
+      }
+    } else {
+      currentSelectedUsers.value = []
+    }
+  } else if (type === 'candidateUsers') {
+    userSelectTitle.value = '选择候选用户'
+    userSelectMultiple.value = true
+    // 回显已选候选用户
+    if (properties.candidateUsers.length > 0) {
+      currentSelectedUsers.value = properties.candidateUsers.map((id, index) => ({
+        id: parseInt(id),
+        nickName: properties.candidateUserNames[index] || ''
+      }))
+    } else {
+      currentSelectedUsers.value = []
+    }
+  }
+  showUserSelect.value = true
+}
+
+// 用户选择确认
+function handleUserSelectConfirm(users) {
+  if (userSelectType.value === 'assignee') {
+    const user = Array.isArray(users) ? users[0] : users
+    if (user) {
+      properties.assignee = 'custom'
+      properties.assigneeExpr = `\${user_${user.id}}`
+      properties.assigneeUserName = user.nickName || user.userName
+      updateUserTaskAssignee()
+    }
+  } else if (userSelectType.value === 'candidateUsers') {
+    const userList = Array.isArray(users) ? users : [users]
+    userList.forEach(user => {
+      if (!properties.candidateUsers.includes(user.id.toString())) {
+        properties.candidateUsers.push(user.id.toString())
+        properties.candidateUserNames.push(user.nickName || user.userName)
+      }
+    })
+    updateCandidateUsers()
+  }
+  showUserSelect.value = false
+}
+
+// 清除审批人
+function clearAssigneeUser() {
+  properties.assignee = ''
+  properties.assigneeExpr = ''
+  properties.assigneeUserName = ''
+  updateUserTaskAssignee()
+}
+
+// 移除候选用户
+function removeCandidateUser(index) {
+  properties.candidateUsers.splice(index, 1)
+  properties.candidateUserNames.splice(index, 1)
+  updateCandidateUsers()
+}
+
+// 打开角色选择弹窗
+async function openRoleSelect() {
+  // 回显已选角色
+  if (properties.candidateGroups.length > 0) {
+    checkedRoleKeys.value = properties.candidateGroups.map(id => parseInt(id))
+  } else {
+    checkedRoleKeys.value = []
+  }
+  showRoleSelect.value = true
+  await loadRoleList()
+}
+
+// 加载角色列表
+async function loadRoleList() {
+  roleLoading.value = true
+  try {
+    const res = await request.get('/system/role/page', {
+      params: { pageNum: 1, pageSize: 1000 }
+    })
+    if (res.code === 200 && res.data?.records) {
+      roleList.value = res.data.records
+    }
+  } catch (error) {
+    console.error('加载角色列表失败:', error)
+  } finally {
+    roleLoading.value = false
+  }
+}
+
+// 角色选择
+function handleRoleCheck(keys) {
+  checkedRoleKeys.value = keys
+}
+
+// 角色选择确认
+function handleRoleConfirm() {
+  const selectedRoles = roleList.value.filter(r => checkedRoleKeys.value.includes(r.id))
+  selectedRoles.forEach(role => {
+    if (!properties.candidateGroups.includes(role.id.toString())) {
+      properties.candidateGroups.push(role.id.toString())
+      properties.candidateGroupNames.push(role.roleName)
+    }
+  })
+  updateCandidateGroups()
+  showRoleSelect.value = false
+}
+
+// 移除候选组
+function removeCandidateGroup(index) {
+  properties.candidateGroups.splice(index, 1)
+  properties.candidateGroupNames.splice(index, 1)
+  updateCandidateGroups()
+}
 
 // 加载元素属性
 function loadElementProperties(element) {
   const bo = element.businessObject
+  if (!bo) return
   
   // 基础属性
   properties.id = bo.id || ''
@@ -503,21 +785,53 @@ function loadElementProperties(element) {
 
 // 加载用户任务属性
 function loadUserTaskProperties(bo) {
+  // 从 $attrs 中读取 flowable 扩展属性
+  const attrs = bo.$attrs || {}
+  
   // 审批人类型判断
-  if (bo.assignee) {
+  const assignee = bo.assignee || attrs['flowable:assignee']
+  const candidateUsers = bo.candidateUsers || attrs['flowable:candidateUsers']
+  const candidateGroups = bo.candidateGroups || attrs['flowable:candidateGroups']
+  
+  // 读取保存的用户名/角色名
+  const assigneeName = attrs['flowable:assigneeName'] || ''
+  const candidateUserNames = attrs['flowable:candidateUserNames'] || ''
+  const candidateGroupNames = attrs['flowable:candidateGroupNames'] || ''
+  
+  if (assignee) {
     properties.taskType = 'assignee'
-    properties.assignee = bo.assignee
-  } else if (bo.candidateUsers) {
+    properties.assignee = assignee
+    properties.assigneeUserName = assigneeName
+    // 判断是否是自定义表达式
+    if (assignee.startsWith('${user_')) {
+      properties.assignee = 'custom'
+      properties.assigneeExpr = assignee
+    }
+  } else if (candidateUsers) {
     properties.taskType = 'candidateUsers'
-    properties.candidateUsers = bo.candidateUsers.split(',').filter(Boolean)
-  } else if (bo.candidateGroups) {
+    properties.candidateUsers = candidateUsers.split(',').filter(Boolean)
+    properties.candidateUserNames = candidateUserNames ? candidateUserNames.split(',') : []
+  } else if (candidateGroups) {
     properties.taskType = 'candidateGroups'
-    properties.candidateGroups = bo.candidateGroups.split(',').filter(Boolean)
+    properties.candidateGroups = candidateGroups.split(',').filter(Boolean)
+    properties.candidateGroupNames = candidateGroupNames ? candidateGroupNames.split(',') : []
   }
   
-  properties.formKey = bo.formKey || ''
-  properties.priority = parseInt(bo.priority) || 50
-  properties.dueDate = bo.dueDate ? parseInt(bo.dueDate) : 0
+  properties.formKey = bo.formKey || attrs['flowable:formKey'] || ''
+  properties.formJson = bo.formJson || attrs['flowable:formJson'] || ''
+  properties.formUrl = bo.formUrl || attrs['flowable:formUrl'] || ''
+  
+  // 表单类型判断
+  if (properties.formUrl) {
+    properties.formType = 'external'
+  } else if (properties.formKey || properties.formJson) {
+    properties.formType = 'dynamic'
+  } else {
+    properties.formType = 'none'
+  }
+  
+  properties.priority = parseInt(bo.priority || attrs['flowable:priority']) || 50
+  properties.dueDate = bo.dueDate ? parseInt(bo.dueDate) : (attrs['flowable:dueDate'] ? parseInt(attrs['flowable:dueDate']) : 0)
   
   // 多实例配置
   const loopCharacteristics = bo.loopCharacteristics
@@ -558,17 +872,19 @@ function loadUserTaskProperties(bo) {
 
 // 加载服务任务属性
 function loadServiceTaskProperties(bo) {
-  if (bo['flowable:class']) {
+  const attrs = bo.$attrs || {}
+  
+  if (bo['flowable:class'] || attrs['flowable:class']) {
     properties.implementationType = 'class'
-    properties.implementation = bo['flowable:class']
-  } else if (bo['flowable:expression']) {
+    properties.implementation = bo['flowable:class'] || attrs['flowable:class']
+  } else if (bo['flowable:expression'] || attrs['flowable:expression']) {
     properties.implementationType = 'expression'
-    properties.implementation = bo['flowable:expression']
-  } else if (bo['flowable:delegateExpression']) {
+    properties.implementation = bo['flowable:expression'] || attrs['flowable:expression']
+  } else if (bo['flowable:delegateExpression'] || attrs['flowable:delegateExpression']) {
     properties.implementationType = 'delegateExpression'
-    properties.implementation = bo['flowable:delegateExpression']
+    properties.implementation = bo['flowable:delegateExpression'] || attrs['flowable:delegateExpression']
   }
-  properties.async = bo.async || false
+  properties.async = bo.async || attrs['flowable:async'] || false
 }
 
 // 加载序列流属性
@@ -593,22 +909,23 @@ function loadSequenceFlowProperties(bo) {
 
 // 加载开始事件属性
 function loadStartEventProperties(bo) {
-  properties.initiator = bo['flowable:initiator'] || 'initiator'
-  properties.formKey = bo.formKey || ''
+  const attrs = bo.$attrs || {}
+  properties.initiator = bo['flowable:initiator'] || attrs['flowable:initiator'] || 'initiator'
+  properties.formKey = bo.formKey || attrs['flowable:formKey'] || ''
 }
 
 // 更新基础属性
 function updateProperty(prop) {
-  if (!props.element || !props.modeler) return
-  
+  if (!rawElement.value || !props.modeler) return
+
   const modeling = props.modeler.get('modeling')
-  
+
   if (prop === 'id') {
-    modeling.updateProperties(props.element, { id: properties.id })
+    modeling.updateProperties(rawElement.value, { id: properties.id })
   } else if (prop === 'name') {
-    modeling.updateProperties(props.element, { name: properties.name })
+    modeling.updateProperties(rawElement.value, { name: properties.name })
   } else if (prop === 'documentation') {
-    modeling.updateProperties(props.element, {
+    modeling.updateProperties(rawElement.value, {
       documentation: properties.documentation ? [{ text: properties.documentation }] : []
     })
   }
@@ -616,10 +933,10 @@ function updateProperty(prop) {
 
 // 更新扩展属性
 function updateExtensionProperty(prop) {
-  if (!props.element || !props.modeler) return
-  
+  if (!rawElement.value || !props.modeler) return
+
   const modeling = props.modeler.get('modeling')
-  modeling.updateProperties(props.element, {
+  modeling.updateProperties(rawElement.value, {
     [`flowable:${prop}`]: properties[prop]
   })
 }
@@ -628,71 +945,117 @@ function updateExtensionProperty(prop) {
 function updateTaskType() {
   // 清空其他审批人配置
   properties.assignee = ''
+  properties.assigneeExpr = ''
   properties.candidateUsers = []
   properties.candidateGroups = []
 }
 
+// 更新表单类型
+function updateFormType() {
+  if (!rawElement.value || !props.modeler) return
+
+  const modeling = props.modeler.get('modeling')
+
+  if (properties.formType === 'none') {
+    properties.formKey = ''
+    properties.formJson = ''
+    properties.formUrl = ''
+    modeling.updateProperties(rawElement.value, {
+      'flowable:formKey': null,
+      'flowable:formJson': null,
+      'flowable:formUrl': null
+    })
+  } else if (properties.formType === 'external') {
+    properties.formKey = ''
+    properties.formJson = ''
+    modeling.updateProperties(rawElement.value, {
+      'flowable:formKey': null,
+      'flowable:formJson': null
+    })
+  } else if (properties.formType === 'dynamic') {
+    properties.formUrl = ''
+    modeling.updateProperties(rawElement.value, {
+      'flowable:formUrl': null
+    })
+  }
+}
+
 // 更新用户任务审批人
 function updateUserTaskAssignee() {
-  if (!props.element || !props.modeler) return
+  if (!rawElement.value || !props.modeler) return
   
   const modeling = props.modeler.get('modeling')
   const value = properties.assignee === 'custom' ? properties.assigneeExpr : properties.assignee
+  const element = rawElement.value
   
-  modeling.updateProperties(props.element, {
+  // 使用 null 来清除属性，同时保存用户名用于回显
+  modeling.updateProperties(element, {
     'flowable:assignee': value,
+    'flowable:assigneeName': properties.assigneeUserName || null,
     'flowable:candidateUsers': null,
-    'flowable:candidateGroups': null
+    'flowable:candidateUserNames': null,
+    'flowable:candidateGroups': null,
+    'flowable:candidateGroupNames': null
   })
 }
 
 // 更新候选用户
 function updateCandidateUsers() {
-  if (!props.element || !props.modeler) return
+  if (!rawElement.value || !props.modeler) return
   
   const modeling = props.modeler.get('modeling')
-  modeling.updateProperties(props.element, {
+  const element = rawElement.value
+  
+  modeling.updateProperties(element, {
     'flowable:assignee': null,
+    'flowable:assigneeName': null,
     'flowable:candidateUsers': properties.candidateUsers.join(','),
-    'flowable:candidateGroups': null
+    'flowable:candidateUserNames': properties.candidateUserNames.join(','),
+    'flowable:candidateGroups': null,
+    'flowable:candidateGroupNames': null
   })
 }
 
 // 更新候选组
 function updateCandidateGroups() {
-  if (!props.element || !props.modeler) return
+  if (!rawElement.value || !props.modeler) return
   
   const modeling = props.modeler.get('modeling')
-  modeling.updateProperties(props.element, {
+  const element = rawElement.value
+  
+  modeling.updateProperties(element, {
     'flowable:assignee': null,
+    'flowable:assigneeName': null,
     'flowable:candidateUsers': null,
-    'flowable:candidateGroups': properties.candidateGroups.join(',')
+    'flowable:candidateUserNames': null,
+    'flowable:candidateGroups': properties.candidateGroups.join(','),
+    'flowable:candidateGroupNames': properties.candidateGroupNames.join(',')
   })
 }
 
 // 更新截止日期
 function updateDueDate() {
-  if (!props.element || !props.modeler) return
+  if (!rawElement.value || !props.modeler) return
   
   const modeling = props.modeler.get('modeling')
-  modeling.updateProperties(props.element, {
+  modeling.updateProperties(rawElement.value, {
     'flowable:dueDate': properties.dueDate > 0 ? `P${properties.dueDate}D` : null
   })
 }
 
 // 更新多实例配置
 function updateMultiInstance() {
-  if (!props.element || !props.modeler) return
-  
+  if (!rawElement.value || !props.modeler) return
+
   const modeling = props.modeler.get('modeling')
-  
+
   if (properties.multiInstanceType === 'none') {
-    modeling.updateProperties(props.element, {
+    modeling.updateProperties(rawElement.value, {
       loopCharacteristics: null
     })
     return
   }
-  
+
   // 构建完成条件
   let completionCondition = null
   if (properties.completionCondition === 'all') {
@@ -703,8 +1066,8 @@ function updateMultiInstance() {
     const rate = properties.passRate / 100
     completionCondition = `\${nrOfCompletedInstances / nrOfInstances >= ${rate}}`
   }
-  
-  modeling.updateProperties(props.element, {
+
+  modeling.updateProperties(rawElement.value, {
     loopCharacteristics: {
       isSequential: properties.multiInstanceType === 'sequential',
       completionCondition: completionCondition ? {
@@ -731,19 +1094,19 @@ function removeTaskListener(index) {
 
 // 更新任务监听器
 function updateTaskListeners() {
-  if (!props.element || !props.modeler) return
-  
+  if (!rawElement.value || !props.modeler) return
+
   const moddle = props.modeler.get('moddle')
   const modeling = props.modeler.get('modeling')
-  
+
   const listeners = properties.taskListeners
     .filter(l => l.class)
     .map(l => moddle.create('flowable:TaskListener', {
       event: l.event,
       class: l.class
     }))
-  
-  modeling.updateProperties(props.element, {
+
+  modeling.updateProperties(rawElement.value, {
     extensionElements: moddle.create('bpmn:ExtensionElements', {
       values: listeners
     })
@@ -765,27 +1128,27 @@ function removeExecutionListener(index) {
 
 // 更新服务任务实现
 function updateServiceImplementation() {
-  if (!props.element || !props.modeler) return
+  if (!rawElement.value || !props.modeler) return
   
   const modeling = props.modeler.get('modeling')
-  const props = {
+  const updateProps = {
     'flowable:class': null,
     'flowable:expression': null,
     'flowable:delegateExpression': null
   }
   
   const key = `flowable:${properties.implementationType}`
-  props[key] = properties.implementation
+  updateProps[key] = properties.implementation
   
-  modeling.updateProperties(props.element, props)
+  modeling.updateProperties(rawElement.value, updateProps)
 }
 
 // 更新异步
 function updateAsync() {
-  if (!props.element || !props.modeler) return
+  if (!rawElement.value || !props.modeler) return
   
   const modeling = props.modeler.get('modeling')
-  modeling.updateProperties(props.element, {
+  modeling.updateProperties(rawElement.value, {
     'flowable:async': properties.async
   })
 }
@@ -816,19 +1179,19 @@ function updateConditionType() {
 
 // 更新流转条件
 function updateCondition() {
-  if (!props.element || !props.modeler) return
+  if (!rawElement.value || !props.modeler) return
   
   const modeling = props.modeler.get('modeling')
   
   if (properties.conditionType === 'expression' && properties.condition) {
-    modeling.updateProperties(props.element, {
+    modeling.updateProperties(rawElement.value, {
       conditionExpression: {
         $type: 'bpmn:FormalExpression',
         body: properties.condition
       }
     })
   } else if (properties.conditionType === 'script' && properties.script) {
-    modeling.updateProperties(props.element, {
+    modeling.updateProperties(rawElement.value, {
       conditionExpression: {
         $type: 'bpmn:FormalExpression',
         body: properties.script,
@@ -836,7 +1199,7 @@ function updateCondition() {
       }
     })
   } else {
-    modeling.updateProperties(props.element, {
+    modeling.updateProperties(rawElement.value, {
       conditionExpression: null
     })
   }
@@ -844,15 +1207,15 @@ function updateCondition() {
 
 // 切换默认路径
 function toggleDefault(checked) {
-  if (!props.element || !props.modeler) return
+  if (!rawElement.value || !props.modeler) return
   
   const modeling = props.modeler.get('modeling')
-  const bo = props.element.businessObject
+  const bo = rawElement.value.businessObject
   
   if (checked) {
     // 设置为默认流
     modeling.updateProperties(bo.sourceRef, {
-      default: props.element
+      default: rawElement.value
     })
   } else {
     // 取消默认流

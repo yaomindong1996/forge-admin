@@ -56,6 +56,11 @@
           "type": "String"
         },
         {
+          "name": "async",
+          "isAttr": true,
+          "type": "Boolean"
+        },
+        {
           "name": "class",
           "isAttr": true,
           "type": "String"
@@ -72,6 +77,26 @@
         },
         {
           "name": "initiator",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "priority",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "assigneeName",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "candidateUserNames",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "candidateGroupNames",
           "isAttr": true,
           "type": "String"
         }

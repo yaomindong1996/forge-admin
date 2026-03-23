@@ -80,7 +80,7 @@
 <script setup>
 import { ref, reactive, watch, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
-import flowApi from '@/api/flow'
+import { request } from '@/utils/http'
 
 const props = defineProps({
   show: {
@@ -179,8 +179,8 @@ watch(visible, (val) => {
 // 加载部门树
 async function loadDeptTree() {
   try {
-    const res = await flowApi.getOrgDeptTree()
-    if (res.data) {
+    const res = await request.get('/system/org/tree')
+    if (res.code === 200 && res.data) {
       deptTreeOptions.value = formatDeptTree(res.data)
     }
   } catch (e) {
@@ -202,10 +202,17 @@ function formatDeptTree(depts) {
 async function loadUserList() {
   loading.value = true
   try {
-    const res = await flowApi.getOrgUserList(searchForm.keyword, searchForm.deptId)
-    if (res.data) {
-      userList.value = res.data
-      pagination.total = res.data.length
+    const res = await request.get('/system/user/page', {
+      params: {
+        pageNum: pagination.page,
+        pageSize: pagination.pageSize,
+        userName: searchForm.keyword || undefined,
+        deptId: searchForm.deptId || undefined
+      }
+    })
+    if (res.code === 200 && res.data) {
+      userList.value = res.data.records || []
+      pagination.total = res.data.total || 0
     }
   } catch (e) {
     console.error('加载用户列表失败', e)

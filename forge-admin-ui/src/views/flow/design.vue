@@ -183,7 +183,7 @@
 
       <!-- 流程设计器 -->
       <div class="designer-container">
-        <BpmnModeler
+        <FlowModeler
           ref="modelerRef"
           :xml="bpmnXml"
           @change="handleBpmnChange"
@@ -231,7 +231,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { NTag } from 'naive-ui'
-import BpmnModeler from '@/components/bpmn/BpmnModeler.vue'
+import FlowModeler from '@/components/bpmn/FlowModeler.vue'
 import FormDesigner from '@/components/form-designer/FormDesigner.vue'
 import FormPreview from '@/components/form-designer/FormPreview.vue'
 import flowApi from '@/api/flow'

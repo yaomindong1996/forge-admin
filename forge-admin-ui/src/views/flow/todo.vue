@@ -83,11 +83,11 @@
 
     <!-- 流程图弹窗 -->
     <Teleport to="body">
-      <n-modal v-model:show="showDiagramModal" preset="card" title="流程图" style="width: 800px">
-        <div class="flex justify-center">
-          <img v-if="diagramUrl" :src="diagramUrl" alt="流程图" style="max-width: 100%" />
-          <n-empty v-else description="暂无流程图" />
-        </div>
+      <n-modal v-model:show="showDiagramModal" preset="card" title="流程图" style="width: 90%; max-width: 1200px;">
+        <ProcessDiagramViewer
+          v-if="showDiagramModal && currentDiagramInstanceId"
+          :process-instance-id="currentDiagramInstanceId"
+        />
       </n-modal>
     </Teleport>
   </div>
@@ -98,6 +98,7 @@ import { ref, reactive, h, onMounted } from 'vue'
 import { NTag, NButton, NSpace, NBadge } from 'naive-ui'
 import flowApi from '@/api/flow'
 import { useUserStore } from '@/store'
+import ProcessDiagramViewer from '@/components/bpmn/ProcessDiagramViewer.vue'
 
 const userStore = useUserStore()
 const loading = ref(false)
@@ -130,7 +131,7 @@ const approveForm = reactive({
 
 // 流程图相关
 const showDiagramModal = ref(false)
-const diagramUrl = ref('')
+const currentDiagramInstanceId = ref('')
 
 // 状态映射
 const statusMap = {
@@ -289,21 +290,13 @@ async function handleApprove() {
 }
 
 // 查看流程图
-async function handleViewDiagram(row) {
+function handleViewDiagram(row) {
   if (!row.processInstanceId) {
     window.$message.warning('无法获取流程实例')
     return
   }
-  
-  try {
-    const res = await flowApi.getProcessDiagram(row.processInstanceId)
-    if (res) {
-      diagramUrl.value = URL.createObjectURL(res)
-      showDiagramModal.value = true
-    }
-  } catch (error) {
-    window.$message.error('获取流程图失败')
-  }
+  currentDiagramInstanceId.value = row.processInstanceId
+  showDiagramModal.value = true
 }
 
 // 签收任务

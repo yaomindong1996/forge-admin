@@ -96,42 +96,36 @@
           预览XML
         </n-button>
 
-        <!-- 保存 -->
-        <n-button size="small" type="primary" @click="handleSave">
-          <template #icon>
-            <i class="i-material-symbols:save" />
-          </template>
-          保存
-        </n-button>
       </n-space>
     </div>
 
-    <!-- 主体区域 -->
-    <div class="main-area">
-      <!-- 画布区域 -->
-      <div class="canvas-wrapper">
-        <div class="canvas-container" ref="canvasRef"></div>
-      </div>
-
-      <!-- 右侧属性面板 -->
-      <div class="properties-panel" v-show="selectedElement">
-        <div class="properties-header">
-          <span>{{ getElementTitle() }}</span>
-          <n-button text size="small" @click="selectedElement = null">
-            <i class="i-material-symbols:close" />
-          </n-button>
-        </div>
-        <div class="properties-content">
-          <NodePropertiesPanel
-            v-if="selectedElement && modeler"
-            :element="selectedElement"
-            :modeler="modeler"
-            @update="handleElementUpdate"
-          />
-          <n-empty v-else description="请选择一个节点" />
-        </div>
-      </div>
+    <!-- 画布区域 -->
+    <div class="canvas-wrapper">
+      <div class="canvas-container" ref="canvasRef"></div>
     </div>
+
+    <!-- 节点属性弹窗 -->
+    <n-modal
+      v-model:show="showPropertiesModal"
+      preset="card"
+      :title="getElementTitle()"
+      style="width: 600px; max-height: 80vh"
+      :mask-closable="false"
+    >
+      <div class="properties-modal-content">
+        <NodePropertiesPanel
+          v-if="rawSelectedElement && modeler"
+          :element="rawSelectedElement"
+          :modeler="modeler"
+          @update="handleElementUpdate"
+        />
+      </div>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showPropertiesModal = false">关闭</n-button>
+        </n-space>
+      </template>
+    </n-modal>
 
     <!-- 隐藏的文件输入 -->
     <input
@@ -150,13 +144,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick, toRaw, computed } from 'vue'
 import BpmnModeler from 'bpmn-js/lib/Modeler'
 import 'bpmn-js/dist/assets/diagram-js.css'
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css'
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-codes.css'
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css'
 import NodePropertiesPanel from './NodePropertiesPanel.vue'
+import flowableModdle from './flowable-moddle.json'
 
 const props = defineProps({
   xml: {
@@ -186,8 +181,12 @@ const canUndo = ref(false)
 const canRedo = ref(false)
 const zoomLevel = ref(1)
 const selectedElement = ref(null)
+const showPropertiesModal = ref(false)
 const showPreviewModal = ref(false)
 const previewXml = ref('')
+
+// 获取原始元素（避免 Vue 代理与 bpmn-js 冲突）
+const rawSelectedElement = computed(() => selectedElement.value ? toRaw(selectedElement.value) : null)
 
 // 默认 BPMN XML - 必须包含 BPMNDiagram 图形信息
 const defaultXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -231,6 +230,9 @@ async function initModeler() {
     container: canvasRef.value,
     keyboard: {
       bindTo: document
+    },
+    moddleExtensions: {
+      flowable: flowableModdle
     }
   })
 
@@ -241,9 +243,18 @@ async function initModeler() {
   eventBus.on('selection.changed', (e) => {
     const { newSelection } = e
     if (newSelection.length === 1) {
+      // 如果选中的是同一个元素，保持弹窗状态不变
+      if (selectedElement.value && selectedElement.value.id === newSelection[0].id) {
+        return
+      }
       selectedElement.value = newSelection[0]
+      showPropertiesModal.value = true
     } else {
-      selectedElement.value = null
+      // 只有当弹窗没有打开时才清空选中状态
+      // 这样可以防止在属性面板操作时意外关闭弹窗
+      if (!showPropertiesModal.value) {
+        selectedElement.value = null
+      }
     }
   })
 
@@ -426,16 +437,6 @@ async function handlePreview() {
   }
 }
 
-// 保存
-async function handleSave() {
-  try {
-    const { xml } = await modeler.saveXML({ format: true })
-    emit('save', xml)
-  } catch (error) {
-    message.error('保存失败: ' + error.message)
-  }
-}
-
 // 触发变更
 function emitChange() {
   modeler.saveXML({ format: true }).then(({ xml }) => {
@@ -558,27 +559,8 @@ defineExpose({
   background: #e8f4ff;
 }
 
-.properties-panel {
-  width: 320px;
-  border-left: 1px solid #e0e0e0;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-}
-
-.properties-header {
-  padding: 12px 16px;
-  font-weight: 600;
-  border-bottom: 1px solid #e0e0e0;
-  background: #fafafa;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.properties-content {
-  flex: 1;
+.properties-modal-content {
+  max-height: 60vh;
   overflow-y: auto;
-  padding: 12px;
 }
 </style>
