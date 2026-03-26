@@ -36,6 +36,16 @@ CREATE TABLE IF NOT EXISTS sys_flow_model (
 ALTER TABLE sys_flow_model ADD COLUMN IF NOT EXISTS process_definition_id VARCHAR(64) COMMENT 'Flowable流程定义ID' AFTER version;
 ALTER TABLE sys_flow_model ADD COLUMN IF NOT EXISTS last_update_by VARCHAR(64) COMMENT '最后修改人' AFTER deploy_time;
 
+-- =============================================
+-- V3 变更：流程模型表新增事件通知配置字段
+-- 执行前请先备份 sys_flow_model 表
+-- =============================================
+ALTER TABLE sys_flow_model
+    ADD COLUMN IF NOT EXISTS notify_type VARCHAR(20) DEFAULT 'none'
+        COMMENT '事件通知方式：none-不通知 / redis-Redis Pub/Sub / webhook-HTTP Webhook（互斥）' AFTER deployment_key,
+    ADD COLUMN IF NOT EXISTS webhook_url VARCHAR(500) DEFAULT NULL
+        COMMENT 'Webhook 回调地址，仅 notify_type=webhook 时生效' AFTER notify_type;
+
 -- 流程业务关联表（业务系统使用）
 CREATE TABLE IF NOT EXISTS sys_flow_business (
     id VARCHAR(64) PRIMARY KEY COMMENT '主键',

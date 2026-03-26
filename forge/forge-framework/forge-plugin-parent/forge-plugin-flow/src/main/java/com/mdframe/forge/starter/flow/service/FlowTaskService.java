@@ -6,6 +6,7 @@ import com.mdframe.forge.starter.flow.dto.ProcessDiagramInfo;
 import com.mdframe.forge.starter.flow.dto.TaskFormInfo;
 import com.mdframe.forge.starter.flow.entity.FlowTask;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -95,6 +96,15 @@ public interface FlowTaskService {
      * 催办
      */
     void remind(String taskId);
+
+    /**
+     * 获取流程审批时间轴
+     * 返回按时间排序的审批节点列表，每个元素包含：taskName, assigneeName, action, comment, createTime, completeTime
+     *
+     * @param processInstanceId 流程实例 ID
+     * @return 审批历史列表
+     */
+    List<Map<String, Object>> getProcessHistory(String processInstanceId);
 
     /**
      * 获取任务表单信息

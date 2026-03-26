@@ -114,7 +114,7 @@
     >
       <div class="properties-modal-content">
         <NodePropertiesPanel
-          v-if="rawSelectedElement && modeler"
+          v-if="rawSelectedElement && isModelerReady"
           :element="rawSelectedElement"
           :modeler="modeler"
           @update="handleElementUpdate"
@@ -144,7 +144,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, nextTick, toRaw, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick, toRaw, computed, shallowRef } from 'vue'
 import BpmnModeler from 'bpmn-js/lib/Modeler'
 import 'bpmn-js/dist/assets/diagram-js.css'
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css'
@@ -173,7 +173,10 @@ const message = window.$message
 const canvasRef = ref(null)
 const fileInputRef = ref(null)
 
-// modeler instance
+// modeler instance - 用 shallowRef 包裹，让模板可以响应式地检测初始化状态
+const modelerRef = shallowRef(null)
+// 是否初始化完成（用于模板 v-if 判断）
+const isModelerReady = ref(false)
 let modeler = null
 
 // state
@@ -235,6 +238,8 @@ async function initModeler() {
       flowable: flowableModdle
     }
   })
+  modelerRef.value = modeler
+  isModelerReady.value = true
 
   // 监听事件
   const eventBus = modeler.get('eventBus')

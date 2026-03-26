@@ -1,8 +1,14 @@
 package com.mdframe.forge.starter.flow.listener;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mdframe.forge.starter.flow.entity.FlowBusiness;
+import com.mdframe.forge.starter.flow.entity.FlowModel;
 import com.mdframe.forge.starter.flow.entity.FlowTask;
+import com.mdframe.forge.starter.core.domain.FlowEventMessage;
+import com.mdframe.forge.starter.flow.event.FlowEventPublisher;
+import com.mdframe.forge.starter.flow.event.FlowWebhookNotifier;
 import com.mdframe.forge.starter.flow.mapper.FlowBusinessMapper;
+import com.mdframe.forge.starter.flow.mapper.FlowModelMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowTaskMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.common.engine.api.delegate.event.FlowableEntityEvent;
@@ -11,16 +17,12 @@ import org.flowable.common.engine.api.delegate.event.FlowableEventListener;
 import org.flowable.common.engine.api.delegate.event.FlowableEventType;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
-import org.flowable.engine.runtime.ProcessInstance;
-import org.flowable.identitylink.service.impl.persistence.entity.IdentityLinkEntity;
-import org.flowable.task.api.Task;
 import org.flowable.task.service.impl.persistence.entity.TaskEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,6 +41,10 @@ public class FlowTaskEventListener implements FlowableEventListener {
     @Autowired
     @Lazy
     private FlowBusinessMapper flowBusinessMapper;
+
+    @Autowired
+    @Lazy
+    private FlowModelMapper flowModelMapper;
     
     @Autowired
     @Lazy
@@ -47,6 +53,16 @@ public class FlowTaskEventListener implements FlowableEventListener {
     @Autowired
     @Lazy
     private RuntimeService runtimeService;
+
+    /** Redis Pub/Sub 发布器（可选，未引入 Redis 依赖时为 null）*/
+    @Autowired(required = false)
+    @Lazy
+    private FlowEventPublisher flowEventPublisher;
+
+    /** HTTP Webhook 回调器 */
+    @Autowired
+    @Lazy
+    private FlowWebhookNotifier flowWebhookNotifier;
 
     @Override
     public void onEvent(FlowableEvent event) {
@@ -87,7 +103,7 @@ public class FlowTaskEventListener implements FlowableEventListener {
                     task.getId(), task.getName(), task.getAssignee());
             log.info("processInstanceId={}, processDefinitionId={}",
                     task.getProcessInstanceId(), task.getProcessDefinitionId());
-            
+                
             // 检查是否已存在
             FlowTask existingTask = flowTaskMapper.selectByTaskId(task.getId());
             if (existingTask != null) {
@@ -101,7 +117,7 @@ public class FlowTaskEventListener implements FlowableEventListener {
             
             log.info("任务处理人: {}, 候选人: {}, 候选组: {}",
                     flowTask.getAssignee(), flowTask.getCandidateUsers(), flowTask.getCandidateGroups());
-            
+                
             // 获取业务信息（优先通过 processInstanceId 查询，查不到则通过 businessKey 查询）
             FlowBusiness business = getFlowBusiness(task.getProcessInstanceId());
             
@@ -137,7 +153,7 @@ public class FlowTaskEventListener implements FlowableEventListener {
                 log.info("业务信息: title={}, businessKey={}, applyUserId={}, applyUserName={}",
                         business.getTitle(), business.getBusinessKey(), business.getApplyUserId(), business.getApplyUserName());
             } else {
-                // 没有业务信息时设置默认值
+                // 没有业务信息时设置默认値
                 flowTask.setTitle(task.getName() + " - " + task.getProcessDefinitionId().split(":")[0]);
                 log.warn("未找到业务信息，使用默认标题: processInstanceId={}, title={}",
                         task.getProcessInstanceId(), flowTask.getTitle());
@@ -147,6 +163,25 @@ public class FlowTaskEventListener implements FlowableEventListener {
             log.info("创建待办任务成功：taskId={}, title={}, assignee={}, candidateUsers={}, candidateGroups={}",
                     task.getId(), flowTask.getTitle(), flowTask.getAssignee(), flowTask.getCandidateUsers(), flowTask.getCandidateGroups());
             log.info("==================================");
+    
+            // 发布 TASK_CREATED 事件，业务侧可监听并处理（如：发送待办通知、记录日志等）
+            if (business != null) {
+                FlowEventMessage msg = FlowEventMessage.ofTask(
+                        FlowEventMessage.TASK_CREATED,
+                        task.getProcessInstanceId(),
+                        flowTask.getProcessDefKey(),
+                        business.getBusinessKey(),
+                        business.getTitle(),
+                        business.getApplyUserId(),
+                        business.getApplyUserName(),
+                        task.getId(),
+                        task.getTaskDefinitionKey(),
+                        task.getName(),
+                        task.getAssignee(),
+                        null,   // assigneeName 在创建时暂无姓名
+                        null);
+                publishEvent(msg, flowTask.getProcessDefKey());
+            }
             
         } catch (Exception e) {
             log.error("处理任务创建事件失败", e);
@@ -186,6 +221,36 @@ public class FlowTaskEventListener implements FlowableEventListener {
                 flowTaskMapper.insert(flowTask);
                 log.info("创建已完成任务记录：taskId={}", task.getId());
             }
+
+            // 发布 TASK_COMPLETED 事件，业务侧可监听具体节点完成情况（如：更新业务表审批节点状态等）
+            FlowBusiness completedBusiness = getFlowBusiness(task.getProcessInstanceId());
+            if (completedBusiness != null) {
+                // 获取该任务的审批意见
+                String comment = null;
+                try {
+                    List<org.flowable.engine.task.Comment> comments = taskService.getTaskComments(task.getId());
+                    if (comments != null && !comments.isEmpty()) {
+                        comment = comments.get(comments.size() - 1).getFullMessage();
+                    }
+                } catch (Exception ex) {
+                    log.debug("获取任务意见失败: taskId={}", task.getId());
+                }
+                FlowEventMessage msg = FlowEventMessage.ofTask(
+                        FlowEventMessage.TASK_COMPLETED,
+                        task.getProcessInstanceId(),
+                        flowTask.getProcessDefKey(),
+                        completedBusiness.getBusinessKey(),
+                        completedBusiness.getTitle(),
+                        completedBusiness.getApplyUserId(),
+                        completedBusiness.getApplyUserName(),
+                        task.getId(),
+                        task.getTaskDefinitionKey(),
+                        task.getName(),
+                        task.getAssignee(),
+                        null,   // assigneeName 暂无
+                        comment);
+                publishEvent(msg, flowTask.getProcessDefKey());
+            }
             
         } catch (Exception e) {
             log.error("处理任务完成事件失败", e);
@@ -210,6 +275,28 @@ public class FlowTaskEventListener implements FlowableEventListener {
                 }
                 flowTaskMapper.updateById(flowTask);
                 log.info("更新任务处理人：taskId={}, assignee={}", task.getId(), task.getAssignee());
+            }
+
+            // 发布 TASK_ASSIGNED 事件，业务侧可监听任务分配/签收（如：发送分配通知等）
+            if (task.getAssignee() != null) {
+                FlowBusiness assignedBusiness = getFlowBusiness(task.getProcessInstanceId());
+                if (assignedBusiness != null && flowTask != null) {
+                    FlowEventMessage msg = FlowEventMessage.ofTask(
+                            FlowEventMessage.TASK_ASSIGNED,
+                            task.getProcessInstanceId(),
+                            flowTask.getProcessDefKey(),
+                            assignedBusiness.getBusinessKey(),
+                            assignedBusiness.getTitle(),
+                            assignedBusiness.getApplyUserId(),
+                            assignedBusiness.getApplyUserName(),
+                            task.getId(),
+                            task.getTaskDefinitionKey(),
+                            task.getName(),
+                            task.getAssignee(),
+                            null,   // assigneeName 暂无
+                            null);
+                    publishEvent(msg, flowTask.getProcessDefKey());
+                }
             }
             
         } catch (Exception e) {
@@ -275,6 +362,18 @@ public class FlowTaskEventListener implements FlowableEventListener {
                     }
                     flowBusinessMapper.updateById(business);
                     log.info("更新流程业务状态为已通过：processInstanceId={}", processInstanceId);
+
+                    // 发布事件（方案B: Redis Pub/Sub ＋ 方案C: HTTP Webhook）
+                    FlowEventMessage msg = FlowEventMessage.ofProcess(
+                            FlowEventMessage.PROCESS_COMPLETED,
+                            processInstanceId,
+                            business.getProcessDefKey(),
+                            business.getBusinessKey(),
+                            business.getBusinessType(),
+                            business.getTitle(),
+                            business.getApplyUserId(),
+                            business.getApplyUserName());
+                    publishEvent(msg, business.getProcessDefKey());
                 } else {
                     log.warn("未找到流程业务记录：processInstanceId={}", processInstanceId);
                 }
@@ -316,6 +415,18 @@ public class FlowTaskEventListener implements FlowableEventListener {
                     }
                     flowBusinessMapper.updateById(business);
                     log.info("更新流程业务状态为已取消：processInstanceId={}", processInstanceId);
+
+                    // 发布事件
+                    FlowEventMessage msg = FlowEventMessage.ofProcess(
+                            FlowEventMessage.PROCESS_CANCELED,
+                            processInstanceId,
+                            business.getProcessDefKey(),
+                            business.getBusinessKey(),
+                            business.getBusinessType(),
+                            business.getTitle(),
+                            business.getApplyUserId(),
+                            business.getApplyUserName());
+                    publishEvent(msg, business.getProcessDefKey());
                 } else {
                     log.warn("未找到流程业务记录：processInstanceId={}", processInstanceId);
                 }
@@ -413,6 +524,65 @@ public class FlowTaskEventListener implements FlowableEventListener {
         } catch (Exception e) {
             log.warn("获取流程业务信息失败：businessKey={}", businessKey);
             return null;
+        }
+    }
+
+    /**
+     * 统一发布流程事件：根据 FlowModel.notifyType 互斥选择通知方式
+     *
+     * <ul>
+     *   <li>{@code redis}   → 方案B: Redis Pub/Sub</li>
+     *   <li>{@code webhook} → 方案C: HTTP Webhook（读取 FlowModel.webhookUrl）</li>
+     *   <li>{@code none} 或未配置 → 不发送任何通知</li>
+     * </ul>
+     *
+     * @param message       流程事件消息
+     * @param processDefKey 流程定义 Key，用于查询 FlowModel 配置
+     */
+    private void publishEvent(FlowEventMessage message, String processDefKey) {
+        if (processDefKey == null) {
+            return;
+        }
+        try {
+            FlowModel model = flowModelMapper.selectOne(
+                    new LambdaQueryWrapper<FlowModel>()
+                            .eq(FlowModel::getModelKey, processDefKey)
+                            .last("LIMIT 1"));
+            if (model == null) {
+                log.debug("[FlowEvent] 未找到 FlowModel 配置，跳过通知: processDefKey={}", processDefKey);
+                return;
+            }
+
+            String notifyType = model.getNotifyType();
+            if (notifyType == null || "none".equalsIgnoreCase(notifyType)) {
+                log.debug("[FlowEvent] notifyType=none，跳过通知: processDefKey={}", processDefKey);
+                return;
+            }
+
+            // 方案B: Redis Pub/Sub
+            if ("redis".equalsIgnoreCase(notifyType)) {
+                if (flowEventPublisher != null) {
+                    flowEventPublisher.publish(message);
+                } else {
+                    log.warn("[FlowEvent] notifyType=redis 但 FlowEventPublisher 未初始化（请确认已引入 spring-boot-starter-data-redis）");
+                }
+                return;
+            }
+
+            // 方案C: HTTP Webhook
+            if ("webhook".equalsIgnoreCase(notifyType)) {
+                if (model.getWebhookUrl() != null && !model.getWebhookUrl().isBlank()) {
+                    flowWebhookNotifier.notify(model.getWebhookUrl(), message);
+                } else {
+                    log.warn("[FlowEvent] notifyType=webhook 但 webhookUrl 未配置: processDefKey={}", processDefKey);
+                }
+                return;
+            }
+
+            log.warn("[FlowEvent] 未知的 notifyType={}，跳过通知", notifyType);
+
+        } catch (Exception e) {
+            log.warn("[FlowEvent] 发布事件失败，不影响主流程: processDefKey={}, error={}", processDefKey, e.getMessage(), e);
         }
     }
 

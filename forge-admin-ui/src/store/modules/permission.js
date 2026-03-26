@@ -7,6 +7,8 @@ export const usePermissionStore = defineStore('permission', {
     accessRoutes: [],
     permissions: [],
     menus: [],
+    // 所有菜单（包括隐藏的），用于标题查找
+    allMenus: [],
     // 添加菜单数据加载状态
     menuDataLoaded: false,
   }),
@@ -23,8 +25,10 @@ export const usePermissionStore = defineStore('permission', {
     // 设置新的菜单数据（从新接口获取）
     setMenuData(menuData) {
       this.menus = this.processMenuData(menuData)
-      // 从菜单数据中提取路由并生成 accessRoutes
+      // 从菜单数据中提取路由并生成 accessRoutes（可见菜单）
       this.generateAccessRoutesFromMenus(this.menus)
+      // 从原始数据中提取隐藏菜单的路由，确保隐藏页面也有 meta.title
+      this.generateHiddenMenuRoutes(menuData)
       // 设置菜单数据加载完成状态
       this.menuDataLoaded = true
       
@@ -136,6 +140,32 @@ export const usePermissionStore = defineStore('permission', {
         return []
       }
 
+      // 收集所有菜单（包括隐藏的）到扁平数组，用于标题查找
+      const allMenusFlat = []
+      const collectAllMenus = (items) => {
+        if (!items || !Array.isArray(items)) return
+        for (const item of items) {
+          if (item.resourceType === 1 || item.resourceType === 2) {
+            // 规范化路径，确保以 / 开头
+            let normalizedPath = item.path?.trim() || ''
+            if (normalizedPath && !normalizedPath.startsWith('/')) {
+              normalizedPath = '/' + normalizedPath
+            }
+            allMenusFlat.push({
+              path: normalizedPath,
+              label: item.resourceName,
+              name: item.resourceName
+            })
+          }
+          if (item.children && item.children.length > 0) {
+            collectAllMenus(item.children)
+          }
+        }
+      }
+      collectAllMenus(menuItems)
+      this.allMenus = allMenusFlat
+      console.log('[菜单] allMenus 收集完成, 共', allMenusFlat.length, '项:', allMenusFlat.map(m => m.path + ' -> ' + m.label))
+
       // 处理菜单项，将 UserResourceTreeVO 转换为前端菜单格式
       const processItems = (items) => {
         if (!items || !Array.isArray(items)) return []
@@ -201,6 +231,50 @@ export const usePermissionStore = defineStore('permission', {
 
       const processedMenus = processItems(menuItems)
       return processedMenus
+    },
+
+    // 从原始菜单数据中提取隐藏菜单，生成路由（确保隐藏页面也有 meta.title）
+    generateHiddenMenuRoutes(menuItems) {
+      const hiddenRoutes = []
+      const extract = (items) => {
+        if (!items || !Array.isArray(items)) return
+        for (const item of items) {
+          // 隐藏菜单: resourceType=2(菜单) 且 visible=0 或 menuStatus=0
+          if (item.resourceType === 2 && (item.visible === 0 || item.menuStatus === 0)) {
+            let componentPath = ''
+            if (item.component) {
+              let comp = item.component.trim()
+              if (comp.startsWith('/')) comp = comp.substring(1)
+              if (!comp.endsWith('.vue')) comp += '.vue'
+              componentPath = `/src/views/${comp}`
+            }
+            let routePath = item.path?.trim() || ''
+            if (routePath && !routePath.startsWith('/')) {
+              routePath = '/' + routePath
+            }
+            if (routePath && componentPath) {
+              hiddenRoutes.push({
+                name: String(item.id),
+                path: routePath,
+                component: componentPath,
+                meta: {
+                  title: item.resourceName,
+                  icon: item.icon,
+                  keepAlive: item.keepAlive === 1,
+                }
+              })
+            }
+          }
+          if (item.children && item.children.length > 0) {
+            extract(item.children)
+          }
+        }
+      }
+      extract(menuItems)
+      if (hiddenRoutes.length > 0) {
+        console.log('[菜单] 发现隐藏菜单路由:', hiddenRoutes.map(r => r.path + ' -> ' + r.meta.title))
+        this.accessRoutes = [...this.accessRoutes, ...hiddenRoutes]
+      }
     },
 
     // 转换菜单数据为适合侧边栏显示的格式（简化版本）

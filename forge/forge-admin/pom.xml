@@ -73,24 +73,10 @@
             <artifactId>forge-starter-api-config</artifactId>
         </dependency>
         
-        <!-- Flow Client（如需调用流程服务） -->
-        <!--
+        <!-- Flow Client 供业务服务通过 HTTP 调用流程服务，包含 @FlowBind/@FlowStart/@FlowCallback 注解 -->
         <dependency>
             <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-flow-client</artifactId>
-        </dependency>
-        -->
-        
-        <dependency>
-            <groupId>com.mdframe.forge</groupId>
-            <artifactId>forge-plugin-flow</artifactId>
-            <exclusions>
-                <!-- 排除 Spring Security，admin 使用 Sa-Token 认证 -->
-                <exclusion>
-                    <groupId>org.springframework.boot</groupId>
-                    <artifactId>spring-boot-starter-security</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
     
     </dependencies>

@@ -71,6 +71,10 @@ public class EncryptResponseBodyAdvice implements ResponseBodyAdvice<Object> {
             return false;
         }
         HttpServletRequest request = attributes.getRequest();
+        // 内部服务调用（如 FlowClient）需要明文 JSON 响应，跳过响应加密
+        if ("true".equalsIgnoreCase(request.getHeader("X-Inner-Call"))) {
+            return false;
+        }
         ApiConfigInfo apiConfig = apiConfigManager.getApiConfig(request.getRequestURI(), request.getMethod());
         if (apiConfig != null) {
             return apiConfig.getNeedEncrypt();

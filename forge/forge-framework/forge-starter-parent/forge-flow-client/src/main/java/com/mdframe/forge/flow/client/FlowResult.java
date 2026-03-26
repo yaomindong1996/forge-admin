@@ -1,5 +1,6 @@
 package com.mdframe.forge.flow.client;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 
 /**
@@ -9,6 +10,7 @@ import lombok.Data;
  * @author forge
  */
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class FlowResult<T> {
 
     /**

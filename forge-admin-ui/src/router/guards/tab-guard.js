@@ -1,23 +1,42 @@
-import { useTabStore } from '@/store'
+import { useTabStore, usePermissionStore } from '@/store'
 
 export const EXCLUDE_TAB = ['/404', '/403', '/login']
+
+/**
+ * 从扁平菜单数组中查找路径对应的中文名称
+ */
+function findTitleFromAllMenus(allMenus, targetPath) {
+  if (!allMenus || !Array.isArray(allMenus)) return null
+  const found = allMenus.find(menu => menu.path === targetPath)
+  return found?.label || found?.name || null
+}
 
 export function createTabGuard(router) {
   router.afterEach(async (to) => {
     if (EXCLUDE_TAB.includes(to.path))
       return
     const tabStore = useTabStore()
-    const { name, fullPath: path } = to
+    const permissionStore = usePermissionStore()
+    const { name } = to
+    // key 和 path 都用 to.path（不含查询参数），避免同一页面不同参数生成多个 tab
+    const path = to.path
+
+    // 1. 优先使用 route.meta.title（由 permission-guard 注册路由时设置）
     let title = to.meta?.title
+
+    // 2. 从所有菜单（包括隐藏的）中查找中文名
+    if (!title && permissionStore.allMenus?.length) {
+      title = findTitleFromAllMenus(permissionStore.allMenus, to.path)
+    }
+
     const icon = to.meta?.icon
     const keepAlive = to.meta?.keepAlive
 
-    // 尝试从组件中读取 title
-    if (to.matched.length > 0) {
+    // 3. 尝试从组件中读取 title
+    if (!title && to.matched.length > 0) {
       const component = to.matched[to.matched.length - 1].components?.default
       if (component) {
         try {
-          // 如果组件是异步的，等待加载
           const resolvedComponent = typeof component === 'function' ? await component() : component
           const componentTitle = resolvedComponent?.default?.title || resolvedComponent?.title
           if (componentTitle) {
@@ -29,11 +48,13 @@ export function createTabGuard(router) {
       }
     }
 
-    // 检查是否已存在相同path的tab，避免重复添加
+    // 检查是否已存在相同 path 的 tab
     const existingTab = tabStore.tabs.find(item => item.path === path)
     if (!existingTab) {
-      // 使用 path 作为 key，确保唯一性
-      tabStore.addTab({ name, path, title, icon, keepAlive, key: path })
+      tabStore.addTab({ name, path, title: title || path, icon, keepAlive, key: path })
+    } else if (title && existingTab.title !== title) {
+      // 如果 tab 已存在但 title 为空，自动更新
+      existingTab.title = title
     }
     tabStore.setActiveTab(path)
   })

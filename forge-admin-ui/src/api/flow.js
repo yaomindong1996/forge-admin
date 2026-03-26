@@ -76,6 +76,18 @@ export default {
     request.get(`/api/flow/task/diagram-info/${processInstanceId}`),
 
   /**
+   * 获取流程审批时间轴
+   */
+  getProcessHistory: (processInstanceId) =>
+    request.get(`/api/flow/task/history/${processInstanceId}`),
+
+  /**
+   * 获取任务表单信息（表单类型、formUrl、流程变量等）
+   */
+  getTaskFormInfo: (taskId) =>
+    request.get(`/api/flow/task/form/${taskId}`),
+
+  /**
    * 催办任务
    */
   remindTask: (taskId) =>

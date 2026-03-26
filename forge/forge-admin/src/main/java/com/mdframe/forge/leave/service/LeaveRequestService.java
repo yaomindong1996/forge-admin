@@ -37,19 +37,6 @@ public interface LeaveRequestService extends IService<LeaveRequest> {
     LeaveRequest getByBusinessKey(String businessKey);
 
     /**
-     * 更新审批信息
-     *
-     * @param businessKey 业务Key
-     * @param approveUserId 审批人ID
-     * @param approveUserName 审批人姓名
-     * @param comment 审批意见
-     * @param attachments 审批附件
-     * @param approved 是否通过
-     */
-    void updateApproveInfo(String businessKey, String approveUserId, String approveUserName,
-                          String comment, String attachments, boolean approved);
-
-    /**
      * 撤销申请
      *
      * @param businessKey 业务Key

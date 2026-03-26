@@ -254,6 +254,14 @@ export function createPermissionGuard(router) {
             parentKey = menuInfo.parentKey
           }
 
+          // 可见菜单找不到，从 allMenus（包括隐藏的）中查找标题
+          if (!title && permissionStore.allMenus?.length) {
+            const found = permissionStore.allMenus.find(m => m.path === to.path)
+            if (found) {
+              title = found.label || found.name || ''
+            }
+          }
+
           // 如果没有找到菜单信息，尝试根据路径前缀匹配父级菜单
           if (!parentKey) {
             const pathSegments = to.path.split('/').filter(Boolean)
@@ -486,12 +494,19 @@ export function createPermissionGuard(router) {
           return null
         }
 
-        const menuInfo = findMenuInfo(permissionStore.menus, to.path)
+        // 优先从可见菜单查找
+        let menuInfo = findMenuInfo(permissionStore.menus, to.path)
         if (menuInfo) {
           title = menuInfo.title
-          // 如果在菜单中找到了，说明是正常的菜单项，不需要 parentKey
-          // parentKey 只用于隐藏的二级页面
           parentKey = null
+        }
+
+        // 可见菜单找不到，从 allMenus（包括隐藏的）中查找标题
+        if (!title && permissionStore.allMenus?.length) {
+          const found = permissionStore.allMenus.find(m => m.path === to.path)
+          if (found) {
+            title = found.label || found.name || ''
+          }
         }
 
         // 如果没有找到菜单信息（说明是隐藏页面），尝试根据路径前缀匹配父级菜单
@@ -543,7 +558,7 @@ export function createPermissionGuard(router) {
           path: to.path,
           component: routeComponents[componentPath],
           meta: {
-            title: title,
+            title: title || to.meta?.title || '',
             parentKey: parentKey
           }
         }

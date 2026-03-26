@@ -76,6 +76,14 @@
             <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-starter-api-config</artifactId>
         </dependency>
+
+        <!-- forge-flow-client 可选依赖：当业务服务同时引入 forge-starter-auth + forge-flow-client 时 -->
+        <!-- 自动注册 SaTokenFlowTokenProvider，实现用户 Token 透传，解决服务内调用流程服务时未登录问题 -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-flow-client</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
     
 </project>

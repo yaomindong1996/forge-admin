@@ -36,6 +36,11 @@ public class ReplayAttackFilter implements Filter {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         String path = httpRequest.getRequestURI();
+        
+        if ("true".equalsIgnoreCase(httpRequest.getHeader("X-Inner-Call"))) {
+            chain.doFilter(request, response);
+            return;
+        }
 
         // 检查是否需要防重放验证
         if (!needReplayProtection(path) || path.startsWith("/ws")) {

@@ -225,8 +225,7 @@ public class SysResourceServiceImpl extends ServiceImpl<SysResourceMapper, SysRe
         // 1. 超级管理员拥有所有资源
         if (loginUser.isAdmin()) {
             LambdaQueryWrapper<SysResource> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(SysResource::getVisible, 1)  // 只查询可见的资源
-                    .orderByAsc(SysResource::getSort)
+            wrapper.orderByAsc(SysResource::getSort)
                     .orderByDesc(SysResource::getCreateTime);
             return resourceMapper.selectList(wrapper);
         }
@@ -258,7 +257,6 @@ public class SysResourceServiceImpl extends ServiceImpl<SysResourceMapper, SysRe
 
         LambdaQueryWrapper<SysResource> resourceWrapper = new LambdaQueryWrapper<>();
         resourceWrapper.in(SysResource::getId, resourceIds)
-                .eq(SysResource::getVisible, 1)  // 只查询可见的资源
                 .orderByAsc(SysResource::getSort)
                 .orderByDesc(SysResource::getCreateTime);
         return resourceMapper.selectList(resourceWrapper);

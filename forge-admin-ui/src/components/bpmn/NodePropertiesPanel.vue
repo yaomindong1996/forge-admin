@@ -785,41 +785,54 @@ function loadElementProperties(element) {
 
 // 加载用户任务属性
 function loadUserTaskProperties(bo) {
-  // 从 $attrs 中读取 flowable 扩展属性
+  // moddleExtensions 注册后，flowable 属性直接挂载在 bo 上（无命名空间前缀）
+  // 同时兼容 $attrs 里的原始属性（XML 里带前缀的情况）
   const attrs = bo.$attrs || {}
   
-  // 审批人类型判断
-  const assignee = bo.assignee || attrs['flowable:assignee']
-  const candidateUsers = bo.candidateUsers || attrs['flowable:candidateUsers']
-  const candidateGroups = bo.candidateGroups || attrs['flowable:candidateGroups']
+  // 审批人类型判断 - 先读直接属性，再读 $attrs 兼容
+  const assignee = bo.assignee ?? attrs['flowable:assignee'] ?? ''
+  const candidateUsers = bo.candidateUsers ?? attrs['flowable:candidateUsers'] ?? ''
+  const candidateGroups = bo.candidateGroups ?? attrs['flowable:candidateGroups'] ?? ''
   
-  // 读取保存的用户名/角色名
-  const assigneeName = attrs['flowable:assigneeName'] || ''
-  const candidateUserNames = attrs['flowable:candidateUserNames'] || ''
-  const candidateGroupNames = attrs['flowable:candidateGroupNames'] || ''
+  // 读取保存的用户名/角色名（自定义扩展属性）
+  const assigneeName = bo.assigneeName ?? attrs['flowable:assigneeName'] ?? ''
+  const candidateUserNames = bo.candidateUserNames ?? attrs['flowable:candidateUserNames'] ?? ''
+  const candidateGroupNames = bo.candidateGroupNames ?? attrs['flowable:candidateGroupNames'] ?? ''
   
+  // 重置审批相关属性，防止上一个节点的数据残留
+  properties.taskType = 'assignee'
+  properties.assignee = ''
+  properties.assigneeExpr = ''
+  properties.assigneeUserName = ''
+  properties.candidateUsers = []
+  properties.candidateUserNames = []
+  properties.candidateGroups = []
+  properties.candidateGroupNames = []
+
   if (assignee) {
     properties.taskType = 'assignee'
-    properties.assignee = assignee
     properties.assigneeUserName = assigneeName
-    // 判断是否是自定义表达式
+    // 判断是否是自定义用户 ID 表达式：${user_123}
     if (assignee.startsWith('${user_')) {
       properties.assignee = 'custom'
       properties.assigneeExpr = assignee
+    } else {
+      properties.assignee = assignee
     }
   } else if (candidateUsers) {
     properties.taskType = 'candidateUsers'
     properties.candidateUsers = candidateUsers.split(',').filter(Boolean)
-    properties.candidateUserNames = candidateUserNames ? candidateUserNames.split(',') : []
+    properties.candidateUserNames = candidateUserNames ? candidateUserNames.split(',').filter(Boolean) : []
   } else if (candidateGroups) {
     properties.taskType = 'candidateGroups'
     properties.candidateGroups = candidateGroups.split(',').filter(Boolean)
-    properties.candidateGroupNames = candidateGroupNames ? candidateGroupNames.split(',') : []
+    properties.candidateGroupNames = candidateGroupNames ? candidateGroupNames.split(',').filter(Boolean) : []
   }
   
-  properties.formKey = bo.formKey || attrs['flowable:formKey'] || ''
-  properties.formJson = bo.formJson || attrs['flowable:formJson'] || ''
-  properties.formUrl = bo.formUrl || attrs['flowable:formUrl'] || ''
+  // 表单配置 - 直接读 bo 上的属性
+  properties.formKey = bo.formKey ?? attrs['flowable:formKey'] ?? ''
+  properties.formJson = bo.formJson ?? attrs['flowable:formJson'] ?? ''
+  properties.formUrl = bo.formUrl ?? attrs['flowable:formUrl'] ?? ''
   
   // 表单类型判断
   if (properties.formUrl) {
@@ -830,8 +843,17 @@ function loadUserTaskProperties(bo) {
     properties.formType = 'none'
   }
   
-  properties.priority = parseInt(bo.priority || attrs['flowable:priority']) || 50
-  properties.dueDate = bo.dueDate ? parseInt(bo.dueDate) : (attrs['flowable:dueDate'] ? parseInt(attrs['flowable:dueDate']) : 0)
+  // 优先级和截止日期
+  const priorityVal = bo.priority ?? attrs['flowable:priority']
+  properties.priority = priorityVal != null ? parseInt(priorityVal) : 50
+  const dueDateVal = bo.dueDate ?? attrs['flowable:dueDate']
+  if (dueDateVal) {
+    // 格式可能是 P3D (ISO 8601 duration) 或纯数字
+    const match = String(dueDateVal).match(/(\d+)/)
+    properties.dueDate = match ? parseInt(match[1]) : 0
+  } else {
+    properties.dueDate = 0
+  }
   
   // 多实例配置
   const loopCharacteristics = bo.loopCharacteristics
@@ -839,22 +861,25 @@ function loadUserTaskProperties(bo) {
     properties.multiInstanceType = loopCharacteristics.isSequential ? 'sequential' : 'parallel'
     // 解析完成条件
     if (loopCharacteristics.completionCondition) {
-      const condition = loopCharacteristics.completionCondition.body
+      const condition = loopCharacteristics.completionCondition.body || ''
       if (condition.includes('nrOfCompletedInstances == nrOfInstances')) {
         properties.completionCondition = 'all'
       } else if (condition.includes('nrOfCompletedInstances >= 1')) {
         properties.completionCondition = 'any'
       } else if (condition.includes('/ nrOfInstances')) {
         properties.completionCondition = 'rate'
-        // 提取比例
-        const match = condition.match(/>=\s*([\d.]+)/)
+        const match = condition.match(/>= *([\d.]+)/)
         if (match) {
           properties.passRate = Math.round(parseFloat(match[1]) * 100)
         }
       }
+    } else {
+      properties.completionCondition = 'all'
     }
   } else {
     properties.multiInstanceType = 'none'
+    properties.completionCondition = 'all'
+    properties.passRate = 100
   }
   
   // 任务监听器
@@ -863,8 +888,19 @@ function loadUserTaskProperties(bo) {
   extensionElements.forEach(ext => {
     if (ext.$type === 'flowable:TaskListener') {
       properties.taskListeners.push({
-        event: ext.event,
-        class: ext.class
+        event: ext.event || 'create',
+        class: ext.class || ''
+      })
+    }
+  })
+  
+  // 执行监听器
+  properties.executionListeners = []
+  extensionElements.forEach(ext => {
+    if (ext.$type === 'flowable:ExecutionListener') {
+      properties.executionListeners.push({
+        event: ext.event || 'start',
+        class: ext.class || ''
       })
     }
   })
@@ -874,17 +910,25 @@ function loadUserTaskProperties(bo) {
 function loadServiceTaskProperties(bo) {
   const attrs = bo.$attrs || {}
   
-  if (bo['flowable:class'] || attrs['flowable:class']) {
+  // moddleExtensions 注册后直接读 bo.class / bo.expression / bo.delegateExpression
+  const classVal = bo['class'] ?? bo['flowable:class'] ?? attrs['flowable:class']
+  const exprVal = bo['expression'] ?? bo['flowable:expression'] ?? attrs['flowable:expression']
+  const delegateVal = bo['delegateExpression'] ?? bo['flowable:delegateExpression'] ?? attrs['flowable:delegateExpression']
+
+  if (classVal) {
     properties.implementationType = 'class'
-    properties.implementation = bo['flowable:class'] || attrs['flowable:class']
-  } else if (bo['flowable:expression'] || attrs['flowable:expression']) {
+    properties.implementation = classVal
+  } else if (exprVal) {
     properties.implementationType = 'expression'
-    properties.implementation = bo['flowable:expression'] || attrs['flowable:expression']
-  } else if (bo['flowable:delegateExpression'] || attrs['flowable:delegateExpression']) {
+    properties.implementation = exprVal
+  } else if (delegateVal) {
     properties.implementationType = 'delegateExpression'
-    properties.implementation = bo['flowable:delegateExpression'] || attrs['flowable:delegateExpression']
+    properties.implementation = delegateVal
+  } else {
+    properties.implementationType = 'class'
+    properties.implementation = ''
   }
-  properties.async = bo.async || attrs['flowable:async'] || false
+  properties.async = bo['async'] ?? attrs['flowable:async'] ?? false
 }
 
 // 加载序列流属性
@@ -910,34 +954,20 @@ function loadSequenceFlowProperties(bo) {
 // 加载开始事件属性
 function loadStartEventProperties(bo) {
   const attrs = bo.$attrs || {}
-  properties.initiator = bo['flowable:initiator'] || attrs['flowable:initiator'] || 'initiator'
-  properties.formKey = bo.formKey || attrs['flowable:formKey'] || ''
+  // moddleExtensions 注册后直接读 bo.initiator
+  properties.initiator = bo['initiator'] ?? bo['flowable:initiator'] ?? attrs['flowable:initiator'] ?? 'initiator'
+  properties.formKey = bo.formKey ?? bo['flowable:formKey'] ?? attrs['flowable:formKey'] ?? ''
 }
 
-// 更新基础属性
-function updateProperty(prop) {
-  if (!rawElement.value || !props.modeler) return
-
-  const modeling = props.modeler.get('modeling')
-
-  if (prop === 'id') {
-    modeling.updateProperties(rawElement.value, { id: properties.id })
-  } else if (prop === 'name') {
-    modeling.updateProperties(rawElement.value, { name: properties.name })
-  } else if (prop === 'documentation') {
-    modeling.updateProperties(rawElement.value, {
-      documentation: properties.documentation ? [{ text: properties.documentation }] : []
-    })
-  }
-}
-
-// 更新扩展属性
+// 更新扩展属性（flowable 命名空间属性，通过 moddleExtensions 注册后直接用属性名）
 function updateExtensionProperty(prop) {
   if (!rawElement.value || !props.modeler) return
 
   const modeling = props.modeler.get('modeling')
+  const value = properties[prop]
+  // 使用 flowable: 前缀写入，bpmn-js 会根据 moddleExtensions 映射
   modeling.updateProperties(rawElement.value, {
-    [`flowable:${prop}`]: properties[prop]
+    [`flowable:${prop}`]: value !== '' ? value : null
   })
 }
 
@@ -988,15 +1018,15 @@ function updateUserTaskAssignee() {
   const value = properties.assignee === 'custom' ? properties.assigneeExpr : properties.assignee
   const element = rawElement.value
   
-  // 使用 null 来清除属性，同时保存用户名用于回显
   modeling.updateProperties(element, {
-    'flowable:assignee': value,
+    'flowable:assignee': value || null,
     'flowable:assigneeName': properties.assigneeUserName || null,
     'flowable:candidateUsers': null,
     'flowable:candidateUserNames': null,
     'flowable:candidateGroups': null,
     'flowable:candidateGroupNames': null
   })
+  emit('update')
 }
 
 // 更新候选用户
@@ -1005,15 +1035,18 @@ function updateCandidateUsers() {
   
   const modeling = props.modeler.get('modeling')
   const element = rawElement.value
+  const usersStr = properties.candidateUsers.join(',')
+  const userNamesStr = properties.candidateUserNames.join(',')
   
   modeling.updateProperties(element, {
     'flowable:assignee': null,
     'flowable:assigneeName': null,
-    'flowable:candidateUsers': properties.candidateUsers.join(','),
-    'flowable:candidateUserNames': properties.candidateUserNames.join(','),
+    'flowable:candidateUsers': usersStr || null,
+    'flowable:candidateUserNames': userNamesStr || null,
     'flowable:candidateGroups': null,
     'flowable:candidateGroupNames': null
   })
+  emit('update')
 }
 
 // 更新候选组
@@ -1022,15 +1055,18 @@ function updateCandidateGroups() {
   
   const modeling = props.modeler.get('modeling')
   const element = rawElement.value
+  const groupsStr = properties.candidateGroups.join(',')
+  const groupNamesStr = properties.candidateGroupNames.join(',')
   
   modeling.updateProperties(element, {
     'flowable:assignee': null,
     'flowable:assigneeName': null,
     'flowable:candidateUsers': null,
     'flowable:candidateUserNames': null,
-    'flowable:candidateGroups': properties.candidateGroups.join(','),
-    'flowable:candidateGroupNames': properties.candidateGroupNames.join(',')
+    'flowable:candidateGroups': groupsStr || null,
+    'flowable:candidateGroupNames': groupNamesStr || null
   })
+  emit('update')
 }
 
 // 更新截止日期
@@ -1047,6 +1083,7 @@ function updateDueDate() {
 function updateMultiInstance() {
   if (!rawElement.value || !props.modeler) return
 
+  const moddle = props.modeler.get('moddle')
   const modeling = props.modeler.get('modeling')
 
   if (properties.multiInstanceType === 'none') {
@@ -1056,26 +1093,34 @@ function updateMultiInstance() {
     return
   }
 
-  // 构建完成条件
-  let completionCondition = null
+  // 构建完成条件表达式字符串
+  let completionConditionStr = ''
   if (properties.completionCondition === 'all') {
-    completionCondition = '${nrOfCompletedInstances == nrOfInstances}'
+    completionConditionStr = '${nrOfCompletedInstances == nrOfInstances}'
   } else if (properties.completionCondition === 'any') {
-    completionCondition = '${nrOfCompletedInstances >= 1}'
+    completionConditionStr = '${nrOfCompletedInstances >= 1}'
   } else if (properties.completionCondition === 'rate') {
-    const rate = properties.passRate / 100
-    completionCondition = `\${nrOfCompletedInstances / nrOfInstances >= ${rate}}`
+    const rate = (properties.passRate / 100).toFixed(2)
+    completionConditionStr = `\${nrOfCompletedInstances / nrOfInstances >= ${rate}}`
   }
 
-  modeling.updateProperties(rawElement.value, {
-    loopCharacteristics: {
-      isSequential: properties.multiInstanceType === 'sequential',
-      completionCondition: completionCondition ? {
-        $type: 'bpmn:FormalExpression',
-        body: completionCondition
-      } : null
-    }
+  // 必须使用 moddle.create 创建 bpmn-js 可识别的对象
+  const completionConditionObj = completionConditionStr
+    ? moddle.create('bpmn:FormalExpression', { body: completionConditionStr })
+    : null
+
+  // 集合表达式：多实例的执行人从变量集合中获取
+  const loopCardinality = moddle.create('bpmn:FormalExpression', { body: '${nrOfInstances}' })
+
+  const loopCharacteristics = moddle.create('bpmn:MultiInstanceLoopCharacteristics', {
+    isSequential: properties.multiInstanceType === 'sequential',
+    completionCondition: completionConditionObj
   })
+
+  modeling.updateProperties(rawElement.value, {
+    loopCharacteristics
+  })
+  emit('update')
 }
 
 // 添加任务监听器
@@ -1098,19 +1143,24 @@ function updateTaskListeners() {
 
   const moddle = props.modeler.get('moddle')
   const modeling = props.modeler.get('modeling')
+  const bo = rawElement.value.businessObject
 
-  const listeners = properties.taskListeners
+  // 保留执行监听器，合并任务监听器
+  const existingExtValues = bo.extensionElements?.values || []
+  const executionListeners = existingExtValues.filter(v => v.$type === 'flowable:ExecutionListener')
+
+  const taskListeners = properties.taskListeners
     .filter(l => l.class)
     .map(l => moddle.create('flowable:TaskListener', {
       event: l.event,
       class: l.class
     }))
 
-  modeling.updateProperties(rawElement.value, {
-    extensionElements: moddle.create('bpmn:ExtensionElements', {
-      values: listeners
-    })
-  })
+  const allValues = [...executionListeners, ...taskListeners]
+
+  const extensionElements = moddle.create('bpmn:ExtensionElements', { values: allValues })
+  modeling.updateProperties(rawElement.value, { extensionElements })
+  emit('update')
 }
 
 // 添加执行监听器
@@ -1138,9 +1188,10 @@ function updateServiceImplementation() {
   }
   
   const key = `flowable:${properties.implementationType}`
-  updateProps[key] = properties.implementation
+  updateProps[key] = properties.implementation || null
   
   modeling.updateProperties(rawElement.value, updateProps)
+  emit('update')
 }
 
 // 更新异步
@@ -1151,6 +1202,7 @@ function updateAsync() {
   modeling.updateProperties(rawElement.value, {
     'flowable:async': properties.async
   })
+  emit('update')
 }
 
 // 获取实现方式占位符
@@ -1181,28 +1233,22 @@ function updateConditionType() {
 function updateCondition() {
   if (!rawElement.value || !props.modeler) return
   
+  const moddle = props.modeler.get('moddle')
   const modeling = props.modeler.get('modeling')
   
   if (properties.conditionType === 'expression' && properties.condition) {
-    modeling.updateProperties(rawElement.value, {
-      conditionExpression: {
-        $type: 'bpmn:FormalExpression',
-        body: properties.condition
-      }
-    })
+    const expr = moddle.create('bpmn:FormalExpression', { body: properties.condition })
+    modeling.updateProperties(rawElement.value, { conditionExpression: expr })
   } else if (properties.conditionType === 'script' && properties.script) {
-    modeling.updateProperties(rawElement.value, {
-      conditionExpression: {
-        $type: 'bpmn:FormalExpression',
-        body: properties.script,
-        language: properties.scriptFormat
-      }
+    const expr = moddle.create('bpmn:FormalExpression', {
+      body: properties.script,
+      language: properties.scriptFormat
     })
+    modeling.updateProperties(rawElement.value, { conditionExpression: expr })
   } else {
-    modeling.updateProperties(rawElement.value, {
-      conditionExpression: null
-    })
+    modeling.updateProperties(rawElement.value, { conditionExpression: null })
   }
+  emit('update')
 }
 
 // 切换默认路径
@@ -1230,6 +1276,26 @@ function updateCustomAssignee() {
   if (properties.assignee === 'custom') {
     updateUserTaskAssignee()
   }
+}
+
+// 更新基础属性（id/name/documentation）时也触发 emit
+function updateProperty(prop) {
+  if (!rawElement.value || !props.modeler) return
+
+  const modeling = props.modeler.get('modeling')
+  const moddle = props.modeler.get('moddle')
+
+  if (prop === 'id') {
+    modeling.updateProperties(rawElement.value, { id: properties.id })
+  } else if (prop === 'name') {
+    modeling.updateProperties(rawElement.value, { name: properties.name })
+  } else if (prop === 'documentation') {
+    const docs = properties.documentation
+      ? [moddle.create('bpmn:Documentation', { text: properties.documentation })]
+      : []
+    modeling.updateProperties(rawElement.value, { documentation: docs })
+  }
+  emit('update')
 }
 </script>
 

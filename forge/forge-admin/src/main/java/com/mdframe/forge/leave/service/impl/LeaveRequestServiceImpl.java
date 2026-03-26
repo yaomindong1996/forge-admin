@@ -3,12 +3,17 @@ package com.mdframe.forge.leave.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.mdframe.forge.flow.client.FlowClient;
+import com.mdframe.forge.flow.client.FlowResult;
+import com.mdframe.forge.flow.client.annotation.FlowBind;
+import com.mdframe.forge.flow.client.annotation.FlowCallback;
+import com.mdframe.forge.flow.client.annotation.FlowEventContext;
+import com.mdframe.forge.flow.client.annotation.FlowStart;
 import com.mdframe.forge.leave.dto.LeaveRequestDTO;
 import com.mdframe.forge.leave.entity.LeaveRequest;
 import com.mdframe.forge.leave.mapper.LeaveRequestMapper;
 import com.mdframe.forge.leave.service.LeaveRequestService;
 import com.mdframe.forge.starter.core.session.SessionHelper;
-import com.mdframe.forge.starter.flow.service.FlowInstanceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -16,8 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -28,9 +31,10 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@FlowBind(modelKey = "leave_process", businessType = "leave")
 public class LeaveRequestServiceImpl extends ServiceImpl<LeaveRequestMapper, LeaveRequest> implements LeaveRequestService {
 
-    private final FlowInstanceService flowInstanceService;
+    private final FlowClient flowClient;
 
     /**
      * 流程定义Key
@@ -44,59 +48,34 @@ public class LeaveRequestServiceImpl extends ServiceImpl<LeaveRequestMapper, Lea
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @FlowStart(
+        businessKeySpEl = "#result",
+        titleSpEl       = "(#dto.applyUserName != null ? #dto.applyUserName : '申请人') + ' 的请假申请'",
+        userIdSpEl      = "#dto.applyUserId",
+        userNameSpEl    = "#dto.applyUserName",
+        deptIdSpEl      = "#dto.applyDeptId",
+        deptNameSpEl    = "#dto.applyDeptName"
+    )
     public String submitLeave(LeaveRequestDTO dto) {
         // 1. 生成业务Key
         String businessKey = generateBusinessKey();
-        
+
         // 2. 保存业务数据
         LeaveRequest leave = new LeaveRequest();
         BeanUtils.copyProperties(dto, leave);
         leave.setBusinessKey(businessKey);
         leave.setStatus("pending");
         leave.setCreateTime(LocalDateTime.now());
-        
+
         // 设置申请人信息（如果未提供）
         if (leave.getApplyUserId() == null) {
             leave.setApplyUserId(String.valueOf(SessionHelper.getUserId()));
             leave.setApplyUserName(SessionHelper.getUsername());
         }
-        
+
         save(leave);
-        
-        // 3. 构建流程变量
-        Map<String, Object> variables = new HashMap<>();
-        variables.put("leaveType", dto.getLeaveType());
-        variables.put("duration", dto.getDuration());
-        variables.put("reason", dto.getReason());
-        variables.put("startTime", dto.getStartTime());
-        variables.put("endTime", dto.getEndTime());
-        variables.put("initiator", leave.getApplyUserId());
-        
-        // 获取发起人直属领导
-        String initiatorLeader = getInitiatorLeader(leave.getApplyUserId());
-        variables.put("initiatorLeader", initiatorLeader);
-        
-        // 4. 构建流程标题
-        String title = buildLeaveTitle(dto);
-        
-        // 5. 启动流程
-        String processInstanceId = flowInstanceService.startProcess(
-            PROCESS_KEY,
-            businessKey,
-            BUSINESS_TYPE,
-            title,
-            variables,
-            leave.getApplyUserId(),
-            leave.getApplyUserName(),
-            leave.getApplyDeptId(),
-            leave.getApplyDeptName()
-        );
-        
-        // 6. 更新流程实例ID
-        leave.setProcessInstanceId(processInstanceId);
-        updateById(leave);
-        
-        log.info("请假申请提交成功，businessKey: {}, processInstanceId: {}", businessKey, processInstanceId);
+
+        log.info("请假申请已保存，businessKey: {}，流程将由 @FlowStart 切面自动发起", businessKey);
         return businessKey;
     }
 
@@ -133,38 +112,72 @@ public class LeaveRequestServiceImpl extends ServiceImpl<LeaveRequestMapper, Lea
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateApproveInfo(String businessKey, String approveUserId, String approveUserName,
-                                  String comment, String attachments, boolean approved) {
-        LeaveRequest leave = getByBusinessKey(businessKey);
-        if (leave != null) {
-            leave.setApproveUserId(approveUserId);
-            leave.setApproveUserName(approveUserName);
-            leave.setApproveTime(LocalDateTime.now());
-            leave.setApproveComment(comment);
-            leave.setApproveAttachments(attachments);
-            leave.setStatus(approved ? "approved" : "rejected");
-            leave.setUpdateTime(LocalDateTime.now());
-            updateById(leave);
-            
-            log.info("请假审批信息更新成功，businessKey: {}, approved: {}", businessKey, approved);
-        }
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
     public void cancelLeave(String businessKey) {
         LeaveRequest leave = getByBusinessKey(businessKey);
         if (leave != null && "pending".equals(leave.getStatus())) {
-            // 终止流程
-            flowInstanceService.terminateProcess(businessKey,
-                String.valueOf(SessionHelper.getUserId()), "用户主动撤销");
-            
+            // 通过 FlowClient 终止流程
+            FlowResult<Void> result = flowClient.terminateProcess(
+                    businessKey,
+                    String.valueOf(SessionHelper.getUserId()),
+                    "用户主动撤销");
+            if (!result.isSuccess()) {
+                log.warn("终止流程失败，businessKey: {}, msg: {}", businessKey, result.getMsg());
+            }
+
             // 更新状态
             leave.setStatus("canceled");
             leave.setUpdateTime(LocalDateTime.now());
             updateById(leave);
-            
+
             log.info("请假申请已撤销，businessKey: {}", businessKey);
+        }
+    }
+
+    // ==================== 流程事件回调（由 FlowEventSubscriber 通过 Redis 分发） ====================
+
+    /**
+     * 流程审批通过回调
+     */
+    @FlowCallback(on = FlowCallback.ON_COMPLETED)
+    public void onLeaveApproved(FlowEventContext ctx) {
+        LeaveRequest leave = getByBusinessKey(ctx.getBusinessKey());
+        if (leave != null) {
+            leave.setStatus("approved");
+            leave.setApproveComment(ctx.getLastComment());
+            leave.setApproveTime(LocalDateTime.now());
+            leave.setUpdateTime(LocalDateTime.now());
+            updateById(leave);
+            log.info("请假审批通过，businessKey: {}", ctx.getBusinessKey());
+        }
+    }
+
+    /**
+     * 流程驳回回调
+     */
+    @FlowCallback(on = FlowCallback.ON_REJECTED)
+    public void onLeaveRejected(FlowEventContext ctx) {
+        LeaveRequest leave = getByBusinessKey(ctx.getBusinessKey());
+        if (leave != null) {
+            leave.setStatus("rejected");
+            leave.setApproveComment(ctx.getLastComment());
+            leave.setApproveTime(LocalDateTime.now());
+            leave.setUpdateTime(LocalDateTime.now());
+            updateById(leave);
+            log.info("请假申请被驳回，businessKey: {}", ctx.getBusinessKey());
+        }
+    }
+
+    /**
+     * 流程撤回/取消回调
+     */
+    @FlowCallback(on = FlowCallback.ON_CANCELED)
+    public void onLeaveCanceled(FlowEventContext ctx) {
+        LeaveRequest leave = getByBusinessKey(ctx.getBusinessKey());
+        if (leave != null && !"canceled".equals(leave.getStatus())) {
+            leave.setStatus("canceled");
+            leave.setUpdateTime(LocalDateTime.now());
+            updateById(leave);
+            log.info("请假申请已取消，businessKey: {}", ctx.getBusinessKey());
         }
     }
 
@@ -204,43 +217,5 @@ public class LeaveRequestServiceImpl extends ServiceImpl<LeaveRequestMapper, Lea
      */
     private String generateBusinessKey() {
         return "LEAVE_" + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase();
-    }
-
-    /**
-     * 构建请假标题
-     */
-    private String buildLeaveTitle(LeaveRequestDTO dto) {
-        String leaveTypeName = getLeaveTypeName(dto.getLeaveType());
-        return leaveTypeName + "申请 - " + dto.getApplyUserName();
-    }
-
-    /**
-     * 获取请假类型名称
-     */
-    private String getLeaveTypeName(String leaveType) {
-        switch (leaveType) {
-            case "annual":
-                return "年假";
-            case "sick":
-                return "病假";
-            case "personal":
-                return "事假";
-            case "marriage":
-                return "婚假";
-            case "maternity":
-                return "产假";
-            default:
-                return "请假";
-        }
-    }
-
-    /**
-     * 获取发起人直属领导
-     * TODO: 需要根据实际组织架构服务实现
-     */
-    private String getInitiatorLeader(String userId) {
-        // 这里需要调用组织架构服务获取用户的直属领导
-        // 暂时返回空，实际使用时需要实现
-        return null;
     }
 }

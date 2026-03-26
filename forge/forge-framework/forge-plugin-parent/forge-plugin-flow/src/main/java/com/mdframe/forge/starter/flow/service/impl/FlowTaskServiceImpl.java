@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.message.service.MessageService;
+import com.mdframe.forge.plugin.system.entity.SysUser;
+import com.mdframe.forge.plugin.system.service.ISysUserService;
 import com.mdframe.forge.starter.flow.dto.ProcessDiagramInfo;
 import com.mdframe.forge.starter.flow.dto.ProcessNodeInfo;
 import com.mdframe.forge.starter.flow.dto.TaskFormInfo;
@@ -99,6 +101,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
      */
     @Autowired
     private FlowBusinessMapper flowBusinessMapper;
+    
+    @Autowired
+    private ISysUserService sysUserService;
 
     @Override
     public IPage<FlowTask> todoTasks(Page<FlowTask> page, String userId, String title, String category) {
@@ -1044,32 +1049,41 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         String nodeFormJson = null;
         String nodeFormUrl = null;
         String nodeFormTarget = null;
-        
+
+        // Flowable BPMN 命名空间（flowable:xxx 属性存放的命名空间）
+        final String FLOWABLE_NS = "http://flowable.org/bpmn";
+
         if (flowNode != null) {
-            // 获取节点的formKey
+            // 方式1：flowable:formKey 作为标准 UserTask.formKey 属性
             if (flowNode instanceof UserTask) {
                 UserTask userTask = (UserTask) flowNode;
                 nodeFormKey = userTask.getFormKey();
             }
-            
-            // 从扩展属性中获取表单配置
+
+            // 方式2：flowable:formUrl / formJson / formTarget 以 XML 属性方式写入
+            //   例如 <bpmn:userTask flowable:formUrl="/leave/LeaveApproveForm">
+            //   Flowable 解析后存入 BaseElement.attributes(namespace -> ExtensionAttribute)
+            String attrFormUrl = flowNode.getAttributeValue(FLOWABLE_NS, "formUrl");
+            String attrFormJson = flowNode.getAttributeValue(FLOWABLE_NS, "formJson");
+            String attrFormTarget = flowNode.getAttributeValue(FLOWABLE_NS, "formTarget");
+            if (attrFormUrl != null && !attrFormUrl.isEmpty()) nodeFormUrl = attrFormUrl;
+            if (attrFormJson != null && !attrFormJson.isEmpty()) nodeFormJson = attrFormJson;
+            if (attrFormTarget != null && !attrFormTarget.isEmpty()) nodeFormTarget = attrFormTarget;
+
+            // 方式3：兼容旧有以子元素方式写入的情况
+            //   例如 <flowable:formUrl>/leave/LeaveApproveForm</flowable:formUrl>
             Map<String, List<ExtensionElement>> extensions = flowNode.getExtensionElements();
             if (extensions != null) {
-                // 获取formJson
                 List<ExtensionElement> formJsonElements = extensions.get("formJson");
-                if (formJsonElements != null && !formJsonElements.isEmpty()) {
+                if (nodeFormJson == null && formJsonElements != null && !formJsonElements.isEmpty()) {
                     nodeFormJson = formJsonElements.get(0).getElementText();
                 }
-                
-                // 获取formUrl
                 List<ExtensionElement> formUrlElements = extensions.get("formUrl");
-                if (formUrlElements != null && !formUrlElements.isEmpty()) {
+                if (nodeFormUrl == null && formUrlElements != null && !formUrlElements.isEmpty()) {
                     nodeFormUrl = formUrlElements.get(0).getElementText();
                 }
-                
-                // 获取formTarget
                 List<ExtensionElement> formTargetElements = extensions.get("formTarget");
-                if (formTargetElements != null && !formTargetElements.isEmpty()) {
+                if (nodeFormTarget == null && formTargetElements != null && !formTargetElements.isEmpty()) {
                     nodeFormTarget = formTargetElements.get(0).getElementText();
                 }
             }
@@ -1129,6 +1143,75 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
                 taskId, formInfo.getFormType(), formInfo.getFormKey());
 
         return formInfo;
+    }
+
+    /**
+     * 获取流程审批时间轴
+     */
+    @Override
+    public List<Map<String, Object>> getProcessHistory(String processInstanceId) {
+        // 1. 查询该流程实例的所有任务（按创建时间排序）
+        LambdaQueryWrapper<FlowTask> wrapper = new LambdaQueryWrapper<FlowTask>()
+                .eq(FlowTask::getProcessInstanceId, processInstanceId)
+                .orderByAsc(FlowTask::getCreateTime);
+        List<FlowTask> tasks = list(wrapper);
+
+        // 2. 获取业务信息（用于展示发起节点）
+        FlowBusiness business = flowBusinessMapper.selectByProcessInstanceId(processInstanceId);
+
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        // 3. 加入“发起”节点
+        if (business != null) {
+            Map<String, Object> startNode = new HashMap<>();
+            startNode.put("taskName", "发起流程");
+            startNode.put("assigneeName", business.getApplyUserName());
+            startNode.put("assigneeId", business.getApplyUserId());
+            startNode.put("action", "start");
+            startNode.put("comment", "");
+            startNode.put("createTime", business.getApplyTime() != null
+                    ? business.getApplyTime().toString() : business.getCreateTime() != null
+                    ? business.getCreateTime().toString() : null);
+            startNode.put("completeTime", startNode.get("createTime"));
+            result.add(startNode);
+        }
+
+        // 4. 加入每个任务节点
+        // 状态到 action 的映射
+        Map<Integer, String> statusActionMap = new HashMap<>();
+        statusActionMap.put(0, "pending");
+        statusActionMap.put(1, "claim");
+        statusActionMap.put(2, "approve");
+        statusActionMap.put(3, "reject");
+        statusActionMap.put(4, "delegate");
+        statusActionMap.put(5, "delegate");
+        statusActionMap.put(6, "withdraw");
+
+        for (FlowTask task : tasks) {
+            // 待办且未完成的节点也要展示（表示当前处理中）
+            Map<String, Object> node = new HashMap<>();
+            node.put("taskId", task.getTaskId());
+            node.put("taskName", task.getTaskName());
+            // 安全处理：assignee 可能为空
+            String assigneeName = "";
+            if (task.getAssignee() != null && !task.getAssignee().trim().isEmpty()) {
+                try {
+                    SysUser sysUser = sysUserService.selectUserById(Long.parseLong(task.getAssignee()));
+                    assigneeName = sysUser != null ? sysUser.getRealName() : task.getAssignee();
+                } catch (NumberFormatException e) {
+                    assigneeName = task.getAssignee();
+                }
+            }
+            node.put("assigneeName", assigneeName);
+            node.put("assigneeId", task.getAssignee());
+            node.put("action", statusActionMap.getOrDefault(task.getStatus(), "pending"));
+            node.put("comment", task.getComment() != null ? task.getComment() : "");
+            node.put("createTime", task.getCreateTime() != null ? task.getCreateTime().toString() : null);
+            node.put("completeTime", task.getCompleteTime() != null ? task.getCompleteTime().toString() : null);
+            result.add(node);
+        }
+
+        return result;
     }
 
     /**

@@ -8,10 +8,14 @@ import org.flowable.engine.RuntimeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 /**
  * Flowable 流程引擎自动配置
@@ -37,6 +41,7 @@ import java.util.List;
  * @see org.flowable.spring.boot.FlowableAutoConfiguration
  */
 @Slf4j
+@EnableAsync
 @AutoConfiguration
 public class FlowAutoConfiguration {
 
@@ -48,6 +53,30 @@ public class FlowAutoConfiguration {
 
     @Autowired
     private FlowTaskEventListener flowTaskEventListener;
+
+    /**
+     * 禁用 Spring Security 默认的 HTTP Basic 认证，将鉴权完全交给 Sa-Token 拦截器处理。
+     * <p>
+     * forge-plugin-flow 引入了 flowable-spring-boot-starter 中的 spring-boot-starter-security 依赖，
+     * 如果不禁用默认行为，所有未带 HTTP Basic 凭证的请求会返回 401 空响应体，
+     * 导致内部服务调用（FlowClient）无法解析响应。
+     * </p>
+     */
+//    @Bean
+//    public SecurityFilterChain flowSecurityFilterChain(HttpSecurity http) throws Exception {
+//        http
+//            // 关闭 CSRF（无状态服务无需）
+//            .csrf(AbstractHttpConfigurer::disable)
+//            // 无状态，不创建 HttpSession
+//            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+//            // 所有请求放行（登录校验由 Sa-Token 拦截器负责）
+//            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+//            // 禁用 HTTP Basic 认证弹框
+//            .httpBasic(AbstractHttpConfigurer::disable)
+//            // 禁用表单登录
+//            .formLogin(AbstractHttpConfigurer::disable);
+//        return http.build();
+//    }
 
     /**
      * 应用启动完成后注册事件监听器
@@ -91,6 +120,24 @@ public class FlowAutoConfiguration {
             }
         }
         log.info("============================================");
+    }
+
+    /**
+     * 流程事件异步线程池
+     * <p>专門用于 {@link com.mdframe.forge.starter.flow.event.FlowEventPublisher}
+     * 和 {@link com.mdframe.forge.starter.flow.event.FlowWebhookNotifier} 的 {@code @Async} 方法，
+     * 避免占用流程引擎线程。</p>
+     */
+    @Bean(name = "flowEventExecutor")
+    public Executor flowEventExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(8);
+        executor.setQueueCapacity(200);
+        executor.setThreadNamePrefix("flow-event-");
+        executor.setKeepAliveSeconds(60);
+        executor.initialize();
+        return executor;
     }
     
 }

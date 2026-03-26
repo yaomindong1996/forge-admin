@@ -1,6 +1,7 @@
 package com.mdframe.forge.starter.flow.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.mdframe.forge.starter.core.domain.FlowEventMessage;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -79,6 +80,25 @@ public class FlowModel {
      * 部署KEY（发布后生成）
      */
     private String deploymentKey;
+
+    /**
+     * 事件通知方式
+     * <ul>
+     *   <li>{@code none}    - 不通知（默认）</li>
+     *   <li>{@code redis}   - Redis Pub/Sub，发布到 {@code flow:event:{modelKey}} 频道</li>
+     *   <li>{@code webhook} - HTTP Webhook，POST 回调到 {@code webhookUrl}</li>
+     * </ul>
+     * <p>两种方式互斥，由流程模型配置决定。</p>
+     */
+    private String notifyType;
+
+    /**
+     * Webhook 回调地址
+     * <p>仅当 {@code notifyType = webhook} 时生效。流程状态变更时，流程服务向此 URL 发送 POST 回调。
+     * 请求体为 {@link FlowEventMessage} JSON，
+     * 同时携带请求头：X-Flow-Event-Type / X-Flow-Process-Key / X-Flow-Business-Key。</p>
+     */
+    private String webhookUrl;
 
     /**
      * 状态（0-设计/1-已发布/2-已挂起/3-已禁用）

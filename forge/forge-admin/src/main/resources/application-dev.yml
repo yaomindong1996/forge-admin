@@ -67,3 +67,7 @@ config:
     username: ${spring.datasource.dynamic.datasource.master.username}
     password: ${spring.datasource.dynamic.datasource.master.password}
     driverClassName: ${spring.datasource.dynamic.datasource.master.driverClassName}
+forge:
+  flow:
+    client:
+      url: http://127.0.0.1:8081

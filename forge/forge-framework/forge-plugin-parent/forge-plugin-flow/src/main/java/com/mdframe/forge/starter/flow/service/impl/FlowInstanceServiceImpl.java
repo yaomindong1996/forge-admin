@@ -5,6 +5,7 @@ import com.mdframe.forge.starter.flow.entity.FlowBusiness;
 import com.mdframe.forge.starter.flow.entity.FlowModel;
 import com.mdframe.forge.starter.flow.mapper.FlowBusinessMapper;
 import com.mdframe.forge.starter.flow.service.FlowInstanceService;
+import com.mdframe.forge.starter.flow.service.FlowOrgIntegrationService;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.engine.ProcessEngine;
 import org.flowable.engine.RuntimeService;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -33,6 +35,10 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
 
     @Autowired
     private FlowBusinessMapper flowBusinessMapper;
+
+    /** 组织架构服务（可选，未引入时跳过上级领导变量注入）*/
+    @Autowired(required = false)
+    private FlowOrgIntegrationService flowOrgIntegrationService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -66,6 +72,25 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
         vars.put("startUserName", userName);
         vars.put("startDeptId", deptId);
         vars.put("startDeptName", deptName);
+
+        // 自动注入上级领导变量（兼容 BPMN 中直接使用 ${initiatorLeader} 的老式写法）
+        if (userId != null && !userId.isEmpty() && flowOrgIntegrationService != null) {
+            try {
+                String leaderId = flowOrgIntegrationService.getLeaderUserIdByLevel(userId, 1);
+                if (leaderId == null) {
+                    List<String> leaderIds = flowOrgIntegrationService.getLeaderUserIds(userId);
+                    leaderId = leaderIds.isEmpty() ? null : leaderIds.get(0);
+                }
+                if (leaderId != null) {
+                    vars.put("initiatorLeader", leaderId);
+                    log.info("自动注入上级领导变量：initiatorLeader={}", leaderId);
+                } else {
+                    log.warn("未找到发起人的上级领导，initiatorLeader 变量未注入：userId={}", userId);
+                }
+            } catch (Exception e) {
+                log.warn("获取上级领导失败，initiatorLeader 变量未注入：userId={}", userId, e);
+            }
+        }
 
         // 3. 先保存业务关联（必须在启动流程之前，否则事件监听器查询不到业务信息）
         FlowBusiness business = new FlowBusiness();

@@ -68,6 +68,10 @@ public class DecryptRequestBodyAdvice implements RequestBodyAdvice {
             return false;
         }
         HttpServletRequest request = attributes.getRequest();
+        // 内部服务调用（如 FlowClient）直接传输明文 JSON，无需解密
+        if ("true".equalsIgnoreCase(request.getHeader("X-Inner-Call"))) {
+            return false;
+        }
         ApiConfigInfo apiConfig = apiConfigManager.getApiConfig(request.getRequestURI(), request.getMethod());
         if (apiConfig != null) {
             return apiConfig.getNeedEncrypt();

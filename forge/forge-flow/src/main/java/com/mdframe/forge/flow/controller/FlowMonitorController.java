@@ -3,6 +3,8 @@ package com.mdframe.forge.flow.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mdframe.forge.plugin.system.entity.SysUser;
+import com.mdframe.forge.plugin.system.service.ISysUserService;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
@@ -41,6 +43,7 @@ public class FlowMonitorController {
     private final RuntimeService runtimeService;
     private final TaskService taskService;
     private final HistoryService historyService;
+    private final ISysUserService sysUserService;
 
     /**
      * 获取流程监控统计数据
@@ -181,7 +184,9 @@ public class FlowMonitorController {
                             
                             // 获取处理人名称
                             if (currentTask.getAssignee() != null) {
-                                item.put("currentAssignee", currentTask.getAssignee());
+                                SysUser sysUser = sysUserService.selectUserById(
+                                        Long.parseLong(currentTask.getAssignee()));
+                                item.put("currentAssignee", sysUser != null ? sysUser.getRealName() : currentTask.getAssignee());
                             } else {
                                 item.put("currentAssignee", "待认领");
                             }
@@ -242,6 +247,121 @@ public class FlowMonitorController {
             
         } catch (Exception e) {
             log.error("获取流程实例详情失败", e);
+        }
+        
+        return RespInfo.success(result);
+    }
+
+    /**
+     * 获取任务处理趋势（最近7天）
+     */
+    @GetMapping("/taskTrend")
+    public RespInfo<Map<String, Object>> getTaskTrend() {
+        Map<String, Object> result = new HashMap<>();
+        List<String> dateList = new ArrayList<>();
+        List<Long> createdList = new ArrayList<>();
+        List<Long> completedList = new ArrayList<>();
+        
+        try {
+            LocalDate today = LocalDate.now();
+            
+            for (int i = 6; i >= 0; i--) {
+                LocalDate date = today.minusDays(i);
+                dateList.add(date.toString().substring(5)); // MM-dd 格式
+                
+                LocalDateTime dayStart = LocalDateTime.of(date, LocalTime.MIN);
+                LocalDateTime dayEnd = LocalDateTime.of(date, LocalTime.MAX);
+                Date startDate = Date.from(dayStart.atZone(ZoneId.systemDefault()).toInstant());
+                Date endDate = Date.from(dayEnd.atZone(ZoneId.systemDefault()).toInstant());
+                
+                // 当日新增任务数（从 FlowBusiness 创建数统计）
+                long created = flowBusinessMapper.selectCount(
+                    new LambdaQueryWrapper<FlowBusiness>()
+                        .ge(FlowBusiness::getCreateTime, dayStart)
+                        .le(FlowBusiness::getCreateTime, dayEnd)
+                );
+                createdList.add(created);
+                
+                // 当日完成任务数（从 FlowBusiness 状态为已完成统计）
+                long completed = flowBusinessMapper.selectCount(
+                    new LambdaQueryWrapper<FlowBusiness>()
+                        .ge(FlowBusiness::getEndTime, dayStart)
+                        .le(FlowBusiness::getEndTime, dayEnd)
+                        .isNotNull(FlowBusiness::getEndTime)
+                );
+                completedList.add(completed);
+            }
+            
+            result.put("dates", dateList);
+            result.put("created", createdList);
+            result.put("completed", completedList);
+            
+        } catch (Exception e) {
+            log.error("获取任务趋势数据失败", e);
+            result.put("dates", dateList);
+            result.put("created", createdList);
+            result.put("completed", completedList);
+        }
+        
+        return RespInfo.success(result);
+    }
+
+    /**
+     * 获取流程分布统计（按流程模型分组）
+     */
+    @GetMapping("/processDistribution")
+    public RespInfo<List<Map<String, Object>>> getProcessDistribution() {
+        List<Map<String, Object>> result = new ArrayList<>();
+        
+        try {
+            // 查询所有有 processDefKey 的业务记录
+            List<FlowBusiness> businesses = flowBusinessMapper.selectList(
+                new LambdaQueryWrapper<FlowBusiness>()
+                    .select(FlowBusiness::getProcessDefKey, FlowBusiness::getTitle)
+                    .isNotNull(FlowBusiness::getProcessDefKey)
+                    .ne(FlowBusiness::getProcessDefKey, "")
+            );
+            
+            // 按 processDefKey 分组统计
+            Map<String, Long> distribution = businesses.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                    FlowBusiness::getProcessDefKey,
+                    java.util.stream.Collectors.counting()
+                ));
+            
+            // 获取每个 processDefKey 对应的标题
+            Map<String, String> keyToTitle = businesses.stream()
+                .filter(b -> b.getTitle() != null && !b.getTitle().isEmpty())
+                .collect(java.util.stream.Collectors.toMap(
+                    FlowBusiness::getProcessDefKey,
+                    FlowBusiness::getTitle,
+                    (existing, replacement) -> existing
+                ));
+            
+            // 转换为结果格式
+            for (Map.Entry<String, Long> entry : distribution.entrySet()) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("name", keyToTitle.getOrDefault(entry.getKey(), entry.getKey()));
+                item.put("value", entry.getValue());
+                result.add(item);
+            }
+            
+            // 按数量降序排序，取前 10
+            result.sort((a, b) -> Long.compare((Long) b.get("value"), (Long) a.get("value")));
+            if (result.size() > 10) {
+                result = new ArrayList<>(result.subList(0, 10));
+            }
+            
+            // 如果没有数据，返回提示
+            if (result.isEmpty()) {
+                Map<String, Object> emptyItem = new HashMap<>();
+                emptyItem.put("name", "暂无数据");
+                emptyItem.put("value", 0);
+                result.add(emptyItem);
+            }
+            
+        } catch (Exception e) {
+            log.error("获取流程分布数据失败", e);
         }
         
         return RespInfo.success(result);

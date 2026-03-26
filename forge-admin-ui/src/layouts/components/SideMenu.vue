@@ -268,12 +268,11 @@ const findMenuItem = (menuItems, key) => {
 
 /* 子菜单样式 */
 .modern-side-menu .n-submenu-children {
-  padding-left: 12px;
+  padding-left: 0;
 }
 
 .modern-side-menu .n-submenu-children .n-menu-item-content {
   font-size: 13px;
-  padding-left: 36px;
 }
 
 /* 折叠状态 */

@@ -58,6 +58,13 @@ public class FlowInstanceController {
         variables.remove("userName");
         variables.remove("deptId");
         variables.remove("deptName");
+        // FlowClient 发送的 body 中包含 variables 嵌套字段，需要把展开后删除外层 key
+        Object nestedVars = variables.remove("variables");
+        if (nestedVars instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> innerVars = (Map<String, Object>) nestedVars;
+            variables.putAll(innerVars);
+        }
         
         // 从Session获取当前用户信息
         LoginUser loginUser = SessionHelper.getLoginUser();

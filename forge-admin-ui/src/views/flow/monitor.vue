@@ -97,8 +97,10 @@
         :data="tableData"
         :loading="loading"
         :pagination="pagination"
+        :remote="true"
         :row-key="row => row.id"
         @update:page="handlePageChange"
+        @update:page-size="handlePageSizeChange"
       />
     </n-card>
 
@@ -146,12 +148,16 @@
           <n-timeline-item
             v-for="(item, index) in approvalHistory"
             :key="index"
-            :type="getTimelineType(item.status)"
+            :type="getTimelineType(item.action)"
             :title="item.taskName"
-            :time="item.endTime"
+            :time="item.createTime"
           >
             <p>处理人：{{ item.assigneeName }}</p>
-            <p>处理结果：{{ item.result || '处理中' }}</p>
+            <p>处理结果：
+              <n-tag :type="getTimelineType(item.action)" size="small">
+                {{ { approve: '同意', reject: '驳回', start: '发起', claim: '签收', delegate: '转办', withdraw: '撤回', pending: '待处理' }[item.action] || item.action || '处理中' }}
+              </n-tag>
+            </p>
             <p v-if="item.comment">处理意见：{{ item.comment }}</p>
           </n-timeline-item>
         </n-timeline>
@@ -207,7 +213,9 @@ const searchForm = reactive({
 const statusOptions = [
   { label: '运行中', value: 'running' },
   { label: '已挂起', value: 'suspended' },
-  { label: '已完成', value: 'completed' },
+  { label: '已通过', value: 'approved' },
+  { label: '已驳回', value: 'rejected' },
+  { label: '已取消', value: 'canceled' },
   { label: '已终止', value: 'terminated' }
 ]
 
@@ -327,6 +335,32 @@ async function loadData() {
   }
 }
 
+// 加载任务趋势数据
+async function loadTaskTrend() {
+  try {
+    const res = await request.get('/api/flow/monitor/taskTrend')
+    if (res.code === 200 && res.data) {
+      return res.data
+    }
+  } catch (error) {
+    console.error('加载任务趋势数据失败', error)
+  }
+  return { dates: [], created: [], completed: [] }
+}
+
+// 加载流程分布数据
+async function loadProcessDistribution() {
+  try {
+    const res = await request.get('/api/flow/monitor/processDistribution')
+    if (res.code === 200 && res.data) {
+      return res.data
+    }
+  } catch (error) {
+    console.error('加载流程分布数据失败', error)
+  }
+  return []
+}
+
 // 搜索
 function handleSearch() {
   pagination.page = 1
@@ -351,19 +385,26 @@ function handlePageChange(page) {
   loadData()
 }
 
+// 每页条数变化
+function handlePageSizeChange(pageSize) {
+  pagination.pageSize = pageSize
+  pagination.page = 1
+  loadData()
+}
+
 // 显示详情
 async function showDetail(row) {
   currentInstance.value = row
   detailDrawerVisible.value = true
   
-  // 加载处理历史
+  // 加载审批时间轴
   try {
-    const res = await request.get(`/api/flow/comment/process/${row.id}`)
+    const res = await request.get(`/api/flow/task/history/${row.id}`)
     if (res.code === 200) {
       approvalHistory.value = res.data || []
     }
   } catch (error) {
-    console.error('加载处理历史失败', error)
+    console.error('加载审批历史失败', error)
   }
 }
 
@@ -418,22 +459,28 @@ async function handleTerminate() {
 }
 
 // 初始化图表
-function initCharts() {
+async function initCharts() {
+  // 并行加载图表数据
+  const [trendData, distributionData] = await Promise.all([
+    loadTaskTrend(),
+    loadProcessDistribution()
+  ])
+  
   nextTick(() => {
     // 任务处理趋势图
     if (taskChartRef.value) {
       taskChart = echarts.init(taskChartRef.value)
       taskChart.setOption({
         tooltip: { trigger: 'axis' },
-        legend: { data: ['新增任务', '完成任务'] },
+        legend: { data: ['新增流程', '完成流程'] },
         xAxis: {
           type: 'category',
-          data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+          data: trendData.dates.length > 0 ? trendData.dates : ['暂无数据']
         },
         yAxis: { type: 'value' },
         series: [
-          { name: '新增任务', type: 'line', data: [120, 132, 101, 134, 90, 230, 210] },
-          { name: '完成任务', type: 'line', data: [100, 112, 91, 124, 80, 200, 180] }
+          { name: '新增流程', type: 'line', data: trendData.created.length > 0 ? trendData.created : [0], smooth: true },
+          { name: '完成流程', type: 'line', data: trendData.completed.length > 0 ? trendData.completed : [0], smooth: true }
         ]
       })
     }
@@ -441,21 +488,36 @@ function initCharts() {
     // 流程分布统计图
     if (processChartRef.value) {
       processChart = echarts.init(processChartRef.value)
+      const pieData = distributionData.length > 0 ? distributionData : [{ name: '暂无数据', value: 1 }]
       processChart.setOption({
-        tooltip: { trigger: 'item' },
+        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
         legend: { orient: 'vertical', left: 'left' },
         series: [
           {
             name: '流程分布',
             type: 'pie',
-            radius: '50%',
-            data: [
-              { value: 1048, name: '请假流程' },
-              { value: 735, name: '报销流程' },
-              { value: 580, name: '采购流程' },
-              { value: 484, name: '合同审批' },
-              { value: 300, name: '其他' }
-            ]
+            radius: ['40%', '70%'],
+            avoidLabelOverlap: false,
+            itemStyle: {
+              borderRadius: 10,
+              borderColor: '#fff',
+              borderWidth: 2
+            },
+            label: {
+              show: false,
+              position: 'center'
+            },
+            emphasis: {
+              label: {
+                show: true,
+                fontSize: 14,
+                fontWeight: 'bold'
+              }
+            },
+            labelLine: {
+              show: false
+            },
+            data: pieData
           }
         ]
       })
@@ -468,7 +530,9 @@ function getStatusType(status) {
   const map = {
     running: 'info',
     suspended: 'warning',
-    completed: 'success',
+    approved: 'success',
+    rejected: 'error',
+    canceled: 'default',
     terminated: 'error'
   }
   return map[status] || 'default'
@@ -477,22 +541,27 @@ function getStatusType(status) {
 // 获取状态文本
 function getStatusText(status) {
   const map = {
-    running: '运行中',
+    running: '审批中',
     suspended: '已挂起',
-    completed: '已完成',
-    terminated: '已终止'
+    approved: '已通过',
+    rejected: '已驳回',
+    canceled: '已取消',
+    terminated: '已终止',
   }
-  return map[status] || status
+  return map[status] || status || '未知'
 }
 
 // 获取时间线类型
-function getTimelineType(status) {
+function getTimelineType(action) {
   const map = {
-    approved: 'success',
-    rejected: 'error',
-    pending: 'info'
+    approve: 'success',
+    reject: 'error',
+    start: 'success',
+    claim: 'info',
+    delegate: 'warning',
+    withdraw: 'default'
   }
-  return map[status] || 'default'
+  return map[action] || 'default'
 }
 
 // 引入必要的组件

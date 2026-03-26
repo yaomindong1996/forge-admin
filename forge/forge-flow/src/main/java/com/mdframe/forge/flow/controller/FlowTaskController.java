@@ -2,6 +2,7 @@ package com.mdframe.forge.flow.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
@@ -16,6 +17,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -205,6 +207,17 @@ public class FlowTaskController {
     public RespInfo<Void> remind(@RequestParam String taskId) {
         flowTaskService.remind(taskId);
         return RespInfo.success("催办成功", null);
+    }
+
+    /**
+     * 获取流程审批时间轴
+     * 按时间顺序返回审批节点，包含发起、审批、驳回、转办等操作
+     */
+    @GetMapping("/history/{processInstanceId}")
+    @ApiPermissionIgnore
+    public RespInfo<List<Map<String, Object>>> getProcessHistory(@PathVariable String processInstanceId) {
+        List<Map<String, Object>> history = flowTaskService.getProcessHistory(processInstanceId);
+        return RespInfo.success(history);
     }
 
     /**

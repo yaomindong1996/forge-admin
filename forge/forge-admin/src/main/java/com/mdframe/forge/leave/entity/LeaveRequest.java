@@ -135,11 +135,6 @@ public class LeaveRequest {
     private LocalDateTime updateTime;
 
     /**
-     * 租户ID
-     */
-    private Long tenantId;
-
-    /**
      * 删除标记
      */
     @TableLogic

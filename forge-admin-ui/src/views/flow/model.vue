@@ -1,18 +1,17 @@
 <template>
   <div class="p-16">
-    <div class="bg-white rounded p-16">
-      <h2 class="text-18 font-bold mb-16">流程模型</h2>
-      
-      <!-- 搜索栏 -->
-      <n-space class="mb-16" :vertical="false">
+    <!-- 顶部操作栏 -->
+    <div class="flex items-center justify-between mb-16">
+      <div class="flex items-center gap-12">
         <n-input
           v-model:value="queryParams.modelName"
-          placeholder="搜索模型名称"
+          placeholder="搜索模型名称或 Key"
           clearable
-          style="width: 200px"
+          style="width: 240px"
+          @keyup.enter="handleSearch"
         >
           <template #prefix>
-            <i class="i-material-symbols:search" />
+            <i class="i-material-symbols:search text-gray-400" />
           </template>
         </n-input>
         <n-select
@@ -24,38 +23,119 @@
         />
         <n-select
           v-model:value="queryParams.status"
-          placeholder="状态"
+          placeholder="全部状态"
           clearable
-          style="width: 120px"
+          style="width: 130px"
           :options="statusOptions"
         />
-        <n-button type="primary" @click="handleSearch">
-          <template #icon>
-            <i class="i-material-symbols:search" />
-          </template>
-          搜索
-        </n-button>
-        <n-button @click="handleReset">
-          <template #icon>
-            <i class="i-material-symbols:refresh" />
-          </template>
-          重置
-        </n-button>
-        <n-button type="primary" @click="handleAdd">
-          <template #icon>
-            <i class="i-material-symbols:add" />
-          </template>
-          新增模型
-        </n-button>
-      </n-space>
+        <n-button type="primary" ghost @click="handleSearch">搜索</n-button>
+        <n-button @click="handleReset">重置</n-button>
+      </div>
+      <n-button type="primary" @click="handleAdd">
+        <template #icon>
+          <i class="i-material-symbols:add" />
+        </template>
+        新增模型
+      </n-button>
+    </div>
 
-      <!-- 数据表格 -->
-      <n-data-table
-        :columns="columns"
-        :data="dataSource"
-        :loading="loading"
-        :pagination="pagination"
-        :row-key="row => row.id"
+    <!-- 卡片网格 -->
+    <n-spin :show="loading">
+      <div v-if="dataSource.length > 0" class="model-grid">
+        <div
+          v-for="item in dataSource"
+          :key="item.id"
+          class="model-card"
+          @click="handleDesign(item)"
+        >
+          <!-- 卡片头：图标 + 状态 -->
+          <div class="card-header">
+            <div class="card-icon" :class="iconClass(item)">
+              <i :class="iconName(item)" class="text-24" />
+            </div>
+            <n-tag :type="statusTagType[item.status] ?? 'default'" size="small" round>
+              {{ statusText[item.status] ?? '未知' }}
+            </n-tag>
+          </div>
+
+          <!-- 卡片体：名称 + key + 描述 -->
+          <div class="card-body">
+            <div class="card-title" :title="item.modelName">{{ item.modelName }}</div>
+            <div class="card-key">{{ item.modelKey }}</div>
+            <div class="card-desc" :title="item.description">{{ item.description || '暂无描述' }}</div>
+          </div>
+
+          <!-- 卡片脚：元信息 + 操作 -->
+          <div class="card-footer">
+            <div class="card-meta">
+              <span class="meta-item">
+                <i class="i-material-symbols:category-outline" />
+                {{ item.category || '未分类' }}
+              </span>
+              <span class="meta-item">
+                <i class="i-material-symbols:layers-outline" />
+                v{{ item.version || 1 }}
+              </span>
+              <span class="meta-item" v-if="item.deployTime">
+                <i class="i-material-symbols:schedule-outline" />
+                {{ formatDate(item.deployTime) }}
+              </span>
+            </div>
+            <div class="card-actions" @click.stop>
+              <n-button size="small" type="primary" @click.stop="handleDesign(item)">
+                设计
+              </n-button>
+              <n-button
+                v-if="item.status === 0"
+                size="small"
+                type="success"
+                @click.stop="handleDeploy(item)"
+              >
+                部署
+              </n-button>
+              <n-button
+                v-if="item.status === 1"
+                size="small"
+                @click.stop="handleViewInstances(item)"
+              >
+                实例
+              </n-button>
+              <n-dropdown
+                trigger="click"
+                :options="getActionOptions(item)"
+                @select="(key) => handleActionSelect(key, item)"
+              >
+                <n-button size="small" quaternary circle @click.stop>
+                  <template #icon><i class="i-material-symbols:more-horiz" /></template>
+                </n-button>
+              </n-dropdown>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 空状态 -->
+      <n-empty
+        v-else-if="!loading"
+        description="暂无流程模型，点击「新增模型」开始设计"
+        class="py-64"
+      >
+        <template #extra>
+          <n-button type="primary" @click="handleAdd">新增模型</n-button>
+        </template>
+      </n-empty>
+    </n-spin>
+
+    <!-- 分页 -->
+    <div v-if="pagination.itemCount > 0" class="flex justify-end mt-16">
+      <n-pagination
+        v-model:page="pagination.page"
+        v-model:page-size="pagination.pageSize"
+        :item-count="pagination.itemCount"
+        :page-sizes="[12, 24, 48]"
+        show-size-picker
+        @update:page="fetchData"
+        @update:page-size="(v) => { pagination.pageSize = v; pagination.page = 1; fetchData() }"
       />
     </div>
 
@@ -65,32 +145,90 @@
         v-model:show="showModal"
         preset="card"
         :title="modalTitle"
-        style="width: 600px"
+        style="width: 620px"
+        :mask-closable="false"
       >
-        <n-form ref="formRef" :model="formData" :rules="rules" label-placement="left" label-width="100">
-          <n-form-item label="模型名称" path="modelName">
-            <n-input v-model:value="formData.modelName" placeholder="请输入模型名称" />
-          </n-form-item>
-          <n-form-item label="模型Key" path="modelKey">
-            <n-input v-model:value="formData.modelKey" placeholder="请输入模型Key" :disabled="isEdit" />
-          </n-form-item>
-          <n-form-item label="流程分类" path="category">
-            <n-select v-model:value="formData.category" placeholder="请选择分类" :options="categoryOptions" />
-          </n-form-item>
-          <n-form-item label="流程类型" path="flowType">
-            <n-input v-model:value="formData.flowType" placeholder="请输入流程类型" />
-          </n-form-item>
-          <n-form-item label="表单类型" path="formType">
-            <n-select v-model:value="formData.formType" placeholder="请选择表单类型" :options="formTypeOptions" />
-          </n-form-item>
-          <n-form-item label="描述" path="description">
-            <n-input
-              v-model:value="formData.description"
-              type="textarea"
-              placeholder="请输入描述"
-              :rows="3"
-            />
-          </n-form-item>
+        <n-form
+          ref="formRef"
+          :model="formData"
+          :rules="rules"
+          label-placement="left"
+          label-width="100"
+        >
+          <n-grid :cols="2" :x-gap="16">
+            <n-form-item-gi label="模型名称" path="modelName" :span="2">
+              <n-input v-model:value="formData.modelName" placeholder="请输入模型名称" />
+            </n-form-item-gi>
+            <n-form-item-gi label="模型Key" path="modelKey">
+              <n-input
+                v-model:value="formData.modelKey"
+                placeholder="唯一标识，如 leave-apply"
+                :disabled="isEdit"
+              />
+            </n-form-item-gi>
+            <n-form-item-gi label="流程分类" path="category">
+              <n-select
+                v-model:value="formData.category"
+                placeholder="请选择分类"
+                :options="categoryOptions"
+              />
+            </n-form-item-gi>
+            <n-form-item-gi label="表单类型" path="formType">
+              <n-select
+                v-model:value="formData.formType"
+                placeholder="请选择表单类型"
+                :options="formTypeOptions"
+              />
+            </n-form-item-gi>
+            <n-form-item-gi label="流程类型" path="flowType">
+              <n-input v-model:value="formData.flowType" placeholder="如 approval" />
+            </n-form-item-gi>
+            <n-form-item-gi label="事件通知" path="notifyType" :span="2">
+              <div class="w-full">
+                <n-radio-group v-model:value="formData.notifyType" class="mb-8">
+                  <n-space>
+                    <n-radio value="none">不通知</n-radio>
+                    <n-radio value="redis">
+                      Redis Pub/Sub
+                      <n-tooltip trigger="hover" placement="top">
+                        <template #trigger>
+                          <i class="i-material-symbols:info-outline text-gray-400 ml-2 cursor-help" />
+                        </template>
+                        流程完成/驳回/取消时，发布消息到 Redis 频道<br />
+                        频道名：flow:event:{modelKey} 及 flow:event:all<br />
+                        业务侧通过 SUBSCRIBE/PSUBSCRIBE 消费
+                      </n-tooltip>
+                    </n-radio>
+                    <n-radio value="webhook">
+                      HTTP Webhook
+                      <n-tooltip trigger="hover" placement="top">
+                        <template #trigger>
+                          <i class="i-material-symbols:info-outline text-gray-400 ml-2 cursor-help" />
+                        </template>
+                        流程完成/驳回/取消时，POST 请求回调 Webhook URL<br />
+                        携带请求头：X-Flow-Event-Type / X-Flow-Process-Key / X-Flow-Business-Key
+                      </n-tooltip>
+                    </n-radio>
+                  </n-space>
+                </n-radio-group>
+                <!-- webhook URL 仅在选择 webhook 时显示 -->
+                <n-input
+                  v-if="formData.notifyType === 'webhook'"
+                  v-model:value="formData.webhookUrl"
+                  placeholder="回调地址，如 http://your-service/api/flow/callback"
+                  clearable
+                />
+              </div>
+            </n-form-item-gi>
+            <n-form-item-gi label="描述" path="description" :span="2">
+              <n-input
+                v-model:value="formData.description"
+                type="textarea"
+                placeholder="请输入描述"
+                :rows="3"
+              />
+            </n-form-item-gi>
+          </n-grid>
         </n-form>
         <template #footer>
           <n-space justify="end">
@@ -104,324 +242,150 @@
 </template>
 
 <script setup>
-import { ref, reactive, h, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { NTag, NButton, NSpace, NDropdown } from 'naive-ui'
 import flowApi from '@/api/flow'
 
 const router = useRouter()
 
-// 状态选项
+// ==================== 选项 ====================
 const statusOptions = [
   { label: '设计中', value: 0 },
   { label: '已部署', value: 1 },
-  { label: '已禁用', value: 2 },
+  { label: '已挂起', value: 2 },
+  { label: '已禁用', value: 3 },
 ]
-
-// 表单类型选项
 const formTypeOptions = [
   { label: '动态表单', value: 'dynamic' },
   { label: '外置表单', value: 'external' },
   { label: '无表单', value: 'none' },
 ]
-
-// 分类选项
 const categoryOptions = ref([])
 
-// 查询参数
-const queryParams = reactive({
-  modelName: '',
-  category: null,
-  status: null,
-})
+const statusTagType = { 0: 'warning', 1: 'success', 2: 'default', 3: 'error' }
+const statusText    = { 0: '设计中',  1: '已部署',  2: '已挂起',  3: '已禁用' }
 
-// 状态标签颜色
-const statusTagType = {
-  0: 'warning',
-  1: 'success',
-  2: 'default',
+// 卡片图标颜色映射（按分类/类型给予不同视觉风格）
+const iconColorMap = ['#4f46e5', '#0891b2', '#059669', '#d97706', '#dc2626', '#7c3aed']
+function iconClass(item) {
+  const idx = Math.abs(hashStr(item.modelKey || '')) % iconColorMap.length
+  return `icon-bg-${idx}`
+}
+function iconName(item) {
+  const typeMap = {
+    leave: 'i-material-symbols:free-cancellation-outline',
+    expense: 'i-material-symbols:receipt-long-outline',
+    approval: 'i-material-symbols:approval-delegation-outline',
+    purchase: 'i-material-symbols:shopping-cart-outline',
+  }
+  const ft = item.flowType || item.businessType || ''
+  for (const [k, v] of Object.entries(typeMap)) {
+    if (ft.toLowerCase().includes(k)) return v
+  }
+  return 'i-material-symbols:device-hub'
+}
+function hashStr(s) {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  return h
+}
+function formatDate(d) {
+  if (!d) return ''
+  return d.slice(0, 10)
 }
 
-const statusText = {
-  0: '设计中',
-  1: '已部署',
-  2: '已禁用',
-}
-
-// 获取操作下拉选项
+// ==================== 操作下拉 ====================
 function getActionOptions(row) {
-  const options = [
-    { label: '设计流程', key: 'design' },
-    { label: '编辑信息', key: 'edit' },
-    { label: '复制模型', key: 'copy' },
+  const opts = [
+    { label: '编辑信息', key: 'edit', icon: () => h('i', { class: 'i-material-symbols:edit-outline' }) },
+    { label: '复制模型', key: 'copy', icon: () => h('i', { class: 'i-material-symbols:content-copy-outline' }) },
   ]
-  
-  // 已部署状态可以查看实例
   if (row.status === 1) {
-    options.push({ label: '查看实例', key: 'instances' })
+    opts.push({ label: '挂起', key: 'suspend', icon: () => h('i', { class: 'i-material-symbols:pause-circle-outline' }) })
   }
-  
-  // 设计中状态可以部署
-  if (row.status === 0) {
-    options.push({ label: '部署', key: 'deploy' })
-  }
-  
-  // 已部署状态可以禁用
-  if (row.status === 1) {
-    options.push({ label: '挂起', key: 'suspend' })
-  }
-  
-  // 已挂起状态可以激活
   if (row.status === 2) {
-    options.push({ label: '激活', key: 'activate' })
+    opts.push({ label: '激活', key: 'activate', icon: () => h('i', { class: 'i-material-symbols:play-circle-outline' }) })
   }
-  
-  options.push({ type: 'divider', key: 'd1' })
-  options.push({ label: '删除', key: 'delete', props: { style: 'color: #d03050' } })
-  
-  return options
+  opts.push({ type: 'divider', key: 'd1' })
+  opts.push({ label: '删除', key: 'delete', props: { style: 'color: #d03050' } })
+  return opts
 }
-
-// 处理操作下拉点击
 function handleActionSelect(key, row) {
-  switch (key) {
-    case 'design':
-      handleDesign(row)
-      break
-    case 'edit':
-      handleEdit(row)
-      break
-    case 'copy':
-      handleCopy(row)
-      break
-    case 'instances':
-      handleViewInstances(row)
-      break
-    case 'deploy':
-      handleDeploy(row)
-      break
-    case 'suspend':
-      handleSuspend(row)
-      break
-    case 'activate':
-      handleActivate(row)
-      break
-    case 'delete':
-      handleDelete(row)
-      break
-  }
+  const map = { edit: handleEdit, copy: handleCopy, suspend: handleSuspend, activate: handleActivate, delete: handleDelete }
+  map[key]?.(row)
 }
 
-// 表格列
-const columns = [
-  {
-    title: '模型名称',
-    key: 'modelName',
-    width: 180,
-  },
-  {
-    title: '模型Key',
-    key: 'modelKey',
-    width: 150,
-  },
-  {
-    title: '分类',
-    key: 'category',
-    width: 100,
-  },
-  {
-    title: '版本',
-    key: 'version',
-    width: 80,
-    render: (row) => `v${row.version || 1}`,
-  },
-  {
-    title: '状态',
-    key: 'status',
-    width: 100,
-    render: (row) => {
-      return h(NTag, {
-        type: statusTagType[row.status] || 'default',
-        size: 'small',
-      }, { default: () => statusText[row.status] || '未知' })
-    },
-  },
-  {
-    title: '描述',
-    key: 'description',
-    ellipsis: { tooltip: true },
-  },
-  {
-    title: '创建时间',
-    key: 'createTime',
-    width: 180,
-  },
-  {
-    title: '操作',
-    key: 'actions',
-    width: 200,
-    render: (row) => {
-      return h(NSpace, { size: 'small' }, {
-        default: () => [
-          // 主要操作按钮：设计
-          h(NButton, {
-            size: 'small',
-            type: 'primary',
-            onClick: () => handleDesign(row),
-          }, { default: () => '设计' }),
-          // 已部署状态显示查看实例按钮
-          row.status === 1 ? h(NButton, {
-            size: 'small',
-            type: 'info',
-            onClick: () => handleViewInstances(row),
-          }, { default: () => '实例' }) : null,
-          // 更多操作下拉
-          h(NDropdown, {
-            options: getActionOptions(row),
-            trigger: 'click',
-            onSelect: (key) => handleActionSelect(key, row),
-          }, {
-            default: () => h(NButton, { size: 'small' }, { default: () => '更多' })
-          }),
-        ].filter(Boolean)
-      })
-    },
-  },
-]
+// ==================== 查询/数据 ====================
+const queryParams = reactive({ modelName: '', category: null, status: null })
+const dataSource  = ref([])
+const loading     = ref(false)
+const pagination  = reactive({ page: 1, pageSize: 12, itemCount: 0 })
 
-// 数据
-const dataSource = ref([])
-const loading = ref(false)
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  showSizePicker: true,
-  pageSizes: [10, 20, 50],
-  onChange: (page) => {
-    pagination.page = page
-    fetchData()
-  },
-  onUpdatePageSize: (pageSize) => {
-    pagination.pageSize = pageSize
-    pagination.page = 1
-    fetchData()
-  },
-})
-
-// 弹窗
-const showModal = ref(false)
-const modalTitle = ref('新增模型')
-const isEdit = ref(false)
-const submitLoading = ref(false)
-const formRef = ref(null)
-const formData = reactive({
-  id: '',
-  modelName: '',
-  modelKey: '',
-  category: '',
-  flowType: '',
-  formType: 'dynamic',
-  description: '',
-})
-
-const rules = {
-  modelName: { required: true, message: '请输入模型名称', trigger: 'blur' },
-  modelKey: { required: true, message: '请输入模型Key', trigger: 'blur' },
-  category: { required: true, message: '请选择分类', trigger: 'change' },
-}
-
-// 获取分类列表
 async function fetchCategories() {
   try {
     const res = await flowApi.getEnabledCategories()
     if (res.code === 200) {
       categoryOptions.value = (res.data || []).map(item => ({
-        label: item.categoryName,
-        value: item.categoryCode,
+        label: item.categoryName, value: item.categoryCode,
       }))
     }
-  } catch (error) {
-    console.error('获取分类列表失败:', error)
-  }
+  } catch (e) { console.error(e) }
 }
 
-// 获取数据
 async function fetchData() {
   loading.value = true
   try {
     const res = await flowApi.getModelPage({
-      pageNum: pagination.page,
-      pageSize: pagination.pageSize,
-      ...queryParams,
+      pageNum: pagination.page, pageSize: pagination.pageSize, ...queryParams,
     })
     if (res.code === 200) {
-      dataSource.value = res.data?.records || []
+      dataSource.value  = res.data?.records || []
       pagination.itemCount = res.data?.total || 0
     }
-  } catch (error) {
-    console.error('获取模型列表失败:', error)
-  } finally {
-    loading.value = false
-  }
+  } catch (e) { console.error(e) }
+  finally { loading.value = false }
 }
-
-// 搜索
-function handleSearch() {
-  pagination.page = 1
-  fetchData()
-}
-
-// 重置
+function handleSearch() { pagination.page = 1; fetchData() }
 function handleReset() {
-  queryParams.modelName = ''
-  queryParams.category = null
-  queryParams.status = null
+  Object.assign(queryParams, { modelName: '', category: null, status: null })
   pagination.page = 1
   fetchData()
 }
 
-// 新增
+// ==================== 表单弹窗 ====================
+const showModal     = ref(false)
+const modalTitle    = ref('新增模型')
+const isEdit        = ref(false)
+const submitLoading = ref(false)
+const formRef       = ref(null)
+const formData = reactive({
+  id: '', modelName: '', modelKey: '', category: '',
+  flowType: '', formType: 'dynamic', description: '', notifyType: 'none', webhookUrl: '',
+})
+const rules = {
+  modelName: { required: true, message: '请输入模型名称', trigger: 'blur' },
+  modelKey:  { required: true, message: '请输入模型Key', trigger: 'blur' },
+  category:  { required: true, message: '请选择分类', trigger: 'change' },
+}
+
 function handleAdd() {
   isEdit.value = false
   modalTitle.value = '新增模型'
-  Object.assign(formData, {
-    id: '',
-    modelName: '',
-    modelKey: '',
-    category: '',
-    flowType: '',
-    formType: 'dynamic',
-    description: '',
-  })
+  Object.assign(formData, { id: '', modelName: '', modelKey: '', category: '', flowType: '', formType: 'dynamic', description: '', notifyType: 'none', webhookUrl: '' })
   showModal.value = true
 }
-
-// 设计流程
-function handleDesign(row) {
-  router.push({
-    path: '/flow/design',
-    query: { id: row.id }
-  })
-}
-
-// 编辑
 function handleEdit(row) {
   isEdit.value = true
   modalTitle.value = '编辑模型'
   Object.assign(formData, row)
   showModal.value = true
 }
-
-// 提交
 async function handleSubmit() {
   try {
     await formRef.value?.validate()
     submitLoading.value = true
-    
     const api = isEdit.value ? flowApi.updateModel : flowApi.createModel
     const res = await api(formData)
-    
     if (res.code === 200) {
       window.$message?.success(isEdit.value ? '编辑成功' : '新增成功')
       showModal.value = false
@@ -429,131 +393,204 @@ async function handleSubmit() {
     } else {
       window.$message?.error(res.message || '操作失败')
     }
-  } catch (error) {
-    console.error('提交失败:', error)
-  } finally {
-    submitLoading.value = false
-  }
+  } catch (e) { console.error(e) }
+  finally { submitLoading.value = false }
 }
 
-// 部署
+// ==================== 业务操作 ====================
+function handleDesign(row) {
+  router.push({ path: '/flow/design', query: { id: row.id } })
+}
+function handleViewInstances(row) {
+  router.push({ path: '/flow/monitor', query: { modelKey: row.modelKey } })
+}
 async function handleDeploy(row) {
   window.$dialog?.info({
     title: '确认部署',
-    content: `确定要部署模型"${row.modelName}"吗？部署后流程将可以发起。`,
+    content: `确定要部署「${row.modelName}」吗？部署后流程将可以发起。`,
     positiveText: '确定',
     negativeText: '取消',
     onPositiveClick: async () => {
-      try {
-        const res = await flowApi.deployModel(row.id)
-        if (res.code === 200) {
-          window.$message?.success('部署成功')
-          fetchData()
-        } else {
-          window.$message?.error(res.message || '部署失败')
-        }
-      } catch (error) {
-        console.error('部署失败:', error)
-      }
+      const res = await flowApi.deployModel(row.id)
+      if (res.code === 200) { window.$message?.success('部署成功'); fetchData() }
+      else window.$message?.error(res.message || '部署失败')
     },
   })
 }
-
-// 查看流程实例
-function handleViewInstances(row) {
-  router.push({
-    path: '/flow/monitor',
-    query: { modelKey: row.modelKey }
-  })
-}
-
-// 复制模型
 async function handleCopy(row) {
   window.$dialog?.info({
     title: '复制模型',
-    content: `确定要复制模型"${row.modelName}"吗？`,
+    content: `确定要复制「${row.modelName}」吗？`,
     positiveText: '确定',
     negativeText: '取消',
     onPositiveClick: async () => {
-      try {
-        const res = await flowApi.copyModel(row.id, `${row.modelName} - 副本`)
-        if (res.code === 200) {
-          window.$message?.success('复制成功')
-          fetchData()
-        } else {
-          window.$message?.error(res.message || '复制失败')
-        }
-      } catch (error) {
-        console.error('复制失败:', error)
-      }
+      const res = await flowApi.copyModel(row.id, `${row.modelName} - 副本`)
+      if (res.code === 200) { window.$message?.success('复制成功'); fetchData() }
+      else window.$message?.error(res.message || '复制失败')
     },
   })
 }
-
-// 挂起
 async function handleSuspend(row) {
   window.$dialog?.warning({
     title: '确认挂起',
-    content: `确定要挂起模型"${row.modelName}"吗？挂起后流程实例将暂停运行。`,
+    content: `挂起后，「${row.modelName}」相关的进行中流程实例将暂停，确定继续？`,
     positiveText: '确定',
     negativeText: '取消',
     onPositiveClick: async () => {
-      try {
-        const res = await flowApi.suspendModel(row.id)
-        if (res.code === 200) {
-          window.$message?.success('挂起成功')
-          fetchData()
-        } else {
-          window.$message?.error(res.message || '挂起失败')
-        }
-      } catch (error) {
-        console.error('挂起失败:', error)
-      }
+      const res = await flowApi.suspendModel(row.id)
+      if (res.code === 200) { window.$message?.success('已挂起'); fetchData() }
+      else window.$message?.error(res.message || '挂起失败')
     },
   })
 }
-
-// 激活
 async function handleActivate(row) {
-  try {
-    const res = await flowApi.activateModel(row.id)
-    if (res.code === 200) {
-      window.$message?.success('激活成功')
-      fetchData()
-    } else {
-      window.$message?.error(res.message || '激活失败')
-    }
-  } catch (error) {
-    console.error('激活失败:', error)
-  }
+  const res = await flowApi.activateModel(row.id)
+  if (res.code === 200) { window.$message?.success('已激活'); fetchData() }
+  else window.$message?.error(res.message || '激活失败')
 }
-
-// 删除
 async function handleDelete(row) {
-  window.$dialog?.warning({
+  window.$dialog?.error({
     title: '确认删除',
-    content: `确定要删除模型"${row.modelName}"吗？`,
-    positiveText: '确定',
+    content: `删除后不可恢复，确定要删除「${row.modelName}」吗？`,
+    positiveText: '确定删除',
     negativeText: '取消',
     onPositiveClick: async () => {
-      try {
-        const res = await flowApi.deleteModel(row.id)
-        if (res.code === 200) {
-          window.$message?.success('删除成功')
-          fetchData()
-        } else {
-          window.$message?.error(res.message || '删除失败')
-        }
-      } catch (error) {
-        console.error('删除失败:', error)
-      }
+      const res = await flowApi.deleteModel(row.id)
+      if (res.code === 200) { window.$message?.success('删除成功'); fetchData() }
+      else window.$message?.error(res.message || '删除失败')
     },
   })
 }
 
-// 初始化
 onMounted(() => {
   fetchCategories()
   fetchData()
 })
+
+// h 函数（给 dropdown icon 用）
+import { h } from 'vue'
 </script>
+
+<style scoped>
+/* 卡片网格：固定列宽，多列排列 */
+.model-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+@media (max-width: 1400px) {
+  .model-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 1000px) {
+  .model-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 单张卡片：竖向堆叠 */
+.model-card {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.model-card:hover {
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.10);
+  border-color: #d0d0d0;
+  transform: translateY(-2px);
+}
+
+/* 头部：图标左 + 状态右 */
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+.icon-bg-0 { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+.icon-bg-1 { background: linear-gradient(135deg, #22d3ee, #0891b2); }
+.icon-bg-2 { background: linear-gradient(135deg, #34d399, #059669); }
+.icon-bg-3 { background: linear-gradient(135deg, #fbbf24, #d97706); }
+.icon-bg-4 { background: linear-gradient(135deg, #f87171, #dc2626); }
+.icon-bg-5 { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
+
+/* 主体：名称 + key + 描述 */
+.card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card-key {
+  font-size: 12px;
+  color: #9ca3af;
+  font-family: monospace;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card-desc {
+  font-size: 12px;
+  color: #6b7280;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+/* 底部：元信息 + 操作按钮 */
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid #f3f4f6;
+  gap: 8px;
+}
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+</style>

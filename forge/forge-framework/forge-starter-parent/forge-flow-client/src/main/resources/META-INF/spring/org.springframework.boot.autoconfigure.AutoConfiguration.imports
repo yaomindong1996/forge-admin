@@ -1,0 +1,2 @@
+com.mdframe.forge.flow.client.FlowClientAutoConfiguration
+com.mdframe.forge.flow.client.helper.FlowClientHelperAutoConfiguration

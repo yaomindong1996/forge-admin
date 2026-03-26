@@ -1,14 +1,19 @@
 package com.mdframe.forge.leave.controller;
 
+import cn.dev33.satoken.annotation.SaIgnore;
+import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.leave.dto.LeaveRequestDTO;
 import com.mdframe.forge.leave.entity.LeaveRequest;
 import com.mdframe.forge.leave.service.LeaveRequestService;
+import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
+import com.mdframe.forge.starter.core.domain.FlowEventMessage;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -22,9 +27,20 @@ import org.springframework.web.bind.annotation.*;
 @ApiDecrypt
 @ApiEncrypt
 @IgnoreTenant
+@Slf4j
 public class LeaveRequestController {
 
     private final LeaveRequestService leaveRequestService;
+    
+    
+    
+    @PostMapping("/test")
+    @SaIgnore
+    @ApiPermissionIgnore
+    public RespInfo<?> test(@RequestBody FlowEventMessage flowEventMessage) {
+        log.info("接收到业务通知:{}", flowEventMessage);
+        return RespInfo.success();
+    }
 
     /**
      * 提交请假申请
