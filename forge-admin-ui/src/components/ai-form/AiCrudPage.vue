@@ -1191,12 +1191,13 @@ watch(() => props.publicQuery, () => {
   display: flex;
   flex-direction: column;
   gap: 0;
-  background: transparent;
+  background: var(--bg-primary);
 }
 
 /* 搜索区域 */
 .ai-crud-search {
-  background-color: #ffffff;
+  background: var(--bg-primary);
+  flex-shrink: 0;
 }
 
 /* 主内容区域 */
@@ -1204,7 +1205,7 @@ watch(() => props.publicQuery, () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #ffffff;
+  background: var(--bg-primary);
   overflow: auto;
   min-height: 0;
 }
@@ -1214,8 +1215,7 @@ watch(() => props.publicQuery, () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--n-border-color);
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
@@ -1240,7 +1240,6 @@ watch(() => props.publicQuery, () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 0 14px;
   min-height: 0;
 }
 
@@ -1261,24 +1260,53 @@ watch(() => props.publicQuery, () => {
   flex: 0 0 auto;
 }
 
-/* 表格工具栏 */
+/* 表格工具栏 - 不需要额外内边距因为 AiTable 已处理 */
 .ai-crud-table :deep(.ai-table-toolbar) {
-  padding: 12px 14px 14px 0;
+  padding: 10px 16px;
 }
 
 /* 操作列样式 */
 .table-action-column {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+}
+
+/* 按钮操作链接样式 */
+:deep(.table-action-link) {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-sm);
+  color: var(--primary-600);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  line-height: 1.5;
+}
+
+:deep(.table-action-link:hover) {
+  background: var(--primary-50);
+  color: var(--primary-700);
+}
+
+:deep(.table-action-link.danger) {
+  color: var(--error-600);
+}
+
+:deep(.table-action-link.danger:hover) {
+  background: var(--error-50);
+  color: var(--error-700);
+}
+
+:deep(.table-action-divider) {
+  color: var(--border-strong);
+  user-select: none;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .ai-crud-search {
-    padding: 12px 16px 4px;
-  }
-
   .toolbar-left,
   .toolbar-right {
     width: 100%;
@@ -1286,34 +1314,21 @@ watch(() => props.publicQuery, () => {
   }
 }
 
-/* 暗黑模式优化 */
-:deep(.n-card.n-card--bordered) {
-  border-color: var(--n-border-color);
-}
-
-
-.toolbar-right :deep(.n-button--text-type:hover) {
-  background: var(--n-button-color-hover);
-}
-
-/* 卡片圆角优化 */
-:deep(.n-card) {
-  border-radius: 8px;
-}
-
-/* 表格边框优化 */
+/* 表格内容优化 */
 :deep(.n-data-table) {
   border-radius: 0;
 }
 
 :deep(.n-data-table .n-data-table-th) {
-  background: var(--n-th-color);
-  font-weight: 600;
-  font-size: calc(var(--font-size-base) - 1px);
+  background: var(--bg-secondary) !important;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 :deep(.n-data-table .n-data-table-td) {
-  font-size: calc(var(--font-size-base) - 1px);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
 }
 
 /* 分页器样式 */
@@ -1325,20 +1340,12 @@ watch(() => props.publicQuery, () => {
   gap: 8px;
 }
 
-/* 分页器响应式样式 */
-@media (max-width: 992px) {
-  :deep(.n-pagination) {
-    padding: 12px;
-  }
-}
-
 @media (max-width: 768px) {
   :deep(.n-pagination) {
     justify-content: center;
-    padding: 16px 8px;
+    padding: 12px;
   }
 
-  /* 分页器项目缩小 */
   :deep(.n-pagination .n-pagination-item) {
     min-width: 32px;
     height: 32px;
@@ -1349,12 +1356,10 @@ watch(() => props.publicQuery, () => {
     padding: 0 6px;
   }
 
-  /* 每页显示数选择器 */
   :deep(.n-pagination-size-picker) {
     font-size: 13px;
   }
 
-  /* 快速跳转 */
   :deep(.n-pagination-quick-jumper) {
     font-size: 13px;
   }
@@ -1362,7 +1367,7 @@ watch(() => props.publicQuery, () => {
 
 @media (max-width: 576px) {
   :deep(.n-pagination) {
-    padding: 12px 4px;
+    padding: 10px 4px;
     gap: 4px;
   }
 

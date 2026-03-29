@@ -197,76 +197,84 @@ const findMenuItem = (menuItems, key) => {
 
 <style>
 .modern-side-menu {
-  padding: 6px 10px;
+  padding: 6px 0;
   background: transparent;
 }
 
-/* 菜单项样式 */
+/* 菜单项 - SnowAdmin 风格 */
 .modern-side-menu .n-menu-item-content {
-  margin: 4px 0;
-  border-radius: 12px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 14px;
-  font-weight: 500;
-  color: #475569;
-  position: relative;
-  overflow: hidden;
-}
-
-.modern-side-menu .n-menu-item-content::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  border-radius: 12px;
-}
-
-.modern-side-menu .n-menu-item-content:hover::before {
-  opacity: 1;
+  margin: 1px 6px;
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  min-height: 38px;
+  padding: 0 12px !important;
 }
 
 .modern-side-menu .n-menu-item-content:hover {
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.08);
+  color: var(--primary-500);
+  background: var(--primary-50);
 }
 
-/* 选中状态 - 使用 CSS 变量 */
+/* 选中状态 */
 .modern-side-menu .n-menu-item-content--selected {
-  background-color: var(--side-menu-bg-color-active) !important;
-  color: var(--side-menu-text-color-active) !important;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.modern-side-menu .n-menu-item-content--selected::before {
-  opacity: 0;
+  background: var(--primary-50) !important;
+  color: var(--primary-500) !important;
+  font-weight: 500;
 }
 
 .modern-side-menu .n-menu-item-content--selected:hover {
-  background-color: var(--side-menu-bg-color-active) !important;
-  color: var(--side-menu-text-color-active) !important;
+  background: var(--primary-50) !important;
+  color: var(--primary-500) !important;
 }
 
-/* 图标样式 */
+/* 选中项左侧指示条 */
+.modern-side-menu .n-menu-item-content--selected::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  width: 3px;
+  background: var(--primary-500);
+  border-radius: 0 2px 2px 0;
+}
+
+/* 图标 */
 .modern-side-menu .n-menu-item-content__icon {
-  font-size: 18px;
-  transition: transform 0.2s ease;
+  font-size: 16px;
+  margin-right: 8px !important;
+  color: var(--text-tertiary);
+  opacity: 0.8;
 }
 
 .modern-side-menu .n-menu-item-content:hover .n-menu-item-content__icon {
-  transform: scale(1.1);
+  color: var(--primary-500);
+  opacity: 1;
 }
 
 .modern-side-menu .n-menu-item-content--selected .n-menu-item-content__icon {
-  color: var(--side-menu-text-color-active) !important;
+  color: var(--primary-500) !important;
+  opacity: 1;
 }
 
-/* 子菜单样式 */
+/* 菜单文字 */
+.modern-side-menu .n-menu-item-content__label {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.modern-side-menu .n-menu-item-content--selected .n-menu-item-content__label {
+  color: var(--primary-500) !important;
+}
+
+.modern-side-menu .n-menu-item-content:hover .n-menu-item-content__label {
+  color: var(--primary-500) !important;
+}
+
+/* 子菜单缩进 */
 .modern-side-menu .n-submenu-children {
   padding-left: 0;
 }
@@ -275,22 +283,33 @@ const findMenuItem = (menuItems, key) => {
   font-size: 13px;
 }
 
+/* 分组标题 */
+.modern-side-menu .n-menu-item-group-title {
+  padding: 14px 16px 4px !important;
+  font-size: 11px !important;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 /* 折叠状态 */
 .modern-side-menu.n-menu--collapsed .n-menu-item-content {
   justify-content: center;
   padding: 0 !important;
-  width: 48px;
-  height: 48px;
-  margin: 8px auto;
+  width: 38px;
+  height: 38px;
+  margin: 2px auto;
+  border-radius: var(--radius-md);
 }
 
-.modern-side-menu.n-menu--collapsed .n-menu-item-content--selected {
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+.modern-side-menu.n-menu--collapsed .n-menu-item-content--selected::after {
+  display: none;
 }
 
 /* 滚动条 */
 .modern-side-menu::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .modern-side-menu::-webkit-scrollbar-track {
@@ -298,20 +317,11 @@ const findMenuItem = (menuItems, key) => {
 }
 
 .modern-side-menu::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
+  background: var(--border-light);
+  border-radius: var(--radius-full);
 }
 
 .modern-side-menu::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-/* 动画优化 */
-@media (prefers-reduced-motion: reduce) {
-  .modern-side-menu .n-menu-item-content,
-  .modern-side-menu .n-menu-item-content::before,
-  .modern-side-menu .n-menu-item-content__icon {
-    transition: none;
-  }
+  background: var(--border-default);
 }
 </style>

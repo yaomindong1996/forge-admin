@@ -22,25 +22,35 @@ import { SideLogo, SideMenu } from '@/layouts/components'
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
-/* 滚动条样式 */
+/* 滚动条样式 - 使用设计Token */
 .sidebar-menu::-webkit-scrollbar {
   width: 6px;
 }
 
 .sidebar-menu::-webkit-scrollbar-track {
   background: transparent;
+  border-radius: var(--radius-sm);
 }
 
 .sidebar-menu::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 10px;
-  transition: background 0.2s ease;
+  background: var(--gray-200);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
 }
 
 .sidebar-menu::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--gray-300);
+}
+
+/* 暗色模式滚动条 */
+.dark .sidebar-menu::-webkit-scrollbar-thumb {
+  background: var(--gray-700);
+}
+
+.dark .sidebar-menu::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-600);
 }
 </style>

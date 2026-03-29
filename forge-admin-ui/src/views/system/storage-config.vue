@@ -117,6 +117,7 @@ const fileTypeInput = ref('')
 // 存储类型选项
 const storageTypeOptions = [
   { label: '本地存储', value: 'local' },
+  { label: 'RustFS', value: 'rustfs' },
   { label: 'MinIO', value: 'minio' },
   { label: '阿里云OSS', value: 'aliyun' },
   { label: '腾讯云COS', value: 'tencent' },
@@ -177,6 +178,7 @@ const tableColumns = [
     render: (row) => {
       const typeMap = {
         'local': { text: '本地存储', type: 'default' },
+        'rustfs': { text: 'RustFS存储', type: 'success' },
         'minio': { text: 'MinIO', type: 'info' },
         'aliyun': { text: '阿里云OSS', type: 'warning' },
         'tencent': { text: '腾讯云COS', type: 'success' },
@@ -203,11 +205,11 @@ const tableColumns = [
     label: '状态',
     width: 80,
     render: (row) => {
-      return h(NTag, { 
-        type: row.enabled ? 'success' : 'default', 
-        size: 'small' 
-      }, { 
-        default: () => row.enabled ? '启用' : '禁用' 
+      return h(NTag, {
+        type: row.enabled ? 'success' : 'default',
+        size: 'small'
+      }, {
+        default: () => row.enabled ? '启用' : '禁用'
       })
     }
   },
@@ -288,7 +290,7 @@ const editSchema = [
       min: 0
     }
   },
-  
+
   // ==================== 连接配置 ====================
   {
     type: 'divider',
@@ -305,9 +307,9 @@ const editSchema = [
     type: 'input',
     span: 2,
     rules: [
-      { 
-        required: true, 
-        message: '请输入访问端点', 
+      {
+        required: true,
+        message: '请输入访问端点',
         trigger: 'blur',
         validator: (rule, value, formData) => {
           if (formData.storageType !== 'local' && !value) {
@@ -327,9 +329,9 @@ const editSchema = [
     label: '存储桶',
     type: 'input',
     rules: [
-      { 
-        required: true, 
-        message: '请输入存储桶名称', 
+      {
+        required: true,
+        message: '请输入存储桶名称',
         trigger: 'blur',
         validator: (rule, value, formData) => {
           if (formData.storageType !== 'local' && !value) {
@@ -358,9 +360,9 @@ const editSchema = [
     label: 'AccessKey',
     type: 'input',
     rules: [
-      { 
-        required: true, 
-        message: '请输入AccessKey', 
+      {
+        required: true,
+        message: '请输入AccessKey',
         trigger: 'blur',
         validator: (rule, value, formData) => {
           if (formData.storageType !== 'local' && !value) {
@@ -380,9 +382,9 @@ const editSchema = [
     label: 'SecretKey',
     type: 'input',
     rules: [
-      { 
-        required: true, 
-        message: '请输入SecretKey', 
+      {
+        required: true,
+        message: '请输入SecretKey',
         trigger: 'blur',
         validator: (rule, value, formData) => {
           if (formData.storageType !== 'local' && !value) {
@@ -407,7 +409,7 @@ const editSchema = [
     span: 2,
     vIf: (formData) => formData.storageType !== 'local'
   },
-  
+
   // ==================== 路径配置 ====================
   {
     type: 'divider',
@@ -433,7 +435,7 @@ const editSchema = [
       placeholder: '文件访问域名，如：https://cdn.example.com'
     }
   },
-  
+
   // ==================== 限制配置 ====================
   {
     type: 'divider',

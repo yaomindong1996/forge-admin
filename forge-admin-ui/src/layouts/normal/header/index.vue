@@ -1,31 +1,70 @@
 <template>
-  <AppCard class="layout-header flex items-center px-12" border-b="1px solid light_border dark:dark_border">
-    <MenuCollapse />
-
-    <!-- 菜单搜索 -->
-    <div class="ml-16">
-      <MenuSearch />
+  <div class="app-header-bar">
+    <!-- 左侧：折叠按鈕 + Tab -->
+    <div class="header-left">
+      <MenuCollapse />
+      <AppTab class="header-tabs" />
     </div>
 
-    <AppTab class="w-0 flex-1 px-12" />
-
-    <span class="mx-6 opacity-20">|</span>
-
-    <div class="flex flex-shrink-0 items-center px-12 text-18">
+    <!-- 右侧：工具区 -->
+    <div class="header-right">
+      <MenuSearch />
       <BeginnerGuide />
-
       <ToggleTheme />
-
       <Fullscreen />
-
-      <ThemeSetting class="mr-16" />
-
-      <MessageNotification class="mr-16" />
-
+      <ThemeSetting />
+      <MessageNotification />
+      <div class="header-divider"></div>
       <UserAvatar />
     </div>
-  </AppCard>
+  </div>
 </template>
+
+<style scoped>
+.app-header-bar {
+  width: 100%;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-light);
+  padding: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding-left: 4px;
+  gap: 2px;
+}
+
+.header-tabs {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 4px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+  padding: 0 8px;
+  height: 100%;
+}
+
+.header-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--border-light);
+  margin: 0 6px;
+}
+</style>
 
 <script setup>
 import { ToggleTheme } from '@/components'

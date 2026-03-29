@@ -16,7 +16,7 @@
             </template>
           </n-button>
         </div>
-        
+
         <div class="group-list">
           <!-- 默认分组 -->
           <div
@@ -30,7 +30,7 @@
             </div>
             <span class="file-count">{{ totalFiles }}</span>
           </div>
-          
+
           <div
             class="group-item"
             :class="{ active: selectedGroup === 'recent' }"
@@ -42,7 +42,7 @@
             </div>
             <span class="file-count">-</span>
           </div>
-          
+
           <div
             class="group-item"
             :class="{ active: selectedGroup === 'images' }"
@@ -54,7 +54,7 @@
             </div>
             <span class="file-count">{{ imageCount }}</span>
           </div>
-          
+
           <div
             class="group-item"
             :class="{ active: selectedGroup === 'documents' }"
@@ -66,9 +66,9 @@
             </div>
             <span class="file-count">{{ documentCount }}</span>
           </div>
-          
+
           <div class="group-divider" v-if="fileGroups.length > 0"></div>
-          
+
           <!-- 自定义分组 -->
           <div
             v-for="group in fileGroups"
@@ -88,7 +88,7 @@
           </div>
         </div>
       </div>
-      
+
       <!-- 右侧内容区域 -->
       <div class="main-content">
         <!-- 工具栏 -->
@@ -110,13 +110,21 @@
                 网格
               </n-button>
             </n-button-group>
-            
+
             <n-divider vertical style="height: 24px; margin: 0 12px;" />
-            
+
             <span class="current-group-title">{{ currentGroupTitle }}</span>
           </div>
-          
+
           <div class="upload-section">
+            <n-select
+              v-if="storageConfigOptions.length > 0"
+              v-model:value="selectedStorageConfigId"
+              :options="storageConfigOptions"
+              size="small"
+              placeholder="存储配置"
+              style="width: 160px;"
+            />
             <n-upload
               :action="uploadUrl"
               :headers="uploadHeaders"
@@ -135,7 +143,7 @@
             </n-upload>
           </div>
         </div>
-        
+
         <!-- 文件列表/网格视图 -->
         <div class="file-content">
           <!-- 列表视图 -->
@@ -154,43 +162,45 @@
             >
               <!-- 自定义操作列 -->
               <template #table-action="{ row }">
-                <div class="flex items-center gap-8">
-                  <a
+                <div class="table-action-buttons">
+                  <n-button
                     v-if="row.mimeType && row.mimeType.startsWith('image/')"
-                    class="text-info cursor-pointer hover:text-info-hover"
+                    size="small"
+                    type="info"
+                    ghost
                     @click="handlePreview(row)"
                   >
-                    预览
-                  </a>
-                  <span v-if="row.mimeType && row.mimeType.startsWith('image/')" class="text-gray-300">|</span>
-                  <a
-                    class="text-primary cursor-pointer hover:text-primary-hover"
+                    <i class="i-material-symbols:visibility" />
+                  </n-button>
+                  <n-button
+                    size="small"
+                    type="primary"
+                    ghost
                     @click="handleDownload(row)"
                   >
-                    下载
-                  </a>
-                  <span class="text-gray-300">|</span>
+                    <i class="i-material-symbols:download" />
+                  </n-button>
                   <n-dropdown
                     trigger="click"
                     :options="getDropdownOptions(row)"
                     @select="(key) => handleDropdownSelect(key, row)"
                   >
-                    <a class="text-success cursor-pointer hover:text-success-hover">
-                      更多
-                    </a>
+                    <n-button size="small" type="tertiary" circle>
+                      <i class="i-material-symbols:more-vert" />
+                    </n-button>
                   </n-dropdown>
                 </div>
               </template>
             </AiCrudPage>
           </div>
-          
+
           <!-- 网格视图 -->
           <div v-show="viewMode === 'grid'" class="file-grid">
             <div class="grid-header">
               <span class="grid-title">{{ currentGroupTitle }}</span>
               <span class="grid-count">{{ fileList.length }} 个文件</span>
             </div>
-            
+
             <div v-if="fileList.length === 0" class="empty-state">
               <i class="i-material-symbols:folder-open empty-icon" />
               <p class="empty-text">暂无文件</p>
@@ -206,7 +216,7 @@
                 <n-button type="primary" size="small">上传文件</n-button>
               </n-upload>
             </div>
-            
+
             <div v-else class="file-grid-container">
               <div
                 v-for="file in fileList"
@@ -216,10 +226,15 @@
                 <div class="file-preview">
                   <template v-if="file.mimeType && file.mimeType.startsWith('image/')">
                     <img
-                      :src="file.thumbnailUrl || file.accessUrl"
+                      v-if="file.thumbnailUrl"
+                      :src="file.thumbnailUrl"
                       :alt="file.originalName"
                       @click="handlePreview(file)"
                     />
+                    <div v-else class="thumbnail-loading" @click="handlePreview(file)">
+                      <i class="i-material-symbols:image thumbnail-loading-icon" />
+                      <span class="thumbnail-loading-text">加载中...</span>
+                    </div>
                   </template>
                   <template v-else>
                     <div
@@ -233,7 +248,7 @@
                       />
                     </div>
                   </template>
-                  
+
                   <div class="file-actions">
                     <n-dropdown
                       trigger="click"
@@ -251,7 +266,7 @@
                     </n-dropdown>
                   </div>
                 </div>
-                
+
                 <div class="file-info">
                   <div class="file-name" :title="file.originalName">
                     {{ file.originalName }}
@@ -267,7 +282,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- 分组管理弹窗 -->
     <n-modal
       v-model:show="showGroupModal"
@@ -296,7 +311,7 @@
             添加
           </n-button>
         </div>
-        
+
         <div class="existing-groups">
           <div
             v-for="group in fileGroups"
@@ -325,7 +340,7 @@
         </div>
       </div>
     </n-modal>
-    
+
     <!-- 移动文件到分组弹窗 -->
     <n-modal
       v-model:show="showMoveModal"
@@ -350,8 +365,8 @@
         </div>
         <div class="move-actions">
           <n-button @click="showMoveModal = false">取消</n-button>
-          <n-button 
-            type="primary" 
+          <n-button
+            type="primary"
             :disabled="!selectedMoveGroup"
             @click="confirmMoveFile"
           >
@@ -360,7 +375,7 @@
         </div>
       </div>
     </n-modal>
-    
+
     <!-- 图片预览弹窗 -->
     <n-modal
       v-model:show="showPreviewModal"
@@ -376,7 +391,7 @@
 </template>
 
 <script setup>
-import { ref, h, computed, watch, onMounted } from 'vue'
+import { ref, h, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { NTag, NImage, NButton, NInput, NModal, NDropdown, NSelect, NDivider } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { request, getFileUrl } from '@/utils'
@@ -400,6 +415,19 @@ const currentMoveFile = ref(null)
 
 // 文件分组数据
 const fileGroups = ref([])
+
+// 存储配置数据
+const storageConfigs = ref([])
+const selectedStorageConfigId = ref(null)
+let thumbnailLoadVersion = 0
+
+// 存储配置选项（用于上传选择）
+const storageConfigOptions = computed(() => {
+  return storageConfigs.value.map(c => ({
+    label: `${c.configName}${c.isDefault ? ' (默认)' : ''}`,
+    value: c.id
+  }))
+})
 
 // 统计数据
 const totalFiles = ref(0)
@@ -449,7 +477,7 @@ const listParams = computed(() => {
     // 如果选择了自定义分组，使用 groupId 过滤（保持字符串类型避免精度丢失）
     return { groupId: String(selectedGroup.value) }
   }
-  
+
   // 全部文件，返回空对象
   return {}
 })
@@ -472,9 +500,9 @@ watch(showPreviewModal, (newVal) => {
 // 监听分组变化，刷新列表
 watch(selectedGroup, (newVal, oldVal) => {
   console.log('分组变化:', oldVal, '->', newVal, 'listParams:', listParams.value)
-  
+
   if (newVal === oldVal) return
-  
+
   if (viewMode.value === 'grid') {
     refreshFileGrid()
   } else {
@@ -488,8 +516,16 @@ watch(selectedGroup, (newVal, oldVal) => {
 
 // 初始化数据
 onMounted(async () => {
-  await fetchStatistics()
-  await fetchFileGroups()
+  await Promise.all([
+    fetchStatistics(),
+    fetchFileGroups(),
+    fetchStorageConfigs()
+  ])
+})
+
+// 清理 blob URLs 防止内存泄漏
+onBeforeUnmount(() => {
+  cleanupBlobUrls()
 })
 
 // 获取统计信息
@@ -545,11 +581,15 @@ const uploadHeaders = computed(() => {
 const uploadData = computed(() => {
   // 如果选择了自定义分组，上传时关联到该分组（保持字符串类型避免精度丢失）
   const groupId = isValidGroupId(selectedGroup.value) ? String(selectedGroup.value) : null
-  
+
+  // 根据选中的存储配置获取 storageType
+  const config = storageConfigs.value.find(c => c.id === selectedStorageConfigId.value)
+  const storageType = config ? config.storageType : 'local'
+
   return {
     businessType: 'common',
     businessId: '',
-    storageType: 'local',
+    storageType,
     groupId: groupId || ''
   }
 })
@@ -557,6 +597,7 @@ const uploadData = computed(() => {
 // 存储类型选项
 const storageTypeOptions = [
   { label: '本地存储', value: 'local' },
+  { label: 'RustFS存储', value: 'rustfs' },
   { label: 'MinIO', value: 'minio' },
   { label: '阿里云OSS', value: 'aliyun' },
   { label: '腾讯云COS', value: 'tencent' },
@@ -655,6 +696,7 @@ const tableColumns = [
     render: (row) => {
       const typeMap = {
         'local': { text: '本地存储', type: 'default' },
+        'rustfs': { text: 'RustFS', type: 'success' },
         'minio': { text: 'MinIO', type: 'info' },
         'aliyun': { text: '阿里云', type: 'warning' },
         'tencent': { text: '腾讯云', type: 'success' },
@@ -794,7 +836,7 @@ function formatFileSize(bytes) {
 function selectGroup(groupId) {
   // 确保 groupId 是字符串类型，避免数字比较问题
   selectedGroup.value = String(groupId)
-  
+
   // 如果是网格视图，需要重新获取数据
   if (viewMode.value === 'grid') {
     refreshFileGrid()
@@ -811,16 +853,17 @@ function switchToGridView() {
 // 刷新文件网格数据
 async function refreshFileGrid() {
   try {
-    // 构建查询参数
+    // 清理旧的 blob URLs
+    cleanupBlobUrls()
+
     const params = {
       page: 1,
       size: 50,
       ...listParams.value
     }
-    
-    // 调用API获取文件列表
+
     const response = await request.get('/system/file/metadata/page', params)
-    
+
     if (response.code === 200) {
       const records = response.data?.records || []
       fileList.value = records.map(item => ({
@@ -830,14 +873,17 @@ async function refreshFileGrid() {
         fileSize: item.fileSize,
         extension: item.extension ? '.' + item.extension : '',
         mimeType: item.mimeType,
-        thumbnailUrl: item.thumbnailUrl,
-        accessUrl: item.accessUrl,
+        thumbnailUrl: '',
+        accessUrl: getFileUrl(item.fileId),
         uploadTime: item.uploadTime,
         storageType: item.storageType,
         businessType: item.businessType,
         groupId: item.groupId,
         downloadCount: item.downloadCount
       }))
+
+      // 异步加载图片缩略图（带认证）
+      nextTick(() => loadImageThumbnails())
     } else {
       throw new Error(response.msg || '获取文件列表失败')
     }
@@ -848,17 +894,94 @@ async function refreshFileGrid() {
   }
 }
 
+// 获取启用的存储配置列表
+async function fetchStorageConfigs() {
+  try {
+    const response = await request.get('/system/storage/config/page', {
+      pageNum: 1,
+      pageSize: 100,
+      enabled: 1
+    })
+    if (response.code === 200) {
+      storageConfigs.value = (response.data?.records || []).map(c => ({
+        id: c.id,
+        configName: c.configName,
+        storageType: c.storageType,
+        isDefault: c.isDefault
+      }))
+      // 默认选中默认配置
+      const defaultConfig = storageConfigs.value.find(c => c.isDefault)
+      if (defaultConfig) {
+        selectedStorageConfigId.value = defaultConfig.id
+      } else if (storageConfigs.value.length > 0) {
+        selectedStorageConfigId.value = storageConfigs.value[0].id
+      }
+    }
+  } catch (error) {
+    console.error('获取存储配置失败:', error)
+  }
+}
+
+// 异步加载图片缩略图（使用 fetch + blob URL 携带认证信息）
+async function loadImageThumbnails() {
+  const version = ++thumbnailLoadVersion
+  const token = authStore.accessToken
+
+  // 收集需要加载缩略图的图片文件索引
+  const imageIndexes = []
+  for (let i = 0; i < fileList.value.length; i++) {
+    const file = fileList.value[i]
+    if (file.mimeType && file.mimeType.startsWith('image/')) {
+      imageIndexes.push(i)
+    }
+  }
+
+  // 分批加载，每批 6 个并发
+  const batchSize = 6
+  for (let b = 0; b < imageIndexes.length; b += batchSize) {
+    if (thumbnailLoadVersion !== version) return
+
+    const batch = imageIndexes.slice(b, b + batchSize)
+    await Promise.allSettled(batch.map(async (idx) => {
+      if (thumbnailLoadVersion !== version) return
+      try {
+        const file = fileList.value[idx]
+        if (!file) return
+        const url = getFileUrl(file.fileId)
+        const res = await fetch(url, {
+          headers: { Authorization: token ? `Bearer ${token}` : '' }
+        })
+        if (res.ok && thumbnailLoadVersion === version) {
+          const blob = await res.blob()
+          fileList.value[idx].thumbnailUrl = URL.createObjectURL(blob)
+        }
+      } catch (e) {
+        // 静默处理单个缩略图加载失败
+      }
+    }))
+  }
+}
+
+// 清理所有 blob URLs
+function cleanupBlobUrls() {
+  fileList.value.forEach(file => {
+    if (file.thumbnailUrl && file.thumbnailUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(file.thumbnailUrl)
+    }
+  })
+}
+
 // 添加分组
 async function addGroup() {
   if (!newGroupName.value.trim()) return
-  
+
   try {
     const newGroup = {
       groupName: newGroupName.value.trim(),
       groupType: newGroupType.value,
       groupCode: 'group_' + Date.now()
     }
-    
+
     const response = await request.post('/system/file/group', newGroup)
     if (response.code === 200) {
       window.$message.success('分组添加成功')
@@ -967,17 +1090,17 @@ function handleMoveFile(file) {
 // 确认移动文件
 async function confirmMoveFile() {
   if (!selectedMoveGroup.value || !currentMoveFile.value) return
-  
+
   try {
     const response = await request.put('/system/file/metadata', {
       id: currentMoveFile.value.id,
       groupId: selectedMoveGroup.value
     })
-    
+
     if (response.code === 200) {
       window.$message.success('文件移动成功')
       showMoveModal.value = false
-      
+
       // 刷新数据
       if (viewMode.value === 'grid') {
         await refreshFileGrid()
@@ -1001,14 +1124,14 @@ function handleUploadFinish({ file, event }) {
     const response = JSON.parse(event.target.response)
     if (response.code === 200) {
       window.$message.success(`文件 "${file.name}" 上传成功`)
-      
+
       // 刷新列表
       if (viewMode.value === 'grid') {
         refreshFileGrid()
       } else {
         crudRef.value?.refresh()
       }
-      
+
       // 刷新统计
       fetchStatistics()
       fetchFileGroups()
@@ -1030,18 +1153,18 @@ async function handlePreview(row) {
   try {
     const token = authStore.accessToken
     const url = getFileUrl(row.fileId)
-    
+
     // 使用 fetch 获取图片并转换为 blob URL（带 token）
     const response = await fetch(url, {
       headers: {
         Authorization: token ? `Bearer ${token}` : ''
       }
     })
-    
+
     if (!response.ok) {
       throw new Error('图片加载失败')
     }
-    
+
     const blob = await response.blob()
     const blobUrl = URL.createObjectURL(blob)
     previewUrl.value = blobUrl
@@ -1057,22 +1180,22 @@ async function handleDownload(row) {
   try {
     const token = authStore.accessToken
     const url = getFileUrl(row.fileId)
-    
+
     // 使用 fetch 下载文件（带 token）
-    loadingMessage = window.$message.loading('正在下载...', { duration: 0 })
+    //loadingMessage = window.$message.loading('正在下载...', { duration: 0 })
     const response = await fetch(url, {
       headers: {
         Authorization: token ? `Bearer ${token}` : ''
       }
     })
-    
+
     if (!response.ok) {
       throw new Error('下载失败')
     }
-    
+
     const blob = await response.blob()
     const blobUrl = URL.createObjectURL(blob)
-    
+
     // 创建下载链接
     const link = document.createElement('a')
     link.href = blobUrl
@@ -1080,10 +1203,10 @@ async function handleDownload(row) {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    
+
     // 释放 blob URL
     setTimeout(() => URL.revokeObjectURL(blobUrl), 100)
-    
+
     window.$message.success('下载成功')
   } catch (error) {
     window.$message.error('下载失败：' + (error.message || '未知错误'))
@@ -1130,14 +1253,14 @@ function handleDelete(row) {
         const res = await request.delete(`/system/file/metadata/${row.id}`)
         if (res.code === 200) {
           window.$message.success('删除成功')
-          
+
           // 刷新列表
           if (viewMode.value === 'grid') {
             await refreshFileGrid()
           } else {
             crudRef.value?.refresh()
           }
-          
+
           // 刷新统计
           await fetchStatistics()
           await fetchFileGroups()
@@ -1151,12 +1274,18 @@ function handleDelete(row) {
 </script>
 
 <style scoped>
+/* ═══════════════════════════════════════
+ * 文件管理页面 - SnowAdmin / Arco Design 风格
+ * 全部使用 design-tokens.css 变量
+ * ═══════════════════════════════════════ */
+
+/* --- 页面布局 --- */
 .file-management-page {
   height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-color: #f5f7fa;
+  background: var(--bg-page);
 }
 
 .file-management-container {
@@ -1165,15 +1294,15 @@ function handleDelete(row) {
   overflow: hidden;
 }
 
-/* 左侧分组导航 */
+/* --- 左侧分组导航 --- */
 .sidebar {
-  width: 260px;
-  background: #fff;
-  border-right: 1px solid #e4e7ed;
+  width: 220px;
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
 }
 
 .sidebar-header {
@@ -1181,99 +1310,117 @@ function handleDelete(row) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #eee;
-  background: #fafafa;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .sidebar-title {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
+  font-size: 15px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
 }
 
 .group-list {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 0;
+  padding: 8px;
 }
+
+.group-list::-webkit-scrollbar { width: 4px; }
+.group-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
 
 .group-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
+  padding: 8px 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  border-radius: 4px;
-  margin: 0 8px;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  border-radius: var(--radius-md);
+  margin-bottom: 2px;
 }
 
 .group-item:hover {
-  background-color: #f0f9ff;
-  color: #409eff;
+  background: var(--bg-hover);
 }
 
 .group-item.active {
-  background-color: #ecf5ff;
-  color: #409eff;
-  border-left: 3px solid #409eff;
+  background: var(--primary-50);
+  color: var(--primary-500);
 }
 
 .group-divider {
   height: 1px;
-  background: #e4e7ed;
-  margin: 8px 16px;
+  background: var(--border-light);
+  margin: 8px 12px;
 }
 
 .group-info {
   display: flex;
   align-items: center;
   flex: 1;
+  min-width: 0;
+  gap: 8px;
 }
 
 .group-icon {
-  margin-right: 8px;
   font-size: 16px;
   width: 16px;
   height: 16px;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.group-item.active .group-icon {
+  color: var(--primary-500);
 }
 
 .group-name {
   font-size: 14px;
+  font-weight: var(--font-weight-normal);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.file-count {
-  font-size: 12px;
-  color: #909399;
-  background-color: #f4f4f5;
-  padding: 2px 6px;
-  border-radius: 10px;
-  min-width: 20px;
-  text-align: center;
+.group-item.active .group-name {
+  font-weight: var(--font-weight-medium);
 }
 
-/* 右侧内容区域 */
+.file-count {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  min-width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.group-item.active .file-count {
+  background: var(--primary-100);
+  color: var(--primary-600);
+}
+
+/* --- 右侧内容区域 --- */
 .main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #fff;
+  min-width: 0;
 }
 
+/* --- 工具栏 --- */
 .toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid #ebeef5;
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-  z-index: 1;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-primary);
+  flex-shrink: 0;
 }
 
 .toolbar-left {
@@ -1283,8 +1430,8 @@ function handleDelete(row) {
 
 .current-group-title {
   font-size: 14px;
-  font-weight: 500;
-  color: #606266;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
 }
 
 .upload-section {
@@ -1292,32 +1439,75 @@ function handleDelete(row) {
   gap: 8px;
 }
 
-/* 文件内容区域 */
+/* --- 文件内容区域 --- */
 .file-content {
   flex: 1;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  background: var(--bg-page);
 }
 
+/* --- 列表视图 --- */
 .file-table {
   flex: 1;
   overflow: hidden;
+  padding: 16px;
 }
 
 .file-table :deep(.ai-crud-page) {
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: var(--bg-primary);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
 }
 
-/* 网格视图 */
+:deep(.n-data-table) { font-size: 14px; }
+:deep(.n-data-table-th) { font-weight: var(--font-weight-semibold); color: var(--text-secondary); background: var(--bg-secondary); }
+:deep(.n-data-table-td) { padding: 10px 16px; }
+:deep(.n-data-table tr:hover td) { background: var(--bg-hover); }
+
+.file-name-text { color: var(--text-primary); font-weight: var(--font-weight-medium); }
+.file-size-text { color: var(--text-secondary); font-family: var(--font-family-mono); font-size: 13px; }
+.file-ext-tag { font-weight: var(--font-weight-semibold); letter-spacing: 0.5px; }
+.download-count-text { color: var(--primary-500); font-weight: var(--font-weight-medium); font-family: var(--font-family-mono); }
+.upload-time-text { color: var(--text-tertiary); }
+
+.file-icon-preview {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.file-icon-preview.image { background: var(--primary-50); color: var(--primary-500); }
+.file-icon-preview.document { background: var(--bg-tertiary); color: var(--primary-400); }
+
+.table-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.table-action-buttons :deep(.n-button) {
+  border-radius: var(--radius-md);
+}
+
+/* --- 网格视图 --- */
 .file-grid {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   padding: 16px;
+  background: var(--bg-page);
 }
 
 .grid-header {
@@ -1325,73 +1515,86 @@ function handleDelete(row) {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #ebeef5;
+  padding: 10px 16px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 .grid-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
+  font-size: 14px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
 }
 
 .grid-count {
-  font-size: 14px;
-  color: #909399;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  background: var(--bg-secondary);
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
 }
 
+/* --- 空状态 --- */
 .empty-state {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #909399;
-  padding: 40px;
+  color: var(--text-tertiary);
+  padding: 48px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-card);
+  border: 1px dashed var(--border-default);
 }
 
 .empty-icon {
   font-size: 64px;
   margin-bottom: 16px;
-  opacity: 0.5;
+  color: var(--text-disabled);
 }
 
 .empty-text {
   font-size: 14px;
   margin-bottom: 16px;
+  color: var(--text-tertiary);
 }
 
+/* --- 文件卡片网格 --- */
 .file-grid-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
   overflow-y: auto;
   flex: 1;
-  padding: 8px;
 }
 
+.file-grid-container::-webkit-scrollbar { width: 4px; }
+.file-grid-container::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+/* --- 文件卡片 (SnowAdmin 风格) --- */
 .file-card {
-  background: #fff;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border-light);
   overflow: hidden;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+  position: relative;
 }
 
 .file-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  border-color: #c6e2ff;
+  box-shadow: var(--shadow-card-hover);
+  border-color: var(--border-default);
 }
 
 .file-preview {
   position: relative;
-  height: 140px;
+  height: 148px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   overflow: hidden;
   cursor: pointer;
 }
@@ -1400,6 +1603,11 @@ function handleDelete(row) {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform var(--transition-slow);
+}
+
+.file-card:hover .file-preview img {
+  transform: scale(1.03);
 }
 
 .file-icon-container {
@@ -1409,15 +1617,50 @@ function handleDelete(row) {
   align-items: center;
   justify-content: center;
   font-size: 48px;
-  opacity: 0.8;
+  color: var(--text-disabled);
+  transition: color var(--transition-base);
+}
+
+.file-card:hover .file-icon-container {
+  color: var(--text-tertiary);
+}
+
+/* --- 缩略图加载占位符 --- */
+.thumbnail-loading {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  background: var(--bg-secondary);
+}
+
+.thumbnail-loading-icon {
+  font-size: 36px;
+  color: var(--text-disabled);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.thumbnail-loading-text {
+  font-size: 12px;
+  color: var(--text-disabled);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
 }
 
 .file-actions {
   position: absolute;
   top: 8px;
   right: 8px;
+  z-index: 10;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--transition-fast);
 }
 
 .file-card:hover .file-actions {
@@ -1426,11 +1669,13 @@ function handleDelete(row) {
 
 .file-info {
   padding: 12px;
+  border-top: 1px solid var(--border-light);
 }
 
 .file-name {
-  font-size: 14px;
-  color: #303133;
+  font-size: 13px;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
   margin-bottom: 6px;
   white-space: nowrap;
   overflow: hidden;
@@ -1440,19 +1685,15 @@ function handleDelete(row) {
 .file-meta {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 12px;
-  color: #909399;
+  color: var(--text-tertiary);
 }
 
-.file-size {
-  flex: 1;
-}
+.file-size { color: var(--text-tertiary); }
+.file-time { color: var(--text-disabled); }
 
-.file-time {
-  text-align: right;
-}
-
-/* 分组管理弹窗 */
+/* --- 分组管理弹窗 --- */
 .group-modal-content {
   display: flex;
   flex-direction: column;
@@ -1463,27 +1704,34 @@ function handleDelete(row) {
   display: flex;
   gap: 8px;
   align-items: center;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
 }
 
 .existing-groups {
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
   padding: 8px;
 }
+
+.existing-groups::-webkit-scrollbar { width: 4px; }
+.existing-groups::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
 
 .existing-group-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 8px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-light);
+  transition: background-color var(--transition-fast);
+  border-radius: var(--radius-md);
 }
 
-.existing-group-item:last-child {
-  border-bottom: none;
-}
+.existing-group-item:hover { background: var(--bg-hover); }
+.existing-group-item:last-child { border-bottom: none; }
 
 .group-info-row {
   display: flex;
@@ -1492,25 +1740,11 @@ function handleDelete(row) {
   gap: 8px;
 }
 
-.group-type-icon {
-  font-size: 16px;
-  width: 16px;
-  height: 16px;
-}
+.group-type-icon { font-size: 16px; width: 16px; height: 16px; color: var(--text-tertiary); }
+.group-count { font-size: 12px; color: var(--text-tertiary); }
+.no-groups { text-align: center; padding: 24px; color: var(--text-tertiary); font-size: 14px; }
 
-.group-count {
-  font-size: 12px;
-  color: #909399;
-}
-
-.no-groups {
-  text-align: center;
-  padding: 20px;
-  color: #909399;
-  font-size: 14px;
-}
-
-/* 移动文件弹窗 */
+/* --- 移动文件弹窗 --- */
 .move-modal-content {
   display: flex;
   flex-direction: column;
@@ -1519,38 +1753,40 @@ function handleDelete(row) {
 
 .move-hint {
   font-size: 14px;
-  color: #606266;
+  color: var(--text-secondary);
   margin: 0;
+  padding: 10px 12px;
+  background: var(--primary-50);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--primary-500);
 }
 
 .move-group-list {
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
 }
+
+.move-group-list::-webkit-scrollbar { width: 4px; }
+.move-group-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
 
 .move-group-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 10px 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  border-bottom: 1px solid #f0f0f0;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  border-bottom: 1px solid var(--border-light);
 }
 
-.move-group-item:last-child {
-  border-bottom: none;
-}
-
-.move-group-item:hover {
-  background-color: #f5f7fa;
-}
+.move-group-item:last-child { border-bottom: none; }
+.move-group-item:hover { background: var(--bg-hover); }
 
 .move-group-item.active {
-  background-color: #ecf5ff;
-  color: #409eff;
+  background: var(--primary-50);
+  color: var(--primary-500);
 }
 
 .move-actions {
@@ -1558,31 +1794,26 @@ function handleDelete(row) {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
 }
 
-/* 预览弹窗 */
+/* --- 预览弹窗 --- */
 .preview-content {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 400px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 16px;
 }
 
-/* 响应式设计 */
+/* --- 响应式 --- */
 @media (max-width: 768px) {
-  .file-management-container {
-    flex-direction: column;
-  }
-  
-  .sidebar {
-    width: 100%;
-    height: 200px;
-    border-right: none;
-    border-bottom: 1px solid #e4e7ed;
-  }
-  
-  .file-grid-container {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  }
+  .file-management-container { flex-direction: column; }
+  .sidebar { width: 100%; height: 180px; border-right: none; border-bottom: 1px solid var(--border-light); }
+  .file-grid-container { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .file-preview { height: 110px; }
 }
 </style>

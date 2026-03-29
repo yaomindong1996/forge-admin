@@ -1,5 +1,6 @@
 package com.mdframe.forge.starter.file.controller;
 
+import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.file.core.FileManager;
 import com.mdframe.forge.starter.file.model.FileMetadata;
@@ -21,6 +22,7 @@ import java.util.List;
 @RequestMapping("/api/file")
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "forge.file.enable-generic-api", havingValue = "true", matchIfMissing = true)
+@ApiPermissionIgnore
 public class FileController {
     
     private final FileManager fileManager;
@@ -35,7 +37,7 @@ public class FileController {
             @RequestParam(value = "businessId", required = false) String businessId,
             @RequestParam(value = "storageType", required = false) String storageType) {
         
-        FileMetadata metadata = storageType != null 
+        FileMetadata metadata = storageType != null
             ? fileManager.upload(file, businessType, businessId, storageType)
             : fileManager.upload(file, businessType, businessId);
         

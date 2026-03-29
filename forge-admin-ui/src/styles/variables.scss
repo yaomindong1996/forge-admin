@@ -1,17 +1,17 @@
 // SCSS Variables
 
 // 主色调
-$primary-color: #d12723FF;
-$success-color: #52c41a;
-$warning-color: #faad14;
-$error-color: #ff4d4f;
+$primary-color: var(--primary-600);
+$success-color: var(--success-600);
+$warning-color: var(--warning-600);
+$error-color: var(--error-600);
 
 // 中性色
-$heading-color: #262626;
-$text-color: #595959;
-$text-color-secondary: #8c8c8c;
-$border-color: #d9d9d9;
-$background-color: #f5f5f5;
+$heading-color: var(--text-primary);
+$text-color: var(--text-secondary);
+$text-color-secondary: var(--text-tertiary);
+$border-color: var(--border-default);
+$background-color: var(--bg-secondary);
 
 // 字体大小
 $font-size-base: var(--font-size-base);
@@ -19,11 +19,16 @@ $font-size-lg: var(--font-size-lg);
 $font-size-sm: var(--font-size-sm);
 
 // 圆角
-$border-radius-base: 4px;
-$border-radius-sm: 2px;
+$border-radius-base: var(--radius-md);
+$border-radius-sm: var(--radius-sm);
+$border-radius-lg: var(--radius-lg);
+$border-radius-xl: var(--radius-xl);
 
 // 阴影
-$box-shadow-base: 0 2px 8px rgba(0, 0, 0, 0.15);
+$box-shadow-base: var(--shadow-md);
+$box-shadow-card: var(--shadow-card);
+$box-shadow-card-hover: var(--shadow-card-hover);
+$box-shadow-button: var(--shadow-button);
 
 // 间距
 $spacing-xs: 8px;

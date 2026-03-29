@@ -26,72 +26,62 @@ const systemName = computed(() => {
 
 <style scoped>
 .modern-side-header {
-  padding: 20px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  height: 52px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+  background: var(--bg-primary);
 }
 
 .logo-link {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   text-decoration: none;
-  transition: all 0.3s ease;
-}
-
-.logo-link:hover .logo-wrapper {
-  transform: scale(1.05);
+  overflow: hidden;
 }
 
 .logo-wrapper {
-  width: 40px;
-  height: 40px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-  transition: transform 0.3s ease;
+  border-radius: var(--radius-md);
   flex-shrink: 0;
+  background: var(--primary-500);
+  box-shadow: 0 2px 6px rgba(22, 93, 255, 0.25);
 }
 
 .logo-wrapper :deep(img) {
-  width: 28px;
-  height: 28px;
+  width: 16px;
+  height: 16px;
   object-fit: contain;
+  filter: brightness(10);
 }
 
 .system-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1E293B;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0;
 }
 
 /* 过渡动画 */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
-  transition: all 0.3s ease;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
 }
 
-.fade-slide-enter-from {
-  opacity: 0;
-  transform: translateX(-10px);
-}
-
+.fade-slide-enter-from,
 .fade-slide-leave-to {
   opacity: 0;
-  transform: translateX(-10px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .logo-wrapper,
-  .fade-slide-enter-active,
-  .fade-slide-leave-active {
-    transition: none;
-  }
+  transform: translateX(-6px);
 }
 </style>

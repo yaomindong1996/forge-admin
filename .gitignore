@@ -67,3 +67,26 @@ selenium-debug.log
 
 package-lock.json
 yarn.lock
+
+######################################################################
+# 本地配置文件（避免泄露敏感信息）
+######################################################################
+# 后端配置
+**/application-dev.yml
+**/application-local.yml
+**/application-dev.properties
+**/application-local.properties
+**/config/application-*.yml
+**/config/application-*.properties
+
+# 前端配置
+**/.env.local
+**/.env.development.local
+**/vite.config.local.js
+
+# 其他敏感配置
+**/application-*.yml.*
+**/*config*.local.*
+*.env
+.env
+*.secrets

@@ -8,9 +8,9 @@ spring:
         master:
           type: ${spring.datasource.type}
           driverClassName: com.mysql.cj.jdbc.Driver
-          url: jdbc:mysql://120.48.96.178:3306/forge_admin_new?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true
-          username: rdsroot
-          password: '!Ymd199606'
+          url: jdbc:mysql://localhost:3306/forge_flow?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true
+          username: root
+          password: 'your_password'
       hikari:
         maxPoolSize: 20
         minIdle: 10
@@ -25,7 +25,7 @@ spring.data:
     host: localhost
     port: 6379
     database: 0
-    password: forge123456
+    password: 'your_redis_password'
     timeout: 10s
     ssl.enabled: false
     redisson:
@@ -33,7 +33,7 @@ spring.data:
         singleServerConfig:
           address: "redis://localhost:6379"
           database: 0
-          password: forge123456
+          password: 'your_redis_password'
           connectTimeout: 10000
           timeout: 3000
           retryAttempts: 3

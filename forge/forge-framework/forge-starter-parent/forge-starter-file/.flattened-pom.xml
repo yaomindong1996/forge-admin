@@ -8,26 +8,23 @@
     <version>1.0.0</version>
   </parent>
   <groupId>com.mdframe.forge</groupId>
-  <artifactId>forge-starter-orm</artifactId>
+  <artifactId>forge-starter-file</artifactId>
   <version>1.0.0</version>
-  <name>forge-starter-orm</name>
-  <description>forge-starter-orm</description>
+  <name>forge-starter-file</name>
+  <description>forge-starter-file</description>
   <dependencies>
     <dependency>
       <groupId>com.mdframe.forge</groupId>
       <artifactId>forge-starter-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.baomidou</groupId>
-      <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.baomidou</groupId>
-      <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>p6spy</groupId>
-      <artifactId>p6spy</artifactId>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+      <version>2.25.27</version>
     </dependency>
   </dependencies>
 </project>

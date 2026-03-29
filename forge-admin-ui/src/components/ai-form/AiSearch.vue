@@ -248,7 +248,8 @@ defineExpose({
 
 <style scoped>
 .ai-search-box {
-  padding:14px 14px 0 14px;
-  background-color: #ffffff;
+  padding: 16px 16px 4px 16px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-light);
 }
 </style>

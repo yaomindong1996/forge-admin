@@ -4,18 +4,18 @@
  */
 
 :root {
-  --base-primary-color:#d12723FF;
+  --base-primary-color: var(--primary-600);
   /* 字体大小配置 */
   --font-size-base: calc(14px * var(--font-scale, 1));
   --font-size-lg: calc(16px * var(--font-scale, 1));
   --font-size-sm: calc(12px * var(--font-scale, 1));
 
   /* Header 配置 */
-  --layout-header-bg-color: #d12723FF;
+  --layout-header-bg-color: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
   --layout-header-text-color: #FFFFFFFF;
   --layout-header-font-size: var(--font-size-base);
   --layout-header-height: 60px;
-  --layout-header-border-color: #FFFFFFFF;
+  --layout-header-border-color: rgba(255, 255, 255, 0.1);
 
   /* 顶部菜单配置 */
   --top-menu-text-color: #FFFFFFFF;
@@ -34,19 +34,20 @@
   --n-item-text-color-child-active-horizontal:#ffffff;
 
   /* 侧边菜单配置 */
-  --side-menu-bg-color: #ffffff;
-  --side-menu-text-color: #333333;
-  --side-menu-text-color-hover: #316cfa;
-  --side-menu-text-color-active: #316cfa;
-  --side-menu-bg-color-hover: #f5f5f5;
-  --side-menu-bg-color-active: #e8f0fe;
-  --side-menu-border-color: #e5e7eb;
+  --side-menu-bg-color: var(--bg-primary);
+  --side-menu-text-color: var(--text-secondary);
+  --side-menu-text-color-hover: var(--primary-600);
+  --side-menu-text-color-active: var(--primary-600);
+  --side-menu-bg-color-hover: var(--bg-hover);
+  --side-menu-bg-color-active: var(--primary-50);
+  --side-menu-border-color: var(--border-default);
   --side-menu-font-size: var(--font-size-base);
   --side-menu-font-weight: 400;
-  --side-menu-icon-color: #666666;
-  --side-menu-icon-color-active: #d12723FF;
-  --side-menu-collapsed-width: 64px;
-  --side-menu-width: 220px;
+  --side-menu-icon-color: var(--gray-500);
+  --side-menu-icon-color-active: var(--primary-600);
+  --side-menu-item-padding: 12px;
+  --side-menu-collapsed-width: 56px;
+  --side-menu-width: 200px;
 }
 
 /* 应用 Header 样式 */
@@ -56,6 +57,16 @@
   /*font-size: var(--layout-header-font-size) !important;*/
   height: var(--layout-header-height) !important;
   border-color: var(--layout-header-border-color) !important;
+}
+/* normal layout 浅色 header 覆盖 - 直接将 layout-header 改为白色 */
+.header-glass .layout-header,
+.header-glass.layout-header {
+  background: var(--bg-primary) !important;
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border-color: transparent !important;
+  height: 50px !important;
+  box-shadow: none !important;
 }
 .side-header{
   background-color: var(--layout-header-bg-color) !important;
@@ -163,7 +174,16 @@
   width: var(--side-menu-collapsed-width) !important;
 }
 .n-button{
-  border-radius:0 !important;
+  border-radius: var(--radius-button) !important;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast) !important;
+}
+
+.n-button:hover:not(:disabled) {
+  /* 移除浮动效果，更居中 */
+}
+
+.n-button:active:not(:disabled) {
+  transform: scale(0.98) !important;
 }
 .n-button--small-type{
   /*font-size: 13px !important;*/
@@ -184,7 +204,193 @@
   background: var(--top-menu-bg-color-active) !important;
 }
 .n-dialog .n-dialog__icon{
-  color: var(--base-primary-color) !important;
+  color: var(--primary-500) !important;
+}
+
+/* ═══════════════════════════════════
+ * 按钮尺寸规范 - SnowAdmin 风格
+ * ═══════════════════════════════════ */
+
+/* 默认按钮大小 */
+.n-button {
+  border-radius: var(--radius-button) !important;
+  font-weight: var(--font-weight-medium);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast) !important;
+  height: 34px !important;
+  padding: 0 15px !important;
+  font-size: 14px !important;
+}
+
+.n-button:hover:not(:disabled) {
+  /* 移除上浮动画，使用 Arco 风格的颜色变化 */
+}
+
+.n-button:active:not(:disabled) {
+  transform: scale(0.98) !important;
+}
+
+/* text 类型按钮 */
+.n-button--text-type {
+  padding: 0 8px !important;
+  min-width: auto !important;
+  height: 28px !important;
+  font-size: 13px !important;
+  font-weight: var(--font-weight-normal) !important;
+  background: transparent !important;
+}
+
+.n-button--text-type:hover:not(:disabled) {
+  background: var(--bg-tertiary) !important;
+}
+
+/* primary 类型按钮 - 白色文字强制 */
+.n-button--primary-type {
+  background: var(--primary-gradient) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+.n-button--primary-type:hover {
+  background: var(--primary-gradient-hover) !important;
+  color: #fff !important;
+}
+
+.n-button--primary-type .n-button__content,
+.n-button--primary-type .n-button__icon {
+  color: #fff !important;
+}
+
+/* small 尺寸 */
+.n-button--small-type {
+  height: 28px !important;
+  padding: 0 11px !important;
+  font-size: 13px !important;
+}
+
+.n-button--small-type.n-button--text-type {
+  padding: 0 6px !important;
+  height: 24px !important;
+  font-size: 12px !important;
+}
+
+/* tiny 尺寸 */
+.n-button--tiny-type {
+  height: 22px !important;
+  padding: 0 7px !important;
+  font-size: 12px !important;
+}
+
+/* 暗色模式按钮 */
+.dark .n-button--text-type:hover:not(:disabled) {
+  background: var(--bg-tertiary) !important;
+}
+
+/* 对话框 */
+.n-dialog .n-modal-card {
+  border-radius: var(--radius-modal) !important;
+  overflow: hidden;
+}
+
+.n-dialog__card {
+  border-radius: var(--radius-modal) !important;
+}
+
+/* ═══════════════════════════════════════
+ * Naive UI 组件全局规范 - SnowAdmin 风格
+ * ═══════════════════════════════════════ */
+
+/* 表格 */
+.n-data-table .n-data-table-th {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  font-size: 13px;
+  background: var(--bg-secondary) !important;
+}
+
+.n-data-table .n-data-table-td {
+  border-color: var(--border-light);
+}
+
+.n-data-table .n-data-table-tr:hover .n-data-table-td {
+  background: var(--bg-secondary);
+}
+
+/* 表格工具栏按钮 */
+.ai-toolbar-action :deep(.n-button) {
+  height: 30px !important;
+  width: 30px !important;
+  padding: 0 !important;
+  font-size: 15px !important;
+  border-radius: var(--radius-md) !important;
+  min-width: 30px !important;
+}
+
+.ai-toolbar-action :deep(.n-button .n-icon) {
+  font-size: 16px !important;
+}
+
+.ai-toolbar-action :deep(.n-button:hover) {
+  background: var(--bg-hover) !important;
+}
+
+/* 模态框 */
+.n-modal {
+  border-radius: var(--radius-modal) !important;
+  box-shadow: var(--shadow-modal) !important;
+}
+
+/* 标签 */
+.n-tag {
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+/* 通知 */
+.n-notification {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+/* 消息 */
+.n-message {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+/* 工具提示 */
+.n-tooltip {
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+}
+
+/* 分页器 */
+.n-pagination-item {
+  border-radius: var(--radius-sm) !important;
+}
+
+.n-pagination-item--active {
+  background: var(--primary-500) !important;
+  border-color: var(--primary-500) !important;
+  color: #fff !important;
+}
+
+/* 暗色模式适配 */
+.dark .n-form-item .n-form-item-label {
+  color: var(--text-primary);
+}
+
+.dark .n-tabs .n-tabs-tab--active {
+  background: var(--primary-900);
+  color: var(--primary-100);
+}
+
+.dark .n-data-table .n-data-table-th {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.dark .n-data-table .n-data-table-tr:hover .n-data-table-td {
+  background: var(--bg-tertiary);
 }
 .n-button{
   font-size: calc(var(--n-font-size) * var(--font-scale, 1)) !important;
@@ -255,4 +461,103 @@
   .n-pagination .n-pagination-item__button {
     padding: 0 4px !important;
   }
+}
+
+/* ════════════════════════════════════
+ * 按钮增强 - 统一尺寸和样式
+ * ═════════════════════════════════════ */
+
+/* 基础按钮样式 */
+.n-button {
+  border-radius: var(--radius-button) !important;
+  transition: all var(--transition-base) !important;
+  font-weight: var(--font-weight-medium);
+  padding: 0 16px !important;
+  min-width: 36px !important;
+  height: 36px !important;
+  font-size: var(--font-size-sm) !important;
+}
+
+.n-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-button-hover) !important;
+}
+
+.n-button:active:not(:disabled) {
+  transform: translateY(0) !important;
+}
+
+/* text 类型按钮 */
+.n-button--text-type {
+  padding: 0 12px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  font-size: var(--font-size-sm) !important;
+  font-weight: var(--font-weight-medium) !important;
+}
+
+.n-button--text-type:hover:not(:disabled) {
+  background: var(--bg-tertiary) !important;
+  transform: scale(1.05);
+}
+
+/* primary 类型按钮 */
+.n-button--primary-type {
+  background: var(--primary-gradient) !important;
+  border: none !important;
+  color: #fff !important;
+}
+
+.n-button--primary-type:hover {
+  background: var(--primary-gradient-hover) !important;
+  color: #fff !important;
+}
+
+.n-button--primary-type .n-button__content,
+.n-button--primary-type .n-button__icon {
+  color: #fff !important;
+}
+
+/* small 尺寸按钮 */
+.n-button--small-type {
+  padding: 0 12px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  font-size: 13px !important;
+}
+
+.n-button--small-type.n-button--text-type {
+  padding: 0 10px !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  font-size: 13px !important;
+}
+
+/* tiny 尺寸按钮 */
+.n-button--tiny-type {
+  padding: 0 8px !important;
+  min-width: 24px !important;
+  height: 24px !important;
+  font-size: 12px !important;
+}
+
+/* 暗色模式按钮增强 */
+.dark .n-button--text-type:hover:not(:disabled) {
+  background: var(--bg-tertiary) !important;
+}
+
+/* 表格工具按钮增强 */
+.ai-toolbar-action :deep(.n-button) {
+  min-width: 36px !important;
+  height: 36px !important;
+  font-size: 16px !important;
+  padding: 0 8px !important;
+}
+
+.ai-toolbar-action :deep(.n-button .n-icon) {
+  font-size: 18px !important;
+}
+
+.ai-toolbar-action :deep(.n-button:hover) {
+  background: var(--bg-hover) !important;
 }

@@ -463,39 +463,56 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 0;
-  border-top: 1px solid #e5e5e5;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
+  min-height: 50px;
 }
 
 .ai-table-toolbar-left,
 .ai-table-toolbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .table-slot-wrapper {
-  color: #999;
+  color: var(--text-tertiary);
   font-style: italic;
+  font-size: var(--font-size-xs);
 }
 
-/* 分页器响应式样式 */
+/* 分页器样式 */
 :deep(.n-pagination) {
-  padding: 12px 0;
+  padding: 12px 16px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+  border-top: 1px solid var(--border-light);
+}
+
+/* 表格层 hover 效果增强 */
+:deep(.n-data-table-tr:hover .n-data-table-td) {
+  background: var(--bg-secondary) !important;
+}
+
+/* 头部单元格样式 */
+:deep(.n-data-table-th) {
+  background: var(--bg-secondary) !important;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 /* 小屏幕适配 */
 @media (max-width: 768px) {
   :deep(.n-pagination) {
     justify-content: center;
-    padding: 16px 0;
+    padding: 12px;
   }
 
-  /* 分页器项目缩小 */
   :deep(.n-pagination .n-pagination-item) {
     min-width: 32px;
     height: 32px;
@@ -506,12 +523,10 @@ defineExpose({
     padding: 0 6px;
   }
 
-  /* 每页显示数选择器 */
   :deep(.n-pagination-size-picker) {
     font-size: 13px;
   }
 
-  /* 快速跳转 */
   :deep(.n-pagination-quick-jumper) {
     font-size: 13px;
   }
@@ -519,7 +534,7 @@ defineExpose({
 
 @media (max-width: 576px) {
   :deep(.n-pagination) {
-    padding: 12px 0;
+    padding: 10px;
     gap: 4px;
   }
 
