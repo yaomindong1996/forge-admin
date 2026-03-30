@@ -1,7 +1,9 @@
+[![Gitee stars](https://gitee.com/ForgeLab/forge-admin/badge/star.svg?theme=gvp)](https://gitee.com/ForgeLab/forge-admin/stargazers)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://gitee.com/ForgeLab/forge-admin/blob/master/LICENSE)
+
+
 # Forge Admin
-
-Forge Admin 是一套基于 Spring Boot + Vue 3 构建的企业级中后台管理系统，采用前后端分离架构，提供完善的用户权限体系、租户管理、系统监控等企业级功能。
-
+🚀 基于 Vue3 + TypeScript 的开箱即用企业级中后台管理框架，帮助开发者快速搭建项目。
 ## 项目概述
 
 Forge Admin 是一个现代化的企业级 admin 系统，旨在为企业提供快速开发、业务扩展的中后台基础框架。系统采用微内核 + 插件化架构，核心功能以插件形式存在，便于按需引入和扩展。
@@ -269,6 +271,8 @@ pnpm install
 ```bash
 pnpm dev
 ```
+
+系统用户名: admin/123456
 
 3. 构建生产版本
 
