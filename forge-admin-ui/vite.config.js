@@ -5,6 +5,7 @@ import Unocss from 'unocss/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
+import VueRouter from 'unplugin-vue-router/vite'
 import { defineConfig, loadEnv } from 'vite'
 import removeNoMatch from 'vite-plugin-router-warn'
 import VueDevTools from 'vite-plugin-vue-devtools'
@@ -17,6 +18,18 @@ export default defineConfig(({ mode }) => {
   return {
     base: VITE_PUBLIC_PATH || '/',
     plugins: [
+      // unplugin-vue-router 必须在 Vue 之前
+      VueRouter({
+        routesFolder: [
+          {
+            src: 'src/views',
+            path: '',
+            // 排除不需要生成路由的文件
+            exclude: ['**/components/**', '**/api/**'],
+          },
+        ],
+        dts: false,
+      }),
       Vue(),
       VueJsx(),
       VueDevTools(),
@@ -49,7 +62,7 @@ export default defineConfig(({ mode }) => {
     css: {
       preprocessorOptions: {
         scss: {
-          additionalData: `@import "@/styles/variables.scss";`
+          additionalData: `@use "@/styles/variables.scss";`
         }
       }
     },
