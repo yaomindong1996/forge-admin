@@ -19,7 +19,7 @@ export const cryptoConfig = {
   // 需要加密的路径（支持通配符）
   includePaths: [],
   // 排除加密的路径
-  excludePaths: ['/auth/captcha',  '/crypto/public-key', '/crypto/exchange']
+  excludePaths: ['/auth/captcha', '/auth/login', '/crypto/public-key', '/crypto/exchange']
 }
 
 /**
