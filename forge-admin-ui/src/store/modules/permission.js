@@ -31,12 +31,12 @@ export const usePermissionStore = defineStore('permission', {
       this.generateHiddenMenuRoutes(menuData)
       // 设置菜单数据加载完成状态
       this.menuDataLoaded = true
-      
+
       // 检查是否存在window.$homePath指定的路由
       if (menuData && menuData.length > 0) {
         const homePath = window.$homePath
         let homePathExists = false
-        
+
         // 递归查找所有菜单项，检查是否存在指定的homePath
         const findHomePath = (menus) => {
           for (const menu of menus) {
@@ -52,9 +52,9 @@ export const usePermissionStore = defineStore('permission', {
           }
           return false
         }
-        
+
         findHomePath(menuData)
-        
+
         // 如果没有找到指定的homePath，则使用第一个菜单项的路径
         if (!homePathExists) {
           const getFirstLeafPath = (menus) => {
@@ -68,8 +68,8 @@ export const usePermissionStore = defineStore('permission', {
             }
             return '/'
           }
-          
-          window.$homePath = getFirstLeafPath(menuData)
+
+          window.$homePath = import.meta.env.VITE_HOME_PATH || getFirstLeafPath(menuData)
         }
       }
     },

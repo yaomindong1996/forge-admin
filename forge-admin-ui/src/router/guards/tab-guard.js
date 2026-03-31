@@ -6,6 +6,9 @@ export const EXCLUDE_TAB = ['/404', '/403', '/login']
  * 从扁平菜单数组中查找路径对应的中文名称
  */
 function findTitleFromAllMenus(allMenus, targetPath) {
+  if(targetPath === window.$homePath){
+    return  "首页"
+  }
   if (!allMenus || !Array.isArray(allMenus)) return null
   const found = allMenus.find(menu => menu.path === targetPath)
   return found?.label || found?.name || null
