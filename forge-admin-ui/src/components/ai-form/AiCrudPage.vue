@@ -522,16 +522,34 @@ async function callHook(hookName, params, success) {
  * @param {String} key - API 配置键名
  * @param {String} defaultApi - 默认 API
  * @param {String} defaultMethod - 默认请求方法
+ * @param {Object} urlParams - URL 参数，用于替换 :id 等占位符
  * @returns {Object} { method, url }
  */
-function parseApiConfig(key, defaultApi, defaultMethod = 'get') {
+function parseApiConfig(key, defaultApi, defaultMethod = 'get', urlParams = {}) {
   const apiConfigValue = props.apiConfig[key]
 
   if (apiConfigValue) {
     const [method, url] = apiConfigValue.split('@')
     // 支持 postEncrypt 方法
     const finalMethod = method === 'postEncrypt' ? method : method.toLowerCase()
-    return { method: finalMethod, url }
+    // 替换 URL 中的占位符，如 :id, :dictId 等
+    let finalUrl = url
+    let hasPlaceholder = false
+    Object.keys(urlParams).forEach(paramKey => {
+      if (finalUrl.includes(`:${paramKey}`)) {
+        hasPlaceholder = true
+        finalUrl = finalUrl.replace(`:${paramKey}`, urlParams[paramKey])
+      }
+    })
+    // 如果没有占位符但有参数，且是 GET 请求，则自动拼接到 URL 末尾
+    // POST 请求不拼接，通过 query/body 参数传递
+    if (!hasPlaceholder && finalMethod === 'get' && Object.keys(urlParams).length > 0) {
+      const paramValues = Object.values(urlParams).join('/')
+      if (paramValues) {
+        finalUrl = `${finalUrl}/${paramValues}`
+      }
+    }
+    return { method: finalMethod, url: finalUrl }
   }
 
   return { method: defaultMethod, url: defaultApi }
@@ -775,10 +793,12 @@ async function loadDetail(row) {
   confirmLoading.value = true
 
   try {
+    const idValue = row[props.rowKey]
     const { method, url } = parseApiConfig(
       'detail',
-      `${props.api}/${row[props.rowKey]}`,
-      'get'
+      `${props.api}/${idValue}`,
+      'get',
+      { [props.rowKey]: idValue }
     )
 
     // 确定使用哪种请求方法
@@ -797,11 +817,11 @@ async function loadDetail(row) {
       url
     }
 
-    // 对于 POST 请求，将主键作为 query 参数传递
-    if (requestMethod === 'post' || requestMethod === 'postEncrypt') {
-      // 获取主键字段名（可能是 id, dictId, dictCode 等）
+    // 对于 POST 请求，如果 URL 中不包含 ID，则将主键作为 query 参数传递
+    const urlHasId = url.endsWith(`/${idValue}`) || url.includes(`/${idValue}?`) || url.includes(`/${idValue}/`)
+    if ((requestMethod === 'post' || requestMethod === 'postEncrypt') && !urlHasId) {
       const idKey = props.rowKey
-      requestConfig.params = { [idKey]: row[idKey] }
+      requestConfig.params = { [idKey]: idValue }
     }
 
     // 发送请求
@@ -869,29 +889,53 @@ async function performDelete(rows, keys) {
     negativeText: '取消',
     onPositiveClick: async () => {
       try {
-        const { method, url } = parseApiConfig('delete', props.api, 'delete')
+        // 检查是否配置了带 :id 占位符的删除 URL
+        const deleteApiConfig = props.apiConfig.delete
+        const hasIdPlaceholder = deleteApiConfig && deleteApiConfig.includes(':id')
+        const hasRowKeyPlaceholder = deleteApiConfig && deleteApiConfig.includes(`:${props.rowKey}`)
 
-        // 确定使用哪种请求方法
-        let requestMethod = method
-        // 如果方法明确指定为 postEncrypt，则使用加密请求，不管 isEncrypt 属性
-        const useEncrypt = method === 'postEncrypt' || (props.isEncrypt && method !== 'get')
-        if (useEncrypt) {
-          requestMethod = method === 'postEncrypt' ? 'postEncrypt' : method.toLowerCase()
-        } else {
-          requestMethod = method.toLowerCase()
-        }
+        // 单个删除且 URL 包含占位符时，使用替换后的 URL
+        if (keys.length === 1 && (hasIdPlaceholder || hasRowKeyPlaceholder)) {
+          const urlParams = { [props.rowKey]: keys[0] }
+          const { method, url } = parseApiConfig('delete', props.api, 'delete', urlParams)
 
-        // 发送请求
-        if (useEncrypt && requestMethod === 'postEncrypt') {
-          // 使用加密请求
-          await postEncrypt(url, keys)
+          let requestMethod = method
+          const useEncrypt = method === 'postEncrypt' || (props.isEncrypt && method !== 'get')
+          if (useEncrypt) {
+            requestMethod = method === 'postEncrypt' ? 'postEncrypt' : method.toLowerCase()
+          } else {
+            requestMethod = method.toLowerCase()
+          }
+
+          if (useEncrypt && requestMethod === 'postEncrypt') {
+            await postEncrypt(url, keys[0])
+          } else {
+            await request({
+              method: requestMethod,
+              url
+            })
+          }
         } else {
-          // 使用普通请求
-          await request({
-            method: requestMethod,
-            url,
-            data: keys
-          })
+          // 批量删除或未配置占位符时，使用原有逻辑
+          const { method, url } = parseApiConfig('delete', props.api, 'delete')
+
+          let requestMethod = method
+          const useEncrypt = method === 'postEncrypt' || (props.isEncrypt && method !== 'get')
+          if (useEncrypt) {
+            requestMethod = method === 'postEncrypt' ? 'postEncrypt' : method.toLowerCase()
+          } else {
+            requestMethod = method.toLowerCase()
+          }
+
+          if (useEncrypt && requestMethod === 'postEncrypt') {
+            await postEncrypt(url, keys)
+          } else {
+            await request({
+              method: requestMethod,
+              url,
+              data: keys
+            })
+          }
         }
 
         window.$message.success('删除成功')
@@ -936,7 +980,8 @@ async function handleModalConfirm() {
     const { method, url } = parseApiConfig(
       isEdit ? 'update' : createKey,
       isEdit ? `${props.api}/${currentRow.value[props.rowKey]}` : props.api,
-      isEdit ? 'put' : 'post'
+      isEdit ? 'put' : 'post',
+      isEdit ? { [props.rowKey]: currentRow.value[props.rowKey] } : {}
     )
 
     // 确定使用哪种请求方法
@@ -1135,6 +1180,21 @@ defineExpose({
    * 打开编辑弹窗
    */
   showEdit: handleEdit,
+
+  /**
+   * 编辑（同 showEdit）
+   */
+  handleEdit,
+
+  /**
+   * 删除
+   */
+  handleDelete,
+
+  /**
+   * 批量删除
+   */
+  handleBatchDelete,
 
   /**
    * 关闭弹窗

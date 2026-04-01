@@ -312,6 +312,8 @@ export const aiCrudPageProps = {
    *   delete: 'delete@/api/users/:id',
    *   detail: 'get@/api/users/:id'
    * }
+   * @description 支持 URL 占位符替换，如 :id、:dictId 等，会自动替换为对应的主键值。
+   *              占位符名称应与 rowKey 属性一致，如 rowKey="dictId" 则使用 :dictId
    */
   apiConfig: {
     type: Object,
