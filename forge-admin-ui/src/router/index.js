@@ -11,6 +11,12 @@ export const manualRoutes = [
     meta: { title: '登录页', layout: 'empty' },
   },
   {
+    name: 'SocialCallback',
+    path: '/login/callback',
+    component: () => import('@/views/login/callback.vue'),
+    meta: { title: '社交登录回调', layout: 'empty' },
+  },
+  {
     name: '404',
     path: '/404',
     component: () => import('@/views/error-page/404.vue'),
@@ -81,8 +87,8 @@ const routes = [
 export const router = createRouter({
   history:
       import.meta.env.VITE_USE_HASH === 'true'
-          ? createWebHashHistory(import.meta.env.VITE_PUBLIC_PATH || '/')
-          : createWebHistory(import.meta.env.VITE_PUBLIC_PATH || '/'),
+        ? createWebHashHistory(import.meta.env.VITE_PUBLIC_PATH || '/')
+        : createWebHistory(import.meta.env.VITE_PUBLIC_PATH || '/'),
   routes,
   scrollBehavior: () => ({ left: 0, top: 0 }),
 })

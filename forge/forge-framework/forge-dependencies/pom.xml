@@ -384,6 +384,12 @@
             
             <dependency>
                 <groupId>com.mdframe.forge</groupId>
+                <artifactId>forge-starter-social</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            
+            <dependency>
+                <groupId>com.mdframe.forge</groupId>
                 <artifactId>forge-flow-client</artifactId>
                 <version>${revision}</version>
             </dependency>

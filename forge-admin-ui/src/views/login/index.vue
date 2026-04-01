@@ -2,9 +2,9 @@
   <div class="login-container">
     <!-- Animated background -->
     <div class="login-bg-animated">
-      <div class="gradient-orb orb-1"></div>
-      <div class="gradient-orb orb-2"></div>
-      <div class="gradient-orb orb-3"></div>
+      <div class="gradient-orb orb-1" />
+      <div class="gradient-orb orb-2" />
+      <div class="gradient-orb orb-3" />
     </div>
 
     <!-- Login card with glassmorphism -->
@@ -15,18 +15,20 @@
           <div class="logo-wrapper">
             <img src="@/assets/images/logo.png" class="logo-img" alt="Logo">
           </div>
-          <h1 class="brand-title">{{ title }}</h1>
+          <h1 class="brand-title">
+            {{ title }}
+          </h1>
           <div class="feature-list">
             <div class="feature-item">
-              <i class="ai-icon:shield text-20"></i>
+              <i class="ai-icon:shield text-20" />
               <span>安全可靠</span>
             </div>
             <div class="feature-item">
-              <i class="ai-icon:zap text-20"></i>
+              <i class="ai-icon:zap text-20" />
               <span>高效便捷</span>
             </div>
             <div class="feature-item">
-              <i class="ai-icon:layers text-20"></i>
+              <i class="ai-icon:layers text-20" />
               <span>功能强大</span>
             </div>
           </div>
@@ -37,8 +39,12 @@
       <div class="login-form-wrapper">
         <div class="login-form">
           <div class="form-header">
-            <h2 class="form-title">欢迎回来</h2>
-            <p class="form-subtitle">请登录您的账户</p>
+            <h2 class="form-title">
+              欢迎回来
+            </h2>
+            <p class="form-subtitle">
+              请登录您的账户
+            </p>
           </div>
 
           <div class="form-body">
@@ -56,7 +62,7 @@
                   size="large"
                 >
                   <template #prefix>
-                    <i class="ai-icon:user input-icon"></i>
+                    <i class="input-icon ai-icon:user" />
                   </template>
                 </n-input>
               </div>
@@ -78,7 +84,7 @@
                   @keydown.enter="handleLogin()"
                 >
                   <template #prefix>
-                    <i class="ai-icon:lock input-icon"></i>
+                    <i class="input-icon ai-icon:lock" />
                   </template>
                 </n-input>
               </div>
@@ -101,16 +107,16 @@
                       @keydown.enter="handleLogin()"
                     >
                       <template #prefix>
-                        <i class="ai-icon:key input-icon"></i>
+                        <i class="input-icon ai-icon:key" />
                       </template>
                     </n-input>
                   </div>
                   <div
                     class="captcha-image"
-                    @click="refreshCaptcha"
                     title="点击刷新验证码"
                     role="button"
                     tabindex="0"
+                    @click="refreshCaptcha"
                     @keydown.enter="refreshCaptcha"
                   >
                     <img
@@ -118,9 +124,9 @@
                       :src="captchaImage"
                       alt="验证码"
                       class="captcha-img"
-                    />
+                    >
                     <div v-else class="captcha-loading">
-                      <i class="ai-icon:loader animate-spin"></i>
+                      <i class="ai-icon:loader animate-spin" />
                     </div>
                   </div>
                 </div>
@@ -128,13 +134,13 @@
 
               <!-- 滑块验证码 - 已改为浮层弹出形式，点击登录按钮触发 -->
               <template v-if="captchaType === 'slider'">
-                <div class="slider-verify-trigger" :class="{ 'verified': sliderSuccess }" @click="!sliderSuccess && openSliderModal()">
+                <div class="slider-verify-trigger" :class="{ verified: sliderSuccess }" @click="!sliderSuccess && openSliderModal()">
                   <div class="trigger-icon">
-                    <i v-if="sliderSuccess" class="ai-icon:check-circle" style="color:#22C55E"></i>
-                    <i v-else class="ai-icon:shield"></i>
+                    <i v-if="sliderSuccess" class="ai-icon:check-circle" style="color:#22C55E" />
+                    <i v-else class="ai-icon:shield" />
                   </div>
                   <span>{{ sliderSuccess ? '安全验证已通过' : '点击进行安全验证' }}</span>
-                  <i v-if="!sliderSuccess" class="ai-icon:chevron-right trigger-arrow"></i>
+                  <i v-if="!sliderSuccess" class="trigger-arrow ai-icon:chevron-right" />
                 </div>
               </template>
 
@@ -151,7 +157,7 @@
                     size="large"
                   >
                     <template #prefix>
-                      <i class="ai-icon:phone input-icon"></i>
+                      <i class="input-icon ai-icon:phone" />
                     </template>
                   </n-input>
                 </div>
@@ -168,15 +174,15 @@
                       @keydown.enter="handleLogin()"
                     >
                       <template #prefix>
-                        <i class="ai-icon:key input-icon"></i>
+                        <i class="input-icon ai-icon:key" />
                       </template>
                     </n-input>
                   </div>
                   <n-button
                     :disabled="smsCountdown > 0 || !isValidPhone"
-                    @click="sendSmsCode"
                     class="sms-button"
                     size="large"
+                    @click="sendSmsCode"
                   >
                     {{ smsCountdown > 0 ? `${smsCountdown}s后重发` : '获取验证码' }}
                   </n-button>
@@ -200,12 +206,36 @@
               type="primary"
               size="large"
               :loading="loading"
-              @click="onLoginClick()"
               block
+              @click="onLoginClick()"
             >
               <span class="button-text">登录</span>
-              <i v-if="!loading" class="ai-icon:arrow-right button-icon"></i>
+              <i v-if="!loading" class="button-icon ai-icon:arrow-right" />
             </n-button>
+
+            <!-- Social login buttons -->
+            <div v-if="socialPlatforms.length > 0" class="social-login-section">
+              <div class="social-divider">
+                <span class="divider-text">其他登录方式</span>
+              </div>
+              <div class="social-buttons">
+                <button
+                  v-for="platform in socialPlatforms"
+                  :key="platform.platform"
+                  class="social-button"
+                  :title="platform.platformName"
+                  @click="handleSocialLogin(platform.platform)"
+                >
+                  <img
+                    v-if="platform.platformLogoBase64"
+                    :src="`data:image/png;base64,${platform.platformLogoBase64}`"
+                    :alt="platform.platformName"
+                    class="social-icon"
+                  >
+                  <i v-else class="social-icon-fallback ai-icon:link" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -218,21 +248,25 @@
       <div class="slider-modal">
         <!-- 关闭按钮 -->
         <button class="slider-modal-close" @click="closeSliderModal">
-          <i class="ai-icon:x"></i>
+          <i class="ai-icon:x" />
         </button>
 
         <!-- 标题区 -->
         <div class="slider-modal-header">
           <div class="slider-modal-icon">
-            <i class="ai-icon:shield"></i>
+            <i class="ai-icon:shield" />
           </div>
-          <h3 class="slider-modal-title">安全验证</h3>
-          <p class="slider-modal-desc">请拖动滑块到正确位置，完成拼图</p>
+          <h3 class="slider-modal-title">
+            安全验证
+          </h3>
+          <p class="slider-modal-desc">
+            请拖动滑块到正确位置，完成拼图
+          </p>
         </div>
 
         <!-- 滑块验证组件 -->
         <div class="slider-modal-body">
-          <slide-verify
+          <SlideVerify
             ref="slideVerifyRef"
             :w="340"
             :h="170"
@@ -241,10 +275,10 @@
             :accuracy="8"
             :imgs="slideImages"
             :show-refresh="true"
-            :refresh-text="'刷新'"
-            :text="'拖动滑块完成拼图'"
-            :success-text="'验证成功！'"
-            :fail-text="'验证失败，请重试'"
+            refresh-text="刷新"
+            text="拖动滑块完成拼图"
+            success-text="验证成功！"
+            fail-text="验证失败，请重试"
             @success="onSlideSuccess"
             @fail="onSlideFail"
             @refresh="onSlideRefresh"
@@ -253,7 +287,7 @@
 
         <!-- 底部辅助文字 -->
         <p class="slider-modal-tip">
-          <i class="ai-icon:info"></i>
+          <i class="ai-icon:info" />
           如果拖动困难，可点击刷新重试
         </p>
       </div>
@@ -263,15 +297,15 @@
 
 <script setup>
 import { useStorage } from '@vueuse/core'
-import { useAuthStore, useUserStore, usePermissionStore } from '@/store'
-import { lStorage } from '@/utils'
-import { initKeyExchange, encryptPassword } from '@/utils/crypto/key-exchange'
-import { request } from '@/utils/http'
 import { nextTick } from 'vue'
 import SlideVerify from 'vue3-slide-verify'
-import 'vue3-slide-verify/dist/style.css'
-import api from './api'
 import mainApi from '@/api'
+import { useAuthStore, usePermissionStore, useUserStore } from '@/store'
+import { lStorage } from '@/utils'
+import { encryptPassword, initKeyExchange } from '@/utils/crypto/key-exchange'
+import { request } from '@/utils/http'
+import api from './api'
+import 'vue3-slide-verify/dist/style.css'
 
 const authStore = useAuthStore()
 const userStore = useUserStore()
@@ -284,7 +318,7 @@ const loginInfo = ref({
   password: '',
   code: '', // 验证码
   codeKey: '', // 验证码key
-  phone: '' // 手机号（短信验证码使用）
+  phone: '', // 手机号（短信验证码使用）
 })
 
 const captchaImage = ref('') // 验证码图片（Base64）
@@ -296,10 +330,10 @@ const loginConfig = ref(null)
 
 // 滑块验证码相关 (vue3-slide-verify)
 const slideVerifyRef = ref(null)
-const slideImages = ref([])  // 滑块验证码背景图片列表
+const slideImages = ref([]) // 滑块验证码背景图片列表
 const sliderSuccess = ref(false)
 const sliderFail = ref(false)
-const showSliderModal = ref(false)  // 滑块浮层显示状态
+const showSliderModal = ref(false) // 滑块浮层显示状态
 
 // 短信验证码相关
 const smsCountdown = ref(0)
@@ -313,6 +347,10 @@ if (localLoginInfo) {
 
 const isRemember = useStorage('isRemember', true)
 const loading = ref(false)
+
+// 三方登录平台列表
+const socialPlatforms = ref([])
+const socialLoading = ref(false)
 
 // 手机号验证
 const isValidPhone = computed(() => {
@@ -331,11 +369,63 @@ async function loadLoginConfig() {
       // 根据验证码类型加载对应的验证码
       await loadCaptchaByType()
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取登录配置失败:', error)
     // 使用默认配置
     captchaType.value = 'graphical'
     await refreshCaptcha()
+  }
+}
+
+// 获取已启用的三方登录平台
+async function loadSocialPlatforms() {
+  try {
+    socialLoading.value = true
+    const res = await api.getSocialPlatforms()
+    if (res.code === 200 && res.data) {
+      socialPlatforms.value = res.data.filter(p => p.enabled)
+    }
+  }
+  catch (error) {
+    console.error('获取三方登录平台失败:', error)
+  }
+  finally {
+    socialLoading.value = false
+  }
+}
+
+// 处理三方登录
+async function handleSocialLogin(platform) {
+  try {
+    const res = await api.getSocialAuthUrl(platform)
+    if (res.code === 200 && res.data) {
+      // 打开授权窗口
+      const width = 600
+      const height = 500
+      const left = (window.innerWidth - width) / 2
+      const top = (window.innerHeight - height) / 2
+
+      const authWindow = window.open(
+        res.data.authUrl,
+        'social_auth',
+        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,resizable=yes`,
+      )
+
+      // 监听授权窗口关闭
+      const checkClosed = setInterval(() => {
+        if (authWindow.closed) {
+          clearInterval(checkClosed)
+        }
+      }, 500)
+    }
+    else {
+      $message.error(res.msg || '获取授权链接失败')
+    }
+  }
+  catch (error) {
+    console.error('获取三方授权链接失败:', error)
+    $message.error('获取授权链接失败')
   }
 }
 
@@ -378,7 +468,8 @@ async function refreshCaptcha() {
         console.log('【开发提示】验证码:', res.data.code)
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取验证码失败:', error)
     $message.error('获取验证码失败')
   }
@@ -464,7 +555,8 @@ async function handleLoginFailure() {
     if (slideVerifyRef.value && typeof slideVerifyRef.value.refresh === 'function') {
       slideVerifyRef.value.refresh()
     }
-  } else if (captchaType.value === 'graphical') {
+  }
+  else if (captchaType.value === 'graphical') {
     // 图形验证码刷新
     await refreshCaptcha()
   }
@@ -492,11 +584,13 @@ async function sendSmsCode() {
         // 开始倒计时
         smsCountdown.value = res.data.interval || 60
         startSmsCountdown()
-      } else {
+      }
+      else {
         $message.error(res.data.message || '验证码发送失败')
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('发送短信验证码失败:', error)
     $message.error('发送短信验证码失败')
   }
@@ -511,7 +605,8 @@ function startSmsCountdown() {
   smsTimer.value = setInterval(() => {
     if (smsCountdown.value > 0) {
       smsCountdown.value--
-    } else {
+    }
+    else {
       clearInterval(smsTimer.value)
     }
   }, 1000)
@@ -531,12 +626,14 @@ async function handleLogin() {
     }
     // 滑块验证码使用组件自带的验证，这里只需要确认已通过
     // 为了安全，可以添加一个临时的token或codeKey
-  } else if (captchaType.value === 'sms') {
+  }
+  else if (captchaType.value === 'sms') {
     if (!phone)
       return $message.warning('请输入手机号')
     if (!code)
       return $message.warning('请输入短信验证码')
-  } else {
+  }
+  else {
     if (!code)
       return $message.warning('请输入验证码')
   }
@@ -550,13 +647,13 @@ async function handleLogin() {
 
     // 构造登录参数 - 使用新的后端接口格式
     const params = {
-      username: username,
+      username,
       password: encryptedPassword, // 使用加密后的密码
-      code: code,
-      codeKey: codeKey,
-      phone: phone, // 短信验证码时需要
+      code,
+      codeKey,
+      phone, // 短信验证码时需要
       authType: 'password_captcha', // 使用用户名密码+验证码登录方式
-      encrypted: true // 标记密码已加密
+      encrypted: true, // 标记密码已加密
     }
 
     const res = await api.login(params)
@@ -564,11 +661,13 @@ async function handleLogin() {
     if (res.code === 200) {
       if (isRemember.value) {
         lStorage.set('loginInfo', { username, password })
-      } else {
+      }
+      else {
         lStorage.remove('loginInfo')
       }
       onLoginSuccess(res.data)
-    } else {
+    }
+    else {
       // 登录失败后刷新验证码
       await handleLoginFailure()
     }
@@ -588,13 +687,14 @@ async function onLoginSuccess(data = {}) {
     authStore.setToken({
       accessToken: data.accessToken,
       tokenType: data.tokenType || 'Bearer',
-      expiresIn: data.expiresIn
+      expiresIn: data.expiresIn,
     })
 
     // 密钥交换 - 使用 token 作为会话标识
     try {
       await initKeyExchange(request, data.accessToken)
-    } catch (error) {
+    }
+    catch (error) {
       console.warn('密钥交换失败，将使用降级方案:', error)
     }
   }
@@ -619,7 +719,7 @@ async function onLoginSuccess(data = {}) {
       orgIds: loginUser.orgIds || [],
       mainOrgId: loginUser.mainOrgId,
       roles: loginUser.roleKeys ? Array.from(loginUser.roleKeys) : [],
-      userInfo: loginUser
+      userInfo: loginUser,
     })
 
     // 同时存储到localStorage用于持久化
@@ -630,7 +730,7 @@ async function onLoginSuccess(data = {}) {
   try {
     // 先获取菜单数据，再跳转
     await loadAndSetMenuData()
-    
+
     $message.success('登录成功', { key: 'login' })
     // 使用环境变量中的默认跳转路径
     const defaultRedirectPath = import.meta.env.VITE_HOME_PATH || '/'
@@ -650,9 +750,37 @@ async function onLoginSuccess(data = {}) {
   }
 }
 
+// 监听三方登录子窗口的消息
+async function handleSocialLoginMessage(event) {
+  if (event.data?.type === 'SOCIAL_LOGIN_SUCCESS') {
+    const { data } = event.data
+
+    // 设置 token
+    if (data?.accessToken) {
+      authStore.setToken({
+        accessToken: data.accessToken,
+        tokenType: data.tokenType || 'Bearer',
+        expiresIn: data.expiresIn,
+      })
+    }
+
+    $message.success('登录成功')
+
+    // 使用 window.location.href 强制刷新页面跳转
+    const defaultRedirectPath = import.meta.env.VITE_HOME_PATH || '/'
+    window.location.href = defaultRedirectPath
+  }
+  else if (event.data?.type === 'SOCIAL_LOGIN_FAILED') {
+    $message.error('三方登录失败，请重试')
+  }
+}
+
 // 页面加载时获取登录配置和验证码
 onMounted(() => {
   loadLoginConfig()
+  loadSocialPlatforms()
+  // 监听三方登录消息
+  window.addEventListener('message', handleSocialLoginMessage)
 })
 
 // 组件卸载时清理定时器
@@ -660,6 +788,8 @@ onUnmounted(() => {
   if (smsTimer.value) {
     clearInterval(smsTimer.value)
   }
+  // 移除消息监听
+  window.removeEventListener('message', handleSocialLoginMessage)
 })
 
 // 获取并设置菜单数据
@@ -672,7 +802,8 @@ async function loadAndSetMenuData() {
     if (res.code === 200 && res.data) {
       // 设置菜单数据到store
       permissionStore.setMenuData(res.data)
-    } else {
+    }
+    else {
       console.error('菜单数据格式不正确:', res)
     }
 
@@ -682,11 +813,13 @@ async function loadAndSetMenuData() {
       await new Promise(resolve => setTimeout(resolve, 100))
       waitCount++
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取菜单数据失败:', error)
   }
 }
 </script>
+
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
 
@@ -707,7 +840,7 @@ async function loadAndSetMenuData() {
 .login-bg-animated {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 50%, #BFDBFE 100%);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 50%, #bfdbfe 100%);
   z-index: 0;
 }
 
@@ -722,7 +855,7 @@ async function loadAndSetMenuData() {
 .orb-1 {
   width: 600px;
   height: 600px;
-  background: linear-gradient(135deg, #3B82F6, #60A5FA);
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
   top: -15%;
   left: -15%;
   animation-delay: 0s;
@@ -731,7 +864,7 @@ async function loadAndSetMenuData() {
 .orb-2 {
   width: 500px;
   height: 500px;
-  background: linear-gradient(135deg, #8B5CF6, #C4B5FD);
+  background: linear-gradient(135deg, #8b5cf6, #c4b5fd);
   bottom: -15%;
   right: -15%;
   animation-delay: 7s;
@@ -740,7 +873,7 @@ async function loadAndSetMenuData() {
 .orb-3 {
   width: 450px;
   height: 450px;
-  background: linear-gradient(135deg, #06B6D4, #67E8F9);
+  background: linear-gradient(135deg, #06b6d4, #67e8f9);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -748,7 +881,8 @@ async function loadAndSetMenuData() {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
   }
   33% {
@@ -795,7 +929,7 @@ async function loadAndSetMenuData() {
 
 /* Left side - Branding */
 .login-brand {
-  background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+  background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
   padding: 3rem 2rem;
   display: none;
   flex-direction: column;
@@ -916,13 +1050,13 @@ async function loadAndSetMenuData() {
   font-family: 'Poppins', sans-serif;
   font-size: 1.875rem;
   font-weight: 700;
-  color: #1E293B;
+  color: #1e293b;
   margin-bottom: 0.5rem;
 }
 
 .form-subtitle {
   font-size: 0.95rem;
-  color: #64748B;
+  color: #64748b;
 }
 
 .form-body {
@@ -952,7 +1086,6 @@ async function loadAndSetMenuData() {
   width: 100%;
 }
 
-
 /* Captcha */
 .captcha-wrapper {
   display: flex;
@@ -964,24 +1097,24 @@ async function loadAndSetMenuData() {
   width: 120px;
   height: 48px;
   border-radius: 6px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #e2e8f0;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F8FAFC;
+  background: #f8fafc;
 }
 
 .captcha-image:hover {
-  border-color: #3B82F6;
+  border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .captcha-image:focus {
   outline: none;
-  border-color: #3B82F6;
+  border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -992,7 +1125,7 @@ async function loadAndSetMenuData() {
 }
 
 .captcha-loading {
-  color: #94A3B8;
+  color: #94a3b8;
   font-size: 1.5rem;
 }
 
@@ -1039,34 +1172,34 @@ async function loadAndSetMenuData() {
   padding: 0 1rem;
   height: 40px;
   border-radius: 6px;
-  border: 1.5px solid #E2E8F0;
-  background: #F8FAFC;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
   cursor: pointer;
   transition: all 0.25s ease;
   font-size: 0.875rem;
-  color: #64748B;
+  color: #64748b;
   font-weight: 500;
   user-select: none;
 }
 
 .slider-verify-trigger:hover {
-  border-color: #3B82F6;
-  background: #EFF6FF;
-  color: #2563EB;
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #2563eb;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .slider-verify-trigger.verified {
-  border-color: #22C55E;
-  background: #F0FDF4;
-  color: #16A34A;
+  border-color: #22c55e;
+  background: #f0fdf4;
+  color: #16a34a;
   cursor: default;
 }
 
 .slider-verify-trigger.verified:hover {
   box-shadow: none;
-  border-color: #22C55E;
-  background: #F0FDF4;
+  border-color: #22c55e;
+  background: #f0fdf4;
 }
 
 .trigger-icon {
@@ -1127,8 +1260,8 @@ async function loadAndSetMenuData() {
   height: 28px;
   border-radius: 50%;
   border: none;
-  background: #F1F5F9;
-  color: #94A3B8;
+  background: #f1f5f9;
+  color: #94a3b8;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1139,7 +1272,7 @@ async function loadAndSetMenuData() {
 }
 
 .slider-modal-close:hover {
-  background: #E2E8F0;
+  background: #e2e8f0;
   color: #475569;
 }
 
@@ -1152,13 +1285,13 @@ async function loadAndSetMenuData() {
 .slider-modal-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.375rem;
-  color: #3B82F6;
+  color: #3b82f6;
   margin: 0 auto 0.875rem;
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
 }
@@ -1167,13 +1300,13 @@ async function loadAndSetMenuData() {
   font-family: 'Poppins', sans-serif;
   font-size: 1.125rem;
   font-weight: 700;
-  color: #0F172A;
+  color: #0f172a;
   margin: 0 0 0.25rem;
 }
 
 .slider-modal-desc {
   font-size: 0.8125rem;
-  color: #94A3B8;
+  color: #94a3b8;
   margin: 0;
 }
 
@@ -1194,17 +1327,17 @@ async function loadAndSetMenuData() {
 
 .slider-modal-body :deep(.slide-verify-slider) {
   border-radius: 0 0 10px 10px;
-  background: #F8FAFC;
-  border-top: 1px solid #E2E8F0;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
 }
 
 .slider-modal-body :deep(.slide-verify-slider-mask) {
-  background: linear-gradient(90deg, #3B82F6, #60A5FA) !important;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa) !important;
   border-radius: 0 0 0 10px;
 }
 
 .slider-modal-body :deep(.slide-verify-slider-mask-item) {
-  background: #2563EB !important;
+  background: #2563eb !important;
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
   border-radius: 4px;
 }
@@ -1212,19 +1345,21 @@ async function loadAndSetMenuData() {
 .slider-modal-body :deep(.slide-verify-slider-text) {
   font-family: 'Open Sans', sans-serif;
   font-size: 0.8125rem;
-  color: #94A3B8;
+  color: #94a3b8;
   letter-spacing: 0.02em;
 }
 
 .slider-modal-body :deep(.slide-verify-refresh-icon) {
   cursor: pointer;
-  color: #94A3B8;
-  transition: transform 0.3s ease, color 0.2s;
+  color: #94a3b8;
+  transition:
+    transform 0.3s ease,
+    color 0.2s;
 }
 
 .slider-modal-body :deep(.slide-verify-refresh-icon:hover) {
   transform: rotate(180deg);
-  color: #3B82F6;
+  color: #3b82f6;
 }
 
 /* 提示文字 */
@@ -1235,7 +1370,7 @@ async function loadAndSetMenuData() {
   gap: 0.375rem;
   margin: 0.875rem 0 0;
   font-size: 0.75rem;
-  color: #CBD5E1;
+  color: #cbd5e1;
 }
 
 .slider-modal-tip i {
@@ -1331,7 +1466,7 @@ async function loadAndSetMenuData() {
 
 .checkbox-label {
   font-size: 0.875rem;
-  color: #64748B;
+  color: #64748b;
 }
 
 /* Login button */
@@ -1371,6 +1506,78 @@ async function loadAndSetMenuData() {
 
 .login-button:hover .button-icon {
   transform: translateX(4px);
+}
+
+/* Social login section */
+.social-login-section {
+  margin-top: 1.5rem;
+}
+
+.social-divider {
+  position: relative;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.social-divider::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.divider-text {
+  position: relative;
+  display: inline-block;
+  padding: 0 0.75rem;
+  background: #fff;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.social-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.social-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.social-button:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.15);
+}
+
+.social-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.social-icon-fallback {
+  font-size: 20px;
+  color: #64748b;
+}
+
+.social-button:hover .social-icon-fallback {
+  color: #3b82f6;
 }
 
 /* Animations for reduced motion */

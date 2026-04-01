@@ -1,21 +1,25 @@
-import { useTabStore, usePermissionStore } from '@/store'
+import { usePermissionStore, useTabStore } from '@/store'
 
-export const EXCLUDE_TAB = ['/404', '/403', '/login']
+export const EXCLUDE_TAB = ['/404', '/403', '/login', '/login/callback']
 
 /**
  * 从扁平菜单数组中查找路径对应的中文名称
  */
 function findTitleFromAllMenus(allMenus, targetPath) {
-  if(targetPath === window.$homePath){
-    return  "首页"
+  console.log('targetPath',targetPath)
+  // 首页路径判断：支持 '/' 和 '/home'
+  if (targetPath === '/' || targetPath === '/home' || targetPath === window.$homePath) {
+    return '首页'
   }
-  if (!allMenus || !Array.isArray(allMenus)) return null
+  if (!allMenus || !Array.isArray(allMenus))
+    return null
   const found = allMenus.find(menu => menu.path === targetPath)
   return found?.label || found?.name || null
 }
 
 export function createTabGuard(router) {
   router.afterEach(async (to) => {
+    console.log('to',to)
     if (EXCLUDE_TAB.includes(to.path))
       return
     const tabStore = useTabStore()
@@ -26,6 +30,10 @@ export function createTabGuard(router) {
 
     // 1. 优先使用 route.meta.title（由 permission-guard 注册路由时设置）
     let title = to.meta?.title
+
+    if (path === '/home') {
+       title = '首页'
+    }
 
     // 2. 从所有菜单（包括隐藏的）中查找中文名
     if (!title && permissionStore.allMenus?.length) {
@@ -45,7 +53,8 @@ export function createTabGuard(router) {
           if (componentTitle) {
             title = componentTitle
           }
-        } catch (e) {
+        }
+        catch (e) {
           console.warn('无法读取组件 title:', e)
         }
       }
@@ -55,7 +64,8 @@ export function createTabGuard(router) {
     const existingTab = tabStore.tabs.find(item => item.path === path)
     if (!existingTab) {
       tabStore.addTab({ name, path, title: title || path, icon, keepAlive, key: path })
-    } else if (title && existingTab.title !== title) {
+    }
+    else if (title && existingTab.title !== title) {
       // 如果 tab 已存在但 title 为空，自动更新
       existingTab.title = title
     }
