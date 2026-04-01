@@ -1,9 +1,8 @@
 package com.mdframe.forge.starter.crypto.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationConfig;
-import com.fasterxml.jackson.databind.DeserializationConfig;
 import com.mdframe.forge.starter.crypto.crypto.EncryptorFactory;
+import com.mdframe.forge.starter.crypto.desensitize.strategy.DesensitizeStrategyFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -18,11 +17,12 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "forge.crypto", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "forge.crypto", name = "enabled", havingValue = "true",matchIfMissing = true)
 @ConditionalOnBean(EncryptorFactory.class)
 public class JacksonCryptoConfiguration {
 
     private final EncryptorFactory encryptorFactory;
+    private final DesensitizeStrategyFactory desensitizeStrategyFactory;
 
     @Bean
     @ConditionalOnProperty(prefix = "forge.crypto", name = "enable-field-crypto", havingValue = "true", matchIfMissing = true)
@@ -33,6 +33,7 @@ public class JacksonCryptoConfiguration {
                 objectMapper.setConfig(
                         objectMapper.getSerializationConfig()
                                 .withAttribute(EncryptorFactory.class, encryptorFactory)
+                                .withAttribute(DesensitizeStrategyFactory.class, desensitizeStrategyFactory)
                 );
                 objectMapper.setConfig(
                         objectMapper.getDeserializationConfig()

@@ -12,6 +12,7 @@ import com.mdframe.forge.starter.crypto.crypto.EncryptorFactory;
 import com.mdframe.forge.starter.crypto.crypto.impl.AESEncryptor;
 import com.mdframe.forge.starter.crypto.crypto.impl.SM4Encryptor;
 import com.mdframe.forge.starter.crypto.filter.ReplayAttackFilter;
+import com.mdframe.forge.starter.crypto.desensitize.strategy.DesensitizeStrategyFactory;
 import com.mdframe.forge.starter.crypto.keyexchange.KeyExchangeController;
 import com.mdframe.forge.starter.crypto.keyexchange.KeyExchangeService;
 import com.mdframe.forge.starter.crypto.keyexchange.RsaKeyPairHolder;
@@ -75,6 +76,14 @@ public class CryptoAutoConfiguration {
     @Bean
     public AESEncryptor aesEncryptor(CryptoProperties properties) {
         return new AESEncryptor(properties);
+    }
+
+    // ==================== 脱敏相关 Bean ====================
+
+    @Bean
+    public DesensitizeStrategyFactory desensitizeStrategyFactory() {
+        log.info("脱敏策略工厂初始化完成");
+        return new DesensitizeStrategyFactory();
     }
 
     @Bean

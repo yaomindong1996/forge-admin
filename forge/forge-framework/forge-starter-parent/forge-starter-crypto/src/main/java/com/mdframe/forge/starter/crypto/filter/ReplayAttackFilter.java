@@ -1,5 +1,6 @@
 package com.mdframe.forge.starter.crypto.filter;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import cn.hutool.core.util.StrUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdframe.forge.starter.crypto.cache.ReplayTokenCache;
@@ -10,6 +11,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.AntPathMatcher;
+import org.springframework.web.method.HandlerMethod;
 
 import java.io.IOException;
 import java.util.HashMap;

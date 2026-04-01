@@ -87,4 +87,9 @@ public class CryptoProperties {
      * API加解密排除路径
      */
     private List<String> excludePaths = new ArrayList<>();
+
+    /**
+     * 是否启用字段脱敏
+     */
+    private Boolean enableDesensitize = true;
 }
