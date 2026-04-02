@@ -1,77 +1,33 @@
 <template>
-  <div class="p-16">
-    <div class="bg-white rounded p-16">
-      <!-- 消息监控列表 -->
-      <n-card title="消息监控">
-        <!-- 搜索栏 -->
-        <n-space class="mb-16" :vertical="false">
-          <n-select
-            v-model:value="queryParams.type"
-            placeholder="消息类型"
-            clearable
-            style="width: 150px"
-            :options="typeOptions"
-          />
-          <n-select
-            v-model:value="queryParams.channel"
-            placeholder="发送渠道"
-            clearable
-            style="width: 150px"
-            :options="channelOptions"
-          />
-          <n-select
-            v-model:value="queryParams.status"
-            placeholder="发送状态"
-            clearable
-            style="width: 150px"
-            :options="statusOptions"
-          />
-          <n-date-picker
-            v-model:value="queryParams.timeRange"
-            type="daterange"
-            clearable
-            placeholder="选择时间范围"
-          />
-          <n-input
-            v-model:value="queryParams.keyword"
-            placeholder="搜索标题或内容"
-            clearable
-            style="width: 250px"
-          >
-            <template #prefix>
-              <i class="i-material-symbols:search" />
-            </template>
-          </n-input>
-          <n-button type="primary" @click="handleSearch">
-            <template #icon>
-              <i class="i-material-symbols:search" />
-            </template>
-            搜索
-          </n-button>
-          <n-button @click="handleReset">
-            <template #icon>
-              <i class="i-material-symbols:refresh" />
-            </template>
-            重置
-          </n-button>
-          <n-button type="primary" @click="showSendModal = true">
-            <template #icon>
-              <i class="i-material-symbols:send" />
-            </template>
-            发送测试消息
-          </n-button>
-        </n-space>
-
-        <!-- 消息列表 -->
-        <n-data-table
-          :columns="columns"
-          :data="dataSource"
-          :loading="loading"
-          :pagination="pagination"
-          :row-key="row => row.id"
-        />
-      </n-card>
-    </div>
+  <div class="message-manage-page">
+    <AiCrudPage
+      ref="crudRef"
+      :api-config="apiConfig"
+      :search-schema="searchSchema"
+      :columns="tableColumns"
+      row-key="id"
+      :hide-add="true"
+      :hide-selection="true"
+      :hide-batch-delete="true"
+      :before-search="handleBeforeSearch"
+    >
+      <!-- 自定义操作列 -->
+      <template #table-action="{ row }">
+        <a class="text-primary cursor-pointer" @click="handleViewDetail(row)">
+          详情
+        </a>
+      </template>
+      
+      <!-- 自定义顶部工具栏 -->
+      <template #toolbar-left>
+        <n-button type="primary" @click="showSendModal = true">
+          <template #icon>
+            <i class="i-material-symbols:send" />
+          </template>
+          发送测试消息
+        </n-button>
+      </template>
+    </AiCrudPage>
 
     <!-- 消息发送测试弹窗 -->
     <n-modal v-model:show="showSendModal" preset="card" title="消息发送测试" style="width: 600px">
@@ -84,10 +40,7 @@
           />
         </n-form-item>
         <n-form-item label="消息标题" path="title">
-          <n-input
-            v-model:value="sendForm.title"
-            placeholder="请输入消息标题"
-          />
+          <n-input v-model:value="sendForm.title" placeholder="请输入消息标题" />
         </n-form-item>
         <n-form-item label="消息内容" path="content">
           <n-input
@@ -98,10 +51,7 @@
           />
         </n-form-item>
         <n-form-item label="模版编码" path="templateCode">
-          <n-input
-              v-model:value="sendForm.templateCode"
-              placeholder="请输入模版编码"
-          />
+          <n-input v-model:value="sendForm.templateCode" placeholder="请输入模版编码" />
         </n-form-item>
         <n-form-item label="发送范围" path="sendScope">
           <n-select
@@ -134,7 +84,7 @@
       <template #footer>
         <n-space justify="end">
           <n-button @click="showSendModal = false">取消</n-button>
-          <n-button type="primary" @click="handleSend" :loading="sending">
+          <n-button type="primary" :loading="sending" @click="handleSend">
             发送
           </n-button>
         </n-space>
@@ -193,19 +143,19 @@
 </template>
 
 <script setup>
-import { ref, h, onMounted } from 'vue'
-import { NTag, NButton } from 'naive-ui'
+import { ref, h } from 'vue'
+import { NTag } from 'naive-ui'
+import { AiCrudPage } from '@/components/ai-form'
 import messageApi from '@/api/message'
 import { request } from '@/utils'
 
 defineOptions({ name: 'MessageManage' })
 
-const loading = ref(false)
+const crudRef = ref(null)
+const showSendModal = ref(false)
 const sending = ref(false)
 const userLoading = ref(false)
-const dataSource = ref([])
 const showDetail = ref(false)
-const showSendModal = ref(false)
 const currentDetail = ref(null)
 const userOptions = ref([])
 
@@ -213,35 +163,156 @@ const sendForm = ref({
   channel: 'WEB',
   title: '',
   content: '',
+  templateCode: '',
   sendScope: 'USERS',
   userIds: [],
   type: 'SYSTEM'
 })
 
-const queryParams = ref({
-  type: null,
-  channel: null,
-  status: null,
-  timeRange: null,
-  keyword: null
-})
+const apiConfig = {
+  list: 'post@/api/message/manage/page',
+  detail: 'get@/api/message/manage/{id}/detail'
+}
 
-const pagination = ref({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  showSizePicker: true,
-  pageSizes: [10, 20, 50, 100],
-  onChange: (page) => {
-    pagination.value.page = page
-    loadData()
+const searchSchema = [
+  {
+    field: 'type',
+    label: '消息类型',
+    type: 'select',
+    props: {
+      placeholder: '请选择消息类型',
+      clearable: true,
+      options: [
+        { label: '系统消息', value: 'SYSTEM' },
+        { label: '自定义', value: 'CUSTOM' }
+      ]
+    }
   },
-  onUpdatePageSize: (pageSize) => {
-    pagination.value.pageSize = pageSize
-    pagination.value.page = 1
-    loadData()
+  {
+    field: 'channel',
+    label: '发送渠道',
+    type: 'select',
+    props: {
+      placeholder: '请选择发送渠道',
+      clearable: true,
+      options: [
+        { label: '站内信', value: 'WEB' },
+        { label: '短信', value: 'SMS' },
+        { label: '邮件', value: 'EMAIL' }
+      ]
+    }
+  },
+  {
+    field: 'status',
+    label: '发送状态',
+    type: 'select',
+    props: {
+      placeholder: '请选择发送状态',
+      clearable: true,
+      options: [
+        { label: '草稿', value: 0 },
+        { label: '已发送', value: 1 },
+        { label: '发送失败', value: 2 }
+      ]
+    }
+  },
+  {
+    field: 'keyword',
+    label: '关键词',
+    type: 'input',
+    props: {
+      placeholder: '搜索标题或内容'
+    }
+  },
+  {
+    field: 'timeRange',
+    label: '发送时间',
+    type: 'daterange',
+    props: {
+      type: 'datetimerange',
+      clearable: true
+    }
   }
-})
+]
+
+const tableColumns = [
+  {
+    prop: 'title',
+    label: '消息标题',
+    ellipsis: { tooltip: true }
+  },
+  {
+    prop: 'type',
+    label: '消息类型',
+    width: 100,
+    render: (row) => {
+      return h(NTag, {
+        type: getTypeColor(row.type),
+        size: 'small'
+      }, { default: () => getTypeText(row.type) })
+    }
+  },
+  {
+    prop: 'channel',
+    label: '发送渠道',
+    width: 100,
+    render: (row) => {
+      return h(NTag, {
+        type: getChannelColor(row.channel),
+        size: 'small'
+      }, { default: () => getChannelText(row.channel) })
+    }
+  },
+  {
+    prop: 'status',
+    label: '发送状态',
+    width: 100,
+    render: (row) => {
+      return h(NTag, {
+        type: getStatusColor(row.status),
+        size: 'small'
+      }, { default: () => getStatusText(row.status) })
+    }
+  },
+  {
+    prop: 'receiverCount',
+    label: '接收人数',
+    width: 100
+  },
+  {
+    prop: 'readStatus',
+    label: '已读/未读',
+    width: 120,
+    render: (row) => `${row.readCount}/${row.unreadCount}`
+  },
+  {
+    prop: 'createTime',
+    label: '发送时间',
+    width: 180
+  },
+  {
+    prop: 'action',
+    label: '操作',
+    width: 80,
+    fixed: 'right',
+    _slot: 'action'
+  }
+]
+
+const receiverColumns = [
+  { title: '用户名', key: 'userName' },
+  { title: '组织', key: 'orgName' },
+  {
+    title: '阅读状态',
+    key: 'readFlag',
+    width: 100,
+    render: (row) => h(NTag, {
+      type: row.readFlag === 1 ? 'success' : 'error',
+      size: 'small'
+    }, { default: () => row.readFlag === 1 ? '已读' : '未读' })
+  },
+  { title: '阅读时间', key: 'readTime', width: 180 }
+]
 
 const channelOptions = [
   { label: '站内信', value: 'WEB' },
@@ -260,110 +331,18 @@ const typeOptions = [
   { label: '自定义', value: 'CUSTOM' }
 ]
 
-const statusOptions = [
-  { label: '草稿', value: 0 },
-  { label: '已发送', value: 1 },
-  { label: '发送失败', value: 2 }
-]
-
-const columns = [
-  {
-    title: '消息标题',
-    key: 'title',
-    ellipsis: { tooltip: true }
-  },
-  {
-    title: '消息类型',
-    key: 'type',
-    width: 100,
-    render: (row) => {
-      return h(NTag, {
-        type: getTypeColor(row.type),
-        size: 'small'
-      }, { default: () => getTypeText(row.type) })
-    }
-  },
-  {
-    title: '发送渠道',
-    key: 'channel',
-    width: 100,
-    render: (row) => {
-      return h(NTag, {
-        type: getChannelColor(row.channel),
-        size: 'small'
-      }, { default: () => getChannelText(row.channel) })
-    }
-  },
-  {
-    title: '发送状态',
-    key: 'status',
-    width: 100,
-    render: (row) => {
-      return h(NTag, {
-        type: getStatusColor(row.status),
-        size: 'small'
-      }, { default: () => getStatusText(row.status) })
-    }
-  },
-  {
-    title: '接收人数',
-    key: 'receiverCount',
-    width: 100
-  },
-  {
-    title: '已读/未读',
-    key: 'readStatus',
-    width: 120,
-    render: (row) => {
-      return `${row.readCount}/${row.unreadCount}`
-    }
-  },
-  {
-    title: '发送时间',
-    key: 'createTime',
-    width: 180
-  },
-  {
-    title: '操作',
-    key: 'action',
-    width: 100,
-    render: (row) => {
-      return h(NButton, {
-        size: 'small',
-        type: 'primary',
-        text: true,
-        onClick: () => handleViewDetail(row.id)
-      }, { default: () => '查看详情' })
-    }
+function handleBeforeSearch(params) {
+  const result = { ...params }
+  
+  if (params.timeRange && params.timeRange.length === 2) {
+    const [start, end] = params.timeRange
+    result.startTime = new Date(start).toISOString().slice(0, 19).replace('T', ' ')
+    result.endTime = new Date(end).toISOString().slice(0, 19).replace('T', ' ')
+    delete result.timeRange
   }
-]
-
-const receiverColumns = [
-  {
-    title: '用户名',
-    key: 'userName'
-  },
-  {
-    title: '组织',
-    key: 'orgName'
-  },
-  {
-    title: '阅读状态',
-    key: 'readFlag',
-    width: 100,
-    render: (row) => {
-      return h(NTag, {
-        type: row.readFlag === 1 ? 'success' : 'error',
-        size: 'small'
-      }, { default: () => row.readFlag === 1 ? '已读' : '未读' })
-    }
-  },
-  {
-    title: '阅读时间',
-    key: 'readTime',
-    width: 180
-  }
-]
+  
+  return result
+}
 
 async function loadUsers(keyword = '') {
   try {
@@ -373,7 +352,7 @@ async function loadUsers(keyword = '') {
       pageSize: 50,
       realName: keyword || undefined
     }
-    const res = await request.get('/system/user/page', params)
+    const res = await request.post('/api/system/user/page', params)
     if (res.code === 200 && res.data) {
       userOptions.value = (res.data.records || []).map(user => ({
         label: user.realName || user.userName,
@@ -391,51 +370,17 @@ function handleUserSearch(keyword) {
   loadUsers(keyword)
 }
 
-async function loadData() {
-  try {
-    loading.value = true
-    const params = {
-      type: queryParams.value.type,
-      channel: queryParams.value.channel,
-      status: queryParams.value.status,
-      keyword: queryParams.value.keyword
-    }
-
-    if (queryParams.value.timeRange && queryParams.value.timeRange.length === 2) {
-      const [start, end] = queryParams.value.timeRange
-      params.startTime = new Date(start).toISOString().slice(0, 19).replace('T', ' ')
-      params.endTime = new Date(end).toISOString().slice(0, 19).replace('T', ' ')
-    }
-
-    const res = await messageApi.getMessageManagePage(
-      params,
-      pagination.value.page,
-      pagination.value.pageSize
-    )
-
-    if (res.code === 200 && res.data) {
-      dataSource.value = res.data.records || []
-      pagination.value.itemCount = res.data.total || 0
-    }
-  } catch (error) {
-    console.error('加载消息列表失败:', error)
-    window.$message.error('加载数据失败')
-  } finally {
-    loading.value = false
-  }
-}
-
 async function handleSend() {
   if (!sendForm.value.title || !sendForm.value.content) {
     window.$message.warning('请填写消息标题和内容')
     return
   }
-
+  
   if (sendForm.value.sendScope === 'USERS' && sendForm.value.userIds.length === 0) {
     window.$message.warning('请选择接收用户')
     return
   }
-
+  
   try {
     sending.value = true
     const res = await messageApi.sendMessage(sendForm.value)
@@ -443,7 +388,7 @@ async function handleSend() {
       window.$message.success('消息发送成功')
       showSendModal.value = false
       handleResetSendForm()
-      loadData()
+      crudRef.value?.refresh()
     } else {
       window.$message.error(res.msg || '发送失败')
     }
@@ -460,32 +405,16 @@ function handleResetSendForm() {
     channel: 'WEB',
     title: '',
     content: '',
+    templateCode: '',
     sendScope: 'USERS',
     userIds: [],
     type: 'SYSTEM'
   }
 }
 
-function handleSearch() {
-  pagination.value.page = 1
-  loadData()
-}
-
-function handleReset() {
-  queryParams.value = {
-    type: null,
-    channel: null,
-    status: null,
-    timeRange: null,
-    keyword: null
-  }
-  pagination.value.page = 1
-  loadData()
-}
-
-async function handleViewDetail(messageId) {
+async function handleViewDetail(row) {
   try {
-    const res = await messageApi.getMessageManageDetail(messageId)
+    const res = await messageApi.getMessageManageDetail(row.id)
     if (res.code === 200) {
       currentDetail.value = res.data
       showDetail.value = true
@@ -497,70 +426,43 @@ async function handleViewDetail(messageId) {
 }
 
 function getTypeText(type) {
-  const map = {
-    'SYSTEM': '系统消息',
-    'SMS': '短信',
-    'EMAIL': '邮件',
-    'CUSTOM': '自定义'
-  }
+  const map = { 'SYSTEM': '系统消息', 'SMS': '短信', 'EMAIL': '邮件', 'CUSTOM': '自定义' }
   return map[type] || type
 }
 
 function getTypeColor(type) {
-  const map = {
-    'SYSTEM': 'info',
-    'SMS': 'warning',
-    'EMAIL': 'success',
-    'CUSTOM': 'default'
-  }
+  const map = { 'SYSTEM': 'info', 'SMS': 'warning', 'EMAIL': 'success', 'CUSTOM': 'default' }
   return map[type] || 'default'
 }
 
 function getChannelText(channel) {
-  const map = {
-    'WEB': '站内信',
-    'SMS': '短信',
-    'EMAIL': '邮件',
-    'PUSH': '推送'
-  }
+  const map = { 'WEB': '站内信', 'SMS': '短信', 'EMAIL': '邮件', 'PUSH': '推送' }
   return map[channel] || channel
 }
 
 function getChannelColor(channel) {
-  const map = {
-    'WEB': 'default',
-    'SMS': 'warning',
-    'EMAIL': 'success',
-    'PUSH': 'info'
-  }
+  const map = { 'WEB': 'default', 'SMS': 'warning', 'EMAIL': 'success', 'PUSH': 'info' }
   return map[channel] || 'default'
 }
 
 function getStatusText(status) {
-  const map = {
-    0: '草稿',
-    1: '已发送',
-    2: '发送失败'
-  }
-  return map[status] || '未发送'
+  const map = { 0: '草稿', 1: '已发送', 2: '发送失败' }
+  return map[status] || '未知'
 }
 
 function getStatusColor(status) {
-  const map = {
-    0: 'default',
-    1: 'success',
-    2: 'error'
-  }
+  const map = { 0: 'default', 1: 'success', 2: 'error' }
   return map[status] || 'default'
 }
 
-onMounted(() => {
-  loadUsers()
-  loadData()
-})
+loadUsers()
 </script>
 
 <style scoped>
+.message-manage-page {
+  height: 100%;
+}
+
 .message-content {
   line-height: 1.8;
   color: #333;

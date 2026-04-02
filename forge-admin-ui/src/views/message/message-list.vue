@@ -1,48 +1,31 @@
 <template>
-  <div class="p-16">
-    <div class="bg-white rounded p-16">
-      <h2 class="text-18 font-bold mb-16">我的消息</h2>
-      <!-- 搜索栏 -->
-      <n-space class="mb-16" :vertical="false">
-        <n-select
-            v-model:value="queryParams.type"
-            placeholder="消息类型"
-            clearable
-            style="width: 150px"
-            :options="messageTypeOptions"
-        />
-        <n-select
-            v-model:value="queryParams.readFlag"
-            placeholder="阅读状态"
-            clearable
-            style="width: 150px"
-            :options="readFlagOptions"
-        />
-        <n-input
-            v-model:value="queryParams.keyword"
-            placeholder="搜索标题或内容"
-            clearable
-            style="width: 250px"
-        >
-          <template #prefix>
-            <i class="i-material-symbols:search" />
-          </template>
-        </n-input>
-        <n-button type="primary" @click="handleSearch">
-          <template #icon>
-            <i class="i-material-symbols:search" />
-          </template>
-          搜索
-        </n-button>
-        <n-button @click="handleReset">
-          <template #icon>
-            <i class="i-material-symbols:refresh" />
-          </template>
-          重置
-        </n-button>
+  <div class="message-list-page">
+    <AiCrudPage
+      ref="crudRef"
+      :api-config="apiConfig"
+      :search-schema="searchSchema"
+      :columns="tableColumns"
+      row-key="id"
+      :hide-add="true"
+      :hide-batch-delete="true"
+    >
+      <!-- 自定义操作列 -->
+      <template #table-action="{ row }">
+        <div class="flex gap-8">
+          <a class="text-primary cursor-pointer" @click="handleViewDetail(row)">
+            查看
+          </a>
+          <a v-if="row.readFlag === 0" class="text-primary cursor-pointer" @click="handleMarkRead(row.id)">
+            标记已读
+          </a>
+        </div>
+      </template>
+      
+      <!-- 自定义顶部工具栏 -->
+      <template #toolbar-left>
         <n-button
-            v-if="selectedRowKeys.length > 0"
-            @click="handleBatchMarkRead"
+          v-if="selectedRowKeys.length > 0"
+          @click="handleBatchMarkRead"
         >
           <template #icon>
             <i class="i-material-symbols:mark-email-read-outline" />
@@ -55,18 +38,8 @@
           </template>
           全部已读
         </n-button>
-      </n-space>
-
-      <!-- 消息列表 -->
-      <n-data-table
-          :columns="columns"
-          :data="dataSource"
-          :loading="loading"
-          :pagination="pagination"
-          :row-key="row => row.id"
-          @update:checked-row-keys="handleCheck"
-      />
-    </div>
+      </template>
+    </AiCrudPage>
 
     <!-- 消息详情抽屉 -->
     <Teleport to="body">
@@ -74,94 +47,97 @@
         v-model:show="showDetail"
         :width="600"
         placement="right"
-    >
-      <n-drawer-content :title="currentMessage?.title" closable>
-        <div class="message-detail">
-          <div class="detail-meta">
-            <n-space>
-              <n-tag :type="getMessageTypeColor(currentMessage?.type)" size="small">
-                {{ getMessageTypeText(currentMessage?.type) }}
-              </n-tag>
-              <n-tag v-if="currentMessage?.readFlag === 0" type="error" size="small">
-                未读
-              </n-tag>
-              <n-tag v-else type="success" size="small">
-                已读
-              </n-tag>
-            </n-space>
-            <div class="text-gray-500 text-12 mt-8">
-              {{ currentMessage?.createTime }}
+      >
+        <n-drawer-content :title="currentMessage?.title" closable>
+          <div class="message-detail">
+            <div class="detail-meta">
+              <n-space>
+                <n-tag :type="getMessageTypeColor(currentMessage?.type)" size="small">
+                  {{ getMessageTypeText(currentMessage?.type) }}
+                </n-tag>
+                <n-tag v-if="currentMessage?.readFlag === 0" type="error" size="small">
+                  未读
+                </n-tag>
+                <n-tag v-else type="success" size="small">
+                  已读
+                </n-tag>
+              </n-space>
+              <div class="text-gray-500 text-12 mt-8">
+                {{ currentMessage?.createTime }}
+              </div>
             </div>
+            <n-divider />
+            <div class="message-content" v-html="currentMessage?.content"></div>
           </div>
-          <n-divider />
-          <div class="message-content" v-html="currentMessage?.content"></div>
-        </div>
-      </n-drawer-content>
-    </n-drawer>
+        </n-drawer-content>
+      </n-drawer>
     </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, h, onMounted } from 'vue'
-import { NTag, NButton } from 'naive-ui'
+import { ref, h } from 'vue'
+import { NTag } from 'naive-ui'
+import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
 defineOptions({ name: 'MessageList' })
 
-const loading = ref(false)
-const dataSource = ref([])
-const selectedRowKeys = ref([])
+const crudRef = ref(null)
 const showDetail = ref(false)
 const currentMessage = ref(null)
+const selectedRowKeys = ref([])
 
-// 查询参数
-const queryParams = ref({
-  type: null,
-  readFlag: null,
-  keyword: null
-})
+const apiConfig = {
+  list: 'post@/api/message/page'
+}
 
-// 分页配置
-const pagination = ref({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  showSizePicker: true,
-  pageSizes: [10, 20, 50, 100],
-  onChange: (page) => {
-    pagination.value.page = page
-    loadData()
+const searchSchema = [
+  {
+    field: 'type',
+    label: '消息类型',
+    type: 'select',
+    props: {
+      placeholder: '请选择消息类型',
+      clearable: true,
+      options: [
+        { label: '系统消息', value: 'SYSTEM' },
+        { label: '短信', value: 'SMS' },
+        { label: '邮件', value: 'EMAIL' },
+        { label: '自定义', value: 'CUSTOM' }
+      ]
+    }
   },
-  onUpdatePageSize: (pageSize) => {
-    pagination.value.pageSize = pageSize
-    pagination.value.page = 1
-    loadData()
+  {
+    field: 'readFlag',
+    label: '阅读状态',
+    type: 'select',
+    props: {
+      placeholder: '请选择阅读状态',
+      clearable: true,
+      options: [
+        { label: '未读', value: 0 },
+        { label: '已读', value: 1 }
+      ]
+    }
+  },
+  {
+    field: 'keyword',
+    label: '关键词',
+    type: 'input',
+    props: {
+      placeholder: '搜索标题或内容'
+    }
   }
-})
-
-// 消息类型选项
-const messageTypeOptions = [
-  { label: '系统消息', value: 'SYSTEM' },
-  { label: '短信', value: 'SMS' },
-  { label: '邮件', value: 'EMAIL' },
-  { label: '自定义', value: 'CUSTOM' }
 ]
 
-// 阅读状态选项
-const readFlagOptions = [
-  { label: '未读', value: 0 },
-  { label: '已读', value: 1 }
-]
-
-// 表格列配置
-const columns = [
+const tableColumns = [
   {
     type: 'selection'
   },
   {
-    title: '消息标题',
-    key: 'title',
+    prop: 'title',
+    label: '消息标题',
     ellipsis: { tooltip: true },
     render: (row) => {
       return h('div', { class: 'flex items-center' }, [
@@ -177,8 +153,8 @@ const columns = [
     }
   },
   {
-    title: '消息类型',
-    key: 'type',
+    prop: 'type',
+    label: '消息类型',
     width: 100,
     render: (row) => {
       return h(NTag, {
@@ -188,8 +164,8 @@ const columns = [
     }
   },
   {
-    title: '状态',
-    key: 'readFlag',
+    prop: 'readFlag',
+    label: '状态',
     width: 80,
     render: (row) => {
       return h(NTag, {
@@ -199,86 +175,28 @@ const columns = [
     }
   },
   {
-    title: '接收时间',
-    key: 'createTime',
+    prop: 'createTime',
+    label: '接收时间',
     width: 180
   },
   {
-    title: '操作',
-    key: 'action',
+    prop: 'action',
+    label: '操作',
     width: 120,
-    render: (row) => {
-      return h('div', { class: 'flex gap-8' }, [
-        h(NButton, {
-          size: 'small',
-          type: 'primary',
-          text: true,
-          onClick: () => handleViewDetail(row)
-        }, { default: () => '查看' }),
-        row.readFlag === 0 ? h(NButton, {
-          size: 'small',
-          type: 'info',
-          text: true,
-          onClick: () => handleMarkRead(row.id)
-        }, { default: () => '标记已读' }) : null
-      ])
-    }
+    fixed: 'right',
+    _slot: 'action'
   }
 ]
 
-// 加载数据
-async function loadData() {
-  try {
-    loading.value = true
-    const res = await request.post(
-      `/api/message/page?pageNum=${pagination.value.page}&pageSize=${pagination.value.pageSize}`,
-      queryParams.value
-    )
-    if (res.code === 200 && res.data) {
-      dataSource.value = res.data.records || res.data.list || []
-      pagination.value.itemCount = res.data.total || 0
-    }
-  } catch (error) {
-    console.error('加载消息列表失败:', error)
-    window.$message.error('加载数据失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 搜索
-function handleSearch() {
-  pagination.value.page = 1
-  loadData()
-}
-
-// 重置
-function handleReset() {
-  queryParams.value = {
-    type: null,
-    readFlag: null,
-    keyword: null
-  }
-  pagination.value.page = 1
-  loadData()
-}
-
-// 选中行
-function handleCheck(keys) {
-  selectedRowKeys.value = keys
-}
-
-// 查看详情
 async function handleViewDetail(row) {
   try {
     const res = await request.get(`/api/message/${row.id}`)
     if (res.code === 200) {
       currentMessage.value = res.data
       showDetail.value = true
-      // 如果未读,标记为已读
       if (row.readFlag === 0) {
         await request.post(`/api/message/${row.id}/read`)
-        loadData()
+        crudRef.value?.refresh()
       }
     }
   } catch (error) {
@@ -287,18 +205,16 @@ async function handleViewDetail(row) {
   }
 }
 
-// 标记已读
 async function handleMarkRead(id) {
   try {
     await request.post(`/api/message/${id}/read`)
     window.$message.success('已标记为已读')
-    loadData()
+    crudRef.value?.refresh()
   } catch (error) {
     window.$message.error('操作失败')
   }
 }
 
-// 批量标记已读
 async function handleBatchMarkRead() {
   if (selectedRowKeys.value.length === 0) {
     window.$message.warning('请选择要操作的消息')
@@ -308,13 +224,12 @@ async function handleBatchMarkRead() {
     await request.post('/api/message/read/batch', selectedRowKeys.value)
     window.$message.success('已批量标记为已读')
     selectedRowKeys.value = []
-    loadData()
+    crudRef.value?.refresh()
   } catch (error) {
     window.$message.error('操作失败')
   }
 }
 
-// 全部标记已读
 async function handleMarkAllRead() {
   window.$dialog.warning({
     title: '确认',
@@ -325,7 +240,7 @@ async function handleMarkAllRead() {
       try {
         await request.post('/api/message/read/all')
         window.$message.success('已全部标记为已读')
-        loadData()
+        crudRef.value?.refresh()
       } catch (error) {
         window.$message.error('操作失败')
       }
@@ -333,7 +248,6 @@ async function handleMarkAllRead() {
   })
 }
 
-// 获取消息类型文本
 function getMessageTypeText(type) {
   const map = {
     'SYSTEM': '系统消息',
@@ -344,7 +258,6 @@ function getMessageTypeText(type) {
   return map[type] || type
 }
 
-// 获取消息类型颜色
 function getMessageTypeColor(type) {
   const map = {
     'SYSTEM': 'info',
@@ -354,13 +267,13 @@ function getMessageTypeColor(type) {
   }
   return map[type] || 'default'
 }
-
-onMounted(() => {
-  loadData()
-})
 </script>
 
 <style scoped>
+.message-list-page {
+  height: 100%;
+}
+
 .message-detail {
   padding: 16px 0;
 }
