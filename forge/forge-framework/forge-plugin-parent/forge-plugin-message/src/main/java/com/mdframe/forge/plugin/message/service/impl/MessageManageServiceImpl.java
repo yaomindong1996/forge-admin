@@ -15,17 +15,12 @@ import com.mdframe.forge.plugin.message.mapper.SysMessageMapper;
 import com.mdframe.forge.plugin.message.mapper.SysMessageReceiverMapper;
 import com.mdframe.forge.plugin.message.mapper.SysMessageSendRecordMapper;
 import com.mdframe.forge.plugin.message.service.MessageManageService;
-import com.mdframe.forge.plugin.system.entity.SysOrg;
-import com.mdframe.forge.plugin.system.entity.SysUser;
-import com.mdframe.forge.plugin.system.service.ISysOrgService;
-import com.mdframe.forge.plugin.system.service.ISysUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -35,20 +30,14 @@ public class MessageManageServiceImpl implements MessageManageService {
     private final SysMessageMapper messageMapper;
     private final SysMessageReceiverMapper receiverMapper;
     private final SysMessageSendRecordMapper sendRecordMapper;
-    private final ISysUserService userService;
-    private final ISysOrgService orgService;
 
     public MessageManageServiceImpl(
             SysMessageMapper messageMapper,
             SysMessageReceiverMapper receiverMapper,
-            SysMessageSendRecordMapper sendRecordMapper,
-            ISysUserService userService,
-            ISysOrgService orgService) {
+            SysMessageSendRecordMapper sendRecordMapper) {
         this.messageMapper = messageMapper;
         this.receiverMapper = receiverMapper;
         this.sendRecordMapper = sendRecordMapper;
-        this.userService = userService;
-        this.orgService = orgService;
     }
 
     @Override
@@ -128,50 +117,7 @@ public class MessageManageServiceImpl implements MessageManageService {
                 .eq(SysMessageSendRecord::getMessageId, messageId)
         );
         
-        List<SysMessageReceiver> receivers = receiverMapper.selectList(
-            new LambdaQueryWrapper<SysMessageReceiver>()
-                .eq(SysMessageReceiver::getMessageId, messageId)
-        );
-        
-        List<Long> userIds = receivers.stream()
-            .map(SysMessageReceiver::getUserId)
-            .distinct()
-            .collect(Collectors.toList());
-        
-        Map<Long, String> userNameMap = Map.of();
-        Map<Long, String> orgNameMap = Map.of();
-        
-        if (!userIds.isEmpty()) {
-            List<SysUser> users = userService.lambdaQuery()
-                .in(SysUser::getId, userIds)
-                .list();
-            userNameMap = users.stream()
-                .collect(Collectors.toMap(SysUser::getId, SysUser::getUserName));
-            
-            List<Long> orgIds = users.stream()
-                .map(SysUser::getOrgId)
-                .filter(id -> id != null)
-                .distinct()
-                .collect(Collectors.toList());
-            
-            if (!orgIds.isEmpty()) {
-                List<SysOrg> orgs = orgService.lambdaQuery()
-                    .in(SysOrg::getId, orgIds)
-                    .list();
-                orgNameMap = orgs.stream()
-                    .collect(Collectors.toMap(SysOrg::getId, SysOrg::getOrgName));
-            }
-        }
-        
-        List<ReceiverVO> receiverVos = receivers.stream().map(r -> {
-            ReceiverVO vo = new ReceiverVO();
-            vo.setUserId(r.getUserId());
-            vo.setUserName(userNameMap.getOrDefault(r.getUserId(), ""));
-            vo.setOrgName(orgNameMap.getOrDefault(r.getOrgId(), ""));
-            vo.setReadFlag(r.getReadFlag());
-            vo.setReadTime(r.getReadTime());
-            return vo;
-        }).collect(Collectors.toList());
+        List<ReceiverVO> receiverVos = receiverMapper.selectReceiversWithUserInfo(messageId);
         
         MessageDetailVO detailVO = new MessageDetailVO();
         detailVO.setMessage(message);
