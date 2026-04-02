@@ -55,6 +55,13 @@ export const manualRoutes = [
     component: () => import('@/views/message/template-list.vue'),
     meta: { title: '消息模板管理' },
   },
+  // 消息管理
+  {
+    name: 'MessageManage',
+    path: '/message/manage',
+    component: () => import('@/views/message/manage.vue'),
+    meta: { title: '消息管理' },
+  },
   // 个人中心
   {
     name: 'UserProfile',
