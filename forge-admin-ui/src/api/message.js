@@ -82,4 +82,18 @@ export default {
    */
   deleteTemplate: (id) => 
     request.delete(`/api/message/template/${id}`),
+  
+  // ========== 消息管理（管理员） ==========
+  
+  /**
+   * 分页查询所有消息列表（管理员）
+   */
+  getMessageManagePage: (query, pageNum, pageSize) => 
+    request.post(`/api/message/manage/page?pageNum=${pageNum}&pageSize=${pageSize}`, query),
+  
+  /**
+   * 查询消息详细信息（包含发送记录和接收人）
+   */
+  getMessageManageDetail: (messageId) => 
+    request.get(`/api/message/manage/${messageId}/detail`)
 }
