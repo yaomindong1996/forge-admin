@@ -8,6 +8,7 @@
       row-key="id"
       :hide-add="true"
       :hide-batch-delete="true"
+      @selection-change="handleSelectionChange"
     >
       <!-- 自定义操作列 -->
       <template #table-action="{ row }">
@@ -20,9 +21,9 @@
           </a>
         </div>
       </template>
-      
+
       <!-- 自定义顶部工具栏 -->
-      <template #toolbar-left>
+      <template #toolbar-end>
         <n-button
           v-if="selectedRowKeys.length > 0"
           @click="handleBatchMarkRead"
@@ -133,9 +134,6 @@ const searchSchema = [
 
 const tableColumns = [
   {
-    type: 'selection'
-  },
-  {
     prop: 'title',
     label: '消息标题',
     ellipsis: { tooltip: true },
@@ -187,6 +185,10 @@ const tableColumns = [
     _slot: 'action'
   }
 ]
+
+function handleSelectionChange(keys) {
+  selectedRowKeys.value = keys
+}
 
 async function handleViewDetail(row) {
   try {
