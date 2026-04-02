@@ -108,10 +108,13 @@
           <n-select
             v-model:value="sendForm.userIds"
             multiple
-            placeholder="选择接收用户"
+            placeholder="搜索并选择接收用户"
             :options="userOptions"
             filterable
+            clearable
+            remote
             :loading="userLoading"
+            @search="handleUserSearch"
           />
         </n-form-item>
         <n-form-item label="消息类型" path="type">
@@ -356,12 +359,17 @@ const receiverColumns = [
   }
 ]
 
-async function loadUsers() {
+async function loadUsers(keyword = '') {
   try {
     userLoading.value = true
-    const res = await request.get('/api/system/user/list')
+    const params = {
+      pageNum: 1,
+      pageSize: 50,
+      realName: keyword || undefined
+    }
+    const res = await request.post('/api/system/user/page', params)
     if (res.code === 200 && res.data) {
-      userOptions.value = res.data.map(user => ({
+      userOptions.value = (res.data.records || []).map(user => ({
         label: user.realName || user.userName,
         value: user.id
       }))
@@ -373,6 +381,10 @@ async function loadUsers() {
   }
 }
 
+function handleUserSearch(keyword) {
+  loadUsers(keyword)
+}
+
 async function loadData() {
   try {
     loading.value = true
@@ -382,19 +394,19 @@ async function loadData() {
       status: queryParams.value.status,
       keyword: queryParams.value.keyword
     }
-    
+
     if (queryParams.value.timeRange && queryParams.value.timeRange.length === 2) {
       const [start, end] = queryParams.value.timeRange
       params.startTime = new Date(start).toISOString().slice(0, 19).replace('T', ' ')
       params.endTime = new Date(end).toISOString().slice(0, 19).replace('T', ' ')
     }
-    
+
     const res = await messageApi.getMessageManagePage(
       params,
       pagination.value.page,
       pagination.value.pageSize
     )
-    
+
     if (res.code === 200 && res.data) {
       dataSource.value = res.data.records || []
       pagination.value.itemCount = res.data.total || 0
@@ -412,12 +424,12 @@ async function handleSend() {
     window.$message.warning('请填写消息标题和内容')
     return
   }
-  
+
   if (sendForm.value.sendScope === 'USERS' && sendForm.value.userIds.length === 0) {
     window.$message.warning('请选择接收用户')
     return
   }
-  
+
   try {
     sending.value = true
     const res = await messageApi.sendMessage(sendForm.value)
@@ -524,7 +536,7 @@ function getStatusText(status) {
     1: '已发送',
     2: '发送失败'
   }
-  return map[status] || '未知'
+  return map[status] || '未发送'
 }
 
 function getStatusColor(status) {
