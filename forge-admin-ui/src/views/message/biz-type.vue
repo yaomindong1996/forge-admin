@@ -6,7 +6,8 @@
       :search-schema="searchSchema"
       :columns="tableColumns"
       row-key="id"
-      :form-schema="formSchema"
+      :edit-schema="editSchema"
+      :load-detail-on-edit="true"
     />
   </div>
 </template>
@@ -23,7 +24,7 @@ const crudRef = ref(null)
 const apiConfig = {
   list: 'get@/api/message/bizType/page',
   detail: 'get@/api/message/bizType/{id}',
-  create: 'post@/api/message/bizType',
+  add: 'post@/api/message/bizType',
   update: 'put@/api/message/bizType',
   delete: 'delete@/api/message/bizType/{id}'
 }
@@ -115,96 +116,83 @@ const tableColumns = [
   }
 ]
 
-const formSchema = {
-  formConfig: {
-    labelWidth: '120px',
-    labelPlacement: 'left'
-  },
-  items: [
-    {
-      field: 'bizType',
-      label: '业务类型编码',
-      component: 'NInput',
-      required: true,
-      props: {
-        placeholder: '请输入业务类型编码（如：ORDER、APPROVAL）'
-      },
-      rules: [
-        { required: true, message: '请输入业务类型编码' }
-      ]
-    },
-    {
-      field: 'bizName',
-      label: '业务类型名称',
-      component: 'NInput',
-      required: true,
-      props: {
-        placeholder: '请输入业务类型名称'
-      },
-      rules: [
-        { required: true, message: '请输入业务类型名称' }
-      ]
-    },
-    {
-      field: 'jumpUrl',
-      label: '跳转URL模板',
-      component: 'NInput',
-      props: {
-        placeholder: '支持变量：${bizKey}、${messageId}，如：/order/detail?id=${bizKey}'
-      }
-    },
-    {
-      field: 'jumpTarget',
-      label: '跳转方式',
-      component: 'NSelect',
-      defaultValue: '_self',
-      props: {
-        options: [
-          { label: '当前页', value: '_self' },
-          { label: '新窗口', value: '_blank' }
-        ]
-      }
-    },
-    {
-      field: 'icon',
-      label: '图标',
-      component: 'NInput',
-      props: {
-        placeholder: '请输入图标名称'
-      }
-    },
-    {
-      field: 'sort',
-      label: '排序',
-      component: 'NInputNumber',
-      defaultValue: 0,
-      props: {
-        min: 0,
-        placeholder: '数值越小越靠前'
-      }
-    },
-    {
-      field: 'enabled',
-      label: '状态',
-      component: 'NSwitch',
-      defaultValue: 1,
-      props: {
-        checkedValue: 1,
-        uncheckedValue: 0
-      }
-    },
-    {
-      field: 'remark',
-      label: '备注',
-      component: 'NInput',
-      props: {
-        type: 'textarea',
-        placeholder: '请输入备注说明',
-        rows: 3
-      }
+const editSchema = [
+  {
+    field: 'bizType',
+    label: '业务类型编码',
+    type: 'input',
+    rules: [{ required: true, message: '请输入业务类型编码', trigger: 'blur' }],
+    props: {
+      placeholder: '请输入业务类型编码（如：ORDER、APPROVAL）'
     }
-  ]
-}
+  },
+  {
+    field: 'bizName',
+    label: '业务类型名称',
+    type: 'input',
+    rules: [{ required: true, message: '请输入业务类型名称', trigger: 'blur' }],
+    props: {
+      placeholder: '请输入业务类型名称'
+    }
+  },
+  {
+    field: 'jumpUrl',
+    label: '跳转URL模板',
+    type: 'input',
+    props: {
+      placeholder: '支持变量：${bizKey}、${messageId}，如：/order/detail?id=${bizKey}'
+    }
+  },
+  {
+    field: 'jumpTarget',
+    label: '跳转方式',
+    type: 'select',
+    defaultValue: '_self',
+    props: {
+      options: [
+        { label: '当前页', value: '_self' },
+        { label: '新窗口', value: '_blank' }
+      ]
+    }
+  },
+  {
+    field: 'icon',
+    label: '图标',
+    type: 'input',
+    props: {
+      placeholder: '请输入图标名称'
+    }
+  },
+  {
+    field: 'sort',
+    label: '排序',
+    type: 'input-number',
+    defaultValue: 0,
+    props: {
+      min: 0,
+      placeholder: '数值越小越靠前'
+    }
+  },
+  {
+    field: 'enabled',
+    label: '状态',
+    type: 'switch',
+    defaultValue: 1,
+    props: {
+      checkedValue: 1,
+      uncheckedValue: 0
+    }
+  },
+  {
+    field: 'remark',
+    label: '备注',
+    type: 'textarea',
+    props: {
+      placeholder: '请输入备注说明',
+      rows: 3
+    }
+  }
+]
 </script>
 
 <style scoped>
