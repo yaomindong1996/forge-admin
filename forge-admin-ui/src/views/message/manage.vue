@@ -1,64 +1,6 @@
 <template>
   <div class="p-16">
     <div class="bg-white rounded p-16">
-      <!-- 消息发送测试面板 -->
-      <n-card title="消息发送测试" class="mb-16">
-        <n-form ref="sendFormRef" :model="sendForm" label-width="100">
-          <n-form-item label="发送渠道" path="channel">
-            <n-select
-              v-model:value="sendForm.channel"
-              placeholder="选择发送渠道"
-              :options="channelOptions"
-            />
-          </n-form-item>
-          <n-form-item label="消息标题" path="title">
-            <n-input
-              v-model:value="sendForm.title"
-              placeholder="请输入消息标题"
-            />
-          </n-form-item>
-          <n-form-item label="消息内容" path="content">
-            <n-input
-              v-model:value="sendForm.content"
-              type="textarea"
-              placeholder="请输入消息内容"
-              :rows="4"
-            />
-          </n-form-item>
-          <n-form-item label="发送范围" path="sendScope">
-            <n-select
-              v-model:value="sendForm.sendScope"
-              placeholder="选择发送范围"
-              :options="scopeOptions"
-            />
-          </n-form-item>
-          <n-form-item v-if="sendForm.sendScope === 'USERS'" label="指定用户" path="userIds">
-            <n-select
-              v-model:value="sendForm.userIds"
-              multiple
-              placeholder="选择接收用户"
-              :options="userOptions"
-              filterable
-            />
-          </n-form-item>
-          <n-form-item label="消息类型" path="type">
-            <n-select
-              v-model:value="sendForm.type"
-              placeholder="选择消息类型"
-              :options="typeOptions"
-            />
-          </n-form-item>
-          <n-space>
-            <n-button type="primary" @click="handleSend" :loading="sending">
-              发送测试消息
-            </n-button>
-            <n-button @click="handleResetSendForm">
-              重置
-            </n-button>
-          </n-space>
-        </n-form>
-      </n-card>
-
       <!-- 消息监控列表 -->
       <n-card title="消息监控">
         <!-- 搜索栏 -->
@@ -112,6 +54,12 @@
             </template>
             重置
           </n-button>
+          <n-button type="primary" @click="showSendModal = true">
+            <template #icon>
+              <i class="i-material-symbols:send" />
+            </template>
+            发送测试消息
+          </n-button>
         </n-space>
 
         <!-- 消息列表 -->
@@ -124,6 +72,65 @@
         />
       </n-card>
     </div>
+
+    <!-- 消息发送测试弹窗 -->
+    <n-modal v-model:show="showSendModal" preset="card" title="消息发送测试" style="width: 600px">
+      <n-form ref="sendFormRef" :model="sendForm" label-width="100">
+        <n-form-item label="发送渠道" path="channel">
+          <n-select
+            v-model:value="sendForm.channel"
+            placeholder="选择发送渠道"
+            :options="channelOptions"
+          />
+        </n-form-item>
+        <n-form-item label="消息标题" path="title">
+          <n-input
+            v-model:value="sendForm.title"
+            placeholder="请输入消息标题"
+          />
+        </n-form-item>
+        <n-form-item label="消息内容" path="content">
+          <n-input
+            v-model:value="sendForm.content"
+            type="textarea"
+            placeholder="请输入消息内容"
+            :rows="4"
+          />
+        </n-form-item>
+        <n-form-item label="发送范围" path="sendScope">
+          <n-select
+            v-model:value="sendForm.sendScope"
+            placeholder="选择发送范围"
+            :options="scopeOptions"
+          />
+        </n-form-item>
+        <n-form-item v-if="sendForm.sendScope === 'USERS'" label="指定用户" path="userIds">
+          <n-select
+            v-model:value="sendForm.userIds"
+            multiple
+            placeholder="选择接收用户"
+            :options="userOptions"
+            filterable
+            :loading="userLoading"
+          />
+        </n-form-item>
+        <n-form-item label="消息类型" path="type">
+          <n-select
+            v-model:value="sendForm.type"
+            placeholder="选择消息类型"
+            :options="typeOptions"
+          />
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showSendModal = false">取消</n-button>
+          <n-button type="primary" @click="handleSend" :loading="sending">
+            发送
+          </n-button>
+        </n-space>
+      </template>
+    </n-modal>
 
     <!-- 消息详情弹窗 -->
     <n-modal v-model:show="showDetail" preset="card" title="消息详情" style="width: 800px">
@@ -145,8 +152,8 @@
           {{ currentDetail?.message?.createTime }}
         </n-descriptions-item>
         <n-descriptions-item label="发送状态">
-          <n-tag :type="currentDetail?.sendRecord?.status === 1 ? 'success' : 'error'" size="small">
-            {{ currentDetail?.sendRecord?.status === 1 ? '成功' : '失败' }}
+          <n-tag :type="getStatusColor(currentDetail?.sendRecord?.status)" size="small">
+            {{ getStatusText(currentDetail?.sendRecord?.status) }}
           </n-tag>
         </n-descriptions-item>
         <n-descriptions-item label="接收人数">
@@ -186,8 +193,10 @@ defineOptions({ name: 'MessageManage' })
 
 const loading = ref(false)
 const sending = ref(false)
+const userLoading = ref(false)
 const dataSource = ref([])
 const showDetail = ref(false)
+const showSendModal = ref(false)
 const currentDetail = ref(null)
 const userOptions = ref([])
 
@@ -243,7 +252,8 @@ const typeOptions = [
 ]
 
 const statusOptions = [
-  { label: '发送成功', value: 1 },
+  { label: '草稿', value: 0 },
+  { label: '已发送', value: 1 },
   { label: '发送失败', value: 2 }
 ]
 
@@ -281,9 +291,9 @@ const columns = [
     width: 100,
     render: (row) => {
       return h(NTag, {
-        type: row.status === 1 ? 'success' : 'error',
+        type: getStatusColor(row.status),
         size: 'small'
-      }, { default: () => row.status === 1 ? '成功' : '失败' })
+      }, { default: () => getStatusText(row.status) })
     }
   },
   {
@@ -348,15 +358,18 @@ const receiverColumns = [
 
 async function loadUsers() {
   try {
-    const res = await request.get('/api/user/list')
+    userLoading.value = true
+    const res = await request.get('/api/system/user/list')
     if (res.code === 200 && res.data) {
       userOptions.value = res.data.map(user => ({
-        label: user.userName,
+        label: user.realName || user.userName,
         value: user.id
       }))
     }
   } catch (error) {
     console.error('加载用户列表失败:', error)
+  } finally {
+    userLoading.value = false
   }
 }
 
@@ -410,6 +423,7 @@ async function handleSend() {
     const res = await messageApi.sendMessage(sendForm.value)
     if (res.code === 200) {
       window.$message.success('消息发送成功')
+      showSendModal.value = false
       handleResetSendForm()
       loadData()
     } else {
@@ -502,6 +516,24 @@ function getChannelColor(channel) {
     'PUSH': 'info'
   }
   return map[channel] || 'default'
+}
+
+function getStatusText(status) {
+  const map = {
+    0: '草稿',
+    1: '已发送',
+    2: '发送失败'
+  }
+  return map[status] || '未知'
+}
+
+function getStatusColor(status) {
+  const map = {
+    0: 'default',
+    1: 'success',
+    2: 'error'
+  }
+  return map[status] || 'default'
 }
 
 onMounted(() => {
