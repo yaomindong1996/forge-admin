@@ -1,5 +1,6 @@
 package com.mdframe.forge.plugin.message.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -21,6 +22,8 @@ import com.mdframe.forge.plugin.message.mapper.SysMessageTemplateMapper;
 import com.mdframe.forge.plugin.message.service.MessageReceiverResolver;
 import com.mdframe.forge.plugin.message.service.MessageService;
 import com.mdframe.forge.plugin.message.service.SysMessageReceiverService;
+import com.mdframe.forge.plugin.system.entity.SysUser;
+import com.mdframe.forge.plugin.system.service.ISysUserService;
 import com.mdframe.forge.starter.message.channel.MessageChannel;
 import com.mdframe.forge.starter.message.sdk.MessageClient;
 import com.mdframe.forge.starter.message.service.MessageTemplateEngine;
@@ -48,6 +51,7 @@ public class MessageServiceImpl extends ServiceImpl<SysMessageMapper,SysMessage>
     private final MessageTemplateEngine templateEngine;
     private final MessageReceiverResolver receiverResolver;
     private final SysMessageReceiverService sysMessageReceiverService;
+    private final ISysUserService sysUserService;
 
     public MessageServiceImpl(SysMessageMapper messageMapper,
                               SysMessageReceiverMapper receiverMapper,
@@ -56,7 +60,8 @@ public class MessageServiceImpl extends ServiceImpl<SysMessageMapper,SysMessage>
                               MessageClient messageClient,
                               MessageTemplateEngine templateEngine,
                               MessageReceiverResolver receiverResolver,
-            SysMessageReceiverService sysMessageReceiverService) {
+            SysMessageReceiverService sysMessageReceiverService,
+            ISysUserService sysUserService) {
         this.messageMapper = messageMapper;
         this.receiverMapper = receiverMapper;
         this.recordMapper = recordMapper;
@@ -65,6 +70,7 @@ public class MessageServiceImpl extends ServiceImpl<SysMessageMapper,SysMessage>
         this.templateEngine = templateEngine;
         this.receiverResolver = receiverResolver;
         this.sysMessageReceiverService = sysMessageReceiverService;
+        this.sysUserService = sysUserService;
     }
 
     @Override
@@ -130,6 +136,8 @@ public class MessageServiceImpl extends ServiceImpl<SysMessageMapper,SysMessage>
         msg.setSendChannel(renderResult.channel);
         msg.setTemplateCode(req.getTemplateCode());
         msg.setTemplateParams(req.getParams());
+        msg.setBizType(req.getBizType());
+        msg.setBizKey(req.getBizKey());
         msg.setStatus(0); // 初始状态：发送中
         messageMapper.insert(msg);
         return msg;
@@ -197,7 +205,25 @@ public class MessageServiceImpl extends ServiceImpl<SysMessageMapper,SysMessage>
         sr.channel = renderResult.channel;
         sr.type = req.getType();
         // userIds留空，由渠道服务根据messageId查询接收人
-        
+        sr.messageId = msg.getId();
+        // 解析接收人
+        List<SysMessageReceiver> sysMessageReceivers = sysMessageReceiverService.lambdaQuery()
+                .eq(SysMessageReceiver::getMessageId, msg.getId()).list();
+        if (CollectionUtil.isEmpty(sysMessageReceivers)) {
+            MessageChannel.SendResult result = new MessageChannel.SendResult();
+            result.success = true;
+            result.msg = "发送成功";
+            return result;
+        }
+        List<Long> userIds = sysMessageReceivers.stream().map(SysMessageReceiver::getUserId)
+                .collect(Collectors.toList());
+        List<SysUser> sysUsers = sysUserService.lambdaQuery().in(SysUser::getId, userIds).list();
+        List<String> phoneList = sysUsers.stream().map(SysUser::getPhone).filter(Objects::nonNull)
+                .toList();
+        sr.setPhoneList(phoneList);
+        List<String> emilList = sysUsers.stream().map(SysUser::getEmail).filter(Objects::nonNull)
+                .toList();
+        sr.setEmailList(emilList);
         return messageClient.send(sr);
     }
     
@@ -295,40 +321,17 @@ public class MessageServiceImpl extends ServiceImpl<SysMessageMapper,SysMessage>
 
     @Override
     public IPage<MessageVO> pageUserMessages(Long userId, MessageQueryDTO query, Integer pageNum, Integer pageSize) {
-        Page<SysMessageReceiver> page = new Page<>(pageNum, pageSize);
+        Page<MessageVO> page = new Page<>(pageNum, pageSize);
         
-        LambdaQueryWrapper<SysMessageReceiver> wrapper = new LambdaQueryWrapper<SysMessageReceiver>()
-            .eq(SysMessageReceiver::getUserId, userId);
+        IPage<MessageVO> messagePage = receiverMapper.selectUserWebMessages(
+            page,
+            userId,
+            query.getReadFlag(),
+            query.getType(),
+            query.getKeyword()
+        );
         
-        if (query.getReadFlag() != null) {
-            wrapper.eq(SysMessageReceiver::getReadFlag, query.getReadFlag());
-        }
-        
-        wrapper.orderByDesc(SysMessageReceiver::getCreateTime);
-        
-        Page<SysMessageReceiver> receiverPage = sysMessageReceiverService.page(page, wrapper);
-        
-        // 转换为VO
-        List<MessageVO> vos = receiverPage.getRecords().stream().map(receiver -> {
-            SysMessage message = messageMapper.selectById(receiver.getMessageId());
-            MessageVO vo = new MessageVO();
-            if (message != null) {
-                vo.setId(message.getId());
-                vo.setTitle(message.getTitle());
-                vo.setContent(message.getContent());
-                vo.setType(message.getType());
-                vo.setSendChannel(message.getSendChannel());
-                vo.setCreateTime(message.getCreateTime());
-            }
-            vo.setReadFlag(receiver.getReadFlag());
-            vo.setReadTime(receiver.getReadTime());
-            return vo;
-        }).collect(Collectors.toList());
-        
-        Page<MessageVO> result = new Page<>(pageNum, pageSize);
-        result.setRecords(vos);
-        result.setTotal(receiverPage.getTotal());
-        return result;
+        return messagePage;
     }
 
     @Override

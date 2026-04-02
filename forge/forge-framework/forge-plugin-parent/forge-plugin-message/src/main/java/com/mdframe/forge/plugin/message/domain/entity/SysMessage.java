@@ -72,4 +72,14 @@ public class SysMessage extends TenantEntity {
      */
     @TableField(typeHandler = com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler.class)
     private java.util.Map<String, Object> templateParams;
+    
+    /**
+     * 业务类型（如：ORDER、APPROVAL、TASK等）
+     */
+    private String bizType;
+    
+    /**
+     * 业务主键（如：订单ID、流程实例ID等）
+     */
+    private String bizKey;
 }

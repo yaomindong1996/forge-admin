@@ -60,4 +60,14 @@ public class MessageSendRequestDTO {
      * 消息类型：SYSTEM/SMS/EMAIL/CUSTOM
      */
     private String type;
+    
+    /**
+     * 业务类型（如：ORDER、APPROVAL、TASK等）
+     */
+    private String bizType;
+    
+    /**
+     * 业务主键（如：订单ID、流程实例ID等）
+     */
+    private String bizKey;
 }
