@@ -67,7 +67,7 @@
           :columns="columns"
           :data="dataSource"
           :loading="loading"
-          :pagination="pagination"
+          :pagination="paginationConfig"
           :row-key="row => row.id"
         />
       </n-card>
@@ -95,6 +95,12 @@
             type="textarea"
             placeholder="请输入消息内容"
             :rows="4"
+          />
+        </n-form-item>
+        <n-form-item label="模版编码" path="templateCode">
+          <n-input
+              v-model:value="sendForm.templateCode"
+              placeholder="请输入模版编码"
           />
         </n-form-item>
         <n-form-item label="发送范围" path="sendScope">
@@ -220,22 +226,26 @@ const queryParams = ref({
   keyword: null
 })
 
-const pagination = ref({
+const pagination = reactive({
   page: 1,
   pageSize: 10,
   itemCount: 0,
   showSizePicker: true,
-  pageSizes: [10, 20, 50, 100],
+  pageSizes: [10, 20, 50, 100]
+})
+
+const paginationConfig = computed(() => ({
+  ...pagination,
   onChange: (page) => {
-    pagination.value.page = page
+    pagination.page = page
     loadData()
   },
   onUpdatePageSize: (pageSize) => {
-    pagination.value.pageSize = pageSize
-    pagination.value.page = 1
+    pagination.pageSize = pageSize
+    pagination.page = 1
     loadData()
   }
-})
+}))
 
 const channelOptions = [
   { label: '站内信', value: 'WEB' },
@@ -367,7 +377,7 @@ async function loadUsers(keyword = '') {
       pageSize: 50,
       realName: keyword || undefined
     }
-    const res = await request.post('/api/system/user/page', params)
+    const res = await request.get('/system/user/page', params)
     if (res.code === 200 && res.data) {
       userOptions.value = (res.data.records || []).map(user => ({
         label: user.realName || user.userName,
@@ -403,13 +413,13 @@ async function loadData() {
 
     const res = await messageApi.getMessageManagePage(
       params,
-      pagination.value.page,
-      pagination.value.pageSize
+      pagination.page,
+      pagination.pageSize
     )
 
     if (res.code === 200 && res.data) {
       dataSource.value = res.data.records || []
-      pagination.value.itemCount = res.data.total || 0
+      pagination.itemCount = res.data.total || 0
     }
   } catch (error) {
     console.error('加载消息列表失败:', error)
