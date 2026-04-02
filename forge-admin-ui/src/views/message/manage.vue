@@ -67,7 +67,7 @@
           :columns="columns"
           :data="dataSource"
           :loading="loading"
-          :pagination="paginationConfig"
+          :pagination="pagination"
           :row-key="row => row.id"
         />
       </n-card>
@@ -226,26 +226,22 @@ const queryParams = ref({
   keyword: null
 })
 
-const pagination = reactive({
+const pagination = ref({
   page: 1,
   pageSize: 10,
   itemCount: 0,
   showSizePicker: true,
-  pageSizes: [10, 20, 50, 100]
-})
-
-const paginationConfig = computed(() => ({
-  ...pagination,
+  pageSizes: [10, 20, 50, 100],
   onChange: (page) => {
-    pagination.page = page
+    pagination.value.page = page
     loadData()
   },
   onUpdatePageSize: (pageSize) => {
-    pagination.pageSize = pageSize
-    pagination.page = 1
+    pagination.value.pageSize = pageSize
+    pagination.value.page = 1
     loadData()
   }
-}))
+})
 
 const channelOptions = [
   { label: '站内信', value: 'WEB' },
@@ -413,13 +409,13 @@ async function loadData() {
 
     const res = await messageApi.getMessageManagePage(
       params,
-      pagination.page,
-      pagination.pageSize
+      pagination.value.page,
+      pagination.value.pageSize
     )
 
     if (res.code === 200 && res.data) {
       dataSource.value = res.data.records || []
-      pagination.itemCount = res.data.total || 0
+      pagination.value.itemCount = res.data.total || 0
     }
   } catch (error) {
     console.error('加载消息列表失败:', error)
