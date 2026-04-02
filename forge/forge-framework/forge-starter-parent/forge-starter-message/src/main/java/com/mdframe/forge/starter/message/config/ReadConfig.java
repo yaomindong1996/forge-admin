@@ -175,9 +175,6 @@ public class ReadConfig implements SmsReadConfig {
                     if (tencentMap.containsKey("territory")) {
                         tencentConfig.setTerritory(String.valueOf(tencentMap.get("territory")));
                     }
-                    if (tencentMap.containsKey("codeUrl")) {
-                        tencentConfig.setCodeUrl(String.valueOf(tencentMap.get("codeUrl")));
-                    }
                     if (tencentMap.containsKey("connTimeout")) {
                         tencentConfig.setConnTimeout(Integer.valueOf(String.valueOf(tencentMap.get("connTimeout"))));
                     }

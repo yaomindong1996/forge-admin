@@ -74,6 +74,12 @@
             <artifactId>forge-starter-social</artifactId>
         </dependency>
         
+        <!-- 消息通知 -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-message</artifactId>
+        </dependency>
+        
     </dependencies>
     
 

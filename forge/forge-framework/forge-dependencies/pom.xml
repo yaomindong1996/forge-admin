@@ -272,6 +272,18 @@
                 <version>${uid-generator.version}</version>
             </dependency>
             
+            <!-- SMS4J 短信和邮件 -->
+            <dependency>
+                <groupId>org.dromara.sms4j</groupId>
+                <artifactId>sms4j-spring-boot-starter</artifactId>
+                <version>${sms4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.dromara.sms4j</groupId>
+                <artifactId>sms4j-email-jakarta-core</artifactId>
+                <version>${sms4j.version}</version>
+            </dependency>
+            
             
             <!--starter-->
             <dependency>

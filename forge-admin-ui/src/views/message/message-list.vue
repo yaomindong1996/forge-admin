@@ -16,6 +16,9 @@
           <a class="text-primary cursor-pointer" @click="handleViewDetail(row)">
             查看
           </a>
+          <a v-if="row.bizType && row.bizKey" class="text-primary cursor-pointer" @click="handleJumpToBiz(row)">
+            查看详情
+          </a>
           <a v-if="row.readFlag === 0" class="text-primary cursor-pointer" @click="handleMarkRead(row.id)">
             标记已读
           </a>
@@ -69,6 +72,18 @@
             </div>
             <n-divider />
             <div class="message-content" v-html="currentMessage?.content"></div>
+            <n-divider v-if="currentMessage?.bizType && currentMessage?.bizKey" />
+            <div v-if="currentMessage?.bizType && currentMessage?.bizKey" class="biz-info">
+              <n-space align="center" justify="space-between">
+                <div>
+                  <span class="text-gray-500">关联业务：</span>
+                  <span>{{ getBizTypeName(currentMessage?.bizType) }} ({{ currentMessage?.bizKey }})</span>
+                </div>
+                <n-button type="primary" size="small" @click="handleJumpToBiz(currentMessage)">
+                  查看详情
+                </n-button>
+              </n-space>
+            </div>
           </div>
         </n-drawer-content>
       </n-drawer>
@@ -81,13 +96,17 @@ import { ref, h } from 'vue'
 import { NTag } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
+import { useRouter } from 'vue-router'
+import messageApi from '@/api/message'
 
 defineOptions({ name: 'MessageList' })
 
+const router = useRouter()
 const crudRef = ref(null)
 const showDetail = ref(false)
 const currentMessage = ref(null)
 const selectedRowKeys = ref([])
+const bizTypeOptions = ref([])
 
 const apiConfig = {
   list: 'post@/api/message/page'
@@ -269,6 +288,39 @@ function getMessageTypeColor(type) {
   }
   return map[type] || 'default'
 }
+
+async function loadBizTypes() {
+  try {
+    const res = await messageApi.getBizTypeListEnabled()
+    if (res.code === 200 && res.data) {
+      bizTypeOptions.value = res.data
+    }
+  } catch (error) {
+    console.error('加载业务类型失败:', error)
+  }
+}
+
+function getBizTypeName(bizType) {
+  const item = bizTypeOptions.value.find(opt => opt.bizType === bizType)
+  return item ? item.bizName : bizType
+}
+
+function handleJumpToBiz(message) {
+  const bizConfig = bizTypeOptions.value.find(opt => opt.bizType === message.bizType)
+  if (bizConfig && bizConfig.jumpUrl) {
+    let jumpUrl = bizConfig.jumpUrl
+    jumpUrl = jumpUrl.replace('${bizKey}', message.bizKey)
+    jumpUrl = jumpUrl.replace('${messageId}', message.id)
+    
+    if (bizConfig.jumpTarget === '_blank') {
+      window.open(jumpUrl, '_blank')
+    } else {
+      router.push(jumpUrl)
+    }
+  }
+}
+
+loadBizTypes()
 </script>
 
 <style scoped>
@@ -278,6 +330,12 @@ function getMessageTypeColor(type) {
 
 .message-detail {
   padding: 16px 0;
+}
+
+.biz-info {
+  padding: 16px;
+  background: #f5f7fa;
+  border-radius: 4px;
 }
 
 .detail-meta {

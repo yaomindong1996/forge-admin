@@ -81,6 +81,59 @@ CREATE TABLE `sys_message_template` (
     KEY `idx_enabled` (`enabled`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='消息模板表';
 
+
+-- 短信配置表
+CREATE TABLE IF NOT EXISTS `sys_sms_config` (
+                                                `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+                                                `config_id` varchar(64) DEFAULT NULL COMMENT '配置标识',
+    `supplier` varchar(32) NOT NULL COMMENT '厂商标识(alibaba/tencent/huawei等)',
+    `access_key_id` varchar(128) DEFAULT NULL COMMENT '访问密钥ID',
+    `access_key_secret` varchar(256) DEFAULT NULL COMMENT '访问密钥Secret',
+    `signature` varchar(64) DEFAULT NULL COMMENT '短信签名',
+    `template_id` varchar(64) DEFAULT NULL COMMENT '默认模板ID',
+    `weight` int DEFAULT 1 COMMENT '权重(负载均衡)',
+    `retry_interval` int DEFAULT 5 COMMENT '重试间隔(秒)',
+    `max_retries` int DEFAULT 0 COMMENT '最大重试次数',
+    `maximum` int DEFAULT NULL COMMENT '发送上限',
+    `extra_config` text COMMENT '额外配置(JSON格式)',
+    `daily_limit` int DEFAULT NULL COMMENT '每日发送上限',
+    `minute_limit` int DEFAULT NULL COMMENT '每分钟发送上限',
+    `status` tinyint DEFAULT 0 COMMENT '状态(0禁用 1启用)',
+    `tenant_id` bigint DEFAULT NULL COMMENT '租户ID',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `create_by` varchar(64) DEFAULT NULL COMMENT '创建人',
+    `update_by` varchar(64) DEFAULT NULL COMMENT '更新人',
+    `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+    PRIMARY KEY (`id`),
+    KEY `idx_tenant_status` (`tenant_id`, `status`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='短信配置表';
+
+-- 邮件配置表
+CREATE TABLE IF NOT EXISTS `sys_email_config` (
+                                                  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键',
+                                                  `config_id` varchar(64) DEFAULT NULL COMMENT '配置标识',
+    `smtp_server` varchar(128) NOT NULL COMMENT 'SMTP服务器地址',
+    `port` int DEFAULT 465 COMMENT '端口',
+    `username` varchar(128) DEFAULT NULL COMMENT '用户名',
+    `password` varchar(256) DEFAULT NULL COMMENT '密码/授权码',
+    `from_address` varchar(128) NOT NULL COMMENT '发件人地址',
+    `from_name` varchar(64) DEFAULT NULL COMMENT '发件人名称',
+    `is_ssl` tinyint DEFAULT 1 COMMENT '是否开启SSL',
+    `is_auth` tinyint DEFAULT 1 COMMENT '是否开启验证',
+    `retry_interval` int DEFAULT 5 COMMENT '重试间隔(秒)',
+    `max_retries` int DEFAULT 1 COMMENT '最大重试次数',
+    `status` tinyint DEFAULT 0 COMMENT '状态(0禁用 1启用)',
+    `tenant_id` bigint DEFAULT NULL COMMENT '租户ID',
+    `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `create_by` varchar(64) DEFAULT NULL COMMENT '创建人',
+    `update_by` varchar(64) DEFAULT NULL COMMENT '更新人',
+    `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+    PRIMARY KEY (`id`),
+    KEY `idx_tenant_status` (`tenant_id`, `status`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='邮件配置表';
+
 -- 初始化示例模板数据
 INSERT INTO sys_message_template (tenant_id, template_code, template_name, type, title_template, content_template, default_channel, remark) VALUES
 (000000, 'SYSTEM_NOTICE', '系统通知', 'SYSTEM', '系统通知', '尊敬的${userName}，${content}', 'WEB', '通用系统通知模板'),

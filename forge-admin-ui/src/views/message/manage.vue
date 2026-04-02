@@ -17,9 +17,9 @@
           详情
         </a>
       </template>
-      
+
       <!-- 自定义顶部工具栏 -->
-      <template #toolbar-left>
+      <template #toolbar-end>
         <n-button type="primary" @click="showSendModal = true">
           <template #icon>
             <i class="i-material-symbols:send" />
@@ -80,6 +80,20 @@
             :options="typeOptions"
           />
         </n-form-item>
+        <n-form-item label="业务类型" path="bizType">
+          <n-select
+            v-model:value="sendForm.bizType"
+            placeholder="选择业务类型（可选）"
+            :options="bizTypeOptions"
+            clearable
+          />
+        </n-form-item>
+        <n-form-item v-if="sendForm.bizType" label="业务主键" path="bizKey">
+          <n-input
+            v-model:value="sendForm.bizKey"
+            placeholder="请输入业务主键（如：订单ID、流程实例ID）"
+          />
+        </n-form-item>
       </n-form>
       <template #footer>
         <n-space justify="end">
@@ -127,6 +141,12 @@
         <n-descriptions-item v-if="currentDetail?.sendRecord?.errorMsg" label="错误信息" :span="2">
           <n-text type="error">{{ currentDetail?.sendRecord?.errorMsg }}</n-text>
         </n-descriptions-item>
+        <n-descriptions-item v-if="currentDetail?.message?.bizType" label="业务类型">
+          {{ getBizTypeName(currentDetail?.message?.bizType) }}
+        </n-descriptions-item>
+        <n-descriptions-item v-if="currentDetail?.message?.bizKey" label="业务主键">
+          {{ currentDetail?.message?.bizKey }}
+        </n-descriptions-item>
       </n-descriptions>
 
       <n-divider>消息内容</n-divider>
@@ -158,6 +178,7 @@ const userLoading = ref(false)
 const showDetail = ref(false)
 const currentDetail = ref(null)
 const userOptions = ref([])
+const bizTypeOptions = ref([])
 
 const sendForm = ref({
   channel: 'WEB',
@@ -166,7 +187,9 @@ const sendForm = ref({
   templateCode: '',
   sendScope: 'USERS',
   userIds: [],
-  type: 'SYSTEM'
+  type: 'SYSTEM',
+  bizType: null,
+  bizKey: ''
 })
 
 const apiConfig = {
@@ -333,14 +356,14 @@ const typeOptions = [
 
 function handleBeforeSearch(params) {
   const result = { ...params }
-  
+
   if (params.timeRange && params.timeRange.length === 2) {
     const [start, end] = params.timeRange
     result.startTime = new Date(start).toISOString().slice(0, 19).replace('T', ' ')
     result.endTime = new Date(end).toISOString().slice(0, 19).replace('T', ' ')
     delete result.timeRange
   }
-  
+
   return result
 }
 
@@ -352,7 +375,7 @@ async function loadUsers(keyword = '') {
       pageSize: 50,
       realName: keyword || undefined
     }
-    const res = await request.post('/api/system/user/page', params)
+    const res = await request.get('/system/user/page', params)
     if (res.code === 200 && res.data) {
       userOptions.value = (res.data.records || []).map(user => ({
         label: user.realName || user.userName,
@@ -375,12 +398,12 @@ async function handleSend() {
     window.$message.warning('请填写消息标题和内容')
     return
   }
-  
+
   if (sendForm.value.sendScope === 'USERS' && sendForm.value.userIds.length === 0) {
     window.$message.warning('请选择接收用户')
     return
   }
-  
+
   try {
     sending.value = true
     const res = await messageApi.sendMessage(sendForm.value)
@@ -408,8 +431,29 @@ function handleResetSendForm() {
     templateCode: '',
     sendScope: 'USERS',
     userIds: [],
-    type: 'SYSTEM'
+    type: 'SYSTEM',
+    bizType: null,
+    bizKey: ''
   }
+}
+
+async function loadBizTypes() {
+  try {
+    const res = await messageApi.getBizTypeListEnabled()
+    if (res.code === 200 && res.data) {
+      bizTypeOptions.value = res.data.map(item => ({
+        label: item.bizName,
+        value: item.bizType
+      }))
+    }
+  } catch (error) {
+    console.error('加载业务类型失败:', error)
+  }
+}
+
+function getBizTypeName(bizType) {
+  const item = bizTypeOptions.value.find(opt => opt.value === bizType)
+  return item ? item.label : bizType
 }
 
 async function handleViewDetail(row) {
@@ -456,6 +500,7 @@ function getStatusColor(status) {
 }
 
 loadUsers()
+loadBizTypes()
 </script>
 
 <style scoped>

@@ -62,6 +62,13 @@ export const manualRoutes = [
     component: () => import('@/views/message/manage.vue'),
     meta: { title: '消息管理' },
   },
+  // 消息业务类型管理
+  {
+    name: 'MessageBizType',
+    path: '/message/biz-type',
+    component: () => import('@/views/message/biz-type.vue'),
+    meta: { title: '消息业务类型管理' },
+  },
   // 个人中心
   {
     name: 'UserProfile',

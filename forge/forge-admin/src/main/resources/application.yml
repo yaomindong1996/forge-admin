@@ -1,7 +1,7 @@
 # 开发环境配置
 server:
   # 服务器的HTTP端口，默认为8080
-  port: 8080
+  port: 8580
   servlet:
     # 应用的访问路径
     context-path: /
@@ -97,3 +97,5 @@ sa-token:
     password: ${spring.data.redis.password}
     # 连接超时时间（毫秒）
     timeout: 10000
+sms:
+  config-type: interface
