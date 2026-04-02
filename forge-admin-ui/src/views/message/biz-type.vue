@@ -23,10 +23,10 @@ const crudRef = ref(null)
 
 const apiConfig = {
   list: 'get@/api/message/bizType/page',
-  detail: 'get@/api/message/bizType/{id}',
+  detail: 'get@/api/message/bizType/:id',
   add: 'post@/api/message/bizType',
   update: 'put@/api/message/bizType',
-  delete: 'delete@/api/message/bizType/{id}'
+  delete: 'delete@/api/message/bizType/:id'
 }
 
 const searchSchema = [
@@ -82,8 +82,8 @@ const tableColumns = [
     label: '跳转方式',
     width: 100,
     render: (row) => {
-      return h(NTag, { size: 'small' }, { 
-        default: () => row.jumpTarget === '_blank' ? '新窗口' : '当前页' 
+      return h(NTag, { size: 'small' }, {
+        default: () => row.jumpTarget === '_blank' ? '新窗口' : '当前页'
       })
     }
   },

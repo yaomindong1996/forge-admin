@@ -2,6 +2,9 @@ package com.mdframe.forge.plugin.message.controller;
 
 import com.mdframe.forge.plugin.message.domain.entity.SysMessageBizType;
 import com.mdframe.forge.plugin.message.service.MessageBizTypeService;
+import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
+import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
+import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +14,9 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/api/message/bizType")
+@ApiEncrypt
+@ApiDecrypt
+@ApiPermissionIgnore
 public class MessageBizTypeController {
     
     private final MessageBizTypeService messageBizTypeService;
