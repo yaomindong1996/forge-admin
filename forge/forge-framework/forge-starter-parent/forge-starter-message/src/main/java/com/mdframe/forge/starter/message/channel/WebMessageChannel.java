@@ -4,7 +4,9 @@ import java.util.Map;
 
 public class WebMessageChannel implements MessageChannel {
     @Override
-    public String key() { return "web"; }
+    public ChannelType key() {
+        return ChannelType.WEB;
+    }
     @Override
     public void init(Map<String, String> config) { /* no-op for now */ }
     @Override

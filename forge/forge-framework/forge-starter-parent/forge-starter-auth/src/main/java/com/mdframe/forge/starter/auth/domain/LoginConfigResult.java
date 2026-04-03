@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 登录配置响应
@@ -42,4 +43,40 @@ public class LoginConfigResult implements Serializable {
      * 是否启用IP限制
      */
     private Boolean enableIpLimit;
+
+    /**
+     * 已启用的三方登录平台列表
+     */
+    private List<SocialPlatformInfo> socialPlatforms;
+
+    /**
+     * 三方平台信息
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SocialPlatformInfo implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        /**
+         * 平台类型
+         */
+        private String platform;
+
+        /**
+         * 平台名称
+         */
+        private String platformName;
+
+        /**
+         * 平台Logo
+         */
+        private String platformLogo;
+
+        /**
+         * 是否启用
+         */
+        private Boolean enabled;
+    }
 }

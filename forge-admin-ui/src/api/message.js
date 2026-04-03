@@ -82,4 +82,56 @@ export default {
    */
   deleteTemplate: (id) => 
     request.delete(`/api/message/template/${id}`),
+  
+  // ========== 消息管理（管理员） ==========
+  
+  /**
+   * 分页查询所有消息列表（管理员）
+   */
+  getMessageManagePage: (query, pageNum, pageSize) => 
+    request.post(`/api/message/manage/page?pageNum=${pageNum}&pageSize=${pageSize}`, query),
+  
+  /**
+   * 查询消息详细信息（包含发送记录和接收人）
+   */
+  getMessageManageDetail: (messageId) => 
+    request.get(`/api/message/manage/${messageId}/detail`),
+  
+  // ========== 消息业务类型管理 ==========
+  
+  /**
+   * 分页查询业务类型
+   */
+  getBizTypePage: (params) => 
+    request.get('/api/message/bizType/page', { params }),
+  
+  /**
+   * 查询所有启用的业务类型
+   */
+  getBizTypeListEnabled: () => 
+    request.get('/api/message/bizType/list/enabled'),
+  
+  /**
+   * 根据ID查询业务类型
+   */
+  getBizTypeById: (id) => 
+    request.get(`/api/message/bizType/${id}`),
+  
+  /**
+   * 新增业务类型
+   */
+  createBizType: (data) => 
+    request.post('/api/message/bizType', data),
+  
+  /**
+   * 修改业务类型
+   */
+  updateBizType: (data) => 
+    request.put('/api/message/bizType', data),
+  
+  /**
+   * 删除业务类型
+   */
+  deleteBizType: (id) => 
+    request.delete(`/api/message/bizType/${id}`)
 }

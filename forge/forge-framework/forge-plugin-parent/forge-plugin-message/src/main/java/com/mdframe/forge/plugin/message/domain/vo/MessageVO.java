@@ -49,4 +49,19 @@ public class MessageVO {
      * 创建时间
      */
     private LocalDateTime createTime;
+    
+    /**
+     * 业务类型
+     */
+    private String bizType;
+    
+    /**
+     * 业务主键
+     */
+    private String bizKey;
+    
+    /**
+     * 跳转URL（前端使用）
+     */
+    private String jumpUrl;
 }

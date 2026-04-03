@@ -1,6 +1,7 @@
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { getWatermarkConfig } from '@/api/config'
-import { useUserStore } from '@/store'
+import { WHITE_LIST } from '@/config/whitelist.config.js'
+import { useAuthStore, useUserStore } from '@/store'
 
 /**
  * 水印配置
@@ -19,7 +20,7 @@ const defaultConfig = {
   offsetY: 0,
   zIndex: 1000,
   showTimestamp: false,
-  timestampFormat: 'yyyy-MM-dd HH:mm:ss'
+  timestampFormat: 'yyyy-MM-dd HH:mm:ss',
 }
 
 /**
@@ -52,7 +53,7 @@ const contentParsers = {
   // 用户ID
   user_id: (userStore) => {
     return String(userStore.userId || '')
-  }
+  },
 }
 
 /**
@@ -157,6 +158,7 @@ function getWatermarkDisplayContent(config, userStore) {
  */
 export function useWatermark() {
   const userStore = useUserStore()
+  const authStore = useAuthStore()
   const watermarkConfig = ref({ ...defaultConfig })
   const watermarkUrl = ref('')
   let refreshTimer = null
@@ -170,13 +172,27 @@ export function useWatermark() {
    * 加载水印配置
    */
   const loadWatermarkConfig = async () => {
+    // 检查是否需要加载水印配置
+    // 1. 必须有 token
+    const hasToken = authStore.accessToken
+    if (!hasToken) {
+      return
+    }
+
+    // 2. 当前路由不在白名单中
+    const currentPath = window.location.pathname
+    if (WHITE_LIST.some(path => currentPath.startsWith(path))) {
+      return
+    }
+
     try {
       const res = await getWatermarkConfig()
       if (res.code === 200 && res.data) {
         watermarkConfig.value = { ...defaultConfig, ...res.data }
         updateWatermark()
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('加载水印配置失败:', error)
     }
   }
@@ -200,7 +216,7 @@ export function useWatermark() {
     // 创建带实际显示内容的水印配置
     const configWithContent = {
       ...watermarkConfig.value,
-      content: content
+      content,
     }
 
     const dataUrl = createWatermarkCanvas(configWithContent)
@@ -246,7 +262,7 @@ export function useWatermark() {
       pointerEvents: 'none',
       zIndex: watermarkConfig.value.zIndex,
       backgroundImage: `url(${watermarkUrl.value})`,
-      backgroundRepeat: 'repeat'
+      backgroundRepeat: 'repeat',
     }
   }
 
@@ -257,7 +273,7 @@ export function useWatermark() {
       updateWatermark()
       startRefreshTimer()
     },
-    { deep: true }
+    { deep: true },
   )
 
   // 监听用户登录状态变化，更新水印内容
@@ -268,7 +284,7 @@ export function useWatermark() {
         updateWatermark()
       }
     },
-    { deep: true }
+    { deep: true },
   )
 
   // 组件挂载时加载配置
@@ -291,7 +307,7 @@ export function useWatermark() {
     // 注册自定义内容解析器
     registerContentParser: (code, parser) => {
       contentParsers[code] = parser
-    }
+    },
   }
 }
 

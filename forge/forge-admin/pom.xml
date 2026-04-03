@@ -78,6 +78,11 @@
             <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-flow-client</artifactId>
         </dependency>
+        
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-social</artifactId>
+        </dependency>
     
     </dependencies>
     

@@ -1,6 +1,7 @@
 // 路由白名单：不需要登录即可访问的页面
 export const WHITE_LIST = [
   '/login',
+  '/login/callback',
   '/404',
 ]
 

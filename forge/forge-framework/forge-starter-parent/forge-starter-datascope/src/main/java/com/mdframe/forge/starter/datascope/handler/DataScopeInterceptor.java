@@ -66,7 +66,7 @@ public class DataScopeInterceptor implements InnerInterceptor {
         }
         
         if (context == null || context.getUserId() == null) {
-            log.debug("数据权限拦截a器：未获取到用户信息，跳过权限控制");
+            log.debug("数据权限拦截器：未获取到用户信息，跳过权限控制");
             return;
         }
         
@@ -251,7 +251,7 @@ public class DataScopeInterceptor implements InnerInterceptor {
                     context.getTenantId();
             default -> {
                 // 其他情况不应该走到这里，因为 ORG/ORG_AND_CHILD/CUSTOM 都会传入 orgIds 或 customOrgIds
-                log.warn("数据权限拦截a器：未预期的权限范围类型: {}", scopeType);
+                log.warn("数据权限拦截器：未预期的权限范围类型: {}", scopeType);
                 yield context.getUserId();
             }
         };
@@ -270,12 +270,12 @@ public class DataScopeInterceptor implements InnerInterceptor {
             // 解析为 Expression
             Expression expression = CCJSqlParserUtil.parseCondExpression(processedSql);
             
-            log.debug("数据权限拦截a器：自定义SQL条件 - 原始: {}", customSql);
-            log.debug("数据权限拦截a器：自定义SQL条件 - 处理后: {}", processedSql);
+            log.debug("数据权限拦截器：自定义SQL条件 - 原始: {}", customSql);
+            log.debug("数据权限拦截器：自定义SQL条件 - 处理后: {}", processedSql);
             
             return expression;
         } catch (Exception e) {
-            log.error("数据权限拦截a器：解析自定义SQL条件失败: {}", customSql, e);
+            log.error("数据权限拦截器：解析自定义SQL条件失败: {}", customSql, e);
             return null;
         }
     }

@@ -65,6 +65,31 @@ public class LoginRequest implements Serializable {
     private String authCode;
 
     /**
+     * 三方平台类型
+     */
+    private String socialPlatform;
+
+    /**
+     * 三方用户唯一标识
+     */
+    private String socialUuid;
+
+    /**
+     * 三方用户昵称
+     */
+    private String socialNickname;
+
+    /**
+     * 三方用户头像
+     */
+    private String socialAvatar;
+
+    /**
+     * 三方用户邮箱
+     */
+    private String socialEmail;
+
+    /**
      * 认证方式常量
      */
     public static final String AUTH_TYPE_PASSWORD = "password";
@@ -73,4 +98,5 @@ public class LoginRequest implements Serializable {
     public static final String AUTH_TYPE_WECHAT = "wechat";
     public static final String AUTH_TYPE_EMAIL_CAPTCHA = "email_captcha";
     public static final String AUTH_TYPE_OAUTH2 = "oauth2";
+    public static final String AUTH_TYPE_SOCIAL = "social";
 }

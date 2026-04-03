@@ -68,11 +68,13 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { NBadge, NPopover, NDivider } from 'naive-ui'
 import { request } from '@/utils'
+import messageApi from '@/api/message'
 
 const router = useRouter()
 const unreadCount = ref(0)
 const messages = ref([])
 const showPopover = ref(false)
+const bizTypeOptions = ref([])
 
 // 获取未读消息数量
 async function fetchUnreadCount() {
@@ -103,6 +105,18 @@ async function fetchLatestMessages() {
   }
 }
 
+// 加载业务类型配置
+async function loadBizTypes() {
+  try {
+    const res = await messageApi.getBizTypeListEnabled()
+    if (res.code === 200 && res.data) {
+      bizTypeOptions.value = res.data
+    }
+  } catch (error) {
+    console.error('加载业务类型失败:', error)
+  }
+}
+
 // 处理消息点击
 async function handleMessageClick(messageId) {
   console.log('[MessageNotification] 点击消息:', messageId)
@@ -110,13 +124,41 @@ async function handleMessageClick(messageId) {
   try {
     // 标记为已读
     await request.post(`/api/message/${messageId}/read`)
-    // 跳转到消息列表
+    
+    // 获取消息详情以获取业务类型和业务主键
+    const detailRes = await request.get(`/api/message/${messageId}`)
+    if (detailRes.code === 200 && detailRes.data) {
+      const message = detailRes.data
+      
+      // 如果有业务关联，跳转到业务页面
+      if (message.bizType && message.bizKey) {
+        const bizConfig = bizTypeOptions.value.find(opt => opt.bizType === message.bizType)
+        if (bizConfig && bizConfig.jumpUrl) {
+          let jumpUrl = bizConfig.jumpUrl
+          jumpUrl = jumpUrl.replace('${bizKey}', message.bizKey)
+          jumpUrl = jumpUrl.replace('${messageId}', message.id)
+          
+          if (bizConfig.jumpTarget === '_blank') {
+            window.open(jumpUrl, '_blank')
+          } else {
+            router.push(jumpUrl)
+          }
+          
+          // 刷新数据
+          fetchUnreadCount()
+          fetchLatestMessages()
+          return
+        }
+      }
+    }
+    
+    // 如果没有业务关联，跳转到消息列表
     router.push('/message/message-list')
     // 刷新数据
     fetchUnreadCount()
     fetchLatestMessages()
   } catch (error) {
-    console.error('标记消息已读失败:', error)
+    console.error('处理消息点击失败:', error)
   }
 }
 
@@ -144,6 +186,7 @@ async function handleMarkAllRead() {
 function initData() {
   fetchUnreadCount()
   fetchLatestMessages()
+  loadBizTypes()
 }
 
 onMounted(() => {

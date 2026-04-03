@@ -67,6 +67,18 @@
             <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-starter-crypto</artifactId>
         </dependency>
+
+        <!-- 三方登录 -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-social</artifactId>
+        </dependency>
+        
+        <!-- 消息通知 -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-message</artifactId>
+        </dependency>
         
     </dependencies>
     

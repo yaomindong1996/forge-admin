@@ -38,7 +38,12 @@ public enum AuthType {
     /**
      * 第三方OAuth2
      */
-    OAUTH2("oauth2", "OAuth2认证");
+    OAUTH2("oauth2", "OAuth2认证"),
+
+    /**
+     * 社交登录
+     */
+    SOCIAL("social", "社交登录");
 
     /**
      * 认证方式代码

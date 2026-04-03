@@ -16,6 +16,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -153,6 +154,43 @@ public class FileManager {
         }
         
         return storage.getAccessUrl(fileId, expires);
+    }
+    
+    /**
+     * 获取文件内容的Base64编码
+     */
+    public String getFileContentBase64(String fileId) {
+        if (metadataPersistence == null) {
+            throw new RuntimeException("未配置FileMetadataPersistence");
+        }
+        
+        FileMetadata metadata = metadataPersistence.getById(fileId);
+        if (metadata == null) {
+            return null;
+        }
+        
+        FileStorage storage = getStorage(metadata.getStorageType());
+        if (storage == null) {
+            return null;
+        }
+        
+        try (InputStream inputStream = storage.download(fileId)) {
+            byte[] bytes = inputStream.readAllBytes();
+            return Base64.getEncoder().encodeToString(bytes);
+        } catch (Exception e) {
+            log.error("获取文件Base64失败: {}", fileId, e);
+            return null;
+        }
+    }
+    
+    /**
+     * 获取文件元数据
+     */
+    public FileMetadata getFileMetadata(String fileId) {
+        if (metadataPersistence == null) {
+            return null;
+        }
+        return metadataPersistence.getById(fileId);
     }
     
     /**

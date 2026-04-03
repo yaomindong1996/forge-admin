@@ -16,6 +16,18 @@
             <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-starter-core</artifactId>
         </dependency>
+        
+        <!-- SMS4J 短信 -->
+        <dependency>
+            <groupId>org.dromara.sms4j</groupId>
+            <artifactId>sms4j-spring-boot-starter</artifactId>
+        </dependency>
+        
+        <!-- SMS4J 邮件 (JDK17+) -->
+        <dependency>
+            <groupId>org.dromara.sms4j</groupId>
+            <artifactId>sms4j-email-jakarta-core</artifactId>
+        </dependency>
     </dependencies>
     
 
