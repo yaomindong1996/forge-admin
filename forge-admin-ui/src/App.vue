@@ -15,19 +15,16 @@
       </n-spin>
     </div>
     <router-view v-else v-slot="{ Component, route: curRoute }">
-    <component :is="LayoutComponent" :key="curRoute.meta?.layout || appStore.layout">
-      <transition name="fade-slide" appear>
-        <KeepAlive :include="keepAliveNames">
-          <component
-              :is="Component"
-              v-if="!tabStore.reloading && Component"
-              :key="curRoute.fullPath"
-          />
-        </KeepAlive>
-      </transition>
-    </component>
-    <LayoutSetting v-if="layoutSettingVisible" class="fixed right-12 top-1/2 z-999" />
-  </router-view>
+      <component :is="LayoutComponent" :key="curRoute.meta?.layout || appStore.layout">
+        <transition name="fade-slide" mode="out-in" appear>
+          <KeepAlive :include="keepAliveNames">
+            <component :is="Component" v-if="!tabStore.reloading" :key="curRoute.fullPath" />
+          </KeepAlive>
+        </transition>
+      </component>
+
+      <LayoutSetting v-if="layoutSettingVisible" class="fixed right-12 top-1/2 z-999" />
+    </router-view>
 
     <!-- 全局水印 -->
     <div v-if="watermarkConfig.enable" class="watermark-layer" :style="watermarkStyle" />
