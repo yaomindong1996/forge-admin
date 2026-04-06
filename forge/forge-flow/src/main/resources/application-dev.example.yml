@@ -52,7 +52,7 @@ config:
 
 # Flowable 流程引擎配置
 flowable:
-  database-schema-update: false
+  database-schema-update: true
   async-executor-activate: true
   history-level: full
   activity-font-name: 宋体
