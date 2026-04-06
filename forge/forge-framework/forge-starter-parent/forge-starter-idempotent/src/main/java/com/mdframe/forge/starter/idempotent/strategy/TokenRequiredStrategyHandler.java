@@ -4,9 +4,12 @@ import com.mdframe.forge.starter.idempotent.annotation.Idempotent;
 import com.mdframe.forge.starter.idempotent.exception.TokenInvalidException;
 import com.mdframe.forge.starter.idempotent.properties.TokenProperties;
 import com.mdframe.forge.starter.idempotent.service.TokenService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -35,13 +38,14 @@ public class TokenRequiredStrategyHandler implements IdempotentStrategyHandler {
     private String extractToken() {
         org.aspectj.lang.ProceedingJoinPoint jp = null;
         try {
-            org.springframework.web.context.request.RequestContextHolder currentRequest = 
-                (org.springframework.web.context.request.RequestContextHolder) 
+            org.springframework.web.context.request.RequestContextHolder currentRequest =
+                (org.springframework.web.context.request.RequestContextHolder)
                 org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
             
             if (currentRequest != null) {
-                javax.servlet.http.HttpServletRequest request = 
-                    ((org.springframework.web.context.request.ServletRequestAttributes) currentRequest).getRequest();
+                ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+                HttpServletRequest request =
+                        attributes.getRequest();
                 return request.getHeader(tokenProperties.getHeader());
             }
         } catch (Exception e) {

@@ -1,8 +1,8 @@
 package com.mdframe.forge.starter.idempotent.controller;
 
+import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.idempotent.dto.TokenInfoDTO;
 import com.mdframe.forge.starter.idempotent.service.TokenService;
-import com.mdframe.forge.framework.core.domain.model.RespInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 

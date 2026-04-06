@@ -1,6 +1,7 @@
 package com.mdframe.forge.starter.idempotent.exception;
 
-import com.mdframe.forge.framework.core.exception.BusinessException;
+
+import com.mdframe.forge.starter.core.exception.BusinessException;
 
 public class TokenInvalidException extends BusinessException {
     
