@@ -1,8 +1,6 @@
 package com.mdframe.forge.starter.idempotent.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RLock;
-import org.redisson.api.RedissonClient;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.concurrent.TimeUnit;
@@ -10,11 +8,9 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class RedisIdempotentStorageService implements IdempotentStorageService {
     private final StringRedisTemplate stringRedisTemplate;
-    private final RedissonClient redissonClient;
 
-    public RedisIdempotentStorageService(StringRedisTemplate stringRedisTemplate, RedissonClient redissonClient) {
+    public RedisIdempotentStorageService(StringRedisTemplate stringRedisTemplate) {
         this.stringRedisTemplate = stringRedisTemplate;
-        this.redissonClient = redissonClient;
     }
 
     @Override

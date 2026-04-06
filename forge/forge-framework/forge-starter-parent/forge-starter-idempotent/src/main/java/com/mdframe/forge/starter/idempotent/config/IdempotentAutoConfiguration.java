@@ -6,7 +6,6 @@ import com.mdframe.forge.starter.idempotent.generator.IdempotentKeyGenerator;
 import com.mdframe.forge.starter.idempotent.properties.IdempotentProperties;
 import com.mdframe.forge.starter.idempotent.service.IdempotentStorageService;
 import com.mdframe.forge.starter.idempotent.service.RedisIdempotentStorageService;
-import org.redisson.api.RedissonClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -27,8 +26,8 @@ public class IdempotentAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public IdempotentStorageService idempotentStorageService(StringRedisTemplate stringRedisTemplate, RedissonClient redissonClient) {
-        return new RedisIdempotentStorageService(stringRedisTemplate, redissonClient);
+    public IdempotentStorageService idempotentStorageService(StringRedisTemplate stringRedisTemplate) {
+        return new RedisIdempotentStorageService(stringRedisTemplate);
     }
 
     @Bean

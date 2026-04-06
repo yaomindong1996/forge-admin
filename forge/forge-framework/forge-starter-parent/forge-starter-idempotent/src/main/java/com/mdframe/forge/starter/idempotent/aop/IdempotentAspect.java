@@ -28,6 +28,11 @@ public class IdempotentAspect {
 
     @Around("@annotation(idempotent)")
     public Object around(ProceedingJoinPoint joinPoint, Idempotent idempotent) throws Throwable {
+        if (!properties.isEnabled()) {
+            log.debug("幂等组件已关闭，跳过幂等校验");
+            return joinPoint.proceed();
+        }
+
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
         

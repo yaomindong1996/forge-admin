@@ -13,6 +13,16 @@
 | 2026-04-06 | apply | 完成Task4：实现Redis幂等存储服务 | - |
 | 2026-04-06 | apply | 完成Task5：实现AOP切面与Web拦截器 | - |
 | 2026-04-06 | apply | 完成Task6：实现全局开关与异常处理 | - |
+| 2026-04-06 | fix | 修复代码审查发现的所有问题 | - |
+
+## 踩坑记录
+
+| 问题 | 原因 | 解决方案 | 沉淀？ |
+|------|------|----------|--------|
+| 注入了未使用的RedissonClient依赖 | 开发时误添加了不需要的依赖注入 | 移除未使用的依赖和构造函数参数 | 是 |
+| SpEL解析缺少异常处理 | 直接调用SpEL解析方法未捕获异常 | 添加try-catch捕获并记录异常，返回null | 是 |
+| 切面缺少全局开关二次检查 | 仅靠自动配置的条件注解可能不够健壮 | 在切面中再次检查配置开关 | 是 |
+| 参数名获取使用了单一实现 | StandardReflectionParameterNameDiscoverer在无-parameters编译参数时失效 | 改用DefaultParameterNameDiscoverer，它会尝试多种方式 | 是 |
 
 ## 知识发现
 > 每个 task 后实时记录，/archive 时逐条确认沉淀到 knowledge/

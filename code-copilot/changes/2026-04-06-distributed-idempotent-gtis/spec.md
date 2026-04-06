@@ -78,6 +78,7 @@
 | Task4: 实现Redis幂等存储服务 | ✅ 完成 | IdempotentException.java, IdempotentStorageService.java, RedisIdempotentStorageService.java | - |
 | Task5: 实现AOP切面与Web拦截器 | ✅ 完成 | IdempotentAutoConfiguration.java, IdempotentAspect.java | - |
 | Task6: 实现全局开关与异常处理 | ✅ 完成 | IdempotentException.java（修改继承BusinessException） | - |
+| Fix: 修复代码审查发现的问题 | ✅ 完成 | 移除未使用的RedissonClient依赖、改进参数名获取、添加SpEL异常处理、添加切面全局开关检查 | - |
 ## 12. 审查结论
 ## 13. 确认记录（HARD-GATE）
 - **确认时间**：

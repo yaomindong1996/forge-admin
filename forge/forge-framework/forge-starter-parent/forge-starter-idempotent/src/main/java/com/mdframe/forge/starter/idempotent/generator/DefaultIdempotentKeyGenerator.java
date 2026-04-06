@@ -2,17 +2,19 @@ package com.mdframe.forge.starter.idempotent.generator;
 
 import cn.hutool.crypto.digest.DigestUtil;
 import com.mdframe.forge.starter.idempotent.util.SpelUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.core.LocalVariableTableParameterNameDiscoverer;
+import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.ParameterNameDiscoverer;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class DefaultIdempotentKeyGenerator implements IdempotentKeyGenerator {
-    private static final ParameterNameDiscoverer PARAMETER_NAME_DISCOVERER = new LocalVariableTableParameterNameDiscoverer();
+    private static final ParameterNameDiscoverer PARAMETER_NAME_DISCOVERER = new DefaultParameterNameDiscoverer();
 
     @Override
     public String generate(ProceedingJoinPoint joinPoint, String prefix, String key) {
