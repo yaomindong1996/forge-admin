@@ -33,6 +33,7 @@
         <module>forge-starter-api-config</module>
         <module>forge-starter-social</module>
         <module>forge-flow-client</module>
+        <module>forge-starter-idempotent</module>
     </modules>
     
 </project>
