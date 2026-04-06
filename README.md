@@ -352,6 +352,9 @@ pnpm build
 
 欢迎提交 Issue 和 Pull Request。
 
+## 联系作者
+![wechat.png](images/wechat.png)
+
 ## 许可证
 
 本项目基于 [MIT](LICENSE) 许可证开源。
