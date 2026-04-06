@@ -37,10 +37,10 @@ import { AiCrudPage } from '@/components/ai-form'
 
 const apiConfig = {
   list: 'get@/api/module/page',        // 列表查询
-  detail: 'get@/api/module/{id}',      // 详情查询
+  detail: 'get@/api/module/:id',      // 详情查询
   add: 'post@/api/module',             // 新增
   update: 'put@/api/module',           // 修改
-  delete: 'delete@/api/module/{id}'    // 删除
+  delete: 'delete@/api/module/:id'    // 删除
 }
 
 // 搜索表单配置
