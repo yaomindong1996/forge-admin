@@ -11,6 +11,7 @@
 | 2026-04-06 | apply | 完成Task2：定义@Idempotent注解与配置类 | - |
 | 2026-04-06 | apply | 完成Task3：实现幂等键生成器 | - |
 | 2026-04-06 | apply | 完成Task4：实现Redis幂等存储服务 | - |
+| 2026-04-06 | apply | 完成Task5：实现AOP切面与Web拦截器 | - |
 
 ## 知识发现
 > 每个 task 后实时记录，/archive 时逐条确认沉淀到 knowledge/

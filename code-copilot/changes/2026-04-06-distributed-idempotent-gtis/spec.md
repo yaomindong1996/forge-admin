@@ -76,6 +76,7 @@
 | Task2: 定义@Idempotent注解与配置类 | ✅ 完成 | Idempotent.java, IdempotentProperties.java, IdempotentConstant.java | - |
 | Task3: 实现幂等键生成器 | ✅ 完成 | SpelUtil.java, IdempotentKeyGenerator.java, DefaultIdempotentKeyGenerator.java | - |
 | Task4: 实现Redis幂等存储服务 | ✅ 完成 | IdempotentException.java, IdempotentStorageService.java, RedisIdempotentStorageService.java | - |
+| Task5: 实现AOP切面与Web拦截器 | ✅ 完成 | IdempotentAutoConfiguration.java, IdempotentAspect.java | - |
 ## 12. 审查结论
 ## 13. 确认记录（HARD-GATE）
 - **确认时间**：
