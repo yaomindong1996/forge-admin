@@ -1,5 +1,5 @@
 # 分布式幂等防重组件（美团GTIS方案实现）
-> status: propose
+> status: apply
 > created: 2026-04-06
 > complexity: 🔴复杂
 ## 1. 背景与目标
