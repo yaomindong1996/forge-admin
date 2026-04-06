@@ -77,6 +77,7 @@
 | Task3: 实现幂等键生成器 | ✅ 完成 | SpelUtil.java, IdempotentKeyGenerator.java, DefaultIdempotentKeyGenerator.java | - |
 | Task4: 实现Redis幂等存储服务 | ✅ 完成 | IdempotentException.java, IdempotentStorageService.java, RedisIdempotentStorageService.java | - |
 | Task5: 实现AOP切面与Web拦截器 | ✅ 完成 | IdempotentAutoConfiguration.java, IdempotentAspect.java | - |
+| Task6: 实现全局开关与异常处理 | ✅ 完成 | IdempotentException.java（修改继承BusinessException） | - |
 ## 12. 审查结论
 ## 13. 确认记录（HARD-GATE）
 - **确认时间**：

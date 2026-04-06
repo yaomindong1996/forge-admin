@@ -1,11 +1,13 @@
 package com.mdframe.forge.starter.idempotent.exception;
 
-public class IdempotentException extends RuntimeException {
+import com.mdframe.forge.starter.core.exception.BusinessException;
+
+public class IdempotentException extends BusinessException {
     public IdempotentException(String message) {
-        super(message);
+        super(429, message);
     }
 
     public IdempotentException(String message, Throwable cause) {
-        super(message, cause);
+        super(429, message, cause);
     }
 }

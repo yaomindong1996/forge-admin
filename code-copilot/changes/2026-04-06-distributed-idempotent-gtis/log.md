@@ -12,6 +12,15 @@
 | 2026-04-06 | apply | 完成Task3：实现幂等键生成器 | - |
 | 2026-04-06 | apply | 完成Task4：实现Redis幂等存储服务 | - |
 | 2026-04-06 | apply | 完成Task5：实现AOP切面与Web拦截器 | - |
+| 2026-04-06 | apply | 完成Task6：实现全局开关与异常处理 | - |
+
+## 知识发现
+> 每个 task 后实时记录，/archive 时逐条确认沉淀到 knowledge/
+- [x] **Spring Boot自动配置**: 通过META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports文件注册自动配置类
+- [x] **Maven多模块结构**: 新增starter模块需要在父pom.xml的modules标签中添加模块声明
+- [x] **SpEL表达式**: 使用Spring Expression Language动态解析幂等键
+- [x] **AOP方法参数获取**: 使用LocalVariableTableParameterNameDiscoverer获取方法参数名
+- [ ] **全局异常处理**: 自定义业务异常继承项目的BusinessException，直接被GlobalExceptionHandler捕获处理
 
 ## 知识发现
 > 每个 task 后实时记录，/archive 时逐条确认沉淀到 knowledge/
