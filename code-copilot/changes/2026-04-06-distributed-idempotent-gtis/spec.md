@@ -74,6 +74,7 @@
 |------|------|-------------|------|
 | Task1: 创建幂等组件模块结构与基础依赖 | ✅ 完成 | forge-starter-idempotent/pom.xml, forge-starter-parent/pom.xml, AutoConfiguration.imports | - |
 | Task2: 定义@Idempotent注解与配置类 | ✅ 完成 | Idempotent.java, IdempotentProperties.java, IdempotentConstant.java | - |
+| Task3: 实现幂等键生成器 | ✅ 完成 | SpelUtil.java, IdempotentKeyGenerator.java, DefaultIdempotentKeyGenerator.java | - |
 ## 12. 审查结论
 ## 13. 确认记录（HARD-GATE）
 - **确认时间**：
