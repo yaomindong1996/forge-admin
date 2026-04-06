@@ -1,7 +1,7 @@
 package com.mdframe.forge.starter.idempotent.annotation;
 
 import com.mdframe.forge.starter.idempotent.constant.IdempotentConstant;
-import com.mdframe.forge.starter.idempotent.constant.IdempotentStrategy;
+import com.mdframe.forge.starter.idempotent.enums.IdempotentStrategy;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

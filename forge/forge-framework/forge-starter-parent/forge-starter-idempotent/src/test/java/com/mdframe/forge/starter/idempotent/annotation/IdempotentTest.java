@@ -1,13 +1,14 @@
 package com.mdframe.forge.starter.idempotent.annotation;
 
 import com.mdframe.forge.starter.idempotent.constant.IdempotentConstant;
-import com.mdframe.forge.starter.idempotent.constant.IdempotentStrategy;
+import com.mdframe.forge.starter.idempotent.enums.IdempotentStrategy;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import java.lang.annotation.Annotation;
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -89,17 +90,9 @@ class IdempotentTest {
 
     @Test
     void testAnnotationTarget() {
-        // 验证注解可以用在方法上
-        assertTrue(this.getClass().isAnnotationPresent(Idempotent.class) || 
-                   hasMethodWithAnnotation());
-    }
-
-    private boolean hasMethodWithAnnotation() {
-        for (Method method : this.getClass().getDeclaredMethods()) {
-            if (method.isAnnotationPresent(Idempotent.class)) {
-                return true;
-            }
-        }
-        return false;
+        Target target = Idempotent.class.getAnnotation(Target.class);
+        assertNotNull(target);
+        assertArrayEquals(new ElementType[]{ElementType.METHOD, ElementType.TYPE}, 
+                          target.value());
     }
 }
