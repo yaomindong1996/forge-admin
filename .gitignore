@@ -42,6 +42,9 @@ nbdist/
 *.xml.versionsBackup
 *.swp
 
+# Git worktrees
+.worktrees/
+
 !*/build/*.java
 !*/build/*.html
 !*/build/*.xml
