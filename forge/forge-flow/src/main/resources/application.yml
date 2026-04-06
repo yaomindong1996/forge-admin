@@ -76,5 +76,3 @@ flow:
     webhook-enabled: true
     # Webhook 异步线程池核心数
     webhook-thread-pool-size: 4
-flowable:
-  database-schema-update: true
