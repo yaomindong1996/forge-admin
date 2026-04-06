@@ -1,61 +1,67 @@
 package com.mdframe.forge.starter.idempotent.aop;
 
+import cn.hutool.core.util.IdUtil;
 import com.mdframe.forge.starter.idempotent.annotation.Idempotent;
-import com.mdframe.forge.starter.idempotent.exception.IdempotentException;
+import com.mdframe.forge.starter.idempotent.enums.IdempotentStrategy;
 import com.mdframe.forge.starter.idempotent.generator.IdempotentKeyGenerator;
 import com.mdframe.forge.starter.idempotent.properties.IdempotentProperties;
-import com.mdframe.forge.starter.idempotent.service.IdempotentStorageService;
+import com.mdframe.forge.starter.idempotent.strategy.IdempotentStrategyHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.reflect.MethodSignature;
 
-import java.lang.reflect.Method;
+import java.util.Map;
 
 @Slf4j
 @Aspect
 public class IdempotentAspect {
+    
     private final IdempotentKeyGenerator keyGenerator;
-    private final IdempotentStorageService storageService;
     private final IdempotentProperties properties;
-
-    public IdempotentAspect(IdempotentKeyGenerator keyGenerator, IdempotentStorageService storageService, IdempotentProperties properties) {
+    private final Map<IdempotentStrategy, IdempotentStrategyHandler> strategyHandlers;
+    
+    public IdempotentAspect(
+            IdempotentKeyGenerator keyGenerator,
+            IdempotentProperties properties,
+            Map<IdempotentStrategy, IdempotentStrategyHandler> strategyHandlers) {
         this.keyGenerator = keyGenerator;
-        this.storageService = storageService;
         this.properties = properties;
+        this.strategyHandlers = strategyHandlers;
     }
-
+    
     @Around("@annotation(idempotent)")
     public Object around(ProceedingJoinPoint joinPoint, Idempotent idempotent) throws Throwable {
         if (!properties.isEnabled()) {
             log.debug("幂等组件已关闭，跳过幂等校验");
             return joinPoint.proceed();
         }
-
-        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        Method method = signature.getMethod();
         
         String prefix = idempotent.prefix().isEmpty() ? properties.getPrefix() : idempotent.prefix();
-        String key = keyGenerator.generate(joinPoint, prefix, idempotent.key());
-        int expire = idempotent.expire() > 0 ? idempotent.expire() : properties.getExpire();
-        String message = idempotent.message().isEmpty() ? properties.getMessage() : idempotent.message();
-
-        log.debug("幂等校验，key: {}", key);
-
-        if (!storageService.tryAcquire(key, expire)) {
-            log.warn("重复请求，key: {}", key);
-            throw new IdempotentException(message);
+        String idempotentKey = keyGenerator.generate(joinPoint, prefix, idempotent.key());
+        
+        String requestId = IdUtil.fastSimpleUUID();
+        log.debug("幂等校验开始, requestId={}, strategy={}, key={}", 
+            requestId, idempotent.strategy(), idempotentKey);
+        
+        IdempotentStrategy strategy = idempotent.strategy();
+        IdempotentStrategyHandler handler = strategyHandlers.get(strategy);
+        
+        if (handler == null) {
+            log.warn("未找到策略处理器: strategy={}", strategy);
+            return joinPoint.proceed();
         }
-
+        
+        long startTime = System.currentTimeMillis();
         try {
-            Object result = joinPoint.proceed();
-            if (idempotent.deleteKeyAfterSuccess()) {
-                storageService.release(key);
-            }
+            Object result = handler.handle(joinPoint, idempotent, idempotentKey);
+            long elapsed = System.currentTimeMillis() - startTime;
+            log.debug("幂等校验成功, requestId={}, elapsed={}ms", requestId, elapsed);
             return result;
         } catch (Throwable e) {
-            storageService.release(key);
+            long elapsed = System.currentTimeMillis() - startTime;
+            log.error("幂等校验失败, requestId={}, elapsed={}ms, error={}", 
+                requestId, elapsed, e.getMessage(), e);
             throw e;
         }
     }
