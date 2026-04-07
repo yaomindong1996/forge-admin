@@ -1,9 +1,26 @@
 [![Gitee stars](https://gitee.com/ForgeLab/forge-admin/badge/star.svg?theme=gvp)](https://gitee.com/ForgeLab/forge-admin/stargazers)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://gitee.com/ForgeLab/forge-admin/blob/master/LICENSE)
 
-
 # Forge Admin
+
 🚀 基于 Vue3 + TypeScript 的开箱即用企业级中后台管理框架，帮助开发者快速搭建项目。
+
+## 目录
+
+- [项目概述](#项目概述)
+- [核心特性](#核心特性)
+- [系统截图](#系统截图)
+- [技术栈](#技术栈)
+- [模块说明](#模块说明)
+- [快速开始](#快速开始)
+- [功能模块](#功能模块)
+- [插件说明](#插件说明)
+- [常见问题](#常见问题)
+- [更新日志](#更新日志)
+- [贡献指南](#贡献指南)
+- [联系作者](#联系作者)
+- [许可证](#许可证)
+
 ## 项目概述
 
 Forge Admin 是一个现代化的企业级 admin 系统，旨在为企业提供快速开发、业务扩展的中后台基础框架。系统采用微内核 + 插件化架构，核心功能以插件形式存在，便于按需引入和扩展。
@@ -162,22 +179,21 @@ forge-admin-ui/
 
 ### 后端部署
 
-1. 克隆项目
+#### 1. 克隆项目
 
 ```bash
 git clone https://gitee.com/ForgeLab/forge-admin.git
 cd forge-admin
 ```
 
-2. 导入数据库
+#### 2. 导入数据库
 
 执行 `forge/forge-admin/sql/初始化脚本.sql` 创建基础数据库表
 
-3. 本地环境配置指南
+#### 3. 本地环境配置
 
-## 配置步骤
+##### 复制配置模板
 
-### 1. 复制配置模板
 首次克隆项目后，需要复制配置模板文件到本地配置：
 
 ```bash
@@ -188,10 +204,12 @@ cp forge/forge-admin/src/main/resources/application-dev.example.yml forge/forge-
 cp forge/forge-flow/src/main/resources/application-dev.example.yml forge/forge-flow/src/main/resources/application-dev.yml
 ```
 
-### 2. 修改配置信息
+##### 修改配置信息
+
 编辑 `application-dev.yml` 文件，修改以下配置：
 
-#### 数据库配置
+**数据库配置**
+
 ```yaml
 spring:
   datasource:
@@ -203,7 +221,8 @@ spring:
           password: 'your_password'
 ```
 
-#### Redis配置
+**Redis配置**
+
 ```yaml
 spring.data:
   redis:
@@ -219,37 +238,24 @@ spring.data:
           password: 'your_redis_password'
 ```
 
-### 3. 配置说明
+##### 配置说明
+
 - `application-dev.yml` 属于本地配置文件，已经加入 `.gitignore`，不会提交到Git仓库
 - `application-dev.example.yml` 是配置模板，提交到Git仓库，供其他开发者参考
 - 其他配置项根据需要自行修改，不需要提交到仓库
 
-### 4. 注意事项
+##### 注意事项
+
 ❗️ **禁止将包含敏感信息的配置文件提交到Git仓库**
 - 数据库密码、Redis密码、密钥等敏感信息不得提交
 - 新增配置项需要添加到 `application-dev.example.yml` 模板中，并替换敏感信息
 - 生产环境配置使用单独的 `application-prod.yml`，同样不提交到仓库
 
-### 5. 其他配置
+##### 其他配置
+
 - 前端配置请参考 `forge-admin-ui/.env.example` 文件，复制为 `.env.local` 进行修改
 
-## 常见问题
-
-### Q: 为什么我拉取代码后启动报错？
-A: 首次拉取代码需要复制配置模板并修改为本地环境的数据库和Redis配置。
-
-### Q: 新增配置项需要注意什么？
-A: 如果新增的配置项是通用的，请同步更新到 `application-dev.example.yml` 模板中，敏感信息用占位符代替。
-
-### Q: 不小心提交了敏感配置怎么办？
-A:
-1. 立即修改密码
-2. 执行 `git rm --cached <file>` 从仓库中移除文件
-3. 将文件加入 `.gitignore`
-4. 提交并推送到仓库
-
-
-4. 启动服务
+#### 4. 启动服务
 
 ```bash
 cd forge/forge-admin
@@ -347,6 +353,25 @@ pnpm build
 - 系统通知
 - 站内消息
 - 消息模板
+
+## 常见问题
+
+### Q: 为什么我拉取代码后启动报错？
+A: 首次拉取代码需要复制配置模板并修改为本地环境的数据库和Redis配置。
+
+### Q: 新增配置项需要注意什么？
+A: 如果新增的配置项是通用的，请同步更新到 `application-dev.example.yml` 模板中，敏感信息用占位符代替。
+
+### Q: 不小心提交了敏感配置怎么办？
+A:
+1. 立即修改密码
+2. 执行 `git rm --cached <file>` 从仓库中移除文件
+3. 将文件加入 `.gitignore`
+4. 提交并推送到仓库
+
+## 更新日志
+
+查看 [CHANGELOG.md](CHANGELOG.md) 了解项目的版本更新历史。
 
 ## 贡献指南
 
