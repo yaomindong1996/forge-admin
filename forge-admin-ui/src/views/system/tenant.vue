@@ -374,7 +374,7 @@ const editSchema = ref([
     field: 'theme_header_backgroundColor',
     label: 'Header背景',
     type: 'color',
-    defaultValue: '#d12723FF',
+    defaultValue: '#4242F7',
     props: { showAlpha: false, modes: ['hex'] }
   },
   {
@@ -424,7 +424,7 @@ const editSchema = ref([
     field: 'theme_sideMenu_iconColorActive',
     label: '选中图标色',
     type: 'color',
-    defaultValue: '#d12723FF',
+    defaultValue: '#4242F7',
     props: { showAlpha: false, modes: ['hex'] }
   },
   {
@@ -663,9 +663,9 @@ function handleBeforeSubmit(formData) {
   // 只有配置了主题字段时才组装 themeConfig
   if (hasThemeConfig) {
     const themeConfig = {
-      primaryColor: formData.systemTheme || formData.theme_header_backgroundColor || '#d12723',
+      primaryColor: formData.systemTheme || formData.theme_header_backgroundColor || '#4242F7',
       header: {
-        backgroundColor: formData.theme_header_backgroundColor || '#d12723FF',
+        backgroundColor: formData.theme_header_backgroundColor || '#4242F7',
         textColor: formData.theme_header_textColor || '#FFFFFF',
         height: formData.theme_header_height || '60px',
       },

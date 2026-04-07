@@ -44,7 +44,7 @@ export default defineConfig({
   ],
   theme: {
     colors: {
-      primary: 'rgba(var(--primary-color))',
+      primary: 'var(--primary-color)',
       dark: '#18181c',
       light_border: '#efeff5',
       dark_border: '#2d2d30',

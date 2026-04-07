@@ -8,11 +8,11 @@
  */
 export const defaultThemeConfig = {
   // 主题色
-  primaryColor: '#d12723FF',
+  primaryColor: '#4242F7',
 
   // Header 配置
   header: {
-    backgroundColor: '#d12723FF',
+    backgroundColor: '#4242F7',
     textColor: '#FFFFFF',
     fontSize: 'var(--font-size-base)',
     height: '60px',
@@ -74,7 +74,7 @@ export const defaultThemeConfig = {
     fontSize: 'var(--font-size-base)',
     fontWeight: '400',
     iconColor: '#666666',
-    iconColorActive: '#d12723FF',
+    iconColorActive: '#4242F7',
     collapsedWidth: '64px',
     width: '220px',
   },

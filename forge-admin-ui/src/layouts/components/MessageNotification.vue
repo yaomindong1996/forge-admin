@@ -183,10 +183,20 @@ async function handleMarkAllRead() {
 }
 
 // 初始化数据
-function initData() {
-  fetchUnreadCount()
-  fetchLatestMessages()
-  loadBizTypes()
+async function initData() {
+  // 只有登录状态才加载数据
+  const token = localStorage.getItem('token')
+  if (!token) return
+  
+  try {
+    await Promise.all([
+      fetchUnreadCount(),
+      fetchLatestMessages(),
+      loadBizTypes()
+    ])
+  } catch (error) {
+    console.error('初始化消息数据失败:', error)
+  }
 }
 
 onMounted(() => {

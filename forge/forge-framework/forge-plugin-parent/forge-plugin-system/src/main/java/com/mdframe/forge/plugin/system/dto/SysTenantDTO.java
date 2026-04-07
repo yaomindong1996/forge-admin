@@ -52,4 +52,8 @@ public class SysTenantDTO implements Serializable {
      * 租户描述
      */
     private String tenantDesc;
+    /**
+     * 主题配置
+     */
+    private String themeConfig;
 }

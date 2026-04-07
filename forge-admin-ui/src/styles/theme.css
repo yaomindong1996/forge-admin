@@ -102,7 +102,7 @@
 }
 .top-menu-wrapper.n-menu.n-menu--horizontal .n-menu-item-content:not(.n-menu-item-content--disabled).n-menu-item-content--selected:hover .n-menu-item-content-header{
   color: var(--top-menu-text-color-active) !important;
-  background-color: var(--top-menu-bg-color-active) !important;
+  /*background-color: var(--top-menu-bg-color-active) !important;*/
 }
 
 .top-menu-wrapper .n-menu-item-content--selected,

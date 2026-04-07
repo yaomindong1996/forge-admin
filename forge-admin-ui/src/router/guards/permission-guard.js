@@ -95,7 +95,12 @@ export function createPermissionGuard(router) {
           next()
           return
         }
-        next({ path: '/login', query: { ...to.query, redirect: to.path } })
+        // 如果目标路径是登录页，不需要设置 redirect
+        if (to.path === '/login') {
+          next({ path: '/login' })
+        } else {
+          next({ path: '/login', query: { ...to.query, redirect: to.path } })
+        }
         return
       }
 

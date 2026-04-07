@@ -25,8 +25,8 @@
 
     <!-- 主内容区域 -->
     <article class="w-full flex flex-col flex-1 overflow-hidden">
-      <AppCard class="flex items-center px-12 h-32 flex-shrink-0" border-b="1px solid light_border dark:dark_border">
-        <AppTab class="w-0 flex-1 px-12" />
+      <AppCard :bordered="false" :padding="false" class="py-0 px-10" shadow="none" radius="none">
+        <AppTab class="w-0 flex-1" />
       </AppCard>
       <div class="flex-1 overflow-auto bg-[#f2f3f5] p-12">
         <slot />

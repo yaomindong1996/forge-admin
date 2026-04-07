@@ -13,7 +13,7 @@ import { pluginIcons, pluginPagePathes } from './build/plugin-isme'
 
 export default defineConfig(({ mode }) => {
   const viteEnv = loadEnv(mode, process.cwd())
-  const { VITE_HTTP_PORT,VITE_REQUEST_PREFIX,VITE_PUBLIC_PATH, VITE_HTTP_PROXY_TARGET } = viteEnv
+  const { VITE_HTTP_PORT, VITE_REQUEST_PREFIX, VITE_PUBLIC_PATH, VITE_HTTP_PROXY_TARGET, VITE_FLOW_PROXY_TARGET } = viteEnv
 
   return {
     base: VITE_PUBLIC_PATH || '/',
@@ -71,11 +71,11 @@ export default defineConfig(({ mode }) => {
       open: false,
       proxy: {
         // 流程服务代理 - 必须在主代理之前，匹配更具体的路径
-        '/dev-api/api/flow': {
-          target: 'http://localhost:8081',
+        [`${VITE_REQUEST_PREFIX}/api/flow`]: {
+          target: VITE_FLOW_PROXY_TARGET || 'http://localhost:8081',
           changeOrigin: true,
           secure: false,
-          rewrite: (path) => path.replace(/^\/dev-api/, ''),
+          rewrite: (path) => path.replace(/^\/[^/]+/, ''),
         },
         // 主代理 - 匹配所有其他请求
         [VITE_REQUEST_PREFIX]: {

@@ -25,11 +25,11 @@
         <slot name="actions" />
       </div>
     </div>
-    
+
     <div class="card-body" :class="{ 'body-no-padding': !padding }">
       <slot />
     </div>
-    
+
     <div v-if="$slots.footer" class="card-footer">
       <slot name="footer" />
     </div>
@@ -111,8 +111,6 @@ const updateMousePosition = (e) => {
 .enhanced-card {
   position: relative;
   background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-light);
   box-shadow: var(--shadow-card);
   transition: box-shadow var(--transition-base), border-color var(--transition-base);
   overflow: hidden;

@@ -287,6 +287,10 @@ pnpm dev
 pnpm build
 ```
 
+### 测试/生产环境部署
+
+详细的 Nginx 配置请参考 [NGINX_CONFIG.md](NGINX_CONFIG.md)
+
 ## 功能模块
 
 ### 系统管理

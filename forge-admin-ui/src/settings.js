@@ -20,10 +20,10 @@ export const basePermissions = [
 
 // 默认设置
 export const defaultLayout = 'top-menu'
-export const defaultPrimaryColor = '#d12723FF'
+export const defaultPrimaryColor = '#4242F7'
 export const naiveThemeOverrides = {
   common: {
-    primaryColor: '#d12723FF',
+    primaryColor: '#4242F7',
     primaryColorHover: '#5388ff',
     primaryColorSuppl: '#5388ff',
     primaryColorPressed: '#2058f5'

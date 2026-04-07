@@ -26,7 +26,7 @@ const appStore = useAppStore()
   cursor: pointer;
   transition: all var(--transition-fast);
   font-size: 20px;
-  color: var(--text-secondary);
+  color: var(--bg-primary);
   background: transparent;
   border: none;
   flex-shrink: 0;
