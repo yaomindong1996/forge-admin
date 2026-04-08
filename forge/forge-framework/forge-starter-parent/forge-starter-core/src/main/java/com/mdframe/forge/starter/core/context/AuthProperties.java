@@ -65,4 +65,11 @@ public class AuthProperties {
      * 默认启用
      */
     private Boolean enableOnlineUserManagement = true;
+
+    /**
+     * 是否启用客户端验证
+     * 启用后，登录时需要验证AppId和AppSecret
+     * 默认不启用
+     */
+    private Boolean enableClientValidation = true;
 }

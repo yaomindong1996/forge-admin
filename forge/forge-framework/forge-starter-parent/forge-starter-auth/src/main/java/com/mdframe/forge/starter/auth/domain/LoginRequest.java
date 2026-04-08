@@ -50,6 +50,16 @@ public class LoginRequest implements Serializable {
     private String userClient;
 
     /**
+     * 客户端AppId（可选，用于客户端验证）
+     */
+    private String appId;
+    
+    /**
+     * 客户端秘钥
+     */
+    private String appSecret;
+
+    /**
      * 手机号（手机号登录时使用）
      */
     private String phone;

@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.mdframe.forge.plugin.system.entity.SysOnlineUser;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 在线用户管理服务接口
@@ -129,4 +130,27 @@ public interface ISysOnlineUserService extends IService<SysOnlineUser> {
      * @param excludeToken  排除的Token(当前登录的Token)
      */
     void kickoutAllSessions(Long userId, String excludeToken);
+
+    /**
+     * 获取指定客户端的在线用户列表
+     *
+     * @param clientType 客户端类型
+     * @return 在线用户列表
+     */
+    List<SysOnlineUser> getOnlineUsersByClient(String clientType);
+
+    /**
+     * 踢出指定用户在指定客户端的会话
+     *
+     * @param userId     用户ID
+     * @param clientType 客户端类型
+     */
+    void kickoutByClient(Long userId, String clientType);
+
+    /**
+     * 获取各客户端的在线用户数量统计
+     *
+     * @return 客户端在线用户数量Map
+     */
+    Map<String, Long> getOnlineCountByClient();
 }

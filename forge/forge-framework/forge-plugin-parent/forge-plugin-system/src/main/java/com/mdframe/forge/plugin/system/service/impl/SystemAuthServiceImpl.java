@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.mdframe.forge.plugin.system.entity.*;
 import com.mdframe.forge.plugin.system.mapper.*;
 import com.mdframe.forge.plugin.system.service.IUserLoadService;
+import com.mdframe.forge.plugin.system.service.IClientService;
 import com.mdframe.forge.starter.config.config.LoginConfig;
 import com.mdframe.forge.starter.config.service.ConfigManagerService;
 import com.mdframe.forge.starter.core.context.AuthProperties;
@@ -42,17 +43,28 @@ public class SystemAuthServiceImpl implements IAuthService {
     private final ISysOnlineUserService onlineUserService;
     private final AuthProperties authProperties;
     private final ConfigManagerService configManagerService;
+    private final IClientService clientService;
 
     // ==================== 核心认证方法 ====================
 
     @Override
     public LoginResult login(LoginRequest request) {
-        // 1. 参数校验
         if (StrUtil.isBlank(request.getAuthType())) {
-            request.setAuthType("password"); // 默认用户名密码认证
+            request.setAuthType("password");
         }
-
-        // 2. 获取认证策略
+        
+        if (StrUtil.isBlank(request.getUserClient())) {
+            request.setUserClient("pc");
+        }
+        
+        SysClient client = validateAndLoadClient(
+            request.getUserClient(), 
+            request.getAppId(),
+            request.getAppSecret()
+        );
+        
+        applyClientTokenConfig(client);
+        
         IAuthStrategy strategy = authStrategyFactory.getStrategy(
                 request.getAuthType(),
                 request.getUserClient()
@@ -63,30 +75,23 @@ public class SystemAuthServiceImpl implements IAuthService {
                 request.getUserClient(),
                 strategy.getClass().getSimpleName());
 
-        // 3. 执行认证策略（加载用户信息、验证密码/验证码等）
         LoginUser loginUser = strategy.authenticate(request);
 
-        // 4. 处理同一账号登录策略
-        handleSameAccountLogin(loginUser.getUserId());
+        handleSameAccountLogin(loginUser.getUserId(), client);
 
-        // 5. 设置登录时间和IP
         loginUser.setLoginTime(System.currentTimeMillis());
-        // TODO: 可以从请求中获取IP地址
-        // loginUser.setLoginIp(request.getLoginIp());
+        loginUser.setUserClient(request.getUserClient());
 
-        // 6. 执行Sa-Token登录
         StpUtil.login(loginUser.getUserId());
 
-        // 7. 将完整的用户信息（包含角色、权限）设置到Session中
         SessionHelper.setLoginUser(loginUser);
 
-        log.info("用户登录成功: username={}, userId={}, roleIds={}, permissions={}",
+        log.info("用户登录成功: username={}, userId={}, client={}, tokenTimeout={}s",
                 loginUser.getUsername(),
                 loginUser.getUserId(),
-                loginUser.getRoleIds(),
-                loginUser.getPermissions());
+                request.getUserClient(),
+                client.getTokenTimeout());
 
-        // 8. 构建返回结果
         return buildLoginResult(loginUser);
     }
 
@@ -94,9 +99,15 @@ public class SystemAuthServiceImpl implements IAuthService {
      * 处理同一账号登录策略
      *
      * @param userId 用户ID
+     * @param client 客户端配置
      */
-    private void handleSameAccountLogin(Long userId) {
+    private void handleSameAccountLogin(Long userId, SysClient client) {
         if (!authProperties.getEnableOnlineUserManagement()) {
+            return;
+        }
+
+        if (client.getConcurrentLogin()) {
+            log.debug("客户端允许并发登录: userId={}, client={}", userId, client.getClientCode());
             return;
         }
 
@@ -104,12 +115,10 @@ public class SystemAuthServiceImpl implements IAuthService {
         
         switch (strategy) {
             case "allow_concurrent":
-                // 允许并发登录,不做任何处理
                 log.debug("允许同一账号并发登录: userId={}", userId);
                 break;
                 
             case "replace_old":
-                // 新登录踢出旧登录
                 try {
                     String currentToken = StpUtil.getTokenValue();
                     onlineUserService.kickoutAllSessions(userId, currentToken);
@@ -120,7 +129,6 @@ public class SystemAuthServiceImpl implements IAuthService {
                 break;
                 
             case "reject_new":
-                // 拒绝新登录
                 if (!onlineUserService.getUserTokens(userId).isEmpty()) {
                     throw new RuntimeException("该账号已在其他地方登录,请先退出后再登录");
                 }
@@ -130,6 +138,60 @@ public class SystemAuthServiceImpl implements IAuthService {
             default:
                 log.warn("未知的同一账号登录策略: {}", strategy);
         }
+    }
+
+    private SysClient validateAndLoadClient(String userClient, String appId, String appSecret) {
+        if (StrUtil.isBlank(userClient)) {
+            userClient = "pc";
+        }
+        
+        SysClient client = clientService.getByCode(userClient);
+        if (client == null) {
+            throw new RuntimeException("客户端不存在: " + userClient);
+        }
+        
+        if (client.getStatus() == 0) {
+            throw new RuntimeException("客户端已禁用: " + userClient);
+        }
+        
+        // 验证AppId和AppSecret（可选）
+        if (authProperties.getEnableClientValidation()) {
+            // 验证AppId
+            if (StrUtil.isBlank(appId)) {
+                throw new RuntimeException("客户端AppId不能为空");
+            }
+            
+            if (!client.getAppId().equals(appId)) {
+                log.warn("客户端AppId不匹配: expected={}, actual={}, client={}", 
+                    client.getAppId(), appId, userClient);
+                throw new RuntimeException("客户端AppId不匹配");
+            }
+            
+            // 验证AppSecret
+            if (StrUtil.isBlank(appSecret)) {
+                throw new RuntimeException("客户端AppSecret不能为空");
+            }
+            
+            if (!client.getAppSecret().equals(appSecret)) {
+                log.warn("客户端AppSecret不匹配: client={}, appId={}", userClient, appId);
+                throw new RuntimeException("客户端AppSecret不匹配");
+            }
+            
+            log.info("客户端验证通过: client={}, appId={}", userClient, appId);
+        }
+        
+        return client;
+    }
+    
+    private void applyClientTokenConfig(SysClient client) {
+        cn.dev33.satoken.config.SaTokenConfig config = cn.dev33.satoken.SaManager.getConfig();
+        config.setTimeout(client.getTokenTimeout());
+        config.setActiveTimeout(client.getTokenActivityTimeout());
+        config.setIsConcurrent(client.getConcurrentLogin());
+        config.setIsShare(client.getShareToken());
+        
+        log.debug("应用客户端Token配置: client={}, timeout={}s, concurrent={}",
+            client.getClientCode(), client.getTokenTimeout(), client.getConcurrentLogin());
     }
 
     @Override

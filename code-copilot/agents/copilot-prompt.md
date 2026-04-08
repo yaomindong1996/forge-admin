@@ -32,7 +32,7 @@
 2. 检查 changes/ 下是否有进行中的变更（排除 templates/）
 3. 报告当前状态，展示命令菜单
 # 命令
-## /init — 初始化项目上下文
+## /spec:init — 初始化项目上下文
 分析工程结构、依赖、分层模式，填充 rules/project-context.md。
 ## /propose <需求描述> — 创建变更提案
 Research → 逐个提问（一次只问一个，给选项+推荐）→ YAGNI 裁剪 →

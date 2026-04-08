@@ -52,34 +52,51 @@ public class SysTenantDTO implements Serializable {
      * 租户描述
      */
     private String tenantDesc;
-    /**
-     * 主题配置
-     */
-    private String themeConfig;
-    /**
-     * 主题颜色
-     */
-    private String systemTheme;
-    /**
-     * 布局
-     */
-    private String systemLayout;
-    /**
-     * logo
-     */
-    private String systemLogo;
-    /**
-     * 系统名
-     */
-    private String systemName;
-    /**
-     * 浏览器标签名称
-     */
-    private String browserTitle;
+
     /**
      * 浏览器icon（存储图标URL/Base64）
      */
     private String browserIcon;
+
+    /**
+     * 浏览器标签名称
+     */
+    private String browserTitle;
+
+    /**
+     * 系统名称
+     */
+    private String systemName;
+
+    /**
+     * 系统logo（存储logo URL/Base64）
+     */
+    private String systemLogo;
+
+    /**
+     * 系统介绍
+     */
+    private String systemIntro;
+
+    /**
+     * 版权显示文本
+     */
+    private String copyrightInfo;
+
+    /**
+     * 系统布局（default-默认，classic-经典，modern-现代等）
+     */
+    private String systemLayout;
+
+    /**
+     * 系统主题（light-亮色，dark-暗色，auto-跟随系统等）
+     */
+    private String systemTheme;
+
+    /**
+     * 主题配置
+     */
+    private String themeConfig;
 
 
 }

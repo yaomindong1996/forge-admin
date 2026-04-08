@@ -1,5 +1,8 @@
 <template>
   <div class="wh-full flex flex-col">
+    <!-- 演示环境提示条 -->
+    <DemoBanner />
+
     <!-- 顶部一级菜单 -->
     <header
       class="layout-header flex h-60 flex-shrink-0 items-center px-20"
@@ -38,6 +41,7 @@
 <script setup>
 import { useAppStore } from '@/store'
 import { AppCard } from '@/components/common'
+import DemoBanner from '@/components/DemoBanner.vue'
 import {
   AppTab,
   Fullscreen,

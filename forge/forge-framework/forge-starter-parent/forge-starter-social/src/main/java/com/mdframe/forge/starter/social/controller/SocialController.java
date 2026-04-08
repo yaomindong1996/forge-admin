@@ -69,6 +69,7 @@ public class SocialController {
                 .authUrl(authUrl)
                 .state(state)
                 .build();
+        log.info("返回三方回调地址:{}", authUrl);
 
         return RespInfo.success(result);
     }

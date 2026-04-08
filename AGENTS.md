@@ -28,20 +28,18 @@ code-copilot/                   # AI coding assistant rules & change management
 
 ## Common Commands
 
-### Code Copilot 渐进式开发流程（推荐）
-> 遵循 No Spec No Code 原则，所有开发必须走以下流程
-```bash
-/spec:init  <初始化项目上下文> # 分析工程结构、依赖、分层模式，填充 rules/project-context.md。
-/propose <需求描述>    # 创建变更提案，生成渐进式Spec
-/apply <变更名>        # 按确认后的Spec执行编码
-/fix <变更名> [描述]   # Review后修正迭代
-/review <变更名>       # 两阶段代码审查（Spec合规 + 代码质量）
-/test <变更名>         # 生成单测并执行TDD流程
-/archive <变更名>      # 归档变更并沉淀知识到知识库
-```
-> 变更产物统一存放在 `code-copilot/changes/[变更名]/` 目录下，包含spec.md、tasks.md、test-spec.md、log.md
+### 渐进式开发流程（推荐）
+> 遵循 No Spec No Code 原则，使用 `/` 命令触发渐进式开发流程
+- `/spec-init` - 初始化项目上下文
+- `/propose <需求描述>` - 创建变更提案
+- `/apply <变更名>` - 执行编码
+- `/fix <变更名>` - Review后修正
+- `/review <变更名>` - 两阶段审查
+- `/test <变更名>` - 生成测试
+- `/archive <变更名>` - 归档沉淀
 
-### 常规技术命令
+> 变更产物统一存放在 `code-copilot/changes/[变更名]/` 目录下
+
 #### Backend
 ```bash
 # Build entire project

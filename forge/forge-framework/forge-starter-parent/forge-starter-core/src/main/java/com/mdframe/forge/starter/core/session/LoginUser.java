@@ -95,10 +95,15 @@ public class LoginUser implements Serializable {
      */
     private Long loginTime;
 
-    /**
+/**
      * 登录IP
      */
     private String loginIp;
+
+    /**
+     * 用户客户端类型（pc, app, h5, wechat）
+     */
+    private String userClient;
     
     private String deptName;
 

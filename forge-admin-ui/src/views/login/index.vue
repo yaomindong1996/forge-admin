@@ -19,7 +19,7 @@
           <h1 class="brand-title">
             {{ title }}
           </h1>
-          <p class="brand-subtitle">企业级中后台管理框架</p>
+          <p class="brand-subtitle">企业级中后台基础框架</p>
           <div class="feature-list">
             <div class="feature-item">
               <div class="feature-icon">
@@ -677,6 +677,9 @@ async function handleLogin() {
       phone, // 短信验证码时需要
       authType: 'password_captcha', // 使用用户名密码+验证码登录方式
       encrypted: true, // 标记密码已加密
+      userClient: 'pc', // 客户端类型：pc端
+      appId: import.meta.env.VITE_APP_ID || 'forge_pc_001', // 客户端AppId
+      appSecret: import.meta.env.VITE_APP_SECRET || undefined, // 客户端密钥（可选）
     }
 
     const res = await api.login(params)
