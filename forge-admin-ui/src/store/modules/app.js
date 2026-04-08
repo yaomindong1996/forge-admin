@@ -33,16 +33,17 @@ export const useAppStore = defineStore('app', {
     },
     setThemeColor(color = this.primaryColor, isDark = this.isDark) {
       document.body.style.setProperty('--primary-color', color)
-      // const colors = generate(color, {
-      //   list: true,
-      //   dark: isDark,
-      // })
-      // this.naiveThemeOverrides.common = Object.assign(this.naiveThemeOverrides.common || {}, {
-      //   primaryColor: colors[5],
-      //   primaryColorHover: colors[4],
-      //   primaryColorSuppl: colors[4],
-      //   primaryColorPressed: colors[6],
-      // })
+      const colors = generate(color, {
+        list: true,
+        dark: isDark,
+      })
+      this.naiveThemeOverrides.common = {
+        ...this.naiveThemeOverrides.common,
+        primaryColor: colors[5],
+        primaryColorHover: colors[4],
+        primaryColorSuppl: colors[4],
+        primaryColorPressed: colors[6],
+      }
     },
     setSelectedTopMenuId(id) {
       this.selectedTopMenuId = id

@@ -98,6 +98,25 @@ export const defaultThemeConfig = {
 }
 
 /**
+ * 调整颜色亮度
+ * @param {string} hex - 十六进制颜色值
+ * @param {number} amount - 调整量，正数变亮，负数变暗
+ * @returns {string} 调整后的十六进制颜色
+ */
+function adjustColorBrightness(hex, amount) {
+  const num = Number.parseInt(hex.replace('#', ''), 16)
+  let r = (num >> 16) + amount
+  let g = ((num >> 8) & 0x00FF) + amount
+  let b = (num & 0x0000FF) + amount
+
+  r = Math.min(255, Math.max(0, r))
+  g = Math.min(255, Math.max(0, g))
+  b = Math.min(255, Math.max(0, b))
+
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
+}
+
+/**
  * 应用主题配置到 CSS 变量
  * @param {Object} config 主题配置对象
  * @param {boolean} isDark 是否为暗色模式
@@ -110,9 +129,15 @@ export function applyThemeConfig(config, isDark = false) {
   root.style.setProperty('--font-size-lg', '16px')
   root.style.setProperty('--font-size-sm', '12px')
 
-  // 2. 应用主题色
+  // 2. 应用主题色及渐变
   if (config.primaryColor) {
-    root.style.setProperty('--primary-color', config.primaryColor)
+    const primary = config.primaryColor
+    const primaryLight = adjustColorBrightness(primary, 40)
+    const primaryDark = adjustColorBrightness(primary, -30)
+
+    root.style.setProperty('--primary-color', primary)
+    root.style.setProperty('--primary-gradient', `linear-gradient(135deg, ${primaryLight} 0%, ${primary} 100%)`)
+    root.style.setProperty('--primary-gradient-hover', `linear-gradient(135deg, ${primary} 0%, ${primaryDark} 100%)`)
   }
 
   // 3. 应用 Header 配置

@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint:fix": "eslint --fix",
-    "up": "taze major -I"
+    "up": "taze major -I",
+    "build:stage": "vite build && npm run deploy:stage",
+    "deploy:stage": "esno deploy/index.js"
   },
   "dependencies": {
     "@arco-design/color": "^0.4.0",
@@ -24,6 +26,7 @@
     "axios": "^1.11.0",
     "bpmn-js": "^17.11.1",
     "bpmn-js-properties-panel": "^5.23.0",
+    "chalk": "^5.6.2",
     "codemirror": "^6.0.1",
     "crypto-js": "^4.2.0",
     "dayjs": "^1.11.13",
@@ -32,8 +35,10 @@
     "lodash-es": "^4.17.21",
     "md5": "^2.3.0",
     "naive-ui": "^2.42.0",
+    "ora": "^9.3.0",
     "pinia": "^3.0.3",
     "pinia-plugin-persistedstate": "^4.5.0",
+    "scp2": "^0.5.0",
     "sm-crypto": "^0.3.13",
     "sockjs-client": "^1.6.0",
     "unplugin-vue-router": "^0.19.2",
@@ -59,6 +64,7 @@
     "glob": "^11.0.3",
     "rollup-plugin-visualizer": "^6.0.3",
     "sass": "^1.93.2",
+    "ssh2-sftp-client": "^12.1.1",
     "taze": "^19.3.0",
     "unocss": "^66.4.2",
     "unplugin-auto-import": "^20.0.0",

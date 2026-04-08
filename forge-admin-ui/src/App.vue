@@ -16,11 +16,11 @@
     </div>
     <router-view v-else v-slot="{ Component, route: curRoute }">
       <component :is="LayoutComponent" :key="curRoute.meta?.layout || appStore.layout">
-        <transition name="fade-slide" appear>
+<!--        <transition name="fade-slide" mode="out-in" appear>-->
           <KeepAlive :include="keepAliveNames">
             <component :is="Component" v-if="!tabStore.reloading" :key="curRoute.fullPath" />
           </KeepAlive>
-        </transition>
+<!--        </transition>-->
       </component>
 
       <LayoutSetting v-if="layoutSettingVisible" class="fixed right-12 top-1/2 z-999" />
