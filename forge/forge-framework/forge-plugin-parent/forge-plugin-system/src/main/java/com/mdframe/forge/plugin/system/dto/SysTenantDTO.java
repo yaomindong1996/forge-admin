@@ -56,4 +56,30 @@ public class SysTenantDTO implements Serializable {
      * 主题配置
      */
     private String themeConfig;
+    /**
+     * 主题颜色
+     */
+    private String systemTheme;
+    /**
+     * 布局
+     */
+    private String systemLayout;
+    /**
+     * logo
+     */
+    private String systemLogo;
+    /**
+     * 系统名
+     */
+    private String systemName;
+    /**
+     * 浏览器标签名称
+     */
+    private String browserTitle;
+    /**
+     * 浏览器icon（存储图标URL/Base64）
+     */
+    private String browserIcon;
+
+
 }

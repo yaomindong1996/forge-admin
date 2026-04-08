@@ -17,12 +17,18 @@
         <result column="update_by" property="updateBy" />
         <result column="update_time" property="updateTime" />
         <result column="theme_config" property="themeConfig" />
+        <result column="system_theme" property="systemTheme" />
+        <result column="system_layout" property="systemLayout" />
+        <result column="system_logo" property="systemLogo" />
+        <result column="system_name" property="systemName" />
+        <result column="browser_title" property="browserTitle" />
+        <result column="browser_icon" property="browserIcon" />
     </resultMap>
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
         id, tenant_name, contact_person, contact_phone, user_limit, tenant_status,
-        expire_time, tenant_desc, create_by, create_time, update_by, update_time,theme_config
+        expire_time, tenant_desc, create_by, create_time, update_by, update_time,theme_config,system_theme,system_layout,system_logo,system_name,browser_title,browser_icon
     </sql>
 
 </mapper>
