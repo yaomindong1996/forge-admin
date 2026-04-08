@@ -391,10 +391,56 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
                 }
             }
         }
+}
+    
+    @Override
+    public List<SysOnlineUser> getOnlineUsersByClient(String clientType) {
+        List<SysOnlineUser> result = new ArrayList<>();
+        
+        List<String> tokens = StpUtil.searchTokenValue("", 0, -1, false);
+        for (String token : tokens) {
+            try {
+                SaSession session = StpUtil.getTokenSessionByToken(token);
+                LoginUser loginUser = (LoginUser) session.get("loginUser");
+                
+                if (loginUser != null && loginUser.getUserClient() != null
+                    && loginUser.getUserClient().equals(clientType)) {
+                    SysOnlineUser onlineUser = this.lambdaQuery()
+                        .eq(SysOnlineUser::getTokenValue, token)
+                        .one();
+                    if (onlineUser != null) {
+                        result.add(onlineUser);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("获取token session失败: {}", token, e);
+            }
+        }
+        
+        return result;
+    }
+    
+    @Override
+    public void kickoutByClient(Long userId, String clientType) {
+        StpUtil.kickout(userId, clientType);
+        log.info("踢出用户客户端会话: userId={}, client={}", userId, clientType);
+    }
+    
+    @Override
+    public Map<String, Long> getOnlineCountByClient() {
+        Map<String, Long> result = new HashMap<>();
+        
+        result.put("pc", (long) getOnlineUsersByClient("pc").size());
+        result.put("app", (long) getOnlineUsersByClient("app").size());
+        result.put("h5", (long) getOnlineUsersByClient("h5").size());
+        result.put("wechat", (long) getOnlineUsersByClient("wechat").size());
+        
+        return result;
     }
 
     /**
      * 获取客户端IP地址
+     * @return IP地址
      */
     private String getClientIp() {
         try {

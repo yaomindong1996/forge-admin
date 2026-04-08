@@ -48,6 +48,11 @@ export default defineConfig({
       dark: '#18181c',
       light_border: '#efeff5',
       dark_border: '#2d2d30',
+      // 语义化颜色
+      info: '#909399',
+      success: '#67C23A',
+      warning: '#E6A23C',
+      error: '#F56C6C',
     },
   },
 })

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.mdframe.forge</groupId>
+    <artifactId>forge-plugin-parent</artifactId>
+    <version>1.0.0</version>
+  </parent>
+  <groupId>com.mdframe.forge</groupId>
+  <artifactId>forge-plugin-message</artifactId>
+  <version>1.0.0</version>
+  <name>forge-plugin-message</name>
+  <description>forge-plugin-message</description>
+  <dependencies>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-starter-message</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-tx</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-starter-orm</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-starter-auth</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-plugin-system</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-starter-tenant</artifactId>
+    </dependency>
+  </dependencies>
+</project>

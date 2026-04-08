@@ -1,6 +1,9 @@
 
 <template>
   <div class="modern-layout">
+    <!-- 演示环境提示条 -->
+    <DemoBanner />
+
     <!-- 侧边栏 -->
     <aside
       class="sidebar-wrapper"
@@ -25,6 +28,7 @@
 import { useAppStore } from '@/store'
 import AppHeader from './header/index.vue'
 import SideBar from './sidebar/index.vue'
+import DemoBanner from '@/components/DemoBanner.vue'
 
 const appStore = useAppStore()
 </script>

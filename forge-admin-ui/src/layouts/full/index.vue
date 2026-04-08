@@ -1,5 +1,8 @@
 <template>
   <div class="full-layout">
+    <!-- 演示环境提示条 -->
+    <DemoBanner />
+
     <!-- 侧边栏 -->
     <aside
       class="sidebar-full"
@@ -29,6 +32,7 @@ import { useAppStore } from '@/store'
 import AppHeader from './header/index.vue'
 import SideBar from './sidebar/index.vue'
 import { AppCard } from "@/components/index.js"
+import DemoBanner from '@/components/DemoBanner.vue'
 
 const appStore = useAppStore()
 </script>
