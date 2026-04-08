@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.mdframe.forge</groupId>
+    <artifactId>forge-starter-parent</artifactId>
+    <version>1.0.0</version>
+  </parent>
+  <groupId>com.mdframe.forge</groupId>
+  <artifactId>forge-starter-idempotent</artifactId>
+  <version>1.0.0</version>
+  <name>forge-starter-idempotent</name>
+  <description>forge-starter-idempotent - 分布式幂等防重组件</description>
+  <dependencies>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-starter-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-starter-cache</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-aop</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-configuration-processor</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>cn.hutool</groupId>
+      <artifactId>hutool-crypto</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
