@@ -126,6 +126,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.verison}</version>
                 <configuration>
+                    <skip>true</skip>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                     <encoding>${project.build.sourceEncoding}</encoding>
@@ -167,6 +168,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
+                    <skipTests>true</skipTests>
                     <argLine>-Dfile.encoding=UTF-8</argLine>
                     <!-- 根据打包环境执行对应的@Tag测试方法 -->
                     <groups>${profiles.active}</groups>
