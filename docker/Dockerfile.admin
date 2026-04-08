@@ -1,0 +1,38 @@
+# ============================================
+# Forge Admin 后端服务 Dockerfile
+# ============================================
+# 构建上下文为项目根目录，docker compose 中 context 设为 ..
+FROM eclipse-temurin:17-jdk AS builder
+WORKDIR /build
+COPY forge/ .
+RUN mvn clean package -pl forge-admin -am -DskipTests -Pprod
+
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+COPY --from=builder /build/forge-admin/target/forge-admin.jar app.jar
+
+ENV JAVA_OPTS="-Xms256m -Xmx512m"
+ENV SPRING_PROFILES_ACTIVE=prod
+ENV MYSQL_HOST=mysql
+ENV MYSQL_PORT=3306
+ENV MYSQL_DB=forge_admin
+ENV MYSQL_USER=root
+ENV MYSQL_PASSWORD=forge123456
+ENV REDIS_HOST=redis
+ENV REDIS_PORT=6379
+ENV REDIS_PASSWORD=forge123456
+ENV FLOW_CLIENT_URL=http://forge-flow:8081
+
+EXPOSE 8580
+
+ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} \
+  -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE} \
+  -Dspring.datasource.dynamic.datasource.master.url=jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DB}?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true \
+  -Dspring.datasource.dynamic.datasource.master.username=${MYSQL_USER} \
+  -Dspring.datasource.dynamic.datasource.master.password=${MYSQL_PASSWORD} \
+  -Dspring.data.redis.host=${REDIS_HOST} \
+  -Dspring.data.redis.port=${REDIS_PORT} \
+  -Dspring.data.redis.password=${REDIS_PASSWORD} \
+  -Dspring.data.redis.redisson.config=\"singleServerConfig:\\n  address: \\\"redis://${REDIS_HOST}:${REDIS_PORT}\\\"\\n  database: 0\\n  password: ${REDIS_PASSWORD}\\n  connectTimeout: 10000\\n  timeout: 3000\\n  retryAttempts: 3\\n  retryInterval: 1500\\n  connectionPoolSize: 64\\n  connectionMinimumIdleSize: 10\\nthreads: 16\\nnettyThreads: 32\" \
+  -Dforge.flow.client.url=${FLOW_CLIENT_URL} \
+  -jar app.jar"]

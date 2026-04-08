@@ -1,0 +1,19 @@
+# 通用排除
+**/.git/
+**/.idea/
+**/.vscode/
+**/*.log
+
+# 后端构建产物
+**/target/
+
+# 前端依赖和构建产物
+forge-admin-ui/node_modules/
+forge-admin-ui/dist/
+
+# Docker 目录自身不需要进入构建上下文
+docker/
+
+# 其他非必要目录
+.opencode/
+code-copilot/
