@@ -1,5 +1,0 @@
-INSERT INTO `sys_client` VALUES 
-(1, 'pc', 'PC端', 'forge_pc_001', 'pc_secret_encrypted_xxx', 86400, 7200, 'Bearer', 'Authorization', 0, 0, 0, NULL, 0, 'AES', -1, -1, 'password,password_captcha', 1, 'PC客户端', NULL, NOW(), 1, NOW(), 1, NULL),
-(2, 'app', 'APP端', 'forge_app_001', 'app_secret_encrypted_xxx', 2592000, -1, 'Bearer', 'Authorization', 1, 0, 0, NULL, 1, 'AES', -1, -1, 'password,phone_captcha', 1, '移动APP客户端', NULL, NOW(), 1, NOW(), 1, NULL),
-(3, 'h5', 'H5端', 'forge_h5_001', 'h5_secret_encrypted_xxx', 604800, 3600, 'Bearer', 'Authorization', 1, 0, 0, NULL, 0, 'AES', -1, -1, 'password,wechat', 1, 'H5网页客户端', NULL, NOW(), 1, NOW(), 1, NULL),
-(4, 'wechat', '微信小程序', 'forge_wx_001', 'wx_secret_encrypted_xxx', 2592000, -1, 'Bearer', 'Authorization', 1, 0, 0, NULL, 1, 'AES', -1, -1, 'wechat', 1, '微信小程序客户端', NULL, NOW(), 1, NOW(), 1, NULL);
