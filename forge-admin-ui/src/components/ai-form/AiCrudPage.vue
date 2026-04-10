@@ -262,6 +262,7 @@ import {
   DownloadOutline,
   RefreshOutline
 } from '@vicons/ionicons5'
+import { NDropdown } from 'naive-ui'
 import AiSearch from './AiSearch.vue'
 import AiTable from './AiTable.vue'
 import AiForm from './AiForm.vue'
@@ -330,6 +331,113 @@ const currentRow = ref(null)
 const importModalVisible = ref(false)
 
 /**
+ * 操作列最大显示按钮数
+ */
+const maxActionButtons = 2
+
+/**
+ * 渲染操作列（支持自动折叠）
+ * 使用文字链接风格，紧凑排列，超过 maxActionButtons 个时折叠到"更多"下拉
+ * @param {Object} row - 行数据
+ * @param {Array} actions - 操作按钮配置 [{ label, key, type, onClick, visible }]
+ */
+function renderActionColumn(row, actions) {
+  // 过滤不可见的按钮
+  const visibleActions = actions.filter(action => {
+    if (typeof action.visible === 'function') return action.visible(row)
+    if (action.visible === false) return false
+    return true
+  })
+
+  if (visibleActions.length === 0) {
+    return h('span', { style: { color: '#999' } }, '-')
+  }
+
+  // 所有按钮都能直接显示
+  if (visibleActions.length <= maxActionButtons) {
+    return h('div', { class: 'table-action-column' },
+      visibleActions.map((action, index) => {
+        const nodes = []
+        if (index > 0) {
+          nodes.push(h('span', { class: 'table-action-divider' }, ' | '))
+        }
+        const isDanger = action.type === 'error' || action.type === 'danger'
+        nodes.push(h('a', {
+          class: ['table-action-link', isDanger ? 'danger' : ''],
+          onClick: (e) => {
+            e?.stopPropagation()
+            e?.preventDefault()
+            if (action.onClick) action.onClick(row)
+            else handleActionClick(action.key, row)
+          }
+        }, action.label))
+        return nodes
+      }).flat()
+    )
+  }
+
+  // 需要折叠：显示前 maxActionButtons 个，其余放入"更多"下拉
+  const inlineActions = visibleActions.slice(0, maxActionButtons)
+  const dropdownOptions = visibleActions.slice(maxActionButtons).map(action => ({
+    label: action.label,
+    key: action.key || action.label
+  }))
+
+  const inlineNodes = inlineActions.map((action, index) => {
+    const nodes = []
+    if (index > 0) {
+      nodes.push(h('span', { class: 'table-action-divider' }, ' | '))
+    }
+    const isDanger = action.type === 'error' || action.type === 'danger'
+    nodes.push(h('a', {
+      class: ['table-action-link', isDanger ? 'danger' : ''],
+      onClick: (e) => {
+        e?.stopPropagation()
+        e?.preventDefault()
+        if (action.onClick) action.onClick(row)
+        else handleActionClick(action.key, row)
+      }
+    }, action.label))
+    return nodes
+  }).flat()
+
+  return h('div', { class: 'table-action-column' }, [
+    ...inlineNodes,
+    h('span', { class: 'table-action-divider' }, ' | '),
+    h(NDropdown, {
+      options: dropdownOptions,
+      trigger: 'click',
+      onSelect: (key) => {
+        const action = visibleActions.find(a => (a.key || a.label) === key)
+        if (action?.onClick) action.onClick(row)
+        else handleActionClick(key, row)
+      }
+    }, {
+      default: () => h('a', {
+        class: 'table-action-link',
+        onClick: (e) => { e?.preventDefault() }
+      }, '更多')
+    })
+  ])
+}
+
+/**
+ * 处理操作列按钮点击（内置 key 映射）
+ */
+function handleActionClick(key, row) {
+  switch (key) {
+    case 'edit':
+      handleEdit(row)
+      break
+    case 'delete':
+      handleDelete(row)
+      break
+    default:
+      break
+  }
+}
+
+/**
  * ==================== 计算属性 ====================
  */
 
@@ -347,7 +455,21 @@ const rowKeyFn = computed(() => {
  * 表格列配置（添加操作列）
  */
 const tableColumns = computed(() => {
-  const cols = [...props.columns]
+  const cols = []
+
+  props.columns.forEach(col => {
+    // 操作列：如果有 actions 配置，自动生成 render 函数
+    if ((col.prop === 'action' || col.key === 'action') && col.actions) {
+      const actionCol = { ...col }
+      delete actionCol.actions
+      delete actionCol._slot
+      delete actionCol.slot
+      actionCol.render = (row) => renderActionColumn(row, col.actions)
+      cols.push(actionCol)
+      return
+    }
+    cols.push(col)
+  })
 
   // 如果没有操作列且没有隐藏，添加默认操作列
   const hasActionColumn = cols.some(col => col.prop === 'action' || col.key === 'action')
@@ -359,29 +481,11 @@ const tableColumns = computed(() => {
       width: 200,
       fixed: 'right',
       render: (row) => {
-        return h('div', {
-          class: 'table-action-column'
-        }, [
-          h(
-            'n-button',
-            {
-              size: 'small',
-              type: 'primary',
-              onClick: () => handleEdit(row)
-            },
-            { default: () => '编辑' }
-          ),
-          h(
-            'n-button',
-            {
-              size: 'small',
-              type: 'error',
-              style: { marginLeft: '8px' },
-              onClick: () => handleDelete(row)
-            },
-            { default: () => '删除' }
-          )
-        ])
+        const actions = [
+          { label: '编辑', key: 'edit', type: 'primary' },
+          { label: '删除', key: 'delete', type: 'error' }
+        ]
+        return renderActionColumn(row, actions)
       }
     })
   }
@@ -423,7 +527,7 @@ const searchSlots = computed(() => {
  */
 const tableSlots = computed(() => {
   return props.columns
-    .filter(col => col.slot || col._slot)
+    .filter(col => (col.slot || col._slot) && !col.actions)
     .map(col => col.slot || col._slot)
 })
 
@@ -1329,7 +1433,7 @@ watch(() => props.publicQuery, () => {
 .table-action-column {
   display: flex;
   align-items: center;
-  gap: 4px;
+  white-space: nowrap;
 }
 
 /* 按钮操作链接样式 */
@@ -1363,6 +1467,11 @@ watch(() => props.publicQuery, () => {
 :deep(.table-action-divider) {
   color: var(--border-strong);
   user-select: none;
+}
+
+/* 操作列折叠下拉样式 */
+:deep(.table-action-column .n-dropdown) {
+  min-width: 80px;
 }
 
 /* 响应式设计 */

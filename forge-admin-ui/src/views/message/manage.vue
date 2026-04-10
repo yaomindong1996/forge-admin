@@ -11,13 +11,6 @@
       :hide-batch-delete="true"
       :before-search="handleBeforeSearch"
     >
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <a class="text-primary cursor-pointer" @click="handleViewDetail(row)">
-          详情
-        </a>
-      </template>
-
       <!-- 自定义顶部工具栏 -->
       <template #toolbar-end>
         <n-button type="primary" @click="showSendModal = true">
@@ -163,7 +156,7 @@
 </template>
 
 <script setup>
-import { ref, h } from 'vue'
+import { ref, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import messageApi from '@/api/message'
@@ -258,7 +251,7 @@ const searchSchema = [
   }
 ]
 
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'title',
     label: '消息标题',
@@ -318,9 +311,11 @@ const tableColumns = [
     label: '操作',
     width: 80,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '详情', key: 'detail', onClick: handleViewDetail }
+    ]
   }
-]
+])
 
 const receiverColumns = [
   { title: '用户名', key: 'userName' },

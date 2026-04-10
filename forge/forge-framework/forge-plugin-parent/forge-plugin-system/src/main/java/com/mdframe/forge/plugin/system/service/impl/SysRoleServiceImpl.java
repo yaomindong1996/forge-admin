@@ -6,13 +6,18 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.mdframe.forge.plugin.system.dto.RoleUserQuery;
 import com.mdframe.forge.plugin.system.dto.SysRoleDTO;
 import com.mdframe.forge.plugin.system.dto.SysRoleQuery;
 import com.mdframe.forge.plugin.system.entity.SysResource;
 import com.mdframe.forge.plugin.system.entity.SysRole;
 import com.mdframe.forge.plugin.system.entity.SysRoleResource;
+import com.mdframe.forge.plugin.system.entity.SysUser;
+import com.mdframe.forge.plugin.system.entity.SysUserRole;
 import com.mdframe.forge.plugin.system.mapper.SysRoleMapper;
 import com.mdframe.forge.plugin.system.mapper.SysRoleResourceMapper;
+import com.mdframe.forge.plugin.system.mapper.SysUserMapper;
+import com.mdframe.forge.plugin.system.mapper.SysUserRoleMapper;
 import com.mdframe.forge.plugin.system.service.ISysResourceService;
 import com.mdframe.forge.plugin.system.service.ISysRoleService;
 import com.mdframe.forge.starter.core.session.LoginUser;
@@ -35,6 +40,8 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
     private final SysRoleMapper roleMapper;
     private final SysRoleResourceMapper roleResourceMapper;
+    private final SysUserMapper userMapper;
+    private final SysUserRoleMapper userRoleMapper;
     @Lazy
     private final ISysResourceService resourceService;
 
@@ -222,5 +229,51 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
                     .stream().map(SysRole::getId).collect(Collectors.toList());
         }
         return loginUser.getRoleIds();
+    }
+
+    @Override
+    public IPage<SysUser> selectRoleUsers(RoleUserQuery query) {
+        if (query.getRoleId() == null) {
+            return new Page<>();
+        }
+        
+        // 查询该角色关联的用户ID列表
+        LambdaQueryWrapper<SysUserRole> urWrapper = new LambdaQueryWrapper<>();
+        urWrapper.eq(SysUserRole::getRoleId, query.getRoleId())
+                .select(SysUserRole::getUserId);
+        List<Long> userIds = userRoleMapper.selectList(urWrapper)
+                .stream()
+                .map(SysUserRole::getUserId)
+                .collect(Collectors.toList());
+        
+        if (CollUtil.isEmpty(userIds)) {
+            return new Page<>();
+        }
+        
+        // 构建用户查询条件
+        LambdaQueryWrapper<SysUser> userWrapper = new LambdaQueryWrapper<>();
+        userWrapper.in(SysUser::getId, userIds)
+                .like(StringUtils.isNotBlank(query.getUsername()), SysUser::getUsername, query.getUsername())
+                .like(StringUtils.isNotBlank(query.getRealName()), SysUser::getRealName, query.getRealName())
+                .like(StringUtils.isNotBlank(query.getPhone()), SysUser::getPhone, query.getPhone())
+                .eq(query.getUserStatus() != null, SysUser::getUserStatus, query.getUserStatus())
+                .orderByDesc(SysUser::getCreateTime);
+        
+        // 分页查询
+        Page<SysUser> page = new Page<>(query.getPageNum(), query.getPageSize());
+        return userMapper.selectPage(page, userWrapper);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean removeUserRole(Long roleId, Long userId) {
+        if (roleId == null || userId == null) {
+            return false;
+        }
+        
+        LambdaQueryWrapper<SysUserRole> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysUserRole::getRoleId, roleId)
+                .eq(SysUserRole::getUserId, userId);
+        return userRoleMapper.delete(wrapper) > 0;
     }
 }

@@ -1,8 +1,12 @@
 package com.mdframe.forge.plugin.system.service;
 
+import com.mdframe.forge.plugin.system.entity.SysUser;
+
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.mdframe.forge.plugin.system.dto.RoleUserQuery;
 import com.mdframe.forge.plugin.system.dto.SysRoleDTO;
 import com.mdframe.forge.plugin.system.dto.SysRoleQuery;
+import com.mdframe.forge.plugin.system.entity.SysUser;
 import com.mdframe.forge.plugin.system.entity.SysRole;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
@@ -93,4 +97,21 @@ public interface ISysRoleService extends IService<SysRole> {
      * @return 角色ID列表
      */
     List<Long> selectCurrentUserRoleIds();
+
+    /**
+     * 查询角色下的用户列表（分页）
+     *
+     * @param query 查询条件
+     * @return 用户分页列表
+     */
+    IPage<SysUser> selectRoleUsers(RoleUserQuery query);
+
+    /**
+     * 移除角色用户
+     *
+     * @param roleId 角色ID
+     * @param userId 用户ID
+     * @return 是否成功
+     */
+    boolean removeUserRole(Long roleId, Long userId);
 }

@@ -14,12 +14,6 @@
       :hide-batch-delete="true"
       :before-search="handleBeforeSearch"
     >
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <a class="text-primary cursor-pointer" @click="handleViewDetail(row)">
-          详情
-        </a>
-      </template>
     </AiCrudPage>
 
     <!-- 详情弹窗 -->
@@ -100,7 +94,7 @@
 </template>
 
 <script setup>
-import { ref, h } from 'vue'
+import { ref, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import {formatDateTime, request} from '@/utils'
@@ -199,7 +193,7 @@ const searchSchema = [
 ]
 
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'username',
     label: '用户名',
@@ -267,9 +261,11 @@ const tableColumns = [
     label: '操作',
     width: 80,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '详情', key: 'detail', onClick: handleViewDetail }
+    ]
   }
-]
+])
 
 // 获取登录类型标签配置
 function getLoginTypeTag(loginType) {

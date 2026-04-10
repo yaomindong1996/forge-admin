@@ -23,16 +23,19 @@
       :lazy="false"
       add-button-text="新增资源"
       :table-props="{
+        indent: 24,
+        expandOnClick: true,
         expandedRowKeys: expandedKeys,
-        onUpdateExpandedRowKeys: handleExpandedKeysUpdate
+        onUpdateExpandedRowKeys: handleExpandedKeysUpdate,
+        rowProps: rowProps
       }"
       @submit-success="handleSubmitSuccess"
     >
       <!-- 自定义工具栏 -->
       <template #toolbar-end>
-        <n-button @click="toggleExpandAll">
+        <n-button @click="toggleExpandAll" size="small">
           <template #icon>
-            <i class="i-material-symbols:unfold-more" />
+            <i :class="expandAll ? 'i-material-symbols:unfold-less' : 'i-material-symbols:unfold-more'" />
           </template>
           {{ expandAll ? '折叠全部' : '展开全部' }}
         </n-button>
@@ -40,51 +43,36 @@
 
       <!-- 自定义图标列 -->
       <template #table-icon="{ row }">
-        <div class="inline-edit-cell">
-          <IconSelector
-            :model-value="row.icon"
-            @update:model-value="(value) => handleInlineUpdate(row, 'icon', value)"
-          />
+        <div class="inline-edit-cell" @click.stop>
+          <div class="inline-edit-preview" @click="row._editingIcon = true">
+            <IconRenderer v-if="row.icon" :icon="row.icon" :font-size="16" />
+            <span v-else class="text-gray-400 text-xs">选择</span>
+          </div>
+          <div v-if="row._editingIcon" class="inline-edit-editor" @click.stop>
+            <IconSelector
+              :model-value="row.icon"
+              @update:model-value="(value) => { handleInlineUpdate(row, 'icon', value); row._editingIcon = false }"
+            />
+          </div>
         </div>
       </template>
 
       <!-- 自定义排序列 -->
       <template #table-sort="{ row }">
-        <div class="inline-edit-cell">
+        <div class="inline-edit-cell" @click.stop>
+          <div class="inline-edit-preview" @click="row._editingSort = true">
+            <span class="sort-value">{{ row.sort }}</span>
+          </div>
           <n-input-number
+            v-if="row._editingSort"
             :value="row.sort"
-            @update:value="(value) => handleInlineUpdate(row, 'sort', value)"
+            @update:value="(value) => { handleInlineUpdate(row, 'sort', value); row._editingSort = false }"
+            @blur="row._editingSort = false"
             :min="0"
             :show-button="false"
             size="small"
             style="width: 80px"
           />
-        </div>
-      </template>
-
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8">
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleAdd(row)"
-          >
-            新增
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleEdit(row)"
-          >
-            编辑
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-error cursor-pointer hover:text-error-hover"
-            @click="handleDelete(row)"
-          >
-            删除
-          </a>
         </div>
       </template>
 
@@ -109,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, h, onMounted } from 'vue'
+import { ref, h, computed, onMounted } from 'vue'
 import { NTag, NInputNumber } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import IconRenderer from '@/components/IconRenderer.vue'
@@ -131,7 +119,7 @@ const crudRef = ref(null)
 const expandAll = ref(true)
 const expandedKeys = ref([])
 const parentResourceOptions = ref([{ label: '顶级资源', value: 0, key: 0 }])
-const pendingParentId = ref(null) // 用于存储待设置的父级ID
+const pendingParentId = ref(null)
 
 // 资源类型选项
 const resourceTypeOptions = [
@@ -210,60 +198,89 @@ const searchSchema = [
   }
 ]
 
+// 资源类型样式配置
+const typeStyleMap = {
+  1: { text: '目录', icon: 'i-material-symbols:folder-outline', color: '#4C6EF5', bg: '#EDF2FF', fontWeight: '600' },
+  2: { text: '菜单', icon: 'i-material-symbols:menu', color: '#40C057', bg: '#EBFBEE', fontWeight: '500' },
+  3: { text: '按钮', icon: 'i-material-symbols:smart-button-outline', color: '#FD7E14', bg: '#FFF4E6', fontWeight: '400' },
+  4: { text: 'API', icon: 'i-material-symbols:api', color: '#FA5252', bg: '#FFF5F5', fontWeight: '400' }
+}
+
+// 行样式 — 根据资源类型添加 class
+function rowProps(row) {
+  return {
+    class: `resource-type-${row.resourceType}`
+  }
+}
+
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'resourceName',
     label: '资源名称',
-    width: 220,
+    width: 260,
     fixed: 'left',
     render: (row) => {
-      return h('div', { class: 'flex items-center' }, [
-        row.icon ? h(IconRenderer, { icon: row.icon, class: 'mr-8' }) : null,
-        h('span', row.resourceName)
+      const style = typeStyleMap[row.resourceType] || { fontWeight: '400' }
+      return h('div', { class: 'flex items-center', style: { fontWeight: style.fontWeight } }, [
+        row.icon
+          ? h(IconRenderer, {
+              icon: row.icon,
+              fontSize: '16',
+              customStyle: row.resourceType <= 2 ? { color: 'var(--primary-color, #4C6EF5)' } : { color: '#999' }
+            })
+          : null,
+        h('span', { style: { marginLeft: row.icon ? '8px' : '0' } }, row.resourceName)
       ])
     }
   },
   {
     prop: 'resourceType',
-    label: '资源类型',
-    width: 100,
+    label: '类型',
+    width: 90,
     render: (row) => {
-      const typeMap = {
-        1: { text: '目录', type: 'info' },
-        2: { text: '菜单', type: 'success' },
-        3: { text: '按钮', type: 'warning' },
-        4: { text: 'API', type: 'error' }
-      }
-      const config = typeMap[row.resourceType] || { text: '未知', type: 'default' }
-      return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
+      const config = typeStyleMap[row.resourceType]
+      if (!config) return h('span', '未知')
+      return h('span', {
+        class: 'resource-type-badge',
+        style: {
+          color: config.color,
+          backgroundColor: config.bg,
+          borderColor: config.color
+        }
+      }, [
+        h('i', { class: config.icon, style: { fontSize: '12px', marginRight: '4px' } }),
+        config.text
+      ])
     }
   },
   {
     prop: 'icon',
     label: '图标',
-    width: 150,
+    width: 120,
     _slot: 'icon'
   },
   {
     prop: 'path',
     label: '路由地址',
-    width: 200
+    width: 180
   },
   {
     prop: 'component',
     label: '组件路径',
-    width: 200
+    width: 180,
+    visible: false
   },
   {
     prop: 'perms',
     label: '权限标识',
-    width: 180
+    width: 160,
+    visible: false
   },
   {
     prop: 'sort',
     label: '排序',
-    width: 100,
+    width: 90,
     _slot: 'sort'
   },
   {
@@ -271,20 +288,34 @@ const tableColumns = [
     label: '状态',
     width: 80,
     render: (row) => {
-      return h(NTag,
-        { type: row.visible === 1 ? 'success' : 'error', size: 'small' },
-        { default: () => row.visible === 1 ? '显示' : '隐藏' }
-      )
+      const isVisible = row.visible === 1
+      return h('span', {
+        class: ['visibility-toggle', isVisible ? 'is-visible' : 'is-hidden'],
+        onClick: (e) => {
+          e.stopPropagation()
+          handleInlineUpdate(row, 'visible', isVisible ? 0 : 1)
+        }
+      }, [
+        h('i', {
+          class: isVisible ? 'i-material-symbols:visibility' : 'i-material-symbols:visibility-off',
+          style: { fontSize: '14px', marginRight: '2px' }
+        }),
+        isVisible ? '显示' : '隐藏'
+      ])
     }
   },
   {
     prop: 'action',
     label: '操作',
-    width: 180,
+    width: 150,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '新增子项', key: 'add', type: 'primary', onClick: handleAdd },
+      { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
+    ]
   }
-]
+])
 
 // 编辑表单配置
 const editSchema = ref([
@@ -306,13 +337,12 @@ const editSchema = ref([
       placeholder: '请选择上级资源',
       clearable: true,
       filterable: true,
-      defaultExpandAll: false,  // 默认收起
+      defaultExpandAll: false,
       keyField: 'value',
       labelField: 'label',
       childrenField: 'children'
     },
     options: () => {
-      console.log('获取上级资源选项:', parentResourceOptions.value)
       return parentResourceOptions.value
     }
   },
@@ -378,7 +408,6 @@ const editSchema = ref([
         message: '请输入路由地址',
         trigger: 'blur',
         validator: (rule, value) => {
-          // 只有在显示该字段时才验证
           const formData = rule.formData || {}
           if (formData.resourceType === 1 || formData.resourceType === 2) {
             return !!value
@@ -403,7 +432,6 @@ const editSchema = ref([
         message: '请输入组件路径',
         trigger: 'blur',
         validator: (rule, value) => {
-          // 只有在显示该字段时才验证（菜单类型）
           const formData = rule.formData || {}
           if (formData.resourceType === 2) {
             return !!value
@@ -565,49 +593,33 @@ function getAllKeys(list, keys = []) {
   return keys
 }
 
-// 列表数据渲染前处理（后端已返回树形结构）
+// 列表数据渲染前处理
 function beforeRenderList(list) {
-  console.log('加载的树形数据:', list)
-
-  // 如果默认展开，收集所有节点的 key
   if (expandAll.value) {
     expandedKeys.value = getAllKeys(list)
   }
-
   return list
 }
 
 // 表单渲染前处理
 function beforeRenderForm(data) {
-  console.log('beforeRenderForm 被调用:', { data, pendingParentId: pendingParentId.value })
-  
-  // 如果是新增（data 为 null 或 undefined）
   if (!data) {
     const parentId = pendingParentId.value !== null ? pendingParentId.value : 0
-    pendingParentId.value = null // 清空待设置的父级ID
-    console.log('返回新增的默认值:', { parentId })
-    return {
-      parentId: parentId
-    }
+    pendingParentId.value = null
+    return { parentId }
   }
-  
-  // 编辑模式
-  pendingParentId.value = null // 清空 pendingParentId 以防影响下次操作
-  console.log('返回编辑数据:', data)
+  pendingParentId.value = null
   return data
 }
 
 // 表单提交前处理
 function beforeSubmit(formData) {
-  console.log('提交的表单数据:', formData)
   return formData
 }
 
-// 处理表格展开状态更新（用户手动点击展开/收起时）
+// 处理表格展开状态更新
 function handleExpandedKeysUpdate(keys) {
   expandedKeys.value = keys
-
-  // 根据当前展开的 key 数量判断是否全部展开
   const tableData = crudRef.value?.getTableData() || []
   const allKeys = getAllKeys(tableData)
   expandAll.value = keys.length === allKeys.length
@@ -616,39 +628,28 @@ function handleExpandedKeysUpdate(keys) {
 // 展开/折叠所有
 function toggleExpandAll() {
   expandAll.value = !expandAll.value
-
   if (expandAll.value) {
-    // 展开所有：获取当前表格数据的所有 key
     const tableData = crudRef.value?.getTableData() || []
     expandedKeys.value = getAllKeys(tableData)
   } else {
-    // 收起所有：清空展开的 key
     expandedKeys.value = []
   }
 }
 
 // 新增子资源
 async function handleAdd(row) {
-  // 加载上级资源选项
   await loadParentResourceOptions()
-
-  // 如果点击的是某一行的新增按钮，设置待设置的父级ID
   if (row) {
-    console.log('点击行新增，设置 pendingParentId:', row.id, '行数据:', row)
     pendingParentId.value = row.id
   } else {
-    console.log('点击工具栏新增，清空 pendingParentId')
     pendingParentId.value = null
   }
-
   crudRef.value?.showAdd()
 }
 
 // 编辑
 async function handleEdit(row) {
-  // 加载上级资源选项
   await loadParentResourceOptions()
-
   crudRef.value?.showEdit(row)
 }
 
@@ -665,7 +666,6 @@ function handleDelete(row) {
         if (res.code === 200) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
-          // 刷新系统菜单
           await refreshSystemMenu()
         }
       } catch (error) {
@@ -675,21 +675,17 @@ function handleDelete(row) {
   })
 }
 
-// 提交成功后的处理（新增或编辑成功）
+// 提交成功后的处理
 async function handleSubmitSuccess() {
-  // 刷新系统菜单
   await refreshSystemMenu()
 }
 
 // 刷新系统菜单
 async function refreshSystemMenu() {
   try {
-    console.log('开始刷新系统菜单...')
     const res = await api.getMenu()
     if (res.code === 200 && res.data) {
       permissionStore.setMenuData(res.data)
-      console.log('系统菜单刷新成功')
-      window.$message.success('菜单已更新')
     }
   } catch (error) {
     console.error('刷新系统菜单失败:', error)
@@ -699,20 +695,14 @@ async function refreshSystemMenu() {
 // 内联编辑处理
 async function handleInlineUpdate(row, field, value) {
   try {
-    // 更新本地数据
     row[field] = value
-
-    // 调用更新接口
     const res = await request.post('/system/resource/edit', {
       id: row.id,
       [field]: value
     })
-
     if (res.code === 200) {
       window.$message.success('更新成功')
-      // 刷新列表
       crudRef.value?.refresh()
-      // 刷新系统菜单
       await refreshSystemMenu()
     } else {
       window.$message.error(res.msg || '更新失败')
@@ -726,11 +716,89 @@ async function handleInlineUpdate(row, field, value) {
 
 <style scoped>
 .system-menu-page {
+  height: 100%;
 }
 
+/* 行内编辑 */
 .inline-edit-cell {
   display: flex;
   align-items: center;
-  gap: 8px;
+}
+
+.inline-edit-preview {
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.2s;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.inline-edit-preview:hover {
+  background: var(--n-color-hover, #f5f5f5);
+}
+
+.sort-value {
+  font-size: 13px;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* 资源类型标签 */
+.resource-type-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  line-height: 1;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+/* 可见状态切换 */
+.visibility-toggle {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.visibility-toggle.is-visible {
+  color: #40C057;
+}
+
+.visibility-toggle.is-visible:hover {
+  background: #EBFBEE;
+}
+
+.visibility-toggle.is-hidden {
+  color: #868E96;
+}
+
+.visibility-toggle.is-hidden:hover {
+  background: #F8F9FA;
+}
+
+/* 行背景区分类型 */
+:deep(.resource-type-1) {
+  background-color: #F8F9FF !important;
+}
+
+:deep(.resource-type-1:hover) {
+  background-color: #EDF2FF !important;
+}
+
+:deep(.resource-type-2) {
+  background-color: #F8FFF8 !important;
+}
+
+:deep(.resource-type-2:hover) {
+  background-color: #EBFBEE !important;
 }
 </style>

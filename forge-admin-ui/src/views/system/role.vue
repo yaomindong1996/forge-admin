@@ -18,34 +18,7 @@
       :edit-grid-cols="2"
       :modal-width="'800px'"
       add-button-text="新增角色"
-    >
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8">
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleEdit(row)"
-          >
-            编辑
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleAuth(row)"
-          >
-            授权
-          </a>
-          <span class="text-gray-300"  v-if="row.id!==1">|</span>
-          <a
-             v-if="row.id!==1"
-            class="text-error cursor-pointer hover:text-error-hover"
-            @click="handleDelete(row)"
-          >
-            删除
-          </a>
-        </div>
-      </template>
-    </AiCrudPage>
+    />
 
     <!-- 授权弹窗 -->
     <n-modal
@@ -197,6 +170,108 @@
         </n-space>
       </template>
     </n-modal>
+
+    <!-- 用户列表弹窗 -->
+    <n-modal
+      v-model:show="usersModalVisible"
+      :title="`角色用户 - ${currentRole.roleName || ''}`"
+      preset="card"
+      style="width: 900px"
+      :mask-closable="false"
+    >
+      <div class="users-modal-content">
+        <!-- 搜索表单 -->
+        <div class="users-search-form">
+          <n-space>
+            <n-input
+              v-model:value="userSearchParams.username"
+              placeholder="用户名"
+              clearable
+              size="small"
+              style="width: 150px"
+              @clear="handleUserSearch"
+              @keyup.enter="handleUserSearch"
+            />
+            <n-input
+              v-model:value="userSearchParams.realName"
+              placeholder="真实姓名"
+              clearable
+              size="small"
+              style="width: 150px"
+              @clear="handleUserSearch"
+              @keyup.enter="handleUserSearch"
+            />
+            <n-input
+              v-model:value="userSearchParams.phone"
+              placeholder="手机号"
+              clearable
+              size="small"
+              style="width: 150px"
+              @clear="handleUserSearch"
+              @keyup.enter="handleUserSearch"
+            />
+            <n-select
+              v-model:value="userSearchParams.userStatus"
+              placeholder="用户状态"
+              clearable
+              size="small"
+              style="width: 120px"
+              :options="userStatusOptions"
+            />
+            <n-button size="small" type="primary" @click="handleUserSearch">
+              <template #icon>
+                <i class="i-material-symbols:search" />
+              </template>
+              查询
+            </n-button>
+            <n-button size="small" @click="handleUserSearchReset">
+              重置
+            </n-button>
+          </n-space>
+        </div>
+
+        <!-- 统计和刷新 -->
+        <div class="users-toolbar">
+          <n-space justify="space-between">
+            <div class="user-count-info">
+              <n-tag type="info" size="small">
+                共 {{ userPagination.itemCount }} 个用户
+              </n-tag>
+            </div>
+            <n-button size="small" @click="loadRoleUsers">
+              <template #icon>
+                <i class="i-material-symbols:refresh" />
+              </template>
+              刷新
+            </n-button>
+          </n-space>
+        </div>
+
+        <!-- 用户列表表格 -->
+        <div class="users-table-container">
+          <n-spin :show="usersLoading">
+            <n-data-table
+              v-if="roleUsers.length > 0 || !usersLoading"
+              :columns="userTableColumns"
+              :data="roleUsers"
+              :pagination="userPaginationConfig"
+              :row-key="row => row.id"
+              striped
+              size="small"
+              @update:page="handleUserPageChange"
+              @update:page-size="handleUserPageSizeChange"
+            />
+            <n-empty v-if="roleUsers.length === 0 && !usersLoading" description="该角色暂无用户" size="small" />
+          </n-spin>
+        </div>
+      </div>
+
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="usersModalVisible = false">关闭</n-button>
+        </n-space>
+      </template>
+    </n-modal>
   </div>
 </template>
 
@@ -215,13 +290,45 @@ const treeRef = ref(null)
 const authModalVisible = ref(false)
 const authLoading = ref(false)
 const authSubmitLoading = ref(false)
-const currentRole = ref({})
 const resourceTreeData = ref([])
 const checkedResourceKeys = ref([])
 const treeExpandAll = ref(true)
 const treeExpandedKeys = ref([])
 const checkStrictly = ref(false) // 父子联动开关，false表示联动
 const activeResourceTab = ref('all') // 当前选中的资源类型标签
+
+// 用户列表相关
+const usersModalVisible = ref(false)
+const usersLoading = ref(false)
+const roleUsers = ref([]) // 角色下的用户列表
+const currentRole = ref({})
+const userSearchParams = ref({
+  username: '',
+  realName: '',
+  phone: '',
+  userStatus: null
+})
+const userPagination = ref({
+  page: 1,
+  pageSize: 10,
+  itemCount: 0
+})
+
+// 用户状态选项
+const userStatusOptions = [
+  { label: '正常', value: 1 },
+  { label: '禁用', value: 0 },
+  { label: '锁定', value: 2 }
+]
+
+// 计算分页配置
+const userPaginationConfig = computed(() => ({
+  page: userPagination.value.page,
+  pageSize: userPagination.value.pageSize,
+  itemCount: userPagination.value.itemCount,
+  showSizePicker: true,
+  pageSizes: [10, 20, 50, 100]
+}))
 
 // 资源类型映射
 const resourceTypeMap = {
@@ -351,7 +458,7 @@ const searchSchema = [
 ]
 
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'roleName',
     label: '角色名称',
@@ -406,11 +513,16 @@ const tableColumns = [
   {
     prop: 'action',
     label: '操作',
-    width: 180,
+    width: 150,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '编辑', key: 'edit', onClick: handleEdit },
+      { label: '查看用户', key: 'viewUsers', onClick: handleViewUsers },
+      { label: '授权', key: 'auth', onClick: handleAuth },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: (row) => row.id !== 1 }
+    ]
   }
-]
+])
 
 // 编辑表单配置
 const editSchema = [
@@ -494,6 +606,69 @@ const editSchema = [
   }
 ]
 
+// 用户表格列配置（用于角色用户列表）
+const userTableColumns = [
+  {
+    title: '用户名',
+    key: 'username',
+    width: 150
+  },
+  {
+    title: '真实姓名',
+    key: 'realName',
+    width: 120
+  },
+  {
+    title: '手机号',
+    key: 'phone',
+    width: 130
+  },
+  {
+    title: '邮箱',
+    key: 'email',
+    width: 180
+  },
+  {
+    title: '用户类型',
+    key: 'userType',
+    width: 120,
+    render: (row) => {
+      const typeMap = {
+        0: '系统管理员',
+        1: '租户管理员',
+        2: '普通用户'
+      }
+      return h(NTag, { type: 'info', size: 'small' }, { default: () => typeMap[row.userType] || '未知' })
+    }
+  },
+  {
+    title: '状态',
+    key: 'userStatus',
+    width: 80,
+    render: (row) => {
+      const statusMap = {
+        0: { text: '禁用', type: 'error' },
+        1: { text: '正常', type: 'success' },
+        2: { text: '锁定', type: 'warning' }
+      }
+      const config = statusMap[row.userStatus] || { text: '未知', type: 'default' }
+      return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
+    }
+  },
+  {
+    title: '操作',
+    key: 'action',
+    width: 100,
+    fixed: 'right',
+    render: (row) => {
+      return h('a', {
+        class: 'text-error cursor-pointer hover:text-error-hover',
+        onClick: () => handleRemoveUserRole(row)
+      }, '移除')
+    }
+  }
+]
+
 // 表单提交前处理
 function beforeSubmit(formData) {
   console.log('提交的表单数据:', formData)
@@ -521,6 +696,108 @@ function handleDelete(row) {
         }
       } catch (error) {
         window.$message.error('删除失败')
+      }
+    }
+  })
+}
+
+// 查看角色用户
+async function handleViewUsers(row) {
+  currentRole.value = row
+  usersModalVisible.value = true
+  // 重置搜索条件和分页
+  userSearchParams.value = {
+    username: '',
+    realName: '',
+    phone: '',
+    userStatus: null
+  }
+  userPagination.value.page = 1
+  await loadRoleUsers()
+}
+
+// 加载角色用户列表
+async function loadRoleUsers() {
+  try {
+    usersLoading.value = true
+    const params = {
+      ...userSearchParams.value,
+      pageNum: userPagination.value.page,
+      pageSize: userPagination.value.pageSize
+    }
+    // 过滤空值
+    Object.keys(params).forEach(key => {
+      if (params[key] === '' || params[key] === null || params[key] === undefined) {
+        delete params[key]
+      }
+    })
+    
+    const res = await request.get(`/system/role/${currentRole.value.id}/users`, { params })
+    if (res.code === 200) {
+      roleUsers.value = res.data.records || []
+      userPagination.value.itemCount = res.data.total || 0
+    }
+  } catch (error) {
+    console.error('加载角色用户失败:', error)
+    window.$message.error('加载角色用户失败')
+  } finally {
+    usersLoading.value = false
+  }
+}
+
+// 用户搜索
+function handleUserSearch() {
+  userPagination.value.page = 1
+  loadRoleUsers()
+}
+
+// 用户搜索重置
+function handleUserSearchReset() {
+  userSearchParams.value = {
+    username: '',
+    realName: '',
+    phone: '',
+    userStatus: null
+  }
+  userPagination.value.page = 1
+  loadRoleUsers()
+}
+
+// 用户分页变化
+function handleUserPageChange(page) {
+  userPagination.value.page = page
+  loadRoleUsers()
+}
+
+// 用户分页大小变化
+function handleUserPageSizeChange(pageSize) {
+  userPagination.value.pageSize = pageSize
+  userPagination.value.page = 1
+  loadRoleUsers()
+}
+
+// 移除角色用户
+async function handleRemoveUserRole(user) {
+  window.$dialog.warning({
+    title: '确认移除',
+    content: `确定要从角色"${currentRole.value.roleName}"中移除用户"${user.username}"吗？`,
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        const res = await request.post('/system/role/removeUserRole', null, {
+          params: {
+            roleId: currentRole.value.id,
+            userId: user.id
+          }
+        })
+        if (res.code === 200) {
+          window.$message.success('移除成功')
+          await loadRoleUsers()
+        }
+      } catch (error) {
+        console.error('移除用户失败:', error)
+        window.$message.error('移除用户失败')
       }
     }
   })
@@ -785,5 +1062,95 @@ async function handleSubmitAuth() {
   padding: 16px 24px;
   border-top: 1px solid var(--n-border-color);
   background-color: #f8f9fa;
+}
+
+/* 用户列表弹窗样式 */
+.users-modal-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 600px;
+}
+
+.users-search-form {
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.users-toolbar {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.15);
+}
+
+.users-toolbar :deep(.n-button) {
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.users-toolbar :deep(.n-button:hover) {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.users-toolbar :deep(.n-tag) {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.user-count-info {
+  display: flex;
+  align-items: center;
+}
+
+.users-table-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 1px solid var(--n-border-color);
+  border-radius: 8px;
+  min-height: 300px;
+  max-height: 450px;
+  background-color: var(--n-color);
+}
+
+.users-table-container :deep(.n-data-table) {
+  font-size: 14px;
+}
+
+.users-table-container :deep(.n-data-table-th) {
+  font-weight: 600;
+  background-color: #f8f9fa;
+}
+
+.users-table-container :deep(.n-data-table-td) {
+  padding: 12px 16px;
+}
+
+.users-table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.users-table-container::-webkit-scrollbar-track {
+  background: var(--n-scrollbar-color);
+  border-radius: 4px;
+}
+
+.users-table-container::-webkit-scrollbar-thumb {
+  background: var(--n-scrollbar-color-hover);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.users-table-container::-webkit-scrollbar-thumb:hover {
+  background: var(--n-border-color);
 }
 </style>

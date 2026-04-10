@@ -18,48 +18,6 @@
       :edit-grid-cols="2"
       :modal-width="'900px'"
     >
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8">
-          <a
-            v-if="!row.isDefault"
-            class="text-success cursor-pointer hover:text-success-hover"
-            @click="handleSetDefault(row)"
-          >
-            设为默认
-          </a>
-          <span v-if="!row.isDefault" class="text-gray-300">|</span>
-          <a
-            class="text-info cursor-pointer hover:text-info-hover"
-            @click="handleTestConnection(row)"
-          >
-            测试连接
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            :class="row.enabled ? 'text-warning' : 'text-success'"
-            class="cursor-pointer"
-            @click="handleToggleEnabled(row)"
-          >
-            {{ row.enabled ? '禁用' : '启用' }}
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleEdit(row)"
-          >
-            编辑
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-error cursor-pointer hover:text-error-hover"
-            @click="handleDelete(row)"
-          >
-            删除
-          </a>
-        </div>
-      </template>
-
       <!-- 自定义表单项：允许的文件类型 -->
       <template #form-allowedTypes="{ value, updateValue }">
         <div class="file-types-input">
@@ -103,7 +61,7 @@
 </template>
 
 <script setup>
-import { ref, h } from 'vue'
+import { ref, h, computed } from 'vue'
 import { NTag, NBadge, NDynamicTags, NInput, NButton } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
@@ -159,7 +117,7 @@ const searchSchema = [
 ]
 
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'configName',
     label: '配置名称',
@@ -231,11 +189,18 @@ const tableColumns = [
   {
     prop: 'action',
     label: '操作',
-    width: 280,
+    width: 150,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '设为默认', key: 'setDefault', type: 'success', onClick: handleSetDefault, visible: (row) => !row.isDefault },
+      { label: '测试连接', key: 'testConnection', type: 'info', onClick: handleTestConnection },
+      { label: '禁用', key: 'disable', type: 'warning', onClick: handleToggleEnabled, visible: (row) => row.enabled },
+      { label: '启用', key: 'enable', type: 'success', onClick: handleToggleEnabled, visible: (row) => !row.enabled },
+      { label: '编辑', key: 'edit', onClick: handleEdit },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
+    ]
   }
-]
+])
 
 // 编辑表单配置
 const editSchema = [

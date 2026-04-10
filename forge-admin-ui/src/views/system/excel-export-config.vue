@@ -27,32 +27,6 @@
           刷新
         </n-button>
       </template>
-
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8">
-          <n-button text type="primary" size="small" @click="handleEdit(row)">
-            编辑
-          </n-button>
-          <n-divider vertical />
-          <n-button text type="info" size="small" @click="handleManageColumns(row)">
-            列配置
-          </n-button>
-          <n-divider vertical />
-          <n-dropdown
-            trigger="hover"
-            :options="getMoreOptions(row)"
-            @select="(key) => handleMoreAction(key, row)"
-          >
-            <n-button text type="default" size="small">
-              更多
-              <template #icon>
-                <i class="i-material-symbols:arrow-drop-down" />
-              </template>
-            </n-button>
-          </n-dropdown>
-        </div>
-      </template>
     </AiCrudPage>
 
     <!-- 列配置管理弹窗 -->
@@ -96,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, h } from 'vue'
+import { ref, h, computed } from 'vue'
 import { NTag, NButton, NModal, NForm, NFormItem, NInput, NDivider, NDropdown } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
@@ -150,7 +124,7 @@ const searchSchema = [
 ]
 
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'configKey',
     label: '配置键',
@@ -204,11 +178,19 @@ const tableColumns = [
   {
     prop: 'action',
     label: '操作',
-    width: 220,
+    width: 150,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '编辑', key: 'edit', onClick: handleEdit },
+      { label: '列配置', key: 'columns', type: 'info', onClick: handleManageColumns },
+      { label: '导出测试', key: 'test', onClick: handleTestExport },
+      { label: '复制配置', key: 'copy', onClick: handleCopy },
+      { label: '禁用', key: 'disable', type: 'warning', onClick: handleToggleStatus, visible: (row) => row.status === 1 },
+      { label: '启用', key: 'enable', type: 'success', onClick: handleToggleStatus, visible: (row) => row.status !== 1 },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
+    ]
   }
-]
+])
 
 // 编辑表单配置
 const editSchema = [

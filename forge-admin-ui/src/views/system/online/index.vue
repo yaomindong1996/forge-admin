@@ -12,39 +12,6 @@
       :hide-selection="true"
       :hide-batch-delete="true"
     >
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8">
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleViewDetail(row)"
-          >
-            详情
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-primary cursor-pointer hover:text-error-hover"
-            @click="handleKickout(row)"
-          >
-            强制下线
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            v-if="!row.banned"
-            class="text-warning cursor-pointer hover:text-warning-hover"
-            @click="handleBan(row)"
-          >
-            封禁(1小时)
-          </a>
-          <a
-            v-else
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleUnban(row)"
-          >
-            解封
-          </a>
-        </div>
-      </template>
     </AiCrudPage>
 
     <!-- 详情弹窗 -->
@@ -137,7 +104,7 @@
 </template>
 
 <script setup>
-import { ref, h } from 'vue'
+import { ref, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
@@ -161,7 +128,7 @@ const searchSchema = [
 ]
 
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'username',
     label: '用户名',
@@ -240,11 +207,16 @@ const tableColumns = [
   {
     prop: 'action',
     label: '操作',
-    width: 200,
+    width: 150,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '详情', key: 'detail', onClick: handleViewDetail },
+      { label: '强制下线', key: 'kickout', type: 'error', onClick: handleKickout },
+      { label: '封禁(1小时)', key: 'ban', type: 'warning', onClick: handleBan, visible: (row) => !row.banned },
+      { label: '解封', key: 'unban', onClick: handleUnban, visible: (row) => !!row.banned }
+    ]
   }
-]
+])
 
 // 查看详情
 function handleViewDetail(row) {

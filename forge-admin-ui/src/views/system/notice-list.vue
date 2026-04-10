@@ -22,18 +22,6 @@
           </n-button>
         </n-badge>
       </template>
-
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8">
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleView(row)"
-          >
-            查看详情
-          </a>
-        </div>
-      </template>
     </AiCrudPage>
 
     <!-- 详情弹窗 -->
@@ -82,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, h, onMounted } from 'vue'
+import { ref, h, computed, onMounted } from 'vue'
 import { NTag, NBadge } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
@@ -123,7 +111,7 @@ const searchSchema = [
 ]
 
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'noticeTitle',
     label: '标题',
@@ -166,11 +154,13 @@ const tableColumns = [
   {
     prop: 'action',
     label: '操作',
-    width: 120,
+    width: 80,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '查看详情', key: 'view', onClick: handleView }
+    ]
   }
-]
+])
 
 // 获取公告类型颜色
 function getNoticeTypeColor(type) {

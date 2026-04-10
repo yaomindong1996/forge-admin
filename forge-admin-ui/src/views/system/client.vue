@@ -19,40 +19,7 @@
       :edit-grid-cols="2"
       :modal-width="'900px'"
       add-button-text="新增客户端"
-    >
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8">
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleEdit(row)"
-          >
-            编辑
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-info cursor-pointer hover:text-info-hover"
-            @click="handleViewOnline(row)"
-          >
-            在线用户
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-warning cursor-pointer hover:text-warning-hover"
-            @click="handleReloadCache(row)"
-          >
-            刷新缓存
-          </a>
-          <span class="text-gray-300" v-if="row.id > 4">|</span>
-          <a
-            v-if="row.id > 4"
-            class="text-error cursor-pointer hover:text-error-hover"
-            @click="handleDelete(row)"
-          >
-            删除
-          </a>
-        </div>
-      </template>
-    </AiCrudPage>
+    />
 
     <n-modal
       v-model:show="onlineModalVisible"
@@ -73,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, h } from 'vue'
+import { ref, h, computed } from 'vue'
 import { NTag, NButton } from 'naive-ui'
 import { request } from '@/utils'
 
@@ -138,7 +105,7 @@ const searchSchema = [
 ]
 
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'clientCode',
     label: '客户端编码',
@@ -188,7 +155,7 @@ const tableColumns = [
     width: 200,
     render: (row) => {
       const types = row.authTypes?.split(',') || []
-      return types.map(type => 
+      return types.map(type =>
         h(NTag, { type: 'info', size: 'small', style: 'margin: 2px' }, { default: () => type })
       )
     }
@@ -209,9 +176,20 @@ const tableColumns = [
   {
     prop: 'description',
     label: '描述',
-    minWidth: 150
+    minWidth: 80
+  },
+  {
+    prop: 'action',
+    label: '操作',
+    width: 350,
+    actions: [
+      { label: '编辑', key: 'edit', type: 'primary', onClick: (row) => crudRef.value?.showEdit(row) },
+      { label: '在线用户', key: 'online', type: 'primary', onClick: handleViewOnline },
+      { label: '刷新缓存', key: 'reloadCache', type: 'primary', onClick: handleReloadCache },
+      { label: '删除', key: 'delete', type: 'error', onClick: (row) => crudRef.value?.handleDelete(row), visible: (row) => row.id > 4 }
+    ]
   }
-]
+])
 
 // 编辑表单配置
 const editSchema = [
@@ -372,24 +350,24 @@ const onlineTableColumns = [
 // 详情数据渲染前处理：将字符串转为数组
 const beforeRenderDetail = (data: any) => {
   console.log('编辑前的数据:', data)
-  
+
   // 将authTypes字符串转为数组，供多选select使用
   if (data.authTypes && typeof data.authTypes === 'string') {
     data.authTypes = data.authTypes.split(',').filter(Boolean)
   }
-  
+
   return data
 }
 
 // 提交前处理：将数组转为字符串
 const beforeSubmit = (formData: any) => {
   console.log('提交前的数据:', formData)
-  
+
   // 将authTypes数组转为逗号分隔的字符串
   if (Array.isArray(formData.authTypes)) {
     formData.authTypes = formData.authTypes.join(',')
   }
-  
+
   return formData
 }
 

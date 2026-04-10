@@ -19,55 +19,6 @@
       :edit-grid-cols="1"
       :modal-width="'1000px'"
     >
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8">
-          <a
-            v-if="row.publishStatus === 1"
-            class="text-info cursor-pointer hover:text-info-hover"
-            @click="handleViewStatistics(row)"
-          >
-            统计
-          </a>
-          <span v-if="row.publishStatus === 1" class="text-gray-300">|</span>
-          <a
-            v-if="row.publishStatus === 0"
-            class="text-success cursor-pointer hover:text-success-hover"
-            @click="handlePublish(row)"
-          >
-            发布
-          </a>
-          <a
-            v-if="row.publishStatus === 1"
-            class="text-warning cursor-pointer hover:text-warning-hover"
-            @click="handleRevoke(row)"
-          >
-            撤回
-          </a>
-          <span v-if="row.publishStatus === 0 || row.publishStatus === 1" class="text-gray-300">|</span>
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleTop(row)"
-          >
-            {{ row.isTop === 1 ? '取消置顶' : '置顶' }}
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleEdit(row)"
-          >
-            编辑
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-error cursor-pointer hover:text-error-hover"
-            @click="handleDelete(row)"
-          >
-            删除
-          </a>
-        </div>
-      </template>
-
       <!-- 富文本编辑器插槽 -->
       <template #form-noticeContent="{ value, updateValue }">
         <n-input
@@ -162,7 +113,7 @@
 </template>
 
 <script setup>
-import { ref, h, onMounted } from 'vue'
+import { ref, h, computed, onMounted } from 'vue'
 import { NTag, NStatistic } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
@@ -227,7 +178,7 @@ const searchSchema = [
 ]
 
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'noticeId',
     label: '公告ID',
@@ -305,11 +256,19 @@ const tableColumns = [
   {
     prop: 'action',
     label: '操作',
-    width: 250,
+    width: 150,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '统计', key: 'statistics', type: 'info', onClick: handleViewStatistics, visible: (row) => row.publishStatus === 1 },
+      { label: '发布', key: 'publish', type: 'success', onClick: handlePublish, visible: (row) => row.publishStatus === 0 },
+      { label: '撤回', key: 'revoke', type: 'warning', onClick: handleRevoke, visible: (row) => row.publishStatus === 1 },
+      { label: '置顶', key: 'top', onClick: handleTop, visible: (row) => row.isTop !== 1 },
+      { label: '取消置顶', key: 'untop', type: 'warning', onClick: handleTop, visible: (row) => row.isTop === 1 },
+      { label: '编辑', key: 'edit', onClick: handleEdit },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
+    ]
   }
-]
+])
 
 // 编辑表单配置
 const editSchema = [

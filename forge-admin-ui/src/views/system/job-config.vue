@@ -19,30 +19,6 @@
       :before-submit="beforeSubmit"
       :modal-type="'modal'"
     >
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8 flex-wrap">
-          <a class="action-link" @click="handleEdit(row)">编辑</a>
-          <span class="divider">|</span>
-          
-          <a v-if="row.status === 0" class="action-link success" @click="handleStart(row)">
-            启动
-          </a>
-          <a v-else class="action-link warning" @click="handleStop(row)">
-            停止
-          </a>
-          <span class="divider">|</span>
-          
-          <a class="action-link info" @click="handleTrigger(row)">运行一次</a>
-          <span class="divider">|</span>
-          
-          <a class="action-link" @click="handleViewLog(row)">运行日志</a>
-          <span class="divider">|</span>
-          
-          <a class="action-link error" @click="handleDelete(row)">删除</a>
-        </div>
-      </template>
-
       <!-- Cron表达式自定义插槽 -->
       <template #form-cronExpression="{ value, updateValue, formData }">
         <div class="flex items-center gap-8" style="width: 100%">
@@ -120,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, h } from 'vue'
+import { ref, h, computed } from 'vue'
 import { NTag, NButton, NPopover, NInput } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
@@ -188,7 +164,7 @@ const searchSchema = [
 ]
 
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   { 
     prop: 'jobName', 
     label: '任务名称', 
@@ -259,14 +235,21 @@ const tableColumns = [
     ellipsis: { tooltip: true },
     render: (row) => row.description || '-'
   },
-  { 
-    prop: 'action', 
-    label: '操作', 
-    width: 360, 
-    fixed: 'right', 
-    _slot: 'action' 
+  {
+    prop: 'action',
+    label: '操作',
+    width: 150,
+    fixed: 'right',
+    actions: [
+      { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
+      { label: '启动', key: 'start', type: 'primary', onClick: handleStart, visible: (row) => row.status === 0 },
+      { label: '停止', key: 'stop', type: 'primary', onClick: handleStop, visible: (row) => row.status !== 0 },
+      { label: '运行一次', key: 'trigger', type: 'primary', onClick: handleTrigger },
+      { label: '运行日志', key: 'log', type: 'primary', onClick: handleViewLog },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
+    ]
   }
-]
+])
 
 // 编辑表单配置
 const editSchema = [

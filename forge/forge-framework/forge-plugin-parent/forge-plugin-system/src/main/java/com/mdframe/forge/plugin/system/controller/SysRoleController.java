@@ -1,8 +1,10 @@
 package com.mdframe.forge.plugin.system.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.mdframe.forge.plugin.system.dto.RoleUserQuery;
 import com.mdframe.forge.plugin.system.dto.SysRoleDTO;
 import com.mdframe.forge.plugin.system.dto.SysRoleQuery;
+import com.mdframe.forge.plugin.system.entity.SysUser;
 import com.mdframe.forge.plugin.system.entity.SysRole;
 import com.mdframe.forge.plugin.system.service.ISysRoleService;
 import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
@@ -106,5 +108,24 @@ public class SysRoleController {
     public RespInfo<List<Long>> getRoleResourceIds(@PathVariable Long roleId) {
         List<Long> resourceIds = roleService.selectRoleResourceIds(roleId);
         return RespInfo.success(resourceIds);
+    }
+
+    /**
+     * 查询角色下的用户列表（分页）
+     */
+    @GetMapping("/{roleId}/users")
+    public RespInfo<IPage<SysUser>> getRoleUsers(@PathVariable Long roleId, RoleUserQuery query) {
+        query.setRoleId(roleId);
+        IPage<SysUser> page = roleService.selectRoleUsers(query);
+        return RespInfo.success(page);
+    }
+
+    /**
+     * 移除角色用户
+     */
+    @PostMapping("/removeUserRole")
+    public RespInfo<Void> removeUserRole(@RequestParam Long roleId, @RequestParam Long userId) {
+        boolean result = roleService.removeUserRole(roleId, userId);
+        return result ? RespInfo.success() : RespInfo.error("移除用户失败");
     }
 }

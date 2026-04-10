@@ -17,40 +17,6 @@
       :modal-width="'1200px'"
       add-button-text="新增模板"
     >
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8">
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleEdit(row)"
-          >
-            编辑
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handlePreview(row)"
-          >
-            预览
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleCopy(row)"
-          >
-            复制
-          </a>
-          <span class="text-gray-300" v-if="row.isSystem !== 1">|</span>
-          <a
-            v-if="row.isSystem !== 1"
-            class="text-error cursor-pointer hover:text-error-hover"
-            @click="handleDelete(row)"
-          >
-            删除
-          </a>
-        </div>
-      </template>
-
       <!-- 自定义模板内容编辑 -->
       <template #edit-templateContent="{ formData }">
         <div class="template-editor">
@@ -99,7 +65,7 @@
 </template>
 
 <script setup>
-import { ref, h, watch, nextTick, onUnmounted } from 'vue'
+import { ref, h, computed, watch, nextTick, onUnmounted } from 'vue'
 import { NTag } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
@@ -164,7 +130,7 @@ const searchSchema = [
 ]
 
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'templateName',
     label: '模板名称',
@@ -219,11 +185,16 @@ const tableColumns = [
   {
     prop: 'action',
     label: '操作',
-    width: 180,
+    width: 150,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
+      { label: '预览', key: 'preview', type: 'primary', onClick: handlePreview },
+      { label: '复制', key: 'copy', type: 'primary', onClick: handleCopy },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: (row) => row.isSystem !== 1 }
+    ]
   }
-]
+])
 
 // 编辑表单配置
 const editSchema = [

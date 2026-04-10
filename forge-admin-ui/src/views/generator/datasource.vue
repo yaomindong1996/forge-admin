@@ -17,38 +17,12 @@
       :edit-grid-cols="2"
       :modal-width="'800px'"
       add-button-text="新增数据源"
-    >
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8">
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleEdit(row)"
-          >
-            编辑
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleTestConnection(row)"
-          >
-            测试连接
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-error cursor-pointer hover:text-error-hover"
-            @click="handleDelete(row)"
-          >
-            删除
-          </a>
-        </div>
-      </template>
-    </AiCrudPage>
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, h } from 'vue'
+import { ref, h, computed } from 'vue'
 import { NTag, NSwitch } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
@@ -86,7 +60,7 @@ const searchSchema = [
 ]
 
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'datasourceName',
     label: '数据源名称',
@@ -138,11 +112,15 @@ const tableColumns = [
   {
     prop: 'action',
     label: '操作',
-    width: 180,
+    width: 150,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
+      { label: '测试连接', key: 'testConnection', type: 'primary', onClick: handleTestConnection },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
+    ]
   }
-]
+])
 
 // 编辑表单配置
 const editSchema = [

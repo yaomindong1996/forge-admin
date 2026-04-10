@@ -36,37 +36,12 @@
         </n-button>
       </template>
 
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8">
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleAdd(row)"
-          >
-            新增
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleEdit(row)"
-          >
-            编辑
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-error cursor-pointer hover:text-error-hover"
-            @click="handleDelete(row)"
-          >
-            删除
-          </a>
-        </div>
-      </template>
     </AiCrudPage>
   </div>
 </template>
 
 <script setup>
-import { ref, h, onMounted } from 'vue'
+import { ref, h, computed, onMounted } from 'vue'
 import { NTag } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
@@ -122,7 +97,7 @@ const searchSchema = [
 ]
 
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'orgName',
     label: '组织名称',
@@ -181,11 +156,15 @@ const tableColumns = [
   {
     prop: 'action',
     label: '操作',
-    width: 180,
+    width: 150,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '新增', key: 'add', type: 'primary', onClick: handleAdd },
+      { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
+    ]
   }
-]
+])
 
 // 编辑表单配置
 const editSchema = ref([

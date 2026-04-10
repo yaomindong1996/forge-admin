@@ -1,66 +1,74 @@
 <template>
   <div class="system-user-page">
-    <AiCrudPage
-      ref="crudRef"
-      api="/system/user"
-      :api-config="{
-        list: 'get@/system/user/page',
-        detail: 'post@/system/user/getById',
-        add: 'post@/system/user/add',
-        update: 'post@/system/user/edit',
-        delete: 'post@/system/user/remove'
-      }"
-      :search-schema="searchSchema"
-      :columns="tableColumns"
-      :edit-schema="editSchema"
-      :before-submit="beforeSubmit"
-      row-key="id"
-      :edit-grid-cols="2"
-      :modal-width="'900px'"
-      add-button-text="新增用户"
-    >
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8">
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleEdit(row)"
-          >
-            编辑
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleAuth(row)"
-          >
-            授权
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleOrg(row)"
-          >
-            组织
-          </a>
-          <span class="text-gray-300">|</span>
-          <n-dropdown
-            trigger="click"
-            :options="getMoreOptions(row)"
-            @select="(key) => handleMoreAction(key, row)"
-          >
-            <a class="text-primary cursor-pointer hover:text-primary-hover">更多</a>
-          </n-dropdown>
-          <span class="text-gray-300" v-if="row.id!==1">|</span>
-          <a
-            v-if="row.id!==1"
-            class="text-error cursor-pointer hover:text-error-hover"
-            @click="handleDelete(row)"
-          >
-            删除
-          </a>
+    <!-- 左侧组织树 + 右侧用户列表布局 -->
+    <div class="user-layout">
+      <!-- 左侧组织树面板 -->
+      <div class="org-tree-panel">
+        <div class="org-tree-header">
+          <div class="header-title">
+            <i class="i-material-symbols:account-tree-rounded" />
+            <span>组织架构</span>
+          </div>
+          <n-button text size="small" @click="toggleOrgExpandAll">
+            <template #icon>
+              <i :class="leftOrgExpandAll ? 'i-material-symbols:unfold-less' : 'i-material-symbols:unfold-more'" />
+            </template>
+          </n-button>
         </div>
-      </template>
-    </AiCrudPage>
+        <div class="org-tree-content">
+          <n-spin :show="leftOrgTreeLoading">
+            <n-tree
+              v-if="leftOrgTreeData.length > 0"
+              :data="leftOrgTreeData"
+              :selected-keys="selectedOrgKeys"
+              :expanded-keys="leftOrgExpandedKeys"
+              :default-expand-all="leftOrgExpandAll"
+              block-line
+              selectable
+              key-field="id"
+              label-field="orgName"
+              children-field="children"
+              @update:selected-keys="handleOrgNodeSelect"
+              @update:expanded-keys="handleLeftOrgExpandedKeysChange"
+            />
+            <n-empty v-else description="暂无组织数据" size="small" />
+          </n-spin>
+        </div>
+      </div>
+
+      <!-- 右侧用户列表 -->
+      <div class="user-list-panel">
+        <AiCrudPage
+          ref="crudRef"
+          api="/system/user"
+          :api-config="{
+            list: 'get@/system/user/page',
+            detail: 'post@/system/user/getById',
+            add: 'post@/system/user/add',
+            update: 'post@/system/user/edit',
+            delete: 'post@/system/user/remove'
+          }"
+          :search-schema="searchSchema"
+          :columns="tableColumns"
+          :edit-schema="editSchema"
+          :before-submit="beforeSubmit"
+          :before-load-list="beforeLoadList"
+          row-key="id"
+          :edit-grid-cols="2"
+          :modal-width="'900px'"
+          add-button-text="新增用户"
+        >
+          <!-- 自定义工具栏提示 -->
+          <template #toolbar-start>
+            <div v-if="selectedOrgNode" class="org-filter-tip">
+              <n-tag type="info" size="small" closable @close="handleClearOrgFilter">
+                当前筛选：{{ selectedOrgNode.orgName }}
+              </n-tag>
+            </div>
+          </template>
+        </AiCrudPage>
+      </div>
+    </div>
 
     <!-- 重置密码弹窗 -->
     <n-modal
@@ -245,7 +253,7 @@
 </template>
 
 <script setup>
-import { ref, h } from 'vue'
+import { ref, h, computed, onMounted } from 'vue'
 import { NTag } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
@@ -255,6 +263,14 @@ defineOptions({ name: 'SystemUser' })
 const crudRef = ref(null)
 const treeRef = ref(null)
 const orgTreeRef = ref(null)
+
+// 左侧组织树相关
+const leftOrgTreeData = ref([])
+const leftOrgTreeLoading = ref(false)
+const leftOrgExpandAll = ref(true)
+const leftOrgExpandedKeys = ref([])
+const selectedOrgKeys = ref([])
+const selectedOrgNode = ref(null)
 
 // 授权相关
 const authModalVisible = ref(false)
@@ -279,7 +295,7 @@ const resetPwdRules = {
   password: [{ required: true, message: '请输入新密码', trigger: 'blur' }, { min: 6, message: '密码不能少于6位', trigger: 'blur' }]
 }
 
-// 组织相关
+// 组织弹窗相关（用户组织绑定）
 const orgModalVisible = ref(false)
 const orgLoading = ref(false)
 const orgSubmitLoading = ref(false)
@@ -348,7 +364,7 @@ const searchSchema = [
 ]
 
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'username',
     label: '用户名',
@@ -409,11 +425,19 @@ const tableColumns = [
   {
     prop: 'action',
     label: '操作',
-    width: 180,
+    width: 150,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '编辑', key: 'edit', onClick: handleEdit },
+      { label: '授权', key: 'auth', onClick: handleAuth },
+      { label: '组织', key: 'org', onClick: handleOrg },
+      { label: '重置密码', key: 'resetPwd', type: 'warning', onClick: (row) => { resetPwdForm.value = { id: row.id, password: '' }; resetPwdModalVisible.value = true } },
+      { label: '禁用', key: 'disable', type: 'warning', onClick: (row) => handleUpdateStatus(row, 0), visible: (row) => row.id !== 1 && row.userStatus === 1 },
+      { label: '启用', key: 'enable', type: 'success', onClick: handleUntieDisable, visible: (row) => row.id !== 1 && row.userStatus !== 1 },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: (row) => row.id !== 1 }
+    ]
   }
-]
+])
 
 // 编辑表单配置
 const editSchema = [
@@ -452,7 +476,7 @@ const editSchema = [
       type: 'password',
       placeholder: '请输入密码'
     },
-    vIf: (formData) => !formData.id // 只在新增时显示
+    vIf: (formData) => !formData.id
   },
   {
     field: 'userType',
@@ -545,13 +569,107 @@ const editSchema = [
   }
 ]
 
+// 组件挂载时加载左侧组织树
+onMounted(() => {
+  loadLeftOrgTree()
+})
+
+// 获取所有节点的 key
+function getAllKeys(list, keys = []) {
+  list.forEach(item => {
+    keys.push(item.id)
+    if (item.children && item.children.length > 0) {
+      getAllKeys(item.children, keys)
+    }
+  })
+  return keys
+}
+
+// 加载左侧组织树
+async function loadLeftOrgTree() {
+  try {
+    leftOrgTreeLoading.value = true
+    const res = await request.get('/system/org/tree')
+    if (res.code === 200) {
+      leftOrgTreeData.value = res.data || []
+      if (leftOrgExpandAll.value) {
+        leftOrgExpandedKeys.value = getAllKeys(leftOrgTreeData.value)
+      }
+    }
+  } catch (error) {
+    console.error('加载组织树失败:', error)
+    window.$message.error('加载组织树失败')
+  } finally {
+    leftOrgTreeLoading.value = false
+  }
+}
+
+// 左侧组织树节点选择
+function handleOrgNodeSelect(keys) {
+  selectedOrgKeys.value = keys
+  
+  if (keys.length > 0) {
+    const orgId = keys[0]
+    selectedOrgNode.value = findOrgNode(leftOrgTreeData.value, orgId)
+    crudRef.value?.refresh()
+  } else {
+    selectedOrgNode.value = null
+    crudRef.value?.refresh()
+  }
+}
+
+// 查找组织节点
+function findOrgNode(treeData, orgId) {
+  for (const node of treeData) {
+    if (node.id === orgId) {
+      return node
+    }
+    if (node.children && node.children.length > 0) {
+      const found = findOrgNode(node.children, orgId)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+// 左侧组织树展开节点变化
+function handleLeftOrgExpandedKeysChange(keys) {
+  leftOrgExpandedKeys.value = keys
+}
+
+// 左侧组织树展开/折叠所有
+function toggleOrgExpandAll() {
+  leftOrgExpandAll.value = !leftOrgExpandAll.value
+  
+  if (leftOrgExpandAll.value) {
+    leftOrgExpandedKeys.value = getAllKeys(leftOrgTreeData.value)
+  } else {
+    leftOrgExpandedKeys.value = []
+  }
+}
+
+// 清除组织筛选
+function handleClearOrgFilter() {
+  selectedOrgKeys.value = []
+  selectedOrgNode.value = null
+  crudRef.value?.refresh()
+}
+
+// 加载列表数据前的钩子（用于添加组织ID参数）
+function beforeLoadList(params) {
+  if (selectedOrgNode.value) {
+    params.orgId = selectedOrgNode.value.id
+  }
+  return params
+}
+
 // 更多操作选项
 function getMoreOptions(row) {
   const options = [
     { label: '重置密码', key: 'resetPwd', icon: () => h('i', { class: 'i-material-symbols:lock-reset' }) }
   ]
 
-  if (row.id !== 1) { // 超级管理员不能被禁用
+  if (row.id !== 1) {
     if (row.userStatus === 1) {
       options.push({ label: '禁用', key: 'disable', icon: () => h('i', { class: 'i-material-symbols:block' }) })
     } else {
@@ -687,20 +805,8 @@ async function handleAuth(row) {
   currentUser.value = row
   authModalVisible.value = true
 
-  // 加载角色列表和已选中的角色
   await loadRoleList()
   await loadUserRoles(row.id)
-}
-
-// 获取所有节点的 key
-function getAllKeys(list, keys = []) {
-  list.forEach(item => {
-    keys.push(item.id)
-    if (item.children && item.children.length > 0) {
-      getAllKeys(item.children, keys)
-    }
-  })
-  return keys
 }
 
 // 加载角色列表
@@ -711,14 +817,12 @@ async function loadRoleList() {
       params: { pageNum: 1, pageSize: 1000 }
     })
     if (res.code === 200) {
-      // 将角色列表转换为树形结构（这里简化处理，实际可能需要根据业务调整）
       roleTreeData.value = (res.data.list || res.data.records || []).map(role => ({
         id: role.id,
         roleName: role.roleName,
         roleKey: role.roleKey
       }))
 
-      // 如果默认展开，收集所有节点的 key
       if (treeExpandAll.value) {
         treeExpandedKeys.value = getAllKeys(roleTreeData.value)
       }
@@ -811,7 +915,6 @@ async function handleOrg(row) {
   mainOrgId.value = null
   checkedOrgKeys.value = []
 
-  // 加载组织树和用户已绑定的组织
   await loadOrgTree()
   await loadUserOrgs(row.id)
 }
@@ -823,7 +926,6 @@ async function loadOrgTree() {
     const res = await request.get('/system/org/tree')
     if (res.code === 200) {
       orgTreeData.value = res.data || []
-      // 如果默认展开，收集所有节点的 key
       if (orgTreeExpandAll.value) {
         orgTreeExpandedKeys.value = getAllKeys(orgTreeData.value)
       }
@@ -843,12 +945,6 @@ async function loadUserOrgs(userId) {
     const res = await request.get(`/system/user/${userId}/orgs`)
     if (res.code === 200) {
       checkedOrgKeys.value = res.data || []
-      // 查找主组织
-      const orgId = res.data.find(id => {
-        // 这里简化处理，实际应该后端返回主组织ID
-        // 暂时将第一个选中的组织作为主组织
-        return id === checkedOrgKeys.value[0]
-      })
       mainOrgId.value = checkedOrgKeys.value.length > 0 ? checkedOrgKeys.value[0] : null
     }
   } catch (error) {
@@ -867,19 +963,8 @@ function handleOrgExpandedKeysChange(keys) {
 // 组织选中的变化
 function handleOrgCheckedKeysChange(keys) {
   checkedOrgKeys.value = keys
-  // 如果主组织不在选中列表中，清空主组织
   if (mainOrgId.value && !keys.includes(mainOrgId.value)) {
     mainOrgId.value = null
-  }
-}
-
-// 组织展开/折叠所有
-function toggleOrgExpandAll() {
-  orgTreeExpandAll.value = !orgTreeExpandAll.value
-  if (orgTreeExpandAll.value) {
-    orgTreeExpandedKeys.value = getAllKeys(orgTreeData.value)
-  } else {
-    orgTreeExpandedKeys.value = []
   }
 }
 
@@ -916,6 +1001,118 @@ async function handleSubmitOrg() {
 <style scoped>
 .system-user-page {
   height: 100%;
+  padding: 0;
+}
+
+/* 左右布局 */
+.user-layout {
+  display: flex;
+  height: 100%;
+  gap: 16px;
+}
+
+/* 左侧组织树面板 */
+.org-tree-panel {
+  width: 280px;
+  min-width: 280px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.org-tree-header {
+  padding: 16px 16px 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.header-title i {
+  font-size: 20px;
+  color: #4f46e5;
+}
+
+.org-tree-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 8px;
+}
+
+.org-tree-content :deep(.n-tree) {
+  font-size: 14px;
+}
+
+.org-tree-content :deep(.n-tree-node-content) {
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.org-tree-content :deep(.n-tree-node-content:hover) {
+  background-color: #f3f4f6;
+}
+
+.org-tree-content :deep(.n-tree-node-content--selected) {
+  background-color: #e0e7ff !important;
+  color: #4f46e5;
+}
+
+.org-tree-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.org-tree-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.org-tree-content::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.org-tree-content::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* 右侧用户列表面板 */
+.user-list-panel {
+  flex: 1;
+  min-width: 0;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.user-list-panel :deep(.ai-crud-page) {
+  height: 100%;
+}
+
+/* 组织筛选提示 */
+.org-filter-tip {
+  margin-right: 12px;
+}
+
+.org-filter-tip :deep(.n-tag) {
+  font-size: 13px;
 }
 
 /* 授权弹窗样式 */
@@ -928,7 +1125,7 @@ async function handleSubmitOrg() {
 
 .auth-toolbar {
   padding: 12px;
-  background-color:  #d9d7d7;
+  background-color: #d9d7d7;
   border-radius: 4px;
   margin-bottom: 16px;
   flex-shrink: 0;

@@ -16,38 +16,12 @@
       :edit-schema="editSchema"
       row-key="dictId"
       add-button-text="新增字典类型"
-    >
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8">
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleManageData(row)"
-          >
-            字典数据
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleEdit(row)"
-          >
-            编辑
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-error cursor-pointer hover:text-error-hover"
-            @click="handleDelete(row)"
-          >
-            删除
-          </a>
-        </div>
-      </template>
-    </AiCrudPage>
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, h } from 'vue'
+import { ref, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { useRouter } from 'vue-router'
@@ -93,8 +67,50 @@ const searchSchema = [
   }
 ]
 
+// 管理字典数据
+function handleManageData(row) {
+  closeAndOpen(
+    '/system/dictData',
+    {
+      path: '/system/dictData',
+      query: {
+        dictType: row.dictType,
+        dictName: row.dictName
+      }
+    }
+  )
+}
+
+// 编辑
+function handleEdit(row) {
+  crudRef.value?.showEdit(row)
+}
+
+// 删除
+function handleDelete(row) {
+  window.$dialog.warning({
+    title: '确认删除',
+    content: '确定要删除该字典类型吗？删除后将无法恢复！',
+    positiveText: '确定',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        const res = await request.post('/system/dict/type/remove', null, {
+          params: { dictId: row.dictId }
+        })
+        if (res.code === 200) {
+          window.$message.success('删除成功')
+          crudRef.value?.refresh()
+        }
+      } catch (error) {
+        window.$message.error('删除失败')
+      }
+    }
+  })
+}
+
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'dictId',
     label: '字典ID',
@@ -134,11 +150,15 @@ const tableColumns = [
   {
     prop: 'action',
     label: '操作',
-    width: 200,
+    width: 150,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '字典数据', key: 'dictData', onClick: handleManageData },
+      { label: '编辑', key: 'edit', onClick: handleEdit },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
+    ]
   }
-]
+])
 
 // 编辑表单配置
 const editSchema = [
@@ -189,49 +209,6 @@ const editSchema = [
     }
   }
 ]
-
-// 管理字典数据
-function handleManageData(row) {
-  // 使用全局方法：关闭旧的字典数据页面，然后打开新的
-  closeAndOpen(
-    '/system/dictData', // 关闭所有以此路径开头的 tab
-    {
-      path: '/system/dictData',
-      query: {
-        dictType: row.dictType,
-        dictName: row.dictName
-      }
-    }
-  )
-}
-
-// 编辑
-function handleEdit(row) {
-  crudRef.value?.showEdit(row)
-}
-
-// 删除
-function handleDelete(row) {
-  window.$dialog.warning({
-    title: '确认删除',
-    content: '确定要删除该字典类型吗？删除后将无法恢复！',
-    positiveText: '确定',
-    negativeText: '取消',
-    onPositiveClick: async () => {
-      try {
-        const res = await request.post('/system/dict/type/remove', null, {
-          params: { dictId: row.dictId }
-        })
-        if (res.code === 200) {
-          window.$message.success('删除成功')
-          crudRef.value?.refresh()
-        }
-      } catch (error) {
-        window.$message.error('删除失败')
-      }
-    }
-  })
-}
 </script>
 
 <style scoped>

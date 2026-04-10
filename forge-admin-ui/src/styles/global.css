@@ -547,9 +547,8 @@ body {
   display: inline-block;
   width: 1px;
   height: 12px;
-  background: var(--border-default);
   margin: 0 2px;
-  vertical-align: middle;
+  /*vertical-align: middle;*/
 }
 
 /* ═══════════════════════════════════════

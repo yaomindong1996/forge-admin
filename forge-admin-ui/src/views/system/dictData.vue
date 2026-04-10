@@ -33,31 +33,13 @@
       :before-submit="handleBeforeSubmit"
       :before-render-form="handleBeforeRenderForm"
       :edit-grid-cols="2"
-    >
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex items-center gap-8">
-          <a
-            class="text-primary cursor-pointer hover:text-primary-hover"
-            @click="handleEdit(row)"
-          >
-            编辑
-          </a>
-          <span class="text-gray-300">|</span>
-          <a
-            class="text-error cursor-pointer hover:text-error-hover"
-            @click="handleDelete(row)"
-          >
-            删除
-          </a>
-        </div>
-      </template>
-    </AiCrudPage>
+      :lazy="true"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, h, computed, onMounted } from 'vue'
+import { ref, h, computed, onMounted, nextTick } from 'vue'
 import { NTag, NPageHeader } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { useRouter, useRoute } from 'vue-router'
@@ -132,7 +114,7 @@ const searchSchema = [
 ]
 
 // 表格列配置
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'dictCode',
     label: '字典编码',
@@ -220,11 +202,14 @@ const tableColumns = [
   {
     prop: 'action',
     label: '操作',
-    width: 150,
+    width: 120,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
+    ]
   }
-]
+])
 
 // 编辑表单配置
 const editSchema = computed(() => [
@@ -411,6 +396,11 @@ onMounted(() => {
 
   // 加载字典类型选项
   loadDictTypeOptions()
+
+  // 延迟加载列表数据，确保 publicParams 已更新
+  nextTick(() => {
+    crudRef.value?.loadList()
+  })
 })
 </script>
 

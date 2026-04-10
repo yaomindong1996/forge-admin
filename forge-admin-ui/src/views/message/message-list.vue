@@ -10,21 +10,6 @@
       :hide-batch-delete="true"
       @selection-change="handleSelectionChange"
     >
-      <!-- 自定义操作列 -->
-      <template #table-action="{ row }">
-        <div class="flex gap-8">
-          <a class="text-primary cursor-pointer" @click="handleViewDetail(row)">
-            查看
-          </a>
-          <a v-if="row.bizType && row.bizKey" class="text-primary cursor-pointer" @click="handleJumpToBiz(row)">
-            查看详情
-          </a>
-          <a v-if="row.readFlag === 0" class="text-primary cursor-pointer" @click="handleMarkRead(row.id)">
-            标记已读
-          </a>
-        </div>
-      </template>
-
       <!-- 自定义顶部工具栏 -->
       <template #toolbar-end>
         <n-button
@@ -92,7 +77,7 @@
 </template>
 
 <script setup>
-import { ref, h } from 'vue'
+import { ref, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
@@ -151,7 +136,7 @@ const searchSchema = [
   }
 ]
 
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'title',
     label: '消息标题',
@@ -199,11 +184,15 @@ const tableColumns = [
   {
     prop: 'action',
     label: '操作',
-    width: 120,
+    width: 150,
     fixed: 'right',
-    _slot: 'action'
+    actions: [
+      { label: '查看', key: 'view', onClick: handleViewDetail },
+      { label: '查看详情', key: 'viewBiz', onClick: handleJumpToBiz, visible: (row) => !!(row.bizType && row.bizKey) },
+      { label: '标记已读', key: 'markRead', type: 'warning', onClick: (row) => handleMarkRead(row.id), visible: (row) => row.readFlag === 0 }
+    ]
   }
-]
+])
 
 function handleSelectionChange(keys) {
   selectedRowKeys.value = keys
