@@ -12,7 +12,7 @@
     <properties>
         <revision>1.0.0</revision>
         <forge-framework.version>1.0.0</forge-framework.version>
-        <spring-boot.version>3.2.9</spring-boot.version>
+        <spring-boot.version>3.5.13</spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>17</java.version>
@@ -51,6 +51,10 @@
         <anyline.version>8.7.2-20240808</anyline.version>
         <!--工作流配置-->
         <flowable.version>7.0.1</flowable.version>
+        
+        <!-- Spring AI Alibaba (兼容 Spring Boot 3.2.x) -->
+        <spring-ai-alibaba.version>1.1.2.0</spring-ai-alibaba.version>
+        <spring-ai.version>1.1.2</spring-ai.version>
         
         <!-- 插件版本 -->
         <maven-jar-plugin.version>3.2.2</maven-jar-plugin.version>
@@ -115,6 +119,7 @@
         <module>forge-admin</module>
         <module>forge-framework</module>
         <module>forge-flow</module>
+        <module>forge-report</module>
     </modules>
     
     <packaging>pom</packaging>
@@ -224,6 +229,39 @@
     </build>
     
     <repositories>
+        <!-- Spring里程碑仓库，存放Spring AI Alibaba 1.1.x正式版 -->
+        <repository>
+            <id>spring-milestones</id>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <!-- Spring快照仓库（如需SNAPSHOT版） -->
+        <repository>
+            <id>spring-snapshots</id>
+            <url>https://repo.spring.io/snapshot</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+        </repository>
+        <!-- Maven 中央仓库 -->
+        <repository>
+            <id>central</id>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+        <!-- 阿里云 Maven 镜像 -->
+        <repository>
+            <id>aliyun</id>
+            <url>https://maven.aliyun.com/repository/public</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
+        <!-- 华为云 Maven 镜像 -->
         <repository>
             <id>public</id>
             <name>huawei nexus</name>

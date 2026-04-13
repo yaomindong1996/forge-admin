@@ -1,0 +1,88 @@
+# Go-View 后端服务配置
+server:
+  port: 8581
+  servlet:
+    context-path: /
+  undertow:
+    max-http-post-size: -1
+    buffer-size: 512
+    direct-buffers: true
+    threads:
+      io: 8
+      worker: 256
+
+# 日志配置
+logging:
+  level:
+    com.mdframe.forge: info
+    org.springframework: error
+    org.mybatis.spring.mapper: info
+  config: classpath:logback.xml
+
+# Spring配置
+spring:
+  application:
+    name: forge-goview
+  messages:
+    basename: i18n/messages
+  profiles:
+    active: dev
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    serialization:
+      indent_output: false
+      fail_on_empty_beans: false
+    deserialization:
+      fail_on_unknown_properties: false
+
+# MyBatisPlus配置
+mybatis-plus:
+  # 多包名使用
+  mapperPackage: com.mdframe.forge.**.mapper
+  # 对应的 XML 文件位置
+  mapperLocations: classpath*:mapper/**/*Mapper.xml
+  # 实体扫描，多个package用逗号或者分号分隔
+  typeAliasesPackage: com.mdframe.forge.**.domain
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: true
+    useGeneratedKeys: true
+    defaultExecutorType: SIMPLE
+    logImpl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    dbConfig:
+      # 主键类型
+      # AUTO 自增 NONE 空 INPUT 用户输入 ASSIGN_ID 雪花 ASSIGN_UUID 唯一 UUID
+      # 如需改为自增 需要将数据库表全部设置为自增
+      idType: ASSIGN_ID
+
+# Sa-Token 配置
+# Sa-Token 配置
+sa-token:
+  # 使用Redis存储Session
+  alone-redis:
+    # Redis数据库索引（默认为0）
+    database: 1
+    # Redis服务器地址
+    host: ${spring.data.redis.host}
+    # Redis服务器连接端口
+    port: ${spring.data.redis.port}
+    # Redis服务器连接密码（默认为空）
+    password: ${spring.data.redis.password}
+    # 连接超时时间（毫秒）
+    timeout: 10000
+
+# Spring AI Alibaba 配置（基础配置，具体配置从数据库读取）
+#spring:
+#  ai:
+#    openai:
+#      api-key: ${GOVIEW_AI_API_KEY:sk-placeholder}
+#      base-url: ${GOVIEW_AI_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode}
+#      chat:
+#        options:
+#          model: ${GOVIEW_AI_MODEL:qwen-plus}
+#          temperature: 0.7

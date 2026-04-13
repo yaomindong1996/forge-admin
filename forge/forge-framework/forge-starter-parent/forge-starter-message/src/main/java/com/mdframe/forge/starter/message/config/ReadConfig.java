@@ -41,7 +41,7 @@ import java.util.Map;
 @Slf4j
 public class ReadConfig implements SmsReadConfig {
     
-    @Autowired
+    @Autowired(required = false)
     private SmsConfigProvider configProvider;
     
     @Override
