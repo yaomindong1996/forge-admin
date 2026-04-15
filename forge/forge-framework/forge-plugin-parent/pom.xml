@@ -21,6 +21,7 @@
         <module>forge-plugin-message</module>
         <module>forge-plugin-flow</module>
         <module>forge-plugin-generator</module>
+        <module>forge-plugin-ai</module>
     </modules>
 
 </project>

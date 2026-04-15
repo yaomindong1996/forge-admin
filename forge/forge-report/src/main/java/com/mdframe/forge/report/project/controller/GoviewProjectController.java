@@ -48,9 +48,9 @@ public class GoviewProjectController {
      * 创建项目
      */
     @PostMapping
-    public RespInfo<Void> create(@RequestBody GoviewProject project) {
+    public RespInfo<GoviewProject> create(@RequestBody GoviewProject project) {
         projectService.save(project);
-        return RespInfo.success();
+        return RespInfo.success(project);
     }
 
     /**

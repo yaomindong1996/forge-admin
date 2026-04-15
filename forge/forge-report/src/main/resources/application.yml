@@ -14,9 +14,9 @@ server:
 # 日志配置
 logging:
   level:
-    com.mdframe.forge: info
+    com.forge: @logging.level@
     org.springframework: error
-    org.mybatis.spring.mapper: info
+    org.mybatis.spring.mapper: error
   config: classpath:logback.xml
 
 # Spring配置

@@ -352,6 +352,11 @@
         <artifactId>forge-plugin-flow</artifactId>
         <version>1.0.0</version>
       </dependency>
+      <dependency>
+        <groupId>com.mdframe.forge</groupId>
+        <artifactId>forge-plugin-ai</artifactId>
+        <version>1.0.0</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
   <build>

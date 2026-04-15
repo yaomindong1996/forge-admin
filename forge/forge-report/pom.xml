@@ -50,25 +50,10 @@
             <artifactId>forge-plugin-system</artifactId>
         </dependency>
         
-        <!-- Spring AI Alibaba Agent Framework -->
+        <!-- AI 能力插件（供应商管理、Agent 管理、对话、会话、多轮上下文） -->
         <dependency>
-            <groupId>com.alibaba.cloud.ai</groupId>
-            <artifactId>spring-ai-alibaba-agent-framework</artifactId>
-            <version>${spring-ai-alibaba.version}</version>
-        </dependency>
-        
-        <!-- DashScope ChatModel 支持 -->
-<!--        <dependency>-->
-<!--            <groupId>com.alibaba.cloud.ai</groupId>-->
-<!--            <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>-->
-<!--            <version>${spring-ai-alibaba.version}</version>-->
-<!--        </dependency>-->
-        
-        <!-- Spring AI OpenAI (用于兼容 OpenAI 接口，使用核心库而非 starter 避免自动配置) -->
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-openai</artifactId>
-            <version>${spring-ai.version}</version>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-plugin-ai</artifactId>
         </dependency>
         
         <!-- Lombok -->

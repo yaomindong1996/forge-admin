@@ -31,7 +31,7 @@
     <!-- Spring日志级别控制  -->
     <logger name="org.springframework" level="info" />
     <!-- MyBatis SQL日志打印 -->
-    <logger name="com.mdframe.forge.report.mapper" level="debug" />
+    <logger name="com.mdframe.forge.report.mapper" level="info" />
     <logger name="com.mdframe.forge" level="debug" additivity="false">
         <appender-ref ref="console" />
         <appender-ref ref="file_info" />
