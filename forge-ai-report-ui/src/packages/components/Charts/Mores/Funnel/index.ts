@@ -1,0 +1,14 @@
+import { ConfigType, PackagesCategoryEnum, ChartFrameEnum } from '@/packages'
+import { ChatCategoryEnum, ChatCategoryEnumName } from '../../index'
+
+export const FunnelConfig: ConfigType = {
+  key: 'Funnel',
+  chartKey: 'VFunnel',
+  conKey: 'VCFunnel',
+  title: '漏斗图',
+  category: ChatCategoryEnum.MORE,
+  categoryName: ChatCategoryEnumName.MORE,
+  package: PackagesCategoryEnum.CHARTS,
+  chartFrame: ChartFrameEnum.ECHARTS,
+  image: 'funnel.png'
+}

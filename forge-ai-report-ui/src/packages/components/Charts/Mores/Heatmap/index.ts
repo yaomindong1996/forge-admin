@@ -1,0 +1,14 @@
+import { ConfigType, PackagesCategoryEnum, ChartFrameEnum } from '@/packages'
+import { ChatCategoryEnum, ChatCategoryEnumName } from '../../index'
+
+export const HeatmapConfig: ConfigType = {
+  key: 'Heatmap',
+  chartKey: 'VHeatmap',
+  conKey: 'VCHeatmap',
+  title: '热力图',
+  category: ChatCategoryEnum.MORE,
+  categoryName: ChatCategoryEnumName.MORE,
+  package: PackagesCategoryEnum.CHARTS,
+  chartFrame: ChartFrameEnum.COMMON,
+  image: 'heatmap.png'
+}

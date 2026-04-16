@@ -1,0 +1,14 @@
+import { ConfigType, PackagesCategoryEnum, ChartFrameEnum } from '@/packages'
+import { ChatCategoryEnum, ChatCategoryEnumName } from '../../index'
+
+export const GraphConfig: ConfigType = {
+  key: 'Graph',
+  chartKey: 'VGraph',
+  conKey: 'VCGraph',
+  title: '关系图',
+  category: ChatCategoryEnum.MORE,
+  categoryName: ChatCategoryEnumName.MORE,
+  package: PackagesCategoryEnum.CHARTS,
+  chartFrame: ChartFrameEnum.COMMON,
+  image: 'graph.png'
+}

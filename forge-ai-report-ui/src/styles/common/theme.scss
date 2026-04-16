@@ -1,0 +1,10 @@
+@import 'mixins/config';
+@import 'dark';
+@import 'light';
+
+$themes: (
+  // 亮白
+  #{$theme-light}: $light,
+  // 暗黑
+  #{$theme-dark}: $dark
+);

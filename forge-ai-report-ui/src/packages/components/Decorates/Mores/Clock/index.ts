@@ -1,0 +1,14 @@
+import { ConfigType, PackagesCategoryEnum, ChartFrameEnum } from '@/packages'
+import { ChatCategoryEnum, ChatCategoryEnumName } from '../../index'
+
+export const ClockConfig: ConfigType = {
+  key: 'Clock',
+  chartKey: 'VClock',
+  conKey: 'VCClock',
+  title: '时钟',
+  category: ChatCategoryEnum.MORE,
+  categoryName: ChatCategoryEnumName.MORE,
+  package: PackagesCategoryEnum.DECORATES,
+  chartFrame: ChartFrameEnum.STATIC,
+  image: 'clock.png'
+}
