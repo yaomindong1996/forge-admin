@@ -7,7 +7,6 @@
 |------|------|
 | [AiForm](./ai-form.md) | JSON 配置驱动的动态表单 |
 | [AiTable](./ai-table.md) | 增强型数据表格 |
-| [AiSearch](./ai-search.md) | 搜索表单组件 |
 | [AiCrudPage](./ai-crud-page.md) | 完整 CRUD 页面解决方案 |
 | [AiModal](./ai-modal.md) | 可配置、可拖拽的模态对话框 |
 
@@ -33,8 +32,5 @@
 ### 通用组件
 | 组件 | 说明 |
 |------|------|
-| [AppPage](./app-page.md) | 页面容器 |
-| [AppCard](./app-card.md) | 卡片容器 |
-| [Loading](./loading.md) | 加载状态 |
 | [DemoBanner](./demo-banner.md) | 演示模式横幅 |
 | [SliderCaptchaModal](./slider-captcha-modal.md) | 滑块验证码模态框 |
