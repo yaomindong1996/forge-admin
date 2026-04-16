@@ -7,7 +7,7 @@
         <groupId>com.mdframe.forge</groupId>
         <version>${revision}</version>
     </parent>
-    <artifactId>forge-admin</artifactId>
+    <artifactId>forge-admin-server</artifactId>
     <name>forge-admin</name>
     <description>forge-admin</description>
     <dependencies>

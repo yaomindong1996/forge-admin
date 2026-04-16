@@ -7,7 +7,7 @@
         <groupId>com.mdframe.forge</groupId>
         <version>${revision}</version>
     </parent>
-    <artifactId>forge-report</artifactId>
+    <artifactId>forge-report-server</artifactId>
     <name>forge-report</name>
     <description>forge-report 数据可视化大屏后端服务</description>
     

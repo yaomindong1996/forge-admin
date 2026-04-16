@@ -116,10 +116,10 @@
     </dependencyManagement>
     
     <modules>
-        <module>forge-admin</module>
+        <module>forge-admin-server</module>
         <module>forge-framework</module>
-        <module>forge-flow</module>
-        <module>forge-report</module>
+        <module>forge-flow-server</module>
+        <module>forge-report-server</module>
     </modules>
     
     <packaging>pom</packaging>
