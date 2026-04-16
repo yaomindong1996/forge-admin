@@ -5,7 +5,7 @@ export default defineConfig({
   description: "基于 Vue3 + Spring Boot 的企业级后台管理框架",
   base: "/forge-docs",
   ignoreDeadLinks: true,
-  outDir: '../docs-dist',
+  outDir: './docs-dist',
   themeConfig: {
     logo: '/logo.png',
     siteTitle: 'Forge Admin',
