@@ -7,6 +7,7 @@ import lombok.Data;
  */
 @Data
 public class AIGenerateRequest {
+    private String sessionId;
     private String prompt;
     private String style;
     private Integer canvasWidth;

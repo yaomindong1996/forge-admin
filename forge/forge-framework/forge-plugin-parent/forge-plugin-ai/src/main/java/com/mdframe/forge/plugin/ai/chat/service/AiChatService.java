@@ -26,6 +26,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import lombok.Builder;
+import lombok.Data;
+
 /**
  * AI 对话服务（使用标准 OpenAI 兼容接口，支持多供应商扩展）
  *
@@ -46,6 +49,23 @@ public class AiChatService {
     private final DbChatMemory dbChatMemory;
     private final AiChatRecordService recordService;
     private final AiChatSessionService sessionService;
+
+    @Data
+    @Builder
+    private static class StreamChatContext {
+        private String sessionId;
+        private Long userId;
+        private Long tenantId;
+        private String agentCode;
+        private String systemPrompt;
+        private String userPrompt;
+        private Long providerId;
+        private String modelName;
+        private Double temperature;
+        private Integer maxTokens;
+        private AiAgent agent;
+        private boolean useHistory;
+    }
 
     private AiProvider resolveProvider(Long providerId, AiAgent agent) {
         AiProvider provider = null;
@@ -107,6 +127,10 @@ public class AiChatService {
     }
 
     private ChatClient buildChatClient(AiProvider provider, String model, Double temperature, Integer maxTokens) {
+        return buildChatClient(provider, model, temperature, maxTokens, null);
+    }
+
+    private ChatClient buildChatClient(AiProvider provider, String model, Double temperature, Integer maxTokens, String sessionId) {
         OpenAiApi openAiApi = OpenAiApi.builder()
                 .baseUrl(provider.getBaseUrl())
                 .apiKey(provider.getApiKey())
@@ -125,9 +149,16 @@ public class AiChatService {
                 .openAiApi(openAiApi)
                 .defaultOptions(optionsBuilder.build())
                 .build();
-        log.info("AI ChatClient 初始化成功, provider={}, baseUrl={}, model={}, temperature={}, maxTokens={}",
-                provider.getProviderName(), provider.getBaseUrl(), model, temperature, maxTokens);
-        return ChatClient.builder(chatModel).build();
+        log.info("AI ChatClient 初始化成功, provider={}, baseUrl={}, model={}, temperature={}, maxTokens={}, sessionId={}",
+                provider.getProviderName(), provider.getBaseUrl(), model, temperature, maxTokens, sessionId);
+        
+        ChatClient.Builder builder = ChatClient.builder(chatModel);
+        if (StringUtils.hasText(sessionId)) {
+            builder.defaultAdvisors(MessageChatMemoryAdvisor.builder(dbChatMemory)
+                    .conversationId(sessionId)
+                    .build());
+        }
+        return builder.build();
     }
 
     /**
@@ -157,6 +188,18 @@ public class AiChatService {
 
     private String buildDashboardSystemPrompt(AiAgent agent, com.mdframe.forge.plugin.ai.chat.dto.AIGenerateRequest request) {
         return AiPromptTemplateRenderer.renderDashboardSystemPrompt(agent.getSystemPrompt(), request);
+    }
+
+    private String buildChatUserPrompt(String content, String projectName, String canvasContext) {
+        StringBuilder prompt = new StringBuilder(content);
+        if (StringUtils.hasText(projectName)) {
+            prompt.append("\n\n当前项目：").append(projectName);
+        }
+        if (StringUtils.hasText(canvasContext)) {
+            prompt.append("\n\n当前画布已有内容（请基于现有内容进行分析、修改或补充，而不是完全忽略已有内容）：\n")
+                    .append(canvasContext);
+        }
+        return prompt.toString();
     }
 
     /**
@@ -189,50 +232,36 @@ public class AiChatService {
             throw new RuntimeException("未找到大屏生成 Agent");
         }
 
-        AiProvider provider = resolveProvider(request.getProviderId(), agent);
-        String model = resolveModel(request.getModelName(), agent, provider);
-        Double temperature = resolveTemperature(request.getTemperature(), agent);
-        Integer maxTokens = resolveMaxTokens(request.getMaxTokens(), agent);
-        String dashboardSystemPrompt = buildDashboardSystemPrompt(agent, request);
-        String dashboardUserPrompt = buildDashboardPrompt(request);
+        LoginUser loginUser = SessionHelper.getLoginUser();
+        Long userId = loginUser != null ? loginUser.getUserId() : 1L;
+        Long tenantId = loginUser != null ? loginUser.getTenantId() : 1L;
+        String sessionId = StringUtils.hasText(request.getSessionId()) 
+                ? request.getSessionId() 
+                : UUID.randomUUID().toString();
 
-        log.info("[AiChatService] 开始 AI 生成大屏, providerId={}, model={}, temperature={}, maxTokens={}, projectName={}, hasCanvasContext={}",
-                request.getProviderId(), model, temperature, maxTokens, request.getProjectName(), StringUtils.hasText(request.getCanvasContext()));
+        String systemPrompt = buildDashboardSystemPrompt(agent, request);
+        String userPrompt = buildDashboardPrompt(request);
 
-        return buildChatClient(provider, model, temperature, maxTokens).prompt()
-                .system(dashboardSystemPrompt)
-                .user(dashboardUserPrompt)
-                .stream()
-                .content()
-                .doOnNext(chunk -> log.info("[AiChatService] 大屏生成流式分片, chunkLen={}, preview={}",
-                        chunk == null ? 0 : chunk.length(), truncateForLog(chunk)))
-                .doOnComplete(() -> log.info("[AiChatService] 大屏生成完成, promptLen={}, systemPromptLen={}, userPromptLen={}",
-                        request.getPrompt() == null ? 0 : request.getPrompt().length(),
-                        dashboardSystemPrompt.length(), dashboardUserPrompt.length()))
-                .doOnError(e -> log.error("[AiChatService] 大屏生成流式异常", e))
-                .doFinally(signalType -> log.info("[AiChatService] 大屏生成结束, signalType={}", signalType));
-    }
+        StreamChatContext context = StreamChatContext.builder()
+                .sessionId(sessionId)
+                .userId(userId)
+                .tenantId(tenantId)
+                .agentCode("dashboard_generator")
+                .systemPrompt(systemPrompt)
+                .userPrompt(userPrompt)
+                .providerId(request.getProviderId())
+                .modelName(request.getModelName())
+                .temperature(request.getTemperature())
+                .maxTokens(request.getMaxTokens())
+                .agent(agent)
+                .useHistory(false)
+                .build();
 
-    private String buildChatUserPrompt(String content, String projectName, String canvasContext) {
-        StringBuilder prompt = new StringBuilder(content);
-        if (StringUtils.hasText(projectName)) {
-            prompt.append("\n\n当前项目：").append(projectName);
-        }
-        if (StringUtils.hasText(canvasContext)) {
-            prompt.append("\n\n当前画布已有内容（请基于现有内容进行分析、修改或补充，而不是完全忽略已有内容）：\n")
-                    .append(canvasContext);
-        }
-        return prompt.toString();
+        return executeStreamChat(context);
     }
 
     /**
      * 流式对话（真正的 SSE 流式输出，支持多轮上下文）
-     *
-     * @param content   用户输入内容
-     * @param agentCode Agent 编码
-     * @param sessionId 会话ID（前端传入 UUID，同一会话始终维持不变）
-     * @param userId    当前用户ID
-     * @return Flux流式文本
      */
     public Flux<String> chatStream(String content, String agentCode, String sessionId, Long userId,
                                    Long providerId, String modelName, Double temperature, Integer maxTokens,
@@ -242,46 +271,74 @@ public class AiChatService {
             throw new RuntimeException("Agent 不存在: " + agentCode);
         }
 
-        AiProvider provider = resolveProvider(providerId, agent);
-        String resolvedModel = resolveModel(modelName, agent, provider);
-        Double resolvedTemperature = resolveTemperature(temperature, agent);
-        Integer resolvedMaxTokens = resolveMaxTokens(maxTokens, agent);
-        ChatClient chatClient = buildChatClient(provider, resolvedModel, resolvedTemperature, resolvedMaxTokens);
+        LoginUser loginUser = SessionHelper.getLoginUser();
+        Long tenantId = loginUser != null ? loginUser.getTenantId() : 1L;
+        String sid = StringUtils.hasText(sessionId) ? sessionId : UUID.randomUUID().toString();
+
         String systemPrompt = agent != null && StringUtils.hasText(agent.getSystemPrompt())
                 ? agent.getSystemPrompt()
                 : "你是 GoView 数据大屏平台的 AI 助手，可以回答关于数据可视化、大屏设计、ECharts 图表配置和 AI 供应商使用的问题。回答要简洁、实用、准确。";
+        String userPrompt = buildChatUserPrompt(content, projectName, canvasContext);
 
-        String sid = StringUtils.hasText(sessionId) ? sessionId : UUID.randomUUID().toString();
-        LoginUser loginUser = SessionHelper.getLoginUser();
-        Long tenantId = loginUser != null ? loginUser.getTenantId() : 1L;
-        sessionService.getOrCreate(sid, userId, tenantId, agentCode, content);
+        StreamChatContext context = StreamChatContext.builder()
+                .sessionId(sid)
+                .userId(userId)
+                .tenantId(tenantId)
+                .agentCode(agentCode)
+                .systemPrompt(systemPrompt)
+                .userPrompt(userPrompt)
+                .providerId(providerId)
+                .modelName(modelName)
+                .temperature(temperature)
+                .maxTokens(maxTokens)
+                .agent(agent)
+                .useHistory(true)
+                .build();
+
+        return executeStreamChat(context);
+    }
+
+    /**
+     * 公共流式对话处理方法
+     */
+    private Flux<String> executeStreamChat(StreamChatContext context) {
+        AiProvider provider = resolveProvider(context.getProviderId(), context.getAgent());
+        String model = resolveModel(context.getModelName(), context.getAgent(), provider);
+        Double temperature = resolveTemperature(context.getTemperature(), context.getAgent());
+        Integer maxTokens = resolveMaxTokens(context.getMaxTokens(), context.getAgent());
+        
+        String sessionId = context.getSessionId();
+        String historySessionId = context.isUseHistory() ? sessionId : null;
+        ChatClient chatClient = buildChatClient(provider, model, temperature, maxTokens, historySessionId);
+
+        sessionService.getOrCreate(sessionId, context.getUserId(), context.getTenantId(), 
+                context.getAgentCode(), context.getUserPrompt());
 
         StringBuilder assistantBuilder = new StringBuilder();
-        String userPrompt = buildChatUserPrompt(content, projectName, canvasContext);
         AtomicBoolean persisted = new AtomicBoolean(false);
-        log.info("[AiChatService] 开始 AI 对话, sessionId={}, userId={}, providerId={}, model={}, temperature={}, maxTokens={}, projectName={}, hasCanvasContext={}",
-                sid, userId, providerId, resolvedModel, resolvedTemperature, resolvedMaxTokens,
-                projectName, StringUtils.hasText(canvasContext));
+
+        log.info("[AiChatService] 开始 AI 流式对话, sessionId={}, userId={}, agentCode={}, model={}, useHistory={}",
+                sessionId, context.getUserId(), context.getAgentCode(), model, context.isUseHistory());
 
         return chatClient.prompt()
-                .system(systemPrompt)
-                .user(userPrompt)
-                .advisors(MessageChatMemoryAdvisor.builder(dbChatMemory).conversationId(sid).build())
+                .system(context.getSystemPrompt())
+                .user(context.getUserPrompt())
                 .stream()
                 .content()
                 .doOnNext(chunk -> {
                     assistantBuilder.append(chunk);
-                    log.info("[AiChatService] 对话流式分片, sessionId={}, chunkLen={}, preview={}",
-                            sid, chunk == null ? 0 : chunk.length(), truncateForLog(chunk));
+                    log.info("[AiChatService] 流式分片, sessionId={}, chunkLen={}, preview={}",
+                            sessionId, chunk == null ? 0 : chunk.length(), truncateForLog(chunk));
                 })
-                .doOnComplete(() -> log.info("[AiChatService] 对话流式完成, sessionId={}, answerLen={}", sid, assistantBuilder.length()))
-                .doOnError(e -> log.error("[AiChatService] 对话流式异常, sessionId={}", sid, e))
+                .doOnComplete(() -> log.info("[AiChatService] 流式完成, sessionId={}, answerLen={}", 
+                        sessionId, assistantBuilder.length()))
+                .doOnError(e -> log.error("[AiChatService] 流式异常, sessionId={}", sessionId, e))
                 .doFinally(signalType -> persistChatConversation(
-                        sid,
-                        userId,
-                        tenantId,
-                        agentCode,
-                        userPrompt,
+                        sessionId,
+                        context.getUserId(),
+                        context.getTenantId(),
+                        context.getAgentCode(),
+                        context.getUserPrompt(),
                         assistantBuilder.toString(),
                         persisted,
                         signalType
