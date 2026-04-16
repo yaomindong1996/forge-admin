@@ -18,6 +18,9 @@ hero:
     - theme: alt
       text: 后端文档
       link: /backend/modules/overview
+    - theme: alt
+      text: 🔗 在线演示
+      link: http://81.70.22.48:8084/forge/login
 
 features:
   - title: 📝 渐进式 SDD 开发
@@ -47,3 +50,9 @@ features:
   - title: 🌐 社交登录
     details: 支持微信、钉钉、GitHub、Gitee 等 18+ 第三方平台一键登录
 ---
+
+## 📺 在线演示
+
+> **后台管理**：[http://81.70.22.48:8084/forge/login](http://81.70.22.48:8084/forge/login)
+>
+> 账号：`admin` / 密码：`123456`

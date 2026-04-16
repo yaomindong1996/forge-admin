@@ -47,6 +47,10 @@
 > **后台管理**：http://81.70.22.48:8084/forge/login
 >
 > 账号：`admin` / `123456`
+>
+> **项目文档**：http://81.70.22.48:8084/forge-docs/
+>
+> **项目源码**：https://gitee.com/ForgeLab/forge-admin
 
 ---
 

@@ -3,8 +3,9 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: "Forge Admin",
   description: "基于 Vue3 + Spring Boot 的企业级后台管理框架",
-  base: "/",
+  base: "/forge-docs",
   ignoreDeadLinks: true,
+  outDir: '../docs-dist',
   themeConfig: {
     logo: '/logo.png',
     siteTitle: 'Forge Admin',
@@ -90,7 +91,7 @@ export default defineConfig({
       ]
     },
     socialLinks: [
-      { icon: 'github', link: 'https://github.com' }
+      { icon: 'github', link: 'https://gitee.com/ForgeLab/forge-admin' }
     ]
   }
 })

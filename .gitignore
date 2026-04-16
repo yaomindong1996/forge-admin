@@ -93,3 +93,4 @@ yarn.lock
 *.env
 .env
 *.secrets
+/docs-dist
