@@ -18,7 +18,7 @@
             :disabled="item.disabled"
             v-for="item in typeList"
             :key="item.key"
-            @click="item.handle ? item.handle() : btnHandle(item.key)"
+            @click="btnHandle(item.key)"
           >
             <component :is="item.title"></component>
             <template #icon>
@@ -32,25 +32,19 @@
       </n-card>
     </n-space>
   </n-modal>
-  <!-- AI 生成大屏对话框 -->
-  <AIGenerateDialog v-model:show="showAIDialog" mode="create" @applied="onAIApplied" />
 </template>
 
 <script lang="ts" setup>
 import { ref, watch, shallowRef } from 'vue'
 import { icon } from '@/plugins'
 import { PageEnum, ChartEnum } from '@/enums/pageEnum'
-import { fetchPathByName, routerTurnByPath, renderLang, getUUID, setSessionStorage, getSessionStorage } from '@/utils'
-import { StorageEnum } from '@/enums/storageEnum'
-import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
-import { AIGenerateDialog } from '@/components/GoAI'
-import { AIGenerateResponse } from '@/api/ai/ai.d'
+import { fetchPathByName, routerTurnByPath, renderLang, getUUID } from '@/utils'
+import { createProjectApi } from '@/api/project'
 import router from '@/router'
 
-const { FishIcon, CloseIcon, SparklesIcon } = icon.ionicons5
+const { FishIcon, CloseIcon } = icon.ionicons5
 const { StoreIcon, ObjectStorageIcon } = icon.carbon
 const showRef = ref(false)
-const showAIDialog = ref(false)
 
 const emit = defineEmits(['close'])
 const props = defineProps({
@@ -58,16 +52,6 @@ const props = defineProps({
 })
 
 const typeList = shallowRef([
-  {
-    title: renderLang('ai.generate_dashboard'),
-    key: 'ai-generate',
-    icon: SparklesIcon,
-    disabled: false,
-    handle: () => {
-      closeHandle()
-      showAIDialog.value = true
-    }
-  },
   {
     title: renderLang('project.new_project'),
     key: ChartEnum.CHART_HOME_NAME,
@@ -98,32 +82,27 @@ const closeHandle = () => {
 }
 
 // 处理按钮点击
-const btnHandle = (key: string) => {
+const btnHandle = async (_key: string) => {
   closeHandle()
-  const id = getUUID()
-  const path = fetchPathByName(ChartEnum.CHART_HOME_NAME, 'href')
-  routerTurnByPath(path, [id], undefined, true)
-}
-
-// AI 生成完成后，将 chartEditStore 数据写入 SessionStorage，跳转编辑器
-const onAIApplied = (_response: AIGenerateResponse) => {
-  const id = getUUID()
-  const chartEditStore = useChartEditStore()
-  // 将 AI 生成的画布数据存入 SessionStorage，供编辑器加载
-  const storageInfo = chartEditStore.getStorageInfo()
-  const sessionStorageInfo = getSessionStorage(StorageEnum.GO_CHART_STORAGE_LIST) || []
-  const existIndex = sessionStorageInfo.findIndex((e: { id: string }) => e.id === id)
-  if (existIndex !== -1) {
-    sessionStorageInfo.splice(existIndex, 1, { ...storageInfo, id })
-  } else {
-    sessionStorageInfo.push({ ...storageInfo, id })
+  try {
+    const res = await createProjectApi({
+      projectName: '新项目',
+      canvasWidth: 1920,
+      canvasHeight: 1080,
+      backgroundColor: '',
+      componentData: JSON.stringify({
+        editCanvasConfig: { projectName: '新项目', width: 1920, height: 1080 },
+        requestGlobalConfig: {},
+        componentList: []
+      }),
+      status: '0'
+    })
+    const id = res?.data?.id || getUUID()
+    const path = fetchPathByName(ChartEnum.CHART_HOME_NAME, 'href')
+    routerTurnByPath(path, [String(id)], undefined, true)
+  } catch (error: any) {
+    window.$message.error(error?.message || '创建项目失败')
   }
-  setSessionStorage(StorageEnum.GO_CHART_STORAGE_LIST, sessionStorageInfo)
-  // 关闭 AI 对话框
-  showAIDialog.value = false
-  // 在当前窗口跳转到编辑器（直接用 router.push，避免 fetchPathByName 返回带 # 的 href）
-  router.push({ name: ChartEnum.CHART_HOME_NAME, params: { id } })
-  console.log('[AI] 准备跳转编辑器, id:', id)
 }
 </script>
 <style lang="scss" scoped>

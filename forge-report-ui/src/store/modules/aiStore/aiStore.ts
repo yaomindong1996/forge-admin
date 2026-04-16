@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { AIStoreType, AIHistoryItem, ChatMessage } from './aiStore.d'
+import { AIStoreType, AIHistoryItem, ChatMessage, AIProviderOption } from './aiStore.d'
+import type { AiChatSession } from '@/api/ai'
 import { AIGenerateResponse } from '@/api/ai/ai.d'
 
 export const useAIStore = defineStore({
@@ -12,7 +13,10 @@ export const useAIStore = defineStore({
     lastResponse: null,
     generateHistory: [],
     chatMessages: [],
+    chatSessions: [],
+    currentSessionId: null,
     aiPanelVisible: false,
+    selectedProvider: null,
     _abortController: null as AbortController | null
   }),
   getters: {
@@ -39,6 +43,9 @@ export const useAIStore = defineStore({
     },
     getAIPanelVisible(): boolean {
       return this.aiPanelVisible
+    },
+    getSelectedProvider(): AIProviderOption | null {
+      return this.selectedProvider
     }
   },
   actions: {
@@ -97,6 +104,15 @@ export const useAIStore = defineStore({
     addChatMessage(msg: ChatMessage) {
       this.chatMessages.push(msg)
     },
+    setChatMessages(messages: ChatMessage[]) {
+      this.chatMessages = messages
+    },
+    setChatSessions(sessions: AiChatSession[]) {
+      this.chatSessions = sessions
+    },
+    setCurrentSessionId(sessionId: string | null) {
+      this.currentSessionId = sessionId
+    },
     updateLastAssistantMessage(content: string, canvasResponse?: AIGenerateResponse | null) {
       const lastMsg = this.chatMessages[this.chatMessages.length - 1]
       if (lastMsg && lastMsg.role === 'assistant') {
@@ -109,11 +125,15 @@ export const useAIStore = defineStore({
     },
     clearChat() {
       this.chatMessages = []
+      this.currentSessionId = null
       this.streamingText = ''
       this.abortGenerating()
     },
     setAIPanelVisible(value: boolean) {
       this.aiPanelVisible = value
+    },
+    setSelectedProvider(value: AIProviderOption | null) {
+      this.selectedProvider = value
     }
   }
 })

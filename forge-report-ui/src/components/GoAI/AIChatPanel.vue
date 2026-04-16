@@ -1,142 +1,198 @@
 <template>
   <div class="go-ai-chat-panel">
-    <!-- 消息列表 -->
     <div class="messages-container" ref="messagesContainerRef">
-        <!-- 空状态 -->
-        <div v-if="aiStore.getChatMessages.length === 0" class="empty-state">
-          <n-icon size="40" color="#51d6a9" style="margin-bottom: 12px">
-            <SparklesIcon />
-          </n-icon>
-          <p class="empty-title">GoView AI 助手</p>
-          <p class="empty-desc">描述你想要的数据大屏，AI 将帮你自动生成</p>
-          <div class="quick-prompts">
-            <n-button
-              v-for="p in quickPrompts"
-              :key="p"
-              size="small"
-              secondary
-              class="quick-btn"
-              @click="useQuickPrompt(p)"
-            >{{ p }}</n-button>
+      <div v-if="aiStore.getChatMessages.length === 0" class="empty-state">
+        <n-icon size="40" color="#51d6a9" style="margin-bottom: 12px">
+          <SparklesIcon />
+        </n-icon>
+        <p class="empty-title">GoView AI 助手</p>
+        <p class="empty-desc">描述你想要的数据大屏，AI 将帮你自动生成</p>
+        <div class="quick-prompts">
+          <n-button
+            v-for="prompt in quickPrompts"
+            :key="prompt"
+            size="small"
+            secondary
+            class="quick-btn"
+            @click="useQuickPrompt(prompt)"
+          >{{ prompt }}</n-button>
+        </div>
+      </div>
+
+      <template v-else>
+        <div
+          v-for="msg in aiStore.getChatMessages"
+          :key="msg.id"
+          class="message-item"
+          :class="msg.role"
+        >
+          <div v-if="msg.role === 'assistant'" class="avatar ai-avatar">
+            <n-icon size="14" color="#51d6a9"><SparklesIcon /></n-icon>
+          </div>
+          <div class="bubble-wrapper">
+            <div class="bubble" :class="msg.role">
+              <span class="msg-content" v-html="renderContent(msg.content)"></span>
+              <span v-if="msg.streaming" class="typing-cursor">|</span>
+            </div>
+            <div v-if="msg.role === 'assistant' && !msg.streaming && msg.canvasResponse" class="msg-actions">
+              <n-button size="small" type="primary" ghost @click="applyToCanvas(msg.canvasResponse!)">
+                <template #icon><n-icon><AnalyticsIcon /></n-icon></template>
+                应用到画布
+              </n-button>
+            </div>
+          </div>
+          <div v-if="msg.role === 'user'" class="avatar user-avatar">
+            <n-icon size="14"><PersonIcon /></n-icon>
           </div>
         </div>
 
-        <!-- 消息气泡 -->
-        <template v-else>
-          <div
-            v-for="msg in aiStore.getChatMessages"
-            :key="msg.id"
-            class="message-item"
-            :class="msg.role"
-          >
-            <div v-if="msg.role === 'assistant'" class="avatar ai-avatar">
-              <n-icon size="14" color="#51d6a9"><SparklesIcon /></n-icon>
-            </div>
-            <div class="bubble-wrapper">
-              <div class="bubble" :class="msg.role">
-                <span class="msg-content" v-html="renderContent(msg.content)"></span>
-                <span v-if="msg.streaming" class="typing-cursor">|</span>
-              </div>
-              <div v-if="msg.role === 'assistant' && !msg.streaming && msg.canvasResponse" class="msg-actions">
-                <n-button size="small" type="primary" ghost @click="applyToCanvas(msg.canvasResponse!)">
-                  <template #icon><n-icon><AnalyticsIcon /></n-icon></template>
-                  应用到画布
-                </n-button>
-              </div>
-            </div>
-            <div v-if="msg.role === 'user'" class="avatar user-avatar">
-              <n-icon size="14"><PersonIcon /></n-icon>
-            </div>
+        <div v-if="aiStore.getGenerating && !hasStreamingMessage" class="message-item assistant">
+          <div class="avatar ai-avatar">
+            <n-icon size="14" color="#51d6a9"><SparklesIcon /></n-icon>
           </div>
+          <div class="bubble assistant">
+            <span class="thinking-dots">
+              <span></span><span></span><span></span>
+            </span>
+          </div>
+        </div>
+      </template>
+    </div>
 
-          <div v-if="aiStore.getGenerating && !hasStreamingMessage" class="message-item assistant">
-            <div class="avatar ai-avatar">
-              <n-icon size="14" color="#51d6a9"><SparklesIcon /></n-icon>
-            </div>
-            <div class="bubble assistant">
-              <span class="thinking-dots">
-                <span></span><span></span><span></span>
-              </span>
-            </div>
-          </div>
+    <div class="style-row">
+      <span class="style-label">风格：</span>
+      <n-radio-group v-model:value="styleRef" size="small" :disabled="aiStore.getGenerating">
+        <n-radio-button value="dark">深色</n-radio-button>
+        <n-radio-button value="light">浅色</n-radio-button>
+      </n-radio-group>
+      <n-tooltip placement="top" trigger="hover">
+        <template #trigger>
+          <n-button size="tiny" quaternary style="margin-left: 8px" @click="showModeSelect = !showModeSelect">
+            <template #icon><n-icon><SettingsSharpIcon /></n-icon></template>
+          </n-button>
         </template>
-      </div>
+        模式设置
+      </n-tooltip>
+    </div>
 
-      <!-- 风格选择 -->
-      <div class="style-row">
-        <span class="style-label">风格：</span>
-        <n-radio-group v-model:value="styleRef" size="small" :disabled="aiStore.getGenerating">
-          <n-radio-button value="dark">深色</n-radio-button>
-          <n-radio-button value="light">浅色</n-radio-button>
+    <n-collapse-transition :show="showModeSelect">
+      <div class="mode-row">
+        <span class="style-label">模式：</span>
+        <n-radio-group v-model:value="chatModeRef" size="small">
+          <n-radio-button value="generate">生成大屏</n-radio-button>
+          <n-radio-button value="chat">自由对话</n-radio-button>
         </n-radio-group>
-        <n-tooltip placement="top" trigger="hover">
-          <template #trigger>
-            <n-button size="tiny" quaternary style="margin-left: 8px" @click="showModeSelect = !showModeSelect">
-              <template #icon><n-icon><SettingsSharpIcon /></n-icon></template>
-            </n-button>
-          </template>
-          模式设置
-        </n-tooltip>
       </div>
 
-      <!-- 模式选择（可折叠） -->
-      <n-collapse-transition :show="showModeSelect">
-        <div class="mode-row">
-          <span class="style-label">模式：</span>
-          <n-radio-group v-model:value="chatModeRef" size="small">
-            <n-radio-button value="generate">生成大屏</n-radio-button>
-            <n-radio-button value="chat">自由对话</n-radio-button>
-          </n-radio-group>
+      <div class="config-grid">
+        <div class="config-item config-provider">
+          <span class="style-label">供应商：</span>
+          <n-select
+            v-model:value="selectedProviderId"
+            size="small"
+            :options="providerOptions"
+            :loading="providerLoading"
+            :disabled="aiStore.getGenerating || providerOptions.length === 0"
+            placeholder="请选择供应商"
+          />
         </div>
-      </n-collapse-transition>
 
-      <!-- 输入区域 -->
-      <div class="input-area">
-        <n-input
-          v-model:value="inputRef"
-          type="textarea"
-          :placeholder="chatModeRef === 'generate' ? '描述你想要的数据大屏...' : '有什么可以帮你？'"
-          :rows="3"
-          :disabled="aiStore.getGenerating"
-          @keydown.enter.exact.prevent="handleSend"
-          @keydown.shift.enter.prevent="inputRef += '\n'"
-        />
-        <div class="input-footer">
-          <span class="hint-text">Enter 发送，Shift+Enter 换行</span>
-          <n-button
-            v-if="aiStore.getGenerating"
-            type="error"
+        <div class="config-item config-model">
+          <span class="style-label">模型：</span>
+          <n-select
+            v-model:value="selectedModelName"
             size="small"
-            @click="handleStop"
-          >
-            <template #icon><n-icon><CloseIcon /></n-icon></template>
-            停止生成
-          </n-button>
-          <n-button
-            v-else
-            type="primary"
-            size="small"
-            :disabled="!inputRef.trim()"
-            @click="handleSend"
-          >
-            <template #icon><n-icon><SendIcon /></n-icon></template>
-            发送
-          </n-button>
+            :options="modelOptions"
+            :disabled="aiStore.getGenerating || !selectedProvider"
+            placeholder="请选择模型"
+            filterable
+            tag
+          />
         </div>
+
+        <div class="config-item config-temperature">
+          <span class="style-label">温度：</span>
+          <n-input-number
+            v-model:value="temperatureRef"
+            size="small"
+            :min="0"
+            :max="2"
+            :step="0.1"
+            :precision="1"
+            :disabled="aiStore.getGenerating"
+          />
+        </div>
+
+        <div class="config-item config-max-tokens">
+          <span class="style-label">Max Tokens：</span>
+          <n-input-number
+            v-model:value="maxTokensRef"
+            size="small"
+            :min="1"
+            :step="100"
+            clearable
+            :disabled="aiStore.getGenerating"
+            placeholder="可选"
+          />
+        </div>
+      </div>
+
+      <div v-if="selectedProvider" class="provider-tip">
+        当前使用：{{ selectedProvider.providerName }}
+        <span v-if="selectedModelName"> / {{ selectedModelName }}</span>
+      </div>
+    </n-collapse-transition>
+
+    <div class="input-area">
+      <n-input
+        v-model:value="inputRef"
+        type="textarea"
+        :placeholder="chatModeRef === 'generate' ? '描述你想要的数据大屏...' : '有什么可以帮你？'"
+        :rows="3"
+        :disabled="aiStore.getGenerating"
+        @keydown.enter.exact.prevent="handleSend"
+        @keydown.shift.enter.prevent="inputRef += '\n'"
+      />
+      <div class="input-footer">
+        <span class="hint-text">Enter 发送，Shift+Enter 换行</span>
+        <n-button v-if="aiStore.getGenerating" type="error" size="small" @click="handleStop">
+          <template #icon><n-icon><CloseIcon /></n-icon></template>
+          停止生成
+        </n-button>
+        <n-button
+          v-else
+          type="primary"
+          size="small"
+          :disabled="!inputRef.trim() || !selectedProviderId"
+          @click="handleSend"
+        >
+          <template #icon><n-icon><SendIcon /></n-icon></template>
+          发送
+        </n-button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, computed, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import {
+  type AiProvider,
+  aiChatStream,
+  aiGenerateStream,
+  getProviderPageApi,
+  getSessionListApi,
+  getSessionMessagesApi
+} from '@/api/ai'
+import type { AIGenerateResponse } from '@/api/ai/ai.d'
+import { applyAIToCanvas } from './aiEngine'
+import { parseStreamedResponse } from './llmClient'
+import { getComponentCatalogText } from './componentRegistry'
+import { icon } from '@/plugins'
 import { useAIStore } from '@/store/modules/aiStore/aiStore'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
-import { callLLMStream, callLLMChat, parseStreamedResponse } from './llmClient'
-import { applyAIToCanvas } from './aiEngine'
-import { AIGenerateResponse } from '@/api/ai/ai.d'
-import { icon } from '@/plugins'
 
-const { SparklesIcon, SendIcon, AnalyticsIcon, PersonIcon, TrashIcon, SettingsSharpIcon, CloseIcon } = icon.ionicons5
+const { SparklesIcon, SendIcon, AnalyticsIcon, PersonIcon, SettingsSharpIcon, CloseIcon } = icon.ionicons5
 
 const emit = defineEmits(['applied'])
 
@@ -148,8 +204,14 @@ const styleRef = ref<'dark' | 'light'>('dark')
 const chatModeRef = ref<'generate' | 'chat'>('generate')
 const showModeSelect = ref(false)
 const messagesContainerRef = ref<HTMLElement>()
+const providerList = ref<AiProvider[]>([])
+const providerLoading = ref(false)
+const chatSessionIdRef = ref(aiStore.currentSessionId || createSessionId())
+const selectedProviderId = ref<number | string | null>(aiStore.getSelectedProvider?.providerId ?? null)
+const selectedModelName = ref(aiStore.getSelectedProvider?.modelName || '')
+const temperatureRef = ref(aiStore.getSelectedProvider?.temperature ?? 0.7)
+const maxTokensRef = ref<number | null>(aiStore.getSelectedProvider?.maxTokens ?? null)
 
-// 快捷提示词
 const quickPrompts = [
   '电商销售数据监控大屏',
   '智慧城市运营中心大屏',
@@ -157,12 +219,63 @@ const quickPrompts = [
   '财务数据分析大屏'
 ]
 
-// 是否已有流式消息正在输出
-const hasStreamingMessage = computed(() => {
-  return aiStore.getChatMessages.some(m => m.streaming)
+const GENERATE_PROGRESS_STEPS = [
+  '🧠 正在理解你的大屏需求...',
+  '🧩 正在规划页面布局与组件组合...',
+  '📊 正在生成图表数据结构与画布配置...',
+  '✨ 正在整理最终结果...'
+]
+
+const hasStreamingMessage = computed(() => aiStore.getChatMessages.some(message => message.streaming))
+
+function createSessionId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `ai-session-${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+function parseModels(models?: string) {
+  if (!models) return []
+  const trimmed = models.trim()
+  if (!trimmed) return []
+
+  try {
+    const parsed = JSON.parse(trimmed)
+    if (Array.isArray(parsed)) {
+      return parsed.map(item => String(item).trim()).filter(Boolean)
+    }
+  } catch {
+    // ignore invalid json
+  }
+
+  return trimmed
+    .split(/[\n,，]/)
+    .map(item => item.trim())
+    .filter(Boolean)
+}
+
+const providerOptions = computed(() =>
+  providerList.value.map(item => ({
+    label: `${item.providerName || '未命名供应商'}${item.isDefault === '1' ? '（默认）' : ''}`,
+    value: item.id as number | string
+  }))
+)
+
+const selectedProvider = computed(() =>
+  providerList.value.find(item => String(item.id) === String(selectedProviderId.value)) || null
+)
+
+const modelOptions = computed(() => {
+  if (!selectedProvider.value) return []
+  const models = parseModels(selectedProvider.value.models)
+  const options = models.map(model => ({ label: model, value: model }))
+  if (!options.length && selectedProvider.value.defaultModel) {
+    options.push({ label: selectedProvider.value.defaultModel, value: selectedProvider.value.defaultModel })
+  }
+  return options
 })
 
-// 自动滚动到底部
 const scrollToBottom = async () => {
   await nextTick()
   if (messagesContainerRef.value) {
@@ -170,174 +283,317 @@ const scrollToBottom = async () => {
   }
 }
 
-// 监听消息变化，自动滚动
 watch(() => aiStore.getChatMessages.length, scrollToBottom)
-watch(() => {
-  const last = aiStore.getChatMessages[aiStore.getChatMessages.length - 1]
-  return last?.content
-}, scrollToBottom)
+watch(
+  () => aiStore.getChatMessages[aiStore.getChatMessages.length - 1]?.content,
+  scrollToBottom
+)
 
-// 渲染消息内容（支持简单的 markdown 代码块高亮）
+watch(
+  selectedProvider,
+  provider => {
+    if (!provider) {
+      selectedModelName.value = ''
+      return
+    }
+    const models = parseModels(provider.models)
+    if (!selectedModelName.value) {
+      selectedModelName.value = provider.defaultModel || models[0] || ''
+      return
+    }
+    if (models.length && !models.includes(selectedModelName.value)) {
+      selectedModelName.value = provider.defaultModel || models[0] || selectedModelName.value
+    }
+  },
+  { immediate: true }
+)
+
+watch([selectedProviderId, selectedModelName], ([newProviderId, newModelName], [oldProviderId, oldModelName]) => {
+  if (newProviderId !== oldProviderId || newModelName !== oldModelName) {
+    chatSessionIdRef.value = createSessionId()
+  }
+})
+
+watch([selectedProviderId, selectedModelName, temperatureRef, maxTokensRef, providerList], () => {
+  if (!selectedProvider.value) {
+    aiStore.setSelectedProvider(null)
+    return
+  }
+  aiStore.setSelectedProvider({
+    providerId: selectedProviderId.value || undefined,
+    providerName: selectedProvider.value.providerName || '未命名供应商',
+    modelName: selectedModelName.value || undefined,
+    temperature: temperatureRef.value,
+    maxTokens: maxTokensRef.value
+  })
+})
+
 function renderContent(content: string): string {
   if (!content) return ''
-  // 转义 HTML
   let escaped = content
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
 
-  // 代码块
   escaped = escaped.replace(/```[\s\S]*?```/g, match => {
     return `<pre class="code-block">${match.replace(/```\w*\n?/g, '').replace(/```/g, '')}</pre>`
   })
-
-  // 行内代码
   escaped = escaped.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
-
-  // 换行
   escaped = escaped.replace(/\n/g, '<br/>')
-
   return escaped
 }
 
-// 使用快捷提示词
 function useQuickPrompt(prompt: string) {
   inputRef.value = prompt
   chatModeRef.value = 'generate'
 }
 
-// 清空对话
-function clearChat() {
-  aiStore.clearChat()
-}
-
-// 获取画布尺寸
 function getCanvasSize() {
   try {
     const config = chartEditStore.getEditCanvasConfig
     if (config?.width && config?.height) {
       return { width: config.width, height: config.height }
     }
-  } catch {}
+  } catch {
+    // ignore
+  }
   return { width: 1920, height: 1080 }
 }
 
-// 发送消息
+function buildCanvasContext() {
+  try {
+    const canvasConfig = chartEditStore.getEditCanvasConfig
+    const componentList = chartEditStore.getComponentList || []
+    return JSON.stringify(
+      {
+        canvas: {
+          projectName: canvasConfig?.projectName,
+          width: canvasConfig?.width,
+          height: canvasConfig?.height,
+          background: canvasConfig?.background || canvasConfig?.backgroundColor
+        },
+        components: componentList
+      },
+      null,
+      2
+    )
+  } catch {
+    return ''
+  }
+}
+
+async function loadSessionHistory() {
+  try {
+    const sessionRes = await getSessionListApi()
+    const sessions = sessionRes?.data || []
+    aiStore.setChatSessions(sessions)
+
+    let activeSessionId = aiStore.currentSessionId
+    if (!activeSessionId && sessions.length) {
+      activeSessionId = sessions[0].id
+    }
+
+    if (activeSessionId) {
+      aiStore.setCurrentSessionId(activeSessionId)
+      chatSessionIdRef.value = activeSessionId
+      const messagesRes = await getSessionMessagesApi(activeSessionId)
+      const records = messagesRes?.data || []
+      aiStore.setChatMessages(
+        records.map((item, index) => ({
+          id: String(item.id || `${item.role}-${index}`),
+          role: item.role === 'assistant' ? 'assistant' : 'user',
+          content: item.content,
+          timestamp: item.createTime ? new Date(item.createTime).getTime() : Date.now(),
+          sessionId: item.sessionId,
+          streaming: false,
+          canvasResponse: null
+        }))
+      )
+    } else {
+      aiStore.setChatMessages([])
+    }
+  } catch (error: any) {
+    window['$message']?.error('加载历史会话失败: ' + (error?.message || '未知错误'))
+  }
+}
+
+function buildGenerateStreamingPreview(fullText: string): string {
+  const trimmed = fullText.trim()
+  if (!trimmed) {
+    return GENERATE_PROGRESS_STEPS[0]
+  }
+
+  const progress = [...GENERATE_PROGRESS_STEPS]
+  if (trimmed.length > 80) progress.push('🔧 正在完善组件配置细节...')
+  if (trimmed.length > 160) progress.push('📐 正在校验布局坐标与尺寸...')
+  if (trimmed.length > 260) progress.push('✅ 结果即将完成，请稍候...')
+
+  return progress.slice(0, Math.min(progress.length, Math.max(1, Math.ceil(trimmed.length / 80)))).join('\n')
+}
+
+const loadProviders = async () => {
+  providerLoading.value = true
+  try {
+    const res = await getProviderPageApi({ pageNum: 1, pageSize: 100 })
+    const records = (res?.data?.records || []).filter(item => item.status !== '1')
+    providerList.value = records
+
+    if (!records.length) {
+      selectedProviderId.value = null
+      return
+    }
+
+    const matched = records.find(item => String(item.id) === String(selectedProviderId.value))
+    if (matched) return
+
+    const defaultProvider = records.find(item => item.isDefault === '1') || records[0]
+    selectedProviderId.value = defaultProvider?.id ?? null
+  } catch (error: any) {
+    window['$message']?.error('加载 AI 供应商失败: ' + (error?.message || '未知错误'))
+  } finally {
+    providerLoading.value = false
+  }
+}
+
 async function handleSend() {
   const content = inputRef.value.trim()
   if (!content || aiStore.getGenerating) return
 
+  if (!selectedProvider.value || !selectedProviderId.value) {
+    window['$message']?.warning('请先选择一个可用的 AI 供应商')
+    showModeSelect.value = true
+    return
+  }
+
+  const modelName = selectedModelName.value || selectedProvider.value.defaultModel || parseModels(selectedProvider.value.models)[0]
+  if (!modelName) {
+    window['$message']?.warning('当前供应商未配置可用模型，请先在 AI 供应商页面维护')
+    return
+  }
+
   inputRef.value = ''
   aiStore.setGenerating(true)
 
-  // 添加用户消息
-  const userMsgId = `user-${Date.now()}`
   aiStore.addChatMessage({
-    id: userMsgId,
+    id: `user-${Date.now()}`,
     role: 'user',
     content,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    sessionId: chatSessionIdRef.value
   })
-
-  // 添加 AI 占位消息（流式输出时更新）
-  const assistantMsgId = `assistant-${Date.now()}`
   aiStore.addChatMessage({
-    id: assistantMsgId,
+    id: `assistant-${Date.now()}`,
     role: 'assistant',
     content: '',
     timestamp: Date.now(),
+    sessionId: chatSessionIdRef.value,
     streaming: true,
     canvasResponse: null
   })
 
   await scrollToBottom()
-
-  // 创建 AbortController
   const abortController = aiStore.getAbortController()
 
   if (chatModeRef.value === 'generate') {
-    // 生成大屏模式
     const { width, height } = getCanvasSize()
-    await callLLMStream(
-      { prompt: content, style: styleRef.value, canvasWidth: width, canvasHeight: height },
-      (chunk) => {
-        // 实时更新 assistant 消息内容（使用 store 方法触发响应式更新）
-        aiStore.appendStreamingText(chunk)
+    const generateRequest = {
+      prompt: content,
+      style: styleRef.value,
+      canvasWidth: width,
+      canvasHeight: height,
+      componentCatalog: getComponentCatalogText(),
+      projectName: chartEditStore.getEditCanvasConfig?.projectName,
+      canvasContext: buildCanvasContext(),
+      providerId: selectedProviderId.value,
+      modelName,
+      temperature: temperatureRef.value,
+      maxTokens: maxTokensRef.value || undefined
+    }
+    let rawGenerateText = ''
+
+    aiStore.updateLastAssistantMessage(GENERATE_PROGRESS_STEPS[0], null)
+    aiStore.getChatMessages[aiStore.getChatMessages.length - 1].streaming = true
+
+    await aiGenerateStream(
+      generateRequest,
+      chunk => {
+        rawGenerateText += chunk
+        aiStore.updateLastAssistantMessage(buildGenerateStreamingPreview(rawGenerateText), null)
+        aiStore.getChatMessages[aiStore.getChatMessages.length - 1].streaming = true
         scrollToBottom()
       },
-      (fullText) => {
-        // 完成，尝试解析 JSON
+      fullText => {
         if (!fullText) {
-          // 用户主动中止
           aiStore.updateLastAssistantMessage('⏹️ 已停止生成', null)
+          aiStore.setGenerating(false)
+          scrollToBottom()
           return
         }
-
-        let canvasResponse: AIGenerateResponse | null = null
-        let displayText = fullText
 
         try {
-          canvasResponse = parseStreamedResponse(fullText)
-          displayText = `✅ 大屏生成完成！\n📊 标题：${canvasResponse.title}\n🧩 共 ${canvasResponse.components.length} 个组件\n\n点击下方按钮应用到画布。`
+          const canvasResponse = parseStreamedResponse(fullText)
+          const displayText = `✅ 大屏生成完成！\n📊 标题：${canvasResponse.title}\n🧩 共 ${canvasResponse.components.length} 个组件\n\n点击下方按钮应用到画布。`
+          aiStore.updateLastAssistantMessage(displayText, canvasResponse)
           aiStore.addHistory(content, canvasResponse)
-        } catch (e) {
-          displayText = `❌ 生成失败：${(e as Error).message}\n\n原始响应：\n${fullText.slice(0, 500)}...`
+        } catch (error: any) {
+          aiStore.updateLastAssistantMessage(`❌ 生成结果解析失败：${error?.message || '返回内容不是合法 JSON'}`, null)
+        } finally {
+          aiStore.setGenerating(false)
+          scrollToBottom()
         }
-
-        aiStore.updateLastAssistantMessage(displayText, canvasResponse)
-        aiStore.setGenerating(false)
-        scrollToBottom()
       },
-      (error) => {
-        aiStore.updateLastAssistantMessage(`❌ 生成失败：${error.message}`, null)
+      error => {
+        aiStore.updateLastAssistantMessage(`❌ 生成失败：${error?.message || '未知错误'}`, null)
         aiStore.setGenerating(false)
         scrollToBottom()
       },
       abortController.signal
     )
-  } else {
-    // 自由对话模式
-    const systemMsg = {
-      role: 'system' as const,
-      content: '你是 GoView 数据大屏平台的 AI 助手，可以回答关于数据可视化、大屏设计、ECharts 图表配置等问题。回答要简洁实用。'
-    }
-    const historyMessages = aiStore.getChatMessages
-      .filter(m => !m.streaming)
-      .slice(-10)
-      .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }))
-
-    await callLLMChat(
-      [systemMsg, ...historyMessages, { role: 'user', content }],
-      (chunk) => {
-        aiStore.appendStreamingText(chunk)
-        scrollToBottom()
-      },
-      (fullText) => {
-        if (!fullText) {
-          // 用户主动中止
-          aiStore.updateLastAssistantMessage('⏹️ 已停止生成', undefined)
-          return
-        }
-        aiStore.updateLastAssistantMessage(fullText, undefined)
-        aiStore.setGenerating(false)
-        scrollToBottom()
-      },
-      (error) => {
-        aiStore.updateLastAssistantMessage(`❌ 请求失败：${error.message}`, undefined)
-        aiStore.setGenerating(false)
-        scrollToBottom()
-      },
-      abortController.signal
-    )
+    return
   }
+
+  const activeSessionId = aiStore.currentSessionId || chatSessionIdRef.value
+  aiStore.setCurrentSessionId(activeSessionId)
+  chatSessionIdRef.value = activeSessionId
+
+  await aiChatStream(
+    {
+      content,
+      agentCode: undefined,
+      sessionId: activeSessionId,
+      projectName: chartEditStore.getEditCanvasConfig?.projectName,
+      canvasContext: buildCanvasContext(),
+      providerId: selectedProviderId.value,
+      modelName,
+      temperature: temperatureRef.value,
+      maxTokens: maxTokensRef.value || undefined
+    },
+    chunk => {
+      aiStore.appendStreamingText(chunk)
+      scrollToBottom()
+    },
+    fullText => {
+      if (!fullText) {
+        aiStore.updateLastAssistantMessage('⏹️ 已停止生成', undefined)
+      } else {
+        aiStore.updateLastAssistantMessage(fullText, undefined)
+      }
+      aiStore.setGenerating(false)
+      scrollToBottom()
+    },
+    error => {
+      aiStore.updateLastAssistantMessage(`❌ 请求失败：${error.message}`, undefined)
+      aiStore.setGenerating(false)
+      scrollToBottom()
+    },
+    abortController.signal
+  )
 }
 
-// 停止生成
 function handleStop() {
   aiStore.abortGenerating()
 }
 
-// 应用到画布
 async function applyToCanvas(response: AIGenerateResponse) {
   try {
     await applyAIToCanvas(response, true)
@@ -347,10 +603,17 @@ async function applyToCanvas(response: AIGenerateResponse) {
     window['$message'].error('应用失败：' + (error as Error).message)
   }
 }
+
+onMounted(async () => {
+  await loadProviders()
+  await loadSessionHistory()
+  if (!providerList.value.length) {
+    window['$message']?.warning('请先在左侧菜单的 AI 供应商 页面配置可用供应商')
+  }
+})
 </script>
 
 <style lang="scss" scoped>
-/* 与 ContentCharts 的 menu-width-box 使用相同的绝对高度 */
 $topHeight: 40px;
 
 .go-ai-chat-panel {
@@ -362,136 +625,211 @@ $topHeight: 40px;
 
   .messages-container {
     flex: 1;
-      overflow-y: auto;
-      padding: 12px 10px;
+    overflow-y: auto;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .empty-state {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 20px;
+      text-align: center;
 
-      &::-webkit-scrollbar { width: 4px; }
-      &::-webkit-scrollbar-thumb {
-        border-radius: 2px;
-        background: rgba(255, 255, 255, 0.15);
+      .empty-title {
+        font-size: 15px;
+        font-weight: 600;
+        @include fetch-theme('color');
+        margin-bottom: 6px;
       }
 
-      .empty-state {
+      .empty-desc {
+        font-size: 12px;
+        color: #888;
+        margin-bottom: 16px;
+        line-height: 1.5;
+      }
+
+      .quick-prompts {
         display: flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-        padding: 20px;
-        text-align: center;
+        gap: 6px;
+        width: 100%;
 
-        .empty-title {
-          font-size: 15px;
-          font-weight: 600;
-          @include fetch-theme('color');
-          margin-bottom: 6px;
-        }
-        .empty-desc {
+        .quick-btn {
+          text-align: left;
           font-size: 12px;
-          color: #888;
-          margin-bottom: 16px;
-          line-height: 1.5;
-        }
-        .quick-prompts {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          width: 100%;
-          .quick-btn { text-align: left; font-size: 12px; }
-        }
-      }
-
-      .message-item {
-        display: flex;
-        gap: 8px;
-        align-items: flex-start;
-
-        &.user { flex-direction: row-reverse; }
-
-        .avatar {
-          width: 26px;
-          height: 26px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          margin-top: 2px;
-
-          &.ai-avatar {
-            background: rgba(81, 214, 169, 0.15);
-            border: 1px solid rgba(81, 214, 169, 0.4);
-          }
-          &.user-avatar {
-            @include fetch-bg-color('background-color3');
-            border: 1px solid rgba(255,255,255,0.15);
-          }
-        }
-
-        .bubble-wrapper {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          max-width: calc(100% - 40px);
-
-          .bubble {
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            line-height: 1.6;
-            word-break: break-word;
-
-            &.assistant {
-              @include fetch-bg-color('background-color2');
-              border: 1px solid rgba(255,255,255,0.08);
-              @include fetch-theme('color');
-              border-bottom-left-radius: 2px;
-            }
-            &.user {
-              background: #51d6a9;
-              color: #1a1a2e;
-              border-bottom-right-radius: 2px;
-            }
-
-            .typing-cursor {
-              display: inline-block;
-              animation: blink 0.8s infinite;
-              font-weight: bold;
-              color: #51d6a9;
-            }
-            .thinking-dots {
-              display: flex;
-              gap: 4px;
-              align-items: center;
-              padding: 2px 0;
-              span {
-                width: 6px; height: 6px;
-                border-radius: 50%;
-                background: #51d6a9;
-                animation: bounce 1.2s infinite ease-in-out;
-                &:nth-child(2) { animation-delay: 0.2s; }
-                &:nth-child(3) { animation-delay: 0.4s; }
-              }
-            }
-          }
-          .msg-actions { display: flex; gap: 6px; }
         }
       }
     }
 
-  .style-row, .mode-row {
-    display: flex;
-    align-items: center;
-    padding: 6px 10px;
-    gap: 8px;
+    .message-item {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+
+      &.user {
+        flex-direction: row-reverse;
+      }
+
+      .avatar {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 2px;
+
+        &.ai-avatar {
+          background: rgba(81, 214, 169, 0.15);
+          border: 1px solid rgba(81, 214, 169, 0.4);
+        }
+
+        &.user-avatar {
+          @include fetch-bg-color('background-color3');
+          border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+      }
+
+      .bubble-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        max-width: calc(100% - 40px);
+
+        .bubble {
+          padding: 8px 12px;
+          border-radius: 8px;
+          font-size: 13px;
+          line-height: 1.6;
+          word-break: break-word;
+
+          &.assistant {
+            @include fetch-bg-color('background-color2');
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            @include fetch-theme('color');
+            border-bottom-left-radius: 2px;
+          }
+
+          &.user {
+            background: #51d6a9;
+            color: #1a1a2e;
+            border-bottom-right-radius: 2px;
+          }
+
+          .typing-cursor {
+            display: inline-block;
+            animation: blink 0.8s infinite;
+            font-weight: bold;
+            color: #51d6a9;
+          }
+
+          .thinking-dots {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            padding: 2px 0;
+
+            span {
+              width: 6px;
+              height: 6px;
+              border-radius: 50%;
+              background: #51d6a9;
+              animation: bounce 1.2s infinite ease-in-out;
+
+              &:nth-child(2) {
+                animation-delay: 0.2s;
+              }
+
+              &:nth-child(3) {
+                animation-delay: 0.4s;
+              }
+            }
+          }
+        }
+
+        .msg-actions {
+          display: flex;
+          gap: 6px;
+        }
+      }
+    }
+  }
+
+  .style-row,
+  .mode-row,
+  .config-grid,
+  .provider-tip {
     border-top: 1px solid;
     @include fetch-border-color('hover-border-color');
     @include fetch-bg-color('background-color2');
     flex-shrink: 0;
-    .style-label { font-size: 12px; color: #888; white-space: nowrap; }
+  }
+
+  .style-row,
+  .mode-row {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    gap: 8px;
+
+    .style-label {
+      font-size: 12px;
+      color: #888;
+      white-space: nowrap;
+    }
+  }
+
+  .config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+    padding: 8px 10px;
+
+    .config-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+
+      .style-label {
+        font-size: 12px;
+        color: #888;
+        white-space: nowrap;
+      }
+
+      :deep(.n-base-selection),
+      :deep(.n-input-number) {
+        flex: 1;
+        min-width: 0;
+      }
+    }
+
+    .config-provider,
+    .config-model {
+      grid-column: span 2;
+    }
+  }
+
+  .provider-tip {
+    padding: 0 10px 8px;
+    font-size: 12px;
+    color: #7f8c8d;
   }
 
   .input-area {
@@ -504,18 +842,38 @@ $topHeight: 40px;
       justify-content: space-between;
       align-items: center;
       margin-top: 6px;
-      .hint-text { font-size: 11px; color: #666; }
+
+      .hint-text {
+        font-size: 11px;
+        color: #666;
+      }
     }
   }
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
+
 @keyframes bounce {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
-  40% { transform: scale(1); opacity: 1; }
+  0%,
+  80%,
+  100% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 :deep(.code-block) {
@@ -528,6 +886,7 @@ $topHeight: 40px;
   white-space: pre-wrap;
   font-family: 'Consolas', 'Monaco', monospace;
 }
+
 :deep(.inline-code) {
   background: rgba(81, 214, 169, 0.2);
   color: #51d6a9;

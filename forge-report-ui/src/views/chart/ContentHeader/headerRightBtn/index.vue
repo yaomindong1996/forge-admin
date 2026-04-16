@@ -11,7 +11,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { renderIcon, goDialog, fetchPathByName, routerTurnByPath, setSessionStorage, getSessionStorage, setLocalStorage, getLocalStorage } from '@/utils'
+import { renderIcon, goDialog, fetchPathByName, routerTurnByPath, setSessionStorage, getSessionStorage } from '@/utils'
+import { captureProjectScreenshot } from '@/utils/capture'
 import { PreviewEnum } from '@/enums/pageEnum'
 import { StorageEnum } from '@/enums/storageEnum'
 import { useRoute } from 'vue-router'
@@ -19,6 +20,7 @@ import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore
 import { syncData } from '../../ContentEdit/components/EditTools/hooks/useSyncUpdate.hook'
 import { icon } from '@/plugins'
 import { cloneDeep } from 'lodash'
+import { buildProjectPayload, publishProjectApi, updateProjectApi } from '@/api/project'
 
 const { BrowsersOutlineIcon, SendIcon, AnalyticsIcon } = icon.ionicons5
 const chartEditStore = useChartEditStore()
@@ -56,61 +58,61 @@ const previewHandle = () => {
 }
 
 // 发布
-const sendHandle = () => {
+const sendHandle = async () => {
   const { id } = routerParamsInfo.params
   const previewId = typeof id === 'string' ? id : id[0]
   const storageInfo = chartEditStore.getStorageInfo()
 
-  // 1. 将数据保存到 localStorage（持久化，关闭浏览器后依然可访问）
-  const localList = getLocalStorage(StorageEnum.GO_CHART_STORAGE_LIST) || []
-  const localSession = getSessionStorage(StorageEnum.GO_CHART_STORAGE_LIST) || []
-
-  // 同时更新 localStorage 和 sessionStorage
-  const saveData = { id: previewId, ...storageInfo }
-
-  // 更新 localStorage
-  const localIdx = localList.findIndex((e: { id: string }) => e.id === previewId)
-  if (localIdx !== -1) {
-    localList.splice(localIdx, 1, saveData)
-  } else {
-    localList.push(saveData)
-  }
-  setLocalStorage(StorageEnum.GO_CHART_STORAGE_LIST, localList)
-
-  // 更新 sessionStorage
-  const sessionIdx = localSession.findIndex((e: { id: string }) => e.id === previewId)
-  if (sessionIdx !== -1) {
-    localSession.splice(sessionIdx, 1, saveData)
-  } else {
-    localSession.push(saveData)
-  }
-  setSessionStorage(StorageEnum.GO_CHART_STORAGE_LIST, localSession)
-
-  // 2. 生成可分享的预览链接
-  const previewPath = fetchPathByName(PreviewEnum.CHART_PREVIEW_NAME, 'href')
-  if (!previewPath) {
-    window['$message'].error('获取预览路径失败')
-    return
-  }
-  const previewUrl = `${window.location.origin}${previewPath}/${previewId}`
-
-  // 3. 复制链接到剪贴板
-  goDialog({
-    message: `发布成功！大屏将保存在本地浏览器中。\n\n预览链接：\n${previewUrl}`,
-    positiveText: '复制链接',
-    negativeText: '直接预览',
-    onPositiveCallback: () => {
-      navigator.clipboard.writeText(previewUrl).then(() => {
-        window['$message'].success('链接已复制到剪贴板')
-      }).catch(() => {
-        // 如果剪贴板 API 不可用，打开预览
-        routerTurnByPath(previewPath, [previewId], undefined, true)
-      })
-    },
-    onNegativeCallback: () => {
-      routerTurnByPath(previewPath, [previewId], undefined, true)
+  try {
+    window['$message'].loading('正在生成项目截图...')
+    console.log('[Publish] 开始发布, projectId:', previewId)
+    
+    // 尝试生成截图 - 使用正确的画布元素选择器
+    let indexImg: string | undefined = undefined
+    const canvasElement = document.querySelector('.go-edit-range')
+    console.log('[Screenshot] 画布元素:', canvasElement)
+    if (canvasElement) {
+      indexImg = await captureProjectScreenshot(previewId, canvasElement as HTMLElement)
+      console.log('[Screenshot] 截图结果:', indexImg)
+    } else {
+      console.warn('[Screenshot] 未找到画布元素 .go-edit-range')
     }
-  })
+
+    // 构建项目数据，包含截图
+    const projectPayload = buildProjectPayload(previewId, storageInfo, indexImg)
+    console.log('[Publish] 项目数据:', projectPayload)
+    
+    await updateProjectApi(projectPayload)
+
+    const previewPath = fetchPathByName(PreviewEnum.CHART_PREVIEW_NAME, 'href')
+    if (!previewPath) {
+      window['$message'].error('获取预览路径失败')
+      return
+    }
+    const previewUrl = `${window.location.origin}${previewPath}/${previewId}`
+    await publishProjectApi(previewId, previewUrl)
+
+    window['$message'].success('发布成功')
+
+    goDialog({
+      message: `发布成功！\n\n预览链接：\n${previewUrl}`,
+      positiveText: '复制链接',
+      negativeText: '直接预览',
+      onPositiveCallback: () => {
+        navigator.clipboard.writeText(previewUrl).then(() => {
+          window['$message'].success('链接已复制到剪贴板')
+        }).catch(() => {
+          routerTurnByPath(previewPath, [previewId], undefined, true)
+        })
+      },
+      onNegativeCallback: () => {
+        routerTurnByPath(previewPath, [previewId], undefined, true)
+      }
+    })
+  } catch (error: any) {
+    console.error('[Publish] 发布失败:', error)
+    window['$message'].error(error?.message || '发布失败')
+  }
 }
 
 const btnList = [

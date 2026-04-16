@@ -1,9 +1,19 @@
 import axios, { AxiosResponse, InternalAxiosRequestConfig, AxiosError } from 'axios'
 import { ResultEnum } from "@/enums/httpEnum"
-import { ErrorPageNameMap } from "@/enums/pageEnum"
-import { redirectErrorPage } from '@/utils'
 import { getLocalStorage } from '@/utils/storage'
 import { StorageEnum } from '@/enums/storageEnum'
+
+interface ApiResponse<T = any> {
+  code?: number
+  data?: T
+  msg?: string
+}
+
+interface RequestError extends Error {
+  code?: number
+  data?: any
+  response?: AxiosResponse
+}
 
 // 生成 UUID（防重放 Nonce）
 function generateUUID(): string {
@@ -21,6 +31,23 @@ const axiosInstance = axios.create({
   baseURL: import.meta.env.DEV ? import.meta.env.VITE_DEV_PATH : import.meta.env.VITE_PRO_PATH,
   timeout: ResultEnum.TIMEOUT,
 })
+
+const createRequestError = (response: AxiosResponse<ApiResponse>, fallbackMessage = '请求失败'): RequestError => {
+  const error = new Error(response.data?.msg || fallbackMessage) as RequestError
+  error.code = response.data?.code
+  error.data = response.data?.data
+  error.response = response
+  return error
+}
+
+const createAxiosRequestError = (error: AxiosError<ApiResponse>): RequestError => {
+  const response = error.response
+  const requestError = new Error(response?.data?.msg || error.message || '请求失败') as RequestError
+  requestError.code = response?.data?.code ?? response?.status
+  requestError.data = response?.data?.data
+  requestError.response = response
+  return requestError
+}
 
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -50,17 +77,15 @@ axiosInstance.interceptors.request.use(
 
 // 响应拦截器
 axiosInstance.interceptors.response.use(
-  (res: AxiosResponse) => {
-    const { code } = res.data as { code: number }
-    if (code === undefined || code === null) return Promise.resolve(res.data)
-    if (code === ResultEnum.DATA_SUCCESS) return Promise.resolve(res.data)
-    if (code === ResultEnum.SUCCESS) return Promise.resolve(res.data)
-    // 重定向
-    if (ErrorPageNameMap.get(code)) redirectErrorPage(code)
-    return Promise.resolve(res.data)
+  (res: AxiosResponse<ApiResponse>) => {
+    const { code } = res.data || {}
+    if (code === undefined || code === null) return res.data as any
+    if (code === ResultEnum.DATA_SUCCESS) return res.data as any
+    if (code === ResultEnum.SUCCESS) return res.data as any
+    throw createRequestError(res)
   },
-  (err: AxiosResponse) => {
-    return Promise.reject(err)
+  (err: AxiosError<ApiResponse>) => {
+    return Promise.reject(createAxiosRequestError(err))
   }
 )
 

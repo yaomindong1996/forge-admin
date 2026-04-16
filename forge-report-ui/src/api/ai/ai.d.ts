@@ -8,6 +8,20 @@ export interface AIGenerateRequest {
   canvasWidth?: number
   // 画布高度
   canvasHeight?: number
+  // 可用组件目录文本，供后端填充提示词模板
+  componentCatalog?: string
+  // 当前项目名称
+  projectName?: string
+  // 当前画布上下文，供 AI 在原有基础上增量修改
+  canvasContext?: string
+  // 指定供应商
+  providerId?: number | string
+  // 指定模型
+  modelName?: string
+  // 温度参数
+  temperature?: number
+  // 最大 token 数
+  maxTokens?: number
 }
 
 // AI 生成大屏 - 组件 Schema

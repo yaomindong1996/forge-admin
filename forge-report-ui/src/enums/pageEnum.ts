@@ -46,6 +46,10 @@ export enum PageEnum {
   BASE_HOME_TEMPLATE_MARKET = '/project/template-market',
   BASE_HOME_TEMPLATE_MARKET_NAME = 'Project-Template-Market',
 
+  // AI 供应商配置
+  BASE_HOME_AI_PROVIDER = '/project/ai-provider',
+  BASE_HOME_AI_PROVIDER_NAME = 'Project-AI-Provider',
+
   // 错误
   ERROR_PAGE_NAME_403 = 'ErrorPage403',
   ERROR_PAGE_NAME_404 = 'ErrorPage404',

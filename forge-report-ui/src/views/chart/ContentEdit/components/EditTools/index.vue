@@ -59,8 +59,6 @@
   </div>
   <!-- 系统设置 model -->
   <go-system-set v-model:modelShow="globalSettingModel"></go-system-set>
-  <!-- AI 生成对话框 -->
-  <AIGenerateDialog v-model:show="showAIDialog" mode="append" />
 </template>
 
 <script setup lang="ts">
@@ -85,9 +83,8 @@ import { useFile } from './hooks/useFile.hooks'
 import { useSyncUpdate } from './hooks/useSyncUpdate.hook'
 import { BtnListType, TypeEnum } from './index.d'
 import { icon } from '@/plugins'
-import { AIGenerateDialog } from '@/components/GoAI'
 
-const { DownloadIcon, ShareIcon, PawIcon, SettingsSharpIcon, CreateIcon, SparklesIcon } = icon.ionicons5
+const { DownloadIcon, ShareIcon, PawIcon, SettingsSharpIcon, CreateIcon } = icon.ionicons5
 const settingStore = useSettingStore()
 const chartEditStore = useChartEditStore()
 const routerParamsInfo = useRoute()
@@ -102,8 +99,6 @@ const globalSettingModel = ref(false)
 const isMini = ref<boolean>(true)
 // 控制 tootip 提示时机
 const asideTootipDis = ref(true)
-// AI 生成对话框
-const showAIDialog = ref(false)
 // 文件上传
 const { importUploadFileListRef, importCustomRequest, importBeforeUpload } = useFile()
 
@@ -183,15 +178,6 @@ const updateToSession = (id: string) => {
 
 // 配置列表
 const btnList: BtnListType[] = [
-  {
-    key: 'ai',
-    type: TypeEnum.BUTTON,
-    name: 'AI生成',
-    icon: SparklesIcon,
-    handle: () => {
-      showAIDialog.value = true
-    }
-  },
   {
     key: 'import',
     type: TypeEnum.IMPORTUPLOAD,
