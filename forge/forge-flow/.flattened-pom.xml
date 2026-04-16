@@ -8,10 +8,10 @@
     <version>1.0.0</version>
   </parent>
   <groupId>com.mdframe.forge</groupId>
-  <artifactId>forge-admin</artifactId>
+  <artifactId>forge-flow</artifactId>
   <version>1.0.0</version>
-  <name>forge-admin</name>
-  <description>forge-admin</description>
+  <name>forge-flow-service</name>
+  <description>Forge Flow 流程服务 - 基于 Flowable 的独立流程服务</description>
   <dependencies>
     <dependency>
       <groupId>com.mysql</groupId>
@@ -19,7 +19,21 @@
     </dependency>
     <dependency>
       <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-plugin-system</artifactId>
+      <artifactId>forge-plugin-flow</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-starter-security</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-starter-orm</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-starter-tenant</artifactId>
     </dependency>
     <dependency>
       <groupId>com.mdframe.forge</groupId>
@@ -31,43 +45,16 @@
     </dependency>
     <dependency>
       <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-starter-excel</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-starter-config</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-plugin-job</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.mdframe.forge</groupId>
       <artifactId>forge-starter-id</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-starter-crypto</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-plugin-message</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-plugin-generator</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-starter-api-config</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-flow-client</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-starter-social</artifactId>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
   <build>
@@ -84,18 +71,6 @@
             </goals>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>${maven-jar-plugin.version}</version>
-      </plugin>
-      <plugin>
-        <artifactId>maven-war-plugin</artifactId>
-        <version>${maven-war-plugin.version}</version>
-        <configuration>
-          <failOnMissingWebXml>false</failOnMissingWebXml>
-          <warName>${project.artifactId}</warName>
-        </configuration>
       </plugin>
     </plugins>
   </build>
