@@ -502,9 +502,8 @@ A:
 欢迎提交 Issue 和 Pull Request。
 
 ## 📮 联系作者
-
-![wechat](images/wechat.png)
+<img src="images/wechat.png" width="200">
+<img src="images/wechat1.png" width="200">
 
 ## 📄 许可证
-
 本项目基于 [MIT](LICENSE) 许可证开源。
