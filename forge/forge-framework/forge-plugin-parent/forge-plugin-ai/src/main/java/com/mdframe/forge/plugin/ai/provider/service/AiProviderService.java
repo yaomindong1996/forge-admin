@@ -3,10 +3,10 @@ package com.mdframe.forge.plugin.ai.provider.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.mdframe.forge.plugin.ai.constant.AiConstants;
 import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
 import com.mdframe.forge.plugin.ai.provider.mapper.AiProviderMapper;
-import com.mdframe.forge.plugin.ai.model.service.AiModelService;
-import lombok.RequiredArgsConstructor;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -23,18 +23,15 @@ import java.util.List;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider> {
-
-    private final AiModelService modelService;
 
     /**
      * 获取默认供应商
      */
     public AiProvider getDefaultProvider() {
         return getOne(new LambdaQueryWrapper<AiProvider>()
-                .eq(AiProvider::getIsDefault, "1")
-                .eq(AiProvider::getStatus, "0")
+                .eq(AiProvider::getIsDefault, AiConstants.IS_DEFAULT_YES)
+                .eq(AiProvider::getStatus, AiConstants.STATUS_NORMAL)
                 .last("LIMIT 1"));
     }
 
@@ -46,10 +43,10 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
      */
     public boolean testConnection(AiProvider provider) {
         if (!StringUtils.hasText(provider.getApiKey())) {
-            throw new RuntimeException("API Key 不能为空");
+            throw new BusinessException("API Key 不能为空");
         }
         if (!StringUtils.hasText(provider.getBaseUrl())) {
-            throw new RuntimeException("Base URL 不能为空");
+            throw new BusinessException("Base URL 不能为空");
         }
         try {
             OpenAiApi openAiApi = OpenAiApi.builder()
@@ -71,20 +68,16 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
             return true;
         } catch (Exception e) {
             log.warn("[AI供应商测试] 连接失败, provider={}, error={}", provider.getProviderName(), e.getMessage());
-            throw new RuntimeException("连接失败: " + e.getMessage());
+            throw new BusinessException("连接失败: " + e.getMessage());
         }
     }
 
     /**
-     * 删除供应商（校验是否有关联模型）
+     * 删除供应商
      *
      * @param id 供应商ID
      */
     public void deleteProvider(Long id) {
-        long modelCount = modelService.countByProviderId(id);
-        if (modelCount > 0) {
-            throw new RuntimeException("该供应商下存在 " + modelCount + " 个关联模型，请先删除关联模型");
-        }
         removeById(id);
         log.info("[AI供应商] 删除供应商, id={}", id);
     }
@@ -98,11 +91,11 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
     public void setDefault(Long id) {
         // 清除全部默认
         update(new LambdaUpdateWrapper<AiProvider>()
-                .set(AiProvider::getIsDefault, "0")
-                .eq(AiProvider::getIsDefault, "1"));
+                .set(AiProvider::getIsDefault, AiConstants.IS_DEFAULT_NO)
+                .eq(AiProvider::getIsDefault, AiConstants.IS_DEFAULT_YES));
         // 设置当前为默认
         update(new LambdaUpdateWrapper<AiProvider>()
-                .set(AiProvider::getIsDefault, "1")
+                .set(AiProvider::getIsDefault, AiConstants.IS_DEFAULT_YES)
                 .eq(AiProvider::getId, id));
         log.info("[AI供应商] 设为默认供应商, id={}", id);
     }

@@ -1,12 +1,17 @@
 package com.mdframe.forge.plugin.ai.provider.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
-import com.mdframe.forge.plugin.ai.provider.service.AiProviderService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mdframe.forge.plugin.ai.constant.AiConstants;
 import com.mdframe.forge.plugin.ai.model.domain.AiModel;
 import com.mdframe.forge.plugin.ai.model.service.AiModelService;
+import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
+import com.mdframe.forge.plugin.ai.provider.service.AiProviderService;
 import com.mdframe.forge.starter.core.domain.RespInfo;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +29,7 @@ public class AiProviderController {
 
     private final AiProviderService providerService;
     private final AiModelService modelService;
+    private final ObjectMapper objectMapper;
 
     /**
      * 内置供应商预设模板列表（纯代码查表，不查数据库）
@@ -59,8 +65,8 @@ public class AiProviderController {
             @RequestParam(defaultValue = "10") Integer pageSize) {
         Page<AiProvider> page = providerService.page(new Page<>(pageNum, pageSize),
                 new LambdaQueryWrapper<AiProvider>().orderByDesc(AiProvider::getCreateTime));
-        // 聚合填充 models 和 defaultModel
-        page.getRecords().forEach(this::fillModelsFromAiModel);
+        // 聚合填充 models 和 defaultModel，脱敏 apiKey
+        page.getRecords().forEach(this::fillAndMaskProvider);
         return RespInfo.success(page);
     }
 
@@ -71,7 +77,7 @@ public class AiProviderController {
     public RespInfo<AiProvider> getById(@PathVariable Long id) {
         AiProvider provider = providerService.getById(id);
         if (provider != null) {
-            fillModelsFromAiModel(provider);
+            fillAndMaskProvider(provider);
         }
         return RespInfo.success(provider);
     }
@@ -91,14 +97,20 @@ public class AiProviderController {
     @PutMapping
     public RespInfo<Void> update(@RequestBody AiProvider provider) {
         providerService.updateById(provider);
+        // 双写同步：更新供应商后重新聚合 models
+        syncModelsToProvider(provider.getId());
         return RespInfo.success();
     }
 
     /**
-     * 删除供应商
+     * 删除供应商（校验关联模型）
      */
     @DeleteMapping("/{id}")
     public RespInfo<Void> delete(@PathVariable Long id) {
+        long modelCount = modelService.countByProviderId(id);
+        if (modelCount > 0) {
+            throw new BusinessException("该供应商下存在 " + modelCount + " 个关联模型，请先删除关联模型");
+        }
         providerService.deleteProvider(id);
         return RespInfo.success();
     }
@@ -127,6 +139,14 @@ public class AiProviderController {
     }
 
     /**
+     * 聚合填充 models/defaultModel 并脱敏 apiKey
+     */
+    private void fillAndMaskProvider(AiProvider provider) {
+        fillModelsFromAiModel(provider);
+        maskApiKey(provider);
+    }
+
+    /**
      * 从 ai_model 表聚合填充供应商的 models 和 defaultModel 字段
      * 确保旧接口响应格式兼容
      */
@@ -137,11 +157,47 @@ public class AiProviderController {
                 .collect(Collectors.toList());
         provider.setModels(modelIdList.isEmpty() ? "[]" : toJsonArray(modelIdList));
         String defaultModel = models.stream()
-                .filter(m -> "1".equals(m.getIsDefault()))
+                .filter(m -> AiConstants.IS_DEFAULT_YES.equals(m.getIsDefault()))
                 .map(AiModel::getModelId)
                 .findFirst()
                 .orElse(provider.getDefaultModel());
         provider.setDefaultModel(defaultModel);
+    }
+
+    /**
+     * API Key 脱敏：保留前4后4位，中间用 **** 替代
+     */
+    private void maskApiKey(AiProvider provider) {
+        String apiKey = provider.getApiKey();
+        if (apiKey != null && apiKey.length() > 8) {
+            provider.setApiKey(apiKey.substring(0, 4) + "****" + apiKey.substring(apiKey.length() - 4));
+        } else if (apiKey != null && !apiKey.isEmpty()) {
+            provider.setApiKey("****");
+        }
+    }
+
+    /**
+     * 双写同步：将 ai_model 表数据聚合回写至 ai_provider.models 和 ai_provider.default_model
+     */
+    private void syncModelsToProvider(Long providerId) {
+        List<String> modelIdList = modelService.getModelIdListByProviderId(providerId);
+        String defaultModel = modelService.getDefaultModelId(providerId);
+
+        String modelsJson;
+        try {
+            modelsJson = objectMapper.writeValueAsString(modelIdList);
+        } catch (JsonProcessingException e) {
+            log.error("[AI模型同步] JSON序列化失败, providerId={}", providerId, e);
+            modelsJson = "[]";
+        }
+
+        providerService.update(new LambdaUpdateWrapper<AiProvider>()
+                .set(AiProvider::getModels, modelsJson)
+                .set(AiProvider::getDefaultModel, defaultModel)
+                .eq(AiProvider::getId, providerId));
+
+        log.info("[AI模型同步] 已同步, providerId={}, modelCount={}, defaultModel={}",
+                providerId, modelIdList.size(), defaultModel);
     }
 
     private String toJsonArray(List<String> list) {
