@@ -8,7 +8,7 @@
     <version>1.0.0</version>
   </parent>
   <groupId>com.mdframe.forge</groupId>
-  <artifactId>forge-report</artifactId>
+  <artifactId>forge-report-server</artifactId>
   <version>1.0.0</version>
   <name>forge-report</name>
   <description>forge-report 数据可视化大屏后端服务</description>

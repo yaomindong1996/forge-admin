@@ -2,7 +2,7 @@
   <div
     class="go-border-box"
     :style="`
-      box-shadow: inset 0 0 40px ${colors[0]};
+      box-shadow: inset 0 0 40px ${colors[0]}; 
       border: 1px solid ${colors[1]};
       background-color: ${backgroundColor};
     `"

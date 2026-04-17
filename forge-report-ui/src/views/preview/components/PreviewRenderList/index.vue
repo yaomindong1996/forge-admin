@@ -31,7 +31,7 @@
       :chartConfig="item"
       :themeSetting="themeSetting"
       :themeColor="themeColor"
-      :style="{
+      :style="{ 
         ...getSizeStyle(item.attr),
         ...getFilterStyle(item.styles)
       }"

@@ -97,7 +97,7 @@ export interface EditCanvasConfigType {
   // 图表主题颜色
   [EditCanvasConfigEnum.CHART_THEME_COLOR]: ChartColorsNameType
   // 自定义图表主题颜色
-  [EditCanvasConfigEnum.CHART_CUSTOM_THEME_COLOR_INFO]?: CustomColorsType[]
+  [EditCanvasConfigEnum.CHART_CUSTOM_THEME_COLOR_INFO]?: CustomColorsType[] 
   // 图表全局配置
   [EditCanvasConfigEnum.CHART_THEME_SETTING]: GlobalThemeJsonType
   // 图表主题颜色

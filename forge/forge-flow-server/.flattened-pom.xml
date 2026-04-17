@@ -8,7 +8,7 @@
     <version>1.0.0</version>
   </parent>
   <groupId>com.mdframe.forge</groupId>
-  <artifactId>forge-flow</artifactId>
+  <artifactId>forge-flow-server</artifactId>
   <version>1.0.0</version>
   <name>forge-flow-service</name>
   <description>Forge Flow 流程服务 - 基于 Flowable 的独立流程服务</description>

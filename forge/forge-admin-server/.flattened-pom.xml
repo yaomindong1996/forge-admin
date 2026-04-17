@@ -8,7 +8,7 @@
     <version>1.0.0</version>
   </parent>
   <groupId>com.mdframe.forge</groupId>
-  <artifactId>forge-admin</artifactId>
+  <artifactId>forge-admin-server</artifactId>
   <version>1.0.0</version>
   <name>forge-admin</name>
   <description>forge-admin</description>

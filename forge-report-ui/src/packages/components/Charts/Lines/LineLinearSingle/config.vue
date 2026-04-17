@@ -58,7 +58,7 @@
           v-model:value="item.lineStyle.shadowColor"
       ></n-color-picker>
       </SettingItem>
-
+      
     </SettingItemBox>
     <SettingItemBox name="设置">
      <SettingItem name="阴影">

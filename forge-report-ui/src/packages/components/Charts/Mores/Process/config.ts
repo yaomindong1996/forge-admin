@@ -40,7 +40,7 @@ export const option = {
   // 主颜色
   color: '#4992FFFF',
   // 轨道颜色
-  railColor: '#3e3e3f',
+  railColor: '#3e3e3f', 
   // 指标
   unit: '%',
   // 指标大小

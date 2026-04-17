@@ -30,7 +30,7 @@ const option = {
         }
       },
       axisLabel: { // 文字样式
-        color: '#eee',
+        color: '#eee', 
         fontSize: 14,
       },
       axisTick: {
@@ -62,7 +62,7 @@ const option = {
             [1, '#1369E380']
           ],
         }
-      },
+      }, 
       axisLabel: {
         show:false,
       },

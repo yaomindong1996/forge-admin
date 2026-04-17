@@ -14,7 +14,7 @@
         </template>
       </layout-header-pro>
       <n-layout-content content-style="overflow:hidden; display: flex">
-        <div style="overflow:hidden; display: flex; flex: 1">
+        <div style="overflow:hidden; display: flex">
           <content-charts></content-charts>
           <content-layers></content-layers>
         </div>
@@ -50,8 +50,6 @@ const chartEditStore = useChartEditStore()
 
 // 记录初始化
 chartHistoryStoreStore.canvasInit(chartEditStore.getEditCanvas)
-// 注意：项目数据加载已移至 ContentEdit/hooks/useLayout.hook.ts 中
-// 在 DOM 就绪（editLayoutDom 已绑定）之后再加载，确保 computedScale 能正确执行
 
 const HeaderLeftBtn = loadAsyncComponent(() => import('./ContentHeader/headerLeftBtn/index.vue'))
 const HeaderRightBtn = loadAsyncComponent(() => import('./ContentHeader/headerRightBtn/index.vue'))

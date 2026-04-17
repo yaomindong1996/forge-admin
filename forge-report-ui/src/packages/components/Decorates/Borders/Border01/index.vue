@@ -12,7 +12,7 @@
     </svg>
 
     <svg
-      :width="w"
+      :width="w" 
       :height="h"
       :key="item"
       v-for="item in borders"

@@ -9,10 +9,10 @@
   <name>forge</name>
   <description>forge</description>
   <modules>
-    <module>forge-admin</module>
+    <module>forge-admin-server</module>
     <module>forge-framework</module>
-    <module>forge-flow</module>
-    <module>forge-report</module>
+    <module>forge-flow-server</module>
+    <module>forge-report-server</module>
   </modules>
   <properties>
     <spring-boot-admin.version>3.2.3</spring-boot-admin.version>

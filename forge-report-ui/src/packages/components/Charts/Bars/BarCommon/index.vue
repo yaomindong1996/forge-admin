@@ -63,7 +63,7 @@ watch(
         const seriesArr = []
         // 对oldData进行判断，防止传入错误数据之后对旧维度判断产生干扰
         // 此处计算的是dimensions的Y轴维度，若是dimensions.length为0或1，则默认为1，排除X轴维度干扰
-        const oldDimensions = Array.isArray(oldData?.dimensions)&&oldData.dimensions.length >= 1 ? oldData.dimensions.length : 1;
+        const oldDimensions = Array.isArray(oldData?.dimensions)&&oldData.dimensions.length >= 1 ? oldData.dimensions.length : 1; 
         const newDimensions = newData.dimensions.length >= 1 ? newData.dimensions.length : 1;
         const dimensionsGap = newDimensions - oldDimensions;
         if (dimensionsGap < 0) {

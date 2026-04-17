@@ -1,5 +1,5 @@
 <template>
-  <!-- Echarts 全局设置 -->
+  <!-- Echarts 全局设置 --> 
   <global-setting :optionData="optionData"></global-setting>
   <CollapseItem v-for="(item, index) in seriesList" :key="index" :name="`柱状图-${index+1}`" :expanded="true">
     <SettingItemBox name="图形">

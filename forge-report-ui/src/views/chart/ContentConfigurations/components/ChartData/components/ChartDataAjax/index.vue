@@ -75,7 +75,7 @@
 
     <!-- 骨架图 -->
     <go-skeleton :load="loading" :repeat="3"></go-skeleton>
-
+    
     <!-- 请求配置model -->
     <chart-data-request
       v-model:modelShow="requestShow"

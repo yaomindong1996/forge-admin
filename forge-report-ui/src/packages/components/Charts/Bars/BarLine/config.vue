@@ -26,7 +26,7 @@
           }"
         />
       </SettingItem>
-
+ 
     </SettingItemBox>
     <SettingItemBox name="图形" v-if="item.type == 'bar'">
       <SettingItem name="宽度">
