@@ -18,7 +18,7 @@
             :disabled="item.disabled"
             v-for="item in typeList"
             :key="item.key"
-            @click="btnHandle"
+            @click="btnHandle(item.key)"
           >
             <component :is="item.title"></component>
             <template #icon>
@@ -39,6 +39,8 @@ import { ref, watch, shallowRef } from 'vue'
 import { icon } from '@/plugins'
 import { PageEnum, ChartEnum } from '@/enums/pageEnum'
 import { fetchPathByName, routerTurnByPath, renderLang, getUUID } from '@/utils'
+import { createProjectApi } from '@/api/project'
+import router from '@/router'
 
 const { FishIcon, CloseIcon } = icon.ionicons5
 const { StoreIcon, ObjectStorageIcon } = icon.carbon
@@ -80,11 +82,27 @@ const closeHandle = () => {
 }
 
 // 处理按钮点击
-const btnHandle = (key: string) => {
+const btnHandle = async (_key: string) => {
   closeHandle()
-  const id = getUUID()
-  const path = fetchPathByName(ChartEnum.CHART_HOME_NAME, 'href')
-  routerTurnByPath(path, [id], undefined, true)
+  try {
+    const res = await createProjectApi({
+      projectName: '新项目',
+      canvasWidth: 1920,
+      canvasHeight: 1080,
+      backgroundColor: '',
+      componentData: JSON.stringify({
+        editCanvasConfig: { projectName: '新项目', width: 1920, height: 1080 },
+        requestGlobalConfig: {},
+        componentList: []
+      }),
+      status: '0'
+    })
+    const id = res?.data?.id || getUUID()
+    const path = fetchPathByName(ChartEnum.CHART_HOME_NAME, 'href')
+    routerTurnByPath(path, [String(id)], undefined, true)
+  } catch (error: any) {
+    window.$message.error(error?.message || '创建项目失败')
+  }
 }
 </script>
 <style lang="scss" scoped>
