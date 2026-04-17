@@ -50,7 +50,8 @@
 >
 > **项目文档**：http://81.70.22.48:8084/forge-docs/
 >
-> **项目源码**：https://gitee.com/ForgeLab/forge-admin
+> **项目源码**：gitee: https://gitee.com/ForgeLab/forge-admin
+> **项目源码**：github: https://github.com/yaomindong1996/forge-admin
 
 ---
 
