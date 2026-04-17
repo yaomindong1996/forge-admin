@@ -21,7 +21,7 @@
 <script setup lang="ts">
 import { PropType } from 'vue'
 import { VChartGlobalSetting, Axis, Label, Bar } from '@/components/Pages/VChartItemSetting'
-import { vChartGlobalThemeJsonType } from '@/settings/vchartThemes'
+import { vChartGlobalThemeJsonType } from '@/settings/vchartThemes/index'
 import { CollapseItem, SettingItemBox } from '@/components/Pages/ChartItemSetting'
 
 defineProps({

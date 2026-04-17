@@ -1,5 +1,5 @@
 import { ConfigType, PackagesCategoryEnum, ChartFrameEnum } from '@/packages/index.d'
-import { ChatCategoryEnum, ChatCategoryEnumName } from '../../index'
+import { ChatCategoryEnum, ChatCategoryEnumName } from '../../index.d'
 
 export const RadarConfig: ConfigType = {
   key: 'Radar',

@@ -42,10 +42,10 @@ import { useRemoveKeyboard } from '../../hooks/useKeyboard.hook'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 
 import { useChartHistoryStore } from '@/store/modules/chartHistoryStore/chartHistoryStore'
-import { HistoryStackEnum } from '@/store/modules/chartHistoryStore/chartHistoryStore'
+import { HistoryStackEnum } from '@/store/modules/chartHistoryStore/chartHistoryStore.d'
 
 import { useChartLayoutStore } from '@/store/modules/chartLayoutStore/chartLayoutStore'
-import { ChartLayoutStoreEnum } from '@/store/modules/chartLayoutStore/chartLayoutStore'
+import { ChartLayoutStoreEnum } from '@/store/modules/chartLayoutStore/chartLayoutStore.d'
 
 const { LayersIcon, BarChartIcon, PrismIcon, HomeIcon, ArrowBackIcon, ArrowForwardIcon } = icon.ionicons5
 const { setItem } = useChartLayoutStore()

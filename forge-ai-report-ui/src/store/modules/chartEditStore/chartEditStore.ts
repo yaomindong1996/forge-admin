@@ -4,7 +4,7 @@ import { CreateComponentType, CreateComponentGroupType } from '@/packages/index.
 import { PublicGroupConfigClass } from '@/packages/public/publicConfig'
 import debounce from 'lodash/debounce'
 import cloneDeep from 'lodash/cloneDeep'
-import { defaultTheme, globalThemeJson } from '@/settings/chartThemes'
+import { defaultTheme, globalThemeJson } from '@/settings/chartThemes/index'
 import { requestInterval, previewScaleType, requestIntervalUnit } from '@/settings/designSetting'
 // 记录记录
 import { useChartHistoryStore } from '@/store/modules/chartHistoryStore/chartHistoryStore'

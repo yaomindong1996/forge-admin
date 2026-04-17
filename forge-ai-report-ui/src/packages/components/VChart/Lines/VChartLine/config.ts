@@ -1,11 +1,11 @@
 import { PublicConfigClass } from '@/packages/public'
 import { VChartLineConfig } from './index'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { vChartOptionPrefixHandle } from '@/packages/public/vChart'
 import data from './data.json'
 import cloneDeep from 'lodash/cloneDeep'
 import axisThemeJson from '@/settings/vchartThemes/axis.theme.json'
-import { ChatCategoryEnum, ILineOption } from '../../index'
+import { ChatCategoryEnum, ILineOption } from '../../index.d'
 
 export const includes = ['legends', 'tooltip', 'label', 'line', 'point']
 export const option: ILineOption & { dataset?: any } = {

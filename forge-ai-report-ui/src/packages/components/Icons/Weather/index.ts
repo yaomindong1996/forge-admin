@@ -1,6 +1,6 @@
 import { IconConfig } from '../Default/Icon/index'
-import { PackagesCategoryEnum } from '@/packages'
-import { ChatCategoryEnum, ChatCategoryEnumName } from '../index'
+import { PackagesCategoryEnum } from '@/packages/index.d'
+import { ChatCategoryEnum, ChatCategoryEnumName } from '../index.d'
 
 const iconNames = [
   'wi:cloud',

@@ -1,7 +1,7 @@
 import { echartOptionProfixHandle, PublicConfigClass } from '@/packages/public'
 import { LineLinearSingleConfig } from './index'
-import { CreateComponentType } from '@/packages'
-import { defaultTheme, chartColorsSearch } from '@/settings/chartThemes'
+import { CreateComponentType } from '@/packages/index.d'
+import { defaultTheme, chartColorsSearch } from '@/settings/chartThemes/index'
 import cloneDeep from 'lodash/cloneDeep'
 import dataJson from './data.json'
 

@@ -5,7 +5,7 @@
 <script setup lang="ts">
 import { ref, PropType, toRefs, watch } from 'vue'
 import AMapLoader from '@amap/amap-jsapi-loader'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { useChartDataFetch } from '@/hooks'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { MarkerEnum, ThemeEnum } from './config'

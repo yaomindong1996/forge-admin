@@ -1,10 +1,10 @@
 import { PublicConfigClass } from '@/packages/public'
 import { VChartFunnelConfig } from './index'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { vChartOptionPrefixHandle } from '@/packages/public/vChart'
 import data from './data.json'
 import cloneDeep from 'lodash/cloneDeep'
-import { IFunnelOption } from '../../index'
+import { IFunnelOption } from '../../index.d'
 
 export const includes = ['legends', 'tooltip']
 export const option: IFunnelOption & { dataset?: any } = {

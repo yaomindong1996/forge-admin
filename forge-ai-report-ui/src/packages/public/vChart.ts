@@ -1,6 +1,6 @@
 import merge from 'lodash/merge'
 import pick from 'lodash/pick'
-import { vChartGlobalThemeJson } from '@/settings/vchartThemes'
+import { vChartGlobalThemeJson } from '@/settings/vchartThemes/index'
 
 /**
  * * 合并 color 和全局配置项

@@ -1,10 +1,10 @@
 import { PublicConfigClass } from '@/packages/public'
 import { VChartPieConfig } from './index'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { vChartOptionPrefixHandle } from '@/packages/public/vChart'
 import data from './data.json'
 import cloneDeep from 'lodash/cloneDeep'
-import type { ChatCategoryEnum, IPieOption } from '../../index'
+import type { ChatCategoryEnum, IPieOption } from '../../index.d'
 
 const OUTER_RADIUS = 0.75
 

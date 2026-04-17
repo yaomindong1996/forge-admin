@@ -43,13 +43,13 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { MonacoEditor } from '@/components/Pages/MonacoEditor/index'
+import { MonacoEditor } from '@/components/Pages/MonacoEditor'
 import { SavePageEnum } from '@/enums/editPageEnum'
 import { getSessionStorageInfo } from '../preview/utils'
 import { setSessionStorage, JSONStringify, JSONParse, setTitle, goDialog } from '@/utils'
 import { StorageEnum } from '@/enums/storageEnum'
 import { icon } from '@/plugins'
-import type { ChartEditStorageType } from '../preview'
+import type { ChartEditStorageType } from '../preview/index.d'
 
 const { ChevronBackOutlineIcon, DownloadIcon, AnalyticsIcon } = icon.ionicons5
 const showOpenFilePicker: Function = (window as any).showOpenFilePicker

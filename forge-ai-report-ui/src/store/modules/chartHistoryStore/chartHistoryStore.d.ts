@@ -1,5 +1,5 @@
-import { CreateComponentType, CreateComponentGroupType } from '@/packages'
-import { EditCanvasType } from '@/store/modules/chartEditStore/chartEditStore'
+import { CreateComponentType, CreateComponentGroupType } from '@/packages/index.d'
+import { EditCanvasType } from '@/store/modules/chartEditStore/chartEditStore.d'
 
 // 操作类型枚举
 

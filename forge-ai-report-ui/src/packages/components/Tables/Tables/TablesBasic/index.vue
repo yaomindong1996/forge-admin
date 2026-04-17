@@ -34,7 +34,7 @@
 
 <script setup lang="ts">
 import { computed, PropType, toRefs, watch, reactive, ref } from 'vue'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { icon } from '@/plugins'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { useChartDataFetch } from '@/hooks'

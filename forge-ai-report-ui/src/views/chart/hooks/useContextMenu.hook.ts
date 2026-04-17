@@ -1,9 +1,9 @@
 import { ref, nextTick, toRaw } from 'vue'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
-import { CreateComponentType, CreateComponentGroupType } from '@/packages'
+import { CreateComponentType, CreateComponentGroupType } from '@/packages/index.d'
 import { renderIcon, loadingError } from '@/utils'
 import { icon } from '@/plugins'
-import { MenuOptionsItemType } from './useContextMenu.hook'
+import { MenuOptionsItemType } from './useContextMenu.hook.d'
 import { MenuEnum } from '@/enums/editPageEnum'
 import cloneDeep from 'lodash/cloneDeep'
 

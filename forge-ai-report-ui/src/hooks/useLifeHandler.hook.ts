@@ -1,4 +1,4 @@
-import { CreateComponentType, CreateComponentGroupType } from '@/packages'
+import { CreateComponentType, CreateComponentGroupType } from '@/packages/index.d'
 import { EventLife } from '@/enums/eventEnum'
 import * as echarts from 'echarts'
 

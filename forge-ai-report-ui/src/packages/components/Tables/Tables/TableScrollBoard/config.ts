@@ -1,5 +1,5 @@
 import { PublicConfigClass } from '@/packages/public'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { TableScrollBoardConfig } from './index'
 import cloneDeep from 'lodash/cloneDeep'
 import dataJson from './data.json'

@@ -28,14 +28,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { PreviewRenderList } from './components/PreviewRenderList/index'
+import { PreviewRenderList } from './components/PreviewRenderList'
 import { getFilterStyle, setTitle } from '@/utils'
 import { getEditCanvasConfigStyle, getSessionStorageInfo, keyRecordHandle, dragCanvas } from './utils'
 import { useComInstall } from './hooks/useComInstall.hook'
 import { useScale } from './hooks/useScale.hook'
 import { useStore } from './hooks/useStore.hook'
 import { PreviewScaleEnum } from '@/enums/styleEnum'
-import type { ChartEditStorageType } from './index'
+import type { ChartEditStorageType } from './index.d'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { useInitVChartsTheme } from '@/hooks'
 

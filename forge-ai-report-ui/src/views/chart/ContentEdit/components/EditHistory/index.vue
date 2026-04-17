@@ -39,14 +39,14 @@ import { ref, computed } from 'vue'
 import { icon } from '@/plugins'
 import { useChartHistoryStore } from '@/store/modules/chartHistoryStore/chartHistoryStore'
 import { historyActionTypeName } from '@/store/modules/chartHistoryStore/chartHistoryDefine'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { editHistoryMax } from '@/settings/designSetting'
 import reverse from 'lodash/reverse'
 import {
   HistoryItemType,
   HistoryTargetTypeEnum,
   HistoryActionTypeEnum
-} from '@/store/modules/chartHistoryStore/chartHistoryStore'
+} from '@/store/modules/chartHistoryStore/chartHistoryStore.d'
 
 const {
   DesktopOutlineIcon,

@@ -1,8 +1,8 @@
 import { toRaw, watch, computed, ComputedRef } from 'vue'
 import { customizeHttp } from '@/api/http'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
-import { RequestGlobalConfigType, RequestDataPondItemType } from '@/store/modules/chartEditStore/chartEditStore'
+import { RequestGlobalConfigType, RequestDataPondItemType } from '@/store/modules/chartEditStore/chartEditStore.d'
 import { newFunctionHandle, intervalUnitHandle } from '@/utils'
 
 // 获取类型

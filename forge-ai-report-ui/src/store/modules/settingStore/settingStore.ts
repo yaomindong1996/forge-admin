@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { systemSetting } from '@/settings/systemSetting'
 import { asideCollapsedWidth } from '@/settings/designSetting'
-import { SettingStoreType, ToolsStatusEnum } from './settingStore'
+import { SettingStoreType, ToolsStatusEnum } from './settingStore.d'
 import { setLocalStorage, getLocalStorage } from '@/utils'
 import { StorageEnum } from '@/enums/storageEnum'
 const { GO_SYSTEM_SETTING_STORE } = StorageEnum

@@ -281,7 +281,7 @@
 <script setup lang="ts">
 import { PropType, computed } from 'vue'
 import { CollapseItem, SettingItemBox, SettingItem } from '@/components/Pages/ChartItemSetting'
-import { GlobalThemeJsonType } from '@/settings/chartThemes'
+import { GlobalThemeJsonType } from '@/settings/chartThemes/index'
 import { GlobalSetting } from '@/components/Pages/ChartItemSetting'
 import { ref } from 'vue'
 import mapChinaJson from './mapGeojson/china.json'

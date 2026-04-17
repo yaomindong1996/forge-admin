@@ -5,7 +5,7 @@
 <script setup lang="ts">
 import { PropType } from 'vue'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
-import { GoVChart } from '@/components/GoVChart/index'
+import { GoVChart } from '@/components/GoVChart'
 import { useChartDataFetch } from '@/hooks'
 import config from './config'
 

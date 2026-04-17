@@ -36,7 +36,7 @@ import { listen } from 'dom-helpers'
 import { useDesignStore } from '@/store/modules/designStore/designStore'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { useChartLayoutStore } from '@/store/modules/chartLayoutStore/chartLayoutStore'
-import { ChartLayoutStoreEnum } from '@/store/modules/chartLayoutStore/chartLayoutStore'
+import { ChartLayoutStoreEnum } from '@/store/modules/chartLayoutStore/chartLayoutStore.d'
 import throttle from 'lodash/throttle'
 
 const chartEditStore = useChartEditStore()
@@ -164,7 +164,7 @@ const dragCanvas = (e: any) => {
 const canvasBox = () => {
   const layoutDom = document.getElementById('go-chart-edit-layout')
   if (layoutDom) {
-    // 此处减去滚动条的宽度和高度
+    // 此处减去滚动条的宽度和高度 
     const scrollW = 20
     return {
       height: layoutDom.clientHeight - scrollW,

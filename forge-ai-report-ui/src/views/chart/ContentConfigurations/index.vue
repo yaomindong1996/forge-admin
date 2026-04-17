@@ -66,9 +66,9 @@ import { ref, toRefs, watch, computed } from 'vue'
 import { icon } from '@/plugins'
 import { loadAsyncComponent } from '@/utils'
 import { ContentBox } from '../ContentBox/index'
-import { TabsEnum } from './index'
+import { TabsEnum } from './index.d'
 import { useChartLayoutStore } from '@/store/modules/chartLayoutStore/chartLayoutStore'
-import { ChartLayoutStoreEnum } from '@/store/modules/chartLayoutStore/chartLayoutStore'
+import { ChartLayoutStoreEnum } from '@/store/modules/chartLayoutStore/chartLayoutStore.d'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 
 const { getDetails } = toRefs(useChartLayoutStore())

@@ -1,5 +1,5 @@
 import { echartOptionProfixHandle, PublicConfigClass } from '@/packages/public'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { WaterPoloConfig } from './index'
 import cloneDeep from 'lodash/cloneDeep'
 

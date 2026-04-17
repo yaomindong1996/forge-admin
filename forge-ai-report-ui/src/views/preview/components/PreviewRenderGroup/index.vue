@@ -37,7 +37,7 @@
 
 <script setup lang="ts">
 import { PropType } from 'vue'
-import { CreateComponentGroupType } from '@/packages'
+import { CreateComponentGroupType } from '@/packages/index.d'
 import { animationsClass, getFilterStyle, getTransformStyle, getBlendModeStyle } from '@/utils'
 import { getSizeStyle, getComponentAttrStyle, getStatusStyle, getPreviewConfigStyle } from '../../utils'
 import { useLifeHandler } from '@/hooks'

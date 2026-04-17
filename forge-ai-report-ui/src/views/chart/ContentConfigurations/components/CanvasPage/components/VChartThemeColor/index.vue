@@ -46,7 +46,7 @@
 import { ref, computed } from 'vue'
 import { useVCharts } from '@/hooks'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
-import { EditCanvasConfigEnum } from '@/store/modules/chartEditStore/chartEditStore'
+import { EditCanvasConfigEnum } from '@/store/modules/chartEditStore/chartEditStore.d'
 import { useDesignStore } from '@/store/modules/designStore/designStore'
 
 const chartEditStore = useChartEditStore()

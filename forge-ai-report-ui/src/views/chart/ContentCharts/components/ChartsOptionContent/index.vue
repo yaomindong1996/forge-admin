@@ -20,11 +20,11 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, reactive } from 'vue'
-import { ConfigType } from '@/packages'
+import { ConfigType } from '@/packages/index.d'
 import { useSettingStore } from '@/store/modules/settingStore/settingStore'
 import { loadAsyncComponent } from '@/utils'
 import { usePackagesStore } from '@/store/modules/packagesStore/packagesStore'
-import { PackagesCategoryEnum } from '@/packages'
+import { PackagesCategoryEnum } from '@/packages/index.d'
 
 const ChartsItemBox = loadAsyncComponent(() => import('../ChartsItemBox/index.vue'))
 const packagesStore = usePackagesStore()

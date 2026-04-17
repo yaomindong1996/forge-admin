@@ -100,7 +100,7 @@
 
 <script setup lang="ts">
 import { PropType, toRefs } from 'vue'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { getUUID, alpha } from '@/utils'
 
 const props = defineProps({

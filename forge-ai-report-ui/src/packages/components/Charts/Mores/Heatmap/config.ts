@@ -1,6 +1,6 @@
 import { echartOptionProfixHandle, PublicConfigClass } from '@/packages/public'
 import { HeatmapConfig } from './index'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { cloneDeep } from 'lodash'
 import dataJson from './data.json'
 

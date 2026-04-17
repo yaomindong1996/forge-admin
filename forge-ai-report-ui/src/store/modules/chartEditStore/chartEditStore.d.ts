@@ -1,5 +1,5 @@
-import { CreateComponentType, CreateComponentGroupType, FilterEnum } from '@/packages'
-import { HistoryActionTypeEnum } from '@/store/modules/chartHistoryStore/chartHistoryStore'
+import { CreateComponentType, CreateComponentGroupType, FilterEnum } from '@/packages/index.d'
+import { HistoryActionTypeEnum } from '@/store/modules/chartHistoryStore/chartHistoryStore.d'
 import {
   RequestHttpEnum,
   RequestContentTypeEnum,
@@ -10,7 +10,7 @@ import {
   RequestParamsObjType
 } from '@/enums/httpEnum'
 import { PreviewScaleEnum } from '@/enums/styleEnum'
-import type { ChartColorsNameType, CustomColorsType, GlobalThemeJsonType } from '@/settings/chartThemes'
+import type { ChartColorsNameType, CustomColorsType, GlobalThemeJsonType } from '@/settings/chartThemes/index'
 
 // 编辑画布属性
 export enum EditCanvasTypeEnum {
@@ -97,7 +97,7 @@ export interface EditCanvasConfigType {
   // 图表主题颜色
   [EditCanvasConfigEnum.CHART_THEME_COLOR]: ChartColorsNameType
   // 自定义图表主题颜色
-  [EditCanvasConfigEnum.CHART_CUSTOM_THEME_COLOR_INFO]?: CustomColorsType[]
+  [EditCanvasConfigEnum.CHART_CUSTOM_THEME_COLOR_INFO]?: CustomColorsType[] 
   // 图表全局配置
   [EditCanvasConfigEnum.CHART_THEME_SETTING]: GlobalThemeJsonType
   // 图表主题颜色

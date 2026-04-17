@@ -19,7 +19,7 @@
 <script setup lang="ts">
 import { PropType, toRefs, shallowReactive, watch, ref } from 'vue'
 import { useChartDataFetch } from '@/hooks'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { option as configOption } from './config'
 

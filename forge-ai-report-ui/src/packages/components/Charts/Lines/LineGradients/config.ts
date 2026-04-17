@@ -1,8 +1,8 @@
 import { echartOptionProfixHandle, PublicConfigClass } from '@/packages/public'
 import { LineGradientsConfig } from './index'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { graphic } from 'echarts/core'
-import { defaultTheme, chartColorsSearch } from '@/settings/chartThemes'
+import { defaultTheme, chartColorsSearch } from '@/settings/chartThemes/index'
 import cloneDeep from 'lodash/cloneDeep'
 import dataJson from './data.json'
 

@@ -24,8 +24,8 @@
 </template>
 
 <script setup lang="ts">
-import { ProjectLayoutSider } from './layout/components/ProjectLayoutSider/index'
-import { LayoutHeaderPro } from '@/layout/components/LayoutHeaderPro/index'
+import { ProjectLayoutSider } from './layout/components/ProjectLayoutSider'
+import { LayoutHeaderPro } from '@/layout/components/LayoutHeaderPro'
 import { LayoutTransitionMain } from '@/layout/components/LayoutTransitionMain/index'
 </script>
 

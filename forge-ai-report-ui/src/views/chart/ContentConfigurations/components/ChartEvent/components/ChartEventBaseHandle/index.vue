@@ -125,7 +125,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, toRefs, toRaw } from 'vue'
-import { MonacoEditor } from '@/components/Pages/MonacoEditor/index'
+import { MonacoEditor } from '@/components/Pages/MonacoEditor'
 import { useTargetData } from '../../../hooks/useTargetData.hook'
 import { BaseEvent } from '@/enums/eventEnum'
 import { icon } from '@/plugins'
@@ -211,5 +211,5 @@ watch(
 </script>
 
 <style lang="scss" scoped>
-@import '../index';
+@import '../index.scss';
 </style>

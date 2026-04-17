@@ -1,6 +1,6 @@
 import image from '@/assets/images/chart/charts/pie-circle.png'
 import { ConfigType, PackagesCategoryEnum, ChartFrameEnum } from '@/packages/index.d'
-import { ChatCategoryEnum, ChatCategoryEnumName } from '../../index'
+import { ChatCategoryEnum, ChatCategoryEnumName } from '../../index.d'
 
 export const PieCircleConfig: ConfigType = {
   key: 'PieCircle',

@@ -1,7 +1,7 @@
 <template>
   <div class="go-error">
     <div class="text-center">
-      <img src="../../assets/images/exception/500.svg" alt="" />
+      <img src="~@/assets/images/exception/500.svg" alt="" />
     </div>
     <div class="text-center">
       <h1 class="text-base text-gray-500">抱歉，服务器出错了</h1>

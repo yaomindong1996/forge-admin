@@ -159,12 +159,12 @@
 
 <script lang="ts" setup>
 import { ref, computed, watch, toRefs, toRaw } from 'vue'
-import { MonacoEditor } from '@/components/Pages/MonacoEditor/index'
+import { MonacoEditor } from '@/components/Pages/MonacoEditor'
 import { useTargetData } from '../../../hooks/useTargetData.hook'
 import { templateList } from './importTemplate'
 import { npmPkgs } from '@/hooks'
 import { icon } from '@/plugins'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { EventLife } from '@/enums/eventEnum'
 
 const { targetData, chartEditStore } = useTargetData()
@@ -249,5 +249,5 @@ watch(
 </script>
 
 <style lang="scss" scoped>
-@import '../index';
+@import '../index.scss';
 </style>

@@ -73,8 +73,8 @@ import { ref, toRefs, computed } from 'vue'
 import { useDesignStore } from '@/store/modules/designStore/designStore'
 import { SettingItemBox, SettingItem } from '@/components/Pages/ChartItemSetting'
 import { useTargetData } from '@/views/chart/ContentConfigurations/components/hooks/useTargetData.hook'
-import { selectTypeOptions, selectTimeOptions } from '@/views/chart/ContentConfigurations/components/ChartData'
-import { RequestGlobalHeaderTable } from '../RequestGlobalHeaderTable/index'
+import { selectTypeOptions, selectTimeOptions } from '@/views/chart/ContentConfigurations/components/ChartData/index.d'
+import { RequestGlobalHeaderTable } from '../RequestGlobalHeaderTable'
 import { icon } from '@/plugins'
 
 const { PencilIcon, ChevronDownOutlineIcon, ChevronUpOutlineIcon } = icon.ionicons5

@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { getSessionStorageInfo } from './utils'
-import type { ChartEditStorageType } from './index'
+import type { ChartEditStorageType } from './index.d'
 import { SavePageEnum } from '@/enums/editPageEnum'
 import { setSessionStorage } from '@/utils'
 import { StorageEnum } from '@/enums/storageEnum'

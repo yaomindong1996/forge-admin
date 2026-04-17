@@ -60,9 +60,9 @@ import { EditHistory } from '../EditHistory/index'
 import EditShortcutKey from '../EditShortcutKey/index.vue'
 import { useDesignStore } from '@/store/modules/designStore/designStore'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
-import { EditCanvasTypeEnum } from '@/store/modules/chartEditStore/chartEditStore'
+import { EditCanvasTypeEnum } from '@/store/modules/chartEditStore/chartEditStore.d'
 import { useChartLayoutStore } from '@/store/modules/chartLayoutStore/chartLayoutStore'
-import { ChartLayoutStoreEnum } from '@/store/modules/chartLayoutStore/chartLayoutStore'
+import { ChartLayoutStoreEnum } from '@/store/modules/chartLayoutStore/chartLayoutStore.d'
 
 const { LockClosedOutlineIcon, LockOpenOutlineIcon } = icon.ionicons5
 

@@ -87,11 +87,11 @@
 
 <script setup lang="ts">
 import { ref, toRefs, PropType } from 'vue'
-import { MonacoEditor } from '@/components/Pages/MonacoEditor/index'
+import { MonacoEditor } from '@/components/Pages/MonacoEditor'
 import { RequestHeaderTable } from '../RequestHeaderTable/index'
 import { SettingItemBox, SettingItem } from '@/components/Pages/ChartItemSetting'
 import { useTargetData } from '@/views/chart/ContentConfigurations/components/hooks/useTargetData.hook'
-import { RequestConfigType } from '@/store/modules/chartEditStore/chartEditStore'
+import { RequestConfigType } from '@/store/modules/chartEditStore/chartEditStore.d'
 import {
   RequestParamsTypeEnum,
   RequestContentTypeEnum,

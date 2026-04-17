@@ -11,16 +11,18 @@
             @resize="resizeHandle"
          ></mac-os-control-btn>
         </div>
-<!-- 中间 -->
+        <!-- 中间 -->
         <div class="list-content-img" @click="resizeHandle">
           <n-image
             object-fit="contain"
             height="180"
             preview-disabled
-            :src="imageSrc"
+            :src="
+              requireUrl('project/moke-20211219181327.png')
+            "
             :alt="cardData.title"
             :fallback-src="requireErrorImg()"
-          ></n-image>
+         ></n-image>
         </div>
       </div>
       <template #action>
@@ -82,14 +84,12 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, computed, PropType, watch, onUnmounted } from 'vue'
-import { renderIcon, renderLang, requireErrorImg, fetchPathByName, routerTurnByPath, getLocalStorage } from '@/utils'
+import { reactive, ref, PropType } from 'vue'
+import { renderIcon, renderLang,  requireErrorImg } from '@/utils'
 import { icon } from '@/plugins'
-import { MacOsControlBtn } from '@/components/Tips/MacOsControlBtn/index'
-import { Chartype } from '../../index'
-import { PreviewEnum } from '@/enums/pageEnum'
-import { StorageEnum } from '@/enums/storageEnum'
-import { publishProjectApi } from '@/api/project'
+import { MacOsControlBtn } from '@/components/Tips/MacOsControlBtn'
+import { Chartype } from '../../index.d'
+import { log } from 'console'
 const {
   EllipsisHorizontalCircleSharpIcon,
   CopyIcon,
@@ -101,7 +101,7 @@ const {
   SendIcon
 } = icon.ionicons5
 
-const emit = defineEmits(['delete', 'resize', 'edit', 'refresh'])
+const emit = defineEmits(['delete', 'resize', 'edit'])
 
 const props = defineProps({
   cardData: Object as PropType<Chartype>
@@ -111,69 +111,6 @@ const props = defineProps({
 const requireUrl = (name: string) => {
   return new URL(`../../../../../assets/images/${name}`, import.meta.url).href
 }
-
-// 图片src（支持认证）
-const imageSrc = ref('')
-let currentBlobUrl: string | null = null
-
-// 判断是否需要认证的图片URL
-const needsAuth = (url: string) => {
-  if (!url) return false
-  if (url.startsWith('data:') || url.startsWith('blob:')) return false
-  if (url.startsWith('http://') || url.startsWith('https://')) return false
-  return url.includes('/api/file/')
-}
-
-// 加载带认证的图片
-const loadAuthImage = async (url: string) => {
-  if (currentBlobUrl) {
-    URL.revokeObjectURL(currentBlobUrl)
-    currentBlobUrl = null
-  }
-
-  if (!url) {
-    imageSrc.value = requireUrl('project/moke-20211219181327.png')
-    return
-  }
-
-  if (!needsAuth(url)) {
-    imageSrc.value = url
-    return
-  }
-
-  try {
-    const token = getLocalStorage(StorageEnum.GO_ACCESS_TOKEN_STORE)
-    const response = await fetch(url, {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : ''
-      }
-    })
-
-    if (response.ok) {
-      const blob = await response.blob()
-      currentBlobUrl = URL.createObjectURL(blob)
-      imageSrc.value = currentBlobUrl
-    } else {
-      console.warn('[AuthImage] 图片加载失败', url, response.status)
-      imageSrc.value = requireUrl('project/moke-20211219181327.png')
-    }
-  } catch (error) {
-    console.warn('[AuthImage] 图片加载异常', error)
-    imageSrc.value = requireUrl('project/moke-20211219181327.png')
-  }
-}
-
-// 监听 cardData 变化，加载图片
-watch(() => props.cardData?.indexImg, (newUrl) => {
-  loadAuthImage(newUrl)
-}, { immediate: true })
-
-// 组件卸载时清理 blob URL
-onUnmounted(() => {
-  if (currentBlobUrl) {
-    URL.revokeObjectURL(currentBlobUrl)
-  }
-})
 
 const fnBtnList = reactive([
   {
@@ -196,7 +133,7 @@ const selectOptions = ref([
   },
   {
     label: props.cardData?.release
-      ? '重新发布'
+      ? renderLang('global.r_unpublish')
       : renderLang('global.r_publish'),
     key: 'send',
     icon: renderIcon(SendIcon)
@@ -208,7 +145,7 @@ const selectOptions = ref([
   }
 ])
 
-const handleSelect = async (key: string) => {
+const handleSelect = (key: string) => {
   switch (key) {
     case 'delete':
       deleteHanlde()
@@ -216,33 +153,6 @@ const handleSelect = async (key: string) => {
     case 'edit':
       editHandle()
       break
-    case 'preview':
-      previewHandle()
-      break
-    case 'send':
-      await publishHandle()
-      break
-  }
-}
-
-// 预览处理
-const previewHandle = () => {
-  const path = fetchPathByName(PreviewEnum.CHART_PREVIEW_NAME, 'href')
-  if (!path) return
-  routerTurnByPath(path, [String(props.cardData?.id)], undefined, true)
-}
-
-// 发布处理
-const publishHandle = async () => {
-  try {
-    const path = fetchPathByName(PreviewEnum.CHART_PREVIEW_NAME, 'href')
-    if (!path || !props.cardData?.id) return
-    const previewUrl = `${window.location.origin}${path}/${props.cardData.id}`
-    await publishProjectApi(props.cardData.id, previewUrl)
-    window.$message.success(props.cardData.release ? '重新发布成功' : '发布成功')
-    emit('refresh')
-  } catch (error: any) {
-    window.$message.error(error?.message || '发布失败')
   }
 }
 

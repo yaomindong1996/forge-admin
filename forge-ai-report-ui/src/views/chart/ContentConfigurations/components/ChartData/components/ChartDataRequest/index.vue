@@ -41,9 +41,9 @@
 import { ref, toRefs, PropType, watch } from 'vue'
 import { RequestContentTypeEnum } from '@/enums/httpEnum'
 import { useTargetData } from '../../../hooks/useTargetData.hook'
-import { RequestGlobalConfig } from './components/RequestGlobalConfig/index'
-import { RequestTargetConfig } from './components/RequestTargetConfig/index'
-import { CreateComponentType, CreateComponentGroupType } from '@/packages'
+import { RequestGlobalConfig } from './components/RequestGlobalConfig'
+import { RequestTargetConfig } from './components/RequestTargetConfig'
+import { CreateComponentType, CreateComponentGroupType } from '@/packages/index.d'
 
 const props = defineProps({
   modelShow: Boolean,

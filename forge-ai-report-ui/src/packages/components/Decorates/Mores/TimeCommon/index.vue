@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { PropType, toRefs, ref, reactive, watch, onMounted, onUnmounted } from 'vue'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { useChartDataFetch } from '@/hooks'
 

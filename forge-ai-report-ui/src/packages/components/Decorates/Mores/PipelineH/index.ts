@@ -1,5 +1,5 @@
-import { ConfigType, PackagesCategoryEnum } from '@/packages'
-import { ChatCategoryEnum, ChatCategoryEnumName } from '../../index'
+import { ConfigType, PackagesCategoryEnum } from '@/packages/index.d'
+import { ChatCategoryEnum, ChatCategoryEnumName } from '../../index.d'
 
 export const PipelineHConfig: ConfigType = {
   key: 'PipelineH',

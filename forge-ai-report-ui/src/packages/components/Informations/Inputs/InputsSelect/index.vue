@@ -9,7 +9,7 @@
 
 <script setup lang="ts">
 import { PropType, toRefs, ref, shallowReactive, watch } from 'vue'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { useChartInteract } from '@/hooks'
 import { InteractEventOn } from '@/enums/eventEnum'

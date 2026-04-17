@@ -1,9 +1,9 @@
 import { PublicConfigClass } from '@/packages/public'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { FlipperNumberConfig } from './index'
 import cloneDeep from 'lodash/cloneDeep'
 import { chartInitConfig } from '@/settings/designSetting'
-import { FlipType } from '@/components/Pages/Flipper/index'
+import { FlipType } from '@/components/Pages/Flipper'
 
 export interface OptionType {
   dataset: number | string

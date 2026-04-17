@@ -35,7 +35,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { animations } from '@/settings/animations'
+import { animations } from '@/settings/animations/index'
 import { CollapseItem } from '@/components/Pages/ChartItemSetting'
 import { useDesignStore } from '@/store/modules/designStore/designStore'
 import { useTargetData } from '../hooks/useTargetData.hook'

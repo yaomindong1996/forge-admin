@@ -1,7 +1,7 @@
 // 公共类型声明
-import { ConfigType, PackagesCategoryEnum } from '@/packages'
+import { ConfigType, PackagesCategoryEnum } from '@/packages/index.d'
 // 当前[信息模块]分类声明
-import { ChatCategoryEnum,ChatCategoryEnumName } from '../../index'
+import { ChatCategoryEnum,ChatCategoryEnumName } from '../../index.d'
 
 export const ProcessConfig: ConfigType = {
   // 唯一key

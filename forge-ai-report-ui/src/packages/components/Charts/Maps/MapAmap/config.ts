@@ -1,5 +1,5 @@
 import { PublicConfigClass } from '@/packages/public'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { MapAmapConfig } from './index'
 import { chartInitConfig } from '@/settings/designSetting'
 import cloneDeep from 'lodash/cloneDeep'

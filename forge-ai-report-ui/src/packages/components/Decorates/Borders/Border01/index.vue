@@ -12,7 +12,7 @@
     </svg>
 
     <svg
-      :width="w"
+      :width="w" 
       :height="h"
       :key="item"
       v-for="item in borders"
@@ -60,7 +60,7 @@
 
 <script setup lang="ts">
 import { PropType, toRefs } from 'vue'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 
 const props = defineProps({
   chartConfig: {

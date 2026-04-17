@@ -51,9 +51,9 @@
 import { PropType, ref, watch } from 'vue'
 import { RequestContentTypeEnum } from '@/enums/httpEnum'
 import { useTargetData } from '../../../hooks/useTargetData.hook'
-import { RequestGlobalConfig } from './components/RequestGlobalConfig/index'
-import { RequestTargetConfig } from './components/RequestTargetConfig/index'
-import { RequestDataPondItemType } from '@/store/modules/chartEditStore/chartEditStore'
+import { RequestGlobalConfig } from './components/RequestGlobalConfig'
+import { RequestTargetConfig } from './components/RequestTargetConfig'
+import { RequestDataPondItemType } from '@/store/modules/chartEditStore/chartEditStore.d'
 import { goDialog } from '@/utils'
 
 const props = defineProps({

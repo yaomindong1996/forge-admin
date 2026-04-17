@@ -1,6 +1,6 @@
 import { toRefs } from 'vue'
 import { isPreview } from '@/utils'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 
 // 获取类型

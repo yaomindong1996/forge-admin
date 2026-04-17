@@ -65,7 +65,7 @@
 import { toRefs, computed } from 'vue'
 import { useTargetData } from '@/views/chart/ContentConfigurations/components/hooks/useTargetData.hook'
 import { useDesignStore } from '@/store/modules/designStore/designStore'
-import { RequestDataPondItemType } from '@/store/modules/chartEditStore/chartEditStore'
+import { RequestDataPondItemType } from '@/store/modules/chartEditStore/chartEditStore.d'
 import { icon } from '@/plugins'
 
 const emit = defineEmits(['createPond', 'deletePond'])

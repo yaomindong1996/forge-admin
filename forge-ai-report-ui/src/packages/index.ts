@@ -5,7 +5,7 @@ import { InformationList } from '@/packages/components/Informations/index'
 import { TableList } from '@/packages/components/Tables/index'
 import { PhotoList } from '@/packages/components/Photos/index'
 import { IconList } from '@/packages/components/Icons/index'
-import { PackagesCategoryEnum, PackagesType, ConfigType, FetchComFlagType } from '@/packages/index'
+import { PackagesCategoryEnum, PackagesType, ConfigType, FetchComFlagType } from '@/packages/index.d'
 
 const configModules: Record<string, { default: string }> = import.meta.glob('./components/**/config.vue', {
   eager: true

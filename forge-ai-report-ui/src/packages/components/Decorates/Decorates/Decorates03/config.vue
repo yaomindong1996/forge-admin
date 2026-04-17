@@ -56,7 +56,7 @@ import {
   SettingItemBox,
   SettingItem,
 } from '@/components/Pages/ChartItemSetting'
-import { GlobalThemeJsonType } from '@/settings/chartThemes'
+import { GlobalThemeJsonType } from '@/settings/chartThemes/index'
 import { option } from './config'
 
 const props = defineProps({

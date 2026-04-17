@@ -6,8 +6,8 @@
 
 <script setup lang="ts">
 import { PropType } from 'vue'
-import { CreateComponentType } from '@/packages'
-import { ChartDataMatchingAndShow } from '../ChartDataMatchingAndShow/index'
+import { CreateComponentType } from '@/packages/index.d'
+import { ChartDataMatchingAndShow } from '../ChartDataMatchingAndShow'
 </script>
 
 <style lang="scss" scoped>

@@ -2,9 +2,9 @@ import { ref, watch, computed } from 'vue'
 import { icon } from '@/plugins'
 import { renderLang, renderIcon } from '@/utils'
 import { themeColor, setItem, getCharts } from './useLayout.hook'
-import { PackagesCategoryEnum, PackagesCategoryName, ConfigType } from '@/packages'
+import { PackagesCategoryEnum, PackagesCategoryName, ConfigType } from '@/packages/index.d'
 import { usePackagesStore } from '@/store/modules/packagesStore/packagesStore'
-import { ChartLayoutStoreEnum } from '@/store/modules/chartLayoutStore/chartLayoutStore'
+import { ChartLayoutStoreEnum } from '@/store/modules/chartLayoutStore/chartLayoutStore.d'
 // 图标
 const { AirPlaneOutlineIcon, ImageIcon, BarChartIcon } = icon.ionicons5
 const { TableSplitIcon, RoadmapIcon, ChartPieIcon, SpellCheckIcon, GraphicalDataFlowIcon } = icon.carbon

@@ -1,5 +1,5 @@
-import { ConfigType, PackagesCategoryEnum, ChartFrameEnum } from '@/packages'
-import { ChatCategoryEnum, ChatCategoryEnumName } from '../../index'
+import { ConfigType, PackagesCategoryEnum, ChartFrameEnum } from '@/packages/index.d'
+import { ChatCategoryEnum, ChatCategoryEnumName } from '../../index.d'
 
 export const Border08Config: ConfigType = {
   key: 'Border08',

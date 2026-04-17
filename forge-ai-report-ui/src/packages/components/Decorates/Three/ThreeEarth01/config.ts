@@ -1,5 +1,5 @@
 import { PublicConfigClass } from '@/packages/public'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { chartInitConfig } from '@/settings/designSetting'
 import { ThreeEarth01Config } from './index'
 import dataJson from './data.json'

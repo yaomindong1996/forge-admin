@@ -1,7 +1,7 @@
 import { ref, toRefs, toRaw, watch } from 'vue'
 import type VChart from 'vue-echarts'
 import { customizeHttp } from '@/api/http'
-import { useChartDataPondFetch } from '@/hooks/index'
+import { useChartDataPondFetch } from '@/hooks/'
 import { CreateComponentType, ChartFrameEnum } from '@/packages/index.d'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { RequestDataTypeEnum } from '@/enums/httpEnum'

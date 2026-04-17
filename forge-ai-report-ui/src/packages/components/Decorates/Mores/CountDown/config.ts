@@ -1,9 +1,9 @@
 import { PublicConfigClass } from '@/packages/public'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { CountDownConfig } from './index'
 import cloneDeep from 'lodash/cloneDeep'
 import { chartInitConfig } from '@/settings/designSetting'
-import { FlipType } from '@/components/Pages/Flipper/index'
+import { FlipType } from '@/components/Pages/Flipper'
 
 type STYLE = '时分秒' | '冒号'
 

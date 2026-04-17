@@ -1,6 +1,6 @@
 import { echartOptionProfixHandle, PublicConfigClass } from '@/packages/public'
 import { TreeMapConfig } from './index'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import cloneDeep from 'lodash/cloneDeep'
 import dataJson from './data.json'
 

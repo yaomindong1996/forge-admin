@@ -64,9 +64,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useSettingStore } from '@/store/modules/settingStore/settingStore'
-import { ToolsStatusEnum } from '@/store/modules/settingStore/settingStore'
+import { ToolsStatusEnum } from '@/store/modules/settingStore/settingStore.d'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
-import { EditCanvasTypeEnum } from '@/store/modules/chartEditStore/chartEditStore'
+import { EditCanvasTypeEnum } from '@/store/modules/chartEditStore/chartEditStore.d'
 import {
   fetchRouteParamsLocation,
   fetchPathByName,
@@ -81,7 +81,7 @@ import { GoSystemSet } from '@/components/GoSystemSet/index'
 import { exportHandle } from './utils'
 import { useFile } from './hooks/useFile.hooks'
 import { useSyncUpdate } from './hooks/useSyncUpdate.hook'
-import { BtnListType, TypeEnum } from './index'
+import { BtnListType, TypeEnum } from './index.d'
 import { icon } from '@/plugins'
 
 const { DownloadIcon, ShareIcon, PawIcon, SettingsSharpIcon, CreateIcon } = icon.ionicons5

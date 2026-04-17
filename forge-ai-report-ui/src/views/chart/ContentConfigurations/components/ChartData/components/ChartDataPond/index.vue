@@ -63,10 +63,10 @@ import { ref, toRefs, toRaw, onBeforeUnmount, computed, watchEffect } from 'vue'
 import { icon } from '@/plugins'
 import { http, customizeHttp } from '@/api/http'
 import { SettingItemBox, SettingItem } from '@/components/Pages/ChartItemSetting'
-import { ChartDataPondControl } from './components/ChartDataPondControl/index'
+import { ChartDataPondControl } from './components/ChartDataPondControl'
 import { useDesignStore } from '@/store/modules/designStore/designStore'
 import { useTargetData } from '../../../hooks/useTargetData.hook'
-import { ChartDataMatchingAndShow } from '../ChartDataMatchingAndShow/index'
+import { ChartDataMatchingAndShow } from '../ChartDataMatchingAndShow'
 import { newFunctionHandle } from '@/utils'
 
 const designStore = useDesignStore()

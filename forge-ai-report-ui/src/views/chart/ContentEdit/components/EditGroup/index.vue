@@ -53,15 +53,15 @@
 <script setup lang="ts">
 import { computed, PropType } from 'vue'
 import { MenuEnum } from '@/enums/editPageEnum'
-import { chartColors } from '@/settings/chartThemes'
-import { CreateComponentType, CreateComponentGroupType } from '@/packages'
-import { MenuOptionsItemType } from '@/views/chart/hooks/useContextMenu.hook'
+import { chartColors } from '@/settings/chartThemes/index'
+import { CreateComponentType, CreateComponentGroupType } from '@/packages/index.d'
+import { MenuOptionsItemType } from '@/views/chart/hooks/useContextMenu.hook.d'
 import { animationsClass, getFilterStyle, getTransformStyle, getBlendModeStyle, colorCustomMerge } from '@/utils'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { useContextMenu, divider } from '@/views/chart/hooks/useContextMenu.hook'
 import { useMouseHandle } from '../../hooks/useDrag.hook'
 import { useComponentStyle, useSizeStyle } from '../../hooks/useStyle.hook'
-import { EditShapeBox } from '../EditShapeBox/index'
+import { EditShapeBox } from '../../components/EditShapeBox'
 
 const props = defineProps({
   groupData: {

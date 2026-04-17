@@ -16,7 +16,7 @@
 import { PropType, shallowReactive, watch, toRefs } from 'vue'
 import { requireErrorImg } from '@/utils'
 import { useChartDataFetch } from '@/hooks'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 
 const props = defineProps({

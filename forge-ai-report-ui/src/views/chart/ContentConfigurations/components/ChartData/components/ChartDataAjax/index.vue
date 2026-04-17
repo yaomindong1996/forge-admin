@@ -75,7 +75,7 @@
 
     <!-- 骨架图 -->
     <go-skeleton :load="loading" :repeat="3"></go-skeleton>
-
+    
     <!-- 请求配置model -->
     <chart-data-request
       v-model:modelShow="requestShow"
@@ -94,8 +94,8 @@ import { ChartDataRequest } from '../ChartDataRequest/index'
 import { RequestHttpEnum, ResultEnum, SelectHttpTimeNameObj, RequestContentTypeEnum } from '@/enums/httpEnum'
 import { chartDataUrl, rankListUrl, scrollBoardUrl, numberFloatUrl, numberIntUrl, textUrl, imageUrl } from '@/api/mock'
 import { http, customizeHttp } from '@/api/http'
-import { SelectHttpType } from '../../index'
-import { ChartDataMatchingAndShow } from '../ChartDataMatchingAndShow/index'
+import { SelectHttpType } from '../../index.d'
+import { ChartDataMatchingAndShow } from '../ChartDataMatchingAndShow'
 import { useTargetData } from '../../../hooks/useTargetData.hook'
 import { newFunctionHandle } from '@/utils'
 

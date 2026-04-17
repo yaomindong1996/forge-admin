@@ -84,12 +84,12 @@
 
 <script lang="ts" setup>
 import { onMounted, computed, provide, watch } from 'vue'
-import { chartColors } from '@/settings/chartThemes'
+import { chartColors } from '@/settings/chartThemes/index'
 import { MenuEnum } from '@/enums/editPageEnum'
-import { CreateComponentType, CreateComponentGroupType } from '@/packages'
+import { CreateComponentType, CreateComponentGroupType } from '@/packages/index.d'
 import { animationsClass, getFilterStyle, getTransformStyle, getBlendModeStyle, colorCustomMerge } from '@/utils'
 import { useContextMenu } from '@/views/chart/hooks/useContextMenu.hook'
-import { MenuOptionsItemType } from '@/views/chart/hooks/useContextMenu.hook'
+import { MenuOptionsItemType } from '@/views/chart/hooks/useContextMenu.hook.d'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { SCALE_KEY } from '@/views/preview/hooks/useScale.hook'
 import { useLayout } from './hooks/useLayout.hook'
@@ -99,12 +99,12 @@ import { useComponentStyle, useSizeStyle } from './hooks/useStyle.hook'
 import { useInitVChartsTheme } from '@/hooks'
 
 import { ContentBox } from '../ContentBox/index'
-import { EditGroup } from './components/EditGroup/index'
-import { EditRange } from './components/EditRange/index'
-import { EditRule } from './components/EditRule/index'
-import { EditBottom } from './components/EditBottom/index'
-import { EditShapeBox } from './components/EditShapeBox/index'
-import { EditTools } from './components/EditTools/index'
+import { EditGroup } from './components/EditGroup'
+import { EditRange } from './components/EditRange'
+import { EditRule } from './components/EditRule'
+import { EditBottom } from './components/EditBottom'
+import { EditShapeBox } from './components/EditShapeBox'
+import { EditTools } from './components/EditTools'
 
 const chartEditStore = useChartEditStore()
 const { handleContextMenu } = useContextMenu()

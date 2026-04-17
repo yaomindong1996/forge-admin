@@ -27,7 +27,7 @@
 import { PropType, computed } from 'vue'
 import { CollapseItem, SettingItemBox, SettingItem } from '@/components/Pages/ChartItemSetting'
 import { option, orientList, toolTipSwitch } from './config'
-import { GlobalThemeJsonType } from '@/settings/chartThemes'
+import { GlobalThemeJsonType } from '@/settings/chartThemes/index'
 
 const props = defineProps({
   optionData: {

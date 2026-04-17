@@ -1,7 +1,6 @@
 <template>
   <div class="go-items-list">
     <n-grid
-      v-if="!loading"
       :x-gap="20"
       :y-gap="20"
       cols="2 s:2 m:3 l:4 xl:4 xxl:4"
@@ -13,13 +12,9 @@
           @resize="resizeHandle"
           @delete="deleteHandle($event, index)"
           @edit="editHandle"
-          @refresh="loadList"
         ></project-items-card>
       </n-grid-item>
     </n-grid>
-    <div v-else class="go-flex-center" style="min-height: 240px">
-      <n-spin size="large" />
-    </div>
     <div class="list-pagination">
       <n-pagination
         :item-count="10"
@@ -45,8 +40,8 @@ import { useModalDataInit } from './hooks/useModal.hook'
 import { useDataListInit } from './hooks/useData.hook'
 
 const { CopyIcon, EllipsisHorizontalCircleSharpIcon } = icon.ionicons5
-const { list, loading, deleteHandle, loadList } = useDataListInit()
-const { modalData, modalShow, closeModal, resizeHandle, editHandle } = useModalDataInit(loadList)
+const { list, deleteHandle } = useDataListInit()
+const { modalData, modalShow, closeModal, resizeHandle, editHandle } = useModalDataInit()
 </script>
 
 <style lang="scss" scoped>

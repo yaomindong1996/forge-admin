@@ -1,6 +1,6 @@
 import { echartOptionProfixHandle, PublicConfigClass } from '@/packages/public'
 import { DialConfig } from './index'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import cloneDeep from 'lodash/cloneDeep'
 
 export const includes = []
@@ -30,7 +30,7 @@ const option = {
         }
       },
       axisLabel: { // 文字样式
-        color: '#eee',
+        color: '#eee', 
         fontSize: 14,
       },
       axisTick: {
@@ -62,7 +62,7 @@ const option = {
             [1, '#1369E380']
           ],
         }
-      },
+      }, 
       axisLabel: {
         show:false,
       },

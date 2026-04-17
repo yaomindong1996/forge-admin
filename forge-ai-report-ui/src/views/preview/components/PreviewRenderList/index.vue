@@ -31,7 +31,7 @@
       :chartConfig="item"
       :themeSetting="themeSetting"
       :themeColor="themeColor"
-      :style="{
+      :style="{ 
         ...getSizeStyle(item.attr),
         ...getFilterStyle(item.styles)
       }"
@@ -43,10 +43,10 @@
 <script setup lang="ts">
 import { PropType, computed, onMounted } from 'vue'
 import { useChartDataPondFetch } from '@/hooks'
-import { ChartEditStorageType } from '../../index'
+import { ChartEditStorageType } from '../../index.d'
 import { PreviewRenderGroup } from '../PreviewRenderGroup/index'
-import { CreateComponentGroupType } from '@/packages'
-import { chartColors } from '@/settings/chartThemes'
+import { CreateComponentGroupType } from '@/packages/index.d'
+import { chartColors } from '@/settings/chartThemes/index'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { animationsClass, getFilterStyle, getTransformStyle, getBlendModeStyle, colorCustomMerge } from '@/utils'
 import { getSizeStyle, getComponentAttrStyle, getStatusStyle, getPreviewConfigStyle } from '../../utils'

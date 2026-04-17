@@ -1,6 +1,6 @@
 import { ChartFrameEnum, ConfigType, PackagesCategoryEnum } from '@/packages/index.d'
 import { ImageConfig } from '@/packages/components/Informations/Mores/Image/index'
-import { ChatCategoryEnum, ChatCategoryEnumName } from '../index'
+import { ChatCategoryEnum, ChatCategoryEnumName } from '../index.d'
 import { setLocalStorage, getLocalStorage, goDialog } from '@/utils'
 import { StorageEnum } from '@/enums/storageEnum'
 import { FileTypeEnum } from '@/enums/fileTypeEnum'

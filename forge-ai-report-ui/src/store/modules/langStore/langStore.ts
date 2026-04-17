@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { lang } from '@/settings/designSetting'
-import { LangStateType } from './langStore'
+import { LangStateType } from './langStore.d'
 import { LangEnum } from '@/enums/styleEnum'
 import { setLocalStorage, getLocalStorage, reloadRoutePage } from '@/utils'
 import { StorageEnum } from '@/enums/storageEnum'

@@ -1,4 +1,4 @@
-import { ChatCategoryEnum, IOption } from "@/packages/components/VChart";
+import { ChatCategoryEnum, IOption } from "@/packages/components/VChart/index.d";
 import bars from './bars'
 import pies from './pies'
 import lines from './lines'

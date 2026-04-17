@@ -1,4 +1,4 @@
-import { HistoryTargetTypeEnum, HistoryActionTypeEnum } from './chartHistoryStore'
+import { HistoryTargetTypeEnum, HistoryActionTypeEnum } from './chartHistoryStore.d'
 
 export const historyActionTypeName = {
   [HistoryActionTypeEnum.ADD]: '新增',

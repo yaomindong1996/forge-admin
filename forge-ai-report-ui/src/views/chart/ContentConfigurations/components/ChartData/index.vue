@@ -19,7 +19,7 @@ import { SettingItemBox } from '@/components/Pages/ChartItemSetting'
 import { RequestDataTypeEnum } from '@/enums/httpEnum'
 import { ChartFrameEnum } from '@/packages/index.d'
 import { useTargetData } from '../hooks/useTargetData.hook'
-import { SelectCreateDataType, SelectCreateDataEnum } from './index'
+import { SelectCreateDataType, SelectCreateDataEnum } from './index.d'
 
 const ChartDataStatic = loadAsyncComponent(() => import('./components/ChartDataStatic/index.vue'))
 const ChartDataAjax = loadAsyncComponent(() => import('./components/ChartDataAjax/index.vue'))

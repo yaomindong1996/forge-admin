@@ -1,6 +1,6 @@
 import { ref, provide, onMounted, onUnmounted } from 'vue'
-import { usePreviewFitScale, usePreviewScrollYScale, usePreviewScrollXScale, usePreviewFullScale } from '@/hooks'
-import type { ChartEditStorageType } from '../index'
+import { usePreviewFitScale, usePreviewScrollYScale, usePreviewScrollXScale, usePreviewFullScale } from '@/hooks/index'
+import type { ChartEditStorageType } from '../index.d'
 import { PreviewScaleEnum } from '@/enums/styleEnum'
 
 export const SCALE_KEY = 'scale-value'

@@ -58,7 +58,7 @@
           v-model:value="item.lineStyle.shadowColor"
       ></n-color-picker>
       </SettingItem>
-
+      
     </SettingItemBox>
     <SettingItemBox name="设置">
      <SettingItem name="阴影">
@@ -75,8 +75,8 @@
 
 <script setup lang="ts">
 import { PropType, computed } from 'vue'
-import { lineConf } from '@/packages/chartConfiguration/echarts'
-import { GlobalThemeJsonType } from '@/settings/chartThemes'
+import { lineConf } from '@/packages/chartConfiguration/echarts/index'
+import { GlobalThemeJsonType } from '@/settings/chartThemes/index'
 import {
   GlobalSetting,
   CollapseItem,

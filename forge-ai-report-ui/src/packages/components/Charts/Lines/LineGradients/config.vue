@@ -73,8 +73,8 @@
 
 <script setup lang="ts">
 import { PropType, computed } from 'vue'
-import { lineConf } from '@/packages/chartConfiguration/echarts'
-import { GlobalThemeJsonType } from '@/settings/chartThemes'
+import { lineConf } from '@/packages/chartConfiguration/echarts/index'
+import { GlobalThemeJsonType } from '@/settings/chartThemes/index'
 import {
   GlobalSetting,
   CollapseItem,

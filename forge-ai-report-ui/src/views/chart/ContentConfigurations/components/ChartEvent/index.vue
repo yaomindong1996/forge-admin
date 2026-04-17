@@ -13,9 +13,9 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { ChartEventInteraction } from './components/ChartEventInteraction/index'
-import { ChartEventAdvancedHandle } from './components/ChartEventAdvancedHandle/index'
-import { ChartEventBaseHandle } from './components/ChartEventBaseHandle/index'
+import { ChartEventInteraction } from './components/ChartEventInteraction'
+import { ChartEventAdvancedHandle } from './components/ChartEventAdvancedHandle'
+import { ChartEventBaseHandle } from './components/ChartEventBaseHandle'
 import { useTargetData } from '../hooks/useTargetData.hook'
 
 const { targetData } = useTargetData()

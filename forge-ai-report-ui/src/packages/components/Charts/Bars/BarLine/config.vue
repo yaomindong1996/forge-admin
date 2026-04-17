@@ -26,7 +26,7 @@
           }"
         />
       </SettingItem>
-
+ 
     </SettingItemBox>
     <SettingItemBox name="图形" v-if="item.type == 'bar'">
       <SettingItem name="宽度">
@@ -105,10 +105,10 @@
 import { PropType, computed, toRaw } from 'vue'
 import { merge, cloneDeep } from 'lodash';
 
-import GlobalSetting from '../../../../../components/Pages/ChartItemSetting/GlobalSetting.vue'
-import CollapseItem from '../../../../../components/Pages/ChartItemSetting/CollapseItem.vue'
-import SettingItemBox from '../../../../../components/Pages/ChartItemSetting/SettingItemBox.vue'
-import SettingItem from '../../../../../components/Pages/ChartItemSetting/SettingItem.vue'
+import GlobalSetting from '@/components/Pages/ChartItemSetting/GlobalSetting.vue'
+import CollapseItem from '@/components/Pages/ChartItemSetting/CollapseItem.vue'
+import SettingItemBox from '@/components/Pages/ChartItemSetting/SettingItemBox.vue'
+import SettingItem from '@/components/Pages/ChartItemSetting/SettingItem.vue'
 
 import { lineConf } from '@/packages/chartConfiguration/echarts'
 import { GlobalThemeJsonType } from '@/settings/chartThemes'

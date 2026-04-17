@@ -1,6 +1,6 @@
 import { PublicConfigClass } from '@/packages/public'
 import { CapsuleChartConfig } from './index'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { chartInitConfig } from '@/settings/designSetting'
 
 import cloneDeep from 'lodash/cloneDeep'

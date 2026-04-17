@@ -47,7 +47,7 @@
 <script setup lang="ts">
 import { PropType, computed } from 'vue'
 import { GlobalSetting, CollapseItem, SettingItemBox, SettingItem } from '@/components/Pages/ChartItemSetting'
-import { GlobalThemeJsonType } from '@/settings/chartThemes'
+import { GlobalThemeJsonType } from '@/settings/chartThemes/index'
 
 const props = defineProps({
   optionData: {

@@ -5,7 +5,7 @@
 
 <script setup lang="ts">
 import { PropType } from 'vue'
-import { GlobalThemeJsonType } from '@/settings/chartThemes'
+import { GlobalThemeJsonType } from '@/settings/chartThemes/index'
 import { GlobalSetting } from '@/components/Pages/ChartItemSetting'
 
 // eslint-disable-next-line no-unused-vars

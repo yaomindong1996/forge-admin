@@ -23,10 +23,10 @@
 <script setup lang="ts">
 import { computed, PropType } from 'vue'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
-import { EditCanvasTypeEnum } from '@/store/modules/chartEditStore/chartEditStore'
+import { EditCanvasTypeEnum } from '@/store/modules/chartEditStore/chartEditStore.d'
 
 import { useDesignStore } from '@/store/modules/designStore/designStore'
-import { CreateComponentType, CreateComponentGroupType } from '@/packages'
+import { CreateComponentType, CreateComponentGroupType } from '@/packages/index.d'
 import { useSizeStyle, usePointStyle } from '../../hooks/useStyle.hook'
 import { useMousePointHandle } from '../../hooks/useDrag.hook'
 

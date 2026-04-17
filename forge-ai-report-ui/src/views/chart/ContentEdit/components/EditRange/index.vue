@@ -18,9 +18,9 @@ import { useSizeStyle } from '../../hooks/useStyle.hook'
 import { canvasModelIndex } from '@/settings/designSetting'
 import { mousedownBoxSelect } from '../../hooks/useDrag.hook'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
-import { EditAlignLine } from '../EditAlignLine/index'
-import { EditWatermark } from '../EditWatermark/index'
-import { EditSelect } from '../EditSelect/index'
+import { EditAlignLine } from '../EditAlignLine'
+import { EditWatermark } from '../EditWatermark'
+import { EditSelect } from '../EditSelect'
 
 const chartEditStore = useChartEditStore()
 

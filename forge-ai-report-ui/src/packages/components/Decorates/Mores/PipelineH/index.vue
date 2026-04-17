@@ -9,7 +9,7 @@
 
 <script setup lang="ts">
 import { PropType, toRefs } from 'vue'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 
 const props = defineProps({
   chartConfig: {

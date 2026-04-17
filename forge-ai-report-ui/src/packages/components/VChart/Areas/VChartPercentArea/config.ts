@@ -1,11 +1,11 @@
 import { PublicConfigClass } from '@/packages/public'
 import { VChartPercentAreaConfig } from './index'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { vChartOptionPrefixHandle } from '@/packages/public/vChart'
 import data from './data.json'
 import cloneDeep from 'lodash/cloneDeep'
 import axisThemeJson from '@/settings/vchartThemes/axis.theme.json'
-import { IAreaOption } from '../../index'
+import { IAreaOption } from '../../index.d'
 
 export const includes = ['legends', 'tooltip']
 export const option: IAreaOption & { dataset?: any } = {

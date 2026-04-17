@@ -108,7 +108,7 @@ import { getUUID, goDialog } from '@/utils'
 import { icon } from '@/plugins'
 import { UvIndex } from '@vicons/carbon'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
-import { EditCanvasConfigEnum } from '@/store/modules/chartEditStore/chartEditStore'
+import { EditCanvasConfigEnum } from '@/store/modules/chartEditStore/chartEditStore.d'
 import { CreateColorRender } from '../CreateColorRender/index'
 
 const props = defineProps({

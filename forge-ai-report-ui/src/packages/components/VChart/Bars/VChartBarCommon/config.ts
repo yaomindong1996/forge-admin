@@ -1,10 +1,10 @@
 import { PublicConfigClass } from '@/packages/public'
 import { VChartBarCommonConfig } from './index'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { vChartOptionPrefixHandle } from '@/packages/public/vChart'
 import data from './data.json'
 import axisThemeJson from '@/settings/vchartThemes/axis.theme.json'
-import { ChatCategoryEnum, IBarOption } from '../../index'
+import { ChatCategoryEnum, IBarOption } from '../../index.d'
 import { merge, cloneDeep } from 'lodash'
 
 export const includes = ['legends', 'tooltip', 'label', 'bar']

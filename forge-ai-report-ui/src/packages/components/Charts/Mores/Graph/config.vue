@@ -98,7 +98,7 @@
 import { PropType, computed } from 'vue'
 import { CollapseItem, SettingItemBox, SettingItem } from '@/components/Pages/ChartItemSetting'
 import { option, GraphLayout, LabelSwitch, LabelPosition, LayoutAnimation } from './config'
-import { GlobalThemeJsonType } from '@/settings/chartThemes'
+import { GlobalThemeJsonType } from '@/settings/chartThemes/index'
 
 const props = defineProps({
   optionData: {

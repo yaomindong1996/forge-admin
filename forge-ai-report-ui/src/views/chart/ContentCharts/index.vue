@@ -8,63 +8,26 @@
     </template>
 
     <template #top-right>
-      <template v-if="isAIMode">
-        <n-tooltip placement="bottom" trigger="hover">
-          <template #trigger>
-            <n-button size="tiny" quaternary @click="clearAIChat">
-              <template #icon>
-                <n-icon size="14"><trash-icon /></n-icon>
-              </template>
-            </n-button>
-          </template>
-          清空对话
-        </n-tooltip>
-        <n-tooltip placement="bottom" trigger="hover">
-          <template #trigger>
-            <n-button size="tiny" quaternary @click="toggleAIMode">
-              <template #icon>
-                <n-icon size="14"><close-icon /></n-icon>
-              </template>
-            </n-button>
-          </template>
-          关闭AI助手
-        </n-tooltip>
-      </template>
-      <charts-search v-else v-show="getCharts" :menuOptions="menuOptions"></charts-search>
+      <charts-search v-show="getCharts" :menuOptions="menuOptions"></charts-search>
     </template>
-
     <!-- 图表 -->
     <aside>
       <div class="menu-width-box">
-        <!-- 左侧图标分类菜单（始终显示） -->
-        <div class="menu-width">
-          <n-menu
-            v-model:value="selectValue"
-            :options="menuOptions"
-            :icon-size="16"
-            :indent="18"
-            @update:value="clickItemHandle"
-          ></n-menu>
-          <!-- AI 助手入口 -->
-          <div class="ai-entry" :class="{ active: isAIMode }" @click="toggleAIMode">
-            <n-icon size="18" :color="isAIMode ? '#51d6a9' : undefined"><sparkles-icon /></n-icon>
-            <span>AI助手</span>
-          </div>
-        </div>
-
-        <!-- 右侧内容区 -->
+        <n-menu
+          class="menu-width"
+          v-model:value="selectValue"
+          :options="menuOptions"
+          :icon-size="16"
+          :indent="18"
+          @update:value="clickItemHandle"
+        ></n-menu>
         <div class="menu-component-box">
-          <!-- AI 模式 -->
-          <AIChatPanel v-if="isAIMode" />
-          <!-- 普通模式 -->
-          <template v-else>
-            <go-skeleton :load="!selectOptions" round text :repeat="2" style="width: 90%"></go-skeleton>
-            <charts-option-content
-              v-if="selectOptions"
-              :selectOptions="selectOptions"
-              :key="selectValue"
-            ></charts-option-content>
-          </template>
+          <go-skeleton :load="!selectOptions" round text :repeat="2" style="width: 90%"></go-skeleton>
+          <charts-option-content
+            v-if="selectOptions"
+            :selectOptions="selectOptions"
+            :key="selectValue"
+          ></charts-option-content>
         </div>
       </div>
     </aside>
@@ -72,29 +35,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import { ContentBox } from '../ContentBox/index'
-import { ChartsOptionContent } from './components/ChartsOptionContent/index'
-import { ChartsSearch } from './components/ChartsSearch/index'
+import { ChartsOptionContent } from './components/ChartsOptionContent'
+import { ChartsSearch } from './components/ChartsSearch'
 import { useAsideHook } from './hooks/useAside.hook'
-import { useAIStore } from '@/store/modules/aiStore/aiStore'
-import { icon } from '@/plugins'
-import AIChatPanel from '@/components/GoAI/AIChatPanel.vue'
-
-const { TrashIcon, CloseIcon, SparklesIcon } = icon.ionicons5
 
 const { getCharts, BarChartIcon, themeColor, selectOptions, selectValue, clickItemHandle, menuOptions } = useAsideHook()
-const aiStore = useAIStore()
-const isAIMode = ref(false)
-
-function toggleAIMode() {
-  isAIMode.value = !isAIMode.value
-  aiStore.setAIPanelVisible(isAIMode.value)
-}
-
-function clearAIChat() {
-  aiStore.clearChat()
-}
 </script>
 
 <style lang="scss" scoped>
@@ -117,35 +63,7 @@ $topHeight: 40px;
     height: calc(100vh - #{$--header-height} - #{$topHeight});
     .menu-width {
       flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
       @include fetch-bg-color('background-color2');
-
-      :deep(.n-menu) {
-        flex: 1;
-      }
-
-      .ai-entry {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 6px 4px;
-        cursor: pointer;
-        min-height: 48px;
-        border-top: 1px solid;
-        @include fetch-border-color('hover-border-color');
-        span {
-          font-size: 11px;
-          margin-top: 2px;
-          @include fetch-theme('color');
-          opacity: 0.7;
-        }
-        &:hover, &.active {
-          @include fetch-bg-color('background-color3');
-          span { opacity: 1; }
-        }
-      }
     }
     .menu-component-box {
       flex-shrink: 0;

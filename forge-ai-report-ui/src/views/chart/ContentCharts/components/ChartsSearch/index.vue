@@ -69,17 +69,17 @@
 <script setup lang="ts">
 import { ref, onUnmounted } from 'vue'
 import { icon } from '@/plugins'
-import { createComponent } from '@/packages/index'
-import { ConfigType, CreateComponentType } from '@/packages'
+import { createComponent } from '@/packages'
+import { ConfigType, CreateComponentType } from '@/packages/index.d'
 import { themeColor } from '../../hooks/useLayout.hook'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
-import { ChartModeEnum, ChartLayoutStoreEnum } from '@/store/modules/chartLayoutStore/chartLayoutStore'
+import { ChartModeEnum, ChartLayoutStoreEnum } from '@/store/modules/chartLayoutStore/chartLayoutStore.d'
 import { useChartLayoutStore } from '@/store/modules/chartLayoutStore/chartLayoutStore'
 import { isString, addEventListener, removeEventListener } from '@/utils'
 import { fetchConfigComponent, fetchChartComponent } from '@/packages/index'
 import { componentInstall, loadingStart, loadingFinish, loadingError } from '@/utils'
-import { ChartGlobImage } from '@/components/Pages/ChartGlobImage/index'
-import { GoIconify } from '@/components/GoIconify/index'
+import { ChartGlobImage } from '@/components/Pages/ChartGlobImage'
+import { GoIconify } from '@/components/GoIconify'
 
 const props = defineProps({
   menuOptions: {

@@ -75,8 +75,8 @@
 
 <script setup lang="ts">
 import { PropType, toRefs, watch, ref, onMounted } from 'vue'
-import { CreateComponentType } from '@/packages'
-import { Flipper } from '@/components/Pages/Flipper/index'
+import { CreateComponentType } from '@/packages/index.d'
+import { Flipper } from '@/components/Pages/Flipper'
 import { OptionType } from './config'
 import { CountdownInst, CountdownProps } from 'naive-ui/es/countdown/src/Countdown'
 import { useChartDataFetch } from '@/hooks'

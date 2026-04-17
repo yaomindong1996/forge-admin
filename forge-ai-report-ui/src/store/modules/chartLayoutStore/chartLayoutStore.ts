@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ChartLayoutType, LayerModeEnum, ChartModeEnum } from './chartLayoutStore'
+import { ChartLayoutType, LayerModeEnum, ChartModeEnum } from './chartLayoutStore.d'
 import { setLocalStorage, getLocalStorage } from '@/utils'
 import { StorageEnum } from '@/enums/storageEnum'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'

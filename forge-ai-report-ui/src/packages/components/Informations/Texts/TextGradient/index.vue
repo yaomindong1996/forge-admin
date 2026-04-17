@@ -7,7 +7,7 @@
 </template>
 <script setup lang="ts">
 import { PropType, toRefs, shallowReactive, watch } from 'vue'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 import { useChartDataFetch } from '@/hooks'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { option as configOption } from './config'

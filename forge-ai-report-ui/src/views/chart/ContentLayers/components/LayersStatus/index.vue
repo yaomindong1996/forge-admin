@@ -20,7 +20,7 @@
 <script setup lang="ts">
 import { computed, PropType } from 'vue'
 import { useDesignStore } from '@/store/modules/designStore/designStore'
-import { StatusType } from '@/packages'
+import { StatusType } from '@/packages/index.d'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { icon } from '@/plugins'
 

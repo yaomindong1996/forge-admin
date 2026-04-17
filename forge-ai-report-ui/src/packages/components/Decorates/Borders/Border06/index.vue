@@ -2,7 +2,7 @@
   <div
     class="go-border-box"
     :style="`
-      box-shadow: inset 0 0 40px ${colors[0]};
+      box-shadow: inset 0 0 40px ${colors[0]}; 
       border: 1px solid ${colors[1]};
       background-color: ${backgroundColor};
     `"
@@ -55,7 +55,7 @@
 
 <script setup lang="ts">
 import { PropType, ref, toRefs } from 'vue'
-import { CreateComponentType } from '@/packages'
+import { CreateComponentType } from '@/packages/index.d'
 
 const props = defineProps({
   chartConfig: {

@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { ProjectItemsList } from './components/ProjectItemsList/index'
+import { ProjectItemsList } from './components/ProjectItemsList'
 </script>
 
 <style lang="scss" scoped>

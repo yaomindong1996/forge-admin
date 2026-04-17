@@ -32,7 +32,7 @@
         <n-upload-dragger>
           <img v-if="canvasConfig.backgroundImage" class="upload-show" :src="canvasConfig.backgroundImage" alt="背景" />
           <div class="upload-img" v-show="!canvasConfig.backgroundImage">
-            <img src="../../../../../assets/images/canvas/noImage.png" />
+            <img src="@/assets/images/canvas/noImage.png" />
             <n-text class="upload-desc" depth="3">
               背景图需小于 {{ backgroundImageSize }}M ，格式为 png/jpg/gif 的文件
             </n-text>
@@ -128,10 +128,10 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
 import { backgroundImageSize } from '@/settings/designSetting'
-import { swatchesColors } from '@/settings/chartThemes'
+import { swatchesColors } from '@/settings/chartThemes/index'
 import { FileTypeEnum } from '@/enums/fileTypeEnum'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
-import { EditCanvasConfigEnum } from '@/store/modules/chartEditStore/chartEditStore'
+import { EditCanvasConfigEnum } from '@/store/modules/chartEditStore/chartEditStore.d'
 import { StylesSetting } from '@/components/Pages/ChartItemSetting'
 import { UploadCustomRequestOptions } from 'naive-ui'
 import { fileToUrl, loadAsyncComponent } from '@/utils'

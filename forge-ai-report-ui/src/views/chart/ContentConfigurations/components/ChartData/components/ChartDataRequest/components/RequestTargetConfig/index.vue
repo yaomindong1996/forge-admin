@@ -59,9 +59,9 @@
 import { PropType, toRefs } from 'vue'
 import { SettingItemBox, SettingItem } from '@/components/Pages/ChartItemSetting'
 import { useTargetData } from '@/views/chart/ContentConfigurations/components/hooks/useTargetData.hook'
-import { selectTypeOptions, selectTimeOptions } from '@/views/chart/ContentConfigurations/components/ChartData'
-import { RequestConfigType } from '@/store/modules/chartEditStore/chartEditStore'
-import { RequestHeader } from '../RequestHeader/index'
+import { selectTypeOptions, selectTimeOptions } from '@/views/chart/ContentConfigurations/components/ChartData/index.d'
+import { RequestConfigType } from '@/store/modules/chartEditStore/chartEditStore.d'
+import { RequestHeader } from '../RequestHeader'
 import { isDev } from '@/utils'
 import { icon } from '@/plugins'
 import {
