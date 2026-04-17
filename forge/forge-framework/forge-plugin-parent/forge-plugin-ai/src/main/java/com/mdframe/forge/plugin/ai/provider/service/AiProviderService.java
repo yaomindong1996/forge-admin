@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
 import com.mdframe.forge.plugin.ai.provider.mapper.AiProviderMapper;
+import com.mdframe.forge.plugin.ai.model.service.AiModelService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -21,7 +23,10 @@ import java.util.List;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider> {
+
+    private final AiModelService modelService;
 
     /**
      * 获取默认供应商
@@ -68,6 +73,20 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
             log.warn("[AI供应商测试] 连接失败, provider={}, error={}", provider.getProviderName(), e.getMessage());
             throw new RuntimeException("连接失败: " + e.getMessage());
         }
+    }
+
+    /**
+     * 删除供应商（校验是否有关联模型）
+     *
+     * @param id 供应商ID
+     */
+    public void deleteProvider(Long id) {
+        long modelCount = modelService.countByProviderId(id);
+        if (modelCount > 0) {
+            throw new RuntimeException("该供应商下存在 " + modelCount + " 个关联模型，请先删除关联模型");
+        }
+        removeById(id);
+        log.info("[AI供应商] 删除供应商, id={}", id);
     }
 
     /**

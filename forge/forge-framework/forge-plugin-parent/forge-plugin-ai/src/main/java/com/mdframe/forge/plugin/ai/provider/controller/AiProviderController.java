@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
 import com.mdframe.forge.plugin.ai.provider.service.AiProviderService;
+import com.mdframe.forge.plugin.ai.model.domain.AiModel;
+import com.mdframe.forge.plugin.ai.model.service.AiModelService;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -20,6 +23,7 @@ import java.util.Map;
 public class AiProviderController {
 
     private final AiProviderService providerService;
+    private final AiModelService modelService;
 
     /**
      * 内置供应商预设模板列表（纯代码查表，不查数据库）
@@ -53,8 +57,11 @@ public class AiProviderController {
     public RespInfo<Page<AiProvider>> page(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
-        return RespInfo.success(providerService.page(new Page<>(pageNum, pageSize),
-                new LambdaQueryWrapper<AiProvider>().orderByDesc(AiProvider::getCreateTime)));
+        Page<AiProvider> page = providerService.page(new Page<>(pageNum, pageSize),
+                new LambdaQueryWrapper<AiProvider>().orderByDesc(AiProvider::getCreateTime));
+        // 聚合填充 models 和 defaultModel
+        page.getRecords().forEach(this::fillModelsFromAiModel);
+        return RespInfo.success(page);
     }
 
     /**
@@ -62,7 +69,11 @@ public class AiProviderController {
      */
     @GetMapping("/{id}")
     public RespInfo<AiProvider> getById(@PathVariable Long id) {
-        return RespInfo.success(providerService.getById(id));
+        AiProvider provider = providerService.getById(id);
+        if (provider != null) {
+            fillModelsFromAiModel(provider);
+        }
+        return RespInfo.success(provider);
     }
 
     /**
@@ -88,7 +99,7 @@ public class AiProviderController {
      */
     @DeleteMapping("/{id}")
     public RespInfo<Void> delete(@PathVariable Long id) {
-        providerService.removeById(id);
+        providerService.deleteProvider(id);
         return RespInfo.success();
     }
 
@@ -113,5 +124,33 @@ public class AiProviderController {
     public RespInfo<Void> setDefault(@PathVariable Long id) {
         providerService.setDefault(id);
         return RespInfo.success();
+    }
+
+    /**
+     * 从 ai_model 表聚合填充供应商的 models 和 defaultModel 字段
+     * 确保旧接口响应格式兼容
+     */
+    private void fillModelsFromAiModel(AiProvider provider) {
+        List<AiModel> models = modelService.listByProviderId(provider.getId());
+        List<String> modelIdList = models.stream()
+                .map(AiModel::getModelId)
+                .collect(Collectors.toList());
+        provider.setModels(modelIdList.isEmpty() ? "[]" : toJsonArray(modelIdList));
+        String defaultModel = models.stream()
+                .filter(m -> "1".equals(m.getIsDefault()))
+                .map(AiModel::getModelId)
+                .findFirst()
+                .orElse(provider.getDefaultModel());
+        provider.setDefaultModel(defaultModel);
+    }
+
+    private String toJsonArray(List<String> list) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < list.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append("\"").append(list.get(i)).append("\"");
+        }
+        sb.append("]");
+        return sb.toString();
     }
 }
