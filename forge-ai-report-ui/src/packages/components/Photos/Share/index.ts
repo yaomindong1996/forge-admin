@@ -1,4 +1,4 @@
-import { ChartFrameEnum, PackagesCategoryEnum } from '@/packages'
+import { ChartFrameEnum, PackagesCategoryEnum } from '@/packages/index.d'
 import { ImageConfig } from '@/packages/components/Informations/Mores/Image/index'
 import { ChatCategoryEnum, ChatCategoryEnumName } from '../index'
 

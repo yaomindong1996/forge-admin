@@ -1,4 +1,4 @@
-import { PickCreateComponentType } from '@/packages'
+import { PickCreateComponentType } from '@/packages/index.d'
 
 type AttrType = PickCreateComponentType<'attr'>
 

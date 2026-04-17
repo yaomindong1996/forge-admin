@@ -178,7 +178,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { ChartFrameEnum } from '@/packages'
+import { ChartFrameEnum } from '@/packages/index.d'
 import { RequestDataTypeEnum } from '@/enums/httpEnum'
 import { icon } from '@/plugins'
 import { DataResultEnum, TimelineTitleEnum } from '../../index'

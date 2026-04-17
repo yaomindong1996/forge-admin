@@ -1,5 +1,5 @@
 import { getUUID } from '@/utils'
-import { RequestConfigType } from '@/store/modules/chartEditStore/chartEditStore'
+import { RequestConfigType } from '@/store/modules/chartEditStore/chartEditStore.d'
 import { groupTitle } from '@/settings/designSetting'
 import { BaseEvent, EventLife } from '@/enums/eventEnum'
 import {
@@ -14,7 +14,7 @@ import {
   PublicConfigType,
   CreateComponentType,
   CreateComponentGroupType
-} from '@/packages'
+} from '@/packages/index.d'
 import { chartInitConfig } from '@/settings/designSetting'
 import cloneDeep from 'lodash/cloneDeep'
 

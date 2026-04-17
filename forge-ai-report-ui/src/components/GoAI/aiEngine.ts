@@ -1,6 +1,6 @@
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { createComponent, fetchChartComponent, fetchConfigComponent } from '@/packages/index'
-import { ConfigType, CreateComponentType, ChartFrameEnum } from '@/packages'
+import { ConfigType, CreateComponentType, ChartFrameEnum } from '@/packages/index.d'
 import { componentInstall, loadingStart, loadingFinish, loadingError } from '@/utils'
 import { findConfigTypeByKey } from './componentRegistry'
 import { autoLayout } from './layoutAlgorithm'

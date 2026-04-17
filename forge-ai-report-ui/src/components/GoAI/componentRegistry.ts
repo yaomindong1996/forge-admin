@@ -1,5 +1,5 @@
 import { packagesList } from '@/packages/index'
-import { ConfigType, PackagesCategoryEnum, ChartFrameEnum } from '@/packages'
+import { ConfigType, PackagesCategoryEnum, ChartFrameEnum } from '@/packages/index.d'
 import { chartInitConfig } from '@/settings/designSetting'
 
 // 组件描述信息

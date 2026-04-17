@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { CreateComponentType, CreateComponentGroupType } from '@/packages'
+import { CreateComponentType, CreateComponentGroupType } from '@/packages/index.d'
 import { EditCanvasType } from '@/store/modules/chartEditStore/chartEditStore'
 import { loadingStart, loadingFinish, loadingError } from '@/utils'
 import { editHistoryMax } from '@/settings/designSetting'
@@ -9,7 +9,7 @@ import {
   HistoryTargetTypeEnum,
   HistoryItemType,
   ChartHistoryStoreType
-} from './chartHistoryStore'
+} from './chartHistoryStore.d'
 
 export const useChartHistoryStore = defineStore({
   id: 'useChartHistoryStore',

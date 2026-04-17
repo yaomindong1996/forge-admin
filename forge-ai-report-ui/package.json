@@ -5,13 +5,13 @@
     "node": ">=16.14"
   },
   "scripts": {
-    "dev": "/node_modules/.bin/vite --host",
-    "build": "/node_modules/.bin/vite build",
-    "preview": "/node_modules/.bin/vite preview",
-    "new": "/node_modules/.bin/plop --plopfile ./plop/plopfile.js",
-    "postinstall": "/node_modules/.bin/husky install",
-    "lint": "/node_modules/.bin/eslint --ext .js,.jsx,.ts,.tsx,.vue src",
-    "lint:fix": "/node_modules/.bin/eslint --ext .js,.jsx,.ts,.tsx,.vue src --fix"
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "new": "plop --plopfile ./plop/plopfile.js",
+    "postinstall": "husky install",
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx,.vue src",
+    "lint:fix": "eslint --ext .js,.jsx,.ts,.tsx,.vue src --fix"
   },
   "dependencies": {
     "@amap/amap-jsapi-loader": "^1.0.1",

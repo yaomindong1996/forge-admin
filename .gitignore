@@ -2,7 +2,7 @@
 # Build Tools
 
 .gradle
-/build/
+/forge-admin-ui/build/
 !gradle/wrapper/gradle-wrapper.jar
 
 target/
@@ -30,7 +30,6 @@ rebel.xml
 
 ### NetBeans ###
 nbproject/private/
-build/*
 nbbuild/
 dist/
 nbdist/

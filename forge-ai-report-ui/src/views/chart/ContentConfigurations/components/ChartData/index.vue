@@ -17,7 +17,7 @@ import { computed } from 'vue'
 import { loadAsyncComponent } from '@/utils'
 import { SettingItemBox } from '@/components/Pages/ChartItemSetting'
 import { RequestDataTypeEnum } from '@/enums/httpEnum'
-import { ChartFrameEnum } from '@/packages'
+import { ChartFrameEnum } from '@/packages/index.d'
 import { useTargetData } from '../hooks/useTargetData.hook'
 import { SelectCreateDataType, SelectCreateDataEnum } from './index'
 

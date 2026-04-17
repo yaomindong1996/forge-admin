@@ -1,5 +1,5 @@
-import { PickCreateComponentType } from '@/packages'
-import { EditCanvasConfigType } from '@/store/modules/chartEditStore/chartEditStore'
+import { PickCreateComponentType } from '@/packages/index.d'
+import { EditCanvasConfigType } from '@/store/modules/chartEditStore/chartEditStore.d'
 
 type AttrType = PickCreateComponentType<'attr'>
 type StatusType = PickCreateComponentType<'status'>

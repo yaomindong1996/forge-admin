@@ -1,6 +1,6 @@
 import { toRaw } from 'vue'
 import { defineStore } from 'pinia'
-import { CreateComponentType, CreateComponentGroupType } from '@/packages'
+import { CreateComponentType, CreateComponentGroupType } from '@/packages/index.d'
 import { PublicGroupConfigClass } from '@/packages/public/publicConfig'
 import debounce from 'lodash/debounce'
 import cloneDeep from 'lodash/cloneDeep'
@@ -14,7 +14,7 @@ import {
   HistoryActionTypeEnum,
   HistoryItemType,
   HistoryTargetTypeEnum
-} from '@/store/modules/chartHistoryStore/chartHistoryStore'
+} from '@/store/modules/chartHistoryStore/chartHistoryStore.d'
 import { MenuEnum } from '@/enums/editPageEnum'
 import { getUUID, loadingStart, loadingFinish, loadingError, isString, isArray } from '@/utils'
 import {
@@ -27,7 +27,7 @@ import {
   RecordChartType,
   RequestGlobalConfigType,
   EditCanvasConfigType
-} from './chartEditStore'
+} from './chartEditStore.d'
 
 const chartHistoryStore = useChartHistoryStore()
 const settingStore = useSettingStore()

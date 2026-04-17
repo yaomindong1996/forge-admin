@@ -72,7 +72,7 @@
 import { reactive, ref, watch } from 'vue'
 import { ListType } from './index'
 import { useSettingStore } from '@/store/modules/settingStore/settingStore'
-import { SettingStoreEnums, ToolsStatusEnum } from '@/store/modules/settingStore/settingStore'
+import { SettingStoreEnums, ToolsStatusEnum } from '@/store/modules/settingStore/settingStore.d'
 import { icon } from '@/plugins'
 
 const props = defineProps({

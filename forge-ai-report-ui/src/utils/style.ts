@@ -1,6 +1,6 @@
 import Color from 'color'
 import { useDesignStore } from '@/store/modules/designStore/designStore'
-import { PickCreateComponentType } from '@/packages'
+import { PickCreateComponentType } from '@/packages/index.d'
 import { EditCanvasConfigType } from '@/store/modules/chartEditStore/chartEditStore'
 import { chartColors, chartColorsSearch, CustomColorsType } from '@/settings/chartThemes'
 

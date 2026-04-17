@@ -1,4 +1,4 @@
-import { SettingStoreEnums, ToolsStatusEnum } from '@/store/modules/settingStore/settingStore'
+import { SettingStoreEnums, ToolsStatusEnum } from '@/store/modules/settingStore/settingStore.d'
 
 // * 用户配置项
 export const systemSetting = {

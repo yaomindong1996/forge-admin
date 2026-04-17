@@ -124,7 +124,7 @@
 import { VNodeChild, computed } from 'vue'
 import { SelectOption, SelectGroupOption } from 'naive-ui'
 import { SettingItemBox, SettingItem, CollapseItem } from '@/components/Pages/ChartItemSetting'
-import { CreateComponentType, CreateComponentGroupType, ChartFrameEnum } from '@/packages'
+import { CreateComponentType, CreateComponentGroupType, ChartFrameEnum } from '@/packages/index.d'
 import { RequestParamsTypeEnum, RequestDataTypeEnum } from '@/enums/httpEnum'
 import { InteractEventOn, COMPONENT_INTERACT_EVENT_KET } from '@/enums/eventEnum'
 import { icon } from '@/plugins'

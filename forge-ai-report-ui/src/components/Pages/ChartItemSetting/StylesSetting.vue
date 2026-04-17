@@ -166,7 +166,7 @@
 
 <script setup lang="ts">
 import { ref, PropType } from 'vue'
-import { PickCreateComponentType, BlendModeEnumList } from '@/packages'
+import { PickCreateComponentType, BlendModeEnumList } from '@/packages/index.d'
 import { SettingItemBox, SettingItem, CollapseItem } from '@/components/Pages/ChartItemSetting/index'
 import { icon } from '@/plugins'
 import logoImg from '@/assets/logo.png'

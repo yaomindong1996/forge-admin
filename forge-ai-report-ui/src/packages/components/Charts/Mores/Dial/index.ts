@@ -1,4 +1,4 @@
-import { ConfigType, PackagesCategoryEnum, ChartFrameEnum } from '@/packages'
+import { ConfigType, PackagesCategoryEnum, ChartFrameEnum } from '@/packages/index.d'
 import { ChatCategoryEnum, ChatCategoryEnumName } from '../../index'
 
 export const DialConfig: ConfigType = {
