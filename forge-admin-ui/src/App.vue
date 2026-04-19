@@ -10,17 +10,19 @@
     <div v-if="showLoading" class="loading-wrapper">
       <n-spin size="large">
         <template #description>
-          <div class="loading-text">正在加载...</div>
+          <div class="loading-text">
+            正在加载...
+          </div>
         </template>
       </n-spin>
     </div>
     <router-view v-else v-slot="{ Component, route: curRoute }">
       <component :is="LayoutComponent" :key="curRoute.meta?.layout || appStore.layout">
-<!--        <transition name="fade-slide" mode="out-in" appear>-->
-          <KeepAlive :include="keepAliveNames">
-            <component :is="Component" v-if="!tabStore.reloading" :key="curRoute.fullPath" />
-          </KeepAlive>
-<!--        </transition>-->
+        <!--        <transition name="fade-slide" mode="out-in" appear> -->
+        <KeepAlive :include="keepAliveNames">
+          <component :is="Component" v-if="!tabStore.reloading" :key="curRoute.fullPath" />
+        </KeepAlive>
+        <!--        </transition> -->
       </component>
 
       <LayoutSetting v-if="layoutSettingVisible" class="fixed right-12 top-1/2 z-999" />
@@ -33,13 +35,16 @@
 
 <script setup>
 import { darkTheme, dateZhCN, zhCN } from 'naive-ui'
-import { LayoutSetting } from '@/components'
-import { useAppStore, usePermissionStore, useTabStore, useUserStore } from '@/store'
-import { layoutSettingVisible } from './settings'
-import { markRaw, defineAsyncComponent, shallowRef, watch, computed } from 'vue'
+import { computed, defineAsyncComponent, markRaw, shallowRef, watch } from 'vue'
+// 初始化响应式字体功能
+import { onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { initResponsiveFont } from '@/utils/responsive-font'
+import { LayoutSetting } from '@/components'
 import { useWatermark } from '@/composables/useWatermark'
+import { useAppStore, usePermissionStore, useTabStore, useUserStore } from '@/store'
+import { initResponsiveFont } from '@/utils/responsive-font'
+
+import { layoutSettingVisible } from './settings'
 
 // 使用 shallowRef 确保 Layout 引用稳定
 const LayoutComponent = shallowRef(null)
@@ -65,7 +70,8 @@ watch(() => route.meta?.layout || appStore.layout, (layoutName) => {
   if (layoutName) {
     const layoutComponent = getLayout(layoutName)
     LayoutComponent.value = layoutComponent
-  } else {
+  }
+  else {
     LayoutComponent.value = null
   }
 }, { immediate: true })
@@ -107,14 +113,11 @@ const { watermarkConfig, getWatermarkStyle } = useWatermark()
 
 // 水印样式
 const watermarkStyle = computed(() => getWatermarkStyle())
-
-// 初始化响应式字体功能
-import { onMounted } from 'vue'
 onMounted(() => {
   initResponsiveFont((scale) => {
     // 更新Naive UI主题配置，使组件库字体也响应式变化
     appStore.updateNaiveThemeOverrides({
-      fontSize: `calc(14px * var(--font-scale, 1))`
+      fontSize: `calc(14px * var(--font-scale, 1))`,
     })
   })
 })

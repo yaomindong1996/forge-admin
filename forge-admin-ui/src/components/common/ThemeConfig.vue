@@ -26,7 +26,9 @@
                 :max="20"
                 @update:value="(val) => updateFontSize('header', val)"
               >
-                <template #suffix>px</template>
+                <template #suffix>
+                  px
+                </template>
               </n-input-number>
             </n-form-item>
             <n-form-item label="边框颜色">
@@ -108,7 +110,9 @@
                 :max="18"
                 @update:value="(val) => updateFontSize('topMenu', val)"
               >
-                <template #suffix>px</template>
+                <template #suffix>
+                  px
+                </template>
               </n-input-number>
             </n-form-item>
           </n-form>
@@ -180,7 +184,9 @@
                 :max="18"
                 @update:value="(val) => updateFontSize('sideMenu', val)"
               >
-                <template #suffix>px</template>
+                <template #suffix>
+                  px
+                </template>
               </n-input-number>
             </n-form-item>
             <n-form-item label="边框颜色">
@@ -196,9 +202,15 @@
 
       <template #footer>
         <n-space>
-          <n-button type="primary" @click="handleApply">应用主题</n-button>
-          <n-button @click="handleReset">重置为默认</n-button>
-          <n-button @click="handleExport">导出配置</n-button>
+          <n-button type="primary" @click="handleApply">
+            应用主题
+          </n-button>
+          <n-button @click="handleReset">
+            重置为默认
+          </n-button>
+          <n-button @click="handleExport">
+            导出配置
+          </n-button>
         </n-space>
       </template>
     </n-drawer-content>
@@ -206,8 +218,8 @@
 </template>
 
 <script setup>
-import { useAppStore } from '@/store'
 import { defaultThemeConfig } from '@/config/theme.config'
+import { useAppStore } from '@/store'
 
 const appStore = useAppStore()
 const visible = ref(false)
@@ -217,9 +229,9 @@ const localConfig = ref(JSON.parse(JSON.stringify(appStore.themeConfig)))
 
 // 字体大小（转换为数字）
 const fontSize = ref({
-  header: parseInt(localConfig.value.header.fontSize) || 14,
-  topMenu: parseInt(localConfig.value.topMenu.fontSize) || 14,
-  sideMenu: parseInt(localConfig.value.sideMenu.fontSize) || 14,
+  header: Number.parseInt(localConfig.value.header.fontSize) || 14,
+  topMenu: Number.parseInt(localConfig.value.topMenu.fontSize) || 14,
+  sideMenu: Number.parseInt(localConfig.value.sideMenu.fontSize) || 14,
 })
 
 // 更新字体大小
@@ -270,15 +282,15 @@ function handleExport() {
 function open() {
   localConfig.value = JSON.parse(JSON.stringify(appStore.themeConfig))
   fontSize.value = {
-    header: parseInt(localConfig.value.header.fontSize) || 14,
-    topMenu: parseInt(localConfig.value.topMenu.fontSize) || 14,
-    sideMenu: parseInt(localConfig.value.sideMenu.fontSize) || 14,
+    header: Number.parseInt(localConfig.value.header.fontSize) || 14,
+    topMenu: Number.parseInt(localConfig.value.topMenu.fontSize) || 14,
+    sideMenu: Number.parseInt(localConfig.value.sideMenu.fontSize) || 14,
   }
   visible.value = true
 }
 
 // 暴露方法
 defineExpose({
-  open
+  open,
 })
 </script>

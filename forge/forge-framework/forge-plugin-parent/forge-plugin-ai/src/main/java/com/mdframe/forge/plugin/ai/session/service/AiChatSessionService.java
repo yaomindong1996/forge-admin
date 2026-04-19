@@ -2,9 +2,14 @@ package com.mdframe.forge.plugin.ai.session.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.ai.session.domain.AiChatSession;
+import com.mdframe.forge.plugin.ai.session.dto.AiSessionPageQuery;
 import com.mdframe.forge.plugin.ai.session.mapper.AiChatSessionMapper;
+import com.mdframe.forge.plugin.ai.session.vo.AiSessionStatisticsVO;
+import com.mdframe.forge.plugin.ai.session.vo.AiSessionVO;
+import com.mdframe.forge.plugin.ai.session.vo.DailyTrendItem;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -81,5 +86,23 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionMapper, AiCha
         update(new LambdaUpdateWrapper<AiChatSession>()
                 .set(AiChatSession::getUpdateTime, LocalDateTime.now())
                 .eq(AiChatSession::getId, sessionId));
+    }
+
+    public Page<AiSessionVO> adminPage(AiSessionPageQuery query) {
+        return baseMapper.selectSessionPage(query.toPage(), query);
+    }
+
+    public AiSessionStatisticsVO getStatistics() {
+        AiSessionStatisticsVO stats = baseMapper.selectStatistics();
+        if (stats == null) {
+            stats = new AiSessionStatisticsVO();
+            stats.setTotalSessions(0L);
+            stats.setTotalMessages(0L);
+            stats.setTodaySessions(0L);
+            stats.setTotalTokenUsage(0L);
+        }
+        List<DailyTrendItem> trend = baseMapper.selectDailyTrend();
+        stats.setDailyTrend(trend);
+        return stats;
     }
 }

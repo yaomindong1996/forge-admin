@@ -86,30 +86,30 @@
 </template>
 
 <script setup>
+import { ChevronBackOutline, ChevronForwardOutline } from '@vicons/ionicons5'
 import { ref, watch } from 'vue'
-import { ChevronForwardOutline, ChevronBackOutline } from '@vicons/ionicons5'
 import { request } from '@/utils'
 
 const props = defineProps({
   // 角色ID
   roleId: {
     type: [String, Number],
-    required: true
+    required: true,
   },
   // 权限类型: 1-菜单权限, 2-API权限
   kind: {
     type: String,
-    default: '1'
-  }
+    default: '1',
+  },
 })
 
 const message = window.$message
 
 const loading = ref(false)
-const leftTree = ref([])  // 已授权
-const rightTree = ref([])  // 未授权
-const authorizedKeys = ref([])  // 左侧选中的keys
-const rightCheckedKeys = ref([])  // 右侧选中的keys
+const leftTree = ref([]) // 已授权
+const rightTree = ref([]) // 未授权
+const authorizedKeys = ref([]) // 左侧选中的keys
+const rightCheckedKeys = ref([]) // 右侧选中的keys
 const authorizedExpandedKeys = ref([])
 const rightExpandedKeys = ref([])
 
@@ -120,10 +120,11 @@ const rightExpandedKeys = ref([])
 function getAllLeafIds(tree = []) {
   const results = []
   const traverse = (items) => {
-    items.forEach(item => {
+    items.forEach((item) => {
       if (item.children && item.children.length > 0) {
         traverse(item.children)
-      } else {
+      }
+      else {
         // 提取原始 ID
         results.push(item._rawId || item.key)
       }
@@ -141,13 +142,14 @@ function getAllLeafIds(tree = []) {
 function extractLeafRawIds(keys, tree) {
   const results = []
   const keySet = new Set(keys)
-  
+
   const traverse = (items) => {
-    items.forEach(item => {
+    items.forEach((item) => {
       if (item.children && item.children.length > 0) {
         // 递归遍历子节点
         traverse(item.children)
-      } else {
+      }
+      else {
         // 只处理叶子节点
         if (keySet.has(item.key)) {
           results.push(item._rawId || item.key)
@@ -155,7 +157,7 @@ function extractLeafRawIds(keys, tree) {
       }
     })
   }
-  
+
   traverse(tree)
   return results
 }
@@ -202,23 +204,23 @@ async function handleAuthorize() {
 
     // 获取左侧所有已授权的叶子节点原始 ID
     const allAuthIds = getAllLeafIds(leftTree.value)
-    
+
     // 从右侧选中的组合 keys 中提取叶子节点的原始 ID
     const rightSelectedRawIds = extractLeafRawIds(rightCheckedKeys.value, rightTree.value)
-    
+
     console.log('授权 - 左侧已授权:', allAuthIds)
     console.log('授权 - 右侧选中:', rightSelectedRawIds)
-    
+
     // 合并原始 ID(去重)
     const authIds = Array.from(new Set([...allAuthIds, ...rightSelectedRawIds]))
-    
+
     console.log('授权 - 最终提交:', authIds)
 
     // 调用授权接口: POST /role/auth
     await request.post('/role/auth', {
       authIds,
       roleId: props.roleId,
-      kind: props.kind
+      kind: props.kind,
     })
 
     message.success('授权成功')
@@ -229,10 +231,12 @@ async function handleAuthorize() {
 
     // 刷新数据
     await loadData()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('授权失败:', error)
     message.error('授权失败')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -251,23 +255,23 @@ async function handleRevoke() {
 
     // 获取左侧所有已授权的叶子节点原始 ID
     const allAuthIds = getAllLeafIds(leftTree.value)
-    
+
     // 从左侧选中的组合 keys 中提取叶子节点的原始 ID
     const leftSelectedRawIds = extractLeafRawIds(authorizedKeys.value, leftTree.value)
-    
+
     console.log('解除 - 全部已授权:', allAuthIds)
     console.log('解除 - 左侧选中:', leftSelectedRawIds)
-    
+
     // 过滤掉选中要解除的原始 ID,剩下的就是保留的授权
     const authIds = allAuthIds.filter(id => !leftSelectedRawIds.includes(id))
-    
+
     console.log('解除 - 最终提交:', authIds)
 
     // 调用授权接口: POST /role/auth(传入剩余的授权ID)
     await request.post('/role/auth', {
       authIds,
       roleId: props.roleId,
-      kind: props.kind
+      kind: props.kind,
     })
 
     message.success('解除授权成功')
@@ -278,15 +282,15 @@ async function handleRevoke() {
 
     // 刷新数据
     await loadData()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('解除授权失败:', error)
     message.error('解除授权失败')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
-
-
 
 /**
  * 加载数据
@@ -302,15 +306,15 @@ async function loadData() {
       request.get('/menu/authList', {
         params: {
           kind: props.kind,
-          roleId: props.roleId
-        }
+          roleId: props.roleId,
+        },
       }),
       request.get('/menu/list', {
         params: {
           kind: props.kind,
-          roleId: props.roleId
-        }
-      })
+          roleId: props.roleId,
+        },
+      }),
     ])
 
     // 转换为树形数据
@@ -324,10 +328,12 @@ async function loadData() {
     // 清空选中状态
     authorizedKeys.value = []
     rightCheckedKeys.value = []
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载数据失败:', error)
     message.error('加载数据失败')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -336,20 +342,21 @@ async function loadData() {
  * 转换为树形数据
  * 使用组合 key 避免 ID 重复问题
  * @param {Array} data - 原始数据
- * @param {String} parentKey - 父节点 key
+ * @param {string} parentKey - 父节点 key
  */
 function convertToTreeData(data, parentKey = '') {
-  if (!Array.isArray(data)) return []
+  if (!Array.isArray(data))
+    return []
 
   return data.map((item) => {
     // 使用组合 key: parentKey-id,避免不同父节点下相同 ID 的冲突
     const uniqueKey = parentKey ? `${parentKey}-${item.id}` : `${item.id}`
-    
+
     return {
       key: uniqueKey,
       label: item.name || item.label || item.title,
-      _rawId: item.id,  // 保留原始 ID 用于提交
-      children: item.children ? convertToTreeData(item.children, uniqueKey) : undefined
+      _rawId: item.id, // 保留原始 ID 用于提交
+      children: item.children ? convertToTreeData(item.children, uniqueKey) : undefined,
     }
   })
 }

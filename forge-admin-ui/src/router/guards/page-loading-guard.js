@@ -1,4 +1,3 @@
-
 import { useAppStore } from '@/store'
 
 export function createPageLoadingGuard(router) {

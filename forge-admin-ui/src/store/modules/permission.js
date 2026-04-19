@@ -58,7 +58,8 @@ export const usePermissionStore = defineStore('permission', {
         // 如果没有找到指定的homePath，则使用第一个菜单项的路径
         if (!homePathExists) {
           const getFirstLeafPath = (menus) => {
-            if (!menus || menus.length === 0) return '/'
+            if (!menus || menus.length === 0)
+              return '/'
             const firstMenu = menus[0]
             if (firstMenu.path) {
               return firstMenu.path
@@ -84,15 +85,16 @@ export const usePermissionStore = defineStore('permission', {
       const routes = []
 
       const extractRoutes = (items) => {
-        if (!items || !Array.isArray(items)) return
+        if (!items || !Array.isArray(items))
+          return
 
-        items.forEach(item => {
+        items.forEach((item) => {
           // 只为菜单类型(非目录)且有 path 和 component 的项生成路由
           if (item.type === 'menu' && item.path && item.component) {
             // 确保路径以 "/" 开头
             let routePath = item.path.trim()
             if (!routePath.startsWith('/') && !isExternal(routePath)) {
-              routePath = '/' + routePath
+              routePath = `/${routePath}`
             }
 
             // 处理外链
@@ -114,9 +116,9 @@ export const usePermissionStore = defineStore('permission', {
                 keepAlive: item.meta?.keepAlive || false,
                 alwaysShow: item.meta?.alwaysShow || false,
                 redirect: item.meta?.redirect,
-                originPath: originPath,
+                originPath,
                 perms: item.meta?.perms,
-              }
+              },
             }
             routes.push(route)
           }
@@ -143,18 +145,19 @@ export const usePermissionStore = defineStore('permission', {
       // 收集所有菜单（包括隐藏的）到扁平数组，用于标题查找
       const allMenusFlat = []
       const collectAllMenus = (items) => {
-        if (!items || !Array.isArray(items)) return
+        if (!items || !Array.isArray(items))
+          return
         for (const item of items) {
           if (item.resourceType === 1 || item.resourceType === 2) {
             // 规范化路径，确保以 / 开头
             let normalizedPath = item.path?.trim() || ''
             if (normalizedPath && !normalizedPath.startsWith('/')) {
-              normalizedPath = '/' + normalizedPath
+              normalizedPath = `/${normalizedPath}`
             }
             allMenusFlat.push({
               path: normalizedPath,
               label: item.resourceName,
-              name: item.resourceName
+              name: item.resourceName,
             })
           }
           if (item.children && item.children.length > 0) {
@@ -164,22 +167,23 @@ export const usePermissionStore = defineStore('permission', {
       }
       collectAllMenus(menuItems)
       this.allMenus = allMenusFlat
-      console.log('[菜单] allMenus 收集完成, 共', allMenusFlat.length, '项:', allMenusFlat.map(m => m.path + ' -> ' + m.label))
+      console.log('[菜单] allMenus 收集完成, 共', allMenusFlat.length, '项:', allMenusFlat.map(m => `${m.path} -> ${m.label}`))
 
       // 处理菜单项，将 UserResourceTreeVO 转换为前端菜单格式
       const processItems = (items) => {
-        if (!items || !Array.isArray(items)) return []
+        if (!items || !Array.isArray(items))
+          return []
 
         return items
-          .filter(item => {
+          .filter((item) => {
             // 只处理目录(1)和菜单(2)类型，过滤掉按钮(3)和API接口(4)
             return item.resourceType === 1 || item.resourceType === 2
           })
-          .filter(item => {
+          .filter((item) => {
             // 过滤掉隐藏的菜单 (visible=0 或 menuStatus=0)
             return item.visible !== 0 && item.menuStatus !== 0
           })
-          .map(item => {
+          .map((item) => {
             // 处理 component 路径，统一格式为 /src/views/xxx.vue
             let componentPath = ''
             if (item.component) {
@@ -190,7 +194,7 @@ export const usePermissionStore = defineStore('permission', {
               }
               // 如果没有 .vue 后缀，添加 .vue
               if (!comp.endsWith('.vue')) {
-                comp = comp + '.vue'
+                comp = `${comp}.vue`
               }
               // 添加 /src/views/ 前缀
               componentPath = `/src/views/${comp}`
@@ -216,7 +220,7 @@ export const usePermissionStore = defineStore('permission', {
                 redirect: item.redirect,
                 isExternal: item.isExternal === 1,
                 perms: item.perms,
-              }
+              },
             }
 
             // 处理子菜单
@@ -237,20 +241,23 @@ export const usePermissionStore = defineStore('permission', {
     generateHiddenMenuRoutes(menuItems) {
       const hiddenRoutes = []
       const extract = (items) => {
-        if (!items || !Array.isArray(items)) return
+        if (!items || !Array.isArray(items))
+          return
         for (const item of items) {
           // 隐藏菜单: resourceType=2(菜单) 且 visible=0 或 menuStatus=0
           if (item.resourceType === 2 && (item.visible === 0 || item.menuStatus === 0)) {
             let componentPath = ''
             if (item.component) {
               let comp = item.component.trim()
-              if (comp.startsWith('/')) comp = comp.substring(1)
-              if (!comp.endsWith('.vue')) comp += '.vue'
+              if (comp.startsWith('/'))
+                comp = comp.substring(1)
+              if (!comp.endsWith('.vue'))
+                comp += '.vue'
               componentPath = `/src/views/${comp}`
             }
             let routePath = item.path?.trim() || ''
             if (routePath && !routePath.startsWith('/')) {
-              routePath = '/' + routePath
+              routePath = `/${routePath}`
             }
             if (routePath && componentPath) {
               hiddenRoutes.push({
@@ -261,7 +268,7 @@ export const usePermissionStore = defineStore('permission', {
                   title: item.resourceName,
                   icon: item.icon,
                   keepAlive: item.keepAlive === 1,
-                }
+                },
               })
             }
           }
@@ -272,7 +279,7 @@ export const usePermissionStore = defineStore('permission', {
       }
       extract(menuItems)
       if (hiddenRoutes.length > 0) {
-        console.log('[菜单] 发现隐藏菜单路由:', hiddenRoutes.map(r => r.path + ' -> ' + r.meta.title))
+        console.log('[菜单] 发现隐藏菜单路由:', hiddenRoutes.map(r => `${r.path} -> ${r.meta.title}`))
         this.accessRoutes = [...this.accessRoutes, ...hiddenRoutes]
       }
     },

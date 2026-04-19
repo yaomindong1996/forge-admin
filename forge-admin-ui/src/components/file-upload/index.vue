@@ -1,6 +1,6 @@
 <template>
   <div class="file-upload-wrapper">
-    <n-upload
+    <NUpload
       ref="uploadRef"
       :action="uploadUrl"
       :headers="headers"
@@ -17,122 +17,123 @@
       :show-file-list="showFileList"
       @update:file-list="handleFileListChange"
     >
-      <n-button :disabled="disabled" size="small">
+      <NButton :disabled="disabled" size="small">
         <template #icon>
-          <n-icon><CloudUploadOutline /></n-icon>
+          <NIcon><CloudUploadOutline /></NIcon>
         </template>
         {{ uploadButtonText }}
-      </n-button>
-    </n-upload>
+      </NButton>
+    </NUpload>
 
     <!-- 上传提示 -->
     <div v-if="showTip" class="upload-tip">
-      <n-alert type="info" :show-icon="false" size="small">
+      <NAlert type="info" :show-icon="false" size="small">
         <template #default>
           <div class="tip-content">
             <span v-if="fileType && fileType.length > 0">
-              <n-icon><DocumentTextOutline /></n-icon>
+              <NIcon><DocumentTextOutline /></NIcon>
               支持格式: {{ fileType.join(', ') }}
             </span>
             <span v-if="fileSize">
-              <n-icon><ResizeOutline /></n-icon>
+              <NIcon><ResizeOutline /></NIcon>
               单个文件不超过 {{ fileSize }}MB
             </span>
             <span v-if="limit">
-              <n-icon><FileTrayFullOutline /></n-icon>
+              <NIcon><FileTrayFullOutline /></NIcon>
               最多上传 {{ limit }} 个文件
             </span>
           </div>
         </template>
-      </n-alert>
-      <slot name="tip"></slot>
+      </NAlert>
+      <slot name="tip" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { NUpload, NButton, NIcon, NAlert } from 'naive-ui'
 import {
   CloudUploadOutline,
   DocumentTextOutline,
+  FileTrayFullOutline,
   ResizeOutline,
-  FileTrayFullOutline
 } from '@vicons/ionicons5'
+import { NAlert, NButton, NIcon, NUpload } from 'naive-ui'
+import { computed, ref, watch } from 'vue'
 import { useAuthStore } from '@/store'
-import {generateUUID, getFileUrl} from '@/utils'
+import { generateUUID, getFileUrl } from '@/utils'
+
 const props = defineProps({
   // v-model 绑定的值
   modelValue: {
     type: [String, Array],
-    default: ''
+    default: '',
   },
   // 上传地址
   action: {
     type: String,
-    default: '/api/file/upload'
+    default: '/api/file/upload',
   },
   // 业务类型
   businessType: {
     type: String,
-    default: 'common'
+    default: 'common',
   },
   // 业务ID
   businessId: {
     type: String,
-    default: ''
+    default: '',
   },
   // 存储类型 (local/minio/oss等)
   storageType: {
     type: String,
-    default: 'local'
+    default: 'local',
   },
   // 数量限制
   limit: {
     type: Number,
-    default: 5
+    default: 5,
   },
   // 大小限制(MB)
   fileSize: {
     type: Number,
-    default: 10
+    default: 10,
   },
   // 文件类型限制，例如['png', 'jpg', 'jpeg']
   fileType: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   // 是否支持多选
   multiple: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 是否显示文件列表
   showFileList: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 是否显示提示
   showTip: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 上传按钮文本
   uploadButtonText: {
     type: String,
-    default: '选择文件'
+    default: '选择文件',
   },
   // 是否禁用
   disabled: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 返回值类型: string-逗号分隔的URL字符串, array-URL数组, object-完整对象数组
   valueType: {
     type: String,
     default: 'string',
-    validator: (value) => ['string', 'array', 'object'].includes(value)
-  }
+    validator: value => ['string', 'array', 'object'].includes(value),
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'success', 'error', 'remove'])
@@ -150,9 +151,9 @@ const uploadUrl = computed(() => {
 const headers = computed(() => {
   const token = authStore.accessToken
   return {
-    Authorization: token ? `Bearer ${token}` : '',
-    'X-Timestamp':Date.now().toString(),
-    'X-Nonce':generateUUID()
+    'Authorization': token ? `Bearer ${token}` : '',
+    'X-Timestamp': Date.now().toString(),
+    'X-Nonce': generateUUID(),
   }
 })
 
@@ -161,7 +162,7 @@ const uploadData = computed(() => {
   return {
     businessType: props.businessType,
     businessId: props.businessId,
-    storageType: props.storageType
+    storageType: props.storageType,
   }
 })
 
@@ -204,10 +205,12 @@ watch(() => props.modelValue, (val, oldVal) => {
   if (props.valueType === 'object') {
     // 对象数组格式
     list = Array.isArray(val) ? val : []
-  } else if (props.valueType === 'array') {
+  }
+  else if (props.valueType === 'array') {
     // URL数组格式
     list = Array.isArray(val) ? val : []
-  } else {
+  }
+  else {
     // 字符串格式，逗号分隔
     list = typeof val === 'string' ? val.split(',').filter(Boolean) : []
   }
@@ -224,20 +227,21 @@ watch(() => props.modelValue, (val, oldVal) => {
       return {
         id: `file-${Date.now()}-${index}`,
         name: extractFileName(item),
-        url: getFileUrl(item),  // 使用 getFileUrl 转换
-        originalUrl: item,  // 保存原始值
-        status: 'finished',
-        percentage: 100
-      }
-    } else if (typeof item === 'object') {
-      return {
-        id: item.id || item.fileId || `file-${Date.now()}-${index}`,
-        name: item.originalName || item.name || item.fileName || extractFileName(item.url || item.filePath),  // 优先使用 originalName
-        url: getFileUrl(item),  // 使用 getFileUrl 转换
-        originalUrl: item.url || item.filePath || item.accessUrl,  // 保存原始值
+        url: getFileUrl(item), // 使用 getFileUrl 转换
+        originalUrl: item, // 保存原始值
         status: 'finished',
         percentage: 100,
-        ...item // 保留原始数据
+      }
+    }
+    else if (typeof item === 'object') {
+      return {
+        id: item.id || item.fileId || `file-${Date.now()}-${index}`,
+        name: item.originalName || item.name || item.fileName || extractFileName(item.url || item.filePath), // 优先使用 originalName
+        url: getFileUrl(item), // 使用 getFileUrl 转换
+        originalUrl: item.url || item.filePath || item.accessUrl, // 保存原始值
+        status: 'finished',
+        percentage: 100,
+        ...item, // 保留原始数据
       }
     }
     return null
@@ -298,22 +302,23 @@ function handleFinish({ file, event }) {
         targetFile.filePath = fileData.filePath
         targetFile.originalUrl = fileData.fileId || fileData.filePath
         targetFile.url = accessUrl
-        targetFile.name = fileData.originalName || file.name  // 优先使用 originalName
+        targetFile.name = fileData.originalName || file.name // 优先使用 originalName
         targetFile.status = 'finished'
         targetFile.percentage = 100
         targetFile.metadata = fileData
-      } else {
+      }
+      else {
         // 如果找不到，添加新文件
         fileList.value.push({
           id: file.id || fileData.fileId || `file-${Date.now()}`,
-          name: fileData.originalName || file.name,  // 优先使用 originalName
+          name: fileData.originalName || file.name, // 优先使用 originalName
           fileId: fileData.fileId,
           filePath: fileData.filePath,
           originalUrl: fileData.fileId || fileData.filePath,
           url: accessUrl,
           status: 'finished',
           percentage: 100,
-          metadata: fileData
+          metadata: fileData,
         })
       }
 
@@ -326,12 +331,14 @@ function handleFinish({ file, event }) {
       setTimeout(() => {
         emitValue()
       }, 100)
-    } else {
+    }
+    else {
       file.status = 'error'
       window.$message.error(response.message || response.msg || '上传失败')
       emit('error', response)
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('上传响应解析失败:', error)
     file.status = 'error'
     window.$message.error('上传失败')
@@ -358,7 +365,7 @@ function handleFileListChange(newFileList) {
   console.log('[FileUpload] 文件列表变化:', newFileList)
 
   // 保留已完成文件的完整信息
-  const updatedList = newFileList.map(newFile => {
+  const updatedList = newFileList.map((newFile) => {
     // 查找是否已存在
     const existingFile = fileList.value.find(f => f.id === newFile.id)
 
@@ -366,12 +373,12 @@ function handleFileListChange(newFileList) {
     if (existingFile && existingFile.status === 'finished' && existingFile.fileId) {
       return {
         ...newFile,
-        name: existingFile.metadata?.originalName || existingFile.name || newFile.name,  // 优先使用 originalName
+        name: existingFile.metadata?.originalName || existingFile.name || newFile.name, // 优先使用 originalName
         fileId: existingFile.fileId,
         filePath: existingFile.filePath,
         originalUrl: existingFile.originalUrl,
         url: existingFile.url || newFile.url,
-        metadata: existingFile.metadata
+        metadata: existingFile.metadata,
       }
     }
 
@@ -400,17 +407,19 @@ function emitValue() {
     const result = finishedFiles.map(file => ({
       id: file.id || file.fileId,
       name: file.name,
-      url: file.fileId || file.filePath || file.originalUrl,  // 优先返回 fileId
-      ...file.metadata
+      url: file.fileId || file.filePath || file.originalUrl, // 优先返回 fileId
+      ...file.metadata,
     }))
     console.log('[FileUpload] emitValue - object 模式，发出值:', result)
     emit('update:modelValue', result)
-  } else if (props.valueType === 'array') {
+  }
+  else if (props.valueType === 'array') {
     // 返回数组（优先使用 fileId）
     const result = finishedFiles.map(file => file.fileId || file.filePath || file.originalUrl).filter(Boolean)
     console.log('[FileUpload] emitValue - array 模式，发出值:', result)
     emit('update:modelValue', result)
-  } else {
+  }
+  else {
     // 返回逗号分隔的字符串（优先使用 fileId）
     const result = finishedFiles.map(file => file.fileId || file.filePath || file.originalUrl).filter(Boolean).join(',')
     console.log('[FileUpload] emitValue - string 模式，发出值:', result)
@@ -436,7 +445,7 @@ defineExpose({
   clear: () => {
     fileList.value = []
     emitValue()
-  }
+  },
 })
 </script>
 

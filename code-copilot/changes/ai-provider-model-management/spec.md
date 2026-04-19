@@ -216,7 +216,40 @@
 
 ## 12. 审查结论
 
-待审查
+### 阶段一 Spec Compliance：PASS
+所有 Spec 定义的功能点、数据变更、接口变更、业务规则均已正确实现。
+
+### 阶段二 Code Quality：PASS（有改进建议）
+
+🔍 发现：
+
+1. **[Important] 循环依赖**：`AiModelService` → `AiProviderService` → `AiModelService`，Spring Boot 3.x 可通过代理解决，但不符合最佳实践
+   - 涉及文件：`AiModelService.java:29`、`AiProviderService.java:29`
+   - 建议：将 `AiProviderService` 中的 `modelService` 依赖移至 Controller 层，或将 `syncModelsToProvider` 逻辑提取为独立 Manager 类
+
+2. **[Important] 异常类型不符合规范**：业务异常使用了 `RuntimeException`，项目规范要求使用自定义 `BusinessException` 携带错误码
+   - 涉及文件：`AiModelService.java:42,74,98`、`AiProviderService.java:49,51,69,86`
+   - 建议：替换为 `BusinessException`
+
+3. **[Important] 魔法值**：状态值 `"0"` / `"1"` 在多处硬编码，规范要求魔法值必须定义为常量
+   - 涉及文件：`AiModelService.java`、`AiProviderService.java`、`AiProviderController.java`、前端 vue 文件
+   - 建议：在实体类或常量类中定义 `STATUS_NORMAL = "0"`、`STATUS_DISABLED = "1"`、`IS_DEFAULT_YES = "1"` 等
+
+4. **[Minor] 未使用的 import**：`AiModelService.java:17` import 了 `ArrayList` 但未使用
+   - 建议：删除
+
+5. **[Minor] API Key 后端脱敏**：Spec 要求"API Key 脱敏显示"，前端已做 password 处理，但后端返回供应商详情时 API Key 未脱敏
+   - 涉及文件：`AiProviderController.java`
+   - 建议：getById/page 返回时对 apiKey 字段做掩码处理（如保留前4后4位）
+
+⚠️ 需关注：
+- **双写同步并发安全**：Spec 中已识别该风险，当前实现依赖数据库事务隔离级别，在高并发场景下可能存在竞态条件。建议后续评估是否需要乐观锁
+
+💡 改进建议：
+- 消除循环依赖（优先级较高）
+- 替换 RuntimeException 为 BusinessException
+- 将状态魔法值提取为常量
+- 后端 API Key 脱敏
 
 ## 13. 确认记录（HARD-GATE）
 - **确认时间**：2026-04-17

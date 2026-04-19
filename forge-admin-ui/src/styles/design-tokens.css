@@ -7,7 +7,7 @@
   /* ═══════════════════════════════════════
    * 颜色系统 - Color System
    * ═══════════════════════════════════════ */
-  
+
   /* 主色调 - Primary (Arco Design 蓝) */
   --primary-50: #e8f3ff;
   --primary-100: #bedaff;
@@ -20,11 +20,11 @@
   --primary-800: #031a79;
   --primary-900: #000d4d;
   --primary-950: #000830;
-  
+
   /* 主色渐变 - 更柔和 */
   --primary-gradient: linear-gradient(135deg, #4080ff 0%, #165dff 100%);
   --primary-gradient-hover: linear-gradient(135deg, #6aa1ff 0%, #0e42d2 100%);
-  
+
   /* 成功色 - Success */
   --success-50: #f0fdf4;
   --success-100: #dcfce7;
@@ -36,7 +36,7 @@
   --success-700: #15803d;
   --success-800: #166534;
   --success-900: #14532d;
-  
+
   /* 警告色 - Warning */
   --warning-50: #fffbeb;
   --warning-100: #fef3c7;
@@ -48,7 +48,7 @@
   --warning-700: #b45309;
   --warning-800: #92400e;
   --warning-900: #78350f;
-  
+
   /* 错误色 - Error */
   --error-50: #fef2f2;
   --error-100: #fee2e2;
@@ -60,7 +60,7 @@
   --error-700: #b91c1c;
   --error-800: #991b1b;
   --error-900: #7f1d1d;
-  
+
   /* 信息色 - Info */
   --info-50: #f0f9ff;
   --info-100: #e0f2fe;
@@ -85,24 +85,24 @@
   --gray-800: #1e293b;
   --gray-900: #0f172a;
   --gray-950: #020617;
-  
+
   /* 文字颜色 - 更柔和的层次 */
   --text-primary: #1d2129;
   --text-secondary: #4e5969;
   --text-tertiary: #86909c;
   --text-disabled: #c9cdd4;
-  
+
   /* 边框颜色 - 更细更轻 */
-  --border-light: #e5e6eb;     /* 最细的分隔线 */
-  --border-default: #c9cdd4;  /* 默认边框 */
-  --border-strong: #86909c;   /* 强调边框 */
-  
+  --border-light: #e5e6eb; /* 最细的分隔线 */
+  --border-default: #c9cdd4; /* 默认边框 */
+  --border-strong: #86909c; /* 强调边框 */
+
   /* 背景颜色 - Arco Design 风格 */
-  --bg-primary: #ffffff;              /* 内容区/卡片 白色 */
-  --bg-secondary: #f7f8fa;            /* 轻灰背景，表头/工具栏 */
-  --bg-tertiary: #f2f3f5;             /* 稍深灰 */
-  --bg-page: #f2f3f5;                 /* 页面整体背景 */
-  --bg-hover: #f2f3f5;                /* hover 态背景 */
+  --bg-primary: #ffffff; /* 内容区/卡片 白色 */
+  --bg-secondary: #f7f8fa; /* 轻灰背景，表头/工具栏 */
+  --bg-tertiary: #f2f3f5; /* 稍深灰 */
+  --bg-page: #f2f3f5; /* 页面整体背景 */
+  --bg-hover: #f2f3f5; /* hover 态背景 */
 
   /* ═══════════════════════════════════════
    * 间距系统 - Spacing (基于8px网格)
@@ -120,7 +120,7 @@
   --space-16: 64px;
   --space-20: 80px;
   --space-24: 96px;
-  
+
   /* 间距倍数 */
   --spacing-xs: var(--space-2);
   --spacing-sm: var(--space-3);
@@ -141,7 +141,7 @@
   --radius-2xl: 12px;
   --radius-3xl: 16px;
   --radius-full: 9999px;
-  
+
   /* 组件专用圆角 */
   --radius-button: var(--radius-md);
   --radius-input: var(--radius-md);
@@ -161,7 +161,7 @@
   --shadow-xl: 0 16px 40px rgba(0, 0, 0, 0.12);
   --shadow-2xl: 0 24px 48px rgba(0, 0, 0, 0.15);
   --shadow-inner: inset 0 1px 3px rgba(0, 0, 0, 0.06);
-  
+
   /* 组件专用阴影 */
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -173,9 +173,11 @@
   /* ═══════════════════════════════════════
    * 字体系统 - Typography
    * ═══════════════════════════════════════ */
-  --font-family-sans: 'Inter', 'PingFang SC', 'HarmonyOS Sans', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-sans:
+    'Inter', 'PingFang SC', 'HarmonyOS Sans', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    sans-serif;
   --font-family-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
-  
+
   /* 字体大小 */
   --font-size-xs: 12px;
   --font-size-sm: 14px;
@@ -186,13 +188,13 @@
   --font-size-3xl: 30px;
   --font-size-4xl: 36px;
   --font-size-5xl: 48px;
-  
+
   /* 字重 */
   --font-weight-normal: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
-  
+
   /* 行高 */
   --leading-none: 1;
   --leading-tight: 1.25;
@@ -208,11 +210,11 @@
   --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-smooth: 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  
+
   /* 页面过渡 */
   --page-enter-duration: 300ms;
   --page-leave-duration: 200ms;
-  
+
   /* 动画曲线 */
   --ease-out-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --ease-in-out-smooth: cubic-bezier(0.77, 0, 0.175, 1);
@@ -238,7 +240,7 @@
   --sidebar-collapsed-width: 80px;
   --content-max-width: 1600px;
   --content-padding: var(--space-6);
-  
+
   /* 响应式断点 */
   --breakpoint-sm: 640px;
   --breakpoint-md: 768px;
@@ -256,18 +258,18 @@
   --text-secondary: var(--gray-400);
   --text-tertiary: var(--gray-500);
   --text-disabled: var(--gray-600);
-  
+
   /* 边框颜色 */
   --border-light: var(--gray-800);
   --border-default: var(--gray-700);
   --border-strong: var(--gray-600);
-  
+
   /* 背景颜色 */
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
   --bg-tertiary: #334155;
   --bg-hover: #334155;
-  
+
   /* 阴影调整（暗色模式下更深） */
   --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
   --shadow-card-hover: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
@@ -282,7 +284,7 @@
     --border-default: var(--gray-400);
     --text-secondary: var(--gray-700);
   }
-  
+
   .dark {
     --border-default: var(--gray-500);
     --text-secondary: var(--gray-200);

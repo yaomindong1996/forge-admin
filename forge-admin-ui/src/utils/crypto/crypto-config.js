@@ -19,7 +19,7 @@ export const cryptoConfig = {
   // 需要加密的路径（支持通配符）
   includePaths: [],
   // 排除加密的路径
-  excludePaths: ['/auth/captcha', '/auth/login', '/crypto/public-key', '/crypto/exchange']
+  excludePaths: ['/auth/captcha', '/auth/login', '/crypto/public-key', '/crypto/exchange'],
 }
 
 /**
@@ -28,7 +28,8 @@ export const cryptoConfig = {
  * @param {string} pattern 模式（支持 ** 通配符）
  */
 export function matchPath(path, pattern) {
-  if (!pattern) return false
+  if (!pattern)
+    return false
   // 将 ** 转换为正则表达式
   const regexPattern = pattern
     .replace(/\*\*/g, '.*')
@@ -42,30 +43,31 @@ export function matchPath(path, pattern) {
  * @param {string} url 请求URL
  */
 export function shouldEncrypt(url) {
-  if (!cryptoConfig.enabled) return false
-  
+  if (!cryptoConfig.enabled)
+    return false
+
   // 提取路径部分
   const path = url.split('?')[0]
-  
+
   // 检查排除路径
   for (const pattern of cryptoConfig.excludePaths) {
     if (matchPath(path, pattern)) {
       return false
     }
   }
-  
+
   // 如果没有配置包含路径，则默认加密
   if (cryptoConfig.includePaths.length === 0) {
     return true
   }
-  
+
   // 检查包含路径
   for (const pattern of cryptoConfig.includePaths) {
     if (matchPath(path, pattern)) {
       return true
     }
   }
-  
+
   return false
 }
 

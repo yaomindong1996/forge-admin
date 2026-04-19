@@ -3,9 +3,9 @@
     <n-tabs
       :value="tabStore.activeTab"
       :closable="tabStore.tabs.length > 1"
-      @close="(path) => tabStore.removeTab(path)"
       type="card"
       size="small"
+      @close="(path) => tabStore.removeTab(path)"
     >
       <n-tab
         v-for="item in tabStore.tabs"

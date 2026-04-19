@@ -31,7 +31,8 @@ export async function loadSvgIcons() {
     }
 
     return { components, names }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载 SVG 图标失败:', error)
     return { components: {}, names: [] }
   }

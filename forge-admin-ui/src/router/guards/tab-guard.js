@@ -6,7 +6,7 @@ export const EXCLUDE_TAB = ['/404', '/403', '/login', '/login/callback']
  * 从扁平菜单数组中查找路径对应的中文名称
  */
 function findTitleFromAllMenus(allMenus, targetPath) {
-  console.log('targetPath',targetPath)
+  console.log('targetPath', targetPath)
   // 首页路径判断：支持 '/' 和 '/home'
   if (targetPath === '/' || targetPath === '/home' || targetPath === window.$homePath) {
     return '首页'
@@ -19,7 +19,7 @@ function findTitleFromAllMenus(allMenus, targetPath) {
 
 export function createTabGuard(router) {
   router.afterEach(async (to) => {
-    console.log('to',to)
+    console.log('to', to)
     if (EXCLUDE_TAB.includes(to.path))
       return
     const tabStore = useTabStore()
@@ -32,7 +32,7 @@ export function createTabGuard(router) {
     let title = to.meta?.title
 
     if (path === '/home') {
-       title = '首页'
+      title = '首页'
     }
 
     // 2. 从所有菜单（包括隐藏的）中查找中文名

@@ -1,26 +1,26 @@
 <template>
   <AiCrudPage
-      ref="crudRef"
-      api="/api/message/template"
-      :api-config="{
-        list: 'get@/api/message/template/page',
-        detail: 'get@/api/message/template/:id',
-        add: 'post@/api/message/template',
-        update: 'put@/api/message/template',
-        delete: 'delete@/api/message/template/:id'
-      }"
-      :search-schema="searchSchema"
-      :columns="tableColumns"
-      :edit-schema="editSchema"
-      row-key="id"
-      add-button-text="新增模板"
-      :load-detail-on-edit="true"
+    ref="crudRef"
+    api="/api/message/template"
+    :api-config="{
+      list: 'get@/api/message/template/page',
+      detail: 'get@/api/message/template/:id',
+      add: 'post@/api/message/template',
+      update: 'put@/api/message/template',
+      delete: 'delete@/api/message/template/:id',
+    }"
+    :search-schema="searchSchema"
+    :columns="tableColumns"
+    :edit-schema="editSchema"
+    row-key="id"
+    add-button-text="新增模板"
+    :load-detail-on-edit="true"
   />
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
+import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 
 defineOptions({ name: 'MessageTemplate' })
@@ -32,7 +32,7 @@ const messageTypeOptions = [
   { label: '系统消息', value: 'SYSTEM' },
   { label: '短信', value: 'SMS' },
   { label: '邮件', value: 'EMAIL' },
-  { label: '自定义', value: 'CUSTOM' }
+  { label: '自定义', value: 'CUSTOM' },
 ]
 
 // 发送渠道选项
@@ -40,7 +40,7 @@ const channelOptions = [
   { label: '站内信', value: 'WEB' },
   { label: '短信', value: 'SMS' },
   { label: '邮件', value: 'EMAIL' },
-  { label: '推送', value: 'PUSH' }
+  { label: '推送', value: 'PUSH' },
 ]
 
 // 搜索表单配置
@@ -51,17 +51,17 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择消息类型',
-      options: messageTypeOptions
-    }
+      options: messageTypeOptions,
+    },
   },
   {
     field: 'keyword',
     label: '关键词',
     type: 'input',
     props: {
-      placeholder: '请输入模板编码或名称'
-    }
-  }
+      placeholder: '请输入模板编码或名称',
+    },
+  },
 ]
 
 // 表格列配置
@@ -69,12 +69,12 @@ const tableColumns = computed(() => [
   {
     prop: 'templateCode',
     label: '模板编码',
-    width: 150
+    width: 150,
   },
   {
     prop: 'templateName',
     label: '模板名称',
-    width: 150
+    width: 150,
   },
   {
     prop: 'type',
@@ -82,19 +82,19 @@ const tableColumns = computed(() => [
     width: 100,
     render: (row) => {
       const typeMap = {
-        'SYSTEM': { label: '系统消息', type: 'info' },
-        'SMS': { label: '短信', type: 'warning' },
-        'EMAIL': { label: '邮件', type: 'success' },
-        'CUSTOM': { label: '自定义', type: 'default' }
+        SYSTEM: { label: '系统消息', type: 'info' },
+        SMS: { label: '短信', type: 'warning' },
+        EMAIL: { label: '邮件', type: 'success' },
+        CUSTOM: { label: '自定义', type: 'default' },
       }
       const config = typeMap[row.type] || { label: row.type, type: 'default' }
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.label })
-    }
+    },
   },
   {
     prop: 'titleTemplate',
     label: '标题模板',
-    width: 200
+    width: 200,
   },
   {
     prop: 'defaultChannel',
@@ -102,13 +102,13 @@ const tableColumns = computed(() => [
     width: 100,
     render: (row) => {
       const channelMap = {
-        'WEB': '站内信',
-        'SMS': '短信',
-        'EMAIL': '邮件',
-        'PUSH': '推送'
+        WEB: '站内信',
+        SMS: '短信',
+        EMAIL: '邮件',
+        PUSH: '推送',
       }
       return channelMap[row.defaultChannel] || row.defaultChannel
-    }
+    },
   },
   {
     prop: 'enabled',
@@ -117,14 +117,14 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h(NTag, {
         type: row.enabled === 1 ? 'success' : 'error',
-        size: 'small'
+        size: 'small',
       }, { default: () => row.enabled === 1 ? '启用' : '禁用' })
-    }
+    },
   },
   {
     prop: 'createTime',
     label: '创建时间',
-    width: 180
+    width: 180,
   },
   {
     prop: 'action',
@@ -133,9 +133,9 @@ const tableColumns = computed(() => [
     fixed: 'right',
     actions: [
       { label: '编辑', key: 'edit', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -144,9 +144,9 @@ const editSchema = [
     type: 'divider',
     label: '基础信息',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'templateCode',
@@ -154,9 +154,9 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入模板编码', trigger: 'blur' }],
     props: {
-      placeholder: '请输入模板编码，全局唯一'
+      placeholder: '请输入模板编码，全局唯一',
     },
-    editDisabled: true
+    editDisabled: true,
   },
   {
     field: 'templateName',
@@ -164,8 +164,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
     props: {
-      placeholder: '请输入模板名称'
-    }
+      placeholder: '请输入模板名称',
+    },
   },
   {
     field: 'type',
@@ -174,8 +174,8 @@ const editSchema = [
     defaultValue: 'SYSTEM',
     rules: [{ required: true, message: '请选择消息类型', trigger: 'change' }],
     props: {
-      options: messageTypeOptions
-    }
+      options: messageTypeOptions,
+    },
   },
   {
     field: 'defaultChannel',
@@ -183,8 +183,8 @@ const editSchema = [
     type: 'select',
     defaultValue: 'WEB',
     props: {
-      options: channelOptions
-    }
+      options: channelOptions,
+    },
   },
   {
     field: 'titleTemplate',
@@ -194,8 +194,8 @@ const editSchema = [
     rules: [{ required: true, message: '请输入标题模板', trigger: 'blur' }],
     props: {
       placeholder: '请输入标题模板，支持${变量}占位符',
-      rows: 2
-    }
+      rows: 2,
+    },
   },
   {
     field: 'contentTemplate',
@@ -205,8 +205,8 @@ const editSchema = [
     rules: [{ required: true, message: '请输入内容模板', trigger: 'blur' }],
     props: {
       placeholder: '请输入内容模板，支持${变量}占位符',
-      rows: 6
-    }
+      rows: 6,
+    },
   },
   {
     field: 'enabled',
@@ -216,9 +216,9 @@ const editSchema = [
     props: {
       options: [
         { label: '启用', value: 1 },
-        { label: '禁用', value: 0 }
-      ]
-    }
+        { label: '禁用', value: 0 },
+      ],
+    },
   },
   {
     field: 'remark',
@@ -227,9 +227,9 @@ const editSchema = [
     span: 2,
     props: {
       placeholder: '请输入备注说明',
-      rows: 3
-    }
-  }
+      rows: 3,
+    },
+  },
 ]
 
 // 编辑

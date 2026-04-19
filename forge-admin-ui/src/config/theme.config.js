@@ -118,7 +118,7 @@ function adjustColorBrightness(hex, amount) {
 
 /**
  * 应用主题配置到 CSS 变量
- * @param {Object} config 主题配置对象
+ * @param {object} config 主题配置对象
  * @param {boolean} isDark 是否为暗色模式
  */
 export function applyThemeConfig(config, isDark = false) {

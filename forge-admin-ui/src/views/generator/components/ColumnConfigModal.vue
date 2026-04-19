@@ -20,8 +20,12 @@
 
     <template #footer>
       <n-space justify="end">
-        <n-button @click="handleReset">重置配置</n-button>
-        <n-button @click="handleClose">取消</n-button>
+        <n-button @click="handleReset">
+          重置配置
+        </n-button>
+        <n-button @click="handleClose">
+          取消
+        </n-button>
         <n-button
           type="primary"
           :loading="submitLoading"
@@ -35,23 +39,23 @@
 </template>
 
 <script setup>
-import { ref, watch, h } from 'vue'
-import { NInput, NSelect, NCheckbox, NInputNumber } from 'naive-ui'
+import { NCheckbox, NInput, NSelect } from 'naive-ui'
+import { h, ref, watch } from 'vue'
 import { request } from '@/utils'
 
 const props = defineProps({
   show: {
     type: Boolean,
-    default: false
+    default: false,
   },
   tableId: {
     type: [Number, String],
-    default: null
+    default: null,
   },
   tableName: {
     type: String,
-    default: ''
-  }
+    default: '',
+  },
 })
 
 const emit = defineEmits(['update:show', 'success'])
@@ -70,7 +74,7 @@ const javaTypeOptions = [
   { label: 'LocalDateTime', value: 'LocalDateTime' },
   { label: 'LocalDate', value: 'LocalDate' },
   { label: 'Boolean', value: 'Boolean' },
-  { label: 'Double', value: 'Double' }
+  { label: 'Double', value: 'Double' },
 ]
 
 // 查询方式选项
@@ -82,7 +86,7 @@ const queryTypeOptions = [
   { label: '小于', value: 'LT' },
   { label: '大于等于', value: 'GE' },
   { label: '小于等于', value: 'LE' },
-  { label: '不等于', value: 'NE' }
+  { label: '不等于', value: 'NE' },
 ]
 
 // 显示类型选项
@@ -95,7 +99,7 @@ const htmlTypeOptions = [
   { label: '日期控件', value: 'DATETIME' },
   { label: '图片上传', value: 'IMAGE' },
   { label: '文件上传', value: 'FILE' },
-  { label: '富文本', value: 'EDITOR' }
+  { label: '富文本', value: 'EDITOR' },
 ]
 
 // 表格列配置
@@ -104,137 +108,137 @@ const columns = [
     title: '字段名',
     key: 'columnName',
     width: 140,
-    fixed: 'left'
+    fixed: 'left',
   },
   {
     title: '字段描述',
     key: 'columnComment',
     width: 140,
-    render: (row) => h(NInput, {
+    render: row => h(NInput, {
       value: row.columnComment,
       size: 'small',
-      onUpdateValue: (val) => { row.columnComment = val }
-    })
+      onUpdateValue: (val) => { row.columnComment = val },
+    }),
   },
   {
     title: '数据库类型',
     key: 'columnType',
-    width: 120
+    width: 120,
   },
   {
     title: 'Java类型',
     key: 'javaType',
     width: 130,
-    render: (row) => h(NSelect, {
+    render: row => h(NSelect, {
       value: row.javaType,
       options: javaTypeOptions,
       size: 'small',
-      onUpdateValue: (val) => { row.javaType = val }
-    })
+      onUpdateValue: (val) => { row.javaType = val },
+    }),
   },
   {
     title: 'Java字段',
     key: 'javaField',
     width: 130,
-    render: (row) => h(NInput, {
+    render: row => h(NInput, {
       value: row.javaField,
       size: 'small',
-      onUpdateValue: (val) => { row.javaField = val }
-    })
+      onUpdateValue: (val) => { row.javaField = val },
+    }),
   },
   {
     title: '主键',
     key: 'isPk',
     width: 60,
     align: 'center',
-    render: (row) => h(NCheckbox, {
+    render: row => h(NCheckbox, {
       checked: row.isPk === 1,
-      onUpdateChecked: (val) => { row.isPk = val ? 1 : 0 }
-    })
+      onUpdateChecked: (val) => { row.isPk = val ? 1 : 0 },
+    }),
   },
   {
     title: '必填',
     key: 'isRequired',
     width: 60,
     align: 'center',
-    render: (row) => h(NCheckbox, {
+    render: row => h(NCheckbox, {
       checked: row.isRequired === 1,
-      onUpdateChecked: (val) => { row.isRequired = val ? 1 : 0 }
-    })
+      onUpdateChecked: (val) => { row.isRequired = val ? 1 : 0 },
+    }),
   },
   {
     title: '插入',
     key: 'isInsert',
     width: 60,
     align: 'center',
-    render: (row) => h(NCheckbox, {
+    render: row => h(NCheckbox, {
       checked: row.isInsert === 1,
-      onUpdateChecked: (val) => { row.isInsert = val ? 1 : 0 }
-    })
+      onUpdateChecked: (val) => { row.isInsert = val ? 1 : 0 },
+    }),
   },
   {
     title: '编辑',
     key: 'isEdit',
     width: 60,
     align: 'center',
-    render: (row) => h(NCheckbox, {
+    render: row => h(NCheckbox, {
       checked: row.isEdit === 1,
-      onUpdateChecked: (val) => { row.isEdit = val ? 1 : 0 }
-    })
+      onUpdateChecked: (val) => { row.isEdit = val ? 1 : 0 },
+    }),
   },
   {
     title: '列表',
     key: 'isList',
     width: 60,
     align: 'center',
-    render: (row) => h(NCheckbox, {
+    render: row => h(NCheckbox, {
       checked: row.isList === 1,
-      onUpdateChecked: (val) => { row.isList = val ? 1 : 0 }
-    })
+      onUpdateChecked: (val) => { row.isList = val ? 1 : 0 },
+    }),
   },
   {
     title: '查询',
     key: 'isQuery',
     width: 60,
     align: 'center',
-    render: (row) => h(NCheckbox, {
+    render: row => h(NCheckbox, {
       checked: row.isQuery === 1,
-      onUpdateChecked: (val) => { row.isQuery = val ? 1 : 0 }
-    })
+      onUpdateChecked: (val) => { row.isQuery = val ? 1 : 0 },
+    }),
   },
   {
     title: '查询方式',
     key: 'queryType',
     width: 100,
-    render: (row) => h(NSelect, {
+    render: row => h(NSelect, {
       value: row.queryType,
       options: queryTypeOptions,
       size: 'small',
-      onUpdateValue: (val) => { row.queryType = val }
-    })
+      onUpdateValue: (val) => { row.queryType = val },
+    }),
   },
   {
     title: '显示类型',
     key: 'htmlType',
     width: 110,
-    render: (row) => h(NSelect, {
+    render: row => h(NSelect, {
       value: row.htmlType,
       options: htmlTypeOptions,
       size: 'small',
-      onUpdateValue: (val) => { row.htmlType = val }
-    })
+      onUpdateValue: (val) => { row.htmlType = val },
+    }),
   },
   {
     title: '字典类型',
     key: 'dictType',
     width: 120,
-    render: (row) => h(NInput, {
+    render: row => h(NInput, {
       value: row.dictType,
       size: 'small',
       placeholder: '字典编码',
-      onUpdateValue: (val) => { row.dictType = val }
-    })
-  }
+      onUpdateValue: (val) => { row.dictType = val },
+    }),
+  },
 ]
 
 // 监听 show 变化
@@ -257,10 +261,12 @@ async function loadColumns() {
     if (res.code === 200) {
       columnList.value = res.data || []
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载字段列表失败:', error)
     window.$message.error('加载字段列表失败')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -280,12 +286,14 @@ async function handleReset() {
           window.$message.success('重置成功')
           loadColumns()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('重置失败')
-      } finally {
+      }
+      finally {
         loading.value = false
       }
-    }
+    },
   })
 }
 
@@ -304,10 +312,12 @@ async function handleSubmit() {
       emit('success')
       handleClose()
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('保存失败:', error)
     window.$message.error('保存失败')
-  } finally {
+  }
+  finally {
     submitLoading.value = false
   }
 }

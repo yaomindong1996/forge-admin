@@ -11,8 +11,12 @@
       >
         <n-form-item label="状态" path="status">
           <n-switch v-model:value="formData.status" :checked-value="1" :unchecked-value="0">
-            <template #checked>启用</template>
-            <template #unchecked>禁用</template>
+            <template #checked>
+              启用
+            </template>
+            <template #unchecked>
+              禁用
+            </template>
           </n-switch>
         </n-form-item>
 
@@ -60,16 +64,24 @@
 
         <n-form-item label="开启SSL" path="isSsl">
           <n-switch v-model:value="formData.isSsl">
-            <template #checked>是</template>
-            <template #unchecked>否</template>
+            <template #checked>
+              是
+            </template>
+            <template #unchecked>
+              否
+            </template>
           </n-switch>
           <span class="ml-8 text-gray-500">QQ、网易等邮箱通常需要开启SSL</span>
         </n-form-item>
 
         <n-form-item label="开启验证" path="isAuth">
           <n-switch v-model:value="formData.isAuth">
-            <template #checked>是</template>
-            <template #unchecked>否</template>
+            <template #checked>
+              是
+            </template>
+            <template #unchecked>
+              否
+            </template>
           </n-switch>
         </n-form-item>
 

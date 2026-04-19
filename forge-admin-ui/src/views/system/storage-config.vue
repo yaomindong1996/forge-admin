@@ -7,7 +7,7 @@
         detail: 'post@/system/storage/config/detail',
         add: 'post@/system/storage/config',
         update: 'put@/system/storage/config',
-        delete: 'delete@/system/storage/config/{ids}'
+        delete: 'delete@/system/storage/config/{ids}',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
@@ -16,17 +16,17 @@
       add-button-text="新增存储配置"
       :load-detail-on-edit="true"
       :edit-grid-cols="2"
-      :modal-width="'900px'"
+      modal-width="900px"
     >
       <!-- 自定义表单项：允许的文件类型 -->
       <template #form-allowedTypes="{ value, updateValue }">
         <div class="file-types-input">
-          <n-dynamic-tags
+          <NDynamicTags
             :value="parseAllowedTypes(value)"
             @update:value="(tags) => handleFileTypesChange(tags, updateValue)"
           >
             <template #input="{ submit, deactivate }">
-              <n-input
+              <NInput
                 ref="inputRef"
                 v-model:value="fileTypeInput"
                 type="text"
@@ -37,7 +37,7 @@
               />
             </template>
             <template #trigger="{ activate, disabled }">
-              <n-button
+              <NButton
                 size="small"
                 type="primary"
                 dashed
@@ -48,10 +48,10 @@
                   <i class="i-material-symbols:add" />
                 </template>
                 添加类型
-              </n-button>
+              </NButton>
             </template>
-          </n-dynamic-tags>
-          <div class="text-12 text-gray-400 mt-4">
+          </NDynamicTags>
+          <div class="text-12 mt-4 text-gray-400">
             常用类型：jpg、png、gif、pdf、doc、docx、xls、xlsx、zip、rar
           </div>
         </div>
@@ -61,8 +61,8 @@
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
-import { NTag, NBadge, NDynamicTags, NInput, NButton } from 'naive-ui'
+import { NButton, NDynamicTags, NInput, NTag } from 'naive-ui'
+import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
@@ -80,7 +80,7 @@ const storageTypeOptions = [
   { label: '阿里云OSS', value: 'aliyun' },
   { label: '腾讯云COS', value: 'tencent' },
   { label: '七牛云', value: 'qiniu' },
-  { label: 'AWS S3', value: 's3' }
+  { label: 'AWS S3', value: 's3' },
 ]
 
 // 搜索表单配置
@@ -90,8 +90,8 @@ const searchSchema = [
     label: '配置名称',
     type: 'input',
     props: {
-      placeholder: '请输入配置名称'
-    }
+      placeholder: '请输入配置名称',
+    },
   },
   {
     field: 'storageType',
@@ -99,8 +99,8 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择存储类型',
-      options: storageTypeOptions
-    }
+      options: storageTypeOptions,
+    },
   },
   {
     field: 'enabled',
@@ -110,10 +110,10 @@ const searchSchema = [
       placeholder: '请选择状态',
       options: [
         { label: '启用', value: true },
-        { label: '禁用', value: false }
-      ]
-    }
-  }
+        { label: '禁用', value: false },
+      ],
+    },
+  },
 ]
 
 // 表格列配置
@@ -125,9 +125,9 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h('div', { class: 'flex items-center gap-8' }, [
         row.isDefault ? h(NTag, { type: 'success', size: 'small' }, { default: () => '默认' }) : null,
-        h('span', row.configName)
+        h('span', row.configName),
       ])
-    }
+    },
   },
   {
     prop: 'storageType',
@@ -135,28 +135,28 @@ const tableColumns = computed(() => [
     width: 120,
     render: (row) => {
       const typeMap = {
-        'local': { text: '本地存储', type: 'default' },
-        'rustfs': { text: 'RustFS存储', type: 'success' },
-        'minio': { text: 'MinIO', type: 'info' },
-        'aliyun': { text: '阿里云OSS', type: 'warning' },
-        'tencent': { text: '腾讯云COS', type: 'success' },
-        'qiniu': { text: '七牛云', type: 'error' },
-        's3': { text: 'AWS S3', type: 'primary' }
+        local: { text: '本地存储', type: 'default' },
+        rustfs: { text: 'RustFS存储', type: 'success' },
+        minio: { text: 'MinIO', type: 'info' },
+        aliyun: { text: '阿里云OSS', type: 'warning' },
+        tencent: { text: '腾讯云COS', type: 'success' },
+        qiniu: { text: '七牛云', type: 'error' },
+        s3: { text: 'AWS S3', type: 'primary' },
       }
       const config = typeMap[row.storageType] || { text: row.storageType, type: 'default' }
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
-    }
+    },
   },
   {
     prop: 'endpoint',
     label: '访问端点',
     minWidth: 200,
-    showOverflowTooltip: true
+    showOverflowTooltip: true,
   },
   {
     prop: 'bucketName',
     label: '存储桶',
-    width: 150
+    width: 150,
   },
   {
     prop: 'enabled',
@@ -165,41 +165,41 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h(NTag, {
         type: row.enabled ? 'success' : 'default',
-        size: 'small'
+        size: 'small',
       }, {
-        default: () => row.enabled ? '启用' : '禁用'
+        default: () => row.enabled ? '启用' : '禁用',
       })
-    }
+    },
   },
   {
     prop: 'maxFileSize',
     label: '最大文件(MB)',
-    width: 120
+    width: 120,
   },
   {
     prop: 'orderNum',
     label: '排序',
-    width: 80
+    width: 80,
   },
   {
     prop: 'createTime',
     label: '创建时间',
-    width: 180
+    width: 180,
   },
   {
     prop: 'action',
     label: '操作',
-    width: 150,
+    width: 180,
     fixed: 'right',
     actions: [
-      { label: '设为默认', key: 'setDefault', type: 'success', onClick: handleSetDefault, visible: (row) => !row.isDefault },
-      { label: '测试连接', key: 'testConnection', type: 'info', onClick: handleTestConnection },
-      { label: '禁用', key: 'disable', type: 'warning', onClick: handleToggleEnabled, visible: (row) => row.enabled },
-      { label: '启用', key: 'enable', type: 'success', onClick: handleToggleEnabled, visible: (row) => !row.enabled },
       { label: '编辑', key: 'edit', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
-    ]
-  }
+      { label: '设为默认', key: 'setDefault', onClick: handleSetDefault, visible: row => !row.isDefault },
+      { label: '测试连接', key: 'testConnection', onClick: handleTestConnection },
+      { label: '禁用', key: 'disable', onClick: handleToggleEnabled, visible: row => row.enabled },
+      { label: '启用', key: 'enable', onClick: handleToggleEnabled, visible: row => !row.enabled },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -209,9 +209,9 @@ const editSchema = [
     type: 'divider',
     label: '基础信息',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'configName',
@@ -219,8 +219,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入配置名称', trigger: 'blur' }],
     props: {
-      placeholder: '请输入配置名称，如：阿里云OSS生产环境'
-    }
+      placeholder: '请输入配置名称，如：阿里云OSS生产环境',
+    },
   },
   {
     field: 'storageType',
@@ -230,8 +230,8 @@ const editSchema = [
     rules: [{ required: true, message: '请选择存储类型', trigger: 'change' }],
     props: {
       placeholder: '请选择存储类型',
-      options: storageTypeOptions
-    }
+      options: storageTypeOptions,
+    },
   },
   {
     field: 'enabled',
@@ -241,9 +241,9 @@ const editSchema = [
     props: {
       options: [
         { label: '启用', value: true },
-        { label: '禁用', value: false }
-      ]
-    }
+        { label: '禁用', value: false },
+      ],
+    },
   },
   {
     field: 'orderNum',
@@ -252,8 +252,8 @@ const editSchema = [
     defaultValue: 0,
     props: {
       placeholder: '数字越小越靠前',
-      min: 0
-    }
+      min: 0,
+    },
   },
 
   // ==================== 连接配置 ====================
@@ -261,10 +261,10 @@ const editSchema = [
     type: 'divider',
     label: '连接配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
     span: 2,
-    vIf: (formData) => formData.storageType !== 'local'
+    vIf: formData => formData.storageType !== 'local',
   },
   {
     field: 'endpoint',
@@ -281,13 +281,13 @@ const editSchema = [
             return new Error('请输入访问端点')
           }
           return true
-        }
-      }
+        },
+      },
     ],
     props: {
-      placeholder: '如：http://127.0.0.1:9000 或 https://oss-cn-hangzhou.aliyuncs.com'
+      placeholder: '如：http://127.0.0.1:9000 或 https://oss-cn-hangzhou.aliyuncs.com',
     },
-    vIf: (formData) => formData.storageType !== 'local'
+    vIf: formData => formData.storageType !== 'local',
   },
   {
     field: 'bucketName',
@@ -303,22 +303,22 @@ const editSchema = [
             return new Error('请输入存储桶名称')
           }
           return true
-        }
-      }
+        },
+      },
     ],
     props: {
-      placeholder: '请输入存储桶名称'
+      placeholder: '请输入存储桶名称',
     },
-    vIf: (formData) => formData.storageType !== 'local'
+    vIf: formData => formData.storageType !== 'local',
   },
   {
     field: 'region',
     label: '区域',
     type: 'input',
     props: {
-      placeholder: '如：cn-hangzhou、ap-guangzhou'
+      placeholder: '如：cn-hangzhou、ap-guangzhou',
     },
-    vIf: (formData) => ['aliyun', 'tencent', 's3'].includes(formData.storageType)
+    vIf: formData => ['aliyun', 'tencent', 's3'].includes(formData.storageType),
   },
   {
     field: 'accessKey',
@@ -334,13 +334,13 @@ const editSchema = [
             return new Error('请输入AccessKey')
           }
           return true
-        }
-      }
+        },
+      },
     ],
     props: {
-      placeholder: '请输入访问密钥ID'
+      placeholder: '请输入访问密钥ID',
     },
-    vIf: (formData) => formData.storageType !== 'local'
+    vIf: formData => formData.storageType !== 'local',
   },
   {
     field: 'secretKey',
@@ -356,15 +356,15 @@ const editSchema = [
             return new Error('请输入SecretKey')
           }
           return true
-        }
-      }
+        },
+      },
     ],
     props: {
       placeholder: '请输入访问密钥Secret',
       type: 'password',
-      showPasswordOn: 'click'
+      showPasswordOn: 'click',
     },
-    vIf: (formData) => formData.storageType !== 'local'
+    vIf: formData => formData.storageType !== 'local',
   },
   {
     field: 'useHttps',
@@ -372,7 +372,7 @@ const editSchema = [
     type: 'switch',
     defaultValue: true,
     span: 2,
-    vIf: (formData) => formData.storageType !== 'local'
+    vIf: formData => formData.storageType !== 'local',
   },
 
   // ==================== 路径配置 ====================
@@ -380,25 +380,25 @@ const editSchema = [
     type: 'divider',
     label: '路径配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'basePath',
     label: '基础路径',
     type: 'input',
     props: {
-      placeholder: '文件存储的基础路径，如：/upload 或 /files'
-    }
+      placeholder: '文件存储的基础路径，如：/upload 或 /files',
+    },
   },
   {
     field: 'domain',
     label: '访问域名',
     type: 'input',
     props: {
-      placeholder: '文件访问域名，如：https://cdn.example.com'
-    }
+      placeholder: '文件访问域名，如：https://cdn.example.com',
+    },
   },
 
   // ==================== 限制配置 ====================
@@ -406,9 +406,9 @@ const editSchema = [
     type: 'divider',
     label: '限制配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'maxFileSize',
@@ -418,15 +418,15 @@ const editSchema = [
     props: {
       placeholder: '单位：MB',
       min: 1,
-      max: 10240
-    }
+      max: 10240,
+    },
   },
   {
     field: 'allowedTypes',
     label: '允许类型',
     type: 'slot',
     slotName: 'allowedTypes',
-    span: 2
+    span: 2,
   },
   {
     field: 'extraConfig',
@@ -435,9 +435,9 @@ const editSchema = [
     span: 2,
     props: {
       placeholder: 'JSON格式的扩展配置（可选）',
-      rows: 3
-    }
-  }
+      rows: 3,
+    },
+  },
 ]
 
 // 编辑
@@ -447,7 +447,8 @@ function handleEdit(row) {
 
 // 解析允许的文件类型（字符串 -> 数组）
 function parseAllowedTypes(value) {
-  if (!value) return []
+  if (!value)
+    return []
   return value.split(',').map(type => type.trim()).filter(Boolean)
 }
 
@@ -480,10 +481,11 @@ function handleDelete(row) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 
@@ -501,10 +503,11 @@ function handleSetDefault(row) {
           window.$message.success('设置成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('设置失败')
       }
-    }
+    },
   })
 }
 
@@ -523,10 +526,11 @@ function handleToggleEnabled(row) {
           window.$message.success(`${action}成功`)
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error(`${action}失败`)
       }
-    }
+    },
   })
 }
 
@@ -536,11 +540,13 @@ async function handleTestConnection(row) {
     const res = await request.post(`/system/storage/config/test/${row.id}`)
     if (res.code === 200 && res.data) {
       window.$message.success('连接测试成功')
-    } else {
+    }
+    else {
       window.$message.error('连接测试失败')
     }
-  } catch (error) {
-    window.$message.error('连接测试失败：' + (error.message || '未知错误'))
+  }
+  catch (error) {
+    window.$message.error(`连接测试失败：${error.message || '未知错误'}`)
   }
 }
 </script>

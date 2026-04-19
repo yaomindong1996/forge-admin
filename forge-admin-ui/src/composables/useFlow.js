@@ -7,7 +7,7 @@
  *   const { startFlow, flowStatus, approvalHistory, isRunning, canWithdraw } = useFlow('leave_apply', businessKey)
  *   await startFlow({ title: '张三请假申请', variables: { days: 3 } })
  */
-import { ref, computed, readonly, watch } from 'vue'
+import { computed, readonly, ref, watch } from 'vue'
 import flowApi from '@/api/flow'
 import { useUserStore } from '@/store'
 
@@ -20,7 +20,7 @@ export function useFlow(processKey, businessKeyRef) {
   const userStore = useUserStore()
 
   // ======= 状态 =======
-  const statusData = ref(null)    // FlowBusiness 业务状态数据
+  const statusData = ref(null) // FlowBusiness 业务状态数据
   const loading = ref(false)
   const submitting = ref(false)
 
@@ -32,17 +32,17 @@ export function useFlow(processKey, businessKeyRef) {
 
   /** 流程是否已结束（通过/驳回/取消） */
   const isFinished = computed(() =>
-    ['approved', 'rejected', 'canceled'].includes(flowStatus.value)
+    ['approved', 'rejected', 'canceled'].includes(flowStatus.value),
   )
 
   /** 是否可以发起（未发起或已结束才能重新发起） */
   const canStart = computed(() =>
-    flowStatus.value === 'none' || flowStatus.value === 'canceled'
+    flowStatus.value === 'none' || flowStatus.value === 'canceled',
   )
 
   /** 发起人是否可以撤回（运行中才能撤回） */
   const canWithdraw = computed(() =>
-    isRunning.value && statusData.value?.applyUserId === userStore.userId
+    isRunning.value && statusData.value?.applyUserId === userStore.userId,
   )
 
   /** 状态文本 */
@@ -53,7 +53,7 @@ export function useFlow(processKey, businessKeyRef) {
       running: '审批中',
       approved: '已通过',
       rejected: '已驳回',
-      canceled: '已取消'
+      canceled: '已取消',
     }
     return map[flowStatus.value] || '未知'
   })
@@ -66,15 +66,17 @@ export function useFlow(processKey, businessKeyRef) {
       running: 'warning',
       approved: 'success',
       rejected: 'error',
-      canceled: 'default'
+      canceled: 'default',
     }
     return map[flowStatus.value] || 'default'
   })
 
   // ======= 获取业务 Key =======
   function getBusinessKey() {
-    if (typeof businessKeyRef === 'string') return businessKeyRef
-    if (businessKeyRef?.value) return businessKeyRef.value
+    if (typeof businessKeyRef === 'string')
+      return businessKeyRef
+    if (businessKeyRef?.value)
+      return businessKeyRef.value
     return null
   }
 
@@ -85,18 +87,22 @@ export function useFlow(processKey, businessKeyRef) {
    */
   async function refreshStatus() {
     const businessKey = getBusinessKey()
-    if (!businessKey) return
+    if (!businessKey)
+      return
     loading.value = true
     try {
       const res = await flowApi.getProcessStatus(businessKey)
       if (res.code === 200 && res.data) {
         statusData.value = res.data
-      } else {
+      }
+      else {
         statusData.value = null
       }
-    } catch (e) {
+    }
+    catch (e) {
       statusData.value = null
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
@@ -111,8 +117,10 @@ export function useFlow(processKey, businessKeyRef) {
    */
   async function startFlow({ title, businessType, variables = {} } = {}) {
     const businessKey = getBusinessKey()
-    if (!businessKey) throw new Error('businessKey 不能为空')
-    if (!title) throw new Error('流程标题 title 不能为空')
+    if (!businessKey)
+      throw new Error('businessKey 不能为空')
+    if (!title)
+      throw new Error('流程标题 title 不能为空')
 
     submitting.value = true
     try {
@@ -124,14 +132,15 @@ export function useFlow(processKey, businessKeyRef) {
         userId: userStore.userId,
         userName: userStore.userInfo?.nickName || userStore.userInfo?.userName,
         deptId: userStore.userInfo?.deptId,
-        deptName: userStore.userInfo?.deptName
+        deptName: userStore.userInfo?.deptName,
       })
       if (res.code === 200) {
         await refreshStatus()
         return { success: true, processInstanceId: res.data }
       }
       return { success: false, message: res.message }
-    } finally {
+    }
+    finally {
       submitting.value = false
     }
   }
@@ -142,20 +151,22 @@ export function useFlow(processKey, businessKeyRef) {
    */
   async function withdrawFlow(reason = '') {
     const businessKey = getBusinessKey()
-    if (!businessKey) return
+    if (!businessKey)
+      return
     submitting.value = true
     try {
       const res = await flowApi.withdrawProcess({
         processInstanceId: statusData.value?.processInstanceId,
         userId: userStore.userId,
-        reason
+        reason,
       })
       if (res.code === 200) {
         await refreshStatus()
         return { success: true }
       }
       return { success: false, message: res.message }
-    } finally {
+    }
+    finally {
       submitting.value = false
     }
   }
@@ -166,19 +177,21 @@ export function useFlow(processKey, businessKeyRef) {
    */
   async function terminateFlow(reason = '') {
     const businessKey = getBusinessKey()
-    if (!businessKey) return
+    if (!businessKey)
+      return
     submitting.value = true
     try {
       const res = await flowApi.terminateProcess(businessKey, {
         userId: userStore.userId,
-        reason
+        reason,
       })
       if (res.code === 200) {
         await refreshStatus()
         return { success: true }
       }
       return { success: false, message: res.message }
-    } finally {
+    }
+    finally {
       submitting.value = false
     }
   }
@@ -188,11 +201,14 @@ export function useFlow(processKey, businessKeyRef) {
    * @returns {Promise<Array>}
    */
   async function getApprovalHistory() {
-    if (!statusData.value?.processInstanceId) return []
+    if (!statusData.value?.processInstanceId)
+      return []
     try {
       const res = await flowApi.getProcessComments(statusData.value.processInstanceId)
-      if (res.code === 200) return res.data || []
-    } catch (e) {
+      if (res.code === 200)
+        return res.data || []
+    }
+    catch (e) {
       console.error('获取审批历史失败:', e)
     }
     return []
@@ -203,11 +219,14 @@ export function useFlow(processKey, businessKeyRef) {
    * @returns {Promise<object|null>}
    */
   async function getDiagramInfo() {
-    if (!statusData.value?.processInstanceId) return null
+    if (!statusData.value?.processInstanceId)
+      return null
     try {
       const res = await flowApi.getProcessDiagramInfo(statusData.value.processInstanceId)
-      if (res.code === 200) return res.data
-    } catch (e) {
+      if (res.code === 200)
+        return res.data
+    }
+    catch (e) {
       console.error('获取流程图失败:', e)
     }
     return null
@@ -216,12 +235,15 @@ export function useFlow(processKey, businessKeyRef) {
   // businessKey 变化时自动刷新状态
   if (businessKeyRef && typeof businessKeyRef !== 'string') {
     watch(businessKeyRef, (newKey) => {
-      if (newKey) refreshStatus()
+      if (newKey)
+        refreshStatus()
     }, { immediate: true })
-  } else {
+  }
+  else {
     // 字符串形式，立即初始化
     const bk = getBusinessKey()
-    if (bk) refreshStatus()
+    if (bk)
+      refreshStatus()
   }
 
   return {
@@ -245,7 +267,7 @@ export function useFlow(processKey, businessKeyRef) {
     terminateFlow,
     refreshStatus,
     getApprovalHistory,
-    getDiagramInfo
+    getDiagramInfo,
   }
 }
 
@@ -267,12 +289,14 @@ export function useFlowTask() {
         taskId,
         userId: userStore.userId,
         comment,
-        variables
+        variables,
       })
       return { success: res.code === 200, message: res.message }
-    } catch (e) {
+    }
+    catch (e) {
       return { success: false, message: e.message }
-    } finally {
+    }
+    finally {
       processing.value = false
     }
   }
@@ -286,12 +310,14 @@ export function useFlowTask() {
       const res = await flowApi.rejectTask({
         taskId,
         userId: userStore.userId,
-        comment
+        comment,
       })
       return { success: res.code === 200, message: res.message }
-    } catch (e) {
+    }
+    catch (e) {
       return { success: false, message: e.message }
-    } finally {
+    }
+    finally {
       processing.value = false
     }
   }
@@ -306,12 +332,14 @@ export function useFlowTask() {
         taskId,
         userId: userStore.userId,
         targetUserId,
-        comment
+        comment,
       })
       return { success: res.code === 200, message: res.message }
-    } catch (e) {
+    }
+    catch (e) {
       return { success: false, message: e.message }
-    } finally {
+    }
+    finally {
       processing.value = false
     }
   }
@@ -324,9 +352,11 @@ export function useFlowTask() {
     try {
       const res = await flowApi.claimTask(taskId, userStore.userId)
       return { success: res.code === 200, message: res.message }
-    } catch (e) {
+    }
+    catch (e) {
       return { success: false, message: e.message }
-    } finally {
+    }
+    finally {
       processing.value = false
     }
   }
@@ -336,6 +366,6 @@ export function useFlowTask() {
     approve,
     reject,
     delegate,
-    claim
+    claim,
   }
 }

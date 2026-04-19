@@ -1,7 +1,7 @@
 <template>
-  <n-image-group>
+  <NImageGroup>
     <slot />
-  </n-image-group>
+  </NImageGroup>
 </template>
 
 <script setup>

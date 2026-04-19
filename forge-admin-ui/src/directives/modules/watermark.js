@@ -1,17 +1,17 @@
+import { NWatermark } from 'naive-ui'
 /**
  * v-watermark 指令
  * 为元素添加水印效果
- * 
+ *
  * 使用方式：
  * 1. 字符串形式：v-watermark="'水印文字'"
  * 2. 对象形式：v-watermark="{ content: '水印文字', fontSize: 16, rotate: -22 }"
- * 
+ *
  * 示例：
  * <div v-watermark="'机密文件'">内容区域</div>
  * <div v-watermark="{ content: '内部资料', fontSize: 20, fontColor: 'rgba(255, 0, 0, .1)' }">内容区域</div>
  */
 import { createApp, h } from 'vue'
-import { NWatermark } from 'naive-ui'
 
 // 存储每个元素的水印实例
 const watermarkMap = new WeakMap()
@@ -19,18 +19,19 @@ const watermarkMap = new WeakMap()
 /**
  * 创建水印实例
  * @param {HTMLElement} el - 目标元素
- * @param {string|Object} binding - 指令绑定值
+ * @param {string | object} binding - 指令绑定值
  */
 function createWatermarkInstance(el, binding) {
   // 销毁旧实例
   destroyWatermarkInstance(el)
 
   const value = binding.value
-  if (!value) return
+  if (!value)
+    return
 
   // 解析配置
   const config = typeof value === 'string' ? { content: value } : value
-  
+
   const {
     content = '',
     image = '',
@@ -81,9 +82,9 @@ function createWatermarkInstance(el, binding) {
         rotate,
         selectable,
         fullscreen: false, // 指令模式下不使用全屏
-        ...restProps
+        ...restProps,
       })
-    }
+    },
   })
 
   app.mount(container)
@@ -91,7 +92,7 @@ function createWatermarkInstance(el, binding) {
   // 保存实例信息
   watermarkMap.set(el, {
     app,
-    container
+    container,
   })
 }
 
@@ -114,15 +115,15 @@ export default {
   mounted(el, binding) {
     createWatermarkInstance(el, binding)
   },
-  
+
   updated(el, binding) {
     // 只有当值发生变化时才重新创建
     if (binding.value !== binding.oldValue) {
       createWatermarkInstance(el, binding)
     }
   },
-  
+
   unmounted(el) {
     destroyWatermarkInstance(el)
-  }
+  },
 }

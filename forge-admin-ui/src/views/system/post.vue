@@ -8,14 +8,14 @@
         detail: 'post@/system/post/getById',
         add: 'post@/system/post/add',
         update: 'post@/system/post/edit',
-        delete: 'post@/system/post/remove'
+        delete: 'post@/system/post/remove',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
       :edit-schema="editSchema"
       row-key="id"
       :edit-grid-cols="2"
-      :modal-width="'800px'"
+      modal-width="800px"
       add-button-text="新增岗位"
       :hide-selection="false"
       @selection-change="handleSelectionChange"
@@ -24,12 +24,12 @@
       <template #toolbar-end>
         <n-button
           type="error"
-          @click="handleBatchDelete"
           :disabled="selectedKeys.length === 0"
           size="small"
+          @click="handleBatchDelete"
         >
           <template #icon>
-            <n-icon><TrashOutline /></n-icon>
+            <NIcon><TrashOutline /></NIcon>
           </template>
           批量删除
         </n-button>
@@ -39,9 +39,9 @@
 </template>
 
 <script setup>
-import { ref, h, computed, onMounted } from 'vue'
-import { NTag, NIcon } from 'naive-ui'
 import { TrashOutline } from '@vicons/ionicons5'
+import { NIcon, NTag } from 'naive-ui'
+import { computed, h, onMounted, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
@@ -56,13 +56,13 @@ const postTypeOptions = [
   { label: '管理岗', value: 1 },
   { label: '技术岗', value: 2 },
   { label: '业务岗', value: 3 },
-  { label: '其他', value: 4 }
+  { label: '其他', value: 4 },
 ]
 
 // 岗位状态选项
 const postStatusOptions = [
   { label: '正常', value: 1 },
-  { label: '禁用', value: 0 }
+  { label: '禁用', value: 0 },
 ]
 
 // 搜索表单配置
@@ -72,16 +72,16 @@ const searchSchema = [
     label: '岗位名称',
     type: 'input',
     props: {
-      placeholder: '请输入岗位名称'
-    }
+      placeholder: '请输入岗位名称',
+    },
   },
   {
     field: 'postCode',
     label: '岗位编码',
     type: 'input',
     props: {
-      placeholder: '请输入岗位编码'
-    }
+      placeholder: '请输入岗位编码',
+    },
   },
   {
     field: 'postType',
@@ -89,8 +89,8 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择岗位类型',
-      options: postTypeOptions
-    }
+      options: postTypeOptions,
+    },
   },
   {
     field: 'postStatus',
@@ -98,9 +98,9 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择状态',
-      options: postStatusOptions
-    }
-  }
+      options: postStatusOptions,
+    },
+  },
 ]
 
 // 表格列配置
@@ -108,12 +108,12 @@ const tableColumns = computed(() => [
   {
     prop: 'postCode',
     label: '岗位编码',
-    width: 150
+    width: 150,
   },
   {
     prop: 'postName',
     label: '岗位名称',
-    width: 180
+    width: 180,
   },
   {
     prop: 'postType',
@@ -124,32 +124,30 @@ const tableColumns = computed(() => [
         1: { text: '管理岗', type: 'success' },
         2: { text: '技术岗', type: 'info' },
         3: { text: '业务岗', type: 'warning' },
-        4: { text: '其他', type: 'default' }
+        4: { text: '其他', type: 'default' },
       }
       const config = typeMap[row.postType] || { text: '未知', type: 'default' }
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
-    }
+    },
   },
   {
     prop: 'sort',
     label: '排序',
-    width: 80
+    width: 80,
   },
   {
     prop: 'postStatus',
     label: '状态',
     width: 100,
     render: (row) => {
-      return h(NTag,
-        { type: row.postStatus === 1 ? 'success' : 'error', size: 'small' },
-        { default: () => row.postStatus === 1 ? '正常' : '禁用' }
+      return h(NTag, { type: row.postStatus === 1 ? 'success' : 'error', size: 'small' }, { default: () => row.postStatus === 1 ? '正常' : '禁用' },
       )
-    }
+    },
   },
   {
     prop: 'remark',
     label: '备注',
-    minWidth: 150
+    minWidth: 150,
   },
   {
     prop: 'action',
@@ -158,9 +156,9 @@ const tableColumns = computed(() => [
     fixed: 'right',
     actions: [
       { label: '编辑', key: 'edit', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -170,9 +168,9 @@ const editSchema = ref([
     type: 'divider',
     label: '基础信息',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'postCode',
@@ -180,8 +178,8 @@ const editSchema = ref([
     type: 'input',
     rules: [{ required: true, message: '请输入岗位编码', trigger: 'blur' }],
     props: {
-      placeholder: '请输入岗位编码'
-    }
+      placeholder: '请输入岗位编码',
+    },
   },
   {
     field: 'postName',
@@ -189,8 +187,8 @@ const editSchema = ref([
     type: 'input',
     rules: [{ required: true, message: '请输入岗位名称', trigger: 'blur' }],
     props: {
-      placeholder: '请输入岗位名称'
-    }
+      placeholder: '请输入岗位名称',
+    },
   },
   {
     field: 'orgId',
@@ -200,9 +198,9 @@ const editSchema = ref([
       placeholder: '请选择所属组织',
       clearable: true,
       filterable: true,
-      defaultExpandAll: true
+      defaultExpandAll: true,
     },
-    options: () => orgOptions.value
+    options: () => orgOptions.value,
   },
   {
     field: 'postType',
@@ -211,8 +209,8 @@ const editSchema = ref([
     defaultValue: 2,
     rules: [{ required: true, type: 'number', message: '请选择岗位类型', trigger: 'change' }],
     props: {
-      options: postTypeOptions
-    }
+      options: postTypeOptions,
+    },
   },
   {
     field: 'sort',
@@ -221,18 +219,18 @@ const editSchema = ref([
     defaultValue: 0,
     props: {
       placeholder: '排序值',
-      min: 0
-    }
+      min: 0,
+    },
   },
-  
+
   // 状态配置
   {
     type: 'divider',
     label: '状态配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'postStatus',
@@ -240,8 +238,8 @@ const editSchema = ref([
     type: 'radio',
     defaultValue: 1,
     props: {
-      options: postStatusOptions
-    }
+      options: postStatusOptions,
+    },
   },
   {
     field: 'remark',
@@ -250,9 +248,9 @@ const editSchema = ref([
     span: 2,
     props: {
       placeholder: '请输入备注',
-      rows: 3
-    }
-  }
+      rows: 3,
+    },
+  },
 ])
 
 // 组件挂载时加载组织选项
@@ -272,12 +270,13 @@ async function loadOrgOptions() {
           key: item.id,
           children: item.children && item.children.length > 0
             ? convertToTreeSelect(item.children)
-            : undefined
+            : undefined,
         }))
       }
       orgOptions.value = convertToTreeSelect(res.data || [])
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载组织选项失败:', error)
   }
 }
@@ -286,7 +285,7 @@ async function loadOrgOptions() {
 async function handleEdit(row) {
   // 加载组织选项
   await loadOrgOptions()
-  
+
   crudRef.value?.showEdit(row)
 }
 
@@ -304,10 +303,11 @@ function handleDelete(row) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 
@@ -331,10 +331,11 @@ function handleBatchDelete() {
           selectedKeys.value = []
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('批量删除失败')
       }
-    }
+    },
   })
 }
 

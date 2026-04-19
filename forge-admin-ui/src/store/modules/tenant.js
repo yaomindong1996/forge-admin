@@ -8,37 +8,39 @@ export const useTenantStore = defineStore('tenant', {
 
   getters: {
     // 系统名称
-    systemName: (state) => state.config?.systemName || null,
+    systemName: state => state.config?.systemName || null,
 
     // 系统Logo
-    systemLogo: (state) => state.config?.systemLogo || null,
+    systemLogo: state => state.config?.systemLogo || null,
 
     // 浏览器标题
-    browserTitle: (state) => state.config?.browserTitle || null,
+    browserTitle: state => state.config?.browserTitle || null,
 
     // 浏览器图标
-    browserIcon: (state) => state.config?.browserIcon || null,
+    browserIcon: state => state.config?.browserIcon || null,
 
     // 系统布局
-    systemLayout: (state) => state.config?.systemLayout || null,
+    systemLayout: state => state.config?.systemLayout || null,
 
     // 系统主题
-    systemTheme: (state) => state.config?.systemTheme || null,
+    systemTheme: state => state.config?.systemTheme || null,
 
     // 系统介绍
-    systemIntro: (state) => state.config?.systemIntro || null,
+    systemIntro: state => state.config?.systemIntro || null,
 
     // 版权信息
-    copyrightInfo: (state) => state.config?.copyrightInfo || null,
+    copyrightInfo: state => state.config?.copyrightInfo || null,
 
     // 主题配置（JSON对象）
     themeConfig: (state) => {
-      if (!state.config?.themeConfig) return null
+      if (!state.config?.themeConfig)
+        return null
       try {
         return typeof state.config.themeConfig === 'string'
           ? JSON.parse(state.config.themeConfig)
           : state.config.themeConfig
-      } catch (error) {
+      }
+      catch (error) {
         console.error('解析主题配置失败:', error)
         return null
       }
@@ -62,7 +64,8 @@ export const useTenantStore = defineStore('tenant', {
           return res.data
         }
         return null
-      } catch (error) {
+      }
+      catch (error) {
         console.error('加载租户配置失败:', error)
         return null
       }

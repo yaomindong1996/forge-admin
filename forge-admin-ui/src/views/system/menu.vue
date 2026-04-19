@@ -8,7 +8,7 @@
         detail: 'post@/system/resource/getById',
         add: 'post@/system/resource/add',
         update: 'post@/system/resource/edit',
-        delete: 'post@/system/resource/remove'
+        delete: 'post@/system/resource/remove',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
@@ -18,7 +18,7 @@
       :before-render-form="beforeRenderForm"
       row-key="id"
       :edit-grid-cols="2"
-      :modal-width="'900px'"
+      modal-width="900px"
       :show-pagination="false"
       :lazy="false"
       add-button-text="新增资源"
@@ -27,13 +27,13 @@
         expandOnClick: true,
         expandedRowKeys: expandedKeys,
         onUpdateExpandedRowKeys: handleExpandedKeysUpdate,
-        rowProps: rowProps
+        rowProps,
       }"
       @submit-success="handleSubmitSuccess"
     >
       <!-- 自定义工具栏 -->
       <template #toolbar-end>
-        <n-button @click="toggleExpandAll" size="small">
+        <n-button size="small" @click="toggleExpandAll">
           <template #icon>
             <i :class="expandAll ? 'i-material-symbols:unfold-less' : 'i-material-symbols:unfold-more'" />
           </template>
@@ -46,7 +46,7 @@
         <div class="inline-edit-cell" @click.stop>
           <div class="inline-edit-preview" @click="row._editingIcon = true">
             <IconRenderer v-if="row.icon" :icon="row.icon" :font-size="16" />
-            <span v-else class="text-gray-400 text-xs">选择</span>
+            <span v-else class="text-xs text-gray-400">选择</span>
           </div>
           <div v-if="row._editingIcon" class="inline-edit-editor" @click.stop>
             <IconSelector
@@ -63,15 +63,15 @@
           <div class="inline-edit-preview" @click="row._editingSort = true">
             <span class="sort-value">{{ row.sort }}</span>
           </div>
-          <n-input-number
+          <NInputNumber
             v-if="row._editingSort"
             :value="row.sort"
-            @update:value="(value) => { handleInlineUpdate(row, 'sort', value); row._editingSort = false }"
-            @blur="row._editingSort = false"
             :min="0"
             :show-button="false"
             size="small"
             style="width: 80px"
+            @update:value="(value) => { handleInlineUpdate(row, 'sort', value); row._editingSort = false }"
+            @blur="row._editingSort = false"
           />
         </div>
       </template>
@@ -82,9 +82,9 @@
           <IconSelector :model-value="value" @update:model-value="updateValue" />
           <n-input
             :value="value"
-            @update:value="updateValue"
             placeholder="或手动输入图标名称"
             style="flex: 1"
+            @update:value="updateValue"
           >
             <template #suffix>
               <IconRenderer v-if="value" :icon="value" />
@@ -97,14 +97,14 @@
 </template>
 
 <script setup>
-import { ref, h, computed, onMounted } from 'vue'
-import { NTag, NInputNumber } from 'naive-ui'
+import { NInputNumber } from 'naive-ui'
+import { computed, h, onMounted, ref } from 'vue'
+import api from '@/api'
 import { AiCrudPage } from '@/components/ai-form'
 import IconRenderer from '@/components/IconRenderer.vue'
 import IconSelector from '@/components/IconSelector.vue'
-import { request } from '@/utils'
 import { usePermissionStore } from '@/store'
-import api from '@/api'
+import { request } from '@/utils'
 
 defineOptions({ name: 'SystemMenu' })
 
@@ -126,7 +126,7 @@ const resourceTypeOptions = [
   { label: '目录', value: 1 },
   { label: '菜单', value: 2 },
   { label: '按钮', value: 3 },
-  { label: 'API接口', value: 4 }
+  { label: 'API接口', value: 4 },
 ]
 
 // 加载上级资源选项
@@ -141,15 +141,16 @@ async function loadParentResourceOptions() {
           key: item.id,
           children: item.children && item.children.length > 0
             ? convertToTreeSelect(item.children)
-            : undefined
+            : undefined,
         }))
       }
       parentResourceOptions.value = [
         { label: '顶级资源', value: 0, key: 0 },
-        ...convertToTreeSelect(res.data || [])
+        ...convertToTreeSelect(res.data || []),
       ]
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载上级资源选项失败:', error)
   }
 }
@@ -157,7 +158,7 @@ async function loadParentResourceOptions() {
 // 显示状态选项
 const visibleOptions = [
   { label: '显示', value: 1 },
-  { label: '隐藏', value: 0 }
+  { label: '隐藏', value: 0 },
 ]
 
 // API请求方法选项
@@ -165,7 +166,7 @@ const apiMethodOptions = [
   { label: 'GET', value: 'GET' },
   { label: 'POST', value: 'POST' },
   { label: 'PUT', value: 'PUT' },
-  { label: 'DELETE', value: 'DELETE' }
+  { label: 'DELETE', value: 'DELETE' },
 ]
 
 // 搜索表单配置
@@ -175,8 +176,8 @@ const searchSchema = [
     label: '资源名称',
     type: 'input',
     props: {
-      placeholder: '请输入资源名称'
-    }
+      placeholder: '请输入资源名称',
+    },
   },
   {
     field: 'resourceType',
@@ -184,8 +185,8 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择资源类型',
-      options: resourceTypeOptions
-    }
+      options: resourceTypeOptions,
+    },
   },
   {
     field: 'visible',
@@ -193,9 +194,9 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择状态',
-      options: visibleOptions
-    }
-  }
+      options: visibleOptions,
+    },
+  },
 ]
 
 // 资源类型样式配置
@@ -203,13 +204,13 @@ const typeStyleMap = {
   1: { text: '目录', icon: 'i-material-symbols:folder-outline', color: '#4C6EF5', bg: '#EDF2FF', fontWeight: '600' },
   2: { text: '菜单', icon: 'i-material-symbols:menu', color: '#40C057', bg: '#EBFBEE', fontWeight: '500' },
   3: { text: '按钮', icon: 'i-material-symbols:smart-button-outline', color: '#FD7E14', bg: '#FFF4E6', fontWeight: '400' },
-  4: { text: 'API', icon: 'i-material-symbols:api', color: '#FA5252', bg: '#FFF5F5', fontWeight: '400' }
+  4: { text: 'API', icon: 'i-material-symbols:api', color: '#FA5252', bg: '#FFF5F5', fontWeight: '400' },
 }
 
 // 行样式 — 根据资源类型添加 class
 function rowProps(row) {
   return {
-    class: `resource-type-${row.resourceType}`
+    class: `resource-type-${row.resourceType}`,
   }
 }
 
@@ -227,12 +228,12 @@ const tableColumns = computed(() => [
           ? h(IconRenderer, {
               icon: row.icon,
               fontSize: '16',
-              customStyle: row.resourceType <= 2 ? { color: 'var(--primary-color, #4C6EF5)' } : { color: '#999' }
+              customStyle: row.resourceType <= 2 ? { color: 'var(--primary-color, #4C6EF5)' } : { color: '#999' },
             })
           : null,
-        h('span', { style: { marginLeft: row.icon ? '8px' : '0' } }, row.resourceName)
+        h('span', { style: { marginLeft: row.icon ? '8px' : '0' } }, row.resourceName),
       ])
-    }
+    },
   },
   {
     prop: 'resourceType',
@@ -240,48 +241,49 @@ const tableColumns = computed(() => [
     width: 90,
     render: (row) => {
       const config = typeStyleMap[row.resourceType]
-      if (!config) return h('span', '未知')
+      if (!config)
+        return h('span', '未知')
       return h('span', {
         class: 'resource-type-badge',
         style: {
           color: config.color,
           backgroundColor: config.bg,
-          borderColor: config.color
-        }
+          borderColor: config.color,
+        },
       }, [
         h('i', { class: config.icon, style: { fontSize: '12px', marginRight: '4px' } }),
-        config.text
+        config.text,
       ])
-    }
+    },
   },
   {
     prop: 'icon',
     label: '图标',
     width: 120,
-    _slot: 'icon'
+    _slot: 'icon',
   },
   {
     prop: 'path',
     label: '路由地址',
-    width: 180
+    width: 180,
   },
   {
     prop: 'component',
     label: '组件路径',
     width: 180,
-    visible: false
+    visible: false,
   },
   {
     prop: 'perms',
     label: '权限标识',
     width: 160,
-    visible: false
+    visible: false,
   },
   {
     prop: 'sort',
     label: '排序',
     width: 90,
-    _slot: 'sort'
+    _slot: 'sort',
   },
   {
     prop: 'visible',
@@ -294,15 +296,15 @@ const tableColumns = computed(() => [
         onClick: (e) => {
           e.stopPropagation()
           handleInlineUpdate(row, 'visible', isVisible ? 0 : 1)
-        }
+        },
       }, [
         h('i', {
           class: isVisible ? 'i-material-symbols:visibility' : 'i-material-symbols:visibility-off',
-          style: { fontSize: '14px', marginRight: '2px' }
+          style: { fontSize: '14px', marginRight: '2px' },
         }),
-        isVisible ? '显示' : '隐藏'
+        isVisible ? '显示' : '隐藏',
       ])
-    }
+    },
   },
   {
     prop: 'action',
@@ -312,9 +314,9 @@ const tableColumns = computed(() => [
     actions: [
       { label: '新增子项', key: 'add', type: 'primary', onClick: handleAdd },
       { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -324,9 +326,9 @@ const editSchema = ref([
     type: 'divider',
     label: '基础信息',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'parentId',
@@ -340,11 +342,11 @@ const editSchema = ref([
       defaultExpandAll: false,
       keyField: 'value',
       labelField: 'label',
-      childrenField: 'children'
+      childrenField: 'children',
     },
     options: () => {
       return parentResourceOptions.value
-    }
+    },
   },
   {
     field: 'resourceType',
@@ -357,9 +359,9 @@ const editSchema = ref([
         { label: '目录', value: 1 },
         { label: '菜单', value: 2 },
         { label: '按钮', value: 3 },
-        { label: 'API', value: 4 }
-      ]
-    }
+        { label: 'API', value: 4 },
+      ],
+    },
   },
   {
     field: 'resourceName',
@@ -367,8 +369,8 @@ const editSchema = ref([
     type: 'input',
     rules: [{ required: true, message: '请输入资源名称', trigger: 'blur' }],
     props: {
-      placeholder: '请输入资源名称'
-    }
+      placeholder: '请输入资源名称',
+    },
   },
   {
     field: 'sort',
@@ -377,8 +379,8 @@ const editSchema = ref([
     defaultValue: 0,
     props: {
       placeholder: '排序值',
-      min: 0
-    }
+      min: 0,
+    },
   },
 
   // 目录和菜单配置
@@ -386,17 +388,17 @@ const editSchema = ref([
     type: 'divider',
     label: '目录/菜单配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
     span: 2,
-    vIf: (formData) => formData.resourceType === 1 || formData.resourceType === 2
+    vIf: formData => formData.resourceType === 1 || formData.resourceType === 2,
   },
   {
     field: 'icon',
     label: '图标',
     type: 'slot',
     slotName: 'icon',
-    vIf: (formData) => formData.resourceType === 1 || formData.resourceType === 2
+    vIf: formData => formData.resourceType === 1 || formData.resourceType === 2,
   },
   {
     field: 'path',
@@ -413,13 +415,13 @@ const editSchema = ref([
             return !!value
           }
           return true
-        }
-      }
+        },
+      },
     ],
     props: {
-      placeholder: '/system/user'
+      placeholder: '/system/user',
     },
-    vIf: (formData) => formData.resourceType === 1 || formData.resourceType === 2
+    vIf: formData => formData.resourceType === 1 || formData.resourceType === 2,
   },
   {
     field: 'component',
@@ -437,22 +439,22 @@ const editSchema = ref([
             return !!value
           }
           return true
-        }
-      }
+        },
+      },
     ],
     props: {
-      placeholder: 'system/user/index'
+      placeholder: 'system/user/index',
     },
-    vIf: (formData) => formData.resourceType === 2
+    vIf: formData => formData.resourceType === 2,
   },
   {
     field: 'redirect',
     label: '重定向',
     type: 'input',
     props: {
-      placeholder: '重定向地址'
+      placeholder: '重定向地址',
     },
-    vIf: (formData) => formData.resourceType === 2
+    vIf: formData => formData.resourceType === 2,
   },
   {
     field: 'isExternal',
@@ -462,10 +464,10 @@ const editSchema = ref([
     props: {
       options: [
         { label: '否', value: 0 },
-        { label: '是', value: 1 }
-      ]
+        { label: '是', value: 1 },
+      ],
     },
-    vIf: (formData) => formData.resourceType === 2
+    vIf: formData => formData.resourceType === 2,
   },
   {
     field: 'keepAlive',
@@ -475,10 +477,10 @@ const editSchema = ref([
     props: {
       options: [
         { label: '否', value: 0 },
-        { label: '是', value: 1 }
-      ]
+        { label: '是', value: 1 },
+      ],
     },
-    vIf: (formData) => formData.resourceType === 2
+    vIf: formData => formData.resourceType === 2,
   },
   {
     field: 'alwaysShow',
@@ -488,10 +490,10 @@ const editSchema = ref([
     props: {
       options: [
         { label: '否', value: 0 },
-        { label: '是', value: 1 }
-      ]
+        { label: '是', value: 1 },
+      ],
     },
-    vIf: (formData) => formData.resourceType === 2
+    vIf: formData => formData.resourceType === 2,
   },
 
   // 按钮和API配置
@@ -499,10 +501,10 @@ const editSchema = ref([
     type: 'divider',
     label: '按钮/API配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
     span: 2,
-    vIf: (formData) => formData.resourceType === 3 || formData.resourceType === 4
+    vIf: formData => formData.resourceType === 3 || formData.resourceType === 4,
   },
   {
     field: 'perms',
@@ -510,9 +512,9 @@ const editSchema = ref([
     type: 'input',
     span: 2,
     props: {
-      placeholder: 'sys:user:add'
+      placeholder: 'sys:user:add',
     },
-    vIf: (formData) => formData.resourceType === 3 || formData.resourceType === 4
+    vIf: formData => formData.resourceType === 3 || formData.resourceType === 4,
   },
   {
     field: 'apiMethod',
@@ -521,9 +523,9 @@ const editSchema = ref([
     defaultValue: 'GET',
     props: {
       placeholder: '请求方法',
-      options: apiMethodOptions
+      options: apiMethodOptions,
     },
-    vIf: (formData) => formData.resourceType === 4
+    vIf: formData => formData.resourceType === 4,
   },
   {
     field: 'apiUrl',
@@ -531,9 +533,9 @@ const editSchema = ref([
     type: 'input',
     span: 2,
     props: {
-      placeholder: '/system/user/list'
+      placeholder: '/system/user/list',
     },
-    vIf: (formData) => formData.resourceType === 4
+    vIf: formData => formData.resourceType === 4,
   },
 
   // 状态配置
@@ -541,9 +543,9 @@ const editSchema = ref([
     type: 'divider',
     label: '状态配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'visible',
@@ -553,9 +555,9 @@ const editSchema = ref([
     props: {
       options: [
         { label: '显示', value: 1 },
-        { label: '隐藏', value: 0 }
-      ]
-    }
+        { label: '隐藏', value: 0 },
+      ],
+    },
   },
   {
     field: 'menuStatus',
@@ -565,10 +567,10 @@ const editSchema = ref([
     props: {
       options: [
         { label: '显示', value: 1 },
-        { label: '隐藏', value: 0 }
-      ]
+        { label: '隐藏', value: 0 },
+      ],
     },
-    vIf: (formData) => formData.resourceType === 1 || formData.resourceType === 2
+    vIf: formData => formData.resourceType === 1 || formData.resourceType === 2,
   },
   {
     field: 'remark',
@@ -577,14 +579,14 @@ const editSchema = ref([
     span: 2,
     props: {
       placeholder: '请输入备注',
-      rows: 3
-    }
-  }
+      rows: 3,
+    },
+  },
 ])
 
 // 获取所有节点的 key（用于展开/收起）
 function getAllKeys(list, keys = []) {
-  list.forEach(item => {
+  list.forEach((item) => {
     keys.push(item.id)
     if (item.children && item.children.length > 0) {
       getAllKeys(item.children, keys)
@@ -631,7 +633,8 @@ function toggleExpandAll() {
   if (expandAll.value) {
     const tableData = crudRef.value?.getTableData() || []
     expandedKeys.value = getAllKeys(tableData)
-  } else {
+  }
+  else {
     expandedKeys.value = []
   }
 }
@@ -641,7 +644,8 @@ async function handleAdd(row) {
   await loadParentResourceOptions()
   if (row) {
     pendingParentId.value = row.id
-  } else {
+  }
+  else {
     pendingParentId.value = null
   }
   crudRef.value?.showAdd()
@@ -668,10 +672,11 @@ function handleDelete(row) {
           crudRef.value?.refresh()
           await refreshSystemMenu()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 
@@ -687,7 +692,8 @@ async function refreshSystemMenu() {
     if (res.code === 200 && res.data) {
       permissionStore.setMenuData(res.data)
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('刷新系统菜单失败:', error)
   }
 }
@@ -698,16 +704,18 @@ async function handleInlineUpdate(row, field, value) {
     row[field] = value
     const res = await request.post('/system/resource/edit', {
       id: row.id,
-      [field]: value
+      [field]: value,
     })
     if (res.code === 200) {
       window.$message.success('更新成功')
       crudRef.value?.refresh()
       await refreshSystemMenu()
-    } else {
+    }
+    else {
       window.$message.error(res.msg || '更新失败')
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('内联更新失败:', error)
     window.$message.error('更新失败')
   }
@@ -770,35 +778,35 @@ async function handleInlineUpdate(row, field, value) {
 }
 
 .visibility-toggle.is-visible {
-  color: #40C057;
+  color: #40c057;
 }
 
 .visibility-toggle.is-visible:hover {
-  background: #EBFBEE;
+  background: #ebfbee;
 }
 
 .visibility-toggle.is-hidden {
-  color: #868E96;
+  color: #868e96;
 }
 
 .visibility-toggle.is-hidden:hover {
-  background: #F8F9FA;
+  background: #f8f9fa;
 }
 
 /* 行背景区分类型 */
 :deep(.resource-type-1) {
-  background-color: #F8F9FF !important;
+  background-color: #f8f9ff !important;
 }
 
 :deep(.resource-type-1:hover) {
-  background-color: #EDF2FF !important;
+  background-color: #edf2ff !important;
 }
 
 :deep(.resource-type-2) {
-  background-color: #F8FFF8 !important;
+  background-color: #f8fff8 !important;
 }
 
 :deep(.resource-type-2:hover) {
-  background-color: #EBFBEE !important;
+  background-color: #ebfbee !important;
 }
 </style>

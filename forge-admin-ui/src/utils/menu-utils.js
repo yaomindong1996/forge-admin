@@ -3,7 +3,7 @@
  */
 
 import { h } from 'vue'
-import IconRenderer from "@/components/IconRenderer.vue";
+import IconRenderer from '@/components/IconRenderer.vue'
 
 /**
  * 生成唯一ID
@@ -11,7 +11,7 @@ import IconRenderer from "@/components/IconRenderer.vue";
  * @returns {string} 唯一ID
  */
 function generateUniqueId(prefix = 'menu_') {
-  return prefix + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+  return `${prefix + Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 }
 
 /**
@@ -31,9 +31,11 @@ export function processTopMenus(menuItems) {
       id: item.id || generateUniqueId(`menu_${index}_`),
       key: item.key || item.id || generateUniqueId(`menu_key_${index}_`),
       label: item.name || item.label || '',
-      icon: item.icon ? ()=>h(IconRenderer, {
-        icon: item.icon
-      }) : ()=>""
+      icon: item.icon
+        ? () => h(IconRenderer, {
+            icon: item.icon,
+          })
+        : () => '',
     }
 
     // 如果有子菜单，递归处理
@@ -43,9 +45,11 @@ export function processTopMenus(menuItems) {
         id: child.id || generateUniqueId(`child_${index}_${childIndex}_`),
         key: child.key || child.id || generateUniqueId(`child_key_${index}_${childIndex}_`),
         label: child.name || child.label || '',
-        icon: child.icon ? ()=>h(IconRenderer, {
-          icon: child.icon
-        }) : ()=>""
+        icon: child.icon
+          ? () => h(IconRenderer, {
+              icon: child.icon,
+            })
+          : () => '',
       }))
     }
 
@@ -70,7 +74,8 @@ export function processMenuData(menuItems) {
       if (item.children && item.children.length > 0) {
         acc.push(...item.children)
       }
-    } else {
+    }
+    else {
       // 不是 subapp 类型，正常保留
       acc.push(item)
     }
@@ -89,10 +94,11 @@ export function processMenuData(menuItems) {
       if (typeof item.icon === 'function') {
         // 如果已经是函数，直接使用
         menuItem.icon = item.icon
-      } else if (typeof item.icon === 'string' && item.icon.trim() !== '' && item.icon !== '-1') {
+      }
+      else if (typeof item.icon === 'string' && item.icon.trim() !== '' && item.icon !== '-1') {
         // 如果是字符串，转换为渲染函数
         menuItem.icon = () => h(IconRenderer, {
-          icon: item.icon
+          icon: item.icon,
         })
       }
     }
@@ -117,8 +123,8 @@ export function processMenuData(menuItems) {
 /**
  * 查找当前活跃的顶级菜单
  * @param {Array} menus 菜单数据
- * @param {Object} route 当前路由
- * @returns {Object|null} 活跃的顶级菜单
+ * @param {object} route 当前路由
+ * @returns {object | null} 活跃的顶级菜单
  */
 export function findActiveTopMenu(menus, route) {
   // 处理菜单数据，提取所有菜单项的子菜单作为一级菜单
@@ -151,10 +157,11 @@ export function findActiveTopMenu(menus, route) {
  * 根据菜单ID查找菜单项
  * @param {Array} menuItems 菜单数据
  * @param {string} key 菜单ID
- * @returns {Object|null} 找到的菜单项
+ * @returns {object | null} 找到的菜单项
  */
 export function findMenuItem(menuItems, key) {
-  if (!menuItems || !Array.isArray(menuItems)) return null
+  if (!menuItems || !Array.isArray(menuItems))
+    return null
 
   for (const item of menuItems) {
     if ((item.key || item.id) === key) {
@@ -162,7 +169,8 @@ export function findMenuItem(menuItems, key) {
     }
     if (item.children && item.children.length > 0) {
       const found = findMenuItem(item.children, key)
-      if (found) return found
+      if (found)
+        return found
     }
   }
   return null

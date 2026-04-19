@@ -19,7 +19,9 @@ Wrapper components that pass attributes to child elements can benefit from type-
 ```vue
 <!-- MyButton.vue - wrapper around native button -->
 <template>
-  <button v-bind="$attrs"><slot /></button>
+  <button v-bind="$attrs">
+    <slot />
+  </button>
 </template>
 ```
 
@@ -39,6 +41,7 @@ Enable `fallthroughAttributes` in your tsconfig:
 ## How It Works
 
 When `fallthroughAttributes: true`:
+
 - Vue Language Server analyzes which element receives `$attrs`
 - IDE autocomplete suggests valid attributes for the target element
 - Helps developers discover available attributes

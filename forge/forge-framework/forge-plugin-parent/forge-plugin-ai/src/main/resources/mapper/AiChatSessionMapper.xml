@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.ai.session.mapper.AiChatSessionMapper">
+
+    <resultMap id="sessionVOResultMap" type="com.mdframe.forge.plugin.ai.session.vo.AiSessionVO">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="nickName" column="nick_name"/>
+        <result property="avatar" column="avatar"/>
+        <result property="sessionName" column="session_name"/>
+        <result property="agentCode" column="agent_code"/>
+        <result property="status" column="status"/>
+        <result property="messageCount" column="message_count"/>
+        <result property="tokenUsage" column="token_usage"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectSessionPage" resultMap="sessionVOResultMap">
+        SELECT s.id, s.user_id, u.real_name AS nick_name, u.avatar,
+               s.session_name, s.agent_code, s.status,
+               (SELECT COUNT(*) FROM ai_chat_record r WHERE r.session_id = s.id) AS message_count,
+               (SELECT COALESCE(SUM(r.token_usage), 0) FROM ai_chat_record r WHERE r.session_id = s.id) AS token_usage,
+               s.create_time, s.update_time
+        FROM ai_chat_session s
+        LEFT JOIN sys_user u ON s.user_id = u.id
+        <where>
+            <if test="query.keyword != null and query.keyword != ''">
+                AND (u.real_name LIKE CONCAT('%', #{query.keyword}, '%') OR s.session_name LIKE CONCAT('%', #{query.keyword}, '%'))
+            </if>
+            <if test="query.startTime != null and query.startTime != ''">
+                AND s.create_time &gt;= #{query.startTime}
+            </if>
+            <if test="query.endTime != null and query.endTime != ''">
+                AND s.create_time &lt;= CONCAT(#{query.endTime}, ' 23:59:59')
+            </if>
+            <if test="query.status != null and query.status != ''">
+                AND s.status = #{query.status}
+            </if>
+        </where>
+        ORDER BY s.update_time DESC
+    </select>
+
+    <select id="selectStatistics" resultType="com.mdframe.forge.plugin.ai.session.vo.AiSessionStatisticsVO">
+        SELECT
+            (SELECT COUNT(*) FROM ai_chat_session WHERE status = '0') AS totalSessions,
+            (SELECT COUNT(*) FROM ai_chat_record) AS totalMessages,
+            (SELECT COUNT(*) FROM ai_chat_session WHERE status = '0' AND DATE(create_time) = CURDATE()) AS todaySessions,
+            (SELECT COALESCE(SUM(token_usage), 0) FROM ai_chat_record) AS totalTokenUsage
+    </select>
+
+    <select id="selectDailyTrend" resultType="com.mdframe.forge.plugin.ai.session.vo.DailyTrendItem">
+        SELECT
+            d.date,
+            COALESCE(s.cnt, 0) AS sessionCount,
+            COALESCE(r.cnt, 0) AS messageCount
+        FROM (
+            SELECT DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL n DAY), '%Y-%m-%d') AS date
+            FROM (SELECT 0 AS n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+                  UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9
+                  UNION SELECT 10 UNION SELECT 11 UNION SELECT 12 UNION SELECT 13 UNION SELECT 14
+                  UNION SELECT 15 UNION SELECT 16 UNION SELECT 17 UNION SELECT 18 UNION SELECT 19
+                  UNION SELECT 20 UNION SELECT 21 UNION SELECT 22 UNION SELECT 23 UNION SELECT 24
+                  UNION SELECT 25 UNION SELECT 26 UNION SELECT 27 UNION SELECT 28 UNION SELECT 29) nums
+        ) d
+        LEFT JOIN (
+            SELECT DATE(create_time) AS dt, COUNT(*) AS cnt
+            FROM ai_chat_session
+            WHERE create_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            GROUP BY DATE(create_time)
+        ) s ON d.date = s.dt
+        LEFT JOIN (
+            SELECT DATE(create_time) AS dt, COUNT(*) AS cnt
+            FROM ai_chat_record
+            WHERE create_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            GROUP BY DATE(create_time)
+        ) r ON d.date = r.dt
+        ORDER BY d.date
+    </select>
+
+</mapper>

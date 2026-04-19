@@ -15,6 +15,7 @@ In large Vue projects, saving files can take 30-60+ seconds due to VSCode's code
 ## Problem
 
 Symptoms:
+
 - Save operation takes 30+ seconds
 - Editor becomes unresponsive during save
 - CPU spikes when saving Vue files
@@ -29,6 +30,7 @@ VSCode emits document change events multiple times during save cycles. Each even
 Disable code actions or limit their timeout:
 
 **Option 1: Disable code actions (fastest)**
+
 ```json
 // .vscode/settings.json
 {
@@ -37,6 +39,7 @@ Disable code actions or limit their timeout:
 ```
 
 **Option 2: Limit code action time**
+
 ```json
 // .vscode/settings.json
 {
@@ -45,6 +48,7 @@ Disable code actions or limit their timeout:
 ```
 
 **Option 3: Disable specific code actions**
+
 ```json
 // .vscode/settings.json
 {

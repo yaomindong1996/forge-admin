@@ -35,6 +35,7 @@ const props = withDefaults(defineProps<Props>(), {
 ## Fix
 
 **Option 1: Use Reactive Props Destructure (Vue 3.5+)**
+
 ```vue
 <script setup lang="ts">
 interface Props {
@@ -47,6 +48,7 @@ const { value = 'default' } = defineProps<Props>()
 ```
 
 **Option 2: Use runtime declaration**
+
 ```vue
 <script setup lang="ts">
 const props = defineProps({
@@ -59,6 +61,7 @@ const props = defineProps({
 ```
 
 **Option 3: Split into separate props**
+
 ```typescript
 interface Props {
   enabled: boolean
@@ -83,6 +86,7 @@ const { prop = 'default' } = defineProps<{ prop?: string }>()
 ## Enable Reactive Props Destructure
 
 This is enabled by default in Vue 3.5+. For older versions:
+
 ```javascript
 // vite.config.js
 export default {

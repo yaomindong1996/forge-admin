@@ -26,6 +26,7 @@ With `unplugin-vue-router` typed routes, `route.params` becomes a union of ALL p
 ## Fix
 
 **Option 1: Pass route name to useRoute (recommended)**
+
 ```typescript
 // pages/users/[id].vue
 import { useRoute } from 'vue-router/auto'
@@ -34,10 +35,11 @@ import { useRoute } from 'vue-router/auto'
 const route = useRoute('/users/[id]')
 
 // Now properly typed as { id: string }
-console.log(route.params.id)  // string, not string | undefined
+console.log(route.params.id) // string, not string | undefined
 ```
 
 **Option 2: Type assertion with specific route**
+
 ```typescript
 import { useRoute } from 'vue-router'
 import type { RouteLocationNormalized } from 'vue-router/auto-routes'
@@ -47,6 +49,7 @@ route.params.id  // Properly typed
 ```
 
 **Option 3: Define route-specific param type**
+
 ```typescript
 // In your page component
 interface UserRouteParams {
@@ -60,6 +63,7 @@ const { id } = route.params as UserRouteParams
 ## Required tsconfig Setting
 
 Ensure `moduleResolution: "bundler"` for unplugin-vue-router:
+
 ```json
 {
   "compilerOptions": {
@@ -71,6 +75,7 @@ Ensure `moduleResolution: "bundler"` for unplugin-vue-router:
 ## Caveat: Route Name Format
 
 The route name matches the file path pattern:
+
 - `pages/users/[id].vue` → `/users/[id]`
 - `pages/posts/[slug]/comments.vue` → `/posts/[slug]/comments`
 

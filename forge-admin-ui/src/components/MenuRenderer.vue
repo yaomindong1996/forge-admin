@@ -1,7 +1,7 @@
 <template>
   <div class="menu-container">
     <!-- 侧边栏菜单 -->
-    <n-menu
+    <NMenu
       :options="menuOptions"
       :collapsed="collapsed"
       :collapsed-width="64"
@@ -14,16 +14,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, h } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { NMenu } from 'naive-ui'
+import { computed, h, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { usePermissionStore } from '@/store'
 
 const props = defineProps({
   collapsed: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 const route = useRoute()
@@ -34,36 +34,37 @@ const permissionStore = usePermissionStore()
 const expandedKeys = ref([])
 
 // 处理菜单展开
-const handleExpand = (keys) => {
+function handleExpand(keys) {
   expandedKeys.value = keys
 }
 
 // 递归处理菜单数据
-const processMenuData = (menuItems) => {
-  if (!menuItems || !Array.isArray(menuItems)) return []
-  
-  return menuItems.map(item => {
+function processMenuData(menuItems) {
+  if (!menuItems || !Array.isArray(menuItems))
+    return []
+
+  return menuItems.map((item) => {
     // 只处理subapp、module和menu类型的菜单项
     if (!['subapp', 'module', 'menu'].includes(item.type)) {
       return null
     }
-    
+
     const menuItem = {
       key: item.id,
-      label: item.name
+      label: item.name,
     }
-    
+
     // 设置图标
     if (item.icon && item.icon.trim() !== '') {
       menuItem.icon = () => h('i', { class: item.icon })
     }
-    
+
     // 对于menu类型，设置路由路径和点击事件
     if (item.type === 'menu' && item.path) {
       menuItem.path = item.path
       menuItem.onClick = () => handleMenuClick(item)
     }
-    
+
     // 处理子菜单
     if (item.children && item.children.length > 0) {
       // 过滤掉空的子菜单
@@ -72,18 +73,19 @@ const processMenuData = (menuItems) => {
         menuItem.children = children
       }
     }
-    
+
     return menuItem
   }).filter(item => item !== null)
 }
 
 // 处理菜单点击
-const handleMenuClick = (item) => {
+function handleMenuClick(item) {
   if (item.path) {
     // iframe模式处理
     if (item.openMode === 'iframe' && item.subAppURL) {
       router.push(`/iframe?page=${encodeURIComponent(item.subAppURL + (item.path || ''))}`)
-    } else {
+    }
+    else {
       router.push(item.path)
     }
   }
@@ -101,9 +103,9 @@ onMounted(() => {
   // 默认展开当前路由匹配的菜单
   const currentPath = route.path
   const expandKeys = []
-  
+
   const findMatchingKeys = (menus) => {
-    menus.forEach(menu => {
+    menus.forEach((menu) => {
       if (menu.path === currentPath) {
         expandKeys.push(menu.key)
       }
@@ -117,7 +119,7 @@ onMounted(() => {
       }
     })
   }
-  
+
   if (menuOptions.value && menuOptions.value.length > 0) {
     findMatchingKeys(menuOptions.value)
     expandedKeys.value = expandKeys

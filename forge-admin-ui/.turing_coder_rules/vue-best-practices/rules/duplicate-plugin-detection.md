@@ -26,18 +26,20 @@ Vite doesn't deduplicate plugins by name when merging configs. The Vue plugin's 
 ## Fix
 
 **Option 1: Use configFile: false with inline plugins**
+
 ```typescript
-import { build } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { build } from 'vite'
 
 await build({
-  configFile: false,  // Don't load vite.config.js
+  configFile: false, // Don't load vite.config.js
   plugins: [vue()],
   // ... rest of config
 })
 ```
 
 **Option 2: Don't specify plugins in inlineConfig**
+
 ```typescript
 // vite.config.js already has vue plugin
 import { build } from 'vite'
@@ -50,9 +52,10 @@ await build({
 ```
 
 **Option 3: Filter out Vue plugin before merging**
+
 ```typescript
-import { build, loadConfigFromFile } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { build, loadConfigFromFile } from 'vite'
 
 const { config } = await loadConfigFromFile({ command: 'build', mode: 'production' })
 
@@ -70,6 +73,7 @@ await build({
 ## Detection Script
 
 Add this to debug plugin registration:
+
 ```typescript
 // vite.config.ts
 export default defineConfig({
@@ -90,11 +94,11 @@ export default defineConfig({
 
 ## Common Scenarios
 
-| Scenario | Solution |
-|----------|----------|
-| Using `vite.createServer()` | Use `configFile: false` |
-| Build script with custom config | Don't duplicate plugins |
-| Monorepo with shared config | Check for plugin inheritance |
+| Scenario                        | Solution                     |
+| ------------------------------- | ---------------------------- |
+| Using `vite.createServer()`     | Use `configFile: false`      |
+| Build script with custom config | Don't duplicate plugins      |
+| Monorepo with shared config     | Check for plugin inheritance |
 
 ## Reference
 

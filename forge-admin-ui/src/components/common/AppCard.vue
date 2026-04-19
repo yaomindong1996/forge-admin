@@ -6,7 +6,7 @@
       { 'card-hover': hover },
       { 'card-glass': glass },
       `shadow-${shadow}`,
-      `radius-${radius}`
+      `radius-${radius}`,
     ]"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
@@ -43,17 +43,17 @@ defineProps({
   // 是否显示边框
   bordered: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 是否支持悬停效果
   hover: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 是否使用玻璃态效果
   glass: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 卡片标题
   title: String,
@@ -64,42 +64,42 @@ defineProps({
   // 标签类型
   tagType: {
     type: String,
-    default: 'default'
+    default: 'default',
   },
   // 阴影级别
   shadow: {
     type: String,
     default: 'md',
-    validator: (value) => ['none', 'xs', 'sm', 'md', 'lg', 'xl', '2xl'].includes(value)
+    validator: value => ['none', 'xs', 'sm', 'md', 'lg', 'xl', '2xl'].includes(value),
   },
   // 圆角级别
   radius: {
     type: String,
     default: 'lg',
-    validator: (value) => ['none', 'sm', 'md', 'lg', 'xl', '2xl', 'full'].includes(value)
+    validator: value => ['none', 'sm', 'md', 'lg', 'xl', '2xl', 'full'].includes(value),
   },
   // 是否有内边距
   padding: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 })
 
 const mousePosition = ref({ x: 0, y: 0 })
 
-const handleMouseEnter = (e) => {
+function handleMouseEnter(e) {
   updateMousePosition(e)
 }
 
-const handleMouseLeave = () => {
+function handleMouseLeave() {
   mousePosition.value = { x: 0, y: 0 }
 }
 
-const handleMouseMove = (e) => {
+function handleMouseMove(e) {
   updateMousePosition(e)
 }
 
-const updateMousePosition = (e) => {
+function updateMousePosition(e) {
   const rect = e.currentTarget.getBoundingClientRect()
   const x = ((e.clientX - rect.left) / rect.width) * 100
   const y = ((e.clientY - rect.top) / rect.height) * 100
@@ -112,7 +112,9 @@ const updateMousePosition = (e) => {
   position: relative;
   background: var(--bg-primary);
   box-shadow: var(--shadow-card);
-  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+  transition:
+    box-shadow var(--transition-base),
+    border-color var(--transition-base);
   overflow: hidden;
 }
 
@@ -141,22 +143,50 @@ const updateMousePosition = (e) => {
 }
 
 /* 阴影级别 */
-.shadow-none { box-shadow: none; }
-.shadow-xs { box-shadow: var(--shadow-xs); }
-.shadow-sm { box-shadow: var(--shadow-sm); }
-.shadow-md { box-shadow: var(--shadow-md); }
-.shadow-lg { box-shadow: var(--shadow-lg); }
-.shadow-xl { box-shadow: var(--shadow-xl); }
-.shadow-2xl { box-shadow: var(--shadow-2xl); }
+.shadow-none {
+  box-shadow: none;
+}
+.shadow-xs {
+  box-shadow: var(--shadow-xs);
+}
+.shadow-sm {
+  box-shadow: var(--shadow-sm);
+}
+.shadow-md {
+  box-shadow: var(--shadow-md);
+}
+.shadow-lg {
+  box-shadow: var(--shadow-lg);
+}
+.shadow-xl {
+  box-shadow: var(--shadow-xl);
+}
+.shadow-2xl {
+  box-shadow: var(--shadow-2xl);
+}
 
 /* 圆角级别 */
-.radius-none { border-radius: 0; }
-.radius-sm { border-radius: var(--radius-sm); }
-.radius-md { border-radius: var(--radius-md); }
-.radius-lg { border-radius: var(--radius-lg); }
-.radius-xl { border-radius: var(--radius-xl); }
-.radius-2xl { border-radius: var(--radius-2xl); }
-.radius-full { border-radius: var(--radius-full); }
+.radius-none {
+  border-radius: 0;
+}
+.radius-sm {
+  border-radius: var(--radius-sm);
+}
+.radius-md {
+  border-radius: var(--radius-md);
+}
+.radius-lg {
+  border-radius: var(--radius-lg);
+}
+.radius-xl {
+  border-radius: var(--radius-xl);
+}
+.radius-2xl {
+  border-radius: var(--radius-2xl);
+}
+.radius-full {
+  border-radius: var(--radius-full);
+}
 
 /* 头部 */
 .card-header {

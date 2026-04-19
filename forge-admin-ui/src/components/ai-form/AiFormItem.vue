@@ -25,7 +25,6 @@
     <n-input
       v-if="field.type === 'input'"
       :value="value"
-      @update:value="handleUpdate"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
       :clearable="field.clearable !== false"
@@ -33,6 +32,7 @@
       :show-count="field.showCount"
       :size="field.size"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -41,7 +41,6 @@
       v-else-if="field.type === 'textarea'"
       type="textarea"
       :value="value"
-      @update:value="handleUpdate"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
       :clearable="field.clearable !== false"
@@ -50,6 +49,7 @@
       :show-count="field.showCount"
       :autosize="field.autosize"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -57,7 +57,6 @@
     <n-input-number
       v-else-if="field.type === 'number' || field.type === 'inputNumber'"
       :value="value"
-      @update:value="handleUpdate"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
       :min="field.min"
@@ -68,6 +67,7 @@
       :clearable="field.clearable !== false"
       style="width: 100%"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -75,7 +75,6 @@
     <n-select
       v-else-if="field.type === 'select'"
       :value="value"
-      @update:value="handleUpdate"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
       :options="currentOptions"
@@ -86,6 +85,7 @@
       :remote="field.remote"
       :on-search="field.onSearch"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -93,9 +93,9 @@
     <n-radio-group
       v-else-if="field.type === 'radio'"
       :value="value"
-      @update:value="handleUpdate"
       :disabled="disabledHandler(field)"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     >
       <n-space>
@@ -114,9 +114,9 @@
     <n-radio-group
       v-else-if="field.type === 'radioButton'"
       :value="value"
-      @update:value="handleUpdate"
       :disabled="disabledHandler(field)"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     >
       <n-radio-button
@@ -133,9 +133,9 @@
     <n-checkbox-group
       v-else-if="field.type === 'checkbox'"
       :value="value"
-      @update:value="handleUpdate"
       :disabled="disabledHandler(field)"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     >
       <n-space>
@@ -154,22 +154,25 @@
     <n-switch
       v-else-if="field.type === 'switch'"
       :value="value"
-      @update:value="handleUpdate"
       :disabled="disabledHandler(field)"
       :checked-value="field.checkedValue ?? true"
       :unchecked-value="field.uncheckedValue ?? false"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     >
-      <template v-if="field.checkedText" #checked>{{ field.checkedText }}</template>
-      <template v-if="field.uncheckedText" #unchecked>{{ field.uncheckedText }}</template>
+      <template v-if="field.checkedText" #checked>
+        {{ field.checkedText }}
+      </template>
+      <template v-if="field.uncheckedText" #unchecked>
+        {{ field.uncheckedText }}
+      </template>
     </n-switch>
 
     <!-- 日期选择 -->
     <n-date-picker
       v-else-if="field.type === 'date'"
       :value="value"
-      @update:value="handleUpdate"
       type="date"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
@@ -178,6 +181,7 @@
       :value-format="field.valueFormat || 'yyyy-MM-dd'"
       style="width: 100%"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -185,7 +189,6 @@
     <n-date-picker
       v-else-if="field.type === 'datetime'"
       :value="value"
-      @update:value="handleUpdate"
       type="datetime"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
@@ -194,6 +197,7 @@
       :value-format="field.valueFormat || 'yyyy-MM-dd HH:mm:ss'"
       style="width: 100%"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -201,7 +205,6 @@
     <n-date-picker
       v-else-if="field.type === 'daterange'"
       :value="value"
-      @update:value="handleUpdate"
       type="daterange"
       :placeholder="field.placeholder"
       :start-placeholder="field.startPlaceholder || '开始日期'"
@@ -212,6 +215,7 @@
       :value-format="field.valueFormat || 'yyyy-MM-dd'"
       style="width: 100%"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -219,7 +223,6 @@
     <n-date-picker
       v-else-if="field.type === 'month'"
       :value="value"
-      @update:value="handleUpdate"
       type="month"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
@@ -228,6 +231,7 @@
       :value-format="field.valueFormat || 'yyyy-MM'"
       style="width: 100%"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -235,7 +239,6 @@
     <n-date-picker
       v-else-if="field.type === 'year'"
       :value="value"
-      @update:value="handleUpdate"
       type="year"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
@@ -244,6 +247,7 @@
       :value-format="field.valueFormat || 'yyyy'"
       style="width: 100%"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -251,7 +255,6 @@
     <n-time-picker
       v-else-if="field.type === 'time'"
       :value="value"
-      @update:value="handleUpdate"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
       :clearable="field.clearable !== false"
@@ -259,6 +262,7 @@
       :value-format="field.valueFormat || 'HH:mm:ss'"
       style="width: 100%"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -285,7 +289,6 @@
     <FileUpload
       v-else-if="field.type === 'fileUpload'"
       :model-value="value"
-      @update:model-value="handleUpdate"
       :action="field.action"
       :business-type="field.businessType"
       :business-id="field.businessId"
@@ -296,6 +299,7 @@
       :multiple="field.multiple"
       :show-file-list="field.showFileList"
       :show-tip="field.showTip"
+      @update:model-value="handleUpdate"
       :upload-button-text="field.uploadButtonText"
       :disabled="disabledHandler(field)"
       :value-type="field.valueType"
@@ -309,7 +313,6 @@
     <ImageUpload
       v-else-if="field.type === 'imageUpload'"
       :model-value="value"
-      @update:model-value="handleUpdate"
       :action="field.action"
       :business-type="field.businessType"
       :business-id="field.businessId"
@@ -320,6 +323,7 @@
       :multiple="field.multiple"
       :show-tip="field.showTip"
       :disabled="disabledHandler(field)"
+      @update:model-value="handleUpdate"
       :value-type="field.valueType"
       v-bind="field.props"
       @success="(data) => handleUploadSuccess(field, data)"
@@ -331,7 +335,6 @@
     <n-slider
       v-else-if="field.type === 'slider'"
       :value="value"
-      @update:value="handleUpdate"
       :disabled="disabledHandler(field)"
       :min="field.min || 0"
       :max="field.max || 100"
@@ -339,6 +342,7 @@
       :marks="field.marks"
       :tooltip="field.tooltip !== false"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -346,11 +350,11 @@
     <n-rate
       v-else-if="field.type === 'rate'"
       :value="value"
-      @update:value="handleUpdate"
       :disabled="disabledHandler(field)"
       :count="field.count || 5"
       :allow-half="field.allowHalf"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -358,11 +362,11 @@
     <n-color-picker
       v-else-if="field.type === 'color'"
       :value="value"
-      @update:value="handleUpdate"
       :disabled="disabledHandler(field)"
       :show-alpha="field.showAlpha"
       :modes="field.modes || ['hex']"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -370,7 +374,6 @@
     <n-cascader
       v-else-if="field.type === 'cascader'"
       :value="value"
-      @update:value="handleUpdate"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
       :options="currentOptions"
@@ -380,6 +383,7 @@
       :cascade="field.cascade !== false"
       :show-path="field.showPath !== false"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -387,7 +391,6 @@
     <n-tree-select
       v-else-if="field.type === 'treeSelect'"
       :value="value"
-      @update:value="handleUpdate"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
       :options="currentOptions"
@@ -397,6 +400,7 @@
       :cascade="field.cascade !== false"
       :show-path="field.showPath !== false"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -404,11 +408,11 @@
     <n-transfer
       v-else-if="field.type === 'transfer'"
       :value="value"
-      @update:value="handleUpdate"
       :disabled="disabledHandler(field)"
       :options="currentOptions"
       :filterable="field.filterable"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
 
@@ -416,7 +420,6 @@
     <AiCustomSelect
       v-else-if="field.type === 'customSelect'"
       :value="value"
-      @update:value="handleUpdate"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
       :clearable="field.clearable !== false"
@@ -427,6 +430,7 @@
       :filterable="field.filterable !== false"
       :multiple="field.multiple"
       :remote="field.remote"
+      @update:value="handleUpdate"
       :options="field.options"
       :params="field.params"
       :transform="field.transform"
@@ -449,8 +453,8 @@
         v-if="field.copy"
         text
         size="small"
-        @click="handleCopy(value)"
         style="margin-left: 8px"
+        @click="handleCopy(value)"
       >
         <template #icon>
           <n-icon><CopyOutline /></n-icon>
@@ -472,46 +476,46 @@
     <n-input
       v-else
       :value="value"
-      @update:value="handleUpdate"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
       :clearable="field.clearable !== false"
       v-bind="field.props"
+      @update:value="handleUpdate"
       v-on="getComponentEvents(field)"
     />
   </n-form-item>
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import { CopyOutline } from '@vicons/ionicons5'
-import AiCustomSelect from './AiCustomSelect.vue'
+import { useClipboard } from '@vueuse/core'
+import { computed } from 'vue'
 import FileUpload from '@/components/file-upload/index.vue'
 import ImageUpload from '@/components/image-upload/index.vue'
-import { useClipboard } from  '@vueuse/core'
-
-const { copy } = useClipboard()
+import AiCustomSelect from './AiCustomSelect.vue'
 
 const props = defineProps({
   field: {
     type: Object,
-    required: true
+    required: true,
   },
   value: {
     type: [String, Number, Boolean, Array, Object],
-    default: null
+    default: null,
   },
   formData: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   context: {
     type: Object,
-    default: () => ({})
-  }
+    default: () => ({}),
+  },
 })
 
 const emit = defineEmits(['update:value'])
+
+const { copy } = useClipboard()
 
 /**
  * 获取占位符文本
@@ -537,7 +541,7 @@ function disabledHandler(field) {
     return field.disabled({
       formData: props.formData,
       field,
-      context: props.context
+      context: props.context,
     })
   }
   return false
@@ -548,15 +552,15 @@ function disabledHandler(field) {
  */
 const currentOptions = computed(() => {
   const field = props.field
-  
+
   // 优先使用 options 函数
   if (typeof field.options === 'function') {
     const result = field.options({
       formData: props.formData,
       field,
-      context: props.context
+      context: props.context,
     })
-    
+
     // 如果返回的是 Promise，需要在外部处理
     // 这里我们检查是否有缓存的选项
     if (result instanceof Promise) {
@@ -565,25 +569,25 @@ const currentOptions = computed(() => {
         return field._cachedOptions
       }
       // 否则返回空数组，并异步加载
-      result.then(options => {
+      result.then((options) => {
         field._cachedOptions = options
       })
       return []
     }
-    
+
     return result
   }
-  
+
   // 其次使用 options 数组
   if (field.options && Array.isArray(field.options)) {
     return field.options
   }
-  
+
   // 检查 props.options（兼容旧的配置方式）
   if (field.props?.options && Array.isArray(field.props.options)) {
     return field.props.options
   }
-  
+
   // 最后处理 enumType (仅当 options 为空时)
   if (field.enumType) {
     // 这里应该根据 enumType 获取对应的枚举数据
@@ -593,7 +597,7 @@ const currentOptions = computed(() => {
     console.warn(`字段 ${field.field} 使用了 enumType: ${field.enumType},但未提供具体选项数据`)
     return []
   }
-  
+
   return []
 })
 
@@ -609,17 +613,18 @@ function getOptions(field) {
  * 获取组件事件
  */
 function getComponentEvents(field) {
-  if (!field.on) return {}
+  if (!field.on)
+    return {}
 
   const events = {}
-  Object.keys(field.on).forEach(eventName => {
+  Object.keys(field.on).forEach((eventName) => {
     events[eventName] = (...args) => {
       if (typeof field.on[eventName] === 'function') {
         field.on[eventName]({
           field,
           formData: props.formData,
           context: props.context,
-          args
+          args,
         })
       }
     }
@@ -639,7 +644,7 @@ function handleUpdate(newValue) {
       value: newValue,
       field: props.field,
       formData: props.formData,
-      context: props.context
+      context: props.context,
     })
   }
 }
@@ -668,7 +673,7 @@ function handleUploadSuccess(field, data) {
       data,
       field,
       formData: props.formData,
-      context: props.context
+      context: props.context,
     })
   }
 }
@@ -682,7 +687,7 @@ function handleUploadError(field, error) {
       error,
       field,
       formData: props.formData,
-      context: props.context
+      context: props.context,
     })
   }
 }
@@ -696,7 +701,7 @@ function handleUploadRemove(field, file) {
       file,
       field,
       formData: props.formData,
-      context: props.context
+      context: props.context,
     })
   }
 }

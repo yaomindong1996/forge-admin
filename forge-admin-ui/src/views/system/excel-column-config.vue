@@ -5,22 +5,22 @@
         {{ configName }} - 列配置
       </div>
       <div class="flex gap-8">
-        <n-button type="primary" size="small" @click="handleAdd">
+        <NButton type="primary" size="small" @click="handleAdd">
           <template #icon>
             <i class="i-material-symbols:add" />
           </template>
           添加列
-        </n-button>
-        <n-button type="success" size="small" @click="handleSave">
+        </NButton>
+        <NButton type="success" size="small" @click="handleSave">
           <template #icon>
             <i class="i-material-symbols:save" />
           </template>
           保存配置
-        </n-button>
+        </NButton>
       </div>
     </div>
 
-    <n-data-table
+    <NDataTable
       :columns="columns"
       :data="dataList"
       :row-key="row => row.key"
@@ -30,7 +30,7 @@
     />
 
     <!-- 编辑弹窗 -->
-    <n-modal
+    <NModal
       v-model:show="showEditModal"
       preset="dialog"
       title="编辑列配置"
@@ -39,89 +39,89 @@
       :style="{ width: '600px' }"
       @positive-click="handleConfirmEdit"
     >
-      <n-form
+      <NForm
         ref="editFormRef"
         :model="editForm"
         label-placement="left"
         label-width="100"
       >
-        <n-form-item
+        <NFormItem
           label="字段名"
           path="fieldName"
           :rule="{ required: true, message: '请输入字段名', trigger: 'blur' }"
         >
-          <n-input
+          <NInput
             v-model:value="editForm.fieldName"
             placeholder="实体属性名，如：userId"
           />
-        </n-form-item>
-        <n-form-item
+        </NFormItem>
+        <NFormItem
           label="列名"
           path="columnName"
           :rule="{ required: true, message: '请输入列名', trigger: 'blur' }"
         >
-          <n-input
+          <NInput
             v-model:value="editForm.columnName"
             placeholder="Excel表头名称，如：用户ID"
           />
-        </n-form-item>
-        <n-form-item label="列宽" path="width">
-          <n-input-number
+        </NFormItem>
+        <NFormItem label="列宽" path="width">
+          <NInputNumber
             v-model:value="editForm.width"
             placeholder="列宽"
             :min="5"
             :max="100"
             style="width: 100%"
           />
-        </n-form-item>
-        <n-form-item label="排序" path="orderNum">
-          <n-input-number
+        </NFormItem>
+        <NFormItem label="排序" path="orderNum">
+          <NInputNumber
             v-model:value="editForm.orderNum"
             placeholder="排序值，越小越靠前"
             :min="0"
             style="width: 100%"
           />
-        </n-form-item>
-        <n-form-item label="是否导出" path="export">
-          <n-switch v-model:value="editForm.export" />
-        </n-form-item>
-        <n-form-item label="日期格式" path="dateFormat">
-          <n-input
+        </NFormItem>
+        <NFormItem label="是否导出" path="export">
+          <NSwitch v-model:value="editForm.export" />
+        </NFormItem>
+        <NFormItem label="日期格式" path="dateFormat">
+          <NInput
             v-model:value="editForm.dateFormat"
             placeholder="如：yyyy-MM-dd HH:mm:ss"
           />
-        </n-form-item>
-        <n-form-item label="数字格式" path="numberFormat">
-          <n-input
+        </NFormItem>
+        <NFormItem label="数字格式" path="numberFormat">
+          <NInput
             v-model:value="editForm.numberFormat"
             placeholder="如：#,##0.00"
           />
-        </n-form-item>
-        <n-form-item label="字典类型" path="dictType">
-          <n-input
+        </NFormItem>
+        <NFormItem label="字典类型" path="dictType">
+          <NInput
             v-model:value="editForm.dictType"
             placeholder="字典类型，如：user_status"
           />
-        </n-form-item>
-      </n-form>
-    </n-modal>
+        </NFormItem>
+      </NForm>
+    </NModal>
   </div>
 </template>
 
 <script setup>
-import { ref, h, onMounted } from 'vue'
-import { NButton, NTag, NSwitch, NDataTable, NModal, NForm, NFormItem, NInput, NInputNumber } from 'naive-ui'
+import { NButton, NDataTable, NForm, NFormItem, NInput, NInputNumber, NModal, NSwitch, NTag } from 'naive-ui'
+import { h, onMounted, ref } from 'vue'
 import { request } from '@/utils'
 
 const props = defineProps({
   configKey: {
     type: String,
-    required: true
+    required: true,
   },
   configName: {
     type: String,
-    default: ''
-  }
+    default: '',
+  },
 })
 
 const dataList = ref([])
@@ -137,7 +137,7 @@ const editForm = ref({
   export: true,
   dateFormat: '',
   numberFormat: '',
-  dictType: ''
+  dictType: '',
 })
 let editingIndex = -1
 
@@ -147,23 +147,23 @@ const columns = [
     title: '排序',
     key: 'orderNum',
     width: 80,
-    align: 'center'
+    align: 'center',
   },
   {
     title: '字段名',
     key: 'fieldName',
-    width: 150
+    width: 150,
   },
   {
     title: '列名',
     key: 'columnName',
-    width: 150
+    width: 150,
   },
   {
     title: '列宽',
     key: 'width',
     width: 80,
-    align: 'center'
+    align: 'center',
   },
   {
     title: '是否导出',
@@ -173,26 +173,26 @@ const columns = [
     render: (row) => {
       return h(NTag, {
         type: row.export ? 'success' : 'default',
-        size: 'small'
+        size: 'small',
       }, {
-        default: () => row.export ? '是' : '否'
+        default: () => row.export ? '是' : '否',
       })
-    }
+    },
   },
   {
     title: '日期格式',
     key: 'dateFormat',
-    width: 150
+    width: 150,
   },
   {
     title: '数字格式',
     key: 'numberFormat',
-    width: 120
+    width: 120,
   },
   {
     title: '字典类型',
     key: 'dictType',
-    width: 120
+    width: 120,
   },
   {
     title: '操作',
@@ -204,42 +204,43 @@ const columns = [
       return h('div', { class: 'flex items-center justify-center gap-8' }, [
         h('a', {
           class: 'text-primary cursor-pointer hover:text-primary-hover',
-          onClick: () => handleEdit(row, index)
+          onClick: () => handleEdit(row, index),
         }, '编辑'),
         h('span', { class: 'text-gray-300' }, '|'),
         h('a', {
           class: 'text-warning cursor-pointer hover:text-warning-hover',
-          onClick: () => handleMoveUp(index)
+          onClick: () => handleMoveUp(index),
         }, '上移'),
         h('span', { class: 'text-gray-300' }, '|'),
         h('a', {
           class: 'text-warning cursor-pointer hover:text-warning-hover',
-          onClick: () => handleMoveDown(index)
+          onClick: () => handleMoveDown(index),
         }, '下移'),
         h('span', { class: 'text-gray-300' }, '|'),
         h('a', {
           class: 'text-error cursor-pointer hover:text-error-hover',
-          onClick: () => handleDelete(index)
-        }, '删除')
+          onClick: () => handleDelete(index),
+        }, '删除'),
       ])
-    }
-  }
+    },
+  },
 ]
 
 // 加载数据
 async function loadData() {
   try {
     const res = await request.get('/system/excel/column-config/list', {
-      params: { configKey: props.configKey }
+      params: { configKey: props.configKey },
     })
-    
+
     if (res.code === 200) {
       dataList.value = (res.data || []).map((item, index) => ({
         ...item,
-        key: `${item.id || index}_${Date.now()}`
+        key: `${item.id || index}_${Date.now()}`,
       }))
     }
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('加载列配置失败')
   }
 }
@@ -249,7 +250,7 @@ function handleAdd() {
   const maxOrder = dataList.value.length > 0
     ? Math.max(...dataList.value.map(d => d.orderNum || 0))
     : 0
-  
+
   editForm.value = {
     key: `new_${Date.now()}`,
     id: null,
@@ -260,7 +261,7 @@ function handleAdd() {
     export: true,
     dateFormat: '',
     numberFormat: '',
-    dictType: ''
+    dictType: '',
   }
   editingIndex = -1
   showEditModal.value = true
@@ -277,23 +278,25 @@ function handleEdit(row, index) {
 async function handleConfirmEdit() {
   try {
     await editFormRef.value?.validate()
-    
+
     if (editingIndex >= 0) {
       // 更新
       dataList.value[editingIndex] = { ...editForm.value }
-    } else {
+    }
+    else {
       // 新增
       dataList.value.push({ ...editForm.value })
     }
-    
+
     // 重新排序
     dataList.value.forEach((item, index) => {
       item.orderNum = index + 1
     })
-    
+
     showEditModal.value = false
     window.$message.success('操作成功')
-  } catch (error) {
+  }
+  catch (error) {
     if (error?.message !== '验证失败') {
       window.$message.error('操作失败')
     }
@@ -314,7 +317,7 @@ function handleDelete(index) {
         item.orderNum = idx + 1
       })
       window.$message.success('删除成功')
-    }
+    },
   })
 }
 
@@ -324,11 +327,11 @@ function handleMoveUp(index) {
     window.$message.warning('已经是第一条了')
     return
   }
-  
+
   const temp = dataList.value[index]
   dataList.value[index] = dataList.value[index - 1]
   dataList.value[index - 1] = temp
-  
+
   // 重新排序
   dataList.value.forEach((item, idx) => {
     item.orderNum = idx + 1
@@ -341,11 +344,11 @@ function handleMoveDown(index) {
     window.$message.warning('已经是最后一条了')
     return
   }
-  
+
   const temp = dataList.value[index]
   dataList.value[index] = dataList.value[index + 1]
   dataList.value[index + 1] = temp
-  
+
   // 重新排序
   dataList.value.forEach((item, idx) => {
     item.orderNum = idx + 1
@@ -354,7 +357,6 @@ function handleMoveDown(index) {
 
 // 保存配置
 async function handleSave() {
-  
   try {
     // 准备数据
     const columns = dataList.value.map(item => ({
@@ -367,21 +369,23 @@ async function handleSave() {
       export: item.export,
       dateFormat: item.dateFormat || null,
       numberFormat: item.numberFormat || null,
-      dictType: item.dictType || null
+      dictType: item.dictType || null,
     }))
-    
+
     const res = await request.post('/system/excel/column-config/batch', columns, {
-      params: { configKey: props.configKey }
+      params: { configKey: props.configKey },
     })
-    
+
     if (res.code === 200) {
       window.$message.success('保存成功')
       await loadData()
-    } else {
+    }
+    else {
       window.$message.error(res.respMsg || '保存失败')
     }
-  } catch (error) {
-    window.$message.error('保存失败：' + (error.message || '未知错误'))
+  }
+  catch (error) {
+    window.$message.error(`保存失败：${error.message || '未知错误'}`)
   }
 }
 

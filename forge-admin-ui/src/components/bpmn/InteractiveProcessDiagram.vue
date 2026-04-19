@@ -1,5 +1,5 @@
 <template>
-  <div class="interactive-diagram" ref="containerRef">
+  <div ref="containerRef" class="interactive-diagram">
     <!-- 加载状态 -->
     <n-spin :show="loading" class="w-full">
       <div v-if="diagramInfo" class="diagram-wrapper">
@@ -17,16 +17,16 @@
         </div>
 
         <!-- 流程图容器 -->
-        <div class="diagram-container" ref="diagramRef">
+        <div ref="diagramRef" class="diagram-container">
           <!-- 流程图图片 -->
           <img
             v-if="diagramInfo.diagramBase64"
+            ref="imageRef"
             :src="diagramInfo.diagramBase64"
             alt="流程图"
             class="diagram-image"
             @load="onImageLoad"
-            ref="imageRef"
-          />
+          >
 
           <!-- 节点状态指示器层（只显示状态点，不覆盖整个节点） -->
           <div
@@ -61,15 +61,15 @@
         <!-- 图例 -->
         <div class="legend">
           <div class="legend-item">
-            <span class="legend-color completed"></span>
+            <span class="legend-color completed" />
             <span>已完成</span>
           </div>
           <div class="legend-item">
-            <span class="legend-color running"></span>
+            <span class="legend-color running" />
             <span>处理中</span>
           </div>
           <div class="legend-item">
-            <span class="legend-color pending"></span>
+            <span class="legend-color pending" />
             <span>待处理</span>
           </div>
         </div>
@@ -145,14 +145,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import flowApi from '@/api/flow'
 
 const props = defineProps({
   processInstanceId: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 })
 
 const emit = defineEmits(['node-click', 'loaded'])
@@ -175,7 +175,8 @@ const scale = ref(1)
 
 // 计算属性
 const statusType = computed(() => {
-  if (!diagramInfo.value) return 'default'
+  if (!diagramInfo.value)
+    return 'default'
   const status = diagramInfo.value.status
   switch (status) {
     case 'completed':
@@ -190,7 +191,8 @@ const statusType = computed(() => {
 })
 
 const statusText = computed(() => {
-  if (!diagramInfo.value) return ''
+  if (!diagramInfo.value)
+    return ''
   const status = diagramInfo.value.status
   switch (status) {
     case 'completed':
@@ -205,17 +207,19 @@ const statusText = computed(() => {
 })
 
 const overlayStyle = computed(() => {
-  if (!imageRef.value) return {}
+  if (!imageRef.value)
+    return {}
   return {
     width: `${imageRef.value.clientWidth}px`,
-    height: `${imageRef.value.clientHeight}px`
+    height: `${imageRef.value.clientHeight}px`,
   }
 })
 
 // 节点位置（需要根据图片缩放计算）
 const nodePositions = computed(() => {
-  if (!diagramInfo.value?.nodes || !imageLoaded.value) return []
-  
+  if (!diagramInfo.value?.nodes || !imageLoaded.value)
+    return []
+
   return diagramInfo.value.nodes
     .filter(node => node.x !== undefined && node.y !== undefined)
     .map(node => ({
@@ -224,27 +228,28 @@ const nodePositions = computed(() => {
       scaledX: node.x * scale.value,
       scaledY: node.y * scale.value,
       scaledWidth: (node.width || 100) * scale.value,
-      scaledHeight: (node.height || 80) * scale.value
+      scaledHeight: (node.height || 80) * scale.value,
     }))
 })
 
 const tooltipStyle = computed(() => ({
   left: `${tooltipPosition.value.x}px`,
-  top: `${tooltipPosition.value.y}px`
+  top: `${tooltipPosition.value.y}px`,
 }))
 
 // 方法
 async function fetchDiagramInfo() {
-  if (!props.processInstanceId) return
-  
+  if (!props.processInstanceId)
+    return
+
   loading.value = true
   imageLoaded.value = false
-  
+
   try {
     console.log('[InteractiveProcessDiagram] 获取流程图详情, processInstanceId:', props.processInstanceId)
     const res = await flowApi.getProcessDiagramInfo(props.processInstanceId)
     console.log('[InteractiveProcessDiagram] API 返回结果:', res)
-    
+
     if (res.code === 200) {
       diagramInfo.value = res.data
       console.log('[InteractiveProcessDiagram] diagramInfo:', diagramInfo.value)
@@ -253,12 +258,15 @@ async function fetchDiagramInfo() {
         console.log('[InteractiveProcessDiagram] 第一个节点:', res.data.nodes[0])
       }
       emit('loaded', res.data)
-    } else {
+    }
+    else {
       console.error('[InteractiveProcessDiagram] API 返回错误:', res.message)
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('[InteractiveProcessDiagram] 获取流程图详情失败:', error)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -270,11 +278,11 @@ function onImageLoad() {
     // 找到最大的坐标值来计算缩放
     const maxX = Math.max(...diagramInfo.value.nodes.map(n => (n.x || 0) + (n.width || 100)))
     const maxY = Math.max(...diagramInfo.value.nodes.map(n => (n.y || 0) + (n.height || 80)))
-    
+
     if (maxX > 0 && maxY > 0) {
       scale.value = Math.min(
         imageRef.value.clientWidth / maxX,
-        imageRef.value.clientHeight / maxY
+        imageRef.value.clientHeight / maxY,
       )
     }
   }
@@ -283,7 +291,7 @@ function onImageLoad() {
 function getNodeClass(node) {
   return {
     [`status-${node.status}`]: true,
-    'is-user-task': node.nodeType === 'UserTask'
+    'is-user-task': node.nodeType === 'UserTask',
   }
 }
 
@@ -292,7 +300,7 @@ function getNodeStyle(node) {
     left: `${node.scaledX}px`,
     top: `${node.scaledY}px`,
     width: `${node.scaledWidth}px`,
-    height: `${node.scaledHeight}px`
+    height: `${node.scaledHeight}px`,
   }
 }
 
@@ -300,19 +308,19 @@ function getIndicatorStyle(node) {
   // 状态指示器放在节点右上角
   return {
     left: `${node.scaledX + node.scaledWidth - 12}px`,
-    top: `${node.scaledY - 12}px`
+    top: `${node.scaledY - 12}px`,
   }
 }
 
 function showNodeTooltip(node, event) {
   currentNode.value = node
   tooltipVisible.value = true
-  
+
   // 计算提示框位置
   const rect = event.target.getBoundingClientRect()
   tooltipPosition.value = {
     x: rect.left + rect.width / 2,
-    y: rect.bottom + 10
+    y: rect.bottom + 10,
   }
 }
 
@@ -357,45 +365,50 @@ function getNodeStatusText(status) {
 
 function getNodeTypeName(type) {
   const typeMap = {
-    'StartEvent': '开始节点',
-    'EndEvent': '结束节点',
-    'UserTask': '用户任务',
-    'ServiceTask': '服务任务',
-    'ScriptTask': '脚本任务',
-    'ExclusiveGateway': '排他网关',
-    'ParallelGateway': '并行网关',
-    'InclusiveGateway': '包含网关',
-    'SequenceFlow': '连线'
+    StartEvent: '开始节点',
+    EndEvent: '结束节点',
+    UserTask: '用户任务',
+    ServiceTask: '服务任务',
+    ScriptTask: '脚本任务',
+    ExclusiveGateway: '排他网关',
+    ParallelGateway: '并行网关',
+    InclusiveGateway: '包含网关',
+    SequenceFlow: '连线',
   }
   return typeMap[type] || type
 }
 
 function formatDate(date) {
-  if (!date) return ''
+  if (!date)
+    return ''
   const d = new Date(date)
   return d.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 
 function formatDuration(ms) {
-  if (!ms) return ''
+  if (!ms)
+    return ''
   const seconds = Math.floor(ms / 1000)
   const minutes = Math.floor(seconds / 60)
   const hours = Math.floor(minutes / 60)
   const days = Math.floor(hours / 24)
-  
+
   if (days > 0) {
     return `${days}天 ${hours % 24}小时`
-  } else if (hours > 0) {
+  }
+  else if (hours > 0) {
     return `${hours}小时 ${minutes % 60}分钟`
-  } else if (minutes > 0) {
+  }
+  else if (minutes > 0) {
     return `${minutes}分钟`
-  } else {
+  }
+  else {
     return `${seconds}秒`
   }
 }
@@ -410,7 +423,7 @@ function handleMouseMove(event) {
   if (tooltipVisible.value) {
     tooltipPosition.value = {
       x: event.clientX + 15,
-      y: event.clientY + 15
+      y: event.clientY + 15,
     }
   }
 }
@@ -535,7 +548,8 @@ onUnmounted(() => {
 }
 
 @keyframes blink {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

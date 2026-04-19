@@ -24,17 +24,19 @@
         />
       </div>
       <div class="center">
-        <n-tag :type="statusTag.type">{{ statusTag.label }}</n-tag>
+        <NTag :type="statusTag.type">
+          {{ statusTag.label }}
+        </NTag>
       </div>
       <div class="right">
         <n-space>
-          <n-button @click="handleSaveDraft" :loading="saving">
+          <n-button :loading="saving" @click="handleSaveDraft">
             <template #icon>
               <i class="i-material-symbols:save" />
             </template>
             保存草稿
           </n-button>
-          <n-button type="primary" @click="handleDeploy" :loading="deploying">
+          <n-button type="primary" :loading="deploying" @click="handleDeploy">
             <template #icon>
               <i class="i-material-symbols:rocket-launch" />
             </template>
@@ -71,7 +73,7 @@
               </n-form-item>
             </n-form>
           </n-tab-pane>
-          
+
           <n-tab-pane name="form" tab="表单配置">
             <div class="form-config">
               <n-form-item label="表单类型">
@@ -81,7 +83,7 @@
                   @update:value="handleFormTypeChange"
                 />
               </n-form-item>
-              
+
               <!-- 动态表单：选择已有表单或设计新表单 -->
               <template v-if="modelInfo.formType === 'dynamic'">
                 <n-form-item label="表单选择">
@@ -93,7 +95,7 @@
                     @update:value="handleFormSelect"
                   />
                 </n-form-item>
-                
+
                 <n-space vertical size="small">
                   <n-button
                     type="primary"
@@ -106,7 +108,7 @@
                     </template>
                     {{ modelInfo.formJson ? '编辑表单设计' : '设计新表单' }}
                   </n-button>
-                  
+
                   <n-button
                     v-if="modelInfo.formJson"
                     dashed
@@ -118,7 +120,7 @@
                     </template>
                     预览表单
                   </n-button>
-                  
+
                   <n-button
                     v-if="modelInfo.formJson"
                     type="error"
@@ -132,12 +134,14 @@
                     清除表单
                   </n-button>
                 </n-space>
-                
+
                 <!-- 表单字段预览 -->
                 <div v-if="formSchema.length > 0" class="form-fields-preview">
-                  <n-divider style="margin: 12px 0">表单字段预览</n-divider>
+                  <n-divider style="margin: 12px 0">
+                    表单字段预览
+                  </n-divider>
                   <div class="field-list">
-                    <n-tag
+                    <NTag
                       v-for="(field, index) in formSchema"
                       :key="index"
                       size="small"
@@ -145,11 +149,11 @@
                       style="margin: 2px"
                     >
                       {{ field.label || field.field }}
-                    </n-tag>
+                    </NTag>
                   </div>
                 </div>
               </template>
-              
+
               <!-- 外部表单：输入URL -->
               <template v-else-if="modelInfo.formType === 'external'">
                 <n-form-item label="表单URL">
@@ -161,7 +165,7 @@
               </template>
             </div>
           </n-tab-pane>
-          
+
           <n-tab-pane name="listener" tab="监听器">
             <n-form label-placement="top" size="small">
               <n-form-item label="开始监听器">
@@ -190,7 +194,7 @@
         />
       </div>
     </div>
-    
+
     <!-- 表单设计器弹窗 -->
     <Teleport to="body">
       <n-modal
@@ -209,7 +213,7 @@
         </div>
       </n-modal>
     </Teleport>
-    
+
     <!-- 表单预览弹窗 -->
     <Teleport to="body">
       <n-modal
@@ -228,13 +232,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { NTag } from 'naive-ui'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import flowApi from '@/api/flow'
 import FlowModeler from '@/components/bpmn/FlowModeler.vue'
 import FormDesigner from '@/components/form-designer/FormDesigner.vue'
 import FormPreview from '@/components/form-designer/FormPreview.vue'
-import flowApi from '@/api/flow'
 
 const route = useRoute()
 const router = useRouter()
@@ -262,7 +266,7 @@ const modelInfo = reactive({
   description: '',
   status: 0,
   startListener: '',
-  endListener: ''
+  endListener: '',
 })
 
 // 表单设计器相关
@@ -279,7 +283,7 @@ const categoryOptions = ref([])
 const formTypeOptions = [
   { label: '动态表单', value: 'dynamic' },
   { label: '外置表单', value: 'external' },
-  { label: '无表单', value: 'none' }
+  { label: '无表单', value: 'none' },
 ]
 
 // 状态标签
@@ -287,7 +291,7 @@ const statusTag = computed(() => {
   const statusMap = {
     0: { type: 'warning', label: '设计中' },
     1: { type: 'success', label: '已部署' },
-    2: { type: 'default', label: '已禁用' }
+    2: { type: 'default', label: '已禁用' },
   }
   return statusMap[modelInfo.status] || { type: 'default', label: '未知' }
 })
@@ -298,11 +302,12 @@ const isReadonly = computed(() => modelInfo.status === 1)
 onMounted(async () => {
   await loadCategories()
   await loadForms()
-  
+
   const modelId = route.query.id
   if (modelId) {
     await loadModel(modelId)
-  } else {
+  }
+  else {
     // 新建模型
     modelInfo.modelKey = `process_${Date.now()}`
     modelInfo.modelName = '新流程'
@@ -316,10 +321,11 @@ async function loadCategories() {
     if (res.code === 200) {
       categoryOptions.value = (res.data || []).map(item => ({
         label: item.categoryName,
-        value: item.categoryCode
+        value: item.categoryCode,
       }))
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载分类失败:', error)
   }
 }
@@ -331,10 +337,11 @@ async function loadForms() {
     if (res.code === 200) {
       formOptions.value = (res.data || []).map(item => ({
         label: item.formName,
-        value: item.id
+        value: item.id,
       }))
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载表单列表失败:', error)
   }
 }
@@ -346,18 +353,20 @@ async function loadModel(id) {
     if (res.code === 200 && res.data) {
       Object.assign(modelInfo, res.data)
       bpmnXml.value = res.data.bpmnXml || ''
-      
+
       // 解析表单Schema
       if (res.data.formJson) {
         try {
           formSchema.value = JSON.parse(res.data.formJson)
-        } catch (e) {
+        }
+        catch (e) {
           console.error('解析表单配置失败:', e)
           formSchema.value = []
         }
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载模型失败:', error)
   }
 }
@@ -381,7 +390,7 @@ async function handleFormSelect(formId) {
     modelInfo.formJson = ''
     return
   }
-  
+
   try {
     const res = await flowApi.getFormById(formId)
     if (res.code === 200 && res.data) {
@@ -390,7 +399,8 @@ async function handleFormSelect(formId) {
         modelInfo.formJson = res.data.formSchema
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载表单失败:', error)
     message.error('加载表单失败')
   }
@@ -428,7 +438,7 @@ function handleClearForm() {
       modelInfo.formId = null
       hasChanges.value = true
       message.success('表单已清除')
-    }
+    },
   })
 }
 
@@ -442,34 +452,38 @@ function handleBpmnChange(xml) {
 async function handleSaveDraft() {
   try {
     saving.value = true
-    
+
     const xml = await modelerRef.value?.getXML()
     const data = {
       ...modelInfo,
       bpmnXml: xml,
-      formJson: modelInfo.formJson || (formSchema.value.length > 0 ? JSON.stringify(formSchema.value) : '')
+      formJson: modelInfo.formJson || (formSchema.value.length > 0 ? JSON.stringify(formSchema.value) : ''),
     }
-    
+
     let res
     if (modelInfo.id) {
       res = await flowApi.updateModel(data)
-    } else {
+    }
+    else {
       res = await flowApi.createModel(data)
       if (res.code === 200 && res.data) {
         modelInfo.id = res.data.id
       }
     }
-    
+
     if (res.code === 200) {
       window.$message?.success('保存成功')
       hasChanges.value = false
-    } else {
+    }
+    else {
       window.$message?.error(res.message || '保存失败')
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('保存失败:', error)
     window.$message?.error('保存失败')
-  } finally {
+  }
+  finally {
     saving.value = false
   }
 }
@@ -478,26 +492,29 @@ async function handleSaveDraft() {
 async function handleDeploy() {
   try {
     deploying.value = true
-    
+
     // 先保存
     await handleSaveDraft()
-    
+
     if (!modelInfo.id) {
       window.$message?.error('请先保存模型')
       return
     }
-    
+
     const res = await flowApi.deployModel(modelInfo.id)
     if (res.code === 200) {
       window.$message?.success('部署成功')
       modelInfo.status = 1
-    } else {
+    }
+    else {
       window.$message?.error(res.message || '部署失败')
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('部署失败:', error)
     window.$message?.error('部署失败')
-  } finally {
+  }
+  finally {
     deploying.value = false
   }
 }
@@ -516,9 +533,10 @@ function handleBack() {
       },
       onNegativeClick: () => {
         router.back()
-      }
+      },
     })
-  } else {
+  }
+  else {
     router.back()
   }
 }

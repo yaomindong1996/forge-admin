@@ -1,5 +1,5 @@
-import SockJS from 'sockjs-client'
 import { Client } from '@stomp/stompjs'
+import SockJS from 'sockjs-client'
 import { useAuthStore, useUserStore } from '@/store'
 
 let stompClient = null
@@ -16,12 +16,15 @@ export function initWebSocketClient() {
   const userStore = useUserStore()
 
   // 没有 token 不初始化
-  if (!authStore.accessToken) return
+  if (!authStore.accessToken)
+    return
   // 没有用户信息时一般还在登录流程,由权限守卫在拿到用户信息后再调用
-  if (!userStore.userId) return
+  if (!userStore.userId)
+    return
 
   // 已连接或正在连接时不重复初始化
-  if (isConnected || isConnecting) return
+  if (isConnected || isConnecting)
+    return
 
   isConnecting = true
 
@@ -32,7 +35,8 @@ export function initWebSocketClient() {
     try {
       const target = new URL(import.meta.env.VITE_HTTP_PROXY_TARGET)
       socketUrl = `${target.origin}/ws`
-    } catch (e) {
+    }
+    catch (e) {
       console.warn('解析 VITE_HTTP_PROXY_TARGET 失败, 使用相对路径 /ws', e)
     }
   }
@@ -57,14 +61,15 @@ export function initWebSocketClient() {
       try {
         const body = JSON.parse(frame.body || '{}')
         handleWebSocketMessage(body)
-      } catch (e) {
+      }
+      catch (e) {
         console.error('解析 WebSocket 消息失败:', e, frame)
       }
     })
   }
 
   stompClient.onStompError = (frame) => {
-    console.error('STOMP 错误:', frame.headers['message'], frame.body)
+    console.error('STOMP 错误:', frame.headers.message, frame.body)
   }
 
   stompClient.onWebSocketClose = () => {
@@ -82,7 +87,8 @@ export function disconnectWebSocketClient() {
   if (stompClient) {
     try {
       stompClient.deactivate()
-    } catch (e) {
+    }
+    catch (e) {
       console.error('关闭 WebSocket 连接失败:', e)
     }
     stompClient = null
@@ -124,7 +130,8 @@ function handleWebSocketMessage(payload) {
         default:
           window.$message.info(msg)
       }
-    } else {
+    }
+    else {
       console.log('[WebSocket]', lvl, msg)
     }
   }

@@ -9,7 +9,7 @@
 
     <BreadCrumb />
 
-    <div class="ml-auto flex flex-shrink-0 items-center px-12 text-18">
+    <div class="text-18 ml-auto flex flex-shrink-0 items-center px-12">
       <BeginnerGuide />
 
       <ToggleTheme />

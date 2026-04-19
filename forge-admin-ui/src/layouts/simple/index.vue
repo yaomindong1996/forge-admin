@@ -1,4 +1,3 @@
-
 <template>
   <div class="modern-layout-simple">
     <!-- 演示环境提示条 -->
@@ -24,9 +23,9 @@
 </template>
 
 <script setup>
+import DemoBanner from '@/components/DemoBanner.vue'
 import { useAppStore } from '@/store'
 import SideBar from './sidebar/index.vue'
-import DemoBanner from '@/components/DemoBanner.vue'
 
 const appStore = useAppStore()
 </script>
@@ -36,7 +35,7 @@ const appStore = useAppStore()
   width: 100%;
   height: 100vh;
   display: flex;
-  background: #F8FAFC;
+  background: #f8fafc;
 }
 
 /* 侧边栏 */
@@ -44,7 +43,7 @@ const appStore = useAppStore()
   flex-shrink: 0;
   width: 260px;
   background: white;
-  border-right: 1px solid #E2E8F0;
+  border-right: 1px solid #e2e8f0;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
@@ -83,16 +82,16 @@ const appStore = useAppStore()
 }
 
 .content-simple::-webkit-scrollbar-track {
-  background: #F1F5F9;
+  background: #f1f5f9;
 }
 
 .content-simple::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
 .content-simple::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: #94a3b8;
 }
 
 /* 响应式 */

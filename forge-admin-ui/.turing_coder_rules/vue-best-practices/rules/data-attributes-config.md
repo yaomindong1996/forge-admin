@@ -8,7 +8,7 @@ tags: dataAttributes, vueCompilerOptions, strictTemplates, data-testid, testing
 
 # Allow Data Attributes with Strict Templates
 
-**Impact: MEDIUM** - fixes data-testid and data-* attribute errors in strict mode
+**Impact: MEDIUM** - fixes data-testid and data-\* attribute errors in strict mode
 
 With `strictTemplates` enabled, `data-*` attributes on components cause type errors. Use the `dataAttributes` option to allow specific patterns.
 
@@ -62,12 +62,12 @@ This only allows the specified patterns, not all data attributes.
 
 For testing libraries, allow their specific attributes:
 
-| Library | Attribute | Pattern |
-|---------|-----------|---------|
-| Testing Library | `data-testid` | `"data-testid"` |
-| Cypress | `data-cy` | `"data-cy"` |
-| Playwright | `data-testid` | `"data-testid"` |
-| Generic | All data attributes | `"data-*"` |
+| Library         | Attribute           | Pattern         |
+| --------------- | ------------------- | --------------- |
+| Testing Library | `data-testid`       | `"data-testid"` |
+| Cypress         | `data-cy`           | `"data-cy"`     |
+| Playwright      | `data-testid`       | `"data-testid"` |
+| Generic         | All data attributes | `"data-*"`      |
 
 ## Reference
 

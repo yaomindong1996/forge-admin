@@ -38,8 +38,8 @@
     </div>
     <!-- 数据表格 -->
     <n-data-table
-      remote
       ref="tableRef"
+      remote
       :columns="tableColumns"
       :data="dataSource"
       :loading="loading"
@@ -52,39 +52,37 @@
       :max-height="maxHeight"
       :scroll-x="scrollX"
       :checked-row-keys="checkedRowKeys"
-      @update:checked-row-keys="handleUpdateCheckedKeys"
       v-bind="$attrs"
+      @update:checked-row-keys="handleUpdateCheckedKeys"
     >
       <template #empty>
-        <n-empty description="暂无数据" />
+        <NEmpty description="暂无数据" />
       </template>
     </n-data-table>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, h, useSlots } from 'vue'
-import { NButton, NSpace, NIcon, NEmpty } from 'naive-ui'
+import { NEmpty } from 'naive-ui'
+import { computed, h, ref, useSlots } from 'vue'
 import AiToolbarAction from './AiToolbarAction.vue'
-
-const slots = useSlots()
 
 const props = defineProps({
   // 列配置
   columns: {
     type: Array,
     default: () => [],
-    required: true
+    required: true,
   },
   // 数据源
   dataSource: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   // 加载状态
   loading: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 分页配置
   pagination: {
@@ -94,137 +92,137 @@ const props = defineProps({
       pageSize: 10,
       showSizePicker: true,
       pageSizes: [10, 20, 50, 100],
-      showQuickJumper: true
-    })
+      showQuickJumper: true,
+    }),
   },
   // 行键
   rowKey: {
     type: [String, Function],
-    default: 'id'
+    default: 'id',
   },
   // 是否显示斑马纹
   striped: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 是否显示边框
   bordered: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 是否单行
   singleLine: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 尺寸
   size: {
     type: String,
-    default: 'small' // 'small' | 'medium' | 'large'
+    default: 'small', // 'small' | 'medium' | 'large'
   },
   // 最大高度
   maxHeight: {
     type: [Number, String],
-    default: undefined
+    default: undefined,
   },
   // 横向滚动宽度
   scrollX: {
     type: Number,
-    default: undefined
+    default: undefined,
   },
   // 是否隐藏多选
   hideSelection: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 上下文对象（传递给插槽）
   context: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
 
   // ========== 工具栏配置 ==========
 
   /**
    * 是否显示工具栏
-   * @type {Boolean}
+   * @type {boolean}
    */
   showToolbar: {
     type: Boolean,
-    default: true
+    default: true,
   },
 
   /**
    * 是否显示刷新按钮
-   * @type {Boolean}
+   * @type {boolean}
    */
   showRefresh: {
     type: Boolean,
-    default: true
+    default: true,
   },
 
   /**
    * 是否显示密度调整
-   * @type {Boolean}
+   * @type {boolean}
    */
   showDensity: {
     type: Boolean,
-    default: true
+    default: true,
   },
 
   /**
    * 是否显示列设置
-   * @type {Boolean}
+   * @type {boolean}
    */
   showColumnFilter: {
     type: Boolean,
-    default: true
+    default: true,
   },
 
   /**
    * 是否显示搜索切换按钮
-   * @type {Boolean}
+   * @type {boolean}
    */
   showSearchToggle: {
     type: Boolean,
-    default: false
+    default: false,
   },
 
   /**
    * 是否显示全屏按钮
-   * @type {Boolean}
+   * @type {boolean}
    */
   showFullscreen: {
     type: Boolean,
-    default: false
+    default: false,
   },
 
   /**
    * 列筛选下拉菜单最大高度
-   * @type {String}
+   * @type {string}
    */
   filterMaxHeight: {
     type: String,
-    default: '400px'
+    default: '400px',
   },
 
   /**
    * 默认选中的列（列的 key 或 prop）
-   * @type {Array<String>}
+   * @type {Array<string>}
    */
   defaultCheckedColumns: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
 
   /**
    * 搜索表单是否可见（用于搜索切换）
-   * @type {Boolean}
+   * @type {boolean}
    */
   searchVisible: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 })
 
 const emit = defineEmits([
@@ -235,8 +233,10 @@ const emit = defineEmits([
   'density-change',
   'filter-change',
   'search-toggle',
-  'fullscreen-change'
+  'fullscreen-change',
 ])
+
+const slots = useSlots()
 
 const tableRef = ref(null)
 const checkedRowKeys = ref([])
@@ -252,7 +252,7 @@ const rowKeyFn = computed(() => {
   if (typeof props.rowKey === 'function') {
     return props.rowKey
   }
-  return (row) => row[props.rowKey]
+  return row => row[props.rowKey]
 })
 
 /**
@@ -268,12 +268,12 @@ const tableColumns = computed(() => {
   if (!props.hideSelection) {
     cols.push({
       type: 'selection',
-      fixed: 'left'
+      fixed: 'left',
     })
   }
 
   // 处理其他列
-  columnsToUse.forEach(col => {
+  columnsToUse.forEach((col) => {
     // 如果设置了 visible: false，跳过
     if (col.visible === false) {
       return
@@ -288,17 +288,19 @@ const tableColumns = computed(() => {
       align: col.align || 'left',
       fixed: col.fixed,
       ellipsis: col.ellipsis !== false ? { tooltip: true } : false,
-      sorter: col.sortable ? (row1, row2) => {
-        const val1 = row1[col.prop]
-        const val2 = row2[col.prop]
-        if (typeof val1 === 'number' && typeof val2 === 'number') {
-          return val1 - val2
-        }
-        return String(val1).localeCompare(String(val2))
-      } : false,
+      sorter: col.sortable
+        ? (row1, row2) => {
+            const val1 = row1[col.prop]
+            const val2 = row2[col.prop]
+            if (typeof val1 === 'number' && typeof val2 === 'number') {
+              return val1 - val2
+            }
+            return String(val1).localeCompare(String(val2))
+          }
+        : false,
       filter: col.filter,
       filterMultiple: col.filterMultiple,
-      filterOptions: col.filterOptions
+      filterOptions: col.filterOptions,
     }
 
     // 自定义渲染
@@ -325,7 +327,7 @@ const tableColumns = computed(() => {
             row,
             index,
             column: col,
-            context: props.context
+            context: props.context,
           })
         }
         // 如果插槽不存在，显示占位文本
@@ -333,8 +335,8 @@ const tableColumns = computed(() => {
           class: 'table-slot-wrapper',
           style: {
             color: '#999',
-            fontSize: '12px'
-          }
+            fontSize: '12px',
+          },
         }, `[插槽: ${slotName}]`)
       }
     }
@@ -403,7 +405,7 @@ const paginationProps = computed(() => {
     },
     onUpdatePageSize: (pageSize) => {
       emit('page-size-change', pageSize)
-    }
+    },
   }
   return config
 })
@@ -428,7 +430,7 @@ function clearSelection() {
  * 获取选中的行
  */
 function getCheckedRows() {
-  return props.dataSource.filter(row => {
+  return props.dataSource.filter((row) => {
     const key = rowKeyFn.value(row)
     return checkedRowKeys.value.includes(key)
   })
@@ -450,7 +452,7 @@ defineExpose({
   checkedRowKeys,
   handleRefresh,
   handleDensityChange,
-  handleFilterChange
+  handleFilterChange,
 })
 </script>
 

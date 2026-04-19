@@ -17,16 +17,16 @@ export const useAuthStore = defineStore('auth', {
 
       // 如果有access token，则添加到Authorization header
       if (state.accessToken) {
-        headers['Authorization'] = `Bearer ${state.accessToken}`
+        headers.Authorization = `Bearer ${state.accessToken}`
       }
 
       return headers
-    }
+    },
   },
   actions: {
     // 设置token和用户信息（适配新的返回结构）
     setToken(data) {
-      if (data ) {
+      if (data) {
         this.accessToken = data.accessToken
       }
       // 兼容旧的结
@@ -38,7 +38,7 @@ export const useAuthStore = defineStore('auth', {
       const { router, route } = useRouterStore()
       router.replace({
         path: '/login',
-        query: {...route.query,redirect:route.path},
+        query: { ...route.query, redirect: route.path },
       })
     },
     async switchCurrentRole(data) {

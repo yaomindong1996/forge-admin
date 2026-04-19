@@ -83,8 +83,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
 import { ChevronDownOutline, ChevronUpOutline } from '@vicons/ionicons5'
+import { computed, ref, watch } from 'vue'
 import AiFormItem from './AiFormItem.vue'
 
 const props = defineProps({
@@ -92,89 +92,89 @@ const props = defineProps({
   schema: {
     type: Array,
     required: true,
-    default: () => []
+    default: () => [],
   },
   // 表单数据 (v-model)
   value: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   // 上下文数据，传递给字段的回调函数
   context: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   // 表单布局
   labelPlacement: {
     type: String,
-    default: 'left' // 'left' | 'top'
+    default: 'left', // 'left' | 'top'
   },
   labelWidth: {
     type: [String, Number],
-    default: 'auto'
+    default: 'auto',
   },
   // 表单尺寸
   size: {
     type: String,
-    default: 'medium' // 'small' | 'medium' | 'large'
+    default: 'medium', // 'small' | 'medium' | 'large'
   },
   // 栅格布局
   gridCols: {
     type: Number,
-    default: 1
+    default: 1,
   },
   xGap: {
     type: Number,
-    default: 12
+    default: 12,
   },
   yGap: {
     type: Number,
-    default: 0
+    default: 0,
   },
   // 操作按钮
   showActions: {
     type: Boolean,
-    default: true
+    default: true,
   },
   showSubmit: {
     type: Boolean,
-    default: true
+    default: true,
   },
   showReset: {
     type: Boolean,
-    default: true
+    default: true,
   },
   showCancel: {
     type: Boolean,
-    default: false
+    default: false,
   },
   submitText: {
     type: String,
-    default: '提交'
+    default: '提交',
   },
   resetText: {
     type: String,
-    default: '重置'
+    default: '重置',
   },
   cancelText: {
     type: String,
-    default: '取消'
+    default: '取消',
   },
   // 是否启用折叠功能
   enableCollapse: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 最大显示字段数（超过时显示折叠按钮）
   maxVisibleFields: {
     type: Number,
-    default: 6
+    default: 6,
   },
   // 是否显示验证反馈（默认显示）
   showFeedback: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 })
 
 const emit = defineEmits(['update:value', 'submit', 'reset', 'cancel'])
@@ -191,14 +191,15 @@ watch(() => props.value, (newVal) => {
 // 生成表单验证规则
 const formRules = computed(() => {
   const rules = {}
-  props.schema.forEach(field => {
+  props.schema.forEach((field) => {
     if (field.rules) {
       rules[field.field] = field.rules
-    } else if (field.required) {
+    }
+    else if (field.required) {
       rules[field.field] = {
         required: true,
         message: field.requiredMessage || `请${field.type === 'input' ? '输入' : '选择'}${field.label}`,
-        trigger: field.trigger || ['blur', 'change']
+        trigger: field.trigger || ['blur', 'change'],
       }
     }
   })
@@ -210,7 +211,7 @@ const visibleSchema = computed(() => {
   let fields = props.schema
 
   // 应用 vIf 条件过滤
-  fields = fields.filter(field => {
+  fields = fields.filter((field) => {
     // 如果有 vIf 函数，执行它
     if (typeof field.vIf === 'function') {
       return field.vIf(formValue.value)
@@ -245,7 +246,8 @@ const visibleSchema = computed(() => {
       if (hasNextField) {
         fieldsWithoutEmptyDividers.push(field)
       }
-    } else {
+    }
+    else {
       fieldsWithoutEmptyDividers.push(field)
     }
   }
@@ -262,7 +264,7 @@ const visibleSchema = computed(() => {
   // 合并 showFeedback 到每个字段
   return fields.map(field => ({
     ...field,
-    showFeedback: field.showFeedback ?? props.showFeedback
+    showFeedback: field.showFeedback ?? props.showFeedback,
   }))
 })
 
@@ -295,7 +297,7 @@ function handleFieldChange(field, value) {
       value,
       field: fieldConfig,
       formData: formValue.value,
-      context: props.context
+      context: props.context,
     })
   }
 }
@@ -305,7 +307,8 @@ async function handleSubmit() {
   try {
     await formRef.value?.validate()
     emit('submit', { ...formValue.value })
-  } catch (error) {
+  }
+  catch (error) {
     console.log('表单验证失败:', error)
   }
 }
@@ -314,7 +317,7 @@ async function handleSubmit() {
 function handleReset() {
   formRef.value?.restoreValidation()
   const resetData = {}
-  props.schema.forEach(field => {
+  props.schema.forEach((field) => {
     resetData[field.field] = field.defaultValue ?? null
   })
   formValue.value = resetData
@@ -337,6 +340,6 @@ defineExpose({
   validate: () => formRef.value?.validate(),
   restoreValidation: () => formRef.value?.restoreValidation(),
   reset: handleReset,
-  getFormData: () => ({ ...formValue.value })
+  getFormData: () => ({ ...formValue.value }),
 })
 </script>

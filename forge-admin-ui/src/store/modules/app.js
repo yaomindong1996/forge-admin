@@ -1,8 +1,8 @@
-import { generate, getRgbStr } from '@arco-design/color'
+import { generate } from '@arco-design/color'
 import { useDark } from '@vueuse/core'
 import { defineStore } from 'pinia'
+import { applyThemeConfig, defaultThemeConfig } from '@/config/theme.config'
 import { defaultLayout, defaultPrimaryColor, naiveThemeOverrides } from '@/settings'
-import { defaultThemeConfig, applyThemeConfig } from '@/config/theme.config'
 
 export const useAppStore = defineStore('app', {
   state: () => ({
@@ -13,7 +13,7 @@ export const useAppStore = defineStore('app', {
     naiveThemeOverrides,
     selectedTopMenuId: null, // 当前选中的顶部菜单ID
     themeConfig: defaultThemeConfig, // 主题配置
-    routeGuardCompleted:null
+    routeGuardCompleted: null,
   }),
   actions: {
     switchCollapsed() {
@@ -79,7 +79,7 @@ export const useAppStore = defineStore('app', {
     updateNaiveThemeOverrides(common) {
       this.naiveThemeOverrides.common = {
         ...this.naiveThemeOverrides.common,
-        ...common
+        ...common,
       }
     },
   },

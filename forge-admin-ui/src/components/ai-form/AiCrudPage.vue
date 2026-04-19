@@ -23,7 +23,6 @@
         :before-reset="beforeRenderReset"
         @search="handleSearch"
         @reset="handleReset"
-
       >
         <!-- 透传搜索表单插槽 -->
         <template v-for="slotName in searchSlots" #[slotName]="slotProps">
@@ -44,6 +43,7 @@
         <AiTable
           ref="tableRef"
           :columns="tableColumns"
+          v-model:checked-row-keys="selectedKeys"
           :data-source="dataSource"
           :loading="tableLoading"
           :pagination="paginationConfig"
@@ -54,11 +54,10 @@
           :size="tableSize"
           :max-height="computedMaxHeight"
           :scroll-x="computedScrollX"
-          v-model:checked-row-keys="selectedKeys"
+          v-bind="tableProps"
           @page-change="handlePageChange"
           @page-size-change="handlePageSizeChange"
           @refresh="handleRefresh"
-          v-bind="tableProps"
         >
           <template #toolbar-left>
             <!-- 工具栏区域 -->
@@ -68,10 +67,10 @@
                   <slot name="toolbar-start" />
                   <!-- 新增按钮 -->
                   <n-button
-                      v-if="!hideAdd"
-                      type="primary"
-                      @click="handleAdd"
-                      size="small"
+                    v-if="!hideAdd"
+                    type="primary"
+                    size="small"
+                    @click="handleAdd"
                   >
                     <template #icon>
                       <n-icon><Add /></n-icon>
@@ -80,9 +79,9 @@
                   </n-button>
                   <!-- 批量导入按钮 -->
                   <n-button
-                      size="small"
-                      v-if="showImport"
-                      @click="handleShowImport"
+                    v-if="showImport"
+                    size="small"
+                    @click="handleShowImport"
                   >
                     <template #icon>
                       <n-icon><CloudUploadOutline /></n-icon>
@@ -92,11 +91,11 @@
 
                   <!-- 导出按钮 -->
                   <n-button
-                      size="small"
-                      v-if="showExport"
-                      @click="handleExport"
-                      strong
-                      secondary
+                    v-if="showExport"
+                    size="small"
+                    strong
+                    secondary
+                    @click="handleExport"
                   >
                     <template #icon>
                       <n-icon><DownloadOutline /></n-icon>
@@ -153,7 +152,9 @@
       <!-- 弹窗底部按钮 -->
       <template v-if="!hideModalFooter" #footer>
         <n-space justify="end">
-          <n-button @click="handleModalCancel">取消</n-button>
+          <n-button @click="handleModalCancel">
+            取消
+          </n-button>
           <n-button
             type="primary"
             :loading="confirmLoading"
@@ -193,7 +194,9 @@
         <!-- 抽屉底部按钮 -->
         <template v-if="!hideModalFooter" #footer>
           <n-space justify="end">
-            <n-button @click="handleModalCancel">取消</n-button>
+            <n-button @click="handleModalCancel">
+              取消
+            </n-button>
             <n-button
               type="primary"
               :loading="confirmLoading"
@@ -246,7 +249,9 @@
             </template>
             下载导入模板
           </n-button>
-          <n-button @click="importModalVisible = false">关闭</n-button>
+          <n-button @click="importModalVisible = false">
+            关闭
+          </n-button>
         </n-space>
       </template>
     </n-modal>
@@ -254,21 +259,19 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick, h } from 'vue'
 import {
   Add,
-  TrashOutline,
   CloudUploadOutline,
   DownloadOutline,
-  RefreshOutline
 } from '@vicons/ionicons5'
 import { NDropdown } from 'naive-ui'
-import AiSearch from './AiSearch.vue'
-import AiTable from './AiTable.vue'
-import AiForm from './AiForm.vue'
+import { computed, h, nextTick, onMounted, ref, watch } from 'vue'
 import { request } from '@/utils'
 import { postEncrypt } from '@/utils/encrypt-request'
 import { aiCrudPageProps } from './AiCrudPageProps'
+import AiForm from './AiForm.vue'
+import AiSearch from './AiSearch.vue'
+import AiTable from './AiTable.vue'
 
 /**
  * ==================== Props 定义 ====================
@@ -279,16 +282,16 @@ const props = defineProps(aiCrudPageProps)
  * ==================== Emits 定义 ====================
  */
 const emit = defineEmits([
-  'load-list-success',    // 列表加载成功
-  'load-list-error',      // 列表加载失败
-  'add',                  // 点击新增
-  'edit',                 // 点击编辑
-  'delete',               // 删除成功
-  'submit-success',       // 提交成功
-  'submit-error',         // 提交失败
-  'selection-change',     // 选中项变化
-  'modal-open',           // 弹窗打开
-  'modal-close'           // 弹窗关闭
+  'load-list-success', // 列表加载成功
+  'load-list-error', // 列表加载失败
+  'add', // 点击新增
+  'edit', // 点击编辑
+  'delete', // 删除成功
+  'submit-success', // 提交成功
+  'submit-error', // 提交失败
+  'selection-change', // 选中项变化
+  'modal-open', // 弹窗打开
+  'modal-close', // 弹窗关闭
 ])
 
 /**
@@ -316,7 +319,7 @@ const selectedKeys = ref([])
 const pagination = ref({
   page: props.pageNum,
   pageSize: props.pageSize,
-  itemCount: 0
+  itemCount: 0,
 })
 
 // 弹窗
@@ -338,14 +341,16 @@ const maxActionButtons = 2
 /**
  * 渲染操作列（支持自动折叠）
  * 使用文字链接风格，紧凑排列，超过 maxActionButtons 个时折叠到"更多"下拉
- * @param {Object} row - 行数据
+ * @param {object} row - 行数据
  * @param {Array} actions - 操作按钮配置 [{ label, key, type, onClick, visible }]
  */
 function renderActionColumn(row, actions) {
   // 过滤不可见的按钮
-  const visibleActions = actions.filter(action => {
-    if (typeof action.visible === 'function') return action.visible(row)
-    if (action.visible === false) return false
+  const visibleActions = actions.filter((action) => {
+    if (typeof action.visible === 'function')
+      return action.visible(row)
+    if (action.visible === false)
+      return false
     return true
   })
 
@@ -355,32 +360,31 @@ function renderActionColumn(row, actions) {
 
   // 所有按钮都能直接显示
   if (visibleActions.length <= maxActionButtons) {
-    return h('div', { class: 'table-action-column' },
-      visibleActions.map((action, index) => {
-        const nodes = []
-        if (index > 0) {
-          nodes.push(h('span', { class: 'table-action-divider' }, ' | '))
-        }
-        const isDanger = action.type === 'error' || action.type === 'danger'
-        nodes.push(h('a', {
-          class: ['table-action-link', isDanger ? 'danger' : ''],
-          onClick: (e) => {
-            e?.stopPropagation()
-            e?.preventDefault()
-            if (action.onClick) action.onClick(row)
-            else handleActionClick(action.key, row)
-          }
-        }, action.label))
-        return nodes
-      }).flat()
-    )
+    return h('div', { class: 'table-action-column' }, visibleActions.map((action, index) => {
+      const nodes = []
+      if (index > 0) {
+        nodes.push(h('span', { class: 'table-action-divider' }, ' | '))
+      }
+      const isDanger = action.type === 'error' || action.type === 'danger'
+      nodes.push(h('a', {
+        class: ['table-action-link', isDanger ? 'danger' : ''],
+        onClick: (e) => {
+          e?.stopPropagation()
+          e?.preventDefault()
+          if (action.onClick)
+            action.onClick(row)
+          else handleActionClick(action.key, row)
+        },
+      }, action.label))
+      return nodes
+    }).flat())
   }
 
   // 需要折叠：显示前 maxActionButtons 个，其余放入"更多"下拉
   const inlineActions = visibleActions.slice(0, maxActionButtons)
   const dropdownOptions = visibleActions.slice(maxActionButtons).map(action => ({
     label: action.label,
-    key: action.key || action.label
+    key: action.key || action.label,
   }))
 
   const inlineNodes = inlineActions.map((action, index) => {
@@ -394,9 +398,10 @@ function renderActionColumn(row, actions) {
       onClick: (e) => {
         e?.stopPropagation()
         e?.preventDefault()
-        if (action.onClick) action.onClick(row)
+        if (action.onClick)
+          action.onClick(row)
         else handleActionClick(action.key, row)
-      }
+      },
     }, action.label))
     return nodes
   }).flat()
@@ -409,15 +414,16 @@ function renderActionColumn(row, actions) {
       trigger: 'click',
       onSelect: (key) => {
         const action = visibleActions.find(a => (a.key || a.label) === key)
-        if (action?.onClick) action.onClick(row)
+        if (action?.onClick)
+          action.onClick(row)
         else handleActionClick(key, row)
-      }
+      },
     }, {
       default: () => h('a', {
         class: 'table-action-link',
-        onClick: (e) => { e?.preventDefault() }
-      }, '更多')
-    })
+        onClick: (e) => { e?.preventDefault() },
+      }, '更多'),
+    }),
   ])
 }
 
@@ -448,7 +454,7 @@ const rowKeyFn = computed(() => {
   if (typeof props.rowKey === 'function') {
     return props.rowKey
   }
-  return (row) => row[props.rowKey]
+  return row => row[props.rowKey]
 })
 
 /**
@@ -457,14 +463,14 @@ const rowKeyFn = computed(() => {
 const tableColumns = computed(() => {
   const cols = []
 
-  props.columns.forEach(col => {
+  props.columns.forEach((col) => {
     // 操作列：如果有 actions 配置，自动生成 render 函数
     if ((col.prop === 'action' || col.key === 'action') && col.actions) {
       const actionCol = { ...col }
       delete actionCol.actions
       delete actionCol._slot
       delete actionCol.slot
-      actionCol.render = (row) => renderActionColumn(row, col.actions)
+      actionCol.render = row => renderActionColumn(row, col.actions)
       cols.push(actionCol)
       return
     }
@@ -483,10 +489,10 @@ const tableColumns = computed(() => {
       render: (row) => {
         const actions = [
           { label: '编辑', key: 'edit', type: 'primary' },
-          { label: '删除', key: 'delete', type: 'error' }
+          { label: '删除', key: 'delete', type: 'error' },
         ]
         return renderActionColumn(row, actions)
-      }
+      },
     })
   }
 
@@ -509,7 +515,7 @@ const paginationConfig = computed(() => {
     showSizePicker: true,
     pageSizes: props.pageSizes,
     showQuickJumper: true,
-    prefix:({itemCount}) => `共${itemCount}条`
+    prefix: ({ itemCount }) => `共${itemCount}条`,
   }
 })
 
@@ -545,10 +551,10 @@ const formSlots = computed(() => {
  */
 const formContext = computed(() => {
   return {
-    modalStatus: modalStatus.value,  // 'add' | 'edit'
+    modalStatus: modalStatus.value, // 'add' | 'edit'
     isEdit: modalStatus.value === 'edit',
     isAdd: modalStatus.value === 'add',
-    currentRow: currentRow.value
+    currentRow: currentRow.value,
   }
 })
 
@@ -565,7 +571,7 @@ const computedScrollX = computed(() => {
   let totalWidth = 0
   let hasWidth = false
 
-  tableColumns.value.forEach(col => {
+  tableColumns.value.forEach((col) => {
     if (col.width) {
       totalWidth += col.width
       hasWidth = true
@@ -595,7 +601,7 @@ const computedMaxHeight = computed(() => {
 
 /**
  * 执行钩子函数
- * @param {String} hookName - 钩子函数名
+ * @param {string} hookName - 钩子函数名
  * @param {*} params - 参数
  * @param {Function} success - 成功回调
  * @returns {Promise}
@@ -609,25 +615,28 @@ async function callHook(hookName, params, success) {
       try {
         const data = await result
         return success ? success(data) : data
-      } catch (error) {
+      }
+      catch (error) {
         console.error(`Hook ${hookName} error:`, error)
         return success ? success(params) : params
       }
-    } else {
+    }
+    else {
       return success ? success(result) : result
     }
-  } else {
+  }
+  else {
     return success ? success(params) : params
   }
 }
 
 /**
  * 解析 API 配置
- * @param {String} key - API 配置键名
- * @param {String} defaultApi - 默认 API
- * @param {String} defaultMethod - 默认请求方法
- * @param {Object} urlParams - URL 参数，用于替换 :id 等占位符
- * @returns {Object} { method, url }
+ * @param {string} key - API 配置键名
+ * @param {string} defaultApi - 默认 API
+ * @param {string} defaultMethod - 默认请求方法
+ * @param {object} urlParams - URL 参数，用于替换 :id 等占位符
+ * @returns {object} { method, url }
  */
 function parseApiConfig(key, defaultApi, defaultMethod = 'get', urlParams = {}) {
   const apiConfigValue = props.apiConfig[key]
@@ -639,7 +648,7 @@ function parseApiConfig(key, defaultApi, defaultMethod = 'get', urlParams = {}) 
     // 替换 URL 中的占位符，如 :id, :dictId 等
     let finalUrl = url
     let hasPlaceholder = false
-    Object.keys(urlParams).forEach(paramKey => {
+    Object.keys(urlParams).forEach((paramKey) => {
       if (finalUrl.includes(`:${paramKey}`)) {
         hasPlaceholder = true
         finalUrl = finalUrl.replace(`:${paramKey}`, urlParams[paramKey])
@@ -674,7 +683,7 @@ async function loadList() {
     // 构建请求参数
     let params = {
       ...props.publicParams,
-      ...searchParams.value
+      ...searchParams.value,
     }
 
     // 分页参数
@@ -684,16 +693,17 @@ async function loadList() {
           ...params,
           ...props.publicQuery,
           pageNum: pagination.value.page,
-          pageSize: pagination.value.pageSize
+          pageSize: pagination.value.pageSize,
         }
-      } else {
+      }
+      else {
         params.pageNum = pagination.value.page
         params.pageSize = pagination.value.pageSize
       }
     }
 
     // 调用 beforeLoadList 钩子
-    params = await callHook('beforeLoadList', params, (data) => data)
+    params = await callHook('beforeLoadList', params, data => data)
 
     // 解析 API
     const { method, url } = parseApiConfig('list', props.api, props.listMethod)
@@ -704,7 +714,8 @@ async function loadList() {
     const useEncrypt = method === 'postEncrypt' || (props.isEncrypt && method !== 'get')
     if (useEncrypt) {
       requestMethod = method === 'postEncrypt' ? 'postEncrypt' : method.toLowerCase()
-    } else {
+    }
+    else {
       requestMethod = method.toLowerCase()
     }
 
@@ -713,16 +724,18 @@ async function loadList() {
     if (useEncrypt && requestMethod === 'postEncrypt') {
       // 使用加密请求
       response = await postEncrypt(url, params)
-    } else {
+    }
+    else {
       // 使用普通请求
       const requestConfig = {
         method: requestMethod,
-        url
+        url,
       }
 
       if (requestMethod === 'get') {
         requestConfig.params = params
-      } else {
+      }
+      else {
         requestConfig.data = params
         requestConfig.params = props.publicQuery
       }
@@ -738,27 +751,28 @@ async function loadList() {
       // 后端直接返回数组（不分页）
       list = response.data
       total = response.data.length
-    } else if (response.data && typeof response.data === 'object') {
-
+    }
+    else if (response.data && typeof response.data === 'object') {
       // 后端返回对象（分页数据）
       list = response.data[props.listDataField] || []
       total = response.data[props.listTotalField] || 0
-
     }
 
     // 调用 beforeRenderList 钩子
-    list = await callHook('beforeRenderList', list, (data) => data)
+    list = await callHook('beforeRenderList', list, data => data)
 
     // 更新数据
     dataSource.value = list
     pagination.value.itemCount = total
 
     emit('load-list-success', { list, total })
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载列表失败:', error)
     window.$message.error('加载数据失败')
     emit('load-list-error', error)
-  } finally {
+  }
+  finally {
     tableLoading.value = false
   }
 }
@@ -768,7 +782,7 @@ async function loadList() {
  */
 async function handleSearch(params) {
   // 调用 beforeSearch 钩子
-  const processedParams = await callHook('beforeSearch', params, (data) => data)
+  const processedParams = await callHook('beforeSearch', params, data => data)
 
   // 如果钩子返回 false，中断搜索
   if (processedParams === false) {
@@ -837,14 +851,14 @@ async function handleAdd() {
 
   // 初始化表单数据，设置默认值
   const initialData = {}
-  props.editSchema.forEach(field => {
+  props.editSchema.forEach((field) => {
     if (field.field && field.defaultValue !== undefined) {
       initialData[field.field] = field.defaultValue
     }
   })
 
   // 调用 beforeRenderForm 钩子（新增时）
-  const formDataFromHook = await callHook('beforeRenderForm', null, (data) => data)
+  const formDataFromHook = await callHook('beforeRenderForm', null, data => data)
 
   console.log('AiCrudPage handleAdd - initialData:', initialData)
   console.log('AiCrudPage handleAdd - formDataFromHook:', formDataFromHook)
@@ -852,7 +866,8 @@ async function handleAdd() {
   // 合并默认值和钩子返回的数据
   if (formDataFromHook && typeof formDataFromHook === 'object') {
     formData.value = { ...initialData, ...formDataFromHook }
-  } else {
+  }
+  else {
     formData.value = initialData
   }
 
@@ -871,16 +886,17 @@ async function handleEdit(row) {
   currentRow.value = row
 
   // 调用 beforeRenderForm 钩子（编辑时）
-  const processedRow = await callHook('beforeRenderForm', row, (data) => data)
+  const processedRow = await callHook('beforeRenderForm', row, data => data)
 
   // 如果需要加载详情
   if (props.loadDetailOnEdit) {
-    window.$loading.show("加载中...")
+    window.$loading.show('加载中...')
     await loadDetail(processedRow || row)
     window.$loading.close()
-  } else {
+  }
+  else {
     // 调用 beforeRenderDetail 钩子
-    const data = await callHook('beforeRenderDetail', processedRow || row, (data) => data)
+    const data = await callHook('beforeRenderDetail', processedRow || row, data => data)
     formData.value = { ...data }
   }
 
@@ -902,7 +918,7 @@ async function loadDetail(row) {
       'detail',
       `${props.api}/${idValue}`,
       'get',
-      { [props.rowKey]: idValue }
+      { [props.rowKey]: idValue },
     )
 
     // 确定使用哪种请求方法
@@ -911,14 +927,15 @@ async function loadDetail(row) {
     const useEncrypt = method === 'postEncrypt' || (props.isEncrypt && method !== 'get')
     if (useEncrypt) {
       requestMethod = method === 'postEncrypt' ? 'postEncrypt' : method.toLowerCase()
-    } else {
+    }
+    else {
       requestMethod = method.toLowerCase()
     }
 
     // 构建请求参数
     const requestConfig = {
       method: requestMethod,
-      url
+      url,
     }
 
     // 对于 POST 请求，如果 URL 中不包含 ID，则将主键作为 query 参数传递
@@ -933,19 +950,22 @@ async function loadDetail(row) {
     if (useEncrypt && requestMethod === 'postEncrypt') {
       // 使用加密请求
       response = await postEncrypt(url, {}, { params: requestConfig.params })
-    } else {
+    }
+    else {
       // 使用普通请求
       response = await request(requestConfig)
     }
 
     // 调用 beforeRenderDetail 钩子
-    const data = await callHook('beforeRenderDetail', response.data, (data) => data)
+    const data = await callHook('beforeRenderDetail', response.data, data => data)
 
     formData.value = { ...data }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载详情失败:', error)
     window.$message.error('加载详情失败')
-  } finally {
+  }
+  finally {
     confirmLoading.value = false
   }
 }
@@ -980,7 +1000,7 @@ async function handleBatchDelete() {
  */
 async function performDelete(rows, keys) {
   // 调用 beforeDelete 钩子
-  const shouldContinue = await callHook('beforeDelete', rows, (result) => result)
+  const shouldContinue = await callHook('beforeDelete', rows, result => result)
 
   if (shouldContinue === false) {
     return
@@ -1007,19 +1027,22 @@ async function performDelete(rows, keys) {
           const useEncrypt = method === 'postEncrypt' || (props.isEncrypt && method !== 'get')
           if (useEncrypt) {
             requestMethod = method === 'postEncrypt' ? 'postEncrypt' : method.toLowerCase()
-          } else {
+          }
+          else {
             requestMethod = method.toLowerCase()
           }
 
           if (useEncrypt && requestMethod === 'postEncrypt') {
             await postEncrypt(url, keys[0])
-          } else {
+          }
+          else {
             await request({
               method: requestMethod,
-              url
+              url,
             })
           }
-        } else {
+        }
+        else {
           // 批量删除或未配置占位符时，使用原有逻辑
           const { method, url } = parseApiConfig('delete', props.api, 'delete')
 
@@ -1027,17 +1050,19 @@ async function performDelete(rows, keys) {
           const useEncrypt = method === 'postEncrypt' || (props.isEncrypt && method !== 'get')
           if (useEncrypt) {
             requestMethod = method === 'postEncrypt' ? 'postEncrypt' : method.toLowerCase()
-          } else {
+          }
+          else {
             requestMethod = method.toLowerCase()
           }
 
           if (useEncrypt && requestMethod === 'postEncrypt') {
             await postEncrypt(url, keys)
-          } else {
+          }
+          else {
             await request({
               method: requestMethod,
               url,
-              data: keys
+              data: keys,
             })
           }
         }
@@ -1045,11 +1070,12 @@ async function performDelete(rows, keys) {
         window.$message.success('删除成功')
         selectedKeys.value = []
         loadList()
-      } catch (error) {
+      }
+      catch (error) {
         console.error('删除失败:', error)
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 
@@ -1061,7 +1087,7 @@ async function handleModalConfirm() {
     await formRef.value?.validate()
 
     // 调用 beforeSubmit 钩子
-    let data = await callHook('beforeSubmit', formData.value, (data) => data)
+    const data = await callHook('beforeSubmit', formData.value, data => data)
 
     if (data === false) {
       return
@@ -1076,7 +1102,8 @@ async function handleModalConfirm() {
     if (!isEdit) {
       if (props.apiConfig.create) {
         createKey = 'create'
-      } else if (props.apiConfig.add) {
+      }
+      else if (props.apiConfig.add) {
         createKey = 'add'
       }
     }
@@ -1085,7 +1112,7 @@ async function handleModalConfirm() {
       isEdit ? 'update' : createKey,
       isEdit ? `${props.api}/${currentRow.value[props.rowKey]}` : props.api,
       isEdit ? 'put' : 'post',
-      isEdit ? { [props.rowKey]: currentRow.value[props.rowKey] } : {}
+      isEdit ? { [props.rowKey]: currentRow.value[props.rowKey] } : {},
     )
 
     // 确定使用哪种请求方法
@@ -1094,7 +1121,8 @@ async function handleModalConfirm() {
     const useEncrypt = method === 'postEncrypt' || (props.isEncrypt && method !== 'get')
     if (useEncrypt) {
       requestMethod = method === 'postEncrypt' ? 'postEncrypt' : method.toLowerCase()
-    } else {
+    }
+    else {
       requestMethod = method.toLowerCase()
     }
 
@@ -1103,7 +1131,8 @@ async function handleModalConfirm() {
     if (useEncrypt && requestMethod === 'postEncrypt') {
       // 使用加密请求
       response = await postEncrypt(url, data)
-    } else {
+    }
+    else {
       // 使用普通请求
       response = await request({ method: requestMethod, url, data })
     }
@@ -1115,13 +1144,15 @@ async function handleModalConfirm() {
     emit('submit-success', { data, response, isEdit })
 
     loadList()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('提交失败:', error)
     window.$message.error('提交失败')
 
     // 触发提交失败事件
     emit('submit-error', { error, data: formData.value })
-  } finally {
+  }
+  finally {
     confirmLoading.value = false
   }
 }
@@ -1161,7 +1192,8 @@ function handleImportFinish({ event }) {
     window.$message.success('导入成功')
     importModalVisible.value = false
     loadList()
-  } else {
+  }
+  else {
     window.$message.error(response.msg || '导入失败')
   }
 }
@@ -1189,7 +1221,7 @@ async function handleExport() {
 
     const params = {
       ...searchParams.value,
-      ...props.publicParams
+      ...props.publicParams,
     }
 
     // 确定使用哪种请求方法
@@ -1198,7 +1230,8 @@ async function handleExport() {
     const useEncrypt = method === 'postEncrypt' || (props.isEncrypt && method !== 'get')
     if (useEncrypt) {
       requestMethod = method === 'postEncrypt' ? 'postEncrypt' : method.toLowerCase()
-    } else {
+    }
+    else {
       requestMethod = method.toLowerCase()
     }
 
@@ -1206,18 +1239,20 @@ async function handleExport() {
     if (useEncrypt && requestMethod === 'postEncrypt') {
       // 使用加密请求
       await postEncrypt(url, params)
-    } else {
+    }
+    else {
       // 使用普通请求
       await request({
         method: requestMethod,
         url,
         data: requestMethod === 'get' ? undefined : params,
-        params: requestMethod === 'get' ? params : undefined
+        params: requestMethod === 'get' ? params : undefined,
       })
     }
 
     window.$message.success('导出成功')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('导出失败:', error)
     window.$message.error('导出失败')
   }
@@ -1324,7 +1359,7 @@ defineExpose({
    */
   resetSearch: () => {
     searchRef.value?.handleReset()
-  }
+  },
 })
 
 /**

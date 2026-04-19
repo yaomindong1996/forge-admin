@@ -1,29 +1,31 @@
 <template>
   <div class="sub-module-management">
-    <n-space vertical>
-      <n-space>
-        <n-button type="primary" @click="handleAdd" class="add-module-btn">新增模块</n-button>
-        <n-button
-            type="error"
-            :disabled="checkedRowKeys.length === 0"
-            @click="handleBatchDelete"
+    <NSpace vertical>
+      <NSpace>
+        <NButton type="primary" class="add-module-btn" @click="handleAdd">
+          新增模块
+        </NButton>
+        <NButton
+          type="error"
+          :disabled="checkedRowKeys.length === 0"
+          @click="handleBatchDelete"
         >
-          批量删除  {{checkedRowKeys.length ? `(${checkedRowKeys.length})`:''}}
-        </n-button>
-      </n-space>
+          批量删除  {{ checkedRowKeys.length ? `(${checkedRowKeys.length})` : '' }}
+        </NButton>
+      </NSpace>
 
       <n-data-table
-        size="small"
         v-model:checked-row-keys="checkedRowKeys"
+        size="small"
         :columns="columns"
         :data="tableData"
         :loading="loading"
         :pagination="pagination"
         :remote="true"
+        :row-key="(rowData) => rowData.id"
         @update:page="handlePageChange"
-         :row-key="(rowData) => rowData.id"
       />
-    </n-space>
+    </NSpace>
 
     <!-- 编辑抽屉 -->
     <n-drawer v-model:show="showDrawer" :width="500" placement="right">
@@ -40,7 +42,7 @@
           </n-form-item>
 
           <n-form-item label="模块ID" path="id">
-            <n-input v-model:value="formValue.id" placeholder="请输入模块ID" :disabled="status==='edit'"/>
+            <n-input v-model:value="formValue.id" placeholder="请输入模块ID" :disabled="status === 'edit'" />
           </n-form-item>
 
           <n-form-item label="图标" path="icon">
@@ -48,7 +50,7 @@
           </n-form-item>
 
           <n-form-item label="排序" path="sort">
-            <n-input-number v-model:value="formValue.sort" :min="0" />
+            <NInputNumber v-model:value="formValue.sort" :min="0" />
           </n-form-item>
 
           <n-form-item label="类型" path="type">
@@ -65,10 +67,14 @@
         </n-form>
 
         <template #footer>
-          <n-space justify="end">
-            <n-button @click="showDrawer = false">取消</n-button>
-            <n-button type="primary" @click="handleSubmit" :loading="submitLoading">保存</n-button>
-          </n-space>
+          <NSpace justify="end">
+            <NButton @click="showDrawer = false">
+              取消
+            </NButton>
+            <NButton type="primary" :loading="submitLoading" @click="handleSubmit">
+              保存
+            </NButton>
+          </NSpace>
         </template>
       </n-drawer-content>
     </n-drawer>
@@ -76,22 +82,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, h } from 'vue'
-import { NButton, NSpace, NInputNumber } from 'naive-ui'
+import { NButton, NInputNumber, NSpace } from 'naive-ui'
+import { h, onMounted, ref, watch } from 'vue'
 import IconSelector from '@/components/IconSelector.vue'
-import IconRenderer from '@/components/IconRenderer.vue'
 import { request } from '@/utils'
 
 const props = defineProps({
   subAppId: {
     type: [String, Number],
-    default: ''
+    default: '',
   },
   currentItem: {
     type: Object,
-    default: () => ({})
-  }
+    default: () => ({}),
+  },
 })
+
+// 定义事件
+const emit = defineEmits(['refresh'])
 
 const message = window.$message
 
@@ -112,14 +120,14 @@ const formValue = ref({
   icon: '',
   sort: 0,
   type: '1',
-  remark: ''
+  remark: '',
 })
 
 // 类型选项
 const typeOptions = [
   { label: 'PC', value: '1' },
   { label: 'APP', value: '2' },
-  { label: '小程序', value: '3' }
+  { label: '小程序', value: '3' },
 ]
 
 const checkedRowKeysRef = ref([])
@@ -129,13 +137,13 @@ const formRules = {
   name: {
     required: true,
     message: '请输入模块名称',
-    trigger: 'blur'
+    trigger: 'blur',
   },
   id: {
     required: true,
     message: '请输入模块ID',
-    trigger: 'blur'
-  }
+    trigger: 'blur',
+  },
 }
 
 // 分页配置
@@ -145,26 +153,26 @@ const pagination = ref({
   itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 20, 50],
-  onChange: handlePageChange
+  onChange: handlePageChange,
 })
 
 // 表格列配置
 const columns = [
   {
-    type: "selection",
+    type: 'selection',
     width: 80,
   },
   {
     title: '模块名称',
     key: 'name',
     width: 150,
-    align: 'center'
+    align: 'center',
   },
   {
     title: '系统名称',
     key: 'subAppName',
     width: 150,
-    align: 'center'
+    align: 'center',
   },
   {
     title: '排序',
@@ -175,15 +183,15 @@ const columns = [
       return h(NInputNumber, {
         value: row.showOrder,
         min: 0,
-        onUpdateValue: (value) => handleOrderChange(row, value)
+        onUpdateValue: value => handleOrderChange(row, value),
       })
-    }
+    },
   },
   {
     title: '模块ID',
     key: 'id',
     width: 215,
-    align: 'center'
+    align: 'center',
   },
   {
     title: 'icon',
@@ -193,11 +201,11 @@ const columns = [
     render(row) {
       return h('div', { style: 'display: flex; align-items: center; justify-content: center;' }, [
         h(IconSelector, {
-          modelValue: row.icon,
-          'onUpdate:modelValue': (value) => handleIconChange(row, value)
+          'modelValue': row.icon,
+          'onUpdate:modelValue': value => handleIconChange(row, value),
         }),
       ])
-    }
+    },
   },
   {
     title: '操作',
@@ -211,19 +219,19 @@ const columns = [
           h(NButton, {
             type: 'info',
             size: 'small',
-            quaternary:true,
-            onClick: () => handleEdit(row)
+            quaternary: true,
+            onClick: () => handleEdit(row),
           }, { default: () => '编辑' }),
           h(NButton, {
             type: 'error',
             size: 'small',
-            quaternary:true,
-            onClick: () => handleDelete(row)
-          }, { default: () => '删除' })
-        ]
+            quaternary: true,
+            onClick: () => handleDelete(row),
+          }, { default: () => '删除' }),
+        ],
       })
-    }
-  }
+    },
+  },
 ]
 
 // 批量删除
@@ -240,16 +248,17 @@ function handleBatchDelete() {
     negativeText: '取消',
     onPositiveClick: async () => {
       try {
-        await request.delete(`/module`,{
-          data:checkedRowKeys.value
+        await request.delete(`/module`, {
+          data: checkedRowKeys.value,
         })
         message.success('批量删除成功')
         checkedRowKeys.value = []
         loadMenuData()
         emit('refresh')
-      } catch (error) {
       }
-    }
+      catch (error) {
+      }
+    },
   })
 }
 // 处理图标变化
@@ -263,7 +272,8 @@ function handleIconChange(row, value) {
     try {
       await request.put('/module', row)
       loadData()
-    } catch (error) {
+    }
+    catch (error) {
     }
   }, 300)
 }
@@ -279,7 +289,8 @@ function handleOrderChange(row, value) {
     try {
       await request.put('/module', row)
       loadData()
-    } catch (error) {
+    }
+    catch (error) {
     }
   }, 300)
 }
@@ -298,8 +309,8 @@ async function loadData() {
       params: {
         subAppId: props.subAppId,
         page: pagination.value.page,
-        pageSize: pagination.value.pageSize
-      }
+        pageSize: pagination.value.pageSize,
+      },
     })
     // 兼容新旧数据结构
     const list = res.data?.list || res.data || []
@@ -308,8 +319,10 @@ async function loadData() {
     tableData.value = list
     // 确保 total是数字类型
     pagination.value.itemCount = Number(total)
-  } catch (error) {
-  } finally {
+  }
+  catch (error) {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -331,7 +344,7 @@ function handleAdd() {
     icon: '',
     sort: 0,
     type: '1',
-    remark: ''
+    remark: '',
   }
   showDrawer.value = true
 }
@@ -340,7 +353,7 @@ function handleAdd() {
 function handleEdit(row) {
   drawerTitle.value = '编辑模块'
   status.value = 'edit'
-  formValue.value = { ...row,type:row.type.val }
+  formValue.value = { ...row, type: row.type.val }
   showDrawer.value = true
 }
 
@@ -354,15 +367,16 @@ function handleDelete(row) {
     onPositiveClick: async () => {
       try {
         // 调用实际的API接口，使用 _id 或 id 字段
-        await request.delete(`/module`,{
-          data:[row.id]
+        await request.delete(`/module`, {
+          data: [row.id],
         })
         loadData()
         // 通知父组件刷新
         emit('refresh')
-      } catch (error) {
       }
-    }
+      catch (error) {
+      }
+    },
   })
 }
 
@@ -379,14 +393,15 @@ function handleSubmit() {
       // 添加子应用ID
       const formData = {
         ...formValue.value,
-        subAppId: props.subAppId
+        subAppId: props.subAppId,
       }
       // 根据是否有 _id 判断是编辑还是新增
-      if (status.value ==='edit') {
+      if (status.value === 'edit') {
         // 编辑 - 使用 PUT
         await request.put('/module', formData)
         message.success('更新成功')
-      } else {
+      }
+      else {
         // 新增 - 使用 POST
         await request.post('/module', formData)
         message.success('新增成功')
@@ -395,8 +410,10 @@ function handleSubmit() {
       loadData()
       // 通知父组件刷新树
       emit('refresh')
-    } catch (error) {
-    } finally {
+    }
+    catch (error) {
+    }
+    finally {
       submitLoading.value = false
     }
   })
@@ -407,12 +424,9 @@ function refresh() {
   loadData()
 }
 
-// 定义事件
-const emit = defineEmits(['refresh'])
-
 // 暴露方法给父组件
 defineExpose({
-  refresh
+  refresh,
 })
 
 // 监听子应用ID变化

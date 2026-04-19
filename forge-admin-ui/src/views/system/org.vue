@@ -8,7 +8,7 @@
         detail: 'post@/system/org/getById',
         add: 'post@/system/org/add',
         update: 'post@/system/org/edit',
-        delete: 'post@/system/org/remove'
+        delete: 'post@/system/org/remove',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
@@ -17,13 +17,13 @@
       :before-submit="beforeSubmit"
       row-key="id"
       :edit-grid-cols="2"
-      :modal-width="'900px'"
+      modal-width="900px"
       :show-pagination="false"
       :lazy="false"
       add-button-text="新增组织"
       :table-props="{
         expandedRowKeys: expandedKeys,
-        onUpdateExpandedRowKeys: handleExpandedKeysUpdate
+        onUpdateExpandedRowKeys: handleExpandedKeysUpdate,
       }"
     >
       <!-- 自定义工具栏 -->
@@ -35,14 +35,13 @@
           {{ expandAll ? '折叠全部' : '展开全部' }}
         </n-button>
       </template>
-
     </AiCrudPage>
   </div>
 </template>
 
 <script setup>
-import { ref, h, computed, onMounted } from 'vue'
 import { NTag } from 'naive-ui'
+import { computed, h, onMounted, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
@@ -57,13 +56,13 @@ const parentOrgOptions = ref([{ label: '顶级组织', value: 0, key: 0 }])
 const orgTypeOptions = [
   { label: '公司', value: 1 },
   { label: '部门', value: 2 },
-  { label: '小组', value: 3 }
+  { label: '小组', value: 3 },
 ]
 
 // 组织状态选项
 const orgStatusOptions = [
   { label: '正常', value: 1 },
-  { label: '禁用', value: 0 }
+  { label: '禁用', value: 0 },
 ]
 
 // 搜索表单配置
@@ -73,8 +72,8 @@ const searchSchema = [
     label: '组织名称',
     type: 'input',
     props: {
-      placeholder: '请输入组织名称'
-    }
+      placeholder: '请输入组织名称',
+    },
   },
   {
     field: 'orgType',
@@ -82,8 +81,8 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择组织类型',
-      options: orgTypeOptions
-    }
+      options: orgTypeOptions,
+    },
   },
   {
     field: 'orgStatus',
@@ -91,9 +90,9 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择状态',
-      options: orgStatusOptions
-    }
-  }
+      options: orgStatusOptions,
+    },
+  },
 ]
 
 // 表格列配置
@@ -101,7 +100,7 @@ const tableColumns = computed(() => [
   {
     prop: 'orgName',
     label: '组织名称',
-    width: 200
+    width: 200,
   },
   {
     prop: 'orgType',
@@ -111,47 +110,45 @@ const tableColumns = computed(() => [
       const typeMap = {
         1: { text: '公司', type: 'success' },
         2: { text: '部门', type: 'info' },
-        3: { text: '小组', type: 'warning' }
+        3: { text: '小组', type: 'warning' },
       }
       const config = typeMap[row.orgType] || { text: '未知', type: 'default' }
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
-    }
+    },
   },
   {
     prop: 'leaderName',
     label: '负责人',
-    width: 120
+    width: 120,
   },
   {
     prop: 'phone',
     label: '联系电话',
-    width: 130
+    width: 130,
   },
   {
     prop: 'address',
     label: '地址',
-    width: 200
+    width: 200,
   },
   {
     prop: 'sort',
     label: '排序',
-    width: 80
+    width: 80,
   },
   {
     prop: 'orgStatus',
     label: '状态',
     width: 80,
     render: (row) => {
-      return h(NTag,
-        { type: row.orgStatus === 1 ? 'success' : 'error', size: 'small' },
-        { default: () => row.orgStatus === 1 ? '正常' : '禁用' }
+      return h(NTag, { type: row.orgStatus === 1 ? 'success' : 'error', size: 'small' }, { default: () => row.orgStatus === 1 ? '正常' : '禁用' },
       )
-    }
+    },
   },
   {
     prop: 'remark',
     label: '备注',
-    minWidth: 150
+    minWidth: 150,
   },
   {
     prop: 'action',
@@ -161,9 +158,9 @@ const tableColumns = computed(() => [
     actions: [
       { label: '新增', key: 'add', type: 'primary', onClick: handleAdd },
       { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -173,9 +170,9 @@ const editSchema = ref([
     type: 'divider',
     label: '基础信息',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'parentId',
@@ -186,9 +183,9 @@ const editSchema = ref([
       placeholder: '请选择上级组织',
       clearable: true,
       filterable: true,
-      defaultExpandAll: true
+      defaultExpandAll: true,
     },
-    options: () => parentOrgOptions.value
+    options: () => parentOrgOptions.value,
   },
   {
     field: 'orgName',
@@ -196,8 +193,8 @@ const editSchema = ref([
     type: 'input',
     rules: [{ required: true, message: '请输入组织名称', trigger: 'blur' }],
     props: {
-      placeholder: '请输入组织名称'
-    }
+      placeholder: '请输入组织名称',
+    },
   },
   {
     field: 'orgType',
@@ -206,8 +203,8 @@ const editSchema = ref([
     defaultValue: 2,
     rules: [{ required: true, type: 'number', message: '请选择组织类型', trigger: 'change' }],
     props: {
-      options: orgTypeOptions
-    }
+      options: orgTypeOptions,
+    },
   },
   {
     field: 'sort',
@@ -216,37 +213,37 @@ const editSchema = ref([
     defaultValue: 0,
     props: {
       placeholder: '排序值',
-      min: 0
-    }
+      min: 0,
+    },
   },
-  
+
   // 负责人信息
   {
     type: 'divider',
     label: '负责人信息',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'leaderName',
     label: '负责人',
     type: 'input',
     props: {
-      placeholder: '请输入负责人姓名'
-    }
+      placeholder: '请输入负责人姓名',
+    },
   },
   {
     field: 'phone',
     label: '联系电话',
     type: 'input',
     rules: [
-      { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
+      { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
     ],
     props: {
-      placeholder: '请输入联系电话'
-    }
+      placeholder: '请输入联系电话',
+    },
   },
   {
     field: 'address',
@@ -254,18 +251,18 @@ const editSchema = ref([
     type: 'input',
     span: 2,
     props: {
-      placeholder: '请输入组织地址'
-    }
+      placeholder: '请输入组织地址',
+    },
   },
-  
+
   // 状态配置
   {
     type: 'divider',
     label: '状态配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'orgStatus',
@@ -273,8 +270,8 @@ const editSchema = ref([
     type: 'radio',
     defaultValue: 1,
     props: {
-      options: orgStatusOptions
-    }
+      options: orgStatusOptions,
+    },
   },
   {
     field: 'remark',
@@ -283,9 +280,9 @@ const editSchema = ref([
     span: 2,
     props: {
       placeholder: '请输入备注',
-      rows: 3
-    }
-  }
+      rows: 3,
+    },
+  },
 ])
 
 // 组件挂载时加载上级组织选项
@@ -305,22 +302,23 @@ async function loadParentOrgOptions() {
           key: item.id,
           children: item.children && item.children.length > 0
             ? convertToTreeSelect(item.children)
-            : undefined
+            : undefined,
         }))
       }
       parentOrgOptions.value = [
         { label: '顶级组织', value: 0, key: 0 },
-        ...convertToTreeSelect(res.data || [])
+        ...convertToTreeSelect(res.data || []),
       ]
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载上级组织选项失败:', error)
   }
 }
 
 // 获取所有节点的 key
 function getAllKeys(list, keys = []) {
-  list.forEach(item => {
+  list.forEach((item) => {
     keys.push(item.id)
     if (item.children && item.children.length > 0) {
       getAllKeys(item.children, keys)
@@ -332,12 +330,12 @@ function getAllKeys(list, keys = []) {
 // 列表数据渲染前处理
 function beforeRenderList(list) {
   console.log('加载的树形数据:', list)
-  
+
   // 如果默认展开，收集所有节点的 key
   if (expandAll.value) {
     expandedKeys.value = getAllKeys(list)
   }
-  
+
   return list
 }
 
@@ -350,7 +348,7 @@ function beforeSubmit(formData) {
 // 处理表格展开状态更新
 function handleExpandedKeysUpdate(keys) {
   expandedKeys.value = keys
-  
+
   // 根据当前展开的 key 数量判断是否全部展开
   const tableData = crudRef.value?.getTableData() || []
   const allKeys = getAllKeys(tableData)
@@ -360,12 +358,13 @@ function handleExpandedKeysUpdate(keys) {
 // 展开/折叠所有
 function toggleExpandAll() {
   expandAll.value = !expandAll.value
-  
+
   if (expandAll.value) {
     // 展开所有：获取当前表格数据的所有 key
     const tableData = crudRef.value?.getTableData() || []
     expandedKeys.value = getAllKeys(tableData)
-  } else {
+  }
+  else {
     // 收起所有：清空展开的 key
     expandedKeys.value = []
   }
@@ -375,7 +374,7 @@ function toggleExpandAll() {
 async function handleAdd(row) {
   // 加载上级组织选项
   await loadParentOrgOptions()
-  
+
   crudRef.value?.showAdd()
   // 设置父级ID
   setTimeout(() => {
@@ -390,7 +389,7 @@ async function handleAdd(row) {
 async function handleEdit(row) {
   // 加载上级组织选项
   await loadParentOrgOptions()
-  
+
   crudRef.value?.showEdit(row)
 }
 
@@ -408,10 +407,11 @@ function handleDelete(row) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 </script>

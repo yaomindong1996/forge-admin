@@ -17,19 +17,19 @@
             <!-- 返回按钮 - 当back属性为true时显示 -->
             <template v-if="back">
               <div
-                class="mr-12 flex cursor-pointer items-center text-14 opacity-60 transition-all-300 hover:opacity-40"
+                class="text-14 mr-12 flex cursor-pointer items-center opacity-60 transition-all-300 hover:opacity-40"
                 @click="router.back()"
               >
                 <i class="i-material-symbols:arrow-left-alt text-16" />
-                <span class="ml-2 text-14 text-#333333">返回</span>
+                <span class="text-14 ml-2 text-#333333">返回</span>
               </div>
             </template>
           </slot>
 
           <!-- 标题装饰条 - 当存在标题时显示 -->
-          <div class="mr-8 h-14 w-3 rounded-l-1 bg-primary" v-if="title ?? route.meta?.title"/>
+          <div v-if="title ?? route.meta?.title" class="mr-8 h-14 w-3 rounded-l-1 bg-primary" />
           <!-- 页面标题 - 优先使用props传入的title，其次使用路由meta中的title -->
-          <h2 class="text-14 font-normal" v-if="title ?? route.meta?.title">
+          <h2 v-if="title ?? route.meta?.title" class="text-14 font-normal">
             {{ title ?? route.meta?.title }}
           </h2>
           <!-- 标题后缀区域 - 可插入额外内容 -->

@@ -1,24 +1,24 @@
 <template>
   <n-menu
-      class="dropdown-menu"
-      mode="horizontal"
-      :options="menuOptions"
-      :value="activeKey"
-      responsive
-      ref="menu"
-      :theme-overrides="topMenuThemeOverrides"
-      @update:value="handleMenuSelect"
+    ref="menu"
+    class="dropdown-menu"
+    mode="horizontal"
+    :options="menuOptions"
+    :value="activeKey"
+    responsive
+    :theme-overrides="topMenuThemeOverrides"
+    @update:value="handleMenuSelect"
   />
 </template>
 
 <script setup>
+import { computed, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { usePermissionStore, useAppStore } from '@/store'
-import { isExternal } from '@/utils'
-import { processTopMenus } from '@/utils/menu-utils'
-import { h, computed } from 'vue'
 import IconRenderer from '@/components/IconRenderer.vue'
-import {getTopMenuThemeOverrides} from "@/utils/menu-theme.js";
+import { useAppStore, usePermissionStore } from '@/store'
+import { isExternal } from '@/utils'
+import { getTopMenuThemeOverrides } from '@/utils/menu-theme.js'
+import { processTopMenus } from '@/utils/menu-utils'
 
 const router = useRouter()
 const route = useRoute()
@@ -35,13 +35,13 @@ const menuOptions = computed(() => {
   const topMenus = processTopMenus(menus)
 
   // 转换为n-menu需要的格式
-  const options = topMenus.map(item => {
+  const options = topMenus.map((item) => {
     return {
       ...item,
       key: item.id,
       label: item.label || item.name,
       // 保留 children 属性，用于下拉菜单显示
-      children: item.children ? processMenuData(item.children) : null
+      children: item.children ? processMenuData(item.children) : null,
     }
   })
   return options
@@ -53,12 +53,12 @@ function processMenuData(menuItems) {
     return []
   }
 
-  return menuItems.map(item => {
+  return menuItems.map((item) => {
     const menuItem = {
       key: item.id,
       label: item.name || item.label || '',
       // 修复：直接传递图标字符串，让naive-ui自己处理渲染
-      icon: item.icon ? () => h(IconRenderer, { icon: item.icon, fontSize: 16 }) : undefined
+      icon: item.icon ? () => h(IconRenderer, { icon: item.icon, fontSize: 16 }) : undefined,
     }
 
     // 设置路径
@@ -79,7 +79,8 @@ function processMenuData(menuItems) {
 const activeKey = computed(() => {
   // 根据当前路由 path 查找对应的菜单项 id
   const findMenuIdByPath = (items, targetPath) => {
-    if (!items || !Array.isArray(items)) return null
+    if (!items || !Array.isArray(items))
+      return null
 
     for (const item of items) {
       if (item.path === targetPath) {
@@ -87,7 +88,8 @@ const activeKey = computed(() => {
       }
       if (item.children && item.children.length > 0) {
         const found = findMenuIdByPath(item.children, targetPath)
-        if (found) return found
+        if (found)
+          return found
       }
     }
     return null
@@ -101,7 +103,8 @@ const activeKey = computed(() => {
 function handleMenuSelect(key) {
   // 查找选中的菜单项
   const findMenuItem = (menuItems, targetKey) => {
-    if (!menuItems || !Array.isArray(menuItems)) return null
+    if (!menuItems || !Array.isArray(menuItems))
+      return null
 
     for (const item of menuItems) {
       if ((item.key || item.id) === targetKey) {
@@ -109,7 +112,8 @@ function handleMenuSelect(key) {
       }
       if (item.children && item.children.length > 0) {
         const found = findMenuItem(item.children, targetKey)
-        if (found) return found
+        if (found)
+          return found
       }
     }
     return null
@@ -124,11 +128,13 @@ function handleMenuSelect(key) {
     }
     if (menu.children) {
       selectedItem = findMenuItem(menu.children, key)
-      if (selectedItem) break
+      if (selectedItem)
+        break
     }
   }
 
-  if (!selectedItem || !selectedItem.path) return
+  if (!selectedItem || !selectedItem.path)
+    return
 
   // 处理外部链接
   if (isExternal(selectedItem.path)) {

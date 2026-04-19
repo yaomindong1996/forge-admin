@@ -4,11 +4,11 @@ import { basePermissions } from '@/settings'
 
 export async function getUserInfo() {
   const res = await api.getUser()
-  
+
   // 新的后端接口返回结构: { code: 200, data: LoginUser }
   if (res.code === 200 && res.data) {
     const loginUser = res.data
-    
+
     return {
       id: loginUser.userId,
       username: loginUser.username,
@@ -34,11 +34,11 @@ export async function getUserInfo() {
       userInfo: loginUser, // 保存完整的用户信息
     }
   }
-  
+
   // 兼容旧的响应结构
   const userData = res.data || {}
   const userInfo = userData.userInfo || {}
-  
+
   return {
     id: userInfo.id,
     username: userInfo.id,
@@ -46,7 +46,7 @@ export async function getUserInfo() {
     nickName: userInfo.nickName || userInfo.name,
     email: userInfo.email,
     roles: [],
-    userInfo: userInfo,
+    userInfo,
   }
 }
 

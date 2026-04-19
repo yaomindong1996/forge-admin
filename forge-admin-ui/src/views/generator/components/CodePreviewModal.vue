@@ -29,7 +29,7 @@
                 复制
               </n-button>
             </div>
-            <div ref="editorContainer" class="editor-container"></div>
+            <div ref="editorContainer" class="editor-container" />
           </div>
         </div>
       </n-spin>
@@ -37,31 +37,33 @@
 
     <template #footer>
       <n-space justify="end">
-        <n-button @click="handleClose">关闭</n-button>
+        <n-button @click="handleClose">
+          关闭
+        </n-button>
       </n-space>
     </template>
   </n-modal>
 </template>
 
 <script setup>
-import { ref, watch, onUnmounted, nextTick, computed } from 'vue'
-import { request } from '@/utils'
-import { EditorView, basicSetup } from 'codemirror'
 import { java } from '@codemirror/lang-java'
-import { xml } from '@codemirror/lang-xml'
 import { javascript } from '@codemirror/lang-javascript'
 import { sql } from '@codemirror/lang-sql'
+import { xml } from '@codemirror/lang-xml'
 import { oneDark } from '@codemirror/theme-one-dark'
+import { basicSetup, EditorView } from 'codemirror'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import { request } from '@/utils'
 
 const props = defineProps({
   show: {
     type: Boolean,
-    default: false
+    default: false,
   },
   tableName: {
     type: String,
-    default: ''
-  }
+    default: '',
+  },
 })
 
 const emit = defineEmits(['update:show'])
@@ -77,7 +79,7 @@ let editorView = null
 const fileOptions = computed(() => {
   return Object.keys(fileMap.value).map(key => ({
     label: getFileName(key),
-    key: key
+    key,
   }))
 })
 
@@ -111,10 +113,12 @@ async function loadPreview() {
         initEditor(fileMap.value[keys[0]], keys[0])
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载预览失败:', error)
     window.$message.error('加载预览失败')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -127,10 +131,14 @@ function getFileName(path) {
 
 // 获取语言支持
 function getLanguageSupport(filename) {
-  if (filename.endsWith('.java')) return java()
-  if (filename.endsWith('.xml')) return xml()
-  if (filename.endsWith('.vue') || filename.endsWith('.js') || filename.endsWith('.ts')) return javascript()
-  if (filename.endsWith('.sql')) return sql()
+  if (filename.endsWith('.java'))
+    return java()
+  if (filename.endsWith('.xml'))
+    return xml()
+  if (filename.endsWith('.vue') || filename.endsWith('.js') || filename.endsWith('.ts'))
+    return javascript()
+  if (filename.endsWith('.sql'))
+    return sql()
   return []
 }
 
@@ -138,13 +146,14 @@ function getLanguageSupport(filename) {
 function initEditor(code, filename) {
   destroyEditor()
 
-  if (!editorContainer.value) return
+  if (!editorContainer.value)
+    return
 
   const languageSupport = getLanguageSupport(filename)
   const extensions = [
     basicSetup,
     oneDark,
-    EditorView.editable.of(false)
+    EditorView.editable.of(false),
     // 移除 lineWrapping 以显示水平滚动条
   ]
 
@@ -155,7 +164,7 @@ function initEditor(code, filename) {
   editorView = new EditorView({
     doc: code || '',
     extensions,
-    parent: editorContainer.value
+    parent: editorContainer.value,
   })
 }
 

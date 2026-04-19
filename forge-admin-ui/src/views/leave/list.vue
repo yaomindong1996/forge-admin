@@ -2,7 +2,7 @@
   <div class="leave-list p-4">
     <n-card title="我的请假">
       <!-- 搜索栏 -->
-      <n-space class="mb-4">
+      <NSpace class="mb-4">
         <n-select
           v-model:value="searchStatus"
           :options="statusOptions"
@@ -11,13 +11,13 @@
           style="width: 150px"
           @update:value="handleSearch"
         />
-        <n-button type="primary" @click="router.push('/leave/apply')">
+        <NButton type="primary" @click="router.push('/leave/apply')">
           <template #icon>
             <n-icon><i-mdi-plus /></n-icon>
           </template>
           新建申请
-        </n-button>
-      </n-space>
+        </NButton>
+      </NSpace>
 
       <!-- 数据表格 -->
       <n-data-table
@@ -50,9 +50,9 @@
           {{ detailData?.reason }}
         </n-descriptions-item>
         <n-descriptions-item label="状态">
-          <n-tag :type="getStatusType(detailData?.status)">
+          <NTag :type="getStatusType(detailData?.status)">
             {{ getStatusName(detailData?.status) }}
-          </n-tag>
+          </NTag>
         </n-descriptions-item>
         <n-descriptions-item label="申请时间">
           {{ formatDateTime(detailData?.createTime) }}
@@ -69,25 +69,27 @@
       </n-descriptions>
 
       <template #footer>
-        <n-space justify="end">
-          <n-button
+        <NSpace justify="end">
+          <NButton
             v-if="detailData?.status === 'pending'"
             type="warning"
             @click="handleCancel"
           >
             撤销申请
-          </n-button>
-          <n-button @click="showDetailModal = false">关闭</n-button>
-        </n-space>
+          </NButton>
+          <NButton @click="showDetailModal = false">
+            关闭
+          </NButton>
+        </NSpace>
       </template>
     </n-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, h, onMounted } from 'vue'
+import { NButton, NSpace, NTag } from 'naive-ui'
+import { h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { NButton, NTag, NSpace } from 'naive-ui'
 import leaveApi from '@/api/leave'
 
 const router = useRouter()
@@ -104,7 +106,7 @@ const pagination = reactive({
   pageSize: 10,
   itemCount: 0,
   showSizePicker: true,
-  pageSizes: [10, 20, 50]
+  pageSizes: [10, 20, 50],
 })
 
 // 状态选项
@@ -113,7 +115,7 @@ const statusOptions = [
   { label: '审批中', value: 'pending' },
   { label: '已通过', value: 'approved' },
   { label: '已驳回', value: 'rejected' },
-  { label: '已取消', value: 'canceled' }
+  { label: '已取消', value: 'canceled' },
 ]
 
 // 表格列定义
@@ -121,80 +123,80 @@ const columns = [
   {
     title: '请假类型',
     key: 'leaveType',
-    render: row => getLeaveTypeName(row.leaveType)
+    render: row => getLeaveTypeName(row.leaveType),
   },
   {
     title: '开始时间',
     key: 'startTime',
-    render: row => formatDateTime(row.startTime)
+    render: row => formatDateTime(row.startTime),
   },
   {
     title: '结束时间',
     key: 'endTime',
-    render: row => formatDateTime(row.endTime)
+    render: row => formatDateTime(row.endTime),
   },
   {
     title: '请假天数',
     key: 'duration',
-    render: row => `${row.duration} 天`
+    render: row => `${row.duration} 天`,
   },
   {
     title: '状态',
     key: 'status',
-    render: row => h(NTag, { type: getStatusType(row.status) }, () => getStatusName(row.status))
+    render: row => h(NTag, { type: getStatusType(row.status) }, () => getStatusName(row.status)),
   },
   {
     title: '申请时间',
     key: 'createTime',
-    render: row => formatDateTime(row.createTime)
+    render: row => formatDateTime(row.createTime),
   },
   {
     title: '操作',
     key: 'actions',
     width: 200,
-    render: row => {
+    render: (row) => {
       const buttons = []
-      
+
       // 查看详情
       buttons.push(
         h(NButton, {
           size: 'small',
-          onClick: () => handleDetail(row)
-        }, () => '详情')
+          onClick: () => handleDetail(row),
+        }, () => '详情'),
       )
-      
+
       // 草稿状态可以编辑和删除
       if (row.status === 'draft') {
         buttons.push(
           h(NButton, {
             size: 'small',
             type: 'primary',
-            onClick: () => handleEdit(row)
-          }, () => '编辑')
+            onClick: () => handleEdit(row),
+          }, () => '编辑'),
         )
         buttons.push(
           h(NButton, {
             size: 'small',
             type: 'error',
-            onClick: () => handleDelete(row)
-          }, () => '删除')
+            onClick: () => handleDelete(row),
+          }, () => '删除'),
         )
       }
-      
+
       // 审批中可以撤销
       if (row.status === 'pending') {
         buttons.push(
           h(NButton, {
             size: 'small',
             type: 'warning',
-            onClick: () => handleCancel(row)
-          }, () => '撤销')
+            onClick: () => handleCancel(row),
+          }, () => '撤销'),
         )
       }
-      
+
       return h(NSpace, null, () => buttons)
-    }
-  }
+    },
+  },
 ]
 
 // 加载数据
@@ -204,14 +206,16 @@ async function loadData() {
     const res = await leaveApi.getPage({
       pageNum: pagination.page,
       pageSize: pagination.pageSize,
-      status: searchStatus.value
+      status: searchStatus.value,
     })
-    
+
     tableData.value = res.data?.records || []
     pagination.itemCount = res.data?.total || 0
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载数据失败:', error)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -240,7 +244,8 @@ async function handleDetail(row) {
     const res = await leaveApi.getDetail(row.businessKey)
     detailData.value = res.data
     showDetailModal.value = true
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取详情失败:', error)
   }
 }
@@ -249,7 +254,7 @@ async function handleDetail(row) {
 function handleEdit(row) {
   router.push({
     path: '/leave/apply',
-    query: { businessKey: row.businessKey }
+    query: { businessKey: row.businessKey },
   })
 }
 
@@ -260,13 +265,14 @@ async function handleDelete(row) {
       title: '确认删除',
       content: '确定要删除这条草稿吗？',
       positiveText: '确定',
-      negativeText: '取消'
+      negativeText: '取消',
     })
-    
+
     await leaveApi.delete(row.businessKey)
     window.$message?.success('删除成功')
     loadData()
-  } catch (error) {
+  }
+  catch (error) {
     if (error !== 'cancel') {
       console.error('删除失败:', error)
     }
@@ -280,15 +286,16 @@ async function handleCancel(row) {
       title: '确认撤销',
       content: '确定要撤销这条申请吗？',
       positiveText: '确定',
-      negativeText: '取消'
+      negativeText: '取消',
     })
-    
+
     const businessKey = row?.businessKey || detailData.value?.businessKey
     await leaveApi.cancel(businessKey)
     window.$message?.success('撤销成功')
     showDetailModal.value = false
     loadData()
-  } catch (error) {
+  }
+  catch (error) {
     if (error !== 'cancel') {
       console.error('撤销失败:', error)
     }
@@ -302,7 +309,7 @@ function getLeaveTypeName(type) {
     sick: '病假',
     personal: '事假',
     marriage: '婚假',
-    maternity: '产假'
+    maternity: '产假',
   }
   return map[type] || type
 }
@@ -314,7 +321,7 @@ function getStatusName(status) {
     pending: '审批中',
     approved: '已通过',
     rejected: '已驳回',
-    canceled: '已取消'
+    canceled: '已取消',
   }
   return map[status] || status
 }
@@ -326,21 +333,22 @@ function getStatusType(status) {
     pending: 'warning',
     approved: 'success',
     rejected: 'error',
-    canceled: 'info'
+    canceled: 'info',
   }
   return map[status] || 'default'
 }
 
 // 格式化日期时间
 function formatDateTime(dateStr) {
-  if (!dateStr) return '-'
+  if (!dateStr)
+    return '-'
   const date = new Date(dateStr)
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 

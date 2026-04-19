@@ -1,29 +1,31 @@
 <template>
   <div class="menu-management">
-    <n-space vertical>
-      <n-space>
-        <n-button type="primary" @click="handleAdd" class="add-menu-btn">新增菜单</n-button>
-        <n-button
+    <NSpace vertical>
+      <NSpace>
+        <NButton type="primary" class="add-menu-btn" @click="handleAdd">
+          新增菜单
+        </NButton>
+        <NButton
           type="error"
           :disabled="checkedRowKeys.length === 0"
           @click="handleBatchDelete"
         >
-          批量删除  {{checkedRowKeys.length ? `(${checkedRowKeys.length})`:''}}
-        </n-button>
-      </n-space>
+          批量删除  {{ checkedRowKeys.length ? `(${checkedRowKeys.length})` : '' }}
+        </NButton>
+      </NSpace>
 
       <n-data-table
-        size="small"
         v-model:checked-row-keys="checkedRowKeys"
+        size="small"
         :columns="columns"
         :data="menuData"
         :loading="loading"
         :pagination="pagination"
         :remote="true"
-        @update:page="handlePageChange"
         :row-key="(rowData) => rowData.id"
+        @update:page="handlePageChange"
       />
-    </n-space>
+    </NSpace>
 
     <!-- 菜单编辑抽屉 -->
     <n-drawer v-model:show="showDrawer" :width="500" placement="right">
@@ -43,14 +45,12 @@
             <n-input v-model:value="formValue.url" placeholder="请输入菜单路径" />
           </n-form-item>
 
-
-
           <n-form-item label="菜单图标" path="icon">
             <IconSelector v-model="formValue.icon" />
           </n-form-item>
 
           <n-form-item label="排序" path="showOrder">
-            <n-input-number v-model:value="formValue.showOrder" :min="0" />
+            <NInputNumber v-model:value="formValue.showOrder" :min="0" />
           </n-form-item>
 
           <n-form-item label="是否显示" path="visible">
@@ -59,8 +59,12 @@
 
           <n-form-item label="打开方式" path="openMode">
             <n-radio-group v-model:value="formValue.openMode">
-              <n-radio value="router">路由</n-radio>
-              <n-radio value="iframe">Iframe</n-radio>
+              <n-radio value="router">
+                路由
+              </n-radio>
+              <n-radio value="iframe">
+                Iframe
+              </n-radio>
             </n-radio-group>
           </n-form-item>
 
@@ -70,10 +74,14 @@
         </n-form>
 
         <template #footer>
-          <n-space justify="end">
-            <n-button @click="showDrawer = false">取消</n-button>
-            <n-button type="primary" @click="handleSubmit" :loading="submitLoading">保存</n-button>
-          </n-space>
+          <NSpace justify="end">
+            <NButton @click="showDrawer = false">
+              取消
+            </NButton>
+            <NButton type="primary" :loading="submitLoading" @click="handleSubmit">
+              保存
+            </NButton>
+          </NSpace>
         </template>
       </n-drawer-content>
     </n-drawer>
@@ -81,21 +89,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, h, computed } from 'vue'
-import { NButton, NSpace, NInputNumber, NTreeSelect, NDropdown } from 'naive-ui'
+import { NButton, NInputNumber, NSpace, NTreeSelect } from 'naive-ui'
+import { h, onMounted, ref, watch } from 'vue'
 import IconSelector from '@/components/IconSelector.vue'
 import { request } from '@/utils/index.js'
 
 const props = defineProps({
   subAppId: {
     type: [String, Number],
-    default: ''
+    default: '',
   },
   moduleId: {
     type: [String, Number],
-    default: ''
-  }
+    default: '',
+  },
 })
+
+// 定义事件
+const emit = defineEmits(['refresh'])
 
 const message = window.$message
 
@@ -112,7 +123,7 @@ const formValue = ref({
   icon: '',
   showOrder: 0,
   visible: true,
-  remark: ''
+  remark: '',
 })
 
 // 表单验证规则
@@ -120,13 +131,13 @@ const formRules = {
   title: {
     required: true,
     message: '请输入菜单名称',
-    trigger: 'blur'
+    trigger: 'blur',
   },
   url: {
     required: true,
     message: '请输入菜单路径',
-    trigger: 'blur'
-  }
+    trigger: 'blur',
+  },
 }
 
 // 分页配置
@@ -136,7 +147,7 @@ const pagination = ref({
   itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 20, 50],
-  onChange: handlePageChange
+  onChange: handlePageChange,
 })
 
 // 菜单数据
@@ -163,37 +174,38 @@ function handleBatchDelete() {
     negativeText: '取消',
     onPositiveClick: async () => {
       try {
-        await request.delete(`/menu`,{
-          data:checkedRowKeys.value
+        await request.delete(`/menu`, {
+          data: checkedRowKeys.value,
         })
         message.success('批量删除成功')
         checkedRowKeys.value = []
         loadMenuData()
         emit('refresh')
-      } catch (error) {
-        message.error('批量删除失败: ' + error.message)
       }
-    }
+      catch (error) {
+        message.error(`批量删除失败: ${error.message}`)
+      }
+    },
   })
 }
 
 // 表格列配置
 const columns = [
   {
-    type: "selection",
+    type: 'selection',
     width: 80,
   },
   {
     title: '菜单名称',
     key: 'title',
     width: 180,
-    align: 'center'
+    align: 'center',
   },
   {
     title: '路径',
     key: 'url',
     width: 200,
-    align: 'center'
+    align: 'center',
   },
   {
     title: '图标',
@@ -203,11 +215,11 @@ const columns = [
     render(row) {
       return h('div', { style: 'display: flex; align-items: center; justify-content: center;' }, [
         h(IconSelector, {
-          modelValue: row.icon,
-          'onUpdate:modelValue': (value) => handleIconChange(row, value)
-        })
+          'modelValue': row.icon,
+          'onUpdate:modelValue': value => handleIconChange(row, value),
+        }),
       ])
-    }
+    },
   },
   {
     title: '所属模块',
@@ -222,9 +234,9 @@ const columns = [
         keyField: '_value',
         childrenField: 'children',
         placeholder: '请选择所属模块',
-        onUpdateValue: (value) => handleModuleChange(row, value)
+        onUpdateValue: value => handleModuleChange(row, value),
       })
-    }
+    },
   },
   {
     title: '排序',
@@ -235,9 +247,9 @@ const columns = [
       return h(NInputNumber, {
         value: row.showOrder,
         min: 0,
-        onUpdateValue: (value) => handleOrderChange(row, value)
+        onUpdateValue: value => handleOrderChange(row, value),
       })
-    }
+    },
   },
   {
     title: 'iframe',
@@ -246,7 +258,7 @@ const columns = [
     align: 'center',
     render(row) {
       return row.openMode === 'iframe' ? 'iframe' : '否'
-    }
+    },
   },
   {
     title: '操作',
@@ -260,19 +272,19 @@ const columns = [
           h(NButton, {
             type: 'info',
             size: 'small',
-            quaternary:true,
-            onClick: () => handleEdit(row)
+            quaternary: true,
+            onClick: () => handleEdit(row),
           }, { default: () => '编辑' }),
           h(NButton, {
             type: 'error',
             size: 'small',
-            quaternary:true,
-            onClick: () => handleDelete(row)
-          }, { default: () => '删除' })
-        ]
+            quaternary: true,
+            onClick: () => handleDelete(row),
+          }, { default: () => '删除' }),
+        ],
       })
-    }
-  }
+    },
+  },
 ]
 
 // 处理图标变化
@@ -287,8 +299,9 @@ function handleIconChange(row, value) {
       await request.put('/menu', row)
       message.success('图标更新成功')
       loadMenuData()
-    } catch (error) {
-      message.error('图标更新失败: ' + (error.message || error))
+    }
+    catch (error) {
+      message.error(`图标更新失败: ${error.message || error}`)
     }
   }, 300)
 }
@@ -305,8 +318,9 @@ function handleOrderChange(row, value) {
       await request.put('/menu', row)
       message.success('排序更新成功')
       loadMenuData()
-    } catch (error) {
-      message.error('排序更新失败: ' + (error.message || error))
+    }
+    catch (error) {
+      message.error(`排序更新失败: ${error.message || error}`)
     }
   }, 300)
 }
@@ -314,7 +328,8 @@ function handleOrderChange(row, value) {
 // 处理模块变化
 let moduleChangeTimer = null
 function handleModuleChange(row, value) {
-  if (!value) return
+  if (!value)
+    return
 
   const [moduleId, subAppId] = value.split('#')
   row.moduleId = moduleId
@@ -328,15 +343,17 @@ function handleModuleChange(row, value) {
       await request.put('/menu', row)
       message.success('所属模块更新成功')
       loadMenuData()
-    } catch (error) {
-      message.error('所属模块更新失败: ' + (error.message || error))
+    }
+    catch (error) {
+      message.error(`所属模块更新失败: ${error.message || error}`)
     }
   }, 300)
 }
 
 // 获取子系统树数据
 async function loadSubSysTree() {
-  if (subSysTreeLoaded.value) return
+  if (subSysTreeLoaded.value)
+    return
 
   try {
     const res = await request.get('/subApp/tree')
@@ -345,33 +362,35 @@ async function loadSubSysTree() {
     // 转换树形数据格式,支持 n-tree-select
     subSysTreeData.value = mapSubSysTreeData(data)
     subSysTreeLoaded.value = true
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取子系统树失败:', error)
   }
 }
 
 // 映射子系统树数据为 n-tree-select 需要的格式
 function mapSubSysTreeData(data) {
-  if (!Array.isArray(data)) return []
+  if (!Array.isArray(data))
+    return []
 
-  return data.map(item => {
+  return data.map((item) => {
     const node = {
       title: item.name || item.title,
       key: item.id,
       _value: `${item.id}#${item.id}`, // 用于保存 moduleId#subAppId
       selectable: false, // 子系统节点不可选
-      children: []
+      children: [],
     }
 
     // 处理模块子节点
     if (item.children && Array.isArray(item.children)) {
-      node.children = item.children.map(module => {
+      node.children = item.children.map((module) => {
         const moduleNode = {
           title: module.name || module.title,
           key: module.id,
           _value: `${module.id}#${item.id}`, // moduleId#subAppId
           selectable: true, // 模块节点可选
-          children: []
+          children: [],
         }
 
         // 处理子模块
@@ -380,7 +399,7 @@ function mapSubSysTreeData(data) {
             title: subModule.name || subModule.title,
             key: subModule.id,
             _value: `${subModule.id}#${item.id}`, // moduleId#subAppId
-            selectable: true
+            selectable: true,
           }))
         }
 
@@ -407,8 +426,8 @@ async function loadMenuData() {
         subAppId: props.subAppId,
         moduleId: props.moduleId,
         page: pagination.value.page,
-        pageSize: pagination.value.pageSize
-      }
+        pageSize: pagination.value.pageSize,
+      },
     })
     // 兼容新旧数据结构
     const list = res.data?.list || res.data || []
@@ -417,9 +436,11 @@ async function loadMenuData() {
     menuData.value = list
     // 确保 total是数字类型
     pagination.value.itemCount = Number(total)
-  } catch (error) {
-    message.error('获取菜单数据失败: ' + (error.message || error))
-  } finally {
+  }
+  catch (error) {
+    message.error(`获取菜单数据失败: ${error.message || error}`)
+  }
+  finally {
     loading.value = false
   }
 }
@@ -440,7 +461,7 @@ function handleAdd() {
     icon: '',
     showOrder: 0,
     visible: true,
-    remark: ''
+    remark: '',
   }
   showDrawer.value = true
 }
@@ -463,15 +484,16 @@ function handleDelete(row) {
     onPositiveClick: async () => {
       try {
         // 调用实际的API接口，保持与旧版本一致，使用 _id 字段
-        await request.delete(`/menu`,{
-          data:[row.id]
+        await request.delete(`/menu`, {
+          data: [row.id],
         })
         loadMenuData()
         // 通知父组件刷新
         emit('refresh')
-      } catch (error) {
       }
-    }
+      catch (error) {
+      }
+    },
   })
 }
 
@@ -488,8 +510,8 @@ function handleSubmit() {
       // 添加模块ID和子应用ID，自动使用当前选中的模块
       const formData = {
         ...formValue.value,
-        moduleId: props.moduleId,  // 自动设置为当前模块
-        subAppId: props.subAppId   // 自动设置为当前子系统
+        moduleId: props.moduleId, // 自动设置为当前模块
+        subAppId: props.subAppId, // 自动设置为当前子系统
       }
 
       // 如果 openMode 为 '0'，删除该字段（与旧版本保持一致）
@@ -498,10 +520,11 @@ function handleSubmit() {
       }
 
       // 调用实际的API接口,保持与旧版本一致
-      if (status.value ==='edit') {
+      if (status.value === 'edit') {
         await request.put('/menu', formData)
         message.success('更新成功')
-      } else {
+      }
+      else {
         await request.post('/menu', formData)
         message.success('新增成功')
       }
@@ -509,8 +532,10 @@ function handleSubmit() {
       loadMenuData()
       // 通知父组件刷新
       emit('refresh')
-    } catch (error) {
-    } finally {
+    }
+    catch (error) {
+    }
+    finally {
       submitLoading.value = false
     }
   })
@@ -521,12 +546,9 @@ function refresh() {
   loadMenuData()
 }
 
-// 定义事件
-const emit = defineEmits(['refresh'])
-
 // 暴露方法给父组件
 defineExpose({
-  refresh
+  refresh,
 })
 
 // 监听模块ID变化

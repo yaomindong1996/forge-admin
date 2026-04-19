@@ -8,7 +8,7 @@
         detail: 'post@/system/notice/getById',
         add: 'post@/system/notice/add',
         update: 'post@/system/notice/edit',
-        delete: 'post@/system/notice/remove'
+        delete: 'post@/system/notice/remove',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
@@ -17,24 +17,28 @@
       add-button-text="新增公告"
       :load-detail-on-edit="true"
       :edit-grid-cols="1"
-      :modal-width="'1000px'"
+      modal-width="1000px"
     >
       <!-- 富文本编辑器插槽 -->
       <template #form-noticeContent="{ value, updateValue }">
         <n-input
           :value="value"
-          @update:value="updateValue"
           type="textarea"
           placeholder="请输入公告内容"
           :rows="10"
+          @update:value="updateValue"
         />
       </template>
 
       <!-- 发布范围插槽 -->
       <template #form-publishScope="{ value, updateValue }">
         <n-radio-group :value="value" @update:value="updateValue">
-          <n-radio :value="0">全部组织</n-radio>
-          <n-radio :value="1">指定组织</n-radio>
+          <n-radio :value="0">
+            全部组织
+          </n-radio>
+          <n-radio :value="1">
+            指定组织
+          </n-radio>
         </n-radio-group>
       </template>
 
@@ -42,7 +46,6 @@
       <template #form-orgIds="{ value, updateValue }">
         <n-tree-select
           :value="value"
-          @update:value="updateValue"
           :options="orgTreeOptions"
           multiple
           cascade
@@ -50,6 +53,7 @@
           placeholder="请选择组织"
           clearable
           check-strategy="child"
+          @update:value="updateValue"
         />
       </template>
     </AiCrudPage>
@@ -67,21 +71,21 @@
           <!-- 统计数据 -->
           <n-card title="阅读情况" size="small">
             <n-space>
-              <n-statistic label="应读人数" :value="currentStatistics.totalUserCount" />
-              <n-statistic label="已读人数" :value="currentStatistics.readCount">
+              <NStatistic label="应读人数" :value="currentStatistics.totalUserCount" />
+              <NStatistic label="已读人数" :value="currentStatistics.readCount">
                 <template #suffix>
-                  <n-tag type="success" size="small">
+                  <NTag type="success" size="small">
                     {{ currentStatistics.readRate }}%
-                  </n-tag>
+                  </NTag>
                 </template>
-              </n-statistic>
-              <n-statistic label="未读人数" :value="currentStatistics.unreadCount">
+              </NStatistic>
+              <NStatistic label="未读人数" :value="currentStatistics.unreadCount">
                 <template #suffix>
-                  <n-tag type="warning" size="small">
+                  <NTag type="warning" size="small">
                     {{ (100 - currentStatistics.readRate).toFixed(2) }}%
-                  </n-tag>
+                  </NTag>
                 </template>
-              </n-statistic>
+              </NStatistic>
             </n-space>
           </n-card>
 
@@ -113,8 +117,8 @@
 </template>
 
 <script setup>
-import { ref, h, computed, onMounted } from 'vue'
-import { NTag, NStatistic } from 'naive-ui'
+import { NStatistic, NTag } from 'naive-ui'
+import { computed, h, onMounted, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
@@ -131,20 +135,20 @@ const orgTreeOptions = ref([])
 const noticeTypeOptions = [
   { label: '通知公告', value: 'NOTICE' },
   { label: '系统公告', value: 'ANNOUNCEMENT' },
-  { label: '新闻动态', value: 'NEWS' }
+  { label: '新闻动态', value: 'NEWS' },
 ]
 
 // 发布状态选项
 const publishStatusOptions = [
   { label: '草稿', value: 0 },
   { label: '已发布', value: 1 },
-  { label: '已撤回', value: 2 }
+  { label: '已撤回', value: 2 },
 ]
 
 // 是否置顶选项
 const isTopOptions = [
   { label: '否', value: 0 },
-  { label: '是', value: 1 }
+  { label: '是', value: 1 },
 ]
 
 // 搜索表单配置
@@ -154,8 +158,8 @@ const searchSchema = [
     label: '公告标题',
     type: 'input',
     props: {
-      placeholder: '请输入公告标题'
-    }
+      placeholder: '请输入公告标题',
+    },
   },
   {
     field: 'noticeType',
@@ -163,8 +167,8 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择公告类型',
-      options: noticeTypeOptions
-    }
+      options: noticeTypeOptions,
+    },
   },
   {
     field: 'publishStatus',
@@ -172,9 +176,9 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择发布状态',
-      options: publishStatusOptions
-    }
-  }
+      options: publishStatusOptions,
+    },
+  },
 ]
 
 // 表格列配置
@@ -182,7 +186,7 @@ const tableColumns = computed(() => [
   {
     prop: 'noticeId',
     label: '公告ID',
-    width: 100
+    width: 100,
   },
   {
     prop: 'noticeTitle',
@@ -191,9 +195,9 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h('div', { class: 'flex items-center' }, [
         row.isTop === 1 ? h(NTag, { type: 'error', size: 'small', style: { marginRight: '8px' } }, { default: () => '置顶' }) : null,
-        h('span', row.noticeTitle)
+        h('span', row.noticeTitle),
       ])
-    }
+    },
   },
   {
     prop: 'noticeType',
@@ -201,13 +205,13 @@ const tableColumns = computed(() => [
     width: 120,
     render: (row) => {
       const typeMap = {
-        'NOTICE': { text: '通知公告', type: 'info' },
-        'ANNOUNCEMENT': { text: '系统公告', type: 'warning' },
-        'NEWS': { text: '新闻动态', type: 'success' }
+        NOTICE: { text: '通知公告', type: 'info' },
+        ANNOUNCEMENT: { text: '系统公告', type: 'warning' },
+        NEWS: { text: '新闻动态', type: 'success' },
       }
       const config = typeMap[row.noticeType] || { text: row.noticeType, type: 'default' }
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
-    }
+    },
   },
   {
     prop: 'publishStatus',
@@ -217,41 +221,41 @@ const tableColumns = computed(() => [
       const statusMap = {
         0: { text: '草稿', type: 'default' },
         1: { text: '已发布', type: 'success' },
-        2: { text: '已撤回', type: 'warning' }
+        2: { text: '已撤回', type: 'warning' },
       }
       const config = statusMap[row.publishStatus] || { text: '未知', type: 'default' }
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
-    }
+    },
   },
   {
     prop: 'publisherName',
     label: '发布人',
-    width: 120
+    width: 120,
   },
   {
     prop: 'publishTime',
     label: '发布时间',
-    width: 180
+    width: 180,
   },
   {
     prop: 'readCount',
     label: '阅读次数',
-    width: 100
+    width: 100,
   },
   {
     prop: 'effectiveTime',
     label: '生效时间',
-    width: 180
+    width: 180,
   },
   {
     prop: 'expirationTime',
     label: '失效时间',
-    width: 180
+    width: 180,
   },
   {
     prop: 'createTime',
     label: '创建时间',
-    width: 180
+    width: 180,
   },
   {
     prop: 'action',
@@ -259,15 +263,15 @@ const tableColumns = computed(() => [
     width: 150,
     fixed: 'right',
     actions: [
-      { label: '统计', key: 'statistics', type: 'info', onClick: handleViewStatistics, visible: (row) => row.publishStatus === 1 },
-      { label: '发布', key: 'publish', type: 'success', onClick: handlePublish, visible: (row) => row.publishStatus === 0 },
-      { label: '撤回', key: 'revoke', type: 'warning', onClick: handleRevoke, visible: (row) => row.publishStatus === 1 },
-      { label: '置顶', key: 'top', onClick: handleTop, visible: (row) => row.isTop !== 1 },
-      { label: '取消置顶', key: 'untop', type: 'warning', onClick: handleTop, visible: (row) => row.isTop === 1 },
+      { label: '统计', key: 'statistics', type: 'info', onClick: handleViewStatistics, visible: row => row.publishStatus === 1 },
+      { label: '发布', key: 'publish', type: 'success', onClick: handlePublish, visible: row => row.publishStatus === 0 },
+      { label: '撤回', key: 'revoke', type: 'warning', onClick: handleRevoke, visible: row => row.publishStatus === 1 },
+      { label: '置顶', key: 'top', onClick: handleTop, visible: row => row.isTop !== 1 },
+      { label: '取消置顶', key: 'untop', type: 'warning', onClick: handleTop, visible: row => row.isTop === 1 },
       { label: '编辑', key: 'edit', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -276,8 +280,8 @@ const editSchema = [
     type: 'divider',
     label: '基础信息',
     props: {
-      titlePlacement: 'left'
-    }
+      titlePlacement: 'left',
+    },
   },
   {
     field: 'noticeTitle',
@@ -285,8 +289,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入公告标题', trigger: 'blur' }],
     props: {
-      placeholder: '请输入公告标题'
-    }
+      placeholder: '请输入公告标题',
+    },
   },
   {
     field: 'noticeType',
@@ -296,22 +300,22 @@ const editSchema = [
     rules: [{ required: true, message: '请选择公告类型', trigger: 'change' }],
     props: {
       placeholder: '请选择公告类型',
-      options: noticeTypeOptions
-    }
+      options: noticeTypeOptions,
+    },
   },
   {
     field: 'noticeContent',
     label: '公告内容',
     type: 'slot',
     slotName: 'noticeContent',
-    rules: [{ required: true, message: '请输入公告内容', trigger: 'blur' }]
+    rules: [{ required: true, message: '请输入公告内容', trigger: 'blur' }],
   },
   {
     type: 'divider',
     label: '发布设置',
     props: {
-      titlePlacement: 'left'
-    }
+      titlePlacement: 'left',
+    },
   },
   {
     field: 'publishScope',
@@ -320,23 +324,23 @@ const editSchema = [
     slotName: 'publishScope',
     defaultValue: 0,
     props: {
-      placeholder: '请选择发布范围'
-    }
+      placeholder: '请选择发布范围',
+    },
   },
   {
     field: 'orgIds',
     label: '指定组织',
     type: 'slot',
     slotName: 'orgIds',
-    vIf: (formData) => formData.publishScope === 1,
+    vIf: formData => formData.publishScope === 1,
     rules: [
       {
         type: 'array',
         required: true,
         message: '请选择组织',
-        trigger: 'change'
-      }
-    ]
+        trigger: 'change',
+      },
+    ],
   },
   {
     field: 'attachmentIds',
@@ -348,8 +352,8 @@ const editSchema = [
       fileSize: 50,
       accept: '*',
       businessType: 'notice',
-      valueType: 'string'
-    }
+      valueType: 'string',
+    },
   },
   {
     field: 'effectiveTime',
@@ -358,8 +362,8 @@ const editSchema = [
     props: {
       placeholder: '请选择生效时间',
       type: 'datetime',
-      clearable: true
-    }
+      clearable: true,
+    },
   },
   {
     field: 'expirationTime',
@@ -368,8 +372,8 @@ const editSchema = [
     props: {
       placeholder: '请选择失效时间',
       type: 'datetime',
-      clearable: true
-    }
+      clearable: true,
+    },
   },
   {
     field: 'isTop',
@@ -377,8 +381,8 @@ const editSchema = [
     type: 'radio',
     defaultValue: 0,
     props: {
-      options: isTopOptions
-    }
+      options: isTopOptions,
+    },
   },
   {
     field: 'topSort',
@@ -387,9 +391,9 @@ const editSchema = [
     defaultValue: 0,
     props: {
       placeholder: '数字越大越靠前',
-      min: 0
+      min: 0,
     },
-    vIf: (formData) => formData.isTop === 1
+    vIf: formData => formData.isTop === 1,
   },
   {
     field: 'remark',
@@ -397,9 +401,9 @@ const editSchema = [
     type: 'textarea',
     props: {
       placeholder: '请输入备注',
-      rows: 3
-    }
-  }
+      rows: 3,
+    },
+  },
 ]
 
 // 已读用户列表表格列
@@ -407,7 +411,7 @@ const readUserColumns = [
   { title: '用户姓名', key: 'userName', width: 120 },
   { title: '组织名称', key: 'orgName', width: 150 },
   { title: '手机号', key: 'phone', width: 120 },
-  { title: '阅读时间', key: 'readTime', width: 180 }
+  { title: '阅读时间', key: 'readTime', width: 180 },
 ]
 
 // 未读用户列表表格列
@@ -415,7 +419,7 @@ const unreadUserColumns = [
   { title: '用户姓名', key: 'userName', width: 120 },
   { title: '组织名称', key: 'orgName', width: 150 },
   { title: '手机号', key: 'phone', width: 120 },
-  { title: '邮箱', key: 'email', ellipsis: { tooltip: true } }
+  { title: '邮箱', key: 'email', ellipsis: { tooltip: true } },
 ]
 
 // 加载组织树数据
@@ -425,18 +429,20 @@ async function loadOrgTree() {
     if (res.code === 200) {
       orgTreeOptions.value = transformOrgTree(res.data)
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载组织树失败:', error)
   }
 }
 
 // 转换组织树数据格式
 function transformOrgTree(data) {
-  if (!data || data.length === 0) return []
+  if (!data || data.length === 0)
+    return []
   return data.map(item => ({
     key: item.id,
     label: item.orgName,
-    children: item.children ? transformOrgTree(item.children) : undefined
+    children: item.children ? transformOrgTree(item.children) : undefined,
   }))
 }
 
@@ -462,7 +468,8 @@ async function handleViewStatistics(row) {
     }
 
     showStatisticsModal.value = true
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('加载统计数据失败')
   }
 }
@@ -482,16 +489,17 @@ function handleDelete(row) {
     onPositiveClick: async () => {
       try {
         const res = await request.post('/system/notice/remove', null, {
-          params: { noticeId: row.noticeId }
+          params: { noticeId: row.noticeId },
         })
         if (res.code === 200) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 
@@ -505,16 +513,17 @@ function handlePublish(row) {
     onPositiveClick: async () => {
       try {
         const res = await request.post('/system/notice/publish', null, {
-          params: { noticeId: row.noticeId }
+          params: { noticeId: row.noticeId },
         })
         if (res.code === 200) {
           window.$message.success('发布成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('发布失败')
       }
-    }
+    },
   })
 }
 
@@ -528,16 +537,17 @@ function handleRevoke(row) {
     onPositiveClick: async () => {
       try {
         const res = await request.post('/system/notice/revoke', null, {
-          params: { noticeId: row.noticeId }
+          params: { noticeId: row.noticeId },
         })
         if (res.code === 200) {
           window.$message.success('撤回成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('撤回失败')
       }
-    }
+    },
   })
 }
 
@@ -556,18 +566,19 @@ function handleTop(row) {
         const res = await request.post('/system/notice/top', null, {
           params: {
             noticeId: row.noticeId,
-            isTop: isTop,
-            topSort: isTop === 1 ? (row.topSort || 0) : 0
-          }
+            isTop,
+            topSort: isTop === 1 ? (row.topSort || 0) : 0,
+          },
         })
         if (res.code === 200) {
           window.$message.success(`${title}成功`)
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error(`${title}失败`)
       }
-    }
+    },
   })
 }
 

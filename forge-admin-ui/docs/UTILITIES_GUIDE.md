@@ -36,29 +36,35 @@ window.$copy(
 ```vue
 <template>
   <!-- 字符串形式 - 点击复制固定文本 -->
-  <button v-copy="'要复制的内容'">复制</button>
+  <button v-copy="'要复制的内容'">
+    复制
+  </button>
 
   <!-- 对象形式 - 自定义提示消息 -->
-  <button v-copy="{
-    text: '要复制的内容',
-    successMessage: '已复制到剪贴板',
-    errorMessage: '复制失败'
-  }">
+  <button
+    v-copy="{
+      text: '要复制的内容',
+      successMessage: '已复制到剪贴板',
+      errorMessage: '复制失败',
+    }"
+  >
     复制
   </button>
 
   <!-- 复制动态内容 -->
-  <button v-copy="userInfo.email">复制邮箱</button>
+  <button v-copy="userInfo.email">
+    复制邮箱
+  </button>
 </template>
 ```
 
 #### 配置选项
 
-| 参数 | 类型 | 说明 | 默认值 |
-|------|------|------|--------|
-| text | String | 要复制的文本内容 | - |
+| 参数           | 类型   | 说明               | 默认值     |
+| -------------- | ------ | ------------------ | ---------- |
+| text           | String | 要复制的文本内容   | -          |
 | successMessage | String | 复制成功的提示消息 | '复制成功' |
-| errorMessage | String | 复制失败的提示消息 | '复制失败' |
+| errorMessage   | String | 复制失败的提示消息 | '复制失败' |
 
 ---
 
@@ -97,25 +103,25 @@ window.$imagePreview.showList(images, 1)
 ```vue
 <template>
   <!-- 直接预览图片本身 -->
-  <img 
-    src="https://example.com/thumb.jpg" 
-    v-preview 
+  <img
+    v-preview
+    src="https://example.com/thumb.jpg"
     alt="图片"
-  />
+  >
 
   <!-- 预览不同的图片（常用于缩略图场景） -->
-  <img 
-    src="https://example.com/thumb.jpg" 
+  <img
     v-preview="'https://example.com/full-size.jpg'"
+    src="https://example.com/thumb.jpg"
     alt="缩略图"
-  />
+  >
 
   <!-- 预览响应式数据 -->
-  <img 
-    :src="product.thumbnail" 
+  <img
     v-preview="product.fullImage"
+    :src="product.thumbnail"
     alt="产品图"
-  />
+  >
 </template>
 ```
 
@@ -190,28 +196,34 @@ window.$watermark.update({
   </div>
 
   <!-- 完整配置 -->
-  <div v-watermark="{
-    content: '内部资料',
-    fontSize: 20,
-    fontColor: 'rgba(255, 0, 0, .1)',
-    rotate: -22
-  }" class="document">
+  <div
+    v-watermark="{
+      content: '内部资料',
+      fontSize: 20,
+      fontColor: 'rgba(255, 0, 0, .1)',
+      rotate: -22,
+    }" class="document"
+  >
     文档内容
   </div>
 
   <!-- 图片水印 -->
-  <div v-watermark="{
-    image: '/logo.png',
-    imageWidth: 100,
-    imageHeight: 50,
-    imageOpacity: 0.2
-  }" class="canvas">
+  <div
+    v-watermark="{
+      image: '/logo.png',
+      imageWidth: 100,
+      imageHeight: 50,
+      imageOpacity: 0.2,
+    }" class="canvas"
+  >
     画布内容
   </div>
 </template>
 
 <style scoped>
-.content, .document, .canvas {
+.content,
+.document,
+.canvas {
   position: relative; /* 指令会自动添加相对定位 */
   min-height: 400px;
   padding: 20px;
@@ -221,27 +233,27 @@ window.$watermark.update({
 
 ### 配置选项
 
-| 参数 | 类型 | 说明 | 默认值 |
-|------|------|------|--------|
-| content | String | 水印文本内容 | '' |
-| image | String | 水印图片地址 | '' |
-| fontSize | Number | 字体大小 | 16 |
-| fontColor | String | 字体颜色（RGBA） | 'rgba(128, 128, 128, .15)' |
-| fontWeight | Number | 字体粗细 | 400 |
-| fontFamily | String | 字体家族 | - |
-| width | Number | 水印宽度 | 120 |
-| height | Number | 水印高度 | 64 |
-| xGap | Number | 水印水平间距 | 12 |
-| yGap | Number | 水印垂直间距 | 60 |
-| xOffset | Number | 水印水平偏移 | 0 |
-| yOffset | Number | 水印垂直偏移 | 0 |
-| rotate | Number | 水印旋转角度（度） | -22 |
-| zIndex | Number | 层级 | 全局: 1000, 指令: 1 |
-| fullscreen | Boolean | 是否全屏（仅全局方法） | true |
-| selectable | Boolean | 文本是否可选 | false |
-| imageWidth | Number | 图片宽度 | - |
-| imageHeight | Number | 图片高度 | - |
-| imageOpacity | Number | 图片透明度 | 1 |
+| 参数         | 类型    | 说明                   | 默认值                     |
+| ------------ | ------- | ---------------------- | -------------------------- |
+| content      | String  | 水印文本内容           | ''                         |
+| image        | String  | 水印图片地址           | ''                         |
+| fontSize     | Number  | 字体大小               | 16                         |
+| fontColor    | String  | 字体颜色（RGBA）       | 'rgba(128, 128, 128, .15)' |
+| fontWeight   | Number  | 字体粗细               | 400                        |
+| fontFamily   | String  | 字体家族               | -                          |
+| width        | Number  | 水印宽度               | 120                        |
+| height       | Number  | 水印高度               | 64                         |
+| xGap         | Number  | 水印水平间距           | 12                         |
+| yGap         | Number  | 水印垂直间距           | 60                         |
+| xOffset      | Number  | 水印水平偏移           | 0                          |
+| yOffset      | Number  | 水印垂直偏移           | 0                          |
+| rotate       | Number  | 水印旋转角度（度）     | -22                        |
+| zIndex       | Number  | 层级                   | 全局: 1000, 指令: 1        |
+| fullscreen   | Boolean | 是否全屏（仅全局方法） | true                       |
+| selectable   | Boolean | 文本是否可选           | false                      |
+| imageWidth   | Number  | 图片宽度               | -                          |
+| imageHeight  | Number  | 图片高度               | -                          |
+| imageOpacity | Number  | 图片透明度             | 1                          |
 
 ---
 
@@ -275,14 +287,16 @@ window.$loading.close()
 ```javascript
 async function fetchData() {
   window.$loading.show('正在获取数据...')
-  
+
   try {
     const response = await fetch('/api/data')
     const data = await response.json()
     // 处理数据...
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('获取数据失败')
-  } finally {
+  }
+  finally {
     window.$loading.close()
   }
 }
@@ -298,11 +312,13 @@ async function fetchData() {
   </div>
 
   <!-- 对象配置 -->
-  <div v-loading="{
-    loading: isLoading,
-    text: '加载中...',
-    background: '255, 255, 255, 0.9'
-  }">
+  <div
+    v-loading="{
+      loading: isLoading,
+      text: '加载中...',
+      background: '255, 255, 255, 0.9',
+    }"
+  >
     内容区域
   </div>
 </template>
@@ -316,7 +332,8 @@ async function loadData() {
   isLoading.value = true
   try {
     // 加载数据...
-  } finally {
+  }
+  finally {
     isLoading.value = false
   }
 }
@@ -361,10 +378,10 @@ const columns = [
     <img
       v-for="(image, index) in product.images"
       :key="index"
-      :src="image.thumbnail"
       v-preview="image.fullsize"
+      :src="image.thumbnail"
       class="thumbnail"
-    />
+    >
   </div>
 </template>
 ```
@@ -373,13 +390,15 @@ const columns = [
 
 ```vue
 <template>
-  <div v-watermark="{
-    content: `${userName} ${currentDate}`,
-    fontSize: 14,
-    fontColor: 'rgba(0, 0, 0, .08)',
-    rotate: -15
-  }" class="document-viewer">
-    <div v-html="documentContent"></div>
+  <div
+    v-watermark="{
+      content: `${userName} ${currentDate}`,
+      fontSize: 14,
+      fontColor: 'rgba(0, 0, 0, .08)',
+      rotate: -15,
+    }" class="document-viewer"
+  >
+    <div v-html="documentContent" />
   </div>
 </template>
 
@@ -398,34 +417,38 @@ const currentDate = computed(() => new Date().toLocaleDateString())
 ```vue
 <template>
   <div>
-    <input type="file" @change="handleUpload" />
+    <input type="file" @change="handleUpload">
   </div>
 </template>
 
 <script setup>
 async function handleUpload(event) {
   const file = event.target.files[0]
-  if (!file) return
+  if (!file)
+    return
 
   const loading = window.$loading.show('文件上传中...')
-  
+
   try {
     const formData = new FormData()
     formData.append('file', file)
-    
+
     const response = await fetch('/api/upload', {
       method: 'POST',
       body: formData
     })
-    
+
     if (response.ok) {
       window.$message.success('上传成功')
-    } else {
+    }
+    else {
       throw new Error('上传失败')
     }
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error(error.message)
-  } finally {
+  }
+  finally {
     loading.close()
   }
 }

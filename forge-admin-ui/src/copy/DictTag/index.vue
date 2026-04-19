@@ -7,17 +7,16 @@
           :key="item.value"
           :index="index"
           :class="item.raw.cssClass"
-          >{{ item.label + ' ' }}</span
-        >
+        >{{ `${item.label} ` }}</span>
         <el-tag
           v-else
-          :disable-transitions="true"
           :key="item.value"
+          :disable-transitions="true"
           :index="index"
           :type="item.raw.listClass == 'primary' ? '' : item.raw.listClass"
           :class="item.raw.cssClass"
         >
-          {{ item.label + ' ' }}
+          {{ `${item.label} ` }}
         </el-tag>
       </template>
     </template>
@@ -29,7 +28,16 @@
 
 <script>
 export default {
-  name: "DictTag",
+  name: 'DictTag',
+  filters: {
+    handleArray(array) {
+      if (array.length === 0)
+        return ''
+      return array.reduce((pre, cur) => {
+        return `${pre} ${cur}`
+      })
+    },
+  },
   props: {
     options: {
       type: Array,
@@ -43,8 +51,8 @@ export default {
     },
     separator: {
       type: String,
-      default: ","
-    }
+      default: ',',
+    },
   },
   data() {
     return {
@@ -53,16 +61,18 @@ export default {
   },
   computed: {
     values() {
-      if (this.value === null || typeof this.value === 'undefined' || this.value === '') return []
-      return Array.isArray(this.value) ? this.value.map(item => '' + item) : String(this.value).split(this.separator)
+      if (this.value === null || typeof this.value === 'undefined' || this.value === '')
+        return []
+      return Array.isArray(this.value) ? this.value.map(item => `${item}`) : String(this.value).split(this.separator)
     },
     unmatch() {
       this.unmatchArray = []
       // 没有value不显示
-      if (this.value === null || typeof this.value === 'undefined' || this.value === ''  || !this.options || this.options.length === 0) return false
+      if (this.value === null || typeof this.value === 'undefined' || this.value === '' || !this.options || this.options.length === 0)
+        return false
       // 传入值为数组
       let unmatch = false // 添加一个标志来判断是否有未匹配项
-      this.values.forEach(item => {
+      this.values.forEach((item) => {
         if (!this.options.some(v => v.value === item)) {
           this.unmatchArray.push(item)
           unmatch = true // 如果有未匹配项，将标志设置为true
@@ -72,16 +82,9 @@ export default {
     },
 
   },
-  filters: {
-    handleArray(array) {
-      if (array.length === 0) return '';
-      return array.reduce((pre, cur) => {
-        return pre + ' ' + cur;
-      })
-    },
-  }
-};
+}
 </script>
+
 <style scoped>
 .el-tag + .el-tag {
   margin-left: 10px;

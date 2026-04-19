@@ -7,15 +7,15 @@
 ## 导入方式
 
 ```javascript
-import { 
-  closePage, 
-  closePages, 
+import {
+  closeAllPages,
   closeAndOpen,
-  reloadPage,
-  closeOtherPages,
   closeLeftPages,
+  closeOtherPages,
+  closePage,
+  closePages,
   closeRightPages,
-  closeAllPages
+  reloadPage
 } from '@/utils'
 ```
 
@@ -26,6 +26,7 @@ import {
 关闭指定的 tab 页签，会自动清除对应的 keep-alive 缓存。
 
 **参数：**
+
 - `target` (Object|String|undefined) - 要关闭的页面对象或路径
   - 如果是对象：`{ path: '/system/user', name: 'User' }`
   - 如果是字符串：`'/system/user'`
@@ -56,6 +57,7 @@ closePage({ path: '/system/dictData' }).then(() => {
 批量关闭多个 tab 页签。
 
 **参数：**
+
 - `targets` (Array) - 要关闭的页面数组
 
 **返回：** Promise
@@ -78,6 +80,7 @@ closePages([
 关闭指定 tab 并跳转到新页面。这是最常用的方法，用于避免 keep-alive 缓存问题。
 
 **参数：**
+
 - `closeTarget` (Object|String) - 要关闭的页面
 - `openTarget` (Object|String) - 要打开的页面
 
@@ -109,6 +112,7 @@ closeAndOpen('/system/dictData', '/system/dictType').then(() => {
 刷新指定的 tab 页签。
 
 **参数：**
+
 - `path` (String|undefined) - 页面路径，不传则刷新当前页面
 
 **返回：** Promise
@@ -128,6 +132,7 @@ reloadPage('/system/user')
 关闭其他 tab 页签，保留指定页面。
 
 **参数：**
+
 - `path` (String|undefined) - 要保留的页面路径，不传则保留当前页面
 
 **返回：** Promise
@@ -147,6 +152,7 @@ closeOtherPages('/system/user')
 关闭左侧的 tab 页签。
 
 **参数：**
+
 - `path` (String|undefined) - 基准页面路径，不传则以当前页面为基准
 
 **返回：** Promise
@@ -166,6 +172,7 @@ closeLeftPages('/system/user')
 关闭右侧的 tab 页签。
 
 **参数：**
+
 - `path` (String|undefined) - 基准页面路径，不传则以当前页面为基准
 
 **返回：** Promise
@@ -290,11 +297,13 @@ closeAndOpen(obj, '/new/path')
 ## 技术实现
 
 这些工具函数基于：
+
 - **Pinia Store**：`useTabStore()` 管理标签状态
 - **Vue Router**：`useRouter()` 处理路由跳转
 - **Keep-Alive**：通过 `cacheViews` 数组管理缓存
 
 当关闭 tab 时，会同时：
+
 1. 从 `tabs` 数组中移除标签
 2. 从 `cacheViews` 数组中移除缓存名称
 3. 更新 sessionStorage

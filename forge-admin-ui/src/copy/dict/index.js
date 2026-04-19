@@ -1,7 +1,7 @@
 import Dict from './Dict'
 import { mergeOptions } from './DictOptions'
 
-export default function(Vue, options) {
+export default function (Vue, options) {
   mergeOptions(options)
   Vue.mixin({
     data() {
@@ -11,7 +11,7 @@ export default function(Vue, options) {
       const dict = new Dict()
       dict.owner = this
       return {
-        dict
+        dict,
       }
     },
     created() {
@@ -23,7 +23,7 @@ export default function(Vue, options) {
         options.onReady && options.onReady(this.dict)
         this.$nextTick(() => {
           this.$emit('dictReady', this.dict)
-          if (this.$options.methods && this.$options.methods.onDictReady instanceof Function) {
+          if (this.$options.methods && typeof this.$options.methods.onDictReady === 'function') {
             this.$options.methods.onDictReady.call(this, this.dict)
           }
         })

@@ -62,9 +62,9 @@ export default defineConfig(({ mode }) => {
     css: {
       preprocessorOptions: {
         scss: {
-          additionalData: `@use "@/styles/variables.scss";`
-        }
-      }
+          additionalData: `@use "@/styles/variables.scss";`,
+        },
+      },
     },
     server: {
       port: VITE_HTTP_PORT,
@@ -75,14 +75,14 @@ export default defineConfig(({ mode }) => {
           target: VITE_FLOW_PROXY_TARGET || 'http://localhost:8081',
           changeOrigin: true,
           secure: false,
-          rewrite: (path) => path.replace(/^\/[^/]+/, ''),
+          rewrite: path => path.replace(/^\/[^/]+/, ''),
         },
         // 主代理 - 匹配所有其他请求
         [VITE_REQUEST_PREFIX]: {
           secure: false,
           target: VITE_HTTP_PROXY_TARGET,
           changeOrigin: true,
-          rewrite: (path) => path.replace(new RegExp(`^${VITE_REQUEST_PREFIX}`), ''),
+          rewrite: path => path.replace(new RegExp(`^${VITE_REQUEST_PREFIX}`), ''),
           configure: (proxy, options) => {
             // 配置此项可在响应头中看到请求的真实地址
             proxy.on('proxyRes', (proxyRes, req) => {

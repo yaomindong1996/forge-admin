@@ -3,7 +3,7 @@
     <AiCrudPage
       ref="crudRef"
       :api-config="{
-        list: 'get@/system/notice/user/page'
+        list: 'get@/system/notice/user/page',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
@@ -13,14 +13,14 @@
     >
       <!-- 自定义顶部 -->
       <template #toolbar-end>
-        <n-badge :value="unreadCount" :max="99" show-zero>
+        <NBadge :value="unreadCount" :max="99" show-zero>
           <n-button @click="refreshList">
             <template #icon>
               <i class="i-material-symbols:refresh" />
             </template>
             刷新
           </n-button>
-        </n-badge>
+        </NBadge>
       </template>
     </AiCrudPage>
 
@@ -32,24 +32,26 @@
       style="width: 900px"
       :segmented="{ content: 'soft' }"
     >
-      <div class="notice-detail" v-if="currentNotice">
+      <div v-if="currentNotice" class="notice-detail">
         <div class="detail-header">
           <n-space>
-            <n-tag :type="getNoticeTypeColor(currentNotice.noticeType)">
+            <NTag :type="getNoticeTypeColor(currentNotice.noticeType)">
               {{ currentNotice.noticeTypeName }}
-            </n-tag>
+            </NTag>
             <span class="text-gray-500">发布人：{{ currentNotice.publisherName }}</span>
             <span class="text-gray-500">发布时间：{{ currentNotice.publishTime }}</span>
           </n-space>
         </div>
-        
+
         <n-divider />
-        
-        <div class="detail-content" v-html="currentNotice.noticeContent"></div>
-        
+
+        <div class="detail-content" v-html="currentNotice.noticeContent" />
+
         <div v-if="currentNotice.attachments && currentNotice.attachments.length > 0" class="detail-attachments">
           <n-divider />
-          <div class="attachment-title">附件</div>
+          <div class="attachment-title">
+            附件
+          </div>
           <n-space vertical>
             <div
               v-for="file in currentNotice.attachments"
@@ -70,8 +72,8 @@
 </template>
 
 <script setup>
-import { ref, h, computed, onMounted } from 'vue'
-import { NTag, NBadge } from 'naive-ui'
+import { NBadge, NTag } from 'naive-ui'
+import { computed, h, onMounted, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
@@ -86,7 +88,7 @@ const unreadCount = ref(0)
 const noticeTypeOptions = [
   { label: '通知公告', value: 'NOTICE' },
   { label: '系统公告', value: 'ANNOUNCEMENT' },
-  { label: '新闻动态', value: 'NEWS' }
+  { label: '新闻动态', value: 'NEWS' },
 ]
 
 // 搜索表单配置
@@ -96,8 +98,8 @@ const searchSchema = [
     label: '标题',
     type: 'input',
     props: {
-      placeholder: '请输入标题'
-    }
+      placeholder: '请输入标题',
+    },
   },
   {
     field: 'noticeType',
@@ -105,9 +107,9 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择类型',
-      options: noticeTypeOptions
-    }
-  }
+      options: noticeTypeOptions,
+    },
+  },
 ]
 
 // 表格列配置
@@ -119,13 +121,13 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h('div', { class: 'flex items-center gap-8' }, [
         row.isRead === 0 ? h('span', { class: 'unread-dot' }) : null,
-        h('span', { 
+        h('span', {
           class: row.isRead === 0 ? 'font-semibold' : '',
-          style: row.isRead === 0 ? 'color: #18a058' : ''
+          style: row.isRead === 0 ? 'color: #18a058' : '',
         }, row.noticeTitle),
-        row.isTop === 1 ? h(NTag, { type: 'error', size: 'small' }, { default: () => '置顶' }) : null
+        row.isTop === 1 ? h(NTag, { type: 'error', size: 'small' }, { default: () => '置顶' }) : null,
       ])
-    }
+    },
   },
   {
     prop: 'noticeType',
@@ -133,23 +135,23 @@ const tableColumns = computed(() => [
     width: 100,
     render: (row) => {
       const typeMap = {
-        'NOTICE': '通知公告',
-        'ANNOUNCEMENT': '系统公告',
-        'NEWS': '新闻动态'
+        NOTICE: '通知公告',
+        ANNOUNCEMENT: '系统公告',
+        NEWS: '新闻动态',
       }
       const typeName = typeMap[row.noticeType] || row.noticeType
       return h(NTag, { type: getNoticeTypeColor(row.noticeType) }, { default: () => typeName })
-    }
+    },
   },
   {
     prop: 'publisherName',
     label: '发布人',
-    width: 120
+    width: 120,
   },
   {
     prop: 'publishTime',
     label: '发布时间',
-    width: 180
+    width: 180,
   },
   {
     prop: 'action',
@@ -157,17 +159,17 @@ const tableColumns = computed(() => [
     width: 80,
     fixed: 'right',
     actions: [
-      { label: '查看详情', key: 'view', onClick: handleView }
-    ]
-  }
+      { label: '查看详情', key: 'view', onClick: handleView },
+    ],
+  },
 ])
 
 // 获取公告类型颜色
 function getNoticeTypeColor(type) {
   const colorMap = {
-    'NOTICE': 'info',
-    'ANNOUNCEMENT': 'warning',
-    'NEWS': 'success'
+    NOTICE: 'info',
+    ANNOUNCEMENT: 'warning',
+    NEWS: 'success',
   }
   return colorMap[type] || 'default'
 }
@@ -176,18 +178,19 @@ function getNoticeTypeColor(type) {
 async function handleView(row) {
   try {
     const res = await request.post('/system/notice/getById', null, {
-      params: { noticeId: row.noticeId }
+      params: { noticeId: row.noticeId },
     })
     if (res.code === 200) {
       currentNotice.value = res.data
       showDetailModal.value = true
-      
+
       // 标记为已读
       if (row.isRead === 0) {
         await markAsRead(row.noticeId)
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('获取详情失败')
   }
 }
@@ -196,12 +199,13 @@ async function handleView(row) {
 async function markAsRead(noticeId) {
   try {
     await request.post('/system/notice/markAsRead', null, {
-      params: { noticeId }
+      params: { noticeId },
     })
     // 刷新列表和未读数量
     crudRef.value?.refresh()
     loadUnreadCount()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('标记已读失败:', error)
   }
 }
@@ -213,7 +217,8 @@ async function loadUnreadCount() {
     if (res.code === 200) {
       unreadCount.value = res.data
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取未读数量失败:', error)
   }
 }
@@ -226,11 +231,12 @@ function refreshList() {
 
 // 格式化文件大小
 function formatFileSize(bytes) {
-  if (!bytes) return '0 B'
+  if (!bytes)
+    return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
+  return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`
 }
 
 // 下载附件
@@ -238,7 +244,7 @@ function handleDownloadAttachment(file) {
   try {
     // 构造下载链接
     const downloadUrl = `/api/system/file/download?fileId=${file.fileId}`
-    
+
     // 创建 a 标签下载
     const link = document.createElement('a')
     link.href = downloadUrl
@@ -246,9 +252,10 @@ function handleDownloadAttachment(file) {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    
+
     window.$message.success('开始下载')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('下载失败:', error)
     window.$message.error('下载失败')
   }

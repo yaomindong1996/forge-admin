@@ -13,11 +13,11 @@
 
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
-import { usePermissionStore, useAppStore } from '@/store'
+import { useAppStore, usePermissionStore } from '@/store'
 import { isExternal } from '@/utils'
+import { getTopMenuThemeOverrides } from '@/utils/menu-theme.js'
 import { processTopMenus } from '@/utils/menu-utils'
-import {h} from "vue";
-import {getTopMenuThemeOverrides} from "@/utils/menu-theme.js";
+
 const router = useRouter()
 const route = useRoute()
 const permissionStore = usePermissionStore()
@@ -33,12 +33,12 @@ const topMenuOptions = computed(() => {
   const topMenus = processTopMenus(menus)
 
   // 转换为n-menu需要的格式
-  const options = topMenus.map(item => {
+  const options = topMenus.map((item) => {
     return {
       ...item,
       key: item.id,
       label: item.label || item.name,
-      children:null
+      children: null,
       // 注意：不设置 children 属性，让所有菜单项都可点击
       // children 属性会导致菜单项变成下拉菜单，不触发 update:value 事件
     }
@@ -49,14 +49,14 @@ const topMenuOptions = computed(() => {
 // 活跃菜单项
 const activeKey = computed(() => {
   const menus = permissionStore.menus || []
-  
+
   // 如果菜单数据还没加载完成，返回 null 避免闪烁
   if (!menus.length || !permissionStore.menuDataLoaded) {
     return null
   }
-  
+
   const topMenus = processTopMenus(menus)
-  
+
   // 递归查找包含当前路由的顶级菜单
   const findTopMenuByPath = (currentPath) => {
     // 查找与当前路由匹配的菜单项（递归查找所有层级）
@@ -93,7 +93,7 @@ const activeKey = computed(() => {
   }
 
   const activeTopMenu = findTopMenuByPath(route.path)
-  
+
   if (activeTopMenu) {
     // 同步更新store（使用 nextTick 避免重复触发）
     if (appStore.selectedTopMenuId !== activeTopMenu.id) {
@@ -121,7 +121,8 @@ function handleMenuSelect(key, item) {
   const topMenus = processTopMenus(menus)
   const selectedMenu = topMenus.find(menu => menu.id === key)
 
-  if (!selectedMenu) return
+  if (!selectedMenu)
+    return
 
   // 更新store中的选中状态，触发左侧菜单更新
   appStore.setSelectedTopMenuId(key)
@@ -130,7 +131,8 @@ function handleMenuSelect(key, item) {
   if (selectedMenu.type === 'module') {
     // module类型：查找第一个有 path 的子菜单并跳转
     const findFirstMenuWithPath = (items) => {
-      if (!items || !Array.isArray(items)) return null
+      if (!items || !Array.isArray(items))
+        return null
 
       for (const item of items) {
         // 如果是 menu 类型且有 path，返回
@@ -140,7 +142,8 @@ function handleMenuSelect(key, item) {
         // 如果有子菜单，递归查找
         if (item.children && item.children.length > 0) {
           const found = findFirstMenuWithPath(item.children)
-          if (found) return found
+          if (found)
+            return found
         }
       }
       return null

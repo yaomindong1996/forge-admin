@@ -7,20 +7,20 @@
         detail: 'get@/generator/template/{id}',
         add: 'post@/generator/template/add',
         update: 'post@/generator/template/edit',
-        delete: 'post@/generator/template/remove/{id}'
+        delete: 'post@/generator/template/remove/{id}',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
       :edit-schema="editSchema"
       row-key="templateId"
       :edit-grid-cols="2"
-      :modal-width="'1200px'"
+      modal-width="1200px"
       add-button-text="新增模板"
     >
       <!-- 自定义模板内容编辑 -->
       <template #edit-templateContent="{ formData }">
         <div class="template-editor">
-          <div ref="templateEditorRef" class="editor-container"></div>
+          <div ref="templateEditorRef" class="editor-container" />
         </div>
       </template>
     </AiCrudPage>
@@ -50,14 +50,16 @@
         <!-- 预览结果 -->
         <div class="preview-result">
           <n-spin :show="previewLoading">
-            <div ref="previewEditorRef" class="preview-editor-container"></div>
+            <div ref="previewEditorRef" class="preview-editor-container" />
           </n-spin>
         </div>
       </div>
 
       <template #footer>
         <n-space justify="end">
-          <n-button @click="showPreviewModal = false">关闭</n-button>
+          <n-button @click="showPreviewModal = false">
+            关闭
+          </n-button>
         </n-space>
       </template>
     </n-modal>
@@ -65,13 +67,13 @@
 </template>
 
 <script setup>
-import { ref, h, computed, watch, nextTick, onUnmounted } from 'vue'
-import { NTag } from 'naive-ui'
-import { AiCrudPage } from '@/components/ai-form'
-import { request } from '@/utils'
-import { EditorView, basicSetup } from 'codemirror'
 import { java } from '@codemirror/lang-java'
 import { oneDark } from '@codemirror/theme-one-dark'
+import { basicSetup, EditorView } from 'codemirror'
+import { NTag } from 'naive-ui'
+import { computed, h, nextTick, onUnmounted, ref, watch } from 'vue'
+import { AiCrudPage } from '@/components/ai-form'
+import { request } from '@/utils'
 
 defineOptions({ name: 'GeneratorTemplate' })
 
@@ -98,13 +100,13 @@ const templateTypeOptions = [
   { label: 'DTO', value: 'DTO' },
   { label: 'VO', value: 'VO' },
   { label: 'Query查询', value: 'QUERY' },
-  { label: 'SQL脚本', value: 'SQL' }
+  { label: 'SQL脚本', value: 'SQL' },
 ]
 
 // 模板引擎选项
 const templateEngineOptions = [
   { label: 'Velocity', value: 'VELOCITY' },
-  { label: 'Freemarker', value: 'FREEMARKER' }
+  { label: 'Freemarker', value: 'FREEMARKER' },
 ]
 
 // 搜索表单配置
@@ -114,8 +116,8 @@ const searchSchema = [
     label: '模板名称',
     type: 'input',
     props: {
-      placeholder: '请输入模板名称'
-    }
+      placeholder: '请输入模板名称',
+    },
   },
   {
     field: 'templateType',
@@ -124,9 +126,9 @@ const searchSchema = [
     props: {
       placeholder: '请选择模板类型',
       options: templateTypeOptions,
-      clearable: true
-    }
-  }
+      clearable: true,
+    },
+  },
 ]
 
 // 表格列配置
@@ -134,12 +136,12 @@ const tableColumns = computed(() => [
   {
     prop: 'templateName',
     label: '模板名称',
-    width: 150
+    width: 150,
   },
   {
     prop: 'templateCode',
     label: '模板编码',
-    width: 130
+    width: 130,
   },
   {
     prop: 'templateType',
@@ -148,17 +150,17 @@ const tableColumns = computed(() => [
     render: (row) => {
       const option = templateTypeOptions.find(opt => opt.value === row.templateType)
       return option ? option.label : row.templateType
-    }
+    },
   },
   {
     prop: 'templateEngine',
     label: '模板引擎',
-    width: 100
+    width: 100,
   },
   {
     prop: 'fileSuffix',
     label: '文件后缀',
-    width: 100
+    width: 100,
   },
   {
     prop: 'isSystem',
@@ -167,9 +169,9 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h(NTag, {
         type: row.isSystem === 1 ? 'warning' : 'default',
-        size: 'small'
+        size: 'small',
       }, { default: () => row.isSystem === 1 ? '是' : '否' })
-    }
+    },
   },
   {
     prop: 'isEnabled',
@@ -178,9 +180,9 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h(NTag, {
         type: row.isEnabled === 1 ? 'success' : 'error',
-        size: 'small'
+        size: 'small',
       }, { default: () => row.isEnabled === 1 ? '启用' : '禁用' })
-    }
+    },
   },
   {
     prop: 'action',
@@ -191,9 +193,9 @@ const tableColumns = computed(() => [
       { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
       { label: '预览', key: 'preview', type: 'primary', onClick: handlePreview },
       { label: '复制', key: 'copy', type: 'primary', onClick: handleCopy },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: (row) => row.isSystem !== 1 }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: row => row.isSystem !== 1 },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -204,8 +206,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
     props: {
-      placeholder: '请输入模板名称'
-    }
+      placeholder: '请输入模板名称',
+    },
   },
   {
     field: 'templateCode',
@@ -213,8 +215,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入模板编码', trigger: 'blur' }],
     props: {
-      placeholder: '请输入模板编码'
-    }
+      placeholder: '请输入模板编码',
+    },
   },
   {
     field: 'templateType',
@@ -223,8 +225,8 @@ const editSchema = [
     rules: [{ required: true, message: '请选择模板类型', trigger: 'change' }],
     props: {
       placeholder: '请选择模板类型',
-      options: templateTypeOptions
-    }
+      options: templateTypeOptions,
+    },
   },
   {
     field: 'templateEngine',
@@ -234,8 +236,8 @@ const editSchema = [
     rules: [{ required: true, message: '请选择模板引擎', trigger: 'change' }],
     props: {
       placeholder: '请选择模板引擎',
-      options: templateEngineOptions
-    }
+      options: templateEngineOptions,
+    },
   },
   {
     field: 'fileSuffix',
@@ -243,16 +245,16 @@ const editSchema = [
     type: 'input',
     defaultValue: '.java',
     props: {
-      placeholder: '如：.java、.xml、.vue'
-    }
+      placeholder: '如：.java、.xml、.vue',
+    },
   },
   {
     field: 'filePath',
     label: '生成路径',
     type: 'input',
     props: {
-      placeholder: '如：src/main/java/${package}'
-    }
+      placeholder: '如：src/main/java/${package}',
+    },
   },
   {
     field: 'isEnabled',
@@ -262,9 +264,9 @@ const editSchema = [
     props: {
       options: [
         { label: '启用', value: 1 },
-        { label: '禁用', value: 0 }
-      ]
-    }
+        { label: '禁用', value: 0 },
+      ],
+    },
   },
   {
     field: 'sort',
@@ -273,15 +275,15 @@ const editSchema = [
     defaultValue: 0,
     props: {
       placeholder: '请输入排序号',
-      min: 0
-    }
+      min: 0,
+    },
   },
   {
     field: 'templateContent',
     label: '模板内容',
     type: 'slot',
     span: 2,
-    _slot: 'templateContent'
+    _slot: 'templateContent',
   },
   {
     field: 'remark',
@@ -290,9 +292,9 @@ const editSchema = [
     span: 2,
     props: {
       placeholder: '请输入备注',
-      rows: 2
-    }
-  }
+      rows: 2,
+    },
+  },
 ]
 
 // 监听编辑弹窗打开
@@ -300,7 +302,8 @@ watch(() => crudRef.value?.editModalVisible, async (val) => {
   if (val) {
     await nextTick()
     initTemplateEditor()
-  } else {
+  }
+  else {
     destroyTemplateEditor()
   }
 })
@@ -309,7 +312,8 @@ watch(() => crudRef.value?.editModalVisible, async (val) => {
 function initTemplateEditor() {
   destroyTemplateEditor()
 
-  if (!templateEditorRef.value) return
+  if (!templateEditorRef.value)
+    return
 
   const formData = crudRef.value?.formData
   const content = formData?.templateContent || ''
@@ -325,9 +329,9 @@ function initTemplateEditor() {
         if (update.docChanged && crudRef.value?.formData) {
           crudRef.value.formData.templateContent = update.state.doc.toString()
         }
-      })
+      }),
     ],
-    parent: templateEditorRef.value
+    parent: templateEditorRef.value,
   })
 }
 
@@ -343,7 +347,8 @@ function destroyTemplateEditor() {
 function initPreviewEditor(code) {
   destroyPreviewEditor()
 
-  if (!previewEditorRef.value) return
+  if (!previewEditorRef.value)
+    return
 
   previewEditorView = new EditorView({
     doc: code || '',
@@ -352,9 +357,9 @@ function initPreviewEditor(code) {
       java(),
       oneDark,
       EditorView.editable.of(false),
-      EditorView.lineWrapping
+      EditorView.lineWrapping,
     ],
-    parent: previewEditorRef.value
+    parent: previewEditorRef.value,
   })
 }
 
@@ -390,10 +395,11 @@ function handleDelete(row) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 
@@ -415,32 +421,36 @@ async function loadTableList() {
       const records = res.data?.records || res.data?.list || []
       tableOptions.value = records.map(item => ({
         label: `${item.tableName} (${item.tableComment || ''})`,
-        value: item.tableId
+        value: item.tableId,
       }))
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载表列表失败:', error)
   }
 }
 
 // 预览模板
 async function handlePreviewTable(tableId) {
-  if (!tableId || !currentTemplateId.value) return
+  if (!tableId || !currentTemplateId.value)
+    return
 
   try {
     previewLoading.value = true
     const res = await request.post('/generator/template/preview', {
       templateId: currentTemplateId.value,
-      tableId: tableId
+      tableId,
     })
     if (res.code === 200) {
       await nextTick()
       initPreviewEditor(res.data)
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('预览失败:', error)
     window.$message.error('预览失败')
-  } finally {
+  }
+  finally {
     previewLoading.value = false
   }
 }
@@ -450,9 +460,9 @@ function handleCopy(row) {
   const copyData = {
     ...row,
     templateId: null,
-    templateName: row.templateName + '_副本',
-    templateCode: row.templateCode + '_copy',
-    isSystem: 0
+    templateName: `${row.templateName}_副本`,
+    templateCode: `${row.templateCode}_copy`,
+    isSystem: 0,
   }
   crudRef.value?.showAdd(copyData)
 }

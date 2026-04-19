@@ -33,6 +33,11 @@ public class AiProvider extends TenantEntity {
     private String providerType;
 
     /**
+     * 供应商Logo（文件ID或URL）
+     */
+    private String logo;
+
+    /**
      * API Key
      */
     private String apiKey;

@@ -5,9 +5,9 @@
 </template>
 
 <script setup>
+import defaultLogo from '@/assets/images/logo.png'
 import { useTenantStore } from '@/store'
 import AuthImage from './AuthImage.vue'
-import defaultLogo from '@/assets/images/logo.png'
 
 const tenantStore = useTenantStore()
 </script>

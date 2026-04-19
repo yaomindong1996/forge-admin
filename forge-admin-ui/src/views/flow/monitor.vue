@@ -6,7 +6,7 @@
         <n-card size="small">
           <n-statistic label="运行中流程" :value="statistics.runningInstances">
             <template #prefix>
-              <i class="i-mdi:play-circle text-blue-500"></i>
+              <i class="i-mdi:play-circle text-blue-500" />
             </template>
           </n-statistic>
         </n-card>
@@ -15,7 +15,7 @@
         <n-card size="small">
           <n-statistic label="待办任务" :value="statistics.pendingTasks">
             <template #prefix>
-              <i class="i-mdi:clipboard-list text-orange-500"></i>
+              <i class="i-mdi:clipboard-list text-orange-500" />
             </template>
           </n-statistic>
         </n-card>
@@ -24,7 +24,7 @@
         <n-card size="small">
           <n-statistic label="今日完成" :value="statistics.todayCompleted">
             <template #prefix>
-              <i class="i-mdi:check-circle text-green-500"></i>
+              <i class="i-mdi:check-circle text-green-500" />
             </template>
           </n-statistic>
         </n-card>
@@ -33,7 +33,7 @@
         <n-card size="small">
           <n-statistic label="超时任务" :value="statistics.timeoutTasks">
             <template #prefix>
-              <i class="i-mdi:alert-circle text-red-500"></i>
+              <i class="i-mdi:alert-circle text-red-500" />
             </template>
           </n-statistic>
         </n-card>
@@ -67,16 +67,20 @@
           />
         </n-form-item>
         <n-form-item>
-          <n-space>
-            <n-button type="primary" @click="handleSearch">
-              <template #icon><i class="i-mdi:magnify" /></template>
+          <NSpace>
+            <NButton type="primary" @click="handleSearch">
+              <template #icon>
+                <i class="i-mdi:magnify" />
+              </template>
               查询
-            </n-button>
-            <n-button @click="handleReset">
-              <template #icon><i class="i-mdi:refresh" /></template>
+            </NButton>
+            <NButton @click="handleReset">
+              <template #icon>
+                <i class="i-mdi:refresh" />
+              </template>
               重置
-            </n-button>
-          </n-space>
+            </NButton>
+          </NSpace>
         </n-form-item>
       </n-form>
     </n-card>
@@ -84,14 +88,16 @@
     <!-- 流程实例列表 -->
     <n-card class="mt-4" title="流程实例监控">
       <template #header-extra>
-        <n-space>
-          <n-button @click="loadData">
-            <template #icon><i class="i-mdi:refresh" /></template>
+        <NSpace>
+          <NButton @click="loadData">
+            <template #icon>
+              <i class="i-mdi:refresh" />
+            </template>
             刷新
-          </n-button>
-        </n-space>
+          </NButton>
+        </NSpace>
       </template>
-      
+
       <n-data-table
         :columns="columns"
         :data="tableData"
@@ -108,12 +114,12 @@
     <n-grid :cols="2" :x-gap="16" class="mt-4">
       <n-gi>
         <n-card title="任务处理趋势">
-          <div ref="taskChartRef" style="height: 300px"></div>
+          <div ref="taskChartRef" style="height: 300px" />
         </n-card>
       </n-gi>
       <n-gi>
         <n-card title="流程分布统计">
-          <div ref="processChartRef" style="height: 300px"></div>
+          <div ref="processChartRef" style="height: 300px" />
         </n-card>
       </n-gi>
     </n-grid>
@@ -130,20 +136,30 @@
     <n-drawer v-model:show="detailDrawerVisible" :width="600" title="流程详情">
       <n-drawer-content title="流程实例详情">
         <n-descriptions :column="2" label-placement="left">
-          <n-descriptions-item label="流程名称">{{ currentInstance.processName }}</n-descriptions-item>
-          <n-descriptions-item label="流程状态">
-            <n-tag :type="getStatusType(currentInstance.status)">
-              {{ getStatusText(currentInstance.status) }}
-            </n-tag>
+          <n-descriptions-item label="流程名称">
+            {{ currentInstance.processName }}
           </n-descriptions-item>
-          <n-descriptions-item label="发起人">{{ currentInstance.initiatorName }}</n-descriptions-item>
-          <n-descriptions-item label="发起时间">{{ currentInstance.startTime }}</n-descriptions-item>
-          <n-descriptions-item label="当前节点">{{ currentInstance.currentNode }}</n-descriptions-item>
-          <n-descriptions-item label="处理人">{{ currentInstance.currentAssignee }}</n-descriptions-item>
+          <n-descriptions-item label="流程状态">
+            <NTag :type="getStatusType(currentInstance.status)">
+              {{ getStatusText(currentInstance.status) }}
+            </NTag>
+          </n-descriptions-item>
+          <n-descriptions-item label="发起人">
+            {{ currentInstance.initiatorName }}
+          </n-descriptions-item>
+          <n-descriptions-item label="发起时间">
+            {{ currentInstance.startTime }}
+          </n-descriptions-item>
+          <n-descriptions-item label="当前节点">
+            {{ currentInstance.currentNode }}
+          </n-descriptions-item>
+          <n-descriptions-item label="处理人">
+            {{ currentInstance.currentAssignee }}
+          </n-descriptions-item>
         </n-descriptions>
 
         <n-divider>处理历史</n-divider>
-        
+
         <n-timeline>
           <n-timeline-item
             v-for="(item, index) in approvalHistory"
@@ -153,27 +169,30 @@
             :time="item.createTime"
           >
             <p>处理人：{{ item.assigneeName }}</p>
-            <p>处理结果：
-              <n-tag :type="getTimelineType(item.action)" size="small">
+            <p>
+              处理结果：
+              <NTag :type="getTimelineType(item.action)" size="small">
                 {{ { approve: '同意', reject: '驳回', start: '发起', claim: '签收', delegate: '转办', withdraw: '撤回', pending: '待处理' }[item.action] || item.action || '处理中' }}
-              </n-tag>
+              </NTag>
             </p>
-            <p v-if="item.comment">处理意见：{{ item.comment }}</p>
+            <p v-if="item.comment">
+              处理意见：{{ item.comment }}
+            </p>
           </n-timeline-item>
         </n-timeline>
 
         <template #footer>
-          <n-space>
-            <n-button v-if="currentInstance.status === 'running'" type="warning" @click="handleSuspend">
+          <NSpace>
+            <NButton v-if="currentInstance.status === 'running'" type="warning" @click="handleSuspend">
               挂起流程
-            </n-button>
-            <n-button v-if="currentInstance.status === 'suspended'" type="primary" @click="handleActivate">
+            </NButton>
+            <NButton v-if="currentInstance.status === 'suspended'" type="primary" @click="handleActivate">
               激活流程
-            </n-button>
-            <n-button v-if="currentInstance.status === 'running'" type="error" @click="handleTerminate">
+            </NButton>
+            <NButton v-if="currentInstance.status === 'running'" type="error" @click="handleTerminate">
               终止流程
-            </n-button>
-          </n-space>
+            </NButton>
+          </NSpace>
         </template>
       </n-drawer-content>
     </n-drawer>
@@ -181,11 +200,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
-import { request } from '@/utils'
 import * as echarts from 'echarts'
+import { NButton, NSpace, NTag } from 'naive-ui'
+import { nextTick, onMounted, reactive, ref } from 'vue'
+// 引入必要的组件
+import { h } from 'vue'
+import { useRoute } from 'vue-router'
+
 import ProcessDiagramViewer from '@/components/bpmn/ProcessDiagramViewer.vue'
+import { request } from '@/utils'
 
 defineOptions({ name: 'FlowMonitor' })
 
@@ -197,7 +220,7 @@ const statistics = reactive({
   runningInstances: 0,
   pendingTasks: 0,
   todayCompleted: 0,
-  timeoutTasks: 0
+  timeoutTasks: 0,
 })
 
 // 搜索表单
@@ -206,7 +229,7 @@ const searchForm = reactive({
   initiator: '',
   status: null,
   dateRange: null,
-  modelKey: null
+  modelKey: null,
 })
 
 // 状态选项
@@ -216,7 +239,7 @@ const statusOptions = [
   { label: '已通过', value: 'approved' },
   { label: '已驳回', value: 'rejected' },
   { label: '已取消', value: 'canceled' },
-  { label: '已终止', value: 'terminated' }
+  { label: '已终止', value: 'terminated' },
 ]
 
 // 表格数据
@@ -227,7 +250,7 @@ const pagination = reactive({
   pageSize: 10,
   itemCount: 0,
   showSizePicker: true,
-  pageSizes: [10, 20, 50]
+  pageSizes: [10, 20, 50],
 })
 
 // 表格列定义
@@ -235,22 +258,22 @@ const columns = [
   {
     title: '流程名称',
     key: 'processName',
-    ellipsis: { tooltip: true }
+    ellipsis: { tooltip: true },
   },
   {
     title: '发起人',
     key: 'initiatorName',
-    width: 100
+    width: 100,
   },
   {
     title: '当前节点',
     key: 'currentNode',
-    width: 150
+    width: 150,
   },
   {
     title: '当前处理人',
     key: 'currentAssignee',
-    width: 100
+    width: 100,
   },
   {
     title: '状态',
@@ -260,17 +283,17 @@ const columns = [
       const type = getStatusType(row.status)
       const text = getStatusText(row.status)
       return h(NTag, { type }, { default: () => text })
-    }
+    },
   },
   {
     title: '发起时间',
     key: 'startTime',
-    width: 160
+    width: 160,
   },
   {
     title: '运行时长',
     key: 'duration',
-    width: 100
+    width: 100,
   },
   {
     title: '操作',
@@ -280,11 +303,11 @@ const columns = [
       return h(NSpace, null, {
         default: () => [
           h(NButton, { text: true, type: 'primary', onClick: () => showDetail(row) }, { default: () => '详情' }),
-          h(NButton, { text: true, type: 'info', onClick: () => showDiagram(row) }, { default: () => '流程图' })
-        ]
+          h(NButton, { text: true, type: 'info', onClick: () => showDiagram(row) }, { default: () => '流程图' }),
+        ],
       })
-    }
-  }
+    },
+  },
 ]
 
 // 详情抽屉
@@ -309,7 +332,8 @@ async function loadStatistics() {
     if (res.code === 200) {
       Object.assign(statistics, res.data)
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载统计数据失败', error)
   }
 }
@@ -321,16 +345,18 @@ async function loadData() {
     const params = {
       page: pagination.page,
       pageSize: pagination.pageSize,
-      ...searchForm
+      ...searchForm,
     }
     const res = await request.get('/api/flow/monitor/instances', { params })
     if (res.code === 200) {
       tableData.value = res.data.list || []
       pagination.itemCount = res.data.total || 0
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载数据失败', error)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -342,7 +368,8 @@ async function loadTaskTrend() {
     if (res.code === 200 && res.data) {
       return res.data
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载任务趋势数据失败', error)
   }
   return { dates: [], created: [], completed: [] }
@@ -355,7 +382,8 @@ async function loadProcessDistribution() {
     if (res.code === 200 && res.data) {
       return res.data
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载流程分布数据失败', error)
   }
   return []
@@ -374,7 +402,7 @@ function handleReset() {
     initiator: '',
     status: null,
     dateRange: null,
-    modelKey: null
+    modelKey: null,
   })
   handleSearch()
 }
@@ -396,14 +424,15 @@ function handlePageSizeChange(pageSize) {
 async function showDetail(row) {
   currentInstance.value = row
   detailDrawerVisible.value = true
-  
+
   // 加载审批时间轴
   try {
     const res = await request.get(`/api/flow/task/history/${row.id}`)
     if (res.code === 200) {
       approvalHistory.value = res.data || []
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载审批历史失败', error)
   }
 }
@@ -426,7 +455,8 @@ async function handleSuspend() {
       message.success('流程已挂起')
       loadData()
     }
-  } catch (error) {
+  }
+  catch (error) {
     message.error('操作失败')
   }
 }
@@ -439,7 +469,8 @@ async function handleActivate() {
       message.success('流程已激活')
       loadData()
     }
-  } catch (error) {
+  }
+  catch (error) {
     message.error('操作失败')
   }
 }
@@ -453,7 +484,8 @@ async function handleTerminate() {
       detailDrawerVisible.value = false
       loadData()
     }
-  } catch (error) {
+  }
+  catch (error) {
     message.error('操作失败')
   }
 }
@@ -463,9 +495,9 @@ async function initCharts() {
   // 并行加载图表数据
   const [trendData, distributionData] = await Promise.all([
     loadTaskTrend(),
-    loadProcessDistribution()
+    loadProcessDistribution(),
   ])
-  
+
   nextTick(() => {
     // 任务处理趋势图
     if (taskChartRef.value) {
@@ -475,13 +507,13 @@ async function initCharts() {
         legend: { data: ['新增流程', '完成流程'] },
         xAxis: {
           type: 'category',
-          data: trendData.dates.length > 0 ? trendData.dates : ['暂无数据']
+          data: trendData.dates.length > 0 ? trendData.dates : ['暂无数据'],
         },
         yAxis: { type: 'value' },
         series: [
           { name: '新增流程', type: 'line', data: trendData.created.length > 0 ? trendData.created : [0], smooth: true },
-          { name: '完成流程', type: 'line', data: trendData.completed.length > 0 ? trendData.completed : [0], smooth: true }
-        ]
+          { name: '完成流程', type: 'line', data: trendData.completed.length > 0 ? trendData.completed : [0], smooth: true },
+        ],
       })
     }
 
@@ -501,25 +533,25 @@ async function initCharts() {
             itemStyle: {
               borderRadius: 10,
               borderColor: '#fff',
-              borderWidth: 2
+              borderWidth: 2,
             },
             label: {
               show: false,
-              position: 'center'
+              position: 'center',
             },
             emphasis: {
               label: {
                 show: true,
                 fontSize: 14,
-                fontWeight: 'bold'
-              }
+                fontWeight: 'bold',
+              },
             },
             labelLine: {
-              show: false
+              show: false,
             },
-            data: pieData
-          }
-        ]
+            data: pieData,
+          },
+        ],
       })
     }
   })
@@ -533,7 +565,7 @@ function getStatusType(status) {
     approved: 'success',
     rejected: 'error',
     canceled: 'default',
-    terminated: 'error'
+    terminated: 'error',
   }
   return map[status] || 'default'
 }
@@ -559,14 +591,10 @@ function getTimelineType(action) {
     start: 'success',
     claim: 'info',
     delegate: 'warning',
-    withdraw: 'default'
+    withdraw: 'default',
   }
   return map[action] || 'default'
 }
-
-// 引入必要的组件
-import { h } from 'vue'
-import { NTag, NButton, NSpace } from 'naive-ui'
 
 onMounted(() => {
   // 处理从模型页面跳转过来的 modelKey 参数

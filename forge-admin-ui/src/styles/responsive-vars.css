@@ -6,7 +6,7 @@
 :root {
   /* 字体缩放比例，默认为1 */
   --font-scale: 1;
-  
+
   /* 基础字体大小 */
   --font-size-xs: calc(12px * var(--font-scale));
   --font-size-sm: calc(14px * var(--font-scale));

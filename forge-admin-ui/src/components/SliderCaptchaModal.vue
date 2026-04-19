@@ -9,24 +9,24 @@
       width: '340px',
       padding: '0',
       borderRadius: '12px',
-      overflow: 'hidden'
+      overflow: 'hidden',
     }"
     :bordered="false"
     :mask-style="{
       backdropFilter: 'blur(4px)',
-      backgroundColor: 'rgba(0, 0, 0, 0.3)'
+      backgroundColor: 'rgba(0, 0, 0, 0.3)',
     }"
   >
     <template #header>
       <div class="modal-header">
         <div class="header-left">
           <div class="header-icon">
-            <i class="ai-icon:shield-check"></i>
+            <i class="ai-icon:shield-check" />
           </div>
           <span class="header-title">安全验证</span>
         </div>
-        <button class="close-btn" @click="handleClose" aria-label="关闭">
-          <i class="ai-icon:x"></i>
+        <button class="close-btn" aria-label="关闭" @click="handleClose">
+          <i class="ai-icon:x" />
         </button>
       </div>
     </template>
@@ -35,21 +35,21 @@
       <!-- 验证状态提示 -->
       <div v-if="status === 'success'" class="status-overlay success">
         <div class="status-icon">
-          <i class="ai-icon:check-circle"></i>
+          <i class="ai-icon:check-circle" />
         </div>
         <span class="status-text">验证成功</span>
       </div>
 
       <div v-else-if="status === 'fail'" class="status-overlay fail">
         <div class="status-icon">
-          <i class="ai-icon:x-circle"></i>
+          <i class="ai-icon:x-circle" />
         </div>
         <span class="status-text">验证失败，请重试</span>
       </div>
 
       <!-- 滑块验证区域 -->
       <div v-else class="slider-container">
-        <slide-verify
+        <SlideVerify
           ref="slideVerifyRef"
           :w="300"
           :h="180"
@@ -58,10 +58,10 @@
           :accuracy="8"
           :imgs="images"
           :show-refresh="true"
-          :refresh-text="''"
-          :text="'向右滑动完成验证'"
-          :success-text="''"
-          :fail-text="''"
+          refresh-text=""
+          text="向右滑动完成验证"
+          success-text=""
+          fail-text=""
           @success="onSuccess"
           @fail="onFail"
           @refresh="onRefresh"
@@ -70,7 +70,7 @@
 
       <!-- 底部提示 -->
       <div class="captcha-footer">
-        <i class="ai-icon:shield-check footer-icon"></i>
+        <i class="ai-icon:shield-check footer-icon" />
         <span>安全验证由系统提供</span>
       </div>
     </div>
@@ -78,19 +78,19 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import SlideVerify from 'vue3-slide-verify'
 import 'vue3-slide-verify/dist/style.css'
 
 const props = defineProps({
   show: {
     type: Boolean,
-    default: false
+    default: false,
   },
   images: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['update:show', 'success', 'fail', 'refresh'])
@@ -157,7 +157,7 @@ function handleClose() {
 // 暴露方法给父组件
 defineExpose({
   reset,
-  handleClose
+  handleClose,
 })
 </script>
 

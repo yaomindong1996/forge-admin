@@ -31,10 +31,10 @@
         <n-space>
           <n-button
             type="primary"
-            @click="handleSearch"
             size="small"
             :loading="searchLoading"
             :disabled="searchLoading"
+            @click="handleSearch"
           >
             <template #icon>
               <n-icon><SearchOutline /></n-icon>
@@ -42,12 +42,12 @@
             {{ searchText }}
           </n-button>
           <n-button
-            @click="handleReset"
             size="small"
             strong
             secondary
             :loading="resetLoading"
             :disabled="searchLoading || resetLoading"
+            @click="handleReset"
           >
             <template #icon>
               <n-icon><RefreshOutline /></n-icon>
@@ -63,80 +63,80 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { SearchOutline, RefreshOutline } from '@vicons/ionicons5'
+import { RefreshOutline, SearchOutline } from '@vicons/ionicons5'
+import { computed, ref } from 'vue'
 import AiForm from './AiForm.vue'
 
 const props = defineProps({
   // 表单配置（兼容 options 命名）
   schema: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   options: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   // 初始值
   modelValue: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   // 栅格列数
   gridCols: {
     type: Number,
-    default: 4
+    default: 4,
   },
   // 标签位置
   labelPlacement: {
     type: String,
-    default: 'left'
+    default: 'left',
   },
   // 标签宽度
   labelWidth: {
     type: [String, Number],
-    default: 'auto'
+    default: 'auto',
   },
   // 尺寸
   size: {
     type: String,
-    default: 'medium'
+    default: 'medium',
   },
   // 是否启用折叠
   enableCollapse: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 最大显示字段数
   maxVisibleFields: {
     type: Number,
-    default: 3
+    default: 3,
   },
   // 搜索按钮文本
   searchText: {
     type: String,
-    default: '搜索'
+    default: '搜索',
   },
   // 重置按钮文本
   resetText: {
     type: String,
-    default: '重置'
+    default: '重置',
   },
   // 上下文对象
   context: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   // 重置前的钩子函数
   beforeReset: {
     type: Function,
-    default: null
+    default: null,
   },
   // 表单项间距
   yGap: {
     type: Number,
-    default: 16
-  }
+    default: 16,
+  },
 })
 
 const emit = defineEmits(['search', 'reset', 'update:modelValue'])
@@ -163,9 +163,11 @@ async function handleSearch() {
     await formRef.value?.validate()
     emit('search', { ...formData.value })
     emit('update:modelValue', { ...formData.value })
-  } catch (error) {
+  }
+  catch (error) {
     console.log('表单验证失败:', error)
-  } finally {
+  }
+  finally {
     // 延迟 300ms 再关闭 loading,防止连续点击
     setTimeout(() => {
       searchLoading.value = false
@@ -204,9 +206,11 @@ async function handleReset() {
 
     // 重置后自动搜索
     await handleSearch()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('重置失败:', error)
-  } finally {
+  }
+  finally {
     setTimeout(() => {
       resetLoading.value = false
     }, 300)
@@ -242,7 +246,7 @@ defineExpose({
   getFormData,
   setFormData,
   validate: () => formRef.value?.validate(),
-  reset: () => formRef.value?.reset()
+  reset: () => formRef.value?.reset(),
 })
 </script>
 

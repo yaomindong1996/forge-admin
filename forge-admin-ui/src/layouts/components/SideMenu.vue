@@ -14,10 +14,10 @@
 </template>
 
 <script setup>
+import { h } from 'vue'
+import IconRenderer from '@/components/IconRenderer.vue'
 import { useAppStore, usePermissionStore } from '@/store'
 import { isExternal } from '@/utils'
-import {h} from "vue";
-import IconRenderer from "@/components/IconRenderer.vue";
 
 const router = useRouter()
 const route = useRoute()
@@ -31,8 +31,9 @@ const processedMenus = computed(() => {
 })
 
 // 递归处理菜单数据
-const processMenuData = (menuItems) => {
-  if (!menuItems || !Array.isArray(menuItems)) return []
+function processMenuData(menuItems) {
+  if (!menuItems || !Array.isArray(menuItems))
+    return []
 
   // 展平处理：过滤掉 type 为 subapp 的菜单项，但保留其 children
   const flattenedItems = menuItems.reduce((acc, item) => {
@@ -41,17 +42,18 @@ const processMenuData = (menuItems) => {
       if (item.children && item.children.length > 0) {
         acc.push(...item.children)
       }
-    } else {
+    }
+    else {
       // 不是 subapp 类型，正常保留
       acc.push(item)
     }
     return acc
   }, [])
 
-  return flattenedItems.map(item => {
+  return flattenedItems.map((item) => {
     const menuItem = {
       key: item.key || item.id,
-      label: item.label || item.name
+      label: item.label || item.name,
     }
 
     // 设置图标
@@ -59,12 +61,13 @@ const processMenuData = (menuItems) => {
       // 如果是图标类名，创建图标组件
       if (typeof item.icon === 'string' && item.icon.trim() !== '') {
         menuItem.icon = () => h(IconRenderer, {
-          icon: item.icon
+          icon: item.icon,
         })
       }
-    }else{
+    }
+    else {
       menuItem.icon = () => h(IconRenderer, {
-        icon:"-1"
+        icon: '-1',
       })
     }
 
@@ -88,7 +91,8 @@ const processMenuData = (menuItems) => {
 const activeKey = computed(() => {
   // 根据当前路由 path 查找对应的菜单项 id
   const findMenuIdByPath = (items, targetPath) => {
-    if (!items || !Array.isArray(items)) return null
+    if (!items || !Array.isArray(items))
+      return null
 
     for (const item of items) {
       if (item.path === targetPath) {
@@ -96,7 +100,8 @@ const activeKey = computed(() => {
       }
       if (item.children && item.children.length > 0) {
         const found = findMenuIdByPath(item.children, targetPath)
-        if (found) return found
+        if (found)
+          return found
       }
     }
     return null
@@ -105,7 +110,7 @@ const activeKey = computed(() => {
   console.log('SideMenu activeKey 计算:', {
     path: route.path,
     parentKey: route.meta?.parentKey,
-    routeName: route.name
+    routeName: route.name,
   })
 
   // 优先使用 route.meta.parentKey（用于隐藏的二级页面）
@@ -123,7 +128,7 @@ const activeKey = computed(() => {
     const pathSegments = route.path.split('/').filter(Boolean)
     // 从最长路径开始尝试匹配
     for (let i = pathSegments.length - 1; i > 0; i--) {
-      const parentPath = '/' + pathSegments.slice(0, i).join('/')
+      const parentPath = `/${pathSegments.slice(0, i).join('/')}`
       menuId = findMenuIdByPath(processedMenus.value, parentPath)
       if (menuId) {
         console.log('通过路径前缀匹配找到:', parentPath, menuId)
@@ -146,7 +151,8 @@ watch(route, async () => {
 function handleMenuSelect(key, item) {
   // 查找原始菜单项
   const originalItem = findMenuItem(permissionStore.menus, key)
-  if (!originalItem) return
+  if (!originalItem)
+    return
 
   // 处理外部链接
   if (isExternal(originalItem.path)) {
@@ -179,8 +185,9 @@ function handleMenuSelect(key, item) {
 }
 
 // 递归查找菜单项
-const findMenuItem = (menuItems, key) => {
-  if (!menuItems || !Array.isArray(menuItems)) return null
+function findMenuItem(menuItems, key) {
+  if (!menuItems || !Array.isArray(menuItems))
+    return null
 
   for (const item of menuItems) {
     if ((item.key || item.id) === key) {
@@ -188,7 +195,8 @@ const findMenuItem = (menuItems, key) => {
     }
     if (item.children && item.children.length > 0) {
       const found = findMenuItem(item.children, key)
-      if (found) return found
+      if (found)
+        return found
     }
   }
   return null
@@ -205,7 +213,9 @@ const findMenuItem = (menuItems, key) => {
 .modern-side-menu .n-menu-item-content {
   margin: 1px 6px;
   border-radius: var(--radius-md);
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
   font-size: 13px;
   font-weight: 400;
   color: var(--text-secondary);

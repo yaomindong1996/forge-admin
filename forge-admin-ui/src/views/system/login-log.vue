@@ -4,7 +4,7 @@
       ref="crudRef"
       :api-config="{
         list: 'get@/system/loginLog/page',
-        detail: 'get@/system/loginLog/{id}'
+        detail: 'get@/system/loginLog/{id}',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
@@ -13,8 +13,7 @@
       :hide-selection="true"
       :hide-batch-delete="true"
       :before-search="handleBeforeSearch"
-    >
-    </AiCrudPage>
+    />
 
     <!-- 详情弹窗 -->
     <n-modal
@@ -25,7 +24,9 @@
     >
       <div v-if="currentLog" class="log-detail">
         <div class="detail-section">
-          <h4 class="section-title">用户信息</h4>
+          <h4 class="section-title">
+            用户信息
+          </h4>
           <div class="detail-row">
             <span class="label">用户名：</span>
             <span class="value">{{ currentLog.username || '-' }}</span>
@@ -37,18 +38,20 @@
         </div>
 
         <div class="detail-section">
-          <h4 class="section-title">登录信息</h4>
+          <h4 class="section-title">
+            登录信息
+          </h4>
           <div class="detail-row">
             <span class="label">登录类型：</span>
-            <n-tag :type="getLoginTypeTag(currentLog.loginType).type" size="small">
+            <NTag :type="getLoginTypeTag(currentLog.loginType).type" size="small">
               {{ getLoginTypeTag(currentLog.loginType).text }}
-            </n-tag>
+            </NTag>
           </div>
           <div class="detail-row">
             <span class="label">登录状态：</span>
-            <n-tag :type="currentLog.loginStatus === 1 ? 'success' : 'error'" size="small">
+            <NTag :type="currentLog.loginStatus === 1 ? 'success' : 'error'" size="small">
               {{ currentLog.loginStatus === 1 ? '成功' : '失败' }}
-            </n-tag>
+            </NTag>
           </div>
           <div class="detail-row">
             <span class="label">登录时间：</span>
@@ -61,7 +64,9 @@
         </div>
 
         <div class="detail-section">
-          <h4 class="section-title">环境信息</h4>
+          <h4 class="section-title">
+            环境信息
+          </h4>
           <div class="detail-row">
             <span class="label">登录IP：</span>
             <span class="value">{{ currentLog.loginIp || '-' }}</span>
@@ -86,7 +91,9 @@
       </div>
       <template #footer>
         <n-space justify="end">
-          <n-button @click="detailVisible = false">关闭</n-button>
+          <n-button @click="detailVisible = false">
+            关闭
+          </n-button>
         </n-space>
       </template>
     </n-modal>
@@ -94,10 +101,10 @@
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
+import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
-import {formatDateTime, request} from '@/utils'
+import { formatDateTime, request } from '@/utils'
 
 defineOptions({ name: 'LoginLog' })
 
@@ -127,8 +134,8 @@ const searchSchema = [
     label: '用户名',
     type: 'input',
     props: {
-      placeholder: '请输入用户名'
-    }
+      placeholder: '请输入用户名',
+    },
   },
   {
     field: 'loginType',
@@ -142,9 +149,9 @@ const searchSchema = [
         { label: '登出', value: 'LOGOUT' },
         { label: '注册', value: 'REGISTER' },
         { label: '被踢下线', value: 'KICKOUT' },
-        { label: '被顶下线', value: 'REPLACED' }
-      ]
-    }
+        { label: '被顶下线', value: 'REPLACED' },
+      ],
+    },
   },
   {
     field: 'loginStatus',
@@ -155,17 +162,17 @@ const searchSchema = [
       clearable: true,
       options: [
         { label: '成功', value: 1 },
-        { label: '失败', value: 0 }
-      ]
-    }
+        { label: '失败', value: 0 },
+      ],
+    },
   },
   {
     field: 'loginIp',
     label: '登录IP',
     type: 'input',
     props: {
-      placeholder: '请输入IP地址'
-    }
+      placeholder: '请输入IP地址',
+    },
   },
   {
     field: 'timeRange',
@@ -177,19 +184,19 @@ const searchSchema = [
     format: 'yyyy-MM-dd HH:mm:ss',
     valueFormat: 'yyyy-MM-dd HH:mm:ss',
     props: {
-      type: 'datetimerange'
+      type: 'datetimerange',
     },
     // 时间范围转换为 startTime 和 endTime
     transform: (value) => {
       if (value && value.length === 2) {
         return {
           startTime: value[0],
-          endTime: value[1]
+          endTime: value[1],
         }
       }
       return {}
-    }
-  }
+    },
+  },
 ]
 
 // 表格列配置
@@ -197,7 +204,7 @@ const tableColumns = computed(() => [
   {
     prop: 'username',
     label: '用户名',
-    width: 120
+    width: 120,
   },
   {
     prop: 'loginType',
@@ -206,55 +213,53 @@ const tableColumns = computed(() => [
     render: (row) => {
       const config = getLoginTypeTag(row.loginType)
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
-    }
+    },
   },
   {
     prop: 'loginStatus',
     label: '状态',
     width: 80,
     render: (row) => {
-      return h(NTag,
-        { type: row.loginStatus === 1 ? 'success' : 'error', size: 'small' },
-        { default: () => row.loginStatus === 1 ? '成功' : '失败' }
+      return h(NTag, { type: row.loginStatus === 1 ? 'success' : 'error', size: 'small' }, { default: () => row.loginStatus === 1 ? '成功' : '失败' },
       )
-    }
+    },
   },
   {
     prop: 'loginIp',
     label: '登录IP',
-    width: 130
+    width: 130,
   },
   {
     prop: 'loginLocation',
     label: '登录地点',
     width: 150,
-    render: (row) => row.loginLocation || '-'
+    render: row => row.loginLocation || '-',
   },
   {
     prop: 'browser',
     label: '浏览器',
     width: 120,
     ellipsis: { tooltip: true },
-    render: (row) => row.browser || '-'
+    render: row => row.browser || '-',
   },
   {
     prop: 'os',
     label: '操作系统',
     width: 120,
     ellipsis: { tooltip: true },
-    render: (row) => row.os || '-'
+    render: row => row.os || '-',
   },
   {
     prop: 'loginTime',
     label: '登录时间',
-    width: 160
+    width: 160,
   },
   {
     prop: 'loginMessage',
     label: '登录信息',
     minWidth: 150,
     ellipsis: { tooltip: true },
-    render: (row) => row.loginMessage || '-'
+    render: row => row.loginMessage || '-',
   },
   {
     prop: 'action',
@@ -262,19 +267,19 @@ const tableColumns = computed(() => [
     width: 80,
     fixed: 'right',
     actions: [
-      { label: '详情', key: 'detail', onClick: handleViewDetail }
-    ]
-  }
+      { label: '详情', key: 'detail', onClick: handleViewDetail },
+    ],
+  },
 ])
 
 // 获取登录类型标签配置
 function getLoginTypeTag(loginType) {
   const typeMap = {
-    'LOGIN': { text: '登录', type: 'success' },
-    'LOGOUT': { text: '登出', type: 'info' },
-    'REGISTER': { text: '注册', type: 'warning' },
-    'KICKOUT': { text: '踢下线', type: 'error' },
-    'REPLACED': { text: '顶下线', type: 'error' }
+    LOGIN: { text: '登录', type: 'success' },
+    LOGOUT: { text: '登出', type: 'info' },
+    REGISTER: { text: '注册', type: 'warning' },
+    KICKOUT: { text: '踢下线', type: 'error' },
+    REPLACED: { text: '顶下线', type: 'error' },
   }
   return typeMap[loginType] || { text: loginType, type: 'default' }
 }
@@ -287,7 +292,8 @@ async function handleViewDetail(row) {
       currentLog.value = res.data
       detailVisible.value = true
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取详情失败:', error)
   }
 }

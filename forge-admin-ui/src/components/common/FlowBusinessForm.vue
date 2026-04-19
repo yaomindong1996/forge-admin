@@ -10,15 +10,17 @@
     <div v-else-if="loadError" class="form-error">
       <n-result status="warning" title="表单加载失败" :description="loadError">
         <template #footer>
-          <n-button @click="loadFormComponent">重试</n-button>
+          <n-button @click="loadFormComponent">
+            重试
+          </n-button>
         </template>
       </n-result>
     </div>
 
     <!-- 动态渲染业务表单组件 -->
     <component
-      v-else-if="formComponent"
       :is="formComponent"
+      v-else-if="formComponent"
       :task-id="taskId"
       :business-key="businessKey"
       :process-instance-id="processInstanceId"
@@ -41,7 +43,7 @@
 </template>
 
 <script setup>
-import { ref, watch, shallowRef } from 'vue'
+import { ref, shallowRef, watch } from 'vue'
 
 /**
  * 流程业务表单路由组件（全自动模式）
@@ -71,7 +73,7 @@ const props = defineProps({
   /** 流程变量 */
   variables: { type: Object, default: () => ({}) },
   /** 是否只读（已办/发起人查看） */
-  readOnly: { type: Boolean, default: false }
+  readOnly: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['submit', 'cancel'])
@@ -93,7 +95,8 @@ const ALL_VIEW_MODULES = import.meta.glob('@/views/**/*.vue')
  *   /leave/LeaveApproveForm?readOnly=true  （带查询参数，自动剥离）
  */
 function resolveLoader(formUrl) {
-  if (!formUrl) return null
+  if (!formUrl)
+    return null
 
   // 去掉查询参数
   const cleanUrl = formUrl.split('?')[0]
@@ -107,7 +110,7 @@ function resolveLoader(formUrl) {
   // 大小写不敏感兜底：遍历所有 key 进行小写比较
   const lowerKey = exactKey.toLowerCase()
   const fallbackEntry = Object.entries(ALL_VIEW_MODULES).find(
-    ([k]) => k.toLowerCase() === lowerKey
+    ([k]) => k.toLowerCase() === lowerKey,
   )
   if (fallbackEntry) {
     return fallbackEntry[1]
@@ -141,10 +144,12 @@ async function loadFormComponent() {
   try {
     const mod = await loader()
     formComponent.value = mod.default || mod
-  } catch (e) {
+  }
+  catch (e) {
     console.error('[FlowBusinessForm] 加载业务表单失败:', e)
     loadError.value = `无法加载表单组件：${props.formUrl}`
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }

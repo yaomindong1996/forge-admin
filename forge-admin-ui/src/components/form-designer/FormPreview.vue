@@ -17,8 +17,12 @@
     </n-form>
 
     <div class="form-actions">
-      <n-button @click="handleReset">重置</n-button>
-      <n-button type="primary" @click="handleSubmit">提交</n-button>
+      <n-button @click="handleReset">
+        重置
+      </n-button>
+      <n-button type="primary" @click="handleSubmit">
+        提交
+      </n-button>
     </div>
 
     <n-divider>表单数据</n-divider>
@@ -27,26 +31,26 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import FormItemRender from './FormItemRender.vue'
 
 const props = defineProps({
   formItems: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   schema: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
+
+const emit = defineEmits(['submit', 'change'])
 
 // 计算实际使用的表单项
 const actualFormItems = computed(() => {
   return props.formItems.length > 0 ? props.formItems : props.schema
 })
-
-const emit = defineEmits(['submit', 'change'])
 
 const formRef = ref(null)
 
@@ -56,12 +60,12 @@ const formData = reactive({})
 // 表单规则
 const formRules = computed(() => {
   const rules = {}
-  actualFormItems.value.forEach(item => {
+  actualFormItems.value.forEach((item) => {
     if (item.required) {
       rules[item.field] = [{
         required: true,
         message: item.rules?.[0]?.message || `请输入${item.label}`,
-        trigger: ['blur', 'change']
+        trigger: ['blur', 'change'],
       }]
     }
   })
@@ -70,10 +74,11 @@ const formRules = computed(() => {
 
 // 初始化表单数据
 function initFormData() {
-  actualFormItems.value.forEach(item => {
+  actualFormItems.value.forEach((item) => {
     if (item.defaultValue !== undefined && item.defaultValue !== null) {
       formData[item.field] = item.defaultValue
-    } else {
+    }
+    else {
       // 根据类型设置默认值
       switch (item.type) {
         case 'checkbox':
@@ -116,7 +121,8 @@ async function handleSubmit() {
   try {
     await formRef.value?.validate()
     emit('submit', { ...formData })
-  } catch (errors) {
+  }
+  catch (errors) {
     console.log('验证失败:', errors)
   }
 }
@@ -146,7 +152,7 @@ defineExpose({
   getFormData,
   setFormData,
   validate,
-  reset: handleReset
+  reset: handleReset,
 })
 </script>
 

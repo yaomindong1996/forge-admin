@@ -6,25 +6,25 @@ export default {
   /**
    * 我的待办任务
    */
-  getTodoTasks: (params) =>
+  getTodoTasks: params =>
     request.get('/api/flow/task/todo', { params }),
 
   /**
    * 我的已办任务
    */
-  getDoneTasks: (params) =>
+  getDoneTasks: params =>
     request.get('/api/flow/task/done', { params }),
 
   /**
    * 我发起的流程
    */
-  getStartedTasks: (params) =>
+  getStartedTasks: params =>
     request.get('/api/flow/task/started', { params }),
 
   /**
    * 候选任务（未签收）
    */
-  getCandidateTasks: (params) =>
+  getCandidateTasks: params =>
     request.get('/api/flow/task/candidate', { params }),
 
   /**
@@ -36,61 +36,61 @@ export default {
   /**
    * 审批通过
    */
-  approveTask: (data) =>
+  approveTask: data =>
     request.post('/api/flow/task/approve', data),
 
   /**
    * 审批驳回
    */
-  rejectTask: (data) =>
+  rejectTask: data =>
     request.post('/api/flow/task/reject', data),
 
   /**
    * 转办任务
    */
-  delegateTask: (data) =>
+  delegateTask: data =>
     request.post('/api/flow/task/delegate', data),
 
   /**
    * 撤回流程
    */
-  withdrawProcess: (data) =>
+  withdrawProcess: data =>
     request.post('/api/flow/task/withdraw', data),
 
   /**
    * 获取任务详情
    */
-  getTaskDetail: (taskId) =>
+  getTaskDetail: taskId =>
     request.get(`/api/flow/task/${taskId}`),
 
   /**
    * 获取流程图
    */
-  getProcessDiagram: (processInstanceId) =>
+  getProcessDiagram: processInstanceId =>
     request.get(`/api/flow/task/diagram/${processInstanceId}`, { responseType: 'blob' }),
 
   /**
    * 获取流程图详情信息（包含节点状态）
    */
-  getProcessDiagramInfo: (processInstanceId) =>
+  getProcessDiagramInfo: processInstanceId =>
     request.get(`/api/flow/task/diagram-info/${processInstanceId}`),
 
   /**
    * 获取流程审批时间轴
    */
-  getProcessHistory: (processInstanceId) =>
+  getProcessHistory: processInstanceId =>
     request.get(`/api/flow/task/history/${processInstanceId}`),
 
   /**
    * 获取任务表单信息（表单类型、formUrl、流程变量等）
    */
-  getTaskFormInfo: (taskId) =>
+  getTaskFormInfo: taskId =>
     request.get(`/api/flow/task/form/${taskId}`),
 
   /**
    * 催办任务
    */
-  remindTask: (taskId) =>
+  remindTask: taskId =>
     request.post('/api/flow/task/remind', null, { params: { taskId } }),
 
   // ========== 流程实例 ==========
@@ -104,7 +104,7 @@ export default {
   /**
    * 获取流程状态
    */
-  getProcessStatus: (businessKey) =>
+  getProcessStatus: businessKey =>
     request.get(`/api/flow/instance/status/${businessKey}`),
 
   /**
@@ -122,7 +122,7 @@ export default {
   /**
    * 获取流程变量
    */
-  getProcessVariables: (businessKey) =>
+  getProcessVariables: businessKey =>
     request.get(`/api/flow/instance/variables/${businessKey}`),
 
   // ========== 流程模型 ==========
@@ -130,61 +130,61 @@ export default {
   /**
    * 分页查询流程模型
    */
-  getModelPage: (params) =>
+  getModelPage: params =>
     request.get('/api/flow/model/page', { params }),
 
   /**
    * 获取模型详情
    */
-  getModelDetail: (id) =>
+  getModelDetail: id =>
     request.get(`/api/flow/model/${id}`),
 
   /**
    * 创建流程模型
    */
-  createModel: (data) =>
+  createModel: data =>
     request.post('/api/flow/model', data),
 
   /**
    * 更新流程模型
    */
-  updateModel: (data) =>
+  updateModel: data =>
     request.put('/api/flow/model', data),
 
   /**
    * 删除流程模型
    */
-  deleteModel: (id) =>
+  deleteModel: id =>
     request.delete(`/api/flow/model/${id}`),
 
   /**
    * 部署流程模型
    */
-  deployModel: (id) =>
+  deployModel: id =>
     request.post(`/api/flow/model/${id}/deploy`),
 
   /**
    * 禁用流程模型
    */
-  disableModel: (id) =>
+  disableModel: id =>
     request.post(`/api/flow/model/${id}/disable`),
 
   /**
    * 启用流程模型
    */
-  enableModel: (id) =>
+  enableModel: id =>
     request.post(`/api/flow/model/${id}/enable`),
 
   /**
    * 挂起流程模型
    */
-  suspendModel: (id) =>
+  suspendModel: id =>
     request.post(`/api/flow/model/${id}/suspend`),
 
   /**
    * 激活流程模型
    */
-  activateModel: (id) =>
+  activateModel: id =>
     request.post(`/api/flow/model/${id}/activate`),
 
   /**
@@ -192,13 +192,13 @@ export default {
    */
   copyModel: (id, newName) =>
     request.post(`/api/flow/model/${id}/copy`, null, {
-      params: { newName }
+      params: { newName },
     }),
 
   /**
    * 获取流程模型列表
    */
-  getModelList: (params) =>
+  getModelList: params =>
     request.get('/api/flow/model/list', { params }),
 
   // ========== 流程模板 ==========
@@ -218,7 +218,7 @@ export default {
   /**
    * 获取模板详情
    */
-  getTemplateDetail: (templateKey) =>
+  getTemplateDetail: templateKey =>
     request.get(`/api/flow/template/${templateKey}`),
 
   // ========== 流程分类 ==========
@@ -232,43 +232,43 @@ export default {
   /**
    * 分页查询分类
    */
-  getCategoryPage: (params) =>
+  getCategoryPage: params =>
     request.get('/api/flow/category/page', { params }),
 
   /**
    * 获取分类详情
    */
-  getCategoryDetail: (id) =>
+  getCategoryDetail: id =>
     request.get(`/api/flow/category/${id}`),
 
   /**
    * 创建分类
    */
-  createCategory: (data) =>
+  createCategory: data =>
     request.post('/api/flow/category', data),
 
   /**
    * 更新分类
    */
-  updateCategory: (data) =>
+  updateCategory: data =>
     request.put('/api/flow/category', data),
 
   /**
    * 删除分类
    */
-  deleteCategory: (id) =>
+  deleteCategory: id =>
     request.delete(`/api/flow/category/${id}`),
 
   /**
    * 启用分类
    */
-  enableCategory: (id) =>
+  enableCategory: id =>
     request.post(`/api/flow/category/${id}/enable`),
 
   /**
    * 禁用分类
    */
-  disableCategory: (id) =>
+  disableCategory: id =>
     request.post(`/api/flow/category/${id}/disable`),
 
   // ========== 流程抄送 ==========
@@ -276,37 +276,37 @@ export default {
   /**
    * 发送抄送
    */
-  sendCc: (data) =>
+  sendCc: data =>
     request.post('/api/flow/cc/send', data),
 
   /**
    * 我的抄送
    */
-  getMyCc: (params) =>
+  getMyCc: params =>
     request.get('/api/flow/cc/my', { params }),
 
   /**
    * 我发送的抄送
    */
-  getSentCc: (params) =>
+  getSentCc: params =>
     request.get('/api/flow/cc/sent', { params }),
 
   /**
    * 标记已读
    */
-  markCcRead: (id) =>
+  markCcRead: id =>
     request.post(`/api/flow/cc/read/${id}`),
 
   /**
    * 批量标记已读
    */
-  batchMarkCcRead: (ids) =>
+  batchMarkCcRead: ids =>
     request.post('/api/flow/cc/read/batch', ids),
 
   /**
    * 获取未读抄送数量
    */
-  getUnreadCcCount: (userId) =>
+  getUnreadCcCount: userId =>
     request.get('/api/flow/cc/unread/count', { params: { userId } }),
 
   // ========== 审批意见 ==========
@@ -314,19 +314,19 @@ export default {
   /**
    * 添加审批意见
    */
-  addComment: (data) =>
+  addComment: data =>
     request.post('/api/flow/comment', data),
 
   /**
    * 获取流程审批意见（审批历史）
    */
-  getProcessComments: (processInstanceId) =>
+  getProcessComments: processInstanceId =>
     request.get(`/api/flow/comment/process/${processInstanceId}`),
 
   /**
    * 获取任务审批意见
    */
-  getTaskComments: (taskId) =>
+  getTaskComments: taskId =>
     request.get(`/api/flow/comment/task/${taskId}`),
 
   // ========== 流程模板 ==========
@@ -334,55 +334,55 @@ export default {
   /**
    * 分页查询流程模板
    */
-  getTemplatePage: (params) =>
+  getTemplatePage: params =>
     request.get('/api/flow/template/page', { params }),
 
   /**
    * 获取启用的模板列表
    */
-  getEnabledTemplates: (category) =>
+  getEnabledTemplates: category =>
     request.get('/api/flow/template/enabled', { params: { category } }),
 
   /**
    * 获取模板详情
    */
-  getTemplateDetail: (id) =>
+  getTemplateDetail: id =>
     request.get(`/api/flow/template/${id}`),
 
   /**
    * 根据Key获取模板详情
    */
-  getTemplateByKey: (templateKey) =>
+  getTemplateByKey: templateKey =>
     request.get(`/api/flow/template/key/${templateKey}`),
 
   /**
    * 创建模板
    */
-  createTemplate: (data) =>
+  createTemplate: data =>
     request.post('/api/flow/template', data),
 
   /**
    * 更新模板
    */
-  updateTemplate: (data) =>
+  updateTemplate: data =>
     request.put('/api/flow/template', data),
 
   /**
    * 删除模板
    */
-  deleteTemplate: (id) =>
+  deleteTemplate: id =>
     request.delete(`/api/flow/template/${id}`),
 
   /**
    * 启用模板
    */
-  enableTemplate: (id) =>
+  enableTemplate: id =>
     request.post(`/api/flow/template/${id}/enable`),
 
   /**
    * 禁用模板
    */
-  disableTemplate: (id) =>
+  disableTemplate: id =>
     request.post(`/api/flow/template/${id}/disable`),
 
   /**
@@ -390,7 +390,7 @@ export default {
    */
   createModelFromTemplate: (templateKey, modelName, modelKey) =>
     request.post(`/api/flow/template/createModel/${templateKey}`, null, {
-      params: { modelName, modelKey }
+      params: { modelName, modelKey },
     }),
 
   /**
@@ -398,7 +398,7 @@ export default {
    */
   copyTemplate: (id, newName) =>
     request.post(`/api/flow/template/copy/${id}`, null, {
-      params: { newName }
+      params: { newName },
     }),
 
   // ========== 表单定义 ==========
@@ -406,7 +406,7 @@ export default {
   /**
    * 获取表单定义分页列表
    */
-  getFormPage: (params) =>
+  getFormPage: params =>
     request.get('/api/flow/form/page', { params }),
 
   /**
@@ -418,43 +418,43 @@ export default {
   /**
    * 获取表单定义详情
    */
-  getFormById: (id) =>
+  getFormById: id =>
     request.get(`/api/flow/form/${id}`),
 
   /**
    * 根据表单Key获取表单定义
    */
-  getFormByKey: (formKey) =>
+  getFormByKey: formKey =>
     request.get(`/api/flow/form/key/${formKey}`),
 
   /**
    * 创建表单定义
    */
-  createForm: (data) =>
+  createForm: data =>
     request.post('/api/flow/form', data),
 
   /**
    * 更新表单定义
    */
-  updateForm: (data) =>
+  updateForm: data =>
     request.put('/api/flow/form', data),
 
   /**
    * 删除表单定义
    */
-  deleteForm: (id) =>
+  deleteForm: id =>
     request.delete(`/api/flow/form/${id}`),
 
   /**
    * 启用表单
    */
-  enableForm: (id) =>
+  enableForm: id =>
     request.post(`/api/flow/form/${id}/enable`),
 
   /**
    * 禁用表单
    */
-  disableForm: (id) =>
+  disableForm: id =>
     request.post(`/api/flow/form/${id}/disable`),
 
   /**
@@ -462,7 +462,7 @@ export default {
    */
   copyForm: (id, newName) =>
     request.post(`/api/flow/form/${id}/copy`, null, {
-      params: { newName }
+      params: { newName },
     }),
 
   /**
@@ -470,12 +470,12 @@ export default {
    */
   checkFormKeyExists: (formKey, excludeId) =>
     request.get('/api/flow/form/checkKey', {
-      params: { formKey, excludeId }
+      params: { formKey, excludeId },
     }),
 
   /**
    * 预览表单（获取表单Schema）
    */
-  previewForm: (id) =>
+  previewForm: id =>
     request.get(`/api/flow/form/${id}/preview`),
 }

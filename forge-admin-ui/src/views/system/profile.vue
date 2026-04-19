@@ -13,7 +13,9 @@
               </div>
             </div>
             <div class="user-info-text">
-              <div class="user-name">{{ userStore.realName || userStore.username }}</div>
+              <div class="user-name">
+                {{ userStore.realName || userStore.username }}
+              </div>
               <n-tag :bordered="false" size="small" class="user-tag">
                 {{ userStore.username }}
               </n-tag>
@@ -121,7 +123,9 @@
                     <n-button type="primary" :loading="profileLoading" @click="handleUpdateProfile">
                       保存修改
                     </n-button>
-                    <n-button @click="resetProfileForm">重置</n-button>
+                    <n-button @click="resetProfileForm">
+                      重置
+                    </n-button>
                   </div>
                 </n-form>
               </div>
@@ -184,7 +188,9 @@
                     <n-button type="primary" :loading="pwdLoading" @click="handleUpdatePwd">
                       修改密码
                     </n-button>
-                    <n-button @click="resetPwdForm">取消</n-button>
+                    <n-button @click="resetPwdForm">
+                      取消
+                    </n-button>
                   </div>
                 </n-form>
               </div>
@@ -197,10 +203,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { onMounted, ref } from 'vue'
+import defaultAvatar from '@/assets/images/avatar.png'
 import { useAuthStore, useUserStore } from '@/store'
 import { request } from '@/utils'
-import defaultAvatar from '@/assets/images/avatar.png'
 
 defineOptions({ name: 'Profile' })
 
@@ -217,7 +223,7 @@ const profileForm = ref({
   username: '',
   realName: '',
   phone: '',
-  email: ''
+  email: '',
 })
 
 const profileRules = {
@@ -225,11 +231,11 @@ const profileRules = {
   realName: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
   phone: [
     { required: true, message: '请输入手机号', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
   ],
   email: [
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
-  ]
+    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' },
+  ],
 }
 
 // 密码表单
@@ -238,10 +244,10 @@ const pwdLoading = ref(false)
 const pwdForm = ref({
   oldPassword: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
 })
 
-const validateConfirmPassword = (rule, value) => {
+function validateConfirmPassword(rule, value) {
   if (value !== pwdForm.value.password) {
     return new Error('两次输入的密码不一致')
   }
@@ -252,12 +258,12 @@ const pwdRules = {
   oldPassword: [{ required: true, message: '请输入旧密码', trigger: 'blur' }],
   password: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
+    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' },
   ],
   confirmPassword: [
     { required: true, message: '请确认新密码', trigger: 'blur' },
-    { validator: validateConfirmPassword, trigger: 'blur' }
-  ]
+    { validator: validateConfirmPassword, trigger: 'blur' },
+  ],
 }
 
 // 加载用户信息
@@ -272,13 +278,14 @@ async function loadUserInfo() {
         username: userInfo.value.username,
         realName: userInfo.value.realName,
         phone: userInfo.value.phone,
-        email: userInfo.value.email
+        email: userInfo.value.email,
       }
 
       // 获取部门名称和角色名称
       fetchExtraInfo()
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取用户信息失败:', error)
   }
 }
@@ -289,14 +296,15 @@ async function fetchExtraInfo() {
   if (userStore.roleIds && userStore.roleIds.length > 0) {
     try {
       const res = await request.get('/system/role/page', {
-        params: { pageNum: 1, pageSize: 1000 }
+        params: { pageNum: 1, pageSize: 1000 },
       })
       if (res.code === 200) {
         const allRoles = res.data.list || res.data.records || []
         const userRoles = allRoles.filter(role => userStore.roleIds.includes(role.id))
         roleNames.value = userRoles.map(r => r.roleName).join(', ')
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.error('获取角色信息失败')
     }
   }
@@ -308,17 +316,20 @@ async function fetchExtraInfo() {
       if (res.code === 200) {
         const findOrgName = (list, id) => {
           for (const item of list) {
-            if (item.id === id) return item.orgName
+            if (item.id === id)
+              return item.orgName
             if (item.children) {
               const name = findOrgName(item.children, id)
-              if (name) return name
+              if (name)
+                return name
             }
           }
           return null
         }
         deptName.value = findOrgName(res.data, userStore.userInfo.mainOrgId)
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.error('获取部门信息失败')
     }
   }
@@ -336,13 +347,15 @@ async function handleUpdateProfile() {
           // 更新 store 中的信息
           userStore.setUser({
             ...userStore.userInfo,
-            ...profileForm.value
+            ...profileForm.value,
           })
           loadUserInfo()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('更新失败')
-      } finally {
+      }
+      finally {
         profileLoading.value = false
       }
     }
@@ -358,8 +371,8 @@ async function handleUpdatePwd() {
         const res = await request.post('/auth/changePassword', null, {
           params: {
             oldPassword: pwdForm.value.oldPassword,
-            newPassword: pwdForm.value.password
-          }
+            newPassword: pwdForm.value.password,
+          },
         })
         if (res.code === 200) {
           window.$message.success('密码修改成功，请重新登录')
@@ -368,9 +381,11 @@ async function handleUpdatePwd() {
             authStore.logout()
           }, 1500)
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error(error.message || '密码修改失败')
-      } finally {
+      }
+      finally {
         pwdLoading.value = false
       }
     }
@@ -388,7 +403,7 @@ function resetProfileForm() {
     username: userInfo.value.username,
     realName: userInfo.value.realName,
     phone: userInfo.value.phone,
-    email: userInfo.value.email
+    email: userInfo.value.email,
   }
 }
 
@@ -397,21 +412,23 @@ function resetPwdForm() {
   pwdForm.value = {
     oldPassword: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   }
 }
 
 // 格式化日期
 function formatDate(dateStr) {
-  if (!dateStr) return '-'
+  if (!dateStr)
+    return '-'
   try {
     const date = new Date(dateStr)
     return date.toLocaleDateString('zh-CN', {
       year: 'numeric',
       month: '2-digit',
-      day: '2-digit'
+      day: '2-digit',
     })
-  } catch {
+  }
+  catch {
     return dateStr
   }
 }

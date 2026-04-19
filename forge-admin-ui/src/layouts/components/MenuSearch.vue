@@ -35,7 +35,7 @@
             @keydown.down.prevent="handleKeyDown"
             @keydown.enter.prevent="handleEnter"
             @keydown.esc="handleClose"
-          />
+          >
           <span class="esc-hint">ESC</span>
         </div>
 
@@ -58,7 +58,9 @@
               </div>
               <div class="item-content">
                 <div class="item-title" v-html="highlightText(item.title)" />
-                <div class="item-path">{{ item.path }}</div>
+                <div class="item-path">
+                  {{ item.path }}
+                </div>
               </div>
               <div class="item-badge">
                 <i class="i-mdi-arrow-top-left" />
@@ -70,8 +72,12 @@
         <!-- 空状态 -->
         <div v-else-if="searchKeyword" class="search-empty">
           <i class="i-mdi-magnify-close empty-icon" />
-          <p class="empty-text">未找到匹配的菜单</p>
-          <p class="empty-hint">请尝试其他关键词</p>
+          <p class="empty-text">
+            未找到匹配的菜单
+          </p>
+          <p class="empty-hint">
+            请尝试其他关键词
+          </p>
         </div>
 
         <!-- 最近访问 -->
@@ -91,7 +97,9 @@
                 <i :class="item.icon || 'i-mdi-file-outline'" />
               </div>
               <div class="item-content">
-                <div class="item-title">{{ item.title }}</div>
+                <div class="item-title">
+                  {{ item.title }}
+                </div>
               </div>
             </div>
           </div>
@@ -119,7 +127,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePermissionStore } from '@/store'
 
@@ -146,8 +154,9 @@ const flatMenus = computed(() => {
   const result = []
 
   const flatten = (items, parentName = '') => {
-    if (!Array.isArray(items)) return
-    items.forEach(item => {
+    if (!Array.isArray(items))
+      return
+    items.forEach((item) => {
       // 获取菜单名称（兼容 name/label/title 字段）
       const menuName = item.name || item.label || item.title || item.meta?.title || ''
       const menuPath = item.path || ''
@@ -157,7 +166,7 @@ const flatMenus = computed(() => {
           ...item,
           title: menuName,
           path: menuPath,
-          fullTitle: parentName ? `${parentName} / ${menuName}` : menuName
+          fullTitle: parentName ? `${parentName} / ${menuName}` : menuName,
         })
       }
       if (item.children && item.children.length > 0) {
@@ -178,7 +187,7 @@ const filteredMenus = computed(() => {
   }
 
   const keyword = searchKeyword.value.toLowerCase().trim()
-  return flatMenus.value.filter(item => {
+  return flatMenus.value.filter((item) => {
     const titleMatch = item.title?.toLowerCase().includes(keyword)
     const pathMatch = item.path?.toLowerCase().includes(keyword)
     return titleMatch || pathMatch
@@ -186,15 +195,16 @@ const filteredMenus = computed(() => {
 })
 
 // 高亮匹配文本
-const highlightText = (text) => {
-  if (!searchKeyword.value.trim() || !text) return text
+function highlightText(text) {
+  if (!searchKeyword.value.trim() || !text)
+    return text
   const keyword = searchKeyword.value.trim()
   const regex = new RegExp(`(${keyword})`, 'gi')
   return text.replace(regex, '<mark>$1</mark>')
 }
 
 // 打开弹窗
-const handleOpen = () => {
+function handleOpen() {
   showModal.value = true
   searchKeyword.value = ''
   selectedIndex.value = 0
@@ -205,13 +215,14 @@ const handleOpen = () => {
 }
 
 // 关闭弹窗
-const handleClose = () => {
+function handleClose() {
   showModal.value = false
 }
 
 // 选择菜单
-const handleSelect = (item) => {
-  if (!item || !item.path) return
+function handleSelect(item) {
+  if (!item || !item.path)
+    return
 
   // 保存到最近访问
   saveRecentMenu(item)
@@ -222,31 +233,34 @@ const handleSelect = (item) => {
 }
 
 // 键盘向上
-const handleKeyUp = () => {
-  if (filteredMenus.value.length === 0) return
+function handleKeyUp() {
+  if (filteredMenus.value.length === 0)
+    return
   selectedIndex.value = (selectedIndex.value - 1 + filteredMenus.value.length) % filteredMenus.value.length
   scrollToSelected()
 }
 
 // 键盘向下
-const handleKeyDown = () => {
-  if (filteredMenus.value.length === 0) return
+function handleKeyDown() {
+  if (filteredMenus.value.length === 0)
+    return
   selectedIndex.value = (selectedIndex.value + 1) % filteredMenus.value.length
   scrollToSelected()
 }
 
 // 回车确认
-const handleEnter = () => {
+function handleEnter() {
   if (filteredMenus.value.length > 0 && selectedIndex.value >= 0) {
     handleSelect(filteredMenus.value[selectedIndex.value])
   }
 }
 
 // 滚动到选中项
-const scrollToSelected = () => {
+function scrollToSelected() {
   nextTick(() => {
     const list = listRef.value
-    if (!list) return
+    if (!list)
+      return
 
     const selectedItem = list.children[selectedIndex.value]
     if (selectedItem) {
@@ -256,20 +270,21 @@ const scrollToSelected = () => {
 }
 
 // 加载最近访问
-const loadRecentMenus = () => {
+function loadRecentMenus() {
   try {
     const stored = localStorage.getItem('recentMenus')
     if (stored) {
       recentMenus.value = JSON.parse(stored).slice(0, 6)
     }
-  } catch (e) {
+  }
+  catch (e) {
     console.error('加载最近访问失败:', e)
     recentMenus.value = []
   }
 }
 
 // 保存到最近访问
-const saveRecentMenu = (item) => {
+function saveRecentMenu(item) {
   try {
     const stored = localStorage.getItem('recentMenus')
     let recent = stored ? JSON.parse(stored) : []
@@ -281,14 +296,15 @@ const saveRecentMenu = (item) => {
     recent.unshift({
       path: item.path,
       title: item.title,
-      icon: item.icon
+      icon: item.icon,
     })
 
     // 只保留最近10个
     recent = recent.slice(0, 10)
 
     localStorage.setItem('recentMenus', JSON.stringify(recent))
-  } catch (e) {
+  }
+  catch (e) {
     console.error('保存最近访问失败:', e)
   }
 }
@@ -299,7 +315,7 @@ watch(filteredMenus, () => {
 })
 
 // 全局快捷键
-const handleKeydown = (e) => {
+function handleKeydown(e) {
   // Ctrl/Cmd + K 打开搜索
   if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
     e.preventDefault()

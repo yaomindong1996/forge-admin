@@ -28,6 +28,7 @@ src/
 包含以下配置项：
 
 #### Header 配置
+
 - `backgroundColor`: 背景颜色
 - `textColor`: 文字颜色
 - `fontSize`: 字体大小
@@ -35,6 +36,7 @@ src/
 - `borderColor`: 边框颜色
 
 #### 顶部菜单配置
+
 - `textColor`: 菜单文字颜色
 - `textColorHover`: 菜单悬停颜色
 - `textColorActive`: 菜单选中文字颜色
@@ -45,6 +47,7 @@ src/
 - `fontWeight`: 菜单字体粗细
 
 #### 侧边菜单配置
+
 - `backgroundColor`: 侧边菜单背景颜色
 - `textColor`: 菜单文字颜色
 - `textColorHover`: 菜单悬停文字颜色
@@ -75,7 +78,7 @@ src/
 ```javascript
 export const defaultThemeConfig = {
   header: {
-    backgroundColor: '#1e40af',  // 蓝色背景
+    backgroundColor: '#1e40af', // 蓝色背景
     textColor: '#ffffff',
     fontSize: '14px',
     height: '60px',
@@ -164,6 +167,7 @@ appStore.updateSideMenuConfig({
 可用的 CSS 变量：
 
 **Header:**
+
 - `--layout-header-bg-color`
 - `--layout-header-text-color`
 - `--layout-header-font-size`
@@ -171,6 +175,7 @@ appStore.updateSideMenuConfig({
 - `--layout-header-border-color`
 
 **顶部菜单:**
+
 - `--top-menu-text-color`
 - `--top-menu-text-color-hover`
 - `--top-menu-text-color-active`
@@ -181,6 +186,7 @@ appStore.updateSideMenuConfig({
 - `--top-menu-font-weight`
 
 **侧边菜单:**
+
 - `--side-menu-bg-color`
 - `--side-menu-text-color`
 - `--side-menu-text-color-hover`
@@ -210,7 +216,7 @@ appStore.updateSideMenuConfig({
 // 在 theme.config.js 中添加
 export const themePresets = {
   // ... 现有主题
-  
+
   custom: {
     header: {
       backgroundColor: '#8b5cf6',
@@ -252,8 +258,8 @@ export const themePresets = {
 
 ```vue
 <script setup>
-import { useAppStore } from '@/store'
 import { themePresets } from '@/config/theme.config'
+import { useAppStore } from '@/store'
 
 const appStore = useAppStore()
 

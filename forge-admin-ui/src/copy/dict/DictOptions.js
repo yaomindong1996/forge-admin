@@ -1,4 +1,4 @@
-import { mergeRecursive } from "@/utils/ruoyi";
+import { mergeRecursive } from '@/utils/ruoyi'
 import dictConverter from './DictConverter'
 
 export const options = {
@@ -31,12 +31,12 @@ export const options = {
 
 /**
  * 映射字典
- * @param {Object} response 字典数据
+ * @param {object} response 字典数据
  * @param {DictMeta} dictMeta 字典元数据
  * @returns {DictData}
  */
 function responseConverter(response, dictMeta) {
-  const dicts = response.content instanceof Array ? response.content : response
+  const dicts = Array.isArray(response.content) ? response.content : response
   if (dicts === undefined) {
     console.warn(`no dict data of "${dictMeta.type}" found in the response`)
     return []

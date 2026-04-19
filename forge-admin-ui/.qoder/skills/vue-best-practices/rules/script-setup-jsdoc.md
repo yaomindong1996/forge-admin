@@ -15,6 +15,7 @@ tags: jsdoc, script-setup, documentation, composition-api, component
 ## Problem
 
 **Incorrect:**
+
 ```vue
 <script setup lang="ts">
 /**
@@ -34,7 +35,8 @@ JSDoc comments inside `<script setup>` don't attach to the component export beca
 Use both `<script>` and `<script setup>` blocks:
 
 **Correct:**
-```vue
+
+````vue
 <script lang="ts">
 /**
  * A counter component that displays and increments a value.
@@ -64,7 +66,7 @@ const emit = defineEmits<{
 
 const count = ref(props.initial ?? 0)
 </script>
-```
+````
 
 ## How It Works
 
@@ -74,11 +76,11 @@ const count = ref(props.initial ?? 0)
 
 ## What Gets Documented
 
-| Location | Shows In |
-|----------|----------|
-| `export default {}` JSDoc | Component import hover |
-| `defineProps` JSDoc | Prop hover in templates |
-| `defineEmits` JSDoc | Event handler hover |
+| Location                  | Shows In                |
+| ------------------------- | ----------------------- |
+| `export default {}` JSDoc | Component import hover  |
+| `defineProps` JSDoc       | Prop hover in templates |
+| `defineEmits` JSDoc       | Event handler hover     |
 
 ## Reference
 

@@ -51,5 +51,5 @@ export default {
    */
   delete(businessKey) {
     return request.delete(`/leave/${businessKey}`)
-  }
+  },
 }

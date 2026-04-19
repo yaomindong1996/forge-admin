@@ -19,7 +19,9 @@
           <h1 class="brand-title">
             {{ title }}
           </h1>
-          <p class="brand-subtitle">企业级中后台基础框架</p>
+          <p class="brand-subtitle">
+            企业级中后台基础框架
+          </p>
           <div class="feature-list">
             <div class="feature-item">
               <div class="feature-icon">
@@ -1029,7 +1031,8 @@ async function loadAndSetMenuData() {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }

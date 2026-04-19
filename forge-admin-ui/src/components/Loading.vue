@@ -4,18 +4,20 @@
     :style="{
       zIndex: 9999,
       background: `rgba(${background})`,
-      fontSize: fontSize + 'px',
-      color: color
+      fontSize: `${fontSize}px`,
+      color,
     }"
   >
     <div class="loading-container">
       <div class="spinner">
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
-        <div class="spinner-ring"></div>
+        <div class="spinner-ring" />
+        <div class="spinner-ring" />
+        <div class="spinner-ring" />
+        <div class="spinner-ring" />
       </div>
-      <div class="loading-text" v-if="text">{{ text }}</div>
+      <div v-if="text" class="loading-text">
+        {{ text }}
+      </div>
     </div>
   </div>
 </template>
@@ -27,24 +29,24 @@ import { onMounted, onUnmounted } from 'vue'
 const props = defineProps({
   fullscreen: {
     type: Boolean,
-    default: false
+    default: false,
   },
   background: {
     type: String,
-    default: '0, 0, 0, 0.7' // 更暗的背景，更明显
+    default: '0, 0, 0, 0.7', // 更暗的背景，更明显
   },
   text: {
     type: String,
-    default: '加载中...'
+    default: '加载中...',
   },
   color: {
     type: String,
-    default: '#ffffff'
+    default: '#ffffff',
   },
   fontSize: {
     type: Number,
-    default: 14
-  }
+    default: 14,
+  },
 })
 
 // 组件挂载时的处理

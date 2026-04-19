@@ -11,9 +11,9 @@
 
 <script setup>
 import api from '@/api'
-import { useAuthStore, usePermissionStore, useUserStore } from '@/store'
-import {defaultThemeConfig} from "@/config/theme.config.js"
 import defaultAvatar from '@/assets/images/avatar.png'
+import { defaultThemeConfig } from '@/config/theme.config.js'
+import { useAuthStore, usePermissionStore, useUserStore } from '@/store'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -43,11 +43,11 @@ function handleSelect(key) {
       break
     case 'logout':
       $dialog.confirm({
-        title: '提示',
-        type: 'info',
-        content: '确认退出？',
-        'positive-button-props':{
-          color:defaultThemeConfig.primaryColor
+        'title': '提示',
+        'type': 'info',
+        'content': '确认退出？',
+        'positive-button-props': {
+          color: defaultThemeConfig.primaryColor,
         },
         async confirm() {
           try {

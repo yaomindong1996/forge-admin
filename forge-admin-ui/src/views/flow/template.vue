@@ -1,10 +1,12 @@
 <template>
   <div class="p-16">
-    <div class="bg-white rounded p-16">
-      <h2 class="text-18 font-bold mb-16">流程模板</h2>
-      
+    <div class="rounded bg-white p-16">
+      <h2 class="text-18 mb-16 font-bold">
+        流程模板
+      </h2>
+
       <!-- 搜索栏 -->
-      <n-space class="mb-16" :vertical="false">
+      <NSpace class="mb-16" :vertical="false">
         <n-input
           v-model:value="queryParams.templateName"
           placeholder="搜索模板名称"
@@ -29,25 +31,25 @@
           style="width: 120px"
           :options="statusOptions"
         />
-        <n-button type="primary" @click="handleSearch">
+        <NButton type="primary" @click="handleSearch">
           <template #icon>
             <i class="i-material-symbols:search" />
           </template>
           搜索
-        </n-button>
-        <n-button @click="handleReset">
+        </NButton>
+        <NButton @click="handleReset">
           <template #icon>
             <i class="i-material-symbols:refresh" />
           </template>
           重置
-        </n-button>
-        <n-button type="primary" @click="handleAdd">
+        </NButton>
+        <NButton type="primary" @click="handleAdd">
           <template #icon>
             <i class="i-material-symbols:add" />
           </template>
           新增模板
-        </n-button>
-      </n-space>
+        </NButton>
+      </NSpace>
 
       <!-- 数据表格 -->
       <n-data-table
@@ -110,7 +112,7 @@
               </n-form-item>
             </n-gi>
           </n-grid>
-          
+
           <!-- BPMN设计器 -->
           <n-divider>流程设计</n-divider>
           <div class="bpmn-container">
@@ -122,10 +124,14 @@
           </div>
         </n-form>
         <template #footer>
-          <n-space justify="end">
-            <n-button @click="showModal = false">取消</n-button>
-            <n-button type="primary" :loading="submitLoading" @click="handleSubmit">确定</n-button>
-          </n-space>
+          <NSpace justify="end">
+            <NButton @click="showModal = false">
+              取消
+            </NButton>
+            <NButton type="primary" :loading="submitLoading" @click="handleSubmit">
+              确定
+            </NButton>
+          </NSpace>
         </template>
       </n-modal>
     </Teleport>
@@ -150,10 +156,14 @@
           </n-form-item>
         </n-form>
         <template #footer>
-          <n-space justify="end">
-            <n-button @click="showCreateModal = false">取消</n-button>
-            <n-button type="primary" :loading="createLoading" @click="handleCreateModel">创建</n-button>
-          </n-space>
+          <NSpace justify="end">
+            <NButton @click="showCreateModal = false">
+              取消
+            </NButton>
+            <NButton type="primary" :loading="createLoading" @click="handleCreateModel">
+              创建
+            </NButton>
+          </NSpace>
         </template>
       </n-modal>
     </Teleport>
@@ -161,11 +171,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, h, onMounted } from 'vue'
+import { NButton, NSpace, NTag } from 'naive-ui'
+import { h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { NTag, NButton, NSpace, NImage } from 'naive-ui'
-import FlowModeler from '@/components/bpmn/FlowModeler.vue'
 import flowApi from '@/api/flow'
+import FlowModeler from '@/components/bpmn/FlowModeler.vue'
 
 const router = useRouter()
 
@@ -227,7 +237,7 @@ const columns = [
     render: (row) => {
       const types = { dynamic: '动态表单', external: '外置表单', none: '无表单' }
       return types[row.formType] || row.formType
-    }
+    },
   },
   {
     title: '使用次数',
@@ -265,43 +275,44 @@ const columns = [
           size: 'small',
           type: 'primary',
           quaternary: true,
-          onClick: () => handleCreateFromTemplate(row)
+          onClick: () => handleCreateFromTemplate(row),
         }, { default: () => '创建流程' }),
         h(NButton, {
           size: 'small',
           quaternary: true,
-          onClick: () => handleEdit(row)
+          onClick: () => handleEdit(row),
         }, { default: () => '编辑' }),
         h(NButton, {
           size: 'small',
           quaternary: true,
-          onClick: () => handleCopy(row)
+          onClick: () => handleCopy(row),
         }, { default: () => '复制' }),
       ]
-      
+
       if (row.status === 1) {
         actions.push(h(NButton, {
           size: 'small',
           quaternary: true,
-          onClick: () => handleDisable(row)
+          onClick: () => handleDisable(row),
         }, { default: () => '禁用' }))
-      } else {
+      }
+      else {
         actions.push(h(NButton, {
           size: 'small',
           quaternary: true,
-          onClick: () => handleEnable(row)
+          onClick: () => handleEnable(row),
         }, { default: () => '启用' }))
       }
-      
+
       if (row.isSystem !== 1) {
         actions.push(h(NButton, {
           size: 'small',
           type: 'error',
           quaternary: true,
-          onClick: () => handleDelete(row)
+          onClick: () => handleDelete(row),
         }, { default: () => '删除' }))
       }
-      
+
       return h(NSpace, { size: 'small' }, { default: () => actions })
     },
   },
@@ -324,7 +335,7 @@ const pagination = reactive({
     pagination.pageSize = pageSize
     pagination.page = 1
     loadData()
-  }
+  },
 })
 
 // 弹窗相关
@@ -346,7 +357,7 @@ const formData = reactive({
   sortOrder: 0,
   bpmnXml: '',
   formJson: '',
-  variables: ''
+  variables: '',
 })
 
 const rules = {
@@ -378,7 +389,7 @@ const showCreateModal = ref(false)
 const selectedTemplate = ref(null)
 const createFormData = reactive({
   modelName: '',
-  modelKey: ''
+  modelKey: '',
 })
 const createLoading = ref(false)
 
@@ -389,15 +400,17 @@ async function loadData() {
     const res = await flowApi.getTemplatePage({
       pageNum: pagination.page,
       pageSize: pagination.pageSize,
-      ...queryParams
+      ...queryParams,
     })
     if (res.data) {
       dataSource.value = res.data.records || []
       pagination.itemCount = res.data.total || 0
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载数据失败:', error)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -409,10 +422,11 @@ async function loadCategories() {
     if (res.data) {
       categoryOptions.value = res.data.map(item => ({
         label: item.categoryName,
-        value: item.categoryCode
+        value: item.categoryCode,
       }))
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载分类失败:', error)
   }
 }
@@ -446,7 +460,7 @@ function handleAdd() {
     sortOrder: 0,
     bpmnXml: '',
     formJson: '',
-    variables: ''
+    variables: '',
   })
   showModal.value = true
 }
@@ -455,14 +469,15 @@ function handleAdd() {
 async function handleEdit(row) {
   isEdit.value = true
   modalTitle.value = '编辑模板'
-  
+
   try {
     const res = await flowApi.getTemplateDetail(row.id)
     if (res.data) {
       Object.assign(formData, res.data)
       showModal.value = true
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取详情失败:', error)
   }
 }
@@ -476,27 +491,31 @@ function handleBpmnChange(xml) {
 async function handleSubmit() {
   try {
     await formRef.value?.validate()
-  } catch (error) {
+  }
+  catch (error) {
     return
   }
-  
+
   submitLoading.value = true
   try {
     // 获取最新的BPMN XML
     const xml = await modelerRef.value?.getXML()
     formData.bpmnXml = xml
-    
+
     if (isEdit.value) {
       await flowApi.updateTemplate(formData)
-    } else {
+    }
+    else {
       await flowApi.createTemplate(formData)
     }
-    
+
     showModal.value = false
     loadData()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('保存失败:', error)
-  } finally {
+  }
+  finally {
     submitLoading.value = false
   }
 }
@@ -506,7 +525,8 @@ async function handleDelete(row) {
   try {
     await flowApi.deleteTemplate(row.id)
     loadData()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('删除失败:', error)
   }
 }
@@ -516,7 +536,8 @@ async function handleEnable(row) {
   try {
     await flowApi.enableTemplate(row.id)
     loadData()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('启用失败:', error)
   }
 }
@@ -526,7 +547,8 @@ async function handleDisable(row) {
   try {
     await flowApi.disableTemplate(row.id)
     loadData()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('禁用失败:', error)
   }
 }
@@ -537,7 +559,8 @@ async function handleCopy(row) {
     const newName = `${row.templateName}_副本`
     await flowApi.copyTemplate(row.id, newName)
     loadData()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('复制失败:', error)
   }
 }
@@ -555,24 +578,26 @@ async function handleCreateModel() {
   if (!createFormData.modelName) {
     return
   }
-  
+
   createLoading.value = true
   try {
     const res = await flowApi.createModelFromTemplate(
       selectedTemplate.value.templateKey,
       createFormData.modelName,
-      createFormData.modelKey
+      createFormData.modelKey,
     )
-    
+
     showCreateModal.value = false
-    
+
     // 跳转到流程设计页面
     if (res.data) {
       router.push(`/flow/design?id=${res.data}`)
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('创建失败:', error)
-  } finally {
+  }
+  finally {
     createLoading.value = false
   }
 }

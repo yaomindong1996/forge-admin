@@ -27,12 +27,12 @@
 </template>
 
 <script setup>
+import DemoBanner from '@/components/DemoBanner.vue'
+import { AppCard } from '@/components/index.js'
 import { AppTab } from '@/layouts/components'
 import { useAppStore } from '@/store'
 import AppHeader from './header/index.vue'
 import SideBar from './sidebar/index.vue'
-import { AppCard } from "@/components/index.js"
-import DemoBanner from '@/components/DemoBanner.vue'
 
 const appStore = useAppStore()
 </script>
@@ -42,7 +42,7 @@ const appStore = useAppStore()
   width: 100%;
   height: 100vh;
   display: flex;
-  background: #F8FAFC;
+  background: #f8fafc;
 }
 
 /* 侧边栏 */
@@ -50,7 +50,7 @@ const appStore = useAppStore()
   flex-shrink: 0;
   width: 260px;
   background: white;
-  border-right: 1px solid #E2E8F0;
+  border-right: 1px solid #e2e8f0;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
@@ -80,7 +80,7 @@ const appStore = useAppStore()
 .header-full {
   height: 60px;
   flex-shrink: 0;
-  border-bottom: 1px solid #E2E8F0;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .tab-bar-full {
@@ -89,7 +89,7 @@ const appStore = useAppStore()
   display: flex;
   align-items: center;
   padding: 0 12px;
-  border-bottom: 1px solid #E2E8F0;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .tab-content {
@@ -102,7 +102,7 @@ const appStore = useAppStore()
   flex: 1;
   overflow: auto;
   padding: 16px;
-  background: #F8FAFC;
+  background: #f8fafc;
 }
 
 /* 滚动条 */
@@ -112,16 +112,16 @@ const appStore = useAppStore()
 }
 
 .content-full::-webkit-scrollbar-track {
-  background: #F1F5F9;
+  background: #f1f5f9;
 }
 
 .content-full::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
 .content-full::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: #94a3b8;
 }
 
 /* 响应式 */

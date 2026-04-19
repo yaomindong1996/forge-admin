@@ -1,7 +1,7 @@
 <template>
   <div class="p-16">
     <!-- 顶部操作栏 -->
-    <div class="flex items-center justify-between mb-16">
+    <div class="mb-16 flex items-center justify-between">
       <div class="flex items-center gap-12">
         <n-input
           v-model:value="queryParams.modelName"
@@ -28,8 +28,12 @@
           style="width: 130px"
           :options="statusOptions"
         />
-        <n-button type="primary" ghost @click="handleSearch">搜索</n-button>
-        <n-button @click="handleReset">重置</n-button>
+        <n-button type="primary" ghost @click="handleSearch">
+          搜索
+        </n-button>
+        <n-button @click="handleReset">
+          重置
+        </n-button>
       </div>
       <n-button type="primary" @click="handleAdd">
         <template #icon>
@@ -60,9 +64,15 @@
 
           <!-- 卡片体：名称 + key + 描述 -->
           <div class="card-body">
-            <div class="card-title" :title="item.modelName">{{ item.modelName }}</div>
-            <div class="card-key">{{ item.modelKey }}</div>
-            <div class="card-desc" :title="item.description">{{ item.description || '暂无描述' }}</div>
+            <div class="card-title" :title="item.modelName">
+              {{ item.modelName }}
+            </div>
+            <div class="card-key">
+              {{ item.modelKey }}
+            </div>
+            <div class="card-desc" :title="item.description">
+              {{ item.description || '暂无描述' }}
+            </div>
           </div>
 
           <!-- 卡片脚：元信息 + 操作 -->
@@ -76,7 +86,7 @@
                 <i class="i-material-symbols:layers-outline" />
                 v{{ item.version || 1 }}
               </span>
-              <span class="meta-item" v-if="item.deployTime">
+              <span v-if="item.deployTime" class="meta-item">
                 <i class="i-material-symbols:schedule-outline" />
                 {{ formatDate(item.deployTime) }}
               </span>
@@ -106,7 +116,9 @@
                 @select="(key) => handleActionSelect(key, item)"
               >
                 <n-button size="small" quaternary circle @click.stop>
-                  <template #icon><i class="i-material-symbols:more-horiz" /></template>
+                  <template #icon>
+                    <i class="i-material-symbols:more-horiz" />
+                  </template>
                 </n-button>
               </n-dropdown>
             </div>
@@ -121,13 +133,15 @@
         class="py-64"
       >
         <template #extra>
-          <n-button type="primary" @click="handleAdd">新增模型</n-button>
+          <n-button type="primary" @click="handleAdd">
+            新增模型
+          </n-button>
         </template>
       </n-empty>
     </n-spin>
 
     <!-- 分页 -->
-    <div v-if="pagination.itemCount > 0" class="flex justify-end mt-16">
+    <div v-if="pagination.itemCount > 0" class="mt-16 flex justify-end">
       <n-pagination
         v-model:page="pagination.page"
         v-model:page-size="pagination.pageSize"
@@ -187,15 +201,17 @@
               <div class="w-full">
                 <n-radio-group v-model:value="formData.notifyType" class="mb-8">
                   <n-space>
-                    <n-radio value="none">不通知</n-radio>
+                    <n-radio value="none">
+                      不通知
+                    </n-radio>
                     <n-radio value="redis">
                       Redis Pub/Sub
                       <n-tooltip trigger="hover" placement="top">
                         <template #trigger>
-                          <i class="i-material-symbols:info-outline text-gray-400 ml-2 cursor-help" />
+                          <i class="i-material-symbols:info-outline ml-2 cursor-help text-gray-400" />
                         </template>
-                        流程完成/驳回/取消时，发布消息到 Redis 频道<br />
-                        频道名：flow:event:{modelKey} 及 flow:event:all<br />
+                        流程完成/驳回/取消时，发布消息到 Redis 频道<br>
+                        频道名：flow:event:{modelKey} 及 flow:event:all<br>
                         业务侧通过 SUBSCRIBE/PSUBSCRIBE 消费
                       </n-tooltip>
                     </n-radio>
@@ -203,9 +219,9 @@
                       HTTP Webhook
                       <n-tooltip trigger="hover" placement="top">
                         <template #trigger>
-                          <i class="i-material-symbols:info-outline text-gray-400 ml-2 cursor-help" />
+                          <i class="i-material-symbols:info-outline ml-2 cursor-help text-gray-400" />
                         </template>
-                        流程完成/驳回/取消时，POST 请求回调 Webhook URL<br />
+                        流程完成/驳回/取消时，POST 请求回调 Webhook URL<br>
                         携带请求头：X-Flow-Event-Type / X-Flow-Process-Key / X-Flow-Business-Key
                       </n-tooltip>
                     </n-radio>
@@ -232,8 +248,12 @@
         </n-form>
         <template #footer>
           <n-space justify="end">
-            <n-button @click="showModal = false">取消</n-button>
-            <n-button type="primary" :loading="submitLoading" @click="handleSubmit">确定</n-button>
+            <n-button @click="showModal = false">
+              取消
+            </n-button>
+            <n-button type="primary" :loading="submitLoading" @click="handleSubmit">
+              确定
+            </n-button>
           </n-space>
         </template>
       </n-modal>
@@ -242,8 +262,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
+// h 函数（给 dropdown icon 用）
+import { h } from 'vue'
 import { useRouter } from 'vue-router'
+
 import flowApi from '@/api/flow'
 
 const router = useRouter()
@@ -263,7 +286,7 @@ const formTypeOptions = [
 const categoryOptions = ref([])
 
 const statusTagType = { 0: 'warning', 1: 'success', 2: 'default', 3: 'error' }
-const statusText    = { 0: '设计中',  1: '已部署',  2: '已挂起',  3: '已禁用' }
+const statusText = { 0: '设计中', 1: '已部署', 2: '已挂起', 3: '已禁用' }
 
 // 卡片图标颜色映射（按分类/类型给予不同视觉风格）
 const iconColorMap = ['#4f46e5', '#0891b2', '#059669', '#d97706', '#dc2626', '#7c3aed']
@@ -280,7 +303,8 @@ function iconName(item) {
   }
   const ft = item.flowType || item.businessType || ''
   for (const [k, v] of Object.entries(typeMap)) {
-    if (ft.toLowerCase().includes(k)) return v
+    if (ft.toLowerCase().includes(k))
+      return v
   }
   return 'i-material-symbols:device-hub'
 }
@@ -290,7 +314,8 @@ function hashStr(s) {
   return h
 }
 function formatDate(d) {
-  if (!d) return ''
+  if (!d)
+    return ''
   return d.slice(0, 10)
 }
 
@@ -317,32 +342,37 @@ function handleActionSelect(key, row) {
 
 // ==================== 查询/数据 ====================
 const queryParams = reactive({ modelName: '', category: null, status: null })
-const dataSource  = ref([])
-const loading     = ref(false)
-const pagination  = reactive({ page: 1, pageSize: 12, itemCount: 0 })
+const dataSource = ref([])
+const loading = ref(false)
+const pagination = reactive({ page: 1, pageSize: 12, itemCount: 0 })
 
 async function fetchCategories() {
   try {
     const res = await flowApi.getEnabledCategories()
     if (res.code === 200) {
       categoryOptions.value = (res.data || []).map(item => ({
-        label: item.categoryName, value: item.categoryCode,
+        label: item.categoryName,
+        value: item.categoryCode,
       }))
     }
-  } catch (e) { console.error(e) }
+  }
+  catch (e) { console.error(e) }
 }
 
 async function fetchData() {
   loading.value = true
   try {
     const res = await flowApi.getModelPage({
-      pageNum: pagination.page, pageSize: pagination.pageSize, ...queryParams,
+      pageNum: pagination.page,
+      pageSize: pagination.pageSize,
+      ...queryParams,
     })
     if (res.code === 200) {
-      dataSource.value  = res.data?.records || []
+      dataSource.value = res.data?.records || []
       pagination.itemCount = res.data?.total || 0
     }
-  } catch (e) { console.error(e) }
+  }
+  catch (e) { console.error(e) }
   finally { loading.value = false }
 }
 function handleSearch() { pagination.page = 1; fetchData() }
@@ -353,19 +383,26 @@ function handleReset() {
 }
 
 // ==================== 表单弹窗 ====================
-const showModal     = ref(false)
-const modalTitle    = ref('新增模型')
-const isEdit        = ref(false)
+const showModal = ref(false)
+const modalTitle = ref('新增模型')
+const isEdit = ref(false)
 const submitLoading = ref(false)
-const formRef       = ref(null)
+const formRef = ref(null)
 const formData = reactive({
-  id: '', modelName: '', modelKey: '', category: '',
-  flowType: '', formType: 'dynamic', description: '', notifyType: 'none', webhookUrl: '',
+  id: '',
+  modelName: '',
+  modelKey: '',
+  category: '',
+  flowType: '',
+  formType: 'dynamic',
+  description: '',
+  notifyType: 'none',
+  webhookUrl: '',
 })
 const rules = {
   modelName: { required: true, message: '请输入模型名称', trigger: 'blur' },
-  modelKey:  { required: true, message: '请输入模型Key', trigger: 'blur' },
-  category:  { required: true, message: '请选择分类', trigger: 'change' },
+  modelKey: { required: true, message: '请输入模型Key', trigger: 'blur' },
+  category: { required: true, message: '请选择分类', trigger: 'change' },
 }
 
 function handleAdd() {
@@ -390,10 +427,12 @@ async function handleSubmit() {
       window.$message?.success(isEdit.value ? '编辑成功' : '新增成功')
       showModal.value = false
       fetchData()
-    } else {
+    }
+    else {
       window.$message?.error(res.message || '操作失败')
     }
-  } catch (e) { console.error(e) }
+  }
+  catch (e) { console.error(e) }
   finally { submitLoading.value = false }
 }
 
@@ -413,7 +452,9 @@ async function handleDeploy(row) {
     onPositiveClick: async () => {
       const res = await flowApi.deployModel(row.id)
       if (res.code === 200) { window.$message?.success('部署成功'); fetchData() }
-      else window.$message?.error(res.message || '部署失败')
+      else {
+        window.$message?.error(res.message || '部署失败')
+      }
     },
   })
 }
@@ -426,7 +467,9 @@ async function handleCopy(row) {
     onPositiveClick: async () => {
       const res = await flowApi.copyModel(row.id, `${row.modelName} - 副本`)
       if (res.code === 200) { window.$message?.success('复制成功'); fetchData() }
-      else window.$message?.error(res.message || '复制失败')
+      else {
+        window.$message?.error(res.message || '复制失败')
+      }
     },
   })
 }
@@ -439,14 +482,18 @@ async function handleSuspend(row) {
     onPositiveClick: async () => {
       const res = await flowApi.suspendModel(row.id)
       if (res.code === 200) { window.$message?.success('已挂起'); fetchData() }
-      else window.$message?.error(res.message || '挂起失败')
+      else {
+        window.$message?.error(res.message || '挂起失败')
+      }
     },
   })
 }
 async function handleActivate(row) {
   const res = await flowApi.activateModel(row.id)
   if (res.code === 200) { window.$message?.success('已激活'); fetchData() }
-  else window.$message?.error(res.message || '激活失败')
+  else {
+    window.$message?.error(res.message || '激活失败')
+  }
 }
 async function handleDelete(row) {
   window.$dialog?.error({
@@ -457,7 +504,9 @@ async function handleDelete(row) {
     onPositiveClick: async () => {
       const res = await flowApi.deleteModel(row.id)
       if (res.code === 200) { window.$message?.success('删除成功'); fetchData() }
-      else window.$message?.error(res.message || '删除失败')
+      else {
+        window.$message?.error(res.message || '删除失败')
+      }
     },
   })
 }
@@ -466,9 +515,6 @@ onMounted(() => {
   fetchCategories()
   fetchData()
 })
-
-// h 函数（给 dropdown icon 用）
-import { h } from 'vue'
 </script>
 
 <style scoped>
@@ -479,10 +525,14 @@ import { h } from 'vue'
   gap: 14px;
 }
 @media (max-width: 1400px) {
-  .model-grid { grid-template-columns: repeat(3, 1fr); }
+  .model-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 @media (max-width: 1000px) {
-  .model-grid { grid-template-columns: repeat(2, 1fr); }
+  .model-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* 单张卡片：竖向堆叠 */
@@ -492,13 +542,16 @@ import { h } from 'vue'
   border-radius: 12px;
   padding: 16px;
   cursor: pointer;
-  transition: box-shadow 0.2s, border-color 0.2s, transform 0.15s;
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s,
+    transform 0.15s;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 .model-card:hover {
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.10);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
   border-color: #d0d0d0;
   transform: translateY(-2px);
 }
@@ -519,12 +572,24 @@ import { h } from 'vue'
   color: #fff;
   flex-shrink: 0;
 }
-.icon-bg-0 { background: linear-gradient(135deg, #6366f1, #4f46e5); }
-.icon-bg-1 { background: linear-gradient(135deg, #22d3ee, #0891b2); }
-.icon-bg-2 { background: linear-gradient(135deg, #34d399, #059669); }
-.icon-bg-3 { background: linear-gradient(135deg, #fbbf24, #d97706); }
-.icon-bg-4 { background: linear-gradient(135deg, #f87171, #dc2626); }
-.icon-bg-5 { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
+.icon-bg-0 {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+}
+.icon-bg-1 {
+  background: linear-gradient(135deg, #22d3ee, #0891b2);
+}
+.icon-bg-2 {
+  background: linear-gradient(135deg, #34d399, #059669);
+}
+.icon-bg-3 {
+  background: linear-gradient(135deg, #fbbf24, #d97706);
+}
+.icon-bg-4 {
+  background: linear-gradient(135deg, #f87171, #dc2626);
+}
+.icon-bg-5 {
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+}
 
 /* 主体：名称 + key + 描述 */
 .card-body {

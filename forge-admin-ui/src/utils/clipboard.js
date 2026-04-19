@@ -1,8 +1,8 @@
 /**
  * 复制文本到剪贴板
  * @param {string} text - 要复制的文本
- * @param {function} onSuccess - 复制成功回调
- * @param {function} onError - 复制失败回调
+ * @param {Function} onSuccess - 复制成功回调
+ * @param {Function} onError - 复制失败回调
  * @returns {Promise<boolean>}
  */
 export async function copyToClipboard(text, onSuccess, onError) {
@@ -13,7 +13,7 @@ export async function copyToClipboard(text, onSuccess, onError) {
       onSuccess?.()
       return true
     }
-    
+
     // 降级方案：使用 execCommand
     const textArea = document.createElement('textarea')
     textArea.value = text
@@ -23,17 +23,19 @@ export async function copyToClipboard(text, onSuccess, onError) {
     document.body.appendChild(textArea)
     textArea.focus()
     textArea.select()
-    
+
     const successful = document.execCommand('copy')
     textArea.remove()
-    
+
     if (successful) {
       onSuccess?.()
       return true
-    } else {
+    }
+    else {
       throw new Error('复制失败')
     }
-  } catch (err) {
+  }
+  catch (err) {
     console.error('复制到剪贴板失败:', err)
     onError?.(err)
     return false
@@ -60,7 +62,7 @@ export async function copy(text, successMsg = '复制成功', errorMsg = '复制
         window.$message.error(errorMsg)
       }
       console.error(err)
-    }
+    },
   )
   return result
 }

@@ -17,22 +17,22 @@
         </div>
 
         <!-- BPMN 流程图容器 -->
-        <div class="diagram-container" ref="containerRef">
-          <div ref="canvasRef" class="bpmn-canvas"></div>
+        <div ref="containerRef" class="diagram-container">
+          <div ref="canvasRef" class="bpmn-canvas" />
         </div>
 
         <!-- 图例 -->
         <div class="legend">
           <div class="legend-item">
-            <span class="legend-color completed"></span>
+            <span class="legend-color completed" />
             <span>已完成</span>
           </div>
           <div class="legend-item">
-            <span class="legend-color running"></span>
+            <span class="legend-color running" />
             <span>处理中</span>
           </div>
           <div class="legend-item">
-            <span class="legend-color pending"></span>
+            <span class="legend-color pending" />
             <span>待处理</span>
           </div>
         </div>
@@ -108,15 +108,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import flowApi from '@/api/flow'
 import BpmnJS from 'bpmn-js/lib/NavigatedViewer'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import flowApi from '@/api/flow'
 
 const props = defineProps({
   processInstanceId: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 })
 
 const emit = defineEmits(['node-click', 'loaded'])
@@ -135,7 +135,8 @@ const tooltipPosition = ref({ x: 0, y: 0 })
 
 // 计算属性
 const statusType = computed(() => {
-  if (!diagramInfo.value) return 'default'
+  if (!diagramInfo.value)
+    return 'default'
   const status = diagramInfo.value.status
   switch (status) {
     case 'completed':
@@ -150,7 +151,8 @@ const statusType = computed(() => {
 })
 
 const statusText = computed(() => {
-  if (!diagramInfo.value) return ''
+  if (!diagramInfo.value)
+    return ''
   const status = diagramInfo.value.status
   switch (status) {
     case 'completed':
@@ -166,92 +168,96 @@ const statusText = computed(() => {
 
 const tooltipStyle = computed(() => ({
   left: `${tooltipPosition.value.x}px`,
-  top: `${tooltipPosition.value.y}px`
+  top: `${tooltipPosition.value.y}px`,
 }))
 
 // 方法
 async function fetchDiagramInfo() {
-  if (!props.processInstanceId) return
-  
+  if (!props.processInstanceId)
+    return
+
   loading.value = true
-  
+
   try {
     const res = await flowApi.getProcessDiagramInfo(props.processInstanceId)
     if (res.code === 200) {
       diagramInfo.value = res.data
       emit('loaded', res.data)
-      
+
       // 等待 DOM 更新后渲染 BPMN
       await nextTick()
       if (res.data.bpmnXml) {
         await renderBpmn(res.data.bpmnXml, res.data.nodes)
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取流程图详情失败:', error)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
 
 async function renderBpmn(bpmnXml, nodes) {
-  if (!canvasRef.value) return
-  
+  if (!canvasRef.value)
+    return
+
   // 销毁旧的 viewer
   if (bpmnViewer) {
     bpmnViewer.destroy()
   }
-  
+
   // 创建新的 viewer
   bpmnViewer = new BpmnJS({
     container: canvasRef.value,
     keyboard: {
-      bindTo: window
-    }
+      bindTo: window,
+    },
   })
-  
+
   try {
     // 导入 BPMN XML
     await bpmnViewer.importXML(bpmnXml)
-    
+
     // 获取 canvas
     const canvas = bpmnViewer.get('canvas')
     const elementRegistry = bpmnViewer.get('elementRegistry')
     const overlays = bpmnViewer.get('overlays')
-    
+
     // 自适应画布
     canvas.zoom('fit-viewport', 'auto')
-    
+
     // 构建节点状态映射
     const nodeStatusMap = new Map()
     if (nodes) {
-      nodes.forEach(node => {
+      nodes.forEach((node) => {
         nodeStatusMap.set(node.nodeId, node)
       })
     }
-    
+
     // 遍历所有元素，添加样式
-    elementRegistry.forEach(element => {
+    elementRegistry.forEach((element) => {
       const nodeId = element.id
       const nodeInfo = nodeStatusMap.get(nodeId)
-      
+
       if (nodeInfo) {
         // 添加状态样式
         canvas.addMarker(nodeId, `status-${nodeInfo.status}`)
-        
+
         // 为用户任务添加处理人标记
         if (element.type === 'bpmn:UserTask' && nodeInfo.assigneeNames?.length) {
           const assigneeText = nodeInfo.assigneeNames.slice(0, 2).join(', ')
           const moreText = nodeInfo.assigneeNames.length > 2 ? `+${nodeInfo.assigneeNames.length - 2}` : ''
-          
+
           overlays.add(nodeId, 'assignee', {
             position: 'bottom',
-            html: `<div class="assignee-overlay">${assigneeText}${moreText}</div>`
+            html: `<div class="assignee-overlay">${assigneeText}${moreText}</div>`,
           })
         }
       }
     })
-    
+
     // 添加点击事件
     const eventBus = bpmnViewer.get('eventBus')
     eventBus.on('element.hover', (event) => {
@@ -261,11 +267,11 @@ async function renderBpmn(bpmnXml, nodes) {
         showNodeTooltip(nodeInfo, event.originalEvent)
       }
     })
-    
+
     eventBus.on('element.out', () => {
       hideNodeTooltip()
     })
-    
+
     eventBus.on('element.click', (event) => {
       const element = event.element
       const nodeInfo = nodeStatusMap.get(element.id)
@@ -273,8 +279,8 @@ async function renderBpmn(bpmnXml, nodes) {
         emit('node-click', nodeInfo)
       }
     })
-    
-  } catch (error) {
+  }
+  catch (error) {
     console.error('渲染 BPMN 失败:', error)
   }
 }
@@ -282,10 +288,10 @@ async function renderBpmn(bpmnXml, nodes) {
 function showNodeTooltip(node, event) {
   currentNode.value = node
   tooltipVisible.value = true
-  
+
   tooltipPosition.value = {
     x: event.clientX + 15,
-    y: event.clientY + 15
+    y: event.clientY + 15,
   }
 }
 
@@ -326,45 +332,50 @@ function getNodeStatusText(status) {
 
 function getNodeTypeName(type) {
   const typeMap = {
-    'StartEvent': '开始节点',
-    'EndEvent': '结束节点',
-    'UserTask': '用户任务',
-    'ServiceTask': '服务任务',
-    'ScriptTask': '脚本任务',
-    'ExclusiveGateway': '排他网关',
-    'ParallelGateway': '并行网关',
-    'InclusiveGateway': '包含网关',
-    'SequenceFlow': '连线'
+    StartEvent: '开始节点',
+    EndEvent: '结束节点',
+    UserTask: '用户任务',
+    ServiceTask: '服务任务',
+    ScriptTask: '脚本任务',
+    ExclusiveGateway: '排他网关',
+    ParallelGateway: '并行网关',
+    InclusiveGateway: '包含网关',
+    SequenceFlow: '连线',
   }
   return typeMap[type] || type
 }
 
 function formatDate(date) {
-  if (!date) return ''
+  if (!date)
+    return ''
   const d = new Date(date)
   return d.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 
 function formatDuration(ms) {
-  if (!ms) return ''
+  if (!ms)
+    return ''
   const seconds = Math.floor(ms / 1000)
   const minutes = Math.floor(seconds / 60)
   const hours = Math.floor(minutes / 60)
   const days = Math.floor(hours / 24)
-  
+
   if (days > 0) {
     return `${days}天 ${hours % 24}小时`
-  } else if (hours > 0) {
+  }
+  else if (hours > 0) {
     return `${hours}小时 ${minutes % 60}分钟`
-  } else if (minutes > 0) {
+  }
+  else if (minutes > 0) {
     return `${minutes}分钟`
-  } else {
+  }
+  else {
     return `${seconds}秒`
   }
 }
@@ -374,7 +385,7 @@ function handleMouseMove(event) {
   if (tooltipVisible.value) {
     tooltipPosition.value = {
       x: event.clientX + 15,
-      y: event.clientY + 15
+      y: event.clientY + 15,
     }
   }
 }

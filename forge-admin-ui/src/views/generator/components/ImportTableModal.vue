@@ -67,8 +67,8 @@
             :data="filteredTableList"
             :row-key="row => row.tableName"
             :checked-row-keys="checkedKeys"
-            @update:checked-row-keys="handleCheckedChange"
             max-height="450px"
+            @update:checked-row-keys="handleCheckedChange"
           />
         </n-spin>
       </div>
@@ -76,7 +76,9 @@
 
     <template #footer>
       <n-space justify="end">
-        <n-button @click="handleClose">取消</n-button>
+        <n-button @click="handleClose">
+          取消
+        </n-button>
         <n-button
           type="primary"
           :loading="submitLoading"
@@ -91,14 +93,14 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { request } from '@/utils'
 
 const props = defineProps({
   show: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:show', 'success'])
@@ -119,10 +121,10 @@ const filteredTableList = computed(() => {
     return tableList.value
   }
   const keyword = searchKeyword.value.toLowerCase()
-  return tableList.value.filter(item => {
+  return tableList.value.filter((item) => {
     return (
-      item.tableName?.toLowerCase().includes(keyword) ||
-      item.tableComment?.toLowerCase().includes(keyword)
+      item.tableName?.toLowerCase().includes(keyword)
+      || item.tableComment?.toLowerCase().includes(keyword)
     )
   })
 })
@@ -130,28 +132,28 @@ const filteredTableList = computed(() => {
 // 表格列配置
 const columns = [
   {
-    type: 'selection'
+    type: 'selection',
   },
   {
     title: '表名',
     key: 'tableName',
     width: 220,
     ellipsis: {
-      tooltip: true
-    }
+      tooltip: true,
+    },
   },
   {
     title: '表描述',
     key: 'tableComment',
     ellipsis: {
-      tooltip: true
-    }
+      tooltip: true,
+    },
   },
   {
     title: '创建时间',
     key: 'createTime',
-    width: 180
-  }
+    width: 180,
+  },
 ]
 
 // 监听 show 变化
@@ -178,7 +180,7 @@ async function loadDatasources() {
     if (res.code === 200) {
       datasourceOptions.value = (res.data || []).map(item => ({
         label: `${item.datasourceName} (${item.dbType})`,
-        value: item.datasourceId
+        value: item.datasourceId,
       }))
       // 如果有默认数据源，自动选中
       const defaultDs = res.data?.find(item => item.isDefault === 1)
@@ -187,10 +189,12 @@ async function loadDatasources() {
         handleDatasourceChange(defaultDs.datasourceId)
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载数据源列表失败:', error)
     window.$message.error('加载数据源列表失败')
-  } finally {
+  }
+  finally {
     datasourceLoading.value = false
   }
 }
@@ -212,10 +216,12 @@ async function handleDatasourceChange(datasourceId) {
         window.$message.warning('该数据源下没有可导入的表')
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载表列表失败:', error)
     window.$message.error('加载表列表失败，请检查数据源配置')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -256,19 +262,22 @@ async function handleSubmit() {
     submitLoading.value = true
     const res = await request.post(
       `/generator/importTable/${selectedDatasourceId.value}`,
-      checkedKeys.value
+      checkedKeys.value,
     )
     if (res.code === 200) {
       window.$message.success(`成功导入 ${checkedKeys.value.length} 张表`)
       emit('success')
       handleClose()
-    } else {
+    }
+    else {
       window.$message.error(res.msg || '导入失败')
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('导入失败:', error)
     window.$message.error(error.message || '导入失败')
-  } finally {
+  }
+  finally {
     submitLoading.value = false
   }
 }

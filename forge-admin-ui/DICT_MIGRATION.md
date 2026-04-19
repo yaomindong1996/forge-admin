@@ -5,6 +5,7 @@
 ### 1. 替换导入语句
 
 **旧代码：**
+
 ```vue
 <script>
 export default {
@@ -14,11 +15,12 @@ export default {
 ```
 
 **新代码：**
+
 ```vue
 <script setup>
-import { useDict } from '@/composables/useDict'
-import DictTag from '@/components/DictTag.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 
 const { dict } = useDict('case_status', 'matter_type', 'notice_reason')
 </script>
@@ -27,22 +29,25 @@ const { dict } = useDict('case_status', 'matter_type', 'notice_reason')
 ### 2. 替换字典访问方式
 
 **旧代码：**
+
 ```vue
 <template>
-  <dict-tag :options="dict.type.matter_type" :value="scope.row.matterType"/>
+  <dict-tag :options="dict.type.matter_type" :value="scope.row.matterType" />
 </template>
 ```
 
 **新代码：**
+
 ```vue
 <template>
-  <DictTag :options="dict.matter_type" :value="row.matterType"/>
+  <DictTag :options="dict.matter_type" :value="row.matterType" />
 </template>
 ```
 
 ### 3. 替换字典选择器
 
 **旧代码：**
+
 ```vue
 <el-select v-model="form.status">
   <el-option
@@ -55,6 +60,7 @@ const { dict } = useDict('case_status', 'matter_type', 'notice_reason')
 ```
 
 **新代码：**
+
 ```vue
 <DictSelect v-model:value="form.status" dict-type="case_status" />
 ```
@@ -62,6 +68,7 @@ const { dict } = useDict('case_status', 'matter_type', 'notice_reason')
 ### 4. 在表格中使用
 
 **旧代码：**
+
 ```vue
 <el-table-column label="状态" prop="status">
   <template #default="scope">
@@ -71,6 +78,7 @@ const { dict } = useDict('case_status', 'matter_type', 'notice_reason')
 ```
 
 **新代码（使用 render 函数）：**
+
 ```vue
 <script setup>
 import { h } from 'vue'
@@ -79,7 +87,7 @@ const columns = [
   {
     prop: 'status',
     label: '状态',
-    render: (row) => h(DictTag, { options: dict.value.case_status, value: row.status })
+    render: row => h(DictTag, { options: dict.value.case_status, value: row.status })
   }
 ]
 </script>
@@ -103,7 +111,7 @@ const columns = [
           />
         </el-select>
       </el-form-item>
-      
+
       <el-form-item label="类型">
         <el-select v-model="form.matterType">
           <el-option
@@ -115,17 +123,17 @@ const columns = [
         </el-select>
       </el-form-item>
     </el-form>
-    
+
     <el-table :data="tableData">
       <el-table-column label="状态" prop="status">
         <template #default="scope">
-          <dict-tag :options="dict.type.case_status" :value="scope.row.status"/>
+          <dict-tag :options="dict.type.case_status" :value="scope.row.status" />
         </template>
       </el-table-column>
-      
+
       <el-table-column label="类型" prop="matterType">
         <template #default="scope">
-          <dict-tag :options="dict.type.matter_type" :value="scope.row.matterType"/>
+          <dict-tag :options="dict.type.matter_type" :value="scope.row.matterType" />
         </template>
       </el-table-column>
     </el-table>
@@ -160,20 +168,20 @@ export default {
   >
     <!-- 搜索表单插槽 -->
     <template #search-status="{ value, updateValue }">
-      <DictSelect :value="value" @update:value="updateValue" dict-type="case_status" />
+      <DictSelect :value="value" dict-type="case_status" @update:value="updateValue" />
     </template>
-    
+
     <template #search-matterType="{ value, updateValue }">
-      <DictSelect :value="value" @update:value="updateValue" dict-type="matter_type" />
+      <DictSelect :value="value" dict-type="matter_type" @update:value="updateValue" />
     </template>
-    
+
     <!-- 编辑表单插槽 -->
     <template #form-status="{ value, updateValue }">
-      <DictSelect :value="value" @update:value="updateValue" dict-type="case_status" />
+      <DictSelect :value="value" dict-type="case_status" @update:value="updateValue" />
     </template>
-    
+
     <template #form-matterType="{ value, updateValue }">
-      <DictSelect :value="value" @update:value="updateValue" dict-type="matter_type" />
+      <DictSelect :value="value" dict-type="matter_type" @update:value="updateValue" />
     </template>
   </AiCrudPage>
 </template>
@@ -181,9 +189,9 @@ export default {
 <script setup>
 import { h } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
-import { useDict } from '@/composables/useDict'
-import DictTag from '@/components/DictTag.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 
 const { dict } = useDict('case_status', 'matter_type', 'notice_reason')
 
@@ -209,13 +217,13 @@ const columns = [
     prop: 'status',
     label: '状态',
     width: 100,
-    render: (row) => h(DictTag, { options: dict.value.case_status, value: row.status })
+    render: row => h(DictTag, { options: dict.value.case_status, value: row.status })
   },
   {
     prop: 'matterType',
     label: '类型',
     width: 120,
-    render: (row) => h(DictTag, { options: dict.value.matter_type, value: row.matterType })
+    render: row => h(DictTag, { options: dict.value.matter_type, value: row.matterType })
   }
 ]
 
@@ -245,20 +253,20 @@ const editSchema = [
 
 ### 1. 替换 dict.type.xxx 为 dict.xxx
 
-**查找：** `dict\.type\.(\w+)`  
+**查找：** `dict\.type\.(\w+)`
 **替换：** `dict.$1`
 
 ### 2. 替换 dict-tag 为 DictTag
 
-**查找：** `<dict-tag`  
+**查找：** `<dict-tag`
 **替换：** `<DictTag`
 
-**查找：** `</dict-tag>`  
+**查找：** `</dict-tag>`
 **替换：** `</DictTag>`
 
 ### 3. 替换 scope.row 为 row
 
-**查找：** `scope\.row`  
+**查找：** `scope\.row`
 **替换：** `row`
 
 ## 注意事项
@@ -307,6 +315,7 @@ const editSchema = [
 ## 获取帮助
 
 如有问题，请查看：
+
 - [字典组件使用指南](./src/components/DICT_USAGE_GUIDE.md)
 - [字典管理页面](./src/views/system/dictType.vue)
 - [字典数据页面](./src/views/system/dictData.vue)

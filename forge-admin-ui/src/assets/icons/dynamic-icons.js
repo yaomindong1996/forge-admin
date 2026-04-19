@@ -6,4 +6,4 @@
 //     'mdi-',         // Material Design Icons
 //     'fa-'           // Font Awesome
 // ]
-export default ['i-simple-icons:juejin','i-ix:chain-alternative','i-ix:add-application']
+export default ['i-simple-icons:juejin', 'i-ix:chain-alternative', 'i-ix:add-application']

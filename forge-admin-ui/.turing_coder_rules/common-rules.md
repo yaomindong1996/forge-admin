@@ -18,6 +18,7 @@ src/
 ## Vue 3 Composition API Rules
 
 ### Component Structure
+
 ```vue
 <template>
   <!-- Template first -->
@@ -25,7 +26,7 @@ src/
 
 <script setup>
 // Imports
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 
@@ -50,6 +51,7 @@ onMounted(() => {
 ```
 
 ### Rules
+
 - ✅ Use `<script setup>` syntax (modern, cleaner)
 - ✅ Use `ref()` for primitive values, `reactive()` for objects
 - ✅ Use `computed()` for derived state
@@ -61,12 +63,14 @@ onMounted(() => {
 ## Styling Rules
 
 ### UnoCSS Usage
+
 - Use UnoCSS utility classes for layout, spacing, colors
 - Example: `class="flex items-center justify-between gap-4 p-6 bg-white rounded-lg"`
 - Responsive: `class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"`
 - Dark mode: `class="dark:bg-slate-900 dark:text-white"`
 
 ### SCSS Usage
+
 - Use SCSS only for:
   - Complex animations
   - Mixins and functions
@@ -74,6 +78,7 @@ onMounted(() => {
   - Global theme variables (in `styles/variables.scss`)
 
 ### Variables (SCSS)
+
 ```scss
 // styles/variables.scss
 $primary-color: #1890ff;
@@ -82,6 +87,7 @@ $transition-duration: 0.3s;
 ```
 
 ### Rules
+
 - ✅ Prefer UnoCSS utilities over custom CSS
 - ✅ Use `scoped` styles in components
 - ✅ Use SCSS variables for theme colors
@@ -93,10 +99,11 @@ $transition-duration: 0.3s;
 ## Pinia Store Rules
 
 ### Store Structure
+
 ```javascript
 // stores/user.js
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 
 export const useUserStore = defineStore('user', () => {
   // State
@@ -112,7 +119,8 @@ export const useUserStore = defineStore('user', () => {
     try {
       const response = await api.getUser()
       user.value = response.data
-    } finally {
+    }
+    finally {
       isLoading.value = false
     }
   }
@@ -132,6 +140,7 @@ export const useUserStore = defineStore('user', () => {
 ```
 
 ### Rules
+
 - ✅ Use Composition API style (setup function)
 - ✅ One store per domain (user, notes, settings, etc.)
 - ✅ Export store with `useXxxStore` naming
@@ -143,6 +152,7 @@ export const useUserStore = defineStore('user', () => {
 ## API & Axios Rules
 
 ### Request Setup
+
 ```javascript
 // utils/request.js
 import axios from 'axios'
@@ -153,7 +163,7 @@ const instance = axios.create({
 })
 
 // Request interceptor
-instance.interceptors.request.use(config => {
+instance.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -171,19 +181,21 @@ export default instance
 ```
 
 ### API Functions
+
 ```javascript
 // api/user.js
 import request from '@/utils/request'
 
 export const getUser = () => request.get('/user')
-export const updateUser = (data) => request.put('/user', data)
+export const updateUser = data => request.put('/user', data)
 export const deleteUser = () => request.delete('/user')
 ```
 
 ### Usage in Components
+
 ```vue
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { getUser } from '@/api/user'
 
 const user = ref(null)
@@ -193,9 +205,11 @@ onMounted(async () => {
   loading.value = true
   try {
     user.value = await getUser()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Failed to fetch user:', error)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 })
@@ -203,6 +217,7 @@ onMounted(async () => {
 ```
 
 ### Rules
+
 - ✅ Centralize API calls in `api/` folder
 - ✅ Use request interceptors for auth tokens
 - ✅ Handle errors gracefully
@@ -214,6 +229,7 @@ onMounted(async () => {
 ## Router Rules
 
 ### Route Definition
+
 ```javascript
 // router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
@@ -245,6 +261,7 @@ export default router
 ```
 
 ### Rules
+
 - ✅ Use lazy loading with `() => import()`
 - ✅ Use named routes
 - ✅ Use kebab-case for paths
@@ -256,12 +273,14 @@ export default router
 ## Component Rules
 
 ### Naming
+
 - Files: PascalCase (e.g., `UserCard.vue`)
 - Components: PascalCase (e.g., `<UserCard />`)
 - Props: camelCase (e.g., `userName`)
 - Events: kebab-case (e.g., `@user-updated`)
 
 ### Props & Emits
+
 ```vue
 <script setup>
 defineProps({
@@ -277,13 +296,14 @@ defineProps({
 
 defineEmits(['update', 'delete'])
 
-const handleUpdate = () => {
+function handleUpdate() {
   emit('update', newValue)
 }
 </script>
 ```
 
 ### Rules
+
 - ✅ Use `defineProps()` and `defineEmits()`
 - ✅ Always type props
 - ✅ Provide default values
@@ -295,6 +315,7 @@ const handleUpdate = () => {
 ## Vant Component Rules
 
 ### Common Components
+
 - `<van-button>` - Buttons
 - `<van-cell>` - List items
 - `<van-form>` - Forms
@@ -306,34 +327,36 @@ const handleUpdate = () => {
 - `<van-toast>` - Notifications
 
 ### Usage
+
 ```vue
 <template>
   <van-button type="primary" @click="handleClick">
     Click me
   </van-button>
-  
+
   <van-field
     v-model="form.name"
     label="Name"
     placeholder="Enter name"
   />
-  
+
   <van-toast message="Success!" />
 </template>
 
 <script setup>
-import { ref } from 'vue'
 import { showToast } from 'vant'
+import { ref } from 'vue'
 
 const form = ref({ name: '' })
 
-const handleClick = () => {
+function handleClick() {
   showToast('Button clicked!')
 }
 </script>
 ```
 
 ### Rules
+
 - ✅ Use Vant components for UI
 - ✅ Use Vant utilities (showToast, showDialog, etc.)
 - ✅ Customize with UnoCSS classes
@@ -344,11 +367,13 @@ const handleClick = () => {
 ## Performance Rules
 
 ### Code Splitting
+
 - ✅ Use lazy loading for routes: `() => import('@/views/Page.vue')`
 - ✅ Use lazy loading for heavy components
 - ✅ Use `<Suspense>` for async components
 
 ### Optimization
+
 - ✅ Use `computed()` instead of methods for derived state
 - ✅ Use `v-show` for frequently toggled elements
 - ✅ Use `v-if` for rarely rendered elements
@@ -356,6 +381,7 @@ const handleClick = () => {
 - ✅ Avoid unnecessary re-renders with `ref` and `reactive`
 
 ### Bundle Size
+
 - ✅ Tree-shake unused imports
 - ✅ Use dynamic imports for large libraries
 - ✅ Monitor bundle size with `vite build --analyze`
@@ -363,12 +389,14 @@ const handleClick = () => {
 ## Error Handling
 
 ### Try-Catch Pattern
+
 ```javascript
-const fetchData = async () => {
+async function fetchData() {
   try {
     const data = await api.getData()
     return data
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Error fetching data:', error)
     showToast('Failed to load data')
     throw error
@@ -377,6 +405,7 @@ const fetchData = async () => {
 ```
 
 ### Rules
+
 - ✅ Always wrap async operations in try-catch
 - ✅ Show user-friendly error messages
 - ✅ Log errors for debugging
@@ -387,11 +416,13 @@ const fetchData = async () => {
 ## Testing Rules
 
 ### Unit Tests (if applicable)
+
 - Use Vitest for unit tests
 - Test stores, utilities, and API functions
 - Aim for 80%+ coverage on critical paths
 
 ### E2E Tests (if applicable)
+
 - Use Playwright or Cypress
 - Test user workflows
 - Test critical features
@@ -399,11 +430,13 @@ const fetchData = async () => {
 ## Git & Commit Rules
 
 ### Commit Messages
+
 - Use conventional commits: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`
 - Example: `feat: add user authentication`
 - Keep messages concise and descriptive
 
 ### Branch Naming
+
 - Feature: `feature/user-auth`
 - Bug fix: `fix/login-error`
 - Docs: `docs/readme-update`
@@ -411,6 +444,7 @@ const fetchData = async () => {
 ## Environment Variables
 
 ### .env Files
+
 ```
 # .env (shared)
 VITE_API_BASE_URL=/api
@@ -423,11 +457,13 @@ VITE_DEBUG=false
 ```
 
 ### Usage in Code
+
 ```javascript
 const apiUrl = import.meta.env.VITE_API_BASE_URL
 ```
 
 ### Rules
+
 - ✅ Use `VITE_` prefix for client-side variables
 - ✅ Keep sensitive data in `.env.local` (not committed)
 - ✅ Document all env variables
@@ -437,17 +473,20 @@ const apiUrl = import.meta.env.VITE_API_BASE_URL
 ## Accessibility Rules
 
 ### HTML Semantics
+
 - ✅ Use semantic HTML: `<button>`, `<nav>`, `<main>`, `<article>`
 - ✅ Use `<label>` for form inputs
 - ✅ Use `alt` text for images
 - ✅ Use ARIA attributes when needed
 
 ### Keyboard Navigation
+
 - ✅ All interactive elements must be keyboard accessible
 - ✅ Use `tabindex` carefully (usually not needed)
 - ✅ Provide focus indicators
 
 ### Color & Contrast
+
 - ✅ Don't rely on color alone to convey information
 - ✅ Ensure 4.5:1 contrast ratio for text
 - ✅ Test with accessibility tools
@@ -455,17 +494,20 @@ const apiUrl = import.meta.env.VITE_API_BASE_URL
 ## Code Quality
 
 ### Linting & Formatting
+
 - Use ESLint for code quality
 - Use Prettier for code formatting
 - Run before committing
 
 ### Naming Conventions
+
 - Variables: camelCase
 - Constants: UPPER_SNAKE_CASE
 - Classes/Components: PascalCase
 - Files: kebab-case (except components)
 
 ### Comments
+
 - ✅ Use comments for complex logic
 - ✅ Use JSDoc for functions
 - ❌ Don't over-comment obvious code
@@ -474,17 +516,20 @@ const apiUrl = import.meta.env.VITE_API_BASE_URL
 ## Security Rules
 
 ### XSS Prevention
+
 - ✅ Vue auto-escapes template content
 - ✅ Use `v-text` instead of `{{ }}` for user input
 - ✅ Use `v-html` only for trusted content
 - ❌ Don't use `innerHTML` directly
 
 ### CSRF Protection
+
 - ✅ Use CSRF tokens in forms
 - ✅ Validate tokens on backend
 - ✅ Use SameSite cookies
 
 ### Authentication
+
 - ✅ Store tokens securely (httpOnly cookies preferred)
 - ✅ Validate tokens on every request
 - ✅ Implement token refresh logic
@@ -493,11 +538,13 @@ const apiUrl = import.meta.env.VITE_API_BASE_URL
 ## Debugging
 
 ### Vue DevTools
+
 - Install Vue DevTools browser extension
 - Inspect component state and props
 - Track store mutations
 
 ### Console Logging
+
 ```javascript
 // Development only
 if (import.meta.env.DEV) {
@@ -506,6 +553,7 @@ if (import.meta.env.DEV) {
 ```
 
 ### Network Debugging
+
 - Use browser DevTools Network tab
 - Check API requests and responses
 - Monitor performance
@@ -513,17 +561,20 @@ if (import.meta.env.DEV) {
 ## Documentation
 
 ### README
+
 - Include setup instructions
 - Document environment variables
 - List available scripts
 - Provide examples
 
 ### Code Comments
+
 - Document complex algorithms
 - Explain non-obvious decisions
 - Use JSDoc for functions
 
 ### Commit Messages
+
 - Reference issues: `fixes #123`
 - Explain why, not what
 - Keep concise

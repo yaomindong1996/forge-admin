@@ -48,6 +48,16 @@ public class AiModel extends TenantEntity {
     private String description;
 
     /**
+     * 最大Token数
+     */
+    private Integer maxTokens;
+
+    /**
+     * 模型图标（文件ID或URL）
+     */
+    private String icon;
+
+    /**
      * 是否默认模型（0否 1是）
      */
     private String isDefault;

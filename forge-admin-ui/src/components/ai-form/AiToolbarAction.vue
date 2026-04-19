@@ -2,7 +2,7 @@
   表格工具栏操作组件
   提供刷新、密度调整、列设置、搜索显示/隐藏等功能
   参考 toolbarAction 设计
-  
+
   @author AI Form Team
   @version 1.0.0
 -->
@@ -85,15 +85,15 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
 import {
+  ChevronDownOutline,
+  ChevronUpOutline,
+  ContractOutline,
+  ExpandOutline,
   RefreshOutline,
   ResizeOutline,
-  ChevronUpOutline,
-  ChevronDownOutline,
-  ExpandOutline,
-  ContractOutline
 } from '@vicons/ionicons5'
+import { ref } from 'vue'
 import AiTableFilter from './AiTableFilter.vue'
 
 /**
@@ -102,95 +102,95 @@ import AiTableFilter from './AiTableFilter.vue'
 const props = defineProps({
   /**
    * 表格列配置
-   * @type {Array<Object>}
+   * @type {Array<object>}
    */
   columns: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
-  
+
   /**
    * 列筛选下拉菜单最大高度
-   * @type {String}
+   * @type {string}
    */
   filterMaxHeight: {
     type: String,
-    default: '400px'
+    default: '400px',
   },
-  
+
   /**
    * 默认选中的列
-   * @type {Array<String>}
+   * @type {Array<string>}
    */
   defaultCheckedColumns: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
-  
+
   /**
    * 是否显示刷新按钮
-   * @type {Boolean}
+   * @type {boolean}
    */
   showRefresh: {
     type: Boolean,
-    default: true
+    default: true,
   },
-  
+
   /**
    * 是否显示密度调整
-   * @type {Boolean}
+   * @type {boolean}
    */
   showDensity: {
     type: Boolean,
-    default: true
+    default: true,
   },
-  
+
   /**
    * 是否显示列设置
-   * @type {Boolean}
+   * @type {boolean}
    */
   showColumnFilter: {
     type: Boolean,
-    default: true
+    default: true,
   },
-  
+
   /**
    * 是否显示搜索切换
-   * @type {Boolean}
+   * @type {boolean}
    */
   showSearchToggle: {
     type: Boolean,
-    default: true
+    default: true,
   },
-  
+
   /**
    * 是否显示全屏按钮
-   * @type {Boolean}
+   * @type {boolean}
    */
   showFullscreen: {
     type: Boolean,
-    default: false
+    default: false,
   },
-  
+
   /**
    * 搜索表单是否可见
-   * @type {Boolean}
+   * @type {boolean}
    */
   searchVisible: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 })
 
 /**
  * Emits 定义
  */
 const emit = defineEmits([
-  'refresh',              // 刷新
-  'density-change',       // 密度变化
-  'filter-change',        // 列筛选变化
-  'search-toggle',        // 搜索显示/隐藏切换
-  'fullscreen-change'     // 全屏状态变化
+  'refresh', // 刷新
+  'density-change', // 密度变化
+  'filter-change', // 列筛选变化
+  'search-toggle', // 搜索显示/隐藏切换
+  'fullscreen-change', // 全屏状态变化
 ])
 
 /**
@@ -199,16 +199,16 @@ const emit = defineEmits([
 const densityOptions = [
   {
     label: '紧凑',
-    key: 'small'
+    key: 'small',
   },
   {
     label: '默认',
-    key: 'medium'
+    key: 'medium',
   },
   {
     label: '宽松',
-    key: 'large'
-  }
+    key: 'large',
+  },
 ]
 
 /**
@@ -260,11 +260,11 @@ defineExpose({
    * 切换全屏
    */
   toggleFullscreen: handleFullscreen,
-  
+
   /**
    * 获取全屏状态
    */
-  getFullscreenStatus: () => isFullscreen.value
+  getFullscreenStatus: () => isFullscreen.value,
 })
 </script>
 

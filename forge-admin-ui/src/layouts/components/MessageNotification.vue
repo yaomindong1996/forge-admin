@@ -1,6 +1,6 @@
 <template>
   <div class="message-notification-wrapper">
-    <n-popover
+    <NPopover
       v-model:show="showPopover"
       trigger="click"
       placement="bottom-end"
@@ -8,16 +8,16 @@
       style="padding: 0"
     >
       <template #trigger>
-        <n-badge
+        <NBadge
           :value="unreadCount"
           :max="99"
           :show="unreadCount > 0"
           :offset="[-5, 5]"
         >
-          <div class="flex cursor-pointer items-center justify-center w-36 h-36 hover:bg-gray-100 rounded">
+          <div class="h-36 w-36 flex cursor-pointer items-center justify-center rounded hover:bg-gray-100">
             <i class="i-material-symbols:notifications-outline text-22" />
           </div>
-        </n-badge>
+        </NBadge>
       </template>
 
       <div class="message-notification-popup" style="width: 300px; max-height: 400px; overflow-y: auto">
@@ -26,24 +26,24 @@
           <div
             v-for="msg in messages"
             :key="msg.id"
-            class="message-item px-16 py-12 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
+            class="message-item flex cursor-pointer items-center justify-between px-16 py-12 hover:bg-gray-50"
             @click="handleMessageClick(msg.id)"
           >
             <span class="flex-1 truncate">{{ msg.title }}</span>
-            <span v-if="msg.readFlag === 0" class="w-8 h-8 bg-red-500 rounded-full ml-8"></span>
+            <span v-if="msg.readFlag === 0" class="ml-8 h-8 w-8 rounded-full bg-red-500" />
           </div>
         </div>
-        <div v-else class="px-16 py-12 text-gray-400 text-center">
+        <div v-else class="px-16 py-12 text-center text-gray-400">
           暂无消息
         </div>
 
         <!-- 分割线 -->
-        <n-divider style="margin: 0" />
+        <NDivider style="margin: 0" />
 
         <!-- 操作按钮 -->
         <div class="action-list">
           <div
-            class="action-item px-16 py-12 hover:bg-gray-50 cursor-pointer flex items-center"
+            class="action-item flex cursor-pointer items-center px-16 py-12 hover:bg-gray-50"
             @click="handleViewAll"
           >
             <i class="i-material-symbols:mail-outline mr-8" />
@@ -51,7 +51,7 @@
           </div>
           <div
             v-if="unreadCount > 0"
-            class="action-item px-16 py-12 hover:bg-gray-50 cursor-pointer flex items-center"
+            class="action-item flex cursor-pointer items-center px-16 py-12 hover:bg-gray-50"
             @click="handleMarkAllRead"
           >
             <i class="i-material-symbols:mark-email-read-outline mr-8" />
@@ -59,16 +59,16 @@
           </div>
         </div>
       </div>
-    </n-popover>
+    </NPopover>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { NBadge, NDivider, NPopover } from 'naive-ui'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { NBadge, NPopover, NDivider } from 'naive-ui'
-import { request } from '@/utils'
 import messageApi from '@/api/message'
+import { request } from '@/utils'
 
 const router = useRouter()
 const unreadCount = ref(0)
@@ -86,7 +86,8 @@ async function fetchUnreadCount() {
       unreadCount.value = res.data.totalCount || 0
       console.log('[MessageNotification] 未读消息数量:', unreadCount.value)
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取未读消息数失败:', error)
   }
 }
@@ -100,7 +101,8 @@ async function fetchLatestMessages() {
       messages.value = res.data.list || res.data.records || []
       console.log('[MessageNotification] 消息列表数据:', messages.value)
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取最新消息失败:', error)
   }
 }
@@ -112,7 +114,8 @@ async function loadBizTypes() {
     if (res.code === 200 && res.data) {
       bizTypeOptions.value = res.data
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载业务类型失败:', error)
   }
 }
@@ -120,16 +123,16 @@ async function loadBizTypes() {
 // 处理消息点击
 async function handleMessageClick(messageId) {
   console.log('[MessageNotification] 点击消息:', messageId)
-  showPopover.value = false  // 关闭弹窗
+  showPopover.value = false // 关闭弹窗
   try {
     // 标记为已读
     await request.post(`/api/message/${messageId}/read`)
-    
+
     // 获取消息详情以获取业务类型和业务主键
     const detailRes = await request.get(`/api/message/${messageId}`)
     if (detailRes.code === 200 && detailRes.data) {
       const message = detailRes.data
-      
+
       // 如果有业务关联，跳转到业务页面
       if (message.bizType && message.bizKey) {
         const bizConfig = bizTypeOptions.value.find(opt => opt.bizType === message.bizType)
@@ -137,13 +140,14 @@ async function handleMessageClick(messageId) {
           let jumpUrl = bizConfig.jumpUrl
           jumpUrl = jumpUrl.replace('${bizKey}', message.bizKey)
           jumpUrl = jumpUrl.replace('${messageId}', message.id)
-          
+
           if (bizConfig.jumpTarget === '_blank') {
             window.open(jumpUrl, '_blank')
-          } else {
+          }
+          else {
             router.push(jumpUrl)
           }
-          
+
           // 刷新数据
           fetchUnreadCount()
           fetchLatestMessages()
@@ -151,13 +155,14 @@ async function handleMessageClick(messageId) {
         }
       }
     }
-    
+
     // 如果没有业务关联，跳转到消息列表
     router.push('/message/message-list')
     // 刷新数据
     fetchUnreadCount()
     fetchLatestMessages()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('处理消息点击失败:', error)
   }
 }
@@ -165,7 +170,7 @@ async function handleMessageClick(messageId) {
 // 查看全部消息
 function handleViewAll() {
   console.log('[MessageNotification] 查看全部消息')
-  showPopover.value = false  // 关闭弹窗
+  showPopover.value = false // 关闭弹窗
   router.push('/message/message-list')
 }
 
@@ -177,7 +182,8 @@ async function handleMarkAllRead() {
     window.$message.success('已全部标记为已读')
     fetchUnreadCount()
     fetchLatestMessages()
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('操作失败')
   }
 }
@@ -186,15 +192,17 @@ async function handleMarkAllRead() {
 async function initData() {
   // 只有登录状态才加载数据
   const token = localStorage.getItem('token')
-  if (!token) return
-  
+  if (!token)
+    return
+
   try {
     await Promise.all([
       fetchUnreadCount(),
       fetchLatestMessages(),
-      loadBizTypes()
+      loadBizTypes(),
     ])
-  } catch (error) {
+  }
+  catch (error) {
     console.error('初始化消息数据失败:', error)
   }
 }
@@ -208,7 +216,7 @@ defineExpose({
   refresh: () => {
     fetchUnreadCount()
     fetchLatestMessages()
-  }
+  },
 })
 </script>
 

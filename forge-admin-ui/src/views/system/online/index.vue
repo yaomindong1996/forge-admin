@@ -3,7 +3,7 @@
     <AiCrudPage
       ref="crudRef"
       :api-config="{
-        list: 'get@/auth/online/page'
+        list: 'get@/auth/online/page',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
@@ -11,8 +11,7 @@
       :hide-add="true"
       :hide-selection="true"
       :hide-batch-delete="true"
-    >
-    </AiCrudPage>
+    />
 
     <!-- 详情弹窗 -->
     <n-modal
@@ -23,7 +22,9 @@
     >
       <div v-if="currentUser" class="user-detail">
         <div class="detail-section">
-          <h4 class="section-title">用户信息</h4>
+          <h4 class="section-title">
+            用户信息
+          </h4>
           <div class="detail-row">
             <span class="label">用户名：</span>
             <span class="value">{{ currentUser.username || '-' }}</span>
@@ -43,7 +44,9 @@
         </div>
 
         <div class="detail-section">
-          <h4 class="section-title">登录信息</h4>
+          <h4 class="section-title">
+            登录信息
+          </h4>
           <div class="detail-row">
             <span class="label">登录IP：</span>
             <span class="value">{{ currentUser.ipAddress || '-' }}</span>
@@ -75,28 +78,32 @@
         </div>
 
         <div class="detail-section">
-          <h4 class="section-title">会话信息</h4>
+          <h4 class="section-title">
+            会话信息
+          </h4>
           <div class="detail-row">
             <span class="label">Token值：</span>
             <span class="value code">{{ currentUser.tokenValue || '-' }}</span>
           </div>
           <div class="detail-row">
             <span class="label">状态：</span>
-            <n-tag :type="currentUser.status === 1 ? 'success' : 'default'" size="small">
+            <NTag :type="currentUser.status === 1 ? 'success' : 'default'" size="small">
               {{ currentUser.status === 1 ? '在线' : '离线' }}
-            </n-tag>
+            </NTag>
           </div>
           <div class="detail-row">
             <span class="label">封禁状态：</span>
-            <n-tag :type="currentUser.banned ? 'error' : 'success'" size="small">
+            <NTag :type="currentUser.banned ? 'error' : 'success'" size="small">
               {{ currentUser.banned ? '已封禁' : '正常' }}
-            </n-tag>
+            </NTag>
           </div>
         </div>
       </div>
       <template #footer>
         <n-space justify="end">
-          <n-button @click="detailVisible = false">关闭</n-button>
+          <n-button @click="detailVisible = false">
+            关闭
+          </n-button>
         </n-space>
       </template>
     </n-modal>
@@ -104,8 +111,8 @@
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
+import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
@@ -212,10 +219,10 @@ const tableColumns = computed(() => [
     actions: [
       { label: '详情', key: 'detail', onClick: handleViewDetail },
       { label: '强制下线', key: 'kickout', type: 'error', onClick: handleKickout },
-      { label: '封禁(1小时)', key: 'ban', type: 'warning', onClick: handleBan, visible: (row) => !row.banned },
-      { label: '解封', key: 'unban', onClick: handleUnban, visible: (row) => !!row.banned }
-    ]
-  }
+      { label: '封禁(1小时)', key: 'ban', type: 'warning', onClick: handleBan, visible: row => !row.banned },
+      { label: '解封', key: 'unban', onClick: handleUnban, visible: row => !!row.banned },
+    ],
+  },
 ])
 
 // 查看详情
@@ -239,10 +246,12 @@ function handleKickout(row) {
         if (res.code === 200) {
           window.$message?.success('已强制下线')
           crudRef.value?.refresh()
-        } else {
+        }
+        else {
           window.$message?.error(res.message || '操作失败')
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.error('强制下线失败:', error)
         window.$message?.error('操作失败')
       }
@@ -268,10 +277,12 @@ function handleBan(row) {
         if (res.code === 200) {
           window.$message?.success('封禁成功')
           crudRef.value?.refresh()
-        } else {
+        }
+        else {
           window.$message?.error(res.message || '操作失败')
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.error('封禁失败:', error)
         window.$message?.error('操作失败')
       }
@@ -293,10 +304,12 @@ function handleUnban(row) {
         if (res.code === 200) {
           window.$message?.success('解封成功')
           crudRef.value?.refresh()
-        } else {
+        }
+        else {
           window.$message?.error(res.message || '操作失败')
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.error('解封失败:', error)
         window.$message?.error('操作失败')
       }

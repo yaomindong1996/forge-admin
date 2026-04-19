@@ -1,7 +1,7 @@
 import * as NaiveUI from 'naive-ui'
+import { loadingService } from '@/directives/modules/loading'
 import { useAppStore } from '@/store'
 import { isNullOrUndef } from '@/utils'
-import { loadingService } from '@/directives/modules/loading'
 import { copy } from './clipboard'
 import { setupImagePreview } from './imagePreview'
 import { setupWatermark } from './watermark'
@@ -105,8 +105,8 @@ export function setupNaiveDiscreteApi() {
     themeOverrides: useAppStore().naiveThemeOverrides,
   }))
   const { message, dialog, notification, loadingBar } = NaiveUI.createDiscreteApi(
-      ['message', 'dialog', 'notification', 'loadingBar'],
-      { configProviderProps },
+    ['message', 'dialog', 'notification', 'loadingBar'],
+    { configProviderProps },
   )
 
   window.$loadingBar = loadingBar
@@ -128,8 +128,8 @@ export function setupLoading() {
     // 打开遮罩层
     show(options) {
       const config = typeof options === 'string'
-          ? { text: options }
-          : options || {}
+        ? { text: options }
+        : options || {}
 
       loadingInstance = loadingService.show({
         text: config.text || '加载中...',

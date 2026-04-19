@@ -24,7 +24,7 @@ import { useDemoStore } from '@/stores/demo'
 
 const demoStore = useDemoStore()
 
-const handleClose = () => {
+function handleClose() {
   localStorage.setItem('demo-banner-closed', 'true')
 }
 
@@ -37,8 +37,8 @@ onMounted(() => {
 .demo-banner {
   flex-shrink: 0;
   text-align: center;
-  background: #FFF7E6;
-  border-bottom: 1px solid #FFD591;
+  background: #fff7e6;
+  border-bottom: 1px solid #ffd591;
   border-radius: 0;
 }
 

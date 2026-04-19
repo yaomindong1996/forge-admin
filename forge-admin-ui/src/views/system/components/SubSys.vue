@@ -1,9 +1,11 @@
 <template>
   <div class="sub-sys-management">
-    <n-space vertical>
-      <n-space>
-        <n-button type="primary" @click="handleAdd" class="add-subsys-btn">新增子系统</n-button>
-      </n-space>
+    <NSpace vertical>
+      <NSpace>
+        <NButton type="primary" class="add-subsys-btn" @click="handleAdd">
+          新增子系统
+        </NButton>
+      </NSpace>
 
       <n-data-table
         :columns="columns"
@@ -14,7 +16,7 @@
         size="small"
         @update:page="handlePageChange"
       />
-    </n-space>
+    </NSpace>
 
     <!-- 编辑抽屉 -->
     <n-drawer v-model:show="showDrawer" :width="500" placement="right">
@@ -48,10 +50,14 @@
         </n-form>
 
         <template #footer>
-          <n-space justify="end">
-            <n-button @click="showDrawer = false">取消</n-button>
-            <n-button type="primary" @click="handleSubmit" :loading="submitLoading">保存</n-button>
-          </n-space>
+          <NSpace justify="end">
+            <NButton @click="showDrawer = false">
+              取消
+            </NButton>
+            <NButton type="primary" :loading="submitLoading" @click="handleSubmit">
+              保存
+            </NButton>
+          </NSpace>
         </template>
       </n-drawer-content>
     </n-drawer>
@@ -59,11 +65,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, h } from 'vue'
 import { NButton, NSpace } from 'naive-ui'
-import IconSelector from '@/components/IconSelector.vue'
+import { h, onMounted, ref } from 'vue'
 import IconRenderer from '@/components/IconRenderer.vue'
+import IconSelector from '@/components/IconSelector.vue'
 import { request } from '@/utils'
+
+// 定义事件
+const emit = defineEmits(['refresh'])
 
 const message = window.$message
 
@@ -82,7 +91,7 @@ const formValue = ref({
   name: '',
   alias: '',
   url: '',
-  icon: ''
+  icon: '',
 })
 
 // 表单验证规则
@@ -90,23 +99,23 @@ const formRules = {
   name: {
     required: true,
     message: '请输入系统名称',
-    trigger: 'blur'
+    trigger: 'blur',
   },
   id: {
     required: true,
     message: '请输入系统ID',
-    trigger: 'blur'
+    trigger: 'blur',
   },
   alias: {
     required: true,
     message: '请输入别名',
-    trigger: 'blur'
+    trigger: 'blur',
   },
   url: {
     required: true,
     message: '请输入URL',
-    trigger: 'blur'
-  }
+    trigger: 'blur',
+  },
 }
 
 // 分页配置
@@ -116,7 +125,7 @@ const pagination = ref({
   itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 20, 50],
-  onChange: handlePageChange
+  onChange: handlePageChange,
 })
 
 // 表格列配置
@@ -125,25 +134,25 @@ const columns = [
     title: '系统名称',
     key: 'name',
     width: 200,
-    align: 'center'
+    align: 'center',
   },
   {
     title: '系统ID',
     key: 'id',
     width: 150,
-    align: 'center'
+    align: 'center',
   },
   {
     title: '别名',
     key: 'alias',
     width: 150,
-    align: 'center'
+    align: 'center',
   },
   {
     title: 'URL',
     key: 'url',
     width: 200,
-    align: 'center'
+    align: 'center',
   },
   {
     title: '图标',
@@ -152,16 +161,18 @@ const columns = [
     align: 'center',
     render(row) {
       return h('div', { style: 'display: flex; align-items: center; justify-content: center;' }, [
-        row.icon ? h(IconRenderer, {
-          icon: row.icon,
-          customStyle: 'font-size: 18px; margin-right: 5px;'
-        }) : null,
+        row.icon
+          ? h(IconRenderer, {
+              icon: row.icon,
+              customStyle: 'font-size: 18px; margin-right: 5px;',
+            })
+          : null,
         h(IconSelector, {
-          modelValue: row.icon,
-          'onUpdate:modelValue': (value) => handleIconChange(row, value)
-        })
+          'modelValue': row.icon,
+          'onUpdate:modelValue': value => handleIconChange(row, value),
+        }),
       ])
-    }
+    },
   },
   {
     title: '操作',
@@ -175,19 +186,19 @@ const columns = [
           h(NButton, {
             type: 'info',
             size: 'small',
-            quaternary:true,
-            onClick: () => handleEdit(row)
+            quaternary: true,
+            onClick: () => handleEdit(row),
           }, { default: () => '编辑' }),
           h(NButton, {
             type: 'error',
             size: 'small',
-            quaternary:true,
-            onClick: () => handleDelete(row)
-          }, { default: () => '删除' })
-        ]
+            quaternary: true,
+            onClick: () => handleDelete(row),
+          }, { default: () => '删除' }),
+        ],
       })
-    }
-  }
+    },
+  },
 ]
 
 // 处理图标变化
@@ -204,8 +215,9 @@ function handleIconChange(row, value) {
       loadData()
       // 通知父组件刷新树
       emit('refresh')
-    } catch (error) {
-      message.error('图标更新失败: ' + (error.message || error))
+    }
+    catch (error) {
+      message.error(`图标更新失败: ${error.message || error}`)
     }
   }, 300)
 }
@@ -218,8 +230,8 @@ async function loadData() {
     const res = await request.get('/subApp', {
       params: {
         page: pagination.value.page,
-        pageSize: pagination.value.pageSize
-      }
+        pageSize: pagination.value.pageSize,
+      },
     })
     // 兼容新旧数据结构
     const list = res.data?.list || res.data || []
@@ -228,9 +240,11 @@ async function loadData() {
     tableData.value = list
     // 确保 total是数字类型
     pagination.value.itemCount = Number(total)
-  } catch (error) {
-    message.error('获取数据失败: ' + (error.message || error))
-  } finally {
+  }
+  catch (error) {
+    message.error(`获取数据失败: ${error.message || error}`)
+  }
+  finally {
     loading.value = false
   }
 }
@@ -251,7 +265,7 @@ function handleAdd() {
     name: '',
     alias: '',
     url: '',
-    icon: ''
+    icon: '',
   }
   showDrawer.value = true
 }
@@ -274,17 +288,18 @@ function handleDelete(row) {
     onPositiveClick: async () => {
       try {
         // 调用实际的API接口，使用 _id 或 id 字段
-        await request.delete(`/subApp`,{
-          data:[row.id]
+        await request.delete(`/subApp`, {
+          data: [row.id],
         })
         message.success('删除成功')
         loadData()
         // 通知父组件刷新树
         emit('refresh')
-      } catch (error) {
-        message.error('删除失败: ' + error.message)
       }
-    }
+      catch (error) {
+        message.error(`删除失败: ${error.message}`)
+      }
+    },
   })
 }
 
@@ -303,7 +318,8 @@ function handleSubmit() {
         // 编辑 - 使用 PUT
         await request.put('/subApp', formValue.value)
         message.success('更新成功')
-      } else {
+      }
+      else {
         // 新增 - 使用 POST
         await request.post('/subApp', formValue.value)
         message.success('新增成功')
@@ -312,9 +328,11 @@ function handleSubmit() {
       loadData()
       // 通知父组件刷新树
       emit('refresh')
-    } catch (error) {
-      message.error('保存失败: ' + error.message)
-    } finally {
+    }
+    catch (error) {
+      message.error(`保存失败: ${error.message}`)
+    }
+    finally {
       submitLoading.value = false
     }
   })
@@ -325,12 +343,9 @@ function refresh() {
   loadData()
 }
 
-// 定义事件
-const emit = defineEmits(['refresh'])
-
 // 暴露方法给父组件
 defineExpose({
-  refresh
+  refresh,
 })
 
 // 初始化

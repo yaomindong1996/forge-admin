@@ -5,8 +5,8 @@
       <n-button
         circle
         quaternary
-        @click="showNotificationPanel = true"
         class="notification-trigger"
+        @click="showNotificationPanel = true"
       >
         <template #icon>
           <i class="i-material-symbols:notifications" />
@@ -34,7 +34,7 @@
               <n-tab-pane name="unread" tab="未读" />
               <n-tab-pane name="system" tab="系统" />
             </n-tabs>
-            
+
             <div class="action-buttons">
               <n-button
                 v-if="hasUnread"
@@ -45,7 +45,7 @@
                 <i class="i-material-symbols:mark-email-read" />
                 全部已读
               </n-button>
-              
+
               <n-button
                 text
                 size="small"
@@ -64,13 +64,13 @@
               <n-spin size="medium" />
               <span>加载中...</span>
             </div>
-            
+
             <!-- 空状态 -->
             <div v-else-if="filteredNotifications.length === 0" class="notification-empty">
               <i class="i-material-symbols:inbox" />
               <span>暂无消息</span>
             </div>
-            
+
             <!-- 通知项 -->
             <div v-else class="notification-items">
               <div
@@ -80,7 +80,7 @@
                 :class="{
                   'item-unread': !notification.read,
                   'item-important': notification.type === 'important',
-                  'item-system': notification.type === 'system'
+                  'item-system': notification.type === 'system',
                 }"
                 @click="handleNotificationClick(notification)"
               >
@@ -88,19 +88,19 @@
                 <div class="notification-icon" :class="`icon-${notification.type}`">
                   <i :class="getNotificationIcon(notification.type)" />
                 </div>
-                
+
                 <!-- 通知内容 -->
                 <div class="notification-content">
                   <div class="notification-header">
                     <span class="notification-title">{{ notification.title }}</span>
                     <span class="notification-time">{{ formatTime(notification.time) }}</span>
                   </div>
-                  
+
                   <div class="notification-body">
                     <span class="notification-message">{{ notification.message }}</span>
                   </div>
                 </div>
-                
+
                 <!-- 未读标记 -->
                 <div v-if="!notification.read" class="notification-dot" />
               </div>
@@ -122,20 +122,20 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
 import { message } from 'naive-ui'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
   // 通知列表
   notifications: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   // 每页数量
   pageSize: {
     type: Number,
-    default: 10
-  }
+    default: 10,
+  },
 })
 
 const emit = defineEmits(['read', 'clear', 'click'])
@@ -156,17 +156,18 @@ const hasUnread = computed(() => unreadCount.value > 0)
 // 过滤后的通知
 const filteredNotifications = computed(() => {
   let filtered = [...props.notifications]
-  
+
   // 按类型过滤
   if (activeTab.value === 'unread') {
     filtered = filtered.filter(n => !n.read)
-  } else if (activeTab.value === 'system') {
+  }
+  else if (activeTab.value === 'system') {
     filtered = filtered.filter(n => n.type === 'system')
   }
-  
+
   // 按时间排序（最新的在前）
   filtered.sort((a, b) => b.time - a.time)
-  
+
   // 分页
   const start = (currentPage.value - 1) * props.pageSize
   const end = start + props.pageSize
@@ -177,7 +178,8 @@ const filteredNotifications = computed(() => {
 const total = computed(() => {
   if (activeTab.value === 'unread') {
     return props.notifications.filter(n => !n.read).length
-  } else if (activeTab.value === 'system') {
+  }
+  else if (activeTab.value === 'system') {
     return props.notifications.filter(n => n.type === 'system').length
   }
   return props.notifications.length
@@ -191,7 +193,7 @@ function getNotificationIcon(type) {
     warning: 'i-material-symbols:warning',
     error: 'i-material-symbols:error',
     important: 'i-material-symbols:priority-high',
-    system: 'i-material-symbols:settings'
+    system: 'i-material-symbols:settings',
   }
   return icons[type] || icons.info
 }
@@ -202,12 +204,16 @@ function formatTime(timestamp) {
   const minutes = Math.floor(diff / 60000)
   const hours = Math.floor(diff / 3600000)
   const days = Math.floor(diff / 86400000)
-  
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes}分钟前`
-  if (hours < 24) return `${hours}小时前`
-  if (days < 7) return `${days}天前`
-  
+
+  if (minutes < 1)
+    return '刚刚'
+  if (minutes < 60)
+    return `${minutes}分钟前`
+  if (hours < 24)
+    return `${hours}小时前`
+  if (days < 7)
+    return `${days}天前`
+
   const date = new Date(timestamp)
   return `${date.getMonth() + 1}/${date.getDate()}`
 }
@@ -219,13 +225,13 @@ function handleNotificationClick(notification) {
     emit('read', notification.id)
     notification.read = true
   }
-  
+
   emit('click', notification)
 }
 
 // 标记全部已读
 function markAllRead() {
-  props.notifications.forEach(n => {
+  props.notifications.forEach((n) => {
     if (!n.read) {
       emit('read', n.id)
       n.read = true
@@ -252,7 +258,7 @@ defineExpose({
       id: Date.now(),
       read: false,
       time: Date.now(),
-      ...notification
+      ...notification,
     })
   },
   markAsRead: (id) => {
@@ -262,7 +268,7 @@ defineExpose({
     }
   },
   clearAll,
-  unreadCount
+  unreadCount,
 })
 </script>
 

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
+import { nextTick } from 'vue'
 import { useRouterStore } from '@/store'
 import { getSessionStorage, setSessionStorage } from '@/utils'
-import { nextTick } from 'vue'
 
 const TABS_KEY = `${import.meta.env.VITE_TENANT || 'default'}_tabs`
 
@@ -11,7 +11,7 @@ export const useTabStore = defineStore('tab', {
     activeTab: '',
     reloading: false, // 添加reloading状态用于页面刷新
     // 添加缓存视图列表
-    cacheViews: []
+    cacheViews: [],
   }),
   getters: {
     activeTabPath() {
@@ -29,7 +29,7 @@ export const useTabStore = defineStore('tab', {
         return
       this.tabs.push(tab)
       setSessionStorage(TABS_KEY, this.tabs)
-      
+
       // 添加缓存视图
       if (tab.path) {
         // 转换路径为缓存名称格式，例如 /system/user -> system-user
@@ -45,7 +45,7 @@ export const useTabStore = defineStore('tab', {
       if (index === -1)
         return
       const isLast = index === this.tabs.length - 1
-      
+
       // 删除对应的缓存视图
       const tab = this.tabs[index]
       if (tab.path) {
@@ -55,7 +55,7 @@ export const useTabStore = defineStore('tab', {
           this.cacheViews.splice(cacheIndex, 1)
         }
       }
-      
+
       this.tabs.splice(index, 1)
       setSessionStorage(TABS_KEY, this.tabs)
       if (key !== this.activeTab)
@@ -70,10 +70,10 @@ export const useTabStore = defineStore('tab', {
     removeOther(curPath) {
       // 删除其他标签时，也需要更新缓存视图列表
       const filterTabs = this.tabs.filter(item => item.path === curPath)
-      
+
       // 更新缓存视图列表
       const newCacheViews = []
-      filterTabs.forEach(tab => {
+      filterTabs.forEach((tab) => {
         if (tab.path) {
           const cacheName = tab.path.substring(1).replace(/\//g, '-').replace(/\?.*/, '')
           if (!newCacheViews.includes(cacheName)) {
@@ -82,7 +82,7 @@ export const useTabStore = defineStore('tab', {
         }
       })
       this.cacheViews = newCacheViews
-      
+
       this.setTabs(filterTabs)
       if (!filterTabs.find(item => item.path === this.activeTab)) {
         useRouterStore().router?.push(filterTabs[filterTabs.length - 1].path)
@@ -91,10 +91,10 @@ export const useTabStore = defineStore('tab', {
     removeLeft(curPath) {
       const curIndex = this.tabs.findIndex(item => item.path === curPath)
       const filterTabs = this.tabs.filter((item, index) => index >= curIndex)
-      
+
       // 更新缓存视图列表
       const newCacheViews = []
-      filterTabs.forEach(tab => {
+      filterTabs.forEach((tab) => {
         if (tab.path) {
           const cacheName = tab.path.substring(1).replace(/\//g, '-').replace(/\?.*/, '')
           if (!newCacheViews.includes(cacheName)) {
@@ -103,7 +103,7 @@ export const useTabStore = defineStore('tab', {
         }
       })
       this.cacheViews = newCacheViews
-      
+
       this.setTabs(filterTabs)
       if (!filterTabs.find(item => item.path === this.activeTab)) {
         useRouterStore().router?.push(filterTabs[filterTabs.length - 1].path)
@@ -112,10 +112,10 @@ export const useTabStore = defineStore('tab', {
     removeRight(curPath) {
       const curIndex = this.tabs.findIndex(item => item.path === curPath)
       const filterTabs = this.tabs.filter((item, index) => index <= curIndex)
-      
+
       // 更新缓存视图列表
       const newCacheViews = []
-      filterTabs.forEach(tab => {
+      filterTabs.forEach((tab) => {
         if (tab.path) {
           const cacheName = tab.path.substring(1).replace(/\//g, '-').replace(/\?.*/, '')
           if (!newCacheViews.includes(cacheName)) {
@@ -124,7 +124,7 @@ export const useTabStore = defineStore('tab', {
         }
       })
       this.cacheViews = newCacheViews
-      
+
       this.setTabs(filterTabs)
       if (!filterTabs.find(item => item.path === this.activeTab.value)) {
         useRouterStore().router?.push(filterTabs[filterTabs.length - 1].path)
@@ -142,7 +142,7 @@ export const useTabStore = defineStore('tab', {
     async reloadTab(path, keepAlive) {
       // 设置reloading状态为true
       this.reloading = true
-      
+
       // 如果是keepAlive页面，先移除再添加
       if (keepAlive) {
         const tab = this.tabs.find(item => item.path === path)
@@ -155,10 +155,10 @@ export const useTabStore = defineStore('tab', {
           tab.keepAlive = true
         }
       }
-      
+
       // 触发重新渲染
       await nextTick()
-      
+
       // 重置reloading状态
       this.reloading = false
     },

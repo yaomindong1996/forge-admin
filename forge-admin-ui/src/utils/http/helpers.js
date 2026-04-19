@@ -4,9 +4,9 @@ let isConfirming = false
 export function resolveResError(code, message, needTip = true) {
   // 检查是否在登录页面
   const isLoginPage = window.location.pathname === '/login'
-  
+
   switch (code) {
-    case '-8':  // 令牌无效
+    case '-8': // 令牌无效
     case 401:
       // 如果在登录页面，静默清除 token，不弹对话框
       if (isLoginPage) {
@@ -14,7 +14,7 @@ export function resolveResError(code, message, needTip = true) {
         authStore.resetToken()
         return false
       }
-      if (isConfirming || !needTip){
+      if (isConfirming || !needTip) {
         return
       }
       isConfirming = true
@@ -52,10 +52,10 @@ export function resolveResError(code, message, needTip = true) {
       })
       return false
     case 403:
-      message = message ||'请求被拒绝'
+      message = message || '请求被拒绝'
       break
     case 404:
-      message = message ||'请求资源或接口不存在'
+      message = message || '请求资源或接口不存在'
       break
     case 500:
       message = message || '服务器发生异常'

@@ -9,7 +9,7 @@ import md5 from 'md5'
  * MD5 加密
  * @param {string} data - 要加密的数据
  * @returns {string} 加密后的 MD5 字符串
- * 
+ *
  * @example
  * const encrypted = crypto.md5('password123')
  * console.log(encrypted) // '482c811da5d5b4bc6d497ffa98491e38'
@@ -28,7 +28,7 @@ export function md5Encrypt(data) {
  * @param {string} key - 密钥
  * @param {string} data - 要加密的数据
  * @returns {string} 加密后的 SHA 字符串
- * 
+ *
  * @example
  * const encrypted = crypto.sha('sha256', 'secretKey', 'password123')
  */
@@ -41,7 +41,7 @@ export function shaEncrypt(algorithm, key, data) {
   // 在浏览器环境中,需要使用 crypto-js 等库
   // 这里提供一个基础实现,实际项目中可能需要引入 crypto-js
   console.warn('shaEncrypt: 浏览器环境不支持 Node.js crypto 模块,请使用 crypto-js 库')
-  
+
   // 临时返回 md5,实际应该使用 crypto-js 的 HmacSHA256 等方法
   return md5(String(data))
 }
@@ -52,10 +52,12 @@ export function shaEncrypt(algorithm, key, data) {
  * @returns {string} Base64 编码后的字符串
  */
 export function base64Encode(data) {
-  if (!data) return ''
+  if (!data)
+    return ''
   try {
     return btoa(unescape(encodeURIComponent(String(data))))
-  } catch (error) {
+  }
+  catch (error) {
     console.error('base64Encode error:', error)
     return ''
   }
@@ -67,10 +69,12 @@ export function base64Encode(data) {
  * @returns {string} 解码后的字符串
  */
 export function base64Decode(data) {
-  if (!data) return ''
+  if (!data)
+    return ''
   try {
     return decodeURIComponent(escape(atob(String(data))))
-  } catch (error) {
+  }
+  catch (error) {
     console.error('base64Decode error:', error)
     return ''
   }
@@ -98,22 +102,22 @@ export const crypto = {
   sha: shaEncrypt,
   base64Encode,
   base64Decode,
-  randomString
+  randomString,
 }
 
+export { aesDecrypt, aesEncrypt } from './crypto/aes'
+export { cryptoConfig, shouldEncrypt, updateCryptoConfig } from './crypto/crypto-config'
 // 导出传输加解密相关功能
-export { encryptRequest, decryptResponse, encrypt, decrypt } from './crypto/crypto-interceptor'
-export { cryptoConfig, updateCryptoConfig, shouldEncrypt } from './crypto/crypto-config'
-export { sm4Encrypt, sm4Decrypt } from './crypto/sm4'
-export { aesEncrypt, aesDecrypt } from './crypto/aes'
-export { rsaEncrypt, rsaDecrypt } from './crypto/rsa'
-export { 
-  fetchPublicKey, 
-  exchangeKey, 
-  getSessionKey, 
-  isKeyExchanged, 
-  resetKeyExchange, 
-  initKeyExchange 
+export { decrypt, decryptResponse, encrypt, encryptRequest } from './crypto/crypto-interceptor'
+export {
+  exchangeKey,
+  fetchPublicKey,
+  getSessionKey,
+  initKeyExchange,
+  isKeyExchanged,
+  resetKeyExchange,
 } from './crypto/key-exchange'
+export { rsaDecrypt, rsaEncrypt } from './crypto/rsa'
+export { sm4Decrypt, sm4Encrypt } from './crypto/sm4'
 
 export default crypto

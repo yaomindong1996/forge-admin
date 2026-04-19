@@ -2,7 +2,7 @@
   <n-tooltip trigger="hover">
     <template #trigger>
       <i
-        class="ai-icon:beginner mr-16 cursor-pointer text-20"
+        class="ai-icon:beginner text-20 mr-16 cursor-pointer"
         @click="show = true"
       />
     </template>

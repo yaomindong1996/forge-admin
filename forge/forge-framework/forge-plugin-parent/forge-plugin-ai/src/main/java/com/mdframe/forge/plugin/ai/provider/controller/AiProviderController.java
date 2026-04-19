@@ -10,6 +10,8 @@ import com.mdframe.forge.plugin.ai.model.domain.AiModel;
 import com.mdframe.forge.plugin.ai.model.service.AiModelService;
 import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
 import com.mdframe.forge.plugin.ai.provider.service.AiProviderService;
+import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
+import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -60,12 +62,20 @@ public class AiProviderController {
      * 分页查询供应商列表
      */
     @GetMapping("/page")
+    @ApiDecrypt
+    @ApiEncrypt
     public RespInfo<Page<AiProvider>> page(
             @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize) {
-        Page<AiProvider> page = providerService.page(new Page<>(pageNum, pageSize),
-                new LambdaQueryWrapper<AiProvider>().orderByDesc(AiProvider::getCreateTime));
-        // 聚合填充 models 和 defaultModel，脱敏 apiKey
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) String providerName,
+            @RequestParam(required = false) String providerType,
+            @RequestParam(required = false) String status) {
+        LambdaQueryWrapper<AiProvider> wrapper = new LambdaQueryWrapper<AiProvider>()
+                .like(providerName != null && !providerName.isEmpty(), AiProvider::getProviderName, providerName)
+                .eq(providerType != null && !providerType.isEmpty(), AiProvider::getProviderType, providerType)
+                .eq(status != null && !status.isEmpty(), AiProvider::getStatus, status)
+                .orderByDesc(AiProvider::getCreateTime);
+        Page<AiProvider> page = providerService.page(new Page<>(pageNum, pageSize), wrapper);
         page.getRecords().forEach(this::fillAndMaskProvider);
         return RespInfo.success(page);
     }
@@ -74,6 +84,8 @@ public class AiProviderController {
      * 查询供应商详情
      */
     @GetMapping("/{id}")
+    @ApiDecrypt
+    @ApiEncrypt
     public RespInfo<AiProvider> getById(@PathVariable Long id) {
         AiProvider provider = providerService.getById(id);
         if (provider != null) {
@@ -86,6 +98,8 @@ public class AiProviderController {
      * 创建供应商
      */
     @PostMapping
+    @ApiDecrypt
+    @ApiEncrypt
     public RespInfo<Void> create(@RequestBody AiProvider provider) {
         providerService.save(provider);
         return RespInfo.success();
@@ -95,6 +109,8 @@ public class AiProviderController {
      * 更新供应商
      */
     @PutMapping
+    @ApiDecrypt
+    @ApiEncrypt
     public RespInfo<Void> update(@RequestBody AiProvider provider) {
         providerService.updateById(provider);
         // 双写同步：更新供应商后重新聚合 models
@@ -106,6 +122,8 @@ public class AiProviderController {
      * 删除供应商（校验关联模型）
      */
     @DeleteMapping("/{id}")
+    @ApiDecrypt
+    @ApiEncrypt
     public RespInfo<Void> delete(@PathVariable Long id) {
         long modelCount = modelService.countByProviderId(id);
         if (modelCount > 0) {
@@ -119,10 +137,11 @@ public class AiProviderController {
      * 测试供应商连接
      */
     @PostMapping("/test")
+    @ApiDecrypt
+    @ApiEncrypt
     public RespInfo<String> test(@RequestBody AiProvider provider) {
         try {
-            providerService.testConnection(provider);
-            return RespInfo.success("连接成功！");
+            return RespInfo.success(providerService.testConnection(provider));
         } catch (Exception e) {
             log.warn("[AI供应商测试失败] {}", e.getMessage());
             return RespInfo.error(e.getMessage());
@@ -133,6 +152,8 @@ public class AiProviderController {
      * 设为默认供应商
      */
     @PutMapping("/{id}/default")
+    @ApiDecrypt
+    @ApiEncrypt
     public RespInfo<Void> setDefault(@PathVariable Long id) {
         providerService.setDefault(id);
         return RespInfo.success();
@@ -143,7 +164,6 @@ public class AiProviderController {
      */
     private void fillAndMaskProvider(AiProvider provider) {
         fillModelsFromAiModel(provider);
-        maskApiKey(provider);
     }
 
     /**
@@ -162,18 +182,6 @@ public class AiProviderController {
                 .findFirst()
                 .orElse(provider.getDefaultModel());
         provider.setDefaultModel(defaultModel);
-    }
-
-    /**
-     * API Key 脱敏：保留前4后4位，中间用 **** 替代
-     */
-    private void maskApiKey(AiProvider provider) {
-        String apiKey = provider.getApiKey();
-        if (apiKey != null && apiKey.length() > 8) {
-            provider.setApiKey(apiKey.substring(0, 4) + "****" + apiKey.substring(apiKey.length() - 4));
-        } else if (apiKey != null && !apiKey.isEmpty()) {
-            provider.setApiKey("****");
-        }
     }
 
     /**

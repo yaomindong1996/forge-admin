@@ -23,7 +23,7 @@
       >
         <i :class="`${item}?mask`" class="text-28 text-gray-600 hover:bg-primary" />
         <span
-          class="mt-16 text-center text-14 text-gray-400 hover:color-primary"
+          class="text-14 mt-16 text-center text-gray-400 hover:color-primary"
           @click.stop="copy(item)"
         >
           {{ item }}
@@ -36,6 +36,7 @@
 <script setup>
 import { useClipboard } from '@vueuse/core'
 import icons from 'isme:icons'
+
 const { copy, copied } = useClipboard()
 
 watch(copied, (val) => {

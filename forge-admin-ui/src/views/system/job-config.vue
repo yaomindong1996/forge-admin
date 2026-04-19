@@ -7,37 +7,37 @@
         detail: 'get@/job/config/{id}',
         add: 'post@/job/config',
         update: 'put@/job/config',
-        delete: 'delete@/job/config/{id}'
+        delete: 'delete@/job/config/{id}',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
       :edit-schema="editSchema"
       row-key="id"
       :edit-grid-cols="1"
-      :modal-width="'900px'"
+      modal-width="900px"
       add-button-text="新增定时任务"
       :before-submit="beforeSubmit"
-      :modal-type="'modal'"
+      modal-type="modal"
     >
       <!-- Cron表达式自定义插槽 -->
       <template #form-cronExpression="{ value, updateValue, formData }">
         <div class="flex items-center gap-8" style="width: 100%">
-          <n-input
+          <NInput
             :value="value"
-            @update:value="updateValue"
             placeholder="请输入Cron表达式，如：0 0 12 * * ?"
             style="flex: 1"
+            @update:value="updateValue"
           />
-          <n-popover
+          <NPopover
             trigger="click"
             placement="bottom-start"
             scrollable
             :style="{ maxHeight: '500px' }"
           >
             <template #trigger>
-              <n-button text type="primary" size="small">
+              <NButton text type="primary" size="small">
                 选择常用
-              </n-button>
+              </NButton>
             </template>
             <div class="cron-selector-list">
               <div
@@ -46,28 +46,30 @@
                 class="cron-selector-item"
                 @click="updateValue(item.expression)"
               >
-                <div class="cron-desc">{{ item.description }}</div>
+                <div class="cron-desc">
+                  {{ item.description }}
+                </div>
                 <code class="cron-expr">{{ item.expression }}</code>
               </div>
             </div>
-          </n-popover>
+          </NPopover>
         </div>
       </template>
 
       <!-- 自定义工具栏按钮 -->
       <template #toolbar-end>
-        <n-button type="warning" size="small" @click="handleCleanLogs(7)">
+        <NButton type="warning" size="small" @click="handleCleanLogs(7)">
           <template #icon>
             <i class="i-material-symbols:delete-sweep-outline" />
           </template>
           清理7天前日志
-        </n-button>
-        <n-button type="error" size="small" @click="handleCleanLogs(0)">
+        </NButton>
+        <NButton type="error" size="small" @click="handleCleanLogs(0)">
           <template #icon>
             <i class="i-material-symbols:delete-forever-outline" />
           </template>
           清空所有日志
-        </n-button>
+        </NButton>
       </template>
     </AiCrudPage>
 
@@ -79,16 +81,18 @@
       style="width: 90%; max-width: 1400px"
       :mask-closable="false"
     >
-      <job-log-list ref="logListRef" :job-name="currentJob.jobName" />
+      <JobLogList ref="logListRef" :job-name="currentJob.jobName" />
       <template #footer>
         <n-space justify="end">
-          <n-button @click="logModalVisible = false">关闭</n-button>
-          <n-button type="primary" @click="handleRefreshLog">
+          <NButton @click="logModalVisible = false">
+            关闭
+          </NButton>
+          <NButton type="primary" @click="handleRefreshLog">
             <template #icon>
               <i class="i-material-symbols:refresh" />
             </template>
             刷新
-          </n-button>
+          </NButton>
         </n-space>
       </template>
     </n-modal>
@@ -96,8 +100,8 @@
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
-import { NTag, NButton, NPopover, NInput } from 'naive-ui'
+import { NButton, NInput, NPopover, NTag } from 'naive-ui'
+import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 import JobLogList from './job-log-list.vue'
@@ -126,7 +130,7 @@ const commonCronList = [
   { description: '每周一上午9点执行', expression: '0 0 9 ? * MON' },
   { description: '每月1号凌晨1点执行', expression: '0 0 1 1 * ?' },
   { description: '每天上午9点到下午6点，每小时执行一次', expression: '0 0 9-18 * * ?' },
-  { description: '工作日上午9点到下午6点，每小时执行一次', expression: '0 0 9-18 ? * MON-FRI' }
+  { description: '工作日上午9点到下午6点，每小时执行一次', expression: '0 0 9-18 ? * MON-FRI' },
 ]
 
 // 搜索表单
@@ -136,16 +140,16 @@ const searchSchema = [
     label: '任务名称',
     type: 'input',
     props: {
-      placeholder: '请输入任务名称'
-    }
+      placeholder: '请输入任务名称',
+    },
   },
   {
     field: 'jobGroup',
     label: '任务分组',
     type: 'input',
     props: {
-      placeholder: '请输入任务分组'
-    }
+      placeholder: '请输入任务分组',
+    },
   },
   {
     field: 'status',
@@ -156,64 +160,64 @@ const searchSchema = [
       options: [
         { label: '全部', value: null },
         { label: '停止', value: 0 },
-        { label: '运行中', value: 1 }
+        { label: '运行中', value: 1 },
       ],
-      clearable: true
-    }
-  }
+      clearable: true,
+    },
+  },
 ]
 
 // 表格列配置
 const tableColumns = computed(() => [
-  { 
-    prop: 'jobName', 
-    label: '任务名称', 
+  {
+    prop: 'jobName',
+    label: '任务名称',
     width: 150,
-    ellipsis: { tooltip: true }
+    ellipsis: { tooltip: true },
   },
-  { 
-    prop: 'jobGroup', 
-    label: '任务分组', 
-    width: 120 
+  {
+    prop: 'jobGroup',
+    label: '任务分组',
+    width: 120,
   },
-  { 
-    prop: 'executeMode', 
-    label: '执行模式', 
+  {
+    prop: 'executeMode',
+    label: '执行模式',
     width: 100,
     render: (row) => {
       const modeMap = {
-        'BEAN': { text: 'Bean', type: 'info' },
-        'HANDLER': { text: 'Handler', type: 'success' }
+        BEAN: { text: 'Bean', type: 'info' },
+        HANDLER: { text: 'Handler', type: 'success' },
       }
       const config = modeMap[row.executeMode] || { text: row.executeMode || '-', type: 'default' }
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
-    }
+    },
   },
-  { 
-    prop: 'executorBean', 
-    label: 'Bean名称', 
+  {
+    prop: 'executorBean',
+    label: 'Bean名称',
     width: 150,
     ellipsis: { tooltip: true },
-    render: (row) => row.executorBean || '-'
+    render: row => row.executorBean || '-',
   },
-  { 
-    prop: 'executorMethod', 
-    label: '方法名', 
+  {
+    prop: 'executorMethod',
+    label: '方法名',
     width: 120,
-    render: (row) => row.executorMethod || '-'
+    render: row => row.executorMethod || '-',
   },
-  { 
-    prop: 'executorHandler', 
-    label: 'Handler', 
+  {
+    prop: 'executorHandler',
+    label: 'Handler',
     width: 120,
     ellipsis: { tooltip: true },
-    render: (row) => row.executorHandler || '-'
+    render: row => row.executorHandler || '-',
   },
-  { 
-    prop: 'cronExpression', 
-    label: 'Cron表达式', 
+  {
+    prop: 'cronExpression',
+    label: 'Cron表达式',
     width: 140,
-    render: (row) => h('code', { class: 'text-primary text-12' }, row.cronExpression)
+    render: row => h('code', { class: 'text-primary text-12' }, row.cronExpression),
   },
   {
     prop: 'status',
@@ -222,18 +226,18 @@ const tableColumns = computed(() => [
     render: (row) => {
       const statusMap = {
         0: { text: '停止', type: 'warning' },
-        1: { text: '运行中', type: 'success' }
+        1: { text: '运行中', type: 'success' },
       }
       const config = statusMap[row.status] || { text: '未知', type: 'default' }
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
-    }
+    },
   },
-  { 
-    prop: 'description', 
-    label: '任务描述', 
+  {
+    prop: 'description',
+    label: '任务描述',
     minWidth: 150,
     ellipsis: { tooltip: true },
-    render: (row) => row.description || '-'
+    render: row => row.description || '-',
   },
   {
     prop: 'action',
@@ -242,13 +246,13 @@ const tableColumns = computed(() => [
     fixed: 'right',
     actions: [
       { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
-      { label: '启动', key: 'start', type: 'primary', onClick: handleStart, visible: (row) => row.status === 0 },
-      { label: '停止', key: 'stop', type: 'primary', onClick: handleStop, visible: (row) => row.status !== 0 },
+      { label: '启动', key: 'start', type: 'primary', onClick: handleStart, visible: row => row.status === 0 },
+      { label: '停止', key: 'stop', type: 'primary', onClick: handleStop, visible: row => row.status !== 0 },
       { label: '运行一次', key: 'trigger', type: 'primary', onClick: handleTrigger },
       { label: '运行日志', key: 'log', type: 'primary', onClick: handleViewLog },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -256,14 +260,14 @@ const editSchema = [
   {
     type: 'divider',
     label: '基本信息',
-    props: { titlePlacement: 'left' }
+    props: { titlePlacement: 'left' },
   },
   {
     field: 'jobName',
     label: '任务名称',
     type: 'input',
     rules: [{ required: true, message: '请输入任务名称', trigger: 'blur' }],
-    props: { placeholder: '请输入任务名称（唯一标识）' }
+    props: { placeholder: '请输入任务名称（唯一标识）' },
   },
   {
     field: 'jobGroup',
@@ -271,18 +275,18 @@ const editSchema = [
     type: 'input',
     defaultValue: 'DEFAULT',
     rules: [{ required: true, message: '请输入任务分组', trigger: 'blur' }],
-    props: { placeholder: '请输入任务分组，如：DEFAULT' }
+    props: { placeholder: '请输入任务分组，如：DEFAULT' },
   },
   {
     field: 'description',
     label: '任务描述',
     type: 'textarea',
-    props: { placeholder: '请输入任务描述', rows: 2 }
+    props: { placeholder: '请输入任务描述', rows: 2 },
   },
   {
     type: 'divider',
     label: '执行配置',
-    props: { titlePlacement: 'left' }
+    props: { titlePlacement: 'left' },
   },
   {
     field: 'executeMode',
@@ -293,51 +297,51 @@ const editSchema = [
     props: {
       options: [
         { label: 'Bean模式（本地调用）', value: 'BEAN' },
-        { label: 'Handler模式（扩展调用）', value: 'HANDLER' }
-      ]
-    }
+        { label: 'Handler模式（扩展调用）', value: 'HANDLER' },
+      ],
+    },
   },
   {
     field: 'executorBean',
     label: 'Bean名称',
     type: 'input',
-    vIf: (formData) => formData.executeMode === 'BEAN',
+    vIf: formData => formData.executeMode === 'BEAN',
     rules: [{ required: true, message: '请输入Bean名称', trigger: 'blur' }],
-    props: { placeholder: '请输入Spring Bean名称，如：demoJob' }
+    props: { placeholder: '请输入Spring Bean名称，如：demoJob' },
   },
   {
     field: 'executorMethod',
     label: '方法名',
     type: 'input',
-    vIf: (formData) => formData.executeMode === 'BEAN',
+    vIf: formData => formData.executeMode === 'BEAN',
     rules: [{ required: true, message: '请输入方法名', trigger: 'blur' }],
-    props: { placeholder: '请输入要执行的方法名，如：execute' }
+    props: { placeholder: '请输入要执行的方法名，如：execute' },
   },
   {
     field: 'executorHandler',
     label: 'Handler名称',
     type: 'input',
-    vIf: (formData) => formData.executeMode === 'HANDLER',
+    vIf: formData => formData.executeMode === 'HANDLER',
     rules: [{ required: true, message: '请输入Handler名称', trigger: 'blur' }],
-    props: { placeholder: '请输入Handler名称' }
+    props: { placeholder: '请输入Handler名称' },
   },
   {
     field: 'jobParam',
     label: '任务参数',
     type: 'textarea',
-    props: { placeholder: '请输入任务参数（JSON格式，可选）', rows: 2 }
+    props: { placeholder: '请输入任务参数（JSON格式，可选）', rows: 2 },
   },
   {
     type: 'divider',
     label: '调度配置',
-    props: { titlePlacement: 'left' }
+    props: { titlePlacement: 'left' },
   },
   {
     field: 'cronExpression',
     label: 'Cron表达式',
     type: 'slot',
     slotName: 'cronExpression',
-    rules: [{ required: true, message: '请输入Cron表达式', trigger: 'blur' }]
+    rules: [{ required: true, message: '请输入Cron表达式', trigger: 'blur' }],
   },
   {
     field: 'status',
@@ -347,53 +351,54 @@ const editSchema = [
     props: {
       options: [
         { label: '停止', value: 0 },
-        { label: '运行', value: 1 }
-      ]
-    }
+        { label: '运行', value: 1 },
+      ],
+    },
   },
   {
     type: 'divider',
     label: '高级配置',
-    props: { titlePlacement: 'left' }
+    props: { titlePlacement: 'left' },
   },
   {
     field: 'retryCount',
     label: '失败重试次数',
     type: 'input-number',
     defaultValue: 0,
-    props: { 
+    props: {
       placeholder: '失败后重试次数',
       min: 0,
-      max: 5
-    }
+      max: 5,
+    },
   },
   {
     field: 'alarmEmail',
     label: '告警邮箱',
     type: 'input',
-    props: { placeholder: '失败时发送告警的邮箱地址（可选）' }
+    props: { placeholder: '失败时发送告警的邮箱地址（可选）' },
   },
   {
     field: 'webhookUrl',
     label: 'WebHook地址',
     type: 'input',
-    props: { placeholder: '失败时回调的WebHook地址（可选）' }
-  }
+    props: { placeholder: '失败时回调的WebHook地址（可选）' },
+  },
 ]
 
 // 表单提交前处理
 function beforeSubmit(formData) {
   // 清理不需要的字段
   const data = { ...formData }
-  
+
   // 根据执行模式清理多余字段
   if (data.executeMode === 'BEAN') {
     delete data.executorHandler
-  } else if (data.executeMode === 'HANDLER') {
+  }
+  else if (data.executeMode === 'HANDLER') {
     delete data.executorBean
     delete data.executorMethod
   }
-  
+
   return data
 }
 
@@ -414,10 +419,11 @@ function handleDelete(row) {
         await request.delete(`/job/config/${row.id}`)
         window.$message.success('删除成功')
         crudRef.value?.refresh()
-      } catch (error) {
+      }
+      catch (error) {
         console.error('删除失败:', error)
       }
-    }
+    },
   })
 }
 
@@ -427,7 +433,8 @@ async function handleStart(row) {
     await request.post(`/job/config/${row.id}/start`)
     window.$message.success('启动成功')
     crudRef.value?.refresh()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('启动失败:', error)
   }
 }
@@ -444,10 +451,11 @@ async function handleStop(row) {
         await request.post(`/job/config/${row.id}/stop`)
         window.$message.success('停止成功')
         crudRef.value?.refresh()
-      } catch (error) {
+      }
+      catch (error) {
         console.error('停止失败:', error)
       }
-    }
+    },
   })
 }
 
@@ -457,7 +465,8 @@ async function handleTrigger(row) {
     window.$message.loading('正在执行...', { key: 'trigger', duration: 0 })
     await request.post(`/job/config/${row.id}/trigger`)
     window.$message.success('任务已提交执行', { key: 'trigger' })
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('执行失败', { key: 'trigger' })
     console.error('执行失败:', error)
   }
@@ -477,10 +486,10 @@ function handleRefreshLog() {
 // 清理日志
 function handleCleanLogs(days) {
   const title = days === 0 ? '清空所有日志' : `清理${days}天前日志`
-  const content = days === 0 
-    ? '确定要清空所有任务日志吗？此操作不可恢复！' 
+  const content = days === 0
+    ? '确定要清空所有任务日志吗？此操作不可恢复！'
     : `确定要清理${days}天前的任务日志吗？`
-  
+
   window.$dialog.warning({
     title,
     content,
@@ -491,11 +500,12 @@ function handleCleanLogs(days) {
         const res = await request.delete('/job/log/clean', { params: { days } })
         const count = res.data || 0
         window.$message.success(`清理成功，共清理 ${count} 条日志`)
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('清理失败')
         console.error('清理失败:', error)
       }
-    }
+    },
   })
 }
 </script>

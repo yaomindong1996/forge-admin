@@ -101,3 +101,21 @@ export function modelUpdate(data) {
 export function modelDelete(id) {
   return request.delete(`/ai/model/${id}`)
 }
+
+// ========== 会话管理 ==========
+
+export function sessionPage(params) {
+  return request.get('/ai/admin/session/page', { params })
+}
+
+export function sessionMessages(sessionId) {
+  return request.get(`/ai/admin/session/${sessionId}/messages`)
+}
+
+export function sessionDelete(sessionId) {
+  return request.delete(`/ai/admin/session/${sessionId}`)
+}
+
+export function sessionStatistics() {
+  return request.get('/ai/admin/session/statistics')
+}

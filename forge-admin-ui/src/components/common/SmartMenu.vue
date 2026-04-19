@@ -14,10 +14,10 @@
         <div class="menu-item-content">
           <!-- 图标 -->
           <i v-if="option.icon" :class="option.icon" class="menu-icon" />
-          
+
           <!-- 标签文字 -->
           <span class="menu-label">{{ option.label }}</span>
-          
+
           <!-- 使用频率徽章 -->
           <n-tag
             v-if="showFrequency && option.frequency >= threshold"
@@ -27,7 +27,7 @@
           >
             常用
           </n-tag>
-          
+
           <!-- 通知计数 -->
           <n-badge
             v-if="option.badge"
@@ -42,7 +42,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMenuStore } from '@/store'
 
@@ -50,28 +50,28 @@ const props = defineProps({
   // 是否显示使用频率
   showFrequency: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 显示常用标签的阈值
   threshold: {
     type: Number,
-    default: 10
+    default: 10,
   },
   // 是否折叠
   collapsed: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 折叠宽度
   collapsedWidth: {
     type: Number,
-    default: 64
+    default: 64,
   },
   // 菜单选项
   options: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['select', 'expand'])
@@ -95,7 +95,7 @@ function addFrequencyToProps(options) {
   return options.map(option => ({
     ...option,
     frequency: menuFrequency.value[option.key] || 0,
-    children: option.children ? addFrequencyToProps(option.children) : undefined
+    children: option.children ? addFrequencyToProps(option.children) : undefined,
   }))
 }
 
@@ -112,8 +112,10 @@ function sortMenuByFrequency(options) {
       return b.frequency - a.frequency
     }
     // 如果只有一个有频率，有频率的排前面
-    if (a.frequency) return -1
-    if (b.frequency) return 1
+    if (a.frequency)
+      return -1
+    if (b.frequency)
+      return 1
     // 都没有频率，保持原顺序
     return 0
   })
@@ -121,17 +123,17 @@ function sortMenuByFrequency(options) {
   // 递归处理子菜单
   return sorted.map(option => ({
     ...option,
-    children: option.children ? sortMenuByFrequency(option.children) : undefined
+    children: option.children ? sortMenuByFrequency(option.children) : undefined,
   }))
 }
 
 // 处理菜单选择
 function handleSelect(key) {
   activeKey.value = key
-  
+
   // 记录菜单使用频率
   menuStore.incrementMenuFrequency(key)
-  
+
   // 导航
   const findMenuItem = (options) => {
     for (const option of options) {
@@ -140,17 +142,18 @@ function handleSelect(key) {
       }
       if (option.children) {
         const found = findMenuItem(option.children)
-        if (found) return found
+        if (found)
+          return found
       }
     }
     return null
   }
-  
+
   const menuItem = findMenuItem(props.options)
   if (menuItem && menuItem.path) {
     router.push(menuItem.path)
   }
-  
+
   emit('select', key, menuItem)
 }
 
@@ -169,12 +172,13 @@ watch(() => router.currentRoute.value.path, (path) => {
       }
       if (option.children) {
         const key = findKeyByPath(option.children)
-        if (key) return key
+        if (key)
+          return key
       }
     }
     return null
   }
-  
+
   activeKey.value = findKeyByPath(props.options) || ''
 }, { immediate: true })
 
@@ -185,7 +189,7 @@ defineExpose({
   },
   getFrequency: (key) => {
     return menuFrequency.value[key] || 0
-  }
+  },
 })
 </script>
 

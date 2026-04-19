@@ -4,14 +4,15 @@
 
 /**
  * 获取文件访问 URL
- * @param {string|Object} fileData - 文件ID字符串或文件元数据对象
+ * @param {string | object} fileData - 文件ID字符串或文件元数据对象
  *   - 如果是字符串: fileId（推荐）或 filePath
  *   - 如果是对象: { fileId, filePath, accessUrl }
  * @returns {string} 完整的文件访问 URL
  */
 export function getFileUrl(fileData) {
-  if (!fileData) return ''
-  
+  if (!fileData)
+    return ''
+
   // 如果是对象，优先使用 accessUrl，然后是 fileId，最后是 filePath
   if (typeof fileData === 'object') {
     if (fileData.accessUrl) {
@@ -27,7 +28,7 @@ export function getFileUrl(fileData) {
     }
     return ''
   }
-  
+
   // 如果是字符串，统一使用下载接口
   return buildFileUrl(fileData)
 }
@@ -38,15 +39,16 @@ export function getFileUrl(fileData) {
  * @returns {string} 完整的文件访问 URL
  */
 function buildFileUrl(idOrPath) {
-  if (!idOrPath) return ''
-  
+  if (!idOrPath)
+    return ''
+
   // 如果已经是完整的 URL（http:// 或 https://），直接返回
   if (idOrPath.startsWith('http://') || idOrPath.startsWith('https://')) {
     return idOrPath
   }
-  
+
   const prefix = import.meta.env.VITE_REQUEST_PREFIX || ''
-  
+
   // 统一使用下载接口访问文件
   // 注意：这里假设传入的是 fileId
   // 如果传入的是 filePath（包含 /），也会尝试作为 fileId 使用，可能会失败
@@ -59,8 +61,9 @@ function buildFileUrl(idOrPath) {
  * @returns {string} 文件下载 URL
  */
 export function getFileDownloadUrl(fileId) {
-  if (!fileId) return ''
-  
+  if (!fileId)
+    return ''
+
   const prefix = import.meta.env.VITE_REQUEST_PREFIX || ''
   return `${prefix}/api/file/download/${fileId}`
 }
@@ -68,7 +71,7 @@ export function getFileDownloadUrl(fileId) {
 /**
  * 获取图片预览 URL（带缩略图参数）
  * @param {string} filePath - 文件路径
- * @param {Object} options - 选项
+ * @param {object} options - 选项
  * @param {number} options.width - 宽度
  * @param {number} options.height - 高度
  * @param {string} options.mode - 缩放模式: 'fit' | 'fill' | 'crop'
@@ -76,16 +79,19 @@ export function getFileDownloadUrl(fileId) {
  */
 export function getImageUrl(filePath, options = {}) {
   const baseUrl = getFileUrl(filePath)
-  
+
   if (!baseUrl || !options || Object.keys(options).length === 0) {
     return baseUrl
   }
-  
+
   const params = new URLSearchParams()
-  if (options.width) params.append('width', options.width)
-  if (options.height) params.append('height', options.height)
-  if (options.mode) params.append('mode', options.mode)
-  
+  if (options.width)
+    params.append('width', options.width)
+  if (options.height)
+    params.append('height', options.height)
+  if (options.mode)
+    params.append('mode', options.mode)
+
   const queryString = params.toString()
   return queryString ? `${baseUrl}?${queryString}` : baseUrl
 }

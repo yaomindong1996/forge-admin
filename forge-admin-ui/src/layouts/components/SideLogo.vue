@@ -76,7 +76,9 @@ const systemName = computed(() => {
 /* 过渡动画 */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
-  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  transition:
+    opacity var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .fade-slide-enter-from,

@@ -1,6 +1,6 @@
 <template>
   <div class="icon-selector">
-    <n-button ghost :disabled="disabled" @click="showDrawer = true" style="width: 100%">
+    <n-button ghost :disabled="disabled" style="width: 100%" @click="showDrawer = true">
       <template v-if="modelValue">
         <IconRenderer :icon="modelValue" custom-class="icon-preview" />
         <span class="icon-text">{{ formatDisplayName(modelValue) }}</span>
@@ -14,8 +14,8 @@
           <div class="drawer-header">
             <span class="drawer-title">选择图标</span>
             <n-button
-              style="margin-right: 30px"
               v-if="modelValue"
+              style="margin-right: 30px"
               type="error"
               secondary
               size="small"
@@ -38,8 +38,12 @@
               style="margin-bottom: 12px"
             />
             <n-tabs v-model:value="activeTab" type="segment" size="small">
-              <n-tab name="ionicons">Ionicons</n-tab>
-              <n-tab name="local">本地图标</n-tab>
+              <n-tab name="ionicons">
+                Ionicons
+              </n-tab>
+              <n-tab name="local">
+                本地图标
+              </n-tab>
             </n-tabs>
           </div>
 
@@ -53,7 +57,9 @@
                 @click="selectIcon(icon)"
               >
                 <component :is="getIoniconComponent(icon)" class="icon" />
-                <div class="icon-name">{{ formatIconName(icon) }}</div>
+                <div class="icon-name">
+                  {{ formatIconName(icon) }}
+                </div>
               </div>
               <div v-if="filteredIonicons.length === 0" class="no-icons">
                 未找到匹配的图标
@@ -68,8 +74,10 @@
                 :class="{ selected: isIconSelected(icon, 'local') }"
                 @click="selectIcon(icon)"
               >
-                <i :class="icon" class="text-20"/>
-                <div class="icon-name">{{ icon }}</div>
+                <i :class="icon" class="text-20" />
+                <div class="icon-name">
+                  {{ icon }}
+                </div>
               </div>
               <div v-if="filteredLocalIcons.length === 0" class="no-icons">
                 未找到匹配的图标
@@ -83,20 +91,21 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
 import * as ionicons from '@vicons/ionicons5'
+import icons from 'isme:icons'
+import { computed, onMounted, ref } from 'vue'
 import { loadSvgIcons } from '@/utils/svg-icons'
 import IconRenderer from './IconRenderer.vue'
-import icons from "isme:icons"
+
 const props = defineProps({
   modelValue: {
     type: String,
-    default: ''
+    default: '',
   },
   disabled: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -114,16 +123,18 @@ const localIconNames = ref([])
 
 // 过滤 Ionicons 图标
 const filteredIonicons = computed(() => {
-  if (!searchText.value) return ioniconNames
+  if (!searchText.value)
+    return ioniconNames
   return ioniconNames.filter(name =>
-    name.toLowerCase().includes(searchText.value.toLowerCase())
+    name.toLowerCase().includes(searchText.value.toLowerCase()),
   )
 })
 
 // 过滤本地图标
 const filteredLocalIcons = computed(() => {
-  if (!searchText.value) return icons
-  return icons.filter(name => {
+  if (!searchText.value)
+    return icons
+  return icons.filter((name) => {
     // 对于带目录前缀的图标名称（如 feather:activity），只搜索文件名部分
     const displayName = name.includes(':') ? name.split(':')[1] : name
     return displayName.toLowerCase().includes(searchText.value.toLowerCase())
@@ -142,7 +153,8 @@ function getLocalIconComponent(name) {
 
 // 获取图标组件
 function getIconComponent(name) {
-  if (!name) return null
+  if (!name)
+    return null
 
   // 如果是 Ionicons 图标
   if (ioniconNames.includes(name)) {
@@ -175,7 +187,8 @@ function selectIcon(iconName) {
   let iconWithPrefix = ''
   if (activeTab.value === 'ionicons') {
     iconWithPrefix = `ionicons5:${iconName}`
-  } else if (activeTab.value === 'local') {
+  }
+  else if (activeTab.value === 'local') {
     iconWithPrefix = `local:${iconName}`
   }
   emit('update:modelValue', iconWithPrefix)
@@ -191,7 +204,8 @@ function clearSelection() {
 
 // 判断图标是否被选中
 function isIconSelected(iconName, type) {
-  if (!props.modelValue) return false
+  if (!props.modelValue)
+    return false
 
   // 构建完整的图标名称（带前缀）
   const fullIconName = type === 'ionicons'
@@ -203,7 +217,8 @@ function isIconSelected(iconName, type) {
 
 // 格式化显示名称（用于按钮显示）
 function formatDisplayName(iconValue) {
-  if (!iconValue) return ''
+  if (!iconValue)
+    return ''
 
   // 移除前缀，只显示图标名称
   if (iconValue.includes(':')) {
@@ -219,14 +234,14 @@ async function loadLocalIcons() {
     const { components, names } = await loadSvgIcons()
     localIconComponents.value = components
     localIconNames.value = names
-
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载本地图标失败:', error)
   }
 }
 
 onMounted(() => {
-  //暂时不用了
+  // 暂时不用了
   // loadLocalIcons()
 })
 </script>

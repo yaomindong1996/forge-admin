@@ -32,9 +32,11 @@ const { dict, loading, reload } = useDict('case_status', 'matter_type', 'notice_
 #### useDict(...dictTypes)
 
 **参数：**
+
 - `dictTypes`: 字典类型列表（可变参数）
 
 **返回值：**
+
 ```javascript
 {
   dict: Ref<Object>,      // 字典数据对象，key 为字典类型，value 为字典列表
@@ -46,6 +48,7 @@ const { dict, loading, reload } = useDict('case_status', 'matter_type', 'notice_
 ```
 
 **示例：**
+
 ```javascript
 const { dict, getLabel, getDict } = useDict('case_status')
 
@@ -87,10 +90,12 @@ const item = getDict('case_status', '1')
 - `error` - 错误样式（红色标签）
 
 **特别说明：**
+
 - 当 `listClass` 为 `default` 或未设置时，DictTag 会显示为普通文字，不带标签样式
 - 如果需要强制显示标签样式，可以通过 `type` 属性指定：`<DictTag :options="dict.xxx" :value="row.xxx" type="default" />`
 
 系统会自动兼容旧的命名方式：
+
 - `primary` → `info`
 - `danger` → `error`
 
@@ -100,8 +105,8 @@ const item = getDict('case_status', '1')
 
 ```vue
 <script setup>
-import { useDict } from '@/composables/useDict'
 import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 
 const { dict } = useDict('case_status', 'matter_type')
 </script>
@@ -109,17 +114,17 @@ const { dict } = useDict('case_status', 'matter_type')
 <template>
   <!-- 方式1：传入 options -->
   <DictTag :options="dict.case_status" :value="row.status" />
-  
+
   <!-- 方式2：传入 dictType（会自动加载） -->
   <DictTag dict-type="case_status" :value="row.status" />
-  
+
   <!-- 自定义标签类型 -->
   <DictTag :options="dict.matter_type" :value="row.matterType" type="success" />
-  
+
   <!-- 自定义尺寸和样式 -->
-  <DictTag 
-    :options="dict.notice_reason" 
-    :value="row.reason" 
+  <DictTag
+    :options="dict.notice_reason"
+    :value="row.reason"
     size="medium"
     round
     :bordered="false"
@@ -129,24 +134,24 @@ const { dict } = useDict('case_status', 'matter_type')
 
 ### Props
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| options | Array | null | 字典选项列表（优先使用） |
-| dictType | String | '' | 字典类型（当 options 为空时使用） |
-| value | String/Number | '' | 字典值 |
-| type | String | '' | 标签类型（default/success/warning/error/info） |
-| size | String | 'small' | 标签尺寸 |
-| round | Boolean | false | 是否圆角 |
-| bordered | Boolean | true | 是否显示边框 |
-| closable | Boolean | false | 是否可关闭 |
+| 参数     | 类型          | 默认值  | 说明                                           |
+| -------- | ------------- | ------- | ---------------------------------------------- |
+| options  | Array         | null    | 字典选项列表（优先使用）                       |
+| dictType | String        | ''      | 字典类型（当 options 为空时使用）              |
+| value    | String/Number | ''      | 字典值                                         |
+| type     | String        | ''      | 标签类型（default/success/warning/error/info） |
+| size     | String        | 'small' | 标签尺寸                                       |
+| round    | Boolean       | false   | 是否圆角                                       |
+| bordered | Boolean       | true    | 是否显示边框                                   |
+| closable | Boolean       | false   | 是否可关闭                                     |
 
 ### 在表格中使用
 
 ```vue
 <script setup>
 import { h } from 'vue'
-import { useDict } from '@/composables/useDict'
 import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 
 const { dict } = useDict('case_status', 'matter_type')
 
@@ -193,15 +198,15 @@ const formData = ref({
 
 <template>
   <!-- 单选 -->
-  <DictSelect 
-    v-model:value="formData.status" 
+  <DictSelect
+    v-model:value="formData.status"
     dict-type="case_status"
     placeholder="请选择状态"
   />
-  
+
   <!-- 多选 -->
-  <DictSelect 
-    v-model:value="formData.types" 
+  <DictSelect
+    v-model:value="formData.types"
     dict-type="matter_type"
     multiple
     placeholder="请选择事项类型"
@@ -211,15 +216,15 @@ const formData = ref({
 
 ### Props
 
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| value | String/Number/Array | null | v-model 绑定值 |
-| dictType | String | - | 字典类型（必填） |
-| placeholder | String | '请选择' | 占位符 |
-| disabled | Boolean | false | 是否禁用 |
-| clearable | Boolean | true | 是否可清空 |
-| filterable | Boolean | true | 是否可搜索 |
-| multiple | Boolean | false | 是否多选 |
+| 参数        | 类型                | 默认值   | 说明             |
+| ----------- | ------------------- | -------- | ---------------- |
+| value       | String/Number/Array | null     | v-model 绑定值   |
+| dictType    | String              | -        | 字典类型（必填） |
+| placeholder | String              | '请选择' | 占位符           |
+| disabled    | Boolean             | false    | 是否禁用         |
+| clearable   | Boolean             | true     | 是否可清空       |
+| filterable  | Boolean             | true     | 是否可搜索       |
+| multiple    | Boolean             | false    | 是否多选         |
 
 ### 在 AiForm 中使用
 
@@ -245,10 +250,10 @@ const schema = [
 <template>
   <AiForm v-model:value="formData" :schema="schema">
     <template #status="{ value, updateValue }">
-      <DictSelect 
-        :value="value" 
-        @update:value="updateValue"
+      <DictSelect
+        :value="value"
         dict-type="case_status"
+        @update:value="updateValue"
       />
     </template>
   </AiForm>
@@ -261,9 +266,9 @@ const schema = [
 <script setup>
 import { h } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
-import { useDict } from '@/composables/useDict'
-import DictTag from '@/components/DictTag.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 
 const { dict } = useDict('case_status', 'matter_type')
 
@@ -282,7 +287,7 @@ const columns = [
   {
     prop: 'status',
     label: '状态',
-    render: (row) => h(DictTag, { options: dict.value.case_status, value: row.status })
+    render: row => h(DictTag, { options: dict.value.case_status, value: row.status })
   }
 ]
 
@@ -307,19 +312,19 @@ const editSchema = [
   >
     <!-- 搜索表单插槽 -->
     <template #search-status="{ value, updateValue }">
-      <DictSelect 
-        :value="value" 
-        @update:value="updateValue"
+      <DictSelect
+        :value="value"
         dict-type="case_status"
+        @update:value="updateValue"
       />
     </template>
-    
+
     <!-- 编辑表单插槽 -->
     <template #form-status="{ value, updateValue }">
-      <DictSelect 
-        :value="value" 
-        @update:value="updateValue"
+      <DictSelect
+        :value="value"
         dict-type="case_status"
+        @update:value="updateValue"
       />
     </template>
   </AiCrudPage>
@@ -364,7 +369,7 @@ export default {
 </script>
 
 <template>
-  <dict-tag :options="dict.type.matter_type" :value="scope.row.matterType"/>
+  <dict-tag :options="dict.type.matter_type" :value="scope.row.matterType" />
 </template>
 ```
 
@@ -372,14 +377,14 @@ export default {
 
 ```vue
 <script setup>
-import { useDict } from '@/composables/useDict'
 import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 
 const { dict } = useDict('case_status', 'matter_type', 'notice_reason')
 </script>
 
 <template>
-  <DictTag :options="dict.matter_type" :value="row.matterType"/>
+  <DictTag :options="dict.matter_type" :value="row.matterType" />
 </template>
 ```
 
@@ -402,11 +407,11 @@ const { dict } = useDict('case_status', 'matter_type', 'notice_reason')
 
 ```vue
 <script setup>
-import { ref, h } from 'vue'
+import { h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
-import { useDict } from '@/composables/useDict'
-import DictTag from '@/components/DictTag.vue'
 import DictSelect from '@/components/DictSelect.vue'
+import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 
 const { dict, loading } = useDict('case_status', 'matter_type', 'priority_level')
 
@@ -432,19 +437,19 @@ const columns = [
     prop: 'status',
     label: '状态',
     width: 100,
-    render: (row) => h(DictTag, { options: dict.value.case_status, value: row.status })
+    render: row => h(DictTag, { options: dict.value.case_status, value: row.status })
   },
   {
     prop: 'matterType',
     label: '事项类型',
     width: 120,
-    render: (row) => h(DictTag, { options: dict.value.matter_type, value: row.matterType })
+    render: row => h(DictTag, { options: dict.value.matter_type, value: row.matterType })
   },
   {
     prop: 'priority',
     label: '优先级',
     width: 100,
-    render: (row) => h(DictTag, { options: dict.value.priority_level, value: row.priority, type: 'warning' })
+    render: row => h(DictTag, { options: dict.value.priority_level, value: row.priority, type: 'warning' })
   }
 ]
 
@@ -488,24 +493,24 @@ const editSchema = [
   >
     <!-- 搜索表单插槽 -->
     <template #search-status="{ value, updateValue }">
-      <DictSelect :value="value" @update:value="updateValue" dict-type="case_status" />
+      <DictSelect :value="value" dict-type="case_status" @update:value="updateValue" />
     </template>
-    
+
     <template #search-matterType="{ value, updateValue }">
-      <DictSelect :value="value" @update:value="updateValue" dict-type="matter_type" />
+      <DictSelect :value="value" dict-type="matter_type" @update:value="updateValue" />
     </template>
-    
+
     <!-- 编辑表单插槽 -->
     <template #form-status="{ value, updateValue }">
-      <DictSelect :value="value" @update:value="updateValue" dict-type="case_status" />
+      <DictSelect :value="value" dict-type="case_status" @update:value="updateValue" />
     </template>
-    
+
     <template #form-matterType="{ value, updateValue }">
-      <DictSelect :value="value" @update:value="updateValue" dict-type="matter_type" />
+      <DictSelect :value="value" dict-type="matter_type" @update:value="updateValue" />
     </template>
-    
+
     <template #form-priority="{ value, updateValue }">
-      <DictSelect :value="value" @update:value="updateValue" dict-type="priority_level" />
+      <DictSelect :value="value" dict-type="priority_level" @update:value="updateValue" />
     </template>
   </AiCrudPage>
 </template>

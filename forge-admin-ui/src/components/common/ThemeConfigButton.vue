@@ -3,7 +3,7 @@
     <n-tooltip placement="bottom">
       <template #trigger>
         <i
-          class="ai-icon:awesome cursor-pointer text-20 color-inherit"
+          class="ai-icon:awesome text-20 cursor-pointer color-inherit"
           @click="handleOpen"
         />
       </template>

@@ -14,11 +14,11 @@
 </template>
 
 <script setup>
+import { h } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAppStore, usePermissionStore } from '@/store'
 import { isExternal } from '@/utils'
-import { useRoute, useRouter } from 'vue-router'
-import { processTopMenus, processMenuData } from '@/utils/menu-utils'
-import { h } from 'vue'
+import { processMenuData, processTopMenus } from '@/utils/menu-utils'
 
 const router = useRouter()
 const route = useRoute()
@@ -28,12 +28,12 @@ const permissionStore = usePermissionStore()
 // 获取当前顶部选中的一级菜单的子菜单
 const sideMenuOptions = computed(() => {
   const menus = permissionStore.menus || []
-  
+
   // 如果菜单数据还没加载完成，返回空数组
   if (!menus.length || !permissionStore.menuDataLoaded) {
     return []
   }
-  
+
   const topMenus = processTopMenus(menus)
 
   // 递归查找包含当前路由的顶级菜单
@@ -75,15 +75,15 @@ const sideMenuOptions = computed(() => {
     // 尝试根据路径前缀匹配（例如 /system/dictData 应该匹配 /system 开头的顶级菜单）
     const pathSegments = route.path.split('/').filter(Boolean)
     if (pathSegments.length > 0) {
-      const firstSegment = '/' + pathSegments[0]
-      activeTopMenu = topMenus.find(menu => {
+      const firstSegment = `/${pathSegments[0]}`
+      activeTopMenu = topMenus.find((menu) => {
         if (menu.path && menu.path.startsWith(firstSegment)) {
           return true
         }
         // 检查子菜单是否有匹配的路径前缀
         if (menu.children && menu.children.length > 0) {
-          return menu.children.some(child => 
-            child.path && child.path.startsWith(firstSegment)
+          return menu.children.some(child =>
+            child.path && child.path.startsWith(firstSegment),
           )
         }
         return false
@@ -113,10 +113,11 @@ const activeKey = computed(() => {
   if (route.meta?.parentKey) {
     return route.meta.parentKey
   }
-  
+
   // 根据当前路由 path 查找对应的菜单项 id
   const findMenuIdByPath = (items, targetPath) => {
-    if (!items || !Array.isArray(items)) return null
+    if (!items || !Array.isArray(items))
+      return null
 
     for (const item of items) {
       if (item.path === targetPath) {
@@ -124,7 +125,8 @@ const activeKey = computed(() => {
       }
       if (item.children && item.children.length > 0) {
         const found = findMenuIdByPath(item.children, targetPath)
-        if (found) return found
+        if (found)
+          return found
       }
     }
     return null
@@ -132,18 +134,19 @@ const activeKey = computed(() => {
 
   // 尝试精确匹配
   let menuId = findMenuIdByPath(sideMenuOptions.value, route.path)
-  
+
   // 如果没找到，尝试根据路径前缀匹配父级菜单
   if (!menuId) {
     const pathSegments = route.path.split('/').filter(Boolean)
     // 从最长路径开始尝试匹配
     for (let i = pathSegments.length - 1; i > 0; i--) {
-      const parentPath = '/' + pathSegments.slice(0, i).join('/')
+      const parentPath = `/${pathSegments.slice(0, i).join('/')}`
       menuId = findMenuIdByPath(sideMenuOptions.value, parentPath)
-      if (menuId) break
+      if (menuId)
+        break
     }
   }
-  
+
   return menuId || route.path
 })
 
@@ -156,12 +159,12 @@ watch(route, async () => {
 function handleMenuSelect(key, item) {
   // 先从侧边菜单选项中查找
   let originalItem = findMenuItem(sideMenuOptions.value, key)
-  
+
   // 如果没找到，再从完整菜单树中查找
   if (!originalItem) {
     originalItem = findMenuItem(permissionStore.menus, key)
   }
-  
+
   if (!originalItem) {
     console.warn('未找到菜单项:', key)
     return
@@ -194,14 +197,16 @@ function handleMenuSelect(key, item) {
   // 普通路由跳转
   if (originalItem.path) {
     router.push(originalItem.path)
-  } else {
+  }
+  else {
     console.warn('菜单项没有路径:', originalItem)
   }
 }
 
 // 递归查找菜单项
-const findMenuItem = (menuItems, key) => {
-  if (!menuItems || !Array.isArray(menuItems)) return null
+function findMenuItem(menuItems, key) {
+  if (!menuItems || !Array.isArray(menuItems))
+    return null
 
   for (const item of menuItems) {
     if ((item.key || item.id) === key) {
@@ -209,15 +214,16 @@ const findMenuItem = (menuItems, key) => {
     }
     if (item.children && item.children.length > 0) {
       const found = findMenuItem(item.children, key)
-      if (found) return found
+      if (found)
+        return found
     }
   }
   return null
 }
 
 function renderMenuIcon(MenuOption) {
-  return  h(IconRenderer, {
-    icon: MenuOption.icon
+  return h(IconRenderer, {
+    icon: MenuOption.icon,
   })
 }
 </script>

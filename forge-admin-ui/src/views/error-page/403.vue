@@ -8,10 +8,9 @@
         description="抱歉，您暂无权限访问，请联系管理员开通权限。"
         size="large"
       >
-
         <template #icon>
           <div style="width: 360px">
-            <img src="@/assets/images/403.png" style="width: 100%"/>
+            <img src="@/assets/images/403.png" style="width: 100%">
           </div>
         </template>
         <template #footer>
@@ -39,7 +38,7 @@ if (history.state.from === 'permission-guard') {
 else if (route.query.path) {
   router.replace(route.query.path)
 }
-const toHome = () =>{
+function toHome() {
   replace(window.$homePath)
 }
 </script>

@@ -4,8 +4,10 @@
       <!-- 左侧分组导航 -->
       <div class="sidebar">
         <div class="sidebar-header">
-          <h3 class="sidebar-title">文件分组</h3>
-          <n-button
+          <h3 class="sidebar-title">
+            文件分组
+          </h3>
+          <NButton
             type="primary"
             size="tiny"
             quaternary
@@ -14,7 +16,7 @@
             <template #icon>
               <i class="i-material-symbols:add" />
             </template>
-          </n-button>
+          </NButton>
         </div>
 
         <div class="group-list">
@@ -67,7 +69,7 @@
             <span class="file-count">{{ documentCount }}</span>
           </div>
 
-          <div class="group-divider" v-if="fileGroups.length > 0"></div>
+          <div v-if="fileGroups.length > 0" class="group-divider" />
 
           <!-- 自定义分组 -->
           <div
@@ -95,29 +97,29 @@
         <div class="toolbar">
           <div class="toolbar-left">
             <n-button-group size="small">
-              <n-button
+              <NButton
                 :type="viewMode === 'list' ? 'primary' : 'default'"
                 @click="viewMode = 'list'"
               >
                 <i class="i-material-symbols:view-list mr-4" />
                 列表
-              </n-button>
-              <n-button
+              </NButton>
+              <NButton
                 :type="viewMode === 'grid' ? 'primary' : 'default'"
                 @click="switchToGridView"
               >
                 <i class="i-material-symbols:grid-view mr-4" />
                 网格
-              </n-button>
+              </NButton>
             </n-button-group>
 
-            <n-divider vertical style="height: 24px; margin: 0 12px;" />
+            <NDivider vertical style="height: 24px; margin: 0 12px;" />
 
             <span class="current-group-title">{{ currentGroupTitle }}</span>
           </div>
 
           <div class="upload-section">
-            <n-select
+            <NSelect
               v-if="storageConfigOptions.length > 0"
               v-model:value="selectedStorageConfigId"
               :options="storageConfigOptions"
@@ -134,12 +136,12 @@
               @finish="handleUploadFinish"
               @error="handleUploadError"
             >
-              <n-button type="primary" size="small">
+              <NButton type="primary" size="small">
                 <template #icon>
                   <i class="i-material-symbols:upload" />
                 </template>
                 上传文件
-              </n-button>
+              </NButton>
             </n-upload>
           </div>
         </div>
@@ -152,7 +154,7 @@
               ref="crudRef"
               :api-config="{
                 list: 'get@/system/file/metadata/page',
-                delete: 'delete@/system/file/metadata'
+                delete: 'delete@/system/file/metadata',
               }"
               :search-schema="searchSchema"
               :columns="tableColumns"
@@ -163,7 +165,7 @@
               <!-- 自定义操作列 -->
               <template #table-action="{ row }">
                 <div class="table-action-buttons">
-                  <n-button
+                  <NButton
                     v-if="row.mimeType && row.mimeType.startsWith('image/')"
                     size="small"
                     type="info"
@@ -171,24 +173,24 @@
                     @click="handlePreview(row)"
                   >
                     <i class="i-material-symbols:visibility" />
-                  </n-button>
-                  <n-button
+                  </NButton>
+                  <NButton
                     size="small"
                     type="primary"
                     ghost
                     @click="handleDownload(row)"
                   >
                     <i class="i-material-symbols:download" />
-                  </n-button>
-                  <n-dropdown
+                  </NButton>
+                  <NDropdown
                     trigger="click"
                     :options="getDropdownOptions(row)"
                     @select="(key) => handleDropdownSelect(key, row)"
                   >
-                    <n-button size="small" type="tertiary" circle>
+                    <NButton size="small" type="tertiary" circle>
                       <i class="i-material-symbols:more-vert" />
-                    </n-button>
-                  </n-dropdown>
+                    </NButton>
+                  </NDropdown>
                 </div>
               </template>
             </AiCrudPage>
@@ -203,7 +205,9 @@
 
             <div v-if="fileList.length === 0" class="empty-state">
               <i class="i-material-symbols:folder-open empty-icon" />
-              <p class="empty-text">暂无文件</p>
+              <p class="empty-text">
+                暂无文件
+              </p>
               <n-upload
                 :action="uploadUrl"
                 :headers="uploadHeaders"
@@ -213,7 +217,9 @@
                 @finish="handleUploadFinish"
                 @error="handleUploadError"
               >
-                <n-button type="primary" size="small">上传文件</n-button>
+                <NButton type="primary" size="small">
+                  上传文件
+                </NButton>
               </n-upload>
             </div>
 
@@ -230,7 +236,7 @@
                       :src="file.thumbnailUrl"
                       :alt="file.originalName"
                       @click="handlePreview(file)"
-                    />
+                    >
                     <div v-else class="thumbnail-loading" @click="handlePreview(file)">
                       <i class="i-material-symbols:image thumbnail-loading-icon" />
                       <span class="thumbnail-loading-text">加载中...</span>
@@ -250,20 +256,20 @@
                   </template>
 
                   <div class="file-actions">
-                    <n-dropdown
+                    <NDropdown
                       trigger="click"
                       :options="getDropdownOptions(file)"
                       @select="(key) => handleDropdownSelect(key, file)"
                     >
-                      <n-button
+                      <NButton
                         circle
                         size="tiny"
                         quaternary
                         @click.stop
                       >
                         <i class="i-material-symbols:more-vert" />
-                      </n-button>
-                    </n-dropdown>
+                      </NButton>
+                    </NDropdown>
                   </div>
                 </div>
 
@@ -284,7 +290,7 @@
     </div>
 
     <!-- 分组管理弹窗 -->
-    <n-modal
+    <NModal
       v-model:show="showGroupModal"
       preset="card"
       title="管理分组"
@@ -292,24 +298,24 @@
     >
       <div class="group-modal-content">
         <div class="group-form">
-          <n-input
+          <NInput
             v-model:value="newGroupName"
             placeholder="输入分组名称"
             @keyup.enter="addGroup"
           />
-          <n-select
+          <NSelect
             v-model:value="newGroupType"
             :options="groupTypeOptions"
             placeholder="选择类型"
             style="width: 120px;"
           />
-          <n-button
+          <NButton
             type="primary"
-            @click="addGroup"
             :disabled="!newGroupName.trim()"
+            @click="addGroup"
           >
             添加
-          </n-button>
+          </NButton>
         </div>
 
         <div class="existing-groups">
@@ -323,7 +329,7 @@
               <span class="group-name">{{ group.groupName }}</span>
               <span class="group-count">({{ group.fileCount || 0 }}个文件)</span>
             </div>
-            <n-button
+            <NButton
               type="error"
               size="tiny"
               quaternary
@@ -332,24 +338,26 @@
               <template #icon>
                 <i class="i-material-symbols:delete" />
               </template>
-            </n-button>
+            </NButton>
           </div>
           <div v-if="fileGroups.length === 0" class="no-groups">
             暂无自定义分组
           </div>
         </div>
       </div>
-    </n-modal>
+    </NModal>
 
     <!-- 移动文件到分组弹窗 -->
-    <n-modal
+    <NModal
       v-model:show="showMoveModal"
       preset="card"
       title="移动到分组"
       style="width: 400px"
     >
       <div class="move-modal-content">
-        <p class="move-hint">选择要将文件移动到的分组：</p>
+        <p class="move-hint">
+          选择要将文件移动到的分组：
+        </p>
         <div class="move-group-list">
           <div
             v-for="group in fileGroups"
@@ -364,38 +372,40 @@
           </div>
         </div>
         <div class="move-actions">
-          <n-button @click="showMoveModal = false">取消</n-button>
-          <n-button
+          <NButton @click="showMoveModal = false">
+            取消
+          </NButton>
+          <NButton
             type="primary"
             :disabled="!selectedMoveGroup"
             @click="confirmMoveFile"
           >
             确定
-          </n-button>
+          </NButton>
         </div>
       </div>
-    </n-modal>
+    </NModal>
 
     <!-- 图片预览弹窗 -->
-    <n-modal
+    <NModal
       v-model:show="showPreviewModal"
       preset="card"
       title="图片预览"
       style="width: 800px"
     >
       <div class="preview-content">
-        <n-image :src="previewUrl" style="max-width: 100%;" />
+        <NImage :src="previewUrl" style="max-width: 100%;" />
       </div>
-    </n-modal>
+    </NModal>
   </div>
 </template>
 
 <script setup>
-import { ref, h, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import { NTag, NImage, NButton, NInput, NModal, NDropdown, NSelect, NDivider } from 'naive-ui'
+import { NButton, NDivider, NDropdown, NImage, NInput, NModal, NSelect, NTag } from 'naive-ui'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
-import { request, getFileUrl } from '@/utils'
 import { useAuthStore } from '@/store'
+import { getFileUrl, request } from '@/utils'
 
 defineOptions({ name: 'FileList' })
 
@@ -425,7 +435,7 @@ let thumbnailLoadVersion = 0
 const storageConfigOptions = computed(() => {
   return storageConfigs.value.map(c => ({
     label: `${c.configName}${c.isDefault ? ' (默认)' : ''}`,
-    value: c.id
+    value: c.id,
   }))
 })
 
@@ -441,7 +451,7 @@ const groupTypeOptions = [
   { label: '图片', value: 'image' },
   { label: '视频', value: 'video' },
   { label: '音频', value: 'audio' },
-  { label: '压缩包', value: 'archive' }
+  { label: '压缩包', value: 'archive' },
 ]
 
 // 当前分组标题
@@ -468,12 +478,15 @@ const listParams = computed(() => {
   // 根据选中的分组添加过滤条件
   if (selectedGroup.value === 'images') {
     return { mimeType: 'image/' }
-  } else if (selectedGroup.value === 'documents') {
+  }
+  else if (selectedGroup.value === 'documents') {
     return { mimeType: 'application/' }
-  } else if (selectedGroup.value === 'recent') {
+  }
+  else if (selectedGroup.value === 'recent') {
     // 最近上传可能需要特定的时间范围参数
     return { sort: 'uploadTime,desc' }
-  } else if (selectedGroup.value !== 'all' && isValidGroupId(selectedGroup.value)) {
+  }
+  else if (selectedGroup.value !== 'all' && isValidGroupId(selectedGroup.value)) {
     // 如果选择了自定义分组，使用 groupId 过滤（保持字符串类型避免精度丢失）
     return { groupId: String(selectedGroup.value) }
   }
@@ -484,7 +497,8 @@ const listParams = computed(() => {
 
 // 判断是否是有效的分组ID
 function isValidGroupId(value) {
-  if (value === null || value === undefined || value === '') return false
+  if (value === null || value === undefined || value === '')
+    return false
   const num = Number(value)
   return !isNaN(num) && num > 0
 }
@@ -501,11 +515,13 @@ watch(showPreviewModal, (newVal) => {
 watch(selectedGroup, (newVal, oldVal) => {
   console.log('分组变化:', oldVal, '->', newVal, 'listParams:', listParams.value)
 
-  if (newVal === oldVal) return
+  if (newVal === oldVal)
+    return
 
   if (viewMode.value === 'grid') {
     refreshFileGrid()
-  } else {
+  }
+  else {
     // 列表视图：public-params 变化会自动触发 AiCrudPage 刷新
     // 但为确保刷新，手动调用 refresh
     nextTick(() => {
@@ -519,7 +535,7 @@ onMounted(async () => {
   await Promise.all([
     fetchStatistics(),
     fetchFileGroups(),
-    fetchStorageConfigs()
+    fetchStorageConfigs(),
   ])
 })
 
@@ -539,7 +555,8 @@ async function fetchStatistics() {
       imageCount.value = Number(data.imageCount) || 0
       documentCount.value = Number(data.documentCount) || 0
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取统计数据失败:', error)
     totalFiles.value = 0
     imageCount.value = 0
@@ -557,10 +574,11 @@ async function fetchFileGroups() {
         groupName: group.groupName,
         groupType: group.groupType || 'default',
         icon: group.icon,
-        fileCount: group.fileCount || 0
+        fileCount: group.fileCount || 0,
       }))
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取文件分组失败:', error)
     fileGroups.value = []
   }
@@ -568,13 +586,13 @@ async function fetchFileGroups() {
 
 // 上传配置
 const uploadUrl = computed(() => {
-  return import.meta.env.VITE_REQUEST_PREFIX + '/api/file/upload'
+  return `${import.meta.env.VITE_REQUEST_PREFIX}/api/file/upload`
 })
 
 const uploadHeaders = computed(() => {
   const token = authStore.accessToken
   return {
-    Authorization: token ? `Bearer ${token}` : ''
+    Authorization: token ? `Bearer ${token}` : '',
   }
 })
 
@@ -590,7 +608,7 @@ const uploadData = computed(() => {
     businessType: 'common',
     businessId: '',
     storageType,
-    groupId: groupId || ''
+    groupId: groupId || '',
   }
 })
 
@@ -602,7 +620,7 @@ const storageTypeOptions = [
   { label: '阿里云OSS', value: 'aliyun' },
   { label: '腾讯云COS', value: 'tencent' },
   { label: '七牛云', value: 'qiniu' },
-  { label: 'AWS S3', value: 's3' }
+  { label: 'AWS S3', value: 's3' },
 ]
 
 // 搜索表单配置
@@ -612,8 +630,8 @@ const searchSchema = [
     label: '文件名',
     type: 'input',
     props: {
-      placeholder: '请输入文件名'
-    }
+      placeholder: '请输入文件名',
+    },
   },
   {
     field: 'storageType',
@@ -621,16 +639,16 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择存储类型',
-      options: storageTypeOptions
-    }
+      options: storageTypeOptions,
+    },
   },
   {
     field: 'businessType',
     label: '业务类型',
     type: 'input',
     props: {
-      placeholder: '请输入业务类型'
-    }
+      placeholder: '请输入业务类型',
+    },
   },
   {
     field: 'mimeType',
@@ -641,10 +659,10 @@ const searchSchema = [
       options: [
         { label: '图片', value: 'image/' },
         { label: '文档', value: 'application/pdf' },
-        { label: '压缩包', value: 'application/zip' }
-      ]
-    }
-  }
+        { label: '压缩包', value: 'application/zip' },
+      ],
+    },
+  },
 ]
 
 // 表格列配置
@@ -652,7 +670,7 @@ const tableColumns = [
   {
     prop: 'id',
     label: 'ID',
-    width: 80
+    width: 80,
   },
   {
     prop: 'originalName',
@@ -662,14 +680,16 @@ const tableColumns = [
     render: (row) => {
       const isImage = row.mimeType && row.mimeType.startsWith('image/')
       return h('div', { class: 'flex items-center gap-8' }, [
-        isImage ? h('i', {
-          class: 'i-material-symbols:image text-20 text-success'
-        }) : h('i', {
-          class: 'i-material-symbols:description text-20 text-info'
-        }),
-        h('span', row.originalName)
+        isImage
+          ? h('i', {
+              class: 'i-material-symbols:image text-20 text-success',
+            })
+          : h('i', {
+              class: 'i-material-symbols:description text-20 text-info',
+            }),
+        h('span', row.originalName),
       ])
-    }
+    },
   },
   {
     prop: 'fileSize',
@@ -677,7 +697,7 @@ const tableColumns = [
     width: 120,
     render: (row) => {
       return h('span', formatFileSize(row.fileSize))
-    }
+    },
   },
   {
     prop: 'extension',
@@ -685,9 +705,9 @@ const tableColumns = [
     width: 100,
     render: (row) => {
       return h(NTag, { size: 'small', bordered: false }, {
-        default: () => row.extension?.toUpperCase()
+        default: () => row.extension?.toUpperCase(),
       })
-    }
+    },
   },
   {
     prop: 'storageType',
@@ -695,40 +715,40 @@ const tableColumns = [
     width: 120,
     render: (row) => {
       const typeMap = {
-        'local': { text: '本地存储', type: 'default' },
-        'rustfs': { text: 'RustFS', type: 'success' },
-        'minio': { text: 'MinIO', type: 'info' },
-        'aliyun': { text: '阿里云', type: 'warning' },
-        'tencent': { text: '腾讯云', type: 'success' },
-        'qiniu': { text: '七牛云', type: 'error' },
-        's3': { text: 'AWS S3', type: 'primary' }
+        local: { text: '本地存储', type: 'default' },
+        rustfs: { text: 'RustFS', type: 'success' },
+        minio: { text: 'MinIO', type: 'info' },
+        aliyun: { text: '阿里云', type: 'warning' },
+        tencent: { text: '腾讯云', type: 'success' },
+        qiniu: { text: '七牛云', type: 'error' },
+        s3: { text: 'AWS S3', type: 'primary' },
       }
       const config = typeMap[row.storageType] || { text: row.storageType, type: 'default' }
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
-    }
+    },
   },
   {
     prop: 'businessType',
     label: '业务类型',
-    width: 120
+    width: 120,
   },
   {
     prop: 'downloadCount',
     label: '下载次数',
-    width: 100
+    width: 100,
   },
   {
     prop: 'uploadTime',
     label: '上传时间',
-    width: 180
+    width: 180,
   },
   {
     prop: 'action',
     label: '操作',
     width: 220,
     fixed: 'right',
-    _slot: 'action'
-  }
+    _slot: 'action',
+  },
 ]
 
 // 分组图标映射
@@ -738,7 +758,7 @@ const groupIconMap = {
   video: 'i-material-symbols:movie',
   audio: 'i-material-symbols:music-note',
   archive: 'i-material-symbols:archive',
-  default: 'i-material-symbols:folder'
+  default: 'i-material-symbols:folder',
 }
 
 // 文件图标映射
@@ -764,7 +784,7 @@ const fileIconMap = {
   'mp4': 'i-material-symbols:movie',
   'avi': 'i-material-symbols:movie',
   'mov': 'i-material-symbols:movie',
-  'default': 'i-material-symbols:insert-drive-file'
+  'default': 'i-material-symbols:insert-drive-file',
 }
 
 // 文件图标颜色映射
@@ -790,7 +810,7 @@ const fileIconColors = {
   'mp4': '#9C27B0',
   'avi': '#9C27B0',
   'mov': '#9C27B0',
-  'default': '#607D8B'
+  'default': '#607D8B',
 }
 
 // 获取分组图标
@@ -800,36 +820,40 @@ function getGroupIcon(type) {
 
 // 获取文件图标
 function getFileIcon(extension) {
-  if (!extension) return fileIconMap.default
+  if (!extension)
+    return fileIconMap.default
   const ext = extension.toLowerCase().replace('.', '')
   return fileIconMap[ext] || fileIconMap.default
 }
 
 // 获取文件图标颜色
 function getFileIconColor(extension) {
-  if (!extension) return fileIconColors.default
+  if (!extension)
+    return fileIconColors.default
   const ext = extension.toLowerCase().replace('.', '')
   return fileIconColors[ext] || fileIconColors.default
 }
 
 // 格式化日期
 function formatDate(dateString) {
-  if (!dateString) return '-'
+  if (!dateString)
+    return '-'
   const date = new Date(dateString)
   return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'short',
-    day: 'numeric'
+    day: 'numeric',
   })
 }
 
 // 格式化文件大小
 function formatFileSize(bytes) {
-  if (!bytes) return '0 B'
+  if (!bytes)
+    return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
+  return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`
 }
 
 // 选择分组
@@ -859,7 +883,7 @@ async function refreshFileGrid() {
     const params = {
       page: 1,
       size: 50,
-      ...listParams.value
+      ...listParams.value,
     }
 
     const response = await request.get('/system/file/metadata/page', params)
@@ -871,7 +895,7 @@ async function refreshFileGrid() {
         fileId: item.fileId,
         originalName: item.originalName,
         fileSize: item.fileSize,
-        extension: item.extension ? '.' + item.extension : '',
+        extension: item.extension ? `.${item.extension}` : '',
         mimeType: item.mimeType,
         thumbnailUrl: '',
         accessUrl: getFileUrl(item.fileId),
@@ -879,15 +903,17 @@ async function refreshFileGrid() {
         storageType: item.storageType,
         businessType: item.businessType,
         groupId: item.groupId,
-        downloadCount: item.downloadCount
+        downloadCount: item.downloadCount,
       }))
 
       // 异步加载图片缩略图（带认证）
       nextTick(() => loadImageThumbnails())
-    } else {
+    }
+    else {
       throw new Error(response.msg || '获取文件列表失败')
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取文件列表失败:', error)
     window.$message.error(error.message || '获取文件列表失败')
     fileList.value = []
@@ -900,24 +926,26 @@ async function fetchStorageConfigs() {
     const response = await request.get('/system/storage/config/page', {
       pageNum: 1,
       pageSize: 100,
-      enabled: 1
+      enabled: 1,
     })
     if (response.code === 200) {
       storageConfigs.value = (response.data?.records || []).map(c => ({
         id: c.id,
         configName: c.configName,
         storageType: c.storageType,
-        isDefault: c.isDefault
+        isDefault: c.isDefault,
       }))
       // 默认选中默认配置
       const defaultConfig = storageConfigs.value.find(c => c.isDefault)
       if (defaultConfig) {
         selectedStorageConfigId.value = defaultConfig.id
-      } else if (storageConfigs.value.length > 0) {
+      }
+      else if (storageConfigs.value.length > 0) {
         selectedStorageConfigId.value = storageConfigs.value[0].id
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取存储配置失败:', error)
   }
 }
@@ -939,23 +967,27 @@ async function loadImageThumbnails() {
   // 分批加载，每批 6 个并发
   const batchSize = 6
   for (let b = 0; b < imageIndexes.length; b += batchSize) {
-    if (thumbnailLoadVersion !== version) return
+    if (thumbnailLoadVersion !== version)
+      return
 
     const batch = imageIndexes.slice(b, b + batchSize)
     await Promise.allSettled(batch.map(async (idx) => {
-      if (thumbnailLoadVersion !== version) return
+      if (thumbnailLoadVersion !== version)
+        return
       try {
         const file = fileList.value[idx]
-        if (!file) return
+        if (!file)
+          return
         const url = getFileUrl(file.fileId)
         const res = await fetch(url, {
-          headers: { Authorization: token ? `Bearer ${token}` : '' }
+          headers: { Authorization: token ? `Bearer ${token}` : '' },
         })
         if (res.ok && thumbnailLoadVersion === version) {
           const blob = await res.blob()
           fileList.value[idx].thumbnailUrl = URL.createObjectURL(blob)
         }
-      } catch (e) {
+      }
+      catch (e) {
         // 静默处理单个缩略图加载失败
       }
     }))
@@ -964,7 +996,7 @@ async function loadImageThumbnails() {
 
 // 清理所有 blob URLs
 function cleanupBlobUrls() {
-  fileList.value.forEach(file => {
+  fileList.value.forEach((file) => {
     if (file.thumbnailUrl && file.thumbnailUrl.startsWith('blob:')) {
       URL.revokeObjectURL(file.thumbnailUrl)
     }
@@ -973,13 +1005,14 @@ function cleanupBlobUrls() {
 
 // 添加分组
 async function addGroup() {
-  if (!newGroupName.value.trim()) return
+  if (!newGroupName.value.trim())
+    return
 
   try {
     const newGroup = {
       groupName: newGroupName.value.trim(),
       groupType: newGroupType.value,
-      groupCode: 'group_' + Date.now()
+      groupCode: `group_${Date.now()}`,
     }
 
     const response = await request.post('/system/file/group', newGroup)
@@ -990,10 +1023,12 @@ async function addGroup() {
       // 刷新分组列表
       await fetchFileGroups()
       await fetchStatistics()
-    } else {
+    }
+    else {
       window.$message.error(response.msg || '添加失败')
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('添加分组失败:', error)
     window.$message.error('添加分组失败')
   }
@@ -1018,14 +1053,16 @@ async function deleteGroup(groupId) {
           // 刷新分组列表
           await fetchFileGroups()
           await fetchStatistics()
-        } else {
+        }
+        else {
           window.$message.error(response.msg || '删除失败')
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.error('删除分组失败:', error)
         window.$message.error('删除分组失败')
       }
-    }
+    },
   })
 }
 
@@ -1035,27 +1072,27 @@ function getDropdownOptions(file) {
     {
       label: '预览',
       key: 'preview',
-      disabled: !(file.mimeType && file.mimeType.startsWith('image/'))
+      disabled: !(file.mimeType && file.mimeType.startsWith('image/')),
     },
     {
       label: '下载',
-      key: 'download'
+      key: 'download',
     },
     {
       label: '复制链接',
-      key: 'copy'
+      key: 'copy',
     },
     {
       label: '移动到分组',
-      key: 'move'
+      key: 'move',
     },
     {
       label: '删除',
       key: 'delete',
       props: {
-        style: { color: '#ff4d4f' }
-      }
-    }
+        style: { color: '#ff4d4f' },
+      },
+    },
   ]
 }
 
@@ -1089,12 +1126,13 @@ function handleMoveFile(file) {
 
 // 确认移动文件
 async function confirmMoveFile() {
-  if (!selectedMoveGroup.value || !currentMoveFile.value) return
+  if (!selectedMoveGroup.value || !currentMoveFile.value)
+    return
 
   try {
     const response = await request.put('/system/file/metadata', {
       id: currentMoveFile.value.id,
-      groupId: selectedMoveGroup.value
+      groupId: selectedMoveGroup.value,
     })
 
     if (response.code === 200) {
@@ -1104,15 +1142,18 @@ async function confirmMoveFile() {
       // 刷新数据
       if (viewMode.value === 'grid') {
         await refreshFileGrid()
-      } else {
+      }
+      else {
         crudRef.value?.refresh()
       }
       await fetchFileGroups()
       await fetchStatistics()
-    } else {
+    }
+    else {
       window.$message.error(response.msg || '移动失败')
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('移动文件失败:', error)
     window.$message.error('移动文件失败')
   }
@@ -1128,17 +1169,20 @@ function handleUploadFinish({ file, event }) {
       // 刷新列表
       if (viewMode.value === 'grid') {
         refreshFileGrid()
-      } else {
+      }
+      else {
         crudRef.value?.refresh()
       }
 
       // 刷新统计
       fetchStatistics()
       fetchFileGroups()
-    } else {
+    }
+    else {
       window.$message.error(response.msg || '上传失败')
     }
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('上传失败')
   }
 }
@@ -1157,8 +1201,8 @@ async function handlePreview(row) {
     // 使用 fetch 获取图片并转换为 blob URL（带 token）
     const response = await fetch(url, {
       headers: {
-        Authorization: token ? `Bearer ${token}` : ''
-      }
+        Authorization: token ? `Bearer ${token}` : '',
+      },
     })
 
     if (!response.ok) {
@@ -1169,24 +1213,25 @@ async function handlePreview(row) {
     const blobUrl = URL.createObjectURL(blob)
     previewUrl.value = blobUrl
     showPreviewModal.value = true
-  } catch (error) {
-    window.$message.error('预览失败：' + (error.message || '未知错误'))
+  }
+  catch (error) {
+    window.$message.error(`预览失败：${error.message || '未知错误'}`)
   }
 }
 
 // 下载
 async function handleDownload(row) {
-  let loadingMessage = null
+  const loadingMessage = null
   try {
     const token = authStore.accessToken
     const url = getFileUrl(row.fileId)
 
     // 使用 fetch 下载文件（带 token）
-    //loadingMessage = window.$message.loading('正在下载...', { duration: 0 })
+    // loadingMessage = window.$message.loading('正在下载...', { duration: 0 })
     const response = await fetch(url, {
       headers: {
-        Authorization: token ? `Bearer ${token}` : ''
-      }
+        Authorization: token ? `Bearer ${token}` : '',
+      },
     })
 
     if (!response.ok) {
@@ -1208,10 +1253,13 @@ async function handleDownload(row) {
     setTimeout(() => URL.revokeObjectURL(blobUrl), 100)
 
     window.$message.success('下载成功')
-  } catch (error) {
-    window.$message.error('下载失败：' + (error.message || '未知错误'))
-  } finally {
-    if (loadingMessage) loadingMessage.destroy()
+  }
+  catch (error) {
+    window.$message.error(`下载失败：${error.message || '未知错误'}`)
+  }
+  finally {
+    if (loadingMessage)
+      loadingMessage.destroy()
   }
 }
 
@@ -1224,7 +1272,8 @@ function handleCopyUrl(row) {
       navigator.clipboard.writeText(url).then(() => {
         window.$message.success('链接已复制到剪贴板')
       })
-    } else {
+    }
+    else {
       // 降级方案
       const textarea = document.createElement('textarea')
       textarea.value = url
@@ -1236,7 +1285,8 @@ function handleCopyUrl(row) {
       document.body.removeChild(textarea)
       window.$message.success('链接已复制到剪贴板')
     }
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('复制失败')
   }
 }
@@ -1257,7 +1307,8 @@ function handleDelete(row) {
           // 刷新列表
           if (viewMode.value === 'grid') {
             await refreshFileGrid()
-          } else {
+          }
+          else {
             crudRef.value?.refresh()
           }
 
@@ -1265,10 +1316,11 @@ function handleDelete(row) {
           await fetchStatistics()
           await fetchFileGroups()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 </script>
@@ -1326,8 +1378,13 @@ function handleDelete(row) {
   padding: 8px;
 }
 
-.group-list::-webkit-scrollbar { width: 4px; }
-.group-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+.group-list::-webkit-scrollbar {
+  width: 4px;
+}
+.group-list::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 2px;
+}
 
 .group-item {
   display: flex;
@@ -1335,7 +1392,9 @@ function handleDelete(row) {
   align-items: center;
   padding: 8px 12px;
   cursor: pointer;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
   border-radius: var(--radius-md);
   margin-bottom: 2px;
 }
@@ -1465,16 +1524,42 @@ function handleDelete(row) {
   overflow: hidden;
 }
 
-:deep(.n-data-table) { font-size: 14px; }
-:deep(.n-data-table-th) { font-weight: var(--font-weight-semibold); color: var(--text-secondary); background: var(--bg-secondary); }
-:deep(.n-data-table-td) { padding: 10px 16px; }
-:deep(.n-data-table tr:hover td) { background: var(--bg-hover); }
+:deep(.n-data-table) {
+  font-size: 14px;
+}
+:deep(.n-data-table-th) {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+}
+:deep(.n-data-table-td) {
+  padding: 10px 16px;
+}
+:deep(.n-data-table tr:hover td) {
+  background: var(--bg-hover);
+}
 
-.file-name-text { color: var(--text-primary); font-weight: var(--font-weight-medium); }
-.file-size-text { color: var(--text-secondary); font-family: var(--font-family-mono); font-size: 13px; }
-.file-ext-tag { font-weight: var(--font-weight-semibold); letter-spacing: 0.5px; }
-.download-count-text { color: var(--primary-500); font-weight: var(--font-weight-medium); font-family: var(--font-family-mono); }
-.upload-time-text { color: var(--text-tertiary); }
+.file-name-text {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+}
+.file-size-text {
+  color: var(--text-secondary);
+  font-family: var(--font-family-mono);
+  font-size: 13px;
+}
+.file-ext-tag {
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.5px;
+}
+.download-count-text {
+  color: var(--primary-500);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family-mono);
+}
+.upload-time-text {
+  color: var(--text-tertiary);
+}
 
 .file-icon-preview {
   width: 32px;
@@ -1487,8 +1572,14 @@ function handleDelete(row) {
   flex-shrink: 0;
 }
 
-.file-icon-preview.image { background: var(--primary-50); color: var(--primary-500); }
-.file-icon-preview.document { background: var(--bg-tertiary); color: var(--primary-400); }
+.file-icon-preview.image {
+  background: var(--primary-50);
+  color: var(--primary-500);
+}
+.file-icon-preview.document {
+  background: var(--bg-tertiary);
+  color: var(--primary-400);
+}
 
 .table-action-buttons {
   display: flex;
@@ -1570,8 +1661,13 @@ function handleDelete(row) {
   flex: 1;
 }
 
-.file-grid-container::-webkit-scrollbar { width: 4px; }
-.file-grid-container::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+.file-grid-container::-webkit-scrollbar {
+  width: 4px;
+}
+.file-grid-container::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 2px;
+}
 
 /* --- 文件卡片 (SnowAdmin 风格) --- */
 .file-card {
@@ -1579,7 +1675,9 @@ function handleDelete(row) {
   border-radius: var(--radius-card);
   border: 1px solid var(--border-light);
   overflow: hidden;
-  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+  transition:
+    box-shadow var(--transition-base),
+    border-color var(--transition-base);
   position: relative;
 }
 
@@ -1650,8 +1748,13 @@ function handleDelete(row) {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 .file-actions {
@@ -1690,8 +1793,12 @@ function handleDelete(row) {
   color: var(--text-tertiary);
 }
 
-.file-size { color: var(--text-tertiary); }
-.file-time { color: var(--text-disabled); }
+.file-size {
+  color: var(--text-tertiary);
+}
+.file-time {
+  color: var(--text-disabled);
+}
 
 /* --- 分组管理弹窗 --- */
 .group-modal-content {
@@ -1717,8 +1824,13 @@ function handleDelete(row) {
   padding: 8px;
 }
 
-.existing-groups::-webkit-scrollbar { width: 4px; }
-.existing-groups::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+.existing-groups::-webkit-scrollbar {
+  width: 4px;
+}
+.existing-groups::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 2px;
+}
 
 .existing-group-item {
   display: flex;
@@ -1730,8 +1842,12 @@ function handleDelete(row) {
   border-radius: var(--radius-md);
 }
 
-.existing-group-item:hover { background: var(--bg-hover); }
-.existing-group-item:last-child { border-bottom: none; }
+.existing-group-item:hover {
+  background: var(--bg-hover);
+}
+.existing-group-item:last-child {
+  border-bottom: none;
+}
 
 .group-info-row {
   display: flex;
@@ -1740,9 +1856,22 @@ function handleDelete(row) {
   gap: 8px;
 }
 
-.group-type-icon { font-size: 16px; width: 16px; height: 16px; color: var(--text-tertiary); }
-.group-count { font-size: 12px; color: var(--text-tertiary); }
-.no-groups { text-align: center; padding: 24px; color: var(--text-tertiary); font-size: 14px; }
+.group-type-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+  color: var(--text-tertiary);
+}
+.group-count {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.no-groups {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
 
 /* --- 移动文件弹窗 --- */
 .move-modal-content {
@@ -1768,8 +1897,13 @@ function handleDelete(row) {
   border-radius: var(--radius-md);
 }
 
-.move-group-list::-webkit-scrollbar { width: 4px; }
-.move-group-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+.move-group-list::-webkit-scrollbar {
+  width: 4px;
+}
+.move-group-list::-webkit-scrollbar-thumb {
+  background: var(--border-light);
+  border-radius: 2px;
+}
 
 .move-group-item {
   display: flex;
@@ -1777,12 +1911,18 @@ function handleDelete(row) {
   gap: 8px;
   padding: 10px 16px;
   cursor: pointer;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
   border-bottom: 1px solid var(--border-light);
 }
 
-.move-group-item:last-child { border-bottom: none; }
-.move-group-item:hover { background: var(--bg-hover); }
+.move-group-item:last-child {
+  border-bottom: none;
+}
+.move-group-item:hover {
+  background: var(--bg-hover);
+}
 
 .move-group-item.active {
   background: var(--primary-50);
@@ -1811,9 +1951,21 @@ function handleDelete(row) {
 
 /* --- 响应式 --- */
 @media (max-width: 768px) {
-  .file-management-container { flex-direction: column; }
-  .sidebar { width: 100%; height: 180px; border-right: none; border-bottom: 1px solid var(--border-light); }
-  .file-grid-container { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
-  .file-preview { height: 110px; }
+  .file-management-container {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    height: 180px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .file-grid-container {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  .file-preview {
+    height: 110px;
+  }
 }
 </style>

@@ -1,12 +1,12 @@
-import { mergeRecursive } from "@/utils/ruoyi";
+import { mergeRecursive } from '@/utils/ruoyi'
 import DictOptions from './DictOptions'
 
 /**
  * @classdesc 字典元数据
- * @property {String} type 类型
+ * @property {string} type 类型
  * @property {Function} request 请求
- * @property {String} label 标签字段
- * @property {String} value 值字段
+ * @property {string} label 标签字段
+ * @property {string} value 值字段
  */
 export default class DictMeta {
   constructor(options) {
@@ -19,18 +19,18 @@ export default class DictMeta {
   }
 }
 
-
 /**
  * 解析字典元数据
- * @param {Object} options
+ * @param {object} options
  * @returns {DictMeta}
  */
-DictMeta.parse= function(options) {
+DictMeta.parse = function (options) {
   let opts = null
   if (typeof options === 'string') {
     opts = DictOptions.metas[options] || {}
     opts.type = options
-  } else if (typeof options === 'object') {
+  }
+  else if (typeof options === 'object') {
     opts = options
   }
   opts = mergeRecursive(DictOptions.metas['*'], opts)

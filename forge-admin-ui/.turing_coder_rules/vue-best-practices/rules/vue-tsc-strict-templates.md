@@ -42,13 +42,13 @@ Add `vueCompilerOptions` to the tsconfig that includes Vue source files. In proj
 
 ## Available Options
 
-| Option | Default | Effect |
-|--------|---------|--------|
-| `strictTemplates` | `false` | Enables all checkUnknown* options below |
-| `checkUnknownComponents` | `false` | Error on undefined/unregistered components |
-| `checkUnknownProps` | `false` | Error on props not declared in component definition |
-| `checkUnknownEvents` | `false` | Error on events not declared via `defineEmits` |
-| `checkUnknownDirectives` | `false` | Error on unregistered custom directives |
+| Option                   | Default | Effect                                              |
+| ------------------------ | ------- | --------------------------------------------------- |
+| `strictTemplates`        | `false` | Enables all checkUnknown\* options below            |
+| `checkUnknownComponents` | `false` | Error on undefined/unregistered components          |
+| `checkUnknownProps`      | `false` | Error on props not declared in component definition |
+| `checkUnknownEvents`     | `false` | Error on events not declared via `defineEmits`      |
+| `checkUnknownDirectives` | `false` | Error on unregistered custom directives             |
 
 ## Granular Control
 

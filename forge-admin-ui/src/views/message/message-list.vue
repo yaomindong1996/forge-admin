@@ -41,22 +41,22 @@
           <div class="message-detail">
             <div class="detail-meta">
               <n-space>
-                <n-tag :type="getMessageTypeColor(currentMessage?.type)" size="small">
+                <NTag :type="getMessageTypeColor(currentMessage?.type)" size="small">
                   {{ getMessageTypeText(currentMessage?.type) }}
-                </n-tag>
-                <n-tag v-if="currentMessage?.readFlag === 0" type="error" size="small">
+                </NTag>
+                <NTag v-if="currentMessage?.readFlag === 0" type="error" size="small">
                   未读
-                </n-tag>
-                <n-tag v-else type="success" size="small">
+                </NTag>
+                <NTag v-else type="success" size="small">
                   已读
-                </n-tag>
+                </NTag>
               </n-space>
-              <div class="text-gray-500 text-12 mt-8">
+              <div class="text-12 mt-8 text-gray-500">
                 {{ currentMessage?.createTime }}
               </div>
             </div>
             <n-divider />
-            <div class="message-content" v-html="currentMessage?.content"></div>
+            <div class="message-content" v-html="currentMessage?.content" />
             <n-divider v-if="currentMessage?.bizType && currentMessage?.bizKey" />
             <div v-if="currentMessage?.bizType && currentMessage?.bizKey" class="biz-info">
               <n-space align="center" justify="space-between">
@@ -77,12 +77,12 @@
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
-import { AiCrudPage } from '@/components/ai-form'
-import { request } from '@/utils'
+import { computed, h, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import messageApi from '@/api/message'
+import { AiCrudPage } from '@/components/ai-form'
+import { request } from '@/utils'
 
 defineOptions({ name: 'MessageList' })
 
@@ -94,7 +94,7 @@ const selectedRowKeys = ref([])
 const bizTypeOptions = ref([])
 
 const apiConfig = {
-  list: 'post@/api/message/page'
+  list: 'post@/api/message/page',
 }
 
 const searchSchema = [
@@ -109,9 +109,9 @@ const searchSchema = [
         { label: '系统消息', value: 'SYSTEM' },
         { label: '短信', value: 'SMS' },
         { label: '邮件', value: 'EMAIL' },
-        { label: '自定义', value: 'CUSTOM' }
-      ]
-    }
+        { label: '自定义', value: 'CUSTOM' },
+      ],
+    },
   },
   {
     field: 'readFlag',
@@ -122,18 +122,18 @@ const searchSchema = [
       clearable: true,
       options: [
         { label: '未读', value: 0 },
-        { label: '已读', value: 1 }
-      ]
-    }
+        { label: '已读', value: 1 },
+      ],
+    },
   },
   {
     field: 'keyword',
     label: '关键词',
     type: 'input',
     props: {
-      placeholder: '搜索标题或内容'
-    }
-  }
+      placeholder: '搜索标题或内容',
+    },
+  },
 ]
 
 const tableColumns = computed(() => [
@@ -143,16 +143,18 @@ const tableColumns = computed(() => [
     ellipsis: { tooltip: true },
     render: (row) => {
       return h('div', { class: 'flex items-center' }, [
-        row.readFlag === 0 ? h('span', {
-          class: 'w-6 h-6 bg-red-500 rounded-full mr-8'
-        }) : null,
+        row.readFlag === 0
+          ? h('span', {
+              class: 'w-6 h-6 bg-red-500 rounded-full mr-8',
+            })
+          : null,
         h('span', {
           class: row.readFlag === 0 ? 'font-bold' : '',
           style: { cursor: 'pointer', color: '#18a058' },
-          onClick: () => handleViewDetail(row)
-        }, row.title)
+          onClick: () => handleViewDetail(row),
+        }, row.title),
       ])
-    }
+    },
   },
   {
     prop: 'type',
@@ -161,9 +163,9 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h(NTag, {
         type: getMessageTypeColor(row.type),
-        size: 'small'
+        size: 'small',
       }, { default: () => getMessageTypeText(row.type) })
-    }
+    },
   },
   {
     prop: 'readFlag',
@@ -172,14 +174,14 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h(NTag, {
         type: row.readFlag === 0 ? 'error' : 'success',
-        size: 'small'
+        size: 'small',
       }, { default: () => row.readFlag === 0 ? '未读' : '已读' })
-    }
+    },
   },
   {
     prop: 'createTime',
     label: '接收时间',
-    width: 180
+    width: 180,
   },
   {
     prop: 'action',
@@ -188,10 +190,10 @@ const tableColumns = computed(() => [
     fixed: 'right',
     actions: [
       { label: '查看', key: 'view', onClick: handleViewDetail },
-      { label: '查看详情', key: 'viewBiz', onClick: handleJumpToBiz, visible: (row) => !!(row.bizType && row.bizKey) },
-      { label: '标记已读', key: 'markRead', type: 'warning', onClick: (row) => handleMarkRead(row.id), visible: (row) => row.readFlag === 0 }
-    ]
-  }
+      { label: '查看详情', key: 'viewBiz', onClick: handleJumpToBiz, visible: row => !!(row.bizType && row.bizKey) },
+      { label: '标记已读', key: 'markRead', type: 'warning', onClick: row => handleMarkRead(row.id), visible: row => row.readFlag === 0 },
+    ],
+  },
 ])
 
 function handleSelectionChange(keys) {
@@ -209,7 +211,8 @@ async function handleViewDetail(row) {
         crudRef.value?.refresh()
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取消息详情失败:', error)
     window.$message.error('获取详情失败')
   }
@@ -220,7 +223,8 @@ async function handleMarkRead(id) {
     await request.post(`/api/message/${id}/read`)
     window.$message.success('已标记为已读')
     crudRef.value?.refresh()
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('操作失败')
   }
 }
@@ -235,7 +239,8 @@ async function handleBatchMarkRead() {
     window.$message.success('已批量标记为已读')
     selectedRowKeys.value = []
     crudRef.value?.refresh()
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('操作失败')
   }
 }
@@ -251,29 +256,30 @@ async function handleMarkAllRead() {
         await request.post('/api/message/read/all')
         window.$message.success('已全部标记为已读')
         crudRef.value?.refresh()
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('操作失败')
       }
-    }
+    },
   })
 }
 
 function getMessageTypeText(type) {
   const map = {
-    'SYSTEM': '系统消息',
-    'SMS': '短信',
-    'EMAIL': '邮件',
-    'CUSTOM': '自定义'
+    SYSTEM: '系统消息',
+    SMS: '短信',
+    EMAIL: '邮件',
+    CUSTOM: '自定义',
   }
   return map[type] || type
 }
 
 function getMessageTypeColor(type) {
   const map = {
-    'SYSTEM': 'info',
-    'SMS': 'warning',
-    'EMAIL': 'success',
-    'CUSTOM': 'default'
+    SYSTEM: 'info',
+    SMS: 'warning',
+    EMAIL: 'success',
+    CUSTOM: 'default',
   }
   return map[type] || 'default'
 }
@@ -284,7 +290,8 @@ async function loadBizTypes() {
     if (res.code === 200 && res.data) {
       bizTypeOptions.value = res.data
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载业务类型失败:', error)
   }
 }
@@ -300,10 +307,11 @@ function handleJumpToBiz(message) {
     let jumpUrl = bizConfig.jumpUrl
     jumpUrl = jumpUrl.replace('${bizKey}', message.bizKey)
     jumpUrl = jumpUrl.replace('${messageId}', message.id)
-    
+
     if (bizConfig.jumpTarget === '_blank') {
       window.open(jumpUrl, '_blank')
-    } else {
+    }
+    else {
       router.push(jumpUrl)
     }
   }

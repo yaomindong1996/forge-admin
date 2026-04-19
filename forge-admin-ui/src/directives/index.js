@@ -1,7 +1,7 @@
 import { router } from '@/router'
+import copyDirective from './modules/copy'
 import hasPermi from './modules/hasPermi'
 import loadingDirective, { loadingService } from './modules/loading'
-import copyDirective from './modules/copy'
 import previewDirective from './modules/preview'
 import watermarkDirective from './modules/watermark'
 

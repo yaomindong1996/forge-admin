@@ -18,12 +18,12 @@
           placeholder="选择时间范围"
           @update:value="loadLogList"
         />
-        <n-button type="primary" @click="loadLogList">
+        <NButton type="primary" @click="loadLogList">
           <template #icon>
             <i class="i-material-symbols:search" />
           </template>
           查询
-        </n-button>
+        </NButton>
       </n-space>
     </div>
 
@@ -42,15 +42,15 @@
 </template>
 
 <script setup>
-import { ref, h, onMounted } from 'vue'
-import { NTag, NEllipsis, NButton } from 'naive-ui'
+import { NButton, NEllipsis, NTag } from 'naive-ui'
+import { h, onMounted, ref } from 'vue'
 import { request } from '@/utils'
 
 const props = defineProps({
   jobName: {
     type: String,
-    default: null
-  }
+    default: null,
+  },
 })
 
 const loading = ref(false)
@@ -61,7 +61,7 @@ const dateRange = ref(null)
 const statusOptions = [
   { label: '全部', value: null },
   { label: '执行成功', value: 1 },
-  { label: '执行失败', value: 0 }
+  { label: '执行失败', value: 0 },
 ]
 
 const pagination = ref({
@@ -70,7 +70,7 @@ const pagination = ref({
   itemCount: 0,
   showSizePicker: true,
   pageSizes: [10, 20, 50, 100],
-  prefix: (info) => `共 ${info.itemCount} 条`,
+  prefix: info => `共 ${info.itemCount} 条`,
   onChange: (page) => {
     pagination.value.page = page
     loadLogList()
@@ -79,7 +79,7 @@ const pagination = ref({
     pagination.value.pageSize = pageSize
     pagination.value.page = 1
     loadLogList()
-  }
+  },
 })
 
 // 表格列配置
@@ -89,22 +89,22 @@ const columns = [
     key: 'jobName',
     width: 150,
     ellipsis: {
-      tooltip: true
-    }
+      tooltip: true,
+    },
   },
   {
     title: '任务分组',
     key: 'jobGroup',
-    width: 120
+    width: 120,
   },
   {
     title: 'Handler',
     key: 'executorHandler',
     width: 150,
     ellipsis: {
-      tooltip: true
+      tooltip: true,
     },
-    render: (row) => row.executorHandler || '-'
+    render: row => row.executorHandler || '-',
   },
   {
     title: '执行状态',
@@ -113,11 +113,11 @@ const columns = [
     render: (row) => {
       const statusMap = {
         0: { text: '执行失败', type: 'error' },
-        1: { text: '执行成功', type: 'success' }
+        1: { text: '执行成功', type: 'success' },
       }
       const config = statusMap[row.status] || { text: '未知', type: 'default' }
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
-    }
+    },
   },
   {
     title: '执行时长',
@@ -125,7 +125,7 @@ const columns = [
     width: 100,
     render: (row) => {
       return row.duration != null ? `${row.duration}ms` : '-'
-    }
+    },
   },
   {
     title: '重试次数',
@@ -133,43 +133,41 @@ const columns = [
     width: 90,
     render: (row) => {
       return row.retryCount || 0
-    }
+    },
   },
   {
     title: '触发时间',
     key: 'triggerTime',
     width: 160,
-    render: (row) => formatDateTime(row.triggerTime)
+    render: row => formatDateTime(row.triggerTime),
   },
   {
     title: '开始时间',
     key: 'startTime',
     width: 160,
-    render: (row) => formatDateTime(row.startTime)
+    render: row => formatDateTime(row.startTime),
   },
   {
     title: '结束时间',
     key: 'endTime',
     width: 160,
-    render: (row) => formatDateTime(row.endTime)
+    render: row => formatDateTime(row.endTime),
   },
   {
     title: '异常信息',
     key: 'exceptionMsg',
     width: 250,
     render: (row) => {
-      if (!row.exceptionMsg) return '-'
-      return h(NEllipsis, 
-        { 
-          lineClamp: 2,
-          tooltip: {
-            width: 600,
-            style: { maxHeight: '400px', overflow: 'auto' }
-          }
+      if (!row.exceptionMsg)
+        return '-'
+      return h(NEllipsis, {
+        lineClamp: 2,
+        tooltip: {
+          width: 600,
+          style: { maxHeight: '400px', overflow: 'auto' },
         },
-        { default: () => row.exceptionMsg }
-      )
-    }
+      }, { default: () => row.exceptionMsg })
+    },
   },
   {
     title: '操作',
@@ -183,17 +181,18 @@ const columns = [
           text: true,
           type: 'primary',
           size: 'small',
-          onClick: () => handleViewDetail(row)
+          onClick: () => handleViewDetail(row),
         },
-        { default: () => '详情' }
+        { default: () => '详情' },
       )
-    }
-  }
+    },
+  },
 ]
 
 // 格式化日期时间
 function formatDateTime(dateTime) {
-  if (!dateTime) return '-'
+  if (!dateTime)
+    return '-'
   try {
     // 如果是字符串，直接返回
     if (typeof dateTime === 'string') {
@@ -207,11 +206,12 @@ function formatDateTime(dateTime) {
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit'
+        second: '2-digit',
       })
     }
     return dateTime
-  } catch {
+  }
+  catch {
     return dateTime
   }
 }
@@ -222,32 +222,34 @@ async function loadLogList() {
     loading.value = true
     const params = {
       pageNum: pagination.value.page,
-      pageSize: pagination.value.pageSize
+      pageSize: pagination.value.pageSize,
     }
-    
+
     if (props.jobName) {
       params.jobName = props.jobName
     }
-    
+
     if (searchStatus.value !== null && searchStatus.value !== undefined) {
       params.status = searchStatus.value
     }
-    
+
     if (dateRange.value && dateRange.value.length === 2) {
       params.startTime = new Date(dateRange.value[0]).toISOString()
       params.endTime = new Date(dateRange.value[1]).toISOString()
     }
-    
+
     const res = await request.get('/job/log/page', { params })
-    
+
     if (res.code === 200) {
       logList.value = res.data.records || res.data.list || []
       pagination.value.itemCount = res.data.total || 0
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载日志失败:', error)
     window.$message.error('加载日志失败')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -262,88 +264,92 @@ function handleViewDetail(row) {
           h('h4', { class: 'section-title' }, '基本信息'),
           h('div', { class: 'detail-row' }, [
             h('span', { class: 'detail-label' }, '任务名称：'),
-            h('span', { class: 'detail-value' }, row.jobName)
+            h('span', { class: 'detail-value' }, row.jobName),
           ]),
           h('div', { class: 'detail-row' }, [
             h('span', { class: 'detail-label' }, '任务分组：'),
-            h('span', { class: 'detail-value' }, row.jobGroup)
+            h('span', { class: 'detail-value' }, row.jobGroup),
           ]),
           h('div', { class: 'detail-row' }, [
             h('span', { class: 'detail-label' }, 'Handler：'),
-            h('span', { class: 'detail-value' }, row.executorHandler || '-')
+            h('span', { class: 'detail-value' }, row.executorHandler || '-'),
           ]),
           h('div', { class: 'detail-row' }, [
             h('span', { class: 'detail-label' }, '任务参数：'),
-            h('span', { class: 'detail-value' }, row.jobParam || '-')
-          ])
+            h('span', { class: 'detail-value' }, row.jobParam || '-'),
+          ]),
         ]),
         h('div', { class: 'detail-section' }, [
           h('h4', { class: 'section-title' }, '执行信息'),
           h('div', { class: 'detail-row' }, [
             h('span', { class: 'detail-label' }, '执行状态：'),
-            h('span', { 
+            h('span', {
               class: row.status === 1 ? 'text-success' : 'text-error',
-              style: { fontWeight: 500 }
-            }, row.status === 1 ? '✓ 执行成功' : '✗ 执行失败')
+              style: { fontWeight: 500 },
+            }, row.status === 1 ? '✓ 执行成功' : '✗ 执行失败'),
           ]),
           h('div', { class: 'detail-row' }, [
             h('span', { class: 'detail-label' }, '执行时长：'),
-            h('span', { class: 'detail-value' }, `${row.duration || 0}ms`)
+            h('span', { class: 'detail-value' }, `${row.duration || 0}ms`),
           ]),
           h('div', { class: 'detail-row' }, [
             h('span', { class: 'detail-label' }, '重试次数：'),
-            h('span', { class: 'detail-value' }, `${row.retryCount || 0}次`)
+            h('span', { class: 'detail-value' }, `${row.retryCount || 0}次`),
           ]),
           h('div', { class: 'detail-row' }, [
             h('span', { class: 'detail-label' }, '触发时间：'),
-            h('span', { class: 'detail-value' }, formatDateTime(row.triggerTime))
+            h('span', { class: 'detail-value' }, formatDateTime(row.triggerTime)),
           ]),
           h('div', { class: 'detail-row' }, [
             h('span', { class: 'detail-label' }, '开始时间：'),
-            h('span', { class: 'detail-value' }, formatDateTime(row.startTime))
+            h('span', { class: 'detail-value' }, formatDateTime(row.startTime)),
           ]),
           h('div', { class: 'detail-row' }, [
             h('span', { class: 'detail-label' }, '结束时间：'),
-            h('span', { class: 'detail-value' }, formatDateTime(row.endTime))
-          ])
+            h('span', { class: 'detail-value' }, formatDateTime(row.endTime)),
+          ]),
         ]),
-        row.result ? h('div', { class: 'detail-section' }, [
-          h('h4', { class: 'section-title' }, '执行结果'),
-          h('pre', { 
-            class: 'result-info',
-            style: {
-              background: '#f0f9ff',
-              padding: '12px',
-              borderRadius: '4px',
-              fontSize: '12px',
-              maxHeight: '200px',
-              overflow: 'auto',
-              border: '1px solid #d1e7fd'
-            }
-          }, row.result)
-        ]) : null,
-        row.exceptionMsg ? h('div', { class: 'detail-section' }, [
-          h('h4', { class: 'section-title text-error' }, '异常信息'),
-          h('pre', { 
-            class: 'exception-info',
-            style: {
-              background: '#fff1f0',
-              padding: '12px',
-              borderRadius: '4px',
-              fontSize: '12px',
-              maxHeight: '300px',
-              overflow: 'auto',
-              border: '1px solid #ffccc7',
-              color: '#cf1322'
-            }
-          }, row.exceptionMsg)
-        ]) : null
+        row.result
+          ? h('div', { class: 'detail-section' }, [
+              h('h4', { class: 'section-title' }, '执行结果'),
+              h('pre', {
+                class: 'result-info',
+                style: {
+                  background: '#f0f9ff',
+                  padding: '12px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  maxHeight: '200px',
+                  overflow: 'auto',
+                  border: '1px solid #d1e7fd',
+                },
+              }, row.result),
+            ])
+          : null,
+        row.exceptionMsg
+          ? h('div', { class: 'detail-section' }, [
+              h('h4', { class: 'section-title text-error' }, '异常信息'),
+              h('pre', {
+                class: 'exception-info',
+                style: {
+                  background: '#fff1f0',
+                  padding: '12px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  maxHeight: '300px',
+                  overflow: 'auto',
+                  border: '1px solid #ffccc7',
+                  color: '#cf1322',
+                },
+              }, row.exceptionMsg),
+            ])
+          : null,
       ])
     },
     positiveText: '关闭',
     style: {
-      width: '800px'
-    }
+      width: '800px',
+    },
   })
 }
 
@@ -353,7 +359,7 @@ onMounted(() => {
 
 // 暴露刷新方法
 defineExpose({
-  refresh: loadLogList
+  refresh: loadLogList,
 })
 </script>
 

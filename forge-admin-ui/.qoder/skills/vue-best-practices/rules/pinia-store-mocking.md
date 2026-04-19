@@ -24,21 +24,22 @@ Developers struggle to properly mock Pinia stores: `createTestingPinia` requires
 ## Fix
 
 **Pattern 1: Basic setup with createTestingPinia**
+
 ```typescript
-import { mount } from '@vue/test-utils'
 import { createTestingPinia } from '@pinia/testing'
+import { mount } from '@vue/test-utils'
 import { vi } from 'vitest'
-import MyComponent from './MyComponent.vue'
 import { useCounterStore } from '@/stores/counter'
+import MyComponent from './MyComponent.vue'
 
 test('component uses store', async () => {
   const wrapper = mount(MyComponent, {
     global: {
       plugins: [
         createTestingPinia({
-          createSpy: vi.fn,  // REQUIRED in @pinia/testing 1.0+
+          createSpy: vi.fn, // REQUIRED in @pinia/testing 1.0+
           initialState: {
-            counter: { count: 10 }  // Set initial state
+            counter: { count: 10 } // Set initial state
           }
         })
       ]
@@ -55,6 +56,7 @@ test('component uses store', async () => {
 ```
 
 **Pattern 2: Customize action behavior**
+
 ```typescript
 test('component handles async action', async () => {
   const wrapper = mount(MyComponent, {
@@ -62,7 +64,7 @@ test('component handles async action', async () => {
       plugins: [
         createTestingPinia({
           createSpy: vi.fn,
-          stubActions: false  // Don't stub, use real actions
+          stubActions: false // Don't stub, use real actions
         })
       ]
     }
@@ -79,8 +81,9 @@ test('component handles async action', async () => {
 ```
 
 **Pattern 3: Testing store directly**
+
 ```typescript
-import { setActivePinia, createPinia } from 'pinia'
+import { createPinia, setActivePinia } from 'pinia'
 import { useCounterStore } from '@/stores/counter'
 
 describe('Counter Store', () => {

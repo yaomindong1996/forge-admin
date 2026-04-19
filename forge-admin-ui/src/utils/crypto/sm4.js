@@ -7,8 +7,9 @@ import { sm4 } from 'sm-crypto'
  * @returns {string} 密文（Base64编码）
  */
 export function sm4Encrypt(plainText, key) {
-  if (!plainText) return plainText
-  
+  if (!plainText)
+    return plainText
+
   // sm-crypto 的 sm4.encrypt 返回 hex 字符串
   const hexCipherText = sm4.encrypt(plainText, key)
   // 转换为 Base64
@@ -22,8 +23,9 @@ export function sm4Encrypt(plainText, key) {
  * @returns {string} 明文
  */
 export function sm4Decrypt(cipherText, key) {
-  if (!cipherText) return cipherText
-  
+  if (!cipherText)
+    return cipherText
+
   // 将 Base64 转换为 hex
   const hexCipherText = base64ToHex(cipherText)
   // sm-crypto 的 sm4.decrypt 接受 hex 字符串
@@ -36,7 +38,7 @@ export function sm4Decrypt(cipherText, key) {
 function hexToBase64(hexString) {
   const bytes = []
   for (let i = 0; i < hexString.length; i += 2) {
-    bytes.push(parseInt(hexString.substr(i, 2), 16))
+    bytes.push(Number.parseInt(hexString.substr(i, 2), 16))
   }
   return btoa(String.fromCharCode.apply(null, bytes))
 }
@@ -49,7 +51,7 @@ function base64ToHex(base64String) {
   let result = ''
   for (let i = 0; i < raw.length; i++) {
     const hex = raw.charCodeAt(i).toString(16)
-    result += (hex.length === 2 ? hex : '0' + hex)
+    result += (hex.length === 2 ? hex : `0${hex}`)
   }
   return result
 }

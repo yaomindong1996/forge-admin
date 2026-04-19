@@ -14,7 +14,7 @@
       <Fullscreen />
       <ThemeSetting />
       <MessageNotification />
-      <div class="header-divider"></div>
+      <div class="header-divider" />
       <UserAvatar />
     </div>
   </div>

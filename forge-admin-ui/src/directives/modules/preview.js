@@ -3,7 +3,7 @@ import { previewImage } from '@/utils/imagePreview'
 /**
  * v-preview 指令
  * 用于图片点击预览
- * 
+ *
  * 用法：
  * 1. 基础用法：<img v-preview src="图片.jpg" />
  * 2. 指定预览图：<img v-preview="'大图.jpg'" src="缩略图.jpg" />
@@ -20,7 +20,7 @@ const previewDirective = {
     el._previewHandler = () => {
       // 优先使用指令绑定的值，否则使用图片的 src
       const previewSrc = binding.value || el.src
-      
+
       if (!previewSrc) {
         console.warn('v-preview: 没有找到可预览的图片地址')
         return
@@ -62,7 +62,7 @@ const previewDirective = {
       el.removeEventListener('click', el._previewHandler)
       delete el._previewHandler
     }
-  }
+  },
 }
 
 export default previewDirective

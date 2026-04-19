@@ -1,11 +1,11 @@
 import { useAuthStore } from '@/store'
-import { resolveResError } from './helpers'
-import { encryptRequest, decryptResponse, cryptoConfig } from '@/utils/crypto'
+import { cryptoConfig, decryptResponse, encryptRequest } from '@/utils/crypto'
 import { resetKeyExchange } from '@/utils/crypto/key-exchange'
+import { resolveResError } from './helpers'
 
 // 生成 UUID
 function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = Math.random() * 16 | 0
     const v = c === 'x' ? r : (r & 0x3 | 0x8)
     return v.toString(16)
@@ -22,11 +22,12 @@ export function setupInterceptors(axiosInstance) {
     // 先进行解密处理
     try {
       response = decryptResponse(response)
-      if(response.data.code !== 200){
+      if (response.data.code !== 200) {
         const finalMessage = resolveResError(response.data.code, response.data.message, response.config.needTip)
-        return Promise.reject({ code:response.data.code, message: finalMessage, error: response.data.message })
+        return Promise.reject({ code: response.data.code, message: finalMessage, error: response.data.message })
       }
-    } catch (error) {
+    }
+    catch (error) {
       if (error.message === 'DECRYPT_ERROR') {
         console.error('[Crypto] 检测到密钥已过期，正在重置...')
         // 清除过期密钥
@@ -62,7 +63,7 @@ export function setupInterceptors(axiosInstance) {
         message,
         error: data ?? response,
         isBusinessError: true,
-        needTip
+        needTip,
       })
     }
 
@@ -105,7 +106,7 @@ export function setupInterceptors(axiosInstance) {
     return Promise.reject({
       code,
       message: finalMessage,
-      error: error.response?.data || error.response
+      error: error.response?.data || error.response,
     })
   }
   axiosInstance.interceptors.request.use(reqResolve, reqReject)
@@ -125,11 +126,11 @@ function reqResolve(config) {
   // 生成traceid: 时间戳+5位随机数
   const timestamp = Date.now()
   const random = Math.floor(10000 + Math.random() * 90000)
-  config.headers['traceId'] = `${timestamp}${random}`
+  config.headers.traceId = `${timestamp}${random}`
 
   // 添加认证token
   if (authStore.accessToken) {
-    config.headers['Authorization'] = `Bearer ${authStore.accessToken}`
+    config.headers.Authorization = `Bearer ${authStore.accessToken}`
   }
 
   // 添加防重放参数

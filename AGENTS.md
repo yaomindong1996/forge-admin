@@ -91,6 +91,7 @@ pnpm lint:fix
 - Use `utf8mb4` charset, `InnoDB` engine
 - Create indexes for frequently queried fields, follow leftmost prefix rule for composite indexes
 - Never commit database credentials to repo (local configs are in `.gitignore`)
+- **租户ID规则**：SQL初始化数据中，业务数据（字典、配置等需被租户查询到的数据）的 `tenant_id` 必须设为 `1`（默认租户），**不能设为 `0`**。原因是项目的 `TenantLineInnerInterceptor` 会自动在所有查询中追加 `WHERE tenant_id = <当前登录用户租户ID>`，`tenant_id=0` 的数据对非零租户用户不可见。`sys_resource`（菜单/权限）表不在租户拦截范围内，其 `tenant_id` 保持 `0` 即可
 
 ### 5. Frontend
 - API calls use `request` utility from `@/utils/request`

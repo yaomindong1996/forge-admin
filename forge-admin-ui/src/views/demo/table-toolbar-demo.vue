@@ -6,7 +6,7 @@
 <template>
   <div class="table-toolbar-demo">
     <n-card title="AiTable 工具栏功能演示">
-      <n-space vertical :size="24">
+      <NSpace vertical :size="24">
         <!-- 功能说明 -->
         <n-alert type="info" title="功能说明">
           <ul>
@@ -22,6 +22,7 @@
         <n-card title="示例1：完整工具栏功能" embedded>
           <AiTable
             ref="tableRef"
+            v-model:checked-row-keys="selectedKeys"
             :columns="columns"
             :data-source="dataSource"
             :loading="loading"
@@ -30,36 +31,35 @@
             :show-refresh="true"
             :show-density="true"
             :show-column-filter="true"
-            v-model:checked-row-keys="selectedKeys"
             @refresh="handleRefresh"
             @density-change="handleDensityChange"
             @filter-change="handleFilterChange"
           >
             <!-- 工具栏左侧 -->
             <template #toolbar-left>
-              <n-button type="primary" @click="handleAdd">
+              <NButton type="primary" @click="handleAdd">
                 <template #icon>
                   <n-icon><AddOutline /></n-icon>
                 </template>
                 新增
-              </n-button>
-              <n-button 
-                type="error" 
+              </NButton>
+              <NButton
+                type="error"
                 :disabled="selectedKeys.length === 0"
                 @click="handleBatchDelete"
               >
                 批量删除 ({{ selectedKeys.length }})
-              </n-button>
+              </NButton>
             </template>
-            
+
             <!-- 工具栏右侧额外操作 -->
             <template #toolbar-extra>
-              <n-button @click="handleExport">
+              <NButton @click="handleExport">
                 <template #icon>
                   <n-icon><DownloadOutline /></n-icon>
                 </template>
                 导出
-              </n-button>
+              </NButton>
             </template>
           </AiTable>
         </n-card>
@@ -80,43 +80,45 @@
 
         <!-- 示例3：无工具栏 -->
         <n-card title="示例3：无工具栏（传统模式）" embedded>
-          <n-space style="margin-bottom: 16px">
-            <n-button @click="handleRefresh3">
+          <NSpace style="margin-bottom: 16px">
+            <NButton @click="handleRefresh3">
               <template #icon>
                 <n-icon><RefreshOutline /></n-icon>
               </template>
               刷新
-            </n-button>
-          </n-space>
-          
+            </NButton>
+          </NSpace>
+
           <AiTable
             :columns="columns"
             :data-source="dataSource"
             :show-toolbar="false"
           />
         </n-card>
-      </n-space>
+      </NSpace>
     </n-card>
 
     <!-- 操作日志 -->
     <n-card title="操作日志" style="margin-top: 16px">
       <n-scrollbar style="max-height: 200px">
-        <n-space vertical>
+        <NSpace vertical>
           <n-text v-for="(log, index) in logs" :key="index" depth="3">
             {{ log }}
           </n-text>
-          <n-text v-if="logs.length === 0" depth="3">暂无操作日志</n-text>
-        </n-space>
+          <n-text v-if="logs.length === 0" depth="3">
+            暂无操作日志
+          </n-text>
+        </NSpace>
       </n-scrollbar>
     </n-card>
   </div>
 </template>
 
 <script setup>
-import { ref, h } from 'vue'
-import { AiTable } from '@/components/ai-form'
-import { NButton, NSpace, NTag } from 'naive-ui'
 import { AddOutline, DownloadOutline, RefreshOutline } from '@vicons/ionicons5'
+import { NButton, NSpace, NTag } from 'naive-ui'
+import { h, ref } from 'vue'
+import { AiTable } from '@/components/ai-form'
 
 // 操作日志
 const logs = ref([])
@@ -144,7 +146,7 @@ const pagination = ref({
   pageSize: 5,
   itemCount: 20,
   showSizePicker: true,
-  pageSizes: [5, 10, 20]
+  pageSizes: [5, 10, 20],
 })
 
 // 列配置
@@ -152,33 +154,33 @@ const columns = [
   {
     prop: 'id',
     label: 'ID',
-    width: 80
+    width: 80,
   },
   {
     prop: 'name',
     label: '姓名',
-    width: 120
+    width: 120,
   },
   {
     prop: 'age',
     label: '年龄',
     width: 80,
-    align: 'center'
+    align: 'center',
   },
   {
     prop: 'email',
     label: '邮箱',
-    width: 200
+    width: 200,
   },
   {
     prop: 'phone',
     label: '电话',
-    width: 150
+    width: 150,
   },
   {
     prop: 'department',
     label: '部门',
-    width: 120
+    width: 120,
   },
   {
     prop: 'status',
@@ -186,11 +188,11 @@ const columns = [
     width: 100,
     render: (row) => {
       return h(NTag, {
-        type: row.status === 1 ? 'success' : 'error'
+        type: row.status === 1 ? 'success' : 'error',
       }, {
-        default: () => row.status === 1 ? '在职' : '离职'
+        default: () => row.status === 1 ? '在职' : '离职',
       })
-    }
+    },
   },
   {
     prop: 'action',
@@ -203,17 +205,17 @@ const columns = [
           h(NButton, {
             size: 'small',
             type: 'primary',
-            onClick: () => handleEdit(row)
+            onClick: () => handleEdit(row),
           }, { default: () => '编辑' }),
           h(NButton, {
             size: 'small',
             type: 'error',
-            onClick: () => handleDelete(row)
-          }, { default: () => '删除' })
-        ]
+            onClick: () => handleDelete(row),
+          }, { default: () => '删除' }),
+        ],
       })
-    }
-  }
+    },
+  },
 ]
 
 // 数据源（模拟数据）
@@ -225,7 +227,7 @@ const dataSource = ref([
     email: 'zhangsan@example.com',
     phone: '13800138001',
     department: '技术部',
-    status: 1
+    status: 1,
   },
   {
     id: 2,
@@ -234,7 +236,7 @@ const dataSource = ref([
     email: 'lisi@example.com',
     phone: '13800138002',
     department: '产品部',
-    status: 1
+    status: 1,
   },
   {
     id: 3,
@@ -243,7 +245,7 @@ const dataSource = ref([
     email: 'wangwu@example.com',
     phone: '13800138003',
     department: '设计部',
-    status: 0
+    status: 0,
   },
   {
     id: 4,
@@ -252,7 +254,7 @@ const dataSource = ref([
     email: 'zhaoliu@example.com',
     phone: '13800138004',
     department: '运营部',
-    status: 1
+    status: 1,
   },
   {
     id: 5,
@@ -261,8 +263,8 @@ const dataSource = ref([
     email: 'sunqi@example.com',
     phone: '13800138005',
     department: '市场部',
-    status: 1
-  }
+    status: 1,
+  },
 ])
 
 // 刷新
@@ -290,7 +292,7 @@ function handleDensityChange(size) {
   const sizeMap = {
     small: '紧凑',
     medium: '默认',
-    large: '宽松'
+    large: '宽松',
   }
   addLog(`密度变化: ${sizeMap[size]}`)
   window.$message?.success(`已切换为${sizeMap[size]}模式`)
@@ -341,4 +343,3 @@ function handleDelete(row) {
   padding: 24px;
 }
 </style>
-

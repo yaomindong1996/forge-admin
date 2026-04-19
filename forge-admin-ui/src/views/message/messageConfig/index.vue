@@ -14,8 +14,8 @@
 </template>
 
 <script setup>
-import SmsConfig from './components/SmsConfig.vue'
 import EmailConfig from './components/EmailConfig.vue'
+import SmsConfig from './components/SmsConfig.vue'
 
 const activeTab = ref('sms')
 </script>

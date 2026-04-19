@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS `ai_model` (
     `model_id`     VARCHAR(128) NOT NULL COMMENT '模型标识(如gpt-4o)',
     `model_name`   VARCHAR(128) NOT NULL COMMENT '模型显示名称',
     `description`  VARCHAR(512)          DEFAULT NULL COMMENT '描述',
+    `max_tokens`   INT                   DEFAULT NULL COMMENT '最大Token数',
+    `icon`         VARCHAR(512)          DEFAULT NULL COMMENT '模型图标(文件ID或URL)',
     `is_default`   CHAR(1)               DEFAULT '0' COMMENT '是否默认模型(0否1是)',
     `status`       CHAR(1)               DEFAULT '0' COMMENT '状态(0正常1停用)',
     `sort_order`   INT                   DEFAULT 0 COMMENT '排序号',
@@ -75,7 +77,77 @@ INSERT INTO sys_role_resource (role_id, resource_id)
 SELECT 1, id FROM sys_resource WHERE tenant_id = 0 AND id >= @ai_root_id;
 
 -- =============================================
--- 5. 数据迁移：将 ai_provider.models JSON 迁移到 ai_model 表
+-- 5. 字典类型数据
+-- =============================================
+
+-- AI 供应商类型字典
+INSERT INTO sys_dict_type (tenant_id, dict_name, dict_type, dict_status, remark, create_time, update_time)
+VALUES (1, 'AI供应商类型', 'ai_provider_type', 1, 'AI供应商类型列表', NOW(), NOW());
+
+SET @dict_ai_provider_type = LAST_INSERT_ID();
+
+-- AI 模型类型字典
+INSERT INTO sys_dict_type (tenant_id, dict_name, dict_type, dict_status, remark, create_time, update_time)
+VALUES (1, 'AI模型类型', 'ai_model_type', 1, 'AI模型类型列表', NOW(), NOW());
+
+SET @dict_ai_model_type = LAST_INSERT_ID();
+
+-- AI 状态字典（0正常 1停用）
+INSERT INTO sys_dict_type (tenant_id, dict_name, dict_type, dict_status, remark, create_time, update_time)
+VALUES (1, 'AI状态', 'ai_status', 1, 'AI模块状态(0正常 1停用)', NOW(), NOW());
+
+SET @dict_ai_status = LAST_INSERT_ID();
+
+-- AI 是否默认字典（0否 1是）
+INSERT INTO sys_dict_type (tenant_id, dict_name, dict_type, dict_status, remark, create_time, update_time)
+VALUES (1, 'AI是否默认', 'ai_is_default', 1, 'AI模块是否默认(0否 1是)', NOW(), NOW());
+
+SET @dict_ai_is_default = LAST_INSERT_ID();
+
+-- =============================================
+-- 6. 字典数据
+-- =============================================
+
+-- AI 供应商类型字典数据
+INSERT INTO sys_dict_data (tenant_id, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, dict_status, remark, create_time, update_time)
+VALUES
+(1, 1, '阿里百炼', 'alibaba', 'ai_provider_type', NULL, 'default', 'N', 1, '阿里百炼平台', NOW(), NOW()),
+(1, 2, 'OpenAI', 'openai', 'ai_provider_type', NULL, 'success', 'N', 1, 'OpenAI平台', NOW(), NOW()),
+(1, 3, '智谱 AI', 'zhipu', 'ai_provider_type', NULL, 'info', 'N', 1, '智谱AI平台', NOW(), NOW()),
+(1, 4, 'Moonshot', 'moonshot', 'ai_provider_type', NULL, 'default', 'N', 1, 'Moonshot平台', NOW(), NOW()),
+(1, 5, 'DeepSeek', 'deepseek', 'ai_provider_type', NULL, 'default', 'N', 1, 'DeepSeek平台', NOW(), NOW()),
+(1, 6, 'Ollama（本地）', 'ollama', 'ai_provider_type', NULL, 'warning', 'N', 1, 'Ollama本地部署', NOW(), NOW()),
+(1, 7, 'Azure', 'azure', 'ai_provider_type', NULL, 'info', 'N', 1, 'Azure OpenAI', NOW(), NOW()),
+(1, 8, '自定义', 'custom', 'ai_provider_type', NULL, 'default', 'N', 1, '自定义供应商', NOW(), NOW());
+
+-- AI 模型类型字典数据
+INSERT INTO sys_dict_data (tenant_id, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, dict_status, remark, create_time, update_time)
+VALUES
+(1, 1, '对话', 'chat', 'ai_model_type', NULL, 'success', 'N', 1, '对话模型', NOW(), NOW()),
+(1, 2, '向量化', 'embedding', 'ai_model_type', NULL, 'info', 'N', 1, '向量化模型', NOW(), NOW()),
+(1, 3, '图像生成', 'image', 'ai_model_type', NULL, 'warning', 'N', 1, '图像生成模型', NOW(), NOW()),
+(1, 4, '语音', 'audio', 'ai_model_type', NULL, 'default', 'N', 1, '语音模型', NOW(), NOW());
+
+-- AI 状态字典数据
+INSERT INTO sys_dict_data (tenant_id, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, dict_status, remark, create_time, update_time)
+VALUES
+(1, 1, '正常', '0', 'ai_status', NULL, 'success', 'Y', 1, '正常状态', NOW(), NOW()),
+(1, 2, '停用', '1', 'ai_status', NULL, 'error', 'N', 1, '停用状态', NOW(), NOW());
+
+-- AI 是否默认字典数据
+INSERT INTO sys_dict_data (tenant_id, dict_sort, dict_label, dict_value, dict_type, css_class, list_class, is_default, dict_status, remark, create_time, update_time)
+VALUES
+(1, 1, '否', '0', 'ai_is_default', NULL, 'default', 'Y', 1, '非默认', NOW(), NOW()),
+(1, 2, '是', '1', 'ai_is_default', NULL, 'success', 'N', 1, '默认', NOW(), NOW());
+
+-- =============================================
+-- 7. ai_provider 表新增 logo 字段
+-- =============================================
+
+ALTER TABLE `ai_provider` ADD COLUMN `logo` VARCHAR(512) DEFAULT NULL COMMENT '供应商Logo(文件ID或URL)' AFTER `provider_type`;
+
+-- =============================================
+-- 8. 数据迁移：将 ai_provider.models JSON 迁移到 ai_model 表
 --    models 字段格式为字符串数组 JSON，如 ["gpt-4o","gpt-4o-mini"]
 -- =============================================
 

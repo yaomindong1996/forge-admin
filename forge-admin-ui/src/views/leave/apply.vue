@@ -48,7 +48,9 @@
             placeholder="请假天数"
             style="width: 100%"
           >
-            <template #suffix>天</template>
+            <template #suffix>
+              天
+            </template>
           </n-input-number>
         </n-form-item>
 
@@ -83,10 +85,10 @@
       </n-form>
 
       <n-space justify="end" class="mt-4">
-        <n-button @click="handleSaveDraft" :loading="draftLoading">
+        <n-button :loading="draftLoading" @click="handleSaveDraft">
           保存草稿
         </n-button>
-        <n-button type="primary" @click="handleSubmit" :loading="submitLoading">
+        <n-button type="primary" :loading="submitLoading" @click="handleSubmit">
           提交申请
         </n-button>
       </n-space>
@@ -95,10 +97,10 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '@/store'
 import leaveApi from '@/api/leave'
+import { useUserStore } from '@/store'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -115,7 +117,7 @@ const formData = reactive({
   endTime: null,
   duration: null,
   reason: '',
-  attachments: ''
+  attachments: '',
 })
 
 // 请假类型选项
@@ -124,7 +126,7 @@ const leaveTypeOptions = [
   { label: '病假', value: 'sick' },
   { label: '事假', value: 'personal' },
   { label: '婚假', value: 'marriage' },
-  { label: '产假', value: 'maternity' }
+  { label: '产假', value: 'maternity' },
 ]
 
 // 表单验证规则
@@ -132,31 +134,31 @@ const rules = {
   leaveType: {
     required: true,
     message: '请选择请假类型',
-    trigger: ['blur', 'change']
+    trigger: ['blur', 'change'],
   },
   startTime: {
     required: true,
     type: 'number',
     message: '请选择开始时间',
-    trigger: ['blur', 'change']
+    trigger: ['blur', 'change'],
   },
   endTime: {
     required: true,
     type: 'number',
     message: '请选择结束时间',
-    trigger: ['blur', 'change']
+    trigger: ['blur', 'change'],
   },
   duration: {
     required: true,
     type: 'number',
     message: '请输入请假天数',
-    trigger: ['blur', 'change']
+    trigger: ['blur', 'change'],
   },
   reason: {
     required: true,
     message: '请输入请假原因',
-    trigger: ['blur', 'input']
-  }
+    trigger: ['blur', 'input'],
+  },
 }
 
 // 计算请假天数
@@ -169,7 +171,8 @@ function calcDuration() {
       // 按工作日计算（简化处理，实际应排除周末和节假日）
       const days = diff / (1000 * 60 * 60 * 24)
       formData.duration = Math.round(days * 10) / 10
-    } else {
+    }
+    else {
       formData.duration = 0
       window.$message?.warning('结束时间必须大于开始时间')
     }
@@ -182,7 +185,7 @@ function handleFileChange(files) {
   // 将文件列表转为JSON字符串
   formData.attachments = JSON.stringify(files.map(f => ({
     name: f.name,
-    url: f.url || ''
+    url: f.url || '',
   })))
 }
 
@@ -190,28 +193,30 @@ function handleFileChange(files) {
 async function handleSubmit() {
   try {
     await formRef.value?.validate()
-    
+
     submitLoading.value = true
-    
+
     // 构建提交数据
     const data = {
       ...formData,
       startTime: formData.startTime ? new Date(formData.startTime).toISOString() : null,
       endTime: formData.endTime ? new Date(formData.endTime).toISOString() : null,
       applyUserId: userStore.userId,
-      applyUserName: userStore.username
+      applyUserName: userStore.username,
     }
-    
+
     const res = await leaveApi.submit(data)
-    
+
     window.$message?.success('提交成功')
     router.push('/leave/list')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('提交失败:', error)
     if (error?.response?.data?.message) {
       window.$message?.error(error.response.data.message)
     }
-  } finally {
+  }
+  finally {
     submitLoading.value = false
   }
 }
@@ -220,25 +225,27 @@ async function handleSubmit() {
 async function handleSaveDraft() {
   try {
     draftLoading.value = true
-    
+
     const data = {
       ...formData,
       startTime: formData.startTime ? new Date(formData.startTime).toISOString() : null,
       endTime: formData.endTime ? new Date(formData.endTime).toISOString() : null,
       applyUserId: userStore.userId,
-      applyUserName: userStore.username
+      applyUserName: userStore.username,
     }
-    
+
     await leaveApi.saveDraft(data)
-    
+
     window.$message?.success('草稿保存成功')
     router.push('/leave/list')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('保存草稿失败:', error)
     if (error?.response?.data?.message) {
       window.$message?.error(error.response.data.message)
     }
-  } finally {
+  }
+  finally {
     draftLoading.value = false
   }
 }

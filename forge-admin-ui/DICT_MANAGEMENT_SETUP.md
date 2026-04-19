@@ -8,6 +8,7 @@
 ## 功能说明
 
 ### 字典类型管理 (dict-type.vue)
+
 - 字典类型的增删改查
 - 支持搜索：字典名称、字典类型、状态
 - 支持查看和管理字典数据（点击"字典数据"按钮跳转到字典数据管理页面）
@@ -19,6 +20,7 @@
   - 备注 (remark)
 
 ### 字典数据管理 (dict-data.vue)
+
 - 字典数据的增删改查
 - 支持按字典类型筛选
 - 支持搜索：字典标签、字典键值、状态
@@ -77,6 +79,7 @@
 ## API 接口
 
 ### 字典类型接口
+
 - 分页查询: `GET /system/dict/type/page`
 - 列表查询: `GET /system/dict/type/list`
 - 详情查询: `POST /system/dict/type/getById?dictId={id}`
@@ -86,6 +89,7 @@
 - 批量删除: `POST /system/dict/type/removeBatch`
 
 ### 字典数据接口
+
 - 分页查询: `GET /system/dict/data/page`
 - 列表查询: `GET /system/dict/data/list`
 - 按类型查询: `GET /system/dict/data/type/{dictType}`

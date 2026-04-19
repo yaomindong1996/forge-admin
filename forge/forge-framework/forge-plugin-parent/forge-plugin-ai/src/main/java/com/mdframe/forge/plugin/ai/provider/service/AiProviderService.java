@@ -41,7 +41,7 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
      * @param provider 供应商配置（包括 baseUrl 和 apiKey）
      * @return true 表示连接成功
      */
-    public boolean testConnection(AiProvider provider) {
+    public String testConnection(AiProvider provider) {
         if (!StringUtils.hasText(provider.getApiKey())) {
             throw new BusinessException("API Key 不能为空");
         }
@@ -65,7 +65,7 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
             Prompt prompt = new Prompt(List.of(new UserMessage("hi")));
             ChatResponse chatResponse = chatModel.call(prompt);
             log.info("[AI供应商测试] 连接成功, provider={},chatResponse:{}", provider.getProviderName(),chatResponse.getResult().toString());
-            return true;
+            return chatResponse.getResult().getOutput().getText();
         } catch (Exception e) {
             log.warn("[AI供应商测试] 连接失败, provider={}, error={}", provider.getProviderName(), e.getMessage());
             throw new BusinessException("连接失败: " + e.getMessage());

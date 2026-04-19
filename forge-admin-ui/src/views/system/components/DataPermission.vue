@@ -15,11 +15,21 @@
         <n-form-item label="数据权限范围">
           <n-radio-group v-model:value="formData.dataScope" @update:value="handleDataScopeChange">
             <n-space vertical>
-              <n-radio value="1">全部数据权限</n-radio>
-              <n-radio value="2">自定义数据权限</n-radio>
-              <n-radio value="3">本部门数据权限</n-radio>
-              <n-radio value="4">本部门及以下数据权限</n-radio>
-              <n-radio value="5">仅本人数据权限</n-radio>
+              <n-radio value="1">
+                全部数据权限
+              </n-radio>
+              <n-radio value="2">
+                自定义数据权限
+              </n-radio>
+              <n-radio value="3">
+                本部门数据权限
+              </n-radio>
+              <n-radio value="4">
+                本部门及以下数据权限
+              </n-radio>
+              <n-radio value="5">
+                仅本人数据权限
+              </n-radio>
             </n-space>
           </n-radio-group>
         </n-form-item>
@@ -37,7 +47,7 @@
 
         <n-form-item>
           <n-space>
-            <n-button type="primary" @click="handleSave" :loading="saving">
+            <n-button type="primary" :loading="saving" @click="handleSave">
               保存
             </n-button>
             <n-button @click="handleReset">
@@ -51,15 +61,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { request } from '@/utils'
 
 const props = defineProps({
   // 角色ID
   roleId: {
     type: [String, Number],
-    required: true
-  }
+    required: true,
+  },
 })
 
 const message = window.$message
@@ -71,7 +81,7 @@ const deptTreeData = ref([])
 
 const formData = ref({
   dataScope: '1',
-  deptIds: []
+  deptIds: [],
 })
 
 const originalData = ref({})
@@ -102,15 +112,17 @@ async function handleSave() {
     await request.put('/role/dataPermission', {
       roleId: props.roleId,
       dataScope: formData.value.dataScope,
-      deptIds: formData.value.deptIds
+      deptIds: formData.value.deptIds,
     })
 
     message.success('保存成功')
     originalData.value = { ...formData.value }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('保存失败:', error)
     message.error('保存失败')
-  } finally {
+  }
+  finally {
     saving.value = false
   }
 }
@@ -129,7 +141,8 @@ async function loadDeptTree() {
   try {
     const res = await request.get('/department/tree')
     deptTreeData.value = convertToTreeData(res.data || [])
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载部门树失败:', error)
     message.error('加载部门树失败')
   }
@@ -143,20 +156,22 @@ async function loadDataPermission() {
     loading.value = true
 
     const res = await request.get('/role/dataPermission', {
-      params: { roleId: props.roleId }
+      params: { roleId: props.roleId },
     })
 
     if (res.data) {
       formData.value = {
         dataScope: res.data.dataScope || '1',
-        deptIds: res.data.deptIds || []
+        deptIds: res.data.deptIds || [],
       }
       originalData.value = { ...formData.value }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载数据权限失败:', error)
     message.error('加载数据权限失败')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -165,12 +180,13 @@ async function loadDataPermission() {
  * 转换为树形数据
  */
 function convertToTreeData(data) {
-  if (!Array.isArray(data)) return []
+  if (!Array.isArray(data))
+    return []
 
   return data.map(item => ({
     key: item.id || item.key,
     label: item.name || item.label || item.title,
-    children: item.children ? convertToTreeData(item.children) : undefined
+    children: item.children ? convertToTreeData(item.children) : undefined,
   }))
 }
 

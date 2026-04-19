@@ -24,7 +24,7 @@
 ### 1. 导入工具函数
 
 ```javascript
-import { getFileUrl, getFileDownloadUrl, getImageUrl } from '@/utils'
+import { getFileDownloadUrl, getFileUrl, getImageUrl } from '@/utils'
 ```
 
 ### 2. 获取文件访问 URL
@@ -33,9 +33,9 @@ import { getFileUrl, getFileDownloadUrl, getImageUrl } from '@/utils'
 
 ```javascript
 const fileData = {
-  fileId: "1234567890",
-  filePath: "tenant-logo/2025/12/10/xxx.png",
-  accessUrl: "http://example.com/uploads/xxx.png"
+  fileId: '1234567890',
+  filePath: 'tenant-logo/2025/12/10/xxx.png',
+  accessUrl: 'http://example.com/uploads/xxx.png'
 }
 
 const url = getFileUrl(fileData)
@@ -45,7 +45,7 @@ const url = getFileUrl(fileData)
 #### 方式二：传入文件 ID 字符串（推荐）
 
 ```javascript
-const fileId = "1234567890"
+const fileId = '1234567890'
 const url = getFileUrl(fileId)
 // 结果: /dev-api/api/file/download/1234567890
 ```
@@ -59,11 +59,11 @@ const url = getFileUrl(fileId)
 ```vue
 <template>
   <!-- 方式一：使用 v-bind -->
-  <img :src="getFileUrl(row.systemLogo)" alt="Logo" />
-  
+  <img :src="getFileUrl(row.systemLogo)" alt="Logo">
+
   <!-- 方式二：使用计算属性 -->
-  <img :src="logoUrl" alt="Logo" />
-  
+  <img :src="logoUrl" alt="Logo">
+
   <!-- 方式三：使用 n-image 组件 -->
   <n-image :src="getFileUrl(row.systemLogo)" />
 </template>
@@ -90,7 +90,7 @@ const logoUrl = computed(() => getFileUrl(props.row.systemLogo))
 <script setup>
 import { getFileDownloadUrl } from '@/utils'
 
-const fileId = "1234567890"
+const fileId = '1234567890'
 </script>
 ```
 
@@ -106,7 +106,7 @@ const url = getImageUrl(filePath)
 const thumbnailUrl = getImageUrl(filePath, {
   width: 200,
   height: 200,
-  mode: 'crop'  // 'fit' | 'fill' | 'crop'
+  mode: 'crop' // 'fit' | 'fill' | 'crop'
 })
 ```
 
@@ -117,6 +117,7 @@ const thumbnailUrl = getImageUrl(filePath, {
 获取文件访问 URL
 
 **参数:**
+
 - `fileData` - 文件路径字符串或文件元数据对象
   - 字符串: `"tenant-logo/2025/12/10/xxx.png"` 或 `fileId`
   - 对象: `{ fileId, filePath, accessUrl }`
@@ -124,6 +125,7 @@ const thumbnailUrl = getImageUrl(filePath, {
 **返回:** `string` - 完整的文件访问 URL
 
 **优先级:**
+
 1. 如果是对象，优先使用 `accessUrl`
 2. 然后使用 `filePath`
 3. 最后使用 `fileId`
@@ -133,6 +135,7 @@ const thumbnailUrl = getImageUrl(filePath, {
 获取文件下载 URL
 
 **参数:**
+
 - `fileId` - 文件ID
 
 **返回:** `string` - 文件下载 URL
@@ -142,6 +145,7 @@ const thumbnailUrl = getImageUrl(filePath, {
 获取图片预览 URL（带缩略图参数）
 
 **参数:**
+
 - `filePath` - 文件路径
 - `options` - 选项对象（可选）
   - `width` - 宽度
@@ -174,16 +178,16 @@ const thumbnailUrl = getImageUrl(filePath, {
 <template>
   <div class="file-display">
     <!-- 显示图片 -->
-    <n-image 
-      v-if="fileData.filePath" 
-      :src="getFileUrl(fileData)" 
+    <n-image
+      v-if="fileData.filePath"
+      :src="getFileUrl(fileData)"
       width="200"
     />
-    
+
     <!-- 下载按钮 -->
-    <n-button 
-      @click="handleDownload"
+    <n-button
       type="primary"
+      @click="handleDownload"
     >
       下载文件
     </n-button>
@@ -191,12 +195,12 @@ const thumbnailUrl = getImageUrl(filePath, {
 </template>
 
 <script setup>
-import { getFileUrl, getFileDownloadUrl } from '@/utils'
+import { getFileDownloadUrl, getFileUrl } from '@/utils'
 
 const fileData = {
-  fileId: "1234567890",
-  filePath: "tenant-logo/2025/12/10/a111492084ab4a5fb3f149f76b5f8c4c.png",
-  originalName: "logo.png"
+  fileId: '1234567890',
+  filePath: 'tenant-logo/2025/12/10/a111492084ab4a5fb3f149f76b5f8c4c.png',
+  originalName: 'logo.png'
 }
 
 function handleDownload() {

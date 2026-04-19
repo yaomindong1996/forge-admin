@@ -4,7 +4,7 @@ import { request } from '@/utils/http'
 export function getConfigByGroup(groupCode) {
   return request({
     url: `/api/config/group/byCode/${groupCode}`,
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -15,8 +15,8 @@ export function updateConfigByGroup(groupCode, data) {
     method: 'put',
     data: {
       groupCode,
-      configValue: JSON.stringify(data)
-    }
+      configValue: JSON.stringify(data),
+    },
   })
 }
 
@@ -24,7 +24,7 @@ export function updateConfigByGroup(groupCode, data) {
 export function refreshConfig() {
   return request({
     url: `/api/config/manage/refresh`,
-    method: 'post'
+    method: 'post',
   })
 }
 
@@ -34,7 +34,7 @@ export function refreshConfig() {
 export function getLoginConfig() {
   return request({
     url: `/api/config/manage/login`,
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -42,7 +42,7 @@ export function updateLoginConfig(data) {
   return request({
     url: `/api/config/manage/login`,
     method: 'put',
-    data
+    data,
   })
 }
 
@@ -50,7 +50,7 @@ export function updateLoginConfig(data) {
 export function getWatermarkConfig() {
   return request({
     url: `/api/config/manage/watermark`,
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -58,7 +58,7 @@ export function updateWatermarkConfig(data) {
   return request({
     url: `/api/config/manage/watermark`,
     method: 'put',
-    data
+    data,
   })
 }
 
@@ -66,7 +66,7 @@ export function updateWatermarkConfig(data) {
 export function getSecurityConfig() {
   return request({
     url: `/api/config/manage/security`,
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -74,7 +74,7 @@ export function updateSecurityConfig(data) {
   return request({
     url: `/api/config/manage/security`,
     method: 'put',
-    data
+    data,
   })
 }
 
@@ -82,7 +82,7 @@ export function updateSecurityConfig(data) {
 export function getCryptoConfig() {
   return request({
     url: `/api/config/manage/crypto`,
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -90,7 +90,7 @@ export function updateCryptoConfig(data) {
   return request({
     url: `/api/config/manage/crypto`,
     method: 'put',
-    data
+    data,
   })
 }
 
@@ -98,7 +98,7 @@ export function updateCryptoConfig(data) {
 export function getAuthConfig() {
   return request({
     url: `/api/config/manage/auth`,
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -106,7 +106,7 @@ export function updateAuthConfig(data) {
   return request({
     url: `/api/config/manage/auth`,
     method: 'put',
-    data
+    data,
   })
 }
 
@@ -114,7 +114,7 @@ export function updateAuthConfig(data) {
 export function getLogConfig() {
   return request({
     url: `/api/config/manage/log`,
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -122,14 +122,14 @@ export function updateLogConfig(data) {
   return request({
     url: `/api/config/manage/log`,
     method: 'put',
-    data
+    data,
   })
 }
 // 系统配置
 export function getSystemConfig() {
   return request({
     url: `/api/config/manage/system`,
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -137,6 +137,6 @@ export function updateSystemConfig(data) {
   return request({
     url: `/api/config/manage/system`,
     method: 'put',
-    data
+    data,
   })
 }

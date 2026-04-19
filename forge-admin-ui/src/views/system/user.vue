@@ -46,7 +46,7 @@
             detail: 'post@/system/user/getById',
             add: 'post@/system/user/add',
             update: 'post@/system/user/edit',
-            delete: 'post@/system/user/remove'
+            delete: 'post@/system/user/remove',
           }"
           :search-schema="searchSchema"
           :columns="tableColumns"
@@ -55,15 +55,15 @@
           :before-load-list="beforeLoadList"
           row-key="id"
           :edit-grid-cols="2"
-          :modal-width="'900px'"
+          modal-width="900px"
           add-button-text="新增用户"
         >
           <!-- 自定义工具栏提示 -->
           <template #toolbar-start>
             <div v-if="selectedOrgNode" class="org-filter-tip">
-              <n-tag type="info" size="small" closable @close="handleClearOrgFilter">
+              <NTag type="info" size="small" closable @close="handleClearOrgFilter">
                 当前筛选：{{ selectedOrgNode.orgName }}
-              </n-tag>
+              </NTag>
             </div>
           </template>
         </AiCrudPage>
@@ -95,7 +95,9 @@
       </n-form>
       <template #footer>
         <n-space justify="end">
-          <n-button @click="resetPwdModalVisible = false">取消</n-button>
+          <n-button @click="resetPwdModalVisible = false">
+            取消
+          </n-button>
           <n-button type="primary" :loading="resetPwdLoading" @click="handleConfirmResetPwd">
             确定
           </n-button>
@@ -152,11 +154,11 @@
               :default-expand-all="treeExpandAll"
               :expanded-keys="treeExpandedKeys"
               :checked-keys="checkedRoleKeys"
-              @update:expanded-keys="handleExpandedKeysChange"
-              @update:checked-keys="handleCheckedKeysChange"
               key-field="id"
               label-field="roleName"
               children-field="children"
+              @update:expanded-keys="handleExpandedKeysChange"
+              @update:checked-keys="handleCheckedKeysChange"
             />
             <n-empty v-else description="暂无角色数据" />
           </n-spin>
@@ -165,7 +167,9 @@
 
       <template #footer>
         <n-space justify="end">
-          <n-button @click="authModalVisible = false">取消</n-button>
+          <n-button @click="authModalVisible = false">
+            取消
+          </n-button>
           <n-button
             type="primary"
             :loading="authSubmitLoading"
@@ -225,11 +229,11 @@
               :default-expand-all="orgTreeExpandAll"
               :expanded-keys="orgTreeExpandedKeys"
               :checked-keys="checkedOrgKeys"
-              @update:expanded-keys="handleOrgExpandedKeysChange"
-              @update:checked-keys="handleOrgCheckedKeysChange"
               key-field="id"
               label-field="orgName"
               children-field="children"
+              @update:expanded-keys="handleOrgExpandedKeysChange"
+              @update:checked-keys="handleOrgCheckedKeysChange"
             />
             <n-empty v-else description="暂无组织数据" />
           </n-spin>
@@ -238,7 +242,9 @@
 
       <template #footer>
         <n-space justify="end">
-          <n-button @click="orgModalVisible = false">取消</n-button>
+          <n-button @click="orgModalVisible = false">
+            取消
+          </n-button>
           <n-button
             type="primary"
             :loading="orgSubmitLoading"
@@ -253,8 +259,8 @@
 </template>
 
 <script setup>
-import { ref, h, computed, onMounted } from 'vue'
 import { NTag } from 'naive-ui'
+import { computed, h, onMounted, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
@@ -289,10 +295,10 @@ const resetPwdLoading = ref(false)
 const resetPwdFormRef = ref(null)
 const resetPwdForm = ref({
   id: null,
-  password: ''
+  password: '',
 })
 const resetPwdRules = {
-  password: [{ required: true, message: '请输入新密码', trigger: 'blur' }, { min: 6, message: '密码不能少于6位', trigger: 'blur' }]
+  password: [{ required: true, message: '请输入新密码', trigger: 'blur' }, { min: 6, message: '密码不能少于6位', trigger: 'blur' }],
 }
 
 // 组织弹窗相关（用户组织绑定）
@@ -309,21 +315,21 @@ const orgTreeExpandedKeys = ref([])
 const userTypeOptions = [
   { label: '系统管理员', value: 0 },
   { label: '租户管理员', value: 1 },
-  { label: '普通用户', value: 2 }
+  { label: '普通用户', value: 2 },
 ]
 
 // 用户状态选项
 const userStatusOptions = [
   { label: '正常', value: 1 },
   { label: '禁用', value: 0 },
-  { label: '锁定', value: 2 }
+  { label: '锁定', value: 2 },
 ]
 
 // 性别选项
 const genderOptions = [
   { label: '未知', value: 0 },
   { label: '男', value: 1 },
-  { label: '女', value: 2 }
+  { label: '女', value: 2 },
 ]
 
 // 搜索表单配置
@@ -333,24 +339,24 @@ const searchSchema = [
     label: '用户名',
     type: 'input',
     props: {
-      placeholder: '请输入用户名'
-    }
+      placeholder: '请输入用户名',
+    },
   },
   {
     field: 'realName',
     label: '真实姓名',
     type: 'input',
     props: {
-      placeholder: '请输入真实姓名'
-    }
+      placeholder: '请输入真实姓名',
+    },
   },
   {
     field: 'phone',
     label: '手机号',
     type: 'input',
     props: {
-      placeholder: '请输入手机号'
-    }
+      placeholder: '请输入手机号',
+    },
   },
   {
     field: 'userStatus',
@@ -358,9 +364,9 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择状态',
-      options: userStatusOptions
-    }
-  }
+      options: userStatusOptions,
+    },
+  },
 ]
 
 // 表格列配置
@@ -368,12 +374,12 @@ const tableColumns = computed(() => [
   {
     prop: 'username',
     label: '用户名',
-    width: 150
+    width: 150,
   },
   {
     prop: 'realName',
     label: '真实姓名',
-    width: 120
+    width: 120,
   },
   {
     prop: 'userType',
@@ -382,17 +388,17 @@ const tableColumns = computed(() => [
     render: (row) => {
       const option = userTypeOptions.find(opt => opt.value === row.userType)
       return option ? option.label : '-'
-    }
+    },
   },
   {
     prop: 'phone',
     label: '手机号',
-    width: 130
+    width: 130,
   },
   {
     prop: 'email',
     label: '邮箱',
-    width: 180
+    width: 180,
   },
   {
     prop: 'gender',
@@ -401,7 +407,7 @@ const tableColumns = computed(() => [
     render: (row) => {
       const option = genderOptions.find(opt => opt.value === row.gender)
       return option ? option.label : '-'
-    }
+    },
   },
   {
     prop: 'userStatus',
@@ -411,16 +417,16 @@ const tableColumns = computed(() => [
       const statusMap = {
         0: { text: '禁用', type: 'error' },
         1: { text: '正常', type: 'success' },
-        2: { text: '锁定', type: 'warning' }
+        2: { text: '锁定', type: 'warning' },
       }
       const config = statusMap[row.userStatus] || { text: '未知', type: 'default' }
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
-    }
+    },
   },
   {
     prop: 'remark',
     label: '备注',
-    minWidth: 150
+    minWidth: 150,
   },
   {
     prop: 'action',
@@ -432,11 +438,11 @@ const tableColumns = computed(() => [
       { label: '授权', key: 'auth', onClick: handleAuth },
       { label: '组织', key: 'org', onClick: handleOrg },
       { label: '重置密码', key: 'resetPwd', type: 'warning', onClick: (row) => { resetPwdForm.value = { id: row.id, password: '' }; resetPwdModalVisible.value = true } },
-      { label: '禁用', key: 'disable', type: 'warning', onClick: (row) => handleUpdateStatus(row, 0), visible: (row) => row.id !== 1 && row.userStatus === 1 },
-      { label: '启用', key: 'enable', type: 'success', onClick: handleUntieDisable, visible: (row) => row.id !== 1 && row.userStatus !== 1 },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: (row) => row.id !== 1 }
-    ]
-  }
+      { label: '禁用', key: 'disable', type: 'warning', onClick: row => handleUpdateStatus(row, 0), visible: row => row.id !== 1 && row.userStatus === 1 },
+      { label: '启用', key: 'enable', type: 'success', onClick: handleUntieDisable, visible: row => row.id !== 1 && row.userStatus !== 1 },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: row => row.id !== 1 },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -445,9 +451,9 @@ const editSchema = [
     type: 'divider',
     label: '基础信息',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'username',
@@ -455,8 +461,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
     props: {
-      placeholder: '请输入用户名'
-    }
+      placeholder: '请输入用户名',
+    },
   },
   {
     field: 'realName',
@@ -464,8 +470,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
     props: {
-      placeholder: '请输入真实姓名'
-    }
+      placeholder: '请输入真实姓名',
+    },
   },
   {
     field: 'password',
@@ -474,9 +480,9 @@ const editSchema = [
     rules: [{ required: true, message: '请输入密码', trigger: 'blur' }],
     props: {
       type: 'password',
-      placeholder: '请输入密码'
+      placeholder: '请输入密码',
     },
-    vIf: (formData) => !formData.id
+    vIf: formData => !formData.id,
   },
   {
     field: 'userType',
@@ -486,16 +492,16 @@ const editSchema = [
     rules: [{ required: true, type: 'number', message: '请选择用户类型', trigger: 'change' }],
     props: {
       placeholder: '请选择用户类型',
-      options: userTypeOptions
-    }
+      options: userTypeOptions,
+    },
   },
   {
     type: 'divider',
     label: '联系信息',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'phone',
@@ -503,33 +509,33 @@ const editSchema = [
     type: 'input',
     rules: [
       { required: true, message: '请输入手机号', trigger: 'blur' },
-      { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
+      { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
     ],
     props: {
-      placeholder: '请输入手机号'
-    }
+      placeholder: '请输入手机号',
+    },
   },
   {
     field: 'email',
     label: '邮箱',
     type: 'input',
     rules: [
-      { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+      { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' },
     ],
     props: {
-      placeholder: '请输入邮箱'
-    }
+      placeholder: '请输入邮箱',
+    },
   },
   {
     field: 'idCard',
     label: '身份证号',
     type: 'input',
     rules: [
-      { pattern: /(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/, message: '请输入正确的身份证号', trigger: 'blur' }
+      { pattern: /(^\d{15}$)|(^\d{18}$)|(^\d{17}([\dX])$)/i, message: '请输入正确的身份证号', trigger: 'blur' },
     ],
     props: {
-      placeholder: '请输入身份证号'
-    }
+      placeholder: '请输入身份证号',
+    },
   },
   {
     field: 'gender',
@@ -537,16 +543,16 @@ const editSchema = [
     type: 'radio',
     defaultValue: 0,
     props: {
-      options: genderOptions
-    }
+      options: genderOptions,
+    },
   },
   {
     type: 'divider',
     label: '状态配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'userStatus',
@@ -554,8 +560,8 @@ const editSchema = [
     type: 'radio',
     defaultValue: 1,
     props: {
-      options: userStatusOptions
-    }
+      options: userStatusOptions,
+    },
   },
   {
     field: 'remark',
@@ -564,9 +570,9 @@ const editSchema = [
     span: 2,
     props: {
       placeholder: '请输入备注',
-      rows: 3
-    }
-  }
+      rows: 3,
+    },
+  },
 ]
 
 // 组件挂载时加载左侧组织树
@@ -576,7 +582,7 @@ onMounted(() => {
 
 // 获取所有节点的 key
 function getAllKeys(list, keys = []) {
-  list.forEach(item => {
+  list.forEach((item) => {
     keys.push(item.id)
     if (item.children && item.children.length > 0) {
       getAllKeys(item.children, keys)
@@ -596,10 +602,12 @@ async function loadLeftOrgTree() {
         leftOrgExpandedKeys.value = getAllKeys(leftOrgTreeData.value)
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载组织树失败:', error)
     window.$message.error('加载组织树失败')
-  } finally {
+  }
+  finally {
     leftOrgTreeLoading.value = false
   }
 }
@@ -607,12 +615,13 @@ async function loadLeftOrgTree() {
 // 左侧组织树节点选择
 function handleOrgNodeSelect(keys) {
   selectedOrgKeys.value = keys
-  
+
   if (keys.length > 0) {
     const orgId = keys[0]
     selectedOrgNode.value = findOrgNode(leftOrgTreeData.value, orgId)
     crudRef.value?.refresh()
-  } else {
+  }
+  else {
     selectedOrgNode.value = null
     crudRef.value?.refresh()
   }
@@ -626,7 +635,8 @@ function findOrgNode(treeData, orgId) {
     }
     if (node.children && node.children.length > 0) {
       const found = findOrgNode(node.children, orgId)
-      if (found) return found
+      if (found)
+        return found
     }
   }
   return null
@@ -640,10 +650,11 @@ function handleLeftOrgExpandedKeysChange(keys) {
 // 左侧组织树展开/折叠所有
 function toggleOrgExpandAll() {
   leftOrgExpandAll.value = !leftOrgExpandAll.value
-  
+
   if (leftOrgExpandAll.value) {
     leftOrgExpandedKeys.value = getAllKeys(leftOrgTreeData.value)
-  } else {
+  }
+  else {
     leftOrgExpandedKeys.value = []
   }
 }
@@ -666,13 +677,14 @@ function beforeLoadList(params) {
 // 更多操作选项
 function getMoreOptions(row) {
   const options = [
-    { label: '重置密码', key: 'resetPwd', icon: () => h('i', { class: 'i-material-symbols:lock-reset' }) }
+    { label: '重置密码', key: 'resetPwd', icon: () => h('i', { class: 'i-material-symbols:lock-reset' }) },
   ]
 
   if (row.id !== 1) {
     if (row.userStatus === 1) {
       options.push({ label: '禁用', key: 'disable', icon: () => h('i', { class: 'i-material-symbols:block' }) })
-    } else {
+    }
+    else {
       options.push({ label: '启用', key: 'enable', icon: () => h('i', { class: 'i-material-symbols:check-circle-outline' }) })
     }
   }
@@ -705,16 +717,18 @@ async function handleConfirmResetPwd() {
         const res = await request.post('/system/user/resetPwd', null, {
           params: {
             id: resetPwdForm.value.id,
-            password: resetPwdForm.value.password
-          }
+            password: resetPwdForm.value.password,
+          },
         })
         if (res.code === 200) {
           window.$message.success('重置成功')
           resetPwdModalVisible.value = false
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('重置失败')
-      } finally {
+      }
+      finally {
         resetPwdLoading.value = false
       }
     }
@@ -732,16 +746,17 @@ async function handleUpdateStatus(row, status) {
     onPositiveClick: async () => {
       try {
         const res = await request.post('/system/user/updateStatus', null, {
-          params: { id: row.id, status }
+          params: { id: row.id, status },
         })
         if (res.code === 200) {
           window.$message.success(`${actionText}成功`)
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error(`${actionText}失败`)
       }
-    }
+    },
   })
 }
 
@@ -755,16 +770,17 @@ async function handleUntieDisable(row) {
     onPositiveClick: async () => {
       try {
         const res = await request.post('/system/user/doUntieDisable', null, {
-          params: { id: row.id }
+          params: { id: row.id },
         })
         if (res.code === 200) {
           window.$message.success(`用户已启用`)
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error(`启用失败`)
       }
-    }
+    },
   })
 }
 
@@ -793,10 +809,11 @@ function handleDelete(row) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 
@@ -814,23 +831,25 @@ async function loadRoleList() {
   try {
     authLoading.value = true
     const res = await request.get('/system/role/page', {
-      params: { pageNum: 1, pageSize: 1000 }
+      params: { pageNum: 1, pageSize: 1000 },
     })
     if (res.code === 200) {
       roleTreeData.value = (res.data.list || res.data.records || []).map(role => ({
         id: role.id,
         roleName: role.roleName,
-        roleKey: role.roleKey
+        roleKey: role.roleKey,
       }))
 
       if (treeExpandAll.value) {
         treeExpandedKeys.value = getAllKeys(roleTreeData.value)
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载角色列表失败:', error)
     window.$message.error('加载角色列表失败')
-  } finally {
+  }
+  finally {
     authLoading.value = false
   }
 }
@@ -843,10 +862,12 @@ async function loadUserRoles(userId) {
     if (res.code === 200) {
       checkedRoleKeys.value = res.data || []
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载用户角色失败:', error)
     window.$message.error('加载用户角色失败')
-  } finally {
+  }
+  finally {
     authLoading.value = false
   }
 }
@@ -867,7 +888,8 @@ function toggleExpandAll() {
 
   if (treeExpandAll.value) {
     treeExpandedKeys.value = getAllKeys(roleTreeData.value)
-  } else {
+  }
+  else {
     treeExpandedKeys.value = []
   }
 }
@@ -894,16 +916,18 @@ async function handleSubmitAuth() {
     authSubmitLoading.value = true
     const res = await request.post(
       `/system/user/${currentUser.value.id}/roles`,
-      checkedRoleKeys.value
+      checkedRoleKeys.value,
     )
     if (res.code === 200) {
       window.$message.success('授权成功')
       authModalVisible.value = false
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('授权失败:', error)
     window.$message.error('授权失败')
-  } finally {
+  }
+  finally {
     authSubmitLoading.value = false
   }
 }
@@ -930,10 +954,12 @@ async function loadOrgTree() {
         orgTreeExpandedKeys.value = getAllKeys(orgTreeData.value)
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载组织列表失败:', error)
     window.$message.error('加载组织列表失败')
-  } finally {
+  }
+  finally {
     orgLoading.value = false
   }
 }
@@ -947,10 +973,12 @@ async function loadUserOrgs(userId) {
       checkedOrgKeys.value = res.data || []
       mainOrgId.value = checkedOrgKeys.value.length > 0 ? checkedOrgKeys.value[0] : null
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载用户组织失败:', error)
     window.$message.error('加载用户组织失败')
-  } finally {
+  }
+  finally {
     orgLoading.value = false
   }
 }
@@ -981,18 +1009,20 @@ async function handleSubmitOrg() {
       `/system/user/${currentUser.value.id}/orgs`,
       {
         orgIds: checkedOrgKeys.value,
-        mainOrgId: mainOrgId.value
-      }
+        mainOrgId: mainOrgId.value,
+      },
     )
     if (res.code === 200) {
       window.$message.success('组织绑定成功')
       orgModalVisible.value = false
       crudRef.value?.refresh()
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('组织绑定失败:', error)
     window.$message.error('组织绑定失败')
-  } finally {
+  }
+  finally {
     orgSubmitLoading.value = false
   }
 }

@@ -1,10 +1,12 @@
 <template>
   <div class="p-16">
-    <div class="bg-white rounded p-16">
-      <h2 class="text-18 font-bold mb-16">流程分类</h2>
-      
+    <div class="rounded bg-white p-16">
+      <h2 class="text-18 mb-16 font-bold">
+        流程分类
+      </h2>
+
       <!-- 搜索栏 -->
-      <n-space class="mb-16" :vertical="false">
+      <NSpace class="mb-16" :vertical="false">
         <n-input
           v-model:value="queryParams.categoryName"
           placeholder="搜索分类名称"
@@ -32,25 +34,25 @@
           style="width: 120px"
           :options="statusOptions"
         />
-        <n-button type="primary" @click="handleSearch">
+        <NButton type="primary" @click="handleSearch">
           <template #icon>
             <i class="i-material-symbols:search" />
           </template>
           搜索
-        </n-button>
-        <n-button @click="handleReset">
+        </NButton>
+        <NButton @click="handleReset">
           <template #icon>
             <i class="i-material-symbols:refresh" />
           </template>
           重置
-        </n-button>
-        <n-button type="primary" @click="handleAdd">
+        </NButton>
+        <NButton type="primary" @click="handleAdd">
           <template #icon>
             <i class="i-material-symbols:add" />
           </template>
           新增分类
-        </n-button>
-      </n-space>
+        </NButton>
+      </NSpace>
 
       <!-- 数据表格 -->
       <n-data-table
@@ -84,10 +86,14 @@
             <n-input-number v-model:value="formData.sort" :min="0" placeholder="请输入排序" style="width: 100%" />
           </n-form-item>
           <n-form-item label="状态" path="status">
-            <n-switch v-model:value="formData.status" :checked-value="1" :unchecked-value="0">
-              <template #checked>启用</template>
-              <template #unchecked>禁用</template>
-            </n-switch>
+            <NSwitch v-model:value="formData.status" :checked-value="1" :unchecked-value="0">
+              <template #checked>
+                启用
+              </template>
+              <template #unchecked>
+                禁用
+              </template>
+            </NSwitch>
           </n-form-item>
           <n-form-item label="备注" path="remark">
             <n-input
@@ -104,8 +110,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, h, onMounted } from 'vue'
-import { NTag, NButton, NSpace, NSwitch } from 'naive-ui'
+import { NButton, NSpace, NSwitch } from 'naive-ui'
+import { h, onMounted, reactive, ref } from 'vue'
 import flowApi from '@/api/flow'
 
 // 状态选项
@@ -145,7 +151,7 @@ const columns = [
         value: row.status,
         checkedValue: 1,
         uncheckedValue: 0,
-        onUpdateValue: (val) => handleStatusChange(row, val),
+        onUpdateValue: val => handleStatusChange(row, val),
       }, {
         checked: () => '启用',
         unchecked: () => '禁用',
@@ -237,9 +243,11 @@ async function fetchData() {
       dataSource.value = res.data?.records || []
       pagination.itemCount = res.data?.total || 0
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取分类列表失败:', error)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -287,20 +295,23 @@ async function handleSubmit() {
   try {
     await formRef.value?.validate()
     submitLoading.value = true
-    
+
     const api = isEdit.value ? flowApi.updateCategory : flowApi.createCategory
     const res = await api(formData)
-    
+
     if (res.code === 200) {
       window.$message?.success(isEdit.value ? '编辑成功' : '新增成功')
       showModal.value = false
       fetchData()
-    } else {
+    }
+    else {
       window.$message?.error(res.message || '操作失败')
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('提交失败:', error)
-  } finally {
+  }
+  finally {
     submitLoading.value = false
   }
 }
@@ -315,7 +326,8 @@ async function handleStatusChange(row, val) {
       window.$message?.success(val === 1 ? '启用成功' : '禁用成功')
       row.status = val
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('状态变更失败:', error)
   }
 }
@@ -333,10 +345,12 @@ async function handleDelete(row) {
         if (res.code === 200) {
           window.$message?.success('删除成功')
           fetchData()
-        } else {
+        }
+        else {
           window.$message?.error(res.message || '删除失败')
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.error('删除失败:', error)
       }
     },

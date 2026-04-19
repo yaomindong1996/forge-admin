@@ -13,27 +13,27 @@ export const loadingService = {
     if (loadingInstance) {
       this.close()
     }
-    
+
     // 创建新的loading实例
     const container = document.createElement('div')
     document.body.appendChild(container)
-    
+
     loadingApp = createApp(Loading, {
       fullscreen: true,
       text: options.text || '加载中...',
       background: options.background || '0, 0, 0, 0.7',
       color: options.color || '#ffffff',
-      fontSize: options.fontSize || 14
+      fontSize: options.fontSize || 14,
     })
-    
+
     loadingInstance = loadingApp.mount(container)
-    
+
     // 防止页面滚动
     document.body.style.overflow = 'hidden'
-    
+
     return loadingInstance
   },
-  
+
   // 关闭全局loading
   close() {
     if (loadingInstance && loadingApp) {
@@ -45,7 +45,7 @@ export const loadingService = {
       loadingApp = null
       document.body.style.overflow = ''
     }
-  }
+  },
 }
 
 // 指令形式的loading
@@ -56,7 +56,7 @@ const loadingDirective = {
     if (computedStyle.position === 'static') {
       el.style.position = 'relative'
     }
-    
+
     // 创建loading实例
     const mask = document.createElement('div')
     mask.style.position = 'absolute'
@@ -66,29 +66,29 @@ const loadingDirective = {
     mask.style.height = '100%'
     mask.style.zIndex = '999'
     mask.style.display = 'none'
-    
+
     // 创建loading组件
     const loadingContainer = document.createElement('div')
     mask.appendChild(loadingContainer)
     el.appendChild(mask)
-    
+
     // 保存引用
     el._loadingMask = mask
     el._loadingContainer = loadingContainer
-    
+
     // 创建Vue实例
     if (binding.value) {
       // 直接调用更新逻辑而不是不存在的update方法
       updateLoading(el, binding)
     }
   },
-  
+
   updated(el, binding) {
     if (binding.value !== binding.oldValue) {
       updateLoading(el, binding)
     }
   },
-  
+
   unmounted(el) {
     // 清理资源
     if (el._loadingApp) {
@@ -101,7 +101,7 @@ const loadingDirective = {
     el._loadingContainer = null
     el._loadingApp = null
     el._loadingInstance = null
-  }
+  },
 }
 
 // 提取更新逻辑到独立函数
@@ -109,7 +109,7 @@ function updateLoading(el, binding) {
   if (binding.value) {
     // 显示loading
     el._loadingMask.style.display = 'block'
-    
+
     // 创建loading组件实例
     if (!el._loadingApp) {
       const options = binding.value || {}
@@ -118,12 +118,13 @@ function updateLoading(el, binding) {
         text: options.text || '加载中...',
         background: options.background || '255, 255, 255, 0.9',
         color: options.color || '#333333',
-        fontSize: options.fontSize || 14
+        fontSize: options.fontSize || 14,
       })
-      
+
       el._loadingInstance = el._loadingApp.mount(el._loadingContainer)
     }
-  } else {
+  }
+  else {
     // 隐藏loading
     if (el._loadingMask) {
       el._loadingMask.style.display = 'none'

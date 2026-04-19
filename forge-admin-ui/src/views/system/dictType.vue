@@ -8,7 +8,7 @@
         detail: 'post@/system/dict/type/getById',
         add: 'post@/system/dict/type/add',
         update: 'post@/system/dict/type/edit',
-        delete: 'post@/system/dict/type/remove'
+        delete: 'post@/system/dict/type/remove',
       }"
       :load-detail-on-edit="true"
       :search-schema="searchSchema"
@@ -21,11 +21,11 @@
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
-import { AiCrudPage } from '@/components/ai-form'
+import { computed, h, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { request, closeAndOpen } from '@/utils'
+import { AiCrudPage } from '@/components/ai-form'
+import { closeAndOpen, request } from '@/utils'
 
 defineOptions({ name: 'DictType' })
 
@@ -35,7 +35,7 @@ const crudRef = ref(null)
 // 字典状态选项
 const statusOptions = [
   { label: '正常', value: 1 },
-  { label: '禁用', value: 0 }
+  { label: '禁用', value: 0 },
 ]
 
 // 搜索表单配置
@@ -45,16 +45,16 @@ const searchSchema = [
     label: '字典名称',
     type: 'input',
     props: {
-      placeholder: '请输入字典名称'
-    }
+      placeholder: '请输入字典名称',
+    },
   },
   {
     field: 'dictType',
     label: '字典类型',
     type: 'input',
     props: {
-      placeholder: '请输入字典类型'
-    }
+      placeholder: '请输入字典类型',
+    },
   },
   {
     field: 'dictStatus',
@@ -62,9 +62,9 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择状态',
-      options: statusOptions
-    }
-  }
+      options: statusOptions,
+    },
+  },
 ]
 
 // 管理字典数据
@@ -75,9 +75,9 @@ function handleManageData(row) {
       path: '/system/dictData',
       query: {
         dictType: row.dictType,
-        dictName: row.dictName
-      }
-    }
+        dictName: row.dictName,
+      },
+    },
   )
 }
 
@@ -96,16 +96,17 @@ function handleDelete(row) {
     onPositiveClick: async () => {
       try {
         const res = await request.post('/system/dict/type/remove', null, {
-          params: { dictId: row.dictId }
+          params: { dictId: row.dictId },
         })
         if (res.code === 200) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 
@@ -114,38 +115,36 @@ const tableColumns = computed(() => [
   {
     prop: 'dictId',
     label: '字典ID',
-    width: 100
+    width: 100,
   },
   {
     prop: 'dictName',
     label: '字典名称',
-    width: 200
+    width: 200,
   },
   {
     prop: 'dictType',
     label: '字典类型',
-    width: 200
+    width: 200,
   },
   {
     prop: 'dictStatus',
     label: '状态',
     width: 100,
     render: (row) => {
-      return h(NTag,
-        { type: row.dictStatus === 1 ? 'success' : 'error', size: 'small' },
-        { default: () => row.dictStatus === 1 ? '正常' : '禁用' }
+      return h(NTag, { type: row.dictStatus === 1 ? 'success' : 'error', size: 'small' }, { default: () => row.dictStatus === 1 ? '正常' : '禁用' },
       )
-    }
+    },
   },
   {
     prop: 'remark',
     label: '备注',
-    width: 200
+    width: 200,
   },
   {
     prop: 'createTime',
     label: '创建时间',
-    width: 180
+    width: 180,
   },
   {
     prop: 'action',
@@ -155,9 +154,9 @@ const tableColumns = computed(() => [
     actions: [
       { label: '字典数据', key: 'dictData', onClick: handleManageData },
       { label: '编辑', key: 'edit', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -166,9 +165,9 @@ const editSchema = [
     type: 'divider',
     label: '基础信息',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'dictName',
@@ -176,8 +175,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入字典名称', trigger: 'blur' }],
     props: {
-      placeholder: '请输入字典名称'
-    }
+      placeholder: '请输入字典名称',
+    },
   },
   {
     field: 'dictType',
@@ -185,8 +184,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入字典类型', trigger: 'blur' }],
     props: {
-      placeholder: '请输入字典类型，如：sys_user_sex'
-    }
+      placeholder: '请输入字典类型，如：sys_user_sex',
+    },
   },
   {
     field: 'dictStatus',
@@ -195,8 +194,8 @@ const editSchema = [
     defaultValue: 1,
     rules: [{ required: true, type: 'number', message: '请选择状态', trigger: 'change' }],
     props: {
-      options: statusOptions
-    }
+      options: statusOptions,
+    },
   },
   {
     field: 'remark',
@@ -205,9 +204,9 @@ const editSchema = [
     span: 2,
     props: {
       placeholder: '请输入备注',
-      rows: 3
-    }
-  }
+      rows: 3,
+    },
+  },
 ]
 </script>
 

@@ -8,7 +8,7 @@
         detail: 'post@/system/role/getById',
         add: 'post@/system/role/add',
         update: 'post@/system/role/edit',
-        delete: 'post@/system/role/remove'
+        delete: 'post@/system/role/remove',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
@@ -16,7 +16,7 @@
       :before-submit="beforeSubmit"
       row-key="id"
       :edit-grid-cols="2"
-      :modal-width="'800px'"
+      modal-width="800px"
       add-button-text="新增角色"
     />
 
@@ -71,18 +71,18 @@
                   :default-expand-all="treeExpandAll"
                   :expanded-keys="treeExpandedKeys"
                   :checked-keys="checkedResourceKeys"
-                  @update:expanded-keys="handleExpandedKeysChange"
-                  @update:checked-keys="handleCheckedKeysChange"
                   key-field="id"
                   label-field="resourceName"
                   children-field="children"
                   :render-label="renderTreeLabel"
+                  @update:expanded-keys="handleExpandedKeysChange"
+                  @update:checked-keys="handleCheckedKeysChange"
                 />
                 <n-empty v-else description="暂无资源数据" />
               </n-spin>
             </div>
           </n-tab-pane>
-          
+
           <n-tab-pane name="menu" tab="菜单">
             <div class="auth-tree-container">
               <n-spin :show="authLoading">
@@ -95,18 +95,18 @@
                   :default-expand-all="treeExpandAll"
                   :expanded-keys="treeExpandedKeys"
                   :checked-keys="checkedResourceKeys"
-                  @update:expanded-keys="handleExpandedKeysChange"
-                  @update:checked-keys="handleCheckedKeysChange"
                   key-field="id"
                   label-field="resourceName"
                   children-field="children"
                   :render-label="renderTreeLabel"
+                  @update:expanded-keys="handleExpandedKeysChange"
+                  @update:checked-keys="handleCheckedKeysChange"
                 />
                 <n-empty v-else description="暂无菜单数据" />
               </n-spin>
             </div>
           </n-tab-pane>
-          
+
           <n-tab-pane name="button" tab="按钮">
             <div class="auth-tree-container">
               <n-spin :show="authLoading">
@@ -119,18 +119,18 @@
                   :default-expand-all="treeExpandAll"
                   :expanded-keys="treeExpandedKeys"
                   :checked-keys="checkedResourceKeys"
-                  @update:expanded-keys="handleExpandedKeysChange"
-                  @update:checked-keys="handleCheckedKeysChange"
                   key-field="id"
                   label-field="resourceName"
                   children-field="children"
                   :render-label="renderTreeLabel"
+                  @update:expanded-keys="handleExpandedKeysChange"
+                  @update:checked-keys="handleCheckedKeysChange"
                 />
                 <n-empty v-else description="暂无按钮数据" />
               </n-spin>
             </div>
           </n-tab-pane>
-          
+
           <n-tab-pane name="api" tab="API接口">
             <div class="auth-tree-container">
               <n-spin :show="authLoading">
@@ -143,12 +143,12 @@
                   :default-expand-all="treeExpandAll"
                   :expanded-keys="treeExpandedKeys"
                   :checked-keys="checkedResourceKeys"
-                  @update:expanded-keys="handleExpandedKeysChange"
-                  @update:checked-keys="handleCheckedKeysChange"
                   key-field="id"
                   label-field="resourceName"
                   children-field="children"
                   :render-label="renderTreeLabel"
+                  @update:expanded-keys="handleExpandedKeysChange"
+                  @update:checked-keys="handleCheckedKeysChange"
                 />
                 <n-empty v-else description="暂无API数据" />
               </n-spin>
@@ -159,7 +159,9 @@
 
       <template #footer>
         <n-space justify="end">
-          <n-button @click="authModalVisible = false">取消</n-button>
+          <n-button @click="authModalVisible = false">
+            取消
+          </n-button>
           <n-button
             type="primary"
             :loading="authSubmitLoading"
@@ -234,9 +236,9 @@
         <div class="users-toolbar">
           <n-space justify="space-between">
             <div class="user-count-info">
-              <n-tag type="info" size="small">
+              <NTag type="info" size="small">
                 共 {{ userPagination.itemCount }} 个用户
-              </n-tag>
+              </NTag>
             </div>
             <n-button size="small" @click="loadRoleUsers">
               <template #icon>
@@ -268,7 +270,9 @@
 
       <template #footer>
         <n-space justify="end">
-          <n-button @click="usersModalVisible = false">关闭</n-button>
+          <n-button @click="usersModalVisible = false">
+            关闭
+          </n-button>
         </n-space>
       </template>
     </n-modal>
@@ -276,8 +280,8 @@
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
+import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
@@ -306,19 +310,19 @@ const userSearchParams = ref({
   username: '',
   realName: '',
   phone: '',
-  userStatus: null
+  userStatus: null,
 })
 const userPagination = ref({
   page: 1,
   pageSize: 10,
-  itemCount: 0
+  itemCount: 0,
 })
 
 // 用户状态选项
 const userStatusOptions = [
   { label: '正常', value: 1 },
   { label: '禁用', value: 0 },
-  { label: '锁定', value: 2 }
+  { label: '锁定', value: 2 },
 ]
 
 // 计算分页配置
@@ -327,7 +331,7 @@ const userPaginationConfig = computed(() => ({
   pageSize: userPagination.value.pageSize,
   itemCount: userPagination.value.itemCount,
   showSizePicker: true,
-  pageSizes: [10, 20, 50, 100]
+  pageSizes: [10, 20, 50, 100],
 }))
 
 // 资源类型映射
@@ -335,7 +339,7 @@ const resourceTypeMap = {
   1: { text: '目录', type: 'info', icon: 'i-material-symbols:folder-outline' },
   2: { text: '菜单', type: 'success', icon: 'i-material-symbols:menu' },
   3: { text: '按钮', type: 'warning', icon: 'i-material-symbols:smart-button-outline' },
-  4: { text: 'API', type: 'error', icon: 'i-material-symbols:api' }
+  4: { text: 'API', type: 'error', icon: 'i-material-symbols:api' },
 }
 
 // 计算属性：过滤不同类型的资源
@@ -353,8 +357,9 @@ const apiTreeData = computed(() => {
 
 // 过滤指定类型的资源
 function filterResourceByType(data, types) {
-  if (!data || !Array.isArray(data)) return []
-  
+  if (!data || !Array.isArray(data))
+    return []
+
   return data.reduce((result, item) => {
     // 如果当前节点类型匹配
     if (types.includes(item.resourceType)) {
@@ -364,14 +369,15 @@ function filterResourceByType(data, types) {
         newItem.children = filterResourceByType(item.children, types)
       }
       result.push(newItem)
-    } else {
+    }
+    else {
       // 当前节点类型不匹配，但需要检查子节点
       if (item.children && item.children.length > 0) {
         const filteredChildren = filterResourceByType(item.children, types)
         if (filteredChildren.length > 0) {
           result.push({
             ...item,
-            children: filteredChildren
+            children: filteredChildren,
           })
         }
       }
@@ -383,7 +389,7 @@ function filterResourceByType(data, types) {
 // 自定义树节点渲染
 function renderTreeLabel({ option }) {
   const typeConfig = resourceTypeMap[option.resourceType] || { text: '未知', type: 'default', icon: '' }
-  
+
   return h('div', { class: 'flex items-center gap-2' }, [
     // 图标
     typeConfig.icon && h('i', { class: `${typeConfig.icon} text-16` }),
@@ -394,22 +400,22 @@ function renderTreeLabel({ option }) {
       type: typeConfig.type,
       size: 'small',
       round: true,
-      class: 'ml-2'
+      class: 'ml-2',
     }, { default: () => typeConfig.text }),
     // 权限标识（如果有）
     option.perms && h(NTag, {
       type: 'default',
       size: 'small',
       bordered: false,
-      class: 'ml-2'
+      class: 'ml-2',
     }, { default: () => option.perms }),
     // API 方法和地址（如果是API类型）
     option.resourceType === 4 && option.apiMethod && h(NTag, {
       type: 'info',
       size: 'small',
       bordered: false,
-      class: 'ml-2'
-    }, { default: () => `${option.apiMethod} ${option.apiUrl || ''}` })
+      class: 'ml-2',
+    }, { default: () => `${option.apiMethod} ${option.apiUrl || ''}` }),
   ])
 }
 
@@ -419,13 +425,13 @@ const dataScopeOptions = [
   { label: '本租户数据', value: 2 },
   { label: '本组织数据', value: 3 },
   { label: '本组织及子组织', value: 4 },
-  { label: '个人数据', value: 5 }
+  { label: '个人数据', value: 5 },
 ]
 
 // 角色状态选项
 const roleStatusOptions = [
   { label: '正常', value: 1 },
-  { label: '禁用', value: 0 }
+  { label: '禁用', value: 0 },
 ]
 
 // 搜索表单配置
@@ -435,16 +441,16 @@ const searchSchema = [
     label: '角色名称',
     type: 'input',
     props: {
-      placeholder: '请输入角色名称'
-    }
+      placeholder: '请输入角色名称',
+    },
   },
   {
     field: 'roleKey',
     label: '权限字符',
     type: 'input',
     props: {
-      placeholder: '请输入权限字符'
-    }
+      placeholder: '请输入权限字符',
+    },
   },
   {
     field: 'roleStatus',
@@ -452,9 +458,9 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择状态',
-      options: roleStatusOptions
-    }
-  }
+      options: roleStatusOptions,
+    },
+  },
 ]
 
 // 表格列配置
@@ -462,12 +468,12 @@ const tableColumns = computed(() => [
   {
     prop: 'roleName',
     label: '角色名称',
-    width: 150
+    width: 150,
   },
   {
     prop: 'roleKey',
     label: '权限字符',
-    width: 150
+    width: 150,
   },
   {
     prop: 'dataScope',
@@ -476,39 +482,35 @@ const tableColumns = computed(() => [
     render: (row) => {
       const option = dataScopeOptions.find(opt => opt.value === row.dataScope)
       return option ? option.label : '-'
-    }
+    },
   },
   {
     prop: 'sort',
     label: '排序',
-    width: 80
+    width: 80,
   },
   {
     prop: 'roleStatus',
     label: '状态',
     width: 80,
     render: (row) => {
-      return h(NTag,
-        { type: row.roleStatus === 1 ? 'success' : 'error', size: 'small' },
-        { default: () => row.roleStatus === 1 ? '正常' : '禁用' }
+      return h(NTag, { type: row.roleStatus === 1 ? 'success' : 'error', size: 'small' }, { default: () => row.roleStatus === 1 ? '正常' : '禁用' },
       )
-    }
+    },
   },
   {
     prop: 'isSystem',
     label: '系统角色',
     width: 100,
     render: (row) => {
-      return h(NTag,
-        { type: row.isSystem === 1 ? 'warning' : 'default', size: 'small' },
-        { default: () => row.isSystem === 1 ? '是' : '否' }
+      return h(NTag, { type: row.isSystem === 1 ? 'warning' : 'default', size: 'small' }, { default: () => row.isSystem === 1 ? '是' : '否' },
       )
-    }
+    },
   },
   {
     prop: 'remark',
     label: '备注',
-    minWidth: 150
+    minWidth: 150,
   },
   {
     prop: 'action',
@@ -519,9 +521,9 @@ const tableColumns = computed(() => [
       { label: '编辑', key: 'edit', onClick: handleEdit },
       { label: '查看用户', key: 'viewUsers', onClick: handleViewUsers },
       { label: '授权', key: 'auth', onClick: handleAuth },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: (row) => row.id !== 1 }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: row => row.id !== 1 },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -532,8 +534,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入角色名称', trigger: 'blur' }],
     props: {
-      placeholder: '请输入角色名称'
-    }
+      placeholder: '请输入角色名称',
+    },
   },
   {
     field: 'roleKey',
@@ -541,8 +543,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入权限字符', trigger: 'blur' }],
     props: {
-      placeholder: '请输入权限字符，如：admin'
-    }
+      placeholder: '请输入权限字符，如：admin',
+    },
   },
   {
     field: 'dataScope',
@@ -552,8 +554,8 @@ const editSchema = [
     rules: [{ required: true, type: 'number', message: '请选择数据范围', trigger: 'change' }],
     props: {
       placeholder: '请选择数据范围',
-      options: dataScopeOptions
-    }
+      options: dataScopeOptions,
+    },
   },
   {
     field: 'sort',
@@ -562,16 +564,16 @@ const editSchema = [
     defaultValue: 0,
     props: {
       placeholder: '排序值',
-      min: 0
-    }
+      min: 0,
+    },
   },
   {
     type: 'divider',
     label: '状态配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'roleStatus',
@@ -579,8 +581,8 @@ const editSchema = [
     type: 'radio',
     defaultValue: 1,
     props: {
-      options: roleStatusOptions
-    }
+      options: roleStatusOptions,
+    },
   },
   {
     field: 'isSystem',
@@ -590,9 +592,9 @@ const editSchema = [
     props: {
       options: [
         { label: '否', value: 0 },
-        { label: '是', value: 1 }
-      ]
-    }
+        { label: '是', value: 1 },
+      ],
+    },
   },
   {
     field: 'remark',
@@ -601,9 +603,9 @@ const editSchema = [
     span: 2,
     props: {
       placeholder: '请输入备注',
-      rows: 3
-    }
-  }
+      rows: 3,
+    },
+  },
 ]
 
 // 用户表格列配置（用于角色用户列表）
@@ -611,22 +613,22 @@ const userTableColumns = [
   {
     title: '用户名',
     key: 'username',
-    width: 150
+    width: 150,
   },
   {
     title: '真实姓名',
     key: 'realName',
-    width: 120
+    width: 120,
   },
   {
     title: '手机号',
     key: 'phone',
-    width: 130
+    width: 130,
   },
   {
     title: '邮箱',
     key: 'email',
-    width: 180
+    width: 180,
   },
   {
     title: '用户类型',
@@ -636,10 +638,10 @@ const userTableColumns = [
       const typeMap = {
         0: '系统管理员',
         1: '租户管理员',
-        2: '普通用户'
+        2: '普通用户',
       }
       return h(NTag, { type: 'info', size: 'small' }, { default: () => typeMap[row.userType] || '未知' })
-    }
+    },
   },
   {
     title: '状态',
@@ -649,11 +651,11 @@ const userTableColumns = [
       const statusMap = {
         0: { text: '禁用', type: 'error' },
         1: { text: '正常', type: 'success' },
-        2: { text: '锁定', type: 'warning' }
+        2: { text: '锁定', type: 'warning' },
       }
       const config = statusMap[row.userStatus] || { text: '未知', type: 'default' }
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
-    }
+    },
   },
   {
     title: '操作',
@@ -663,10 +665,10 @@ const userTableColumns = [
     render: (row) => {
       return h('a', {
         class: 'text-error cursor-pointer hover:text-error-hover',
-        onClick: () => handleRemoveUserRole(row)
+        onClick: () => handleRemoveUserRole(row),
       }, '移除')
-    }
-  }
+    },
+  },
 ]
 
 // 表单提交前处理
@@ -694,10 +696,11 @@ function handleDelete(row) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 
@@ -710,7 +713,7 @@ async function handleViewUsers(row) {
     username: '',
     realName: '',
     phone: '',
-    userStatus: null
+    userStatus: null,
   }
   userPagination.value.page = 1
   await loadRoleUsers()
@@ -723,24 +726,26 @@ async function loadRoleUsers() {
     const params = {
       ...userSearchParams.value,
       pageNum: userPagination.value.page,
-      pageSize: userPagination.value.pageSize
+      pageSize: userPagination.value.pageSize,
     }
     // 过滤空值
-    Object.keys(params).forEach(key => {
+    Object.keys(params).forEach((key) => {
       if (params[key] === '' || params[key] === null || params[key] === undefined) {
         delete params[key]
       }
     })
-    
+
     const res = await request.get(`/system/role/${currentRole.value.id}/users`, { params })
     if (res.code === 200) {
       roleUsers.value = res.data.records || []
       userPagination.value.itemCount = res.data.total || 0
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载角色用户失败:', error)
     window.$message.error('加载角色用户失败')
-  } finally {
+  }
+  finally {
     usersLoading.value = false
   }
 }
@@ -757,7 +762,7 @@ function handleUserSearchReset() {
     username: '',
     realName: '',
     phone: '',
-    userStatus: null
+    userStatus: null,
   }
   userPagination.value.page = 1
   loadRoleUsers()
@@ -788,18 +793,19 @@ async function handleRemoveUserRole(user) {
         const res = await request.post('/system/role/removeUserRole', null, {
           params: {
             roleId: currentRole.value.id,
-            userId: user.id
-          }
+            userId: user.id,
+          },
         })
         if (res.code === 200) {
           window.$message.success('移除成功')
           await loadRoleUsers()
         }
-      } catch (error) {
+      }
+      catch (error) {
         console.error('移除用户失败:', error)
         window.$message.error('移除用户失败')
       }
-    }
+    },
   })
 }
 
@@ -815,7 +821,7 @@ async function handleAuth(row) {
 
 // 获取所有节点的 key（用于展开/收起）
 function getAllKeys(list, keys = []) {
-  list.forEach(item => {
+  list.forEach((item) => {
     keys.push(item.id)
     if (item.children && item.children.length > 0) {
       getAllKeys(item.children, keys)
@@ -837,10 +843,12 @@ async function loadResourceTree() {
         treeExpandedKeys.value = getAllKeys(resourceTreeData.value)
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载资源树失败:', error)
     window.$message.error('加载资源树失败')
-  } finally {
+  }
+  finally {
     authLoading.value = false
   }
 }
@@ -853,10 +861,12 @@ async function loadRoleResources(roleId) {
     if (res.code === 200) {
       checkedResourceKeys.value = res.data || []
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载角色资源失败:', error)
     window.$message.error('加载角色资源失败')
-  } finally {
+  }
+  finally {
     authLoading.value = false
   }
 }
@@ -878,7 +888,8 @@ function toggleExpandAll() {
   if (treeExpandAll.value) {
     // 展开所有：获取所有节点的 key
     treeExpandedKeys.value = getAllKeys(resourceTreeData.value)
-  } else {
+  }
+  else {
     // 收起所有：清空展开的 key
     treeExpandedKeys.value = []
   }
@@ -908,16 +919,18 @@ async function handleSubmitAuth() {
     authSubmitLoading.value = true
     const res = await request.post(
       `/system/role/${currentRole.value.id}/resources`,
-      checkedResourceKeys.value
+      checkedResourceKeys.value,
     )
     if (res.code === 200) {
       window.$message.success('授权成功')
       authModalVisible.value = false
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('授权失败:', error)
     window.$message.error('授权失败')
-  } finally {
+  }
+  finally {
     authSubmitLoading.value = false
   }
 }

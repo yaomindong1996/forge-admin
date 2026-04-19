@@ -1,10 +1,12 @@
 <template>
   <div class="p-16">
-    <div class="bg-white rounded p-16">
-      <h2 class="text-18 font-bold mb-16">我的抄送</h2>
-      
+    <div class="rounded bg-white p-16">
+      <h2 class="text-18 mb-16 font-bold">
+        我的抄送
+      </h2>
+
       <!-- 搜索栏 -->
-      <n-space class="mb-16" :vertical="false">
+      <NSpace class="mb-16" :vertical="false">
         <n-select
           v-model:value="queryParams.isRead"
           placeholder="阅读状态"
@@ -12,19 +14,19 @@
           style="width: 120px"
           :options="readOptions"
         />
-        <n-button type="primary" @click="handleSearch">
+        <NButton type="primary" @click="handleSearch">
           <template #icon>
             <i class="i-material-symbols:search" />
           </template>
           搜索
-        </n-button>
-        <n-button @click="handleReset">
+        </NButton>
+        <NButton @click="handleReset">
           <template #icon>
             <i class="i-material-symbols:refresh" />
           </template>
           重置
-        </n-button>
-        <n-button
+        </NButton>
+        <NButton
           v-if="selectedRowKeys.length > 0"
           @click="handleBatchMarkRead"
         >
@@ -32,19 +34,23 @@
             <i class="i-material-symbols:mark-email-read-outline" />
           </template>
           批量标记已读
-        </n-button>
-        <n-button @click="handleMarkAllRead">
+        </NButton>
+        <NButton @click="handleMarkAllRead">
           <template #icon>
             <i class="i-material-symbols:done-all" />
           </template>
           全部已读
-        </n-button>
-      </n-space>
+        </NButton>
+      </NSpace>
 
       <!-- 数据标签页 -->
       <n-tabs v-model:value="activeTab" type="line" class="mb-16" @update:value="handleTabChange">
-        <n-tab name="received">抄送给我的</n-tab>
-        <n-tab name="sent">我发送的</n-tab>
+        <n-tab name="received">
+          抄送给我的
+        </n-tab>
+        <n-tab name="sent">
+          我发送的
+        </n-tab>
       </n-tabs>
 
       <!-- 抄送列表 -->
@@ -61,8 +67,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, h, onMounted, computed } from 'vue'
-import { NTag, NButton, NSpace } from 'naive-ui'
+import { NButton, NSpace, NTag } from 'naive-ui'
+import { computed, h, onMounted, reactive, ref } from 'vue'
 import flowApi from '@/api/flow'
 import { useUserStore } from '@/store'
 
@@ -79,67 +85,68 @@ const pagination = reactive({
   onChange: (page) => {
     pagination.page = page
     loadData()
-  }
+  },
 })
 
 const queryParams = reactive({
-  isRead: null
+  isRead: null,
 })
 
 const readOptions = [
   { label: '未读', value: 0 },
-  { label: '已读', value: 1 }
+  { label: '已读', value: 1 },
 ]
 
 // 表格列
 const columns = computed(() => {
   const baseColumns = [
     {
-      type: 'selection'
+      type: 'selection',
     },
     {
       title: '标题',
       key: 'title',
-      ellipsis: { tooltip: true }
+      ellipsis: { tooltip: true },
     },
     {
       title: '内容摘要',
       key: 'content',
       width: 200,
-      ellipsis: { tooltip: true }
-    }
+      ellipsis: { tooltip: true },
+    },
   ]
-  
+
   if (activeTab.value === 'received') {
     baseColumns.push({
       title: '发送人',
       key: 'sendUserName',
-      width: 100
+      width: 100,
     })
-  } else {
+  }
+  else {
     baseColumns.push({
       title: '抄送人',
       key: 'ccUserName',
-      width: 100
+      width: 100,
     })
   }
-  
+
   baseColumns.push(
     {
       title: '阅读状态',
       key: 'isRead',
       width: 80,
       render: (row) => {
-        return h(NTag, { 
-          type: row.isRead === 1 ? 'success' : 'warning', 
-          size: 'small' 
+        return h(NTag, {
+          type: row.isRead === 1 ? 'success' : 'warning',
+          size: 'small',
         }, () => row.isRead === 1 ? '已读' : '未读')
-      }
+      },
     },
     {
       title: '抄送时间',
       key: 'ccTime',
-      width: 160
+      width: 160,
     },
     {
       title: '操作',
@@ -150,14 +157,14 @@ const columns = computed(() => {
           return h(NButton, {
             size: 'small',
             type: 'primary',
-            onClick: () => handleMarkRead(row.id)
+            onClick: () => handleMarkRead(row.id),
           }, () => '标记已读')
         }
         return null
-      }
-    }
+      },
+    },
   )
-  
+
   return baseColumns
 })
 
@@ -168,26 +175,29 @@ async function loadData() {
     const params = {
       pageNum: pagination.page,
       pageSize: pagination.pageSize,
-      userId: userStore.userId
+      userId: userStore.userId,
     }
-    
+
     let res
     if (activeTab.value === 'received') {
       if (queryParams.isRead !== null) {
         params.isRead = queryParams.isRead
       }
       res = await flowApi.getMyCc(params)
-    } else {
+    }
+    else {
       res = await flowApi.getSentCc(params)
     }
-    
+
     if (res.code === 200 && res.data) {
       dataSource.value = res.data.records || []
       pagination.itemCount = res.data.total || 0
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载抄送列表失败:', error)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -225,15 +235,17 @@ async function handleMarkRead(id) {
       window.$message.success('已标记已读')
       loadData()
     }
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('操作失败')
   }
 }
 
 // 批量标记已读
 async function handleBatchMarkRead() {
-  if (selectedRowKeys.value.length === 0) return
-  
+  if (selectedRowKeys.value.length === 0)
+    return
+
   try {
     const res = await flowApi.batchMarkCcRead(selectedRowKeys.value)
     if (res.code === 200) {
@@ -241,7 +253,8 @@ async function handleBatchMarkRead() {
       selectedRowKeys.value = []
       loadData()
     }
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('操作失败')
   }
 }
@@ -263,10 +276,11 @@ async function handleMarkAllRead() {
           window.$message.success('已全部标记已读')
           loadData()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('操作失败')
       }
-    }
+    },
   })
 }
 

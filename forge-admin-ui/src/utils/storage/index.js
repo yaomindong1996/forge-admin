@@ -1,4 +1,3 @@
-
 import { createStorage } from './storage'
 
 // 使用环境变量中的TENANT作为前缀，确保不同系统的存储不会冲突

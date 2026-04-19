@@ -5,7 +5,7 @@
 
     <!-- 顶部一级菜单 -->
     <header
-      class="layout-header flex h-60 flex-shrink-0 items-center px-20"
+      class="layout-header h-60 flex flex-shrink-0 items-center px-20"
       border-b="1px solid light_border dark:dark_border"
     >
       <TheLogo class="mr-20" />
@@ -18,7 +18,7 @@
 
       <div class="flex items-center">
         <span class="mx-6 opacity-20">|</span>
-        <div class="flex flex-shrink-0 items-center px-12 text-18">
+        <div class="text-18 flex flex-shrink-0 items-center px-12">
           <Fullscreen />
           <MessageNotification class="mr-16" />
           <UserAvatar />
@@ -28,7 +28,7 @@
 
     <!-- 主内容区域 -->
     <article class="w-full flex flex-col flex-1 overflow-hidden">
-      <AppCard :bordered="false" :padding="false" class="py-0 px-10" shadow="none" radius="none">
+      <AppCard :bordered="false" :padding="false" class="px-10 py-0" shadow="none" radius="none">
         <AppTab class="w-0 flex-1" />
       </AppCard>
       <div class="flex-1 overflow-auto bg-[#f2f3f5] p-12">
@@ -39,19 +39,18 @@
 </template>
 
 <script setup>
-import { useAppStore } from '@/store'
 import { AppCard } from '@/components/common'
 import DemoBanner from '@/components/DemoBanner.vue'
+import { TheTitle } from '@/components/index.js'
 import {
   AppTab,
   Fullscreen,
-  MenuCollapse,
   MenuSearch,
   MessageNotification,
   UserAvatar,
 } from '@/layouts/components'
+import { useAppStore } from '@/store'
 import TopMenu from './components/TopMenu.vue'
-import { TheTitle } from "@/components/index.js";
 
 const appStore = useAppStore()
 </script>

@@ -1,7 +1,7 @@
 import Vue from 'vue'
-import { mergeRecursive } from "@/utils/ruoyi";
-import DictMeta from './DictMeta'
+import { mergeRecursive } from '@/utils/ruoyi'
 import DictData from './DictData'
+import DictMeta from './DictMeta'
 
 const DEFAULT_DICT_OPTIONS = {
   types: [],
@@ -9,8 +9,8 @@ const DEFAULT_DICT_OPTIONS = {
 
 /**
  * @classdesc 字典
- * @property {Object} label 标签对象，内部属性名为字典类型名称
- * @property {Object} dict 字段数组，内部属性名为字典类型名称
+ * @property {object} label 标签对象，内部属性名为字典类型名称
+ * @property {object} dict 字段数组，内部属性名为字典类型名称
  * @property {Array.<DictMeta>} _dictMetas 字典元数据数组
  */
 export default class Dict {
@@ -21,7 +21,7 @@ export default class Dict {
   }
 
   init(options) {
-    if (options instanceof Array) {
+    if (Array.isArray(options)) {
       options = { types: options }
     }
     const opts = mergeRecursive(DEFAULT_DICT_OPTIONS, options)
@@ -30,7 +30,7 @@ export default class Dict {
     }
     const ps = []
     this._dictMetas = opts.types.map(t => DictMeta.parse(t))
-    this._dictMetas.forEach(dictMeta => {
+    this._dictMetas.forEach((dictMeta) => {
       const type = dictMeta.type
       Vue.set(this.label, type, {})
       Vue.set(this.type, type, [])
@@ -44,7 +44,7 @@ export default class Dict {
 
   /**
    * 重新加载字典
-   * @param {String} type 字典类型
+   * @param {string} type 字典类型
    */
   reloadDict(type) {
     const dictMeta = this._dictMetas.find(e => e.type === type)
@@ -63,18 +63,19 @@ export default class Dict {
  */
 function loadDict(dict, dictMeta) {
   return dictMeta.request(dictMeta)
-    .then(response => {
+    .then((response) => {
       const type = dictMeta.type
       let dicts = dictMeta.responseConverter(response, dictMeta)
-      if (!(dicts instanceof Array)) {
+      if (!(Array.isArray(dicts))) {
         console.error('the return of responseConverter must be Array.<DictData>')
         dicts = []
-      } else if (dicts.filter(d => d instanceof DictData).length !== dicts.length) {
+      }
+      else if (dicts.filter(d => d instanceof DictData).length !== dicts.length) {
         console.error('the type of elements in dicts must be DictData')
         dicts = []
       }
       dict.type[type].splice(0, Number.MAX_SAFE_INTEGER, ...dicts)
-      dicts.forEach(d => {
+      dicts.forEach((d) => {
         Vue.set(dict.label[type], d.value, d.label)
       })
       return dicts

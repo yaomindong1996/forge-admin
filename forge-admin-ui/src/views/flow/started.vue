@@ -3,8 +3,10 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <h2 class="page-title">我发起的</h2>
-        <n-badge :value="pagination.itemCount" :max="99" type="info" />
+        <h2 class="page-title">
+          我发起的
+        </h2>
+        <NBadge :value="pagination.itemCount" :max="99" type="info" />
       </div>
       <div class="header-right">
         <n-input
@@ -25,8 +27,12 @@
           style="width: 140px"
           :options="categoryOptions"
         />
-        <n-button type="primary" @click="handleSearch">查询</n-button>
-        <n-button @click="handleReset">重置</n-button>
+        <NButton type="primary" @click="handleSearch">
+          查询
+        </NButton>
+        <NButton @click="handleReset">
+          重置
+        </NButton>
       </div>
     </div>
 
@@ -54,14 +60,14 @@
         <template #header>
           <div class="drawer-header">
             <span class="drawer-title">{{ currentTask?.title || '流程详情' }}</span>
-            <n-tag
+            <NTag
               v-if="currentTask"
               :type="statusMap[currentTask.status]?.type ?? 'default'"
               size="small"
               style="margin-left: 8px"
             >
               {{ statusMap[currentTask.status]?.text ?? '未知' }}
-            </n-tag>
+            </NTag>
           </div>
         </template>
 
@@ -70,15 +76,21 @@
           <n-card class="info-card" size="small">
             <n-descriptions :column="2" label-placement="left" size="small">
               <n-descriptions-item label="当前任务">
-                <n-tag type="primary" size="small">{{ currentTask.taskName || '已结束' }}</n-tag>
+                <NTag type="primary" size="small">
+                  {{ currentTask.taskName || '已结束' }}
+                </NTag>
               </n-descriptions-item>
               <n-descriptions-item label="流程状态">
-                <n-tag :type="statusMap[currentTask.status]?.type ?? 'default'" size="small">
+                <NTag :type="statusMap[currentTask.status]?.type ?? 'default'" size="small">
                   {{ statusMap[currentTask.status]?.text ?? '未知' }}
-                </n-tag>
+                </NTag>
               </n-descriptions-item>
-              <n-descriptions-item label="当前处理人">{{ currentTask.assigneeName || '-' }}</n-descriptions-item>
-              <n-descriptions-item label="发起时间">{{ currentTask.createTime || '-' }}</n-descriptions-item>
+              <n-descriptions-item label="当前处理人">
+                {{ currentTask.assigneeName || '-' }}
+              </n-descriptions-item>
+              <n-descriptions-item label="发起时间">
+                {{ currentTask.createTime || '-' }}
+              </n-descriptions-item>
             </n-descriptions>
           </n-card>
 
@@ -119,15 +131,17 @@
                 >
                   <div class="history-item">
                     <div class="history-user">
-                      <n-avatar :size="18" round style="background: #2080f0">
+                      <NAvatar :size="18" round style="background: #2080f0">
                         {{ (item.assigneeName || '?')[0] }}
-                      </n-avatar>
+                      </NAvatar>
                       <span class="user-name">{{ item.assigneeName || '-' }}</span>
-                      <n-tag :type="getActionType(item.action)" size="small">
+                      <NTag :type="getActionType(item.action)" size="small">
                         {{ getActionText(item.action) }}
-                      </n-tag>
+                      </NTag>
                     </div>
-                    <div v-if="item.comment" class="history-comment">{{ item.comment }}</div>
+                    <div v-if="item.comment" class="history-comment">
+                      {{ item.comment }}
+                    </div>
                   </div>
                 </n-timeline-item>
               </n-timeline>
@@ -150,17 +164,17 @@
               show-count
             />
             <n-popconfirm
-              @positive-click="submitWithdraw"
               positive-text="确认撤回"
               negative-text="取消"
+              @positive-click="submitWithdraw"
             >
               <template #trigger>
-                <n-button type="warning" :loading="withdrawLoading" style="margin-top: 12px">
+                <NButton type="warning" :loading="withdrawLoading" style="margin-top: 12px">
                   <template #icon>
                     <i class="i-material-symbols:undo" />
                   </template>
                   撤回流程
-                </n-button>
+                </NButton>
               </template>
               确认撤回该流程申请？
             </n-popconfirm>
@@ -168,9 +182,11 @@
         </div>
 
         <template #footer>
-          <n-space justify="end">
-            <n-button @click="showDrawer = false">关闭</n-button>
-          </n-space>
+          <NSpace justify="end">
+            <NButton @click="showDrawer = false">
+              关闭
+            </NButton>
+          </NSpace>
         </template>
       </n-drawer-content>
     </n-drawer>
@@ -178,11 +194,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, h, onMounted } from 'vue'
-import { NTag, NButton, NSpace, NBadge, NAvatar } from 'naive-ui'
+import { NAvatar, NBadge, NButton, NSpace, NTag } from 'naive-ui'
+import { computed, h, onMounted, reactive, ref } from 'vue'
 import flowApi from '@/api/flow'
-import { useUserStore } from '@/store'
 import ProcessDiagramViewer from '@/components/bpmn/ProcessDiagramViewer.vue'
+import { useUserStore } from '@/store'
 
 const userStore = useUserStore()
 const loading = ref(false)
@@ -194,7 +210,7 @@ const pagination = reactive({
   showSizePicker: true,
   pageSizes: [10, 20, 50],
   onChange: (page) => { pagination.page = page; loadData() },
-  onUpdatePageSize: (size) => { pagination.pageSize = size; pagination.page = 1; loadData() }
+  onUpdatePageSize: (size) => { pagination.pageSize = size; pagination.page = 1; loadData() },
 })
 
 const queryParams = reactive({ title: '', category: '' })
@@ -218,7 +234,7 @@ const statusMap = {
   3: { text: '已驳回', type: 'error' },
   4: { text: '已转办', type: 'warning' },
   5: { text: '已委派', type: 'info' },
-  6: { text: '已撤回', type: 'default' }
+  6: { text: '已撤回', type: 'default' },
 }
 
 function getActionType(action) {
@@ -230,8 +246,10 @@ function getActionText(action) {
   return m[action] || action || '操作'
 }
 function getCommentType(action) {
-  if (action === 'approve' || action === 'start') return 'success'
-  if (action === 'reject') return 'error'
+  if (action === 'approve' || action === 'start')
+    return 'success'
+  if (action === 'reject')
+    return 'error'
   return 'default'
 }
 
@@ -242,10 +260,10 @@ const columns = [
     key: 'title',
     minWidth: 200,
     ellipsis: { tooltip: true },
-    render: (row) => h('span', {
+    render: row => h('span', {
       class: 'task-title-link',
-      onClick: () => openDrawer(row)
-    }, row.title || row.taskName)
+      onClick: () => openDrawer(row),
+    }, row.title || row.taskName),
   },
   { title: '当前任务', key: 'taskName', width: 120 },
   { title: '当前处理人', key: 'assigneeName', width: 100 },
@@ -256,7 +274,7 @@ const columns = [
     render: (row) => {
       const status = statusMap[row.status] || { text: '未知', type: 'default' }
       return h(NTag, { type: status.type, size: 'small', round: true }, () => status.text)
-    }
+    },
   },
   { title: '发起时间', key: 'createTime', width: 155 },
   {
@@ -264,18 +282,18 @@ const columns = [
     key: 'actions',
     width: 120,
     fixed: 'right',
-    render: (row) => h(NButton, {
+    render: row => h(NButton, {
       size: 'small',
       type: 'primary',
-      onClick: (e) => { e.stopPropagation(); openDrawer(row) }
-    }, () => '查看进度')
-  }
+      onClick: (e) => { e.stopPropagation(); openDrawer(row) },
+    }, () => '查看进度'),
+  },
 ]
 
 function getRowProps(row) {
   return {
     style: 'cursor:pointer',
-    onClick: () => openDrawer(row)
+    onClick: () => openDrawer(row),
   }
 }
 
@@ -287,8 +305,10 @@ async function openDrawer(row) {
   if (row.processInstanceId) {
     try {
       const res = await flowApi.getProcessHistory(row.processInstanceId)
-      if (res.code === 200) approvalHistory.value = res.data || []
-    } catch (e) {
+      if (res.code === 200)
+        approvalHistory.value = res.data || []
+    }
+    catch (e) {
       console.error('加载审批历史失败', e)
     }
   }
@@ -300,18 +320,21 @@ async function submitWithdraw() {
     const res = await flowApi.withdrawProcess({
       processInstanceId: currentTask.value.processInstanceId,
       userId: userStore.userId,
-      comment: withdrawComment.value || '申请人撤回'
+      comment: withdrawComment.value || '申请人撤回',
     })
     if (res.code === 200) {
       window.$message.success('撤回成功')
       showDrawer.value = false
       loadData()
-    } else {
+    }
+    else {
       window.$message.error(res.message || '撤回失败')
     }
-  } catch (e) {
+  }
+  catch (e) {
     window.$message.error('撤回失败')
-  } finally {
+  }
+  finally {
     withdrawLoading.value = false
   }
 }
@@ -324,15 +347,17 @@ async function loadData() {
       pageSize: pagination.pageSize,
       userId: userStore.userId,
       title: queryParams.title || undefined,
-      category: queryParams.category || undefined
+      category: queryParams.category || undefined,
     })
     if (res.code === 200 && res.data) {
       dataSource.value = res.data.records || []
       pagination.itemCount = res.data.total || 0
     }
-  } catch (e) {
+  }
+  catch (e) {
     console.error('加载发起的流程失败:', e)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -343,7 +368,8 @@ async function loadCategories() {
     if (res.code === 200 && res.data) {
       categoryOptions.value = res.data.map(item => ({ label: item.categoryName, value: item.categoryCode }))
     }
-  } catch (e) {}
+  }
+  catch (e) {}
 }
 
 function handleSearch() { pagination.page = 1; loadData() }
@@ -368,7 +394,7 @@ onMounted(() => { loadCategories(); loadData() })
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .header-left {
@@ -395,7 +421,7 @@ onMounted(() => { loadCategories(); loadData() })
   border-radius: 8px;
   padding: 16px 20px;
   flex: 1;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 :deep(.task-title-link) {
@@ -444,7 +470,9 @@ onMounted(() => { loadCategories(); loadData() })
   gap: 6px;
 }
 
-.text-primary { color: #2080f0; }
+.text-primary {
+  color: #2080f0;
+}
 
 .history-item {
   display: flex;

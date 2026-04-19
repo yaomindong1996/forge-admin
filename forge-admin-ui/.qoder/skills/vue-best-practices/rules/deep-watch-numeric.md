@@ -29,24 +29,26 @@ watch(items, (newVal) => {
 }, { deep: 1 })
 ```
 
-| deep value | Behavior |
-|------------|----------|
-| `true` | Full recursive traversal (original behavior) |
-| `false` | Only reference changes |
-| `1` | One level deep - array mutations, not nested objects |
-| `2` | Two levels deep |
-| `n` | N levels deep |
+| deep value | Behavior                                             |
+| ---------- | ---------------------------------------------------- |
+| `true`     | Full recursive traversal (original behavior)         |
+| `false`    | Only reference changes                               |
+| `1`        | One level deep - array mutations, not nested objects |
+| `2`        | Two levels deep                                      |
+| `n`        | N levels deep                                        |
 
 ## Fix
 
 **Step 1: Ensure Vue 3.5+**
+
 ```bash
 npm install vue@^3.5.0
 ```
 
 **Step 2: Use numeric depth**
+
 ```typescript
-import { watch, ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const items = ref([{ id: 1, data: { nested: 'value' } }])
 
@@ -87,6 +89,7 @@ watchEffect(() => {
 ## TypeScript Note
 
 If TypeScript complains about numeric deep, ensure:
+
 1. Vue version is 3.5+
 2. TypeScript version is current (types are included with `vue` package)
 3. tsconfig targets correct node_modules types

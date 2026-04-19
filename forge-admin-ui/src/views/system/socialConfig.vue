@@ -8,7 +8,7 @@
         detail: 'post@/system/socialConfig/getById',
         add: 'post@/system/socialConfig/add',
         update: 'post@/system/socialConfig/edit',
-        delete: 'post@/system/socialConfig/remove'
+        delete: 'post@/system/socialConfig/remove',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
@@ -17,15 +17,15 @@
       add-button-text="新增三方登录配置"
       :load-detail-on-edit="true"
       :edit-grid-cols="2"
-      :modal-width="'900px'"
+      modal-width="900px"
       :before-render-detail="handleBeforeRenderDetail"
       :before-submit="handleBeforeSubmit"
     >
       <template #toolbar-end>
         <n-button
           type="warning"
-          @click="handleRefreshCache"
           :loading="refreshLoading"
+          @click="handleRefreshCache"
         >
           <template #icon>
             <i class="i-material-symbols:refresh" />
@@ -33,7 +33,6 @@
           刷新缓存
         </n-button>
       </template>
-
     </AiCrudPage>
 
     <n-modal
@@ -48,9 +47,9 @@
           <n-descriptions-item label="ID">
             {{ currentConfig.id }}
           </n-descriptions-item>
-           <n-descriptions-item label="平台类型">
-             <DictTag dictType="sys_social_platform" :value="currentConfig.platform" size="small" />
-           </n-descriptions-item>
+          <n-descriptions-item label="平台类型">
+            <DictTag dict-type="sys_social_platform" :value="currentConfig.platform" size="small" />
+          </n-descriptions-item>
           <n-descriptions-item label="平台名称">
             {{ currentConfig.platformName }}
           </n-descriptions-item>
@@ -77,13 +76,13 @@
           <n-descriptions-item label="授权范围">
             {{ currentConfig.scope || '-' }}
           </n-descriptions-item>
-<n-descriptions-item label="状态">
-            <DictTag dictType="sys_normal_disable" :value="String(currentConfig.status)" size="small" />
+          <n-descriptions-item label="状态">
+            <DictTag dict-type="sys_normal_disable" :value="String(currentConfig.status)" size="small" />
           </n-descriptions-item>
           <n-descriptions-item label="创建时间">
             {{ currentConfig.createTime }}
           </n-descriptions-item>
-<n-descriptions-item label="更新时间">
+          <n-descriptions-item label="更新时间">
             {{ currentConfig.updateTime }}
           </n-descriptions-item>
           <n-descriptions-item label="备注说明" :span="2">
@@ -93,7 +92,9 @@
       </div>
       <template #footer>
         <n-space justify="end">
-          <n-button @click="detailVisible = false">关闭</n-button>
+          <n-button @click="detailVisible = false">
+            关闭
+          </n-button>
         </n-space>
       </template>
     </n-modal>
@@ -101,12 +102,12 @@
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
+import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
-import { request } from '@/utils'
-import { useDict } from '@/composables/useDict'
-import DictTag from '@/components/DictTag.vue'
 import AuthImage from '@/components/common/AuthImage.vue'
+import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
+import { request } from '@/utils'
 
 defineOptions({ name: 'SocialConfig' })
 
@@ -118,8 +119,8 @@ const refreshLoading = ref(false)
 const { dict } = useDict('sys_social_platform', 'sys_normal_disable')
 
 // 使用 computed 从字典获取选项，响应式更新
-const platformOptions = computed(() => dict.value['sys_social_platform'] || [])
-const statusOptions = computed(() => dict.value['sys_normal_disable'] || [])
+const platformOptions = computed(() => dict.value.sys_social_platform || [])
+const statusOptions = computed(() => dict.value.sys_normal_disable || [])
 
 const searchSchema = computed(() => [
   {
@@ -129,16 +130,16 @@ const searchSchema = computed(() => [
     props: {
       placeholder: '请选择平台类型',
       options: platformOptions.value,
-      clearable: true
-    }
+      clearable: true,
+    },
   },
   {
     field: 'platformName',
     label: '平台名称',
     type: 'input',
     props: {
-      placeholder: '请输入平台名称'
-    }
+      placeholder: '请输入平台名称',
+    },
   },
   {
     field: 'status',
@@ -147,31 +148,30 @@ const searchSchema = computed(() => [
     props: {
       placeholder: '请选择',
       options: statusOptions.value,
-      clearable: true
-    }
-  }
+      clearable: true,
+    },
+  },
 ])
 
 const tableColumns = computed(() => [
   {
     prop: 'id',
     label: 'ID',
-    width: 80
+    width: 80,
   },
   {
     prop: 'platform',
     label: '平台类型',
     width: 120,
     render: (row) => {
-      return h(DictTag,
-        { dictType: 'sys_social_platform', value: row.platform, size: 'small' }
+      return h(DictTag, { dictType: 'sys_social_platform', value: row.platform, size: 'small' },
       )
-    }
+    },
   },
   {
     prop: 'platformName',
     label: '平台名称',
-    width: 120
+    width: 120,
   },
   {
     prop: 'platformLogo',
@@ -179,42 +179,39 @@ const tableColumns = computed(() => [
     width: 80,
     render: (row) => {
       if (row.platformLogo) {
-        return h(AuthImage,
-          {
-            src: row.platformLogo,
-            imgStyle: { width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }
-          }
-        )
+        return h(AuthImage, {
+          src: row.platformLogo,
+          imgStyle: { width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' },
+        })
       }
       return '-'
-    }
+    },
   },
   {
     prop: 'clientId',
     label: '应用ID',
     width: 180,
-    showOverflowTooltip: true
+    showOverflowTooltip: true,
   },
   {
     prop: 'redirectUri',
     label: '回调地址',
     width: 200,
-    showOverflowTooltip: true
+    showOverflowTooltip: true,
   },
   {
     prop: 'status',
     label: '状态',
     width: 80,
     render: (row) => {
-      return h(DictTag,
-        { dictType: 'sys_normal_disable', value: String(row.status), size: 'small' }
+      return h(DictTag, { dictType: 'sys_normal_disable', value: String(row.status), size: 'small' },
       )
-    }
+    },
   },
   {
     prop: 'createTime',
     label: '创建时间',
-    width: 160
+    width: 160,
   },
   {
     prop: 'action',
@@ -224,9 +221,9 @@ const tableColumns = computed(() => [
     actions: [
       { label: '查看', key: 'view', type: 'primary', onClick: handleView },
       { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+    ],
+  },
 ])
 
 const editSchema = computed(() => [
@@ -234,9 +231,9 @@ const editSchema = computed(() => [
     type: 'divider',
     label: '基础配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'platform',
@@ -246,8 +243,8 @@ const editSchema = computed(() => [
     props: {
       options: platformOptions.value,
       placeholder: '请选择平台类型',
-      clearable: false
-    }
+      clearable: false,
+    },
   },
   {
     field: 'platformName',
@@ -255,8 +252,8 @@ const editSchema = computed(() => [
     type: 'input',
     rules: [{ required: true, message: '请输入平台名称', trigger: 'blur' }],
     props: {
-      placeholder: '请输入平台名称，如：微信登录'
-    }
+      placeholder: '请输入平台名称，如：微信登录',
+    },
   },
   {
     field: 'platformLogo',
@@ -268,16 +265,16 @@ const editSchema = computed(() => [
     fileSize: 2,
     valueType: 'string',
     props: {
-      showTip: true
-    }
+      showTip: true,
+    },
   },
   {
     type: 'divider',
     label: '应用配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'clientId',
@@ -285,8 +282,8 @@ const editSchema = computed(() => [
     type: 'input',
     rules: [{ required: true, message: '请输入应用ID', trigger: 'blur' }],
     props: {
-      placeholder: '请输入应用ID或Key'
-    }
+      placeholder: '请输入应用ID或Key',
+    },
   },
   {
     field: 'clientSecret',
@@ -296,8 +293,8 @@ const editSchema = computed(() => [
     props: {
       placeholder: '请输入应用Secret',
       type: 'password',
-      showPasswordOn: 'click'
-    }
+      showPasswordOn: 'click',
+    },
   },
   {
     field: 'redirectUri',
@@ -305,32 +302,32 @@ const editSchema = computed(() => [
     type: 'input',
     span: 2,
     props: {
-      placeholder: '请输入回调地址，如：https://example.com/auth/callback'
-    }
+      placeholder: '请输入回调地址，如：https://example.com/auth/callback',
+    },
   },
   {
     field: 'agentId',
     label: 'AgentId',
     type: 'input',
     props: {
-      placeholder: '企业微信等需要时填写'
-    }
+      placeholder: '企业微信等需要时填写',
+    },
   },
   {
     field: 'scope',
     label: '授权范围',
     type: 'input',
     props: {
-      placeholder: '请输入授权范围，多个用逗号分隔'
-    }
+      placeholder: '请输入授权范围，多个用逗号分隔',
+    },
   },
   {
     type: 'divider',
     label: '其他配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'status',
@@ -340,8 +337,8 @@ const editSchema = computed(() => [
     rules: [{ required: true, message: '请选择状态', trigger: 'change' }],
     props: {
       options: statusOptions.value,
-      clearable: false
-    }
+      clearable: false,
+    },
   },
   {
     field: 'remark',
@@ -350,21 +347,22 @@ const editSchema = computed(() => [
     span: 2,
     props: {
       placeholder: '请输入备注说明',
-      rows: 3
-    }
-  }
+      rows: 3,
+    },
+  },
 ])
 
 async function handleView(row) {
   try {
-    const res = await request.post('/system/socialConfig/getById',null, {
-      params: { id: row.id }
+    const res = await request.post('/system/socialConfig/getById', null, {
+      params: { id: row.id },
     })
     if (res.code === 200) {
       currentConfig.value = res.data
       detailVisible.value = true
     }
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('获取详情失败')
   }
 }
@@ -382,16 +380,17 @@ function handleDelete(row) {
     onPositiveClick: async () => {
       try {
         const res = await request.post('/system/socialConfig/remove', null, {
-          params: { id: row.id }
+          params: { id: row.id },
         })
         if (res.code === 200) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 
@@ -408,17 +407,20 @@ async function handleRefreshCache() {
         if (res.code === 200) {
           window.$message.success('缓存刷新成功')
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('缓存刷新失败')
-      } finally {
+      }
+      finally {
         refreshLoading.value = false
       }
-    }
+    },
   })
 }
 
 function handleBeforeRenderDetail(data) {
-  if (!data) return data
+  if (!data)
+    return data
 
   if (data.status !== null && data.status !== undefined) {
     data.status = String(data.status)

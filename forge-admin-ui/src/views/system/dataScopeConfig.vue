@@ -8,7 +8,7 @@
         detail: 'post@/system/dataScopeConfig/getById',
         add: 'post@/system/dataScopeConfig/add',
         update: 'post@/system/dataScopeConfig/edit',
-        delete: 'post@/system/dataScopeConfig/remove'
+        delete: 'post@/system/dataScopeConfig/remove',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
@@ -21,8 +21,8 @@
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
+import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
@@ -33,7 +33,7 @@ const crudRef = ref(null)
 // 是否启用选项
 const enabledOptions = [
   { label: '启用', value: 1 },
-  { label: '禁用', value: 0 }
+  { label: '禁用', value: 0 },
 ]
 
 // 搜索表单配置
@@ -43,16 +43,16 @@ const searchSchema = [
     label: '资源编码',
     type: 'input',
     props: {
-      placeholder: '请输入资源编码'
-    }
+      placeholder: '请输入资源编码',
+    },
   },
   {
     field: 'resourceName',
     label: '资源名称',
     type: 'input',
     props: {
-      placeholder: '请输入资源名称'
-    }
+      placeholder: '请输入资源名称',
+    },
   },
   {
     field: 'enabled',
@@ -60,9 +60,9 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择',
-      options: enabledOptions
-    }
-  }
+      options: enabledOptions,
+    },
+  },
 ]
 
 // 表格列配置
@@ -70,63 +70,61 @@ const tableColumns = computed(() => [
   {
     prop: 'id',
     label: 'ID',
-    width: 80
+    width: 80,
   },
   {
     prop: 'resourceCode',
     label: '资源编码',
     width: 200,
-    showOverflowTooltip: true
+    showOverflowTooltip: true,
   },
   {
     prop: 'resourceName',
     label: '资源名称',
-    width: 150
+    width: 150,
   },
   {
     prop: 'mapperMethod',
     label: 'Mapper方法',
     width: 300,
-    showOverflowTooltip: true
+    showOverflowTooltip: true,
   },
   {
     prop: 'tableAlias',
     label: '表别名',
-    width: 100
+    width: 100,
   },
   {
     prop: 'userIdColumn',
     label: '用户ID字段',
     width: 150,
-    showOverflowTooltip: true
+    showOverflowTooltip: true,
   },
   {
     prop: 'orgIdColumn',
     label: '组织ID字段',
     width: 150,
-    showOverflowTooltip: true
+    showOverflowTooltip: true,
   },
   {
     prop: 'enabled',
     label: '状态',
     width: 80,
     render: (row) => {
-      return h(NTag,
-        { type: row.enabled === 1 ? 'success' : 'default', size: 'small' },
-        { default: () => row.enabled === 1 ? '启用' : '禁用' }
+      return h(NTag, { type: row.enabled === 1 ? 'success' : 'default', size: 'small' }, { default: () => row.enabled === 1 ? '启用' : '禁用' },
       )
-    }
+    },
   },
   {
     prop: 'remark',
     label: '备注',
     width: 200,
-    showOverflowTooltip: true
+    showOverflowTooltip: true,
   },
   {
     prop: 'createTime',
     label: '创建时间',
-    width: 180
+    width: 180,
   },
   {
     prop: 'action',
@@ -135,9 +133,9 @@ const tableColumns = computed(() => [
     fixed: 'right',
     actions: [
       { label: '编辑', key: 'edit', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -146,9 +144,9 @@ const editSchema = [
     type: 'divider',
     label: '基础信息',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'resourceCode',
@@ -157,8 +155,8 @@ const editSchema = [
     span: 2,
     rules: [{ required: true, message: '请输入资源编码', trigger: 'blur' }],
     props: {
-      placeholder: '请输入资源编码，如：system:user:list'
-    }
+      placeholder: '请输入资源编码，如：system:user:list',
+    },
   },
   {
     field: 'resourceName',
@@ -166,8 +164,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入资源名称', trigger: 'blur' }],
     props: {
-      placeholder: '请输入资源名称'
-    }
+      placeholder: '请输入资源名称',
+    },
   },
   {
     field: 'mapperMethod',
@@ -177,16 +175,16 @@ const editSchema = [
     rules: [{ required: true, message: '请输入Mapper方法', trigger: 'blur' }],
     props: {
       placeholder: '请输入Mapper方法，如：com.mdframe.forge.plugin.system.mapper.SysUserMapper.selectList',
-      rows: 2
-    }
+      rows: 2,
+    },
   },
   {
     type: 'divider',
     label: '字段配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'tableAlias',
@@ -194,8 +192,8 @@ const editSchema = [
     type: 'input',
     defaultValue: 't',
     props: {
-      placeholder: '请输入主表别名，如：t、lc、o'
-    }
+      placeholder: '请输入主表别名，如：t、lc、o',
+    },
   },
   {
     field: 'enabled',
@@ -204,8 +202,8 @@ const editSchema = [
     defaultValue: '1',
     props: {
       options: enabledOptions,
-      clearable: false
-    }
+      clearable: false,
+    },
   },
   {
     field: 'userIdColumn',
@@ -217,8 +215,8 @@ const editSchema = [
     props: {
       placeholder: '简单模式：字段名（如：user_id、create_by）\n复杂模式：<sql>开头，支持占位符#{userId}、#{tenantId}、#{orgIds}、#{customOrgIds}',
       rows: 3,
-      type: 'textarea'
-    }
+      type: 'textarea',
+    },
   },
   {
     field: 'orgIdColumn',
@@ -230,8 +228,8 @@ const editSchema = [
     props: {
       placeholder: '简单模式：字段名（如：org_id、dept_id）\n复杂模式：<sql>开头，支持占位符#{userId}、#{tenantId}、#{orgIds}、#{customOrgIds}',
       rows: 3,
-      type: 'textarea'
-    }
+      type: 'textarea',
+    },
   },
   {
     field: 'tenantIdColumn',
@@ -243,16 +241,16 @@ const editSchema = [
     props: {
       placeholder: '简单模式：字段名（如：tenant_id）\n复杂模式：<sql>开头，支持占位符#{userId}、#{tenantId}、#{orgIds}、#{customOrgIds}',
       rows: 3,
-      type: 'textarea'
-    }
+      type: 'textarea',
+    },
   },
   {
     type: 'divider',
     label: '其他信息',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'remark',
@@ -261,9 +259,9 @@ const editSchema = [
     span: 2,
     props: {
       placeholder: '请输入备注说明',
-      rows: 3
-    }
-  }
+      rows: 3,
+    },
+  },
 ]
 
 // 编辑
@@ -280,17 +278,18 @@ function handleDelete(row) {
     negativeText: '取消',
     onPositiveClick: async () => {
       try {
-        const res = await request.post('/system/dataScopeConfig/remove', null, { 
-          params: { id: row.id } 
+        const res = await request.post('/system/dataScopeConfig/remove', null, {
+          params: { id: row.id },
         })
         if (res.code === 200) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 </script>

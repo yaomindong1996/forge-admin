@@ -1,17 +1,17 @@
 <template>
   <div class="dict-data-page">
     <!-- 面包屑导航 -->
-    <n-page-header @back="handleBack" style="margin-bottom: 16px">
+    <NPageHeader style="margin-bottom: 16px" @back="handleBack">
       <template #title>
         <span>字典数据管理</span>
-        <n-tag v-if="dictTypeName" type="info" size="small" style="margin-left: 12px">
+        <NTag v-if="dictTypeName" type="info" size="small" style="margin-left: 12px">
           {{ dictTypeName }}
-        </n-tag>
+        </NTag>
       </template>
       <template #subtitle>
         <span v-if="currentDictType">字典类型：{{ currentDictType }}</span>
       </template>
-    </n-page-header>
+    </NPageHeader>
 
     <AiCrudPage
       ref="crudRef"
@@ -21,7 +21,7 @@
         detail: 'post@/system/dict/data/getById',
         add: 'post@/system/dict/data/add',
         update: 'post@/system/dict/data/edit',
-        delete: 'post@/system/dict/data/remove'
+        delete: 'post@/system/dict/data/remove',
       }"
       :load-detail-on-edit="true"
       :search-schema="searchSchema"
@@ -39,13 +39,13 @@
 </template>
 
 <script setup>
-import { ref, h, computed, onMounted, nextTick } from 'vue'
-import { NTag, NPageHeader } from 'naive-ui'
+import { NPageHeader, NTag } from 'naive-ui'
+import { computed, h, nextTick, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { AiCrudPage } from '@/components/ai-form'
-import { useRouter, useRoute } from 'vue-router'
 import { request } from '@/utils'
 
-defineOptions({ name: 'DictData',title:'字典数据' })
+defineOptions({ name: 'DictData', title: '字典数据' })
 
 const router = useRouter()
 const route = useRoute()
@@ -61,13 +61,13 @@ const dictTypeOptions = ref([])
 // 字典状态选项
 const statusOptions = [
   { label: '正常', value: 1 },
-  { label: '禁用', value: 0 }
+  { label: '禁用', value: 0 },
 ]
 
 // 是否默认选项
 const isDefaultOptions = [
   { label: '是', value: 'Y' },
-  { label: '否', value: 'N' }
+  { label: '否', value: 'N' },
 ]
 
 // 标签类型选项
@@ -76,7 +76,7 @@ const tagTypeOptions = [
   { label: '成功', value: 'success' },
   { label: '信息', value: 'info' },
   { label: '警告', value: 'warning' },
-  { label: '错误', value: 'error' }
+  { label: '错误', value: 'error' },
 ]
 
 // 公共查询参数
@@ -91,16 +91,16 @@ const searchSchema = [
     label: '字典标签',
     type: 'input',
     props: {
-      placeholder: '请输入字典标签'
-    }
+      placeholder: '请输入字典标签',
+    },
   },
   {
     field: 'dictValue',
     label: '字典键值',
     type: 'input',
     props: {
-      placeholder: '请输入字典键值'
-    }
+      placeholder: '请输入字典键值',
+    },
   },
   {
     field: 'dictStatus',
@@ -108,9 +108,9 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择状态',
-      options: statusOptions
-    }
-  }
+      options: statusOptions,
+    },
+  },
 ]
 
 // 表格列配置
@@ -118,86 +118,83 @@ const tableColumns = computed(() => [
   {
     prop: 'dictCode',
     label: '字典编码',
-    width: 100
+    width: 100,
   },
   {
     prop: 'dictLabel',
     label: '字典标签',
-    width: 150
+    width: 150,
   },
   {
     prop: 'dictValue',
     label: '字典键值',
-    width: 150
+    width: 150,
   },
   {
     prop: 'dictSort',
     label: '排序',
-    width: 100
+    width: 100,
   },
   {
     prop: 'dictStatus',
     label: '状态',
     width: 100,
     render: (row) => {
-      return h(NTag,
-        { type: row.dictStatus === 1 ? 'success' : 'error', size: 'small' },
-        { default: () => row.dictStatus === 1 ? '正常' : '禁用' }
+      return h(NTag, { type: row.dictStatus === 1 ? 'success' : 'error', size: 'small' }, { default: () => row.dictStatus === 1 ? '正常' : '禁用' },
       )
-    }
+    },
   },
   {
     prop: 'isDefault',
     label: '是否默认',
     width: 100,
     render: (row) => {
-      return h(NTag,
-        { type: row.isDefault === 'Y' ? 'success' : 'default', size: 'small' },
-        { default: () => row.isDefault === 'Y' ? '是' : '否' }
+      return h(NTag, { type: row.isDefault === 'Y' ? 'success' : 'default', size: 'small' }, { default: () => row.isDefault === 'Y' ? '是' : '否' },
       )
-    }
+    },
   },
   {
     prop: 'listClass',
     label: '标签类型',
     width: 120,
     render: (row) => {
-      if (!row.listClass) return '-'
+      if (!row.listClass)
+        return '-'
       const typeMap = {
-        'default': { text: '默认', type: 'default' },
-        'success': { text: '成功', type: 'success' },
-        'info': { text: '信息', type: 'info' },
-        'warning': { text: '警告', type: 'warning' },
-        'error': { text: '错误', type: 'error' },
+        default: { text: '默认', type: 'default' },
+        success: { text: '成功', type: 'success' },
+        info: { text: '信息', type: 'info' },
+        warning: { text: '警告', type: 'warning' },
+        error: { text: '错误', type: 'error' },
         // 兼容旧的命名
-        'primary': { text: '信息', type: 'info' },
-        'danger': { text: '错误', type: 'error' }
+        primary: { text: '信息', type: 'info' },
+        danger: { text: '错误', type: 'error' },
       }
       const config = typeMap[row.listClass] || { text: row.listClass, type: 'default' }
-      
+
       // 如果是 default 类型，显示普通文字
       if (config.type === 'default') {
         return h('span', config.text)
       }
-      
+
       // 其他类型显示标签
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
-    }
+    },
   },
   {
     prop: 'cssClass',
     label: '样式属性',
-    width: 120
+    width: 120,
   },
   {
     prop: 'remark',
     label: '备注',
-    width: 200
+    width: 200,
   },
   {
     prop: 'createTime',
     label: '创建时间',
-    width: 180
+    width: 180,
   },
   {
     prop: 'action',
@@ -206,9 +203,9 @@ const tableColumns = computed(() => [
     fixed: 'right',
     actions: [
       { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -217,9 +214,9 @@ const editSchema = computed(() => [
     type: 'divider',
     label: '基础信息',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'dictType',
@@ -230,8 +227,8 @@ const editSchema = computed(() => [
     props: {
       placeholder: '字典类型',
       disabled: true,
-      readonly: true
-    }
+      readonly: true,
+    },
   },
   {
     field: 'dictLabel',
@@ -239,8 +236,8 @@ const editSchema = computed(() => [
     type: 'input',
     rules: [{ required: true, message: '请输入字典标签', trigger: 'blur' }],
     props: {
-      placeholder: '请输入字典标签'
-    }
+      placeholder: '请输入字典标签',
+    },
   },
   {
     field: 'dictValue',
@@ -248,8 +245,8 @@ const editSchema = computed(() => [
     type: 'input',
     rules: [{ required: true, message: '请输入字典键值', trigger: 'blur' }],
     props: {
-      placeholder: '请输入字典键值'
-    }
+      placeholder: '请输入字典键值',
+    },
   },
   {
     field: 'dictSort',
@@ -258,8 +255,8 @@ const editSchema = computed(() => [
     defaultValue: 0,
     props: {
       placeholder: '排序值',
-      min: 0
-    }
+      min: 0,
+    },
   },
   {
     field: 'dictStatus',
@@ -268,8 +265,8 @@ const editSchema = computed(() => [
     defaultValue: 1,
     rules: [{ required: true, type: 'number', message: '请选择状态', trigger: 'change' }],
     props: {
-      options: statusOptions
-    }
+      options: statusOptions,
+    },
   },
   {
     field: 'isDefault',
@@ -277,16 +274,16 @@ const editSchema = computed(() => [
     type: 'radio',
     defaultValue: 'N',
     props: {
-      options: isDefaultOptions
-    }
+      options: isDefaultOptions,
+    },
   },
   {
     type: 'divider',
     label: '扩展信息',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'listClass',
@@ -295,16 +292,16 @@ const editSchema = computed(() => [
     defaultValue: 'default',
     props: {
       placeholder: '请选择标签类型',
-      options: tagTypeOptions
-    }
+      options: tagTypeOptions,
+    },
   },
   {
     field: 'cssClass',
     label: '样式属性',
     type: 'input',
     props: {
-      placeholder: '请输入样式属性（可选）'
-    }
+      placeholder: '请输入样式属性（可选）',
+    },
   },
   {
     field: 'remark',
@@ -313,9 +310,9 @@ const editSchema = computed(() => [
     span: 2,
     props: {
       placeholder: '请输入备注',
-      rows: 3
-    }
-  }
+      rows: 3,
+    },
+  },
 ])
 
 // 加载字典类型选项
@@ -325,10 +322,11 @@ async function loadDictTypeOptions() {
     if (res.code === 200) {
       dictTypeOptions.value = (res.data || []).map(item => ({
         label: item.dictName,
-        value: item.dictType
+        value: item.dictType,
       }))
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载字典类型选项失败:', error)
   }
 }
@@ -338,7 +336,7 @@ function handleBeforeRenderForm(data) {
   // 如果是新增（data 为 null），设置默认的 dictType
   if (!data && currentDictType.value) {
     return {
-      dictType: currentDictType.value
+      dictType: currentDictType.value,
     }
   }
   return data
@@ -373,16 +371,17 @@ function handleDelete(row) {
     onPositiveClick: async () => {
       try {
         const res = await request.post('/system/dict/data/remove', null, {
-          params: { dictCode: row.dictCode }
+          params: { dictCode: row.dictCode },
         })
         if (res.code === 200) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 

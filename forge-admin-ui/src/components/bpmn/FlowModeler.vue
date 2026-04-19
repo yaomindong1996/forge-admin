@@ -7,7 +7,7 @@
         <n-button-group>
           <n-tooltip trigger="hover">
             <template #trigger>
-              <n-button size="small" @click="handleUndo" :disabled="!canUndo">
+              <n-button size="small" :disabled="!canUndo" @click="handleUndo">
                 <i class="i-material-symbols:undo" />
               </n-button>
             </template>
@@ -15,7 +15,7 @@
           </n-tooltip>
           <n-tooltip trigger="hover">
             <template #trigger>
-              <n-button size="small" @click="handleRedo" :disabled="!canRedo">
+              <n-button size="small" :disabled="!canRedo" @click="handleRedo">
                 <i class="i-material-symbols:redo" />
               </n-button>
             </template>
@@ -95,13 +95,12 @@
           </template>
           预览XML
         </n-button>
-
       </n-space>
     </div>
 
     <!-- 画布区域 -->
     <div class="canvas-wrapper">
-      <div class="canvas-container" ref="canvasRef"></div>
+      <div ref="canvasRef" class="canvas-container" />
     </div>
 
     <!-- 节点属性弹窗 -->
@@ -122,19 +121,21 @@
       </div>
       <template #footer>
         <n-space justify="end">
-          <n-button @click="showPropertiesModal = false">关闭</n-button>
+          <n-button @click="showPropertiesModal = false">
+            关闭
+          </n-button>
         </n-space>
       </template>
     </n-modal>
 
     <!-- 隐藏的文件输入 -->
     <input
-      type="file"
       ref="fileInputRef"
+      type="file"
       accept=".bpmn,.bpmn20.xml,.xml"
       style="display: none"
       @change="handleFileChange"
-    />
+    >
 
     <!-- XML预览弹窗 -->
     <n-modal v-model:show="showPreviewModal" preset="card" title="BPMN XML 预览" style="width: 800px">
@@ -144,24 +145,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, nextTick, toRaw, computed, shallowRef } from 'vue'
 import BpmnModeler from 'bpmn-js/lib/Modeler'
+import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, toRaw, watch } from 'vue'
+import flowableModdle from './flowable-moddle.json'
+import NodePropertiesPanel from './NodePropertiesPanel.vue'
 import 'bpmn-js/dist/assets/diagram-js.css'
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css'
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-codes.css'
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css'
-import NodePropertiesPanel from './NodePropertiesPanel.vue'
-import flowableModdle from './flowable-moddle.json'
 
 const props = defineProps({
   xml: {
     type: String,
-    default: ''
+    default: '',
   },
   readOnly: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 const emit = defineEmits(['save', 'change', 'ready'])
@@ -232,11 +233,11 @@ async function initModeler() {
   modeler = new BpmnModeler({
     container: canvasRef.value,
     keyboard: {
-      bindTo: document
+      bindTo: document,
     },
     moddleExtensions: {
-      flowable: flowableModdle
-    }
+      flowable: flowableModdle,
+    },
   })
   modelerRef.value = modeler
   isModelerReady.value = true
@@ -254,7 +255,8 @@ async function initModeler() {
       }
       selectedElement.value = newSelection[0]
       showPropertiesModal.value = true
-    } else {
+    }
+    else {
       // 只有当弹窗没有打开时才清空选中状态
       // 这样可以防止在属性面板操作时意外关闭弹窗
       if (!showPropertiesModal.value) {
@@ -293,20 +295,21 @@ async function importXML(xml) {
     console.warn('XML 为空，使用默认模板')
     xml = defaultXml
   }
-  
+
   // 检查是否包含图形信息，如果没有则使用默认模板
   if (!hasDiagramInfo(xml)) {
     console.warn('XML 缺少图形信息(BPMNDiagram)，使用默认模板')
     xml = defaultXml
   }
-  
+
   try {
     await modeler.importXML(xml)
     const canvas = modeler.get('canvas')
     canvas.zoom('fit-viewport')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('导入 BPMN 失败:', error)
-    message.error('导入 BPMN 失败: ' + error.message)
+    message.error(`导入 BPMN 失败: ${error.message}`)
   }
 }
 
@@ -319,11 +322,12 @@ function updateUndoRedoState() {
 
 // 获取元素标题
 function getElementTitle() {
-  if (!selectedElement.value) return '属性设置'
-  
+  if (!selectedElement.value)
+    return '属性设置'
+
   const type = selectedElement.value.type
   const name = selectedElement.value.businessObject?.name
-  
+
   const typeNames = {
     'bpmn:StartEvent': '开始节点',
     'bpmn:EndEvent': '结束节点',
@@ -337,9 +341,9 @@ function getElementTitle() {
     'bpmn:InclusiveGateway': '包容网关',
     'bpmn:SequenceFlow': '序列流',
     'bpmn:SubProcess': '子流程',
-    'bpmn:CallActivity': '调用活动'
+    'bpmn:CallActivity': '调用活动',
   }
-  
+
   return name || typeNames[type] || '属性设置'
 }
 
@@ -381,19 +385,21 @@ function handleImport() {
 // 文件选择
 async function handleFileChange(e) {
   const file = e.target.files[0]
-  if (!file) return
-  
+  if (!file)
+    return
+
   const reader = new FileReader()
   reader.onload = async (event) => {
     try {
       await importXML(event.target.result)
       message.success('导入成功')
-    } catch (error) {
-      message.error('导入失败: ' + error.message)
+    }
+    catch (error) {
+      message.error(`导入失败: ${error.message}`)
     }
   }
   reader.readAsText(file)
-  
+
   // 清空文件输入
   e.target.value = ''
 }
@@ -404,8 +410,9 @@ async function handleDownloadBpmn() {
     const { xml } = await modeler.saveXML({ format: true })
     downloadFile(xml, 'diagram.bpmn', 'application/xml')
     message.success('导出成功')
-  } catch (error) {
-    message.error('导出失败: ' + error.message)
+  }
+  catch (error) {
+    message.error(`导出失败: ${error.message}`)
   }
 }
 
@@ -415,8 +422,9 @@ async function handleDownloadSvg() {
     const { svg } = await modeler.saveSVG()
     downloadFile(svg, 'diagram.svg', 'image/svg+xml')
     message.success('导出成功')
-  } catch (error) {
-    message.error('导出失败: ' + error.message)
+  }
+  catch (error) {
+    message.error(`导出失败: ${error.message}`)
   }
 }
 
@@ -437,8 +445,9 @@ async function handlePreview() {
     const { xml } = await modeler.saveXML({ format: true })
     previewXml.value = xml
     showPreviewModal.value = true
-  } catch (error) {
-    message.error('获取XML失败: ' + error.message)
+  }
+  catch (error) {
+    message.error(`获取XML失败: ${error.message}`)
   }
 }
 
@@ -459,7 +468,8 @@ async function getXML() {
   try {
     const { xml } = await modeler.saveXML({ format: true })
     return xml
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取XML失败:', error)
     return null
   }
@@ -484,7 +494,7 @@ watch(() => props.xml, (newXml) => {
 defineExpose({
   getXML,
   setXML,
-  modeler: () => modeler
+  modeler: () => modeler,
 })
 </script>
 

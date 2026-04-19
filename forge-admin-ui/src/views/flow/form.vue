@@ -1,20 +1,22 @@
 <template>
-  <div class="p-16 h-full flex flex-col">
-    <div class="bg-white rounded p-16 flex-1 flex flex-col overflow-hidden">
-      <div class="flex justify-between items-center mb-16">
-        <h2 class="text-18 font-bold">表单管理</h2>
-        <n-space>
-          <n-button type="primary" @click="handleAdd">
+  <div class="h-full flex flex-col p-16">
+    <div class="flex flex-col flex-1 overflow-hidden rounded bg-white p-16">
+      <div class="mb-16 flex items-center justify-between">
+        <h2 class="text-18 font-bold">
+          表单管理
+        </h2>
+        <NSpace>
+          <NButton type="primary" @click="handleAdd">
             <template #icon>
               <i class="i-material-symbols:add" />
             </template>
             新增表单
-          </n-button>
-        </n-space>
+          </NButton>
+        </NSpace>
       </div>
 
       <!-- 搜索栏 -->
-      <n-space class="mb-16" :vertical="false">
+      <NSpace class="mb-16" :vertical="false">
         <n-input
           v-model:value="queryParams.formName"
           placeholder="搜索表单名称"
@@ -33,19 +35,19 @@
           style="width: 120px"
           :options="statusOptions"
         />
-        <n-button type="primary" @click="handleSearch">
+        <NButton type="primary" @click="handleSearch">
           <template #icon>
             <i class="i-material-symbols:search" />
           </template>
           搜索
-        </n-button>
-        <n-button @click="handleReset">
+        </NButton>
+        <NButton @click="handleReset">
           <template #icon>
             <i class="i-material-symbols:refresh" />
           </template>
           重置
-        </n-button>
-      </n-space>
+        </NButton>
+      </NSpace>
 
       <!-- 数据表格 -->
       <n-data-table
@@ -72,17 +74,17 @@
             <n-input v-model:value="formData.formName" placeholder="请输入表单名称" />
           </n-form-item>
           <n-form-item label="表单Key" path="formKey">
-            <n-input 
-              v-model:value="formData.formKey" 
+            <n-input
+              v-model:value="formData.formKey"
               placeholder="请输入表单Key（唯一标识）"
               :disabled="!!formData.id"
             />
           </n-form-item>
           <n-form-item label="表单类型" path="formType">
-            <n-select 
-              v-model:value="formData.formType" 
-              placeholder="请选择表单类型" 
-              :options="formTypeOptions" 
+            <n-select
+              v-model:value="formData.formType"
+              placeholder="请选择表单类型"
+              :options="formTypeOptions"
             />
           </n-form-item>
           <n-form-item label="描述" path="description">
@@ -95,12 +97,14 @@
           </n-form-item>
         </n-form>
         <template #footer>
-          <n-space justify="end">
-            <n-button @click="showModal = false">取消</n-button>
-            <n-button type="primary" :loading="submitLoading" @click="handleSubmit">
+          <NSpace justify="end">
+            <NButton @click="showModal = false">
+              取消
+            </NButton>
+            <NButton type="primary" :loading="submitLoading" @click="handleSubmit">
               确定
-            </n-button>
-          </n-space>
+            </NButton>
+          </NSpace>
         </template>
       </n-modal>
     </Teleport>
@@ -143,11 +147,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, h, onMounted } from 'vue'
-import { NButton, NTag, NSpace, NPopconfirm, NSwitch } from 'naive-ui'
+import { NButton, NPopconfirm, NSpace, NSwitch, NTag } from 'naive-ui'
+import { h, onMounted, reactive, ref } from 'vue'
+import api from '@/api/flow'
 import FormDesigner from '@/components/form-designer/FormDesigner.vue'
 import FormPreview from '@/components/form-designer/FormPreview.vue'
-import api from '@/api/flow'
 
 // 使用全局 message 实例
 const message = window.$message
@@ -155,20 +159,20 @@ const message = window.$message
 // 状态选项
 const statusOptions = [
   { label: '启用', value: 1 },
-  { label: '禁用', value: 0 }
+  { label: '禁用', value: 0 },
 ]
 
 // 表单类型选项
 const formTypeOptions = [
   { label: '动态表单', value: 'dynamic' },
   { label: '外部表单', value: 'external' },
-  { label: '内置表单', value: 'builtin' }
+  { label: '内置表单', value: 'builtin' },
 ]
 
 // 查询参数
 const queryParams = reactive({
   formName: '',
-  status: null
+  status: null,
 })
 
 // 表格数据
@@ -188,7 +192,7 @@ const pagination = reactive({
     pagination.pageSize = pageSize
     pagination.page = 1
     loadData()
-  }
+  },
 })
 
 // 弹窗相关
@@ -201,21 +205,21 @@ const formData = reactive({
   formName: '',
   formKey: '',
   formType: 'dynamic',
-  description: ''
+  description: '',
 })
 
 // 表单验证规则
 const rules = {
   formName: [
-    { required: true, message: '请输入表单名称', trigger: 'blur' }
+    { required: true, message: '请输入表单名称', trigger: 'blur' },
   ],
   formKey: [
     { required: true, message: '请输入表单Key', trigger: 'blur' },
-    { pattern: /^[a-zA-Z][a-zA-Z0-9_]*$/, message: '表单Key必须以字母开头，只能包含字母、数字和下划线', trigger: 'blur' }
+    { pattern: /^[a-z]\w*$/i, message: '表单Key必须以字母开头，只能包含字母、数字和下划线', trigger: 'blur' },
   ],
   formType: [
-    { required: true, message: '请选择表单类型', trigger: 'change' }
-  ]
+    { required: true, message: '请选择表单类型', trigger: 'change' },
+  ],
 }
 
 // 表单设计器相关
@@ -234,13 +238,13 @@ const columns = [
     key: 'formName',
     width: 180,
     ellipsis: {
-      tooltip: true
-    }
+      tooltip: true,
+    },
   },
   {
     title: '表单Key',
     key: 'formKey',
-    width: 150
+    width: 150,
   },
   {
     title: '表单类型',
@@ -250,11 +254,11 @@ const columns = [
       const typeMap = {
         dynamic: { text: '动态表单', type: 'info' },
         external: { text: '外部表单', type: 'warning' },
-        builtin: { text: '内置表单', type: 'success' }
+        builtin: { text: '内置表单', type: 'success' },
       }
       const type = typeMap[row.formType] || { text: row.formType, type: 'default' }
       return h(NTag, { type: type.type, size: 'small' }, { default: () => type.text })
-    }
+    },
   },
   {
     title: '状态',
@@ -263,27 +267,27 @@ const columns = [
     render: (row) => {
       return h(NSwitch, {
         value: row.status === 1,
-        onUpdateValue: (value) => handleStatusChange(row, value)
+        onUpdateValue: value => handleStatusChange(row, value),
       })
-    }
+    },
   },
   {
     title: '版本',
     key: 'version',
-    width: 80
+    width: 80,
   },
   {
     title: '描述',
     key: 'description',
     width: 200,
     ellipsis: {
-      tooltip: true
-    }
+      tooltip: true,
+    },
   },
   {
     title: '创建时间',
     key: 'createTime',
-    width: 160
+    width: 160,
   },
   {
     title: '操作',
@@ -297,71 +301,73 @@ const columns = [
             size: 'small',
             type: 'primary',
             text: true,
-            onClick: () => handleDesign(row)
+            onClick: () => handleDesign(row),
           }, { default: () => '设计' }),
           h(NButton, {
             size: 'small',
             type: 'info',
             text: true,
-            onClick: () => handlePreview(row)
+            onClick: () => handlePreview(row),
           }, { default: () => '预览' }),
           h(NButton, {
             size: 'small',
             type: 'warning',
             text: true,
-            onClick: () => handleEdit(row)
+            onClick: () => handleEdit(row),
           }, { default: () => '编辑' }),
           h(NButton, {
             size: 'small',
             type: 'info',
             text: true,
-            onClick: () => handleCopy(row)
+            onClick: () => handleCopy(row),
           }, { default: () => '复制' }),
           h(NPopconfirm, {
-            onPositiveClick: () => handleDelete(row)
+            onPositiveClick: () => handleDelete(row),
           }, {
             trigger: () => h(NButton, {
               size: 'small',
               type: 'error',
-              text: true
+              text: true,
             }, { default: () => '删除' }),
-            default: () => '确定要删除此表单吗？'
-          })
-        ]
+            default: () => '确定要删除此表单吗？',
+          }),
+        ],
       })
-    }
-  }
+    },
+  },
 ]
 
 // 加载数据
-const loadData = async () => {
+async function loadData() {
   loading.value = true
   try {
     const res = await api.getFormPage({
       page: pagination.page,
       pageSize: pagination.pageSize,
-      ...queryParams
+      ...queryParams,
     })
     if (res.data) {
       dataSource.value = res.data.records || []
       pagination.itemCount = res.data.total || 0
     }
-  } catch (error) {
+  }
+  catch (error) {
     message.error('加载数据失败')
     console.error(error)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
 
 // 搜索
-const handleSearch = () => {
+function handleSearch() {
   pagination.page = 1
   loadData()
 }
 
 // 重置
-const handleReset = () => {
+function handleReset() {
   queryParams.formName = ''
   queryParams.status = null
   pagination.page = 1
@@ -369,36 +375,37 @@ const handleReset = () => {
 }
 
 // 新增
-const handleAdd = () => {
+function handleAdd() {
   modalTitle.value = '新增表单'
   Object.assign(formData, {
     id: null,
     formName: '',
     formKey: '',
     formType: 'dynamic',
-    description: ''
+    description: '',
   })
   showModal.value = true
 }
 
 // 编辑
-const handleEdit = (row) => {
+function handleEdit(row) {
   modalTitle.value = '编辑表单'
   Object.assign(formData, {
     id: row.id,
     formName: row.formName,
     formKey: row.formKey,
     formType: row.formType,
-    description: row.description
+    description: row.description,
   })
   showModal.value = true
 }
 
 // 提交表单
-const handleSubmit = async () => {
+async function handleSubmit() {
   try {
     await formRef.value?.validate()
-  } catch {
+  }
+  catch {
     return
   }
 
@@ -407,7 +414,8 @@ const handleSubmit = async () => {
     if (formData.id) {
       await api.updateForm(formData)
       message.success('更新成功')
-    } else {
+    }
+    else {
       // 检查Key是否存在
       const checkRes = await api.checkFormKeyExists(formData.formKey)
       if (checkRes.data === true) {
@@ -420,16 +428,18 @@ const handleSubmit = async () => {
     }
     showModal.value = false
     loadData()
-  } catch (error) {
+  }
+  catch (error) {
     message.error(formData.id ? '更新失败' : '创建失败')
     console.error(error)
-  } finally {
+  }
+  finally {
     submitLoading.value = false
   }
 }
 
 // 设计表单
-const handleDesign = async (row) => {
+async function handleDesign(row) {
   currentFormId.value = row.id
   try {
     const res = await api.getFormById(row.id)
@@ -437,79 +447,87 @@ const handleDesign = async (row) => {
       currentFormSchema.value = res.data.formSchema ? JSON.parse(res.data.formSchema) : null
       showDesigner.value = true
     }
-  } catch (error) {
+  }
+  catch (error) {
     message.error('加载表单失败')
     console.error(error)
   }
 }
 
 // 保存表单Schema
-const handleSaveSchema = async (schema) => {
+async function handleSaveSchema(schema) {
   try {
     await api.updateForm({
       id: currentFormId.value,
-      formSchema: JSON.stringify(schema)
+      formSchema: JSON.stringify(schema),
     })
     message.success('保存成功')
     showDesigner.value = false
     loadData()
-  } catch (error) {
+  }
+  catch (error) {
     message.error('保存失败')
     console.error(error)
   }
 }
 
 // 预览表单
-const handlePreview = async (row) => {
+async function handlePreview(row) {
   try {
     const res = await api.getFormById(row.id)
     if (res.data && res.data.formSchema) {
       currentFormSchema.value = JSON.parse(res.data.formSchema)
       showPreview.value = true
-    } else {
+    }
+    else {
       message.warning('表单尚未设计')
     }
-  } catch (error) {
+  }
+  catch (error) {
     message.error('加载表单失败')
     console.error(error)
   }
 }
 
 // 复制表单
-const handleCopy = async (row) => {
+async function handleCopy(row) {
   try {
     await api.copyForm(row.id, `${row.formName}_副本`)
     message.success('复制成功')
     loadData()
-  } catch (error) {
+  }
+  catch (error) {
     message.error('复制失败')
     console.error(error)
   }
 }
 
 // 删除表单
-const handleDelete = async (row) => {
+async function handleDelete(row) {
   try {
     await api.deleteForm(row.id)
     message.success('删除成功')
     loadData()
-  } catch (error) {
+  }
+  catch (error) {
     message.error('删除失败')
     console.error(error)
   }
 }
 
 // 状态切换
-const handleStatusChange = async (row, value) => {
+async function handleStatusChange(row, value) {
   try {
     if (value) {
       await api.enableForm(row.id)
-    } else {
+    }
+    else {
       await api.disableForm(row.id)
     }
     message.success('状态更新成功')
     loadData()
-  } catch (error) {
+  }
+  catch (error) {
     message.error('状态更新失败')
     console.error(error)
   }

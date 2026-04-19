@@ -1,7 +1,7 @@
 <!--
   字典标签组件
   用于显示字典值对应的标签
-  
+
   使用示例：
   <DictTag :options="dict.case_status" :value="row.status" />
   <DictTag dict-type="case_status" :value="row.status" />
@@ -37,51 +37,51 @@ const props = defineProps({
   // 字典选项列表（优先使用）
   options: {
     type: Array,
-    default: null
+    default: null,
   },
-  
+
   // 字典类型（当 options 为空时使用）
   dictType: {
     type: String,
-    default: ''
+    default: '',
   },
-  
+
   // 字典值
   value: {
     type: [String, Number],
-    default: ''
+    default: '',
   },
-  
+
   // 标签类型（可选：default, success, warning, error, info）
   // 如果不指定，会根据字典项的 listClass 自动判断
   type: {
     type: String,
-    default: ''
+    default: '',
   },
-  
+
   // 标签尺寸
   size: {
     type: String,
-    default: 'small'
+    default: 'small',
   },
-  
+
   // 是否圆角
   round: {
     type: Boolean,
-    default: false
+    default: false,
   },
-  
+
   // 是否显示边框
   bordered: {
     type: Boolean,
-    default: true
+    default: true,
   },
-  
+
   // 是否可关闭
   closable: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 const emit = defineEmits(['close'])
@@ -91,8 +91,9 @@ const dictList = ref([])
 // 当前字典项
 const currentDict = computed(() => {
   const list = props.options || dictList.value
-  if (!list || list.length === 0) return null
-  
+  if (!list || list.length === 0)
+    return null
+
   return list.find(item => String(item.value) === String(props.value))
 })
 
@@ -101,31 +102,31 @@ const tagType = computed(() => {
   if (props.type) {
     return props.type
   }
-  
+
   if (!currentDict.value) {
     return 'default'
   }
-  
+
   // 根据 listClass 映射标签类型
   const listClass = currentDict.value.listClass || currentDict.value.raw?.listClass
-  
+
   // 如果没有 listClass，返回默认类型
   if (!listClass) {
     return 'default'
   }
-  
+
   // 标签类型映射（兼容新旧命名）
   const typeMap = {
-    'default': 'default',
-    'success': 'success',
-    'info': 'info',
-    'warning': 'warning',
-    'error': 'error',
+    default: 'default',
+    success: 'success',
+    info: 'info',
+    warning: 'warning',
+    error: 'error',
     // 兼容旧的命名
-    'primary': 'info',
-    'danger': 'error'
+    primary: 'info',
+    danger: 'error',
   }
-  
+
   return typeMap[listClass] || 'default'
 })
 
@@ -135,14 +136,14 @@ const shouldShowAsText = computed(() => {
   if (props.type) {
     return false
   }
-  
+
   if (!currentDict.value) {
     return true
   }
-  
+
   // 获取 listClass
   const listClass = currentDict.value.listClass || currentDict.value.raw?.listClass
-  
+
   // 如果 listClass 为 default 或空，显示为普通文字
   return !listClass || listClass === 'default'
 })
@@ -153,12 +154,12 @@ async function loadDict() {
     // 如果传入了 options，直接使用
     return
   }
-  
+
   if (!props.dictType) {
     console.warn('DictTag: 未指定 options 或 dictType')
     return
   }
-  
+
   dictList.value = await getDictData(props.dictType)
 }
 

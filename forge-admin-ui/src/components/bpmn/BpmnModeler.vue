@@ -4,22 +4,22 @@
     <div class="toolbar">
       <n-space>
         <n-button-group>
-          <n-button size="small" @click="handleUndo" :disabled="!canUndo">
+          <n-button size="small" :disabled="!canUndo" @click="handleUndo">
             <template #icon>
               <i class="i-material-symbols:undo" />
             </template>
             撤销
           </n-button>
-          <n-button size="small" @click="handleRedo" :disabled="!canRedo">
+          <n-button size="small" :disabled="!canRedo" @click="handleRedo">
             <template #icon>
               <i class="i-material-symbols:redo" />
             </template>
             重做
           </n-button>
         </n-button-group>
-        
+
         <n-divider vertical />
-        
+
         <n-button size="small" @click="handleZoomIn">
           <template #icon>
             <i class="i-material-symbols:zoom-in" />
@@ -38,10 +38,10 @@
           </template>
           适应屏幕
         </n-button>
-        
+
         <n-divider vertical />
-        
-        <n-button size="small" @click="handleDownloadBpmn" type="primary">
+
+        <n-button size="small" type="primary" @click="handleDownloadBpmn">
           <template #icon>
             <i class="i-material-symbols:download" />
           </template>
@@ -55,21 +55,21 @@
         </n-button>
       </n-space>
     </div>
-    
+
     <!-- 设计器主体 -->
     <div class="modeler-wrapper">
       <!-- 画布区域 -->
-      <div class="canvas-container" ref="canvasRef"></div>
-      
+      <div ref="canvasRef" class="canvas-container" />
+
       <!-- 右侧属性面板 -->
-      <div class="properties-panel" v-show="selectedElement">
+      <div v-show="selectedElement" class="properties-panel">
         <div class="properties-header">
           <span>属性设置</span>
           <n-button text size="small" @click="selectedElement = null">
             <i class="i-material-symbols:close" />
           </n-button>
         </div>
-        <div class="properties-content" v-if="selectedElement">
+        <div v-if="selectedElement" class="properties-content">
           <n-form :model="elementProperties" label-placement="top" size="small">
             <n-form-item label="ID">
               <n-input v-model:value="elementProperties.id" @blur="updateElementId" />
@@ -77,7 +77,7 @@
             <n-form-item label="名称">
               <n-input v-model:value="elementProperties.name" @blur="updateElementName" />
             </n-form-item>
-            
+
             <!-- 用户任务属性 -->
             <template v-if="selectedElement?.type === 'bpmn:UserTask'">
               <n-divider>审批设置</n-divider>
@@ -85,8 +85,8 @@
                 <n-select
                   v-model:value="elementProperties.assignee"
                   :options="assigneeOptions"
-                  @update:value="updateUserTaskAssignee"
                   placeholder="选择审批人"
+                  @update:value="updateUserTaskAssignee"
                 />
               </n-form-item>
               <n-form-item label="候选用户">
@@ -104,7 +104,7 @@
                 />
               </n-form-item>
             </template>
-            
+
             <!-- 服务任务属性 -->
             <template v-if="selectedElement?.type === 'bpmn:ServiceTask'">
               <n-divider>服务设置</n-divider>
@@ -122,7 +122,7 @@
                 />
               </n-form-item>
             </template>
-            
+
             <!-- 序列流属性 -->
             <template v-if="selectedElement?.type === 'bpmn:SequenceFlow'">
               <n-divider>流转条件</n-divider>
@@ -144,8 +144,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import BpmnModeler from 'bpmn-js/lib/Modeler'
+import { nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import 'bpmn-js/dist/assets/diagram-js.css'
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css'
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-codes.css'
@@ -154,12 +154,12 @@ import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css'
 const props = defineProps({
   xml: {
     type: String,
-    default: ''
+    default: '',
   },
   readOnly: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 const emit = defineEmits(['save', 'change', 'ready'])
@@ -183,7 +183,7 @@ const elementProperties = reactive({
   candidateGroups: '',
   implementationType: 'class',
   implementation: '',
-  condition: ''
+  condition: '',
 })
 
 // 选项数据
@@ -192,13 +192,13 @@ const assigneeOptions = [
   { label: '上级领导', value: '${leader}' },
   { label: '部门经理', value: '${deptManager}' },
   { label: 'HR', value: '${hr}' },
-  { label: '自定义表达式', value: 'custom' }
+  { label: '自定义表达式', value: 'custom' },
 ]
 
 const implementationTypeOptions = [
   { label: 'Java类', value: 'class' },
   { label: '表达式', value: 'expression' },
-  { label: '委托表达式', value: 'delegateExpression' }
+  { label: '委托表达式', value: 'delegateExpression' },
 ]
 
 // 默认 BPMN XML - 必须包含 BPMNDiagram 图形信息
@@ -242,20 +242,21 @@ async function initModeler() {
   modeler = new BpmnModeler({
     container: canvasRef.value,
     keyboard: {
-      bindTo: document
-    }
+      bindTo: document,
+    },
   })
 
   // 监听事件
   const eventBus = modeler.get('eventBus')
-  
+
   // 元素选择事件
   eventBus.on('selection.changed', (e) => {
     const { newSelection } = e
     if (newSelection.length === 1) {
       selectedElement.value = newSelection[0]
       loadElementProperties(newSelection[0])
-    } else {
+    }
+    else {
       selectedElement.value = null
     }
   })
@@ -274,7 +275,7 @@ async function initModeler() {
   // 导入 XML - 确保使用有效的 XML
   const xmlToImport = props.xml && props.xml.trim() ? props.xml : defaultXml
   await importXML(xmlToImport)
-  
+
   isInitialized = true
   emit('ready', modeler)
 }
@@ -286,19 +287,20 @@ async function importXML(xml) {
     console.warn('XML 为空，使用默认模板')
     xml = defaultXml
   }
-  
+
   // 检查是否包含图形信息，如果没有则使用默认模板
   if (!hasDiagramInfo(xml)) {
     console.warn('XML 缺少图形信息(BPMNDiagram)，使用默认模板')
     xml = defaultXml
   }
-  
+
   try {
     const result = await modeler.importXML(xml)
     console.log('BPMN 导入成功')
     const canvas = modeler.get('canvas')
     canvas.zoom('fit-viewport')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('导入 BPMN 失败:', error)
     console.error('失败的 XML 内容:', xml)
   }
@@ -316,7 +318,7 @@ function loadElementProperties(element) {
   const bo = element.businessObject
   elementProperties.id = bo.id || ''
   elementProperties.name = bo.name || ''
-  
+
   // 用户任务属性
   if (element.type === 'bpmn:UserTask') {
     const extensionElements = bo.extensionElements?.values || []
@@ -325,13 +327,13 @@ function loadElementProperties(element) {
     elementProperties.candidateUsers = bo.candidateUsers || ''
     elementProperties.candidateGroups = bo.candidateGroups || ''
   }
-  
+
   // 服务任务属性
   if (element.type === 'bpmn:ServiceTask') {
     elementProperties.implementation = bo['flowable:class'] || bo['flowable:expression'] || bo['flowable:delegateExpression'] || ''
     elementProperties.implementationType = bo['flowable:class'] ? 'class' : bo['flowable:expression'] ? 'expression' : 'delegateExpression'
   }
-  
+
   // 序列流条件
   if (element.type === 'bpmn:SequenceFlow') {
     const conditionExpression = bo.conditionExpression
@@ -341,87 +343,95 @@ function loadElementProperties(element) {
 
 // 更新元素 ID
 function updateElementId() {
-  if (!selectedElement.value) return
-  
+  if (!selectedElement.value)
+    return
+
   const modeling = modeler.get('modeling')
   modeling.updateProperties(selectedElement.value, {
-    id: elementProperties.id
+    id: elementProperties.id,
   })
 }
 
 // 更新元素名称
 function updateElementName() {
-  if (!selectedElement.value) return
-  
+  if (!selectedElement.value)
+    return
+
   const modeling = modeler.get('modeling')
   modeling.updateProperties(selectedElement.value, {
-    name: elementProperties.name
+    name: elementProperties.name,
   })
 }
 
 // 更新用户任务审批人
 function updateUserTaskAssignee() {
-  if (!selectedElement.value) return
-  
+  if (!selectedElement.value)
+    return
+
   const modeling = modeler.get('modeling')
   modeling.updateProperties(selectedElement.value, {
-    'flowable:assignee': elementProperties.assignee
+    'flowable:assignee': elementProperties.assignee,
   })
 }
 
 // 更新候选用户
 function updateCandidateUsers() {
-  if (!selectedElement.value) return
-  
+  if (!selectedElement.value)
+    return
+
   const modeling = modeler.get('modeling')
   modeling.updateProperties(selectedElement.value, {
-    'flowable:candidateUsers': elementProperties.candidateUsers
+    'flowable:candidateUsers': elementProperties.candidateUsers,
   })
 }
 
 // 更新候选组
 function updateCandidateGroups() {
-  if (!selectedElement.value) return
-  
+  if (!selectedElement.value)
+    return
+
   const modeling = modeler.get('modeling')
   modeling.updateProperties(selectedElement.value, {
-    'flowable:candidateGroups': elementProperties.candidateGroups
+    'flowable:candidateGroups': elementProperties.candidateGroups,
   })
 }
 
 // 更新服务任务实现
 function updateServiceImplementation() {
-  if (!selectedElement.value) return
-  
+  if (!selectedElement.value)
+    return
+
   const modeling = modeler.get('modeling')
   const props = {
     'flowable:class': null,
     'flowable:expression': null,
-    'flowable:delegateExpression': null
+    'flowable:delegateExpression': null,
   }
-  
+
   const key = `flowable:${elementProperties.implementationType}`
   props[key] = elementProperties.implementation
-  
+
   modeling.updateProperties(selectedElement.value, props)
 }
 
 // 更新流转条件
 function updateCondition() {
-  if (!selectedElement.value) return
-  
+  if (!selectedElement.value)
+    return
+
   const modeling = modeler.get('modeling')
-  
+
   if (elementProperties.condition) {
     modeling.updateProperties(selectedElement.value, {
       conditionExpression: {
         $type: 'bpmn:FormalExpression',
-        body: elementProperties.condition
-      }
+        body: elementProperties.condition,
+      },
     })
-  } else {
+  }
+  else {
     modeling.updateProperties(selectedElement.value, {
-      conditionExpression: null
+      conditionExpression: null,
     })
   }
 }
@@ -461,7 +471,8 @@ async function handleDownloadBpmn() {
   try {
     const { xml } = await modeler.saveXML({ format: true })
     downloadFile(xml, 'process.bpmn', 'application/xml')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('导出 BPMN 失败:', error)
   }
 }
@@ -471,7 +482,8 @@ async function handleDownloadSvg() {
   try {
     const { svg } = await modeler.saveSVG()
     downloadFile(svg, 'process.svg', 'image/svg+xml')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('导出 SVG 失败:', error)
   }
 }
@@ -492,7 +504,8 @@ async function getXML() {
   try {
     const { xml } = await modeler.saveXML({ format: true })
     return xml
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取 XML 失败:', error)
     return null
   }
@@ -503,7 +516,8 @@ async function getSVG() {
   try {
     const { svg } = await modeler.saveSVG()
     return svg
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取 SVG 失败:', error)
     return null
   }
@@ -519,7 +533,7 @@ async function emitChange() {
 defineExpose({
   getXML,
   getSVG,
-  importXML
+  importXML,
 })
 
 // 监听 xml prop 变化

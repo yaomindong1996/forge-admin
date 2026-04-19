@@ -3,12 +3,12 @@
     <!-- 页面标题 -->
     <div class="page-header">
       <h2 class="page-title">
-        <i class="i-mdi:monitor-dashboard"></i>
+        <i class="i-mdi:monitor-dashboard" />
         服务监控
       </h2>
       <n-button size="small" @click="loadAllData">
         <template #icon>
-          <i class="i-mdi:refresh"></i>
+          <i class="i-mdi:refresh" />
         </template>
         刷新数据
       </n-button>
@@ -20,9 +20,11 @@
       <div class="metric-card">
         <div class="metric-header">
           <div class="metric-icon cpu">
-            <i class="i-mdi:cpu-64-bit"></i>
+            <i class="i-mdi:cpu-64-bit" />
           </div>
-          <div class="metric-title">CPU</div>
+          <div class="metric-title">
+            CPU
+          </div>
         </div>
         <div class="metric-body">
           <div class="metric-value-row">
@@ -52,9 +54,11 @@
       <div class="metric-card">
         <div class="metric-header">
           <div class="metric-icon memory">
-            <i class="i-mdi:memory"></i>
+            <i class="i-mdi:memory" />
           </div>
-          <div class="metric-title">内存</div>
+          <div class="metric-title">
+            内存
+          </div>
         </div>
         <div class="metric-body">
           <div class="metric-value-row">
@@ -76,11 +80,13 @@
         </div>
         <!-- 内存进度条 -->
         <div class="progress-bar-container">
-          <div class="progress-label">物理内存使用率</div>
-          <n-progress 
-            type="line" 
-            :percentage="getMemoryPercent(systemInfo.memory?.physicalUsedPercent)" 
-            :indicator-placement="'inside'"
+          <div class="progress-label">
+            物理内存使用率
+          </div>
+          <n-progress
+            type="line"
+            :percentage="getMemoryPercent(systemInfo.memory?.physicalUsedPercent)"
+            indicator-placement="inside"
             :status="getProgressStatus(getMemoryPercent(systemInfo.memory?.physicalUsedPercent))"
           />
         </div>
@@ -90,9 +96,11 @@
       <div class="metric-card">
         <div class="metric-header">
           <div class="metric-icon jvm">
-            <i class="i-mdi:application-braces"></i>
+            <i class="i-mdi:application-braces" />
           </div>
-          <div class="metric-title">JVM</div>
+          <div class="metric-title">
+            JVM
+          </div>
         </div>
         <div class="metric-body">
           <div class="metric-value-row">
@@ -118,9 +126,11 @@
       <div class="metric-card">
         <div class="metric-header">
           <div class="metric-icon server">
-            <i class="i-mdi:server"></i>
+            <i class="i-mdi:server" />
           </div>
-          <div class="metric-title">服务器</div>
+          <div class="metric-title">
+            服务器
+          </div>
         </div>
         <div class="metric-body">
           <div class="metric-value-row">
@@ -147,7 +157,7 @@
     <div class="disk-section">
       <div class="section-header">
         <h3 class="section-title">
-          <i class="i-mdi:harddisk"></i>
+          <i class="i-mdi:harddisk" />
           磁盘信息
         </h3>
       </div>
@@ -155,9 +165,11 @@
         <div v-for="(disk, index) in systemInfo.disk" :key="index" class="disk-card">
           <div class="disk-header">
             <div class="disk-icon">
-              <i class="i-mdi:folder-open-outline"></i>
+              <i class="i-mdi:folder-open-outline" />
             </div>
-            <div class="disk-path">{{ disk.path }}</div>
+            <div class="disk-path">
+              {{ disk.path }}
+            </div>
           </div>
           <div class="disk-usage">
             <div class="usage-info">
@@ -174,10 +186,10 @@
             </div>
           </div>
           <div class="disk-progress">
-            <n-progress 
-              type="line" 
-              :percentage="parseFloat(disk.usedPercent)" 
-              :indicator-placement="'inside'"
+            <n-progress
+              type="line"
+              :percentage="parseFloat(disk.usedPercent)"
+              indicator-placement="inside"
               :status="getProgressStatus(parseFloat(disk.usedPercent))"
             />
             <span class="disk-percent">{{ disk.usedPercent }}</span>
@@ -187,10 +199,10 @@
     </div>
 
     <!-- JVM内存池详情 -->
-    <div class="memory-pools-section" v-if="systemInfo.memory?.pools?.length">
+    <div v-if="systemInfo.memory?.pools?.length" class="memory-pools-section">
       <div class="section-header">
         <h3 class="section-title">
-          <i class="i-mdi:memory"></i>
+          <i class="i-mdi:memory" />
           JVM内存池
         </h3>
       </div>
@@ -206,16 +218,18 @@
     </div>
 
     <!-- 垃圾收集器信息 -->
-    <div class="gc-section" v-if="systemInfo.jvm?.garbageCollectors?.length">
+    <div v-if="systemInfo.jvm?.garbageCollectors?.length" class="gc-section">
       <div class="section-header">
         <h3 class="section-title">
-          <i class="i-mdi:trash-can-outline"></i>
+          <i class="i-mdi:trash-can-outline" />
           垃圾收集器
         </h3>
       </div>
       <div class="gc-grid">
         <div v-for="(gc, index) in systemInfo.jvm.garbageCollectors" :key="index" class="gc-card">
-          <div class="gc-name">{{ gc.name }}</div>
+          <div class="gc-name">
+            {{ gc.name }}
+          </div>
           <div class="gc-stats">
             <div class="gc-stat">
               <span class="gc-stat-label">收集次数</span>
@@ -233,7 +247,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { request } from '@/utils'
 
 defineOptions({ name: 'SystemMonitor' })
@@ -244,7 +258,7 @@ const systemInfo = ref({
   memory: {},
   jvm: {},
   disk: [],
-  server: {}
+  server: {},
 })
 
 // 加载状态
@@ -259,7 +273,7 @@ const memoryPoolColumns = [
   { title: '类型', key: 'type', width: 100 },
   { title: '已使用', key: 'used' },
   { title: '已提交', key: 'committed' },
-  { title: '最大值', key: 'max' }
+  { title: '最大值', key: 'max' },
 ]
 
 // 生命周期
@@ -283,52 +297,63 @@ async function loadAllData() {
     if (res.code === 200 && res.data) {
       systemInfo.value = res.data
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载监控数据失败:', error)
     window.$message.error('加载监控数据失败')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
 
 // 格式化负载
 function formatLoad(load) {
-  if (load === undefined || load === null || load < 0) return 'N/A'
+  if (load === undefined || load === null || load < 0)
+    return 'N/A'
   return load.toFixed(2)
 }
 
 // 格式化数字
 function formatNumber(num) {
-  if (!num) return '0'
-  const n = parseInt(num)
+  if (!num)
+    return '0'
+  const n = Number.parseInt(num)
   if (n >= 1000000) {
-    return (n / 1000000).toFixed(1) + 'M'
-  } else if (n >= 1000) {
-    return (n / 1000).toFixed(1) + 'K'
+    return `${(n / 1000000).toFixed(1)}M`
+  }
+  else if (n >= 1000) {
+    return `${(n / 1000).toFixed(1)}K`
   }
   return n.toString()
 }
 
 // 获取使用率样式类
 function getUsageClass(usage) {
-  if (!usage) return ''
-  const percent = parseFloat(usage.replace('%', ''))
-  if (percent >= 80) return 'danger'
-  if (percent >= 60) return 'warning'
+  if (!usage)
+    return ''
+  const percent = Number.parseFloat(usage.replace('%', ''))
+  if (percent >= 80)
+    return 'danger'
+  if (percent >= 60)
+    return 'warning'
   return 'success'
 }
 
 // 获取内存使用百分比
 function getMemoryPercent(percentStr) {
-  if (!percentStr) return 0
-  const percent = parseFloat(percentStr.replace('%', ''))
+  if (!percentStr)
+    return 0
+  const percent = Number.parseFloat(percentStr.replace('%', ''))
   return isNaN(percent) ? 0 : Math.round(percent)
 }
 
 // 获取进度条状态
 function getProgressStatus(percent) {
-  if (percent >= 80) return 'error'
-  if (percent >= 60) return 'warning'
+  if (percent >= 80)
+    return 'error'
+  if (percent >= 60)
+    return 'warning'
   return 'success'
 }
 </script>
@@ -650,20 +675,20 @@ function getProgressStatus(percent) {
   .monitor-page {
     padding: 12px;
   }
-  
+
   .metrics-section {
     grid-template-columns: 1fr;
   }
-  
+
   .disk-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .disk-usage {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .usage-info {
     display: flex;
     justify-content: space-between;

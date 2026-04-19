@@ -64,7 +64,9 @@
 
     <!-- 快捷键提示 -->
     <div v-if="showShortcuts" class="shortcuts-hint">
-      <div class="shortcuts-title">快捷键</div>
+      <div class="shortcuts-title">
+        快捷键
+      </div>
       <div class="shortcuts-list">
         <div
           v-for="shortcut in shortcutHints"
@@ -88,30 +90,30 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const props = defineProps({
   // 操作列表
   actions: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   // 是否显示搜索
   showSearch: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 是否显示历史记录
   showHistory: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 是否显示快捷键提示
   showShortcuts: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 })
 
 const emit = defineEmits(['action', 'search'])
@@ -125,7 +127,7 @@ const shortcutHints = ref([
   { desc: '搜索', keys: ['Ctrl', 'K'] },
   { desc: '操作面板', keys: ['Ctrl', '/'] },
   { desc: '新建', keys: ['Ctrl', 'N'] },
-  { desc: '刷新', keys: ['Ctrl', 'R'] }
+  { desc: '刷新', keys: ['Ctrl', 'R'] },
 ])
 
 // 根据搜索关键词过滤操作
@@ -134,26 +136,28 @@ const filteredActions = computed(() => {
     return props.actions
   }
   const keyword = searchKeyword.value.toLowerCase()
-  return props.actions.filter(action => 
-    action.title.toLowerCase().includes(keyword) ||
-    (action.description && action.description.toLowerCase().includes(keyword))
+  return props.actions.filter(action =>
+    action.title.toLowerCase().includes(keyword)
+    || (action.description && action.description.toLowerCase().includes(keyword)),
   )
 })
 
 // 处理操作点击
 function handleActionClick(action) {
-  if (action.disabled) return
-  
+  if (action.disabled)
+    return
+
   // 添加到历史记录
   addToHistory(action)
-  
+
   // 执行操作
   if (action.handler) {
     action.handler()
-  } else if (action.path) {
+  }
+  else if (action.path) {
     router.push(action.path)
   }
-  
+
   emit('action', action)
 }
 
@@ -175,14 +179,14 @@ function addToHistory(action) {
     title: action.title,
     icon: action.icon,
     path: action.path,
-    time: Date.now()
+    time: Date.now(),
   })
-  
+
   // 限制历史记录数量
   if (history.value.length > 10) {
     history.value.pop()
   }
-  
+
   // 保存到localStorage
   saveHistory()
 }
@@ -197,10 +201,13 @@ function clearHistory() {
 function formatTime(timestamp) {
   const diff = Date.now() - timestamp
   const minutes = Math.floor(diff / 60000)
-  
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes}分钟前`
-  if (minutes < 1440) return `${Math.floor(minutes / 60)}小时前`
+
+  if (minutes < 1)
+    return '刚刚'
+  if (minutes < 60)
+    return `${minutes}分钟前`
+  if (minutes < 1440)
+    return `${Math.floor(minutes / 60)}小时前`
   return `${Math.floor(minutes / 1440)}天前`
 }
 
@@ -215,7 +222,8 @@ function loadHistory() {
   if (saved) {
     try {
       history.value = JSON.parse(saved)
-    } catch (e) {
+    }
+    catch (e) {
       console.error('Failed to load history:', e)
     }
   }
@@ -231,7 +239,7 @@ function handleKeydown(e) {
       searchInput.focus()
     }
   }
-  
+
   // Ctrl + /: 显示/隐藏面板
   if (e.ctrlKey && e.key === '/') {
     e.preventDefault()
@@ -270,7 +278,7 @@ defineExpose({
     if (searchInput) {
       searchInput.focus()
     }
-  }
+  },
 })
 </script>
 

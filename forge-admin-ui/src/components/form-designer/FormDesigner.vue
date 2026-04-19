@@ -8,7 +8,9 @@
       <div class="panel-content">
         <!-- 基础组件 -->
         <div class="component-group">
-          <div class="group-title">基础字段</div>
+          <div class="group-title">
+            基础字段
+          </div>
           <div class="component-list">
             <div
               v-for="comp in basicComponents"
@@ -25,7 +27,9 @@
 
         <!-- 高级组件 -->
         <div class="component-group">
-          <div class="group-title">高级字段</div>
+          <div class="group-title">
+            高级字段
+          </div>
           <div class="component-list">
             <div
               v-for="comp in advancedComponents"
@@ -42,7 +46,9 @@
 
         <!-- 布局组件 -->
         <div class="component-group">
-          <div class="group-title">布局组件</div>
+          <div class="group-title">
+            布局组件
+          </div>
           <div class="component-list">
             <div
               v-for="comp in layoutComponents"
@@ -89,18 +95,18 @@
           </n-button>
         </n-space>
       </div>
-      
+
       <div
         class="form-canvas"
+        :class="{ 'is-empty': formItems.length === 0 }"
         @dragover.prevent
         @drop="handleDrop"
-        :class="{ 'is-empty': formItems.length === 0 }"
       >
         <div v-if="formItems.length === 0" class="empty-placeholder">
           <i class="i-material-symbols:add-box-outline" />
           <p>从左侧拖拽组件到此处</p>
         </div>
-        
+
         <draggable
           v-else
           v-model="formItems"
@@ -146,16 +152,16 @@
             <!-- 基础属性 -->
             <n-divider>基础属性</n-divider>
             <n-form-item label="字段名">
-              <n-input :value="currentItem.field" @update:value="updateField('field', $event)" placeholder="请输入字段名" />
+              <n-input :value="currentItem.field" placeholder="请输入字段名" @update:value="updateField('field', $event)" />
             </n-form-item>
             <n-form-item label="标签">
-              <n-input :value="currentItem.label" @update:value="updateField('label', $event)" placeholder="请输入标签" />
+              <n-input :value="currentItem.label" placeholder="请输入标签" @update:value="updateField('label', $event)" />
             </n-form-item>
             <n-form-item label="占位提示">
-              <n-input :value="currentItem.props.placeholder" @update:value="updateProps('placeholder', $event)" placeholder="请输入占位提示" />
+              <n-input :value="currentItem.props.placeholder" placeholder="请输入占位提示" @update:value="updateProps('placeholder', $event)" />
             </n-form-item>
             <n-form-item label="默认值">
-              <n-input :value="currentItem.defaultValue" @update:value="updateField('defaultValue', $event)" placeholder="请输入默认值" />
+              <n-input :value="currentItem.defaultValue" placeholder="请输入默认值" @update:value="updateField('defaultValue', $event)" />
             </n-form-item>
             <n-form-item label="是否必填">
               <n-switch :value="currentItem.required" @update:value="updateField('required', $event)" />
@@ -168,7 +174,7 @@
             <template v-if="currentItem.type === 'input'">
               <n-divider>输入框属性</n-divider>
               <n-form-item label="最大长度">
-                <n-input-number :value="currentItem.props.maxLength" @update:value="updateProps('maxLength', $event)" :min="0" />
+                <n-input-number :value="currentItem.props.maxLength" :min="0" @update:value="updateProps('maxLength', $event)" />
               </n-form-item>
               <n-form-item label="显示字数统计">
                 <n-switch :value="currentItem.props.showCount" @update:value="updateProps('showCount', $event)" />
@@ -181,10 +187,10 @@
             <template v-if="currentItem.type === 'textarea'">
               <n-divider>文本域属性</n-divider>
               <n-form-item label="行数">
-                <n-input-number :value="currentItem.props.rows" @update:value="updateProps('rows', $event)" :min="2" :max="10" />
+                <n-input-number :value="currentItem.props.rows" :min="2" :max="10" @update:value="updateProps('rows', $event)" />
               </n-form-item>
               <n-form-item label="最大长度">
-                <n-input-number :value="currentItem.props.maxLength" @update:value="updateProps('maxLength', $event)" :min="0" />
+                <n-input-number :value="currentItem.props.maxLength" :min="0" @update:value="updateProps('maxLength', $event)" />
               </n-form-item>
             </template>
 
@@ -197,10 +203,10 @@
                 <n-input-number :value="currentItem.props.max" @update:value="updateProps('max', $event)" />
               </n-form-item>
               <n-form-item label="精度">
-                <n-input-number :value="currentItem.props.precision" @update:value="updateProps('precision', $event)" :min="0" :max="10" />
+                <n-input-number :value="currentItem.props.precision" :min="0" :max="10" @update:value="updateProps('precision', $event)" />
               </n-form-item>
               <n-form-item label="步长">
-                <n-input-number :value="currentItem.props.step" @update:value="updateProps('step', $event)" :min="0.1" />
+                <n-input-number :value="currentItem.props.step" :min="0.1" @update:value="updateProps('step', $event)" />
               </n-form-item>
             </template>
 
@@ -209,8 +215,8 @@
               <n-form-item label="选项配置">
                 <div class="options-editor">
                   <div v-for="(opt, idx) in currentItem.props.options" :key="idx" class="option-item">
-                    <n-input :value="opt.label" @update:value="updateOption(idx, 'label', $event)" placeholder="标签" size="small" />
-                    <n-input :value="opt.value" @update:value="updateOption(idx, 'value', $event)" placeholder="值" size="small" />
+                    <n-input :value="opt.label" placeholder="标签" size="small" @update:value="updateOption(idx, 'label', $event)" />
+                    <n-input :value="opt.value" placeholder="值" size="small" @update:value="updateOption(idx, 'value', $event)" />
                     <n-button text size="tiny" type="error" @click="removeOption(idx)">
                       <i class="i-material-symbols:close" />
                     </n-button>
@@ -236,8 +242,8 @@
               <n-form-item label="选项">
                 <div class="options-editor">
                   <div v-for="(opt, idx) in currentItem.props.options" :key="idx" class="option-item">
-                    <n-input :value="opt.label" @update:value="updateOption(idx, 'label', $event)" placeholder="标签" size="small" />
-                    <n-input :value="opt.value" @update:value="updateOption(idx, 'value', $event)" placeholder="值" size="small" />
+                    <n-input :value="opt.label" placeholder="标签" size="small" @update:value="updateOption(idx, 'label', $event)" />
+                    <n-input :value="opt.value" placeholder="值" size="small" @update:value="updateOption(idx, 'value', $event)" />
                     <n-button text size="tiny" type="error" @click="removeOption(idx)">
                       <i class="i-material-symbols:close" />
                     </n-button>
@@ -257,25 +263,25 @@
               <n-form-item label="日期类型">
                 <n-select
                   :value="currentItem.props.type"
-                  @update:value="updateProps('type', $event)"
                   :options="dateTypeOptions"
+                  @update:value="updateProps('type', $event)"
                 />
               </n-form-item>
               <n-form-item label="日期格式">
-                <n-input :value="currentItem.props.format" @update:value="updateProps('format', $event)" placeholder="yyyy-MM-dd" />
+                <n-input :value="currentItem.props.format" placeholder="yyyy-MM-dd" @update:value="updateProps('format', $event)" />
               </n-form-item>
             </template>
 
             <template v-if="currentItem.type === 'upload'">
               <n-divider>上传属性</n-divider>
               <n-form-item label="最大数量">
-                <n-input-number :value="currentItem.props.maxCount" @update:value="updateProps('maxCount', $event)" :min="1" />
+                <n-input-number :value="currentItem.props.maxCount" :min="1" @update:value="updateProps('maxCount', $event)" />
               </n-form-item>
               <n-form-item label="最大大小(MB)">
-                <n-input-number :value="currentItem.props.maxSize" @update:value="updateProps('maxSize', $event)" :min="1" />
+                <n-input-number :value="currentItem.props.maxSize" :min="1" @update:value="updateProps('maxSize', $event)" />
               </n-form-item>
               <n-form-item label="接受类型">
-                <n-input :value="currentItem.props.accept" @update:value="updateProps('accept', $event)" placeholder="image/*" />
+                <n-input :value="currentItem.props.accept" placeholder="image/*" @update:value="updateProps('accept', $event)" />
               </n-form-item>
               <n-form-item label="多选">
                 <n-switch :value="currentItem.props.multiple" @update:value="updateProps('multiple', $event)" />
@@ -287,8 +293,8 @@
             <n-form-item label="校验提示">
               <n-input
                 :value="currentItem.rules[0]?.message"
-                @update:value="updateRuleMessage($event)"
                 placeholder="请输入校验提示信息"
+                @update:value="updateRuleMessage($event)"
               />
             </n-form-item>
           </n-form>
@@ -305,7 +311,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import FormItemRender from './FormItemRender.vue'
 import FormPreview from './FormPreview.vue'
@@ -313,12 +319,12 @@ import FormPreview from './FormPreview.vue'
 const props = defineProps({
   modelValue: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   initialSchema: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'save', 'cancel'])
@@ -384,7 +390,8 @@ watch(selectedIndex, (newIndex) => {
   if (newIndex !== null && formItems.value[newIndex]) {
     // 创建深拷贝以避免直接修改
     currentItem.value = JSON.parse(JSON.stringify(formItems.value[newIndex]))
-  } else {
+  }
+  else {
     currentItem.value = null
   }
 })
@@ -431,7 +438,8 @@ function updateRuleMessage(message) {
     if (!currentItem.value.rules || currentItem.value.rules.length === 0) {
       currentItem.value.rules = [{ required: false, message }]
       formItems.value[selectedIndex.value].rules = [{ required: false, message }]
-    } else {
+    }
+    else {
       currentItem.value.rules[0].message = message
       formItems.value[selectedIndex.value].rules[0].message = message
     }
@@ -453,13 +461,14 @@ function handleDragStart(event, component) {
 // 拖拽放置
 function handleDrop(event) {
   const data = event.dataTransfer.getData('component')
-  if (!data) return
-  
+  if (!data)
+    return
+
   const component = JSON.parse(data)
   const newItem = createFormItem(component)
   formItems.value.push(newItem)
   selectedIndex.value = formItems.value.length - 1
-  
+
   emitChange()
 }
 
@@ -468,13 +477,13 @@ function createFormItem(component) {
   const field = `field_${fieldCounter++}`
   return {
     type: component.type,
-    field: field,
+    field,
     label: component.name,
     defaultValue: null,
     required: false,
     disabled: false,
     props: { ...component.defaultProps },
-    rules: [{ required: false, message: `请输入${component.name}` }]
+    rules: [{ required: false, message: `请输入${component.name}` }],
   }
 }
 
@@ -487,7 +496,7 @@ function selectItem(index) {
 function copyItem(index) {
   const item = JSON.parse(JSON.stringify(formItems.value[index]))
   item.field = `field_${fieldCounter++}`
-  item.label = item.label + '_副本'
+  item.label = `${item.label}_副本`
   formItems.value.splice(index + 1, 0, item)
   emitChange()
 }
@@ -497,7 +506,8 @@ function removeItem(index) {
   formItems.value.splice(index, 1)
   if (selectedIndex.value === index) {
     selectedIndex.value = null
-  } else if (selectedIndex.value > index) {
+  }
+  else if (selectedIndex.value > index) {
     selectedIndex.value--
   }
   emitChange()
@@ -560,7 +570,7 @@ function setFormSchema(schema) {
 // 暴露方法
 defineExpose({
   getFormSchema,
-  setFormSchema
+  setFormSchema,
 })
 </script>
 

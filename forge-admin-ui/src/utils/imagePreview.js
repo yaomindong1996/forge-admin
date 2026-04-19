@@ -1,5 +1,5 @@
-import { createApp, h, ref, onMounted, nextTick } from 'vue'
-import { NImageGroup, NImage } from 'naive-ui'
+import { NImage, NImageGroup } from 'naive-ui'
+import { createApp, h, nextTick, onMounted, ref } from 'vue'
 
 /**
  * 图片预览工具函数
@@ -57,21 +57,22 @@ export function previewImages(images, initialIndex = 0) {
       })
 
       return () => h(
-          NImageGroup,
-          {},
-          {
-            default: () => images.map((src, index) =>
-                h(NImage, {
-                  ref: el => {
-                    if (el) imageRefs.value[index] = el
-                  },
-                  src,
-                  style: { width: '1px', height: '1px', opacity: 0 }
-                })
-            )
-          }
+        NImageGroup,
+        {},
+        {
+          default: () => images.map((src, index) =>
+            h(NImage, {
+              ref: (el) => {
+                if (el)
+                  imageRefs.value[index] = el
+              },
+              src,
+              style: { width: '1px', height: '1px', opacity: 0 },
+            }),
+          ),
+        },
       )
-    }
+    },
   })
 
   // 挂载应用
@@ -122,6 +123,6 @@ export function setupImagePreview() {
     // 预览多张图片
     showList(images, initialIndex = 0) {
       previewImages(images, initialIndex)
-    }
+    },
   }
 }

@@ -7,10 +7,10 @@
         :key="i"
         class="skeleton-list-item"
       >
-        <div v-if="showAvatar" class="skeleton-avatar"></div>
+        <div v-if="showAvatar" class="skeleton-avatar" />
         <div class="skeleton-content">
-          <div class="skeleton-title"></div>
-          <div v-if="showDescription" class="skeleton-description"></div>
+          <div class="skeleton-title" />
+          <div v-if="showDescription" class="skeleton-description" />
         </div>
       </div>
     </div>
@@ -18,19 +18,19 @@
     <!-- 卡片骨架屏 -->
     <div v-else-if="type === 'card'" class="skeleton-card">
       <div v-if="showHeader" class="skeleton-header">
-        <div class="skeleton-title-variant"></div>
-        <div class="skeleton-actions"></div>
+        <div class="skeleton-title-variant" />
+        <div class="skeleton-actions" />
       </div>
       <div class="skeleton-body">
         <div class="skeleton-section">
-          <div class="skeleton-line"></div>
-          <div class="skeleton-line short"></div>
+          <div class="skeleton-line" />
+          <div class="skeleton-line short" />
         </div>
-        <div v-if="showImage" class="skeleton-image"></div>
+        <div v-if="showImage" class="skeleton-image" />
         <div class="skeleton-section">
-          <div class="skeleton-line"></div>
-          <div class="skeleton-line"></div>
-          <div class="skeleton-line short"></div>
+          <div class="skeleton-line" />
+          <div class="skeleton-line" />
+          <div class="skeleton-line short" />
         </div>
       </div>
     </div>
@@ -43,7 +43,7 @@
           :key="i"
           class="skeleton-th"
           :style="{ width: i === columns ? 'auto' : `${100 / columns}%` }"
-        ></div>
+        />
       </div>
       <div
         v-for="row in rows"
@@ -54,7 +54,7 @@
           v-for="col in columns"
           :key="col"
           class="skeleton-td"
-        ></div>
+        />
       </div>
     </div>
 
@@ -65,15 +65,15 @@
         :key="i"
         class="skeleton-form-item"
       >
-        <div class="skeleton-label"></div>
-        <div class="skeleton-input"></div>
+        <div class="skeleton-label" />
+        <div class="skeleton-input" />
       </div>
     </div>
 
     <!-- 图表骨架屏 -->
     <div v-else-if="type === 'chart'" class="skeleton-chart">
       <div class="skeleton-chart-header">
-        <div class="skeleton-title-variant"></div>
+        <div class="skeleton-title-variant" />
       </div>
       <div class="skeleton-chart-body">
         <div class="skeleton-chart-bars">
@@ -82,7 +82,7 @@
             :key="i"
             class="skeleton-bar"
             :style="{ height: `${Math.random() * 60 + 20}%` }"
-          ></div>
+          />
         </div>
       </div>
     </div>
@@ -95,22 +95,22 @@
           :key="i"
           class="skeleton-stat"
         >
-          <div class="skeleton-stat-icon"></div>
-          <div class="skeleton-stat-value"></div>
-          <div class="skeleton-stat-label"></div>
+          <div class="skeleton-stat-icon" />
+          <div class="skeleton-stat-value" />
+          <div class="skeleton-stat-label" />
         </div>
       </div>
       <div class="skeleton-charts">
-        <div class="skeleton-chart large"></div>
-        <div class="skeleton-chart large"></div>
+        <div class="skeleton-chart large" />
+        <div class="skeleton-chart large" />
       </div>
     </div>
 
     <!-- 简单骨架屏（默认） -->
     <div v-else class="skeleton-simple">
-      <div class="skeleton-line"></div>
-      <div class="skeleton-line"></div>
-      <div class="skeleton-line short"></div>
+      <div class="skeleton-line" />
+      <div class="skeleton-line" />
+      <div class="skeleton-line short" />
     </div>
   </div>
 </template>
@@ -121,51 +121,51 @@ defineProps({
   type: {
     type: String,
     default: 'simple',
-    validator: (value) => [
+    validator: value => [
       'simple',
       'list',
       'card',
       'table',
       'form',
       'chart',
-      'dashboard'
-    ].includes(value)
+      'dashboard',
+    ].includes(value),
   },
   // 列表/表格的行数
   rows: {
     type: Number,
-    default: 5
+    default: 5,
   },
   // 表格的列数
   columns: {
     type: Number,
-    default: 5
+    default: 5,
   },
   // 表单字段数
   fields: {
     type: Number,
-    default: 4
+    default: 4,
   },
   // 是否显示头像
   showAvatar: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 是否显示描述
   showDescription: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 是否显示头部
   showHeader: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 是否显示图片
   showImage: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 </script>
 
@@ -199,12 +199,7 @@ defineProps({
 
 .skeleton-line {
   height: 16px;
-  background: linear-gradient(
-    90deg,
-    var(--gray-200) 25%,
-    var(--gray-100) 50%,
-    var(--gray-200) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
   background-size: 200% 100%;
   border-radius: var(--radius-sm);
 }
@@ -235,12 +230,7 @@ defineProps({
   height: 48px;
   min-width: 48px;
   border-radius: 50%;
-  background: linear-gradient(
-    90deg,
-    var(--gray-200) 25%,
-    var(--gray-100) 50%,
-    var(--gray-200) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
   background-size: 200% 100%;
 }
 
@@ -254,12 +244,7 @@ defineProps({
 .skeleton-title {
   height: 18px;
   width: 40%;
-  background: linear-gradient(
-    90deg,
-    var(--gray-200) 25%,
-    var(--gray-100) 50%,
-    var(--gray-200) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
   background-size: 200% 100%;
   border-radius: var(--radius-sm);
 }
@@ -267,12 +252,7 @@ defineProps({
 .skeleton-description {
   height: 14px;
   width: 70%;
-  background: linear-gradient(
-    90deg,
-    var(--gray-200) 25%,
-    var(--gray-100) 50%,
-    var(--gray-200) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
   background-size: 200% 100%;
   border-radius: var(--radius-sm);
 }
@@ -296,12 +276,7 @@ defineProps({
 .skeleton-title-variant {
   height: 20px;
   width: 30%;
-  background: linear-gradient(
-    90deg,
-    var(--gray-200) 25%,
-    var(--gray-100) 50%,
-    var(--gray-200) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
   background-size: 200% 100%;
   border-radius: var(--radius-sm);
 }
@@ -309,12 +284,7 @@ defineProps({
 .skeleton-actions {
   width: 80px;
   height: 32px;
-  background: linear-gradient(
-    90deg,
-    var(--gray-200) 25%,
-    var(--gray-100) 50%,
-    var(--gray-200) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
   background-size: 200% 100%;
   border-radius: var(--radius-md);
 }
@@ -334,12 +304,7 @@ defineProps({
 
 .skeleton-image {
   height: 200px;
-  background: linear-gradient(
-    90deg,
-    var(--gray-200) 25%,
-    var(--gray-100) 50%,
-    var(--gray-200) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
   background-size: 200% 100%;
   border-radius: var(--radius-lg);
 }
@@ -360,12 +325,7 @@ defineProps({
 
 .skeleton-th {
   height: 40px;
-  background: linear-gradient(
-    90deg,
-    var(--gray-200) 25%,
-    var(--gray-100) 50%,
-    var(--gray-200) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
   background-size: 200% 100%;
 }
 
@@ -376,12 +336,7 @@ defineProps({
 
 .skeleton-td {
   height: 48px;
-  background: linear-gradient(
-    90deg,
-    var(--gray-200) 25%,
-    var(--gray-100) 50%,
-    var(--gray-200) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
   background-size: 200% 100%;
 }
 
@@ -404,24 +359,14 @@ defineProps({
 .skeleton-label {
   height: 14px;
   width: 25%;
-  background: linear-gradient(
-    90deg,
-    var(--gray-200) 25%,
-    var(--gray-100) 50%,
-    var(--gray-200) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
   background-size: 200% 100%;
   border-radius: var(--radius-sm);
 }
 
 .skeleton-input {
   height: 40px;
-  background: linear-gradient(
-    90deg,
-    var(--gray-200) 25%,
-    var(--gray-100) 50%,
-    var(--gray-200) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
   background-size: 200% 100%;
   border-radius: var(--radius-md);
 }
@@ -456,11 +401,7 @@ defineProps({
 
 .skeleton-bar {
   flex: 1;
-  background: linear-gradient(
-    180deg,
-    var(--primary-400) 0%,
-    var(--primary-200) 100%
-  );
+  background: linear-gradient(180deg, var(--primary-400) 0%, var(--primary-200) 100%);
   border-radius: var(--radius-md);
   transition: height var(--transition);
 }
@@ -493,24 +434,14 @@ defineProps({
   width: 48px;
   height: 48px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(
-    90deg,
-    var(--gray-200) 25%,
-    var(--gray-100) 50%,
-    var(--gray-200) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
   background-size: 200% 100%;
 }
 
 .skeleton-stat-value {
   width: 60%;
   height: 32px;
-  background: linear-gradient(
-    90deg,
-    var(--gray-200) 25%,
-    var(--gray-100) 50%,
-    var(--gray-200) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
   background-size: 200% 100%;
   border-radius: var(--radius-sm);
 }
@@ -518,12 +449,7 @@ defineProps({
 .skeleton-stat-label {
   width: 40%;
   height: 14px;
-  background: linear-gradient(
-    90deg,
-    var(--gray-200) 25%,
-    var(--gray-100) 50%,
-    var(--gray-200) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-200) 25%, var(--gray-100) 50%, var(--gray-200) 75%);
   background-size: 200% 100%;
   border-radius: var(--radius-sm);
 }
@@ -546,20 +472,11 @@ defineProps({
 .dark .skeleton-input,
 .dark .skeleton-th,
 .dark .skeleton-td {
-  background: linear-gradient(
-    90deg,
-    var(--gray-700) 25%,
-    var(--gray-600) 50%,
-    var(--gray-700) 75%
-  );
+  background: linear-gradient(90deg, var(--gray-700) 25%, var(--gray-600) 50%, var(--gray-700) 75%);
 }
 
 .dark .skeleton-bar {
-  background: linear-gradient(
-    180deg,
-    var(--primary-700) 0%,
-    var(--primary-500) 100%
-  );
+  background: linear-gradient(180deg, var(--primary-700) 0%, var(--primary-500) 100%);
 }
 
 .dark .skeleton-chart {
@@ -596,7 +513,7 @@ defineProps({
   .skeleton-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .skeleton-charts {
     grid-template-columns: 1fr;
   }

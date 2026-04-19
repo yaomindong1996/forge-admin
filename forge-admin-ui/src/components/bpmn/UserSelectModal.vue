@@ -15,8 +15,8 @@
             v-model:value="searchForm.keyword"
             placeholder="用户名/姓名"
             clearable
-            @keyup.enter="handleSearch"
             style="width: 200px"
+            @keyup.enter="handleSearch"
           />
           <n-tree-select
             v-model:value="searchForm.deptId"
@@ -68,8 +68,10 @@
 
     <template #footer>
       <n-space justify="end">
-        <n-button @click="handleClose">取消</n-button>
-        <n-button type="primary" @click="handleConfirm" :disabled="checkedKeys.length === 0">
+        <n-button @click="handleClose">
+          取消
+        </n-button>
+        <n-button type="primary" :disabled="checkedKeys.length === 0" @click="handleConfirm">
           确定
         </n-button>
       </n-space>
@@ -78,27 +80,27 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
+import { computed, h, reactive, ref, watch } from 'vue'
 import { request } from '@/utils/http'
 
 const props = defineProps({
   show: {
     type: Boolean,
-    default: false
+    default: false,
   },
   title: {
     type: String,
-    default: '选择用户'
+    default: '选择用户',
   },
   multiple: {
     type: Boolean,
-    default: false
+    default: false,
   },
   selectedUsers: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['update:show', 'confirm'])
@@ -113,38 +115,38 @@ const deptTreeOptions = ref([])
 // 搜索条件
 const searchForm = reactive({
   keyword: '',
-  deptId: null
+  deptId: null,
 })
 
 // 分页
 const pagination = reactive({
   page: 1,
   pageSize: 10,
-  total: 0
+  total: 0,
 })
 
 // 表格列 - 使用 computed 确保响应式
 const columns = computed(() => [
   {
     type: 'selection',
-    multiple: props.multiple
+    multiple: props.multiple,
   },
   {
     title: '用户名',
     key: 'username',
-    width: 120
+    width: 120,
   },
   {
     title: '姓名',
     key: 'name',
-    width: 120
+    width: 120,
   },
   {
     title: '部门',
     key: 'deptName',
     ellipsis: {
-      tooltip: true
-    }
+      tooltip: true,
+    },
   },
   {
     title: '状态',
@@ -153,12 +155,12 @@ const columns = computed(() => [
     render: (row) => {
       return h(NTag, {
         type: row.userStatus === 1 ? 'success' : 'default',
-        size: 'small'
+        size: 'small',
       }, {
-        default: () => row.userStatus === 1 ? '正常' : '禁用'
+        default: () => row.userStatus === 1 ? '正常' : '禁用',
       })
-    }
-  }
+    },
+  },
 ])
 
 // 监听显示状态
@@ -183,7 +185,8 @@ async function loadDeptTree() {
     if (res.code === 200 && res.data) {
       deptTreeOptions.value = formatDeptTree(res.data)
     }
-  } catch (e) {
+  }
+  catch (e) {
     console.error('加载部门树失败', e)
   }
 }
@@ -194,7 +197,7 @@ function formatDeptTree(depts) {
     label: dept.name || dept.orgName,
     key: dept.id,
     value: dept.id,
-    children: dept.children ? formatDeptTree(dept.children) : undefined
+    children: dept.children ? formatDeptTree(dept.children) : undefined,
   }))
 }
 
@@ -207,16 +210,18 @@ async function loadUserList() {
         pageNum: pagination.page,
         pageSize: pagination.pageSize,
         userName: searchForm.keyword || undefined,
-        deptId: searchForm.deptId || undefined
-      }
+        deptId: searchForm.deptId || undefined,
+      },
     })
     if (res.code === 200 && res.data) {
       userList.value = res.data.records || []
       pagination.total = res.data.total || 0
     }
-  } catch (e) {
+  }
+  catch (e) {
     console.error('加载用户列表失败', e)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -239,7 +244,8 @@ function handleReset() {
 function handleCheck(keys) {
   if (props.multiple) {
     checkedKeys.value = keys
-  } else {
+  }
+  else {
     // 单选模式
     checkedKeys.value = keys.length > 0 ? [keys[keys.length - 1]] : []
   }

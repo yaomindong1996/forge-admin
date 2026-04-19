@@ -1,23 +1,23 @@
 <template>
-  <Icon :size="fontSize" v-if="iconComponent" :color="color">
+  <Icon v-if="iconComponent" :size="fontSize" :color="color">
     <component
-        :is="iconComponent"
-        :class="customClass"
-        :style="customStyle"
+      :is="iconComponent"
+      :class="customClass"
+      :style="customStyle"
     />
   </Icon>
   <i
     v-else-if="iconType === 'local'"
     :class="`${iconName} text-${fontSize} color-${color}`"
     :style="customStyle"
-  ></i>
+  />
   <span v-else>{{ placeholder }}</span>
 </template>
 
 <script setup>
-import {computed} from 'vue'
 import * as ionicons from '@vicons/ionicons5'
-import {Icon} from '@vicons/utils'
+import { Icon } from '@vicons/utils'
+import { computed } from 'vue'
 
 const props = defineProps({
   // 图标名称,支持前缀格式:
@@ -26,36 +26,37 @@ const props = defineProps({
   // - IconName 无前缀默认为 ionicons5
   icon: {
     type: String,
-    default: ''
+    default: '',
   },
   // 自定义类名
   customClass: {
     type: String,
-    default: 'text'
+    default: 'text',
   },
   // 自定义样式
   customStyle: {
     type: [String, Object],
-    default: ''
+    default: '',
   },
   // 占位符文本(当没有图标时显示)
   placeholder: {
     type: String,
-    default: ''
+    default: '',
   },
-  fontSize:{
-    type: [String,Number],
-    default: '18'
+  fontSize: {
+    type: [String, Number],
+    default: '18',
   },
-  color:{
+  color: {
     type: String,
-    default: ''
-  }
+    default: '',
+  },
 })
 
 // 解析图标类型
 const iconType = computed(() => {
-  if (!props.icon) return null
+  if (!props.icon)
+    return null
   // 检查是否有前缀
   if (typeof props.icon === 'string' && props.icon.includes(':')) {
     const [prefix] = props.icon.split(':')
@@ -68,11 +69,12 @@ const iconType = computed(() => {
 
 // 解析图标名称
 const iconName = computed(() => {
-  if (!props.icon) return ''
+  if (!props.icon)
+    return ''
   // 检查是否有前缀
   if (typeof props.icon === 'string' && props.icon.includes(':')) {
     const [prefix] = props.icon.split(':')
-    return props.icon.replace(`${prefix}:`,'')
+    return props.icon.replace(`${prefix}:`, '')
   }
 
   // 无前缀直接返回
@@ -81,7 +83,8 @@ const iconName = computed(() => {
 
 // 获取图标组件
 const iconComponent = computed(() => {
-  if (!iconName.value || !iconType.value) return null
+  if (!iconName.value || !iconType.value)
+    return null
 
   // ionicons5 图标
   if (iconType.value === 'ionicons5') {

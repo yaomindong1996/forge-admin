@@ -6,7 +6,6 @@
 <template>
   <n-select
     :value="value"
-    @update:value="handleUpdate"
     :placeholder="placeholder"
     :options="selectOptions"
     :loading="loading"
@@ -17,6 +16,7 @@
     :remote="remote"
     :on-search="handleSearch"
     :label-field="labelField"
+    @update:value="handleUpdate"
     :value-field="valueField"
     style="width: 100%"
     v-bind="$attrs"
@@ -24,80 +24,80 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { request } from '@/utils'
 
 const props = defineProps({
   // 当前值
   value: {
     type: [String, Number, Array],
-    default: null
+    default: null,
   },
   // 占位符
   placeholder: {
     type: String,
-    default: '请选择'
+    default: '请选择',
   },
   // 接口地址
   api: {
     type: String,
-    default: ''
+    default: '',
   },
   // 请求方法
   method: {
     type: String,
-    default: 'get'
+    default: 'get',
   },
   // 显示字段名
   labelField: {
     type: String,
-    default: 'label'
+    default: 'label',
   },
   // 值字段名
   valueField: {
     type: String,
-    default: 'value'
+    default: 'value',
   },
   // 是否禁用
   disabled: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 是否可清空
   clearable: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 是否可搜索
   filterable: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 是否多选
   multiple: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 是否远程搜索
   remote: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 静态选项数据（如果不需要远程加载）
   options: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   // 请求参数
   params: {
     type: Object,
-    default: () => ({})
+    default: () => ({}),
   },
   // 数据转换函数
   transform: {
     type: Function,
-    default: null
-  }
+    default: null,
+  },
 })
 
 const emit = defineEmits(['update:value', 'change'])
@@ -122,7 +122,7 @@ async function loadData(searchQuery = '') {
 
   try {
     const requestParams = {
-      ...props.params
+      ...props.params,
     }
 
     // 如果是远程搜索，添加搜索关键词
@@ -137,20 +137,23 @@ async function loadData(searchQuery = '') {
     // 如果提供了数据转换函数，使用它
     if (props.transform && typeof props.transform === 'function') {
       data = props.transform(data)
-    } else {
+    }
+    else {
       // 默认转换
       data = data.map(item => ({
         label: item[props.labelField],
         value: item[props.valueField],
-        ...item
+        ...item,
       }))
     }
 
     selectOptions.value = data
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载选项数据失败:', error)
     selectOptions.value = []
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -170,16 +173,18 @@ function handleUpdate(newValue) {
   if (newValue !== null && newValue !== undefined) {
     if (props.multiple && Array.isArray(newValue)) {
       const selectedItems = selectOptions.value.filter(item =>
-        newValue.includes(item[props.valueField])
+        newValue.includes(item[props.valueField]),
       )
       emit('change', newValue, selectedItems)
-    } else {
+    }
+    else {
       const selectedItem = selectOptions.value.find(item =>
-        item[props.valueField] === newValue
+        item[props.valueField] === newValue,
       )
       emit('change', newValue, selectedItem || {})
     }
-  } else {
+  }
+  else {
     emit('change', newValue, null)
   }
 }
@@ -194,6 +199,6 @@ onMounted(() => {
 // 暴露方法
 defineExpose({
   loadData,
-  refresh: loadData
+  refresh: loadData,
 })
 </script>

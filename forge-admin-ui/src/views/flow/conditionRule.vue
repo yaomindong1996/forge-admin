@@ -25,16 +25,20 @@
           />
         </n-form-item>
         <n-form-item>
-          <n-space>
-            <n-button type="primary" @click="handleSearch">
-              <template #icon><i class="i-mdi:magnify" /></template>
+          <NSpace>
+            <NButton type="primary" @click="handleSearch">
+              <template #icon>
+                <i class="i-mdi:magnify" />
+              </template>
               查询
-            </n-button>
-            <n-button @click="handleReset">
-              <template #icon><i class="i-mdi:refresh" /></template>
+            </NButton>
+            <NButton @click="handleReset">
+              <template #icon>
+                <i class="i-mdi:refresh" />
+              </template>
               重置
-            </n-button>
-          </n-space>
+            </NButton>
+          </NSpace>
         </n-form-item>
       </n-form>
     </n-card>
@@ -45,10 +49,12 @@
         <span>条件规则列表</span>
       </template>
       <template #header-extra>
-        <n-button type="primary" @click="handleAdd">
-          <template #icon><i class="i-mdi:plus" /></template>
+        <NButton type="primary" @click="handleAdd">
+          <template #icon>
+            <i class="i-mdi:plus" />
+          </template>
           新增规则
-        </n-button>
+        </NButton>
       </template>
 
       <n-data-table
@@ -109,14 +115,16 @@
                 style="width: 100px"
               />
               <n-input v-model:value="item.fieldValue" placeholder="值" style="width: 150px" />
-              <n-button text type="error" @click="removeConditionItem(index)">
+              <NButton text type="error" @click="removeConditionItem(index)">
                 <i class="i-mdi:delete" />
-              </n-button>
+              </NButton>
             </div>
-            <n-button dashed block @click="addConditionItem">
-              <template #icon><i class="i-mdi:plus" /></template>
+            <NButton dashed block @click="addConditionItem">
+              <template #icon>
+                <i class="i-mdi:plus" />
+              </template>
               添加条件项
-            </n-button>
+            </NButton>
           </div>
         </n-form-item>
         <n-form-item label="优先级" path="priority">
@@ -124,8 +132,12 @@
         </n-form-item>
         <n-form-item label="状态" path="status">
           <n-switch v-model:value="formData.status" :checked-value="1" :unchecked-value="0">
-            <template #checked>启用</template>
-            <template #unchecked>禁用</template>
+            <template #checked>
+              启用
+            </template>
+            <template #unchecked>
+              禁用
+            </template>
           </n-switch>
         </n-form-item>
         <n-form-item label="备注" path="remark">
@@ -134,10 +146,14 @@
       </n-form>
 
       <template #footer>
-        <n-space justify="end">
-          <n-button @click="modalVisible = false">取消</n-button>
-          <n-button type="primary" @click="handleSubmit" :loading="submitLoading">确定</n-button>
-        </n-space>
+        <NSpace justify="end">
+          <NButton @click="modalVisible = false">
+            取消
+          </NButton>
+          <NButton type="primary" :loading="submitLoading" @click="handleSubmit">
+            确定
+          </NButton>
+        </NSpace>
       </template>
     </n-modal>
 
@@ -155,23 +171,30 @@
       </n-form>
 
       <n-divider>测试结果</n-divider>
-      
+
       <n-alert v-if="testResult !== null" :type="testResult ? 'success' : 'warning'">
         {{ testResult ? '条件满足，规则匹配成功' : '条件不满足，规则匹配失败' }}
       </n-alert>
 
       <template #footer>
-        <n-space justify="end">
-          <n-button @click="testModalVisible = false">关闭</n-button>
-          <n-button type="primary" @click="handleTest" :loading="testLoading">执行测试</n-button>
-        </n-space>
+        <NSpace justify="end">
+          <NButton @click="testModalVisible = false">
+            关闭
+          </NButton>
+          <NButton type="primary" :loading="testLoading" @click="handleTest">
+            执行测试
+          </NButton>
+        </NSpace>
       </template>
     </n-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, h, onMounted } from 'vue'
+// 引入必要的组件
+import { NButton, NSpace, NTag } from 'naive-ui'
+import { h, onMounted, reactive, ref } from 'vue'
+
 import { request } from '@/utils'
 
 defineOptions({ name: 'FlowConditionRule' })
@@ -182,19 +205,19 @@ const message = window.$message
 const searchForm = reactive({
   ruleName: '',
   ruleType: null,
-  status: null
+  status: null,
 })
 
 // 选项
 const ruleTypeOptions = [
   { label: '处理条件', value: 'approval' },
   { label: '流转条件', value: 'flow' },
-  { label: '通知条件', value: 'notify' }
+  { label: '通知条件', value: 'notify' },
 ]
 
 const statusOptions = [
   { label: '启用', value: 1 },
-  { label: '禁用', value: 0 }
+  { label: '禁用', value: 0 },
 ]
 
 const operatorOptions = [
@@ -206,14 +229,14 @@ const operatorOptions = [
   { label: '小于等于', value: 'le' },
   { label: '包含', value: 'contains' },
   { label: '为空', value: 'empty' },
-  { label: '不为空', value: 'notEmpty' }
+  { label: '不为空', value: 'notEmpty' },
 ]
 
 const fieldOptions = ref([
   { label: '金额', value: 'amount' },
   { label: '部门级别', value: 'deptLevel' },
   { label: '请假天数', value: 'leaveDays' },
-  { label: '处理状态', value: 'approvalStatus' }
+  { label: '处理状态', value: 'approvalStatus' },
 ])
 
 const modelOptions = ref([])
@@ -226,7 +249,7 @@ const pagination = reactive({
   pageSize: 10,
   itemCount: 0,
   showSizePicker: true,
-  pageSizes: [10, 20, 50]
+  pageSizes: [10, 20, 50],
 })
 
 // 表格列定义
@@ -234,12 +257,12 @@ const columns = [
   {
     title: '规则名称',
     key: 'ruleName',
-    ellipsis: { tooltip: true }
+    ellipsis: { tooltip: true },
   },
   {
     title: '规则编码',
     key: 'ruleCode',
-    width: 150
+    width: 150,
   },
   {
     title: '规则类型',
@@ -248,12 +271,12 @@ const columns = [
     render(row) {
       const item = ruleTypeOptions.find(o => o.value === row.ruleType)
       return item ? item.label : row.ruleType
-    }
+    },
   },
   {
     title: '优先级',
     key: 'priority',
-    width: 80
+    width: 80,
   },
   {
     title: '状态',
@@ -261,14 +284,14 @@ const columns = [
     width: 80,
     render(row) {
       return h(NTag, { type: row.status === 1 ? 'success' : 'warning' }, {
-        default: () => row.status === 1 ? '启用' : '禁用'
+        default: () => row.status === 1 ? '启用' : '禁用',
       })
-    }
+    },
   },
   {
     title: '创建时间',
     key: 'createTime',
-    width: 160
+    width: 160,
   },
   {
     title: '操作',
@@ -279,11 +302,11 @@ const columns = [
         default: () => [
           h(NButton, { text: true, type: 'primary', onClick: () => handleEdit(row) }, { default: () => '编辑' }),
           h(NButton, { text: true, type: 'info', onClick: () => handleTestRule(row) }, { default: () => '测试' }),
-          h(NButton, { text: true, type: 'error', onClick: () => handleDelete(row) }, { default: () => '删除' })
-        ]
+          h(NButton, { text: true, type: 'error', onClick: () => handleDelete(row) }, { default: () => '删除' }),
+        ],
       })
-    }
-  }
+    },
+  },
 ]
 
 // 弹窗
@@ -304,20 +327,20 @@ const formData = reactive({
   conditionItems: [],
   priority: 100,
   status: 1,
-  remark: ''
+  remark: '',
 })
 
 const formRules = {
   ruleName: { required: true, message: '请输入规则名称', trigger: 'blur' },
   ruleCode: { required: true, message: '请输入规则编码', trigger: 'blur' },
-  ruleType: { required: true, message: '请选择规则类型', trigger: 'change' }
+  ruleType: { required: true, message: '请选择规则类型', trigger: 'change' },
 }
 
 // 测试弹窗
 const testModalVisible = ref(false)
 const testLoading = ref(false)
 const testForm = reactive({
-  testData: ''
+  testData: '',
 })
 const testResult = ref(null)
 const currentTestRule = ref(null)
@@ -329,10 +352,11 @@ async function loadModels() {
     if (res.code === 200) {
       modelOptions.value = (res.data || []).map(item => ({
         label: item.modelName,
-        value: item.id
+        value: item.id,
       }))
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载流程模型失败', error)
   }
 }
@@ -344,16 +368,18 @@ async function loadData() {
     const params = {
       page: pagination.page,
       pageSize: pagination.pageSize,
-      ...searchForm
+      ...searchForm,
     }
     const res = await request.get('/api/flow/conditionRule/page', { params })
     if (res.code === 200) {
       tableData.value = res.data.list || []
       pagination.itemCount = res.data.total || 0
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载数据失败', error)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -369,7 +395,7 @@ function handleReset() {
   Object.assign(searchForm, {
     ruleName: '',
     ruleType: null,
-    status: null
+    status: null,
   })
   handleSearch()
 }
@@ -395,7 +421,7 @@ function handleAdd() {
     conditionItems: [],
     priority: 100,
     status: 1,
-    remark: ''
+    remark: '',
   })
   modalVisible.value = true
 }
@@ -406,7 +432,7 @@ function handleEdit(row) {
   isEdit.value = true
   Object.assign(formData, {
     ...row,
-    conditionItems: row.conditionItems || []
+    conditionItems: row.conditionItems || [],
   })
   modalVisible.value = true
 }
@@ -419,7 +445,8 @@ async function handleDelete(row) {
       message.success('删除成功')
       loadData()
     }
-  } catch (error) {
+  }
+  catch (error) {
     message.error('删除失败')
   }
 }
@@ -428,7 +455,8 @@ async function handleDelete(row) {
 async function handleSubmit() {
   try {
     await formRef.value?.validate()
-  } catch {
+  }
+  catch {
     return
   }
 
@@ -442,9 +470,11 @@ async function handleSubmit() {
       modalVisible.value = false
       loadData()
     }
-  } catch (error) {
+  }
+  catch (error) {
     message.error('操作失败')
-  } finally {
+  }
+  finally {
     submitLoading.value = false
   }
 }
@@ -454,7 +484,7 @@ function addConditionItem() {
   formData.conditionItems.push({
     fieldName: '',
     operator: '',
-    fieldValue: ''
+    fieldValue: '',
   })
 }
 
@@ -483,20 +513,19 @@ async function handleTest() {
     const variables = JSON.parse(testForm.testData)
     const res = await request.post('/api/flow/conditionRule/test', {
       ruleId: currentTestRule.value.id,
-      variables
+      variables,
     })
     if (res.code === 200) {
       testResult.value = res.data
     }
-  } catch (error) {
+  }
+  catch (error) {
     message.error('测试失败，请检查数据格式')
-  } finally {
+  }
+  finally {
     testLoading.value = false
   }
 }
-
-// 引入必要的组件
-import { NTag, NButton, NSpace } from 'naive-ui'
 
 onMounted(() => {
   loadModels()

@@ -7,7 +7,7 @@
         detail: 'get@/generator/datasource/{id}',
         add: 'post@/generator/datasource/add',
         update: 'post@/generator/datasource/edit',
-        delete: 'post@/generator/datasource/remove/{id}'
+        delete: 'post@/generator/datasource/remove/{id}',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
@@ -15,15 +15,15 @@
       :before-submit="beforeSubmit"
       row-key="datasourceId"
       :edit-grid-cols="2"
-      :modal-width="'800px'"
+      modal-width="800px"
       add-button-text="新增数据源"
     />
   </div>
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
-import { NTag, NSwitch } from 'naive-ui'
+import { NTag } from 'naive-ui'
+import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
@@ -36,7 +36,7 @@ const dbTypeOptions = [
   { label: 'MySQL', value: 'MySQL' },
   { label: 'Oracle', value: 'Oracle' },
   { label: 'PostgreSQL', value: 'PostgreSQL' },
-  { label: 'SQLServer', value: 'SQLServer' }
+  { label: 'SQLServer', value: 'SQLServer' },
 ]
 
 // 驱动类映射
@@ -44,7 +44,7 @@ const driverClassMap = {
   MySQL: 'com.mysql.cj.jdbc.Driver',
   Oracle: 'oracle.jdbc.OracleDriver',
   PostgreSQL: 'org.postgresql.Driver',
-  SQLServer: 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
+  SQLServer: 'com.microsoft.sqlserver.jdbc.SQLServerDriver',
 }
 
 // 搜索表单配置
@@ -54,9 +54,9 @@ const searchSchema = [
     label: '数据源名称',
     type: 'input',
     props: {
-      placeholder: '请输入数据源名称'
-    }
-  }
+      placeholder: '请输入数据源名称',
+    },
+  },
 ]
 
 // 表格列配置
@@ -64,28 +64,28 @@ const tableColumns = computed(() => [
   {
     prop: 'datasourceName',
     label: '数据源名称',
-    width: 150
+    width: 150,
   },
   {
     prop: 'datasourceCode',
     label: '数据源编码',
-    width: 120
+    width: 120,
   },
   {
     prop: 'dbType',
     label: '数据库类型',
-    width: 100
+    width: 100,
   },
   {
     prop: 'url',
     label: '连接地址',
     minWidth: 250,
-    ellipsis: true
+    ellipsis: true,
   },
   {
     prop: 'username',
     label: '用户名',
-    width: 100
+    width: 100,
   },
   {
     prop: 'isDefault',
@@ -94,9 +94,9 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h(NTag, {
         type: row.isDefault === 1 ? 'success' : 'default',
-        size: 'small'
+        size: 'small',
       }, { default: () => row.isDefault === 1 ? '是' : '否' })
-    }
+    },
   },
   {
     prop: 'isEnabled',
@@ -105,9 +105,9 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h(NTag, {
         type: row.isEnabled === 1 ? 'success' : 'error',
-        size: 'small'
+        size: 'small',
       }, { default: () => row.isEnabled === 1 ? '启用' : '禁用' })
-    }
+    },
   },
   {
     prop: 'action',
@@ -117,9 +117,9 @@ const tableColumns = computed(() => [
     actions: [
       { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
       { label: '测试连接', key: 'testConnection', type: 'primary', onClick: handleTestConnection },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -130,8 +130,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入数据源名称', trigger: 'blur' }],
     props: {
-      placeholder: '请输入数据源名称'
-    }
+      placeholder: '请输入数据源名称',
+    },
   },
   {
     field: 'datasourceCode',
@@ -139,8 +139,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入数据源编码', trigger: 'blur' }],
     props: {
-      placeholder: '请输入数据源编码'
-    }
+      placeholder: '请输入数据源编码',
+    },
   },
   {
     field: 'dbType',
@@ -156,8 +156,8 @@ const editSchema = [
         if (driverClassMap[value]) {
           formData.driverClassName = driverClassMap[value]
         }
-      }
-    }
+      },
+    },
   },
   {
     field: 'driverClassName',
@@ -166,8 +166,8 @@ const editSchema = [
     defaultValue: 'com.mysql.cj.jdbc.Driver',
     rules: [{ required: true, message: '请输入驱动类名', trigger: 'blur' }],
     props: {
-      placeholder: '请输入驱动类名'
-    }
+      placeholder: '请输入驱动类名',
+    },
   },
   {
     field: 'url',
@@ -176,8 +176,8 @@ const editSchema = [
     span: 2,
     rules: [{ required: true, message: '请输入连接地址', trigger: 'blur' }],
     props: {
-      placeholder: '如：jdbc:mysql://localhost:3306/database?useUnicode=true&characterEncoding=utf8'
-    }
+      placeholder: '如：jdbc:mysql://localhost:3306/database?useUnicode=true&characterEncoding=utf8',
+    },
   },
   {
     field: 'username',
@@ -185,8 +185,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
     props: {
-      placeholder: '请输入用户名'
-    }
+      placeholder: '请输入用户名',
+    },
   },
   {
     field: 'password',
@@ -203,14 +203,14 @@ const editSchema = [
             return true
           }
           return !!value
-        }
-      }
+        },
+      },
     ],
     props: {
       type: 'password',
       placeholder: '编辑时留空则不修改密码',
-      showPasswordOn: 'click'
-    }
+      showPasswordOn: 'click',
+    },
   },
   {
     field: 'testQuery',
@@ -218,8 +218,8 @@ const editSchema = [
     type: 'input',
     defaultValue: 'SELECT 1',
     props: {
-      placeholder: '请输入测试SQL'
-    }
+      placeholder: '请输入测试SQL',
+    },
   },
   {
     field: 'isDefault',
@@ -229,9 +229,9 @@ const editSchema = [
     props: {
       options: [
         { label: '是', value: 1 },
-        { label: '否', value: 0 }
-      ]
-    }
+        { label: '否', value: 0 },
+      ],
+    },
   },
   {
     field: 'isEnabled',
@@ -241,9 +241,9 @@ const editSchema = [
     props: {
       options: [
         { label: '启用', value: 1 },
-        { label: '禁用', value: 0 }
-      ]
-    }
+        { label: '禁用', value: 0 },
+      ],
+    },
   },
   {
     field: 'sort',
@@ -252,8 +252,8 @@ const editSchema = [
     defaultValue: 0,
     props: {
       placeholder: '请输入排序号',
-      min: 0
-    }
+      min: 0,
+    },
   },
   {
     field: 'remark',
@@ -262,9 +262,9 @@ const editSchema = [
     span: 2,
     props: {
       placeholder: '请输入备注',
-      rows: 3
-    }
-  }
+      rows: 3,
+    },
+  },
 ]
 
 // 表单提交前处理
@@ -297,10 +297,11 @@ function handleDelete(row) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 
@@ -311,10 +312,12 @@ async function handleTestConnection(row) {
     const res = await request.post(`/generator/datasource/test/${row.datasourceId}`)
     if (res.code === 200) {
       window.$message.success('连接成功', { key: 'testConn' })
-    } else {
+    }
+    else {
       window.$message.error(res.msg || '连接失败', { key: 'testConn' })
     }
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('连接测试失败', { key: 'testConn' })
   }
 }

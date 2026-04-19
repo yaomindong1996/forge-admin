@@ -5,7 +5,7 @@
 
 /**
  * 表单字段配置示例
- * 
+ *
  * @example
  * {
  *   field: 'username',          // 字段名（必填）
@@ -23,29 +23,29 @@
  */
 
 export const FIELD_TYPES = {
-  INPUT: 'input',             // 输入框
-  TEXTAREA: 'textarea',       // 多行文本
-  NUMBER: 'number',           // 数字输入
-  SELECT: 'select',           // 下拉选择
-  RADIO: 'radio',             // 单选框
-  RADIO_BUTTON: 'radioButton',// 单选按钮组
-  CHECKBOX: 'checkbox',       // 多选框
-  DATE: 'date',               // 日期选择
-  DATETIME: 'datetime',       // 日期时间
-  DATERANGE: 'daterange',     // 日期范围
-  MONTH: 'month',             // 月份选择
-  YEAR: 'year',               // 年份选择
-  TIME: 'time',               // 时间选择
-  SWITCH: 'switch',           // 开关
-  SLIDER: 'slider',           // 滑块
-  RATE: 'rate',               // 评分
-  COLOR: 'color',             // 颜色选择器
-  UPLOAD: 'upload',           // 文件上传
-  CASCADER: 'cascader',       // 级联选择
-  TREE_SELECT: 'treeSelect',  // 树形选择
-  TRANSFER: 'transfer',       // 穿梭框
-  SLOT: 'slot',               // 自定义插槽
-  TEXT: 'text',               // 纯文本展示
+  INPUT: 'input', // 输入框
+  TEXTAREA: 'textarea', // 多行文本
+  NUMBER: 'number', // 数字输入
+  SELECT: 'select', // 下拉选择
+  RADIO: 'radio', // 单选框
+  RADIO_BUTTON: 'radioButton', // 单选按钮组
+  CHECKBOX: 'checkbox', // 多选框
+  DATE: 'date', // 日期选择
+  DATETIME: 'datetime', // 日期时间
+  DATERANGE: 'daterange', // 日期范围
+  MONTH: 'month', // 月份选择
+  YEAR: 'year', // 年份选择
+  TIME: 'time', // 时间选择
+  SWITCH: 'switch', // 开关
+  SLIDER: 'slider', // 滑块
+  RATE: 'rate', // 评分
+  COLOR: 'color', // 颜色选择器
+  UPLOAD: 'upload', // 文件上传
+  CASCADER: 'cascader', // 级联选择
+  TREE_SELECT: 'treeSelect', // 树形选择
+  TRANSFER: 'transfer', // 穿梭框
+  SLOT: 'slot', // 自定义插槽
+  TEXT: 'text', // 纯文本展示
   CUSTOM_SELECT: 'customSelect', // 远程搜索下拉选择
 }
 
@@ -57,7 +57,7 @@ export function createField(config) {
     showLabel: true,
     showFeedback: true,
     clearable: true,
-    ...config
+    ...config,
   }
 }
 
@@ -72,7 +72,7 @@ export const FieldFactory = {
       label,
       type: FIELD_TYPES.INPUT,
       placeholder: `请输入${label}`,
-      ...config
+      ...config,
     })
   },
 
@@ -84,7 +84,7 @@ export const FieldFactory = {
       type: FIELD_TYPES.TEXTAREA,
       placeholder: `请输入${label}`,
       rows: 3,
-      ...config
+      ...config,
     })
   },
 
@@ -97,7 +97,7 @@ export const FieldFactory = {
       placeholder: `请选择${label}`,
       options,
       filterable: true,
-      ...config
+      ...config,
     })
   },
 
@@ -108,7 +108,7 @@ export const FieldFactory = {
       label,
       type: FIELD_TYPES.RADIO,
       options,
-      ...config
+      ...config,
     })
   },
 
@@ -119,7 +119,7 @@ export const FieldFactory = {
       label,
       type: FIELD_TYPES.CHECKBOX,
       options,
-      ...config
+      ...config,
     })
   },
 
@@ -130,7 +130,7 @@ export const FieldFactory = {
       label,
       type: FIELD_TYPES.DATE,
       placeholder: `请选择${label}`,
-      ...config
+      ...config,
     })
   },
 
@@ -140,7 +140,7 @@ export const FieldFactory = {
       field,
       label,
       type: FIELD_TYPES.SWITCH,
-      ...config
+      ...config,
     })
   },
 
@@ -151,7 +151,7 @@ export const FieldFactory = {
       label,
       type: FIELD_TYPES.NUMBER,
       placeholder: `请输入${label}`,
-      ...config
+      ...config,
     })
   },
 
@@ -162,7 +162,7 @@ export const FieldFactory = {
       label,
       type: FIELD_TYPES.RADIO_BUTTON,
       options,
-      ...config
+      ...config,
     })
   },
 
@@ -172,7 +172,7 @@ export const FieldFactory = {
       field,
       label,
       type: FIELD_TYPES.DATERANGE,
-      ...config
+      ...config,
     })
   },
 
@@ -183,7 +183,7 @@ export const FieldFactory = {
       label,
       type: FIELD_TYPES.DATETIME,
       placeholder: `请选择${label}`,
-      ...config
+      ...config,
     })
   },
 
@@ -194,7 +194,7 @@ export const FieldFactory = {
       label,
       type: FIELD_TYPES.TIME,
       placeholder: `请选择${label}`,
-      ...config
+      ...config,
     })
   },
 
@@ -206,7 +206,7 @@ export const FieldFactory = {
       type: FIELD_TYPES.SLIDER,
       min: 0,
       max: 100,
-      ...config
+      ...config,
     })
   },
 
@@ -216,7 +216,7 @@ export const FieldFactory = {
       field,
       label,
       type: FIELD_TYPES.RATE,
-      ...config
+      ...config,
     })
   },
 
@@ -226,7 +226,7 @@ export const FieldFactory = {
       field,
       label,
       type: FIELD_TYPES.COLOR,
-      ...config
+      ...config,
     })
   },
 
@@ -238,7 +238,7 @@ export const FieldFactory = {
       type: FIELD_TYPES.CASCADER,
       placeholder: `请选择${label}`,
       options,
-      ...config
+      ...config,
     })
   },
 
@@ -250,7 +250,7 @@ export const FieldFactory = {
       type: FIELD_TYPES.TREE_SELECT,
       placeholder: `请选择${label}`,
       options,
-      ...config
+      ...config,
     })
   },
 
@@ -261,7 +261,7 @@ export const FieldFactory = {
       label,
       type: FIELD_TYPES.TRANSFER,
       options,
-      ...config
+      ...config,
     })
   },
 
@@ -271,7 +271,7 @@ export const FieldFactory = {
       field,
       label,
       type: FIELD_TYPES.UPLOAD,
-      ...config
+      ...config,
     })
   },
 
@@ -281,7 +281,7 @@ export const FieldFactory = {
       field,
       label,
       type: FIELD_TYPES.SLOT,
-      ...config
+      ...config,
     })
   },
 
@@ -291,7 +291,7 @@ export const FieldFactory = {
       field,
       label,
       type: FIELD_TYPES.TEXT,
-      ...config
+      ...config,
     })
   },
 
@@ -303,13 +303,13 @@ export const FieldFactory = {
       type: FIELD_TYPES.CUSTOM_SELECT,
       placeholder: `请选择${label}`,
       filterable: true,
-      ...config
+      ...config,
     })
-  }
+  },
 }
 
 export default {
   FIELD_TYPES,
   createField,
-  FieldFactory
+  FieldFactory,
 }

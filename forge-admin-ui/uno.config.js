@@ -13,7 +13,7 @@ export default defineConfig({
     presetAttributify(),
     presetIcons({
       warn: true,
-      prefix: ['ai-', 'i-', 'mdi-','fa-'],
+      prefix: ['ai-', 'i-', 'mdi-', 'fa-'],
       extraProperties: {
         display: 'inline-block',
         width: '1em',

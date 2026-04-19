@@ -1,7 +1,7 @@
 <!--
   字典选择器组件
   用于在表单中选择字典项
-  
+
   使用示例：
   <DictSelect v-model:value="formData.status" dict-type="case_status" />
   <DictSelect v-model:value="formData.types" dict-type="matter_type" multiple />
@@ -10,7 +10,6 @@
 <template>
   <n-select
     :value="value"
-    @update:value="handleUpdate"
     :options="dictOptions"
     :placeholder="placeholder"
     :disabled="disabled"
@@ -19,55 +18,56 @@
     :multiple="multiple"
     :loading="loading"
     v-bind="$attrs"
+    @update:value="handleUpdate"
   />
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { getDictData } from '@/composables/useDict'
 
 const props = defineProps({
   // v-model 绑定值
   value: {
     type: [String, Number, Array],
-    default: null
+    default: null,
   },
-  
+
   // 字典类型
   dictType: {
     type: String,
-    required: true
+    required: true,
   },
-  
+
   // 占位符
   placeholder: {
     type: String,
-    default: '请选择'
+    default: '请选择',
   },
-  
+
   // 是否禁用
   disabled: {
     type: Boolean,
-    default: false
+    default: false,
   },
-  
+
   // 是否可清空
   clearable: {
     type: Boolean,
-    default: true
+    default: true,
   },
-  
+
   // 是否可搜索
   filterable: {
     type: Boolean,
-    default: true
+    default: true,
   },
-  
+
   // 是否多选
   multiple: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:value'])
@@ -80,7 +80,7 @@ const dictOptions = computed(() => {
   return dictList.value.map(item => ({
     label: item.label,
     value: item.value,
-    disabled: item.status === 0 // 状态为 0 时禁用
+    disabled: item.status === 0, // 状态为 0 时禁用
   }))
 })
 
@@ -90,11 +90,12 @@ async function loadDict() {
     console.warn('DictSelect: 未指定 dictType')
     return
   }
-  
+
   loading.value = true
   try {
     dictList.value = await getDictData(props.dictType)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }

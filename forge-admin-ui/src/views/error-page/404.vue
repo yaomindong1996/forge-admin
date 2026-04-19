@@ -10,7 +10,7 @@
       >
         <template #icon>
           <div style="width: 360px">
-            <img src="@/assets/images/404.png" style="width: 100%"/>
+            <img src="@/assets/images/404.png" style="width: 100%">
           </div>
         </template>
         <template #footer>
@@ -25,7 +25,7 @@
 
 <script setup>
 const { replace } = useRouter()
-const toHome = () =>{
+function toHome() {
   replace(window.$homePath)
 }
 </script>

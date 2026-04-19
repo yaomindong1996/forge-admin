@@ -4,7 +4,7 @@
       ref="crudRef"
       :api-config="{
         list: 'get@/system/operationLog/page',
-        detail: 'get@/system/operationLog/{id}'
+        detail: 'get@/system/operationLog/{id}',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
@@ -13,8 +13,7 @@
       :hide-selection="true"
       :hide-batch-delete="true"
       :before-search="handleBeforeSearch"
-    >
-    </AiCrudPage>
+    />
 
     <!-- 详情弹窗 -->
     <n-modal
@@ -25,7 +24,9 @@
     >
       <div v-if="currentLog" class="log-detail">
         <div class="detail-section">
-          <h4 class="section-title">用户信息</h4>
+          <h4 class="section-title">
+            用户信息
+          </h4>
           <div class="detail-row">
             <span class="label">用户名：</span>
             <span class="value">{{ currentLog.username || '-' }}</span>
@@ -37,16 +38,18 @@
         </div>
 
         <div class="detail-section">
-          <h4 class="section-title">操作信息</h4>
+          <h4 class="section-title">
+            操作信息
+          </h4>
           <div class="detail-row">
             <span class="label">操作模块：</span>
             <span class="value">{{ currentLog.operationModule || '-' }}</span>
           </div>
           <div class="detail-row">
             <span class="label">操作类型：</span>
-            <n-tag :type="getOperationTypeTag(currentLog.operationType).type" size="small">
+            <NTag :type="getOperationTypeTag(currentLog.operationType).type" size="small">
               {{ getOperationTypeTag(currentLog.operationType).text }}
-            </n-tag>
+            </NTag>
           </div>
           <div class="detail-row">
             <span class="label">操作描述：</span>
@@ -54,9 +57,9 @@
           </div>
           <div class="detail-row">
             <span class="label">操作状态：</span>
-            <n-tag :type="currentLog.operationStatus === 1 ? 'success' : 'error'" size="small">
+            <NTag :type="currentLog.operationStatus === 1 ? 'success' : 'error'" size="small">
               {{ currentLog.operationStatus === 1 ? '成功' : '失败' }}
-            </n-tag>
+            </NTag>
           </div>
           <div class="detail-row">
             <span class="label">操作时间：</span>
@@ -69,10 +72,14 @@
         </div>
 
         <div class="detail-section">
-          <h4 class="section-title">请求信息</h4>
+          <h4 class="section-title">
+            请求信息
+          </h4>
           <div class="detail-row">
             <span class="label">请求方法：</span>
-            <n-tag size="small">{{ currentLog.requestMethod || '-' }}</n-tag>
+            <NTag size="small">
+              {{ currentLog.requestMethod || '-' }}
+            </NTag>
           </div>
           <div class="detail-row">
             <span class="label">请求URL：</span>
@@ -85,17 +92,23 @@
         </div>
 
         <div v-if="currentLog.responseResult" class="detail-section">
-          <h4 class="section-title">响应结果</h4>
+          <h4 class="section-title">
+            响应结果
+          </h4>
           <pre class="code-block">{{ formatJson(currentLog.responseResult) }}</pre>
         </div>
 
         <div v-if="currentLog.errorMsg" class="detail-section">
-          <h4 class="section-title text-error">错误信息</h4>
+          <h4 class="section-title text-error">
+            错误信息
+          </h4>
           <pre class="error-block">{{ currentLog.errorMsg }}</pre>
         </div>
 
         <div class="detail-section">
-          <h4 class="section-title">环境信息</h4>
+          <h4 class="section-title">
+            环境信息
+          </h4>
           <div class="detail-row">
             <span class="label">操作IP：</span>
             <span class="value">{{ currentLog.operationIp || '-' }}</span>
@@ -112,7 +125,9 @@
       </div>
       <template #footer>
         <n-space justify="end">
-          <n-button @click="detailVisible = false">关闭</n-button>
+          <n-button @click="detailVisible = false">
+            关闭
+          </n-button>
         </n-space>
       </template>
     </n-modal>
@@ -120,10 +135,10 @@
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
+import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
-import {formatDateTime, request} from '@/utils'
+import { formatDateTime, request } from '@/utils'
 
 defineOptions({ name: 'OperationLog' })
 
@@ -152,16 +167,16 @@ const searchSchema = [
     label: '用户名',
     type: 'input',
     props: {
-      placeholder: '请输入用户名'
-    }
+      placeholder: '请输入用户名',
+    },
   },
   {
     field: 'operationModule',
     label: '操作模块',
     type: 'input',
     props: {
-      placeholder: '请输入操作模块'
-    }
+      placeholder: '请输入操作模块',
+    },
   },
   {
     field: 'operationType',
@@ -177,9 +192,9 @@ const searchSchema = [
         { label: '删除', value: 'DELETE' },
         { label: '导入', value: 'IMPORT' },
         { label: '导出', value: 'EXPORT' },
-        { label: '其他', value: 'OTHER' }
-      ]
-    }
+        { label: '其他', value: 'OTHER' },
+      ],
+    },
   },
   {
     field: 'operationStatus',
@@ -190,25 +205,25 @@ const searchSchema = [
       clearable: true,
       options: [
         { label: '成功', value: 1 },
-        { label: '失败', value: 0 }
-      ]
-    }
+        { label: '失败', value: 0 },
+      ],
+    },
   },
   {
     field: 'operationIp',
     label: '操作IP',
     type: 'input',
     props: {
-      placeholder: '请输入IP地址'
-    }
+      placeholder: '请输入IP地址',
+    },
   },
   {
     field: 'requestParams',
     label: '请求参数',
     type: 'input',
     props: {
-      placeholder: '请输入请求参数关键字'
-    }
+      placeholder: '请输入请求参数关键字',
+    },
   },
   {
     field: 'timeRange',
@@ -220,19 +235,19 @@ const searchSchema = [
     format: 'yyyy-MM-dd HH:mm:ss',
     valueFormat: 'yyyy-MM-dd HH:mm:ss',
     props: {
-      type: 'datetimerange'
+      type: 'datetimerange',
     },
     // 时间范围转换为 startTime 和 endTime
     transform: (value) => {
       if (value && value.length === 2) {
         return {
           startTime: value[0],
-          endTime: value[1]
+          endTime: value[1],
         }
       }
       return {}
-    }
-  }
+    },
+  },
 ]
 
 // 表格列配置
@@ -240,13 +255,13 @@ const tableColumns = computed(() => [
   {
     prop: 'username',
     label: '用户名',
-    width: 100
+    width: 100,
   },
   {
     prop: 'operationModule',
     label: '操作模块',
     width: 120,
-    ellipsis: { tooltip: true }
+    ellipsis: { tooltip: true },
   },
   {
     prop: 'operationType',
@@ -255,14 +270,14 @@ const tableColumns = computed(() => [
     render: (row) => {
       const config = getOperationTypeTag(row.operationType)
       return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
-    }
+    },
   },
   {
     prop: 'operationDesc',
     label: '操作描述',
     width: 150,
     ellipsis: { tooltip: true },
-    render: (row) => row.operationDesc || '-'
+    render: row => row.operationDesc || '-',
   },
   {
     prop: 'requestMethod',
@@ -270,40 +285,38 @@ const tableColumns = computed(() => [
     width: 90,
     render: (row) => {
       return h(NTag, { size: 'small' }, { default: () => row.requestMethod || '-' })
-    }
+    },
   },
   {
     prop: 'requestUrl',
     label: '请求URL',
     width: 200,
-    ellipsis: { tooltip: true }
+    ellipsis: { tooltip: true },
   },
   {
     prop: 'operationStatus',
     label: '状态',
     width: 80,
     render: (row) => {
-      return h(NTag,
-        { type: row.operationStatus === 1 ? 'success' : 'error', size: 'small' },
-        { default: () => row.operationStatus === 1 ? '成功' : '失败' }
+      return h(NTag, { type: row.operationStatus === 1 ? 'success' : 'error', size: 'small' }, { default: () => row.operationStatus === 1 ? '成功' : '失败' },
       )
-    }
+    },
   },
   {
     prop: 'operationIp',
     label: '操作IP',
-    width: 130
+    width: 130,
   },
   {
     prop: 'executeTime',
     label: '耗时(ms)',
     width: 90,
-    render: (row) => row.executeTime || 0
+    render: row => row.executeTime || 0,
   },
   {
     prop: 'operationTime',
     label: '操作时间',
-    width: 160
+    width: 160,
   },
   {
     prop: 'action',
@@ -311,32 +324,34 @@ const tableColumns = computed(() => [
     width: 80,
     fixed: 'right',
     actions: [
-      { label: '详情', key: 'detail', onClick: handleViewDetail }
-    ]
-  }
+      { label: '详情', key: 'detail', onClick: handleViewDetail },
+    ],
+  },
 ])
 
 // 获取操作类型标签配置
 function getOperationTypeTag(operationType) {
   const typeMap = {
-    'QUERY': { text: '查询', type: 'info' },
-    'INSERT': { text: '新增', type: 'success' },
-    'UPDATE': { text: '更新', type: 'warning' },
-    'DELETE': { text: '删除', type: 'error' },
-    'IMPORT': { text: '导入', type: 'primary' },
-    'EXPORT': { text: '导出', type: 'primary' },
-    'OTHER': { text: '其他', type: 'default' }
+    QUERY: { text: '查询', type: 'info' },
+    INSERT: { text: '新增', type: 'success' },
+    UPDATE: { text: '更新', type: 'warning' },
+    DELETE: { text: '删除', type: 'error' },
+    IMPORT: { text: '导入', type: 'primary' },
+    EXPORT: { text: '导出', type: 'primary' },
+    OTHER: { text: '其他', type: 'default' },
   }
   return typeMap[operationType] || { text: operationType, type: 'default' }
 }
 
 // 格式化JSON
 function formatJson(jsonStr) {
-  if (!jsonStr) return '-'
+  if (!jsonStr)
+    return '-'
   try {
     const obj = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr
     return JSON.stringify(obj, null, 2)
-  } catch {
+  }
+  catch {
     return jsonStr
   }
 }
@@ -349,7 +364,8 @@ async function handleViewDetail(row) {
       currentLog.value = res.data
       detailVisible.value = true
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取详情失败:', error)
   }
 }

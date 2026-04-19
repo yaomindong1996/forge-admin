@@ -264,15 +264,15 @@
     <!-- 分割线 -->
     <n-divider
       v-else-if="item.type === 'divider'"
-      :title-placement="'center'"
+      title-placement="center"
     >
       {{ item.props.title }}
     </n-divider>
 
     <!-- 标题 -->
     <component
-      v-else-if="item.type === 'title'"
       :is="`h${item.props.level || 3}`"
+      v-else-if="item.type === 'title'"
       class="form-title"
     >
       {{ item.props.text }}
@@ -299,20 +299,20 @@ import { ref, watch } from 'vue'
 const props = defineProps({
   item: {
     type: Object,
-    required: true
+    required: true,
   },
   modelValue: {
     type: [String, Number, Boolean, Array, Object, Date],
-    default: null
+    default: null,
   },
   disabled: {
     type: Boolean,
-    default: false
+    default: false,
   },
   preview: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'change'])

@@ -7,10 +7,10 @@
 </template>
 
 <script setup>
+import { CommonPage } from '@/components/index.js'
+
 defineOptions({
   name: 'DetailPage',
-  title: '详情页面'
+  title: '详情页面',
 })
-
-import { CommonPage } from "@/components/index.js";
 </script>

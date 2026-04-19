@@ -9,10 +9,10 @@
 
 <template>
   <n-popover
-      trigger="click"
-      placement="bottom-end"
-      :show-arrow="false"
-      style="padding: 0"
+    trigger="click"
+    placement="bottom-end"
+    :show-arrow="false"
+    style="padding: 0"
   >
     <template #trigger>
       <n-button text>
@@ -36,29 +36,29 @@
         <n-checkbox-group v-model:value="checkedColumns" @update:value="handleChange">
           <transition-group name="drag-list" tag="div" style="padding: 12px">
             <div
-                v-for="(column, index) in sortedColumns"
-                :key="column.key || column.prop"
-                class="column-item"
-                :class="{
+              v-for="(column, index) in sortedColumns"
+              :key="column.key || column.prop"
+              class="column-item"
+              :class="{
                 'dragging': draggingIndex === index,
-                'drag-over': dragOverIndex === index && draggingIndex !== index
+                'drag-over': dragOverIndex === index && draggingIndex !== index,
               }"
-                draggable="true"
-                @dragstart="handleDragStart(index, $event)"
-                @dragover="handleDragOver(index, $event)"
-                @dragenter="handleDragEnter(index)"
-                @dragleave="handleDragLeave"
-                @dragend="handleDragEnd"
-                @drop="handleDrop(index, $event)"
+              draggable="true"
+              @dragstart="handleDragStart(index, $event)"
+              @dragover="handleDragOver(index, $event)"
+              @dragenter="handleDragEnter(index)"
+              @dragleave="handleDragLeave"
+              @dragend="handleDragEnd"
+              @drop="handleDrop(index, $event)"
             >
               <n-icon class="drag-handle" size="16">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M9 3h2v2H9V3m4 0h2v2h-2V3M9 7h2v2H9V7m4 0h2v2h-2V7m-4 4h2v2H9v-2m4 0h2v2h-2v-2m-4 4h2v2H9v-2m4 0h2v2h-2v-2m-4 4h2v2H9v-2m4 0h2v2h-2v-2Z"/>
+                  <path fill="currentColor" d="M9 3h2v2H9V3m4 0h2v2h-2V3M9 7h2v2H9V7m4 0h2v2h-2V7m-4 4h2v2H9v-2m4 0h2v2h-2v-2m-4 4h2v2H9v-2m4 0h2v2h-2v-2m-4 4h2v2H9v-2m4 0h2v2h-2v-2Z" />
                 </svg>
               </n-icon>
               <n-checkbox
-                  :value="column.key || column.prop"
-                  :disabled="column.disabled"
+                :value="column.key || column.prop"
+                :disabled="column.disabled"
               >
                 {{ column.label || column.title }}
               </n-checkbox>
@@ -71,8 +71,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
 import { SettingsOutline } from '@vicons/ionicons5'
+import { computed, ref, watch } from 'vue'
 
 /**
  * Props 定义
@@ -80,30 +80,30 @@ import { SettingsOutline } from '@vicons/ionicons5'
 const props = defineProps({
   /**
    * 表格列配置
-   * @type {Array<Object>}
+   * @type {Array<object>}
    */
   columns: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
 
   /**
    * 下拉菜单最大高度
-   * @type {String}
+   * @type {string}
    */
   filterMaxHeight: {
     type: String,
-    default: '400px'
+    default: '400px',
   },
 
   /**
    * 默认选中的列（列的 key 或 prop）
-   * @type {Array<String>}
+   * @type {Array<string>}
    */
   defaultChecked: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 
 /**
@@ -131,7 +131,7 @@ const dragOverIndex = ref(null)
  * 可筛选的列（排除操作列、选择列等）
  */
 const filterableColumns = computed(() => {
-  return props.columns.filter(col => {
+  return props.columns.filter((col) => {
     // 排除操作列
     if (col.prop === 'action' || col.key === 'action') {
       return false
@@ -154,11 +154,12 @@ const filterableColumns = computed(() => {
 function initCheckedColumns() {
   if (props.defaultChecked && props.defaultChecked.length > 0) {
     checkedColumns.value = [...props.defaultChecked]
-  } else {
+  }
+  else {
     // 默认选中所有非隐藏的列
     checkedColumns.value = filterableColumns.value
-        .filter(col => col.hidden !== true && col.visible !== false)
-        .map(col => col.key || col.prop)
+      .filter(col => col.hidden !== true && col.visible !== false)
+      .map(col => col.key || col.prop)
   }
   // 初始化排序列表
   sortedColumns.value = [...filterableColumns.value]
@@ -249,7 +250,7 @@ function handleChange(values) {
   const selectionColumns = []
 
   // 分离选择列、操作列和其他非可筛选列
-  props.columns.forEach(col => {
+  props.columns.forEach((col) => {
     const isFilterable = filterableColumns.value.some(fc => (fc.key || fc.prop) === (col.key || col.prop))
     if (!isFilterable) {
       // 选择列放在最前面
@@ -268,10 +269,10 @@ function handleChange(values) {
   })
 
   // 按照排序后的顺序添加可筛选的列
-  sortedColumns.value.forEach(sortedCol => {
+  sortedColumns.value.forEach((sortedCol) => {
     if (values.includes(sortedCol.key || sortedCol.prop)) {
       const originalCol = props.columns.find(col =>
-          (col.key || col.prop) === (sortedCol.key || sortedCol.prop)
+        (col.key || col.prop) === (sortedCol.key || sortedCol.prop),
       )
       if (originalCol) {
         sortedVisibleColumns.push(originalCol)
@@ -317,7 +318,7 @@ defineExpose({
   setCheckedColumns: (columns) => {
     checkedColumns.value = columns
     handleChange(columns)
-  }
+  },
 })
 </script>
 

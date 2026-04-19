@@ -46,17 +46,17 @@
       <!-- 头部标题区域 -->
       <template #header>
         <header
+          v-if="modalOptions.title || modalOptions.showHeader"
           class="modal-header"
           :class="{ 'cursor-move': modalOptions.draggable }"
-          v-if="modalOptions.title || modalOptions.showHeader"
         >
           {{ modalOptions.title }}
         </header>
       </template>
 
       <!-- 头部额外内容插槽 -->
-      <template #header-extra v-if="modalOptions.showHeaderExtra">
-        <slot name="header-extra"></slot>
+      <template v-if="modalOptions.showHeaderExtra" #header-extra>
+        <slot name="header-extra" />
       </template>
 
       <!-- 主体内容区域 -->
@@ -70,7 +70,7 @@
           <footer v-if="modalOptions.showFooter" class="flex justify-end">
             <!-- 底部左侧插槽（用于放置额外的左侧按钮或内容） -->
             <slot name="footer-left">
-              <div></div>
+              <div />
             </slot>
 
             <!-- 底部右侧按钮组 -->
@@ -104,7 +104,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { initDrag } from './utils.js'
 
 /**
@@ -255,15 +255,15 @@ const okLoading = computed({
 /**
  * 打开模态框
  *
- * @param {Object} options - 模态框配置选项，会与props合并
- * @param {String} options.title - 标题
- * @param {String} options.width - 宽度
+ * @param {object} options - 模态框配置选项，会与props合并
+ * @param {string} options.title - 标题
+ * @param {string} options.width - 宽度
  * @param {Function} options.onOk - 确定回调
  * @param {Function} options.onCancel - 取消回调
  * @param {Function} options.onClose - 关闭回调
- * @param {Boolean} options.draggable - 是否可拖拽
- * @param {Object} options.modalStyle - 模态框样式
- * @param {Object} options.contentStyle - 内容样式
+ * @param {boolean} options.draggable - 是否可拖拽
+ * @param {object} options.modalStyle - 模态框样式
+ * @param {object} options.contentStyle - 内容样式
  * ... 其他所有props都可以通过options传入
  *
  * @example
@@ -387,7 +387,7 @@ async function onAfterLeave() {
 /**
  * 处理模态框显示状态更新
  *
- * @param {Boolean} newShow - 新的显示状态
+ * @param {boolean} newShow - 新的显示状态
  *
  * 当模态框被外部因素关闭时（如点击遮罩层、ESC键等），触发onClose回调
  */

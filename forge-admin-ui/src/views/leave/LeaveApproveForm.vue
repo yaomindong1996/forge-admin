@@ -23,20 +23,32 @@
             {{ getLeaveTypeText(leaveInfo.leaveType) }}
           </n-tag>
         </n-descriptions-item>
-        <n-descriptions-item label="开始时间">{{ formatTime(leaveInfo.startTime) }}</n-descriptions-item>
-        <n-descriptions-item label="结束时间">{{ formatTime(leaveInfo.endTime) }}</n-descriptions-item>
-        <n-descriptions-item label="请假天数">
-          <n-tag type="warning" size="small">{{ leaveInfo.duration ?? '-' }} 天</n-tag>
+        <n-descriptions-item label="开始时间">
+          {{ formatTime(leaveInfo.startTime) }}
         </n-descriptions-item>
-        <n-descriptions-item label="申请时间">{{ formatTime(leaveInfo.applyTime) }}</n-descriptions-item>
+        <n-descriptions-item label="结束时间">
+          {{ formatTime(leaveInfo.endTime) }}
+        </n-descriptions-item>
+        <n-descriptions-item label="请假天数">
+          <n-tag type="warning" size="small">
+            {{ leaveInfo.duration ?? '-' }} 天
+          </n-tag>
+        </n-descriptions-item>
+        <n-descriptions-item label="申请时间">
+          {{ formatTime(leaveInfo.applyTime) }}
+        </n-descriptions-item>
         <n-descriptions-item label="请假原因" :span="2">
-          <div class="reason-text">{{ leaveInfo.reason || '-' }}</div>
+          <div class="reason-text">
+            {{ leaveInfo.reason || '-' }}
+          </div>
         </n-descriptions-item>
       </n-descriptions>
 
       <!-- 附件 -->
       <div v-if="attachments.length > 0" class="attachments">
-        <div class="attach-title">申请附件</div>
+        <div class="attach-title">
+          申请附件
+        </div>
         <div class="attach-list">
           <n-tag
             v-for="(att, i) in attachments"
@@ -90,7 +102,9 @@
             @update:file-list="approveFileList = $event"
           >
             <n-button size="small">
-              <template #icon><i class="i-material-symbols:upload-file" /></template>
+              <template #icon>
+                <i class="i-material-symbols:upload-file" />
+              </template>
               上传附件
             </n-button>
           </n-upload>
@@ -99,13 +113,15 @@
 
       <div class="action-buttons">
         <n-popconfirm
-          @positive-click="handleApprove"
           positive-text="确认通过"
           negative-text="取消"
+          @positive-click="handleApprove"
         >
           <template #trigger>
             <n-button type="primary" :loading="submitting" size="large">
-              <template #icon><i class="i-material-symbols:check-circle" /></template>
+              <template #icon>
+                <i class="i-material-symbols:check-circle" />
+              </template>
               同意
             </n-button>
           </template>
@@ -113,13 +129,15 @@
         </n-popconfirm>
 
         <n-popconfirm
-          @positive-click="handleReject"
           positive-text="确认驳回"
           negative-text="取消"
+          @positive-click="handleReject"
         >
           <template #trigger>
             <n-button type="error" :loading="submitting" size="large">
-              <template #icon><i class="i-material-symbols:cancel" /></template>
+              <template #icon>
+                <i class="i-material-symbols:cancel" />
+              </template>
               驳回
             </n-button>
           </template>
@@ -144,7 +162,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import leaveApi from '@/api/leave'
 
 const props = defineProps({
@@ -161,7 +179,7 @@ const props = defineProps({
   /** 流程变量（包含申请人填写的表单数据） */
   variables: { type: Object, default: () => ({}) },
   /** 是否只读 */
-  readOnly: { type: Boolean, default: false }
+  readOnly: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['submit', 'cancel'])
@@ -179,7 +197,7 @@ const leaveInfo = reactive({
   duration: null,
   reason: '',
   attachments: '',
-  applyTime: null
+  applyTime: null,
 })
 
 // 只读模式下的审批结论
@@ -188,11 +206,13 @@ const approveComment = computed(() => props.variables?.approveComment)
 
 // 附件解析
 const attachments = computed(() => {
-  if (!leaveInfo.attachments) return []
+  if (!leaveInfo.attachments)
+    return []
   try {
     const arr = JSON.parse(leaveInfo.attachments)
     return Array.isArray(arr) ? arr : []
-  } catch {
+  }
+  catch {
     return []
   }
 })
@@ -231,9 +251,11 @@ async function loadDetail() {
         leaveInfo.attachments = d.attachments || leaveInfo.attachments
         leaveInfo.applyTime = d.applyTime || leaveInfo.applyTime
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.error('[LeaveApproveForm] 加载请假详情失败:', e)
-    } finally {
+    }
+    finally {
       detailLoading.value = false
     }
   }
@@ -250,8 +272,8 @@ function handleApprove() {
     comment: approveData.comment,
     variables: {
       approveResult: 'approve',
-      approveComment: approveData.comment
-    }
+      approveComment: approveData.comment,
+    },
   })
 }
 
@@ -266,19 +288,21 @@ function handleReject() {
     comment: approveData.comment,
     variables: {
       approveResult: 'reject',
-      approveComment: approveData.comment
-    }
+      approveComment: approveData.comment,
+    },
   })
 }
 
 // 预览附件
 function previewAttachment(att) {
-  if (att.url) window.open(att.url, '_blank')
+  if (att.url)
+    window.open(att.url, '_blank')
 }
 
 // 工具函数
 function formatTime(val) {
-  if (!val) return '-'
+  if (!val)
+    return '-'
   const d = new Date(val)
   return isNaN(d.getTime()) ? String(val) : d.toLocaleString('zh-CN', { hour12: false })
 }
@@ -288,7 +312,7 @@ const leaveTypeMap = {
   sick: { text: '病假', type: 'warning' },
   personal: { text: '事假', type: 'default' },
   marriage: { text: '婚假', type: 'info' },
-  maternity: { text: '产假', type: 'error' }
+  maternity: { text: '产假', type: 'error' },
 }
 function getLeaveTypeText(t) { return leaveTypeMap[t]?.text || t || '-' }
 function getLeaveTypeTag(t) { return leaveTypeMap[t]?.type || 'default' }
@@ -310,7 +334,9 @@ onMounted(() => loadDetail())
   font-weight: 600;
   color: #333;
 }
-.text-primary { color: #2080f0; }
+.text-primary {
+  color: #2080f0;
+}
 .user-row {
   display: flex;
   align-items: center;
@@ -344,7 +370,9 @@ onMounted(() => loadDetail())
   flex-wrap: wrap;
   margin-top: 16px;
 }
-.detail-card, .approve-card, .result-card {
+.detail-card,
+.approve-card,
+.result-card {
   border-radius: 8px;
 }
 </style>

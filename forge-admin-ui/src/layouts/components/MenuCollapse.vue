@@ -2,8 +2,8 @@
   <div
     id="menu-collapse"
     class="menu-collapse-button"
-    @click="appStore.switchCollapsed"
     :title="appStore.collapsed ? '展开菜单' : '收起菜单'"
+    @click="appStore.switchCollapsed"
   >
     <i :class="appStore.collapsed ? 'i-line-md-menu-unfold-left' : 'i-line-md-menu-fold-left'" />
   </div>

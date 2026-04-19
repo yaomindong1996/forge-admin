@@ -8,14 +8,14 @@
         detail: 'post@/system/tenant/getById',
         add: 'post@/system/tenant/add',
         update: 'post@/system/tenant/edit',
-        delete: 'post@/system/tenant/remove'
+        delete: 'post@/system/tenant/remove',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
       :edit-schema="editSchema"
       row-key="id"
       :edit-grid-cols="2"
-      :modal-width="'900px'"
+      modal-width="900px"
       add-button-text="新增租户"
       :hide-selection="false"
       :before-submit="handleBeforeSubmit"
@@ -27,12 +27,12 @@
       <template #toolbar-end>
         <n-button
           type="error"
-          @click="handleBatchDelete"
           :disabled="selectedKeys.length === 0"
           size="small"
+          @click="handleBatchDelete"
         >
           <template #icon>
-            <n-icon><TrashOutline /></n-icon>
+            <NIcon><TrashOutline /></NIcon>
           </template>
           批量删除
         </n-button>
@@ -49,7 +49,7 @@
                 :value="layout.value"
               >
                 <div class="layout-card" :class="{ active: value === layout.value }">
-                  <img :src="layout.preview" :alt="layout.label" class="layout-img" />
+                  <img :src="layout.preview" :alt="layout.label" class="layout-img">
                   <span class="layout-name">{{ layout.label }}</span>
                 </div>
               </n-radio>
@@ -62,11 +62,11 @@
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
-import { NTag, NIcon } from 'naive-ui'
 import { TrashOutline } from '@vicons/ionicons5'
+import { NIcon, NTag } from 'naive-ui'
+import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
-import { request, getFileUrl } from '@/utils'
+import { getFileUrl, request } from '@/utils'
 
 defineOptions({ name: 'SystemTenant' })
 
@@ -76,7 +76,7 @@ const selectedKeys = ref([])
 // 租户状态选项
 const tenantStatusOptions = [
   { label: '正常', value: 1 },
-  { label: '禁用', value: 0 }
+  { label: '禁用', value: 0 },
 ]
 
 // 系统布局选项（与布局设置保持一致）
@@ -85,32 +85,32 @@ const systemLayoutOptions = [
     label: '简约',
     value: 'simple',
     description: '简单布局，仅包含基本元素',
-    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSI2MCIgZmlsbD0iI0UwRTBFMCIvPjxyZWN0IHg9IjI0IiB3aWR0aD0iODAiIGhlaWdodD0iNjAiIGZpbGw9IiNGNUY1RjUiLz48L3N2Zz4='
+    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSI2MCIgZmlsbD0iI0UwRTBFMCIvPjxyZWN0IHg9IjI0IiB3aWR0aD0iODAiIGhlaWdodD0iNjAiIGZpbGw9IiNGNUY1RjUiLz48L3N2Zz4=',
   },
   {
     label: '通用',
     value: 'normal',
     description: '侧边栏菜单布局',
-    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSI2MCIgZmlsbD0iI0UwRTBFMCIvPjxyZWN0IHg9IjI0IiB3aWR0aD0iODAiIGhlaWdodD0iMTAiIGZpbGw9IiNGNUY1RjUiLz48cmVjdCB4PSIyNCIgeT0iMTQiIHdpZHRoPSI4MCIgaGVpZ2h0PSI0NiIgZmlsbD0iI0Y1RjVGNSIvPjwvc3ZnPg=='
+    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSI2MCIgZmlsbD0iI0UwRTBFMCIvPjxyZWN0IHg9IjI0IiB3aWR0aD0iODAiIGhlaWdodD0iMTAiIGZpbGw9IiNGNUY1RjUiLz48cmVjdCB4PSIyNCIgeT0iMTQiIHdpZHRoPSI4MCIgaGVpZ2h0PSI0NiIgZmlsbD0iI0Y1RjVGNSIvPjwvc3ZnPg==',
   },
   {
     label: '顶部菜单',
     value: 'top-menu',
     description: '一级菜单在顶部，二级及以下菜单在左侧',
-    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDQiIGhlaWdodD0iMTAiIGZpbGw9IiNFMEUwRTAiLz48cmVjdCB5PSIxMiIgd2lkdGg9IjEwNCIgaGVpZ2h0PSI0OCIgZmlsbD0iI0Y1RjVGNSIvPjwvc3ZnPg=='
+    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDQiIGhlaWdodD0iMTAiIGZpbGw9IiNFMEUwRTAiLz48cmVjdCB5PSIxMiIgd2lkdGg9IjEwNCIgaGVpZ2h0PSI0OCIgZmlsbD0iI0Y1RjVGNSIvPjwvc3ZnPg==',
   },
   {
     label: '顶部加侧面菜单',
     value: 'top-side-menu',
     description: '顶部+左侧混合布局',
-    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDQiIGhlaWdodD0iMTAiIGZpbGw9IiNFMEUwRTAiLz48cmVjdCB5PSIxMiIgd2lkdGg9IjIwIiBoZWlnaHQ9IjQ4IiBmaWxsPSIjRTBFMEUwIi8+PHJlY3QgeD0iMjIiIHk9IjEyIiB3aWR0aD0iODIiIGhlaWdodD0iNDgiIGZpbGw9IiNGNUY1RjUiLz48L3N2Zz4='
+    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDQiIGhlaWdodD0iMTAiIGZpbGw9IiNFMEUwRTAiLz48cmVjdCB5PSIxMiIgd2lkdGg9IjIwIiBoZWlnaHQ9IjQ4IiBmaWxsPSIjRTBFMEUwIi8+PHJlY3QgeD0iMjIiIHk9IjEyIiB3aWR0aD0iODIiIGhlaWdodD0iNDgiIGZpbGw9IiNGNUY1RjUiLz48L3N2Zz4=',
   },
   {
     label: '全屏',
     value: 'full',
     description: '无边框全屏布局',
-    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSI2MCIgZmlsbD0iI0UwRTBFMCIvPjxyZWN0IHg9IjI0IiB3aWR0aD0iODAiIGhlaWdodD0iNiIgZmlsbD0iI0Y1RjVGNSIvPjxyZWN0IHg9IjI0IiB5PSIxMCIgd2lkdGg9IjgwIiBoZWlnaHQ9IjQiIGZpbGw9IiNGNUY1RjUiLz48cmVjdCB4PSIyNCIgeT0iMTgiIHdpZHRoPSI4MCIgaGVpZ2h0PSI0MiIgZmlsbD0iI0Y1RjVGNSIvPjwvc3ZnPg=='
-  }
+    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSI2MCIgZmlsbD0iI0UwRTBFMCIvPjxyZWN0IHg9IjI0IiB3aWR0aD0iODAiIGhlaWdodD0iNiIgZmlsbD0iI0Y1RjVGNSIvPjxyZWN0IHg9IjI0IiB5PSIxMCIgd2lkdGg9IjgwIiBoZWlnaHQ9IjQiIGZpbGw9IiNGNUY1RjUiLz48cmVjdCB4PSIyNCIgeT0iMTgiIHdpZHRoPSI4MCIgaGVpZ2h0PSI0MiIgZmlsbD0iI0Y1RjVGNSIvPjwvc3ZnPg==',
+  },
 ]
 
 // 搜索表单配置
@@ -120,24 +120,24 @@ const searchSchema = [
     label: '租户名称',
     type: 'input',
     props: {
-      placeholder: '请输入租户名称'
-    }
+      placeholder: '请输入租户名称',
+    },
   },
   {
     field: 'contactPerson',
     label: '负责人',
     type: 'input',
     props: {
-      placeholder: '请输入负责人'
-    }
+      placeholder: '请输入负责人',
+    },
   },
   {
     field: 'contactPhone',
     label: '联系电话',
     type: 'input',
     props: {
-      placeholder: '请输入联系电话'
-    }
+      placeholder: '请输入联系电话',
+    },
   },
   {
     field: 'tenantStatus',
@@ -145,9 +145,9 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择状态',
-      options: tenantStatusOptions
-    }
-  }
+      options: tenantStatusOptions,
+    },
+  },
 ]
 
 // 表格列配置
@@ -155,17 +155,17 @@ const tableColumns = computed(() => [
   {
     prop: 'tenantName',
     label: '租户名称',
-    width: 180
+    width: 180,
   },
   {
     prop: 'contactPerson',
     label: '负责人',
-    width: 120
+    width: 120,
   },
   {
     prop: 'contactPhone',
     label: '联系电话',
-    width: 130
+    width: 130,
   },
   {
     prop: 'userLimit',
@@ -173,28 +173,26 @@ const tableColumns = computed(() => [
     width: 100,
     render: (row) => {
       return row.userLimit === 0 ? '无限制' : row.userLimit
-    }
+    },
   },
   {
     prop: 'expireTime',
     label: '过期时间',
-    width: 180
+    width: 180,
   },
   {
     prop: 'tenantStatus',
     label: '状态',
     width: 100,
     render: (row) => {
-      return h(NTag,
-        { type: row.tenantStatus === 1 ? 'success' : 'error', size: 'small' },
-        { default: () => row.tenantStatus === 1 ? '正常' : '禁用' }
+      return h(NTag, { type: row.tenantStatus === 1 ? 'success' : 'error', size: 'small' }, { default: () => row.tenantStatus === 1 ? '正常' : '禁用' },
       )
-    }
+    },
   },
   {
     prop: 'tenantDesc',
     label: '描述',
-    minWidth: 150
+    minWidth: 150,
   },
   {
     prop: 'action',
@@ -203,9 +201,9 @@ const tableColumns = computed(() => [
     fixed: 'right',
     actions: [
       { label: '编辑', key: 'edit', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -215,28 +213,28 @@ const editSchema = ref([
     type: 'divider',
     label: '基础信息',
     props: { titlePlacement: 'left' },
-    span: 2
+    span: 2,
   },
   {
     field: 'tenantName',
     label: '租户名称',
     type: 'input',
     rules: [{ required: true, message: '请输入租户名称', trigger: 'blur' }],
-    props: { placeholder: '请输入租户名称' }
+    props: { placeholder: '请输入租户名称' },
   },
   {
     field: 'tenantStatus',
     label: '租户状态',
     type: 'radio',
     defaultValue: 1,
-    props: { options: tenantStatusOptions }
+    props: { options: tenantStatusOptions },
   },
   {
     field: 'contactPerson',
     label: '负责人',
     type: 'input',
     rules: [{ required: true, message: '请输入负责人', trigger: 'blur' }],
-    props: { placeholder: '请输入负责人' }
+    props: { placeholder: '请输入负责人' },
   },
   {
     field: 'contactPhone',
@@ -244,29 +242,29 @@ const editSchema = ref([
     type: 'input',
     rules: [
       { required: true, message: '请输入联系电话', trigger: 'blur' },
-      { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' }
+      { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
     ],
-    props: { placeholder: '请输入联系电话' }
+    props: { placeholder: '请输入联系电话' },
   },
   {
     field: 'userLimit',
     label: '人员上限',
     type: 'input-number',
     defaultValue: 0,
-    props: { placeholder: '0表示无限制', min: 0 }
+    props: { placeholder: '0表示无限制', min: 0 },
   },
   {
     field: 'expireTime',
     label: '过期时间',
     type: 'datetime',
-    props: { placeholder: '请选择过期时间', clearable: true }
+    props: { placeholder: '请选择过期时间', clearable: true },
   },
   {
     field: 'tenantDesc',
     label: '租户描述',
     type: 'textarea',
     span: 2,
-    props: { placeholder: '请输入租户描述', rows: 2 }
+    props: { placeholder: '请输入租户描述', rows: 2 },
   },
 
   // ==================== 品牌设置 ====================
@@ -274,19 +272,19 @@ const editSchema = ref([
     type: 'divider',
     label: '品牌设置',
     props: { titlePlacement: 'left' },
-    span: 2
+    span: 2,
   },
   {
     field: 'systemName',
     label: '系统名称',
     type: 'input',
-    props: { placeholder: '显示在系统左上角' }
+    props: { placeholder: '显示在系统左上角' },
   },
   {
     field: 'browserTitle',
     label: '浏览器标签',
     type: 'input',
-    props: { placeholder: '浏览器标签页显示的名称' }
+    props: { placeholder: '浏览器标签页显示的名称' },
   },
   {
     field: 'systemLogo',
@@ -296,7 +294,7 @@ const editSchema = ref([
     limit: 1,
     fileSize: 2,
     valueType: 'string',
-    props: { showTip: true }
+    props: { showTip: true },
   },
   {
     field: 'browserIcon',
@@ -307,21 +305,21 @@ const editSchema = ref([
     fileSize: 1,
     fileType: ['png', 'ico', 'jpg'],
     valueType: 'string',
-    props: { showTip: true }
+    props: { showTip: true },
   },
   {
     field: 'systemIntro',
     label: '系统介绍',
     type: 'textarea',
     span: 2,
-    props: { placeholder: '登录页显示的系统介绍', rows: 2 }
+    props: { placeholder: '登录页显示的系统介绍', rows: 2 },
   },
   {
     field: 'copyrightInfo',
     label: '版权信息',
     type: 'textarea',
     span: 2,
-    props: { placeholder: '页面底部显示的版权信息', rows: 2 }
+    props: { placeholder: '页面底部显示的版权信息', rows: 2 },
   },
 
   // ==================== 界面风格 ====================
@@ -329,21 +327,21 @@ const editSchema = ref([
     type: 'divider',
     label: '界面风格',
     props: { titlePlacement: 'left' },
-    span: 2
+    span: 2,
   },
   {
     field: 'systemLayout',
     label: '系统布局',
     type: 'slot',
     slotName: 'systemLayout',
-    span: 2
+    span: 2,
   },
   {
     field: 'systemTheme',
     label: '主题色',
     type: 'color',
     defaultValue: '#d12723',
-    props: { showAlpha: false }
+    props: { showAlpha: false },
   },
 
   // ==================== 高级主题配置（可选） ====================
@@ -351,7 +349,7 @@ const editSchema = ref([
     type: 'divider',
     label: '高级主题配置（可选）',
     props: { titlePlacement: 'left', dashed: true },
-    span: 2
+    span: 2,
   },
   // Header 配置
   {
@@ -359,14 +357,14 @@ const editSchema = ref([
     label: 'Header背景',
     type: 'color',
     defaultValue: '#4242F7',
-    props: { showAlpha: false, modes: ['hex'] }
+    props: { showAlpha: false, modes: ['hex'] },
   },
   {
     field: 'theme_header_textColor',
     label: 'Header文字',
     type: 'color',
     defaultValue: '#FFFFFF',
-    props: { showAlpha: false, modes: ['hex'] }
+    props: { showAlpha: false, modes: ['hex'] },
   },
   // 侧边菜单配置
   {
@@ -374,63 +372,63 @@ const editSchema = ref([
     label: '侧边栏背景',
     type: 'color',
     defaultValue: '#ffffff',
-    props: { showAlpha: false, modes: ['hex'] }
+    props: { showAlpha: false, modes: ['hex'] },
   },
   {
     field: 'theme_sideMenu_textColor',
     label: '侧边栏文字',
     type: 'color',
     defaultValue: '#333333',
-    props: { showAlpha: false, modes: ['hex'] }
+    props: { showAlpha: false, modes: ['hex'] },
   },
   {
     field: 'theme_sideMenu_textColorActive',
     label: '菜单选中色',
     type: 'color',
     defaultValue: '#316cfa',
-    props: { showAlpha: false, modes: ['hex'] }
+    props: { showAlpha: false, modes: ['hex'] },
   },
   {
     field: 'theme_sideMenu_backgroundColorActive',
     label: '菜单选中背景',
     type: 'color',
     defaultValue: '#f6eded',
-    props: { showAlpha: false, modes: ['hex'] }
+    props: { showAlpha: false, modes: ['hex'] },
   },
   {
     field: 'theme_sideMenu_iconColor',
     label: '侧边栏图标',
     type: 'color',
     defaultValue: '#666666',
-    props: { showAlpha: false, modes: ['hex'] }
+    props: { showAlpha: false, modes: ['hex'] },
   },
   {
     field: 'theme_sideMenu_iconColorActive',
     label: '选中图标色',
     type: 'color',
     defaultValue: '#4242F7',
-    props: { showAlpha: false, modes: ['hex'] }
+    props: { showAlpha: false, modes: ['hex'] },
   },
   {
     field: 'theme_sideMenu_width',
     label: '菜单宽度',
     type: 'input',
     defaultValue: '220px',
-    props: { placeholder: '例如: 220px' }
+    props: { placeholder: '例如: 220px' },
   },
   {
     field: 'theme_sideMenu_collapsedWidth',
     label: '折叠宽度',
     type: 'input',
     defaultValue: '64px',
-    props: { placeholder: '例如: 64px' }
+    props: { placeholder: '例如: 64px' },
   },
   {
     field: 'theme_header_height',
     label: 'Header高度',
     type: 'input',
     defaultValue: '60px',
-    props: { placeholder: '例如: 60px' }
+    props: { placeholder: '例如: 60px' },
   },
 
   // ==================== 顶部菜单配置 ====================
@@ -438,43 +436,43 @@ const editSchema = ref([
     type: 'divider',
     label: '顶部菜单配置',
     props: { titlePlacement: 'left', dashed: true },
-    span: 2
+    span: 2,
   },
   {
     field: 'theme_topMenu_textColor',
     label: '菜单文字色',
     type: 'color',
     defaultValue: '#FFFFFF',
-    props: { showAlpha: false, modes: ['hex'] }
+    props: { showAlpha: false, modes: ['hex'] },
   },
   {
     field: 'theme_topMenu_textColorActive',
     label: '选中文字色',
     type: 'color',
     defaultValue: '#FFFFFF',
-    props: { showAlpha: false, modes: ['hex'] }
+    props: { showAlpha: false, modes: ['hex'] },
   },
   {
     field: 'theme_topMenu_backgroundColorActive',
     label: '选中背景色',
     type: 'color',
     defaultValue: '#ffffff',
-    props: { showAlpha: false, modes: ['hex'] }
+    props: { showAlpha: false, modes: ['hex'] },
   },
   {
     field: 'theme_topMenu_iconColor',
     label: '图标颜色',
     type: 'color',
     defaultValue: '#ffffff',
-    props: { showAlpha: false, modes: ['hex'] }
+    props: { showAlpha: false, modes: ['hex'] },
   },
   {
     field: 'theme_topMenu_iconActiveColor',
     label: '选中图标色',
     type: 'color',
     defaultValue: '#333333',
-    props: { showAlpha: false, modes: ['hex'] }
-  }
+    props: { showAlpha: false, modes: ['hex'] },
+  },
 ])
 
 // 编辑
@@ -496,10 +494,11 @@ function handleDelete(row) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('删除失败')
       }
-    }
+    },
   })
 }
 
@@ -523,10 +522,11 @@ function handleBatchDelete() {
           selectedKeys.value = []
           crudRef.value?.refresh()
         }
-      } catch (error) {
+      }
+      catch (error) {
         window.$message.error('批量删除失败')
       }
-    }
+    },
   })
 }
 
@@ -567,31 +567,31 @@ async function handleSubmitSuccess() {
       const primaryColor = tenantConfig.systemTheme || themeConfigObj.primaryColor || defaultThemeConfig.primaryColor
 
       const mergedConfig = {
-        primaryColor: primaryColor,
+        primaryColor,
         header: {
           ...defaultThemeConfig.header,
-          ...themeConfigObj.header
+          ...themeConfigObj.header,
         },
         headerDark: {
           ...defaultThemeConfig.headerDark,
-          ...themeConfigObj.headerDark
+          ...themeConfigObj.headerDark,
         },
         topMenu: {
           ...defaultThemeConfig.topMenu,
-          ...themeConfigObj.topMenu
+          ...themeConfigObj.topMenu,
         },
         topMenuDark: {
           ...defaultThemeConfig.topMenuDark,
-          ...themeConfigObj.topMenuDark
+          ...themeConfigObj.topMenuDark,
         },
         sideMenu: {
           ...defaultThemeConfig.sideMenu,
-          ...themeConfigObj.sideMenu
+          ...themeConfigObj.sideMenu,
         },
         sideMenuDark: {
           ...defaultThemeConfig.sideMenuDark,
-          ...themeConfigObj.sideMenuDark
-        }
+          ...themeConfigObj.sideMenuDark,
+        },
       }
 
       console.log('合并后的主题配置:', mergedConfig)
@@ -605,14 +605,15 @@ async function handleSubmitSuccess() {
 
     // 应用浏览器图标
     if (tenantConfig.browserIcon) {
-      const link = document.querySelector("link[rel*='icon']") || document.createElement('link')
+      const link = document.querySelector('link[rel*=\'icon\']') || document.createElement('link')
       link.type = 'image/x-icon'
       link.rel = 'shortcut icon'
       // 使用 getFileUrl 转换 fileId 为完整的下载 URL
       const iconUrl = tenantConfig.browserIcon
       if (iconUrl.startsWith('http://') || iconUrl.startsWith('https://') || iconUrl.startsWith('data:')) {
         link.href = iconUrl
-      } else {
+      }
+      else {
         link.href = getFileUrl(iconUrl)
       }
       document.getElementsByTagName('head')[0].appendChild(link)
@@ -669,7 +670,7 @@ function handleBeforeSubmit(formData) {
         iconColorActive: formData.theme_sideMenu_iconColorActive || '#d12723FF',
         width: formData.theme_sideMenu_width || '220px',
         collapsedWidth: formData.theme_sideMenu_collapsedWidth || '64px',
-      }
+      },
     }
 
     // 将主题配置转换为 JSON 字符串
@@ -712,7 +713,7 @@ function handleBeforeRenderDetail(data) {
       console.log('解析的主题配置:', themeConfig)
 
       // 拆解到各个字段
-      data.systemTheme = themeConfig.primaryColor  // 主题颜色
+      data.systemTheme = themeConfig.primaryColor // 主题颜色
       data.theme_header_backgroundColor = themeConfig.header?.backgroundColor || themeConfig.primaryColor
       data.theme_header_textColor = themeConfig.header?.textColor
       data.theme_header_height = themeConfig.header?.height
@@ -731,7 +732,8 @@ function handleBeforeRenderDetail(data) {
       data.theme_sideMenu_collapsedWidth = themeConfig.sideMenu?.collapsedWidth
 
       console.log('拆解后的数据:', data)
-    } catch (error) {
+    }
+    catch (error) {
       console.error('解析主题配置失败:', error)
     }
   }

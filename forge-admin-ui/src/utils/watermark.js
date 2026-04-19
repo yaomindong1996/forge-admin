@@ -1,13 +1,13 @@
+import { NWatermark } from 'naive-ui'
 /**
  * 水印工具
  * 基于 Naive UI 的 NWatermark 组件实现
  */
 import { createApp, h } from 'vue'
-import { NWatermark } from 'naive-ui'
 
 /**
  * 创建全屏水印
- * @param {Object} options - 水印配置选项
+ * @param {object} options - 水印配置选项
  * @param {string} options.content - 水印文本内容
  * @param {string} options.image - 水印图片地址
  * @param {number} options.fontSize - 字体大小，默认 14
@@ -20,7 +20,7 @@ import { NWatermark } from 'naive-ui'
  * @param {number} options.zIndex - 水印层级，默认 10
  * @param {boolean} options.fullscreen - 是否全屏，默认 true
  * @param {boolean} options.selectable - 文本是否可选，默认 true
- * @returns {Object} 返回包含 destroy 方法的对象，用于销毁水印
+ * @returns {object} 返回包含 destroy 方法的对象，用于销毁水印
  */
 export function createWatermark(options = {}) {
   const {
@@ -68,9 +68,9 @@ export function createWatermark(options = {}) {
         zIndex,
         fullscreen,
         selectable,
-        ...restProps
+        ...restProps,
       })
-    }
+    },
   })
 
   // 挂载应用
@@ -81,13 +81,13 @@ export function createWatermark(options = {}) {
     destroy() {
       app.unmount()
       document.body.removeChild(container)
-    }
+    },
   }
 }
 
 /**
  * 全局水印方法设置
- * @returns {Object} 返回全局水印方法
+ * @returns {object} 返回全局水印方法
  */
 export function setupWatermark() {
   let watermarkInstance = null
@@ -95,7 +95,7 @@ export function setupWatermark() {
   return {
     /**
      * 显示全屏水印
-     * @param {string|Object} options - 水印内容或配置对象
+     * @param {string | object} options - 水印内容或配置对象
      */
     show(options) {
       // 如果已存在水印，先销毁
@@ -122,10 +122,10 @@ export function setupWatermark() {
 
     /**
      * 更新水印（先销毁再创建）
-     * @param {string|Object} options - 新的水印配置
+     * @param {string | object} options - 新的水印配置
      */
     update(options) {
       return this.show(options)
-    }
+    },
   }
 }

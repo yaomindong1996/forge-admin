@@ -22,6 +22,7 @@ Recent versions of `@vue/tsconfig` changed `moduleResolution` from `"node"` to `
 ## Root Cause
 
 `moduleResolution: "bundler"` requires:
+
 1. TypeScript 5.0+
 2. Packages to have proper `exports` field in package.json
 3. Different resolution rules than Node.js classic resolution
@@ -29,6 +30,7 @@ Recent versions of `@vue/tsconfig` changed `moduleResolution` from `"node"` to `
 ## Fix
 
 **Option 1: Ensure TypeScript 5.0+ everywhere**
+
 ```bash
 npm install -D typescript@^5.0.0
 ```
@@ -36,6 +38,7 @@ npm install -D typescript@^5.0.0
 In monorepos, ALL packages must use TypeScript 5.0+.
 
 **Option 2: Add compatibility workaround**
+
 ```json
 {
   "compilerOptions": {
@@ -49,6 +52,7 @@ In monorepos, ALL packages must use TypeScript 5.0+.
 Setting `resolvePackageJsonExports: false` restores compatibility with packages that don't have proper exports.
 
 **Option 3: Revert to Node resolution**
+
 ```json
 {
   "compilerOptions": {
@@ -60,6 +64,7 @@ Setting `resolvePackageJsonExports: false` restores compatibility with packages 
 ## Which Packages Break?
 
 Packages break if they:
+
 - Lack `exports` field in package.json
 - Have incorrect `exports` configuration
 - Rely on Node.js-specific resolution behavior

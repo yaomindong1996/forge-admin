@@ -1,7 +1,7 @@
 <template>
   <div class="tree-node-actions" @mouseenter="showActions = true" @mouseleave="showActions = false">
     <div class="node-content">
-      <i v-if="node.icon" :class="node.icon" class="node-icon"></i>
+      <i v-if="node.icon" :class="node.icon" class="node-icon" />
       <span class="node-title">{{ node.label || node.title || node.name }}</span>
     </div>
 
@@ -25,21 +25,21 @@
       </n-tooltip>
 
       <!-- 编辑按钮 -->
-<!--      <n-tooltip v-if="canEdit">-->
-<!--        <template #trigger>-->
-<!--          <n-button-->
-<!--            size="tiny"-->
-<!--            circle-->
-<!--            quaternary-->
-<!--            @click.stop="handleAction('edit')"-->
-<!--          >-->
-<!--            <template #icon>-->
-<!--              <n-icon><CreateOutline /></n-icon>-->
-<!--            </template>-->
-<!--          </n-button>-->
-<!--        </template>-->
-<!--        编辑{{ nodeTypeText }}-->
-<!--      </n-tooltip>-->
+      <!--      <n-tooltip v-if="canEdit"> -->
+      <!--        <template #trigger> -->
+      <!--          <n-button -->
+      <!--            size="tiny" -->
+      <!--            circle -->
+      <!--            quaternary -->
+      <!--            @click.stop="handleAction('edit')" -->
+      <!--          > -->
+      <!--            <template #icon> -->
+      <!--              <n-icon><CreateOutline /></n-icon> -->
+      <!--            </template> -->
+      <!--          </n-button> -->
+      <!--        </template> -->
+      <!--        编辑{{ nodeTypeText }} -->
+      <!--      </n-tooltip> -->
 
       <!-- 删除按钮 -->
       <n-tooltip v-if="canDelete">
@@ -80,14 +80,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { AddCircleOutline, CreateOutline, TrashOutline, RefreshOutline } from '@vicons/ionicons5'
+import { AddCircleOutline, RefreshOutline, TrashOutline } from '@vicons/ionicons5'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
   node: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 })
 
 const emit = defineEmits(['action'])
@@ -146,7 +146,7 @@ const canDelete = computed(() => {
 function handleAction(action) {
   emit('action', {
     action,
-    node: props.node
+    node: props.node,
   })
 }
 </script>

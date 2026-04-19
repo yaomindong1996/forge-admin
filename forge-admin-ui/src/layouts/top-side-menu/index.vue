@@ -5,12 +5,12 @@
 
     <!-- 顶部一级菜单 -->
     <header
-      class="layout-header flex h-60 flex-shrink-0 items-center px-20"
+      class="layout-header h-60 flex flex-shrink-0 items-center px-20"
       border-b="1px solid light_border dark:dark_border"
     >
       <TheLogo class="mr-20" />
       <TheTitle />
-      <MenuCollapse class="mr-10"/>
+      <MenuCollapse class="mr-10" />
       <TopMenu class="top-menu-wrapper flex-1" />
 
       <!-- 菜单搜索 -->
@@ -20,18 +20,18 @@
 
       <div class="flex items-center">
         <span class="mx-6 opacity-20">|</span>
-        <div class="flex flex-shrink-0 items-center px-12 text-18">
-<!--          <ThemeConfigButton class="mr-16" />-->
+        <div class="text-18 flex flex-shrink-0 items-center px-12">
+          <!--          <ThemeConfigButton class="mr-16" /> -->
           <ToggleTheme />
           <Fullscreen />
-<!--          <ThemeSetting class="mr-16" />-->
+          <!--          <ThemeSetting class="mr-16" /> -->
           <MessageNotification class="mr-16" />
           <UserAvatar />
         </div>
       </div>
     </header>
 
-    <div class="flex w-full flex-1 overflow-hidden">
+    <div class="w-full flex flex-1 overflow-hidden">
       <!-- 左侧二级及以下菜单 - 只在有子菜单时显示 -->
       <aside
         v-if="showSidebar"
@@ -44,7 +44,7 @@
 
       <!-- 主内容区域 -->
       <article class="w-0 flex flex-col flex-1">
-        <AppCard :bordered="false" :padding="false" class="py-3 px-10" shadow="none" radius="none">
+        <AppCard :bordered="false" :padding="false" class="px-10 py-3" shadow="none" radius="none">
           <AppTab class="w-0 flex-1" />
         </AppCard>
         <div class="flex-1 overflow-auto bg-[#f2f3f5] p-12">
@@ -56,22 +56,20 @@
 </template>
 
 <script setup>
-import { useAppStore, usePermissionStore } from '@/store'
 import { AppCard } from '@/components/common'
 import DemoBanner from '@/components/DemoBanner.vue'
+import { TheTitle } from '@/components/index.js'
 import {
   AppTab,
-  BeginnerGuide,
   Fullscreen,
   MenuCollapse,
   MenuSearch,
   MessageNotification,
-  UserAvatar
+  UserAvatar,
 } from '@/layouts/components'
-import TopMenu from './components/TopMenu.vue'
+import { useAppStore, usePermissionStore } from '@/store'
 import SideMenu from './components/SideMenu.vue'
-import {TheTitle} from "@/components/index.js"
-import { processTopMenus } from '@/utils/menu-utils'
+import TopMenu from './components/TopMenu.vue'
 
 const appStore = useAppStore()
 const permissionStore = usePermissionStore()
@@ -95,7 +93,8 @@ const showSidebar = computed(() => {
         }
         if (item.children && item.children.length > 0) {
           const found = findInMenu(item.children, topMenu)
-          if (found) return found
+          if (found)
+            return found
         }
       }
       return null
@@ -110,7 +109,8 @@ const showSidebar = computed(() => {
       // 在顶级菜单的子菜单中查找
       if (topMenu.children && topMenu.children.length > 0) {
         const found = findInMenu(topMenu.children, topMenu)
-        if (found) return found
+        if (found)
+          return found
       }
     }
     return null

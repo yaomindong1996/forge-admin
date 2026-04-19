@@ -69,7 +69,7 @@ export const responsiveFontUnifiedPreset = definePreset(() => {
     ['text-sm', { 'font-size': 'calc(14px * var(--font-scale, 1)) !important' }],
     ['text-base', { 'font-size': 'calc(16px * var(--font-scale, 1)) !important' }],
     ['text-lg', { 'font-size': 'calc(18px * var(--font-scale, 1)) !important' }],
-    ['text-xl', { 'font-size': 'calc(20px * var(--font-scale, 1)) !important' }]
+    ['text-xl', { 'font-size': 'calc(20px * var(--font-scale, 1)) !important' }],
   ]
 
   // 静态行高规则
@@ -84,7 +84,7 @@ export const responsiveFontUnifiedPreset = definePreset(() => {
     ['leading-26', { 'line-height': 'calc(26px * var(--font-scale, 1)) !important' }],
     ['leading-28', { 'line-height': 'calc(28px * var(--font-scale, 1)) !important' }],
     ['leading-30', { 'line-height': 'calc(30px * var(--font-scale, 1)) !important' }],
-    ['leading-32', { 'line-height': 'calc(32px * var(--font-scale, 1)) !important' }]
+    ['leading-32', { 'line-height': 'calc(32px * var(--font-scale, 1)) !important' }],
   ]
 
   // 动态规则 - 处理任意数值，提供更大的灵活性
@@ -92,33 +92,33 @@ export const responsiveFontUnifiedPreset = definePreset(() => {
     // 处理text-xs, text-sm等预定义尺寸
     [/^text-(xs|sm|base|lg|xl)$/, ([_, size]) => {
       const sizes = {
-        'xs': '12px',
-        'sm': '14px',
-        'base': '16px',
-        'lg': '18px',
-        'xl': '20px'
+        xs: '12px',
+        sm: '14px',
+        base: '16px',
+        lg: '18px',
+        xl: '20px',
       }
 
       if (sizes[size]) {
         return {
-          'font-size': `calc(${sizes[size]} * var(--font-scale, 1)) !important`
+          'font-size': `calc(${sizes[size]} * var(--font-scale, 1)) !important`,
         }
       }
     }],
 
     // 处理line-height
     [/^leading-(\d+)$/, ([_, size]) => {
-      const value = parseInt(size)
+      const value = Number.parseInt(size)
       if (value > 0) {
         return {
-          'line-height': `calc(${value}px * var(--font-scale, 1)) !important`
+          'line-height': `calc(${value}px * var(--font-scale, 1)) !important`,
         }
       }
-    }]
+    }],
   ]
 
   // 合并所有规则 - 静态规则优先，动态规则作为补充
-  const allRules = [...staticFontSizeRules,...staticLineHeightRules,...dynamicRules]
+  const allRules = [...staticFontSizeRules, ...staticLineHeightRules, ...dynamicRules]
 
   return {
     name: 'responsive-font-unified-preset',
@@ -140,8 +140,8 @@ export const responsiveFontUnifiedPreset = definePreset(() => {
       ['responsive-text-lg', 'text-16px'],
 
       // 响应式辅助文本
-      ['responsive-caption', 'text-12px text-gray-500']
-    ]
+      ['responsive-caption', 'text-12px text-gray-500'],
+    ],
   }
 })
 

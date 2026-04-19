@@ -13,7 +13,7 @@
             <i class="i-material-symbols:palette" />
             <span class="section-title">颜色主题</span>
           </div>
-          
+
           <div class="color-presets">
             <div
               v-for="preset in colorPresets"
@@ -21,13 +21,15 @@
               class="color-preset"
               :style="{ background: preset.color }"
               :class="{ 'preset-active': activeColorPreset === preset.name }"
-              @click="applyColorPreset(preset)"
               :title="preset.name"
+              @click="applyColorPreset(preset)"
             />
           </div>
-          
+
           <div class="color-picker-wrapper">
-            <div class="color-picker-label">主色调</div>
+            <div class="color-picker-label">
+              主色调
+            </div>
             <n-color-picker
               v-model:value="customTheme.primaryColor"
               :show-alpha="false"
@@ -43,7 +45,7 @@
             <i class="i-material-symbols:rounded-corner" />
             <span class="section-title">圆角设置</span>
           </div>
-          
+
           <div class="radius-control">
             <div class="radius-labels">
               <span class="label-item">直角</span>
@@ -56,9 +58,11 @@
               :step="2"
               :marks="radiusMarks"
             />
-            <div class="radius-value">{{ customTheme.borderRadius }}px</div>
+            <div class="radius-value">
+              {{ customTheme.borderRadius }}px
+            </div>
           </div>
-          
+
           <div class="radius-preview">
             <div
               class="preview-box"
@@ -75,7 +79,7 @@
             <i class="i-material-symbols:space-bar" />
             <span class="section-title">间距密度</span>
           </div>
-          
+
           <div class="spacing-options">
             <div
               v-for="option in spacingOptions"
@@ -91,7 +95,7 @@
                   class="option-bar"
                   :style="{
                     height: `${20 * i * option.value}px`,
-                    gap: `${8 * option.value}px`
+                    gap: `${8 * option.value}px`,
                   }"
                 />
               </div>
@@ -106,18 +110,20 @@
             <i class="i-material-symbols:text-fields" />
             <span class="section-title">字体大小</span>
           </div>
-          
+
           <n-select
             v-model:value="customTheme.fontSize"
             :options="fontSizeOptions"
             size="small"
           />
-          
+
           <div class="font-preview">
             <div class="preview-text" :style="{ fontSize: `${customTheme.fontSize}px` }">
               这是预览文本
             </div>
-            <div class="preview-subtitle">Aa</div>
+            <div class="preview-subtitle">
+              Aa
+            </div>
           </div>
         </div>
 
@@ -127,18 +133,18 @@
             <i class="i-material-symbols:view-quilt" />
             <span class="section-title">布局设置</span>
           </div>
-          
+
           <div class="layout-options">
             <div class="layout-option">
               <span class="option-label">紧凑模式</span>
               <n-switch v-model:value="customTheme.compact" />
             </div>
-            
+
             <div class="layout-option">
               <span class="option-label">显示玻璃态</span>
               <n-switch v-model:value="customTheme.glassmorphism" />
             </div>
-            
+
             <div class="layout-option">
               <span class="option-label">显示边框</span>
               <n-switch v-model:value="customTheme.showBorders" />
@@ -152,7 +158,7 @@
             <i class="i-material-symbols:animation" />
             <span class="section-title">动画设置</span>
           </div>
-          
+
           <div class="animation-control">
             <div class="animation-label">
               <span>动画速度</span>
@@ -179,7 +185,7 @@
             <i class="i-material-symbols:check-circle" />
             应用主题
           </n-button>
-          
+
           <div class="action-row">
             <n-button
               secondary
@@ -189,7 +195,7 @@
             >
               重置默认
             </n-button>
-            
+
             <n-button
               secondary
               size="large"
@@ -206,12 +212,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { useAppStore } from '@/store'
 import { message } from 'naive-ui'
+import { computed, ref, watch } from 'vue'
+import { useAppStore } from '@/store'
 
 const props = defineProps({
-  show: Boolean
+  show: Boolean,
 })
 
 const emit = defineEmits(['update:show'])
@@ -220,7 +226,7 @@ const appStore = useAppStore()
 
 const visible = computed({
   get: () => props.show,
-  set: (value) => emit('update:show', value)
+  set: value => emit('update:show', value),
 })
 
 const activeColorPreset = ref('default')
@@ -232,7 +238,7 @@ const colorPresets = ref([
   { name: '绿色', color: '#10b981', value: '#10b981' },
   { name: '橙色', color: '#f59e0b', value: '#f59e0b' },
   { name: '红色', color: '#ef4444', value: '#ef4444' },
-  { name: '深灰', color: '#6b7280', value: '#6b7280' }
+  { name: '深灰', color: '#6b7280', value: '#6b7280' },
 ])
 
 // 圆角标记
@@ -240,7 +246,7 @@ const radiusMarks = computed(() => ({
   0: '0',
   8: '8',
   16: '16',
-  24: '24'
+  24: '24',
 }))
 
 // 间距选项
@@ -248,7 +254,7 @@ const spacingOptions = [
   { label: '紧凑', value: 0.75 },
   { label: '标准', value: 1 },
   { label: '舒适', value: 1.25 },
-  { label: '宽松', value: 1.5 }
+  { label: '宽松', value: 1.5 },
 ]
 
 // 字体大小选项
@@ -257,14 +263,14 @@ const fontSizeOptions = [
   { label: '默认 (14px)', value: 14 },
   { label: '中等 (15px)', value: 15 },
   { label: '大 (16px)', value: 16 },
-  { label: '特大 (17px)', value: 17 }
+  { label: '特大 (17px)', value: 17 },
 ]
 
 // 动画速度标签
 const animationLabels = {
   0: '慢',
   1: '正常',
-  2: '快'
+  2: '快',
 }
 
 // 自定义主题
@@ -276,7 +282,7 @@ const customTheme = ref({
   compact: appStore.themeConfig?.compact || false,
   glassmorphism: appStore.themeConfig?.glassmorphism || true,
   showBorders: appStore.themeConfig?.showBorders || true,
-  animationSpeed: appStore.themeConfig?.animationSpeed || 1
+  animationSpeed: appStore.themeConfig?.animationSpeed || 1,
 })
 
 // 应用颜色预设
@@ -295,9 +301,9 @@ function applyTheme() {
     compact: customTheme.value.compact,
     glassmorphism: customTheme.value.glassmorphism,
     showBorders: customTheme.value.showBorders,
-    animationSpeed: customTheme.value.animationSpeed
+    animationSpeed: customTheme.value.animationSpeed,
   }
-  
+
   appStore.updateThemeConfig(theme)
   applyThemeToDOM(theme)
   message.success('主题已应用')
@@ -306,25 +312,25 @@ function applyTheme() {
 // 应用主题到DOM
 function applyThemeToDOM(theme) {
   const root = document.documentElement
-  
+
   // 主色调
   root.style.setProperty('--base-primary-color', theme.primaryColor)
-  
+
   // 圆角
   root.style.setProperty('--radius-button', `${theme.borderRadius}px`)
   root.style.setProperty('--radius-input', `${theme.borderRadius}px`)
   root.style.setProperty('--radius-card', `${theme.borderRadius * 1.5}px`)
-  
+
   // 间距
   const baseSpacing = 8 * theme.spacingScale
   root.style.setProperty('--space-2', `${baseSpacing}px`)
   root.style.setProperty('--space-3', `${baseSpacing * 1.5}px`)
   root.style.setProperty('--space-4', `${baseSpacing * 2}px`)
   root.style.setProperty('--space-6', `${baseSpacing * 3}px`)
-  
+
   // 字体大小
   root.style.setProperty('--font-size-base', `${theme.fontSize}px`)
-  
+
   // 动画速度
   const speedMap = { 0: 400, 1: 200, 2: 150 }
   root.style.setProperty('--transition-base', `${speedMap[theme.animationSpeed]}ms`)
@@ -340,9 +346,9 @@ function resetTheme() {
     compact: false,
     glassmorphism: true,
     showBorders: true,
-    animationSpeed: 1
+    animationSpeed: 1,
   }
-  
+
   customTheme.value = { ...defaultTheme }
   activeColorPreset.value = '科技蓝'
   applyTheme()

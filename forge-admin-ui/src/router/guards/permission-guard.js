@@ -1,10 +1,9 @@
 import api from '@/api'
-import { request } from '@/utils'
-import { initKeyExchange } from '@/utils/crypto/key-exchange'
-import { useAuthStore, usePermissionStore, useUserStore, useTenantStore, useAppStore } from '@/store'
-import { getPermissions, getUserInfo } from '@/store/helper'
-import { lStorage, getFileUrl, initWebSocketClient } from '@/utils'
 import { WHITE_LIST } from '@/config/whitelist.config.js'
+import { useAppStore, useAuthStore, usePermissionStore, useTenantStore, useUserStore } from '@/store'
+import { getPermissions, getUserInfo } from '@/store/helper'
+import { getFileUrl, initWebSocketClient, lStorage, request } from '@/utils'
+import { initKeyExchange } from '@/utils/crypto/key-exchange'
 
 // 应用租户配置
 function applyTenantConfig(tenantConfig, appStore) {
@@ -25,36 +24,37 @@ function applyTenantConfig(tenantConfig, appStore) {
       const primaryColor = tenantConfig.systemTheme || themeConfigObj.primaryColor || defaultThemeConfig.primaryColor
 
       const mergedConfig = {
-        primaryColor: primaryColor,
+        primaryColor,
         header: {
           ...defaultThemeConfig.header,
-          ...themeConfigObj.header
+          ...themeConfigObj.header,
         },
         headerDark: {
           ...defaultThemeConfig.headerDark,
-          ...themeConfigObj.headerDark
+          ...themeConfigObj.headerDark,
         },
         topMenu: {
           ...defaultThemeConfig.topMenu,
-          ...themeConfigObj.topMenu
+          ...themeConfigObj.topMenu,
         },
         topMenuDark: {
           ...defaultThemeConfig.topMenuDark,
-          ...themeConfigObj.topMenuDark
+          ...themeConfigObj.topMenuDark,
         },
         sideMenu: {
           ...defaultThemeConfig.sideMenu,
-          ...themeConfigObj.sideMenu
+          ...themeConfigObj.sideMenu,
         },
         sideMenuDark: {
           ...defaultThemeConfig.sideMenuDark,
-          ...themeConfigObj.sideMenuDark
-        }
+          ...themeConfigObj.sideMenuDark,
+        },
       }
 
       appStore.setThemeConfig(mergedConfig)
     })
-  } else if (tenantConfig.systemTheme) {
+  }
+  else if (tenantConfig.systemTheme) {
     // 如果没有完整的主题配置，但有 systemTheme，直接应用
     appStore.setPrimaryColor(tenantConfig.systemTheme)
     appStore.setThemeColor(tenantConfig.systemTheme)
@@ -67,14 +67,15 @@ function applyTenantConfig(tenantConfig, appStore) {
 
   // 5. 应用浏览器图标
   if (tenantConfig.browserIcon) {
-    const link = document.querySelector("link[rel*='icon']") || document.createElement('link')
+    const link = document.querySelector('link[rel*=\'icon\']') || document.createElement('link')
     link.type = 'image/x-icon'
     link.rel = 'shortcut icon'
     // 使用 getFileUrl 转换 fileId 为完整的下载 URL
     const iconUrl = tenantConfig.browserIcon
     if (iconUrl.startsWith('http://') || iconUrl.startsWith('https://') || iconUrl.startsWith('data:')) {
       link.href = iconUrl
-    } else {
+    }
+    else {
       link.href = getFileUrl(iconUrl)
     }
     document.getElementsByTagName('head')[0].appendChild(link)
@@ -98,7 +99,8 @@ export function createPermissionGuard(router) {
         // 如果目标路径是登录页，不需要设置 redirect
         if (to.path === '/login') {
           next({ path: '/login' })
-        } else {
+        }
+        else {
           next({ path: '/login', query: { ...to.query, redirect: to.path } })
         }
         return
@@ -120,7 +122,8 @@ export function createPermissionGuard(router) {
           appStore.setRouteGuardCompleted(true)
           next({ path: '/' })
           return
-        } catch (error) {
+        }
+        catch (error) {
           // token 无效，清除 token 并允许访问登录页面
           console.log('Token 验证失败，允许访问登录页面')
           authStore.resetToken()
@@ -149,7 +152,7 @@ export function createPermissionGuard(router) {
           // 先获取用户信息和权限
           const [user, permissions] = await Promise.all([
             getUserInfo(),
-            getPermissions()
+            getPermissions(),
           ])
           userStore.setUser(user)
           // 同时存储到localStorage用于持久化
@@ -174,13 +177,15 @@ export function createPermissionGuard(router) {
           if (res.code === 200 && res.data) {
             console.log('设置菜单数据')
             permissionStore.setMenuData(res.data)
-          } else {
+          }
+          else {
             console.error('菜单数据获取失败或格式不正确:', res)
           }
 
           // 在成功获取用户信息和权限后初始化 WebSocket 客户端
           initWebSocketClient()
-        } catch (error) {
+        }
+        catch (error) {
           console.error('获取用户信息或菜单数据失败:', error)
           // 即使获取失败也继续，避免阻塞页面访问
         }
@@ -198,7 +203,7 @@ export function createPermissionGuard(router) {
           // 重新获取用户信息和权限
           const [user, permissions] = await Promise.all([
             getUserInfo(),
-            getPermissions()
+            getPermissions(),
           ])
           userStore.setUser(user)
           // 同时存储到localStorage用于持久化
@@ -220,10 +225,12 @@ export function createPermissionGuard(router) {
           const res = await api.getMenu(1)
           if (res.code === 200 && res.data) {
             permissionStore.setMenuData(res.data)
-          } else {
+          }
+          else {
             console.error('重新获取菜单数据失败或格式不正确:', res)
           }
-        } catch (error) {
+        }
+        catch (error) {
           console.error('重新获取用户信息或菜单数据失败:', error)
         }
       }
@@ -231,7 +238,8 @@ export function createPermissionGuard(router) {
       // unplugin-vue-router 自动处理路由，直接放行
       appStore.setRouteGuardCompleted(true)
       next()
-    } catch (error) {
+    }
+    catch (error) {
       console.error('路由守卫发生错误:', error)
       appStore.setRouteGuardCompleted(true)
       next({ name: '404', query: { path: to.fullPath } })

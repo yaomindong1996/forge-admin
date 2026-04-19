@@ -11,37 +11,47 @@
         <!-- 上传中 -->
         <template v-if="file.status === 'uploading'">
           <div class="uploading-mask">
-            <n-progress type="circle" :percentage="file.percentage || 0" :show-indicator="false" :stroke-width="4" style="width: 40px" />
+            <NProgress type="circle" :percentage="file.percentage || 0" :show-indicator="false" :stroke-width="4" style="width: 40px" />
           </div>
         </template>
 
         <!-- 上传完成/回显 -->
         <template v-else-if="file.status === 'finished'">
-          <img :src="file.url || file.thumbnailUrl" class="image-preview" @click="handlePreview(file)" />
+          <img :src="file.url || file.thumbnailUrl" class="image-preview" @click="handlePreview(file)">
           <div class="image-actions">
-            <n-icon class="action-icon" @click="handlePreview(file)"><EyeOutline /></n-icon>
-            <n-icon v-if="!disabled" class="action-icon delete" @click="handleRemoveFile(file)"><TrashOutline /></n-icon>
+            <NIcon class="action-icon" @click="handlePreview(file)">
+              <EyeOutline />
+            </NIcon>
+            <NIcon v-if="!disabled" class="action-icon delete" @click="handleRemoveFile(file)">
+              <TrashOutline />
+            </NIcon>
           </div>
         </template>
 
         <!-- 上传失败 -->
         <template v-else-if="file.status === 'error'">
           <div class="error-mask">
-            <n-icon size="24" color="#ff4d4f"><CloseCircleOutline /></n-icon>
+            <NIcon size="24" color="#ff4d4f">
+              <CloseCircleOutline />
+            </NIcon>
             <span class="error-text">上传失败</span>
           </div>
-          <n-icon v-if="!disabled" class="remove-icon" @click="handleRemoveFile(file)"><CloseOutline /></n-icon>
+          <NIcon v-if="!disabled" class="remove-icon" @click="handleRemoveFile(file)">
+            <CloseOutline />
+          </NIcon>
         </template>
       </div>
 
       <!-- 上传按钮 -->
       <div v-if="!disabled && fileList.length < limit" class="upload-trigger" @click="triggerUpload">
-        <n-icon size="24" color="#999"><AddOutline /></n-icon>
+        <NIcon size="24" color="#999">
+          <AddOutline />
+        </NIcon>
       </div>
     </div>
 
     <!-- 隐藏的上传组件 -->
-    <n-upload
+    <NUpload
       ref="uploadRef"
       :action="uploadUrl"
       :headers="headers"
@@ -60,100 +70,104 @@
 
     <!-- 上传提示 -->
     <div v-if="showTip" class="upload-tip">
-      <n-text depth="3" style="font-size: 12px">
+      <NText depth="3" style="font-size: 12px">
         请上传
         <template v-if="fileSize">
-          大小不超过 <n-text type="error" strong>{{ fileSize }}MB</n-text>
+          大小不超过 <NText type="error" strong>
+            {{ fileSize }}MB
+          </NText>
         </template>
         <template v-if="fileType && fileType.length > 0">
-          格式为 <n-text type="error" strong>{{ fileType.join('/') }}</n-text>
+          格式为 <NText type="error" strong>
+            {{ fileType.join('/') }}
+          </NText>
         </template>
         的图片
-      </n-text>
+      </NText>
     </div>
 
     <!-- 图片预览 -->
-    <n-modal
+    <NModal
       v-model:show="previewVisible"
       preset="card"
       title="图片预览"
       style="width: 800px"
       :bordered="false"
     >
-      <img :src="previewUrl" style="width: 100%; display: block" />
-    </n-modal>
+      <img :src="previewUrl" style="width: 100%; display: block">
+    </NModal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { NUpload, NIcon, NText, NModal, NProgress } from 'naive-ui'
-import { AddOutline, EyeOutline, TrashOutline, CloseOutline, CloseCircleOutline } from '@vicons/ionicons5'
+import { AddOutline, CloseCircleOutline, CloseOutline, EyeOutline, TrashOutline } from '@vicons/ionicons5'
+import { NIcon, NModal, NProgress, NText, NUpload } from 'naive-ui'
+import { computed, ref, watch } from 'vue'
 import { useAuthStore } from '@/store'
-import {generateUUID, getFileUrl} from '@/utils'
+import { generateUUID, getFileUrl } from '@/utils'
 
 const props = defineProps({
   // v-model 绑定的值
   modelValue: {
     type: [String, Array],
-    default: ''
+    default: '',
   },
   // 上传地址
   action: {
     type: String,
-    default: '/api/file/upload'
+    default: '/api/file/upload',
   },
   // 业务类型
   businessType: {
     type: String,
-    default: 'image'
+    default: 'image',
   },
   // 业务ID
   businessId: {
     type: String,
-    default: ''
+    default: '',
   },
   // 存储类型
   storageType: {
     type: String,
-    default: 'local'
+    default: 'local',
   },
   // 图片数量限制
   limit: {
     type: Number,
-    default: 5
+    default: 5,
   },
   // 大小限制(MB)
   fileSize: {
     type: Number,
-    default: 5
+    default: 5,
   },
   // 文件类型，例如['png', 'jpg', 'jpeg']
   fileType: {
     type: Array,
-    default: () => ['png', 'jpg', 'jpeg', 'webp', 'gif']
+    default: () => ['png', 'jpg', 'jpeg', 'webp', 'gif'],
   },
   // 是否支持多选
   multiple: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 是否显示提示
   showTip: {
     type: Boolean,
-    default: true
+    default: true,
   },
   // 是否禁用
   disabled: {
     type: Boolean,
-    default: false
+    default: false,
   },
   // 返回值类型: string-逗号分隔的URL字符串, array-URL数组
   valueType: {
     type: String,
     default: 'string',
-    validator: (value) => ['string', 'array'].includes(value)
-  }
+    validator: value => ['string', 'array'].includes(value),
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'success', 'error', 'remove'])
@@ -175,9 +189,9 @@ const uploadUrl = computed(() => {
 const headers = computed(() => {
   const token = authStore.accessToken
   return {
-    Authorization: token ? `Bearer ${token}` : '',
-    'X-Timestamp':Date.now().toString(),
-    'X-Nonce':generateUUID()
+    'Authorization': token ? `Bearer ${token}` : '',
+    'X-Timestamp': Date.now().toString(),
+    'X-Nonce': generateUUID(),
   }
 })
 
@@ -186,7 +200,7 @@ const uploadData = computed(() => {
   return {
     businessType: props.businessType,
     businessId: props.businessId,
-    storageType: props.storageType
+    storageType: props.storageType,
   }
 })
 
@@ -201,7 +215,8 @@ watch(() => props.modelValue, async (val) => {
 
   if (props.valueType === 'array') {
     list = Array.isArray(val) ? val : []
-  } else {
+  }
+  else {
     // 字符串格式，逗号分隔
     list = typeof val === 'string' ? val.split(',').filter(Boolean) : []
   }
@@ -220,17 +235,17 @@ watch(() => props.modelValue, async (val) => {
       fileId: url.includes('/') ? null : url,
       filePath: url.includes('/') ? url : null,
       url: fullUrl,
-      thumbnailUrl: fullUrl,  // Naive UI image-card 模式需要
+      thumbnailUrl: fullUrl, // Naive UI image-card 模式需要
       status: 'finished',
-      percentage: 100
+      percentage: 100,
     }
 
     // 尝试转换为 blob URL
     try {
       const response = await fetch(fullUrl, {
         headers: {
-          Authorization: token ? `Bearer ${token}` : ''
-        }
+          Authorization: token ? `Bearer ${token}` : '',
+        },
       })
 
       if (response.ok) {
@@ -239,7 +254,8 @@ watch(() => props.modelValue, async (val) => {
         fileItem.url = blobUrl
         fileItem.thumbnailUrl = blobUrl
       }
-    } catch (err) {
+    }
+    catch (err) {
       console.warn('图片加载失败，使用原始URL:', err)
     }
 
@@ -256,13 +272,16 @@ function handleBeforeUpload({ file }) {
   if (props.fileType && props.fileType.length > 0) {
     const fileName = file.name
     const fileExt = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase()
-    isImg = props.fileType.some(type => {
-      if (file.type.indexOf(type) > -1) return true
-      if (fileExt && fileExt.indexOf(type) > -1) return true
+    isImg = props.fileType.some((type) => {
+      if (file.type.includes(type))
+        return true
+      if (fileExt && fileExt.includes(type))
+        return true
       return false
     })
-  } else {
-    isImg = file.type.indexOf('image') > -1
+  }
+  else {
+    isImg = file.type.includes('image')
   }
 
   if (!isImg) {
@@ -309,7 +328,8 @@ function handleFinish({ file, event }) {
       if (file.file) {
         try {
           displayUrl = URL.createObjectURL(file.file)
-        } catch (err) {
+        }
+        catch (err) {
           console.warn('创建本地 blob URL 失败:', err)
         }
       }
@@ -320,7 +340,7 @@ function handleFinish({ file, event }) {
         filePath: fileData.filePath,
         originalUrl: fileData.fileId || fileData.filePath,
         url: displayUrl,
-        thumbnailUrl: displayUrl
+        thumbnailUrl: displayUrl,
       }
       filePropsCache.set(file.id, cachedProps)
 
@@ -340,13 +360,15 @@ function handleFinish({ file, event }) {
       }, 100)
 
       return file
-    } else {
+    }
+    else {
       file.status = 'error'
       window.$message.error(response.msg || '上传失败')
       emit('error', response)
       return file
     }
-  } catch (error) {
+  }
+  catch (error) {
     file.status = 'error'
     window.$message.error('上传失败')
     emit('error', error)
@@ -398,8 +420,8 @@ async function handlePreview(file) {
     const token = authStore.accessToken
     const response = await fetch(file.url, {
       headers: {
-        Authorization: token ? `Bearer ${token}` : ''
-      }
+        Authorization: token ? `Bearer ${token}` : '',
+      },
     })
 
     if (!response.ok) {
@@ -410,7 +432,8 @@ async function handlePreview(file) {
     const blobUrl = URL.createObjectURL(blob)
     previewUrl.value = blobUrl
     previewVisible.value = true
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('图片预览失败')
     console.error('图片预览失败:', error)
   }
@@ -419,12 +442,12 @@ async function handlePreview(file) {
 // 文件列表变化
 function handleFileListChange(newFileList) {
   // 从缓存中恢复自定义属性
-  const updatedList = newFileList.map(newFile => {
+  const updatedList = newFileList.map((newFile) => {
     const cached = filePropsCache.get(newFile.id)
     if (cached) {
       return {
         ...newFile,
-        ...cached
+        ...cached,
       }
     }
     // 也尝试从已有列表中获取
@@ -436,7 +459,7 @@ function handleFileListChange(newFileList) {
         filePath: newFile.filePath || existingFile.filePath,
         originalUrl: newFile.originalUrl || existingFile.originalUrl,
         url: newFile.url || existingFile.url,
-        thumbnailUrl: newFile.thumbnailUrl || existingFile.thumbnailUrl || newFile.url || existingFile.url
+        thumbnailUrl: newFile.thumbnailUrl || existingFile.thumbnailUrl || newFile.url || existingFile.url,
       }
     }
     return newFile
@@ -453,12 +476,12 @@ function emitValue() {
     fileId: f.fileId,
     filePath: f.filePath,
     originalUrl: f.originalUrl,
-    status: f.status
+    status: f.status,
   })))
 
   if (props.valueType === 'array') {
     // 返回数组（优先使用 fileId，其次 filePath，再其次 originalUrl）
-    const result = finishedFiles.map(file => {
+    const result = finishedFiles.map((file) => {
       const value = file.fileId || file.filePath || file.originalUrl
       // 过滤掉 blob: URL 和空值
       if (!value || (typeof value === 'string' && value.startsWith('blob:'))) {
@@ -468,9 +491,10 @@ function emitValue() {
     }).filter(Boolean)
     console.log('[ImageUpload] emit array result:', result)
     emit('update:modelValue', result)
-  } else {
+  }
+  else {
     // 返回逗号分隔的字符串（优先使用 fileId，其次 filePath，再其次 originalUrl）
-    const result = finishedFiles.map(file => {
+    const result = finishedFiles.map((file) => {
       const value = file.fileId || file.filePath || file.originalUrl
       // 过滤掉 blob: URL 和空值
       if (!value || (typeof value === 'string' && value.startsWith('blob:'))) {
@@ -501,7 +525,7 @@ defineExpose({
   clear: () => {
     fileList.value = []
     emitValue()
-  }
+  },
 })
 </script>
 

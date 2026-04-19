@@ -28,6 +28,7 @@ Update the "Vue - Official" extension to latest version. It manages the language
 ### NeoVim (nvim-lspconfig)
 
 **Option 1: Use vtsls instead of ts_ls**
+
 ```lua
 -- Replace ts_ls/tsserver with vtsls
 require('lspconfig').vtsls.setup({})
@@ -35,6 +36,7 @@ require('lspconfig').volar.setup({})
 ```
 
 **Option 2: Downgrade vue-language-server**
+
 ```bash
 npm install -g @vue/language-server@2.1.10
 ```
@@ -45,14 +47,15 @@ Update to latest Vue plugin. If issues persist, disable and re-enable the Vue pl
 
 ## What Changed in 3.0
 
-| Feature | Volar 2.x | Volar 3.0 |
-|---------|-----------|-----------|
+| Feature                | Volar 2.x      | Volar 3.0                  |
+| ---------------------- | -------------- | -------------------------- |
 | TypeScript integration | ts_ls/tsserver | vtsls recommended (Neovim) |
-| Hybrid mode | Optional | Default |
+| Hybrid mode            | Optional       | Default                    |
 
 ## Workaround: Stay on 2.x
 
 If upgrading is not possible:
+
 ```bash
 npm install -g @vue/language-server@^2.0.0
 ```

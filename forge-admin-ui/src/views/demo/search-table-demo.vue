@@ -1,8 +1,4 @@
 <script>
-export default {
-  name: 'SearchTableDemo',
-  title: '搜索表格示例',
-}
 </script>
 
 <template>
@@ -16,44 +12,50 @@ export default {
         @search="handleSearch"
       >
         <template #extra-actions>
-          <n-button @click="handleExport">
-            <template #icon><n-icon><DownloadOutline /></n-icon></template>
+          <NButton @click="handleExport">
+            <template #icon>
+              <n-icon><DownloadOutline /></n-icon>
+            </template>
             导出
-          </n-button>
+          </NButton>
         </template>
       </AiSearch>
 
       <!-- 工具栏 -->
-      <n-space justify="space-between" style="margin-bottom: 16px">
-        <n-space>
-          <n-button type="primary" @click="handleAdd">
-            <template #icon><n-icon><AddOutline /></n-icon></template>
+      <NSpace justify="space-between" style="margin-bottom: 16px">
+        <NSpace>
+          <NButton type="primary" @click="handleAdd">
+            <template #icon>
+              <n-icon><AddOutline /></n-icon>
+            </template>
             新增
-          </n-button>
-          <n-button
+          </NButton>
+          <NButton
             type="error"
             :disabled="selectedKeys.length === 0"
             @click="handleBatchDelete"
           >
             批量删除 ({{ selectedKeys.length }})
-          </n-button>
-        </n-space>
-        <n-space>
-          <n-button @click="loadData">
-            <template #icon><n-icon><RefreshOutline /></n-icon></template>
+          </NButton>
+        </NSpace>
+        <NSpace>
+          <NButton @click="loadData">
+            <template #icon>
+              <n-icon><RefreshOutline /></n-icon>
+            </template>
             刷新
-          </n-button>
-        </n-space>
-      </n-space>
+          </NButton>
+        </NSpace>
+      </NSpace>
 
       <!-- 数据表格 -->
       <AiTable
         ref="tableRef"
+        v-model:checked-row-keys="selectedKeys"
         :columns="tableColumns"
         :data-source="tableData"
         :loading="loading"
         :pagination="pagination"
-        v-model:checked-row-keys="selectedKeys"
         @page-change="handlePageChange"
         @page-size-change="handlePageSizeChange"
       />
@@ -71,10 +73,15 @@ export default {
 </template>
 
 <script setup>
-import { ref, h, onMounted } from 'vue'
-import { AiSearch, AiTable, FieldFactory } from '@/components/ai-form'
+import { AddOutline, DownloadOutline, RefreshOutline } from '@vicons/ionicons5'
 import { NButton, NSpace, NTag } from 'naive-ui'
-import { AddOutline, RefreshOutline, DownloadOutline } from '@vicons/ionicons5'
+import { h, onMounted, ref } from 'vue'
+import { AiSearch, AiTable, FieldFactory } from '@/components/ai-form'
+
+export default {
+  name: 'SearchTableDemo',
+  title: '搜索表格示例',
+}
 
 // 使用全局的 message 和 dialog
 const message = window.$message
@@ -86,21 +93,21 @@ const searchParams = ref({})
 
 const searchSchema = [
   FieldFactory.input('keyword', '关键词', {
-    placeholder: '请输入关键词搜索'
+    placeholder: '请输入关键词搜索',
   }),
   FieldFactory.select('status', '状态', [
     { label: '全部', value: null },
     { label: '启用', value: 1 },
-    { label: '禁用', value: 0 }
+    { label: '禁用', value: 0 },
   ]),
   FieldFactory.select('category', '分类', [
     { label: '全部', value: null },
     { label: '技术', value: 'tech' },
     { label: '产品', value: 'product' },
-    { label: '运营', value: 'operation' }
+    { label: '运营', value: 'operation' },
   ]),
   FieldFactory.date('createTime', '创建日期'),
-  FieldFactory.input('creator', '创建人')
+  FieldFactory.input('creator', '创建人'),
 ]
 
 // 表格
@@ -113,7 +120,7 @@ const pagination = ref({
   pageSize: 10,
   itemCount: 0,
   showSizePicker: true,
-  pageSizes: [10, 20, 50, 100]
+  pageSizes: [10, 20, 50, 100],
 })
 
 const tableColumns = [
@@ -121,12 +128,12 @@ const tableColumns = [
     prop: 'id',
     label: 'ID',
     width: 80,
-    fixed: 'left'
+    fixed: 'left',
   },
   {
     prop: 'name',
     label: '名称',
-    width: 150
+    width: 150,
   },
   {
     prop: 'category',
@@ -136,11 +143,11 @@ const tableColumns = [
       const categoryMap = {
         tech: { text: '技术', type: 'info' },
         product: { text: '产品', type: 'success' },
-        operation: { text: '运营', type: 'warning' }
+        operation: { text: '运营', type: 'warning' },
       }
       const config = categoryMap[row.category] || { text: row.category, type: 'default' }
       return h(NTag, { type: config.type }, { default: () => config.text })
-    }
+    },
   },
   {
     prop: 'status',
@@ -149,16 +156,16 @@ const tableColumns = [
     align: 'center',
     render: (row) => {
       return h(NTag, {
-        type: row.status === 1 ? 'success' : 'error'
+        type: row.status === 1 ? 'success' : 'error',
       }, {
-        default: () => row.status === 1 ? '启用' : '禁用'
+        default: () => row.status === 1 ? '启用' : '禁用',
       })
-    }
+    },
   },
   {
     prop: 'creator',
     label: '创建人',
-    width: 120
+    width: 120,
   },
   {
     prop: 'createTime',
@@ -166,12 +173,12 @@ const tableColumns = [
     width: 180,
     formatter: (row, column, value) => {
       return value ? new Date(value).toLocaleString() : '-'
-    }
+    },
   },
   {
     prop: 'description',
     label: '描述',
-    width: 200
+    width: 200,
   },
   {
     prop: 'action',
@@ -184,22 +191,22 @@ const tableColumns = [
           h(NButton, {
             size: 'small',
             type: 'primary',
-            onClick: () => handleEdit(row)
+            onClick: () => handleEdit(row),
           }, { default: () => '编辑' }),
           h(NButton, {
             size: 'small',
             type: 'warning',
-            onClick: () => handleToggleStatus(row)
+            onClick: () => handleToggleStatus(row),
           }, { default: () => row.status === 1 ? '禁用' : '启用' }),
           h(NButton, {
             size: 'small',
             type: 'error',
-            onClick: () => handleDelete(row)
-          }, { default: () => '删除' })
-        ]
+            onClick: () => handleDelete(row),
+          }, { default: () => '删除' }),
+        ],
       })
-    }
-  }
+    },
+  },
 ]
 
 // 生成模拟数据
@@ -215,7 +222,7 @@ function generateMockData(count = 50) {
     status: Math.random() > 0.5 ? 1 : 0,
     creator: creators[index % creators.length],
     createTime: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-    description: `这是第${index + 1}条数据的描述信息`
+    description: `这是第${index + 1}条数据的描述信息`,
   }))
 }
 
@@ -232,8 +239,8 @@ function loadData() {
 
     if (searchParams.value.keyword) {
       filtered = filtered.filter(item =>
-        item.name.includes(searchParams.value.keyword) ||
-        item.description.includes(searchParams.value.keyword)
+        item.name.includes(searchParams.value.keyword)
+        || item.description.includes(searchParams.value.keyword),
       )
     }
 
@@ -304,7 +311,7 @@ function handleToggleStatus(row) {
     onPositiveClick: () => {
       row.status = newStatus
       message.success(`${statusText}成功`)
-    }
+    },
   })
 }
 
@@ -322,7 +329,7 @@ function handleDelete(row) {
         loadData()
         message.success('删除成功')
       }
-    }
+    },
   })
 }
 
@@ -336,7 +343,7 @@ function handleBatchDelete() {
     positiveText: '删除',
     negativeText: '取消',
     onPositiveClick: () => {
-      selectedKeys.value.forEach(id => {
+      selectedKeys.value.forEach((id) => {
         const index = allData.findIndex(item => item.id === id)
         if (index > -1) {
           allData.splice(index, 1)
@@ -345,7 +352,7 @@ function handleBatchDelete() {
       selectedKeys.value = []
       loadData()
       message.success('批量删除成功')
-    }
+    },
   })
 }
 

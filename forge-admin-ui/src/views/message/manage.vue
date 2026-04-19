@@ -90,7 +90,9 @@
       </n-form>
       <template #footer>
         <n-space justify="end">
-          <n-button @click="showSendModal = false">取消</n-button>
+          <n-button @click="showSendModal = false">
+            取消
+          </n-button>
           <n-button type="primary" :loading="sending" @click="handleSend">
             发送
           </n-button>
@@ -105,22 +107,22 @@
           {{ currentDetail?.message?.title }}
         </n-descriptions-item>
         <n-descriptions-item label="消息类型">
-          <n-tag :type="getTypeColor(currentDetail?.message?.type)" size="small">
+          <NTag :type="getTypeColor(currentDetail?.message?.type)" size="small">
             {{ getTypeText(currentDetail?.message?.type) }}
-          </n-tag>
+          </NTag>
         </n-descriptions-item>
         <n-descriptions-item label="发送渠道">
-          <n-tag :type="getChannelColor(currentDetail?.message?.sendChannel)" size="small">
+          <NTag :type="getChannelColor(currentDetail?.message?.sendChannel)" size="small">
             {{ getChannelText(currentDetail?.message?.sendChannel) }}
-          </n-tag>
+          </NTag>
         </n-descriptions-item>
         <n-descriptions-item label="发送时间">
           {{ currentDetail?.message?.createTime }}
         </n-descriptions-item>
         <n-descriptions-item label="发送状态">
-          <n-tag :type="getStatusColor(currentDetail?.sendRecord?.status)" size="small">
+          <NTag :type="getStatusColor(currentDetail?.sendRecord?.status)" size="small">
             {{ getStatusText(currentDetail?.sendRecord?.status) }}
-          </n-tag>
+          </NTag>
         </n-descriptions-item>
         <n-descriptions-item label="接收人数">
           {{ currentDetail?.sendRecord?.receiverCount }}
@@ -132,7 +134,9 @@
           {{ currentDetail?.sendRecord?.failCount }}
         </n-descriptions-item>
         <n-descriptions-item v-if="currentDetail?.sendRecord?.errorMsg" label="错误信息" :span="2">
-          <n-text type="error">{{ currentDetail?.sendRecord?.errorMsg }}</n-text>
+          <n-text type="error">
+            {{ currentDetail?.sendRecord?.errorMsg }}
+          </n-text>
         </n-descriptions-item>
         <n-descriptions-item v-if="currentDetail?.message?.bizType" label="业务类型">
           {{ getBizTypeName(currentDetail?.message?.bizType) }}
@@ -143,7 +147,7 @@
       </n-descriptions>
 
       <n-divider>消息内容</n-divider>
-      <div class="message-content" v-html="currentDetail?.message?.content"></div>
+      <div class="message-content" v-html="currentDetail?.message?.content" />
 
       <n-divider>接收人列表</n-divider>
       <n-data-table
@@ -156,10 +160,10 @@
 </template>
 
 <script setup>
-import { ref, h, computed } from 'vue'
 import { NTag } from 'naive-ui'
-import { AiCrudPage } from '@/components/ai-form'
+import { computed, h, ref } from 'vue'
 import messageApi from '@/api/message'
+import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
 defineOptions({ name: 'MessageManage' })
@@ -182,12 +186,12 @@ const sendForm = ref({
   userIds: [],
   type: 'SYSTEM',
   bizType: null,
-  bizKey: ''
+  bizKey: '',
 })
 
 const apiConfig = {
   list: 'post@/api/message/manage/page',
-  detail: 'get@/api/message/manage/{id}/detail'
+  detail: 'get@/api/message/manage/{id}/detail',
 }
 
 const searchSchema = [
@@ -200,9 +204,9 @@ const searchSchema = [
       clearable: true,
       options: [
         { label: '系统消息', value: 'SYSTEM' },
-        { label: '自定义', value: 'CUSTOM' }
-      ]
-    }
+        { label: '自定义', value: 'CUSTOM' },
+      ],
+    },
   },
   {
     field: 'channel',
@@ -214,9 +218,9 @@ const searchSchema = [
       options: [
         { label: '站内信', value: 'WEB' },
         { label: '短信', value: 'SMS' },
-        { label: '邮件', value: 'EMAIL' }
-      ]
-    }
+        { label: '邮件', value: 'EMAIL' },
+      ],
+    },
   },
   {
     field: 'status',
@@ -228,17 +232,17 @@ const searchSchema = [
       options: [
         { label: '草稿', value: 0 },
         { label: '已发送', value: 1 },
-        { label: '发送失败', value: 2 }
-      ]
-    }
+        { label: '发送失败', value: 2 },
+      ],
+    },
   },
   {
     field: 'keyword',
     label: '关键词',
     type: 'input',
     props: {
-      placeholder: '搜索标题或内容'
-    }
+      placeholder: '搜索标题或内容',
+    },
   },
   {
     field: 'timeRange',
@@ -246,16 +250,16 @@ const searchSchema = [
     type: 'daterange',
     props: {
       type: 'datetimerange',
-      clearable: true
-    }
-  }
+      clearable: true,
+    },
+  },
 ]
 
 const tableColumns = computed(() => [
   {
     prop: 'title',
     label: '消息标题',
-    ellipsis: { tooltip: true }
+    ellipsis: { tooltip: true },
   },
   {
     prop: 'type',
@@ -264,9 +268,9 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h(NTag, {
         type: getTypeColor(row.type),
-        size: 'small'
+        size: 'small',
       }, { default: () => getTypeText(row.type) })
-    }
+    },
   },
   {
     prop: 'channel',
@@ -275,9 +279,9 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h(NTag, {
         type: getChannelColor(row.channel),
-        size: 'small'
+        size: 'small',
       }, { default: () => getChannelText(row.channel) })
-    }
+    },
   },
   {
     prop: 'status',
@@ -286,25 +290,25 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h(NTag, {
         type: getStatusColor(row.status),
-        size: 'small'
+        size: 'small',
       }, { default: () => getStatusText(row.status) })
-    }
+    },
   },
   {
     prop: 'receiverCount',
     label: '接收人数',
-    width: 100
+    width: 100,
   },
   {
     prop: 'readStatus',
     label: '已读/未读',
     width: 120,
-    render: (row) => `${row.readCount}/${row.unreadCount}`
+    render: row => `${row.readCount}/${row.unreadCount}`,
   },
   {
     prop: 'createTime',
     label: '发送时间',
-    width: 180
+    width: 180,
   },
   {
     prop: 'action',
@@ -312,9 +316,9 @@ const tableColumns = computed(() => [
     width: 80,
     fixed: 'right',
     actions: [
-      { label: '详情', key: 'detail', onClick: handleViewDetail }
-    ]
-  }
+      { label: '详情', key: 'detail', onClick: handleViewDetail },
+    ],
+  },
 ])
 
 const receiverColumns = [
@@ -324,29 +328,29 @@ const receiverColumns = [
     title: '阅读状态',
     key: 'readFlag',
     width: 100,
-    render: (row) => h(NTag, {
+    render: row => h(NTag, {
       type: row.readFlag === 1 ? 'success' : 'error',
-      size: 'small'
-    }, { default: () => row.readFlag === 1 ? '已读' : '未读' })
+      size: 'small',
+    }, { default: () => row.readFlag === 1 ? '已读' : '未读' }),
   },
-  { title: '阅读时间', key: 'readTime', width: 180 }
+  { title: '阅读时间', key: 'readTime', width: 180 },
 ]
 
 const channelOptions = [
   { label: '站内信', value: 'WEB' },
   { label: '短信', value: 'SMS' },
-  { label: '邮件', value: 'EMAIL' }
+  { label: '邮件', value: 'EMAIL' },
 ]
 
 const scopeOptions = [
   { label: '指定人员', value: 'USERS' },
   { label: '指定组织', value: 'ORG' },
-  { label: '全员', value: 'ALL' }
+  { label: '全员', value: 'ALL' },
 ]
 
 const typeOptions = [
   { label: '系统消息', value: 'SYSTEM' },
-  { label: '自定义', value: 'CUSTOM' }
+  { label: '自定义', value: 'CUSTOM' },
 ]
 
 function handleBeforeSearch(params) {
@@ -368,18 +372,20 @@ async function loadUsers(keyword = '') {
     const params = {
       pageNum: 1,
       pageSize: 50,
-      realName: keyword || undefined
+      realName: keyword || undefined,
     }
     const res = await request.get('/system/user/page', params)
     if (res.code === 200 && res.data) {
       userOptions.value = (res.data.records || []).map(user => ({
         label: user.realName || user.userName,
-        value: user.id
+        value: user.id,
       }))
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载用户列表失败:', error)
-  } finally {
+  }
+  finally {
     userLoading.value = false
   }
 }
@@ -407,13 +413,16 @@ async function handleSend() {
       showSendModal.value = false
       handleResetSendForm()
       crudRef.value?.refresh()
-    } else {
+    }
+    else {
       window.$message.error(res.msg || '发送失败')
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('发送消息失败:', error)
     window.$message.error('发送失败')
-  } finally {
+  }
+  finally {
     sending.value = false
   }
 }
@@ -428,7 +437,7 @@ function handleResetSendForm() {
     userIds: [],
     type: 'SYSTEM',
     bizType: null,
-    bizKey: ''
+    bizKey: '',
   }
 }
 
@@ -438,10 +447,11 @@ async function loadBizTypes() {
     if (res.code === 200 && res.data) {
       bizTypeOptions.value = res.data.map(item => ({
         label: item.bizName,
-        value: item.bizType
+        value: item.bizType,
       }))
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载业务类型失败:', error)
   }
 }
@@ -458,29 +468,30 @@ async function handleViewDetail(row) {
       currentDetail.value = res.data
       showDetail.value = true
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取消息详情失败:', error)
     window.$message.error('获取详情失败')
   }
 }
 
 function getTypeText(type) {
-  const map = { 'SYSTEM': '系统消息', 'SMS': '短信', 'EMAIL': '邮件', 'CUSTOM': '自定义' }
+  const map = { SYSTEM: '系统消息', SMS: '短信', EMAIL: '邮件', CUSTOM: '自定义' }
   return map[type] || type
 }
 
 function getTypeColor(type) {
-  const map = { 'SYSTEM': 'info', 'SMS': 'warning', 'EMAIL': 'success', 'CUSTOM': 'default' }
+  const map = { SYSTEM: 'info', SMS: 'warning', EMAIL: 'success', CUSTOM: 'default' }
   return map[type] || 'default'
 }
 
 function getChannelText(channel) {
-  const map = { 'WEB': '站内信', 'SMS': '短信', 'EMAIL': '邮件', 'PUSH': '推送' }
+  const map = { WEB: '站内信', SMS: '短信', EMAIL: '邮件', PUSH: '推送' }
   return map[channel] || channel
 }
 
 function getChannelColor(channel) {
-  const map = { 'WEB': 'default', 'SMS': 'warning', 'EMAIL': 'success', 'PUSH': 'info' }
+  const map = { WEB: 'default', SMS: 'warning', EMAIL: 'success', PUSH: 'info' }
   return map[channel] || 'default'
 }
 

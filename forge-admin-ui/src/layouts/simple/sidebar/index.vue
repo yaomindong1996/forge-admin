@@ -37,7 +37,7 @@ const appStore = useAppStore()
   align-items: center;
   justify-content: space-around;
   padding: 16px 12px;
-  border-top: 1px solid #F1F5F9;
+  border-top: 1px solid #f1f5f9;
   gap: 8px;
 }
 

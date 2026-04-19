@@ -1,5 +1,5 @@
 <template>
-  <router-link to="/" class="mr-10 color-[#ffffff] text-14 cursor-pointer hover:opacity-80 transition-opacity">
+  <router-link to="/" class="text-14 mr-10 cursor-pointer color-[#ffffff] transition-opacity hover:opacity-80">
     {{ systemName }}
   </router-link>
 </template>

@@ -3,13 +3,13 @@
     <n-tooltip trigger="hover" placement="left">
       <template #trigger>
         <div id="layout-setting" class="f-c-c rounded-4 bg-primary p-8" @click="modalRef.open()">
-          <i class="ai-icon:settings cursor-pointer bg-white text-20" />
+          <i class="ai-icon:settings text-20 cursor-pointer bg-white" />
         </div>
       </template>
       布局设置
     </n-tooltip>
 
-    <ai-modal ref="modalRef" title="布局设置" :show-footer="false" width="700px">
+    <AiModal ref="modalRef" title="布局设置" :show-footer="false" width="700px">
       <div class="layout-grid">
         <div class="layout-item" @click="appStore.setLayout('simple')">
           <div class="layout-preview">
@@ -52,7 +52,7 @@
           <div class="layout-preview">
             <div class="w-full">
               <n-skeleton :width="104" :height="10" />
-              <div class="flex mt-2">
+              <div class="mt-2 flex">
                 <n-skeleton :width="104" :height="46" />
               </div>
             </div>
@@ -72,7 +72,7 @@
           <div class="layout-preview">
             <div class="w-full">
               <n-skeleton :width="104" :height="10" />
-              <div class="flex mt-2">
+              <div class="mt-2 flex">
                 <n-skeleton :width="20" :height="46" />
                 <div class="ml-2 flex-1">
                   <n-skeleton :width="80" :height="46" />
@@ -130,14 +130,14 @@
       <p class="mt-16 opacity-50">
         注: 此设置仅对未设置layout或者设置成跟随系统的页面有效，菜单设置的layout优先级最高
       </p>
-    </ai-modal>
+    </AiModal>
   </div>
 </template>
 
 <script setup>
-import AiModal from "../ai-modal/index.vue"
 import { useModal } from '@/composables'
 import { useAppStore } from '@/store'
+import AiModal from '../ai-modal/index.vue'
 
 const appStore = useAppStore()
 const [modalRef] = useModal()

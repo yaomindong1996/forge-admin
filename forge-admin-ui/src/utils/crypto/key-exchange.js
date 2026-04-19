@@ -1,23 +1,23 @@
+import { cryptoConfig, updateCryptoConfig } from './crypto-config'
 /**
  * 密钥交换服务
  * 负责与后端进行动态密钥协商
  */
 import { rsaEncrypt } from './rsa'
-import { cryptoConfig, updateCryptoConfig } from './crypto-config'
 
 // 密钥存储键名
 const STORAGE_KEYS = {
   SESSION_KEY: 'crypto_session_key',
   PUBLIC_KEY: 'crypto_public_key',
-  EXCHANGED: 'crypto_exchanged'
+  EXCHANGED: 'crypto_exchanged',
 }
 
 // 密钥交换状态
 const keyExchangeState = {
-  publicKey: null,       // RSA 公钥
-  sessionKey: null,      // 会话密钥
-  exchanged: false,      // 是否已完成密钥交换
-  exchanging: false,     // 是否正在进行密钥交换
+  publicKey: null, // RSA 公钥
+  sessionKey: null, // 会话密钥
+  exchanged: false, // 是否已完成密钥交换
+  exchanging: false, // 是否正在进行密钥交换
 }
 
 /**
@@ -28,7 +28,7 @@ function restoreKeyState() {
     const sessionKey = localStorage.getItem(STORAGE_KEYS.SESSION_KEY)
     const publicKey = localStorage.getItem(STORAGE_KEYS.PUBLIC_KEY)
     const exchanged = localStorage.getItem(STORAGE_KEYS.EXCHANGED) === 'true'
-    
+
     if (sessionKey) {
       keyExchangeState.sessionKey = sessionKey
       keyExchangeState.exchanged = exchanged
@@ -36,11 +36,12 @@ function restoreKeyState() {
       updateCryptoConfig({ secretKey: sessionKey })
       console.log('[Crypto] 密钥状态已从本地存储恢复')
     }
-    
+
     if (publicKey) {
       keyExchangeState.publicKey = publicKey
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('[Crypto] 恢复密钥状态失败:', error)
   }
 }
@@ -57,7 +58,8 @@ function saveKeyState() {
     if (keyExchangeState.publicKey) {
       localStorage.setItem(STORAGE_KEYS.PUBLIC_KEY, keyExchangeState.publicKey)
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('[Crypto] 保存密钥状态失败:', error)
   }
 }
@@ -70,7 +72,8 @@ function clearStoredKeyState() {
     localStorage.removeItem(STORAGE_KEYS.SESSION_KEY)
     localStorage.removeItem(STORAGE_KEYS.PUBLIC_KEY)
     localStorage.removeItem(STORAGE_KEYS.EXCHANGED)
-  } catch (error) {
+  }
+  catch (error) {
     console.error('[Crypto] 清除密钥状态失败:', error)
   }
 }
@@ -111,7 +114,8 @@ export async function fetchPublicKey(axios, forceRefresh = false) {
       return keyExchangeState.publicKey
     }
     throw new Error(res?.msg || '获取公钥失败')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取公钥失败:', error)
     throw error
   }
@@ -164,9 +168,7 @@ export async function exchangeKey(axios, sessionId) {
       headers['X-Session-Id'] = sessionId
     }
 
-    const res = await axios.post('/crypto/exchange', 
-      { encryptedKey },
-      { headers }
+    const res = await axios.post('/crypto/exchange', { encryptedKey }, { headers },
     )
 
     // 拦截器已处理，返回的是 data 对象
@@ -174,22 +176,24 @@ export async function exchangeKey(axios, sessionId) {
       // 5. 保存会话密钥并更新配置
       keyExchangeState.sessionKey = sessionKey
       keyExchangeState.exchanged = true
-      
+
       // 更新加密配置使用新的会话密钥
       updateCryptoConfig({ secretKey: sessionKey })
-      
+
       // 持久化密钥状态
       saveKeyState()
-      
+
       console.log('[Crypto] 密钥交换成功')
       return true
     }
 
     throw new Error(res?.msg || '密钥交换失败')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('密钥交换失败:', error)
     return false
-  } finally {
+  }
+  finally {
     keyExchangeState.exchanging = false
   }
 }
@@ -218,13 +222,13 @@ export function resetKeyExchange() {
   keyExchangeState.sessionKey = null
   keyExchangeState.exchanged = false
   keyExchangeState.exchanging = false
-  
+
   // 清除本地存储
   clearStoredKeyState()
-  
+
   // 重置加密配置
   updateCryptoConfig({ secretKey: '' })
-  
+
   console.log('[Crypto] 密钥交换状态已重置')
 }
 
@@ -256,7 +260,8 @@ export async function encryptPassword(password, axios) {
     // 使用 RSA 公钥加密密码
     const encryptedPassword = rsaEncrypt(password, publicKey)
     return encryptedPassword
-  } catch (error) {
+  }
+  catch (error) {
     console.error('密码加密失败:', error)
     // 加密失败时返回原密码（降级方案）
     return password

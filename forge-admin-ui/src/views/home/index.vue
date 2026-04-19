@@ -14,9 +14,15 @@
             </div>
           </div>
           <div class="stat-body">
-            <div class="stat-value">{{ stat.value }}</div>
-            <div class="stat-title">{{ stat.title }}</div>
-            <div class="stat-desc">{{ stat.desc }}</div>
+            <div class="stat-value">
+              {{ stat.value }}
+            </div>
+            <div class="stat-title">
+              {{ stat.title }}
+            </div>
+            <div class="stat-desc">
+              {{ stat.desc }}
+            </div>
           </div>
         </div>
       </div>
@@ -36,7 +42,7 @@
           </n-button>
         </div>
         <div class="card-body">
-          <div ref="visitChartRef" class="chart-container"></div>
+          <div ref="visitChartRef" class="chart-container" />
         </div>
       </div>
 
@@ -55,8 +61,10 @@
         <div class="card-body">
           <n-scrollbar style="max-height: 340px">
             <div v-if="noticeList.length === 0" class="empty-state">
-              <i class="ai-icon:inbox empty-icon" />
-              <div class="empty-text">暂无公告</div>
+              <i class="empty-icon ai-icon:inbox" />
+              <div class="empty-text">
+                暂无公告
+              </div>
             </div>
             <div v-else class="notice-list">
               <div
@@ -66,8 +74,8 @@
                 @click="handleViewNotice(notice)"
               >
                 <div class="notice-header">
-                  <span v-if="notice.isRead === 0" class="unread-badge"></span>
-                  <n-ellipsis :line-clamp="1" class="notice-title" :class="{ 'unread': notice.isRead === 0 }">
+                  <span v-if="notice.isRead === 0" class="unread-badge" />
+                  <n-ellipsis :line-clamp="1" class="notice-title" :class="{ unread: notice.isRead === 0 }">
                     {{ notice.noticeTitle }}
                   </n-ellipsis>
                 </div>
@@ -95,7 +103,7 @@
           </n-button>
         </div>
         <div class="card-body">
-          <div ref="salesChartRef" class="chart-container"></div>
+          <div ref="salesChartRef" class="chart-container" />
         </div>
       </div>
 
@@ -111,7 +119,7 @@
           </n-button>
         </div>
         <div class="card-body">
-          <div ref="userChartRef" class="chart-container"></div>
+          <div ref="userChartRef" class="chart-container" />
         </div>
       </div>
     </div>
@@ -135,7 +143,9 @@
             <div class="quick-link-icon" :style="{ background: item.gradient }">
               <i :class="item.icon" />
             </div>
-            <div class="quick-link-title">{{ item.title }}</div>
+            <div class="quick-link-title">
+              {{ item.title }}
+            </div>
           </div>
         </div>
       </div>
@@ -161,12 +171,14 @@
           </n-space>
         </div>
         <n-divider />
-        <div class="detail-content" v-html="currentNotice.noticeContent"></div>
+        <div class="detail-content" v-html="currentNotice.noticeContent" />
 
         <!-- 附件下载 -->
         <div v-if="currentNotice.attachments && currentNotice.attachments.length > 0" class="detail-attachments">
           <n-divider />
-          <div class="attachment-title">附件</div>
+          <div class="attachment-title">
+            附件
+          </div>
           <n-space vertical>
             <div
               v-for="file in currentNotice.attachments"
@@ -187,9 +199,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
+import { nextTick, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { request } from '@/utils'
 
 const router = useRouter()
@@ -203,7 +215,7 @@ const statsData = ref([
     desc: '较昨日增长',
     trend: 'up',
     icon: 'ai-icon:users',
-    gradient: 'linear-gradient(135deg, #4242F7 0%, #6366F1 100%)'
+    gradient: 'linear-gradient(135deg, #4242F7 0%, #6366F1 100%)',
   },
   {
     title: '总订单数',
@@ -212,7 +224,7 @@ const statsData = ref([
     desc: '较昨日增长',
     trend: 'up',
     icon: 'ai-icon:shopping-cart',
-    gradient: 'linear-gradient(135deg, #5AC8FA 0%, #38BDF8 100%)'
+    gradient: 'linear-gradient(135deg, #5AC8FA 0%, #38BDF8 100%)',
   },
   {
     title: '总收入',
@@ -221,7 +233,7 @@ const statsData = ref([
     desc: '较昨日下降',
     trend: 'down',
     icon: 'ai-icon:dollar-sign',
-    gradient: 'linear-gradient(135deg, #6EE7B7 0%, #34D399 100%)'
+    gradient: 'linear-gradient(135deg, #6EE7B7 0%, #34D399 100%)',
   },
   {
     title: '增长率',
@@ -230,8 +242,8 @@ const statsData = ref([
     desc: '较上月增长',
     trend: 'up',
     icon: 'ai-icon:trending-up',
-    gradient: 'linear-gradient(135deg, #A78BFA 0%, #8B5CF6 100%)'
-  }
+    gradient: 'linear-gradient(135deg, #A78BFA 0%, #8B5CF6 100%)',
+  },
 ])
 
 // 快捷入口
@@ -241,7 +253,7 @@ const quickLinks = ref([
   { title: '菜单管理', icon: 'ai-icon:menu', gradient: 'linear-gradient(135deg, #5AC8FA 0%, #38BDF8 100%)', path: '/system/menu' },
   { title: '组织管理', icon: 'ai-icon:layers', gradient: 'linear-gradient(135deg, #6EE7B7 0%, #34D399 100%)', path: '/system/org' },
   { title: '通知公告', icon: 'ai-icon:bell', gradient: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)', path: '/system/notice' },
-  { title: '系统配置', icon: 'ai-icon:settings', gradient: 'linear-gradient(135deg, #A78BFA 0%, #8B5CF6 100%)', path: '/system/config' }
+  { title: '系统配置', icon: 'ai-icon:settings', gradient: 'linear-gradient(135deg, #A78BFA 0%, #8B5CF6 100%)', path: '/system/config' },
 ])
 
 // 通知公告相关
@@ -259,12 +271,13 @@ const userChartRef = ref(null)
 async function loadNoticeList() {
   try {
     const res = await request.get('/system/notice/user/page', {
-      params: { pageNum: 1, pageSize: 5 }
+      params: { pageNum: 1, pageSize: 5 },
     })
     if (res.code === 200) {
       noticeList.value = res.data.records || []
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('加载通知公告失败:', error)
   }
 }
@@ -276,7 +289,8 @@ async function loadUnreadCount() {
     if (res.code === 200) {
       unreadCount.value = res.data
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取未读数量失败:', error)
   }
 }
@@ -285,7 +299,7 @@ async function loadUnreadCount() {
 async function handleViewNotice(notice) {
   try {
     const res = await request.post('/system/notice/getById', null, {
-      params: { noticeId: notice.noticeId }
+      params: { noticeId: notice.noticeId },
     })
     if (res.code === 200) {
       currentNotice.value = res.data
@@ -296,7 +310,8 @@ async function handleViewNotice(notice) {
         await markAsRead(notice.noticeId)
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('获取详情失败')
   }
 }
@@ -305,11 +320,12 @@ async function handleViewNotice(notice) {
 async function markAsRead(noticeId) {
   try {
     await request.post('/system/notice/markAsRead', null, {
-      params: { noticeId }
+      params: { noticeId },
     })
     loadNoticeList()
     loadUnreadCount()
-  } catch (error) {
+  }
+  catch (error) {
     console.error('标记已读失败:', error)
   }
 }
@@ -355,23 +371,26 @@ function handleDownloadAttachment(file) {
     link.click()
     document.body.removeChild(link)
     window.$message.success('开始下载')
-  } catch (error) {
+  }
+  catch (error) {
     window.$message.error('下载失败')
   }
 }
 
 // 格式化文件大小
 function formatFileSize(bytes) {
-  if (!bytes) return '0 B'
+  if (!bytes)
+    return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
+  return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`
 }
 
 // 格式化时间
 function formatTime(time) {
-  if (!time) return '-'
+  if (!time)
+    return '-'
   const date = new Date(time)
   const now = new Date()
   const diff = now - date
@@ -379,10 +398,14 @@ function formatTime(time) {
   const hour = 60 * minute
   const day = 24 * hour
 
-  if (diff < minute) return '刚刚'
-  if (diff < hour) return Math.floor(diff / minute) + '分钟前'
-  if (diff < day) return Math.floor(diff / hour) + '小时前'
-  if (diff < 7 * day) return Math.floor(diff / day) + '天前'
+  if (diff < minute)
+    return '刚刚'
+  if (diff < hour)
+    return `${Math.floor(diff / minute)}分钟前`
+  if (diff < day)
+    return `${Math.floor(diff / hour)}小时前`
+  if (diff < 7 * day)
+    return `${Math.floor(diff / day)}天前`
 
   return time.split(' ')[0]
 }
@@ -390,9 +413,9 @@ function formatTime(time) {
 // 获取公告类型文本
 function getNoticeTypeText(type) {
   const typeMap = {
-    'NOTICE': '通知公告',
-    'ANNOUNCEMENT': '系统公告',
-    'NEWS': '新闻动态'
+    NOTICE: '通知公告',
+    ANNOUNCEMENT: '系统公告',
+    NEWS: '新闻动态',
   }
   return typeMap[type] || type
 }
@@ -400,9 +423,9 @@ function getNoticeTypeText(type) {
 // 获取公告类型颜色
 function getNoticeTypeColor(type) {
   const colorMap = {
-    'NOTICE': 'info',
-    'ANNOUNCEMENT': 'warning',
-    'NEWS': 'success'
+    NOTICE: 'info',
+    ANNOUNCEMENT: 'warning',
+    NEWS: 'success',
   }
   return colorMap[type] || 'default'
 }
@@ -417,51 +440,51 @@ function initVisitChart() {
       borderColor: '#E2E8F0',
       borderWidth: 1,
       textStyle: {
-        color: '#1E293B'
+        color: '#1E293B',
       },
       padding: [12, 16],
       axisPointer: {
         type: 'shadow',
         shadowStyle: {
-          color: 'rgba(59, 130, 246, 0.1)'
-        }
-      }
+          color: 'rgba(59, 130, 246, 0.1)',
+        },
+      },
     },
     grid: {
       left: '3%',
       right: '4%',
       bottom: '3%',
       top: '10%',
-      containLabel: true
+      containLabel: true,
     },
     xAxis: {
       type: 'category',
       data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
       axisTick: {
-        show: false
+        show: false,
       },
       axisLine: {
         lineStyle: {
-          color: '#E2E8F0'
-        }
+          color: '#E2E8F0',
+        },
       },
       axisLabel: {
         color: '#64748B',
-        fontSize: 12
-      }
+        fontSize: 12,
+      },
     },
     yAxis: {
       type: 'value',
       splitLine: {
         lineStyle: {
           color: '#F1F5F9',
-          type: 'dashed'
-        }
+          type: 'dashed',
+        },
       },
       axisLabel: {
         color: '#64748B',
-        fontSize: 12
-      }
+        fontSize: 12,
+      },
     },
     series: [
       {
@@ -473,19 +496,19 @@ function initVisitChart() {
           borderRadius: [8, 8, 0, 0],
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#4242F7' },
-            { offset: 1, color: '#6366F1' }
-          ])
+            { offset: 1, color: '#6366F1' },
+          ]),
         },
         emphasis: {
           itemStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: '#5A5AF7' },
-              { offset: 1, color: '#4242F7' }
-            ])
-          }
-        }
-      }
-    ]
+              { offset: 1, color: '#4242F7' },
+            ]),
+          },
+        },
+      },
+    ],
   }
   chart.setOption(option)
   window.addEventListener('resize', () => chart.resize())
@@ -501,21 +524,21 @@ function initSalesChart() {
       borderColor: '#E2E8F0',
       borderWidth: 1,
       textStyle: {
-        color: '#1E293B'
+        color: '#1E293B',
       },
       padding: [12, 16],
-      formatter: '{b}: {c} ({d}%)'
+      formatter: '{b}: {c} ({d}%)',
     },
     legend: {
       bottom: '5%',
       left: 'center',
       textStyle: {
         color: '#64748B',
-        fontSize: 12
+        fontSize: 12,
       },
       itemWidth: 12,
       itemHeight: 12,
-      itemGap: 16
+      itemGap: 16,
     },
     series: [
       {
@@ -527,81 +550,81 @@ function initSalesChart() {
         itemStyle: {
           borderRadius: 8,
           borderColor: '#fff',
-          borderWidth: 3
+          borderWidth: 3,
         },
         label: {
-          show: false
+          show: false,
         },
         emphasis: {
           label: {
             show: true,
             fontSize: 16,
             fontWeight: 'bold',
-            color: '#1E293B'
+            color: '#1E293B',
           },
           itemStyle: {
             shadowBlur: 10,
             shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.3)'
-          }
+            shadowColor: 'rgba(0, 0, 0, 0.3)',
+          },
         },
         labelLine: {
-          show: false
+          show: false,
         },
         data: [
-          { 
-            value: 1048, 
+          {
+            value: 1048,
             name: '电子产品',
-            itemStyle: { 
+            itemStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
                 { offset: 0, color: '#4242F7' },
-                { offset: 1, color: '#6366F1' }
-              ])
-            }
+                { offset: 1, color: '#6366F1' },
+              ]),
+            },
           },
-          { 
-            value: 735, 
+          {
+            value: 735,
             name: '服装鞋帽',
-            itemStyle: { 
+            itemStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
                 { offset: 0, color: '#5AC8FA' },
-                { offset: 1, color: '#38BDF8' }
-              ])
-            }
+                { offset: 1, color: '#38BDF8' },
+              ]),
+            },
           },
-          { 
-            value: 580, 
+          {
+            value: 580,
             name: '食品饮料',
-            itemStyle: { 
+            itemStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
                 { offset: 0, color: '#6EE7B7' },
-                { offset: 1, color: '#34D399' }
-              ])
-            }
+                { offset: 1, color: '#34D399' },
+              ]),
+            },
           },
-          { 
-            value: 484, 
+          {
+            value: 484,
             name: '图书文具',
-            itemStyle: { 
+            itemStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
                 { offset: 0, color: '#A78BFA' },
-                { offset: 1, color: '#8B5CF6' }
-              ])
-            }
+                { offset: 1, color: '#8B5CF6' },
+              ]),
+            },
           },
-          { 
-            value: 300, 
+          {
+            value: 300,
             name: '其他',
-            itemStyle: { 
+            itemStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
                 { offset: 0, color: '#FBBF24' },
-                { offset: 1, color: '#F59E0B' }
-              ])
-            }
-          }
-        ]
-      }
-    ]
+                { offset: 1, color: '#F59E0B' },
+              ]),
+            },
+          },
+        ],
+      },
+    ],
   }
   chart.setOption(option)
   window.addEventListener('resize', () => chart.resize())
@@ -617,52 +640,52 @@ function initUserChart() {
       borderColor: '#E2E8F0',
       borderWidth: 1,
       textStyle: {
-        color: '#1E293B'
+        color: '#1E293B',
       },
       padding: [12, 16],
       axisPointer: {
         type: 'line',
         lineStyle: {
           color: '#CBD5E1',
-          type: 'dashed'
-        }
-      }
+          type: 'dashed',
+        },
+      },
     },
     grid: {
       left: '3%',
       right: '4%',
       bottom: '3%',
       top: '10%',
-      containLabel: true
+      containLabel: true,
     },
     xAxis: {
       type: 'category',
       data: ['1月', '2月', '3月', '4月', '5月', '6月'],
       axisTick: {
-        show: false
+        show: false,
       },
       axisLine: {
         lineStyle: {
-          color: '#E2E8F0'
-        }
+          color: '#E2E8F0',
+        },
       },
       axisLabel: {
         color: '#64748B',
-        fontSize: 12
-      }
+        fontSize: 12,
+      },
     },
     yAxis: {
       type: 'value',
       splitLine: {
         lineStyle: {
           color: '#F1F5F9',
-          type: 'dashed'
-        }
+          type: 'dashed',
+        },
       },
       axisLabel: {
         color: '#64748B',
-        fontSize: 12
-      }
+        fontSize: 12,
+      },
     },
     series: [
       {
@@ -676,19 +699,19 @@ function initUserChart() {
           width: 3,
           color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
             { offset: 0, color: '#6EE7B7' },
-            { offset: 1, color: '#34D399' }
-          ])
+            { offset: 1, color: '#34D399' },
+          ]),
         },
         itemStyle: {
           color: '#34D399',
           borderColor: '#fff',
-          borderWidth: 2
+          borderWidth: 2,
         },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(110, 231, 183, 0.25)' },
-            { offset: 1, color: 'rgba(52, 211, 153, 0.02)' }
-          ])
+            { offset: 1, color: 'rgba(52, 211, 153, 0.02)' },
+          ]),
         },
         emphasis: {
           itemStyle: {
@@ -696,11 +719,11 @@ function initUserChart() {
             borderColor: '#fff',
             borderWidth: 3,
             shadowBlur: 10,
-            shadowColor: 'rgba(52, 211, 153, 0.4)'
-          }
-        }
-      }
-    ]
+            shadowColor: 'rgba(52, 211, 153, 0.4)',
+          },
+        },
+      },
+    ],
   }
   chart.setOption(option)
   window.addEventListener('resize', () => chart.resize())
@@ -913,7 +936,7 @@ onMounted(() => {
 
 .card-title i {
   font-size: 20px;
-  color: #4242F7;
+  color: #4242f7;
 }
 
 .card-body {
@@ -962,7 +985,7 @@ onMounted(() => {
 }
 
 .notice-item:hover {
-  background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
   border-color: rgba(99, 102, 241, 0.2);
   transform: translateX(4px);
 }
@@ -978,7 +1001,7 @@ onMounted(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4242F7, #6366F1);
+  background: linear-gradient(135deg, #4242f7, #6366f1);
   flex-shrink: 0;
   margin-top: 5px;
   animation: pulse 2s ease-in-out infinite;
@@ -1062,9 +1085,9 @@ onMounted(() => {
 }
 
 .attachment-item:hover {
-  background: linear-gradient(135deg, #EEF2FF 0%, #C7D2FE 100%);
-  border-color: #A5B4FC;
-  color: #4242F7;
+  background: linear-gradient(135deg, #eef2ff 0%, #c7d2fe 100%);
+  border-color: #a5b4fc;
+  color: #4242f7;
   transform: translateX(4px);
 }
 
@@ -1125,7 +1148,7 @@ onMounted(() => {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .quick-links-grid {
     grid-template-columns: repeat(4, 1fr);
   }
@@ -1135,7 +1158,7 @@ onMounted(() => {
   .content-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .charts-grid {
     grid-template-columns: 1fr;
   }
@@ -1158,7 +1181,7 @@ onMounted(() => {
   .stat-value {
     font-size: 24px;
   }
-  
+
   .stat-icon-wrapper {
     width: 48px;
     height: 48px;
@@ -1189,7 +1212,7 @@ onMounted(() => {
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .quick-links-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1197,7 +1220,8 @@ onMounted(() => {
 
 /* ===== 动画 ===== */
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
@@ -1219,7 +1243,7 @@ onMounted(() => {
   .unread-badge {
     animation: none;
   }
-  
+
   .stat-icon-wrapper,
   .quick-link-icon,
   .stat-trend {
@@ -1282,7 +1306,7 @@ onMounted(() => {
 }
 
 .dark .card-title i {
-  color: #6366F1;
+  color: #6366f1;
 }
 
 .dark .attachment-item {
@@ -1304,7 +1328,7 @@ onMounted(() => {
 }
 
 .dark .unread-badge {
-  background: linear-gradient(135deg, #6366F1, #818CF8);
+  background: linear-gradient(135deg, #6366f1, #818cf8);
   box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
 }
 </style>

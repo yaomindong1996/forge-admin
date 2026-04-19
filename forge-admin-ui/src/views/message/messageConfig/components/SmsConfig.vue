@@ -11,8 +11,12 @@
       >
         <n-form-item label="状态" path="status">
           <n-switch v-model:value="formData.status" :checked-value="1" :unchecked-value="0">
-            <template #checked>启用</template>
-            <template #unchecked>禁用</template>
+            <template #checked>
+              启用
+            </template>
+            <template #unchecked>
+              禁用
+            </template>
           </n-switch>
         </n-form-item>
 
@@ -53,23 +57,23 @@
         <!-- 阿里云自定义配置 -->
         <template v-if="formData.supplier === 'alibaba'">
           <n-divider>阿里云自定义配置</n-divider>
-          
+
           <n-form-item label="模板变量名称">
             <n-input v-model:value="extraConfig.alibaba.templateName" placeholder="模板变量名称（可选）" />
           </n-form-item>
-          
+
           <n-form-item label="请求地址">
             <n-input v-model:value="extraConfig.alibaba.requestUrl" placeholder="默认: dysmsapi.aliyuncs.com" />
           </n-form-item>
-          
+
           <n-form-item label="接口名称">
             <n-input v-model:value="extraConfig.alibaba.action" placeholder="默认: SendSms" />
           </n-form-item>
-          
+
           <n-form-item label="接口版本号">
             <n-input v-model:value="extraConfig.alibaba.version" placeholder="默认: 2017-05-25" />
           </n-form-item>
-          
+
           <n-form-item label="地域信息">
             <n-input v-model:value="extraConfig.alibaba.regionId" placeholder="默认: cn-hangzhou" />
           </n-form-item>
@@ -78,36 +82,36 @@
         <!-- 腾讯云自定义配置 -->
         <template v-if="formData.supplier === 'tencent'">
           <n-divider>腾讯云自定义配置</n-divider>
-          
+
           <n-form-item label="SDK AppId">
             <n-input v-model:value="extraConfig.tencent.sdkAppId" placeholder="请输入 SDK AppId" />
           </n-form-item>
-          
+
           <n-form-item label="地域信息">
             <n-input v-model:value="extraConfig.tencent.territory" placeholder="默认: ap-guangzhou" />
           </n-form-item>
-          
+
           <n-form-item label="验证码短信请求地址">
             <n-input v-model:value="extraConfig.tencent.codeUrl" placeholder="默认: https://api.netease.im/sms/sendcode.action" />
           </n-form-item>
-          
+
           <n-form-item label="请求超时时间">
             <n-input-number v-model:value="extraConfig.tencent.connTimeout" :min="1" placeholder="默认: 60" style="width: 200px" />
             <span class="ml-8 text-gray-500">秒</span>
           </n-form-item>
-          
+
           <n-form-item label="请求地址">
             <n-input v-model:value="extraConfig.tencent.requestUrl" placeholder="默认: sms.tencentcloudapi.com" />
           </n-form-item>
-          
+
           <n-form-item label="接口名称">
             <n-input v-model:value="extraConfig.tencent.action" placeholder="默认: SendSms" />
           </n-form-item>
-          
+
           <n-form-item label="接口版本">
             <n-input v-model:value="extraConfig.tencent.version" placeholder="默认: 2021-01-11" />
           </n-form-item>
-          
+
           <n-form-item label="服务名">
             <n-input v-model:value="extraConfig.tencent.service" placeholder="默认: sms" />
           </n-form-item>
@@ -116,9 +120,11 @@
         <!-- 中国移动云MAS自定义配置 -->
         <template v-if="formData.supplier === 'mas'">
           <n-divider>中国移动云MAS自定义配置</n-divider>
-          
+
           <n-alert type="info" class="mb-16">
-            <template #header>字段说明</template>
+            <template #header>
+              字段说明
+            </template>
             <ul class="text-12">
               <li>SDK AppId = 接口账号用户名</li>
               <li>AccessKey Secret = 用户密码</li>
@@ -126,23 +132,23 @@
               <li>签名编码 = 签名编码</li>
             </ul>
           </n-alert>
-          
+
           <n-form-item label="企业名称">
             <n-input v-model:value="extraConfig.mas.ecName" placeholder="请输入企业名称" />
           </n-form-item>
-          
+
           <n-form-item label="签名编码">
             <n-input v-model:value="extraConfig.mas.signature" placeholder="请输入签名编码" />
           </n-form-item>
-          
+
           <n-form-item label="模板ID">
             <n-input v-model:value="extraConfig.mas.templateId" placeholder="有模板接口时需要配置" />
           </n-form-item>
-          
+
           <n-form-item label="扩展码">
             <n-input v-model:value="extraConfig.mas.addSerial" placeholder="可为空，总长度不能超过20位" />
           </n-form-item>
-          
+
           <n-form-item label="请求方法">
             <n-select
               v-model:value="extraConfig.mas.action"
@@ -150,7 +156,7 @@
               placeholder="选择请求方法"
             />
           </n-form-item>
-          
+
           <n-form-item label="请求地址">
             <n-input v-model:value="extraConfig.mas.requestUrl" placeholder="HTTP模式默认: http://112.35.1.155:1992/sms/" />
           </n-form-item>
@@ -334,7 +340,7 @@ async function loadConfig() {
     const res = await api.getSmsConfig()
     if (res.code === 200 && res.data) {
       Object.assign(formData.value, res.data)
-      
+
       if (res.data.extraConfig) {
         try {
           const extra = JSON.parse(res.data.extraConfig)
@@ -347,7 +353,8 @@ async function loadConfig() {
           if (extra.mas) {
             Object.assign(extraConfig.value.mas, extra.mas)
           }
-        } catch (e) {
+        }
+        catch (e) {
           console.error('解析额外配置失败:', e)
         }
       }
@@ -368,16 +375,16 @@ async function handleSave() {
   try {
     await formRef.value?.validate()
     saving.value = true
-    
+
     const submitData = { ...formData.value }
-    
+
     const currentSupplier = formData.value.supplier
     if (currentSupplier && extraConfig.value[currentSupplier]) {
       const extra = {}
       extra[currentSupplier] = extraConfig.value[currentSupplier]
       submitData.extraConfig = JSON.stringify(extra)
     }
-    
+
     const res = await api.saveSmsConfig(submitData)
     if (res.code === 200) {
       window.$message.success('保存成功')
