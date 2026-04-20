@@ -50,6 +50,10 @@ public class GenTableColumn implements Serializable {
     
     private String dictType;
     
+    private String validateRule;
+    
+    private Integer aiRecommended;
+    
     private Integer sort;
     
     private LocalDateTime createTime;
