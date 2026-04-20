@@ -23,15 +23,7 @@ public final class AiPromptTemplateRenderer {
     public static String renderDashboardSystemPrompt(String template, AIGenerateRequest request) {
         String sourceTemplate = StringUtils.hasText(template) ? template : DEFAULT_DASHBOARD_SYSTEM_PROMPT;
         Map<String, String> variables = buildDashboardVariables(request);
-        Matcher matcher = PLACEHOLDER_PATTERN.matcher(sourceTemplate);
-        StringBuilder rendered = new StringBuilder();
-        while (matcher.find()) {
-            String key = matcher.group(1);
-            String value = variables.getOrDefault(key, "");
-            matcher.appendReplacement(rendered, Matcher.quoteReplacement(value));
-        }
-        matcher.appendTail(rendered);
-        return rendered.toString();
+        return render(sourceTemplate, variables);
     }
 
     private static Map<String, String> buildDashboardVariables(AIGenerateRequest request) {
@@ -56,5 +48,20 @@ public final class AiPromptTemplateRenderer {
 
     private static String safeText(String value) {
         return StringUtils.hasText(value) ? value : "";
+    }
+
+    public static String render(String template, Map<String, String> variables) {
+        if (!StringUtils.hasText(template) || variables == null || variables.isEmpty()) {
+            return template;
+        }
+        Matcher matcher = PLACEHOLDER_PATTERN.matcher(template);
+        StringBuilder rendered = new StringBuilder();
+        while (matcher.find()) {
+            String key = matcher.group(1);
+            String value = variables.getOrDefault(key, "");
+            matcher.appendReplacement(rendered, Matcher.quoteReplacement(value));
+        }
+        matcher.appendTail(rendered);
+        return rendered.toString();
     }
 }
