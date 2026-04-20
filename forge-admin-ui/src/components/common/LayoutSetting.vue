@@ -111,6 +111,46 @@
           </n-button>
         </div>
 
+        <div class="layout-item" @click="appStore.setLayout('bento')">
+          <div class="layout-preview">
+            <div class="flex">
+              <n-skeleton :width="12" :height="60" />
+              <div class="ml-4 w-full">
+                <n-skeleton :width="104" :height="6" />
+                <n-skeleton class="mt-4" :width="104" :height="44" />
+              </div>
+            </div>
+          </div>
+          <n-button
+            class="mt-12"
+            size="small"
+            :type="appStore.layout === 'bento' ? 'primary' : ''"
+            ghost
+            block
+          >
+            便当盒
+          </n-button>
+        </div>
+
+        <div class="layout-item" @click="appStore.setLayout('immersive')">
+          <div class="layout-preview">
+            <div class="w-full">
+              <n-skeleton :width="104" :height="8" />
+              <n-skeleton class="mt-2" :width="104" :height="4" />
+              <n-skeleton class="mt-4" :width="104" :height="42" />
+            </div>
+          </div>
+          <n-button
+            class="mt-12"
+            size="small"
+            :type="appStore.layout === 'immersive' ? 'primary' : ''"
+            ghost
+            block
+          >
+            沉浸式
+          </n-button>
+        </div>
+
         <div class="layout-item" @click="appStore.setLayout('empty')">
           <div class="layout-preview">
             <n-skeleton :width="104" :height="60" />

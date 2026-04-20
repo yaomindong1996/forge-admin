@@ -48,7 +48,7 @@ const appStore = useAppStore()
 /* 侧边栏 */
 .sidebar-full {
   flex-shrink: 0;
-  width: 260px;
+  width: 200px;
   background: white;
   border-right: 1px solid #e2e8f0;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -57,7 +57,7 @@ const appStore = useAppStore()
 }
 
 .sidebar-full-collapsed {
-  width: 72px;
+  width: 64px;
 }
 
 .sidebar-full-inner {

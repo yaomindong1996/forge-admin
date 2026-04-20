@@ -66,6 +66,16 @@ export const layoutSettings = {
       description: '简单布局，仅包含基本元素',
     },
     {
+      name: 'immersive',
+      title: '沉浸式布局',
+      description: '无侧边栏，抽屉式菜单，最大化内容展示区域',
+    },
+    {
+      name: 'bento',
+      title: '便当盒布局',
+      description: '超窄图标导航栏，右侧抽屉菜单，极致内容空间',
+    },
+    {
       name: 'empty',
       title: '空布局',
       description: '空布局，不包含任何框架元素',

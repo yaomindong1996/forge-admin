@@ -26,28 +26,17 @@ const appStore = useAppStore()
   cursor: pointer;
   transition: all var(--transition-fast);
   font-size: 20px;
-  color: var(--bg-primary);
+  color: inherit;
   background: transparent;
   border: none;
   flex-shrink: 0;
 }
 
 .menu-collapse-button:hover {
-  color: var(--text-primary);
-  background: var(--bg-secondary);
+  background: rgba(128, 128, 128, 0.1);
 }
 
 .menu-collapse-button:active {
-  background: var(--bg-tertiary);
-}
-
-/* 暗色模式适配 */
-.dark .menu-collapse-button {
-  color: var(--text-secondary);
-}
-
-.dark .menu-collapse-button:hover {
-  color: var(--text-primary);
-  background: var(--bg-secondary);
+  background: rgba(128, 128, 128, 0.2);
 }
 </style>

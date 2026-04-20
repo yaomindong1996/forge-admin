@@ -56,7 +56,7 @@ const appStore = useAppStore()
 }
 
 .sidebar-wrapper.sidebar-collapsed {
-  width: 56px;
+  width: 64px;
 }
 
 .sidebar-glass {

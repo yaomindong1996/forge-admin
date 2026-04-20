@@ -111,6 +111,18 @@ const systemLayoutOptions = [
     description: '无边框全屏布局',
     preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSI2MCIgZmlsbD0iI0UwRTBFMCIvPjxyZWN0IHg9IjI0IiB3aWR0aD0iODAiIGhlaWdodD0iNiIgZmlsbD0iI0Y1RjVGNSIvPjxyZWN0IHg9IjI0IiB5PSIxMCIgd2lkdGg9IjgwIiBoZWlnaHQ9IjQiIGZpbGw9IiNGNUY1RjUiLz48cmVjdCB4PSIyNCIgeT0iMTgiIHdpZHRoPSI4MCIgaGVpZ2h0PSI0MiIgZmlsbD0iI0Y1RjVGNSIvPjwvc3ZnPg==',
   },
+  {
+    label: '沉浸式',
+    value: 'immersive',
+    description: '无侧边栏，抽屉式菜单，最大化内容展示区域',
+    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDQiIGhlaWdodD0iOCIgZmlsbD0iI0UwRTBFMCIvPjxyZWN0IHk9IjEyIiB3aWR0aD0iMTA0IiBoZWlnaHQ9IjQiIGZpbGw9IiNGNUY1RjUiLz48cmVjdCB5PSIyMCIgd2lkdGg9IjEwNCIgaGVpZ2h0PSI0MCIgZmlsbD0iI0Y1RjVGNSIvPjwvc3ZnPg==',
+  },
+  {
+    label: '便当盒',
+    value: 'bento',
+    description: '超窄图标导航栏，右侧抽屉菜单，极致内容空间',
+    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMiIgaGVpZ2h0PSI2MCIgZmlsbD0iI0UwRTBFMCIvPjxyZWN0IHg9IjE2IiB3aWR0aD0iODgiIGhlaWdodD0iOCIgZmlsbD0iI0Y1RjVGNSIvPjxyZWN0IHg9IjE2IiB5PSIxMiIgd2lkdGg9Ijg4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjRjVGNUY1Ii8+PC9zdmc+',
+  },
 ]
 
 // 搜索表单配置

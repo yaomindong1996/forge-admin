@@ -23,6 +23,7 @@ const appStore = useAppStore()
   display: flex;
   flex-direction: column;
   background: white;
+  color: var(--text-primary);
 }
 
 .sidebar-simple-menu {

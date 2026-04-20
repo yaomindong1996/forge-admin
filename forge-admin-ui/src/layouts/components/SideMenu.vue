@@ -313,6 +313,19 @@ function findMenuItem(menuItems, key) {
   border-radius: var(--radius-md);
 }
 
+/* 折叠状态下强制图标居中 - 隐藏文字和箭头占位区域 */
+.modern-side-menu.n-menu--collapsed .n-menu-item-content__icon {
+  margin-right: 0 !important;
+}
+
+.modern-side-menu.n-menu--collapsed .n-menu-item-content-header {
+  display: none !important;
+}
+
+.modern-side-menu.n-menu--collapsed .n-menu-item-content__arrow {
+  display: none !important;
+}
+
 .modern-side-menu.n-menu--collapsed .n-menu-item-content--selected::after {
   display: none;
 }

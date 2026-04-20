@@ -27,9 +27,10 @@ const systemName = computed(() => {
 <style scoped>
 .modern-side-header {
   height: 52px;
-  padding: 0 16px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
+  justify-content: center;
   border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
   background: var(--bg-primary);

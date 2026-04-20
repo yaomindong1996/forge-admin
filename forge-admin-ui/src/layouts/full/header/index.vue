@@ -1,5 +1,5 @@
 <template>
-  <AppCard class="layout-header flex items-center px-12" border-b="1px solid light_border dark:dark_border">
+  <div class="layout-header flex items-center px-12" border-b="1px solid light_border dark:dark_border">
     <MenuCollapse />
 
     <!-- 菜单搜索 -->
@@ -7,22 +7,24 @@
       <MenuSearch />
     </div>
 
-    <BreadCrumb />
+    <div class="header-breadcrumb-wrap">
+      <BreadCrumb />
+    </div>
 
-    <div class="text-18 ml-auto flex flex-shrink-0 items-center px-12">
+    <div class="header-tools-wrap">
       <BeginnerGuide />
 
       <ToggleTheme />
 
       <Fullscreen />
 
-      <ThemeSetting class="mr-16" />
+<!--      <ThemeSetting />-->
 
-      <MessageNotification class="mr-16" />
+      <MessageNotification />
 
       <UserAvatar />
     </div>
-  </AppCard>
+  </div>
 </template>
 
 <script setup>
@@ -33,3 +35,28 @@ function handleLinkClick(link) {
   window.open(link)
 }
 </script>
+
+<style scoped>
+.layout-header {
+  width: 100%;
+  height: 50px;
+  flex-shrink: 0;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.header-breadcrumb-wrap {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  margin-left: 12px;
+}
+
+.header-tools-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding-left: 12px;
+}
+</style>
