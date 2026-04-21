@@ -78,11 +78,6 @@ import { NButton, NSpace, NTag } from 'naive-ui'
 import { h, onMounted, ref } from 'vue'
 import { AiSearch, AiTable, FieldFactory } from '@/components/ai-form'
 
-export default {
-  name: 'SearchTableDemo',
-  title: '搜索表格示例',
-}
-
 // 使用全局的 message 和 dialog
 const message = window.$message
 const dialog = window.$dialog

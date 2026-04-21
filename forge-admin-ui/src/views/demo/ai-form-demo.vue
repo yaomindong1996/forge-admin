@@ -82,12 +82,6 @@
 <script setup>
 import { ref } from 'vue'
 import { AiForm, FieldFactory } from '@/components/ai-form'
-
-export default {
-  name: 'AiFormDemo',
-  title: 'AI 表单示例',
-}
-
 // ==================== 基础用法 ====================
 const basicFormRef = ref(null)
 const basicFormData = ref({
