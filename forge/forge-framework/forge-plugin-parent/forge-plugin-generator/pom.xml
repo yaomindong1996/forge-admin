@@ -35,7 +35,25 @@
             <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-starter-log</artifactId>
         </dependency>
-        
+
+        <!-- Starter Tenant -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-tenant</artifactId>
+        </dependency>
+
+        <!-- Starter Crypto (脱敏) -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-crypto</artifactId>
+        </dependency>
+
+        <!-- Starter Trans (字典翻译) -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-trans</artifactId>
+        </dependency>
+
         <!-- Velocity模板引擎 -->
         <dependency>
             <groupId>org.apache.velocity</groupId>

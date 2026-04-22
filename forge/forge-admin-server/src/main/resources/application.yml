@@ -26,6 +26,7 @@ logging:
     com.forge: @logging.level@
     org.springframework: error
     org.mybatis.spring.mapper: error
+    com.mdframe.forge.plugin.ai.client.AiClientImpl: INFO
   config: classpath:logback.xml
 
 # Spring配置
@@ -61,7 +62,11 @@ spring:
     deserialization:
       # 允许对象忽略json中不存在的属性
       fail_on_unknown_properties: false
-
+  ai:
+    chat:
+      observations:
+        log-prompt: true      # Spring AI 内部也记录 prompt
+        log-completion: true  # Spring AI 内部也记录 completion
 # MyBatisPlus配置
 # https://baomidou.com/config/
 mybatis-plus:

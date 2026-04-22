@@ -24,6 +24,15 @@ public class GenTableColumnController {
     private final GenTableColumnMapper genTableColumnMapper;
 
     /**
+     * 根据数据库表名查询表字段信息（直接查 information_schema）
+     */
+    @GetMapping("/db/{tableName}")
+    public RespInfo<List<GenTableColumn>> listByTableName(@PathVariable String tableName) {
+        List<GenTableColumn> columns = genTableColumnMapper.selectDbTableColumnsByName(tableName);
+        return RespInfo.success(columns);
+    }
+
+    /**
      * 查询表字段列表
      */
     @GetMapping("/list/{tableId}")

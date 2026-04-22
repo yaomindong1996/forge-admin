@@ -156,7 +156,7 @@ public class GenUtils {
     /**
      * 判断是否为基类字段
      */
-    private static boolean isSuperColumn(String columnName) {
+    public static boolean isSuperColumn(String columnName) {
         List<String> superColumns = Arrays.asList(
             "create_time", "create_by", "update_time", "update_by", "remark"
         );

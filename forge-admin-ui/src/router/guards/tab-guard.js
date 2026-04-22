@@ -25,13 +25,14 @@ export function createTabGuard(router) {
     const tabStore = useTabStore()
     const permissionStore = usePermissionStore()
     const { name } = to
-    // key 和 path 都用 to.path（不含查询参数），避免同一页面不同参数生成多个 tab
-    const path = to.path
+    // key 用 to.fullPath（含查询参数），避免同一页面不同参数共用同一 Tab
+    // path 保存 fullPath，以便 Tab 点击时恢复完整路径
+    const path = to.fullPath
 
     // 1. 优先使用 route.meta.title（由 permission-guard 注册路由时设置）
     let title = to.meta?.title
 
-    if (path === '/home') {
+    if (to.path === '/home') {
       title = '首页'
     }
 

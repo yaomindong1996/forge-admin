@@ -25,6 +25,8 @@
         FROM ai_chat_session s
         LEFT JOIN sys_user u ON s.user_id = u.id
         <where>
+            1=1
+            AND s.status = '0'
             <if test="query.keyword != null and query.keyword != ''">
                 AND (u.real_name LIKE CONCAT('%', #{query.keyword}, '%') OR s.session_name LIKE CONCAT('%', #{query.keyword}, '%'))
             </if>
@@ -36,6 +38,9 @@
             </if>
             <if test="query.status != null and query.status != ''">
                 AND s.status = #{query.status}
+            </if>
+            <if test="query.agentCode != null and query.agentCode != ''">
+                AND s.agent_code = #{query.agentCode}
             </if>
         </where>
         ORDER BY s.update_time DESC

@@ -3,19 +3,30 @@ package com.mdframe.forge.plugin.generator.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.generator.domain.entity.GenTable;
+import com.mdframe.forge.plugin.generator.domain.entity.GenTableColumn;
+import com.mdframe.forge.plugin.generator.dto.*;
+import com.mdframe.forge.plugin.generator.service.AiRecommendService;
+import com.mdframe.forge.plugin.generator.service.AiSchemaService;
 import com.mdframe.forge.plugin.generator.service.IGenTableService;
+import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
+import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.annotation.log.OperationLog;
 import com.mdframe.forge.starter.core.domain.OperationType;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.sql.DataSource;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Map;
 
@@ -25,9 +36,15 @@ import java.util.Map;
 @RestController
 @RequestMapping("/generator")
 @RequiredArgsConstructor
+@Slf4j
+@ApiDecrypt
+@ApiEncrypt
 public class GenController {
 
     private final IGenTableService genTableService;
+    private final AiRecommendService aiRecommendService;
+    private final AiSchemaService aiSchemaService;
+    private final DataSource dataSource;
 
     /**
      * 查询数据库表列表
@@ -137,5 +154,74 @@ public class GenController {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .contentLength(data.length)
                 .body(data);
+    }
+
+    /**
+     * 执行建表 SQL（主要用于 AI 生成器直接建表）
+     */
+    @PostMapping("/executeSql")
+    @OperationLog(module = "代码生成", type = OperationType.ADD, desc = "执行建表SQL")
+    public RespInfo<Void> executeSql(@RequestBody Map<String, String> body) {
+        String sql = body.get("sql");
+        if (StringUtils.isBlank(sql)) {
+            throw new BusinessException("SQL 不能为空");
+        }
+        // 安全校验：只允许 CREATE TABLE 语句
+        String trimmed = sql.trim().toUpperCase();
+        if (!trimmed.startsWith("CREATE TABLE")) {
+            throw new BusinessException("仅允许执行 CREATE TABLE 语句");
+        }
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+            log.info("[GenController] 建表成功: {}", sql.substring(0, Math.min(100, sql.length())));
+        } catch (Exception e) {
+            log.error("[GenController] 执行建表SQL失败", e);
+            throw new BusinessException("建表失败: " + e.getMessage());
+        }
+        return RespInfo.success();
+    }
+
+    /**
+     * AI 字段推荐
+     */
+    @PostMapping("/ai/recommendColumns")
+    public RespInfo<List<GenTableColumn>> recommendColumns(@RequestBody RecommendColumnsRequest request) {
+        GenTable table = genTableService.getById(request.getTableId());
+        if (table == null) {
+            return RespInfo.error("表配置不存在");
+        }
+        List<GenTableColumn> result = aiRecommendService.recommendColumns(
+                request.getTableId(), request.getColumns(), table);
+        return RespInfo.success(result);
+    }
+
+    /**
+     * 自然语言到 Schema 推断
+     */
+    @PostMapping("/ai/nlToSchema")
+    public RespInfo<NlToSchemaResult> nlToSchema(@RequestBody NlToSchemaRequest request) {
+        NlToSchemaResult result = aiSchemaService.nlToSchema(request.getDescription());
+        return RespInfo.success(result);
+    }
+
+    /**
+     * Schema 追问优化（多轮）
+     */
+    @PostMapping("/ai/nlToSchemaRefine")
+    public RespInfo<NlToSchemaResult> nlToSchemaRefine(@RequestBody NlToSchemaRefineRequest request) {
+        NlToSchemaResult result = aiSchemaService.nlToSchemaRefine(
+                request.getCurrentSchema(), request.getMessage(), request.getSessionId());
+        return RespInfo.success(result);
+    }
+
+    /**
+     * 从 AI Schema 导入为 GenTable 配置
+     */
+    @PostMapping("/ai/importSchema")
+    @OperationLog(module = "代码生成", type = OperationType.ADD, desc = "AI Schema导入")
+    public RespInfo<Void> importSchema(@RequestBody NlToSchemaResult schema) {
+        aiSchemaService.importSchema(schema);
+        return RespInfo.success();
     }
 }

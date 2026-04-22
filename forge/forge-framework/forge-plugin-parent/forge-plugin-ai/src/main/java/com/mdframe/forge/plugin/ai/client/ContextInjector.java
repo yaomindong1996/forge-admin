@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 public class ContextInjector {
 
     private static final int MAX_CONTEXT_LENGTH = 8000;
-    private static final String CODE_STYLE_PATH = "ai-codegen/code-style.md";
 
     private final AiContextConfigMapper contextConfigMapper;
 
@@ -28,7 +27,7 @@ public class ContextInjector {
         StringBuilder contextBuilder = new StringBuilder();
         boolean hasContext = false;
 
-        String codeStyle = readCodeStyle();
+        String codeStyle = readCodeStyle(agentCode);
         if (StringUtils.hasText(codeStyle)) {
             contextBuilder.append("\n\n---\n【项目编码规范】\n").append(codeStyle);
             hasContext = true;
@@ -53,16 +52,19 @@ public class ContextInjector {
         return systemPrompt + fullContext;
     }
 
-    private String readCodeStyle() {
-        try {
-            ClassPathResource resource = new ClassPathResource(CODE_STYLE_PATH);
-            if (resource.exists()) {
-                return resource.getContentAsString(StandardCharsets.UTF_8);
-            }
-        } catch (IOException e) {
-            log.debug("[ContextInjector] code-style.md 不存在或读取失败，跳过注入");
+    private String readCodeStyle(String agentCode) {
+        List<AiContextConfig> configs = contextConfigMapper.selectList(
+                new LambdaQueryWrapper<AiContextConfig>()
+                        .eq(AiContextConfig::getAgentCode, agentCode)
+                        .eq(AiContextConfig::getStatus, "0")
+                        .eq(AiContextConfig::getConfigType, "RULE")
+                        .orderByAsc(AiContextConfig::getSort));
+        if (configs.isEmpty()) {
+            return null;
         }
-        return null;
+        return configs.stream()
+                .map(AiContextConfig::getConfigContent)
+                .collect(Collectors.joining("\n"));
     }
 
     private String readSpecContext(String agentCode) {
@@ -70,6 +72,7 @@ public class ContextInjector {
                 new LambdaQueryWrapper<AiContextConfig>()
                         .eq(AiContextConfig::getAgentCode, agentCode)
                         .eq(AiContextConfig::getStatus, "0")
+                        .eq(AiContextConfig::getConfigType, "SPEC")
                         .orderByAsc(AiContextConfig::getSort));
         if (configs.isEmpty()) {
             return null;

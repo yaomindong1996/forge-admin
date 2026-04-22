@@ -196,11 +196,24 @@ const formRules = computed(() => {
       rules[field.field] = field.rules
     }
     else if (field.required) {
-      rules[field.field] = {
+      const inputTypes = ['input', 'textarea', 'number', 'inputNumber']
+      const isNumericType = field.type === 'number' || field.type === 'inputNumber'
+      const rule = {
         required: true,
-        message: field.requiredMessage || `请${field.type === 'input' ? '输入' : '选择'}${field.label}`,
-        trigger: field.trigger || ['blur', 'change'],
+        message: field.requiredMessage || `请${inputTypes.includes(field.type) ? '输入' : '选择'}${field.label}`,
+        trigger: field.trigger || (isNumericType ? 'change' : ['blur', 'change']),
       }
+      // number 类型需要自定义 validator，避免 0 被判断为空
+      if (isNumericType) {
+        rule.validator = (_rule, value) => {
+          if (value === null || value === undefined || value === '') {
+            return new Error(rule.message)
+          }
+          return true
+        }
+        delete rule.required
+      }
+      rules[field.field] = rule
     }
   })
   return rules

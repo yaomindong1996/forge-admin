@@ -18,6 +18,12 @@
     >
       <!-- 自定义顶部操作栏 -->
       <template #toolbar-end>
+        <n-button type="primary" size="small" @click="showAiSchemaModal = true">
+          <template #icon>
+            <i class="i-material-symbols:auto_awesome" />
+          </template>
+          AI 建表
+        </n-button>
         <n-button type="primary" size="small" @click="showImportModal = true">
           <template #icon>
             <i class="i-material-symbols:add" />
@@ -46,6 +52,12 @@
       v-model:show="showPreviewModal"
       :table-name="currentTableName"
     />
+
+    <!-- AI 建表弹窗 -->
+    <AiSchemaModal
+      v-model:show="showAiSchemaModal"
+      @success="handleImportSuccess"
+    />
   </div>
 </template>
 
@@ -56,6 +68,7 @@ import { request } from '@/utils'
 import CodePreviewModal from './components/CodePreviewModal.vue'
 import ColumnConfigModal from './components/ColumnConfigModal.vue'
 import ImportTableModal from './components/ImportTableModal.vue'
+import AiSchemaModal from './components/AiSchemaModal.vue'
 
 defineOptions({ name: 'GeneratorTable' })
 
@@ -63,6 +76,7 @@ const crudRef = ref(null)
 const showImportModal = ref(false)
 const showColumnModal = ref(false)
 const showPreviewModal = ref(false)
+const showAiSchemaModal = ref(false)
 const currentTableId = ref(null)
 const currentTableName = ref('')
 

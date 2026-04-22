@@ -12,4 +12,5 @@ public class AiSessionPageQuery extends PageQuery {
     private String startTime;
     private String endTime;
     private String status;
+    private String agentCode;
 }
