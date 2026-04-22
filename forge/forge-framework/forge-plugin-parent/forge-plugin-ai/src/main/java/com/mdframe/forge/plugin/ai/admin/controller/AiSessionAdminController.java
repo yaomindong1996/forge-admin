@@ -7,6 +7,8 @@ import com.mdframe.forge.plugin.ai.session.dto.AiSessionPageQuery;
 import com.mdframe.forge.plugin.ai.session.service.AiChatSessionService;
 import com.mdframe.forge.plugin.ai.session.vo.AiSessionStatisticsVO;
 import com.mdframe.forge.plugin.ai.session.vo.AiSessionVO;
+import com.mdframe.forge.plugin.ai.session.domain.AiChatSession;
+import com.mdframe.forge.plugin.ai.session.service.AiChatSessionService;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.domain.RespInfo;
@@ -15,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -46,5 +49,16 @@ public class AiSessionAdminController {
     @GetMapping("/statistics")
     public RespInfo<AiSessionStatisticsVO> statistics() {
         return RespInfo.success(sessionService.getStatistics());
+    }
+
+    @PutMapping("/{sessionId}/metadata")
+    public RespInfo<Void> updateSessionMetadata(@PathVariable String sessionId, @RequestBody Map<String, Object> metadata) {
+        AiChatSession session = sessionService.getById(sessionId);
+        if (session == null) {
+            return RespInfo.error("会话不存在");
+        }
+        session.setMetadata(metadata);
+        sessionService.updateById(session);
+        return RespInfo.success();
     }
 }

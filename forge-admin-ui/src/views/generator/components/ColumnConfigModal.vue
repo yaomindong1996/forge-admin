@@ -8,12 +8,22 @@
   >
     <div class="column-config-modal">
       <n-spin :show="loading">
+        <div style="margin-bottom: 12px; display: flex; justify-content: flex-end;">
+          <n-button
+            type="primary"
+            :loading="aiLoading"
+            @click="handleAiRecommend"
+          >
+            AI 推荐
+          </n-button>
+        </div>
         <n-data-table
           :columns="columns"
           :data="columnList"
           :row-key="row => row.columnId"
           max-height="500px"
           :scroll-x="1800"
+          :row-class-name="row => row.aiRecommended ? 'ai-recommended-row' : ''"
         />
       </n-spin>
     </div>
@@ -63,7 +73,9 @@ const emit = defineEmits(['update:show', 'success'])
 const visible = ref(false)
 const loading = ref(false)
 const submitLoading = ref(false)
+const aiLoading = ref(false)
 const columnList = ref([])
+const originalColumnMap = ref({})
 
 // Java类型选项
 const javaTypeOptions = [
@@ -321,10 +333,41 @@ async function handleSubmit() {
     submitLoading.value = false
   }
 }
+
+// AI 推荐字段配置
+async function handleAiRecommend() {
+  if (!columnList.value.length) {
+    window.$message.warning('暂无字段可推荐')
+    return
+  }
+  try {
+    aiLoading.value = true
+    const res = await request.post('/generator/ai/recommendColumns', {
+      tableId: props.tableId,
+      columns: columnList.value,
+    })
+    if (res.code === 200 && res.data) {
+      columnList.value = res.data
+      window.$message.success('AI 推荐完成，请审核后保存')
+    } else {
+      window.$message.warning(res.msg || 'AI 推荐不可用，已使用基础规则推断')
+    }
+  }
+  catch (error) {
+    console.error('AI推荐失败:', error)
+    window.$message.warning('AI 推荐不可用，已使用基础规则推断')
+  }
+  finally {
+    aiLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
 .column-config-modal {
   min-height: 400px;
+}
+:deep(.ai-recommended-row td) {
+  background-color: #e8f5e9 !important;
 }
 </style>

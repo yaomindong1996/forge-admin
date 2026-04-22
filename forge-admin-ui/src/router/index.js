@@ -76,6 +76,13 @@ export const manualRoutes = [
     component: () => import('@/views/system/profile.vue'),
     meta: { title: '个人中心' },
   },
+  // AI 动态CRUD页面（path 参数形式，兼容菜单注册的 /ai/crud-page/:configKey 格式）
+  {
+    name: 'AiCrudPageDynamic',
+    path: '/ai/crud-page/:configKey',
+    component: () => import('@/views/ai/crud-page.vue'),
+    meta: { title: 'CRUD页面' },
+  },
 ]
 
 // 从 unplugin-vue-router 自动生成的路由

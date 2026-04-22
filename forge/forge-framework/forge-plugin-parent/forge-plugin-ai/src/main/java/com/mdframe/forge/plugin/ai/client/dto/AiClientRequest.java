@@ -9,6 +9,7 @@ public class AiClientRequest {
 
     private String agentCode;
     private String message;
+    private String userInput;
     private Long providerId;
     private String modelName;
     private Double temperature;

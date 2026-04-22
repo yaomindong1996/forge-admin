@@ -119,3 +119,73 @@ export function sessionDelete(sessionId) {
 export function sessionStatistics() {
   return request.get('/ai/admin/session/statistics')
 }
+
+// ========== AiClient 通用调用 ==========
+
+export function aiClientCall(data) {
+  return request.post('/ai/client/call', data)
+}
+
+export function aiClientStream(data) {
+  return request.post('/ai/client/stream', data)
+}
+
+// ========== 上下文配置管理 ==========
+
+export function contextConfigList(agentCode) {
+  return request.get('/ai/context/list', { params: { agentCode } })
+}
+
+export function contextConfigAdd(data) {
+  return request.post('/ai/context/add', data)
+}
+
+export function contextConfigUpdate(data) {
+  return request.put('/ai/context/update', data)
+}
+
+export function contextConfigDelete(id) {
+  return request.delete(`/ai/context/${id}`)
+}
+
+// ========== CRUD 配置驱动 ==========
+
+export function crudConfigPage(params) {
+  return request.get('/ai/crud-config/page', { params })
+}
+
+export function crudConfigGetById(id) {
+  return request.get(`/ai/crud-config/${id}`)
+}
+
+export function crudConfigGetByKey(configKey) {
+  return request.get(`/ai/crud-config/by-key/${configKey}`)
+}
+
+export function updateSessionMetadata(sessionId, metadata) {
+  return request.put(`/ai/admin/session/${sessionId}/metadata`, metadata)
+}
+
+export function crudConfigRender(configKey) {
+  return request.get(`/ai/crud-config/render/${configKey}`)
+}
+
+export function crudConfigAdd(data) {
+  return request.post('/ai/crud-config', data)
+}
+
+export function crudConfigUpdate(data) {
+  return request.put('/ai/crud-config', data)
+}
+
+export function crudConfigDelete(id) {
+  return request.delete(`/ai/crud-config/${id}`)
+}
+
+export function crudConfigAiGenerate(data) {
+  return request.post('/ai/crud-config/ai/generate', data)
+}
+
+export function crudConfigAiGenerateFromTable(data) {
+  return request.post('/ai/crud-config/ai/generateFromTable', data)
+}

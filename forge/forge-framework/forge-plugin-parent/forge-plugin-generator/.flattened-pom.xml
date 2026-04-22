@@ -30,6 +30,18 @@
       <artifactId>forge-starter-log</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-starter-tenant</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-starter-crypto</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-starter-trans</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.velocity</groupId>
       <artifactId>velocity-engine-core</artifactId>
     </dependency>

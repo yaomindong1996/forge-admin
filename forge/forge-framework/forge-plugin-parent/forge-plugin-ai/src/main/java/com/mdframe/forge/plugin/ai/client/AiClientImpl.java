@@ -1,5 +1,6 @@
 package com.mdframe.forge.plugin.ai.client;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.mdframe.forge.plugin.ai.agent.domain.AiAgent;
 import com.mdframe.forge.plugin.ai.agent.service.AiAgentService;
 import com.mdframe.forge.plugin.ai.chat.domain.AiChatRecord;
@@ -13,6 +14,7 @@ import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
 import com.mdframe.forge.plugin.ai.provider.service.AiProviderService;
 import com.mdframe.forge.plugin.ai.session.service.AiChatSessionService;
 import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.starter.core.session.SessionHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -64,6 +66,15 @@ public class AiClientImpl implements AiClient {
             ChatClient chatClient = chatClientCache.getOrCreate(
                     provider.getId(), model, provider, options, historySessionId, dbChatMemory);
 
+            log.info("[AiClient.call] ===== 请求开始 =====");
+            log.info("[AiClient.call] sessionId: {}", sessionId);
+            log.info("[AiClient.call] agentCode: {}", request.getAgentCode());
+            log.info("[AiClient.call] provider: {}({})", provider.getProviderName(), provider.getProviderType());
+            log.info("[AiClient.call] model: {}", model);
+            log.info("[AiClient.call] temperature: {}, maxTokens: {}", temperature, maxTokens);
+            log.info("[AiClient.call] systemPrompt: \n{}", systemPrompt);
+            log.info("[AiClient.call] userPrompt: \n{}", request.getMessage());
+
             String content = chatClient.prompt()
                     .system(systemPrompt)
                     .user(request.getMessage())
@@ -72,9 +83,13 @@ public class AiClientImpl implements AiClient {
 
             circuitBreaker.recordSuccess(circuitKey);
 
+            log.info("[AiClient.call] ===== 响应结束 =====");
+            log.info("[AiClient.call] assistantContent(length={}): \n{}", content.length(),
+                    content.length() > 500 ? content.substring(0, 500) + "...(truncated)" : content);
+
             if (StringUtils.hasText(sessionId)) {
                 persistConversation(sessionId, request.getAgentCode(),
-                        request.getMessage(), content);
+                        request.getMessage(), content,SessionHelper.getUserId(),SessionHelper.getTenantId());
             }
 
             return AiClientResponse.success(content, sessionId);
@@ -110,9 +125,20 @@ public class AiClientImpl implements AiClient {
             OpenAiChatOptions options = buildOptions(model, temperature, maxTokens);
             ChatClient chatClient = chatClientCache.getOrCreate(
                     provider.getId(), model, provider, options, historySessionId, dbChatMemory);
+            
+            Long userId = SessionHelper.getUserId();
+            Long tenantId = SessionHelper.getTenantId();
+            sessionService.getOrCreate(sessionId, userId, tenantId,
+                    request.getAgentCode(), request.getUserInput());
 
-            sessionService.getOrCreate(sessionId, null, null,
-                    request.getAgentCode(), request.getMessage());
+            log.info("[AiClient.stream] ===== 请求开始 =====");
+            log.info("[AiClient.stream] sessionId: {}", sessionId);
+            log.info("[AiClient.stream] agentCode: {}", request.getAgentCode());
+            log.info("[AiClient.stream] provider: {}({})", provider.getProviderName(), provider.getProviderType());
+            log.info("[AiClient.stream] model: {}", model);
+            log.info("[AiClient.stream] temperature: {}, maxTokens: {}", temperature, maxTokens);
+            log.info("[AiClient.stream] systemPrompt: \n{}", systemPrompt);
+            log.info("[AiClient.stream] userPrompt: \n{}", request.getMessage());
 
             StringBuilder assistantBuilder = new StringBuilder();
             AtomicBoolean persisted = new AtomicBoolean(false);
@@ -122,11 +148,18 @@ public class AiClientImpl implements AiClient {
                     .user(request.getMessage())
                     .stream()
                     .content()
-                    .doOnNext(assistantBuilder::append)
+                    .doOnNext(chunk -> {
+                        assistantBuilder.append(chunk);
+                        log.info("[AiClient.stream.chunk] {}", chunk);
+                    })
                     .doFinally(signal -> {
                         circuitBreaker.recordSuccess(circuitKey);
+                        String fullContent = assistantBuilder.toString();
+                        log.info("[AiClient.stream] ===== 响应结束({}) =====", signal);
+                        log.info("[AiClient.stream] assistantContent(length={}): \n{}", fullContent.length(),
+                                fullContent.length() > 500 ? fullContent.substring(0, 500) + "...(truncated)" : fullContent);
                         persistConversationAsync(sessionId, request.getAgentCode(),
-                                request.getMessage(), assistantBuilder.toString(), persisted, signal);
+                                request.getUserInput(), fullContent, persisted, signal,userId,tenantId);
                     })
                     .doOnError(e -> {
                         log.error("[AiClient] 流式调用失败, agentCode={}", request.getAgentCode(), e);
@@ -247,12 +280,14 @@ public class AiClientImpl implements AiClient {
     }
 
     private void persistConversation(String sessionId, String agentCode,
-                                     String userPrompt, String assistantContent) {
+                                     String userPrompt, String assistantContent,Long userId,Long tenantId) {
         try {
             LocalDateTime now = LocalDateTime.now();
             recordService.save(AiChatRecord.builder()
                     .sessionId(sessionId)
                     .agentCode(agentCode)
+                    .userId(userId)
+                    .tenantId(tenantId)
                     .role("user")
                     .content(userPrompt)
                     .createTime(now)
@@ -262,6 +297,8 @@ public class AiClientImpl implements AiClient {
                         .sessionId(sessionId)
                         .agentCode(agentCode)
                         .role("assistant")
+                        .userId(userId)
+                        .tenantId(tenantId)
                         .content(assistantContent)
                         .createTime(now)
                         .build());
@@ -274,10 +311,10 @@ public class AiClientImpl implements AiClient {
 
     private void persistConversationAsync(String sessionId, String agentCode,
                                           String userPrompt, String assistantContent,
-                                          AtomicBoolean persisted, SignalType signalType) {
+                                          AtomicBoolean persisted, SignalType signalType,Long userId,Long tenantId) {
         if (!persisted.compareAndSet(false, true)) {
             return;
         }
-        persistConversation(sessionId, agentCode, userPrompt, assistantContent);
+        persistConversation(sessionId, agentCode, userPrompt, assistantContent,userId,tenantId);
     }
 }

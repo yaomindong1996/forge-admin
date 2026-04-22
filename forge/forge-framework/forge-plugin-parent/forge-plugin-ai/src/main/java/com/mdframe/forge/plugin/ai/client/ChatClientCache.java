@@ -53,7 +53,6 @@ public class ChatClientCache {
                 .baseUrl(provider.getBaseUrl())
                 .apiKey(provider.getApiKey())
                 .build();
-
         ChatModel chatModel = OpenAiChatModel.builder()
                 .openAiApi(openAiApi)
                 .defaultOptions(options)
