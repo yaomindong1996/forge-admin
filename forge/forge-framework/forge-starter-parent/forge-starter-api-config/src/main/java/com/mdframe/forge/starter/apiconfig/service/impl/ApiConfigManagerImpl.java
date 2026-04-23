@@ -109,6 +109,9 @@ public class ApiConfigManagerImpl implements IApiConfigManager {
      * @return 最匹配的配置
      */
     private ApiConfigInfo findBestMatchConfig(String urlPath, String method) {
+        if (CollUtil.isEmpty(allEnabledConfigsCache)) {
+            return null;
+        }
         // 遍历所有启用的配置，使用Ant路径匹配
         ApiConfigInfo bestMatch = null;
         int bestScore = -1;
