@@ -269,7 +269,23 @@ export function useCrudGenerator() {
       parseRawContentFallback(rawContent.value)
     }
 
-    updateLastAssistantMessage('✅ 生成完成！右侧预览区可查看并编辑配置内容。')
+    // 生成完成后的引导提示
+    const guideMessage = [
+      '✅ 生成完成！右侧预览区可查看并编辑配置内容。',
+      '',
+      '📋 请检查以下内容：',
+      '1. 搜索配置：确认需要搜索的字段是否完整',
+      '2. 表格列配置：调整列的显示顺序和宽度',
+      '3. 编辑表单配置：设置必填项和验证规则',
+      '4. 接口配置：确认API路径是否正确',
+      '',
+      '💡 提示：',
+      '• 点击「保存配置」将配置存入数据库',
+      '• 保存后可点击「预览效果」查看实际页面',
+      '• 如需修改，可继续对话描述需求'
+    ].join('\n')
+
+    updateLastAssistantMessage(guideMessage)
 
     // 生成完成后，异步同步会话元数据（此时服务端会话已建立）
     if (sessionId.value && configKey.value) {
@@ -592,14 +608,29 @@ export function useCrudGenerator() {
   }
 
   function exportAllFiles() {
+    // 辅助函数：尝试解析JSON，失败则返回原始值
+    function safeParseJson(str, fallback) {
+      if (!str || !str.trim()) return fallback
+      try {
+        return JSON.parse(str)
+      } catch {
+        return str
+      }
+    }
+
     const fullConfig = {
       configKey: configKey.value,
       tableName: tableName.value,
-      searchSchema: JSON.parse(generatedFiles.value.searchSchema || '[]'),
-      columnsSchema: JSON.parse(generatedFiles.value.columnsSchema || '[]'),
-      editSchema: JSON.parse(generatedFiles.value.editSchema || '[]'),
-      apiConfig: JSON.parse(generatedFiles.value.apiConfig || '{}'),
+      tableComment: description.value || '',
+      searchSchema: safeParseJson(generatedFiles.value.searchSchema, []),
+      columnsSchema: safeParseJson(generatedFiles.value.columnsSchema, []),
+      editSchema: safeParseJson(generatedFiles.value.editSchema, []),
+      apiConfig: safeParseJson(generatedFiles.value.apiConfig, {}),
       createTableSql: generatedFiles.value.createTableSql || '',
+      dictConfig: safeParseJson(displayContent.value.dictConfig, ''),
+      desensitizeConfig: safeParseJson(displayContent.value.desensitizeConfig, ''),
+      encryptConfig: safeParseJson(displayContent.value.encryptConfig, ''),
+      transConfig: safeParseJson(displayContent.value.transConfig, ''),
     }
     const blob = new Blob([JSON.stringify(fullConfig, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)

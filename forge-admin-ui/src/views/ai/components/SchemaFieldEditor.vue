@@ -66,6 +66,14 @@
         <template #icon><n-icon><AddOutline /></n-icon></template>
         添加字段
       </n-button>
+      <n-button size="small" text @click="importFromTableStructure" :disabled="!hasTableStructure">
+        <template #icon><n-icon><DownloadOutline /></n-icon></template>
+        从表结构导入
+      </n-button>
+      <n-button size="small" text type="warning" @click="clearAll" v-if="localRows.length > 0">
+        清空所有
+      </n-button>
+      <span class="field-count">{{ localRows.length }} 个字段</span>
       <n-button size="small" text style="margin-left: auto;" @click="showRaw = !showRaw">
         {{ showRaw ? '隐藏JSON' : '查看JSON' }}
       </n-button>
@@ -85,7 +93,7 @@
 
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue'
-import { AddOutline, CloseOutline } from '@vicons/ionicons5'
+import { AddOutline, CloseOutline, DownloadOutline } from '@vicons/ionicons5'
 import { request } from '@/utils'
 
 const props = defineProps({
@@ -93,12 +101,19 @@ const props = defineProps({
   mode: { type: String, default: 'search' },
   // JSON 字符串
   value: { type: String, default: '' },
+  // 表结构数据（从父组件传入）
+  tableStructure: { type: String, default: '' },
 })
 
 const emit = defineEmits(['update:value'])
 
 const showRaw = ref(false)
 const dictTypeOptions = ref([])
+
+// 检查是否有表结构数据
+const hasTableStructure = computed(() => {
+  return props.tableStructure && props.tableStructure.trim().length > 0
+})
 
 async function loadDictTypes() {
   try {
@@ -324,6 +339,137 @@ function moveDown(idx) {
   localRows.value[idx + 1] = localRows.value[idx]
   localRows.value[idx] = tmp
 }
+
+/**
+ * 从表结构导入字段
+ * 解析 tableStructure 中的 Markdown 表格，提取字段信息
+ */
+function importFromTableStructure() {
+  if (!props.tableStructure) return
+
+  const lines = props.tableStructure.split('\n')
+  const newRows = []
+  
+  for (const line of lines) {
+    // 跳过表头和分隔行
+    if (!line.trim() || line.includes('---') || line.includes('字段名')) continue
+    
+    // 解析 Markdown 表格行: | 字段名 | 类型 | 注释 | ...
+    const match = line.match(/\|\s*(\w+)\s*\|\s*(\w+(?:\(\d+\))?)\s*\|\s*([^|]*)\s*\|/)
+    if (match) {
+      const columnName = match[1].trim()
+      const columnType = match[2].trim()
+      const columnComment = match[3].trim()
+      
+      // 跳过基类字段
+      const baseFields = ['id', 'tenant_id', 'create_by', 'create_time', 'create_dept', 'update_by', 'update_time', 'del_flag', 'remark']
+      if (baseFields.includes(columnName)) continue
+      
+      // 转换为 camelCase
+      const fieldName = columnName.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
+      
+      // 根据字段类型推断组件类型
+      const fieldType = inferFieldType(columnType, fieldName)
+      
+      if (props.mode === 'columns') {
+        newRows.push({
+          field: fieldName,
+          label: columnComment || fieldName,
+          type: fieldType.columnType,
+          dictType: '',
+          width: null,
+        })
+      } else if (props.mode === 'edit') {
+        newRows.push({
+          field: fieldName,
+          label: columnComment || fieldName,
+          type: fieldType.editType,
+          required: false,
+          dictType: '',
+        })
+      } else {
+        // search
+        newRows.push({
+          field: fieldName,
+          label: columnComment || fieldName,
+          type: fieldType.searchType,
+          dictType: '',
+        })
+      }
+    }
+  }
+
+  if (newRows.length > 0) {
+    // 追加到现有行，不覆盖
+    localRows.value = [...localRows.value, ...newRows]
+    emit('update:value', rowsToJson(localRows.value))
+  }
+}
+
+/**
+ * 根据数据库字段类型和字段名推断组件类型
+ */
+function inferFieldType(columnType, fieldName) {
+  const type = columnType.toLowerCase()
+  
+  // 日期时间类型
+  if (type.includes('datetime') || type.includes('timestamp')) {
+    return { editType: 'datetime', searchType: 'date', columnType: 'date' }
+  }
+  if (type.includes('date')) {
+    return { editType: 'date', searchType: 'date', columnType: 'date' }
+  }
+  if (type.includes('time')) {
+    return { editType: 'datetime', searchType: 'date', columnType: 'date' }
+  }
+  
+  // 数字类型
+  if (type.includes('int') || type.includes('decimal') || type.includes('numeric') || type.includes('float') || type.includes('double')) {
+    return { editType: 'number', searchType: 'number', columnType: 'number' }
+  }
+  
+  // 布尔类型
+  if (type.includes('tinyint(1)') || type.includes('boolean') || type.includes('bit')) {
+    return { editType: 'switch', searchType: 'select', columnType: 'text' }
+  }
+  
+  // 文本类型
+  if (type.includes('text') || type.includes('longtext') || type.includes('mediumtext')) {
+    return { editType: 'textarea', searchType: 'input', columnType: 'text' }
+  }
+  
+  // 根据字段名推断
+  const nameLower = fieldName.toLowerCase()
+  if (nameLower.includes('status') || nameLower.includes('type') || nameLower.includes('sex') || nameLower.includes('gender')) {
+    return { editType: 'select', searchType: 'select', columnType: 'dictTag' }
+  }
+  if (nameLower.includes('email')) {
+    return { editType: 'input', searchType: 'input', columnType: 'text' }
+  }
+  if (nameLower.includes('phone') || nameLower.includes('mobile') || nameLower.includes('tel')) {
+    return { editType: 'input', searchType: 'input', columnType: 'text' }
+  }
+  if (nameLower.includes('url') || nameLower.includes('link')) {
+    return { editType: 'input', searchType: 'input', columnType: 'text' }
+  }
+  if (nameLower.includes('image') || nameLower.includes('avatar') || nameLower.includes('logo') || nameLower.includes('pic')) {
+    return { editType: 'imageUpload', searchType: 'input', columnType: 'text' }
+  }
+  if (nameLower.includes('file')) {
+    return { editType: 'upload', searchType: 'input', columnType: 'text' }
+  }
+  
+  // 默认输入框
+  return { editType: 'input', searchType: 'input', columnType: 'text' }
+}
+
+/**
+ * 清空所有字段
+ */
+function clearAll() {
+  localRows.value = []
+  emit('update:value', '[]')
+}
 </script>
 
 <style scoped>
@@ -376,6 +522,13 @@ function moveDown(idx) {
   border-top: 1px solid #eee;
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+
+.field-count {
+  font-size: 12px;
+  color: #999;
+  margin-left: 4px;
 }
 
 .raw-json-area {

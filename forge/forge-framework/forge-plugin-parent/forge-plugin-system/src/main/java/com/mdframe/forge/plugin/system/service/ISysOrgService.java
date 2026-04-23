@@ -60,4 +60,12 @@ public interface ISysOrgService extends IService<SysOrg> {
      * @return 是否成功
      */
     boolean deleteOrgById(Long id);
+
+    /**
+     * 获取指定组织及其所有子组织的ID列表
+     *
+     * @param orgId 组织ID
+     * @return 组织ID列表（包含指定组织及其所有子组织）
+     */
+    List<Long> selectOrgAndChildrenIds(Long orgId);
 }

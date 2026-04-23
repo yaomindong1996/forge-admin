@@ -12,7 +12,7 @@
       :hide-add="true"
     >
       <template #toolbar-start>
-        <n-button type="warning" size="small" @click="goToGenerator()">
+        <n-button type="primary" size="small" @click="goToGenerator()">
           <template #icon>
             <n-icon><SparklesOutline /></n-icon>
           </template>
@@ -23,89 +23,105 @@
       <!-- 搜索配置可视化编辑器 -->
       <template #form-searchSchemaSlot="{ formData, updateValue }">
         <n-form-item label="搜索配置" :span="2" style="grid-column: span 2">
-          <SchemaFieldEditor
-            mode="search"
-            :value="formData.searchSchema || ''"
-            @update:value="updateValue"
-          />
+          <div class="schema-editor-wrapper">
+            <SchemaFieldEditor
+              mode="search"
+              :value="formData.searchSchema || ''"
+              @update:value="updateValue"
+            />
+          </div>
         </n-form-item>
       </template>
 
       <!-- 表格列可视化编辑器 -->
       <template #form-columnsSchemaSlot="{ formData, updateValue }">
         <n-form-item label="表格列配置" :span="2" style="grid-column: span 2">
-          <SchemaFieldEditor
-            mode="columns"
-            :value="formData.columnsSchema || ''"
-            @update:value="updateValue"
-          />
+          <div class="schema-editor-wrapper">
+            <SchemaFieldEditor
+              mode="columns"
+              :value="formData.columnsSchema || ''"
+              @update:value="updateValue"
+            />
+          </div>
         </n-form-item>
       </template>
 
       <!-- 编辑表单可视化编辑器 -->
       <template #form-editSchemaSlot="{ formData, updateValue }">
         <n-form-item label="编辑表单配置" :span="2" style="grid-column: span 2">
-          <SchemaFieldEditor
-            mode="edit"
-            :value="formData.editSchema || ''"
-            @update:value="updateValue"
-          />
+          <div class="schema-editor-wrapper">
+            <SchemaFieldEditor
+              mode="edit"
+              :value="formData.editSchema || ''"
+              @update:value="updateValue"
+            />
+          </div>
         </n-form-item>
       </template>
 
       <!-- API配置可视化编辑器 -->
       <template #form-apiConfigSlot="{ formData, updateValue }">
         <n-form-item label="API配置" :span="2" style="grid-column: span 2">
-          <ApiConfigEditor
-            :value="formData.apiConfig || ''"
-            @update:value="updateValue"
-          />
+          <div class="schema-editor-wrapper">
+            <ApiConfigEditor
+              :value="formData.apiConfig || ''"
+              @update:value="updateValue"
+            />
+          </div>
         </n-form-item>
       </template>
 
       <!-- 字典配置 -->
       <template #form-dictConfigSlot="{ formData, updateValue }">
         <n-form-item label="字典配置" :span="2" style="grid-column: span 2">
-          <DictConfigPanel
-            :search-schema="formData.searchSchema || ''"
-            :columns-schema="formData.columnsSchema || ''"
-            :edit-schema="formData.editSchema || ''"
-            :dict-config="formData.dictConfig || ''"
-            @update:value="updateValue"
-          />
+          <div class="schema-editor-wrapper">
+            <DictConfigPanel
+              :search-schema="formData.searchSchema || ''"
+              :columns-schema="formData.columnsSchema || ''"
+              :edit-schema="formData.editSchema || ''"
+              :dict-config="formData.dictConfig || ''"
+              @update:value="updateValue"
+            />
+          </div>
         </n-form-item>
       </template>
 
       <!-- 脱敏配置 -->
       <template #form-desensitizeConfigSlot="{ formData, updateValue }">
         <n-form-item label="脱敏配置" :span="2" style="grid-column: span 2">
-          <DesensitizeConfigPanel
-            :value="formData.desensitizeConfig || ''"
-            :columns-schema="formData.columnsSchema || ''"
-            @update:value="updateValue"
-          />
+          <div class="schema-editor-wrapper">
+            <DesensitizeConfigPanel
+              :value="formData.desensitizeConfig || ''"
+              :columns-schema="formData.columnsSchema || ''"
+              @update:value="updateValue"
+            />
+          </div>
         </n-form-item>
       </template>
 
       <!-- 加解密配置 -->
       <template #form-encryptConfigSlot="{ formData, updateValue }">
         <n-form-item label="加解密配置" :span="2" style="grid-column: span 2">
-          <EncryptConfigPanel
-            :value="formData.encryptConfig || ''"
-            @update:value="updateValue"
-          />
+          <div class="schema-editor-wrapper">
+            <EncryptConfigPanel
+              :value="formData.encryptConfig || ''"
+              @update:value="updateValue"
+            />
+          </div>
         </n-form-item>
       </template>
 
       <!-- 翻译配置 -->
       <template #form-transConfigSlot="{ formData, updateValue }">
         <n-form-item label="翻译配置" :span="2" style="grid-column: span 2">
-          <TransConfigPanel
-            :value="formData.transConfig || ''"
-            :columns-schema="formData.columnsSchema || ''"
-            :edit-schema="formData.editSchema || ''"
-            @update:value="updateValue"
-          />
+          <div class="schema-editor-wrapper">
+            <TransConfigPanel
+              :value="formData.transConfig || ''"
+              :columns-schema="formData.columnsSchema || ''"
+              :edit-schema="formData.editSchema || ''"
+              @update:value="updateValue"
+            />
+          </div>
         </n-form-item>
       </template>
     </AiCrudPage>
@@ -141,8 +157,8 @@ const apiConfig = {
 }
 
 const searchSchema = [
-  { field: 'configKey', label: '配置键', type: 'input' },
-  { field: 'tableName', label: '表名', type: 'input' },
+  { field: 'configKey', label: '配置键', type: 'input', placeholder: '请输入配置键' },
+  { field: 'tableName', label: '表名', type: 'input', placeholder: '请输入表名' },
 ]
 
 function goToGenerator(configKey) {
@@ -151,9 +167,9 @@ function goToGenerator(configKey) {
 }
 
 const tableColumns = [
-  { prop: 'configKey', title: '配置键', width: 160 },
-  { prop: 'tableName', title: '数据表', width: 160 },
-  { prop: 'tableComment', title: '表描述', width: 160 },
+  { prop: 'configKey', title: '配置键', width: 160, ellipsis: true },
+  { prop: 'tableName', title: '数据表', width: 160, ellipsis: true },
+  { prop: 'tableComment', title: '表描述', width: 160, ellipsis: true },
   {
     prop: 'mode',
     title: '模式',
@@ -168,7 +184,7 @@ const tableColumns = [
     render: row => h(NTag, { type: row.status === '0' ? 'success' : 'error', size: 'small' },
       () => row.status === '0' ? '启用' : '停用'),
   },
-  { prop: 'menuName', title: '菜单名称', width: 140 },
+  { prop: 'menuName', title: '菜单名称', width: 140, ellipsis: true },
   { prop: 'createTime', title: '创建时间', width: 180 },
   {
     // 使用 key: 'action' （框架检测单数）防止自动安插默认操作列
@@ -180,7 +196,7 @@ const tableColumns = [
     render: row => h('div', { class: 'table-action-column' }, [
       h('a', {
         class: 'table-action-link',
-        style: { color: '#f0a020' },
+        style: { color: '#6366F1' },
         onClick: () => goToGenerator(row.configKey),
       }, 'AI 生成'),
       h('span', { class: 'table-action-divider' }, ' | '),
@@ -198,9 +214,9 @@ const tableColumns = [
 ]
 
 const editSchema = [
-  { field: 'configKey', label: '配置键', type: 'input', required: true },
-  { field: 'tableName', label: '数据表', type: 'input', required: true },
-  { field: 'tableComment', label: '表描述', type: 'input' },
+  { field: 'configKey', label: '配置键', type: 'input', required: true, placeholder: '请输入配置键' },
+  { field: 'tableName', label: '数据表', type: 'input', required: true, placeholder: '请输入表名' },
+  { field: 'tableComment', label: '表描述', type: 'input', placeholder: '请输入表描述' },
   {
     field: 'mode',
     label: '模式',
@@ -220,8 +236,8 @@ const editSchema = [
       { label: '停用', value: '1' },
     ],
   },
-  { field: 'menuName', label: '菜单名称', type: 'input' },
-  { field: 'menuSort', label: '菜单排序', type: 'number' },
+  { field: 'menuName', label: '菜单名称', type: 'input', placeholder: '请输入菜单名称' },
+  { field: 'menuSort', label: '菜单排序', type: 'number', placeholder: '请输入菜单排序' },
   // 以下字段用 slot 类型，在 template 中用可视化编辑器渲染
   { field: 'searchSchema', type: 'slot', slotName: 'searchSchemaSlot', span: 2 },
   { field: 'columnsSchema', type: 'slot', slotName: 'columnsSchemaSlot', span: 2 },
@@ -231,7 +247,7 @@ const editSchema = [
   { field: 'desensitizeConfig', type: 'slot', slotName: 'desensitizeConfigSlot', span: 2 },
   { field: 'encryptConfig', type: 'slot', slotName: 'encryptConfigSlot', span: 2 },
   { field: 'transConfig', type: 'slot', slotName: 'transConfigSlot', span: 2 },
-  { field: 'options', label: '扩展配置JSON', type: 'textarea', props: { rows: 3 } },
+  { field: 'options', label: '扩展配置JSON', type: 'textarea', props: { rows: 3, placeholder: '请输入扩展配置JSON' } },
 ]
 
 /**
@@ -259,3 +275,55 @@ async function handleDelete(row) {
   })
 }
 </script>
+
+<style scoped>
+.ai-crud-config-page {
+  width: 100%;
+  height: 100%;
+  background: #F5F3FF;
+}
+
+.schema-editor-wrapper {
+  border: 1px solid #E0E7FF;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #FFFFFF;
+}
+
+.schema-editor-wrapper :deep(.schema-editor) {
+  padding: 8px;
+}
+
+.table-action-column {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.table-action-link {
+  color: #6366F1;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  font-size: 13px;
+}
+
+.table-action-link:hover {
+  background: #E0E7FF;
+  text-decoration: none;
+}
+
+.table-action-link.danger {
+  color: #EF4444;
+}
+
+.table-action-link.danger:hover {
+  background: #FEE2E2;
+}
+
+.table-action-divider {
+  color: #D1D5DB;
+  font-size: 12px;
+}
+</style>

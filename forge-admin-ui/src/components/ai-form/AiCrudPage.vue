@@ -746,6 +746,10 @@ async function loadList() {
     // 提取数据
     let list = []
     let total = 0
+    console.log('[DEBUG] 列表接口返回的原始响应：', response)
+    console.log('[DEBUG] 响应的data字段：', response.data)
+    console.log('[DEBUG] 配置的列表字段listDataField：', props.listDataField)
+    console.log('[DEBUG] 配置的总数字段listTotalField：', props.listTotalField)
 
     if (Array.isArray(response.data)) {
       // 后端直接返回数组（不分页）
@@ -758,12 +762,29 @@ async function loadList() {
       total = response.data[props.listTotalField] || 0
     }
 
+    console.log('[DEBUG] 提取到的列表数据list：', list)
+    console.log('[DEBUG] 提取到的总数total：', total)
+
     // 调用 beforeRenderList 钩子
     list = await callHook('beforeRenderList', list, data => data)
 
     // 更新数据
     dataSource.value = list
     pagination.value.itemCount = total
+
+    console.log('[DEBUG] 最终给表格的dataSource：', dataSource.value)
+    console.log('[DEBUG] 最终给表格的列配置tableColumns：', tableColumns.value)
+    console.log('[DEBUG] 表格列和数据的匹配检查：')
+    if (list.length > 0) {
+      const firstRow = list[0]
+      console.log('[DEBUG] 第一条数据的所有字段：', Object.keys(firstRow))
+      tableColumns.value.forEach(col => {
+        console.log(col)
+        if (col.prop !== 'action') {
+          console.log(`[DEBUG] 列${col.label}(${col.prop})：值 = ${firstRow[col.prop] ?? '不存在'}`)
+        }
+      })
+    }
 
     emit('load-list-success', { list, total })
   }
@@ -897,7 +918,26 @@ async function handleEdit(row) {
   else {
     // 调用 beforeRenderDetail 钩子
     const data = await callHook('beforeRenderDetail', processedRow || row, data => data)
-    formData.value = { ...data }
+     // 统一转换字段类型
+     const processedData = {}
+     for (const [key, value] of Object.entries(data)) {
+       const fieldConfig = props.editSchema.find(field => field.field === key)
+       if (fieldConfig && ['number', 'inputNumber'].includes(fieldConfig.type)) {
+         // 数字类型字段转换：字符串→数字
+         if (typeof value === 'string') {
+           processedData[key] = parseFloat(value)
+         } else if (value === null || value === undefined) {
+           processedData[key] = 0 // 数字字段空值默认0
+         } else {
+           processedData[key] = value
+         }
+       } else {
+         processedData[key] = value
+       }
+     }
+     formData.value = processedData
+     console.log('[DEBUG] 编辑时直接设置的表单数据:', formData.value)
+     console.log('[DEBUG] 订单金额字段值:', formData.value.orderAmount, '类型:', typeof formData.value.orderAmount)
   }
 
   modalVisible.value = true
@@ -958,8 +998,26 @@ async function loadDetail(row) {
 
     // 调用 beforeRenderDetail 钩子
     const data = await callHook('beforeRenderDetail', response.data, data => data)
-
-    formData.value = { ...data }
+    // 统一转换字段类型
+    const processedData = {}
+    for (const [key, value] of Object.entries(data)) {
+      const fieldConfig = props.editSchema.find(field => field.field === key)
+      if (fieldConfig && ['number', 'inputNumber'].includes(fieldConfig.type)) {
+        // 数字类型字段转换：字符串→数字
+        if (typeof value === 'string') {
+          processedData[key] = parseFloat(value)
+        } else if (value === null || value === undefined) {
+          processedData[key] = 0 // 数字字段空值默认0
+        } else {
+          processedData[key] = value
+        }
+      } else {
+        processedData[key] = value
+      }
+    }
+    formData.value = processedData
+    console.log('[DEBUG] 加载详情后的表单数据:', formData.value)
+    console.log('[DEBUG] 订单金额字段值:', formData.value.orderAmount, '类型:', typeof formData.value.orderAmount)
   }
   catch (error) {
     console.error('加载详情失败:', error)
@@ -1087,11 +1145,28 @@ async function handleModalConfirm() {
     await formRef.value?.validate()
 
     // 调用 beforeSubmit 钩子
-    const data = await callHook('beforeSubmit', formData.value, data => data)
+    let data = await callHook('beforeSubmit', formData.value, data => data)
 
     if (data === false) {
       return
     }
+
+    // 统一处理时间戳，转换为标准日期格式
+    data = JSON.parse(JSON.stringify(data), (key, value) => {
+      // 判断是否是时间戳（数字且长度在10位（秒）到13位（毫秒）之间）
+      if (typeof value === 'number' && (value.toString().length === 10 || value.toString().length === 13)) {
+        const date = new Date(value.toString().length === 10 ? value * 1000 : value)
+        // 格式化为 yyyy-MM-dd HH:mm:ss
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        const seconds = String(date.getSeconds()).padStart(2, '0')
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+      }
+      return value
+    })
 
     confirmLoading.value = true
 

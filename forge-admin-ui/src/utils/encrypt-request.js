@@ -3,30 +3,17 @@ import { EncryptTool } from './encryptTool'
 import { request } from './http'
 
 /**
- * 发送加密POST请求
+ * 发送加密POST请求（兼容新的会话密钥加密体系）
  * @param {string} url - 请求地址
  * @param {object} data - 请求数据
  * @param {object} options - axios配置选项
  * @returns {Promise} 解密后的响应数据
  */
 export function postEncrypt(url, data = {}, options = {}) {
-  const encryptData = EncryptTool.encrypt('RSA', encodeURIComponent(JSON.stringify(data)))
-  return new Promise((resolve, reject) => {
-    request.post(url, {
-      encryptData,
-      ...options,
-    }).then((res) => {
-      const decryptData = decodeURIComponent(EncryptTool.decrypt('RSA', res).replace(/\+/g, '%20'))
-
-      if (canParseToJson(decryptData)) {
-        resolve(JSON.parse(decryptData))
-      }
-      else {
-        resolve(decryptData)
-      }
-    }).catch((err) => {
-      reject(err)
-    })
+  // 标记请求需要加密，由拦截器统一处理加解密
+  return request.post(url, data, {
+    ...options,
+    encrypt: true,
   })
 }
 

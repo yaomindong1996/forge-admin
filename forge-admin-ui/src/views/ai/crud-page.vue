@@ -48,49 +48,73 @@ function transformColumns(columns, transConfig) {
     }
   }
 
-  return (columns || []).map((col) => {
-    const key = col.key || col.prop
-    // 如果该字段有翻译配置，优先用翻译后字段显示文本
+  const result = (columns || []).map((col) => {
+    // 统一提取字段名，优先级：prop > key > dataIndex
+    const key = col.prop || col.key || col.dataIndex
+    // 统一补prop字段，AiTable需要这个字段来匹配数据
+    const newCol = { ...col, prop: key }
+
+    // 如果该字段有翻译配置，优先显示翻译后的值，没有则显示原字段值
     if (transMap[key]) {
       const targetField = transMap[key]
-      return {
-        ...col,
-        render: undefined,
-        key: targetField,
-        dataIndex: targetField,
-      }
+      newCol.render = row => row[targetField] ?? row[key]
+      return newCol
     }
     // dictTag 渲染
     if (col.render && typeof col.render === 'object' && col.render.type === 'dictTag') {
-      return {
-        ...col,
-        render: row => h(DictTag, {
-          dictType: col.render.dictType,
-          value: row[key],
-          size: 'small',
-        }),
-      }
+      newCol.render = row => h(DictTag, {
+        dictType: col.render.dictType,
+        value: row[key],
+        size: 'small',
+      })
+      return newCol
     }
-    return col
+    return newCol
   })
+
+  return result
 }
 
 /**
- * 转换表单字段配置：为 dictType 字段注入字典选项
+ * 转换表单字段配置：为 dictType 字段注入字典选项，为日期字段配置格式化
  */
 function transformFields(fields) {
   return (fields || []).map((field) => {
+    let newField = { ...field }
+    
     if (field.dictType && ['select', 'radio', 'checkbox'].includes(field.type)) {
       const options = dictCache.value[field.dictType] || []
-      return {
-        ...field,
-        props: {
-          ...(field.props || {}),
-          options,
-        },
+      newField.props = {
+        ...(newField.props || {}),
+        options,
       }
     }
-    return field
+    
+    // 数字类型字段自动转换类型
+    if (['number', 'inputNumber'].includes(field.type)) {
+      newField.onMounted = (vm) => {
+        if (vm.field && vm.value) {
+          // 如果值是字符串，尝试转换成数字
+          if (typeof vm.value === 'string') {
+            const num = parseFloat(vm.value)
+            if (!isNaN(num)) {
+              vm.value = num
+            }
+          }
+        }
+      }
+    }
+    
+    // 日期/时间类型字段配置格式化，直接返回标准时间字符串
+    if (['date', 'datetime', 'time'].includes(field.type?.toLowerCase())) {
+      newField.props = {
+        ...(newField.props || {}),
+        format: 'yyyy-MM-dd HH:mm:ss',
+        valueFormat: 'yyyy-MM-dd HH:mm:ss',
+      }
+    }
+    
+    return newField
   })
 }
 
@@ -154,10 +178,14 @@ async function loadConfig() {
   errorMsg.value = ''
   configLoaded.value = false
 
-  try {
-    const res = await crudConfigRender(configKey)
-    const cfg = res.data
-    renderConfig.value = cfg
+    try {
+      const res = await crudConfigRender(configKey)
+      console.log('[DEBUG] 后端返回的CRUD配置原始响应：', res)
+      const cfg = res.data
+      console.log('[DEBUG] 解析后的CRUD配置：', cfg)
+      console.log('[DEBUG] 列配置columnsSchema：', cfg.columnsSchema)
+      console.log('[DEBUG] 翻译配置transConfig：', cfg.transConfig)
+      renderConfig.value = cfg
     // 更新当前 Tab 标题为菜单名/表描述
     const title = cfg.menuName || cfg.tableComment
     if (title) {

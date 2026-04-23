@@ -3,390 +3,331 @@ package com.mdframe.forge.plugin.generator.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mdframe.forge.plugin.generator.dto.DynamicCrudQuery;
 import com.mdframe.forge.plugin.generator.domain.entity.AiCrudConfig;
+import com.mdframe.forge.plugin.generator.dto.DynamicCrudQuery;
+import com.mdframe.forge.plugin.generator.util.DynamicQueryGenerator;
 import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.starter.crypto.crypto.Encryptor;
+import com.mdframe.forge.starter.crypto.crypto.EncryptorFactory;
 import com.mdframe.forge.starter.crypto.desensitize.strategy.DesensitizeStrategy;
 import com.mdframe.forge.starter.crypto.desensitize.strategy.DesensitizeStrategyFactory;
 import com.mdframe.forge.starter.crypto.desensitize.strategy.DesensitizeType;
-import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import com.mdframe.forge.starter.trans.spi.DictValueProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+/**
+ * 动态CRUD服务
+ * 基于DynamicCrudRepository实现，支持配置驱动的通用CRUD操作
+ * 
+ * @author forge
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class DynamicCrudService {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final DynamicCrudRepository repository;
     private final AiCrudConfigService configService;
     private final ObjectMapper objectMapper;
     private final DictValueProvider dictValueProvider;
-    private final DesensitizeStrategyFactory desensitizeStrategyFactory = new DesensitizeStrategyFactory();
+    private final DesensitizeStrategyFactory desensitizeStrategyFactory;
+    private final EncryptorFactory encryptorFactory;
 
-    private static final Pattern SAFE_IDENTIFIER = Pattern.compile("^[a-zA-Z_][a-zA-Z0-9_]{0,63}$");
+    // ==================== 查询操作 ====================
 
+    /**
+     * 分页查询
+     */
     public Page<Map<String, Object>> selectPage(String configKey, PageQuery pageQuery, DynamicCrudQuery query) {
+        // 1. 加载配置
         AiCrudConfig config = getConfig(configKey);
         String tableName = config.getTableName();
-        validateTableName(tableName);
-
-        Set<String> allowedSearchFields = extractFieldNames(config.getSearchSchema());
-        Map<String, String> searchTypeMap = extractSearchTypeMap(config.getSearchSchema());
-
-        List<Object> params = new ArrayList<>();
-        StringBuilder whereClause = new StringBuilder();
-
-        Long tenantId = TenantContextHolder.getTenantId();
-        if (tenantId != null) {
-            whereClause.append("tenant_id = ?");
-            params.add(tenantId);
-        }
-
-        if (query != null && query.getSearchParams() != null && !query.getSearchParams().isEmpty()) {
-            for (Map.Entry<String, Object> entry : query.getSearchParams().entrySet()) {
-                String fieldName = entry.getKey();
-                if (!allowedSearchFields.contains(fieldName)) {
-                    continue;
-                }
-                validateIdentifier(fieldName);
-                Object value = entry.getValue();
-                if (value == null || (value instanceof String && StringUtils.isBlank((String) value))) {
-                    continue;
-                }
-
-                if (whereClause.length() > 0) {
-                    whereClause.append(" AND ");
-                }
-
-                String searchType = searchTypeMap.getOrDefault(fieldName, "eq");
-                switch (searchType) {
-                    case "like":
-                        whereClause.append(fieldName).append(" LIKE ?");
-                        params.add("%" + value + "%");
-                        break;
-                    case "between":
-                        if (value instanceof List) {
-                            List<?> range = (List<?>) value;
-                            if (range.size() >= 2) {
-                                whereClause.append(fieldName).append(" BETWEEN ? AND ?");
-                                params.add(range.get(0));
-                                params.add(range.get(1));
-                            }
-                        } else {
-                            whereClause.append(fieldName).append(" = ?");
-                            params.add(value);
-                        }
-                        break;
-                    case "in":
-                        if (value instanceof List) {
-                            List<?> values = (List<?>) value;
-                            String placeholders = String.join(",", Collections.nCopies(values.size(), "?"));
-                            whereClause.append(fieldName).append(" IN (").append(placeholders).append(")");
-                            params.addAll(values);
-                        } else {
-                            whereClause.append(fieldName).append(" = ?");
-                            params.add(value);
-                        }
-                        break;
-                    default:
-                        whereClause.append(fieldName).append(" = ?");
-                        params.add(value);
-                        break;
-                }
-            }
-        }
-
-        String baseSql;
-        if (whereClause.length() > 0) {
-            baseSql = "SELECT * FROM " + tableName + " WHERE " + whereClause;
-        } else {
-            baseSql = "SELECT * FROM " + tableName;
-        }
-
-        String countSql = "SELECT COUNT(*) FROM (" + baseSql + ") t";
-        Long total;
-        if (params.isEmpty()) {
-            total = jdbcTemplate.queryForObject(countSql, Long.class);
-        } else {
-            total = jdbcTemplate.queryForObject(countSql, Long.class, params.toArray());
-        }
-
-        String dataSql = baseSql + " ORDER BY id DESC LIMIT ? OFFSET ?";
-        params.add(pageQuery.getPageSize());
-        params.add((pageQuery.getPageNum() - 1) * pageQuery.getPageSize());
-
-        List<Map<String, Object>> records = jdbcTemplate.queryForList(dataSql, params.toArray());
-
-        // 应用脱敏和字典翻译
-        applyDesensitize(records, config.getDesensitizeConfig());
-        applyDictTranslation(records, config.getTransConfig());
-
-        Page<Map<String, Object>> page = new Page<>(pageQuery.getPageNum(), pageQuery.getPageSize(), total != null ? total : 0);
-        page.setRecords(records);
+        
+        // 2. 获取字段映射
+        Map<String, String> columnMapping = repository.getColumnMapping(tableName);
+        
+        // 3. 解析搜索配置
+        Set<String> allowedSearchFields = DynamicQueryGenerator.extractFieldNames(config.getSearchSchema(), objectMapper);
+        Map<String, String> searchTypeMap = DynamicQueryGenerator.extractSearchTypeMap(config.getSearchSchema(), objectMapper);
+        
+        // 4. 构建搜索条件
+        Map<String, Object> searchParams = (query != null) ? query.getSearchParams() : null;
+        
+        // 5. 构建排序
+        String orderBy = DynamicQueryGenerator.buildOrderByClause(
+                pageQuery.getOrderByColumn(), pageQuery.getIsAsc(), columnMapping);
+        
+        // 6. 执行分页查询
+        Page<Map<String, Object>> page = repository.selectPage(
+                tableName,
+                pageQuery.getPageNum(),
+                pageQuery.getPageSize(),
+                searchParams,
+                allowedSearchFields,
+                searchTypeMap,
+                columnMapping,
+                orderBy
+        );
+        
+        // 7. 转换字段名为camelCase
+        List<Map<String, Object>> camelCaseRecords = DynamicQueryGenerator.convertListToCamelCase(page.getRecords());
+        
+        // 8. 应用脱敏和字典翻译
+        applyDesensitize(camelCaseRecords, config.getDesensitizeConfig());
+        applyDictTranslation(camelCaseRecords, config.getTransConfig());
+        applyDecrypt(camelCaseRecords, config.getEncryptConfig());
+        
+        page.setRecords(camelCaseRecords);
         return page;
     }
 
+    /**
+     * 根据ID查询
+     */
     public Map<String, Object> selectById(String configKey, Long id) {
         AiCrudConfig config = getConfig(configKey);
         String tableName = config.getTableName();
-        validateTableName(tableName);
-
-        String sql = "SELECT * FROM " + tableName + " WHERE id = ?";
-        List<Object> params = new ArrayList<>();
-        params.add(id);
-
-        Long tenantId = TenantContextHolder.getTenantId();
-        if (tenantId != null) {
-            sql += " AND tenant_id = ?";
-            params.add(tenantId);
+        
+        Map<String, Object> record = repository.selectById(tableName, id);
+        if (record == null) {
+            return null;
         }
-
-        List<Map<String, Object>> results = jdbcTemplate.queryForList(sql, params.toArray());
-        if (!results.isEmpty()) {
-            Map<String, Object> record = results.get(0);
-            applyDesensitize(Collections.singletonList(record), config.getDesensitizeConfig());
-            applyDictTranslation(Collections.singletonList(record), config.getTransConfig());
-            return record;
-        }
-        return null;
+        
+        // 转换为camelCase
+        Map<String, Object> camelCaseRecord = DynamicQueryGenerator.convertMapToCamelCase(record);
+        
+        // 应用脱敏和字典翻译
+        applyDesensitize(Collections.singletonList(camelCaseRecord), config.getDesensitizeConfig());
+        applyDictTranslation(Collections.singletonList(camelCaseRecord), config.getTransConfig());
+        applyDecrypt(Collections.singletonList(camelCaseRecord), config.getEncryptConfig());
+        
+        return camelCaseRecord;
     }
 
+    // ==================== 新增操作 ====================
+
+    /**
+     * 新增
+     */
     public void insert(String configKey, Map<String, Object> data) {
         AiCrudConfig config = getConfig(configKey);
         String tableName = config.getTableName();
-        validateTableName(tableName);
-
-        Set<String> allowedFields = extractFieldNames(config.getEditSchema());
-        Map<String, Object> filtered = filterFields(data, allowedFields);
-
-        if (filtered.isEmpty()) {
+        
+        // 获取字段映射
+        Map<String, String> columnMapping = repository.getColumnMapping(tableName);
+        
+        // 获取允许写入的字段
+        Set<String> allowedFields = DynamicQueryGenerator.extractFieldNames(config.getEditSchema(), objectMapper);
+        
+        // 过滤并转换字段名
+        Map<String, Object> filteredData = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            if (allowedFields.contains(entry.getKey())) {
+                String columnName = columnMapping.getOrDefault(entry.getKey(), DynamicQueryGenerator.camelToSnake(entry.getKey()));
+                filteredData.put(columnName, entry.getValue());
+            }
+        }
+        
+        if (filteredData.isEmpty()) {
             throw new BusinessException("没有可写入的字段");
         }
-
-        Long tenantId = TenantContextHolder.getTenantId();
-        if (tenantId != null) {
-            filtered.put("tenant_id", tenantId);
-        }
-        filtered.put("create_time", new java.util.Date());
-        filtered.put("update_time", new java.util.Date());
-
-        List<String> columns = new ArrayList<>();
-        List<String> placeholders = new ArrayList<>();
-        List<Object> values = new ArrayList<>();
-
-        for (Map.Entry<String, Object> entry : filtered.entrySet()) {
-            validateIdentifier(entry.getKey());
-            columns.add(entry.getKey());
-            placeholders.add("?");
-            values.add(entry.getValue());
-        }
-
-        String sql = "INSERT INTO " + tableName + " (" + String.join(", ", columns) + ") VALUES (" + String.join(", ", placeholders) + ")";
-        jdbcTemplate.update(sql, values.toArray());
+        
+        // 应用加密
+        applyEncrypt(filteredData, config.getEncryptConfig());
+        
+        // 执行插入
+        repository.insert(tableName, filteredData);
     }
 
+    // ==================== 更新操作 ====================
+
+    /**
+     * 更新
+     */
     public void updateById(String configKey, Map<String, Object> data) {
         AiCrudConfig config = getConfig(configKey);
         String tableName = config.getTableName();
-        validateTableName(tableName);
-
-        Set<String> allowedFields = extractFieldNames(config.getEditSchema());
-        Map<String, Object> filtered = filterFields(data, allowedFields);
-        filtered.remove("id");
-        filtered.remove("tenant_id");
-
-        if (filtered.isEmpty()) {
-            throw new BusinessException("没有可更新的字段");
-        }
-
-        filtered.put("update_time", new java.util.Date());
-
-        List<String> setClauses = new ArrayList<>();
-        List<Object> values = new ArrayList<>();
-
-        for (Map.Entry<String, Object> entry : filtered.entrySet()) {
-            validateIdentifier(entry.getKey());
-            setClauses.add(entry.getKey() + " = ?");
-            values.add(entry.getValue());
-        }
-
+        
+        // 获取ID
         Object idValue = data.get("id");
         if (idValue == null) {
             throw new BusinessException("更新操作缺少id");
         }
-        values.add(idValue);
-
-        StringBuilder sql = new StringBuilder("UPDATE " + tableName + " SET " + String.join(", ", setClauses) + " WHERE id = ?");
-
-        Long tenantId = TenantContextHolder.getTenantId();
-        if (tenantId != null) {
-            sql.append(" AND tenant_id = ?");
-            values.add(tenantId);
+        Long id = Long.valueOf(idValue.toString());
+        
+        // 获取字段映射
+        Map<String, String> columnMapping = repository.getColumnMapping(tableName);
+        
+        // 获取允许写入的字段
+        Set<String> allowedFields = DynamicQueryGenerator.extractFieldNames(config.getEditSchema(), objectMapper);
+        
+        // 过滤并转换字段名
+        Map<String, Object> filteredData = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            String key = entry.getKey();
+            if ("id".equals(key) || "tenantId".equals(key) || "tenant_id".equals(key)) {
+                continue;
+            }
+            if (allowedFields.contains(key)) {
+                String columnName = columnMapping.getOrDefault(key, DynamicQueryGenerator.camelToSnake(key));
+                filteredData.put(columnName, entry.getValue());
+            }
         }
-
-        jdbcTemplate.update(sql.toString(), values.toArray());
+        
+        if (filteredData.isEmpty()) {
+            throw new BusinessException("没有可更新的字段");
+        }
+        
+        // 应用加密
+        applyEncrypt(filteredData, config.getEncryptConfig());
+        
+        // 执行更新
+        repository.updateById(tableName, id, filteredData);
     }
 
+    // ==================== 删除操作 ====================
+
+    /**
+     * 删除
+     */
     public void deleteById(String configKey, Long id) {
         AiCrudConfig config = getConfig(configKey);
         String tableName = config.getTableName();
-        validateTableName(tableName);
-
-        List<Object> params = new ArrayList<>();
-        params.add(id);
-
-        Long tenantId = TenantContextHolder.getTenantId();
-
-        if (hasDelFlag(tableName)) {
-            StringBuilder sql = new StringBuilder("UPDATE " + tableName + " SET del_flag = '1', update_time = ? WHERE id = ?");
-            List<Object> delParams = new ArrayList<>();
-            delParams.add(new java.util.Date());
-            delParams.add(id);
-            if (tenantId != null) {
-                sql.append(" AND tenant_id = ?");
-                delParams.add(tenantId);
-            }
-            jdbcTemplate.update(sql.toString(), delParams.toArray());
-        } else {
-            StringBuilder sql = new StringBuilder("DELETE FROM " + tableName + " WHERE id = ?");
-            if (tenantId != null) {
-                sql.append(" AND tenant_id = ?");
-                params.add(tenantId);
-            }
-            jdbcTemplate.update(sql.toString(), params.toArray());
-        }
+        
+        // 判断是否逻辑删除
+        boolean logicDelete = repository.hasDelFlag(tableName);
+        
+        // 执行删除
+        repository.deleteById(tableName, id, logicDelete);
     }
 
-    public boolean hasDelFlag(String tableName) {
-        try {
-            String checkSql = "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = ? AND column_name = 'del_flag' AND table_schema = (SELECT DATABASE())";
-            Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, tableName);
-            return count != null && count > 0;
-        } catch (Exception e) {
-            log.warn("[DynamicCrudService] 检查del_flag失败, tableName={}", tableName, e);
-            return false;
-        }
-    }
+    // ==================== 加解密处理 ====================
 
-    private void validateTableName(String tableName) {
-        validateIdentifier(tableName);
-        try {
-            String checkSql = "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ? AND table_schema = (SELECT DATABASE())";
-            Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, tableName);
-            if (count == null || count == 0) {
-                throw new BusinessException("数据表不存在: " + tableName);
-            }
-        } catch (BusinessException e) {
-            throw e;
-        } catch (Exception e) {
-            log.warn("[DynamicCrudService] 校验表名失败, tableName={}", tableName, e);
-            throw new BusinessException("校验表名失败: " + tableName);
-        }
-    }
-
-    private AiCrudConfig getConfig(String configKey) {
-        AiCrudConfig config = configService.getByConfigKey(configKey);
-        if (config == null || "1".equals(config.getStatus())) {
-            throw new BusinessException("CRUD配置不存在或已停用: " + configKey);
-        }
-        if (!"CONFIG".equals(config.getMode())) {
-            throw new BusinessException("该配置不是配置驱动模式: " + configKey);
-        }
-        return config;
-    }
-
-    private Set<String> extractFieldNames(String schemaJson) {
-        if (StringUtils.isBlank(schemaJson)) {
-            return Collections.emptySet();
+    /**
+     * 应用加密（写入时）
+     * encryptConfig格式示例：
+     * {
+     *   "phone": {"algorithm": "SM4"},
+     *   "idCard": {"algorithm": "AES"},
+     *   "email": {"algorithm": "SM4"}
+     * }
+     */
+    private void applyEncrypt(Map<String, Object> data, String encryptConfigJson) {
+        if (StringUtils.isBlank(encryptConfigJson) || data == null || data.isEmpty()) {
+            return;
         }
         try {
-            JsonNode node = objectMapper.readTree(schemaJson);
-            Set<String> fields = new HashSet<>();
-            if (node.isArray()) {
-                for (JsonNode item : node) {
-                    JsonNode fieldNode = item.get("field");
-                    if (fieldNode != null && !fieldNode.isNull()) {
-                        fields.add(fieldNode.asText());
-                    }
-                    JsonNode dataIndexNode = item.get("dataIndex");
-                    if (dataIndexNode != null && !dataIndexNode.isNull()) {
-                        fields.add(dataIndexNode.asText());
-                    }
-                    JsonNode keyNode = item.get("key");
-                    if (keyNode != null && !keyNode.isNull()) {
-                        fields.add(keyNode.asText());
+            JsonNode configNode = objectMapper.readTree(encryptConfigJson);
+            if (!configNode.isObject()) return;
+
+            for (Map.Entry<String, JsonNode> entry : configNode.properties()) {
+                String fieldName = entry.getKey(); // camelCase字段名
+                JsonNode ruleNode = entry.getValue();
+
+                // 转换为snake_case（数据库列名）
+                String snakeFieldName = DynamicQueryGenerator.camelToSnake(fieldName);
+
+                if (!data.containsKey(snakeFieldName) || data.get(snakeFieldName) == null) {
+                    continue;
+                }
+
+                // 获取加密算法配置
+                String algorithm = ruleNode.has("algorithm") ? ruleNode.get("algorithm").asText() : "";
+                if (StringUtils.isBlank(algorithm)) {
+                    continue;
+                }
+
+                // 获取加密器
+                Encryptor encryptor = encryptorFactory.getEncryptor(algorithm);
+                if (encryptor == null) {
+                    log.warn("[DynamicCrudService] 未找到加密器, algorithm={}", algorithm);
+                    continue;
+                }
+
+                // 加密字段值
+                Object value = data.get(snakeFieldName);
+                if (value instanceof String) {
+                    String plainText = (String) value;
+                    if (StringUtils.isNotBlank(plainText)) {
+                        String encryptedValue = encryptor.encrypt(plainText);
+                        data.put(snakeFieldName, encryptedValue);
+                        log.debug("[DynamicCrudService] 加密字段: {}, algorithm: {}", fieldName, algorithm);
                     }
                 }
             }
-            return fields;
         } catch (Exception e) {
-            log.warn("[DynamicCrudService] 解析schema字段名失败", e);
-            return Collections.emptySet();
+            log.warn("[DynamicCrudService] 加密处理失败", e);
         }
     }
 
-    private Map<String, String> extractSearchTypeMap(String schemaJson) {
-        Map<String, String> typeMap = new HashMap<>();
-        if (StringUtils.isBlank(schemaJson)) {
-            return typeMap;
+    /**
+     * 应用解密（读取时）
+     * encryptConfig格式示例：
+     * {
+     *   "phone": {"algorithm": "SM4"},
+     *   "idCard": {"algorithm": "AES"},
+     *   "email": {"algorithm": "SM4"}
+     * }
+     */
+    private void applyDecrypt(List<Map<String, Object>> rows, String encryptConfigJson) {
+        if (StringUtils.isBlank(encryptConfigJson) || rows == null || rows.isEmpty()) {
+            return;
         }
         try {
-            JsonNode node = objectMapper.readTree(schemaJson);
-            if (node.isArray()) {
-                for (JsonNode item : node) {
-                    JsonNode fieldNode = item.get("field");
-                    if (fieldNode == null || fieldNode.isNull()) continue;
-                    String field = fieldNode.asText();
-                    JsonNode searchTypeNode = item.get("searchType");
-                    if (searchTypeNode != null && !searchTypeNode.isNull()) {
-                        typeMap.put(field, searchTypeNode.asText());
-                    } else {
-                        String type = item.has("type") ? item.get("type").asText("") : "";
-                        if ("daterange".equals(type)) {
-                            typeMap.put(field, "between");
-                        } else if ("select".equals(type)) {
-                            JsonNode multipleNode = item.get("multiple");
-                            if (multipleNode != null && multipleNode.asBoolean(false)) {
-                                typeMap.put(field, "in");
-                            } else {
-                                typeMap.put(field, "eq");
+            JsonNode configNode = objectMapper.readTree(encryptConfigJson);
+            if (!configNode.isObject()) return;
+
+            for (Map<String, Object> row : rows) {
+                for (Map.Entry<String, JsonNode> entry : configNode.properties()) {
+                    String fieldName = entry.getKey(); // camelCase字段名
+                    JsonNode ruleNode = entry.getValue();
+
+                    if (!row.containsKey(fieldName) || row.get(fieldName) == null) {
+                        continue;
+                    }
+
+                    // 获取加密算法配置
+                    String algorithm = ruleNode.has("algorithm") ? ruleNode.get("algorithm").asText() : "";
+                    if (StringUtils.isBlank(algorithm)) {
+                        continue;
+                    }
+
+                    // 获取加密器
+                    Encryptor encryptor = encryptorFactory.getEncryptor(algorithm);
+                    if (encryptor == null) {
+                        log.warn("[DynamicCrudService] 未找到加密器, algorithm={}", algorithm);
+                        continue;
+                    }
+
+                    // 解密字段值
+                    Object value = row.get(fieldName);
+                    if (value instanceof String) {
+                        String cipherText = (String) value;
+                        if (StringUtils.isNotBlank(cipherText)) {
+                            try {
+                                String decryptedValue = encryptor.decrypt(cipherText);
+                                row.put(fieldName, decryptedValue);
+                                log.debug("[DynamicCrudService] 解密字段: {}, algorithm: {}", fieldName, algorithm);
+                            } catch (Exception decryptException) {
+                                log.warn("[DynamicCrudService] 解密字段失败: {}, 可能是明文数据", fieldName);
                             }
-                        } else {
-                            typeMap.put(field, "like");
                         }
                     }
                 }
             }
         } catch (Exception e) {
-            log.warn("[DynamicCrudService] 解析searchTypeMap失败", e);
+            log.warn("[DynamicCrudService] 解密处理失败", e);
         }
-        return typeMap;
     }
 
-    private Map<String, Object> filterFields(Map<String, Object> data, Set<String> allowedFields) {
-        Map<String, Object> filtered = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> entry : data.entrySet()) {
-            if (allowedFields.contains(entry.getKey())) {
-                filtered.put(entry.getKey(), entry.getValue());
-            }
-        }
-        return filtered;
-    }
-
-    private void validateIdentifier(String identifier) {
-        if (StringUtils.isBlank(identifier) || !SAFE_IDENTIFIER.matcher(identifier).matches()) {
-            throw new BusinessException("非法标识符: " + identifier);
-        }
-    }
+    // ==================== 脱敏处理 ====================
 
     /**
      * 应用字段脱敏
@@ -400,10 +341,8 @@ public class DynamicCrudService {
             if (!configNode.isObject()) return;
 
             for (Map<String, Object> row : rows) {
-                Iterator<Map.Entry<String, JsonNode>> fields = configNode.fields();
-                while (fields.hasNext()) {
-                    Map.Entry<String, JsonNode> entry = fields.next();
-                    String fieldName = entry.getKey();
+                for (Map.Entry<String, JsonNode> entry : configNode.properties()) {
+                    String fieldName = entry.getKey(); // camelCase字段名
                     JsonNode ruleNode = entry.getValue();
                     if (!row.containsKey(fieldName) || row.get(fieldName) == null) continue;
 
@@ -421,6 +360,8 @@ public class DynamicCrudService {
         }
     }
 
+    // ==================== 字典翻译 ====================
+
     /**
      * 应用字典翻译
      */
@@ -433,10 +374,8 @@ public class DynamicCrudService {
             if (!configNode.isObject()) return;
 
             for (Map<String, Object> row : rows) {
-                Iterator<Map.Entry<String, JsonNode>> fields = configNode.fields();
-                while (fields.hasNext()) {
-                    Map.Entry<String, JsonNode> entry = fields.next();
-                    String sourceField = entry.getKey();
+                for (Map.Entry<String, JsonNode> entry : configNode.properties()) {
+                    String sourceField = entry.getKey(); // camelCase字段名
                     JsonNode ruleNode = entry.getValue();
                     if (!row.containsKey(sourceField) || row.get(sourceField) == null) continue;
 
@@ -455,5 +394,21 @@ public class DynamicCrudService {
         } catch (Exception e) {
             log.warn("[DynamicCrudService] 字典翻译失败", e);
         }
+    }
+
+    // ==================== 配置加载 ====================
+
+    /**
+     * 获取配置
+     */
+    private AiCrudConfig getConfig(String configKey) {
+        AiCrudConfig config = configService.getByConfigKey(configKey);
+        if (config == null || "1".equals(config.getStatus())) {
+            throw new BusinessException("CRUD配置不存在或已停用: " + configKey);
+        }
+        if (!"CONFIG".equals(config.getMode())) {
+            throw new BusinessException("该配置不是配置驱动模式: " + configKey);
+        }
+        return config;
     }
 }

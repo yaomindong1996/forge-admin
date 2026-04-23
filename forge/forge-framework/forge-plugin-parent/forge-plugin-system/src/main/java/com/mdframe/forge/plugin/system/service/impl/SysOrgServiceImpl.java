@@ -14,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 组织Service实现类
@@ -61,6 +63,22 @@ public class SysOrgServiceImpl extends ServiceImpl<SysOrgMapper, SysOrg> impleme
     public boolean insertOrg(SysOrgDTO dto) {
         SysOrg org = new SysOrg();
         BeanUtil.copyProperties(dto, org);
+        
+        // 设置祖先编码
+        if (org.getParentId() == null || org.getParentId() == 0) {
+            // 顶级组织，祖先编码为空或特定格式
+            org.setAncestors(",");
+        } else {
+            // 非顶级组织，获取父组织的祖先编码并添加自己的ID
+            SysOrg parentOrg = orgMapper.selectById(org.getParentId());
+            if (parentOrg != null) {
+                org.setAncestors(parentOrg.getAncestors() + org.getParentId() + ",");
+            } else {
+                // 如果父组织不存在，默认设置为顶级组织的格式
+                org.setAncestors(",");
+            }
+        }
+        
         return orgMapper.insert(org) > 0;
     }
 
@@ -74,6 +92,34 @@ public class SysOrgServiceImpl extends ServiceImpl<SysOrgMapper, SysOrg> impleme
     @Override
     public boolean deleteOrgById(Long id) {
         return orgMapper.deleteById(id) > 0;
+    }
+
+    @Override
+    public List<Long> selectOrgAndChildrenIds(Long orgId) {
+        // 获取指定组织的详细信息
+        SysOrg org = orgMapper.selectById(orgId);
+        if (org == null) {
+            return null;
+        }
+        
+        LambdaQueryWrapper<SysOrg> wrapper = new LambdaQueryWrapper<>();
+        
+        // 判断是否是顶级组织（parentId=0）
+        if (org.getParentId() == null || org.getParentId() == 0) {
+            // 顶级组织，查询所有父组织为0的组织（包括自己和所有一级子组织，以及更下级组织）
+            // 顶级组织的 ancestors 字段是 ","，所以查询所有包含 ",0," 或自身ID的组织
+            String ancestors = "," + orgId + ",";
+            wrapper.and(w -> w.eq(SysOrg::getParentId, 0).or().like(SysOrg::getAncestors, ancestors));
+        } else {
+            // 非顶级组织，利用 ancestors 字段查询该组织及其所有子组织
+            // ancestors 字段格式为：,1,2,3,
+            String ancestors = org.getAncestors() + orgId + ",";
+            wrapper.and(w -> w.eq(SysOrg::getId, orgId).or().like(SysOrg::getAncestors, ancestors));
+        }
+        
+        List<SysOrg> orgs = orgMapper.selectList(wrapper);
+        
+        return orgs.stream().map(SysOrg::getId).collect(Collectors.toList());
     }
 
     /**
