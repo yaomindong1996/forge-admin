@@ -83,6 +83,13 @@ export const manualRoutes = [
     component: () => import('@/views/ai/crud-page.vue'),
     meta: { title: 'CRUD页面' },
   },
+  // Nexus 布局演示页面
+  {
+    name: 'NexusRoleManagement',
+    path: '/nexus/role-management',
+    component: () => import('@/views/nexus/role-management.vue'),
+    meta: { title: 'Nexus 角色管理', layout: 'nexus' },
+  },
 ]
 
 // 从 unplugin-vue-router 自动生成的路由

@@ -123,6 +123,12 @@ const systemLayoutOptions = [
     description: '超窄图标导航栏，右侧抽屉菜单，极致内容空间',
     preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMiIgaGVpZ2h0PSI2MCIgZmlsbD0iI0UwRTBFMCIvPjxyZWN0IHg9IjE2IiB3aWR0aD0iODgiIGhlaWdodD0iOCIgZmlsbD0iI0Y1RjVGNSIvPjxyZWN0IHg9IjE2IiB5PSIxMiIgd2lkdGg9Ijg4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjRjVGNUY1Ii8+PC9zdmc+',
   },
+  {
+    label: 'Nexus 浮岛',
+    value: 'nexus',
+    description: '浮岛卡片式侧边栏与内容区，现代商务风格',
+    preview: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTA0IiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHg9IjMiIHk9IjMiIHdpZHRoPSIxNiIgaGVpZ2h0PSI1NCIgZmlsbD0iI0YwRjBGMCIgc3Ryb2tlPSIjRDVENTVFIiByeD0iMiIvPjxyZWN0IHg9IjIyIiB5PSIzIiB3aWR0aD0iNzkiIGhlaWdodD0iOCIgZmlsbD0iI0YwRjBGMCIgc3Ryb2tlPSIjRDVENTVFIiByeD0iMiIvPjxyZWN0IHg9IjIyIiB5PSIxNCIgd2lkdGg9Ijc5IiBoZWlnaHQ9IjQzIiBmaWxsPSIjRjBGMEYwIiBzdHJva2U9IiNENUQ1RTUiIHJ4PSIyIi8+PC9zdmc+',
+  },
 ]
 
 // 搜索表单配置

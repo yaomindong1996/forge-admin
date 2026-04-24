@@ -76,6 +76,11 @@ export const layoutSettings = {
       description: '超窄图标导航栏，右侧抽屉菜单，极致内容空间',
     },
     {
+      name: 'nexus',
+      title: 'Nexus 浮岛布局',
+      description: '浮岛卡片式侧边栏与内容区，现代商务风格',
+    },
+    {
       name: 'empty',
       title: '空布局',
       description: '空布局，不包含任何框架元素',

@@ -151,6 +151,28 @@
           </n-button>
         </div>
 
+        <div class="layout-item" @click="appStore.setLayout('nexus')">
+          <div class="layout-preview">
+            <div class="flex">
+              <n-skeleton :width="20" :height="60" />
+              <div class="ml-4 w-full">
+                <n-skeleton :width="104" :height="8" />
+                <n-skeleton class="mt-2" :width="104" :height="4" />
+                <n-skeleton class="mt-4" :width="104" :height="38" />
+              </div>
+            </div>
+          </div>
+          <n-button
+            class="mt-12"
+            size="small"
+            :type="appStore.layout === 'nexus' ? 'primary' : ''"
+            ghost
+            block
+          >
+            Nexus 浮岛
+          </n-button>
+        </div>
+
         <div class="layout-item" @click="appStore.setLayout('empty')">
           <div class="layout-preview">
             <n-skeleton :width="104" :height="60" />
