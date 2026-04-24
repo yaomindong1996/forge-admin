@@ -17,6 +17,14 @@
         </div>
         <div class="org-tree-content">
           <n-spin :show="leftOrgTreeLoading">
+            <div
+              class="org-tree-all-node"
+              :class="{ 'is-selected': isShowAllUsers }"
+              @click="handleSelectAllUsers"
+            >
+              <i class="i-material-symbols:groups-rounded" />
+              <span>全部用户</span>
+            </div>
             <n-tree
               v-if="leftOrgTreeData.length > 0"
               :data="leftOrgTreeData"
@@ -60,7 +68,7 @@
         >
           <!-- 自定义工具栏提示 -->
           <template #toolbar-start>
-            <div v-if="selectedOrgNode" class="org-filter-tip">
+            <div v-if="selectedOrgNode && !isShowAllUsers" class="org-filter-tip">
               <NTag type="info" size="small" closable @close="handleClearOrgFilter">
                 当前筛选：{{ selectedOrgNode.orgName }}
               </NTag>
@@ -277,6 +285,7 @@ const leftOrgExpandAll = ref(true)
 const leftOrgExpandedKeys = ref([])
 const selectedOrgKeys = ref([])
 const selectedOrgNode = ref(null)
+const isShowAllUsers = ref(true)
 
 // 授权相关
 const authModalVisible = ref(false)
@@ -617,6 +626,7 @@ function handleOrgNodeSelect(keys) {
   selectedOrgKeys.value = keys
 
   if (keys.length > 0) {
+    isShowAllUsers.value = false
     const orgId = keys[0]
     selectedOrgNode.value = findOrgNode(leftOrgTreeData.value, orgId)
     crudRef.value?.refresh()
@@ -663,12 +673,20 @@ function toggleOrgExpandAll() {
 function handleClearOrgFilter() {
   selectedOrgKeys.value = []
   selectedOrgNode.value = null
+  isShowAllUsers.value = true
+  crudRef.value?.refresh()
+}
+
+function handleSelectAllUsers() {
+  isShowAllUsers.value = true
+  selectedOrgKeys.value = []
+  selectedOrgNode.value = null
   crudRef.value?.refresh()
 }
 
 // 加载列表数据前的钩子（用于添加组织ID参数）
 function beforeLoadList(params) {
-  if (selectedOrgNode.value) {
+  if (selectedOrgNode.value && !isShowAllUsers.value) {
     params.orgId = selectedOrgNode.value.id
   }
   return params
@@ -1082,6 +1100,33 @@ async function handleSubmitOrg() {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 12px 8px;
+}
+
+.org-tree-all-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+  transition: all 0.2s;
+}
+
+.org-tree-all-node:hover {
+  background-color: #f3f4f6;
+}
+
+.org-tree-all-node.is-selected {
+  background-color: #e0e7ff !important;
+  color: #4f46e5;
+  font-weight: 500;
+}
+
+.org-tree-all-node i {
+  font-size: 18px;
 }
 
 .org-tree-content :deep(.n-tree) {
