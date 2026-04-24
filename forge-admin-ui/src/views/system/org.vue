@@ -41,7 +41,7 @@
 
 <script setup>
 import { NTag } from 'naive-ui'
-import { computed, h, onMounted, ref } from 'vue'
+import { computed, h, nextTick, onMounted, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
@@ -372,17 +372,23 @@ function toggleExpandAll() {
 
 // 新增子组织
 async function handleAdd(row) {
-  // 加载上级组织选项
   await loadParentOrgOptions()
 
+  const parentIdField = editSchema.value.find(f => f.field === 'parentId')
+  const originalDefaultValue = parentIdField?.defaultValue
+
+  if (row && parentIdField) {
+    parentIdField.defaultValue = row.id
+  }
+
   crudRef.value?.showAdd()
-  // 设置父级ID
-  setTimeout(() => {
-    const formData = crudRef.value?.formData
-    if (formData && row) {
-      formData.parentId = row.id
-    }
-  }, 100)
+
+  await nextTick()
+  await nextTick()
+
+  if (parentIdField && originalDefaultValue !== undefined) {
+    parentIdField.defaultValue = originalDefaultValue
+  }
 }
 
 // 编辑
