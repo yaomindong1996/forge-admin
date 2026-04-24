@@ -15,7 +15,7 @@ import { SideLogo, SideMenu } from '@/layouts/components'
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: white;
+  background: var(--bg-primary, #ffffff);
   color: var(--text-primary);
   overflow: hidden;
 }

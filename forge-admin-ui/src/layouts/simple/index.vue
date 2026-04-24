@@ -35,15 +35,15 @@ const appStore = useAppStore()
   width: 100%;
   height: 100vh;
   display: flex;
-  background: #f8fafc;
+  background: var(--bg-tertiary, #f8fafc);
 }
 
 /* 侧边栏 */
 .sidebar-simple {
   flex-shrink: 0;
   width: 260px;
-  background: white;
-  border-right: 1px solid #e2e8f0;
+  background: var(--bg-primary, #ffffff);
+  border-right: 1px solid var(--border-light, #e2e8f0);
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
@@ -82,16 +82,16 @@ const appStore = useAppStore()
 }
 
 .content-simple::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--bg-secondary, #f1f5f9);
 }
 
 .content-simple::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border-default, #cbd5e1);
   border-radius: 4px;
 }
 
 .content-simple::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--text-tertiary, #94a3b8);
 }
 
 /* 响应式 */

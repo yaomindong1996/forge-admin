@@ -22,7 +22,7 @@ const appStore = useAppStore()
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: white;
+  background: var(--bg-primary, #ffffff);
   color: var(--text-primary);
 }
 
@@ -38,7 +38,7 @@ const appStore = useAppStore()
   align-items: center;
   justify-content: space-around;
   padding: 16px 12px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--border-light, #f1f5f9);
   gap: 8px;
 }
 

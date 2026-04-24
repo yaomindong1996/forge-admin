@@ -245,9 +245,9 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   box-shadow: var(--nexus-shadow-content);
   overflow: hidden;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 
 /* Tab 标签栏 */
@@ -260,13 +260,12 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: flex-end;
   gap: 2px;
-  overflow-x: auto;
+  overflow: hidden;
 }
 
 .nexus-tab-bar :deep(#top-tab) {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
 }
 
 /* Tab 样式覆盖 */
@@ -297,8 +296,102 @@ onBeforeUnmount(() => {
   border-color: var(--nexus-border) !important;
   border-bottom-color: var(--bg-primary) !important;
   color: var(--text-primary) !important;
+  font-weight: 700 !important;
   z-index: 1;
   margin-bottom: -1px;
+}
+
+/* 深色模式下选中态增强 */
+.dark .nexus-tab-bar :deep(.n-tabs-tab.n-tabs-tab--active) {
+  color: #f8fafc !important;
+  font-weight: 700 !important;
+}
+
+/* 侧边栏深色模式 */
+.dark .nexus-sidebar-inner {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
+.dark .nexus-header {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
+.dark .nexus-content {
+  background: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
+.dark .nexus-tab-bar {
+  border-bottom-color: #1e293b !important;
+  background: #1e293b !important;
+}
+
+/* 缓存监控页面 - 深色模式背景 */
+.dark .cache-management-page {
+  background: #0f172a !important;
+}
+
+.dark .metrics-section {
+  background: #1e293b !important;
+  border-bottom-color: #334155 !important;
+}
+
+.dark .metric-card {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .metric-label {
+  color: #94a3b8 !important;
+}
+
+.dark .metric-value {
+  color: #f1f5f9 !important;
+}
+
+.dark .metric-sub {
+  color: #64748b !important;
+}
+
+.dark .cache-container {
+  background: #334155 !important;
+}
+
+.dark .left-panel {
+  background: #0f172a !important;
+  border-right-color: #334155 !important;
+}
+
+.dark .panel-header {
+  border-bottom-color: #334155 !important;
+}
+
+.dark .panel-footer {
+  border-top-color: #334155 !important;
+  background: #1e293b !important;
+}
+
+.dark .resize-handle {
+  background: #334155 !important;
+}
+
+.dark .tree-leaf-label {
+  color: #e2e8f0 !important;
+}
+
+.dark .tree-folder-label {
+  color: #f1f5f9 !important;
+}
+
+.dark :deep(.n-tree-node-content:hover) {
+  background-color: #1e293b !important;
+}
+
+.dark :deep(.n-tree-node-content.n-tree-node-content--selected) {
+  background-color: #1e3a5f !important;
 }
 
 .nexus-tab-bar :deep(.n-tabs-tab-pane) {
@@ -309,7 +402,7 @@ onBeforeUnmount(() => {
 .nexus-page {
   flex: 1;
   overflow: auto;
-  padding: 20px;
+  padding: 10px;
   background: var(--bg-primary);
   min-height: 0;
 }

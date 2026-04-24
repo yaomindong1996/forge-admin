@@ -12,6 +12,7 @@
 
     <!-- 右侧：工具栏 -->
     <div class="header-right">
+      <ToggleTheme />
       <Fullscreen />
       <MessageNotification />
       <div class="header-divider" />
@@ -25,6 +26,7 @@ import BreadCrumb from '../BreadCrumb.vue'
 import Fullscreen from '@/layouts/components/Fullscreen.vue'
 import MenuSearch from '@/layouts/components/MenuSearch.vue'
 import MessageNotification from '@/layouts/components/MessageNotification.vue'
+import ToggleTheme from '@/components/common/ToggleTheme.vue'
 import UserAvatar from '@/layouts/components/UserAvatar.vue'
 </script>
 

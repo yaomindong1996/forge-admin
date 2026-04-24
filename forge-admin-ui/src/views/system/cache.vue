@@ -999,6 +999,155 @@ function formatValue(value) {
   line-height: 1.4;
 }
 
+/* ═══════════════════════════════════════
+ * 深色模式
+ * ═══════════════════════════════════════ */
+.dark .cache-management-page {
+  background: #0f172a !important;
+}
+
+.dark .metrics-section {
+  background: #1e293b !important;
+  border-bottom-color: #334155 !important;
+}
+
+.dark .metric-card {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .metric-label {
+  color: #94a3b8;
+}
+
+.dark .metric-value {
+  color: #f1f5f9;
+}
+
+.dark .metric-sub {
+  color: #64748b;
+}
+
+.dark .cache-container {
+  background: #334155 !important;
+}
+
+.dark .left-panel {
+  background: #0f172a !important;
+  border-right-color: #334155 !important;
+}
+
+.dark .panel-header {
+  border-bottom-color: #334155;
+}
+
+.dark .panel-footer {
+  border-top-color: #334155 !important;
+  background: #1e293b !important;
+}
+
+.dark .resize-handle {
+  background: #334155;
+}
+
+.dark .tree-leaf-label {
+  color: #e2e8f0;
+}
+
+.dark .tree-folder-label {
+  color: #f1f5f9;
+}
+
+.dark .n-tree-node-content:hover {
+  background-color: #1e293b !important;
+}
+
+.dark .n-tree-node-content.n-tree-node-content--selected {
+  background-color: #1e3a5f !important;
+}
+
+.dark .panel-body {
+  background: #0f172a;
+}
+
+.dark .panel-body::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark .panel-body::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark .panel-body::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.dark .cache-content {
+  color: #e2e8f0;
+}
+
+.dark .n-data-table-th {
+  background: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+
+.dark .n-data-table-td {
+  background: #0f172a !important;
+  color: #e2e8f0 !important;
+  border-color: #334155 !important;
+}
+
+.dark .n-data-table.n-data-table--bordered {
+  border-color: #334155;
+}
+
+.dark .n-data-table--striped tr:nth-child(even) .n-data-table-td {
+  background: #1e293b !important;
+}
+
+.dark .set-item {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+.dark .text-content,
+.dark .json-content {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+.dark .content-toolbar {
+  color: #f1f5f9;
+}
+
+.dark .detail-header {
+  border-bottom-color: #334155;
+}
+
+.dark .key-name span {
+  color: #f1f5f9;
+}
+
+.dark .key-meta {
+  color: #94a3b8;
+}
+
+.dark .empty-icon {
+  color: #475569;
+}
+
+.dark .empty-text {
+  color: #64748b;
+}
+
+.dark .empty-state {
+  background: #0f172a;
+}
+
 .tree-count {
   color: #9ca3af;
   font-size: 12px;

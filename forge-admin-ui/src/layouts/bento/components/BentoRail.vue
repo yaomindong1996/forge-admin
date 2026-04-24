@@ -70,13 +70,15 @@
 <script setup>
 import { computed, ref, h } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore, usePermissionStore, useAppStore } from '@/store'
+import { useUserStore, useAuthStore, usePermissionStore, useAppStore } from '@/store'
+import api from '@/api'
 import TheLogo from '@/components/common/TheLogo.vue'
 import { MessageNotification } from '@/layouts/components'
 import DrawerMenu from '../../immersive/components/DrawerMenu.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
+const authStore = useAuthStore()
 const permissionStore = usePermissionStore()
 const appStore = useAppStore()
 
@@ -134,8 +136,21 @@ const userDropdownOptions = computed(() => [
 function handleUserSelect(key) {
   userDropdownVisible.value = false
   if (key === 'logout') {
-    userStore.logout()
-    router.push('/login')
+    $dialog.confirm({
+      title: '提示',
+      type: 'info',
+      content: '确认退出？',
+      async confirm() {
+        try {
+          await api.logout()
+        }
+        catch (error) {
+          console.error(error)
+        }
+        authStore.logout()
+        $message.success('已退出登录')
+      },
+    })
   }
   else if (key === 'profile') {
     router.push('/system/user-profile')

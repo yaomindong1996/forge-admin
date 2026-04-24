@@ -86,7 +86,7 @@ function findBreadItemsByPath(tree, targetPath, parents = []) {
 
 function handleItemClick(item) {
   if (item.path) {
-    router.push(item.path)
+    // router.push(item.path)
   }
 }
 

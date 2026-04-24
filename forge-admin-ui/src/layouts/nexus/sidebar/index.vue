@@ -100,7 +100,8 @@
 <script setup>
 import { computed, ref, h, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useUserStore, usePermissionStore } from '@/store'
+import { useUserStore, useAuthStore, usePermissionStore } from '@/store'
+import api from '@/api'
 import TheLogo from '@/components/common/TheLogo.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
 import MenuCollapse from '@/layouts/components/MenuCollapse.vue'
@@ -108,6 +109,7 @@ import MenuCollapse from '@/layouts/components/MenuCollapse.vue'
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const authStore = useAuthStore()
 const permissionStore = usePermissionStore()
 
 const userDropdownVisible = ref(false)
@@ -121,6 +123,7 @@ const userAvatar = computed(() => {
 // 处理菜单数据
 const menuItems = computed(() => {
   const menus = permissionStore.menus || []
+  console.log('permissionStore.menus',permissionStore.menus)
   return processMenus(menus)
 })
 
@@ -147,8 +150,14 @@ function isActive(item) {
   const currentPath = route.path
   if (item.path === currentPath)
     return true
-  if (item.path !== '/' && currentPath.startsWith(item.path))
-    return true
+  // 支持子路径匹配，但要避免前缀误匹配
+  // 例如 /system/config 不应该匹配 /system/config-center
+  if (item.path !== '/' && item.path !== currentPath) {
+    const normalizedPath = item.path.endsWith('/') ? item.path : item.path + '/'
+    const normalizedCurrent = currentPath.endsWith('/') ? currentPath : currentPath + '/'
+    if (normalizedCurrent.startsWith(normalizedPath))
+      return true
+  }
   return false
 }
 
@@ -195,8 +204,7 @@ watch(
 )
 
 const userDropdownOptions = computed(() => [
-  { label: '个人信息', key: 'profile', icon: () => h('i', { class: 'i-material-symbols:person-outline' }) },
-  { label: '修改密码', key: 'password', icon: () => h('i', { class: 'i-material-symbols:lock-outline' }) },
+  { label: '个人资料', key: 'profile', icon: () => h('i', { class: 'i-material-symbols:person-outline' }) },
   { type: 'divider', key: 'd1' },
   { label: '退出登录', key: 'logout', icon: () => h('i', { class: 'i-material-symbols:logout' }) },
 ])
@@ -204,14 +212,24 @@ const userDropdownOptions = computed(() => [
 function handleUserSelect(key) {
   userDropdownVisible.value = false
   if (key === 'logout') {
-    userStore.logout()
-    router.push('/login')
+    $dialog.confirm({
+      title: '提示',
+      type: 'info',
+      content: '确认退出？',
+      async confirm() {
+        try {
+          await api.logout()
+        }
+        catch (error) {
+          console.error(error)
+        }
+        authStore.logout()
+        $message.success('已退出登录')
+      },
+    })
   }
   else if (key === 'profile') {
-    router.push('/system/user-profile')
-  }
-  else if (key === 'password') {
-    router.push('/system/password')
+    router.push('/profile')
   }
 }
 </script>
@@ -540,5 +558,113 @@ function handleUserSelect(key) {
 
 .nexus-nav::-webkit-scrollbar-thumb:hover {
   background: var(--border-default);
+}
+
+/* ═══════════════════════════════════════
+ * 深色模式适配
+ * ═══════════════════════════════════════ */
+:global(.dark) .nexus-logo {
+  border-bottom-color: var(--nexus-border);
+}
+
+:global(.dark) .logo-text {
+  color: var(--text-primary);
+}
+
+:global(.dark) .nexus-user {
+  border-top-color: var(--nexus-border);
+}
+
+:global(.dark) .nexus-nav {
+  background: transparent;
+}
+
+:global(.dark) .nav-item {
+  color: #e2e8f0;
+}
+
+:global(.dark) .nav-item:hover {
+  color: #f1f5f9;
+  background: var(--nexus-hover-bg);
+}
+
+:global(.dark) .nav-item.active .nav-label {
+  color: var(--nexus-active-text);
+}
+
+:global(.dark) .nav-item.active .nav-icon :deep(svg) {
+  color: var(--primary-500);
+}
+
+:global(.dark) .nav-item .nav-icon {
+  color: #94a3b8;
+}
+
+:global(.dark) .nav-item.active .nav-icon {
+  color: var(--primary-500);
+}
+
+:global(.dark) .nav-collapsible-btn {
+  color: #e2e8f0;
+}
+
+:global(.dark) .nav-collapsible-btn:hover {
+  color: #f1f5f9;
+  background: var(--nexus-hover-bg);
+}
+
+:global(.dark) .nav-collapsible-btn.active {
+  color: #f1f5f9;
+}
+
+:global(.dark) .nav-btn-content {
+  color: #e2e8f0;
+}
+
+:global(.dark) .nav-chevron {
+  color: #64748b;
+}
+
+:global(.dark) .nav-children-line {
+  background: var(--nexus-border);
+}
+
+:global(.dark) .nav-sub-btn {
+  color: #64748b;
+}
+
+:global(.dark) .nav-sub-btn:hover {
+  color: #cbd5e1;
+  background: var(--nexus-hover-bg);
+}
+
+:global(.dark) .nav-sub-btn.active {
+  color: var(--nexus-active-text);
+  background: var(--nexus-active-bg);
+}
+
+:global(.dark) .nav-sub-dot {
+  background: #475569;
+}
+
+:global(.dark) .nav-sub-dot.active {
+  background: var(--primary-500);
+}
+
+:global(.dark) .nav-sub-label {
+  color: #94a3b8;
+}
+
+:global(.dark) .user-name {
+  color: var(--text-primary);
+}
+
+:global(.dark) .user-settings {
+  color: #64748b;
+}
+
+:global(.dark) .user-settings:hover {
+  color: var(--primary-500);
+  background: var(--nexus-hover-bg);
 }
 </style>

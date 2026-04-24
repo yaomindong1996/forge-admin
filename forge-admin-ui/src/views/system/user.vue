@@ -1304,4 +1304,107 @@ async function handleSubmitOrg() {
 .org-tree-container::-webkit-scrollbar-thumb:hover {
   background: var(--n-border-color);
 }
+
+/* ═══════════════════════════════════════
+ * 深色模式
+ * ═══════════════════════════════════════ */
+.dark .org-tree-panel {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .org-tree-header {
+  background: #1e293b;
+  border-bottom-color: #334155;
+}
+
+.dark .org-tree-header .header-title span {
+  color: #f1f5f9;
+}
+
+.dark .org-tree-header .header-title i {
+  color: #60a5fa;
+}
+
+.dark .org-tree-content {
+  background: #0f172a;
+}
+
+.dark .org-tree-all-node {
+  color: #e2e8f0;
+}
+
+.dark .org-tree-all-node:hover {
+  background-color: #1e293b;
+}
+
+.dark .org-tree-all-node.is-selected {
+  background-color: #1e3a5f !important;
+  color: #60a5fa;
+}
+
+.dark .org-tree-content .n-tree-node-content {
+  color: #e2e8f0;
+}
+
+.dark .org-tree-content .n-tree-node-content:hover {
+  background-color: #1e293b;
+}
+
+.dark .org-tree-content .n-tree-node-content--selected {
+  background-color: #1e3a5f !important;
+  color: #60a5fa;
+}
+
+.dark .org-tree-content::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark .org-tree-content::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark .org-tree-content::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.dark .user-list-panel {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .org-filter-tip .n-tag {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .auth-toolbar {
+  background-color: #1e293b;
+}
+
+.dark .org-toolbar {
+  background-color: #1e293b;
+}
+
+.dark .auth-tree-container {
+  background: #0f172a;
+}
+
+.dark .auth-tree-container .n-tree {
+  color: #e2e8f0;
+}
+
+.dark .org-tree-container {
+  background: #0f172a;
+}
+
+.dark .org-tree-container .n-tree {
+  color: #e2e8f0;
+}
+
+.dark .empty-state {
+  background: #0f172a;
+}
 </style>

@@ -49,8 +49,8 @@ const appStore = useAppStore()
 .sidebar-full {
   flex-shrink: 0;
   width: 200px;
-  background: white;
-  border-right: 1px solid #e2e8f0;
+  background: var(--bg-primary, #ffffff);
+  border-right: 1px solid var(--border-light, #e2e8f0);
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
