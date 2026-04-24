@@ -1,7 +1,5 @@
 <template>
   <div class="nexus-layout">
-    <!-- 演示环境提示条 -->
-    <DemoBanner />
 
     <!-- 左侧浮岛侧边栏 -->
     <Transition name="sidebar-slide">
@@ -28,6 +26,8 @@
 
     <!-- 主内容区 -->
     <div class="nexus-main">
+      <!-- 演示环境提示条 -->
+      <DemoBanner />
       <!-- 顶部浮岛 Header -->
       <Header class="nexus-header" />
 
@@ -57,7 +57,7 @@ import Sidebar from './sidebar/index.vue'
 
 const appStore = useAppStore()
 const expandBarRef = ref(null)
-const expandBarTop = ref(200)
+const expandBarTop = ref(400)
 const isDragging = ref(false)
 const hasDragged = ref(false)
 const dragStartY = ref(0)
