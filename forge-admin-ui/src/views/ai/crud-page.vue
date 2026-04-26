@@ -1,7 +1,12 @@
 <template>
   <div class="ai-crud-page-wrapper">
+    <component
+      :is="currentTemplate"
+      v-if="configLoaded && currentTemplate"
+      :crud-props="crudProps"
+    />
     <AiCrudPage
-      v-if="configLoaded"
+      v-else-if="configLoaded && !currentTemplate"
       v-bind="crudProps"
     />
     <div v-else-if="loading" class="loading-wrapper">
@@ -18,13 +23,14 @@
 </template>
 
 <script setup>
-import { computed, h, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, h, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTabStore } from '@/store'
 import AiCrudPage from '@/components/ai-form/AiCrudPage.vue'
 import DictTag from '@/components/DictTag.vue'
 import { crudConfigRender } from '@/api/ai'
 import { getDictData } from '@/composables/useDict'
+import catalog from '@/catalog'
 
 const route = useRoute()
 const tabStore = useTabStore()
@@ -34,6 +40,9 @@ const configLoaded = ref(false)
 const errorMsg = ref('')
 const renderConfig = ref(null)
 const dictCache = ref({})
+
+/** 当前加载的模板组件（null 表示降级到 AiCrudPage） */
+const currentTemplate = ref(null)
 
 /**
  * 转换表格列配置：将 JSON 格式的 render 对象转为 Vue render 函数
@@ -196,6 +205,15 @@ async function loadConfig() {
       }
     }
     await preloadDicts(cfg)
+    // 加载模板组件
+    const layoutType = cfg.layoutType || 'simple-crud'
+    const catalogEntry = catalog[layoutType]
+    if (catalogEntry) {
+      currentTemplate.value = defineAsyncComponent(catalogEntry.component)
+    } else {
+      // 未注册的模板，降级使用 AiCrudPage
+      currentTemplate.value = null
+    }
     configLoaded.value = true
   } catch (e) {
     errorMsg.value = e.message || '加载配置失败'

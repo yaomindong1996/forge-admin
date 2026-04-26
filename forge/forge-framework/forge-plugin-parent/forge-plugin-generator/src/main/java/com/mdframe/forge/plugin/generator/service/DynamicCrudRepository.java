@@ -64,6 +64,14 @@ public class DynamicCrudRepository {
             params.addValue("tenantId", tenantId);
         }
         
+        // 逻辑删除过滤：如果表有 del_flag 列，只查未删除的数据
+        if (hasDelFlag(tableName)) {
+            if (whereClause.length() > 0) {
+                whereClause.append(" AND ");
+            }
+            whereClause.append("del_flag = '0'");
+        }
+        
         // 构建搜索条件
         if (searchParams != null && !searchParams.isEmpty()) {
             for (Map.Entry<String, Object> entry : searchParams.entrySet()) {
@@ -228,6 +236,11 @@ public class DynamicCrudRepository {
         if (tenantId != null) {
             sql += " AND tenant_id = :tenantId";
             params.addValue("tenantId", tenantId);
+        }
+        
+        // 逻辑删除过滤
+        if (hasDelFlag(tableName)) {
+            sql += " AND del_flag = '0'";
         }
         
         List<Map<String, Object>> results = namedJdbcTemplate.queryForList(sql, params);

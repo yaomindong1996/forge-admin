@@ -9,6 +9,10 @@ import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.annotation.log.OperationLog;
 import com.mdframe.forge.starter.core.domain.OperationType;
+#if(${hasEncrypt})
+import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
+import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
+#end
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +27,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/${moduleName}/${businessName}")
 @RequiredArgsConstructor
+#if(${enableDecrypt})
+@ApiDecrypt
+#end
+#if(${enableEncrypt})
+@ApiEncrypt
+#end
 public class ${className}Controller {
 
     private final I${className}Service ${classname}Service;
@@ -79,9 +89,9 @@ public class ${className}Controller {
     /**
      * 删除${functionName}
      */
-    @PostMapping("/remove")
+    @PostMapping("/remove/{${pkColumn.javaField}}")
     @OperationLog(module = "${functionName}管理", type = OperationType.DELETE, desc = "删除${functionName}")
-    public RespInfo<Void> remove(@RequestParam Long ${pkColumn.javaField}) {
+    public RespInfo<Void> remove(@PathVariable Long ${pkColumn.javaField}) {
         boolean result = ${classname}Service.delete${className}ById(${pkColumn.javaField});
         return result ? RespInfo.success() : RespInfo.error("删除失败");
     }

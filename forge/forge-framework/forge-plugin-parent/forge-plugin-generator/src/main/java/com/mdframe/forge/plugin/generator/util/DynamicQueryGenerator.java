@@ -389,7 +389,10 @@ public class DynamicQueryGenerator {
     }
 
     /**
-     * 将Map的key从snake_case转换为camelCase
+     * 将Map的key从snake_case转换为camelCase，同时将 Boolean 值转换为 0/1
+     * <p>
+     * MySQL Connector/J 默认将 tinyint(1) 映射为 Boolean，
+     * 此处统一转换为 Integer，避免前端收到 true/false。
      */
     public static Map<String, Object> convertMapToCamelCase(Map<String, Object> map) {
         if (map == null) {
@@ -397,7 +400,12 @@ public class DynamicQueryGenerator {
         }
         Map<String, Object> result = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : map.entrySet()) {
-            result.put(snakeToCamel(entry.getKey()), entry.getValue());
+            Object value = entry.getValue();
+            // tinyint(1) 被 JDBC 驱动映射为 Boolean，统一还原为 Integer(0/1)
+            if (value instanceof Boolean boolVal) {
+                value = boolVal ? 1 : 0;
+            }
+            result.put(snakeToCamel(entry.getKey()), value);
         }
         return result;
     }

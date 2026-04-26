@@ -2,6 +2,7 @@ package com.mdframe.forge.plugin.generator.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mdframe.forge.plugin.generator.domain.entity.AiPageTemplate;
 import com.mdframe.forge.plugin.generator.domain.entity.GenTableColumn;
 import com.mdframe.forge.plugin.generator.dto.StreamGenerateRequest;
 import com.mdframe.forge.plugin.generator.mapper.GenTableColumnMapper;
@@ -27,6 +28,7 @@ public class CrudGeneratorStreamService {
     private final GenTableColumnMapper genTableColumnMapper;
     private final SchemaGenerator schemaGenerator;
     private final ObjectMapper objectMapper;
+    private final AiPageTemplateService pageTemplateService;
 
     private static final String STAGE_SEARCH = "generating-search";
     private static final String STAGE_COLUMNS = "generating-columns";
@@ -149,6 +151,9 @@ public class CrudGeneratorStreamService {
             injectTableContext(sb, request);
         }
 
+        // === 动态部分：模板约束 ===
+        injectTemplateConstraint(sb, request);
+
         return sb.toString();
     }
 
@@ -197,6 +202,25 @@ public class CrudGeneratorStreamService {
             }
         } catch (Exception e) {
             log.debug("[CrudGeneratorStreamService] 表结构查询失败，跳过", e);
+        }
+    }
+
+    /**
+     * 追加页面模板约束（从 ai_page_template.system_prompt 加载）
+     */
+    private void injectTemplateConstraint(StringBuilder sb, StreamGenerateRequest request) {
+        String layoutType = StringUtils.isNotBlank(request.getLayoutType())
+                ? request.getLayoutType() : "simple-crud";
+        try {
+            AiPageTemplate template = pageTemplateService.getByTemplateKey(layoutType);
+            if (template != null && StringUtils.isNotBlank(template.getSystemPrompt())) {
+                sb.append("\n## 页面模板约束\n");
+                sb.append("当前选择的模板为「").append(template.getTemplateName()).append("」，");
+                sb.append("请严格遵守以下约束：\n");
+                sb.append(template.getSystemPrompt()).append("\n");
+            }
+        } catch (Exception e) {
+            log.debug("[CrudGeneratorStreamService] 加载模板约束失败, layoutType={}", layoutType);
         }
     }
 

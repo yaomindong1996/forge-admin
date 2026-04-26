@@ -1,3 +1,28 @@
+-- ============================================================
+-- AI 页面模板表（组件市场化：每个模板定义 AI 提示词约束 + 默认配置）
+-- ============================================================
+CREATE TABLE `ai_page_template` (
+  `id` bigint NOT NULL COMMENT '主键',
+  `template_key` varchar(64) NOT NULL COMMENT '模板唯一标识（如 simple-crud / tree-crud）',
+  `template_name` varchar(128) NOT NULL COMMENT '模板显示名称',
+  `description` varchar(512) DEFAULT '' COMMENT '模板描述',
+  `icon` varchar(64) DEFAULT '' COMMENT '图标（mdi: 前缀）',
+  `system_prompt` text DEFAULT NULL COMMENT '该模板专属的 AI system prompt 补充',
+  `schema_hint` json DEFAULT NULL COMMENT '告诉 AI 该模板可用的字段约束（JSON）',
+  `default_config` json DEFAULT NULL COMMENT '默认配置值（JSON，如 modalType/searchGridCols 等）',
+  `enabled` tinyint(1) NOT NULL DEFAULT 1 COMMENT '是否启用（1启用 0停用）',
+  `sort` int NOT NULL DEFAULT 0 COMMENT '排序',
+  `is_builtin` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否内置（1内置不可删除）',
+  `codegen_type` varchar(16) NOT NULL DEFAULT 'TEMPLATE' COMMENT '代码生成策略：TEMPLATE-Velocity模板 / AI-大模型生成',
+  `create_by` bigint DEFAULT NULL,
+  `create_time` datetime DEFAULT NULL,
+  `create_dept` bigint DEFAULT NULL,
+  `update_by` bigint DEFAULT NULL,
+  `update_time` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_template_key` (`template_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI页面模板表（组件市场）';
+
 CREATE TABLE `ai_crud_config` (
   `id` bigint NOT NULL COMMENT '主键',
   `tenant_id` bigint DEFAULT 1 COMMENT '租户ID',
@@ -19,6 +44,7 @@ CREATE TABLE `ai_crud_config` (
   `desensitize_config` json DEFAULT NULL COMMENT '字段脱敏配置',
   `encrypt_config` json DEFAULT NULL COMMENT '接口加解密配置',
   `trans_config` json DEFAULT NULL COMMENT '字典翻译配置',
+  `layout_type` varchar(64) DEFAULT 'simple-crud' COMMENT '页面模板类型（对应 ai_page_template.template_key）',
   `create_by` bigint DEFAULT NULL COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
   `create_dept` bigint DEFAULT NULL COMMENT '创建部门',
@@ -179,5 +205,68 @@ CREATE TABLE 语句（如没有关联表或表不存在，请生成建表SQL）
 - 直接输出纯 JSON/SQL，不要用 markdown 代码块包裹
 - 不要输出任何解释性文字，只输出 [STAGE:xxx] 标记和内容
 - 每个 STAGE 后面紧跟该段的内容，不要包在外层对象中
-- field/key/dataIndex 使用 camelCase 命名',
+'field/key/dataIndex 使用 camelCase 命名',
 'SPEC', 1, '0', NOW(), NOW());
+
+-- ============================================================
+-- 增量 DDL：已有环境添加 layout_type 字段（新建表可跳过）
+-- ============================================================
+-- ALTER TABLE ai_crud_config ADD COLUMN layout_type varchar(64) DEFAULT 'simple-crud' COMMENT '页面模板类型' AFTER trans_config;
+
+-- ============================================================
+-- ai_page_template 内置模板初始数据
+-- ============================================================
+INSERT INTO ai_page_template (id, template_key, template_name, description, icon, system_prompt, schema_hint, default_config, enabled, sort, is_builtin, codegen_type, create_time, update_time)
+VALUES
+(1, 'simple-crud', '标准 CRUD', '适合平坦型数据的属性增删改查，支持搜索、表格列表、弹窗/抒屉表单编辑',
+ 'mdi:table',
+ '当前模板为「标准 CRUD」，请确保：
+1. columnsSchema 包含内容列 + 操作列(actions)
+2. editSchema 简洁清晰，不要嵌套
+3. modalType 默认为 drawer
+4. 尽量岑减搜索条件，保留最常用的3-5个',
+ NULL,
+ '{
+  "modalType": "drawer",
+  "modalWidth": "800px",
+  "searchGridCols": 4,
+  "editGridCols": 1
+}',
+ 1, 1, 1, 'TEMPLATE', NOW(), NOW()),
+(2, 'tree-crud', '树形 CRUD', '适合具有父子层级结构的数据，如部门结构、分类管理等，左树右表格布局',
+ 'mdi:file-tree',
+ '当前模板为「树形 CRUD」，请确保：
+1. editSchema 中必须包含 parentId 字段（type: treeSelect）
+2. editSchema 中包含 sort 排序字段
+3. columnsSchema 中包含 层级深度或父层名称列
+4. apiConfig 中包含 tree 接口（查询树形结构）
+5. treeConfig 配置：{"keyField": "id", "parentField": "parentId", "labelField": "name"}
+6. 数据必须有 parent_id 字段，不要导入进 editSchema
+7. 模式必须为 modal',
+ '{
+  "treeConfig": {
+    "keyField": "id",
+    "parentField": "parentId",
+    "labelField": "name"
+  }
+}',
+ '{
+  "modalType": "modal",
+  "modalWidth": "600px",
+  "searchGridCols": 3,
+  "editGridCols": 1
+}',
+ 1, 2, 1, 'TEMPLATE', NOW(), NOW());
+
+-- 模板管理菜单
+INSERT INTO sys_resource (tenant_id, resource_name, parent_id, resource_type, sort, path, component, is_external, is_public, menu_status, visible, perms, icon, keep_alive, always_show, remark, create_time, update_time)
+SELECT 0, '页面模板', id, 2, 13, '/ai/page-template', 'ai/page-template', 0, 0, 1, 1, 'ai:page-template:list', 'mdi:puzzle-outline', 0, 0, 'AI页面模板管理', NOW(), NOW()
+FROM sys_resource WHERE tenant_id = 0 AND path = '/ai' AND resource_type = 1 LIMIT 1;
+
+-- ============================================================
+-- 升级语句：如果不是新建库，执行以下 ALTER 语句
+-- 只需执行一次！
+-- ============================================================
+-- ALTER TABLE ai_page_template ADD COLUMN codegen_type varchar(16) NOT NULL DEFAULT 'TEMPLATE'
+--   COMMENT '代码生成策略：TEMPLATE-Velocity模板 / AI-大模型生成' AFTER is_builtin;
+-- UPDATE ai_page_template SET codegen_type = 'TEMPLATE' WHERE codegen_type IS NULL OR codegen_type = '';

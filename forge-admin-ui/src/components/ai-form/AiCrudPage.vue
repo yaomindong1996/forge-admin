@@ -463,9 +463,15 @@ const rowKeyFn = computed(() => {
 const tableColumns = computed(() => {
   const cols = []
 
+  // 判断是否是操作列（兼容 action / actions 两种写法）
+  const isActionCol = col => {
+    const key = col.prop || col.key || col.dataIndex || ''
+    return key === 'action' || key === 'actions'
+  }
+
   props.columns.forEach((col) => {
     // 操作列：如果有 actions 配置，自动生成 render 函数
-    if ((col.prop === 'action' || col.key === 'action') && col.actions) {
+    if (isActionCol(col) && col.actions) {
       const actionCol = { ...col }
       delete actionCol.actions
       delete actionCol._slot
@@ -474,11 +480,20 @@ const tableColumns = computed(() => {
       cols.push(actionCol)
       return
     }
+    // 操作列有自定义 render 函数，直接使用（如 crud-config.vue 中的自定义操作列）
+    if (isActionCol(col) && col.render) {
+      cols.push(col)
+      return
+    }
+    // 操作列既无 actions 也无 render（AI可能生成了空占位操作列），跳过——后面会自动追加默认操作列
+    if (isActionCol(col) && !col.actions && !col.render) {
+      return
+    }
     cols.push(col)
   })
 
   // 如果没有操作列且没有隐藏，添加默认操作列
-  const hasActionColumn = cols.some(col => col.prop === 'action' || col.key === 'action')
+  const hasActionColumn = cols.some(isActionCol)
 
   if (!hasActionColumn) {
     cols.push({
@@ -857,6 +872,43 @@ watch(selectedKeys, (newKeys) => {
 })
 
 /**
+ * 统一规范化编辑表单回填数据
+ * - number/inputNumber：字符串 → 数字
+ * - select/radio/checkbox：数字 → 字符串（匹配字典选项的 string value）
+ */
+function normalizeEditData(data) {
+  if (!data || typeof data !== 'object') return data
+  const result = {}
+  for (const [key, value] of Object.entries(data)) {
+    const fieldConfig = props.editSchema.find(f => f.field === key)
+    if (!fieldConfig) {
+      result[key] = value
+      continue
+    }
+    if (['number', 'inputNumber'].includes(fieldConfig.type)) {
+      // 数字字段：字符串转数字
+      if (typeof value === 'string') {
+        result[key] = parseFloat(value)
+      } else if (value === null || value === undefined) {
+        result[key] = 0
+      } else {
+        result[key] = value
+      }
+    } else if (['select', 'radio', 'checkbox'].includes(fieldConfig.type)) {
+      // 字典选择字段：数字 → 字符串（字典选项的 value 通常是字符串"0"/"1"）
+      if (typeof value === 'number') {
+        result[key] = String(value)
+      } else {
+        result[key] = value
+      }
+    } else {
+      result[key] = value
+    }
+  }
+  return result
+}
+
+/**
  * 新增
  */
 async function handleAdd() {
@@ -869,6 +921,8 @@ async function handleAdd() {
 
   // 使用 nextTick 确保弹窗已渲染
   await nextTick()
+  // 清除上一次潜留的表单校验状态
+  formRef.value?.restoreValidation()
 
   // 初始化表单数据，设置默认值
   const initialData = {}
@@ -881,9 +935,6 @@ async function handleAdd() {
   // 调用 beforeRenderForm 钩子（新增时）
   const formDataFromHook = await callHook('beforeRenderForm', null, data => data)
 
-  console.log('AiCrudPage handleAdd - initialData:', initialData)
-  console.log('AiCrudPage handleAdd - formDataFromHook:', formDataFromHook)
-
   // 合并默认值和钩子返回的数据
   if (formDataFromHook && typeof formDataFromHook === 'object') {
     formData.value = { ...initialData, ...formDataFromHook }
@@ -891,8 +942,6 @@ async function handleAdd() {
   else {
     formData.value = initialData
   }
-
-  console.log('AiCrudPage handleAdd - 最终 formData:', formData.value)
 
   emit('add')
   emit('modal-open', { status: 'add', row: null })
@@ -918,29 +967,13 @@ async function handleEdit(row) {
   else {
     // 调用 beforeRenderDetail 钩子
     const data = await callHook('beforeRenderDetail', processedRow || row, data => data)
-     // 统一转换字段类型
-     const processedData = {}
-     for (const [key, value] of Object.entries(data)) {
-       const fieldConfig = props.editSchema.find(field => field.field === key)
-       if (fieldConfig && ['number', 'inputNumber'].includes(fieldConfig.type)) {
-         // 数字类型字段转换：字符串→数字
-         if (typeof value === 'string') {
-           processedData[key] = parseFloat(value)
-         } else if (value === null || value === undefined) {
-           processedData[key] = 0 // 数字字段空值默认0
-         } else {
-           processedData[key] = value
-         }
-       } else {
-         processedData[key] = value
-       }
-     }
-     formData.value = processedData
-     console.log('[DEBUG] 编辑时直接设置的表单数据:', formData.value)
-     console.log('[DEBUG] 订单金额字段值:', formData.value.orderAmount, '类型:', typeof formData.value.orderAmount)
+    formData.value = normalizeEditData(data)
   }
 
   modalVisible.value = true
+  // 清除上一次潜留的表单校验状态
+  await nextTick()
+  formRef.value?.restoreValidation()
 
   emit('edit', row)
   emit('modal-open', { status: 'edit', row })
@@ -998,26 +1031,7 @@ async function loadDetail(row) {
 
     // 调用 beforeRenderDetail 钩子
     const data = await callHook('beforeRenderDetail', response.data, data => data)
-    // 统一转换字段类型
-    const processedData = {}
-    for (const [key, value] of Object.entries(data)) {
-      const fieldConfig = props.editSchema.find(field => field.field === key)
-      if (fieldConfig && ['number', 'inputNumber'].includes(fieldConfig.type)) {
-        // 数字类型字段转换：字符串→数字
-        if (typeof value === 'string') {
-          processedData[key] = parseFloat(value)
-        } else if (value === null || value === undefined) {
-          processedData[key] = 0 // 数字字段空值默认0
-        } else {
-          processedData[key] = value
-        }
-      } else {
-        processedData[key] = value
-      }
-    }
-    formData.value = processedData
-    console.log('[DEBUG] 加载详情后的表单数据:', formData.value)
-    console.log('[DEBUG] 订单金额字段值:', formData.value.orderAmount, '类型:', typeof formData.value.orderAmount)
+    formData.value = normalizeEditData(data)
   }
   catch (error) {
     console.error('加载详情失败:', error)

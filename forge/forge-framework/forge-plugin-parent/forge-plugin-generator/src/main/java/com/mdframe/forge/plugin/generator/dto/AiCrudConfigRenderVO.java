@@ -22,4 +22,8 @@ public class AiCrudConfigRenderVO {
     private Object desensitizeConfig;
     private Object encryptConfig;
     private Object transConfig;
+    /** 页面模板类型 */
+    private String layoutType;
+    /** 模板的默认配置（从 ai_page_template.default_config 合并而来） */
+    private Object templateDefaultConfig;
 }

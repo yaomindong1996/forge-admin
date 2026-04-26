@@ -17,4 +17,6 @@ public class StreamGenerateRequest {
     private String existingColumnsSchema;
     private String existingEditSchema;
     private String existingApiConfig;
+    /** 用户选择的页面模板，对应 ai_page_template.template_key */
+    private String layoutType;
 }

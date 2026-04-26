@@ -37,4 +37,6 @@ public class AiCrudConfig extends TenantEntity {
     private String desensitizeConfig;
     private String encryptConfig;
     private String transConfig;
+    /** 页面模板类型，对应 ai_page_template.template_key */
+    private String layoutType;
 }

@@ -53,6 +53,29 @@
           <div v-if="messages.length === 0" class="empty-chat">
             <div class="empty-chat-icon">💬</div>
             <div class="empty-chat-tip">输入你的需求，AI 将自动生成 CRUD 配置</div>
+
+            <!-- 模板选择卡片 -->
+            <div v-if="templateList.length > 0" class="template-section">
+              <div class="template-title">选择页面模板（当前：{{ templateList.find(t => t.templateKey === layoutType)?.templateName || layoutType }}）</div>
+              <div class="template-cards">
+                <div
+                  v-for="tpl in templateList"
+                  :key="tpl.templateKey"
+                  :class="['template-card', { active: layoutType === tpl.templateKey }]"
+                  @click="layoutType = tpl.templateKey"
+                >
+                  <div class="template-card-icon">
+                    <n-icon size="24"><component :is="tpl.icon || 'mdi:table'" /></n-icon>
+                  </div>
+                  <div class="template-card-body">
+                    <div class="template-card-name">{{ tpl.templateName }}</div>
+                    <div class="template-card-desc">{{ tpl.description }}</div>
+                  </div>
+                  <div v-if="layoutType === tpl.templateKey" class="template-card-check">✔</div>
+                </div>
+              </div>
+            </div>
+
             <div class="example-prompts">
               <div class="example-title">试试这些示例：</div>
               <div class="example-list">
@@ -133,6 +156,10 @@
           <n-button type="info" size="small" :disabled="!configSaved" @click="previewCrudPage">
             <template #icon><n-icon><EyeOutline /></n-icon></template>
             预览效果
+          </n-button>
+          <n-button type="warning" size="small" :disabled="!configSaved" @click="handleDownloadCode">
+            <template #icon><n-icon><DownloadOutline /></n-icon></template>
+            下载代码
           </n-button>
         </div>
       </div>
@@ -297,7 +324,11 @@ const {
   sessionList,
   displayContent,
 
+  layoutType,
+  templateList,
+
   configSaved,
+  loadTemplateList,
   loadSessionList,
   startNewSession,
   loadSession,
@@ -694,6 +725,54 @@ function goBack() {
   router.push('/ai/crud-config')
 }
 
+/**
+ * 下载 CODEGEN 代码包
+ */
+async function handleDownloadCode() {
+  if (!configKey.value) {
+    window.$message?.warning('请先输入 configKey')
+    return
+  }
+  if (!configSaved.value) {
+    window.$message?.warning('请先保存配置')
+    return
+  }
+  const { useAuthStore } = await import('@/store')
+  const authStore = useAuthStore()
+  const BASE_URL = import.meta.env.VITE_REQUEST_PREFIX || ''
+  const url = `${BASE_URL}/ai/crud-config/codegen/download/${configKey.value}`
+  // 生成防重放参数（模拟 axios 拦截器行为）
+  const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
+  })
+  try {
+    const resp = await fetch(url, {
+      method: 'GET',
+      headers: {
+        Authorization: authStore.accessToken ? `Bearer ${authStore.accessToken}` : '',
+        'X-Timestamp': Date.now().toString(),
+        'X-Nonce': uuid,
+      },
+    })
+    if (!resp.ok) {
+      const text = await resp.text()
+      window.$message?.error('下载失败: ' + (text || resp.statusText))
+      return
+    }
+    const blob = await resp.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = `${configKey.value}-code.zip`
+    a.click()
+    URL.revokeObjectURL(blobUrl)
+    window.$message?.success('代码包下载成功')
+  } catch (e) {
+    window.$message?.error('下载失败: ' + e.message)
+  }
+}
+
 // 新对话：清空当前对话区，保留 configKey 和已加载的配置
 function handleNewSession() {
   startNewSession()
@@ -732,6 +811,7 @@ async function executeCreateTableSql() {
 
 onMounted(async () => {
   loadTableOptions()
+  loadTemplateList()
   const ck = route.query.configKey
   if (ck) {
     // 从 crud-config 列表页跳转进来，根据 configKey 加载历史会话或新建

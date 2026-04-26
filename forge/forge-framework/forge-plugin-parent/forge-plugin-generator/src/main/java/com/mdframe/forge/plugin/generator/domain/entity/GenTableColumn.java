@@ -50,6 +50,10 @@ public class GenTableColumn implements Serializable {
     
     private String dictType;
     
+    /** 脱敏类型（非DB字段，由 desensitizeConfig 回写），如 PHONE/ID_CARD/EMAIL 等 */
+    @TableField(exist = false)
+    private String desensitizeType;
+    
     private String validateRule;
     
     private Integer aiRecommended;

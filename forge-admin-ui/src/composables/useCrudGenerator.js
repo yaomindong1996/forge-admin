@@ -1,8 +1,10 @@
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { streamGenerate, crudGeneratorSessionList, crudGeneratorSessionMessages, crudGeneratorSessionDelete } from '@/api/crud-generator'
 import { crudConfigAdd, crudConfigUpdate, crudConfigGetByKey, updateSessionMetadata } from '@/api/ai'
 import { request } from '@/utils'
 import { useDiscreteMessage } from '@/composables/useDiscreteMessage'
+import { listEnabledTemplates } from '@/api/page-template'
 
 const AGENT_CODE = 'crud_config_builder'
 
@@ -12,12 +14,15 @@ function generateSessionId() {
 
 export function useCrudGenerator() {
   const { success, error, warning } = useDiscreteMessage()
+  const router = useRouter()
 
   const sessionId = ref(null)
   const messages = ref([])
   const configKey = ref('')
   const tableName = ref('')
   const description = ref('')
+  const layoutType = ref('simple-crud')  // 当前选择的页面模板
+  const templateList = ref([])           // 从后端加载的模板列表
   const generating = ref(false)
   const currentStage = ref('')
   const currentStageMessage = ref('')
@@ -50,6 +55,15 @@ export function useCrudGenerator() {
     encryptConfig: '',
     transConfig: '',
   })
+
+  async function loadTemplateList() {
+    try {
+      const res = await listEnabledTemplates()
+      templateList.value = res.data || []
+    } catch (e) {
+      console.warn('[useCrudGenerator] 加载模板列表失败:', e.message)
+    }
+  }
 
   async function loadSessionList() {
     try {
@@ -104,8 +118,8 @@ export function useCrudGenerator() {
               displayContent.value.desensitizeConfig = configRes.data.desensitizeConfig || ''
               displayContent.value.encryptConfig = configRes.data.encryptConfig || ''
               displayContent.value.transConfig = configRes.data.transConfig || ''
+              if (configRes.data.layoutType) layoutType.value = configRes.data.layoutType
               configSaved.value = true
-              success('已恢复会话关联的配置')
             }
           } catch (e) {
             console.warn('[useCrudGenerator] 加载配置失败:', e.message)
@@ -188,6 +202,7 @@ export function useCrudGenerator() {
       configKey: configKey.value,
       tableName: tableName.value || undefined,
       description: inputText.value,
+      layoutType: layoutType.value || 'simple-crud',
     }
 
     // 如果有现有配置，作为迭代上下文传入
@@ -482,6 +497,7 @@ export function useCrudGenerator() {
         desensitizeConfig: displayContent.value.desensitizeConfig || '',
         encryptConfig: displayContent.value.encryptConfig || '',
         transConfig: displayContent.value.transConfig || '',
+        layoutType: layoutType.value || 'simple-crud',
         mode: 'CONFIG',
         status: '0',
       }
@@ -566,6 +582,7 @@ export function useCrudGenerator() {
         displayContent.value.desensitizeConfig = configRes.data.desensitizeConfig || ''
         displayContent.value.encryptConfig = configRes.data.encryptConfig || ''
         displayContent.value.transConfig = configRes.data.transConfig || ''
+        if (configRes.data.layoutType) layoutType.value = configRes.data.layoutType
         tableName.value = configRes.data.tableName || ''
         description.value = configRes.data.tableComment || ''
         configSaved.value = true
@@ -594,7 +611,8 @@ export function useCrudGenerator() {
       warning('请先保存配置')
       return
     }
-    window.open(`/#/ai/crud-page/${configKey.value}`, '_blank')
+    const resolved = router.resolve({ path: `/ai/crud-page/${configKey.value}` })
+    window.open(resolved.href, '_blank')
   }
 
   function copyCurrentFile() {
@@ -648,6 +666,8 @@ export function useCrudGenerator() {
     configKey,
     tableName,
     description,
+    layoutType,
+    templateList,
     generating,
     currentStage,
     currentStageMessage,
@@ -658,6 +678,7 @@ export function useCrudGenerator() {
     rawContent,
     displayContent,
 
+    loadTemplateList,
     loadSessionList,
     startNewSession,
     loadSession,

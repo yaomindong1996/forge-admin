@@ -430,3 +430,80 @@
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* 模板选择区域 */
+.template-section {
+  width: 100%;
+  margin: 12px 0 8px;
+  text-align: left;
+}
+
+.template-title {
+  font-size: 12px;
+  color: #6B7280;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.template-cards {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.template-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #FAFAFA;
+  transition: all 0.15s;
+  position: relative;
+  min-width: 180px;
+  flex: 1;
+}
+
+.template-card:hover {
+  border-color: #6366F1;
+  background: #F0F1FF;
+}
+
+.template-card.active {
+  border-color: #6366F1;
+  background: #EEF2FF;
+}
+
+.template-card-icon {
+  color: #6366F1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.template-card-body {
+  flex: 1;
+}
+
+.template-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.template-card-desc {
+  font-size: 11px;
+  color: #9CA3AF;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.template-card-check {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  color: #6366F1;
+  font-size: 13px;
+  font-weight: 700;
+}

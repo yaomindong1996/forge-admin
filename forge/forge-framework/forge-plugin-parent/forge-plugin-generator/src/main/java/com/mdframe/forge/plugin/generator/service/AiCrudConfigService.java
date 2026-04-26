@@ -5,27 +5,28 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdframe.forge.plugin.generator.domain.entity.AiCrudConfig;
+import com.mdframe.forge.plugin.generator.domain.entity.AiPageTemplate;
 import com.mdframe.forge.plugin.generator.dto.AiCrudConfigDTO;
 import com.mdframe.forge.plugin.generator.dto.AiCrudConfigRenderVO;
 import com.mdframe.forge.plugin.generator.mapper.AiCrudConfigMapper;
 import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.exception.BusinessException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AiCrudConfigService extends ServiceImpl<AiCrudConfigMapper, AiCrudConfig> {
 
     private final ObjectMapper objectMapper;
     private final MenuRegisterAdapter menuRegisterAdapter;
-
-    public AiCrudConfigService(ObjectMapper objectMapper, MenuRegisterAdapter menuRegisterAdapter) {
-        this.objectMapper = objectMapper;
-        this.menuRegisterAdapter = menuRegisterAdapter;
-    }
+    @Lazy
+    private final AiPageTemplateService pageTemplateService;
 
     public AiCrudConfig getByConfigKey(String configKey) {
         return getOne(new LambdaQueryWrapper<AiCrudConfig>()
@@ -150,6 +151,17 @@ public class AiCrudConfigService extends ServiceImpl<AiCrudConfigMapper, AiCrudC
         vo.setModalWidth("800px");
         vo.setEditGridCols(1);
         vo.setSearchGridCols(4);
+        // 载入模板默认配置
+        String layoutType = StringUtils.isNotBlank(config.getLayoutType()) ? config.getLayoutType() : "simple-crud";
+        vo.setLayoutType(layoutType);
+        try {
+            AiPageTemplate template = pageTemplateService.getByTemplateKey(layoutType);
+            if (template != null && StringUtils.isNotBlank(template.getDefaultConfig())) {
+                vo.setTemplateDefaultConfig(objectMapper.readValue(template.getDefaultConfig(), Object.class));
+            }
+        } catch (Exception e) {
+            log.debug("[AiCrudConfigService] 加载模板默认配置失败, layoutType={}", layoutType);
+        }
         try {
             if (StringUtils.isNotBlank(config.getSearchSchema())) {
                 vo.setSearchSchema(objectMapper.readValue(config.getSearchSchema(), Object.class));
@@ -236,6 +248,9 @@ public class AiCrudConfigService extends ServiceImpl<AiCrudConfigMapper, AiCrudC
         }
         if (dto.getTransConfig() != null) {
             config.setTransConfig(dto.getTransConfig());
+        }
+        if (dto.getLayoutType() != null) {
+            config.setLayoutType(dto.getLayoutType());
         }
     }
 

@@ -23,4 +23,6 @@ public class AiCrudConfigDTO {
     private String desensitizeConfig;
     private String encryptConfig;
     private String transConfig;
+    /** 页面模板类型 */
+    private String layoutType;
 }

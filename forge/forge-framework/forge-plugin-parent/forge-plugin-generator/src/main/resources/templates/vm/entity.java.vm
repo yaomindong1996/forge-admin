@@ -8,6 +8,10 @@ import com.mdframe.forge.starter.core.domain.BaseEntity;
 import com.mdframe.forge.starter.trans.annotation.DictTrans;
 import com.mdframe.forge.starter.trans.annotation.TransField;
 #end
+#if(${hasDesensitize})
+import com.mdframe.forge.starter.crypto.desensitize.annotation.Desensitize;
+import com.mdframe.forge.starter.crypto.desensitize.strategy.DesensitizeType;
+#end
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -45,6 +49,9 @@ public class ${className}#if(${hasBaseEntity}) extends BaseEntity#end {
 #end
 #if($column.dictType && $column.dictType != "")
     @TransField(dictType = "$column.dictType")
+#end
+#if($column.desensitizeType && $column.desensitizeType != "")
+    @Desensitize(type = DesensitizeType.${column.desensitizeType})
 #end
     private $column.javaType $column.javaField;
 

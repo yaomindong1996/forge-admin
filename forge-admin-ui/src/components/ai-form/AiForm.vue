@@ -198,13 +198,24 @@ const formRules = computed(() => {
     else if (field.required) {
       const inputTypes = ['input', 'textarea', 'number', 'inputNumber']
       const isNumericType = field.type === 'number' || field.type === 'inputNumber'
+      const isDateType = ['date', 'datetime', 'daterange', 'month', 'year', 'time'].includes(field.type)
       const rule = {
         required: true,
         message: field.requiredMessage || `请${inputTypes.includes(field.type) ? '输入' : '选择'}${field.label}`,
-        trigger: field.trigger || (isNumericType ? 'change' : ['blur', 'change']),
+        trigger: field.trigger || (isNumericType || isDateType ? 'change' : ['blur', 'change']),
       }
       // number 类型需要自定义 validator，避免 0 被判断为空
       if (isNumericType) {
+        rule.validator = (_rule, value) => {
+          if (value === null || value === undefined || value === '') {
+            return new Error(rule.message)
+          }
+          return true
+        }
+        delete rule.required
+      }
+      // 日期类型需要自定义 validator，避免已选日期但内容为数字时被判断为空
+      if (isDateType) {
         rule.validator = (_rule, value) => {
           if (value === null || value === undefined || value === '') {
             return new Error(rule.message)

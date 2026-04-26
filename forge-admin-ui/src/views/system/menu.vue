@@ -352,14 +352,14 @@ const editSchema = ref([
     field: 'resourceType',
     label: '资源类型',
     type: 'radio',
-    defaultValue: 1,
-    rules: [{ required: true, type: 'number', message: '请选择资源类型', trigger: 'change' }],
+    defaultValue: '1',
+    rules: [{ required: true, message: '请选择资源类型', trigger: 'change' }],
     props: {
       options: [
-        { label: '目录', value: 1 },
-        { label: '菜单', value: 2 },
-        { label: '按钮', value: 3 },
-        { label: 'API', value: 4 },
+        { label: '目录', value: '1' },
+        { label: '菜单', value: '2' },
+        { label: '按钮', value: '3' },
+        { label: 'API', value: '4' },
       ],
     },
   },
@@ -391,14 +391,14 @@ const editSchema = ref([
       titlePlacement: 'left',
     },
     span: 2,
-    vIf: formData => formData.resourceType === 1 || formData.resourceType === 2,
+    vIf: formData => formData.resourceType == 1 || formData.resourceType == 2,
   },
   {
     field: 'icon',
     label: '图标',
     type: 'slot',
     slotName: 'icon',
-    vIf: formData => formData.resourceType === 1 || formData.resourceType === 2,
+    vIf: formData => formData.resourceType == 1 || formData.resourceType == 2,
   },
   {
     field: 'path',
@@ -411,7 +411,7 @@ const editSchema = ref([
         trigger: 'blur',
         validator: (rule, value) => {
           const formData = rule.formData || {}
-          if (formData.resourceType === 1 || formData.resourceType === 2) {
+          if (formData.resourceType == 1 || formData.resourceType == 2) {
             return !!value
           }
           return true
@@ -421,7 +421,7 @@ const editSchema = ref([
     props: {
       placeholder: '/system/user',
     },
-    vIf: formData => formData.resourceType === 1 || formData.resourceType === 2,
+    vIf: formData => formData.resourceType == 1 || formData.resourceType == 2,
   },
   {
     field: 'component',
@@ -435,7 +435,7 @@ const editSchema = ref([
         trigger: 'blur',
         validator: (rule, value) => {
           const formData = rule.formData || {}
-          if (formData.resourceType === 2) {
+          if (formData.resourceType == 2) {
             return !!value
           }
           return true
@@ -445,7 +445,7 @@ const editSchema = ref([
     props: {
       placeholder: 'system/user/index',
     },
-    vIf: formData => formData.resourceType === 2,
+    vIf: formData => formData.resourceType == 2,
   },
   {
     field: 'redirect',
@@ -454,7 +454,7 @@ const editSchema = ref([
     props: {
       placeholder: '重定向地址',
     },
-    vIf: formData => formData.resourceType === 2,
+    vIf: formData => formData.resourceType == 2,
   },
   {
     field: 'isExternal',
@@ -467,7 +467,7 @@ const editSchema = ref([
         { label: '是', value: 1 },
       ],
     },
-    vIf: formData => formData.resourceType === 2,
+    vIf: formData => formData.resourceType == 2,
   },
   {
     field: 'keepAlive',
@@ -480,7 +480,7 @@ const editSchema = ref([
         { label: '是', value: 1 },
       ],
     },
-    vIf: formData => formData.resourceType === 2,
+    vIf: formData => formData.resourceType == 2,
   },
   {
     field: 'alwaysShow',
@@ -493,7 +493,7 @@ const editSchema = ref([
         { label: '是', value: 1 },
       ],
     },
-    vIf: formData => formData.resourceType === 2,
+    vIf: formData => formData.resourceType == 2,
   },
 
   // 按钮和API配置
@@ -504,7 +504,7 @@ const editSchema = ref([
       titlePlacement: 'left',
     },
     span: 2,
-    vIf: formData => formData.resourceType === 3 || formData.resourceType === 4,
+    vIf: formData => formData.resourceType == 3 || formData.resourceType == 4,
   },
   {
     field: 'perms',
@@ -514,7 +514,7 @@ const editSchema = ref([
     props: {
       placeholder: 'sys:user:add',
     },
-    vIf: formData => formData.resourceType === 3 || formData.resourceType === 4,
+    vIf: formData => formData.resourceType == 3 || formData.resourceType == 4,
   },
   {
     field: 'apiMethod',
@@ -525,7 +525,7 @@ const editSchema = ref([
       placeholder: '请求方法',
       options: apiMethodOptions,
     },
-    vIf: formData => formData.resourceType === 4,
+    vIf: formData => formData.resourceType == 4,
   },
   {
     field: 'apiUrl',
@@ -535,7 +535,7 @@ const editSchema = ref([
     props: {
       placeholder: '/system/user/list',
     },
-    vIf: formData => formData.resourceType === 4,
+    vIf: formData => formData.resourceType == 4,
   },
 
   // 状态配置
@@ -570,7 +570,7 @@ const editSchema = ref([
         { label: '隐藏', value: 0 },
       ],
     },
-    vIf: formData => formData.resourceType === 1 || formData.resourceType === 2,
+    vIf: formData => formData.resourceType == 1 || formData.resourceType == 2,
   },
   {
     field: 'remark',
@@ -616,7 +616,10 @@ function beforeRenderForm(data) {
 
 // 表单提交前处理
 function beforeSubmit(formData) {
-  return formData
+  return {
+    ...formData,
+    resourceType: formData.resourceType !== undefined ? Number(formData.resourceType) : formData.resourceType,
+  }
 }
 
 // 处理表格展开状态更新

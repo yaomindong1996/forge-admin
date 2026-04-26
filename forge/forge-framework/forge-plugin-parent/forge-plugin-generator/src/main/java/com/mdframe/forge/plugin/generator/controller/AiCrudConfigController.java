@@ -6,12 +6,14 @@ import com.mdframe.forge.plugin.generator.dto.AiCrudConfigDTO;
 import com.mdframe.forge.plugin.generator.dto.AiCrudConfigRenderVO;
 import com.mdframe.forge.plugin.generator.dto.AiCrudGenerateRequest;
 import com.mdframe.forge.plugin.generator.dto.AiCrudGenerateResult;
+import com.mdframe.forge.plugin.generator.service.AiCrudCodegenService;
 import com.mdframe.forge.plugin.generator.service.AiCrudConfigGenerateService;
 import com.mdframe.forge.plugin.generator.service.AiCrudConfigService;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.domain.RespInfo;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +28,7 @@ public class AiCrudConfigController {
 
     private final AiCrudConfigService crudConfigService;
     private final AiCrudConfigGenerateService generateService;
+    private final AiCrudCodegenService codegenService;
 
     @GetMapping("/page")
     public RespInfo<Page<AiCrudConfig>> page(PageQuery pageQuery,
@@ -75,5 +78,18 @@ public class AiCrudConfigController {
     @PostMapping("/ai/generateFromTable")
     public RespInfo<AiCrudGenerateResult> aiGenerateFromTable(@RequestBody AiCrudGenerateRequest request) {
         return RespInfo.success(generateService.generateFromTable(request));
+    }
+
+    /**
+     * 下载 CODEGEN 代码包（zip）
+     */
+    @GetMapping("/codegen/download/{configKey}")
+    public void downloadCode(@PathVariable String configKey, HttpServletResponse response) throws Exception {
+        byte[] zipBytes = codegenService.generateZip(configKey);
+        response.setContentType("application/zip");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + configKey + "-code.zip\"");
+        response.setContentLength(zipBytes.length);
+        response.getOutputStream().write(zipBytes);
+        response.getOutputStream().flush();
     }
 }
