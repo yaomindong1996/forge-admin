@@ -108,6 +108,18 @@
       </div>
     </div>
 
+    <div v-if="total > 0" class="template-pagination">
+      <n-pagination
+        v-model:page="currentPage"
+        v-model:page-size="pageSize"
+        :item-count="total"
+        :page-sizes="[12, 24, 48]"
+        show-size-picker
+        @update:page="loadList"
+        @update:page-size="loadList"
+      />
+    </div>
+
     <!-- 新增/编辑弹窗 -->
     <n-modal
       v-model:show="showModal"
@@ -242,6 +254,9 @@ const { success, error } = useDiscreteMessage()
 
 const loading = ref(false)
 const templateList = ref([])
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(12)
 const showModal = ref(false)
 const isEdit = ref(false)
 const submitting = ref(false)
@@ -275,9 +290,9 @@ const formRules = {
 async function loadList() {
   loading.value = true
   try {
-    // 管理页加载所有（含停用），用分页接口 pageSize 大一些
-    const res = await pageTemplates({ pageNum: 1, pageSize: 100 })
+    const res = await pageTemplates({ pageNum: currentPage.value, pageSize: pageSize.value })
     templateList.value = res.data?.records || []
+    total.value = res.data?.total || 0
   } catch (e) {
     error('加载模板列表失败: ' + e.message)
   } finally {
@@ -435,7 +450,9 @@ onMounted(() => {
 .page-template-page {
   padding: 16px;
   height: 100%;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .page-header {
@@ -443,6 +460,9 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 20px;
+  background: #fff;
+  padding: 16px 20px;
+  border-radius: 12px;
 }
 
 .header-left {
@@ -471,6 +491,8 @@ onMounted(() => {
 
 /* 卡片网格 */
 .template-grid {
+  flex: 1;
+  overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 16px;
@@ -687,5 +709,14 @@ onMounted(() => {
 :deep(.n-input.mono-input .n-input__textarea-el) {
   font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
   font-size: 12px;
+}
+
+.template-pagination {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 24px 16px;
+  background: #FFFFFF;
+  border-top: 1px solid #F1F5F9;
 }
 </style>
