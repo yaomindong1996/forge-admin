@@ -80,16 +80,16 @@
       >
         <div class="user-info" @click="userDropdownVisible = !userDropdownVisible">
           <img
-            v-if="userStore.userInfo?.avatar"
-            :src="userStore.userInfo.avatar"
+            v-if="userAvatar"
+            :src="userAvatar"
             alt="avatar"
             class="user-avatar-img"
           />
           <div v-else class="user-avatar">
-            {{ userAvatar }}
+            {{ userAvatarText }}
           </div>
           <div class="user-details">
-            <span class="user-name">{{ userStore.userInfo?.realName || userStore.userInfo?.username || 'User' }}</span>
+            <span class="user-name">{{ userName }}</span>
           </div>
         </div>
       </n-dropdown>
@@ -98,60 +98,48 @@
 </template>
 
 <script setup>
-import { computed, ref, h, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useUserStore, useAuthStore, usePermissionStore } from '@/store'
-import api from '@/api'
+import { usePermissionStore } from '@/store'
 import TheLogo from '@/components/common/TheLogo.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
 import MenuCollapse from '@/layouts/components/MenuCollapse.vue'
+import { useUser } from '@/composables'
 
 const router = useRouter()
 const route = useRoute()
-const userStore = useUserStore()
-const authStore = useAuthStore()
 const permissionStore = usePermissionStore()
 
-const userDropdownVisible = ref(false)
+const { userName, userAvatarText, userAvatar, userDropdownOptions, dropdownVisible: userDropdownVisible, handleDropdownSelect } = useUser()
+
 const expandedKeys = ref(new Set())
 
-const userAvatar = computed(() => {
-  const name = userStore.userInfo?.realName || userStore.userInfo?.username || 'U'
-  return name.charAt(0).toUpperCase()
-})
-
-// 处理菜单数据
+// Process menu data (simple pass-through with key normalization)
 const menuItems = computed(() => {
   const menus = permissionStore.menus || []
-  console.log('permissionStore.menus',permissionStore.menus)
-  return processMenus(menus)
+  return menus.map((item) => ({
+    key: item.key || String(item.id),
+    name: item.name || item.label || '',
+    label: item.label || item.name || item.meta?.title || '',
+    path: item.path || '',
+    icon: item.icon || '',
+    children: (item.children || []).map((child) => ({
+      key: child.key || String(child.id),
+      name: child.name || child.label || '',
+      label: child.label || child.name || child.meta?.title || '',
+      path: child.path || '',
+      icon: child.icon || '',
+    })),
+  }))
 })
 
-function processMenus(items) {
-  if (!Array.isArray(items))
-    return []
-  return items.map((item) => {
-    const menu = {
-      key: item.key || String(item.id),
-      name: item.name || item.label || '',
-      label: item.label || item.name || item.meta?.title || '',
-      path: item.path || '',
-      icon: item.icon || '',
-      children: processMenus(item.children || []),
-    }
-    return menu
-  })
-}
-
-// 判断菜单项是否激活
+// Check if menu item is active
 function isActive(item) {
   if (!item.path)
     return false
   const currentPath = route.path
   if (item.path === currentPath)
     return true
-  // 支持子路径匹配，但要避免前缀误匹配
-  // 例如 /system/config 不应该匹配 /system/config-center
   if (item.path !== '/' && item.path !== currentPath) {
     const normalizedPath = item.path.endsWith('/') ? item.path : item.path + '/'
     const normalizedCurrent = currentPath.endsWith('/') ? currentPath : currentPath + '/'
@@ -161,19 +149,19 @@ function isActive(item) {
   return false
 }
 
-// 判断折叠菜单是否有子项激活
+// Check if collapsible menu has active child
 function isCollapsibleActive(item) {
   if (!item.children)
     return false
   return item.children.some(child => isActive(child))
 }
 
-// 判断是否展开
+// Check if menu is expanded
 function isExpanded(item) {
   return expandedKeys.value.has(item.key)
 }
 
-// 切换展开
+// Toggle expand/collapse
 function toggleExpand(item) {
   if (expandedKeys.value.has(item.key)) {
     expandedKeys.value.delete(item.key)
@@ -183,14 +171,14 @@ function toggleExpand(item) {
   }
 }
 
-// 点击菜单
+// Handle menu click
 function handleNavClick(item) {
   if (item.path) {
     router.push({ path: item.path })
   }
 }
 
-// 监听当前路由，自动展开有激活子项的折叠菜单
+// Auto-expand menus with active children
 watch(
   () => route.path,
   () => {
@@ -203,34 +191,8 @@ watch(
   { immediate: true },
 )
 
-const userDropdownOptions = computed(() => [
-  { label: '个人资料', key: 'profile', icon: () => h('i', { class: 'i-material-symbols:person-outline' }) },
-  { type: 'divider', key: 'd1' },
-  { label: '退出登录', key: 'logout', icon: () => h('i', { class: 'i-material-symbols:logout' }) },
-])
-
 function handleUserSelect(key) {
-  userDropdownVisible.value = false
-  if (key === 'logout') {
-    $dialog.confirm({
-      title: '提示',
-      type: 'info',
-      content: '确认退出？',
-      async confirm() {
-        try {
-          await api.logout()
-        }
-        catch (error) {
-          console.error(error)
-        }
-        authStore.logout()
-        $message.success('已退出登录')
-      },
-    })
-  }
-  else if (key === 'profile') {
-    router.push('/profile')
-  }
+  handleDropdownSelect(key)
 }
 </script>
 

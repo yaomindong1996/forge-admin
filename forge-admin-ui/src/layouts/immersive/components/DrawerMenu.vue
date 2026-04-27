@@ -38,28 +38,28 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { h } from 'vue'
+import { useRoute } from 'vue-router'
 import { usePermissionStore } from '@/store'
-import IconRenderer from '@/components/IconRenderer.vue'
-import { isExternal } from '@/utils'
+import { useMenu } from '@/composables'
+import { processMenuData } from '@/utils/menu-utils'
 
-const router = useRouter()
 const route = useRoute()
 const permissionStore = usePermissionStore()
+
+const { handleMenuSelect: baseHandleMenuSelect, findMenuIdByPath } = useMenu()
 
 const drawerVisible = defineModel('show', { type: Boolean, default: false })
 const emit = defineEmits(['select'])
 
 const searchKeyword = ref('')
 
-// 处理菜单数据
+// Process menu data
 const processedMenus = computed(() => {
   const menus = permissionStore.menus || []
   return processMenuData(menus)
 })
 
-// 过滤菜单
+// Filter menus by keyword
 const filteredMenus = computed(() => {
   if (!searchKeyword.value.trim()) {
     return processedMenus.value
@@ -83,101 +83,18 @@ function filterMenus(items, keyword) {
   }, [])
 }
 
-function processMenuData(menuItems) {
-  if (!menuItems || !Array.isArray(menuItems))
-    return []
-
-  return menuItems.map((item) => {
-    const menuItem = {
-      key: item.key || item.id,
-      label: item.label || item.name,
-    }
-
-    if (item.icon) {
-      if (typeof item.icon === 'string' && item.icon.trim() !== '') {
-        menuItem.icon = () => h(IconRenderer, { icon: item.icon })
-      }
-    }
-
-    if (item.path) {
-      menuItem.path = item.path
-      menuItem.originalItem = item
-    }
-
-    if (item.children && item.children.length > 0) {
-      const children = processMenuData(item.children)
-      if (children.length > 0) {
-        menuItem.children = children
-      }
-    }
-
-    return menuItem
-  })
-}
-
+// Active menu key
 const activeKey = computed(() => {
-  const findMenuIdByPath = (items, targetPath) => {
-    if (!items || !Array.isArray(items))
-      return null
-
-    for (const item of items) {
-      if (item.path === targetPath) {
-        return item.key
-      }
-      if (item.children && item.children.length > 0) {
-        const found = findMenuIdByPath(item.children, targetPath)
-        if (found)
-          return found
-      }
-    }
-    return null
-  }
-
   if (route.meta?.parentKey) {
     return route.meta.parentKey
   }
-
-  return findMenuIdByPath(processedMenus.value, route.path) || route.name
+  return findMenuIdByPath(route.path) || route.name
 })
 
-function handleMenuSelect(key, item) {
-  const originalItem = findMenuItem(permissionStore.menus, key)
-  if (!originalItem)
-    return
-
-  if (isExternal(originalItem.path)) {
-    window.open(originalItem.path)
-    return
-  }
-
-  if (originalItem.openMode === 'iframe' && originalItem.subAppURL) {
-    const iframePath = `/iframe?page=${encodeURIComponent(originalItem.subAppURL + (originalItem.path || ''))}`
-    router.push(iframePath)
-    return
-  }
-
-  if (originalItem.path) {
-    router.push(originalItem.path)
-    emit('select')
-    drawerVisible.value = false
-  }
-}
-
-function findMenuItem(menuItems, key) {
-  if (!menuItems || !Array.isArray(menuItems))
-    return null
-
-  for (const item of menuItems) {
-    if ((item.key || item.id) === key) {
-      return item
-    }
-    if (item.children && item.children.length > 0) {
-      const found = findMenuItem(item.children, key)
-      if (found)
-        return found
-    }
-  }
-  return null
+function handleMenuSelect(key) {
+  baseHandleMenuSelect(key)
+  emit('select')
+  drawerVisible.value = false
 }
 </script>
 

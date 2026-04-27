@@ -68,6 +68,7 @@ import {
   UserAvatar,
 } from '@/layouts/components'
 import { useAppStore, usePermissionStore } from '@/store'
+import { findTopMenuByPath } from '@/composables'
 import SideMenu from './components/SideMenu.vue'
 import TopMenu from './components/TopMenu.vue'
 
@@ -75,56 +76,20 @@ const appStore = useAppStore()
 const permissionStore = usePermissionStore()
 const route = useRoute()
 
-// 判断是否应该显示侧边栏
+// Determine whether sidebar should be shown
 const showSidebar = computed(() => {
   const menus = permissionStore.menus || []
 
-  // 如果菜单数据还没加载，不显示侧边栏
   if (!menus.length || !permissionStore.menuDataLoaded) {
     return false
   }
 
-  // 递归查找包含当前路由的顶级菜单
-  const findTopMenuByPath = (currentPath) => {
-    const findInMenu = (menuItems, topMenu) => {
-      for (const item of menuItems) {
-        if (item.path === currentPath) {
-          return topMenu
-        }
-        if (item.children && item.children.length > 0) {
-          const found = findInMenu(item.children, topMenu)
-          if (found)
-            return found
-        }
-      }
-      return null
-    }
+  const activeTopMenu = findTopMenuByPath(menus, route.path)
 
-    // 在每个顶级菜单中查找
-    for (const topMenu of menus) {
-      // 如果顶级菜单本身匹配
-      if (topMenu.path === currentPath) {
-        return topMenu
-      }
-      // 在顶级菜单的子菜单中查找
-      if (topMenu.children && topMenu.children.length > 0) {
-        const found = findInMenu(topMenu.children, topMenu)
-        if (found)
-          return found
-      }
-    }
-    return null
-  }
-
-  // 查找当前路由对应的顶级菜单
-  const activeTopMenu = findTopMenuByPath(route.path)
-
-  // 如果找到了顶级菜单，检查它是否有子菜单
   if (activeTopMenu) {
     return activeTopMenu.children && activeTopMenu.children.length > 0
   }
 
-  // 如果没有找到匹配的路由，但有选中的顶部菜单ID，使用它
   if (appStore.selectedTopMenuId) {
     const selectedMenu = menus.find(item => item.id === appStore.selectedTopMenuId)
     if (selectedMenu) {
@@ -132,7 +97,6 @@ const showSidebar = computed(() => {
     }
   }
 
-  // 默认不显示侧边栏
   return false
 })
 

@@ -20,7 +20,7 @@
       <template #toolbar-end>
         <n-button type="primary" size="small" @click="showAiSchemaModal = true">
           <template #icon>
-            <i class="i-material-symbols:auto_awesome" />
+            <i class="i-material-symbols:auto-awesome" />
           </template>
           AI 建表
         </n-button>

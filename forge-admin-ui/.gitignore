@@ -21,4 +21,7 @@ selenium-debug.log
 
 package-lock.json
 yarn.lock
-deploy/
+
+# 部署配置（包含敏感信息）
+deploy/.env.deploy
+deploy/.env.*.local

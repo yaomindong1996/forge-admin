@@ -42,11 +42,11 @@
       <div class="tool-item tool-divider" />
       <div
         class="tool-item user-tool"
-        :title="userStore.userInfo?.realName || '用户'"
+        :title="userName || '用户'"
         @click="userDropdownVisible = !userDropdownVisible"
       >
         <div class="user-avatar-small">
-          {{ userAvatar }}
+          {{ userAvatarText }}
         </div>
       </div>
     </div>
@@ -68,29 +68,24 @@
 </template>
 
 <script setup>
-import { computed, ref, h } from 'vue'
-import { useRouter } from 'vue-router'
-import { useUserStore, useAuthStore, usePermissionStore, useAppStore } from '@/store'
-import api from '@/api'
+import { computed, ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { usePermissionStore, useAppStore } from '@/store'
 import TheLogo from '@/components/common/TheLogo.vue'
 import { MessageNotification } from '@/layouts/components'
 import DrawerMenu from '../../immersive/components/DrawerMenu.vue'
+import { useUser } from '@/composables'
 
 const router = useRouter()
-const userStore = useUserStore()
-const authStore = useAuthStore()
+const route = useRoute()
 const permissionStore = usePermissionStore()
 const appStore = useAppStore()
 
 const menuDrawerVisible = ref(false)
-const userDropdownVisible = ref(false)
 
-const userAvatar = computed(() => {
-  const name = userStore.userInfo?.realName || userStore.userInfo?.username || 'U'
-  return name.charAt(0).toUpperCase()
-})
+const { userName, userAvatarText, userDropdownOptions, dropdownVisible: userDropdownVisible, handleDropdownSelect } = useUser()
 
-// 提取顶部常用菜单（第一级菜单）
+// Extract top shortcut menus (first level)
 const topMenus = computed(() => {
   const menus = permissionStore.menus || []
   return menus.slice(0, 8).map((item) => {
@@ -111,6 +106,26 @@ const topMenus = computed(() => {
   })
 })
 
+// Compute active top menu key based on current route
+const activeKey = computed(() => {
+  const menus = permissionStore.menus || []
+  const currentPath = route.path
+  for (let i = 0; i < menus.length; i++) {
+    const item = menus[i]
+    if (item.path === currentPath) {
+      return item.key || item.id
+    }
+    if (item.children) {
+      for (const child of item.children) {
+        if (child.path === currentPath) {
+          return item.key || item.id
+        }
+      }
+    }
+  }
+  return null
+})
+
 function handleMenuSelect(item) {
   if (item.path) {
     router.push(item.path)
@@ -126,38 +141,8 @@ function toggleFullscreen() {
   }
 }
 
-const userDropdownOptions = computed(() => [
-  { label: '个人信息', key: 'profile', icon: () => h('i', { class: 'i-material-symbols:person-outline' }) },
-  { label: '修改密码', key: 'password', icon: () => h('i', { class: 'i-material-symbols:lock-outline' }) },
-  { type: 'divider', key: 'd1' },
-  { label: '退出登录', key: 'logout', icon: () => h('i', { class: 'i-material-symbols:logout' }) },
-])
-
 function handleUserSelect(key) {
-  userDropdownVisible.value = false
-  if (key === 'logout') {
-    $dialog.confirm({
-      title: '提示',
-      type: 'info',
-      content: '确认退出？',
-      async confirm() {
-        try {
-          await api.logout()
-        }
-        catch (error) {
-          console.error(error)
-        }
-        authStore.logout()
-        $message.success('已退出登录')
-      },
-    })
-  }
-  else if (key === 'profile') {
-    router.push('/system/user-profile')
-  }
-  else if (key === 'password') {
-    router.push('/system/password')
-  }
+  handleDropdownSelect(key)
 }
 </script>
 
