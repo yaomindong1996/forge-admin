@@ -1,8 +1,6 @@
 package com.mdframe.forge.plugin.ai.client;
 
-import cn.dev33.satoken.stp.StpUtil;
 import com.mdframe.forge.plugin.ai.agent.domain.AiAgent;
-import com.mdframe.forge.plugin.ai.agent.service.AiAgentService;
 import com.mdframe.forge.plugin.ai.chat.domain.AiChatRecord;
 import com.mdframe.forge.plugin.ai.chat.memory.DbChatMemory;
 import com.mdframe.forge.plugin.ai.chat.service.AiChatRecordService;
@@ -10,8 +8,6 @@ import com.mdframe.forge.plugin.ai.chat.service.AiPromptTemplateRenderer;
 import com.mdframe.forge.plugin.ai.client.dto.AiClientRequest;
 import com.mdframe.forge.plugin.ai.client.dto.AiClientResponse;
 import com.mdframe.forge.plugin.ai.client.dto.AiFallbackReason;
-import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
-import com.mdframe.forge.plugin.ai.provider.service.AiProviderService;
 import com.mdframe.forge.plugin.ai.session.service.AiChatSessionService;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
@@ -34,8 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RequiredArgsConstructor
 public class AiClientImpl implements AiClient {
 
-    private final AiAgentService agentService;
-    private final AiProviderService providerService;
+    private final AiInvocationResolver invocationResolver;
     private final DbChatMemory dbChatMemory;
     private final AiChatRecordService recordService;
     private final AiChatSessionService sessionService;
@@ -52,26 +47,26 @@ public class AiClientImpl implements AiClient {
         }
 
         try {
-            AiAgent agent = resolveAgent(request.getAgentCode());
-            AiProvider provider = resolveProvider(request.getProviderId(), agent);
-            String model = resolveModel(request.getModelName(), agent, provider);
-            Double temperature = resolveTemperature(request.getTemperature(), agent);
-            Integer maxTokens = resolveMaxTokens(request.getMaxTokens(), agent);
+            AiInvocationResolver.ResolvedInvocation resolved = invocationResolver.resolve(
+                    request.getAgentCode(), request.getProviderId(), request.getModelName(),
+                    request.getTemperature(), request.getMaxTokens());
 
-            String systemPrompt = buildSystemPrompt(agent, request.getContextVars());
+            String systemPrompt = buildSystemPrompt(resolved.agent(), request.getContextVars());
             String sessionId = resolveSessionId(request.getSessionId());
             String historySessionId = StringUtils.hasText(sessionId) ? sessionId : null;
 
-            OpenAiChatOptions options = buildOptions(model, temperature, maxTokens);
-            ChatClient chatClient = chatClientCache.getOrCreate(
-                    provider.getId(), model, provider, options, historySessionId, dbChatMemory);
+            OpenAiChatOptions options = buildOptions(resolved.model(), resolved.temperature(), resolved.maxTokens());
+            ChatClient baseClient = chatClientCache.getOrCreateBase(
+                    resolved.provider().getId(), resolved.model(), resolved.provider(), options);
+            ChatClient chatClient = chatClientCache.createSessionClient(
+                    baseClient, historySessionId, dbChatMemory);
 
             log.info("[AiClient.call] ===== 请求开始 =====");
             log.info("[AiClient.call] sessionId: {}", sessionId);
             log.info("[AiClient.call] agentCode: {}", request.getAgentCode());
-            log.info("[AiClient.call] provider: {}({})", provider.getProviderName(), provider.getProviderType());
-            log.info("[AiClient.call] model: {}", model);
-            log.info("[AiClient.call] temperature: {}, maxTokens: {}", temperature, maxTokens);
+            log.info("[AiClient.call] provider: {}({})", resolved.provider().getProviderName(), resolved.provider().getProviderType());
+            log.info("[AiClient.call] model: {}", resolved.model());
+            log.info("[AiClient.call] temperature: {}, maxTokens: {}", resolved.temperature(), resolved.maxTokens());
             log.info("[AiClient.call] systemPrompt: \n{}", systemPrompt);
             log.info("[AiClient.call] userPrompt: \n{}", request.getMessage());
 
@@ -88,6 +83,8 @@ public class AiClientImpl implements AiClient {
                     content.length() > 500 ? content.substring(0, 500) + "...(truncated)" : content);
 
             if (StringUtils.hasText(sessionId)) {
+                ensureSession(sessionId, request.getAgentCode(), request.getUserInputOrMessage(),
+                        SessionHelper.getUserId(), SessionHelper.getTenantId());
                 persistConversation(sessionId, request.getAgentCode(),
                         request.getMessage(), content,SessionHelper.getUserId(),SessionHelper.getTenantId());
             }
@@ -112,31 +109,31 @@ public class AiClientImpl implements AiClient {
         }
 
         try {
-            AiAgent agent = resolveAgent(request.getAgentCode());
-            AiProvider provider = resolveProvider(request.getProviderId(), agent);
-            String model = resolveModel(request.getModelName(), agent, provider);
-            Double temperature = resolveTemperature(request.getTemperature(), agent);
-            Integer maxTokens = resolveMaxTokens(request.getMaxTokens(), agent);
+            AiInvocationResolver.ResolvedInvocation resolved = invocationResolver.resolve(
+                    request.getAgentCode(), request.getProviderId(), request.getModelName(),
+                    request.getTemperature(), request.getMaxTokens());
 
-            String systemPrompt = buildSystemPrompt(agent, request.getContextVars());
+            String systemPrompt = buildSystemPrompt(resolved.agent(), request.getContextVars());
             String sessionId = resolveSessionId(request.getSessionId());
             String historySessionId = StringUtils.hasText(sessionId) ? sessionId : null;
 
-            OpenAiChatOptions options = buildOptions(model, temperature, maxTokens);
-            ChatClient chatClient = chatClientCache.getOrCreate(
-                    provider.getId(), model, provider, options, historySessionId, dbChatMemory);
+            OpenAiChatOptions options = buildOptions(resolved.model(), resolved.temperature(), resolved.maxTokens());
+            ChatClient baseClient = chatClientCache.getOrCreateBase(
+                    resolved.provider().getId(), resolved.model(), resolved.provider(), options);
+            ChatClient chatClient = chatClientCache.createSessionClient(
+                    baseClient, historySessionId, dbChatMemory);
             
             Long userId = SessionHelper.getUserId();
             Long tenantId = SessionHelper.getTenantId();
-            sessionService.getOrCreate(sessionId, userId, tenantId,
-                    request.getAgentCode(), request.getUserInput());
+            ensureSession(sessionId, request.getAgentCode(), request.getUserInputOrMessage(),
+                    userId, tenantId);
 
             log.info("[AiClient.stream] ===== 请求开始 =====");
             log.info("[AiClient.stream] sessionId: {}", sessionId);
             log.info("[AiClient.stream] agentCode: {}", request.getAgentCode());
-            log.info("[AiClient.stream] provider: {}({})", provider.getProviderName(), provider.getProviderType());
-            log.info("[AiClient.stream] model: {}", model);
-            log.info("[AiClient.stream] temperature: {}, maxTokens: {}", temperature, maxTokens);
+            log.info("[AiClient.stream] provider: {}({})", resolved.provider().getProviderName(), resolved.provider().getProviderType());
+            log.info("[AiClient.stream] model: {}", resolved.model());
+            log.info("[AiClient.stream] temperature: {}, maxTokens: {}", resolved.temperature(), resolved.maxTokens());
             log.info("[AiClient.stream] systemPrompt: \n{}", systemPrompt);
             log.info("[AiClient.stream] userPrompt: \n{}", request.getMessage());
 
@@ -174,73 +171,6 @@ public class AiClientImpl implements AiClient {
             circuitBreaker.recordFailure(circuitKey);
             return Flux.just("{\"fallback\":true,\"reason\":\"API_ERROR\"}");
         }
-    }
-
-    private AiAgent resolveAgent(String agentCode) {
-        if (!StringUtils.hasText(agentCode)) {
-            throw new BusinessException("Agent编码不能为空");
-        }
-        AiAgent agent = agentService.getByCode(agentCode);
-        if (agent == null) {
-            throw new BusinessException("Agent 不存在或已停用: " + agentCode);
-        }
-        return agent;
-    }
-
-    private AiProvider resolveProvider(Long providerId, AiAgent agent) {
-        AiProvider provider = null;
-        if (providerId != null) {
-            provider = providerService.getById(providerId);
-        }
-        if (provider == null && agent != null && agent.getProviderId() != null) {
-            provider = providerService.getById(agent.getProviderId());
-        }
-        if (provider == null) {
-            provider = providerService.getDefaultProvider();
-        }
-        if (provider == null) {
-            throw new BusinessException("未配置可用的 AI 供应商");
-        }
-        if (StringUtils.hasText(provider.getStatus()) && !"0".equals(provider.getStatus())) {
-            throw new BusinessException("AI 供应商已停用: " + provider.getProviderName());
-        }
-        if (!StringUtils.hasText(provider.getBaseUrl()) || !StringUtils.hasText(provider.getApiKey())) {
-            throw new BusinessException("AI 供应商配置不完整");
-        }
-        return provider;
-    }
-
-    private String resolveModel(String modelName, AiAgent agent, AiProvider provider) {
-        if (StringUtils.hasText(modelName)) {
-            return modelName;
-        }
-        if (agent != null && StringUtils.hasText(agent.getModelName())) {
-            return agent.getModelName();
-        }
-        if (StringUtils.hasText(provider.getDefaultModel())) {
-            return provider.getDefaultModel();
-        }
-        return "gpt-3.5-turbo";
-    }
-
-    private Double resolveTemperature(Double temperature, AiAgent agent) {
-        if (temperature != null) {
-            return temperature;
-        }
-        if (agent != null && agent.getTemperature() != null) {
-            return agent.getTemperature().doubleValue();
-        }
-        return 0.7D;
-    }
-
-    private Integer resolveMaxTokens(Integer maxTokens, AiAgent agent) {
-        if (maxTokens != null) {
-            return maxTokens;
-        }
-        if (agent != null && agent.getMaxTokens() != null) {
-            return agent.getMaxTokens();
-        }
-        return null;
     }
 
     private String resolveSessionId(String sessionId) {
@@ -316,5 +246,12 @@ public class AiClientImpl implements AiClient {
             return;
         }
         persistConversation(sessionId, agentCode, userPrompt, assistantContent,userId,tenantId);
+    }
+
+    private void ensureSession(String sessionId, String agentCode, String firstMsg, Long userId, Long tenantId) {
+        if (!StringUtils.hasText(sessionId)) {
+            return;
+        }
+        sessionService.getOrCreate(sessionId, userId, tenantId, agentCode, firstMsg);
     }
 }

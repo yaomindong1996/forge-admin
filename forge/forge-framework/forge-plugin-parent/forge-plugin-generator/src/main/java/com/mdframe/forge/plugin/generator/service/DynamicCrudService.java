@@ -79,10 +79,10 @@ public class DynamicCrudService {
         // 7. 转换字段名为camelCase
         List<Map<String, Object>> camelCaseRecords = DynamicQueryGenerator.convertListToCamelCase(page.getRecords());
         
-        // 8. 应用脱敏和字典翻译
-        applyDesensitize(camelCaseRecords, config.getDesensitizeConfig());
-        applyDictTranslation(camelCaseRecords, config.getTransConfig());
+        // 8. 读取链路统一先解密，再做翻译和脱敏，避免密文参与展示处理
         applyDecrypt(camelCaseRecords, config.getEncryptConfig());
+        applyDictTranslation(camelCaseRecords, config.getTransConfig());
+        applyDesensitize(camelCaseRecords, config.getDesensitizeConfig());
         
         page.setRecords(camelCaseRecords);
         return page;
@@ -103,10 +103,10 @@ public class DynamicCrudService {
         // 转换为camelCase
         Map<String, Object> camelCaseRecord = DynamicQueryGenerator.convertMapToCamelCase(record);
         
-        // 应用脱敏和字典翻译
-        applyDesensitize(Collections.singletonList(camelCaseRecord), config.getDesensitizeConfig());
-        applyDictTranslation(Collections.singletonList(camelCaseRecord), config.getTransConfig());
+        // 单条读取同样遵循“解密 -> 翻译 -> 脱敏”顺序
         applyDecrypt(Collections.singletonList(camelCaseRecord), config.getEncryptConfig());
+        applyDictTranslation(Collections.singletonList(camelCaseRecord), config.getTransConfig());
+        applyDesensitize(Collections.singletonList(camelCaseRecord), config.getDesensitizeConfig());
         
         return camelCaseRecord;
     }

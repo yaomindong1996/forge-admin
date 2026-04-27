@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.ai.client.dto;
 
 import lombok.Data;
+import org.springframework.util.StringUtils;
 
 import java.util.Map;
 
@@ -16,4 +17,8 @@ public class AiClientRequest {
     private Integer maxTokens;
     private Map<String, String> contextVars;
     private String sessionId;
+
+    public String getUserInputOrMessage() {
+        return StringUtils.hasText(userInput) ? userInput : message;
+    }
 }

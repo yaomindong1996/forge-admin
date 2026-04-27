@@ -52,7 +52,17 @@ public class CrudGeneratorStreamService {
 
         return Flux.concat(
                 Flux.just(buildProgressEvent("analyzing", "正在分析需求...")),
-                aiClientAdapter.stream(request.getDescription(), request.getSessionId(), "crud_config_builder", prompt, contextVars)
+                aiClientAdapter.stream(
+                        request.getDescription(),
+                        request.getSessionId(),
+                        "crud_config_builder",
+                        prompt,
+                        contextVars,
+                        request.getProviderId(),
+                        request.getModelId(),
+                        request.getTemperature(),
+                        request.getMaxTokens()
+                )
                         .flatMap(this::processChunkToFlux)
                         .onErrorResume(e -> {
                             log.error("[CrudGeneratorStreamService] 流式生成异常", e);

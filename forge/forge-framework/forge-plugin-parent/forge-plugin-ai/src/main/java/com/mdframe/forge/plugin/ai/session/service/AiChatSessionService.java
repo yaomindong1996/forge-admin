@@ -34,6 +34,9 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionMapper, AiCha
      * @return 会话实体
      */
     public AiChatSession getOrCreate(String sessionId, Long userId, Long tenantId, String agentCode, String firstMsg) {
+        if (!StringUtils.hasText(sessionId)) {
+            return null;
+        }
         AiChatSession session = getById(sessionId);
         if (session == null) {
             String name = StringUtils.hasText(firstMsg)
@@ -50,6 +53,10 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionMapper, AiCha
                     .updateTime(LocalDateTime.now())
                     .build();
             save(session);
+        } else {
+            update(new LambdaUpdateWrapper<AiChatSession>()
+                    .set(AiChatSession::getUpdateTime, LocalDateTime.now())
+                    .eq(AiChatSession::getId, sessionId));
         }
         return session;
     }
@@ -83,6 +90,9 @@ public class AiChatSessionService extends ServiceImpl<AiChatSessionMapper, AiCha
      * 更新会话最后修改时间
      */
     public void touchSession(String sessionId) {
+        if (!StringUtils.hasText(sessionId)) {
+            return;
+        }
         update(new LambdaUpdateWrapper<AiChatSession>()
                 .set(AiChatSession::getUpdateTime, LocalDateTime.now())
                 .eq(AiChatSession::getId, sessionId));

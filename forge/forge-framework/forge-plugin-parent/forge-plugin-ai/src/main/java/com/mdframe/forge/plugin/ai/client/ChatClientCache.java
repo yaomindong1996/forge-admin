@@ -28,17 +28,30 @@ public class ChatClientCache {
                     log.info("[ChatClientCache] 缓存移除, key={}, cause={}", key, cause))
             .build();
 
-    public ChatClient getOrCreate(Long providerId, String modelName, AiProvider provider,
-                                  OpenAiChatOptions options, String sessionId,
-                                  org.springframework.ai.chat.memory.ChatMemory chatMemory) {
-        String cacheKey = providerId + ":" + modelName;
-        return cache.get(cacheKey, k -> buildChatClient(provider, options, sessionId, chatMemory));
+    public ChatClient getOrCreateBase(Long providerId, String modelName, AiProvider provider,
+                                      OpenAiChatOptions options) {
+        String cacheKey = buildCacheKey(providerId, modelName, options);
+        return cache.get(cacheKey, k -> buildBaseChatClient(provider, options));
+    }
+
+    public ChatClient createSessionClient(ChatClient baseClient, String sessionId,
+                                          org.springframework.ai.chat.memory.ChatMemory chatMemory) {
+        if (baseClient == null) {
+            return null;
+        }
+        if (sessionId == null || chatMemory == null) {
+            return baseClient;
+        }
+        return baseClient.mutate()
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory)
+                        .conversationId(sessionId)
+                        .build())
+                .build();
     }
 
     public void evict(Long providerId, String modelName) {
-        String cacheKey = providerId + ":" + modelName;
-        cache.invalidate(cacheKey);
-        log.info("[ChatClientCache] 主动清除缓存, key={}", cacheKey);
+        cache.asMap().keySet().removeIf(key -> key.startsWith(providerId + ":" + modelName + ":"));
+        log.info("[ChatClientCache] 主动清除缓存, providerId={}, modelName={}", providerId, modelName);
     }
 
     public void evictByProvider(Long providerId) {
@@ -46,9 +59,15 @@ public class ChatClientCache {
         log.info("[ChatClientCache] 按供应商清除缓存, providerId={}", providerId);
     }
 
-    private ChatClient buildChatClient(AiProvider provider, OpenAiChatOptions options,
-                                       String sessionId,
-                                       org.springframework.ai.chat.memory.ChatMemory chatMemory) {
+    private String buildCacheKey(Long providerId, String modelName, OpenAiChatOptions options) {
+        Double temperature = options.getTemperature();
+        Integer maxTokens = options.getMaxTokens();
+        return providerId + ":" + modelName + ":"
+                + (temperature != null ? temperature : "null") + ":"
+                + (maxTokens != null ? maxTokens : "null");
+    }
+
+    private ChatClient buildBaseChatClient(AiProvider provider, OpenAiChatOptions options) {
         OpenAiApi openAiApi = OpenAiApi.builder()
                 .baseUrl(provider.getBaseUrl())
                 .apiKey(provider.getApiKey())
@@ -58,14 +77,8 @@ public class ChatClientCache {
                 .defaultOptions(options)
                 .build();
 
-        ChatClient.Builder builder = ChatClient.builder(chatModel);
-        if (sessionId != null && chatMemory != null) {
-            builder.defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory)
-                    .conversationId(sessionId)
-                    .build());
-        }
-        log.info("[ChatClientCache] 新建 ChatClient, provider={}, model={}",
-                provider.getProviderName(), options.getModel());
-        return builder.build();
+        log.info("[ChatClientCache] 新建基础 ChatClient, provider={}, model={}, temperature={}, maxTokens={}",
+                provider.getProviderName(), options.getModel(), options.getTemperature(), options.getMaxTokens());
+        return ChatClient.builder(chatModel).build();
     }
 }

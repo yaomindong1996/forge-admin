@@ -13,6 +13,10 @@ public interface AiClientAdapter {
 
     Flux<String> stream(String userInput,String sessionId, String agentCode, String message, Map<String, String> contextVars);
 
+    Flux<String> stream(String userInput, String sessionId, String agentCode, String message,
+                        Map<String, String> contextVars, Long providerId, Long modelId,
+                        Double temperature, Integer maxTokens);
+
     /**
      * 加载指定智能体的上下文 SPEC 配置，按 sort 升序拼接
      * @param agentCode 智能体编码

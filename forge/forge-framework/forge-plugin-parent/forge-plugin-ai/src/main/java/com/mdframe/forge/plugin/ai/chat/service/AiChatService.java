@@ -63,7 +63,7 @@ public class AiChatService {
         AiClientRequest clientRequest = new AiClientRequest();
         clientRequest.setAgentCode(effectiveAgentCode);
         clientRequest.setMessage(userPrompt);
-        clientRequest.setMessage(content);
+        clientRequest.setUserInput(content);
         clientRequest.setProviderId(providerId);
         clientRequest.setModelName(modelName);
         clientRequest.setTemperature(temperature);

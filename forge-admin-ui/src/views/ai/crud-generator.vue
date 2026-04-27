@@ -51,6 +51,21 @@
 
     <div class="generator-main">
       <div class="chat-area">
+        <!-- 生成阶段进度条 -->
+        <div v-if="generating && currentStageIndex >= 0" class="stage-progress">
+          <div
+            v-for="(stage, idx) in generateStages"
+            :key="stage.key"
+            :class="['stage-step', {
+              done: idx < currentStageIndex,
+              active: idx === currentStageIndex,
+            }]"
+          >
+            <div class="stage-step-dot" />
+            <span class="stage-step-label">{{ stage.label }}</span>
+          </div>
+        </div>
+
         <div class="message-list" ref="messageListRef">
           <div v-for="(msg, idx) in messages" :key="idx" :class="['message', msg.role]">
             <div class="message-avatar">
@@ -58,21 +73,37 @@
               <div v-else class="avatar ai-avatar">AI</div>
             </div>
             <div class="message-body">
-              <div v-if="msg.stage" class="stage-indicator">{{ getStageLabel(msg.stage) }}</div>
+              <div v-if="msg.stage" class="stage-indicator">
+                <span class="stage-indicator-dot" />
+                {{ getStageLabel(msg.stage) }}
+              </div>
               <div class="message-bubble">
                 <div class="message-content">{{ msg.content }}</div>
+                <div v-if="msg.streaming" class="message-typing">
+                  <span /><span /><span />
+                </div>
               </div>
             </div>
           </div>
           <div v-if="messages.length === 0" class="empty-chat">
-            <div class="empty-chat-icon">💬</div>
-            <div class="empty-chat-tip">输入你的需求，AI 将自动生成 CRUD 配置</div>
+            <div class="empty-chat-hero">
+              <div class="empty-chat-icon">
+                <n-icon size="32"><SparklesOutline /></n-icon>
+              </div>
+              <div class="empty-chat-title">AI CRUD 配置助手</div>
+              <div class="empty-chat-tip">描述你的需求，AI 将自动生成搜索、表格、表单等完整配置</div>
+            </div>
             <div class="example-prompts">
               <div class="example-title">试试这些示例：</div>
               <div class="example-list">
                 <div v-for="example in examplePrompts" :key="example.label" class="example-item" @click="fillExample(example)">
-                  <span class="example-label">{{ example.label }}</span>
-                  <span class="example-desc">{{ example.text }}</span>
+                  <div class="example-icon">
+                    <n-icon size="14"><AddOutline /></n-icon>
+                  </div>
+                  <div class="example-text">
+                    <span class="example-label">{{ example.label }}</span>
+                    <span class="example-desc">{{ example.text }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -148,12 +179,88 @@
               style="flex: 1"
               @keydown.enter.exact.prevent="sendMessage"
             />
+          </div>
+
+          <!-- 输入底部：模型选择 + 发送按钮 -->
+          <div class="input-footer">
+            <n-popover
+              v-model:show="showModelPanel"
+              trigger="click"
+              placement="top-start"
+              :show-arrow="false"
+              :width="320"
+              raw
+            >
+              <template #trigger>
+                <button
+                  type="button"
+                  :class="['model-trigger', { active: showModelPanel, empty: !modelId }]"
+                  :title="modelId ? `${currentProviderLabel} · ${currentModelLabel}` : '请选择对话模型'"
+                >
+                  <n-icon size="16" class="model-trigger-icon">
+                    <SparklesOutline />
+                  </n-icon>
+                  <span class="model-trigger-provider">{{ currentProviderLabel }}</span>
+                  <span class="model-trigger-divider">·</span>
+                  <span class="model-trigger-model">{{ currentModelLabel }}</span>
+                  <n-icon size="14" class="model-trigger-chevron">
+                    <ChevronDownOutline />
+                  </n-icon>
+                </button>
+              </template>
+
+              <div class="model-panel">
+                <div class="model-panel-section">
+                  <div class="model-panel-label">
+                    <span>供应商</span>
+                    <span v-if="providerOptions.length === 0" class="model-panel-empty-tip">暂无可用供应商</span>
+                  </div>
+                  <n-select
+                    v-model:value="providerId"
+                    :options="providerOptions"
+                    placeholder="选择供应商"
+                    size="small"
+                    filterable
+                  />
+                </div>
+                <div class="model-panel-section">
+                  <div class="model-panel-label">
+                    <span>模型</span>
+                    <span v-if="modelOptions.length > 0" class="model-panel-count">{{ modelOptions.length }} 个</span>
+                  </div>
+                  <div v-if="modelOptions.length === 0" class="model-panel-empty">
+                    {{ providerId ? '该供应商暂无可用模型' : '请先选择供应商' }}
+                  </div>
+                  <div v-else class="model-list">
+                    <div
+                      v-for="m in modelOptions"
+                      :key="m.value"
+                      :class="['model-list-item', { active: modelId === m.value }]"
+                      @click="modelId = m.value; showModelPanel = false"
+                    >
+                      <div class="model-list-item-main">
+                        <span class="model-list-item-name">{{ m.modelCode || m.label }}</span>
+                        <span v-if="m.isDefault === '1'" class="model-tag">默认</span>
+                      </div>
+                      <div v-if="m.label && m.label !== m.modelCode" class="model-list-item-desc">{{ m.label }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </n-popover>
+
             <div class="input-buttons">
               <n-button v-if="generating" type="error" @click="abortGenerate">
                 <template #icon><n-icon><CloseOutline /></n-icon></template>
                 停止
               </n-button>
-              <n-button v-else type="primary" :disabled="!configKey || !inputText.trim()" @click="sendMessage">
+              <n-button
+                v-else
+                type="primary"
+                :disabled="!configKey || !inputText.trim() || !modelId"
+                @click="sendMessage"
+              >
+                <template #icon><n-icon><PaperPlaneOutline /></n-icon></template>
                 发送
               </n-button>
             </div>
@@ -361,7 +468,7 @@
 <script setup>
 import { onMounted, computed, ref, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { AddOutline, CloseOutline, ArrowBackOutline, CopyOutline, DownloadOutline, SaveOutline, EyeOutline, ChevronBackOutline, ChevronForwardOutline } from '@vicons/ionicons5'
+import { AddOutline, CloseOutline, ArrowBackOutline, CopyOutline, DownloadOutline, SaveOutline, EyeOutline, ChevronBackOutline, ChevronForwardOutline, ChevronDownOutline, SparklesOutline, PaperPlaneOutline } from '@vicons/ionicons5'
 import { useCrudGenerator } from '@/composables/useCrudGenerator'
 import { request } from '@/utils'
 import ImportDbTableModal from './components/ImportDbTableModal.vue'
@@ -393,8 +500,16 @@ const {
   layoutType,
   templateList,
 
+  providerId,
+  modelId,
+  providerOptions,
+  modelOptions,
+  currentStage,
+
   configSaved,
   loadTemplateList,
+  loadProviderOptions,
+  loadModelOptions,
   loadSessionList,
   startNewSession,
   loadSession,
@@ -414,6 +529,38 @@ const sidebarCollapsed = ref(false)
 const previewCollapsed = ref(false)
 const activeTabGroup = ref('core')
 const showAdvancedInput = ref(false)
+const showModelPanel = ref(false)
+
+const currentProviderLabel = computed(() => {
+  const item = providerOptions.value.find(p => p.value === providerId.value)
+  return item?.label || '未选择供应商'
+})
+
+const currentModelLabel = computed(() => {
+  const item = modelOptions.value.find(m => m.value === modelId.value)
+  if (!item) return '请选择模型'
+  return item.modelCode || item.label
+})
+
+watch(providerId, async (val, old) => {
+  if (val && val !== old) {
+    await loadModelOptions(val, false)
+  }
+})
+
+const generateStages = [
+  { key: 'analyzing', label: '分析需求' },
+  { key: 'generating-meta', label: '推断元数据' },
+  { key: 'generating-search', label: '搜索配置' },
+  { key: 'generating-columns', label: '表格列' },
+  { key: 'generating-edit', label: '编辑表单' },
+  { key: 'generating-api', label: '接口配置' },
+  { key: 'generating-sql', label: '建表 SQL' },
+]
+
+const currentStageIndex = computed(() => {
+  return generateStages.findIndex(s => s.key === currentStage.value)
+})
 
 // 更多操作下拉选项
 const moreActionOptions = computed(() => [
@@ -753,6 +900,7 @@ async function executeCreateTableSql() {
 onMounted(async () => {
   loadTableOptions()
   loadTemplateList()
+  loadProviderOptions()
   const ck = route.query.configKey
   if (ck) {
     await initWithConfigKey(ck)
@@ -1345,499 +1493,356 @@ onMounted(async () => {
   50% { opacity: 0.6; }
 }
 
-
-
-.generator-sidebar.collapsed {
-  width: 48px;
-  overflow: hidden;
-}
-
-.sidebar-header {
-  padding: 12px 16px;
+/* ============ 输入底部：模型选择 + 发送 ============ */
+.input-footer {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #F1F5F9;
-}
-
-.sidebar-section-title {
-  padding: 10px 16px;
-  font-size: 11px;
-  color: #94A3B8;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  border-bottom: 1px solid #F1F5F9;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.session-list {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.session-item {
-  padding: 12px 16px;
-  border-bottom: 1px solid #F8FAFC;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  transition: all 0.15s ease;
-}
-
-.session-item:hover {
-  background: #F8FAFC;
-}
-
-.session-item:hover .delete-btn {
-  opacity: 1;
-}
-
-.session-item.active {
-  background: #EEF2FF;
-  border-left: 3px solid #6366F1;
-}
-
-.session-title {
-  font-size: 13px;
-  color: #1E293B;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.session-config-key {
-  font-weight: 600;
-  color: #6366F1;
-  font-family: 'Fira Code', 'Monaco', monospace;
-  font-size: 12px;
-}
-
-.session-table {
-  font-size: 11px;
-  color: #10B981;
-  margin-right: 4px;
-}
-
-.session-meta {
-  display: flex;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.session-time {
-  font-size: 11px;
-  color: #94A3B8;
-}
-
-.delete-btn {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.empty-tip {
-  padding: 40px 20px;
-  text-align: center;
-  color: #CBD5E1;
-  font-size: 13px;
-}
-
-.generator-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  min-width: 0;
-}
-
-.chat-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.message-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 24px;
-  background: #FFFFFF;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.message {
-  display: flex;
   gap: 12px;
-  align-items: flex-start;
 }
 
-.message.user {
-  flex-direction: row-reverse;
-}
-
-.message-avatar {
-  flex-shrink: 0;
-}
-
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: flex;
+.model-trigger {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: bold;
-  color: #FFFFFF;
-}
-
-.user-avatar {
-  background: #6366F1;
-}
-
-.ai-avatar {
-  background: linear-gradient(135deg, #10B981, #6366F1);
-  font-size: 10px;
-}
-
-.message-body {
-  display: flex;
-  flex-direction: column;
-  max-width: 70%;
-  gap: 4px;
-}
-
-.message.user .message-body {
-  align-items: flex-end;
-}
-
-.message-bubble {
-  padding: 12px 16px;
-  border-radius: 12px;
-  background: #F8FAFC;
-  word-break: break-word;
-  white-space: pre-wrap;
-  line-height: 1.6;
-}
-
-.message.user .message-bubble {
-  background: #6366F1;
-  color: #FFFFFF;
-  border-radius: 12px 4px 12px 12px;
-}
-
-.message.assistant .message-bubble {
-  background: #F8FAFC;
-  color: #1E293B;
-  border-radius: 4px 12px 12px 12px;
-}
-
-.stage-indicator {
-  font-size: 11px;
-  color: #6366F1;
-  font-weight: 500;
-}
-
-.empty-chat {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  color: #94A3B8;
-}
-
-.empty-chat-icon {
-  font-size: 48px;
-  opacity: 0.5;
-}
-
-.empty-chat-tip {
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.example-prompts {
-  margin-top: 24px;
-  text-align: center;
-}
-
-.example-title {
-  font-size: 13px;
-  color: #64748B;
-  margin-bottom: 12px;
-  font-weight: 500;
-}
-
-.example-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-width: 420px;
-  margin: 0 auto;
-}
-
-.example-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
   background: #FFFFFF;
   border: 1px solid #E2E8F0;
-  border-radius: 10px;
+  border-radius: 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: left;
+  font-size: 12px;
+  color: #475569;
+  transition: all 0.15s ease;
+  user-select: none;
+  max-width: 360px;
 }
 
-.example-item:hover {
-  border-color: #6366F1;
+.model-trigger:hover {
+  border-color: #C7D2FE;
   background: #FAFAFE;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+  color: #1E293B;
 }
 
-.example-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1E293B;
-  white-space: nowrap;
+.model-trigger.active {
+  border-color: #818CF8;
+  background: #EEF2FF;
+  color: #4338CA;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.08);
+}
+
+.model-trigger.empty {
+  color: #94A3B8;
+  border-style: dashed;
+}
+
+.model-trigger-icon {
+  color: #6366F1;
   flex-shrink: 0;
 }
 
-.example-desc {
-  font-size: 12px;
-  color: #64748B;
+.model-trigger.empty .model-trigger-icon { color: #CBD5E1; }
+
+.model-trigger-provider {
+  font-weight: 500;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
+  max-width: 100px;
 }
 
-.input-section {
-  padding: 16px 24px;
-  border-top: 1px solid #F1F5F9;
-  background: #FFFFFF;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.config-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.input-area {
-  display: flex;
-  gap: 12px;
-}
-
-.input-buttons {
-  display: flex;
-  align-items: flex-end;
-}
-
-.generator-preview {
-  width: 520px;
-  background: #FFFFFF;
-  border-left: 1px solid #E2E8F0;
-  display: flex;
-  flex-direction: column;
+.model-trigger-divider {
+  color: #CBD5E1;
   flex-shrink: 0;
 }
 
-.preview-header {
-  padding: 12px 16px;
+.model-trigger-model {
+  font-family: 'Fira Code', 'Monaco', monospace;
+  font-weight: 600;
+  color: #6366F1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.model-trigger.empty .model-trigger-model { color: #94A3B8; font-family: inherit; font-weight: 500; }
+
+.model-trigger-chevron {
+  color: #94A3B8;
+  flex-shrink: 0;
+  margin-left: 2px;
+  transition: transform 0.15s;
+}
+
+.model-trigger.active .model-trigger-chevron {
+  transform: rotate(180deg);
+  color: #6366F1;
+}
+
+/* 模型选择面板 */
+.model-panel {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+.model-panel-section {
+  padding: 12px 14px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.model-panel-section:last-child { border-bottom: none; }
+
+.model-panel-label {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #F1F5F9;
-  background: #FAFAFE;
-}
-
-.preview-title {
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
-  color: #1E293B;
+  color: #64748B;
+  margin-bottom: 8px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
 }
 
-.preview-actions {
+.model-panel-empty-tip,
+.model-panel-count {
+  font-size: 11px;
+  font-weight: 500;
+  color: #94A3B8;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.model-panel-empty {
+  padding: 16px 0;
+  text-align: center;
+  font-size: 12px;
+  color: #CBD5E1;
+}
+
+.model-list {
+  max-height: 240px;
+  overflow-y: auto;
   display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.model-list-item {
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.model-list-item:hover { background: #F1F5F9; }
+
+.model-list-item.active {
+  background: #EEF2FF;
+}
+
+.model-list-item-main {
+  display: flex;
+  align-items: center;
   gap: 6px;
 }
 
-.preview-tabs {
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-.preview-tabs :deep(.n-tabs) {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.preview-tabs :deep(.n-tabs .n-tabs-pane-wrapper) {
-  flex: 1;
-  overflow: hidden;
-}
-
-.preview-tabs :deep(.n-tabs .n-tab-pane) {
-  height: 100%;
-}
-
-.editor-area {
-  padding: 16px;
-  height: 100%;
-  overflow: auto;
-}
-
-.json-editor {
-  width: 100%;
-  height: 100%;
-  border: 1px solid #E2E8F0;
-  resize: none;
-  font-family: 'Fira Code', 'Monaco', 'Menlo', monospace;
+.model-list-item-name {
   font-size: 13px;
-  line-height: 1.6;
-  background: #F8FAFC;
-  padding: 12px;
-  box-sizing: border-box;
-  border-radius: 8px;
-  transition: all 0.15s ease;
-}
-
-.json-editor:focus {
-  outline: none;
-  background: #FFFFFF;
-  border-color: #818CF8;
-}
-
-.sql-editor-wrap {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.sql-editor-wrap .json-editor {
-  flex: 1;
-  height: 0;
-}
-
-.sql-actions {
-  padding: 12px 0;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.typing-indicator {
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  background: #6366F1;
-  color: #FFFFFF;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  animation: pulse 1.5s infinite;
-  z-index: 10;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-
-.template-section {
-  width: 100%;
-  margin: 16px 0 8px;
-  text-align: left;
-}
-
-.template-title {
-  font-size: 12px;
-  color: #64748B;
-  margin-bottom: 10px;
   font-weight: 500;
+  color: #1E293B;
+  font-family: 'Fira Code', 'Monaco', monospace;
 }
 
-.template-cards {
+.model-list-item.active .model-list-item-name { color: #4338CA; }
+
+.model-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #DCFCE7;
+  color: #166534;
+  font-weight: 600;
+}
+
+.model-list-item-desc {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #94A3B8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============ 阶段进度条 ============ */
+.stage-progress {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 12px 24px;
+  background: linear-gradient(180deg, #FAFAFE 0%, #FFFFFF 100%);
+  border-bottom: 1px solid #F1F5F9;
   flex-wrap: wrap;
 }
 
-.template-card {
+.stage-step {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
-  border: 1.5px solid #E2E8F0;
-  border-radius: 10px;
-  cursor: pointer;
-  background: #FFFFFF;
-  transition: all 0.15s;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
   position: relative;
-  min-width: 180px;
-  flex: 1;
-}
-
-.template-card:hover {
-  border-color: #818CF8;
-  background: #FAFAFE;
-}
-
-.template-card.active {
-  border-color: #6366F1;
-  background: #EEF2FF;
-}
-
-.template-card-icon {
-  color: #6366F1;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.template-card-body {
-  flex: 1;
-}
-
-.template-card-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: #111827;
-}
-
-.template-card-desc {
   font-size: 11px;
-  color: #94A3B8;
-  margin-top: 2px;
-  line-height: 1.4;
+  color: #CBD5E1;
+  transition: color 0.2s;
 }
 
-.template-card-check {
+.stage-step + .stage-step::before {
+  content: '';
   position: absolute;
-  top: 6px;
-  right: 8px;
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 1px;
+  background: #E2E8F0;
+}
+
+.stage-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #E2E8F0;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.stage-step-label {
+  white-space: nowrap;
+}
+
+.stage-step.done {
+  color: #10B981;
+}
+
+.stage-step.done .stage-step-dot {
+  background: #10B981;
+}
+
+.stage-step.active {
   color: #6366F1;
-  font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
+}
+
+.stage-step.active .stage-step-dot {
+  background: #6366F1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+  animation: stageDotPulse 1.2s infinite;
+}
+
+@keyframes stageDotPulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+  50% { box-shadow: 0 0 0 6px rgba(99,102,241,0.05); }
+}
+
+/* 阶段标识增强 */
+.stage-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.stage-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6366F1;
+  animation: pulse 1.4s infinite;
+}
+
+/* 消息打字指示器（流式中） */
+.message-typing {
+  display: flex;
+  gap: 4px;
+  padding: 6px 0 0;
+}
+
+.message-typing span {
+  width: 6px;
+  height: 6px;
+  background: #94A3B8;
+  border-radius: 50%;
+  animation: typingDot 1.4s infinite;
+}
+
+.message-typing span:nth-child(2) { animation-delay: 0.15s; }
+.message-typing span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes typingDot {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+/* 空状态 hero 区 */
+.empty-chat-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.empty-chat .empty-chat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #818CF8 0%, #6366F1 100%);
+  color: #FFFFFF;
+  font-size: 0;
+  opacity: 1;
+  box-shadow: 0 4px 12px rgba(99,102,241,0.25);
+}
+
+.empty-chat-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.example-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: #EEF2FF;
+  color: #6366F1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.example-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.example-text .example-label {
+  white-space: nowrap;
+}
+
+.example-text .example-desc {
+  white-space: normal;
+  line-height: 1.4;
+  color: #64748B;
 }
 </style>

@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { streamGenerate, crudGeneratorSessionList, crudGeneratorSessionMessages, crudGeneratorSessionDelete } from '@/api/crud-generator'
-import { crudConfigAdd, crudConfigUpdate, crudConfigGetByKey, updateSessionMetadata } from '@/api/ai'
+import { crudConfigAdd, crudConfigUpdate, crudConfigGetByKey, updateSessionMetadata, providerPage, modelListByProvider } from '@/api/ai'
 import { request } from '@/utils'
 import { useDiscreteMessage } from '@/composables/useDiscreteMessage'
 import { listEnabledTemplates } from '@/api/page-template'
@@ -23,6 +23,10 @@ export function useCrudGenerator() {
   const description = ref('')
   const layoutType = ref('simple-crud')  // 当前选择的页面模板
   const templateList = ref([])           // 从后端加载的模板列表
+  const providerId = ref(null)
+  const modelId = ref(null)
+  const providerOptions = ref([])
+  const modelOptions = ref([])
   const generating = ref(false)
   const currentStage = ref('')
   const currentStageMessage = ref('')
@@ -33,6 +37,10 @@ export function useCrudGenerator() {
     apiConfig: '',
     createTableSql: '',
     tableStructure: '',
+    dictConfig: '',
+    desensitizeConfig: '',
+    encryptConfig: '',
+    transConfig: '',
   })
   const activeFile = ref('searchSchema')
   const inputText = ref('')
@@ -62,6 +70,61 @@ export function useCrudGenerator() {
       templateList.value = res.data || []
     } catch (e) {
       console.warn('[useCrudGenerator] 加载模板列表失败:', e.message)
+    }
+  }
+
+  async function loadProviderOptions(preserveSelection = false) {
+    try {
+      const res = await providerPage({ pageNum: 1, pageSize: 100 })
+      const records = (res.data?.records || []).filter(item => item.status === undefined || item.status === '0')
+      providerOptions.value = records.map(item => ({
+        label: item.providerName,
+        value: item.id,
+      }))
+
+      const hasSelectedProvider = providerOptions.value.some(item => item.value === providerId.value)
+      if (!hasSelectedProvider) {
+        providerId.value = null
+      }
+
+      if (!providerId.value && records.length > 0) {
+        const defaultProvider = records.find(item => item.isDefault === '1') || records[0]
+        providerId.value = defaultProvider?.id || null
+      }
+
+      await loadModelOptions(providerId.value, preserveSelection)
+    } catch (e) {
+      console.warn('[useCrudGenerator] 加载供应商列表失败:', e.message)
+      providerOptions.value = []
+    }
+  }
+
+  async function loadModelOptions(selectedProviderId, preserveSelection = false) {
+    if (!selectedProviderId) {
+      modelOptions.value = []
+      modelId.value = null
+      return
+    }
+    try {
+      const res = await modelListByProvider(selectedProviderId)
+      const models = (res.data || []).filter(item => item.status === undefined || item.status === '0')
+      modelOptions.value = models.map(item => ({
+        label: item.modelName ? `${item.modelName} (${item.modelId})` : item.modelId,
+        value: item.id,
+        modelCode: item.modelId,
+        maxTokens: item.maxTokens,
+        isDefault: item.isDefault,
+      }))
+
+      const hasSelectedModel = modelOptions.value.some(item => item.value === modelId.value)
+      if (!preserveSelection || !hasSelectedModel) {
+        const defaultModel = modelOptions.value.find(item => item.isDefault === '1') || modelOptions.value[0]
+        modelId.value = defaultModel?.value || null
+      }
+    } catch (e) {
+      console.warn('[useCrudGenerator] 加载模型列表失败:', e.message)
+      modelOptions.value = []
+      modelId.value = null
     }
   }
 
@@ -106,6 +169,9 @@ export function useCrudGenerator() {
           configKey.value = meta.configKey
           tableName.value = meta.tableName || ''
           description.value = meta.description || ''
+          providerId.value = meta.providerId || providerId.value
+          await loadModelOptions(providerId.value, true)
+          modelId.value = meta.modelId || modelId.value
           // 加载已保存的配置
           try {
             const configRes = await crudConfigGetByKey(meta.configKey)
@@ -169,6 +235,16 @@ export function useCrudGenerator() {
       warning('请输入描述内容')
       return
     }
+    if (!providerId.value) {
+      warning('请选择供应商')
+      return
+    }
+    if (!modelId.value) {
+      warning('请选择对话模型')
+      return
+    }
+
+    description.value = inputText.value.trim()
 
     if (!sessionId.value) {
       sessionId.value = generateSessionId()
@@ -176,8 +252,8 @@ export function useCrudGenerator() {
 
     generating.value = true
     rawContent.value = ''
-    generatedFiles.value = { searchSchema: '', columnsSchema: '', editSchema: '', apiConfig: '', createTableSql: '', tableStructure: '' }
-    displayContent.value = { searchSchema: '', columnsSchema: '', editSchema: '', apiConfig: '', createTableSql: '', tableStructure: '' }
+    generatedFiles.value = { searchSchema: '', columnsSchema: '', editSchema: '', apiConfig: '', createTableSql: '', tableStructure: '', dictConfig: '', desensitizeConfig: '', encryptConfig: '', transConfig: '' }
+    displayContent.value = { searchSchema: '', columnsSchema: '', editSchema: '', apiConfig: '', createTableSql: '', tableStructure: '', dictConfig: '', desensitizeConfig: '', encryptConfig: '', transConfig: '' }
     typingQueue.value = []
     currentReceivingFile.value = null
     currentStage.value = 'analyzing'
@@ -202,6 +278,8 @@ export function useCrudGenerator() {
       configKey: configKey.value,
       tableName: tableName.value || undefined,
       description: inputText.value,
+      providerId: providerId.value || undefined,
+      modelId: modelId.value || undefined,
       layoutType: layoutType.value || 'simple-crud',
     }
 
@@ -308,6 +386,8 @@ export function useCrudGenerator() {
         configKey: configKey.value,
         tableName: tableName.value,
         description: description.value,
+        providerId: providerId.value,
+        modelId: modelId.value,
       }).catch(e => {
         console.warn('[useCrudGenerator] 生成完成后同步会话元数据失败:', e.message)
       })
@@ -616,7 +696,7 @@ export function useCrudGenerator() {
   }
 
   function copyCurrentFile() {
-    const content = generatedFiles.value[activeFile.value]
+    const content = displayContent.value[activeFile.value] || generatedFiles.value[activeFile.value]
     if (!content) {
       warning('当前文件无内容')
       return
@@ -666,6 +746,10 @@ export function useCrudGenerator() {
     configKey,
     tableName,
     description,
+    providerId,
+    modelId,
+    providerOptions,
+    modelOptions,
     layoutType,
     templateList,
     generating,
@@ -679,6 +763,8 @@ export function useCrudGenerator() {
     displayContent,
 
     loadTemplateList,
+    loadProviderOptions,
+    loadModelOptions,
     loadSessionList,
     startNewSession,
     loadSession,
