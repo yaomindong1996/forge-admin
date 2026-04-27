@@ -33,3 +33,6 @@ build/
 ### VS Code ###
 .vscode/
 .qoder/
+
+### Deploy (包含服务器密码等敏感信息) ###
+forge-admin-server/deploy/
