@@ -1,6 +1,6 @@
 /**
- * Menu-related composable for layout components
- * Encapsulates menu processing, active key computation, and navigation logic
+ * 布局组件菜单相关组合式函数
+ * 封装菜单数据处理、活跃项计算和导航跳转逻辑
  */
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -9,10 +9,10 @@ import { isExternal } from '@/utils'
 import { processMenuData, findMenuItem } from '@/utils/menu-utils'
 
 /**
- * Find menu ID that matches the given route path
- * @param {Array} items - Processed menu items
- * @param {string} targetPath - Route path to match
- * @returns {string|null} Matching menu key or null
+ * 根据路由路径查找匹配的菜单ID
+ * @param {Array} items - 已处理的菜单项
+ * @param {string} targetPath - 要匹配的路由路径
+ * @returns {string|null} 匹配的菜单key或null
  */
 function findMenuIdByPath(items, targetPath) {
   if (!items || !Array.isArray(items))
@@ -32,10 +32,10 @@ function findMenuIdByPath(items, targetPath) {
 }
 
 /**
- * Find the top-level menu that contains a child matching the given path
- * @param {Array} menus - Raw menu items from permission store
- * @param {string} targetPath - Route path to match
- * @returns {object|null} Top-level menu item containing the path, or null
+ * 查找包含指定路径的顶级菜单
+ * @param {Array} menus - 权限仓库中的原始菜单
+ * @param {string} targetPath - 要匹配的路由路径
+ * @returns {object|null} 包含该路径的顶级菜单项，或null
  */
 export function findTopMenuByPath(menus, targetPath) {
   if (!menus || !Array.isArray(menus))
@@ -59,9 +59,9 @@ export function findTopMenuByPath(menus, targetPath) {
 }
 
 /**
- * Find the first child menu item that has a valid path
- * @param {object} menuItem - Menu item to search within
- * @returns {object|null} First child with a path, or null
+ * 查找菜单中第一个有有效路径的子项
+ * @param {object} menuItem - 要搜索的菜单项
+ * @returns {object|null} 第一个有路径的子项，或null
  */
 export function findFirstMenuWithPath(menuItem) {
   if (!menuItem)
@@ -82,8 +82,8 @@ export function findFirstMenuWithPath(menuItem) {
 }
 
 /**
- * Composable for menu data processing and navigation
- * @returns {object} Menu composable API
+ * 菜单数据处理与导航组合式函数
+ * @returns {object} 菜单组合式API
  */
 export function useMenu() {
   const route = useRoute()
@@ -91,7 +91,7 @@ export function useMenu() {
   const permissionStore = usePermissionStore()
 
   /**
-   * Processed menu data ready for Naive UI menu component
+   * 已处理的菜单数据，可直接用于 Naive UI menu 组件
    */
   const processedMenus = computed(() => {
     const menus = permissionStore.menus || []
@@ -99,7 +99,7 @@ export function useMenu() {
   })
 
   /**
-   * Flat list of all menu items for easy lookup
+   * 扁平化的菜单项列表，便于快速查找
    */
   const flatMenuItems = computed(() => {
     const flatten = (items) => {
@@ -117,18 +117,18 @@ export function useMenu() {
   })
 
   /**
-   * Active menu key based on current route
+   * 当前路由对应的活跃菜单key
    */
   const activeKey = computed(() => {
-    // Priority 1: Use route.meta.parentKey for hidden secondary pages
+    // 优先级1: 使用 route.meta.parentKey（用于隐藏的二级页面）
     if (route.meta?.parentKey) {
       return route.meta.parentKey
     }
 
-    // Priority 2: Exact path match
+    // 优先级2: 精确路径匹配
     let menuId = findMenuIdByPath(processedMenus.value, route.path)
 
-    // Priority 3: Path prefix match (for hidden menus)
+    // 优先级3: 路径前缀匹配（用于隐藏菜单）
     if (!menuId) {
       const pathSegments = route.path.split('/').filter(Boolean)
       for (let i = pathSegments.length - 1; i > 0; i--) {
@@ -144,15 +144,15 @@ export function useMenu() {
   })
 
   /**
-   * Handle menu selection with external link and iframe support
-   * @param {string} key - Menu item key
+   * 处理菜单选择，支持外链和内嵌iframe
+   * @param {string} key - 菜单项key
    */
   function handleMenuSelect(key) {
     const originalItem = findMenuItem(permissionStore.menus, key)
     if (!originalItem)
       return
 
-    // External link handling
+    // 外部链接处理
     if (isExternal(originalItem.path)) {
       $dialog.confirm({
         type: 'info',
@@ -169,14 +169,14 @@ export function useMenu() {
       return
     }
 
-    // iframe mode handling
+    // iframe模式处理
     if (originalItem.openMode === 'iframe' && originalItem.subAppURL) {
       const iframePath = `/iframe?page=${encodeURIComponent(originalItem.subAppURL + (originalItem.path || ''))}`
       router.push(iframePath)
       return
     }
 
-    // Normal route navigation
+    // 普通路由跳转
     if (originalItem.path) {
       router.push(originalItem.path)
     }
@@ -187,7 +187,9 @@ export function useMenu() {
     flatMenuItems,
     activeKey,
     handleMenuSelect,
+    /** 根据路径查找菜单ID */
     findMenuIdByPath: (targetPath) => findMenuIdByPath(processedMenus.value, targetPath),
+    /** 查找包含指定路径的顶级菜单 */
     findTopMenuByPath: (targetPath) => findTopMenuByPath(permissionStore.menus, targetPath),
   }
 }

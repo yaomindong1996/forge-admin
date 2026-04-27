@@ -1,6 +1,6 @@
 /**
- * User-related composable for layout components
- * Encapsulates user info, avatar, dropdown options, and logout logic
+ * 布局组件用户相关组合式函数
+ * 封装用户信息、头像、下拉菜单和退出登录逻辑
  */
 import { computed, h, ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -9,7 +9,7 @@ import { defaultThemeConfig } from '@/config/theme.config.js'
 import api from '@/api'
 
 /**
- * Default user dropdown options
+ * 默认用户下拉菜单选项
  */
 const DEFAULT_DROPDOWN_OPTIONS = [
   {
@@ -29,8 +29,8 @@ const DEFAULT_DROPDOWN_OPTIONS = [
 ]
 
 /**
- * Composable for user data and authentication
- * @returns {object} User composable API
+ * 用户数据和认证组合式函数
+ * @returns {object} 用户组合式API
  */
 export function useUser() {
   const router = useRouter()
@@ -38,14 +38,14 @@ export function useUser() {
   const authStore = useAuthStore()
 
   /**
-   * User's display name
+   * 用户显示名称
    */
   const userName = computed(() => {
     return userStore.userInfo?.realName || userStore.userInfo?.username || userStore.staffInfo?.staffName || 'User'
   })
 
   /**
-   * Avatar text (first letter of name) for avatar fallback
+   * 头像文字（姓名首字母）用于头像回退
    */
   const userAvatarText = computed(() => {
     const name = userName.value
@@ -53,24 +53,24 @@ export function useUser() {
   })
 
   /**
-   * User's avatar URL or null if using default
+   * 用户头像URL，无头像时返回null
    */
   const userAvatar = computed(() => {
     return userStore.avatar || null
   })
 
   /**
-   * User dropdown menu options
+   * 用户下拉菜单选项
    */
   const userDropdownOptions = computed(() => DEFAULT_DROPDOWN_OPTIONS)
 
   /**
-   * Dropdown visible state (for manual control)
+   * 下拉菜单可见性状态
    */
   const dropdownVisible = ref(false)
 
   /**
-   * Navigate to user profile page
+   * 跳转到个人资料页
    */
   function goToProfile() {
     router.push('/profile')
@@ -78,7 +78,7 @@ export function useUser() {
   }
 
   /**
-   * Navigate to password change page
+   * 跳转到修改密码页
    */
   function goToPassword() {
     router.push('/system/password')
@@ -86,7 +86,7 @@ export function useUser() {
   }
 
   /**
-   * Handle logout with confirmation dialog
+   * 退出登录，带确认弹窗
    */
   function handleLogout() {
     $dialog.confirm({
@@ -111,8 +111,8 @@ export function useUser() {
   }
 
   /**
-   * Unified handler for dropdown menu selection
-   * @param {string} key - Selected dropdown option key
+   * 下拉菜单选择统一处理函数
+   * @param {string} key - 选中的下拉选项key
    */
   function handleDropdownSelect(key) {
     dropdownVisible.value = false
