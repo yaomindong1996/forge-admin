@@ -64,6 +64,7 @@ public class DataScopeServiceImpl implements IDataScopeService {
             context.setUserId(loginUser.getUserId());
             context.setTenantId(loginUser.getTenantId());
             context.setMinDataScope(DataScopeType.ALL.getCode());
+            fillRegionInfo(context, loginUser);
             return context;
         }
         
@@ -73,6 +74,7 @@ public class DataScopeServiceImpl implements IDataScopeService {
             context.setUserId(loginUser.getUserId());
             context.setTenantId(loginUser.getTenantId());
             context.setMinDataScope(DataScopeType.TENANT_ALL.getCode());
+            fillRegionInfo(context, loginUser);
             return context;
         }
         
@@ -84,6 +86,7 @@ public class DataScopeServiceImpl implements IDataScopeService {
             context.setUserId(loginUser.getUserId());
             context.setTenantId(loginUser.getTenantId());
             context.setMinDataScope(DataScopeType.SELF.getCode());
+            fillRegionInfo(context, loginUser);
             return context;
         }
         
@@ -110,8 +113,18 @@ public class DataScopeServiceImpl implements IDataScopeService {
         context.setOrgIds(orgIds);
         context.setMinDataScope(minDataScope);
         context.setCustomOrgIds(customOrgIds);
+        fillRegionInfo(context, loginUser);
         
         return context;
+    }
+
+    /**
+     * 从 LoginUser 填充行政区划信息到上下文
+     */
+    private void fillRegionInfo(DataScopeContext context, LoginUser loginUser) {
+        context.setRegionCode(loginUser.getRegionCode());
+        context.setRegionLevel(loginUser.getRegionLevel());
+        context.setRegionAncestors(loginUser.getRegionAncestors());
     }
     
     @Override

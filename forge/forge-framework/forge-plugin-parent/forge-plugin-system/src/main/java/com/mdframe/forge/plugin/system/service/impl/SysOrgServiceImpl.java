@@ -1,7 +1,6 @@
 package com.mdframe.forge.plugin.system.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -11,11 +10,10 @@ import com.mdframe.forge.plugin.system.entity.SysOrg;
 import com.mdframe.forge.plugin.system.mapper.SysOrgMapper;
 import com.mdframe.forge.plugin.system.service.ISysOrgService;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -29,26 +27,47 @@ public class SysOrgServiceImpl extends ServiceImpl<SysOrgMapper, SysOrg> impleme
 
     @Override
     public IPage<SysOrg> selectOrgPage(SysOrgQuery query) {
-        LambdaQueryWrapper<SysOrg> wrapper = buildQueryWrapper(query);
         Page<SysOrg> page = new Page<>(query.getPageNum(), query.getPageSize());
-        return orgMapper.selectPage(page, wrapper);
+        return orgMapper.selectOrgPage(page, query);
     }
 
     @Override
     public List<SysOrg> selectOrgTree(SysOrgQuery query) {
-        LambdaQueryWrapper<SysOrg> wrapper = buildQueryWrapper(query);
-        List<SysOrg> allOrgs = orgMapper.selectList(wrapper);
-        return buildTree(allOrgs, 0L);
+        List<SysOrg> allOrgs = orgMapper.selectOrgList(query);
+        return buildTree(allOrgs);
     }
 
     /**
      * 构建树形结构
+     * 自动识别根节点：parentId 不在结果集中的节点即为根节点
+     * 这样即使数据权限过滤掉了顶级组织，下级组织仍能正常构建为树
      */
-    private List<SysOrg> buildTree(List<SysOrg> allOrgs, Long parentId) {
+    private List<SysOrg> buildTree(List<SysOrg> allOrgs) {
+        if (allOrgs == null || allOrgs.isEmpty()) {
+            return allOrgs;
+        }
+        // 收集所有节点ID
+        Set<Long> allIds = allOrgs.stream()
+                .map(SysOrg::getId)
+                .collect(Collectors.toSet());
+        // 找出根节点：parentId 不在结果集中的节点
+        return allOrgs.stream()
+                .filter(org -> !allIds.contains(org.getParentId()))
+                .peek(org -> {
+                    List<SysOrg> children = buildChildren(allOrgs, org.getId());
+                    org.setChildren(children.isEmpty() ? null : children);
+                })
+                .toList();
+    }
+
+    /**
+     * 递归构建子节点
+     */
+    private List<SysOrg> buildChildren(List<SysOrg> allOrgs, Long parentId) {
         return allOrgs.stream()
                 .filter(org -> org.getParentId().equals(parentId))
                 .peek(org -> {
-                    List<SysOrg> children = buildTree(allOrgs, org.getId());
+                    List<SysOrg> children = buildChildren(allOrgs, org.getId());
                     org.setChildren(children.isEmpty() ? null : children);
                 })
                 .toList();
@@ -92,32 +111,7 @@ public class SysOrgServiceImpl extends ServiceImpl<SysOrgMapper, SysOrg> impleme
 
     @Override
     public List<Long> selectOrgAndChildrenIds(Long orgId) {
-        SysOrg org = orgMapper.selectById(orgId);
-        if (org == null) {
-            return null;
-        }
-
-        LambdaQueryWrapper<SysOrg> wrapper = new LambdaQueryWrapper<>();
-        wrapper.and(w -> w.eq(SysOrg::getId, orgId)
-                .or()
-                .apply("FIND_IN_SET({0}, ancestors) > 0", orgId));
-
-        List<SysOrg> orgs = orgMapper.selectList(wrapper);
-        return orgs.stream().map(SysOrg::getId).collect(Collectors.toList());
-    }
-
-    /**
-     * 构建查询条件
-     */
-    private LambdaQueryWrapper<SysOrg> buildQueryWrapper(SysOrgQuery query) {
-        LambdaQueryWrapper<SysOrg> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(query.getTenantId() != null, SysOrg::getTenantId, query.getTenantId())
-                .like(StringUtils.isNotBlank(query.getOrgName()), SysOrg::getOrgName, query.getOrgName())
-                .eq(query.getParentId() != null, SysOrg::getParentId, query.getParentId())
-                .eq(query.getOrgType() != null, SysOrg::getOrgType, query.getOrgType())
-                .eq(query.getOrgStatus() != null, SysOrg::getOrgStatus, query.getOrgStatus())
-                .orderByAsc(SysOrg::getSort)
-                .orderByDesc(SysOrg::getCreateTime);
-        return wrapper;
+        List<Long> ids = orgMapper.selectOrgAndChildrenIds(orgId);
+        return ids != null && !ids.isEmpty() ? ids : null;
     }
 }

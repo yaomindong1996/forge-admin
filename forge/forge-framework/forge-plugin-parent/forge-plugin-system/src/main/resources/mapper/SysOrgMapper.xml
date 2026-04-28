@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.system.mapper.SysOrgMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.system.entity.SysOrg">
+        <id column="id" property="id" />
+        <result column="tenant_id" property="tenantId" />
+        <result column="org_name" property="orgName" />
+        <result column="parent_id" property="parentId" />
+        <result column="ancestors" property="ancestors" />
+        <result column="sort" property="sort" />
+        <result column="org_type" property="orgType" />
+        <result column="org_status" property="orgStatus" />
+        <result column="leader_id" property="leaderId" />
+        <result column="leader_name" property="leaderName" />
+        <result column="phone" property="phone" />
+        <result column="address" property="address" />
+        <result column="region_code" property="regionCode" />
+        <result column="remark" property="remark" />
+        <result column="create_dept" property="createDept" />
+        <result column="create_by" property="createBy" />
+        <result column="create_time" property="createTime" />
+        <result column="update_by" property="updateBy" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tenant_id, org_name, parent_id, ancestors, sort, org_type, org_status,
+        leader_id, leader_name, phone, address, region_code, remark,
+        create_dept, create_by, create_time, update_by, update_time
+    </sql>
+
+    <!-- 通用查询条件 -->
+    <sql id="queryCondition">
+        <if test="query.tenantId != null">
+            AND tenant_id = #{query.tenantId}
+        </if>
+        <if test="query.orgName != null and query.orgName != ''">
+            AND org_name LIKE CONCAT('%', #{query.orgName}, '%')
+        </if>
+        <if test="query.parentId != null">
+            AND parent_id = #{query.parentId}
+        </if>
+        <if test="query.orgType != null">
+            AND org_type = #{query.orgType}
+        </if>
+        <if test="query.orgStatus != null">
+            AND org_status = #{query.orgStatus}
+        </if>
+        <!-- 行政区划过滤（支持虚拟组织ALL后缀） -->
+        <if test="query.regionCode != null and query.regionCode != '' and query.regionCode.contains('ALL')">
+            AND (region_code = REPLACE(#{query.regionCode},'ALL','')
+                 OR region_code IN (SELECT code FROM sys_region_code WHERE parent_code = REPLACE(#{query.regionCode},'ALL','')))
+        </if>
+        <if test="query.regionCode != null and query.regionCode != '' and !query.regionCode.contains('ALL')">
+            AND region_code = #{query.regionCode}
+        </if>
+    </sql>
+
+    <!-- 分页查询组织列表 -->
+    <select id="selectOrgPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM sys_org
+        <where>
+            <include refid="queryCondition" />
+        </where>
+        ORDER BY sort ASC, create_time DESC
+    </select>
+
+    <!-- 查询组织列表（用于构建树） -->
+    <select id="selectOrgList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM sys_org
+        <where>
+            <include refid="queryCondition" />
+        </where>
+        ORDER BY sort ASC, create_time DESC
+    </select>
+
+    <!-- 查询组织及其子组织ID列表 -->
+    <select id="selectOrgAndChildrenIds" resultType="java.lang.Long">
+        SELECT id FROM sys_org
+        WHERE id = #{orgId} OR FIND_IN_SET(#{orgId}, ancestors) > 0
+    </select>
+
+</mapper>

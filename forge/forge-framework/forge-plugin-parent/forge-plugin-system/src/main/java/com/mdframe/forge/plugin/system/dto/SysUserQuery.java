@@ -52,4 +52,9 @@ public class SysUserQuery extends PageQuery {
      * 组织ID（用于查询该组织及其子组织下的用户）
      */
     private Long orgId;
+
+    /**
+     * 行政区划编码（支持虚拟组织ALL后缀，如150000ALL）
+     */
+    private String regionCode;
 }

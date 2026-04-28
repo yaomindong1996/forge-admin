@@ -9,6 +9,9 @@ CREATE TABLE `sys_data_scope_config` (
     `user_id_column` varchar(50) DEFAULT 'user_id' COMMENT '用户ID字段名（简单模式：字段名；复杂模式：<sql>开头的SQL表达式）',
     `org_id_column` varchar(50) DEFAULT 'org_id' COMMENT '组织ID字段名（简单模式：字段名；复杂模式：<sql>开头的SQL表达式）',
     `tenant_id_column` varchar(50) DEFAULT 'tenant_id' COMMENT '租户ID字段名（简单模式：字段名；复杂模式：<sql>开头的SQL表达式）',
+    `region_code_column` varchar(255) DEFAULT NULL COMMENT '行政区划字段名（用于 REGION 权限，简单字段或 <sql> 表达式，占位符 #{regionCode}/#{regionLevel}/#{regionAncestors}）',
+    `user_region_column` varchar(100) DEFAULT NULL COMMENT '用户表行政区划字段名（可选，与 userTableAlias 配合做 OR 匹配）',
+    `user_table_alias` varchar(50) DEFAULT NULL COMMENT '用户表别名（可选，配合 user_region_column）',
     `enabled` tinyint DEFAULT 1 COMMENT '是否启用（0-禁用，1-启用）',
     `remark` varchar(500) DEFAULT NULL COMMENT '备注',
     `create_by` bigint DEFAULT NULL COMMENT '创建者',
@@ -96,4 +99,47 @@ INSERT INTO sys_data_scope_config (
     'tenant_id',    -- 租户权限用简单字段
     1,
     '客户查询：创建人或跟进人均可查看'
+);
+
+-- ============================================================
+-- 升级脚本：已存在 sys_data_scope_config 表时使用（幂等）
+-- ============================================================
+ALTER TABLE `sys_data_scope_config`
+    ADD COLUMN IF NOT EXISTS `region_code_column` varchar(255) DEFAULT NULL COMMENT '行政区划字段名（用于 REGION 权限，简单字段或 <sql> 表达式，占位符 #{regionCode}/#{regionLevel}/#{regionAncestors}）' AFTER `tenant_id_column`,
+    ADD COLUMN IF NOT EXISTS `user_region_column` varchar(100) DEFAULT NULL COMMENT '用户表行政区划字段名（可选，与 userTableAlias 配合做 OR 匹配）' AFTER `region_code_column`,
+    ADD COLUMN IF NOT EXISTS `user_table_alias` varchar(50) DEFAULT NULL COMMENT '用户表别名（可选，配合 user_region_column）' AFTER `user_region_column`;
+
+-- 示例5：行政区划数据权限 - 业务表按 area_code 过滤（简单模式）
+-- 使用前提：对应角色的 data_scope 设为 7（REGION），且用户 LoginUser 有 regionCode/regionLevel
+INSERT INTO sys_data_scope_config (
+    tenant_id, resource_code, resource_name, mapper_method,
+    table_alias, user_id_column, org_id_column, tenant_id_column,
+    region_code_column, user_region_column, user_table_alias,
+    enabled, remark
+) VALUES (
+    1,
+    'business:archive:list',
+    '档案列表查询（按行政区划）',
+    'com.example.mapper.ArchiveMapper.selectPage',
+    't', 'create_by', 'create_dept', 'tenant_id',
+    'area_code', NULL, NULL,
+    1,
+    '档案数据按用户所属行政区划及下级区划过滤'
+);
+
+-- 示例6：行政区划数据权限 - 同时关联组织表和用户表的 area_code（JOIN 场景）
+INSERT INTO sys_data_scope_config (
+    tenant_id, resource_code, resource_name, mapper_method,
+    table_alias, user_id_column, org_id_column, tenant_id_column,
+    region_code_column, user_region_column, user_table_alias,
+    enabled, remark
+) VALUES (
+    1,
+    'business:task:list',
+    '任务列表查询（行政区划+用户兜底）',
+    'com.example.mapper.TaskMapper.selectPage',
+    'd', 'd.create_by', 'd.dept_id', 'd.tenant_id',
+    'area_code', 'area_code', 'u',
+    1,
+    '任务：优先按组织area_code，无组织用户按用户自身area_code（OR）'
 );

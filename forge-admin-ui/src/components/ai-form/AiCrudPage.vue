@@ -895,11 +895,25 @@ function normalizeEditData(data) {
         result[key] = value
       }
     } else if (['select', 'radio', 'checkbox'].includes(fieldConfig.type)) {
-      // 字典选择字段：数字 → 字符串（字典选项的 value 通常是字符串"0"/"1"）
-      if (typeof value === 'number') {
-        result[key] = String(value)
+      // 字典选择字段：根据 options 的 value 类型或 valueType 配置决定类型转换
+      const isNumberOption = fieldConfig.props?.options?.some?.(o => typeof o.value === 'number')
+        || fieldConfig.valueType === 'number'
+      if (isNumberOption) {
+        // options 的 value 是数字类型，保留数字类型
+        if (typeof value === 'string') {
+          result[key] = parseFloat(value)
+        } else if (value === null || value === undefined) {
+          result[key] = 0
+        } else {
+          result[key] = value
+        }
       } else {
-        result[key] = value
+        // 默认：数字转字符串
+        if (typeof value === 'number') {
+          result[key] = String(value)
+        } else {
+          result[key] = value
+        }
       }
     } else {
       result[key] = value

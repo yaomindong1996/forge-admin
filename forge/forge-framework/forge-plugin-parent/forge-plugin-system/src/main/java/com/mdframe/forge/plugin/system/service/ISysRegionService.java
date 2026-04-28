@@ -56,4 +56,18 @@ public interface ISysRegionService extends IService<SysRegion> {
      * 构建祖级编码
      */
     String buildAncestors(String code);
+
+    /**
+     * 根据rootCode加载完整行政区划树（含虚拟组织）
+     *
+     * @param rootCode 根区域编码，如150000表示内蒙古
+     * @param dataRight 是否启用数据权限过滤
+     * @return 完整的区划树（含虚拟组织节点）
+     */
+    List<SysRegionTreeVO> selectRegionTreeAll(String rootCode, Boolean dataRight);
+
+    /**
+     * 刷新行政区划树缓存
+     */
+    void refreshRegionTreeCache();
 }

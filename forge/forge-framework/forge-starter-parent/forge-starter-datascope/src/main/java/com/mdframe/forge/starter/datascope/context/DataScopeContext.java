@@ -44,4 +44,19 @@ public class DataScopeContext {
      * 租户ID
      */
     private Long tenantId;
+
+    /**
+     * 用户所属行政区划编码（对应 sys_region_code.code）
+     */
+    private String regionCode;
+
+    /**
+     * 行政级别（1-省/自治区, 2-市/盟, 3-区/县/旗, 4-街道）
+     */
+    private Integer regionLevel;
+
+    /**
+     * 行政区划祖级编码链（如："150000,150100,150102"）
+     */
+    private String regionAncestors;
 }

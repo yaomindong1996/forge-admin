@@ -37,4 +37,9 @@ public class SysOrgQuery extends PageQuery {
      * 组织状态（0-禁用，1-正常）
      */
     private Integer orgStatus;
+
+    /**
+     * 行政区划编码（支持虚拟组织ALL后缀，如150000ALL）
+     */
+    private String regionCode;
 }

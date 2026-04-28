@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.system.mapper.SysRegionMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.system.entity.SysRegion">
+        <id column="code" property="code" />
+        <result column="name" property="name" />
+        <result column="level" property="level" />
+        <result column="parent_code" property="parentCode" />
+        <result column="full_name" property="fullName" />
+        <result column="city_code" property="cityCode" />
+    </resultMap>
+
+    <!-- 查询行政区划列表（带数据权限过滤） -->
+    <!-- 数据权限拦截器会根据 sys_data_scope_config 中配置的 mapperMethod 自动追加 region_code 过滤条件 -->
+    <select id="listSysRegion" resultMap="BaseResultMap">
+        SELECT code, name, level, parent_code, full_name, city_code
+        FROM sys_region_code
+        <where>
+            <if test="name != null and name != ''">
+                AND name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="level != null">
+                AND level = #{level}
+            </if>
+            <if test="rootCode != null and rootCode != ''">
+                AND (
+                <!-- 编码以根区域前缀开头 -->
+                code LIKE CONCAT(SUBSTRING(#{rootCode}, 1, 2), '%')
+                OR
+                <!-- 或者就是根区域本身 -->
+                code = #{rootCode}
+                )
+            </if>
+        </where>
+        ORDER BY level ASC, code ASC
+    </select>
+
+    <!-- 查询行政区划列表（无数据权限过滤） -->
+    <select id="listSysRegionNoRight" resultMap="BaseResultMap">
+        SELECT code, name, level, parent_code, full_name, city_code
+        FROM sys_region_code
+        <where>
+            <if test="name != null and name != ''">
+                AND name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="level != null">
+                AND level = #{level}
+            </if>
+            <if test="rootCode != null and rootCode != ''">
+                AND (
+                <!-- 编码以根区域前缀开头 -->
+                code LIKE CONCAT(SUBSTRING(#{rootCode}, 1, 2), '%')
+                OR
+                <!-- 或者就是根区域本身 -->
+                code = #{rootCode}
+                )
+            </if>
+        </where>
+        ORDER BY level ASC, code ASC
+    </select>
+
+    <!-- 根据区划编码查询区划信息 -->
+    <select id="selectSysRegion" resultMap="BaseResultMap">
+        SELECT code, name, level, parent_code, full_name, city_code
+        FROM sys_region_code
+        WHERE code = #{code}
+    </select>
+
+</mapper>

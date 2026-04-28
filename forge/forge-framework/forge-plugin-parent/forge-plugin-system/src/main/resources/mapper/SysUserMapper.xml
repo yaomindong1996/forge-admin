@@ -18,6 +18,7 @@
         <result column="salt" property="salt" />
         <result column="user_status" property="userStatus" />
         <result column="avatar" property="avatar" />
+        <result column="region_code" property="regionCode" />
         <result column="last_login_time" property="lastLoginTime" />
         <result column="last_login_ip" property="lastLoginIp" />
         <result column="login_count" property="loginCount" />
@@ -32,9 +33,60 @@
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
         id, tenant_id, username, real_name, user_type, user_client, email, phone,
-        id_card, gender, password, salt, user_status, avatar, last_login_time,
-        last_login_ip, login_count, remark, create_dept, create_by, create_time,
-        update_by, update_time
+        id_card, gender, password, salt, user_status, avatar, region_code,
+        last_login_time, last_login_ip, login_count, remark, create_dept,
+        create_by, create_time, update_by, update_time
     </sql>
+
+    <!-- 通用查询条件 -->
+    <sql id="queryCondition">
+        <if test="query.tenantId != null">
+            AND u.tenant_id = #{query.tenantId}
+        </if>
+        <if test="query.username != null and query.username != ''">
+            AND u.username LIKE CONCAT('%', #{query.username}, '%')
+        </if>
+        <if test="query.realName != null and query.realName != ''">
+            AND u.real_name LIKE CONCAT('%', #{query.realName}, '%')
+        </if>
+        <if test="query.userType != null">
+            AND u.user_type = #{query.userType}
+        </if>
+        <if test="query.phone != null and query.phone != ''">
+            AND u.phone = #{query.phone}
+        </if>
+        <if test="query.userStatus != null">
+            AND u.user_status = #{query.userStatus}
+        </if>
+        <if test="query.createDept != null">
+            AND u.create_dept = #{query.createDept}
+        </if>
+        <!-- 组织ID过滤：查询该组织及其子组织下的用户 -->
+        <if test="query.orgId != null">
+            AND u.id IN (
+                SELECT user_id FROM sys_user_org WHERE org_id IN (
+                    SELECT id FROM sys_org WHERE id = #{query.orgId} OR FIND_IN_SET(#{query.orgId}, ancestors) > 0
+                )
+            )
+        </if>
+        <!-- 行政区划过滤（支持虚拟组织ALL后缀） -->
+        <if test="query.regionCode != null and query.regionCode != '' and query.regionCode.contains('ALL')">
+            AND (u.region_code = REPLACE(#{query.regionCode},'ALL','')
+                 OR u.region_code IN (SELECT code FROM sys_region_code WHERE parent_code = REPLACE(#{query.regionCode},'ALL','')))
+        </if>
+        <if test="query.regionCode != null and query.regionCode != '' and !query.regionCode.contains('ALL')">
+            AND u.region_code = #{query.regionCode}
+        </if>
+    </sql>
+
+    <!-- 分页查询用户列表 -->
+    <select id="selectUserPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM sys_user u
+        <where>
+            <include refid="queryCondition" />
+        </where>
+        ORDER BY u.create_time DESC
+    </select>
 
 </mapper>

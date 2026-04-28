@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jsqlparser.expression.*;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
+import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.InExpression;
@@ -21,6 +22,7 @@ import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.select.ParenthesedSelect;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -93,9 +95,13 @@ public class DataScopeInterceptor implements InnerInterceptor {
             return;
         }
         
-        // 6. 全部数据权限，直接放行
+        // 6. 全部数据权限，直接放行；行政区划权限中省级(level=1)也等同全部
         if (scopeType == DataScopeType.ALL) {
             log.debug("数据权限拦截器：用户拥有全部数据权限，跳过SQL改写");
+            return;
+        }
+        if (scopeType == DataScopeType.REGION && Integer.valueOf(1).equals(context.getRegionLevel())) {
+            log.debug("数据权限拦截器：用户为省级行政区划，视为全部数据权限，跳过SQL改写");
             return;
         }
         
@@ -200,6 +206,10 @@ public class DataScopeInterceptor implements InnerInterceptor {
                     return buildColumnCondition(tableAlias, tenantIdColumn, context, scopeType, null, null);
                 }
                 break;
+
+            case REGION:
+                // 本行政区划数据权限
+                return buildRegionCondition(config, context);
             
             default:
                 break;
@@ -309,7 +319,22 @@ public class DataScopeInterceptor implements InnerInterceptor {
                     .collect(java.util.stream.Collectors.joining(","));
             result = result.replace("#{customOrgIds}", customOrgIdsStr);
         }
-        
+
+        // 替换 #{regionCode}
+        if (context.getRegionCode() != null) {
+            result = result.replace("#{regionCode}", context.getRegionCode());
+        }
+
+        // 替换 #{regionLevel}
+        if (context.getRegionLevel() != null) {
+            result = result.replace("#{regionLevel}", context.getRegionLevel().toString());
+        }
+
+        // 替换 #{regionAncestors}
+        if (context.getRegionAncestors() != null && !context.getRegionAncestors().isEmpty()) {
+            result = result.replace("#{regionAncestors}", context.getRegionAncestors());
+        }
+
         return result;
     }
     
@@ -346,4 +371,114 @@ public class DataScopeInterceptor implements InnerInterceptor {
         
         return inExpression;
     }
+
+    // =========================== 行政区划(REGION) 数据权限 ===========================
+
+    /**
+     * 构建行政区划数据权限条件
+     */
+    private Expression buildRegionCondition(SysDataScopeConfig config, DataScopeContext context) {
+        String regionCodeColumn = config.getRegionCodeColumn();
+        if (regionCodeColumn == null || regionCodeColumn.isEmpty()) {
+            log.warn("数据权限拦截器：REGION 权限类型但 regionCodeColumn 未配置");
+            return null;
+        }
+
+        String regionCode = context.getRegionCode();
+        if (regionCode == null || regionCode.isEmpty()) {
+            log.debug("数据权限拦截器：REGION 权限类型但用户无 regionCode，返回恒真条件");
+            return buildAlwaysTrue();
+        }
+
+        String tableAlias = config.getTableAlias();
+
+        // 构建主表行政区划条件
+        Expression orgCondition = buildRegionSimpleCondition(tableAlias, regionCodeColumn, regionCode, context);
+
+        // 如果配置了用户表行政区划字段（JOIN 场景：同时匹配组织/用户 area_code）
+        String userRegionColumn = config.getUserRegionColumn();
+        String userTableAlias = config.getUserTableAlias();
+        Expression userCondition = null;
+        if (userRegionColumn != null && !userRegionColumn.isEmpty()) {
+            userCondition = buildRegionSimpleCondition(userTableAlias, userRegionColumn, regionCode, context);
+        }
+
+        if (orgCondition != null && userCondition != null) {
+            // 两者 OR 连接
+            return new OrExpression(wrapWithParentheses(orgCondition), wrapWithParentheses(userCondition));
+        }
+        return orgCondition;
+    }
+
+    /**
+     * 构建单列的行政区划条件（精确匹配 + 下级区划 IN）
+     */
+    private Expression buildRegionSimpleCondition(String tableAlias, String column, String regionCode, DataScopeContext context) {
+        String fullColumnName = StrUtil.isNotBlank(tableAlias) ? tableAlias + "." + column : column;
+
+        // 检查是否为复杂 SQL 模板
+        if (column.trim().startsWith("<sql>")) {
+            String sqlTemplate = column.trim().substring(5).trim();
+            return buildCustomSqlCondition(sqlTemplate, context);
+        }
+
+        // 简单模式：精确匹配 + 下级区划 IN（市级/区级及以下）
+        Integer level = context.getRegionLevel();
+        if (level != null && level >= 2) {
+            return buildRegionWithChildCondition(fullColumnName, regionCode);
+        }
+
+        // 省级（level=1）在入口已被跳过，此处仅处理无 level 兜底
+        return buildEqualsCondition(tableAlias, column, regionCode);
+    }
+
+    /**
+     * 构建 本级 OR 下级 IN 条件：column = 'XXX' OR column IN (SELECT code FROM sys_region_code WHERE parent_code = 'XXX')
+     */
+    private Expression buildRegionWithChildCondition(String fullColumnName, String regionCode) {
+        // 本级匹配
+        EqualsTo eq = new EqualsTo();
+        eq.setLeftExpression(new Column(fullColumnName));
+        eq.setRightExpression(new StringValue(regionCode));
+
+        // 下级子查询
+        String subQuerySql = "SELECT code FROM sys_region_code WHERE parent_code = '" + regionCode + "'";
+        try {
+            ParenthesedSelect parenthesedSelect = new ParenthesedSelect();
+            Select parsed = (Select) CCJSqlParserUtil.parse(subQuerySql);
+            parenthesedSelect.setSelect(parsed);
+
+            InExpression inExp = new InExpression();
+            inExp.setLeftExpression(new Column(fullColumnName));
+            inExp.setRightExpression(parenthesedSelect);
+
+            return new OrExpression(eq, wrapWithParentheses(inExp));
+        } catch (Exception e) {
+            log.error("数据权限拦截器：构建行政区划子查询失败，降级为精确匹配", e);
+            return eq;
+        }
+    }
+
+    /**
+     * 构建恒真条件 1=1（用于无需限制的场景）
+     */
+    private Expression buildAlwaysTrue() {
+        EqualsTo eq = new EqualsTo();
+        eq.setLeftExpression(new LongValue(1));
+        eq.setRightExpression(new LongValue(1));
+        return eq;
+    }
+
+    /**
+     * 用括号包裹表达式（用于 OR 连接时避免优先级问题）
+     */
+    private Expression wrapWithParentheses(Expression expression) {
+        if (expression instanceof Parenthesis) {
+            return expression;
+        }
+        Parenthesis p = new Parenthesis();
+        p.setExpression(expression);
+        return p;
+    }
 }
+

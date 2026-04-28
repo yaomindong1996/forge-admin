@@ -44,6 +44,11 @@ public class SysRegionTreeVO implements Serializable {
     private String cityCode;
 
     /**
+     * 排序值（虚拟节点使用，确保"本级"节点排在子节点最前）
+     */
+    private Integer sortOrder;
+
+    /**
      * 是否有子节点（用于懒加载判断）
      */
     private Boolean hasChildren;

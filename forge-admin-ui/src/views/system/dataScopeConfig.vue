@@ -107,9 +107,20 @@ const tableColumns = computed(() => [
     showOverflowTooltip: true,
   },
   {
+    prop: 'tenantIdColumn',
+    label: '租户ID字段',
+    width: 120,
+    showOverflowTooltip: true,
+  },
+  {
+    prop: 'regionCodeColumn',
+    label: '行政区划字段',
+    width: 120,
+    showOverflowTooltip: true,
+  },
+  {
     prop: 'enabled',
     label: '状态',
-    width: 80,
     render: (row) => {
       return h(NTag, { type: row.enabled === 1 ? 'success' : 'default', size: 'small' }, { default: () => row.enabled === 1 ? '启用' : '禁用' },
       )
@@ -242,6 +253,35 @@ const editSchema = [
       placeholder: '简单模式：字段名（如：tenant_id）\n复杂模式：<sql>开头，支持占位符#{userId}、#{tenantId}、#{orgIds}、#{customOrgIds}',
       rows: 3,
       type: 'textarea',
+    },
+  },
+  {
+    field: 'regionCodeColumn',
+    label: '行政区划字段',
+    type: 'textarea',
+    span: 2,
+    props: {
+      placeholder: '用于 REGION（本行政区划）数据权限\n简单模式：字段名（如：area_code、region_code）\n复杂模式：<sql>开头，支持占位符#{regionCode}、#{regionLevel}、#{regionAncestors}',
+      rows: 3,
+      type: 'textarea',
+    },
+  },
+  {
+    field: 'userRegionColumn',
+    label: '用户行政区划字段',
+    type: 'input',
+    span: 1,
+    props: {
+      placeholder: '可选，配合用户表别名做 OR 匹配（如：area_code）',
+    },
+  },
+  {
+    field: 'userTableAlias',
+    label: '用户表别名',
+    type: 'input',
+    span: 1,
+    props: {
+      placeholder: '可选，配合用户行政区划字段（如：u）',
     },
   },
   {

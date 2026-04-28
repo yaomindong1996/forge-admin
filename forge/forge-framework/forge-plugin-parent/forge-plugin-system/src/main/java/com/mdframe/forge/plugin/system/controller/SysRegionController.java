@@ -97,4 +97,28 @@ public class SysRegionController {
         List<SysRegion> regions = regionService.searchRegionByName(name);
         return RespInfo.success(regions);
     }
+
+    /**
+     * 根据rootCode获取完整行政区划树（含虚拟组织）
+     * 用于org.vue和user.vue页面，一次性加载指定rootCode下的完整区划树
+     *
+     * @param rootCode   根区域编码，默认150000（内蒙古）
+     * @param dataRight  是否启用数据权限过滤，默认true
+     */
+    @GetMapping("/treeAll")
+    public RespInfo<List<SysRegionTreeVO>> treeAll(
+            @RequestParam(defaultValue = "150000") String rootCode,
+            @RequestParam(defaultValue = "true") Boolean dataRight) {
+        List<SysRegionTreeVO> tree = regionService.selectRegionTreeAll(rootCode, dataRight);
+        return RespInfo.success(tree);
+    }
+
+    /**
+     * 刷新行政区划树缓存
+     */
+    @PostMapping("/refreshCache")
+    public RespInfo<Void> refreshCache() {
+        regionService.refreshRegionTreeCache();
+        return RespInfo.success();
+    }
 }

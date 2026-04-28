@@ -426,6 +426,7 @@ const dataScopeOptions = [
   { label: '本组织数据', value: 3 },
   { label: '本组织及子组织', value: 4 },
   { label: '个人数据', value: 5 },
+  { label: '本行政区划数据', value: 7 },
 ]
 
 // 角色状态选项

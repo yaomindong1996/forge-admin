@@ -43,36 +43,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     @Override
     public IPage<SysUser> selectUserPage(SysUserQuery query) {
-        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(query.getTenantId() != null, SysUser::getTenantId, query.getTenantId())
-                .like(StringUtils.isNotBlank(query.getUsername()), SysUser::getUsername, query.getUsername())
-                .like(StringUtils.isNotBlank(query.getRealName()), SysUser::getRealName, query.getRealName())
-                .eq(query.getUserType() != null, SysUser::getUserType, query.getUserType())
-                .eq(StringUtils.isNotBlank(query.getPhone()), SysUser::getPhone, query.getPhone())
-                .eq(query.getUserStatus() != null, SysUser::getUserStatus, query.getUserStatus())
-                .eq(query.getCreateDept() != null, SysUser::getCreateDept, query.getCreateDept())
-                .orderByDesc(SysUser::getCreateTime);
-
-        // 如果指定了组织ID，查询该组织及其子组织下的用户
-        if (query.getOrgId() != null) {
-            List<Long> orgIds = orgService.selectOrgAndChildrenIds(query.getOrgId());
-            if (orgIds != null && !orgIds.isEmpty()) {
-                // 查询属于这些组织的用户ID
-                LambdaQueryWrapper<SysUserOrg> userOrgWrapper = new LambdaQueryWrapper<>();
-                userOrgWrapper.in(SysUserOrg::getOrgId, orgIds);
-                List<SysUserOrg> userOrgList = userOrgMapper.selectList(userOrgWrapper);
-                List<Long> userIds = userOrgList.stream().map(SysUserOrg::getUserId).distinct().collect(Collectors.toList());
-                
-                if (!userIds.isEmpty()) {
-                    queryWrapper.in(SysUser::getId, userIds);
-                } else {
-                    // 如果没有用户，返回空结果
-                    return new Page<>(query.getPageNum(), query.getPageSize());
-                }
-            }
-        }
-
-        return this.page(new Page<>(query.getPageNum(), query.getPageSize()), queryWrapper);
+        Page<SysUser> page = new Page<>(query.getPageNum(), query.getPageSize());
+        return userMapper.selectUserPage(page, query);
     }
 
     @Override

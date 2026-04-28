@@ -10,6 +10,7 @@
         update: 'put@/system/region/',
         delete: 'delete@/system/region/{code}',
       }"
+      :is-encrypt="true"
       :search-schema="searchSchema"
       :columns="tableColumns"
       :edit-schema="editSchema"
@@ -153,6 +154,7 @@ const editSchema = ref([
     label: '级别',
     type: 'select',
     defaultValue: 1,
+    valueType: 'number',
     rules: [{ required: true, type: 'number', message: '请选择行政级别', trigger: 'change' }],
     props: {
       placeholder: '请选择行政级别',

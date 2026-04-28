@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.system.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
@@ -19,6 +20,7 @@ public class SysRegion implements Serializable {
     /**
      * 行政区划代码（主键）
      */
+    @TableId
     private String code;
 
     /**

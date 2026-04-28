@@ -38,7 +38,16 @@ public enum DataScopeType {
     /**
      * 租户全部数据权限
      */
-    TENANT_ALL(6, "租户全部数据权限");
+    TENANT_ALL(6, "租户全部数据权限"),
+
+    /**
+     * 本行政区划数据权限
+     * 按用户所属行政区划（regionCode）过滤：
+     * - 省级(level=1)：不限制（等同 ALL）
+     * - 市级及以下：匹配本级编码 + 其直接下级区划（子查询 sys_region_code.parent_code）
+     * 支持可选的用户表 area_code 联合 OR 条件
+     */
+    REGION(7, "本行政区划数据权限");
     
     private final Integer code;
     private final String description;
