@@ -38,7 +38,7 @@
 
 <script setup>
 import { NTag } from 'naive-ui'
-import { computed, h, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref, watch } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
@@ -48,6 +48,9 @@ const crudRef = ref(null)
 const expandLoaded = ref(false)
 const expandedKeys = ref([])
 const parentRegionOptions = ref([{ label: '顶级区域', value: '', key: '' }])
+
+// 存储已加载的子节点数据
+const loadedChildrenMap = ref(new Map())
 
 const levelOptions = [
   { label: '省', value: 1 },
@@ -214,32 +217,62 @@ function getAllKeys(list, keys = []) {
 }
 
 function beforeRenderList(list) {
-  // 为每个节点添加children数组，用于树形结构
-  return list.map(item => ({
-    ...item,
-    children: item.hasChildren ? [] : undefined,
-  }))
+  // 为每个节点处理children，用于树形结构和懒加载
+  return list.map(item => {
+    // 如果已经加载过子节点，使用已加载的数据
+    const loadedChildren = loadedChildrenMap.value.get(item.code)
+    return {
+      ...item,
+      children: item.hasChildren 
+        ? (loadedChildren || []) 
+        : undefined,
+    }
+  })
 }
 
 // 处理展开事件，懒加载子节点
-async function handleExpand(expandedKeys, { node, expanded }) {
-  if (expanded && node.hasChildren && (!node.children || node.children.length === 0)) {
-    // 展开且需要加载子节点
-    try {
-      const res = await request.get(`/system/region/childrenVO/${node.code}`)
-      if (res.code === 200) {
-        // 更新节点的children
-        const children = (res.data || []).map(item => ({
-          ...item,
-          children: item.hasChildren ? [] : undefined,
-        }))
-        node.children = children
+async function handleExpand(expandedRowKeys, { row, expanded }) {
+  if (expanded && row.hasChildren) {
+    const code = row.code
+    // 如果还没加载过该节点的子节点
+    if (!loadedChildrenMap.value.has(code)) {
+      try {
+        const res = await request.get(`/system/region/childrenVO/${code}`)
+        if (res.code === 200) {
+          const children = (res.data || []).map(item => ({
+            ...item,
+            children: item.hasChildren ? [] : undefined,
+          }))
+          // 存储到Map中
+          loadedChildrenMap.value.set(code, children)
+          // 直接更新表格数据中的children
+          const tableData = crudRef.value?.getTableData() || []
+          updateNodeChildren(tableData, code, children)
+          // 重新渲染表格
+          crudRef.value?.setTableData(tableData)
+        }
+      }
+      catch (error) {
+        console.error('加载子节点失败:', error)
       }
     }
-    catch (error) {
-      console.error('加载子节点失败:', error)
+  }
+}
+
+// 更新节点的children（递归查找）
+function updateNodeChildren(data, code, children) {
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].code === code) {
+      data[i].children = children
+      return true
+    }
+    if (data[i].children && data[i].children.length > 0) {
+      if (updateNodeChildren(data[i].children, code, children)) {
+        return true
+      }
     }
   }
+  return false
 }
 
 function handleExpandedKeysUpdate(keys) {
