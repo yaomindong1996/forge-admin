@@ -20,7 +20,7 @@
       :table-props="{
         expandedRowKeys: expandedKeys,
         'on-update:expandedRowKeys': handleExpandedKeysUpdate,
-        onExpand: handleExpand,
+        onLoad: handleLoad,
       }"
     >
       <!-- 自定义工具栏 -->
@@ -38,7 +38,7 @@
 
 <script setup>
 import { NTag } from 'naive-ui'
-import { computed, h, onMounted, ref, watch } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
 
@@ -48,9 +48,6 @@ const crudRef = ref(null)
 const expandLoaded = ref(false)
 const expandedKeys = ref([])
 const parentRegionOptions = ref([{ label: '顶级区域', value: '', key: '' }])
-
-// 存储已加载的子节点数据
-const loadedChildrenMap = ref(new Map())
 
 const levelOptions = [
   { label: '省', value: 1 },
@@ -217,66 +214,36 @@ function getAllKeys(list, keys = []) {
 }
 
 function beforeRenderList(list) {
-  // 为每个节点处理children，用于树形结构和懒加载
-  return list.map(item => {
-    // 如果已经加载过子节点，使用已加载的数据
-    const loadedChildren = loadedChildrenMap.value.get(item.code)
-    return {
-      ...item,
-      children: item.hasChildren 
-        ? (loadedChildren || []) 
-        : undefined,
-    }
-  })
+  // 转换为Naive UI Tree需要的格式
+  return list.map(item => ({
+    key: item.code,
+    label: item.name,
+    ...item,
+    // isLeaf: false才会触发onLoad懒加载
+    isLeaf: !item.hasChildren,
+  }))
 }
 
-// 处理展开事件，懒加载子节点
-async function handleExpand(expandedRowKeys, { row, expanded }) {
-  if (expanded && row.hasChildren) {
-    const code = row.code
-    // 如果还没加载过该节点的子节点
-    if (!loadedChildrenMap.value.has(code)) {
-      try {
-        const res = await request.get(`/system/region/childrenVO/${code}`)
+// 懒加载子节点（官方示例方式）
+function handleLoad(node) {
+  return new Promise((resolve) => {
+    request.get(`/system/region/childrenVO/${node.code}`)
+      .then(res => {
         if (res.code === 200) {
-          const children = (res.data || []).map(item => ({
+          // 直接修改node.children
+          node.children = (res.data || []).map(item => ({
+            key: item.code,
+            label: item.name,
             ...item,
-            children: item.hasChildren ? [] : undefined,
+            isLeaf: !item.hasChildren,
           }))
-          // 存储到Map中
-          loadedChildrenMap.value.set(code, children)
-          
-          // 深拷贝整个表格数据，避免引用问题
-          const tableData = JSON.parse(JSON.stringify(crudRef.value?.getTableData() || []))
-          // 更新children
-          updateNodeChildren(tableData, code, children)
-          // 设置新数据触发响应式更新
-          crudRef.value?.setTableData(tableData)
-          // 保持展开状态
-          expandedKeys.value = expandedRowKeys
         }
-      }
-      catch (error) {
-        console.error('加载子节点失败:', error)
-      }
-    }
-  }
-}
-
-// 更新节点的children（递归查找）
-function updateNodeChildren(data, code, children) {
-  for (let i = 0; i < data.length; i++) {
-    if (data[i].code === code) {
-      data[i].children = children
-      return true
-    }
-    if (data[i].children && data[i].children.length > 0) {
-      if (updateNodeChildren(data[i].children, code, children)) {
-        return true
-      }
-    }
-  }
-  return false
+        resolve()
+      })
+      .catch(() => {
+        resolve()
+      })
+  })
 }
 
 function handleExpandedKeysUpdate(keys) {
