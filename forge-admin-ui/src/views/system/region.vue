@@ -16,12 +16,11 @@
       :before-render-list="beforeRenderList"
       row-key="code"
       :show-pagination="false"
-      :lazy="true"
-      :load="loadChildren"
       add-button-text="新增行政区划"
       :table-props="{
         expandedRowKeys: expandedKeys,
         onUpdateExpandedRowKeys: handleExpandedKeysUpdate,
+        onExpand: handleExpand,
       }"
     >
       <!-- 自定义工具栏 -->
@@ -215,22 +214,31 @@ function getAllKeys(list, keys = []) {
 }
 
 function beforeRenderList(list) {
-  // 懒加载模式下，不再预先展开所有节点
-  return list
+  // 为每个节点添加children数组，用于树形结构
+  return list.map(item => ({
+    ...item,
+    children: item.hasChildren ? [] : undefined,
+  }))
 }
 
-// 懒加载子节点
-async function loadChildren(row) {
-  try {
-    const res = await request.get(`/system/region/childrenVO/${row.code}`)
-    if (res.code === 200) {
-      return res.data || []
+// 处理展开事件，懒加载子节点
+async function handleExpand(expandedKeys, { node, expanded }) {
+  if (expanded && node.hasChildren && (!node.children || node.children.length === 0)) {
+    // 展开且需要加载子节点
+    try {
+      const res = await request.get(`/system/region/childrenVO/${node.code}`)
+      if (res.code === 200) {
+        // 更新节点的children
+        const children = (res.data || []).map(item => ({
+          ...item,
+          children: item.hasChildren ? [] : undefined,
+        }))
+        node.children = children
+      }
     }
-    return []
-  }
-  catch (error) {
-    console.error('加载子节点失败:', error)
-    return []
+    catch (error) {
+      console.error('加载子节点失败:', error)
+    }
   }
 }
 
