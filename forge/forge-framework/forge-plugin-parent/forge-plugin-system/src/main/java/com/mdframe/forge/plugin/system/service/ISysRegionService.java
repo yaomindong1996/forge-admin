@@ -43,6 +43,11 @@ public interface ISysRegionService extends IService<SysRegion> {
     List<SysRegion> selectChildrenByParentCode(String parentCode);
 
     /**
+     * 获取子级VO列表（用于懒加载）
+     */
+    List<SysRegionTreeVO> selectChildrenVOByParentCode(String parentCode);
+
+    /**
      * 搜索行政区划
      */
     List<SysRegion> searchRegionByName(String name);

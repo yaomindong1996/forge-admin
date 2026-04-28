@@ -271,7 +271,8 @@ const editSchema = ref([
       placeholder: '请选择行政区划',
       clearable: true,
       filterable: true,
-      defaultExpandAll: true,
+      lazy: true,
+      onLoad: loadRegionChildren,
     },
     options: () => regionOptions.value,
   },
@@ -340,29 +341,42 @@ async function loadParentOrgOptions() {
   }
 }
 
-// 加载行政区划选项
+// 加载行政区划选项（只加载省级）
 async function loadRegionOptions() {
   try {
     const res = await request.get('/system/region/tree')
     if (res.code === 200) {
-      const convertToTreeSelect = (list) => {
-        return list.map(item => ({
-          label: item.name,
-          value: item.code,
-          key: item.code,
-          children: item.children && item.children.length > 0
-            ? convertToTreeSelect(item.children)
-            : undefined,
-        }))
-      }
-      regionOptions.value = [
-        { label: '请选择', value: '', key: '' },
-        ...convertToTreeSelect(res.data || []),
-      ]
+      regionOptions.value = (res.data || []).map(item => ({
+        label: item.name,
+        value: item.code,
+        key: item.code,
+        // 根据hasChildren判断是否是叶子节点
+        isLeaf: !item.hasChildren,
+      }))
     }
   }
   catch (error) {
     console.error('加载行政区划选项失败:', error)
+  }
+}
+
+// 懒加载行政区划子节点
+async function loadRegionChildren(node) {
+  try {
+    const res = await request.get(`/system/region/childrenVO/${node.value}`)
+    if (res.code === 200) {
+      return (res.data || []).map(item => ({
+        label: item.name,
+        value: item.code,
+        key: item.code,
+        isLeaf: !item.hasChildren,
+      }))
+    }
+    return []
+  }
+  catch (error) {
+    console.error('加载行政区划子节点失败:', error)
+    return []
   }
 }
 

@@ -26,11 +26,30 @@ public class SysRegionServiceImpl extends ServiceImpl<SysRegionMapper, SysRegion
 
     @Override
     public List<SysRegionTreeVO> selectRegionTree() {
+        // 懒加载：只查询第一级（省级，parentCode为空或null）
         LambdaQueryWrapper<SysRegion> wrapper = new LambdaQueryWrapper<>();
-        wrapper.orderByAsc(SysRegion::getLevel)
+        wrapper.and(w -> w.isNull(SysRegion::getParentCode)
+                .or()
+                .eq(SysRegion::getParentCode, ""))
                 .orderByAsc(SysRegion::getCode);
-        List<SysRegion> allRegions = regionMapper.selectList(wrapper);
-        return buildTreeVO(allRegions, null);
+        List<SysRegion> rootRegions = regionMapper.selectList(wrapper);
+        
+        return rootRegions.stream().map(region -> {
+            SysRegionTreeVO vo = new SysRegionTreeVO();
+            BeanUtil.copyProperties(region, vo);
+            // 检查是否有子节点
+            vo.setHasChildren(hasChildren(region.getCode()));
+            return vo;
+        }).toList();
+    }
+    
+    /**
+     * 检查是否有子节点
+     */
+    private boolean hasChildren(String code) {
+        LambdaQueryWrapper<SysRegion> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysRegion::getParentCode, code);
+        return regionMapper.selectCount(wrapper) > 0;
     }
 
     @Override
@@ -67,6 +86,22 @@ public class SysRegionServiceImpl extends ServiceImpl<SysRegionMapper, SysRegion
     }
 
     @Override
+    public List<SysRegionTreeVO> selectChildrenVOByParentCode(String parentCode) {
+        LambdaQueryWrapper<SysRegion> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysRegion::getParentCode, parentCode)
+                .orderByAsc(SysRegion::getLevel)
+                .orderByAsc(SysRegion::getCode);
+        List<SysRegion> children = regionMapper.selectList(wrapper);
+        
+        return children.stream().map(region -> {
+            SysRegionTreeVO vo = new SysRegionTreeVO();
+            BeanUtil.copyProperties(region, vo);
+            vo.setHasChildren(hasChildren(region.getCode()));
+            return vo;
+        }).toList();
+    }
+
+    @Override
     public List<SysRegion> searchRegionByName(String name) {
         LambdaQueryWrapper<SysRegion> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(SysRegion::getName, name)
@@ -93,23 +128,9 @@ public class SysRegionServiceImpl extends ServiceImpl<SysRegionMapper, SysRegion
             ancestors.insert(0, currentCode);
             currentCode = region.getParentCode();
         }
-        return ancestors.toString();
+return ancestors.toString();
     }
-
-    private List<SysRegionTreeVO> buildTreeVO(List<SysRegion> allRegions, String parentCode) {
-        List<SysRegionTreeVO> treeList = new ArrayList<>();
-        for (SysRegion region : allRegions) {
-            if (StrUtil.isBlank(parentCode) && StrUtil.isBlank(region.getParentCode)) {
-                SysRegionTreeVO vo = new SysRegionTreeVO();
-                BeanUtil.copyProperties(region, vo);
-                vo.setChildren(buildTreeVO(allRegions, region.getCode()));
-                treeList.add(vo);
-            } else if (StrUtil.isNotBlank(parentCode) && parentCode.equals(region.getParentCode())) {
-                SysRegionTreeVO vo = new SysRegionTreeVO();
-                BeanUtil.copyProperties(region, vo);
-                vo.setChildren(buildTreeVO(allRegions, region.getCode()));
-                treeList.add(vo);
-            }
+}
         }
         return treeList.isEmpty() ? null : treeList;
     }

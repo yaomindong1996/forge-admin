@@ -16,7 +16,8 @@
       :before-render-list="beforeRenderList"
       row-key="code"
       :show-pagination="false"
-      :lazy="false"
+      :lazy="true"
+      :load="loadChildren"
       add-button-text="新增行政区划"
       :table-props="{
         expandedRowKeys: expandedKeys,
@@ -25,11 +26,11 @@
     >
       <!-- 自定义工具栏 -->
       <template #toolbar-end>
-        <n-button @click="toggleExpandAll">
+        <n-button @click="toggleExpandLoaded">
           <template #icon>
-            <i :class="expandAll ? 'i-material-symbols:unfold-less' : 'i-material-symbols:unfold-more'" />
+            <i :class="expandLoaded ? 'i-material-symbols:unfold-less' : 'i-material-symbols:unfold-more'" />
           </template>
-          {{ expandAll ? '折叠全部' : '展开全部' }}
+          {{ expandLoaded ? '折叠已加载' : '展开已加载' }}
         </n-button>
       </template>
     </AiCrudPage>
@@ -45,7 +46,7 @@ import { request } from '@/utils'
 defineOptions({ name: 'SystemRegion' })
 
 const crudRef = ref(null)
-const expandAll = ref(true)
+const expandLoaded = ref(false)
 const expandedKeys = ref([])
 const parentRegionOptions = ref([{ label: '顶级区域', value: '', key: '' }])
 
@@ -214,24 +215,36 @@ function getAllKeys(list, keys = []) {
 }
 
 function beforeRenderList(list) {
-  if (expandAll.value) {
-    expandedKeys.value = getAllKeys(list)
-  }
+  // 懒加载模式下，不再预先展开所有节点
   return list
+}
+
+// 懒加载子节点
+async function loadChildren(row) {
+  try {
+    const res = await request.get(`/system/region/childrenVO/${row.code}`)
+    if (res.code === 200) {
+      return res.data || []
+    }
+    return []
+  }
+  catch (error) {
+    console.error('加载子节点失败:', error)
+    return []
+  }
 }
 
 function handleExpandedKeysUpdate(keys) {
   expandedKeys.value = keys
-  const tableData = crudRef.value?.getTableData() || []
-  const allKeys = getAllKeys(tableData)
-  expandAll.value = keys.length === allKeys.length
 }
 
-function toggleExpandAll() {
-  expandAll.value = !expandAll.value
-  if (expandAll.value) {
+// 展开/折叠已加载的节点
+function toggleExpandLoaded() {
+  expandLoaded.value = !expandLoaded.value
+  if (expandLoaded.value) {
+    // 只展开当前已加载的节点
     const tableData = crudRef.value?.getTableData() || []
-    expandedKeys.value = getAllKeys(tableData)
+    expandedKeys.value = tableData.map(item => item.code)
   }
   else {
     expandedKeys.value = []

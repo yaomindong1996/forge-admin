@@ -44,6 +44,11 @@ public class SysRegionTreeVO implements Serializable {
     private String cityCode;
 
     /**
+     * 是否有子节点（用于懒加载判断）
+     */
+    private Boolean hasChildren;
+
+    /**
      * 子节点列表
      */
     private List<SysRegionTreeVO> children;

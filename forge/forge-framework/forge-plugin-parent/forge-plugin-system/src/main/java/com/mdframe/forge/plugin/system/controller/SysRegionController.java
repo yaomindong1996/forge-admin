@@ -81,6 +81,15 @@ public class SysRegionController {
     }
 
     /**
+     * 获取子级VO列表（懒加载）
+     */
+    @GetMapping("/childrenVO/{parentCode}")
+    public RespInfo<List<SysRegionTreeVO>> getChildrenVO(@PathVariable String parentCode) {
+        List<SysRegionTreeVO> children = regionService.selectChildrenVOByParentCode(parentCode);
+        return RespInfo.success(children);
+    }
+
+    /**
      * 搜索行政区划
      */
     @GetMapping("/search")
