@@ -108,6 +108,31 @@ public class LoginUser implements Serializable {
     private String deptName;
 
     /**
+     * 行政区划编码
+     */
+    private String regionCode;
+
+    /**
+     * 行政区划名称
+     */
+    private String regionName;
+
+    /**
+     * 行政级别(1-省,2-市,3-区/县,4-街道)
+     */
+    private Integer regionLevel;
+
+    /**
+     * 行政区划全名
+     */
+    private String regionFullName;
+
+    /**
+     * 行政区划祖级编码（如：110000,110100,110101）
+     */
+    private String regionAncestors;
+
+    /**
      * 是否为超级管理员
      */
     public boolean isAdmin() {

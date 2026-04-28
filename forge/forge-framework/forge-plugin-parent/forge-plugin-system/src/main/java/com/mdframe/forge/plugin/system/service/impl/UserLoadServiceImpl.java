@@ -38,6 +38,8 @@ public class UserLoadServiceImpl implements IUserLoadService {
     
     private final SysOrgMapper sysOrgMapper;
     
+    private final SysRegionMapper regionMapper;
+    
     @Override
     public LoginUser loadUserByUsername(String username, Long tenantId) {
         LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
@@ -138,6 +140,9 @@ public class UserLoadServiceImpl implements IUserLoadService {
 
         // 5. 加载API接口权限（缓存到Session）
         loadApiPermissions(loginUser);
+
+        // 6. 加载用户行政区划
+        loadUserRegion(loginUser);
 
         return loginUser;
     }
@@ -322,5 +327,66 @@ public class UserLoadServiceImpl implements IUserLoadService {
 
         log.debug("加载用户API权限: userId={}, apiCount={}, apis={}",
                 loginUser.getUserId(), apiUrls.size(), apiUrls);
+    }
+
+    /**
+     * 加载用户行政区划信息
+     * 优先级：用户有组织且组织有regionCode -> 取组织的regionCode
+     * 用户有组织但组织无regionCode -> 取用户的regionCode（fallback）
+     * 用户无组织 -> 取用户的regionCode
+     */
+    private void loadUserRegion(LoginUser loginUser) {
+        String regionCode = null;
+        
+        // 优先从主组织获取
+        if (loginUser.getMainOrgId() != null) {
+            SysOrg org = sysOrgMapper.selectById(loginUser.getMainOrgId());
+            if (org != null && StrUtil.isNotBlank(org.getRegionCode())) {
+                regionCode = org.getRegionCode();
+            }
+        }
+        
+        // 组织无regionCode或无组织，从用户自身获取
+        if (StrUtil.isBlank(regionCode)) {
+            SysUser user = userMapper.selectById(loginUser.getUserId());
+            if (user != null && StrUtil.isNotBlank(user.getRegionCode())) {
+                regionCode = user.getRegionCode();
+            }
+        }
+        
+        // 根据regionCode查询完整信息
+        if (StrUtil.isNotBlank(regionCode)) {
+            SysRegion region = regionMapper.selectById(regionCode);
+            if (region != null) {
+                loginUser.setRegionCode(region.getCode());
+                loginUser.setRegionName(region.getName());
+                loginUser.setRegionLevel(region.getLevel());
+                loginUser.setRegionFullName(region.getFullName());
+                loginUser.setRegionAncestors(buildRegionAncestors(region));
+                
+                log.debug("加载用户行政区划: userId={}, regionCode={}, regionName={}",
+                        loginUser.getUserId(), regionCode, region.getName());
+            }
+        }
+    }
+
+    /**
+     * 构建行政区划祖级编码
+     */
+    private String buildRegionAncestors(SysRegion region) {
+        StringBuilder ancestors = new StringBuilder();
+        String currentCode = region.getCode();
+        while (StrUtil.isNotBlank(currentCode)) {
+            SysRegion currentRegion = regionMapper.selectById(currentCode);
+            if (currentRegion == null) {
+                break;
+            }
+            if (ancestors.length() > 0) {
+                ancestors.insert(0, ",");
+            }
+            ancestors.insert(0, currentCode);
+            currentCode = currentRegion.getParentCode();
+        }
+        return ancestors.toString();
     }
 }

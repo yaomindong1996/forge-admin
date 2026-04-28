@@ -320,6 +320,9 @@ const mainOrgId = ref(null)
 const orgTreeExpandAll = ref(true)
 const orgTreeExpandedKeys = ref([])
 
+// 行政区划选项
+const regionOptions = ref([{ label: '请选择', value: '', key: '' }])
+
 // 用户类型选项
 const userTypeOptions = [
   { label: '系统管理员', value: 0 },
@@ -416,6 +419,14 @@ const tableColumns = computed(() => [
     render: (row) => {
       const option = genderOptions.find(opt => opt.value === row.gender)
       return option ? option.label : '-'
+    },
+  },
+  {
+    prop: 'regionCode',
+    label: '行政区划',
+    width: 150,
+    render: (row) => {
+      return row.regionCode || '-'
     },
   },
   {
@@ -557,6 +568,26 @@ const editSchema = [
   },
   {
     type: 'divider',
+    label: '行政区划',
+    props: {
+      titlePlacement: 'left',
+    },
+    span: 2,
+  },
+  {
+    field: 'regionCode',
+    label: '行政区划',
+    type: 'treeSelect',
+    props: {
+      placeholder: '请选择行政区划',
+      clearable: true,
+      filterable: true,
+      defaultExpandAll: true,
+    },
+    options: () => regionOptions.value,
+  },
+  {
+    type: 'divider',
     label: '状态配置',
     props: {
       titlePlacement: 'left',
@@ -611,6 +642,9 @@ async function loadLeftOrgTree() {
         leftOrgExpandedKeys.value = getAllKeys(leftOrgTreeData.value)
       }
     }
+    
+    // 同时加载行政区划选项
+    await loadRegionOptions()
   }
   catch (error) {
     console.error('加载组织树失败:', error)
@@ -618,6 +652,32 @@ async function loadLeftOrgTree() {
   }
   finally {
     leftOrgTreeLoading.value = false
+  }
+}
+
+// 加载行政区划选项
+async function loadRegionOptions() {
+  try {
+    const res = await request.get('/system/region/tree')
+    if (res.code === 200) {
+      const convertToTreeSelect = (list) => {
+        return list.map(item => ({
+          label: item.name,
+          value: item.code,
+          key: item.code,
+          children: item.children && item.children.length > 0
+            ? convertToTreeSelect(item.children)
+            : undefined,
+        }))
+      }
+      regionOptions.value = [
+        { label: '请选择', value: '', key: '' },
+        ...convertToTreeSelect(res.data || []),
+      ]
+    }
+  }
+  catch (error) {
+    console.error('加载行政区划选项失败:', error)
   }
 }
 

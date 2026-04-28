@@ -86,6 +86,11 @@ public class SysUser extends TenantEntity {
     private String avatar;
 
     /**
+     * 行政区划编码
+     */
+    private String regionCode;
+
+    /**
      * 最后登录时间
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

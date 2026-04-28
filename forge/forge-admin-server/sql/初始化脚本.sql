@@ -3366,4 +3366,9 @@ CREATE TABLE `ai_report_project`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='go-view项目表';
 
 
+-- sys_user表新增region_code字段
+ALTER TABLE sys_user ADD COLUMN region_code VARCHAR(10) DEFAULT NULL COMMENT '行政区划编码' AFTER avatar;
+ALTER TABLE sys_user ADD INDEX idx_region_code (region_code);
+
+
 

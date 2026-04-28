@@ -51,6 +51,7 @@ const crudRef = ref(null)
 const expandAll = ref(true)
 const expandedKeys = ref([])
 const parentOrgOptions = ref([{ label: '顶级组织', value: 0, key: 0 }])
+const regionOptions = ref([{ label: '请选择', value: '', key: '' }])
 
 // 组织类型选项
 const orgTypeOptions = [
@@ -130,6 +131,14 @@ const tableColumns = computed(() => [
     prop: 'address',
     label: '地址',
     width: 200,
+  },
+  {
+    prop: 'regionCode',
+    label: '行政区划',
+    width: 150,
+    render: (row) => {
+      return row.regionCode || '-'
+    },
   },
   {
     prop: 'sort',
@@ -254,6 +263,18 @@ const editSchema = ref([
       placeholder: '请输入组织地址',
     },
   },
+  {
+    field: 'regionCode',
+    label: '行政区划',
+    type: 'treeSelect',
+    props: {
+      placeholder: '请选择行政区划',
+      clearable: true,
+      filterable: true,
+      defaultExpandAll: true,
+    },
+    options: () => regionOptions.value,
+  },
 
   // 状态配置
   {
@@ -309,10 +330,39 @@ async function loadParentOrgOptions() {
         { label: '顶级组织', value: 0, key: 0 },
         ...convertToTreeSelect(res.data || []),
       ]
+      
+      // 同时加载行政区划选项
+      await loadRegionOptions()
     }
   }
   catch (error) {
     console.error('加载上级组织选项失败:', error)
+  }
+}
+
+// 加载行政区划选项
+async function loadRegionOptions() {
+  try {
+    const res = await request.get('/system/region/tree')
+    if (res.code === 200) {
+      const convertToTreeSelect = (list) => {
+        return list.map(item => ({
+          label: item.name,
+          value: item.code,
+          key: item.code,
+          children: item.children && item.children.length > 0
+            ? convertToTreeSelect(item.children)
+            : undefined,
+        }))
+      }
+      regionOptions.value = [
+        { label: '请选择', value: '', key: '' },
+        ...convertToTreeSelect(res.data || []),
+      ]
+    }
+  }
+  catch (error) {
+    console.error('加载行政区划选项失败:', error)
   }
 }
 
