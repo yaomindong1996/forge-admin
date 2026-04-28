@@ -12,8 +12,8 @@ import com.mdframe.forge.plugin.system.vo.SysRegionTreeVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 行政区划Service实现类
@@ -26,28 +26,51 @@ public class SysRegionServiceImpl extends ServiceImpl<SysRegionMapper, SysRegion
     
     @Override
     public List<SysRegionTreeVO> selectRegionTree() {
-        // 懒加载：只查询第一级（省级，parentCode为空或null）
+        // 1. 查询第一级（省级，parentCode为空或null）
         LambdaQueryWrapper<SysRegion> wrapper = new LambdaQueryWrapper<>();
         wrapper.and(w -> w.isNull(SysRegion::getParentCode).or().eq(SysRegion::getParentCode, ""))
                 .orderByAsc(SysRegion::getCode);
         List<SysRegion> rootRegions = regionMapper.selectList(wrapper);
         
+        if (rootRegions.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // 2. 一次性查询所有parentCode，判断哪些code有子节点
+        Set<String> codesWithChildren = getCodesWithChildren(rootRegions.stream()
+                .map(SysRegion::getCode)
+                .collect(Collectors.toList()));
+        
+        // 3. 构建VO
         return rootRegions.stream().map(region -> {
             SysRegionTreeVO vo = new SysRegionTreeVO();
             BeanUtil.copyProperties(region, vo);
-            // 检查是否有子节点
-            vo.setHasChildren(hasChildren(region.getCode()));
+            vo.setHasChildren(codesWithChildren.contains(region.getCode()));
             return vo;
         }).toList();
     }
     
     /**
-     * 检查是否有子节点
+     * 批量查询哪些code有子节点（一次SQL）
      */
-    private boolean hasChildren(String code) {
+    private Set<String> getCodesWithChildren(List<String> parentCodes) {
+        if (parentCodes.isEmpty()) {
+            return new HashSet<>();
+        }
+        
+        // 查询所有parentCode在这些code中的记录
         LambdaQueryWrapper<SysRegion> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SysRegion::getParentCode, code);
-        return regionMapper.selectCount(wrapper) > 0;
+        wrapper.select(SysRegion::getParentCode)
+                .in(SysRegion::getParentCode, parentCodes)
+                .isNotNull(SysRegion::getParentCode);
+        
+        List<SysRegion> children = regionMapper.selectList(wrapper);
+        
+        // 返回有子节点的code集合
+        return children.stream()
+                .map(SysRegion::getParentCode)
+                .filter(StrUtil::isNotBlank)
+                .collect(Collectors.toSet());
     }
     
     @Override
@@ -83,14 +106,27 @@ public class SysRegionServiceImpl extends ServiceImpl<SysRegionMapper, SysRegion
     
     @Override
     public List<SysRegionTreeVO> selectChildrenVOByParentCode(String parentCode) {
+        // 1. 查询子节点
         LambdaQueryWrapper<SysRegion> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SysRegion::getParentCode, parentCode).orderByAsc(SysRegion::getLevel).orderByAsc(SysRegion::getCode);
+        wrapper.eq(SysRegion::getParentCode, parentCode)
+                .orderByAsc(SysRegion::getLevel)
+                .orderByAsc(SysRegion::getCode);
         List<SysRegion> children = regionMapper.selectList(wrapper);
         
+        if (children.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // 2. 批量查询哪些code有子节点
+        Set<String> codesWithChildren = getCodesWithChildren(children.stream()
+                .map(SysRegion::getCode)
+                .collect(Collectors.toList()));
+        
+        // 3. 构建VO
         return children.stream().map(region -> {
             SysRegionTreeVO vo = new SysRegionTreeVO();
             BeanUtil.copyProperties(region, vo);
-            vo.setHasChildren(hasChildren(region.getCode()));
+            vo.setHasChildren(codesWithChildren.contains(region.getCode()));
             return vo;
         }).toList();
     }

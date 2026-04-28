@@ -19,7 +19,7 @@
       add-button-text="新增行政区划"
       :table-props="{
         expandedRowKeys: expandedKeys,
-        onUpdateExpandedRowKeys: handleExpandedKeysUpdate,
+        'on-update:expandedRowKeys': handleExpandedKeysUpdate,
         onExpand: handleExpand,
       }"
     >
@@ -245,11 +245,15 @@ async function handleExpand(expandedRowKeys, { row, expanded }) {
           }))
           // 存储到Map中
           loadedChildrenMap.value.set(code, children)
-          // 直接更新表格数据中的children
-          const tableData = crudRef.value?.getTableData() || []
+          
+          // 深拷贝整个表格数据，避免引用问题
+          const tableData = JSON.parse(JSON.stringify(crudRef.value?.getTableData() || []))
+          // 更新children
           updateNodeChildren(tableData, code, children)
-          // 重新渲染表格
+          // 设置新数据触发响应式更新
           crudRef.value?.setTableData(tableData)
+          // 保持展开状态
+          expandedKeys.value = expandedRowKeys
         }
       }
       catch (error) {
