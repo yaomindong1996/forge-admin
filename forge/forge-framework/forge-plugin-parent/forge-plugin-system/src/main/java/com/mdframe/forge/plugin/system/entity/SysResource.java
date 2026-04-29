@@ -113,6 +113,11 @@ public class SysResource extends TenantEntity {
     private String remark;
 
     /**
+     * 客户端代码
+     */
+    private String clientCode;
+
+    /**
      * 子资源列表（非数据库字段，用于树形结构）
      */
     @TableField(exist = false)

@@ -1,5 +1,21 @@
 <template>
   <div class="system-menu-page">
+    <!-- 客户端切换 Tab -->
+    <div class="client-tabs-container">
+      <n-tabs type="line" size="small" :value="currentClientCode" @update:value="handleClientTabChange">
+        <n-tab-pane name="" tab="全部">
+          <template #tab>
+            <span class="tab-label">全部</span>
+          </template>
+        </n-tab-pane>
+        <n-tab-pane v-for="client in clientList" :key="client.clientCode" :name="client.clientCode">
+          <template #tab>
+            <span class="tab-label">{{ client.clientName }}</span>
+          </template>
+        </n-tab-pane>
+      </n-tabs>
+    </div>
+
     <AiCrudPage
       ref="crudRef"
       api="/system/resource"
@@ -16,9 +32,10 @@
       :before-render-list="beforeRenderList"
       :before-submit="beforeSubmit"
       :before-render-form="beforeRenderForm"
+      :public-params="publicParams"
       row-key="id"
-      :edit-grid-cols="2"
-      modal-width="900px"
+      :edit-grid-cols="1"
+      modal-width="800px"
       :show-pagination="false"
       :lazy="false"
       add-button-text="新增资源"
@@ -30,6 +47,7 @@
         rowProps,
       }"
       @submit-success="handleSubmitSuccess"
+      @add="handleToolbarAdd"
     >
       <!-- 自定义工具栏 -->
       <template #toolbar-end>
@@ -78,19 +96,37 @@
 
       <!-- 自定义表单 - 图标选择 -->
       <template #form-icon="{ value, updateValue }">
-        <n-space align="center" style="width: 100%">
-          <IconSelector :model-value="value" @update:model-value="updateValue" />
-          <n-input
-            :value="value"
-            placeholder="或手动输入图标名称"
-            style="flex: 1"
-            @update:value="updateValue"
-          >
-            <template #suffix>
-              <IconRenderer v-if="value" :icon="value" />
-            </template>
-          </n-input>
-        </n-space>
+        <n-tabs type="line" size="small" animated>
+          <n-tab-pane name="font" tab="字体图标">
+            <div class="icon-selector-container">
+              <IconSelector :model-value="value" @update:model-value="updateValue" />
+              <n-input
+                :value="value"
+                placeholder="或手动输入图标名称（如: i-mdi-home）"
+                clearable
+                @update:value="updateValue"
+              >
+                <template #prefix>
+                  <IconRenderer v-if="value" :icon="value" />
+                </template>
+              </n-input>
+            </div>
+          </n-tab-pane>
+          <n-tab-pane name="image" tab="图片图标">
+            <div class="icon-upload-container">
+              <ImageUpload
+                :model-value="value"
+                @update:model-value="updateValue"
+                :limit="1"
+                :file-size="2"
+                :file-type="['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg']"
+                business-type="menu-icon"
+                :show-tip="true"
+                value-type="string"
+              />
+            </div>
+          </n-tab-pane>
+        </n-tabs>
       </template>
     </AiCrudPage>
   </div>
@@ -103,6 +139,7 @@ import api from '@/api'
 import { AiCrudPage } from '@/components/ai-form'
 import IconRenderer from '@/components/IconRenderer.vue'
 import IconSelector from '@/components/IconSelector.vue'
+import ImageUpload from '@/components/image-upload/index.vue'
 import { usePermissionStore } from '@/store'
 import { request } from '@/utils'
 
@@ -110,9 +147,22 @@ defineOptions({ name: 'SystemMenu' })
 
 const permissionStore = usePermissionStore()
 
-// 组件挂载时加载上级资源选项
+// 客户端列表（从后端动态加载）
+const clientList = ref([])
+const currentClientCode = ref('')
+
+// 公共搜索参数（用于 Tab 切换筛选）
+const publicParams = computed(() => {
+  if (currentClientCode.value) {
+    return { clientCode: currentClientCode.value }
+  }
+  return {}
+})
+
+// 组件挂载时加载上级资源选项和客户端列表
 onMounted(() => {
   loadParentResourceOptions()
+  loadClientList()
 })
 
 const crudRef = ref(null)
@@ -120,6 +170,7 @@ const expandAll = ref(true)
 const expandedKeys = ref([])
 const parentResourceOptions = ref([{ label: '顶级资源', value: 0, key: 0 }])
 const pendingParentId = ref(null)
+const pendingClientCode = ref(null)
 
 // 资源类型选项
 const resourceTypeOptions = [
@@ -128,6 +179,14 @@ const resourceTypeOptions = [
   { label: '按钮', value: 3 },
   { label: 'API接口', value: 4 },
 ]
+
+// 客户端选项（动态从后端加载）
+const clientCodeOptions = computed(() => {
+  return clientList.value.map(client => ({
+    label: client.clientName,
+    value: client.clientCode,
+  }))
+})
 
 // 加载上级资源选项
 async function loadParentResourceOptions() {
@@ -153,6 +212,26 @@ async function loadParentResourceOptions() {
   catch (error) {
     console.error('加载上级资源选项失败:', error)
   }
+}
+
+// 加载客户端列表
+async function loadClientList() {
+  try {
+    const res = await request.get('/system/client/list')
+    if (res.code === 200) {
+      clientList.value = res.data || []
+    }
+  }
+  catch (error) {
+    console.error('加载客户端列表失败:', error)
+  }
+}
+
+// 客户端 Tab 切换
+function handleClientTabChange(clientCode) {
+  currentClientCode.value = clientCode
+  // Tab 切换时清空 pendingClientCode，避免残留值影响新增表单
+  pendingClientCode.value = null
 }
 
 // 显示状态选项
@@ -207,6 +286,13 @@ const typeStyleMap = {
   4: { text: 'API', icon: 'i-material-symbols:api', color: '#FA5252', bg: '#FFF5F5', fontWeight: '400' },
 }
 
+// 客户端样式配置
+const clientStyleMap = {
+  pc: { text: 'PC端', type: 'info' },
+  app: { text: 'APP', type: 'success' },
+  h5: { text: 'H5', type: 'warning' },
+}
+
 // 行样式 — 根据资源类型添加 class
 function rowProps(row) {
   return {
@@ -219,7 +305,7 @@ const tableColumns = computed(() => [
   {
     prop: 'resourceName',
     label: '资源名称',
-    width: 260,
+    width: 180,
     fixed: 'left',
     render: (row) => {
       const style = typeStyleMap[row.resourceType] || { fontWeight: '400' }
@@ -233,6 +319,19 @@ const tableColumns = computed(() => [
           : null,
         h('span', { style: { marginLeft: row.icon ? '8px' : '0' } }, row.resourceName),
       ])
+    },
+  },
+  {
+    prop: 'clientCode',
+    label: '客户端',
+    width: 100,
+    render: (row) => {
+      const config = clientStyleMap[row.clientCode] || { text: row.clientCode, type: 'default' }
+      return h(
+        'n-tag',
+        { type: config.type, size: 'small', bordered: false },
+        { default: () => config.text }
+      )
     },
   },
   {
@@ -266,18 +365,6 @@ const tableColumns = computed(() => [
     prop: 'path',
     label: '路由地址',
     width: 180,
-  },
-  {
-    prop: 'component',
-    label: '组件路径',
-    width: 180,
-    visible: false,
-  },
-  {
-    prop: 'perms',
-    label: '权限标识',
-    width: 160,
-    visible: false,
   },
   {
     prop: 'sort',
@@ -319,16 +406,14 @@ const tableColumns = computed(() => [
   },
 ])
 
-// 编辑表单配置
-const editSchema = ref([
-  // 基础信息
+// 编辑表单配置 - 优化布局和验证规则
+const editSchema = computed(() => [
+  // 基础信息分组
   {
     type: 'divider',
     label: '基础信息',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
+    props: { titlePlacement: 'left' },
+    span: 1,
   },
   {
     field: 'parentId',
@@ -344,53 +429,76 @@ const editSchema = ref([
       labelField: 'label',
       childrenField: 'children',
     },
-    options: () => {
-      return parentResourceOptions.value
-    },
-  },
-  {
-    field: 'resourceType',
-    label: '资源类型',
-    type: 'radio',
-    defaultValue: '1',
-    rules: [{ required: true, message: '请选择资源类型', trigger: 'change' }],
-    props: {
-      options: [
-        { label: '目录', value: '1' },
-        { label: '菜单', value: '2' },
-        { label: '按钮', value: '3' },
-        { label: 'API', value: '4' },
-      ],
-    },
+    options: () => parentResourceOptions.value,
   },
   {
     field: 'resourceName',
     label: '资源名称',
     type: 'input',
     rules: [{ required: true, message: '请输入资源名称', trigger: 'blur' }],
+    props: { placeholder: '请输入资源名称' },
+  },
+  {
+    field: 'resourceType',
+    label: '资源类型',
+    type: 'radio',
+    defaultValue: 1,
+    rules: [
+      {
+        required: true,
+        message: '请选择资源类型',
+        trigger: 'change',
+        validator: (rule, value) => {
+          if (value === null || value === undefined || value === '') {
+            return new Error('请选择资源类型')
+          }
+          return true
+        },
+      },
+    ],
     props: {
-      placeholder: '请输入资源名称',
+      options: [
+        { label: '目录', value: 1 },
+        { label: '菜单', value: 2 },
+        { label: '按钮', value: 3 },
+        { label: 'API', value: 4 },
+      ],
     },
+  },
+  {
+    field: 'clientCode',
+    label: '客户端',
+    type: 'radio',
+    defaultValue: 'pc',
+    rules: [
+      {
+        required: true,
+        message: '请选择客户端',
+        trigger: 'change',
+        validator: (rule, value) => {
+          if (!value) {
+            return new Error('请选择客户端')
+          }
+          return true
+        },
+      },
+    ],
+    props: { options: clientCodeOptions.value },
   },
   {
     field: 'sort',
     label: '排序',
     type: 'input-number',
     defaultValue: 0,
-    props: {
-      placeholder: '排序值',
-      min: 0,
-    },
+    props: { placeholder: '排序值', min: 0 },
   },
 
   // 目录和菜单配置
   {
     type: 'divider',
     label: '目录/菜单配置',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
+    props: { titlePlacement: 'left' },
+    span: 1,
     vIf: formData => formData.resourceType == 1 || formData.resourceType == 2,
   },
   {
@@ -404,69 +512,29 @@ const editSchema = ref([
     field: 'path',
     label: '路由地址',
     type: 'input',
-    rules: [
-      {
-        required: true,
-        message: '请输入路由地址',
-        trigger: 'blur',
-        validator: (rule, value) => {
-          const formData = rule.formData || {}
-          if (formData.resourceType == 1 || formData.resourceType == 2) {
-            return !!value
-          }
-          return true
-        },
-      },
-    ],
-    props: {
-      placeholder: '/system/user',
-    },
+    props: { placeholder: '/system/user' },
     vIf: formData => formData.resourceType == 1 || formData.resourceType == 2,
   },
   {
     field: 'component',
     label: '组件路径',
     type: 'input',
-    span: 2,
-    rules: [
-      {
-        required: true,
-        message: '请输入组件路径',
-        trigger: 'blur',
-        validator: (rule, value) => {
-          const formData = rule.formData || {}
-          if (formData.resourceType == 2) {
-            return !!value
-          }
-          return true
-        },
-      },
-    ],
-    props: {
-      placeholder: 'system/user/index',
-    },
+    props: { placeholder: 'system/user/index' },
     vIf: formData => formData.resourceType == 2,
   },
   {
     field: 'redirect',
-    label: '重定向',
+    label: '重定向地址',
     type: 'input',
-    props: {
-      placeholder: '重定向地址',
-    },
-    vIf: formData => formData.resourceType == 2,
+    props: { placeholder: '重定向地址' },
+    vIf: formData => formData.resourceType == 1 || formData.resourceType == 2,
   },
   {
     field: 'isExternal',
     label: '是否外链',
     type: 'radio',
     defaultValue: 0,
-    props: {
-      options: [
-        { label: '否', value: 0 },
-        { label: '是', value: 1 },
-      ],
-    },
+    props: { options: [{ label: '否', value: 0 }, { label: '是', value: 1 }] },
     vIf: formData => formData.resourceType == 2,
   },
   {
@@ -474,12 +542,7 @@ const editSchema = ref([
     label: '是否缓存',
     type: 'radio',
     defaultValue: 0,
-    props: {
-      options: [
-        { label: '否', value: 0 },
-        { label: '是', value: 1 },
-      ],
-    },
+    props: { options: [{ label: '否', value: 0 }, { label: '是', value: 1 }] },
     vIf: formData => formData.resourceType == 2,
   },
   {
@@ -487,33 +550,23 @@ const editSchema = ref([
     label: '总是显示',
     type: 'radio',
     defaultValue: 0,
-    props: {
-      options: [
-        { label: '否', value: 0 },
-        { label: '是', value: 1 },
-      ],
-    },
-    vIf: formData => formData.resourceType == 2,
+    props: { options: [{ label: '否', value: 0 }, { label: '是', value: 1 }] },
+    vIf: formData => formData.resourceType == 1 || formData.resourceType == 2,
   },
 
   // 按钮和API配置
   {
     type: 'divider',
     label: '按钮/API配置',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
+    props: { titlePlacement: 'left' },
+    span: 1,
     vIf: formData => formData.resourceType == 3 || formData.resourceType == 4,
   },
   {
     field: 'perms',
     label: '权限标识',
     type: 'input',
-    span: 2,
-    props: {
-      placeholder: 'sys:user:add',
-    },
+    props: { placeholder: 'sys:user:add' },
     vIf: formData => formData.resourceType == 3 || formData.resourceType == 4,
   },
   {
@@ -521,20 +574,14 @@ const editSchema = ref([
     label: '请求方法',
     type: 'select',
     defaultValue: 'GET',
-    props: {
-      placeholder: '请求方法',
-      options: apiMethodOptions,
-    },
+    props: { placeholder: '请求方法', options: apiMethodOptions },
     vIf: formData => formData.resourceType == 4,
   },
   {
     field: 'apiUrl',
     label: '接口地址',
     type: 'input',
-    span: 2,
-    props: {
-      placeholder: '/system/user/list',
-    },
+    props: { placeholder: '/system/user/list' },
     vIf: formData => formData.resourceType == 4,
   },
 
@@ -542,45 +589,29 @@ const editSchema = ref([
   {
     type: 'divider',
     label: '状态配置',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
+    props: { titlePlacement: 'left' },
+    span: 1,
   },
   {
     field: 'visible',
     label: '显示状态',
     type: 'radio',
     defaultValue: 1,
-    props: {
-      options: [
-        { label: '显示', value: 1 },
-        { label: '隐藏', value: 0 },
-      ],
-    },
+    props: { options: [{ label: '显示', value: 1 }, { label: '隐藏', value: 0 }] },
   },
   {
     field: 'menuStatus',
     label: '菜单状态',
     type: 'radio',
     defaultValue: 1,
-    props: {
-      options: [
-        { label: '显示', value: 1 },
-        { label: '隐藏', value: 0 },
-      ],
-    },
+    props: { options: [{ label: '显示', value: 1 }, { label: '隐藏', value: 0 }] },
     vIf: formData => formData.resourceType == 1 || formData.resourceType == 2,
   },
   {
     field: 'remark',
     label: '备注',
     type: 'textarea',
-    span: 2,
-    props: {
-      placeholder: '请输入备注',
-      rows: 3,
-    },
+    props: { placeholder: '请输入备注', rows: 3 },
   },
 ])
 
@@ -606,11 +637,18 @@ function beforeRenderList(list) {
 // 表单渲染前处理
 function beforeRenderForm(data) {
   if (!data) {
+    // 新增时设置默认值
     const parentId = pendingParentId.value !== null ? pendingParentId.value : 0
+    // 优先使用 pendingClientCode（新增子项时带入父级），其次使用当前 Tab 的 clientCode
+    const clientCode = pendingClientCode.value || currentClientCode.value || 'pc'
+    // 清空临时值
     pendingParentId.value = null
-    return { parentId }
+    pendingClientCode.value = null
+    return { parentId, clientCode }
   }
+  // 编辑时清空临时值
   pendingParentId.value = null
+  pendingClientCode.value = null
   return data
 }
 
@@ -622,12 +660,46 @@ function beforeSubmit(formData) {
   }
 }
 
-// 处理表格展开状态更新
-function handleExpandedKeysUpdate(keys) {
-  expandedKeys.value = keys
-  const tableData = crudRef.value?.getTableData() || []
-  const allKeys = getAllKeys(tableData)
-  expandAll.value = keys.length === allKeys.length
+// 提交成功后
+async function handleSubmitSuccess() {
+  await refreshSystemMenu()
+  loadParentResourceOptions()
+}
+
+// 刷新系统菜单
+async function refreshSystemMenu() {
+  try {
+    const res = await api.getMenu()
+    if (res.code === 200 && res.data) {
+      permissionStore.setMenuData(res.data)
+    }
+  }
+  catch (error) {
+    console.error('刷新系统菜单失败:', error)
+  }
+}
+
+// 内联更新
+async function handleInlineUpdate(row, field, value) {
+  try {
+    row[field] = value
+    const res = await request.post('/system/resource/edit', {
+      id: row.id,
+      [field]: value,
+    })
+    if (res.code === 200) {
+      window.$message.success('更新成功')
+      await refreshSystemMenu()
+      loadParentResourceOptions()
+    }
+    else {
+      window.$message.error(res.msg || '更新失败')
+    }
+  }
+  catch (error) {
+    console.error('内联更新失败:', error)
+    window.$message.error('更新失败')
+  }
 }
 
 // 展开/折叠所有
@@ -642,14 +714,32 @@ function toggleExpandAll() {
   }
 }
 
-// 新增子资源
+// 处理表格展开状态更新
+function handleExpandedKeysUpdate(keys) {
+  expandedKeys.value = keys
+  const tableData = crudRef.value?.getTableData() || []
+  const allKeys = getAllKeys(tableData)
+  expandAll.value = keys.length === allKeys.length
+}
+
+// 工具栏新增按钮点击（AiCrudPage 内部按钮触发）
+function handleToolbarAdd() {
+  // 设置当前 Tab 的 clientCode，beforeRenderForm 会使用
+  pendingClientCode.value = currentClientCode.value || null
+}
+
+// 新增子资源（操作列按钮触发）
 async function handleAdd(row) {
   await loadParentResourceOptions()
   if (row) {
+    // 新增子项：带入父级的 clientCode
     pendingParentId.value = row.id
+    pendingClientCode.value = row.clientCode
   }
   else {
+    // 顶级新增：带入当前 Tab 的 clientCode
     pendingParentId.value = null
+    pendingClientCode.value = currentClientCode.value || null
   }
   crudRef.value?.showAdd()
 }
@@ -674,6 +764,7 @@ function handleDelete(row) {
           window.$message.success('删除成功')
           crudRef.value?.refresh()
           await refreshSystemMenu()
+          loadParentResourceOptions()
         }
       }
       catch (error) {
@@ -681,47 +772,6 @@ function handleDelete(row) {
       }
     },
   })
-}
-
-// 提交成功后的处理
-async function handleSubmitSuccess() {
-  await refreshSystemMenu()
-}
-
-// 刷新系统菜单
-async function refreshSystemMenu() {
-  try {
-    const res = await api.getMenu()
-    if (res.code === 200 && res.data) {
-      permissionStore.setMenuData(res.data)
-    }
-  }
-  catch (error) {
-    console.error('刷新系统菜单失败:', error)
-  }
-}
-
-// 内联编辑处理
-async function handleInlineUpdate(row, field, value) {
-  try {
-    row[field] = value
-    const res = await request.post('/system/resource/edit', {
-      id: row.id,
-      [field]: value,
-    })
-    if (res.code === 200) {
-      window.$message.success('更新成功')
-      crudRef.value?.refresh()
-      await refreshSystemMenu()
-    }
-    else {
-      window.$message.error(res.msg || '更新失败')
-    }
-  }
-  catch (error) {
-    console.error('内联更新失败:', error)
-    window.$message.error('更新失败')
-  }
 }
 </script>
 
@@ -811,5 +861,26 @@ async function handleInlineUpdate(row, field, value) {
 
 :deep(.resource-type-2:hover) {
   background-color: #ebfbee !important;
+}
+
+.icon-selector-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.icon-upload-container {
+  padding: 8px 0;
+}
+
+.client-tabs-container {
+  background: #fff;
+  padding: 8px 16px 0;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.tab-label {
+  font-size: 14px;
 }
 </style>

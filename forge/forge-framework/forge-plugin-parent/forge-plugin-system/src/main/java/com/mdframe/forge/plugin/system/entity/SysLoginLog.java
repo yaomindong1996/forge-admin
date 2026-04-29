@@ -43,4 +43,9 @@ public class SysLoginLog implements Serializable {
     private String loginMessage;
 
     private LocalDateTime loginTime;
+    
+    /**
+     * 客户端代码
+     */
+    private String clientCode;
 }

@@ -107,6 +107,18 @@ public class SysClientController {
         return RespInfo.success(onlineUsers);
     }
     
+    @GetMapping("/list")
+    public RespInfo<List<SysClientVO>> list() {
+        LambdaQueryWrapper<SysClient> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SysClient::getStatus, 1);
+        wrapper.orderByAsc(SysClient::getId);
+        
+        List<SysClient> clients = clientService.list(wrapper);
+        List<SysClientVO> voList = clients.stream().map(this::convertToVO).toList();
+        
+        return RespInfo.success(voList);
+    }
+    
     @GetMapping("/online/stats")
     public RespInfo<Map<String, Long>> getOnlineStats() {
         Map<String, Long> stats = onlineUserService.getOnlineCountByClient();

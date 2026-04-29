@@ -23,7 +23,7 @@
           </div>
 
           <!-- 详细信息列表 -->
-          <div class="info-list">
+           <div class="info-list">
             <div class="info-row">
               <i class="i-material-symbols:account-tree-outline info-row-icon" />
               <div class="info-row-content">
@@ -32,14 +32,26 @@
               </div>
             </div>
             <div class="info-row">
-              <i class="i-material-symbols:shield-person-outline info-row-icon" />
+              <i class="i-material-symbols:smartphone-outline info-row-icon" />
               <div class="info-row-content">
                 <span class="info-label">角色</span>
                 <span class="info-value">{{ roleNames || '暂无' }}</span>
               </div>
             </div>
             <div class="info-row">
-              <i class="i-material-symbols:smartphone-outline info-row-icon" />
+              <i class="i-material-symbols:devices info-row-icon" />
+              <div class="info-row-content">
+                <span class="info-label">客户端</span>
+                <span class="info-value">
+                  <n-tag v-if="userStore.userInfo?.userClient" :type="getClientTagType(userStore.userInfo.userClient)" size="small" :bordered="false">
+                    {{ getClientName(userStore.userInfo.userClient) }}
+                  </n-tag>
+                  <span v-else>-</span>
+                </span>
+              </div>
+            </div>
+            <div class="info-row">
+              <i class="i-material-symbols:contact-phone info-row-icon" />
               <div class="info-row-content">
                 <span class="info-label">手机</span>
                 <span class="info-value">{{ userStore.phone || '未绑定' }}</span>
@@ -288,6 +300,28 @@ async function loadUserInfo() {
   catch (error) {
     console.error('获取用户信息失败:', error)
   }
+}
+
+// 获取客户端标签类型
+function getClientTagType(clientCode) {
+  const typeMap = {
+    pc: 'info',
+    app: 'success',
+    h5: 'warning',
+    wechat: 'success',
+  }
+  return typeMap[clientCode] || 'default'
+}
+
+// 获取客户端名称
+function getClientName(clientCode) {
+  const nameMap = {
+    pc: '桌面端',
+    app: '移动APP',
+    h5: '网页版',
+    wechat: '微信端',
+  }
+  return nameMap[clientCode] || clientCode
 }
 
 // 获取额外的显示信息（部门、角色）

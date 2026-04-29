@@ -15,7 +15,7 @@ export default {
       return mockMenuApi.getMenu()
     }
     else {
-      return request.get('/system/resource/current/menu')
+      return request.get('/auth/current/menu')
     }
   },
 

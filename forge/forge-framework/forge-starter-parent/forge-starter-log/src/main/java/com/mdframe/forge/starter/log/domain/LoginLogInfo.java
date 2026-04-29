@@ -77,4 +77,9 @@ public class LoginLogInfo implements Serializable {
      * 登录时间
      */
     private LocalDateTime loginTime;
+    
+    /**
+     * 客户端代码
+     */
+    private String clientCode;
 }

@@ -118,8 +118,10 @@
     <modules>
         <module>forge-admin-server</module>
         <module>forge-framework</module>
-        <module>forge-flow-server</module>
         <module>forge-report-server</module>
+        <module>forge-app-server</module>
+        <module>forge-flow</module>
+        <module>forge-business</module>
     </modules>
     
     <packaging>pom</packaging>

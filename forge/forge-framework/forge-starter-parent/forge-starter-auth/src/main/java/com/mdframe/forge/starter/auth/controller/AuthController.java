@@ -3,11 +3,15 @@ package com.mdframe.forge.starter.auth.controller;
 import com.mdframe.forge.starter.auth.domain.*;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.auth.service.IAuthService;
+import com.mdframe.forge.starter.auth.service.IMenuService;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 认证控制器
@@ -18,6 +22,9 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final IAuthService authService;
+
+    @Autowired(required = false)
+    private IMenuService menuService;
 
     /**
      * 统一登录入口
@@ -51,6 +58,12 @@ public class AuthController {
     @GetMapping("/userInfo")
     public RespInfo<LoginUser> getUserInfo() {
         LoginUser loginUser = SessionHelper.getLoginUser();
+        
+        // 记录当前登录用户信息
+        if (loginUser != null) {
+            loginUser.setLoginTime(System.currentTimeMillis());
+        }
+        
         return RespInfo.success(loginUser);
     }
 
@@ -132,5 +145,29 @@ public class AuthController {
     public RespInfo<LoginResult> refreshToken() {
         LoginResult result = authService.refreshToken();
         return RespInfo.success(result);
+    }
+
+    /**
+     * 查询当前用户的资源树（含菜单和按钮权限）
+     */
+    @GetMapping("/current/tree")
+    public RespInfo<List<UserResourceTreeVO>> getCurrentUserResourceTree() {
+        return RespInfo.success(menuService.selectCurrentUserResourceTree());
+    }
+
+    /**
+     * 查询当前用户的菜单树（仅目录和菜单，不含按钮）
+     */
+    @GetMapping("/current/menu")
+    public RespInfo<List<UserResourceTreeVO>> getCurrentUserMenuTree() {
+        return RespInfo.success(menuService.selectCurrentUserMenuTree());
+    }
+
+    /**
+     * 查询当前用户的权限标识列表
+     */
+    @GetMapping("/current/permissions")
+    public RespInfo<List<String>> getCurrentUserPermissions() {
+        return RespInfo.success(menuService.selectCurrentUserPermissions());
     }
 }

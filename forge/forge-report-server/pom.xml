@@ -6,6 +6,7 @@
         <artifactId>forge</artifactId>
         <groupId>com.mdframe.forge</groupId>
         <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>forge-report-server</artifactId>
     <name>forge-report</name>

@@ -230,6 +230,22 @@ public class LoginLogListener implements SaTokenListener {
         logInfo.setLoginMessage(loginMessage);
         logInfo.setLoginTime(LocalDateTime.now());
 
+        // 获取当前登录用户信息以获取客户端类型
+        try {
+            // 尝试从 SessionHelper 获取登录用户信息
+            Class<?> sessionHelperClazz = Class.forName("com.mdframe.forge.starter.core.session.SessionHelper");
+            Object loginUserObj = sessionHelperClazz.getMethod("getLoginUser").invoke(null);
+            if (loginUserObj != null) {
+                String userClient = (String) loginUserObj.getClass().getMethod("getUserClient").invoke(loginUserObj);
+                if (userClient != null) {
+                    logInfo.setClientCode(userClient);
+                }
+            }
+        } catch (Exception e) {
+            // 如果无法获取 SessionHelper 或登录用户信息，静默忽略
+            log.debug("无法获取当前登录用户客户端信息", e);
+        }
+
         // 获取请求信息
         try {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();

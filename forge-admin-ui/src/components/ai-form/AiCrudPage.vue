@@ -1250,7 +1250,16 @@ async function handleModalConfirm() {
   }
   catch (error) {
     console.error('提交失败:', error)
-    window.$message.error('提交失败')
+    
+    // 如果是验证错误数组，显示第一个错误信息
+    if (Array.isArray(error) && error.length > 0) {
+      const firstError = error[0]
+      const errorMsg = firstError?.message || '表单验证失败'
+      window.$message.error(errorMsg)
+      console.error('验证错误详情:', error)
+    } else {
+      window.$message.error(error?.message || '提交失败')
+    }
 
     // 触发提交失败事件
     emit('submit-error', { error, data: formData.value })

@@ -111,4 +111,9 @@ public class SysResourceDTO implements Serializable {
      * 备注
      */
     private String remark;
+
+    /**
+     * 客户端代码（pc/app/h5）
+     */
+    private String clientCode;
 }

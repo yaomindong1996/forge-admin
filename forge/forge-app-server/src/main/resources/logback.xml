@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 日志存放路径 -->
+    <property name="log.path" value="./var/logs" />
+    <!-- 日志输出格式（包含traceId） -->
+    <property name="log.pattern" value="traceId:[%X{traceId}], %d{HH:mm:ss.SSS} [%thread] %-5level %logger{20} - [%method,%line] - %msg%n" />
+    <!-- 控制台输出 -->
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${log.pattern}</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- 系统日志输出 -->
+    <appender name="file_info" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${log.path}/forge-app.log</file>
+        <!-- 循环政策：基于时间创建日志文件 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 日志文件名格式 -->
+            <fileNamePattern>${log.path}/forge-app-info.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- 日志最大的历史 60天 -->
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${log.pattern}</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- 系统模块日志级别控制  -->
+    <logger name="com.mdframe.forge" level="info" />
+    <!-- Spring日志级别控制  -->
+    <logger name="org.springframework" level="info" />
+    <!-- MyBatis SQL日志打印 -->
+    <logger name="com.mdframe.forge.plugin.system.mapper" level="debug" />
+    <logger name="com.mdframe.forge" level="debug" additivity="false">
+        <appender-ref ref="console" />
+        <appender-ref ref="file_info" />
+    </logger>
+    
+    <root level="info">
+        <appender-ref ref="console" />
+    </root>
+    
+    <!--系统操作日志-->
+    <root level="info">
+        <appender-ref ref="file_info" />
+    </root>
+</configuration>

@@ -37,4 +37,9 @@ public class SysResourceQuery extends PageQuery {
      * 显示状态（0-隐藏，1-显示）
      */
     private Integer visible;
+
+    /**
+     * 客户端代码（pc/app/h5）
+     */
+    private String clientCode;
 }

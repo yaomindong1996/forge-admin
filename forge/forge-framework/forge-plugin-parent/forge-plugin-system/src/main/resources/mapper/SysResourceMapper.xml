@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.system.mapper.SysResourceMapper">
+
+    <!-- 基础资源查询条件片段 -->
+    <sql id="resourceCondition">
+        <where>
+            <if test="query != null">
+                <if test="query.resourceType != null and query.resourceType != ''">
+                    AND resource_type = #{query.resourceType}
+                </if>
+                <if test="query.resourceName != null and query.resourceName != ''">
+                    AND resource_name LIKE CONCAT('%', #{query.resourceName}, '%')
+                </if>
+                <if test="query.perms != null and query.perms != ''">
+                    AND perms LIKE CONCAT('%', #{query.perms}, '%')
+                </if>
+                <if test="query.path != null and query.path != ''">
+                    AND path LIKE CONCAT('%', #{query.path}, '%')
+                </if>
+                <if test="query.clientCode != null and query.clientCode != ''">
+                    AND client_code = #{query.clientCode}
+                </if>
+            </if>
+        </where>
+    </sql>
+
+    <!-- 分页查询资源列表 -->
+    <select id="selectResourcePage" resultType="com.mdframe.forge.plugin.system.entity.SysResource">
+        SELECT * FROM sys_resource
+        <include refid="resourceCondition"/>
+        ORDER BY sort ASC
+    </select>
+
+    <!-- 查询资源树形列表 -->
+    <select id="selectResourceTree" resultType="com.mdframe.forge.plugin.system.entity.SysResource">
+        SELECT * FROM sys_resource
+        <include refid="resourceCondition"/>
+        ORDER BY sort ASC
+    </select>
+
+    <!-- 查询指定用户的角色下的资源列表 -->
+    <select id="selectUserResourcesByRoleIds" resultType="com.mdframe.forge.plugin.system.entity.SysResource">
+        SELECT DISTINCT sr.*
+        FROM sys_resource sr
+        INNER JOIN sys_role_resource srr ON sr.id = srr.resource_id
+        WHERE sr.visible = 1 AND sr.menu_status = 1 AND srr.role_id IN
+        <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+            #{roleId}
+        </foreach>
+        <if test="clientCode != null and clientCode != ''">
+            AND sr.client_code = #{clientCode}
+        </if>
+        ORDER BY sr.sort ASC
+    </select>
+    
+    <!-- 查询指定用户资源列表（用于构建导航菜单） -->
+    <select id="selectUserNavigationResources" resultType="com.mdframe.forge.plugin.system.entity.SysResource">
+        SELECT DISTINCT sr.*
+        FROM sys_resource sr
+        INNER JOIN sys_role_resource srr ON sr.id = srr.resource_id
+        INNER JOIN sys_user_role sur ON srr.role_id = sur.role_id
+        WHERE sur.user_id = #{userId} 
+          AND sr.visible = 1 
+          AND sr.menu_status = 1 
+          AND sr.resource_type IN (1, 2)
+        <if test="clientCode != null and clientCode != ''">
+            AND sr.client_code = #{clientCode}
+        </if>
+        ORDER BY sr.sort ASC
+    </select>
+
+    <!-- 查询用户拥有的API权限列表 -->
+    <select id="selectUserApiPermissions" resultType="java.lang.String">
+        SELECT DISTINCT sr.perms
+        FROM sys_resource sr
+        INNER JOIN sys_role_resource srr ON sr.id = srr.resource_id
+        INNER JOIN sys_user_role sur ON srr.role_id = sur.role_id
+        WHERE sur.user_id = #{userId} 
+          AND sr.visible = 1 
+          AND sr.resource_type = 4
+        <if test="clientCode != null and clientCode != ''">
+            AND sr.client_code = #{clientCode}
+        </if>
+        ORDER BY sr.sort ASC
+    </select>
+    
+</mapper>

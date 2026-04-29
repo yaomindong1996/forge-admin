@@ -8,9 +8,11 @@
         <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-    <artifactId>forge-admin-server</artifactId>
-    <name>forge-admin</name>
-    <description>forge-admin</description>
+    <groupId>com.mdframe.forge</groupId>
+    <artifactId>forge-app-server</artifactId>
+    <name>forge-app-server</name>
+    <description>forge-app-server</description>
+    
     <dependencies>
         
         <!-- Mysql驱动包 -->
@@ -36,17 +38,7 @@
         
         <dependency>
             <groupId>com.mdframe.forge</groupId>
-            <artifactId>forge-starter-excel</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-starter-config</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.mdframe.forge</groupId>
-            <artifactId>forge-plugin-job</artifactId>
         </dependency>
         
         <dependency>
@@ -66,28 +58,7 @@
         
         <dependency>
             <groupId>com.mdframe.forge</groupId>
-            <artifactId>forge-plugin-generator</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-starter-api-config</artifactId>
-        </dependency>
-        
-        <!-- Flow Client 供业务服务通过 HTTP 调用流程服务，包含 @FlowBind/@FlowStart/@FlowCallback 注解 -->
-        <dependency>
-            <groupId>com.mdframe.forge</groupId>
-            <artifactId>forge-flow-client</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.mdframe.forge</groupId>
-            <artifactId>forge-starter-social</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>com.mdframe.forge</groupId>
-            <artifactId>forge-plugin-ai</artifactId>
         </dependency>
         
         <dependency>

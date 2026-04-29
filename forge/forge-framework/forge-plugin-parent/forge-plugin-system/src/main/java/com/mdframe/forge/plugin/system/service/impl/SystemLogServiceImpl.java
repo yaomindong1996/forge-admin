@@ -61,16 +61,17 @@ public class SystemLogServiceImpl implements ILogService {
                     logInfo.setUsername(sysUser.getUsername());
                     logInfo.setTenantId(sysUser.getTenantId());
                 } catch (Exception e) {
-                    log.debug("从Session获取用户信息失败", e);
+                    log.debug("从SysUser获取用户信息失败", e);
                 }
             }
             // 转换并保存
             SysLoginLog entity = new SysLoginLog();
             BeanUtil.copyProperties(logInfo, entity);
+            entity.setClientCode(logInfo.getClientCode()); // 确保设置客户端代码映射
             loginLogMapper.insert(entity);
 
-            log.debug("登录日志保存成功: userId={}, type={}, status={}",
-                    logInfo.getUserId(), logInfo.getLoginType(), logInfo.getLoginStatus());
+            log.debug("登录日志保存成功: userId={}, type={}, status={}, client={}",
+                    logInfo.getUserId(), logInfo.getLoginType(), logInfo.getLoginStatus(), logInfo.getClientCode());
         } catch (Exception e) {
             log.error("登录日志保存失败", e);
         }

@@ -4,13 +4,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>forge</artifactId>
+        <artifactId>forge-flow</artifactId>
         <groupId>com.mdframe.forge</groupId>
         <version>${revision}</version>
     </parent>
 
     <artifactId>forge-flow-server</artifactId>
-    <name>forge-flow-service</name>
+    <name>forge-flow-server</name>
     <description>Forge Flow 流程服务 - 基于 Flowable 的独立流程服务</description>
 
     <dependencies>

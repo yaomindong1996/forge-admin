@@ -24,9 +24,7 @@
     >
       <div v-if="currentLog" class="log-detail">
         <div class="detail-section">
-          <h4 class="section-title">
-            用户信息
-          </h4>
+          <h4 class="section-title">用户信息</h4>
           <div class="detail-row">
             <span class="label">用户名：</span>
             <span class="value">{{ currentLog.username || '-' }}</span>
@@ -38,9 +36,7 @@
         </div>
 
         <div class="detail-section">
-          <h4 class="section-title">
-            登录信息
-          </h4>
+          <h4 class="section-title">登录信息</h4>
           <div class="detail-row">
             <span class="label">登录类型：</span>
             <NTag :type="getLoginTypeTag(currentLog.loginType).type" size="small">
@@ -58,19 +54,21 @@
             <span class="value">{{ currentLog.loginTime }}</span>
           </div>
           <div class="detail-row">
-            <span class="label">登录信息：</span>
-            <span class="value">{{ currentLog.loginMessage || '-' }}</span>
+            <span class="label">客户端：</span>
+            <span class="value">
+              <NTag :type="getClientTag(currentLog.clientCode).type" size="small">
+                {{ getClientTag(currentLog.clientCode).text }}
+              </NTag>
+            </span>
           </div>
-        </div>
-
-        <div class="detail-section">
-          <h4 class="section-title">
-            环境信息
-          </h4>
           <div class="detail-row">
             <span class="label">登录IP：</span>
             <span class="value">{{ currentLog.loginIp || '-' }}</span>
           </div>
+        </div>
+
+        <div class="detail-section">
+          <h4 class="section-title">环境信息</h4>
           <div class="detail-row">
             <span class="label">登录地点：</span>
             <span class="value">{{ currentLog.loginLocation || '-' }}</span>
@@ -91,9 +89,7 @@
       </div>
       <template #footer>
         <n-space justify="end">
-          <n-button @click="detailVisible = false">
-            关闭
-          </n-button>
+          <n-button @click="detailVisible = false">关闭</n-button>
         </n-space>
       </template>
     </n-modal>
@@ -120,7 +116,6 @@ function handleBeforeSearch(params) {
   if (params.timeRange && params.timeRange.length === 2) {
     result.startTime = formatDateTime(params.timeRange[0])
     result.endTime = formatDateTime(params.timeRange[1])
-    console.log('Formatted Dates:', result.startTime, result.endTime)
     delete result.timeRange
   }
 
@@ -175,6 +170,21 @@ const searchSchema = [
     },
   },
   {
+    field: 'clientCode',
+    label: '客户端',
+    type: 'select',
+    props: {
+      placeholder: '请选择客户端',
+      clearable: true,
+      options: [
+        { label: '桌面端', value: 'pc' },
+        { label: '移动APP', value: 'app' },
+        { label: '网页H5', value: 'h5' },
+        { label: '微信', value: 'wechat' },
+      ],
+    },
+  },
+  {
     field: 'timeRange',
     label: '登录时间',
     type: 'daterange',
@@ -186,7 +196,6 @@ const searchSchema = [
     props: {
       type: 'datetimerange',
     },
-    // 时间范围转换为 startTime 和 endTime
     transform: (value) => {
       if (value && value.length === 2) {
         return {
@@ -211,43 +220,57 @@ const tableColumns = computed(() => [
     label: '登录类型',
     width: 100,
     render: (row) => {
-      const config = getLoginTypeTag(row.loginType)
-      return h(NTag, { type: config.type, size: 'small' }, { default: () => config.text })
+      const tag = getLoginTypeTag(row.loginType)
+      return h(NTag, { type: tag.type, size: 'small' }, { default: () => tag.text })
     },
   },
   {
     prop: 'loginStatus',
-    label: '状态',
-    width: 80,
+    label: '登录状态',
+    width: 100,
     render: (row) => {
-      return h(NTag, { type: row.loginStatus === 1 ? 'success' : 'error', size: 'small' }, { default: () => row.loginStatus === 1 ? '成功' : '失败' },
+      return h(
+        NTag,
+        { type: row.loginStatus === 1 ? 'success' : 'error', size: 'small' },
+        { default: () => row.loginStatus === 1 ? '成功' : '失败' }
       )
+    },
+  },
+  {
+    prop: 'clientCode',
+    label: '客户端',
+    width: 100,
+    render: (row) => {
+      const tag = getClientTag(row.clientCode)
+      return h(NTag, { type: tag.type, size: 'small' }, { default: () => tag.text })
     },
   },
   {
     prop: 'loginIp',
     label: '登录IP',
-    width: 130,
+    width: 140,
+    ellipsis: { tooltip: true },
   },
   {
     prop: 'loginLocation',
     label: '登录地点',
     width: 150,
-    render: row => row.loginLocation || '-',
+    ellipsis: { tooltip: true },
+    render: (row) => row.loginLocation || '-',
   },
   {
     prop: 'browser',
     label: '浏览器',
     width: 120,
     ellipsis: { tooltip: true },
-    render: row => row.browser || '-',
+    render: (row) => row.browser || '-',
   },
   {
     prop: 'os',
     label: '操作系统',
     width: 120,
     ellipsis: { tooltip: true },
-    render: row => row.os || '-',
+    render: (row) => row.os || '-',
   },
   {
     prop: 'loginTime',
@@ -259,7 +282,7 @@ const tableColumns = computed(() => [
     label: '登录信息',
     minWidth: 150,
     ellipsis: { tooltip: true },
-    render: row => row.loginMessage || '-',
+    render: (row) => row.loginMessage || '-',
   },
   {
     prop: 'action',
@@ -284,6 +307,17 @@ function getLoginTypeTag(loginType) {
   return typeMap[loginType] || { text: loginType, type: 'default' }
 }
 
+// 获取客户端标签配置
+function getClientTag(clientCode) {
+  const clientMap = {
+    pc: { text: '桌面端', type: 'info' },
+    app: { text: '移动APP', type: 'success' },
+    h5: { text: '网页H5', type: 'warning' },
+    wechat: { text: '微信', type: 'success' },
+  }
+  return clientMap[clientCode] || { text: clientCode || '-', type: 'default' }
+}
+
 // 查看详情
 async function handleViewDetail(row) {
   try {
@@ -292,8 +326,7 @@ async function handleViewDetail(row) {
       currentLog.value = res.data
       detailVisible.value = true
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('获取详情失败:', error)
   }
 }

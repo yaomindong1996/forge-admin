@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.mdframe.forge.plugin.system.dto.SysResourceDTO;
 import com.mdframe.forge.plugin.system.dto.SysResourceQuery;
 import com.mdframe.forge.plugin.system.entity.SysResource;
-import com.mdframe.forge.plugin.system.vo.UserResourceTreeVO;
+import com.mdframe.forge.starter.auth.domain.UserResourceTreeVO;
 
 import java.util.List;
 
