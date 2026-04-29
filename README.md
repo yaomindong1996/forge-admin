@@ -29,6 +29,9 @@
 
 除了完善的后台管理能力外，Forge Admin 还集成了基于 [GoView](https://gitee.com/dromara/go-view) 二次开发的 **AI 数据可视化大屏平台**，支持通过自然语言描述一键生成数据大屏，对接真实后台接口，让数据可视化开发效率提升 10 倍。
 
+## 系统架构
+![系统架构图.jpeg](images/%E7%B3%BB%E7%BB%9F%E6%9E%B6%E6%9E%84%E5%9B%BE.jpeg)
+
 ### 🌟 核心亮点
 
 | 能力                | 说明                              |
