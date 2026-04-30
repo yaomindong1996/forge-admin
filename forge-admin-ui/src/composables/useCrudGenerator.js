@@ -51,6 +51,10 @@ export function useCrudGenerator() {
   const typingTimer = ref(null)
   const currentReceivingFile = ref(null)
   const lastLoadedTableName = ref('')
+  const reasoningContent = ref('')
+  const isReasoningPhase = ref(false)
+  const reasoningStartTime = ref(null)
+  const reasoningEndTime = ref(null)
   const displayContent = ref({
     searchSchema: '',
     columnsSchema: '',
@@ -145,6 +149,8 @@ export function useCrudGenerator() {
     sessionId.value = generateSessionId()
     messages.value = []
     rawContent.value = ''
+    reasoningContent.value = ''
+    isReasoningPhase.value = false
     generatedFiles.value = { searchSchema: '', columnsSchema: '', editSchema: '', apiConfig: '', createTableSql: '', tableStructure: '', dictConfig: '', desensitizeConfig: '', encryptConfig: '', transConfig: '' }
     displayContent.value = { searchSchema: '', columnsSchema: '', editSchema: '', apiConfig: '', createTableSql: '', tableStructure: '', dictConfig: '', desensitizeConfig: '', encryptConfig: '', transConfig: '' }
     currentReceivingFile.value = null
@@ -260,6 +266,8 @@ export function useCrudGenerator() {
 
     generating.value = true
     rawContent.value = ''
+    reasoningContent.value = ''
+    isReasoningPhase.value = false
     generatedFiles.value = { searchSchema: '', columnsSchema: '', editSchema: '', apiConfig: '', createTableSql: '', tableStructure: '', dictConfig: '', desensitizeConfig: '', encryptConfig: '', transConfig: '' }
     displayContent.value = { searchSchema: '', columnsSchema: '', editSchema: '', apiConfig: '', createTableSql: '', tableStructure: '', dictConfig: '', desensitizeConfig: '', encryptConfig: '', transConfig: '' }
     typingQueue.value = []
@@ -333,7 +341,6 @@ export function useCrudGenerator() {
       }
     }
     else if (event === 'meta') {
-      // AI 推断的元数据
       if (data.configKey && !configKey.value)
         configKey.value = data.configKey
       if (data.tableName && !tableName.value)
@@ -343,16 +350,48 @@ export function useCrudGenerator() {
       updateLastAssistantMessage(`已推断: configKey=${data.configKey || '-'}, tableName=${data.tableName || '-'}`)
     }
     else if (event === 'chunk') {
-      rawContent.value += data.content
-      // 实时追加到当前阶段的 displayContent，使右侧预览区实时更新
-      if (currentReceivingFile.value) {
-        displayContent.value[currentReceivingFile.value]
-          = (displayContent.value[currentReceivingFile.value] || '') + data.content
+      const chunkContent = data.content
+      
+      if (chunkContent.includes('==================== 思考过程 ====================')) {
+        isReasoningPhase.value = true
+        reasoningStartTime.value = Date.now()
+        reasoningEndTime.value = null
+        reasoningContent.value = ''
+        const afterThinkingDelimiter = chunkContent.split('==================== 思考过程 ====================')[1] || ''
+        reasoningContent.value += afterThinkingDelimiter.replace('\n', '')
+        updateLastAssistantMessage('', { reasoning: reasoningContent.value, isReasoning: true, reasoningTime: null })
+      }
+      else if (chunkContent.includes('==================== 完整回复 ====================')) {
+        isReasoningPhase.value = false
+        reasoningEndTime.value = Date.now()
+        const reasoningTime = reasoningStartTime.value ? Math.round((reasoningEndTime.value - reasoningStartTime.value) / 1000) : null
+        const afterAnswerDelimiter = chunkContent.split('==================== 完整回复 ====================')[1] || ''
+        rawContent.value += afterAnswerDelimiter.replace('\n', '')
+        if (currentReceivingFile.value) {
+          displayContent.value[currentReceivingFile.value]
+            = (displayContent.value[currentReceivingFile.value] || '') + afterAnswerDelimiter.replace('\n', '')
+        }
+        else {
+          displayContent.value.searchSchema
+            = (displayContent.value.searchSchema || '') + afterAnswerDelimiter.replace('\n', '')
+        }
+        updateLastAssistantMessage(rawContent.value, { reasoning: reasoningContent.value, isReasoning: false, reasoningTime })
+      }
+      else if (isReasoningPhase.value) {
+        reasoningContent.value += chunkContent
+        updateLastAssistantMessage('', { reasoning: reasoningContent.value, isReasoning: true, reasoningTime: null })
       }
       else {
-        // 还没收到 progress 阶段事件时，先写入 searchSchema 作为默认预览
-        displayContent.value.searchSchema
-          = (displayContent.value.searchSchema || '') + data.content
+        rawContent.value += chunkContent
+        if (currentReceivingFile.value) {
+          displayContent.value[currentReceivingFile.value]
+            = (displayContent.value[currentReceivingFile.value] || '') + chunkContent
+        }
+        else {
+          displayContent.value.searchSchema
+            = (displayContent.value.searchSchema || '') + chunkContent
+        }
+        updateLastAssistantMessage(rawContent.value, { reasoning: reasoningContent.value, isReasoning: false })
       }
     }
   }
@@ -551,11 +590,18 @@ export function useCrudGenerator() {
     updateLastAssistantMessage(`❌ 生成失败: ${msg}`)
   }
 
-  function updateLastAssistantMessage(content) {
+  function updateLastAssistantMessage(content, reasoningData = null) {
     const lastAssistant = messages.value.filter(m => m.role === 'assistant').pop()
     if (lastAssistant) {
       lastAssistant.content = content
       lastAssistant.streaming = generating.value
+      if (reasoningData) {
+        lastAssistant.reasoning = reasoningData.reasoning
+        lastAssistant.isReasoning = reasoningData.isReasoning
+        if (reasoningData.reasoningTime !== undefined) {
+          lastAssistant.reasoningTime = reasoningData.reasoningTime
+        }
+      }
     }
   }
 
@@ -797,6 +843,8 @@ export function useCrudGenerator() {
     inputText,
     sessionList,
     rawContent,
+    reasoningContent,
+    isReasoningPhase,
     displayContent,
 
     loadTemplateList,

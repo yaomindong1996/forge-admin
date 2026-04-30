@@ -1165,13 +1165,16 @@ async function handleSubmitOrg() {
 <style scoped>
 .system-user-page {
   height: 100%;
-  padding: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 左右布局 */
 .user-layout {
   display: flex;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   gap: 12px;
 }
 

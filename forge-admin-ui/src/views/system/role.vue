@@ -1,24 +1,27 @@
 <template>
   <div class="system-role-page">
-    <AiCrudPage
-      ref="crudRef"
-      api="/system/role"
-      :api-config="{
-        list: 'get@/system/role/page',
-        detail: 'post@/system/role/getById',
-        add: 'post@/system/role/add',
-        update: 'post@/system/role/edit',
-        delete: 'post@/system/role/remove',
-      }"
-      :search-schema="searchSchema"
-      :columns="tableColumns"
-      :edit-schema="editSchema"
-      :before-submit="beforeSubmit"
-      row-key="id"
-      :edit-grid-cols="2"
-      modal-width="800px"
-      add-button-text="新增角色"
-    />
+    <!-- 角色列表 -->
+    <div class="role-content">
+      <AiCrudPage
+        ref="crudRef"
+        api="/system/role"
+        :api-config="{
+          list: 'get@/system/role/page',
+          detail: 'post@/system/role/getById',
+          add: 'post@/system/role/add',
+          update: 'post@/system/role/edit',
+          delete: 'post@/system/role/remove',
+        }"
+        :search-schema="searchSchema"
+        :columns="tableColumns"
+        :edit-schema="editSchema"
+        :before-submit="beforeSubmit"
+        row-key="id"
+        :edit-grid-cols="2"
+        modal-width="800px"
+        add-button-text="新增角色"
+      />
+    </div>
 
     <!-- 授权弹窗 -->
     <n-modal
@@ -940,6 +943,23 @@ async function handleSubmitAuth() {
 <style scoped>
 .system-role-page {
   height: 100%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 角色列表内容 */
+.role-content {
+  flex: 1;
+  min-height: 0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.role-content :deep(.ai-crud-page) {
+  height: 100%;
 }
 
 /* 授权弹窗样式 */
@@ -1166,5 +1186,41 @@ async function handleSubmitAuth() {
 
 .users-table-container::-webkit-scrollbar-thumb:hover {
   background: var(--n-border-color);
+}
+
+/* 深色模式 */
+.dark .role-content {
+  background: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .auth-toolbar {
+  background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%);
+}
+
+.dark .auth-tabs :deep(.n-tabs-nav) {
+  background-color: #1e293b;
+}
+
+.dark .auth-tree-container {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.dark .users-search-form {
+  background-color: #1e293b;
+}
+
+.dark .users-toolbar {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+}
+
+.dark .users-table-container {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.dark .users-table-container :deep(.n-data-table-th) {
+  background-color: #1e293b;
 }
 </style>

@@ -1,6 +1,7 @@
 package com.mdframe.forge.starter.auth.config;
 
 import cn.dev33.satoken.SaManager;
+import cn.dev33.satoken.stp.StpUtil;
 import com.mdframe.forge.starter.config.config.SecurityConfig;
 import com.mdframe.forge.starter.config.service.ConfigManagerService;
 import com.mdframe.forge.starter.property.event.ConfigRefreshEvent;
@@ -38,7 +39,6 @@ public class SaTokenConfigLoader implements ApplicationRunner, ApplicationListen
     public void applyConfig() {
         try {
             cn.dev33.satoken.config.SaTokenConfig config = SaManager.getConfig();
-            
             SecurityConfig securityConfig = configManagerService.getSecurityConfig();
             if (securityConfig == null) {
                 return;
@@ -58,7 +58,7 @@ public class SaTokenConfigLoader implements ApplicationRunner, ApplicationListen
             config.setIsReadBody(securityConfigSaToken.getIsReadBody());
             config.setIsReadCookie(securityConfigSaToken.getIsReadCookie());
             config.setIsReadHeader(securityConfigSaToken.getIsReadHeader());
-
+            SaManager.setConfig(config);
             log.info("Sa-Token配置已从数据库加载并应用: tokenName={}, timeout={}s, activeTimeout={}s, " +
                             "isConcurrent={}, isShare={}, tokenStyle={}",
                     config.getTokenName(), config.getTimeout(), config.getActiveTimeout(),

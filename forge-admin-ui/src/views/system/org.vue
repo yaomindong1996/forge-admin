@@ -1,41 +1,44 @@
 <template>
   <div class="system-org-page">
-    <AiCrudPage
-      ref="crudRef"
-      api="/system/org"
-      :api-config="{
-        list: 'get@/system/org/tree',
-        detail: 'post@/system/org/getById',
-        add: 'post@/system/org/add',
-        update: 'post@/system/org/edit',
-        delete: 'post@/system/org/remove',
-      }"
-      :search-schema="searchSchema"
-      :columns="tableColumns"
-      :edit-schema="editSchema"
-      :before-render-list="beforeRenderList"
-      :before-submit="beforeSubmit"
-      row-key="id"
-      :edit-grid-cols="2"
-      modal-width="900px"
-      :show-pagination="false"
-      :lazy="false"
-      add-button-text="新增组织"
-      :table-props="{
-        expandedRowKeys: expandedKeys,
-        onUpdateExpandedRowKeys: handleExpandedKeysUpdate,
-      }"
-    >
-      <!-- 自定义工具栏 -->
-      <template #toolbar-end>
-        <n-button @click="toggleExpandAll">
-          <template #icon>
-            <i :class="expandAll ? 'i-material-symbols:unfold-less' : 'i-material-symbols:unfold-more'" />
-          </template>
-          {{ expandAll ? '折叠全部' : '展开全部' }}
-        </n-button>
-      </template>
-    </AiCrudPage>
+    <!-- 组织列表 -->
+    <div class="org-content">
+      <AiCrudPage
+        ref="crudRef"
+        api="/system/org"
+        :api-config="{
+          list: 'get@/system/org/tree',
+          detail: 'post@/system/org/getById',
+          add: 'post@/system/org/add',
+          update: 'post@/system/org/edit',
+          delete: 'post@/system/org/remove',
+        }"
+        :search-schema="searchSchema"
+        :columns="tableColumns"
+        :edit-schema="editSchema"
+        :before-render-list="beforeRenderList"
+        :before-submit="beforeSubmit"
+        row-key="id"
+        :edit-grid-cols="2"
+        modal-width="900px"
+        :show-pagination="false"
+        :lazy="false"
+        add-button-text="新增组织"
+        :table-props="{
+          expandedRowKeys: expandedKeys,
+          onUpdateExpandedRowKeys: handleExpandedKeysUpdate,
+        }"
+      >
+        <!-- 自定义工具栏 -->
+        <template #toolbar-end>
+          <n-button @click="toggleExpandAll">
+            <template #icon>
+              <i :class="expandAll ? 'i-material-symbols:unfold-less' : 'i-material-symbols:unfold-more'" />
+            </template>
+            {{ expandAll ? '折叠全部' : '展开全部' }}
+          </n-button>
+        </template>
+      </AiCrudPage>
+    </div>
   </div>
 </template>
 
@@ -513,5 +516,28 @@ function handleDelete(row) {
 <style scoped>
 .system-org-page {
   height: 100%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 组织列表内容 */
+.org-content {
+  flex: 1;
+  min-height: 0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.org-content :deep(.ai-crud-page) {
+  height: 100%;
+}
+
+/* 深色模式 */
+.dark .org-content {
+  background: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 </style>

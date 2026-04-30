@@ -1,5 +1,6 @@
 package com.mdframe.forge.plugin.system.service.impl;
 
+import cn.dev33.satoken.SaManager;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -58,7 +59,7 @@ public class SystemAuthServiceImpl implements IAuthService {
         }
         
         SysClient client = validateAndLoadClient(
-            request.getUserClient(), 
+            request.getUserClient(),
             request.getAppId(),
             request.getAppSecret()
         );
@@ -162,7 +163,7 @@ public class SystemAuthServiceImpl implements IAuthService {
             }
             
             if (!client.getAppId().equals(appId)) {
-                log.warn("客户端AppId不匹配: expected={}, actual={}, client={}", 
+                log.warn("客户端AppId不匹配: expected={}, actual={}, client={}",
                     client.getAppId(), appId, userClient);
                 throw new RuntimeException("客户端AppId不匹配");
             }
@@ -189,7 +190,7 @@ public class SystemAuthServiceImpl implements IAuthService {
         config.setActiveTimeout(client.getTokenActivityTimeout());
         config.setIsConcurrent(client.getConcurrentLogin());
         config.setIsShare(client.getShareToken());
-        
+        SaManager.setConfig(config);
         log.debug("应用客户端Token配置: client={}, timeout={}s, concurrent={}",
             client.getClientCode(), client.getTokenTimeout(), client.getConcurrentLogin());
     }

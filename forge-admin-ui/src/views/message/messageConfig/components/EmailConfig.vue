@@ -9,123 +9,162 @@
         label-width="120px"
         class="config-form"
       >
-        <n-form-item label="状态" path="status">
-          <n-switch v-model:value="formData.status" :checked-value="1" :unchecked-value="0">
-            <template #checked>
-              启用
-            </template>
-            <template #unchecked>
-              禁用
-            </template>
-          </n-switch>
-        </n-form-item>
+        <!-- 基础配置 -->
+        <div class="config-section">
+          <div class="section-header">
+            <div class="section-title">
+              <i class="i-material-symbols:mail-rounded section-icon" />
+              基础配置
+            </div>
+            <div class="section-desc">
+              SMTP服务器与邮箱账号配置
+            </div>
+          </div>
+          <div class="section-content">
+            <n-form-item label="状态" path="status">
+              <n-switch v-model:value="formData.status" :checked-value="1" :unchecked-value="0">
+                <template #checked>
+                  启用
+                </template>
+                <template #unchecked>
+                  禁用
+                </template>
+              </n-switch>
+            </n-form-item>
 
-        <n-form-item label="配置标识" path="configId">
-          <n-input v-model:value="formData.configId" placeholder="请输入配置标识（如：company-email）" />
-        </n-form-item>
+            <n-form-item label="配置标识" path="configId">
+              <n-input v-model:value="formData.configId" placeholder="请输入配置标识（如：company-email）" />
+            </n-form-item>
 
-        <n-form-item label="SMTP服务器" path="smtpServer">
-          <n-input v-model:value="formData.smtpServer" placeholder="如：smtp.qq.com" />
-        </n-form-item>
+            <n-form-item label="SMTP服务器" path="smtpServer">
+              <n-input v-model:value="formData.smtpServer" placeholder="如：smtp.qq.com" />
+            </n-form-item>
 
-        <n-form-item label="端口" path="port">
-          <n-input-number
-            v-model:value="formData.port"
-            :min="1"
-            :max="65535"
-            placeholder="端口"
-            style="width: 200px"
-          />
-          <span class="ml-8 text-gray-500">常用：25(明文)、465(SSL)、587(TLS)</span>
-        </n-form-item>
+            <n-form-item label="端口" path="port">
+              <n-input-number
+                v-model:value="formData.port"
+                :min="1"
+                :max="65535"
+                placeholder="端口"
+                style="width: 200px"
+              />
+              <span class="ml-8 text-gray-500">常用：25(明文)、465(SSL)、587(TLS)</span>
+            </n-form-item>
 
-        <n-form-item label="用户名" path="username">
-          <n-input v-model:value="formData.username" placeholder="邮箱账号" />
-        </n-form-item>
+            <n-form-item label="用户名" path="username">
+              <n-input v-model:value="formData.username" placeholder="邮箱账号" />
+            </n-form-item>
 
-        <n-form-item label="密码/授权码" path="password">
-          <n-input
-            v-model:value="formData.password"
-            type="password"
-            show-password-on="click"
-            placeholder="QQ/网易等邮箱请使用授权码"
-          />
-        </n-form-item>
+            <n-form-item label="密码/授权码" path="password">
+              <n-input
+                v-model:value="formData.password"
+                type="password"
+                show-password-on="click"
+                placeholder="QQ/网易等邮箱请使用授权码"
+              />
+            </n-form-item>
 
-        <n-form-item label="发件人地址" path="fromAddress">
-          <n-input v-model:value="formData.fromAddress" placeholder="发件人邮箱地址" />
-        </n-form-item>
+            <n-form-item label="发件人地址" path="fromAddress">
+              <n-input v-model:value="formData.fromAddress" placeholder="发件人邮箱地址" />
+            </n-form-item>
 
-        <n-form-item label="发件人名称" path="fromName">
-          <n-input v-model:value="formData.fromName" placeholder="发件人显示名称（可选）" />
-        </n-form-item>
+            <n-form-item label="发件人名称" path="fromName">
+              <n-input v-model:value="formData.fromName" placeholder="发件人显示名称（可选）" />
+            </n-form-item>
+          </div>
+        </div>
 
-        <n-divider>安全设置</n-divider>
+        <!-- 安全设置 -->
+        <div class="config-section">
+          <div class="section-header">
+            <div class="section-title">
+              <i class="i-material-symbols:shield-outline section-icon" />
+              安全设置
+            </div>
+            <div class="section-desc">
+              SSL加密与身份验证配置
+            </div>
+          </div>
+          <div class="section-content">
+            <n-form-item label="开启SSL" path="isSsl">
+              <n-switch v-model:value="formData.isSsl">
+                <template #checked>
+                  是
+                </template>
+                <template #unchecked>
+                  否
+                </template>
+              </n-switch>
+              <span class="ml-8 text-gray-500">QQ、网易等邮箱通常需要开启SSL</span>
+            </n-form-item>
 
-        <n-form-item label="开启SSL" path="isSsl">
-          <n-switch v-model:value="formData.isSsl">
-            <template #checked>
-              是
-            </template>
-            <template #unchecked>
-              否
-            </template>
-          </n-switch>
-          <span class="ml-8 text-gray-500">QQ、网易等邮箱通常需要开启SSL</span>
-        </n-form-item>
+            <n-form-item label="开启验证" path="isAuth">
+              <n-switch v-model:value="formData.isAuth">
+                <template #checked>
+                  是
+                </template>
+                <template #unchecked>
+                  否
+                </template>
+              </n-switch>
+            </n-form-item>
+          </div>
+        </div>
 
-        <n-form-item label="开启验证" path="isAuth">
-          <n-switch v-model:value="formData.isAuth">
-            <template #checked>
-              是
-            </template>
-            <template #unchecked>
-              否
-            </template>
-          </n-switch>
-        </n-form-item>
+        <!-- 重试配置 -->
+        <div class="config-section">
+          <div class="section-header">
+            <div class="section-title">
+              <i class="i-material-symbols:refresh section-icon" />
+              重试配置
+            </div>
+            <div class="section-desc">
+              发送失败后的重试策略
+            </div>
+          </div>
+          <div class="section-content">
+            <n-form-item label="重试间隔" path="retryInterval">
+              <n-input-number
+                v-model:value="formData.retryInterval"
+                :min="1"
+                placeholder="重试间隔"
+                style="width: 200px"
+              />
+              <span class="ml-8 text-gray-500">秒</span>
+            </n-form-item>
 
-        <n-divider>重试配置</n-divider>
+            <n-form-item label="最大重试次数" path="maxRetries">
+              <n-input-number
+                v-model:value="formData.maxRetries"
+                :min="0"
+                placeholder="最大重试次数"
+                style="width: 200px"
+              />
+              <span class="ml-8 text-gray-500">次（0表示不重试）</span>
+            </n-form-item>
 
-        <n-form-item label="重试间隔" path="retryInterval">
-          <n-input-number
-            v-model:value="formData.retryInterval"
-            :min="1"
-            placeholder="重试间隔"
-            style="width: 200px"
-          />
-          <span class="ml-8 text-gray-500">秒</span>
-        </n-form-item>
+            <n-form-item label="备注" path="remark">
+              <n-input
+                v-model:value="formData.remark"
+                type="textarea"
+                placeholder="请输入备注"
+                :rows="3"
+              />
+            </n-form-item>
+          </div>
+        </div>
 
-        <n-form-item label="最大重试次数" path="maxRetries">
-          <n-input-number
-            v-model:value="formData.maxRetries"
-            :min="0"
-            placeholder="最大重试次数"
-            style="width: 200px"
-          />
-          <span class="ml-8 text-gray-500">次（0表示不重试）</span>
-        </n-form-item>
-
-        <n-form-item label="备注" path="remark">
-          <n-input
-            v-model:value="formData.remark"
-            type="textarea"
-            placeholder="请输入备注"
-            :rows="3"
-          />
-        </n-form-item>
-
-        <n-form-item>
-          <n-space>
-            <n-button type="primary" :loading="saving" @click="handleSave">
-              保存配置
-            </n-button>
-            <n-button @click="handleReset">
-              重置
-            </n-button>
-          </n-space>
-        </n-form-item>
+        <!-- 操作按钮 -->
+        <div class="form-footer">
+          <n-button type="primary" :loading="saving" @click="handleSave">
+            <i class="i-material-symbols:save mr-2" />
+            保存配置
+          </n-button>
+          <n-button @click="handleReset">
+            <i class="i-material-symbols:refresh mr-2" />
+            重置
+          </n-button>
+        </div>
       </n-form>
     </n-spin>
   </div>
@@ -212,10 +251,88 @@ onMounted(() => {
 <style scoped>
 .email-config {
   max-width: 800px;
-  padding: 24px 0;
 }
 
 .config-form {
-  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 配置分组卡片 */
+.config-section {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.section-header {
+  margin-bottom: 16px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.section-icon {
+  font-size: 18px;
+  color: #3b82f6;
+}
+
+.section-desc {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.section-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-content :deep(.n-form-item) {
+  margin-bottom: 0;
+}
+
+.section-content :deep(.n-form-item-label) {
+  font-weight: 500;
+}
+
+/* 表单底部 */
+.form-footer {
+  display: flex;
+  justify-content: end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+/* 深色模式 */
+.dark .config-section {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .section-title {
+  color: #f1f5f9;
+}
+
+.dark .section-icon {
+  color: #60a5fa;
+}
+
+.dark .section-desc {
+  color: #94a3b8;
+}
+
+.dark .form-footer {
+  border-top-color: #334155;
 }
 </style>

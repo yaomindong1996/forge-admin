@@ -1,5 +1,6 @@
 package com.mdframe.forge.plugin.ai.client;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.mdframe.forge.plugin.ai.agent.domain.AiAgent;
 import com.mdframe.forge.plugin.ai.chat.domain.AiChatRecord;
 import com.mdframe.forge.plugin.ai.chat.memory.DbChatMemory;
@@ -14,6 +15,9 @@ import com.mdframe.forge.starter.core.session.SessionHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -24,6 +28,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @Service
@@ -100,7 +105,7 @@ public class AiClientImpl implements AiClient {
         }
     }
 
-    @Override
+@Override
     public Flux<String> stream(AiClientRequest request) {
         String circuitKey = request.getAgentCode();
         if (circuitBreaker.isOpen(circuitKey)) {
@@ -137,26 +142,77 @@ public class AiClientImpl implements AiClient {
             log.info("[AiClient.stream] systemPrompt: \n{}", systemPrompt);
             log.info("[AiClient.stream] userPrompt: \n{}", request.getMessage());
 
-            StringBuilder assistantBuilder = new StringBuilder();
+            StringBuilder reasoningBuilder = new StringBuilder();
+            StringBuilder contentBuilder = new StringBuilder();
             AtomicBoolean persisted = new AtomicBoolean(false);
+            AtomicBoolean isInAnsweringPhase = new AtomicBoolean(false);
+            AtomicBoolean hasReasoningStarted = new AtomicBoolean(false);
+            AtomicBoolean hasContentStarted = new AtomicBoolean(false);
 
             return chatClient.prompt()
                     .system(systemPrompt)
                     .user(request.getMessage())
                     .stream()
-                    .content()
-                    .doOnNext(chunk -> {
-                        assistantBuilder.append(chunk);
-                        log.info("[AiClient.stream.chunk] {}", chunk);
+                    .chatResponse()
+                    .flatMap(chatResponse -> {
+                        log.info("AI返回:{}", JSONObject.toJSONString(chatResponse));
+                        if (chatResponse == null || chatResponse.getResults().isEmpty()) {
+                            return Flux.empty();
+                        }
+                        
+                        Generation generation = chatResponse.getResults().get(0);
+                        AssistantMessage assistantMessage = generation.getOutput();
+                        
+                        Flux<String> outputFlux = Flux.empty();
+                        
+                        String reasoningContent = extractReasoningContent(assistantMessage);
+                        if (StringUtils.hasText(reasoningContent)) {
+                            if (!hasReasoningStarted.get()) {
+                                hasReasoningStarted.set(true);
+                                String thinkingDelimiter = "==================== 思考过程 ====================\n";
+                                outputFlux = outputFlux.concatWith(Flux.just(thinkingDelimiter));
+                            }
+                            reasoningBuilder.append(reasoningContent);
+                            outputFlux = outputFlux.concatWith(Flux.just(reasoningContent));
+                            log.debug("[AiClient.stream.reasoning] {}", reasoningContent);
+                        }
+                        
+                        String content = assistantMessage.getText();
+                        if (StringUtils.hasText(content)) {
+                            if (!hasContentStarted.get()) {
+                                hasContentStarted.set(true);
+                                isInAnsweringPhase.set(true);
+                                if (hasReasoningStarted.get()) {
+                                    String answerDelimiter = "\n\n==================== 完整回复 ====================\n";
+                                    outputFlux = outputFlux.concatWith(Flux.just(answerDelimiter));
+                                }
+                            }
+                            contentBuilder.append(content);
+                            outputFlux = outputFlux.concatWith(Flux.just(content));
+                            log.debug("[AiClient.stream.content] {}", content);
+                        }
+                        
+                        return outputFlux;
                     })
                     .doFinally(signal -> {
                         circuitBreaker.recordSuccess(circuitKey);
-                        String fullContent = assistantBuilder.toString();
+                        String fullReasoning = reasoningBuilder.toString();
+                        String fullContent = contentBuilder.toString();
+                        boolean hasReasoning = hasReasoningStarted.get();
+                        
                         log.info("[AiClient.stream] ===== 响应结束({}) =====", signal);
+                        if (hasReasoning) {
+                            log.info("[AiClient.stream] reasoningContent(length={}): \n{}", fullReasoning.length(),
+                                    fullReasoning.length() > 500 ? fullReasoning.substring(0, 500) + "...(truncated)" : fullReasoning);
+                        }
                         log.info("[AiClient.stream] assistantContent(length={}): \n{}", fullContent.length(),
                                 fullContent.length() > 500 ? fullContent.substring(0, 500) + "...(truncated)" : fullContent);
+                        
+                        String finalContent = hasReasoning
+                                ? "【思考过程】\n" + fullReasoning + "\n\n【回复内容】\n" + fullContent
+                                : fullContent;
                         persistConversationAsync(sessionId, request.getAgentCode(),
-                                request.getUserInput(), fullContent, persisted, signal,userId,tenantId);
+                                request.getUserInput(), finalContent, persisted, signal, userId, tenantId);
                     })
                     .doOnError(e -> {
                         log.error("[AiClient] 流式调用失败, agentCode={}", request.getAgentCode(), e);
@@ -171,6 +227,29 @@ public class AiClientImpl implements AiClient {
             circuitBreaker.recordFailure(circuitKey);
             return Flux.just("{\"fallback\":true,\"reason\":\"API_ERROR\"}");
         }
+    }
+    
+    private String extractReasoningContent(AssistantMessage message) {
+        if (message == null) {
+            return null;
+        }
+        Map<String, Object> metadata = message.getMetadata();
+        if (metadata == null) {
+            return null;
+        }
+        Object reasoning = metadata.get("reasoningContent");
+        if (reasoning instanceof String) {
+            return (String) reasoning;
+        }
+        reasoning = metadata.get("reasoning_content");
+        if (reasoning instanceof String) {
+            return (String) reasoning;
+        }
+        reasoning = metadata.get("reasoning");
+        if (reasoning instanceof String) {
+            return (String) reasoning;
+        }
+        return null;
     }
 
     private String resolveSessionId(String sessionId) {

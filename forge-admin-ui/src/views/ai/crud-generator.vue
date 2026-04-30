@@ -93,11 +93,30 @@
                 <span class="stage-indicator-dot" />
                 {{ getStageLabel(msg.stage) }}
               </div>
+              <div v-if="msg.reasoning && msg.reasoning.trim()" class="reasoning-section">
+                <div class="reasoning-header" @click="toggleReasoning(idx)">
+                  <div class="reasoning-header-left">
+                    <n-icon size="16" class="reasoning-icon">
+                      <SparklesOutline />
+                    </n-icon>
+                    <span class="reasoning-label">思考过程</span>
+                    <span v-if="msg.reasoningTime" class="reasoning-duration">用时 {{ msg.reasoningTime }}s</span>
+                    <span v-else-if="msg.isReasoning" class="reasoning-duration thinking">思考中...</span>
+                  </div>
+                  <n-icon size="16" class="reasoning-toggle">
+                    <ChevronDownOutline v-if="!expandedReasonings[idx]" />
+                    <ChevronUpOutline v-else />
+                  </n-icon>
+                </div>
+                <div v-if="expandedReasonings[idx]" class="reasoning-content">
+                  {{ msg.reasoning }}
+                </div>
+              </div>
               <div class="message-bubble">
                 <div class="message-content">
                   {{ msg.content }}
                 </div>
-                <div v-if="msg.streaming" class="message-typing">
+                <div v-if="msg.streaming && msg.isReasoning" class="message-typing">
                   <span /><span /><span />
                 </div>
               </div>
@@ -514,7 +533,7 @@
 </template>
 
 <script setup>
-import { AddOutline, ArrowBackOutline, ChevronBackOutline, ChevronDownOutline, ChevronForwardOutline, CloseOutline, CopyOutline, DownloadOutline, PaperPlaneOutline, SaveOutline, SparklesOutline } from '@vicons/ionicons5'
+import { AddOutline, ArrowBackOutline, ChevronBackOutline, ChevronDownOutline, ChevronForwardOutline, ChevronUpOutline, CloseOutline, CopyOutline, DownloadOutline, PaperPlaneOutline, SaveOutline, SparklesOutline } from '@vicons/ionicons5'
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCrudGenerator } from '@/composables/useCrudGenerator'
@@ -534,43 +553,47 @@ const route = useRoute()
 const router = useRouter()
 
 const {
-  sessionId,
-  messages,
-  configKey,
-  tableName,
-  generating,
-  generatedFiles,
-  activeFile,
-  inputText,
-  sessionList,
-  displayContent,
+    sessionId,
+    messages,
+    configKey,
+    tableName,
+    generating,
+    generatedFiles,
+    activeFile,
+    inputText,
+    sessionList,
+    displayContent,
+    reasoningContent,
+    isReasoningPhase,
 
-  layoutType,
-  templateList,
+    layoutType,
+    templateList,
 
-  providerId,
-  modelId,
-  providerOptions,
-  modelOptions,
-  currentStage,
+    providerId,
+    modelId,
+    providerOptions,
+    modelOptions,
+    currentStage,
 
-  configSaved,
-  loadTemplateList,
-  loadProviderOptions,
-  loadModelOptions,
-  loadSessionList,
-  startNewSession,
-  loadSession,
-  deleteSession,
-  sendMessage,
-  abortGenerate,
-  saveConfig,
-  loadTableStructure,
-  initWithConfigKey,
-  previewCrudPage,
-  copyCurrentFile,
-  exportAllFiles,
-} = useCrudGenerator()
+    configSaved,
+    loadTemplateList,
+    loadProviderOptions,
+    loadModelOptions,
+    loadSessionList,
+    startNewSession,
+    loadSession,
+    deleteSession,
+    sendMessage,
+    abortGenerate,
+    saveConfig,
+    loadTableStructure,
+    initWithConfigKey,
+    previewCrudPage,
+    copyCurrentFile,
+    exportAllFiles,
+  } = useCrudGenerator()
+
+  const expandedReasonings = ref({})
 
 const messageListRef = ref(null)
 const sidebarCollapsed = ref(false)
@@ -829,20 +852,24 @@ function formatTime(time) {
 }
 
 function getStageLabel(stage) {
-  const labels = {
-    'analyzing': '分析阶段',
-    'generating-meta': '推断元数据',
-    'generating-search': '生成搜索配置',
-    'generating-columns': '生成表格列',
-    'generating-edit': '生成编辑表单',
-    'generating-api': '生成API配置',
-    'generating-sql': '生成建表SQL',
-    'complete': '完成',
-    'error': '错误',
-    'retrying': '重试中',
+    const labels = {
+      'analyzing': '分析阶段',
+      'generating-meta': '推断元数据',
+      'generating-search': '生成搜索配置',
+      'generating-columns': '生成表格列',
+      'generating-edit': '生成编辑表单',
+      'generating-api': '生成API配置',
+      'generating-sql': '生成建表SQL',
+      'complete': '完成',
+      'error': '错误',
+      'retrying': '重试中',
+    }
+    return labels[stage] || stage
   }
-  return labels[stage] || stage
-}
+
+  function toggleReasoning(idx) {
+    expandedReasonings.value[idx] = !expandedReasonings.value[idx]
+  }
 
 function autoGenerateConfigKey() {
   let key = ''
@@ -2026,5 +2053,83 @@ onMounted(async () => {
   white-space: normal;
   line-height: 1.4;
   color: #64748b;
+}
+
+/* 思考过程折叠区域 */
+.reasoning-section {
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.reasoning-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.reasoning-header:hover {
+  background: #f1f5f9;
+}
+
+.reasoning-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reasoning-icon {
+  color: #6366f1;
+}
+
+.reasoning-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6366f1;
+}
+
+.reasoning-duration {
+  font-size: 11px;
+  color: #94a3b8;
+  padding: 2px 6px;
+  background: #eef2ff;
+  border-radius: 4px;
+}
+
+.reasoning-duration.thinking {
+  color: #6366f1;
+  background: #dbeafe;
+  animation: pulse 1.5s infinite;
+}
+
+.reasoning-toggle {
+  color: #94a3b8;
+  transition: transform 0.15s;
+}
+
+.reasoning-content {
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #64748b;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 0 0 8px 8px;
+}
+
+.message.assistant .message-bubble {
+  background: #f8fafc;
+  color: #1e293b;
+  border-radius: 4px 12px 12px 12px;
+}
+
+.message.assistant .reasoning-section + .message-bubble {
+  background: #ffffff;
 }
 </style>

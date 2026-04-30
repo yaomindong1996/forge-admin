@@ -1,28 +1,135 @@
 <template>
   <div class="home-page">
-    <!-- 顶部数据统计卡片 -->
+    <!-- 顶部大统计卡片 -->
     <div class="stats-grid">
-      <div v-for="stat in statsData" :key="stat.title" class="stat-card" @click="handleStatClick(stat)">
-        <div class="stat-card-inner">
-          <div class="stat-header">
-            <div class="stat-icon-wrapper" :style="{ background: stat.gradient }">
-              <i :class="stat.icon" class="stat-icon-svg" />
-            </div>
-            <div class="stat-trend" :class="stat.trend === 'up' ? 'trend-up' : 'trend-down'">
-              <i :class="stat.trend === 'up' ? 'ai-icon:trending-up' : 'ai-icon:trending-down'" />
-              <span>{{ stat.percent }}</span>
-            </div>
+      <div class="stat-card online" @click="goTo('/system/online')">
+        <div class="stat-header">
+          <div class="stat-icon">
+            <i class="i-material-symbols:person-pin-rounded" />
           </div>
-          <div class="stat-body">
-            <div class="stat-value">
-              {{ stat.value }}
-            </div>
-            <div class="stat-title">
-              {{ stat.title }}
-            </div>
-            <div class="stat-desc">
-              {{ stat.desc }}
-            </div>
+          <div class="stat-trend up">
+            <i class="i-material-symbols:trending-up" />
+            <span>12%</span>
+          </div>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">
+            {{ onlineCount }}
+          </div>
+          <div class="stat-title">
+            在线用户
+          </div>
+          <div class="stat-desc">
+            当前活跃会话数
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card login" @click="goTo('/system/login-log')">
+        <div class="stat-header">
+          <div class="stat-icon">
+            <i class="i-material-symbols:login-rounded" />
+          </div>
+          <div class="stat-trend up">
+            <i class="i-material-symbols:trending-up" />
+            <span>8%</span>
+          </div>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">
+            {{ todayLoginCount }}
+          </div>
+          <div class="stat-title">
+            今日登录
+          </div>
+          <div class="stat-desc">
+            较昨日登录增长
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card user" @click="goTo('/system/user')">
+        <div class="stat-header">
+          <div class="stat-icon">
+            <i class="i-material-symbols:group-rounded" />
+          </div>
+          <div class="stat-trend up">
+            <i class="i-material-symbols:trending-up" />
+            <span>5%</span>
+          </div>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">
+            {{ totalUserCount }}
+          </div>
+          <div class="stat-title">
+            总用户数
+          </div>
+          <div class="stat-desc">
+            系统注册用户总数
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card todo" @click="goTo('/flow/todo')">
+        <div class="stat-header">
+          <div class="stat-icon">
+            <i class="i-material-symbols:pending-actions" />
+          </div>
+          <div v-if="todoCount > 0" class="stat-badge pulse">
+            {{ todoCount > 99 ? '99+' : todoCount }}
+          </div>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">
+            {{ todoCount }}
+          </div>
+          <div class="stat-title">
+            待办任务
+          </div>
+          <div class="stat-desc">
+            需要处理的审批任务
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card done" @click="goTo('/flow/done')">
+        <div class="stat-header">
+          <div class="stat-icon">
+            <i class="i-material-symbols:task-alt" />
+          </div>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">
+            {{ doneCount }}
+          </div>
+          <div class="stat-title">
+            已办任务
+          </div>
+          <div class="stat-desc">
+            已完成的审批任务
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card started" @click="goTo('/flow/started')">
+        <div class="stat-header">
+          <div class="stat-icon">
+            <i class="i-material-symbols:send" />
+          </div>
+          <div v-if="pendingStarted > 0" class="stat-badge">
+            {{ pendingStarted }}审批中
+          </div>
+        </div>
+        <div class="stat-body">
+          <div class="stat-value">
+            {{ startedCount }}
+          </div>
+          <div class="stat-title">
+            发起的流程
+          </div>
+          <div class="stat-desc">
+            我发起的流程实例
           </div>
         </div>
       </div>
@@ -30,38 +137,79 @@
 
     <!-- 中间内容区域 -->
     <div class="content-grid">
-      <!-- 左侧：访问量趋势图 -->
-      <div class="chart-card chart-card-large">
-        <div class="card-header">
-          <div class="card-title">
-            <i class="ai-icon:bar-chart-2" />
-            <span>访问量趋势</span>
+      <!-- 左侧：待办任务大列表 -->
+      <div class="todo-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="i-material-symbols:pending-actions" />
+            <span>待办任务</span>
+            <n-badge v-if="todoCount > 0" :value="todoCount" :max="99" type="warning" />
           </div>
-          <n-button text size="small" @click="refreshVisitChart">
-            <i class="ai-icon:refresh-cw" />
+          <n-button text type="primary" @click="goTo('/flow/todo')">
+            查看全部 <i class="i-material-symbols:arrow-right ml-4" />
           </n-button>
         </div>
-        <div class="card-body">
-          <div ref="visitChartRef" class="chart-container" />
-        </div>
+        <n-spin :show="todoLoading">
+          <div v-if="todoList.length === 0" class="empty-state">
+            <i class="i-material-symbols:check-circle-outline empty-icon" />
+            <div class="empty-text">
+              暂无待办任务
+            </div>
+            <div class="empty-desc">
+              所有审批任务已处理完毕
+            </div>
+          </div>
+          <n-scrollbar v-else style="max-height: 320px">
+            <div class="todo-list">
+              <div
+                v-for="task in todoList"
+                :key="task.id"
+                class="todo-item"
+                @click="goTo(`/flow/todo?id=${task.id}`)"
+              >
+                <div class="todo-left">
+                  <span v-if="task.priority >= 2" class="priority-tag" :class="getPriorityClass(task.priority)">
+                    {{ getPriorityText(task.priority) }}
+                  </span>
+                  <div class="todo-content-item">
+                    <div class="todo-title">
+                      {{ task.title || task.processTitle }}
+                    </div>
+                    <div class="todo-meta">
+                      <span class="todo-node">{{ task.taskName }}</span>
+                      <span class="todo-starter">{{ task.startUserName }}发起</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="todo-right">
+                  <div class="todo-time">
+                    {{ formatTime(task.createTime) }}
+                  </div>
+                  <i class="i-material-symbols:chevron-right todo-arrow" />
+                </div>
+              </div>
+            </div>
+          </n-scrollbar>
+        </n-spin>
       </div>
 
-      <!-- 右侧：通知公告 -->
-      <div class="notice-card">
-        <div class="card-header">
-          <div class="card-title">
-            <i class="ai-icon:bell" />
-            <span>通知公告</span>
-            <n-badge v-if="unreadCount > 0" :value="unreadCount" :max="99" />
+      <!-- 右侧：通知公告 + 快捷入口 -->
+      <div class="right-panel">
+        <!-- 通知公告 -->
+        <div class="notice-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i class="i-material-symbols:notifications-active" />
+              <span>通知公告</span>
+              <n-badge v-if="unreadNotice > 0" :value="unreadNotice" :max="99" type="info" />
+            </div>
+            <n-button text type="primary" @click="goTo('/system/notice-list')">
+              更多 <i class="i-material-symbols:arrow-right ml-4" />
+            </n-button>
           </div>
-          <n-button text size="small" @click="goToNoticePage">
-            更多 <i class="ai-icon:arrow-right ml-4" />
-          </n-button>
-        </div>
-        <div class="card-body">
-          <n-scrollbar style="max-height: 340px">
-            <div v-if="noticeList.length === 0" class="empty-state">
-              <i class="empty-icon ai-icon:inbox" />
+          <n-scrollbar style="max-height: 280px">
+            <div v-if="noticeList.length === 0" class="empty-state small">
+              <i class="i-material-symbols:inbox empty-icon" />
               <div class="empty-text">
                 暂无公告
               </div>
@@ -71,128 +219,95 @@
                 v-for="notice in noticeList"
                 :key="notice.noticeId"
                 class="notice-item"
-                @click="handleViewNotice(notice)"
+                :class="{ unread: notice.isRead === 0 }"
+                @click="openNotice(notice)"
               >
-                <div class="notice-header">
-                  <span v-if="notice.isRead === 0" class="unread-badge" />
-                  <n-ellipsis :line-clamp="1" class="notice-title" :class="{ unread: notice.isRead === 0 }">
-                    {{ notice.noticeTitle }}
-                  </n-ellipsis>
+                <div class="notice-left">
+                  <span v-if="notice.isRead === 0" class="unread-dot" />
+                  <div class="notice-content">
+                    <div class="notice-title">
+                      {{ notice.noticeTitle }}
+                    </div>
+                    <div class="notice-meta">
+                      <n-tag :type="getNoticeTypeColor(notice.noticeType)" size="small">
+                        {{ getNoticeTypeText(notice.noticeType) }}
+                      </n-tag>
+                    </div>
+                  </div>
                 </div>
-                <div class="notice-meta">
-                  <span class="notice-time">{{ formatTime(notice.publishTime) }}</span>
+                <div class="notice-time">
+                  {{ formatTime(notice.publishTime) }}
                 </div>
               </div>
             </div>
           </n-scrollbar>
         </div>
+
+        <!-- 快捷入口 -->
+        <div class="quick-panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <i class="i-material-symbols:grid-view-rounded" />
+              <span>快捷入口</span>
+            </div>
+          </div>
+          <div class="quick-grid">
+            <div v-for="item in quickLinks" :key="item.path" class="quick-item" @click="goTo(item.path)">
+              <div class="quick-icon" :style="{ background: item.gradient }">
+                <i :class="item.icon" />
+              </div>
+              <div class="quick-title">
+                {{ item.title }}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 底部图表区域 -->
+    <!-- 底部假统计图表 -->
     <div class="charts-grid">
-      <!-- 销售统计饼图 -->
       <div class="chart-card">
-        <div class="card-header">
-          <div class="card-title">
-            <i class="ai-icon:pie-chart" />
-            <span>销售分类统计</span>
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="i-material-symbols:bar-chart-rounded" />
+            <span>访问量趋势</span>
           </div>
-          <n-button text size="small" @click="refreshSalesChart">
-            <i class="ai-icon:refresh-cw" />
+          <n-button text @click="refreshVisitChart">
+            <i class="i-material-symbols:refresh" />
           </n-button>
         </div>
-        <div class="card-body">
-          <div ref="salesChartRef" class="chart-container" />
-        </div>
+        <div ref="visitChartRef" class="chart-container" />
       </div>
 
-      <!-- 用户增长柱状图 -->
       <div class="chart-card">
-        <div class="card-header">
-          <div class="card-title">
-            <i class="ai-icon:trending-up" />
+        <div class="panel-header">
+          <div class="panel-title">
+            <i class="i-material-symbols:trending-up-rounded" />
             <span>用户增长统计</span>
           </div>
-          <n-button text size="small" @click="refreshUserChart">
-            <i class="ai-icon:refresh-cw" />
+          <n-button text @click="refreshUserChart">
+            <i class="i-material-symbols:refresh" />
           </n-button>
         </div>
-        <div class="card-body">
-          <div ref="userChartRef" class="chart-container" />
-        </div>
-      </div>
-    </div>
-
-    <!-- 快捷入口 -->
-    <div class="quick-links-card">
-      <div class="card-header">
-        <div class="card-title">
-          <i class="ai-icon:grid" />
-          <span>快捷入口</span>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="quick-links-grid">
-          <div
-            v-for="item in quickLinks"
-            :key="item.title"
-            class="quick-link-item"
-            @click="handleQuickLink(item)"
-          >
-            <div class="quick-link-icon" :style="{ background: item.gradient }">
-              <i :class="item.icon" />
-            </div>
-            <div class="quick-link-title">
-              {{ item.title }}
-            </div>
-          </div>
-        </div>
+        <div ref="userChartRef" class="chart-container" />
       </div>
     </div>
 
     <!-- 通知详情弹窗 -->
-    <n-modal
-      v-model:show="showNoticeModal"
-      preset="card"
-      title="公告详情"
-      style="width: 800px"
-      :segmented="{ content: 'soft' }"
-    >
+    <n-modal v-model:show="showNoticeModal" preset="card" title="公告详情" style="width: 800px">
       <div v-if="currentNotice" class="notice-detail">
-        <div class="detail-header">
-          <h3>{{ currentNotice.noticeTitle }}</h3>
-          <n-space class="mt-8">
-            <n-tag :type="getNoticeTypeColor(currentNotice.noticeType)" size="small">
-              {{ getNoticeTypeText(currentNotice.noticeType) }}
-            </n-tag>
-            <span class="text-gray-400">发布人：{{ currentNotice.publisherName }}</span>
-            <span class="text-gray-400">发布时间：{{ currentNotice.publishTime }}</span>
-          </n-space>
+        <h3 class="detail-title">
+          {{ currentNotice.noticeTitle }}
+        </h3>
+        <div class="detail-meta">
+          <n-tag :type="getNoticeTypeColor(currentNotice.noticeType)" size="small">
+            {{ getNoticeTypeText(currentNotice.noticeType) }}
+          </n-tag>
+          <span class="detail-time">发布时间：{{ currentNotice.publishTime }}</span>
         </div>
         <n-divider />
         <div class="detail-content" v-html="currentNotice.noticeContent" />
-
-        <!-- 附件下载 -->
-        <div v-if="currentNotice.attachments && currentNotice.attachments.length > 0" class="detail-attachments">
-          <n-divider />
-          <div class="attachment-title">
-            附件
-          </div>
-          <n-space vertical>
-            <div
-              v-for="file in currentNotice.attachments"
-              :key="file.fileId"
-              class="attachment-item"
-              @click="handleDownloadAttachment(file)"
-            >
-              <i class="i-material-symbols:attach-file" />
-              <span>{{ file.fileName }}</span>
-              <span class="text-gray-400">{{ formatFileSize(file.fileSize) }}</span>
-              <i class="i-material-symbols:download" style="margin-left: auto" />
-            </div>
-          </n-space>
-        </div>
       </div>
     </n-modal>
   </div>
@@ -202,189 +317,158 @@
 import * as echarts from 'echarts'
 import { nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import flowApi from '@/api/flow'
+import { useUserStore } from '@/store'
 import { request } from '@/utils'
 
 const router = useRouter()
+const userStore = useUserStore()
 
-// 统计数据
-const statsData = ref([
-  {
-    title: '总用户数',
-    value: '8,846',
-    percent: '12.5%',
-    desc: '较昨日增长',
-    trend: 'up',
-    icon: 'ai-icon:users',
-    gradient: 'linear-gradient(135deg, #4242F7 0%, #6366F1 100%)',
-  },
-  {
-    title: '总订单数',
-    value: '12,258',
-    percent: '8.3%',
-    desc: '较昨日增长',
-    trend: 'up',
-    icon: 'ai-icon:shopping-cart',
-    gradient: 'linear-gradient(135deg, #5AC8FA 0%, #38BDF8 100%)',
-  },
-  {
-    title: '总收入',
-    value: '¥128,560',
-    percent: '5.2%',
-    desc: '较昨日下降',
-    trend: 'down',
-    icon: 'ai-icon:dollar-sign',
-    gradient: 'linear-gradient(135deg, #6EE7B7 0%, #34D399 100%)',
-  },
-  {
-    title: '增长率',
-    value: '25.8%',
-    percent: '2.1%',
-    desc: '较上月增长',
-    trend: 'up',
-    icon: 'ai-icon:trending-up',
-    gradient: 'linear-gradient(135deg, #A78BFA 0%, #8B5CF6 100%)',
-  },
-])
+// 用户统计
+const onlineCount = ref(0)
+const todayLoginCount = ref(0)
+const totalUserCount = ref(0)
 
-// 快捷入口
-const quickLinks = ref([
-  { title: '用户管理', icon: 'ai-icon:users', gradient: 'linear-gradient(135deg, #4242F7 0%, #6366F1 100%)', path: '/system/user' },
-  { title: '角色管理', icon: 'ai-icon:shield', gradient: 'linear-gradient(135deg, #F472B6 0%, #EC4899 100%)', path: '/system/role' },
-  { title: '菜单管理', icon: 'ai-icon:menu', gradient: 'linear-gradient(135deg, #5AC8FA 0%, #38BDF8 100%)', path: '/system/menu' },
-  { title: '组织管理', icon: 'ai-icon:layers', gradient: 'linear-gradient(135deg, #6EE7B7 0%, #34D399 100%)', path: '/system/org' },
-  { title: '通知公告', icon: 'ai-icon:bell', gradient: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)', path: '/system/notice' },
-  { title: '系统配置', icon: 'ai-icon:settings', gradient: 'linear-gradient(135deg, #A78BFA 0%, #8B5CF6 100%)', path: '/system/config' },
-])
+// 流程统计
+const todoCount = ref(0)
+const doneCount = ref(0)
+const startedCount = ref(0)
+const pendingStarted = ref(0)
 
-// 通知公告相关
+// 通知统计
+const unreadNotice = ref(0)
+
+// 列表数据
+const todoLoading = ref(false)
+const todoList = ref([])
 const noticeList = ref([])
-const unreadCount = ref(0)
+
+// 弹窗
 const showNoticeModal = ref(false)
 const currentNotice = ref(null)
 
-// 图表引用
+// 图表
 const visitChartRef = ref(null)
-const salesChartRef = ref(null)
 const userChartRef = ref(null)
 
-// 加载通知公告列表
+// 快捷入口
+const quickLinks = [
+  { title: '发起流程', icon: 'i-material-symbols:add-circle-rounded', gradient: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', path: '/flow/template' },
+  { title: '我的待办', icon: 'i-material-symbols:pending-actions', gradient: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)', path: '/flow/todo' },
+  { title: '用户管理', icon: 'i-material-symbols:person-rounded', gradient: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', path: '/system/user' },
+  { title: '角色管理', icon: 'i-material-symbols:admin-panel-settings-rounded', gradient: 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)', path: '/system/role' },
+  { title: '文件管理', icon: 'i-material-symbols:folder-open-rounded', gradient: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', path: '/system/file' },
+  { title: '配置中心', icon: 'i-material-symbols:settings-suggest', gradient: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', path: '/system/config-center' },
+]
+
+// 加载用户统计
+async function loadUserStats() {
+  try {
+    // 并行请求所有统计数据
+    const [onlineRes, userRes] = await Promise.all([
+      request.get('/auth/online/page', { params: { pageNum: 1, pageSize: 1 } }),
+      request.get('/system/user/page', { params: { pageNum: 1, pageSize: 1 } }),
+    ])
+
+    onlineCount.value = onlineRes.data?.total || 0
+    totalUserCount.value = userRes.data?.total || 0
+
+    // 今日登录数
+    const today = new Date().toISOString().split('T')[0]
+    const loginRes = await request.get('/system/loginLog/page', {
+      params: { pageNum: 1, pageSize: 1, startTime: today, endTime: today },
+    })
+    todayLoginCount.value = loginRes.data?.total || 0
+  }
+  catch {
+    console.error('加载用户统计失败')
+  }
+}
+
+// 加载流程统计和列表
+async function loadFlowData() {
+  if (!userStore.userId) {
+    console.warn('用户ID未初始化，跳过加载流程数据')
+    return
+  }
+  try {
+    const [todoRes, doneRes, startedRes] = await Promise.all([
+      flowApi.getTodoTasks({ pageNum: 1, pageSize: 1, userId: userStore.userId }),
+      flowApi.getDoneTasks({ pageNum: 1, pageSize: 1, userId: userStore.userId }),
+      flowApi.getStartedTasks({ pageNum: 1, pageSize: 1, userId: userStore.userId }),
+    ])
+
+    todoCount.value = todoRes.data?.total || 0
+    doneCount.value = doneRes.data?.total || 0
+    startedCount.value = startedRes.data?.total || 0
+
+    // 统计审批中的流程
+    if (startedRes.data?.records) {
+      pendingStarted.value = startedRes.data.records.filter(r => r.status === 1).length
+    }
+  }
+  catch {
+    console.error('加载流程统计失败')
+  }
+}
+
+// 加载待办列表
+async function loadTodoList() {
+  if (!userStore.userId) {
+    console.warn('用户ID未初始化，跳过加载待办列表')
+    return
+  }
+  todoLoading.value = true
+  try {
+    const res = await flowApi.getTodoTasks({ pageNum: 1, pageSize: 8, userId: userStore.userId })
+    if (res.data) {
+      todoList.value = res.data.records || []
+    }
+  }
+  catch {
+    console.error('加载待办列表失败')
+  }
+  finally {
+    todoLoading.value = false
+  }
+}
+
+// 加载通知公告
 async function loadNoticeList() {
   try {
-    const res = await request.get('/system/notice/user/page', {
-      params: { pageNum: 1, pageSize: 5 },
-    })
-    if (res.code === 200) {
+    const res = await request.get('/system/notice/user/page', { params: { pageNum: 1, pageSize: 10 } })
+    if (res.data) {
       noticeList.value = res.data.records || []
+      unreadNotice.value = noticeList.value.filter(n => n.isRead === 0).length
     }
   }
-  catch (error) {
-    console.error('加载通知公告失败:', error)
+  catch {
+    console.error('加载通知公告失败')
   }
 }
 
-// 加载未读数量
-async function loadUnreadCount() {
-  try {
-    const res = await request.get('/system/notice/user/unread-count')
-    if (res.code === 200) {
-      unreadCount.value = res.data
-    }
-  }
-  catch (error) {
-    console.error('获取未读数量失败:', error)
-  }
+// 跳转
+function goTo(path) {
+  router.push(path)
 }
 
-// 查看通知详情
-async function handleViewNotice(notice) {
+// 打开通知
+async function openNotice(notice) {
   try {
-    const res = await request.post('/system/notice/getById', null, {
-      params: { noticeId: notice.noticeId },
-    })
-    if (res.code === 200) {
+    const res = await request.post('/system/notice/getById', null, { params: { noticeId: notice.noticeId } })
+    if (res.data) {
       currentNotice.value = res.data
       showNoticeModal.value = true
 
-      // 标记为已读
       if (notice.isRead === 0) {
-        await markAsRead(notice.noticeId)
+        await request.post('/system/notice/markAsRead', null, { params: { noticeId: notice.noticeId } })
+        loadNoticeList()
       }
     }
   }
-  catch (error) {
+  catch {
     window.$message.error('获取详情失败')
   }
-}
-
-// 标记为已读
-async function markAsRead(noticeId) {
-  try {
-    await request.post('/system/notice/markAsRead', null, {
-      params: { noticeId },
-    })
-    loadNoticeList()
-    loadUnreadCount()
-  }
-  catch (error) {
-    console.error('标记已读失败:', error)
-  }
-}
-
-// 跳转到通知公告页面
-function goToNoticePage() {
-  router.push('/system/notice-list')
-}
-
-// 快捷入口点击
-function handleQuickLink(item) {
-  if (item.path) {
-    router.push(item.path)
-  }
-}
-
-// 统计卡片点击
-function handleStatClick(stat) {
-  console.log('Stat clicked:', stat.title)
-}
-
-// 刷新图表
-function refreshVisitChart() {
-  initVisitChart()
-}
-
-function refreshSalesChart() {
-  initSalesChart()
-}
-
-function refreshUserChart() {
-  initUserChart()
-}
-
-// 下载附件
-function handleDownloadAttachment(file) {
-  try {
-    const downloadUrl = `/api/system/file/download?fileId=${file.fileId}`
-    const link = document.createElement('a')
-    link.href = downloadUrl
-    link.download = file.fileName
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.$message.success('开始下载')
-  }
-  catch (error) {
-    window.$message.error('下载失败')
-  }
-}
-
-// 格式化文件大小
-function formatFileSize(bytes) {
-  if (!bytes)
-    return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`
 }
 
 // 格式化时间
@@ -406,49 +490,45 @@ function formatTime(time) {
     return `${Math.floor(diff / hour)}小时前`
   if (diff < 7 * day)
     return `${Math.floor(diff / day)}天前`
-
   return time.split(' ')[0]
 }
 
-// 获取公告类型文本
+// 优先级
+function getPriorityClass(p) {
+  if (p >= 3)
+    return 'urgent'
+  if (p === 2)
+    return 'high'
+  return ''
+}
+
+function getPriorityText(p) {
+  const m = { 0: '低', 1: '普通', 2: '高', 3: '紧急' }
+  return m[p] || '普通'
+}
+
+// 通知类型
 function getNoticeTypeText(type) {
-  const typeMap = {
-    NOTICE: '通知公告',
-    ANNOUNCEMENT: '系统公告',
-    NEWS: '新闻动态',
-  }
+  const typeMap = { NOTICE: '通知', ANNOUNCEMENT: '公告', NEWS: '新闻' }
   return typeMap[type] || type
 }
 
-// 获取公告类型颜色
 function getNoticeTypeColor(type) {
-  const colorMap = {
-    NOTICE: 'info',
-    ANNOUNCEMENT: 'warning',
-    NEWS: 'success',
-  }
+  const colorMap = { NOTICE: 'info', ANNOUNCEMENT: 'warning', NEWS: 'success' }
   return colorMap[type] || 'default'
 }
 
-// 初始化访问量趋势图
+// 初始化访问量趋势图（假数据）
 function initVisitChart() {
   const chart = echarts.init(visitChartRef.value)
   const option = {
     tooltip: {
       trigger: 'axis',
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#E2E8F0',
+      borderColor: '#e2e8f0',
       borderWidth: 1,
-      textStyle: {
-        color: '#1E293B',
-      },
+      textStyle: { color: '#0f172a' },
       padding: [12, 16],
-      axisPointer: {
-        type: 'shadow',
-        shadowStyle: {
-          color: 'rgba(59, 130, 246, 0.1)',
-        },
-      },
     },
     grid: {
       left: '3%',
@@ -460,31 +540,14 @@ function initVisitChart() {
     xAxis: {
       type: 'category',
       data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
-      axisTick: {
-        show: false,
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#E2E8F0',
-        },
-      },
-      axisLabel: {
-        color: '#64748B',
-        fontSize: 12,
-      },
+      axisTick: { show: false },
+      axisLine: { lineStyle: { color: '#e2e8f0' } },
+      axisLabel: { color: '#64748b', fontSize: 12 },
     },
     yAxis: {
       type: 'value',
-      splitLine: {
-        lineStyle: {
-          color: '#F1F5F9',
-          type: 'dashed',
-        },
-      },
-      axisLabel: {
-        color: '#64748B',
-        fontSize: 12,
-      },
+      splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+      axisLabel: { color: '#64748b', fontSize: 12 },
     },
     series: [
       {
@@ -495,18 +558,10 @@ function initVisitChart() {
         itemStyle: {
           borderRadius: [8, 8, 0, 0],
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#4242F7' },
-            { offset: 1, color: '#6366F1' },
+            { offset: 0, color: '#6366f1' },
+            { offset: 1, color: '#4f46e5' },
           ]),
         },
-        emphasis: {
-          itemStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: '#5A5AF7' },
-              { offset: 1, color: '#4242F7' },
-            ]),
-          },
-        },
       },
     ],
   }
@@ -514,142 +569,17 @@ function initVisitChart() {
   window.addEventListener('resize', () => chart.resize())
 }
 
-// 初始化销售统计饼图
-function initSalesChart() {
-  const chart = echarts.init(salesChartRef.value)
-  const option = {
-    tooltip: {
-      trigger: 'item',
-      backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#E2E8F0',
-      borderWidth: 1,
-      textStyle: {
-        color: '#1E293B',
-      },
-      padding: [12, 16],
-      formatter: '{b}: {c} ({d}%)',
-    },
-    legend: {
-      bottom: '5%',
-      left: 'center',
-      textStyle: {
-        color: '#64748B',
-        fontSize: 12,
-      },
-      itemWidth: 12,
-      itemHeight: 12,
-      itemGap: 16,
-    },
-    series: [
-      {
-        name: '销售额',
-        type: 'pie',
-        radius: ['45%', '70%'],
-        center: ['50%', '45%'],
-        avoidLabelOverlap: false,
-        itemStyle: {
-          borderRadius: 8,
-          borderColor: '#fff',
-          borderWidth: 3,
-        },
-        label: {
-          show: false,
-        },
-        emphasis: {
-          label: {
-            show: true,
-            fontSize: 16,
-            fontWeight: 'bold',
-            color: '#1E293B',
-          },
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.3)',
-          },
-        },
-        labelLine: {
-          show: false,
-        },
-        data: [
-          {
-            value: 1048,
-            name: '电子产品',
-            itemStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-                { offset: 0, color: '#4242F7' },
-                { offset: 1, color: '#6366F1' },
-              ]),
-            },
-          },
-          {
-            value: 735,
-            name: '服装鞋帽',
-            itemStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-                { offset: 0, color: '#5AC8FA' },
-                { offset: 1, color: '#38BDF8' },
-              ]),
-            },
-          },
-          {
-            value: 580,
-            name: '食品饮料',
-            itemStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-                { offset: 0, color: '#6EE7B7' },
-                { offset: 1, color: '#34D399' },
-              ]),
-            },
-          },
-          {
-            value: 484,
-            name: '图书文具',
-            itemStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-                { offset: 0, color: '#A78BFA' },
-                { offset: 1, color: '#8B5CF6' },
-              ]),
-            },
-          },
-          {
-            value: 300,
-            name: '其他',
-            itemStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
-                { offset: 0, color: '#FBBF24' },
-                { offset: 1, color: '#F59E0B' },
-              ]),
-            },
-          },
-        ],
-      },
-    ],
-  }
-  chart.setOption(option)
-  window.addEventListener('resize', () => chart.resize())
-}
-
-// 初始化用户增长柱状图
+// 初始化用户增长图（假数据）
 function initUserChart() {
   const chart = echarts.init(userChartRef.value)
   const option = {
     tooltip: {
       trigger: 'axis',
       backgroundColor: 'rgba(255, 255, 255, 0.95)',
-      borderColor: '#E2E8F0',
+      borderColor: '#e2e8f0',
       borderWidth: 1,
-      textStyle: {
-        color: '#1E293B',
-      },
+      textStyle: { color: '#0f172a' },
       padding: [12, 16],
-      axisPointer: {
-        type: 'line',
-        lineStyle: {
-          color: '#CBD5E1',
-          type: 'dashed',
-        },
-      },
     },
     grid: {
       left: '3%',
@@ -661,31 +591,14 @@ function initUserChart() {
     xAxis: {
       type: 'category',
       data: ['1月', '2月', '3月', '4月', '5月', '6月'],
-      axisTick: {
-        show: false,
-      },
-      axisLine: {
-        lineStyle: {
-          color: '#E2E8F0',
-        },
-      },
-      axisLabel: {
-        color: '#64748B',
-        fontSize: 12,
-      },
+      axisTick: { show: false },
+      axisLine: { lineStyle: { color: '#e2e8f0' } },
+      axisLabel: { color: '#64748b', fontSize: 12 },
     },
     yAxis: {
       type: 'value',
-      splitLine: {
-        lineStyle: {
-          color: '#F1F5F9',
-          type: 'dashed',
-        },
-      },
-      axisLabel: {
-        color: '#64748B',
-        fontSize: 12,
-      },
+      splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+      axisLabel: { color: '#64748b', fontSize: 12 },
     },
     series: [
       {
@@ -698,12 +611,12 @@ function initUserChart() {
         lineStyle: {
           width: 3,
           color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: '#6EE7B7' },
-            { offset: 1, color: '#34D399' },
+            { offset: 0, color: '#34d399' },
+            { offset: 1, color: '#10b981' },
           ]),
         },
         itemStyle: {
-          color: '#34D399',
+          color: '#10b981',
           borderColor: '#fff',
           borderWidth: 2,
         },
@@ -713,15 +626,6 @@ function initUserChart() {
             { offset: 1, color: 'rgba(52, 211, 153, 0.02)' },
           ]),
         },
-        emphasis: {
-          itemStyle: {
-            color: '#34D399',
-            borderColor: '#fff',
-            borderWidth: 3,
-            shadowBlur: 10,
-            shadowColor: 'rgba(52, 211, 153, 0.4)',
-          },
-        },
       },
     ],
   }
@@ -729,104 +633,94 @@ function initUserChart() {
   window.addEventListener('resize', () => chart.resize())
 }
 
+// 刷新图表
+function refreshVisitChart() {
+  initVisitChart()
+}
+
+function refreshUserChart() {
+  initUserChart()
+}
+
 onMounted(() => {
+  loadUserStats()
+  loadFlowData()
+  loadTodoList()
   loadNoticeList()
-  loadUnreadCount()
 
   nextTick(() => {
     initVisitChart()
-    initSalesChart()
     initUserChart()
   })
 })
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Sans:wght@400;500;600;700&display=swap');
-
-/* ===== 首页布局 ===== */
 .home-page {
-  padding: 24px;
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 20px;
   min-height: 100%;
-  overflow-y: auto;
-  font-family: 'Inter', sans-serif;
+  padding-bottom: 60px;
+  background: #f8fafc;
 }
 
-/* ===== 统计卡片 ===== */
+/* 统计卡片网格 */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 .stat-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  padding: 24px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(226, 232, 240, 0.6);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+  border: 1px solid #e2e8f0;
   position: relative;
-  overflow: hidden;
-}
-
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: var(--stat-gradient);
-  opacity: 0;
-  transition: opacity 0.3s ease;
 }
 
 .stat-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
-  border-color: rgba(203, 213, 225, 0.6);
-}
-
-.stat-card:hover::before {
-  opacity: 1;
-}
-
-.stat-card-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
 }
 
 .stat-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 12px;
 }
 
-.stat-icon-wrapper {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  font-size: 26px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  font-size: 24px;
+  color: #fff;
 }
 
-.stat-card:hover .stat-icon-wrapper {
-  transform: scale(1.08) rotate(3deg);
+.stat-card.online .stat-icon {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
-
-.stat-icon-svg {
-  font-size: 26px;
+.stat-card.login .stat-icon {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+.stat-card.user .stat-icon {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+}
+.stat-card.todo .stat-icon {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+}
+.stat-card.done .stat-icon {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+}
+.stat-card.started .stat-icon {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
 }
 
 .stat-trend {
@@ -835,23 +729,36 @@ onMounted(() => {
   gap: 4px;
   font-size: 12px;
   font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 20px;
-  transition: transform 0.2s ease;
+  padding: 4px 10px;
+  border-radius: 12px;
 }
 
-.stat-card:hover .stat-trend {
-  transform: scale(1.05);
-}
-
-.trend-up {
+.stat-trend.up {
   color: #059669;
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  background: #d1fae5;
 }
 
-.trend-down {
-  color: #dc2626;
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+.stat-badge {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.stat-badge.pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .stat-body {
@@ -861,107 +768,103 @@ onMounted(() => {
 }
 
 .stat-value {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   color: #0f172a;
-  font-family: 'Fira Sans', sans-serif;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
 }
 
 .stat-title {
   font-size: 14px;
-  color: #64748b;
-  font-weight: 500;
+  font-weight: 600;
+  color: #334155;
 }
 
 .stat-desc {
   font-size: 12px;
-  color: #94a3b8;
+  color: #64748b;
 }
 
-/* ===== 内容网格 ===== */
+/* 内容网格 */
 .content-grid {
   display: grid;
-  grid-template-columns: 1.8fr 1fr;
-  gap: 20px;
-  margin-bottom: 20px;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: stretch;
+  min-height: 400px;
 }
 
-/* ===== 图表网格 ===== */
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-  margin-bottom: 20px;
+.todo-panel {
+  display: flex;
+  flex-direction: column;
 }
 
-/* ===== 通用卡片 ===== */
-.chart-card,
-.notice-card,
-.quick-links-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  border: 1px solid rgba(226, 232, 240, 0.6);
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+/* 面板通用样式 */
+.todo-panel,
+.notice-panel,
+.quick-panel,
+.chart-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
 }
 
-.chart-card:hover,
-.notice-card:hover,
-.quick-links-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
-  border-color: rgba(203, 213, 225, 0.6);
+.todo-panel .n-spin {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.card-header {
+.todo-panel .n-spin > :deep(div) {
+  flex: 1;
+  min-height: 0;
+}
+
+.todo-panel .n-scrollbar {
+  height: 100%;
+}
+
+.panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 24px;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.5);
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.5) 0%, transparent 100%);
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.card-title {
+.panel-title {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: #0f172a;
 }
 
-.card-title i {
+.panel-title i {
   font-size: 20px;
-  color: #4242f7;
+  color: #6366f1;
 }
 
-.card-body {
-  padding: 24px;
-}
-
-.chart-container {
-  height: 320px;
-  width: 100%;
-}
-
-/* ===== 通知列表 ===== */
+/* 空状态 */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: 40px 20px;
   color: #94a3b8;
 }
 
+.empty-state.small {
+  padding: 24px;
+}
+
 .empty-icon {
-  font-size: 56px;
-  margin-bottom: 16px;
-  opacity: 0.25;
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.3;
 }
 
 .empty-text {
@@ -969,62 +872,175 @@ onMounted(() => {
   font-weight: 500;
 }
 
-.notice-list {
+.empty-desc {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* 待办任务列表 */
+.todo-list {
+  padding: 12px;
+}
+
+.todo-item {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.notice-item {
-  padding: 14px 18px;
-  border-radius: 14px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #f8fafc;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1px solid transparent;
-  position: relative;
+  transition: all 0.15s ease;
 }
 
-.notice-item:hover {
-  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-  border-color: rgba(99, 102, 241, 0.2);
+.todo-item:hover {
+  background: #eef2ff;
   transform: translateX(4px);
 }
 
-.notice-header {
+.todo-left {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 6px;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
-.unread-badge {
+.priority-tag {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.priority-tag.urgent {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.priority-tag.high {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.todo-content-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.todo-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.todo-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.todo-node {
+  background: #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.todo-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.todo-time {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.todo-arrow {
+  font-size: 16px;
+  color: #cbd5e1;
+}
+
+/* 右侧面板 */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 通知公告列表 */
+.notice-list {
+  padding: 12px;
+}
+
+.notice-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #f8fafc;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.notice-item:hover {
+  background: #eef2ff;
+}
+
+.notice-item.unread {
+  background: #fef3c7;
+}
+
+.notice-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.unread-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4242f7, #6366f1);
-  flex-shrink: 0;
-  margin-top: 5px;
-  animation: pulse 2s ease-in-out infinite;
-  box-shadow: 0 0 10px rgba(66, 66, 247, 0.5);
+  background: #f59e0b;
+}
+
+.notice-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
 }
 
 .notice-title {
-  flex: 1;
   font-size: 14px;
-  color: #64748b;
-  line-height: 1.5;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.notice-title.unread {
-  color: #0f172a;
+.notice-item.unread .notice-title {
   font-weight: 600;
 }
 
 .notice-meta {
   display: flex;
-  align-items: center;
   gap: 8px;
-  padding-left: 18px;
 }
 
 .notice-time {
@@ -1032,125 +1048,102 @@ onMounted(() => {
   color: #94a3b8;
 }
 
-/* ===== 公告详情 ===== */
+/* 快捷入口网格 */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 16px;
+}
+
+.quick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-item:hover {
+  background: #eef2ff;
+  transform: translateY(-2px);
+}
+
+.quick-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #fff;
+}
+
+.quick-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* 图表网格 */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.chart-container {
+  height: 280px;
+  padding: 16px;
+}
+
+/* 弹窗样式 */
 .notice-detail {
   padding: 8px 0;
 }
 
-.detail-header h3 {
-  margin: 0 0 12px 0;
+.detail-title {
   font-size: 18px;
-  color: #0f172a;
   font-weight: 700;
-  font-family: 'Inter', sans-serif;
+  color: #0f172a;
+  margin: 0 0 8px 0;
+}
+
+.detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.detail-time {
+  font-size: 12px;
+  color: #64748b;
 }
 
 .detail-content {
   line-height: 1.8;
-  color: #475569;
-  min-height: 80px;
   font-size: 14px;
+  color: #475569;
 }
 
 .detail-content :deep(img) {
   max-width: 100%;
-  height: auto;
-  border-radius: 12px;
-  margin: 12px 0;
+  border-radius: 8px;
 }
 
-.detail-attachments {
-  margin-top: 24px;
-}
-
-.attachment-title {
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: #0f172a;
-  font-size: 14px;
-}
-
-.attachment-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 18px;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: #f8fafc;
-  font-size: 14px;
-  color: #64748b;
-}
-
-.attachment-item:hover {
-  background: linear-gradient(135deg, #eef2ff 0%, #c7d2fe 100%);
-  border-color: #a5b4fc;
-  color: #4242f7;
-  transform: translateX(4px);
-}
-
-/* ===== 快捷入口 ===== */
-.quick-links-grid {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 16px;
-}
-
-.quick-link-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: 22px 14px;
-  border-radius: 18px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(226, 232, 240, 0.5);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, transparent 100%);
-}
-
-.quick-link-item:hover {
-  background: rgba(255, 255, 255, 0.95);
-  border-color: rgba(203, 213, 225, 0.5);
-  transform: translateY(-6px);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.05);
-}
-
-.quick-link-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 26px;
-  color: white;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.quick-link-item:hover .quick-link-icon {
-  transform: scale(1.12) rotate(-3deg);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-}
-
-.quick-link-title {
-  font-size: 13px;
-  color: #64748b;
-  font-weight: 500;
-  text-align: center;
-}
-
-/* ===== 响应式 ===== */
+/* 响应式 */
 @media (max-width: 1400px) {
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 
-  .quick-links-grid {
-    grid-template-columns: repeat(4, 1fr);
+  .content-grid {
+    grid-template-columns: 1.5fr 1fr;
   }
 }
 
@@ -1166,7 +1159,7 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .home-page {
-    padding: 16px;
+    padding: 12px;
   }
 
   .stats-grid {
@@ -1175,36 +1168,25 @@ onMounted(() => {
   }
 
   .stat-card {
-    padding: 18px;
+    padding: 16px;
   }
 
   .stat-value {
-    font-size: 24px;
-  }
-
-  .stat-icon-wrapper {
-    width: 48px;
-    height: 48px;
     font-size: 22px;
   }
 
-  .quick-links-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
   }
 
-  .quick-link-item {
-    padding: 16px 10px;
-  }
-
-  .quick-link-icon {
-    width: 48px;
-    height: 48px;
-    font-size: 22px;
+  .quick-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .chart-container {
-    height: 260px;
+    height: 220px;
   }
 }
 
@@ -1213,122 +1195,77 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 
-  .quick-links-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .quick-grid {
+    grid-template-columns: 1fr;
   }
 }
 
-/* ===== 动画 ===== */
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(1.2);
-  }
-}
-
-/* ===== 减少动画（无障碍支持）===== */
-@media (prefers-reduced-motion: reduce) {
-  .stat-card:hover,
-  .notice-item:hover,
-  .quick-link-item:hover,
-  .attachment-item:hover {
-    transform: none;
-  }
-
-  .unread-badge {
-    animation: none;
-  }
-
-  .stat-icon-wrapper,
-  .quick-link-icon,
-  .stat-trend {
-    transition: none;
-  }
-}
-
-/* ===== 暗色模式 ===== */
+/* 深色模式 */
 .dark .home-page {
-  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  background: #0f172a;
 }
 
 .dark .stat-card,
-.dark .chart-card,
-.dark .notice-card,
-.dark .quick-links-card {
-  background: rgba(30, 41, 59, 0.7);
-  border-color: rgba(51, 65, 85, 0.5);
+.dark .todo-panel,
+.dark .notice-panel,
+.dark .quick-panel,
+.dark .chart-card {
+  background: #1e293b;
+  border-color: #334155;
 }
 
-.dark .stat-card:hover,
-.dark .chart-card:hover,
-.dark .notice-card:hover,
-.dark .quick-links-card:hover {
-  border-color: rgba(71, 85, 105, 0.6);
-}
-
-.dark .stat-value {
+.dark .stat-value,
+.dark .panel-title,
+.dark .todo-title,
+.dark .notice-title,
+.dark .detail-title {
   color: #f1f5f9;
 }
 
-.dark .stat-title,
-.dark .card-title {
-  color: #e2e8f0;
+.dark .stat-title {
+  color: #cbd5e1;
 }
 
 .dark .stat-desc,
+.dark .todo-meta,
+.dark .todo-time,
+.dark .notice-meta,
 .dark .notice-time,
-.dark .quick-link-title {
+.dark .quick-title,
+.dark .detail-time {
   color: #94a3b8;
 }
 
+.dark .todo-item,
+.dark .notice-item,
+.dark .quick-item {
+  background: #334155;
+}
+
+.dark .todo-item:hover,
 .dark .notice-item:hover {
-  background: rgba(67, 56, 202, 0.2);
-  border-color: rgba(99, 102, 241, 0.3);
+  background: #475569;
 }
 
-.dark .quick-link-item {
-  background: rgba(30, 41, 59, 0.3);
-  border-color: rgba(51, 65, 85, 0.3);
+.dark .notice-item.unread {
+  background: #422006;
 }
 
-.dark .quick-link-item:hover {
-  background: rgba(30, 41, 59, 0.6);
+.dark .todo-node {
+  background: #475569;
 }
 
-.dark .card-header {
-  background: transparent;
-  border-bottom-color: rgba(51, 65, 85, 0.4);
+.dark .priority-tag.urgent {
+  background: #7f1d1d;
+  color: #fca5a5;
 }
 
-.dark .card-title i {
-  color: #6366f1;
+.dark .priority-tag.high {
+  background: #78350f;
+  color: #fcd34d;
 }
 
-.dark .attachment-item {
-  background: rgba(30, 41, 59, 0.5);
-  border-color: rgba(51, 65, 85, 0.5);
-}
-
-.dark .attachment-item:hover {
-  background: rgba(67, 56, 202, 0.2);
-  border-color: rgba(99, 102, 241, 0.3);
-}
-
-.dark .notice-title.unread {
-  color: #f1f5f9;
-}
-
-.dark .notice-title {
-  color: #94a3b8;
-}
-
-.dark .unread-badge {
-  background: linear-gradient(135deg, #6366f1, #818cf8);
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+.dark .detail-content {
+  color: #cbd5e1;
 }
 </style>

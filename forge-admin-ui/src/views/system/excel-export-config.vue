@@ -350,7 +350,7 @@ const editSchema = [
 
 // 刷新
 function handleRefresh() {
-  crudRef.value?.reload()
+  crudRef.value?.refresh()
 }
 
 // 编辑
@@ -420,7 +420,7 @@ function handleDelete(row) {
         const res = await request.delete(`/system/excel/export-config/${row.id}`)
         if (res.code === 200) {
           window.$message.success('删除成功')
-          crudRef.value?.reload()
+          crudRef.value?.refresh()
         }
         else {
           window.$message.error(res.respMsg || '删除失败')
@@ -523,7 +523,7 @@ async function handleConfirmCopy() {
       if (res.code === 200) {
         window.$message.success('复制成功')
         showCopyModal.value = false
-        crudRef.value?.reload()
+        crudRef.value?.refresh()
       }
       else {
         window.$message.error(res.respMsg || '复制失败')

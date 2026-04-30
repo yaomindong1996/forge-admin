@@ -1,63 +1,21 @@
 <template>
   <div class="job-config-page">
-    <AiCrudPage
-      ref="crudRef"
-      :api-config="{
-        list: 'get@/job/config/page',
-        detail: 'get@/job/config/{id}',
-        add: 'post@/job/config',
-        update: 'put@/job/config',
-        delete: 'delete@/job/config/{id}',
-      }"
-      :search-schema="searchSchema"
-      :columns="tableColumns"
-      :edit-schema="editSchema"
-      row-key="id"
-      :edit-grid-cols="1"
-      modal-width="900px"
-      add-button-text="新增定时任务"
-      :before-submit="beforeSubmit"
-      modal-type="modal"
-    >
-      <!-- Cron表达式自定义插槽 -->
-      <template #form-cronExpression="{ value, updateValue, formData }">
-        <div class="flex items-center gap-8" style="width: 100%">
-          <NInput
-            :value="value"
-            placeholder="请输入Cron表达式，如：0 0 12 * * ?"
-            style="flex: 1"
-            @update:value="updateValue"
-          />
-          <NPopover
-            trigger="click"
-            placement="bottom-start"
-            scrollable
-            :style="{ maxHeight: '500px' }"
-          >
-            <template #trigger>
-              <NButton text type="primary" size="small">
-                选择常用
-              </NButton>
-            </template>
-            <div class="cron-selector-list">
-              <div
-                v-for="item in commonCronList"
-                :key="item.expression"
-                class="cron-selector-item"
-                @click="updateValue(item.expression)"
-              >
-                <div class="cron-desc">
-                  {{ item.description }}
-                </div>
-                <code class="cron-expr">{{ item.expression }}</code>
-              </div>
-            </div>
-          </NPopover>
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="title-row">
+          <div class="title-icon job-icon">
+            <i class="i-material-symbols:schedule-rounded" />
+          </div>
+          <h2 class="page-title">
+            定时任务管理
+          </h2>
         </div>
-      </template>
-
-      <!-- 自定义工具栏按钮 -->
-      <template #toolbar-end>
+        <div class="header-desc">
+          定时任务调度配置，支持Cron表达式与任务执行控制
+        </div>
+      </div>
+      <div class="header-right">
         <NButton type="warning" size="small" @click="handleCleanLogs(7)">
           <template #icon>
             <i class="i-material-symbols:delete-sweep-outline" />
@@ -70,8 +28,68 @@
           </template>
           清空所有日志
         </NButton>
-      </template>
-    </AiCrudPage>
+      </div>
+    </div>
+
+    <!-- 任务列表 -->
+    <div class="job-content">
+      <AiCrudPage
+        ref="crudRef"
+        :api-config="{
+          list: 'get@/job/config/page',
+          detail: 'get@/job/config/{id}',
+          add: 'post@/job/config',
+          update: 'put@/job/config',
+          delete: 'delete@/job/config/{id}',
+        }"
+        :search-schema="searchSchema"
+        :columns="tableColumns"
+        :edit-schema="editSchema"
+        row-key="id"
+        :edit-grid-cols="1"
+        modal-width="900px"
+        add-button-text="新增定时任务"
+        :before-submit="beforeSubmit"
+        modal-type="modal"
+      >
+        <!-- Cron表达式自定义插槽 -->
+        <template #form-cronExpression="{ value, updateValue }">
+          <div class="flex items-center gap-8" style="width: 100%">
+            <NInput
+              :value="value"
+              placeholder="请输入Cron表达式，如：0 0 12 * * ?"
+              style="flex: 1"
+              @update:value="updateValue"
+            />
+            <NPopover
+              trigger="click"
+              placement="bottom-start"
+              scrollable
+              :style="{ maxHeight: '500px' }"
+            >
+              <template #trigger>
+                <NButton text type="primary" size="small">
+                  选择常用
+                </NButton>
+              </template>
+              <div class="cron-selector-list">
+                <div
+                  v-for="item in commonCronList"
+                  :key="item.expression"
+                  class="cron-selector-item"
+                  @click="updateValue(item.expression)"
+                >
+                  <div class="cron-desc">
+                    {{ item.description }}
+                  </div>
+                  <code class="cron-expr">{{ item.expression }}</code>
+                </div>
+              </div>
+            </NPopover>
+          </div>
+        </template>
+      </AiCrudPage>
+    </div>
 
     <!-- 运行日志弹窗 -->
     <n-modal
@@ -513,49 +531,91 @@ function handleCleanLogs(days) {
 <style scoped>
 .job-config-page {
   height: 100%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.action-link {
-  color: #18a058;
-  cursor: pointer;
-  transition: all 0.3s;
-  font-size: 13px;
+/* 页面头部 */
+.page-header {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
 }
 
-.action-link:hover {
-  color: #36ad6a;
-  text-decoration: underline;
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.action-link.success {
-  color: #18a058;
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.action-link.warning {
-  color: #f0a020;
+.title-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
 }
 
-.action-link.info {
-  color: #2080f0;
+.title-icon.job-icon {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
 }
 
-.action-link.error {
-  color: #d03050;
+.page-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
 }
 
-.divider {
-  color: #e0e0e6;
+.header-desc {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 任务列表内容 */
+.job-content {
+  flex: 1;
+  min-height: 0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.job-content :deep(.ai-crud-page) {
+  height: 100%;
 }
 
 /* Cron选择器样式 */
-:deep(.cron-selector-list) {
+.job-content :deep(.cron-selector-list) {
   max-height: 450px;
   overflow-y: auto;
   padding: 8px;
   width: 500px;
 }
 
-:deep(.cron-selector-item) {
+.job-content :deep(.cron-selector-item) {
   padding: 12px 16px;
   margin-bottom: 8px;
   border: 1px solid #e8e8e8;
@@ -565,27 +625,65 @@ function handleCleanLogs(days) {
   background: #fff;
 }
 
-:deep(.cron-selector-item:hover) {
-  border-color: #18a058;
-  background: #f0f9ff;
+.job-content :deep(.cron-selector-item:hover) {
+  border-color: #f59e0b;
+  background: #fffbeb;
   transform: translateX(4px);
-  box-shadow: 0 2px 8px rgba(24, 160, 88, 0.1);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
 }
 
-:deep(.cron-desc) {
+.job-content :deep(.cron-desc) {
   font-size: 14px;
   color: #262626;
   margin-bottom: 6px;
   font-weight: 500;
 }
 
-:deep(.cron-expr) {
+.job-content :deep(.cron-expr) {
   font-family: 'Courier New', 'Consolas', monospace;
   font-size: 12px;
-  color: #2080f0;
-  background: #f5f5f5;
+  color: #f59e0b;
+  background: #fffbeb;
   padding: 4px 10px;
   border-radius: 4px;
   display: inline-block;
+}
+
+/* 深色模式 */
+.dark .page-header {
+  background: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .page-title {
+  color: #f1f5f9;
+}
+
+.dark .header-desc {
+  color: #94a3b8;
+}
+
+.dark .job-content {
+  background: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .job-content :deep(.cron-selector-item) {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark .job-content :deep(.cron-selector-item:hover) {
+  border-color: #f59e0b;
+  background: #292524;
+}
+
+.dark .job-content :deep(.cron-desc) {
+  color: #f1f5f9;
+}
+
+.dark .job-content :deep(.cron-expr) {
+  color: #fbbf24;
+  background: #422006;
 }
 </style>

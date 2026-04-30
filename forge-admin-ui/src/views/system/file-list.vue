@@ -1,5 +1,41 @@
 <template>
   <div class="file-management-page">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="title-row">
+          <div class="title-icon file-icon">
+            <i class="i-material-symbols:folder-open-rounded" />
+          </div>
+          <h2 class="page-title">
+            文件管理
+          </h2>
+        </div>
+        <div class="header-desc">
+          文件上传、预览与管理，支持多存储源与文件分组
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="stats-info">
+          <div class="stat-item">
+            <i class="i-material-symbols:files-rounded stat-icon" />
+            <span class="stat-value">{{ totalFiles }}</span>
+            <span class="stat-label">总文件</span>
+          </div>
+          <div class="stat-item">
+            <i class="i-material-symbols:image-rounded stat-icon" />
+            <span class="stat-value">{{ imageCount }}</span>
+            <span class="stat-label">图片</span>
+          </div>
+          <div class="stat-item">
+            <i class="i-material-symbols:description-rounded stat-icon" />
+            <span class="stat-value">{{ documentCount }}</span>
+            <span class="stat-label">文档</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="file-management-container">
       <!-- 左侧分组导航 -->
       <div class="sidebar">
@@ -1338,11 +1374,100 @@ function handleDelete(row) {
   flex-direction: column;
   overflow: hidden;
   background: var(--bg-page);
+  padding: 20px;
+  gap: 16px;
+}
+
+/* --- 页面头部 --- */
+.page-header {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+}
+
+.title-icon.file-icon {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.header-desc {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.stats-info {
+  display: flex;
+  gap: 16px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.stat-icon {
+  font-size: 16px;
+  color: #64748b;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #64748b;
 }
 
 .file-management-container {
   display: flex;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -1951,6 +2076,17 @@ function handleDelete(row) {
 
 /* --- 响应式 --- */
 @media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .header-right {
+    width: 100%;
+  }
+  .stats-info {
+    width: 100%;
+    justify-content: space-around;
+  }
   .file-management-container {
     flex-direction: column;
   }
@@ -1967,5 +2103,35 @@ function handleDelete(row) {
   .file-preview {
     height: 110px;
   }
+}
+
+/* --- 深色模式 --- */
+.dark .page-header {
+  background: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .page-title {
+  color: #f1f5f9;
+}
+
+.dark .header-desc {
+  color: #94a3b8;
+}
+
+.dark .stat-item {
+  background: #1e293b;
+}
+
+.dark .stat-icon {
+  color: #94a3b8;
+}
+
+.dark .stat-value {
+  color: #f1f5f9;
+}
+
+.dark .stat-label {
+  color: #94a3b8;
 }
 </style>

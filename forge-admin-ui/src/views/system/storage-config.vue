@@ -1,62 +1,82 @@
 <template>
   <div class="storage-config-page">
-    <AiCrudPage
-      ref="crudRef"
-      :api-config="{
-        list: 'get@/system/storage/config/page',
-        detail: 'post@/system/storage/config/detail',
-        add: 'post@/system/storage/config',
-        update: 'put@/system/storage/config',
-        delete: 'delete@/system/storage/config/{ids}',
-      }"
-      :search-schema="searchSchema"
-      :columns="tableColumns"
-      :edit-schema="editSchema"
-      row-key="id"
-      add-button-text="新增存储配置"
-      :load-detail-on-edit="true"
-      :edit-grid-cols="2"
-      modal-width="900px"
-    >
-      <!-- 自定义表单项：允许的文件类型 -->
-      <template #form-allowedTypes="{ value, updateValue }">
-        <div class="file-types-input">
-          <NDynamicTags
-            :value="parseAllowedTypes(value)"
-            @update:value="(tags) => handleFileTypesChange(tags, updateValue)"
-          >
-            <template #input="{ submit, deactivate }">
-              <NInput
-                ref="inputRef"
-                v-model:value="fileTypeInput"
-                type="text"
-                size="small"
-                placeholder="输入文件类型，如 jpg"
-                @keyup.enter="() => handleSubmitFileType(submit)"
-                @blur="deactivate()"
-              />
-            </template>
-            <template #trigger="{ activate, disabled }">
-              <NButton
-                size="small"
-                type="primary"
-                dashed
-                :disabled="disabled"
-                @click="activate()"
-              >
-                <template #icon>
-                  <i class="i-material-symbols:add" />
-                </template>
-                添加类型
-              </NButton>
-            </template>
-          </NDynamicTags>
-          <div class="text-12 mt-4 text-gray-400">
-            常用类型：jpg、png、gif、pdf、doc、docx、xls、xlsx、zip、rar
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="title-row">
+          <div class="title-icon storage-icon">
+            <i class="i-material-symbols:cloud-upload-rounded" />
           </div>
+          <h2 class="page-title">
+            存储配置管理
+          </h2>
         </div>
-      </template>
-    </AiCrudPage>
+        <div class="header-desc">
+          多存储源配置管理，支持本地/MinIO/阿里云OSS等多种存储方案
+        </div>
+      </div>
+    </div>
+
+    <!-- 存储配置列表 -->
+    <div class="storage-content">
+      <AiCrudPage
+        ref="crudRef"
+        :api-config="{
+          list: 'get@/system/storage/config/page',
+          detail: 'post@/system/storage/config/detail',
+          add: 'post@/system/storage/config',
+          update: 'put@/system/storage/config',
+          delete: 'delete@/system/storage/config/{ids}',
+        }"
+        :search-schema="searchSchema"
+        :columns="tableColumns"
+        :edit-schema="editSchema"
+        row-key="id"
+        add-button-text="新增存储配置"
+        :load-detail-on-edit="true"
+        :edit-grid-cols="2"
+        modal-width="900px"
+      >
+        <!-- 自定义表单项：允许的文件类型 -->
+        <template #form-allowedTypes="{ value, updateValue }">
+          <div class="file-types-input">
+            <NDynamicTags
+              :value="parseAllowedTypes(value)"
+              @update:value="(tags) => handleFileTypesChange(tags, updateValue)"
+            >
+              <template #input="{ submit, deactivate }">
+                <NInput
+                  ref="inputRef"
+                  v-model:value="fileTypeInput"
+                  type="text"
+                  size="small"
+                  placeholder="输入文件类型，如 jpg"
+                  @keyup.enter="() => handleSubmitFileType(submit)"
+                  @blur="deactivate()"
+                />
+              </template>
+              <template #trigger="{ activate, disabled }">
+                <NButton
+                  size="small"
+                  type="primary"
+                  dashed
+                  :disabled="disabled"
+                  @click="activate()"
+                >
+                  <template #icon>
+                    <i class="i-material-symbols:add" />
+                  </template>
+                  添加类型
+                </NButton>
+              </template>
+            </NDynamicTags>
+            <div class="text-12 mt-4 text-gray-400">
+              常用类型：jpg、png、gif、pdf、doc、docx、xls、xlsx、zip、rar
+            </div>
+          </div>
+        </template>
+      </AiCrudPage>
+    </div>
   </div>
 </template>
 
@@ -554,6 +574,74 @@ async function handleTestConnection(row) {
 <style scoped>
 .storage-config-page {
   height: 100%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 页面头部 */
+.page-header {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+}
+
+.title-icon.storage-icon {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.header-desc {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* 存储配置内容 */
+.storage-content {
+  flex: 1;
+  min-height: 0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+.storage-content :deep(.ai-crud-page) {
+  height: 100%;
 }
 
 .file-types-input {
@@ -567,5 +655,24 @@ async function handleTestConnection(row) {
 .file-types-input :deep(.n-dynamic-tags .n-tag) {
   margin-right: 8px;
   margin-bottom: 8px;
+}
+
+/* 深色模式 */
+.dark .page-header {
+  background: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .page-title {
+  color: #f1f5f9;
+}
+
+.dark .header-desc {
+  color: #94a3b8;
+}
+
+.dark .storage-content {
+  background: #0f172a !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 </style>
