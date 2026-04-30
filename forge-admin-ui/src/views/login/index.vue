@@ -490,7 +490,7 @@ async function refreshCaptcha() {
 
       // 开发环境在控制台提示验证码
       if (import.meta.env.DEV && res.data.code) {
-        console.log('【开发提示】验证码:', res.data.code)
+        console.warn('【开发提示】验证码:', res.data.code)
       }
     }
   }
@@ -543,7 +543,6 @@ function onSlideSuccess() {
   sliderSuccess.value = true
   sliderFail.value = false
   loginInfo.value.code = 'verified'
-  console.log('滑块验证成功')
   // 延迟关闭浮层再登录，让用户看到成功动画
   setTimeout(() => {
     closeSliderModal()
@@ -556,7 +555,6 @@ function onSlideFail() {
   sliderFail.value = true
   sliderSuccess.value = false
   loginInfo.value.code = ''
-  console.log('滑块验证失败')
 }
 
 // 刷新滑块验证码
@@ -603,7 +601,7 @@ async function sendSmsCode() {
 
         // 开发环境在控制台提示验证码
         if (import.meta.env.DEV && res.data.code) {
-          console.log('【开发提示】短信验证码:', res.data.code)
+          console.warn('【开发提示】短信验证码:', res.data.code)
         }
 
         // 开始倒计时
@@ -1500,21 +1498,103 @@ async function loadAndSetMenuData() {
 /* Login button */
 .login-button {
   margin-top: 8px;
-  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 12px;
+  border: 1px solid rgba(22, 93, 255, 0.22);
+  background: linear-gradient(
+    135deg,
+    var(--primary-400) 0%,
+    var(--primary-500) 55%,
+    var(--primary-600) 100%
+  ) !important;
   font-size: 0.9375rem;
   font-weight: 600;
   height: 46px;
-  transition: all 0.25s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 10px 22px rgba(22, 93, 255, 0.24),
+    0 2px 6px rgba(22, 93, 255, 0.16);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease,
+    background 0.25s ease;
   cursor: pointer;
 }
 
+.login-button::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  left: -130%;
+  width: 72%;
+  height: 140%;
+  z-index: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.16) 45%,
+    rgba(255, 255, 255, 0.34) 50%,
+    rgba(255, 255, 255, 0.16) 55%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: skewX(-22deg);
+  transition: left 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.login-button::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 11px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.04) 34%,
+    rgba(255, 255, 255, 0) 62%
+  );
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.95;
+  transition: opacity 0.25s ease;
+}
+
 .login-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.25);
+  transform: translateY(-2px) scale(1.005);
+  border-color: rgba(22, 93, 255, 0.32);
+  background: linear-gradient(
+    135deg,
+    var(--primary-300) 0%,
+    var(--primary-500) 58%,
+    var(--primary-700) 100%
+  ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    0 14px 28px rgba(22, 93, 255, 0.3),
+    0 4px 10px rgba(22, 93, 255, 0.18);
+}
+
+.login-button:hover::before {
+  left: 132%;
+}
+
+.login-button:hover::after {
+  opacity: 1;
 }
 
 .login-button:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.985);
+}
+
+.login-button:active::before {
+  left: 132%;
+  transition-duration: 0.22s;
+}
+
+.login-button:active::after {
+  opacity: 0.86;
 }
 
 .login-button :deep(.n-button__content) {
@@ -1522,16 +1602,28 @@ async function loadAndSetMenuData() {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.login-button :deep(.n-base-loading),
+.login-button :deep(.n-button__icon) {
+  position: relative;
+  z-index: 2;
 }
 
 .button-text {
   font-family: 'Plus Jakarta Sans', sans-serif;
   letter-spacing: 0.01em;
+  color: #fff;
 }
 
 .button-icon {
   font-size: 1.125rem;
-  transition: transform 0.25s ease;
+  color: #fff;
+  transition:
+    transform 0.25s ease,
+    opacity 0.25s ease;
 }
 
 .login-button:hover .button-icon {
