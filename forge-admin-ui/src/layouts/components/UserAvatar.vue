@@ -12,7 +12,7 @@
         v-else
         round
         :size="28"
-        :style="{ backgroundColor: '#10B981', fontSize: '12px' }"
+        :style="{ backgroundColor: 'var(--primary-500)', fontSize: '12px' }"
       >
         {{ avatarText }}
       </n-avatar>

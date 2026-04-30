@@ -18,7 +18,7 @@
                 v-else
                 :size="72"
                 round
-                :style="{ backgroundColor: '#10B981', fontSize: '28px' }"
+                :style="{ backgroundColor: 'var(--primary-500)', fontSize: '28px' }"
                 class="profile-avatar"
               >
                 {{ avatarText }}
