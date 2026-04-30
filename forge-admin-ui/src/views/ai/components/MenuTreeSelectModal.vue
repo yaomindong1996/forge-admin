@@ -7,13 +7,17 @@
     :mask-closable="false"
   >
     <div style="margin-bottom: 12px;">
-      <div style="font-size:13px;color:#666;margin-bottom:6px;">菜单名称（新菜单的名字，不是父级菜单）</div>
+      <div style="font-size:13px;color:#666;margin-bottom:6px;">
+        菜单名称（新菜单的名字，不是父级菜单）
+      </div>
       <n-input
         v-model:value="menuName"
         placeholder="必填：新菜单名称，如『员工管理』"
       />
     </div>
-    <div style="font-size:13px;color:#666;margin-bottom:6px;">选择放置位置（父级目录）</div>
+    <div style="font-size:13px;color:#666;margin-bottom:6px;">
+      选择放置位置（父级目录）
+    </div>
     <div class="menu-tree-select-modal">
       <n-spin :show="loading">
         <n-empty
@@ -52,9 +56,9 @@
 </template>
 
 <script setup>
-import { ref, watch, h } from 'vue'
-import { request } from '@/utils'
 import { NTag } from 'naive-ui'
+import { h, ref, watch } from 'vue'
+import { request } from '@/utils'
 
 const props = defineProps({
   show: {
@@ -135,7 +139,8 @@ function handleClose() {
 }
 
 function handleConfirm() {
-  if (!selectedNode.value) return
+  if (!selectedNode.value)
+    return
   if (!menuName.value.trim()) {
     window.$message?.warning('请填写菜单名称')
     return

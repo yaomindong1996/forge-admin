@@ -116,13 +116,13 @@
             <div class="icon-upload-container">
               <ImageUpload
                 :model-value="value"
-                @update:model-value="updateValue"
                 :limit="1"
                 :file-size="2"
                 :file-type="['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg']"
                 business-type="menu-icon"
                 :show-tip="true"
                 value-type="string"
+                @update:model-value="updateValue"
               />
             </div>
           </n-tab-pane>
@@ -330,7 +330,7 @@ const tableColumns = computed(() => [
       return h(
         'n-tag',
         { type: config.type, size: 'small', bordered: false },
-        { default: () => config.text }
+        { default: () => config.text },
       )
     },
   },

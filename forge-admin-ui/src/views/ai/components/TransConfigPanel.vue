@@ -2,7 +2,9 @@
   <div class="trans-config-panel">
     <div class="panel-header">
       <span>字典翻译规则配置</span>
-      <n-button size="small" dashed @click="addRule">+ 添加规则</n-button>
+      <n-button size="small" dashed @click="addRule">
+        + 添加规则
+      </n-button>
     </div>
     <div v-if="rules.length === 0" class="empty-tip">
       暂无翻译规则。在 schema 中为字段添加 dictType 后，此处可自动提取；也可手动添加。
@@ -12,7 +14,7 @@
         <span class="col-field">原字段</span>
         <span class="col-dict">字典类型</span>
         <span class="col-target">翻译字段</span>
-        <span class="col-action"></span>
+        <span class="col-action" />
       </div>
       <div v-for="(rule, idx) in rules" :key="idx" class="rule-row">
         <div class="col-field">
@@ -46,8 +48,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
 import { CloseOutline } from '@vicons/ionicons5'
+import { computed, onMounted, ref, watch } from 'vue'
 import { request } from '@/utils'
 
 const props = defineProps({
@@ -73,7 +75,8 @@ async function loadDictTypes() {
         label: d.dictName ? `${d.dictName} (${d.dictType})` : d.dictType,
         value: d.dictType,
       }))
-  } catch (e) {
+  }
+  catch (e) {
     console.warn('[TransConfigPanel] 加载字典类型失败:', e)
   }
 }
@@ -81,7 +84,8 @@ async function loadDictTypes() {
 onMounted(loadDictTypes)
 
 function parseValue(val) {
-  if (!val) return []
+  if (!val)
+    return []
   try {
     const parsed = JSON.parse(val)
     const result = []
@@ -90,12 +94,13 @@ function parseValue(val) {
       result.push({
         field,
         dictType: config.dictType || '',
-        targetField: config.targetField || field + 'Name',
+        targetField: config.targetField || `${field}Name`,
         label: found?.label || field,
       })
     }
     return result
-  } catch (e) {
+  }
+  catch (e) {
     return []
   }
 }
@@ -103,19 +108,22 @@ function parseValue(val) {
 function extractDictFields(schemas) {
   const fields = []
   for (const schemaStr of schemas) {
-    if (!schemaStr) continue
+    if (!schemaStr)
+      continue
     try {
       const parsed = JSON.parse(schemaStr)
-      if (!Array.isArray(parsed)) continue
+      if (!Array.isArray(parsed))
+        continue
       for (const item of parsed) {
         const dt = item.dictType || item.render?.dictType
         if (dt) {
           const field = item.field || item.dataIndex || item.key || item.prop
           const label = item.label || item.title || field
-          fields.push({ field, dictType: dt, targetField: field + 'Name', label })
+          fields.push({ field, dictType: dt, targetField: `${field}Name`, label })
         }
       }
-    } catch (e) {}
+    }
+    catch (e) {}
   }
   return fields
 }
@@ -154,10 +162,11 @@ watch(
 function emitUpdate() {
   const obj = {}
   for (const rule of rules.value) {
-    if (!rule.field || !rule.dictType) continue
+    if (!rule.field || !rule.dictType)
+      continue
     obj[rule.field] = {
       dictType: rule.dictType,
-      targetField: rule.targetField || rule.field + 'Name',
+      targetField: rule.targetField || `${rule.field}Name`,
     }
   }
   emit('update:value', Object.keys(obj).length > 0 ? JSON.stringify(obj, null, 2) : '')
@@ -176,10 +185,11 @@ function removeRule(idx) {
 const jsonValue = computed(() => {
   const obj = {}
   for (const rule of rules.value) {
-    if (!rule.field || !rule.dictType) continue
+    if (!rule.field || !rule.dictType)
+      continue
     obj[rule.field] = {
       dictType: rule.dictType,
-      targetField: rule.targetField || rule.field + 'Name',
+      targetField: rule.targetField || `${rule.field}Name`,
     }
   }
   return Object.keys(obj).length > 0 ? JSON.stringify(obj, null, 2) : '{}'

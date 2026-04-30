@@ -8,7 +8,9 @@
   <div v-if="hasTree" class="tree-crud-layout">
     <!-- 左侧树形导航 -->
     <div class="tree-crud-left">
-      <div class="tree-header">{{ treeTitle }}</div>
+      <div class="tree-header">
+        {{ treeTitle }}
+      </div>
       <n-spin :show="treeLoading">
         <n-tree
           :data="treeData"
@@ -33,8 +35,8 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
-import { request } from '@/utils'
 import AiCrudPage from '@/components/ai-form/AiCrudPage.vue'
+import { request } from '@/utils'
 
 const props = defineProps({
   crudProps: {
@@ -58,7 +60,8 @@ const selectedId = ref(null)
 
 // 合并 crudProps，注入 parentId 过滤
 const mergedCrudProps = computed(() => {
-  if (!selectedId.value) return props.crudProps
+  if (!selectedId.value)
+    return props.crudProps
   const apiConfig = { ...(props.crudProps.apiConfig || {}) }
   // 将 parentId 注入到 list 接口的默认参数中
   return {
@@ -72,22 +75,27 @@ const mergedCrudProps = computed(() => {
 })
 
 async function loadTreeData() {
-  if (!treeConfig.value) return
+  if (!treeConfig.value)
+    return
   const apiConfig = props.crudProps?.apiConfig || {}
   // 优先使用 tree 接口，fallback 到 list 接口
   const treeApi = apiConfig.tree || apiConfig.list
-  if (!treeApi) return
+  if (!treeApi)
+    return
   const [method, url] = treeApi.split('@')
-  if (!url) return
+  if (!url)
+    return
   treeLoading.value = true
   try {
     const res = await request[method.toLowerCase()](url)
     if (res.code === 200) {
       treeData.value = res.data || []
     }
-  } catch (e) {
+  }
+  catch (e) {
     console.warn('[TreeCrudTemplate] 加载树形数据失败:', e.message)
-  } finally {
+  }
+  finally {
     treeLoading.value = false
   }
 }
@@ -120,10 +128,10 @@ watch(() => props.crudProps?.apiConfig, () => {
 .tree-crud-left {
   width: 220px;
   flex-shrink: 0;
-  border-right: 1px solid #E5E7EB;
+  border-right: 1px solid #e5e7eb;
   padding: 12px 8px;
   overflow-y: auto;
-  background: #FAFAFA;
+  background: #fafafa;
 }
 
 .tree-header {
@@ -131,7 +139,7 @@ watch(() => props.crudProps?.apiConfig, () => {
   font-weight: 600;
   color: #374151;
   padding: 0 6px 10px;
-  border-bottom: 1px solid #F3F4F6;
+  border-bottom: 1px solid #f3f4f6;
   margin-bottom: 8px;
 }
 

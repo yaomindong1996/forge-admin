@@ -282,14 +282,52 @@
               />
             </n-form-item>
 
-            <n-form-item v-if="properties.completionCondition === 'rate'" label="通过比例(%)">
-              <n-slider
-                v-model:value="properties.passRate"
-                :min="0"
-                :max="100"
-                :step="10"
-                @update:value="updateMultiInstance"
-              />
+            <n-form-item v-if="properties.completionCondition === 'rate'" label="通过比例">
+              <div class="pass-rate-config">
+                <!-- 预设快选 -->
+                <div class="pass-rate-presets">
+                  <n-button-group size="tiny">
+                    <n-button
+                      v-for="preset in passRatePresets"
+                      :key="preset.value"
+                      :type="properties.passRate === preset.value ? 'primary' : 'default'"
+                      @click="setPassRate(preset.value)"
+                    >
+                      {{ preset.label }}
+                    </n-button>
+                  </n-button-group>
+                </div>
+                <!-- 滑块 + 精确输入 -->
+                <div class="pass-rate-slider-row">
+                  <n-slider
+                    v-model:value="properties.passRate"
+                    :min="10"
+                    :max="100"
+                    :step="1"
+                    :marks="passRateMarks"
+                    :format-tooltip="v => `${v}%`"
+                    style="flex: 1"
+                    @update:value="updateMultiInstance"
+                  />
+                  <n-input-number
+                    v-model:value="properties.passRate"
+                    :min="10"
+                    :max="100"
+                    size="small"
+                    style="width: 82px; flex-shrink: 0"
+                    @update:value="updateMultiInstance"
+                  >
+                    <template #suffix>
+                      %
+                    </template>
+                  </n-input-number>
+                </div>
+                <!-- 描述文字 -->
+                <div class="pass-rate-desc">
+                  <i class="i-material-symbols:info-outline" style="color:#2080f0;margin-right:4px" />
+                  {{ passRateDesc }}
+                </div>
+              </div>
             </n-form-item>
           </template>
         </n-form>
@@ -512,6 +550,18 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update'])
+
+// 会签比例预设值
+const passRatePresets = [
+  { label: '过半', value: 50 },
+  { label: '2/3', value: 67 },
+  { label: '3/4', value: 75 },
+  { label: '全部', value: 100 },
+]
+
+// 会签比例滑块刻度
+const passRateMarks = { 50: '50%', 67: '2/3', 75: '75%', 100: '100%' }
+
 // 使用全局 message 实例
 const message = window.$message
 
@@ -620,6 +670,26 @@ const completionConditionOptions = [
   { label: '任一通过', value: 'any' },
   { label: '按比例通过', value: 'rate' },
 ]
+
+// 通过比例描述文字
+const passRateDesc = computed(() => {
+  const rate = properties.passRate
+  if (rate >= 100)
+    return '需要所有审批人全部同意才能通过'
+  if (rate === 50)
+    return `需要超过一半的审批人同意才能通过`
+  if (rate === 67)
+    return '需要 2/3 以上的审批人同意才能通过'
+  if (rate === 75)
+    return '需要 3/4 以上的审批人同意才能通过'
+  return `需要至少 ${rate}% 的审批人同意才能通过`
+})
+
+// 设置预设比例并触发更新
+function setPassRate(value) {
+  properties.passRate = value
+  updateMultiInstance()
+}
 
 const taskEventOptions = [
   { label: '创建(create)', value: 'create' },
@@ -1399,5 +1469,32 @@ function updateProperty(prop) {
 
 :deep(.n-form-item:last-child) {
   margin-bottom: 0;
+}
+
+.pass-rate-config {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.pass-rate-presets {
+  display: flex;
+}
+
+.pass-rate-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pass-rate-desc {
+  font-size: 12px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  background: #f0f7ff;
+  border-radius: 4px;
+  padding: 5px 8px;
 }
 </style>

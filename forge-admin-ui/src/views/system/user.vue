@@ -438,7 +438,8 @@ const tableColumns = computed(() => [
     label: '行政区划',
     width: 150,
     render: (row) => {
-      if (!row.regionCode) return '-'
+      if (!row.regionCode)
+        return '-'
       const name = findRegionName(searchRegionOptions.value, row.regionCode)
       return name || row.regionCode
     },
@@ -655,7 +656,7 @@ async function loadLeftOrgTree() {
         leftOrgExpandedKeys.value = getAllKeys(leftOrgTreeData.value)
       }
     }
-    
+
     // 同时加载行政区划选项
     await loadRegionOptions()
   }
@@ -688,7 +689,7 @@ async function loadRegionOptions() {
 // 将后端返回的树形数据转换为TreeSelect组件需要的格式
 // virtualDisabled: true=编辑表单（虚拟节点不可选），false=搜索筛选（虚拟节点可选）
 function convertRegionToTreeSelect(list, virtualDisabled = true) {
-  return list.map(item => {
+  return list.map((item) => {
     const node = {
       label: item.name,
       value: item.code,
@@ -707,10 +708,12 @@ function convertRegionToTreeSelect(list, virtualDisabled = true) {
 // 在区划树中根据code查找名称
 function findRegionName(options, code) {
   for (const item of options) {
-    if (item.value === code) return item.label
+    if (item.value === code)
+      return item.label
     if (item.children) {
       const name = findRegionName(item.children, code)
-      if (name) return name
+      if (name)
+        return name
     }
   }
   return null

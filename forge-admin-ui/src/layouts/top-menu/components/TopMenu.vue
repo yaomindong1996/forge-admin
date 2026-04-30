@@ -15,8 +15,8 @@
 import { computed, h } from 'vue'
 import { useRoute } from 'vue-router'
 import IconRenderer from '@/components/IconRenderer.vue'
-import { useAppStore, usePermissionStore } from '@/store'
 import { useMenu } from '@/composables'
+import { useAppStore, usePermissionStore } from '@/store'
 import { getTopMenuThemeOverrides } from '@/utils/menu-theme.js'
 import { processTopMenus } from '@/utils/menu-utils'
 
@@ -34,7 +34,7 @@ const menuOptions = computed(() => {
   const menus = permissionStore.menus || []
   const topMenus = processTopMenus(menus)
 
-  return topMenus.map((item) => ({
+  return topMenus.map(item => ({
     ...item,
     key: item.id,
     label: item.label || item.name,

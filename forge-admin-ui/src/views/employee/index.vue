@@ -28,9 +28,9 @@ const crudRef = ref(null)
 
 // ── 接口配置（基于生成的 Controller 接口）──────────────────────────────────
 const apiConfig = {
-  list:   'get@/employee/page',
+  list: 'get@/employee/page',
   detail: 'post@/employee/getById',
-  add:    'post@/employee/add',
+  add: 'post@/employee/add',
   update: 'post@/employee/edit',
   delete: 'post@/employee/remove/:id',
 }
@@ -43,28 +43,24 @@ const searchSchema = [
   {
     field: 'empName',
     label: '姓名',
-    type: 'input'
-,
+    type: 'input',
   },
   {
     field: 'empNo',
     label: '工号',
-    type: 'input'
-,
+    type: 'input',
   },
   {
     field: 'deptId',
     label: '部门',
     type: 'select',
-    dictType: 'sys_dept'
-,
+    dictType: 'sys_dept',
   },
   {
     field: 'status',
     label: '状态',
     type: 'select',
-    dictType: 'sys_normal_disable'
-,
+    dictType: 'sys_normal_disable',
   },
 ]
 
@@ -72,45 +68,37 @@ const searchSchema = [
 const columnsSchema = [
   {
     prop: 'empName',
-    label: '姓名'
-,
+    label: '姓名',
   },
   {
     prop: 'empNo',
-    label: '工号'
-,
+    label: '工号',
   },
   {
     prop: 'deptId',
-    label: '部门'
-,
+    label: '部门',
     _transName: 'deptName',
     _dictType: 'sys_dept',
   },
   {
     prop: 'position',
-    label: '职位'
-,
+    label: '职位',
   },
   {
     prop: 'hireDate',
-    label: '入职日期'
-,
+    label: '入职日期',
   },
   {
     prop: 'phone',
-    label: '手机号'
-,
+    label: '手机号',
   },
   {
     prop: 'email',
-    label: '邮箱'
-,
+    label: '邮箱',
   },
   {
     prop: 'status',
-    label: '状态'
-,
+    label: '状态',
     _transName: 'statusName',
     _dictType: 'sys_normal_disable',
   },
@@ -122,59 +110,51 @@ const editSchema = [
     field: 'empName',
     label: '姓名',
     type: 'input',
-    required: true
-,
+    required: true,
   },
   {
     field: 'empNo',
     label: '工号',
     type: 'input',
-    required: true
-,
+    required: true,
   },
   {
     field: 'deptId',
     label: '部门',
     type: 'select',
     required: true,
-    dictType: 'sys_dept'
-,
+    dictType: 'sys_dept',
   },
   {
     field: 'position',
     label: '职位',
     type: 'input',
-    required: true
-,
+    required: true,
   },
   {
     field: 'hireDate',
     label: '入职日期',
     type: 'date',
-    required: true
-,
+    required: true,
   },
   {
     field: 'phone',
     label: '手机号',
     type: 'input',
-    required: true
-,
+    required: true,
   },
   {
     field: 'email',
     label: '邮箱',
     type: 'input',
-    required: true
-,
+    required: true,
   },
   {
     field: 'status',
     label: '状态',
     type: 'select',
     required: true,
-    dictType: 'sys_normal_disable'
-,
+    dictType: 'sys_normal_disable',
   },
 ]
 
@@ -186,7 +166,8 @@ async function preloadDicts() {
   for (const type of types) {
     try {
       dictCache.value[type] = await getDictData(type)
-    } catch (e) {
+    }
+    catch (e) {
       console.warn(`[Employee] 加载字典 ${type} 失败`, e)
     }
   }

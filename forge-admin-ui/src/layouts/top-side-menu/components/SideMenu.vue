@@ -15,8 +15,8 @@
 
 <script setup>
 import { useRoute } from 'vue-router'
+import { findTopMenuByPath, useMenu } from '@/composables'
 import { useAppStore, usePermissionStore } from '@/store'
-import { useMenu, findTopMenuByPath } from '@/composables'
 import { processMenuData, processTopMenus } from '@/utils/menu-utils'
 
 const route = useRoute()

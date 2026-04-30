@@ -526,6 +526,7 @@ A:
 ## 📮 联系作者
 <img src="images/wechat.png" width="200">
 <img src="images/wechat1.png" width="200">
+<img src="images/微信群.png" width="200">
 
 ## 📄 许可证
 本项目基于 [MIT](LICENSE) 许可证开源。

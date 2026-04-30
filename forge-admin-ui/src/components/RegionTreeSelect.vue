@@ -8,7 +8,9 @@
   用法：
   <RegionTreeSelect v-model="form.regionCode" />                                  <!-- 编辑表单：虚拟节点不可选 -->
   <RegionTreeSelect v-model="query.regionCode" :virtual-disabled="false" />       <!-- 搜索筛选：虚拟节点可选 -->
+
   <RegionTreeSelect v-model="form.regionCode" root-code="150000" :data-right="true" />
+
 -->
 <template>
   <n-tree-select

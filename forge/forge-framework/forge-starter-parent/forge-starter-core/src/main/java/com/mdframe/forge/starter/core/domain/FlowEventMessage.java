@@ -34,16 +34,15 @@ public class FlowEventMessage implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    // ==================== 事件类型常量 ====================
+    // ==================== 事件类型常量（保持向后兼容，值来自 FlowEventType 枚举） ====================
 
-    public static final String PROCESS_STARTED   = "PROCESS_STARTED";
-    public static final String PROCESS_COMPLETED = "PROCESS_COMPLETED";
-    public static final String PROCESS_REJECTED  = "PROCESS_REJECTED";
-    public static final String PROCESS_CANCELED  = "PROCESS_CANCELED";
-    public static final String TASK_CREATED      = "TASK_CREATED";
-    public static final String TASK_COMPLETED    = "TASK_COMPLETED";
-    /** 任务被分配/签收事件 */
-    public static final String TASK_ASSIGNED     = "TASK_ASSIGNED";
+    public static final String PROCESS_STARTED   = FlowEventType.PROCESS_STARTED.code();
+    public static final String PROCESS_COMPLETED = FlowEventType.PROCESS_COMPLETED.code();
+    public static final String PROCESS_REJECTED  = FlowEventType.PROCESS_REJECTED.code();
+    public static final String PROCESS_CANCELED  = FlowEventType.PROCESS_CANCELED.code();
+    public static final String TASK_CREATED      = FlowEventType.TASK_CREATED.code();
+    public static final String TASK_COMPLETED    = FlowEventType.TASK_COMPLETED.code();
+    public static final String TASK_ASSIGNED     = FlowEventType.TASK_ASSIGNED.code();
 
     // ==================== 事件基础信息 ====================
 
@@ -154,6 +153,15 @@ public class FlowEventMessage implements Serializable {
      * 租户 ID（多租户场景）
      */
     private String tenantId;
+
+    // ==================== 工具方法 ====================
+
+    /**
+     * 返回类型安全的枚举值，便于 switch/比较，未知类型返回 null
+     */
+    public FlowEventType getEventTypeEnum() {
+        return FlowEventType.of(eventType);
+    }
 
     // ==================== 工厂方法 ====================
 

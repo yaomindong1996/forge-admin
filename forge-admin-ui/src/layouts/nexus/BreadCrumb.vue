@@ -45,8 +45,8 @@
 <script setup>
 import { h, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { usePermissionStore } from '@/store'
 import IconRenderer from '@/components/IconRenderer.vue'
+import { usePermissionStore } from '@/store'
 
 const router = useRouter()
 const route = useRoute()

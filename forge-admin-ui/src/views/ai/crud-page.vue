@@ -15,7 +15,9 @@
     <div v-else-if="errorMsg" class="error-wrapper">
       <n-result status="error" :title="errorMsg">
         <template #footer>
-          <n-button @click="loadConfig">重新加载</n-button>
+          <n-button @click="loadConfig">
+            重新加载
+          </n-button>
         </template>
       </n-result>
     </div>
@@ -25,12 +27,12 @@
 <script setup>
 import { computed, defineAsyncComponent, h, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { useTabStore } from '@/store'
+import { crudConfigRender } from '@/api/ai'
+import catalog from '@/catalog'
 import AiCrudPage from '@/components/ai-form/AiCrudPage.vue'
 import DictTag from '@/components/DictTag.vue'
-import { crudConfigRender } from '@/api/ai'
 import { getDictData } from '@/composables/useDict'
-import catalog from '@/catalog'
+import { useTabStore } from '@/store'
 
 const route = useRoute()
 const tabStore = useTabStore()
@@ -53,7 +55,7 @@ function transformColumns(columns, transConfig) {
   const transMap = {}
   if (transConfig && typeof transConfig === 'object') {
     for (const [field, conf] of Object.entries(transConfig)) {
-      transMap[field] = conf.targetField || (field + 'Name')
+      transMap[field] = conf.targetField || (`${field}Name`)
     }
   }
 
@@ -89,8 +91,8 @@ function transformColumns(columns, transConfig) {
  */
 function transformFields(fields) {
   return (fields || []).map((field) => {
-    let newField = { ...field }
-    
+    const newField = { ...field }
+
     if (field.dictType && ['select', 'radio', 'checkbox'].includes(field.type)) {
       const options = dictCache.value[field.dictType] || []
       newField.props = {
@@ -98,14 +100,14 @@ function transformFields(fields) {
         options,
       }
     }
-    
+
     // 数字类型字段自动转换类型
     if (['number', 'inputNumber'].includes(field.type)) {
       newField.onMounted = (vm) => {
         if (vm.field && vm.value) {
           // 如果值是字符串，尝试转换成数字
           if (typeof vm.value === 'string') {
-            const num = parseFloat(vm.value)
+            const num = Number.parseFloat(vm.value)
             if (!isNaN(num)) {
               vm.value = num
             }
@@ -113,7 +115,7 @@ function transformFields(fields) {
         }
       }
     }
-    
+
     // 日期/时间类型字段配置格式化，直接返回标准时间字符串
     if (['date', 'datetime', 'time'].includes(field.type?.toLowerCase())) {
       newField.props = {
@@ -122,13 +124,14 @@ function transformFields(fields) {
         valueFormat: 'yyyy-MM-dd HH:mm:ss',
       }
     }
-    
+
     return newField
   })
 }
 
 const crudProps = computed(() => {
-  if (!renderConfig.value) return {}
+  if (!renderConfig.value)
+    return {}
   const cfg = renderConfig.value
   return {
     searchSchema: transformFields(cfg.searchSchema),
@@ -152,19 +155,22 @@ async function preloadDicts(cfg) {
 
   // 从 columnsSchema 提取 dictType
   ;(cfg.columnsSchema || []).forEach((col) => {
-    if (col.render?.dictType) types.add(col.render.dictType)
+    if (col.render?.dictType)
+      types.add(col.render.dictType)
   })
 
   // 从 searchSchema / editSchema 提取 dictType
   ;[...(cfg.searchSchema || []), ...(cfg.editSchema || [])].forEach((field) => {
-    if (field.dictType) types.add(field.dictType)
+    if (field.dictType)
+      types.add(field.dictType)
   })
 
   for (const type of types) {
     if (!dictCache.value[type]) {
       try {
         dictCache.value[type] = await getDictData(type)
-      } catch (e) {
+      }
+      catch (e) {
         console.warn(`[crud-page] 加载字典 ${type} 失败`, e)
       }
     }
@@ -187,14 +193,14 @@ async function loadConfig() {
   errorMsg.value = ''
   configLoaded.value = false
 
-    try {
-      const res = await crudConfigRender(configKey)
-      console.log('[DEBUG] 后端返回的CRUD配置原始响应：', res)
-      const cfg = res.data
-      console.log('[DEBUG] 解析后的CRUD配置：', cfg)
-      console.log('[DEBUG] 列配置columnsSchema：', cfg.columnsSchema)
-      console.log('[DEBUG] 翻译配置transConfig：', cfg.transConfig)
-      renderConfig.value = cfg
+  try {
+    const res = await crudConfigRender(configKey)
+    console.log('[DEBUG] 后端返回的CRUD配置原始响应：', res)
+    const cfg = res.data
+    console.log('[DEBUG] 解析后的CRUD配置：', cfg)
+    console.log('[DEBUG] 列配置columnsSchema：', cfg.columnsSchema)
+    console.log('[DEBUG] 翻译配置transConfig：', cfg.transConfig)
+    renderConfig.value = cfg
     // 更新当前 Tab 标题为菜单名/表描述
     const title = cfg.menuName || cfg.tableComment
     if (title) {
@@ -210,14 +216,17 @@ async function loadConfig() {
     const catalogEntry = catalog[layoutType]
     if (catalogEntry) {
       currentTemplate.value = defineAsyncComponent(catalogEntry.component)
-    } else {
+    }
+    else {
       // 未注册的模板，降级使用 AiCrudPage
       currentTemplate.value = null
     }
     configLoaded.value = true
-  } catch (e) {
+  }
+  catch (e) {
     errorMsg.value = e.message || '加载配置失败'
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }

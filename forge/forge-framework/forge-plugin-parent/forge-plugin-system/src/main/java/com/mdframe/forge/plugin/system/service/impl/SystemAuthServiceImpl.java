@@ -462,4 +462,21 @@ public class SystemAuthServiceImpl implements IAuthService {
                 .tokenType("Bearer")
                 .build();
     }
+
+    @Override
+    public LoginUser refreshLoginUser(LoginUser loginUser) {
+        if (loginUser == null || loginUser.getUserId() == null) {
+            return loginUser;
+        }
+        SysUser user = userMapper.selectById(loginUser.getUserId());
+        if (user != null) {
+            loginUser.setUsername(user.getUsername());
+            loginUser.setRealName(user.getRealName());
+            loginUser.setPhone(user.getPhone());
+            loginUser.setEmail(user.getEmail());
+            loginUser.setAvatar(user.getAvatar());
+            loginUser.setCreateTime(user.getCreateTime());
+        }
+        return loginUser;
+    }
 }

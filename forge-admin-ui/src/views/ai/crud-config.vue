@@ -2,7 +2,9 @@
   <div class="ai-crud-config-page">
     <div class="config-page-header">
       <div class="header-left">
-        <h2 class="page-title">CRUD 配置管理</h2>
+        <h2 class="page-title">
+          CRUD 配置管理
+        </h2>
         <span class="page-desc">通过 JSON 配置驱动页面自动渲染，实现零代码业务开发</span>
       </div>
       <div class="header-right">
@@ -14,7 +16,9 @@
           @update:value="handleSearch"
         >
           <template #prefix>
-            <n-icon :size="16" color="#9CA3AF"><SearchOutline /></n-icon>
+            <n-icon :size="16" color="#9CA3AF">
+              <SearchOutline />
+            </n-icon>
           </template>
         </n-input>
         <n-button type="primary" @click="goToGenerator()">
@@ -43,44 +47,64 @@
                 </n-icon>
               </div>
               <div class="card-meta">
-                <div class="card-config-key">{{ item.configKey }}</div>
-                <div class="card-table-name">{{ item.tableName || '-' }}</div>
+                <div class="card-config-key">
+                  {{ item.configKey }}
+                </div>
+                <div class="card-table-name">
+                  {{ item.tableName || '-' }}
+                </div>
               </div>
               <div class="card-badges">
                 <n-tag :type="item.mode === 'CONFIG' ? 'success' : 'info'" size="tiny">
                   {{ item.mode === 'CONFIG' ? '配置驱动' : '代码生成' }}
                 </n-tag>
-                <n-tag v-if="item.status !== '0'" size="tiny" type="warning">停用</n-tag>
+                <n-tag v-if="item.status !== '0'" size="tiny" type="warning">
+                  停用
+                </n-tag>
               </div>
             </div>
-            <div class="card-desc">{{ item.tableComment || '暂无描述' }}</div>
+            <div class="card-desc">
+              {{ item.tableComment || '暂无描述' }}
+            </div>
             <div class="card-info">
               <div v-if="item.menuName" class="info-item">
-                <n-icon :size="12"><MenuOutline /></n-icon>
+                <n-icon :size="12">
+                  <MenuOutline />
+                </n-icon>
                 {{ item.menuName }}
               </div>
               <div class="info-item">
-                <n-icon :size="12"><TimeOutline /></n-icon>
+                <n-icon :size="12">
+                  <TimeOutline />
+                </n-icon>
                 {{ formatDate(item.createTime) }}
               </div>
             </div>
             <div class="card-actions" @click.stop>
               <n-button size="tiny" @click="goToGenerator(item.configKey)">
-                <template #icon><n-icon><SparklesOutline /></n-icon></template>
+                <template #icon>
+                  <n-icon><SparklesOutline /></n-icon>
+                </template>
                 AI 生成
               </n-button>
               <n-button size="tiny" @click="handlePreview(item.configKey)">
-                <template #icon><n-icon><EyeOutline /></n-icon></template>
+                <template #icon>
+                  <n-icon><EyeOutline /></n-icon>
+                </template>
                 预览
               </n-button>
               <n-button size="tiny" @click="handleDownloadCode(item.configKey)">
-                <template #icon><n-icon><CloudDownloadOutline /></n-icon></template>
+                <template #icon>
+                  <n-icon><CloudDownloadOutline /></n-icon>
+                </template>
                 下载
               </n-button>
               <n-popconfirm @positive-click="handleDelete(item)">
                 <template #trigger>
                   <n-button size="tiny" type="error">
-                    <template #icon><n-icon><TrashOutline /></n-icon></template>
+                    <template #icon>
+                      <n-icon><TrashOutline /></n-icon>
+                    </template>
                     删除
                   </n-button>
                 </template>
@@ -90,10 +114,14 @@
           </div>
         </div>
         <div v-else-if="!loading" class="empty-state">
-          <n-icon :size="48" color="#D1D5DB"><FolderOpenOutline /></n-icon>
+          <n-icon :size="48" color="#D1D5DB">
+            <FolderOpenOutline />
+          </n-icon>
           <p>暂无 CRUD 配置</p>
           <n-button type="primary" @click="goToGenerator()">
-            <template #icon><n-icon><SparklesOutline /></n-icon></template>
+            <template #icon>
+              <n-icon><SparklesOutline /></n-icon>
+            </template>
             创建第一个配置
           </n-button>
         </div>
@@ -141,8 +169,12 @@
               </n-form-item>
               <n-form-item label="模式" path="mode">
                 <n-radio-group v-model:value="formData.mode">
-                  <n-radio-button value="CONFIG">配置驱动</n-radio-button>
-                  <n-radio-button value="CODEGEN">代码生成</n-radio-button>
+                  <n-radio-button value="CONFIG">
+                    配置驱动
+                  </n-radio-button>
+                  <n-radio-button value="CODEGEN">
+                    代码生成
+                  </n-radio-button>
                 </n-radio-group>
               </n-form-item>
               <n-form-item label="状态" path="status">
@@ -150,8 +182,12 @@
                   :value="formData.status === '0'"
                   @update:value="formData.status = $event ? '0' : '1'"
                 >
-                  <template #checked>启用</template>
-                  <template #unchecked>停用</template>
+                  <template #checked>
+                    启用
+                  </template>
+                  <template #unchecked>
+                    停用
+                  </template>
                 </n-switch>
               </n-form-item>
               <n-form-item label="菜单名称" path="menuName">
@@ -259,7 +295,9 @@
 
         <template #footer>
           <n-space justify="end">
-            <n-button @click="drawerVisible = false">取消</n-button>
+            <n-button @click="drawerVisible = false">
+              取消
+            </n-button>
             <n-button type="primary" :loading="submitLoading" @click="handleSubmit">
               保存
             </n-button>
@@ -271,20 +309,26 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import {
-  SparklesOutline, EyeOutline, CloudDownloadOutline,
-  SearchOutline, ServerOutline, MenuOutline, TimeOutline,
-  TrashOutline, FolderOpenOutline,
+  CloudDownloadOutline,
+  EyeOutline,
+  FolderOpenOutline,
+  MenuOutline,
+  SearchOutline,
+  ServerOutline,
+  SparklesOutline,
+  TimeOutline,
+  TrashOutline,
 } from '@vicons/ionicons5'
-import SchemaFieldEditor from './components/SchemaFieldEditor.vue'
-import ApiConfigEditor from './components/ApiConfigEditor.vue'
-import DictConfigPanel from './components/DictConfigPanel.vue'
-import DesensitizeConfigPanel from './components/DesensitizeConfigPanel.vue'
-import EncryptConfigPanel from './components/EncryptConfigPanel.vue'
-import TransConfigPanel from './components/TransConfigPanel.vue'
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { request } from '@/utils'
+import ApiConfigEditor from './components/ApiConfigEditor.vue'
+import DesensitizeConfigPanel from './components/DesensitizeConfigPanel.vue'
+import DictConfigPanel from './components/DictConfigPanel.vue'
+import EncryptConfigPanel from './components/EncryptConfigPanel.vue'
+import SchemaFieldEditor from './components/SchemaFieldEditor.vue'
+import TransConfigPanel from './components/TransConfigPanel.vue'
 
 defineOptions({ name: 'AiCrudConfig' })
 
@@ -371,9 +415,11 @@ async function loadList() {
       configList.value = res.data?.records || []
       total.value = res.data?.total || 0
     }
-  } catch (e) {
+  }
+  catch (e) {
     console.error('加载配置列表失败:', e)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -406,14 +452,14 @@ async function handleDownloadCode(configKey) {
     const resp = await fetch(url, {
       method: 'GET',
       headers: {
-        Authorization: authStore.accessToken ? `Bearer ${authStore.accessToken}` : '',
+        'Authorization': authStore.accessToken ? `Bearer ${authStore.accessToken}` : '',
         'X-Timestamp': Date.now().toString(),
         'X-Nonce': uuid,
       },
     })
     if (!resp.ok) {
       const text = await resp.text()
-      window.$message?.error('下载失败: ' + (text || resp.statusText))
+      window.$message?.error(`下载失败: ${text || resp.statusText}`)
       return
     }
     const blob = await resp.blob()
@@ -424,8 +470,9 @@ async function handleDownloadCode(configKey) {
     a.click()
     URL.revokeObjectURL(blobUrl)
     window.$message?.success('代码包下载成功')
-  } catch (e) {
-    window.$message?.error('下载失败: ' + e.message)
+  }
+  catch (e) {
+    window.$message?.error(`下载失败: ${e.message}`)
   }
 }
 
@@ -459,7 +506,8 @@ async function handleSubmit() {
   if (activeTab.value === 'basic' && basicFormRef.value) {
     try {
       await basicFormRef.value.validate()
-    } catch {
+    }
+    catch {
       return
     }
   }
@@ -468,16 +516,19 @@ async function handleSubmit() {
     const payload = { ...formData.value }
     if (isEdit.value) {
       await request.put('/ai/crud-config', payload)
-    } else {
+    }
+    else {
       await request.post('/ai/crud-config', payload)
     }
     window.$message.success(isEdit.value ? '更新成功' : '创建成功')
     drawerVisible.value = false
     loadList()
-  } catch (e) {
+  }
+  catch (e) {
     const msg = e?.response?.data?.msg || e?.message || '操作失败'
     window.$message.error(msg)
-  } finally {
+  }
+  finally {
     submitLoading.value = false
   }
 }
@@ -492,14 +543,16 @@ async function handleDelete(item) {
     await request.delete(`/ai/crud-config/${item.id}`)
     window.$message.success('删除成功')
     loadList()
-  } catch (e) {
+  }
+  catch (e) {
     const msg = e?.response?.data?.msg || e?.message || '删除失败'
     window.$message.error(msg)
   }
 }
 
 function formatDate(time) {
-  if (!time) return ''
+  if (!time)
+    return ''
   const d = new Date(time)
   const month = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
@@ -538,7 +591,7 @@ onMounted(() => {
 .ai-crud-config-page {
   width: 100%;
   height: 100%;
-  background: #F8FAFC;
+  background: #f8fafc;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -549,8 +602,8 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px 16px;
-  background: #FFFFFF;
-  border-bottom: 1px solid #F1F5F9;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .header-left {
@@ -562,14 +615,14 @@ onMounted(() => {
 .page-title {
   font-size: 20px;
   font-weight: 700;
-  color: #0F172A;
+  color: #0f172a;
   margin: 0;
   letter-spacing: -0.02em;
 }
 
 .page-desc {
   font-size: 13px;
-  color: #94A3B8;
+  color: #94a3b8;
 }
 
 .header-right {
@@ -596,18 +649,20 @@ onMounted(() => {
 
 .config-card {
   background: #fff;
-  border: 1.5px solid #E5E7EB;
+  border: 1.5px solid #e5e7eb;
   border-radius: 12px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition:
+    box-shadow 0.15s,
+    border-color 0.15s;
   cursor: pointer;
 }
 
 .config-card:hover {
-  border-color: #A5B4FC;
+  border-color: #a5b4fc;
   box-shadow: 0 4px 16px rgba(99, 102, 241, 0.08);
 }
 
@@ -647,7 +702,7 @@ onMounted(() => {
 
 .card-table-name {
   font-size: 11px;
-  color: #9CA3AF;
+  color: #9ca3af;
   font-family: monospace;
   margin-top: 1px;
 }
@@ -660,7 +715,7 @@ onMounted(() => {
 
 .card-desc {
   font-size: 12px;
-  color: #6B7280;
+  color: #6b7280;
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -676,7 +731,7 @@ onMounted(() => {
 
 .info-item {
   font-size: 11px;
-  color: #9CA3AF;
+  color: #9ca3af;
   display: flex;
   align-items: center;
   gap: 3px;
@@ -687,7 +742,7 @@ onMounted(() => {
   gap: 6px;
   margin-top: auto;
   padding-top: 4px;
-  border-top: 1px solid #F3F4F6;
+  border-top: 1px solid #f3f4f6;
 }
 
 .empty-state {
@@ -697,7 +752,7 @@ onMounted(() => {
   justify-content: center;
   padding: 80px 20px;
   gap: 16px;
-  color: #94A3B8;
+  color: #94a3b8;
 }
 
 .empty-state p {
@@ -709,8 +764,8 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   padding: 12px 24px 16px;
-  background: #FFFFFF;
-  border-top: 1px solid #F1F5F9;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
 }
 
 .tab-pane-content {

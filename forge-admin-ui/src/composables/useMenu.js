@@ -6,7 +6,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePermissionStore } from '@/store'
 import { isExternal } from '@/utils'
-import { processMenuData, findMenuItem } from '@/utils/menu-utils'
+import { findMenuItem, processMenuData } from '@/utils/menu-utils'
 
 /**
  * 根据路由路径查找匹配的菜单ID
@@ -188,8 +188,8 @@ export function useMenu() {
     activeKey,
     handleMenuSelect,
     /** 根据路径查找菜单ID */
-    findMenuIdByPath: (targetPath) => findMenuIdByPath(processedMenus.value, targetPath),
+    findMenuIdByPath: targetPath => findMenuIdByPath(processedMenus.value, targetPath),
     /** 查找包含指定路径的顶级菜单 */
-    findTopMenuByPath: (targetPath) => findTopMenuByPath(permissionStore.menus, targetPath),
+    findTopMenuByPath: targetPath => findTopMenuByPath(permissionStore.menus, targetPath),
   }
 }

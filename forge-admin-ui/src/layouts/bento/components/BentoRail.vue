@@ -69,12 +69,12 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { usePermissionStore, useAppStore } from '@/store'
+import { useRoute, useRouter } from 'vue-router'
 import TheLogo from '@/components/common/TheLogo.vue'
-import { MessageNotification } from '@/layouts/components'
-import DrawerMenu from '../../immersive/components/DrawerMenu.vue'
 import { useUser } from '@/composables'
+import { MessageNotification } from '@/layouts/components'
+import { useAppStore, usePermissionStore } from '@/store'
+import DrawerMenu from '../../immersive/components/DrawerMenu.vue'
 
 const router = useRouter()
 const route = useRoute()

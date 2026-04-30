@@ -24,7 +24,9 @@
     >
       <div v-if="currentLog" class="log-detail">
         <div class="detail-section">
-          <h4 class="section-title">用户信息</h4>
+          <h4 class="section-title">
+            用户信息
+          </h4>
           <div class="detail-row">
             <span class="label">用户名：</span>
             <span class="value">{{ currentLog.username || '-' }}</span>
@@ -36,7 +38,9 @@
         </div>
 
         <div class="detail-section">
-          <h4 class="section-title">登录信息</h4>
+          <h4 class="section-title">
+            登录信息
+          </h4>
           <div class="detail-row">
             <span class="label">登录类型：</span>
             <NTag :type="getLoginTypeTag(currentLog.loginType).type" size="small">
@@ -68,7 +72,9 @@
         </div>
 
         <div class="detail-section">
-          <h4 class="section-title">环境信息</h4>
+          <h4 class="section-title">
+            环境信息
+          </h4>
           <div class="detail-row">
             <span class="label">登录地点：</span>
             <span class="value">{{ currentLog.loginLocation || '-' }}</span>
@@ -89,7 +95,9 @@
       </div>
       <template #footer>
         <n-space justify="end">
-          <n-button @click="detailVisible = false">关闭</n-button>
+          <n-button @click="detailVisible = false">
+            关闭
+          </n-button>
         </n-space>
       </template>
     </n-modal>
@@ -232,7 +240,7 @@ const tableColumns = computed(() => [
       return h(
         NTag,
         { type: row.loginStatus === 1 ? 'success' : 'error', size: 'small' },
-        { default: () => row.loginStatus === 1 ? '成功' : '失败' }
+        { default: () => row.loginStatus === 1 ? '成功' : '失败' },
       )
     },
   },
@@ -256,21 +264,21 @@ const tableColumns = computed(() => [
     label: '登录地点',
     width: 150,
     ellipsis: { tooltip: true },
-    render: (row) => row.loginLocation || '-',
+    render: row => row.loginLocation || '-',
   },
   {
     prop: 'browser',
     label: '浏览器',
     width: 120,
     ellipsis: { tooltip: true },
-    render: (row) => row.browser || '-',
+    render: row => row.browser || '-',
   },
   {
     prop: 'os',
     label: '操作系统',
     width: 120,
     ellipsis: { tooltip: true },
-    render: (row) => row.os || '-',
+    render: row => row.os || '-',
   },
   {
     prop: 'loginTime',
@@ -282,7 +290,7 @@ const tableColumns = computed(() => [
     label: '登录信息',
     minWidth: 150,
     ellipsis: { tooltip: true },
-    render: (row) => row.loginMessage || '-',
+    render: row => row.loginMessage || '-',
   },
   {
     prop: 'action',
@@ -326,7 +334,8 @@ async function handleViewDetail(row) {
       currentLog.value = res.data
       detailVisible.value = true
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('获取详情失败:', error)
   }
 }

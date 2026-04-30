@@ -1,15 +1,15 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { streamGenerate, crudGeneratorSessionList, crudGeneratorSessionMessages, crudGeneratorSessionDelete } from '@/api/crud-generator'
-import { crudConfigAdd, crudConfigUpdate, crudConfigGetByKey, updateSessionMetadata, providerPage, modelListByProvider } from '@/api/ai'
-import { request } from '@/utils'
-import { useDiscreteMessage } from '@/composables/useDiscreteMessage'
+import { crudConfigAdd, crudConfigGetByKey, crudConfigUpdate, modelListByProvider, providerPage, updateSessionMetadata } from '@/api/ai'
+import { crudGeneratorSessionDelete, crudGeneratorSessionList, crudGeneratorSessionMessages, streamGenerate } from '@/api/crud-generator'
 import { listEnabledTemplates } from '@/api/page-template'
+import { useDiscreteMessage } from '@/composables/useDiscreteMessage'
+import { request } from '@/utils'
 
 const AGENT_CODE = 'crud_config_builder'
 
 function generateSessionId() {
-  return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
+  return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 }
 
 export function useCrudGenerator() {
@@ -21,8 +21,8 @@ export function useCrudGenerator() {
   const configKey = ref('')
   const tableName = ref('')
   const description = ref('')
-  const layoutType = ref('simple-crud')  // 当前选择的页面模板
-  const templateList = ref([])           // 从后端加载的模板列表
+  const layoutType = ref('simple-crud') // 当前选择的页面模板
+  const templateList = ref([]) // 从后端加载的模板列表
   const providerId = ref(null)
   const modelId = ref(null)
   const providerOptions = ref([])
@@ -68,7 +68,8 @@ export function useCrudGenerator() {
     try {
       const res = await listEnabledTemplates()
       templateList.value = res.data || []
-    } catch (e) {
+    }
+    catch (e) {
       console.warn('[useCrudGenerator] 加载模板列表失败:', e.message)
     }
   }
@@ -93,7 +94,8 @@ export function useCrudGenerator() {
       }
 
       await loadModelOptions(providerId.value, preserveSelection)
-    } catch (e) {
+    }
+    catch (e) {
       console.warn('[useCrudGenerator] 加载供应商列表失败:', e.message)
       providerOptions.value = []
     }
@@ -121,7 +123,8 @@ export function useCrudGenerator() {
         const defaultModel = modelOptions.value.find(item => item.isDefault === '1') || modelOptions.value[0]
         modelId.value = defaultModel?.value || null
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.warn('[useCrudGenerator] 加载模型列表失败:', e.message)
       modelOptions.value = []
       modelId.value = null
@@ -132,8 +135,9 @@ export function useCrudGenerator() {
     try {
       const res = await crudGeneratorSessionList({ pageNum: 1, pageSize: 20, agentCode: AGENT_CODE })
       sessionList.value = res.data?.records || []
-    } catch (e) {
-      error('加载会话列表失败: ' + e.message)
+    }
+    catch (e) {
+      error(`加载会话列表失败: ${e.message}`)
     }
   }
 
@@ -184,10 +188,12 @@ export function useCrudGenerator() {
               displayContent.value.desensitizeConfig = configRes.data.desensitizeConfig || ''
               displayContent.value.encryptConfig = configRes.data.encryptConfig || ''
               displayContent.value.transConfig = configRes.data.transConfig || ''
-              if (configRes.data.layoutType) layoutType.value = configRes.data.layoutType
+              if (configRes.data.layoutType)
+                layoutType.value = configRes.data.layoutType
               configSaved.value = true
             }
-          } catch (e) {
+          }
+          catch (e) {
             console.warn('[useCrudGenerator] 加载配置失败:', e.message)
           }
           // 加载表结构
@@ -196,8 +202,9 @@ export function useCrudGenerator() {
           }
         }
       }
-    } catch (e) {
-      error('加载会话失败: ' + e.message)
+    }
+    catch (e) {
+      error(`加载会话失败: ${e.message}`)
     }
   }
 
@@ -209,8 +216,9 @@ export function useCrudGenerator() {
         startNewSession()
       }
       await loadSessionList()
-    } catch (e) {
-      error('删除会话失败: ' + e.message)
+    }
+    catch (e) {
+      error(`删除会话失败: ${e.message}`)
     }
   }
 
@@ -219,7 +227,7 @@ export function useCrudGenerator() {
       warning('请输入 configKey')
       return
     }
-    if (/[\u4e00-\u9fa5]/.test(configKey.value)) {
+    if (/[\u4E00-\u9FA5]/.test(configKey.value)) {
       warning('页面标识不能包含中文')
       return
     }
@@ -227,7 +235,7 @@ export function useCrudGenerator() {
       warning('configKey 格式不正确')
       return
     }
-    if (tableName.value && /[\u4e00-\u9fa5]/.test(tableName.value)) {
+    if (tableName.value && /[\u4E00-\u9FA5]/.test(tableName.value)) {
       warning('关联表名不能包含中文')
       return
     }
@@ -297,7 +305,7 @@ export function useCrudGenerator() {
       request,
       handleSSEChunk,
       handleSSEComplete,
-      handleSSEError
+      handleSSEError,
     )
 
     inputText.value = ''
@@ -323,22 +331,28 @@ export function useCrudGenerator() {
           currentReceivingFile.value = fileKey
         }
       }
-    } else if (event === 'meta') {
+    }
+    else if (event === 'meta') {
       // AI 推断的元数据
-      if (data.configKey && !configKey.value) configKey.value = data.configKey
-      if (data.tableName && !tableName.value) tableName.value = data.tableName
-      if (data.tableComment && !description.value) description.value = data.tableComment
+      if (data.configKey && !configKey.value)
+        configKey.value = data.configKey
+      if (data.tableName && !tableName.value)
+        tableName.value = data.tableName
+      if (data.tableComment && !description.value)
+        description.value = data.tableComment
       updateLastAssistantMessage(`已推断: configKey=${data.configKey || '-'}, tableName=${data.tableName || '-'}`)
-    } else if (event === 'chunk') {
+    }
+    else if (event === 'chunk') {
       rawContent.value += data.content
       // 实时追加到当前阶段的 displayContent，使右侧预览区实时更新
       if (currentReceivingFile.value) {
-        displayContent.value[currentReceivingFile.value] =
-          (displayContent.value[currentReceivingFile.value] || '') + data.content
-      } else {
+        displayContent.value[currentReceivingFile.value]
+          = (displayContent.value[currentReceivingFile.value] || '') + data.content
+      }
+      else {
         // 还没收到 progress 阶段事件时，先写入 searchSchema 作为默认预览
-        displayContent.value.searchSchema =
-          (displayContent.value.searchSchema || '') + data.content
+        displayContent.value.searchSchema
+          = (displayContent.value.searchSchema || '') + data.content
       }
     }
   }
@@ -375,7 +389,7 @@ export function useCrudGenerator() {
       '💡 提示：',
       '• 点击「保存配置」将配置存入数据库',
       '• 保存后可点击「预览效果」查看实际页面',
-      '• 如需修改，可继续对话描述需求'
+      '• 如需修改，可继续对话描述需求',
     ].join('\n')
 
     updateLastAssistantMessage(guideMessage)
@@ -388,7 +402,7 @@ export function useCrudGenerator() {
         description: description.value,
         providerId: providerId.value,
         modelId: modelId.value,
-      }).catch(e => {
+      }).catch((e) => {
         console.warn('[useCrudGenerator] 生成完成后同步会话元数据失败:', e.message)
       })
     }
@@ -402,13 +416,15 @@ export function useCrudGenerator() {
     const keys = ['searchSchema', 'columnsSchema', 'editSchema', 'apiConfig', 'createTableSql', 'dictConfig', 'desensitizeConfig', 'encryptConfig', 'transConfig']
     for (const key of keys) {
       const raw = displayContent.value[key]
-      if (!raw) continue
+      if (!raw)
+        continue
       try {
         const parsed = JSON.parse(raw)
         const formatted = JSON.stringify(parsed, null, 2)
         displayContent.value[key] = formatted
         generatedFiles.value[key] = formatted
-      } catch (e) {
+      }
+      catch (e) {
         // 保留原始内容，同步到 generatedFiles
         generatedFiles.value[key] = raw
       }
@@ -426,7 +442,8 @@ export function useCrudGenerator() {
     if (jsonStr.includes('```json')) {
       jsonStr = jsonStr.substring(jsonStr.indexOf('```json') + 7)
       jsonStr = jsonStr.substring(0, jsonStr.indexOf('```'))
-    } else if (jsonStr.includes('```')) {
+    }
+    else if (jsonStr.includes('```')) {
       jsonStr = jsonStr.substring(jsonStr.indexOf('```') + 3)
       jsonStr = jsonStr.substring(0, jsonStr.lastIndexOf('```'))
     }
@@ -450,7 +467,8 @@ export function useCrudGenerator() {
           generatedFiles.value[key] = formatted
         }
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.warn('[useCrudGenerator] 兜底 JSON 解析失败，保留原始内容:', e.message)
       // 最后兜底：将所有内容放入 searchSchema
       displayContent.value.searchSchema = jsonStr
@@ -460,7 +478,7 @@ export function useCrudGenerator() {
 
   /**
    * 尝试按 [STAGE:xxx] 标记分段解析内容
-   * @returns {Object|null} stageMap 或 null
+   * @returns {object | null} stageMap 或 null
    */
   function parseStageMarkers(content) {
     const stageRegex = /\[STAGE:(\w+)\]/g
@@ -469,7 +487,8 @@ export function useCrudGenerator() {
     while ((match = stageRegex.exec(content)) !== null) {
       positions.push({ stage: match[1], index: match.index, markerLen: match[0].length })
     }
-    if (positions.length === 0) return null
+    if (positions.length === 0)
+      return null
 
     const stageMap = {}
     for (let i = 0; i < positions.length; i++) {
@@ -486,14 +505,19 @@ export function useCrudGenerator() {
    */
   function applyStageMap(stageMap) {
     for (const [stage, jsonStr] of Object.entries(stageMap)) {
-      if (!jsonStr) continue
+      if (!jsonStr)
+        continue
       if (stage === 'meta') {
         try {
           const parsed = JSON.parse(jsonStr)
-          if (parsed.configKey && !configKey.value) configKey.value = parsed.configKey
-          if (parsed.tableName && !tableName.value) tableName.value = parsed.tableName
-          if (parsed.tableComment && !description.value) description.value = parsed.tableComment
-        } catch (e) {
+          if (parsed.configKey && !configKey.value)
+            configKey.value = parsed.configKey
+          if (parsed.tableName && !tableName.value)
+            tableName.value = parsed.tableName
+          if (parsed.tableComment && !description.value)
+            description.value = parsed.tableComment
+        }
+        catch (e) {
           console.warn('[useCrudGenerator] meta 解析失败:', e.message)
         }
         continue
@@ -501,7 +525,8 @@ export function useCrudGenerator() {
       // 找到对应的 key（如 searchSchema）
       const targetKey = ['searchSchema', 'columnsSchema', 'editSchema', 'apiConfig', 'createTableSql', 'tableStructure', 'dictConfig', 'desensitizeConfig', 'encryptConfig', 'transConfig']
         .find(k => k === stage)
-      if (!targetKey) continue
+      if (!targetKey)
+        continue
       try {
         const parsed = JSON.parse(jsonStr)
         // AI 可能输出 {"searchSchema": [...]} 或直接 [...]
@@ -509,7 +534,8 @@ export function useCrudGenerator() {
         const formatted = JSON.stringify(value, null, 2)
         displayContent.value[targetKey] = formatted
         generatedFiles.value[targetKey] = formatted
-      } catch (e) {
+      }
+      catch (e) {
         displayContent.value[targetKey] = jsonStr
         generatedFiles.value[targetKey] = jsonStr
       }
@@ -522,7 +548,7 @@ export function useCrudGenerator() {
     generating.value = false
     currentStage.value = 'error'
     stopTyping()
-    updateLastAssistantMessage('❌ 生成失败: ' + msg)
+    updateLastAssistantMessage(`❌ 生成失败: ${msg}`)
   }
 
   function updateLastAssistantMessage(content) {
@@ -586,13 +612,15 @@ export function useCrudGenerator() {
         payload.id = existing.data.id
         await crudConfigUpdate(payload)
         success('配置已更新')
-      } else {
+      }
+      else {
         await crudConfigAdd(payload)
         success('配置已保存')
       }
       configSaved.value = true
-    } catch (e) {
-      error('保存配置失败: ' + e.message)
+    }
+    catch (e) {
+      error(`保存配置失败: ${e.message}`)
     }
   }
 
@@ -602,7 +630,8 @@ export function useCrudGenerator() {
       lastLoadedTableName.value = ''
       return
     }
-    if (lastLoadedTableName.value === name) return
+    if (lastLoadedTableName.value === name)
+      return
     try {
       const res = await request.get(`/generator/column/db/${name}`)
       if (res.code === 200 && res.data) {
@@ -614,14 +643,15 @@ export function useCrudGenerator() {
           ]
           for (const col of columns) {
             lines.push(
-              `| ${col.columnName || ''} | ${col.columnType || ''} | ${col.columnComment || ''} | ${col.isPk ? '是' : ''} | ${col.isIncrement ? '是' : ''} | ${col.isRequired ? '是' : ''} |`
+              `| ${col.columnName || ''} | ${col.columnType || ''} | ${col.columnComment || ''} | ${col.isPk ? '是' : ''} | ${col.isIncrement ? '是' : ''} | ${col.isRequired ? '是' : ''} |`,
             )
           }
           displayContent.value.tableStructure = lines.join('\n')
           generatedFiles.value.tableStructure = displayContent.value.tableStructure
         }
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.warn('[useCrudGenerator] 加载表结构失败:', e.message)
       displayContent.value.tableStructure = ''
     }
@@ -629,11 +659,13 @@ export function useCrudGenerator() {
   }
 
   async function loadExistingConfig() {
-    if (!configKey.value) return null
+    if (!configKey.value)
+      return null
     try {
       const res = await crudConfigGetByKey(configKey.value)
       return res.data
-    } catch (e) {
+    }
+    catch (e) {
       return null
     }
   }
@@ -644,7 +676,8 @@ export function useCrudGenerator() {
    * 历史对话记录仅保留在侧边栏供查阅，不自动还原到主对话区（避免混乱）
    */
   async function initWithConfigKey(ck) {
-    if (!ck) return
+    if (!ck)
+      return
     // 1. 新建干净会话（清空消息记录和预览区）
     startNewSession()
     configKey.value = ck
@@ -662,7 +695,8 @@ export function useCrudGenerator() {
         displayContent.value.desensitizeConfig = configRes.data.desensitizeConfig || ''
         displayContent.value.encryptConfig = configRes.data.encryptConfig || ''
         displayContent.value.transConfig = configRes.data.transConfig || ''
-        if (configRes.data.layoutType) layoutType.value = configRes.data.layoutType
+        if (configRes.data.layoutType)
+          layoutType.value = configRes.data.layoutType
         tableName.value = configRes.data.tableName || ''
         description.value = configRes.data.tableComment || ''
         configSaved.value = true
@@ -673,7 +707,8 @@ export function useCrudGenerator() {
           createTime: new Date().toISOString(),
         })
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.warn('[useCrudGenerator] initWithConfigKey 加载配置失败:', e.message)
     }
     // 4. 加载表结构
@@ -708,10 +743,12 @@ export function useCrudGenerator() {
   function exportAllFiles() {
     // 辅助函数：尝试解析JSON，失败则返回原始值
     function safeParseJson(str, fallback) {
-      if (!str || !str.trim()) return fallback
+      if (!str || !str.trim())
+        return fallback
       try {
         return JSON.parse(str)
-      } catch {
+      }
+      catch {
         return str
       }
     }

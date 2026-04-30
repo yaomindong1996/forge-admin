@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.mdframe.forge.flow.client.annotation.FlowBind;
 import com.mdframe.forge.flow.client.annotation.FlowCallback;
+import com.mdframe.forge.flow.client.annotation.FlowComplete;
 import com.mdframe.forge.flow.client.annotation.FlowEventContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.context.ApplicationContext;
+import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -77,37 +79,75 @@ public class FlowEventSubscriber {
     }
 
     private void invokeCallbacks(Object bean, Class<?> targetClass, FlowEventContext ctx) {
+        // 处理 @FlowCallback 注解（方法级别，逐事件匹配）
         for (Method method : targetClass.getDeclaredMethods()) {
             FlowCallback callback = method.getAnnotation(FlowCallback.class);
             if (callback == null) {
                 continue;
             }
-
-            // 检查事件类型是否命中
             boolean matched = Arrays.stream(callback.on()).anyMatch(e -> e.equals(ctx.getEvent()));
             if (!matched) {
                 continue;
             }
+            invokeMethod(bean, targetClass, method, ctx, "FlowCallback");
+        }
 
-            // 支持两种签名：(FlowEventContext) 或无参
-            try {
-                method.setAccessible(true);
-                if (method.getParameterCount() == 0) {
-                    method.invoke(bean);
-                } else if (method.getParameterCount() == 1
-                        && method.getParameterTypes()[0].isAssignableFrom(FlowEventContext.class)) {
-                    method.invoke(bean, ctx);
+        // 处理 @FlowComplete 注解（类级别，按事件类型路由到独立方法）
+        FlowComplete complete = targetClass.getAnnotation(FlowComplete.class);
+        if (complete != null) {
+            String targetMethodName = resolveFlowCompleteMethod(complete, ctx.getEvent());
+            if (StringUtils.hasText(targetMethodName)) {
+                Method method = findMethod(targetClass, targetMethodName);
+                if (method != null) {
+                    invokeMethod(bean, targetClass, method, ctx, "FlowComplete");
                 } else {
-                    log.warn("[FlowCallback] 方法签名不符合规范（须无参或接收 FlowEventContext）: {}.{}",
-                            targetClass.getSimpleName(), method.getName());
-                    continue;
+                    log.warn("[FlowComplete] 未找到方法 {}.{} (event={})",
+                            targetClass.getSimpleName(), targetMethodName, ctx.getEvent());
                 }
-                log.debug("[FlowCallback] 回调成功 {}.{} event={} businessKey={}",
-                        targetClass.getSimpleName(), method.getName(), ctx.getEvent(), ctx.getBusinessKey());
-            } catch (Exception e) {
-                log.error("[FlowCallback] 回调执行失败 {}.{}: {}",
-                        targetClass.getSimpleName(), method.getName(), e.getMessage(), e);
             }
+        }
+    }
+
+    private String resolveFlowCompleteMethod(FlowComplete complete, String event) {
+        if (FlowCallback.ON_COMPLETED.equals(event)) return complete.onApproved();
+        if (FlowCallback.ON_REJECTED.equals(event))  return complete.onRejected();
+        if (FlowCallback.ON_CANCELED.equals(event))  return complete.onCanceled();
+        return null;
+    }
+
+    private Method findMethod(Class<?> clazz, String methodName) {
+        for (Method m : clazz.getDeclaredMethods()) {
+            if (m.getName().equals(methodName)
+                    && (m.getParameterCount() == 0
+                        || (m.getParameterCount() == 1
+                            && m.getParameterTypes()[0].isAssignableFrom(FlowEventContext.class)))) {
+                return m;
+            }
+        }
+        return null;
+    }
+
+    /** 调用目标方法，支持无参或 (FlowEventContext) 两种签名 */
+    private void invokeMethod(Object bean, Class<?> targetClass, Method method,
+                              FlowEventContext ctx, String annotationName) {
+        try {
+            method.setAccessible(true);
+            if (method.getParameterCount() == 0) {
+                method.invoke(bean);
+            } else if (method.getParameterCount() == 1
+                    && method.getParameterTypes()[0].isAssignableFrom(FlowEventContext.class)) {
+                method.invoke(bean, ctx);
+            } else {
+                log.warn("[{}] 方法签名不符合规范（须无参或接收 FlowEventContext）: {}.{}",
+                        annotationName, targetClass.getSimpleName(), method.getName());
+                return;
+            }
+            log.debug("[{}] 回调成功 {}.{} event={} businessKey={}",
+                    annotationName, targetClass.getSimpleName(), method.getName(),
+                    ctx.getEvent(), ctx.getBusinessKey());
+        } catch (Exception e) {
+            log.error("[{}] 回调执行失败 {}.{}: {}",
+                    annotationName, targetClass.getSimpleName(), method.getName(), e.getMessage(), e);
         }
     }
 }

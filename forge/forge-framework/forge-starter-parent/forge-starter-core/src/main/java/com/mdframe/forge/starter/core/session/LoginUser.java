@@ -3,8 +3,11 @@ package com.mdframe.forge.starter.core.session;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * 登录用户信息
@@ -131,6 +134,12 @@ public class LoginUser implements Serializable {
      * 行政区划祖级编码（如：110000,110100,110101）
      */
     private String regionAncestors;
+
+    /**
+     * 注册时间
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createTime;
 
     /**
      * 是否为超级管理员

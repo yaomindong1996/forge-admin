@@ -22,8 +22,8 @@
 </template>
 
 <script setup>
-import DemoBanner from '@/components/DemoBanner.vue'
 import { AppCard } from '@/components/common'
+import DemoBanner from '@/components/DemoBanner.vue'
 import { AppTab } from '@/layouts/components'
 import BentoRail from './components/BentoRail.vue'
 </script>

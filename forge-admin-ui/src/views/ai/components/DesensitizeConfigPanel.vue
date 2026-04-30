@@ -2,7 +2,9 @@
   <div class="desensitize-config-panel">
     <div class="panel-header">
       <span>字段脱敏规则配置</span>
-      <n-button size="small" dashed @click="addRule">+ 添加规则</n-button>
+      <n-button size="small" dashed @click="addRule">
+        + 添加规则
+      </n-button>
     </div>
     <div v-if="rules.length === 0" class="empty-tip">
       暂无脱敏规则。点击"添加规则"手动配置，或让 AI 在生成时自动识别敏感字段。
@@ -13,7 +15,7 @@
         <span class="col-label">字段标签</span>
         <span class="col-type">脱敏类型</span>
         <span class="col-preview">预览效果</span>
-        <span class="col-action"></span>
+        <span class="col-action" />
       </div>
       <div v-for="(rule, idx) in rules" :key="idx" class="rule-row">
         <n-input v-model:value="rule.field" size="small" class="col-field" placeholder="字段名" />
@@ -42,8 +44,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
 import { CloseOutline } from '@vicons/ionicons5'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
   value: { type: String, default: '' },
@@ -83,7 +85,8 @@ let _columnsFields = []
 
 // 从 value 解析
 function parseValue(val) {
-  if (!val) return []
+  if (!val)
+    return []
   try {
     const parsed = JSON.parse(val)
     const result = []
@@ -97,7 +100,8 @@ function parseValue(val) {
       })
     }
     return result
-  } catch (e) {
+  }
+  catch (e) {
     return []
   }
 }
@@ -106,7 +110,8 @@ function parseValue(val) {
 function serializeRules() {
   const obj = {}
   for (const rule of rules.value) {
-    if (!rule.field) continue
+    if (!rule.field)
+      continue
     obj[rule.field] = {
       type: rule.type,
       label: rule.label,
@@ -117,12 +122,14 @@ function serializeRules() {
 
 // 从 columnsSchema 自动提取字段
 function extractFields(schemaStr) {
-  if (!schemaStr) return []
+  if (!schemaStr)
+    return []
   try {
     const parsed = JSON.parse(schemaStr)
-    if (!Array.isArray(parsed)) return []
+    if (!Array.isArray(parsed))
+      return []
     return parsed
-      .filter(item => {
+      .filter((item) => {
         const field = item.dataIndex || item.key || item.prop
         return field && field !== 'actions' && field !== 'action'
       })
@@ -130,7 +137,8 @@ function extractFields(schemaStr) {
         field: item.dataIndex || item.key || item.prop,
         label: item.title || item.label || item.dataIndex || item.key || item.prop,
       }))
-  } catch (e) {
+  }
+  catch (e) {
     return []
   }
 }

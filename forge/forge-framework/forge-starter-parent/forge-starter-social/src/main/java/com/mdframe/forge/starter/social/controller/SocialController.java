@@ -47,20 +47,23 @@ public class SocialController {
 
     /**
      * 获取三方登录授权链接
+     * @param action 操作类型：bind-绑定账号，不传则为登录
      */
     @GetMapping("/authUrl/{platform}")
     @IgnoreTenant
     @SaIgnore
     public RespInfo<SocialAuthUrl> getAuthUrl(@PathVariable String platform,
-                                               @RequestParam(required = false) Long tenantId) {
+                                                @RequestParam(required = false) Long tenantId,
+                                                @RequestParam(required = false) String action) {
         SysSocialConfig config = socialConfigService.selectByPlatformAndTenant(platform, tenantId);
         if (config == null || config.getStatus() != 1) {
             return RespInfo.error("该平台登录未启用");
         }
 
         AuthRequest authRequest = authRequestFactory.createRequest(config);
-        // 将 platform 编码到 state 中，格式：platform_randomUUID
-        String state = platform + "_" + IdUtil.fastSimpleUUID();
+        // state 格式: [action_]platform_randomUUID，登录时不带前缀，绑定时带 bind_ 前缀
+        String statePrefix = "bind".equals(action) ? "bind_" : "";
+        String state = statePrefix + platform + "_" + IdUtil.fastSimpleUUID();
         String authUrl = authRequest.authorize(state);
 
         SocialAuthUrl result = SocialAuthUrl.builder()

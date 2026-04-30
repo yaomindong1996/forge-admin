@@ -1,16 +1,16 @@
+import { useAuthStore } from '@/store/modules/auth'
 import { request } from '@/utils'
 import { generateUUID } from '@/utils/common'
-import { useAuthStore } from '@/store/modules/auth'
 
 const BASE_URL = import.meta.env.VITE_REQUEST_PREFIX || ''
 
 /**
  * SSE 流式生成，支持自动重试
- * @param {Object} data - 请求数据
+ * @param {object} data - 请求数据
  * @param {Function} onChunk - 收到数据块回调
  * @param {Function} onComplete - 完成回调
  * @param {Function} onError - 错误回调
- * @param {Object} options - 配置选项
+ * @param {object} options - 配置选项
  * @param {number} options.maxRetries - 最大重试次数，默认2
  * @param {number} options.retryDelay - 重试延迟(ms)，默认1000
  * @returns {AbortController} 用于取消请求
@@ -28,7 +28,7 @@ export function streamGenerate(data, onChunk, onComplete, onError, options = {})
   })
 
   function doFetch() {
-    fetch(BASE_URL + '/ai/crud-generator/stream-generate', {
+    fetch(`${BASE_URL}/ai/crud-generator/stream-generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -39,7 +39,7 @@ export function streamGenerate(data, onChunk, onComplete, onError, options = {})
       body: JSON.stringify(data),
       signal: controller.signal,
     })
-      .then(response => {
+      .then((response) => {
         // 请求成功，重置重试计数
         currentRetry = 0
         const reader = response.body.getReader()
@@ -58,42 +58,47 @@ export function streamGenerate(data, onChunk, onComplete, onError, options = {})
             }
             hasReceivedData = true
             buffer += decoder.decode(value, { stream: true })
-            
+
             const events = buffer.split('\n\n')
             buffer = events.pop() || ''
 
             for (const eventStr of events) {
-              if (!eventStr.trim()) continue
-              
+              if (!eventStr.trim())
+                continue
+
               const lines = eventStr.split('\n')
               let eventType = 'message'
               let eventData = ''
-              
+
               for (const line of lines) {
                 if (line.startsWith('event:')) {
                   eventType = line.substring(6).trim()
-                } else if (line.startsWith('data:')) {
+                }
+                else if (line.startsWith('data:')) {
                   eventData = line.substring(5).trim()
                 }
               }
-              
+
               if (eventData) {
                 try {
                   const parsed = JSON.parse(eventData)
                   if (eventType === 'progress' || eventType === 'chunk' || eventType === 'meta') {
                     onChunk({ event: eventType, data: parsed })
-                  } else if (eventType === 'complete') {
+                  }
+                  else if (eventType === 'complete') {
                     onComplete(parsed)
-                  } else if (eventType === 'error') {
+                  }
+                  else if (eventType === 'error') {
                     onError(parsed.message)
                   }
-                } catch (e) {
+                }
+                catch (e) {
                   console.warn('JSON parse error:', e)
                 }
               }
             }
             read()
-          }).catch(err => {
+          }).catch((err) => {
             if (err.name !== 'AbortError') {
               handleRetry(err.message)
             }
@@ -101,7 +106,7 @@ export function streamGenerate(data, onChunk, onComplete, onError, options = {})
         }
         read()
       })
-      .catch(err => {
+      .catch((err) => {
         if (err.name !== 'AbortError') {
           handleRetry(err.message)
         }
@@ -109,21 +114,23 @@ export function streamGenerate(data, onChunk, onComplete, onError, options = {})
   }
 
   function handleRetry(errorMessage) {
-    if (isAborted) return
-    
+    if (isAborted)
+      return
+
     if (currentRetry < maxRetries) {
       currentRetry++
       console.warn(`[streamGenerate] 第${currentRetry}次重试，原因: ${errorMessage}`)
       // 通知用户正在重试
-      onChunk({ 
-        event: 'progress', 
-        data: { 
-          stage: 'retrying', 
-          message: `连接中断，正在重试 (${currentRetry}/${maxRetries})...` 
-        } 
+      onChunk({
+        event: 'progress',
+        data: {
+          stage: 'retrying',
+          message: `连接中断，正在重试 (${currentRetry}/${maxRetries})...`,
+        },
       })
       setTimeout(doFetch, retryDelay)
-    } else {
+    }
+    else {
       onError(`连接失败: ${errorMessage} (已重试${maxRetries}次)`)
     }
   }

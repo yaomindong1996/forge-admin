@@ -16,10 +16,10 @@
     :remote="remote"
     :on-search="handleSearch"
     :label-field="labelField"
-    @update:value="handleUpdate"
     :value-field="valueField"
     style="width: 100%"
     v-bind="$attrs"
+    @update:value="handleUpdate"
   />
 </template>
 

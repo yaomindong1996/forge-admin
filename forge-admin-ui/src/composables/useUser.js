@@ -4,9 +4,9 @@
  */
 import { computed, h, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore, useAuthStore } from '@/store'
-import { defaultThemeConfig } from '@/config/theme.config.js'
 import api from '@/api'
+import { defaultThemeConfig } from '@/config/theme.config.js'
+import { useAuthStore, useUserStore } from '@/store'
 
 /**
  * 默认用户下拉菜单选项
@@ -90,9 +90,9 @@ export function useUser() {
    */
   function handleLogout() {
     $dialog.confirm({
-      title: '提示',
-      type: 'info',
-      content: '确认退出？',
+      'title': '提示',
+      'type': 'info',
+      'content': '确认退出？',
       'positive-button-props': {
         color: defaultThemeConfig.primaryColor,
       },

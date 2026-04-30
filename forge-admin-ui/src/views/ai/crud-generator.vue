@@ -1,20 +1,26 @@
 <template>
   <div class="crud-generator-page">
-    <div :class="['generator-sidebar', { collapsed: sidebarCollapsed }]">
+    <div class="generator-sidebar" :class="[{ collapsed: sidebarCollapsed }]">
       <div class="sidebar-header">
         <template v-if="!sidebarCollapsed">
           <n-button size="small" text @click="goBack">
-            <template #icon><n-icon><ArrowBackOutline /></n-icon></template>
+            <template #icon>
+              <n-icon><ArrowBackOutline /></n-icon>
+            </template>
             返回
           </n-button>
           <n-button size="small" type="primary" @click="handleNewSession">
-            <template #icon><n-icon><AddOutline /></n-icon></template>
+            <template #icon>
+              <n-icon><AddOutline /></n-icon>
+            </template>
             新对话
           </n-button>
         </template>
         <template v-else>
           <n-button size="small" quaternary circle @click="sidebarCollapsed = false">
-            <template #icon><n-icon><ChevronForwardOutline /></n-icon></template>
+            <template #icon>
+              <n-icon><ChevronForwardOutline /></n-icon>
+            </template>
           </n-button>
         </template>
       </div>
@@ -22,14 +28,18 @@
         <div class="sidebar-section-title">
           <span>历史对话</span>
           <n-button size="tiny" quaternary circle @click="sidebarCollapsed = true">
-            <template #icon><n-icon size="14"><ChevronBackOutline /></n-icon></template>
+            <template #icon>
+              <n-icon size="14">
+                <ChevronBackOutline />
+              </n-icon>
+            </template>
           </n-button>
         </div>
         <div class="session-list">
           <div
             v-for="session in sessionList"
             :key="session.id"
-            :class="['session-item', { active: sessionId === session.id }]"
+            class="session-item" :class="[{ active: sessionId === session.id }]"
             @click="loadSession(session.id)"
           >
             <div class="session-title">
@@ -44,7 +54,9 @@
               <n-icon><CloseOutline /></n-icon>
             </n-button>
           </div>
-          <div v-if="sessionList.length === 0" class="empty-tip">暂无历史对话</div>
+          <div v-if="sessionList.length === 0" class="empty-tip">
+            暂无历史对话
+          </div>
         </div>
       </template>
     </div>
@@ -56,7 +68,7 @@
           <div
             v-for="(stage, idx) in generateStages"
             :key="stage.key"
-            :class="['stage-step', {
+            class="stage-step" :class="[{
               done: idx < currentStageIndex,
               active: idx === currentStageIndex,
             }]"
@@ -66,11 +78,15 @@
           </div>
         </div>
 
-        <div class="message-list" ref="messageListRef">
-          <div v-for="(msg, idx) in messages" :key="idx" :class="['message', msg.role]">
+        <div ref="messageListRef" class="message-list">
+          <div v-for="(msg, idx) in messages" :key="idx" class="message" :class="[msg.role]">
             <div class="message-avatar">
-              <div v-if="msg.role === 'user'" class="avatar user-avatar">我</div>
-              <div v-else class="avatar ai-avatar">AI</div>
+              <div v-if="msg.role === 'user'" class="avatar user-avatar">
+                我
+              </div>
+              <div v-else class="avatar ai-avatar">
+                AI
+              </div>
             </div>
             <div class="message-body">
               <div v-if="msg.stage" class="stage-indicator">
@@ -78,7 +94,9 @@
                 {{ getStageLabel(msg.stage) }}
               </div>
               <div class="message-bubble">
-                <div class="message-content">{{ msg.content }}</div>
+                <div class="message-content">
+                  {{ msg.content }}
+                </div>
                 <div v-if="msg.streaming" class="message-typing">
                   <span /><span /><span />
                 </div>
@@ -88,17 +106,27 @@
           <div v-if="messages.length === 0" class="empty-chat">
             <div class="empty-chat-hero">
               <div class="empty-chat-icon">
-                <n-icon size="32"><SparklesOutline /></n-icon>
+                <n-icon size="32">
+                  <SparklesOutline />
+                </n-icon>
               </div>
-              <div class="empty-chat-title">AI CRUD 配置助手</div>
-              <div class="empty-chat-tip">描述你的需求，AI 将自动生成搜索、表格、表单等完整配置</div>
+              <div class="empty-chat-title">
+                AI CRUD 配置助手
+              </div>
+              <div class="empty-chat-tip">
+                描述你的需求，AI 将自动生成搜索、表格、表单等完整配置
+              </div>
             </div>
             <div class="example-prompts">
-              <div class="example-title">试试这些示例：</div>
+              <div class="example-title">
+                试试这些示例：
+              </div>
               <div class="example-list">
                 <div v-for="example in examplePrompts" :key="example.label" class="example-item" @click="fillExample(example)">
                   <div class="example-icon">
-                    <n-icon size="14"><AddOutline /></n-icon>
+                    <n-icon size="14">
+                      <AddOutline />
+                    </n-icon>
                   </div>
                   <div class="example-text">
                     <span class="example-label">{{ example.label }}</span>
@@ -113,7 +141,7 @@
           <!-- 配置行 -->
           <div class="config-bar">
             <!-- 页面标识 -->
-            <div :class="['config-field', { 'has-error': configKeyError }]">
+            <div class="config-field" :class="[{ 'has-error': configKeyError }]">
               <span class="field-tag">标识</span>
               <n-input
                 v-model:value="configKey"
@@ -163,8 +191,10 @@
             <div class="config-divider" />
 
             <!-- 操作按钮 -->
-            <n-button size="small" text type="primary" @click="showImportModal = true" class="bar-action-btn">
-              <template #icon><n-icon><AddOutline /></n-icon></template>
+            <n-button size="small" text type="primary" class="bar-action-btn" @click="showImportModal = true">
+              <template #icon>
+                <n-icon><AddOutline /></n-icon>
+              </template>
               导入表
             </n-button>
           </div>
@@ -194,7 +224,7 @@
               <template #trigger>
                 <button
                   type="button"
-                  :class="['model-trigger', { active: showModelPanel, empty: !modelId }]"
+                  class="model-trigger" :class="[{ active: showModelPanel, empty: !modelId }]"
                   :title="modelId ? `${currentProviderLabel} · ${currentModelLabel}` : '请选择对话模型'"
                 >
                   <n-icon size="16" class="model-trigger-icon">
@@ -235,14 +265,16 @@
                     <div
                       v-for="m in modelOptions"
                       :key="m.value"
-                      :class="['model-list-item', { active: modelId === m.value }]"
+                      class="model-list-item" :class="[{ active: modelId === m.value }]"
                       @click="modelId = m.value; showModelPanel = false"
                     >
                       <div class="model-list-item-main">
                         <span class="model-list-item-name">{{ m.modelCode || m.label }}</span>
                         <span v-if="m.isDefault === '1'" class="model-tag">默认</span>
                       </div>
-                      <div v-if="m.label && m.label !== m.modelCode" class="model-list-item-desc">{{ m.label }}</div>
+                      <div v-if="m.label && m.label !== m.modelCode" class="model-list-item-desc">
+                        {{ m.label }}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -251,7 +283,9 @@
 
             <div class="input-buttons">
               <n-button v-if="generating" type="error" @click="abortGenerate">
-                <template #icon><n-icon><CloseOutline /></n-icon></template>
+                <template #icon>
+                  <n-icon><CloseOutline /></n-icon>
+                </template>
                 停止
               </n-button>
               <n-button
@@ -260,7 +294,9 @@
                 :disabled="!configKey || !inputText.trim() || !modelId"
                 @click="sendMessage"
               >
-                <template #icon><n-icon><PaperPlaneOutline /></n-icon></template>
+                <template #icon>
+                  <n-icon><PaperPlaneOutline /></n-icon>
+                </template>
                 发送
               </n-button>
             </div>
@@ -269,38 +305,48 @@
       </div>
     </div>
 
-    <div :class="['generator-preview', { 'preview-collapsed': previewCollapsed }]">
+    <div class="generator-preview" :class="[{ 'preview-collapsed': previewCollapsed }]">
       <!-- 折叠状态下的竖向标签栏 -->
       <div v-if="previewCollapsed" class="preview-collapsed-bar" @click="previewCollapsed = false">
-        <n-icon size="16"><ChevronBackOutline /></n-icon>
+        <n-icon size="16">
+          <ChevronBackOutline />
+        </n-icon>
         <span class="preview-collapsed-text">配置面板</span>
       </div>
 
       <template v-if="!previewCollapsed">
         <div class="preview-header">
           <div class="preview-header-left">
-            <n-button size="small" quaternary circle @click="previewCollapsed = true" title="折叠配置面板">
-              <template #icon><n-icon><ChevronForwardOutline /></n-icon></template>
+            <n-button size="small" quaternary circle title="折叠配置面板" @click="previewCollapsed = true">
+              <template #icon>
+                <n-icon><ChevronForwardOutline /></n-icon>
+              </template>
             </n-button>
             <span class="preview-title">配置面板</span>
           </div>
           <div class="preview-actions">
             <n-button-group size="small">
-              <n-button quaternary @click="copyCurrentFile" title="复制当前配置">
-                <template #icon><n-icon><CopyOutline /></n-icon></template>
+              <n-button quaternary title="复制当前配置" @click="copyCurrentFile">
+                <template #icon>
+                  <n-icon><CopyOutline /></n-icon>
+                </template>
               </n-button>
-              <n-button quaternary @click="exportAllFiles" title="导出全部配置">
-                <template #icon><n-icon><DownloadOutline /></n-icon></template>
+              <n-button quaternary title="导出全部配置" @click="exportAllFiles">
+                <template #icon>
+                  <n-icon><DownloadOutline /></n-icon>
+                </template>
               </n-button>
             </n-button-group>
             <n-button type="primary" size="small" @click="openSaveModal">
-              <template #icon><n-icon><SaveOutline /></n-icon></template>
+              <template #icon>
+                <n-icon><SaveOutline /></n-icon>
+              </template>
               保存
             </n-button>
             <n-dropdown
               :options="moreActionOptions"
-              @select="handleMoreAction"
               trigger="click"
+              @select="handleMoreAction"
             >
               <n-button size="small" :disabled="!configSaved">
                 更多 ▾
@@ -313,15 +359,15 @@
         <div class="preview-tab-group">
           <div class="tab-group-switcher">
             <span
-              :class="['group-tab', { active: activeTabGroup === 'core' }]"
+              class="group-tab" :class="[{ active: activeTabGroup === 'core' }]"
               @click="switchTabGroup('core')"
             >核心配置</span>
             <span
-              :class="['group-tab', { active: activeTabGroup === 'advanced' }]"
+              class="group-tab" :class="[{ active: activeTabGroup === 'advanced' }]"
               @click="switchTabGroup('advanced')"
             >高级配置</span>
             <span
-              :class="['group-tab', { active: activeTabGroup === 'sql' }]"
+              class="group-tab" :class="[{ active: activeTabGroup === 'sql' }]"
               @click="switchTabGroup('sql')"
             >SQL / 表结构</span>
           </div>
@@ -453,7 +499,9 @@
             </n-tabs>
           </template>
 
-          <div v-if="generating && currentFileContent" class="typing-indicator">正在写入...</div>
+          <div v-if="generating && currentFileContent" class="typing-indicator">
+            正在写入...
+          </div>
         </div>
       </template>
     </div>
@@ -466,18 +514,18 @@
 </template>
 
 <script setup>
-import { onMounted, computed, ref, watch, nextTick } from 'vue'
+import { AddOutline, ArrowBackOutline, ChevronBackOutline, ChevronDownOutline, ChevronForwardOutline, CloseOutline, CopyOutline, DownloadOutline, PaperPlaneOutline, SaveOutline, SparklesOutline } from '@vicons/ionicons5'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { AddOutline, CloseOutline, ArrowBackOutline, CopyOutline, DownloadOutline, SaveOutline, EyeOutline, ChevronBackOutline, ChevronForwardOutline, ChevronDownOutline, SparklesOutline, PaperPlaneOutline } from '@vicons/ionicons5'
 import { useCrudGenerator } from '@/composables/useCrudGenerator'
 import { request } from '@/utils'
+import ApiConfigEditor from './components/ApiConfigEditor.vue'
+import DesensitizeConfigPanel from './components/DesensitizeConfigPanel.vue'
+import DictConfigPanel from './components/DictConfigPanel.vue'
+import EncryptConfigPanel from './components/EncryptConfigPanel.vue'
 import ImportDbTableModal from './components/ImportDbTableModal.vue'
 import MenuTreeSelectModal from './components/MenuTreeSelectModal.vue'
 import SchemaFieldEditor from './components/SchemaFieldEditor.vue'
-import ApiConfigEditor from './components/ApiConfigEditor.vue'
-import DictConfigPanel from './components/DictConfigPanel.vue'
-import DesensitizeConfigPanel from './components/DesensitizeConfigPanel.vue'
-import EncryptConfigPanel from './components/EncryptConfigPanel.vue'
 import TransConfigPanel from './components/TransConfigPanel.vue'
 
 defineOptions({ name: 'AiCrudGenerator' })
@@ -538,7 +586,8 @@ const currentProviderLabel = computed(() => {
 
 const currentModelLabel = computed(() => {
   const item = modelOptions.value.find(m => m.value === modelId.value)
-  if (!item) return '请选择模型'
+  if (!item)
+    return '请选择模型'
   return item.modelCode || item.label
 })
 
@@ -569,8 +618,10 @@ const moreActionOptions = computed(() => [
 ])
 
 function handleMoreAction(key) {
-  if (key === 'preview') previewCrudPage()
-  if (key === 'download') handleDownloadCode()
+  if (key === 'preview')
+    previewCrudPage()
+  if (key === 'download')
+    handleDownloadCode()
 }
 
 function switchTabGroup(group) {
@@ -595,7 +646,10 @@ function scrollToBottom() {
 }
 
 watch(() => messages.value.length, () => scrollToBottom())
-watch(generating, (val) => { if (val) scrollToBottom() })
+watch(generating, (val) => {
+  if (val)
+    scrollToBottom()
+})
 
 const examplePrompts = [
   { label: '员工管理', text: '员工管理，包含姓名、工号、部门、职位、入职日期、手机号、邮箱、状态', tableName: 'sys_employee' },
@@ -616,22 +670,26 @@ const tableNameError = ref('')
 
 function validateConfigKey(val) {
   if (!val) { configKeyError.value = ''; return }
-  if (/[\u4e00-\u9fa5]/.test(val)) {
+  if (/[\u4E00-\u9FA5]/.test(val)) {
     configKeyError.value = '页面标识不能包含中文'
-  } else if (!/^[a-z][a-z0-9_]{1,63}$/.test(val)) {
+  }
+  else if (!/^[a-z][a-z0-9_]{1,63}$/.test(val)) {
     configKeyError.value = '格式：小写字母开头，仅小写字母+数字+下划线，长度2-64位'
-  } else {
+  }
+  else {
     configKeyError.value = ''
   }
 }
 
 function validateTableName(val) {
   if (!val) { tableNameError.value = ''; return }
-  if (/[\u4e00-\u9fa5]/.test(val)) {
+  if (/[\u4E00-\u9FA5]/.test(val)) {
     tableNameError.value = '表名不能包含中文'
-  } else if (!/^[a-zA-Z_][a-zA-Z0-9_]{0,127}$/.test(val)) {
+  }
+  else if (!/^[a-z_]\w{0,127}$/i.test(val)) {
     tableNameError.value = '格式：字母/下划线开头，仅字母+数字+下划线'
-  } else {
+  }
+  else {
     tableNameError.value = ''
   }
 }
@@ -641,7 +699,7 @@ watch(tableName, validateTableName)
 
 const currentFileContent = computed({
   get: () => displayContent.value[activeFile.value] || '',
-  set: (val) => { displayContent.value[activeFile.value] = val }
+  set: (val) => { displayContent.value[activeFile.value] = val },
 })
 
 const tableOptions = ref([])
@@ -650,9 +708,16 @@ const showMenuModal = ref(false)
 
 function getSchemaLabel(key) {
   const labelMap = {
-    searchSchema: '搜索配置', columnsSchema: '表格列配置', editSchema: '编辑表单配置',
-    apiConfig: '接口配置', dictConfig: '字典配置', desensitizeConfig: '脱敏配置',
-    encryptConfig: '加解密配置', transConfig: '翻译配置', createTableSql: '建表SQL', tableStructure: '表结构',
+    searchSchema: '搜索配置',
+    columnsSchema: '表格列配置',
+    editSchema: '编辑表单配置',
+    apiConfig: '接口配置',
+    dictConfig: '字典配置',
+    desensitizeConfig: '脱敏配置',
+    encryptConfig: '加解密配置',
+    transConfig: '翻译配置',
+    createTableSql: '建表SQL',
+    tableStructure: '表结构',
   }
   return labelMap[key] || key
 }
@@ -677,7 +742,7 @@ async function regenerateSingleSchema(schemaKey) {
   generating.value = true
   activeFile.value = schemaKey
   currentReceivingFile.value = schemaKey
-  
+
   displayContent.value[schemaKey] = ''
   generatedFiles.value[schemaKey] = ''
 
@@ -706,7 +771,7 @@ async function regenerateSingleSchema(schemaKey) {
     request,
     handleSSEChunk,
     handleSSEComplete,
-    handleSSEError
+    handleSSEError,
   )
 }
 
@@ -720,7 +785,8 @@ async function loadTableOptions() {
         value: item.tableName,
       }))
     }
-  } catch (e) {
+  }
+  catch (e) {
     console.error('加载表列表失败:', e)
   }
 }
@@ -756,44 +822,63 @@ async function handleMenuConfirm({ menuParentId, menuName }) {
 }
 
 function formatTime(time) {
-  if (!time) return ''
+  if (!time)
+    return ''
   const d = new Date(time)
   return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
 function getStageLabel(stage) {
   const labels = {
-    analyzing: '分析阶段',
+    'analyzing': '分析阶段',
     'generating-meta': '推断元数据',
     'generating-search': '生成搜索配置',
     'generating-columns': '生成表格列',
     'generating-edit': '生成编辑表单',
     'generating-api': '生成API配置',
     'generating-sql': '生成建表SQL',
-    complete: '完成',
-    error: '错误',
-    retrying: '重试中',
+    'complete': '完成',
+    'error': '错误',
+    'retrying': '重试中',
   }
   return labels[stage] || stage
 }
 
 function autoGenerateConfigKey() {
   let key = ''
-  
+
   if (tableName.value) {
     key = tableName.value.toLowerCase().replace(/^sys_/, '').replace(/[^a-z0-9]/g, '_')
   }
   else if (inputText.value && inputText.value.trim()) {
     const text = inputText.value.trim()
     const keywordMap = {
-      '管理': 'manage', '系统': 'system', '配置': 'config', '设置': 'setting',
-      '列表': 'list', '详情': 'detail', '信息': 'info', '记录': 'record',
-      '用户': 'user', '角色': 'role', '权限': 'permission', '菜单': 'menu',
-      '部门': 'department', '岗位': 'position', '字典': 'dict', '日志': 'log',
-      '订单': 'order', '产品': 'product', '商品': 'goods', '客户': 'customer',
-      '员工': 'employee', '考勤': 'attendance', '薪资': 'salary', '招聘': 'recruit',
+      管理: 'manage',
+      系统: 'system',
+      配置: 'config',
+      设置: 'setting',
+      列表: 'list',
+      详情: 'detail',
+      信息: 'info',
+      记录: 'record',
+      用户: 'user',
+      角色: 'role',
+      权限: 'permission',
+      菜单: 'menu',
+      部门: 'department',
+      岗位: 'position',
+      字典: 'dict',
+      日志: 'log',
+      订单: 'order',
+      产品: 'product',
+      商品: 'goods',
+      客户: 'customer',
+      员工: 'employee',
+      考勤: 'attendance',
+      薪资: 'salary',
+      招聘: 'recruit',
     }
-    let words = []
+    const words = []
     for (const [cn, en] of Object.entries(keywordMap)) {
       if (text.includes(cn)) {
         words.push(en)
@@ -803,17 +888,17 @@ function autoGenerateConfigKey() {
       key = words.slice(0, 3).join('_')
     }
   }
-  
+
   if (!key) {
     const now = new Date()
     key = `page_${now.getMonth() + 1}${now.getDate()}_${Math.random().toString(36).substr(2, 4)}`
   }
-  
+
   key = key.replace(/_+/g, '_').replace(/^_|_$/g, '')
   if (!key || key.length < 2) {
-    key = 'page_' + Math.random().toString(36).substr(2, 4)
+    key = `page_${Math.random().toString(36).substr(2, 4)}`
   }
-  
+
   configKey.value = key
 }
 
@@ -842,14 +927,14 @@ async function handleDownloadCode() {
     const resp = await fetch(url, {
       method: 'GET',
       headers: {
-        Authorization: authStore.accessToken ? `Bearer ${authStore.accessToken}` : '',
+        'Authorization': authStore.accessToken ? `Bearer ${authStore.accessToken}` : '',
         'X-Timestamp': Date.now().toString(),
         'X-Nonce': uuid,
       },
     })
     if (!resp.ok) {
       const text = await resp.text()
-      window.$message?.error('下载失败: ' + (text || resp.statusText))
+      window.$message?.error(`下载失败: ${text || resp.statusText}`)
       return
     }
     const blob = await resp.blob()
@@ -860,8 +945,9 @@ async function handleDownloadCode() {
     a.click()
     URL.revokeObjectURL(blobUrl)
     window.$message?.success('代码包下载成功')
-  } catch (e) {
-    window.$message?.error('下载失败: ' + e.message)
+  }
+  catch (e) {
+    window.$message?.error(`下载失败: ${e.message}`)
   }
 }
 
@@ -887,10 +973,12 @@ async function executeCreateTableSql() {
         await request.post('/generator/executeSql', { sql })
         window.$message.success('建表成功！可将该表导入并使用。')
         loadTableOptions()
-      } catch (e) {
+      }
+      catch (e) {
         const msg = e?.response?.data?.msg || e?.message || '执行失败'
         window.$message.error(msg)
-      } finally {
+      }
+      finally {
         executingSql.value = false
       }
     },
@@ -904,7 +992,8 @@ onMounted(async () => {
   const ck = route.query.configKey
   if (ck) {
     await initWithConfigKey(ck)
-  } else {
+  }
+  else {
     await loadSessionList()
   }
 })
@@ -914,15 +1003,15 @@ onMounted(async () => {
 .crud-generator-page {
   display: flex;
   height: calc(100vh - 100px);
-  background: #F8FAFC;
+  background: #f8fafc;
   overflow: hidden;
 }
 
 /* ============ 左侧历史导航 ============ */
 .generator-sidebar {
   width: 240px;
-  background: #FFFFFF;
-  border-right: 1px solid #E2E8F0;
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   transition: width 0.25s ease;
@@ -939,18 +1028,18 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #F1F5F9;
+  border-bottom: 1px solid #f1f5f9;
   min-height: 52px;
 }
 
 .sidebar-section-title {
   padding: 8px 14px;
   font-size: 11px;
-  color: #94A3B8;
+  color: #94a3b8;
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  border-bottom: 1px solid #F1F5F9;
+  border-bottom: 1px solid #f1f5f9;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -963,7 +1052,7 @@ onMounted(async () => {
 
 .session-item {
   padding: 10px 14px;
-  border-bottom: 1px solid #F8FAFC;
+  border-bottom: 1px solid #f8fafc;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -971,17 +1060,21 @@ onMounted(async () => {
   transition: all 0.15s ease;
 }
 
-.session-item:hover { background: #F8FAFC; }
-.session-item:hover .delete-btn { opacity: 1; }
+.session-item:hover {
+  background: #f8fafc;
+}
+.session-item:hover .delete-btn {
+  opacity: 1;
+}
 
 .session-item.active {
-  background: #EEF2FF;
-  border-left: 3px solid #6366F1;
+  background: #eef2ff;
+  border-left: 3px solid #6366f1;
 }
 
 .session-title {
   font-size: 13px;
-  color: #1E293B;
+  color: #1e293b;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -989,14 +1082,14 @@ onMounted(async () => {
 
 .session-config-key {
   font-weight: 600;
-  color: #6366F1;
+  color: #6366f1;
   font-family: 'Fira Code', 'Monaco', monospace;
   font-size: 12px;
 }
 
 .session-table {
   font-size: 11px;
-  color: #10B981;
+  color: #10b981;
   margin-right: 4px;
 }
 
@@ -1008,7 +1101,7 @@ onMounted(async () => {
 
 .session-time {
   font-size: 11px;
-  color: #94A3B8;
+  color: #94a3b8;
 }
 
 .delete-btn {
@@ -1023,7 +1116,7 @@ onMounted(async () => {
 .empty-tip {
   padding: 40px 20px;
   text-align: center;
-  color: #CBD5E1;
+  color: #cbd5e1;
   font-size: 13px;
 }
 
@@ -1047,7 +1140,7 @@ onMounted(async () => {
   flex: 1;
   overflow-y: auto;
   padding: 24px;
-  background: #FFFFFF;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -1059,9 +1152,13 @@ onMounted(async () => {
   align-items: flex-start;
 }
 
-.message.user { flex-direction: row-reverse; }
+.message.user {
+  flex-direction: row-reverse;
+}
 
-.message-avatar { flex-shrink: 0; }
+.message-avatar {
+  flex-shrink: 0;
+}
 
 .avatar {
   width: 36px;
@@ -1072,11 +1169,16 @@ onMounted(async () => {
   justify-content: center;
   font-size: 12px;
   font-weight: bold;
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
-.user-avatar { background: #6366F1; }
-.ai-avatar { background: linear-gradient(135deg, #10B981, #6366F1); font-size: 10px; }
+.user-avatar {
+  background: #6366f1;
+}
+.ai-avatar {
+  background: linear-gradient(135deg, #10b981, #6366f1);
+  font-size: 10px;
+}
 
 .message-body {
   display: flex;
@@ -1085,7 +1187,9 @@ onMounted(async () => {
   gap: 4px;
 }
 
-.message.user .message-body { align-items: flex-end; }
+.message.user .message-body {
+  align-items: flex-end;
+}
 
 .message-bubble {
   padding: 12px 16px;
@@ -1097,20 +1201,20 @@ onMounted(async () => {
 }
 
 .message.user .message-bubble {
-  background: #6366F1;
-  color: #FFFFFF;
+  background: #6366f1;
+  color: #ffffff;
   border-radius: 12px 4px 12px 12px;
 }
 
 .message.assistant .message-bubble {
-  background: #F8FAFC;
-  color: #1E293B;
+  background: #f8fafc;
+  color: #1e293b;
   border-radius: 4px 12px 12px 12px;
 }
 
 .stage-indicator {
   font-size: 11px;
-  color: #6366F1;
+  color: #6366f1;
   font-weight: 500;
 }
 
@@ -1122,15 +1226,31 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   gap: 16px;
-  color: #94A3B8;
+  color: #94a3b8;
   padding: 24px;
 }
 
-.empty-chat-icon { font-size: 48px; opacity: 0.5; }
-.empty-chat-tip { font-size: 16px; font-weight: 500; color: #64748B; }
+.empty-chat-icon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+.empty-chat-tip {
+  font-size: 16px;
+  font-weight: 500;
+  color: #64748b;
+}
 
-.example-prompts { margin-top: 16px; text-align: center; width: 100%; }
-.example-title { font-size: 13px; color: #64748B; margin-bottom: 10px; font-weight: 500; }
+.example-prompts {
+  margin-top: 16px;
+  text-align: center;
+  width: 100%;
+}
+.example-title {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
 
 .example-list {
   display: flex;
@@ -1145,8 +1265,8 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 10px 16px;
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1154,32 +1274,45 @@ onMounted(async () => {
 }
 
 .example-item:hover {
-  border-color: #6366F1;
-  background: #FAFAFE;
+  border-color: #6366f1;
+  background: #fafafe;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
 }
 
-.example-label { font-size: 13px; font-weight: 600; color: #1E293B; white-space: nowrap; flex-shrink: 0; }
-.example-desc { font-size: 12px; color: #64748B; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.example-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.example-desc {
+  font-size: 12px;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
 
 /* 输入区 */
 .input-section {
   padding: 12px 16px;
-  border-top: 1px solid #F1F5F9;
-  background: #FFFFFF;
+  border-top: 1px solid #f1f5f9;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
 }
 
 /* 配置条：一体化棓形输入条 */
 .config-bar {
   display: flex;
   align-items: center;
-  background: #F8FAFC;
-  border: 1px solid #E2E8F0;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 0 4px;
   height: 38px;
@@ -1188,8 +1321,8 @@ onMounted(async () => {
 }
 
 .config-bar:focus-within {
-  border-color: #818CF8;
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.06);
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.06);
 }
 
 .config-field {
@@ -1208,13 +1341,13 @@ onMounted(async () => {
 }
 
 .config-field.has-error .field-tag {
-  color: #EF4444;
+  color: #ef4444;
 }
 
 .field-tag {
   font-size: 11px;
   font-weight: 600;
-  color: #94A3B8;
+  color: #94a3b8;
   white-space: nowrap;
   flex-shrink: 0;
   letter-spacing: 0.3px;
@@ -1251,7 +1384,7 @@ onMounted(async () => {
 
 .auto-btn {
   font-size: 11px;
-  color: #6366F1;
+  color: #6366f1;
   cursor: pointer;
   white-space: nowrap;
   font-weight: 500;
@@ -1260,7 +1393,7 @@ onMounted(async () => {
   transition: background 0.15s;
 }
 .auto-btn:hover {
-  background: rgba(99,102,241,0.08);
+  background: rgba(99, 102, 241, 0.08);
 }
 
 .field-error-tip {
@@ -1268,14 +1401,14 @@ onMounted(async () => {
   bottom: -18px;
   left: 0;
   font-size: 11px;
-  color: #EF4444;
+  color: #ef4444;
   white-space: nowrap;
 }
 
 .config-divider {
   width: 1px;
   height: 18px;
-  background: #E2E8F0;
+  background: #e2e8f0;
   flex-shrink: 0;
   margin: 0 2px;
 }
@@ -1302,8 +1435,8 @@ onMounted(async () => {
 /* ============ 右侧配置面板 ============ */
 .generator-preview {
   width: 580px;
-  background: #FFFFFF;
-  border-left: 1px solid #E2E8F0;
+  background: #ffffff;
+  border-left: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -1325,12 +1458,15 @@ onMounted(async () => {
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  color: #94A3B8;
+  color: #94a3b8;
   transition: color 0.15s;
   padding: 12px 0;
 }
 
-.preview-collapsed-bar:hover { color: #6366F1; background: #F8FAFC; }
+.preview-collapsed-bar:hover {
+  color: #6366f1;
+  background: #f8fafc;
+}
 
 .preview-collapsed-text {
   writing-mode: vertical-rl;
@@ -1348,8 +1484,8 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #F1F5F9;
-  background: #FAFAFE;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafafe;
   min-height: 52px;
 }
 
@@ -1362,7 +1498,7 @@ onMounted(async () => {
 .preview-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1E293B;
+  color: #1e293b;
 }
 
 .preview-actions {
@@ -1374,14 +1510,14 @@ onMounted(async () => {
 /* Tab 分组切换器 */
 .preview-tab-group {
   padding: 8px 14px 0;
-  border-bottom: 1px solid #F1F5F9;
-  background: #FAFAFE;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafafe;
 }
 
 .tab-group-switcher {
   display: flex;
   gap: 0;
-  background: #F1F5F9;
+  background: #f1f5f9;
   border-radius: 8px;
   padding: 3px;
   width: fit-content;
@@ -1392,18 +1528,21 @@ onMounted(async () => {
   border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
-  color: #64748B;
+  color: #64748b;
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
 }
 
-.group-tab:hover { color: #1E293B; background: rgba(255,255,255,0.6); }
+.group-tab:hover {
+  color: #1e293b;
+  background: rgba(255, 255, 255, 0.6);
+}
 
 .group-tab.active {
-  background: #FFFFFF;
-  color: #6366F1;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  background: #ffffff;
+  color: #6366f1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 /* 内容区 */
@@ -1426,11 +1565,17 @@ onMounted(async () => {
   overflow: hidden;
 }
 
-.preview-tabs :deep(.n-tabs .n-tab-pane) { height: 100%; }
+.preview-tabs :deep(.n-tabs .n-tab-pane) {
+  height: 100%;
+}
 
-.preview-tabs :deep(.n-tabs .n-tabs-bar) { background-color: #6366F1; }
+.preview-tabs :deep(.n-tabs .n-tabs-bar) {
+  background-color: #6366f1;
+}
 
-.preview-tabs :deep(.n-tabs .n-tab--active .n-tabs-tab__label) { color: #6366F1; }
+.preview-tabs :deep(.n-tabs .n-tab--active .n-tabs-tab__label) {
+  color: #6366f1;
+}
 
 .editor-area {
   padding: 12px;
@@ -1441,12 +1586,12 @@ onMounted(async () => {
 .json-editor {
   width: 100%;
   height: 100%;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #e2e8f0;
   resize: none;
   font-family: 'Fira Code', 'Monaco', 'Menlo', monospace;
   font-size: 13px;
   line-height: 1.6;
-  background: #F8FAFC;
+  background: #f8fafc;
   padding: 12px;
   box-sizing: border-box;
   border-radius: 8px;
@@ -1455,9 +1600,9 @@ onMounted(async () => {
 
 .json-editor:focus {
   outline: none;
-  background: #FFFFFF;
-  border-color: #818CF8;
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.08);
+  background: #ffffff;
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
 }
 
 .sql-editor-wrap {
@@ -1466,7 +1611,10 @@ onMounted(async () => {
   height: 100%;
 }
 
-.sql-editor-wrap .json-editor { flex: 1; height: 0; }
+.sql-editor-wrap .json-editor {
+  flex: 1;
+  height: 0;
+}
 
 .sql-actions {
   padding: 10px 0 0;
@@ -1479,8 +1627,8 @@ onMounted(async () => {
   position: absolute;
   bottom: 16px;
   right: 16px;
-  background: #6366F1;
-  color: #FFFFFF;
+  background: #6366f1;
+  color: #ffffff;
   padding: 5px 10px;
   border-radius: 6px;
   font-size: 11px;
@@ -1489,8 +1637,13 @@ onMounted(async () => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* ============ 输入底部：模型选择 + 发送 ============ */
@@ -1507,8 +1660,8 @@ onMounted(async () => {
   gap: 6px;
   height: 30px;
   padding: 0 10px;
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
   cursor: pointer;
   font-size: 12px;
@@ -1519,29 +1672,31 @@ onMounted(async () => {
 }
 
 .model-trigger:hover {
-  border-color: #C7D2FE;
-  background: #FAFAFE;
-  color: #1E293B;
+  border-color: #c7d2fe;
+  background: #fafafe;
+  color: #1e293b;
 }
 
 .model-trigger.active {
-  border-color: #818CF8;
-  background: #EEF2FF;
-  color: #4338CA;
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.08);
+  border-color: #818cf8;
+  background: #eef2ff;
+  color: #4338ca;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
 }
 
 .model-trigger.empty {
-  color: #94A3B8;
+  color: #94a3b8;
   border-style: dashed;
 }
 
 .model-trigger-icon {
-  color: #6366F1;
+  color: #6366f1;
   flex-shrink: 0;
 }
 
-.model-trigger.empty .model-trigger-icon { color: #CBD5E1; }
+.model-trigger.empty .model-trigger-icon {
+  color: #cbd5e1;
+}
 
 .model-trigger-provider {
   font-weight: 500;
@@ -1552,24 +1707,28 @@ onMounted(async () => {
 }
 
 .model-trigger-divider {
-  color: #CBD5E1;
+  color: #cbd5e1;
   flex-shrink: 0;
 }
 
 .model-trigger-model {
   font-family: 'Fira Code', 'Monaco', monospace;
   font-weight: 600;
-  color: #6366F1;
+  color: #6366f1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 160px;
 }
 
-.model-trigger.empty .model-trigger-model { color: #94A3B8; font-family: inherit; font-weight: 500; }
+.model-trigger.empty .model-trigger-model {
+  color: #94a3b8;
+  font-family: inherit;
+  font-weight: 500;
+}
 
 .model-trigger-chevron {
-  color: #94A3B8;
+  color: #94a3b8;
   flex-shrink: 0;
   margin-left: 2px;
   transition: transform 0.15s;
@@ -1577,13 +1736,13 @@ onMounted(async () => {
 
 .model-trigger.active .model-trigger-chevron {
   transform: rotate(180deg);
-  color: #6366F1;
+  color: #6366f1;
 }
 
 /* 模型选择面板 */
 .model-panel {
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
   overflow: hidden;
@@ -1591,10 +1750,12 @@ onMounted(async () => {
 
 .model-panel-section {
   padding: 12px 14px;
-  border-bottom: 1px solid #F1F5F9;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.model-panel-section:last-child { border-bottom: none; }
+.model-panel-section:last-child {
+  border-bottom: none;
+}
 
 .model-panel-label {
   display: flex;
@@ -1602,7 +1763,7 @@ onMounted(async () => {
   align-items: center;
   font-size: 11px;
   font-weight: 600;
-  color: #64748B;
+  color: #64748b;
   margin-bottom: 8px;
   letter-spacing: 0.3px;
   text-transform: uppercase;
@@ -1612,7 +1773,7 @@ onMounted(async () => {
 .model-panel-count {
   font-size: 11px;
   font-weight: 500;
-  color: #94A3B8;
+  color: #94a3b8;
   text-transform: none;
   letter-spacing: 0;
 }
@@ -1621,7 +1782,7 @@ onMounted(async () => {
   padding: 16px 0;
   text-align: center;
   font-size: 12px;
-  color: #CBD5E1;
+  color: #cbd5e1;
 }
 
 .model-list {
@@ -1639,10 +1800,12 @@ onMounted(async () => {
   transition: background 0.15s;
 }
 
-.model-list-item:hover { background: #F1F5F9; }
+.model-list-item:hover {
+  background: #f1f5f9;
+}
 
 .model-list-item.active {
-  background: #EEF2FF;
+  background: #eef2ff;
 }
 
 .model-list-item-main {
@@ -1654,17 +1817,19 @@ onMounted(async () => {
 .model-list-item-name {
   font-size: 13px;
   font-weight: 500;
-  color: #1E293B;
+  color: #1e293b;
   font-family: 'Fira Code', 'Monaco', monospace;
 }
 
-.model-list-item.active .model-list-item-name { color: #4338CA; }
+.model-list-item.active .model-list-item-name {
+  color: #4338ca;
+}
 
 .model-tag {
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 4px;
-  background: #DCFCE7;
+  background: #dcfce7;
   color: #166534;
   font-weight: 600;
 }
@@ -1672,7 +1837,7 @@ onMounted(async () => {
 .model-list-item-desc {
   margin-top: 2px;
   font-size: 11px;
-  color: #94A3B8;
+  color: #94a3b8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1685,8 +1850,8 @@ onMounted(async () => {
   justify-content: center;
   gap: 0;
   padding: 12px 24px;
-  background: linear-gradient(180deg, #FAFAFE 0%, #FFFFFF 100%);
-  border-bottom: 1px solid #F1F5F9;
+  background: linear-gradient(180deg, #fafafe 0%, #ffffff 100%);
+  border-bottom: 1px solid #f1f5f9;
   flex-wrap: wrap;
 }
 
@@ -1697,7 +1862,7 @@ onMounted(async () => {
   padding: 0 10px;
   position: relative;
   font-size: 11px;
-  color: #CBD5E1;
+  color: #cbd5e1;
   transition: color 0.2s;
 }
 
@@ -1709,14 +1874,14 @@ onMounted(async () => {
   transform: translateY(-50%);
   width: 8px;
   height: 1px;
-  background: #E2E8F0;
+  background: #e2e8f0;
 }
 
 .stage-step-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #E2E8F0;
+  background: #e2e8f0;
   transition: all 0.2s;
   flex-shrink: 0;
 }
@@ -1726,27 +1891,32 @@ onMounted(async () => {
 }
 
 .stage-step.done {
-  color: #10B981;
+  color: #10b981;
 }
 
 .stage-step.done .stage-step-dot {
-  background: #10B981;
+  background: #10b981;
 }
 
 .stage-step.active {
-  color: #6366F1;
+  color: #6366f1;
   font-weight: 600;
 }
 
 .stage-step.active .stage-step-dot {
-  background: #6366F1;
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+  background: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
   animation: stageDotPulse 1.2s infinite;
 }
 
 @keyframes stageDotPulse {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-  50% { box-shadow: 0 0 0 6px rgba(99,102,241,0.05); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.05);
+  }
 }
 
 /* 阶段标识增强 */
@@ -1760,7 +1930,7 @@ onMounted(async () => {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #6366F1;
+  background: #6366f1;
   animation: pulse 1.4s infinite;
 }
 
@@ -1774,17 +1944,29 @@ onMounted(async () => {
 .message-typing span {
   width: 6px;
   height: 6px;
-  background: #94A3B8;
+  background: #94a3b8;
   border-radius: 50%;
   animation: typingDot 1.4s infinite;
 }
 
-.message-typing span:nth-child(2) { animation-delay: 0.15s; }
-.message-typing span:nth-child(3) { animation-delay: 0.3s; }
+.message-typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.message-typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
 
 @keyframes typingDot {
-  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-  40% { opacity: 1; transform: scale(1); }
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* 空状态 hero 区 */
@@ -1803,25 +1985,25 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #818CF8 0%, #6366F1 100%);
-  color: #FFFFFF;
+  background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+  color: #ffffff;
   font-size: 0;
   opacity: 1;
-  box-shadow: 0 4px 12px rgba(99,102,241,0.25);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
 }
 
 .empty-chat-title {
   font-size: 18px;
   font-weight: 600;
-  color: #1E293B;
+  color: #1e293b;
 }
 
 .example-icon {
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  background: #EEF2FF;
-  color: #6366F1;
+  background: #eef2ff;
+  color: #6366f1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1843,6 +2025,6 @@ onMounted(async () => {
 .example-text .example-desc {
   white-space: normal;
   line-height: 1.4;
-  color: #64748B;
+  color: #64748b;
 }
 </style>

@@ -3,22 +3,26 @@
     <!-- Page Header -->
     <div class="page-header">
       <div>
-        <h1 class="page-title">Identity & Roles</h1>
-        <p class="page-subtitle">Manage granular access controls and identity policies across all environments.</p>
+        <h1 class="page-title">
+          Identity & Roles
+        </h1>
+        <p class="page-subtitle">
+          Manage granular access controls and identity policies across all environments.
+        </p>
       </div>
       <div class="page-actions">
-        <n-button size="small" secondary>
+        <NButton size="small" secondary>
           <template #icon>
             <i class="i-material-symbols:upload" />
           </template>
           Import Policy
-        </n-button>
-        <n-button type="primary" size="small" class="btn-primary-glow">
+        </NButton>
+        <NButton type="primary" size="small" class="btn-primary-glow">
           <template #icon>
             <i class="i-material-symbols:add" />
           </template>
           Create Role
-        </n-button>
+        </NButton>
       </div>
     </div>
 
@@ -31,7 +35,9 @@
           </div>
         </div>
         <div class="bento-card-body">
-          <div class="bento-value">24</div>
+          <div class="bento-value">
+            24
+          </div>
           <div class="bento-label">
             <span>Active Roles</span>
             <span class="bento-sub">+3 this week</span>
@@ -46,7 +52,9 @@
           </div>
         </div>
         <div class="bento-card-body">
-          <div class="bento-value">1,492</div>
+          <div class="bento-value">
+            1,492
+          </div>
           <div class="bento-label">
             <span>Assignments</span>
             <span class="bento-sub">98% utilization</span>
@@ -61,7 +69,9 @@
           </div>
         </div>
         <div class="bento-card-body">
-          <div class="bento-value">0</div>
+          <div class="bento-value">
+            0
+          </div>
           <div class="bento-label">
             <span>Security Flags</span>
             <span class="bento-sub">All policies passing</span>
@@ -73,7 +83,7 @@
     <!-- Table Controls -->
     <div class="table-controls">
       <div class="filter-pills">
-        <n-button
+        <NButton
           v-for="pill in filterPills"
           :key="pill.label"
           :type="pill.active ? 'primary' : 'default'"
@@ -85,14 +95,14 @@
           @click="activeFilter = pill.label"
         >
           {{ pill.label }}
-          <n-tag v-if="pill.badge" size="small" :type="pill.active ? 'primary' : 'default'" class="pill-badge">
+          <NTag v-if="pill.badge" size="small" :type="pill.active ? 'primary' : 'default'" class="pill-badge">
             {{ pill.badge }}
-          </n-tag>
-        </n-button>
+          </NTag>
+        </NButton>
       </div>
 
       <div class="control-actions">
-        <n-input
+        <NInput
           v-model:value="searchValue"
           placeholder="Filter roles..."
           size="small"
@@ -102,22 +112,32 @@
           <template #prefix>
             <i class="i-material-symbols:search" />
           </template>
-        </n-input>
-        <n-button size="small" quaternary circle>
+        </NInput>
+        <NButton size="small" quaternary circle>
           <template #icon>
             <i class="i-material-symbols:monitoring" />
           </template>
-        </n-button>
+        </NButton>
       </div>
     </div>
 
     <!-- Grid Header -->
     <div class="grid-header">
-      <div class="col col-name">Identity Policy</div>
-      <div class="col col-access">Access Level</div>
-      <div class="col col-users">Users Attached</div>
-      <div class="col col-status">Status</div>
-      <div class="col col-actions">Actions</div>
+      <div class="col col-name">
+        Identity Policy
+      </div>
+      <div class="col col-access">
+        Access Level
+      </div>
+      <div class="col col-users">
+        Users Attached
+      </div>
+      <div class="col col-status">
+        Status
+      </div>
+      <div class="col col-actions">
+        Actions
+      </div>
     </div>
 
     <!-- Role Rows -->
@@ -136,20 +156,28 @@
             <div class="name-info">
               <div class="name-row">
                 <span class="name-text">{{ role.name }}</span>
-                <n-tag v-if="role.isSystem" size="tiny" type="primary" class="system-tag">System</n-tag>
+                <NTag v-if="role.isSystem" size="tiny" type="primary" class="system-tag">
+                  System
+                </NTag>
               </div>
-              <div class="name-id">{{ role.id }}</div>
-              <div class="name-desc">{{ role.description }}</div>
+              <div class="name-id">
+                {{ role.id }}
+              </div>
+              <div class="name-desc">
+                {{ role.description }}
+              </div>
             </div>
           </div>
         </div>
 
         <div class="col col-access">
-          <div class="access-level">{{ role.accessLevel }}</div>
+          <div class="access-level">
+            {{ role.accessLevel }}
+          </div>
           <div class="access-tags">
-            <n-tag v-for="(perm, i) in role.permissions" :key="i" size="small" class="perm-tag">
+            <NTag v-for="(perm, i) in role.permissions" :key="i" size="small" class="perm-tag">
               {{ perm }}
-            </n-tag>
+            </NTag>
           </div>
         </div>
 
@@ -162,7 +190,7 @@
                 :src="avatar"
                 alt="User"
                 class="mini-avatar"
-              />
+              >
             </div>
             <span v-if="role.userCount > 3" class="user-count">+{{ role.userCount - 3 }}</span>
           </div>
@@ -178,16 +206,16 @@
 
         <div class="col col-actions">
           <div class="action-buttons">
-            <n-button size="tiny" quaternary circle class="action-btn">
+            <NButton size="tiny" quaternary circle class="action-btn">
               <template #icon>
                 <i class="i-material-symbols:edit" />
               </template>
-            </n-button>
-            <n-button size="tiny" quaternary circle>
+            </NButton>
+            <NButton size="tiny" quaternary circle>
               <template #icon>
                 <i class="i-material-symbols:more-horiz" />
               </template>
-            </n-button>
+            </NButton>
           </div>
         </div>
       </div>
@@ -196,8 +224,8 @@
 </template>
 
 <script setup>
+import { NButton, NInput, NTag } from 'naive-ui'
 import { ref } from 'vue'
-import { NButton, NIcon, NInput, NTag } from 'naive-ui'
 
 const searchValue = ref('')
 const activeFilter = ref('All Roles')

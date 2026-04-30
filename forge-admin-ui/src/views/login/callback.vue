@@ -37,27 +37,77 @@ const detailMessage = ref('请稍候...')
 async function handleCallback() {
   const { code, state } = route.query
 
-  // 从 state 中解析 platform，格式：platform_randomUUID
+  // state 格式: [bind_]platform_randomUUID
   let platform = null
+  let isBind = false
   const stateCode = state
   if (state && state.includes('_')) {
-    const parts = state.split('_')
-    platform = parts[0]
+    if (state.startsWith('bind_')) {
+      isBind = true
+      const afterPrefix = state.substring(5)
+      const parts = afterPrefix.split('_')
+      platform = parts[0]
+    }
+    else {
+      const parts = state.split('_')
+      platform = parts[0]
+    }
   }
 
   if (!code || !state || !platform) {
     loading.value = false
     success.value = false
     message.value = '授权参数缺失'
-    detailMessage.value = '缺少必要的授权参数，请重新尝试登录'
+    detailMessage.value = '缺少必要的授权参数，请重新尝试'
     setTimeout(() => {
-      router.push('/login')
+      router.push(isBind ? '/profile' : '/login')
     }, 2000)
     return
   }
 
+  // 绑定流程
+  if (isBind) {
+    try {
+      const bindRes = await request.post('/social/bind', {
+        platform,
+        code,
+        state: stateCode,
+      })
+
+      if (bindRes.code === 200) {
+        loading.value = false
+        success.value = true
+        message.value = '绑定成功'
+        detailMessage.value = '正在返回个人中心...'
+        setTimeout(() => {
+          router.push('/profile')
+        }, 1500)
+      }
+      else {
+        loading.value = false
+        success.value = false
+        message.value = '绑定失败'
+        detailMessage.value = bindRes.msg || '三方账号绑定失败'
+        setTimeout(() => {
+          router.push('/profile')
+        }, 2000)
+      }
+    }
+    catch (error) {
+      console.error('三方账号绑定失败:', error)
+      loading.value = false
+      success.value = false
+      message.value = '绑定异常'
+      detailMessage.value = '处理绑定时发生错误，请重新尝试'
+      setTimeout(() => {
+        router.push('/profile')
+      }, 2000)
+    }
+    return
+  }
+
+  // 登录流程
   try {
-    // 1. 调用回调接口获取 AuthUser
     const callbackRes = await api.socialCallback({
       platform,
       code,
@@ -78,7 +128,6 @@ async function handleCallback() {
     const authUser = callbackRes.data
     message.value = '正在登录...'
 
-    // 2. 调用登录接口完成登录
     const loginParams = {
       authType: 'oauth2',
       socialPlatform: platform,
@@ -101,7 +150,6 @@ async function handleCallback() {
       return
     }
 
-    // 3. 处理登录成功
     await onLoginSuccess(loginRes.data)
 
     loading.value = false

@@ -8,7 +8,7 @@
   >
     <n-spin :show="loading">
       <div v-if="!schemaResult" style="padding: 20px 0;">
-        <n-input
+        <NInput
           v-model:value="description"
           type="textarea"
           placeholder="请用自然语言描述你需要的数据表，例如：电商订单管理，包含订单号、金额、状态、收货地址"
@@ -26,10 +26,10 @@
       <div v-else>
         <n-descriptions bordered :column="2" size="small" style="margin-bottom: 16px;">
           <n-descriptions-item label="表名">
-            <n-input v-model:value="schemaResult.tableName" size="small" />
+            <NInput v-model:value="schemaResult.tableName" size="small" />
           </n-descriptions-item>
           <n-descriptions-item label="表注释">
-            <n-input v-model:value="schemaResult.tableComment" size="small" />
+            <NInput v-model:value="schemaResult.tableComment" size="small" />
           </n-descriptions-item>
         </n-descriptions>
 
@@ -43,7 +43,7 @@
 
         <div style="margin-top: 12px; display: flex; justify-content: space-between;">
           <n-space>
-            <n-button @click="handleRefine" :loading="refineLoading">
+            <n-button :loading="refineLoading" @click="handleRefine">
               追问优化
             </n-button>
             <n-button @click="handleRegenerate">
@@ -61,7 +61,7 @@
           preset="card"
           style="width: 500px"
         >
-          <n-input
+          <NInput
             v-model:value="refineMessage"
             type="textarea"
             placeholder="请输入追问内容，例如：金额需要支持多币种"
@@ -69,7 +69,9 @@
           />
           <template #footer>
             <n-space justify="end">
-              <n-button @click="showRefineModal = false">取消</n-button>
+              <n-button @click="showRefineModal = false">
+                取消
+              </n-button>
               <n-button type="primary" :loading="refineLoading" @click="handleRefineSubmit">
                 提交
               </n-button>
@@ -81,7 +83,9 @@
 
     <template #footer>
       <n-space justify="end">
-        <n-button @click="handleClose">关闭</n-button>
+        <n-button @click="handleClose">
+          关闭
+        </n-button>
       </n-space>
     </template>
   </n-modal>
@@ -124,26 +128,31 @@ const htmlTypeOptions = [
 const schemaColumns = [
   { title: '字段名', key: 'columnName', width: 130 },
   {
-    title: '注释', key: 'columnComment', width: 130,
+    title: '注释',
+    key: 'columnComment',
+    width: 130,
     render: row => h(NInput, {
-      value: row.columnComment, size: 'small',
-      onUpdateValue: val => { row.columnComment = val },
+      value: row.columnComment,
+      size: 'small',
+      onUpdateValue: (val) => { row.columnComment = val },
     }),
   },
   { title: '数据库类型', key: 'columnType', width: 110 },
   { title: 'Java类型', key: 'javaType', width: 100 },
   { title: 'Java字段', key: 'javaField', width: 110 },
   {
-    title: '表单组件', key: 'htmlType', width: 110,
+    title: '表单组件',
+    key: 'htmlType',
+    width: 110,
     render: row => h(NSelect, {
-      value: row.htmlType, options: htmlTypeOptions, size: 'small',
-      onUpdateValue: val => { row.htmlType = val },
+      value: row.htmlType,
+      options: htmlTypeOptions,
+      size: 'small',
+      onUpdateValue: (val) => { row.htmlType = val },
     }),
   },
   { title: '字典', key: 'dictType', width: 100 },
-  { title: '必填', key: 'isRequired', width: 60, align: 'center',
-    render: row => row.isRequired === 1 ? '是' : '否',
-  },
+  { title: '必填', key: 'isRequired', width: 60, align: 'center', render: row => row.isRequired === 1 ? '是' : '否' },
 ]
 
 watch(() => props.show, (val) => {
@@ -170,13 +179,16 @@ async function handleGenerate() {
     })
     if (res.code === 200 && res.data?.tableName) {
       schemaResult.value = res.data
-    } else {
+    }
+    else {
       window.$message.warning(res.data?.rawResponse || 'AI 不可用，请通过导入表方式创建')
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Schema生成失败:', error)
     window.$message.warning('AI 不可用，请通过导入表方式创建')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
@@ -201,13 +213,16 @@ async function handleRefineSubmit() {
       schemaResult.value = res.data
       showRefineModal.value = false
       window.$message.success('Schema 已更新')
-    } else {
+    }
+    else {
       window.$message.warning('追问优化失败，请重试')
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('追问优化失败:', error)
     window.$message.warning('追问优化失败')
-  } finally {
+  }
+  finally {
     refineLoading.value = false
   }
 }
@@ -229,10 +244,12 @@ async function handleConfirmImport() {
       emit('success')
       handleClose()
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('导入失败:', error)
     window.$message.error('导入失败')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }

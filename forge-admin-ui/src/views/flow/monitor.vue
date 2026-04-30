@@ -29,11 +29,22 @@
           </n-statistic>
         </n-card>
       </n-gi>
+      <!-- 超时任务卡片：点击自动筛选到超时列表 -->
       <n-gi>
-        <n-card size="small">
+        <n-card
+          size="small"
+          class="timeout-card"
+          :class="{ 'timeout-active': searchForm.status === 'timeout' }"
+          hoverable
+          style="cursor: pointer"
+          @click="filterByTimeout"
+        >
           <n-statistic label="超时任务" :value="statistics.timeoutTasks">
             <template #prefix>
               <i class="i-mdi:alert-circle text-red-500" />
+            </template>
+            <template #suffix>
+              <span v-if="statistics.timeoutTasks > 0" class="timeout-hint">点击查看</span>
             </template>
           </n-statistic>
         </n-card>
@@ -114,6 +125,16 @@
     <n-grid :cols="2" :x-gap="16" class="mt-4">
       <n-gi>
         <n-card title="任务处理趋势">
+          <template #header-extra>
+            <n-radio-group v-model:value="chartPeriod" size="small" @update:value="refreshCharts">
+              <n-radio-button :value="7">
+                近7天
+              </n-radio-button>
+              <n-radio-button :value="30">
+                近30天
+              </n-radio-button>
+            </n-radio-group>
+          </template>
           <div ref="taskChartRef" style="height: 300px" />
         </n-card>
       </n-gi>
@@ -202,9 +223,7 @@
 <script setup>
 import * as echarts from 'echarts'
 import { NButton, NSpace, NTag } from 'naive-ui'
-import { nextTick, onMounted, reactive, ref } from 'vue'
-// 引入必要的组件
-import { h } from 'vue'
+import { h, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import ProcessDiagramViewer from '@/components/bpmn/ProcessDiagramViewer.vue'
@@ -325,6 +344,9 @@ const processChartRef = ref(null)
 let taskChart = null
 let processChart = null
 
+// 图表周期（天数）
+const chartPeriod = ref(7)
+
 // 加载统计数据
 async function loadStatistics() {
   try {
@@ -362,9 +384,9 @@ async function loadData() {
 }
 
 // 加载任务趋势数据
-async function loadTaskTrend() {
+async function loadTaskTrend(days = 7) {
   try {
-    const res = await request.get('/api/flow/monitor/taskTrend')
+    const res = await request.get('/api/flow/monitor/taskTrend', { params: { days } })
     if (res.code === 200 && res.data) {
       return res.data
     }
@@ -490,71 +512,124 @@ async function handleTerminate() {
   }
 }
 
-// 初始化图表
+// 超时任务快捷筛选：点击卡片直接过滤列表
+function filterByTimeout() {
+  if (searchForm.status === 'timeout') {
+    searchForm.status = null
+  }
+  else {
+    searchForm.status = 'timeout'
+  }
+  pagination.page = 1
+  loadData()
+}
+
+// 初始化图表（首次挂载）
 async function initCharts() {
-  // 并行加载图表数据
+  await nextTick()
+  if (taskChartRef.value) {
+    taskChart = echarts.init(taskChartRef.value)
+  }
+  if (processChartRef.value) {
+    processChart = echarts.init(processChartRef.value)
+  }
+  await refreshCharts()
+}
+
+// 刷新图表数据（切换周期时调用）
+async function refreshCharts() {
   const [trendData, distributionData] = await Promise.all([
-    loadTaskTrend(),
+    loadTaskTrend(chartPeriod.value),
     loadProcessDistribution(),
   ])
 
-  nextTick(() => {
-    // 任务处理趋势图
-    if (taskChartRef.value) {
-      taskChart = echarts.init(taskChartRef.value)
-      taskChart.setOption({
-        tooltip: { trigger: 'axis' },
-        legend: { data: ['新增流程', '完成流程'] },
-        xAxis: {
-          type: 'category',
-          data: trendData.dates.length > 0 ? trendData.dates : ['暂无数据'],
-        },
-        yAxis: { type: 'value' },
-        series: [
-          { name: '新增流程', type: 'line', data: trendData.created.length > 0 ? trendData.created : [0], smooth: true },
-          { name: '完成流程', type: 'line', data: trendData.completed.length > 0 ? trendData.completed : [0], smooth: true },
-        ],
-      })
-    }
-
-    // 流程分布统计图
-    if (processChartRef.value) {
-      processChart = echarts.init(processChartRef.value)
-      const pieData = distributionData.length > 0 ? distributionData : [{ name: '暂无数据', value: 1 }]
-      processChart.setOption({
-        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-        legend: { orient: 'vertical', left: 'left' },
-        series: [
-          {
-            name: '流程分布',
-            type: 'pie',
-            radius: ['40%', '70%'],
-            avoidLabelOverlap: false,
-            itemStyle: {
-              borderRadius: 10,
-              borderColor: '#fff',
-              borderWidth: 2,
-            },
-            label: {
-              show: false,
-              position: 'center',
-            },
-            emphasis: {
-              label: {
-                show: true,
-                fontSize: 14,
-                fontWeight: 'bold',
-              },
-            },
-            labelLine: {
-              show: false,
-            },
-            data: pieData,
-          },
-        ],
-      })
-    }
+  // 计算通过率（逐日 completed/created，避免除零）
+  const passRateData = trendData.dates.map((_, i) => {
+    const created = trendData.created[i] || 0
+    const completed = trendData.completed[i] || 0
+    return created > 0 ? Math.round((completed / created) * 100) : 0
   })
+
+  if (taskChart) {
+    taskChart.setOption({
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'cross' },
+        formatter(params) {
+          let html = `<b>${params[0].axisValue}</b><br/>`
+          params.forEach((p) => {
+            const suffix = p.seriesName === '通过率' ? '%' : '件'
+            html += `${p.marker}${p.seriesName}：<b>${p.value}${suffix}</b><br/>`
+          })
+          return html
+        },
+      },
+      legend: { data: ['新增流程', '完成流程', '通过率'] },
+      grid: { right: 60 },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: trendData.dates.length > 0 ? trendData.dates : Array.from({ length: chartPeriod.value }, (_, i) => `第${i + 1}天`),
+      },
+      yAxis: [
+        { type: 'value', name: '数量（件）', minInterval: 1 },
+        { type: 'value', name: '通过率', min: 0, max: 100, axisLabel: { formatter: '{value}%' } },
+      ],
+      series: [
+        {
+          name: '新增流程',
+          type: 'bar',
+          data: trendData.created.length > 0 ? trendData.created : new Array(chartPeriod.value).fill(0),
+          itemStyle: { color: '#2080f0', borderRadius: [3, 3, 0, 0] },
+        },
+        {
+          name: '完成流程',
+          type: 'bar',
+          data: trendData.completed.length > 0 ? trendData.completed : new Array(chartPeriod.value).fill(0),
+          itemStyle: { color: '#18a058', borderRadius: [3, 3, 0, 0] },
+        },
+        {
+          name: '通过率',
+          type: 'line',
+          yAxisIndex: 1,
+          data: passRateData,
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { color: '#f0a020', width: 2 },
+          itemStyle: { color: '#f0a020' },
+          areaStyle: { color: 'rgba(240,160,32,0.08)' },
+        },
+      ],
+    }, true)
+  }
+
+  if (processChart) {
+    const pieData = distributionData.length > 0 ? distributionData : [{ name: '暂无数据', value: 1 }]
+    processChart.setOption({
+      tooltip: { trigger: 'item', formatter: '{b}: {c}件 ({d}%)' },
+      legend: { orient: 'vertical', left: 'left', top: 'center' },
+      series: [
+        {
+          name: '流程分布',
+          type: 'pie',
+          radius: ['40%', '68%'],
+          center: ['60%', '50%'],
+          avoidLabelOverlap: true,
+          itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
+          label: { show: true, formatter: '{b}\n{d}%' },
+          labelLine: { show: true, length: 10, length2: 8 },
+          data: pieData,
+        },
+      ],
+    }, true)
+  }
+}
+
+// 窗口 resize 时自适应图表尺寸
+function handleResize() {
+  taskChart?.resize()
+  processChart?.resize()
 }
 
 // 获取状态类型
@@ -597,13 +672,19 @@ function getTimelineType(action) {
 }
 
 onMounted(() => {
-  // 处理从模型页面跳转过来的 modelKey 参数
   if (route.query.modelKey) {
     searchForm.modelKey = route.query.modelKey
   }
   loadStatistics()
   loadData()
   initCharts()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+  taskChart?.dispose()
+  processChart?.dispose()
 })
 </script>
 
@@ -618,5 +699,24 @@ onMounted(() => {
 
 .mt-4 {
   margin-top: 16px;
+}
+
+.timeout-card {
+  transition: box-shadow 0.2s;
+}
+
+.timeout-card:hover {
+  box-shadow: 0 2px 12px rgba(208, 48, 80, 0.18);
+}
+
+.timeout-active {
+  border: 1px solid #d03050 !important;
+}
+
+.timeout-hint {
+  font-size: 11px;
+  color: #d03050;
+  margin-left: 6px;
+  font-weight: normal;
 }
 </style>

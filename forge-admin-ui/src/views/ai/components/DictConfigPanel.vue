@@ -2,7 +2,9 @@
   <div class="dict-config-panel">
     <div v-if="dictItems.length === 0" class="empty-tip">
       <div>暂未检测到字典配置</div>
-      <div class="empty-sub">在搜索/表格/编辑配置中，为字段添加 <code>dictType</code> 属性后，此处会自动提取并展示。</div>
+      <div class="empty-sub">
+        在搜索/表格/编辑配置中，为字段添加 <code>dictType</code> 属性后，此处会自动提取并展示。
+      </div>
     </div>
     <template v-else>
       <div class="panel-header">
@@ -12,7 +14,9 @@
           size="small"
           :loading="saving"
           @click="saveAllDicts"
-        >一键保存到字典表</n-button>
+        >
+          一键保存到字典表
+        </n-button>
       </div>
       <div class="dict-list">
         <div v-for="(item, idx) in dictItems" :key="item.dictType" class="dict-item">
@@ -35,17 +39,27 @@
                 placeholder="字典中文名称"
                 :disabled="item.isExisting"
               />
-              <n-tag v-if="item.saved" type="success" size="small" style="margin-left: 8px;">已保存</n-tag>
-              <n-tag v-else-if="item.isExisting" type="warning" size="small" style="margin-left: 8px;">已存在</n-tag>
-              <n-tag v-else type="info" size="small" style="margin-left: 8px;">新建</n-tag>
+              <n-tag v-if="item.saved" type="success" size="small" style="margin-left: 8px;">
+                已保存
+              </n-tag>
+              <n-tag v-else-if="item.isExisting" type="warning" size="small" style="margin-left: 8px;">
+                已存在
+              </n-tag>
+              <n-tag v-else type="info" size="small" style="margin-left: 8px;">
+                新建
+              </n-tag>
             </div>
             <div class="dict-options-header">
               <span class="dict-type-label">字典数据项（可选，留空则只创建字典类型）:</span>
-              <n-button size="tiny" dashed @click="addOption(idx)">+ 添加选项</n-button>
+              <n-button size="tiny" dashed @click="addOption(idx)">
+                + 添加选项
+              </n-button>
             </div>
           </div>
           <div v-if="item.isExisting" class="existing-dict-tip">
-            <n-icon style="vertical-align: middle; margin-right: 4px;"><InformationCircleOutline /></n-icon>
+            <n-icon style="vertical-align: middle; margin-right: 4px;">
+              <InformationCircleOutline />
+            </n-icon>
             该字典类型已在系统中存在，保存时将同步数据项到字典表。
           </div>
           <div class="dict-options">
@@ -63,7 +77,9 @@
                 <n-icon><CloseOutline /></n-icon>
               </n-button>
             </div>
-            <div v-if="item.options.length === 0" class="no-options-tip">暂无数据项</div>
+            <div v-if="item.options.length === 0" class="no-options-tip">
+              暂无数据项
+            </div>
           </div>
         </div>
       </div>
@@ -72,8 +88,8 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
 import { CloseOutline, InformationCircleOutline } from '@vicons/ionicons5'
+import { ref, watch } from 'vue'
 import { request } from '@/utils'
 
 const props = defineProps({
@@ -101,10 +117,12 @@ const tagTypeOptions = [
 function extractDictTypes(schemas) {
   const set = new Map()
   for (const s of schemas) {
-    if (!s) continue
+    if (!s)
+      continue
     try {
       const parsed = JSON.parse(s)
-      if (!Array.isArray(parsed)) continue
+      if (!Array.isArray(parsed))
+        continue
       for (const item of parsed) {
         const dt = item.dictType || item.render?.dictType
         if (dt && !set.has(dt)) {
@@ -125,13 +143,16 @@ const dictItems = ref([])
  * 解析 AI 生成的 dictConfig，提取字典类型和选项
  */
 function parseDictConfig() {
-  if (!props.dictConfig) return new Map()
+  if (!props.dictConfig)
+    return new Map()
   try {
     const parsed = JSON.parse(props.dictConfig)
-    if (!Array.isArray(parsed)) return new Map()
+    if (!Array.isArray(parsed))
+      return new Map()
     const map = new Map()
     for (const item of parsed) {
-      if (!item.dictType) continue
+      if (!item.dictType)
+        continue
       map.set(item.dictType, {
         dictName: item.dictName || item.dictType,
         options: (item.items || []).map((opt, idx) => ({
@@ -144,7 +165,8 @@ function parseDictConfig() {
       })
     }
     return map
-  } catch (e) {
+  }
+  catch (e) {
     return new Map()
   }
 }
@@ -176,7 +198,8 @@ function rebuildDictItems() {
       }
       else {
         // 确保 existing 一定有 options 数组
-        if (!existing.options) existing.options = []
+        if (!existing.options)
+          existing.options = []
         newItems.push(existing)
       }
     }
@@ -219,11 +242,16 @@ function serializeDictItems() {
       dictName: item.dictName || item.dictType,
       items: (item.options || []).map((opt) => {
         const o = {}
-        if (opt.dictLabel !== undefined && opt.dictLabel !== '') o.dictLabel = opt.dictLabel
-        if (opt.dictValue !== undefined && opt.dictValue !== '') o.dictValue = opt.dictValue
-        if (opt.listClass && opt.listClass !== 'default') o.listClass = opt.listClass
-        if (opt.dictSort !== undefined) o.dictSort = opt.dictSort
-        if (opt.dictStatus !== undefined) o.dictStatus = opt.dictStatus
+        if (opt.dictLabel !== undefined && opt.dictLabel !== '')
+          o.dictLabel = opt.dictLabel
+        if (opt.dictValue !== undefined && opt.dictValue !== '')
+          o.dictValue = opt.dictValue
+        if (opt.listClass && opt.listClass !== 'default')
+          o.listClass = opt.listClass
+        if (opt.dictSort !== undefined)
+          o.dictSort = opt.dictSort
+        if (opt.dictStatus !== undefined)
+          o.dictStatus = opt.dictStatus
         return o
       }).filter(o => Object.keys(o).length > 0),
     }
@@ -235,7 +263,8 @@ function serializeDictItems() {
 // dictItems 变化时自动emit（排除 rebuild 导致的变更）
 watch(dictItems, () => {
   const serialized = serializeDictItems()
-  if (serialized === lastEmitted.value) return
+  if (serialized === lastEmitted.value)
+    return
   lastEmitted.value = serialized
   emit('update:value', serialized)
 }, { deep: true })
@@ -243,7 +272,8 @@ watch(dictItems, () => {
 function addOption(idx) {
   const items = [...dictItems.value]
   const item = { ...items[idx] }
-  if (!item.options) item.options = []
+  if (!item.options)
+    item.options = []
   item.options = [
     ...item.options,
     {
@@ -276,7 +306,8 @@ function removeOption(idx, oi) {
  */
 async function checkExistingDict(itemOrType) {
   const dictType = typeof itemOrType === 'string' ? itemOrType : itemOrType.dictType
-  if (!dictType) return
+  if (!dictType)
+    return
   try {
     const res = await request.get('/system/dict/type/list', {
       params: { dictType },
@@ -294,7 +325,8 @@ async function checkExistingDict(itemOrType) {
         await mergeExistingDictData(currentItem)
       }
     }
-  } catch (e) {
+  }
+  catch (e) {
     console.warn('检查字典类型失败:', e)
   }
 }
@@ -308,7 +340,8 @@ async function mergeExistingDictData(item) {
       params: { dictType: item.dictType },
     })
     const dataList = dataRes.data || []
-    if (dataList.length === 0) return
+    if (dataList.length === 0)
+      return
 
     const dbValueMap = new Map(dataList.map(d => [String(d.dictValue), d]))
     const currentOptions = item.options || []
@@ -337,7 +370,8 @@ async function mergeExistingDictData(item) {
     }
 
     item.options = merged.sort((a, b) => (a.dictSort || 0) - (b.dictSort || 0))
-  } catch (e) {
+  }
+  catch (e) {
     console.warn('加载字典数据失败:', e)
   }
 }
@@ -356,7 +390,8 @@ async function syncDictData(item) {
   // 1. 遍历当前 options：更新或新增
   for (let i = 0; i < item.options.length; i++) {
     const opt = item.options[i]
-    if (!opt.dictLabel && !opt.dictValue) continue
+    if (!opt.dictLabel && !opt.dictValue)
+      continue
 
     const dictValue = opt.dictValue || String(i + 1)
     optionValueSet.add(dictValue)
@@ -378,7 +413,8 @@ async function syncDictData(item) {
           dictStatus: opt.dictStatus !== undefined ? opt.dictStatus : 1,
         })
       }
-    } else {
+    }
+    else {
       // 新增数据
       await request.post('/system/dict/data/add', {
         dictType: item.dictType,
@@ -402,11 +438,12 @@ async function syncDictData(item) {
 }
 
 async function saveAllDicts() {
-  if (dictItems.value.length === 0) return
+  if (dictItems.value.length === 0)
+    return
   saving.value = true
   let createCount = 0
   let syncCount = 0
-  let errorMsgs = []
+  const errorMsgs = []
 
   for (const item of dictItems.value) {
     try {
@@ -436,14 +473,16 @@ async function saveAllDicts() {
   }
 
   saving.value = false
-  let msgParts = []
-  if (createCount > 0) msgParts.push(`${createCount} 个类型新建成功`)
-  if (syncCount > 0) msgParts.push(`${syncCount} 个数据同步成功`)
+  const msgParts = []
+  if (createCount > 0)
+    msgParts.push(`${createCount} 个类型新建成功`)
+  if (syncCount > 0)
+    msgParts.push(`${syncCount} 个数据同步成功`)
   if (msgParts.length > 0) {
     window.$message.success(msgParts.join('，'))
   }
   if (errorMsgs.length > 0) {
-    window.$message.error('部分保存失败: ' + errorMsgs.join('；'))
+    window.$message.error(`部分保存失败: ${errorMsgs.join('；')}`)
   }
 }
 </script>

@@ -73,95 +73,98 @@
         </template>
 
         <div v-if="currentTask" class="drawer-body">
-          <!-- 基本信息卡片 -->
-          <n-card class="info-card" size="small">
-            <n-descriptions :column="2" label-placement="left" size="small">
-              <n-descriptions-item label="当前节点">
-                <NTag type="primary" size="small">
-                  {{ currentTask.taskName }}
-                </NTag>
-              </n-descriptions-item>
-              <n-descriptions-item label="发起人">
-                <div class="user-info">
-                  <NAvatar :size="20" round style="background: #18a058">
-                    {{ (currentTask.startUserName || '?')[0] }}
-                  </NAvatar>
-                  <span style="margin-left: 6px">{{ currentTask.startUserName }}</span>
-                </div>
-              </n-descriptions-item>
-              <n-descriptions-item label="发起部门">
-                {{ currentTask.startDeptName || '-' }}
-              </n-descriptions-item>
-              <n-descriptions-item label="发起时间">
-                {{ currentTask.createTime || '-' }}
-              </n-descriptions-item>
-              <n-descriptions-item label="流程分类">
-                {{ currentTask.businessType || '-' }}
-              </n-descriptions-item>
-              <n-descriptions-item label="优先级">
-                <NTag :type="getPriorityType(currentTask.priority)" size="small">
-                  {{ getPriorityText(currentTask.priority) }}
-                </NTag>
-              </n-descriptions-item>
-            </n-descriptions>
-          </n-card>
-
-          <!-- 流程进度 -->
-          <div class="section">
-            <div class="section-title">
-              <i class="i-material-symbols:account-tree text-primary" />
-              流程进度
-            </div>
-            <div class="diagram-container">
-              <n-collapse>
-                <n-collapse-item title="查看流程图" name="diagram">
-                  <ProcessDiagramViewer
-                    v-if="currentTask.processInstanceId"
-                    :process-instance-id="currentTask.processInstanceId"
-                    :compact="true"
-                  />
-                  <n-empty v-else description="暂无流程图" size="small" />
-                </n-collapse-item>
-              </n-collapse>
-            </div>
-          </div>
-
-          <!-- 审批历史 -->
-          <div class="section">
-            <div class="section-title">
-              <i class="i-material-symbols:history text-primary" />
-              审批进度
-            </div>
-            <div v-if="approvalHistory.length > 0">
-              <n-timeline>
-                <n-timeline-item
-                  v-for="(item, index) in approvalHistory"
-                  :key="index"
-                  :type="getCommentType(item.action)"
-                  :title="item.taskName"
-                  :time="item.completeTime || item.createTime"
-                >
-                  <div class="history-item">
-                    <div class="history-user">
-                      <NAvatar :size="18" round style="background: #2080f0">
-                        {{ (item.assigneeName || '?')[0] }}
+          <!-- 信息 Tabs：基本信息 / 审批进度 / 流程图 -->
+          <n-tabs v-model:value="activeDrawerTab" type="line" animated class="drawer-tabs">
+            <!-- Tab 1: 基本信息 -->
+            <n-tab-pane name="info" tab="基本信息">
+              <n-card class="info-card" size="small">
+                <n-descriptions :column="2" label-placement="left" size="small">
+                  <n-descriptions-item label="当前节点">
+                    <NTag type="primary" size="small">
+                      {{ currentTask.taskName }}
+                    </NTag>
+                  </n-descriptions-item>
+                  <n-descriptions-item label="发起人">
+                    <div class="user-info">
+                      <NAvatar :size="20" round style="background: #18a058">
+                        {{ (currentTask.startUserName || '?')[0] }}
                       </NAvatar>
-                      <span class="user-name">{{ item.assigneeName || '-' }}</span>
-                      <NTag :type="getActionType(item.action)" size="small">
-                        {{ getActionText(item.action) }}
-                      </NTag>
+                      <span style="margin-left: 6px">{{ currentTask.startUserName }}</span>
                     </div>
-                    <div v-if="item.comment" class="history-comment">
-                      {{ item.comment }}
-                    </div>
-                  </div>
-                </n-timeline-item>
-              </n-timeline>
-            </div>
-            <n-empty v-else description="暂无审批记录" size="small" />
-          </div>
+                  </n-descriptions-item>
+                  <n-descriptions-item label="发起部门">
+                    {{ currentTask.startDeptName || '-' }}
+                  </n-descriptions-item>
+                  <n-descriptions-item label="发起时间">
+                    {{ currentTask.createTime || '-' }}
+                  </n-descriptions-item>
+                  <n-descriptions-item label="流程分类">
+                    {{ currentTask.businessType || '-' }}
+                  </n-descriptions-item>
+                  <n-descriptions-item label="优先级">
+                    <NTag :type="getPriorityType(currentTask.priority)" size="small">
+                      {{ getPriorityText(currentTask.priority) }}
+                    </NTag>
+                  </n-descriptions-item>
+                </n-descriptions>
+              </n-card>
+            </n-tab-pane>
 
-          <!-- 审批操作区（外部自定义表单 / 默认审批表单） -->
+            <!-- Tab 2: 审批进度 -->
+            <n-tab-pane name="history" display-directive="show">
+              <template #tab>
+                <span>审批进度</span>
+                <NBadge
+                  v-if="approvalHistory.length > 0"
+                  :value="approvalHistory.length"
+                  :max="99"
+                  type="info"
+                  style="margin-left:6px"
+                />
+              </template>
+              <div v-if="approvalHistory.length > 0" class="history-pane">
+                <n-timeline>
+                  <n-timeline-item
+                    v-for="(item, index) in approvalHistory"
+                    :key="index"
+                    :type="getCommentType(item.action)"
+                    :title="item.taskName"
+                    :time="item.completeTime || item.createTime"
+                  >
+                    <div class="history-item">
+                      <div class="history-user">
+                        <NAvatar :size="18" round style="background: #2080f0">
+                          {{ (item.assigneeName || '?')[0] }}
+                        </NAvatar>
+                        <span class="user-name">{{ item.assigneeName || '-' }}</span>
+                        <NTag :type="getActionType(item.action)" size="small">
+                          {{ getActionText(item.action) }}
+                        </NTag>
+                      </div>
+                      <div v-if="item.comment" class="history-comment">
+                        {{ item.comment }}
+                      </div>
+                    </div>
+                  </n-timeline-item>
+                </n-timeline>
+              </div>
+              <n-empty v-else description="暂无审批记录" size="small" style="padding: 24px 0" />
+            </n-tab-pane>
+
+            <!-- Tab 3: 流程图 -->
+            <n-tab-pane name="diagram" tab="流程图" display-directive="show:lazy">
+              <div class="diagram-pane">
+                <ProcessDiagramViewer
+                  v-if="currentTask.processInstanceId"
+                  :process-instance-id="currentTask.processInstanceId"
+                  :compact="true"
+                />
+                <n-empty v-else description="暂无流程图" size="small" style="padding: 24px 0" />
+              </div>
+            </n-tab-pane>
+          </n-tabs>
+
+          <!-- 审批操作区（外定在 Tab 外，始终可见） -->
           <div class="section approve-section">
             <div class="section-title">
               <i class="i-material-symbols:rate-review text-primary" />
@@ -291,15 +294,39 @@
       :mask-closable="false"
     >
       <n-form :model="delegateForm" label-placement="top">
-        <n-form-item label="转办给">
-          <n-input v-model:value="delegateForm.targetUserId" placeholder="请输入目标用户ID" />
+        <n-form-item label="转办给" required>
+          <div class="delegate-user-row">
+            <div class="delegate-user-display">
+              <NTag
+                v-if="delegateTargetUser"
+                closable
+                type="primary"
+                @close="delegateTargetUser = null"
+              >
+                <template #icon>
+                  <NAvatar :size="16" round style="background:#2080f0;font-size:10px">
+                    {{ (delegateTargetUser.name || delegateTargetUser.username || '?')[0] }}
+                  </NAvatar>
+                </template>
+                {{ delegateTargetUser.name || delegateTargetUser.username }}
+                <span style="color:#aaa;margin-left:4px">{{ delegateTargetUser.username }}</span>
+              </NTag>
+              <span v-else class="delegate-user-placeholder">未选择转办人</span>
+            </div>
+            <NButton size="small" @click="showUserSelectModal = true">
+              <template #icon>
+                <i class="i-material-symbols:person-search" />
+              </template>
+              选择人员
+            </NButton>
+          </div>
         </n-form-item>
         <n-form-item label="转办说明">
           <n-input
             v-model:value="delegateForm.comment"
             type="textarea"
             :rows="2"
-            placeholder="请输入转办说明"
+            placeholder="请输入转办说明（可选）"
           />
         </n-form-item>
       </n-form>
@@ -314,6 +341,15 @@
         </NSpace>
       </template>
     </n-modal>
+
+    <!-- 用户选择弹窗（转办人选择） -->
+    <UserSelectModal
+      :show="showUserSelectModal"
+      title="选择转办人"
+      :multiple="false"
+      @update:show="showUserSelectModal = $event"
+      @confirm="handleUserSelected"
+    />
   </div>
 </template>
 
@@ -322,6 +358,7 @@ import { NAvatar, NBadge, NButton, NSpace, NTag } from 'naive-ui'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import flowApi from '@/api/flow'
 import ProcessDiagramViewer from '@/components/bpmn/ProcessDiagramViewer.vue'
+import UserSelectModal from '@/components/bpmn/UserSelectModal.vue'
 import FlowBusinessForm from '@/components/common/FlowBusinessForm.vue'
 import { useUserStore } from '@/store'
 
@@ -346,6 +383,7 @@ const showDrawer = ref(false)
 const currentTask = ref(null)
 const approvalHistory = ref([])
 const historyLoading = ref(false)
+const activeDrawerTab = ref('info')
 
 // 业务自定义表单
 const taskFormInfo = ref(null) // TaskFormInfo 对象
@@ -362,8 +400,10 @@ const approveForm = reactive({
 
 // 转办
 const showDelegateModal = ref(false)
+const showUserSelectModal = ref(false)
 const delegateLoading = ref(false)
-const delegateForm = reactive({ targetUserId: '', comment: '' })
+const delegateTargetUser = ref(null) // { id, username, name }
+const delegateForm = reactive({ comment: '' })
 
 // 优先级映射
 const priorityMap = {
@@ -457,6 +497,7 @@ async function openDrawer(row) {
   approveForm.action = ''
   approvalHistory.value = []
   taskFormInfo.value = null
+  activeDrawerTab.value = 'info'
   showDrawer.value = true
 
   // 并行加载：审批时间轴 + 任务表单信息
@@ -556,13 +597,18 @@ async function submitApprove(action) {
 
 // 转办
 function handleDelegate() {
-  delegateForm.targetUserId = ''
+  delegateTargetUser.value = null
   delegateForm.comment = ''
   showDelegateModal.value = true
 }
+
+function handleUserSelected(user) {
+  delegateTargetUser.value = user
+}
+
 async function submitDelegate() {
-  if (!delegateForm.targetUserId) {
-    window.$message.warning('请输入转办目标用户')
+  if (!delegateTargetUser.value) {
+    window.$message.warning('请选择转办人')
     return
   }
   delegateLoading.value = true
@@ -570,7 +616,7 @@ async function submitDelegate() {
     const res = await flowApi.delegateTask({
       taskId: currentTask.value.taskId,
       userId: userStore.userId,
-      targetUserId: delegateForm.targetUserId,
+      targetUserId: delegateTargetUser.value.id,
       comment: delegateForm.comment,
     })
     if (res.code === 200) {
@@ -799,5 +845,44 @@ onMounted(() => { loadCategories(); loadData() })
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 16px;
+}
+
+.delegate-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.delegate-user-display {
+  flex: 1;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #e0e0e6;
+  border-radius: 4px;
+  padding: 0 10px;
+  background: #fafafa;
+}
+
+.delegate-user-placeholder {
+  color: #c2c2c2;
+  font-size: 13px;
+}
+
+.drawer-tabs {
+  flex: 0 0 auto;
+}
+
+:deep(.drawer-tabs .n-tab-pane) {
+  padding: 12px 0 0;
+}
+
+.history-pane {
+  padding: 4px 0 8px;
+}
+
+.diagram-pane {
+  min-height: 200px;
 }
 </style>

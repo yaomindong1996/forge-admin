@@ -1,6 +1,8 @@
 <template>
   <div class="encrypt-config-panel">
-    <div class="panel-title">接口加解密配置</div>
+    <div class="panel-title">
+      接口加解密配置
+    </div>
     <div class="config-form">
       <div class="form-item">
         <span class="form-label">启用请求解密</span>
@@ -16,11 +18,21 @@
         <span class="form-label">加解密范围</span>
         <n-checkbox-group v-model:value="config.operations" @update:value="emitUpdate">
           <n-space>
-            <n-checkbox value="list">查询列表</n-checkbox>
-            <n-checkbox value="detail">查询详情</n-checkbox>
-            <n-checkbox value="create">新增</n-checkbox>
-            <n-checkbox value="update">修改</n-checkbox>
-            <n-checkbox value="delete">删除</n-checkbox>
+            <n-checkbox value="list">
+              查询列表
+            </n-checkbox>
+            <n-checkbox value="detail">
+              查询详情
+            </n-checkbox>
+            <n-checkbox value="create">
+              新增
+            </n-checkbox>
+            <n-checkbox value="update">
+              修改
+            </n-checkbox>
+            <n-checkbox value="delete">
+              删除
+            </n-checkbox>
           </n-space>
         </n-checkbox-group>
         <span class="form-hint">留空表示全部接口启用加解密</span>
@@ -37,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
   value: { type: String, default: '' },
@@ -57,7 +69,8 @@ function parseValue(val) {
   }
   try {
     return JSON.parse(val)
-  } catch (e) {
+  }
+  catch (e) {
     return { enableEncrypt: false, enableDecrypt: false, operations: [] }
   }
 }

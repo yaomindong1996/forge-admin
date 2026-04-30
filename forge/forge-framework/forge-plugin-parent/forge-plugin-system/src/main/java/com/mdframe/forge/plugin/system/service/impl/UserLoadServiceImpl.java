@@ -128,6 +128,7 @@ public class UserLoadServiceImpl implements IUserLoadService {
         loginUser.setEmail(user.getEmail());
         loginUser.setAvatar(user.getAvatar());
         loginUser.setUserStatus(user.getUserStatus());
+        loginUser.setCreateTime(user.getCreateTime());
 
         // 2. 加载用户角色
         loadUserRoles(loginUser);

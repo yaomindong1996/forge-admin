@@ -152,4 +152,12 @@ public interface IAuthService {
     default LoginConfigResult getLoginConfig() {
         throw new UnsupportedOperationException("不支持获取登录配置");
     }
+
+    /**
+     * 从数据库刷新 LoginUser 的基本字段（用户名/手机/邮箱/头像/注册时间）
+     * 用于 /auth/userInfo 每次返回最新 DB 数据，避免 Session 缓存问题
+     */
+    default LoginUser refreshLoginUser(LoginUser loginUser) {
+        return loginUser;
+    }
 }

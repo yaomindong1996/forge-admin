@@ -2,6 +2,7 @@ package com.mdframe.forge.flow.client;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -19,6 +20,20 @@ import org.springframework.web.client.RestTemplate;
 @AutoConfiguration
 @EnableConfigurationProperties(FlowClientProperties.class)
 public class FlowClientAutoConfiguration {
+
+    /**
+     * 默认 Token 透传实现：从当前 HTTP 请求头读取 Authorization
+     * <p>
+     * 当引入了 forge-starter-auth 时，该模块会注册更高级的 SaTokenFlowTokenProvider，
+     * 此默认实现因 {@code @ConditionalOnMissingBean} 而不会生效，无需担心冲突。
+     * 在非 Web 上下文（定时任务等）中获取失败时安全返回 null，降级使用静态 token 配置。
+     */
+    @Bean
+    @ConditionalOnMissingBean(FlowTokenProvider.class)
+    @ConditionalOnClass(name = "org.springframework.web.context.request.RequestContextHolder")
+    public FlowTokenProvider requestContextFlowTokenProvider() {
+        return new RequestContextFlowTokenProvider();
+    }
 
     /**
      * 注册 RestTemplate（带超时配置）

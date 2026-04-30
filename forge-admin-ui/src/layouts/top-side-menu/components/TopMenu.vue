@@ -14,8 +14,8 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { findFirstMenuWithPath, findTopMenuByPath, useMenu } from '@/composables'
 import { useAppStore, usePermissionStore } from '@/store'
-import { useMenu, findTopMenuByPath, findFirstMenuWithPath } from '@/composables'
 import { getTopMenuThemeOverrides } from '@/utils/menu-theme.js'
 import { processTopMenus } from '@/utils/menu-utils'
 
@@ -34,7 +34,7 @@ const topMenuOptions = computed(() => {
   const menus = permissionStore.menus || []
   const topMenus = processTopMenus(menus)
 
-  return topMenus.map((item) => ({
+  return topMenus.map(item => ({
     ...item,
     key: item.id,
     label: item.label || item.name,

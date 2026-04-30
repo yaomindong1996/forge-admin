@@ -19,9 +19,9 @@
       :show-pagination="false"
       add-button-text="新增行政区划"
       :table-props="{
-        expandedRowKeys: expandedKeys,
+        'expandedRowKeys': expandedKeys,
         'on-update:expandedRowKeys': handleExpandedKeysUpdate,
-        onLoad: handleLoad,
+        'onLoad': handleLoad,
       }"
     >
       <!-- 自定义工具栏 -->
@@ -230,7 +230,7 @@ function beforeRenderList(list) {
 function handleLoad(node) {
   return new Promise((resolve) => {
     request.get(`/system/region/childrenVO/${node.code}`)
-      .then(res => {
+      .then((res) => {
         if (res.code === 200) {
           // 直接修改node.children
           node.children = (res.data || []).map(item => ({

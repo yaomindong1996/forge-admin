@@ -349,7 +349,8 @@ async function handleAiRecommend() {
     if (res.code === 200 && res.data) {
       columnList.value = res.data
       window.$message.success('AI 推荐完成，请审核后保存')
-    } else {
+    }
+    else {
       window.$message.warning(res.msg || 'AI 推荐不可用，已使用基础规则推断')
     }
   }

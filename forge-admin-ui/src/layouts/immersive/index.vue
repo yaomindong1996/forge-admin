@@ -12,7 +12,7 @@
     </div>
 
     <!-- Tab 标签栏 - 放在底部 -->
-    <AppCard :bordered="false" :padding="false" class="px-10 py-3 immersive-tab-bar" shadow="none" radius="none">
+    <AppCard :bordered="false" :padding="false" class="immersive-tab-bar px-10 py-3" shadow="none" radius="none">
       <AppTab class="w-0 flex-1" />
     </AppCard>
   </div>

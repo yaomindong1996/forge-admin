@@ -65,10 +65,10 @@
 import { computed, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
 import { request } from '@/utils'
+import AiSchemaModal from './components/AiSchemaModal.vue'
 import CodePreviewModal from './components/CodePreviewModal.vue'
 import ColumnConfigModal from './components/ColumnConfigModal.vue'
 import ImportTableModal from './components/ImportTableModal.vue'
-import AiSchemaModal from './components/AiSchemaModal.vue'
 
 defineOptions({ name: 'GeneratorTable' })
 

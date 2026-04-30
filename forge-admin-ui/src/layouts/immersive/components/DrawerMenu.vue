@@ -39,18 +39,17 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { usePermissionStore } from '@/store'
 import { useMenu } from '@/composables'
+import { usePermissionStore } from '@/store'
 import { processMenuData } from '@/utils/menu-utils'
 
+const emit = defineEmits(['select'])
 const route = useRoute()
 const permissionStore = usePermissionStore()
 
 const { handleMenuSelect: baseHandleMenuSelect, findMenuIdByPath } = useMenu()
 
 const drawerVisible = defineModel('show', { type: Boolean, default: false })
-const emit = defineEmits(['select'])
-
 const searchKeyword = ref('')
 
 // Process menu data

@@ -325,7 +325,23 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         user.setRealName(dto.getRealName());
         user.setPhone(dto.getPhone());
         user.setEmail(dto.getEmail());
+        user.setAvatar(dto.getAvatar());
 
-        return userMapper.updateById(user) > 0;
+        boolean updated = userMapper.updateById(user) > 0;
+
+        // 同步更新 Session 中的 LoginUser，确保 /auth/userInfo 返回最新数据
+        if (updated) {
+            com.mdframe.forge.starter.core.session.LoginUser loginUser = SessionHelper.getLoginUser();
+            if (loginUser != null) {
+                if (dto.getUsername() != null) loginUser.setUsername(dto.getUsername());
+                if (dto.getRealName() != null) loginUser.setRealName(dto.getRealName());
+                if (dto.getPhone() != null) loginUser.setPhone(dto.getPhone());
+                if (dto.getEmail() != null) loginUser.setEmail(dto.getEmail());
+                if (dto.getAvatar() != null) loginUser.setAvatar(dto.getAvatar());
+                SessionHelper.setLoginUser(loginUser);
+            }
+        }
+
+        return updated;
     }
 }

@@ -84,7 +84,7 @@
             :src="userAvatar"
             alt="avatar"
             class="user-avatar-img"
-          />
+          >
           <div v-else class="user-avatar">
             {{ userAvatarText }}
           </div>
@@ -99,12 +99,12 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { usePermissionStore } from '@/store'
+import { useRoute, useRouter } from 'vue-router'
 import TheLogo from '@/components/common/TheLogo.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
-import MenuCollapse from '@/layouts/components/MenuCollapse.vue'
 import { useUser } from '@/composables'
+import MenuCollapse from '@/layouts/components/MenuCollapse.vue'
+import { usePermissionStore } from '@/store'
 
 const router = useRouter()
 const route = useRoute()
@@ -117,13 +117,13 @@ const expandedKeys = ref(new Set())
 // Process menu data (simple pass-through with key normalization)
 const menuItems = computed(() => {
   const menus = permissionStore.menus || []
-  return menus.map((item) => ({
+  return menus.map(item => ({
     key: item.key || String(item.id),
     name: item.name || item.label || '',
     label: item.label || item.name || item.meta?.title || '',
     path: item.path || '',
     icon: item.icon || '',
-    children: (item.children || []).map((child) => ({
+    children: (item.children || []).map(child => ({
       key: child.key || String(child.id),
       name: child.name || child.label || '',
       label: child.label || child.name || child.meta?.title || '',
@@ -141,8 +141,8 @@ function isActive(item) {
   if (item.path === currentPath)
     return true
   if (item.path !== '/' && item.path !== currentPath) {
-    const normalizedPath = item.path.endsWith('/') ? item.path : item.path + '/'
-    const normalizedCurrent = currentPath.endsWith('/') ? currentPath : currentPath + '/'
+    const normalizedPath = item.path.endsWith('/') ? item.path : `${item.path}/`
+    const normalizedCurrent = currentPath.endsWith('/') ? currentPath : `${currentPath}/`
     if (normalizedCurrent.startsWith(normalizedPath))
       return true
   }

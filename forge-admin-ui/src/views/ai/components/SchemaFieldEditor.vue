@@ -6,7 +6,9 @@
         <div v-for="col in columns" :key="col.key" :style="{ flex: col.flex || 1, minWidth: col.width || '80px' }">
           {{ col.label }}
         </div>
-        <div style="width: 60px; flex-shrink: 0;">操作</div>
+        <div style="width: 60px; flex-shrink: 0;">
+          操作
+        </div>
       </div>
     </div>
     <!-- 行列表 -->
@@ -54,23 +56,33 @@
           <n-button size="tiny" text type="error" @click="removeRow(idx)">
             <n-icon><CloseOutline /></n-icon>
           </n-button>
-          <n-button v-if="idx > 0" size="tiny" text @click="moveUp(idx)">↑</n-button>
-          <n-button v-if="idx < localRows.length - 1" size="tiny" text @click="moveDown(idx)">↓</n-button>
+          <n-button v-if="idx > 0" size="tiny" text @click="moveUp(idx)">
+            ↑
+          </n-button>
+          <n-button v-if="idx < localRows.length - 1" size="tiny" text @click="moveDown(idx)">
+            ↓
+          </n-button>
         </div>
       </div>
-      <div v-if="localRows.length === 0" class="empty-tip">暂无字段，点击"添加字段"按钮新增</div>
+      <div v-if="localRows.length === 0" class="empty-tip">
+        暂无字段，点击"添加字段"按钮新增
+      </div>
     </div>
     <!-- 底部操作 -->
     <div class="editor-footer">
       <n-button size="small" dashed @click="addRow">
-        <template #icon><n-icon><AddOutline /></n-icon></template>
+        <template #icon>
+          <n-icon><AddOutline /></n-icon>
+        </template>
         添加字段
       </n-button>
-      <n-button size="small" text @click="importFromTableStructure" :disabled="!hasTableStructure">
-        <template #icon><n-icon><DownloadOutline /></n-icon></template>
+      <n-button size="small" text :disabled="!hasTableStructure" @click="importFromTableStructure">
+        <template #icon>
+          <n-icon><DownloadOutline /></n-icon>
+        </template>
         从表结构导入
       </n-button>
-      <n-button size="small" text type="warning" @click="clearAll" v-if="localRows.length > 0">
+      <n-button v-if="localRows.length > 0" size="small" text type="warning" @click="clearAll">
         清空所有
       </n-button>
       <span class="field-count">{{ localRows.length }} 个字段</span>
@@ -83,17 +95,17 @@
       <textarea
         class="raw-json-textarea"
         :value="rawJson"
-        @change="handleRawChange"
         spellcheck="false"
         rows="6"
+        @change="handleRawChange"
       />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, computed, onMounted } from 'vue'
 import { AddOutline, CloseOutline, DownloadOutline } from '@vicons/ionicons5'
+import { computed, onMounted, ref, watch } from 'vue'
 import { request } from '@/utils'
 
 const props = defineProps({
@@ -125,7 +137,8 @@ async function loadDictTypes() {
         label: d.dictName ? `${d.dictName} (${d.dictType})` : d.dictType,
         value: d.dictType,
       }))
-  } catch (e) {
+  }
+  catch (e) {
     console.warn('[SchemaFieldEditor] 加载字典类型失败:', e)
   }
 }
@@ -189,18 +202,22 @@ const columnTypeOptions = [
 ]
 
 const typeOptions = computed(() => {
-  if (props.mode === 'columns') return columnTypeOptions
-  if (props.mode === 'edit') return editTypeOptions
+  if (props.mode === 'columns')
+    return columnTypeOptions
+  if (props.mode === 'edit')
+    return editTypeOptions
   return searchTypeOptions
 })
 
 // 把 JSON 字符串解析成行数组
 function parseToRows(jsonStr) {
-  if (!jsonStr || !jsonStr.trim()) return []
+  if (!jsonStr || !jsonStr.trim())
+    return []
   try {
     const parsed = JSON.parse(jsonStr)
-    if (!Array.isArray(parsed)) return []
-    return parsed.map(item => {
+    if (!Array.isArray(parsed))
+      return []
+    return parsed.map((item) => {
       if (props.mode === 'columns') {
         // columnsSchema: { key, title, dataIndex, width, render: {type, dictType} }
         return {
@@ -239,20 +256,23 @@ function parseToRows(jsonStr) {
 
 // 行数组转 JSON 字符串
 function rowsToJson(rows) {
-  if (!rows || rows.length === 0) return '[]'
+  if (!rows || rows.length === 0)
+    return '[]'
   const arr = rows
     .filter(r => r.field || r.label)
-    .map(row => {
+    .map((row) => {
       if (props.mode === 'columns') {
         const item = {
           key: row.field,
           title: row.label,
           dataIndex: row.field,
         }
-        if (row.width) item.width = row.width
+        if (row.width)
+          item.width = row.width
         if (row.type && row.type !== 'text') {
           item.render = { type: row.type }
-          if (row.dictType) item.render.dictType = row.dictType
+          if (row.dictType)
+            item.render.dictType = row.dictType
         }
         return item
       }
@@ -263,7 +283,8 @@ function rowsToJson(rows) {
           type: row.type || 'input',
           required: !!row.required,
         }
-        if (row.dictType) item.dictType = row.dictType
+        if (row.dictType)
+          item.dictType = row.dictType
         return item
       }
       else {
@@ -272,7 +293,8 @@ function rowsToJson(rows) {
           label: row.label,
           type: row.type || 'input',
         }
-        if (row.dictType) item.dictType = row.dictType
+        if (row.dictType)
+          item.dictType = row.dictType
         return item
       }
     })
@@ -327,14 +349,16 @@ function removeRow(idx) {
 }
 
 function moveUp(idx) {
-  if (idx <= 0) return
+  if (idx <= 0)
+    return
   const tmp = localRows.value[idx - 1]
   localRows.value[idx - 1] = localRows.value[idx]
   localRows.value[idx] = tmp
 }
 
 function moveDown(idx) {
-  if (idx >= localRows.value.length - 1) return
+  if (idx >= localRows.value.length - 1)
+    return
   const tmp = localRows.value[idx + 1]
   localRows.value[idx + 1] = localRows.value[idx]
   localRows.value[idx] = tmp
@@ -345,32 +369,35 @@ function moveDown(idx) {
  * 解析 tableStructure 中的 Markdown 表格，提取字段信息
  */
 function importFromTableStructure() {
-  if (!props.tableStructure) return
+  if (!props.tableStructure)
+    return
 
   const lines = props.tableStructure.split('\n')
   const newRows = []
-  
+
   for (const line of lines) {
     // 跳过表头和分隔行
-    if (!line.trim() || line.includes('---') || line.includes('字段名')) continue
-    
+    if (!line.trim() || line.includes('---') || line.includes('字段名'))
+      continue
+
     // 解析 Markdown 表格行: | 字段名 | 类型 | 注释 | ...
     const match = line.match(/\|\s*(\w+)\s*\|\s*(\w+(?:\(\d+\))?)\s*\|\s*([^|]*)\s*\|/)
     if (match) {
       const columnName = match[1].trim()
       const columnType = match[2].trim()
       const columnComment = match[3].trim()
-      
+
       // 跳过基类字段
       const baseFields = ['id', 'tenant_id', 'create_by', 'create_time', 'create_dept', 'update_by', 'update_time', 'del_flag', 'remark']
-      if (baseFields.includes(columnName)) continue
-      
+      if (baseFields.includes(columnName))
+        continue
+
       // 转换为 camelCase
       const fieldName = columnName.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase())
-      
+
       // 根据字段类型推断组件类型
       const fieldType = inferFieldType(columnType, fieldName)
-      
+
       if (props.mode === 'columns') {
         newRows.push({
           field: fieldName,
@@ -379,7 +406,8 @@ function importFromTableStructure() {
           dictType: '',
           width: null,
         })
-      } else if (props.mode === 'edit') {
+      }
+      else if (props.mode === 'edit') {
         newRows.push({
           field: fieldName,
           label: columnComment || fieldName,
@@ -387,7 +415,8 @@ function importFromTableStructure() {
           required: false,
           dictType: '',
         })
-      } else {
+      }
+      else {
         // search
         newRows.push({
           field: fieldName,
@@ -411,7 +440,7 @@ function importFromTableStructure() {
  */
 function inferFieldType(columnType, fieldName) {
   const type = columnType.toLowerCase()
-  
+
   // 日期时间类型
   if (type.includes('datetime') || type.includes('timestamp')) {
     return { editType: 'datetime', searchType: 'date', columnType: 'date' }
@@ -422,22 +451,22 @@ function inferFieldType(columnType, fieldName) {
   if (type.includes('time')) {
     return { editType: 'datetime', searchType: 'date', columnType: 'date' }
   }
-  
+
   // 数字类型
   if (type.includes('int') || type.includes('decimal') || type.includes('numeric') || type.includes('float') || type.includes('double')) {
     return { editType: 'number', searchType: 'number', columnType: 'number' }
   }
-  
+
   // 布尔类型
   if (type.includes('tinyint(1)') || type.includes('boolean') || type.includes('bit')) {
     return { editType: 'switch', searchType: 'select', columnType: 'text' }
   }
-  
+
   // 文本类型
   if (type.includes('text') || type.includes('longtext') || type.includes('mediumtext')) {
     return { editType: 'textarea', searchType: 'input', columnType: 'text' }
   }
-  
+
   // 根据字段名推断
   const nameLower = fieldName.toLowerCase()
   if (nameLower.includes('status') || nameLower.includes('type') || nameLower.includes('sex') || nameLower.includes('gender')) {
@@ -458,7 +487,7 @@ function inferFieldType(columnType, fieldName) {
   if (nameLower.includes('file')) {
     return { editType: 'upload', searchType: 'input', columnType: 'text' }
   }
-  
+
   // 默认输入框
   return { editType: 'input', searchType: 'input', columnType: 'text' }
 }

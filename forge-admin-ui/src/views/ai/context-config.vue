@@ -52,19 +52,15 @@ const searchSchema = [
 const tableColumns = computed(() => [
   { prop: 'agentCode', label: 'Agent编码', width: 150 },
   { prop: 'configName', label: '配置名称', width: 150 },
-  { prop: 'configType', label: '类型', width: 80,
-    render: row => {
-      const opt = configTypeOptions.find(o => o.value === row.configType)
-      return opt ? opt.label : row.configType
-    },
-  },
+  { prop: 'configType', label: '类型', width: 80, render: (row) => {
+    const opt = configTypeOptions.find(o => o.value === row.configType)
+    return opt ? opt.label : row.configType
+  } },
   { prop: 'configContent', label: '内容', minWidth: 200, ellipsis: true },
   { prop: 'sort', label: '排序', width: 70 },
-  { prop: 'status', label: '状态', width: 70,
-    render: row => {
-      return row.status === '0' ? '正常' : '停用'
-    },
-  },
+  { prop: 'status', label: '状态', width: 70, render: (row) => {
+    return row.status === '0' ? '正常' : '停用'
+  } },
 ])
 
 const editSchema = [

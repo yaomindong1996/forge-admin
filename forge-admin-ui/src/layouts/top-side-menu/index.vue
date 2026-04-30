@@ -59,6 +59,7 @@
 import { AppCard } from '@/components/common'
 import DemoBanner from '@/components/DemoBanner.vue'
 import { TheTitle } from '@/components/index.js'
+import { findTopMenuByPath } from '@/composables'
 import {
   AppTab,
   Fullscreen,
@@ -68,7 +69,6 @@ import {
   UserAvatar,
 } from '@/layouts/components'
 import { useAppStore, usePermissionStore } from '@/store'
-import { findTopMenuByPath } from '@/composables'
 import SideMenu from './components/SideMenu.vue'
 import TopMenu from './components/TopMenu.vue'
 

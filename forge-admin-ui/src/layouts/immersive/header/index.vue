@@ -43,7 +43,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useTenantStore } from '@/store'
+import { ToggleTheme } from '@/components'
 import TheLogo from '@/components/common/TheLogo.vue'
 import {
   BeginnerGuide,
@@ -53,7 +53,7 @@ import {
   MessageNotification,
   UserAvatar,
 } from '@/layouts/components'
-import { ToggleTheme } from '@/components'
+import { useTenantStore } from '@/store'
 import DrawerMenu from '../components/DrawerMenu.vue'
 
 const tenantStore = useTenantStore()

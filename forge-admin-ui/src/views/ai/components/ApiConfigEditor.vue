@@ -1,10 +1,12 @@
 <template>
   <div class="api-config-editor">
-    <div class="api-row" v-for="item in apiFields" :key="item.key">
-      <div class="api-label">{{ item.label }}</div>
+    <div v-for="item in apiFields" :key="item.key" class="api-row">
+      <div class="api-label">
+        {{ item.label }}
+      </div>
       <div class="api-method">
         <n-select
-          v-model:value="localConfig[item.key + '_method']"
+          v-model:value="localConfig[`${item.key}_method`]"
           size="small"
           :options="methodOptions"
           style="width: 80px"
@@ -12,7 +14,7 @@
       </div>
       <div class="api-path" style="flex: 1;">
         <n-input
-          v-model:value="localConfig[item.key + '_path']"
+          v-model:value="localConfig[`${item.key}_path`]"
           size="small"
           :placeholder="item.placeholder"
         />
@@ -27,16 +29,16 @@
       <textarea
         class="raw-json-textarea"
         :value="rawJson"
-        @change="handleRawChange"
         spellcheck="false"
         rows="6"
+        @change="handleRawChange"
       />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
   value: { type: String, default: '' },
@@ -63,27 +65,30 @@ const apiFields = [
 
 // 解析 "get@/xxx/page" 格式
 function parseApiStr(str) {
-  if (!str) return { method: 'get', path: '' }
+  if (!str)
+    return { method: 'get', path: '' }
   const parts = str.split('@')
-  if (parts.length === 2) return { method: parts[0].toLowerCase(), path: parts[1] }
+  if (parts.length === 2)
+    return { method: parts[0].toLowerCase(), path: parts[1] }
   return { method: 'get', path: str }
 }
 
 // 初始化 localConfig
 function initLocalConfig(jsonStr) {
   const cfg = {}
-  apiFields.forEach(f => {
-    cfg[f.key + '_method'] = 'get'
-    cfg[f.key + '_path'] = ''
+  apiFields.forEach((f) => {
+    cfg[`${f.key}_method`] = 'get'
+    cfg[`${f.key}_path`] = ''
   })
-  if (!jsonStr || !jsonStr.trim()) return cfg
+  if (!jsonStr || !jsonStr.trim())
+    return cfg
   try {
     const parsed = JSON.parse(jsonStr)
-    apiFields.forEach(f => {
+    apiFields.forEach((f) => {
       if (parsed[f.key]) {
         const { method, path } = parseApiStr(parsed[f.key])
-        cfg[f.key + '_method'] = method
-        cfg[f.key + '_path'] = path
+        cfg[`${f.key}_method`] = method
+        cfg[`${f.key}_path`] = path
       }
     })
   }
@@ -108,10 +113,11 @@ watch(localConfig, () => {
 
 function buildJson() {
   const obj = {}
-  apiFields.forEach(f => {
-    const method = localConfig.value[f.key + '_method'] || 'get'
-    const path = localConfig.value[f.key + '_path'] || ''
-    if (path) obj[f.key] = `${method}@${path}`
+  apiFields.forEach((f) => {
+    const method = localConfig.value[`${f.key}_method`] || 'get'
+    const path = localConfig.value[`${f.key}_path`] || ''
+    if (path)
+      obj[f.key] = `${method}@${path}`
   })
   return JSON.stringify(obj, null, 2)
 }

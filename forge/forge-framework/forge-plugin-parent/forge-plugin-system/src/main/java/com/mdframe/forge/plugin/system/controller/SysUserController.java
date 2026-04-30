@@ -10,6 +10,7 @@ import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
+import com.mdframe.forge.starter.core.session.SessionHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -176,5 +177,17 @@ public class SysUserController {
     public RespInfo<Void> updateProfile(@RequestBody SysUserDTO dto) {
         boolean result = userService.updateUserProfile(dto);
         return result ? RespInfo.success() : RespInfo.error("更新资料失败");
+    }
+
+    /**
+     * 获取当前登录用户的基本资料（直接查数据库，非缓存）
+     */
+    @GetMapping("/profile")
+    public RespInfo<SysUser> profile() {
+        Long userId = SessionHelper.getUserId();
+        SysUser user = userService.getById(userId);
+        user.setPassword(null);
+        user.setSalt(null);
+        return RespInfo.success(user);
     }
 }

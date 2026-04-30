@@ -22,12 +22,12 @@
 </template>
 
 <script setup>
-import BreadCrumb from '../BreadCrumb.vue'
+import ToggleTheme from '@/components/common/ToggleTheme.vue'
 import Fullscreen from '@/layouts/components/Fullscreen.vue'
 import MenuSearch from '@/layouts/components/MenuSearch.vue'
 import MessageNotification from '@/layouts/components/MessageNotification.vue'
-import ToggleTheme from '@/components/common/ToggleTheme.vue'
 import UserAvatar from '@/layouts/components/UserAvatar.vue'
+import BreadCrumb from '../BreadCrumb.vue'
 </script>
 
 <style scoped>

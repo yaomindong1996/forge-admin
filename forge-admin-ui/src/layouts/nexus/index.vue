@@ -1,6 +1,5 @@
 <template>
   <div class="nexus-layout">
-
     <!-- 左侧浮岛侧边栏 -->
     <Transition name="sidebar-slide">
       <aside v-if="!appStore.collapsed" class="nexus-sidebar-wrapper">
@@ -15,7 +14,7 @@
       v-show="appStore.collapsed"
       ref="expandBarRef"
       class="nexus-expand-bar"
-      :style="{ top: expandBarTop + 'px' }"
+      :style="{ top: `${expandBarTop}px` }"
       @click="handleBarClick"
       @mousedown="handleBarMouseDown"
     >
@@ -48,10 +47,10 @@
 </template>
 
 <script setup>
+import { onBeforeUnmount, ref } from 'vue'
 import DemoBanner from '@/components/DemoBanner.vue'
-import { ref, onBeforeUnmount } from 'vue'
-import { useAppStore } from '@/store'
 import { AppTab } from '@/layouts/components'
+import { useAppStore } from '@/store'
 import Header from './header/index.vue'
 import Sidebar from './sidebar/index.vue'
 
@@ -75,7 +74,8 @@ function handleBarMouseDown(e) {
 }
 
 function handleBarMouseMove(e) {
-  if (!isDragging.value) return
+  if (!isDragging.value)
+    return
   const delta = e.clientY - dragStartY.value
   const maxTop = window.innerHeight - 60
 

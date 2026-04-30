@@ -42,8 +42,8 @@
       <div class="ai-crud-table">
         <AiTable
           ref="tableRef"
-          :columns="tableColumns"
           v-model:checked-row-keys="selectedKeys"
+          :columns="tableColumns"
           :data-source="dataSource"
           :loading="tableLoading"
           :pagination="paginationConfig"
@@ -464,7 +464,7 @@ const tableColumns = computed(() => {
   const cols = []
 
   // 判断是否是操作列（兼容 action / actions 两种写法）
-  const isActionCol = col => {
+  const isActionCol = (col) => {
     const key = col.prop || col.key || col.dataIndex || ''
     return key === 'action' || key === 'actions'
   }
@@ -793,7 +793,7 @@ async function loadList() {
     if (list.length > 0) {
       const firstRow = list[0]
       console.log('[DEBUG] 第一条数据的所有字段：', Object.keys(firstRow))
-      tableColumns.value.forEach(col => {
+      tableColumns.value.forEach((col) => {
         console.log(col)
         if (col.prop !== 'action') {
           console.log(`[DEBUG] 列${col.label}(${col.prop})：值 = ${firstRow[col.prop] ?? '不存在'}`)
@@ -877,7 +877,8 @@ watch(selectedKeys, (newKeys) => {
  * - select/radio/checkbox：数字 → 字符串（匹配字典选项的 string value）
  */
 function normalizeEditData(data) {
-  if (!data || typeof data !== 'object') return data
+  if (!data || typeof data !== 'object')
+    return data
   const result = {}
   for (const [key, value] of Object.entries(data)) {
     const fieldConfig = props.editSchema.find(f => f.field === key)
@@ -888,34 +889,42 @@ function normalizeEditData(data) {
     if (['number', 'inputNumber'].includes(fieldConfig.type)) {
       // 数字字段：字符串转数字
       if (typeof value === 'string') {
-        result[key] = parseFloat(value)
-      } else if (value === null || value === undefined) {
+        result[key] = Number.parseFloat(value)
+      }
+      else if (value === null || value === undefined) {
         result[key] = 0
-      } else {
+      }
+      else {
         result[key] = value
       }
-    } else if (['select', 'radio', 'checkbox'].includes(fieldConfig.type)) {
+    }
+    else if (['select', 'radio', 'checkbox'].includes(fieldConfig.type)) {
       // 字典选择字段：根据 options 的 value 类型或 valueType 配置决定类型转换
       const isNumberOption = fieldConfig.props?.options?.some?.(o => typeof o.value === 'number')
         || fieldConfig.valueType === 'number'
       if (isNumberOption) {
         // options 的 value 是数字类型，保留数字类型
         if (typeof value === 'string') {
-          result[key] = parseFloat(value)
-        } else if (value === null || value === undefined) {
-          result[key] = 0
-        } else {
-          result[key] = value
+          result[key] = Number.parseFloat(value)
         }
-      } else {
-        // 默认：数字转字符串
-        if (typeof value === 'number') {
-          result[key] = String(value)
-        } else {
+        else if (value === null || value === undefined) {
+          result[key] = 0
+        }
+        else {
           result[key] = value
         }
       }
-    } else {
+      else {
+        // 默认：数字转字符串
+        if (typeof value === 'number') {
+          result[key] = String(value)
+        }
+        else {
+          result[key] = value
+        }
+      }
+    }
+    else {
       result[key] = value
     }
   }
@@ -1250,14 +1259,15 @@ async function handleModalConfirm() {
   }
   catch (error) {
     console.error('提交失败:', error)
-    
+
     // 如果是验证错误数组，显示第一个错误信息
     if (Array.isArray(error) && error.length > 0) {
       const firstError = error[0]
       const errorMsg = firstError?.message || '表单验证失败'
       window.$message.error(errorMsg)
       console.error('验证错误详情:', error)
-    } else {
+    }
+    else {
       window.$message.error(error?.message || '提交失败')
     }
 

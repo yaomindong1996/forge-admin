@@ -14,8 +14,8 @@
 </template>
 
 <script setup>
-import { useAppStore } from '@/store'
 import { useMenu } from '@/composables'
+import { useAppStore } from '@/store'
 
 const appStore = useAppStore()
 
