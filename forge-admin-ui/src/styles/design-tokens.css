@@ -143,7 +143,7 @@
   --radius-full: 9999px;
 
   /* 组件专用圆角 */
-  --radius-button: var(--radius-md);
+  --radius-button: var(--radius-sm);
   --radius-input: var(--radius-md);
   --radius-card: var(--radius-lg);
   --radius-modal: var(--radius-xl);
@@ -167,8 +167,18 @@
   --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.1);
   --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
   --shadow-modal: 0 12px 36px rgba(0, 0, 0, 0.12);
-  --shadow-button: none;
-  --shadow-button-hover: none;
+  --shadow-button: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-button-hover: 0 4px 10px rgba(15, 23, 42, 0.08);
+  --button-primary-bg: linear-gradient(180deg, #525efb 0%, #4242f7 100%);
+  --button-primary-bg-hover: linear-gradient(180deg, #5c67ff 0%, #3942ea 100%);
+  --button-primary-bg-active: linear-gradient(180deg, #444ff0 0%, #3139d8 100%);
+  --button-primary-border: rgba(66, 66, 247, 0.28);
+  --button-primary-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 6px 14px rgba(66, 66, 247, 0.16);
+  --button-primary-shadow-hover: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 8px 18px rgba(66, 66, 247, 0.2);
+  --button-primary-shadow-active: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 3px 8px rgba(66, 66, 247, 0.12);
+  --button-primary-focus-ring: 0 0 0 3px rgba(66, 66, 247, 0.14);
+  --button-primary-ambient: rgba(66, 66, 247, 0.06);
+  --button-primary-ambient-hover: rgba(66, 66, 247, 0.09);
 
   /* ═══════════════════════════════════════
    * 字体系统 - Typography

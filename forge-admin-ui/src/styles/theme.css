@@ -482,21 +482,26 @@
 /* 基础按钮样式 */
 .n-button {
   border-radius: var(--radius-button) !important;
-  transition: all var(--transition-base) !important;
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base),
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast) !important;
   font-weight: var(--font-weight-medium);
   padding: 0 16px !important;
   min-width: 36px !important;
-  height: 36px !important;
+  height: 32px !important;
   font-size: var(--font-size-sm) !important;
+  box-shadow: var(--shadow-button) !important;
 }
 
 .n-button:hover:not(:disabled) {
-  transform: translateY(-1px);
   box-shadow: var(--shadow-button-hover) !important;
 }
 
 .n-button:active:not(:disabled) {
-  transform: translateY(0) !important;
+  transform: scale(0.985) !important;
 }
 
 /* text 类型按钮 */
@@ -515,19 +520,63 @@
 
 /* primary 类型按钮 */
 .n-button--primary-type {
-  background: var(--primary-gradient) !important;
-  border: none !important;
+  position: relative;
+  overflow: hidden;
+  border-radius: calc(var(--radius-button)) !important;
+  background: var(--button-primary-bg) !important;
+  border: 1px solid var(--button-primary-border) !important;
   color: #fff !important;
+  font-weight: var(--font-weight-semibold) !important;
+  box-shadow: var(--button-primary-shadow) !important;
+  letter-spacing: 0.005em;
+  text-shadow: 0 1px 0 rgba(15, 23, 42, 0.1);
+  transform-origin: center bottom;
 }
 
-.n-button--primary-type:hover {
-  background: var(--primary-gradient-hover) !important;
+.n-button--primary-type::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.04) 46%, rgba(255, 255, 255, 0) 100%);
+  opacity: 1;
+  z-index: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+}
+
+.n-button--primary-type::after {
+  display: none;
+}
+
+.n-button--primary-type:hover:not(:disabled) {
+  background: var(--button-primary-bg-hover) !important;
+  box-shadow: var(--button-primary-shadow-hover) !important;
   color: #fff !important;
+  transform: translateY(-1px);
+}
+
+.n-button--primary-type:hover:not(:disabled)::before {
+  opacity: 1;
+}
+
+.n-button--primary-type:focus-visible {
+  box-shadow: var(--button-primary-shadow), var(--button-primary-focus-ring) !important;
+}
+
+.n-button--primary-type:active:not(:disabled) {
+  background: var(--button-primary-bg-active) !important;
+  box-shadow: var(--button-primary-shadow-active) !important;
+  transform: translateY(0) scale(0.985) !important;
 }
 
 .n-button--primary-type .n-button__content,
 .n-button--primary-type .n-button__icon {
   color: #fff !important;
+  position: relative;
+  z-index: 1;
 }
 
 /* small 尺寸按钮 */

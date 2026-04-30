@@ -116,6 +116,21 @@ function adjustColorBrightness(hex, amount) {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
 }
 
+function hexToRgb(hex) {
+  const normalized = hex.replace('#', '')
+  const value = normalized.length === 3
+    ? normalized.split('').map(char => char + char).join('')
+    : normalized
+
+  const num = Number.parseInt(value, 16)
+
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  }
+}
+
 /**
  * 应用主题配置到 CSS 变量
  * @param {object} config 主题配置对象
@@ -132,12 +147,29 @@ export function applyThemeConfig(config, isDark = false) {
   // 2. 应用主题色及渐变
   if (config.primaryColor) {
     const primary = config.primaryColor
-    const primaryLight = adjustColorBrightness(primary, 40)
-    const primaryDark = adjustColorBrightness(primary, -30)
+    const primaryLight = adjustColorBrightness(primary, 26)
+    const primarySoft = adjustColorBrightness(primary, 10)
+    const primaryActive = adjustColorBrightness(primary, -12)
+    const primaryDark = adjustColorBrightness(primary, -22)
+    const { r, g, b } = hexToRgb(primary)
+    const shadowOpacity = isDark ? 0.24 : 0.16
+    const hoverShadowOpacity = isDark ? 0.3 : 0.2
+    const activeShadowOpacity = isDark ? 0.18 : 0.12
+    const focusRingOpacity = isDark ? 0.22 : 0.14
 
     root.style.setProperty('--primary-color', primary)
     root.style.setProperty('--primary-gradient', `linear-gradient(135deg, ${primaryLight} 0%, ${primary} 100%)`)
     root.style.setProperty('--primary-gradient-hover', `linear-gradient(135deg, ${primary} 0%, ${primaryDark} 100%)`)
+    root.style.setProperty('--button-primary-bg', `linear-gradient(180deg, ${primarySoft} 0%, ${primary} 100%)`)
+    root.style.setProperty('--button-primary-bg-hover', `linear-gradient(180deg, ${primaryLight} 0%, ${primaryActive} 100%)`)
+    root.style.setProperty('--button-primary-bg-active', `linear-gradient(180deg, ${primary} 0%, ${primaryDark} 100%)`)
+    root.style.setProperty('--button-primary-border', `rgba(${r}, ${g}, ${b}, 0.28)`)
+    root.style.setProperty('--button-primary-shadow', `inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 8px 18px rgba(${r}, ${g}, ${b}, ${shadowOpacity})`)
+    root.style.setProperty('--button-primary-shadow-hover', `inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 12px 24px rgba(${r}, ${g}, ${b}, ${hoverShadowOpacity})`)
+    root.style.setProperty('--button-primary-shadow-active', `inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 5px 12px rgba(${r}, ${g}, ${b}, ${activeShadowOpacity})`)
+    root.style.setProperty('--button-primary-focus-ring', `0 0 0 3px rgba(${r}, ${g}, ${b}, ${focusRingOpacity})`)
+    root.style.setProperty('--button-primary-ambient', `rgba(${r}, ${g}, ${b}, ${isDark ? 0.1 : 0.06})`)
+    root.style.setProperty('--button-primary-ambient-hover', `rgba(${r}, ${g}, ${b}, ${isDark ? 0.14 : 0.09})`)
   }
 
   // 3. 应用 Header 配置

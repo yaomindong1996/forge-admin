@@ -80,10 +80,11 @@
       >
         <div class="user-info" @click="userDropdownVisible = !userDropdownVisible">
           <img
-            v-if="userAvatar"
+            v-if="showUserAvatarImage"
             :src="userAvatar"
             alt="avatar"
             class="user-avatar-img"
+            @error="handleUserAvatarError"
           >
           <div v-else class="user-avatar">
             {{ userAvatarText }}
@@ -112,7 +113,9 @@ const permissionStore = usePermissionStore()
 
 const { userName, userAvatarText, userAvatar, userDropdownOptions, dropdownVisible: userDropdownVisible, handleDropdownSelect } = useUser()
 
+const userAvatarLoadFailed = ref(false)
 const expandedKeys = ref(new Set())
+const showUserAvatarImage = computed(() => Boolean(userAvatar.value) && !userAvatarLoadFailed.value)
 
 // Process menu data (simple pass-through with key normalization)
 const menuItems = computed(() => {
@@ -191,8 +194,16 @@ watch(
   { immediate: true },
 )
 
+watch(userAvatar, () => {
+  userAvatarLoadFailed.value = false
+}, { immediate: true })
+
 function handleUserSelect(key) {
   handleDropdownSelect(key)
+}
+
+function handleUserAvatarError() {
+  userAvatarLoadFailed.value = true
 }
 </script>
 

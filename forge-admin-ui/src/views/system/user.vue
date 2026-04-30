@@ -3,19 +3,44 @@
     <!-- 左侧组织树 + 右侧用户列表布局 -->
     <div class="user-layout">
       <!-- 左侧组织树面板 -->
-      <div class="org-tree-panel">
+      <div class="org-tree-panel" :class="{ 'is-collapsed': leftOrgPanelCollapsed }">
         <div class="org-tree-header">
           <div class="header-title">
-            <i class="i-material-symbols:account-tree-rounded" />
-            <span>组织架构</span>
+            <div class="header-icon">
+              <i class="i-material-symbols:account-tree-rounded" />
+            </div>
+            <div v-if="!leftOrgPanelCollapsed" class="header-copy">
+              <span>组织架构</span>
+              <small>{{ orgTreeSummaryText }}</small>
+            </div>
           </div>
-          <n-button text size="small" @click="toggleOrgExpandAll">
-            <template #icon>
-              <i :class="leftOrgExpandAll ? 'i-material-symbols:unfold-less' : 'i-material-symbols:unfold-more'" />
-            </template>
-          </n-button>
+          <div class="header-actions">
+            <n-button
+              v-if="!leftOrgPanelCollapsed"
+              quaternary
+              circle
+              size="small"
+              title="展开或折叠树节点"
+              @click="toggleOrgExpandAll"
+            >
+              <template #icon>
+                <i :class="leftOrgExpandAll ? 'i-material-symbols:unfold-less' : 'i-material-symbols:unfold-more'" />
+              </template>
+            </n-button>
+            <n-button
+              quaternary
+              circle
+              size="small"
+              :title="leftOrgPanelCollapsed ? '展开左侧组织树' : '收起左侧组织树'"
+              @click="toggleLeftOrgPanel"
+            >
+              <template #icon>
+                <i :class="leftOrgPanelCollapsed ? 'i-material-symbols:chevron-right-rounded' : 'i-material-symbols:left-panel-close-rounded'" />
+              </template>
+            </n-button>
+          </div>
         </div>
-        <div class="org-tree-content">
+        <div v-show="!leftOrgPanelCollapsed" class="org-tree-content">
           <n-spin :show="leftOrgTreeLoading">
             <div
               class="org-tree-all-node"
@@ -41,6 +66,15 @@
             />
             <n-empty v-else description="暂无组织数据" size="small" />
           </n-spin>
+        </div>
+        <div
+          v-show="leftOrgPanelCollapsed"
+          class="org-tree-collapsed-hint"
+          :class="{ 'has-active-filter': selectedOrgNode && !isShowAllUsers }"
+          @click="toggleLeftOrgPanel"
+        >
+          <i class="i-material-symbols:group-work-outline-rounded" />
+          <span>组织筛选</span>
         </div>
       </div>
 
@@ -143,7 +177,7 @@
               </template>
               全不选
             </n-button>
-            <n-checkbox v-model:checked="checkStrictly" @update:checked="handleCheckStrictlyChange">
+            <n-checkbox v-model:checked="checkStrictly">
               父子联动
             </n-checkbox>
           </n-space>
@@ -283,6 +317,7 @@ const leftOrgTreeData = ref([])
 const leftOrgTreeLoading = ref(false)
 const leftOrgExpandAll = ref(true)
 const leftOrgExpandedKeys = ref([])
+const leftOrgPanelCollapsed = ref(false)
 const selectedOrgKeys = ref([])
 const selectedOrgNode = ref(null)
 const isShowAllUsers = ref(true)
@@ -472,7 +507,15 @@ const tableColumns = computed(() => [
       { label: '编辑', key: 'edit', onClick: handleEdit },
       { label: '授权', key: 'auth', onClick: handleAuth },
       { label: '组织', key: 'org', onClick: handleOrg },
-      { label: '重置密码', key: 'resetPwd', type: 'warning', onClick: (row) => { resetPwdForm.value = { id: row.id, password: '' }; resetPwdModalVisible.value = true } },
+      {
+        label: '重置密码',
+        key: 'resetPwd',
+        type: 'warning',
+        onClick: (row) => {
+          resetPwdForm.value = { id: row.id, password: '' }
+          resetPwdModalVisible.value = true
+        },
+      },
       { label: '禁用', key: 'disable', type: 'warning', onClick: row => handleUpdateStatus(row, 0), visible: row => row.id !== 1 && row.userStatus === 1 },
       { label: '启用', key: 'enable', type: 'success', onClick: handleUntieDisable, visible: row => row.id !== 1 && row.userStatus !== 1 },
       { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: row => row.id !== 1 },
@@ -634,6 +677,13 @@ onMounted(() => {
   loadLeftOrgTree()
 })
 
+const orgTreeSummaryText = computed(() => {
+  const total = countTreeNodes(leftOrgTreeData.value)
+  if (!total)
+    return '未加载组织'
+  return `${total} 个组织节点`
+})
+
 // 获取所有节点的 key
 function getAllKeys(list, keys = []) {
   list.forEach((item) => {
@@ -643,6 +693,10 @@ function getAllKeys(list, keys = []) {
     }
   })
   return keys
+}
+
+function countTreeNodes(list = []) {
+  return list.reduce((total, item) => total + 1 + countTreeNodes(item.children || []), 0)
 }
 
 // 加载左侧组织树
@@ -767,6 +821,10 @@ function toggleOrgExpandAll() {
   }
 }
 
+function toggleLeftOrgPanel() {
+  leftOrgPanelCollapsed.value = !leftOrgPanelCollapsed.value
+}
+
 // 清除组织筛选
 function handleClearOrgFilter() {
   selectedOrgKeys.value = []
@@ -790,40 +848,6 @@ function beforeLoadList(params) {
   return params
 }
 
-// 更多操作选项
-function getMoreOptions(row) {
-  const options = [
-    { label: '重置密码', key: 'resetPwd', icon: () => h('i', { class: 'i-material-symbols:lock-reset' }) },
-  ]
-
-  if (row.id !== 1) {
-    if (row.userStatus === 1) {
-      options.push({ label: '禁用', key: 'disable', icon: () => h('i', { class: 'i-material-symbols:block' }) })
-    }
-    else {
-      options.push({ label: '启用', key: 'enable', icon: () => h('i', { class: 'i-material-symbols:check-circle-outline' }) })
-    }
-  }
-
-  return options
-}
-
-// 处理更多操作
-function handleMoreAction(key, row) {
-  switch (key) {
-    case 'resetPwd':
-      resetPwdForm.value = { id: row.id, password: '' }
-      resetPwdModalVisible.value = true
-      break
-    case 'disable':
-      handleUpdateStatus(row, 0)
-      break
-    case 'enable':
-      handleUntieDisable(row)
-      break
-  }
-}
-
 // 确认重置密码
 async function handleConfirmResetPwd() {
   resetPwdFormRef.value?.validate(async (errors) => {
@@ -841,7 +865,7 @@ async function handleConfirmResetPwd() {
           resetPwdModalVisible.value = false
         }
       }
-      catch (error) {
+      catch {
         window.$message.error('重置失败')
       }
       finally {
@@ -869,7 +893,7 @@ async function handleUpdateStatus(row, status) {
           crudRef.value?.refresh()
         }
       }
-      catch (error) {
+      catch {
         window.$message.error(`${actionText}失败`)
       }
     },
@@ -893,7 +917,7 @@ async function handleUntieDisable(row) {
           crudRef.value?.refresh()
         }
       }
-      catch (error) {
+      catch {
         window.$message.error(`启用失败`)
       }
     },
@@ -902,7 +926,6 @@ async function handleUntieDisable(row) {
 
 // 表单提交前处理
 function beforeSubmit(formData) {
-  console.log('提交的表单数据:', formData)
   return formData
 }
 
@@ -926,7 +949,7 @@ function handleDelete(row) {
           crudRef.value?.refresh()
         }
       }
-      catch (error) {
+      catch {
         window.$message.error('删除失败')
       }
     },
@@ -1019,11 +1042,6 @@ function handleCheckAll() {
 // 全不选
 function handleUncheckAll() {
   checkedRoleKeys.value = []
-}
-
-// 父子联动开关变化
-function handleCheckStrictlyChange(value) {
-  console.log('父子联动:', !value)
 }
 
 // 提交授权
@@ -1154,73 +1172,192 @@ async function handleSubmitOrg() {
 .user-layout {
   display: flex;
   height: 100%;
-  gap: 16px;
+  gap: 12px;
 }
 
 /* 左侧组织树面板 */
 .org-tree-panel {
-  width: 280px;
-  min-width: 280px;
-  background: #fff;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  width: 248px;
+  min-width: 248px;
+  background: linear-gradient(180deg, #fbfdff 0%, #ffffff 18%, #ffffff 100%);
+  border-radius: 14px;
+  border: 1px solid #dbe4f0;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition:
+    width 0.24s ease,
+    min-width 0.24s ease,
+    box-shadow 0.24s ease;
+}
+
+.org-tree-panel.is-collapsed {
+  width: 72px;
+  min-width: 72px;
+}
+
+.org-tree-panel.is-collapsed .org-tree-header {
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 12px 8px;
+}
+
+.org-tree-panel.is-collapsed .header-title,
+.org-tree-panel.is-collapsed .header-actions {
+  width: 100%;
+  justify-content: center;
 }
 
 .org-tree-header {
-  padding: 16px 16px 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
+  padding: 14px 12px 12px;
+  border-bottom: 1px solid #e8eef5;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.08) 0%,
+    rgba(59, 130, 246, 0.02) 55%,
+    rgba(255, 255, 255, 0.96) 100%
+  );
 }
 
 .header-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  color: #1f2937;
+  gap: 10px;
+  min-width: 0;
 }
 
-.header-title i {
-  font-size: 20px;
-  color: #4f46e5;
+.header-icon {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.header-icon i {
+  font-size: 18px;
+}
+
+.header-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.header-copy span {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.header-copy small {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.2;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.org-tree-header :deep(.n-button) {
+  color: #475569;
+}
+
+.org-tree-header :deep(.n-button:hover) {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.08);
 }
 
 .org-tree-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 12px 8px;
+  padding: 10px 8px 12px;
+}
+
+.org-tree-content :deep(.n-spin-content) {
+  width: 100%;
+  align-items: stretch;
+}
+
+.org-tree-collapsed-hint {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 6px;
+  color: #64748b;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.org-tree-collapsed-hint i {
+  font-size: 22px;
+}
+
+.org-tree-collapsed-hint span {
+  writing-mode: vertical-rl;
+  letter-spacing: 2px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.org-tree-collapsed-hint:hover {
+  background: rgba(37, 99, 235, 0.06);
+  color: #2563eb;
+}
+
+.org-tree-collapsed-hint.has-active-filter {
+  color: #2563eb;
 }
 
 .org-tree-all-node {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
-  margin-bottom: 4px;
-  border-radius: 4px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 14px;
-  color: #374151;
-  transition: all 0.2s;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
 }
 
 .org-tree-all-node:hover {
-  background-color: #f3f4f6;
+  background-color: #f8fafc;
+  border-color: #dbe4f0;
 }
 
 .org-tree-all-node.is-selected {
-  background-color: #e0e7ff !important;
-  color: #4f46e5;
-  font-weight: 500;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(59, 130, 246, 0.08) 100%) !important;
+  border-color: rgba(37, 99, 235, 0.18);
+  color: #2563eb;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.05);
 }
 
 .org-tree-all-node i {
@@ -1228,22 +1365,35 @@ async function handleSubmitOrg() {
 }
 
 .org-tree-content :deep(.n-tree) {
-  font-size: 14px;
+  font-size: 13px;
+}
+
+.org-tree-content :deep(.n-tree-node) {
+  align-items: center;
 }
 
 .org-tree-content :deep(.n-tree-node-content) {
-  padding: 6px 8px;
-  border-radius: 4px;
-  transition: all 0.2s;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: #334155;
+  transition: all 0.2s ease;
 }
 
 .org-tree-content :deep(.n-tree-node-content:hover) {
-  background-color: #f3f4f6;
+  background-color: #f8fafc;
 }
 
 .org-tree-content :deep(.n-tree-node-content--selected) {
-  background-color: #e0e7ff !important;
-  color: #4f46e5;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(59, 130, 246, 0.08) 100%) !important;
+  color: #2563eb;
+}
+
+.org-tree-content :deep(.n-tree-node-switcher) {
+  color: #64748b;
+}
+
+.org-tree-content :deep(.n-tree-node-indent) {
+  width: 12px;
 }
 
 .org-tree-content::-webkit-scrollbar {
@@ -1269,9 +1419,9 @@ async function handleSubmitOrg() {
   flex: 1;
   min-width: 0;
   background: #fff;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-radius: 14px;
+  border: 1px solid #dbe4f0;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
   overflow: hidden;
 }
 
@@ -1409,24 +1559,43 @@ async function handleSubmitOrg() {
 .dark .org-tree-panel {
   background: #0f172a !important;
   border-color: #334155 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.35);
 }
 
 .dark .org-tree-header {
-  background: #1e293b;
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 235, 0.18) 0%,
+    rgba(30, 41, 59, 0.94) 58%,
+    rgba(15, 23, 42, 0.96) 100%
+  );
   border-bottom-color: #334155;
 }
 
-.dark .org-tree-header .header-title span {
+.dark .org-tree-header .header-copy span {
   color: #f1f5f9;
 }
 
-.dark .org-tree-header .header-title i {
-  color: #60a5fa;
+.dark .org-tree-header .header-copy small {
+  color: #94a3b8;
+}
+
+.dark .header-icon {
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
 }
 
 .dark .org-tree-content {
   background: #0f172a;
+}
+
+.dark .org-tree-collapsed-hint {
+  color: #94a3b8;
+}
+
+.dark .org-tree-collapsed-hint:hover,
+.dark .org-tree-collapsed-hint.has-active-filter {
+  background: rgba(37, 99, 235, 0.14);
+  color: #60a5fa;
 }
 
 .dark .org-tree-all-node {
@@ -1434,25 +1603,35 @@ async function handleSubmitOrg() {
 }
 
 .dark .org-tree-all-node:hover {
-  background-color: #1e293b;
+  background-color: #162033;
+  border-color: #334155;
 }
 
 .dark .org-tree-all-node.is-selected {
-  background-color: #1e3a5f !important;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(30, 64, 175, 0.12) 100%) !important;
   color: #60a5fa;
 }
 
-.dark .org-tree-content .n-tree-node-content {
+.dark .org-tree-content :deep(.n-tree-node-content) {
   color: #e2e8f0;
 }
 
-.dark .org-tree-content .n-tree-node-content:hover {
-  background-color: #1e293b;
+.dark .org-tree-content :deep(.n-tree-node-content:hover) {
+  background-color: #162033;
 }
 
-.dark .org-tree-content .n-tree-node-content--selected {
-  background-color: #1e3a5f !important;
+.dark .org-tree-content :deep(.n-tree-node-content--selected) {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(30, 64, 175, 0.12) 100%) !important;
   color: #60a5fa;
+}
+
+.dark .org-tree-header :deep(.n-button) {
+  color: #cbd5e1;
+}
+
+.dark .org-tree-header :deep(.n-button:hover) {
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
 }
 
 .dark .org-tree-content::-webkit-scrollbar-track {
@@ -1470,7 +1649,7 @@ async function handleSubmitOrg() {
 .dark .user-list-panel {
   background: #0f172a !important;
   border-color: #334155 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 12px 30px rgba(2, 6, 23, 0.28);
 }
 
 .dark .org-filter-tip .n-tag {
@@ -1504,5 +1683,34 @@ async function handleSubmitOrg() {
 
 .dark .empty-state {
   background: #0f172a;
+}
+
+@media (max-width: 1200px) {
+  .org-tree-panel {
+    width: 224px;
+    min-width: 224px;
+  }
+}
+
+@media (max-width: 960px) {
+  .user-layout {
+    flex-direction: column;
+  }
+
+  .org-tree-panel,
+  .org-tree-panel.is-collapsed {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .org-tree-collapsed-hint {
+    flex-direction: row;
+    padding: 12px;
+  }
+
+  .org-tree-collapsed-hint span {
+    writing-mode: initial;
+    letter-spacing: 0;
+  }
 }
 </style>
