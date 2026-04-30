@@ -1,17 +1,32 @@
 <template>
-  <div class="p-16">
-    <div class="rounded bg-white p-16">
-      <h2 class="text-18 mb-16 font-bold">
-        流程分类
-      </h2>
+  <div class="flow-page">
+    <!-- 统计卡片 -->
+    <FlowCategoryStats
+      :total-count="totalCount"
+      :enabled-count="enabledCount"
+      :disabled-count="disabledCount"
+      @filter="handleFilter"
+    />
 
-      <!-- 搜索栏 -->
-      <NSpace class="mb-16" :vertical="false">
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="title-row">
+          <div class="title-icon">
+            <i class="i-material-symbols:category-outline" />
+          </div>
+          <h2 class="page-title">
+            流程分类
+          </h2>
+        </div>
+      </div>
+      <div class="header-right">
         <n-input
           v-model:value="queryParams.categoryName"
           placeholder="搜索分类名称"
           clearable
-          style="width: 200px"
+          class="search-input"
+          @keydown.enter="handleSearch"
         >
           <template #prefix>
             <i class="i-material-symbols:search" />
@@ -21,46 +36,44 @@
           v-model:value="queryParams.categoryCode"
           placeholder="搜索分类编码"
           clearable
-          style="width: 150px"
+          class="code-input"
+          @keydown.enter="handleSearch"
         >
           <template #prefix>
-            <i class="i-material-symbols:search" />
+            <i class="i-material-symbols:code" />
           </template>
         </n-input>
         <n-select
           v-model:value="queryParams.status"
           placeholder="状态"
           clearable
-          style="width: 120px"
+          class="status-select"
           :options="statusOptions"
         />
-        <NButton type="primary" @click="handleSearch">
-          <template #icon>
-            <i class="i-material-symbols:search" />
-          </template>
+        <NButton type="primary" class="search-btn" @click="handleSearch">
+          <i class="i-material-symbols:search mr-2" />
           搜索
         </NButton>
-        <NButton @click="handleReset">
-          <template #icon>
-            <i class="i-material-symbols:refresh" />
-          </template>
+        <NButton class="reset-btn" @click="handleReset">
+          <i class="i-material-symbols:refresh mr-2" />
           重置
         </NButton>
-        <NButton type="primary" @click="handleAdd">
-          <template #icon>
-            <i class="i-material-symbols:add" />
-          </template>
+        <NButton type="primary" class="add-btn" @click="handleAdd">
+          <i class="i-material-symbols:add mr-2" />
           新增分类
         </NButton>
-      </NSpace>
+      </div>
+    </div>
 
-      <!-- 数据表格 -->
+    <!-- 数据表格 -->
+    <div class="table-container">
       <n-data-table
         :columns="columns"
         :data="dataSource"
         :loading="loading"
         :pagination="pagination"
         :row-key="row => row.id"
+        striped
       />
     </div>
 
@@ -68,12 +81,10 @@
     <Teleport to="body">
       <n-modal
         v-model:show="showModal"
-        preset="dialog"
+        preset="card"
         :title="modalTitle"
-        positive-text="确定"
-        negative-text="取消"
-        :loading="submitLoading"
-        @positive-click="handleSubmit"
+        style="width: 480px"
+        :mask-closable="false"
       >
         <n-form ref="formRef" :model="formData" :rules="rules" label-placement="left" label-width="80">
           <n-form-item label="分类名称" path="categoryName">
@@ -86,56 +97,65 @@
             <n-input-number v-model:value="formData.sort" :min="0" placeholder="请输入排序" style="width: 100%" />
           </n-form-item>
           <n-form-item label="状态" path="status">
-            <NSwitch v-model:value="formData.status" :checked-value="1" :unchecked-value="0">
+            <n-switch v-model:value="formData.status" :checked-value="1" :unchecked-value="0">
               <template #checked>
                 启用
               </template>
               <template #unchecked>
                 禁用
               </template>
-            </NSwitch>
+            </n-switch>
           </n-form-item>
           <n-form-item label="备注" path="remark">
-            <n-input
-              v-model:value="formData.remark"
-              type="textarea"
-              placeholder="请输入备注"
-              :rows="3"
-            />
+            <n-input v-model:value="formData.remark" type="textarea" placeholder="请输入备注" :rows="3" />
           </n-form-item>
         </n-form>
+        <template #footer>
+          <NSpace justify="end">
+            <NButton @click="showModal = false">
+              取消
+            </NButton>
+            <NButton type="primary" :loading="submitLoading" @click="handleSubmit">
+              确定
+            </NButton>
+          </NSpace>
+        </template>
       </n-modal>
     </Teleport>
   </div>
 </template>
 
 <script setup>
-import { NButton, NSpace, NSwitch } from 'naive-ui'
+import { NButton, NSpace } from 'naive-ui'
 import { h, onMounted, reactive, ref } from 'vue'
 import flowApi from '@/api/flow'
+import FlowCategoryStats from '@/components/flow/FlowCategoryStats.vue'
 
-// 状态选项
 const statusOptions = [
   { label: '启用', value: 1 },
   { label: '禁用', value: 0 },
 ]
 
-// 查询参数
 const queryParams = reactive({
   categoryName: '',
   categoryCode: '',
   status: null,
 })
 
-// 表格列
+const totalCount = ref(0)
+const enabledCount = ref(0)
+const disabledCount = ref(0)
+
 const columns = [
   {
     title: '分类名称',
     key: 'categoryName',
+    render: row => h('span', { class: 'category-name' }, row.categoryName),
   },
   {
     title: '分类编码',
     key: 'categoryCode',
+    render: row => h('span', { class: 'category-code' }, row.categoryCode),
   },
   {
     title: '排序',
@@ -146,17 +166,10 @@ const columns = [
     title: '状态',
     key: 'status',
     width: 100,
-    render: (row) => {
-      return h(NSwitch, {
-        value: row.status,
-        checkedValue: 1,
-        uncheckedValue: 0,
-        onUpdateValue: val => handleStatusChange(row, val),
-      }, {
-        checked: () => '启用',
-        unchecked: () => '禁用',
-      })
-    },
+    render: row => h('span', {
+      class: ['status-tag', row.status === 1 ? 'enabled' : 'disabled'],
+      onClick: () => handleStatusChange(row, row.status === 1 ? 0 : 1),
+    }, row.status === 1 ? '启用' : '禁用'),
   },
   {
     title: '备注',
@@ -172,25 +185,23 @@ const columns = [
     title: '操作',
     key: 'actions',
     width: 150,
-    render: (row) => {
-      return h(NSpace, null, {
-        default: () => [
-          h(NButton, {
-            size: 'small',
-            onClick: () => handleEdit(row),
-          }, { default: () => '编辑' }),
-          h(NButton, {
-            size: 'small',
-            type: 'error',
-            onClick: () => handleDelete(row),
-          }, { default: () => '删除' }),
-        ],
-      })
-    },
+    render: row => h(NSpace, { size: 4 }, {
+      default: () => [
+        h(NButton, {
+          size: 'small',
+          type: 'primary',
+          onClick: () => handleEdit(row),
+        }, { default: () => '编辑' }),
+        h(NButton, {
+          size: 'small',
+          type: 'error',
+          onClick: () => handleDelete(row),
+        }, { default: () => '删除' }),
+      ],
+    }),
   },
 ]
 
-// 数据
 const dataSource = ref([])
 const loading = ref(false)
 const pagination = reactive({
@@ -210,7 +221,6 @@ const pagination = reactive({
   },
 })
 
-// 弹窗
 const showModal = ref(false)
 const modalTitle = ref('新增分类')
 const isEdit = ref(false)
@@ -230,7 +240,6 @@ const rules = {
   categoryCode: { required: true, message: '请输入分类编码', trigger: 'blur' },
 }
 
-// 获取数据
 async function fetchData() {
   loading.value = true
   try {
@@ -242,23 +251,24 @@ async function fetchData() {
     if (res.code === 200) {
       dataSource.value = res.data?.records || []
       pagination.itemCount = res.data?.total || 0
+      totalCount.value = res.data?.total || 0
+      enabledCount.value = dataSource.value.filter(r => r.status === 1).length
+      disabledCount.value = dataSource.value.filter(r => r.status === 0).length
     }
   }
-  catch (error) {
-    console.error('获取分类列表失败:', error)
+  catch {
+    console.error('获取分类列表失败')
   }
   finally {
     loading.value = false
   }
 }
 
-// 搜索
 function handleSearch() {
   pagination.page = 1
   fetchData()
 }
 
-// 重置
 function handleReset() {
   queryParams.categoryName = ''
   queryParams.categoryCode = ''
@@ -267,7 +277,17 @@ function handleReset() {
   fetchData()
 }
 
-// 新增
+function handleFilter(status) {
+  if (status === 'all') {
+    queryParams.status = null
+  }
+  else {
+    queryParams.status = status
+  }
+  pagination.page = 1
+  fetchData()
+}
+
 function handleAdd() {
   isEdit.value = false
   modalTitle.value = '新增分类'
@@ -282,7 +302,6 @@ function handleAdd() {
   showModal.value = true
 }
 
-// 编辑
 function handleEdit(row) {
   isEdit.value = true
   modalTitle.value = '编辑分类'
@@ -290,7 +309,6 @@ function handleEdit(row) {
   showModal.value = true
 }
 
-// 提交
 async function handleSubmit() {
   try {
     await formRef.value?.validate()
@@ -308,31 +326,29 @@ async function handleSubmit() {
       window.$message?.error(res.message || '操作失败')
     }
   }
-  catch (error) {
-    console.error('提交失败:', error)
+  catch {
+    console.error('提交失败')
   }
   finally {
     submitLoading.value = false
   }
 }
 
-// 状态变更
 async function handleStatusChange(row, val) {
   try {
     const api = val === 1 ? flowApi.enableCategory : flowApi.disableCategory
-    // 需要在 flowApi 中添加这两个方法
     const res = await api(row.id)
     if (res.code === 200) {
       window.$message?.success(val === 1 ? '启用成功' : '禁用成功')
       row.status = val
+      fetchData()
     }
   }
-  catch (error) {
-    console.error('状态变更失败:', error)
+  catch {
+    console.error('状态变更失败')
   }
 }
 
-// 删除
 async function handleDelete(row) {
   window.$dialog?.warning({
     title: '确认删除',
@@ -350,15 +366,126 @@ async function handleDelete(row) {
           window.$message?.error(res.message || '删除失败')
         }
       }
-      catch (error) {
-        console.error('删除失败:', error)
+      catch {
+        console.error('删除失败')
       }
     },
   })
 }
 
-// 初始化
 onMounted(() => {
   fetchData()
 })
 </script>
+
+<style scoped>
+.flow-page {
+  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.page-header {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+  margin-bottom: 16px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-input {
+  width: 200px;
+}
+
+.code-input {
+  width: 150px;
+}
+
+.status-select {
+  width: 120px;
+}
+
+.table-container {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  flex: 1;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+}
+
+:deep(.category-name) {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+:deep(.category-code) {
+  font-family: monospace;
+  color: #64748b;
+  letter-spacing: 0.3px;
+}
+
+:deep(.status-tag) {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+:deep(.status-tag:hover) {
+  opacity: 0.8;
+}
+
+:deep(.status-tag.enabled) {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+:deep(.status-tag.disabled) {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+</style>

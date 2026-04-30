@@ -1,7 +1,21 @@
 <template>
   <n-dropdown :options="options" @select="handleSelect">
     <div id="user-dropdown" class="flex cursor-pointer items-center">
-      <n-avatar round :size="28" :src="userStore.avatar || defaultAvatar" />
+      <n-avatar
+        v-if="avatarSrc"
+        round
+        :size="28"
+        :src="avatarSrc"
+        @error="handleAvatarError"
+      />
+      <n-avatar
+        v-else
+        round
+        :size="28"
+        :style="{ backgroundColor: '#10B981', fontSize: '12px' }"
+      >
+        {{ avatarText }}
+      </n-avatar>
       <div v-if="userStore.userInfo || userStore.staffInfo" class="ml-8 flex-col flex-shrink-0 items-center">
         <span class="text-14">{{ userStore.realName || userStore.staffInfo?.staffName }}</span>
       </div>
@@ -11,14 +25,47 @@
 
 <script setup>
 import api from '@/api'
-import defaultAvatar from '@/assets/images/avatar.png'
 import { defaultThemeConfig } from '@/config/theme.config.js'
-import { useAuthStore, usePermissionStore, useUserStore } from '@/store'
+import { useAuthStore, useUserStore } from '@/store'
+import { getFileUrl } from '@/utils/file'
 
 const router = useRouter()
 const userStore = useUserStore()
 const authStore = useAuthStore()
-const permissionStore = usePermissionStore()
+
+const avatarSrc = ref('')
+const avatarText = computed(() => {
+  const name = userStore.realName || userStore.username
+  return name ? name.charAt(0) : 'U'
+})
+
+async function loadAvatar() {
+  const avatar = userStore.avatar
+  if (!avatar) {
+    avatarSrc.value = ''
+    return
+  }
+  try {
+    const url = getFileUrl(avatar)
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${authStore.accessToken}` },
+    })
+    if (response.ok) {
+      const blob = await response.blob()
+      avatarSrc.value = URL.createObjectURL(blob)
+    }
+    else {
+      avatarSrc.value = ''
+    }
+  }
+  catch {
+    avatarSrc.value = ''
+  }
+}
+
+function handleAvatarError() {
+  avatarSrc.value = ''
+}
 
 const options = reactive([
   {
@@ -33,7 +80,6 @@ const options = reactive([
   },
 ])
 
-const roleSelectRef = ref(null)
 function handleSelect(key) {
   switch (key) {
     case 'profile':
@@ -53,8 +99,8 @@ function handleSelect(key) {
           try {
             await api.logout()
           }
-          catch (error) {
-            console.error(error)
+          catch {
+            console.error('logout error')
           }
           authStore.logout()
           $message.success('已退出登录')
@@ -63,4 +109,8 @@ function handleSelect(key) {
       break
   }
 }
+
+watch(() => userStore.avatar, () => {
+  loadAvatar()
+}, { immediate: true })
 </script>

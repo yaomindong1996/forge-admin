@@ -2,11 +2,12 @@
  * 布局组件用户相关组合式函数
  * 封装用户信息、头像、下拉菜单和退出登录逻辑
  */
-import { computed, h, ref } from 'vue'
+import { computed, h, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api'
 import { defaultThemeConfig } from '@/config/theme.config.js'
 import { useAuthStore, useUserStore } from '@/store'
+import { getFileUrl } from '@/utils/file'
 
 /**
  * 默认用户下拉菜单选项
@@ -53,11 +54,37 @@ export function useUser() {
   })
 
   /**
-   * 用户头像URL，无头像时返回null
+   * 用户头像URL（通过fetch下载，返回blob URL）
    */
-  const userAvatar = computed(() => {
-    return userStore.avatar || null
-  })
+  const userAvatar = ref('')
+
+  async function loadAvatar() {
+    const avatar = userStore.avatar
+    if (!avatar) {
+      userAvatar.value = ''
+      return
+    }
+    try {
+      const url = getFileUrl(avatar)
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${authStore.accessToken}` },
+      })
+      if (response.ok) {
+        const blob = await response.blob()
+        userAvatar.value = URL.createObjectURL(blob)
+      }
+      else {
+        userAvatar.value = ''
+      }
+    }
+    catch {
+      userAvatar.value = ''
+    }
+  }
+
+  watch(() => userStore.avatar, () => {
+    loadAvatar()
+  }, { immediate: true })
 
   /**
    * 用户下拉菜单选项
@@ -100,8 +127,8 @@ export function useUser() {
         try {
           await api.logout()
         }
-        catch (error) {
-          console.error(error)
+        catch {
+          console.error('logout error')
         }
         authStore.logout()
         $message.success('已退出登录')

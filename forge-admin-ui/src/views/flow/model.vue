@@ -1,46 +1,66 @@
 <template>
-  <div class="p-16">
-    <!-- 顶部操作栏 -->
-    <div class="mb-16 flex items-center justify-between">
-      <div class="flex items-center gap-12">
+  <div class="flow-page">
+    <!-- 统计卡片 -->
+    <FlowModelStats
+      :total-count="totalCount"
+      :designing-count="designingCount"
+      :deployed-count="deployedCount"
+      :suspended-count="suspendedCount"
+      :disabled-count="disabledCount"
+      @filter="handleFilter"
+    />
+
+    <!-- 页面头部 -->
+    <div class="page-header">
+      <div class="header-left">
+        <div class="title-row">
+          <div class="title-icon">
+            <i class="i-material-symbols:device-hub" />
+          </div>
+          <h2 class="page-title">
+            流程模型
+          </h2>
+        </div>
+      </div>
+      <div class="header-right">
         <n-input
           v-model:value="queryParams.modelName"
           placeholder="搜索模型名称或 Key"
           clearable
-          style="width: 240px"
+          class="search-input"
           @keyup.enter="handleSearch"
         >
           <template #prefix>
-            <i class="i-material-symbols:search text-gray-400" />
+            <i class="i-material-symbols:search" />
           </template>
         </n-input>
         <n-select
           v-model:value="queryParams.category"
           placeholder="流程分类"
           clearable
-          style="width: 150px"
+          class="category-select"
           :options="categoryOptions"
         />
         <n-select
           v-model:value="queryParams.status"
           placeholder="全部状态"
           clearable
-          style="width: 130px"
+          class="status-select"
           :options="statusOptions"
         />
-        <n-button type="primary" ghost @click="handleSearch">
+        <NButton type="primary" class="search-btn" @click="handleSearch">
+          <i class="i-material-symbols:search mr-2" />
           搜索
-        </n-button>
-        <n-button @click="handleReset">
+        </NButton>
+        <NButton class="reset-btn" @click="handleReset">
+          <i class="i-material-symbols:refresh mr-2" />
           重置
-        </n-button>
+        </NButton>
+        <NButton type="primary" class="add-btn" @click="handleAdd">
+          <i class="i-material-symbols:add mr-2" />
+          新增模型
+        </NButton>
       </div>
-      <n-button type="primary" @click="handleAdd">
-        <template #icon>
-          <i class="i-material-symbols:add" />
-        </template>
-        新增模型
-      </n-button>
     </div>
 
     <!-- 卡片网格 -->
@@ -52,17 +72,17 @@
           class="model-card"
           @click="handleDesign(item)"
         >
-          <!-- 卡片头：图标 + 状态 -->
+          <!-- 卡片头 -->
           <div class="card-header">
             <div class="card-icon" :class="iconClass(item)">
-              <i :class="iconName(item)" class="text-24" />
+              <i :class="iconName(item)" />
             </div>
-            <n-tag :type="statusTagType[item.status] ?? 'default'" size="small" round>
+            <span class="status-tag" :class="statusClass(item.status)">
               {{ statusText[item.status] ?? '未知' }}
-            </n-tag>
+            </span>
           </div>
 
-          <!-- 卡片体：名称 + key + 描述 -->
+          <!-- 卡片体 -->
           <div class="card-body">
             <div class="card-title" :title="item.modelName">
               {{ item.modelName }}
@@ -75,7 +95,7 @@
             </div>
           </div>
 
-          <!-- 卡片脚：元信息 + 操作 -->
+          <!-- 卡片脚 -->
           <div class="card-footer">
             <div class="card-meta">
               <span class="meta-item">
@@ -92,34 +112,37 @@
               </span>
             </div>
             <div class="card-actions" @click.stop>
-              <n-button size="small" type="primary" @click.stop="handleDesign(item)">
+              <NButton size="small" type="primary" @click.stop="handleDesign(item)">
+                <i class="i-material-symbols:edit-outline mr-1" />
                 设计
-              </n-button>
-              <n-button
+              </NButton>
+              <NButton
                 v-if="item.status === 0"
                 size="small"
                 type="success"
                 @click.stop="handleDeploy(item)"
               >
+                <i class="i-material-symbols:rocket-launch mr-1" />
                 部署
-              </n-button>
-              <n-button
+              </NButton>
+              <NButton
                 v-if="item.status === 1"
                 size="small"
                 @click.stop="handleViewInstances(item)"
               >
+                <i class="i-material-symbols:visibility-outline mr-1" />
                 实例
-              </n-button>
+              </NButton>
               <n-dropdown
                 trigger="click"
                 :options="getActionOptions(item)"
                 @select="(key) => handleActionSelect(key, item)"
               >
-                <n-button size="small" quaternary circle @click.stop>
+                <NButton size="small" quaternary circle @click.stop>
                   <template #icon>
                     <i class="i-material-symbols:more-horiz" />
                   </template>
-                </n-button>
+                </NButton>
               </n-dropdown>
             </div>
           </div>
@@ -130,18 +153,19 @@
       <n-empty
         v-else-if="!loading"
         description="暂无流程模型，点击「新增模型」开始设计"
-        class="py-64"
+        class="empty-state"
       >
         <template #extra>
-          <n-button type="primary" @click="handleAdd">
+          <NButton type="primary" @click="handleAdd">
+            <i class="i-material-symbols:add mr-2" />
             新增模型
-          </n-button>
+          </NButton>
         </template>
       </n-empty>
     </n-spin>
 
     <!-- 分页 -->
-    <div v-if="pagination.itemCount > 0" class="mt-16 flex justify-end">
+    <div v-if="pagination.itemCount > 0" class="pagination-wrapper">
       <n-pagination
         v-model:page="pagination.page"
         v-model:page-size="pagination.pageSize"
@@ -149,7 +173,7 @@
         :page-sizes="[12, 24, 48]"
         show-size-picker
         @update:page="fetchData"
-        @update:page-size="(v) => { pagination.pageSize = v; pagination.page = 1; fetchData() }"
+        @update:page-size="handlePageSizeChange"
       />
     </div>
 
@@ -198,8 +222,8 @@
               <n-input v-model:value="formData.flowType" placeholder="如 approval" />
             </n-form-item-gi>
             <n-form-item-gi label="事件通知" path="notifyType" :span="2">
-              <div class="w-full">
-                <n-radio-group v-model:value="formData.notifyType" class="mb-8">
+              <div class="notify-section">
+                <n-radio-group v-model:value="formData.notifyType" class="radio-group">
                   <n-space>
                     <n-radio value="none">
                       不通知
@@ -208,26 +232,22 @@
                       Redis Pub/Sub
                       <n-tooltip trigger="hover" placement="top">
                         <template #trigger>
-                          <i class="i-material-symbols:info-outline ml-2 cursor-help text-gray-400" />
+                          <i class="i-material-symbols:info-outline ml-2 cursor-help" />
                         </template>
-                        流程完成/驳回/取消时，发布消息到 Redis 频道<br>
-                        频道名：flow:event:{modelKey} 及 flow:event:all<br>
-                        业务侧通过 SUBSCRIBE/PSUBSCRIBE 消费
+                        流程完成/驳回/取消时，发布消息到 Redis 频道
                       </n-tooltip>
                     </n-radio>
                     <n-radio value="webhook">
                       HTTP Webhook
                       <n-tooltip trigger="hover" placement="top">
                         <template #trigger>
-                          <i class="i-material-symbols:info-outline ml-2 cursor-help text-gray-400" />
+                          <i class="i-material-symbols:info-outline ml-2 cursor-help" />
                         </template>
-                        流程完成/驳回/取消时，POST 请求回调 Webhook URL<br>
-                        携带请求头：X-Flow-Event-Type / X-Flow-Process-Key / X-Flow-Business-Key
+                        流程完成/驳回/取消时，POST 请求回调 Webhook URL
                       </n-tooltip>
                     </n-radio>
                   </n-space>
                 </n-radio-group>
-                <!-- webhook URL 仅在选择 webhook 时显示 -->
                 <n-input
                   v-if="formData.notifyType === 'webhook'"
                   v-model:value="formData.webhookUrl"
@@ -262,16 +282,13 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
-// h 函数（给 dropdown icon 用）
-import { h } from 'vue'
+import { h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-
 import flowApi from '@/api/flow'
+import FlowModelStats from '@/components/flow/FlowModelStats.vue'
 
 const router = useRouter()
 
-// ==================== 选项 ====================
 const statusOptions = [
   { label: '设计中', value: 0 },
   { label: '已部署', value: 1 },
@@ -285,15 +302,20 @@ const formTypeOptions = [
 ]
 const categoryOptions = ref([])
 
-const statusTagType = { 0: 'warning', 1: 'success', 2: 'default', 3: 'error' }
 const statusText = { 0: '设计中', 1: '已部署', 2: '已挂起', 3: '已禁用' }
 
-// 卡片图标颜色映射（按分类/类型给予不同视觉风格）
-const iconColorMap = ['#4f46e5', '#0891b2', '#059669', '#d97706', '#dc2626', '#7c3aed']
-function iconClass(item) {
-  const idx = Math.abs(hashStr(item.modelKey || '')) % iconColorMap.length
-  return `icon-bg-${idx}`
+function statusClass(status) {
+  const cls = { 0: 'designing', 1: 'deployed', 2: 'suspended', 3: 'disabled' }
+  return cls[status] || 'default'
 }
+
+const iconColorClasses = ['icon-bg-0', 'icon-bg-1', 'icon-bg-2', 'icon-bg-3', 'icon-bg-4', 'icon-bg-5']
+
+function iconClass(item) {
+  const idx = Math.abs(hashStr(item.modelKey || '')) % iconColorClasses.length
+  return iconColorClasses[idx]
+}
+
 function iconName(item) {
   const typeMap = {
     leave: 'i-material-symbols:free-cancellation-outline',
@@ -308,18 +330,20 @@ function iconName(item) {
   }
   return 'i-material-symbols:device-hub'
 }
+
 function hashStr(s) {
   let h = 0
-  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  for (let i = 0; i < s.length; i++)
+    h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
   return h
 }
+
 function formatDate(d) {
   if (!d)
     return ''
   return d.slice(0, 10)
 }
 
-// ==================== 操作下拉 ====================
 function getActionOptions(row) {
   const opts = [
     { label: '编辑信息', key: 'edit', icon: () => h('i', { class: 'i-material-symbols:edit-outline' }) },
@@ -335,16 +359,22 @@ function getActionOptions(row) {
   opts.push({ label: '删除', key: 'delete', props: { style: 'color: #d03050' } })
   return opts
 }
+
 function handleActionSelect(key, row) {
   const map = { edit: handleEdit, copy: handleCopy, suspend: handleSuspend, activate: handleActivate, delete: handleDelete }
   map[key]?.(row)
 }
 
-// ==================== 查询/数据 ====================
 const queryParams = reactive({ modelName: '', category: null, status: null })
 const dataSource = ref([])
 const loading = ref(false)
 const pagination = reactive({ page: 1, pageSize: 12, itemCount: 0 })
+
+const totalCount = ref(0)
+const designingCount = ref(0)
+const deployedCount = ref(0)
+const suspendedCount = ref(0)
+const disabledCount = ref(0)
 
 async function fetchCategories() {
   try {
@@ -356,7 +386,9 @@ async function fetchCategories() {
       }))
     }
   }
-  catch (e) { console.error(e) }
+  catch {
+    console.error('加载分类失败')
+  }
 }
 
 async function fetchData() {
@@ -370,19 +402,49 @@ async function fetchData() {
     if (res.code === 200) {
       dataSource.value = res.data?.records || []
       pagination.itemCount = res.data?.total || 0
+      totalCount.value = res.data?.total || 0
+      designingCount.value = dataSource.value.filter(r => r.status === 0).length
+      deployedCount.value = dataSource.value.filter(r => r.status === 1).length
+      suspendedCount.value = dataSource.value.filter(r => r.status === 2).length
+      disabledCount.value = dataSource.value.filter(r => r.status === 3).length
     }
   }
-  catch (e) { console.error(e) }
-  finally { loading.value = false }
+  catch {
+    console.error('加载模型列表失败')
+  }
+  finally {
+    loading.value = false
+  }
 }
-function handleSearch() { pagination.page = 1; fetchData() }
+
+function handlePageSizeChange(v) {
+  pagination.pageSize = v
+  pagination.page = 1
+  fetchData()
+}
+
+function handleSearch() {
+  pagination.page = 1
+  fetchData()
+}
+
 function handleReset() {
   Object.assign(queryParams, { modelName: '', category: null, status: null })
   pagination.page = 1
   fetchData()
 }
 
-// ==================== 表单弹窗 ====================
+function handleFilter(status) {
+  if (status === 'all') {
+    queryParams.status = null
+  }
+  else {
+    queryParams.status = status
+  }
+  pagination.page = 1
+  fetchData()
+}
+
 const showModal = ref(false)
 const modalTitle = ref('新增模型')
 const isEdit = ref(false)
@@ -411,12 +473,14 @@ function handleAdd() {
   Object.assign(formData, { id: '', modelName: '', modelKey: '', category: '', flowType: '', formType: 'dynamic', description: '', notifyType: 'none', webhookUrl: '' })
   showModal.value = true
 }
+
 function handleEdit(row) {
   isEdit.value = true
   modalTitle.value = '编辑模型'
   Object.assign(formData, row)
   showModal.value = true
 }
+
 async function handleSubmit() {
   try {
     await formRef.value?.validate()
@@ -432,17 +496,22 @@ async function handleSubmit() {
       window.$message?.error(res.message || '操作失败')
     }
   }
-  catch (e) { console.error(e) }
-  finally { submitLoading.value = false }
+  catch {
+    console.error('提交失败')
+  }
+  finally {
+    submitLoading.value = false
+  }
 }
 
-// ==================== 业务操作 ====================
 function handleDesign(row) {
   router.push({ path: '/flow/design', query: { id: row.id } })
 }
+
 function handleViewInstances(row) {
   router.push({ path: '/flow/monitor', query: { modelKey: row.modelKey } })
 }
+
 async function handleDeploy(row) {
   window.$dialog?.info({
     title: '确认部署',
@@ -451,13 +520,17 @@ async function handleDeploy(row) {
     negativeText: '取消',
     onPositiveClick: async () => {
       const res = await flowApi.deployModel(row.id)
-      if (res.code === 200) { window.$message?.success('部署成功'); fetchData() }
+      if (res.code === 200) {
+        window.$message?.success('部署成功')
+        fetchData()
+      }
       else {
         window.$message?.error(res.message || '部署失败')
       }
     },
   })
 }
+
 async function handleCopy(row) {
   window.$dialog?.info({
     title: '复制模型',
@@ -466,13 +539,17 @@ async function handleCopy(row) {
     negativeText: '取消',
     onPositiveClick: async () => {
       const res = await flowApi.copyModel(row.id, `${row.modelName} - 副本`)
-      if (res.code === 200) { window.$message?.success('复制成功'); fetchData() }
+      if (res.code === 200) {
+        window.$message?.success('复制成功')
+        fetchData()
+      }
       else {
         window.$message?.error(res.message || '复制失败')
       }
     },
   })
 }
+
 async function handleSuspend(row) {
   window.$dialog?.warning({
     title: '确认挂起',
@@ -481,20 +558,28 @@ async function handleSuspend(row) {
     negativeText: '取消',
     onPositiveClick: async () => {
       const res = await flowApi.suspendModel(row.id)
-      if (res.code === 200) { window.$message?.success('已挂起'); fetchData() }
+      if (res.code === 200) {
+        window.$message?.success('已挂起')
+        fetchData()
+      }
       else {
         window.$message?.error(res.message || '挂起失败')
       }
     },
   })
 }
+
 async function handleActivate(row) {
   const res = await flowApi.activateModel(row.id)
-  if (res.code === 200) { window.$message?.success('已激活'); fetchData() }
+  if (res.code === 200) {
+    window.$message?.success('已激活')
+    fetchData()
+  }
   else {
     window.$message?.error(res.message || '激活失败')
   }
 }
+
 async function handleDelete(row) {
   window.$dialog?.error({
     title: '确认删除',
@@ -503,7 +588,10 @@ async function handleDelete(row) {
     negativeText: '取消',
     onPositiveClick: async () => {
       const res = await flowApi.deleteModel(row.id)
-      if (res.code === 200) { window.$message?.success('删除成功'); fetchData() }
+      if (res.code === 200) {
+        window.$message?.success('删除成功')
+        fetchData()
+      }
       else {
         window.$message?.error(res.message || '删除失败')
       }
@@ -518,50 +606,116 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 卡片网格：固定列宽，多列排列 */
+.flow-page {
+  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.page-header {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+  margin-bottom: 16px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.title-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-input {
+  width: 240px;
+}
+
+.category-select {
+  width: 150px;
+}
+
+.status-select {
+  width: 130px;
+}
+
 .model-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
 }
+
 @media (max-width: 1400px) {
   .model-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
 @media (max-width: 1000px) {
   .model-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* 单张卡片：竖向堆叠 */
 .model-card {
   background: #fff;
-  border: 1px solid #e8e8e8;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 16px;
   cursor: pointer;
-  transition:
-    box-shadow 0.2s,
-    border-color 0.2s,
-    transform 0.15s;
+  transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
+
 .model-card:hover {
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
-  border-color: #d0d0d0;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.1);
+  border-color: #cbd5e1;
   transform: translateY(-2px);
 }
 
-/* 头部：图标左 + 状态右 */
 .card-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
 }
+
 .card-icon {
   width: 44px;
   height: 44px;
@@ -569,29 +723,62 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 20px;
   color: #fff;
   flex-shrink: 0;
 }
+
 .icon-bg-0 {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-}
-.icon-bg-1 {
-  background: linear-gradient(135deg, #22d3ee, #0891b2);
-}
-.icon-bg-2 {
-  background: linear-gradient(135deg, #34d399, #059669);
-}
-.icon-bg-3 {
-  background: linear-gradient(135deg, #fbbf24, #d97706);
-}
-.icon-bg-4 {
-  background: linear-gradient(135deg, #f87171, #dc2626);
-}
-.icon-bg-5 {
-  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
 }
 
-/* 主体：名称 + key + 描述 */
+.icon-bg-1 {
+  background: linear-gradient(135deg, #22d3ee 0%, #0891b2 100%);
+}
+
+.icon-bg-2 {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+}
+
+.icon-bg-3 {
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+}
+
+.icon-bg-4 {
+  background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+}
+
+.icon-bg-5 {
+  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+}
+
+.status-tag {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status-tag.designing {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.status-tag.deployed {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-tag.suspended {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.status-tag.disabled {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
 .card-body {
   flex: 1;
   min-width: 0;
@@ -599,26 +786,29 @@ onMounted(() => {
   flex-direction: column;
   gap: 4px;
 }
+
 .card-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #0f172a;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .card-key {
   font-size: 12px;
-  color: #9ca3af;
+  color: #64748b;
   font-family: monospace;
   letter-spacing: 0.3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .card-desc {
   font-size: 12px;
-  color: #6b7280;
+  color: #94a3b8;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -627,15 +817,15 @@ onMounted(() => {
   margin-top: 2px;
 }
 
-/* 底部：元信息 + 操作按钮 */
 .card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding-top: 10px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #f1f5f9;
   gap: 8px;
 }
+
 .card-meta {
   display: flex;
   align-items: center;
@@ -644,18 +834,43 @@ onMounted(() => {
   flex: 1;
   min-width: 0;
 }
+
 .meta-item {
   display: flex;
   align-items: center;
   gap: 2px;
   font-size: 11px;
-  color: #9ca3af;
+  color: #94a3b8;
   white-space: nowrap;
 }
+
 .card-actions {
   display: flex;
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
+}
+
+.empty-state {
+  padding: 64px 0;
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: end;
+  margin-top: 16px;
+}
+
+.notify-section {
+  width: 100%;
+}
+
+.radio-group {
+  margin-bottom: 8px;
+}
+
+.cursor-help {
+  cursor: help;
+  color: #64748b;
 }
 </style>
