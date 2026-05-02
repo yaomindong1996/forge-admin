@@ -8,10 +8,10 @@
     <version>1.0.0</version>
   </parent>
   <groupId>com.mdframe.forge</groupId>
-  <artifactId>forge-plugin-ai</artifactId>
+  <artifactId>forge-plugin-flow</artifactId>
   <version>1.0.0</version>
-  <name>forge-plugin-ai</name>
-  <description>forge-plugin-ai - AI 能力插件（供应商管理、Agent 管理、对话、会话、多轮上下文）</description>
+  <name>forge-plugin-flow</name>
+  <description>Forge Flow 流程管理插件 - 基于 Flowable</description>
   <dependencies>
     <dependency>
       <groupId>com.mdframe.forge</groupId>
@@ -19,37 +19,37 @@
     </dependency>
     <dependency>
       <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-starter-orm</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-starter-auth</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-starter-tenant</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-plugin-system</artifactId>
+      <artifactId>forge-plugin-message</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-webflux</artifactId>
+      <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.springframework.ai</groupId>
-      <artifactId>spring-ai-openai</artifactId>
-      <version>${spring-ai.version}</version>
+      <groupId>org.flowable</groupId>
+      <artifactId>flowable-spring-boot-starter</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.springframework.ai</groupId>
-      <artifactId>spring-ai-client-chat</artifactId>
-      <version>${spring-ai.version}</version>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.github.ben-manes.caffeine</groupId>
-      <artifactId>caffeine</artifactId>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>com.baomidou</groupId>
+      <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.projectlombok</groupId>
@@ -62,4 +62,12 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+  <build>
+    <resources>
+      <resource>
+        <filtering>false</filtering>
+        <directory>src/main/resources</directory>
+      </resource>
+    </resources>
+  </build>
 </project>

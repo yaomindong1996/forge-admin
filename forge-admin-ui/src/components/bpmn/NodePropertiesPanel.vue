@@ -534,7 +534,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, toRaw, watch } from 'vue'
+import { computed, nextTick, reactive, ref, toRaw, watch } from 'vue'
 import { request } from '@/utils/http'
 import UserSelectModal from './UserSelectModal.vue'
 
@@ -720,6 +720,15 @@ const scriptFormatOptions = [
 watch(() => props.element, (newElement) => {
   if (newElement) {
     loadElementProperties(toRaw(newElement))
+    // 自动修复：老模型可能缺少 loopCardinality，打开时自动补全
+    nextTick(() => {
+      if (properties.multiInstanceType !== 'none' && rawElement.value?.type === 'bpmn:UserTask') {
+        const bo = rawElement.value.businessObject
+        if (bo?.loopCharacteristics && !bo.loopCharacteristics.loopCardinality) {
+          updateMultiInstance()
+        }
+      }
+    })
   }
 }, { immediate: true })
 
@@ -1215,43 +1224,47 @@ function updateMultiInstance() {
 
   const moddle = props.modeler.get('moddle')
   const modeling = props.modeler.get('modeling')
+  const bo = rawElement.value.businessObject
 
   if (properties.multiInstanceType === 'none') {
-    modeling.updateProperties(rawElement.value, {
-      loopCharacteristics: null,
-    })
+    modeling.updateProperties(rawElement.value, { loopCharacteristics: null })
+    emit('update')
     return
   }
 
-  // 构建完成条件表达式字符串
+  // 构建完成条件
   let completionConditionStr = ''
-  if (properties.completionCondition === 'all') {
+  if (properties.completionCondition === 'all')
     completionConditionStr = '${nrOfCompletedInstances == nrOfInstances}'
-  }
-  else if (properties.completionCondition === 'any') {
+  else if (properties.completionCondition === 'any')
     completionConditionStr = '${nrOfCompletedInstances >= 1}'
-  }
-  else if (properties.completionCondition === 'rate') {
-    const rate = (properties.passRate / 100).toFixed(2)
-    completionConditionStr = `\${nrOfCompletedInstances / nrOfInstances >= ${rate}}`
-  }
+  else if (properties.completionCondition === 'rate')
+    completionConditionStr = `\${nrOfCompletedInstances / nrOfInstances >= ${(properties.passRate / 100).toFixed(2)}}`
 
-  // 必须使用 moddle.create 创建 bpmn-js 可识别的对象
-  const completionConditionObj = completionConditionStr
+  const loopCardinalityObj = moddle.create('bpmn:FormalExpression', { body: '${nrOfInstances}' })
+  const completionCondObj = completionConditionStr
     ? moddle.create('bpmn:FormalExpression', { body: completionConditionStr })
     : null
 
-  // 集合表达式：多实例的执行人从变量集合中获取
-  const loopCardinality = moddle.create('bpmn:FormalExpression', { body: '${nrOfInstances}' })
+  // 确保 loopCardinality 被正确序列化到 XML：
+  // updateModdleProperties 适用于修改已有的 moddle 子元素
+  if (bo.loopCharacteristics) {
+    modeling.updateModdleProperties(rawElement.value, bo.loopCharacteristics, {
+      isSequential: properties.multiInstanceType === 'sequential',
+      loopCardinality: loopCardinalityObj,
+      completionCondition: completionCondObj,
+    })
+  }
+  else {
+    // 首次创建：用 updateProperties 设置整个 loopCharacteristics
+    const lc = moddle.create('bpmn:MultiInstanceLoopCharacteristics', {
+      isSequential: properties.multiInstanceType === 'sequential',
+      loopCardinality: loopCardinalityObj,
+      completionCondition: completionCondObj,
+    })
+    modeling.updateProperties(rawElement.value, { loopCharacteristics: lc })
+  }
 
-  const loopCharacteristics = moddle.create('bpmn:MultiInstanceLoopCharacteristics', {
-    isSequential: properties.multiInstanceType === 'sequential',
-    completionCondition: completionConditionObj,
-  })
-
-  modeling.updateProperties(rawElement.value, {
-    loopCharacteristics,
-  })
   emit('update')
 }
 

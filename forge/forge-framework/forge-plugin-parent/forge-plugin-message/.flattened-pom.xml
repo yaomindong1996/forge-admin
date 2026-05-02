@@ -4,34 +4,38 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.mdframe.forge</groupId>
-    <artifactId>forge-starter-parent</artifactId>
+    <artifactId>forge-plugin-parent</artifactId>
     <version>1.0.0</version>
   </parent>
   <groupId>com.mdframe.forge</groupId>
-  <artifactId>forge-starter-log</artifactId>
+  <artifactId>forge-plugin-message</artifactId>
   <version>1.0.0</version>
-  <name>forge-starter-log</name>
-  <description>forge-starter-log</description>
+  <name>forge-plugin-message</name>
+  <description>forge-plugin-message</description>
   <dependencies>
     <dependency>
       <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-starter-core</artifactId>
+      <artifactId>forge-starter-message</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-aop</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>cn.dev33</groupId>
-      <artifactId>sa-token-core</artifactId>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-tx</artifactId>
     </dependency>
     <dependency>
       <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-starter-api-config</artifactId>
+      <artifactId>forge-starter-orm</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-starter-auth</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-plugin-system</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-starter-tenant</artifactId>
     </dependency>
   </dependencies>
 </project>

@@ -22,9 +22,7 @@
           style="width: 150px"
           disabled
         />
-      </div>
-      <div class="center">
-        <NTag :type="statusTag.type">
+        <NTag :type="statusTag.type" size="small">
           {{ statusTag.label }}
         </NTag>
       </div>
@@ -49,140 +47,80 @@
     <!-- 主体内容 -->
     <div class="main-content">
       <!-- 左侧配置面板 -->
-      <div class="config-panel">
-        <n-tabs type="line" size="small">
-          <n-tab-pane name="basic" tab="基本设置">
-            <n-form :model="modelInfo" label-placement="top" size="small">
-              <n-form-item label="流程分类">
-                <n-select
-                  v-model:value="modelInfo.category"
-                  :options="categoryOptions"
-                  placeholder="选择分类"
-                />
-              </n-form-item>
-              <n-form-item label="流程类型">
-                <n-input v-model:value="modelInfo.flowType" placeholder="如：审批流程" />
-              </n-form-item>
-              <n-form-item label="流程描述">
-                <n-input
-                  v-model:value="modelInfo.description"
-                  type="textarea"
-                  :rows="3"
-                  placeholder="描述流程用途"
-                />
-              </n-form-item>
-            </n-form>
-          </n-tab-pane>
-
-          <n-tab-pane name="form" tab="表单配置">
-            <div class="form-config">
-              <n-form-item label="表单类型">
-                <n-select
-                  v-model:value="modelInfo.formType"
-                  :options="formTypeOptions"
-                  @update:value="handleFormTypeChange"
-                />
-              </n-form-item>
-
-              <!-- 动态表单：选择已有表单或设计新表单 -->
-              <template v-if="modelInfo.formType === 'dynamic'">
-                <n-form-item label="表单选择">
+      <div class="config-panel" :class="{ collapsed: configCollapsed }">
+        <div class="config-panel-header">
+          <span class="config-panel-title">流程配置</span>
+          <n-button text size="tiny" @click="configCollapsed = !configCollapsed">
+            <i :class="configCollapsed ? 'i-material-symbols:chevron-right' : 'i-material-symbols:chevron-left'" />
+          </n-button>
+        </div>
+        <div v-show="!configCollapsed" class="config-panel-body">
+          <n-collapse :default-expanded-names="['basic']">
+            <n-collapse-item title="基本设置" name="basic">
+              <n-form :model="modelInfo" label-placement="top" size="small">
+                <n-form-item label="流程分类">
                   <n-select
-                    v-model:value="modelInfo.formId"
-                    :options="formOptions"
-                    placeholder="选择已有表单"
-                    clearable
-                    @update:value="handleFormSelect"
+                    v-model:value="modelInfo.category"
+                    :options="categoryOptions"
+                    placeholder="选择分类"
                   />
                 </n-form-item>
-
-                <n-space vertical size="small">
-                  <n-button
-                    type="primary"
-                    dashed
-                    block
-                    @click="handleOpenFormDesigner"
-                  >
-                    <template #icon>
-                      <i class="i-material-symbols:edit-document" />
-                    </template>
-                    {{ modelInfo.formJson ? '编辑表单设计' : '设计新表单' }}
-                  </n-button>
-
-                  <n-button
-                    v-if="modelInfo.formJson"
-                    dashed
-                    block
-                    @click="handlePreviewForm"
-                  >
-                    <template #icon>
-                      <i class="i-material-symbols:visibility" />
-                    </template>
-                    预览表单
-                  </n-button>
-
-                  <n-button
-                    v-if="modelInfo.formJson"
-                    type="error"
-                    text
-                    block
-                    @click="handleClearForm"
-                  >
-                    <template #icon>
-                      <i class="i-material-symbols:delete" />
-                    </template>
-                    清除表单
-                  </n-button>
-                </n-space>
-
-                <!-- 表单字段预览 -->
-                <div v-if="formSchema.length > 0" class="form-fields-preview">
-                  <n-divider style="margin: 12px 0">
-                    表单字段预览
-                  </n-divider>
-                  <div class="field-list">
-                    <NTag
-                      v-for="(field, index) in formSchema"
-                      :key="index"
-                      size="small"
-                      type="info"
-                      style="margin: 2px"
-                    >
-                      {{ field.label || field.field }}
-                    </NTag>
-                  </div>
-                </div>
-              </template>
-
-              <!-- 外部表单：输入URL -->
-              <template v-else-if="modelInfo.formType === 'external'">
-                <n-form-item label="表单URL">
+                <n-form-item label="流程类型">
+                  <n-input v-model:value="modelInfo.flowType" placeholder="如：审批流程" />
+                </n-form-item>
+                <n-form-item label="流程描述">
                   <n-input
-                    v-model:value="modelInfo.formUrl"
-                    placeholder="请输入外部表单URL"
+                    v-model:value="modelInfo.description"
+                    type="textarea"
+                    :rows="2"
+                    placeholder="描述流程用途"
                   />
                 </n-form-item>
-              </template>
-            </div>
-          </n-tab-pane>
+              </n-form>
+            </n-collapse-item>
 
-          <n-tab-pane name="listener" tab="监听器">
-            <n-form label-placement="top" size="small">
-              <n-form-item label="开始监听器">
-                <n-input
-                  v-model:value="modelInfo.startListener"
-                  placeholder="全限定类名"
-                />
-              </n-form-item>
-              <n-form-item label="结束监听器">
-                <n-input
-                  v-model:value="modelInfo.endListener"
-                  placeholder="全限定类名"
-                />
-              </n-form-item>
-            </n-form>
-          </n-tab-pane>
-        </n-tabs>
+            <n-collapse-item title="全局表单" name="form">
+              <n-alert type="info" size="small" style="margin-bottom: 8px">
+                节点级表单请在画布中选中节点后，在右侧属性面板配置。
+              </n-alert>
+              <n-form :model="modelInfo" label-placement="top" size="small">
+                <n-form-item label="启动表单类型">
+                  <n-select
+                    v-model:value="modelInfo.formType"
+                    :options="formTypeOptions"
+                    @update:value="handleFormTypeChange"
+                  />
+                </n-form-item>
+                <template v-if="modelInfo.formType === 'dynamic'">
+                  <n-form-item label="表单选择">
+                    <n-select
+                      v-model:value="modelInfo.formId"
+                      :options="formOptions"
+                      placeholder="选择已有表单"
+                      clearable
+                      @update:value="handleFormSelect"
+                    />
+                  </n-form-item>
+                  <n-button type="primary" dashed block size="small" @click="handleOpenFormDesigner">
+                    <template #icon><i class="i-material-symbols:edit-document" /></template>
+                    {{ modelInfo.formJson ? '编辑启动表单' : '设计启动表单' }}
+                  </n-button>
+                </template>
+              </n-form>
+            </n-collapse-item>
+
+            <n-collapse-item title="监听器" name="listener">
+              <n-form label-placement="top" size="small">
+                <n-form-item label="开始监听器">
+                  <n-input v-model:value="modelInfo.startListener" placeholder="全限定类名" />
+                </n-form-item>
+                <n-form-item label="结束监听器">
+                  <n-input v-model:value="modelInfo.endListener" placeholder="全限定类名" />
+                </n-form-item>
+              </n-form>
+            </n-collapse-item>
+          </n-collapse>
+        </div>
       </div>
 
       <!-- 流程设计器 -->
@@ -191,7 +129,26 @@
           ref="modelerRef"
           :xml="bpmnXml"
           @change="handleBpmnChange"
+          @ready="handleModelerReady"
         />
+      </div>
+
+      <!-- 右侧属性面板（停靠式） -->
+      <div v-if="dockedElement" class="docked-properties-panel">
+        <div class="docked-panel-header">
+          <span class="docked-panel-title">{{ getElementTitle(dockedElement) }}</span>
+          <n-button text size="small" @click="closeDockedPanel">
+            <i class="i-material-symbols:close" />
+          </n-button>
+        </div>
+        <div class="docked-panel-body">
+          <NodePropertiesPanel
+            v-if="modelerInstance"
+            :element="dockedElement"
+            :modeler="modelerInstance"
+            @update="handleBpmnChange"
+          />
+        </div>
       </div>
     </div>
 
@@ -233,10 +190,11 @@
 
 <script setup>
 import { NTag } from 'naive-ui'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import flowApi from '@/api/flow'
 import FlowModeler from '@/components/bpmn/FlowModeler.vue'
+import NodePropertiesPanel from '@/components/bpmn/NodePropertiesPanel.vue'
 import FormDesigner from '@/components/form-designer/FormDesigner.vue'
 import FormPreview from '@/components/form-designer/FormPreview.vue'
 
@@ -251,6 +209,11 @@ const deploying = ref(false)
 const modelerRef = ref(null)
 const bpmnXml = ref('')
 const hasChanges = ref(false)
+
+// 停靠属性面板状态
+const dockedElement = ref(null)
+const modelerInstance = ref(null)
+const configCollapsed = ref(false)
 
 // 模型信息
 const modelInfo = reactive({
@@ -540,6 +503,49 @@ function handleBack() {
     router.back()
   }
 }
+
+// Modeler 就绪后监听选中元素
+function handleModelerReady() {
+  if (modelerRef.value) {
+    modelerInstance.value = modelerRef.value.modeler()
+    watch(() => modelerRef.value?.selectedElement, (el) => {
+      if (el) {
+        // 有新选中——更新面板
+        dockedElement.value = el
+      }
+      // 选中清空时不自动关闭面板——由用户手动关闭
+      // 避免操作表单控件（下拉框等）时误触发关闭
+    }, { immediate: true })
+  }
+}
+
+function closeDockedPanel() {
+  dockedElement.value = null
+  if (modelerInstance.value) {
+    const selection = modelerInstance.value.get('selection')
+    if (selection) selection.select(null)
+  }
+}
+
+function getElementTitle(el) {
+  if (!el) return '属性设置'
+  const typeNames = {
+    'bpmn:StartEvent': '开始节点',
+    'bpmn:EndEvent': '结束节点',
+    'bpmn:UserTask': '用户任务',
+    'bpmn:ServiceTask': '服务任务',
+    'bpmn:ScriptTask': '脚本任务',
+    'bpmn:BusinessRuleTask': '业务规则任务',
+    'bpmn:ManualTask': '手工任务',
+    'bpmn:ExclusiveGateway': '排他网关',
+    'bpmn:ParallelGateway': '并行网关',
+    'bpmn:InclusiveGateway': '包容网关',
+    'bpmn:SequenceFlow': '序列流',
+    'bpmn:SubProcess': '子流程',
+    'bpmn:CallActivity': '调用活动',
+  }
+  return el.businessObject?.name || typeNames[el.type] || '属性设置'
+}
 </script>
 
 <style scoped>
@@ -567,12 +573,6 @@ function handleBack() {
   gap: 12px;
 }
 
-.top-bar .center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
 .main-content {
   flex: 1;
   display: flex;
@@ -583,36 +583,72 @@ function handleBack() {
   width: 300px;
   background: #fff;
   border-right: 1px solid #e0e0e0;
-  overflow-y: auto;
-}
-
-.config-panel :deep(.n-tabs-nav) {
-  padding: 0 16px;
-}
-
-.config-panel :deep(.n-tab-pane) {
-  padding: 16px;
-}
-
-.form-config {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  overflow: hidden;
+  transition: width 0.25s ease;
 }
 
-.form-fields-preview {
-  margin-top: 8px;
+.config-panel.collapsed {
+  width: 40px;
 }
 
-.field-list {
+.config-panel-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.config-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.config-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
 }
 
 .designer-container {
   flex: 1;
   overflow: hidden;
+}
+
+.docked-properties-panel {
+  width: 320px;
+  background: #fff;
+  border-left: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: -2px 0 12px rgba(15, 23, 42, 0.04);
+}
+
+.docked-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.docked-panel-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.docked-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
 }
 
 .h-full {

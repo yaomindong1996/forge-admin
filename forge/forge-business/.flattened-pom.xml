@@ -4,21 +4,16 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.mdframe.forge</groupId>
-    <artifactId>forge-framework</artifactId>
+    <artifactId>forge</artifactId>
     <version>1.0.0</version>
   </parent>
   <groupId>com.mdframe.forge</groupId>
-  <artifactId>forge-plugin-parent</artifactId>
+  <artifactId>forge-business</artifactId>
   <version>1.0.0</version>
   <packaging>pom</packaging>
-  <name>forge-plugin-parent</name>
-  <description>forge-plugin-parent</description>
+  <name>forge-business</name>
+  <description>业务聚合</description>
   <modules>
-    <module>forge-plugin-system</module>
-    <module>forge-plugin-job</module>
-    <module>forge-plugin-message</module>
-    <module>forge-plugin-flow</module>
-    <module>forge-plugin-generator</module>
-    <module>forge-plugin-ai</module>
+    <module>forge-business-core</module>
   </modules>
 </project>

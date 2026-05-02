@@ -4,22 +4,32 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.mdframe.forge</groupId>
-    <artifactId>forge-starter-parent</artifactId>
+    <artifactId>forge-plugin-parent</artifactId>
     <version>1.0.0</version>
   </parent>
   <groupId>com.mdframe.forge</groupId>
-  <artifactId>forge-starter-config</artifactId>
+  <artifactId>forge-plugin-job</artifactId>
   <version>1.0.0</version>
-  <name>forge-starter-property</name>
-  <description>forge-starter-property</description>
+  <name>forge-plugin-job</name>
+  <description>forge-plugin-job</description>
   <dependencies>
     <dependency>
       <groupId>com.mdframe.forge</groupId>
-      <artifactId>forge-starter-core</artifactId>
+      <artifactId>forge-starter-job</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-jdbc</artifactId>
+      <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-starter-crypto</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.quartz-scheduler</groupId>
+      <artifactId>quartz</artifactId>
+      <exclusions>
+        <exclusion>
+          <artifactId>c3p0</artifactId>
+          <groupId>com.mchange</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 </project>
