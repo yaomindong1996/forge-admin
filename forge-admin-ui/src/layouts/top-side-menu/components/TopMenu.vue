@@ -13,13 +13,12 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { findFirstMenuWithPath, findTopMenuByPath, useMenu } from '@/composables'
 import { useAppStore, usePermissionStore } from '@/store'
 import { getTopMenuThemeOverrides } from '@/utils/menu-theme.js'
 import { processTopMenus } from '@/utils/menu-utils'
 
-const router = useRouter()
 const route = useRoute()
 const permissionStore = usePermissionStore()
 const appStore = useAppStore()
@@ -69,31 +68,27 @@ const activeKey = computed(() => {
 
 const menu = ref(null)
 
-function handleMenuSelect(key, item) {
+function handleMenuSelect(key, _item) {
   const menus = permissionStore.menus || []
   const topMenus = processTopMenus(menus)
-  const selectedMenu = topMenus.find(m => m.id === key)
+
+  const selectedMenu = topMenus.find(m => m.id === key || String(m.id) === String(key))
 
   if (!selectedMenu)
     return
 
-  // Update store for selected top menu
   appStore.setSelectedTopMenuId(key)
 
   if (selectedMenu.type === 'module') {
-    // Module type: find first child with path and navigate
     const firstMenu = findFirstMenuWithPath(selectedMenu)
     if (firstMenu && firstMenu.path) {
-      baseHandleMenuSelect(firstMenu.key || firstMenu.id)
+      baseHandleMenuSelect(firstMenu.key || firstMenu.id, firstMenu.path)
     }
     return
   }
 
-  if (selectedMenu.type === 'menu') {
-    // Menu type: navigate directly
-    if (selectedMenu.path) {
-      baseHandleMenuSelect(selectedMenu.key || selectedMenu.id)
-    }
+  if (selectedMenu.path) {
+    baseHandleMenuSelect(selectedMenu.key || selectedMenu.id, selectedMenu.path)
   }
 }
 </script>

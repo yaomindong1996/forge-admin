@@ -82,42 +82,47 @@ export function processMenuData(menuItems) {
     return acc
   }, [])
 
-  return flattenedItems.map((item, index) => {
+  return flattenedItems
+    .filter((item) => {
+      if (item.type === 'module' && (!item.children || item.children.length === 0)) {
+        return false
+      }
+      return true
+    })
+    .map((item, index) => {
     // 确保每个菜单项都有唯一ID和label
-    const menuItem = {
-      key: String(item.key || item.id || generateUniqueId(`item_key_${index}_`)),
-      label: item.name || item.label || '',
-    }
-
-    // 设置图标 - 处理字符串和函数两种情况
-    if (item.icon) {
-      if (typeof item.icon === 'function') {
-        // 如果已经是函数，直接使用
-        menuItem.icon = item.icon
+      const isModule = item.type === 'module'
+      const menuItem = {
+        key: String(item.key || item.id || generateUniqueId(`item_key_${index}_`)),
+        label: item.name || item.label || '',
       }
-      else if (typeof item.icon === 'string' && item.icon.trim() !== '' && item.icon !== '-1') {
-        // 如果是字符串，转换为渲染函数
-        menuItem.icon = () => h(IconRenderer, {
-          icon: item.icon,
-        })
+
+      // 设置图标 - 处理字符串和函数两种情况
+      if (item.icon) {
+        if (typeof item.icon === 'function') {
+          menuItem.icon = item.icon
+        }
+        else if (typeof item.icon === 'string' && item.icon.trim() !== '' && item.icon !== '-1') {
+          menuItem.icon = () => h(IconRenderer, {
+            icon: item.icon,
+          })
+        }
       }
-    }
 
-    // 设置路由路径
-    if (item.path) {
-      menuItem.path = item.path
-    }
-
-    // 处理子菜单
-    if (item.children && item.children.length > 0) {
-      const children = processMenuData(item.children)
-      if (children.length > 0) {
-        menuItem.children = children
+      if (item.path && !isModule) {
+        menuItem.path = item.path
       }
-    }
 
-    return menuItem
-  })
+      // 处理子菜单
+      if (item.children && item.children.length > 0) {
+        const children = processMenuData(item.children)
+        if (children.length > 0) {
+          menuItem.children = children
+        }
+      }
+
+      return menuItem
+    })
 }
 
 /**
@@ -163,8 +168,15 @@ export function findMenuItem(menuItems, key) {
   if (!menuItems || !Array.isArray(menuItems))
     return null
 
+  const matchKey = (itemKey, searchKey) => {
+    return itemKey === searchKey
+      || String(itemKey) === String(searchKey)
+      || Number(itemKey) === Number(searchKey)
+  }
+
   for (const item of menuItems) {
-    if ((item.key || item.id) === key) {
+    const itemId = item.key || item.id
+    if (matchKey(itemId, key)) {
       return item
     }
     if (item.children && item.children.length > 0) {

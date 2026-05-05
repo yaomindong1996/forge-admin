@@ -217,6 +217,108 @@
         </template>
       </n-drawer-content>
     </n-drawer>
+
+    <!-- 流程变量查看弹窗 -->
+    <n-modal v-model:show="variablesModalVisible" preset="card" title="流程变量" style="width: 800px;">
+      <n-spin :show="variablesLoading">
+        <n-empty v-if="!variablesLoading && Object.keys(processVariables).length === 0" description="暂无流程变量" />
+        <n-descriptions v-else :column="1" label-placement="left" bordered>
+          <n-descriptions-item v-for="(value, key) in processVariables" :key="key" :label="key">
+            <n-text code>
+              {{ formatVariableValue(value) }}
+            </n-text>
+          </n-descriptions-item>
+        </n-descriptions>
+      </n-spin>
+    </n-modal>
+
+    <!-- 管理员操作弹窗 -->
+    <n-modal v-model:show="adminActionsModalVisible" preset="card" title="管理员操作" style="width: 600px;">
+      <NSpace vertical size="large">
+        <!-- 终止流程 -->
+        <n-card title="终止流程" size="small" hoverable>
+          <template #header-extra>
+            <NTag type="error" size="small">
+              危险操作
+            </NTag>
+          </template>
+          <NSpace vertical>
+            <n-text depth="3">
+              终止流程后，流程将立即结束，无法恢复。
+            </n-text>
+            <n-input
+              v-model:value="terminateReason"
+              type="textarea"
+              placeholder="请输入终止原因"
+              :rows="2"
+            />
+            <NButton type="error" @click="confirmTerminate">
+              确认终止
+            </NButton>
+          </NSpace>
+        </n-card>
+
+        <!-- 节点回退 -->
+        <n-card title="节点回退" size="small" hoverable>
+          <NSpace vertical>
+            <n-text depth="3">
+              将流程回退到指定的历史节点。
+            </n-text>
+            <n-select
+              v-model:value="rollbackTargetActivity"
+              :options="activityOptions"
+              placeholder="请选择目标节点"
+              :loading="activitiesLoading"
+            />
+            <n-input
+              v-model:value="rollbackReason"
+              type="textarea"
+              placeholder="请输入回退原因"
+              :rows="2"
+            />
+            <NButton type="warning" :disabled="!rollbackTargetActivity" @click="confirmRollback">
+              确认回退
+            </NButton>
+          </NSpace>
+        </n-card>
+
+        <!-- 任务转派 -->
+        <n-card title="任务转派" size="small" hoverable>
+          <NSpace vertical>
+            <n-text depth="3">
+              将当前任务转派给其他用户处理。
+            </n-text>
+            <n-input
+              v-model:value="reassignUserName"
+              placeholder="请选择新处理人"
+              readonly
+              @click="userSelectModalVisible = true"
+            >
+              <template #suffix>
+                <i class="i-material-symbols:person-search cursor-pointer" @click="userSelectModalVisible = true" />
+              </template>
+            </n-input>
+            <n-input
+              v-model:value="reassignReason"
+              type="textarea"
+              placeholder="请输入转派原因"
+              :rows="2"
+            />
+            <NButton type="primary" :disabled="!reassignUserId" @click="confirmReassign">
+              确认转派
+            </NButton>
+          </NSpace>
+        </n-card>
+      </NSpace>
+    </n-modal>
+
+    <!-- 用户选择弹窗 -->
+    <UserSelectModal
+      v-model:show="userSelectModalVisible"
+      title="选择转派用户"
+      :multiple="false"
+      @confirm="handleUserSelect"
+    />
   </div>
 </template>
 
@@ -227,6 +329,7 @@ import { h, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 import ProcessDiagramViewer from '@/components/bpmn/ProcessDiagramViewer.vue'
+import UserSelectModal from '@/components/bpmn/UserSelectModal.vue'
 import { request } from '@/utils'
 
 defineOptions({ name: 'FlowMonitor' })
@@ -317,13 +420,15 @@ const columns = [
   {
     title: '操作',
     key: 'actions',
-    width: 150,
+    width: 280,
     render(row) {
       return h(NSpace, null, {
         default: () => [
           h(NButton, { text: true, type: 'primary', onClick: () => showDetail(row) }, { default: () => '详情' }),
           h(NButton, { text: true, type: 'info', onClick: () => showDiagram(row) }, { default: () => '流程图' }),
-        ],
+          h(NButton, { text: true, type: 'warning', onClick: () => showVariables(row) }, { default: () => '变量' }),
+          row.status === 'running' && h(NButton, { text: true, type: 'error', onClick: () => showAdminActions(row) }, { default: () => '管理' }),
+        ].filter(Boolean),
       })
     },
   },
@@ -337,6 +442,25 @@ const approvalHistory = ref([])
 // 流程图弹窗
 const diagramModalVisible = ref(false)
 const currentDiagramInstanceId = ref(null)
+
+// 流程变量弹窗
+const variablesModalVisible = ref(false)
+const variablesLoading = ref(false)
+const processVariables = ref({})
+
+// 管理员操作弹窗
+const adminActionsModalVisible = ref(false)
+const currentAdminInstance = ref({})
+const terminateReason = ref('')
+const rollbackTargetActivity = ref(null)
+const rollbackReason = ref('')
+const reassignUserId = ref('')
+const reassignUserName = ref('')
+const reassignReason = ref('')
+const activityOptions = ref([])
+const activitiesLoading = ref(false)
+const currentTaskId = ref(null)
+const userSelectModalVisible = ref(false)
 
 // 图表引用
 const taskChartRef = ref(null)
@@ -471,44 +595,283 @@ function showDiagram(row) {
 
 // 挂起流程
 async function handleSuspend() {
+  // 验证流程状态
+  if (currentInstance.value.status !== 'running') {
+    message.warning('只能挂起运行中的流程')
+    return
+  }
+
+  if (!currentInstance.value.id) {
+    message.warning('无法获取流程实例ID')
+    return
+  }
+
   try {
-    const res = await request.post(`/api/flow/instance/${currentInstance.value.id}/suspend`)
+    const res = await request.post(`/api/flow/monitor/suspend/${currentInstance.value.id}`)
     if (res.code === 200) {
       message.success('流程已挂起')
+      detailDrawerVisible.value = false
       loadData()
+    }
+    else {
+      message.error(res.msg || '挂起流程失败')
     }
   }
   catch (error) {
-    message.error('操作失败')
+    console.error('挂起流程失败:', error)
+    message.error(error.response?.data?.msg || '操作失败')
   }
 }
 
 // 激活流程
 async function handleActivate() {
+  // 验证流程状态
+  if (currentInstance.value.status !== 'suspended') {
+    message.warning('只能激活已挂起的流程')
+    return
+  }
+
+  if (!currentInstance.value.id) {
+    message.warning('无法获取流程实例ID')
+    return
+  }
+
   try {
-    const res = await request.post(`/api/flow/instance/${currentInstance.value.id}/activate`)
+    const res = await request.post(`/api/flow/monitor/activate/${currentInstance.value.id}`)
     if (res.code === 200) {
       message.success('流程已激活')
+      detailDrawerVisible.value = false
       loadData()
+    }
+    else {
+      message.error(res.msg || '激活流程失败')
     }
   }
   catch (error) {
-    message.error('操作失败')
+    console.error('激活流程失败:', error)
+    message.error(error.response?.data?.msg || '操作失败')
   }
 }
 
 // 终止流程
 async function handleTerminate() {
+  // 验证流程状态 - 只能终止运行中或挂起的流程
+  if (currentInstance.value.status !== 'running' && currentInstance.value.status !== 'suspended') {
+    message.warning('只能终止运行中或已挂起的流程')
+    return
+  }
+
+  if (!currentInstance.value.id) {
+    message.warning('无法获取流程实例ID')
+    return
+  }
+
   try {
-    const res = await request.post(`/api/flow/instance/${currentInstance.value.id}/terminate`)
+    const res = await request.post(`/api/flow/monitor/terminate/${currentInstance.value.id}`, {
+      reason: '管理员终止流程',
+    })
     if (res.code === 200) {
       message.success('流程已终止')
       detailDrawerVisible.value = false
       loadData()
     }
+    else {
+      message.error(res.msg || '终止流程失败')
+    }
   }
   catch (error) {
-    message.error('操作失败')
+    console.error('终止流程失败:', error)
+    message.error(error.response?.data?.msg || '操作失败')
+  }
+}
+
+// 显示流程变量
+async function showVariables(row) {
+  variablesModalVisible.value = true
+  variablesLoading.value = true
+  processVariables.value = {}
+
+  try {
+    const res = await request.get(`/api/flow/monitor/variables/${row.id}`)
+    if (res.code === 200) {
+      processVariables.value = res.data || {}
+    }
+  }
+  catch (error) {
+    console.error('加载流程变量失败', error)
+    message.error('加载流程变量失败')
+  }
+  finally {
+    variablesLoading.value = false
+  }
+}
+
+// 格式化变量值
+function formatVariableValue(value) {
+  if (value === null || value === undefined) {
+    return 'null'
+  }
+  if (typeof value === 'object') {
+    return JSON.stringify(value, null, 2)
+  }
+  return String(value)
+}
+
+// 显示管理员操作面板
+async function showAdminActions(row) {
+  currentAdminInstance.value = row
+  adminActionsModalVisible.value = true
+
+  // 重置表单
+  terminateReason.value = ''
+  rollbackTargetActivity.value = null
+  rollbackReason.value = ''
+  reassignUserId.value = ''
+  reassignUserName.value = ''
+  reassignReason.value = ''
+  activityOptions.value = []
+  currentTaskId.value = null
+
+  // 加载历史活动节点
+  await loadActivities(row.id)
+
+  // 获取当前任务ID（用于转派）
+  try {
+    const res = await request.get(`/api/flow/monitor/current-tasks/${row.id}`)
+    if (res.code === 200 && res.data && res.data.length > 0) {
+      currentTaskId.value = res.data[0].id
+    }
+  }
+  catch (error) {
+    console.error('获取当前任务失败', error)
+  }
+}
+
+// 用户选择回调
+function handleUserSelect(user) {
+  if (user) {
+    reassignUserId.value = String(user.id)
+    reassignUserName.value = user.name || user.realName || user.username
+  }
+}
+
+// 加载历史活动节点
+async function loadActivities(processInstanceId) {
+  activitiesLoading.value = true
+  try {
+    const res = await request.get(`/api/flow/monitor/activities/${processInstanceId}`)
+    if (res.code === 200 && res.data) {
+      activityOptions.value = res.data.map(item => ({
+        label: `${item.activityName} (${item.activityId})`,
+        value: item.activityId,
+      }))
+    }
+  }
+  catch (error) {
+    console.error('加载历史节点失败', error)
+    message.error('加载历史节点失败')
+  }
+  finally {
+    activitiesLoading.value = false
+  }
+}
+
+// 确认终止流程
+async function confirmTerminate() {
+  if (!terminateReason.value.trim()) {
+    message.warning('请输入终止原因')
+    return
+  }
+
+  // 验证流程状态
+  if (!currentAdminInstance.value.id) {
+    message.warning('无法获取流程实例ID')
+    return
+  }
+
+  const status = currentAdminInstance.value.status
+  if (status !== 'running' && status !== 'suspended') {
+    message.warning('只能终止运行中或已挂起的流程')
+    return
+  }
+
+  try {
+    const res = await request.post(`/api/flow/monitor/terminate/${currentAdminInstance.value.id}`, {
+      reason: terminateReason.value,
+    })
+    if (res.code === 200) {
+      message.success('流程已终止')
+      adminActionsModalVisible.value = false
+      loadData()
+      loadStatistics()
+    }
+    else {
+      message.error(res.msg || '终止流程失败')
+    }
+  }
+  catch (error) {
+    console.error('终止流程失败:', error)
+    message.error(error.response?.data?.msg || '终止流程失败')
+  }
+}
+
+// 确认节点回退
+async function confirmRollback() {
+  if (!rollbackTargetActivity.value) {
+    message.warning('请选择目标节点')
+    return
+  }
+  if (!rollbackReason.value.trim()) {
+    message.warning('请输入回退原因')
+    return
+  }
+
+  try {
+    const res = await request.post(`/api/flow/monitor/rollback/${currentAdminInstance.value.id}`, {
+      targetActivityId: rollbackTargetActivity.value,
+      reason: rollbackReason.value,
+    })
+    if (res.code === 200) {
+      message.success('流程已回退')
+      adminActionsModalVisible.value = false
+      loadData()
+    }
+  }
+  catch (error) {
+    console.error('回退流程失败', error)
+    message.error('回退流程失败')
+  }
+}
+
+// 确认任务转派
+async function confirmReassign() {
+  if (!reassignUserId.value.trim()) {
+    message.warning('请输入新处理人用户ID')
+    return
+  }
+  if (!reassignReason.value.trim()) {
+    message.warning('请输入转派原因')
+    return
+  }
+  if (!currentTaskId.value) {
+    message.error('无法获取当前任务ID')
+    return
+  }
+
+  try {
+    const res = await request.post(`/api/flow/monitor/reassign/${currentTaskId.value}`, {
+      newAssignee: reassignUserId.value,
+      reason: reassignReason.value,
+    })
+    if (res.code === 200) {
+      message.success('任务已转派')
+      adminActionsModalVisible.value = false
+      loadData()
+    }
+  }
+  catch (error) {
+    console.error('转派任务失败', error)
+    message.error('转派任务失败')
   }
 }
 

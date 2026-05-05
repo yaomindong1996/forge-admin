@@ -147,6 +147,8 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
         bpmnXml = replaceProcessId(bpmnXml, modelKey);
         log.info("已将流程ID替换为：{}", modelKey);
 
+        validateSequenceFlowRefs(bpmnXml);
+
         try {
             if (repositoryService == null) {
                 throw new RuntimeException("Flowable未初始化");
@@ -561,6 +563,37 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
         } catch (Exception e) {
             log.warn("替换流程ID失败", e);
             return bpmnXml;
+        }
+    }
+    
+    private void validateSequenceFlowRefs(String bpmnXml) {
+        java.util.regex.Pattern flowPattern = java.util.regex.Pattern.compile(
+                "<(?:bpmn:)?sequenceFlow\\b([^>]*?)/?>", 
+                java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Pattern idPattern = java.util.regex.Pattern.compile("\\bid=\"([^\"]*)\"");
+        java.util.regex.Pattern targetRefPattern = java.util.regex.Pattern.compile("\\btargetRef=\"([^\"]*)\"");
+        java.util.regex.Pattern sourceRefPattern = java.util.regex.Pattern.compile("\\bsourceRef=\"([^\"]*)\"");
+        
+        java.util.regex.Matcher matcher = flowPattern.matcher(bpmnXml);
+        while (matcher.find()) {
+            String flowElement = matcher.group(0);
+            String attrs = matcher.group(1);
+            
+            java.util.regex.Matcher idMatcher = idPattern.matcher(flowElement);
+            String flowId = idMatcher.find() ? idMatcher.group(1) : "unknown";
+            
+            boolean hasTargetRef = targetRefPattern.matcher(attrs).find();
+            boolean hasSourceRef = sourceRefPattern.matcher(attrs).find();
+            
+            if (!hasTargetRef || !hasSourceRef) {
+                String missing = !hasTargetRef ? "targetRef" : "sourceRef";
+                log.error("BPMN sequenceFlow [{}] 缺少 {} 属性，XML 片段: {}", 
+                        flowId, missing, flowElement);
+                throw new RuntimeException(String.format(
+                        "流程图数据不完整：连线 [%s] 缺少 %s 属性。" +
+                        "请在流程设计器中检查所有连线是否完整连接到目标节点，重新保存后再部署。",
+                        flowId, missing));
+            }
         }
     }
 }

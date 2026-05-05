@@ -3,7 +3,7 @@
     <div v-if="visible" class="quick-action-overlay" @click.self="emit('close')" @keydown.escape="emit('close')">
       <div
         class="quick-action-ring"
-        :style="{ left: position.x + 'px', top: position.y + 'px' }"
+        :style="{ left: `${position.x}px`, top: `${position.y}px` }"
         @click.stop
       >
         <div
@@ -94,8 +94,13 @@ function handleAction(key) {
 }
 
 @keyframes ring-pop {
-  from { opacity: 0; transform: scale(0.3) translate(0, 0); }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+    transform: scale(0.3) translate(0, 0);
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .btn-inner {
@@ -118,9 +123,29 @@ function handleAction(key) {
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
 }
 
-.btn-inner.color-red:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
-.btn-inner.color-blue:hover { background: #3b82f6; color: #fff; border-color: #3b82f6; }
-.btn-inner.color-purple:hover { background: #8b5cf6; color: #fff; border-color: #8b5cf6; }
-.btn-inner.color-green:hover { background: #10b981; color: #fff; border-color: #10b981; }
-.btn-inner.color-slate:hover { background: #475569; color: #fff; border-color: #475569; }
+.btn-inner.color-red:hover {
+  background: #ef4444;
+  color: #fff;
+  border-color: #ef4444;
+}
+.btn-inner.color-blue:hover {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+.btn-inner.color-purple:hover {
+  background: #8b5cf6;
+  color: #fff;
+  border-color: #8b5cf6;
+}
+.btn-inner.color-green:hover {
+  background: #10b981;
+  color: #fff;
+  border-color: #10b981;
+}
+.btn-inner.color-slate:hover {
+  background: #475569;
+  color: #fff;
+  border-color: #475569;
+}
 </style>

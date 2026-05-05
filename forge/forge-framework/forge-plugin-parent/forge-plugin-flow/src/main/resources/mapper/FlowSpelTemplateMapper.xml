@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.starter.flow.mapper.FlowSpelTemplateMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.starter.flow.entity.FlowSpelTemplate">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="template_name" property="templateName"/>
+        <result column="template_code" property="templateCode"/>
+        <result column="expression" property="expression"/>
+        <result column="description" property="description"/>
+        <result column="category" property="category"/>
+        <result column="example_params" property="exampleParams"/>
+        <result column="status" property="status"/>
+        <result column="sort" property="sort"/>
+        <result column="remark" property="remark"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, tenant_id, template_name, template_code, expression, description, category,
+        example_params, status, sort, remark, create_by, create_time, update_by, update_time, deleted
+    </sql>
+
+    <select id="selectEnabledList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_flow_spel_template
+        WHERE tenant_id = #{tenantId}
+          AND status = 1
+          AND deleted = 0
+        ORDER BY sort ASC, id ASC
+    </select>
+
+</mapper>

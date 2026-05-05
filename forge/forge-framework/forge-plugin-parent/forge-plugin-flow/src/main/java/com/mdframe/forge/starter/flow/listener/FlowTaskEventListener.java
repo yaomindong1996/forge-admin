@@ -103,6 +103,13 @@ public class FlowTaskEventListener implements FlowableEventListener {
                     task.getId(), task.getName(), task.getAssignee());
             log.info("processInstanceId={}, processDefinitionId={}",
                     task.getProcessInstanceId(), task.getProcessDefinitionId());
+            
+            // 关键警告：审批人未匹配
+            if (task.getAssignee() == null || task.getAssignee().isEmpty()) {
+                log.warn("[审批人分配失败] 任务创建时没有审批人: taskId={}, taskName={}, taskDefKey={}, processInstanceId={}", 
+                        task.getId(), task.getName(), task.getTaskDefinitionKey(), task.getProcessInstanceId());
+                log.warn("[审批人分配失败] 请检查: 1)审批人配置是否正确 2)流程变量是否传入 3)SPEL表达式是否返回有效用户ID");
+            }
                 
             // 检查是否已存在
             FlowTask existingTask = flowTaskMapper.selectByTaskId(task.getId());
@@ -263,21 +270,31 @@ public class FlowTaskEventListener implements FlowableEventListener {
     private void handleTaskAssigned(FlowableEvent event) {
         try {
             TaskEntity task = (TaskEntity) ((FlowableEntityEvent) event).getEntity();
-            log.info("任务分配事件：taskId={}, assignee={}", task.getId(), task.getAssignee());
+            log.info("任务分配事件：taskId={}, assignee={}, owner={}", 
+                    task.getId(), task.getAssignee(), task.getOwner());
             
-            // 更新任务处理人
             FlowTask flowTask = flowTaskMapper.selectByTaskId(task.getId());
             if (flowTask != null) {
                 flowTask.setAssignee(task.getAssignee());
+                flowTask.setOwner(task.getOwner());
+                
                 if (task.getAssignee() != null) {
-                    flowTask.setStatus(1); // 已签收
-                    flowTask.setClaimTime(LocalDateTime.now());
+                    if (task.getOwner() != null && !task.getOwner().equals(task.getAssignee())) {
+                        log.info("转派任务（owner存在且不同于assignee），保持待办状态：taskId={}, owner={}, assignee={}", 
+                                task.getId(), task.getOwner(), task.getAssignee());
+                        flowTask.setStatus(0);
+                    } else {
+                        log.info("任务签收（无owner或owner=assignee），设为已签收状态：taskId={}, assignee={}", 
+                                task.getId(), task.getAssignee());
+                        flowTask.setStatus(1);
+                        flowTask.setClaimTime(LocalDateTime.now());
+                    }
                 }
                 flowTaskMapper.updateById(flowTask);
-                log.info("更新任务处理人：taskId={}, assignee={}", task.getId(), task.getAssignee());
+                log.info("更新任务处理人：taskId={}, assignee={}, status={}", 
+                        task.getId(), task.getAssignee(), flowTask.getStatus());
             }
 
-            // 发布 TASK_ASSIGNED 事件，业务侧可监听任务分配/签收（如：发送分配通知等）
             if (task.getAssignee() != null) {
                 FlowBusiness assignedBusiness = getFlowBusiness(task.getProcessInstanceId());
                 if (assignedBusiness != null && flowTask != null) {
@@ -293,7 +310,7 @@ public class FlowTaskEventListener implements FlowableEventListener {
                             task.getTaskDefinitionKey(),
                             task.getName(),
                             task.getAssignee(),
-                            null,   // assigneeName 暂无
+                            null,
                             null);
                     publishEvent(msg, flowTask.getProcessDefKey());
                 }

@@ -4,6 +4,11 @@ export default antfu({
   unocss: true,
   formatters: true,
   stylistic: true,
+  ignores: [
+    '.qoder/**',
+    '.turing_coder_rules/**',
+    'design-system/**',
+  ],
   rules: {
     'n/prefer-global/process': 'off',
     'no-undef': 'error',

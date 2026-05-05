@@ -351,7 +351,7 @@ export function useCrudGenerator() {
     }
     else if (event === 'chunk') {
       const chunkContent = data.content
-      
+
       if (chunkContent.includes('==================== 思考过程 ====================')) {
         isReasoningPhase.value = true
         reasoningStartTime.value = Date.now()

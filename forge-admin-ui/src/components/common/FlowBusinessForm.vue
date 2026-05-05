@@ -98,22 +98,26 @@ function resolveLoader(formUrl) {
   if (!formUrl)
     return null
 
-  // 去掉查询参数
-  const cleanUrl = formUrl.split('?')[0]
+  // 去掉查询参数和前后空格（防止BPMN XML中带的前导空格）
+  const cleanUrl = formUrl.split('?')[0].trim()
 
-  // 拼接为 glob key：/src/views + cleanUrl + .vue
-  const exactKey = `/src/views${cleanUrl}.vue`
-  if (ALL_VIEW_MODULES[exactKey]) {
-    return ALL_VIEW_MODULES[exactKey]
+  // 构造目标路径
+  const targetPath = `${cleanUrl}.vue`
+  const expectedKey = `/src/views${targetPath}`
+
+  // 直接遍历所有模块，按路径匹配
+  for (const [key, loader] of Object.entries(ALL_VIEW_MODULES)) {
+    if (key === expectedKey || key.includes(targetPath) || key.endsWith(targetPath)) {
+      return loader
+    }
   }
 
-  // 大小写不敏感兜底：遍历所有 key 进行小写比较
-  const lowerKey = exactKey.toLowerCase()
-  const fallbackEntry = Object.entries(ALL_VIEW_MODULES).find(
-    ([k]) => k.toLowerCase() === lowerKey,
-  )
-  if (fallbackEntry) {
-    return fallbackEntry[1]
+  // 大小写不敏感兜底
+  const lowerTarget = targetPath.toLowerCase()
+  for (const [key, loader] of Object.entries(ALL_VIEW_MODULES)) {
+    if (key.toLowerCase().includes(lowerTarget) || key.toLowerCase().endsWith(lowerTarget)) {
+      return loader
+    }
   }
 
   return null

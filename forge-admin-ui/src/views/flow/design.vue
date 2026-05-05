@@ -46,13 +46,16 @@
 
     <!-- 主体内容 -->
     <div class="main-content">
-      <!-- 左侧配置面板 -->
+      <!-- 左侧配置面板 - 默认折叠 -->
       <div class="config-panel" :class="{ collapsed: configCollapsed }">
-        <div class="config-panel-header">
-          <span class="config-panel-title">流程配置</span>
-          <n-button text size="tiny" @click="configCollapsed = !configCollapsed">
-            <i :class="configCollapsed ? 'i-material-symbols:chevron-right' : 'i-material-symbols:chevron-left'" />
-          </n-button>
+        <div class="config-panel-toggle" @click="configCollapsed = !configCollapsed">
+          <div class="toggle-content">
+            <div class="toggle-icon">
+              {{ configCollapsed ? '▶' : '◀' }}
+            </div>
+            <span v-if="!configCollapsed" class="config-panel-title">流程配置</span>
+            <span v-else class="config-panel-title-vertical">流程配置</span>
+          </div>
         </div>
         <div v-show="!configCollapsed" class="config-panel-body">
           <n-collapse :default-expanded-names="['basic']">
@@ -102,7 +105,9 @@
                     />
                   </n-form-item>
                   <n-button type="primary" dashed block size="small" @click="handleOpenFormDesigner">
-                    <template #icon><i class="i-material-symbols:edit-document" /></template>
+                    <template #icon>
+                      <i class="i-material-symbols:edit-document" />
+                    </template>
                     {{ modelInfo.formJson ? '编辑启动表单' : '设计启动表单' }}
                   </n-button>
                 </template>
@@ -213,7 +218,7 @@ const hasChanges = ref(false)
 // 停靠属性面板状态
 const dockedElement = ref(null)
 const modelerInstance = ref(null)
-const configCollapsed = ref(false)
+const configCollapsed = ref(true) // 默认折叠左侧配置面板
 
 // 模型信息
 const modelInfo = reactive({
@@ -406,9 +411,26 @@ function handleClearForm() {
 }
 
 // BPMN 变更
-function handleBpmnChange(xml) {
-  bpmnXml.value = xml
-  hasChanges.value = true
+// BPMN 变化处理
+async function handleBpmnChange(xml) {
+  // 如果传入了 xml，直接使用
+  if (xml) {
+    bpmnXml.value = xml
+    hasChanges.value = true
+  }
+  // 如果没有传入 xml（来自 NodePropertiesPanel 的 @update 事件），则重新获取
+  else {
+    try {
+      const newXml = await modelerRef.value?.getXML(true) // skipValidation = true
+      if (newXml) {
+        bpmnXml.value = newXml
+        hasChanges.value = true
+      }
+    }
+    catch (error) {
+      console.error('获取 XML 失败:', error)
+    }
+  }
 }
 
 // 保存草稿
@@ -417,6 +439,13 @@ async function handleSaveDraft() {
     saving.value = true
 
     const xml = await modelerRef.value?.getXML()
+
+    // 如果验证失败，getXML 会返回 null
+    if (!xml) {
+      window.$message?.warning('流程图验证失败，请检查后重试')
+      return
+    }
+
     const data = {
       ...modelInfo,
       bpmnXml: xml,
@@ -456,7 +485,14 @@ async function handleDeploy() {
   try {
     deploying.value = true
 
-    // 先保存
+    // 先验证流程图
+    const xml = await modelerRef.value?.getXML()
+    if (!xml) {
+      window.$message?.error('流程图验证失败，无法部署。请检查：\n1. 所有连接线是否完整连接\n2. 是否包含开始和结束节点')
+      return
+    }
+
+    // 保存模型
     await handleSaveDraft()
 
     if (!modelInfo.id) {
@@ -464,6 +500,7 @@ async function handleDeploy() {
       return
     }
 
+    // 部署模型
     const res = await flowApi.deployModel(modelInfo.id)
     if (res.code === 200) {
       window.$message?.success('部署成功')
@@ -523,12 +560,14 @@ function closeDockedPanel() {
   dockedElement.value = null
   if (modelerInstance.value) {
     const selection = modelerInstance.value.get('selection')
-    if (selection) selection.select(null)
+    if (selection)
+      selection.select(null)
   }
 }
 
 function getElementTitle(el) {
-  if (!el) return '属性设置'
+  if (!el)
+    return '属性设置'
   const typeNames = {
     'bpmn:StartEvent': '开始节点',
     'bpmn:EndEvent': '结束节点',
@@ -549,113 +588,436 @@ function getElementTitle(el) {
 </script>
 
 <style scoped>
+/* ========== 设计系统变量 ========== */
+/* 基于 UI/UX Pro Max 推荐的 Flat Design + Indigo 主题 */
+:root {
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --secondary: #818cf8;
+  --success: #10b981;
+  --background: #f5f3ff;
+  --surface: #ffffff;
+  --text-primary: #1e1b4b;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
+  --shadow-sm: 0 1px 2px 0 rgba(99, 102, 241, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(99, 102, 241, 0.08);
+  --shadow-lg: 0 10px 15px -3px rgba(99, 102, 241, 0.1);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .model-design-page {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: var(--background);
+  font-family:
+    'Fira Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
 }
 
+/* ========== 顶部工具栏 ========== */
 .top-bar {
-  height: 56px;
-  padding: 0 16px;
-  background: #fff;
-  border-bottom: 1px solid #e0e0e0;
+  height: 64px;
+  padding: 0 24px;
+  background: var(--surface);
+  border-bottom: 2px solid var(--primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition);
+}
+
+.top-bar:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .top-bar .left,
 .top-bar .right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
+.top-bar .left {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ========== 主体内容 ========== */
 .main-content {
   flex: 1;
   display: flex;
   overflow: hidden;
+  gap: 0;
 }
 
+/* ========== 左侧配置面板 ========== */
 .config-panel {
-  width: 300px;
-  background: #fff;
-  border-right: 1px solid #e0e0e0;
+  width: 320px;
+  background: var(--surface);
+  border-right: 2px solid var(--primary);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: width 0.25s ease;
+  transition:
+    width var(--transition),
+    box-shadow var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+
+.config-panel:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .config-panel.collapsed {
-  width: 40px;
+  width: 56px;
 }
 
-.config-panel-header {
+.config-panel-toggle {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  border-bottom: 1px solid #e2e8f0;
+  justify-content: center;
+  padding: 16px 8px;
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+  color: #ffffff;
   flex-shrink: 0;
+  min-height: 56px;
+  cursor: pointer;
+  transition: all var(--transition);
+  user-select: none;
+  position: relative;
+}
+
+.config-panel-toggle::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0);
+  transition: background var(--transition);
+}
+
+.config-panel-toggle:hover::before {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.config-panel-toggle:active {
+  transform: scale(0.98);
+}
+
+.toggle-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.config-panel.collapsed .toggle-content {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toggle-icon {
+  font-size: 28px;
+  font-weight: bold;
+  line-height: 1;
+  transition: transform var(--transition);
+  flex-shrink: 0;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.config-panel-toggle:hover .toggle-icon {
+  transform: scale(1.1);
 }
 
 .config-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.config-panel-title-vertical {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
   font-size: 13px;
   font-weight: 600;
-  color: #334155;
+  letter-spacing: 2px;
+  color: #ffffff;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .config-panel-body {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
+  padding: 16px;
+  background: var(--surface);
 }
 
+/* 优化滚动条样式 */
+.config-panel-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.config-panel-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.config-panel-body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+  transition: background var(--transition);
+}
+
+.config-panel-body::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* 折叠状态提示 */
+.config-panel.collapsed .config-panel-toggle {
+  position: relative;
+}
+
+.config-panel.collapsed .config-panel-toggle::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 60px;
+  background: white;
+  border-radius: 4px 0 0 4px;
+  box-shadow: -2px 0 8px rgba(255, 255, 255, 0.3);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.6;
+    height: 60px;
+  }
+  50% {
+    opacity: 1;
+    height: 80px;
+  }
+}
+
+/* 添加悬停提示 */
+.config-panel.collapsed .config-panel-toggle:hover::before {
+  content: '点击展开';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #6366f1;
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 0 8px 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 2px 0 8px rgba(99, 102, 241, 0.3);
+  z-index: 10;
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+/* ========== 设计器容器 ========== */
 .designer-container {
   flex: 1;
   overflow: hidden;
+  background: var(--background);
+  position: relative;
 }
 
+/* ========== 右侧属性面板 ========== */
 .docked-properties-panel {
-  width: 320px;
-  background: #fff;
-  border-left: 1px solid #e2e8f0;
+  width: 360px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: -2px 0 12px rgba(15, 23, 42, 0.04);
+  box-shadow: -4px 0 16px rgba(99, 102, 241, 0.08);
+  transition: box-shadow var(--transition);
+}
+
+.docked-properties-panel:hover {
+  box-shadow: -6px 0 24px rgba(99, 102, 241, 0.12);
 }
 
 .docked-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: white;
   flex-shrink: 0;
+  min-height: 56px;
 }
 
 .docked-panel-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  color: #334155;
+  letter-spacing: 0.3px;
+  color: white;
 }
 
 .docked-panel-body {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 16px;
+  background: var(--surface);
 }
 
+/* 优化滚动条样式 */
+.docked-panel-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.docked-panel-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.docked-panel-body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+  transition: background var(--transition);
+}
+
+.docked-panel-body::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* ========== 工具类 ========== */
 .h-full {
   height: 100%;
 }
 
 .-m-4 {
   margin: -16px;
+}
+
+/* ========== 响应式优化 ========== */
+@media (max-width: 1024px) {
+  .config-panel {
+    width: 280px;
+  }
+
+  .config-panel.collapsed {
+    width: 56px;
+  }
+
+  .docked-properties-panel {
+    width: 320px;
+  }
+}
+
+@media (max-width: 768px) {
+  .top-bar {
+    padding: 0 16px;
+    height: 56px;
+  }
+
+  .top-bar .left {
+    gap: 8px;
+  }
+
+  .config-panel {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 100;
+    box-shadow: var(--shadow-lg);
+    width: 280px;
+  }
+
+  .config-panel.collapsed {
+    width: 56px;
+  }
+
+  .docked-properties-panel {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 100;
+    width: 90%;
+    max-width: 360px;
+  }
+}
+
+/* ========== 动画效果 ========== */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.config-panel-body > *,
+.docked-panel-body > * {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* ========== 无障碍优化 ========== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .config-panel.collapsed .config-panel-toggle::after {
+    animation: none !important;
+  }
+}
+
+/* ========== Focus 状态优化 ========== */
+:deep(button:focus-visible),
+:deep(input:focus-visible),
+:deep(select:focus-visible),
+:deep(textarea:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.config-panel-toggle:focus-visible {
+  outline: 2px solid white;
+  outline-offset: -4px;
 }
 </style>

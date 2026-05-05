@@ -35,16 +35,48 @@
           <transition name="nav-collapse">
             <div v-if="isExpanded(item)" class="nav-children">
               <div class="nav-children-line" />
-              <button
-                v-for="child in item.children"
-                :key="child.key"
-                class="nav-sub-btn"
-                :class="{ active: isActive(child) }"
-                @click="handleNavClick(child)"
-              >
-                <span class="nav-sub-dot" :class="{ active: isActive(child) }" />
-                <span class="nav-sub-label">{{ child.label }}</span>
-              </button>
+              <template v-for="child in item.children" :key="child.key">
+                <div v-if="child.children && child.children.length" class="nav-collapsible">
+                  <button
+                    class="nav-collapsible-btn sub"
+                    :class="{ active: isCollapsibleActive(child), expanded: isExpanded(child) }"
+                    @click="toggleExpand(child)"
+                  >
+                    <div class="nav-btn-content">
+                      <span class="nav-sub-dot" :class="{ active: isCollapsibleActive(child) }" />
+                      <span class="nav-sub-label">{{ child.label }}</span>
+                    </div>
+                    <i
+                      class="i-material-symbols:chevron-right nav-chevron"
+                      :class="{ expanded: isExpanded(child) }"
+                    />
+                  </button>
+                  <transition name="nav-collapse">
+                    <div v-if="isExpanded(child)" class="nav-children">
+                      <div class="nav-children-line" />
+                      <button
+                        v-for="grandchild in child.children"
+                        :key="grandchild.key"
+                        class="nav-sub-btn"
+                        :class="{ active: isActive(grandchild) }"
+                        @click="handleNavClick(grandchild)"
+                      >
+                        <span class="nav-sub-dot" :class="{ active: isActive(grandchild) }" />
+                        <span class="nav-sub-label">{{ grandchild.label }}</span>
+                      </button>
+                    </div>
+                  </transition>
+                </div>
+                <button
+                  v-else
+                  class="nav-sub-btn"
+                  :class="{ active: isActive(child) }"
+                  @click="handleNavClick(child)"
+                >
+                  <span class="nav-sub-dot" :class="{ active: isActive(child) }" />
+                  <span class="nav-sub-label">{{ child.label }}</span>
+                </button>
+              </template>
             </div>
           </transition>
         </div>
@@ -117,23 +149,26 @@ const userAvatarLoadFailed = ref(false)
 const expandedKeys = ref(new Set())
 const showUserAvatarImage = computed(() => Boolean(userAvatar.value) && !userAvatarLoadFailed.value)
 
-// Process menu data (simple pass-through with key normalization)
+// Process menu data with recursive children support and module type filtering
 const menuItems = computed(() => {
   const menus = permissionStore.menus || []
-  return menus.map(item => ({
-    key: item.key || String(item.id),
-    name: item.name || item.label || '',
-    label: item.label || item.name || item.meta?.title || '',
-    path: item.path || '',
-    icon: item.icon || '',
-    children: (item.children || []).map(child => ({
-      key: child.key || String(child.id),
-      name: child.name || child.label || '',
-      label: child.label || child.name || child.meta?.title || '',
-      path: child.path || '',
-      icon: child.icon || '',
-    })),
-  }))
+
+  function processItem(item) {
+    const isModule = item.type === 'module'
+    const children = (item.children || []).map(processItem)
+
+    return {
+      key: item.key || String(item.id),
+      name: item.name || item.label || '',
+      label: item.label || item.name || item.meta?.title || '',
+      path: (!isModule && item.path) ? item.path : '',
+      icon: item.icon || '',
+      type: item.type || 'menu',
+      children,
+    }
+  }
+
+  return menus.map(processItem)
 })
 
 // Check if menu item is active
@@ -174,9 +209,12 @@ function toggleExpand(item) {
   }
 }
 
-// Handle menu click
+// Handle menu click - only navigate for items with a path (non-module)
 function handleNavClick(item) {
-  if (item.path) {
+  if (item.children && item.children.length) {
+    toggleExpand(item)
+  }
+  else if (item.path) {
     router.push({ path: item.path })
   }
 }
@@ -352,6 +390,27 @@ function handleUserAvatarError() {
 
 .nav-collapsible-btn.active {
   color: var(--text-primary);
+}
+
+.nav-collapsible-btn.sub {
+  padding: 5px 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.nav-collapsible-btn.sub .nav-sub-label {
+  flex: 1;
+  text-align: left;
+}
+
+.nav-collapsible-btn.sub:hover {
+  background: var(--nexus-hover-bg);
+  color: var(--text-secondary);
+}
+
+.nav-collapsible-btn.sub.active {
+  background: var(--nexus-active-bg);
+  color: var(--nexus-active-text);
 }
 
 .nav-btn-content {

@@ -96,6 +96,14 @@
           预览XML
         </n-button>
 
+        <!-- 验证 -->
+        <n-button size="small" @click="handleValidate">
+          <template #icon>
+            <i class="i-material-symbols:check-circle" />
+          </template>
+          验证流程
+        </n-button>
+
         <n-divider vertical />
 
         <!-- 工具 -->
@@ -125,6 +133,7 @@
 
       <!-- 叠加层组件 -->
       <Minimap
+        v-if="modeler"
         :modeler="modeler"
         :visible="true"
       />
@@ -141,19 +150,41 @@
     >
 
     <!-- XML预览弹窗 -->
-    <n-modal v-model:show="showPreviewModal" preset="card" title="BPMN XML 预览" style="width: 800px">
-      <n-code :code="previewXml" language="xml" :show-line-numbers="true" />
+    <n-modal v-model:show="showPreviewModal" preset="card" title="BPMN XML 预览" style="width: 900px; max-height: 80vh">
+      <div class="xml-preview-container">
+        <n-code :code="previewXml" language="xml" :show-line-numbers="true" :word-wrap="true" />
+      </div>
+
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="handleCopyXml">
+            <template #icon>
+              <i class="i-material-symbols:content-copy" />
+            </template>
+            复制XML
+          </n-button>
+          <n-button type="primary" @click="handleDownloadXmlFromPreview">
+            <template #icon>
+              <i class="i-material-symbols:download" />
+            </template>
+            下载XML
+          </n-button>
+          <n-button @click="showPreviewModal = false">
+            关闭
+          </n-button>
+        </n-space>
+      </template>
     </n-modal>
   </div>
 </template>
 
 <script setup>
 import BpmnModeler from 'bpmn-js/lib/Modeler'
-import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, toRaw, watch } from 'vue'
-import flowableModdle from './flowable-moddle.json'
-import CustomRenderer from './CustomRenderer.js'
-import CanvasBackground from './CanvasBackground.js'
+import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 import autoLayout from './AutoLayout.js'
+import CanvasBackground from './CanvasBackground.js'
+import CustomRenderer from './CustomRenderer.js'
+import flowableModdle from './flowable-moddle.json'
 import Minimap from './Minimap.vue'
 import ShortcutsBar from './ShortcutsBar.vue'
 import 'bpmn-js/dist/assets/diagram-js.css'
@@ -195,9 +226,6 @@ const selectedElement = ref(null)
 const showPreviewModal = ref(false)
 const previewXml = ref('')
 const darkMode = ref(false)
-
-// 获取原始元素（避免 Vue 代理与 bpmn-js 冲突）
-const rawSelectedElement = computed(() => selectedElement.value ? toRaw(selectedElement.value) : null)
 
 // 默认 BPMN XML - 必须包含 BPMNDiagram 图形信息
 const defaultXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -278,9 +306,76 @@ async function initModeler() {
     emitChange()
   })
 
+  // 监听连接线创建事件，防止不完整的连接线残留
+  eventBus.on('commandStack.connection.create.postExecuted', (event) => {
+    const { context } = event
+    if (context && context.connection) {
+      const connection = context.connection
+      const bo = connection.businessObject
+
+      // 检查连接线是否完整
+      if (!bo.sourceRef || !bo.targetRef) {
+        console.warn('检测到不完整的连接线，立即清理:', connection.id)
+        const modeling = modeler.get('modeling')
+        modeling.removeElements([connection])
+      }
+    }
+  })
+
+  // 监听连接线更新事件
+  eventBus.on('commandStack.connection.updateWaypoints.postExecuted', (event) => {
+    const { context } = event
+    if (context && context.connection) {
+      const connection = context.connection
+      const bo = connection.businessObject
+
+      // 检查连接线是否完整
+      if (!bo.sourceRef || !bo.targetRef) {
+        console.warn('检测到不完整的连接线，立即清理:', connection.id)
+        const modeling = modeler.get('modeling')
+        modeling.removeElements([connection])
+      }
+    }
+  })
+
+  // 监听元素删除事件，删除后清理孤立的连接线
+  eventBus.on('commandStack.shape.delete.postExecuted', (_event) => {
+    // 延迟执行，确保删除操作完成
+    setTimeout(() => {
+      const cleanedCount = cleanIncompleteFlows()
+      if (cleanedCount > 0) {
+        console.warn(`删除节点后自动清理了 ${cleanedCount} 条孤立的连接线`)
+      }
+    }, 50)
+  })
+
   // 命令栈变化
   eventBus.on('commandStack.changed', () => {
     updateUndoRedoState()
+
+    // 每次命令栈变化后，检查并清理不完整的连接线
+    // 使用 setTimeout 确保在当前操作完成后执行
+    setTimeout(() => {
+      const elementRegistry = modeler.get('elementRegistry')
+      const modeling = modeler.get('modeling')
+      const elements = elementRegistry.getAll()
+
+      const toRemove = []
+      elements.forEach((element) => {
+        if (element.type === 'bpmn:SequenceFlow') {
+          const bo = element.businessObject
+          // 检查连接线是否完整
+          if (!bo.sourceRef || !bo.targetRef || !element.source || !element.target) {
+            toRemove.push(element)
+          }
+        }
+      })
+
+      if (toRemove.length > 0) {
+        console.warn('命令栈变化后检测到不完整的连接线，自动清理:', toRemove.map(e => e.id))
+        modeling.removeElements(toRemove)
+      }
+    }, 100)
   })
 
   // 缩放变化
@@ -313,6 +408,17 @@ async function importXML(xml) {
     await modeler.importXML(xml)
     const canvas = modeler.get('canvas')
     canvas.zoom('fit-viewport')
+
+    // 导入后清理不完整的连接线
+    const cleanedCount = cleanIncompleteFlows()
+    if (cleanedCount > 0) {
+      console.warn(`导入后自动清理了 ${cleanedCount} 条不完整的连接线`)
+      message.warning(`已自动清理 ${cleanedCount} 条不完整的连接线`)
+
+      // 清理后触发变更事件，确保 XML 同步
+      await nextTick()
+      emitChange()
+    }
   }
   catch (error) {
     console.error('导入 BPMN 失败:', error)
@@ -325,33 +431,6 @@ function updateUndoRedoState() {
   const commandStack = modeler.get('commandStack')
   canUndo.value = commandStack.canUndo()
   canRedo.value = commandStack.canRedo()
-}
-
-// 获取元素标题
-function getElementTitle() {
-  if (!selectedElement.value)
-    return '属性设置'
-
-  const type = selectedElement.value.type
-  const name = selectedElement.value.businessObject?.name
-
-  const typeNames = {
-    'bpmn:StartEvent': '开始节点',
-    'bpmn:EndEvent': '结束节点',
-    'bpmn:UserTask': '用户任务',
-    'bpmn:ServiceTask': '服务任务',
-    'bpmn:ScriptTask': '脚本任务',
-    'bpmn:BusinessRuleTask': '业务规则任务',
-    'bpmn:ManualTask': '手工任务',
-    'bpmn:ExclusiveGateway': '排他网关',
-    'bpmn:ParallelGateway': '并行网关',
-    'bpmn:InclusiveGateway': '包容网关',
-    'bpmn:SequenceFlow': '序列流',
-    'bpmn:SubProcess': '子流程',
-    'bpmn:CallActivity': '调用活动',
-  }
-
-  return name || typeNames[type] || '属性设置'
 }
 
 // 撤销
@@ -414,6 +493,16 @@ async function handleFileChange(e) {
 // 导出 BPMN
 async function handleDownloadBpmn() {
   try {
+    // 先验证
+    const errors = validateDiagram()
+    if (errors.length > 0) {
+      const errorMsg = errors.join('\n• ')
+      message.error(`流程图验证失败，无法导出:\n• ${errorMsg}`, {
+        duration: 5000,
+      })
+      return
+    }
+
     const { xml } = await modeler.saveXML({ format: true })
     downloadFile(xml, 'diagram.bpmn', 'application/xml')
     message.success('导出成功')
@@ -458,9 +547,36 @@ async function handlePreview() {
   }
 }
 
+// 复制XML到剪贴板
+function handleCopyXml() {
+  navigator.clipboard.writeText(previewXml.value)
+  message.success('XML已复制到剪贴板')
+}
+
+// 从预览弹窗下载XML
+function handleDownloadXmlFromPreview() {
+  downloadFile(previewXml.value, 'diagram.bpmn', 'application/xml')
+  message.success('下载成功')
+}
+
+// 验证流程
+function handleValidate() {
+  const errors = validateDiagram()
+  if (errors.length === 0) {
+    message.success('流程图验证通过！')
+  }
+  else {
+    const errorMsg = errors.join('\n• ')
+    message.error(`流程图验证失败:\n• ${errorMsg}`, {
+      duration: 5000,
+    })
+  }
+}
+
 // 自动布局
 function handleAutoLayout() {
-  if (!modeler) return
+  if (!modeler)
+    return
   try {
     autoLayout(modeler)
     message.success('自动布局完成')
@@ -482,19 +598,153 @@ function emitChange() {
   }).catch(() => {})
 }
 
-// 元素更新
-function handleElementUpdate() {
-  emitChange()
+// 验证流程图
+function validateDiagram() {
+  const elementRegistry = modeler.get('elementRegistry')
+  const errors = []
+
+  // 获取所有元素
+  const elements = elementRegistry.getAll()
+
+  // 检查连接线
+  const incompleteFlows = []
+  elements.forEach((element) => {
+    if (element.type === 'bpmn:SequenceFlow') {
+      const bo = element.businessObject
+      const elementName = bo.name || element.id
+
+      // 检查 sourceRef
+      if (!bo.sourceRef) {
+        errors.push(`连接线 "${elementName}" 缺少起点`)
+        incompleteFlows.push(element.id)
+      }
+
+      // 检查 targetRef
+      if (!bo.targetRef) {
+        errors.push(`连接线 "${elementName}" 缺少终点`)
+        incompleteFlows.push(element.id)
+      }
+
+      // 额外检查：确保 source 和 target 元素存在
+      if (element.source && !element.target) {
+        errors.push(`连接线 "${elementName}" 没有连接到目标节点，请删除或完成连接`)
+        incompleteFlows.push(element.id)
+      }
+      if (!element.source && element.target) {
+        errors.push(`连接线 "${elementName}" 没有连接到起始节点，请删除或完成连接`)
+        incompleteFlows.push(element.id)
+      }
+    }
+  })
+
+  // 如果有未完成的连接线，提供删除选项
+  if (incompleteFlows.length > 0) {
+    console.error('发现未完成的连接线:', incompleteFlows)
+    errors.push(`\n提示：请在画布上选中并删除这些未完成的连接线`)
+  }
+
+  // 检查是否有开始节点
+  const hasStartEvent = elements.some(el => el.type === 'bpmn:StartEvent')
+  if (!hasStartEvent) {
+    errors.push('流程图必须包含至少一个开始节点')
+  }
+
+  // 检查是否有结束节点
+  const hasEndEvent = elements.some(el => el.type === 'bpmn:EndEvent')
+  if (!hasEndEvent) {
+    errors.push('流程图必须包含至少一个结束节点')
+  }
+
+  return errors
+}
+
+// 清理未完成的连接线
+function cleanIncompleteFlows() {
+  const elementRegistry = modeler.get('elementRegistry')
+  const modeling = modeler.get('modeling')
+  const elements = elementRegistry.getAll()
+
+  const toRemove = []
+
+  elements.forEach((element) => {
+    if (element.type === 'bpmn:SequenceFlow') {
+      const bo = element.businessObject
+
+      // 情况1：完全孤立的连接线（既没有 sourceRef 也没有 targetRef）
+      if (!bo.sourceRef && !bo.targetRef) {
+        console.warn('发现完全孤立的连接线:', element.id)
+        toRemove.push(element)
+        return
+      }
+
+      // 情况2：缺少起点或终点
+      if (!bo.sourceRef || !bo.targetRef) {
+        console.warn('发现不完整的连接线（缺少引用）:', element.id, {
+          sourceRef: bo.sourceRef,
+          targetRef: bo.targetRef,
+        })
+        toRemove.push(element)
+        return
+      }
+
+      // 情况3：引用的节点不存在
+      if (!element.source || !element.target) {
+        console.warn('发现不完整的连接线（引用的节点不存在）:', element.id, {
+          source: element.source,
+          target: element.target,
+        })
+        toRemove.push(element)
+        return
+      }
+
+      // 情况4：sourceRef 或 targetRef 指向的元素在图中不存在
+      const sourceElement = elementRegistry.get(bo.sourceRef.id)
+      const targetElement = elementRegistry.get(bo.targetRef.id)
+      if (!sourceElement || !targetElement) {
+        console.warn('发现孤立的连接线（引用的元素已被删除）:', element.id, {
+          sourceExists: !!sourceElement,
+          targetExists: !!targetElement,
+        })
+        toRemove.push(element)
+      }
+    }
+  })
+
+  if (toRemove.length > 0) {
+    console.warn('自动清理未完成的连接线:', toRemove.map(e => e.id))
+    modeling.removeElements(toRemove)
+    return toRemove.length
+  }
+
+  return 0
 }
 
 // 获取 XML
-async function getXML() {
+async function getXML(skipValidation = false) {
   try {
+    // 先清理未完成的连接线
+    const cleanedCount = cleanIncompleteFlows()
+    if (cleanedCount > 0) {
+      message.warning(`已自动删除 ${cleanedCount} 条未完成的连接线`)
+    }
+
+    // 验证流程图
+    if (!skipValidation) {
+      const errors = validateDiagram()
+      if (errors.length > 0) {
+        const errorMsg = errors.join('\n')
+        message.error(`流程图验证失败:\n${errorMsg}`)
+        console.error('流程图验证错误:', errors)
+        return null
+      }
+    }
+
     const { xml } = await modeler.saveXML({ format: true })
     return xml
   }
   catch (error) {
     console.error('获取XML失败:', error)
+    message.error(`获取XML失败: ${error.message}`)
     return null
   }
 }
@@ -524,15 +774,40 @@ defineExpose({
 </script>
 
 <style scoped>
+/* ========== 设计系统变量 ========== */
+:root {
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --secondary: #818cf8;
+  --success: #10b981;
+  --background: #f5f3ff;
+  --surface: #ffffff;
+  --text-primary: #1e1b4b;
+  --border: #e2e8f0;
+  --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .flow-modeler-container {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  border-radius: 16px;
   overflow: hidden;
-  transition: background 0.3s, border-color 0.3s;
+  transition:
+    background var(--transition),
+    border-color var(--transition),
+    box-shadow var(--transition);
+  box-shadow:
+    0 4px 6px -1px rgba(99, 102, 241, 0.1),
+    0 2px 4px -1px rgba(99, 102, 241, 0.06);
+}
+
+.flow-modeler-container:hover {
+  box-shadow:
+    0 10px 15px -3px rgba(99, 102, 241, 0.15),
+    0 4px 6px -2px rgba(99, 102, 241, 0.1);
 }
 
 .flow-modeler-container.dark {
@@ -541,10 +816,13 @@ defineExpose({
 }
 
 .toolbar {
-  padding: 8px 12px;
-  border-bottom: 1px solid #e0e0e0;
-  background: #fafafa;
-  transition: background 0.3s, border-color 0.3s;
+  padding: 12px 16px;
+  border-bottom: 2px solid var(--primary);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(129, 140, 248, 0.05) 100%);
+  transition:
+    background var(--transition),
+    border-color var(--transition);
+  backdrop-filter: blur(8px);
 }
 
 .dark .toolbar {
@@ -556,6 +834,7 @@ defineExpose({
   flex: 1;
   position: relative;
   overflow: hidden;
+  background: var(--background);
 }
 
 .canvas-container {
@@ -563,69 +842,100 @@ defineExpose({
   height: 100%;
 }
 
-/* ========== bpmn-js 工具面板 —— 专业级视觉设计 ========== */
+/* XML预览容器样式 - 浅色主题 */
+.xml-preview-container {
+  max-height: 60vh;
+  overflow-y: auto;
+  overflow-x: auto;
+  background: #f8f9fa;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+}
 
-/* 面板容器：浮动卡片 */
+:deep(.xml-preview-container .n-code) {
+  background: transparent;
+}
+
+:deep(.xml-preview-container .n-code pre) {
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #1e1e1e;
+  background: transparent;
+}
+
+:deep(.xml-preview-container .n-code .hljs) {
+  background: transparent;
+}
+
+/* ========== bpmn-js 工具面板 —— Flat Design + Indigo 主题 ========== */
+
+/* 面板容器：现代化卡片 */
 :deep(.djs-palette) {
   --palette-entry-color: #64748b;
-  --palette-entry-hover-color: #64748b;
-  --palette-separator-color: #f1f5f9;
-  --palette-entry-selected-color: #2563eb;
+  --palette-entry-hover-color: var(--primary);
+  --palette-separator-color: var(--border);
+  --palette-entry-selected-color: var(--primary);
 
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(226, 232, 240, 0.6);
-  border-radius: 14px;
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  border-radius: 16px;
   box-shadow:
-    0 8px 32px rgba(15, 23, 42, 0.06),
-    0 2px 6px rgba(15, 23, 42, 0.04);
-  padding: 4px !important;
-  left: 16px !important;
-  top: 16px !important;
+    0 10px 15px -3px rgba(99, 102, 241, 0.1),
+    0 4px 6px -2px rgba(99, 102, 241, 0.05);
+  padding: 8px !important;
+  left: 20px !important;
+  top: 20px !important;
   overflow: hidden;
-  transition: box-shadow 0.3s, border-color 0.3s;
+  transition:
+    box-shadow var(--transition),
+    transform var(--transition);
 }
 
 :deep(.djs-palette:hover) {
   box-shadow:
-    0 12px 40px rgba(15, 23, 42, 0.1),
-    0 4px 12px rgba(15, 23, 42, 0.06);
+    0 20px 25px -5px rgba(99, 102, 241, 0.15),
+    0 10px 10px -5px rgba(99, 102, 241, 0.1);
+  transform: translateY(-2px);
 }
 
-/* 每个工具项：保持 bpmn-js 的 float 布局，只增强视觉效果 */
+/* 每个工具项：Flat Design 风格 */
 :deep(.djs-palette .entry) {
-  border-radius: 10px;
-  margin: 1px;
-  cursor: grab;
-  transition: background 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform;
+  border-radius: 12px;
+  margin: 2px;
+  cursor: pointer;
+  transition: all var(--transition);
+  will-change: transform, background-color;
+}
+
+:deep(.djs-palette .entry:hover) {
+  cursor: pointer;
 }
 
 :deep(.djs-palette .entry:active) {
-  cursor: grabbing;
-  transform: scale(0.92);
+  transform: scale(0.95);
 }
 
-/* 图标对齐微调 */
+/* 图标对齐 */
 :deep(.djs-palette .entry::before) {
   vertical-align: middle !important;
 }
 
-/* hover 背景统一 */
+/* hover 背景 - Flat Design 纯色 */
 :deep(.djs-palette .entry:hover) {
-  background: #f1f5f9;
+  background: rgba(99, 102, 241, 0.1);
   transform: translateY(-1px);
 }
 
-/* 事件类工具 hover — 绿色 */
+/* 事件类工具 hover — 成功绿色 */
 :deep(.djs-palette .entry.bpmn-icon-start-event-none:hover),
 :deep(.djs-palette .entry.bpmn-icon-end-event-none:hover),
 :deep(.djs-palette .entry.bpmn-icon-intermediate-event-none:hover) {
-  background: #ecfdf5;
-  color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success) !important;
 }
 
-/* 任务类工具 hover — 蓝色 */
+/* 任务类工具 hover — 主色 */
 :deep(.djs-palette .entry.bpmn-icon-user-task:hover),
 :deep(.djs-palette .entry.bpmn-icon-service-task:hover),
 :deep(.djs-palette .entry.bpmn-icon-script-task:hover),
@@ -633,27 +943,27 @@ defineExpose({
 :deep(.djs-palette .entry.bpmn-icon-manual-task:hover),
 :deep(.djs-palette .entry.bpmn-icon-send-task:hover),
 :deep(.djs-palette .entry.bpmn-icon-receive-task:hover) {
-  background: #eff6ff;
-  color: #3b82f6 !important;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary) !important;
 }
 
-/* 网关类工具 hover — 琥珀 */
+/* 网关类工具 hover — 琥珀色 */
 :deep(.djs-palette .entry.bpmn-icon-gateway-xor:hover),
 :deep(.djs-palette .entry.bpmn-icon-gateway-parallel:hover),
 :deep(.djs-palette .entry.bpmn-icon-gateway-complex:hover),
 :deep(.djs-palette .entry.bpmn-icon-gateway-or:hover),
 :deep(.djs-palette .entry.bpmn-icon-gateway-eventbased:hover) {
-  background: #fffbeb;
+  background: rgba(245, 158, 11, 0.1);
   color: #f59e0b !important;
 }
 
-/* 子流程/调用活动 hover — 紫色 */
+/* 子流程/调用活动 hover — 次要色 */
 :deep(.djs-palette .entry.bpmn-icon-subprocess-expanded:hover),
 :deep(.djs-palette .entry.bpmn-icon-subprocess-collapsed:hover),
 :deep(.djs-palette .entry.bpmn-icon-call-activity:hover),
 :deep(.djs-palette .entry.bpmn-icon-participant:hover) {
-  background: #f5f3ff;
-  color: #8b5cf6 !important;
+  background: rgba(129, 140, 248, 0.15);
+  color: var(--secondary) !important;
 }
 
 /* 数据类工具 hover — 灰色 */
@@ -661,90 +971,95 @@ defineExpose({
 :deep(.djs-palette .entry.bpmn-icon-data-store:hover),
 :deep(.djs-palette .entry.bpmn-icon-text-annotation:hover),
 :deep(.djs-palette .entry.bpmn-icon-group:hover) {
-  background: #f8fafc;
+  background: rgba(100, 116, 139, 0.1);
   color: #475569 !important;
 }
 
-/* 选中态 */
+/* 选中态 - Flat Design 纯色 */
 :deep(.djs-palette .entry.selected),
 :deep(.djs-palette .highlighted-entry) {
-  background: #dbeafe !important;
-  color: #2563eb !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+  background: var(--primary) !important;
+  color: white !important;
+  box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3) !important;
 }
 
 /* 分隔线 */
 :deep(.djs-palette .separator) {
-  margin: 3px 4px !important;
+  margin: 6px 4px !important;
   padding: 0 !important;
-  border-bottom: 1px solid #f1f5f9 !important;
+  border-bottom: 2px solid var(--border) !important;
   clear: both;
 }
 
 /* 分组标签 */
 :deep(.djs-palette .group) {
-  padding: 6px 2px 2px !important;
-  font-size: 9px !important;
+  padding: 8px 4px 4px !important;
+  font-size: 10px !important;
   font-weight: 700 !important;
-  color: #94a3b8 !important;
+  color: var(--primary) !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.8px !important;
+  letter-spacing: 1px !important;
   text-align: center !important;
   clear: both;
 }
 
 /* ========== 上下文菜单（context pad） ========== */
 :deep(.djs-context-pad) {
-  background: #fff;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
-  padding: 4px;
-  gap: 2px;
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  border-radius: 14px;
+  box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.1);
+  padding: 6px;
+  gap: 4px;
 }
 
 :deep(.djs-context-pad .entry) {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  transition: all var(--transition);
+  cursor: pointer;
 }
 
 :deep(.djs-context-pad .entry:hover) {
-  background: #eff6ff;
-  transform: scale(1.08);
+  background: rgba(99, 102, 241, 0.1);
+  transform: scale(1.1);
+  cursor: pointer;
 }
 
 :deep(.djs-context-pad .entry::before) {
-  font-size: 17px;
+  font-size: 18px;
   color: #475569;
-  transition: color 0.2s;
+  transition: color var(--transition);
 }
 
 :deep(.djs-context-pad .entry:hover::before) {
-  color: #3b82f6;
+  color: var(--primary);
 }
 
 /* ========== 弹出菜单（类型切换等） ========== */
 :deep(.djs-popup) {
-  background: #fff;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
-  padding: 6px;
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  border-radius: 14px;
+  box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.1);
+  padding: 8px;
 }
 
 :deep(.djs-popup .entry) {
-  border-radius: 8px;
-  padding: 6px 12px;
+  border-radius: 10px;
+  padding: 8px 14px;
   font-size: 13px;
-  color: #334155;
-  transition: all 0.15s;
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: all var(--transition);
+  cursor: pointer;
 }
 
 :deep(.djs-popup .entry:hover) {
-  background: #eff6ff;
-  color: #3b82f6;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary);
+  cursor: pointer;
 }
 
 /* 隐藏 bpmn-js 水印 */
@@ -754,98 +1069,113 @@ defineExpose({
 
 /* bpmn-js 标签样式 */
 :deep(.djs-label text) {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-  font-size: 12px !important;
+  font-family:
+    'Fira Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif !important;
+  font-size: 13px !important;
   font-weight: 500 !important;
-  fill: #334155 !important;
+  fill: var(--text-primary) !important;
 }
 
-/* 暗色模式 —— 面板 */
+/* Focus 状态 */
+:deep(.djs-palette .entry:focus-visible),
+:deep(.djs-context-pad .entry:focus-visible),
+:deep(.djs-popup .entry:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ========== 暗色模式 ========== */
 .dark :deep(.djs-palette) {
   --palette-entry-color: #94a3b8;
-  --palette-entry-hover-color: #94a3b8;
+  --palette-entry-hover-color: var(--secondary);
   --palette-separator-color: #334155;
 
-  background: rgba(30, 41, 59, 0.92);
-  border-color: rgba(51, 65, 85, 0.6);
+  background: #1e293b;
+  border-color: #475569;
   box-shadow:
-    0 8px 32px rgba(0, 0, 0, 0.3),
-    0 2px 6px rgba(0, 0, 0, 0.2);
+    0 10px 15px -3px rgba(0, 0, 0, 0.3),
+    0 4px 6px -2px rgba(0, 0, 0, 0.2);
 }
 
-/* 暗色模式 —— hover 默认背景 */
+.dark :deep(.djs-palette:hover) {
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.4),
+    0 10px 10px -5px rgba(0, 0, 0, 0.3);
+}
+
 .dark :deep(.djs-palette .entry:hover) {
-  background: #334155;
+  background: rgba(129, 140, 248, 0.2);
 }
 
-/* 暗色模式 —— 事件类 hover */
 .dark :deep(.djs-palette .entry.bpmn-icon-start-event-none:hover),
 .dark :deep(.djs-palette .entry.bpmn-icon-end-event-none:hover),
 .dark :deep(.djs-palette .entry.bpmn-icon-intermediate-event-none:hover) {
-  background: #064e3b;
+  background: rgba(16, 185, 129, 0.2);
   color: #34d399 !important;
 }
 
-/* 暗色模式 —— 任务类 hover */
 .dark :deep(.djs-palette .entry.bpmn-icon-user-task:hover),
 .dark :deep(.djs-palette .entry.bpmn-icon-service-task:hover),
 .dark :deep(.djs-palette .entry.bpmn-icon-script-task:hover) {
-  background: #1e3a5f;
-  color: #60a5fa !important;
+  background: rgba(129, 140, 248, 0.25);
+  color: #a5b4fc !important;
 }
 
-/* 暗色模式 —— 网关类 hover */
 .dark :deep(.djs-palette .entry.bpmn-icon-gateway-xor:hover),
 .dark :deep(.djs-palette .entry.bpmn-icon-gateway-parallel:hover) {
-  background: #451a03;
+  background: rgba(245, 158, 11, 0.2);
   color: #fbbf24 !important;
 }
 
-/* 暗色模式 —— 子流程 hover */
 .dark :deep(.djs-palette .entry.bpmn-icon-subprocess-expanded:hover),
 .dark :deep(.djs-palette .entry.bpmn-icon-subprocess-collapsed:hover),
 .dark :deep(.djs-palette .entry.bpmn-icon-call-activity:hover) {
-  background: #2e1065;
-  color: #a78bfa !important;
+  background: rgba(129, 140, 248, 0.25);
+  color: #c4b5fd !important;
 }
 
-/* 暗色模式 —— 选中态 */
 .dark :deep(.djs-palette .entry.selected),
 .dark :deep(.djs-palette .highlighted-entry) {
-  background: #1e40af !important;
-  color: #93c5fd !important;
-  box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.3) !important;
+  background: var(--secondary) !important;
+  color: white !important;
+  box-shadow: 0 4px 6px -1px rgba(129, 140, 248, 0.4) !important;
 }
 
-/* 暗色模式 —— 分隔线 */
 .dark :deep(.djs-palette .separator) {
-  border-color: #334155 !important;
+  border-color: #475569 !important;
 }
 
-/* 暗色模式 —— 分组标签 */
 .dark :deep(.djs-palette .group) {
-  color: #64748b !important;
+  color: var(--secondary) !important;
 }
 
 .dark :deep(.djs-context-pad) {
   background: #1e293b;
-  border-color: #334155;
+  border-color: #475569;
 }
 
 .dark :deep(.djs-context-pad .entry:hover) {
-  background: #334155;
+  background: rgba(129, 140, 248, 0.2);
+}
+
+.dark :deep(.djs-context-pad .entry:hover::before) {
+  color: var(--secondary);
 }
 
 .dark :deep(.djs-popup) {
   background: #1e293b;
-  border-color: #334155;
+  border-color: #475569;
 }
 
 .dark :deep(.djs-popup .entry:hover) {
-  background: #334155;
+  background: rgba(129, 140, 248, 0.2);
+  color: var(--secondary);
 }
 
-/* 暗色模式画布 */
 .dark :deep(.djs-container) {
   background: #0f172a;
 }
@@ -856,6 +1186,17 @@ defineExpose({
 
 .dark :deep(.djs-minimap) {
   background: #1e293b;
-  border-color: #334155;
+  border-color: #475569;
+}
+
+/* ========== 无障碍优化 ========== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 </style>

@@ -553,47 +553,47 @@ const route = useRoute()
 const router = useRouter()
 
 const {
-    sessionId,
-    messages,
-    configKey,
-    tableName,
-    generating,
-    generatedFiles,
-    activeFile,
-    inputText,
-    sessionList,
-    displayContent,
-    reasoningContent,
-    isReasoningPhase,
+  sessionId,
+  messages,
+  configKey,
+  tableName,
+  generating,
+  generatedFiles,
+  activeFile,
+  inputText,
+  sessionList,
+  displayContent,
+  reasoningContent,
+  isReasoningPhase,
 
-    layoutType,
-    templateList,
+  layoutType,
+  templateList,
 
-    providerId,
-    modelId,
-    providerOptions,
-    modelOptions,
-    currentStage,
+  providerId,
+  modelId,
+  providerOptions,
+  modelOptions,
+  currentStage,
 
-    configSaved,
-    loadTemplateList,
-    loadProviderOptions,
-    loadModelOptions,
-    loadSessionList,
-    startNewSession,
-    loadSession,
-    deleteSession,
-    sendMessage,
-    abortGenerate,
-    saveConfig,
-    loadTableStructure,
-    initWithConfigKey,
-    previewCrudPage,
-    copyCurrentFile,
-    exportAllFiles,
-  } = useCrudGenerator()
+  configSaved,
+  loadTemplateList,
+  loadProviderOptions,
+  loadModelOptions,
+  loadSessionList,
+  startNewSession,
+  loadSession,
+  deleteSession,
+  sendMessage,
+  abortGenerate,
+  saveConfig,
+  loadTableStructure,
+  initWithConfigKey,
+  previewCrudPage,
+  copyCurrentFile,
+  exportAllFiles,
+} = useCrudGenerator()
 
-  const expandedReasonings = ref({})
+const expandedReasonings = ref({})
 
 const messageListRef = ref(null)
 const sidebarCollapsed = ref(false)
@@ -852,24 +852,24 @@ function formatTime(time) {
 }
 
 function getStageLabel(stage) {
-    const labels = {
-      'analyzing': '分析阶段',
-      'generating-meta': '推断元数据',
-      'generating-search': '生成搜索配置',
-      'generating-columns': '生成表格列',
-      'generating-edit': '生成编辑表单',
-      'generating-api': '生成API配置',
-      'generating-sql': '生成建表SQL',
-      'complete': '完成',
-      'error': '错误',
-      'retrying': '重试中',
-    }
-    return labels[stage] || stage
+  const labels = {
+    'analyzing': '分析阶段',
+    'generating-meta': '推断元数据',
+    'generating-search': '生成搜索配置',
+    'generating-columns': '生成表格列',
+    'generating-edit': '生成编辑表单',
+    'generating-api': '生成API配置',
+    'generating-sql': '生成建表SQL',
+    'complete': '完成',
+    'error': '错误',
+    'retrying': '重试中',
   }
+  return labels[stage] || stage
+}
 
-  function toggleReasoning(idx) {
-    expandedReasonings.value[idx] = !expandedReasonings.value[idx]
-  }
+function toggleReasoning(idx) {
+  expandedReasonings.value[idx] = !expandedReasonings.value[idx]
+}
 
 function autoGenerateConfigKey() {
   let key = ''

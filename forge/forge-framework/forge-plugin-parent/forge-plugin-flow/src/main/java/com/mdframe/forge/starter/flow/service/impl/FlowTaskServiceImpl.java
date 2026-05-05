@@ -312,10 +312,10 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         taskService.delegateTask(taskId, targetUserId);
         
         FlowTask flowTask = new FlowTask();
-        flowTask.setStatus(4);
+        flowTask.setStatus(0);
         flowTask.setComment(comment);
         flowTask.setAssignee(targetUserId);
-        flowTask.setCompleteTime(LocalDateTime.now());
+        flowTask.setOwner(userId);
         lambdaUpdate().eq(FlowTask::getTaskId, taskId).update(flowTask);
         
         log.info("转办任务：taskId={}, from={}, to={}", taskId, userId, targetUserId);

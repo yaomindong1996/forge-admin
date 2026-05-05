@@ -256,46 +256,6 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
     }
 
     /**
-     * 根据节点配置计算审批人
-     */
-    private List<String> calculateApproversByConfig(FlowNodeConfig nodeConfig, Map<String, Object> variables) {
-        String assigneeType = nodeConfig.getAssigneeType();
-        String assigneeValue = nodeConfig.getAssigneeValue();
-        
-        if (assigneeType == null) {
-            return Collections.emptyList();
-        }
-        
-        switch (assigneeType) {
-            case "user":
-                return parseUserIds(assigneeValue);
-            case "role":
-                return getUserIdsByRole(assigneeValue);
-            case "dept":
-                return getUserIdsByDept(assigneeValue);
-            case "post":
-                return getUserIdsByPost(assigneeValue);
-            case "leader":
-                // 支持层级参数，从变量中获取 leaderLevel
-                int leaderLevel = getLevelFromVariables(variables, "leaderLevel", 1);
-                return getLeaderUserIds(variables, leaderLevel);
-            case "deptManager":
-                // 支持层级参数，从变量中获取 deptManagerLevel
-                int deptManagerLevel = getLevelFromVariables(variables, "deptManagerLevel", 1);
-                return getDeptManagerUserIds(variables, deptManagerLevel);
-            case "initiator":
-                return getInitiatorUserIds(variables);
-            case "expr":
-                return evaluateExpression(nodeConfig.getAssigneeExpr(), variables);
-            case "deptUser":
-                // 指定部门用户
-                return getUserIdsByDept(assigneeValue);
-            default:
-                return Collections.emptyList();
-        }
-    }
-
-    /**
      * 根据层级配置计算审批人
      */
     private List<String> calculateApproversByLevel(FlowApprovalLevel level, Map<String, Object> variables) {
@@ -326,14 +286,83 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
         }
     }
 
+/**
+     * 根据节点配置计算审批人
+     */
+    public List<String> calculateApproversByConfig(FlowNodeConfig nodeConfig, Map<String, Object> variables) {
+        if (nodeConfig == null) {
+            log.warn("[审批人计算] 节点配置为空，无法计算审批人");
+            return Collections.emptyList();
+        }
+        
+        String assigneeType = nodeConfig.getAssigneeType();
+        String assigneeValue = nodeConfig.getAssigneeValue();
+        
+        log.info("[审批人计算] 开始计算: nodeConfigId={}, nodeDefKey={}, assigneeType={}, assigneeValue={}",
+                nodeConfig.getId(), nodeConfig.getFormKey(), assigneeType, assigneeValue);
+        
+        if (assigneeType == null) {
+            log.warn("[审批人计算] assigneeType为空，使用默认空列表");
+            return Collections.emptyList();
+        }
+        
+        List<String> result;
+        switch (assigneeType) {
+            case "user":
+                result = parseUserIds(assigneeValue);
+                log.info("[审批人计算] 指定用户: userIds={}", result);
+                return result;
+            case "role":
+                result = getUserIdsByRole(assigneeValue);
+                log.info("[审批人计算] 按角色查询: roleKey={}, userIds={}", assigneeValue, result);
+                return result;
+            case "dept":
+                result = getUserIdsByDept(assigneeValue);
+                log.info("[审批人计算] 按部门查询: deptId={}, userIds={}", assigneeValue, result);
+                return result;
+            case "post":
+                result = getUserIdsByPost(assigneeValue);
+                log.info("[审批人计算] 按岗位查询: postCode={}, userIds={}", assigneeValue, result);
+                return result;
+            case "leader":
+                result = getLeaderUserIds(variables);
+                log.info("[审批人计算] 按上级查询: userIds={}", result);
+                return result;
+            case "deptManager":
+                result = getDeptManagerUserIds(variables);
+                log.info("[审批人计算] 按部门负责人查询: userIds={}", result);
+                return result;
+            case "initiator":
+                result = getInitiatorUserIds(variables);
+                log.info("[审批人计算] 按发起人查询: userIds={}", result);
+                return result;
+            case "expr":
+                log.info("[审批人计算] 按表达式计算: expression={}", nodeConfig.getAssigneeExpr());
+                return evaluateExpression(nodeConfig.getAssigneeExpr(), variables);
+            case "deptUser":
+                result = getUserIdsByDept(assigneeValue);
+                log.info("[审批人计算] 按部门用户查询: deptId={}, userIds={}", assigneeValue, result);
+                return result;
+            default:
+                log.warn("[审批人计算] 未知的assigneeType: {}, 无法计算审批人", assigneeType);
+                return Collections.emptyList();
+        }
+    }
+    
     /**
-     * 解析用户ID列表
+     * 解析用户ID列表（支持逗号分隔或JSON数组）
      */
     private List<String> parseUserIds(String jsonValue) {
         if (jsonValue == null || jsonValue.isEmpty()) {
             return Collections.emptyList();
         }
         
+        // 简单逗号分隔格式
+        if (!jsonValue.startsWith("[") && !jsonValue.startsWith("{")) {
+            return Arrays.asList(jsonValue.split(","));
+        }
+        
+        // JSON数组格式
         try {
             return objectMapper.readValue(jsonValue, new TypeReference<List<String>>() {});
         } catch (Exception e) {
@@ -458,8 +487,11 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
     @SuppressWarnings("unchecked")
     private List<String> evaluateExpression(String expression, Map<String, Object> variables) {
         if (expression == null || expression.isEmpty()) {
+            log.warn("[审批人表达式] 表达式为空，无法计算审批人");
             return Collections.emptyList();
         }
+        
+        log.info("[审批人表达式] 开始执行: expression={}, variables={}", expression, variables);
         
         try {
             StandardEvaluationContext context = new StandardEvaluationContext();
@@ -468,17 +500,35 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
             Object result = expressionParser.parseExpression(expression)
                     .getValue(context);
             
-            if (result instanceof List) {
-                return ((List<?>) result).stream()
-                        .map(Object::toString)
-                        .collect(Collectors.toList());
-            } else if (result instanceof String) {
-                return Collections.singletonList((String) result);
+            log.info("[审批人表达式] 执行结果: expression={}, result={}, resultType={}",
+                    expression, result, result != null ? result.getClass().getSimpleName() : "null");
+            
+            if (result == null) {
+                log.warn("[审批人表达式] 表达式返回null，未匹配到审批人: expression={}, 请检查变量是否存在或表达式是否正确", expression);
+                return Collections.emptyList();
             }
             
+            if (result instanceof List) {
+                List<String> userIds = ((List<?>) result).stream()
+                        .map(Object::toString)
+                        .collect(Collectors.toList());
+                log.info("[审批人表达式] 返回用户列表: expression={}, userIds={}, count={}", expression, userIds, userIds.size());
+                return userIds;
+            } else if (result instanceof String) {
+                String userId = (String) result;
+                if (userId.isEmpty()) {
+                    log.warn("[审批人表达式] 表达式返回空字符串: expression={}", expression);
+                    return Collections.emptyList();
+                }
+                log.info("[审批人表达式] 返回单个用户: expression={}, userId={}", expression, userId);
+                return Collections.singletonList(userId);
+            }
+            
+            log.warn("[审批人表达式] 表达式返回非预期类型: expression={}, resultType={}", expression, result.getClass().getName());
             return Collections.emptyList();
         } catch (Exception e) {
-            log.error("执行审批人表达式失败: {}", expression, e);
+            log.error("[审批人表达式] 执行失败: expression={}, variables={}, error={}",
+                    expression, variables, e.getMessage(), e);
             return Collections.emptyList();
         }
     }

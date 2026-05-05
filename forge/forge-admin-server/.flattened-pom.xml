@@ -67,6 +67,16 @@
     </dependency>
     <dependency>
       <groupId>com.mdframe.forge</groupId>
+      <artifactId>forge-plugin-flow</artifactId>
+      <exclusions>
+        <exclusion>
+          <artifactId>spring-boot-starter-security</artifactId>
+          <groupId>org.springframework.boot</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.mdframe.forge</groupId>
       <artifactId>forge-starter-social</artifactId>
     </dependency>
     <dependency>

@@ -67,7 +67,7 @@ export function findFirstMenuWithPath(menuItem) {
   if (!menuItem)
     return null
 
-  if (menuItem.path && !isExternal(menuItem.path)) {
+  if (menuItem.path && !isExternal(menuItem.path) && menuItem.type !== 'module') {
     return menuItem
   }
 
@@ -147,12 +147,31 @@ export function useMenu() {
    * 处理菜单选择，支持外链和内嵌iframe
    * @param {string} key - 菜单项key
    */
-  function handleMenuSelect(key) {
-    const originalItem = findMenuItem(permissionStore.menus, key)
-    if (!originalItem)
-      return
+  function handleMenuSelect(key, fallbackPath) {
+    let originalItem = findMenuItem(permissionStore.menus, key)
 
-    // 外部链接处理
+    if (!originalItem && typeof key === 'string') {
+      const numKey = Number(key)
+      if (!Number.isNaN(numKey)) {
+        originalItem = findMenuItem(permissionStore.menus, numKey)
+      }
+    }
+
+    if (!originalItem && typeof key === 'number') {
+      originalItem = findMenuItem(permissionStore.menus, String(key))
+    }
+
+    if (!originalItem) {
+      if (fallbackPath) {
+        let targetPath = fallbackPath.trim()
+        if (!targetPath.startsWith('/') && !isExternal(targetPath)) {
+          targetPath = `/${targetPath}`
+        }
+        router.push(targetPath)
+      }
+      return
+    }
+
     if (isExternal(originalItem.path)) {
       $dialog.confirm({
         type: 'info',
@@ -169,16 +188,18 @@ export function useMenu() {
       return
     }
 
-    // iframe模式处理
     if (originalItem.openMode === 'iframe' && originalItem.subAppURL) {
       const iframePath = `/iframe?page=${encodeURIComponent(originalItem.subAppURL + (originalItem.path || ''))}`
       router.push(iframePath)
       return
     }
 
-    // 普通路由跳转
     if (originalItem.path) {
-      router.push(originalItem.path)
+      let targetPath = originalItem.path.trim()
+      if (!targetPath.startsWith('/') && !isExternal(targetPath)) {
+        targetPath = `/${targetPath}`
+      }
+      router.push(targetPath)
     }
   }
 
@@ -187,9 +208,7 @@ export function useMenu() {
     flatMenuItems,
     activeKey,
     handleMenuSelect,
-    /** 根据路径查找菜单ID */
     findMenuIdByPath: targetPath => findMenuIdByPath(processedMenus.value, targetPath),
-    /** 查找包含指定路径的顶级菜单 */
     findTopMenuByPath: targetPath => findTopMenuByPath(permissionStore.menus, targetPath),
   }
 }

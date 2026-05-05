@@ -91,6 +91,16 @@
           "type": "String"
         },
         {
+          "name": "assigneeType",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "spelTemplate",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
           "name": "candidateUserNames",
           "isAttr": true,
           "type": "String"

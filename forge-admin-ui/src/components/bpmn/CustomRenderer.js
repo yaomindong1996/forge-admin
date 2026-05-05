@@ -1,6 +1,6 @@
-import inherits from 'inherits-browser'
-import BaseRenderer from 'diagram-js/lib/draw/BaseRenderer'
 import { is } from 'bpmn-js/lib/util/ModelUtil'
+import BaseRenderer from 'diagram-js/lib/draw/BaseRenderer'
+import inherits from 'inherits-browser'
 import { append as svgAppend, attr as svgAttr, create as svgCreate } from 'tiny-svg'
 
 const HIGH_PRIORITY = 2000
@@ -31,7 +31,8 @@ const LABEL_STYLE = {
 }
 
 function ensureDefs(svgDoc) {
-  if (!svgDoc) return null
+  if (!svgDoc)
+    return null
   let defs = svgDoc.querySelector('defs')
   if (!defs) {
     defs = svgCreate('defs')
@@ -45,13 +46,14 @@ function hasDef(defs, id) {
 }
 
 function createGradient(defs, id, fromColor, toColor) {
-  if (hasDef(defs, id)) return
+  if (hasDef(defs, id))
+    return
   const grad = svgCreate('linearGradient')
   svgAttr(grad, { id, x1: '0%', y1: '0%', x2: '100%', y2: '100%' })
   const s1 = svgCreate('stop')
-  svgAttr(s1, { offset: '0%', 'stop-color': fromColor })
+  svgAttr(s1, { 'offset': '0%', 'stop-color': fromColor })
   const s2 = svgCreate('stop')
-  svgAttr(s2, { offset: '100%', 'stop-color': toColor })
+  svgAttr(s2, { 'offset': '100%', 'stop-color': toColor })
   grad.appendChild(s1)
   grad.appendChild(s2)
   defs.appendChild(grad)
@@ -59,11 +61,12 @@ function createGradient(defs, id, fromColor, toColor) {
 
 function createShadowFilter(defs) {
   const id = 'forge-node-shadow'
-  if (hasDef(defs, id)) return
+  if (hasDef(defs, id))
+    return
   const filter = svgCreate('filter')
   svgAttr(filter, { id, x: '-20%', y: '-20%', width: '140%', height: '140%' })
   const dropShadow = svgCreate('feDropShadow')
-  svgAttr(dropShadow, { dx: '0', dy: '2', stdDeviation: '3', 'flood-color': 'rgba(0,0,0,0.12)', 'flood-opacity': '1' })
+  svgAttr(dropShadow, { 'dx': '0', 'dy': '2', 'stdDeviation': '3', 'flood-color': 'rgba(0,0,0,0.12)', 'flood-opacity': '1' })
   filter.appendChild(dropShadow)
   defs.appendChild(filter)
 }
@@ -96,9 +99,9 @@ function drawIcon(parent, cx, cy, iconPath, boxSize, attrs) {
   svgAttr(g, { transform: `translate(${cx - boxSize / 2}, ${cy - boxSize / 2}) scale(${scale})` })
   const path = svgCreate('path')
   svgAttr(path, {
-    d: iconPath,
-    fill: 'none',
-    stroke: '#fff',
+    'd': iconPath,
+    'fill': 'none',
+    'stroke': '#fff',
     'stroke-width': '2.5',
     'stroke-linecap': 'round',
     'stroke-linejoin': 'round',
@@ -157,30 +160,30 @@ CustomRenderer.prototype.drawShape = function (parentNode, element) {
   const cy = h / 2
 
   const g = svgCreate('g')
-  svgAttr(g, { class: 'djs-element', 'data-element-id': element.id })
+  svgAttr(g, { 'class': 'djs-element', 'data-element-id': element.id })
 
   const type = element.type
 
   if (type === 'bpmn:StartEvent') {
     drawCircle(g, cx, cy, EVENT_SIZE / 2, {
-      fill: 'url(#grad-start)',
-      stroke: '#059669',
+      'fill': 'url(#grad-start)',
+      'stroke': '#059669',
       'stroke-width': '2',
-      filter: 'url(#forge-node-shadow)',
+      'filter': 'url(#forge-node-shadow)',
     })
     drawCircle(g, cx, cy, EVENT_SIZE / 2 - 3, {
-      fill: 'none',
-      stroke: 'rgba(255,255,255,0.3)',
+      'fill': 'none',
+      'stroke': 'rgba(255,255,255,0.3)',
       'stroke-width': '1',
     })
     drawIcon(g, cx, cy, ICONS.play, 14, { fill: '#fff', stroke: 'none' })
   }
   else if (type === 'bpmn:EndEvent') {
     drawCircle(g, cx, cy, EVENT_SIZE / 2, {
-      fill: 'url(#grad-end)',
-      stroke: '#dc2626',
+      'fill': 'url(#grad-end)',
+      'stroke': '#dc2626',
       'stroke-width': '3',
-      filter: 'url(#forge-node-shadow)',
+      'filter': 'url(#forge-node-shadow)',
     })
     drawIcon(g, cx, cy, ICONS.stop, 12, { fill: '#fff', stroke: 'none' })
   }
@@ -210,28 +213,28 @@ CustomRenderer.prototype.drawShape = function (parentNode, element) {
   }
   else if (type === 'bpmn:CallActivity') {
     drawRoundRect(g, 0, 0, w, h, 8, {
-      fill: 'url(#grad-callActivity)',
-      stroke: '#4f46e5',
+      'fill': 'url(#grad-callActivity)',
+      'stroke': '#4f46e5',
       'stroke-width': '3',
-      filter: 'url(#forge-node-shadow)',
+      'filter': 'url(#forge-node-shadow)',
     })
     drawIcon(g, cx, cy, ICONS.external, 18, { fill: '#fff', stroke: 'none' })
   }
   else if (type === 'bpmn:SubProcess') {
     if (element.collapsed || element.isCollapsed) {
       drawRoundRect(g, 0, 0, w, h, 8, {
-        fill: 'rgba(199,210,254,0.5)',
-        stroke: '#818cf8',
+        'fill': 'rgba(199,210,254,0.5)',
+        'stroke': '#818cf8',
         'stroke-width': '2',
         'stroke-dasharray': '6,3',
-        filter: 'url(#forge-node-shadow)',
+        'filter': 'url(#forge-node-shadow)',
       })
       drawRoundRect(g, w - 22, 2, 20, 16, 3, {
         fill: '#6366f1',
         opacity: '0.8',
       })
       const plus = svgCreate('path')
-      svgAttr(plus, { d: 'M4 8h12 M10 2v12', stroke: '#fff', 'stroke-width': '2', 'stroke-linecap': 'round' })
+      svgAttr(plus, { 'd': 'M4 8h12 M10 2v12', 'stroke': '#fff', 'stroke-width': '2', 'stroke-linecap': 'round' })
       const g2 = svgCreate('g')
       svgAttr(g2, { transform: `translate(${w - 18}, 0)` })
       g2.appendChild(plus)
@@ -239,8 +242,8 @@ CustomRenderer.prototype.drawShape = function (parentNode, element) {
     }
     else {
       drawRoundRect(g, 0, 0, w, h, 8, {
-        fill: 'rgba(199,210,254,0.3)',
-        stroke: '#818cf8',
+        'fill': 'rgba(199,210,254,0.3)',
+        'stroke': '#818cf8',
         'stroke-width': '2',
         'stroke-dasharray': '6,3',
       })
@@ -249,46 +252,46 @@ CustomRenderer.prototype.drawShape = function (parentNode, element) {
   else if (type === 'bpmn:ExclusiveGateway') {
     const diamond = svgCreate('polygon')
     svgAttr(diamond, {
-      points: `${cx},${cy - GATEWAY_SIZE / 2} ${cx + GATEWAY_SIZE / 2},${cy} ${cx},${cy + GATEWAY_SIZE / 2} ${cx - GATEWAY_SIZE / 2},${cy}`,
-      fill: 'url(#grad-exclusive)',
-      stroke: '#d97706',
+      'points': `${cx},${cy - GATEWAY_SIZE / 2} ${cx + GATEWAY_SIZE / 2},${cy} ${cx},${cy + GATEWAY_SIZE / 2} ${cx - GATEWAY_SIZE / 2},${cy}`,
+      'fill': 'url(#grad-exclusive)',
+      'stroke': '#d97706',
       'stroke-width': '2',
-      filter: 'url(#forge-node-shadow)',
+      'filter': 'url(#forge-node-shadow)',
     })
     g.appendChild(diamond)
-    drawIcon(g, cx, cy, ICONS.x, 14, { fill: 'none', stroke: '#92400e', 'stroke-width': '2.5' })
+    drawIcon(g, cx, cy, ICONS.x, 14, { 'fill': 'none', 'stroke': '#92400e', 'stroke-width': '2.5' })
   }
   else if (type === 'bpmn:ParallelGateway') {
     const diamond = svgCreate('polygon')
     svgAttr(diamond, {
-      points: `${cx},${cy - GATEWAY_SIZE / 2} ${cx + GATEWAY_SIZE / 2},${cy} ${cx},${cy + GATEWAY_SIZE / 2} ${cx - GATEWAY_SIZE / 2},${cy}`,
-      fill: 'url(#grad-parallel)',
-      stroke: '#0891b2',
+      'points': `${cx},${cy - GATEWAY_SIZE / 2} ${cx + GATEWAY_SIZE / 2},${cy} ${cx},${cy + GATEWAY_SIZE / 2} ${cx - GATEWAY_SIZE / 2},${cy}`,
+      'fill': 'url(#grad-parallel)',
+      'stroke': '#0891b2',
       'stroke-width': '2',
-      filter: 'url(#forge-node-shadow)',
+      'filter': 'url(#forge-node-shadow)',
     })
     g.appendChild(diamond)
-    drawIcon(g, cx, cy, ICONS.plus, 12, { fill: 'none', stroke: '#155e75', 'stroke-width': '2.5' })
+    drawIcon(g, cx, cy, ICONS.plus, 12, { 'fill': 'none', 'stroke': '#155e75', 'stroke-width': '2.5' })
   }
   else if (type === 'bpmn:InclusiveGateway') {
     const diamond = svgCreate('polygon')
     svgAttr(diamond, {
-      points: `${cx},${cy - GATEWAY_SIZE / 2} ${cx + GATEWAY_SIZE / 2},${cy} ${cx},${cy + GATEWAY_SIZE / 2} ${cx - GATEWAY_SIZE / 2},${cy}`,
-      fill: 'url(#grad-inclusive)',
-      stroke: '#65a30d',
+      'points': `${cx},${cy - GATEWAY_SIZE / 2} ${cx + GATEWAY_SIZE / 2},${cy} ${cx},${cy + GATEWAY_SIZE / 2} ${cx - GATEWAY_SIZE / 2},${cy}`,
+      'fill': 'url(#grad-inclusive)',
+      'stroke': '#65a30d',
       'stroke-width': '2',
-      filter: 'url(#forge-node-shadow)',
+      'filter': 'url(#forge-node-shadow)',
     })
     g.appendChild(diamond)
-    drawIcon(g, cx, cy, ICONS.circle, 12, { fill: 'none', stroke: '#3f6212', 'stroke-width': '2.5' })
+    drawIcon(g, cx, cy, ICONS.circle, 12, { 'fill': 'none', 'stroke': '#3f6212', 'stroke-width': '2.5' })
   }
   else if (type === 'label') {
     return g
   }
   else {
     drawRoundRect(g, 0, 0, w, h, 8, {
-      fill: '#f1f5f9',
-      stroke: '#94a3b8',
+      'fill': '#f1f5f9',
+      'stroke': '#94a3b8',
       'stroke-width': '1.5',
     })
     const label = element.businessObject?.name || element.id
@@ -300,8 +303,9 @@ CustomRenderer.prototype.drawShape = function (parentNode, element) {
 }
 
 function truncateLabel(label, maxLen) {
-  if (!label) return ''
-  return label.length > maxLen ? label.slice(0, maxLen - 1) + '…' : label
+  if (!label)
+    return ''
+  return label.length > maxLen ? `${label.slice(0, maxLen - 1)}…` : label
 }
 
 export default CustomRenderer

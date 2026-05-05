@@ -199,3 +199,19 @@ private void applyRegionCodeFilter(LambdaQueryWrapper<T> wrapper, String regionC
 **数据权限说明**:
 - `dataRight=true`：调用 `listSysRegion` Mapper方法，数据权限拦截器会根据 `sys_data_scope_config` 配置自动追加 `region_code` 过滤条件
 - `dataRight=false`：调用 `listSysRegionNoRight` Mapper方法，不受数据权限拦截器控制，结果缓存24h
+
+## Memory 知识图谱（主动读写）
+
+每次新对话开始，必须先读取以下记忆文件：
+- `.opencode/memory/pitfalls.md` - 踩坑记录（常见错误和解决方案）
+- `.opencode/memory/decisions.md` - 项目决策（架构、技术选型等）
+- `.opencode/memory/preferences.md` - 用户偏好（编码风格、工具偏好等）
+
+发现有价值信息时主动写入对应的记忆文件。
+
+实体类型：
+- **踩坑记录**：开发过程中遇到的错误和解决方案
+- **项目决策**：架构设计、技术选型、模块划分等决策
+- **用户偏好**：编码风格、工具使用、命名规范等偏好
+- **环境配置**：开发环境、部署环境的特殊配置
+- **业务知识**：业务规则、数据模型、流程逻辑等
