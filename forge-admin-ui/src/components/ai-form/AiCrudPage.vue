@@ -763,10 +763,6 @@ async function loadList() {
     // 提取数据
     let list = []
     let total = 0
-    console.log('[DEBUG] 列表接口返回的原始响应：', response)
-    console.log('[DEBUG] 响应的data字段：', response.data)
-    console.log('[DEBUG] 配置的列表字段listDataField：', props.listDataField)
-    console.log('[DEBUG] 配置的总数字段listTotalField：', props.listTotalField)
 
     if (Array.isArray(response.data)) {
       // 后端直接返回数组（不分页）
@@ -779,29 +775,12 @@ async function loadList() {
       total = response.data[props.listTotalField] || 0
     }
 
-    console.log('[DEBUG] 提取到的列表数据list：', list)
-    console.log('[DEBUG] 提取到的总数total：', total)
-
     // 调用 beforeRenderList 钩子
     list = await callHook('beforeRenderList', list, data => data)
 
     // 更新数据
     dataSource.value = list
     pagination.value.itemCount = total
-
-    console.log('[DEBUG] 最终给表格的dataSource：', dataSource.value)
-    console.log('[DEBUG] 最终给表格的列配置tableColumns：', tableColumns.value)
-    console.log('[DEBUG] 表格列和数据的匹配检查：')
-    if (list.length > 0) {
-      const firstRow = list[0]
-      console.log('[DEBUG] 第一条数据的所有字段：', Object.keys(firstRow))
-      tableColumns.value.forEach((col) => {
-        console.log(col)
-        if (col.prop !== 'action') {
-          console.log(`[DEBUG] 列${col.label}(${col.prop})：值 = ${firstRow[col.prop] ?? '不存在'}`)
-        }
-      })
-    }
 
     emit('load-list-success', { list, total })
   }

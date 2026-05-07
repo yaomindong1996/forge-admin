@@ -868,9 +868,8 @@ defineExpose({
   background: transparent;
 }
 
-/* ========== bpmn-js 工具面板 —— Flat Design + Indigo 主题 ========== */
+/* ========== bpmn-js 工具面板 —— 横向顶部 + Indigo 主题 ========== */
 
-/* 面板容器：现代化卡片 */
 :deep(.djs-palette) {
   --palette-entry-color: #64748b;
   --palette-entry-hover-color: var(--primary);
@@ -878,34 +877,46 @@ defineExpose({
   --palette-entry-selected-color: var(--primary);
 
   background: var(--surface);
-  border: 2px solid var(--primary);
-  border-radius: 16px;
-  box-shadow:
-    0 10px 15px -3px rgba(99, 102, 241, 0.1),
-    0 4px 6px -2px rgba(99, 102, 241, 0.05);
-  padding: 8px !important;
-  left: 20px !important;
-  top: 20px !important;
-  overflow: hidden;
-  transition:
-    box-shadow var(--transition),
-    transform var(--transition);
+  border: 1px solid var(--border);
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+  padding: 4px 8px !important;
+  left: 50% !important;
+  top: 0 !important;
+  transform: translateX(-50%);
+  width: auto !important;
+  max-width: calc(100% - 40px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 2px;
+  transition: box-shadow var(--transition);
 }
 
 :deep(.djs-palette:hover) {
-  box-shadow:
-    0 20px 25px -5px rgba(99, 102, 241, 0.15),
-    0 10px 10px -5px rgba(99, 102, 241, 0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12);
 }
 
-/* 每个工具项：Flat Design 风格 */
+:deep(.djs-palette::before) {
+  display: none !important;
+}
+
+:deep(.djs-palette::after) {
+  display: none !important;
+}
+
 :deep(.djs-palette .entry) {
-  border-radius: 12px;
-  margin: 2px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all var(--transition);
   will-change: transform, background-color;
+  float: none !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
 }
 
 :deep(.djs-palette .entry:hover) {
@@ -916,18 +927,15 @@ defineExpose({
   transform: scale(0.95);
 }
 
-/* 图标对齐 */
 :deep(.djs-palette .entry::before) {
   vertical-align: middle !important;
 }
 
-/* hover 背景 - Flat Design 纯色 */
 :deep(.djs-palette .entry:hover) {
   background: rgba(99, 102, 241, 0.1);
   transform: translateY(-1px);
 }
 
-/* 事件类工具 hover — 成功绿色 */
 :deep(.djs-palette .entry.bpmn-icon-start-event-none:hover),
 :deep(.djs-palette .entry.bpmn-icon-end-event-none:hover),
 :deep(.djs-palette .entry.bpmn-icon-intermediate-event-none:hover) {
@@ -935,7 +943,6 @@ defineExpose({
   color: var(--success) !important;
 }
 
-/* 任务类工具 hover — 主色 */
 :deep(.djs-palette .entry.bpmn-icon-user-task:hover),
 :deep(.djs-palette .entry.bpmn-icon-service-task:hover),
 :deep(.djs-palette .entry.bpmn-icon-script-task:hover),
@@ -947,7 +954,6 @@ defineExpose({
   color: var(--primary) !important;
 }
 
-/* 网关类工具 hover — 琥珀色 */
 :deep(.djs-palette .entry.bpmn-icon-gateway-xor:hover),
 :deep(.djs-palette .entry.bpmn-icon-gateway-parallel:hover),
 :deep(.djs-palette .entry.bpmn-icon-gateway-complex:hover),
@@ -957,7 +963,6 @@ defineExpose({
   color: #f59e0b !important;
 }
 
-/* 子流程/调用活动 hover — 次要色 */
 :deep(.djs-palette .entry.bpmn-icon-subprocess-expanded:hover),
 :deep(.djs-palette .entry.bpmn-icon-subprocess-collapsed:hover),
 :deep(.djs-palette .entry.bpmn-icon-call-activity:hover),
@@ -966,7 +971,6 @@ defineExpose({
   color: var(--secondary) !important;
 }
 
-/* 数据类工具 hover — 灰色 */
 :deep(.djs-palette .entry.bpmn-icon-data-object:hover),
 :deep(.djs-palette .entry.bpmn-icon-data-store:hover),
 :deep(.djs-palette .entry.bpmn-icon-text-annotation:hover),
@@ -975,32 +979,38 @@ defineExpose({
   color: #475569 !important;
 }
 
-/* 选中态 - Flat Design 纯色 */
 :deep(.djs-palette .entry.selected),
 :deep(.djs-palette .highlighted-entry) {
   background: var(--primary) !important;
   color: white !important;
-  box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3) !important;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3) !important;
 }
 
-/* 分隔线 */
 :deep(.djs-palette .separator) {
-  margin: 6px 4px !important;
+  margin: 0 4px !important;
   padding: 0 !important;
-  border-bottom: 2px solid var(--border) !important;
-  clear: both;
+  border-bottom: none !important;
+  border-left: 1px solid var(--border) !important;
+  width: 0 !important;
+  height: 24px !important;
+  clear: none !important;
+  float: none !important;
+  display: inline-block !important;
+  vertical-align: middle;
 }
 
-/* 分组标签 */
 :deep(.djs-palette .group) {
-  padding: 8px 4px 4px !important;
+  padding: 0 4px !important;
   font-size: 10px !important;
-  font-weight: 700 !important;
-  color: var(--primary) !important;
-  text-transform: uppercase !important;
-  letter-spacing: 1px !important;
+  font-weight: 600 !important;
+  color: #94a3b8 !important;
+  letter-spacing: 0.5px !important;
   text-align: center !important;
-  clear: both;
+  clear: none !important;
+  float: none !important;
+  display: inline-block !important;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 /* ========== 上下文菜单（context pad） ========== */
@@ -1095,16 +1105,12 @@ defineExpose({
   --palette-separator-color: #334155;
 
   background: #1e293b;
-  border-color: #475569;
-  box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.3),
-    0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  border-color: #334155;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark :deep(.djs-palette:hover) {
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.4),
-    0 10px 10px -5px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .dark :deep(.djs-palette .entry:hover) {
@@ -1146,11 +1152,11 @@ defineExpose({
 }
 
 .dark :deep(.djs-palette .separator) {
-  border-color: #475569 !important;
+  border-color: #334155 !important;
 }
 
 .dark :deep(.djs-palette .group) {
-  color: var(--secondary) !important;
+  color: #64748b !important;
 }
 
 .dark :deep(.djs-context-pad) {

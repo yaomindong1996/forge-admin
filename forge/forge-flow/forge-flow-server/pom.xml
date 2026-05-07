@@ -62,6 +62,12 @@
             <artifactId>forge-starter-id</artifactId>
         </dependency>
 
+        <!-- Forge AI Plugin (Agent、对话、流式生成能力) -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-plugin-ai</artifactId>
+        </dependency>
+
         <!-- Spring Data Redis (Pub/Sub 事件发布) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
