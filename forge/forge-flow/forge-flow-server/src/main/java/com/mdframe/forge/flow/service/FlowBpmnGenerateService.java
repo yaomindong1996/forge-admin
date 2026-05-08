@@ -57,10 +57,10 @@ public class FlowBpmnGenerateService {
         clientRequest.setMessage(buildPrompt(request));
         clientRequest.setUserInput(request.getDescription());
         clientRequest.setProviderId(request.getProviderId());
-        clientRequest.setModelName(request.getAiModelName());
         clientRequest.setTemperature(request.getTemperature() != null ? request.getTemperature() : 0.2D);
         clientRequest.setMaxTokens(request.getMaxTokens() != null ? request.getMaxTokens() : 12000);
         clientRequest.setContextVars(buildContextVars(request));
+        applyAiModelSelection(clientRequest, request);
 
         return Flux.concat(
                 Flux.just(buildProgressEvent("analyzing", "正在分析流程需求...")),
@@ -74,8 +74,22 @@ public class FlowBpmnGenerateService {
         );
     }
 
+    private void applyAiModelSelection(AiClientRequest clientRequest, FlowGenerateRequest request) {
+        if (StringUtils.hasText(request.getModelId())) {
+            clientRequest.setModelName(request.getModelId());
+            return;
+        }
+        if (StringUtils.hasText(request.getAiModelName())) {
+            clientRequest.setModelName(request.getAiModelName());
+        }
+    }
+
     private String buildPrompt(FlowGenerateRequest request) {
         StringBuilder sb = new StringBuilder();
+        sb.append("## 输出约束\n");
+        sb.append("如返回 BPMN XML，必须是完整且语法合法的 XML。BPMNDI 图形信息只能使用 ");
+        sb.append("bpmndi:BPMNDiagram、bpmndi:BPMNPlane、bpmndi:BPMNShape、bpmndi:BPMNEdge、dc:Bounds、di:waypoint。");
+        sb.append("禁止输出 bpmdi:waypoint、bpmnwaypoint 等无效标签或属性，禁止把属性和节点文本拼接错位。\n\n");
         sb.append("以下是本次流程生成或修改请求的动态上下文。\n\n");
         sb.append("## 用户需求\n").append(request.getDescription()).append("\n\n");
         sb.append("## 当前流程模型\n");
@@ -92,7 +106,7 @@ public class FlowBpmnGenerateService {
 
     private Map<String, String> buildModelContext(FlowGenerateRequest request) {
         Map<String, String> model = new HashMap<>();
-        model.put("modelId", safeText(request.getModelId()));
+        model.put("flowModelId", safeText(request.getFlowModelId()));
         model.put("modelKey", safeText(request.getModelKey()));
         model.put("modelName", safeText(request.getModelName()));
         model.put("category", safeText(request.getCategory()));
@@ -196,7 +210,7 @@ public class FlowBpmnGenerateService {
     }
 
     private List<Map<String, String>> buildCurrentNodeConfigContext(FlowGenerateRequest request) {
-        String modelId = StringUtils.hasText(request.getModelId()) ? request.getModelId() : request.getModelKey();
+        String modelId = StringUtils.hasText(request.getFlowModelId()) ? request.getFlowModelId() : request.getModelKey();
         if (!StringUtils.hasText(modelId)) {
             return Collections.emptyList();
         }
@@ -236,7 +250,7 @@ public class FlowBpmnGenerateService {
 
     private Map<String, String> buildContextVars(FlowGenerateRequest request) {
         Map<String, String> vars = new HashMap<>();
-        vars.put("modelId", safeText(request.getModelId()));
+        vars.put("flowModelId", safeText(request.getFlowModelId()));
         vars.put("modelKey", safeText(request.getModelKey()));
         vars.put("modelName", safeText(request.getModelName()));
         vars.put("category", safeText(request.getCategory()));

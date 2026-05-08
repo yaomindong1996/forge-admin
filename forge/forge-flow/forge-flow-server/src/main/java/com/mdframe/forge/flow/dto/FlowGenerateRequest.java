@@ -8,6 +8,7 @@ public class FlowGenerateRequest {
     private String sessionId;
     private String description;
     private String modelId;
+    private String flowModelId;
     private String modelKey;
     private String modelName;
     private String category;

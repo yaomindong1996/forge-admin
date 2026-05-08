@@ -234,3 +234,20 @@ if (processDefinition == null) {
 **影响范围**:
 - 转办后再审批通过/驳回的流程任务
 - 所有直接调用 `taskService.complete` 的 Flowable 任务操作
+
+## 7. BPMN 设计器 XML 回传会清空撤销栈
+
+**发现日期**: 2026-05-08
+
+**问题描述**:
+流程设计器中修改节点后，撤销按钮仍然不可点击。
+
+**根本原因**:
+`FlowModeler` 通过 `commandStack.changed` 触发 `emit('change', xml)` 后，父组件更新 `bpmnXml` 又作为 `props.xml` 回传给设计器；如果 watcher 不区分这是自身刚发出的 XML，会再次 `importXML`，而 bpmn-js 重新导入会清空 `commandStack`。
+
+**解决方案**:
+设计器发出 XML 前记录规范化后的 `lastEmittedXml`；`props.xml` watcher 收到相同 XML 时跳过导入。属性面板更新时不要再让父组件主动 `getXML -> bpmnXml 回传`，只标记页面有变更，XML 同步交给设计器的 `commandStack.changed`。
+
+**影响范围**:
+- `FlowModeler` 撤销/重做状态
+- 所有父子组件通过 `:xml` + `@change` 双向同步 BPMN XML 的场景

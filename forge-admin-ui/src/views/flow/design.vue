@@ -120,7 +120,18 @@
             :xml="bpmnXml"
             @change="handleBpmnChange"
             @ready="handleModelerReady"
+            @import-start="handleDiagramImportStart"
+            @import-end="handleDiagramImportEnd"
           />
+          <Transition name="designer-loading-fade">
+            <div v-if="designerLoading" class="designer-loading-mask">
+              <n-spin size="large">
+                <template #description>
+                  {{ pageLoading ? '正在加载流程数据...' : '正在渲染流程图...' }}
+                </template>
+              </n-spin>
+            </div>
+          </Transition>
         </div>
       </div>
 
@@ -166,7 +177,7 @@
                 v-if="modelerInstance"
                 :element="dockedElement"
                 :modeler="modelerInstance"
-                @update="handleBpmnChange"
+                @update="handlePropertiesUpdate"
               />
             </div>
           </div>
@@ -295,6 +306,7 @@
                   </n-button>
                 </n-space>
               </div>
+              <div ref="aiMessageEndRef" class="ai-message-end" />
             </div>
 
             <div class="ai-flow-input">
@@ -436,14 +448,17 @@
         v-model:show="showAiXmlPreview"
         preset="card"
         title="AI生成的 BPMN XML"
-        style="width: 900px; max-height: 80vh"
+        style="width: min(900px, 92vw); max-height: 80vh"
+        content-style="overflow: hidden;"
       >
-        <n-code
-          :code="aiDraft?.bpmnXml || ''"
-          language="xml"
-          :show-line-numbers="true"
-          :word-wrap="true"
-        />
+        <div class="xml-preview-container">
+          <n-code
+            :code="aiDraft?.bpmnXml || ''"
+            language="xml"
+            :show-line-numbers="true"
+            :word-wrap="true"
+          />
+        </div>
       </n-modal>
     </Teleport>
   </div>
@@ -453,9 +468,9 @@
 import { NTag } from 'naive-ui'
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { modelListByProvider, providerPage } from '@/api/ai'
 import flowApi from '@/api/flow'
 import { streamFlowGenerate } from '@/api/flow-generator'
-import { modelListByProvider, providerPage } from '@/api/ai'
 import FlowModeler from '@/components/bpmn/FlowModeler.vue'
 import NodePropertiesPanel from '@/components/bpmn/NodePropertiesPanel.vue'
 import FormDesigner from '@/components/form-designer/FormDesigner.vue'
@@ -467,6 +482,8 @@ const message = window.$message
 
 const saving = ref(false)
 const deploying = ref(false)
+const pageLoading = ref(true)
+const diagramLoadingCount = ref(0)
 const modelerRef = ref(null)
 const bpmnXml = ref('')
 const hasChanges = ref(false)
@@ -486,6 +503,7 @@ const aiReasoningEndTime = ref(null)
 const aiCurrentStage = ref('')
 const expandedReasonings = ref({})
 const aiMessageListRef = ref(null)
+const aiMessageEndRef = ref(null)
 const showModelPanel = ref(false)
 
 const aiProviderId = ref(null)
@@ -557,6 +575,8 @@ const statusTag = computed(() => {
 
 const isReadonly = computed(() => modelInfo.status === 1)
 
+const designerLoading = computed(() => pageLoading.value || diagramLoadingCount.value > 0)
+
 const currentProviderLabel = computed(() => {
   const item = providerOptions.value.find(p => p.value === aiProviderId.value)
   return item?.label || '未选择供应商'
@@ -576,17 +596,22 @@ watch(aiProviderId, async (val, old) => {
 })
 
 onMounted(async () => {
-  await loadCategories()
-  await loadForms()
-  await loadProviderOptions()
+  try {
+    await loadCategories()
+    await loadForms()
+    await loadProviderOptions()
 
-  const modelId = route.query.id
-  if (modelId) {
-    await loadModel(modelId)
+    const modelId = route.query.id
+    if (modelId) {
+      await loadModel(modelId)
+    }
+    else {
+      modelInfo.modelKey = `process_${Date.now()}`
+      modelInfo.modelName = '新流程'
+    }
   }
-  else {
-    modelInfo.modelKey = `process_${Date.now()}`
-    modelInfo.modelName = '新流程'
+  finally {
+    pageLoading.value = false
   }
 })
 
@@ -635,7 +660,7 @@ async function loadModelOptions(selectedProviderId, preserveSelection = false) {
     const models = (res.data || []).filter(item => item.status === undefined || item.status === '0')
     modelOptions.value = models.map(item => ({
       label: item.modelName ? `${item.modelName} (${item.modelId})` : item.modelId,
-      value: item.id,
+      value: item.modelId,
       modelCode: item.modelId,
       maxTokens: item.maxTokens,
       isDefault: item.isDefault,
@@ -820,6 +845,8 @@ async function handleAiSend() {
         description: prompt,
         providerId: aiProviderId.value,
         modelId: aiModelId.value,
+        flowModelId: modelInfo.id || modelInfo.modelKey || '',
+        aiModelName: currentModelLabel.value,
         modelKey: modelInfo.modelKey || `process_${Date.now()}`,
         modelName: modelInfo.modelName || '新流程',
         category: modelInfo.category || '',
@@ -964,13 +991,19 @@ function toggleReasoning(idx) {
 
 function scrollAiToBottom() {
   nextTick(() => {
-    if (aiMessageListRef.value) {
-      aiMessageListRef.value.scrollTop = aiMessageListRef.value.scrollHeight
-    }
+    requestAnimationFrame(() => {
+      if (aiMessageEndRef.value) {
+        aiMessageEndRef.value.scrollIntoView({ block: 'end' })
+      }
+      if (aiMessageListRef.value) {
+        aiMessageListRef.value.scrollTop = aiMessageListRef.value.scrollHeight
+      }
+    })
   })
 }
 
 watch(() => aiMessages.value.length, () => scrollAiToBottom())
+watch(() => [aiRawContent.value, aiReasoningContent.value, aiDraft.value], () => scrollAiToBottom(), { flush: 'post' })
 watch(aiSending, (val) => {
   if (val)
     scrollAiToBottom()
@@ -1053,11 +1086,12 @@ function handlePreviewAiXml() {
 
 function normalizeAiFlowDraft(draft) {
   const modelKey = draft.modelKey || modelInfo.modelKey || `process_${Date.now()}`
+  const bpmnXml = ensureProcessId(draft.bpmnXml, modelKey)
   return {
     ...draft,
     modelKey,
     modelName: draft.modelName || modelInfo.modelName || 'AI生成流程',
-    bpmnXml: ensureProcessId(draft.bpmnXml, modelKey),
+    bpmnXml: repairBpmnXml(bpmnXml, modelKey),
   }
 }
 
@@ -1129,6 +1163,235 @@ function ensureProcessId(xml, modelKey) {
     .replace(/(<bpmndi:BPMNPlane\s[^>]*bpmnElement=")[^"]+(")/, `$1${modelKey}$2`)
 }
 
+function repairBpmnXml(xml, modelKey) {
+  if (!xml)
+    return xml
+  const parseError = getXmlParseError(xml)
+  if (!parseError && xml.includes('bpmndi:BPMNDiagram'))
+    return xml
+
+  const repaired = rebuildDiagramInfo(xml, modelKey)
+  if (!repaired)
+    return xml
+
+  const repairedError = getXmlParseError(repaired)
+  if (repairedError) {
+    console.warn('[FlowDesign] BPMN XML 修复后仍不可解析:', repairedError)
+    return xml
+  }
+  console.warn('[FlowDesign] AI 返回的 BPMNDI 坐标信息无效，已重新生成图形信息:', parseError || '缺少 BPMNDiagram')
+  return repaired
+}
+
+function getXmlParseError(xml) {
+  try {
+    const doc = new DOMParser().parseFromString(xml, 'application/xml')
+    const error = doc.querySelector('parsererror')
+    return error?.textContent || ''
+  }
+  catch (error) {
+    return error.message
+  }
+}
+
+function rebuildDiagramInfo(xml, modelKey) {
+  const semanticXml = stripDiagramInfo(xml)
+  const semanticError = getXmlParseError(semanticXml)
+  if (semanticError) {
+    console.warn('[FlowDesign] BPMN 语义 XML 不可解析，无法重建图形信息:', semanticError)
+    return ''
+  }
+
+  const doc = new DOMParser().parseFromString(semanticXml, 'application/xml')
+  const processEl = Array.from(doc.getElementsByTagName('*')).find(el => el.localName === 'process')
+  if (!processEl)
+    return ''
+
+  const processId = processEl.getAttribute('id') || modelKey
+  const nodes = []
+  const flows = []
+
+  Array.from(processEl.children).forEach((el) => {
+    const id = el.getAttribute('id')
+    if (!id)
+      return
+    if (el.localName === 'sequenceFlow') {
+      flows.push({
+        id,
+        sourceRef: el.getAttribute('sourceRef'),
+        targetRef: el.getAttribute('targetRef'),
+      })
+      return
+    }
+    if (isBpmnFlowNode(el.localName)) {
+      nodes.push({
+        id,
+        type: el.localName,
+      })
+    }
+  })
+
+  if (nodes.length === 0)
+    return ''
+
+  const bounds = layoutBpmnNodes(nodes, flows)
+  const diagramXml = buildDiagramXml(processId, nodes, flows, bounds)
+  const normalizedSemanticXml = ensureDiagramNamespaces(semanticXml)
+  return normalizedSemanticXml.replace(/<\/(?:bpmn:)?definitions>\s*$/i, `${diagramXml}\n</bpmn:definitions>`)
+}
+
+function stripDiagramInfo(xml) {
+  const start = xml.search(/<bpmndi:BPMNDiagram\b/)
+  if (start < 0)
+    return xml
+
+  const closeTag = '</bpmndi:BPMNDiagram>'
+  const end = xml.indexOf(closeTag, start)
+  if (end >= 0) {
+    return `${xml.slice(0, start)}${xml.slice(end + closeTag.length)}`
+  }
+
+  const definitionsEnd = xml.search(/<\/(?:bpmn:)?definitions>\s*$/i)
+  if (definitionsEnd >= 0) {
+    return `${xml.slice(0, start)}${xml.slice(definitionsEnd)}`
+  }
+  return xml.slice(0, start)
+}
+
+function ensureDiagramNamespaces(xml) {
+  const namespaces = [
+    ['bpmndi', 'http://www.omg.org/spec/BPMN/20100524/DI'],
+    ['dc', 'http://www.omg.org/spec/DD/20100524/DC'],
+    ['di', 'http://www.omg.org/spec/DD/20100524/DI'],
+  ]
+  return namespaces.reduce((text, [prefix, uri]) => {
+    if (text.includes(`xmlns:${prefix}=`))
+      return text
+    return text.replace(/<bpmn:definitions\b/, `<bpmn:definitions xmlns:${prefix}="${uri}"`)
+  }, xml)
+}
+
+function isBpmnFlowNode(localName) {
+  return localName.endsWith('Event')
+    || localName.endsWith('Task')
+    || localName.endsWith('Gateway')
+    || ['subProcess', 'callActivity'].includes(localName)
+}
+
+function layoutBpmnNodes(nodes, flows) {
+  const nodeMap = new Map(nodes.map(node => [node.id, node]))
+  const rankMap = new Map()
+  const outgoing = new Map()
+  const incomingCount = new Map(nodes.map(node => [node.id, 0]))
+
+  flows.forEach((flow) => {
+    if (!nodeMap.has(flow.sourceRef) || !nodeMap.has(flow.targetRef))
+      return
+    if (!outgoing.has(flow.sourceRef))
+      outgoing.set(flow.sourceRef, [])
+    outgoing.get(flow.sourceRef).push(flow.targetRef)
+    incomingCount.set(flow.targetRef, (incomingCount.get(flow.targetRef) || 0) + 1)
+  })
+
+  const startNodes = nodes.filter(node => node.type === 'startEvent' || incomingCount.get(node.id) === 0)
+  const queue = startNodes.length > 0 ? [...startNodes] : [nodes[0]]
+  queue.forEach(node => rankMap.set(node.id, 0))
+
+  while (queue.length > 0) {
+    const node = queue.shift()
+    const nextRank = (rankMap.get(node.id) || 0) + 1
+    ;(outgoing.get(node.id) || []).forEach((targetId) => {
+      if (rankMap.has(targetId))
+        return
+      rankMap.set(targetId, nextRank)
+      queue.push(nodeMap.get(targetId))
+    })
+  }
+
+  nodes.forEach((node, index) => {
+    if (!rankMap.has(node.id))
+      rankMap.set(node.id, index)
+  })
+
+  const rankCounts = new Map()
+  const bounds = new Map()
+  nodes.forEach((node) => {
+    const rank = rankMap.get(node.id)
+    const lane = rankCounts.get(rank) || 0
+    rankCounts.set(rank, lane + 1)
+    const size = getBpmnNodeSize(node.type)
+    bounds.set(node.id, {
+      x: 100 + rank * 180,
+      y: 120 + lane * 140,
+      ...size,
+    })
+  })
+  return bounds
+}
+
+function getBpmnNodeSize(type) {
+  if (type.endsWith('Gateway'))
+    return { width: 50, height: 50 }
+  if (type.endsWith('Event'))
+    return { width: 36, height: 36 }
+  return { width: 100, height: 80 }
+}
+
+function buildDiagramXml(processId, nodes, flows, bounds) {
+  const lines = [
+    '  <bpmndi:BPMNDiagram id="BPMNDiagram_1">',
+    `    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="${escapeXmlAttr(processId)}">`,
+  ]
+
+  nodes.forEach((node) => {
+    const b = bounds.get(node.id)
+    lines.push(`      <bpmndi:BPMNShape id="${escapeXmlAttr(node.id)}_di" bpmnElement="${escapeXmlAttr(node.id)}">`)
+    lines.push(`        <dc:Bounds x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" />`)
+    lines.push('      </bpmndi:BPMNShape>')
+  })
+
+  flows.forEach((flow) => {
+    const source = bounds.get(flow.sourceRef)
+    const target = bounds.get(flow.targetRef)
+    if (!source || !target)
+      return
+    const waypoints = buildWaypoints(source, target)
+    lines.push(`      <bpmndi:BPMNEdge id="${escapeXmlAttr(flow.id)}_di" bpmnElement="${escapeXmlAttr(flow.id)}">`)
+    waypoints.forEach(point => lines.push(`        <di:waypoint x="${point.x}" y="${point.y}" />`))
+    lines.push('      </bpmndi:BPMNEdge>')
+  })
+
+  lines.push('    </bpmndi:BPMNPlane>')
+  lines.push('  </bpmndi:BPMNDiagram>')
+  return lines.join('\n')
+}
+
+function buildWaypoints(source, target) {
+  const sourceRight = { x: source.x + source.width, y: source.y + Math.round(source.height / 2) }
+  const targetLeft = { x: target.x, y: target.y + Math.round(target.height / 2) }
+  if (targetLeft.x > sourceRight.x) {
+    return [sourceRight, targetLeft]
+  }
+
+  const sourceBottom = { x: source.x + Math.round(source.width / 2), y: source.y + source.height }
+  const targetBottom = { x: target.x + Math.round(target.width / 2), y: target.y + target.height }
+  const routeY = Math.max(sourceBottom.y, targetBottom.y) + 40
+  return [
+    sourceBottom,
+    { x: sourceBottom.x, y: routeY },
+    { x: targetBottom.x, y: routeY },
+    targetBottom,
+  ]
+}
+
+function escapeXmlAttr(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+}
+
 async function handleBpmnChange(xml) {
   if (xml) {
     bpmnXml.value = xml
@@ -1146,6 +1409,18 @@ async function handleBpmnChange(xml) {
       console.error('获取 XML 失败:', error)
     }
   }
+}
+
+function handlePropertiesUpdate() {
+  hasChanges.value = true
+}
+
+function handleDiagramImportStart() {
+  diagramLoadingCount.value += 1
+}
+
+function handleDiagramImportEnd() {
+  diagramLoadingCount.value = Math.max(0, diagramLoadingCount.value - 1)
 }
 
 async function handleSaveDraft() {
@@ -1261,15 +1536,6 @@ function handleModelerReady() {
   }
 }
 
-function closeDockedPanel() {
-  dockedElement.value = null
-  if (modelerInstance.value) {
-    const selection = modelerInstance.value.get('selection')
-    if (selection)
-      selection.select(null)
-  }
-}
-
 function getElementTitle(el) {
   if (!el)
     return '属性设置'
@@ -1294,9 +1560,12 @@ function getElementTitle(el) {
 
 <style scoped>
 .model-design-page {
-  height: 100vh;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: #f8fafc;
 }
 
@@ -1418,14 +1687,40 @@ function getElementTitle(el) {
   position: relative;
 }
 
+.designer-loading-mask {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(248, 250, 252, 0.82);
+  backdrop-filter: blur(3px);
+}
+
+.designer-loading-fade-enter-active,
+.designer-loading-fade-leave-active {
+  transition: opacity 180ms ease;
+}
+
+.designer-loading-fade-enter-from,
+.designer-loading-fade-leave-to {
+  opacity: 0;
+}
+
 .right-panels {
   position: absolute;
   right: 0;
-  top: 0;
-  bottom: 0;
+  top: 12px;
+  bottom: 12px;
+  height: auto;
+  max-height: calc(100% - 24px);
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid #e2e8f0;
+  border: 1px solid #e2e8f0;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
   background: #fff;
   width: 380px;
   flex-shrink: 0;
@@ -1497,8 +1792,13 @@ function getElementTitle(el) {
 }
 
 @keyframes dotPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .panel-tab-close {
@@ -1523,6 +1823,7 @@ function getElementTitle(el) {
 
 .docked-properties-panel {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1532,7 +1833,7 @@ function getElementTitle(el) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 10px 14px;
   background: #6366f1;
   color: white;
   flex-shrink: 0;
@@ -1545,8 +1846,9 @@ function getElementTitle(el) {
 
 .docked-panel-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
-  padding: 12px;
+  padding: 10px;
 }
 
 .docked-panel-body::-webkit-scrollbar {
@@ -1564,13 +1866,14 @@ function getElementTitle(el) {
 
 .ai-flow-panel {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
 .ai-flow-header {
-  padding: 12px 16px;
+  padding: 10px 14px;
   border-bottom: 1px solid #e2e8f0;
   flex-shrink: 0;
 }
@@ -1603,7 +1906,7 @@ function getElementTitle(el) {
 .ai-stage-progress {
   display: flex;
   align-items: center;
-  padding: 8px 16px;
+  padding: 6px 12px;
   background: #f8fafc;
   border-bottom: 1px solid #e2e8f0;
   gap: 4px;
@@ -1663,8 +1966,10 @@ function getElementTitle(el) {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 14px;
+  overflow-x: hidden;
+  padding: 10px 12px;
   background: #f8fafc;
+  scroll-behavior: smooth;
 }
 
 .ai-flow-body::-webkit-scrollbar {
@@ -1725,7 +2030,9 @@ function getElementTitle(el) {
   background: #fff;
   padding: 10px 12px;
   cursor: pointer;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .ai-example:hover {
@@ -1763,6 +2070,10 @@ function getElementTitle(el) {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.ai-message-end {
+  height: 1px;
 }
 
 .ai-message {
@@ -1925,8 +2236,16 @@ function getElementTitle(el) {
 }
 
 @keyframes typingBounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-6px); opacity: 1; }
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
 }
 
 .ai-draft {
@@ -1953,6 +2272,31 @@ function getElementTitle(el) {
   color: #166534;
   font-size: 12px;
   line-height: 1.5;
+}
+
+.xml-preview-container {
+  max-height: 60vh;
+  overflow: auto;
+  background: #f8f9fa;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+:deep(.xml-preview-container .n-code) {
+  background: transparent;
+}
+
+:deep(.xml-preview-container .n-code pre) {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #1e1e1e;
+  background: transparent;
+}
+
+:deep(.xml-preview-container .n-code .hljs) {
+  background: transparent;
 }
 
 .ai-flow-input {
@@ -2162,11 +2506,13 @@ function getElementTitle(el) {
   .right-panels {
     position: absolute;
     right: 0;
-    top: 0;
-    bottom: 0;
+    top: 8px;
+    bottom: 8px;
+    max-height: calc(100% - 16px);
     z-index: 120;
     width: 92%;
     max-width: 400px;
+    border-radius: 8px 0 0 8px;
     box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
   }
 
@@ -2182,6 +2528,33 @@ function getElementTitle(el) {
   .config-field :deep(.n-select),
   .config-field :deep(.n-input) {
     width: 100% !important;
+  }
+}
+
+@media (max-height: 760px) {
+  .right-panel-tabs {
+    height: 34px;
+  }
+
+  .ai-flow-header,
+  .docked-panel-header {
+    padding: 7px 10px;
+  }
+
+  .ai-flow-subtitle {
+    display: none;
+  }
+
+  .ai-stage-progress {
+    padding: 5px 10px;
+  }
+
+  .ai-flow-body {
+    padding: 8px 10px;
+  }
+
+  .ai-flow-input {
+    padding: 7px 9px;
   }
 }
 

@@ -68,83 +68,109 @@ defineEmits(['filter'])
 
 <style scoped>
 .flow-management-stats {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 16px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  flex-shrink: 0;
+  overflow-x: auto;
 }
 
 .stats-row {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 760px;
 }
 
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: #fff;
-  border-radius: 10px;
-  padding: 12px 16px;
+  gap: 10px;
+  background: #f8fafc;
+  border-radius: 7px;
+  padding: 10px 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
   border: 1px solid #e2e8f0;
   flex: 1;
-  min-width: 120px;
+  min-width: 140px;
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  background: #fff;
+  border-color: #cbd5e1;
 }
 
 .stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  color: #fff;
+  font-size: 17px;
+  border: 1px solid transparent;
+  flex-shrink: 0;
 }
 
 .stat-icon.total {
-  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  color: #475569;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
 }
 
 .stat-icon.designing {
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #b45309;
+  background: #fffbeb;
+  border-color: #fde68a;
 }
 
 .stat-icon.deployed {
-  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  color: #047857;
+  background: #ecfdf5;
+  border-color: #bbf7d0;
 }
 
 .stat-icon.suspended {
-  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+  color: #475569;
+  background: #f8fafc;
+  border-color: #e2e8f0;
 }
 
 .stat-icon.disabled {
-  background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
 }
 
 .stat-content {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
 }
 
 .stat-label {
   font-size: 12px;
   color: #64748b;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .stat-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1;
+}
+
+@media (max-width: 720px) {
+  .stats-row {
+    min-width: 700px;
+  }
 }
 </style>

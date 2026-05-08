@@ -55,8 +55,6 @@ let eventBus = null
 let canvas = null
 let updateTimer = null
 
-const SCALE = 0.15
-
 function toggleMinimap() {
   expanded.value = !expanded.value
   if (expanded.value) {
@@ -67,20 +65,14 @@ function toggleMinimap() {
   }
 }
 
-function updateMinimap() {
+async function updateMinimap() {
   if (!props.modeler || !canvas)
     return
 
   try {
-    const container = canvas.getContainer()
-    const svg = container?.querySelector('svg')
+    const { svg } = await props.modeler.saveSVG()
     if (svg) {
-      const clone = svg.cloneNode(true)
-      clone.removeAttribute('style')
-      clone.setAttribute('width', '100%')
-      clone.setAttribute('height', '100%')
-      clone.setAttribute('preserveAspectRatio', 'xMidYMid meet')
-      svgContent.value = clone.outerHTML
+      svgContent.value = svg
     }
   }
   catch (error) {
@@ -322,17 +314,16 @@ onUnmounted(() => {
 }
 
 .minimap-svg-wrapper {
-  transform-origin: top left;
-  transform: scale(0.15);
   pointer-events: none;
-  opacity: 0.8;
+  opacity: 0.9;
   width: 100%;
   height: 100%;
 }
 
 .minimap-svg-wrapper :deep(svg) {
-  max-width: none;
-  max-height: none;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .minimap-viewport {

@@ -149,6 +149,44 @@
       @change="handleFileChange"
     >
 
+    <!-- BPMN导入弹窗 -->
+    <n-modal
+      v-model:show="showImportModal"
+      preset="card"
+      title="导入 BPMN XML"
+      style="width: min(760px, 92vw)"
+      :mask-closable="false"
+    >
+      <div class="import-panel">
+        <n-alert type="info" :show-icon="false">
+          可以选择本地 .bpmn/.xml 文件，也可以直接粘贴 BPMN XML 内容。
+        </n-alert>
+        <n-button @click="handleChooseImportFile">
+          <template #icon>
+            <i class="i-material-symbols:upload-file" />
+          </template>
+          选择文件
+        </n-button>
+        <n-input
+          v-model:value="importXmlText"
+          type="textarea"
+          :autosize="{ minRows: 12, maxRows: 18 }"
+          placeholder="在这里粘贴 BPMN XML..."
+        />
+      </div>
+
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="showImportModal = false">
+            取消
+          </n-button>
+          <n-button type="primary" :loading="importingXml" :disabled="!importXmlText.trim()" @click="handleImportXmlText">
+            导入XML
+          </n-button>
+        </n-space>
+      </template>
+    </n-modal>
+
     <!-- XML预览弹窗 -->
     <n-modal v-model:show="showPreviewModal" preset="card" title="BPMN XML 预览" style="width: 900px; max-height: 80vh">
       <div class="xml-preview-container">
@@ -203,7 +241,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['save', 'change', 'ready'])
+const emit = defineEmits(['save', 'change', 'ready', 'importStart', 'importEnd'])
 
 // 使用全局 message 实例
 const message = window.$message
@@ -226,6 +264,12 @@ const selectedElement = ref(null)
 const showPreviewModal = ref(false)
 const previewXml = ref('')
 const darkMode = ref(false)
+const showImportModal = ref(false)
+const importXmlText = ref('')
+const importingXml = ref(false)
+let isRestoringHistory = false
+let lastEmittedXml = ''
+let xmlWatchVersion = 0
 
 // 默认 BPMN XML - 必须包含 BPMNDiagram 图形信息
 const defaultXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -303,7 +347,8 @@ async function initModeler() {
   // 元素变化事件
   eventBus.on('element.changed', () => {
     updateUndoRedoState()
-    emitChange()
+    if (!isRestoringHistory)
+      emitChange()
   })
 
   // 监听连接线创建事件，防止不完整的连接线残留
@@ -352,30 +397,8 @@ async function initModeler() {
   // 命令栈变化
   eventBus.on('commandStack.changed', () => {
     updateUndoRedoState()
-
-    // 每次命令栈变化后，检查并清理不完整的连接线
-    // 使用 setTimeout 确保在当前操作完成后执行
-    setTimeout(() => {
-      const elementRegistry = modeler.get('elementRegistry')
-      const modeling = modeler.get('modeling')
-      const elements = elementRegistry.getAll()
-
-      const toRemove = []
-      elements.forEach((element) => {
-        if (element.type === 'bpmn:SequenceFlow') {
-          const bo = element.businessObject
-          // 检查连接线是否完整
-          if (!bo.sourceRef || !bo.targetRef || !element.source || !element.target) {
-            toRemove.push(element)
-          }
-        }
-      })
-
-      if (toRemove.length > 0) {
-        console.warn('命令栈变化后检测到不完整的连接线，自动清理:', toRemove.map(e => e.id))
-        modeling.removeElements(toRemove)
-      }
-    }, 100)
+    if (!isRestoringHistory)
+      emitChange()
   })
 
   // 缩放变化
@@ -392,6 +415,7 @@ async function initModeler() {
 
 // 导入 XML
 async function importXML(xml) {
+  emit('importStart')
   // 确保使用有效的 XML
   if (!xml || !xml.trim()) {
     console.warn('XML 为空，使用默认模板')
@@ -408,6 +432,7 @@ async function importXML(xml) {
     await modeler.importXML(xml)
     const canvas = modeler.get('canvas')
     canvas.zoom('fit-viewport')
+    updateUndoRedoState()
 
     // 导入后清理不完整的连接线
     const cleanedCount = cleanIncompleteFlows()
@@ -422,7 +447,10 @@ async function importXML(xml) {
   }
   catch (error) {
     console.error('导入 BPMN 失败:', error)
-    message.error(`导入 BPMN 失败: ${error.message}`)
+    throw error
+  }
+  finally {
+    emit('importEnd')
   }
 }
 
@@ -435,14 +463,38 @@ function updateUndoRedoState() {
 
 // 撤销
 function handleUndo() {
+  if (!canUndo.value)
+    return
   const commandStack = modeler.get('commandStack')
-  commandStack.undo()
+  isRestoringHistory = true
+  try {
+    commandStack.undo()
+  }
+  finally {
+    setTimeout(() => {
+      isRestoringHistory = false
+      updateUndoRedoState()
+      emitChange()
+    }, 0)
+  }
 }
 
 // 重做
 function handleRedo() {
+  if (!canRedo.value)
+    return
   const commandStack = modeler.get('commandStack')
-  commandStack.redo()
+  isRestoringHistory = true
+  try {
+    commandStack.redo()
+  }
+  finally {
+    setTimeout(() => {
+      isRestoringHistory = false
+      updateUndoRedoState()
+      emitChange()
+    }, 0)
+  }
 }
 
 // 放大
@@ -465,7 +517,34 @@ function handleZoomReset() {
 
 // 导入
 function handleImport() {
+  importXmlText.value = ''
+  showImportModal.value = true
+}
+
+function handleChooseImportFile() {
   fileInputRef.value?.click()
+}
+
+async function handleImportXmlText() {
+  const xml = importXmlText.value.trim()
+  if (!xml) {
+    message.warning('请输入 BPMN XML 内容')
+    return
+  }
+
+  try {
+    importingXml.value = true
+    await importXML(xml)
+    showImportModal.value = false
+    importXmlText.value = ''
+    message.success('导入成功')
+  }
+  catch (error) {
+    message.error(`导入失败: ${error.message}`)
+  }
+  finally {
+    importingXml.value = false
+  }
 }
 
 // 文件选择
@@ -478,6 +557,8 @@ async function handleFileChange(e) {
   reader.onload = async (event) => {
     try {
       await importXML(event.target.result)
+      showImportModal.value = false
+      importXmlText.value = ''
       message.success('导入成功')
     }
     catch (error) {
@@ -594,6 +675,7 @@ function toggleDarkMode() {
 // 触发变更
 function emitChange() {
   modeler.saveXML({ format: true }).then(({ xml }) => {
+    lastEmittedXml = normalizeXmlForCompare(xml)
     emit('change', xml)
   }).catch(() => {})
 }
@@ -752,17 +834,50 @@ async function getXML(skipValidation = false) {
 // 设置 XML
 async function setXML(xml) {
   if (xml) {
+    lastEmittedXml = ''
     await importXML(xml)
   }
 }
 
 // 监听 xml prop 变化
-watch(() => props.xml, (newXml) => {
+watch(() => props.xml, async (newXml) => {
   if (modeler) {
+    const watchVersion = ++xmlWatchVersion
     const xmlToImport = newXml && newXml.trim() ? newXml : defaultXml
-    importXML(xmlToImport)
+    if (lastEmittedXml && normalizeXmlForCompare(xmlToImport) === lastEmittedXml) {
+      return
+    }
+    if (await isSameAsCurrentXml(xmlToImport)) {
+      if (watchVersion !== xmlWatchVersion)
+        return
+      lastEmittedXml = normalizeXmlForCompare(xmlToImport)
+      return
+    }
+    if (watchVersion !== xmlWatchVersion)
+      return
+    lastEmittedXml = ''
+    try {
+      await importXML(xmlToImport)
+    }
+    catch (error) {
+      message.error(`导入 BPMN 失败: ${error.message}`)
+    }
   }
 })
+
+function normalizeXmlForCompare(xml) {
+  return (xml || '').replace(/\s+/g, ' ').trim()
+}
+
+async function isSameAsCurrentXml(xml) {
+  try {
+    const { xml: currentXml } = await modeler.saveXML({ format: true })
+    return normalizeXmlForCompare(currentXml) === normalizeXmlForCompare(xml)
+  }
+  catch {
+    return false
+  }
+}
 
 // 暴露方法
 defineExpose({
@@ -840,6 +955,12 @@ defineExpose({
 .canvas-container {
   width: 100%;
   height: 100%;
+}
+
+.import-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* XML预览容器样式 - 浅色主题 */
