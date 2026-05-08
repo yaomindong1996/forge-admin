@@ -69,3 +69,28 @@ VALUES (1, 2, '重要流程', '2', 'flow_importance_level', NULL, 'danger', 'N',
 -- 2. sys_flow_model 表新增 importance_level 字段
 -- 3. 字典类型和字典数据创建成功
 -- =============================================
+
+
+-- 5. 新增版本管理菜单和权限配置（sys_resource 表）
+-- 注意：以下 SQL 需根据实际 sys_resource 表结构调整字段名
+
+-- 新增版本管理菜单（在流程模型菜单下）
+-- INSERT INTO sys_resource (resource_id, resource_name, resource_code, parent_code, resource_type, menu_url, menu_icon, sort, status, tenant_id, create_time, update_time)
+-- VALUES ('flow_model_version', '版本历史', 'flow_model_version', 'flow_model', 'menu', '/flow/model/version', 'document', 3, 1, 1, NOW(), NOW());
+
+-- 新增版本回退权限
+-- INSERT INTO sys_resource (resource_id, resource_name, resource_code, parent_code, resource_type, permission_code, sort, status, tenant_id, create_time, update_time)
+-- VALUES ('flow_model_revert', '版本回退', 'flow_model_revert', 'flow_model_version', 'button', 'flow:model:revert', 4, 1, 1, NOW(), NOW());
+
+-- 新增版本删除权限
+-- INSERT INTO sys_resource (resource_id, resource_name, resource_code, parent_code, resource_type, permission_code, sort, status, tenant_id, create_time, update_time)
+-- VALUES ('flow_model_version_delete', '版本删除', 'flow_model_version_delete', 'flow_model_version', 'button', 'flow:model:version:delete', 5, 1, 1, NOW(), NOW());
+
+
+-- =============================================
+-- 权限配置说明
+-- 权限标识已定义：
+-- - flow:model:revert（版本回退权限）
+-- - flow:model:version:delete（版本删除权限）
+-- 需在系统菜单管理页面手动配置菜单和权限，或根据实际 sys_resource 表结构调整 SQL 后执行
+-- =============================================
