@@ -35,7 +35,7 @@
             <i class="i-material-symbols:search" />
           </template>
         </n-input>
-        <n-select v-model:value="queryParams.category" placeholder="流程分类" clearable class="category-select" :options="categoryOptions" />
+        <n-tree-select v-model:value="queryParams.category" placeholder="流程分类" clearable class="category-select" :options="categoryTreeOptions" :default-expand-all="true" />
         <n-select v-model:value="queryParams.status" placeholder="流程状态" clearable class="category-select" :options="statusOptions" />
         <NButton type="primary" class="search-btn" @click="handleSearch">
           <i class="i-material-symbols:search mr-2" />查询
@@ -146,7 +146,7 @@
 </template>
 
 <script setup>
-import { NButton, NSpace } from 'naive-ui'
+import { NButton, NSpace, NTreeSelect } from 'naive-ui'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import flowApi from '@/api/flow'
 import ProcessDiagramViewer from '@/components/bpmn/ProcessDiagramViewer.vue'
@@ -177,6 +177,16 @@ const pagination = reactive({
 
 const queryParams = reactive({ title: '', category: '', status: null })
 const categoryOptions = ref([])
+const categoryTreeOptions = ref([])
+
+function buildTreeSelectOptions(treeData) {
+  return treeData.map(item => ({
+    label: item.categoryName,
+    value: item.id,
+    key: item.id,
+    children: item.children && item.children.length > 0 ? buildTreeSelectOptions(item.children) : undefined,
+  }))
+}
 
 const todoCount = ref(0)
 const doneCount = ref(0)
@@ -350,9 +360,11 @@ async function loadStats() {
 
 async function loadCategories() {
   try {
-    const res = await flowApi.getEnabledCategories()
-    if (res.code === 200 && res.data)
-      categoryOptions.value = res.data.map(item => ({ label: item.categoryName, value: item.categoryCode }))
+    const res = await flowApi.getCategoryTreeSelect(false)
+    if (res.code === 200 && res.data) {
+      categoryTreeOptions.value = buildTreeSelectOptions(res.data)
+      categoryOptions.value = res.data.map(item => ({ label: item.categoryName, value: item.id }))
+    }
   }
   catch {
     console.error('加载分类失败')

@@ -36,6 +36,26 @@ public class FlowCategoryController {
     }
 
     /**
+     * 获取分类树形列表（用于管理页面展示）
+     */
+    @GetMapping("/tree")
+    public RespInfo<List<FlowCategory>> listTree() {
+        List<FlowCategory> categories = flowCategoryService.listTree();
+        return RespInfo.success(categories);
+    }
+
+    /**
+     * 获取分类下拉树（用于选择器）
+     * @param onlyLeaf 是否只返回叶子节点
+     */
+    @GetMapping("/tree-select")
+    public RespInfo<List<FlowCategory>> listTreeSelect(
+            @RequestParam(defaultValue = "true") boolean onlyLeaf) {
+        List<FlowCategory> categories = flowCategoryService.listTreeSelect(onlyLeaf);
+        return RespInfo.success(categories);
+    }
+
+    /**
      * 分页查询分类
      */
     @GetMapping("/page")

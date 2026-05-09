@@ -17,12 +17,13 @@
             <i class="i-material-symbols:search" />
           </template>
         </n-input>
-        <n-select
+        <n-tree-select
           v-model:value="queryParams.category"
           placeholder="流程分类"
           clearable
           style="width: 150px"
-          :options="categoryOptions"
+          :options="categoryTreeOptions"
+          :default-expand-all="true"
         />
         <n-select
           v-model:value="queryParams.status"
@@ -171,7 +172,7 @@
 </template>
 
 <script setup>
-import { NButton, NSpace, NTag } from 'naive-ui'
+import { NButton, NSpace, NTag, NTreeSelect } from 'naive-ui'
 import { h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import flowApi from '@/api/flow'
@@ -194,6 +195,16 @@ const formTypeOptions = [
 
 // 分类选项
 const categoryOptions = ref([])
+const categoryTreeOptions = ref([])
+
+function buildTreeSelectOptions(treeData) {
+  return treeData.map(item => ({
+    label: item.categoryName,
+    value: item.id,
+    key: item.id,
+    children: item.children && item.children.length > 0 ? buildTreeSelectOptions(item.children) : undefined,
+  }))
+}
 
 // 查询参数
 const queryParams = reactive({
@@ -418,11 +429,12 @@ async function loadData() {
 // 加载分类
 async function loadCategories() {
   try {
-    const res = await flowApi.getEnabledCategories()
+    const res = await flowApi.getCategoryTreeSelect(false)
     if (res.data) {
+      categoryTreeOptions.value = buildTreeSelectOptions(res.data)
       categoryOptions.value = res.data.map(item => ({
         label: item.categoryName,
-        value: item.categoryCode,
+        value: item.id,
       }))
     }
   }

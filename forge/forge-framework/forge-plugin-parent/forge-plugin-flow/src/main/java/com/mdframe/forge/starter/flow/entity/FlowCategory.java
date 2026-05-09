@@ -4,9 +4,10 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
- * 流程分类实体
+ * 流程分类实体（树形结构）
  */
 @Data
 @TableName("sys_flow_category")
@@ -14,6 +15,21 @@ public class FlowCategory {
 
     @TableId(type = IdType.ASSIGN_UUID)
     private String id;
+
+    /**
+     * 父分类ID（根节点为空）
+     */
+    private String parentId;
+
+    /**
+     * 层级深度（1,2,3...）
+     */
+    private Integer level;
+
+    /**
+     * 祖先路径（如：0/abc123/）
+     */
+    private String ancestors;
 
     /**
      * 分类编码
@@ -51,4 +67,10 @@ public class FlowCategory {
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
+
+    /**
+     * 子分类（用于树形查询）
+     */
+    @TableField(exist = false)
+    private List<FlowCategory> children;
 }

@@ -48,12 +48,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
 
     @Override
     public IPage<FlowModel> pageFlowModel(Page<FlowModel> page, String modelName, String category, Integer status) {
-        LambdaQueryWrapper<FlowModel> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(modelName != null && !modelName.isEmpty(), FlowModel::getModelName, modelName)
-                .eq(category != null && !category.isEmpty(), FlowModel::getCategory, category)
-                .eq(status != null, FlowModel::getStatus, status)
-                .orderByDesc(FlowModel::getCreateTime);
-        return page(page, wrapper);
+        return this.getBaseMapper().selectModelPage(page, modelName, category, status);
     }
 
     @Override

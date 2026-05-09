@@ -111,98 +111,19 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     @Autowired
     private FlowErrorLogService flowErrorLogService;
 
-    @Override
+@Override
     public IPage<FlowTask> todoTasks(Page<FlowTask> page, String userId, String title, String category, Integer status) {
-        LambdaQueryWrapper<FlowTask> wrapper = new LambdaQueryWrapper<>();
-        
-        // 获取用户的角色编码列表（用于候选组匹配）
-        final List<String> userRoleCodes;
-        if (flowOrgIntegrationService != null) {
-            userRoleCodes = flowOrgIntegrationService.getUserRoleCodes(userId);
-            log.info("查询待办任务 - 用户角色编码列表：userId={}, roles={}", userId, userRoleCodes);
-        } else {
-            userRoleCodes = Collections.emptyList();
-        }
-        
-        // 查询条件：处理人是当前用户，或者当前用户是候选人，或者当前用户的角色在候选组中
-        // 简化查询：直接使用 OR 条件
-        wrapper.and(w -> {
-            // 1. 直接指定处理人
-            w.eq(FlowTask::getAssignee, userId);
-            
-            // 2. 候选人匹配
-            w.or(candidateW -> candidateW
-                    .isNotNull(FlowTask::getCandidateUsers)
-                    .ne(FlowTask::getCandidateUsers, "")
-                    .and(innerW -> innerW
-                            .eq(FlowTask::getCandidateUsers, userId)
-                            .or()
-                            .likeRight(FlowTask::getCandidateUsers, userId + ",")
-                            .or()
-                            .likeLeft(FlowTask::getCandidateUsers, "," + userId)
-                            .or()
-                            .like(FlowTask::getCandidateUsers, "," + userId + ",")
-                    )
-            );
-            
-            // 3. 候选组匹配
-            if (!userRoleCodes.isEmpty()) {
-                for (String roleCode : userRoleCodes) {
-                    w.or(groupW -> groupW
-                            .isNotNull(FlowTask::getCandidateGroups)
-                            .ne(FlowTask::getCandidateGroups, "")
-                            .and(innerW -> innerW
-                                    .eq(FlowTask::getCandidateGroups, roleCode)
-                                    .or()
-                                    .likeRight(FlowTask::getCandidateGroups, roleCode + ",")
-                                    .or()
-                                    .likeLeft(FlowTask::getCandidateGroups, "," + roleCode)
-                                    .or()
-                                    .like(FlowTask::getCandidateGroups, "," + roleCode + ",")
-                            )
-                    );
-                }
-            }
-        });
-        
-        // 打印查询条件
-        log.info("查询条件 - userId类型: {}, 值: {}", userId.getClass().getName(), userId);
-        log.info("wrapper toString: {}", wrapper.getCustomSqlSegment());
-        
-        wrapper.and(statusW -> statusW
-                        .eq(FlowTask::getStatus, 0)
-                        .or(claimedW -> claimedW
-                                .eq(FlowTask::getAssignee, userId)
-                                .eq(FlowTask::getStatus, 1)))
-                .eq(status != null, FlowTask::getStatus, status)
-                .like(title != null, FlowTask::getTitle, title)
-                .orderByDesc(FlowTask::getCreateTime);
-        
-        log.info("查询待办任务：userId={}, roles={}, SQL条件构建完成", userId, userRoleCodes);
-        IPage<FlowTask> result = page(page, wrapper);
-        log.info("查询待办任务结果：total={}, records={}", result.getTotal(), result.getRecords().size());
-        return result;
+        return this.getBaseMapper().selectTodoTasks(page, userId, title, category, status);
     }
 
     @Override
     public IPage<FlowTask> doneTasks(Page<FlowTask> page, String userId, String title, String category, Integer status) {
-        LambdaQueryWrapper<FlowTask> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FlowTask::getAssignee, userId)
-                .in(status == null, FlowTask::getStatus, Arrays.asList(2, 3, 4, 5))
-                .eq(status != null, FlowTask::getStatus, status)
-                .like(title != null, FlowTask::getTitle, title)
-                .orderByDesc(FlowTask::getCompleteTime);
-        return page(page, wrapper);
+        return this.getBaseMapper().selectDoneTasks(page, userId, title, category, status);
     }
 
     @Override
     public IPage<FlowTask> startedTasks(Page<FlowTask> page, String userId, String title, String category, Integer status) {
-        LambdaQueryWrapper<FlowTask> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FlowTask::getStartUserId, userId)
-                .eq(status != null, FlowTask::getStatus, status)
-                .like(title != null, FlowTask::getTitle, title)
-                .orderByDesc(FlowTask::getCreateTime);
-        return page(page, wrapper);
+        return this.getBaseMapper().selectStartedTasks(page, userId, title, category, status);
     }
 
     @Override

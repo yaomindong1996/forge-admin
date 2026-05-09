@@ -128,9 +128,12 @@ CREATE TABLE IF NOT EXISTS sys_flow_comment (
     INDEX idx_user_id(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='流程意见表';
 
--- 流程分类表
+-- 流程分类表（树形结构）
 CREATE TABLE IF NOT EXISTS sys_flow_category (
     id VARCHAR(64) PRIMARY KEY COMMENT '主键',
+    parent_id VARCHAR(64) DEFAULT NULL COMMENT '父分类ID（根节点为空）',
+    level INT DEFAULT 1 COMMENT '层级深度（1,2,3...）',
+    ancestors VARCHAR(500) DEFAULT NULL COMMENT '祖先路径（如：0/abc123/）',
     category_code VARCHAR(50) NOT NULL UNIQUE COMMENT '分类编码',
     category_name VARCHAR(100) NOT NULL COMMENT '分类名称',
     description VARCHAR(500) COMMENT '描述',
@@ -138,10 +141,11 @@ CREATE TABLE IF NOT EXISTS sys_flow_category (
     status TINYINT DEFAULT 1 COMMENT '状态（0-禁用/1-启用）',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    INDEX idx_category_code(category_code)
+    INDEX idx_category_code(category_code),
+    INDEX idx_parent_id(parent_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='流程分类表';
 
--- 默认分类数据
+-- 默认分类数据（根节点）
 INSERT INTO sys_flow_category (id, category_code, category_name, description, sort_order, status) VALUES
 ('1', 'leave', '请假流程', '员工请假申请审批', 1, 1),
 ('2', 'expense', '报销流程', '费用报销申请审批', 2, 1),

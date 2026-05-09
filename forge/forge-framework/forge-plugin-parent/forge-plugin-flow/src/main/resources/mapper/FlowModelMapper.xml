@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.starter.flow.mapper.FlowModelMapper">
+
+    <!-- 分页查询流程模型（支持父级分类查询子级数据） -->
+    <select id="selectModelPage" resultType="com.mdframe.forge.starter.flow.entity.FlowModel">
+        SELECT m.* FROM sys_flow_model m
+        <where>
+            m.del_flag = '0'
+            <if test="modelName != null and modelName != ''">
+                AND m.model_name LIKE CONCAT('%', #{modelName}, '%')
+            </if>
+            <if test="category != null and category != ''">
+                AND m.category IN (
+                    SELECT c.id FROM sys_flow_category c
+                    WHERE c.id = #{category}
+                       OR c.ancestors LIKE CONCAT('%', #{category}, '/%')
+                )
+            </if>
+            <if test="status != null">
+                AND m.status = #{status}
+            </if>
+        </where>
+        ORDER BY m.create_time DESC
+    </select>
+
+</mapper>

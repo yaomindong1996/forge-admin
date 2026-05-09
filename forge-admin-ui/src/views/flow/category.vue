@@ -65,14 +65,17 @@
       </div>
     </div>
 
-    <!-- 数据表格 -->
+    <!-- 数据表格（树形） -->
     <div class="table-container">
       <n-data-table
         :columns="columns"
         :data="dataSource"
         :loading="loading"
-        :pagination="pagination"
         :row-key="row => row.id"
+        :expandable="{
+          expandedRowKeys,
+          onUpdateExpandedRowKeys: handleExpandedChange,
+        }"
         striped
       />
     </div>
@@ -87,14 +90,23 @@
         :mask-closable="false"
       >
         <n-form ref="formRef" :model="formData" :rules="rules" label-placement="left" label-width="80">
+          <n-form-item label="父分类" path="parentId">
+            <NTreeSelect
+              v-model:value="formData.parentId"
+              :options="categoryTreeOptions"
+              placeholder="请选择父分类（不选则为顶级）"
+              clearable
+              :default-expand-all="true"
+            />
+          </n-form-item>
           <n-form-item label="分类名称" path="categoryName">
             <n-input v-model:value="formData.categoryName" placeholder="请输入分类名称" />
           </n-form-item>
           <n-form-item label="分类编码" path="categoryCode">
             <n-input v-model:value="formData.categoryCode" placeholder="请输入分类编码" :disabled="isEdit" />
           </n-form-item>
-          <n-form-item label="排序" path="sort">
-            <n-input-number v-model:value="formData.sort" :min="0" placeholder="请输入排序" style="width: 100%" />
+          <n-form-item label="排序" path="sortOrder">
+            <n-input-number v-model:value="formData.sortOrder" :min="0" placeholder="请输入排序" style="width: 100%" />
           </n-form-item>
           <n-form-item label="状态" path="status">
             <n-switch v-model:value="formData.status" :checked-value="1" :unchecked-value="0">
@@ -106,8 +118,8 @@
               </template>
             </n-switch>
           </n-form-item>
-          <n-form-item label="备注" path="remark">
-            <n-input v-model:value="formData.remark" type="textarea" placeholder="请输入备注" :rows="3" />
+          <n-form-item label="描述" path="description">
+            <n-input v-model:value="formData.description" type="textarea" placeholder="请输入描述" :rows="3" />
           </n-form-item>
         </n-form>
         <template #footer>
@@ -126,7 +138,7 @@
 </template>
 
 <script setup>
-import { NButton, NSpace } from 'naive-ui'
+import { NButton, NIcon, NSpace, NTreeSelect } from 'naive-ui'
 import { h, onMounted, reactive, ref } from 'vue'
 import flowApi from '@/api/flow'
 import FlowCategoryStats from '@/components/flow/FlowCategoryStats.vue'
@@ -146,20 +158,43 @@ const totalCount = ref(0)
 const enabledCount = ref(0)
 const disabledCount = ref(0)
 
+const expandedRowKeys = ref([])
+
+const categoryTreeOptions = ref([])
+
+function buildTreeSelectOptions(treeData, level = 0) {
+  return treeData.map(item => ({
+    label: item.categoryName,
+    value: item.id,
+    key: item.id,
+    children: item.children && item.children.length > 0 ? buildTreeSelectOptions(item.children, level + 1) : undefined,
+  }))
+}
+
 const columns = [
   {
     title: '分类名称',
     key: 'categoryName',
-    render: row => h('span', { class: 'category-name' }, row.categoryName),
+    width: 100,
+    render: (row) => {
+      return h('span', { class: 'category-name' }, row.categoryName)
+    },
   },
   {
     title: '分类编码',
     key: 'categoryCode',
+    width: 150,
     render: row => h('span', { class: 'category-code' }, row.categoryCode),
   },
   {
+    title: '层级',
+    key: 'level',
+    width: 80,
+    render: row => h('span', { class: 'level-tag' }, `L${row.level || 1}`),
+  },
+  {
     title: '排序',
-    key: 'sort',
+    key: 'sortOrder',
     width: 80,
   },
   {
@@ -168,13 +203,11 @@ const columns = [
     width: 100,
     render: row => h('span', {
       class: ['status-tag', row.status === 1 ? 'enabled' : 'disabled'],
-      onClick: () => handleStatusChange(row, row.status === 1 ? 0 : 1),
+      onClick: (e) => {
+        e.stopPropagation()
+        handleStatusChange(row, row.status === 1 ? 0 : 1)
+      },
     }, row.status === 1 ? '启用' : '禁用'),
-  },
-  {
-    title: '备注',
-    key: 'remark',
-    ellipsis: { tooltip: true },
   },
   {
     title: '创建时间',
@@ -184,19 +217,30 @@ const columns = [
   {
     title: '操作',
     key: 'actions',
-    width: 150,
-    render: row => h(NSpace, { size: 4 }, {
+    width: 160,
+    render: row => h(NSpace, { size: 12 }, {
       default: () => [
         h(NButton, {
           size: 'small',
+          text: true,
           type: 'primary',
+          title: '编辑',
           onClick: () => handleEdit(row),
-        }, { default: () => '编辑' }),
+        }, { default: () => h(NIcon, { size: 18 }, { default: () => h('i', { class: 'i-material-symbols:edit-outline' }) }) }),
         h(NButton, {
           size: 'small',
+          text: true,
+          type: 'info',
+          title: '添加子级',
+          onClick: () => handleAddChild(row),
+        }, { default: () => h(NIcon, { size: 18 }, { default: () => h('i', { class: 'i-material-symbols:add-circle-outline' }) }) }),
+        h(NButton, {
+          size: 'small',
+          text: true,
           type: 'error',
+          title: '删除',
           onClick: () => handleDelete(row),
-        }, { default: () => '删除' }),
+        }, { default: () => h(NIcon, { size: 18 }, { default: () => h('i', { class: 'i-material-symbols:delete-outline' }) }) }),
       ],
     }),
   },
@@ -204,23 +248,6 @@ const columns = [
 
 const dataSource = ref([])
 const loading = ref(false)
-const pagination = reactive({
-  page: 1,
-  pageSize: 10,
-  itemCount: 0,
-  showSizePicker: true,
-  pageSizes: [10, 20, 50],
-  onChange: (page) => {
-    pagination.page = page
-    fetchData()
-  },
-  onUpdatePageSize: (pageSize) => {
-    pagination.pageSize = pageSize
-    pagination.page = 1
-    fetchData()
-  },
-})
-
 const showModal = ref(false)
 const modalTitle = ref('新增分类')
 const isEdit = ref(false)
@@ -228,11 +255,12 @@ const submitLoading = ref(false)
 const formRef = ref(null)
 const formData = reactive({
   id: '',
+  parentId: null,
   categoryName: '',
   categoryCode: '',
-  sort: 0,
+  sortOrder: 0,
   status: 1,
-  remark: '',
+  description: '',
 })
 
 const rules = {
@@ -243,17 +271,16 @@ const rules = {
 async function fetchData() {
   loading.value = true
   try {
-    const res = await flowApi.getCategoryPage({
-      pageNum: pagination.page,
-      pageSize: pagination.pageSize,
-      ...queryParams,
-    })
+    const res = await flowApi.getCategoryTree()
     if (res.code === 200) {
-      dataSource.value = res.data?.records || []
-      pagination.itemCount = res.data?.total || 0
-      totalCount.value = res.data?.total || 0
+      dataSource.value = res.data || []
+      totalCount.value = dataSource.value.length
       enabledCount.value = dataSource.value.filter(r => r.status === 1).length
       disabledCount.value = dataSource.value.filter(r => r.status === 0).length
+    }
+    const treeRes = await flowApi.getCategoryTreeSelect(false)
+    if (treeRes.code === 200) {
+      categoryTreeOptions.value = buildTreeSelectOptions(treeRes.data || [])
     }
   }
   catch {
@@ -265,7 +292,6 @@ async function fetchData() {
 }
 
 function handleSearch() {
-  pagination.page = 1
   fetchData()
 }
 
@@ -273,7 +299,6 @@ function handleReset() {
   queryParams.categoryName = ''
   queryParams.categoryCode = ''
   queryParams.status = null
-  pagination.page = 1
   fetchData()
 }
 
@@ -284,8 +309,21 @@ function handleFilter(status) {
   else {
     queryParams.status = status
   }
-  pagination.page = 1
   fetchData()
+}
+
+function toggleExpand(key) {
+  const index = expandedRowKeys.value.indexOf(key)
+  if (index > -1) {
+    expandedRowKeys.value.splice(index, 1)
+  }
+  else {
+    expandedRowKeys.value.push(key)
+  }
+}
+
+function handleExpandedChange(keys) {
+  expandedRowKeys.value = keys
 }
 
 function handleAdd() {
@@ -293,11 +331,27 @@ function handleAdd() {
   modalTitle.value = '新增分类'
   Object.assign(formData, {
     id: '',
+    parentId: null,
     categoryName: '',
     categoryCode: '',
-    sort: 0,
+    sortOrder: 0,
     status: 1,
-    remark: '',
+    description: '',
+  })
+  showModal.value = true
+}
+
+function handleAddChild(row) {
+  isEdit.value = false
+  modalTitle.value = '新增子分类'
+  Object.assign(formData, {
+    id: '',
+    parentId: row.id,
+    categoryName: '',
+    categoryCode: '',
+    sortOrder: 0,
+    status: 1,
+    description: '',
   })
   showModal.value = true
 }
@@ -305,7 +359,15 @@ function handleAdd() {
 function handleEdit(row) {
   isEdit.value = true
   modalTitle.value = '编辑分类'
-  Object.assign(formData, row)
+  Object.assign(formData, {
+    id: row.id,
+    parentId: row.parentId || null,
+    categoryName: row.categoryName,
+    categoryCode: row.categoryCode,
+    sortOrder: row.sortOrder || 0,
+    status: row.status,
+    description: row.description || '',
+  })
   showModal.value = true
 }
 
@@ -487,5 +549,49 @@ onMounted(() => {
 :deep(.status-tag.disabled) {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+:deep(.level-tag) {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+:deep(.n-data-table-th) {
+  font-weight: 600;
+}
+
+:deep(.n-data-table-td) {
+  padding: 12px 16px;
+}
+
+:deep(.n-data-table-expand-icon) {
+  margin-right: 8px;
+  font-size: 16px;
+  color: #64748b;
+  transition: transform 0.2s ease;
+}
+
+:deep(.n-data-table-expand-icon:hover) {
+  color: #2563eb;
+}
+
+:deep(.n-data-table-row--expanded .n-data-table-expand-icon) {
+  transform: rotate(90deg);
+  color: #2563eb;
+}
+
+:deep(.n-button) {
+  padding: 4px;
+}
+
+:deep(.n-icon) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

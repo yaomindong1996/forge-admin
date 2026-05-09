@@ -230,6 +230,19 @@ export default {
     request.get('/api/flow/category/enabled'),
 
   /**
+   * 获取分类树形列表（用于管理页面）
+   */
+  getCategoryTree: () =>
+    request.get('/api/flow/category/tree'),
+
+  /**
+   * 获取分类下拉树（用于选择器）
+   * @param onlyLeaf 是否只返回叶子节点
+   */
+  getCategoryTreeSelect: (onlyLeaf = true) =>
+    request.get('/api/flow/category/tree-select', { params: { onlyLeaf } }),
+
+  /**
    * 分页查询分类
    */
   getCategoryPage: params =>

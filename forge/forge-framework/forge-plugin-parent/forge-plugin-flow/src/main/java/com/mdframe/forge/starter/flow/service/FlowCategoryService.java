@@ -6,7 +6,7 @@ import com.mdframe.forge.starter.flow.entity.FlowCategory;
 import java.util.List;
 
 /**
- * 流程分类服务接口
+ * 流程分类服务接口（树形结构）
  */
 public interface FlowCategoryService extends IService<FlowCategory> {
 
@@ -19,6 +19,17 @@ public interface FlowCategoryService extends IService<FlowCategory> {
      * 根据编码获取分类
      */
     FlowCategory getByCode(String categoryCode);
+
+    /**
+     * 获取分类树形列表
+     */
+    List<FlowCategory> listTree();
+
+    /**
+     * 获取分类下拉树（用于选择器）
+     * @param onlyLeaf 是否只返回叶子节点
+     */
+    List<FlowCategory> listTreeSelect(boolean onlyLeaf);
 
     /**
      * 创建分类
@@ -44,4 +55,9 @@ public interface FlowCategoryService extends IService<FlowCategory> {
      * 禁用分类
      */
     void disableCategory(String id);
+
+    /**
+     * 检查是否有子分类
+     */
+    boolean hasChildren(String parentId);
 }

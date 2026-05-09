@@ -38,12 +38,13 @@
             <i class="i-material-symbols:search" />
           </template>
         </n-input>
-        <n-select
+        <NTreeSelect
           v-model:value="queryParams.category"
           placeholder="流程分类"
           clearable
           class="category-select"
-          :options="categoryOptions"
+          :options="categoryTreeOptions"
+          :default-expand-all="true"
         />
         <n-select
           v-model:value="queryParams.status"
@@ -199,10 +200,11 @@
               />
             </n-form-item-gi>
             <n-form-item-gi label="流程分类" path="category">
-              <n-select
+              <NTreeSelect
                 v-model:value="formData.category"
                 placeholder="请选择分类"
-                :options="categoryOptions"
+                :options="categoryTreeOptions"
+                :default-expand-all="true"
               />
             </n-form-item-gi>
             <n-form-item-gi label="表单类型" path="formType">
@@ -285,7 +287,7 @@
 
 <script setup>
 import { CopyOutline, CreateOutline, EllipsisVertical, PauseCircleOutline, PlayCircleOutline, TimeOutline, TrashOutline } from '@vicons/ionicons5'
-import { NIcon } from 'naive-ui'
+import { NIcon, NTreeSelect } from 'naive-ui'
 import { h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import flowApi from '@/api/flow'
@@ -306,6 +308,16 @@ const formTypeOptions = [
   { label: '无表单', value: 'none' },
 ]
 const categoryOptions = ref([])
+const categoryTreeOptions = ref([])
+
+function buildTreeSelectOptions(treeData) {
+  return treeData.map(item => ({
+    label: item.categoryName,
+    value: item.id,
+    key: item.id,
+    children: item.children && item.children.length > 0 ? buildTreeSelectOptions(item.children) : undefined,
+  }))
+}
 
 const statusText = { 0: '设计中', 1: '已部署', 2: '已挂起', 3: '已禁用' }
 
@@ -377,7 +389,7 @@ function handleActionSelect(key, row) {
 const queryParams = reactive({ modelName: '', category: null, status: null })
 const dataSource = ref([])
 const loading = ref(false)
-const pagination = reactive({ page: 1, pageSize: 12, itemCount: 0 })
+const pagination = reactive({ page: 1, pageSize: 20, itemCount: 0 })
 const showVersionHistory = ref(false)
 const currentModelId = ref('')
 const currentModelVersion = ref(null)
@@ -390,8 +402,9 @@ const disabledCount = ref(0)
 
 async function fetchCategories() {
   try {
-    const res = await flowApi.getEnabledCategories()
+    const res = await flowApi.getCategoryTreeSelect(false)
     if (res.code === 200) {
+      categoryTreeOptions.value = buildTreeSelectOptions(res.data || [])
       categoryOptions.value = (res.data || []).map(item => ({
         label: item.categoryName,
         value: item.categoryCode,
@@ -625,12 +638,10 @@ onMounted(() => {
 
 <style scoped>
 .flow-page {
-  height: 100%;
   display: flex;
   flex-direction: column;
   gap: 14px;
   padding: 18px;
-  overflow: hidden;
   background: #f5f7fb;
 }
 
@@ -703,15 +714,11 @@ onMounted(() => {
 }
 
 .model-grid {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   align-content: start;
   gap: 12px;
-  padding: 1px 1px 4px;
-  max-width: 100%;
+  padding: 4px;
 }
 
 .model-card {
@@ -726,8 +733,9 @@ onMounted(() => {
     background 160ms ease;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  min-height: 178px;
+  min-height: 180px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .model-card:hover {
@@ -868,18 +876,18 @@ onMounted(() => {
 
 .card-footer {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  padding-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid #eef2f7;
-  gap: 10px;
+  gap: 8px;
+  min-height: 32px;
 }
 
 .card-meta {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
   flex: 1;
   min-width: 0;
 }
@@ -887,7 +895,7 @@ onMounted(() => {
 .meta-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   font-size: 11px;
   color: #64748b;
   white-space: nowrap;
@@ -896,16 +904,25 @@ onMounted(() => {
 .card-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
+  gap: 4px;
+}
+
+.card-actions .n-button {
+  font-size: 12px;
+  padding: 0 10px;
+  height: 28px;
 }
 
 .empty-state {
   flex: 1;
-  padding: 64px 0;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  min-height: 320px;
+  padding: 24px 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .pagination-wrapper {
@@ -932,14 +949,29 @@ onMounted(() => {
 :deep(.n-spin-content) {
   height: 100%;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .model-list-spin {
+  display: flex;
+}
+
+.model-list-spin :deep(.n-spin-container) {
   flex: 1;
-  min-height: 0;
+}
+
+@media (max-width: 1500px) {
+  .model-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 @media (max-width: 1180px) {
+  .model-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .header-right {
     overflow-x: auto;
     padding-bottom: 2px;
@@ -951,10 +983,25 @@ onMounted(() => {
     padding: 12px;
   }
 
+  .model-grid {
+    grid-template-columns: 1fr;
+  }
+
   .search-input,
   .category-select,
   .status-select {
     width: 160px;
+  }
+
+  .card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .card-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 </style>

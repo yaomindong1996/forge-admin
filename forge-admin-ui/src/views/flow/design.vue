@@ -69,12 +69,13 @@
             <div class="config-bar-row">
               <div class="config-field">
                 <span class="config-field-label">流程分类</span>
-                <n-select
+                <n-tree-select
                   v-model:value="modelInfo.category"
-                  :options="categoryOptions"
+                  :options="categoryTreeOptions"
                   placeholder="选择分类"
                   size="small"
                   style="width: 160px"
+                  :default-expand-all="true"
                 />
               </div>
               <div class="config-field">
@@ -479,7 +480,7 @@
 </template>
 
 <script setup>
-import { NTag } from 'naive-ui'
+import { NTag, NTreeSelect } from 'naive-ui'
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { modelListByProvider, providerPage } from '@/api/ai'
@@ -557,6 +558,16 @@ const formOptions = ref([])
 const showFormPreview = ref(false)
 
 const categoryOptions = ref([])
+const categoryTreeOptions = ref([])
+
+function buildTreeSelectOptions(treeData) {
+  return treeData.map(item => ({
+    label: item.categoryName,
+    value: item.id,
+    key: item.id,
+    children: item.children && item.children.length > 0 ? buildTreeSelectOptions(item.children) : undefined,
+  }))
+}
 
 const formTypeOptions = [
   { label: '动态表单', value: 'dynamic' },
@@ -698,11 +709,12 @@ async function loadModelOptions(selectedProviderId, preserveSelection = false) {
 
 async function loadCategories() {
   try {
-    const res = await flowApi.getEnabledCategories()
+    const res = await flowApi.getCategoryTreeSelect(false)
     if (res.code === 200) {
+      categoryTreeOptions.value = buildTreeSelectOptions(res.data || [])
       categoryOptions.value = (res.data || []).map(item => ({
         label: item.categoryName,
-        value: item.categoryCode,
+        value: item.id,
       }))
     }
   }
