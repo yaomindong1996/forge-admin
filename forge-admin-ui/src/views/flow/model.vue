@@ -918,6 +918,7 @@ onMounted(() => {
   background: #fff;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
+  width: 100%;
 }
 
 .pagination-wrapper {
