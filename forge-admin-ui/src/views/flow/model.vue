@@ -914,15 +914,10 @@ onMounted(() => {
 }
 
 .empty-state {
-  flex: 1;
-  min-height: 320px;
-  padding: 24px 0;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 48px 0;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
 }
 
 .pagination-wrapper {
