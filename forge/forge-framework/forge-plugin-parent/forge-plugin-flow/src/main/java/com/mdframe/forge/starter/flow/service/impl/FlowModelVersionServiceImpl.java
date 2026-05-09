@@ -8,8 +8,8 @@ import com.mdframe.forge.starter.flow.dto.VersionCompareDTO;
 import com.mdframe.forge.starter.flow.dto.VersionRevertDTO;
 import com.mdframe.forge.starter.flow.entity.FlowModel;
 import com.mdframe.forge.starter.flow.entity.FlowModelVersion;
+import com.mdframe.forge.starter.flow.mapper.FlowModelMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowModelVersionMapper;
-import com.mdframe.forge.starter.flow.service.FlowModelService;
 import com.mdframe.forge.starter.flow.service.FlowModelVersionService;
 import com.mdframe.forge.starter.flow.vo.VersionCompareVO;
 import com.mdframe.forge.starter.flow.vo.VersionDetailVO;
@@ -32,7 +32,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMapper, FlowModelVersion> implements FlowModelVersionService {
 
-    private final FlowModelService flowModelService;
+    private final FlowModelMapper flowModelMapper;
 
     @Autowired(required = false)
     private RepositoryService repositoryService;
@@ -102,7 +102,7 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
             throw new RuntimeException("目标版本不存在");
         }
 
-        FlowModel model = flowModelService.getById(dto.getModelId());
+        FlowModel model = flowModelMapper.selectById(dto.getModelId());
         if (model == null) {
             throw new RuntimeException("模型不存在");
         }
@@ -144,7 +144,7 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
         model.setVersion(newVersion);
         model.setDeploymentId(newDeploymentId);
         model.setUpdateTime(LocalDateTime.now());
-        flowModelService.updateById(model);
+        flowModelMapper.updateById(model);
 
         VersionRevertVO vo = new VersionRevertVO();
         vo.setNewVersionId(newVersionId);

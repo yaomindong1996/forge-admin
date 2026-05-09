@@ -7,8 +7,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.starter.flow.entity.FlowModel;
 import com.mdframe.forge.starter.flow.mapper.FlowModelMapper;
 import com.mdframe.forge.starter.flow.service.FlowModelService;
-import com.mdframe.forge.starter.flow.service.FlowModelVersionService;
+import com.mdframe.forge.starter.flow.event.FlowModelPublishEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.bpmn.model.BpmnModel;
 import org.flowable.common.engine.impl.util.io.BytesStreamSource;
@@ -40,8 +41,9 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
     
     @Autowired(required = false)
     private ProcessEngineConfiguration processEngineConfiguration;
-
-    private final FlowModelVersionService flowModelVersionService;
+    
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     @Override
     public IPage<FlowModel> pageFlowModel(Page<FlowModel> page, String modelName, String category, Integer status) {
@@ -222,7 +224,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
             model.setDeployTime(LocalDateTime.now());
             updateById(model);
 
-            flowModelVersionService.insertVersionOnPublish(model, changeDescription);
+            eventPublisher.publishEvent(new FlowModelPublishEvent(this, model, changeDescription));
             
             log.info("部署流程模型成功：{}，部署ID：{}", model.getModelKey(), deployment.getId());
             return deployment.getId();
