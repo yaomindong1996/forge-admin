@@ -28,7 +28,7 @@
 import { h, ref } from 'vue'
 import { NAvatar, NText } from 'naive-ui'
 import { renderIcon } from '@/utils'
-import { logout, renderLang } from '@/utils'
+import { logout, renderLang, goDialog } from '@/utils'
 import { FgSystemSet } from '@/components/FgSystemSet/index'
 import { FgSystemInfo } from '@/components/FgSystemInfo/index'
 import Person from './person.png'
@@ -126,7 +126,14 @@ const handleSelect = (key: string) => {
       sysSetHandle()
       break
     case 'logout':
-      logout()
+      goDialog({
+        message: '确定要退出登录吗？',
+        positiveText: '退出',
+        negativeText: '取消',
+        onPositiveCallback: () => {
+          logout()
+        }
+      })
       break
   }
 }
