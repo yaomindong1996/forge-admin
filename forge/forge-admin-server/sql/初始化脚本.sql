@@ -1,4 +1,4 @@
--- forge_admin_new.ai_agent definition
+-- ai_agent definition
 
 CREATE TABLE `ai_agent`
 (
@@ -26,7 +26,7 @@ CREATE TABLE `ai_agent`
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI Agent配置表';
 
 
--- forge_admin_new.ai_chat_record definition
+-- ai_chat_record definition
 
 CREATE TABLE `ai_chat_record`
 (
@@ -42,10 +42,10 @@ CREATE TABLE `ai_chat_record`
     PRIMARY KEY (`id`),
     KEY           `idx_session_id` (`session_id`),
     KEY           `idx_user_id` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2052318295050244099 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI对话记录表';
+) ENGINE=InnoDB AUTO_INCREMENT=2052566020102602755 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI对话记录表';
 
 
--- forge_admin_new.ai_chat_session definition
+-- ai_chat_session definition
 
 CREATE TABLE `ai_chat_session`
 (
@@ -63,7 +63,7 @@ CREATE TABLE `ai_chat_session`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI会话表';
 
 
--- forge_admin_new.ai_context_config definition
+-- ai_context_config definition
 
 CREATE TABLE `ai_context_config`
 (
@@ -85,7 +85,7 @@ CREATE TABLE `ai_context_config`
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI上下文配置表';
 
 
--- forge_admin_new.ai_crud_config definition
+-- ai_crud_config definition
 
 CREATE TABLE `ai_crud_config`
 (
@@ -122,7 +122,7 @@ CREATE TABLE `ai_crud_config`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='CRUD配置驱动表';
 
 
--- forge_admin_new.ai_model definition
+-- ai_model definition
 
 CREATE TABLE `ai_model`
 (
@@ -151,7 +151,7 @@ CREATE TABLE `ai_model`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI模型表';
 
 
--- forge_admin_new.ai_page_template definition
+-- ai_page_template definition
 
 CREATE TABLE `ai_page_template`
 (
@@ -177,7 +177,7 @@ CREATE TABLE `ai_page_template`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='AI页面模板表（组件市场）';
 
 
--- forge_admin_new.ai_provider definition
+-- ai_provider definition
 
 CREATE TABLE `ai_provider`
 (
@@ -204,7 +204,7 @@ CREATE TABLE `ai_provider`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI供应商配置表';
 
 
--- forge_admin_new.ai_report_project definition
+-- ai_report_project definition
 
 CREATE TABLE `ai_report_project`
 (
@@ -230,10 +230,10 @@ CREATE TABLE `ai_report_project`
     PRIMARY KEY (`id`),
     KEY                `idx_tenant_id` (`tenant_id`),
     KEY                `idx_create_by` (`create_by`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='go-view项目表';
+) ENGINE=InnoDB AUTO_INCREMENT=2052682673163444227 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='go-view项目表';
 
 
--- forge_admin_new.biz_leave_request definition
+-- biz_leave_request definition
 
 CREATE TABLE `biz_leave_request`
 (
@@ -267,7 +267,7 @@ CREATE TABLE `biz_leave_request`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='请假申请表';
 
 
--- forge_admin_new.biz_product definition
+-- biz_product definition
 
 CREATE TABLE `biz_product`
 (
@@ -290,7 +290,7 @@ CREATE TABLE `biz_product`
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='产品管理表';
 
 
--- forge_admin_new.config_properties definition
+-- config_properties definition
 
 CREATE TABLE `config_properties`
 (
@@ -312,7 +312,7 @@ CREATE TABLE `config_properties`
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='配置属性表';
 
 
--- forge_admin_new.gen_datasource definition
+-- gen_datasource definition
 
 CREATE TABLE `gen_datasource`
 (
@@ -340,7 +340,7 @@ CREATE TABLE `gen_datasource`
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='代码生成器数据源配置';
 
 
--- forge_admin_new.gen_table definition
+-- gen_table definition
 
 CREATE TABLE `gen_table`
 (
@@ -368,7 +368,7 @@ CREATE TABLE `gen_table`
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='代码生成表配置';
 
 
--- forge_admin_new.gen_table_column definition
+-- gen_table_column definition
 
 CREATE TABLE `gen_table_column`
 (
@@ -399,7 +399,7 @@ CREATE TABLE `gen_table_column`
 ) ENGINE=InnoDB AUTO_INCREMENT=60 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='代码生成表字段配置';
 
 
--- forge_admin_new.gen_template definition
+-- gen_template definition
 
 CREATE TABLE `gen_template`
 (
@@ -423,7 +423,7 @@ CREATE TABLE `gen_template`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='代码生成模板配置';
 
 
--- forge_admin_new.order_manage definition
+-- order_manage definition
 
 CREATE TABLE `order_manage`
 (
@@ -449,7 +449,7 @@ CREATE TABLE `order_manage`
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='订单管理表';
 
 
--- forge_admin_new.qrtz_calendars definition
+-- qrtz_calendars definition
 
 CREATE TABLE `qrtz_calendars`
 (
@@ -460,7 +460,7 @@ CREATE TABLE `qrtz_calendars`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='日历信息表';
 
 
--- forge_admin_new.qrtz_fired_triggers definition
+-- qrtz_fired_triggers definition
 
 CREATE TABLE `qrtz_fired_triggers`
 (
@@ -481,7 +481,7 @@ CREATE TABLE `qrtz_fired_triggers`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='已触发的触发器表';
 
 
--- forge_admin_new.qrtz_job_details definition
+-- qrtz_job_details definition
 
 CREATE TABLE `qrtz_job_details`
 (
@@ -499,7 +499,7 @@ CREATE TABLE `qrtz_job_details`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='任务详细信息表';
 
 
--- forge_admin_new.qrtz_locks definition
+-- qrtz_locks definition
 
 CREATE TABLE `qrtz_locks`
 (
@@ -509,7 +509,7 @@ CREATE TABLE `qrtz_locks`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='存储的悲观锁信息表';
 
 
--- forge_admin_new.qrtz_paused_trigger_grps definition
+-- qrtz_paused_trigger_grps definition
 
 CREATE TABLE `qrtz_paused_trigger_grps`
 (
@@ -519,7 +519,7 @@ CREATE TABLE `qrtz_paused_trigger_grps`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='暂停的触发器表';
 
 
--- forge_admin_new.qrtz_scheduler_state definition
+-- qrtz_scheduler_state definition
 
 CREATE TABLE `qrtz_scheduler_state`
 (
@@ -531,7 +531,7 @@ CREATE TABLE `qrtz_scheduler_state`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='调度器状态表';
 
 
--- forge_admin_new.sys_api_config definition
+-- sys_api_config definition
 
 CREATE TABLE `sys_api_config`
 (
@@ -562,7 +562,7 @@ CREATE TABLE `sys_api_config`
 ) ENGINE=InnoDB AUTO_INCREMENT=963 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='REST接口配置管理表';
 
 
--- forge_admin_new.sys_auth_online_user definition
+-- sys_auth_online_user definition
 
 CREATE TABLE `sys_auth_online_user`
 (
@@ -591,10 +591,10 @@ CREATE TABLE `sys_auth_online_user`
     KEY                  `idx_status` (`status`),
     KEY                  `idx_login_time` (`login_time`),
     KEY                  `idx_tenant_id` (`tenant_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1297 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='在线用户表';
+) ENGINE=InnoDB AUTO_INCREMENT=1462 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='在线用户表';
 
 
--- forge_admin_new.sys_auth_online_user_history definition
+-- sys_auth_online_user_history definition
 
 CREATE TABLE `sys_auth_online_user_history`
 (
@@ -618,7 +618,7 @@ CREATE TABLE `sys_auth_online_user_history`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='在线用户历史表';
 
 
--- forge_admin_new.sys_client definition
+-- sys_client definition
 
 CREATE TABLE `sys_client`
 (
@@ -655,7 +655,7 @@ CREATE TABLE `sys_client`
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='客户端管理表';
 
 
--- forge_admin_new.sys_config definition
+-- sys_config definition
 
 CREATE TABLE `sys_config`
 (
@@ -678,7 +678,7 @@ CREATE TABLE `sys_config`
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统配置表';
 
 
--- forge_admin_new.sys_config_group definition
+-- sys_config_group definition
 
 CREATE TABLE `sys_config_group`
 (
@@ -697,7 +697,7 @@ CREATE TABLE `sys_config_group`
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统配置分组表';
 
 
--- forge_admin_new.sys_data_scope_config definition
+-- sys_data_scope_config definition
 
 CREATE TABLE `sys_data_scope_config`
 (
@@ -727,7 +727,7 @@ CREATE TABLE `sys_data_scope_config`
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='数据权限配置表';
 
 
--- forge_admin_new.sys_dict_data definition
+-- sys_dict_data definition
 
 CREATE TABLE `sys_dict_data`
 (
@@ -755,10 +755,10 @@ CREATE TABLE `sys_dict_data`
     KEY                 `idx_tenant_dict_type` (`tenant_id`,`dict_type`),
     KEY                 `idx_parent_dict_code` (`parent_dict_code`),
     KEY                 `idx_linked_dict` (`linked_dict_type`,`linked_dict_value`)
-) ENGINE=InnoDB AUTO_INCREMENT=99 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典数据表';
+) ENGINE=InnoDB AUTO_INCREMENT=105 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典数据表';
 
 
--- forge_admin_new.sys_dict_type definition
+-- sys_dict_type definition
 
 CREATE TABLE `sys_dict_type`
 (
@@ -776,10 +776,10 @@ CREATE TABLE `sys_dict_type`
     PRIMARY KEY (`dict_id`),
     UNIQUE KEY `uk_tenant_dict_type` (`tenant_id`,`dict_type`),
     KEY           `idx_dict_status` (`dict_status`)
-) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典类型表';
+) ENGINE=InnoDB AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典类型表';
 
 
--- forge_admin_new.sys_email_config definition
+-- sys_email_config definition
 
 CREATE TABLE `sys_email_config`
 (
@@ -807,7 +807,7 @@ CREATE TABLE `sys_email_config`
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='邮件配置表';
 
 
--- forge_admin_new.sys_employee definition
+-- sys_employee definition
 
 CREATE TABLE `sys_employee`
 (
@@ -832,7 +832,7 @@ CREATE TABLE `sys_employee`
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='员工信息表';
 
 
--- forge_admin_new.sys_excel_column_config definition
+-- sys_excel_column_config definition
 
 CREATE TABLE `sys_excel_column_config`
 (
@@ -857,7 +857,7 @@ CREATE TABLE `sys_excel_column_config`
 ) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Excel列配置表';
 
 
--- forge_admin_new.sys_excel_export_config definition
+-- sys_excel_export_config definition
 
 CREATE TABLE `sys_excel_export_config`
 (
@@ -886,7 +886,7 @@ CREATE TABLE `sys_excel_export_config`
 ) ENGINE=InnoDB AUTO_INCREMENT=2013984223186178051 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Excel导出配置表';
 
 
--- forge_admin_new.sys_file_group definition
+-- sys_file_group definition
 
 CREATE TABLE `sys_file_group`
 (
@@ -912,7 +912,7 @@ CREATE TABLE `sys_file_group`
 ) ENGINE=InnoDB AUTO_INCREMENT=2028326543566475267 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='文件分组表';
 
 
--- forge_admin_new.sys_file_metadata definition
+-- sys_file_metadata definition
 
 CREATE TABLE `sys_file_metadata`
 (
@@ -950,10 +950,10 @@ CREATE TABLE `sys_file_metadata`
     KEY              `idx_business` (`business_type`,`business_id`),
     KEY              `idx_uploader` (`uploader_id`),
     KEY              `idx_upload_time` (`upload_time`)
-) ENGINE=InnoDB AUTO_INCREMENT=2049682101418110978 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='文件元数据表';
+) ENGINE=InnoDB AUTO_INCREMENT=2052959331523076098 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='文件元数据表';
 
 
--- forge_admin_new.sys_file_storage_config definition
+-- sys_file_storage_config definition
 
 CREATE TABLE `sys_file_storage_config`
 (
@@ -985,7 +985,7 @@ CREATE TABLE `sys_file_storage_config`
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='文件存储配置表';
 
 
--- forge_admin_new.sys_flow_approval_level definition
+-- sys_flow_approval_level definition
 
 CREATE TABLE `sys_flow_approval_level`
 (
@@ -1004,7 +1004,7 @@ CREATE TABLE `sys_flow_approval_level`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='审批层级配置表';
 
 
--- forge_admin_new.sys_flow_business definition
+-- sys_flow_business definition
 
 CREATE TABLE `sys_flow_business`
 (
@@ -1033,7 +1033,7 @@ CREATE TABLE `sys_flow_business`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程业务关联表';
 
 
--- forge_admin_new.sys_flow_category definition
+-- sys_flow_category definition
 
 CREATE TABLE `sys_flow_category`
 (
@@ -1045,13 +1045,16 @@ CREATE TABLE `sys_flow_category`
     `status`        tinyint      DEFAULT '1' COMMENT '状态（0-禁用/1-启用）',
     `create_time`   datetime     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time`   datetime     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `parent_id`     varchar(64)  DEFAULT NULL COMMENT '父分类ID',
+    `level`         int          DEFAULT '1' COMMENT '层级深度',
+    `ancestors`     varchar(500) DEFAULT NULL COMMENT '祖先路径',
     PRIMARY KEY (`id`),
     UNIQUE KEY `category_code` (`category_code`),
     KEY             `idx_category_code` (`category_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程分类表';
 
 
--- forge_admin_new.sys_flow_cc definition
+-- sys_flow_cc definition
 
 CREATE TABLE `sys_flow_cc`
 (
@@ -1075,7 +1078,7 @@ CREATE TABLE `sys_flow_cc`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程抄送表';
 
 
--- forge_admin_new.sys_flow_comment definition
+-- sys_flow_comment definition
 
 CREATE TABLE `sys_flow_comment`
 (
@@ -1097,7 +1100,7 @@ CREATE TABLE `sys_flow_comment`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程意见表';
 
 
--- forge_admin_new.sys_flow_condition_item definition
+-- sys_flow_condition_item definition
 
 CREATE TABLE `sys_flow_condition_item`
 (
@@ -1119,7 +1122,7 @@ CREATE TABLE `sys_flow_condition_item`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='条件规则项表';
 
 
--- forge_admin_new.sys_flow_condition_rule definition
+-- sys_flow_condition_rule definition
 
 CREATE TABLE `sys_flow_condition_rule`
 (
@@ -1145,7 +1148,7 @@ CREATE TABLE `sys_flow_condition_rule`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程条件规则表';
 
 
--- forge_admin_new.sys_flow_error_log definition
+-- sys_flow_error_log definition
 
 CREATE TABLE `sys_flow_error_log`
 (
@@ -1180,7 +1183,7 @@ CREATE TABLE `sys_flow_error_log`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程运行错误日志表';
 
 
--- forge_admin_new.sys_flow_form definition
+-- sys_flow_form definition
 
 CREATE TABLE `sys_flow_form`
 (
@@ -1210,33 +1213,34 @@ CREATE TABLE `sys_flow_form`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程表单定义表';
 
 
--- forge_admin_new.sys_flow_model definition
+-- sys_flow_model definition
 
 CREATE TABLE `sys_flow_model`
 (
     `id`                    varchar(64)  NOT NULL COMMENT '主键',
     `model_key`             varchar(100) NOT NULL COMMENT '模型标识',
     `model_name`            varchar(200) NOT NULL COMMENT '模型名称',
-    `description`           varchar(500) DEFAULT NULL COMMENT '描述',
-    `category`              varchar(100) DEFAULT NULL COMMENT '分类',
-    `flow_type`             varchar(50)  DEFAULT NULL COMMENT '流程类型（leave-请假/expense-报销/approval-审批）',
-    `form_type`             varchar(50)  DEFAULT 'dynamic' COMMENT '表单类型（dynamic-动态表单/custom-业务表单）',
-    `form_id`               varchar(64)  DEFAULT NULL COMMENT '表单ID（业务表单时使用）',
+    `description`           varchar(500)          DEFAULT NULL COMMENT '描述',
+    `category`              varchar(100)          DEFAULT NULL COMMENT '分类',
+    `flow_type`             varchar(50)           DEFAULT NULL COMMENT '流程类型（leave-请假/expense-报销/approval-审批）',
+    `form_type`             varchar(50)           DEFAULT 'dynamic' COMMENT '表单类型（dynamic-动态表单/custom-业务表单）',
+    `form_id`               varchar(64)           DEFAULT NULL COMMENT '表单ID（业务表单时使用）',
     `form_json`             text COMMENT '动态表单JSON配置',
-    `version`               int          DEFAULT '1' COMMENT '版本号',
-    `process_definition_id` varchar(64)  DEFAULT NULL COMMENT 'Flowable流程定义ID',
-    `deployment_id`         varchar(64)  DEFAULT NULL COMMENT 'Flowable部署ID',
-    `deployment_key`        varchar(100) DEFAULT NULL COMMENT '部署KEY（发布后生成）',
-    `status`                tinyint      DEFAULT '0' COMMENT '状态（0-设计/1-已发布/2-禁用）',
-    `deploy_time`           datetime     DEFAULT NULL COMMENT '发布时间',
-    `last_update_by`        varchar(64)  DEFAULT NULL COMMENT '最后修改人',
-    `create_by`             varchar(64)  DEFAULT NULL COMMENT '创建人',
-    `create_time`           datetime     DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    `update_time`           datetime     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    `del_flag`              tinyint      DEFAULT '0' COMMENT '删除标志（0-正常/1-删除）',
+    `version`               int                   DEFAULT '1' COMMENT '版本号',
+    `process_definition_id` varchar(64)           DEFAULT NULL COMMENT 'Flowable流程定义ID',
+    `deployment_id`         varchar(64)           DEFAULT NULL COMMENT 'Flowable部署ID',
+    `deployment_key`        varchar(100)          DEFAULT NULL COMMENT '部署KEY（发布后生成）',
+    `status`                tinyint               DEFAULT '0' COMMENT '状态（0-设计/1-已发布/2-禁用）',
+    `importance_level`      int          NOT NULL DEFAULT '1' COMMENT '重要性等级（1-普通/2-重要）',
+    `deploy_time`           datetime              DEFAULT NULL COMMENT '发布时间',
+    `last_update_by`        varchar(64)           DEFAULT NULL COMMENT '最后修改人',
+    `create_by`             varchar(64)           DEFAULT NULL COMMENT '创建人',
+    `create_time`           datetime              DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time`           datetime              DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `del_flag`              tinyint               DEFAULT '0' COMMENT '删除标志（0-正常/1-删除）',
     `bpmn_xml`              longtext,
-    `notify_type`           varchar(30)  DEFAULT NULL COMMENT '事件通知方式：none-不通知 / redis-Redis Pub/Sub / webhook-HTTP Webhook（互斥）',
-    `webhook_url`           varchar(500) DEFAULT NULL COMMENT 'Webhook 回调地址，仅 notify_type=webhook 时生效',
+    `notify_type`           varchar(30)           DEFAULT NULL COMMENT '事件通知方式：none-不通知 / redis-Redis Pub/Sub / webhook-HTTP Webhook（互斥）',
+    `webhook_url`           varchar(500)          DEFAULT NULL COMMENT 'Webhook 回调地址，仅 notify_type=webhook 时生效',
     PRIMARY KEY (`id`),
     UNIQUE KEY `model_key` (`model_key`),
     KEY                     `idx_model_key` (`model_key`),
@@ -1245,7 +1249,32 @@ CREATE TABLE `sys_flow_model`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程模型表';
 
 
--- forge_admin_new.sys_flow_node_config definition
+-- sys_flow_model_version definition
+
+CREATE TABLE `sys_flow_model_version`
+(
+    `id`                    varchar(64)  NOT NULL COMMENT '主键',
+    `model_id`              varchar(64)  NOT NULL COMMENT '模型ID',
+    `version`               int          NOT NULL COMMENT '版本号',
+    `version_name`          varchar(100) NOT NULL COMMENT '版本名称',
+    `version_tag`           varchar(20)  NOT NULL                                        DEFAULT 'draft' COMMENT '版本标记（draft/test/release/deprecated）',
+    `bpmn_xml`              text         NOT NULL COMMENT 'BPMN XML',
+    `form_json`             text COMMENT '表单配置',
+    `change_description`    varchar(500)                                                 DEFAULT NULL COMMENT '变更说明',
+    `deployment_id`         varchar(64)                                                  DEFAULT NULL COMMENT '部署ID',
+    `process_definition_id` varchar(64)                                                  DEFAULT NULL COMMENT '流程定义ID',
+    `publish_by`            varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '发布人',
+    `publish_time`          datetime     NOT NULL COMMENT '发布时间',
+    `tenant_id`             bigint       NOT NULL                                        DEFAULT '1' COMMENT '租户ID',
+    `create_time`           datetime     NOT NULL                                        DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `del_flag`              int          NOT NULL                                        DEFAULT '0' COMMENT '删除标志（0-正常/1-删除）',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_model_version` (`model_id`,`version`),
+    KEY                     `idx_model_id` (`model_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程模型版本历史表';
+
+
+-- sys_flow_node_config definition
 
 CREATE TABLE `sys_flow_node_config`
 (
@@ -1289,7 +1318,7 @@ CREATE TABLE `sys_flow_node_config`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='审批节点配置表';
 
 
--- forge_admin_new.sys_flow_spel_template definition
+-- sys_flow_spel_template definition
 
 CREATE TABLE `sys_flow_spel_template`
 (
@@ -1317,7 +1346,7 @@ CREATE TABLE `sys_flow_spel_template`
 ) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程SPEL表达式模板';
 
 
--- forge_admin_new.sys_flow_statistics definition
+-- sys_flow_statistics definition
 
 CREATE TABLE `sys_flow_statistics`
 (
@@ -1341,7 +1370,7 @@ CREATE TABLE `sys_flow_statistics`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程监控统计表';
 
 
--- forge_admin_new.sys_flow_task definition
+-- sys_flow_task definition
 
 CREATE TABLE `sys_flow_task`
 (
@@ -1382,7 +1411,7 @@ CREATE TABLE `sys_flow_task`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程任务表';
 
 
--- forge_admin_new.sys_flow_template definition
+-- sys_flow_template definition
 
 CREATE TABLE `sys_flow_template`
 (
@@ -1412,7 +1441,7 @@ CREATE TABLE `sys_flow_template`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='流程模板表';
 
 
--- forge_admin_new.sys_id_sequence definition
+-- sys_id_sequence definition
 
 CREATE TABLE `sys_id_sequence`
 (
@@ -1427,7 +1456,7 @@ CREATE TABLE `sys_id_sequence`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='分布式ID序列配置表';
 
 
--- forge_admin_new.sys_job_config definition
+-- sys_job_config definition
 
 CREATE TABLE `sys_job_config`
 (
@@ -1453,7 +1482,7 @@ CREATE TABLE `sys_job_config`
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='任务配置表';
 
 
--- forge_admin_new.sys_job_log definition
+-- sys_job_log definition
 
 CREATE TABLE `sys_job_log`
 (
@@ -1477,7 +1506,7 @@ CREATE TABLE `sys_job_log`
 ) ENGINE=InnoDB AUTO_INCREMENT=88 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='任务执行日志表';
 
 
--- forge_admin_new.sys_login_log definition
+-- sys_login_log definition
 
 CREATE TABLE `sys_login_log`
 (
@@ -1499,10 +1528,10 @@ CREATE TABLE `sys_login_log`
     KEY              `idx_tenant_user` (`tenant_id`,`user_id`),
     KEY              `idx_login_time` (`login_time`),
     KEY              `idx_login_status` (`login_status`)
-) ENGINE=InnoDB AUTO_INCREMENT=2705 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='登录日志表';
+) ENGINE=InnoDB AUTO_INCREMENT=3035 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='登录日志表';
 
 
--- forge_admin_new.sys_message definition
+-- sys_message definition
 
 CREATE TABLE `sys_message`
 (
@@ -1533,7 +1562,7 @@ CREATE TABLE `sys_message`
 ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统消息主表';
 
 
--- forge_admin_new.sys_message_biz_type definition
+-- sys_message_biz_type definition
 
 CREATE TABLE `sys_message_biz_type`
 (
@@ -1558,7 +1587,7 @@ CREATE TABLE `sys_message_biz_type`
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='消息业务类型配置表';
 
 
--- forge_admin_new.sys_message_receiver definition
+-- sys_message_receiver definition
 
 CREATE TABLE `sys_message_receiver`
 (
@@ -1577,7 +1606,7 @@ CREATE TABLE `sys_message_receiver`
 ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='消息接收人表';
 
 
--- forge_admin_new.sys_message_send_record definition
+-- sys_message_send_record definition
 
 CREATE TABLE `sys_message_send_record`
 (
@@ -1599,7 +1628,7 @@ CREATE TABLE `sys_message_send_record`
 ) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='消息发送记录表';
 
 
--- forge_admin_new.sys_message_template definition
+-- sys_message_template definition
 
 CREATE TABLE `sys_message_template`
 (
@@ -1625,7 +1654,7 @@ CREATE TABLE `sys_message_template`
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='消息模板表';
 
 
--- forge_admin_new.sys_notice definition
+-- sys_notice definition
 
 CREATE TABLE `sys_notice`
 (
@@ -1661,7 +1690,7 @@ CREATE TABLE `sys_notice`
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='通知公告表';
 
 
--- forge_admin_new.sys_notice_org definition
+-- sys_notice_org definition
 
 CREATE TABLE `sys_notice_org`
 (
@@ -1675,7 +1704,7 @@ CREATE TABLE `sys_notice_org`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='通知公告组织关联表';
 
 
--- forge_admin_new.sys_notice_read_record definition
+-- sys_notice_read_record definition
 
 CREATE TABLE `sys_notice_read_record`
 (
@@ -1694,7 +1723,7 @@ CREATE TABLE `sys_notice_read_record`
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='通知公告已读记录表';
 
 
--- forge_admin_new.sys_operation_log definition
+-- sys_operation_log definition
 
 CREATE TABLE `sys_operation_log`
 (
@@ -1721,10 +1750,10 @@ CREATE TABLE `sys_operation_log`
     KEY                  `idx_operation_time` (`operation_time`),
     KEY                  `idx_operation_status` (`operation_status`),
     KEY                  `idx_request_url` (`request_url`(255))
-) ENGINE=InnoDB AUTO_INCREMENT=97810 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='操作日志表';
+) ENGINE=InnoDB AUTO_INCREMENT=117997 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='操作日志表';
 
 
--- forge_admin_new.sys_org definition
+-- sys_org definition
 
 CREATE TABLE `sys_org`
 (
@@ -1755,7 +1784,7 @@ CREATE TABLE `sys_org`
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='组织表';
 
 
--- forge_admin_new.sys_post definition
+-- sys_post definition
 
 CREATE TABLE `sys_post`
 (
@@ -1781,7 +1810,7 @@ CREATE TABLE `sys_post`
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='岗位表';
 
 
--- forge_admin_new.sys_region_code definition
+-- sys_region_code definition
 
 CREATE TABLE `sys_region_code`
 (
@@ -1799,7 +1828,7 @@ CREATE TABLE `sys_region_code`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 
--- forge_admin_new.sys_resource definition
+-- sys_resource definition
 
 CREATE TABLE `sys_resource`
 (
@@ -1834,10 +1863,10 @@ CREATE TABLE `sys_resource`
     KEY             `idx_tenant_parent` (`tenant_id`,`parent_id`),
     KEY             `idx_resource_type` (`resource_type`),
     KEY             `idx_api_url_method` (`api_url`,`api_method`) COMMENT 'API查询优化'
-) ENGINE=InnoDB AUTO_INCREMENT=9095 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统资源表（菜单/按钮/API）';
+) ENGINE=InnoDB AUTO_INCREMENT=9096 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统资源表（菜单/按钮/API）';
 
 
--- forge_admin_new.sys_role definition
+-- sys_role definition
 
 CREATE TABLE `sys_role`
 (
@@ -1863,7 +1892,7 @@ CREATE TABLE `sys_role`
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='角色表';
 
 
--- forge_admin_new.sys_role_data_scope definition
+-- sys_role_data_scope definition
 
 CREATE TABLE `sys_role_data_scope`
 (
@@ -1879,7 +1908,7 @@ CREATE TABLE `sys_role_data_scope`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='角色-自定义数据权限关联表';
 
 
--- forge_admin_new.sys_role_resource definition
+-- sys_role_resource definition
 
 CREATE TABLE `sys_role_resource`
 (
@@ -1895,7 +1924,7 @@ CREATE TABLE `sys_role_resource`
 ) ENGINE=InnoDB AUTO_INCREMENT=471 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='角色-资源关联表';
 
 
--- forge_admin_new.sys_sms_config definition
+-- sys_sms_config definition
 
 CREATE TABLE `sys_sms_config`
 (
@@ -1925,7 +1954,7 @@ CREATE TABLE `sys_sms_config`
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='短信配置表';
 
 
--- forge_admin_new.sys_social_config definition
+-- sys_social_config definition
 
 CREATE TABLE `sys_social_config`
 (
@@ -1951,7 +1980,7 @@ CREATE TABLE `sys_social_config`
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='三方登录配置表';
 
 
--- forge_admin_new.sys_tenant definition
+-- sys_tenant definition
 
 CREATE TABLE `sys_tenant`
 (
@@ -1983,7 +2012,7 @@ CREATE TABLE `sys_tenant`
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='租户表';
 
 
--- forge_admin_new.sys_user definition
+-- sys_user definition
 
 CREATE TABLE `sys_user`
 (
@@ -2019,7 +2048,7 @@ CREATE TABLE `sys_user`
 ) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
 
 
--- forge_admin_new.sys_user_org definition
+-- sys_user_org definition
 
 CREATE TABLE `sys_user_org`
 (
@@ -2037,7 +2066,7 @@ CREATE TABLE `sys_user_org`
 ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户-组织关联表';
 
 
--- forge_admin_new.sys_user_post definition
+-- sys_user_post definition
 
 CREATE TABLE `sys_user_post`
 (
@@ -2055,7 +2084,7 @@ CREATE TABLE `sys_user_post`
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户-岗位关联表';
 
 
--- forge_admin_new.sys_user_role definition
+-- sys_user_role definition
 
 CREATE TABLE `sys_user_role`
 (
@@ -2071,7 +2100,7 @@ CREATE TABLE `sys_user_role`
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户-角色关联表';
 
 
--- forge_admin_new.sys_user_social definition
+-- sys_user_social definition
 
 CREATE TABLE `sys_user_social`
 (
@@ -2095,7 +2124,7 @@ CREATE TABLE `sys_user_social`
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户三方账号绑定表';
 
 
--- forge_admin_new.worker_node definition
+-- worker_node definition
 
 CREATE TABLE `worker_node`
 (
@@ -2107,10 +2136,10 @@ CREATE TABLE `worker_node`
     `MODIFIED`    timestamp   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'modified time',
     `CREATED`     timestamp   NOT NULL DEFAULT '0000-00-00 00:00:00' COMMENT 'created time',
     PRIMARY KEY (`ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=1560 DEFAULT CHARSET=utf8mb3 COMMENT='DB WorkerID Assigner for UID Generator';
+) ENGINE=InnoDB AUTO_INCREMENT=1577 DEFAULT CHARSET=utf8mb3 COMMENT='DB WorkerID Assigner for UID Generator';
 
 
--- forge_admin_new.qrtz_triggers definition
+-- qrtz_triggers definition
 
 CREATE TABLE `qrtz_triggers`
 (
@@ -2136,7 +2165,7 @@ CREATE TABLE `qrtz_triggers`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='触发器详细信息表';
 
 
--- forge_admin_new.qrtz_blob_triggers definition
+-- qrtz_blob_triggers definition
 
 CREATE TABLE `qrtz_blob_triggers`
 (
@@ -2149,7 +2178,7 @@ CREATE TABLE `qrtz_blob_triggers`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Blob类型的触发器表';
 
 
--- forge_admin_new.qrtz_cron_triggers definition
+-- qrtz_cron_triggers definition
 
 CREATE TABLE `qrtz_cron_triggers`
 (
@@ -2163,7 +2192,7 @@ CREATE TABLE `qrtz_cron_triggers`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='Cron类型的触发器表';
 
 
--- forge_admin_new.qrtz_simple_triggers definition
+-- qrtz_simple_triggers definition
 
 CREATE TABLE `qrtz_simple_triggers`
 (
@@ -2178,7 +2207,7 @@ CREATE TABLE `qrtz_simple_triggers`
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COMMENT='简单触发器的信息表';
 
 
--- forge_admin_new.qrtz_simprop_triggers definition
+-- qrtz_simprop_triggers definition
 
 CREATE TABLE `qrtz_simprop_triggers`
 (
@@ -6597,7 +6626,20 @@ JSON 输出结构：
   "formJson": "",
   "summary": "在直属上级审批和HR审批节点后增加排他网关判断审批结果，驳回时流向发起人修改节点，修改完成后重新提交至直属上级审批。",
   "bpmnXml": "<?xml version=\\"1.0\\" encoding=\\"UTF-8\\"?>\\n<bpmn:definitions xmlns:bpmn=\\"http://www.omg.org/spec/BPMN/20100524/MODEL\\" xmlns:bpmndi=\\"http://www.omg.org/spec/BPMN/20100524/DI\\" xmlns:dc=\\"http://www.omg.org/spec/DD/20100524/DC\\" xmlns:di=\\"http://www.omg.org/spec/DD/20100524/DI\\" xmlns:xsi=\\"http://www.w3.org/2001/XMLSchema-instance\\" xmlns:flowable=\\"http://flowable.org/bpmn\\" targetNamespace=\\"http://flowable.org/processdef\\">\\n  <bpmn:process id=\\"task\\" name=\\"请假审批流程\\" isExecutable=\\"true\\">\\n    <bpmn:startEvent id=\\"startEvent\\" name=\\"开始\\" flowable:initiator=\\"initiator\\" />\\n    <bpmn:sequenceFlow id=\\"flow_start_to_supervisor\\" sourceRef=\\"startEvent\\" targetRef=\\"userTask_supervisor\\" />\\n    <bpmn:userTask id=\\"userTask_supervisor\\" name=\\"直属上级审批\\" flowable:assignee=\\"${flowSpelService.getInitiatorLeader(execution)}\\" flowable:assigneeType=\\"spel\\" />\\n    <bpmn:sequenceFlow id=\\"flow_supervisor_to_gateway_sup\\" sourceRef=\\"userTask_supervisor\\" targetRef=\\"gateway_supervisor_decision\\" />\\n    <bpmn:exclusiveGateway id=\\"gateway_supervisor_decision\\" name=\\"上级审批结果\\" />\\n    <bpmn:sequenceFlow id=\\"flow_sup_gateway_to_days\\" sourceRef=\\"gateway_supervisor_decision\\" targetRef=\\"gateway_days_check\\">\\n      <bpmn:conditionExpression xsi:type=\\"bpmn:tFormalExpression\\">${approved == true}</bpmn:conditionExpression>\\n    </bpmn:sequenceFlow>\\n    <bpmn:sequenceFlow id=\\"flow_sup_gateway_to_modify\\" sourceRef=\\"gateway_supervisor_decision\\" targetRef=\\"userTask_initiator_modify\\">\\n      <bpmn:conditionExpression xsi:type=\\"bpmn:tFormalExpression\\">${approved == false}</bpmn:conditionExpression>\\n    </bpmn:sequenceFlow>\\n    <bpmn:exclusiveGateway id=\\"gateway_days_check\\" name=\\"天数判断\\" />\\n    <bpmn:sequenceFlow id=\\"flow_gateway_to_end\\" sourceRef=\\"gateway_days_check\\" targetRef=\\"endEvent\\">\\n      <bpmn:conditionExpression xsi:type=\\"bpmn:tFormalExpression\\">${days &lt;= 3}</bpmn:conditionExpression>\\n    </bpmn:sequenceFlow>\\n    <bpmn:sequenceFlow id=\\"flow_gateway_to_hr\\" sourceRef=\\"gateway_days_check\\" targetRef=\\"userTask_hr\\">\\n      <bpmn:conditionExpression xsi:type=\\"bpmn:tFormalExpression\\">${days &gt; 3}</bpmn:conditionExpression>\\n    </bpmn:sequenceFlow>\\n    <bpmn:userTask id=\\"userTask_hr\\" name=\\"HR审批\\" flowable:candidateGroups=\\"hr\\" />\\n    <bpmn:sequenceFlow id=\\"flow_hr_to_gateway_hr\\" sourceRef=\\"userTask_hr\\" targetRef=\\"gateway_hr_decision\\" />\\n    <bpmn:exclusiveGateway id=\\"gateway_hr_decision\\" name=\\"HR审批结果\\" />\\n    <bpmn:sequenceFlow id=\\"flow_hr_gateway_to_end\\" sourceRef=\\"gateway_hr_decision\\" targetRef=\\"endEvent\\">\\n      <bpmn:conditionExpression xsi:type=\\"bpmn:tFormalExpression\\">${approved == true}</bpmn:conditionExpression>\\n    </bpmn:sequenceFlow>\\n    <bpmn:sequenceFlow id=\\"flow_hr_gateway_to_modify\\" sourceRef=\\"gateway_hr_decision\\" targetRef=\\"userTask_initiator_modify\\">\\n      <bpmn:conditionExpression xsi:type=\\"bpmn:tFormalExpression\\">${approved == false}</bpmn:conditionExpression>\\n    </bpmn:sequenceFlow>\\n    <bpmn:userTask id=\\"userTask_initiator_modify\\" name=\\"发起人修改\\" flowable:assignee=\\"${initiator}\\" />\\n    <bpmn:sequenceFlow id=\\"flow_modify_to_supervisor\\" sourceRef=\\"userTask_initiator_modify\\" targetRef=\\"userTask_supervisor\\" />\\n    <bpmn:endEvent id=\\"endEvent\\" name=\\"结束\\" />\\n  </bpmn:process>\\n  <bpmndi:BPMNDiagram id=\\"BPMNDiagram_1\\">\\n    <bpmndi:BPMNPlane id=\\"BPMNPlane_1\\" bpmnElement=\\"task\\">\\n      <bpmndi:BPMNShape id=\\"startEvent_di\\" bpmnElement=\\"startEvent\\">\\n        <dc:Bounds x=\\"100\\" y=\\"160\\" width=\\"36\\" height=\\"36\\" />\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNShape id=\\"userTask_supervisor_di\\" bpmnElement=\\"userTask_supervisor\\">\\n        <dc:Bounds x=\\"220\\" y=\\"138\\" width=\\"100\\" height=\\"80\\" />\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNShape id=\\"gateway_supervisor_decision_di\\" bpmnElement=\\"gateway_supervisor_decision\\" isMarkerVisible=\\"true\\">\\n        <dc:Bounds x=\\"340\\" y=\\"153\\" width=\\"50\\" height=\\"50\\" />\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNShape id=\\"gateway_days_check_di\\" bpmnElement=\\"gateway_days_check\\" isMarkerVisible=\\"true\\">\\n        <dc:Bounds x=\\"460\\" y=\\"153\\" width=\\"50\\" height=\\"50\\" />\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNShape id=\\"userTask_hr_di\\" bpmnElement=\\"userTask_hr\\">\\n        <dc:Bounds x=\\"460\\" y=\\"280\\" width=\\"100\\" height=\\"80\\" />\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNShape id=\\"gateway_hr_decision_di\\" bpmnElement=\\"gateway_hr_decision\\" isMarkerVisible=\\"true\\">\\n        <dc:Bounds x=\\"580\\" y=\\"295\\" width=\\"50\\" height=\\"50\\" />\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNShape id=\\"userTask_initiator_modify_di\\" bpmnElement=\\"userTask_initiator_modify\\">\\n        <dc:Bounds x=\\"340\\" y=\\"300\\" width=\\"100\\" height=\\"80\\" />\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNShape id=\\"endEvent_di\\" bpmnElement=\\"endEvent\\">\\n        <dc:Bounds x=\\"700\\" y=\\"160\\" width=\\"36\\" height=\\"36\\" />\\n        <bpmndi:BPMNLabel>\\n          <dc:Bounds x=\\"707\\" y=\\"136\\" width=\\"22\\" height=\\"14\\" />\\n        </bpmndi:BPMNLabel>\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNEdge id=\\"flow_start_to_supervisor_di\\" bpmnElement=\\"flow_start_to_supervisor\\">\\n        <di:waypoint x=\\"136\\" y=\\"178\\" />\\n        <di:waypoint x=\\"220\\" y=\\"178\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_supervisor_to_gateway_sup_di\\" bpmnElement=\\"flow_supervisor_to_gateway_sup\\">\\n        <di:waypoint x=\\"320\\" y=\\"178\\" />\\n        <di:waypoint x=\\"340\\" y=\\"178\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_sup_gateway_to_days_di\\" bpmnElement=\\"flow_sup_gateway_to_days\\">\\n        <di:waypoint x=\\"390\\" y=\\"178\\" />\\n        <di:waypoint x=\\"460\\" y=\\"178\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_sup_gateway_to_modify_di\\" bpmnElement=\\"flow_sup_gateway_to_modify\\">\\n        <di:waypoint x=\\"365\\" y=\\"203\\" />\\n        <di:waypoint x=\\"365\\" y=\\"300\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_gateway_to_end_di\\" bpmnElement=\\"flow_gateway_to_end\\">\\n        <di:waypoint x=\\"510\\" y=\\"178\\" />\\n        <di:waypoint x=\\"700\\" y=\\"178\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_gateway_to_hr_di\\" bpmnElement=\\"flow_gateway_to_hr\\">\\n        <di:waypoint x=\\"485\\" y=\\"203\\" />\\n        <di:waypoint x=\\"485\\" y=\\"280\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_hr_to_gateway_hr_di\\" bpmnElement=\\"flow_hr_to_gateway_hr\\">\\n        <di:waypoint x=\\"560\\" y=\\"320\\" />\\n        <di:waypoint x=\\"580\\" y=\\"320\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_hr_gateway_to_end_di\\" bpmnElement=\\"flow_hr_gateway_to_end\\">\\n        <di:waypoint x=\\"605\\" y=\\"295\\" />\\n        <di:waypoint x=\\"605\\" y=\\"178\\" />\\n        <di:waypoint x=\\"700\\" y=\\"178\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_hr_gateway_to_modify_di\\" bpmnElement=\\"flow_hr_gateway_to_modify\\">\\n        <di:waypoint x=\\"605\\" y=\\"345\\" />\\n        <di:waypoint x=\\"390\\" y=\\"345\\" />\\n        <di:waypoint x=\\"390\\" y=\\"340\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_modify_to_supervisor_di\\" bpmnElement=\\"flow_modify_to_supervisor\\">\\n        <di:waypoint x=\\"340\\" y=\\"340\\" />\\n        <di:waypoint x=\\"270\\" y=\\"340\\" />\\n        <di:waypoint x=\\"270\\" y=\\"218\\" />\\n      </bpmndi:BPMNEdge>\\n    </bpmndi:BPMNPlane>\\n  </bpmndi:BPMNDiagram>\\n</bpmn:definitions>"
-}', NULL, '2026-05-07 17:23:06');
+}', NULL, '2026-05-07 17:23:06'),
+       (2052566019846750210, 1, 1, 'flow_bpmn_builder', 'flow_1778204764827_8hjl4js6', 'user',
+        '给当前流程增加驳回路径，审批不通过时回到发起人修改。', NULL, '2026-05-08 09:47:29'),
+       (2052566020102602754, 1, 1, 'flow_bpmn_builder', 'flow_1778204764827_8hjl4js6', 'assistant', '{
+  "modelKey": "task",
+  "modelName": "请假审批流程",
+  "description": "",
+  "category": "234243",
+  "flowType": "",
+  "formType": "none",
+  "formJson": "",
+  "summary": "在直属上级审批和HR审批节点后分别增加驳回到发起人的路径，使用exclusiveGateway判断审批结果，不通过时回到startEvent后的修正任务节点。",
+  "bpmnXml": "<?xml version=\\"1.0\\" encoding=\\"UTF-8\\"?>\\n<bpmn:definitions xmlns:bpmn=\\"http://www.omg.org/spec/BPMN/20100524/MODEL\\" xmlns:bpmndi=\\"http://www.omg.org/spec/BPMN/20100524/DI\\" xmlns:dc=\\"http://www.omg.org/spec/DD/20100524/DC\\" xmlns:di=\\"http://www.omg.org/spec/DD/20100524/DI\\" xmlns:xsi=\\"http://www.w3.org/2001/XMLSchema-instance\\" xmlns:flowable=\\"http://flowable.org/bpmn\\" targetNamespace=\\"http://flowable.org/processdef\\">\\n  <bpmn:process id=\\"task\\" name=\\"请假审批流程\\" isExecutable=\\"true\\">\\n    <bpmn:startEvent id=\\"startEvent\\" name=\\"开始\\" flowable:initiator=\\"initiator\\" />\\n    <bpmn:sequenceFlow id=\\"flow_start_to_supervisor\\" sourceRef=\\"startEvent\\" targetRef=\\"userTask_supervisor\\" />\\n    <bpmn:userTask id=\\"userTask_supervisor\\" name=\\"直属上级审批\\" flowable:assignee=\\"${flowSpelService.getInitiatorLeader(execution)}\\" flowable:assigneeType=\\"spel\\" />\\n    <bpmn:exclusiveGateway id=\\"gateway_supervisor_decision\\" name=\\"上级审批结果\\" />\\n    <bpmn:sequenceFlow id=\\"flow_supervisor_to_decision\\" sourceRef=\\"userTask_supervisor\\" targetRef=\\"gateway_supervisor_decision\\" />\\n    <bpmn:sequenceFlow id=\\"flow_supervisor_reject\\" sourceRef=\\"gateway_supervisor_decision\\" targetRef=\\"userTask_initiator_revise\\">\\n      <bpmn:conditionExpression xsi:type=\\"bpmn:tFormalExpression\\">${approved == false}</bpmn:conditionExpression>\\n    </bpmn:sequenceFlow>\\n    <bpmn:sequenceFlow id=\\"flow_supervisor_approve\\" sourceRef=\\"gateway_supervisor_decision\\" targetRef=\\"gateway_days_check\\">\\n      <bpmn:conditionExpression xsi:type=\\"bpmn:tFormalExpression\\">${approved == true}</bpmn:conditionExpression>\\n    </bpmn:sequenceFlow>\\n    <bpmn:exclusiveGateway id=\\"gateway_days_check\\" name=\\"天数判断\\" />\\n    <bpmn:sequenceFlow id=\\"flow_gateway_to_end\\" sourceRef=\\"gateway_days_check\\" targetRef=\\"endEvent\\">\\n      <bpmn:conditionExpression xsi:type=\\"bpmn:tFormalExpression\\">${days &lt;= 3}</bpmn:conditionExpression>\\n    </bpmn:sequenceFlow>\\n    <bpmn:sequenceFlow id=\\"flow_gateway_to_hr\\" sourceRef=\\"gateway_days_check\\" targetRef=\\"userTask_hr\\">\\n      <bpmn:conditionExpression xsi:type=\\"bpmn:tFormalExpression\\">${days &gt; 3}</bpmn:conditionExpression>\\n    </bpmn:sequenceFlow>\\n    <bpmn:userTask id=\\"userTask_hr\\" name=\\"HR审批\\" flowable:candidateGroups=\\"hr\\" />\\n    <bpmn:exclusiveGateway id=\\"gateway_hr_decision\\" name=\\"HR审批结果\\" />\\n    <bpmn:sequenceFlow id=\\"flow_hr_to_decision\\" sourceRef=\\"userTask_hr\\" targetRef=\\"gateway_hr_decision\\" />\\n    <bpmn:sequenceFlow id=\\"flow_hr_reject\\" sourceRef=\\"gateway_hr_decision\\" targetRef=\\"userTask_initiator_revise\\">\\n      <bpmn:conditionExpression xsi:type=\\"bpmn:tFormalExpression\\">${approved == false}</bpmn:conditionExpression>\\n    </bpmn:sequenceFlow>\\n    <bpmn:sequenceFlow id=\\"flow_hr_approve\\" sourceRef=\\"gateway_hr_decision\\" targetRef=\\"endEvent\\">\\n      <bpmn:conditionExpression xsi:type=\\"bpmn:tFormalExpression\\">${approved == true}</bpmn:conditionExpression>\\n    </bpmn:sequenceFlow>\\n    <bpmn:userTask id=\\"userTask_initiator_revise\\" name=\\"发起人修改\\" flowable:assignee=\\"${initiator}\\" />\\n    <bpmn:sequenceFlow id=\\"flow_revise_to_supervisor\\" sourceRef=\\"userTask_initiator_revise\\" targetRef=\\"userTask_supervisor\\" />\\n    <bpmn:endEvent id=\\"endEvent\\" name=\\"结束\\" />\\n  </bpmn:process>\\n  <bpmndi:BPMNDiagram id=\\"BPMNDiagram_1\\">\\n    <bpmndi:BPMNPlane id=\\"BPMNPlane_1\\" bpmnElement=\\"task\\">\\n      <bpmndi:BPMNShape id=\\"startEvent_di\\" bpmnElement=\\"startEvent\\">\\n        <dc:Bounds x=\\"100\\" y=\\"160\\" width=\\"36\\" height=\\"36\\" />\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNShape id=\\"userTask_supervisor_di\\" bpmnElement=\\"userTask_supervisor\\">\\n        <dc:Bounds x=\\"220\\" y=\\"138\\" width=\\"100\\" height=\\"80\\" />\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNShape id=\\"gateway_supervisor_decision_di\\" bpmnElement=\\"gateway_supervisor_decision\\" isMarkerVisible=\\"true\\">\\n        <dc:Bounds x=\\"380\\" y=\\"153\\" width=\\"50\\" height=\\"50\\" />\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNShape id=\\"gateway_days_check_di\\" bpmnElement=\\"gateway_days_check\\" isMarkerVisible=\\"true\\">\\n        <dc:Bounds x=\\"540\\" y=\\"153\\" width=\\"50\\" height=\\"50\\" />\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNShape id=\\"userTask_hr_di\\" bpmnElement=\\"userTask_hr\\">\\n        <dc:Bounds x=\\"540\\" y=\\"280\\" width=\\"100\\" height=\\"80\\" />\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNShape id=\\"gateway_hr_decision_di\\" bpmnElement=\\"gateway_hr_decision\\" isMarkerVisible=\\"true\\">\\n        <dc:Bounds x=\\"700\\" y=\\"295\\" width=\\"50\\" height=\\"50\\" />\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNShape id=\\"userTask_initiator_revise_di\\" bpmnElement=\\"userTask_initiator_revise\\">\\n        <dc:Bounds x=\\"380\\" y=\\"380\\" width=\\"100\\" height=\\"80\\" />\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNShape id=\\"endEvent_di\\" bpmnElement=\\"endEvent\\">\\n        <dc:Bounds x=\\"700\\" y=\\"160\\" width=\\"36\\" height=\\"36\\" />\\n        <bpmndi:BPMNLabel>\\n          <dc:Bounds x=\\"707\\" y=\\"136\\" width=\\"22\\" height=\\"14\\" />\\n        </bpmndi:BPMNLabel>\\n      </bpmndi:BPMNShape>\\n      <bpmndi:BPMNEdge id=\\"flow_start_to_supervisor_di\\" bpmnElement=\\"flow_start_to_supervisor\\">\\n        <di:waypoint x=\\"136\\" y=\\"178\\" />\\n        <di:waypoint x=\\"220\\" y=\\"178\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_supervisor_to_decision_di\\" bpmnElement=\\"flow_supervisor_to_decision\\">\\n        <di:waypoint x=\\"320\\" y=\\"178\\" />\\n        <di:waypoint x=\\"380\\" y=\\"178\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_supervisor_reject_di\\" bpmnElement=\\"flow_supervisor_reject\\">\\n        <di:waypoint x=\\"405\\" y=\\"203\\" />\\n        <di:waypoint x=\\"405\\" y=\\"380\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_supervisor_approve_di\\" bpmnElement=\\"flow_supervisor_approve\\">\\n        <di:waypoint x=\\"430\\" y=\\"178\\" />\\n        <di:waypoint x=\\"540\\" y=\\"178\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_gateway_to_end_di\\" bpmnElement=\\"flow_gateway_to_end\\">\\n        <di:waypoint x=\\"590\\" y=\\"178\\" />\\n        <di:waypoint x=\\"700\\" y=\\"178\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_gateway_to_hr_di\\" bpmnElement=\\"flow_gateway_to_hr\\">\\n        <di:waypoint x=\\"565\\" y=\\"203\\" />\\n        <di:waypoint x=\\"565\\" y=\\"280\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_hr_to_decision_di\\" bpmnElement=\\"flow_hr_to_decision\\">\\n        <di:waypoint x=\\"640\\" y=\\"320\\" />\\n        <di:waypoint x=\\"700\\" y=\\"320\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_hr_reject_di\\" bpmnElement=\\"flow_hr_reject\\">\\n        <di:waypoint x=\\"725\\" y=\\"345\\" />\\n        <di:waypoint x=\\"725\\" y=\\"420\\" />\\n        <di:waypoint x=\\"480\\" y=\\"420\\" />\\n        <di:waypoint x=\\"480\\" y=\\"460\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_hr_approve_di\\" bpmnElement=\\"flow_hr_approve\\">\\n        <di:waypoint x=\\"750\\" y=\\"320\\" />\\n        <di:waypoint x=\\"800\\" y=\\"320\\" />\\n        <di:waypoint x=\\"800\\" y=\\"178\\" />\\n        <di:waypoint x=\\"736\\" y=\\"178\\" />\\n      </bpmndi:BPMNEdge>\\n      <bpmndi:BPMNEdge id=\\"flow_revise_to_supervisor_di\\" bpmnElement=\\"flow_revise_to_supervisor\\">\\n        <di:waypoint x=\\"430\\" y=\\"460\\" />\\n        <di:waypoint x=\\"430\\" y=\\"250\\" />\\n        <di:waypoint x=\\"320\\" y=\\"250\\" />\\n        <di:waypoint x=\\"320\\" y=\\"218\\" />\\n      </bpmndi:BPMNEdge>\\n    </bpmndi:BPMNPlane>\\n  </bpmndi:BPMNDiagram>\\n</bpmn:definitions>"
+}', NULL, '2026-05-08 09:47:29');
 INSERT INTO ai_chat_session (id, tenant_id, user_id, agent_code, session_name, status, create_time, update_time,
                              metadata)
 VALUES ('f35a767b-7b0f-4802-aa00-457efafb58c2', 1, 1, 'dashboard_generator', '销售数据大屏，先做一个饼状图展示销售数据
@@ -6620,6 +6662,8 @@ VALUES ('f35a767b-7b0f-4802-aa00-457efafb58c2', 1, 1, 'dashboard_generator', '�
         '0', '2026-05-07 17:15:03', '2026-05-07 17:17:44', NULL),
        ('flow_1778145513943_n06x6dun', 1, 1, 'flow_bpmn_builder', '给当前流程增加驳回路径，审批不通过时回到发起人修改。',
         '0', '2026-05-07 17:18:34', '2026-05-07 17:23:07', NULL),
+       ('flow_1778204764827_8hjl4js6', 1, 1, 'flow_bpmn_builder', '给当前流程增加驳回路径，审批不通过时回到发起人修改。',
+        '0', '2026-05-08 09:46:06', '2026-05-08 09:47:29', NULL),
        ('session_1776747312761_kdvupglex', 1, 1, 'crud_config_builder', '根据以下信息生成CRUD配置JSON：
 
 configKey: biz_order
@@ -6631,14 +6675,14 @@ tableNam…', '0', '2026-04-21 15:29:27', '2026-04-21 15:30:41', NULL),
        ('session_1776756704238_hod7nesy2', 1, 1, 'crud_config_builder', '根据以下信息生成CRUD配置JSON：
 
 configKey: order
-tableName: o…', '0', '2026-04-21 15:31:45', '2026-04-21 15:31:45', NULL),
-       ('session_1776757442068_wggwvw50m', 1, 1, 'crud_config_builder', '根据以下信息生成CRUD配置JSON：
-
-configKey: order
-tableName: o…', '0', '2026-04-21 15:44:48', '2026-04-21 15:46:08', NULL);
+tableName: o…', '0', '2026-04-21 15:31:45', '2026-04-21 15:31:45', NULL);
 INSERT INTO ai_chat_session (id, tenant_id, user_id, agent_code, session_name, status, create_time, update_time,
                              metadata)
-VALUES ('session_1776757666909_7udjubkdw', 1, 1, 'crud_config_builder', '根据以下信息生成CRUD配置JSON：
+VALUES ('session_1776757442068_wggwvw50m', 1, 1, 'crud_config_builder', '根据以下信息生成CRUD配置JSON：
+
+configKey: order
+tableName: o…', '0', '2026-04-21 15:44:48', '2026-04-21 15:46:08', NULL),
+       ('session_1776757666909_7udjubkdw', 1, 1, 'crud_config_builder', '根据以下信息生成CRUD配置JSON：
 
 configKey: order
 tableName: o…', '0', '2026-04-21 15:47:48', '2026-04-21 15:49:08', NULL),
@@ -6649,7 +6693,7 @@ tableName: o…', '0', '2026-04-21 16:12:16', '2026-04-21 16:12:16', NULL),
        ('session_1776759385931_7nm1hml5v', 1, 1, 'crud_config_builder', '根据以下信息生成CRUD配置JSON：
 
 configKey: order
-tableName: o…', '0', '2026-04-21 16:16:26', '2026-04-21 16:17:45', NULL),
+tableName: o…', '1', '2026-04-21 16:16:26', '2026-05-09 16:03:14', NULL),
        ('session_1776759937586_dydqfarx8', 1, 1, 'crud_config_builder', '订单管理', '1', '2026-04-21 16:25:39',
         '2026-04-21 18:33:42', NULL),
        ('session_1776767605200_1qp8rzz2p', 1, 1, 'crud_config_builder', '订单管理页面
@@ -6664,13 +6708,13 @@ tableName: o…', '0', '2026-04-21 16:16:26', '2026-04-21 16:17:45', NULL),
         '{"configKey":"order_manage","tableName":"order_manage","description":"订单管理表"}'),
        ('session_1777195540937_lgxbcl431', 1, 1, 'crud_config_builder',
         '员工管理，包含姓名、工号、部门、职位、入职日期、手机号、邮箱、状态', '0', '2026-04-26 17:25:42', '2026-04-26 17:27:39',
-        '{"configKey":"employee","tableName":"sys_employee","description":"员工信息表"}'),
-       ('session_1777197900986_a4h0w6t4u', 1, 1, 'crud_config_builder',
-        '产品管理，包含产品名称、分类、价格、库存、状态、创建时间', '0', '2026-04-26 18:05:02', '2026-04-26 18:07:16',
-        '{"configKey":"biz_product","tableName":"biz_product","description":"产品管理表"}');
+        '{"configKey":"employee","tableName":"sys_employee","description":"员工信息表"}');
 INSERT INTO ai_chat_session (id, tenant_id, user_id, agent_code, session_name, status, create_time, update_time,
                              metadata)
-VALUES ('session_1777297363598_9e5hykk7h', 1, 1, 'crud_config_builder', '你好', '0', '2026-04-27 21:42:56',
+VALUES ('session_1777197900986_a4h0w6t4u', 1, 1, 'crud_config_builder',
+        '产品管理，包含产品名称、分类、价格、库存、状态、创建时间', '0', '2026-04-26 18:05:02', '2026-04-26 18:07:16',
+        '{"configKey":"biz_product","tableName":"biz_product","description":"产品管理表"}'),
+       ('session_1777297363598_9e5hykk7h', 1, 1, 'crud_config_builder', '你好', '0', '2026-04-27 21:42:56',
         '2026-04-27 21:42:56', NULL),
        ('session_1777297448667_wcykofoap', 1, 1, 'crud_config_builder',
         '订单管理，包含订单号、客户名称、订单金额、支付状态、下单时间、备注', '0', '2026-04-27 21:44:09',
@@ -7309,7 +7353,15 @@ VALUES (2044231509371568130, 1, '销售数据可视化大屏', NULL,
         '/goview-api/api/file/download/8d82c28036d845b3b254fabcfbc49c41', '0', 1920, 1080, '#1e1e2e',
         '{"editCanvasConfig":{"projectName":"销售数据可视化大屏","width":1920,"height":1080,"filterShow":false,"hueRotate":0,"saturate":1,"contrast":1,"brightness":1,"opacity":1,"rotateZ":0,"rotateX":0,"rotateY":0,"skewX":0,"skewY":0,"blendMode":"normal","background":"#1e1e2e","selectColor":true,"chartThemeColor":"dark","chartThemeSetting":{"title":{"show":true,"textStyle":{"color":"#BFBFBF","fontSize":18},"subtextStyle":{"color":"#A2A2A2","fontSize":14}},"xAxis":{"show":true,"name":"","nameGap":15,"nameTextStyle":{"color":"#B9B8CE","fontSize":12},"inverse":false,"axisLabel":{"show":true,"fontSize":12,"color":"#B9B8CE","rotate":0},"position":"bottom","axisLine":{"show":true,"lineStyle":{"color":"#B9B8CE","width":1},"onZero":true},"axisTick":{"show":true,"length":5},"splitLine":{"show":false,"lineStyle":{"color":"#484753","width":1,"type":"solid"}}},"yAxis":{"show":true,"name":"","nameGap":15,"nameTextStyle":{"color":"#B9B8CE","fontSize":12},"inverse":false,"axisLabel":{"show":true,"fontSize":12,"color":"#B9B8CE","rotate":0},"position":"left","axisLine":{"show":true,"lineStyle":{"color":"#B9B8CE","width":1},"onZero":true},"axisTick":{"show":true,"length":5},"splitLine":{"show":true,"lineStyle":{"color":"#484753","width":1,"type":"solid"}}},"legend":{"show":true,"type":"scroll","x":"center","y":"top","icon":"circle","orient":"horizontal","textStyle":{"color":"#B9B8CE","fontSize":18},"itemHeight":15,"itemWidth":15,"pageTextStyle":{"color":"#B9B8CE"}},"grid":{"show":false,"left":"10%","top":"60","right":"10%","bottom":"60"},"dataset":null,"renderer":"svg"},"vChartThemeName":"vScreenVolcanoBlue","previewScaleType":"fit"},"componentList":[{"id":"id_51002jzz2ns000","isGroup":false,"attr":{"x":0,"y":20,"w":1920,"h":60,"offsetX":0,"offsetY":0,"zIndex":-1},"styles":{"filterShow":false,"hueRotate":0,"saturate":1,"contrast":1,"brightness":1,"opacity":1,"rotateZ":0,"rotateX":0,"rotateY":0,"skewX":0,"skewY":0,"blendMode":"normal","animations":[]},"preview":{"overFlowHidden":false},"status":{"lock":false,"hide":false},"request":{"requestDataType":0,"requestHttpType":"get","requestUrl":"","requestIntervalUnit":"second","requestContentType":0,"requestParamsBodyType":"none","requestSQLContent":{"sql":"select * from  where"},"requestParams":{"Body":{"form-data":{},"x-www-form-urlencoded":{},"json":"","xml":""},"Header":{},"Params":{}}},"events":{"baseEvent":{},"advancedEvents":{},"interactEvents":[]},"key":"TextCommon","chartConfig":{"key":"TextCommon","chartKey":"VTextCommon","conKey":"VCTextCommon","title":"销售数据可视化大屏","category":"Texts","categoryName":"文本","package":"Informations","chartFrame":"common","image":"text_static.png"},"option":{"link":"","linkHead":"http://","dataset":"销售数据可视化大屏","fontSize":36,"fontColor":"#ffffff","paddingX":10,"paddingY":10,"textAlign":"center","fontWeight":"bold","borderWidth":0,"borderColor":"#ffffff","borderRadius":5,"letterSpacing":5,"writingMode":"horizontal-tb","backgroundColor":"#00000000"}},{"id":"id_2aw11zdg2xc000","isGroup":false,"attr":{"x":20,"y":100,"w":950,"h":460,"offsetX":0,"offsetY":0,"zIndex":-1},"styles":{"filterShow":false,"hueRotate":0,"saturate":1,"contrast":1,"brightness":1,"opacity":1,"rotateZ":0,"rotateX":0,"rotateY":0,"skewX":0,"skewY":0,"blendMode":"normal","animations":[]},"preview":{"overFlowHidden":false},"status":{"lock":false,"hide":false},"request":{"requestDataType":0,"requestHttpType":"get","requestUrl":"","requestIntervalUnit":"second","requestContentType":0,"requestParamsBodyType":"none","requestSQLContent":{"sql":"select * from  where"},"requestParams":{"Body":{"form-data":{},"x-www-form-urlencoded":{},"json":"","xml":""},"Header":{},"Params":{}}},"events":{"baseEvent":{},"advancedEvents":{},"interactEvents":[]},"key":"BarCommon","chartConfig":{"key":"BarCommon","chartKey":"VBarCommon","conKey":"VCBarCommon","title":"月度销售额统计","category":"Bars","categoryName":"柱状图","package":"Charts","chartFrame":"echarts","image":"bar_x.png"},"option":{"legend":{"show":true,"type":"scroll","x":"center","y":"top","icon":"circle","orient":"horizontal","textStyle":{"color":"#B9B8CE","fontSize":18},"itemHeight":15,"itemWidth":15,"pageTextStyle":{"color":"#B9B8CE"}},"xAxis":{"show":true,"name":"","nameGap":15,"nameTextStyle":{"color":"#B9B8CE","fontSize":12},"inverse":false,"axisLabel":{"show":true,"fontSize":12,"color":"#B9B8CE","rotate":0},"position":"bottom","axisLine":{"show":true,"lineStyle":{"color":"#B9B8CE","width":1},"onZero":true},"axisTick":{"show":true,"length":5},"splitLine":{"show":false,"lineStyle":{"color":"#484753","width":1,"type":"solid"}},"type":"category"},"yAxis":{"show":true,"name":"","nameGap":15,"nameTextStyle":{"color":"#B9B8CE","fontSize":12},"inverse":false,"axisLabel":{"show":true,"fontSize":12,"color":"#B9B8CE","rotate":0},"position":"left","axisLine":{"show":true,"lineStyle":{"color":"#B9B8CE","width":1},"onZero":true},"axisTick":{"show":true,"length":5},"splitLine":{"show":true,"lineStyle":{"color":"#484753","width":1,"type":"solid"}},"type":"value"},"grid":{"show":false,"left":"10%","top":"60","right":"10%","bottom":"60"},"tooltip":{"show":true,"trigger":"axis","axisPointer":{"show":true,"type":"shadow"}},"dataset":{"dimensions":["月份","销售额"],"source":[{"月份":"1月","销售额":320},{"月份":"2月","销售额":280},{"月份":"3月","销售额":450},{"月份":"4月","销售额":390},{"月份":"5月","销售额":510},{"月份":"6月","销售额":480},{"月份":"7月","销售额":620},{"月份":"8月","销售额":590},{"月份":"9月","销售额":530},{"月份":"10月","销售额":680},{"月份":"11月","销售额":750},{"月份":"12月","销售额":820}]},"series":[{"type":"bar","barWidth":15,"label":{"show":true,"position":"top","color":"#fff","fontSize":12},"itemStyle":{"color":null,"borderRadius":2}}],"backgroundColor":"rgba(0,0,0,0)"}},{"id":"id_2mx5tfhv0as000","isGroup":false,"attr":{"x":990,"y":100,"w":910,"h":460,"offsetX":0,"offsetY":0,"zIndex":-1},"styles":{"filterShow":false,"hueRotate":0,"saturate":1,"contrast":1,"brightness":1,"opacity":1,"rotateZ":0,"rotateX":0,"rotateY":0,"skewX":0,"skewY":0,"blendMode":"normal","animations":[]},"preview":{"overFlowHidden":false},"status":{"lock":false,"hide":false},"request":{"requestDataType":0,"requestHttpType":"get","requestUrl":"","requestIntervalUnit":"second","requestContentType":0,"requestParamsBodyType":"none","requestSQLContent":{"sql":"select * from  where"},"requestParams":{"Body":{"form-data":{},"x-www-form-urlencoded":{},"json":"","xml":""},"Header":{},"Params":{}}},"events":{"baseEvent":{},"advancedEvents":{},"interactEvents":[]},"key":"PieCommon","chartConfig":{"key":"PieCommon","chartKey":"VPieCommon","conKey":"VCPieCommon","title":"销售渠道占比分析","category":"Pies","categoryName":"饼图","package":"Charts","chartFrame":"echarts","image":"pie.png"},"option":{"legend":{"show":true,"type":"scroll","x":"center","y":"top","icon":"circle","orient":"horizontal","textStyle":{"color":"#B9B8CE","fontSize":18},"itemHeight":15,"itemWidth":15,"pageTextStyle":{"color":"#B9B8CE"}},"isCarousel":false,"type":"ring","tooltip":{"show":true,"trigger":"item"},"dataset":{"dimensions":["渠道","销售额"],"source":[{"渠道":"电商平台","销售额":520},{"渠道":"线下门店","销售额":380},{"渠道":"直播带货","销售额":410},{"渠道":"批发代理","销售额":290}]},"series":[{"type":"pie","radius":["40%","65%"],"center":["50%","60%"],"roseType":false,"avoidLabelOverlap":false,"itemStyle":{"show":true,"borderRadius":10,"borderColor":"#fff","borderWidth":2},"label":{"show":false,"position":"center","formatter":"{b}","fontWeight":"normal","fontSize":14,"color":"#454E54","textBorderColor":"#ffffff","textBorderWidth":1},"emphasis":{"label":{"show":true,"fontSize":40,"fontWeight":"bold"}},"labelLine":{"show":false}}],"backgroundColor":"rgba(0,0,0,0)"}},{"id":"id_3s54eqi5vje000","isGroup":false,"attr":{"x":20,"y":580,"w":1880,"h":480,"offsetX":0,"offsetY":0,"zIndex":-1},"styles":{"filterShow":false,"hueRotate":0,"saturate":1,"contrast":1,"brightness":1,"opacity":1,"rotateZ":0,"rotateX":0,"rotateY":0,"skewX":0,"skewY":0,"blendMode":"normal","animations":[]},"preview":{"overFlowHidden":false},"status":{"lock":false,"hide":false},"request":{"requestDataType":0,"requestHttpType":"get","requestUrl":"","requestIntervalUnit":"second","requestContentType":0,"requestParamsBodyType":"none","requestSQLContent":{"sql":"select * from  where"},"requestParams":{"Body":{"form-data":{},"x-www-form-urlencoded":{},"json":"","xml":""},"Header":{},"Params":{}}},"events":{"baseEvent":{},"advancedEvents":{},"interactEvents":[]},"key":"LineCommon","chartConfig":{"key":"LineCommon","chartKey":"VLineCommon","conKey":"VCLineCommon","title":"近期销售趋势与利润分析","category":"Lines","categoryName":"折线图","package":"Charts","chartFrame":"echarts","image":"line.png"},"option":{"legend":{"show":true,"type":"scroll","x":"center","y":"top","icon":"circle","orient":"horizontal","textStyle":{"color":"#B9B8CE","fontSize":18},"itemHeight":15,"itemWidth":15,"pageTextStyle":{"color":"#B9B8CE"}},"xAxis":{"show":true,"name":"","nameGap":15,"nameTextStyle":{"color":"#B9B8CE","fontSize":12},"inverse":false,"axisLabel":{"show":true,"fontSize":12,"color":"#B9B8CE","rotate":0},"position":"bottom","axisLine":{"show":true,"lineStyle":{"color":"#B9B8CE","width":1},"onZero":true},"axisTick":{"show":true,"length":5},"splitLine":{"show":false,"lineStyle":{"color":"#484753","width":1,"type":"solid"}},"type":"category"},"yAxis":{"show":true,"name":"","nameGap":15,"nameTextStyle":{"color":"#B9B8CE","fontSize":12},"inverse":false,"axisLabel":{"show":true,"fontSize":12,"color":"#B9B8CE","rotate":0},"position":"left","axisLine":{"show":true,"lineStyle":{"color":"#B9B8CE","width":1},"onZero":true},"axisTick":{"show":true,"length":5},"splitLine":{"show":true,"lineStyle":{"color":"#484753","width":1,"type":"solid"}},"type":"value"},"grid":{"show":false,"left":"10%","top":"60","right":"10%","bottom":"60"},"tooltip":{"show":true,"trigger":"axis","axisPointer":{"type":"line"}},"dataset":{"dimensions":["日期","销售额","利润"],"source":[{"日期":"1日","销售额":1200,"利润":350},{"日期":"2日","销售额":1350,"利润":410},{"日期":"3日","销售额":1100,"利润":290},{"日期":"4日","销售额":1450,"利润":460},{"日期":"5日","销售额":1600,"利润":520},{"日期":"6日","销售额":1300,"利润":380},{"日期":"7日","销售额":1750,"利润":580},{"日期":"8日","销售额":1550,"利润":490},{"日期":"9日","销售额":1400,"利润":430},{"日期":"10日","销售额":1650,"利润":540},{"日期":"11日","销售额":1800,"利润":610},{"日期":"12日","销售额":1950,"利润":680}]},"series":[{"type":"line","label":{"show":true,"position":"top","color":"#fff","fontSize":12},"symbolSize":5,"itemStyle":{"color":null,"borderRadius":0},"lineStyle":{"type":"solid","width":3,"color":null}},{"type":"line","label":{"show":true,"position":"top","color":"#fff","fontSize":12},"symbolSize":5,"itemStyle":{"color":null,"borderRadius":0},"lineStyle":{"type":"solid","width":3,"color":null}}],"backgroundColor":"rgba(0,0,0,0)"}}],"requestGlobalConfig":{"requestDataPond":[],"requestOriginUrl":"","requestInterval":30,"requestIntervalUnit":"second","requestParams":{"Body":{"form-data":{},"x-www-form-urlencoded":{},"json":"","xml":""},"Header":{},"Params":{}}}}',
         '1', 'http://localhost:3021#/chart/preview/2044231509371568130', '2026-04-16 13:04:27', 1,
-        '2026-04-15 09:49:06', 1, '2026-04-16 13:04:27', 2, '0');
+        '2026-04-15 09:49:06', 1, '2026-04-16 13:04:27', 2, '0'),
+       (2052622462478221313, 1, '新项目', NULL, '/forge-report-api/api/file/download/fe26aa943b7c42078e2fbcfa32a56d16',
+        '0', 1920, 1080, '',
+        '{"editCanvasConfig":{"projectName":"新项目","width":1920,"height":1080,"filterShow":false,"hueRotate":0,"saturate":1,"contrast":1,"brightness":1,"opacity":1,"rotateZ":0,"rotateX":0,"rotateY":0,"skewX":0,"skewY":0,"blendMode":"normal","selectColor":true,"chartThemeColor":"dark","chartThemeSetting":{"title":{"show":true,"textStyle":{"color":"#BFBFBF","fontSize":18},"subtextStyle":{"color":"#A2A2A2","fontSize":14}},"xAxis":{"show":true,"name":"","nameGap":15,"nameTextStyle":{"color":"#B9B8CE","fontSize":12},"inverse":false,"axisLabel":{"show":true,"fontSize":12,"color":"#B9B8CE","rotate":0},"position":"bottom","axisLine":{"show":true,"lineStyle":{"color":"#B9B8CE","width":1},"onZero":true},"axisTick":{"show":true,"length":5},"splitLine":{"show":false,"lineStyle":{"color":"#484753","width":1,"type":"solid"}}},"yAxis":{"show":true,"name":"","nameGap":15,"nameTextStyle":{"color":"#B9B8CE","fontSize":12},"inverse":false,"axisLabel":{"show":true,"fontSize":12,"color":"#B9B8CE","rotate":0},"position":"left","axisLine":{"show":true,"lineStyle":{"color":"#B9B8CE","width":1},"onZero":true},"axisTick":{"show":true,"length":5},"splitLine":{"show":true,"lineStyle":{"color":"#484753","width":1,"type":"solid"}}},"legend":{"show":true,"type":"scroll","x":"center","y":"top","icon":"circle","orient":"horizontal","textStyle":{"color":"#B9B8CE","fontSize":18},"itemHeight":15,"itemWidth":15,"pageTextStyle":{"color":"#B9B8CE"}},"grid":{"show":false,"left":"10%","top":"60","right":"10%","bottom":"60"},"dataset":null,"renderer":"svg"},"vChartThemeName":"vScreenVolcanoBlue","previewScaleType":"fit"},"componentList":[{"id":"id_oik8iwoi0z400","isGroup":false,"attr":{"x":310,"y":164,"w":814,"h":577,"offsetX":0,"offsetY":0,"zIndex":-1},"styles":{"filterShow":false,"hueRotate":0,"saturate":1,"contrast":1,"brightness":1,"opacity":1,"rotateZ":0,"rotateX":0,"rotateY":0,"skewX":0,"skewY":0,"blendMode":"normal","animations":[]},"preview":{"overFlowHidden":false},"status":{"lock":false,"hide":false},"request":{"requestDataType":0,"requestHttpType":"get","requestUrl":"","requestIntervalUnit":"second","requestContentType":0,"requestParamsBodyType":"none","requestSQLContent":{"sql":"select * from  where"},"requestParams":{"Body":{"form-data":{},"x-www-form-urlencoded":{},"json":"","xml":""},"Header":{},"Params":{}}},"events":{"baseEvent":{},"advancedEvents":{},"interactEvents":[]},"key":"BarCrossrange","chartConfig":{"key":"BarCrossrange","chartKey":"VBarCrossrange","conKey":"VCBarCrossrange","title":"横向柱状图","category":"Bars","categoryName":"柱状图","package":"Charts","chartFrame":"echarts","image":"bar_y.png"},"option":{"legend":{"show":true,"type":"scroll","x":"center","y":"top","icon":"circle","orient":"horizontal","textStyle":{"color":"#B9B8CE","fontSize":18},"itemHeight":15,"itemWidth":15,"pageTextStyle":{"color":"#B9B8CE"}},"xAxis":{"show":true,"name":"","nameGap":15,"nameTextStyle":{"color":"#B9B8CE","fontSize":12},"inverse":false,"axisLabel":{"show":true,"fontSize":12,"color":"#B9B8CE","rotate":0},"position":"bottom","axisLine":{"show":true,"lineStyle":{"color":"#B9B8CE","width":1},"onZero":true},"axisTick":{"show":true,"length":5},"splitLine":{"show":false,"lineStyle":{"color":"#484753","width":1,"type":"solid"}},"type":"value"},"yAxis":{"show":true,"name":"","nameGap":15,"nameTextStyle":{"color":"#B9B8CE","fontSize":12},"inverse":false,"axisLabel":{"show":true,"fontSize":12,"color":"#B9B8CE","rotate":0},"position":"left","axisLine":{"show":true,"lineStyle":{"color":"#B9B8CE","width":1},"onZero":true},"axisTick":{"show":true,"length":5},"splitLine":{"show":true,"lineStyle":{"color":"#484753","width":1,"type":"solid"}},"type":"category"},"grid":{"show":false,"left":"10%","top":"60","right":"10%","bottom":"60"},"tooltip":{"show":true,"trigger":"axis","axisPointer":{"show":true,"type":"shadow"}},"dataset":{"dimensions":["product","data1","data2"],"source":[{"product":"Mon","data1":120,"data2":130},{"product":"Tue","data1":200,"data2":130},{"product":"Wed","data1":150,"data2":312},{"product":"Thu","data1":80,"data2":268},{"product":"Fri","data1":70,"data2":155},{"product":"Sat","data1":110,"data2":117},{"product":"Sun","data1":130,"data2":160}]},"series":[{"type":"bar","barWidth":null,"label":{"show":true,"position":"right","color":"#fff","fontSize":12},"itemStyle":{"color":null,"borderRadius":0}},{"type":"bar","barWidth":null,"label":{"show":true,"position":"right","color":"#fff","fontSize":12},"itemStyle":{"color":null,"borderRadius":0}}],"backgroundColor":"rgba(0,0,0,0)"}}],"requestGlobalConfig":{"requestDataPond":[],"requestOriginUrl":"","requestInterval":30,"requestIntervalUnit":"second","requestParams":{"Body":{"form-data":{},"x-www-form-urlencoded":{},"json":"","xml":""},"Header":{},"Params":{}}}}',
+        '1', 'http://localhost:3021#/chart/preview/2052622462478221313', '2026-05-09 16:59:15', 1,
+        '2026-05-08 13:31:46', 1, '2026-05-09 16:59:15', 2, '0'),
+       (2052682673163444226, 1, '新项目', NULL, NULL, '0', 1920, 1080, '',
+        '{"editCanvasConfig":{"projectName":"新项目","width":1920,"height":1080},"requestGlobalConfig":{},"componentList":[]}',
+        '0', NULL, NULL, 1, '2026-05-08 17:31:01', 1, '2026-05-08 17:31:01', 2, '0');
 INSERT INTO biz_leave_request (id, business_key, process_instance_id, apply_user_id, apply_user_name, apply_dept_id,
                                apply_dept_name, leave_type, start_time, end_time, duration, reason, attachments, status,
                                approve_user_id, approve_user_name, approve_time, approve_comment, approve_attachments,
@@ -7441,11 +7493,151 @@ VALUES (1, 'app.name', 'Forge Framework1111', '应用名称', 'APPLICATION', 'ST
         NULL, NULL),
        (10, 'forge.auth.maxLoginAttempts', '5', '最大登录失败尝试次数', 'DEFAULT_GROUP', 'STRING', 1,
         '2025-12-15 17:12:04', '2025-12-15 18:12:31', NULL, NULL);
+INSERT INTO gen_datasource (datasource_id, datasource_name, datasource_code, db_type, driver_class_name, url, username,
+                            password, is_default, is_enabled, test_query, sort, remark, create_time, update_time,
+                            create_by, update_by)
+VALUES (1, '默认数据源', 'default', 'MySQL', 'com.mysql.cj.jdbc.Driver',
+        'jdbc:mysql://120.48.96.178:3306/forge_admin_new?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true',
+        'rdsroot', '90a5f41a94a9e875a7936330223a4dd1', 1, 1, 'SELECT 1', 0, '当前应用默认数据源', '2025-12-05 17:14:46',
+        '2025-12-05 17:15:48', NULL, NULL);
+INSERT INTO gen_table (table_id, datasource_id, table_name, table_comment, class_name, business_name, function_name,
+                       module_name, package_name, author, gen_type, gen_path, template_engine, `options`, remark,
+                       create_time, update_time, create_by, update_by)
+VALUES (1, 1, 'sys_user', '用户表', 'User', 'user', '用户管理', 'system', 'com.mdframe.forge.plugin', 'Forge Generator',
+        'DOWNLOAD', '/', 'VELOCITY', NULL, NULL, '2025-11-12 14:22:37', '2025-12-05 17:20:06', NULL, NULL),
+       (5, 1, 'sys_file_storage_config', '文件存储配置表', 'FileStorageConfig', 'fileStorageConfig', '文件存储配置表',
+        'system', 'com.mdframe.forge.plugin', 'Forge Generator', 'DOWNLOAD', '/', 'VELOCITY', NULL, NULL,
+        '2026-01-20 12:58:52', '2026-01-20 20:09:17', NULL, NULL);
+INSERT INTO gen_table_column (column_id, table_id, column_name, column_comment, column_type, java_type, java_field,
+                              is_pk, is_increment, is_required, is_insert, is_edit, is_list, is_query, query_type,
+                              html_type, dict_type, validate_rule, ai_recommended, sort, create_time, update_time)
+VALUES (1, 1, 'id', '用户ID', 'bigint', 'Long', 'id', 1, 1, 0, 1, 1, 1, 1, 'EQ', 'INPUT', NULL, NULL, 0, 12,
+        '2025-12-05 11:07:57', '2025-12-05 11:07:57'),
+       (2, 1, 'tenant_id', '租户编号', 'bigint', 'Long', 'tenantId', 0, 0, 1, 1, 1, 1, 1, 'EQ', 'INPUT', NULL, NULL, 0,
+        22, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (3, 1, 'username', '用户名（租户内唯一）', 'varchar(50)', 'String', 'username', 0, 0, 1, 1, 1, 1, 1, 'LIKE',
+        'INPUT', NULL, NULL, 0, 21, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (4, 1, 'real_name', '用户真实姓名', 'varchar(50)', 'String', 'realName', 0, 0, 0, 1, 1, 1, 1, 'LIKE', 'INPUT',
+        NULL, NULL, 0, 20, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (5, 1, 'user_type', '用户类型（0-系统管理员，1-租户管理员，2-普通用户）', 'tinyint', 'Integer', 'userType', 0, 0, 0,
+        1, 1, 1, 1, 'EQ', 'INPUT', NULL, NULL, 0, 19, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (6, 1, 'user_client', '用户触点（app/pc/h5/wechat）', 'varchar(20)', 'String', 'userClient', 0, 0, 0, 1, 1, 1, 1,
+        'LIKE', 'INPUT', NULL, NULL, 0, 18, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (7, 1, 'email', '邮箱', 'varchar(100)', 'String', 'email', 0, 0, 0, 1, 1, 1, 1, 'LIKE', 'INPUT', NULL, NULL, 0,
+        17, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (8, 1, 'phone', '手机号', 'varchar(20)', 'String', 'phone', 0, 0, 0, 1, 1, 1, 1, 'LIKE', 'INPUT', NULL, NULL, 0,
+        16, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (9, 1, 'id_card', '身份证号', 'varchar(18)', 'String', 'idCard', 0, 0, 0, 1, 1, 1, 1, 'LIKE', 'INPUT', NULL,
+        NULL, 0, 15, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (10, 1, 'gender', '性别（0-未知，1-男，2-女）', 'tinyint', 'Integer', 'gender', 0, 0, 0, 1, 1, 1, 1, 'EQ', 'INPUT',
+        NULL, NULL, 0, 14, '2025-12-05 11:07:58', '2025-12-05 11:07:58');
+INSERT INTO gen_table_column (column_id, table_id, column_name, column_comment, column_type, java_type, java_field,
+                              is_pk, is_increment, is_required, is_insert, is_edit, is_list, is_query, query_type,
+                              html_type, dict_type, validate_rule, ai_recommended, sort, create_time, update_time)
+VALUES (11, 1, 'password', '密码（加密存储）', 'varchar(100)', 'String', 'password', 0, 0, 1, 1, 1, 1, 1, 'LIKE', 'INPUT',
+        NULL, NULL, 0, 13, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (12, 1, 'salt', '密码盐值', 'varchar(50)', 'String', 'salt', 0, 0, 0, 1, 1, 1, 1, 'LIKE', 'INPUT', NULL, NULL, 0,
+        0, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (13, 1, 'user_status', '用户状态（0-禁用，1-正常，2-锁定）', 'tinyint', 'Integer', 'userStatus', 0, 0, 1, 1, 1, 1, 1,
+        'EQ', 'INPUT', NULL, NULL, 0, 11, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (14, 1, 'avatar', '头像URL', 'varchar(255)', 'String', 'avatar', 0, 0, 0, 1, 1, 1, 1, 'LIKE', 'INPUT', NULL,
+        NULL, 0, 10, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (15, 1, 'last_login_time', '最后登录时间', 'datetime', 'LocalDateTime', 'lastLoginTime', 0, 0, 0, 1, 1, 1, 1,
+        'EQ', 'DATETIME', NULL, NULL, 0, 9, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (16, 1, 'last_login_ip', '最后登录IP', 'varchar(50)', 'String', 'lastLoginIp', 0, 0, 0, 1, 1, 1, 1, 'LIKE',
+        'INPUT', NULL, NULL, 0, 8, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (17, 1, 'login_count', '登录次数', 'int', 'Integer', 'loginCount', 0, 0, 0, 1, 1, 1, 1, 'EQ', 'INPUT', NULL,
+        NULL, 0, 7, '2025-12-05 11:07:58', '2025-12-05 11:07:58'),
+       (18, 1, 'remark', '备注', 'varchar(500)', 'String', 'remark', 0, 0, 0, 0, 0, 0, 0, 'LIKE', 'INPUT', NULL, NULL,
+        0, 6, '2025-12-05 11:07:59', '2025-12-05 11:07:59'),
+       (19, 1, 'create_dept', '创建部门', 'bigint', 'Long', 'createDept', 0, 0, 0, 1, 1, 1, 1, 'EQ', 'INPUT', NULL,
+        NULL, 0, 5, '2025-12-05 11:07:59', '2025-12-05 11:07:59'),
+       (20, 1, 'create_by', '创建者', 'bigint', 'Long', 'createBy', 0, 0, 0, 0, 0, 0, 0, 'EQ', 'INPUT', NULL, NULL, 0,
+        4, '2025-12-05 11:07:59', '2025-12-05 11:07:59');
+INSERT INTO gen_table_column (column_id, table_id, column_name, column_comment, column_type, java_type, java_field,
+                              is_pk, is_increment, is_required, is_insert, is_edit, is_list, is_query, query_type,
+                              html_type, dict_type, validate_rule, ai_recommended, sort, create_time, update_time)
+VALUES (21, 1, 'create_time', '创建时间', 'datetime', 'LocalDateTime', 'createTime', 0, 0, 1, 0, 0, 0, 0, 'EQ',
+        'DATETIME', NULL, NULL, 0, 3, '2025-12-05 11:07:59', '2025-12-05 11:07:59'),
+       (22, 1, 'update_by', '更新者', 'bigint', 'Long', 'updateBy', 0, 0, 0, 0, 0, 0, 0, 'EQ', 'INPUT', NULL, NULL, 0,
+        2, '2025-12-05 11:07:59', '2025-12-05 11:07:59'),
+       (23, 1, 'update_time', '更新时间', 'datetime', 'LocalDateTime', 'updateTime', 0, 0, 1, 0, 0, 0, 0, 'EQ',
+        'DATETIME', NULL, NULL, 0, 1, '2025-12-05 11:07:59', '2025-12-05 11:07:59'),
+       (38, 5, 'id', '主键', 'bigint', 'Long', 'id', 1, 1, 0, 1, 1, 1, 1, 'EQ', 'INPUT', NULL, NULL, 0, 0,
+        '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (39, 5, 'config_name', '配置名称', 'varchar(100)', 'String', 'configName', 0, 0, 1, 1, 1, 1, 1, 'LIKE', 'INPUT',
+        NULL, NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (40, 5, 'storage_type', '存储类型(local/minio/aliyun_oss等)', 'varchar(50)', 'String', 'storageType', 0, 0, 1, 1,
+        1, 1, 1, 'LIKE', 'INPUT', NULL, NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (41, 5, 'is_default', '是否默认策略', 'tinyint(1)', 'Integer', 'isDefault', 0, 0, 0, 1, 1, 1, 1, 'EQ', 'INPUT',
+        NULL, NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (42, 5, 'enabled', '是否启用', 'tinyint(1)', 'Integer', 'enabled', 0, 0, 0, 1, 1, 1, 1, 'EQ', 'INPUT', NULL,
+        NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (43, 5, 'endpoint', '访问端点', 'varchar(500)', 'String', 'endpoint', 0, 0, 0, 1, 1, 1, 1, 'LIKE', 'INPUT', NULL,
+        NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (44, 5, 'access_key', '访问密钥ID', 'varchar(200)', 'String', 'accessKey', 0, 0, 0, 1, 1, 1, 1, 'LIKE', 'INPUT',
+        NULL, NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17');
+INSERT INTO gen_table_column (column_id, table_id, column_name, column_comment, column_type, java_type, java_field,
+                              is_pk, is_increment, is_required, is_insert, is_edit, is_list, is_query, query_type,
+                              html_type, dict_type, validate_rule, ai_recommended, sort, create_time, update_time)
+VALUES (45, 5, 'secret_key', '访问密钥Secret', 'varchar(200)', 'String', 'secretKey', 0, 0, 0, 1, 1, 1, 1, 'LIKE',
+        'INPUT', NULL, NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (46, 5, 'bucket_name', '存储桶名称', 'varchar(100)', 'String', 'bucketName', 0, 0, 0, 1, 1, 1, 1, 'LIKE',
+        'INPUT', NULL, NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (47, 5, 'region', '区域', 'varchar(100)', 'String', 'region', 0, 0, 0, 1, 1, 1, 1, 'LIKE', 'INPUT', NULL, NULL,
+        0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (48, 5, 'base_path', '基础路径', 'varchar(200)', 'String', 'basePath', 0, 0, 0, 1, 1, 1, 1, 'LIKE', 'INPUT',
+        NULL, NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (49, 5, 'domain', '访问域名', 'varchar(500)', 'String', 'domain', 0, 0, 0, 1, 1, 1, 1, 'LIKE', 'INPUT', NULL,
+        NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (50, 5, 'use_https', '是否使用HTTPS', 'tinyint(1)', 'Integer', 'useHttps', 0, 0, 0, 1, 1, 1, 1, 'EQ', 'INPUT',
+        NULL, NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (51, 5, 'max_file_size', '最大文件大小(MB)', 'int', 'Integer', 'maxFileSize', 0, 0, 0, 1, 1, 1, 1, 'EQ', 'INPUT',
+        NULL, NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (52, 5, 'allowed_types', '允许的文件类型(逗号分隔)', 'varchar(500)', 'String', 'allowedTypes', 0, 0, 0, 1, 1, 1,
+        1, 'LIKE', 'INPUT', NULL, NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (53, 5, 'order_num', '排序', 'int', 'Integer', 'orderNum', 0, 0, 0, 1, 1, 1, 1, 'EQ', 'INPUT', NULL, NULL, 0, 0,
+        '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (54, 5, 'extra_config', '扩展配置(JSON)', 'text', 'String', 'extraConfig', 0, 0, 0, 1, 1, 1, 1, 'LIKE', 'INPUT',
+        NULL, NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17');
+INSERT INTO gen_table_column (column_id, table_id, column_name, column_comment, column_type, java_type, java_field,
+                              is_pk, is_increment, is_required, is_insert, is_edit, is_list, is_query, query_type,
+                              html_type, dict_type, validate_rule, ai_recommended, sort, create_time, update_time)
+VALUES (55, 5, 'create_time', '创建时间', 'datetime', 'LocalDateTime', 'createTime', 0, 0, 0, 0, 0, 0, 0, 'EQ',
+        'DATETIME', NULL, NULL, 0, 0, '2026-01-20 20:09:17', '2026-01-20 20:09:17'),
+       (56, 5, 'update_time', '更新时间', 'datetime', 'LocalDateTime', 'updateTime', 0, 0, 0, 0, 0, 0, 0, 'EQ',
+        'DATETIME', NULL, NULL, 0, 0, '2026-01-20 20:09:18', '2026-01-20 20:09:18'),
+       (57, 5, 'create_by', '创建者', 'bigint', 'Long', 'createBy', 0, 0, 0, 0, 0, 0, 0, 'EQ', 'INPUT', NULL, NULL, 0,
+        0, '2026-01-20 20:09:18', '2026-01-20 20:09:18'),
+       (58, 5, 'update_by', '更新者', 'bigint', 'Long', 'updateBy', 0, 0, 0, 0, 0, 0, 0, 'EQ', 'INPUT', NULL, NULL, 0,
+        0, '2026-01-20 20:09:18', '2026-01-20 20:09:18'),
+       (59, 5, 'create_dept', '创建组织ID', 'bigint unsigned', 'Long', 'createDept', 0, 0, 0, 1, 1, 1, 1, 'EQ', 'INPUT',
+        NULL, NULL, 0, 0, '2026-01-20 20:09:18', '2026-01-20 20:09:18');
 INSERT INTO order_manage (id, tenant_id, order_no, customer_name, customer_phone, order_amount, order_status,
                           order_type, pay_time, remark, create_by, create_time, create_dept, update_by, update_time,
                           del_flag)
 VALUES (1, 1, '121', '2****', '211', 122.11, '1', '3', '2026-04-23 14:58:25', NULL, NULL, '2026-04-22 14:23:03', NULL,
         NULL, '2026-04-26 12:03:53', 1);
+INSERT INTO qrtz_cron_triggers (sched_name, trigger_name, trigger_group, cron_expression, time_zone_id)
+VALUES ('ForgeScheduler_', 'paramTask', 'DEFAULT', '0 0/10 * * * ?', 'Asia/Shanghai'),
+       ('ForgeScheduler_', 'simpleTask', 'DEFAULT', '0/5 * * * * ?', 'Asia/Shanghai');
+INSERT INTO qrtz_job_details (sched_name, job_name, job_group, description, job_class_name, is_durable,
+                              is_nonconcurrent, is_update_data, requests_recovery, job_data)
+VALUES ('ForgeScheduler_', 'paramTask', 'DEFAULT', '每10分钟执行',
+        'com.mdframe.forge.plugin.job.scheduler.QuartzJobExecutor', '1', '0', '0', '0',
+        0xACED0005737200156F72672E71756172747A2E4A6F62446174614D61709FB083E8BFA9B0CB020000787200266F72672E71756172747A2E7574696C732E537472696E674B65794469727479466C61674D61708208E8C3FBC55D280200015A0013616C6C6F77735472616E7369656E74446174617872001D6F72672E71756172747A2E7574696C732E4469727479466C61674D617013E62EAD28760ACE0200025A000564697274794C00036D617074000F4C6A6176612F7574696C2F4D61703B787001737200116A6176612E7574696C2E486173684D61700507DAC1C31660D103000246000A6C6F6164466163746F724900097468726573686F6C6478703F4000000000000C770800000010000000067400086A6F62506172616D7074000B657865637574654D6F64657400044245414E74000C6578656375746F724265616E74000B6A6F624578616D706C657374000F6578656375746F72536572766963657074000F6578656375746F7248616E646C65727074000E6578656375746F724D6574686F6474000D7461736B57697468506172616D7800),
+       ('ForgeScheduler_', 'simpleTask', 'DEFAULT', '每5秒执行一次',
+        'com.mdframe.forge.plugin.job.scheduler.QuartzJobExecutor', '1', '0', '0', '0',
+        0xACED0005737200156F72672E71756172747A2E4A6F62446174614D61709FB083E8BFA9B0CB020000787200266F72672E71756172747A2E7574696C732E537472696E674B65794469727479466C61674D61708208E8C3FBC55D280200015A0013616C6C6F77735472616E7369656E74446174617872001D6F72672E71756172747A2E7574696C732E4469727479466C61674D617013E62EAD28760ACE0200025A000564697274794C00036D617074000F4C6A6176612F7574696C2F4D61703B787001737200116A6176612E7574696C2E486173684D61700507DAC1C31660D103000246000A6C6F6164466163746F724900097468726573686F6C6478703F4000000000000C770800000010000000067400086A6F62506172616D7074000B657865637574654D6F64657400044245414E74000C6578656375746F724265616E74000B6A6F624578616D706C657374000F6578656375746F72536572766963657074000F6578656375746F7248616E646C65727074000E6578656375746F724D6574686F6474000A73696D706C655461736B7800);
+INSERT INTO qrtz_locks (sched_name, lock_name)
+VALUES ('ForgeScheduler_', 'TRIGGER_ACCESS');
+INSERT INTO qrtz_triggers (sched_name, trigger_name, trigger_group, job_name, job_group, description, next_fire_time,
+                           prev_fire_time, priority, trigger_state, trigger_type, start_time, end_time, calendar_name,
+                           misfire_instr, job_data)
+VALUES ('ForgeScheduler_', 'paramTask', 'DEFAULT', 'paramTask', 'DEFAULT', NULL, 1764662400000, -1, 5, 'PAUSED', 'CRON',
+        1764661448000, 0, NULL, 2, 0x),
+       ('ForgeScheduler_', 'simpleTask', 'DEFAULT', 'simpleTask', 'DEFAULT', NULL, 1770185345000, 1770185340000, 5,
+        'PAUSED', 'CRON', 1764661449000, 0, NULL, 2, 0x);
 INSERT INTO sys_api_config (id, api_name, api_code, req_method, url_path, api_version, module_code, service_id,
                             auth_flag, encrypt_flag, tenant_flag, limit_flag, sensitive_fields, status, remark,
                             create_by, create_time, update_by, update_time, tenant_id)
@@ -8345,7 +8537,22 @@ VALUES (94, 1, 1, '电子产品', '1', 'product_category', NULL, 'default', 'N',
        (97, 1, 1, '正常', '1', 'common_status', NULL, 'default', 'N', NULL, NULL, NULL, 1, NULL, 1,
         '2026-04-26 18:09:12', 1, '2026-04-26 18:09:12', 2),
        (98, 1, 2, '停用', '0', 'common_status', NULL, 'default', 'N', NULL, NULL, NULL, 1, NULL, 1,
-        '2026-04-26 18:09:12', 1, '2026-04-26 18:09:12', 2);
+        '2026-04-26 18:09:12', 1, '2026-04-26 18:09:12', 2),
+       (99, 1, 1, '草稿', 'draft', 'flow_version_tag', NULL, 'default', 'N', NULL, NULL, NULL, 1, '草稿版本', NULL,
+        '2026-05-09 08:48:57', NULL, '2026-05-09 08:48:57', NULL),
+       (100, 1, 2, '测试', 'test', 'flow_version_tag', NULL, 'info', 'N', NULL, NULL, NULL, 1, '测试版本', NULL,
+        '2026-05-09 08:48:57', NULL, '2026-05-09 08:48:57', NULL),
+       (101, 1, 3, '正式发布', 'release', 'flow_version_tag', NULL, 'success', 'Y', NULL, NULL, NULL, 1, '正式发布版本',
+        NULL, '2026-05-09 08:48:57', NULL, '2026-05-09 08:48:57', NULL),
+       (102, 1, 4, '已废弃', 'deprecated', 'flow_version_tag', NULL, 'warning', 'N', NULL, NULL, NULL, 1, '已废弃版本',
+        NULL, '2026-05-09 08:48:57', NULL, '2026-05-09 08:48:57', NULL),
+       (103, 1, 1, '普通流程', '1', 'flow_importance_level', NULL, 'default', 'Y', NULL, NULL, NULL, 1,
+        '普通流程，模型管理员可回退', NULL, '2026-05-09 08:48:57', NULL, '2026-05-09 08:48:57', NULL);
+INSERT INTO sys_dict_data (dict_code, tenant_id, dict_sort, dict_label, dict_value, dict_type, css_class, list_class,
+                           is_default, parent_dict_code, linked_dict_type, linked_dict_value, dict_status, remark,
+                           create_by, create_time, update_by, update_time, create_dept)
+VALUES (104, 1, 2, '重要流程', '2', 'flow_importance_level', NULL, 'danger', 'N', NULL, NULL, NULL, 1,
+        '重要流程，需超级管理员权限回退', NULL, '2026-05-09 08:48:57', NULL, '2026-05-09 08:48:57', NULL);
 INSERT INTO sys_dict_type (dict_id, tenant_id, dict_name, dict_type, dict_status, remark, create_by, create_time,
                            update_by, update_time, create_dept)
 VALUES (1, 1, '用户性别', 'sys_user_sex', 1, '用户性别列表', NULL, '2025-11-12 17:41:18', NULL, '2025-11-12 17:41:18',
@@ -8394,7 +8601,11 @@ VALUES (23, 1, '订单类型', 'order_type', 1, 'AI CRUD 生成器自动创建',
        (32, 1, '产品分类', 'product_category', 1, 'AI CRUD 生成器自动创建', 1, '2026-04-26 18:09:11', 1,
         '2026-04-26 18:09:11', 2),
        (33, 1, '通用状态', 'common_status', 1, 'AI CRUD 生成器自动创建', 1, '2026-04-26 18:09:12', 1,
-        '2026-04-26 18:09:12', 2);
+        '2026-04-26 18:09:12', 2),
+       (34, 1, '流程版本标记', 'flow_version_tag', 1, '流程版本状态标记', NULL, '2026-05-09 08:48:57', NULL,
+        '2026-05-09 08:48:57', NULL),
+       (35, 1, '流程重要性等级', 'flow_importance_level', 1, '流程重要性等级分类', NULL, '2026-05-09 08:48:57', NULL,
+        '2026-05-09 08:48:57', NULL);
 INSERT INTO sys_email_config (id, config_id, smtp_server, port, username, password, from_address, from_name, is_ssl,
                               is_auth, retry_interval, max_retries, status, tenant_id, create_time, update_time,
                               create_by, update_by, remark)
@@ -8538,7 +8749,7 @@ VALUES (2039251663436414977, 'b4427cadbc764298b3a4c7160605dfff', NULL, '5d0d6bd5
        (2041442590568796161, '3d66b8501e874b9085faa98913daf559', NULL, '1231.jpeg',
         'f5d29fb95a1d4e4cb9963c4a2a1ecd7e.jpeg', 'social-logo/2026/04/07/f5d29fb95a1d4e4cb9963c4a2a1ecd7e.jpeg', 8932,
         'image/jpeg', 'jpeg', '9052c34d6e2cc34f321db38fbaad1f52', 'local', NULL, NULL, NULL, 'social-logo', '', NULL,
-        '2026-04-07 17:06:56', NULL, 0, 317, 1, '2026-04-07 17:06:56', '2026-05-08 08:42:02', 1, 1, 2),
+        '2026-04-07 17:06:56', NULL, 0, 357, 1, '2026-04-07 17:06:56', '2026-05-09 17:02:09', 1, 1, 2),
        (2044642209451929602, '8d82c28036d845b3b254fabcfbc49c41', NULL, 'screenshot-2026-04-16T05-01-04-002Z.png',
         '17575bf113de44ffafc3c902e9535db2.png', 'project_screenshot/2026/04/16/17575bf113de44ffafc3c902e9535db2.png',
         16189, 'image/png', 'png', 'f91c51d4f4674af1a125433e08a6a708', 'local', NULL, NULL, NULL, 'project_screenshot',
@@ -8547,7 +8758,7 @@ VALUES (2039251663436414977, 'b4427cadbc764298b3a4c7160605dfff', NULL, '5d0d6bd5
         'O1CN01IU2US71Ciicsi3Br3_!!6000000000115-55-tps-357-76.svg', '563fd4f76a13472183918fadc65ec4ac.svg',
         'ai-provider-logo/2026/04/17/563fd4f76a13472183918fadc65ec4ac.svg', 4602, 'image/svg+xml', 'svg',
         'ea2c3b53bf829310249feaf44dd39280', 'local', NULL, NULL, NULL, 'ai-provider-logo', '', NULL,
-        '2026-04-17 17:09:13', NULL, 0, 104, 1, '2026-04-17 17:09:13', '2026-05-07 14:20:37', 1, 1, 2),
+        '2026-04-17 17:09:13', NULL, 0, 106, 1, '2026-04-17 17:09:13', '2026-05-09 16:03:18', 1, 1, 2),
        (2049401873680642050, '754c997a39774477b36b350457084048', NULL, '培训计划.jpeg',
         '96199f6e5d3f4038b5b4ccdafcbc950b.jpeg', 'menu-icon/2026/04/29/96199f6e5d3f4038b5b4ccdafcbc950b.jpeg', 128950,
         'image/jpeg', 'jpeg', '9c6846f24f5971c81782217f91621bd2', 'local', NULL, NULL, NULL, 'menu-icon', '', NULL,
@@ -8555,7 +8766,11 @@ VALUES (2039251663436414977, 'b4427cadbc764298b3a4c7160605dfff', NULL, '5d0d6bd5
        (2049682101418110977, '39bd7a7d2d654222ae98d2c0a4a5173a', NULL, '豆包.png',
         '85aeac18ec774152afa59b2a60bccd2b.png', 'avatar/2026/04/30/85aeac18ec774152afa59b2a60bccd2b.png', 4194601,
         'image/png', 'png', 'e4f5f0a17fd91837b2928267aea70a78', 'local', NULL, NULL, NULL, 'avatar', NULL, NULL,
-        '2026-04-30 10:47:49', NULL, 0, 661, 1, '2026-04-30 10:47:49', '2026-05-07 17:14:46', 1, 1, 2);
+        '2026-04-30 10:47:49', NULL, 0, 750, 1, '2026-04-30 10:47:49', '2026-05-09 16:46:18', 1, 1, 2),
+       (2052959331523076097, 'fe26aa943b7c42078e2fbcfa32a56d16', NULL, 'screenshot-2026-05-09T03-50-21-021Z.png',
+        'c885f9db04ad431293da207ae7e25602.png', 'project_screenshot/2026/05/09/c885f9db04ad431293da207ae7e25602.png',
+        64902, 'image/png', 'png', '3e085214386e3f60f9eec32984b71355', 'local', NULL, NULL, NULL, 'project_screenshot',
+        NULL, NULL, '2026-05-09 11:50:21', NULL, 0, 55, 1, '2026-05-09 11:50:21', '2026-05-09 16:59:23', 1, 1, 2);
 INSERT INTO sys_file_storage_config (id, config_name, storage_type, is_default, enabled, endpoint, access_key,
                                      secret_key, bucket_name, region, base_path, `domain`, use_https, max_file_size,
                                      allowed_types, order_num, extra_config, create_time, update_time, create_by,
@@ -8723,21 +8938,15 @@ VALUES ('f20b3b43401d1f939d09fc4aa4016853', 'LEAVE_7CBD9D5C502D4617', 'leave', '
         '超级管理员', '2', '研发部', '2026-05-05 21:16:18', '2026-05-06 10:00:26', 45848416, '2026-05-05 21:16:18',
         '2026-05-05 21:16:18');
 INSERT INTO sys_flow_category (id, category_code, category_name, description, sort_order, status, create_time,
-                               update_time)
-VALUES ('1', 'leave', '请假流程', '员工请假申请审批', 1, 1, '2026-03-15 18:29:16', '2026-03-15 18:29:16'),
+                               update_time, parent_id, `level`, ancestors)
+VALUES ('1', 'leave', '请假流程', '员工请假申请审批', 1, 1, '2026-03-15 18:29:16', '2026-05-09 15:03:22', NULL, 1,
+        '0/'),
        ('22f710de59065c0d0f2015da90be49e6', 'mjqx', '模具清洗', NULL, 0, 1, '2026-05-07 11:07:14',
-        '2026-05-07 11:07:14'),
+        '2026-05-09 14:59:58', NULL, 1, '0/'),
        ('3a3f1c1ad95be8cb6a3dc16be414a790', '234243', '测试分类', NULL, 0, 1, '2026-04-30 10:17:23',
-        '2026-04-30 10:17:23');
-INSERT INTO sys_flow_error_log (id, process_instance_id, process_def_id, process_def_key, business_key, task_id,
-                                task_name, activity_id, activity_name, error_stage, error_type, error_message,
-                                stack_trace, job_id, job_retries, status, retry_count, last_retry_user_id,
-                                last_retry_time, retry_message, create_time, update_time)
-VALUES ('e10602921449300b65f751878e6d619f', '6460b426-49c5-11f1-a40b-e21edfbca81d', NULL, NULL, NULL,
-        '64612975-49c5-11f1-a40b-e21edfbca81d', NULL, 'Activity_069lyqd', '部门领导审批', 'TASK_ASSIGNEE_MISSING',
-        'FLOW_RUNTIME_ERROR', '任务[部门领导审批]审批人分配失败：未找到处理人，请检查审批人配置或流程变量是否正确传入',
-        NULL, NULL, NULL, 2, 0, '1', '2026-05-07 11:34:55', '管理员手动解决', '2026-05-07 11:32:37',
-        '2026-05-07 11:34:55');
+        '2026-05-09 14:59:58', NULL, 1, '0/'),
+       ('4c5d798eb9b146416eb5091f0fc7bf01', '1111', '测试请假', '', 0, 1, '2026-05-09 15:03:06', '2026-05-09 15:03:06',
+        '1', 2, '0//1/');
 INSERT INTO sys_flow_form (id, form_key, form_name, form_type, form_schema, form_url, component_path, form_config,
                            version, status, description, tenant_id, create_by, create_time, update_by, update_time,
                            deleted)
@@ -8751,11 +8960,11 @@ VALUES (1, 'leave_form', '请假申请表单', 'dynamic',
         '[{"type":"input","field":"title","label":"申请标题","props":{"placeholder":"请输入申请标题"},"rules":[{"required":true,"message":"请输入申请标题"}]},{"type":"select","field":"approvalType","label":"审批类型","props":{"options":[{"label":"通用审批","value":"1"},{"label":"合同审批","value":"2"},{"label":"项目审批","value":"3"},{"label":"其他","value":"4"}]},"rules":[{"required":true,"message":"请选择审批类型"}]},{"type":"textarea","field":"content","label":"申请内容","props":{"placeholder":"请输入申请内容","rows":4},"rules":[{"required":true,"message":"请输入申请内容"}]},{"type":"upload","field":"attachments","label":"附件","props":{"multiple":true}}]',
         NULL, NULL, NULL, 1, 1, '通用审批申请表单', NULL, NULL, '2026-03-19 14:33:12', NULL, '2026-03-19 14:33:12', 0);
 INSERT INTO sys_flow_model (id, model_key, model_name, description, category, flow_type, form_type, form_id, form_json,
-                            version, process_definition_id, deployment_id, deployment_key, status, deploy_time,
-                            last_update_by, create_by, create_time, update_time, del_flag, bpmn_xml, notify_type,
-                            webhook_url)
+                            version, process_definition_id, deployment_id, deployment_key, status, importance_level,
+                            deploy_time, last_update_by, create_by, create_time, update_time, del_flag, bpmn_xml,
+                            notify_type, webhook_url)
 VALUES ('176ede959303191c4d226471e2558fbc', 'le-app', '流程', '', '234243', 'app', 'dynamic', NULL, '', 2,
-        'le-app:1:d1b53b28-453e-11f1-a6e4-5254003c969e', 'd1b16a95-453e-11f1-a6e4-5254003c969e', 'le-app_v1', 1,
+        'le-app:1:d1b53b28-453e-11f1-a6e4-5254003c969e', 'd1b16a95-453e-11f1-a6e4-5254003c969e', 'le-app_v1', 1, 1,
         '2026-05-01 17:19:13', NULL, NULL, '2026-04-30 14:40:58', '2026-05-05 19:38:21', 1, '<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" targetNamespace="http://flowable.org/processdef">
   <bpmn:process id="Process_1" name="新流程" isExecutable="true">
@@ -8770,17 +8979,22 @@ VALUES ('176ede959303191c4d226471e2558fbc', 'le-app', '流程', '', '234243', 'a
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>
 ', 'none', ''),
-       ('1d6e8bf7e934f080a6ded6825e8b52f4', 'task', '请假审批流程', '增加驳回路径，审批不通过时回到发起人修改', '234243',
-        '', 'none', NULL, '', 6, 'task:3:9de8dea2-49f7-11f1-90b8-5e4ae7f1a084', '9de3fc9f-49f7-11f1-90b8-5e4ae7f1a084',
-        'task_v5', 1, '2026-05-07 17:32:08', NULL, NULL, '2026-05-07 14:16:10', '2026-05-07 17:32:08', 0, '<?xml version="1.0" encoding="UTF-8"?>
+       ('1d6e8bf7e934f080a6ded6825e8b52f4', 'task', '请假审批流程', '增加驳回路径，审批不通过时回到发起人修改', '1', '',
+        'none', NULL, '', 17, 'task:13:2033b055-4b6e-11f1-b209-c67ce459595f', '202ece52-4b6e-11f1-b209-c67ce459595f',
+        'task_v17', 1, 1, '2026-05-09 14:12:59', 'admin', NULL, '2026-05-07 14:16:10', '2026-05-09 15:08:32', 0, '<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:flowable="http://flowable.org/bpmn" targetNamespace="http://flowable.org/processdef">
   <bpmn:process id="task" name="请假审批流程" isExecutable="true">
     <bpmn:startEvent id="startEvent" name="开始" flowable:initiator="initiator" />
     <bpmn:sequenceFlow id="flow_start_to_supervisor" sourceRef="startEvent" targetRef="userTask_supervisor" />
-    <bpmn:userTask id="userTask_supervisor" name="直属上级审批" flowable:assignee="${flowSpelService.getInitiatorLeader(execution)}" flowable:assigneeType="spel">
-      <bpmn:incoming>Flow_195neju</bpmn:incoming>
-    </bpmn:userTask>
-    <bpmn:sequenceFlow id="flow_supervisor_to_gateway" sourceRef="userTask_supervisor" targetRef="gateway_days_check" />
+    <bpmn:userTask id="userTask_supervisor" name="直属上级审批" flowable:assignee="${flowSpelService.getInitiatorLeader(execution)}" flowable:assigneeType="spel" />
+    <bpmn:exclusiveGateway id="gateway_supervisor_decision" name="上级审批结果" />
+    <bpmn:sequenceFlow id="flow_supervisor_to_decision" sourceRef="userTask_supervisor" targetRef="gateway_supervisor_decision" />
+    <bpmn:sequenceFlow id="flow_supervisor_reject" sourceRef="gateway_supervisor_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_supervisor_approve" sourceRef="gateway_supervisor_decision" targetRef="gateway_days_check">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
     <bpmn:exclusiveGateway id="gateway_days_check" name="天数判断" />
     <bpmn:sequenceFlow id="flow_gateway_to_end" sourceRef="gateway_days_check" targetRef="endEvent">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &lt;= 3}</bpmn:conditionExpression>
@@ -8788,12 +9002,20 @@ VALUES ('176ede959303191c4d226471e2558fbc', 'le-app', '流程', '', '234243', 'a
     <bpmn:sequenceFlow id="flow_gateway_to_hr" sourceRef="gateway_days_check" targetRef="userTask_hr">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &gt; 3}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
-    <bpmn:userTask id="userTask_hr" name="HR审批" flowable:candidateGroups="hr">
-      <bpmn:outgoing>Flow_195neju</bpmn:outgoing>
+    <bpmn:userTask id="userTask_hr" name="HR审批" flowable:candidateGroups="hr" />
+    <bpmn:exclusiveGateway id="gateway_hr_decision" name="HR审批结果" />
+    <bpmn:sequenceFlow id="flow_hr_to_decision" sourceRef="userTask_hr" targetRef="gateway_hr_decision" />
+    <bpmn:sequenceFlow id="flow_hr_reject" sourceRef="gateway_hr_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_hr_approve" sourceRef="gateway_hr_decision" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_initiator_revise" name="发起人修改" flowable:assignee="${initiator}" flowable:priority="50">
+      <bpmn:extensionElements />
     </bpmn:userTask>
-    <bpmn:sequenceFlow id="flow_hr_to_end" sourceRef="userTask_hr" targetRef="endEvent" />
+    <bpmn:sequenceFlow id="flow_revise_to_supervisor" sourceRef="userTask_initiator_revise" targetRef="userTask_supervisor" />
     <bpmn:endEvent id="endEvent" name="结束" />
-    <bpmn:sequenceFlow id="Flow_195neju" sourceRef="userTask_hr" targetRef="userTask_supervisor" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="task">
@@ -8803,44 +9025,75 @@ VALUES ('176ede959303191c4d226471e2558fbc', 'le-app', '流程', '', '234243', 'a
       <bpmndi:BPMNShape id="userTask_supervisor_di" bpmnElement="userTask_supervisor">
         <dc:Bounds x="220" y="138" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="gateway_days_check_di" bpmnElement="gateway_days_check" isMarkerVisible="true">
+      <bpmndi:BPMNShape id="gateway_supervisor_decision_di" bpmnElement="gateway_supervisor_decision" isMarkerVisible="true">
         <dc:Bounds x="380" y="153" width="50" height="50" />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_days_check_di" bpmnElement="gateway_days_check" isMarkerVisible="true">
+        <dc:Bounds x="540" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="userTask_hr_di" bpmnElement="userTask_hr">
-        <dc:Bounds x="380" y="280" width="100" height="80" />
+        <dc:Bounds x="540" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_hr_decision_di" bpmnElement="gateway_hr_decision" isMarkerVisible="true">
+        <dc:Bounds x="700" y="295" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="695" y="271" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_initiator_revise_di" bpmnElement="userTask_initiator_revise">
+        <dc:Bounds x="380" y="380" width="100" height="80" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="endEvent_di" bpmnElement="endEvent">
-        <dc:Bounds x="540" y="160" width="36" height="36" />
+        <dc:Bounds x="700" y="160" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="547" y="136" width="22" height="14" />
+          <dc:Bounds x="707" y="136" width="22" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="flow_start_to_supervisor_di" bpmnElement="flow_start_to_supervisor">
         <di:waypoint x="136" y="178" />
         <di:waypoint x="220" y="178" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="flow_supervisor_to_gateway_di" bpmnElement="flow_supervisor_to_gateway">
+      <bpmndi:BPMNEdge id="flow_supervisor_to_decision_di" bpmnElement="flow_supervisor_to_decision">
         <di:waypoint x="320" y="178" />
         <di:waypoint x="380" y="178" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="flow_gateway_to_end_di" bpmnElement="flow_gateway_to_end">
+      <bpmndi:BPMNEdge id="flow_supervisor_reject_di" bpmnElement="flow_supervisor_reject">
+        <di:waypoint x="405" y="203" />
+        <di:waypoint x="405" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_approve_di" bpmnElement="flow_supervisor_approve">
         <di:waypoint x="430" y="178" />
         <di:waypoint x="540" y="178" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="flow_gateway_to_hr_di" bpmnElement="flow_gateway_to_hr">
-        <di:waypoint x="405" y="203" />
-        <di:waypoint x="405" y="280" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="flow_hr_to_end_di" bpmnElement="flow_hr_to_end">
-        <di:waypoint x="480" y="320" />
-        <di:waypoint x="590" y="320" />
+      <bpmndi:BPMNEdge id="flow_gateway_to_end_di" bpmnElement="flow_gateway_to_end">
         <di:waypoint x="590" y="178" />
-        <di:waypoint x="576" y="178" />
+        <di:waypoint x="700" y="178" />
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_195neju_di" bpmnElement="Flow_195neju">
-        <di:waypoint x="380" y="320" />
-        <di:waypoint x="350" y="320" />
-        <di:waypoint x="350" y="208" />
+      <bpmndi:BPMNEdge id="flow_gateway_to_hr_di" bpmnElement="flow_gateway_to_hr">
+        <di:waypoint x="565" y="203" />
+        <di:waypoint x="565" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_to_decision_di" bpmnElement="flow_hr_to_decision">
+        <di:waypoint x="640" y="320" />
+        <di:waypoint x="700" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_reject_di" bpmnElement="flow_hr_reject">
+        <di:waypoint x="725" y="345" />
+        <di:waypoint x="725" y="440" />
+        <di:waypoint x="650" y="410" />
+        <di:waypoint x="420" y="480" />
+        <di:waypoint x="423" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_approve_di" bpmnElement="flow_hr_approve">
+        <di:waypoint x="750" y="320" />
+        <di:waypoint x="800" y="320" />
+        <di:waypoint x="800" y="178" />
+        <di:waypoint x="736" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_revise_to_supervisor_di" bpmnElement="flow_revise_to_supervisor">
+        <di:waypoint x="380" y="420" />
+        <di:waypoint x="320" y="420" />
         <di:waypoint x="320" y="208" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
@@ -8848,7 +9101,7 @@ VALUES ('176ede959303191c4d226471e2558fbc', 'le-app', '流程', '', '234243', 'a
 </bpmn:definitions>
 ', 'none', ''),
        ('1f4dadd1c7461e3f58b2d8809dbd9ab2', 'le-app_copy_1777730998488', '流程 - 副本', '', '234243', 'app', 'dynamic',
-        NULL, '', 1, NULL, NULL, NULL, 0, NULL, NULL, NULL, '2026-05-02 22:09:58', '2026-05-02 22:10:21', 1, '<?xml version="1.0" encoding="UTF-8"?>
+        NULL, '', 1, NULL, NULL, NULL, 0, 1, NULL, NULL, NULL, '2026-05-02 22:09:58', '2026-05-02 22:10:21', 1, '<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" targetNamespace="http://flowable.org/processdef">
   <bpmn:process id="Process_1" name="新流程" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1" name="开始" />
@@ -8864,7 +9117,7 @@ VALUES ('176ede959303191c4d226471e2558fbc', 'le-app', '流程', '', '234243', 'a
 ', NULL, NULL),
        ('2572074a70f3c1bac8d6d3bfe2484454', 'todo_flow', '请假流程', '', 'leave', '', 'none', NULL, '', 102,
         'todo_flow:56:49c2e7eb-49ee-11f1-a6e4-5254003c969e', '49b8d5c8-49ee-11f1-a6e4-5254003c969e', 'todo_flow_v101',
-        1, '2026-05-07 16:25:21', NULL, NULL, '2026-03-16 16:56:23', '2026-05-07 16:25:21', 0, '<?xml version="1.0" encoding="UTF-8"?>
+        1, 1, '2026-05-07 16:25:21', NULL, NULL, '2026-03-16 16:56:23', '2026-05-09 15:08:09', 1, '<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:flowable="http://flowable.org/bpmn" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" targetNamespace="http://flowable.org/processdef">
   <bpmn:process id="Process_1" name="新流程" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1" name="开始">
@@ -8931,7 +9184,7 @@ VALUES ('176ede959303191c4d226471e2558fbc', 'le-app', '流程', '', '234243', 'a
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>
 ', NULL, NULL),
-       ('4326b53aac9f5a50666e33fc2ecfcf79', '1', '1', '', 'leave', '', 'dynamic', NULL, '', 1, NULL, NULL, NULL, 0,
+       ('4326b53aac9f5a50666e33fc2ecfcf79', '1', '1', '', 'leave', '', 'dynamic', NULL, '', 1, NULL, NULL, NULL, 0, 1,
         NULL, NULL, NULL, '2026-04-17 10:55:43', '2026-05-02 22:10:29', 1, '<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" targetNamespace="http://flowable.org/processdef">
   <bpmn:process id="Process_1" name="新流程" isExecutable="true">
@@ -8950,11 +9203,11 @@ VALUES ('176ede959303191c4d226471e2558fbc', 'le-app', '流程', '', '234243', 'a
 </bpmn:definitions>
 ', 'none', ''),
        ('559ff4deba36ef466bffedd658c4e107', '22', '22', '2', 'leave', '', 'dynamic', NULL, NULL, 1, NULL, NULL, NULL, 0,
-        NULL, NULL, NULL, '2026-03-25 17:07:52', '2026-03-25 17:16:45', 1, NULL, 'none', ''),
+        1, NULL, NULL, NULL, '2026-03-25 17:07:52', '2026-03-25 17:16:45', 1, NULL, 'none', ''),
        ('5cc2f8f2f4b7391347c7de4f46b85b71', 'it', 'IT信息上报', '', 'leave', '', 'dynamic', '1',
         '[{"type":"input","field":"title","label":"申请标题","props":{"placeholder":"请输入标题"},"rules":[{"required":true,"message":"请输入标题"}]},{"type":"select","field":"leaveType","label":"请假类型","props":{"options":[{"label":"事假","value":"1"},{"label":"病假","value":"2"},{"label":"年假","value":"3"},{"label":"婚假","value":"4"},{"label":"产假","value":"5"}]},"rules":[{"required":true,"message":"请选择请假类型"}]},{"type":"datePicker","field":"startDate","label":"开始日期","rules":[{"required":true,"message":"请选择开始日期"}]},{"type":"datePicker","field":"endDate","label":"结束日期","rules":[{"required":true,"message":"请选择结束日期"}]},{"type":"inputNumber","field":"days","label":"请假天数","props":{"min":0.5,"precision":1},"rules":[{"required":true,"message":"请输入请假天数"}]},{"type":"textarea","field":"reason","label":"请假原因","props":{"placeholder":"请输入请假原因","rows":3},"rules":[{"required":true,"message":"请输入请假原因"}]}]',
-        2, 'it:1:5d334473-492e-11f1-a6e4-5254003c969e', '5d2f25c0-492e-11f1-a6e4-5254003c969e', 'it_v1', 1,
-        '2026-05-06 17:31:31', NULL, NULL, '2026-04-30 10:17:56', '2026-05-06 17:31:30', 0, '<?xml version="1.0" encoding="UTF-8"?>
+        2, 'it:1:5d334473-492e-11f1-a6e4-5254003c969e', '5d2f25c0-492e-11f1-a6e4-5254003c969e', 'it_v1', 1, 1,
+        '2026-05-06 17:31:31', NULL, NULL, '2026-04-30 10:17:56', '2026-05-09 15:08:04', 1, '<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" targetNamespace="http://flowable.org/processdef">
   <bpmn:process id="Process_1" name="新流程" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1" name="开始">
@@ -9008,9 +9261,11 @@ VALUES ('176ede959303191c4d226471e2558fbc', 'le-app', '流程', '', '234243', 'a
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>
 ', 'none', ''),
+       ('63f52a39d4d7dc80239eea9950b05340', '3232323', '测试', '', 'mjqx', 'dd', 'dynamic', NULL, NULL, 1, NULL, NULL,
+        NULL, 0, 1, NULL, NULL, NULL, '2026-05-09 16:44:38', '2026-05-09 16:44:38', 0, NULL, 'none', ''),
        ('6ca0e0a6fc98ba03ec03bffcf17833c0', 'cdes', 'ces', '', '234243', '', 'dynamic', NULL, '', 4,
-        'cdes:2:6d9791a7-49af-11f1-a6e4-5254003c969e', '6d939a04-49af-11f1-a6e4-5254003c969e', 'cdes_v3', 1,
-        '2026-05-07 08:55:23', NULL, NULL, '2026-05-06 11:17:19', '2026-05-07 08:55:23', 0, '<?xml version="1.0" encoding="UTF-8"?>
+        'cdes:2:6d9791a7-49af-11f1-a6e4-5254003c969e', '6d939a04-49af-11f1-a6e4-5254003c969e', 'cdes_v3', 1, 1,
+        '2026-05-07 08:55:23', NULL, NULL, '2026-05-06 11:17:19', '2026-05-09 15:08:00', 1, '<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" targetNamespace="http://flowable.org/processdef">
   <bpmn:process id="Process_1" name="新流程" isExecutable="true">
     <bpmn:startEvent id="StartEvent_1" name="开始">
@@ -9050,16 +9305,23 @@ VALUES ('176ede959303191c4d226471e2558fbc', 'le-app', '流程', '', '234243', 'a
 </bpmn:definitions>
 ', 'none', ''),
        ('809d8ab6f31513f6fdbdb160a3d6e34f', 'mj-qx', '模具清洗', '', 'mjqx', '', 'dynamic', NULL, NULL, 1, NULL, NULL,
-        NULL, 0, NULL, NULL, NULL, '2026-05-07 11:08:11', '2026-05-07 14:57:25', 1, NULL, 'none', ''),
-       ('f1c16641298465456fa120d9b59eb635', '11', '11', '', 'leave', '', 'none', NULL, NULL, 1, NULL, NULL, NULL, 0,
-        NULL, NULL, NULL, '2026-03-25 17:07:44', '2026-03-25 17:16:42', 1, NULL, 'none', '');
+        NULL, 0, 1, NULL, NULL, NULL, '2026-05-07 11:08:11', '2026-05-07 14:57:25', 1, NULL, 'none', '');
 INSERT INTO sys_flow_model (id, model_key, model_name, description, category, flow_type, form_type, form_id, form_json,
-                            version, process_definition_id, deployment_id, deployment_key, status, deploy_time,
-                            last_update_by, create_by, create_time, update_time, del_flag, bpmn_xml, notify_type,
-                            webhook_url)
-VALUES ('ffd827049ebaee51c8564e12101eaadb', 'leave_process', '请假流程测试', '请假流程测试', 'leave', NULL, 'dynamic',
-        NULL, '', 33, 'leave_process:21:3bc073df-49c1-11f1-ba2b-e21edfbca81d', '3ba6d15c-49c1-11f1-ba2b-e21edfbca81d',
-        'leave_process_v32', 1, '2026-05-07 11:02:51', NULL, NULL, '2026-03-22 20:16:51', '2026-05-07 11:02:50', 0, '<?xml version="1.0" encoding="UTF-8"?>
+                            version, process_definition_id, deployment_id, deployment_key, status, importance_level,
+                            deploy_time, last_update_by, create_by, create_time, update_time, del_flag, bpmn_xml,
+                            notify_type, webhook_url)
+VALUES ('88a0631e7e851d95e43814e3bbe3d21a', 'qj', '请假流程', '', '234243', '', 'dynamic', NULL, NULL, 1, NULL, NULL,
+        NULL, 0, 1, NULL, NULL, NULL, '2026-05-09 10:59:52', '2026-05-09 15:08:19', 1, NULL, 'redis', ''),
+       ('e99aeed3759bad384235dfd7d5638a56', '1212', '111', '', '4c5d798eb9b146416eb5091f0fc7bf01', '', 'dynamic', NULL,
+        NULL, 1, NULL, NULL, NULL, 0, 1, NULL, NULL, 'admin', '2026-05-09 15:07:00', '2026-05-09 15:07:54', 1, NULL,
+        'none', ''),
+       ('f1c16641298465456fa120d9b59eb635', '11', '11', '', 'leave', '', 'none', NULL, NULL, 1, NULL, NULL, NULL, 0, 1,
+        NULL, NULL, NULL, '2026-03-25 17:07:44', '2026-03-25 17:16:42', 1, NULL, 'none', ''),
+       ('ffd827049ebaee51c8564e12101eaadb', 'leave_process', '请假流程测试', '请假流程测试',
+        '4c5d798eb9b146416eb5091f0fc7bf01', NULL, 'dynamic', NULL, '', 33,
+        'leave_process:21:3bc073df-49c1-11f1-ba2b-e21edfbca81d', '3ba6d15c-49c1-11f1-ba2b-e21edfbca81d',
+        'leave_process_v32', 1, 1, '2026-05-07 11:02:51', 'admin', NULL, '2026-03-22 20:16:51', '2026-05-09 15:33:51',
+        0, '<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:flowable="http://flowable.org/bpmn" xmlns:modeler="http://flowable.org/modeler" id="Definitions_1" targetNamespace="http://flowable.org/demo" exporter="Flowable Modeler" exporterVersion="1.0">
   <bpmn:process id="leave_process" name="请假流程" isExecutable="true">
     <bpmn:startEvent id="Event_1c5vptk">
@@ -9113,6 +9375,861 @@ VALUES ('ffd827049ebaee51c8564e12101eaadb', 'leave_process', '请假流程测试
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>
 ', 'webhook', 'http://127.0.0.1:8080/leave/test');
+INSERT INTO sys_flow_model_version (id, model_id, version, version_name, version_tag, bpmn_xml, form_json,
+                                    change_description, deployment_id, process_definition_id, publish_by, publish_time,
+                                    tenant_id, create_time, del_flag)
+VALUES ('003d39a7-e4e6-4bf1-af4e-e4aea51e99a5', '1d6e8bf7e934f080a6ded6825e8b52f4', 13, '回退自 v1', 'release', '<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:flowable="http://flowable.org/bpmn" targetNamespace="http://flowable.org/processdef">
+  <bpmn:process id="task" name="请假审批流程" isExecutable="true">
+    <bpmn:startEvent id="startEvent" name="开始" flowable:initiator="initiator" />
+    <bpmn:sequenceFlow id="flow_start_to_supervisor" sourceRef="startEvent" targetRef="userTask_supervisor" />
+    <bpmn:userTask id="userTask_supervisor" name="直属上级审批" flowable:assignee="${flowSpelService.getInitiatorLeader(execution)}" flowable:assigneeType="spel" />
+    <bpmn:exclusiveGateway id="gateway_supervisor_decision" name="上级审批结果" />
+    <bpmn:sequenceFlow id="flow_supervisor_to_decision" sourceRef="userTask_supervisor" targetRef="gateway_supervisor_decision" />
+    <bpmn:sequenceFlow id="flow_supervisor_reject" sourceRef="gateway_supervisor_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_supervisor_approve" sourceRef="gateway_supervisor_decision" targetRef="gateway_days_check">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:exclusiveGateway id="gateway_days_check" name="天数判断" />
+    <bpmn:sequenceFlow id="flow_gateway_to_end" sourceRef="gateway_days_check" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &lt;= 3}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_gateway_to_hr" sourceRef="gateway_days_check" targetRef="userTask_hr">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &gt; 3}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_hr" name="HR审批" flowable:candidateGroups="hr" />
+    <bpmn:exclusiveGateway id="gateway_hr_decision" name="HR审批结果" />
+    <bpmn:sequenceFlow id="flow_hr_to_decision" sourceRef="userTask_hr" targetRef="gateway_hr_decision" />
+    <bpmn:sequenceFlow id="flow_hr_reject" sourceRef="gateway_hr_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_hr_approve" sourceRef="gateway_hr_decision" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_initiator_revise" name="发起人修改" flowable:assignee="${initiator}" flowable:priority="50">
+      <bpmn:extensionElements />
+      <bpmn:multiInstanceLoopCharacteristics>
+        <bpmn:loopCardinality xsi:type="bpmn:tFormalExpression">${nrOfInstances}</bpmn:loopCardinality>
+        <bpmn:completionCondition xsi:type="bpmn:tFormalExpression">${nrOfCompletedInstances == nrOfInstances}</bpmn:completionCondition>
+      </bpmn:multiInstanceLoopCharacteristics>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_revise_to_supervisor" sourceRef="userTask_initiator_revise" targetRef="userTask_supervisor" />
+    <bpmn:endEvent id="endEvent" name="结束" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="task">
+      <bpmndi:BPMNShape id="startEvent_di" bpmnElement="startEvent">
+        <dc:Bounds x="100" y="160" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_supervisor_di" bpmnElement="userTask_supervisor">
+        <dc:Bounds x="220" y="138" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_supervisor_decision_di" bpmnElement="gateway_supervisor_decision" isMarkerVisible="true">
+        <dc:Bounds x="380" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_days_check_di" bpmnElement="gateway_days_check" isMarkerVisible="true">
+        <dc:Bounds x="540" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_hr_di" bpmnElement="userTask_hr">
+        <dc:Bounds x="540" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_hr_decision_di" bpmnElement="gateway_hr_decision" isMarkerVisible="true">
+        <dc:Bounds x="700" y="295" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="695" y="271" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_initiator_revise_di" bpmnElement="userTask_initiator_revise">
+        <dc:Bounds x="380" y="380" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="endEvent_di" bpmnElement="endEvent">
+        <dc:Bounds x="700" y="160" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="707" y="136" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_supervisor_di" bpmnElement="flow_start_to_supervisor">
+        <di:waypoint x="136" y="178" />
+        <di:waypoint x="220" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_to_decision_di" bpmnElement="flow_supervisor_to_decision">
+        <di:waypoint x="320" y="178" />
+        <di:waypoint x="380" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_reject_di" bpmnElement="flow_supervisor_reject">
+        <di:waypoint x="405" y="203" />
+        <di:waypoint x="405" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_approve_di" bpmnElement="flow_supervisor_approve">
+        <di:waypoint x="430" y="178" />
+        <di:waypoint x="540" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gateway_to_end_di" bpmnElement="flow_gateway_to_end">
+        <di:waypoint x="590" y="178" />
+        <di:waypoint x="700" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gateway_to_hr_di" bpmnElement="flow_gateway_to_hr">
+        <di:waypoint x="565" y="203" />
+        <di:waypoint x="565" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_to_decision_di" bpmnElement="flow_hr_to_decision">
+        <di:waypoint x="640" y="320" />
+        <di:waypoint x="700" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_reject_di" bpmnElement="flow_hr_reject">
+        <di:waypoint x="725" y="345" />
+        <di:waypoint x="725" y="440" />
+        <di:waypoint x="650" y="410" />
+        <di:waypoint x="420" y="480" />
+        <di:waypoint x="423" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_approve_di" bpmnElement="flow_hr_approve">
+        <di:waypoint x="750" y="320" />
+        <di:waypoint x="800" y="320" />
+        <di:waypoint x="800" y="178" />
+        <di:waypoint x="736" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_revise_to_supervisor_di" bpmnElement="flow_revise_to_supervisor">
+        <di:waypoint x="380" y="420" />
+        <di:waypoint x="320" y="420" />
+        <di:waypoint x="320" y="208" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+', '', '回退自 v1: 11111231321', '72c01689-4b64-11f1-bf03-c67ce459595f', NULL, 'admin', '2026-05-09 13:03:43', 1,
+        '2026-05-09 13:03:43', 0),
+       ('01293f84-124b-4a5a-9978-089c88c56a16', '1d6e8bf7e934f080a6ded6825e8b52f4', 15, '回退自 v2', 'release', '<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:flowable="http://flowable.org/bpmn" targetNamespace="http://flowable.org/processdef">
+  <bpmn:process id="task" name="请假审批流程" isExecutable="true">
+    <bpmn:startEvent id="startEvent" name="开始" flowable:initiator="initiator" />
+    <bpmn:sequenceFlow id="flow_start_to_supervisor" sourceRef="startEvent" targetRef="userTask_supervisor" />
+    <bpmn:userTask id="userTask_supervisor" name="直属上级审批" flowable:assignee="${flowSpelService.getInitiatorLeader(execution)}" flowable:assigneeType="spel" />
+    <bpmn:exclusiveGateway id="gateway_supervisor_decision" name="上级审批结果" />
+    <bpmn:sequenceFlow id="flow_supervisor_to_decision" sourceRef="userTask_supervisor" targetRef="gateway_supervisor_decision" />
+    <bpmn:sequenceFlow id="flow_supervisor_reject" sourceRef="gateway_supervisor_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_supervisor_approve" sourceRef="gateway_supervisor_decision" targetRef="gateway_days_check">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:exclusiveGateway id="gateway_days_check" name="天数判断" />
+    <bpmn:sequenceFlow id="flow_gateway_to_end" sourceRef="gateway_days_check" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &lt;= 3}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_gateway_to_hr" sourceRef="gateway_days_check" targetRef="userTask_hr">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &gt; 3}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_hr" name="HR审批" flowable:candidateGroups="hr" />
+    <bpmn:exclusiveGateway id="gateway_hr_decision" name="HR审批结果" />
+    <bpmn:sequenceFlow id="flow_hr_to_decision" sourceRef="userTask_hr" targetRef="gateway_hr_decision" />
+    <bpmn:sequenceFlow id="flow_hr_reject" sourceRef="gateway_hr_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_hr_approve" sourceRef="gateway_hr_decision" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_initiator_revise" name="发起人修改" flowable:assignee="${initiator}" flowable:priority="50">
+      <bpmn:extensionElements />
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_revise_to_supervisor" sourceRef="userTask_initiator_revise" targetRef="userTask_supervisor" />
+    <bpmn:endEvent id="endEvent" name="结束" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="task">
+      <bpmndi:BPMNShape id="startEvent_di" bpmnElement="startEvent">
+        <dc:Bounds x="100" y="160" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_supervisor_di" bpmnElement="userTask_supervisor">
+        <dc:Bounds x="220" y="138" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_supervisor_decision_di" bpmnElement="gateway_supervisor_decision" isMarkerVisible="true">
+        <dc:Bounds x="380" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_days_check_di" bpmnElement="gateway_days_check" isMarkerVisible="true">
+        <dc:Bounds x="540" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_hr_di" bpmnElement="userTask_hr">
+        <dc:Bounds x="540" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_hr_decision_di" bpmnElement="gateway_hr_decision" isMarkerVisible="true">
+        <dc:Bounds x="700" y="295" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="695" y="271" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_initiator_revise_di" bpmnElement="userTask_initiator_revise">
+        <dc:Bounds x="380" y="380" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="endEvent_di" bpmnElement="endEvent">
+        <dc:Bounds x="700" y="160" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="707" y="136" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_supervisor_di" bpmnElement="flow_start_to_supervisor">
+        <di:waypoint x="136" y="178" />
+        <di:waypoint x="220" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_to_decision_di" bpmnElement="flow_supervisor_to_decision">
+        <di:waypoint x="320" y="178" />
+        <di:waypoint x="380" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_reject_di" bpmnElement="flow_supervisor_reject">
+        <di:waypoint x="405" y="203" />
+        <di:waypoint x="405" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_approve_di" bpmnElement="flow_supervisor_approve">
+        <di:waypoint x="430" y="178" />
+        <di:waypoint x="540" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gateway_to_end_di" bpmnElement="flow_gateway_to_end">
+        <di:waypoint x="590" y="178" />
+        <di:waypoint x="700" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gateway_to_hr_di" bpmnElement="flow_gateway_to_hr">
+        <di:waypoint x="565" y="203" />
+        <di:waypoint x="565" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_to_decision_di" bpmnElement="flow_hr_to_decision">
+        <di:waypoint x="640" y="320" />
+        <di:waypoint x="700" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_reject_di" bpmnElement="flow_hr_reject">
+        <di:waypoint x="725" y="345" />
+        <di:waypoint x="725" y="440" />
+        <di:waypoint x="650" y="410" />
+        <di:waypoint x="420" y="480" />
+        <di:waypoint x="423" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_approve_di" bpmnElement="flow_hr_approve">
+        <di:waypoint x="750" y="320" />
+        <di:waypoint x="800" y="320" />
+        <di:waypoint x="800" y="178" />
+        <di:waypoint x="736" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_revise_to_supervisor_di" bpmnElement="flow_revise_to_supervisor">
+        <di:waypoint x="380" y="420" />
+        <di:waypoint x="320" y="420" />
+        <di:waypoint x="320" y="208" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+', '', '回退自 v2: 1111111111', '9dca86a1-4b6d-11f1-bf03-c67ce459595f', NULL, 'admin', '2026-05-09 14:09:20', 1,
+        '2026-05-09 14:09:20', 0),
+       ('16748668-504b-4771-9dbc-67c6b13cd8c8', '1d6e8bf7e934f080a6ded6825e8b52f4', 17, 'v17', 'release', '<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:flowable="http://flowable.org/bpmn" targetNamespace="http://flowable.org/processdef">
+  <bpmn:process id="task" name="请假审批流程" isExecutable="true">
+    <bpmn:startEvent id="startEvent" name="开始" flowable:initiator="initiator" />
+    <bpmn:sequenceFlow id="flow_start_to_supervisor" sourceRef="startEvent" targetRef="userTask_supervisor" />
+    <bpmn:userTask id="userTask_supervisor" name="直属上级审批" flowable:assignee="${flowSpelService.getInitiatorLeader(execution)}" flowable:assigneeType="spel" />
+    <bpmn:exclusiveGateway id="gateway_supervisor_decision" name="上级审批结果" />
+    <bpmn:sequenceFlow id="flow_supervisor_to_decision" sourceRef="userTask_supervisor" targetRef="gateway_supervisor_decision" />
+    <bpmn:sequenceFlow id="flow_supervisor_reject" sourceRef="gateway_supervisor_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_supervisor_approve" sourceRef="gateway_supervisor_decision" targetRef="gateway_days_check">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:exclusiveGateway id="gateway_days_check" name="天数判断" />
+    <bpmn:sequenceFlow id="flow_gateway_to_end" sourceRef="gateway_days_check" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &lt;= 3}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_gateway_to_hr" sourceRef="gateway_days_check" targetRef="userTask_hr">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &gt; 3}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_hr" name="HR审批" flowable:candidateGroups="hr" />
+    <bpmn:exclusiveGateway id="gateway_hr_decision" name="HR审批结果" />
+    <bpmn:sequenceFlow id="flow_hr_to_decision" sourceRef="userTask_hr" targetRef="gateway_hr_decision" />
+    <bpmn:sequenceFlow id="flow_hr_reject" sourceRef="gateway_hr_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_hr_approve" sourceRef="gateway_hr_decision" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_initiator_revise" name="发起人修改" flowable:assignee="${initiator}" flowable:priority="50">
+      <bpmn:extensionElements />
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_revise_to_supervisor" sourceRef="userTask_initiator_revise" targetRef="userTask_supervisor" />
+    <bpmn:endEvent id="endEvent" name="结束" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="task">
+      <bpmndi:BPMNShape id="startEvent_di" bpmnElement="startEvent">
+        <dc:Bounds x="100" y="160" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_supervisor_di" bpmnElement="userTask_supervisor">
+        <dc:Bounds x="220" y="138" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_supervisor_decision_di" bpmnElement="gateway_supervisor_decision" isMarkerVisible="true">
+        <dc:Bounds x="380" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_days_check_di" bpmnElement="gateway_days_check" isMarkerVisible="true">
+        <dc:Bounds x="540" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_hr_di" bpmnElement="userTask_hr">
+        <dc:Bounds x="540" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_hr_decision_di" bpmnElement="gateway_hr_decision" isMarkerVisible="true">
+        <dc:Bounds x="700" y="295" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="695" y="271" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_initiator_revise_di" bpmnElement="userTask_initiator_revise">
+        <dc:Bounds x="380" y="380" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="endEvent_di" bpmnElement="endEvent">
+        <dc:Bounds x="700" y="160" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="707" y="136" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_supervisor_di" bpmnElement="flow_start_to_supervisor">
+        <di:waypoint x="136" y="178" />
+        <di:waypoint x="220" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_to_decision_di" bpmnElement="flow_supervisor_to_decision">
+        <di:waypoint x="320" y="178" />
+        <di:waypoint x="380" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_reject_di" bpmnElement="flow_supervisor_reject">
+        <di:waypoint x="405" y="203" />
+        <di:waypoint x="405" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_approve_di" bpmnElement="flow_supervisor_approve">
+        <di:waypoint x="430" y="178" />
+        <di:waypoint x="540" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gateway_to_end_di" bpmnElement="flow_gateway_to_end">
+        <di:waypoint x="590" y="178" />
+        <di:waypoint x="700" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gateway_to_hr_di" bpmnElement="flow_gateway_to_hr">
+        <di:waypoint x="565" y="203" />
+        <di:waypoint x="565" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_to_decision_di" bpmnElement="flow_hr_to_decision">
+        <di:waypoint x="640" y="320" />
+        <di:waypoint x="700" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_reject_di" bpmnElement="flow_hr_reject">
+        <di:waypoint x="725" y="345" />
+        <di:waypoint x="725" y="440" />
+        <di:waypoint x="650" y="410" />
+        <di:waypoint x="420" y="480" />
+        <di:waypoint x="423" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_approve_di" bpmnElement="flow_hr_approve">
+        <di:waypoint x="750" y="320" />
+        <di:waypoint x="800" y="320" />
+        <di:waypoint x="800" y="178" />
+        <di:waypoint x="736" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_revise_to_supervisor_di" bpmnElement="flow_revise_to_supervisor">
+        <di:waypoint x="380" y="420" />
+        <di:waypoint x="320" y="420" />
+        <di:waypoint x="320" y="208" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+', '', '版本发布', '202ece52-4b6e-11f1-b209-c67ce459595f', 'task:13:2033b055-4b6e-11f1-b209-c67ce459595f', 'admin',
+        '2026-05-09 14:12:59', 1, '2026-05-09 14:12:59', 0),
+       ('3b35027e-2ac9-4b12-a09c-c20d7f6967e2', '1d6e8bf7e934f080a6ded6825e8b52f4', 16, '回退自 v2', 'release', '<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:flowable="http://flowable.org/bpmn" targetNamespace="http://flowable.org/processdef">
+  <bpmn:process id="task" name="请假审批流程" isExecutable="true">
+    <bpmn:startEvent id="startEvent" name="开始" flowable:initiator="initiator" />
+    <bpmn:sequenceFlow id="flow_start_to_supervisor" sourceRef="startEvent" targetRef="userTask_supervisor" />
+    <bpmn:userTask id="userTask_supervisor" name="直属上级审批" flowable:assignee="${flowSpelService.getInitiatorLeader(execution)}" flowable:assigneeType="spel" />
+    <bpmn:exclusiveGateway id="gateway_supervisor_decision" name="上级审批结果" />
+    <bpmn:sequenceFlow id="flow_supervisor_to_decision" sourceRef="userTask_supervisor" targetRef="gateway_supervisor_decision" />
+    <bpmn:sequenceFlow id="flow_supervisor_reject" sourceRef="gateway_supervisor_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_supervisor_approve" sourceRef="gateway_supervisor_decision" targetRef="gateway_days_check">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:exclusiveGateway id="gateway_days_check" name="天数判断" />
+    <bpmn:sequenceFlow id="flow_gateway_to_end" sourceRef="gateway_days_check" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &lt;= 3}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_gateway_to_hr" sourceRef="gateway_days_check" targetRef="userTask_hr">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &gt; 3}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_hr" name="HR审批" flowable:candidateGroups="hr" />
+    <bpmn:exclusiveGateway id="gateway_hr_decision" name="HR审批结果" />
+    <bpmn:sequenceFlow id="flow_hr_to_decision" sourceRef="userTask_hr" targetRef="gateway_hr_decision" />
+    <bpmn:sequenceFlow id="flow_hr_reject" sourceRef="gateway_hr_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_hr_approve" sourceRef="gateway_hr_decision" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_initiator_revise" name="发起人修改" flowable:assignee="${initiator}" flowable:priority="50">
+      <bpmn:extensionElements />
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_revise_to_supervisor" sourceRef="userTask_initiator_revise" targetRef="userTask_supervisor" />
+    <bpmn:endEvent id="endEvent" name="结束" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="task">
+      <bpmndi:BPMNShape id="startEvent_di" bpmnElement="startEvent">
+        <dc:Bounds x="100" y="160" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_supervisor_di" bpmnElement="userTask_supervisor">
+        <dc:Bounds x="220" y="138" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_supervisor_decision_di" bpmnElement="gateway_supervisor_decision" isMarkerVisible="true">
+        <dc:Bounds x="380" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_days_check_di" bpmnElement="gateway_days_check" isMarkerVisible="true">
+        <dc:Bounds x="540" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_hr_di" bpmnElement="userTask_hr">
+        <dc:Bounds x="540" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_hr_decision_di" bpmnElement="gateway_hr_decision" isMarkerVisible="true">
+        <dc:Bounds x="700" y="295" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="695" y="271" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_initiator_revise_di" bpmnElement="userTask_initiator_revise">
+        <dc:Bounds x="380" y="380" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="endEvent_di" bpmnElement="endEvent">
+        <dc:Bounds x="700" y="160" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="707" y="136" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_supervisor_di" bpmnElement="flow_start_to_supervisor">
+        <di:waypoint x="136" y="178" />
+        <di:waypoint x="220" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_to_decision_di" bpmnElement="flow_supervisor_to_decision">
+        <di:waypoint x="320" y="178" />
+        <di:waypoint x="380" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_reject_di" bpmnElement="flow_supervisor_reject">
+        <di:waypoint x="405" y="203" />
+        <di:waypoint x="405" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_approve_di" bpmnElement="flow_supervisor_approve">
+        <di:waypoint x="430" y="178" />
+        <di:waypoint x="540" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gateway_to_end_di" bpmnElement="flow_gateway_to_end">
+        <di:waypoint x="590" y="178" />
+        <di:waypoint x="700" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gateway_to_hr_di" bpmnElement="flow_gateway_to_hr">
+        <di:waypoint x="565" y="203" />
+        <di:waypoint x="565" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_to_decision_di" bpmnElement="flow_hr_to_decision">
+        <di:waypoint x="640" y="320" />
+        <di:waypoint x="700" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_reject_di" bpmnElement="flow_hr_reject">
+        <di:waypoint x="725" y="345" />
+        <di:waypoint x="725" y="440" />
+        <di:waypoint x="650" y="410" />
+        <di:waypoint x="420" y="480" />
+        <di:waypoint x="423" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_approve_di" bpmnElement="flow_hr_approve">
+        <di:waypoint x="750" y="320" />
+        <di:waypoint x="800" y="320" />
+        <di:waypoint x="800" y="178" />
+        <di:waypoint x="736" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_revise_to_supervisor_di" bpmnElement="flow_revise_to_supervisor">
+        <di:waypoint x="380" y="420" />
+        <di:waypoint x="320" y="420" />
+        <di:waypoint x="320" y="208" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+', '', '回退自 v2: 1212121212121', '1aa2ab9e-4b6e-11f1-b209-c67ce459595f',
+        'task:12:1b4a0f31-4b6e-11f1-b209-c67ce459595f', 'admin', '2026-05-09 14:12:51', 1, '2026-05-09 14:12:51', 0),
+       ('a04a8003-689f-4710-9dea-d4bcdac3669f', '1d6e8bf7e934f080a6ded6825e8b52f4', 2, 'v2', 'release', '<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:flowable="http://flowable.org/bpmn" targetNamespace="http://flowable.org/processdef">
+  <bpmn:process id="task" name="请假审批流程" isExecutable="true">
+    <bpmn:startEvent id="startEvent" name="开始" flowable:initiator="initiator" />
+    <bpmn:sequenceFlow id="flow_start_to_supervisor" sourceRef="startEvent" targetRef="userTask_supervisor" />
+    <bpmn:userTask id="userTask_supervisor" name="直属上级审批" flowable:assignee="${flowSpelService.getInitiatorLeader(execution)}" flowable:assigneeType="spel" />
+    <bpmn:exclusiveGateway id="gateway_supervisor_decision" name="上级审批结果" />
+    <bpmn:sequenceFlow id="flow_supervisor_to_decision" sourceRef="userTask_supervisor" targetRef="gateway_supervisor_decision" />
+    <bpmn:sequenceFlow id="flow_supervisor_reject" sourceRef="gateway_supervisor_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_supervisor_approve" sourceRef="gateway_supervisor_decision" targetRef="gateway_days_check">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:exclusiveGateway id="gateway_days_check" name="天数判断" />
+    <bpmn:sequenceFlow id="flow_gateway_to_end" sourceRef="gateway_days_check" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &lt;= 3}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_gateway_to_hr" sourceRef="gateway_days_check" targetRef="userTask_hr">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &gt; 3}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_hr" name="HR审批" flowable:candidateGroups="hr" />
+    <bpmn:exclusiveGateway id="gateway_hr_decision" name="HR审批结果" />
+    <bpmn:sequenceFlow id="flow_hr_to_decision" sourceRef="userTask_hr" targetRef="gateway_hr_decision" />
+    <bpmn:sequenceFlow id="flow_hr_reject" sourceRef="gateway_hr_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_hr_approve" sourceRef="gateway_hr_decision" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_initiator_revise" name="发起人修改" flowable:assignee="${initiator}" flowable:priority="50">
+      <bpmn:extensionElements />
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_revise_to_supervisor" sourceRef="userTask_initiator_revise" targetRef="userTask_supervisor" />
+    <bpmn:endEvent id="endEvent" name="结束" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="task">
+      <bpmndi:BPMNShape id="startEvent_di" bpmnElement="startEvent">
+        <dc:Bounds x="100" y="160" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_supervisor_di" bpmnElement="userTask_supervisor">
+        <dc:Bounds x="220" y="138" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_supervisor_decision_di" bpmnElement="gateway_supervisor_decision" isMarkerVisible="true">
+        <dc:Bounds x="380" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_days_check_di" bpmnElement="gateway_days_check" isMarkerVisible="true">
+        <dc:Bounds x="540" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_hr_di" bpmnElement="userTask_hr">
+        <dc:Bounds x="540" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_hr_decision_di" bpmnElement="gateway_hr_decision" isMarkerVisible="true">
+        <dc:Bounds x="700" y="295" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="695" y="271" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_initiator_revise_di" bpmnElement="userTask_initiator_revise">
+        <dc:Bounds x="380" y="380" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="endEvent_di" bpmnElement="endEvent">
+        <dc:Bounds x="700" y="160" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="707" y="136" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_supervisor_di" bpmnElement="flow_start_to_supervisor">
+        <di:waypoint x="136" y="178" />
+        <di:waypoint x="220" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_to_decision_di" bpmnElement="flow_supervisor_to_decision">
+        <di:waypoint x="320" y="178" />
+        <di:waypoint x="380" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_reject_di" bpmnElement="flow_supervisor_reject">
+        <di:waypoint x="405" y="203" />
+        <di:waypoint x="405" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_approve_di" bpmnElement="flow_supervisor_approve">
+        <di:waypoint x="430" y="178" />
+        <di:waypoint x="540" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gateway_to_end_di" bpmnElement="flow_gateway_to_end">
+        <di:waypoint x="590" y="178" />
+        <di:waypoint x="700" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gateway_to_hr_di" bpmnElement="flow_gateway_to_hr">
+        <di:waypoint x="565" y="203" />
+        <di:waypoint x="565" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_to_decision_di" bpmnElement="flow_hr_to_decision">
+        <di:waypoint x="640" y="320" />
+        <di:waypoint x="700" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_reject_di" bpmnElement="flow_hr_reject">
+        <di:waypoint x="725" y="345" />
+        <di:waypoint x="725" y="440" />
+        <di:waypoint x="650" y="410" />
+        <di:waypoint x="420" y="480" />
+        <di:waypoint x="423" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_approve_di" bpmnElement="flow_hr_approve">
+        <di:waypoint x="750" y="320" />
+        <di:waypoint x="800" y="320" />
+        <di:waypoint x="800" y="178" />
+        <di:waypoint x="736" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_revise_to_supervisor_di" bpmnElement="flow_revise_to_supervisor">
+        <di:waypoint x="380" y="420" />
+        <di:waypoint x="320" y="420" />
+        <di:waypoint x="320" y="208" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+', '', '版本发布', '15f52a54-4b63-11f1-b5a6-c67ce459595f', 'task:7:15ff1567-4b63-11f1-b5a6-c67ce459595f', 'admin',
+        '2026-05-09 12:53:57', 1, '2026-05-09 12:53:57', 0),
+       ('c197589f-3cd8-42a0-b699-461ec816b759', '1d6e8bf7e934f080a6ded6825e8b52f4', 1, 'v1', 'release', '<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:flowable="http://flowable.org/bpmn" targetNamespace="http://flowable.org/processdef">
+  <bpmn:process id="task" name="请假审批流程" isExecutable="true">
+    <bpmn:startEvent id="startEvent" name="开始" flowable:initiator="initiator" />
+    <bpmn:sequenceFlow id="flow_start_to_supervisor" sourceRef="startEvent" targetRef="userTask_supervisor" />
+    <bpmn:userTask id="userTask_supervisor" name="直属上级审批" flowable:assignee="${flowSpelService.getInitiatorLeader(execution)}" flowable:assigneeType="spel" />
+    <bpmn:exclusiveGateway id="gateway_supervisor_decision" name="上级审批结果" />
+    <bpmn:sequenceFlow id="flow_supervisor_to_decision" sourceRef="userTask_supervisor" targetRef="gateway_supervisor_decision" />
+    <bpmn:sequenceFlow id="flow_supervisor_reject" sourceRef="gateway_supervisor_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_supervisor_approve" sourceRef="gateway_supervisor_decision" targetRef="gateway_days_check">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:exclusiveGateway id="gateway_days_check" name="天数判断" />
+    <bpmn:sequenceFlow id="flow_gateway_to_end" sourceRef="gateway_days_check" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &lt;= 3}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_gateway_to_hr" sourceRef="gateway_days_check" targetRef="userTask_hr">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &gt; 3}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_hr" name="HR审批" flowable:candidateGroups="hr" />
+    <bpmn:exclusiveGateway id="gateway_hr_decision" name="HR审批结果" />
+    <bpmn:sequenceFlow id="flow_hr_to_decision" sourceRef="userTask_hr" targetRef="gateway_hr_decision" />
+    <bpmn:sequenceFlow id="flow_hr_reject" sourceRef="gateway_hr_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_hr_approve" sourceRef="gateway_hr_decision" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_initiator_revise" name="发起人修改" flowable:assignee="${initiator}" flowable:priority="50">
+      <bpmn:extensionElements />
+      <bpmn:multiInstanceLoopCharacteristics>
+        <bpmn:loopCardinality xsi:type="bpmn:tFormalExpression">${nrOfInstances}</bpmn:loopCardinality>
+        <bpmn:completionCondition xsi:type="bpmn:tFormalExpression">${nrOfCompletedInstances == nrOfInstances}</bpmn:completionCondition>
+      </bpmn:multiInstanceLoopCharacteristics>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_revise_to_supervisor" sourceRef="userTask_initiator_revise" targetRef="userTask_supervisor" />
+    <bpmn:endEvent id="endEvent" name="结束" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="task">
+      <bpmndi:BPMNShape id="startEvent_di" bpmnElement="startEvent">
+        <dc:Bounds x="100" y="160" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_supervisor_di" bpmnElement="userTask_supervisor">
+        <dc:Bounds x="220" y="138" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_supervisor_decision_di" bpmnElement="gateway_supervisor_decision" isMarkerVisible="true">
+        <dc:Bounds x="380" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_days_check_di" bpmnElement="gateway_days_check" isMarkerVisible="true">
+        <dc:Bounds x="540" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_hr_di" bpmnElement="userTask_hr">
+        <dc:Bounds x="540" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_hr_decision_di" bpmnElement="gateway_hr_decision" isMarkerVisible="true">
+        <dc:Bounds x="700" y="295" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="695" y="271" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_initiator_revise_di" bpmnElement="userTask_initiator_revise">
+        <dc:Bounds x="380" y="380" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="endEvent_di" bpmnElement="endEvent">
+        <dc:Bounds x="700" y="160" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="707" y="136" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_supervisor_di" bpmnElement="flow_start_to_supervisor">
+        <di:waypoint x="136" y="178" />
+        <di:waypoint x="220" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_to_decision_di" bpmnElement="flow_supervisor_to_decision">
+        <di:waypoint x="320" y="178" />
+        <di:waypoint x="380" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_reject_di" bpmnElement="flow_supervisor_reject">
+        <di:waypoint x="405" y="203" />
+        <di:waypoint x="405" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_approve_di" bpmnElement="flow_supervisor_approve">
+        <di:waypoint x="430" y="178" />
+        <di:waypoint x="540" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gateway_to_end_di" bpmnElement="flow_gateway_to_end">
+        <di:waypoint x="590" y="178" />
+        <di:waypoint x="700" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gateway_to_hr_di" bpmnElement="flow_gateway_to_hr">
+        <di:waypoint x="565" y="203" />
+        <di:waypoint x="565" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_to_decision_di" bpmnElement="flow_hr_to_decision">
+        <di:waypoint x="640" y="320" />
+        <di:waypoint x="700" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_reject_di" bpmnElement="flow_hr_reject">
+        <di:waypoint x="725" y="345" />
+        <di:waypoint x="725" y="440" />
+        <di:waypoint x="650" y="410" />
+        <di:waypoint x="420" y="480" />
+        <di:waypoint x="423" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_approve_di" bpmnElement="flow_hr_approve">
+        <di:waypoint x="750" y="320" />
+        <di:waypoint x="800" y="320" />
+        <di:waypoint x="800" y="178" />
+        <di:waypoint x="736" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_revise_to_supervisor_di" bpmnElement="flow_revise_to_supervisor">
+        <di:waypoint x="380" y="420" />
+        <di:waypoint x="320" y="420" />
+        <di:waypoint x="320" y="208" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+', '', '版本发布', '8fc81459-4b5a-11f1-8537-c67ce459595f', 'task:6:8fcca83c-4b5a-11f1-8537-c67ce459595f', NULL,
+        '2026-05-09 11:52:56', 1, '2026-05-09 11:52:56', 0),
+       ('dd35f595-3065-43ab-8a6a-6bdefae46b95', '1d6e8bf7e934f080a6ded6825e8b52f4', 14, 'v14', 'release', '<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:flowable="http://flowable.org/bpmn" targetNamespace="http://flowable.org/processdef">
+  <bpmn:process id="task" name="请假审批流程" isExecutable="true">
+    <bpmn:startEvent id="startEvent" name="开始" flowable:initiator="initiator" />
+    <bpmn:sequenceFlow id="flow_start_to_supervisor" sourceRef="startEvent" targetRef="userTask_supervisor" />
+    <bpmn:userTask id="userTask_supervisor" name="直属上级审批" flowable:assignee="${flowSpelService.getInitiatorLeader(execution)}" flowable:assigneeType="spel" />
+    <bpmn:exclusiveGateway id="gateway_supervisor_decision" name="上级审批结果" />
+    <bpmn:sequenceFlow id="flow_supervisor_to_decision" sourceRef="userTask_supervisor" targetRef="gateway_supervisor_decision" />
+    <bpmn:sequenceFlow id="flow_supervisor_reject" sourceRef="gateway_supervisor_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_supervisor_approve" sourceRef="gateway_supervisor_decision" targetRef="gateway_days_check">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:exclusiveGateway id="gateway_days_check" name="天数判断" />
+    <bpmn:sequenceFlow id="flow_gateway_to_end" sourceRef="gateway_days_check" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &lt;= 3}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_gateway_to_hr" sourceRef="gateway_days_check" targetRef="userTask_hr">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${days &gt; 3}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_hr" name="HR审批" flowable:candidateGroups="hr" />
+    <bpmn:exclusiveGateway id="gateway_hr_decision" name="HR审批结果" />
+    <bpmn:sequenceFlow id="flow_hr_to_decision" sourceRef="userTask_hr" targetRef="gateway_hr_decision" />
+    <bpmn:sequenceFlow id="flow_hr_reject" sourceRef="gateway_hr_decision" targetRef="userTask_initiator_revise">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="flow_hr_approve" sourceRef="gateway_hr_decision" targetRef="endEvent">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:userTask id="userTask_initiator_revise" name="发起人修改" flowable:assignee="${initiator}" flowable:priority="50">
+      <bpmn:extensionElements />
+      <bpmn:multiInstanceLoopCharacteristics>
+        <bpmn:loopCardinality xsi:type="bpmn:tFormalExpression">${nrOfInstances}</bpmn:loopCardinality>
+        <bpmn:completionCondition xsi:type="bpmn:tFormalExpression">${nrOfCompletedInstances == nrOfInstances}</bpmn:completionCondition>
+      </bpmn:multiInstanceLoopCharacteristics>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="flow_revise_to_supervisor" sourceRef="userTask_initiator_revise" targetRef="userTask_supervisor" />
+    <bpmn:endEvent id="endEvent" name="结束" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="task">
+      <bpmndi:BPMNShape id="startEvent_di" bpmnElement="startEvent">
+        <dc:Bounds x="100" y="160" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_supervisor_di" bpmnElement="userTask_supervisor">
+        <dc:Bounds x="220" y="138" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_supervisor_decision_di" bpmnElement="gateway_supervisor_decision" isMarkerVisible="true">
+        <dc:Bounds x="380" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_days_check_di" bpmnElement="gateway_days_check" isMarkerVisible="true">
+        <dc:Bounds x="540" y="153" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_hr_di" bpmnElement="userTask_hr">
+        <dc:Bounds x="540" y="280" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="gateway_hr_decision_di" bpmnElement="gateway_hr_decision" isMarkerVisible="true">
+        <dc:Bounds x="700" y="295" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="695" y="271" width="60" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_initiator_revise_di" bpmnElement="userTask_initiator_revise">
+        <dc:Bounds x="380" y="380" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="endEvent_di" bpmnElement="endEvent">
+        <dc:Bounds x="700" y="160" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="707" y="136" width="22" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="flow_start_to_supervisor_di" bpmnElement="flow_start_to_supervisor">
+        <di:waypoint x="136" y="178" />
+        <di:waypoint x="220" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_to_decision_di" bpmnElement="flow_supervisor_to_decision">
+        <di:waypoint x="320" y="178" />
+        <di:waypoint x="380" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_reject_di" bpmnElement="flow_supervisor_reject">
+        <di:waypoint x="405" y="203" />
+        <di:waypoint x="405" y="380" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_supervisor_approve_di" bpmnElement="flow_supervisor_approve">
+        <di:waypoint x="430" y="178" />
+        <di:waypoint x="540" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gateway_to_end_di" bpmnElement="flow_gateway_to_end">
+        <di:waypoint x="590" y="178" />
+        <di:waypoint x="700" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_gateway_to_hr_di" bpmnElement="flow_gateway_to_hr">
+        <di:waypoint x="565" y="203" />
+        <di:waypoint x="565" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_to_decision_di" bpmnElement="flow_hr_to_decision">
+        <di:waypoint x="640" y="320" />
+        <di:waypoint x="700" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_reject_di" bpmnElement="flow_hr_reject">
+        <di:waypoint x="725" y="345" />
+        <di:waypoint x="725" y="440" />
+        <di:waypoint x="650" y="410" />
+        <di:waypoint x="420" y="480" />
+        <di:waypoint x="423" y="460" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_hr_approve_di" bpmnElement="flow_hr_approve">
+        <di:waypoint x="750" y="320" />
+        <di:waypoint x="800" y="320" />
+        <di:waypoint x="800" y="178" />
+        <di:waypoint x="736" y="178" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="flow_revise_to_supervisor_di" bpmnElement="flow_revise_to_supervisor">
+        <di:waypoint x="380" y="420" />
+        <di:waypoint x="320" y="420" />
+        <di:waypoint x="320" y="208" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+', '', '版本发布', 'ca1b377d-4b64-11f1-bf03-c67ce459595f', 'task:9:ca208eb0-4b64-11f1-bf03-c67ce459595f', 'admin',
+        '2026-05-09 13:06:09', 1, '2026-05-09 13:06:09', 0);
 INSERT INTO sys_flow_spel_template (id, tenant_id, template_name, template_code, expression, description, category,
                                     example_params, status, sort, remark, create_by, create_time, update_by,
                                     update_time, deleted)
@@ -13410,6 +14527,11 @@ VALUES (9080, 1, 'AI表单生编辑', 39, 2, 10, '/ai/crud-generator', 'ai/crud-
        (9094, 1, '流程表达式', 79, 2, 3, '/flow/spelTemplate', 'flow/spelTemplate', 0, 0, 1, 1, NULL,
         'ionicons5:GitCompare', 'GET', NULL, 0, 1, NULL, NULL, 1, '2026-05-05 17:43:05', 1, '2026-05-05 17:43:05', 2,
         'pc');
+INSERT INTO sys_resource (id, tenant_id, resource_name, parent_id, resource_type, sort, `path`, component, is_external,
+                          is_public, menu_status, visible, perms, icon, api_method, api_url, keep_alive, always_show,
+                          redirect, remark, create_by, create_time, update_by, update_time, create_dept, client_code)
+VALUES (9095, 1, '版本历史', 79, 2, 3, '/flow/version', 'flow/version', 0, 0, 0, 0, NULL, NULL, 'GET', NULL, 0, 0, NULL,
+        NULL, 1, '2026-05-09 11:18:18', 1, '2026-05-09 11:28:48', 2, 'pc');
 INSERT INTO sys_role (id, tenant_id, role_name, role_key, data_scope, sort, role_status, is_system, remark, create_by,
                       create_time, update_by, update_time, create_dept)
 VALUES (1, 1, '超级管理员', 'admin', 1, 1, 1, 1, '超级管理员角色，拥有所有权限', NULL, '2025-11-12 17:41:18', NULL,
@@ -13659,1213 +14781,3 @@ VALUES (2, 21, 'GITEE', '4998937', 'gitee_4998937', 'yaomd',
         '2026-04-01 17:59:25', NULL),
        (3, 22, 'GITEE', '5359992', 'gitee_5359992', 'ml331', 'https://gitee.com/assets/no_portrait.png', NULL, NULL,
         NULL, NULL, '2026-04-07 17:50:00', NULL);
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (928, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764665929071-79081', 2, '2025-12-02',
-        '2025-12-02 16:58:49', '2025-12-02 16:58:49'),
-       (929, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764666581016-43256', 2, '2025-12-02',
-        '2025-12-02 17:09:41', '2025-12-02 17:09:41'),
-       (930, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764748150575-60786', 2, '2025-12-03',
-        '2025-12-03 15:49:11', '2025-12-03 15:49:11'),
-       (931, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764748189958-56232', 2, '2025-12-03',
-        '2025-12-03 15:49:50', '2025-12-03 15:49:50'),
-       (932, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764748251000-40226', 2, '2025-12-03',
-        '2025-12-03 15:50:51', '2025-12-03 15:50:51'),
-       (933, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764749280573-19677', 2, '2025-12-03',
-        '2025-12-03 16:08:01', '2025-12-03 16:08:01'),
-       (934, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764749336872-97833', 2, '2025-12-03',
-        '2025-12-03 16:08:57', '2025-12-03 16:08:57'),
-       (935, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764749685766-91238', 2, '2025-12-03',
-        '2025-12-03 16:14:46', '2025-12-03 16:14:46'),
-       (936, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764751022480-79919', 2, '2025-12-03',
-        '2025-12-03 16:37:02', '2025-12-03 16:37:02'),
-       (937, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764751134847-2177', 2, '2025-12-03',
-        '2025-12-03 16:38:55', '2025-12-03 16:38:55');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (938, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764751296067-30376', 2, '2025-12-03',
-        '2025-12-03 16:41:36', '2025-12-03 16:41:36'),
-       (939, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764751432033-27956', 2, '2025-12-03',
-        '2025-12-03 16:43:52', '2025-12-03 16:43:52'),
-       (940, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764751917118-41823', 2, '2025-12-03',
-        '2025-12-03 16:51:57', '2025-12-03 16:51:57'),
-       (941, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764751971224-54524', 2, '2025-12-03',
-        '2025-12-03 16:52:51', '2025-12-03 16:52:51'),
-       (942, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764752094781-97354', 2, '2025-12-03',
-        '2025-12-03 16:54:55', '2025-12-03 16:54:55'),
-       (943, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764754193866-65989', 2, '2025-12-03',
-        '2025-12-03 17:29:54', '2025-12-03 17:29:54'),
-       (944, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764815077998-24300', 2, '2025-12-04',
-        '2025-12-04 10:24:38', '2025-12-04 10:24:38'),
-       (945, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764817080915-2117', 2, '2025-12-04',
-        '2025-12-04 10:58:01', '2025-12-04 10:58:01'),
-       (946, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764903605080-2833', 2, '2025-12-05',
-        '2025-12-05 11:00:05', '2025-12-05 11:00:05'),
-       (947, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764904068492-2519', 2, '2025-12-05',
-        '2025-12-05 11:07:48', '2025-12-05 11:07:48');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (948, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764904619591-37896', 2, '2025-12-05',
-        '2025-12-05 11:17:00', '2025-12-05 11:17:00'),
-       (949, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764916240434-71178', 2, '2025-12-05',
-        '2025-12-05 14:30:40', '2025-12-05 14:30:40'),
-       (950, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764926049386-76144', 2, '2025-12-05',
-        '2025-12-05 17:14:09', '2025-12-05 17:14:09'),
-       (951, 'fd0a:b001:c002:d003:266:1900:df1e:a282%utun7', '1764927603729-54311', 2, '2025-12-05',
-        '2025-12-05 17:40:04', '2025-12-05 17:40:04'),
-       (952, '192.168.10.175', '1765158194250-84917', 2, '2025-12-08', '2025-12-08 09:43:14', '2025-12-08 09:43:14'),
-       (953, 'fd0a:b001:c002:d003:f8ad:faad:acd5:603f%utun7', '1765164444277-1054', 2, '2025-12-08',
-        '2025-12-08 11:27:24', '2025-12-08 11:27:24'),
-       (954, 'fd0a:b001:c002:d003:f8ad:faad:acd5:603f%utun7', '1765165943590-27495', 2, '2025-12-08',
-        '2025-12-08 11:52:24', '2025-12-08 11:52:24'),
-       (955, 'fd0a:b001:c002:d003:f8ad:faad:acd5:603f%utun7', '1765169182807-65347', 2, '2025-12-08',
-        '2025-12-08 12:46:23', '2025-12-08 12:46:23'),
-       (956, 'fd0a:b001:c002:d003:f8ad:faad:acd5:603f%utun7', '1765186531719-26338', 2, '2025-12-08',
-        '2025-12-08 17:35:32', '2025-12-08 17:35:32'),
-       (957, 'fd0a:b001:c002:d003:f8ad:faad:acd5:603f%utun7', '1765186620536-66399', 2, '2025-12-08',
-        '2025-12-08 17:37:01', '2025-12-08 17:37:01');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (958, 'fd0a:b001:c002:d003:f8ad:faad:acd5:603f%utun7', '1765186642727-23393', 2, '2025-12-08',
-        '2025-12-08 17:37:23', '2025-12-08 17:37:23'),
-       (959, 'fd0a:b001:c002:d003:f8ad:faad:acd5:603f%utun7', '1765246200718-58243', 2, '2025-12-09',
-        '2025-12-09 10:10:01', '2025-12-09 10:10:01'),
-       (960, 'fd0a:b001:c002:d003:f8ad:faad:acd5:603f%utun7', '1765248273511-4842', 2, '2025-12-09',
-        '2025-12-09 10:44:34', '2025-12-09 10:44:34'),
-       (961, 'fd0a:b001:c002:d003:f8ad:faad:acd5:603f%utun7', '1765248422497-67603', 2, '2025-12-09',
-        '2025-12-09 10:47:02', '2025-12-09 10:47:02'),
-       (962, 'fd0a:b001:c002:d003:f8ad:faad:acd5:603f%utun7', '1765248683137-38449', 2, '2025-12-09',
-        '2025-12-09 10:51:23', '2025-12-09 10:51:23'),
-       (963, 'fdb2:2c26:f4e4:1:0:0:0:1%bridge101', '1765248786200-44446', 2, '2025-12-09', '2025-12-09 10:53:06',
-        '2025-12-09 10:53:06'),
-       (964, 'fdb2:2c26:f4e4:1:0:0:0:1%bridge101', '1765260799816-68057', 2, '2025-12-09', '2025-12-09 14:13:20',
-        '2025-12-09 14:13:20'),
-       (965, '192.168.10.175', '1765272989099-74364', 2, '2025-12-09', '2025-12-09 17:36:29', '2025-12-09 17:36:29'),
-       (966, '192.168.10.175', '1765334729386-86204', 2, '2025-12-10', '2025-12-10 10:45:29', '2025-12-10 10:45:29'),
-       (967, '192.168.10.175', '1765419807786-31348', 2, '2025-12-11', '2025-12-11 10:23:28', '2025-12-11 10:23:28');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (968, '192.168.10.175', '1765420298826-24355', 2, '2025-12-11', '2025-12-11 10:31:39', '2025-12-11 10:31:39'),
-       (969, '192.168.10.175', '1765423206184-71040', 2, '2025-12-11', '2025-12-11 11:20:06', '2025-12-11 11:20:06'),
-       (970, '2408:842c:12:5120:d427:ce1f:68b:462a%en0', '1765427186357-77324', 2, '2025-12-11', '2025-12-11 12:26:26',
-        '2025-12-11 12:26:26'),
-       (971, '2408:822a:32:4ed0:a822:f342:779f:a96e%en0', '1765502082743-7915', 2, '2025-12-12', '2025-12-12 09:14:43',
-        '2025-12-12 09:14:43'),
-       (972, 'fd0a:b001:c002:d003:466f:1a53:97c8:5021%utun7', '1765779785986-74557', 2, '2025-12-15',
-        '2025-12-15 14:23:06', '2025-12-15 14:23:06'),
-       (973, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765787313544-99012', 2, '2025-12-15',
-        '2025-12-15 16:28:34', '2025-12-15 16:28:34'),
-       (974, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765787628656-36303', 2, '2025-12-15',
-        '2025-12-15 16:33:49', '2025-12-15 16:33:49'),
-       (975, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765787811795-87421', 2, '2025-12-15',
-        '2025-12-15 16:36:52', '2025-12-15 16:36:52'),
-       (976, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765789830787-97849', 2, '2025-12-15',
-        '2025-12-15 17:10:31', '2025-12-15 17:10:31'),
-       (977, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765790585345-38338', 2, '2025-12-15',
-        '2025-12-15 17:23:05', '2025-12-15 17:23:05');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (978, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765790744054-75176', 2, '2025-12-15',
-        '2025-12-15 17:25:44', '2025-12-15 17:25:44'),
-       (979, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765791092786-60299', 2, '2025-12-15',
-        '2025-12-15 17:31:33', '2025-12-15 17:31:33'),
-       (980, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765791361020-39444', 2, '2025-12-15',
-        '2025-12-15 17:36:01', '2025-12-15 17:36:01'),
-       (981, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765791701610-85629', 2, '2025-12-15',
-        '2025-12-15 17:41:42', '2025-12-15 17:41:42'),
-       (982, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765791767733-4033', 2, '2025-12-15',
-        '2025-12-15 17:42:48', '2025-12-15 17:42:48'),
-       (983, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765791871693-43282', 2, '2025-12-15',
-        '2025-12-15 17:44:32', '2025-12-15 17:44:32'),
-       (984, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765792085311-40559', 2, '2025-12-15',
-        '2025-12-15 17:48:05', '2025-12-15 17:48:05'),
-       (985, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765792506941-91795', 2, '2025-12-15',
-        '2025-12-15 17:55:07', '2025-12-15 17:55:07'),
-       (986, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765793563959-54945', 2, '2025-12-15',
-        '2025-12-15 18:12:44', '2025-12-15 18:12:44'),
-       (987, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765848775441-25384', 2, '2025-12-16',
-        '2025-12-16 09:32:55', '2025-12-16 09:32:55');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (988, 'fd0a:b001:c002:d003:6e85:d22:8ff:be83%utun7', '1765941531264-50727', 2, '2025-12-17',
-        '2025-12-17 11:18:51', '2025-12-17 11:18:51'),
-       (989, 'fd0a:b001:c002:d003:bcd3:4d80:3e71:6fc2%utun7', '1766131873323-27242', 2, '2025-12-19',
-        '2025-12-19 16:11:13', '2025-12-19 16:11:13'),
-       (990, 'fd0a:b001:c002:d003:bcd3:4d80:3e71:6fc2%utun7', '1766131907675-29135', 2, '2025-12-19',
-        '2025-12-19 16:11:48', '2025-12-19 16:11:48'),
-       (991, '2408:822a:32:4ed0:c988:4fb6:6349:3ca%en0', '1766371946723-59902', 2, '2025-12-22', '2025-12-22 10:52:27',
-        '2025-12-22 10:52:27'),
-       (992, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768876566120-12733', 2, '2026-01-20',
-        '2026-01-20 10:36:06', '2026-01-20 10:36:06'),
-       (993, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768877546892-89295', 2, '2026-01-20',
-        '2026-01-20 10:52:27', '2026-01-20 10:52:27'),
-       (994, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768879707797-48690', 2, '2026-01-20',
-        '2026-01-20 11:28:28', '2026-01-20 11:28:28'),
-       (995, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768890617541-99661', 2, '2026-01-20',
-        '2026-01-20 14:30:18', '2026-01-20 14:30:18'),
-       (996, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768892830037-52420', 2, '2026-01-20',
-        '2026-01-20 15:07:10', '2026-01-20 15:07:10'),
-       (997, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768894256555-4119', 2, '2026-01-20',
-        '2026-01-20 15:30:57', '2026-01-20 15:30:57');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (998, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768894539781-33328', 2, '2026-01-20',
-        '2026-01-20 15:35:40', '2026-01-20 15:35:40'),
-       (999, 'fd0a:b001:c002:d003:fbe1:5d5a:8735:a978%utun7', '1768895875412-1797', 2, '2026-01-20',
-        '2026-01-20 15:57:55', '2026-01-20 15:57:55'),
-       (1000, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768898419411-83183', 2, '2026-01-20',
-        '2026-01-20 16:40:19', '2026-01-20 16:40:19'),
-       (1001, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768901998103-88327', 2, '2026-01-20',
-        '2026-01-20 17:39:58', '2026-01-20 17:39:58'),
-       (1002, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768910886917-96429', 2, '2026-01-20',
-        '2026-01-20 20:08:07', '2026-01-20 20:08:07'),
-       (1003, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768911137166-90865', 2, '2026-01-20',
-        '2026-01-20 20:12:17', '2026-01-20 20:12:17'),
-       (1004, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768965168125-79397', 2, '2026-01-21',
-        '2026-01-21 11:12:48', '2026-01-21 11:12:48'),
-       (1005, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768977312602-80284', 2, '2026-01-21',
-        '2026-01-21 14:35:13', '2026-01-21 14:35:13'),
-       (1006, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768977515622-35916', 2, '2026-01-21',
-        '2026-01-21 14:38:36', '2026-01-21 14:38:36'),
-       (1007, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768977560053-38803', 2, '2026-01-21',
-        '2026-01-21 14:39:20', '2026-01-21 14:39:20');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1008, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768979477080-85655', 2, '2026-01-21',
-        '2026-01-21 15:11:17', '2026-01-21 15:11:17'),
-       (1009, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768980352976-7470', 2, '2026-01-21',
-        '2026-01-21 15:25:53', '2026-01-21 15:25:53'),
-       (1010, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768980827997-94705', 2, '2026-01-21',
-        '2026-01-21 15:33:48', '2026-01-21 15:33:48'),
-       (1011, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768980871058-81047', 2, '2026-01-21',
-        '2026-01-21 15:34:31', '2026-01-21 15:34:31'),
-       (1012, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768980941273-32020', 2, '2026-01-21',
-        '2026-01-21 15:35:41', '2026-01-21 15:35:41'),
-       (1013, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768983790523-80343', 2, '2026-01-21',
-        '2026-01-21 16:23:11', '2026-01-21 16:23:11'),
-       (1014, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768984798444-28230', 2, '2026-01-21',
-        '2026-01-21 16:39:58', '2026-01-21 16:39:58'),
-       (1015, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768985225745-37911', 2, '2026-01-21',
-        '2026-01-21 16:47:06', '2026-01-21 16:47:06'),
-       (1016, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768985369747-58596', 2, '2026-01-21',
-        '2026-01-21 16:49:30', '2026-01-21 16:49:30'),
-       (1017, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768986441961-98497', 2, '2026-01-21',
-        '2026-01-21 17:07:22', '2026-01-21 17:07:22');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1018, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768986540662-84585', 2, '2026-01-21',
-        '2026-01-21 17:09:01', '2026-01-21 17:09:01'),
-       (1019, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768987015151-59722', 2, '2026-01-21',
-        '2026-01-21 17:16:55', '2026-01-21 17:16:55'),
-       (1020, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768987399041-60151', 2, '2026-01-21',
-        '2026-01-21 17:23:19', '2026-01-21 17:23:19'),
-       (1021, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1768988413036-79782', 2, '2026-01-21',
-        '2026-01-21 17:40:13', '2026-01-21 17:40:13'),
-       (1022, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1769005932408-98642', 2, '2026-01-21',
-        '2026-01-21 22:32:12', '2026-01-21 22:32:12'),
-       (1023, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1769007639164-15004', 2, '2026-01-21',
-        '2026-01-21 23:00:39', '2026-01-21 23:00:39'),
-       (1024, 'fd0a:b001:c002:d003:a6c4:936e:ea3e:ef58%utun7', '1769008120241-19362', 2, '2026-01-21',
-        '2026-01-21 23:08:40', '2026-01-21 23:08:40'),
-       (1025, 'fd0a:b001:c002:d003:992:c4d0:d52f:8a06%utun7', '1769759508556-49933', 2, '2026-01-30',
-        '2026-01-30 15:51:49', '2026-01-30 15:51:49'),
-       (1026, 'fd0a:b001:c002:d003:992:c4d0:d52f:8a06%utun7', '1769759539724-24053', 2, '2026-01-30',
-        '2026-01-30 15:52:20', '2026-01-30 15:52:20'),
-       (1027, 'fd0a:b001:c002:d003:992:c4d0:d52f:8a06%utun7', '1769760483971-57226', 2, '2026-01-30',
-        '2026-01-30 16:08:04', '2026-01-30 16:08:04');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1028, 'fd0a:b001:c002:d003:992:c4d0:d52f:8a06%utun7', '1769764437748-78864', 2, '2026-01-30',
-        '2026-01-30 17:13:58', '2026-01-30 17:13:58'),
-       (1029, 'fd0a:b001:c002:d003:992:c4d0:d52f:8a06%utun7', '1769764738061-62525', 2, '2026-01-30',
-        '2026-01-30 17:18:58', '2026-01-30 17:18:58'),
-       (1030, 'fd0a:b001:c002:d003:992:c4d0:d52f:8a06%utun7', '1769765567856-24249', 2, '2026-01-30',
-        '2026-01-30 17:32:48', '2026-01-30 17:32:48'),
-       (1031, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769838399973-82550', 2, '2026-01-31',
-        '2026-01-31 13:46:40', '2026-01-31 13:46:40'),
-       (1032, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769838525612-3304', 2, '2026-01-31',
-        '2026-01-31 13:48:46', '2026-01-31 13:48:46'),
-       (1033, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769838561600-76754', 2, '2026-01-31',
-        '2026-01-31 13:49:22', '2026-01-31 13:49:22'),
-       (1034, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769838584468-47118', 2, '2026-01-31',
-        '2026-01-31 13:49:44', '2026-01-31 13:49:44'),
-       (1035, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769838629681-2116', 2, '2026-01-31',
-        '2026-01-31 13:50:30', '2026-01-31 13:50:30'),
-       (1036, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769838869111-71459', 2, '2026-01-31',
-        '2026-01-31 13:54:29', '2026-01-31 13:54:29'),
-       (1037, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769839339912-2222', 2, '2026-01-31',
-        '2026-01-31 14:02:20', '2026-01-31 14:02:20');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1038, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769839662489-82387', 2, '2026-01-31',
-        '2026-01-31 14:07:42', '2026-01-31 14:07:42'),
-       (1039, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769842309053-84379', 2, '2026-01-31',
-        '2026-01-31 14:51:49', '2026-01-31 14:51:49'),
-       (1040, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769856348960-32991', 2, '2026-01-31',
-        '2026-01-31 18:45:49', '2026-01-31 18:45:49'),
-       (1041, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769856824246-86853', 2, '2026-01-31',
-        '2026-01-31 18:53:44', '2026-01-31 18:53:44'),
-       (1042, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769856860526-48078', 2, '2026-01-31',
-        '2026-01-31 18:54:21', '2026-01-31 18:54:21'),
-       (1043, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769856884933-3756', 2, '2026-01-31',
-        '2026-01-31 18:54:45', '2026-01-31 18:54:45'),
-       (1044, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769856939220-56056', 2, '2026-01-31',
-        '2026-01-31 18:55:39', '2026-01-31 18:55:39'),
-       (1045, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769857068603-29247', 2, '2026-01-31',
-        '2026-01-31 18:57:49', '2026-01-31 18:57:49'),
-       (1046, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769857538747-36753', 2, '2026-01-31',
-        '2026-01-31 19:05:39', '2026-01-31 19:05:39'),
-       (1047, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769857919722-55185', 2, '2026-01-31',
-        '2026-01-31 19:12:00', '2026-01-31 19:12:00');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1048, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769858761984-54564', 2, '2026-01-31',
-        '2026-01-31 19:26:02', '2026-01-31 19:26:02'),
-       (1049, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769858924119-6160', 2, '2026-01-31',
-        '2026-01-31 19:28:44', '2026-01-31 19:28:44'),
-       (1050, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769859284841-39564', 2, '2026-01-31',
-        '2026-01-31 19:34:45', '2026-01-31 19:34:45'),
-       (1051, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769861789436-86908', 2, '2026-01-31',
-        '2026-01-31 20:16:29', '2026-01-31 20:16:29'),
-       (1052, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769861824969-26313', 2, '2026-01-31',
-        '2026-01-31 20:17:05', '2026-01-31 20:17:05'),
-       (1053, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769863724063-33202', 2, '2026-01-31',
-        '2026-01-31 20:48:44', '2026-01-31 20:48:44'),
-       (1054, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769864234388-86044', 2, '2026-01-31',
-        '2026-01-31 20:57:14', '2026-01-31 20:57:14'),
-       (1055, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1769864661817-76198', 2, '2026-01-31',
-        '2026-01-31 21:04:22', '2026-01-31 21:04:22'),
-       (1056, 'fd0a:b001:c002:d003:992:c4d0:d52f:8a06%utun7', '1769908444220-27234', 2, '2026-02-01',
-        '2026-02-01 09:14:04', '2026-02-01 09:14:04'),
-       (1057, 'fd0a:b001:c002:d003:992:c4d0:d52f:8a06%utun7', '1769908653509-88850', 2, '2026-02-01',
-        '2026-02-01 09:17:34', '2026-02-01 09:17:34');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1058, 'fd0a:b001:c002:d003:992:c4d0:d52f:8a06%utun7', '1769909164042-22902', 2, '2026-02-01',
-        '2026-02-01 09:26:04', '2026-02-01 09:26:04'),
-       (1059, 'fd0a:b001:c002:d003:992:c4d0:d52f:8a06%utun7', '1769910123271-29875', 2, '2026-02-01',
-        '2026-02-01 09:42:03', '2026-02-01 09:42:03'),
-       (1060, 'fd0a:b001:c002:d003:992:c4d0:d52f:8a06%utun7', '1769910205570-19252', 2, '2026-02-01',
-        '2026-02-01 09:43:26', '2026-02-01 09:43:26'),
-       (1061, 'fd0a:b001:c002:d003:992:c4d0:d52f:8a06%utun7', '1769910344225-81901', 2, '2026-02-01',
-        '2026-02-01 09:45:44', '2026-02-01 09:45:44'),
-       (1062, 'fd0a:b001:c002:d003:992:c4d0:d52f:8a06%utun7', '1769910714044-85083', 2, '2026-02-01',
-        '2026-02-01 09:51:54', '2026-02-01 09:51:54'),
-       (1063, 'fd0a:b001:c002:d003:992:c4d0:d52f:8a06%utun7', '1769911450518-95413', 2, '2026-02-01',
-        '2026-02-01 10:04:11', '2026-02-01 10:04:11'),
-       (1064, 'fd0a:b001:c002:d003:2755:98d3:a845:a2dd%utun7', '1770018704224-78408', 2, '2026-02-02',
-        '2026-02-02 15:51:44', '2026-02-02 15:51:44'),
-       (1065, 'fd0a:b001:c002:d003:2755:98d3:a845:a2dd%utun7', '1770099739426-69683', 2, '2026-02-03',
-        '2026-02-03 14:22:19', '2026-02-03 14:22:19'),
-       (1066, 'fd0a:b001:c002:d003:2755:98d3:a845:a2dd%utun7', '1770099815608-98172', 2, '2026-02-03',
-        '2026-02-03 14:23:36', '2026-02-03 14:23:36'),
-       (1067, '2408:822a:31:7440:4411:1a7c:7543:1388%en0', '1770166117494-35222', 2, '2026-02-04',
-        '2026-02-04 08:48:37', '2026-02-04 08:48:37');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1068, '2408:822a:31:7440:4411:1a7c:7543:1388%en0', '1770166259750-13451', 2, '2026-02-04',
-        '2026-02-04 08:51:00', '2026-02-04 08:51:00'),
-       (1069, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770167795025-28642', 2, '2026-02-04',
-        '2026-02-04 09:16:35', '2026-02-04 09:16:35'),
-       (1070, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770169538949-21508', 2, '2026-02-04',
-        '2026-02-04 09:45:39', '2026-02-04 09:45:39'),
-       (1071, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770171590647-8627', 2, '2026-02-04',
-        '2026-02-04 10:19:51', '2026-02-04 10:19:51'),
-       (1072, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770171730042-74658', 2, '2026-02-04',
-        '2026-02-04 10:22:10', '2026-02-04 10:22:10'),
-       (1073, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770171776689-92526', 2, '2026-02-04',
-        '2026-02-04 10:22:57', '2026-02-04 10:22:57'),
-       (1074, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770173576737-19810', 2, '2026-02-04',
-        '2026-02-04 10:52:57', '2026-02-04 10:52:57'),
-       (1075, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770176977847-12724', 2, '2026-02-04',
-        '2026-02-04 11:49:38', '2026-02-04 11:49:38'),
-       (1076, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770185558537-75919', 2, '2026-02-04',
-        '2026-02-04 14:12:39', '2026-02-04 14:12:39'),
-       (1077, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770187170241-20504', 2, '2026-02-04',
-        '2026-02-04 14:39:30', '2026-02-04 14:39:30');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1078, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770187526640-93620', 2, '2026-02-04',
-        '2026-02-04 14:45:27', '2026-02-04 14:45:27'),
-       (1079, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770187764736-9764', 2, '2026-02-04',
-        '2026-02-04 14:49:25', '2026-02-04 14:49:25'),
-       (1080, 'fd0a:b001:c002:d003:2755:98d3:a845:a2dd%utun7', '1770189650359-36659', 2, '2026-02-04',
-        '2026-02-04 15:20:50', '2026-02-04 15:20:50'),
-       (1081, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770189885344-39702', 2, '2026-02-04',
-        '2026-02-04 15:24:45', '2026-02-04 15:24:45'),
-       (1082, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770190220283-35312', 2, '2026-02-04',
-        '2026-02-04 15:30:20', '2026-02-04 15:30:20'),
-       (1083, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770255151983-21310', 2, '2026-02-05',
-        '2026-02-05 09:32:32', '2026-02-05 09:32:32'),
-       (1084, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770255599474-74904', 2, '2026-02-05',
-        '2026-02-05 09:39:59', '2026-02-05 09:39:59'),
-       (1085, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770255768253-62485', 2, '2026-02-05',
-        '2026-02-05 09:42:48', '2026-02-05 09:42:48'),
-       (1086, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770256337223-40783', 2, '2026-02-05',
-        '2026-02-05 09:52:17', '2026-02-05 09:52:17'),
-       (1087, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770258043181-74168', 2, '2026-02-05',
-        '2026-02-05 10:20:43', '2026-02-05 10:20:43');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1088, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770259593761-68924', 2, '2026-02-05',
-        '2026-02-05 10:46:34', '2026-02-05 10:46:34'),
-       (1089, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770259798121-46958', 2, '2026-02-05',
-        '2026-02-05 10:49:58', '2026-02-05 10:49:58'),
-       (1090, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770259916696-31031', 2, '2026-02-05',
-        '2026-02-05 10:51:57', '2026-02-05 10:51:57'),
-       (1091, '2408:822a:30:8cf0:2440:217f:7e07:8e5a%en0', '1770259941807-98583', 2, '2026-02-05',
-        '2026-02-05 10:52:22', '2026-02-05 10:52:22'),
-       (1092, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770259980361-58483', 2, '2026-02-05',
-        '2026-02-05 10:53:00', '2026-02-05 10:53:00'),
-       (1093, '2408:822a:30:8cf0:5d80:d042:84ae:e8a0%en0', '1770260351876-16207', 2, '2026-02-05',
-        '2026-02-05 10:59:12', '2026-02-05 10:59:12'),
-       (1094, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770260834415-85520', 2, '2026-02-05',
-        '2026-02-05 11:07:14', '2026-02-05 11:07:14'),
-       (1095, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770261034776-76381', 2, '2026-02-05',
-        '2026-02-05 11:10:35', '2026-02-05 11:10:35'),
-       (1096, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770261436312-11510', 2, '2026-02-05',
-        '2026-02-05 11:17:16', '2026-02-05 11:17:16'),
-       (1097, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770262398500-11313', 2, '2026-02-05',
-        '2026-02-05 11:33:19', '2026-02-05 11:33:19');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1098, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770262752839-55073', 2, '2026-02-05',
-        '2026-02-05 11:39:13', '2026-02-05 11:39:13'),
-       (1099, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770263912057-75', 2, '2026-02-05',
-        '2026-02-05 11:58:32', '2026-02-05 11:58:32'),
-       (1100, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770268447852-27812', 2, '2026-02-05',
-        '2026-02-05 13:14:08', '2026-02-05 13:14:08'),
-       (1101, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770271944741-81413', 2, '2026-02-05',
-        '2026-02-05 14:12:25', '2026-02-05 14:12:25'),
-       (1102, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770272193760-26359', 2, '2026-02-05',
-        '2026-02-05 14:16:34', '2026-02-05 14:16:34'),
-       (1103, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770272374838-86314', 2, '2026-02-05',
-        '2026-02-05 14:19:35', '2026-02-05 14:19:35'),
-       (1104, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770272822260-49693', 2, '2026-02-05',
-        '2026-02-05 14:27:02', '2026-02-05 14:27:02'),
-       (1105, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770272841138-79123', 2, '2026-02-05',
-        '2026-02-05 14:27:21', '2026-02-05 14:27:21'),
-       (1106, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770273053368-25017', 2, '2026-02-05',
-        '2026-02-05 14:30:53', '2026-02-05 14:30:53'),
-       (1107, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770273082928-90759', 2, '2026-02-05',
-        '2026-02-05 14:31:23', '2026-02-05 14:31:23');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1108, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770273277318-12176', 2, '2026-02-05',
-        '2026-02-05 14:34:37', '2026-02-05 14:34:37'),
-       (1109, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770273329368-84819', 2, '2026-02-05',
-        '2026-02-05 14:35:29', '2026-02-05 14:35:29'),
-       (1110, '2408:822a:30:8cf0:5d80:d042:84ae:e8a0%en0', '1770274549357-15594', 2, '2026-02-05',
-        '2026-02-05 14:55:49', '2026-02-05 14:55:49'),
-       (1111, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770280446567-98572', 2, '2026-02-05',
-        '2026-02-05 16:34:07', '2026-02-05 16:34:07'),
-       (1112, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770340978032-73343', 2, '2026-02-06',
-        '2026-02-06 09:22:58', '2026-02-06 09:22:58'),
-       (1113, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770361322756-49799', 2, '2026-02-06',
-        '2026-02-06 15:02:03', '2026-02-06 15:02:03'),
-       (1114, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770362049913-45307', 2, '2026-02-06',
-        '2026-02-06 15:14:10', '2026-02-06 15:14:10'),
-       (1115, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770362850155-26056', 2, '2026-02-06',
-        '2026-02-06 15:27:30', '2026-02-06 15:27:30'),
-       (1116, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770362892550-60603', 2, '2026-02-06',
-        '2026-02-06 15:28:13', '2026-02-06 15:28:13'),
-       (1117, 'fd0a:b001:c002:d003:c117:ec71:9299:b800%utun7', '1770363660633-36444', 2, '2026-02-06',
-        '2026-02-06 15:41:01', '2026-02-06 15:41:01');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1118, 'fc00:6173:6961:2d73:6470:0:0:3%utun4', '1770366743231-89230', 2, '2026-02-06', '2026-02-06 16:32:23',
-        '2026-02-06 16:32:23'),
-       (1119, 'fc00:6173:6961:2d73:6470:0:0:3%utun4', '1770366859231-21142', 2, '2026-02-06', '2026-02-06 16:34:19',
-        '2026-02-06 16:34:19'),
-       (1120, 'fc00:6173:6961:2d73:6470:0:0:3%utun4', '1770367126391-31208', 2, '2026-02-06', '2026-02-06 16:38:46',
-        '2026-02-06 16:38:46'),
-       (1121, 'fd0a:b001:c002:d003:59bd:cea3:3050:6a06%utun7', '1770620896054-59237', 2, '2026-02-09',
-        '2026-02-09 15:08:16', '2026-02-09 15:08:16'),
-       (1122, 'fd0a:b001:c002:d003:59bd:cea3:3050:6a06%utun7', '1770621756409-79600', 2, '2026-02-09',
-        '2026-02-09 15:22:36', '2026-02-09 15:22:36'),
-       (1123, 'fd0a:b001:c002:d003:59bd:cea3:3050:6a06%utun7', '1770622288691-83121', 2, '2026-02-09',
-        '2026-02-09 15:31:29', '2026-02-09 15:31:29'),
-       (1124, 'fd0a:b001:c002:d003:59bd:cea3:3050:6a06%utun7', '1770622449986-33393', 2, '2026-02-09',
-        '2026-02-09 15:34:10', '2026-02-09 15:34:10'),
-       (1125, 'fd0a:b001:c002:d003:59bd:cea3:3050:6a06%utun7', '1770622490548-15653', 2, '2026-02-09',
-        '2026-02-09 15:34:51', '2026-02-09 15:34:51'),
-       (1126, 'fd0a:b001:c002:d003:59bd:cea3:3050:6a06%utun7', '1770622908044-12787', 2, '2026-02-09',
-        '2026-02-09 15:41:48', '2026-02-09 15:41:48'),
-       (1127, 'fd0a:b001:c002:d003:59bd:cea3:3050:6a06%utun7', '1770623969992-17908', 2, '2026-02-09',
-        '2026-02-09 15:59:30', '2026-02-09 15:59:30');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1128, 'fd0a:b001:c002:d003:59bd:cea3:3050:6a06%utun7', '1770625810067-71977', 2, '2026-02-09',
-        '2026-02-09 16:30:10', '2026-02-09 16:30:10'),
-       (1129, 'fd0a:b001:c002:d003:59bd:cea3:3050:6a06%utun7', '1770626723527-24048', 2, '2026-02-09',
-        '2026-02-09 16:45:24', '2026-02-09 16:45:24'),
-       (1130, 'fd0a:b001:c002:d003:59bd:cea3:3050:6a06%utun7', '1770626977189-87416', 2, '2026-02-09',
-        '2026-02-09 16:49:37', '2026-02-09 16:49:37'),
-       (1131, 'fd0a:b001:c002:d003:59bd:cea3:3050:6a06%utun7', '1770627725555-67080', 2, '2026-02-09',
-        '2026-02-09 17:02:06', '2026-02-09 17:02:06'),
-       (1132, 'fd0a:b001:c002:d003:59bd:cea3:3050:6a06%utun7', '1770627861067-55073', 2, '2026-02-09',
-        '2026-02-09 17:04:21', '2026-02-09 17:04:21'),
-       (1133, 'fd0a:b001:c002:d003:59bd:cea3:3050:6a06%utun7', '1770628014319-68460', 2, '2026-02-09',
-        '2026-02-09 17:06:54', '2026-02-09 17:06:54'),
-       (1134, 'fd0a:b001:c002:d003:5454:497a:e14:b220%utun7', '1770688682194-53654', 2, '2026-02-10',
-        '2026-02-10 09:58:02', '2026-02-10 09:58:02'),
-       (1135, '192.168.31.164', '1772003812149-37530', 2, '2026-02-25', '2026-02-25 15:16:52', '2026-02-25 15:16:52'),
-       (1136, '192.168.31.164', '1772028254737-60355', 2, '2026-02-25', '2026-02-25 22:04:15', '2026-02-25 22:04:15'),
-       (1137, '192.168.31.164', '1772028518577-86054', 2, '2026-02-25', '2026-02-25 22:08:39', '2026-02-25 22:08:39');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1138, '192.168.31.164', '1772028654785-74733', 2, '2026-02-25', '2026-02-25 22:10:55', '2026-02-25 22:10:55'),
-       (1139, '192.168.31.164', '1772028734931-88291', 2, '2026-02-25', '2026-02-25 22:12:15', '2026-02-25 22:12:15'),
-       (1140, '192.168.31.164', '1772067635205-17014', 2, '2026-02-26', '2026-02-26 09:00:35', '2026-02-26 09:00:35'),
-       (1141, '192.168.31.164', '1772067929266-76595', 2, '2026-02-26', '2026-02-26 09:05:29', '2026-02-26 09:05:29'),
-       (1142, '192.168.31.164', '1772068002826-69958', 2, '2026-02-26', '2026-02-26 09:06:43', '2026-02-26 09:06:43'),
-       (1143, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772074376521-89482', 2, '2026-02-26',
-        '2026-02-26 10:52:57', '2026-02-26 10:52:57'),
-       (1144, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772074783544-49639', 2, '2026-02-26',
-        '2026-02-26 10:59:44', '2026-02-26 10:59:44'),
-       (1145, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772075191622-38740', 2, '2026-02-26',
-        '2026-02-26 11:06:32', '2026-02-26 11:06:32'),
-       (1146, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772075258724-90991', 2, '2026-02-26',
-        '2026-02-26 11:07:39', '2026-02-26 11:07:39'),
-       (1147, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772075704407-2062', 2, '2026-02-26',
-        '2026-02-26 11:15:04', '2026-02-26 11:15:04');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1148, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772075900232-42954', 2, '2026-02-26',
-        '2026-02-26 11:18:20', '2026-02-26 11:18:20'),
-       (1149, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772076190930-90082', 2, '2026-02-26',
-        '2026-02-26 11:23:11', '2026-02-26 11:23:11'),
-       (1150, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772076780708-72188', 2, '2026-02-26',
-        '2026-02-26 11:33:01', '2026-02-26 11:33:01'),
-       (1151, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772076887261-43762', 2, '2026-02-26',
-        '2026-02-26 11:34:47', '2026-02-26 11:34:47'),
-       (1152, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772077332797-56604', 2, '2026-02-26',
-        '2026-02-26 11:42:13', '2026-02-26 11:42:13'),
-       (1153, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772077471175-80058', 2, '2026-02-26',
-        '2026-02-26 11:44:31', '2026-02-26 11:44:31'),
-       (1154, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772078151530-94376', 2, '2026-02-26',
-        '2026-02-26 11:55:52', '2026-02-26 11:55:52'),
-       (1155, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772078373827-79766', 2, '2026-02-26',
-        '2026-02-26 11:59:34', '2026-02-26 11:59:34'),
-       (1156, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772078476231-87736', 2, '2026-02-26',
-        '2026-02-26 12:01:16', '2026-02-26 12:01:16'),
-       (1157, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772078817195-66476', 2, '2026-02-26',
-        '2026-02-26 12:06:57', '2026-02-26 12:06:57');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1158, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772078865225-78223', 2, '2026-02-26',
-        '2026-02-26 12:07:45', '2026-02-26 12:07:45'),
-       (1159, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772078957100-48934', 2, '2026-02-26',
-        '2026-02-26 12:09:17', '2026-02-26 12:09:17'),
-       (1160, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772079312640-90428', 2, '2026-02-26',
-        '2026-02-26 12:15:13', '2026-02-26 12:15:13'),
-       (1161, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772079416125-76529', 2, '2026-02-26',
-        '2026-02-26 12:16:56', '2026-02-26 12:16:56'),
-       (1162, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772079480140-2053', 2, '2026-02-26',
-        '2026-02-26 12:18:00', '2026-02-26 12:18:00'),
-       (1163, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772081304284-77702', 2, '2026-02-26',
-        '2026-02-26 12:48:24', '2026-02-26 12:48:24'),
-       (1164, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772081352115-69383', 2, '2026-02-26',
-        '2026-02-26 12:49:12', '2026-02-26 12:49:12'),
-       (1165, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772081405502-18592', 2, '2026-02-26',
-        '2026-02-26 12:50:06', '2026-02-26 12:50:06'),
-       (1166, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772081508982-36918', 2, '2026-02-26',
-        '2026-02-26 12:51:49', '2026-02-26 12:51:49'),
-       (1167, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772081554373-30945', 2, '2026-02-26',
-        '2026-02-26 12:52:34', '2026-02-26 12:52:34');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1168, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772081683059-53388', 2, '2026-02-26',
-        '2026-02-26 12:54:43', '2026-02-26 12:54:43'),
-       (1169, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772081738788-39998', 2, '2026-02-26',
-        '2026-02-26 12:55:39', '2026-02-26 12:55:39'),
-       (1170, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772082009842-95025', 2, '2026-02-26',
-        '2026-02-26 13:00:10', '2026-02-26 13:00:10'),
-       (1171, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772082296445-28216', 2, '2026-02-26',
-        '2026-02-26 13:04:56', '2026-02-26 13:04:56'),
-       (1172, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772082349169-74024', 2, '2026-02-26',
-        '2026-02-26 13:05:49', '2026-02-26 13:05:49'),
-       (1173, 'fd0a:b001:c002:d003:f5d1:fe33:6fa0:cbf9%utun7', '1772082659468-80565', 2, '2026-02-26',
-        '2026-02-26 13:10:59', '2026-02-26 13:10:59'),
-       (1174, 'fd0a:b001:c002:d003:c2d6:56a4:2a4e:c8b4%utun7', '1772416638104-42988', 2, '2026-03-02',
-        '2026-03-02 09:57:18', '2026-03-02 09:57:18'),
-       (1175, 'fc00:6173:6961:2d73:6470:0:0:3%utun4', '1772419823188-85811', 2, '2026-03-02', '2026-03-02 10:50:23',
-        '2026-03-02 10:50:23'),
-       (1176, '192.168.1.94', '1772420671903-17135', 2, '2026-03-02', '2026-03-02 11:04:32', '2026-03-02 11:04:32'),
-       (1177, '192.168.1.94', '1772423049504-94185', 2, '2026-03-02', '2026-03-02 11:44:10', '2026-03-02 11:44:10');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1178, '192.168.1.94', '1772425538685-7047', 2, '2026-03-02', '2026-03-02 12:25:39', '2026-03-02 12:25:39'),
-       (1179, '192.168.1.94', '1772425679800-19286', 2, '2026-03-02', '2026-03-02 12:28:00', '2026-03-02 12:28:00'),
-       (1180, '192.168.1.94', '1772426341632-12776', 2, '2026-03-02', '2026-03-02 12:39:02', '2026-03-02 12:39:02'),
-       (1181, '192.168.1.94', '1772426669955-69244', 2, '2026-03-02', '2026-03-02 12:44:30', '2026-03-02 12:44:30'),
-       (1182, '192.168.1.94', '1772426970598-65556', 2, '2026-03-02', '2026-03-02 12:49:31', '2026-03-02 12:49:31'),
-       (1183, '192.168.1.94', '1772427251596-44937', 2, '2026-03-02', '2026-03-02 12:54:12', '2026-03-02 12:54:12'),
-       (1184, '192.168.1.94', '1772432699431-51884', 2, '2026-03-02', '2026-03-02 14:24:59', '2026-03-02 14:24:59'),
-       (1185, 'fd0a:b001:c002:d003:bf57:b42e:1b31:dd58%utun7', '1772437953755-53896', 2, '2026-03-02',
-        '2026-03-02 15:52:34', '2026-03-02 15:52:34'),
-       (1186, 'fd0a:b001:c002:d003:bf57:b42e:1b31:dd58%utun7', '1772438043991-2075', 2, '2026-03-02',
-        '2026-03-02 15:54:04', '2026-03-02 15:54:04'),
-       (1187, 'fd0a:b001:c002:d003:c2d6:56a4:2a4e:c8b4%utun7', '1772439072341-53693', 2, '2026-03-02',
-        '2026-03-02 16:11:12', '2026-03-02 16:11:12');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1188, '192.168.31.164', '1772970600415-41360', 2, '2026-03-08', '2026-03-08 19:50:00', '2026-03-08 19:50:00'),
-       (1189, '192.168.31.164', '1772973289318-2482', 2, '2026-03-08', '2026-03-08 20:34:49', '2026-03-08 20:34:49'),
-       (1190, 'fd0a:b001:c002:d003:a1bb:d777:20f0:d912%utun7', '1773021333304-2400', 2, '2026-03-09',
-        '2026-03-09 09:55:33', '2026-03-09 09:55:33'),
-       (1191, 'fd0a:b001:c002:d003:e14a:de12:7b6:898f%utun7', '1773574020070-31657', 2, '2026-03-15',
-        '2026-03-15 19:27:00', '2026-03-15 19:27:00'),
-       (1192, 'fd0a:b001:c002:d003:e14a:de12:7b6:898f%utun7', '1773574053259-17235', 2, '2026-03-15',
-        '2026-03-15 19:27:33', '2026-03-15 19:27:33'),
-       (1193, 'fd0a:b001:c002:d003:e14a:de12:7b6:898f%utun7', '1773574508067-58465', 2, '2026-03-15',
-        '2026-03-15 19:35:08', '2026-03-15 19:35:08'),
-       (1194, 'fd0a:b001:c002:d003:e14a:de12:7b6:898f%utun7', '1773574944822-11466', 2, '2026-03-15',
-        '2026-03-15 19:42:25', '2026-03-15 19:42:25'),
-       (1195, 'fd0a:b001:c002:d003:e14a:de12:7b6:898f%utun7', '1773575086166-95358', 2, '2026-03-15',
-        '2026-03-15 19:44:46', '2026-03-15 19:44:46'),
-       (1196, 'fd0a:b001:c002:d003:e14a:de12:7b6:898f%utun7', '1773576275588-53839', 2, '2026-03-15',
-        '2026-03-15 20:04:36', '2026-03-15 20:04:36'),
-       (1197, 'fd0a:b001:c002:d003:e14a:de12:7b6:898f%utun7', '1773576413834-48033', 2, '2026-03-15',
-        '2026-03-15 20:06:54', '2026-03-15 20:06:54');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1198, 'fd0a:b001:c002:d003:d469:9f2:f577:6d88%utun7', '1773648717445-42968', 2, '2026-03-16',
-        '2026-03-16 16:11:57', '2026-03-16 16:11:57'),
-       (1199, 'fd0a:b001:c002:d003:d469:9f2:f577:6d88%utun7', '1773648765936-97341', 2, '2026-03-16',
-        '2026-03-16 16:12:46', '2026-03-16 16:12:46'),
-       (1200, 'fd0a:b001:c002:d003:d469:9f2:f577:6d88%utun7', '1773651365018-61135', 2, '2026-03-16',
-        '2026-03-16 16:56:05', '2026-03-16 16:56:05'),
-       (1201, 'fd0a:b001:c002:d003:d469:9f2:f577:6d88%utun7', '1773888612178-96382', 2, '2026-03-19',
-        '2026-03-19 10:50:12', '2026-03-19 10:50:12'),
-       (1202, 'fd0a:b001:c002:d003:d469:9f2:f577:6d88%utun7', '1773888696627-4554', 2, '2026-03-19',
-        '2026-03-19 10:51:37', '2026-03-19 10:51:37'),
-       (1203, 'fd0a:b001:c002:d003:d469:9f2:f577:6d88%utun7', '1773900834478-53309', 2, '2026-03-19',
-        '2026-03-19 14:13:54', '2026-03-19 14:13:54'),
-       (1204, 'fd0a:b001:c002:d003:d469:9f2:f577:6d88%utun7', '1773976428815-8813', 2, '2026-03-20',
-        '2026-03-20 11:13:49', '2026-03-20 11:13:49'),
-       (1205, 'fd0a:b001:c002:d003:d469:9f2:f577:6d88%utun7', '1773976461480-95378', 2, '2026-03-20',
-        '2026-03-20 11:14:21', '2026-03-20 11:14:21'),
-       (1206, 'fd0a:b001:c002:d003:d469:9f2:f577:6d88%utun7', '1773977045625-42756', 2, '2026-03-20',
-        '2026-03-20 11:24:06', '2026-03-20 11:24:06'),
-       (1207, 'fd0a:b001:c002:d003:d469:9f2:f577:6d88%utun7', '1773988419041-91211', 2, '2026-03-20',
-        '2026-03-20 14:33:39', '2026-03-20 14:33:39');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1208, 'fd0a:b001:c002:d003:d469:9f2:f577:6d88%utun7', '1773989910444-95860', 2, '2026-03-20',
-        '2026-03-20 14:58:30', '2026-03-20 14:58:30'),
-       (1209, 'fd0a:b001:c002:d003:d469:9f2:f577:6d88%utun7', '1773995624708-67323', 2, '2026-03-20',
-        '2026-03-20 16:33:45', '2026-03-20 16:33:45'),
-       (1210, 'fd0a:b001:c002:d003:d469:9f2:f577:6d88%utun7', '1773999878943-11118', 2, '2026-03-20',
-        '2026-03-20 17:44:39', '2026-03-20 17:44:39'),
-       (1211, '192.168.31.237', '1774062416340-36293', 2, '2026-03-21', '2026-03-21 11:06:56', '2026-03-21 11:06:56'),
-       (1212, '192.168.31.237', '1774062543985-18434', 2, '2026-03-21', '2026-03-21 11:09:04', '2026-03-21 11:09:04'),
-       (1213, '192.168.31.237', '1774063013370-73788', 2, '2026-03-21', '2026-03-21 11:16:53', '2026-03-21 11:16:53'),
-       (1214, '192.168.31.237', '1774063444318-13595', 2, '2026-03-21', '2026-03-21 11:24:04', '2026-03-21 11:24:04'),
-       (1215, '192.168.31.237', '1774065231158-58038', 2, '2026-03-21', '2026-03-21 11:53:51', '2026-03-21 11:53:51'),
-       (1216, '192.168.31.237', '1774065493330-850', 2, '2026-03-21', '2026-03-21 11:58:13', '2026-03-21 11:58:13'),
-       (1217, '192.168.31.237', '1774065694802-86698', 2, '2026-03-21', '2026-03-21 12:01:35', '2026-03-21 12:01:35');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1218, '192.168.31.237', '1774065697086-31904', 2, '2026-03-21', '2026-03-21 12:01:37', '2026-03-21 12:01:37'),
-       (1219, '192.168.31.237', '1774065777521-17255', 2, '2026-03-21', '2026-03-21 12:02:58', '2026-03-21 12:02:58'),
-       (1220, '192.168.31.237', '1774065832394-366', 2, '2026-03-21', '2026-03-21 12:03:52', '2026-03-21 12:03:52'),
-       (1221, '192.168.31.237', '1774065873592-34744', 2, '2026-03-21', '2026-03-21 12:04:34', '2026-03-21 12:04:34'),
-       (1222, '192.168.31.237', '1774065912225-19310', 2, '2026-03-21', '2026-03-21 12:05:12', '2026-03-21 12:05:12'),
-       (1223, '192.168.31.237', '1774065965382-1983', 2, '2026-03-21', '2026-03-21 12:06:05', '2026-03-21 12:06:05'),
-       (1224, '192.168.31.237', '1774066009164-37342', 2, '2026-03-21', '2026-03-21 12:06:49', '2026-03-21 12:06:49'),
-       (1225, '192.168.31.237', '1774066051230-634', 2, '2026-03-21', '2026-03-21 12:07:31', '2026-03-21 12:07:31'),
-       (1226, '192.168.31.237', '1774066094677-74826', 2, '2026-03-21', '2026-03-21 12:08:15', '2026-03-21 12:08:15'),
-       (1227, '192.168.31.237', '1774066177109-59164', 2, '2026-03-21', '2026-03-21 12:09:37', '2026-03-21 12:09:37');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1228, '192.168.31.237', '1774066230986-75425', 2, '2026-03-21', '2026-03-21 12:10:31', '2026-03-21 12:10:31'),
-       (1229, '192.168.31.237', '1774066274135-49392', 2, '2026-03-21', '2026-03-21 12:11:14', '2026-03-21 12:11:14'),
-       (1230, '192.168.31.237', '1774068251539-36531', 2, '2026-03-21', '2026-03-21 12:44:12', '2026-03-21 12:44:12'),
-       (1231, '192.168.31.237', '1774070680286-42868', 2, '2026-03-21', '2026-03-21 13:24:40', '2026-03-21 13:24:40'),
-       (1232, '192.168.31.237', '1774070889126-42086', 2, '2026-03-21', '2026-03-21 13:28:09', '2026-03-21 13:28:09'),
-       (1233, '192.168.31.237', '1774071577049-68119', 2, '2026-03-21', '2026-03-21 13:39:37', '2026-03-21 13:39:37'),
-       (1234, '192.168.31.237', '1774071810964-15075', 2, '2026-03-21', '2026-03-21 13:43:31', '2026-03-21 13:43:31'),
-       (1235, '192.168.31.237', '1774073544665-90843', 2, '2026-03-21', '2026-03-21 14:12:25', '2026-03-21 14:12:25'),
-       (1236, '192.168.31.237', '1774074343213-89175', 2, '2026-03-21', '2026-03-21 14:25:43', '2026-03-21 14:25:43'),
-       (1237, '192.168.31.237', '1774074706746-23813', 2, '2026-03-21', '2026-03-21 14:31:47', '2026-03-21 14:31:47');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1238, '192.168.31.237', '1774075832448-75621', 2, '2026-03-21', '2026-03-21 14:50:32', '2026-03-21 14:50:32'),
-       (1239, '192.168.31.237', '1774076553397-28566', 2, '2026-03-21', '2026-03-21 15:02:33', '2026-03-21 15:02:33'),
-       (1240, '192.168.31.237', '1774077306457-27983', 2, '2026-03-21', '2026-03-21 15:15:06', '2026-03-21 15:15:06'),
-       (1241, '192.168.31.237', '1774077679406-72498', 2, '2026-03-21', '2026-03-21 15:21:19', '2026-03-21 15:21:19'),
-       (1242, '192.168.31.237', '1774077921667-73775', 2, '2026-03-21', '2026-03-21 15:25:22', '2026-03-21 15:25:22'),
-       (1243, '192.168.31.237', '1774078275725-88666', 2, '2026-03-21', '2026-03-21 15:31:16', '2026-03-21 15:31:16'),
-       (1244, '192.168.31.237', '1774078533371-75703', 2, '2026-03-21', '2026-03-21 15:35:33', '2026-03-21 15:35:33'),
-       (1245, '192.168.31.237', '1774079100197-71790', 2, '2026-03-21', '2026-03-21 15:45:00', '2026-03-21 15:45:00'),
-       (1246, '192.168.31.237', '1774079335347-20971', 2, '2026-03-21', '2026-03-21 15:48:55', '2026-03-21 15:48:55'),
-       (1247, '192.168.31.237', '1774079678801-54030', 2, '2026-03-21', '2026-03-21 15:54:39', '2026-03-21 15:54:39');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1248, '192.168.31.237', '1774081193116-74530', 2, '2026-03-21', '2026-03-21 16:19:53', '2026-03-21 16:19:53'),
-       (1249, '192.168.31.237', '1774082007336-65343', 2, '2026-03-21', '2026-03-21 16:33:27', '2026-03-21 16:33:27'),
-       (1250, '192.168.31.237', '1774082332637-89789', 2, '2026-03-21', '2026-03-21 16:38:53', '2026-03-21 16:38:53'),
-       (1251, '192.168.31.237', '1774082570732-37064', 2, '2026-03-21', '2026-03-21 16:42:51', '2026-03-21 16:42:51'),
-       (1252, '192.168.31.237', '1774085680411-59186', 2, '2026-03-21', '2026-03-21 17:34:40', '2026-03-21 17:34:40'),
-       (1253, '192.168.31.237', '1774086817741-22923', 2, '2026-03-21', '2026-03-21 17:53:38', '2026-03-21 17:53:38'),
-       (1254, '192.168.31.237', '1774087882411-30548', 2, '2026-03-21', '2026-03-21 18:11:22', '2026-03-21 18:11:22'),
-       (1255, '192.168.31.237', '1774089430326-89240', 2, '2026-03-21', '2026-03-21 18:37:10', '2026-03-21 18:37:10'),
-       (1256, '192.168.31.237', '1774091229356-40507', 2, '2026-03-21', '2026-03-21 19:07:09', '2026-03-21 19:07:09'),
-       (1257, '192.168.31.237', '1774171178774-54544', 2, '2026-03-22', '2026-03-22 17:19:39', '2026-03-22 17:19:39');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1258, '192.168.31.237', '1774171182674-19338', 2, '2026-03-22', '2026-03-22 17:19:43', '2026-03-22 17:19:43'),
-       (1259, '192.168.31.237', '1774173119784-63244', 2, '2026-03-22', '2026-03-22 17:52:00', '2026-03-22 17:52:00'),
-       (1260, '192.168.31.237', '1774181542033-80279', 2, '2026-03-22', '2026-03-22 20:12:22', '2026-03-22 20:12:22'),
-       (1261, '192.168.31.237', '1774181771114-57085', 2, '2026-03-22', '2026-03-22 20:16:11', '2026-03-22 20:16:11'),
-       (1262, '192.168.31.237', '1774182724470-74783', 2, '2026-03-22', '2026-03-22 20:32:04', '2026-03-22 20:32:04'),
-       (1263, '192.168.31.237', '1774182770804-8565', 2, '2026-03-22', '2026-03-22 20:32:51', '2026-03-22 20:32:51'),
-       (1264, '192.168.31.237', '1774183474067-89979', 2, '2026-03-22', '2026-03-22 20:44:34', '2026-03-22 20:44:34'),
-       (1265, '192.168.31.237', '1774183782419-97189', 2, '2026-03-22', '2026-03-22 20:49:42', '2026-03-22 20:49:42'),
-       (1266, '192.168.31.237', '1774183915196-45713', 2, '2026-03-22', '2026-03-22 20:51:55', '2026-03-22 20:51:55'),
-       (1267, '192.168.31.237', '1774183987155-40961', 2, '2026-03-22', '2026-03-22 20:53:07', '2026-03-22 20:53:07');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1268, '192.168.31.237', '1774184106657-64121', 2, '2026-03-22', '2026-03-22 20:55:07', '2026-03-22 20:55:07'),
-       (1269, '192.168.31.237', '1774184243093-85811', 2, '2026-03-22', '2026-03-22 20:57:23', '2026-03-22 20:57:23'),
-       (1270, '192.168.31.237', '1774184307997-28086', 2, '2026-03-22', '2026-03-22 20:58:28', '2026-03-22 20:58:28'),
-       (1271, '192.168.31.237', '1774184961498-48402', 2, '2026-03-22', '2026-03-22 21:09:21', '2026-03-22 21:09:21'),
-       (1272, '192.168.31.237', '1774185459352-21372', 2, '2026-03-22', '2026-03-22 21:17:39', '2026-03-22 21:17:39'),
-       (1273, '192.168.31.237', '1774187536367-57128', 2, '2026-03-22', '2026-03-22 21:52:16', '2026-03-22 21:52:16'),
-       (1274, '192.168.31.237', '1774188507526-95649', 2, '2026-03-22', '2026-03-22 22:08:28', '2026-03-22 22:08:28'),
-       (1275, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774247393527-49325', 2, '2026-03-23',
-        '2026-03-23 14:29:54', '2026-03-23 14:29:54'),
-       (1276, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774247394530-28451', 2, '2026-03-23',
-        '2026-03-23 14:29:55', '2026-03-23 14:29:55'),
-       (1277, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774254028236-6839', 2, '2026-03-23',
-        '2026-03-23 16:20:28', '2026-03-23 16:20:28');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1278, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774254033493-15181', 2, '2026-03-23',
-        '2026-03-23 16:20:33', '2026-03-23 16:20:33'),
-       (1279, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774423874774-4951', 2, '2026-03-25',
-        '2026-03-25 15:31:15', '2026-03-25 15:31:15'),
-       (1280, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774423876615-49169', 2, '2026-03-25',
-        '2026-03-25 15:31:17', '2026-03-25 15:31:17'),
-       (1281, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774429115694-49627', 2, '2026-03-25',
-        '2026-03-25 16:58:36', '2026-03-25 16:58:36'),
-       (1282, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774507846432-62077', 2, '2026-03-26',
-        '2026-03-26 14:50:46', '2026-03-26 14:50:46'),
-       (1283, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774507900771-44447', 2, '2026-03-26',
-        '2026-03-26 14:51:41', '2026-03-26 14:51:41'),
-       (1284, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774512444127-40849', 2, '2026-03-26',
-        '2026-03-26 16:07:24', '2026-03-26 16:07:24'),
-       (1285, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774512481053-3234', 2, '2026-03-26',
-        '2026-03-26 16:08:01', '2026-03-26 16:08:01'),
-       (1286, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774513291933-63771', 2, '2026-03-26',
-        '2026-03-26 16:21:32', '2026-03-26 16:21:32'),
-       (1287, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774513989121-93479', 2, '2026-03-26',
-        '2026-03-26 16:33:09', '2026-03-26 16:33:09');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1288, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774514030969-52453', 2, '2026-03-26',
-        '2026-03-26 16:33:51', '2026-03-26 16:33:51'),
-       (1289, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774514956344-61850', 2, '2026-03-26',
-        '2026-03-26 16:49:16', '2026-03-26 16:49:16'),
-       (1290, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774514992752-73356', 2, '2026-03-26',
-        '2026-03-26 16:49:53', '2026-03-26 16:49:53'),
-       (1291, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774515469566-34444', 2, '2026-03-26',
-        '2026-03-26 16:57:50', '2026-03-26 16:57:50'),
-       (1292, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774515511779-3620', 2, '2026-03-26',
-        '2026-03-26 16:58:32', '2026-03-26 16:58:32'),
-       (1293, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774519458965-12187', 2, '2026-03-26',
-        '2026-03-26 18:04:19', '2026-03-26 18:04:19'),
-       (1294, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774519501024-88388', 2, '2026-03-26',
-        '2026-03-26 18:05:01', '2026-03-26 18:05:01'),
-       (1295, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774520127247-97631', 2, '2026-03-26',
-        '2026-03-26 18:15:27', '2026-03-26 18:15:27'),
-       (1296, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774521142013-24500', 2, '2026-03-26',
-        '2026-03-26 18:32:22', '2026-03-26 18:32:22'),
-       (1297, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774522021466-87669', 2, '2026-03-26',
-        '2026-03-26 18:47:01', '2026-03-26 18:47:01');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1298, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774522110598-98447', 2, '2026-03-26',
-        '2026-03-26 18:48:31', '2026-03-26 18:48:31'),
-       (1299, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774522205288-92048', 2, '2026-03-26',
-        '2026-03-26 18:50:05', '2026-03-26 18:50:05'),
-       (1300, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774522412280-44562', 2, '2026-03-26',
-        '2026-03-26 18:53:32', '2026-03-26 18:53:32'),
-       (1301, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774522738748-76258', 2, '2026-03-26',
-        '2026-03-26 18:58:59', '2026-03-26 18:58:59'),
-       (1302, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774522945604-94437', 2, '2026-03-26',
-        '2026-03-26 19:02:26', '2026-03-26 19:02:26'),
-       (1303, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774523306676-82124', 2, '2026-03-26',
-        '2026-03-26 19:08:27', '2026-03-26 19:08:27'),
-       (1304, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774523349290-36115', 2, '2026-03-26',
-        '2026-03-26 19:09:09', '2026-03-26 19:09:09'),
-       (1305, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774523950583-36124', 2, '2026-03-26',
-        '2026-03-26 19:19:11', '2026-03-26 19:19:11'),
-       (1306, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774523983991-43730', 2, '2026-03-26',
-        '2026-03-26 19:19:44', '2026-03-26 19:19:44'),
-       (1307, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774524436541-31433', 2, '2026-03-26',
-        '2026-03-26 19:27:17', '2026-03-26 19:27:17');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1308, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774524544063-45936', 2, '2026-03-26',
-        '2026-03-26 19:29:04', '2026-03-26 19:29:04'),
-       (1309, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774525070178-49478', 2, '2026-03-26',
-        '2026-03-26 19:37:50', '2026-03-26 19:37:50'),
-       (1310, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774525165974-78904', 2, '2026-03-26',
-        '2026-03-26 19:39:26', '2026-03-26 19:39:26'),
-       (1311, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774525569300-40599', 2, '2026-03-26',
-        '2026-03-26 19:46:09', '2026-03-26 19:46:09'),
-       (1312, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774525609857-86879', 2, '2026-03-26',
-        '2026-03-26 19:46:50', '2026-03-26 19:46:50'),
-       (1313, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774525685261-63001', 2, '2026-03-26',
-        '2026-03-26 19:48:05', '2026-03-26 19:48:05'),
-       (1314, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774525718912-1882', 2, '2026-03-26',
-        '2026-03-26 19:48:39', '2026-03-26 19:48:39'),
-       (1315, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774527317214-72938', 2, '2026-03-26',
-        '2026-03-26 20:15:17', '2026-03-26 20:15:17'),
-       (1316, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774527365547-66225', 2, '2026-03-26',
-        '2026-03-26 20:16:06', '2026-03-26 20:16:06'),
-       (1317, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774528348709-2326', 2, '2026-03-26',
-        '2026-03-26 20:32:29', '2026-03-26 20:32:29');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1318, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774528383943-22206', 2, '2026-03-26',
-        '2026-03-26 20:33:04', '2026-03-26 20:33:04'),
-       (1319, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774528724701-71333', 2, '2026-03-26',
-        '2026-03-26 20:38:45', '2026-03-26 20:38:45'),
-       (1320, 'fd0a:b001:c002:d003:e4b7:84de:d901:ead4%utun7', '1774529019874-68586', 2, '2026-03-26',
-        '2026-03-26 20:43:40', '2026-03-26 20:43:40'),
-       (1321, '192.168.31.138', '1774684396491-93392', 2, '2026-03-28', '2026-03-28 15:53:16', '2026-03-28 15:53:16'),
-       (1322, '192.168.31.138', '1774684405414-43182', 2, '2026-03-28', '2026-03-28 15:53:25', '2026-03-28 15:53:25'),
-       (1323, '192.168.31.138', '1774687722343-88529', 2, '2026-03-28', '2026-03-28 16:48:42', '2026-03-28 16:48:42'),
-       (1324, '192.168.31.138', '1774739759352-24132', 2, '2026-03-29', '2026-03-29 07:15:59', '2026-03-29 07:15:59'),
-       (1325, '192.168.31.138', '1774750078025-32018', 2, '2026-03-29', '2026-03-29 10:07:58', '2026-03-29 10:07:58'),
-       (1326, '192.168.31.138', '1774750232281-88461', 2, '2026-03-29', '2026-03-29 10:10:32', '2026-03-29 10:10:32'),
-       (1327, '192.168.31.138', '1774750286499-31482', 2, '2026-03-29', '2026-03-29 10:11:27', '2026-03-29 10:11:27');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1328, '192.168.31.138', '1774782426835-19517', 2, '2026-03-29', '2026-03-29 19:07:07', '2026-03-29 19:07:07'),
-       (1329, '192.168.31.138', '1774783583311-54086', 2, '2026-03-29', '2026-03-29 19:26:23', '2026-03-29 19:26:23'),
-       (1330, 'fd0a:b001:c002:d003:9c17:ac7e:8a22:560e%utun7', '1774859900532-9955', 2, '2026-03-30',
-        '2026-03-30 16:38:21', '2026-03-30 16:38:21'),
-       (1331, 'fd0a:b001:c002:d003:9c17:ac7e:8a22:560e%utun7', '1774860751212-76145', 2, '2026-03-30',
-        '2026-03-30 16:52:31', '2026-03-30 16:52:31'),
-       (1332, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1774862012941-97530', 2, '2026-03-30',
-        '2026-03-30 17:13:33', '2026-03-30 17:13:33'),
-       (1333, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1774862678349-38636', 2, '2026-03-30',
-        '2026-03-30 17:24:38', '2026-03-30 17:24:38'),
-       (1334, '2408:822a:33:7430:505a:9a26:a247:4a6%en0', '1774919266815-55077', 2, '2026-03-31', '2026-03-31 09:07:47',
-        '2026-03-31 09:07:47'),
-       (1335, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775011033743-71323', 2, '2026-04-01',
-        '2026-04-01 10:37:14', '2026-04-01 10:37:14'),
-       (1336, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775011284889-81087', 2, '2026-04-01',
-        '2026-04-01 10:41:25', '2026-04-01 10:41:25'),
-       (1337, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775011475004-72932', 2, '2026-04-01',
-        '2026-04-01 10:44:35', '2026-04-01 10:44:35');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1338, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775011574129-93696', 2, '2026-04-01',
-        '2026-04-01 10:46:14', '2026-04-01 10:46:14'),
-       (1339, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775011637527-86929', 2, '2026-04-01',
-        '2026-04-01 10:47:18', '2026-04-01 10:47:18'),
-       (1340, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775026109426-3310', 2, '2026-04-01',
-        '2026-04-01 14:48:29', '2026-04-01 14:48:29'),
-       (1341, 'fd0a:b001:c002:d003:9c17:ac7e:8a22:560e%utun7', '1775026547053-17944', 2, '2026-04-01',
-        '2026-04-01 14:55:47', '2026-04-01 14:55:47'),
-       (1342, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775029291233-86712', 2, '2026-04-01',
-        '2026-04-01 15:41:31', '2026-04-01 15:41:31'),
-       (1343, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775029814233-487', 2, '2026-04-01',
-        '2026-04-01 15:50:14', '2026-04-01 15:50:14'),
-       (1344, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775033861887-21913', 2, '2026-04-01',
-        '2026-04-01 16:57:42', '2026-04-01 16:57:42'),
-       (1345, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775034085913-91682', 2, '2026-04-01',
-        '2026-04-01 17:01:26', '2026-04-01 17:01:26'),
-       (1346, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775034383551-24110', 2, '2026-04-01',
-        '2026-04-01 17:06:24', '2026-04-01 17:06:24'),
-       (1347, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775034648241-95587', 2, '2026-04-01',
-        '2026-04-01 17:10:48', '2026-04-01 17:10:48');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1348, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775035450577-66919', 2, '2026-04-01',
-        '2026-04-01 17:24:11', '2026-04-01 17:24:11'),
-       (1349, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775035568169-17008', 2, '2026-04-01',
-        '2026-04-01 17:26:08', '2026-04-01 17:26:08'),
-       (1350, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775036585986-59202', 2, '2026-04-01',
-        '2026-04-01 17:43:06', '2026-04-01 17:43:06'),
-       (1351, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775036733469-91235', 2, '2026-04-01',
-        '2026-04-01 17:45:33', '2026-04-01 17:45:33'),
-       (1352, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775036930442-80526', 2, '2026-04-01',
-        '2026-04-01 17:48:50', '2026-04-01 17:48:50'),
-       (1353, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775037538259-70679', 2, '2026-04-01',
-        '2026-04-01 17:58:58', '2026-04-01 17:58:58'),
-       (1354, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775096234538-50896', 2, '2026-04-02',
-        '2026-04-02 10:17:15', '2026-04-02 10:17:15'),
-       (1355, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775099933820-36023', 2, '2026-04-02',
-        '2026-04-02 11:18:54', '2026-04-02 11:18:54'),
-       (1356, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775105322131-99482', 2, '2026-04-02',
-        '2026-04-02 12:48:42', '2026-04-02 12:48:42'),
-       (1357, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775105381890-14611', 2, '2026-04-02',
-        '2026-04-02 12:49:42', '2026-04-02 12:49:42');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1358, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775106114048-15223', 2, '2026-04-02',
-        '2026-04-02 13:01:54', '2026-04-02 13:01:54'),
-       (1359, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775106202345-28955', 2, '2026-04-02',
-        '2026-04-02 13:03:22', '2026-04-02 13:03:22'),
-       (1360, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775106323528-41014', 2, '2026-04-02',
-        '2026-04-02 13:05:24', '2026-04-02 13:05:24'),
-       (1361, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775106380636-5722', 2, '2026-04-02',
-        '2026-04-02 13:06:21', '2026-04-02 13:06:21'),
-       (1362, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775106472268-59023', 2, '2026-04-02',
-        '2026-04-02 13:07:52', '2026-04-02 13:07:52'),
-       (1363, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775107035789-95521', 2, '2026-04-02',
-        '2026-04-02 13:17:16', '2026-04-02 13:17:16'),
-       (1364, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775107066720-56748', 2, '2026-04-02',
-        '2026-04-02 13:17:47', '2026-04-02 13:17:47'),
-       (1365, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775111265192-95862', 2, '2026-04-02',
-        '2026-04-02 14:27:45', '2026-04-02 14:27:45'),
-       (1366, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775111450400-77288', 2, '2026-04-02',
-        '2026-04-02 14:30:50', '2026-04-02 14:30:50'),
-       (1367, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775111702938-74876', 2, '2026-04-02',
-        '2026-04-02 14:35:03', '2026-04-02 14:35:03');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1368, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775111798075-35011', 2, '2026-04-02',
-        '2026-04-02 14:36:38', '2026-04-02 14:36:38'),
-       (1369, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775113046644-86831', 2, '2026-04-02',
-        '2026-04-02 14:57:27', '2026-04-02 14:57:27'),
-       (1370, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775113345680-57669', 2, '2026-04-02',
-        '2026-04-02 15:02:26', '2026-04-02 15:02:26'),
-       (1371, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775113714345-41205', 2, '2026-04-02',
-        '2026-04-02 15:08:34', '2026-04-02 15:08:34'),
-       (1372, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775118136902-65278', 2, '2026-04-02',
-        '2026-04-02 16:22:17', '2026-04-02 16:22:17'),
-       (1373, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775120002194-2256', 2, '2026-04-02',
-        '2026-04-02 16:53:22', '2026-04-02 16:53:22'),
-       (1374, 'fd0a:b001:c002:d003:a4f:81bd:7f78:6da3%utun7', '1775121713843-78859', 2, '2026-04-02',
-        '2026-04-02 17:21:54', '2026-04-02 17:21:54'),
-       (1375, '10.2.0.14', '1775543711056-68203', 2, '2026-04-07', '2026-04-07 14:35:11', '2026-04-07 14:35:11'),
-       (1376, '10.2.0.14', '1775544515287-40889', 2, '2026-04-07', '2026-04-07 14:48:35', '2026-04-07 14:48:35'),
-       (1377, '10.2.0.14', '1775545038129-35862', 2, '2026-04-07', '2026-04-07 14:57:18', '2026-04-07 14:57:18');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1378, '2408:822a:33:7430:910c:1558:4320:5cc3%en0', '1775548981395-82297', 2, '2026-04-07',
-        '2026-04-07 16:03:01', '2026-04-07 16:03:01'),
-       (1379, '2408:822a:33:7430:910c:1558:4320:5cc3%en0', '1775549249099-53451', 2, '2026-04-07',
-        '2026-04-07 16:07:29', '2026-04-07 16:07:29'),
-       (1380, '10.2.0.14', '1775558305094-23817', 2, '2026-04-07', '2026-04-07 18:38:25', '2026-04-07 18:38:25'),
-       (1381, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775558754672-92227', 2, '2026-04-07',
-        '2026-04-07 18:45:55', '2026-04-07 18:45:55'),
-       (1382, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775610005636-90531', 2, '2026-04-08',
-        '2026-04-08 09:00:06', '2026-04-08 09:00:06'),
-       (1383, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775610408295-86808', 2, '2026-04-08',
-        '2026-04-08 09:06:48', '2026-04-08 09:06:48'),
-       (1384, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775611051605-763', 2, '2026-04-08',
-        '2026-04-08 09:17:32', '2026-04-08 09:17:32'),
-       (1385, '2408:822a:33:7430:a976:8f4b:a239:764d%en0', '1775611573677-93806', 2, '2026-04-08',
-        '2026-04-08 09:26:14', '2026-04-08 09:26:14'),
-       (1386, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775614713646-9990', 2, '2026-04-08',
-        '2026-04-08 10:18:34', '2026-04-08 10:18:34'),
-       (1387, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775615244974-10722', 2, '2026-04-08',
-        '2026-04-08 10:27:25', '2026-04-08 10:27:25');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1388, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775615610151-89054', 2, '2026-04-08',
-        '2026-04-08 10:33:30', '2026-04-08 10:33:30'),
-       (1389, '10.2.0.14', '1775621024565-13192', 2, '2026-04-08', '2026-04-08 12:03:45', '2026-04-08 12:03:45'),
-       (1390, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775629077435-78743', 2, '2026-04-08',
-        '2026-04-08 14:17:57', '2026-04-08 14:17:57'),
-       (1391, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775629493632-28839', 2, '2026-04-08',
-        '2026-04-08 14:24:54', '2026-04-08 14:24:54'),
-       (1392, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775630273904-51757', 2, '2026-04-08',
-        '2026-04-08 14:37:54', '2026-04-08 14:37:54'),
-       (1393, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775630673754-88726', 2, '2026-04-08',
-        '2026-04-08 14:44:34', '2026-04-08 14:44:34'),
-       (1394, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775630740084-96799', 2, '2026-04-08',
-        '2026-04-08 14:45:40', '2026-04-08 14:45:40'),
-       (1395, '10.2.0.14', '1775634872343-93232', 2, '2026-04-08', '2026-04-08 15:54:32', '2026-04-08 15:54:32'),
-       (1396, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775720038053-55696', 2, '2026-04-09',
-        '2026-04-09 15:33:58', '2026-04-09 15:33:58'),
-       (1397, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775726838583-15865', 2, '2026-04-09',
-        '2026-04-09 17:27:19', '2026-04-09 17:27:19');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1398, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775727590047-81538', 2, '2026-04-09',
-        '2026-04-09 17:39:50', '2026-04-09 17:39:50'),
-       (1399, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775742063456-34087', 2, '2026-04-09',
-        '2026-04-09 21:41:03', '2026-04-09 21:41:03'),
-       (1400, 'fd0a:b001:c002:d003:f743:4216:84e6:7364%utun7', '1775782054420-13475', 2, '2026-04-10',
-        '2026-04-10 08:47:34', '2026-04-10 08:47:34'),
-       (1401, '192.168.1.112', '1776041707349-95816', 2, '2026-04-13', '2026-04-13 08:55:07', '2026-04-13 08:55:07'),
-       (1402, 'fd53:414e:4746:4f52:305c:9326:921d:bf8d%utun7', '1776415747970-73741', 2, '2026-04-17',
-        '2026-04-17 16:49:08', '2026-04-17 16:49:08'),
-       (1403, 'fd53:414e:4746:4f52:305c:9326:921d:bf8d%utun7', '1776416043662-46038', 2, '2026-04-17',
-        '2026-04-17 16:54:04', '2026-04-17 16:54:04'),
-       (1404, 'fd53:414e:4746:4f52:305c:9326:921d:bf8d%utun7', '1776417133211-95660', 2, '2026-04-17',
-        '2026-04-17 17:12:13', '2026-04-17 17:12:13'),
-       (1405, 'fd53:414e:4746:4f52:305c:9326:921d:bf8d%utun7', '1776417520093-58591', 2, '2026-04-17',
-        '2026-04-17 17:18:40', '2026-04-17 17:18:40'),
-       (1406, 'fd53:414e:4746:4f52:305c:9326:921d:bf8d%utun7', '1776591993436-21601', 2, '2026-04-19',
-        '2026-04-19 17:46:33', '2026-04-19 17:46:33'),
-       (1407, 'fd53:414e:4746:4f52:305c:9326:921d:bf8d%utun7', '1776592666155-6718', 2, '2026-04-19',
-        '2026-04-19 17:57:46', '2026-04-19 17:57:46');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1408, 'fd53:414e:4746:4f52:305c:9326:921d:bf8d%utun7', '1776597060086-87328', 2, '2026-04-19',
-        '2026-04-19 19:11:00', '2026-04-19 19:11:00'),
-       (1409, 'fd53:414e:4746:4f52:305c:9326:921d:bf8d%utun7', '1776597830930-92007', 2, '2026-04-19',
-        '2026-04-19 19:23:51', '2026-04-19 19:23:51'),
-       (1410, '192.168.31.28', '1776600428413-78217', 2, '2026-04-19', '2026-04-19 20:07:08', '2026-04-19 20:07:08'),
-       (1411, '192.168.31.28', '1776602429974-63854', 2, '2026-04-19', '2026-04-19 20:40:30', '2026-04-19 20:40:30'),
-       (1412, '192.168.31.28', '1776603984128-40487', 2, '2026-04-19', '2026-04-19 21:06:24', '2026-04-19 21:06:24'),
-       (1413, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776666406296-64206', 2, '2026-04-20',
-        '2026-04-20 14:26:46', '2026-04-20 14:26:46'),
-       (1414, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776666861587-79639', 2, '2026-04-20',
-        '2026-04-20 14:34:22', '2026-04-20 14:34:22'),
-       (1415, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776667411573-82200', 2, '2026-04-20',
-        '2026-04-20 14:43:32', '2026-04-20 14:43:32'),
-       (1416, 'fd0a:b001:c002:d003:1645:556a:4c7:1dbf%utun7', '1776671347225-57372', 2, '2026-04-20',
-        '2026-04-20 15:49:07', '2026-04-20 15:49:07'),
-       (1417, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776736855831-19167', 2, '2026-04-21',
-        '2026-04-21 10:00:56', '2026-04-21 10:00:56');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1418, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776740191259-33344', 2, '2026-04-21',
-        '2026-04-21 10:56:31', '2026-04-21 10:56:31'),
-       (1419, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776741549134-30292', 2, '2026-04-21',
-        '2026-04-21 11:19:09', '2026-04-21 11:19:09'),
-       (1420, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776747036641-26285', 2, '2026-04-21',
-        '2026-04-21 12:50:37', '2026-04-21 12:50:37'),
-       (1421, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776747443472-45175', 2, '2026-04-21',
-        '2026-04-21 12:57:23', '2026-04-21 12:57:23'),
-       (1422, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776747767859-98282', 2, '2026-04-21',
-        '2026-04-21 13:02:48', '2026-04-21 13:02:48'),
-       (1423, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776748113757-1908', 2, '2026-04-21',
-        '2026-04-21 13:08:34', '2026-04-21 13:08:34'),
-       (1424, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776751766138-45123', 2, '2026-04-21',
-        '2026-04-21 14:09:26', '2026-04-21 14:09:26'),
-       (1425, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776754374349-29121', 2, '2026-04-21',
-        '2026-04-21 14:52:54', '2026-04-21 14:52:54'),
-       (1426, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776755449895-4097', 2, '2026-04-21',
-        '2026-04-21 15:10:50', '2026-04-21 15:10:50'),
-       (1427, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776756671540-59198', 2, '2026-04-21',
-        '2026-04-21 15:31:12', '2026-04-21 15:31:12');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1428, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776759088064-68363', 2, '2026-04-21',
-        '2026-04-21 16:11:28', '2026-04-21 16:11:28'),
-       (1429, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776759897801-82492', 2, '2026-04-21',
-        '2026-04-21 16:24:58', '2026-04-21 16:24:58'),
-       (1430, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776761250764-7003', 2, '2026-04-21',
-        '2026-04-21 16:47:31', '2026-04-21 16:47:31'),
-       (1431, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776767568426-19330', 2, '2026-04-21',
-        '2026-04-21 18:32:48', '2026-04-21 18:32:48'),
-       (1432, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776768519131-97731', 2, '2026-04-21',
-        '2026-04-21 18:48:39', '2026-04-21 18:48:39'),
-       (1433, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776821771854-8242', 2, '2026-04-22',
-        '2026-04-22 09:36:12', '2026-04-22 09:36:12'),
-       (1434, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776824633430-94041', 2, '2026-04-22',
-        '2026-04-22 10:23:53', '2026-04-22 10:23:53'),
-       (1435, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776826807842-8159', 2, '2026-04-22',
-        '2026-04-22 11:00:08', '2026-04-22 11:00:08'),
-       (1436, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776829480865-39887', 2, '2026-04-22',
-        '2026-04-22 11:44:41', '2026-04-22 11:44:41'),
-       (1437, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776829666113-67358', 2, '2026-04-22',
-        '2026-04-22 11:47:46', '2026-04-22 11:47:46');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1438, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776833989473-47868', 2, '2026-04-22',
-        '2026-04-22 12:59:49', '2026-04-22 12:59:49'),
-       (1439, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776838225215-36224', 2, '2026-04-22',
-        '2026-04-22 14:10:25', '2026-04-22 14:10:25'),
-       (1440, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776843143107-52530', 2, '2026-04-22',
-        '2026-04-22 15:32:23', '2026-04-22 15:32:23'),
-       (1441, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776843864528-85548', 2, '2026-04-22',
-        '2026-04-22 15:44:25', '2026-04-22 15:44:25'),
-       (1442, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1776914721398-11363', 2, '2026-04-23',
-        '2026-04-23 11:25:21', '2026-04-23 11:25:21'),
-       (1443, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1776919163759-35764', 2, '2026-04-23',
-        '2026-04-23 12:39:24', '2026-04-23 12:39:24'),
-       (1444, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1776919572588-17189', 2, '2026-04-23',
-        '2026-04-23 12:46:13', '2026-04-23 12:46:13'),
-       (1445, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1776924916567-91498', 2, '2026-04-23',
-        '2026-04-23 14:15:17', '2026-04-23 14:15:17'),
-       (1446, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1776925093825-4929', 2, '2026-04-23',
-        '2026-04-23 14:18:14', '2026-04-23 14:18:14'),
-       (1447, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1776925141754-19148', 2, '2026-04-23',
-        '2026-04-23 14:19:02', '2026-04-23 14:19:02');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1448, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1776925411434-88549', 2, '2026-04-23',
-        '2026-04-23 14:23:31', '2026-04-23 14:23:31'),
-       (1449, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1776931699986-5785', 2, '2026-04-23',
-        '2026-04-23 16:08:20', '2026-04-23 16:08:20'),
-       (1450, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776933671197-5589', 2, '2026-04-23',
-        '2026-04-23 16:41:11', '2026-04-23 16:41:11'),
-       (1451, 'fd53:414e:4746:4f52:1be2:890f:e48d:52d3%utun7', '1776934354782-70282', 2, '2026-04-23',
-        '2026-04-23 16:52:35', '2026-04-23 16:52:35'),
-       (1452, 'fd0a:b001:c002:d003:1645:556a:4c7:1dbf%utun7', '1776995380569-18803', 2, '2026-04-24',
-        '2026-04-24 09:49:41', '2026-04-24 09:49:41'),
-       (1453, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777002569242-15012', 2, '2026-04-24',
-        '2026-04-24 11:49:29', '2026-04-24 11:49:29'),
-       (1454, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777011027762-36893', 2, '2026-04-24',
-        '2026-04-24 14:10:28', '2026-04-24 14:10:28'),
-       (1455, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777176144255-70705', 2, '2026-04-26',
-        '2026-04-26 12:02:24', '2026-04-26 12:02:24'),
-       (1456, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777194667830-87859', 2, '2026-04-26',
-        '2026-04-26 17:11:08', '2026-04-26 17:11:08'),
-       (1457, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777195120608-40859', 2, '2026-04-26',
-        '2026-04-26 17:18:41', '2026-04-26 17:18:41');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1458, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777195202300-8299', 2, '2026-04-26',
-        '2026-04-26 17:20:02', '2026-04-26 17:20:02'),
-       (1459, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777196521240-57769', 2, '2026-04-26',
-        '2026-04-26 17:42:01', '2026-04-26 17:42:01'),
-       (1460, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777196788165-48817', 2, '2026-04-26',
-        '2026-04-26 17:46:28', '2026-04-26 17:46:28'),
-       (1461, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777200337911-16460', 2, '2026-04-26',
-        '2026-04-26 18:45:38', '2026-04-26 18:45:38'),
-       (1462, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777201034891-60059', 2, '2026-04-26',
-        '2026-04-26 18:57:15', '2026-04-26 18:57:15'),
-       (1463, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777201357591-64465', 2, '2026-04-26',
-        '2026-04-26 19:02:38', '2026-04-26 19:02:38'),
-       (1464, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777201702650-83338', 2, '2026-04-26',
-        '2026-04-26 19:08:23', '2026-04-26 19:08:23'),
-       (1465, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777202251256-20584', 2, '2026-04-26',
-        '2026-04-26 19:17:31', '2026-04-26 19:17:31'),
-       (1466, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777202582992-62526', 2, '2026-04-26',
-        '2026-04-26 19:23:03', '2026-04-26 19:23:03'),
-       (1467, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777203052571-38638', 2, '2026-04-26',
-        '2026-04-26 19:30:53', '2026-04-26 19:30:53');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1468, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777203492152-6160', 2, '2026-04-26',
-        '2026-04-26 19:38:12', '2026-04-26 19:38:12'),
-       (1469, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777203954719-15654', 2, '2026-04-26',
-        '2026-04-26 19:45:55', '2026-04-26 19:45:55'),
-       (1470, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777204348821-60506', 2, '2026-04-26',
-        '2026-04-26 19:52:29', '2026-04-26 19:52:29'),
-       (1471, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777204495604-7618', 2, '2026-04-26',
-        '2026-04-26 19:54:56', '2026-04-26 19:54:56'),
-       (1472, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777204647610-2376', 2, '2026-04-26',
-        '2026-04-26 19:57:28', '2026-04-26 19:57:28'),
-       (1473, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777204819921-62803', 2, '2026-04-26',
-        '2026-04-26 20:00:20', '2026-04-26 20:00:20'),
-       (1474, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777204977916-73849', 2, '2026-04-26',
-        '2026-04-26 20:02:58', '2026-04-26 20:02:58'),
-       (1475, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777205332815-10860', 2, '2026-04-26',
-        '2026-04-26 20:08:53', '2026-04-26 20:08:53'),
-       (1476, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777205561969-88901', 2, '2026-04-26',
-        '2026-04-26 20:12:42', '2026-04-26 20:12:42'),
-       (1477, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777206200356-73608', 2, '2026-04-26',
-        '2026-04-26 20:23:20', '2026-04-26 20:23:20');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1478, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777208515755-76213', 2, '2026-04-26',
-        '2026-04-26 21:01:56', '2026-04-26 21:01:56'),
-       (1479, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777253396489-25377', 2, '2026-04-27',
-        '2026-04-27 09:29:56', '2026-04-27 09:29:56'),
-       (1480, 'fd0a:b001:c002:d003:b853:ae7d:3780:8465%utun7', '1777261644694-67349', 2, '2026-04-27',
-        '2026-04-27 11:47:25', '2026-04-27 11:47:25'),
-       (1481, '10.2.0.14', '1777272083820-80647', 2, '2026-04-27', '2026-04-27 14:41:24', '2026-04-27 14:41:24'),
-       (1482, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777295285821-37735', 2, '2026-04-27',
-        '2026-04-27 21:08:06', '2026-04-27 21:08:06'),
-       (1483, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777295542679-79394', 2, '2026-04-27',
-        '2026-04-27 21:12:23', '2026-04-27 21:12:23'),
-       (1484, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777297484130-15685', 2, '2026-04-27',
-        '2026-04-27 21:44:44', '2026-04-27 21:44:44'),
-       (1485, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777352638034-13471', 2, '2026-04-28',
-        '2026-04-28 13:03:58', '2026-04-28 13:03:58'),
-       (1486, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777356664791-37734', 2, '2026-04-28',
-        '2026-04-28 14:11:05', '2026-04-28 14:11:05'),
-       (1487, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777357367408-72254', 2, '2026-04-28',
-        '2026-04-28 14:22:47', '2026-04-28 14:22:47');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1488, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777357899724-15104', 2, '2026-04-28',
-        '2026-04-28 14:31:40', '2026-04-28 14:31:40'),
-       (1489, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777358514610-16607', 2, '2026-04-28',
-        '2026-04-28 14:41:55', '2026-04-28 14:41:55'),
-       (1490, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777359484560-98701', 2, '2026-04-28',
-        '2026-04-28 14:58:05', '2026-04-28 14:58:05'),
-       (1491, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777359681761-88814', 2, '2026-04-28',
-        '2026-04-28 15:01:22', '2026-04-28 15:01:22'),
-       (1492, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777361779130-65958', 2, '2026-04-28',
-        '2026-04-28 15:36:19', '2026-04-28 15:36:19'),
-       (1493, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777363110526-90131', 2, '2026-04-28',
-        '2026-04-28 15:58:31', '2026-04-28 15:58:31'),
-       (1494, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777365398447-54618', 2, '2026-04-28',
-        '2026-04-28 16:36:38', '2026-04-28 16:36:38'),
-       (1495, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777366179038-68860', 2, '2026-04-28',
-        '2026-04-28 16:49:39', '2026-04-28 16:49:39'),
-       (1496, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777368825623-52844', 2, '2026-04-28',
-        '2026-04-28 17:33:46', '2026-04-28 17:33:46'),
-       (1497, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777372214469-38422', 2, '2026-04-28',
-        '2026-04-28 18:30:14', '2026-04-28 18:30:14');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1498, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777372621860-6269', 2, '2026-04-28',
-        '2026-04-28 18:37:02', '2026-04-28 18:37:02'),
-       (1499, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777435102131-54477', 2, '2026-04-29',
-        '2026-04-29 11:58:22', '2026-04-29 11:58:22'),
-       (1500, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777435165868-56406', 2, '2026-04-29',
-        '2026-04-29 11:59:26', '2026-04-29 11:59:26'),
-       (1501, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777444475479-47202', 2, '2026-04-29',
-        '2026-04-29 14:34:35', '2026-04-29 14:34:35'),
-       (1502, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777449320414-53765', 2, '2026-04-29',
-        '2026-04-29 15:55:20', '2026-04-29 15:55:20'),
-       (1503, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777452298875-95320', 2, '2026-04-29',
-        '2026-04-29 16:44:59', '2026-04-29 16:44:59'),
-       (1504, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777513621797-61541', 2, '2026-04-30',
-        '2026-04-30 09:47:02', '2026-04-30 09:47:02'),
-       (1505, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777517059587-42823', 2, '2026-04-30',
-        '2026-04-30 10:44:20', '2026-04-30 10:44:20'),
-       (1506, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777517510414-83092', 2, '2026-04-30',
-        '2026-04-30 10:51:50', '2026-04-30 10:51:50'),
-       (1507, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777519407961-97249', 2, '2026-04-30',
-        '2026-04-30 11:23:28', '2026-04-30 11:23:28');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1508, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777520425234-67561', 2, '2026-04-30',
-        '2026-04-30 11:40:25', '2026-04-30 11:40:25'),
-       (1509, 'fd0a:b001:c002:d003:b853:ae7d:3780:8465%utun7', '1777531466534-76827', 2, '2026-04-30',
-        '2026-04-30 14:44:27', '2026-04-30 14:44:27'),
-       (1510, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777534250029-93163', 2, '2026-04-30',
-        '2026-04-30 15:30:50', '2026-04-30 15:30:50'),
-       (1511, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777534403874-3727', 2, '2026-04-30',
-        '2026-04-30 15:33:24', '2026-04-30 15:33:24'),
-       (1512, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777535284902-93806', 2, '2026-04-30',
-        '2026-04-30 15:48:05', '2026-04-30 15:48:05'),
-       (1513, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777536051891-27608', 2, '2026-04-30',
-        '2026-04-30 16:00:52', '2026-04-30 16:00:52'),
-       (1514, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777536535071-41994', 2, '2026-04-30',
-        '2026-04-30 16:08:55', '2026-04-30 16:08:55'),
-       (1515, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777536747391-1353', 2, '2026-04-30',
-        '2026-04-30 16:12:27', '2026-04-30 16:12:27'),
-       (1516, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777537197378-32983', 2, '2026-04-30',
-        '2026-04-30 16:19:57', '2026-04-30 16:19:57'),
-       (1517, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777552028827-45313', 2, '2026-04-30',
-        '2026-04-30 20:27:09', '2026-04-30 20:27:09');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1518, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777552136953-7696', 2, '2026-04-30',
-        '2026-04-30 20:28:57', '2026-04-30 20:28:57'),
-       (1519, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777554089238-61331', 2, '2026-04-30',
-        '2026-04-30 21:01:29', '2026-04-30 21:01:29'),
-       (1520, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777554385868-109', 2, '2026-04-30',
-        '2026-04-30 21:06:26', '2026-04-30 21:06:26'),
-       (1521, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777554703963-40858', 2, '2026-04-30',
-        '2026-04-30 21:11:44', '2026-04-30 21:11:44'),
-       (1522, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777555485001-39817', 2, '2026-04-30',
-        '2026-04-30 21:24:45', '2026-04-30 21:24:45'),
-       (1523, '10.2.0.14', '1777557114046-18364', 2, '2026-04-30', '2026-04-30 21:51:54', '2026-04-30 21:51:54'),
-       (1524, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777621308046-35480', 2, '2026-05-01',
-        '2026-05-01 15:41:48', '2026-05-01 15:41:48'),
-       (1525, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777621328025-24306', 2, '2026-05-01',
-        '2026-05-01 15:42:08', '2026-05-01 15:42:08'),
-       (1526, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777867704520-92989', 2, '2026-05-04',
-        '2026-05-04 12:08:25', '2026-05-04 12:08:25'),
-       (1527, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777867734484-80163', 2, '2026-05-04',
-        '2026-05-04 12:08:54', '2026-05-04 12:08:54');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1528, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777897028342-25128', 2, '2026-05-04',
-        '2026-05-04 20:17:08', '2026-05-04 20:17:08'),
-       (1529, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777898807676-31329', 2, '2026-05-04',
-        '2026-05-04 20:46:48', '2026-05-04 20:46:48'),
-       (1530, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777898824854-75765', 2, '2026-05-04',
-        '2026-05-04 20:47:05', '2026-05-04 20:47:05'),
-       (1531, 'fd74:7c0e:f920:90ef:8f6:5088:9254:33fc%bridge100', '1777901322836-80607', 2, '2026-05-04',
-        '2026-05-04 21:28:43', '2026-05-04 21:28:43'),
-       (1532, 'fd53:414e:4746:4f52:23ce:f60:bca6:a487%utun7', '1777945024849-67447', 2, '2026-05-05',
-        '2026-05-05 09:37:05', '2026-05-05 09:37:05'),
-       (1533, '192.168.31.52', '1777948550969-64157', 2, '2026-05-05', '2026-05-05 10:35:51', '2026-05-05 10:35:51'),
-       (1534, '192.168.31.52', '1777950312832-9553', 2, '2026-05-05', '2026-05-05 11:05:13', '2026-05-05 11:05:13'),
-       (1535, '192.168.31.52', '1777973953154-83601', 2, '2026-05-05', '2026-05-05 17:39:13', '2026-05-05 17:39:13'),
-       (1536, '192.168.31.52', '1777974715700-95532', 2, '2026-05-05', '2026-05-05 17:51:56', '2026-05-05 17:51:56'),
-       (1537, '192.168.31.52', '1777981620486-16660', 2, '2026-05-05', '2026-05-05 19:47:00', '2026-05-05 19:47:00');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1538, '192.168.31.52', '1777985792698-35160', 2, '2026-05-05', '2026-05-05 20:56:33', '2026-05-05 20:56:33'),
-       (1539, '192.168.31.52', '1777986657016-36434', 2, '2026-05-05', '2026-05-05 21:10:57', '2026-05-05 21:10:57'),
-       (1540, '192.168.31.52', '1777986951455-43813', 2, '2026-05-05', '2026-05-05 21:15:51', '2026-05-05 21:15:51'),
-       (1541, 'fd0a:b001:c002:d003:2d44:f019:af8c:8ff3%utun7', '1778032270895-77404', 2, '2026-05-06',
-        '2026-05-06 09:51:11', '2026-05-06 09:51:11'),
-       (1542, 'fd53:414e:4746:4f52:9588:7140:f2fe:908%utun7', '1778032318204-80280', 2, '2026-05-06',
-        '2026-05-06 09:51:58', '2026-05-06 09:51:58'),
-       (1543, 'fd53:414e:4746:4f52:9588:7140:f2fe:908%utun7', '1778032333529-44645', 2, '2026-05-06',
-        '2026-05-06 09:52:14', '2026-05-06 09:52:14'),
-       (1544, 'fd53:414e:4746:4f52:9588:7140:f2fe:908%utun7', '1778032407263-14874', 2, '2026-05-06',
-        '2026-05-06 09:53:27', '2026-05-06 09:53:27'),
-       (1545, 'fd53:414e:4746:4f52:9588:7140:f2fe:908%utun7', '1778033689950-38738', 2, '2026-05-06',
-        '2026-05-06 10:14:50', '2026-05-06 10:14:50'),
-       (1546, 'fd53:414e:4746:4f52:9588:7140:f2fe:908%utun7', '1778034772043-62505', 2, '2026-05-06',
-        '2026-05-06 10:32:52', '2026-05-06 10:32:52'),
-       (1547, 'fd0a:b001:c002:d003:2d44:f019:af8c:8ff3%utun7', '1778035409275-46870', 2, '2026-05-06',
-        '2026-05-06 10:43:29', '2026-05-06 10:43:29');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1548, 'fd53:414e:4746:4f52:9588:7140:f2fe:908%utun7', '1778038613877-94969', 2, '2026-05-06',
-        '2026-05-06 11:36:54', '2026-05-06 11:36:54'),
-       (1549, 'fd53:414e:4746:4f52:9588:7140:f2fe:908%utun7', '1778038658759-43174', 2, '2026-05-06',
-        '2026-05-06 11:37:39', '2026-05-06 11:37:39'),
-       (1550, 'fd53:414e:4746:4f52:9588:7140:f2fe:908%utun7', '1778047805939-67124', 2, '2026-05-06',
-        '2026-05-06 14:10:06', '2026-05-06 14:10:06'),
-       (1551, 'fd53:414e:4746:4f52:f352:6e:1319:7b19%utun7', '1778122051857-32767', 2, '2026-05-07',
-        '2026-05-07 10:47:32', '2026-05-07 10:47:32'),
-       (1552, 'fd53:414e:4746:4f52:f352:6e:1319:7b19%utun7', '1778122080304-84431', 2, '2026-05-07',
-        '2026-05-07 10:48:00', '2026-05-07 10:48:00'),
-       (1553, 'fd53:414e:4746:4f52:f352:6e:1319:7b19%utun7', '1778124579473-56199', 2, '2026-05-07',
-        '2026-05-07 11:29:39', '2026-05-07 11:29:39'),
-       (1554, 'fd53:414e:4746:4f52:f352:6e:1319:7b19%utun7', '1778137507760-42940', 2, '2026-05-07',
-        '2026-05-07 15:05:08', '2026-05-07 15:05:08'),
-       (1555, 'fd53:414e:4746:4f52:f352:6e:1319:7b19%utun7', '1778137528608-25707', 2, '2026-05-07',
-        '2026-05-07 15:05:29', '2026-05-07 15:05:29'),
-       (1556, 'fd53:414e:4746:4f52:f352:6e:1319:7b19%utun7', '1778138161908-71426', 2, '2026-05-07',
-        '2026-05-07 15:16:02', '2026-05-07 15:16:02'),
-       (1557, 'fd53:414e:4746:4f52:f352:6e:1319:7b19%utun7', '1778138257373-97521', 2, '2026-05-07',
-        '2026-05-07 15:17:37', '2026-05-07 15:17:37');
-INSERT INTO worker_node (ID, HOST_NAME, PORT, `TYPE`, LAUNCH_DATE, MODIFIED, CREATED)
-VALUES (1558, 'fd53:414e:4746:4f52:f352:6e:1319:7b19%utun7', '1778138886191-95320', 2, '2026-05-07',
-        '2026-05-07 15:28:06', '2026-05-07 15:28:06'),
-       (1559, 'fd53:414e:4746:4f52:f352:6e:1319:7b19%utun7', '1778138929680-38499', 2, '2026-05-07',
-        '2026-05-07 15:28:50', '2026-05-07 15:28:50');
