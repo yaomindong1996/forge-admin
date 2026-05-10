@@ -90,6 +90,12 @@
             <artifactId>forge-plugin-ai</artifactId>
         </dependency>
         
+        <!-- 外部接口代理转发插件 -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-plugin-external</artifactId>
+        </dependency>
+        
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
