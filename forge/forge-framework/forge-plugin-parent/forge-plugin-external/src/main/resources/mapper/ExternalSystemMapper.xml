@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.external.mapper.ExternalSystemMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.external.entity.ExternalSystem">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="system_code" property="systemCode"/>
+        <result column="system_name" property="systemName"/>
+        <result column="system_desc" property="systemDesc"/>
+        <result column="base_url" property="baseUrl"/>
+        <result column="auth_type" property="authType"/>
+        <result column="basic_username" property="basicUsername"/>
+        <result column="basic_password" property="basicPassword"/>
+        <result column="token_value" property="tokenValue"/>
+        <result column="token_header_name" property="tokenHeaderName"/>
+        <result column="token_prefix" property="tokenPrefix"/>
+        <result column="oauth2_token_url" property="oauth2TokenUrl"/>
+        <result column="oauth2_client_id" property="oauth2ClientId"/>
+        <result column="oauth2_client_secret" property="oauth2ClientSecret"/>
+        <result column="oauth2_grant_type" property="oauth2GrantType"/>
+        <result column="oauth2_scope" property="oauth2Scope"/>
+        <result column="api_key_name" property="apiKeyName"/>
+        <result column="api_key_value" property="apiKeyValue"/>
+        <result column="api_key_position" property="apiKeyPosition"/>
+        <result column="custom_auth_adapter" property="customAuthAdapter"/>
+        <result column="custom_auth_config" property="customAuthConfig"/>
+        <result column="proxy_enabled" property="proxyEnabled"/>
+        <result column="proxy_host" property="proxyHost"/>
+        <result column="proxy_port" property="proxyPort"/>
+        <result column="proxy_username" property="proxyUsername"/>
+        <result column="proxy_password" property="proxyPassword"/>
+        <result column="retry_enabled" property="retryEnabled"/>
+        <result column="retry_max_attempts" property="retryMaxAttempts"/>
+        <result column="retry_backoff_interval" property="retryBackoffInterval"/>
+        <result column="connect_timeout" property="connectTimeout"/>
+        <result column="read_timeout" property="readTimeout"/>
+        <result column="write_timeout" property="writeTimeout"/>
+        <result column="ssl_verify_enabled" property="sslVerifyEnabled"/>
+        <result column="request_logging_enabled" property="requestLoggingEnabled"/>
+        <result column="system_status" property="systemStatus"/>
+        <result column="remark" property="remark"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectSystemPage" resultMap="BaseResultMap">
+        SELECT s.*, 
+               (SELECT COUNT(*) FROM sys_external_api a WHERE a.system_id = s.id AND a.tenant_id = #{query.tenantId}) AS api_count
+        FROM sys_external_system s
+        WHERE s.tenant_id = #{query.tenantId}
+        <if test="query.systemCode != null and query.systemCode != ''">
+            AND s.system_code LIKE CONCAT('%', #{query.systemCode}, '%')
+        </if>
+        <if test="query.systemName != null and query.systemName != ''">
+            AND s.system_name LIKE CONCAT('%', #{query.systemName}, '%')
+        </if>
+        <if test="query.authType != null and query.authType != ''">
+            AND s.auth_type = #{query.authType}
+        </if>
+        <if test="query.systemStatus != null">
+            AND s.system_status = #{query.systemStatus}
+        </if>
+        ORDER BY s.create_time DESC
+    </select>
+
+    <select id="selectSystemByCode" resultMap="BaseResultMap">
+        SELECT *
+        FROM sys_external_system
+        WHERE system_code = #{systemCode}
+          AND tenant_id = #{tenantId}
+          AND system_status = 1
+    </select>
+
+</mapper>

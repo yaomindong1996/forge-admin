@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.external.mapper.ExternalApiMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.external.entity.ExternalApi">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="system_id" property="systemId"/>
+        <result column="api_code" property="apiCode"/>
+        <result column="api_name" property="apiName"/>
+        <result column="api_desc" property="apiDesc"/>
+        <result column="api_path" property="apiPath"/>
+        <result column="api_method" property="apiMethod"/>
+        <result column="request_content_type" property="requestContentType"/>
+        <result column="request_headers" property="requestHeaders"/>
+        <result column="request_params" property="requestParams"/>
+        <result column="request_body_template" property="requestBodyTemplate"/>
+        <result column="response_content_type" property="responseContentType"/>
+        <result column="response_data_path" property="responseDataPath"/>
+        <result column="response_total_path" property="responseTotalPath"/>
+        <result column="param_mapping_enabled" property="paramMappingEnabled"/>
+        <result column="param_mappings" property="paramMappings"/>
+        <result column="response_transform_enabled" property="responseTransformEnabled"/>
+        <result column="response_transform_script" property="responseTransformScript"/>
+        <result column="error_code_path" property="errorCodePath"/>
+        <result column="error_msg_path" property="errorMsgPath"/>
+        <result column="success_codes" property="successCodes"/>
+        <result column="rate_limit_enabled" property="rateLimitEnabled"/>
+        <result column="rate_limit_qps" property="rateLimitQps"/>
+        <result column="cache_enabled" property="cacheEnabled"/>
+        <result column="cache_ttl" property="cacheTtl"/>
+        <result column="cache_key_template" property="cacheKeyTemplate"/>
+        <result column="permission_check_enabled" property="permissionCheckEnabled"/>
+        <result column="required_permission" property="requiredPermission"/>
+        <result column="api_status" property="apiStatus"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="remark" property="remark"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <resultMap id="ApiWithSystemResultMap" type="com.mdframe.forge.plugin.external.entity.ExternalApi" extends="BaseResultMap">
+        <result column="system_name" property="systemName"/>
+        <result column="system_code" property="systemCode"/>
+    </resultMap>
+
+    <select id="selectApiPage" resultMap="ApiWithSystemResultMap">
+        SELECT a.*, s.system_name, s.system_code
+        FROM sys_external_api a
+        LEFT JOIN sys_external_system s ON a.system_id = s.id
+        WHERE a.tenant_id = #{query.tenantId}
+        <if test="query.systemId != null">
+            AND a.system_id = #{query.systemId}
+        </if>
+        <if test="query.apiCode != null and query.apiCode != ''">
+            AND a.api_code LIKE CONCAT('%', #{query.apiCode}, '%')
+        </if>
+        <if test="query.apiName != null and query.apiName != ''">
+            AND a.api_name LIKE CONCAT('%', #{query.apiName}, '%')
+        </if>
+        <if test="query.apiMethod != null and query.apiMethod != ''">
+            AND a.api_method = #{query.apiMethod}
+        </if>
+        <if test="query.apiStatus != null">
+            AND a.api_status = #{query.apiStatus}
+        </if>
+        ORDER BY a.sort_order ASC, a.create_time DESC
+    </select>
+
+    <select id="selectApisBySystemId" resultMap="BaseResultMap">
+        SELECT *
+        FROM sys_external_api
+        WHERE system_id = #{systemId}
+          AND api_status = 1
+        ORDER BY sort_order ASC, create_time DESC
+    </select>
+
+    <select id="selectApiByCode" resultMap="BaseResultMap">
+        SELECT *
+        FROM sys_external_api
+        WHERE api_code = #{apiCode}
+          AND system_id = #{systemId}
+          AND api_status = 1
+    </select>
+
+</mapper>
