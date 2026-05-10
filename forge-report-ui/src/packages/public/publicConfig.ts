@@ -39,7 +39,10 @@ export const requestConfig: RequestConfigType = {
     },
     Header: {},
     Params: {}
-  }
+  },
+  requestSource: 'internal',
+  externalApiId: null,
+  externalRequestParams: {}
 }
 
 // 单实例类

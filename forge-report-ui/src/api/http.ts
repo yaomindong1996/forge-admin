@@ -116,6 +116,16 @@ export const customizeHttp = (targetParams: RequestConfigType, globalParams: Req
   if (!targetParams || !globalParams) {
     return
   }
+
+  // 判断接口来源
+  const requestSource = targetParams.requestSource || 'internal'
+  
+  // 外部接口：通过代理转发
+  if (requestSource === 'external' && targetParams.externalApiId) {
+    return externalProxyRequest(targetParams)
+  }
+
+  // 内部接口：原有逻辑
   // 全局
   const {
     // 全局请求源地址
@@ -222,5 +232,34 @@ export const customizeHttp = (targetParams: RequestConfigType, globalParams: Req
   } catch (error) {
     console.log(error)
     window['$message'].error('URL地址格式有误！')
+  }
+}
+
+/**
+ * * 外部接口代理请求
+ * @param targetParams 当前组件参数
+ */
+const externalProxyRequest = (targetParams: RequestConfigType) => {
+  const { externalApiId, externalRequestParams, requestHttpType } = targetParams
+  
+  if (!externalApiId) {
+    window['$message'].error('未选择外部接口')
+    return
+  }
+
+  try {
+    return axiosInstance({
+      url: `/forge-report-api/external/proxy/${externalApiId}`,
+      method: RequestHttpEnum.POST,
+      data: {
+        params: externalRequestParams || {}
+      },
+      headers: {
+        'Content-Type': ContentTypeEnum.JSON
+      }
+    })
+  } catch (error) {
+    console.log(error)
+    window['$message'].error('外部接口请求失败')
   }
 }

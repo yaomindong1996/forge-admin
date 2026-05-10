@@ -200,6 +200,12 @@ export interface RequestConfigType extends RequestPublicConfigType {
   requestSQLContent: {
     sql: string
   }
+  // 接口来源（内部/外部）
+  requestSource?: 'internal' | 'external'
+  // 外部接口ID（当 requestSource 为 external 时）
+  externalApiId?: number | null
+  // 外部请求参数配置
+  externalRequestParams?: Record<string, any>
 }
 
 // Store 类型
