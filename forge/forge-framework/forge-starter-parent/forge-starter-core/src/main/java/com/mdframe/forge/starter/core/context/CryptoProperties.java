@@ -79,9 +79,14 @@ public class CryptoProperties {
     private List<String> replayIncludePaths = new ArrayList<>();
 
     /**
-     * 防重放排除路径
+     * 防重放排除路径（默认排除验证码相关接口）
      */
-    private List<String> replayExcludePaths = new ArrayList<>();
+    private List<String> replayExcludePaths = new ArrayList<>(List.of(
+            "/auth/captcha",
+            "/auth/captcha/**",
+            "/auth/loginConfig",
+            "/crypto/public-key"
+    ));
 
     /**
      * API加解密排除路径

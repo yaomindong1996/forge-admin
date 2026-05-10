@@ -128,6 +128,7 @@ public class CryptoAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(ReplayTokenCache.class)
+    @ConditionalOnProperty(prefix = "forge.crypto", name = "enableReplayProtection", havingValue = "true")
     public FilterRegistrationBean<ReplayAttackFilter> replayAttackFilter(
             CryptoProperties properties,
             ReplayTokenCache tokenCache,

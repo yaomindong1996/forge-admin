@@ -106,7 +106,7 @@ export const crypto = {
 }
 
 export { aesDecrypt, aesEncrypt } from './crypto/aes'
-export { cryptoConfig, shouldEncrypt, updateCryptoConfig } from './crypto/crypto-config'
+export { cryptoConfig, matchPath, shouldEncrypt, updateCryptoConfig } from './crypto/crypto-config'
 // 导出传输加解密相关功能
 export { decrypt, decryptResponse, encrypt, encryptRequest } from './crypto/crypto-interceptor'
 export {

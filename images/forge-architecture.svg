@@ -1,0 +1,187 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 840">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ea580c"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="480" y="35" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="600" fill="#1e293b">Forge Admin 系统架构</text>
+
+  <!-- Layer 1: Client -->
+  <rect x="380" y="60" width="200" height="60" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="480" y="95" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" fill="#334155">浏览器客户端</text>
+
+  <!-- Layer 2: Frontend -->
+  <rect x="60" y="180" width="840" height="80" rx="4" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="75" y="200" font-family="system-ui, sans-serif" font-size="12" fill="#64748b">前端层</text>
+  <rect x="380" y="195" width="200" height="55" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <text x="480" y="215" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#1e40af">forge-admin-ui</text>
+  <text x="480" y="235" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#3b82f6">Vue 3 + Naive UI + Vite</text>
+
+  <!-- Layer 3: Application Services -->
+  <rect x="60" y="310" width="840" height="100" rx="4" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="75" y="330" font-family="system-ui, sans-serif" font-size="12" fill="#64748b">应用服务层</text>
+
+  <!-- Admin Server (Main) -->
+  <rect x="80" y="345" width="180" height="60" rx="6" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+  <text x="170" y="365" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#92400e">forge-admin-server</text>
+  <text x="170" y="385" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#f59e0b">主应用入口 :8580</text>
+
+  <!-- Flow Service -->
+  <rect x="280" y="345" width="140" height="60" rx="6" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
+  <text x="350" y="365" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#166534">forge-flow</text>
+  <text x="350" y="385" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#22c55e">流程引擎 :8581</text>
+
+  <!-- Report Server -->
+  <rect x="440" y="345" width="160" height="60" rx="6" fill="#fae8ff" stroke="#a855f7" stroke-width="2"/>
+  <text x="520" y="365" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#7e22ce">forge-report-server</text>
+  <text x="520" y="385" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#a855f7">大屏报表</text>
+
+  <!-- App Server -->
+  <rect x="620" y="345" width="140" height="60" rx="6" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+  <text x="690" y="365" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="500" fill="#1e40af">forge-app-server</text>
+  <text x="690" y="385" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#3b82f6">App API</text>
+
+  <!-- Business Module -->
+  <rect x="780" y="345" width="100" height="60" rx="6" fill="#f9fafb" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="830" y="365" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#475569">forge-business</text>
+  <text x="830" y="385" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#64748b">业务模块</text>
+
+  <!-- Layer 4: Business Plugins -->
+  <rect x="60" y="450" width="840" height="100" rx="4" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="75" y="470" font-family="system-ui, sans-serif" font-size="12" fill="#64748b">业务插件层 (forge-plugin-parent)</text>
+
+  <!-- Plugin boxes in grid layout -->
+  <rect x="80" y="485" width="130" height="50" rx="5" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="145" y="507" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#92400e">plugin-system</text>
+  <text x="145" y="522" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#f59e0b">用户/角色/菜单</text>
+
+  <rect x="220" y="485" width="130" height="50" rx="5" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="285" y="507" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#1e40af">plugin-generator</text>
+  <text x="285" y="522" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#3b82f6">AI 代码生成</text>
+
+  <rect x="360" y="485" width="130" height="50" rx="5" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="425" y="507" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#92400e">plugin-job</text>
+  <text x="425" y="522" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#f59e0b">定时任务</text>
+
+  <rect x="500" y="485" width="130" height="50" rx="5" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="565" y="507" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#166534">plugin-message</text>
+  <text x="565" y="522" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#22c55e">消息中心</text>
+
+  <rect x="640" y="485" width="130" height="50" rx="5" fill="#fae8ff" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="705" y="507" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#7e22ce">plugin-flow</text>
+  <text x="705" y="522" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#a855f7">流程引擎</text>
+
+  <rect x="780" y="485" width="100" height="50" rx="5" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="830" y="507" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#1e40af">plugin-ai</text>
+  <text x="830" y="522" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#3b82f6">AI 供应商</text>
+
+  <!-- Layer 5: Technical Starters -->
+  <rect x="60" y="590" width="840" height="110" rx="4" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="75" y="610" font-family="system-ui, sans-serif" font-size="12" fill="#64748b">技术框架层 (forge-starter-parent - 20+ 启动器)</text>
+
+  <!-- Starter boxes in 2 rows grid layout -->
+  <rect x="80" y="625" width="95" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="127" y="647" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#475569">starter-auth</text>
+
+  <rect x="185" y="625" width="95" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="232" y="647" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#475569">starter-cache</text>
+
+  <rect x="290" y="625" width="95" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="337" y="647" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#475569">starter-orm</text>
+
+  <rect x="395" y="625" width="95" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="442" y="647" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#475569">starter-web</text>
+
+  <rect x="500" y="625" width="95" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="547" y="647" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#475569">starter-tenant</text>
+
+  <rect x="605" y="625" width="95" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="652" y="647" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#475569">starter-datascope</text>
+
+  <rect x="710" y="625" width="95" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="757" y="647" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#475569">starter-crypto</text>
+
+  <rect x="815" y="625" width="70" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="850" y="647" text-anchor="middle" font-family="system-ui, sans-serif" font-size="9" fill="#475569">...</text>
+
+  <!-- Row 2 of starters -->
+  <rect x="80" y="670" width="95" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="127" y="692" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#475569">starter-excel</text>
+
+  <rect x="185" y="670" width="95" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="232" y="692" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#475569">starter-file</text>
+
+  <rect x="290" y="670" width="95" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="337" y="692" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#475569">starter-log</text>
+
+  <rect x="395" y="670" width="95" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="442" y="692" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#475569">starter-id</text>
+
+  <rect x="500" y="670" width="95" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="547" y="692" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#475569">starter-idempotent</text>
+
+  <rect x="605" y="670" width="95" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="652" y="692" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#475569">starter-job</text>
+
+  <rect x="710" y="670" width="95" height="35" rx="4" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="757" y="692" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#475569">starter-websocket</text>
+
+  <!-- Layer 6: Data Storage -->
+  <rect x="60" y="730" width="840" height="90" rx="4" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="75" y="750" font-family="system-ui, sans-serif" font-size="12" fill="#64748b">数据存储层</text>
+
+  <!-- MySQL (Cylinder shape) -->
+  <rect x="280" y="765" width="140" height="50" rx="5" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+  <text x="350" y="795" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#92400e">MySQL 8.0+</text>
+
+  <!-- Redis (Cylinder shape) -->
+  <rect x="540" y="765" width="140" height="50" rx="5" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+  <text x="610" y="795" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="500" fill="#1e40af">Redis 6.0+</text>
+
+  <!-- Arrows - Layer connections -->
+  <!-- Client to Frontend -->
+  <line x1="480" y1="120" x2="480" y2="195" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="455" y="145" width="50" height="18" rx="3" fill="#ffffff" opacity="0.95"/>
+  <text x="480" y="157" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#2563eb">HTTP</text>
+
+  <!-- Frontend to Admin Server (primary) -->
+  <line x1="480" y1="250" x2="170" y2="345" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="295" y="280" width="70" height="18" rx="3" fill="#ffffff" opacity="0.95"/>
+  <text x="330" y="292" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#2563eb">REST API</text>
+
+  <!-- Frontend to other services (lighter arrows) -->
+  <line x1="480" y1="250" x2="350" y2="345" stroke="#2563eb" stroke-width="1.5" opacity="0.5" marker-end="url(#arrow)"/>
+  <line x1="480" y1="250" x2="520" y2="345" stroke="#2563eb" stroke-width="1.5" opacity="0.5" marker-end="url(#arrow)"/>
+  <line x1="480" y1="250" x2="690" y2="345" stroke="#2563eb" stroke-width="1.5" opacity="0.5" marker-end="url(#arrow)"/>
+
+  <!-- Admin Server to Plugins (control flow) -->
+  <line x1="170" y1="405" x2="145" y2="485" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <line x1="170" y1="405" x2="285" y2="485" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <line x1="170" y1="405" x2="425" y2="485" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <line x1="170" y1="405" x2="565" y2="485" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <line x1="170" y1="405" x2="705" y2="485" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+  <line x1="170" y1="405" x2="830" y2="485" stroke="#ea580c" stroke-width="1.5" marker-end="url(#arrow-orange)"/>
+
+  <!-- Plugins to Starters (downward) -->
+  <line x1="480" y1="550" x2="480" y2="625" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrow)"/>
+
+  <!-- Starters to Data (primary) -->
+  <line x1="350" y1="700" x2="350" y2="765" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="610" y1="700" x2="610" y2="765" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <rect x="740" y="45" width="180" height="85" rx="5" fill="#f9fafb" stroke="#e2e8f0"/>
+  <text x="750" y="65" font-family="system-ui, sans-serif" font-size="11" font-weight="500" fill="#334155">图例</text>
+  <line x1="750" y1="80" x2="780" y2="80" stroke="#2563eb" stroke-width="2"/>
+  <text x="790" y="84" font-family="system-ui, sans-serif" font-size="10" fill="#475569">主要数据流</text>
+  <line x1="750" y1="95" x2="780" y2="95" stroke="#ea580c" stroke-width="1.5"/>
+  <text x="790" y="99" font-family="system-ui, sans-serif" font-size="10" fill="#475569">控制/依赖</text>
+  <line x1="750" y1="110" x2="780" y2="110" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="790" y="114" font-family="system-ui, sans-serif" font-size="10" fill="#475569">框架支撑</text>
+
+</svg>

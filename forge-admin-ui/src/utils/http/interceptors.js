@@ -1,5 +1,5 @@
 import { useAuthStore } from '@/store'
-import { cryptoConfig, decryptResponse, encryptRequest } from '@/utils/crypto'
+import { cryptoConfig, decryptResponse, encryptRequest, matchPath } from '@/utils/crypto'
 import { resetKeyExchange } from '@/utils/crypto/key-exchange'
 import { resolveResError } from './helpers'
 
@@ -138,11 +138,11 @@ function reqResolve(config) {
   if (enableReplay && config.replay !== false) {
     const url = config.url || ''
     const path = url.split('?')[0]
-    const excludePaths = cryptoConfig?.replayExcludePaths || ['/auth/captcha']
+    const excludePaths = cryptoConfig?.replayExcludePaths || ['/auth/captcha', '/auth/captcha/**', '/auth/loginConfig', '/crypto/public-key']
 
     let excluded = false
     for (const pattern of excludePaths) {
-      if (path === pattern || path.endsWith(pattern)) {
+      if (matchPath(path, pattern)) {
         excluded = true
         break
       }
