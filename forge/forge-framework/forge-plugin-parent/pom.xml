@@ -22,6 +22,7 @@
         <module>forge-plugin-flow</module>
         <module>forge-plugin-generator</module>
         <module>forge-plugin-ai</module>
+        <module>forge-plugin-external</module>
     </modules>
 
 </project>
