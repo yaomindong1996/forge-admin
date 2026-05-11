@@ -97,7 +97,7 @@ import { http, customizeHttp } from '@/api/http'
 import { SelectHttpType } from '../../index.d'
 import { ChartDataMatchingAndShow } from '../ChartDataMatchingAndShow'
 import { useTargetData } from '../../../hooks/useTargetData.hook'
-import { newFunctionHandle } from '@/utils'
+import { newFunctionHandle, normalizeDatasetForChart } from '@/utils'
 
 const { HelpOutlineIcon, FlashIcon, PulseIcon } = icon.ionicons5
 const { targetData, chartEditStore } = useTargetData()
@@ -136,7 +136,8 @@ const sendHandle = async () => {
         showMatching.value = true
         return
       }
-      targetData.value.option.dataset = newFunctionHandle(data, res, targetData.value.filter)
+      const nextDataset = newFunctionHandle(data, res, targetData.value.filter)
+      targetData.value.option.dataset = normalizeDatasetForChart(nextDataset, targetData.value.chartConfig?.chartFrame)
       showMatching.value = true
       return
     }

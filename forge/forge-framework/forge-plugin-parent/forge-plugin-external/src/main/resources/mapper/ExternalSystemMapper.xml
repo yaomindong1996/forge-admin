@@ -25,6 +25,7 @@
         <result column="api_key_position" property="apiKeyPosition"/>
         <result column="custom_auth_adapter" property="customAuthAdapter"/>
         <result column="custom_auth_config" property="customAuthConfig"/>
+        <result column="trusted_internal" property="trustedInternal"/>
         <result column="proxy_enabled" property="proxyEnabled"/>
         <result column="proxy_host" property="proxyHost"/>
         <result column="proxy_port" property="proxyPort"/>

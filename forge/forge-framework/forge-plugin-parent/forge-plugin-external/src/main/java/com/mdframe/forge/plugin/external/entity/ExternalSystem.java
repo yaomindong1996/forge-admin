@@ -58,6 +58,8 @@ public class ExternalSystem extends TenantEntity {
 
     private String customAuthConfig;
 
+    private Boolean trustedInternal;
+
     private Boolean proxyEnabled;
 
     private String proxyHost;

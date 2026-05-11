@@ -22,6 +22,7 @@ export interface ExternalSystem {
   apiKeyPosition?: string
   customAuthAdapter?: string
   customAuthConfig?: string
+  trustedInternal?: boolean
   proxyEnabled?: boolean
   proxyHost?: string
   proxyPort?: number

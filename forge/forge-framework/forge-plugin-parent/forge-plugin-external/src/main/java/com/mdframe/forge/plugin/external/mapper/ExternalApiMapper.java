@@ -18,4 +18,6 @@ public interface ExternalApiMapper extends BaseMapper<ExternalApi> {
     List<ExternalApi> selectApisBySystemId(@Param("systemId") Long systemId);
     
     ExternalApi selectApiByCode(@Param("apiCode") String apiCode, @Param("systemId") Long systemId);
+
+    List<ExternalApi> selectApiListWithSystem(@Param("tenantId") Long tenantId);
 }

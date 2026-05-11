@@ -48,6 +48,11 @@
         
         <dependency>
             <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-crypto</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-plugin-system</artifactId>
         </dependency>
         
@@ -62,6 +67,12 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
+        </dependency>
+        
+        <!-- 外部接口代理转发插件 -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-plugin-external</artifactId>
         </dependency>
         
     </dependencies>

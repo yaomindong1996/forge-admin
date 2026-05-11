@@ -88,4 +88,13 @@
           AND api_status = 1
     </select>
 
+    <select id="selectApiListWithSystem" resultMap="ApiWithSystemResultMap">
+        SELECT a.*, s.system_name, s.system_code
+        FROM sys_external_api a
+        LEFT JOIN sys_external_system s ON a.system_id = s.id
+        WHERE a.tenant_id = #{tenantId}
+          AND a.api_status = 1
+        ORDER BY a.sort_order ASC, a.create_time DESC
+    </select>
+
 </mapper>

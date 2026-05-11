@@ -61,6 +61,21 @@ PREPARE stmt FROM @ddl;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 
+SET @column_exists := (
+  SELECT COUNT(1)
+  FROM information_schema.columns
+  WHERE table_schema = DATABASE()
+    AND table_name = 'sys_external_system'
+    AND column_name = 'trusted_internal'
+);
+SET @ddl := IF(@column_exists = 0,
+  'ALTER TABLE sys_external_system ADD COLUMN trusted_internal TINYINT(1) DEFAULT 0 COMMENT ''是否可信内部Forge系统'' AFTER custom_auth_config',
+  'SELECT ''sys_external_system.trusted_internal exists'''
+);
+PREPARE stmt FROM @ddl;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 CREATE TABLE IF NOT EXISTS sys_external_api_log (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   tenant_id BIGINT NOT NULL DEFAULT 1 COMMENT '租户编号',

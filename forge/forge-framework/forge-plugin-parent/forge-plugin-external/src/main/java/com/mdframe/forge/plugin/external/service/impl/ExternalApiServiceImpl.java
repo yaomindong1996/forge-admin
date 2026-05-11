@@ -36,4 +36,9 @@ public class ExternalApiServiceImpl extends ServiceImpl<ExternalApiMapper, Exter
     public ExternalApi getByCode(String apiCode, Long systemId) {
         return apiMapper.selectApiByCode(apiCode, systemId);
     }
+
+    @Override
+    public List<ExternalApi> listWithSystem() {
+        return apiMapper.selectApiListWithSystem(SessionHelper.getTenantId());
+    }
 }

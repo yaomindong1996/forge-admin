@@ -14809,6 +14809,7 @@ CREATE TABLE sys_external_system (
     api_key_position        VARCHAR(20) COMMENT 'API Key位置(header/query)',
     custom_auth_adapter     VARCHAR(100) COMMENT '自定义认证适配器字典值(external_auth_adapter)',
     custom_auth_config      TEXT COMMENT '自定义认证配置(JSON)',
+    trusted_internal        TINYINT(1) DEFAULT 0 COMMENT '是否可信内部Forge系统',
     proxy_enabled           TINYINT(1) DEFAULT 0 COMMENT '是否启用代理',
     proxy_host              VARCHAR(100) COMMENT '代理主机',
     proxy_port              INT COMMENT '代理端口',

@@ -119,6 +119,9 @@ export const customizeHttp = (targetParams: RequestConfigType, globalParams: Req
 
   // 判断接口来源
   const requestSource = targetParams.requestSource || 'internal'
+
+  // 静态数据不发起请求
+  if (targetParams.requestDataType === RequestDataTypeEnum.STATIC) return
   
   // 外部接口：通过代理转发
   if (requestSource === 'external' && targetParams.externalApiId) {
@@ -151,9 +154,6 @@ export const customizeHttp = (targetParams: RequestConfigType, globalParams: Req
     // 请求内容 params / cookie / header / body: 同 requestParamsBodyType
     requestParams: targetRequestParams
   } = targetParams
-
-  // 静态排除
-  if (requestDataType === RequestDataTypeEnum.STATIC) return
 
   if (!requestUrl) {
     return
@@ -240,7 +240,7 @@ export const customizeHttp = (targetParams: RequestConfigType, globalParams: Req
  * @param targetParams 当前组件参数
  */
 const externalProxyRequest = (targetParams: RequestConfigType) => {
-  const { externalApiId, externalRequestParams, requestHttpType } = targetParams
+  const { externalApiId, externalRequestParams } = targetParams
   
   if (!externalApiId) {
     window['$message'].error('未选择外部接口')
@@ -251,9 +251,7 @@ const externalProxyRequest = (targetParams: RequestConfigType) => {
     return axiosInstance({
       url: `/forge-report-api/external/proxy/${externalApiId}`,
       method: RequestHttpEnum.POST,
-      data: {
-        params: externalRequestParams || {}
-      },
+      data: externalRequestParams || {},
       headers: {
         'Content-Type': ContentTypeEnum.JSON
       }

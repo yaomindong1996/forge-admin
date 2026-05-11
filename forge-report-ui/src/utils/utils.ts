@@ -9,7 +9,7 @@ import { toString } from './type'
 import cloneDeep from 'lodash/cloneDeep'
 import { WinKeyboard } from '@/enums/editPageEnum'
 import { RequestHttpIntervalEnum, RequestParamsObjType } from '@/enums/httpEnum'
-import { CreateComponentType, CreateComponentGroupType } from '@/packages/index.d'
+import { CreateComponentType, CreateComponentGroupType, ChartFrameEnum } from '@/packages/index.d'
 import { excludeParseEventKeyList, excludeParseEventValueList } from '@/enums/eventEnum'
 
 /**
@@ -226,6 +226,65 @@ export const newFunctionHandle = (
     errorCallBack && errorCallBack(error)
     return '函数执行错误'
   }
+}
+
+const isRecord = (value: any): value is Record<string, any> => {
+  return Object.prototype.toString.call(value) === '[object Object]'
+}
+
+export const unwrapResponseData = (data: any): any => {
+  if (!isRecord(data)) return data
+
+  const hasResponseMeta =
+    Object.prototype.hasOwnProperty.call(data, 'code') ||
+    Object.prototype.hasOwnProperty.call(data, 'message') ||
+    Object.prototype.hasOwnProperty.call(data, 'msg') ||
+    Object.prototype.hasOwnProperty.call(data, 'timestamp')
+
+  if (hasResponseMeta && Object.prototype.hasOwnProperty.call(data, 'data')) {
+    return unwrapResponseData(data.data)
+  }
+
+  return data
+}
+
+export const normalizeDatasetForChart = (data: any, chartFrame?: ChartFrameEnum) => {
+  const unwrappedData = unwrapResponseData(data)
+
+  if (chartFrame !== ChartFrameEnum.ECHARTS) {
+    return unwrappedData
+  }
+
+  if (Array.isArray(unwrappedData)) {
+    return { source: unwrappedData }
+  }
+
+  if (isRecord(unwrappedData)) {
+    if (unwrappedData.dimensions || unwrappedData.source) {
+      return unwrappedData
+    }
+    if (Array.isArray(unwrappedData.data)) {
+      return { source: unwrappedData.data }
+    }
+    if (Array.isArray(unwrappedData.records)) {
+      return { source: unwrappedData.records }
+    }
+    const arrayEntries = Object.entries(unwrappedData).filter(([, value]) => Array.isArray(value))
+    if (arrayEntries.length) {
+      const dimensions = arrayEntries.map(([key]) => key)
+      const rowCount = Math.max(...arrayEntries.map(([, value]) => value.length))
+      const source = Array.from({ length: rowCount }, (_, index) => {
+        return arrayEntries.reduce((row, [key, value]) => {
+          row[key] = value[index]
+          return row
+        }, {} as Record<string, any>)
+      })
+      return { dimensions, source }
+    }
+    return { source: [unwrappedData] }
+  }
+
+  return unwrappedData
 }
 
 /**

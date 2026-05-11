@@ -458,6 +458,12 @@ const systemTableColumns = computed(() => [
     render: row => renderBooleanTag(row.requestLoggingEnabled),
   },
   {
+    prop: 'trustedInternal',
+    label: '内部系统',
+    width: 90,
+    render: row => renderBooleanTag(row.trustedInternal),
+  },
+  {
     prop: 'systemStatus',
     label: '状态',
     width: 80,
@@ -581,6 +587,7 @@ const systemEditSchema = computed(() => [
   { field: 'systemName', label: '系统名称', type: 'input', required: true, props: { placeholder: '如：统一用户中心' } },
   { field: 'systemCode', label: '系统编码', type: 'input', required: true, props: { placeholder: '如：user_center' } },
   { field: 'baseUrl', label: '基础URL', type: 'input', required: true, span: 2, props: { placeholder: '如：https://api.example.com，接口路径会基于该地址拼接' } },
+  { field: 'trustedInternal', label: '可信内部系统', type: 'radio', defaultValue: false, props: { options: booleanOptions } },
   { field: 'systemDesc', label: '系统描述', type: 'textarea', span: 2, props: { placeholder: '说明系统用途、负责人或调用范围', rows: 2 } },
 
   { field: '__system_auth', type: 'divider', label: '认证配置', span: 2, props: { titlePlacement: 'left' } },
@@ -763,6 +770,7 @@ function getDefaultSystemForm() {
     authType: 'none',
     systemStatus: 1,
     proxyEnabled: false,
+    trustedInternal: false,
     retryEnabled: true,
     retryMaxAttempts: 3,
     retryBackoffInterval: 1000,

@@ -34,6 +34,7 @@ CREATE TABLE `sys_external_system` (
   -- 自定义认证配置
   `custom_auth_adapter` varchar(100) DEFAULT NULL COMMENT '自定义认证适配器字典值（external_auth_adapter）',
   `custom_auth_config` text DEFAULT NULL COMMENT '自定义认证配置（JSON）',
+  `trusted_internal` tinyint(1) DEFAULT 0 COMMENT '是否可信内部Forge系统',
   
   -- 代理配置
   `proxy_enabled` tinyint(1) DEFAULT 0 COMMENT '是否启用代理',

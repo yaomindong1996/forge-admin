@@ -86,6 +86,7 @@ public class ExternalSystemController {
         entity.setApiKeyPosition(dto.getApiKeyPosition());
         entity.setCustomAuthAdapter(isCustomAuth(dto.getAuthType()) ? dto.getCustomAuthAdapter() : null);
         entity.setCustomAuthConfig(normalizeCustomAuthConfig(dto));
+        entity.setTrustedInternal(Boolean.TRUE.equals(dto.getTrustedInternal()));
         entity.setProxyEnabled(dto.getProxyEnabled());
         entity.setProxyHost(dto.getProxyHost());
         entity.setProxyPort(dto.getProxyPort());

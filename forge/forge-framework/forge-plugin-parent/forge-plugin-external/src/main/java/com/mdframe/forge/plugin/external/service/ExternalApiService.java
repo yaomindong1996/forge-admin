@@ -14,4 +14,6 @@ public interface ExternalApiService extends IService<ExternalApi> {
     List<ExternalApi> listBySystemId(Long systemId);
 
     ExternalApi getByCode(String apiCode, Long systemId);
+
+    List<ExternalApi> listWithSystem();
 }

@@ -1,9 +1,9 @@
 import { toRaw, watch, computed, ComputedRef } from 'vue'
 import { customizeHttp } from '@/api/http'
-import { CreateComponentType } from '@/packages/index.d'
+import { CreateComponentType, ChartFrameEnum } from '@/packages/index.d'
 import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore'
 import { RequestGlobalConfigType, RequestDataPondItemType } from '@/store/modules/chartEditStore/chartEditStore.d'
-import { newFunctionHandle, intervalUnitHandle } from '@/utils'
+import { newFunctionHandle, intervalUnitHandle, normalizeDatasetForChart } from '@/utils'
 
 // 获取类型
 type ChartEditStoreType = typeof useChartEditStore
@@ -12,6 +12,7 @@ type ChartEditStoreType = typeof useChartEditStore
 type DataPondMapType = {
   updateCallback: (...args: any) => any
   filter?: string | undefined
+  chartFrame?: ChartFrameEnum
 }
 
 // 数据池 Map 中请求对应 callback
@@ -36,7 +37,8 @@ const newPondItemInterval = (
         try {
           // 遍历更新回调函数
           dataPondMapItem.forEach(item => {
-            item.updateCallback(newFunctionHandle(res?.data, res, item.filter))
+            const nextDataset = normalizeDatasetForChart(newFunctionHandle(res?.data, res, item.filter), item.chartFrame)
+            item.updateCallback(nextDataset)
           })
         } catch (error) {
           console.error(error)
@@ -97,7 +99,8 @@ export const useChartDataPondFetch = () => {
     const mittPondIdArr = mittDataPondMap.get(requestDataPondId) || []
     mittPondIdArr.push({
       updateCallback: updateCallback,
-      filter: targetComponent.filter
+      filter: targetComponent.filter,
+      chartFrame: targetComponent.chartConfig?.chartFrame
     })
     mittDataPondMap.set(requestDataPondId, mittPondIdArr)
   }

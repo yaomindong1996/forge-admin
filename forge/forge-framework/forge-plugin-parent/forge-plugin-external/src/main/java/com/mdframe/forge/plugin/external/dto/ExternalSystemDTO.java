@@ -47,6 +47,8 @@ public class ExternalSystemDTO {
 
     private String customAuthConfig;
 
+    private Boolean trustedInternal;
+
     private Boolean proxyEnabled;
 
     private String proxyHost;

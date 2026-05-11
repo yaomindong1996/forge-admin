@@ -2,6 +2,10 @@ package com.mdframe.forge.plugin.external.service.impl;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import cn.dev33.satoken.stp.StpUtil;
+import cn.hutool.core.codec.Base64;
+import cn.hutool.crypto.asymmetric.KeyType;
+import cn.hutool.crypto.asymmetric.RSA;
 import com.mdframe.forge.plugin.external.adapter.DataAdapter;
 import com.mdframe.forge.plugin.external.adapter.DataAdapterFactory;
 import com.mdframe.forge.plugin.external.entity.ExternalApi;
@@ -16,6 +20,8 @@ import com.mdframe.forge.plugin.external.strategy.ExternalAuthStrategyFactory;
 import com.mdframe.forge.plugin.external.vo.ExternalApiDebugResult;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
+import com.mdframe.forge.starter.crypto.crypto.Encryptor;
+import com.mdframe.forge.starter.crypto.crypto.EncryptorFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +32,7 @@ import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.SecureRandom;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
@@ -43,6 +50,8 @@ public class ExternalProxyServiceImpl implements ExternalProxyService {
     private final ExternalApiLogService logService;
     private final ExternalAuthStrategyFactory authFactory;
     private final DataAdapterFactory adapterFactory;
+    private final EncryptorFactory encryptorFactory;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     @Override
     public Object proxyRequest(Long apiId, Map<String, Object> params) {
@@ -90,6 +99,14 @@ public class ExternalProxyServiceImpl implements ExternalProxyService {
                 requestBody = null;
             }
 
+            HttpClient client = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofMillis(resolveTimeout(system.getConnectTimeout(), 30000)))
+                    .build();
+            ExternalCryptoContext cryptoContext = isTrustedInternal(system) ? ExternalCryptoContext.disabled() : prepareExternalCrypto(client, system);
+            if (cryptoContext.enabled() && requestBody != null && isJsonRequest(api)) {
+                requestBody = encryptExternalRequestBody(requestBody, cryptoContext);
+            }
+
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(fullUrl))
                     .timeout(Duration.ofMillis(resolveTimeout(system.getReadTimeout(), 30000)));
@@ -97,16 +114,15 @@ public class ExternalProxyServiceImpl implements ExternalProxyService {
             ExternalAuthStrategy externalAuthStrategy = authFactory.getStrategy(resolveAuthStrategyType(system.getAuthType()));
             externalAuthStrategy.applyAuth(requestBuilder, buildAuthConfig(system));
             applyConfiguredHeaders(requestBuilder, api);
+            applyServiceCallHeaders(requestBuilder, system, cryptoContext);
 
             applyRequestMethod(requestBuilder, api, requestBody);
 
-            HttpClient client = HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofMillis(resolveTimeout(system.getConnectTimeout(), 30000)))
-                    .build();
             HttpResponse<String> response = sendRequest(client, requestBuilder.build());
             long durationMs = System.currentTimeMillis() - startTime;
 
-            Object responseData = parseResponse(api, response.body());
+            String responseBody = decryptExternalResponseBody(response.body(), cryptoContext);
+            Object responseData = parseResponse(api, responseBody);
             Object extractedData = extractResponseData(api, responseData);
             Object finalData = transformResponse(api, extractedData);
             finalData = buildResponsePayload(api, responseData, finalData);
@@ -117,11 +133,11 @@ public class ExternalProxyServiceImpl implements ExternalProxyService {
             result.setHttpStatusCode(response.statusCode());
             result.setDurationMs(durationMs);
             result.setResponseData(finalData);
-            result.setResponseBody(response.body());
+            result.setResponseBody(responseBody);
             result.setErrorMessage(responseErrorMessage);
 
             recordRuntimeLog(api, system, fullUrl, response.statusCode(), durationMs, result.getSuccess(), debugFlag, responseErrorMessage);
-            saveLog(api, system, fullUrl, requestParams, requestBody, response.body(), response.statusCode(), result.getSuccess(), responseErrorMessage, durationMs, debugFlag);
+            saveLog(api, system, fullUrl, requestParams, requestBody, responseBody, response.statusCode(), result.getSuccess(), responseErrorMessage, durationMs, debugFlag);
             return result;
         } catch (Exception e) {
             long durationMs = System.currentTimeMillis() - startTime;
@@ -461,6 +477,151 @@ public class ExternalProxyServiceImpl implements ExternalProxyService {
         return null;
     }
 
+    private ExternalCryptoContext prepareExternalCrypto(HttpClient client, ExternalSystem system) {
+        String publicKeyUrl = buildFullUrl(system.getBaseUrl(), "/crypto/public-key");
+        try {
+            HttpRequest publicKeyRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(publicKeyUrl))
+                    .timeout(Duration.ofMillis(resolveTimeout(system.getReadTimeout(), 30000)))
+                    .GET()
+                    .build();
+            HttpResponse<String> publicKeyResponse = sendRequest(client, publicKeyRequest);
+            if (publicKeyResponse.statusCode() < 200 || publicKeyResponse.statusCode() >= 300) {
+                return ExternalCryptoContext.disabled();
+            }
+            Object parsedPublicKey = JSON.parse(publicKeyResponse.body());
+            String publicKey = getStringPathValue(parsedPublicKey, "data.publicKey");
+            if (publicKey == null || publicKey.isEmpty()) {
+                return ExternalCryptoContext.disabled();
+            }
+
+            String sessionKey = generateSessionKey();
+            String sessionId = resolveExternalCryptoSessionId(system);
+            String authorization = resolveExternalAuthorization(system);
+            String encryptedKey = encryptByPublicKey(sessionKey, publicKey);
+            String exchangeUrl = buildFullUrl(system.getBaseUrl(), "/crypto/exchange");
+            JSONObject exchangeBody = new JSONObject();
+            exchangeBody.put("encryptedKey", encryptedKey);
+
+            HttpRequest.Builder exchangeBuilder = HttpRequest.newBuilder()
+                    .uri(URI.create(exchangeUrl))
+                    .timeout(Duration.ofMillis(resolveTimeout(system.getReadTimeout(), 30000)))
+                    .header("Content-Type", "application/json");
+            if (authorization != null && !authorization.isEmpty()) {
+                exchangeBuilder.header("Authorization", authorization);
+            }
+            exchangeBuilder.header("X-Session-Id", sessionId);
+            HttpResponse<String> exchangeResponse = sendRequest(client, exchangeBuilder
+                    .POST(HttpRequest.BodyPublishers.ofString(exchangeBody.toJSONString()))
+                    .build());
+            Object parsedExchange = JSON.parse(exchangeResponse.body());
+            Object code = getPathValue(parsedExchange, "code");
+            if (exchangeResponse.statusCode() >= 200 && exchangeResponse.statusCode() < 300
+                    && (code == null || "200".equals(String.valueOf(code)))) {
+                return new ExternalCryptoContext(true, sessionKey, sessionId);
+            }
+        } catch (Exception e) {
+            log.debug("外部系统未启用或不支持 API 加解密: systemId={}, message={}", system.getId(), e.getMessage());
+        }
+        return ExternalCryptoContext.disabled();
+    }
+
+    private String encryptExternalRequestBody(String requestBody, ExternalCryptoContext cryptoContext) {
+        Encryptor encryptor = encryptorFactory.getEncryptor("SM4");
+        JSONObject encryptedBody = new JSONObject();
+        encryptedBody.put("data", encryptor.encrypt(requestBody, cryptoContext.sessionKey()));
+        encryptedBody.put("algorithm", "SM4");
+        return encryptedBody.toJSONString();
+    }
+
+    private String decryptExternalResponseBody(String responseBody, ExternalCryptoContext cryptoContext) {
+        if (!cryptoContext.enabled() || responseBody == null || responseBody.isEmpty()) {
+            return responseBody;
+        }
+        try {
+            Object parsed = JSON.parse(responseBody);
+            if (!(parsed instanceof JSONObject payload)) {
+                return responseBody;
+            }
+            String encryptedData = payload.getString("data");
+            String algorithm = payload.getString("algorithm");
+            if (encryptedData == null || algorithm == null || algorithm.isEmpty()) {
+                return responseBody;
+            }
+            Encryptor encryptor = encryptorFactory.getEncryptor(algorithm);
+            return encryptor.decrypt(encryptedData, cryptoContext.sessionKey());
+        } catch (Exception e) {
+            throw new BusinessException("外部接口响应解密失败: " + e.getMessage());
+        }
+    }
+
+    private void applyServiceCallHeaders(HttpRequest.Builder requestBuilder, ExternalSystem system, ExternalCryptoContext cryptoContext) {
+        if (isTrustedInternal(system)) {
+            requestBuilder.setHeader("X-Inner-Call", "true");
+            return;
+        }
+        if (cryptoContext.enabled()) {
+            requestBuilder.setHeader("X-Session-Id", cryptoContext.sessionId());
+        }
+    }
+
+    private boolean isTrustedInternal(ExternalSystem system) {
+        return Boolean.TRUE.equals(system.getTrustedInternal());
+    }
+
+    private boolean isJsonRequest(ExternalApi api) {
+        String contentType = api.getRequestContentType();
+        return contentType == null || contentType.isEmpty() || contentType.toLowerCase().contains("json");
+    }
+
+    private String generateSessionKey() {
+        byte[] key = new byte[16];
+        secureRandom.nextBytes(key);
+        return Base64.encode(key);
+    }
+
+    private String encryptByPublicKey(String data, String publicKey) {
+        RSA rsa = new RSA(null, publicKey);
+        byte[] encrypted = rsa.encrypt(data.getBytes(StandardCharsets.UTF_8), KeyType.PublicKey);
+        return Base64.encode(encrypted);
+    }
+
+    private String resolveExternalCryptoSessionId(ExternalSystem system) {
+        String token = resolveExternalToken(system);
+        if (token != null && !token.isEmpty()) {
+            return token;
+        }
+        return "external-proxy:" + system.getId();
+    }
+
+    private String resolveExternalAuthorization(ExternalSystem system) {
+        String token = resolveExternalToken(system);
+        if (token == null || token.isEmpty()) {
+            return null;
+        }
+        String prefix = system.getTokenPrefix();
+        if (prefix == null || prefix.isEmpty()) {
+            prefix = "Bearer";
+        }
+        return prefix.isEmpty() ? token : prefix + " " + token;
+    }
+
+    private String resolveExternalToken(ExternalSystem system) {
+        String authType = system.getAuthType();
+        if ("current_token".equalsIgnoreCase(authType)) {
+            return StpUtil.isLogin() ? StpUtil.getTokenValue() : null;
+        }
+        if ("token".equalsIgnoreCase(authType) || "BearerToken".equalsIgnoreCase(authType)) {
+            return system.getTokenValue();
+        }
+        return null;
+    }
+
+    private String getStringPathValue(Object data, String path) {
+        Object value = getPathValue(data, path);
+        return value == null ? null : String.valueOf(value);
+    }
+
     private String buildFullUrl(String baseUrl, String apiPath) {
         String url = baseUrl;
         if (!baseUrl.endsWith("/")) {
@@ -553,9 +714,16 @@ public class ExternalProxyServiceImpl implements ExternalProxyService {
         Map<String, Object> headers = parseJsonObject(api.getRequestHeaders());
         for (Map.Entry<String, Object> entry : headers.entrySet()) {
             if (entry.getKey() != null && entry.getValue() != null) {
+                if (isReservedServiceHeader(entry.getKey())) {
+                    continue;
+                }
                 builder.header(entry.getKey(), String.valueOf(entry.getValue()));
             }
         }
+    }
+
+    private boolean isReservedServiceHeader(String headerName) {
+        return "X-Inner-Call".equalsIgnoreCase(headerName);
     }
 
     private void applyApiKeyBodyAuth(ExternalSystem system, Map<String, Object> params) {
@@ -604,5 +772,11 @@ public class ExternalProxyServiceImpl implements ExternalProxyService {
 
     private String defaultString(String value, String defaultValue) {
         return value == null || value.isEmpty() ? defaultValue : value;
+    }
+
+    private record ExternalCryptoContext(boolean enabled, String sessionKey, String sessionId) {
+        private static ExternalCryptoContext disabled() {
+            return new ExternalCryptoContext(false, null, null);
+        }
     }
 }

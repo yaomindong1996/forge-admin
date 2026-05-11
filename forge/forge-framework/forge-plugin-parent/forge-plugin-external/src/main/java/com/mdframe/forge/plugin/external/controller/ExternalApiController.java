@@ -62,7 +62,7 @@ public class ExternalApiController {
         if (systemId != null) {
             return RespInfo.success(apiService.listBySystemId(systemId));
         }
-        return RespInfo.success(apiService.list());
+        return RespInfo.success(apiService.listWithSystem());
     }
 
     private ExternalApi convertDtoToEntity(ExternalApiDTO dto) {
