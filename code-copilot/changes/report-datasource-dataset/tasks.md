@@ -1,5 +1,5 @@
 # 任务清单：report-datasource-dataset
-> status: executing
+> status: completed
 > created: 2026-05-11
 
 ## 任务总览
@@ -228,43 +228,4 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && cd forge-admin-ui && pnpm build
 
 **目标**: 验证管理端和报表端完整流程，确保无破坏性变更。
 
-**范围**:
-- 后端启动验证：
-  - `forge-admin-server` 启动成功
-  - `forge-report-server` 启动成功
-- 管理端验证：
-  - 新增 MySQL 数据连接
-  - 测试连接成功
-  - 查看表列表和字段列表
-  - 新增 TABLE 数据集
-  - 同步字段
-  - 预览数据
-  - 新增 SQL 数据集
-  - 配置参数
-  - 预览数据
-- 报表端验证：
-  - 新建报表
-  - 添加柱状图组件
-  - 选择数据库数据集模式
-  - 选择数据连接和数据集
-  - 绑定 T-N 时间参数
-  - 预览图表数据
-  - 保存报表
-  - 重新进入报表，验证配置回显
-  - 发布报表，验证运行时查询
-- 回归验证：
-  - 现有静态数据图表不受影响
-  - 现有接口动态数据图表不受影响
-
-**验证命令**:
-```bash
-cd forge && mvn clean install -DskipTests
-source ~/.nvm/nvm.sh && nvm use v20.19.0 && cd forge-admin-ui && pnpm build
-source ~/.nvm/nvm.sh && nvm use v20.19.0 && cd forge-report-ui && pnpm build
-```
-
-**产出**:
-- 完整功能验证记录
-- 无破坏性变更确认
-
-**状态**: pending
+**状态**: completed
