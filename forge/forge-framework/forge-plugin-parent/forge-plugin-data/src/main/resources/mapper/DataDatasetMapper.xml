@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.data.mapper.DataDatasetMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.data.entity.DataDataset">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="dataset_code" property="datasetCode"/>
+        <result column="dataset_name" property="datasetName"/>
+        <result column="connection_id" property="connectionId"/>
+        <result column="dataset_type" property="datasetType"/>
+        <result column="table_name" property="tableName"/>
+        <result column="sql_text" property="sqlText"/>
+        <result column="param_schema_json" property="paramSchemaJson"/>
+        <result column="default_order_json" property="defaultOrderJson"/>
+        <result column="max_rows" property="maxRows"/>
+        <result column="timeout_seconds" property="timeoutSeconds"/>
+        <result column="cache_enabled" property="cacheEnabled"/>
+        <result column="cache_ttl_seconds" property="cacheTtlSeconds"/>
+        <result column="status" property="status"/>
+        <result column="description" property="description"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectDatasetPage" resultMap="BaseResultMap">
+        SELECT *
+        FROM ai_report_data_dataset
+        WHERE tenant_id = #{tenantId}
+        <if test="datasetName != null and datasetName != ''">
+            AND dataset_name LIKE CONCAT('%', #{datasetName}, '%')
+        </if>
+        <if test="connectionId != null">
+            AND connection_id = #{connectionId}
+        </if>
+        <if test="datasetType != null and datasetType != ''">
+            AND dataset_type = #{datasetType}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectDatasetList" resultMap="BaseResultMap">
+        SELECT id, tenant_id, dataset_code, dataset_name, connection_id, dataset_type, 
+               table_name, max_rows, timeout_seconds, status, description
+        FROM ai_report_data_dataset
+        WHERE tenant_id = #{tenantId}
+          AND status = 1
+        <if test="connectionId != null">
+            AND connection_id = #{connectionId}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectDatasetByCode" resultMap="BaseResultMap">
+        SELECT *
+        FROM ai_report_data_dataset
+        WHERE dataset_code = #{datasetCode}
+          AND tenant_id = #{tenantId}
+          AND status = 1
+    </select>
+
+</mapper>

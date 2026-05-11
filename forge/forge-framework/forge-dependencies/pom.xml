@@ -444,12 +444,17 @@
                 <version>${revision}</version>
             </dependency>
             
-            <dependency>
+<dependency>
                 <groupId>com.mdframe.forge</groupId>
                 <artifactId>forge-plugin-external</artifactId>
                 <version>${revision}</version>
             </dependency>
             
+            <dependency>
+                <groupId>com.mdframe.forge</groupId>
+                <artifactId>forge-plugin-data</artifactId>
+                <version>${revision}</version>
+            </dependency>
             
         </dependencies>
     </dependencyManagement>

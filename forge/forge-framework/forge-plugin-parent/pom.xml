@@ -23,6 +23,7 @@
         <module>forge-plugin-generator</module>
         <module>forge-plugin-ai</module>
         <module>forge-plugin-external</module>
+        <module>forge-plugin-data</module>
     </modules>
 
 </project>

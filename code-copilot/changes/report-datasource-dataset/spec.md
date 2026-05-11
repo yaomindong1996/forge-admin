@@ -1,5 +1,5 @@
 # 平台级数据连接与数据集能力
-> status: proposed
+> status: confirmed
 > created: 2026-05-11
 > complexity: 🔴高
 
