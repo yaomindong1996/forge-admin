@@ -142,7 +142,7 @@ cd forge && mvn -pl forge-framework/forge-plugin-parent/forge-plugin-data,forge-
 
 **目标**: 实现 TABLE 查询构造、SQL 安全校验、参数绑定、结果转换。
 
-**状态**: executing
+**状态**: completed
 
 **范围**:
 - Controller：
