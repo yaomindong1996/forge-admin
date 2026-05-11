@@ -25,6 +25,8 @@
         <result column="error_code_path" property="errorCodePath"/>
         <result column="error_msg_path" property="errorMsgPath"/>
         <result column="success_codes" property="successCodes"/>
+        <result column="doc_file_id" property="docFileId"/>
+        <result column="doc_file_name" property="docFileName"/>
         <result column="rate_limit_enabled" property="rateLimitEnabled"/>
         <result column="rate_limit_qps" property="rateLimitQps"/>
         <result column="cache_enabled" property="cacheEnabled"/>

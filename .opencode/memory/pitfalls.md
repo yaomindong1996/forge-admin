@@ -218,7 +218,38 @@ if (processDefinition == null) {
 - 我的待办列表查询
 - 所有依赖 `TASK_ASSIGNED` 事件同步本地任务表的场景
 
-## 6. Flowable 委派态任务不能直接完成
+## 6. AiCrudPage 表格列配置不能直接使用 Naive UI title/key
+
+**发现日期**: 2026-05-11
+
+**问题描述**:
+外围系统/接口管理页面列表接口有数据，但表格字段显示为空。
+
+**错误示例**:
+```javascript
+const tableColumns = [
+  { title: '系统名称', key: 'systemName' }
+]
+```
+
+**正确用法**:
+```javascript
+const tableColumns = [
+  { label: '系统名称', prop: 'systemName' }
+]
+```
+
+**根本原因**:
+`AiCrudPage` 会再交给 `AiTable` 转换列配置，默认渲染逻辑读取 `row[col.prop]`。只配置 `key` 时，列标题能显示，但默认单元格取值会变成 `row[undefined]`，最终显示 `-` 或空值。
+
+**解决方案**:
+所有 `AiCrudPage` 的表格列统一使用 `label/prop`；只有直接使用 Naive `NDataTable` 时才使用 `title/key`。
+
+**影响范围**:
+- 所有基于 `AiCrudPage` 的 CRUD 页面
+- AI 生成或手写的前端管理页面
+
+## 7. Flowable 委派态任务不能直接完成
 
 **发现日期**: 2026-05-06
 

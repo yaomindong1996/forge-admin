@@ -13,6 +13,8 @@
       :on-finish="handleFinish"
       :on-error="handleError"
       :on-remove="handleRemove"
+      :on-preview="handlePreview"
+      :on-download="handleDownload"
       :disabled="disabled"
       :show-file-list="showFileList"
       @update:file-list="handleFileListChange"
@@ -176,18 +178,14 @@ const acceptTypes = computed(() => {
 
 // 监听 modelValue 变化，初始化文件列表
 watch(() => props.modelValue, (val, oldVal) => {
-  console.log('[FileUpload] modelValue 变化:', val, '旧值:', oldVal)
-
   // 如果有文件正在上传，不要覆盖列表
   const hasUploading = fileList.value.some(file => file.status === 'uploading')
   if (hasUploading) {
-    console.log('[FileUpload] 有文件正在上传，跳过列表更新')
     return
   }
 
   // 如果新值和旧值相同，不要重复更新
   if (val === oldVal) {
-    console.log('[FileUpload] 值未变化，跳过更新')
     return
   }
 
@@ -217,7 +215,6 @@ watch(() => props.modelValue, (val, oldVal) => {
 
   // 如果列表为空且当前有已完成的文件，不要清空
   if (list.length === 0 && fileList.value.some(file => file.status === 'finished')) {
-    console.log('[FileUpload] 新值为空但有已完成文件，保持当前列表')
     return
   }
 
@@ -247,7 +244,6 @@ watch(() => props.modelValue, (val, oldVal) => {
     return null
   }).filter(Boolean)
 
-  console.log('[FileUpload] 更新文件列表:', newFileList)
   fileList.value = newFileList
 }, { immediate: true })
 
@@ -360,10 +356,69 @@ function handleRemove({ file }) {
   emitValue()
 }
 
+// 点击文件列表时，使用带认证头的请求下载，避免直接打开 URL 丢失 token
+function handlePreview(file, { event } = {}) {
+  event?.preventDefault()
+  handleDownload(file)
+}
+
+async function handleDownload(file) {
+  const fileUrl = getFileUrl(file.fileId || file.originalUrl || file.filePath || file.url)
+  if (!fileUrl) {
+    window.$message.error('文件地址不存在')
+    return false
+  }
+
+  try {
+    const response = await fetch(fileUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': authStore.accessToken ? `Bearer ${authStore.accessToken}` : '',
+        'X-Timestamp': Date.now().toString(),
+        'X-Nonce': generateUUID(),
+      },
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(errorText || '下载失败')
+    }
+
+    const blob = await response.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = blobUrl
+    link.download = getDownloadFileName(response, file.name || extractFileName(fileUrl))
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 100)
+  }
+  catch (error) {
+    window.$message.error(`下载失败：${error.message || '未知错误'}`)
+  }
+
+  return false
+}
+
+function getDownloadFileName(response, fallbackName) {
+  const contentDisposition = response.headers.get('Content-Disposition')
+  if (!contentDisposition) {
+    return fallbackName
+  }
+  const utf8Match = contentDisposition.match(/filename\*=utf-8''([^;]+)/i)
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1])
+  }
+  const normalMatch = contentDisposition.match(/filename="?([^";]+)"?/i)
+  if (normalMatch?.[1]) {
+    return decodeURIComponent(normalMatch[1])
+  }
+  return fallbackName
+}
+
 // 文件列表变化
 function handleFileListChange(newFileList) {
-  console.log('[FileUpload] 文件列表变化:', newFileList)
-
   // 保留已完成文件的完整信息
   const updatedList = newFileList.map((newFile) => {
     // 查找是否已存在
@@ -400,8 +455,6 @@ function handleFileListChange(newFileList) {
 function emitValue() {
   const finishedFiles = fileList.value.filter(file => file.status === 'finished')
 
-  console.log('[FileUpload] emitValue - 已完成文件:', finishedFiles)
-
   if (props.valueType === 'object') {
     // 返回完整对象数组
     const result = finishedFiles.map(file => ({
@@ -410,19 +463,16 @@ function emitValue() {
       url: file.fileId || file.filePath || file.originalUrl, // 优先返回 fileId
       ...file.metadata,
     }))
-    console.log('[FileUpload] emitValue - object 模式，发出值:', result)
     emit('update:modelValue', result)
   }
   else if (props.valueType === 'array') {
     // 返回数组（优先使用 fileId）
     const result = finishedFiles.map(file => file.fileId || file.filePath || file.originalUrl).filter(Boolean)
-    console.log('[FileUpload] emitValue - array 模式，发出值:', result)
     emit('update:modelValue', result)
   }
   else {
     // 返回逗号分隔的字符串（优先使用 fileId）
     const result = finishedFiles.map(file => file.fileId || file.filePath || file.originalUrl).filter(Boolean).join(',')
-    console.log('[FileUpload] emitValue - string 模式，发出值:', result)
     emit('update:modelValue', result)
   }
 }

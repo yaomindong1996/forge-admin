@@ -55,6 +55,10 @@ public class ExternalApi extends TenantEntity {
 
     private String successCodes;
 
+    private String docFileId;
+
+    private String docFileName;
+
     private Boolean rateLimitEnabled;
 
     private Integer rateLimitQps;

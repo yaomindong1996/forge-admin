@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.external.controller;
 
 import com.mdframe.forge.plugin.external.service.ExternalProxyService;
+import com.mdframe.forge.plugin.external.vo.ExternalApiDebugResult;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.domain.RespInfo;
@@ -32,5 +33,12 @@ public class ExternalProxyController {
             @RequestParam(required = false) Map<String, Object> params) {
         Object result = proxyService.proxyRequest(apiId, params);
         return RespInfo.success(result);
+    }
+
+    @PostMapping("/debug/{apiId}")
+    public RespInfo<ExternalApiDebugResult> debug(
+            @PathVariable Long apiId,
+            @RequestBody(required = false) Map<String, Object> params) {
+        return RespInfo.success(proxyService.debugRequest(apiId, params));
     }
 }

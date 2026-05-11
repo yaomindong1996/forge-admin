@@ -14793,7 +14793,7 @@ CREATE TABLE sys_external_system (
     system_name             VARCHAR(100) NOT NULL COMMENT '系统名称',
     system_desc             VARCHAR(500) COMMENT '系统描述',
     base_url                VARCHAR(255) NOT NULL COMMENT '基础URL',
-    auth_type               VARCHAR(20) NOT NULL COMMENT '认证类型(none/basic/token/oauth2/api_key/custom)',
+    auth_type               VARCHAR(20) NOT NULL COMMENT '认证类型(none/basic/token/current_token/oauth2/api_key/custom)',
     basic_username          VARCHAR(100) COMMENT 'Basic认证用户名',
     basic_password          VARCHAR(255) COMMENT 'Basic认证密码',
     token_value             VARCHAR(500) COMMENT 'Token值',
@@ -14807,8 +14807,8 @@ CREATE TABLE sys_external_system (
     api_key_name            VARCHAR(50) COMMENT 'API Key名称',
     api_key_value           VARCHAR(255) COMMENT 'API Key值',
     api_key_position        VARCHAR(20) COMMENT 'API Key位置(header/query)',
-    custom_auth_adapter     VARCHAR(100) COMMENT '自定义认证适配器',
-    custom_auth_config      TEXT COMMENT '自定义认证配置',
+    custom_auth_adapter     VARCHAR(100) COMMENT '自定义认证适配器字典值(external_auth_adapter)',
+    custom_auth_config      TEXT COMMENT '自定义认证配置(JSON)',
     proxy_enabled           TINYINT(1) DEFAULT 0 COMMENT '是否启用代理',
     proxy_host              VARCHAR(100) COMMENT '代理主机',
     proxy_port              INT COMMENT '代理端口',
@@ -14846,11 +14846,11 @@ CREATE TABLE sys_external_api (
     api_desc                VARCHAR(500) COMMENT '接口描述',
     api_path                VARCHAR(255) NOT NULL COMMENT '接口路径',
     api_method              VARCHAR(10) NOT NULL COMMENT '请求方法(GET/POST/PUT/DELETE)',
-    request_content_type    VARCHAR(20) COMMENT '请求Content-Type',
+    request_content_type    VARCHAR(50) COMMENT '请求Content-Type',
     request_headers         TEXT COMMENT '请求头配置(JSON)',
     request_params          TEXT COMMENT '请求参数配置(JSON)',
     request_body_template   TEXT COMMENT '请求体模板',
-    response_content_type   VARCHAR(20) COMMENT '响应Content-Type',
+    response_content_type   VARCHAR(50) COMMENT '响应Content-Type',
     response_data_path      VARCHAR(100) COMMENT '响应数据路径(JsonPath)',
     response_total_path     VARCHAR(100) COMMENT '响应总数路径(JsonPath)',
     param_mapping_enabled   TINYINT(1) DEFAULT 0 COMMENT '是否启用参数映射',
@@ -14860,6 +14860,8 @@ CREATE TABLE sys_external_api (
     error_code_path         VARCHAR(100) COMMENT '错误码路径(JsonPath)',
     error_msg_path          VARCHAR(100) COMMENT '错误消息路径(JsonPath)',
     success_codes           VARCHAR(100) COMMENT '成功码列表',
+    doc_file_id             VARCHAR(100) COMMENT '接口文档文件ID',
+    doc_file_name           VARCHAR(255) COMMENT '接口文档文件名',
     rate_limit_enabled      TINYINT(1) DEFAULT 0 COMMENT '是否启用限流',
     rate_limit_qps          INT COMMENT '限流QPS',
     cache_enabled           TINYINT(1) DEFAULT 0 COMMENT '是否启用缓存',
@@ -14880,3 +14882,40 @@ CREATE TABLE sys_external_api (
     INDEX idx_system_id (system_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='外部接口配置表';
 
+-- ----------------------------
+-- 外部接口调用日志表
+-- ----------------------------
+DROP TABLE IF EXISTS sys_external_api_log;
+CREATE TABLE sys_external_api_log (
+    id               BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+    tenant_id        BIGINT NOT NULL DEFAULT 1 COMMENT '租户ID',
+    system_id        BIGINT COMMENT '外部系统ID',
+    api_id           BIGINT NOT NULL COMMENT '外部接口ID',
+    system_name      VARCHAR(100) COMMENT '系统名称快照',
+    api_name         VARCHAR(100) COMMENT '接口名称快照',
+    api_code         VARCHAR(50) COMMENT '接口编码快照',
+    request_method   VARCHAR(10) COMMENT '请求方法',
+    request_url      VARCHAR(1000) COMMENT '请求URL',
+    request_params   TEXT COMMENT '请求参数',
+    request_body     TEXT COMMENT '请求体',
+    response_body    TEXT COMMENT '响应体',
+    http_status_code INT COMMENT 'HTTP状态码',
+    call_status      TINYINT DEFAULT 1 COMMENT '调用状态(0失败 1成功)',
+    error_message    VARCHAR(1000) COMMENT '错误信息',
+    duration_ms      BIGINT COMMENT '耗时毫秒',
+    debug_flag       TINYINT(1) DEFAULT 0 COMMENT '是否调试调用',
+    create_by        BIGINT COMMENT '创建者',
+    create_time      DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    create_dept      BIGINT COMMENT '创建部门',
+    update_by        BIGINT COMMENT '更新者',
+    update_time      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    INDEX idx_tenant_api (tenant_id, api_id),
+    INDEX idx_system_id (system_id),
+    INDEX idx_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='外部接口调用日志表';
+
+INSERT IGNORE INTO sys_dict_type (tenant_id, dict_name, dict_type, dict_status, remark, create_time, update_time)
+VALUES (1, '外部认证适配器', 'external_auth_adapter', 1, '外部系统自定义认证适配器字典', NOW(), NOW());
+
+INSERT IGNORE INTO sys_dict_data (tenant_id, dict_sort, dict_label, dict_value, dict_type, dict_status, remark, create_time, update_time)
+VALUES (1, 1, '请求头映射', 'header_map', 'external_auth_adapter', 1, '将自定义认证配置中的 KEY:VALUE 写入请求头', NOW(), NOW());

@@ -30,11 +30,7 @@ public class ExternalSystemServiceImpl extends ServiceImpl<ExternalSystemMapper,
     @Override
     public List<ExternalSystem> listAll() {
         Long tenantId = SessionHelper.getTenantId();
-        return lambdaQuery()
-                .eq(ExternalSystem::getTenantId, tenantId)
-                .eq(ExternalSystem::getSystemStatus, 1)
-                .orderByDesc(ExternalSystem::getCreateTime)
-                .list();
+        return systemMapper.selectSystemList(tenantId);
     }
 
     @Override

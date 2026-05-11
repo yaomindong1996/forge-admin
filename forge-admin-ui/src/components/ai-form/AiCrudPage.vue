@@ -261,6 +261,7 @@
 </template>
 
 <script setup>
+/* eslint-disable vue/custom-event-name-casing */
 import {
   Add,
   CloudUploadOutline,
@@ -299,9 +300,6 @@ const emit = defineEmits([
 /**
  * ==================== Refs ====================
  */
-const message = window.$message
-const dialog = window.$dialog
-
 const searchRef = ref(null)
 const tableRef = ref(null)
 const formRef = ref(null)
@@ -346,7 +344,7 @@ const maxActionButtons = 2
  * @param {object} row - 行数据
  * @param {Array} actions - 操作按钮配置 [{ label, key, type, onClick, visible }]
  */
-function renderActionColumn(row, actions) {
+function renderActionColumn(row, actions, maxVisibleActions = maxActionButtons) {
   // 过滤不可见的按钮
   const visibleActions = actions.filter((action) => {
     if (typeof action.visible === 'function')
@@ -361,7 +359,7 @@ function renderActionColumn(row, actions) {
   }
 
   // 所有按钮都能直接显示
-  if (visibleActions.length <= maxActionButtons) {
+  if (visibleActions.length <= maxVisibleActions) {
     return h('div', { class: 'table-action-column' }, visibleActions.map((action, index) => {
       const nodes = []
       if (index > 0) {
@@ -383,8 +381,8 @@ function renderActionColumn(row, actions) {
   }
 
   // 需要折叠：显示前 maxActionButtons 个，其余放入"更多"下拉
-  const inlineActions = visibleActions.slice(0, maxActionButtons)
-  const dropdownOptions = visibleActions.slice(maxActionButtons).map(action => ({
+  const inlineActions = visibleActions.slice(0, maxVisibleActions)
+  const dropdownOptions = visibleActions.slice(maxVisibleActions).map(action => ({
     label: action.label,
     key: action.key || action.label,
   }))
@@ -478,7 +476,7 @@ const tableColumns = computed(() => {
       delete actionCol.actions
       delete actionCol._slot
       delete actionCol.slot
-      actionCol.render = row => renderActionColumn(row, col.actions)
+      actionCol.render = row => renderActionColumn(row, col.actions, col.maxActionButtons)
       cols.push(actionCol)
       return
     }
@@ -668,7 +666,12 @@ function parseApiConfig(key, defaultApi, defaultMethod = 'get', urlParams = {}) 
     Object.keys(urlParams).forEach((paramKey) => {
       if (finalUrl.includes(`:${paramKey}`)) {
         hasPlaceholder = true
-        finalUrl = finalUrl.replace(`:${paramKey}`, urlParams[paramKey])
+        finalUrl = finalUrl.replaceAll(`:${paramKey}`, urlParams[paramKey])
+      }
+      // 兼容历史配置，避免 /{id} 或 /id 被后端识别成字符串 id。
+      if (finalUrl.includes(`{${paramKey}}`)) {
+        hasPlaceholder = true
+        finalUrl = finalUrl.replaceAll(`{${paramKey}}`, urlParams[paramKey])
       }
     })
     // 如果没有占位符但有参数，且是 GET 请求，则自动拼接到 URL 末尾
@@ -1093,9 +1096,11 @@ async function performDelete(rows, keys) {
         const deleteApiConfig = props.apiConfig.delete
         const hasIdPlaceholder = deleteApiConfig && deleteApiConfig.includes(':id')
         const hasRowKeyPlaceholder = deleteApiConfig && deleteApiConfig.includes(`:${props.rowKey}`)
+        const hasBraceIdPlaceholder = deleteApiConfig && deleteApiConfig.includes('{id}')
+        const hasBraceRowKeyPlaceholder = deleteApiConfig && deleteApiConfig.includes(`{${props.rowKey}}`)
 
         // 单个删除且 URL 包含占位符时，使用替换后的 URL
-        if (keys.length === 1 && (hasIdPlaceholder || hasRowKeyPlaceholder)) {
+        if (keys.length === 1 && (hasIdPlaceholder || hasRowKeyPlaceholder || hasBraceIdPlaceholder || hasBraceRowKeyPlaceholder)) {
           const urlParams = { [props.rowKey]: keys[0] }
           const { method, url } = parseApiConfig('delete', props.api, 'delete', urlParams)
 

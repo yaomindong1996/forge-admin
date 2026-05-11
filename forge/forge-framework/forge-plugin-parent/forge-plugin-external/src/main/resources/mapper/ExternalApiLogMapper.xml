@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.external.mapper.ExternalApiLogMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.external.entity.ExternalApiLog">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="system_id" property="systemId"/>
+        <result column="api_id" property="apiId"/>
+        <result column="system_name" property="systemName"/>
+        <result column="api_name" property="apiName"/>
+        <result column="api_code" property="apiCode"/>
+        <result column="request_method" property="requestMethod"/>
+        <result column="request_url" property="requestUrl"/>
+        <result column="request_params" property="requestParams"/>
+        <result column="request_body" property="requestBody"/>
+        <result column="response_body" property="responseBody"/>
+        <result column="http_status_code" property="httpStatusCode"/>
+        <result column="call_status" property="callStatus"/>
+        <result column="error_message" property="errorMessage"/>
+        <result column="duration_ms" property="durationMs"/>
+        <result column="debug_flag" property="debugFlag"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="LogWhere">
+        WHERE tenant_id = #{query.tenantId}
+        <if test="query.systemId != null">
+            AND system_id = #{query.systemId}
+        </if>
+        <if test="query.apiId != null">
+            AND api_id = #{query.apiId}
+        </if>
+        <if test="query.callStatus != null">
+            AND call_status = #{query.callStatus}
+        </if>
+        <if test="query.debugFlag != null">
+            AND debug_flag = #{query.debugFlag}
+        </if>
+    </sql>
+
+    <select id="selectLogPage" resultMap="BaseResultMap">
+        SELECT *
+        FROM sys_external_api_log
+        <include refid="LogWhere"/>
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectLogSummary" resultType="com.mdframe.forge.plugin.external.vo.ExternalApiLogSummary">
+        SELECT
+            COUNT(1) AS totalCount,
+            IFNULL(SUM(CASE WHEN call_status = 1 THEN 1 ELSE 0 END), 0) AS successCount,
+            IFNULL(SUM(CASE WHEN call_status = 0 THEN 1 ELSE 0 END), 0) AS failureCount,
+            IFNULL(SUM(CASE WHEN debug_flag = 1 THEN 1 ELSE 0 END), 0) AS debugCount,
+            IFNULL(ROUND(SUM(CASE WHEN call_status = 1 THEN 1 ELSE 0 END) * 100 / NULLIF(COUNT(1), 0), 2), 0) AS successRate,
+            IFNULL(ROUND(AVG(duration_ms), 2), 0) AS avgDurationMs,
+            IFNULL(MAX(duration_ms), 0) AS maxDurationMs
+        FROM sys_external_api_log
+        <include refid="LogWhere"/>
+    </select>
+
+    <delete id="clearLogs">
+        DELETE FROM sys_external_api_log
+        <include refid="LogWhere"/>
+    </delete>
+</mapper>

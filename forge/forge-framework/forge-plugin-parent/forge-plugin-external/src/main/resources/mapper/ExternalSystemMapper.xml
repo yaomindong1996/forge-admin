@@ -45,6 +45,7 @@
         <result column="create_dept" property="createDept"/>
         <result column="update_by" property="updateBy"/>
         <result column="update_time" property="updateTime"/>
+        <result column="api_count" property="apiCount"/>
     </resultMap>
 
     <select id="selectSystemPage" resultMap="BaseResultMap">
@@ -73,6 +74,14 @@
         WHERE system_code = #{systemCode}
           AND tenant_id = #{tenantId}
           AND system_status = 1
+    </select>
+
+    <select id="selectSystemList" resultMap="BaseResultMap">
+        SELECT *
+        FROM sys_external_system
+        WHERE tenant_id = #{tenantId}
+          AND system_status = 1
+        ORDER BY create_time DESC
     </select>
 
 </mapper>

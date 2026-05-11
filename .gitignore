@@ -38,6 +38,7 @@ nbdist/
 ######################################################################
 # Others
 *.log
+**/.flattened-pom.xml
 *.xml.versionsBackup
 *.swp
 

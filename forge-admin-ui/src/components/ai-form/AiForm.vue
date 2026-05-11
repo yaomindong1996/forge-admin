@@ -188,10 +188,26 @@ watch(() => props.value, (newVal) => {
   formValue.value = { ...newVal }
 }, { immediate: true, deep: true })
 
+function isFieldVisible(field) {
+  if (typeof field.vIf === 'function') {
+    return field.vIf(formValue.value)
+  }
+
+  if (typeof field.vIf === 'boolean') {
+    return field.vIf
+  }
+
+  return true
+}
+
+const conditionVisibleSchema = computed(() => {
+  return props.schema.filter(isFieldVisible)
+})
+
 // 生成表单验证规则
 const formRules = computed(() => {
   const rules = {}
-  props.schema.forEach((field) => {
+  conditionVisibleSchema.value.forEach((field) => {
     if (field.rules) {
       rules[field.field] = field.rules
     }
@@ -232,23 +248,7 @@ const formRules = computed(() => {
 
 // 可见的表单字段
 const visibleSchema = computed(() => {
-  let fields = props.schema
-
-  // 应用 vIf 条件过滤
-  fields = fields.filter((field) => {
-    // 如果有 vIf 函数，执行它
-    if (typeof field.vIf === 'function') {
-      return field.vIf(formValue.value)
-    }
-
-    // 如果有 vIf 布尔值
-    if (typeof field.vIf === 'boolean') {
-      return field.vIf
-    }
-
-    // 默认显示
-    return true
-  })
+  let fields = conditionVisibleSchema.value
 
   // 移除后面没有字段的 divider
   const fieldsWithoutEmptyDividers = []
@@ -333,7 +333,7 @@ async function handleSubmit() {
     emit('submit', { ...formValue.value })
   }
   catch (error) {
-    console.log('表单验证失败:', error)
+    console.warn('表单验证失败:', error)
   }
 }
 
