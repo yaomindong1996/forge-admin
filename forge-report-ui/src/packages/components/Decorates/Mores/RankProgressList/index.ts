@@ -10,5 +10,5 @@ export const RankProgressListConfig: ConfigType = {
   categoryName: ChatCategoryEnumName.MORE,
   package: PackagesCategoryEnum.DECORATES,
   chartFrame: ChartFrameEnum.COMMON,
-  image: 'zhibk.png'
+  image: 'jindu.png'
 }
