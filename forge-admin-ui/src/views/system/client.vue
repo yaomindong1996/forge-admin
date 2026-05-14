@@ -8,7 +8,7 @@
         detail: 'get@/system/client/{id}',
         add: 'post@/system/client',
         update: 'put@/system/client',
-        delete: 'delete@/system/client/{id}'
+        delete: 'delete@/system/client/{id}',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
@@ -17,7 +17,7 @@
       :before-render-detail="beforeRenderDetail"
       row-key="id"
       :edit-grid-cols="2"
-      :modal-width="'900px'"
+      modal-width="900px"
       add-button-text="新增客户端"
     />
 
@@ -40,8 +40,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, h, computed } from 'vue'
-import { NTag, NButton } from 'naive-ui'
+import { NButton, NTag } from 'naive-ui'
+import { computed, h, ref } from 'vue'
 import { request } from '@/utils'
 
 defineOptions({ name: 'SystemClient' })
@@ -54,13 +54,13 @@ const onlineUsers = ref([])
 // 状态选项
 const statusOptions = [
   { label: '启用', value: 1 },
-  { label: '禁用', value: 0 }
+  { label: '禁用', value: 0 },
 ]
 
 // 是否选项（并发登录、共享Token）
 const booleanOptions = [
   { label: '是', value: true },
-  { label: '否', value: false }
+  { label: '否', value: false },
 ]
 
 // 认证方式选项
@@ -69,7 +69,7 @@ const authTypeOptions = [
   { label: '用户名密码+验证码', value: 'password_captcha' },
   { label: '手机验证码', value: 'phone_captcha' },
   { label: '微信登录', value: 'wechat' },
-  { label: '邮箱验证码', value: 'email_captcha' }
+  { label: '邮箱验证码', value: 'email_captcha' },
 ]
 
 // 搜索配置
@@ -79,16 +79,16 @@ const searchSchema = [
     label: '客户端编码',
     type: 'input',
     props: {
-      placeholder: '请输入客户端编码'
-    }
+      placeholder: '请输入客户端编码',
+    },
   },
   {
     field: 'clientName',
     label: '客户端名称',
     type: 'input',
     props: {
-      placeholder: '请输入客户端名称'
-    }
+      placeholder: '请输入客户端名称',
+    },
   },
   {
     field: 'status',
@@ -98,10 +98,10 @@ const searchSchema = [
       placeholder: '请选择状态',
       options: [
         { label: '全部', value: null },
-        ...statusOptions
-      ]
-    }
-  }
+        ...statusOptions,
+      ],
+    },
+  },
 ]
 
 // 表格列配置
@@ -109,17 +109,17 @@ const tableColumns = computed(() => [
   {
     prop: 'clientCode',
     label: '客户端编码',
-    width: 120
+    width: 120,
   },
   {
     prop: 'clientName',
     label: '客户端名称',
-    width: 150
+    width: 150,
   },
   {
     prop: 'appId',
     label: 'AppId',
-    width: 180
+    width: 180,
   },
   {
     prop: 'tokenTimeout',
@@ -129,12 +129,14 @@ const tableColumns = computed(() => [
       const timeout = row.tokenTimeout
       if (timeout >= 86400) {
         return `${(timeout / 86400).toFixed(0)} 天`
-      } else if (timeout >= 3600) {
+      }
+      else if (timeout >= 3600) {
         return `${(timeout / 3600).toFixed(0)} 小时`
-      } else {
+      }
+      else {
         return `${timeout} 秒`
       }
-    }
+    },
   },
   {
     prop: 'concurrentLogin',
@@ -143,11 +145,11 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h(NTag, {
         type: row.concurrentLogin ? 'success' : 'warning',
-        size: 'small'
+        size: 'small',
       }, {
-        default: () => row.concurrentLogin ? '允许' : '不允许'
+        default: () => row.concurrentLogin ? '允许' : '不允许',
       })
-    }
+    },
   },
   {
     prop: 'authTypes',
@@ -156,9 +158,9 @@ const tableColumns = computed(() => [
     render: (row) => {
       const types = row.authTypes?.split(',') || []
       return types.map(type =>
-        h(NTag, { type: 'info', size: 'small', style: 'margin: 2px' }, { default: () => type })
+        h(NTag, { type: 'info', size: 'small', style: 'margin: 2px' }, { default: () => type }),
       )
-    }
+    },
   },
   {
     prop: 'status',
@@ -167,28 +169,28 @@ const tableColumns = computed(() => [
     render: (row) => {
       return h(NTag, {
         type: row.status === 1 ? 'success' : 'error',
-        size: 'small'
+        size: 'small',
       }, {
-        default: () => row.status === 1 ? '启用' : '禁用'
+        default: () => row.status === 1 ? '启用' : '禁用',
       })
-    }
+    },
   },
   {
     prop: 'description',
     label: '描述',
-    minWidth: 80
+    minWidth: 80,
   },
   {
     prop: 'action',
     label: '操作',
     width: 350,
     actions: [
-      { label: '编辑', key: 'edit', type: 'primary', onClick: (row) => crudRef.value?.showEdit(row) },
+      { label: '编辑', key: 'edit', type: 'primary', onClick: row => crudRef.value?.showEdit(row) },
       { label: '在线用户', key: 'online', type: 'primary', onClick: handleViewOnline },
       { label: '刷新缓存', key: 'reloadCache', type: 'primary', onClick: handleReloadCache },
-      { label: '删除', key: 'delete', type: 'error', onClick: (row) => crudRef.value?.handleDelete(row), visible: (row) => row.id > 4 }
-    ]
-  }
+      { label: '删除', key: 'delete', type: 'error', onClick: row => crudRef.value?.handleDelete(row), visible: row => row.id > 4 },
+    ],
+  },
 ])
 
 // 编辑表单配置
@@ -197,9 +199,9 @@ const editSchema = [
     type: 'divider',
     label: '基础信息',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'clientCode',
@@ -207,8 +209,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入客户端编码', trigger: 'blur' }],
     props: {
-      placeholder: '如：pc, app, h5, wechat'
-    }
+      placeholder: '如：pc, app, h5, wechat',
+    },
   },
   {
     field: 'clientName',
@@ -216,8 +218,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入客户端名称', trigger: 'blur' }],
     props: {
-      placeholder: '请输入客户端名称'
-    }
+      placeholder: '请输入客户端名称',
+    },
   },
   {
     field: 'appId',
@@ -225,8 +227,8 @@ const editSchema = [
     type: 'input',
     rules: [{ required: true, message: '请输入AppId', trigger: 'blur' }],
     props: {
-      placeholder: '应用ID'
-    }
+      placeholder: '应用ID',
+    },
   },
   {
     field: 'appSecret',
@@ -234,16 +236,16 @@ const editSchema = [
     type: 'input',
     props: {
       type: 'password',
-      placeholder: '应用密钥'
-    }
+      placeholder: '应用密钥',
+    },
   },
   {
     type: 'divider',
     label: 'Token配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'tokenTimeout',
@@ -254,8 +256,8 @@ const editSchema = [
     props: {
       placeholder: '如：86400(1天), 2592000(30天)',
       min: 60,
-      step: 3600
-    }
+      step: 3600,
+    },
   },
   {
     field: 'tokenActivityTimeout',
@@ -263,8 +265,8 @@ const editSchema = [
     type: 'input-number',
     defaultValue: -1,
     props: {
-      placeholder: '-1表示不限制'
-    }
+      placeholder: '-1表示不限制',
+    },
   },
   {
     field: 'concurrentLogin',
@@ -272,8 +274,8 @@ const editSchema = [
     type: 'radio',
     defaultValue: false,
     props: {
-      options: booleanOptions
-    }
+      options: booleanOptions,
+    },
   },
   {
     field: 'shareToken',
@@ -281,8 +283,8 @@ const editSchema = [
     type: 'radio',
     defaultValue: false,
     props: {
-      options: booleanOptions
-    }
+      options: booleanOptions,
+    },
   },
   {
     field: 'authTypes',
@@ -291,16 +293,16 @@ const editSchema = [
     props: {
       placeholder: '请选择支持的认证方式',
       options: authTypeOptions,
-      multiple: true
-    }
+      multiple: true,
+    },
   },
   {
     type: 'divider',
     label: '状态配置',
     props: {
-      titlePlacement: 'left'
+      titlePlacement: 'left',
     },
-    span: 2
+    span: 2,
   },
   {
     field: 'status',
@@ -308,8 +310,8 @@ const editSchema = [
     type: 'radio',
     defaultValue: 1,
     props: {
-      options: statusOptions
-    }
+      options: statusOptions,
+    },
   },
   {
     field: 'description',
@@ -318,9 +320,9 @@ const editSchema = [
     span: 2,
     props: {
       placeholder: '请输入客户端描述',
-      rows: 3
-    }
-  }
+      rows: 3,
+    },
+  },
 ]
 
 // 在线用户表格列
@@ -339,16 +341,16 @@ const onlineTableColumns = [
       return h(NButton, {
         type: 'error',
         size: 'small',
-        onClick: () => handleKickoutUser(row)
+        onClick: () => handleKickoutUser(row),
       }, {
-        default: () => '踢出'
+        default: () => '踢出',
       })
-    }
-  }
+    },
+  },
 ]
 
 // 详情数据渲染前处理：将字符串转为数组
-const beforeRenderDetail = (data: any) => {
+function beforeRenderDetail(data: any) {
   console.log('编辑前的数据:', data)
 
   // 将authTypes字符串转为数组，供多选select使用
@@ -360,7 +362,7 @@ const beforeRenderDetail = (data: any) => {
 }
 
 // 提交前处理：将数组转为字符串
-const beforeSubmit = (formData: any) => {
+function beforeSubmit(formData: any) {
   console.log('提交前的数据:', formData)
 
   // 将authTypes数组转为逗号分隔的字符串
@@ -372,35 +374,38 @@ const beforeSubmit = (formData: any) => {
 }
 
 // 查看在线用户
-const handleViewOnline = async (row: any) => {
+async function handleViewOnline(row: any) {
   try {
     const res = await request.get(`/system/client/online/${row.clientCode}`)
     if (res.data) {
       onlineUsers.value = res.data
       onlineModalVisible.value = true
     }
-  } catch (error) {
+  }
+  catch (error) {
     message.error('获取在线用户失败')
   }
 }
 
 // 踢出用户
-const handleKickoutUser = async (row: any) => {
+async function handleKickoutUser(row: any) {
   try {
     await request.post(`/system/client/kickout/${row.userId}/pc`)
     message.success('已踢出该用户')
     handleViewOnline({ clientCode: 'pc' })
-  } catch (error) {
+  }
+  catch (error) {
     message.error('踢出失败')
   }
 }
 
 // 刷新缓存
-const handleReloadCache = async (row: any) => {
+async function handleReloadCache(row: any) {
   try {
     await request.post(`/system/client/reload-cache/${row.clientCode}`)
     message.success('缓存已刷新')
-  } catch (error) {
+  }
+  catch (error) {
     message.error('刷新缓存失败')
   }
 }

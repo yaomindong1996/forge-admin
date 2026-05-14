@@ -47,14 +47,14 @@
     "scp2": "^0.5.0",
     "sm-crypto": "^0.3.13",
     "sockjs-client": "^1.6.0",
+    "tiny-svg": "^4.1.4",
     "unplugin-vue-router": "^0.19.2",
     "vue": "^3.5.20",
     "vue-echarts": "^7.0.3",
     "vue-router": "^4.5.1",
     "vue3-slide-verify": "^1.1.7",
     "vuedraggable": "^4.1.0",
-    "xlsx": "^0.18.5",
-    "tiny-svg": "^4.1.4"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^5.2.1",

@@ -108,6 +108,36 @@ const TITLE_KEYS = new Set([
 const HEADER_DECORATION_KEYS = new Set(['Decorates03', 'Decorates06', 'PipelineH'])
 const HEADER_INFO_KEYS = new Set(['TimeCommon'])
 const LARGE_VISUAL_KEYS = new Set(['MapBase', 'MapAmap', 'ThreeEarth01'])
+const PRIMARY_VISUAL_KEYS = new Set([
+  'MapBase',
+  'MapAmap',
+  'ThreeEarth01',
+  'LineCommon',
+  'LineGradientSingle',
+  'LineGradients',
+  'LineLinearSingle',
+  'BarLine',
+  'Graph',
+  'Heatmap',
+  'Radar',
+  'Sankey',
+  'VChartLine',
+  'VChartArea',
+  'VChartPercentArea',
+  'VChartScatter'
+])
+const OVERLAY_DECORATION_KEYS = new Set([
+  'GlowBackdrop',
+  'DividerLine',
+  'Decorates01',
+  'Decorates02',
+  'Decorates03',
+  'Decorates04',
+  'Decorates05',
+  'Decorates06',
+  'PipelineH',
+  'PipelineV'
+])
 
 function isBorder(key?: string) {
   return !!key && BORDER_KEY_PATTERN.test(key)
@@ -132,6 +162,10 @@ function isHeaderDecoration(comp: AIComponentSchema) {
 
 function isHeaderInfo(comp: AIComponentSchema) {
   return HEADER_INFO_KEYS.has(comp.key) && (comp.y <= 120 || comp.x > 1200)
+}
+
+function isOverlayDecoration(comp: AIComponentSchema) {
+  return OVERLAY_DECORATION_KEYS.has(comp.key)
 }
 
 function isTopMetric(comp: AIComponentSchema) {
@@ -209,6 +243,30 @@ function normalizeHeader(components: AIComponentSchema[], canvasW: number) {
   })
 }
 
+function normalizeOverlayDecorations(components: AIComponentSchema[], canvasW: number, canvasH: number) {
+  components.forEach(comp => {
+    if (!isOverlayDecoration(comp)) return
+
+    if (comp.key === 'GlowBackdrop') {
+      comp.w = Math.round(clamp(comp.w || Math.round(canvasW * 0.66), 320, canvasW))
+      comp.h = Math.round(clamp(comp.h || Math.round(canvasH * 0.46), 200, canvasH))
+      if (comp.x === undefined || comp.x <= 0) {
+        comp.x = Math.round((canvasW - comp.w) / 2)
+      }
+      if (comp.y === undefined || comp.y <= 0) {
+        comp.y = Math.round(clamp((canvasH - comp.h) / 2 + 20, 90, canvasH - comp.h - 20))
+      }
+      return
+    }
+
+    if (comp.key === 'DividerLine') {
+      const isVertical = comp.option?.direction === 'vertical'
+      comp.w = Math.round(clamp(comp.w || (isVertical ? 26 : Math.round(canvasW * 0.62)), 8, canvasW))
+      comp.h = Math.round(clamp(comp.h || (isVertical ? Math.round(canvasH * 0.42) : 26), 8, canvasH))
+    }
+  })
+}
+
 function removeRedundantDecorations(components: AIComponentSchema[]) {
   const hasScreenTitle = components.some(comp => comp.key === 'ScreenTitle')
   const headerDecorations = components
@@ -232,6 +290,18 @@ function removeRedundantDecorations(components: AIComponentSchema[]) {
 }
 
 function normalizeTopMetrics(components: AIComponentSchema[], canvasW: number) {
+  components.forEach(comp => {
+    if (comp.key !== 'KpiGroup') return
+    comp.w = Math.round(clamp(comp.w || Math.round(canvasW * 0.58), 620, canvasW - 40))
+    comp.h = Math.round(clamp(comp.h || 112, 90, 140))
+    if (comp.x === undefined || comp.x <= 0) {
+      comp.x = Math.round((canvasW - comp.w) / 2)
+    } else {
+      comp.x = Math.round(clamp(comp.x, 20, canvasW - comp.w - 20))
+    }
+    comp.y = Math.round(clamp(comp.y || 102, 90, 180))
+  })
+
   const metrics = components.filter(isTopMetric)
   if (metrics.length < 2) return
 
@@ -267,7 +337,7 @@ function normalizeTopMetrics(components: AIComponentSchema[], canvasW: number) {
 
 function normalizeLargeVisuals(components: AIComponentSchema[], canvasW: number, canvasH: number) {
   components.forEach(comp => {
-    if (!LARGE_VISUAL_KEYS.has(comp.key)) return
+    if (!LARGE_VISUAL_KEYS.has(comp.key) && !PRIMARY_VISUAL_KEYS.has(comp.key)) return
     const maxW = canvasW - 40
     const maxH = canvasH - 120
     comp.w = Math.round(clamp(comp.w, Math.min(700, maxW), maxW))
@@ -318,6 +388,7 @@ function placeTargetWithBorder(
 function isPlaceableContent(comp: AIComponentSchema) {
   return !isFrameLike(comp.key) &&
     !isTitleLike(comp) &&
+    !isOverlayDecoration(comp) &&
     !isHeaderDecoration(comp) &&
     !isHeaderInfo(comp) &&
     !isTopMetric(comp)
@@ -368,7 +439,12 @@ function ensureConsistentPanelBorders(components: AIComponentSchema[]) {
 }
 
 function applyLargeVisualTemplate(components: AIComponentSchema[], canvasW: number, canvasH: number) {
-  const largeVisual = components.find(comp => LARGE_VISUAL_KEYS.has(comp.key))
+  const largeVisual = components.find(comp => LARGE_VISUAL_KEYS.has(comp.key)) ||
+    components.find(comp => PRIMARY_VISUAL_KEYS.has(comp.key)) ||
+    components
+      .filter(isPlaceableContent)
+      .filter(comp => comp.w >= 680 || comp.h >= 380)
+      .sort((a, b) => b.w * b.h - a.w * a.h)[0]
   if (!largeVisual || canvasW < 1400 || canvasH < 700) return false
 
   const gap = 20
@@ -566,6 +642,7 @@ export function normalizeAILayout(
 
   normalized.forEach(comp => normalizeSize(comp, canvasW, canvasH))
   normalizeHeader(normalized, canvasW)
+  normalizeOverlayDecorations(normalized, canvasW, canvasH)
   normalizeTopMetrics(normalized, canvasW)
   const usedLargeTemplate = applyLargeVisualTemplate(normalized, canvasW, canvasH)
   if (!usedLargeTemplate) {
@@ -576,6 +653,7 @@ export function normalizeAILayout(
   normalized.forEach((comp, index) => {
     if (usedLargeTemplate) return
     if (isFrameLike(comp.key)) return
+    if (isOverlayDecoration(comp)) return
     const previous = normalized[index - 1]
     if (previous && isFrameLike(previous.key)) {
       placeWithoutOverlap(comp, placed, canvasW, canvasH, margin, gap)

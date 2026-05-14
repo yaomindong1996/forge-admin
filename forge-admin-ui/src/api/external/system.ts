@@ -47,7 +47,7 @@ export function getExternalSystemList() {
   return request.get('/external/system/list')
 }
 
-export function getExternalSystemPage(params: { pageNum: number; pageSize: number; systemCode?: string; systemName?: string; authType?: string; systemStatus?: number }) {
+export function getExternalSystemPage(params: { pageNum: number, pageSize: number, systemCode?: string, systemName?: string, authType?: string, systemStatus?: number }) {
   return request.get('/external/system/page', { params })
 }
 

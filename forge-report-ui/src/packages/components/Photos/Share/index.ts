@@ -4,8 +4,7 @@ import { ChatCategoryEnum, ChatCategoryEnumName } from '../index.d'
 
 // 远程共享库（调接口获取图像列表）
 const imageList = [
-  { imageName: 'carousel1', imageUrl: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel1.jpeg' },
-  { imageName: 'carousel2', imageUrl: 'https://naive-ui.oss-cn-beijing.aliyuncs.com/carousel-img/carousel2.jpeg' }
+  { imageName: 'bg01', imageUrl: 'https://forge-1310419674.cos.ap-guangzhou.myqcloud.com/bg.png',description:'以深海军蓝为主色调，底部中央带有环形扫描光效与透视网格，整体偏科技感、未来风，适合政务 / 工业 / 智慧城市类大屏作为背景，能很好地衬托白色和浅青色的文字与图表。' },
 ]
 
 const photoConfigList = imageList.map(i => ({

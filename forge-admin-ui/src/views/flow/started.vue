@@ -35,7 +35,7 @@
             <i class="i-material-symbols:search" />
           </template>
         </n-input>
-        <n-tree-select v-model:value="queryParams.category" placeholder="流程分类" clearable class="category-select" :options="categoryTreeOptions" :default-expand-all="true" />
+        <NTreeSelect v-model:value="queryParams.category" placeholder="流程分类" clearable class="category-select" :options="categoryTreeOptions" :default-expand-all="true" />
         <n-select v-model:value="queryParams.status" placeholder="流程状态" clearable class="category-select" :options="statusOptions" />
         <NButton type="primary" class="search-btn" @click="handleSearch">
           <i class="i-material-symbols:search mr-2" />查询

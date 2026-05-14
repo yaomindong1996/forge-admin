@@ -67,7 +67,7 @@ export interface DataDatasetPreview {
   total: number
 }
 
-export function getDataDatasetPage(params: { pageNum: number; pageSize: number; datasetName?: string; connectionId?: number; datasetType?: string; status?: number }) {
+export function getDataDatasetPage(params: { pageNum: number, pageSize: number, datasetName?: string, connectionId?: number, datasetType?: string, status?: number }) {
   return request.get('/data/dataset/page', { params })
 }
 
@@ -107,6 +107,6 @@ export function getDataDatasetMetadata(id: number) {
   return request.get(`/data/dataset/runtime/${id}/metadata`)
 }
 
-export function queryDataDataset(dto: { datasetId: number; params?: Record<string, any>; fields?: string[]; pageNum?: number; pageSize?: number; maxRows?: number }) {
+export function queryDataDataset(dto: { datasetId: number, params?: Record<string, any>, fields?: string[], pageNum?: number, pageSize?: number, maxRows?: number }) {
   return request.post('/data/dataset/runtime/query', dto)
 }

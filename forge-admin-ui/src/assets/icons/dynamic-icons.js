@@ -22,4 +22,7 @@ export default [
   'i-streamline-plump-color:page-setting',
   'i-streamline-plump-color:man-arm-raises-2-alternate',
   'i-streamline-plump-color:ai-technology-spark',
+  'i-streamline-plump-color:file-report',
+  'i-streamline-plump-color:wallet',
+  'i-streamline-plump-color:map-fold',
 ]

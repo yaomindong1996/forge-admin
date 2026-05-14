@@ -46,7 +46,7 @@ export function getExternalApiList() {
   return request.get('/external/api/list')
 }
 
-export function getExternalApiPage(params: { pageNum: number; pageSize: number; systemId?: number; apiCode?: string; apiName?: string; apiMethod?: string; apiStatus?: number }) {
+export function getExternalApiPage(params: { pageNum: number, pageSize: number, systemId?: number, apiCode?: string, apiName?: string, apiMethod?: string, apiStatus?: number }) {
   return request.get('/external/api/page', { params })
 }
 
@@ -70,11 +70,11 @@ export function debugExternalApi(id: number, params: Record<string, any>) {
   return request.post(`/external/proxy/debug/${id}`, params)
 }
 
-export function clearExternalApiLogs(params: { systemId?: number; apiId?: number; callStatus?: number; debugFlag?: boolean }) {
+export function clearExternalApiLogs(params: { systemId?: number, apiId?: number, callStatus?: number, debugFlag?: boolean }) {
   return request.delete('/external/api/log/clear', { params })
 }
 
-export function getExternalApiLogSummary(params: { systemId?: number; apiId?: number; callStatus?: number; debugFlag?: boolean }) {
+export function getExternalApiLogSummary(params: { systemId?: number, apiId?: number, callStatus?: number, debugFlag?: boolean }) {
   return request.get('/external/api/log/summary', { params })
 }
 

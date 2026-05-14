@@ -41,7 +41,7 @@
             <i class="i-material-symbols:search" />
           </template>
         </n-input>
-        <n-tree-select
+        <NTreeSelect
           v-model:value="queryParams.category"
           placeholder="流程分类"
           clearable

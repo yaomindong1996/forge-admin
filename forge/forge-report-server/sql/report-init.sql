@@ -197,15 +197,17 @@ INSERT INTO ai_agent (id, tenant_id, agent_name, agent_code, description, system
 - 标题风格选择: ScreenTitle03=星环光晕, ScreenTitle04=锋刃工业, ScreenTitle05=两侧装饰框, ScreenTitle06=动态脉冲发光, ScreenTitle07=晶体切面, ScreenTitle08=控制台轨道节点。不要只用 TextGradient 做小标题。
 - 有条件时为每个图表、地图、表格模块添加一致的 PanelFrame；不要混用多种边框或装饰框。
 - 模块框风格选择: PanelFrame03=扫描光效, PanelFrame04=网格底纹, PanelFrame05=辉光边框, PanelFrame06=厚重角标, PanelFrame07=切角框, PanelFrame08=圆角卡片框。模块框必须与内部组件同 x/y/w/h 或略大 3-6px，并放在内部组件前面。
-- 至少包含 3 个关键指标卡，优先用 KpiCard；没有 KpiCard 时才使用 FlipperNumber。指标卡排列在标题下方，形成第一眼概览。
+- 顶部如果需要 4-6 个概览指标，优先使用 KpiGroup；如果只需要 1-3 个重点指标，再优先使用 KpiCard / FlipperNumber。
 - 主视觉区域要有中心重点：地图、三维地球、趋势主图、关系图或大尺寸综合图，不能全屏平均铺小图。
-- 两侧放辅助分析组件：排行优先用 RankProgressList，也可使用占比、趋势、漏斗、雷达、滚动表格等。
+- 深色大屏且画布足够时，优先添加 1 个 GlowBackdrop 作为低层发光背景，增强科技氛围；GlowBackdrop 不要被 PanelFrame 或 Border 包裹。
+- 两侧放辅助分析组件：排行优先用 RankProgressList，也可使用占比、趋势、漏斗、雷达、滚动表格等，并优先复用新增增强组件，如 SectionHeader、StatusBadgeList、DataPairList、MiniTrendCard、TimelineList、StepFlow、DividerLine、GlowBackdrop。
+- 增强组件一般控制在 2-4 个即可，丰富但不要过载，不要在同一角落堆叠多个摘要型模块。
 - 数据名和值要贴合用户主题，数值不要全部是整数，可混合小数和百分比。
 
 ## 推荐布局
 ### 1920×1080 或相近尺寸
 - 标题区: y=12-82
-- 指标区: y=100-205，放 3-5 个 KpiCard，等宽排列
+- 指标区: y=100-205，4-6 个概览指标优先 KpiGroup，1-3 个重点指标优先 KpiCard / FlipperNumber
 - 内容区: y=230 到 {{canvasHeight}}-20
 - 如果使用 MapBase/MapAmap/ThreeEarth01：采用“左窄-中宽-右窄”布局，中间主视觉 w=760-920 h=520-650，左右各放 2 个小组件。
 - 如果不使用地图/三维地球：采用三列网格，左中右列对齐，每列 2 个组件，间距 20。
@@ -251,7 +253,16 @@ INSERT INTO ai_agent (id, tenant_id, agent_name, agent_code, description, system
 - 饼图 PieCommon/PieCircle/VChartPie 只能有 2 个 dimensions: 名称和值。
 - Radar: { "dataset": { "radarIndicator": [{"name": "指标", "max": 100}], "seriesData": [{"name": "当前", "value": [80, 90]}] } }
 - ScreenTitle 系列: { "dataset": "大屏标题", "subtitle": "实时监控", "titleMode": "gradient", "fontSize": 46, "accentColor": "#25d8ff", "showBorder": true, "showBackground": true, "showDecorations": true }。可选 key: ScreenTitle03 星环、ScreenTitle04 锋刃、ScreenTitle05 两侧装饰框、ScreenTitle06 脉冲、ScreenTitle07 晶体、ScreenTitle08 控制台。
+- KpiGroup: { "dataset": [{"title": "今日产量", "value": 12345.6, "unit": "件", "trend": "+12.5%"}], "columns": 4, "accentColor": "#25d8ff" }
 - KpiCard: { "title": "今日产量", "dataset": 12345.6, "unit": "件", "trendValue": 12.5, "trendType": "up", "iconText": "KPI" }
+- SectionHeader: { "title": "模块标题", "subtitle": "SECTION OVERVIEW", "unit": "单位", "accentColor": "#25d8ff" }
+- StatusBadgeList: { "dataset": [{"label": "运行中", "value": 126, "color": "#47ffb2"}], "columns": 4, "unit": "台" }
+- DataPairList: { "dataset": [{"label": "设备编号", "value": "CNC-01"}], "columns": 2 }
+- MiniTrendCard: { "title": "实时产量", "dataset": 12850, "unit": "件", "trend": "+12.5%", "points": [18, 28, 24, 42, 38, 56, 68] }
+- TimelineList: { "dataset": [{"time": "10:23", "title": "CNC-01 温度过高", "level": "高", "status": "danger"}] }
+- StepFlow: { "dataset": [{"title": "投料", "status": "done"}, {"title": "加工", "status": "active"}, {"title": "质检", "status": "pending"}] }
+- DividerLine: { "direction": "horizontal", "thickness": 2, "accentColor": "#25d8ff", "secondColor": "#47ffb2" }
+- GlowBackdrop: { "variant": "reactor", "accentColor": "#25d8ff", "secondColor": "#47ffb2", "thirdColor": "#ffcf5a", "opacity": 0.9 }。variant 可选 reactor、grid、wing、stargate、radar，且应作为背景低层组件使用。
 - PanelFrame 系列: { "title": "模块标题", "unit": "单位", "accentColor": "#25d8ff", "borderColor": "#1d70ff" }。同一大屏尽量统一使用一个 PanelFrame 风格；可按行业选择 PanelFrame03 扫描、PanelFrame04 网格、PanelFrame05 辉光、PanelFrame06 工业重角、PanelFrame07 切角、PanelFrame08 卡片。
 - TextCommon/TextGradient: { "dataset": "文字", "fontSize": 36, "fontColor": "#ffffff", "fontWeight": "bold", "textAlign": "center", "letterSpacing": 4 }
 - FlipperNumber: { "dataset": 12345.6, "unit": "万元" }
@@ -262,4 +273,4 @@ INSERT INTO ai_agent (id, tenant_id, agent_name, agent_code, description, system
 - Border01-Border13、Clock、CountDown 不要 option 字段；PanelFrame/PanelFrame02 需要 option.title。
 
 ## 自检
-输出前检查：JSON 可解析；没有尾逗号；没有中文占位数字；组件不越界；非模块框/边框组件不重叠；PanelFrame/边框只包裹紧随其后的组件；标题优先用 ScreenTitle；整体有主图、指标、辅助分析。', NULL, 'qwen-plus', 0.70, 4000, NULL, '0', 1, '2026-04-13 17:38:55', 1, '2026-04-13 17:38:55', '0', NULL);
+输出前检查：JSON 可解析；没有尾逗号；没有中文占位数字；组件不越界；非模块框/边框组件不重叠；PanelFrame/边框只包裹紧随其后的组件；GlowBackdrop 不被 PanelFrame/Border 包裹；标题优先用 ScreenTitle；整体有主图、指标、辅助分析。', NULL, 'qwen-plus', 0.70, 4000, NULL, '0', 1, '2026-04-13 17:38:55', 1, '2026-04-13 17:38:55', '0', NULL);

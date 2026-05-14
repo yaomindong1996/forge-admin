@@ -229,7 +229,7 @@
         v-model:value="inputRef"
         type="textarea"
         :placeholder="inputPlaceholder"
-        :rows="2"
+        :rows="5"
         :disabled="aiStore.getGenerating"
         @keydown.enter.exact.prevent="handleSend"
         @keydown.shift.enter.prevent="inputRef += '\n'"
@@ -310,7 +310,7 @@ const chatSessionIdRef = ref(aiStore.currentSessionId || createSessionId())
 const selectedProviderId = ref<number | string | null>(aiStore.getSelectedProvider?.providerId ?? null)
 const selectedModelName = ref(aiStore.getSelectedProvider?.modelName || '')
 const temperatureRef = ref(aiStore.getSelectedProvider?.temperature ?? 0.7)
-const maxTokensRef = ref<number | null>(aiStore.getSelectedProvider?.maxTokens ?? null)
+const maxTokensRef = ref<number | null>(aiStore.getSelectedProvider?.maxTokens ?? 384000)
 
 const quickPrompts = [
   '电商销售数据监控大屏',
@@ -1460,7 +1460,9 @@ $topHeight: 40px;
     }
 
     .config-provider,
-    .config-model {
+    .config-model,
+    .config-temperature,
+    .config-max-tokens {
       grid-column: span 2;
     }
   }
