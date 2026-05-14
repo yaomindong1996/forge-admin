@@ -36,9 +36,11 @@
       </n-popover>
     </div>
     <div class="chart-content-list">
-      <n-scrollbar trigger="none">
-        <charts-item-box :menuOptions="packages.selectOptions" @deletePhoto="deleteHandle"></charts-item-box>
-      </n-scrollbar>
+      <n-spin :show="packagesStore.materialPhotosLoading" class="chart-content-spin">
+        <n-scrollbar trigger="none">
+          <charts-item-box :menuOptions="packages.selectOptions"></charts-item-box>
+        </n-scrollbar>
+      </n-spin>
     </div>
 
     <n-modal
@@ -182,12 +184,6 @@ watch(
     }
   }
 )
-
-// 删除图片
-const deleteHandle = (item: ConfigType, index: number) => {
-  packages.categorys[item.category].splice(index, 1)
-  packages.categorys['all'].splice(index, 1)
-}
 
 // 处理点击事件
 const clickItemHandle = (key: string) => {
@@ -351,6 +347,15 @@ $workbenchGapHeight: 24px;
     display: flex;
     flex-direction: column;
     align-items: center;
+
+    .chart-content-spin {
+      width: 100%;
+      height: 100%;
+
+      :deep(.n-spin-content) {
+        height: 100%;
+      }
+    }
   }
 }
 

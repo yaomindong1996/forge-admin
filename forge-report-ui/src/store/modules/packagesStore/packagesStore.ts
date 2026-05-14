@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { ConfigType, PackagesStoreType, PackagesType } from './packagesStore.d'
 import { packagesList } from '@/packages/index'
-import { deleteMaterialAssetApi, getMaterialAssetPageApi, type MaterialAsset } from '@/api/file'
-import { parseFileAssetRef } from '@/utils'
+import { getMaterialAssetPageApi } from '@/api/file'
+import type { MaterialAsset } from '@/api/file'
 import { buildMaterialUploadEntry, mapMaterialAssetToPhotoConfig } from '@/packages/components/Photos/materialAssetAdapter'
 import SharePhotos from '@/packages/components/Photos/Share'
 
@@ -14,6 +14,7 @@ export const usePackagesStore = defineStore({
     newPhoto: undefined,
     materialUploadVisible: false,
     materialUploadCategory: 'background',
+    materialPhotosLoading: false,
     materialPhotosVersion: 0
   }),
   getters: {
@@ -27,30 +28,27 @@ export const usePackagesStore = defineStore({
       this.materialPhotosVersion += 1
     },
     async loadMaterialPhotos() {
-      const response = await getMaterialAssetPageApi({
-        pageNum: 1,
-        pageSize: 200
-      })
-      const records = (response.data?.records || []) as MaterialAsset[]
-      const nextPhotos = [
-        buildMaterialUploadEntry(),
-        ...records.map(mapMaterialAssetToPhotoConfig),
-        ...SharePhotos
-      ]
-      this.setPhotos(nextPhotos)
+      this.materialPhotosLoading = true
+      try {
+        const response = await getMaterialAssetPageApi({
+          pageNum: 1,
+          pageSize: 200
+        })
+        const records = (response.data?.records || []) as MaterialAsset[]
+        const nextPhotos = [
+          buildMaterialUploadEntry(),
+          ...records.map(mapMaterialAssetToPhotoConfig),
+          ...SharePhotos
+        ]
+        this.setPhotos(nextPhotos)
+      } finally {
+        this.materialPhotosLoading = false
+      }
     },
     addPhotos(newPhoto: ConfigType, index: number) {
       this.newPhoto = newPhoto
       this.packagesList.Photos.splice(index, 0, newPhoto)
       this.materialPhotosVersion += 1
-    },
-    async deletePhotos(photoInfo: ConfigType) {
-      const fileId = parseFileAssetRef(photoInfo.dataset || photoInfo.image)
-      if (!fileId) {
-        return
-      }
-      await deleteMaterialAssetApi(fileId)
-      await this.loadMaterialPhotos()
     },
     openMaterialUploadDialog(category = 'background') {
       this.materialUploadCategory = category

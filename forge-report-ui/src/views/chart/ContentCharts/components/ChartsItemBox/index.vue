@@ -25,23 +25,37 @@
           <n-text class="asset-title" depth="2">
             <n-ellipsis>{{ item.title }}</n-ellipsis>
           </n-text>
-          <span class="asset-hint">{{ item.disabled ? '开发中' : '拖拽 / 双击' }}</span>
+          <div class="asset-hint-row">
+            <span class="asset-hint">{{ item.disabled ? '上传到素材库' : '拖拽 / 双击' }}</span>
+            <span
+              v-if="item.configEvents?.renameHandle"
+              class="rename-trigger"
+              @click.stop="openRenameModal(item)"
+              title="重命名"
+            >
+              <FgIconify icon="ion:create-outline" width="12" color="rgba(148,163,184,0.56)" />
+            </span>
+          </div>
         </div>
         <!-- 遮罩 -->
         <div v-if="item.disabled" class="list-model"></div>
-        <!-- 工具栏 -->
-        <div v-if="isShowTools(item)" class="list-tools go-transition" @click="deleteHandle(item, index)">
-          <n-button text type="default" color="#ffffff">
-            <template #icon>
-              <n-icon>
-                <TrashIcon />
-              </n-icon>
-            </template>
-            <span>删除</span>
-          </n-button>
-        </div>
       </div>
     </div>
+
+    <n-modal
+      v-model:show="renameModalVisible"
+      preset="dialog"
+      title="重命名素材"
+      positive-text="确定"
+      negative-text="取消"
+      @positive-click="confirmRename"
+      @negative-click="cancelRename"
+    >
+      <n-input
+        v-model:value="renameInputValue"
+        placeholder="输入新的文件名"
+      />
+    </n-modal>
   </div>
 </template>
 
@@ -52,22 +66,50 @@ import { useChartEditStore } from '@/store/modules/chartEditStore/chartEditStore
 import { EditCanvasTypeEnum } from '@/store/modules/chartEditStore/chartEditStore.d'
 import { ChartModeEnum } from '@/store/modules/chartLayoutStore/chartLayoutStore.d'
 import { useChartLayoutStore } from '@/store/modules/chartLayoutStore/chartLayoutStore'
-import { usePackagesStore } from '@/store/modules/packagesStore/packagesStore'
-import { componentInstall, loadingStart, loadingFinish, loadingError, JSONStringify, goDialog } from '@/utils'
+import { componentInstall, loadingStart, loadingFinish, loadingError, JSONStringify } from '@/utils'
 import { DragKeyEnum } from '@/enums/editPageEnum'
 import { createComponent } from '@/packages'
-import { ConfigType, CreateComponentType, PackagesCategoryEnum } from '@/packages/index.d'
-import { ChatCategoryEnum } from '@/packages/components/Photos/index.d'
+import { ConfigType, CreateComponentType } from '@/packages/index.d'
 import { fetchConfigComponent, fetchChartComponent } from '@/packages/index'
 import { FgIconify } from '@/components/FgIconify'
-import { icon } from '@/plugins'
 
 import omit from 'lodash/omit'
 
 const chartEditStore = useChartEditStore()
-const { TrashIcon } = icon.ionicons5
 
-const emit = defineEmits(['deletePhoto'])
+const renameModalVisible = ref(false)
+const renameItem = ref<ConfigType | null>(null)
+const renameInputValue = ref('')
+
+const openRenameModal = (item: ConfigType) => {
+  renameItem.value = item
+  renameInputValue.value = item.title
+  renameModalVisible.value = true
+}
+
+const confirmRename = async () => {
+  const item = renameItem.value
+  if (!item || !renameInputValue.value.trim() || renameInputValue.value.trim() === item.title) {
+    renameModalVisible.value = false
+    return
+  }
+  try {
+    const handle = item.configEvents?.renameHandle as ((name: string) => Promise<string>) | undefined
+    if (handle) {
+      const newName = await handle(renameInputValue.value.trim())
+      item.title = newName
+    }
+    window['$message']?.success('重命名成功')
+    renameModalVisible.value = false
+  } catch (e: any) {
+    window['$message']?.error(e?.message || '重命名失败')
+  }
+}
+
+const cancelRename = () => {
+  renameModalVisible.value = false
+}
+
 const props = defineProps({
   menuOptions: {
     type: Array as PropType<ConfigType[]>,
@@ -77,11 +119,6 @@ const props = defineProps({
 
 const chartLayoutStore = useChartLayoutStore()
 const contentChartsItemBoxRef = ref()
-
-// 判断工具栏展示
-const isShowTools = (item: ConfigType) => {
-  return !item.disabled && item.package === PackagesCategoryEnum.PHOTOS && item.category === ChatCategoryEnum.PRIVATE
-}
 
 // 组件展示状态
 const chartMode: Ref<ChartModeEnum> = computed(() => {
@@ -134,17 +171,6 @@ const dblclickHandle = async (item: ConfigType) => {
 // 单击事件
 const clickHandle = (item: ConfigType) => {
   item?.configEvents?.addHandle(item)
-}
-
-const deleteHandle = (item: ConfigType, index: number) => {
-  goDialog({
-    message: '是否删除此图片？',
-    transformOrigin: 'center',
-    onPositiveCallback: async () => {
-      const packagesStore = usePackagesStore()
-      await packagesStore.deletePhotos(item)
-    }
-  })
 }
 
 watch(
@@ -208,9 +234,6 @@ $halfCenterHeight: 74px;
       }
       .asset-hint {
         color: rgba(var(--app-theme-rgb), 0.95);
-      }
-      .list-tools {
-        opacity: 1;
       }
     }
 
@@ -276,12 +299,30 @@ $halfCenterHeight: 74px;
         color: rgba(226, 232, 240, 0.92);
       }
 
-      .asset-hint {
+      .asset-hint-row {
         flex-shrink: 0;
-        font-size: 10px;
-        line-height: 16px;
-        color: rgba(148, 163, 184, 0.72);
-        transition: color 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        .asset-hint {
+          font-size: 10px;
+          line-height: 16px;
+          color: rgba(148, 163, 184, 0.72);
+          transition: color 0.2s ease;
+        }
+
+        .rename-trigger {
+          flex-shrink: 0;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          opacity: 0.56;
+          transition: opacity 0.2s;
+          &:hover {
+            opacity: 1;
+          }
+        }
       }
     }
 
@@ -293,25 +334,6 @@ $halfCenterHeight: 74px;
       width: 100%;
       height: 100%;
       background-color: rgba(0, 0, 0, 0);
-    }
-    .list-tools {
-      position: absolute;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      bottom: 0;
-      left: 0;
-      margin: 0 4px 2px;
-      height: 26px;
-      width: calc(100% - 8px);
-      opacity: 0;
-      border-radius: 6px;
-      backdrop-filter: blur(20px);
-      background-color: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      &:hover {
-        background-color: rgba(232, 128, 128, 0.7);
-      }
     }
   }
   &.single {
@@ -377,7 +399,7 @@ $halfCenterHeight: 74px;
         display: block;
       }
 
-      .asset-hint {
+      .asset-hint-row {
         display: block;
         margin-top: 2px;
       }

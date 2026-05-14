@@ -78,6 +78,7 @@
             :y-gap="20"
             cols="1 s:2 m:2 l:3 xl:4 xxl:4"
             responsive="screen"
+            style="width: auto"
           >
             <n-grid-item v-for="(item, index) in projectCards" :key="item.id">
               <div class="go-float-up" :style="{ animationDelay: `${index * 0.05}s` }">

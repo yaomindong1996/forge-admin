@@ -60,6 +60,24 @@
           <n-button type="primary" @click="fetchMaterials">搜索</n-button>
         </div>
 
+        <div class="selector-upload">
+          <n-select
+            v-model:value="uploadCategory"
+            :options="uploadCategoryOptions"
+            size="small"
+            class="upload-category"
+          />
+          <n-upload
+            accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+            :show-file-list="false"
+            :custom-request="handleUploadMaterial"
+          >
+            <n-button size="small" secondary type="primary" :loading="uploading">
+              上传素材
+            </n-button>
+          </n-upload>
+        </div>
+
         <div v-if="mode === 'multiple' && tempSelected.length" class="selected-hint">
           已选 {{ tempSelected.length }} 张素材
         </div>
@@ -115,8 +133,14 @@
 import { computed, ref, watch } from 'vue'
 import FgAuthImage from '@/components/FgAuthImage/index.vue'
 import { createFileAssetRef } from '@/utils'
-import { getMaterialAssetPageApi, reportMaterialCategoryOptions } from '@/api/file'
+import {
+  getMaterialAssetPageApi,
+  REPORT_MATERIAL_BUSINESS_TYPE,
+  reportMaterialCategoryOptions,
+  uploadFileApi
+} from '@/api/file'
 import type { MaterialAsset } from '@/api/file'
+import type { UploadCustomRequestOptions } from 'naive-ui'
 
 type SelectorMode = 'single' | 'multiple'
 
@@ -143,8 +167,10 @@ const emit = defineEmits(['confirm', 'clear'])
 
 const showModal = ref(false)
 const loading = ref(false)
+const uploading = ref(false)
 const keyword = ref('')
 const activeCategory = ref('all')
+const uploadCategory = ref('background')
 const materials = ref<MaterialAsset[]>([])
 const tempSelected = ref<string[]>([])
 const pagination = ref({
@@ -154,6 +180,7 @@ const pagination = ref({
 })
 
 const categoryOptions = reportMaterialCategoryOptions
+const uploadCategoryOptions = reportMaterialCategoryOptions.filter(item => item.value !== 'all')
 
 const normalizedValue = computed(() => {
   if (Array.isArray(props.value)) {
@@ -227,6 +254,9 @@ const toggleAsset = (fileId: string) => {
 
 const handleCategoryChange = async () => {
   pagination.value.pageNum = 1
+  if (activeCategory.value !== 'all') {
+    uploadCategory.value = activeCategory.value
+  }
   await fetchMaterials()
 }
 
@@ -243,6 +273,39 @@ const confirmSelection = () => {
 
 const emitClear = () => {
   emit('clear')
+}
+
+const handleUploadMaterial = async (options: UploadCustomRequestOptions) => {
+  const rawFile = options.file.file
+  if (!rawFile) {
+    return
+  }
+  uploading.value = true
+  try {
+    const res = await uploadFileApi(rawFile as File, REPORT_MATERIAL_BUSINESS_TYPE, uploadCategory.value)
+    if (res.code !== 200 || !res.data?.fileId) {
+      throw new Error(res.msg || '素材上传失败')
+    }
+    const refValue = createFileAssetRef(res.data.fileId)
+    options.onFinish?.()
+    if (activeCategory.value !== 'all' && activeCategory.value !== uploadCategory.value) {
+      activeCategory.value = uploadCategory.value
+    }
+    pagination.value.pageNum = 1
+    await fetchMaterials()
+    if (props.mode === 'single') {
+      tempSelected.value = [refValue]
+      confirmSelection()
+    } else if (!tempSelected.value.includes(refValue)) {
+      tempSelected.value = [...tempSelected.value, refValue]
+    }
+    window['$message']?.success('素材上传成功')
+  } catch (error: any) {
+    options.onError?.()
+    window['$message']?.error(error?.message || '素材上传失败')
+  } finally {
+    uploading.value = false
+  }
 }
 </script>
 
@@ -338,6 +401,21 @@ const emitClear = () => {
 .selected-hint {
   font-size: 12px;
   color: rgba(var(--app-theme-rgb), 0.82);
+}
+
+.selector-upload {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(var(--app-theme-rgb), 0.08);
+  border-radius: 10px;
+  background: rgba(var(--app-theme-rgb), 0.035);
+}
+
+.upload-category {
+  width: 140px;
 }
 
 .selector-grid {

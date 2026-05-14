@@ -6,6 +6,7 @@ import { TableList } from '@/packages/components/Tables/index'
 import { PhotoList } from '@/packages/components/Photos/index'
 import { IconList } from '@/packages/components/Icons/index'
 import { PackagesCategoryEnum, PackagesType, ConfigType, FetchComFlagType } from '@/packages/index.d'
+import { isFileAssetRef, resolveAssetSourceUrl } from '@/utils'
 
 const configModules: Record<string, { default: string }> = import.meta.glob('./components/**/config.vue', {
   eager: true
@@ -20,11 +21,11 @@ const imagesModules: Record<string, { default: string }> = import.meta.glob('../
 // * 所有图表
 export let packagesList: PackagesType = {
   [PackagesCategoryEnum.CHARTS]: ChartList,
+  [PackagesCategoryEnum.PHOTOS]: PhotoList,
   [PackagesCategoryEnum.VCHART]: VChartList,
   [PackagesCategoryEnum.INFORMATIONS]: InformationList,
   [PackagesCategoryEnum.TABLES]: TableList,
   [PackagesCategoryEnum.DECORATES]: DecorateList,
-  [PackagesCategoryEnum.PHOTOS]: PhotoList,
   [PackagesCategoryEnum.ICONS]: IconList
 }
 
@@ -93,6 +94,7 @@ export const fetchConfigComponent = (dropData: ConfigType) => {
  */
 export const fetchImages = async (targetData?: ConfigType) => {
   if (!targetData) return ''
+  if (isFileAssetRef(targetData.image)) return resolveAssetSourceUrl(targetData.image)
   // 正则判断图片是否为 url，是则直接返回该 url
   if (/^(http|https):\/\/([\w.]+\/?)\S*/.test(targetData.image)) return targetData.image
   // 新数据动态处理
