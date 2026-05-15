@@ -20,6 +20,7 @@ export interface DataDataset {
   cacheTtlSeconds?: number
   status?: number
   publishStatus?: number
+  accessMode?: string
   description?: string
   createTime?: string
   updateTime?: string
@@ -61,6 +62,25 @@ export interface DataDatasetField {
   description?: string
 }
 
+export interface DataDatasetAcl {
+  id?: number
+  subjectType: string
+  subjectId: number
+  accessLevel?: string
+}
+
+export interface DataDatasetRowScope {
+  id?: number
+  enabled?: number
+  scopeMode?: string
+  tenantColumn?: string
+  orgColumn?: string
+  userColumn?: string
+  regionColumn?: string
+  regionStrategy?: string
+  remark?: string
+}
+
 export interface DataDatasetDetail {
   id: number
   datasetCode: string
@@ -81,10 +101,13 @@ export interface DataDatasetDetail {
   cacheTtlSeconds?: number
   status: number
   publishStatus: number
+  accessMode?: string
   description?: string
   createTime: string
   updateTime: string
   fields: DataDatasetField[]
+  aclItems?: DataDatasetAcl[]
+  rowScope?: DataDatasetRowScope
 }
 
 export interface DataDatasetPreview {
@@ -115,11 +138,11 @@ export function getDataDatasetById(id: number) {
   return request.get(`/data/dataset/${id}`)
 }
 
-export function createDataDataset(data: DataDataset & { fields?: DataDatasetField[] }) {
+export function createDataDataset(data: DataDataset & { fields?: DataDatasetField[], aclItems?: DataDatasetAcl[], rowScope?: DataDatasetRowScope }) {
   return request.post('/data/dataset', data)
 }
 
-export function updateDataDataset(data: DataDataset & { fields?: DataDatasetField[] }) {
+export function updateDataDataset(data: DataDataset & { fields?: DataDatasetField[], aclItems?: DataDatasetAcl[], rowScope?: DataDatasetRowScope }) {
   return request.put('/data/dataset', data)
 }
 

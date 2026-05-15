@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.data.mapper.DataDatasetAclMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.data.entity.DataDatasetAcl">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="dataset_id" property="datasetId"/>
+        <result column="subject_type" property="subjectType"/>
+        <result column="subject_id" property="subjectId"/>
+        <result column="access_level" property="accessLevel"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectByDatasetId" resultMap="BaseResultMap">
+        SELECT *
+        FROM ai_report_data_dataset_acl
+        WHERE tenant_id = #{tenantId}
+          AND dataset_id = #{datasetId}
+        ORDER BY subject_type ASC, subject_id ASC, access_level ASC
+    </select>
+
+    <delete id="deleteByDatasetId">
+        DELETE FROM ai_report_data_dataset_acl
+        WHERE tenant_id = #{tenantId}
+          AND dataset_id = #{datasetId}
+    </delete>
+
+    <select id="countMatchedAcl" resultType="int">
+        SELECT COUNT(1)
+        FROM ai_report_data_dataset_acl acl
+        WHERE acl.tenant_id = #{access.tenantId}
+          AND acl.dataset_id = #{datasetId}
+          AND acl.access_level IN
+          <foreach collection="access.accessLevels" item="level" open="(" separator="," close=")">
+              #{level}
+          </foreach>
+          <if test="access.userId != null">
+              AND (
+                  (acl.subject_type = 'USER' AND acl.subject_id = #{access.userId})
+                  <if test="access.roleIds != null and access.roleIds.size() > 0">
+                      OR (acl.subject_type = 'ROLE' AND acl.subject_id IN
+                      <foreach collection="access.roleIds" item="roleId" open="(" separator="," close=")">
+                          #{roleId}
+                      </foreach>
+                      )
+                  </if>
+                  <if test="access.orgIds != null and access.orgIds.size() > 0">
+                      OR (acl.subject_type = 'ORG' AND acl.subject_id IN
+                      <foreach collection="access.orgIds" item="orgId" open="(" separator="," close=")">
+                          #{orgId}
+                      </foreach>
+                      )
+                  </if>
+              )
+          </if>
+          <if test="access.userId == null">
+              AND 1 = 0
+          </if>
+    </select>
+
+</mapper>

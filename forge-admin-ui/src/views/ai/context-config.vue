@@ -6,7 +6,7 @@
         list: 'get@/ai/context/list',
         add: 'post@/ai/context/add',
         update: 'put@/ai/context/update',
-        delete: 'delete@/ai/context/{id}',
+        delete: 'delete@/ai/context/:id',
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"

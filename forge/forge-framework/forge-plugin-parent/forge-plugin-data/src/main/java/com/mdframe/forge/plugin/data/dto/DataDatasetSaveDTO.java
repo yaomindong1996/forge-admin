@@ -37,7 +37,13 @@ public class DataDatasetSaveDTO {
 
     private Integer status;
 
+    private String accessMode;
+
     private String description;
 
     private List<DataDatasetFieldDTO> fields;
+
+    private List<DataDatasetAclDTO> aclItems;
+
+    private DataDatasetRowScopeDTO rowScope;
 }

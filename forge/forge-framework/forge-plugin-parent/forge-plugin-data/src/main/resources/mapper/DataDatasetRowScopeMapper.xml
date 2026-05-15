@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.data.mapper.DataDatasetRowScopeMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.data.entity.DataDatasetRowScope">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="dataset_id" property="datasetId"/>
+        <result column="enabled" property="enabled"/>
+        <result column="scope_mode" property="scopeMode"/>
+        <result column="tenant_column" property="tenantColumn"/>
+        <result column="org_column" property="orgColumn"/>
+        <result column="user_column" property="userColumn"/>
+        <result column="region_column" property="regionColumn"/>
+        <result column="region_strategy" property="regionStrategy"/>
+        <result column="remark" property="remark"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectByDatasetId" resultMap="BaseResultMap">
+        SELECT *
+        FROM ai_report_data_dataset_row_scope
+        WHERE tenant_id = #{tenantId}
+          AND dataset_id = #{datasetId}
+        LIMIT 1
+    </select>
+
+    <delete id="deleteByDatasetId">
+        DELETE FROM ai_report_data_dataset_row_scope
+        WHERE tenant_id = #{tenantId}
+          AND dataset_id = #{datasetId}
+    </delete>
+
+    <select id="selectMinDataScope" resultType="int">
+        SELECT MIN(data_scope)
+        FROM sys_role
+        WHERE tenant_id = #{tenantId}
+          AND role_status = 1
+          AND id IN
+          <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+              #{roleId}
+          </foreach>
+    </select>
+
+    <select id="selectCustomOrgIds" resultType="long">
+        SELECT DISTINCT org_id
+        FROM sys_role_data_scope
+        WHERE tenant_id = #{tenantId}
+          AND role_id IN
+          <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+              #{roleId}
+          </foreach>
+    </select>
+
+    <select id="selectOrgAndChildIds" resultType="long">
+        SELECT DISTINCT id
+        FROM sys_org
+        WHERE tenant_id = #{tenantId}
+          AND (
+              id IN
+              <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+                  #{orgId}
+              </foreach>
+              <foreach collection="orgIds" item="orgId">
+                  OR FIND_IN_SET(#{orgId}, ancestors) > 0
+              </foreach>
+          )
+    </select>
+
+    <select id="selectRegionAndDirectChildCodes" resultType="string">
+        SELECT code
+        FROM sys_region_code
+        WHERE code = #{regionCode}
+           OR parent_code = #{regionCode}
+    </select>
+
+    <select id="selectRegionAndDescendantCodes" resultType="string">
+        WITH RECURSIVE region_tree AS (
+            SELECT code
+            FROM sys_region_code
+            WHERE code = #{regionCode}
+            UNION ALL
+            SELECT child.code
+            FROM sys_region_code child
+            INNER JOIN region_tree parent ON child.parent_code = parent.code
+        )
+        SELECT code FROM region_tree
+    </select>
+
+</mapper>

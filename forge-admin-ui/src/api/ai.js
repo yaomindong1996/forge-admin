@@ -1,4 +1,204 @@
-import { request } from '@/utils'
+import { useAuthStore } from '@/store/modules/auth'
+import { generateUUID, request } from '@/utils'
+
+const BASE_URL = import.meta.env.VITE_REQUEST_PREFIX || ''
+
+// ========== 智能体管理 ==========
+
+export function agentPage(params) {
+  return request.get('/ai/agent/page', { params })
+}
+
+export function agentList() {
+  return request.get('/ai/agent/list')
+}
+
+export function agentGetById(id) {
+  return request.get(`/ai/agent/${id}`)
+}
+
+export function agentAdd(data) {
+  return request.post('/ai/agent', data)
+}
+
+export function agentUpdate(data) {
+  return request.put('/ai/agent', data)
+}
+
+export function agentDelete(id) {
+  return request.delete(`/ai/agent/${id}`)
+}
+
+export function streamAgentChat(data, onChunk, onComplete, onError, options = {}) {
+  const { maxRetries = 0, retryDelay = 800 } = options
+  const controller = new AbortController()
+  const authStore = useAuthStore()
+  let currentRetry = 0
+  let isAborted = false
+  let completed = false
+
+  controller.signal.addEventListener('abort', () => {
+    isAborted = true
+  })
+
+  function completeOnce(data) {
+    if (!completed) {
+      completed = true
+      onComplete(data)
+    }
+  }
+
+  function parseSseBlock(block) {
+    let eventType = 'message'
+    const dataLines = []
+
+    for (const rawLine of block.split(/\r?\n/)) {
+      const line = rawLine.trimEnd()
+      if (!line || line.startsWith(':')) {
+        continue
+      }
+
+      if (line.startsWith('event:')) {
+        eventType = line.slice(6).trim()
+      }
+      else if (line.startsWith('data:')) {
+        const dataLine = line.slice(5)
+        dataLines.push(dataLine.startsWith(' ') ? dataLine.slice(1) : dataLine)
+      }
+    }
+
+    return {
+      eventType,
+      eventData: dataLines.join('\n'),
+    }
+  }
+
+  function processSseBlock(block) {
+    if (!block.trim() || completed) {
+      return
+    }
+
+    const { eventType, eventData } = parseSseBlock(block)
+    const parsedData = parseEventData(eventData)
+    if (eventType === 'done' || eventData === '[DONE]') {
+      completeOnce(parsedData)
+    }
+    else if (eventType === 'complete') {
+      completeOnce(parsedData)
+    }
+    else if (eventType === 'error') {
+      completed = true
+      onError(parsedData?.message || eventData || '智能体测试失败')
+    }
+    else if (eventType === 'progress') {
+      onChunk({
+        event: 'progress',
+        data: parsedData || { message: eventData },
+      })
+    }
+    else if (eventData) {
+      onChunk({
+        event: 'chunk',
+        data: parsedData && typeof parsedData === 'object'
+          ? parsedData
+          : { content: eventData },
+      })
+    }
+  }
+
+  function parseEventData(eventData) {
+    if (!eventData || eventData === '[DONE]') {
+      return null
+    }
+
+    try {
+      return JSON.parse(eventData)
+    }
+    catch {
+      return null
+    }
+  }
+
+  function doFetch() {
+    fetch(`${BASE_URL}/ai/client/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Authorization': authStore.accessToken ? `Bearer ${authStore.accessToken}` : '',
+        'X-Timestamp': Date.now().toString(),
+        'X-Nonce': generateUUID(),
+      },
+      body: JSON.stringify(data),
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(response.statusText || `HTTP ${response.status}`)
+        }
+
+        currentRetry = 0
+        if (!response.body) {
+          throw new Error('当前浏览器不支持流式响应')
+        }
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        function read() {
+          reader.read().then(({ done, value }) => {
+            if (done) {
+              if (buffer.trim()) {
+                processSseBlock(buffer)
+              }
+              completeOnce()
+              return
+            }
+
+            buffer += decoder.decode(value, { stream: true })
+            const events = buffer.split(/\r?\n\r?\n/)
+            buffer = events.pop() ?? ''
+
+            for (const eventStr of events) {
+              processSseBlock(eventStr)
+            }
+
+            read()
+          }).catch((error) => {
+            if (error.name !== 'AbortError') {
+              handleRetry(error.message)
+            }
+          })
+        }
+
+        read()
+      })
+      .catch((error) => {
+        if (error.name !== 'AbortError') {
+          handleRetry(error.message)
+        }
+      })
+  }
+
+  function handleRetry(errorMessage) {
+    if (isAborted) {
+      return
+    }
+
+    if (currentRetry < maxRetries) {
+      currentRetry++
+      setTimeout(doFetch, retryDelay)
+    }
+    else {
+      onError(errorMessage || '智能体测试连接失败')
+    }
+  }
+
+  doFetch()
+  return controller
+}
 
 // ========== 供应商管理 ==========
 

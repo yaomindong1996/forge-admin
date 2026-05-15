@@ -23,6 +23,7 @@
         <result column="cache_ttl_seconds" property="cacheTtlSeconds"/>
         <result column="status" property="status"/>
         <result column="publish_status" property="publishStatus"/>
+        <result column="access_mode" property="accessMode"/>
         <result column="description" property="description"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
@@ -65,13 +66,15 @@
                 OR cat.ancestors LIKE CONCAT('%/', #{categoryId}, '/%')
             )
         </if>
+        <include refid="DatasetAccessFilter"/>
         ORDER BY d.create_time DESC
     </select>
 
     <select id="selectDatasetList" resultMap="BaseResultMap">
         SELECT d.id, d.tenant_id, d.dataset_code, d.dataset_name, d.connection_id, d.category_id,
                c.connection_name, cat.category_code, cat.category_name,
-               d.dataset_type, d.table_name, d.max_rows, d.timeout_seconds, d.status, d.publish_status, d.description
+               d.dataset_type, d.table_name, d.max_rows, d.timeout_seconds, d.status, d.publish_status,
+               d.access_mode, d.description
         FROM ai_report_data_dataset d
         LEFT JOIN ai_report_data_connection c
             ON d.connection_id = c.id
@@ -85,6 +88,7 @@
         <if test="connectionId != null">
             AND d.connection_id = #{connectionId}
         </if>
+        <include refid="DatasetAccessFilter"/>
         ORDER BY d.create_time DESC
     </select>
 
@@ -103,5 +107,44 @@
         WHERE tenant_id = #{tenantId}
           AND category_id = #{categoryId}
     </select>
+
+    <sql id="DatasetAccessFilter">
+        <if test="access != null and access.skipAccessFilter == false">
+            AND (
+                d.access_mode IS NULL
+                OR d.access_mode = 'PUBLIC'
+                <if test="access.userId != null">
+                    OR d.create_by = #{access.userId}
+                    OR EXISTS (
+                        SELECT 1
+                        FROM ai_report_data_dataset_acl acl
+                        WHERE acl.tenant_id = #{tenantId}
+                          AND acl.dataset_id = d.id
+                          AND acl.access_level IN
+                          <foreach collection="access.accessLevels" item="level" open="(" separator="," close=")">
+                              #{level}
+                          </foreach>
+                          AND (
+                              (acl.subject_type = 'USER' AND acl.subject_id = #{access.userId})
+                              <if test="access.roleIds != null and access.roleIds.size() > 0">
+                                  OR (acl.subject_type = 'ROLE' AND acl.subject_id IN
+                                  <foreach collection="access.roleIds" item="roleId" open="(" separator="," close=")">
+                                      #{roleId}
+                                  </foreach>
+                                  )
+                              </if>
+                              <if test="access.orgIds != null and access.orgIds.size() > 0">
+                                  OR (acl.subject_type = 'ORG' AND acl.subject_id IN
+                                  <foreach collection="access.orgIds" item="orgId" open="(" separator="," close=")">
+                                      #{orgId}
+                                  </foreach>
+                                  )
+                              </if>
+                          )
+                    )
+                </if>
+            )
+        </if>
+    </sql>
 
 </mapper>

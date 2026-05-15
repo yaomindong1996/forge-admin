@@ -495,3 +495,28 @@ AI 生成流程配置后点击“加载到画布”，bpmn-js 报错：
 **影响范围**:
 - `admin-ui -> report-ui` 单点登录
 - 所有“未登录先协商动态密钥，再换发 token”的跨系统接入场景
+
+## 10. SSE 流式响应解析不能只按 `\n\n` 分割
+
+**发现日期**: 2026-05-15
+
+**问题描述**:
+AI 智能体流式接口后端日志已经持续输出，但前端对话框没有任何内容。前端 SSE 解析只按 `\n\n` 切分事件时，如果 WebFlux 或代理链路输出 `\r\n\r\n`，数据会一直留在 buffer 中，不会触发 `onChunk`。
+
+**解决方案**:
+前端解析 SSE 时使用兼容 CRLF 的分隔和逐行解析：
+
+```javascript
+const events = buffer.split(/\r?\n\r?\n/)
+for (const rawLine of block.split(/\r?\n/)) {
+  const line = rawLine.trimEnd()
+  if (line.startsWith('event:')) eventType = line.slice(6).trim()
+  if (line.startsWith('data:')) dataLines.push(line.slice(5).replace(/^ /, ''))
+}
+```
+
+同时处理 `[DONE]`、`event: done`、`event: error` 和最后未处理完的剩余 buffer，避免完成回调重复触发。
+
+**影响范围**:
+- `fetch + response.body.getReader()` 手写 SSE 解析的前端流式接口
+- Spring WebFlux `ServerSentEvent` 通过本地代理转发的流式响应

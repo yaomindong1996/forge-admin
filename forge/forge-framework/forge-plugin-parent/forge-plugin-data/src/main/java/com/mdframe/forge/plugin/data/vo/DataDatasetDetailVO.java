@@ -1,5 +1,7 @@
 package com.mdframe.forge.plugin.data.vo;
 
+import com.mdframe.forge.plugin.data.entity.DataDatasetAcl;
+import com.mdframe.forge.plugin.data.entity.DataDatasetRowScope;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -46,6 +48,8 @@ public class DataDatasetDetailVO {
 
     private Integer publishStatus;
 
+    private String accessMode;
+
     private String description;
 
     private LocalDateTime createTime;
@@ -53,4 +57,8 @@ public class DataDatasetDetailVO {
     private LocalDateTime updateTime;
 
     private List<DataDatasetFieldVO> fields;
+
+    private List<DataDatasetAcl> aclItems;
+
+    private DataDatasetRowScope rowScope;
 }

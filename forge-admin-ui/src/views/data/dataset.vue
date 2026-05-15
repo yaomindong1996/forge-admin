@@ -186,7 +186,7 @@
           :load-detail-on-edit="true"
           :striped="false"
           :bordered="false"
-          :scroll-x="1580"
+          :scroll-x="1700"
           max-height="calc(100vh - 420px)"
           :edit-grid-cols="12"
           edit-label-placement="top"
@@ -429,6 +429,278 @@
               </div>
             </div>
           </template>
+
+          <template #form-accessPermissionConfig="{ formData }">
+            <div class="permission-panel">
+              <div class="permission-panel__header">
+                <div>
+                  <div class="context-panel__eyebrow">
+                    Access Control
+                  </div>
+                  <div class="permission-panel__title">
+                    数据集访问权限
+                  </div>
+                  <div class="permission-panel__desc">
+                    公开数据集保持现有使用方式；私有数据集只对创建人、管理员和授权主体可见可用。
+                  </div>
+                </div>
+                <n-radio-group
+                  v-model:value="formData.accessMode"
+                  :disabled="isFormReadOnly"
+                  @update:value="value => handleAccessModeChange(value, formData)"
+                >
+                  <n-radio-button
+                    v-for="option in accessModeOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </n-radio-button>
+                </n-radio-group>
+              </div>
+
+              <div class="permission-facts">
+                <div class="permission-fact">
+                  <span>访问模式</span>
+                  <strong>{{ getAccessModeLabel(formData.accessMode) }}</strong>
+                </div>
+                <div class="permission-fact">
+                  <span>授权主体</span>
+                  <strong>{{ getAclCount(formData) }} 个</strong>
+                </div>
+                <div class="permission-fact">
+                  <span>默认兼容</span>
+                  <strong>{{ formData.accessMode === 'PRIVATE' ? '按 ACL 校验' : '保持公开' }}</strong>
+                </div>
+              </div>
+
+              <div v-if="formData.accessMode === 'PRIVATE'" class="acl-editor">
+                <div class="acl-editor__toolbar">
+                  <div>
+                    <div class="acl-editor__title">
+                      授权主体
+                    </div>
+                    <div class="acl-editor__hint">
+                      支持角色、用户和组织授权，查询权限包含查看，管理权限包含查询。
+                    </div>
+                  </div>
+                  <n-button
+                    type="primary"
+                    secondary
+                    :disabled="isFormReadOnly"
+                    @click="addAclItem(formData)"
+                  >
+                    <template #icon>
+                      <i class="i-material-symbols:add-rounded" />
+                    </template>
+                    添加授权
+                  </n-button>
+                </div>
+
+                <n-empty
+                  v-if="!formData.aclItems || formData.aclItems.length === 0"
+                  description="暂无授权主体，当前仅创建人和管理员可访问"
+                  size="small"
+                />
+                <div v-else class="acl-rows">
+                  <div
+                    v-for="(item, index) in formData.aclItems"
+                    :key="item.__key || `${item.subjectType || 'ACL'}-${index}`"
+                    class="acl-row"
+                  >
+                    <NSelect
+                      v-model:value="item.subjectType"
+                      :options="aclSubjectTypeOptions"
+                      :disabled="isFormReadOnly"
+                      @update:value="() => handleAclSubjectTypeChange(item)"
+                    />
+                    <n-tree-select
+                      v-if="item.subjectType === 'ORG'"
+                      v-model:value="item.subjectId"
+                      :options="getAclOrgOptions(item)"
+                      :disabled="isFormReadOnly"
+                      clearable
+                      filterable
+                      default-expand-all
+                      placeholder="选择组织"
+                    />
+                    <NSelect
+                      v-else
+                      v-model:value="item.subjectId"
+                      :options="getAclSubjectOptions(item)"
+                      :disabled="isFormReadOnly"
+                      clearable
+                      filterable
+                      placeholder="选择授权主体"
+                    />
+                    <NSelect
+                      v-model:value="item.accessLevel"
+                      :options="accessLevelOptions"
+                      :disabled="isFormReadOnly"
+                      placeholder="权限级别"
+                    />
+                    <n-button
+                      quaternary
+                      type="error"
+                      :disabled="isFormReadOnly"
+                      @click="removeAclItem(formData, index)"
+                    >
+                      <template #icon>
+                        <i class="i-material-symbols:delete-outline-rounded" />
+                      </template>
+                    </n-button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <template #form-rowScopeConfig="{ formData }">
+            <div class="permission-panel row-scope-panel">
+              <div class="permission-panel__header">
+                <div>
+                  <div class="context-panel__eyebrow">
+                    Row Scope
+                  </div>
+                  <div class="permission-panel__title">
+                    数据行权限
+                  </div>
+                  <div class="permission-panel__desc">
+                    启用后按登录人的系统数据范围动态生成过滤条件，字段映射只从当前数据集字段中选择。
+                  </div>
+                </div>
+                <n-switch
+                  v-model:value="formData.rowScope.enabled"
+                  :checked-value="1"
+                  :unchecked-value="0"
+                  :disabled="isFormReadOnly"
+                >
+                  <template #checked>
+                    启用
+                  </template>
+                  <template #unchecked>
+                    关闭
+                  </template>
+                </n-switch>
+              </div>
+
+              <div class="permission-facts">
+                <div class="permission-fact">
+                  <span>权限来源</span>
+                  <strong>系统角色数据范围</strong>
+                </div>
+                <div class="permission-fact">
+                  <span>字段来源</span>
+                  <strong>{{ getRowScopeFieldSourceLabel(formData) }}</strong>
+                </div>
+                <div class="permission-fact">
+                  <span>行政区划策略</span>
+                  <strong>{{ getRowScopeStrategyLabel(formData.rowScope.regionStrategy) }}</strong>
+                </div>
+              </div>
+
+              <n-alert
+                v-if="formData.datasetType === 'SQL' && formData.rowScope.enabled === 1"
+                type="warning"
+                :show-icon="false"
+                class="row-scope-alert"
+              >
+                SQL 数据集启用行权限时，需要在 SQL 的过滤位置预留 /*DATA_SCOPE*/ 占位符。
+              </n-alert>
+
+              <n-alert
+                v-if="formData.rowScope.enabled === 1 && getRowScopeFieldOptions(formData).length === 0"
+                type="warning"
+                :show-icon="false"
+                class="row-scope-alert"
+              >
+                当前暂无可选字段，请先保存并同步字段；单表数据集也可以刷新来源表字段后再配置。
+              </n-alert>
+
+              <div class="row-scope-grid" :class="{ 'is-disabled': formData.rowScope.enabled !== 1 }">
+                <div class="row-scope-field">
+                  <label>租户字段</label>
+                  <NSelect
+                    v-model:value="formData.rowScope.tenantColumn"
+                    :options="getRowScopeFieldOptions(formData)"
+                    :loading="rowScopeTableFieldLoading"
+                    :disabled="isFormReadOnly || formData.rowScope.enabled !== 1"
+                    clearable
+                    filterable
+                    placeholder="选择 tenant_id 字段"
+                  />
+                </div>
+                <div class="row-scope-field">
+                  <label>组织字段</label>
+                  <NSelect
+                    v-model:value="formData.rowScope.orgColumn"
+                    :options="getRowScopeFieldOptions(formData)"
+                    :loading="rowScopeTableFieldLoading"
+                    :disabled="isFormReadOnly || formData.rowScope.enabled !== 1"
+                    clearable
+                    filterable
+                    placeholder="选择组织字段"
+                  />
+                </div>
+                <div class="row-scope-field">
+                  <label>用户字段</label>
+                  <NSelect
+                    v-model:value="formData.rowScope.userColumn"
+                    :options="getRowScopeFieldOptions(formData)"
+                    :loading="rowScopeTableFieldLoading"
+                    :disabled="isFormReadOnly || formData.rowScope.enabled !== 1"
+                    clearable
+                    filterable
+                    placeholder="选择用户字段"
+                  />
+                </div>
+                <div class="row-scope-field">
+                  <label>行政区划字段</label>
+                  <NSelect
+                    v-model:value="formData.rowScope.regionColumn"
+                    :options="getRowScopeFieldOptions(formData)"
+                    :loading="rowScopeTableFieldLoading"
+                    :disabled="isFormReadOnly || formData.rowScope.enabled !== 1"
+                    clearable
+                    filterable
+                    placeholder="选择 region_code 字段"
+                  />
+                </div>
+                <div class="row-scope-field">
+                  <label>区划范围</label>
+                  <NSelect
+                    v-model:value="formData.rowScope.regionStrategy"
+                    :options="rowScopeStrategyOptions"
+                    :disabled="isFormReadOnly || formData.rowScope.enabled !== 1"
+                    placeholder="选择区划策略"
+                  />
+                </div>
+                <div class="row-scope-field row-scope-field--action">
+                  <label>字段刷新</label>
+                  <n-button
+                    :disabled="isFormReadOnly || formData.datasetType !== 'TABLE' || !formData.connectionId || !formData.tableName"
+                    :loading="rowScopeTableFieldLoading"
+                    @click="loadRowScopeTableFields(formData, { force: true })"
+                  >
+                    <template #icon>
+                      <i class="i-material-symbols:refresh-rounded" />
+                    </template>
+                    刷新字段
+                  </n-button>
+                </div>
+                <div class="row-scope-field row-scope-field--wide">
+                  <label>备注</label>
+                  <NInput
+                    v-model:value="formData.rowScope.remark"
+                    type="textarea"
+                    :disabled="isFormReadOnly || formData.rowScope.enabled !== 1"
+                    :autosize="{ minRows: 2, maxRows: 4 }"
+                    placeholder="记录该数据集行权限字段口径"
+                  />
+                </div>
+              </div>
+            </div>
+          </template>
         </AiCrudPage>
       </section>
     </div>
@@ -524,7 +796,7 @@
 import { NInput, NSelect, NTag } from 'naive-ui'
 import { computed, h, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getDataConnectionList, getDataConnectionTables } from '@/api/data/connection'
+import { getDataConnectionFields, getDataConnectionList, getDataConnectionTables } from '@/api/data/connection'
 import {
   deleteDataDataset,
   getDataDatasetById,
@@ -550,8 +822,11 @@ const categoryKeyword = ref('')
 const tableOptions = ref([])
 const dimensionOptions = ref([])
 const tableLoading = ref(false)
+const rowScopeTableFieldLoading = ref(false)
 const loadedTableConnectionId = ref(null)
 const loadingTableConnectionId = ref(null)
+const rowScopeTableFieldKey = ref('')
+const rowScopeTableFieldOptions = ref([])
 const fieldModalVisible = ref(false)
 const fieldLoading = ref(false)
 const fieldSaving = ref(false)
@@ -563,6 +838,10 @@ const sqlPreviewLoading = ref(false)
 const sqlPreviewColumns = ref([])
 const sqlPreviewRows = ref([])
 const sqlPreviewScrollX = ref(0)
+const roleOptions = ref([])
+const userOptions = ref([])
+const orgTreeOptions = ref([])
+const permissionOptionsLoaded = ref(false)
 const activeCategoryScope = ref('all')
 const selectedCategoryId = ref(null)
 const currentFormMode = ref('edit')
@@ -586,6 +865,12 @@ const stepDefinitions = [
     caption: '行数 / 超时 / 描述',
     title: '控制查询边界，保证运行时稳定',
     description: '通过返回行数和超时限制，把数据集控制在可复用、可治理的范围内。',
+  },
+  {
+    label: '权限控制',
+    caption: '访问 / 行权限',
+    title: '开放给合适的人，并按数据范围收敛查询结果',
+    description: '访问权限控制谁能用数据集，行权限复用登录人的系统数据范围动态过滤数据。',
   },
 ]
 const totalSteps = stepDefinitions.length
@@ -617,6 +902,29 @@ const publishStatusOptions = [
   { label: '未发布', value: 0 },
   { label: '已发布', value: 1 },
   { label: '已下架', value: 2 },
+]
+
+const accessModeOptions = [
+  { label: '公开', value: 'PUBLIC' },
+  { label: '私有', value: 'PRIVATE' },
+]
+
+const aclSubjectTypeOptions = [
+  { label: '角色', value: 'ROLE' },
+  { label: '用户', value: 'USER' },
+  { label: '组织', value: 'ORG' },
+]
+
+const accessLevelOptions = [
+  { label: '查看', value: 'VIEW' },
+  { label: '查询', value: 'QUERY' },
+  { label: '管理', value: 'MANAGE' },
+]
+
+const rowScopeStrategyOptions = [
+  { label: '仅本级', value: 'SELF' },
+  { label: '本级及直接下级', value: 'SELF_AND_CHILDREN' },
+  { label: '本级及所有下级', value: 'SELF_AND_DESCENDANTS' },
 ]
 
 const dataTypeOptions = [
@@ -844,6 +1152,16 @@ const tableColumns = computed(() => [
       bordered: false,
       type: getPublishStatusTagType(row.publishStatus),
     }, { default: () => getPublishStatusLabel(row.publishStatus) }),
+  },
+  {
+    prop: 'accessMode',
+    label: '访问权限',
+    width: 110,
+    render: row => h(NTag, {
+      size: 'small',
+      bordered: false,
+      type: row.accessMode === 'PRIVATE' ? 'warning' : 'success',
+    }, { default: () => getAccessModeLabel(row.accessMode) }),
   },
   {
     prop: 'status',
@@ -1103,6 +1421,7 @@ const step1Schema = computed(() => [
       filterable: true,
       clearable: true,
     },
+    onChange: ({ value, formData }) => handleTableNameChange(value, formData),
     vIf: formData => formData.datasetType === 'TABLE',
   },
   {
@@ -1245,12 +1564,65 @@ const step3Schema = computed(() => [
   },
 ])
 
+const step4Schema = computed(() => [
+  {
+    field: 'stepIndicator',
+    label: '',
+    type: 'slot',
+    slotName: 'stepIndicator',
+    span: 12,
+    showFeedback: false,
+  },
+  {
+    field: '__sectionAccessPermission',
+    label: '访问权限',
+    type: 'divider',
+    span: 12,
+    showFeedback: false,
+    props: { class: 'dataset-form-divider' },
+  },
+  {
+    field: 'accessPermissionConfig',
+    label: '',
+    type: 'slot',
+    slotName: 'accessPermissionConfig',
+    span: 12,
+    showFeedback: false,
+  },
+  {
+    field: '__sectionRowScope',
+    label: '数据行权限',
+    type: 'divider',
+    span: 12,
+    showFeedback: false,
+    props: { class: 'dataset-form-divider' },
+  },
+  {
+    field: 'rowScopeConfig',
+    label: '',
+    type: 'slot',
+    slotName: 'rowScopeConfig',
+    span: 12,
+    showFeedback: false,
+  },
+  {
+    field: 'stepNavigation',
+    label: '',
+    type: 'slot',
+    slotName: 'stepNavigation',
+    span: 12,
+    showFeedback: false,
+  },
+])
+
 const editSchema = computed(() => {
   if (currentStep.value === 1)
     return step1Schema.value
   if (currentStep.value === 2)
     return step2Schema.value
-  return step3Schema.value
+  if (currentStep.value === 3)
+    return step3Schema.value
+  return step4Schema.value
 })
 
 loadConnectionOptions()
@@ -1332,6 +1704,15 @@ function getPublishStatusTagType(status) {
   return 'default'
 }
 
+function getAccessModeLabel(accessMode) {
+  return accessMode === 'PRIVATE' ? '私有' : '公开'
+}
+
+function getRowScopeStrategyLabel(strategy) {
+  const option = rowScopeStrategyOptions.find(item => item.value === strategy)
+  return option?.label || '本级及所有下级'
+}
+
 function getDatasetSourceGuide(formData) {
   if (formData?.datasetType === 'SQL') {
     return 'SQL 数据集适合多表关联、预聚合和复杂过滤，保存前建议先执行 SQL 预览。'
@@ -1375,7 +1756,7 @@ function getDatasetParamConstraint(formData) {
 }
 
 function getStepNodeInlineStyle(index) {
-  if (index === 1) {
+  if (index > 0 && index < totalSteps - 1) {
     return {
       display: 'flex',
       flexDirection: 'column',
@@ -1539,18 +1920,21 @@ function handleDatasetLoadSuccess({ list, total }) {
 }
 
 function handleAddDataset() {
+  handleStepReset()
   currentFormMode.value = 'add'
   currentEditingDataset.value = null
   crudRef.value?.showAdd()
 }
 
 function handleEdit(row) {
+  handleStepReset()
   currentFormMode.value = 'edit'
   currentEditingDataset.value = row
   crudRef.value?.showEdit({ ...row, __modalTitle: '编辑数据集' })
 }
 
 function handleViewDataset(row) {
+  handleStepReset()
   currentFormMode.value = 'view'
   currentEditingDataset.value = row
   crudRef.value?.showEdit({ ...row, __modalTitle: '查看数据集' })
@@ -1569,6 +1953,9 @@ function prepareDatasetFormData(sourceData = {}, options = {}) {
     status: 1,
     maxRows: 1000,
     timeoutSeconds: 15,
+    accessMode: 'PUBLIC',
+    aclItems: [],
+    rowScope: createDefaultRowScope(),
     ...sourceData,
   }
 
@@ -1577,6 +1964,9 @@ function prepareDatasetFormData(sourceData = {}, options = {}) {
   }
 
   nextFormData.paramSchemaJson = parseParamSchemaFormValue(nextFormData.paramSchemaJson)
+  nextFormData.accessMode = nextFormData.accessMode === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC'
+  nextFormData.aclItems = normalizeAclItems(nextFormData.aclItems)
+  nextFormData.rowScope = normalizeRowScope(nextFormData.rowScope)
   return nextFormData
 }
 
@@ -1588,9 +1978,11 @@ async function beforeRenderForm(formData) {
   const datasetType = nextFormData.datasetType || 'TABLE'
   if (connectionId && datasetType === 'TABLE') {
     await loadTableOptions(connectionId)
+    await loadRowScopeTableFields(nextFormData)
   }
   else {
     resetTableOptions()
+    resetRowScopeTableFields()
   }
   return nextFormData
 }
@@ -1602,21 +1994,27 @@ async function beforeRenderDetail(detailData) {
   const datasetType = nextFormData.datasetType || 'TABLE'
   if (connectionId && datasetType === 'TABLE') {
     await loadTableOptions(connectionId)
+    await loadRowScopeTableFields(nextFormData)
   }
   else {
     resetTableOptions()
+    resetRowScopeTableFields()
   }
   return nextFormData
 }
 
 async function handleConnectionChange(connectionId, formData) {
   formData.tableName = null
+  clearRowScopeColumns(formData)
+  resetRowScopeTableFields()
   if (formData.datasetType === 'TABLE') {
     await loadTableOptions(connectionId)
   }
 }
 
 async function handleDatasetTypeChange(datasetType, formData) {
+  clearRowScopeColumns(formData)
+  resetRowScopeTableFields()
   if (datasetType === 'TABLE') {
     formData.sqlText = null
     await loadTableOptions(formData.connectionId)
@@ -1626,10 +2024,24 @@ async function handleDatasetTypeChange(datasetType, formData) {
   formData.tableName = null
 }
 
+async function handleTableNameChange(tableName, formData) {
+  clearRowScopeColumns(formData)
+  if (!tableName) {
+    resetRowScopeTableFields()
+    return
+  }
+  await loadRowScopeTableFields(formData, { force: true })
+}
+
 function resetTableOptions() {
   tableOptions.value = []
   loadedTableConnectionId.value = null
   loadingTableConnectionId.value = null
+}
+
+function resetRowScopeTableFields() {
+  rowScopeTableFieldKey.value = ''
+  rowScopeTableFieldOptions.value = []
 }
 
 async function loadTableOptions(connectionId) {
@@ -1670,6 +2082,111 @@ async function loadTableOptions(connectionId) {
   }
 }
 
+async function loadRowScopeTableFields(formData, options = {}) {
+  const { force = false } = options
+  if (!formData?.connectionId || formData.datasetType !== 'TABLE' || !formData.tableName) {
+    resetRowScopeTableFields()
+    return
+  }
+
+  const nextKey = `${formData.connectionId}:${formData.tableName}`
+  if (!force && rowScopeTableFieldKey.value === nextKey && rowScopeTableFieldOptions.value.length > 0) {
+    return
+  }
+
+  rowScopeTableFieldLoading.value = true
+  try {
+    const res = await getDataConnectionFields(formData.connectionId, formData.tableName)
+    if (res.code === 200 && Array.isArray(res.data)) {
+      rowScopeTableFieldOptions.value = res.data.map(field => ({
+        label: field.columnComment ? `${field.columnName}（${field.columnComment}）` : field.columnName,
+        value: field.columnName,
+      }))
+      rowScopeTableFieldKey.value = nextKey
+    }
+    else {
+      resetRowScopeTableFields()
+    }
+  }
+  catch (error) {
+    console.error('Failed to load row scope table fields', error)
+    resetRowScopeTableFields()
+    window.$message?.error('加载数据表字段失败')
+  }
+  finally {
+    rowScopeTableFieldLoading.value = false
+  }
+}
+
+async function loadPermissionOptions() {
+  if (permissionOptionsLoaded.value) {
+    return
+  }
+  await Promise.all([
+    loadRoleOptions(),
+    loadUserOptions(),
+    loadOrgOptions(),
+  ])
+  permissionOptionsLoaded.value = true
+}
+
+async function loadRoleOptions() {
+  try {
+    const res = await request.get('/system/role/page', {
+      params: { pageNum: 1, pageSize: 1000 },
+    })
+    if (res.code === 200) {
+      const rows = res.data?.records || res.data?.list || []
+      roleOptions.value = rows.map(role => ({
+        label: role.roleKey ? `${role.roleName}（${role.roleKey}）` : role.roleName,
+        value: role.id,
+      }))
+    }
+  }
+  catch (error) {
+    console.error('Failed to load roles for dataset ACL', error)
+  }
+}
+
+async function loadUserOptions() {
+  try {
+    const res = await request.get('/system/user/page', {
+      params: { pageNum: 1, pageSize: 1000 },
+    })
+    if (res.code === 200) {
+      const rows = res.data?.records || res.data?.list || []
+      userOptions.value = rows.map(user => ({
+        label: user.realName ? `${user.realName}（${user.username}）` : user.username,
+        value: user.id,
+      }))
+    }
+  }
+  catch (error) {
+    console.error('Failed to load users for dataset ACL', error)
+  }
+}
+
+async function loadOrgOptions() {
+  try {
+    const res = await request.get('/system/org/tree')
+    if (res.code === 200) {
+      orgTreeOptions.value = transformOrgTreeOptions(res.data || [])
+    }
+  }
+  catch (error) {
+    console.error('Failed to load org tree for dataset ACL', error)
+  }
+}
+
+function transformOrgTreeOptions(tree) {
+  return (tree || []).map(item => ({
+    label: item.orgName,
+    value: item.id,
+    key: item.id,
+    children: item.children?.length ? transformOrgTreeOptions(item.children) : undefined,
+  }))
+}
+
 function beforeSubmit(formData) {
   if (isFormReadOnly.value) {
     return false
@@ -1683,10 +2200,14 @@ function beforeSubmit(formData) {
   delete formData.__sectionSource
   delete formData.__sectionParam
   delete formData.__sectionSetting
+  delete formData.__sectionAccessPermission
+  delete formData.__sectionRowScope
   delete formData.sqlPreviewAction
   delete formData.sourceGuide
   delete formData.paramGuide
   delete formData.settingGuide
+  delete formData.accessPermissionConfig
+  delete formData.rowScopeConfig
 
   if (!formData.connectionId) {
     window.$message?.error('请选择数据连接')
@@ -1713,11 +2234,267 @@ function beforeSubmit(formData) {
     return false
   }
 
+  const normalizedAclItems = normalizeSubmitAclItems(formData)
+  if (normalizedAclItems === null) {
+    return false
+  }
+
+  const normalizedRowScope = normalizeSubmitRowScope(formData)
+  if (normalizedRowScope === null) {
+    return false
+  }
+
   formData.paramSchemaJson = normalizedSchema.length > 0
     ? JSON.stringify(normalizedSchema, null, 2)
     : null
+  formData.aclItems = normalizedAclItems
+  formData.rowScope = normalizedRowScope
 
   return formData
+}
+
+function createDefaultAclItem() {
+  return {
+    __key: `${Date.now()}-${Math.random()}`,
+    subjectType: 'ROLE',
+    subjectId: null,
+    accessLevel: 'QUERY',
+  }
+}
+
+function createDefaultRowScope() {
+  return {
+    enabled: 0,
+    scopeMode: 'SYSTEM_DATA_SCOPE',
+    tenantColumn: null,
+    orgColumn: null,
+    userColumn: null,
+    regionColumn: null,
+    regionStrategy: 'SELF_AND_DESCENDANTS',
+    remark: null,
+  }
+}
+
+function normalizeAclItems(items) {
+  if (!Array.isArray(items)) {
+    return []
+  }
+  return items.map(item => ({
+    __key: `${item.subjectType || 'ACL'}-${item.subjectId || 'NEW'}-${item.accessLevel || 'QUERY'}-${Math.random()}`,
+    id: item.id,
+    subjectType: normalizeAclSubjectType(item.subjectType),
+    subjectId: item.subjectId ?? null,
+    accessLevel: normalizeAccessLevel(item.accessLevel),
+  }))
+}
+
+function normalizeRowScope(rowScope) {
+  return {
+    ...createDefaultRowScope(),
+    ...(rowScope || {}),
+    enabled: rowScope?.enabled === 1 ? 1 : 0,
+    regionStrategy: rowScope?.regionStrategy || 'SELF_AND_DESCENDANTS',
+  }
+}
+
+function normalizeAclSubjectType(subjectType) {
+  return ['USER', 'ROLE', 'ORG'].includes(subjectType) ? subjectType : 'ROLE'
+}
+
+function normalizeAccessLevel(accessLevel) {
+  return ['VIEW', 'QUERY', 'MANAGE'].includes(accessLevel) ? accessLevel : 'QUERY'
+}
+
+function handleAccessModeChange(value, formData) {
+  formData.accessMode = value === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC'
+  if (formData.accessMode === 'PRIVATE') {
+    loadPermissionOptions()
+  }
+}
+
+function getAclCount(formData) {
+  return Array.isArray(formData?.aclItems) ? formData.aclItems.length : 0
+}
+
+function addAclItem(formData) {
+  loadPermissionOptions()
+  if (!Array.isArray(formData.aclItems)) {
+    formData.aclItems = []
+  }
+  formData.aclItems.push(createDefaultAclItem())
+}
+
+function removeAclItem(formData, index) {
+  if (!Array.isArray(formData.aclItems)) {
+    return
+  }
+  formData.aclItems.splice(index, 1)
+}
+
+function handleAclSubjectTypeChange(item) {
+  item.subjectId = null
+}
+
+function getAclSubjectOptions(item) {
+  const baseOptions = item?.subjectType === 'USER' ? userOptions.value : roleOptions.value
+  return appendMissingFlatOption(baseOptions, item?.subjectId, getAclSubjectFallbackLabel(item))
+}
+
+function getAclOrgOptions(item) {
+  return appendMissingTreeOption(orgTreeOptions.value, item?.subjectId, getAclSubjectFallbackLabel(item))
+}
+
+function getAclSubjectFallbackLabel(item) {
+  if (!item?.subjectId) {
+    return ''
+  }
+  if (item.subjectType === 'USER') {
+    return `用户 #${item.subjectId}`
+  }
+  if (item.subjectType === 'ORG') {
+    return `组织 #${item.subjectId}`
+  }
+  return `角色 #${item.subjectId}`
+}
+
+function appendMissingFlatOption(options, value, label) {
+  if (!value || options.some(item => item.value === value)) {
+    return options
+  }
+  return [...options, { label, value }]
+}
+
+function appendMissingTreeOption(options, value, label) {
+  if (!value || containsTreeValue(options, value)) {
+    return options
+  }
+  return [...options, { label, value, key: value }]
+}
+
+function containsTreeValue(options, value) {
+  for (const option of options || []) {
+    if (option.value === value) {
+      return true
+    }
+    if (containsTreeValue(option.children || [], value)) {
+      return true
+    }
+  }
+  return false
+}
+
+function getRowScopeFieldOptions(formData) {
+  const fields = Array.isArray(formData?.fields) ? formData.fields : []
+  const datasetFieldOptions = fields
+    .map(field => ({
+      label: field.fieldLabel && field.fieldLabel !== field.fieldName
+        ? `${field.fieldName}（${field.fieldLabel}）`
+        : field.fieldName,
+      value: field.sourceColumn || field.fieldName,
+    }))
+    .filter(item => item.value)
+  if (datasetFieldOptions.length > 0) {
+    return datasetFieldOptions
+  }
+  if (formData?.datasetType === 'TABLE') {
+    return rowScopeTableFieldOptions.value
+  }
+  return []
+}
+
+function getRowScopeFieldSourceLabel(formData) {
+  const fields = Array.isArray(formData?.fields) ? formData.fields : []
+  if (fields.length > 0) {
+    return `数据集字段 ${fields.length} 个`
+  }
+  if (formData?.datasetType === 'TABLE' && rowScopeTableFieldOptions.value.length > 0) {
+    return `来源表字段 ${rowScopeTableFieldOptions.value.length} 个`
+  }
+  return '暂无字段'
+}
+
+function clearRowScopeColumns(formData) {
+  if (!formData?.rowScope) {
+    return
+  }
+  formData.rowScope.tenantColumn = null
+  formData.rowScope.orgColumn = null
+  formData.rowScope.userColumn = null
+  formData.rowScope.regionColumn = null
+}
+
+function normalizeSubmitAclItems(formData) {
+  formData.accessMode = formData.accessMode === 'PRIVATE' ? 'PRIVATE' : 'PUBLIC'
+  if (formData.accessMode !== 'PRIVATE') {
+    return []
+  }
+
+  const normalizedItems = []
+  const uniqueSubjects = new Set()
+  for (const [index, item] of (formData.aclItems || []).entries()) {
+    const subjectType = normalizeAclSubjectType(item?.subjectType)
+    const subjectId = item?.subjectId
+    const accessLevel = normalizeAccessLevel(item?.accessLevel)
+    const isEmptyRow = !item?.subjectId && !item?.accessLevel
+    if (isEmptyRow) {
+      continue
+    }
+    if (!subjectId) {
+      window.$message?.error(`第${index + 1}行授权主体不能为空`)
+      return null
+    }
+    const uniqueKey = `${subjectType}:${subjectId}`
+    if (uniqueSubjects.has(uniqueKey)) {
+      window.$message?.error('同一个授权主体只能配置一条权限')
+      return null
+    }
+    uniqueSubjects.add(uniqueKey)
+    normalizedItems.push({ subjectType, subjectId, accessLevel })
+  }
+  return normalizedItems
+}
+
+function normalizeSubmitRowScope(formData) {
+  const rowScope = normalizeRowScope(formData.rowScope)
+  if (rowScope.enabled !== 1) {
+    rowScope.enabled = 0
+    return rowScope
+  }
+
+  const columns = [
+    rowScope.tenantColumn,
+    rowScope.orgColumn,
+    rowScope.userColumn,
+    rowScope.regionColumn,
+  ].map(value => typeof value === 'string' ? value.trim() : value).filter(Boolean)
+  if (columns.length === 0) {
+    window.$message?.error('启用数据行权限后，至少需要配置一个权限字段')
+    return null
+  }
+
+  if (formData.datasetType === 'SQL' && !String(formData.sqlText || '').includes('/*DATA_SCOPE*/')) {
+    window.$message?.error('SQL 数据集启用行权限时，SQL 中必须包含 /*DATA_SCOPE*/ 占位符')
+    return null
+  }
+
+  return {
+    enabled: 1,
+    scopeMode: rowScope.scopeMode || 'SYSTEM_DATA_SCOPE',
+    tenantColumn: trimToNull(rowScope.tenantColumn),
+    orgColumn: trimToNull(rowScope.orgColumn),
+    userColumn: trimToNull(rowScope.userColumn),
+    regionColumn: trimToNull(rowScope.regionColumn),
+    regionStrategy: rowScope.regionStrategy || 'SELF_AND_DESCENDANTS',
+    remark: trimToNull(rowScope.remark),
+  }
+}
+
+function trimToNull(value) {
+  if (typeof value !== 'string') {
+    return value ?? null
+  }
+  const trimmed = value.trim()
+  return trimmed || null
 }
 
 function parseParamSchemaFormValue(value) {
@@ -2183,6 +2960,10 @@ function goToNextStep(formData) {
   }
   if (currentStep.value < totalSteps) {
     currentStep.value++
+    if (currentStep.value === totalSteps) {
+      loadPermissionOptions()
+      loadRowScopeTableFields(formData)
+    }
   }
 }
 
@@ -2670,6 +3451,7 @@ function goToPrevStep() {
 
 :global(.data-dataset-edit-form .n-form-item:has(.step-shell)),
 :global(.data-dataset-edit-form .n-form-item:has(.dataset-context-panel)),
+:global(.data-dataset-edit-form .n-form-item:has(.permission-panel)),
 :global(.data-dataset-edit-form .n-form-item:has(.dataset-param-editor)),
 :global(.data-dataset-edit-form .n-form-item:has(.step-navigation-wrapper)),
 :global(.data-dataset-edit-form .n-form-item:has(.sql-preview-action)),
@@ -2850,6 +3632,153 @@ function goToPrevStep() {
   font-size: 12px;
   line-height: 1.8;
   padding-top: 2px;
+}
+
+:global(.data-dataset-edit-form .permission-panel) {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 20px;
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  border: 1px solid #dbe3ef;
+  border-radius: 18px;
+}
+
+:global(.data-dataset-edit-form .permission-panel__header) {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+:global(.data-dataset-edit-form .permission-panel__title) {
+  margin-top: 8px;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+:global(.data-dataset-edit-form .permission-panel__desc) {
+  max-width: 760px;
+  margin-top: 8px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+:global(.data-dataset-edit-form .permission-facts) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+:global(.data-dataset-edit-form .permission-fact) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+:global(.data-dataset-edit-form .permission-fact span) {
+  color: #64748b;
+  font-size: 12px;
+}
+
+:global(.data-dataset-edit-form .permission-fact strong) {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:global(.data-dataset-edit-form .acl-editor) {
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+}
+
+:global(.data-dataset-edit-form .acl-editor__toolbar) {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+:global(.data-dataset-edit-form .acl-editor__title) {
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+:global(.data-dataset-edit-form .acl-editor__hint) {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+:global(.data-dataset-edit-form .acl-rows) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+:global(.data-dataset-edit-form .acl-row) {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.55fr) minmax(260px, 1.4fr) minmax(150px, 0.7fr) 42px;
+  gap: 10px;
+  align-items: center;
+}
+
+:global(.data-dataset-edit-form .row-scope-alert) {
+  border-radius: 14px;
+}
+
+:global(.data-dataset-edit-form .row-scope-grid) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  transition: opacity 0.18s ease;
+}
+
+:global(.data-dataset-edit-form .row-scope-grid.is-disabled) {
+  opacity: 0.72;
+}
+
+:global(.data-dataset-edit-form .row-scope-field) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+:global(.data-dataset-edit-form .row-scope-field label) {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+:global(.data-dataset-edit-form .row-scope-field--wide) {
+  grid-column: 1 / -1;
+}
+
+:global(.data-dataset-edit-form .row-scope-field--action .n-button) {
+  width: 100%;
 }
 
 @media (max-width: 1400px) {
@@ -3151,6 +4080,20 @@ function goToPrevStep() {
 
   :global(.data-dataset-edit-form .dataset-context-panel),
   :global(.data-dataset-edit-form .dataset-context-panel--compact) {
+    grid-template-columns: 1fr;
+  }
+
+  :global(.data-dataset-edit-form .permission-panel__header),
+  :global(.data-dataset-edit-form .acl-editor__toolbar) {
+    flex-direction: column;
+  }
+
+  :global(.data-dataset-edit-form .permission-facts),
+  :global(.data-dataset-edit-form .row-scope-grid) {
+    grid-template-columns: 1fr;
+  }
+
+  :global(.data-dataset-edit-form .acl-row) {
     grid-template-columns: 1fr;
   }
 

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.data.entity.DataDataset;
+import com.mdframe.forge.plugin.data.support.DataDatasetAccessQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -16,9 +17,10 @@ public interface DataDatasetMapper extends BaseMapper<DataDataset> {
         @Param("datasetName") String datasetName, @Param("connectionId") Long connectionId,
         @Param("datasetType") String datasetType, @Param("status") Integer status,
         @Param("publishStatus") Integer publishStatus, @Param("categoryId") Long categoryId,
-        @Param("uncategorized") Boolean uncategorized);
+        @Param("uncategorized") Boolean uncategorized, @Param("access") DataDatasetAccessQuery access);
 
-    List<DataDataset> selectDatasetList(@Param("tenantId") Long tenantId, @Param("connectionId") Long connectionId);
+    List<DataDataset> selectDatasetList(@Param("tenantId") Long tenantId, @Param("connectionId") Long connectionId,
+        @Param("access") DataDatasetAccessQuery access);
 
     DataDataset selectDatasetByCode(@Param("datasetCode") String datasetCode, @Param("tenantId") Long tenantId);
 

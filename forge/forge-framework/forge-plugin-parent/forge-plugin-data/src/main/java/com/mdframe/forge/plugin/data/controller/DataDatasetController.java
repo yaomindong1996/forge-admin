@@ -8,10 +8,14 @@ import com.mdframe.forge.plugin.data.entity.DataConnection;
 import com.mdframe.forge.plugin.data.entity.DataDataset;
 import com.mdframe.forge.plugin.data.entity.DataDatasetCategory;
 import com.mdframe.forge.plugin.data.entity.DataDatasetField;
+import com.mdframe.forge.plugin.data.enums.DataDatasetAccessLevelEnum;
+import com.mdframe.forge.plugin.data.enums.DataDatasetAccessModeEnum;
 import com.mdframe.forge.plugin.data.enums.DatasetPublishStatusEnum;
 import com.mdframe.forge.plugin.data.service.DataConnectionService;
+import com.mdframe.forge.plugin.data.service.DataDatasetAccessService;
 import com.mdframe.forge.plugin.data.service.DataDatasetCategoryService;
 import com.mdframe.forge.plugin.data.service.DataDatasetFieldService;
+import com.mdframe.forge.plugin.data.service.DataDatasetRowScopeService;
 import com.mdframe.forge.plugin.data.service.DataDatasetService;
 import com.mdframe.forge.plugin.data.support.DatasetParamSchemaParser;
 import com.mdframe.forge.plugin.data.support.DataDatasetFieldViewAssembler;
@@ -39,6 +43,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +58,8 @@ import java.util.stream.Collectors;
 public class DataDatasetController {
 
     private final DataDatasetService datasetService;
+    private final DataDatasetAccessService datasetAccessService;
+    private final DataDatasetRowScopeService datasetRowScopeService;
     private final DataDatasetFieldService fieldService;
     private final DataConnectionService connectionService;
     private final DataDatasetCategoryService categoryService;
@@ -87,6 +94,7 @@ public class DataDatasetController {
     @GetMapping("/{id}")
     public RespInfo<DataDatasetDetailVO> getById(@PathVariable Long id) {
         DataDataset dataset = requireDataset(id);
+        datasetAccessService.requireAccess(dataset, DataDatasetAccessLevelEnum.VIEW);
         DataConnection connection = connectionService.getById(dataset.getConnectionId());
         DataDatasetCategory category = dataset.getCategoryId() != null ? categoryService.getById(dataset.getCategoryId()) : null;
         List<DataDatasetField> fields = fieldService.listByDatasetId(id);
@@ -101,6 +109,12 @@ public class DataDatasetController {
         DataDataset entity = convertToEntity(dto, null);
         entity.setPublishStatus(DatasetPublishStatusEnum.DRAFT.getCode());
         datasetService.save(entity);
+        if (dto.getAclItems() != null) {
+            datasetAccessService.saveDatasetAcl(entity.getId(), dto.getAclItems());
+        }
+        if (dto.getRowScope() != null) {
+            datasetRowScopeService.saveDatasetRowScope(entity.getId(), dto.getRowScope());
+        }
         if (dto.getFields() != null && !dto.getFields().isEmpty()) {
             saveFields(entity.getId(), dto.getFields());
         }
@@ -114,11 +128,18 @@ public class DataDatasetController {
             throw new BusinessException("数据集ID不能为空");
         }
         DataDataset existing = requireDataset(dto.getId());
+        requireManageAccessIfPrivate(existing);
         assertEditable(existing, "修改");
         validateDatasetDefinition(dto.getDatasetCode(), dto.getDatasetName(), dto.getConnectionId(), dto.getCategoryId(),
             dto.getDatasetType(), dto.getTableName(), dto.getSqlText(), dto.getParamSchemaJson());
         DataDataset entity = convertToEntity(dto, existing);
         datasetService.updateById(entity);
+        if (dto.getAclItems() != null) {
+            datasetAccessService.saveDatasetAcl(entity.getId(), dto.getAclItems());
+        }
+        if (dto.getRowScope() != null) {
+            datasetRowScopeService.saveDatasetRowScope(entity.getId(), dto.getRowScope());
+        }
         if (dto.getFields() != null) {
             saveFields(entity.getId(), dto.getFields());
         }
@@ -129,8 +150,11 @@ public class DataDatasetController {
     @OperationLog(module = "数据资产", desc = "删除数据集")
     public RespInfo<Void> remove(@PathVariable Long id) {
         DataDataset dataset = requireDataset(id);
+        requireManageAccessIfPrivate(dataset);
         assertEditable(dataset, "删除");
         fieldService.deleteByDatasetId(id);
+        datasetAccessService.deleteDatasetAcl(id);
+        datasetRowScopeService.deleteDatasetRowScope(id);
         datasetService.removeById(id);
         return RespInfo.success();
     }
@@ -139,6 +163,7 @@ public class DataDatasetController {
     @OperationLog(module = "数据资产", desc = "发布数据集")
     public RespInfo<Void> publish(@PathVariable Long id) {
         DataDataset dataset = requireDataset(id);
+        requireManageAccessIfPrivate(dataset);
         if (DatasetPublishStatusEnum.isPublished(dataset.getPublishStatus())) {
             throw new BusinessException("数据集已发布，无需重复操作");
         }
@@ -160,6 +185,7 @@ public class DataDatasetController {
     @OperationLog(module = "数据资产", desc = "下架数据集")
     public RespInfo<Void> offline(@PathVariable Long id) {
         DataDataset dataset = requireDataset(id);
+        requireManageAccessIfPrivate(dataset);
         if (!DatasetPublishStatusEnum.isPublished(dataset.getPublishStatus())) {
             throw new BusinessException("只有已发布的数据集才能下架");
         }
@@ -171,6 +197,7 @@ public class DataDatasetController {
     @OperationLog(module = "数据资产", desc = "同步数据集字段")
     public RespInfo<List<DataDatasetFieldVO>> syncFields(@PathVariable Long id) {
         DataDataset dataset = requireDataset(id);
+        requireManageAccessIfPrivate(dataset);
         assertEditable(dataset, "同步字段");
         DataConnection connection = requireEnabledConnection(dataset.getConnectionId());
         List<DataDatasetField> fields = extractFieldsFromDataset(dataset, connection);
@@ -182,6 +209,7 @@ public class DataDatasetController {
     @OperationLog(module = "数据资产", desc = "保存数据集字段配置")
     public RespInfo<Void> saveFields(@PathVariable Long id, @RequestBody List<DataDatasetFieldDTO> fieldDTOs) {
         DataDataset dataset = requireDataset(id);
+        requireManageAccessIfPrivate(dataset);
         assertEditable(dataset, "保存字段配置");
         List<DataDatasetField> fields = fieldDTOs.stream()
             .map(this::convertFieldDTOToEntity)
@@ -194,6 +222,7 @@ public class DataDatasetController {
     @OperationLog(module = "数据资产", desc = "预览数据集")
     public RespInfo<Map<String, Object>> preview(@PathVariable Long id, @RequestBody DataDatasetPreviewDTO dto) {
         DataDataset dataset = requireDataset(id);
+        datasetAccessService.requireAccess(dataset, DataDatasetAccessLevelEnum.QUERY);
         ensureDatasetUsable(dataset);
         DataConnection connection = requireEnabledConnection(dataset.getConnectionId());
         return RespInfo.success(executePreview(dataset, connection, dto));
@@ -301,6 +330,8 @@ public class DataDatasetController {
         entity.setCacheEnabled(dto.getCacheEnabled() != null ? dto.getCacheEnabled() : existing != null ? existing.getCacheEnabled() : 0);
         entity.setCacheTtlSeconds(dto.getCacheTtlSeconds());
         entity.setStatus(dto.getStatus() != null ? dto.getStatus() : existing != null ? existing.getStatus() : 1);
+        entity.setAccessMode(DataDatasetAccessModeEnum.normalize(
+            dto.getAccessMode() != null ? dto.getAccessMode() : existing != null ? existing.getAccessMode() : null));
         entity.setDescription(dto.getDescription());
         return entity;
     }
@@ -308,6 +339,12 @@ public class DataDatasetController {
     private void assertEditable(DataDataset dataset, String action) {
         if (DatasetPublishStatusEnum.isPublished(dataset.getPublishStatus())) {
             throw new BusinessException("数据集已发布，请先下架后再" + action);
+        }
+    }
+
+    private void requireManageAccessIfPrivate(DataDataset dataset) {
+        if (DataDatasetAccessModeEnum.isPrivate(dataset.getAccessMode())) {
+            datasetAccessService.requireAccess(dataset, DataDatasetAccessLevelEnum.MANAGE);
         }
     }
 
@@ -352,10 +389,17 @@ public class DataDatasetController {
         vo.setCacheTtlSeconds(dataset.getCacheTtlSeconds());
         vo.setStatus(dataset.getStatus());
         vo.setPublishStatus(dataset.getPublishStatus());
+        vo.setAccessMode(DataDatasetAccessModeEnum.normalize(dataset.getAccessMode()));
         vo.setDescription(dataset.getDescription());
         vo.setCreateTime(dataset.getCreateTime());
         vo.setUpdateTime(dataset.getUpdateTime());
         vo.setFields(convertToFieldVOList(fields));
+        vo.setAclItems(datasetAccessService.canAccess(dataset, DataDatasetAccessLevelEnum.MANAGE)
+            ? datasetAccessService.listDatasetAcl(dataset.getId())
+            : Collections.emptyList());
+        vo.setRowScope(datasetAccessService.canAccess(dataset, DataDatasetAccessLevelEnum.MANAGE)
+            ? datasetRowScopeService.getByDatasetId(dataset.getId())
+            : null);
         return vo;
     }
 

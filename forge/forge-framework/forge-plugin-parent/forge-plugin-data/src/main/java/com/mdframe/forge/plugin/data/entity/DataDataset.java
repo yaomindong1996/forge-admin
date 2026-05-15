@@ -57,6 +57,8 @@ public class DataDataset extends TenantEntity {
 
     private Integer publishStatus;
 
+    private String accessMode;
+
     private String description;
 
     private Long createDept;

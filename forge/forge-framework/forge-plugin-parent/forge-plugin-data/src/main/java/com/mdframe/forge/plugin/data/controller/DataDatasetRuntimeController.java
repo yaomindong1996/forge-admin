@@ -4,8 +4,10 @@ import com.mdframe.forge.plugin.data.dto.DataDatasetQueryDTO;
 import com.mdframe.forge.plugin.data.entity.DataConnection;
 import com.mdframe.forge.plugin.data.entity.DataDataset;
 import com.mdframe.forge.plugin.data.entity.DataDatasetField;
+import com.mdframe.forge.plugin.data.enums.DataDatasetAccessLevelEnum;
 import com.mdframe.forge.plugin.data.enums.DatasetPublishStatusEnum;
 import com.mdframe.forge.plugin.data.service.DataConnectionService;
+import com.mdframe.forge.plugin.data.service.DataDatasetAccessService;
 import com.mdframe.forge.plugin.data.service.DataDatasetFieldService;
 import com.mdframe.forge.plugin.data.service.DataDatasetService;
 import com.mdframe.forge.plugin.data.service.DataQueryExecutor;
@@ -32,6 +34,7 @@ import java.util.List;
 public class DataDatasetRuntimeController {
 
     private final DataDatasetService datasetService;
+    private final DataDatasetAccessService datasetAccessService;
     private final DataConnectionService connectionService;
     private final DataDatasetFieldService fieldService;
     private final DataQueryExecutor queryExecutor;
@@ -49,6 +52,7 @@ public class DataDatasetRuntimeController {
         if (dataset.getStatus() != 1) {
             throw new BusinessException("数据集已禁用");
         }
+        datasetAccessService.requireAccess(dataset, DataDatasetAccessLevelEnum.QUERY);
         DataConnection connection = connectionService.getById(dataset.getConnectionId());
         if (connection == null) {
             throw new BusinessException("数据连接不存在或已删除");
@@ -73,6 +77,7 @@ public class DataDatasetRuntimeController {
         if (dataset.getStatus() != 1) {
             throw new BusinessException("数据集已禁用");
         }
+        datasetAccessService.requireAccess(dataset, DataDatasetAccessLevelEnum.VIEW);
         List<DataDatasetField> fields = fieldService.listByDatasetId(id);
         DataDatasetMetadataVO metadata = new DataDatasetMetadataVO();
         metadata.setDatasetId(dataset.getId());

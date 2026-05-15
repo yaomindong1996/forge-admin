@@ -31,6 +31,7 @@ public class DataQueryExecutor {
     private final DatasetParamSchemaParser datasetParamSchemaParser;
     private final DataDimensionItemMapper dimensionItemMapper;
     private final DataDatasetFieldViewAssembler fieldViewAssembler;
+    private final DataDatasetRowScopeService rowScopeService;
 
     public DataDatasetQueryResultVO execute(DataDataset dataset, DataConnection connection, 
             List<DataDatasetField> fieldConfigs, DataDatasetQueryDTO query) {
@@ -73,14 +74,15 @@ public class DataQueryExecutor {
                 .map(DataDatasetField::getFieldName)
                 .collect(Collectors.toList());
         
+        DbDialect dialect = dialectFactory.getDialect(connection.getDbType());
         QueryBuildResult buildResult;
         if ("TABLE".equals(dataset.getDatasetType())) {
             buildResult = buildTableQuerySql(dataset, connection, displayFields, queryFields, query.getParams());
         } else {
             buildResult = buildSqlQuery(dataset, query.getParams());
         }
+        buildResult = applyRowScope(dataset, dialect, buildResult);
 
-        DbDialect dialect = dialectFactory.getDialect(connection.getDbType());
         String sql = dialect.buildLimitSql(buildResult.getSql(), pageSize);
         logQuerySql(dataset, query, buildResult.getParams(), sql);
 
@@ -150,6 +152,28 @@ public class DataQueryExecutor {
         String sql = dataset.getSqlText();
         sqlSafetyValidator.validate(sql);
         return new QueryBuildResult(sql, params != null ? new LinkedHashMap<>(params) : new LinkedHashMap<>());
+    }
+
+    private QueryBuildResult applyRowScope(DataDataset dataset, DbDialect dialect, QueryBuildResult buildResult) {
+        DataDatasetRowScopeCondition rowScopeCondition = rowScopeService.buildCondition(dataset, dialect);
+        if (rowScopeCondition == null || !rowScopeCondition.isEnabled()) {
+            return buildResult;
+        }
+        Map<String, Object> params = new LinkedHashMap<>(buildResult.getParams());
+        params.putAll(rowScopeCondition.getParams());
+        String conditionSql = rowScopeCondition.getConditionSql();
+        String scopedSql;
+        if ("SQL".equals(dataset.getDatasetType())) {
+            String sql = buildResult.getSql();
+            if (sql == null || !sql.contains("/*DATA_SCOPE*/")) {
+                throw new BusinessException("SQL数据集启用行权限时，SQL中必须包含 /*DATA_SCOPE*/ 占位符");
+            }
+            scopedSql = sql.replace("/*DATA_SCOPE*/", conditionSql);
+            sqlSafetyValidator.validate(scopedSql);
+            return new QueryBuildResult(scopedSql, params);
+        }
+        scopedSql = buildResult.getSql() + " " + conditionSql;
+        return new QueryBuildResult(scopedSql, params);
     }
 
     private List<Map<String, Object>> executeQuery(DataConnection connection, String sql, 
