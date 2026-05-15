@@ -182,6 +182,7 @@ export const useChartEditStore = defineStore({
     activePageId: '',
     homePageId: '',
     pageTransition: 'fade',
+    runtimePageTransition: '',
     runtimePageContext: {},
     sharedRequestGlobalConfig: {}
   }),
@@ -221,6 +222,9 @@ export const useChartEditStore = defineStore({
     },
     getPageTransition(): ReportPageTransition {
       return this.pageTransition
+    },
+    getRuntimePageTransition(): ReportPageTransition | '' {
+      return this.runtimePageTransition
     },
     getRuntimePageContext(): Record<string, any> {
       return this.runtimePageContext
@@ -271,6 +275,7 @@ export const useChartEditStore = defineStore({
       this.homePageId = project.homePageId
       this.activePageId = activePageId
       this.pageTransition = project.pageTransition || 'fade'
+      this.runtimePageTransition = ''
       this.sharedRequestGlobalConfig = project.sharedRequestGlobalConfig || {}
 
       const pageStorage = extractPageStorage({ ...project, activePageId }, activePageId)
@@ -403,6 +408,10 @@ export const useChartEditStore = defineStore({
     // * 设置页面过渡
     setPageTransition(transition: ReportPageTransition): void {
       this.pageTransition = transition
+    },
+    // * 设置运行时页面过渡，优先级高于项目默认过渡
+    setRuntimePageTransition(transition: ReportPageTransition | ''): void {
+      this.runtimePageTransition = transition
     },
     // * 设置运行时下钻上下文
     setRuntimePageContext(context: Record<string, any>): void {

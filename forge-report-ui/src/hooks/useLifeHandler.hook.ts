@@ -1,5 +1,6 @@
 import { CreateComponentType, CreateComponentGroupType } from '@/packages/index.d'
-import { EventLife } from '@/enums/eventEnum'
+import { BaseEvent, ComponentActionType, EventLife } from '@/enums/eventEnum'
+import { switchPreviewPage } from '@/views/preview/utils/storage'
 import * as echarts from 'echarts'
 
 // 所有图表组件集合对象
@@ -14,11 +15,11 @@ export const useLifeHandler = (chartConfig: CreateComponentType | CreateComponen
 
   // 处理基础事件
   const baseEvent: { [key: string]: any } = {}
-  for (const key in chartConfig.events.baseEvent) {
+  for (const key of Object.values(BaseEvent)) {
     const fnStr: string | undefined = (chartConfig.events.baseEvent as any)[key]
-    // 动态绑定基础事件
-    if (fnStr) {
-      baseEvent[key] = generateBaseFunc(fnStr)
+    const actions = (chartConfig.events.actions || []).filter(action => action.trigger === key)
+    if (fnStr || actions.length) {
+      baseEvent[key] = generateBaseFunc(fnStr, actions)
     }
   }
 
@@ -44,14 +45,27 @@ export const useLifeHandler = (chartConfig: CreateComponentType | CreateComponen
  * @param fnStr 用户方法体代码
  * @param event 鼠标事件
  */
- export function generateBaseFunc(fnStr: string) {
+ export function generateBaseFunc(fnStr = '', actions: CreateComponentType['events']['actions'] = []) {
   try {
-    return new Function(`
-      return (
-        async function(components,mouseEvent){
-          ${fnStr}
+    const customHandler = fnStr
+      ? new Function(`
+        return (
+          async function(components,mouseEvent){
+            ${fnStr}
+          }
+        )`)().bind(undefined, components)
+      : undefined
+
+    return async (mouseEvent: MouseEvent) => {
+      if (customHandler) {
+        await customHandler(mouseEvent)
+      }
+      for (const action of actions || []) {
+        if (action.type === ComponentActionType.GO_PAGE && action.targetPageId) {
+          await switchPreviewPage(action.targetPageId, {}, action.transition)
         }
-      )`)().bind(undefined,components)
+      }
+    }
   } catch (error) {
     console.error(error)
   }

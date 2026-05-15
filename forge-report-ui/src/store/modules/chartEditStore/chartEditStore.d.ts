@@ -278,6 +278,7 @@ export interface ChartEditStoreType {
   activePageId: string
   homePageId: string
   pageTransition: ReportPageTransition
+  runtimePageTransition: ReportPageTransition | ''
   runtimePageContext: Record<string, any>
   sharedRequestGlobalConfig: Partial<RequestGlobalConfigType>
 }

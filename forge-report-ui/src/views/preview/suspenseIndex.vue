@@ -93,7 +93,7 @@ const showEntity = computed(() => {
 })
 
 const previewTransitionName = computed(() => {
-  const transition = chartEditStore.getPageTransition
+  const transition = chartEditStore.getRuntimePageTransition || chartEditStore.getPageTransition
   return transition === 'none' ? 'go-preview-page-none' : `go-preview-page-${transition || 'fade'}`
 })
 

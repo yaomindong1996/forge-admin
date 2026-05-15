@@ -32,9 +32,7 @@ export const switchPreviewPage = async (
   context: Record<string, any> = {},
   transition?: ReportPageTransition
 ) => {
-  if (transition) {
-    chartEditStore.setPageTransition(transition)
-  }
+  chartEditStore.setRuntimePageTransition(transition || '')
   chartEditStore.setRuntimePageContext(context)
   const nextStorage = chartEditStore.switchPage(pageId)
 

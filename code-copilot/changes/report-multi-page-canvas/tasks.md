@@ -19,7 +19,7 @@
 | Task 3 | 编辑器页面管理面板 | completed | P0 |
 | Task 4 | 保存、自动保存、预览、发布改造 | completed | P0 |
 | Task 5 | 预览页多页面运行时 | completed | P0 |
-| Task 6 | 组件页面跳转动作配置 | pending | P0 |
+| Task 6 | 组件页面跳转动作配置 | completed | P0 |
 | Task 7 | 下钻上下文与动态参数接入 | pending | P0 |
 | Task 8 | JSON 导入导出和代码编辑兼容 | pending | P1 |
 | Task 9 | 构建验证与手动回归 | pending | P0 |
@@ -227,13 +227,17 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 
 **目标**: 在组件事件配置中新增结构化「页面跳转」动作，不要求用户写 JS。
 
+**状态**: completed
+
 **涉及文件**:
 - `forge-report-ui/src/enums/eventEnum.ts` — 新增 action 类型枚举。
-- `forge-report-ui/src/packages/index.d.ts` — 组件事件类型增加 `actions`。
-- `forge-report-ui/src/packages/public/publicConfig.ts` — 默认 `events.actions = []`。
 - `forge-report-ui/src/views/chart/ContentConfigurations/components/ChartEvent/index.vue` — 挂载动作配置入口。
 - `forge-report-ui/src/views/chart/ContentConfigurations/components/ChartEvent/components/ChartEventPageAction/index.vue` — 新增页面跳转动作配置组件。
 - `forge-report-ui/src/hooks/useLifeHandler.hook.ts` — 运行时合并结构化动作与原基础事件。
+- `forge-report-ui/src/store/modules/chartEditStore/chartEditStore.ts` — 增加运行时页面转场覆盖值。
+- `forge-report-ui/src/store/modules/chartEditStore/chartEditStore.d.ts` — 增加运行时页面转场类型。
+- `forge-report-ui/src/views/preview/suspenseIndex.vue` — 支持动作级临时转场优先级。
+- `forge-report-ui/src/views/preview/utils/storage.ts` — 切页时写入运行时转场。
 
 **关键签名**:
 ```ts
@@ -249,6 +253,16 @@ export function useComponentActions(chartConfig: CreateComponentType | CreateCom
 - 目标页面下拉来自当前项目页面列表。
 - 删除目标页面后配置提示失效或被清理。
 - 原有基础事件 JS 仍可正常执行。
+
+**验证**:
+```bash
+source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm exec eslint src/enums/eventEnum.ts src/hooks/useLifeHandler.hook.ts src/store/modules/chartEditStore/chartEditStore.ts src/store/modules/chartEditStore/chartEditStore.d.ts src/views/preview/utils/storage.ts src/views/preview/suspenseIndex.vue src/views/chart/ContentConfigurations/components/ChartEvent/index.vue src/views/chart/ContentConfigurations/components/ChartEvent/components/ChartEventPageAction/index.vue
+source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
+```
+
+**结果**:
+- ESLint 无错误。
+- `pnpm build` 通过；输出的 lottie `eval`、Rollup 循环 chunk、CSS `:deep()`、chunk size 均为既有警告。
 
 ---
 

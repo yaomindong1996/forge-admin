@@ -10,6 +10,11 @@ export enum BaseEvent {
   ON_MOUSE_LEAVE = 'mouseleave'
 }
 
+// 结构化组件动作类型
+export enum ComponentActionType {
+  GO_PAGE = 'goPage'
+}
+
 // 组件交互回调事件
 export enum InteractEvents {
   INTERACT_ON = 'interactOn',
