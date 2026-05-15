@@ -8,5 +8,6 @@ export interface PackagesStoreType {
   newPhoto?: ConfigType,
   materialUploadVisible: boolean,
   materialUploadCategory: string,
+  materialPhotosLoading: boolean,
   materialPhotosVersion: number
 }

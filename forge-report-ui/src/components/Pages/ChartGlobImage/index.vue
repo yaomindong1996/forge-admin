@@ -22,7 +22,7 @@ const fetchImageUrl = async () => {
 }
 
 watch(
-  () => props.chartConfig.key,
+  () => [props.chartConfig.key, props.chartConfig.image],
   () => fetchImageUrl(),
   {
     immediate: true
