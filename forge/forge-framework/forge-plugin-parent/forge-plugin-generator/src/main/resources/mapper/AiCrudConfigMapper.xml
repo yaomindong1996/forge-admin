@@ -128,4 +128,15 @@
         ORDER BY update_time DESC, id DESC
     </select>
 
+    <select id="selectPublishedLowcodeConfigs" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_crud_config
+        WHERE tenant_id = #{tenantId}
+          AND mode = 'CONFIG'
+          AND build_mode = 'LOWCODE'
+          AND publish_status = 'PUBLISHED'
+        ORDER BY update_time DESC, id DESC
+    </select>
+
 </mapper>

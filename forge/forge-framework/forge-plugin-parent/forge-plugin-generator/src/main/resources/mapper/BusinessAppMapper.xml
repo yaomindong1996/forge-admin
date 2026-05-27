@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessAppMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApp">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="app_code" property="appCode"/>
+        <result column="app_name" property="appName"/>
+        <result column="app_type" property="appType"/>
+        <result column="suite_code" property="suiteCode"/>
+        <result column="object_code" property="objectCode"/>
+        <result column="entry_mode" property="entryMode"/>
+        <result column="entry_url" property="entryUrl"/>
+        <result column="config_key" property="configKey"/>
+        <result column="icon" property="icon"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="options" property="options"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id,
+        tenant_id,
+        app_code,
+        app_name,
+        app_type,
+        suite_code,
+        object_code,
+        entry_mode,
+        entry_url,
+        config_key,
+        icon,
+        description,
+        status,
+        sort_order,
+        options,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <sql id="App_Query_Where">
+        WHERE a.tenant_id = #{tenantId}
+        <if test="query != null and query.keyword != null and query.keyword != ''">
+          AND (
+            a.app_code LIKE CONCAT('%', #{query.keyword}, '%')
+            OR a.app_name LIKE CONCAT('%', #{query.keyword}, '%')
+            OR a.description LIKE CONCAT('%', #{query.keyword}, '%')
+            OR a.config_key LIKE CONCAT('%', #{query.keyword}, '%')
+          )
+        </if>
+        <if test="query != null and query.suiteCode != null and query.suiteCode != ''">
+          AND a.suite_code = #{query.suiteCode}
+        </if>
+        <if test="query != null and query.objectCode != null and query.objectCode != ''">
+          AND a.object_code = #{query.objectCode}
+        </if>
+        <if test="query != null and query.appType != null and query.appType != ''">
+          AND a.app_type = #{query.appType}
+        </if>
+        <if test="query != null and query.entryMode != null and query.entryMode != ''">
+          AND a.entry_mode = #{query.entryMode}
+        </if>
+        <if test="query != null and query.status != null">
+          AND a.status = #{query.status}
+        </if>
+    </sql>
+
+    <sql id="App_VO_Select">
+        SELECT
+          a.id AS id,
+          a.app_code AS appCode,
+          a.app_name AS appName,
+          a.app_type AS appType,
+          a.suite_code AS suiteCode,
+          s.suite_name AS suiteName,
+          a.object_code AS objectCode,
+          o.object_name AS objectName,
+          a.entry_mode AS entryMode,
+          a.entry_url AS entryUrl,
+          a.config_key AS configKey,
+          a.icon AS icon,
+          a.description AS description,
+          a.status AS status,
+          a.sort_order AS sortOrder,
+          a.options AS options,
+          COALESCE(b.binding_count, 0) AS bindingCount,
+          a.create_time AS createTime,
+          a.update_time AS updateTime
+        FROM ai_business_app a
+        LEFT JOIN ai_business_suite s
+          ON s.tenant_id = a.tenant_id AND s.suite_code = a.suite_code
+        LEFT JOIN ai_business_object o
+          ON o.tenant_id = a.tenant_id AND o.suite_code = a.suite_code AND o.object_code = a.object_code
+        LEFT JOIN (
+          SELECT tenant_id, target_id, COUNT(1) AS binding_count
+          FROM ai_business_binding
+          WHERE target_type = 'APP'
+          GROUP BY tenant_id, target_id
+        ) b ON b.tenant_id = a.tenant_id AND b.target_id = a.id
+    </sql>
+
+    <select id="selectAppPage" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessAppVO">
+        <include refid="App_VO_Select"/>
+        <include refid="App_Query_Where"/>
+        ORDER BY a.sort_order ASC, a.id ASC
+    </select>
+
+    <select id="selectAppList" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessAppVO">
+        <include refid="App_VO_Select"/>
+        <include refid="App_Query_Where"/>
+        ORDER BY a.sort_order ASC, a.id ASC
+    </select>
+
+    <select id="selectAppDetail" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessAppVO">
+        <include refid="App_VO_Select"/>
+        WHERE a.tenant_id = #{tenantId}
+          AND a.id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="selectEntityById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_app
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="selectByAppCode" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_app
+        WHERE tenant_id = #{tenantId}
+          AND app_code = #{appCode}
+        LIMIT 1
+    </select>
+
+    <select id="selectByConfigKey" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_app
+        WHERE tenant_id = #{tenantId}
+          AND config_key = #{configKey}
+        LIMIT 1
+    </select>
+
+    <select id="selectRuntimeAppByObject" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_app
+        WHERE tenant_id = #{tenantId}
+          AND suite_code = #{suiteCode}
+          AND object_code = #{objectCode}
+          AND app_type = 'BUSINESS'
+          AND entry_mode = 'RUNTIME'
+        ORDER BY status DESC, sort_order ASC, id ASC
+        LIMIT 1
+    </select>
+
+    <select id="countByAppCode" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_app
+        WHERE tenant_id = #{tenantId}
+          AND app_code = #{appCode}
+        <if test="excludeId != null">
+          AND id != #{excludeId}
+        </if>
+    </select>
+
+</mapper>

@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessObjectMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessObject">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="suite_code" property="suiteCode"/>
+        <result column="object_code" property="objectCode"/>
+        <result column="object_name" property="objectName"/>
+        <result column="object_type" property="objectType"/>
+        <result column="model_id" property="modelId"/>
+        <result column="model_code" property="modelCode"/>
+        <result column="display_field" property="displayField"/>
+        <result column="icon" property="icon"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="options" property="options"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id,
+        tenant_id,
+        suite_code,
+        object_code,
+        object_name,
+        object_type,
+        model_id,
+        model_code,
+        display_field,
+        icon,
+        description,
+        status,
+        sort_order,
+        options,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <sql id="Object_Query_Where">
+        WHERE o.tenant_id = #{tenantId}
+        <if test="query != null and query.keyword != null and query.keyword != ''">
+          AND (
+            o.object_code LIKE CONCAT('%', #{query.keyword}, '%')
+            OR o.object_name LIKE CONCAT('%', #{query.keyword}, '%')
+            OR o.description LIKE CONCAT('%', #{query.keyword}, '%')
+            OR o.model_code LIKE CONCAT('%', #{query.keyword}, '%')
+          )
+        </if>
+        <if test="query != null and query.suiteCode != null and query.suiteCode != ''">
+          AND o.suite_code = #{query.suiteCode}
+        </if>
+        <if test="query != null and query.objectCode != null and query.objectCode != ''">
+          AND o.object_code = #{query.objectCode}
+        </if>
+        <if test="query != null and query.objectType != null and query.objectType != ''">
+          AND o.object_type = #{query.objectType}
+        </if>
+        <if test="query != null and query.modelCode != null and query.modelCode != ''">
+          AND o.model_code = #{query.modelCode}
+        </if>
+        <if test="query != null and query.status != null">
+          AND o.status = #{query.status}
+        </if>
+    </sql>
+
+    <sql id="Object_VO_Select">
+        SELECT
+          o.id AS id,
+          o.suite_code AS suiteCode,
+          s.suite_name AS suiteName,
+          o.object_code AS objectCode,
+          o.object_name AS objectName,
+          o.object_type AS objectType,
+          o.model_id AS modelId,
+          o.model_code AS modelCode,
+          o.display_field AS displayField,
+          o.icon AS icon,
+          o.description AS description,
+          o.status AS status,
+          o.sort_order AS sortOrder,
+          o.options AS options,
+          COALESCE(r.relation_count, 0) AS relationCount,
+          COALESCE(b.binding_count, 0) AS bindingCount,
+          COALESCE(a.app_count, 0) AS appCount,
+          o.create_time AS createTime,
+          o.update_time AS updateTime
+        FROM ai_business_object o
+        LEFT JOIN ai_business_suite s
+          ON s.tenant_id = o.tenant_id AND s.suite_code = o.suite_code
+        LEFT JOIN (
+          SELECT tenant_id, suite_code, source_object_code AS object_code, COUNT(1) AS relation_count
+          FROM ai_business_object_relation
+          GROUP BY tenant_id, suite_code, source_object_code
+        ) r ON r.tenant_id = o.tenant_id AND r.suite_code = o.suite_code AND r.object_code = o.object_code
+        LEFT JOIN (
+          SELECT tenant_id, target_code, COUNT(1) AS binding_count
+          FROM ai_business_binding
+          WHERE target_type = 'OBJECT'
+          GROUP BY tenant_id, target_code
+        ) b ON b.tenant_id = o.tenant_id AND b.target_code = o.object_code
+        LEFT JOIN (
+          SELECT tenant_id, suite_code, object_code, COUNT(1) AS app_count
+          FROM ai_business_app
+          GROUP BY tenant_id, suite_code, object_code
+        ) a ON a.tenant_id = o.tenant_id AND a.suite_code = o.suite_code AND a.object_code = o.object_code
+    </sql>
+
+    <select id="selectObjectPage" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectVO">
+        <include refid="Object_VO_Select"/>
+        <include refid="Object_Query_Where"/>
+        ORDER BY o.sort_order ASC, o.id ASC
+    </select>
+
+    <select id="selectObjectList" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectVO">
+        <include refid="Object_VO_Select"/>
+        <include refid="Object_Query_Where"/>
+        ORDER BY o.sort_order ASC, o.id ASC
+    </select>
+
+    <select id="selectObjectDetail" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectVO">
+        <include refid="Object_VO_Select"/>
+        WHERE o.tenant_id = #{tenantId}
+          AND o.id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="selectObjectDetailByCode" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectVO">
+        <include refid="Object_VO_Select"/>
+        WHERE o.tenant_id = #{tenantId}
+          AND o.suite_code = #{suiteCode}
+          AND o.object_code = #{objectCode}
+        LIMIT 1
+    </select>
+
+    <select id="selectByObjectCode" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_object
+        WHERE tenant_id = #{tenantId}
+          AND suite_code = #{suiteCode}
+          AND object_code = #{objectCode}
+        LIMIT 1
+    </select>
+
+    <select id="countByObjectCode" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_object
+        WHERE tenant_id = #{tenantId}
+          AND suite_code = #{suiteCode}
+          AND object_code = #{objectCode}
+        <if test="excludeId != null">
+          AND id != #{excludeId}
+        </if>
+    </select>
+
+    <select id="countRelationsByObject" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_object_relation
+        WHERE tenant_id = #{tenantId}
+          AND suite_code = #{suiteCode}
+          AND (source_object_code = #{objectCode} OR target_object_code = #{objectCode})
+    </select>
+
+    <select id="countAppsByObject" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_app
+        WHERE tenant_id = #{tenantId}
+          AND suite_code = #{suiteCode}
+          AND object_code = #{objectCode}
+    </select>
+
+</mapper>

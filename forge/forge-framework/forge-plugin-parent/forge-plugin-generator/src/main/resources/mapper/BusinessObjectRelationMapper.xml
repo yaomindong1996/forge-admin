@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessObjectRelationMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessObjectRelation">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="suite_code" property="suiteCode"/>
+        <result column="source_object_code" property="sourceObjectCode"/>
+        <result column="target_object_code" property="targetObjectCode"/>
+        <result column="relation_type" property="relationType"/>
+        <result column="relation_name" property="relationName"/>
+        <result column="source_field_code" property="sourceFieldCode"/>
+        <result column="target_field_code" property="targetFieldCode"/>
+        <result column="relation_config" property="relationConfig"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id,
+        tenant_id,
+        suite_code,
+        source_object_code,
+        target_object_code,
+        relation_type,
+        relation_name,
+        source_field_code,
+        target_field_code,
+        relation_config,
+        description,
+        status,
+        sort_order,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <select id="selectRelationsByObject" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectRelationVO">
+        SELECT
+          r.id AS id,
+          r.suite_code AS suiteCode,
+          r.source_object_code AS sourceObjectCode,
+          source_obj.object_name AS sourceObjectName,
+          r.target_object_code AS targetObjectCode,
+          target_obj.object_name AS targetObjectName,
+          r.relation_type AS relationType,
+          r.relation_name AS relationName,
+          r.source_field_code AS sourceFieldCode,
+          r.target_field_code AS targetFieldCode,
+          r.relation_config AS relationConfig,
+          r.description AS description,
+          r.status AS status,
+          r.sort_order AS sortOrder,
+          r.create_time AS createTime,
+          r.update_time AS updateTime
+        FROM ai_business_object_relation r
+        LEFT JOIN ai_business_object source_obj
+          ON source_obj.tenant_id = r.tenant_id
+         AND source_obj.suite_code = r.suite_code
+         AND source_obj.object_code = r.source_object_code
+        LEFT JOIN ai_business_object target_obj
+          ON target_obj.tenant_id = r.tenant_id
+         AND target_obj.suite_code = r.suite_code
+         AND target_obj.object_code = r.target_object_code
+        WHERE r.tenant_id = #{tenantId}
+          AND r.suite_code = #{suiteCode}
+          AND (r.source_object_code = #{objectCode} OR r.target_object_code = #{objectCode})
+        ORDER BY r.sort_order ASC, r.id ASC
+    </select>
+
+    <select id="selectRelationById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_object_relation
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="countByScope" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_object_relation
+        WHERE tenant_id = #{tenantId}
+          AND suite_code = #{suiteCode}
+          AND source_object_code = #{sourceObjectCode}
+          AND target_object_code = #{targetObjectCode}
+          AND relation_type = #{relationType}
+          AND relation_name = #{relationName}
+        <if test="excludeId != null">
+          AND id != #{excludeId}
+        </if>
+    </select>
+
+    <delete id="deleteMissingRelations">
+        DELETE FROM ai_business_object_relation
+        WHERE tenant_id = #{tenantId}
+          AND suite_code = #{suiteCode}
+          AND source_object_code = #{sourceObjectCode}
+        <if test="relationIds != null and relationIds.size() > 0">
+          AND id NOT IN
+          <foreach collection="relationIds" item="id" open="(" separator="," close=")">
+            #{id}
+          </foreach>
+        </if>
+    </delete>
+
+</mapper>

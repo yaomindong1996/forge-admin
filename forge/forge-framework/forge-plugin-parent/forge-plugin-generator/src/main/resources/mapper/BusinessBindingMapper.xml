@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessBindingMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessBinding">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="target_type" property="targetType"/>
+        <result column="target_id" property="targetId"/>
+        <result column="target_code" property="targetCode"/>
+        <result column="binding_type" property="bindingType"/>
+        <result column="binding_key" property="bindingKey"/>
+        <result column="binding_name" property="bindingName"/>
+        <result column="binding_config" property="bindingConfig"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id,
+        tenant_id,
+        target_type,
+        target_id,
+        target_code,
+        binding_type,
+        binding_key,
+        binding_name,
+        binding_config,
+        description,
+        status,
+        sort_order,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <select id="selectBindingList" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessBindingVO">
+        SELECT
+          id AS id,
+          target_type AS targetType,
+          target_id AS targetId,
+          target_code AS targetCode,
+          binding_type AS bindingType,
+          binding_key AS bindingKey,
+          binding_name AS bindingName,
+          binding_config AS bindingConfig,
+          description AS description,
+          status AS status,
+          sort_order AS sortOrder,
+          create_time AS createTime,
+          update_time AS updateTime
+        FROM ai_business_binding
+        WHERE tenant_id = #{tenantId}
+        <if test="query != null and query.targetType != null and query.targetType != ''">
+          AND target_type = #{query.targetType}
+        </if>
+        <if test="query != null and query.targetId != null">
+          AND target_id = #{query.targetId}
+        </if>
+        <if test="query != null and query.targetCode != null and query.targetCode != ''">
+          AND target_code = #{query.targetCode}
+        </if>
+        <if test="query != null and query.bindingType != null and query.bindingType != ''">
+          AND binding_type = #{query.bindingType}
+        </if>
+        <if test="query != null and query.status != null">
+          AND status = #{query.status}
+        </if>
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <select id="selectBindingById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_binding
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="countByScope" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_binding
+        WHERE tenant_id = #{tenantId}
+          AND target_type = #{targetType}
+          AND target_code = #{targetCode}
+          AND binding_type = #{bindingType}
+          AND binding_key = #{bindingKey}
+        <if test="excludeId != null">
+          AND id != #{excludeId}
+        </if>
+    </select>
+
+    <delete id="deleteByBatchScope">
+        DELETE FROM ai_business_binding
+        WHERE tenant_id = #{tenantId}
+          AND target_type = #{targetType}
+          AND target_code = #{targetCode}
+        <if test="bindingTypes != null and bindingTypes.size() > 0">
+          AND binding_type IN
+          <foreach collection="bindingTypes" item="bindingType" open="(" separator="," close=")">
+            #{bindingType}
+          </foreach>
+        </if>
+    </delete>
+
+</mapper>

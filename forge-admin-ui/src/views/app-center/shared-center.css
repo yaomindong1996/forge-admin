@@ -1,0 +1,85 @@
+.center-shell {
+  min-height: 100%;
+  background: #f6f8fb;
+  padding: 20px;
+}
+
+.center-shell header {
+  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+}
+
+.center-shell h1 {
+  margin: 12px 0 0;
+  color: #111827;
+  font-size: 24px;
+  letter-spacing: 0;
+}
+
+.center-shell p {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.capability-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.capability-card {
+  min-height: 152px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+}
+
+.capability-card .n-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 8px;
+  background: #eef6ff;
+  color: #2563eb;
+  font-size: 22px;
+}
+
+.capability-card strong {
+  display: block;
+  margin-top: 14px;
+  color: #111827;
+  font-size: 15px;
+}
+
+.capability-card p {
+  display: -webkit-box;
+  min-height: 40px;
+  margin: 7px 0 12px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.capability-card span {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px;
+  background: #ecfdf5;
+  color: #15803d;
+  font-size: 12px;
+  line-height: 22px;
+  padding: 0 8px;
+}
+
+@media (max-width: 520px) {
+  .center-shell {
+    padding: 12px;
+  }
+}

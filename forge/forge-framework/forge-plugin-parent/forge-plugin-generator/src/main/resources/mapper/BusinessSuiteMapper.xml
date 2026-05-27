@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessSuiteMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessSuite">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="suite_code" property="suiteCode"/>
+        <result column="suite_name" property="suiteName"/>
+        <result column="icon" property="icon"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="options" property="options"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id,
+        tenant_id,
+        suite_code,
+        suite_name,
+        icon,
+        description,
+        status,
+        sort_order,
+        options,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <sql id="Suite_Query_Where">
+        WHERE s.tenant_id = #{tenantId}
+        <if test="query != null and query.keyword != null and query.keyword != ''">
+          AND (
+            s.suite_code LIKE CONCAT('%', #{query.keyword}, '%')
+            OR s.suite_name LIKE CONCAT('%', #{query.keyword}, '%')
+            OR s.description LIKE CONCAT('%', #{query.keyword}, '%')
+          )
+        </if>
+        <if test="query != null and query.suiteCode != null and query.suiteCode != ''">
+          AND s.suite_code = #{query.suiteCode}
+        </if>
+        <if test="query != null and query.status != null">
+          AND s.status = #{query.status}
+        </if>
+    </sql>
+
+    <sql id="Suite_VO_Select">
+        SELECT
+          s.id AS id,
+          s.suite_code AS suiteCode,
+          s.suite_name AS suiteName,
+          s.icon AS icon,
+          s.description AS description,
+          s.status AS status,
+          s.sort_order AS sortOrder,
+          s.options AS options,
+          COALESCE(o.object_count, 0) AS objectCount,
+          COALESCE(a.app_count, 0) AS appCount,
+          COALESCE(a.enabled_app_count, 0) AS enabledAppCount,
+          CASE
+            WHEN a.latest_app_update IS NULL THEN s.update_time
+            WHEN a.latest_app_update > s.update_time THEN a.latest_app_update
+            ELSE s.update_time
+          END AS latestUpdateTime,
+          s.create_time AS createTime,
+          s.update_time AS updateTime
+        FROM ai_business_suite s
+        LEFT JOIN (
+          SELECT tenant_id, suite_code, COUNT(1) AS object_count
+          FROM ai_business_object
+          GROUP BY tenant_id, suite_code
+        ) o ON o.tenant_id = s.tenant_id AND o.suite_code = s.suite_code
+        LEFT JOIN (
+          SELECT tenant_id, suite_code, COUNT(1) AS app_count,
+                 SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS enabled_app_count,
+                 MAX(update_time) AS latest_app_update
+          FROM ai_business_app
+          GROUP BY tenant_id, suite_code
+        ) a ON a.tenant_id = s.tenant_id AND a.suite_code = s.suite_code
+    </sql>
+
+    <select id="selectSuitePage" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessSuiteVO">
+        <include refid="Suite_VO_Select"/>
+        <include refid="Suite_Query_Where"/>
+        ORDER BY s.sort_order ASC, s.id ASC
+    </select>
+
+    <select id="selectSuiteList" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessSuiteVO">
+        <include refid="Suite_VO_Select"/>
+        <include refid="Suite_Query_Where"/>
+        ORDER BY s.sort_order ASC, s.id ASC
+    </select>
+
+    <select id="selectSuiteDetail" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessSuiteVO">
+        <include refid="Suite_VO_Select"/>
+        WHERE s.tenant_id = #{tenantId}
+          AND s.id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="selectBySuiteCode" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_suite
+        WHERE tenant_id = #{tenantId}
+          AND suite_code = #{suiteCode}
+        LIMIT 1
+    </select>
+
+    <select id="countBySuiteCode" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_suite
+        WHERE tenant_id = #{tenantId}
+          AND suite_code = #{suiteCode}
+        <if test="excludeId != null">
+          AND id != #{excludeId}
+        </if>
+    </select>
+
+    <select id="countObjectsBySuite" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_object
+        WHERE tenant_id = #{tenantId}
+          AND suite_code = #{suiteCode}
+    </select>
+
+    <select id="countAppsBySuite" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_app
+        WHERE tenant_id = #{tenantId}
+          AND suite_code = #{suiteCode}
+    </select>
+
+    <select id="selectSuiteSummary" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessSuiteSummaryVO">
+        SELECT
+          s.id AS id,
+          s.suite_code AS suiteCode,
+          s.suite_name AS suiteName,
+          s.icon AS icon,
+          s.description AS description,
+          s.status AS status,
+          COALESCE(o.object_count, 0) AS objectCount,
+          COALESCE(a.app_count, 0) AS appCount,
+          COALESCE(a.enabled_app_count, 0) AS enabledAppCount,
+          CASE
+            WHEN a.latest_app_update IS NULL THEN s.update_time
+            WHEN a.latest_app_update > s.update_time THEN a.latest_app_update
+            ELSE s.update_time
+          END AS latestUpdateTime
+        FROM ai_business_suite s
+        LEFT JOIN (
+          SELECT tenant_id, suite_code, COUNT(1) AS object_count
+          FROM ai_business_object
+          GROUP BY tenant_id, suite_code
+        ) o ON o.tenant_id = s.tenant_id AND o.suite_code = s.suite_code
+        LEFT JOIN (
+          SELECT tenant_id, suite_code, COUNT(1) AS app_count,
+                 SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS enabled_app_count,
+                 MAX(update_time) AS latest_app_update
+          FROM ai_business_app
+          GROUP BY tenant_id, suite_code
+        ) a ON a.tenant_id = s.tenant_id AND a.suite_code = s.suite_code
+        WHERE s.tenant_id = #{tenantId}
+        ORDER BY s.sort_order ASC, s.id ASC
+    </select>
+
+</mapper>

@@ -212,12 +212,16 @@ function findMenuIdByPath(items, targetPath) {
   if (!items || !Array.isArray(items))
     return null
 
+  const normalizedTargetPath = normalizeLocalPath(targetPath)
+  if (!normalizedTargetPath) {
+    return null
+  }
   for (const item of items) {
-    if (item.path === targetPath) {
+    if (normalizeLocalPath(item.path) === normalizedTargetPath) {
       return item.key || item.id
     }
     if (item.children && item.children.length > 0) {
-      const found = findMenuIdByPath(item.children, targetPath)
+      const found = findMenuIdByPath(item.children, normalizedTargetPath)
       if (found)
         return found
     }
@@ -503,7 +507,12 @@ export function useMenu() {
     flatMenuItems,
     activeKey,
     handleMenuSelect,
-    findMenuIdByPath: targetPath => findMenuIdByPath(processedMenus.value, targetPath),
+    findMenuIdByPath: (itemsOrTargetPath, maybeTargetPath) => {
+      if (Array.isArray(itemsOrTargetPath)) {
+        return findMenuIdByPath(itemsOrTargetPath, maybeTargetPath)
+      }
+      return findMenuIdByPath(processedMenus.value, itemsOrTargetPath)
+    },
     findTopMenuByPath: targetPath => findTopMenuByPath(permissionStore.menus, targetPath),
   }
 }

@@ -6,30 +6,32 @@
     :theme="appStore.isDark ? darkTheme : undefined"
     :theme-overrides="appStore.naiveThemeOverrides"
   >
-    <!-- 当菜单数据未加载完成时显示加载状态 -->
-    <div v-if="showLoading" class="loading-wrapper">
-      <n-spin size="large">
-        <template #description>
-          <div class="loading-text">
-            正在加载...
-          </div>
-        </template>
-      </n-spin>
-    </div>
-    <router-view v-else v-slot="{ Component, route: curRoute }">
-      <component :is="LayoutComponent" :key="curRoute.meta?.layout || appStore.layout">
-        <!--        <transition name="fade-slide" mode="out-in" appear> -->
-        <KeepAlive :include="keepAliveNames">
-          <component :is="Component" v-if="!tabStore.reloading" :key="curRoute.fullPath" />
-        </KeepAlive>
-        <!--        </transition> -->
-      </component>
+    <n-message-provider>
+      <!-- 当菜单数据未加载完成时显示加载状态 -->
+      <div v-if="showLoading" class="loading-wrapper">
+        <n-spin size="large">
+          <template #description>
+            <div class="loading-text">
+              正在加载...
+            </div>
+          </template>
+        </n-spin>
+      </div>
+      <router-view v-else v-slot="{ Component, route: curRoute }">
+        <component :is="LayoutComponent" :key="curRoute.meta?.layout || appStore.layout">
+          <!--        <transition name="fade-slide" mode="out-in" appear> -->
+          <KeepAlive :include="keepAliveNames">
+            <component :is="Component" v-if="!tabStore.reloading" :key="curRoute.fullPath" />
+          </KeepAlive>
+          <!--        </transition> -->
+        </component>
 
-      <LayoutSetting v-if="layoutSettingVisible" class="fixed right-12 top-1/2 z-999" />
-    </router-view>
+        <LayoutSetting v-if="layoutSettingVisible" class="fixed right-12 top-1/2 z-999" />
+      </router-view>
 
-    <!-- 全局水印 -->
-    <div v-if="watermarkConfig.enable" class="watermark-layer" :style="watermarkStyle" />
+      <!-- 全局水印 -->
+      <div v-if="watermarkConfig.enable" class="watermark-layer" :style="watermarkStyle" />
+    </n-message-provider>
   </n-config-provider>
 </template>
 

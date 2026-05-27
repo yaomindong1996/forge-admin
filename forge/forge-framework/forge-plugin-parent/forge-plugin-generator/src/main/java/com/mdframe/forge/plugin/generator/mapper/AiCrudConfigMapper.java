@@ -6,6 +6,8 @@ import com.mdframe.forge.plugin.generator.domain.entity.AiCrudConfig;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 @Mapper
 public interface AiCrudConfigMapper extends BaseMapper<AiCrudConfig> {
 
@@ -19,5 +21,7 @@ public interface AiCrudConfigMapper extends BaseMapper<AiCrudConfig> {
                                          @Param("domainId") Long domainId,
                                          @Param("domainCode") String domainCode,
                                          @Param("generalDomain") Boolean generalDomain);
+
+    List<AiCrudConfig> selectPublishedLowcodeConfigs(@Param("tenantId") Long tenantId);
 
 }
