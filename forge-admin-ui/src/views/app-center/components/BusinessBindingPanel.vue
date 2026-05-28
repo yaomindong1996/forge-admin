@@ -8,6 +8,21 @@
         </div>
         <strong>{{ item.bindingName }}</strong>
         <p>{{ item.description || item.bindingKey }}</p>
+        <div class="binding-foot">
+          <span>{{ item.statusMessage || '能力入口待确认' }}</span>
+          <n-button
+            text
+            type="primary"
+            size="small"
+            :disabled="!item.canOpen"
+            @click="openBinding(item)"
+          >
+            <template #icon>
+              <n-icon><OpenOutline /></n-icon>
+            </template>
+            {{ item.actionLabel || '打开配置' }}
+          </n-button>
+        </div>
       </div>
     </div>
     <n-empty v-else-if="!loading" description="暂无接入能力" />
@@ -15,7 +30,10 @@
 </template>
 
 <script setup>
+import { OpenOutline } from '@vicons/ionicons5'
+import { useMessage } from 'naive-ui'
 import { onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { businessBindingList } from '@/api/business-app'
 import DictTag from '@/components/DictTag.vue'
 
@@ -34,6 +52,8 @@ const props = defineProps({
   },
 })
 
+const router = useRouter()
+const message = useMessage()
 const loading = ref(false)
 const bindings = ref([])
 
@@ -59,6 +79,19 @@ async function loadBindings() {
 watch(() => [props.targetType, props.targetId, props.targetCode], loadBindings)
 
 onMounted(loadBindings)
+
+function openBinding(item) {
+  if (!item?.canOpen || !item.entryUrl) {
+    message.warning(item?.statusMessage || '能力入口暂不可打开')
+    return
+  }
+  const openType = String(item.openType || 'ROUTE').toUpperCase()
+  if (openType === 'EXTERNAL' || /^https?:\/\//i.test(item.entryUrl)) {
+    window.open(item.entryUrl, '_blank', 'noopener,noreferrer')
+    return
+  }
+  router.push(item.entryUrl)
+}
 </script>
 
 <style scoped>
@@ -102,5 +135,24 @@ onMounted(loadBindings)
   line-height: 1.5;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.binding-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #eef2f7;
+}
+
+.binding-foot span {
+  min-width: 0;
+  overflow: hidden;
+  color: #6b7280;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

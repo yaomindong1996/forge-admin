@@ -31,4 +31,12 @@ public class BusinessObjectRuntimeInfoVO {
     private Boolean canOpen;
 
     private String message;
+
+    private Boolean importEnabled;
+
+    private Boolean exportEnabled;
+
+    private String nextAction;
+
+    private String nextActionLabel;
 }

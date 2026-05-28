@@ -369,11 +369,11 @@ export function createSystemField(definition = {}) {
 export function ensureSystemFields(fields = [], tenantEnabled = true) {
   const businessFields = (fields || []).filter(field => !isAuditField(field))
   const idField = createSystemField(systemFieldDefinitions[0])
-  const systemFields = systemFieldDefinitions
-    .slice(1)
-    .filter(field => tenantEnabled || field.field !== 'tenantId')
+  const tenantField = tenantEnabled ? createSystemField(systemFieldDefinitions[1]) : null
+  const auditFields = systemFieldDefinitions
+    .slice(2)
     .map(createSystemField)
-  return [idField, ...businessFields, ...systemFields]
+  return [idField, ...(tenantField ? [tenantField] : []), ...businessFields, ...auditFields]
 }
 
 export function isSystemField(field = {}) {

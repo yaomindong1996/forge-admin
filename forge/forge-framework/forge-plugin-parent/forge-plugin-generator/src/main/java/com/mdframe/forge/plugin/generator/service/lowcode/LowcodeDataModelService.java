@@ -3,6 +3,7 @@ package com.mdframe.forge.plugin.generator.service.lowcode;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessObject;
 import com.mdframe.forge.plugin.generator.domain.entity.AiLowcodeDomain;
 import com.mdframe.forge.plugin.generator.domain.entity.AiLowcodeModel;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeDataModelDTO;
@@ -11,6 +12,7 @@ import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeFieldSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeModelSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeObjectSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePolicySchema;
+import com.mdframe.forge.plugin.generator.mapper.BusinessObjectMapper;
 import com.mdframe.forge.plugin.generator.mapper.AiLowcodeModelMapper;
 import com.mdframe.forge.plugin.generator.mapper.GenTableColumnMapper;
 import com.mdframe.forge.plugin.generator.vo.lowcode.LowcodeDataModelVO;
@@ -41,12 +43,6 @@ public class LowcodeDataModelService extends ServiceImpl<AiLowcodeModelMapper, A
     private static final String STATUS_ENABLED = "ENABLED";
     private static final String STATUS_DISABLED = "DISABLED";
     private static final String DDL_PERMISSION = "ai:lowcode:deploy-ddl";
-    private static final Set<String> AUDIT_FIELDS = Set.of(
-            "id", "tenantId", "createBy", "createTime", "createDept", "updateBy", "updateTime", "delFlag"
-    );
-    private static final Set<String> AUDIT_COLUMNS = Set.of(
-            "id", "tenant_id", "create_by", "create_time", "create_dept", "update_by", "update_time", "del_flag"
-    );
 
     private final ObjectMapper objectMapper;
     private final LowcodeDomainService domainService;
@@ -54,6 +50,8 @@ public class LowcodeDataModelService extends ServiceImpl<AiLowcodeModelMapper, A
     private final LowcodeDdlService ddlService;
     private final GenTableColumnMapper genTableColumnMapper;
     private final LowcodePolicyService policyService;
+    private final LowcodeModelSchemaNormalizer schemaNormalizer;
+    private final BusinessObjectMapper businessObjectMapper;
 
     public Page<LowcodeDataModelVO> page(PageQuery pageQuery, Long domainId, String keyword,
                                          String status, Boolean masterData) {
@@ -101,6 +99,7 @@ public class LowcodeDataModelService extends ServiceImpl<AiLowcodeModelMapper, A
         if (Boolean.TRUE.equals(dto.getSyncDdl())) {
             syncTableStructure(model, dto);
         }
+        syncBusinessObjectModelRef(dto, model);
         return model.getId();
     }
 
@@ -187,77 +186,16 @@ public class LowcodeDataModelService extends ServiceImpl<AiLowcodeModelMapper, A
         if (StringUtils.isBlank(result.getTableName())) {
             result.setTableName(StringUtils.defaultIfBlank(domain.getTablePrefix(), "biz_") + modelCode);
         }
+        schemaNormalizer.normalizeModelFields(result, true);
         normalizePolicies(result);
-        result.setFields(normalizeModelFields(result.getFields()));
         if (result.getIndexes() == null) {
             result.setIndexes(new ArrayList<>());
         }
         return result;
     }
 
-    private List<LowcodeFieldSchema> normalizeModelFields(List<LowcodeFieldSchema> fields) {
-        List<LowcodeFieldSchema> result = new ArrayList<>();
-        result.add(systemField("id", "id", "ID", "bigint", "number", true, true, true, true, true, false, 100,
-                "自增主键，系统生成"));
-        if (fields != null) {
-            fields.stream()
-                    .filter(field -> field != null && !isAuditField(field))
-                    .forEach(result::add);
-        }
-        result.add(systemField("tenantId", "tenant_id", "租户ID", "bigint", "number", true, false, true, false,
-                false, false, 120, "租户隔离字段，系统写入"));
-        result.add(systemField("createBy", "create_by", "创建人", "bigint", "number", false, false, true, false,
-                false, false, 120, "审计字段，系统写入"));
-        result.add(systemField("createTime", "create_time", "创建时间", "datetime", "datetime", true, false, true, false,
-                true, false, 180, "审计字段，系统写入"));
-        result.add(systemField("createDept", "create_dept", "创建部门", "bigint", "number", false, false, true, false,
-                false, false, 120, "审计字段，系统写入"));
-        result.add(systemField("updateBy", "update_by", "更新人", "bigint", "number", false, false, true, false,
-                false, false, 120, "审计字段，系统写入"));
-        result.add(systemField("updateTime", "update_time", "更新时间", "datetime", "datetime", true, false, true, false,
-                true, false, 180, "审计字段，系统写入"));
-        result.add(systemField("delFlag", "del_flag", "删除标志", "char", "input", true, false, true, false,
-                false, false, 100, "逻辑删除字段，系统维护"));
-        return result;
-    }
-
-    private LowcodeFieldSchema systemField(String field, String columnName, String label, String dataType,
-                                           String componentType, boolean required, boolean primaryKey,
-                                           boolean readonly, boolean searchable, boolean listVisible,
-                                           boolean formVisible, int width, String remark) {
-        LowcodeFieldSchema schema = new LowcodeFieldSchema();
-        schema.setField(field);
-        schema.setColumnName(columnName);
-        schema.setLabel(label);
-        schema.setDataType(dataType);
-        schema.setLength("char".equals(dataType) ? 1 : null);
-        schema.setPrecision(null);
-        schema.setRequired(required);
-        schema.setSearchable(searchable);
-        schema.setListVisible(listVisible);
-        schema.setFormVisible(formVisible);
-        schema.setComponentType(componentType);
-        schema.setQueryType("eq");
-        schema.setSensitiveType("NONE");
-        schema.setPrimaryKey(primaryKey);
-        schema.setSystemField(true);
-        schema.setReadonly(readonly);
-        schema.setAutoIncrement(primaryKey);
-        schema.setSortable("id".equals(field) || field.endsWith("Time"));
-        schema.setWidth(width);
-        schema.setRemark(remark);
-        return schema;
-    }
-
     private void normalizePolicies(LowcodeModelSchema schema) {
         policyService.normalizeModelSchema(schema);
-    }
-
-    private boolean isAuditField(LowcodeFieldSchema field) {
-        if (field == null) {
-            return false;
-        }
-        return AUDIT_FIELDS.contains(field.getField()) || AUDIT_COLUMNS.contains(field.getColumnName());
     }
 
     private void syncTableStructure(AiLowcodeModel model, LowcodeDataModelDTO dto) {
@@ -280,7 +218,7 @@ public class LowcodeDataModelService extends ServiceImpl<AiLowcodeModelMapper, A
         Set<String> syncedColumns = new HashSet<>();
         List<Map<String, Object>> columns = new ArrayList<>();
         for (LowcodeFieldSchema field : modelSchema.getFields()) {
-            if (field == null || isAuditField(field) || StringUtils.isBlank(field.getColumnName())) {
+            if (field == null || schemaNormalizer.isSystemField(field) || StringUtils.isBlank(field.getColumnName())) {
                 continue;
             }
             if (!syncedColumns.add(field.getColumnName())) {
@@ -294,6 +232,27 @@ public class LowcodeDataModelService extends ServiceImpl<AiLowcodeModelMapper, A
         if (!columns.isEmpty()) {
             genTableColumnMapper.updateRequiredByTableRef(sourceTableId, modelSchema.getTableName(), columns);
         }
+    }
+
+    private void syncBusinessObjectModelRef(LowcodeDataModelDTO dto, AiLowcodeModel model) {
+        String suiteCode = StringUtils.firstNonBlank(dto.getBusinessSuiteCode(), model.getDomainCode());
+        String objectCode = StringUtils.trimToNull(dto.getBusinessObjectCode());
+        if (StringUtils.isBlank(suiteCode) || StringUtils.isBlank(objectCode)) {
+            return;
+        }
+        AiBusinessObject object = businessObjectMapper.selectByObjectCode(resolveTenantId(), suiteCode, objectCode);
+        if (object == null) {
+            object = businessObjectMapper.selectByObjectCode(resolveTenantId(), suiteCode, objectCode.toUpperCase());
+        }
+        if (object == null) {
+            return;
+        }
+        object.setModelId(model.getId());
+        object.setModelCode(model.getModelCode());
+        if (StringUtils.isBlank(object.getObjectName())) {
+            object.setObjectName(model.getModelName());
+        }
+        businessObjectMapper.updateById(object);
     }
 
     private Long resolveSourceTableId(LowcodeModelSchema modelSchema) {

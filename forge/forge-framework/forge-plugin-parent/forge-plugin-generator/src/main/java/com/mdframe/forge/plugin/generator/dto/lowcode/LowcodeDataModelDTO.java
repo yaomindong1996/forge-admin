@@ -26,6 +26,12 @@ public class LowcodeDataModelDTO {
 
     private LowcodeModelSchema modelSchema;
 
+    /** 从业务对象中心进入时用于回写 ai_business_object。 */
+    private String businessSuiteCode;
+
+    /** 从业务对象中心进入时用于回写 ai_business_object。 */
+    private String businessObjectCode;
+
     /** true 表示保存模型配置后同步表结构；false/null 表示仅保存模型配置。 */
     private Boolean syncDdl;
 

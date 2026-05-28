@@ -32,6 +32,18 @@ public class BusinessBindingVO {
 
     private Integer sortOrder;
 
+    private Boolean canOpen;
+
+    private String openType;
+
+    private String entryUrl;
+
+    private String actionLabel;
+
+    private String statusMessage;
+
+    private String nextAction;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

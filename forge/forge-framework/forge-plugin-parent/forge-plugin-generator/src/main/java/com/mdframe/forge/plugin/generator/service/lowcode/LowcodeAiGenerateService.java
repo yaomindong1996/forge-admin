@@ -91,6 +91,8 @@ public class LowcodeAiGenerateService {
     private final LowcodeDomainService domainService;
     private final LowcodeRuntimeConfigBuilder runtimeConfigBuilder;
     private final AiClientAdapter aiClientAdapter;
+    private final LowcodeModelSchemaNormalizer schemaNormalizer;
+    private final LowcodePolicyService policyService;
 
     public LowcodeAiAppGenerateResult generateAppDraft(LowcodeAiAppGenerateRequest request) {
         validateRequest(request);
@@ -581,6 +583,8 @@ public class LowcodeAiGenerateService {
         if (schema.getFields() == null || schema.getFields().isEmpty()) {
             schema.setFields(defaultFields(modelName));
         }
+        schemaNormalizer.normalizeModelFields(schema, true);
+        policyService.normalizeModelSchema(schema);
     }
 
     private LowcodeDataModelDTO resolveModelForApp(List<LowcodeDataModelDTO> models, LowcodeAppDraftDTO app) {
@@ -912,6 +916,8 @@ public class LowcodeAiGenerateService {
             schema.setTreeConfig(treeConfig);
         }
         schema.setFields(fields);
+        schemaNormalizer.normalizeModelFields(schema, true);
+        policyService.normalizeModelSchema(schema);
         return schema;
     }
 

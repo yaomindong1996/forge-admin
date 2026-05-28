@@ -97,6 +97,12 @@
               </template>
               进入套件
             </n-button>
+            <n-button secondary @click="openObjectWizard">
+              <template #icon>
+                <n-icon><CubeOutline /></n-icon>
+              </template>
+              新建业务对象
+            </n-button>
             <n-button type="primary" @click="openEditor(null)">
               <template #icon>
                 <n-icon><AddOutline /></n-icon>
@@ -122,6 +128,7 @@
             :show-suite="false"
             @search="loadWorkspace"
             @refresh="loadWorkspace"
+            @create-object="openObjectWizard"
             @create-app="openEditor(null)"
           />
         </section>
@@ -184,12 +191,19 @@
       :suites="suites"
       @saved="loadAll"
     />
+    <BusinessObjectWizardDrawer
+      v-model:show="objectWizardVisible"
+      :suites="suites"
+      :default-suite-code="suiteCode"
+      @saved="handleObjectSaved"
+    />
   </div>
 </template>
 
 <script setup>
 import {
   AddOutline,
+  CubeOutline,
   GitNetworkOutline,
   GridOutline,
   HardwareChipOutline,
@@ -210,6 +224,7 @@ import {
 import AppCard from './components/AppCard.vue'
 import AppEditorDrawer from './components/AppEditorDrawer.vue'
 import AppFilterBar from './components/AppFilterBar.vue'
+import BusinessObjectWizardDrawer from './components/BusinessObjectWizardDrawer.vue'
 import ObjectCard from './components/ObjectCard.vue'
 
 const router = useRouter()
@@ -229,6 +244,7 @@ const loadingObjects = ref(false)
 const loadingApps = ref(false)
 const editorVisible = ref(false)
 const editingApp = ref(null)
+const objectWizardVisible = ref(false)
 const pageSizeOptions = [6, 12, 24, 48]
 const objectPagination = ref({
   pageNum: 1,
@@ -367,6 +383,16 @@ function openObject(object) {
 function openEditor(app) {
   editingApp.value = app ? { ...app } : (suiteCode.value ? { suiteCode: suiteCode.value } : null)
   editorVisible.value = true
+}
+
+function openObjectWizard() {
+  objectWizardVisible.value = true
+}
+
+async function handleObjectSaved(payload) {
+  activeView.value = 'objects'
+  suiteCode.value = payload?.suiteCode || suiteCode.value
+  await loadAll()
 }
 
 async function openApp(app) {

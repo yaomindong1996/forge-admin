@@ -20,13 +20,13 @@
       <n-space :size="6">
         <n-tooltip trigger="hover">
           <template #trigger>
-            <n-button quaternary circle size="small" :disabled="app.status !== 1" @click="emit('open', app)">
+            <n-button quaternary circle size="small" :disabled="isOpenDisabled(app)" @click="emit('open', app)">
               <template #icon>
                 <n-icon><OpenOutline /></n-icon>
               </template>
             </n-button>
           </template>
-          打开
+          {{ openTip(app) }}
         </n-tooltip>
         <n-tooltip trigger="hover">
           <template #trigger>
@@ -65,6 +65,22 @@ defineProps({
 })
 
 const emit = defineEmits(['open', 'config', 'toggle'])
+
+function isOpenDisabled(app) {
+  if (app.status !== 1)
+    return true
+  if (app.entryMode === 'RUNTIME')
+    return !app.configKey && !app.entryUrl
+  return !app.entryUrl
+}
+
+function openTip(app) {
+  if (app.status !== 1)
+    return '入口已停用'
+  if (isOpenDisabled(app))
+    return '未配置打开地址'
+  return '打开'
+}
 </script>
 
 <style scoped>

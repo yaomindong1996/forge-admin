@@ -29,4 +29,8 @@ public class BusinessAppOpenInfoVO {
     private Boolean canOpen;
 
     private String message;
+
+    private String nextAction;
+
+    private String nextActionLabel;
 }

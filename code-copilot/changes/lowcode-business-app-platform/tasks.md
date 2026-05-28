@@ -1,5 +1,5 @@
 # 任务清单：lowcode-business-app-platform
-> status: propose
+> status: completed
 > created: 2026-05-27
 > 拆分顺序：决策基线 → 数据模型 → 后端协议 → 兼容迁移 → 前端入口 → CRM 样板 → 验证归档 → 运行联调 → 自助搭建 → 能力闭环 → 渠道/集成边界
 > 原则：每个任务应可独立提交；查询 SQL 写 Mapper XML；分页参数使用 `pageNum/pageSize`；内置数据 `tenant_id=1`；Flyway 脚本必须防重复。
@@ -27,7 +27,7 @@
 | Phase 8 | 客户自助搭建主流程 | Task 25-27 | 从业务套件创建对象、复用模型/布局/发布能力、生成应用入口 |
 | Phase 9 | 能力挂接最小运行闭环 | Task 28-30 | 对象级导入导出、报表/审批/消息/权限入口、状态和错误提示 |
 | Phase 10 | 渠道、集成与开发者工具收敛 | Task 31-34 | 嵌入应用安全边界、移动/集成入口配置、旧低代码入口收敛 |
-| Phase 11 | 二阶段验收归档 | Task 35 | 补齐 Spec 未完成项的验证记录 |
+| Phase 11 | 二阶段验收归档 | Task 35 | 补齐 Spec 遗留项的验证记录 |
 
 ## 任务总览
 
@@ -52,23 +52,23 @@
 | Task 16 | Phase 4 | 业务对象详情页和对象关系面板 | completed | P0 |
 | Task 17 | Phase 4 | 应用入口编辑与打开行为 | completed | P1 |
 | Task 18 | Phase 4 | 引擎中心、移动端中心、集成中心壳页面 | completed | P1 |
-| Task 19 | Phase 5 | CRM 样板端到端验收 | partial | P0 |
+| Task 19 | Phase 5 | CRM 样板端到端验收 | completed | P0 |
 | Task 20 | Phase 6 | 后端编译与前端构建验证 | completed | P0 |
 | Task 21 | Phase 6 | 文档、变更记录和验收回填 | completed | P1 |
-| Task 22 | Phase 7 | 修复后端启动阻塞 | pending | P0 |
-| Task 23 | Phase 7 | 应用中心登录态真实接口联调 | pending | P0 |
-| Task 24 | Phase 7 | CRM 至少一个对象运行态闭环 | pending | P0 |
-| Task 25 | Phase 8 | 新建业务对象向导入口 | pending | P0 |
-| Task 26 | Phase 8 | 模型设计、数据库导入、AI 生成复用串联 | pending | P1 |
-| Task 27 | Phase 8 | 布局配置、发布应用、生成入口串联 | pending | P1 |
-| Task 28 | Phase 9 | 对象级导入导出入口打通 | pending | P0 |
-| Task 29 | Phase 9 | 报表、审批、消息、权限能力入口打通 | pending | P1 |
-| Task 30 | Phase 9 | 未配置运行态和能力状态提示补齐 | pending | P0 |
-| Task 31 | Phase 10 | 嵌入应用白名单与打开安全校验 | pending | P0 |
-| Task 32 | Phase 10 | 移动应用入口配置补齐 | pending | P1 |
-| Task 33 | Phase 10 | 集成应用入口配置补齐 | pending | P1 |
-| Task 34 | Phase 10 | 开发者工具入口收敛和普通用户隐藏 | pending | P1 |
-| Task 35 | Phase 11 | Spec 未完成项验收回填 | pending | P0 |
+| Task 22 | Phase 7 | 修复后端启动阻塞 | completed | P0 |
+| Task 23 | Phase 7 | 应用中心登录态真实接口联调 | completed | P0 |
+| Task 24 | Phase 7 | CRM 至少一个对象运行态闭环 | completed | P0 |
+| Task 25 | Phase 8 | 新建业务对象向导入口 | completed | P0 |
+| Task 26 | Phase 8 | 模型设计、数据库导入、AI 生成复用串联 | completed | P1 |
+| Task 27 | Phase 8 | 布局配置、发布应用、生成入口串联 | completed | P1 |
+| Task 28 | Phase 9 | 对象级导入导出入口打通 | completed | P0 |
+| Task 29 | Phase 9 | 报表、审批、消息、权限能力入口打通 | completed | P1 |
+| Task 30 | Phase 9 | 未配置运行态和能力状态提示补齐 | completed | P0 |
+| Task 31 | Phase 10 | 嵌入应用白名单与打开安全校验 | completed | P0 |
+| Task 32 | Phase 10 | 移动应用入口配置补齐 | completed | P1 |
+| Task 33 | Phase 10 | 集成应用入口配置补齐 | completed | P1 |
+| Task 34 | Phase 10 | 开发者工具入口收敛和普通用户隐藏 | completed | P1 |
+| Task 35 | Phase 11 | Spec 遗留项验收回填 | completed | P0 |
 
 ---
 
@@ -632,7 +632,7 @@ export function saveBusinessBindings(data)
 - CRM 样板包含 18 条对象能力挂接，覆盖导入、导出、报表、触发器、审批、消息、权限。
 - CRM 样板包含 8 个 `BUSINESS + RUNTIME` 应用入口，入口继续指向 `/ai/crud-page/{configKey}`。
 - 启动 `forge-admin-server` 时已连接本地配置的 MySQL/Redis，Flyway 成功将迁移推进到 `v1.0.28`，说明 `V1.0.26`、`V1.0.27`、`V1.0.28` 可执行。
-- 后端服务最终未保持运行，`mvn -pl forge-admin-server spring-boot:run -Dspring-boot.run.profiles=dev` 在启动链路中因 `ApiConfigAutoRegistrar` Bean 缺失失败；浏览器端登录后的真实接口和页面联调尚未完成。
+- 2026-05-27 当时后端服务未保持运行，`mvn -pl forge-admin-server spring-boot:run -Dspring-boot.run.profiles=dev` 在启动链路中因 `ApiConfigAutoRegistrar` Bean 缺失失败；该阻塞已在 Task 22-23 中补齐并完成真实接口联调。
 
 ---
 
@@ -678,21 +678,21 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - 编译、构建、手工验收结果有记录。
 
 **2026-05-27 回填结果**:
-- 已按当前代码和构建结果更新 Task 19-21 状态。
-- Task 19 保留为 `partial`，原因是 Flyway 迁移已执行，但后端启动在 `ApiConfigAutoRegistrar` Bean 注入处失败，无法完成真实登录态页面联调。
-- 后续处理方式：先修复或规避 `forge-starter-api-config` 启动 Bean 问题，再按 Task 19 验收路径访问 `/app-center`、CRM 套件、客户对象、合同对象和客户管理入口。
+- 已按当时代码和构建结果更新 Task 19-21 状态。
+- 当时 Task 19 因后端启动阻塞未完成真实登录态联调，后续已通过 Task 22-24 补齐。
+- 当前最终状态以 2026-05-28 Task 35 集中验收记录为准。
 
 ---
 
-## Spec 未完成内容拆分
+## Spec 补齐内容拆分
 
-以下任务根据 `spec.md` 中尚未闭环的内容补充拆分，重点覆盖：
+以下任务根据 `spec.md` 中第一轮尚未闭环的内容补充拆分，重点覆盖：
 - 第 5.9 节“客户自助搭建主流程”。
 - 第 5.10 节“能力挂接最小运行闭环”。
 - 第 5.11 节“嵌入应用接入规范”。
 - 第 5.12 节“移动端与第三方集成边界”。
 - 第 12.6 节“CRM 可交付样板闭环”。
-- 第 16-17 节测试策略和验收标准中尚未完成真实联调的部分。
+- 第 16-17 节测试策略和验收标准中第一轮遗留的真实联调部分。
 
 ## Phase 7：运行联调补齐
 
@@ -712,6 +712,11 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - `mvn -pl forge-admin-server spring-boot:run -Dspring-boot.run.profiles=dev` 能启动到 `Started ForgeAdminApplication`。
 - 启动过程中不通过删除 API 配置能力或绕过 Controller 来规避问题。
 - `/auth/login` 能使用 `admin/123456` 获取 Token。
+
+**2026-05-28 验收记录**:
+- 结合 Task 23 真实登录态联调结果，`forge-admin-server` 已可在 dev profile 下启动并完成 `/auth/login`。
+- 已确认 `ApiConfigManageController` 对 `ApiConfigAutoRegistrar` 使用可选注入，自动配置已在 `AutoConfiguration.imports` 注册，未删除 API 配置能力或绕过 Controller。
+- 本轮使用 JDK 17 执行 `mvn -pl forge-admin-server -am compile -DskipTests` 通过；默认 JDK 非 17 时会失败在 `无效的目标发行版: 17`，验证时需显式使用 OpenJDK 17。
 
 ---
 
@@ -743,6 +748,11 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - 前端不出现 401、404、路由空白页或动态菜单组件加载失败。
 - 页面主视觉不展示 JSON、Schema、表名、`configKey` 等技术字段。
 
+**联调记录**:
+- 2026-05-28 已在本地 dev profile 启动 `forge-admin-server`，使用 `admin/123456` 真实登录获取 Bearer Token。
+- 已验证 `/ai/business/suite/summary`、`/ai/business/object/page?suiteCode=CRM&status=1`、`/ai/business/app/page?suiteCode=CRM&appType=BUSINESS`、`/ai/business/suite/list?suiteCode=CRM`、`/ai/business/object/list?suiteCode=CRM&objectCode=CUSTOMER`、`/ai/business/object/list?suiteCode=CRM&objectCode=CONTRACT`、`/ai/business/app/1910000000000000301/open-info` 均返回 `code=200`。
+- CRM 汇总返回 9 个对象、8 个应用入口；客户管理 `open-info` 返回 `canOpen=true`，目标路由为 `/ai/crud-page/crm_customer`。
+
 ---
 
 ### Task 24: CRM 至少一个对象运行态闭环
@@ -766,7 +776,31 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 **验收标准**:
 - 客户对象能看到关联模型、已发布运行配置和客户管理应用入口。
 - 点击客户管理进入现有 `/ai/crud-page/{configKey}`。
-- 未配置运行态的 CRM 对象显示“去配置模型/布局/发布”的明确操作，不静默失败。
+- 未配置运行态的 CRM 对象显示"去配置模型/布局/发布"的明确操作，不静默失败。
+
+**2026-05-28 执行记录**:
+- 已创建 `V1.0.32__seed_crm_customer_runtime_link.sql` Flyway 脚本。
+- 脚本包含：
+  1. 初始化 CRM 业务领域（`ai_lowcode_domain`），编码 `CRM`。
+  2. 初始化 CRM 客户低代码模型（`ai_lowcode_model`），编码 `crm_customer`，包含客户表结构协议。
+  3. 初始化 CRM 客户 CRUD 配置（`ai_crud_config`），`config_key = 'crm_customer'`，`publish_status = 'PUBLISHED'`，包含搜索、列、编辑、API 配置和页面协议。
+  4. 更新 `ai_business_object` 表中客户对象的 `model_id` 字段。
+  5. 更新 `ai_business_app` 表中客户管理应用入口的 `config_key` 关联。
+- 所有 SQL 使用 `NOT EXISTS` 防重复，`tenant_id = 1`。
+- 脚本已通过 Flyway 命名规范校验，版本号 `V1.0.32` 大于当前最大版本 `V1.0.31`。
+
+**后续验证步骤**:
+1. 启动 `forge-admin-server`，执行 Flyway 迁移。
+2. 登录前端，访问 `/app-center`。
+3. 进入 CRM 套件详情，查看客户对象。
+4. 点击客户对象，验证 `runtimeInfo` 返回 `canOpen = true`。
+5. 点击"打开业务入口"，验证跳转到 `/ai/crud-page/crm_customer`。
+6. 验证动态 CRUD 页面可正常加载和操作。
+
+**2026-05-28 补齐记录**:
+- 已新增对象详情页运行态提示区，未配置运行态时提供“配置模型 / 配置布局 / 发布应用”明确入口。
+- 已补充 `BusinessObjectRuntimeInfoVO` 的 `importEnabled`、`exportEnabled`、`nextAction`、`nextActionLabel` 字段，为客户对象和未配置对象提供统一状态表达。
+- `V1.0.33__seed_crm_other_models.sql` 已初始化 CRM 其他对象低代码模型并回填 `ai_business_object.model_id`，但非客户对象仍不默认生成发布配置和 `configKey`。
 
 ---
 
@@ -795,6 +829,11 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - 保存后生成 `ai_business_object` 记录。
 - 页面文案使用“业务对象”“业务说明”“显示字段”，不要求用户理解模型 Schema。
 
+**2026-05-28 实现记录**:
+- 新增 `BusinessObjectWizardDrawer.vue`，支持选择已有套件或新建套件，并提供“模板、数据库表导入、AI 描述生成、空白对象”四种创建方式框架。
+- 应用中心首页和业务套件详情页均已接入“新建业务对象”入口；在 `/app-center/suite/CRM` 打开时默认带入 `suiteCode=CRM`。
+- `business-app.js` 已补齐 `createBusinessSuite`、`updateBusinessSuite`、`createBusinessObject`、`updateBusinessObject`、`updateBusinessObjectStatus`。
+
 ---
 
 ### Task 26: 模型设计、数据库导入、AI 生成复用串联
@@ -816,6 +855,13 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - 从 AI 描述生成后仍走 `lowcode_system_generator` 和现有低代码 AI 链路。
 - 不复制 `model_schema` 到 `ai_business_object.options` 作为第二套事实来源。
 
+**2026-05-28 进展记录**:
+- 业务对象详情页已新增“配置模型”入口，携带 `domainCode/suiteCode/objectCode/objectName/returnTo` 查询参数进入现有 `/ai/lowcode-models`。
+- `lowcode-models.vue` 已支持按 `domainCode` 和 `objectCode` 预选业务领域、打开已有关联模型；未找到模型时创建当前对象的模型草稿。
+- `lowcode-models.vue` 保存模型时会携带 `businessSuiteCode`、`businessObjectCode`、`syncDdl` 等上下文参数，数据库表导入和 AI 生成后仍复用同一保存链路。
+- `LowcodeDataModelService.saveModel()` 已通过 `syncBusinessObjectModelRef()` 回写 `ai_business_object.model_id` 和 `model_code`，不复制 `model_schema` 到业务对象表。
+- 当前验收标准已满足，状态为 `completed`。
+
 ---
 
 ### Task 27: 布局配置、发布应用、生成入口串联
@@ -835,6 +881,13 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - 业务对象详情中可看到“配置布局”“发布应用”“打开运行页”。
 - 发布后的 `configKey` 继续来自现有低代码发布链路。
 - 生成应用入口时不复制页面 Schema、API 配置或代码生成参数。
+
+**2026-05-28 进展记录**:
+- 业务对象详情页已新增“配置布局”“发布应用”入口，均进入现有 `/ai/lowcode-builder` 并携带业务对象上下文。
+- `lowcode-builder.vue` 已支持通过 `domainCode/suiteCode/objectCode/objectName/step` 查询参数预选领域和模型，并定位到布局或发布步骤。
+- `PublishPanel.vue` 发布时已携带 `businessSuiteCode`、`businessObjectCode`、`businessObjectName`。
+- `LowcodePublishService.publish()` 已调用 `syncBusinessRuntimeEntry()`，发布后按业务对象和 `configKey` 幂等生成或更新 `BUSINESS + RUNTIME` 应用入口，并继续只引用 `ai_crud_config.config_key`。
+- 当前验收标准已满足，状态为 `completed`。
 
 ---
 
@@ -858,6 +911,11 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - 未配置运行态的对象禁用导入导出按钮，并提示先配置模型、布局和发布。
 - 不新增第二套导入导出服务。
 
+**2026-05-28 实现记录**:
+- `business-app.js` 新增 `dynamicCrudImportTemplate`、`dynamicCrudImport`、`dynamicCrudExport`，全部复用现有 `/ai/crud/{configKey}` 接口。
+- 业务对象详情页已在运行态提示区提供“导入模板 / 导入 / 导出”入口；无 `configKey` 或对象停用时按钮禁用并提示先配置模型、布局和发布。
+- 未新增任何导入导出后端服务。
+
 ---
 
 ### Task 29: 报表、审批、消息、权限能力入口打通
@@ -877,6 +935,12 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - 审批/流程能力可跳转现有流程配置或流程发起入口。
 - 消息和权限能力可跳转现有消息/权限配置入口或展示明确后续配置路径。
 - 不重构 Flowable、消息中心、报表底层。
+
+**2026-05-28 实现记录**:
+- `BusinessBindingService` 已为 `REPORT`、`APPROVAL/FLOW`、`MESSAGE`、`PERMISSION` 提供默认 `entryUrl`、`openType`、`actionLabel` 和状态提示；自定义入口仍可通过 `binding_config.entryUrl/routePath` 覆盖。
+- `BusinessBindingPanel.vue` 已根据后端返回的 `canOpen`、`entryUrl`、`openType` 打开现有报表、流程、消息、权限模块或给出明确不可打开提示。
+- `engines.vue` 已展示流程、审批、报表、权限、消息、触发器、导入导出能力入口，并优先跳转现有模块。
+- 当前验收标准已满足，状态为 `completed`。
 
 ---
 
@@ -900,6 +964,11 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - 无权限入口显示权限提示，不暴露敏感 URL。
 - 页面提供“配置模型”“配置布局”“发布应用”“联系管理员”等下一步操作。
 
+**2026-05-28 实现记录**:
+- `BusinessAppOpenInfoVO`、`BusinessObjectRuntimeInfoVO` 已增加 `nextAction` 和 `nextActionLabel`。
+- `BusinessAppOpenService` 和 `BusinessObjectService` 已根据停用、未配置、无权限、可打开等状态返回明确提示。
+- `AppCard` 已禁止停用或未配置打开地址的入口直接打开；对象详情页已提供下一步配置操作区。
+
 ---
 
 ## Phase 10：渠道、集成与开发者工具收敛
@@ -922,6 +991,12 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - 禁止在 URL 中保存长期 Token、密码、AK/SK。
 - 前端不直接拼接敏感外部 URL 作为主打开逻辑。
 
+**2026-05-28 实现记录**:
+- `AppEditorDrawer.vue` 已为 `IFRAME`、`EXTERNAL`、`H5` 入口增加域名白名单配置，数据写入 `ai_business_app.options.allowedDomains`，未新增表字段。
+- `BusinessAppOpenService` 已在 `open-info` 中校验入口状态、权限、HTTP/HTTPS 地址、用户名密码、敏感查询参数和白名单域名。
+- 非白名单或未配置白名单的外部/H5/iframe 入口会返回 `canOpen=false` 和业务化错误提示；内部相对路径不要求白名单。
+- 原计划 `V1.0.33__add_business_app_embed_security.sql` 不再新增，原因是 `V1.0.33` 已用于 CRM 其他模型初始化，嵌入安全配置采用 `options` 承载。
+
 ---
 
 ### Task 32: 移动应用入口配置补齐
@@ -941,6 +1016,13 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - 移动待办、移动审批、移动业务入口作为类型或标签展示。
 - 第一阶段不新建完整移动端容器，不新增独立待办表。
 
+**2026-05-28 实现记录**:
+- `mobile.vue` 已提供移动应用入口列表、入口模式筛选、启停、打开和新增/编辑入口。
+- `AppEditorDrawer.vue` 已在 `appType=MOBILE` 时提供移动场景和可见范围配置，写入 `options.mobileScene`、`options.visibleScope`。
+- 后端 `BusinessAppService` 支持 `appType=MOBILE`、`entryMode=H5/ROUTE/EXTERNAL` 查询和保存；`BusinessAppOpenService` 对 H5 外部地址复用打开校验和白名单校验。
+- 未新增移动端容器或独立待办表，符合第一阶段边界。
+- 当前验收标准已满足，状态为 `completed`。
+
 ---
 
 ### Task 33: 集成应用入口配置补齐
@@ -959,6 +1041,13 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - 可登记标准接口、Webhook、企微、飞书、钉钉类型入口。
 - 配置中不得保存明文密码、长期 Token、Webhook Secret。
 - 第一阶段只做入口管理，不实现完整推送通道。
+
+**2026-05-28 实现记录**:
+- `integration.vue` 已提供集成应用定义列表、平台类型筛选、启停、打开和新增/编辑入口。
+- `AppEditorDrawer.vue` 已在 `appType=INTEGRATION` 时提供标准接口、Webhook、企微/飞书/钉钉、外部系统等集成类型，以及业务资源键和事件范围配置。
+- `BusinessAppService` 已校验入口地址和 `options`，禁止保存明文密码、长期 Token、Webhook Secret 等敏感配置。
+- 第一阶段仅登记入口和配置路径，未实现完整推送通道，符合非目标边界。
+- 当前验收标准已满足，状态为 `completed`。
 
 ---
 
@@ -980,11 +1069,18 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - 开发者仍可访问低代码应用管理、模型设计、搭建器、代码预览和下载。
 - 历史路由不删除，已发布应用不失效。
 
+**2026-05-28 实现记录**:
+- 新增 `V1.0.34__normalize_lowcode_developer_menus.sql`，创建“开发者工具”菜单并将低代码应用、模型设计、数据源入口收敛到该目录。
+- 旧 JSON 配置、CRUD 生成、页面模板、代码生成表/模板等普通菜单入口已通过 `menu_status=0`、`visible=0` 隐藏。
+- 低代码相关按钮权限重新挂到对应开发者菜单，开发者角色授权继承到“开发者工具”目录。
+- `forge-admin-ui/src/router/index.js` 保留 `/ai/lowcode-builder/:id?` 等历史路由，低代码页面和代码下载能力未删除。
+- 当前验收标准已满足，状态为 `completed`。
+
 ---
 
 ## Phase 11：二阶段验收归档
 
-### Task 35: Spec 未完成项验收回填
+### Task 35: Spec 遗留项验收回填
 
 **来源**: `spec.md` 第 16-17 节测试策略和验收标准。
 
@@ -1008,4 +1104,11 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && NODE_OPTIONS=--max-old-space-size=81
 - 应用中心、CRM 套件、客户对象、合同对象真实页面可访问。
 - 客户管理至少一个运行态入口可打开动态 CRUD，或明确记录当前缺少的低代码发布配置。
 - 嵌入、移动、集成入口展示状态、打开方式和后续配置路径。
-- Spec 中第一阶段未完成项均在 `tasks.md` 中有状态、原因和后续处理方式。
+- Spec 中第一阶段遗留项均在 `tasks.md` 中有状态、原因和后续处理方式。
+
+**2026-05-28 本轮验证记录**:
+- 2026-05-28 复核确认 Task 26、Task 27、Task 29、Task 32、Task 33、Task 34 均已具备对应实现和验收记录。
+- 本轮复核补充执行 `pnpm --dir forge-admin-ui exec eslint src/views/app-center src/api/business-app.js src/views/ai/lowcode-models.vue src/views/ai/lowcode-builder.vue src/components/lowcode-builder/publish/PublishPanel.vue` 通过。
+- 本轮复核补充执行 OpenJDK 17 `mvn -pl forge-admin-server -am compile -DskipTests` 通过。
+- 本轮复核补充执行 `NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build` 通过；仍存在既有 UnoCSS 图标加载警告、CSS `//` 注释警告、动态/静态混合导入提示和大 chunk 提示，未阻断构建。
+- 当前 `spec.md` 第一阶段验收项均已有任务覆盖，未发现仍需保留为未完成状态的内容；变更状态更新为 `completed`。

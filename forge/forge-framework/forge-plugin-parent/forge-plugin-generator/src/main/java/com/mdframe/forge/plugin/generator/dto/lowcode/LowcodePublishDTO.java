@@ -30,6 +30,15 @@ public class LowcodePublishDTO {
 
     private String objectName;
 
+    /** 从业务对象中心发布时用于生成业务应用入口。 */
+    private String businessSuiteCode;
+
+    /** 从业务对象中心发布时用于生成业务应用入口。 */
+    private String businessObjectCode;
+
+    /** 从业务对象中心发布时用于生成业务应用入口。 */
+    private String businessObjectName;
+
     private String remark;
 
     /** 允许发布时传入最新草稿，未传则使用已保存草稿 */

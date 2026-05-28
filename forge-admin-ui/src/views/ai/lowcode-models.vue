@@ -26,7 +26,7 @@
             <n-icon><SearchOutline /></n-icon>
           </template>
         </n-input>
-        <n-spin :show="domainLoading">
+        <n-spin :show="domainLoading" class="tree-spin">
           <div class="asset-tree">
             <template v-for="node in visibleAssetNodes" :key="node.key">
               <button
@@ -417,6 +417,7 @@ import {
   SearchOutline,
 } from '@vicons/ionicons5'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   genDatasourceEnabled,
   lowcodeAiGenerateApp,
@@ -443,6 +444,7 @@ import { useDict } from '@/composables/useDict'
 
 defineOptions({ name: 'AiLowcodeModels' })
 
+const route = useRoute()
 const { dict } = useDict('lowcode_model_status')
 
 const domainLoading = ref(false)
@@ -495,6 +497,7 @@ const currentTreeModelCount = computed(() => {
 
 onMounted(async () => {
   await Promise.all([loadDomains(), loadDatasources()])
+  await applyBusinessContext()
 })
 
 watch(
@@ -581,6 +584,41 @@ async function loadModels() {
   }
 }
 
+async function applyBusinessContext() {
+  const query = route.query || {}
+  const domain = query.domainId
+    ? findDomainById(query.domainId)
+    : findDomainByCode(query.domainCode || query.suiteCode)
+  if (domain) {
+    await selectDomain(domain)
+  }
+
+  if (!selectedDomain.value || !query.objectCode)
+    return
+
+  const objectCodeValue = firstQueryValue(query.objectCode)
+  const objectNameValue = firstQueryValue(query.objectName)
+  const normalizedObjectCode = normalizeObjectCode(objectCodeValue)
+  const modelCode = resolveContextModelCode(normalizedObjectCode)
+  const existingModel = models.value.find(model =>
+    model.modelCode === modelCode
+    || model.modelCode === normalizedObjectCode
+    || model.modelCode?.endsWith(`_${normalizedObjectCode}`),
+  )
+  if (existingModel) {
+    await openModel(existingModel)
+    return
+  }
+
+  isEditingModel.value = true
+  applyModel(createEmptyModel(selectedDomain.value))
+  currentModel.modelCode = modelCode
+  currentModel.modelName = objectNameValue || objectCodeValue
+  currentModel.modelDesc = '从业务对象中心进入的模型配置草稿'
+  currentModel.modelSchema.tableName = normalizeTableName(modelCode)
+  syncModelIdentity()
+}
+
 function createModel() {
   if (!canCreateModel.value) {
     window.$message?.warning('请先选择启用状态的业务领域')
@@ -646,6 +684,8 @@ async function saveModel(syncDdl = false) {
       tenantEnabled: currentModel.tenantEnabled,
       masterData: currentModel.masterData,
       modelSchema: cloneSchema(currentModel.modelSchema),
+      businessSuiteCode: firstQueryValue(route.query.suiteCode || route.query.domainCode),
+      businessObjectCode: firstQueryValue(route.query.objectCode),
       syncDdl,
       confirmSyncDdl: syncDdl,
     }
@@ -1137,7 +1177,25 @@ function isDomainModelsLoading(domainId) {
 }
 
 function findDomainById(domainId) {
-  return flatDomains.value.find(domain => domain.id === domainId) || null
+  return flatDomains.value.find(domain => String(domain.id) === String(domainId)) || null
+}
+
+function findDomainByCode(domainCode) {
+  const code = firstQueryValue(domainCode)
+  if (!code)
+    return null
+  return flatDomains.value.find(domain => domain.domainCode === code) || null
+}
+
+function resolveContextModelCode(objectCode) {
+  const prefix = selectedDomain.value?.configKeyPrefix || selectedDomain.value?.tablePrefix || ''
+  if (!prefix || objectCode.startsWith(prefix))
+    return objectCode
+  return normalizeObjectCode(`${prefix}${objectCode}`)
+}
+
+function firstQueryValue(value) {
+  return Array.isArray(value) ? value[0] : String(value || '').trim()
 }
 
 function openDomainEditor() {
@@ -1189,6 +1247,7 @@ function downloadJson(payload, filename) {
   display: grid;
   position: sticky;
   top: 14px;
+  height: calc(100vh - 28px);
   max-height: calc(100vh - 28px);
   min-height: 0;
   grid-template-rows: minmax(420px, 1fr);
@@ -1208,6 +1267,7 @@ function downloadJson(payload, filename) {
 .nav-block {
   display: grid;
   min-height: 0;
+  overflow: hidden;
   gap: 12px;
   padding: 12px;
   grid-template-rows: auto auto minmax(0, 1fr);
@@ -1234,10 +1294,22 @@ function downloadJson(payload, filename) {
 
 .asset-tree {
   display: grid;
+  height: 100%;
   min-height: 0;
   gap: 4px;
   overflow: auto;
   align-content: start;
+}
+
+.tree-spin {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tree-spin :deep(.n-spin-content) {
+  height: 100%;
+  min-height: 0;
 }
 
 .tree-domain,
@@ -1824,6 +1896,7 @@ function downloadJson(payload, filename) {
   .model-nav {
     grid-template-columns: 1fr;
     position: static;
+    height: auto;
     max-height: none;
     grid-template-rows: auto;
   }

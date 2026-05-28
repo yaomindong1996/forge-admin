@@ -15,6 +15,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -29,6 +31,12 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
     private static final Pattern CODE_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z0-9_]{1,63}$");
     private static final Set<String> APP_TYPES = Set.of("BUSINESS", "EMBEDDED", "MOBILE", "INTEGRATION");
     private static final Set<String> ENTRY_MODES = Set.of("RUNTIME", "ROUTE", "IFRAME", "EXTERNAL", "H5", "API");
+    private static final Set<String> SENSITIVE_QUERY_KEYS = Set.of(
+            "token", "access_token", "password", "secret", "ak", "sk", "client_secret", "webhook_secret"
+    );
+    private static final Set<String> SENSITIVE_OPTION_KEYS = Set.of(
+            "token", "access_token", "password", "secret", "clientsecret", "client_secret", "webhooksecret", "webhook_secret"
+    );
 
     private final BusinessSuiteService suiteService;
     private final BusinessObjectService objectService;
@@ -130,6 +138,7 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         if (baseMapper.countByAppCode(resolveTenantId(), appCode, excludeId) > 0) {
             throw new BusinessException("应用编码已存在: " + appCode);
         }
+        validateNoSensitiveEntryConfig(dto.getEntryUrl(), dto.getOptions());
         app.setTenantId(resolveTenantId());
         app.setAppCode(appCode);
         app.setAppName(appName);
@@ -154,6 +163,50 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         result.setAppType(StringUtils.trimToNull(result.getAppType()));
         result.setEntryMode(StringUtils.trimToNull(result.getEntryMode()));
         return result;
+    }
+
+    private void validateNoSensitiveEntryConfig(String entryUrl, String options) {
+        validateNoSensitiveUrl(entryUrl);
+        validateNoSensitiveOptions(options);
+    }
+
+    private void validateNoSensitiveUrl(String entryUrl) {
+        String url = StringUtils.trimToNull(entryUrl);
+        if (StringUtils.isBlank(url) || StringUtils.startsWith(url, "/")) {
+            return;
+        }
+        URI uri;
+        try {
+            uri = URI.create(url);
+        } catch (IllegalArgumentException e) {
+            return;
+        }
+        if (StringUtils.isNotBlank(uri.getUserInfo())) {
+            throw new BusinessException("应用入口地址不能包含用户名或密码");
+        }
+        String query = uri.getRawQuery();
+        if (StringUtils.isBlank(query)) {
+            return;
+        }
+        boolean containsSensitiveKey = Arrays.stream(query.split("&"))
+                .map(item -> StringUtils.substringBefore(item, "="))
+                .map(StringUtils::lowerCase)
+                .anyMatch(SENSITIVE_QUERY_KEYS::contains);
+        if (containsSensitiveKey) {
+            throw new BusinessException("应用入口地址不能包含长期 Token、密码或密钥");
+        }
+    }
+
+    private void validateNoSensitiveOptions(String options) {
+        if (StringUtils.isBlank(options)) {
+            return;
+        }
+        String lowerOptions = StringUtils.lowerCase(options);
+        boolean containsSensitiveKey = SENSITIVE_OPTION_KEYS.stream()
+                .anyMatch(key -> lowerOptions.contains("\"" + key + "\"") || lowerOptions.contains(key + "="));
+        if (containsSensitiveKey) {
+            throw new BusinessException("应用入口配置不能保存明文密码、Token 或 Webhook Secret");
+        }
     }
 
     private Integer normalizeStatus(Integer status) {

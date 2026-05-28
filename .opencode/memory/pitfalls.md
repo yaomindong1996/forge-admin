@@ -923,3 +923,99 @@ src/views/app-center/object.[objectCode].vue -> /app-center/object/:objectCode
 **影响范围**:
 - `normal`、`top-side-menu`、`immersive` 等依赖 `useMenu()` 的菜单布局
 - 应用中心这类“目录 + 默认页 + 同级子页”的菜单结构
+
+## 24. ai_crud_config 表 status 字段类型为 char(1) 导致 Flyway 迁移失败
+
+**发现日期**: 2026-05-28
+
+**问题描述**:
+执行 `V1.0.32__seed_crm_customer_runtime_link.sql` 脚本时，Flyway 报错：
+```
+Data truncation: Data too long for column 'status' at row 1
+```
+
+**错误示例**:
+```sql
+INSERT INTO ai_crud_config (..., status, ...)
+VALUES (..., 'ENABLED', ...);  -- ❌ 错误，'ENABLED' 是 7 个字符
+```
+
+**正确用法**:
+```sql
+INSERT INTO ai_crud_config (..., status, ...)
+VALUES (..., '0', ...);  -- ✅ 正确，'0' 表示启用
+```
+
+**根本原因**:
+`ai_crud_config` 表的 `status` 字段定义是 `char(1)` 类型，只能存储 1 个字符：
+```sql
+`status` char(1) NOT NULL DEFAULT '0' COMMENT '状态（0启用 1停用）',
+```
+
+而 `ai_lowcode_domain`、`ai_lowcode_model` 等表的 `status` 字段是 `varchar(16)` 类型，可以存储 `'ENABLED'`、`'DISABLED'` 等值。不同表的 `status` 字段类型不一致，容易混淆。
+
+**解决方案**:
+- `ai_crud_config.status` 使用 `'0'`（启用）或 `'1'`（停用）
+- `ai_lowcode_domain.status`、`ai_lowcode_model.status` 使用 `'ENABLED'` 或 `'DISABLED'`
+- 编写 Flyway 脚本前，先检查目标表的字段类型定义
+
+**影响范围**:
+- 所有向 `ai_crud_config` 表插入数据的 Flyway 脚本
+- 涉及 `status` 字段的 UPDATE 语句
+
+**修复步骤**:
+如果 Flyway 迁移已失败，需要手动删除失败记录：
+```sql
+-- 检查失败的迁移记录
+SELECT * FROM forge_schema_history WHERE success = 0;
+
+-- 删除失败的迁移记录
+DELETE FROM forge_schema_history WHERE version = '1.0.32';
+
+-- 修复脚本后重新启动应用，Flyway 会自动重新执行
+```
+
+## 25. 后端 Maven 编译必须使用 JDK 17
+
+**发现日期**: 2026-05-28
+
+**问题描述**:
+执行后端编译时，如果当前 shell 使用的不是 JDK 17，会在编译阶段失败：
+```text
+Fatal error compiling: 无效的目标发行版: 17
+```
+
+**解决方案**:
+本机可显式指定 OpenJDK 17 后再执行 Maven：
+```bash
+JAVA_HOME=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jdk/Contents/Home \
+PATH=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jdk/Contents/Home/bin:$PATH \
+mvn -pl forge-admin-server -am compile -DskipTests
+```
+
+**影响范围**:
+- `forge-admin-server` 及其 Maven reactor 编译
+- 所有 target/source 配置为 Java 17 的后端模块
+
+## 26. Flyway 已执行版本禁止复用或改写
+
+**发现日期**: 2026-05-28
+
+**问题描述**:
+启动 `forge-admin-server` 时，Flyway 校验失败：
+```text
+Migration checksum mismatch for migration version 1.0.32
+Migration checksum mismatch for migration version 1.0.33
+```
+
+**根本原因**:
+数据库 `forge_schema_history` 已经记录过对应版本的 checksum，但本地 `forge/db/migration/V1.0.32__*.sql` 或 `V1.0.33__*.sql` 内容后来被修改、重新生成或复用了同一个版本号。Flyway 会把它视为历史迁移被篡改，启动阶段直接失败。
+
+**解决方案**:
+- 已落库的 Flyway 脚本禁止修改，新增修正必须使用下一个版本号。
+- 本地开发库如果确认为临时脚本迭代，可删除从首次变更版本开始的连续尾部 `forge_schema_history` 记录后重跑；不要只删除中间版本。
+- `flyway repair` 只更新 schema history checksum，不会重新执行脚本；如果脚本内容包含新的 seed/update 数据，优先重跑迁移或新增后续版本脚本。
+
+**影响范围**:
+- 所有 `forge/db/migration/V*.sql` 版本化脚本
+- 远程共享开发库、测试库和生产库的 Flyway 启动校验

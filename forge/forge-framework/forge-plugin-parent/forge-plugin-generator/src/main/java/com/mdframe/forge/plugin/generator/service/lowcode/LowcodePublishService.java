@@ -2,9 +2,12 @@ package com.mdframe.forge.plugin.generator.service.lowcode;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApp;
+import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessObject;
 import com.mdframe.forge.plugin.generator.domain.entity.AiCrudConfig;
 import com.mdframe.forge.plugin.generator.domain.entity.AiCrudConfigVersion;
 import com.mdframe.forge.plugin.generator.domain.entity.AiLowcodeDomain;
+import com.mdframe.forge.plugin.generator.domain.entity.AiLowcodeModel;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeDomainRef;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeModelSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeObjectSchema;
@@ -13,6 +16,9 @@ import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePolicySchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePublishDTO;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeRuntimeConfig;
 import com.mdframe.forge.plugin.generator.mapper.AiCrudConfigVersionMapper;
+import com.mdframe.forge.plugin.generator.mapper.AiLowcodeModelMapper;
+import com.mdframe.forge.plugin.generator.mapper.BusinessAppMapper;
+import com.mdframe.forge.plugin.generator.mapper.BusinessObjectMapper;
 import com.mdframe.forge.plugin.generator.service.AiCrudConfigService;
 import com.mdframe.forge.plugin.generator.service.MenuRegisterAdapter;
 import com.mdframe.forge.plugin.generator.vo.lowcode.LowcodeVersionVO;
@@ -52,6 +58,9 @@ public class LowcodePublishService {
     private final LowcodePolicyService policyService;
     private final MenuRegisterAdapter menuRegisterAdapter;
     private final AiCrudConfigVersionMapper versionMapper;
+    private final BusinessObjectMapper businessObjectMapper;
+    private final BusinessAppMapper businessAppMapper;
+    private final AiLowcodeModelMapper lowcodeModelMapper;
 
     @Transactional(rollbackFor = Exception.class)
     public Long publish(Long id, LowcodePublishDTO dto) {
@@ -77,6 +86,7 @@ public class LowcodePublishService {
 
         registerOrUpdateMenu(config);
         configService.updateById(config);
+        syncBusinessRuntimeEntry(config, dto, domainContext);
         AiCrudConfigVersion version = createVersion(config, versionNo, "publish",
                 dto != null ? dto.getRemark() : null);
         return version.getId();
@@ -109,6 +119,7 @@ public class LowcodePublishService {
         config.setPublishBy(SessionHelper.getUserId());
         registerOrUpdateMenu(config);
         configService.updateById(config);
+        syncBusinessRuntimeEntry(config, null, domainContext);
         createVersion(config, versionNo, "rollback", "回滚到版本 " + targetVersion.getVersionNo());
     }
 
@@ -218,6 +229,106 @@ public class LowcodePublishService {
         config.setMenuName(menuName);
         config.setMenuParentId(parentId);
         config.setMenuSort(sort);
+    }
+
+    private void syncBusinessRuntimeEntry(AiCrudConfig config, LowcodePublishDTO dto, PublishDomainContext context) {
+        if (config == null || context == null || context.domain() == null || StringUtils.isBlank(config.getConfigKey())) {
+            return;
+        }
+        Long tenantId = resolveTenantId(config);
+        AiBusinessApp existingApp = businessAppMapper.selectByConfigKey(tenantId, config.getConfigKey());
+        String suiteCode = StringUtils.firstNonBlank(dto != null ? dto.getBusinessSuiteCode() : null,
+                existingApp == null ? null : existingApp.getSuiteCode(),
+                context.domain().getDomainCode());
+        String businessObjectCode = StringUtils.firstNonBlank(dto != null ? dto.getBusinessObjectCode() : null,
+                existingApp == null ? null : existingApp.getObjectCode(),
+                config.getObjectCode(),
+                context.objectCode());
+        if (StringUtils.isBlank(suiteCode) || StringUtils.isBlank(businessObjectCode)) {
+            return;
+        }
+        AiBusinessObject businessObject = findBusinessObject(tenantId, suiteCode, businessObjectCode);
+        if (businessObject == null) {
+            return;
+        }
+
+        AiLowcodeModel model = StringUtils.isBlank(config.getObjectCode())
+                ? null
+                : lowcodeModelMapper.selectByCode(tenantId, context.domain().getId(), config.getObjectCode());
+        businessObject.setModelId(model == null ? businessObject.getModelId() : model.getId());
+        businessObject.setModelCode(StringUtils.defaultIfBlank(config.getObjectCode(), businessObject.getModelCode()));
+        businessObjectMapper.updateById(businessObject);
+
+        AiBusinessApp app = existingApp;
+        if (app == null) {
+            app = businessAppMapper.selectRuntimeAppByObject(tenantId, suiteCode, businessObject.getObjectCode());
+        }
+        boolean create = app == null;
+        if (create) {
+            app = new AiBusinessApp();
+            app.setTenantId(tenantId);
+            app.setAppCode(resolveRuntimeAppCode(tenantId, suiteCode, businessObject.getObjectCode(), config));
+        }
+        app.setAppName(resolveRuntimeAppName(config, dto, businessObject));
+        app.setAppType("BUSINESS");
+        app.setSuiteCode(suiteCode);
+        app.setObjectCode(businessObject.getObjectCode());
+        app.setEntryMode("RUNTIME");
+        app.setEntryUrl("/ai/crud-page/" + config.getConfigKey());
+        app.setConfigKey(config.getConfigKey());
+        app.setIcon(StringUtils.defaultIfBlank(businessObject.getIcon(), "ionicons5:AppsOutline"));
+        app.setDescription(StringUtils.defaultIfBlank(config.getTableComment(), "低代码发布生成的标准业务应用入口"));
+        app.setStatus(1);
+        app.setSortOrder(config.getMenuSort() == null ? 0 : config.getMenuSort());
+        app.setOptions("{\"source\":\"lowcode_publish\"}");
+        if (create) {
+            businessAppMapper.insert(app);
+        } else {
+            businessAppMapper.updateById(app);
+        }
+    }
+
+    private AiBusinessObject findBusinessObject(Long tenantId, String suiteCode, String objectCode) {
+        AiBusinessObject object = businessObjectMapper.selectByObjectCode(tenantId, suiteCode, objectCode);
+        if (object != null) {
+            return object;
+        }
+        return businessObjectMapper.selectByObjectCode(tenantId, suiteCode, objectCode.toUpperCase(Locale.ROOT));
+    }
+
+    private String resolveRuntimeAppName(AiCrudConfig config, LowcodePublishDTO dto, AiBusinessObject businessObject) {
+        return StringUtils.firstNonBlank(
+                config.getMenuName(),
+                config.getAppName(),
+                dto != null ? dto.getBusinessObjectName() : null,
+                businessObject.getObjectName(),
+                config.getConfigKey()
+        );
+    }
+
+    private String resolveRuntimeAppCode(Long tenantId, String suiteCode, String objectCode, AiCrudConfig config) {
+        String base = normalizeAppCode(suiteCode + "_" + objectCode + "_RUNTIME");
+        if (businessAppMapper.countByAppCode(tenantId, base, null) == 0) {
+            return base;
+        }
+        String fallback = normalizeAppCode(base + "_" + config.getId());
+        if (businessAppMapper.countByAppCode(tenantId, fallback, null) == 0) {
+            return fallback;
+        }
+        return normalizeAppCode(base + "_" + System.currentTimeMillis());
+    }
+
+    private String normalizeAppCode(String value) {
+        String normalized = StringUtils.defaultString(value)
+                .replaceAll("[^A-Za-z0-9_]+", "_")
+                .replaceAll("_+", "_")
+                .toUpperCase(Locale.ROOT)
+                .replaceAll("^[^A-Z]+", "")
+                .replaceAll("_+$", "");
+        if (StringUtils.isBlank(normalized)) {
+            normalized = "LOWCODE_RUNTIME_APP";
+        }
+        return normalized.length() > 64 ? normalized.substring(0, 64).replaceAll("_+$", "") : normalized;
     }
 
     private int nextVersionNo(AiCrudConfig config) {

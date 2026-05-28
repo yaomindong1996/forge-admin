@@ -1,5 +1,7 @@
 package com.mdframe.forge.plugin.generator.service.businessapp;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessBinding;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessBindingBatchSaveDTO;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -35,7 +38,9 @@ public class BusinessBindingService extends ServiceImpl<BusinessBindingMapper, A
     private final BusinessAppService appService;
 
     public List<BusinessBindingVO> list(BusinessBindingQueryDTO query) {
-        return baseMapper.selectBindingList(resolveTenantId(), normalizeQuery(query));
+        List<BusinessBindingVO> bindings = baseMapper.selectBindingList(resolveTenantId(), normalizeQuery(query));
+        bindings.forEach(this::decorateBindingOpenInfo);
+        return bindings;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -134,6 +139,80 @@ public class BusinessBindingService extends ServiceImpl<BusinessBindingMapper, A
         binding.setSortOrder(dto.getSortOrder() == null ? 0 : dto.getSortOrder());
     }
 
+    private void decorateBindingOpenInfo(BusinessBindingVO binding) {
+        if (binding == null) {
+            return;
+        }
+        BindingOpenDefaults defaults = resolveOpenDefaults(binding.getBindingType());
+        JSONObject config = readBindingConfig(binding.getBindingConfig());
+        String entryUrl = firstNonBlank(
+                text(config.get("entryUrl")),
+                text(config.get("routePath")),
+                text(config.get("targetUrl")),
+                text(config.get("url")),
+                defaults.entryUrl()
+        );
+        String openType = firstNonBlank(text(config.get("openType")), defaults.openType());
+        String actionLabel = firstNonBlank(text(config.get("actionLabel")), defaults.actionLabel());
+        boolean enabled = Integer.valueOf(1).equals(binding.getStatus());
+
+        binding.setEntryUrl(entryUrl);
+        binding.setOpenType(StringUtils.defaultIfBlank(openType, "ROUTE").toUpperCase(Locale.ROOT));
+        binding.setActionLabel(StringUtils.defaultIfBlank(actionLabel, "打开配置"));
+        binding.setCanOpen(enabled && StringUtils.isNotBlank(entryUrl));
+        if (!enabled) {
+            binding.setStatusMessage("能力已停用");
+            binding.setNextAction("ENABLE_BINDING");
+        } else if (StringUtils.isBlank(entryUrl)) {
+            binding.setStatusMessage("尚未配置能力入口");
+            binding.setNextAction("CONFIGURE_BINDING");
+        } else {
+            binding.setStatusMessage("已接入能力入口");
+            binding.setNextAction("OPEN_BINDING");
+        }
+    }
+
+    private BindingOpenDefaults resolveOpenDefaults(String bindingType) {
+        return switch (StringUtils.defaultString(bindingType).toUpperCase(Locale.ROOT)) {
+            case "REPORT" -> new BindingOpenDefaults("ROUTE", "/report/design", "打开报表");
+            case "APPROVAL", "FLOW" -> new BindingOpenDefaults("ROUTE", "/flow/model", "打开流程配置");
+            case "MESSAGE" -> new BindingOpenDefaults("ROUTE", "/message/template", "打开消息配置");
+            case "PERMISSION" -> new BindingOpenDefaults("ROUTE", "/system/role", "打开权限配置");
+            case "MOBILE" -> new BindingOpenDefaults("ROUTE", "/app-center/mobile", "打开移动端中心");
+            case "INTEGRATION" -> new BindingOpenDefaults("ROUTE", "/app-center/integration", "打开集成中心");
+            case "IMPORT", "EXPORT" -> new BindingOpenDefaults("ROUTE", null, "查看对象入口");
+            case "TRIGGER" -> new BindingOpenDefaults("ROUTE", "/app-center/engines?type=TRIGGER", "查看触发器");
+            default -> new BindingOpenDefaults("ROUTE", "/app-center/engines", "打开引擎中心");
+        };
+    }
+
+    private JSONObject readBindingConfig(String bindingConfig) {
+        if (StringUtils.isBlank(bindingConfig)) {
+            return new JSONObject();
+        }
+        try {
+            return JSON.parseObject(bindingConfig);
+        } catch (Exception e) {
+            return new JSONObject();
+        }
+    }
+
+    private String text(Object value) {
+        return value == null ? null : StringUtils.trimToNull(String.valueOf(value));
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (StringUtils.isNotBlank(value)) {
+                return value;
+            }
+        }
+        return null;
+    }
+
     private void validateTarget(String targetType, Long targetId, String targetCode) {
         if ("SUITE".equals(targetType)) {
             suiteService.requireByCode(targetCode);
@@ -205,5 +284,8 @@ public class BusinessBindingService extends ServiceImpl<BusinessBindingMapper, A
             tenantId = null;
         }
         return tenantId != null ? tenantId : 1L;
+    }
+
+    private record BindingOpenDefaults(String openType, String entryUrl, String actionLabel) {
     }
 }

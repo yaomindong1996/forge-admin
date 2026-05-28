@@ -1,6 +1,9 @@
 package com.mdframe.forge.plugin.generator.dto.lowcode;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+
+import java.util.Locale;
 
 /**
  * 单表低代码字段协议。
@@ -58,4 +61,72 @@ public class LowcodeFieldSchema {
     private Integer width;
 
     private String remark;
+
+    @JsonProperty("fieldCode")
+    public void setLegacyFieldCode(String fieldCode) {
+        this.columnName = fieldCode;
+        if (this.field == null && fieldCode != null) {
+            this.field = snakeToCamel(fieldCode);
+        }
+    }
+
+    @JsonProperty("fieldName")
+    public void setLegacyFieldName(String fieldName) {
+        this.label = fieldName;
+    }
+
+    @JsonProperty("fieldType")
+    public void setLegacyFieldType(String fieldType) {
+        this.dataType = fieldType == null ? null : fieldType.toLowerCase(Locale.ROOT);
+    }
+
+    @JsonProperty("fieldLength")
+    public void setLegacyFieldLength(Object fieldLength) {
+        if (fieldLength == null) {
+            return;
+        }
+        String value = String.valueOf(fieldLength).trim();
+        if (value.isEmpty() || "null".equalsIgnoreCase(value)) {
+            return;
+        }
+        if (value.contains(",")) {
+            String[] parts = value.split(",", 2);
+            this.length = parseInteger(parts[0], this.length);
+            this.precision = parseInteger(parts[1], this.precision);
+            return;
+        }
+        this.length = parseInteger(value, this.length);
+    }
+
+    @JsonProperty("displayInList")
+    public void setLegacyDisplayInList(Boolean displayInList) {
+        this.listVisible = displayInList;
+    }
+
+    @JsonProperty("displayInForm")
+    public void setLegacyDisplayInForm(Boolean displayInForm) {
+        this.formVisible = displayInForm;
+    }
+
+    private Integer parseInteger(String value, Integer fallback) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (Exception e) {
+            return fallback;
+        }
+    }
+
+    private String snakeToCamel(String value) {
+        StringBuilder result = new StringBuilder();
+        boolean upperNext = false;
+        for (char ch : value.toCharArray()) {
+            if (ch == '_') {
+                upperNext = true;
+                continue;
+            }
+            result.append(upperNext ? Character.toUpperCase(ch) : ch);
+            upperNext = false;
+        }
+        return result.toString();
+    }
 }

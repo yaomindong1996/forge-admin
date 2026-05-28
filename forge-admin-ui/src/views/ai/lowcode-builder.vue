@@ -347,9 +347,10 @@ import {
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  lowcodeAppDetail,
   lowcodeAppCodeOptions,
+  lowcodeAppDetail,
   lowcodeDomainDefaults,
+  lowcodeDomainTree,
   lowcodeDownloadAppCode,
   lowcodeModelList,
   lowcodeSaveAppCodeOptions,
@@ -400,7 +401,6 @@ const codeSourceType = ref('DRAFT')
 const codegenForm = reactive(createBlankCodegenForm())
 
 const appId = computed(() => route.params.id || null)
-const currentAppId = computed(() => draft.id || appId.value || null)
 const pageLoading = computed(() => pageBootLoading.value || domainLoading.value)
 const emptyRuntimeModel = createEmptyRuntimeModel()
 const draft = reactive({
@@ -410,6 +410,9 @@ const draft = reactive({
   domainName: '',
   objectCode: '',
   objectName: '',
+  businessSuiteCode: '',
+  businessObjectCode: '',
+  businessObjectName: '',
   configKey: '',
   appName: '',
   menuName: '',
@@ -419,6 +422,7 @@ const draft = reactive({
   modelSchema: emptyRuntimeModel,
   pageSchema: createDefaultPageSchema(emptyRuntimeModel),
 })
+const currentAppId = computed(() => draft.id || appId.value || null)
 
 const stepItems = [
   { value: 'source', title: '数据源', desc: '选择模型 / 指定主模型' },
@@ -479,10 +483,14 @@ onMounted(async () => {
   try {
     if (appId.value) {
       await reloadDetail()
+      applyBusinessContext()
       return
     }
     if (route.query.domainId)
       await selectDomainById(route.query.domainId, { resetDraft: true })
+    else if (route.query.domainCode || route.query.suiteCode)
+      await selectDomainByCode(route.query.domainCode || route.query.suiteCode, { resetDraft: true })
+    applyBusinessContext()
   }
   finally {
     pageBootLoading.value = false
@@ -533,6 +541,22 @@ async function selectDomainById(domainId, options = {}) {
     await loadDataModels()
     if (options.resetDraft)
       resetDraftForDomain(domain)
+  }
+  finally {
+    domainLoading.value = false
+  }
+}
+
+async function selectDomainByCode(domainCode, options = {}) {
+  const code = firstQueryValue(domainCode)
+  if (!code)
+    return
+  domainLoading.value = true
+  try {
+    const res = await lowcodeDomainTree({ keyword: code })
+    const domain = flattenDomains(res.data || []).find(item => item.domainCode === code)
+    if (domain)
+      await selectDomainById(domain.id, options)
   }
   finally {
     domainLoading.value = false
@@ -597,6 +621,9 @@ function resetDraftForDomain(domain) {
   draft.publishStatus = 'DRAFT'
   draft.objectCode = ''
   draft.objectName = ''
+  draft.businessSuiteCode = ''
+  draft.businessObjectCode = ''
+  draft.businessObjectName = ''
   draft.modelSchema = createEmptyRuntimeModel(domain)
   draft.pageSchema = createDefaultPageSchema(draft.modelSchema)
   draft.pageSchema.layoutType = resolveDomainDefaults(domain).layoutType
@@ -644,6 +671,43 @@ function restoreSelectedModels(detail) {
     selectedModelKeys.value = [key]
     primaryModelKey.value = key
   }
+}
+
+function applyBusinessContext() {
+  if (!selectedDomain.value)
+    return
+  const requestedStep = normalizeStep(route.query.step)
+  const objectCode = normalizeObjectCode(firstQueryValue(route.query.objectCode))
+  const objectName = firstQueryValue(route.query.objectName)
+  draft.businessSuiteCode = firstQueryValue(route.query.suiteCode || route.query.domainCode)
+  draft.businessObjectCode = firstQueryValue(route.query.objectCode)
+  draft.businessObjectName = objectName
+  if (objectCode) {
+    const modelCode = resolveContextModelCode(objectCode)
+    const model = dataModels.value.find(item =>
+      item.modelCode === modelCode
+      || item.modelCode === objectCode
+      || item.modelCode?.endsWith(`_${objectCode}`),
+    )
+    if (model) {
+      const key = resolveModelKey(model)
+      selectedModelKeys.value = [key]
+      primaryModelKey.value = key
+      syncSelectedModelsToDraft()
+    }
+    else {
+      draft.objectCode = modelCode
+      draft.objectName = objectName || ''
+      if (objectName) {
+        draft.appName = `${objectName}管理`
+        draft.menuName = draft.appName
+      }
+      deriveAppCode()
+      window.$message?.info('未找到关联模型，请先选择或创建数据模型')
+    }
+  }
+  if (requestedStep && (requestedStep === 'source' || selectedModelKeys.value.length))
+    currentStep.value = requestedStep
 }
 
 function ensureDataModelFromRef(ref) {
@@ -988,6 +1052,32 @@ function createSyntheticModelFromSchema(schema = {}, options = {}) {
 
 function resolveModelKey(model) {
   return model?.id !== null && model?.id !== undefined ? `${model.id}` : `schema:${model?.modelCode || 'model'}`
+}
+
+function resolveContextModelCode(objectCode) {
+  const prefix = selectedDomain.value?.configKeyPrefix || selectedDomain.value?.tablePrefix || ''
+  if (!prefix || objectCode.startsWith(prefix))
+    return objectCode
+  return normalizeObjectCode(`${prefix}${objectCode}`)
+}
+
+function flattenDomains(nodes) {
+  const result = []
+  for (const node of nodes || []) {
+    result.push(node)
+    if (node.children?.length)
+      result.push(...flattenDomains(node.children))
+  }
+  return result
+}
+
+function firstQueryValue(value) {
+  return Array.isArray(value) ? value[0] : String(value || '').trim()
+}
+
+function normalizeStep(value) {
+  const step = firstQueryValue(value)
+  return stepItems.some(item => item.value === step) ? step : ''
 }
 
 function resolveDomainDefaults(domain) {

@@ -27,6 +27,61 @@
       </div>
     </header>
 
+    <section class="runtime-panel">
+      <n-alert :type="runtimeStatusType" :show-icon="false">
+        <div class="runtime-alert">
+          <div>
+            <strong>{{ runtimeInfo?.message || '正在加载运行态信息' }}</strong>
+            <p>{{ runtimeHint }}</p>
+          </div>
+          <n-space :wrap="true">
+            <n-button secondary @click="openModelConfig">
+              <template #icon>
+                <n-icon><BuildOutline /></n-icon>
+              </template>
+              配置模型
+            </n-button>
+            <n-button secondary @click="openLayoutConfig">
+              <template #icon>
+                <n-icon><LayersOutline /></n-icon>
+              </template>
+              配置布局
+            </n-button>
+            <n-button secondary @click="openPublishConfig">
+              <template #icon>
+                <n-icon><RocketOutline /></n-icon>
+              </template>
+              发布应用
+            </n-button>
+            <n-button
+              secondary
+              :disabled="!canUseRuntime"
+              :loading="templateLoading"
+              @click="downloadImportTemplate"
+            >
+              <template #icon>
+                <n-icon><CloudDownloadOutline /></n-icon>
+              </template>
+              导入模板
+            </n-button>
+            <n-button secondary :disabled="!canUseRuntime" :loading="importing" @click="triggerImport">
+              <template #icon>
+                <n-icon><CloudUploadOutline /></n-icon>
+              </template>
+              导入
+            </n-button>
+            <n-button secondary :disabled="!canUseRuntime" :loading="exportLoading" @click="exportData">
+              <template #icon>
+                <n-icon><CloudDownloadOutline /></n-icon>
+              </template>
+              导出
+            </n-button>
+          </n-space>
+        </div>
+      </n-alert>
+      <input ref="importInputRef" class="hidden-file-input" type="file" accept=".xlsx,.xls" @change="handleImportFile">
+    </section>
+
     <n-tabs v-model:value="activeTab" type="line" animated class="object-tabs">
       <n-tab-pane name="relation" tab="关系">
         <ObjectRelationPanel :object-id="object?.id" />
@@ -68,11 +123,25 @@
 </template>
 
 <script setup>
-import { CubeOutline, OpenOutline } from '@vicons/ionicons5'
+import {
+  BuildOutline,
+  CloudDownloadOutline,
+  CloudUploadOutline,
+  CubeOutline,
+  LayersOutline,
+  OpenOutline,
+  RocketOutline,
+} from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { businessObjectList, businessObjectRuntimeInfo } from '@/api/business-app'
+import {
+  businessObjectList,
+  businessObjectRuntimeInfo,
+  dynamicCrudExport,
+  dynamicCrudImport,
+  dynamicCrudImportTemplate,
+} from '@/api/business-app'
 import DictTag from '@/components/DictTag.vue'
 import { useTabStore } from '@/store'
 import BusinessBindingPanel from './components/BusinessBindingPanel.vue'
@@ -85,9 +154,20 @@ const tabStore = useTabStore()
 const activeTab = ref('relation')
 const object = ref(null)
 const runtimeInfo = ref(null)
+const importInputRef = ref(null)
+const templateLoading = ref(false)
+const importing = ref(false)
+const exportLoading = ref(false)
 const objectCode = computed(() => route.params.objectCode)
 const suiteCode = computed(() => route.query.suiteCode || object.value?.suiteCode)
 const pageTitle = computed(() => object.value?.objectName || objectCode.value || '业务对象详情')
+const canUseRuntime = computed(() => Boolean(runtimeInfo.value?.configKey && object.value?.status === 1))
+const runtimeStatusType = computed(() => runtimeInfo.value?.canOpen ? 'success' : 'warning')
+const runtimeHint = computed(() => {
+  if (canUseRuntime.value)
+    return '已关联低代码发布配置，导入、导出和运行页继续复用动态 CRUD 能力。'
+  return '请先完成模型、布局和发布配置，再生成标准业务应用入口。'
+})
 
 const layoutItems = [
   { title: '列表布局', desc: '维护业务对象在列表中的字段展示、筛选和排序方式。' },
@@ -132,6 +212,135 @@ function openRuntime() {
   }
   router.push(runtimeInfo.value.routePath)
 }
+
+function openModelConfig() {
+  router.push({
+    path: '/ai/lowcode-models',
+    query: buildBusinessContextQuery(),
+  })
+}
+
+function openLayoutConfig() {
+  router.push({
+    path: '/ai/lowcode-builder',
+    query: {
+      ...buildBusinessContextQuery(),
+      step: 'layout',
+    },
+  })
+}
+
+function openPublishConfig() {
+  router.push({
+    path: '/ai/lowcode-builder',
+    query: {
+      ...buildBusinessContextQuery(),
+      step: 'publish',
+    },
+  })
+}
+
+async function downloadImportTemplate() {
+  if (!canUseRuntime.value) {
+    message.warning('请先完成模型、布局和发布配置')
+    return
+  }
+  templateLoading.value = true
+  try {
+    const response = await dynamicCrudImportTemplate(runtimeInfo.value.configKey)
+    downloadBlobResponse(response, `${object.value?.objectName || objectCode.value}-导入模板.xlsx`)
+  }
+  finally {
+    templateLoading.value = false
+  }
+}
+
+function triggerImport() {
+  if (!canUseRuntime.value) {
+    message.warning('请先完成模型、布局和发布配置')
+    return
+  }
+  importInputRef.value?.click()
+}
+
+async function handleImportFile(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file)
+    return
+  importing.value = true
+  try {
+    const res = await dynamicCrudImport(runtimeInfo.value.configKey, file)
+    const result = res.data || {}
+    if (result.success === false) {
+      message.error(result.summary || '导入失败')
+      return
+    }
+    message.success(result.summary || '导入完成')
+  }
+  finally {
+    importing.value = false
+  }
+}
+
+async function exportData() {
+  if (!canUseRuntime.value) {
+    message.warning('请先完成模型、布局和发布配置')
+    return
+  }
+  exportLoading.value = true
+  try {
+    const response = await dynamicCrudExport(runtimeInfo.value.configKey, {})
+    if (response?.data?.async) {
+      message.success(response.data.message || '导出任务已提交')
+      return
+    }
+    downloadBlobResponse(response, `${object.value?.objectName || objectCode.value}-导出数据.xlsx`)
+    message.success('导出成功')
+  }
+  finally {
+    exportLoading.value = false
+  }
+}
+
+function buildBusinessContextQuery() {
+  return {
+    domainCode: suiteCode.value,
+    suiteCode: suiteCode.value,
+    objectCode: object.value?.objectCode || objectCode.value,
+    objectName: object.value?.objectName || objectCode.value,
+    returnTo: route.fullPath,
+  }
+}
+
+function downloadBlobResponse(response, fallbackName) {
+  const blob = response?.data instanceof Blob ? response.data : response
+  if (!(blob instanceof Blob)) {
+    throw new TypeError('下载响应不是文件流')
+  }
+  const fileName = resolveDownloadFileName(response, fallbackName)
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+function resolveDownloadFileName(response, fallbackName) {
+  const disposition = response?.headers?.['content-disposition']
+    || response?.headers?.get?.('content-disposition')
+    || ''
+  const utf8Match = disposition.match(/filename\*=utf-8''([^;]+)/i)
+  if (utf8Match?.[1])
+    return decodeURIComponent(utf8Match[1])
+  const normalMatch = disposition.match(/filename="?([^";]+)"?/i)
+  if (normalMatch?.[1])
+    return decodeURIComponent(normalMatch[1])
+  return fallbackName
+}
 </script>
 
 <style scoped>
@@ -142,6 +351,7 @@ function openRuntime() {
 }
 
 .object-head,
+.runtime-panel,
 .object-tabs {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
@@ -151,6 +361,39 @@ function openRuntime() {
 .object-head {
   margin-bottom: 16px;
   padding: 16px;
+}
+
+.runtime-panel {
+  margin-bottom: 16px;
+  padding: 12px;
+}
+
+.runtime-alert {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.runtime-alert strong,
+.runtime-alert p {
+  display: block;
+}
+
+.runtime-alert strong {
+  color: #111827;
+  font-size: 14px;
+}
+
+.runtime-alert p {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.hidden-file-input {
+  display: none;
 }
 
 .object-title {
@@ -259,6 +502,11 @@ function openRuntime() {
   }
 
   .object-actions {
+    flex-direction: column;
+  }
+
+  .runtime-alert {
+    align-items: stretch;
     flex-direction: column;
   }
 }

@@ -48,6 +48,7 @@ public class LowcodeAppService {
     private final LowcodeSchemaValidator schemaValidator;
     private final LowcodeDomainService domainService;
     private final LowcodePolicyService policyService;
+    private final LowcodeModelSchemaNormalizer schemaNormalizer;
 
     public Page<LowcodeAppDetailVO> page(PageQuery pageQuery, String keyword, String publishStatus,
                                          Long domainId, String domainCode, Boolean generalDomain) {
@@ -467,6 +468,7 @@ public class LowcodeAppService {
         }
         modelSchema.setObject(object);
         ensureTableName(existing, modelSchema, domain, objectCode);
+        schemaNormalizer.normalizeModelFields(modelSchema, true);
         policyService.normalizeModelSchema(modelSchema);
     }
 

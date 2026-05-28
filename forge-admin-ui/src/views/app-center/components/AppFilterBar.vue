@@ -35,6 +35,12 @@
       </template>
       刷新
     </n-button>
+    <n-button secondary @click="emit('createObject')">
+      <template #icon>
+        <n-icon><CubeOutline /></n-icon>
+      </template>
+      业务对象
+    </n-button>
     <n-button type="primary" @click="emit('createApp')">
       <template #icon>
         <n-icon><AddOutline /></n-icon>
@@ -45,7 +51,7 @@
 </template>
 
 <script setup>
-import { AddOutline, RefreshOutline, SearchOutline } from '@vicons/ionicons5'
+import { AddOutline, CubeOutline, RefreshOutline, SearchOutline } from '@vicons/ionicons5'
 import { computed } from 'vue'
 import DictSelect from '@/components/DictSelect.vue'
 
@@ -78,6 +84,7 @@ const emit = defineEmits([
   'update:appType',
   'search',
   'refresh',
+  'createObject',
   'createApp',
 ])
 

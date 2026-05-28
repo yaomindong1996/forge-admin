@@ -24,6 +24,9 @@
           <h2>业务对象</h2>
           <p>优先从对象进入关系、能力和标准业务入口。</p>
         </div>
+        <n-button type="primary" @click="openObjectWizard">
+          新建对象
+        </n-button>
       </div>
       <n-spin :show="loadingObjects">
         <div v-if="objects.length" class="object-grid">
@@ -86,6 +89,12 @@
       :suites="suite ? [suite] : []"
       @saved="loadAll"
     />
+    <BusinessObjectWizardDrawer
+      v-model:show="objectWizardVisible"
+      :suites="suite ? [suite] : []"
+      :default-suite-code="suiteCode"
+      @saved="handleObjectSaved"
+    />
   </div>
 </template>
 
@@ -103,6 +112,7 @@ import {
 import { useTabStore } from '@/store'
 import AppCard from './components/AppCard.vue'
 import AppEditorDrawer from './components/AppEditorDrawer.vue'
+import BusinessObjectWizardDrawer from './components/BusinessObjectWizardDrawer.vue'
 import ObjectCard from './components/ObjectCard.vue'
 
 const route = useRoute()
@@ -119,6 +129,7 @@ const loadingObjects = ref(false)
 const loadingApps = ref(false)
 const editorVisible = ref(false)
 const editingApp = ref(null)
+const objectWizardVisible = ref(false)
 const pageSizeOptions = [6, 12, 24, 48]
 const objectPagination = ref({
   pageNum: 1,
@@ -194,6 +205,14 @@ function openObject(object) {
 function openEditor(app) {
   editingApp.value = app ? { ...app } : { suiteCode: suiteCode.value }
   editorVisible.value = true
+}
+
+function openObjectWizard() {
+  objectWizardVisible.value = true
+}
+
+async function handleObjectSaved() {
+  await loadAll()
 }
 
 function handleObjectPageSizeChange(pageSize) {

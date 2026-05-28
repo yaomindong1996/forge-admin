@@ -16,6 +16,14 @@ export function businessSuiteDetail(id) {
   return request.get(`/ai/business/suite/${id}`)
 }
 
+export function createBusinessSuite(data) {
+  return request.post('/ai/business/suite', data)
+}
+
+export function updateBusinessSuite(data) {
+  return request.put('/ai/business/suite', data)
+}
+
 export function syncLowcodeDomains() {
   return request.post('/ai/business/suite/sync-lowcode-domains')
 }
@@ -30,6 +38,18 @@ export function businessObjectList(params) {
 
 export function businessObjectDetail(id) {
   return request.get(`/ai/business/object/${id}`)
+}
+
+export function createBusinessObject(data) {
+  return request.post('/ai/business/object', data)
+}
+
+export function updateBusinessObject(data) {
+  return request.put('/ai/business/object', data)
+}
+
+export function updateBusinessObjectStatus(id, status) {
+  return request.put(`/ai/business/object/${id}/status`, null, { params: { status } })
 }
 
 export function businessObjectRuntimeInfo(id) {
@@ -102,4 +122,36 @@ export function deleteBusinessBinding(id) {
 
 export function saveBusinessBindings(data) {
   return request.post('/ai/business/binding/batch-save', data)
+}
+
+export function dynamicCrudImportTemplate(configKey) {
+  return request({
+    method: 'get',
+    url: `/ai/crud/${configKey}/import-template`,
+    responseType: 'blob',
+    rawResponse: true,
+    encrypt: false,
+  })
+}
+
+export function dynamicCrudExport(configKey, data = {}) {
+  return request({
+    method: 'post',
+    url: `/ai/crud/${configKey}/export`,
+    data,
+    responseType: 'blob',
+    rawResponse: true,
+    encrypt: false,
+  })
+}
+
+export function dynamicCrudImport(configKey, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request({
+    method: 'post',
+    url: `/ai/crud/${configKey}/import`,
+    data: formData,
+    encrypt: false,
+  })
 }

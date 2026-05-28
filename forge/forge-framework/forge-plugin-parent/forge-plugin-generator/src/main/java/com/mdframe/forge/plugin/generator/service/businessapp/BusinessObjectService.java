@@ -85,18 +85,32 @@ public class BusinessObjectService extends ServiceImpl<BusinessObjectMapper, AiB
         boolean appEnabled = app != null && Integer.valueOf(1).equals(app.getStatus());
         boolean configured = app != null && (StringUtils.isNotBlank(app.getConfigKey()) || StringUtils.isNotBlank(app.getEntryUrl()));
         vo.setCanOpen(enabled && appEnabled && configured && Boolean.TRUE.equals(vo.getPermissionGranted()));
+        vo.setImportEnabled(enabled && appEnabled && StringUtils.isNotBlank(vo.getConfigKey()));
+        vo.setExportEnabled(enabled && appEnabled && StringUtils.isNotBlank(vo.getConfigKey()));
         if (!enabled) {
             vo.setMessage("业务对象已停用");
+            vo.setNextAction("ENABLE_OBJECT");
+            vo.setNextActionLabel("启用业务对象");
         } else if (app == null) {
             vo.setMessage("业务对象尚未配置应用入口");
+            vo.setNextAction("CREATE_APP_ENTRY");
+            vo.setNextActionLabel("生成应用入口");
         } else if (!appEnabled) {
             vo.setMessage("应用入口已停用");
+            vo.setNextAction("ENABLE_APP_ENTRY");
+            vo.setNextActionLabel("启用应用入口");
         } else if (!configured) {
             vo.setMessage("应用入口尚未配置运行地址");
+            vo.setNextAction("CONFIGURE_RUNTIME");
+            vo.setNextActionLabel("配置模型/布局/发布");
         } else if (!Boolean.TRUE.equals(vo.getPermissionGranted())) {
             vo.setMessage("缺少应用入口打开权限");
+            vo.setNextAction("REQUEST_PERMISSION");
+            vo.setNextActionLabel("联系管理员授权");
         } else {
             vo.setMessage("可打开标准业务应用");
+            vo.setNextAction("OPEN_RUNTIME");
+            vo.setNextActionLabel("打开业务入口");
         }
         return vo;
     }
