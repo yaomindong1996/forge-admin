@@ -1,6 +1,6 @@
+import { useAuthStore } from '@/store/modules/auth'
 import { request } from '@/utils'
 import { generateUUID } from '@/utils/common'
-import { useAuthStore } from '@/store/modules/auth'
 
 const BASE_URL = import.meta.env.VITE_REQUEST_PREFIX || ''
 
@@ -177,7 +177,7 @@ export async function lowcodeDownloadAppCode(id, params = {}) {
   const resp = await fetch(`${BASE_URL}/ai/lowcode/app/${id}/code/download${query ? `?${query}` : ''}`, {
     method: 'GET',
     headers: {
-      Authorization: authStore.accessToken ? `Bearer ${authStore.accessToken}` : '',
+      'Authorization': authStore.accessToken ? `Bearer ${authStore.accessToken}` : '',
       'X-Timestamp': Date.now().toString(),
       'X-Nonce': generateUUID(),
     },

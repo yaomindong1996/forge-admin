@@ -1,5 +1,5 @@
 # 任务清单：lowcode-business-app-platform-business-closure
-> status: propose
+> status: in_progress
 > created: 2026-05-28
 > 拆分顺序：运行就绪度 → CRM 核心对象闭环 → 关系运行视图 → 自助搭建 → 引擎闭环 → 嵌入/H5/集成 → 验收归档
 > 原则：每个任务可独立提交；查询 SQL 写 Mapper XML；分页参数使用 `pageNum/pageSize`；内置数据 `tenant_id=1`；Flyway 脚本必须防重复；普通业务用户不直接看到 JSON/Schema/configKey。
@@ -31,31 +31,31 @@
 
 | Task | 阶段 | 名称 | 状态 | 优先级 |
 |------|------|------|------|--------|
-| Task 0 | Phase 0 | 二阶段业务边界确认 | pending | P0 |
-| Task 1 | Phase 1 | 业务对象就绪度数据模型与 VO | in_progress | P0 |
-| Task 2 | Phase 1 | 对象就绪度和套件验收后端接口 | pending | P0 |
-| Task 3 | Phase 1 | 对象详情和 CRM 套件验收状态展示 | pending | P0 |
-| Task 4 | Phase 2 | CRM 核心运行表 Flyway 脚本 | pending | P0 |
-| Task 5 | Phase 2 | CRM 核心对象模型与运行配置初始化 | pending | P0 |
-| Task 6 | Phase 2 | 应用入口打开前校验运行配置存在 | pending | P0 |
-| Task 7 | Phase 2 | CRM 导入导出和运行页验收 | pending | P0 |
-| Task 8 | Phase 3 | 对象关系运行入口后端协议 | pending | P1 |
-| Task 9 | Phase 3 | 对象详情关联入口前端展示 | pending | P1 |
-| Task 10 | Phase 4 | 自助搭建向导状态模型 | pending | P1 |
-| Task 11 | Phase 4 | 模板/数据库导入/AI 生成路径串联 | pending | P1 |
-| Task 12 | Phase 4 | 发布应用后自动生成业务入口 | pending | P1 |
-| Task 13 | Phase 5 | 引擎中心运行状态汇总接口 | pending | P1 |
-| Task 14 | Phase 5 | 合同审批最小闭环 | pending | P0 |
-| Task 15 | Phase 5 | 报表和大屏能力入口闭环 | pending | P1 |
-| Task 16 | Phase 5 | 消息与触发器最小动作闭环 | pending | P1 |
-| Task 17 | Phase 5 | 对象权限能力状态摘要 | pending | P1 |
-| Task 18 | Phase 6 | 嵌入应用统一 iframe 容器 | pending | P0 |
-| Task 19 | Phase 6 | 移动入口可见范围与打开状态 | pending | P1 |
-| Task 20 | Phase 6 | 集成事件订阅、Webhook 推送日志和重试 | pending | P0 |
-| Task 21 | Phase 7 | 业务化文案和开发者信息隔离 | pending | P1 |
-| Task 22 | Phase 7 | 菜单、权限和普通用户入口收敛 | pending | P1 |
-| Task 23 | Phase 8 | 构建、接口和页面联调验证 | pending | P0 |
-| Task 24 | Phase 8 | Spec、任务和验收记录回填 | pending | P0 |
+| Task 0 | Phase 0 | 二阶段业务边界确认 | completed | P0 |
+| Task 1 | Phase 1 | 业务对象就绪度数据模型与 VO | completed | P0 |
+| Task 2 | Phase 1 | 对象就绪度和套件验收后端接口 | completed | P0 |
+| Task 3 | Phase 1 | 对象详情和 CRM 套件验收状态展示 | completed | P0 |
+| Task 4 | Phase 2 | CRM 核心运行表 Flyway 脚本 | completed | P0 |
+| Task 5 | Phase 2 | CRM 核心对象模型与运行配置初始化 | completed | P0 |
+| Task 6 | Phase 2 | 应用入口打开前校验运行配置存在 | completed | P0 |
+| Task 7 | Phase 2 | CRM 导入导出和运行页验收 | completed | P0 |
+| Task 8 | Phase 3 | 对象关系运行入口后端协议 | completed | P1 |
+| Task 9 | Phase 3 | 对象详情关联入口前端展示 | completed | P1 |
+| Task 10 | Phase 4 | 自助搭建向导状态模型 | completed | P1 |
+| Task 11 | Phase 4 | 模板/数据库导入/AI 生成路径串联 | completed | P1 |
+| Task 12 | Phase 4 | 发布应用后自动生成业务入口 | completed | P1 |
+| Task 13 | Phase 5 | 引擎中心运行状态汇总接口 | completed | P1 |
+| Task 14 | Phase 5 | 合同审批最小闭环 | completed | P0 |
+| Task 15 | Phase 5 | 报表和大屏能力入口闭环 | completed | P1 |
+| Task 16 | Phase 5 | 消息与触发器最小动作闭环 | completed | P1 |
+| Task 17 | Phase 5 | 对象权限能力状态摘要 | completed | P1 |
+| Task 18 | Phase 6 | 嵌入应用统一 iframe 容器 | completed | P0 |
+| Task 19 | Phase 6 | 移动入口可见范围与打开状态 | completed | P1 |
+| Task 20 | Phase 6 | 集成事件订阅、Webhook 推送日志和重试 | completed | P0 |
+| Task 21 | Phase 7 | 业务化文案和开发者信息隔离 | completed | P1 |
+| Task 22 | Phase 7 | 菜单、权限和普通用户入口收敛 | completed | P1 |
+| Task 23 | Phase 8 | 构建、接口和页面联调验证 | completed | P0 |
+| Task 24 | Phase 8 | Spec、任务和验收记录回填 | completed | P0 |
 
 ---
 

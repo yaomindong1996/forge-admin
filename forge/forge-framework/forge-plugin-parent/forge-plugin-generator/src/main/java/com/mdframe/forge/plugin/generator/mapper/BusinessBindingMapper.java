@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface BusinessBindingMapper extends BaseMapper<AiBusinessBinding> {
@@ -29,4 +30,12 @@ public interface BusinessBindingMapper extends BaseMapper<AiBusinessBinding> {
                             @Param("targetType") String targetType,
                             @Param("targetCode") String targetCode,
                             @Param("bindingTypes") List<String> bindingTypes);
+
+    Map<String, Object> selectBindingStatsByCapabilityType(@Param("tenantId") Long tenantId,
+                                                           @Param("capabilityType") String capabilityType);
+
+    AiBusinessBinding selectBindingByTypeAndCode(@Param("tenantId") Long tenantId,
+                                                  @Param("targetType") String targetType,
+                                                  @Param("targetCode") String targetCode,
+                                                  @Param("bindingType") String bindingType);
 }

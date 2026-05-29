@@ -832,6 +832,7 @@ function resolveSampleValue(field, index = 0) {
 .structured-designer {
   display: grid;
   gap: 14px;
+  container-type: inline-size;
 }
 
 .surface-section {
@@ -1127,10 +1128,28 @@ function resolveSampleValue(field, index = 0) {
   grid-template-columns: 20px minmax(120px, 1fr) minmax(140px, 1fr) auto;
 }
 
-@media (max-width: 1280px) {
+@container (max-width: 980px) {
   .query-grid,
   .tree-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .section-head,
+  .table-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@container (max-width: 620px) {
+  .query-grid,
+  .tree-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .field-config-summary {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

@@ -1765,9 +1765,42 @@ function removeTab(idx) {
   color: #94a3b8;
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1500px) {
   .list-grid-designer {
-    grid-template-columns: 220px minmax(0, 1fr) 280px;
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .palette-groups {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow-y: visible;
+  }
+
+  .palette-list {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  }
+
+  .property-panel {
+    max-height: 360px;
+  }
+}
+
+@media (max-width: 900px) {
+  .palette-groups {
+    grid-template-columns: 1fr;
+  }
+
+  .canvas-toolbar,
+  .action-editor-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .action-modal-layout,
+  .action-form-grid,
+  .action-param-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -30,7 +30,13 @@
       </div>
       <n-spin :show="loadingObjects">
         <div v-if="objects.length" class="object-grid">
-          <ObjectCard v-for="object in objects" :key="object.id" :object="object" @open="openObject" />
+          <ObjectCard
+            v-for="object in objects"
+            :key="object.id"
+            :object="object"
+            @open="openObject"
+            @design="openObjectDesigner"
+          />
         </div>
         <n-empty v-else-if="!loadingObjects" description="当前套件暂无业务对象" />
       </n-spin>
@@ -45,6 +51,20 @@
           @update:page-size="handleObjectPageSizeChange"
         />
       </div>
+    </section>
+
+    <section class="suite-section acceptance-section">
+      <div class="section-head">
+        <div>
+          <h2>交付验收</h2>
+          <p>检查业务套件是否达到最小交付标准。</p>
+        </div>
+      </div>
+      <SuiteAcceptancePanel
+        :suite-code="suiteCode"
+        @object-click="handleAcceptanceObjectClick"
+        @action="handleAcceptanceAction"
+      />
     </section>
 
     <section class="suite-section">
@@ -114,6 +134,7 @@ import AppCard from './components/AppCard.vue'
 import AppEditorDrawer from './components/AppEditorDrawer.vue'
 import BusinessObjectWizardDrawer from './components/BusinessObjectWizardDrawer.vue'
 import ObjectCard from './components/ObjectCard.vue'
+import SuiteAcceptancePanel from './components/SuiteAcceptancePanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -202,6 +223,19 @@ function openObject(object) {
   })
 }
 
+function openObjectDesigner(object, panel = 'fields') {
+  if (!object?.objectCode)
+    return
+  router.push({
+    path: `/app-center/object/${object.objectCode}/designer`,
+    query: {
+      suiteCode: object.suiteCode,
+      panel,
+      returnTo: route.fullPath,
+    },
+  })
+}
+
 function openEditor(app) {
   editingApp.value = app ? { ...app } : { suiteCode: suiteCode.value }
   editorVisible.value = true
@@ -211,8 +245,9 @@ function openObjectWizard() {
   objectWizardVisible.value = true
 }
 
-async function handleObjectSaved() {
+async function handleObjectSaved(data) {
   await loadAll()
+  openObjectDesigner(data, data?.designerPanel || 'fields')
 }
 
 function handleObjectPageSizeChange(pageSize) {
@@ -249,6 +284,43 @@ async function toggleApp(app) {
   await updateBusinessAppStatus(app.id, app.status === 1 ? 0 : 1)
   message.success(app.status === 1 ? '应用入口已停用' : '应用入口已启用')
   loadApps()
+}
+
+function handleAcceptanceObjectClick(obj) {
+  openObjectDesigner({
+    ...obj,
+    suiteCode: obj?.suiteCode || suiteCode.value,
+  }, obj?.runnable ? 'publish' : 'fields')
+}
+
+function handleAcceptanceAction(action, data) {
+  switch (action) {
+    case 'FIX_OBJECT':
+      if (data?.objects) {
+        const obj = data.objects.find(o => !o.runnable)
+        if (obj) {
+          handleAcceptanceObjectClick(obj)
+        }
+      }
+      break
+    case 'VIEW_ACCEPTANCE_REPORT':
+      message.success('所有核心对象已就绪，可以交付使用。')
+      break
+    case 'OPEN_ENGINE_CENTER':
+      router.push('/app-center/engines')
+      break
+    case 'OPEN_MOBILE_CENTER':
+      router.push('/app-center/mobile')
+      break
+    case 'OPEN_INTEGRATION_CENTER':
+      router.push('/app-center/integration')
+      break
+    case 'OPEN_CHANNEL_CENTER':
+      router.push('/app-center/mobile')
+      break
+    default:
+      break
+  }
 }
 </script>
 
@@ -338,6 +410,11 @@ async function toggleApp(app) {
 
 .suite-section {
   margin-bottom: 16px;
+}
+
+.acceptance-section {
+  border-color: #dbeafe;
+  background: #f8fbff;
 }
 
 .section-head {

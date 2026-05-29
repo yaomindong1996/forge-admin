@@ -104,6 +104,16 @@
         LIMIT 1
     </select>
 
+    <select id="selectByModelCode" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_lowcode_model
+        WHERE tenant_id = #{tenantId}
+          AND model_code = #{modelCode}
+        ORDER BY update_time DESC, id DESC
+        LIMIT 1
+    </select>
+
     <select id="countByCode" resultType="java.lang.Long">
         SELECT COUNT(1)
         FROM ai_lowcode_model

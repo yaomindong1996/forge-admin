@@ -138,7 +138,13 @@
             <n-tab-pane name="objects" :tab="`业务对象 ${objectTotal}`">
               <n-spin :show="loadingObjects">
                 <div v-if="objects.length" class="card-grid object-grid">
-                  <ObjectCard v-for="object in objects" :key="object.id" :object="object" @open="openObject" />
+                  <ObjectCard
+                    v-for="object in objects"
+                    :key="object.id"
+                    :object="object"
+                    @open="openObject"
+                    @design="openObjectDesigner"
+                  />
                 </div>
                 <n-empty v-else-if="!loadingObjects" description="当前筛选下暂无业务对象" />
               </n-spin>
@@ -213,7 +219,7 @@ import {
 } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   businessAppOpenInfo,
   businessAppPage,
@@ -228,6 +234,7 @@ import BusinessObjectWizardDrawer from './components/BusinessObjectWizardDrawer.
 import ObjectCard from './components/ObjectCard.vue'
 
 const router = useRouter()
+const route = useRoute()
 const message = useMessage()
 
 const activeView = ref('objects')
@@ -380,6 +387,19 @@ function openObject(object) {
   })
 }
 
+function openObjectDesigner(object, panel = 'fields') {
+  if (!object?.objectCode)
+    return
+  router.push({
+    path: `/app-center/object/${object.objectCode}/designer`,
+    query: {
+      suiteCode: object.suiteCode,
+      panel,
+      returnTo: route.fullPath,
+    },
+  })
+}
+
 function openEditor(app) {
   editingApp.value = app ? { ...app } : (suiteCode.value ? { suiteCode: suiteCode.value } : null)
   editorVisible.value = true
@@ -393,6 +413,7 @@ async function handleObjectSaved(payload) {
   activeView.value = 'objects'
   suiteCode.value = payload?.suiteCode || suiteCode.value
   await loadAll()
+  openObjectDesigner(payload, payload?.designerPanel || 'fields')
 }
 
 async function openApp(app) {

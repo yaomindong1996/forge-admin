@@ -17,6 +17,11 @@
         <result column="status" property="status"/>
         <result column="sort_order" property="sortOrder"/>
         <result column="options" property="options"/>
+        <result column="design_status" property="designStatus"/>
+        <result column="config_key" property="configKey"/>
+        <result column="last_publish_time" property="lastPublishTime"/>
+        <result column="last_publish_version" property="lastPublishVersion"/>
+        <result column="designer_options" property="designerOptions"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
         <result column="create_dept" property="createDept"/>
@@ -39,6 +44,11 @@
         status,
         sort_order,
         options,
+        design_status,
+        config_key,
+        last_publish_time,
+        last_publish_version,
+        designer_options,
         create_by,
         create_time,
         create_dept,
@@ -89,6 +99,11 @@
           o.status AS status,
           o.sort_order AS sortOrder,
           o.options AS options,
+          o.design_status AS designStatus,
+          o.config_key AS configKey,
+          o.last_publish_time AS lastPublishTime,
+          o.last_publish_version AS lastPublishVersion,
+          o.designer_options AS designerOptions,
           COALESCE(r.relation_count, 0) AS relationCount,
           COALESCE(b.binding_count, 0) AS bindingCount,
           COALESCE(a.app_count, 0) AS appCount,
@@ -177,6 +192,23 @@
         WHERE tenant_id = #{tenantId}
           AND suite_code = #{suiteCode}
           AND object_code = #{objectCode}
+    </select>
+
+    <select id="countBindingsByObject" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_binding
+        WHERE tenant_id = #{tenantId}
+          AND target_type = 'OBJECT'
+          AND target_code = #{objectCode}
+    </select>
+
+    <select id="selectBySuiteCode" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_object
+        WHERE tenant_id = #{tenantId}
+          AND suite_code = #{suiteCode}
+        ORDER BY sort_order ASC, id ASC
     </select>
 
 </mapper>

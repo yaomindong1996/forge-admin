@@ -62,6 +62,27 @@ public class LowcodeFieldSchema {
 
     private String remark;
 
+    /** 业务字段类型：TEXT/MONEY/DATE/DICT/REFERENCE 等，面向对象设计器。 */
+    private String businessFieldType;
+
+    /** 字段状态：ENABLED/HIDDEN/DISABLED。 */
+    private String fieldStatus;
+
+    /** 字段在业务设计器中的排序。 */
+    private Integer sortOrder;
+
+    /** 是否允许导入。 */
+    private Boolean importable;
+
+    /** 是否允许导出。 */
+    private Boolean exportable;
+
+    /** 引用对象编码，仅引用对象字段使用。 */
+    private String referenceObjectCode;
+
+    /** 引用对象回显字段，仅引用对象字段使用。 */
+    private String referenceDisplayField;
+
     @JsonProperty("fieldCode")
     public void setLegacyFieldCode(String fieldCode) {
         this.columnName = fieldCode;

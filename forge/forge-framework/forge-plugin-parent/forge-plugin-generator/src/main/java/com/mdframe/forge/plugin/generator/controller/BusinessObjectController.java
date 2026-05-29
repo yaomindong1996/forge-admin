@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessObjectDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessObjectQueryDTO;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessBootstrapService;
+import com.mdframe.forge.plugin.generator.service.businessapp.BusinessObjectReadinessService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessObjectService;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectReadinessVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectRuntimeInfoVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectVO;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
@@ -32,6 +34,7 @@ public class BusinessObjectController {
 
     private final BusinessObjectService objectService;
     private final BusinessBootstrapService bootstrapService;
+    private final BusinessObjectReadinessService readinessService;
 
     @GetMapping("/page")
     @SaCheckPermission("ai:businessObject:list")
@@ -69,6 +72,13 @@ public class BusinessObjectController {
     @OperationLog(module = "业务对象", type = OperationType.QUERY, desc = "查询业务对象运行信息")
     public RespInfo<BusinessObjectRuntimeInfoVO> runtimeInfo(@PathVariable Long id) {
         return RespInfo.success(objectService.runtimeInfo(id));
+    }
+
+    @GetMapping("/{id}/readiness")
+    @SaCheckPermission("ai:businessReadiness:view")
+    @OperationLog(module = "业务对象", type = OperationType.QUERY, desc = "查询业务对象就绪度")
+    public RespInfo<BusinessObjectReadinessVO> readiness(@PathVariable Long id) {
+        return RespInfo.success(readinessService.readiness(id));
     }
 
     @PostMapping

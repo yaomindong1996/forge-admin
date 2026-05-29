@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessSuiteDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessSuiteQueryDTO;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessBootstrapService;
+import com.mdframe.forge.plugin.generator.service.businessapp.BusinessSuiteAcceptanceService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessSuiteService;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessSuiteAcceptanceVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessSuiteSummaryVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessSuiteVO;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
@@ -32,6 +34,7 @@ public class BusinessSuiteController {
 
     private final BusinessSuiteService suiteService;
     private final BusinessBootstrapService bootstrapService;
+    private final BusinessSuiteAcceptanceService acceptanceService;
 
     @GetMapping("/page")
     @SaCheckPermission("ai:businessSuite:list")
@@ -69,6 +72,13 @@ public class BusinessSuiteController {
     @OperationLog(module = "业务套件", type = OperationType.QUERY, desc = "查询业务套件详情")
     public RespInfo<BusinessSuiteVO> detail(@PathVariable Long id) {
         return RespInfo.success(suiteService.detail(id));
+    }
+
+    @GetMapping("/{suiteCode}/acceptance")
+    @SaCheckPermission("ai:businessAcceptance:view")
+    @OperationLog(module = "业务套件", type = OperationType.QUERY, desc = "查询套件交付验收状态")
+    public RespInfo<BusinessSuiteAcceptanceVO> acceptance(@PathVariable String suiteCode) {
+        return RespInfo.success(acceptanceService.acceptance(suiteCode));
     }
 
     @PostMapping

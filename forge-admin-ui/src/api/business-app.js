@@ -155,3 +155,91 @@ export function dynamicCrudImport(configKey, file) {
     encrypt: false,
   })
 }
+
+export function businessObjectReadiness(id) {
+  return request.get(`/ai/business/object/${id}/readiness`)
+}
+
+export function businessSuiteAcceptance(suiteCode) {
+  return request.get(`/ai/business/suite/${suiteCode}/acceptance`)
+}
+
+export function businessObjectRelationRuntime(objectId) {
+  return request.get(`/ai/business/object/${objectId}/relations/runtime`)
+}
+
+export function businessObjectDesigner(objectId) {
+  return request.get(`/ai/business/object/${objectId}/designer`)
+}
+
+export function saveBusinessObjectDesigner(objectId, data) {
+  return request.put(`/ai/business/object/${objectId}/designer`, data)
+}
+
+export function businessObjectFields(objectId) {
+  return request.get(`/ai/business/object/${objectId}/fields`)
+}
+
+export function createBusinessObjectField(objectId, data) {
+  return request.post(`/ai/business/object/${objectId}/fields`, data)
+}
+
+export function sortBusinessObjectFields(objectId, fieldCodes) {
+  return request.put(`/ai/business/object/${objectId}/fields/sort`, fieldCodes)
+}
+
+export function updateBusinessObjectField(objectId, fieldCode, data) {
+  return request.put(`/ai/business/object/${objectId}/fields/${fieldCode}`, data)
+}
+
+export function deleteBusinessObjectField(objectId, fieldCode) {
+  return request.delete(`/ai/business/object/${objectId}/fields/${fieldCode}`)
+}
+
+export function businessObjectLayout(objectId, layoutKey) {
+  return request.get(`/ai/business/object/${objectId}/layout/${layoutKey}`)
+}
+
+export function saveBusinessObjectFormLayout(objectId, data) {
+  return request.put(`/ai/business/object/${objectId}/layout/form`, data)
+}
+
+export function saveBusinessObjectListLayout(objectId, data) {
+  return request.put(`/ai/business/object/${objectId}/layout/list`, data)
+}
+
+export function saveBusinessObjectDetailLayout(objectId, data) {
+  return request.put(`/ai/business/object/${objectId}/layout/detail`, data)
+}
+
+export function previewBusinessObjectLayout(objectId, data) {
+  return request.post(`/ai/business/object/${objectId}/layout/preview`, data)
+}
+
+export function businessObjectActions(objectId) {
+  return request.get(`/ai/business/object/${objectId}/actions`)
+}
+
+export function saveBusinessObjectActions(objectId, data) {
+  return request.put(`/ai/business/object/${objectId}/actions`, data)
+}
+
+export function businessObjectPermissionSummary(objectId) {
+  return request.get(`/ai/business/object/${objectId}/permission-summary`)
+}
+
+export function businessObjectPublishCheck(objectId) {
+  return request.get(`/ai/business/object/${objectId}/publish-check`)
+}
+
+export function publishBusinessObject(objectId, data) {
+  return request.post(`/ai/business/object/${objectId}/publish`, data)
+}
+
+export function businessObjectDesignVersions(objectId) {
+  return request.get(`/ai/business/object/${objectId}/versions`)
+}
+
+export function rollbackBusinessObjectDesignVersion(objectId, versionId) {
+  return request.post(`/ai/business/object/${objectId}/versions/${versionId}/rollback`)
+}

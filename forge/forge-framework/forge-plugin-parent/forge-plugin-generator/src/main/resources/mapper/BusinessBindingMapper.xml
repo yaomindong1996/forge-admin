@@ -112,4 +112,25 @@
         </if>
     </delete>
 
+    <select id="selectBindingStatsByCapabilityType" resultType="java.util.Map">
+        SELECT
+          COUNT(1) AS totalCount,
+          SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS runnableCount
+        FROM ai_business_binding
+        WHERE tenant_id = #{tenantId}
+          AND binding_type = #{capabilityType}
+    </select>
+
+    <select id="selectBindingByTypeAndCode" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_binding
+        WHERE tenant_id = #{tenantId}
+          AND target_type = #{targetType}
+          AND target_code = #{targetCode}
+          AND binding_type = #{bindingType}
+        ORDER BY sort_order ASC, id ASC
+        LIMIT 1
+    </select>
+
 </mapper>

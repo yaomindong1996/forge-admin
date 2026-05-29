@@ -8,7 +8,7 @@
         <h3>{{ object.objectName || object.objectCode }}</h3>
         <DictTag dict-type="sys_enable_disable" :value="object.status" :bordered="false" />
       </div>
-      <p>{{ object.description || '业务对象能力配置入口' }}</p>
+      <p>{{ object.description || '业务对象设计和运行入口' }}</p>
       <div class="object-function-row">
         <DictTag dict-type="ai_business_object_type" :value="object.objectType" :bordered="false" />
         <span>{{ object.relationCount || 0 }} 关系</span>
@@ -16,6 +16,12 @@
         <span>{{ object.appCount || 0 }} 入口</span>
       </div>
     </div>
+    <n-button secondary size="small" @click.stop="emit('design', object)">
+      <template #icon>
+        <n-icon><BuildOutline /></n-icon>
+      </template>
+      设计对象
+    </n-button>
     <n-button quaternary circle size="small" @click.stop="emit('open', object)">
       <template #icon>
         <n-icon><OpenOutline /></n-icon>
@@ -25,7 +31,7 @@
 </template>
 
 <script setup>
-import { CubeOutline, OpenOutline } from '@vicons/ionicons5'
+import { BuildOutline, CubeOutline, OpenOutline } from '@vicons/ionicons5'
 import { computed } from 'vue'
 import DictTag from '@/components/DictTag.vue'
 
@@ -36,7 +42,7 @@ defineProps({
   },
 })
 
-const emit = defineEmits(['open'])
+const emit = defineEmits(['open', 'design'])
 
 const iconComponent = computed(() => CubeOutline)
 </script>
@@ -44,7 +50,7 @@ const iconComponent = computed(() => CubeOutline)
 <style scoped>
 .object-card {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 34px;
+  grid-template-columns: 42px minmax(0, 1fr) auto 34px;
   gap: 12px;
   align-items: center;
   min-height: 104px;

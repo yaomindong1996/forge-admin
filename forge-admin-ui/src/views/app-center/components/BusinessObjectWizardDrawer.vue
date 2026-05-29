@@ -153,22 +153,22 @@ const createModes = [
   {
     label: '从空白对象创建',
     value: 'BLANK',
-    description: '先保存对象基础信息，后续再配置模型、布局和能力。',
+    description: '保存对象草稿后进入设计器，继续维护字段、页面和发布。',
   },
   {
     label: '从模板创建',
     value: 'TEMPLATE',
-    description: '预留模板入口，当前先创建对象档案。',
+    description: '保存对象草稿后进入设计器，后续在设计器内选择模板能力。',
   },
   {
     label: '从数据库表导入',
     value: 'DB_IMPORT',
-    description: '保存后进入现有模型导入能力补齐字段。',
+    description: '保存对象草稿后进入设计器，用业务字段语言继续整理导入结果。',
   },
   {
     label: '从 AI 描述生成',
     value: 'AI_GENERATE',
-    description: '保存后继续复用低代码 AI 生成链路。',
+    description: '保存对象草稿后进入设计器，继续确认 AI 生成的字段和页面。',
   },
 ]
 
@@ -181,8 +181,8 @@ const footerHint = computed(() => {
   if (currentStep.value === 1)
     return '业务对象必须归属到一个业务套件。'
   if (currentStep.value === 2)
-    return '第一阶段先保存对象档案，模型和布局继续复用低代码能力。'
-  return '保存后可在对象详情继续配置关系、模型、布局和接入能力。'
+    return '四种创建方式都会进入同一个业务对象设计器。'
+  return '保存后进入设计器继续维护字段、页面和发布检查。'
 })
 
 watch(() => props.show, (visible) => {
@@ -222,17 +222,33 @@ async function saveObject() {
       status: form.status,
       options: JSON.stringify({ createMode: form.createMode }),
     })
-    message.success('业务对象已创建')
+    message.success('业务对象已创建，正在进入设计器')
     emit('saved', {
       id: res.data,
       suiteCode,
       objectCode: normalizeCode(form.objectCode),
+      objectName: form.objectName.trim(),
       createMode: form.createMode,
+      nextAction: 'OPEN_DESIGNER',
+      designerPanel: resolveDesignerPanel(form.createMode),
     })
     emit('update:show', false)
   }
   finally {
     saving.value = false
+  }
+}
+
+function resolveDesignerPanel(createMode) {
+  switch (createMode) {
+    case 'BLANK':
+      return 'fields'
+    case 'TEMPLATE':
+    case 'DB_IMPORT':
+    case 'AI_GENERATE':
+      return 'fields'
+    default:
+      return 'fields'
   }
 }
 

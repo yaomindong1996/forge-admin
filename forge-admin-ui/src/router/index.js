@@ -92,6 +92,12 @@ export const manualRoutes = [
     meta: { title: '低代码搭建器' },
   },
   {
+    name: 'BusinessObjectDesigner',
+    path: '/app-center/object/:objectCode/designer',
+    component: () => import('@/views/app-center/object-designer.[objectCode].vue'),
+    meta: { title: '业务对象设计' },
+  },
+  {
     name: 'ReportSsoBridge',
     path: SSO_BRIDGE_ROUTE,
     component: () => import('@/views/report/design.vue'),

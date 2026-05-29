@@ -15,17 +15,62 @@
         <DictTag v-if="object" dict-type="sys_enable_disable" :value="object.status" :bordered="false" />
       </div>
       <div class="object-actions">
-        <n-button type="primary" :disabled="!runtimeInfo?.canOpen" @click="openRuntime">
+        <n-button type="primary" @click="openDesigner('fields')">
+          <template #icon>
+            <n-icon><BuildOutline /></n-icon>
+          </template>
+          设计对象
+        </n-button>
+        <n-button secondary :disabled="!runtimeInfo?.canOpen" @click="openRuntime">
           <template #icon>
             <n-icon><OpenOutline /></n-icon>
           </template>
-          打开业务入口
+          打开应用
         </n-button>
-        <n-button secondary @click="activeTab = 'capability'">
-          接入能力
+        <n-button secondary @click="scrollToReadiness">
+          <template #icon>
+            <n-icon><CheckmarkCircleOutline /></n-icon>
+          </template>
+          查看就绪度
+        </n-button>
+        <n-button v-if="canAdvanced" secondary @click="openDesigner('advanced')">
+          <template #icon>
+            <n-icon><SettingsOutline /></n-icon>
+          </template>
+          高级配置
         </n-button>
       </div>
     </header>
+
+    <section ref="readinessSectionRef" class="readiness-section">
+      <ReadinessPanel v-if="object" :object-id="object.id" @action="handleReadinessAction" />
+    </section>
+
+    <section class="operation-guide">
+      <div class="guide-head">
+        <div>
+          <h2>交付路径</h2>
+          <p>按设计对象、发布对象、运行应用三段检查当前对象，待处理步骤会进入设计器修复。</p>
+        </div>
+      </div>
+      <div class="guide-steps">
+        <button
+          v-for="step in operationSteps"
+          :key="step.key"
+          type="button"
+          class="guide-step"
+          :class="`step-${step.state}`"
+          @click="step.action()"
+        >
+          <span>{{ step.index }}</span>
+          <div>
+            <strong>{{ step.title }}</strong>
+            <small>{{ step.desc }}</small>
+          </div>
+          <em>{{ step.stateLabel }}</em>
+        </button>
+      </div>
+    </section>
 
     <section class="runtime-panel">
       <n-alert :type="runtimeStatusType" :show-icon="false">
@@ -35,23 +80,23 @@
             <p>{{ runtimeHint }}</p>
           </div>
           <n-space :wrap="true">
-            <n-button secondary @click="openModelConfig">
+            <n-button secondary @click="openDesigner('fields')">
               <template #icon>
                 <n-icon><BuildOutline /></n-icon>
               </template>
-              配置模型
+              设计对象
             </n-button>
-            <n-button secondary @click="openLayoutConfig">
-              <template #icon>
-                <n-icon><LayersOutline /></n-icon>
-              </template>
-              配置布局
-            </n-button>
-            <n-button secondary @click="openPublishConfig">
+            <n-button secondary @click="openDesigner('publish')">
               <template #icon>
                 <n-icon><RocketOutline /></n-icon>
               </template>
-              发布应用
+              发布对象
+            </n-button>
+            <n-button secondary :disabled="!canUseRuntime" @click="openRuntime">
+              <template #icon>
+                <n-icon><OpenOutline /></n-icon>
+              </template>
+              运行应用
             </n-button>
             <n-button
               secondary
@@ -83,10 +128,10 @@
     </section>
 
     <n-tabs v-model:value="activeTab" type="line" animated class="object-tabs">
-      <n-tab-pane name="relation" tab="关系">
-        <ObjectRelationPanel :object-id="object?.id" />
+      <n-tab-pane name="relation" tab="关联数据">
+        <ObjectRelationPanel :object-id="object?.id" @action="handleReadinessAction" />
       </n-tab-pane>
-      <n-tab-pane name="capability" tab="能力">
+      <n-tab-pane name="capability" tab="能力配置">
         <BusinessBindingPanel
           v-if="object"
           target-type="OBJECT"
@@ -94,23 +139,7 @@
           :target-code="object.objectCode"
         />
       </n-tab-pane>
-      <n-tab-pane name="layout" tab="布局">
-        <div class="placeholder-grid">
-          <div v-for="item in layoutItems" :key="item.title" class="placeholder-item">
-            <strong>{{ item.title }}</strong>
-            <p>{{ item.desc }}</p>
-          </div>
-        </div>
-      </n-tab-pane>
-      <n-tab-pane name="automation" tab="自动化">
-        <BusinessBindingPanel
-          v-if="object"
-          target-type="OBJECT"
-          :target-id="object.id"
-          :target-code="object.objectCode"
-        />
-      </n-tab-pane>
-      <n-tab-pane name="developer" tab="开发者信息">
+      <n-tab-pane v-if="canAdvanced" name="developer" tab="开发者信息">
         <div class="developer-info">
           <div><span>对象编码</span><code>{{ object?.objectCode || '-' }}</code></div>
           <div><span>模型编码</span><code>{{ object?.modelCode || '-' }}</code></div>
@@ -125,12 +154,13 @@
 <script setup>
 import {
   BuildOutline,
+  CheckmarkCircleOutline,
   CloudDownloadOutline,
   CloudUploadOutline,
   CubeOutline,
-  LayersOutline,
   OpenOutline,
   RocketOutline,
+  SettingsOutline,
 } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -143,38 +173,81 @@ import {
   dynamicCrudImportTemplate,
 } from '@/api/business-app'
 import DictTag from '@/components/DictTag.vue'
-import { useTabStore } from '@/store'
+import { useTabStore, useUserStore } from '@/store'
 import BusinessBindingPanel from './components/BusinessBindingPanel.vue'
 import ObjectRelationPanel from './components/ObjectRelationPanel.vue'
+import ReadinessPanel from './components/ReadinessPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
 const message = useMessage()
 const tabStore = useTabStore()
+const userStore = useUserStore()
 const activeTab = ref('relation')
 const object = ref(null)
 const runtimeInfo = ref(null)
 const importInputRef = ref(null)
+const readinessSectionRef = ref(null)
 const templateLoading = ref(false)
 const importing = ref(false)
 const exportLoading = ref(false)
 const objectCode = computed(() => route.params.objectCode)
 const suiteCode = computed(() => route.query.suiteCode || object.value?.suiteCode)
 const pageTitle = computed(() => object.value?.objectName || objectCode.value || '业务对象详情')
-const canUseRuntime = computed(() => Boolean(runtimeInfo.value?.configKey && object.value?.status === 1))
+const canUseRuntime = computed(() => Boolean(runtimeInfo.value?.canOpen && runtimeInfo.value?.configKey))
 const runtimeStatusType = computed(() => runtimeInfo.value?.canOpen ? 'success' : 'warning')
 const runtimeHint = computed(() => {
-  if (canUseRuntime.value)
-    return '已关联低代码发布配置，导入、导出和运行页继续复用动态 CRUD 能力。'
-  return '请先完成模型、布局和发布配置，再生成标准业务应用入口。'
+  if (runtimeInfo.value?.canOpen)
+    return '对象已发布，可以打开业务应用，也可以继续使用导入、导出等运行能力。'
+  if (runtimeInfo.value?.message)
+    return '先进入对象设计器处理提示中的缺口，再打开业务应用或使用导入导出。'
+  return '请先完成对象设计和发布检查，再生成标准业务应用入口。'
+})
+const canAdvanced = computed(() => {
+  return userStore.isAdmin
+    || hasPermission(userStore.permissions, 'ai:businessObject:advanced')
+    || hasPermission(userStore.apiPermissions, 'ai:businessObject:advanced')
+    || hasPermission(userStore.getDataPermission, 'ai:businessObject:advanced')
 })
 
-const layoutItems = [
-  { title: '列表布局', desc: '维护业务对象在列表中的字段展示、筛选和排序方式。' },
-  { title: '表单布局', desc: '维护新增、编辑时的字段分组、校验和交互规则。' },
-  { title: '详情布局', desc: '组织基本信息、关联列表、审批和记录等详情区域。' },
-  { title: '导入导出', desc: '从对象进入导入模板、导出字段和报表模板配置。' },
-]
+const operationSteps = computed(() => [
+  {
+    key: 'design',
+    index: '01',
+    title: '设计对象',
+    desc: '维护对象基础信息、字段、表单、列表和详情。',
+    state: object.value?.modelCode ? 'done' : 'todo',
+    stateLabel: object.value?.modelCode ? '已设计' : '去设计',
+    action: () => openDesigner('fields'),
+  },
+  {
+    key: 'page',
+    index: '02',
+    title: '页面编排',
+    desc: '检查列表、表单和详情页是否已生成。',
+    state: runtimeInfo.value?.configKey ? 'done' : 'todo',
+    stateLabel: runtimeInfo.value?.configKey ? '有配置' : '去搭建',
+    action: () => openDesigner('form'),
+  },
+  {
+    key: 'publish',
+    index: '03',
+    title: '发布对象',
+    desc: '执行发布检查并生成可运行应用入口。',
+    state: runtimeInfo.value?.canOpen ? 'done' : 'todo',
+    stateLabel: runtimeInfo.value?.canOpen ? '已发布' : '去发布',
+    action: () => openDesigner('publish'),
+  },
+  {
+    key: 'runtime',
+    index: '04',
+    title: '运行应用',
+    desc: '打开列表、导入、导出并验证数据。',
+    state: canUseRuntime.value ? 'done' : 'locked',
+    stateLabel: canUseRuntime.value ? '可打开' : '待就绪',
+    action: canUseRuntime.value ? openRuntime : () => openDesigner('publish'),
+  },
+])
 
 onMounted(loadObject)
 
@@ -207,42 +280,65 @@ function backToSuite() {
 
 function openRuntime() {
   if (!runtimeInfo.value?.canOpen) {
-    message.warning(runtimeInfo.value?.message || '业务入口暂不可打开')
+    message.warning(runtimeInfo.value?.message || '应用暂不可打开')
     return
   }
   router.push(runtimeInfo.value.routePath)
 }
 
-function openModelConfig() {
+function openDesigner(panel = 'fields') {
+  const code = object.value?.objectCode || objectCode.value
+  if (!code)
+    return
   router.push({
-    path: '/ai/lowcode-models',
-    query: buildBusinessContextQuery(),
-  })
-}
-
-function openLayoutConfig() {
-  router.push({
-    path: '/ai/lowcode-builder',
+    path: `/app-center/object/${code}/designer`,
     query: {
       ...buildBusinessContextQuery(),
-      step: 'layout',
+      panel,
     },
   })
 }
 
-function openPublishConfig() {
-  router.push({
-    path: '/ai/lowcode-builder',
-    query: {
-      ...buildBusinessContextQuery(),
-      step: 'publish',
-    },
-  })
+function scrollToReadiness() {
+  readinessSectionRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function handleReadinessAction(action) {
+  switch (action) {
+    case 'CREATE_OBJECT':
+    case 'ENABLE_OBJECT':
+      // 刷新页面数据
+      loadObject()
+      break
+    case 'CREATE_APP_ENTRY':
+    case 'ENABLE_APP_ENTRY':
+      openDesigner('publish')
+      break
+    case 'CONFIGURE_MODEL':
+      openDesigner('fields')
+      break
+    case 'CONFIGURE_RUNTIME':
+    case 'PUBLISH_APP':
+    case 'ENABLE_RUNTIME':
+      openDesigner('publish')
+      break
+    case 'OPEN_RUNTIME':
+      openRuntime()
+      break
+    case 'CONFIGURE_RELATIONS':
+      openDesigner('relations')
+      break
+    case 'CONFIGURE_BINDINGS':
+      activeTab.value = 'capability'
+      break
+    default:
+      break
+  }
 }
 
 async function downloadImportTemplate() {
   if (!canUseRuntime.value) {
-    message.warning('请先完成模型、布局和发布配置')
+    message.warning('请先完成对象设计和发布')
     return
   }
   templateLoading.value = true
@@ -257,7 +353,7 @@ async function downloadImportTemplate() {
 
 function triggerImport() {
   if (!canUseRuntime.value) {
-    message.warning('请先完成模型、布局和发布配置')
+    message.warning('请先完成对象设计和发布')
     return
   }
   importInputRef.value?.click()
@@ -285,7 +381,7 @@ async function handleImportFile(event) {
 
 async function exportData() {
   if (!canUseRuntime.value) {
-    message.warning('请先完成模型、布局和发布配置')
+    message.warning('请先完成对象设计和发布')
     return
   }
   exportLoading.value = true
@@ -311,6 +407,12 @@ function buildBusinessContextQuery() {
     objectName: object.value?.objectName || objectCode.value,
     returnTo: route.fullPath,
   }
+}
+
+function hasPermission(source, permission) {
+  if (!Array.isArray(source))
+    return false
+  return source.includes(permission) || source.includes('**') || source.includes('*:*:*')
 }
 
 function downloadBlobResponse(response, fallbackName) {
@@ -352,6 +454,8 @@ function resolveDownloadFileName(response, fallbackName) {
 
 .object-head,
 .runtime-panel,
+.operation-guide,
+.readiness-section,
 .object-tabs {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
@@ -366,6 +470,127 @@ function resolveDownloadFileName(response, fallbackName) {
 .runtime-panel {
   margin-bottom: 16px;
   padding: 12px;
+}
+
+.operation-guide {
+  margin-bottom: 16px;
+  padding: 16px;
+}
+
+.readiness-section {
+  margin-bottom: 16px;
+}
+
+.guide-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.guide-head h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.guide-head p {
+  margin: 5px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.guide-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.guide-step {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  min-width: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  padding: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s,
+    transform 0.2s;
+}
+
+.guide-step:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+
+.guide-step > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.guide-step.step-done > span {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.guide-step.step-locked > span {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.guide-step strong,
+.guide-step small,
+.guide-step em {
+  display: block;
+}
+
+.guide-step strong {
+  overflow: hidden;
+  color: #111827;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guide-step small {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.guide-step em {
+  grid-column: 2;
+  margin-top: 8px;
+  color: #2563eb;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.guide-step.step-done em {
+  color: #16a34a;
+}
+
+.guide-step.step-locked em {
+  color: #64748b;
 }
 
 .runtime-alert {
@@ -503,6 +728,10 @@ function resolveDownloadFileName(response, fallbackName) {
 
   .object-actions {
     flex-direction: column;
+  }
+
+  .guide-steps {
+    grid-template-columns: 1fr;
   }
 
   .runtime-alert {

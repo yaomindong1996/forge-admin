@@ -2,8 +2,11 @@ package com.mdframe.forge.plugin.generator.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessObjectRelationDTO;
+import com.mdframe.forge.plugin.generator.service.businessapp.BusinessObjectDesignerService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessObjectRelationService;
+import com.mdframe.forge.plugin.generator.service.businessapp.BusinessRelationRuntimeService;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectRelationVO;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessRelationRuntimeVO;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.log.OperationLog;
@@ -27,6 +30,8 @@ import java.util.List;
 public class BusinessObjectRelationController {
 
     private final BusinessObjectRelationService relationService;
+    private final BusinessRelationRuntimeService relationRuntimeService;
+    private final BusinessObjectDesignerService designerService;
 
     @GetMapping
     @SaCheckPermission("ai:businessObject:relation")
@@ -41,6 +46,7 @@ public class BusinessObjectRelationController {
     public RespInfo<Void> saveRelations(@PathVariable Long objectId,
                                         @RequestBody List<BusinessObjectRelationDTO> relations) {
         relationService.saveRelations(objectId, relations);
+        designerService.syncModelRelations(objectId);
         return RespInfo.success();
     }
 
@@ -49,6 +55,14 @@ public class BusinessObjectRelationController {
     @OperationLog(module = "业务对象关系", type = OperationType.DELETE, desc = "删除业务对象关系")
     public RespInfo<Void> deleteRelation(@PathVariable Long objectId, @PathVariable Long relationId) {
         relationService.deleteRelation(objectId, relationId);
+        designerService.syncModelRelations(objectId);
         return RespInfo.success();
+    }
+
+    @GetMapping("/runtime")
+    @SaCheckPermission("ai:businessRelation:runtime")
+    @OperationLog(module = "业务对象关系", type = OperationType.QUERY, desc = "查询对象关系运行入口")
+    public RespInfo<List<BusinessRelationRuntimeVO>> relationRuntime(@PathVariable Long objectId) {
+        return RespInfo.success(relationRuntimeService.relationRuntime(objectId));
     }
 }

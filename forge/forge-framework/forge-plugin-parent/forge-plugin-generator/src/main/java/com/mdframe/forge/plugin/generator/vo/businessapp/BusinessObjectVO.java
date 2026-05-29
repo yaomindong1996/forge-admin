@@ -38,6 +38,16 @@ public class BusinessObjectVO {
 
     private String options;
 
+    private String designStatus;
+
+    private String configKey;
+
+    private LocalDateTime lastPublishTime;
+
+    private Integer lastPublishVersion;
+
+    private String designerOptions;
+
     private Long relationCount;
 
     private Long bindingCount;

@@ -24,6 +24,10 @@ public class BusinessAppOpenInfoVO {
 
     private String configKey;
 
+    private String runtimeStatus;
+
+    private String runtimeMessage;
+
     private Boolean permissionGranted;
 
     private Boolean canOpen;

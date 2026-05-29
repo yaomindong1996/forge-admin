@@ -1019,3 +1019,43 @@ Migration checksum mismatch for migration version 1.0.33
 **影响范围**:
 - 所有 `forge/db/migration/V*.sql` 版本化脚本
 - 远程共享开发库、测试库和生产库的 Flyway 启动校验
+
+## 27. Vue 属性面板 watcher immediate 必须处理空选中项
+
+**发现日期**: 2026-05-29
+
+**问题描述**:
+业务对象字段属性面板在页面加载或字段选中状态切换为空时，`watch(..., { immediate: true })` 会立即调用表单重置逻辑。如果 `createFieldForm(field)` 直接读取 `field.fieldName`，会报：
+```text
+Cannot read properties of null (reading 'fieldName')
+```
+
+**解决方案**:
+属性面板和类似“左列表 + 右属性”的组件，表单构造函数必须先把空值归一化：
+```js
+function createFieldForm(field) {
+  const currentField = field || {}
+  return {
+    fieldName: currentField.fieldName || '',
+    // ...
+  }
+}
+```
+
+**影响范围**:
+- `BusinessFieldPropertyPanel.vue`
+- 所有依赖 `watch` immediate 初始化、且允许空选中项的属性面板
+
+## 28. 前端路由 query 中的雪花 ID 禁止转 Number
+
+**发现日期**: 2026-05-29
+
+**问题描述**:
+业务对象 ID 是 19 位雪花 ID，前端从 `route.query.objectId` 读取后如果执行 `Number(route.query.objectId)`，会发生 JS 安全整数精度丢失，导致接口路径 ID 错误，设计器加载/发布会指向不存在的对象。
+
+**解决方案**:
+路由参数、query 参数和 API path 中的 Long ID 在前端保持字符串传递，只有明确用于数值计算且小于安全整数时才转 Number。
+
+**影响范围**:
+- `object-designer.[objectCode].vue` 等从 query 读取对象 ID 的页面
+- 所有 18/19 位雪花 ID 前端传参链路

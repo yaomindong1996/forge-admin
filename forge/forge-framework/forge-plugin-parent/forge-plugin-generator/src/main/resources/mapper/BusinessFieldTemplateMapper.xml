@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessFieldTemplateMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessFieldTemplate">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="template_code" property="templateCode"/>
+        <result column="template_name" property="templateName"/>
+        <result column="suite_code" property="suiteCode"/>
+        <result column="field_type" property="fieldType"/>
+        <result column="field_schema" property="fieldSchema"/>
+        <result column="status" property="status"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="description" property="description"/>
+        <result column="options" property="options"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id,
+        tenant_id,
+        template_code,
+        template_name,
+        suite_code,
+        field_type,
+        field_schema,
+        status,
+        sort_order,
+        description,
+        options,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <select id="selectEnabledTemplates" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_field_template
+        WHERE tenant_id = #{tenantId}
+          AND status = 1
+          AND (
+            suite_code = 'COMMON'
+            <if test="suiteCode != null and suiteCode != ''">
+              OR suite_code = #{suiteCode}
+            </if>
+          )
+        ORDER BY CASE WHEN suite_code = 'COMMON' THEN 0 ELSE 1 END, sort_order ASC, id ASC
+    </select>
+
+    <select id="selectByTemplateCode" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_field_template
+        WHERE tenant_id = #{tenantId}
+          AND template_code = #{templateCode}
+        LIMIT 1
+    </select>
+
+</mapper>

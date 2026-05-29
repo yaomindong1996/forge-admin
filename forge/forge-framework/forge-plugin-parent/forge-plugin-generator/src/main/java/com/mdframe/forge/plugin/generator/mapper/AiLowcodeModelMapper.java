@@ -30,6 +30,9 @@ public interface AiLowcodeModelMapper extends BaseMapper<AiLowcodeModel> {
                                 @Param("domainId") Long domainId,
                                 @Param("modelCode") String modelCode);
 
+    AiLowcodeModel selectByModelCode(@Param("tenantId") Long tenantId,
+                                     @Param("modelCode") String modelCode);
+
     Long countByCode(@Param("tenantId") Long tenantId,
                      @Param("domainId") Long domainId,
                      @Param("modelCode") String modelCode,

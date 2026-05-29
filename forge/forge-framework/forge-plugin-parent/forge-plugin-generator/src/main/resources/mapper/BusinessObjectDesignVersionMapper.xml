@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessObjectDesignVersionMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessObjectDesignVersion">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="object_id" property="objectId"/>
+        <result column="suite_code" property="suiteCode"/>
+        <result column="object_code" property="objectCode"/>
+        <result column="config_id" property="configId"/>
+        <result column="config_key" property="configKey"/>
+        <result column="crud_config_version_id" property="crudConfigVersionId"/>
+        <result column="version_no" property="versionNo"/>
+        <result column="version_type" property="versionType"/>
+        <result column="model_snapshot" property="modelSnapshot"/>
+        <result column="page_snapshot" property="pageSnapshot"/>
+        <result column="relation_snapshot" property="relationSnapshot"/>
+        <result column="publish_status" property="publishStatus"/>
+        <result column="publish_version" property="publishVersion"/>
+        <result column="remark" property="remark"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id,
+        tenant_id,
+        object_id,
+        suite_code,
+        object_code,
+        config_id,
+        config_key,
+        crud_config_version_id,
+        version_no,
+        version_type,
+        model_snapshot,
+        page_snapshot,
+        relation_snapshot,
+        publish_status,
+        publish_version,
+        remark,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <select id="selectByObjectId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_object_design_version
+        WHERE tenant_id = #{tenantId}
+          AND object_id = #{objectId}
+        ORDER BY version_no DESC, id DESC
+    </select>
+
+    <select id="selectVersionById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_object_design_version
+        WHERE tenant_id = #{tenantId}
+          AND object_id = #{objectId}
+          AND id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="selectMaxVersionNo" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(version_no), 0)
+        FROM ai_business_object_design_version
+        WHERE tenant_id = #{tenantId}
+          AND object_id = #{objectId}
+    </select>
+
+</mapper>

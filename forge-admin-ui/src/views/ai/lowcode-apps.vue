@@ -785,9 +785,9 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { modelListByProvider, providerPage } from '@/api/ai'
 import {
+  lowcodeAiStreamGenerateApp,
   lowcodeAppDetail,
   lowcodeAppPage,
-  lowcodeAiStreamGenerateApp,
   lowcodeCreateDomain,
   lowcodeCreateModel,
   lowcodeDeleteApp,
@@ -2247,9 +2247,7 @@ function downloadBlob(blob, filename) {
 .lc-agent-summary-panel {
   border: 1px solid rgba(60, 133, 255, 0.32);
   border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(21, 53, 108, 0.84), rgba(12, 34, 74, 0.88)),
-    rgba(14, 37, 78, 0.88);
+  background: linear-gradient(180deg, rgba(21, 53, 108, 0.84), rgba(12, 34, 74, 0.88)), rgba(14, 37, 78, 0.88);
   box-shadow:
     inset 0 0 0 1px rgba(125, 211, 252, 0.06),
     0 0 22px rgba(37, 99, 235, 0.16);
@@ -2490,7 +2488,7 @@ function downloadBlob(blob, filename) {
   left: 11px;
   width: 1px;
   background: linear-gradient(180deg, rgba(96, 165, 250, 0.55), rgba(96, 165, 250, 0.08));
-  content: "";
+  content: '';
 }
 
 .lc-step-item:last-child::before {
@@ -2607,7 +2605,7 @@ function downloadBlob(blob, filename) {
   width: 420px;
   height: 300px;
   background: radial-gradient(circle, rgba(14, 165, 233, 0.22), transparent 64%);
-  content: "";
+  content: '';
   pointer-events: none;
 }
 
@@ -2757,8 +2755,7 @@ function downloadBlob(blob, filename) {
   gap: 10px;
   border: 1px solid rgba(96, 165, 250, 0.28);
   border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(22, 55, 108, 0.88), rgba(12, 34, 74, 0.92));
+  background: linear-gradient(180deg, rgba(22, 55, 108, 0.88), rgba(12, 34, 74, 0.92));
   padding: 10px;
 }
 
@@ -3141,8 +3138,7 @@ function downloadBlob(blob, filename) {
 
 .lc-agent-modal {
   gap: 14px;
-  background:
-    linear-gradient(180deg, #f7fbff 0%, #eef5ff 56%, #f8fafc 100%);
+  background: linear-gradient(180deg, #f7fbff 0%, #eef5ff 56%, #f8fafc 100%);
   color: #0f172a;
   padding: 16px;
 }
@@ -3208,8 +3204,7 @@ function downloadBlob(blob, filename) {
 
 .lc-agent-input {
   border-color: #bfdbfe;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.98));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 251, 255, 0.98));
   box-shadow:
     0 0 0 1px rgba(96, 165, 250, 0.18),
     0 14px 34px rgba(37, 99, 235, 0.1);
@@ -3286,8 +3281,7 @@ function downloadBlob(blob, filename) {
 .lc-agent-start-card {
   min-height: 152px;
   border: 0 !important;
-  background:
-    linear-gradient(145deg, #0284c7 0%, #2563eb 56%, #4338ca 100%) !important;
+  background: linear-gradient(145deg, #0284c7 0%, #2563eb 56%, #4338ca 100%) !important;
   box-shadow:
     0 14px 32px rgba(37, 99, 235, 0.28),
     inset 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
@@ -3506,8 +3500,7 @@ function downloadBlob(blob, filename) {
 
 .lc-preview-card {
   min-height: 166px;
-  background:
-    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
 }
 

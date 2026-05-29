@@ -4,6 +4,8 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApp;
+import com.mdframe.forge.plugin.generator.domain.entity.AiCrudConfig;
+import com.mdframe.forge.plugin.generator.mapper.AiCrudConfigMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessAppMapper;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessAppOpenInfoVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
@@ -24,6 +26,7 @@ import java.util.List;
 public class BusinessAppOpenService {
 
     private final BusinessAppMapper businessAppMapper;
+    private final AiCrudConfigMapper aiCrudConfigMapper;
 
     public BusinessAppOpenInfoVO openInfo(Long id) {
         AiBusinessApp app = businessAppMapper.selectEntityById(resolveTenantId(), id);
@@ -49,14 +52,24 @@ public class BusinessAppOpenService {
         vo.setOpenType(resolveOpenType(app.getEntryMode()));
         vo.setTargetUrl(resolveTargetUrl(app));
 
+        // RUNTIME 模式下校验 configKey 对应的运行配置是否存在
+        String runtimeMessage = validateRuntimeConfig(app);
+        vo.setRuntimeStatus(runtimeMessage == null ? "AVAILABLE" : "MISSING");
+        vo.setRuntimeMessage(runtimeMessage);
+
         boolean enabled = Integer.valueOf(1).equals(app.getStatus());
         boolean hasTarget = StringUtils.isNotBlank(vo.getTargetUrl());
+        boolean runtimeValid = runtimeMessage == null;
         String securityMessage = validateOpenSecurity(app, vo.getOpenType(), vo.getTargetUrl());
-        vo.setCanOpen(enabled && hasTarget && Boolean.TRUE.equals(vo.getPermissionGranted()) && securityMessage == null);
+        vo.setCanOpen(enabled && hasTarget && runtimeValid && Boolean.TRUE.equals(vo.getPermissionGranted()) && securityMessage == null);
         if (!enabled) {
             vo.setMessage("应用入口已停用");
             vo.setNextAction("ENABLE_APP_ENTRY");
             vo.setNextActionLabel("启用应用入口");
+        } else if ("RUNTIME".equals(StringUtils.defaultIfBlank(app.getEntryMode(), "").toUpperCase()) && !runtimeValid) {
+            vo.setMessage(runtimeMessage);
+            vo.setNextAction("PUBLISH_APP");
+            vo.setNextActionLabel("发布应用");
         } else if (!hasTarget) {
             vo.setMessage("应用入口尚未配置打开地址");
             vo.setNextAction("CONFIGURE_ENTRY");
@@ -75,6 +88,28 @@ public class BusinessAppOpenService {
             vo.setNextActionLabel("打开应用入口");
         }
         return vo;
+    }
+
+    private String validateRuntimeConfig(AiBusinessApp app) {
+        String entryMode = StringUtils.defaultIfBlank(app.getEntryMode(), "").toUpperCase();
+        if (!"RUNTIME".equals(entryMode)) {
+            return null;
+        }
+        String configKey = StringUtils.trimToNull(app.getConfigKey());
+        if (configKey == null) {
+            return "应用入口未配置运行配置，请先配置模型并发布应用";
+        }
+        AiCrudConfig config = aiCrudConfigMapper.selectByConfigKey(resolveTenantId(), configKey);
+        if (config == null) {
+            return "运行配置不存在，请先发布应用";
+        }
+        if ("1".equals(config.getStatus())) {
+            return "运行配置已停用，请先启用运行配置";
+        }
+        if (!"PUBLISHED".equals(config.getPublishStatus())) {
+            return "运行配置未发布，请先发布应用";
+        }
+        return null;
     }
 
     private String resolveTargetUrl(AiBusinessApp app) {

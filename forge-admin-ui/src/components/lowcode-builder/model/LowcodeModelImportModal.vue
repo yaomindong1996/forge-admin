@@ -56,9 +56,9 @@
             <strong>{{ previewSchema?.businessName || selectedTableName || '未选择数据表' }}</strong>
             <span>{{ previewSchema?.tableName || '先选择数据表并预览字段' }}</span>
           </div>
-          <n-tag :bordered="false">
+          <NTag :bordered="false">
             {{ previewFields.length }} 个业务字段
-          </n-tag>
+          </NTag>
         </div>
         <n-data-table
           v-if="previewFields.length"
@@ -87,8 +87,8 @@
 </template>
 
 <script setup>
-import { computed, h, ref, watch } from 'vue'
 import { NTag } from 'naive-ui'
+import { computed, h, ref, watch } from 'vue'
 import {
   genDatasourceEnabled,
   genDatasourceTables,

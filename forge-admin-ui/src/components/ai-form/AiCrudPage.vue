@@ -2176,7 +2176,8 @@ async function handleExport() {
   catch (error) {
     console.error('导出失败:', error)
     window.$message.error('导出失败')
-  } finally {
+  }
+  finally {
     exportLoading.value = false
   }
 }

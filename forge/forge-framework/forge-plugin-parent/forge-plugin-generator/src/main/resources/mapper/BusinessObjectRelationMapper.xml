@@ -86,6 +86,17 @@
         LIMIT 1
     </select>
 
+    <select id="selectRuntimeRelationsBySource" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_object_relation
+        WHERE tenant_id = #{tenantId}
+          AND suite_code = #{suiteCode}
+          AND source_object_code = #{sourceObjectCode}
+          AND status = 1
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
     <select id="countByScope" resultType="java.lang.Long">
         SELECT COUNT(1)
         FROM ai_business_object_relation

@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
+import java.time.LocalDateTime;
 
 /**
  * 业务应用平台业务对象。
@@ -49,4 +50,19 @@ public class AiBusinessObject extends TenantEntity {
 
     /** 扩展配置 JSON */
     private String options;
+
+    /** 设计状态：DRAFT/DESIGNING/READY/PUBLISHED/CHANGED */
+    private String designStatus;
+
+    /** 关联运行配置键 */
+    private String configKey;
+
+    /** 最近发布时间 */
+    private LocalDateTime lastPublishTime;
+
+    /** 最近发布版本号 */
+    private Integer lastPublishVersion;
+
+    /** 设计器扩展配置 JSON */
+    private String designerOptions;
 }
