@@ -156,11 +156,6 @@ const createModes = [
     description: '保存对象草稿后进入设计器，继续维护字段、页面和发布。',
   },
   {
-    label: '从模板创建',
-    value: 'TEMPLATE',
-    description: '保存对象草稿后进入设计器，后续在设计器内选择模板能力。',
-  },
-  {
     label: '从数据库表导入',
     value: 'DB_IMPORT',
     description: '保存对象草稿后进入设计器，用业务字段语言继续整理导入结果。',
@@ -181,7 +176,7 @@ const footerHint = computed(() => {
   if (currentStep.value === 1)
     return '业务对象必须归属到一个业务套件。'
   if (currentStep.value === 2)
-    return '四种创建方式都会进入同一个业务对象设计器。'
+    return '三种创建方式都会进入同一个业务对象设计器。'
   return '保存后进入设计器继续维护字段、页面和发布检查。'
 })
 
@@ -243,7 +238,6 @@ function resolveDesignerPanel(createMode) {
   switch (createMode) {
     case 'BLANK':
       return 'fields'
-    case 'TEMPLATE':
     case 'DB_IMPORT':
     case 'AI_GENERATE':
       return 'fields'

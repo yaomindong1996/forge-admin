@@ -211,7 +211,7 @@
                   v-model:value="formData.defaultConfig"
                   type="textarea"
                   :rows="4"
-                  placeholder="{&quot;modalType&quot;:&quot;drawer&quot;,&quot;modalWidth&quot;:&quot;800px&quot;,&quot;searchGridCols&quot;:4}"
+                  placeholder="{&quot;modalType&quot;:&quot;modal&quot;,&quot;modalWidth&quot;:&quot;800px&quot;,&quot;searchGridCols&quot;:4}"
                   class="mono-input"
                 />
                 <span class="json-hint">JSON 格式，将作为运行页面渲染时的默认参数</span>
@@ -493,7 +493,7 @@ function insertPromptExample() {
   const example = `当前模板为「${formData.value.templateName || '自定义模板'}」，请确保：
 1. columnsSchema 包含内容列 + 操作列(actions)
 2. editSchema 简洁清晰，不要嵌套
-3. modalType 默认为 drawer
+3. modalType 默认为 modal
 4. 尽量精减搜索条件，保留最常用的 3-5 个`
   formData.value.systemPrompt = example
 }

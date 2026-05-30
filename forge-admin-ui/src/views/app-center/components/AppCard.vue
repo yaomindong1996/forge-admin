@@ -48,13 +48,23 @@
           </template>
           {{ app.status === 1 ? '停用' : '启用' }}
         </n-tooltip>
+        <n-tooltip trigger="hover">
+          <template #trigger>
+            <n-button quaternary circle size="small" @click="emit('delete', app)">
+              <template #icon>
+                <n-icon><TrashOutline /></n-icon>
+              </template>
+            </n-button>
+          </template>
+          删除
+        </n-tooltip>
       </n-space>
     </div>
   </article>
 </template>
 
 <script setup>
-import { AppsOutline, OpenOutline, PowerOutline, SettingsOutline } from '@vicons/ionicons5'
+import { AppsOutline, OpenOutline, PowerOutline, SettingsOutline, TrashOutline } from '@vicons/ionicons5'
 import DictTag from '@/components/DictTag.vue'
 
 defineProps({
@@ -64,7 +74,7 @@ defineProps({
   },
 })
 
-const emit = defineEmits(['open', 'config', 'toggle'])
+const emit = defineEmits(['open', 'config', 'toggle', 'delete'])
 
 function isOpenDisabled(app) {
   if (app.status !== 1)

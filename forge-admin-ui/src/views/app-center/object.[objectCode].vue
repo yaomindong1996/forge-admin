@@ -33,6 +33,18 @@
           </template>
           查看就绪度
         </n-button>
+        <n-button secondary :disabled="!object" @click="toggleObject">
+          <template #icon>
+            <n-icon><PowerOutline /></n-icon>
+          </template>
+          {{ object?.status === 1 ? '停用对象' : '启用对象' }}
+        </n-button>
+        <n-button secondary type="error" :disabled="!object" @click="deleteObject">
+          <template #icon>
+            <n-icon><TrashOutline /></n-icon>
+          </template>
+          删除对象
+        </n-button>
         <n-button v-if="canAdvanced" secondary @click="openDesigner('advanced')">
           <template #icon>
             <n-icon><SettingsOutline /></n-icon>
@@ -159,8 +171,10 @@ import {
   CloudUploadOutline,
   CubeOutline,
   OpenOutline,
+  PowerOutline,
   RocketOutline,
   SettingsOutline,
+  TrashOutline,
 } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -168,9 +182,11 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   businessObjectList,
   businessObjectRuntimeInfo,
+  deleteBusinessObject,
   dynamicCrudExport,
   dynamicCrudImport,
   dynamicCrudImportTemplate,
+  updateBusinessObjectStatus,
 } from '@/api/business-app'
 import DictTag from '@/components/DictTag.vue'
 import { useTabStore, useUserStore } from '@/store'
@@ -334,6 +350,30 @@ function handleReadinessAction(action) {
     default:
       break
   }
+}
+
+async function toggleObject() {
+  if (!object.value)
+    return
+  await updateBusinessObjectStatus(object.value.id, object.value.status === 1 ? 0 : 1)
+  message.success(object.value.status === 1 ? '业务对象已停用' : '业务对象已启用')
+  await loadObject()
+}
+
+function deleteObject() {
+  if (!object.value)
+    return
+  window.$dialog?.warning({
+    title: '删除业务对象',
+    content: `确定删除“${object.value.objectName || object.value.objectCode}”吗？已关联关系或应用入口的对象会被后端拦截。`,
+    positiveText: '删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      await deleteBusinessObject(object.value.id)
+      message.success('业务对象已删除')
+      backToSuite()
+    },
+  })
 }
 
 async function downloadImportTemplate() {

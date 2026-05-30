@@ -1,48 +1,174 @@
 <template>
-  <div class="business-form-designer">
+  <div class="business-form-designer" :class="{ 'relation-object-active': !isPrimaryObjectActive }">
     <section class="form-canvas-region">
       <div class="designer-section-head">
         <div>
-          <h3>表单画布</h3>
-          <p>拖拽右侧字段到画布，调整新增和编辑表单布局。</p>
+          <h3>{{ activeObjectTitle }}</h3>
+          <p>{{ activeObjectDescription }}</p>
         </div>
-        <n-space size="small">
-          <n-button size="small" secondary @click="applyFieldGroup('basic')">
-            基础信息
-          </n-button>
-          <n-button size="small" secondary @click="applyFieldGroup('marketing')">
-            营销数据
-          </n-button>
-          <n-button size="small" secondary @click="applyFieldGroup('contact')">
-            联系人信息
+        <div class="designer-head-actions">
+          <div v-if="formObjectTabs.length > 1" class="object-switch-control">
+            <span>设计对象</span>
+            <n-radio-group v-model:value="activeObjectKey" size="small">
+              <n-radio-button v-for="tab in formObjectTabs" :key="tab.key" :value="tab.key">
+                {{ tab.label }}
+              </n-radio-button>
+            </n-radio-group>
+          </div>
+          <div class="modal-type-control">
+            <span>编辑打开方式</span>
+            <n-radio-group v-model:value="editModalType" size="small">
+              <n-radio-button value="modal">
+                弹出框
+              </n-radio-button>
+              <n-radio-button value="drawer">
+                抽屉
+              </n-radio-button>
+            </n-radio-group>
+          </div>
+          <n-button v-if="isPrimaryObjectActive" size="small" secondary :disabled="!unusedFields.length" @click="appendAllUnusedFields">
+            补齐未使用字段
           </n-button>
           <n-button size="small" type="primary" :loading="saving" @click="saveLayout">
             保存表单
           </n-button>
-        </n-space>
+        </div>
       </div>
 
-      <div class="form-builder-grid">
-        <CanvasFormDesigner
-          :zone="editZone"
-          :fields="designFields"
-          :selected-item-id="selectedItemId"
-          @select-item="selectedItemId = $event"
-          @update:zone="handleZoneUpdate"
-        />
-        <ComponentPropertyPanel
-          :zone="editZone"
-          :selected-item="selectedItem"
-          :fields="designFields"
-          :layout-type="localSchema.layoutType"
-          @update:zone="handleZoneUpdate"
-          @update-item="handleItemUpdate"
-          @remove-item="handleItemRemove"
-        />
+      <div class="form-builder-grid" :class="{ 'relation-mode': !isPrimaryObjectActive }">
+        <template v-if="isPrimaryObjectActive">
+          <CanvasFormDesigner
+            :zone="canvasEditZone"
+            :fields="primaryDesignFields"
+            :selected-item-id="selectedItemId"
+            @select-item="selectedItemId = $event"
+            @update:zone="handleZoneUpdate"
+          />
+          <ComponentPropertyPanel
+            :zone="canvasEditZone"
+            :selected-item="selectedItem"
+            :fields="primaryDesignFields"
+            :layout-type="localSchema.layoutType"
+            @update:zone="handleZoneUpdate"
+            @update-item="handleItemUpdate"
+            @remove-item="handleItemRemove"
+          />
+        </template>
+
+        <section v-else class="relation-object-workbench">
+          <div class="relation-object-head">
+            <div>
+              <h4>{{ activeRelationRow?.title || '关联对象表单' }}</h4>
+              <p>
+                {{ activeRelationGroup?.fields?.length || 0 }} 个可配置字段，
+                已选择 {{ activeRelationGroup?.selectedCount || 0 }} 个。
+              </p>
+            </div>
+            <n-space size="small">
+              <n-tag v-if="activeRelationRow?.inlineCreateEnabled" size="small" type="success" :bordered="false">
+                新增表单
+              </n-tag>
+              <n-tag v-if="activeRelationRow?.inlineEditEnabled" size="small" type="info" :bordered="false">
+                编辑表单
+              </n-tag>
+              <n-tag v-if="activeRelationRow?.showInDetail" size="small" :bordered="false">
+                详情页
+              </n-tag>
+              <n-button size="small" secondary @click="$emit('openRelations')">
+                配置关系
+              </n-button>
+            </n-space>
+          </div>
+
+          <template v-if="activeRelationGroup?.fields?.length">
+            <div class="relation-object-layout">
+              <section class="relation-object-canvas-shell">
+                <div class="relation-canvas-toolbar">
+                  <span>{{ activeRelationCanvasFields.length }} 个字段已放入关联表单</span>
+                  <n-space size="small">
+                    <n-button size="small" secondary @click="selectRelationGroupFields(activeRelationGroup)">
+                      补齐字段
+                    </n-button>
+                    <n-button size="small" secondary :disabled="!activeRelationCanvasFields.length" @click="clearRelationGroupFields(activeRelationGroup)">
+                      清空画布
+                    </n-button>
+                  </n-space>
+                </div>
+
+                <div class="relation-form-canvas">
+                  <div v-if="activeRelationCanvasFields.length" class="relation-canvas-grid">
+                    <article
+                      v-for="field in activeRelationCanvasFields"
+                      :key="field.field"
+                      class="relation-canvas-field"
+                    >
+                      <div>
+                        <strong>{{ field.label || field.sourceField || field.field }}</strong>
+                        <span>{{ field.sourceField || field.field }} · {{ field.componentType || field.dataType || 'input' }}</span>
+                      </div>
+                      <div class="relation-order-actions">
+                        <n-button
+                          quaternary
+                          circle
+                          size="tiny"
+                          :disabled="!canMoveRelationField(field, -1)"
+                          @click="moveRelationField(field, -1)"
+                        >
+                          <template #icon>
+                            <n-icon><ChevronUpOutline /></n-icon>
+                          </template>
+                        </n-button>
+                        <n-button
+                          quaternary
+                          circle
+                          size="tiny"
+                          :disabled="!canMoveRelationField(field, 1)"
+                          @click="moveRelationField(field, 1)"
+                        >
+                          <template #icon>
+                            <n-icon><ChevronDownOutline /></n-icon>
+                          </template>
+                        </n-button>
+                        <n-button quaternary size="tiny" type="error" @click="toggleRelationField(field, false)">
+                          移除
+                        </n-button>
+                      </div>
+                    </article>
+                  </div>
+                  <n-empty v-else description="请选择右侧字段生成关联表单画布" />
+                </div>
+              </section>
+
+              <aside class="relation-field-shelf">
+                <div class="relation-shelf-head">
+                  <strong>关联字段库</strong>
+                  <span>{{ activeRelationAvailableFields.length }} 个未使用</span>
+                </div>
+                <div class="relation-shelf-list">
+                  <button
+                    v-for="field in activeRelationAvailableFields"
+                    :key="field.field"
+                    type="button"
+                    class="relation-shelf-field"
+                    @click="toggleRelationField(field, true)"
+                  >
+                    <strong>{{ field.label || field.sourceField || field.field }}</strong>
+                    <span>{{ field.sourceField || field.field }}</span>
+                  </button>
+                  <n-empty v-if="!activeRelationAvailableFields.length" size="small" description="字段已全部放入画布" />
+                </div>
+              </aside>
+            </div>
+          </template>
+          <n-empty
+            v-else
+            description="未读取到关联对象字段，请先保存关系配置或刷新设计器"
+          />
+        </section>
       </div>
     </section>
 
-    <aside class="field-shelf">
+    <aside v-if="isPrimaryObjectActive" class="field-shelf">
       <div class="shelf-head">
         <div>
           <h3>字段库</h3>
@@ -72,14 +198,14 @@
           type="button"
           class="shelf-field"
           draggable="true"
-          :disabled="field.systemField || usedFieldSet.has(field.field)"
+          :disabled="isReadonlySystemField(field) || usedFieldSet.has(field.field)"
           @dragstart="handleFieldDragStart($event, field)"
           @click="appendField(field)"
         >
           <strong>{{ field.label || field.field }}</strong>
           <span>{{ field.field }} · {{ field.componentType || field.dataType || 'input' }}</span>
           <em v-if="usedFieldSet.has(field.field)">已使用</em>
-          <em v-else-if="field.systemField">系统字段</em>
+          <em v-else-if="isReadonlySystemField(field)">系统字段</em>
         </button>
         <n-empty v-if="!visibleShelfFields.length" description="当前分组没有字段" />
       </div>
@@ -88,6 +214,7 @@
 </template>
 
 <script setup>
+import { ChevronDownOutline, ChevronUpOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import { saveBusinessObjectFormLayout } from '@/api/business-app'
@@ -95,8 +222,10 @@ import { cloneSchema, isSameSchema } from '@/components/lowcode-builder/model/mo
 import CanvasFormDesigner from '@/components/lowcode-builder/page/CanvasFormDesigner.vue'
 import ComponentPropertyPanel from '@/components/lowcode-builder/page/ComponentPropertyPanel.vue'
 import {
+  buildPageDesignModelSchema,
   createCanvasItem,
   createDefaultPageSchema,
+  createPageModelRef,
   isReadonlySystemField,
   patchZoneCanvas,
   resolveDefaultFieldComponentKey,
@@ -120,38 +249,111 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  relations: {
+    type: Array,
+    default: () => [],
+  },
 })
 
-const emit = defineEmits(['update:modelValue', 'saved', 'dirtyChange', 'createField'])
+const emit = defineEmits(['update:modelValue', 'saved', 'dirtyChange', 'createField', 'openRelations'])
 
 const message = useMessage()
 const selectedItemId = ref('')
 const saving = ref(false)
 const shelfTab = ref('unused')
+const activeObjectKey = ref('primary')
 
-const designFields = computed(() => {
+const baseModelSchema = computed(() => {
   const modelFields = props.modelSchema?.fields || []
-  if (modelFields.length)
-    return modelFields
-  return props.fields.map(toPageField)
+  return {
+    ...(props.modelSchema || {}),
+    fields: modelFields.length ? modelFields : props.fields.map(toPageField),
+  }
 })
 
-const effectiveModelSchema = computed(() => ({
-  ...(props.modelSchema || {}),
-  fields: designFields.value,
-}))
-
-const localSchema = ref(resolveSchema(props.modelValue, effectiveModelSchema.value))
+const localSchema = ref(resolveSchema(props.modelValue, resolveDesignModelSchema(props.modelValue, baseModelSchema.value)))
+const effectiveModelSchema = computed(() => resolveDesignModelSchema(localSchema.value, baseModelSchema.value))
+const designFields = computed(() => effectiveModelSchema.value.fields || [])
 const editZone = computed(() => localSchema.value.zones?.find(zone => zone.zoneKey === 'edit') || null)
-const usedFieldSet = computed(() => new Set(resolveCanvasFieldRefs(editZone.value?.props?.canvas?.items || [])))
+const pageModelRefs = computed(() => effectiveModelSchema.value.pageModelRefs || [])
+const primaryModelCode = computed(() => pageModelRefs.value.find(ref => ref?.primary)?.modelCode || '')
+const primaryDesignFields = computed(() => designFields.value.filter(field => !isRelationField(field)))
+const relationFields = computed(() => designFields.value.filter(field => isRelationField(field)))
+const primaryFieldSet = computed(() => new Set(primaryDesignFields.value.map(field => field.field)))
+const relationFieldSet = computed(() => new Set(relationFields.value.map(field => field.field)))
+const canvasEditZone = computed(() => sanitizeEditZoneForCanvas(editZone.value))
+const usedFieldSet = computed(() => new Set(resolveCanvasFieldRefs(canvasEditZone.value?.props?.canvas?.items || []).filter(ref => primaryFieldSet.value.has(ref))))
+const selectedRelationFieldRefs = computed(() => (editZone.value?.fieldRefs || []).filter(ref => relationFieldSet.value.has(ref)))
+const selectedRelationFieldSet = computed(() => new Set(selectedRelationFieldRefs.value))
 const selectedItem = computed(() => {
-  const items = editZone.value?.props?.canvas?.items || []
+  const items = canvasEditZone.value?.props?.canvas?.items || []
   return items.find(item => item.id === selectedItemId.value) || null
 })
-const businessFields = computed(() => designFields.value.filter(field => !isReadonlySystemField(field)))
-const systemFields = computed(() => designFields.value.filter(field => isReadonlySystemField(field)))
+const businessFields = computed(() => primaryDesignFields.value.filter(field => !isReadonlySystemField(field)))
+const systemFields = computed(() => primaryDesignFields.value.filter(field => isReadonlySystemField(field)))
 const usedFields = computed(() => businessFields.value.filter(field => usedFieldSet.value.has(field.field)))
 const unusedFields = computed(() => businessFields.value.filter(field => !usedFieldSet.value.has(field.field)))
+const editModalType = computed({
+  get: () => editZone.value?.props?.modalType || 'modal',
+  set: value => updateEditZoneProps({ modalType: value || 'modal' }),
+})
+const relationFieldGroups = computed(() => {
+  return pageModelRefs.value
+    .filter(ref => ref && !ref.primary)
+    .map((ref) => {
+      const fields = sortRelationGroupFields(relationFields.value.filter(field => field.modelCode === ref.modelCode && isRelationFieldAllowed(field, ref)))
+      const selectedCount = fields.filter(field => selectedRelationFieldSet.value.has(field.field)).length
+      const props = ref.props || {}
+      const aliases = buildRelationAliases(ref)
+      return {
+        key: aliases[0] || ref.modelCode || ref.modelName,
+        modelCode: ref.modelCode || '',
+        aliases,
+        title: props.tabTitle || props.relationName || ref.modelName || ref.modelCode || '关联对象',
+        fields,
+        selectedCount,
+        showInCreate: booleanFlag(props.inlineCreateEnabled),
+        showInEdit: booleanFlag(props.inlineEditEnabled),
+        showInDetail: props.showInDetail !== false && props.showInDetail !== 'false',
+      }
+    })
+})
+const relationFormRows = computed(() => normalizeRelationFormRows(props.relations || [], relationFieldGroups.value))
+const formObjectTabs = computed(() => [
+  {
+    key: 'primary',
+    label: props.modelSchema?.businessName || props.modelSchema?.object?.name || '当前对象',
+  },
+  ...relationFormRows.value.map(row => ({
+    key: row.key,
+    label: row.title,
+  })),
+])
+const isPrimaryObjectActive = computed(() => activeObjectKey.value === 'primary')
+const activeRelationRow = computed(() => relationFormRows.value.find(row => row.key === activeObjectKey.value) || null)
+const activeRelationGroup = computed(() => activeRelationRow.value?.group || null)
+const activeRelationCanvasFields = computed(() => {
+  const group = activeRelationGroup.value
+  if (!group?.fields?.length)
+    return []
+  return group.fields.filter(field => selectedRelationFieldSet.value.has(field.field))
+})
+const activeRelationAvailableFields = computed(() => {
+  const group = activeRelationGroup.value
+  if (!group?.fields?.length)
+    return []
+  return group.fields.filter(field => !selectedRelationFieldSet.value.has(field.field))
+})
+const activeObjectTitle = computed(() => {
+  if (isPrimaryObjectActive.value)
+    return '主表单画布'
+  return activeRelationRow.value?.title || '关联对象表单'
+})
+const activeObjectDescription = computed(() => {
+  if (isPrimaryObjectActive.value)
+    return '拖拽右侧字段到画布，新增、编辑和查看详情共用这一套主表布局。'
+  return '选择关联对象在新增、编辑或详情中展示的字段，发布后同步到内嵌关联表单。'
+})
 const visibleShelfFields = computed(() => {
   if (shelfTab.value === 'used')
     return usedFields.value
@@ -163,7 +365,7 @@ const visibleShelfFields = computed(() => {
 watch(
   () => props.modelValue,
   (value) => {
-    const next = resolveSchema(value, effectiveModelSchema.value)
+    const next = resolveSchema(value, resolveDesignModelSchema(value, baseModelSchema.value))
     if (!isSameSchema(next, localSchema.value))
       localSchema.value = next
   },
@@ -191,28 +393,30 @@ watch(
   { deep: true },
 )
 
+watch(formObjectTabs, (tabs) => {
+  if (!tabs.some(tab => tab.key === activeObjectKey.value))
+    activeObjectKey.value = 'primary'
+}, { deep: true })
+
 function handleZoneUpdate(zone) {
-  localSchema.value = {
-    ...localSchema.value,
-    zones: (localSchema.value.zones || []).map(item => item.zoneKey === zone.zoneKey ? zone : item),
-  }
+  replaceZone(zone?.zoneKey === 'edit' ? normalizeEditZoneFieldRefs(zone) : zone)
 }
 
 function handleItemUpdate(item) {
-  if (!editZone.value)
+  if (!canvasEditZone.value)
     return
-  const canvas = editZone.value.props?.canvas || { items: [] }
-  handleZoneUpdate(patchZoneCanvas(editZone.value, {
+  const canvas = canvasEditZone.value.props?.canvas || { items: [] }
+  handleZoneUpdate(patchZoneCanvas(canvasEditZone.value, {
     ...canvas,
     items: (canvas.items || []).map(current => current.id === item.id ? item : current),
   }))
 }
 
 function handleItemRemove(item) {
-  if (!editZone.value || !item)
+  if (!canvasEditZone.value || !item)
     return
-  const canvas = editZone.value.props?.canvas || { items: [] }
-  handleZoneUpdate(patchZoneCanvas(editZone.value, {
+  const canvas = canvasEditZone.value.props?.canvas || { items: [] }
+  handleZoneUpdate(patchZoneCanvas(canvasEditZone.value, {
     ...canvas,
     items: (canvas.items || []).filter(current => current.id !== item.id),
   }))
@@ -220,7 +424,7 @@ function handleItemRemove(item) {
 }
 
 function handleFieldDragStart(event, field) {
-  if (field.systemField || usedFieldSet.value.has(field.field)) {
+  if (isReadonlySystemField(field) || usedFieldSet.value.has(field.field)) {
     event.preventDefault()
     return
   }
@@ -233,23 +437,32 @@ function handleFieldDragStart(event, field) {
 }
 
 function appendField(field) {
-  if (!editZone.value || field.systemField || usedFieldSet.value.has(field.field))
+  if (!canvasEditZone.value || isReadonlySystemField(field) || usedFieldSet.value.has(field.field))
     return
-  const canvas = editZone.value.props?.canvas || { width: 1040, height: 420, items: [] }
+  const canvas = canvasEditZone.value.props?.canvas || { width: 1040, height: 420, items: [] }
   const index = (canvas.items || []).filter(item => item.fieldRef).length
+  const paddingX = 32
+  const gapX = 24
+  const colCount = 2
+  const fieldWidth = Math.min(340, Math.max(300, Math.floor((Number(canvas.width || 1040) - paddingX * 2 - gapX) / colCount)))
+  const componentKey = resolveDefaultFieldComponentKey(field)
+  const fieldHeight = ['field-textarea', 'field-upload', 'field-image-upload'].includes(componentKey) ? 76 : 64
+  const col = index % colCount
+  const row = Math.floor(index / colCount)
   const item = createCanvasItem({
-    componentKey: resolveDefaultFieldComponentKey(field),
+    componentKey,
     fieldRef: field.field,
     label: field.label || field.field,
-    x: 32,
-    y: 36 + index * 86,
-    w: 720,
+    x: paddingX + col * (fieldWidth + gapX),
+    y: 32 + row * 88,
+    w: fieldWidth,
+    h: fieldHeight,
     zIndex: (canvas.items || []).length + 1,
   }, {
     zoneKey: 'edit',
-    fields: designFields.value,
+    fields: primaryDesignFields.value,
   })
-  handleZoneUpdate(patchZoneCanvas(editZone.value, {
+  handleZoneUpdate(patchZoneCanvas(canvasEditZone.value, {
     ...canvas,
     height: Math.max(Number(canvas.height || 420), item.y + item.h + 48),
     items: [...(canvas.items || []), item],
@@ -257,34 +470,300 @@ function appendField(field) {
   selectedItemId.value = item.id
 }
 
-function applyFieldGroup(groupKey) {
-  const presets = {
-    basic: ['name', 'customerName', 'customerLevel', 'phone', 'ownerUserId', 'regionCode'],
-    marketing: ['source', 'level', 'stage', 'amount', 'followStatus', 'nextFollowTime'],
-    contact: ['contactName', 'contactPhone', 'email', 'wechat', 'address', 'remark'],
-  }
-  const candidates = presets[groupKey] || []
-  const matched = designFields.value.filter((field) => {
-    const name = field.field || ''
-    return candidates.some(key => name === key || name.toLowerCase().includes(key.toLowerCase()))
+function appendAllUnusedFields() {
+  unusedFields.value.forEach(appendField)
+}
+
+function updateEditZoneProps(patch = {}) {
+  if (!editZone.value)
+    return
+  replaceZone({
+    ...editZone.value,
+    props: {
+      ...(editZone.value.props || {}),
+      ...patch,
+    },
   })
-  matched.forEach(appendField)
+}
+
+function toggleRelationField(field, checked) {
+  if (!field?.field || !editZone.value)
+    return
+  const selected = new Set(selectedRelationFieldRefs.value)
+  if (checked)
+    selected.add(field.field)
+  else
+    selected.delete(field.field)
+  replaceZone(normalizeEditZoneFieldRefs(editZone.value, Array.from(selected), true))
+}
+
+function selectRelationGroupFields(group) {
+  if (!editZone.value)
+    return
+  const selected = new Set(selectedRelationFieldRefs.value)
+  group.fields.forEach(field => selected.add(field.field))
+  replaceZone(normalizeEditZoneFieldRefs(editZone.value, Array.from(selected), true))
+}
+
+function clearRelationGroupFields(group) {
+  if (!editZone.value)
+    return
+  const removeRefs = new Set(group.fields.map(field => field.field))
+  const selected = selectedRelationFieldRefs.value.filter(ref => !removeRefs.has(ref))
+  replaceZone(normalizeEditZoneFieldRefs(editZone.value, selected, true))
+}
+
+function canMoveRelationField(field, direction) {
+  const groupRefs = selectedRelationRefsByModel(field?.modelCode)
+  const index = groupRefs.indexOf(field?.field)
+  const nextIndex = index + direction
+  return index >= 0 && nextIndex >= 0 && nextIndex < groupRefs.length
+}
+
+function moveRelationField(field, direction) {
+  if (!field?.field || !editZone.value || !canMoveRelationField(field, direction))
+    return
+  const groupRefSet = new Set(relationFields.value
+    .filter(item => item.modelCode === field.modelCode)
+    .map(item => item.field))
+  const groupRefs = selectedRelationRefsByModel(field.modelCode)
+  const from = groupRefs.indexOf(field.field)
+  const to = from + direction
+  const [item] = groupRefs.splice(from, 1)
+  groupRefs.splice(to, 0, item)
+  let groupIndex = 0
+  const nextRefs = selectedRelationFieldRefs.value.map((ref) => {
+    if (!groupRefSet.has(ref))
+      return ref
+    return groupRefs[groupIndex++] || ref
+  })
+  replaceZone(normalizeEditZoneFieldRefs(editZone.value, nextRefs, true))
+}
+
+function selectedRelationRefsByModel(modelCode) {
+  const groupRefSet = new Set(relationFields.value
+    .filter(field => field.modelCode === modelCode)
+    .map(field => field.field))
+  return selectedRelationFieldRefs.value.filter(ref => groupRefSet.has(ref))
+}
+
+function replaceZone(zone) {
+  if (!zone)
+    return
+  localSchema.value = {
+    ...localSchema.value,
+    zones: (localSchema.value.zones || []).map(item => item.zoneKey === zone.zoneKey ? zone : item),
+  }
+}
+
+function sanitizeEditZoneForCanvas(zone) {
+  if (!zone)
+    return null
+  const canvas = zone.props?.canvas || { width: 1040, height: 420, items: [] }
+  const items = (canvas.items || []).filter(item => !item.fieldRef || primaryFieldSet.value.has(item.fieldRef))
+  return {
+    ...zone,
+    fieldRefs: (zone.fieldRefs || []).filter(ref => primaryFieldSet.value.has(ref)),
+    props: {
+      ...(zone.props || {}),
+      canvas: {
+        ...canvas,
+        items,
+      },
+    },
+  }
+}
+
+function normalizeEditZoneFieldRefs(zone, relationRefs = Array.from(selectedRelationFieldSet.value), relationSelectionTouched = false) {
+  return {
+    ...zone,
+    fieldRefs: [
+      ...resolvePrimaryFieldRefs(zone),
+      ...orderRelationRefs(relationRefs),
+    ],
+    props: {
+      ...(zone.props || {}),
+      ...(relationSelectionTouched ? { relationFieldSelectionMode: 'CUSTOM' } : {}),
+    },
+  }
+}
+
+function resolvePrimaryFieldRefs(zone) {
+  const canvasRefs = resolveCanvasFieldRefs(zone?.props?.canvas?.items || []).filter(ref => primaryFieldSet.value.has(ref))
+  if (canvasRefs.length)
+    return canvasRefs
+  const explicitRefs = (zone?.fieldRefs || []).filter(ref => primaryFieldSet.value.has(ref))
+  if (explicitRefs.length)
+    return explicitRefs
+  return (editZone.value?.fieldRefs || []).filter(ref => primaryFieldSet.value.has(ref))
+}
+
+function orderRelationRefs(refs = []) {
+  const seen = new Set()
+  return refs.filter((ref) => {
+    if (!relationFieldSet.value.has(ref) || seen.has(ref))
+      return false
+    seen.add(ref)
+    return true
+  })
+}
+
+function sortRelationGroupFields(fields = []) {
+  const order = new Map(selectedRelationFieldRefs.value.map((ref, index) => [ref, index]))
+  return fields.map((field, index) => ({ field, index }))
+    .sort((left, right) => {
+      const leftOrder = order.has(left.field.field) ? order.get(left.field.field) : Number.MAX_SAFE_INTEGER
+      const rightOrder = order.has(right.field.field) ? order.get(right.field.field) : Number.MAX_SAFE_INTEGER
+      if (leftOrder !== rightOrder)
+        return leftOrder - rightOrder
+      return left.index - right.index
+    })
+    .map(item => item.field)
+}
+
+function buildRelationAliases(ref = {}) {
+  const props = ref.props || {}
+  return [
+    props.targetObjectCode,
+    props.businessObjectCode,
+    props.objectCode,
+    ref.objectCode,
+    ref.businessObjectCode,
+    ref.modelCode,
+    ref.modelName,
+  ]
+    .map(normalizeRelationKey)
+    .filter(Boolean)
+    .filter((value, index, array) => array.indexOf(value) === index)
+}
+
+function isRelationField(field = {}) {
+  const sourceField = field.sourceField || field.field
+  return Boolean(field.modelCode)
+    && field.field !== sourceField
+    && (!primaryModelCode.value || field.modelCode !== primaryModelCode.value)
+}
+
+function isRelationFieldAllowed(field = {}, ref = {}) {
+  if (isReadonlySystemField(field) || field.formVisible === false)
+    return false
+  const relation = Array.isArray(ref.relations) ? ref.relations[0] : null
+  return !matchesSourceField(field, relation?.sourceField)
+}
+
+function matchesSourceField(field = {}, sourceField) {
+  if (!sourceField)
+    return false
+  const source = field.sourceField || field.field
+  return source === sourceField
+    || field.field === sourceField
+    || field.columnName === sourceField
+    || field.columnName === camelToSnake(sourceField)
+}
+
+function camelToSnake(value) {
+  return String(value || '').replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase()
+}
+
+function booleanFlag(value) {
+  return value === true || value === 'true'
+}
+
+function normalizeRelationFormRows(relations = [], groups = []) {
+  return (relations || [])
+    .map((relation, index) => {
+      const config = parseRelationConfig(relation.relationConfig)
+      const targetCode = relation.targetObjectCode || ''
+      const group = findRelationGroup(targetCode, groups)
+      const relationKey = normalizeRelationKey(targetCode) || 'relation'
+      const key = `${relationKey}_${relation.id || relation.clientKey || index}`
+      return {
+        key,
+        modelCode: targetCode,
+        title: config.detailTabTitle || config.detailTab || relation.detailTabTitle || relation.relationName || relation.targetObjectName || targetCode || `关联表单${index + 1}`,
+        fieldCount: group?.fields?.length || 0,
+        selectedCount: group?.selectedCount || 0,
+        group,
+        showInDetail: config.showInDetail !== false && relation.showInDetail !== false,
+        inlineCreateEnabled: resolveRelationToggle(relation, config, 'inlineCreateEnabled', true),
+        inlineEditEnabled: resolveRelationToggle(relation, config, 'inlineEditEnabled', false),
+        status: relation.status ?? 1,
+      }
+    })
+    .filter(relation => relation.status !== 0 && (relation.showInDetail || relation.inlineCreateEnabled || relation.inlineEditEnabled))
+}
+
+function findRelationGroup(targetCode, groups = []) {
+  const targetKey = normalizeRelationKey(targetCode)
+  if (!targetKey)
+    return null
+  return groups.find((group) => {
+    const aliases = Array.isArray(group.aliases) ? group.aliases : [normalizeRelationKey(group.key), normalizeRelationKey(group.modelCode)]
+    return aliases.some(alias => relationKeyMatches(alias, targetKey))
+  }) || null
+}
+
+function relationKeyMatches(left, right) {
+  if (!left || !right)
+    return false
+  return left === right || left.endsWith(`_${right}`) || right.endsWith(`_${left}`)
+}
+
+function normalizeRelationKey(value) {
+  return String(value || '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/\W+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .toLowerCase()
+}
+
+function parseRelationConfig(value) {
+  if (!value)
+    return {}
+  try {
+    const parsed = JSON.parse(value)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  }
+  catch {
+    return {}
+  }
+}
+
+function canInlineRelation(relation = {}) {
+  return ['CHILD_LIST', 'DETAIL'].includes(String(relation.relationType || '').toUpperCase())
+}
+
+function resolveRelationToggle(relation = {}, config = {}, key, defaultValue) {
+  if (!canInlineRelation(relation))
+    return false
+  if (config[key] === true || config[key] === 'true')
+    return true
+  if (config[key] === false || config[key] === 'false')
+    return false
+  if (relation[key] === true)
+    return true
+  if (relation[key] === false)
+    return false
+  return defaultValue
 }
 
 async function saveLayout() {
   if (!props.objectId)
     return
+  const schema = syncPageSchemaWithModel(localSchema.value, effectiveModelSchema.value)
   saving.value = true
   try {
     await saveBusinessObjectFormLayout(props.objectId, {
       layoutKey: 'form',
       layoutName: '表单布局',
-      layoutType: localSchema.value.layoutType,
-      pageSchema: cloneSchema(localSchema.value),
-      zones: localSchema.value.zones?.filter(zone => zone.zoneKey === 'edit') || [],
+      layoutType: schema.layoutType,
+      pageSchema: cloneSchema(schema),
+      zones: schema.zones?.filter(zone => zone.zoneKey === 'edit') || [],
       settings: {},
     })
-    emit('saved', cloneSchema(localSchema.value))
+    localSchema.value = schema
+    emit('saved', cloneSchema(schema))
     emit('dirtyChange', false)
     message.success('表单布局已保存')
   }
@@ -298,6 +777,30 @@ function resolveSchema(pageSchema, modelSchema) {
     cloneSchema(pageSchema || createDefaultPageSchema(modelSchema)),
     modelSchema,
   )
+}
+
+function resolveDesignModelSchema(pageSchema, modelSchema) {
+  const refs = mergePrimaryModelRef(pageSchema?.modelRefs || [], modelSchema || {})
+  return buildPageDesignModelSchema(modelSchema || {}, refs)
+}
+
+function mergePrimaryModelRef(modelRefs, modelSchema) {
+  if (!Array.isArray(modelRefs) || !modelRefs.length)
+    return []
+  const primaryRef = createPageModelRef({ modelSchema }, { primary: true })
+  const refs = modelRefs.map(ref => ref?.primary
+    ? {
+        ...ref,
+        modelCode: primaryRef.modelCode || ref.modelCode,
+        modelName: primaryRef.modelName || ref.modelName,
+        tableName: primaryRef.tableName || ref.tableName,
+        relations: primaryRef.relations?.length ? primaryRef.relations : ref.relations,
+        fields: primaryRef.fields,
+      }
+    : ref)
+  if (!refs.some(ref => ref?.primary))
+    refs.unshift(primaryRef)
+  return refs
 }
 
 function resolveCanvasFieldRefs(items) {
@@ -326,6 +829,7 @@ function toPageField(field) {
     searchable: field.searchable,
     listVisible: field.listVisible,
     formVisible: field.formVisible,
+    fieldStatus: field.fieldStatus,
   }
 }
 
@@ -340,6 +844,10 @@ defineExpose({
   grid-template-columns: minmax(0, 1fr) 280px;
   min-height: calc(100vh - 106px);
   container-type: inline-size;
+}
+
+.business-form-designer.relation-object-active {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .form-canvas-region {
@@ -374,6 +882,28 @@ defineExpose({
   font-size: 12px;
 }
 
+.designer-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.object-switch-control,
+.modal-type-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.object-switch-control span,
+.modal-type-control span {
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .form-builder-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
@@ -383,11 +913,239 @@ defineExpose({
   padding: 14px;
 }
 
+.form-builder-grid.relation-mode {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.relation-object-workbench {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: calc(100vh - 196px);
+}
+
+.relation-object-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px;
+}
+
+.relation-object-head h4 {
+  margin: 0;
+  color: #111827;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+.relation-object-head p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
 .field-shelf {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   min-width: 0;
   background: #fbfcfe;
+}
+
+.relation-object-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 14px;
+  min-height: 520px;
+}
+
+.relation-object-canvas-shell,
+.relation-field-shelf {
+  min-width: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.relation-object-canvas-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.relation-canvas-toolbar,
+.relation-shelf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid #e5e7eb;
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+.relation-canvas-toolbar span,
+.relation-shelf-head span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.relation-shelf-head strong {
+  color: #111827;
+  font-size: 13px;
+}
+
+.relation-form-canvas {
+  min-height: 460px;
+  overflow: auto;
+  background: linear-gradient(#f1f5f9 1px, transparent 1px), linear-gradient(90deg, #f1f5f9 1px, transparent 1px);
+  background-color: #f8fafc;
+  background-size: 24px 24px;
+  padding: 18px;
+}
+
+.relation-canvas-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 12px;
+  max-width: 900px;
+}
+
+.relation-canvas-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  min-height: 64px;
+  padding: 10px 12px;
+}
+
+.relation-canvas-field strong,
+.relation-shelf-field strong {
+  display: block;
+  overflow: hidden;
+  color: #111827;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relation-canvas-field span,
+.relation-shelf-field span {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relation-field-shelf {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.relation-shelf-list {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px;
+}
+
+.relation-shelf-field {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  padding: 10px;
+  text-align: left;
+}
+
+.relation-shelf-field:hover {
+  border-color: #2563eb;
+  background: #f8fbff;
+}
+
+.relation-form-panel {
+  display: grid;
+  gap: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px;
+}
+
+.relation-form-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.relation-form-panel header div,
+.relation-form-card {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.relation-form-panel strong,
+.relation-form-card strong {
+  overflow: hidden;
+  color: #111827;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relation-form-panel span,
+.relation-form-card span {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relation-form-list {
+  display: grid;
+  gap: 8px;
+}
+
+.relation-form-card {
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+  cursor: pointer;
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.relation-form-card:hover {
+  border-color: #60a5fa;
+  background: #eff6ff;
+}
+
+.relation-form-card div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.relation-form-card em {
+  border-radius: 4px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 11px;
+  font-style: normal;
+  line-height: 20px;
+  padding: 0 6px;
 }
 
 .field-state-tabs {
@@ -421,6 +1179,12 @@ defineExpose({
   min-height: 0;
   overflow: auto;
   padding: 10px;
+}
+
+.relation-order-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .shelf-field {
@@ -486,10 +1250,22 @@ defineExpose({
   .shelf-list {
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   }
+
+  .relation-object-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .relation-shelf-list {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
 }
 
 @container (max-width: 860px) {
   .form-builder-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .relation-canvas-grid {
     grid-template-columns: 1fr;
   }
 
@@ -498,10 +1274,14 @@ defineExpose({
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .designer-head-actions {
+    justify-content: flex-start;
+  }
 }
 
 @container (max-width: 640px) {
-  .designer-section-head :deep(.n-space) {
+  .designer-head-actions {
     flex-wrap: wrap;
   }
 }

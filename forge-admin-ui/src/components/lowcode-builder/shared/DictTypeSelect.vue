@@ -13,7 +13,7 @@
         size="small"
         placeholder="选择系统字典或输入新字典类型"
         @focus="loadDictTypes"
-        @update:value="$emit('update:value', $event || '')"
+        @update:value="handleValueUpdate"
       />
       <n-button class="create-dict-button" size="small" secondary :disabled="disabled" @click="openCreateModal">
         新增字典
@@ -92,6 +92,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  compact: {
+    type: Boolean,
+    default: false,
+  },
   disabled: {
     type: Boolean,
     default: false,
@@ -104,6 +108,7 @@ const loading = ref(false)
 const saving = ref(false)
 const createVisible = ref(false)
 const systemDictTypes = ref([])
+const loaded = ref(false)
 
 const tagTypeOptions = [
   { label: '默认', value: 'default' },
@@ -120,7 +125,7 @@ const options = computed(() => {
   systemDictTypes.value.forEach((item) => {
     if (item.dictType) {
       map.set(item.dictType, {
-        label: item.dictName ? `${item.dictName}（${item.dictType}）` : item.dictType,
+        label: props.compact ? item.dictName || item.dictType : item.dictName ? `${item.dictName}（${item.dictType}）` : item.dictType,
         value: item.dictType,
       })
     }
@@ -139,12 +144,15 @@ const options = computed(() => {
 onMounted(loadDictTypes)
 
 async function loadDictTypes() {
+  if (loading.value || loaded.value)
+    return
   loading.value = true
   try {
     const res = await request.get('/system/dict/type/list', {
       params: { dictStatus: 1 },
     })
     systemDictTypes.value = Array.isArray(res.data) ? res.data : []
+    loaded.value = true
   }
   catch (error) {
     console.error('[DictTypeSelect] 加载字典类型失败:', error)
@@ -152,6 +160,13 @@ async function loadDictTypes() {
   finally {
     loading.value = false
   }
+}
+
+function handleValueUpdate(value) {
+  const nextValue = value || ''
+  if (nextValue === props.value)
+    return
+  emit('update:value', nextValue)
 }
 
 function openCreateModal() {
@@ -230,7 +245,8 @@ async function saveDict() {
       })
     }
     clearDictCache(dictForm.dictType)
-    emit('update:value', dictForm.dictType)
+    handleValueUpdate(dictForm.dictType)
+    loaded.value = false
     await loadDictTypes()
     createVisible.value = false
     window.$message?.success('字典已保存')

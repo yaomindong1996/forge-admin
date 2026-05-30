@@ -476,21 +476,19 @@
     />
 
     <!-- 系统用户选择 -->
-    <n-select
+    <UserSelectPicker
       v-else-if="field.type === 'userSelect'"
-      :value="resolveOptionValue(value)"
+      :model-value="value"
+      :label-value="resolveUserSelectLabel(field)"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
-      :options="currentOptions"
-      :loading="remoteLoading"
       :clearable="field.clearable !== false"
-      :filterable="field.filterable !== false"
       :multiple="field.multiple"
-      remote
+      :size="field.size"
       v-bind="field.props"
-      @search="handleRemoteSearch"
-      @update:value="handleUpdate"
-      v-on="getComponentEvents(field)"
+      @update:model-value="handleUpdate"
+      @update:label-value="handleUserSelectLabelUpdate(field, $event)"
+      @select="handleUserSelect(field, $event)"
     />
 
     <!-- 行政区划树选择 -->
@@ -610,6 +608,7 @@
 import { CopyOutline } from '@vicons/ionicons5'
 import { useClipboard } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
+import UserSelectPicker from '@/components/common/UserSelectPicker.vue'
 import DictSelect from '@/components/DictSelect.vue'
 import FileUpload from '@/components/file-upload/index.vue'
 import ImageUpload from '@/components/image-upload/index.vue'
@@ -751,6 +750,8 @@ function cacheAsyncOptions(field, promise) {
 }
 
 function resolveOptionSource(field = {}) {
+  if (field.type === 'userSelect')
+    return null
   if (field.optionSource || field.props?.optionSource)
     return field.optionSource || field.props.optionSource
   if (field.type === 'orgTreeSelect') {
@@ -762,18 +763,6 @@ function resolveOptionSource(field = {}) {
       labelField: 'orgName',
       fallbackLabelFields: ['name'],
       childrenField: 'children',
-    }
-  }
-  if (field.type === 'userSelect') {
-    return {
-      type: 'page',
-      api: 'get@/system/user/page',
-      valueField: 'id',
-      labelField: 'realName',
-      fallbackLabelFields: ['name', 'nickname', 'username'],
-      keywordParam: 'keyword',
-      recordsField: 'records',
-      params: { pageNum: 1, pageSize: 50 },
     }
   }
   return null
@@ -875,13 +864,6 @@ function getNestedValue(source, path) {
     .reduce((value, key) => value?.[key], source)
 }
 
-function handleRemoteSearch(keyword) {
-  const source = remoteOptionSource.value
-  if (!source)
-    return
-  loadRemoteOptions(source, keyword)
-}
-
 function resolveOptionValue(rawValue) {
   return normalizeOptionValue(rawValue, currentOptions.value, props.field?.multiple)
 }
@@ -956,6 +938,30 @@ function handleRegionTreeSelectUpdate(field, newValue) {
   }
   props.context?.patchFormData?.({ [includeChildrenKey]: undefined })
   emit('update:value', newValue)
+}
+
+function resolveUserSelectLabel(field) {
+  const targetField = resolveUserSelectLabelField(field)
+  return props.formData?.[targetField] ?? field?.labelValue ?? field?.props?.labelValue ?? ''
+}
+
+function resolveUserSelectLabelField(field) {
+  return field?.props?.targetField || field?.targetField || `${field?.field || ''}Name`
+}
+
+function handleUserSelectLabelUpdate(field, labelValue) {
+  const targetField = resolveUserSelectLabelField(field)
+  if (!targetField)
+    return
+  props.context?.patchFormData?.({
+    [targetField]: Array.isArray(labelValue) ? labelValue.join(',') : labelValue || undefined,
+  })
+}
+
+function handleUserSelect(field, users) {
+  const events = getComponentEvents(field)
+  if (typeof events.select === 'function')
+    events.select(users)
 }
 
 function syncIncludeChildrenFlag(field, value) {

@@ -304,7 +304,7 @@ public class AiCrudConfigGenerateService {
         pageSchema.put("zones", buildPageZones(fields));
 
         Map<String, Object> options = new LinkedHashMap<>();
-        options.put("modalType", "drawer");
+        options.put("modalType", "modal");
         options.put("modalWidth", "800px");
         options.put("showImport", true);
         options.put("showExport", true);

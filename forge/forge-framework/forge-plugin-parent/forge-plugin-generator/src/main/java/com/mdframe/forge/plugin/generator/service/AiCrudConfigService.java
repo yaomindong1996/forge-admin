@@ -172,7 +172,7 @@ public class AiCrudConfigService extends ServiceImpl<AiCrudConfigMapper, AiCrudC
         vo.setPublishStatus(config.getPublishStatus());
         vo.setPublishedVersion(config.getPublishedVersion());
         vo.setRowKey("id");
-        vo.setModalType("drawer");
+        vo.setModalType("modal");
         vo.setModalWidth("800px");
         vo.setEditGridCols(1);
         vo.setSearchGridCols(4);

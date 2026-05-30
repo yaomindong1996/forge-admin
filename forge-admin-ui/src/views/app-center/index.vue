@@ -144,6 +144,8 @@
                     :object="object"
                     @open="openObject"
                     @design="openObjectDesigner"
+                    @toggle="toggleObject"
+                    @delete="deleteObject"
                   />
                 </div>
                 <n-empty v-else-if="!loadingObjects" description="当前筛选下暂无业务对象" />
@@ -170,6 +172,7 @@
                     @open="openApp"
                     @config="openEditor"
                     @toggle="toggleApp"
+                    @delete="deleteApp"
                   />
                 </div>
                 <n-empty v-else-if="!loadingApps" description="当前筛选下暂无应用入口" />
@@ -225,7 +228,10 @@ import {
   businessAppPage,
   businessObjectPage,
   businessSuiteSummary,
+  deleteBusinessApp,
+  deleteBusinessObject,
   updateBusinessAppStatus,
+  updateBusinessObjectStatus,
 } from '@/api/business-app'
 import AppCard from './components/AppCard.vue'
 import AppEditorDrawer from './components/AppEditorDrawer.vue'
@@ -321,7 +327,6 @@ async function loadObjects() {
       pageSize: objectPagination.value.pageSize,
       keyword: keyword.value,
       suiteCode: suiteCode.value,
-      status: 1,
     })
     objects.value = res.data?.records || []
     objectTotal.value = Number(res.data?.total || 0)
@@ -438,6 +443,40 @@ async function toggleApp(app) {
   await updateBusinessAppStatus(app.id, app.status === 1 ? 0 : 1)
   message.success(app.status === 1 ? '应用入口已停用' : '应用入口已启用')
   loadApps()
+}
+
+async function toggleObject(object) {
+  await updateBusinessObjectStatus(object.id, object.status === 1 ? 0 : 1)
+  message.success(object.status === 1 ? '业务对象已停用' : '业务对象已启用')
+  await loadObjects()
+}
+
+function deleteObject(object) {
+  window.$dialog?.warning({
+    title: '删除业务对象',
+    content: `确定删除“${object.objectName || object.objectCode}”吗？已关联关系或应用入口的对象会被后端拦截。`,
+    positiveText: '删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      await deleteBusinessObject(object.id)
+      message.success('业务对象已删除')
+      await loadAll()
+    },
+  })
+}
+
+function deleteApp(app) {
+  window.$dialog?.warning({
+    title: '删除应用入口',
+    content: `确定删除“${app.appName || app.appCode}”吗？删除后不会删除关联业务对象或运行配置。`,
+    positiveText: '删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      await deleteBusinessApp(app.id)
+      message.success('应用入口已删除')
+      await loadAll()
+    },
+  })
 }
 </script>
 

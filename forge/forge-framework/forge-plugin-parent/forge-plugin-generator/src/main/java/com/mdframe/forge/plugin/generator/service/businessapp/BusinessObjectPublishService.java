@@ -21,6 +21,7 @@ import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectDesignVer
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectRelationVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessPublishCheckItemVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessPublishCheckVO;
+import com.mdframe.forge.plugin.generator.vo.lowcode.LowcodeDdlPreviewVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +57,7 @@ public class BusinessObjectPublishService {
 
     public BusinessPublishCheckVO publishCheck(Long objectId) {
         BusinessObjectDesignerService.DesignerContext context = designerService.loadContext(objectId);
+        designerService.applyRelationsToModel(context);
         List<BusinessPublishCheckItemVO> items = new ArrayList<>();
         checkFields(context.getModelSchema(), items);
         checkPage(context.getModelSchema(), context.getPageSchema(), items);
@@ -74,6 +76,7 @@ public class BusinessObjectPublishService {
         if (dto != null && dto.getPageSchema() != null) {
             context.setPageSchema(dto.getPageSchema());
         }
+        designerService.applyRelationsToModel(context);
         context = designerService.saveDraft(context, BusinessObjectDesignStatus.READY);
         BusinessPublishCheckVO check = publishCheck(objectId);
         if (Boolean.FALSE.equals(check.getPublishable()) && (dto == null || !Boolean.TRUE.equals(dto.getForce()))) {
@@ -167,6 +170,10 @@ public class BusinessObjectPublishService {
             if (field == null || Boolean.TRUE.equals(field.getSystemField())) {
                 continue;
             }
+            String fieldStatus = StringUtils.defaultString(field.getFieldStatus());
+            if ("HIDDEN".equalsIgnoreCase(fieldStatus)) {
+                continue;
+            }
             businessFieldCount++;
             if (StringUtils.isBlank(field.getLabel())) {
                 add(items, "FIELD_LABEL_EMPTY", "FIELD", BusinessPublishCheckLevel.BLOCK,
@@ -180,7 +187,7 @@ public class BusinessObjectPublishService {
             } else {
                 fieldCount.merge(field.getField(), 1, Integer::sum);
             }
-            if ("DISABLED".equalsIgnoreCase(StringUtils.defaultString(field.getFieldStatus()))) {
+            if ("DISABLED".equalsIgnoreCase(fieldStatus)) {
                 add(items, "FIELD_DISABLED", "FIELD", BusinessPublishCheckLevel.WARN,
                         "字段已停用", "停用字段不会进入默认表单和列表: " + field.getLabel(), field.getField(), null,
                         "EDIT_FIELD", "检查字段", "fields", 40);
@@ -209,7 +216,7 @@ public class BusinessObjectPublishService {
                     "CONFIG_LAYOUT", "配置布局", "form", 100);
             return;
         }
-        Set<String> modelFields = collectFields(modelSchema);
+        Set<String> modelFields = collectPageFields(modelSchema, pageSchema);
         if (pageSchema.getZones() != null) {
             for (LowcodePageZone zone : pageSchema.getZones()) {
                 if (zone == null || zone.getFieldRefs() == null) {
@@ -326,6 +333,27 @@ public class BusinessObjectPublishService {
                         "FIX_TABLE", "修复数据表", "advanced", 420);
                 return;
             }
+            List<String> retiredColumns = findRetiredBusinessColumns(modelSchema);
+            if (!retiredColumns.isEmpty()) {
+                add(items, "TABLE_COLUMN_RETIRED", "TABLE", BusinessPublishCheckLevel.WARN,
+                        "存在已隐藏字段列", "字段已隐藏或停用，发布不会物理删除数据表列: " + String.join("、", retiredColumns),
+                        null, null, "CHECK_FIELD", "检查字段", "fields", 425);
+            }
+
+            LowcodeDdlPreviewVO preview = ddlService.previewCreateTable(modelSchema);
+            List<String> ddlStatements = preview.getDdlStatements();
+            if (ddlStatements != null && !ddlStatements.isEmpty()) {
+                boolean canOnlineDdl = hasPermission(DDL_PERMISSION);
+                String itemCode = resolveTableSyncItemCode(ddlStatements);
+                add(items, itemCode, "TABLE", canOnlineDdl ? BusinessPublishCheckLevel.WARN : BusinessPublishCheckLevel.BLOCK,
+                        "数据表结构未同步",
+                        canOnlineDdl ? "发布时勾选同步数据表结构后自动执行受控变更: " + summarizeDdlStatements(ddlStatements)
+                                : "数据表结构与字段配置不一致且当前用户无在线同步权限: " + summarizeDdlStatements(ddlStatements),
+                        null, null, "SYNC_TABLE", "同步表结构", canOnlineDdl ? "publish" : "advanced", 430);
+                if (!canOnlineDdl) {
+                    return;
+                }
+            }
             add(items, "TABLE_PASS", "TABLE", BusinessPublishCheckLevel.PASS,
                     "数据表检查通过", "数据表存在且主键符合低代码运行要求", null, null, null, null, "publish", 490);
         } catch (Exception e) {
@@ -349,6 +377,90 @@ public class BusinessObjectPublishService {
         vo.setOverallStatus(vo.getBlockCount() > 0 ? BusinessPublishCheckLevel.BLOCK
                 : vo.getWarnCount() > 0 ? BusinessPublishCheckLevel.WARN : BusinessPublishCheckLevel.PASS);
         return vo;
+    }
+
+    private List<String> findRetiredBusinessColumns(LowcodeModelSchema modelSchema) {
+        if (modelSchema.getFields() == null) {
+            return List.of();
+        }
+        Set<String> existingColumns = ddlService.listColumns(modelSchema.getTableName());
+        return modelSchema.getFields().stream()
+                .filter(field -> field != null && !Boolean.TRUE.equals(field.getSystemField()))
+                .filter(field -> "DISABLED".equalsIgnoreCase(StringUtils.defaultString(field.getFieldStatus()))
+                        || "HIDDEN".equalsIgnoreCase(StringUtils.defaultString(field.getFieldStatus())))
+                .map(LowcodeFieldSchema::getColumnName)
+                .filter(StringUtils::isNotBlank)
+                .filter(column -> !isSystemColumn(column))
+                .filter(existingColumns::contains)
+                .distinct()
+                .toList();
+    }
+
+    private String resolveTableSyncItemCode(List<String> ddlStatements) {
+        boolean hasModify = ddlStatements.stream().anyMatch(ddl -> StringUtils.containsIgnoreCase(ddl, " MODIFY COLUMN "));
+        if (hasModify) {
+            return "TABLE_COLUMN_CHANGED";
+        }
+        boolean hasAdd = ddlStatements.stream().anyMatch(ddl -> StringUtils.containsIgnoreCase(ddl, " ADD COLUMN "));
+        if (hasAdd) {
+            return "TABLE_COLUMN_MISSING";
+        }
+        return "TABLE_INDEX_MISSING";
+    }
+
+    private String summarizeDdlStatements(List<String> ddlStatements) {
+        List<String> summary = ddlStatements.stream()
+                .map(this::summarizeDdlStatement)
+                .filter(StringUtils::isNotBlank)
+                .limit(6)
+                .toList();
+        String suffix = ddlStatements.size() > summary.size() ? " 等 " + ddlStatements.size() + " 项" : "";
+        return String.join("、", summary) + suffix;
+    }
+
+    private String summarizeDdlStatement(String ddl) {
+        if (StringUtils.isBlank(ddl)) {
+            return "";
+        }
+        String normalized = ddl.toUpperCase();
+        if (normalized.contains(" ADD COLUMN ")) {
+            return "新增列 " + extractBacktickValueAfter(ddl, "ADD COLUMN");
+        }
+        if (normalized.contains(" MODIFY COLUMN ")) {
+            return "修改列 " + extractBacktickValueAfter(ddl, "MODIFY COLUMN");
+        }
+        if (normalized.contains(" ADD UNIQUE KEY ")) {
+            return "新增唯一索引 " + extractBacktickValueAfter(ddl, "ADD UNIQUE KEY");
+        }
+        if (normalized.contains(" ADD KEY ")) {
+            return "新增索引 " + extractBacktickValueAfter(ddl, "ADD KEY");
+        }
+        return ddl.length() > 80 ? ddl.substring(0, 80) + "..." : ddl;
+    }
+
+    private String extractBacktickValueAfter(String ddl, String marker) {
+        String upper = ddl.toUpperCase();
+        int markerIndex = upper.indexOf(marker);
+        if (markerIndex < 0) {
+            return "";
+        }
+        int start = ddl.indexOf('`', markerIndex + marker.length());
+        int end = ddl.indexOf('`', start + 1);
+        if (start < 0 || end <= start) {
+            return "";
+        }
+        return "`" + ddl.substring(start + 1, end) + "`";
+    }
+
+    private boolean isSystemColumn(String columnName) {
+        return "id".equals(columnName)
+                || "tenant_id".equals(columnName)
+                || "create_by".equals(columnName)
+                || "create_time".equals(columnName)
+                || "create_dept".equals(columnName)
+                || "update_by".equals(columnName)
+                || "update_time".equals(columnName)
+                || "del_flag".equals(columnName);
     }
 
     private void add(List<BusinessPublishCheckItemVO> items, String code, String category, String level,
@@ -379,6 +491,44 @@ public class BusinessObjectPublishService {
             }
         }
         return fields;
+    }
+
+    private Set<String> collectPageFields(LowcodeModelSchema modelSchema, LowcodePageSchema pageSchema) {
+        Set<String> fields = collectFields(modelSchema);
+        if (pageSchema == null || pageSchema.getModelRefs() == null) {
+            return fields;
+        }
+        pageSchema.getModelRefs().stream()
+                .filter(ref -> ref != null && ref.getFields() != null)
+                .forEach(ref -> {
+                    String modelCode = StringUtils.trimToEmpty(ref.getModelCode());
+                    for (Map<String, Object> field : ref.getFields()) {
+                        String sourceField = text(field.get("sourceField"));
+                        if (StringUtils.isBlank(sourceField)) {
+                            sourceField = text(field.get("field"));
+                        }
+                        String fieldRef = text(field.get("fieldRef"));
+                        String columnName = text(field.get("columnName"));
+                        if (StringUtils.isNotBlank(fieldRef)) {
+                            fields.add(fieldRef);
+                        }
+                        if (StringUtils.isNotBlank(sourceField)) {
+                            fields.add(sourceField);
+                        }
+                        if (StringUtils.isNotBlank(columnName)) {
+                            fields.add(columnName);
+                        }
+                        if (StringUtils.isNotBlank(modelCode) && StringUtils.isNotBlank(sourceField)) {
+                            fields.add(modelCode + "." + sourceField);
+                            fields.add(modelCode + "__" + sourceField);
+                        }
+                    }
+                });
+        return fields;
+    }
+
+    private String text(Object value) {
+        return value == null ? null : String.valueOf(value);
     }
 
     private boolean hasPermission(String permission) {

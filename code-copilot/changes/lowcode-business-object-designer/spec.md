@@ -528,6 +528,7 @@
 | Task 25 | completed | `BusinessFieldPropertyPanel.vue`, `object-designer.[objectCode].vue` | 修复未选字段时属性面板空指针；对象设计器保留 19 位 `objectId` 字符串，页面验证无白屏和 `fieldName/null` 错误 |
 | Task 26 | completed | `BusinessPublishChecklist.vue`, `object-designer.[objectCode].vue` | CRM 客户对象发布检查 PASS，发布成功并打开 `/ai/crud-page/crm_customer`，运行页无 `undefined` |
 | Task 27 | completed | `spec.md`, `tasks.md` | 回填 Phase 5 验证结果和已修复问题，任务状态与实际完成情况一致 |
+| Task 28 | completed | `BusinessObjectWizardDrawer.vue`, `AppEditorDrawer.vue`, `AppCard.vue`, `ObjectCard.vue`, `BusinessAppService.java`, `MenuRegisterAdapter.java`, `MenuRegisterAdapterImpl.java`, `app-entry.vue` | 移除模板创建入口；业务对象和应用入口支持启停/删除；应用入口按管理端菜单、移动应用、外部接口配置挂载位置，管理端入口同步生成系统菜单 |
 
 **Phase 2 验证**：2026-05-29 使用 JDK 17 执行 `mvn -pl forge-admin-server -am compile -DskipTests`，结果 `BUILD SUCCESS`。
 

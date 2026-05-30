@@ -20,6 +20,7 @@ public class MenuRegisterAdapterImpl implements MenuRegisterAdapter {
 
     private static final String DEFAULT_CLIENT_CODE = "pc";
     private static final String DOMAIN_MENU_PERMS_PREFIX = "ai:lowcode:domain-menu:";
+    private static final String BUSINESS_SUITE_MENU_PERMS_PREFIX = "ai:business:suite-menu:";
 
     private final ISysResourceService resourceService;
     private final SysResourceMapper resourceMapper;
@@ -67,6 +68,51 @@ public class MenuRegisterAdapterImpl implements MenuRegisterAdapter {
     public void deleteMenu(Long menuResourceId) {
         resourceService.removeById(menuResourceId);
         log.info("[MenuRegisterAdapter] 删除菜单成功: menuId={}", menuResourceId);
+    }
+
+    @Override
+    public Long registerAppMenu(String menuName, Long parentId, String path, String component,
+                                String perms, String icon, Integer sort, boolean enabled) {
+        SysResource resource = new SysResource();
+        resource.setTenantId(resolveTenantId());
+        resource.setResourceName(menuName);
+        resource.setParentId(parentId != null ? parentId : 0L);
+        resource.setResourceType(2);
+        resource.setSort(sort != null ? sort : 0);
+        resource.setPath(path);
+        resource.setComponent(component);
+        resource.setIsExternal(0);
+        resource.setIsPublic(0);
+        resource.setMenuStatus(enabled ? 1 : 0);
+        resource.setVisible(enabled ? 1 : 0);
+        resource.setPerms(perms);
+        resource.setIcon(StringUtils.defaultIfBlank(icon, "ionicons5:AppsOutline"));
+        resource.setKeepAlive(0);
+        resource.setAlwaysShow(0);
+        resource.setClientCode(DEFAULT_CLIENT_CODE);
+        resourceService.save(resource);
+        log.info("[MenuRegisterAdapter] 注册应用入口菜单成功: menuName={}, path={}, menuId={}",
+                menuName, path, resource.getId());
+        return resource.getId();
+    }
+
+    @Override
+    public void updateAppMenu(Long menuResourceId, String menuName, Long parentId, String path,
+                              String component, String perms, String icon, Integer sort, boolean enabled) {
+        SysResource resource = new SysResource();
+        resource.setId(menuResourceId);
+        resource.setResourceName(menuName);
+        resource.setParentId(parentId != null ? parentId : 0L);
+        resource.setPath(path);
+        resource.setComponent(component);
+        resource.setPerms(perms);
+        resource.setIcon(StringUtils.defaultIfBlank(icon, "ionicons5:AppsOutline"));
+        resource.setSort(sort != null ? sort : 0);
+        resource.setMenuStatus(enabled ? 1 : 0);
+        resource.setVisible(enabled ? 1 : 0);
+        resourceService.updateById(resource);
+        log.info("[MenuRegisterAdapter] 更新应用入口菜单成功: menuId={}, menuName={}, parentId={}",
+                menuResourceId, menuName, parentId);
     }
 
     @Override
@@ -122,12 +168,71 @@ public class MenuRegisterAdapterImpl implements MenuRegisterAdapter {
         return resource.getId();
     }
 
+    @Override
+    public Long resolveOrCreateBusinessSuiteParentId(Long parentId, String suiteCode, String suiteName, Integer sort) {
+        String normalizedCode = StringUtils.trimToNull(suiteCode);
+        if (normalizedCode == null) {
+            return parentId;
+        }
+        Long tenantId = resolveTenantId();
+        String perms = BUSINESS_SUITE_MENU_PERMS_PREFIX + normalizedCode;
+        SysResource existing = resourceMapper.selectOneByPerms(tenantId, 1, perms);
+        Long resolvedParentId = parentId != null ? parentId : 0L;
+        if (existing != null && existing.getId() != null) {
+            updateBusinessSuiteParentIfNeeded(existing, resolvedParentId, suiteName, sort);
+            return existing.getId();
+        }
+
+        SysResource resource = new SysResource();
+        resource.setTenantId(tenantId);
+        resource.setResourceName(StringUtils.defaultIfBlank(suiteName, normalizedCode));
+        resource.setParentId(resolvedParentId);
+        resource.setResourceType(1);
+        resource.setSort(sort != null ? sort : 0);
+        resource.setPath("/app-center/suite-menu/" + normalizedCode);
+        resource.setComponent(null);
+        resource.setIsExternal(0);
+        resource.setIsPublic(0);
+        resource.setMenuStatus(1);
+        resource.setVisible(1);
+        resource.setPerms(perms);
+        resource.setIcon("ionicons5:AlbumsOutline");
+        resource.setKeepAlive(0);
+        resource.setAlwaysShow(1);
+        resource.setClientCode(DEFAULT_CLIENT_CODE);
+        resourceService.save(resource);
+        log.info("[MenuRegisterAdapter] 创建业务套件菜单目录成功: suiteCode={}, menuId={}",
+                normalizedCode, resource.getId());
+        return resource.getId();
+    }
+
     private void updateDomainParentIfNeeded(SysResource existing, String domainName, Integer sort) {
         SysResource resource = new SysResource();
         resource.setId(existing.getId());
         boolean changed = false;
         if (StringUtils.isNotBlank(domainName) && !domainName.equals(existing.getResourceName())) {
             resource.setResourceName(domainName);
+            changed = true;
+        }
+        if (sort != null && !sort.equals(existing.getSort())) {
+            resource.setSort(sort);
+            changed = true;
+        }
+        if (changed) {
+            resourceService.updateById(resource);
+        }
+    }
+
+    private void updateBusinessSuiteParentIfNeeded(SysResource existing, Long parentId, String suiteName, Integer sort) {
+        SysResource resource = new SysResource();
+        resource.setId(existing.getId());
+        boolean changed = false;
+        if (parentId != null && !parentId.equals(existing.getParentId())) {
+            resource.setParentId(parentId);
+            changed = true;
+        }
+        if (StringUtils.isNotBlank(suiteName) && !suiteName.equals(existing.getResourceName())) {
+            resource.setResourceName(suiteName);
             changed = true;
         }
         if (sort != null && !sort.equals(existing.getSort())) {

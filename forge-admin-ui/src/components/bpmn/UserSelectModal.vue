@@ -45,7 +45,7 @@
         :columns="columns"
         :data="userList"
         :loading="loading"
-        :row-key="row => row.id"
+        :row-key="row => String(row.id)"
         :checked-row-keys="checkedKeys"
         :single-line="false"
         :max-height="400"
@@ -172,7 +172,7 @@ watch(() => props.show, async (val) => {
     await loadDeptTree()
     loadUserList()
     // 初始化已选中的用户
-    checkedKeys.value = props.selectedUsers.map(u => u.id)
+    checkedKeys.value = props.selectedUsers.map(u => String(u.id))
   }
 })
 
@@ -265,17 +265,24 @@ function handleReset() {
 // 选择处理
 function handleCheck(keys) {
   if (props.multiple) {
-    checkedKeys.value = keys
+    checkedKeys.value = keys.map(String)
   }
   else {
     // 单选模式
-    checkedKeys.value = keys.length > 0 ? [keys[keys.length - 1]] : []
+    checkedKeys.value = keys.length > 0 ? [String(keys[keys.length - 1])] : []
   }
 }
 
 // 确认
 function handleConfirm() {
-  const selectedUsers = userList.value.filter(u => checkedKeys.value.includes(u.id))
+  const userMap = new Map()
+  ;[...props.selectedUsers, ...userList.value].forEach((user) => {
+    if (user?.id !== null && user?.id !== undefined)
+      userMap.set(String(user.id), user)
+  })
+  const selectedUsers = checkedKeys.value
+    .map(key => userMap.get(String(key)))
+    .filter(Boolean)
   emit('confirm', props.multiple ? selectedUsers : selectedUsers[0])
   handleClose()
 }

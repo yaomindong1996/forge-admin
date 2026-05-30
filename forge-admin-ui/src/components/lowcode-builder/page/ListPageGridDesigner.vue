@@ -39,6 +39,14 @@
           <span>{{ blocks.length }} 个区块 · {{ totalRows }} 行 × 12 列</span>
         </div>
         <n-space size="small">
+          <n-button
+            size="small"
+            secondary
+            :disabled="!selectedBlock"
+            @click="propertyDrawerOpen = true"
+          >
+            属性配置
+          </n-button>
           <n-button size="small" @click="resetLayout">
             重置默认
           </n-button>
@@ -59,7 +67,7 @@
           ref="canvasRef"
           class="canvas-grid"
           :style="canvasStyle"
-          @click.self="selectedBlockId = null"
+          @click.self="clearSelection"
         >
           <!-- Grid background -->
           <div
@@ -83,7 +91,7 @@
             :class="{ selected: block.id === selectedBlockId }"
             :style="resolveBlockStyle(block)"
             @mousedown.stop="startMove(block, $event)"
-            @click.stop="selectedBlockId = block.id"
+            @click.stop="handleBlockClick(block.id)"
           >
             <GridBlockRenderer
               :block="block"
@@ -96,303 +104,310 @@
       </div>
     </main>
 
-    <aside class="property-panel">
-      <div v-if="!selectedBlock" class="property-empty">
-        <p>选中画布上的区块以编辑属性</p>
-      </div>
-      <div v-else class="property-body">
-        <div class="prop-head">
-          <div>
-            <div class="prop-title">
-              {{ selectedBlockMeta?.title || selectedBlock.blockType }}
+    <n-drawer v-model:show="propertyDrawerOpen" :width="400" placement="right">
+      <n-drawer-content
+        :title="selectedBlock ? `配置区块 · ${selectedBlockMeta?.title || selectedBlock.blockType}` : '配置区块'"
+        closable
+      >
+        <div class="property-panel">
+          <div v-if="!selectedBlock" class="property-empty">
+            <p>选中画布上的区块以编辑属性</p>
+          </div>
+          <div v-else class="property-body">
+            <div class="prop-head">
+              <div>
+                <div class="prop-title">
+                  {{ selectedBlockMeta?.title || selectedBlock.blockType }}
+                </div>
+                <div class="prop-meta">
+                  {{ selectedBlock.gridW }} 列 × {{ selectedBlock.gridH }} 行
+                </div>
+              </div>
             </div>
-            <div class="prop-meta">
-              {{ selectedBlock.gridW }} 列 × {{ selectedBlock.gridH }} 行
-            </div>
+
+            <n-form size="small" label-placement="top" :show-feedback="false">
+              <n-form-item label="区块标题">
+                <n-input
+                  :value="selectedBlock.label"
+                  @update:value="patchBlock(selectedBlock.id, { label: $event })"
+                />
+              </n-form-item>
+
+              <n-form-item label="网格位置（列 / 行 / 宽 / 高）">
+                <div class="grid-pos-editor">
+                  <div class="pos-cell">
+                    <span class="pos-label">列 X</span>
+                    <n-input-number
+                      :value="selectedBlock.gridX"
+                      :min="0"
+                      :max="11"
+                      size="small"
+                      class="pos-input"
+                      @update:value="patchBlock(selectedBlock.id, { gridX: $event ?? 0 })"
+                    />
+                  </div>
+                  <div class="pos-cell">
+                    <span class="pos-label">行 Y</span>
+                    <n-input-number
+                      :value="selectedBlock.gridY"
+                      :min="0"
+                      size="small"
+                      class="pos-input"
+                      @update:value="patchBlock(selectedBlock.id, { gridY: $event ?? 0 })"
+                    />
+                  </div>
+                  <div class="pos-cell">
+                    <span class="pos-label">宽 W</span>
+                    <n-input-number
+                      :value="selectedBlock.gridW"
+                      :min="1"
+                      :max="12"
+                      size="small"
+                      class="pos-input"
+                      @update:value="patchBlock(selectedBlock.id, { gridW: $event ?? 1 })"
+                    />
+                  </div>
+                  <div class="pos-cell">
+                    <span class="pos-label">高 H</span>
+                    <n-input-number
+                      :value="selectedBlock.gridH"
+                      :min="1"
+                      size="small"
+                      class="pos-input"
+                      @update:value="patchBlock(selectedBlock.id, { gridH: $event ?? 1 })"
+                    />
+                  </div>
+                </div>
+              </n-form-item>
+
+              <!-- Search / Table 字段配置 -->
+              <template v-if="['search-form', 'data-table'].includes(selectedBlock.blockType)">
+                <n-form-item :label="selectedBlock.blockType === 'search-form' ? '查询字段' : '展示列'">
+                  <n-button size="small" type="primary" secondary @click="fieldDrawerOpen = true">
+                    配置字段（{{ selectedBlock.fieldRefs?.length || 0 }}/{{ fields.length }}）
+                  </n-button>
+                </n-form-item>
+                <n-form-item v-if="selectedBlock.blockType === 'search-form'" label="可折叠">
+                  <n-switch
+                    :value="!!selectedBlock.props?.collapsible"
+                    size="small"
+                    @update:value="patchBlockProps(selectedBlock.id, { collapsible: $event })"
+                  />
+                </n-form-item>
+                <template v-if="selectedBlock.blockType === 'data-table'">
+                  <n-form-item label="默认排序字段">
+                    <n-select
+                      :value="selectedBlock.props?.defaultSortField || 'id'"
+                      :options="sortFieldOptions"
+                      filterable
+                      clearable
+                      @update:value="patchBlockProps(selectedBlock.id, { defaultSortField: $event || 'id' })"
+                    />
+                  </n-form-item>
+                  <n-form-item label="默认排序方式">
+                    <n-select
+                      :value="selectedBlock.props?.defaultSortOrder || 'desc'"
+                      :options="sortOrderOptions"
+                      @update:value="patchBlockProps(selectedBlock.id, { defaultSortOrder: $event || 'desc' })"
+                    />
+                  </n-form-item>
+                </template>
+              </template>
+
+              <!-- Toolbar 动作 -->
+              <template v-if="selectedBlock.blockType === 'toolbar'">
+                <n-form-item label="按钮">
+                  <n-checkbox-group
+                    :value="selectedBlock.props?.actions || []"
+                    @update:value="patchBlockProps(selectedBlock.id, { actions: $event })"
+                  >
+                    <n-space vertical size="small">
+                      <n-checkbox value="add" label="新增" />
+                      <n-checkbox value="import" label="导入" />
+                      <n-checkbox value="export" label="导出" />
+                      <n-checkbox value="batch-delete" label="批量删除" />
+                      <n-checkbox value="custom-query" label="自定义查询" />
+                    </n-space>
+                  </n-checkbox-group>
+                </n-form-item>
+                <n-divider>自定义操作按钮</n-divider>
+                <div class="custom-action-summary">
+                  <div v-if="customActionList.length" class="action-chip-list">
+                    <span
+                      v-for="action in customActionList"
+                      :key="action.key"
+                      class="action-chip"
+                    >
+                      {{ action.label || action.key }}
+                      <small>{{ actionPositionText(action.position) }} · {{ actionBehaviorText(action.actionType) }}</small>
+                    </span>
+                  </div>
+                  <span v-else class="empty">暂未配置自定义操作</span>
+                  <n-button size="small" type="primary" secondary block @click="openCustomActionModal">
+                    配置自定义操作（{{ customActionList.length }}）
+                  </n-button>
+                </div>
+              </template>
+
+              <!-- Tree panel -->
+              <template v-if="selectedBlock.blockType === 'tree-panel'">
+                <n-form-item label="树数据模型">
+                  <n-select
+                    :value="selectedBlock.props?.sourceModelCode"
+                    :options="treeSourceOptions"
+                    clearable
+                    @update:value="handleTreeSourceChange"
+                  />
+                </n-form-item>
+                <n-form-item label="树标题">
+                  <n-input
+                    :value="selectedBlock.props?.treeTitle"
+                    @update:value="patchBlockProps(selectedBlock.id, { treeTitle: $event })"
+                  />
+                </n-form-item>
+                <n-form-item label="节点主键字段">
+                  <n-select
+                    :value="selectedBlock.props?.keyField"
+                    :options="treeFieldOptions"
+                    clearable
+                    @update:value="patchBlockProps(selectedBlock.id, { keyField: $event })"
+                  />
+                </n-form-item>
+                <n-form-item label="父级字段">
+                  <n-select
+                    :value="selectedBlock.props?.parentField"
+                    :options="treeFieldOptions"
+                    clearable
+                    @update:value="patchBlockProps(selectedBlock.id, { parentField: $event })"
+                  />
+                </n-form-item>
+                <n-form-item label="显示字段">
+                  <n-select
+                    :value="selectedBlock.props?.labelField"
+                    :options="treeFieldOptions"
+                    clearable
+                    @update:value="patchBlockProps(selectedBlock.id, { labelField: $event })"
+                  />
+                </n-form-item>
+                <n-form-item label="加载方式">
+                  <n-select
+                    :value="selectedBlock.props?.loadMode || 'full'"
+                    :options="treeLoadModeOptions"
+                    @update:value="patchBlockProps(selectedBlock.id, { loadMode: $event })"
+                  />
+                </n-form-item>
+                <n-form-item label="右表过滤字段">
+                  <n-select
+                    :value="selectedBlock.props?.filterField"
+                    :options="primaryFieldOptions"
+                    clearable
+                    @update:value="patchBlockProps(selectedBlock.id, { filterField: $event })"
+                  />
+                </n-form-item>
+              </template>
+
+              <!-- Stats strip -->
+              <template v-if="selectedBlock.blockType === 'stats-strip'">
+                <n-form-item label="指标项">
+                  <div class="metrics-editor">
+                    <div
+                      v-for="(metric, idx) in (selectedBlock.props?.metrics || [])"
+                      :key="idx"
+                      class="metric-row"
+                    >
+                      <n-input
+                        :value="metric.label"
+                        placeholder="标签"
+                        size="small"
+                        @update:value="updateMetric(idx, { label: $event })"
+                      />
+                      <n-input
+                        :value="metric.value"
+                        placeholder="数值"
+                        size="small"
+                        @update:value="updateMetric(idx, { value: $event })"
+                      />
+                      <n-input
+                        :value="metric.trend"
+                        placeholder="+5%"
+                        size="small"
+                        @update:value="updateMetric(idx, { trend: $event })"
+                      />
+                      <n-button size="tiny" quaternary @click="removeMetric(idx)">
+                        删
+                      </n-button>
+                    </div>
+                    <n-button size="small" dashed block @click="addMetric">
+                      + 添加指标
+                    </n-button>
+                  </div>
+                </n-form-item>
+              </template>
+
+              <!-- Custom html -->
+              <template v-if="selectedBlock.blockType === 'custom-html'">
+                <n-form-item label="标题">
+                  <n-input
+                    :value="selectedBlock.props?.title"
+                    @update:value="patchBlockProps(selectedBlock.id, { title: $event })"
+                  />
+                </n-form-item>
+                <n-form-item label="正文">
+                  <n-input
+                    :value="selectedBlock.props?.content"
+                    type="textarea"
+                    :rows="4"
+                    @update:value="patchBlockProps(selectedBlock.id, { content: $event })"
+                  />
+                </n-form-item>
+              </template>
+
+              <!-- Sub table tabs -->
+              <template v-if="selectedBlock.blockType === 'sub-table-tabs'">
+                <n-form-item label="Tab 项">
+                  <div class="metrics-editor">
+                    <div
+                      v-for="(tab, idx) in (selectedBlock.props?.tabs || [])"
+                      :key="idx"
+                      class="metric-row"
+                    >
+                      <n-input
+                        :value="tab.title"
+                        placeholder="标题"
+                        size="small"
+                        @update:value="updateTab(idx, { title: $event })"
+                      />
+                      <n-input
+                        :value="tab.key"
+                        placeholder="key"
+                        size="small"
+                        @update:value="updateTab(idx, { key: $event })"
+                      />
+                      <n-button size="tiny" quaternary @click="removeTab(idx)">
+                        删
+                      </n-button>
+                    </div>
+                    <n-button size="small" dashed block @click="addTab">
+                      + 添加 Tab
+                    </n-button>
+                  </div>
+                </n-form-item>
+              </template>
+
+              <!-- Section divider -->
+              <template v-if="selectedBlock.blockType === 'section-divider'">
+                <n-form-item label="标题">
+                  <n-input
+                    :value="selectedBlock.props?.title"
+                    @update:value="patchBlockProps(selectedBlock.id, { title: $event })"
+                  />
+                </n-form-item>
+              </template>
+            </n-form>
           </div>
         </div>
-
-        <n-form size="small" label-placement="top" :show-feedback="false">
-          <n-form-item label="区块标题">
-            <n-input
-              :value="selectedBlock.label"
-              @update:value="patchBlock(selectedBlock.id, { label: $event })"
-            />
-          </n-form-item>
-
-          <n-form-item label="网格位置（列 / 行 / 宽 / 高）">
-            <div class="grid-pos-editor">
-              <div class="pos-cell">
-                <span class="pos-label">列 X</span>
-                <n-input-number
-                  :value="selectedBlock.gridX"
-                  :min="0"
-                  :max="11"
-                  size="small"
-                  class="pos-input"
-                  @update:value="patchBlock(selectedBlock.id, { gridX: $event ?? 0 })"
-                />
-              </div>
-              <div class="pos-cell">
-                <span class="pos-label">行 Y</span>
-                <n-input-number
-                  :value="selectedBlock.gridY"
-                  :min="0"
-                  size="small"
-                  class="pos-input"
-                  @update:value="patchBlock(selectedBlock.id, { gridY: $event ?? 0 })"
-                />
-              </div>
-              <div class="pos-cell">
-                <span class="pos-label">宽 W</span>
-                <n-input-number
-                  :value="selectedBlock.gridW"
-                  :min="1"
-                  :max="12"
-                  size="small"
-                  class="pos-input"
-                  @update:value="patchBlock(selectedBlock.id, { gridW: $event ?? 1 })"
-                />
-              </div>
-              <div class="pos-cell">
-                <span class="pos-label">高 H</span>
-                <n-input-number
-                  :value="selectedBlock.gridH"
-                  :min="1"
-                  size="small"
-                  class="pos-input"
-                  @update:value="patchBlock(selectedBlock.id, { gridH: $event ?? 1 })"
-                />
-              </div>
-            </div>
-          </n-form-item>
-
-          <!-- Search / Table 字段配置 -->
-          <template v-if="['search-form', 'data-table'].includes(selectedBlock.blockType)">
-            <n-form-item :label="selectedBlock.blockType === 'search-form' ? '查询字段' : '展示列'">
-              <n-button size="small" type="primary" secondary @click="fieldDrawerOpen = true">
-                配置字段（{{ selectedBlock.fieldRefs?.length || 0 }}/{{ fields.length }}）
-              </n-button>
-            </n-form-item>
-            <n-form-item v-if="selectedBlock.blockType === 'search-form'" label="可折叠">
-              <n-switch
-                :value="!!selectedBlock.props?.collapsible"
-                size="small"
-                @update:value="patchBlockProps(selectedBlock.id, { collapsible: $event })"
-              />
-            </n-form-item>
-            <template v-if="selectedBlock.blockType === 'data-table'">
-              <n-form-item label="默认排序字段">
-                <n-select
-                  :value="selectedBlock.props?.defaultSortField || 'id'"
-                  :options="sortFieldOptions"
-                  filterable
-                  clearable
-                  @update:value="patchBlockProps(selectedBlock.id, { defaultSortField: $event || 'id' })"
-                />
-              </n-form-item>
-              <n-form-item label="默认排序方式">
-                <n-select
-                  :value="selectedBlock.props?.defaultSortOrder || 'desc'"
-                  :options="sortOrderOptions"
-                  @update:value="patchBlockProps(selectedBlock.id, { defaultSortOrder: $event || 'desc' })"
-                />
-              </n-form-item>
-            </template>
-          </template>
-
-          <!-- Toolbar 动作 -->
-          <template v-if="selectedBlock.blockType === 'toolbar'">
-            <n-form-item label="按钮">
-              <n-checkbox-group
-                :value="selectedBlock.props?.actions || []"
-                @update:value="patchBlockProps(selectedBlock.id, { actions: $event })"
-              >
-                <n-space vertical size="small">
-                  <n-checkbox value="add" label="新增" />
-                  <n-checkbox value="import" label="导入" />
-                  <n-checkbox value="export" label="导出" />
-                  <n-checkbox value="batch-delete" label="批量删除" />
-                  <n-checkbox value="custom-query" label="自定义查询" />
-                </n-space>
-              </n-checkbox-group>
-            </n-form-item>
-            <n-divider>自定义操作按钮</n-divider>
-            <div class="custom-action-summary">
-              <div v-if="customActionList.length" class="action-chip-list">
-                <span
-                  v-for="action in customActionList"
-                  :key="action.key"
-                  class="action-chip"
-                >
-                  {{ action.label || action.key }}
-                  <small>{{ actionPositionText(action.position) }} · {{ actionBehaviorText(action.actionType) }}</small>
-                </span>
-              </div>
-              <span v-else class="empty">暂未配置自定义操作</span>
-              <n-button size="small" type="primary" secondary block @click="openCustomActionModal">
-                配置自定义操作（{{ customActionList.length }}）
-              </n-button>
-            </div>
-          </template>
-
-          <!-- Tree panel -->
-          <template v-if="selectedBlock.blockType === 'tree-panel'">
-            <n-form-item label="树数据模型">
-              <n-select
-                :value="selectedBlock.props?.sourceModelCode"
-                :options="treeSourceOptions"
-                clearable
-                @update:value="handleTreeSourceChange"
-              />
-            </n-form-item>
-            <n-form-item label="树标题">
-              <n-input
-                :value="selectedBlock.props?.treeTitle"
-                @update:value="patchBlockProps(selectedBlock.id, { treeTitle: $event })"
-              />
-            </n-form-item>
-            <n-form-item label="节点主键字段">
-              <n-select
-                :value="selectedBlock.props?.keyField"
-                :options="treeFieldOptions"
-                clearable
-                @update:value="patchBlockProps(selectedBlock.id, { keyField: $event })"
-              />
-            </n-form-item>
-            <n-form-item label="父级字段">
-              <n-select
-                :value="selectedBlock.props?.parentField"
-                :options="treeFieldOptions"
-                clearable
-                @update:value="patchBlockProps(selectedBlock.id, { parentField: $event })"
-              />
-            </n-form-item>
-            <n-form-item label="显示字段">
-              <n-select
-                :value="selectedBlock.props?.labelField"
-                :options="treeFieldOptions"
-                clearable
-                @update:value="patchBlockProps(selectedBlock.id, { labelField: $event })"
-              />
-            </n-form-item>
-            <n-form-item label="加载方式">
-              <n-select
-                :value="selectedBlock.props?.loadMode || 'full'"
-                :options="treeLoadModeOptions"
-                @update:value="patchBlockProps(selectedBlock.id, { loadMode: $event })"
-              />
-            </n-form-item>
-            <n-form-item label="右表过滤字段">
-              <n-select
-                :value="selectedBlock.props?.filterField"
-                :options="primaryFieldOptions"
-                clearable
-                @update:value="patchBlockProps(selectedBlock.id, { filterField: $event })"
-              />
-            </n-form-item>
-          </template>
-
-          <!-- Stats strip -->
-          <template v-if="selectedBlock.blockType === 'stats-strip'">
-            <n-form-item label="指标项">
-              <div class="metrics-editor">
-                <div
-                  v-for="(metric, idx) in (selectedBlock.props?.metrics || [])"
-                  :key="idx"
-                  class="metric-row"
-                >
-                  <n-input
-                    :value="metric.label"
-                    placeholder="标签"
-                    size="small"
-                    @update:value="updateMetric(idx, { label: $event })"
-                  />
-                  <n-input
-                    :value="metric.value"
-                    placeholder="数值"
-                    size="small"
-                    @update:value="updateMetric(idx, { value: $event })"
-                  />
-                  <n-input
-                    :value="metric.trend"
-                    placeholder="+5%"
-                    size="small"
-                    @update:value="updateMetric(idx, { trend: $event })"
-                  />
-                  <n-button size="tiny" quaternary @click="removeMetric(idx)">
-                    删
-                  </n-button>
-                </div>
-                <n-button size="small" dashed block @click="addMetric">
-                  + 添加指标
-                </n-button>
-              </div>
-            </n-form-item>
-          </template>
-
-          <!-- Custom html -->
-          <template v-if="selectedBlock.blockType === 'custom-html'">
-            <n-form-item label="标题">
-              <n-input
-                :value="selectedBlock.props?.title"
-                @update:value="patchBlockProps(selectedBlock.id, { title: $event })"
-              />
-            </n-form-item>
-            <n-form-item label="正文">
-              <n-input
-                :value="selectedBlock.props?.content"
-                type="textarea"
-                :rows="4"
-                @update:value="patchBlockProps(selectedBlock.id, { content: $event })"
-              />
-            </n-form-item>
-          </template>
-
-          <!-- Sub table tabs -->
-          <template v-if="selectedBlock.blockType === 'sub-table-tabs'">
-            <n-form-item label="Tab 项">
-              <div class="metrics-editor">
-                <div
-                  v-for="(tab, idx) in (selectedBlock.props?.tabs || [])"
-                  :key="idx"
-                  class="metric-row"
-                >
-                  <n-input
-                    :value="tab.title"
-                    placeholder="标题"
-                    size="small"
-                    @update:value="updateTab(idx, { title: $event })"
-                  />
-                  <n-input
-                    :value="tab.key"
-                    placeholder="key"
-                    size="small"
-                    @update:value="updateTab(idx, { key: $event })"
-                  />
-                  <n-button size="tiny" quaternary @click="removeTab(idx)">
-                    删
-                  </n-button>
-                </div>
-                <n-button size="small" dashed block @click="addTab">
-                  + 添加 Tab
-                </n-button>
-              </div>
-            </n-form-item>
-          </template>
-
-          <!-- Section divider -->
-          <template v-if="selectedBlock.blockType === 'section-divider'">
-            <n-form-item label="标题">
-              <n-input
-                :value="selectedBlock.props?.title"
-                @update:value="patchBlockProps(selectedBlock.id, { title: $event })"
-              />
-            </n-form-item>
-          </template>
-        </n-form>
-      </div>
-    </aside>
+      </n-drawer-content>
+    </n-drawer>
 
     <n-drawer v-model:show="fieldDrawerOpen" :width="480" placement="right">
       <n-drawer-content :title="`配置字段 · ${selectedBlockMeta?.title || ''}`" closable>
@@ -755,15 +770,17 @@ const sortOrderOptions = [
 
 const canvasRef = ref(null)
 const selectedBlockId = ref(null)
+const propertyDrawerOpen = ref(false)
 const fieldDrawerOpen = ref(false)
 const customActionModalOpen = ref(false)
 const activeActionIndex = ref(0)
+let suppressNextBlockClick = false
 
-const localLayout = ref(syncGridLayoutWithModel(
+const localLayout = ref(normalizeDesignerLayout(syncGridLayoutWithModel(
   props.modelValue || createDefaultListGridLayout(props.modelSchema, { layoutType: props.layoutType }),
   props.modelSchema,
   { layoutType: props.layoutType },
-))
+)))
 
 const blocks = computed(() => localLayout.value.items || [])
 const totalRows = computed(() => {
@@ -843,7 +860,7 @@ const availableFields = computed(() => {
 watch(
   () => props.modelValue,
   (value) => {
-    const next = syncGridLayoutWithModel(value, props.modelSchema, { layoutType: props.layoutType })
+    const next = normalizeDesignerLayout(syncGridLayoutWithModel(value, props.modelSchema, { layoutType: props.layoutType }))
     if (JSON.stringify(next) !== JSON.stringify(localLayout.value))
       localLayout.value = next
   },
@@ -853,7 +870,7 @@ watch(
 watch(
   () => props.modelSchema,
   () => {
-    localLayout.value = syncGridLayoutWithModel(localLayout.value, props.modelSchema, { layoutType: props.layoutType })
+    localLayout.value = normalizeDesignerLayout(syncGridLayoutWithModel(localLayout.value, props.modelSchema, { layoutType: props.layoutType }))
   },
   { deep: true },
 )
@@ -861,7 +878,7 @@ watch(
 watch(
   () => props.layoutType,
   () => {
-    localLayout.value = syncGridLayoutWithModel(localLayout.value, props.modelSchema, { layoutType: props.layoutType })
+    localLayout.value = normalizeDesignerLayout(syncGridLayoutWithModel(localLayout.value, props.modelSchema, { layoutType: props.layoutType }))
   },
 )
 
@@ -880,6 +897,25 @@ function resolveBlockStyle(block) {
     width: `${block.gridW * colWidth + (block.gridW - 1) * gap}px`,
     height: `${block.gridH * rowHeight + (block.gridH - 1) * gap}px`,
   }
+}
+
+function selectBlock(blockId, options = {}) {
+  selectedBlockId.value = blockId
+  if (options.openProperty)
+    propertyDrawerOpen.value = true
+}
+
+function handleBlockClick(blockId) {
+  if (suppressNextBlockClick) {
+    suppressNextBlockClick = false
+    return
+  }
+  selectBlock(blockId, { openProperty: true })
+}
+
+function clearSelection() {
+  selectedBlockId.value = null
+  propertyDrawerOpen.value = false
 }
 
 function isBlockDisabled(item) {
@@ -935,9 +971,9 @@ function appendBlock(blockType, position) {
     block.gridX = Math.max(0, LIST_PAGE_GRID_COLS - block.gridW)
   localLayout.value = {
     ...localLayout.value,
-    items: [...blocks.value, block],
+    items: normalizeGridItems([...blocks.value, block]),
   }
-  selectedBlockId.value = block.id
+  selectBlock(block.id, { openProperty: true })
 }
 
 function nextFreeRow() {
@@ -959,18 +995,23 @@ function pixelToCell(clientX, clientY) {
 function patchBlock(id, patch) {
   localLayout.value = {
     ...localLayout.value,
-    items: blocks.value.map(b => b.id === id
-      ? { ...b, ...patch, gridX: clamp(patch.gridX ?? b.gridX, 0, 11), gridW: clamp(patch.gridW ?? b.gridW, 1, 12) }
-      : b),
+    items: normalizeGridItems(blocks.value.map(b => b.id === id
+      ? {
+          ...b,
+          ...patch,
+          gridX: clamp(patch.gridX ?? b.gridX, 0, 11),
+          gridW: clamp(patch.gridW ?? b.gridW, 1, 12),
+        }
+      : b)),
   }
 }
 
 function patchBlockProps(id, patch) {
   localLayout.value = {
     ...localLayout.value,
-    items: blocks.value.map(b => b.id === id
+    items: normalizeGridItems(blocks.value.map(b => b.id === id
       ? { ...b, props: { ...(b.props || {}), ...patch } }
-      : b),
+      : b)),
   }
 }
 
@@ -979,15 +1020,17 @@ function removeBlock(id) {
     return
   localLayout.value = {
     ...localLayout.value,
-    items: blocks.value.filter(b => b.id !== id),
+    items: normalizeGridItems(blocks.value.filter(b => b.id !== id)),
   }
-  if (selectedBlockId.value === id)
+  if (selectedBlockId.value === id) {
     selectedBlockId.value = null
+    propertyDrawerOpen.value = false
+  }
 }
 
 function resetLayout() {
-  localLayout.value = createDefaultListGridLayout(props.modelSchema, { layoutType: props.layoutType })
-  selectedBlockId.value = null
+  localLayout.value = normalizeDesignerLayout(createDefaultListGridLayout(props.modelSchema, { layoutType: props.layoutType }))
+  clearSelection()
 }
 
 function clamp(value, min, max) {
@@ -995,6 +1038,112 @@ function clamp(value, min, max) {
   if (!Number.isFinite(n))
     return min
   return Math.min(Math.max(n, min), max)
+}
+
+function normalizeDesignerLayout(layout = {}) {
+  return {
+    ...layout,
+    items: normalizeGridItems(layout.items || []),
+  }
+}
+
+function normalizeGridItems(items = []) {
+  const sized = items.map((item) => {
+    const gridW = clamp(item.gridW, 1, LIST_PAGE_GRID_COLS)
+    const gridX = clamp(item.gridX, 0, LIST_PAGE_GRID_COLS - gridW)
+    return {
+      ...item,
+      gridX,
+      gridW,
+      gridY: Math.max(0, Number(item.gridY) || 0),
+      gridH: Math.max(resolveAutoGridH(item, gridW), Number(item.gridH) || 1),
+    }
+  })
+
+  return preventGridOverlap(sized)
+}
+
+function preventGridOverlap(items = []) {
+  const ordered = [...items].sort((left, right) => {
+    if (left.gridY !== right.gridY)
+      return left.gridY - right.gridY
+    return left.gridX - right.gridX
+  })
+  const placed = []
+  const resolvedById = new Map()
+
+  ordered.forEach((item) => {
+    const next = { ...item }
+    let changed = true
+    while (changed) {
+      changed = false
+      placed.forEach((placedItem) => {
+        if (isGridOverlapping(placedItem, next)) {
+          next.gridY = placedItem.gridY + placedItem.gridH
+          changed = true
+        }
+      })
+    }
+    placed.push(next)
+    resolvedById.set(next.id, next)
+  })
+
+  return items.map(item => resolvedById.get(item.id) || item)
+}
+
+function isGridOverlapping(left, right) {
+  const horizontal = left.gridX < right.gridX + right.gridW && left.gridX + left.gridW > right.gridX
+  const vertical = left.gridY < right.gridY + right.gridH && left.gridY + left.gridH > right.gridY
+  return horizontal && vertical
+}
+
+function resolveAutoGridH(block = {}, normalizedGridW = block.gridW) {
+  const gridW = Number(normalizedGridW) || Number(block.gridW) || LIST_PAGE_GRID_COLS
+  if (block.blockType === 'search-form') {
+    const fieldRows = Math.max(1, Math.ceil((block.fieldRefs?.length || 0) / resolveFieldColumnCount(gridW)))
+    return Math.max(4, gridRowsForPixels(76 + fieldRows * 54))
+  }
+  if (block.blockType === 'toolbar') {
+    const actionRows = Math.max(1, Math.ceil(resolveToolbarActionCount(block) / resolveToolbarColumnCount(gridW)))
+    return Math.max(2, gridRowsForPixels(20 + actionRows * 34))
+  }
+  if (block.blockType === 'data-table') {
+    return Math.max(8, gridRowsForPixels(238))
+  }
+  if (block.blockType === 'tree-panel') {
+    return Math.max(12, gridRowsForPixels(360))
+  }
+  return 1
+}
+
+function resolveFieldColumnCount(gridW) {
+  if (gridW >= 10)
+    return 4
+  if (gridW >= 7)
+    return 3
+  if (gridW >= 4)
+    return 2
+  return 1
+}
+
+function resolveToolbarColumnCount(gridW) {
+  if (gridW >= 10)
+    return 6
+  if (gridW >= 7)
+    return 4
+  if (gridW >= 4)
+    return 3
+  return 2
+}
+
+function resolveToolbarActionCount(block = {}) {
+  const baseActions = Array.isArray(block.props?.actions) ? block.props.actions.length : 0
+  const customActions = (block.props?.customActions || []).filter(action => (action.position || 'toolbar') === 'toolbar').length
+  return Math.max(1, baseActions + customActions)
+}
+
+function gridRowsForPixels(height) {
+  return Math.max(1, Math.ceil((Number(height) + gap) / (rowHeight + gap)))
 }
 
 // 拖动移动
@@ -1023,8 +1172,10 @@ function onMove(event) {
     return
   const nextX = clamp(moveCtx.originX + dx, 0, 12 - block.gridW)
   const nextY = Math.max(0, moveCtx.originY + dy)
-  if (block.gridX !== nextX || block.gridY !== nextY)
+  if (block.gridX !== nextX || block.gridY !== nextY) {
+    suppressNextBlockClick = true
     patchBlock(block.id, { gridX: nextX, gridY: nextY })
+  }
 }
 function endMove() {
   moveCtx = null
@@ -1271,9 +1422,11 @@ function removeTab(idx) {
 <style scoped>
 .list-grid-designer {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr) 320px;
+  grid-template-columns: 224px minmax(760px, 1fr);
   gap: 12px;
-  min-height: 704px;
+  height: 100%;
+  min-height: 660px;
+  min-width: 0;
 }
 
 .palette-panel,
@@ -1288,6 +1441,7 @@ function removeTab(idx) {
 }
 
 .palette-panel {
+  min-height: 0;
   padding: 12px;
 }
 
@@ -1359,6 +1513,7 @@ function removeTab(idx) {
 .canvas-panel {
   background: #f3f6fa;
   min-width: 0;
+  min-height: 0;
 }
 
 .canvas-scroll {
@@ -1443,8 +1598,11 @@ function removeTab(idx) {
 }
 
 .property-panel {
-  padding: 14px;
-  overflow-y: auto;
+  min-height: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  overflow: visible;
 }
 
 .property-empty {
@@ -1765,7 +1923,7 @@ function removeTab(idx) {
   color: #94a3b8;
 }
 
-@media (max-width: 1500px) {
+@media (max-width: 980px) {
   .list-grid-designer {
     grid-template-columns: 1fr;
     min-height: auto;
@@ -1779,10 +1937,6 @@ function removeTab(idx) {
 
   .palette-list {
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  }
-
-  .property-panel {
-    max-height: 360px;
   }
 }
 

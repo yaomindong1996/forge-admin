@@ -258,6 +258,11 @@ export function isHiddenPageField(field = {}) {
     || hiddenPageColumnNames.has(field.columnName)
 }
 
+export function isInactivePageField(field = {}) {
+  const status = String(field.fieldStatus || '').toUpperCase()
+  return status === 'DISABLED' || status === 'HIDDEN'
+}
+
 export function isReadonlySystemField(field = {}) {
   const fieldName = field.sourceField || field.field
   return Boolean(field.systemField)
@@ -268,7 +273,7 @@ export function isReadonlySystemField(field = {}) {
 }
 
 export function isPageFieldVisible(field = {}, zoneKey = 'table') {
-  if (!field || isHiddenPageField(field))
+  if (!field || isHiddenPageField(field) || isInactivePageField(field))
     return false
   if (zoneKey === 'edit')
     return !isReadonlySystemField(field) && field.formVisible !== false
@@ -379,14 +384,21 @@ export function syncPageSchemaWithModel(pageSchema, modelSchema) {
       : []
     const explicitRefs = (normalizedZone.fieldRefs || []).filter(field => zoneFieldSet.has(field))
     const explicitChildRefs = explicitRefs.filter(ref => childEditSet.has(ref))
+    const customChildSelection = normalizedZone.zoneKey === 'edit'
+      && layoutType === 'master-detail-crud'
+      && (String(props.relationFieldSelectionMode || '').toUpperCase() === 'CUSTOM'
+        || props.relationFieldSelectionTouched === true)
+    const mergedChildRefs = customChildSelection
+      ? explicitChildRefs
+      : explicitChildRefs.length ? explicitChildRefs : childEditRefs
     const preferCanvasRefs = ['edit', 'detail'].includes(normalizedZone.zoneKey) && canvasRefs.length
     const fieldRefs = preferCanvasRefs
-      ? mergePageFieldRefs(canvasRefs, explicitChildRefs.length ? explicitChildRefs : childEditRefs)
+      ? mergePageFieldRefs(canvasRefs, mergedChildRefs)
       : formCreateRefs.length
-        ? mergePageFieldRefs(formCreateRefs, explicitChildRefs.length ? explicitChildRefs : childEditRefs)
+        ? mergePageFieldRefs(formCreateRefs, mergedChildRefs)
         : explicitRefs.length
-          ? mergePageFieldRefs(explicitRefs, explicitChildRefs.length ? explicitChildRefs : childEditRefs)
-          : mergePageFieldRefs(canvasRefs, childEditRefs)
+          ? mergePageFieldRefs(explicitRefs, mergedChildRefs)
+          : mergePageFieldRefs(canvasRefs, mergedChildRefs)
     return {
       ...normalizedZone,
       fieldRefs,
@@ -462,7 +474,7 @@ export function createPageModelRef(model = {}, options = {}) {
     relations: Array.isArray(schema?.relations) ? clonePlain(schema.relations) : [],
     primary,
     fields: (schema?.fields || [])
-      .filter(field => !isHiddenPageField(field))
+      .filter(field => !isHiddenPageField(field) && !isInactivePageField(field))
       .map(field => ({
         ...field,
         sourceField: field.field,
@@ -480,7 +492,7 @@ export function buildPageDesignModelSchema(modelSchema, modelRefs = []) {
   const fields = refs.flatMap((modelRef) => {
     const modelCode = modelRef.modelCode || ''
     const modelName = modelRef.modelName || modelCode || '数据模型'
-    return (modelRef.fields || []).filter(field => !isHiddenPageField(field)).map((field) => {
+    return (modelRef.fields || []).filter(field => !isHiddenPageField(field) && !isInactivePageField(field)).map((field) => {
       const sourceField = field.sourceField || field.field
       const fieldRef = field.fieldRef || resolveModelFieldRef(modelCode, sourceField, modelRef.primary)
       return {
@@ -1221,7 +1233,9 @@ export function normalizeZoneCanvas(zone, modelSchema) {
   const sourceItems = Array.isArray(oldCanvas.items) && oldCanvas.items.length
     ? oldCanvas.items
     : defaultCanvas.items
-  const fieldSet = new Set(filterPageFields(fields, zone?.zoneKey).map(field => field.field))
+  const fieldSet = new Set(filterPageFields(fields, zone?.zoneKey)
+    .filter(field => isCanvasFieldVisible(field, zone?.zoneKey))
+    .map(field => field.field))
   let items = sourceItems
     .map(item => normalizeCanvasItem(item, zone?.zoneKey, fields))
     .filter(item => zone?.zoneKey !== 'edit' || !['save-button', 'reset-button'].includes(item.componentKey))
@@ -1420,20 +1434,29 @@ function createDefaultCanvasForZone(zoneKey, allFields, fieldRefs = [], modelSch
 
 function createDefaultFieldCanvasItem(field, zoneKey, index, allFields) {
   const componentKey = resolveDefaultFieldComponentKey(field, zoneKey)
-  const colCount = ['edit', 'detail'].includes(zoneKey) ? 1 : 3
+  const compactFormZone = ['edit', 'detail'].includes(zoneKey)
+  const colCount = compactFormZone ? 2 : 3
   const col = index % colCount
   const row = Math.floor(index / colCount)
-  const width = ['edit', 'detail'].includes(zoneKey)
-    ? 720
+  const width = compactFormZone
+    ? 340
     : componentKey === 'field-textarea' ? 580 : 280
-  const height = componentKey === 'field-textarea' ? 98 : componentKey === 'field-upload' || componentKey === 'field-image-upload' ? 88 : 64
+  const height = compactFormZone
+    ? (componentKey === 'field-textarea' || componentKey === 'field-upload' || componentKey === 'field-image-upload' ? 76 : 64)
+    : componentKey === 'field-textarea' ? 98 : componentKey === 'field-upload' || componentKey === 'field-image-upload' ? 88 : 64
+  const gapX = compactFormZone ? 24 : 28
+  const rowStep = compactFormZone ? 88 : height + (zoneKey === 'detail' ? 10 : 22)
+  const x = compactFormZone
+    ? 32 + col * (width + gapX)
+    : 32 + col * 308
+  const y = 32 + row * rowStep
   return createCanvasItem({
     id: `${zoneKey}_${safeKey(field.field)}`,
     componentKey,
     label: field.label || field.field,
     fieldRef: field.field,
-    x: 32 + col * 308,
-    y: 36 + row * (zoneKey === 'detail' ? 74 : 86),
+    x,
+    y,
     w: width,
     h: height,
     zIndex: index + 1,
@@ -1442,13 +1465,18 @@ function createDefaultFieldCanvasItem(field, zoneKey, index, allFields) {
 
 function resolveDefaultFields(zoneKey, fields, fieldRefs) {
   const refSet = new Set(fieldRefs || [])
+  const visibleFields = (source = []) => source.filter(field => isCanvasFieldVisible(field, zoneKey))
   if (refSet.size)
-    return fields.filter(field => refSet.has(field.field) && isPageFieldVisible(field, zoneKey))
+    return visibleFields(fields.filter(field => refSet.has(field.field) && isPageFieldVisible(field, zoneKey)))
   if (zoneKey === 'search')
-    return filterPageFields(fields, 'search')
+    return visibleFields(filterPageFields(fields, 'search'))
   if (zoneKey === 'table')
-    return filterPageFields(fields, 'table')
-  return filterPageFields(fields, zoneKey)
+    return visibleFields(filterPageFields(fields, 'table'))
+  return visibleFields(filterPageFields(fields, zoneKey))
+}
+
+function isCanvasFieldVisible(field, zoneKey) {
+  return !(['edit', 'detail'].includes(zoneKey) && isChildPageModelField(field))
 }
 
 function normalizeCanvasItem(item, zoneKey, fields) {

@@ -119,6 +119,7 @@ public class LowcodeDdlService {
         Map<String, LowcodeDdlRepository.ColumnMetadata> columnMetadata = ddlRepository.listColumnMetadata(modelSchema.getTableName());
         Set<String> existingColumns = columnMetadata.keySet();
         List<String> ddlList = new ArrayList<>();
+        List<String> addedColumns = new ArrayList<>();
         appendMissingSystemColumns(modelSchema.getTableName(), existingColumns, ddlList);
         for (LowcodeFieldSchema field : businessFields(modelSchema)) {
             if (existingColumns.contains(field.getColumnName())) {
@@ -126,15 +127,19 @@ public class LowcodeDdlService {
             }
             ddlList.add("ALTER TABLE `" + modelSchema.getTableName() + "` ADD COLUMN "
                     + buildColumnDefinition(field, false));
+            addedColumns.add(field.getColumnName());
         }
-        appendRequiredColumnChanges(modelSchema, columnMetadata, ddlList, warnings);
+        if (!addedColumns.isEmpty()) {
+            warnings.add("新增字段发布时将追加数据表列: " + String.join("、", addedColumns));
+        }
+        appendExistingColumnChanges(modelSchema, columnMetadata, ddlList, warnings);
         appendMissingIndexes(modelSchema, ddlRepository.listIndexes(modelSchema.getTableName()), ddlList, warnings);
-        warnings.add("已有表在线变更仅追加缺失字段、索引，并同步业务字段是否必填，不会删除或重命名字段");
+        warnings.add("已有表在线变更仅追加缺失字段、同步字段长度/类型/是否必填和索引，不会删除或重命名字段");
         warnings.add("字段改为必填会执行 NOT NULL 变更；如果历史数据存在空值，数据库可能拒绝执行，请先清洗数据或设置默认值");
         return ddlList;
     }
 
-    private void appendRequiredColumnChanges(LowcodeModelSchema modelSchema,
+    private void appendExistingColumnChanges(LowcodeModelSchema modelSchema,
                                              Map<String, LowcodeDdlRepository.ColumnMetadata> columnMetadata,
                                              List<String> ddlList,
                                              List<String> warnings) {
@@ -145,16 +150,28 @@ public class LowcodeDdlService {
                 continue;
             }
             if (StringUtils.isNotBlank(metadata.generationExpression())) {
-                warnings.add("字段 " + field.getLabel() + " 是生成列，跳过是否必填同步");
+                warnings.add("字段 " + field.getLabel() + " 是生成列，跳过字段长度/类型/是否必填同步");
                 continue;
             }
+            String dataType = normalizeDataType(field);
+            String expectedSqlType = resolveSqlType(field, dataType);
+            boolean typeChanged = !sameSqlType(expectedSqlType, metadata.columnType());
             boolean currentRequired = "NO".equalsIgnoreCase(metadata.isNullable());
             boolean expectedRequired = Boolean.TRUE.equals(field.getRequired());
-            if (currentRequired == expectedRequired) {
+            boolean requiredChanged = currentRequired != expectedRequired;
+            if (!typeChanged && !requiredChanged) {
                 continue;
             }
+            if (typeChanged) {
+                warnings.add("字段 " + fieldLabel(field) + " 数据库类型将从 "
+                        + metadata.columnType() + " 调整为 " + expectedSqlType);
+                if (isPotentialLengthShrink(metadata.columnType(), expectedSqlType)) {
+                    warnings.add("字段 " + fieldLabel(field) + " 长度变小，若历史数据超长数据库可能拒绝执行");
+                }
+            }
             ddlList.add("ALTER TABLE `" + modelSchema.getTableName() + "` MODIFY COLUMN "
-                    + buildExistingColumnDefinition(metadata, expectedRequired));
+                    + (typeChanged ? buildColumnDefinition(field, false)
+                    : buildExistingColumnDefinition(metadata, expectedRequired)));
         }
     }
 
@@ -384,6 +401,50 @@ public class LowcodeDdlService {
         };
     }
 
+    private boolean sameSqlType(String expected, String actual) {
+        return normalizeSqlType(expected).equals(normalizeSqlType(actual));
+    }
+
+    private String normalizeSqlType(String value) {
+        String normalized = StringUtils.defaultString(value)
+                .toLowerCase(Locale.ROOT)
+                .replaceAll("\\s+", "");
+        if (normalized.startsWith("int(")) {
+            return "int";
+        }
+        if (normalized.startsWith("bigint(")) {
+            return "bigint";
+        }
+        if (normalized.startsWith("tinyint(")) {
+            return "tinyint";
+        }
+        if (normalized.startsWith("datetime(")) {
+            return "datetime";
+        }
+        return normalized;
+    }
+
+    private boolean isPotentialLengthShrink(String currentType, String expectedType) {
+        Integer currentLength = firstTypeNumber(currentType);
+        Integer expectedLength = firstTypeNumber(expectedType);
+        return currentLength != null && expectedLength != null && expectedLength < currentLength;
+    }
+
+    private Integer firstTypeNumber(String columnType) {
+        String value = StringUtils.defaultString(columnType);
+        int start = value.indexOf('(');
+        int end = value.indexOf(')', start + 1);
+        if (start < 0 || end <= start) {
+            return null;
+        }
+        String number = value.substring(start + 1, end).split(",", 2)[0].trim();
+        try {
+            return Integer.valueOf(number);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private String normalizeDataType(LowcodeFieldSchema field) {
         return StringUtils.defaultIfBlank(field.getDataType(), "varchar").toLowerCase(Locale.ROOT);
     }
@@ -418,6 +479,10 @@ public class LowcodeDdlService {
         return StringUtils.defaultString(value).replace("'", "''");
     }
 
+    private String fieldLabel(LowcodeFieldSchema field) {
+        return StringUtils.defaultIfBlank(field.getLabel(), field.getColumnName());
+    }
+
     private void assertSafeDdl(String ddl) {
         String normalized = ddl.trim().toUpperCase(Locale.ROOT);
         if (normalized.startsWith("CREATE TABLE IF NOT EXISTS")) {
@@ -441,6 +506,8 @@ public class LowcodeDdlService {
         }
         return modelSchema.getFields().stream()
                 .filter(field -> field != null && !Boolean.TRUE.equals(field.getSystemField()))
+                .filter(field -> !"DISABLED".equalsIgnoreCase(StringUtils.defaultString(field.getFieldStatus())))
+                .filter(field -> !"HIDDEN".equalsIgnoreCase(StringUtils.defaultString(field.getFieldStatus())))
                 .filter(field -> !"id".equals(field.getColumnName())
                         && !"tenant_id".equals(field.getColumnName())
                         && !"create_by".equals(field.getColumnName())

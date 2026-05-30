@@ -1,7 +1,7 @@
 <template>
   <div class="field-manager">
     <BusinessFieldList
-      :fields="orderedFields"
+      :fields="visibleFields"
       :selected-field-code="selectedFieldCode"
       @select="selectField"
       @create="openCreateModal"
@@ -10,15 +10,27 @@
       @delete="confirmDeleteField"
       @move="moveField"
     />
-    <BusinessFieldPropertyPanel
-      ref="propertyPanelRef"
-      :field="selectedField"
-      :all-fields="orderedFields"
-      :developer-mode="developerMode"
-      :saving="saving"
-      @save="saveField"
-      @dirty-change="$emit('dirtyChange', $event)"
-    />
+
+    <n-drawer
+      :show="propertyVisible"
+      :width="430"
+      placement="right"
+      :mask-closable="false"
+      @update:show="handlePropertyVisibleChange"
+    >
+      <n-drawer-content :native-scrollbar="false" closable body-content-style="padding: 0;">
+        <BusinessFieldPropertyPanel
+          ref="propertyPanelRef"
+          class="field-property-drawer-panel"
+          :field="selectedField"
+          :all-fields="visibleFields"
+          :developer-mode="developerMode"
+          :saving="saving"
+          @save="saveField"
+          @dirty-change="$emit('dirtyChange', $event)"
+        />
+      </n-drawer-content>
+    </n-drawer>
 
     <n-modal
       v-model:show="createVisible"
@@ -31,11 +43,14 @@
         <n-form-item label="字段名称">
           <n-input v-model:value="createForm.fieldName" placeholder="例如：客户等级" />
         </n-form-item>
+        <n-form-item label="字段英文名">
+          <n-input v-model:value="createForm.fieldCode" placeholder="例如：customerLevel，留空自动生成" />
+        </n-form-item>
         <n-form-item label="字段类型">
           <n-select v-model:value="createForm.fieldType" :options="fieldTypeOptions" filterable />
         </n-form-item>
         <n-form-item v-if="needsCreateDict" label="字典类型">
-          <n-input v-model:value="createForm.dictType" placeholder="例如：crm_customer_level" />
+          <DictTypeSelect v-model:value="createForm.dictType" :fields="visibleFields" />
         </n-form-item>
         <n-grid :cols="2" :x-gap="12">
           <n-form-item-gi>
@@ -84,6 +99,7 @@ import {
   sortBusinessObjectFields,
   updateBusinessObjectField,
 } from '@/api/business-app'
+import DictTypeSelect from '@/components/lowcode-builder/shared/DictTypeSelect.vue'
 import BusinessFieldList from './BusinessFieldList.vue'
 import BusinessFieldPropertyPanel from './BusinessFieldPropertyPanel.vue'
 
@@ -111,11 +127,12 @@ const propertyPanelRef = ref(null)
 const saving = ref(false)
 const creating = ref(false)
 const createVisible = ref(false)
+const propertyVisible = ref(false)
 const createForm = reactive(createDefaultCreateForm())
 
 const fieldTypeOptions = [
   { label: '文本', value: 'TEXT' },
-  { label: '多行文本', value: 'TEXTAREA' },
+  { label: '多行文本', value: 'MULTILINE' },
   { label: '数字', value: 'NUMBER' },
   { label: '金额', value: 'MONEY' },
   { label: '日期', value: 'DATE' },
@@ -136,21 +153,72 @@ const orderedFields = computed(() => {
   return [...localFields.value].sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0))
 })
 
-const selectedField = computed(() => orderedFields.value.find(field => field.fieldCode === selectedFieldCode.value) || orderedFields.value[0] || null)
+const visibleFields = computed(() => orderedFields.value.filter(field => !isHiddenField(field)))
+const selectedField = computed(() => visibleFields.value.find(field => field.fieldCode === selectedFieldCode.value) || null)
 const needsCreateDict = computed(() => ['DICT', 'RADIO', 'CHECKBOX'].includes(createForm.fieldType))
 
 watch(
   () => props.fields,
   (value) => {
     localFields.value = cloneValue(value || [])
-    if (!selectedFieldCode.value || !localFields.value.some(field => field.fieldCode === selectedFieldCode.value))
-      selectedFieldCode.value = orderedFields.value[0]?.fieldCode || ''
+    if (selectedFieldCode.value && !visibleFields.value.some(field => field.fieldCode === selectedFieldCode.value))
+      closePropertyPanel(true)
   },
   { immediate: true, deep: true },
 )
 
 function selectField(field) {
-  selectedFieldCode.value = field?.fieldCode || ''
+  const nextCode = field?.fieldCode || ''
+  if (!nextCode)
+    return
+  if (nextCode === selectedFieldCode.value && propertyVisible.value)
+    return
+  if (propertyPanelRef.value?.hasChanges?.()) {
+    window.$dialog.warning({
+      title: '未保存字段变更',
+      content: '切换字段会放弃当前字段尚未保存的属性修改。',
+      positiveText: '放弃并切换',
+      negativeText: '继续编辑',
+      onPositiveClick: () => openPropertyPanel(nextCode),
+    })
+    return
+  }
+  openPropertyPanel(nextCode)
+}
+
+function openPropertyPanel(fieldCode) {
+  selectedFieldCode.value = fieldCode
+  propertyVisible.value = true
+}
+
+function handlePropertyVisibleChange(show) {
+  if (show) {
+    propertyVisible.value = true
+    return
+  }
+  requestClosePropertyPanel()
+}
+
+function requestClosePropertyPanel() {
+  if (propertyPanelRef.value?.hasChanges?.()) {
+    window.$dialog.warning({
+      title: '未保存字段变更',
+      content: '关闭属性面板会放弃当前字段尚未保存的修改。',
+      positiveText: '放弃修改',
+      negativeText: '继续编辑',
+      onPositiveClick: () => closePropertyPanel(true),
+    })
+    return
+  }
+  closePropertyPanel(false)
+}
+
+function closePropertyPanel(discardChanges = false) {
+  if (discardChanges)
+    propertyPanelRef.value?.resetForm?.()
+  propertyVisible.value = false
+  selectedFieldCode.value = ''
+  emit('dirtyChange', false)
 }
 
 function openCreateModal() {
@@ -172,10 +240,12 @@ async function createField() {
   creating.value = true
   try {
     const res = await createBusinessObjectField(props.objectId, normalizeFieldPayload(createForm))
+    const createdCode = res.data?.fieldCode || ''
     createVisible.value = false
-    selectedFieldCode.value = res.data?.fieldCode || selectedFieldCode.value
     message.success('字段已创建')
     await reloadFields()
+    if (createdCode)
+      openPropertyPanel(createdCode)
   }
   finally {
     creating.value = false
@@ -194,9 +264,11 @@ async function duplicateField(field) {
     readonly: false,
   })
   const res = await createBusinessObjectField(props.objectId, payload)
-  selectedFieldCode.value = res.data?.fieldCode || selectedFieldCode.value
+  const createdCode = res.data?.fieldCode || ''
   message.success('字段已复制')
   await reloadFields()
+  if (createdCode)
+    openPropertyPanel(createdCode)
 }
 
 async function patchField(field, patch) {
@@ -216,19 +288,35 @@ async function patchField(field, patch) {
 async function saveField(payload) {
   const fieldCode = selectedField.value?.fieldCode
   if (!fieldCode || !props.objectId)
-    return
+    return false
+  if (selectedField.value?.systemField) {
+    message.info('系统字段为只读字段，无需保存')
+    return false
+  }
+  if (!propertyPanelRef.value?.hasChanges?.()) {
+    message.info('当前字段没有变更')
+    return false
+  }
   if (!payload.fieldName?.trim()) {
     message.warning('字段名称不能为空')
-    return
+    return false
+  }
+  if (!payload.fieldCode?.trim()) {
+    message.warning('字段英文名不能为空')
+    return false
   }
   saving.value = true
   try {
     const res = await updateBusinessObjectField(props.objectId, fieldCode, normalizeFieldPayload(payload))
-    mergeField(res.data || payload)
+    const savedField = res.data || payload
+    mergeField(savedField)
+    if (savedField.fieldCode && savedField.fieldCode !== selectedFieldCode.value)
+      selectedFieldCode.value = savedField.fieldCode
     propertyPanelRef.value?.resetForm?.()
     emit('dirtyChange', false)
     message.success('字段已保存')
     await reloadFields()
+    return true
   }
   finally {
     saving.value = false
@@ -236,16 +324,23 @@ async function saveField(payload) {
 }
 
 async function saveSelectedField() {
-  if (!propertyPanelRef.value?.hasChanges?.())
-    return
-  await saveField(propertyPanelRef.value.getPayload())
+  if (!selectedField.value) {
+    message.warning('请先选择需要保存的字段')
+    return false
+  }
+  if (!propertyVisible.value) {
+    openPropertyPanel(selectedField.value.fieldCode)
+    message.info('字段属性面板已打开，修改后再保存')
+    return false
+  }
+  return saveField(propertyPanelRef.value?.getPayload?.() || {})
 }
 
 function confirmDeleteField(field) {
   const references = (field.referencedBy || []).filter(Boolean)
   const content = references.length
-    ? `字段正在被 ${references.join('、')} 引用，删除后将优先停用或隐藏。`
-    : '删除字段前会由后端检查发布状态和引用关系。'
+    ? `字段正在被 ${references.join('、')} 引用，请先移除引用后再删除。`
+    : '删除后字段会从设计列表和页面布局中隐藏，历史模型列保留。'
   window.$dialog.warning({
     title: `删除字段「${field.fieldName || field.fieldCode}」`,
     content,
@@ -259,18 +354,20 @@ async function deleteField(field) {
   if (!field?.fieldCode || !props.objectId)
     return
   await deleteBusinessObjectField(props.objectId, field.fieldCode)
-  message.success('字段已删除或停用')
+  message.success('字段已隐藏')
   if (selectedFieldCode.value === field.fieldCode)
-    selectedFieldCode.value = ''
+    closePropertyPanel(true)
   await reloadFields()
 }
 
 async function moveField(from, to) {
-  if (from === to || from < 0 || to < 0 || to >= orderedFields.value.length)
+  if (from === to || from < 0 || to < 0 || to >= visibleFields.value.length)
     return
-  const next = [...orderedFields.value]
-  const [item] = next.splice(from, 1)
-  next.splice(to, 0, item)
+  const nextVisible = [...visibleFields.value]
+  const [item] = nextVisible.splice(from, 1)
+  nextVisible.splice(to, 0, item)
+  const hiddenFields = orderedFields.value.filter(isHiddenField)
+  const next = [...nextVisible, ...hiddenFields]
   localFields.value = next.map((field, index) => ({ ...field, sortOrder: index + 1 }))
   if (!props.objectId)
     return
@@ -283,8 +380,8 @@ async function reloadFields() {
     return
   const res = await businessObjectFields(props.objectId)
   localFields.value = cloneValue(res.data || [])
-  if (!selectedFieldCode.value || !localFields.value.some(field => field.fieldCode === selectedFieldCode.value))
-    selectedFieldCode.value = orderedFields.value[0]?.fieldCode || ''
+  if (selectedFieldCode.value && !visibleFields.value.some(field => field.fieldCode === selectedFieldCode.value))
+    closePropertyPanel(true)
   emit('updated', orderedFields.value)
 }
 
@@ -297,6 +394,7 @@ function mergeField(field) {
 function createDefaultCreateForm() {
   return {
     fieldName: '',
+    fieldCode: '',
     fieldType: 'TEXT',
     dictType: '',
     required: false,
@@ -306,6 +404,10 @@ function createDefaultCreateForm() {
     importable: true,
     exportable: true,
   }
+}
+
+function isHiddenField(field) {
+  return String(field?.fieldStatus || '').toUpperCase() === 'HIDDEN'
 }
 
 function normalizeFieldPayload(source) {
@@ -359,13 +461,11 @@ defineExpose({
 <style scoped>
 .field-manager {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr);
   min-height: calc(100vh - 106px);
 }
 
-@media (max-width: 1180px) {
-  .field-manager {
-    grid-template-columns: 1fr;
-  }
+.field-property-drawer-panel {
+  min-height: calc(100vh - 64px);
 }
 </style>

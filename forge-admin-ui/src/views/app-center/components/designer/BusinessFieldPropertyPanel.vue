@@ -27,6 +27,37 @@
             </n-form-item-gi>
           </n-grid>
 
+          <n-form-item label="字段英文名">
+            <n-input
+              v-model:value="form.fieldCode"
+              :disabled="field.systemField"
+              placeholder="例如：customerLevel"
+            />
+          </n-form-item>
+
+          <n-grid v-if="showStorageOptions" :cols="2" :x-gap="12">
+            <n-form-item-gi v-if="supportsLength" label="字段长度">
+              <n-input-number
+                v-model:value="form.length"
+                :min="1"
+                :max="lengthMax"
+                :show-button="false"
+                :disabled="field.systemField"
+                class="full-input"
+              />
+            </n-form-item-gi>
+            <n-form-item-gi v-if="supportsPrecision" label="小数位">
+              <n-input-number
+                v-model:value="form.precision"
+                :min="0"
+                :max="8"
+                :show-button="false"
+                :disabled="field.systemField"
+                class="full-input"
+              />
+            </n-form-item-gi>
+          </n-grid>
+
           <n-form-item label="提示文案">
             <n-input v-model:value="form.placeholder" :disabled="field.systemField" placeholder="请输入提示文案" />
           </n-form-item>
@@ -36,6 +67,15 @@
           </n-form-item>
           <n-form-item v-else label="默认值">
             <n-input v-model:value="form.defaultValue" :disabled="field.systemField" placeholder="可为空" />
+          </n-form-item>
+
+          <n-form-item v-if="needsDict" label="系统字典" class="dict-property-item">
+            <DictTypeSelect
+              v-model:value="form.dictType"
+              compact
+              :fields="allFields"
+              :disabled="field.systemField"
+            />
           </n-form-item>
 
           <div class="switch-grid">
@@ -72,9 +112,6 @@
           <n-collapse v-if="developerMode" class="advanced-collapse">
             <n-collapse-item title="高级属性" name="advanced">
               <n-grid :cols="2" :x-gap="12">
-                <n-form-item-gi label="字段编码">
-                  <n-input v-model:value="form.fieldCode" :disabled="field.systemField" placeholder="自动生成" />
-                </n-form-item-gi>
                 <n-form-item-gi label="数据库列名">
                   <n-input v-model:value="form.columnName" :disabled="field.systemField" placeholder="自动生成" />
                 </n-form-item-gi>
@@ -84,12 +121,6 @@
                 <n-form-item-gi label="控件类型">
                   <n-select v-model:value="form.componentType" :options="componentOptions" filterable clearable />
                 </n-form-item-gi>
-                <n-form-item-gi label="长度">
-                  <n-input-number v-model:value="form.length" :min="0" :show-button="false" class="full-input" />
-                </n-form-item-gi>
-                <n-form-item-gi label="小数位">
-                  <n-input-number v-model:value="form.precision" :min="0" :max="8" :show-button="false" class="full-input" />
-                </n-form-item-gi>
                 <n-form-item-gi label="查询方式">
                   <n-select v-model:value="form.queryType" :options="queryTypeOptions" clearable />
                 </n-form-item-gi>
@@ -97,10 +128,6 @@
                   <n-select v-model:value="form.fieldStatus" :options="statusOptions" />
                 </n-form-item-gi>
               </n-grid>
-
-              <n-form-item v-if="needsDict" label="字典类型">
-                <DictTypeSelect v-model:value="form.dictType" :fields="allFields" />
-              </n-form-item>
 
               <n-grid :cols="2" :x-gap="12">
                 <n-form-item-gi label="脱敏类型">
@@ -119,7 +146,7 @@
         <n-button secondary :disabled="!changed" @click="resetForm">
           还原
         </n-button>
-        <n-button type="primary" :loading="saving" :disabled="!changed" @click="$emit('save', payload)">
+        <n-button type="primary" :loading="saving" :disabled="saving" @click="$emit('save', payload)">
           保存字段
         </n-button>
       </div>
@@ -130,7 +157,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, watch } from 'vue'
+import { computed, nextTick, reactive, watch } from 'vue'
 import DictTypeSelect from '@/components/lowcode-builder/shared/DictTypeSelect.vue'
 import FieldTypeSelect from '@/components/lowcode-builder/shared/FieldTypeSelect.vue'
 import RegionTreeSelect from '@/components/RegionTreeSelect.vue'
@@ -158,10 +185,11 @@ const emit = defineEmits(['save', 'dirtyChange'])
 
 const form = reactive(createFieldForm())
 let baseline = ''
+let resetting = false
 
 const fieldTypeOptions = [
   { label: '文本', value: 'TEXT' },
-  { label: '多行文本', value: 'TEXTAREA' },
+  { label: '多行文本', value: 'MULTILINE' },
   { label: '数字', value: 'NUMBER' },
   { label: '金额', value: 'MONEY' },
   { label: '日期', value: 'DATE' },
@@ -223,6 +251,17 @@ const encryptOptions = [
 const payload = computed(() => normalizePayload(form))
 const changed = computed(() => JSON.stringify(payload.value) !== baseline)
 const needsDict = computed(() => ['DICT', 'RADIO', 'CHECKBOX'].includes(form.fieldType) || ['select', 'radio', 'checkbox', 'dictSelect'].includes(form.componentType))
+const normalizedDataType = computed(() => String(form.dataType || '').toLowerCase())
+const supportsLength = computed(() => ['varchar', 'char', 'decimal'].includes(normalizedDataType.value))
+const supportsPrecision = computed(() => normalizedDataType.value === 'decimal')
+const showStorageOptions = computed(() => supportsLength.value || supportsPrecision.value)
+const lengthMax = computed(() => {
+  if (normalizedDataType.value === 'decimal')
+    return 65
+  if (normalizedDataType.value === 'char')
+    return 255
+  return 2048
+})
 
 watch(
   () => props.field,
@@ -230,12 +269,39 @@ watch(
   { immediate: true, deep: true },
 )
 
-watch(changed, value => emit('dirtyChange', value))
+watch(
+  () => form.fieldType,
+  (value, oldValue) => {
+    if (resetting || !oldValue || value === oldValue || props.field?.systemField)
+      return
+    applyFieldTypeDefaults(value)
+  },
+)
+
+watch(
+  () => form.fieldCode,
+  (value, oldValue) => {
+    if (resetting || props.field?.systemField || !oldValue || value === oldValue)
+      return
+    const previousColumn = camelToSnake(oldValue)
+    if (!form.columnName || form.columnName === previousColumn)
+      form.columnName = camelToSnake(value)
+  },
+)
+
+watch(changed, (value) => {
+  if (!resetting)
+    emit('dirtyChange', value)
+})
 
 function resetForm() {
+  resetting = true
   Object.assign(form, createFieldForm(props.field))
   baseline = JSON.stringify(normalizePayload(form))
   emit('dirtyChange', false)
+  nextTick(() => {
+    resetting = false
+  })
 }
 
 function createFieldForm(field) {
@@ -313,6 +379,41 @@ function normalizePayload(source) {
   }
 }
 
+function applyFieldTypeDefaults(fieldType) {
+  const defaults = {
+    TEXT: { dataType: 'varchar', componentType: 'input', length: 128, precision: 2, queryType: 'like' },
+    MULTILINE: { dataType: 'text', componentType: 'textarea', length: null, precision: 2, queryType: 'like' },
+    NUMBER: { dataType: 'int', componentType: 'number', length: 11, precision: 0, queryType: 'eq' },
+    MONEY: { dataType: 'decimal', componentType: 'number', length: 18, precision: 2, queryType: 'eq' },
+    DATE: { dataType: 'date', componentType: 'date', length: null, precision: null, queryType: 'eq' },
+    DATETIME: { dataType: 'datetime', componentType: 'datetime', length: null, precision: null, queryType: 'eq' },
+    DICT: { dataType: 'varchar', componentType: 'select', length: 64, precision: 2, queryType: 'eq' },
+    RADIO: { dataType: 'varchar', componentType: 'radio', length: 64, precision: 2, queryType: 'eq' },
+    CHECKBOX: { dataType: 'varchar', componentType: 'checkbox', length: 255, precision: 2, queryType: 'in' },
+    SWITCH: { dataType: 'tinyint', componentType: 'switch', length: 1, precision: 0, queryType: 'eq' },
+    FILE: { dataType: 'varchar', componentType: 'fileUpload', length: 512, precision: 2, queryType: 'eq' },
+    IMAGE: { dataType: 'varchar', componentType: 'imageUpload', length: 512, precision: 2, queryType: 'eq' },
+    USER: { dataType: 'bigint', componentType: 'userSelect', length: null, precision: null, queryType: 'eq' },
+    DEPT: { dataType: 'bigint', componentType: 'orgTreeSelect', length: null, precision: null, queryType: 'eq' },
+    REGION: { dataType: 'varchar', componentType: 'regionTreeSelect', length: 32, precision: 2, queryType: 'eq' },
+    REFERENCE: { dataType: 'bigint', componentType: 'select', length: null, precision: null, queryType: 'eq' },
+  }[fieldType]
+  if (!defaults)
+    return
+  Object.assign(form, defaults)
+  if (!['DICT', 'RADIO', 'CHECKBOX'].includes(fieldType))
+    form.dictType = ''
+}
+
+function camelToSnake(value) {
+  return String(value || '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/\W+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase()
+}
+
 defineExpose({
   resetForm,
   getPayload: () => payload.value,
@@ -382,6 +483,18 @@ defineExpose({
 
 .full-input {
   width: 100%;
+}
+
+.dict-property-item {
+  max-width: 280px;
+}
+
+.dict-property-item :deep(.dict-select-row) {
+  grid-template-columns: minmax(0, 1fr) 72px;
+}
+
+.dict-property-item :deep(.create-dict-button) {
+  width: 72px;
 }
 
 .property-footer {

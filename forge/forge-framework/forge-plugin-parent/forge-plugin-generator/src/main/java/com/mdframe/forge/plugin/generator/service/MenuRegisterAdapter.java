@@ -12,6 +12,16 @@ public interface MenuRegisterAdapter {
 
     void deleteMenu(Long menuResourceId);
 
+    default Long registerAppMenu(String menuName, Long parentId, String path, String component,
+                                 String perms, String icon, Integer sort, boolean enabled) {
+        return null;
+    }
+
+    default void updateAppMenu(Long menuResourceId, String menuName, Long parentId, String path,
+                               String component, String perms, String icon, Integer sort, boolean enabled) {
+        updateMenu(menuResourceId, menuName, parentId, sort);
+    }
+
     /**
      * 检查指定菜单资源是否已被某个角色赋权
      *
@@ -34,5 +44,12 @@ public interface MenuRegisterAdapter {
      */
     default Long resolveOrCreateDomainParentId(String domainCode, String domainName, Integer sort) {
         return null;
+    }
+
+    /**
+     * 解析或创建业务套件目录，用于业务应用入口挂载到管理端菜单。
+     */
+    default Long resolveOrCreateBusinessSuiteParentId(Long parentId, String suiteCode, String suiteName, Integer sort) {
+        return parentId;
     }
 }

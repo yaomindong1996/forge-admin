@@ -265,7 +265,7 @@ export const aiCrudPageProps = {
    */
   modalType: {
     type: String,
-    default: 'drawer',
+    default: 'modal',
     validator: value => ['modal', 'drawer'].includes(value),
   },
 

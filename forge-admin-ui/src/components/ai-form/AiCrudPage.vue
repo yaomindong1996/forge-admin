@@ -210,7 +210,7 @@
         v-if="hasChildrenConfig"
         ref="childFormRef"
         v-model:value="childFormData"
-        :children-config="childrenConfig"
+        :children-config="visibleChildrenConfig"
         :readonly="isDetailMode"
       />
 
@@ -261,7 +261,7 @@
           v-if="hasChildrenConfig"
           ref="childFormRef"
           v-model:value="childFormData"
-          :children-config="childrenConfig"
+          :children-config="visibleChildrenConfig"
           :readonly="isDetailMode"
         />
 
@@ -1024,11 +1024,24 @@ const formSlots = computed(() => {
     .map(field => field.slotName || field.field)
 })
 
-const hasChildrenConfig = computed(() => {
-  return Array.isArray(props.childrenConfig) && props.childrenConfig.some(child => child?.fields?.length)
+const isDetailMode = computed(() => modalStatus.value === 'detail')
+
+const visibleChildrenConfig = computed(() => {
+  const status = modalStatus.value || 'add'
+  return (props.childrenConfig || []).filter((child) => {
+    if (!child?.fields?.length)
+      return false
+    if (status === 'add')
+      return child.showInCreate !== false
+    if (status === 'edit')
+      return child.showInEdit !== false
+    if (status === 'detail')
+      return child.showInDetail !== false
+    return true
+  })
 })
 
-const isDetailMode = computed(() => modalStatus.value === 'detail')
+const hasChildrenConfig = computed(() => visibleChildrenConfig.value.some(child => child?.fields?.length))
 
 const modalFormSchema = computed(() => {
   if (!isDetailMode.value)
@@ -1504,7 +1517,7 @@ function resolveChildKey(child) {
 
 function buildInitialChildrenData() {
   const result = {}
-  ;(props.childrenConfig || []).forEach((child) => {
+  visibleChildrenConfig.value.forEach((child) => {
     result[resolveChildKey(child)] = []
   })
   return result
@@ -1513,7 +1526,7 @@ function buildInitialChildrenData() {
 function normalizeChildrenData(children) {
   const source = children && typeof children === 'object' ? children : {}
   const result = {}
-  ;(props.childrenConfig || []).forEach((child) => {
+  visibleChildrenConfig.value.forEach((child) => {
     const key = resolveChildKey(child)
     result[key] = Array.isArray(source[key]) ? source[key] : []
   })

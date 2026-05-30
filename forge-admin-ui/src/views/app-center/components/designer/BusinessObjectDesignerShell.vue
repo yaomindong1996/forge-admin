@@ -41,11 +41,11 @@
           </template>
           保存
         </n-button>
-        <n-button :loading="publishing" :disabled="publishDisabled" type="success" secondary @click="$emit('publish')">
+        <n-button :disabled="publishing || publishDisabled" type="success" secondary @click="$emit('publish')">
           <template #icon>
             <n-icon><RocketOutline /></n-icon>
           </template>
-          发布
+          {{ publishing ? '发布中' : '发布' }}
         </n-button>
         <n-dropdown trigger="click" :options="moreOptions" @select="$emit($event)">
           <n-button quaternary circle>
@@ -76,11 +76,14 @@
       </aside>
 
       <main class="designer-main">
-        <n-spin :show="loading">
+        <div class="designer-main-content">
+          <div v-if="loading" class="designer-loading-mask">
+            <span class="loading-dot" />
+          </div>
           <div class="panel-frame" :class="{ dirty }">
             <slot />
           </div>
-        </n-spin>
+        </div>
       </main>
     </div>
   </div>
@@ -152,10 +155,9 @@ const navItems = [
   { key: 'fields', label: '字段管理', icon: TextOutline },
   { key: 'form', label: '表单设计', icon: ReaderOutline },
   { key: 'list', label: '列表设计', icon: ListOutline },
-  { key: 'detail', label: '详情设计', icon: ReaderOutline },
   { key: 'relations', label: '关系配置', icon: GitNetworkOutline },
   { key: 'actions', label: '自定义操作', icon: BuildOutline },
-  { key: 'permission', label: '权限流程', icon: KeyOutline },
+  { key: 'permission', label: '数据权限', icon: KeyOutline },
   { key: 'publish', label: '发布检查', icon: CheckmarkDoneOutline },
   { key: 'advanced', label: '高级配置', icon: SettingsOutline },
 ]
@@ -218,6 +220,35 @@ const publishStatusType = computed(() => {
 .designer-shell {
   min-height: 100%;
   background: #f6f8fb;
+}
+
+.designer-main-content {
+  position: relative;
+  min-height: 100%;
+}
+
+.designer-loading-mask {
+  position: absolute;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  inset: 0;
+  background: rgba(248, 250, 252, 0.58);
+}
+
+.loading-dot {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #cbd5e1;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .designer-topbar {

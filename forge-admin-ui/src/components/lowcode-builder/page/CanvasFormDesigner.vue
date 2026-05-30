@@ -125,6 +125,7 @@ let leaferApp = null
 let leaferApi = null
 let resizeObserver
 let transformTimer = null
+let destroyed = false
 
 const fieldMap = computed(() => new Map(props.fields.map(field => [field.field, field])))
 const zoneTitle = computed(() => resolveZoneTitle(props.zone?.zoneKey))
@@ -177,6 +178,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
+  destroyed = true
   if (transformTimer)
     window.clearTimeout(transformTimer)
   window.removeEventListener('keydown', handleGlobalKeydown)
@@ -188,9 +190,11 @@ onBeforeUnmount(() => {
 })
 
 async function initLeafer() {
-  if (!leaferViewRef.value || leaferApp)
+  if (destroyed || !leaferViewRef.value || leaferApp)
     return
   const api = await import('leafer-editor')
+  if (destroyed || !leaferViewRef.value || leaferApp)
+    return
   leaferApi = markRaw(api)
   const app = markRaw(new api.App({
     view: leaferViewRef.value,
@@ -776,11 +780,11 @@ function applyColumnLayout(cols) {
     return
   const columnCount = Math.max(1, Math.min(3, Number(cols || 1)))
   const paddingX = 32
-  const gapX = 24
-  const startY = 36
-  const rowGap = props.zone.zoneKey === 'detail' ? 16 : 22
+  const gapX = 18
+  const startY = 32
+  const rowGap = props.zone.zoneKey === 'detail' ? 10 : 12
   const availableWidth = Number(canvas.value.width || 1040) - paddingX * 2 - gapX * (columnCount - 1)
-  const columnWidth = Math.max(220, Math.floor(availableWidth / columnCount))
+  const columnWidth = Math.max(220, Math.min(340, Math.floor(availableWidth / columnCount)))
   const fieldItems = sortCanvasItemsByPosition(canvasItems.value.filter(item => item.fieldRef))
   const fieldOrderMap = new Map(fieldItems.map((item, index) => [item.id, index]))
   const fieldHeights = fieldItems

@@ -194,7 +194,7 @@ const crudProps = computed(() => {
     apiConfig,
     options,
     rowKey: cfg.rowKey || 'id',
-    modalType: options.modalType || cfg.modalType || 'drawer',
+    modalType: options.modalType || cfg.modalType || 'modal',
     modalWidth: options.modalWidth || cfg.modalWidth || '800px',
     editGridCols: options.editGridCols || cfg.editGridCols || 1,
     loadDetailOnEdit: options.loadDetailOnEdit ?? cfg.loadDetailOnEdit ?? true,

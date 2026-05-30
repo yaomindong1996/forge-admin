@@ -3,7 +3,7 @@
     <div class="field-list-head">
       <div>
         <h3>业务字段</h3>
-        <p>{{ fields.length }} 个字段，系统字段默认只读。</p>
+        <p>{{ fields.length }} 个字段，草稿模型实时同步。</p>
       </div>
       <n-button type="primary" size="small" @click="$emit('create')">
         <template #icon>
@@ -23,17 +23,19 @@
         @click="$emit('select', field)"
       >
         <div class="field-main">
-          <strong>{{ field.fieldName || field.fieldCode || '未命名字段' }}</strong>
-          <span>{{ fieldTypeLabel(field.fieldType) }} · {{ field.componentType || '自动控件' }}</span>
-        </div>
-        <div class="field-meta">
-          <n-tag v-if="field.systemField" size="small" :bordered="false">
-            系统
-          </n-tag>
-          <n-tag v-else size="small" :type="field.fieldStatus === 'DISABLED' ? 'warning' : 'success'" :bordered="false">
-            {{ field.fieldStatus === 'DISABLED' ? '停用' : '启用' }}
-          </n-tag>
-          <span>{{ field.fieldCode || '-' }}</span>
+          <div class="field-title-line">
+            <strong>{{ field.fieldName || field.fieldCode || '未命名字段' }}</strong>
+            <n-tag v-if="field.systemField" size="small" :bordered="false">
+              系统
+            </n-tag>
+            <n-tag v-else size="small" :type="field.fieldStatus === 'DISABLED' ? 'warning' : 'success'" :bordered="false">
+              {{ field.fieldStatus === 'DISABLED' ? '停用' : '启用' }}
+            </n-tag>
+          </div>
+          <span>
+            {{ fieldTypeLabel(field.fieldType) }} · {{ field.componentType || '自动控件' }}
+            <em>{{ field.fieldCode || '-' }}</em>
+          </span>
         </div>
         <div class="field-actions" @click.stop>
           <n-button quaternary circle size="small" :disabled="index === 0" @click="$emit('move', index, index - 1)">
@@ -90,6 +92,7 @@ function fieldTypeLabel(value) {
   const labels = {
     TEXT: '文本',
     TEXTAREA: '多行文本',
+    MULTILINE: '多行文本',
     NUMBER: '数字',
     MONEY: '金额',
     DATE: '日期',
@@ -114,7 +117,6 @@ function fieldTypeLabel(value) {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
-  border-right: 1px solid #e5e7eb;
 }
 
 .field-list-head {
@@ -123,7 +125,7 @@ function fieldTypeLabel(value) {
   justify-content: space-between;
   gap: 12px;
   border-bottom: 1px solid #e5e7eb;
-  padding: 16px;
+  padding: 12px 14px;
 }
 
 .field-list-head h3 {
@@ -142,24 +144,24 @@ function fieldTypeLabel(value) {
 .field-scroll {
   display: grid;
   align-content: start;
-  gap: 8px;
+  gap: 6px;
   min-height: 0;
   overflow: auto;
-  padding: 12px;
+  padding: 10px 12px;
 }
 
 .field-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(110px, 0.45fr) 136px;
+  grid-template-columns: minmax(0, 1fr) 136px;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #fff;
   cursor: pointer;
   text-align: left;
-  padding: 12px;
+  padding: 8px 10px;
 }
 
 .field-row:hover {
@@ -172,17 +174,28 @@ function fieldTypeLabel(value) {
   box-shadow: inset 3px 0 0 #2563eb;
 }
 
+.field-main {
+  min-width: 0;
+}
+
+.field-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .field-main strong {
   display: block;
   overflow: hidden;
+  min-width: 0;
   color: #111827;
-  font-size: 14px;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.field-main span,
-.field-meta span {
+.field-main span {
   display: block;
   overflow: hidden;
   margin-top: 4px;
@@ -190,6 +203,12 @@ function fieldTypeLabel(value) {
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.field-main em {
+  margin-left: 8px;
+  color: #94a3b8;
+  font-style: normal;
 }
 
 .field-actions {
@@ -200,11 +219,7 @@ function fieldTypeLabel(value) {
 
 @media (max-width: 1180px) {
   .field-row {
-    grid-template-columns: 1fr;
-  }
-
-  .field-actions {
-    justify-content: flex-start;
+    grid-template-columns: minmax(0, 1fr) 136px;
   }
 }
 </style>

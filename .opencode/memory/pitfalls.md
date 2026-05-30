@@ -218,6 +218,30 @@ Vite dev server 的 `node_modules/.vite` 预构建缓存与浏览器中已加载
 
 **解决方案**:
 1. 停止旧的 Vite dev server。
+
+---
+
+## 7. 前端全量构建 Node 默认堆内存不足
+
+**发现日期**: 2026-05-30
+
+**问题描述**:
+`pnpm --dir forge-admin-ui build` 在 `rendering chunks` 阶段可能触发 Node OOM：
+
+```text
+FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+```
+
+**解决方案**:
+使用 Node 20.19.0 并提高堆内存后重跑：
+
+```bash
+source ~/.nvm/nvm.sh && nvm use v20.19.0
+NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build
+```
+
+**补充说明**:
+构建过程中可能仍出现 UnoCSS 图标解析和 chunk size warning，当前不影响构建成功。
 2. 删除 `forge-admin-ui/node_modules/.vite`。
 3. 将新引入的大型运行时依赖加入 `vite.config.js` 的 `optimizeDeps.include`。
 4. 使用 Node 20.19.0 重新启动前端 dev server，必要时加 `--force`。
@@ -1059,3 +1083,52 @@ function createFieldForm(field) {
 **影响范围**:
 - `object-designer.[objectCode].vue` 等从 query 读取对象 ID 的页面
 - 所有 18/19 位雪花 ID 前端传参链路
+
+## 29. 业务对象设计器同步页面 Schema 必须保留 modelRefs
+
+**发现日期**: 2026-05-30
+
+**问题描述**:
+关系配置开启“编辑表单维护”后，后端会把关联对象写入 `pageSchema.modelRefs`，并把子对象字段引用加入编辑区。如果前端表单、列表或详情设计器只用主对象 `modelSchema.fields` 调用 `syncPageSchemaWithModel`，后续保存布局会把子对象字段引用过滤掉，导致主子表运行态没有 `childrenConfig`。
+
+**解决方案**:
+业务对象设计器在同步页面 Schema 时必须基于 `buildPageDesignModelSchema(modelSchema, pageSchema.modelRefs)` 构造设计态字段集合；同时用最新主对象字段刷新 primary model ref，避免新增字段后 primary ref 过期。
+
+**影响范围**:
+- `BusinessFormDesigner.vue`
+- `BusinessListDesigner.vue`
+- `BusinessDetailDesigner.vue`
+- 所有依赖 `pageSchema.modelRefs` 的主子表、左树右表或多模型页面设计器
+
+## 30. 业务对象发布前必须重新合并关系到 pageSchema
+
+**发现日期**: 2026-05-30
+
+**问题描述**:
+关系配置已保存后，前端发布请求仍可能携带旧的 `pageSchema` 草稿。如果后端直接采用请求里的 `pageSchema`，会覆盖关系同步生成的 `modelRefs` 和 `master-detail-crud` 布局，发布后的动态 CRUD 仍只显示主表字段，新增/编辑看不到联系人、明细等关联对象。
+
+**解决方案**:
+业务对象发布检查和发布动作在生成运行配置前，必须以数据库中的当前关系为准重新执行关系同步，把 `ai_business_object_relation` 合并回 `LowcodeModelSchema.relations` 和 `LowcodePageSchema.modelRefs`。
+
+**影响范围**:
+- `BusinessObjectPublishService.publishCheck`
+- `BusinessObjectPublishService.publish`
+- 所有从业务对象关系生成动态 CRUD 子表/明细表单的发布链路
+
+## 31. 运行态字段组件变更必须覆盖主表表单和子表明细
+
+**发现日期**: 2026-05-30
+
+**问题描述**:
+业务对象字段类型为“人员”时，运行态主表表单使用 `AiFormItem` 渲染，主子表内联新增明细使用 `ChildTableEditor` 渲染。只在 `AiFormItem` 支持 `userSelect` 会导致客户页新增跟进记录这类子表明细退化成普通输入框或旧下拉，负责人无法弹出用户筛选列表。
+
+**解决方案**:
+字段组件能力要同时覆盖：
+- `AiFormItem.vue`：主表新增/编辑/搜索表单
+- `ChildTableEditor.vue`：主子表关联明细新增/编辑
+
+人员字段应使用弹窗式用户列表选择组件，不能用远程下拉承载大量用户。
+
+**影响范围**:
+- `userSelect` / 人员字段
+- 所有主子表、关联明细、动态 CRUD 运行态表单

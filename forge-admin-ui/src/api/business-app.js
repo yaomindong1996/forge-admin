@@ -52,6 +52,10 @@ export function updateBusinessObjectStatus(id, status) {
   return request.put(`/ai/business/object/${id}/status`, null, { params: { status } })
 }
 
+export function deleteBusinessObject(id) {
+  return request.delete(`/ai/business/object/${id}`)
+}
+
 export function businessObjectRuntimeInfo(id) {
   return request.get(`/ai/business/object/${id}/runtime-info`)
 }

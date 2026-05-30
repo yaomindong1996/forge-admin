@@ -145,8 +145,12 @@ public class LowcodeRuntimeConfigBuilder {
 
     private Map<String, Object> buildOptions(LowcodeModelSchema modelSchema, LowcodePageSchema pageSchema) {
         Map<String, Object> options = new LinkedHashMap<>();
-        options.put("modalType", "drawer");
-        options.put("modalWidth", "800px");
+        boolean masterDetailRuntime = isMasterDetailRuntime(pageSchema);
+        LowcodePageZone editZone = findZone(pageSchema, "edit");
+        Map<String, Object> editProps = editZone == null || editZone.getProps() == null ? Map.of() : editZone.getProps();
+        options.put("modalType", resolveModalType(editProps.get("modalType")));
+        options.put("modalWidth", StringUtils.defaultIfBlank(text(editProps.get("modalWidth")),
+                masterDetailRuntime ? "1080px" : "800px"));
         options.put("searchGridCols", 4);
         options.put("editGridCols", resolveEditGridCols(pageSchema));
 
@@ -169,14 +173,18 @@ public class LowcodeRuntimeConfigBuilder {
         options.put("rowActions", resolveCustomActions(pageSchema, "row"));
         options.put("defaultSort", buildDefaultSort(modelSchema, pageSchema));
         options.put("joinConfig", buildJoinConfig(modelSchema, pageSchema));
-        if (isMasterDetailRuntime(pageSchema)) {
-            options.put("modalWidth", "1080px");
+        if (masterDetailRuntime) {
             options.put("masterDetailConfig", buildMasterDetailConfig(modelSchema, pageSchema));
         }
         if (isTreeRuntime(modelSchema, pageSchema)) {
             options.put("treeConfig", buildTreeConfig(modelSchema, pageSchema, extractTreeConfigOverrides(pageSchema)));
         }
         return options;
+    }
+
+    private String resolveModalType(Object value) {
+        String modalType = StringUtils.defaultIfBlank(text(value), "modal").toLowerCase(Locale.ROOT);
+        return Set.of("modal", "drawer").contains(modalType) ? modalType : "modal";
     }
 
     private Set<String> resolveToolbarStandardActions(LowcodePageSchema pageSchema) {
@@ -369,7 +377,7 @@ public class LowcodeRuntimeConfigBuilder {
         List<LowcodeRelationSchema> primaryRelations = primaryRef != null && primaryRef.getRelations() != null
                 ? primaryRef.getRelations()
                 : modelSchema.getRelations();
-        Set<String> selectedEditRefs = resolveSelectedEditRefs(pageSchema);
+        List<String> selectedEditRefs = resolveSelectedEditRefs(pageSchema);
         for (LowcodePageModelRef ref : pageSchema.getModelRefs()) {
             if (ref == null || Boolean.TRUE.equals(ref.getPrimary()) || StringUtils.isBlank(ref.getModelCode())) {
                 continue;
@@ -384,6 +392,7 @@ public class LowcodeRuntimeConfigBuilder {
                 continue;
             }
             Map<String, Object> child = new LinkedHashMap<>();
+            Map<String, Object> refProps = ref.getProps() == null ? Map.of() : ref.getProps();
             child.put("key", ref.getModelCode());
             child.put("modelCode", ref.getModelCode());
             child.put("modelName", ref.getModelName());
@@ -391,6 +400,11 @@ public class LowcodeRuntimeConfigBuilder {
             child.put("relationType", StringUtils.defaultIfBlank(relation.getRelationType(), "ONE_TO_MANY"));
             child.put("sourceField", childFkField);
             child.put("targetField", resolveMainRelationField(primaryModelCode, relation));
+            child.put("showInCreate", booleanWithDefault(refProps.get("inlineCreateEnabled"), true));
+            child.put("showInEdit", booleanWithDefault(refProps.get("inlineEditEnabled"), true));
+            child.put("showInDetail", booleanWithDefault(refProps.get("showInDetail"), true));
+            putIfNotBlank(child, "tabTitle", text(refProps.get("tabTitle")));
+            putIfNotBlank(child, "relationName", text(refProps.get("relationName")));
             child.put("fields", childFields);
             children.add(child);
         }
@@ -416,10 +430,15 @@ public class LowcodeRuntimeConfigBuilder {
     }
 
     private List<Map<String, Object>> buildMasterDetailChildFields(LowcodePageModelRef ref,
-                                                                   Set<String> selectedEditRefs,
+                                                                   List<String> selectedEditRefs,
                                                                    String childFkField) {
         if (ref.getFields() == null) {
             return List.of();
+        }
+        Set<String> selectedEditRefSet = new LinkedHashSet<>(selectedEditRefs);
+        Map<String, Integer> selectedOrder = new LinkedHashMap<>();
+        for (int i = 0; i < selectedEditRefs.size(); i++) {
+            selectedOrder.putIfAbsent(selectedEditRefs.get(i), i);
         }
         List<Map<String, Object>> fields = new ArrayList<>();
         for (Map<String, Object> source : ref.getFields()) {
@@ -429,7 +448,7 @@ public class LowcodeRuntimeConfigBuilder {
             }
             String fieldRef = StringUtils.defaultIfBlank(text(source.get("fieldRef")),
                     safeKey(ref.getModelCode()) + "__" + field.getField());
-            if (!selectedEditRefs.isEmpty() && !selectedEditRefs.contains(fieldRef)) {
+            if (!selectedEditRefSet.isEmpty() && !selectedEditRefSet.contains(fieldRef)) {
                 continue;
             }
             if (!isChildEditFieldAllowed(field, childFkField)) {
@@ -442,6 +461,10 @@ public class LowcodeRuntimeConfigBuilder {
             item.put("modelCode", ref.getModelCode());
             item.put("modelName", ref.getModelName());
             fields.add(item);
+        }
+        if (!selectedOrder.isEmpty()) {
+            fields.sort(Comparator.comparingInt(item ->
+                    selectedOrder.getOrDefault(text(item.get("fieldRef")), Integer.MAX_VALUE)));
         }
         return fields;
     }
@@ -469,6 +492,7 @@ public class LowcodeRuntimeConfigBuilder {
             return false;
         }
         return !isSystemField(field)
+                && isActiveField(field)
                 && !SYSTEM_FIELD_NAMES.contains(fieldName)
                 && !SYSTEM_COLUMN_NAMES.contains(columnName)
                 && !Boolean.TRUE.equals(field.getReadonly())
@@ -476,14 +500,15 @@ public class LowcodeRuntimeConfigBuilder {
                 && (field.getFormVisible() == null || Boolean.TRUE.equals(field.getFormVisible()));
     }
 
-    private Set<String> resolveSelectedEditRefs(LowcodePageSchema pageSchema) {
+    private List<String> resolveSelectedEditRefs(LowcodePageSchema pageSchema) {
         LowcodePageZone editZone = findZone(pageSchema, "edit");
         if (editZone == null || Boolean.FALSE.equals(editZone.getEnabled()) || editZone.getFieldRefs() == null) {
-            return Set.of();
+            return List.of();
         }
         return editZone.getFieldRefs().stream()
                 .filter(StringUtils::isNotBlank)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+                .distinct()
+                .toList();
     }
 
     private String resolveChildRelationField(String primaryModelCode, LowcodeRelationSchema relation) {
@@ -1534,6 +1559,7 @@ public class LowcodeRuntimeConfigBuilder {
         LowcodePageZone zone = findZone(pageSchema, zoneKey);
         if (zone == null || Boolean.FALSE.equals(zone.getEnabled()) || zone.getFieldRefs() == null || zone.getFieldRefs().isEmpty()) {
             return fieldMap.values().stream()
+                    .filter(this::isActiveField)
                     .filter(fallbackPredicate)
                     .toList();
         }
@@ -1546,6 +1572,7 @@ public class LowcodeRuntimeConfigBuilder {
                 .toList();
         if (selectedFields.isEmpty()) {
             return fieldMap.values().stream()
+                    .filter(this::isActiveField)
                     .filter(fallbackPredicate)
                     .toList();
         }
@@ -1616,6 +1643,7 @@ public class LowcodeRuntimeConfigBuilder {
         field.setPrimaryKey(Boolean.TRUE.equals(booleanValue(source.get("primaryKey"))));
         field.setSystemField(Boolean.TRUE.equals(booleanValue(source.get("systemField"))));
         field.setReadonly(Boolean.TRUE.equals(booleanValue(source.get("readonly"))));
+        field.setFieldStatus(StringUtils.defaultIfBlank(text(source.get("fieldStatus")), "ENABLED"));
         field.setAutoIncrement(Boolean.TRUE.equals(booleanValue(source.get("autoIncrement"))));
         field.setWidth(integerValue(source.get("width")));
         field.setRemark(text(source.get("remark")));
@@ -1635,9 +1663,17 @@ public class LowcodeRuntimeConfigBuilder {
         return Boolean.parseBoolean(String.valueOf(value));
     }
 
+    private boolean booleanWithDefault(Object value, boolean defaultValue) {
+        Boolean bool = booleanValue(value);
+        return bool == null ? defaultValue : bool;
+    }
+
     private boolean isZoneFieldAllowed(LowcodeFieldSchema field,
                                        String zoneKey,
                                        Predicate<LowcodeFieldSchema> fallbackPredicate) {
+        if (!isActiveField(field)) {
+            return false;
+        }
         if ("search".equals(zoneKey)) {
             return !isSystemField(field);
         }
@@ -1647,6 +1683,11 @@ public class LowcodeRuntimeConfigBuilder {
                     && (field.getFormVisible() == null || Boolean.TRUE.equals(field.getFormVisible()));
         }
         return fallbackPredicate.test(field);
+    }
+
+    private boolean isActiveField(LowcodeFieldSchema field) {
+        String status = StringUtils.defaultString(field == null ? null : field.getFieldStatus());
+        return !"DISABLED".equalsIgnoreCase(status) && !"HIDDEN".equalsIgnoreCase(status);
     }
 
     private Integer integerValue(Object value) {

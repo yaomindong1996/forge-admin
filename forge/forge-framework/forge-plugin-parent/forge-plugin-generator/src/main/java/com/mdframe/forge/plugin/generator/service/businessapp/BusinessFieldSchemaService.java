@@ -66,6 +66,7 @@ public class BusinessFieldSchemaService {
             Map.entry("CHECKBOX", new FieldDefaults("varchar", "checkbox", 255, 2, "in", 180)),
             Map.entry("MULTI_SELECT", new FieldDefaults("varchar", "checkbox", 255, 2, "in", 180)),
             Map.entry("SWITCH", new FieldDefaults("tinyint", "switch", 1, 0, "eq", 100)),
+            Map.entry("FILE", new FieldDefaults("varchar", "fileUpload", 512, 2, "eq", 180)),
             Map.entry("ATTACHMENT", new FieldDefaults("varchar", "fileUpload", 512, 2, "eq", 180)),
             Map.entry("IMAGE", new FieldDefaults("varchar", "imageUpload", 512, 2, "eq", 140)),
             Map.entry("PHONE", new FieldDefaults("varchar", "input", 32, 2, "like", 140)),
@@ -232,6 +233,14 @@ public class BusinessFieldSchemaService {
                 .toLowerCase(Locale.ROOT);
     }
 
+    public String normalizeBusinessFieldCode(String value) {
+        return normalizeFieldCode(value);
+    }
+
+    public String normalizeBusinessColumnName(String value) {
+        return normalizeColumnName(value);
+    }
+
     private void validateFieldTypeOptions(String fieldType, BusinessFieldDTO dto) {
         if (DICT_FIELD_TYPES.contains(fieldType) && StringUtils.isBlank(dto.getDictType())) {
             throw new BusinessException("字典字段必须配置字典类型");
@@ -245,6 +254,9 @@ public class BusinessFieldSchemaService {
 
     private String normalizeFieldType(String fieldType, String fieldName) {
         String normalized = StringUtils.defaultIfBlank(fieldType, "TEXT").trim().toUpperCase(Locale.ROOT);
+        if ("TEXTAREA".equals(normalized) || "MULTI_LINE".equals(normalized)) {
+            return "MULTILINE";
+        }
         if ("SELECT".equals(normalized) || "RADIO".equals(normalized) || "CHECKBOX".equals(normalized)) {
             return normalized;
         }
@@ -350,6 +362,7 @@ public class BusinessFieldSchemaService {
         return fields.stream()
                 .filter(item -> item != null && !Boolean.TRUE.equals(item.getSystemField()))
                 .filter(item -> !"DISABLED".equalsIgnoreCase(StringUtils.defaultString(item.getFieldStatus())))
+                .filter(item -> !"HIDDEN".equalsIgnoreCase(StringUtils.defaultString(item.getFieldStatus())))
                 .filter(item -> Boolean.TRUE.equals(getter.apply(item)))
                 .map(LowcodeFieldSchema::getField)
                 .filter(StringUtils::isNotBlank)

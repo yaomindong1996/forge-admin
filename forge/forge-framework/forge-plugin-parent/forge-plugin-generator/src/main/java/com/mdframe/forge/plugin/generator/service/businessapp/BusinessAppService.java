@@ -1,11 +1,15 @@
 package com.mdframe.forge.plugin.generator.service.businessapp;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApp;
+import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessSuite;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessAppDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessAppQueryDTO;
 import com.mdframe.forge.plugin.generator.mapper.BusinessAppMapper;
+import com.mdframe.forge.plugin.generator.service.MenuRegisterAdapter;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessAppOpenInfoVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessAppVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
@@ -41,6 +45,7 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
     private final BusinessSuiteService suiteService;
     private final BusinessObjectService objectService;
     private final BusinessAppOpenService openService;
+    private final MenuRegisterAdapter menuRegisterAdapter;
 
     public Page<BusinessAppVO> page(Integer pageNum, Integer pageSize, BusinessAppQueryDTO query) {
         Page<BusinessAppVO> page = new Page<>(normalizePageNum(pageNum), normalizePageSize(pageSize));
@@ -71,6 +76,7 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         AiBusinessApp app = new AiBusinessApp();
         copyDtoToEntity(dto, app, true);
         save(app);
+        syncManagementMenu(app);
         return app.getId();
     }
 
@@ -82,6 +88,7 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         AiBusinessApp app = requireEntity(dto.getId());
         copyDtoToEntity(dto, app, false);
         updateById(app);
+        syncManagementMenu(app);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -89,11 +96,13 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         AiBusinessApp app = requireEntity(id);
         app.setStatus(normalizeStatus(status));
         updateById(app);
+        syncManagementMenu(app);
     }
 
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         AiBusinessApp app = requireEntity(id);
+        deleteManagementMenu(app);
         removeById(app.getId());
     }
 
@@ -153,6 +162,148 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         app.setStatus(normalizeStatus(dto.getStatus()));
         app.setSortOrder(dto.getSortOrder() == null ? 0 : dto.getSortOrder());
         app.setOptions(StringUtils.trimToNull(dto.getOptions()));
+    }
+
+    private void syncManagementMenu(AiBusinessApp app) {
+        JSONObject options = readOptions(app.getOptions());
+        JSONObject adminMenu = readAdminMenu(options);
+        Long menuResourceId = readLong(firstNonNull(adminMenu.get("menuResourceId"), options.get("menuResourceId")));
+        if (!isManagementMenuEnabled(app, options, adminMenu)) {
+            removeManagementMenuIfExists(menuResourceId);
+            adminMenu.remove("menuResourceId");
+            if (adminMenu.isEmpty()) {
+                options.remove("adminMenu");
+            } else {
+                options.put("adminMenu", adminMenu);
+            }
+            app.setOptions(writeOptions(options));
+            updateById(app);
+            return;
+        }
+
+        Long parentId = readLong(firstNonNull(adminMenu.get("parentId"), options.get("adminMenuParentId")));
+        boolean suiteAsParent = readBoolean(firstNonNull(adminMenu.get("suiteAsParent"), options.get("suiteAsMenuParent")), true);
+        Integer sort = readInteger(firstNonNull(adminMenu.get("sort"), options.get("menuSort")), app.getSortOrder());
+        if (suiteAsParent) {
+            AiBusinessSuite suite = suiteService.requireByCode(app.getSuiteCode());
+            parentId = menuRegisterAdapter.resolveOrCreateBusinessSuiteParentId(
+                    parentId, app.getSuiteCode(), suite.getSuiteName(), app.getSortOrder());
+        }
+
+        String path = "/app-center/app/" + app.getId();
+        String component = "app-center/app-entry";
+        String perms = "ai:businessApp:open";
+        boolean enabled = Integer.valueOf(1).equals(app.getStatus());
+        if (menuResourceId == null) {
+            menuResourceId = menuRegisterAdapter.registerAppMenu(
+                    app.getAppName(), parentId, path, component, perms, app.getIcon(), sort, enabled);
+        } else {
+            menuRegisterAdapter.updateAppMenu(
+                    menuResourceId, app.getAppName(), parentId, path, component, perms, app.getIcon(), sort, enabled);
+        }
+        adminMenu.put("menuResourceId", menuResourceId);
+        adminMenu.put("parentId", readLong(firstNonNull(adminMenu.get("parentId"), options.get("adminMenuParentId"))));
+        adminMenu.put("suiteAsParent", suiteAsParent);
+        adminMenu.put("syncEnabled", true);
+        adminMenu.put("sort", sort);
+        options.put("adminMenu", adminMenu);
+        app.setOptions(writeOptions(options));
+        updateById(app);
+    }
+
+    private void deleteManagementMenu(AiBusinessApp app) {
+        JSONObject options = readOptions(app.getOptions());
+        JSONObject adminMenu = readAdminMenu(options);
+        Long menuResourceId = readLong(firstNonNull(adminMenu.get("menuResourceId"), options.get("menuResourceId")));
+        removeManagementMenuIfExists(menuResourceId);
+    }
+
+    private void removeManagementMenuIfExists(Long menuResourceId) {
+        if (menuResourceId == null) {
+            return;
+        }
+        if (menuRegisterAdapter.hasRolePermission(menuResourceId)) {
+            throw new BusinessException("该应用入口关联的菜单已被角色赋权，请先在角色管理中移除授权后再操作");
+        }
+        menuRegisterAdapter.deleteMenu(menuResourceId);
+    }
+
+    private boolean isManagementMenuEnabled(AiBusinessApp app, JSONObject options, JSONObject adminMenu) {
+        String mountTarget = StringUtils.defaultIfBlank(options.getString("mountTarget"), deriveMountTarget(app));
+        boolean syncEnabled = readBoolean(firstNonNull(adminMenu.get("syncEnabled"), options.get("adminMenuSyncEnabled")), true);
+        return "ADMIN".equalsIgnoreCase(mountTarget) && syncEnabled;
+    }
+
+    private String deriveMountTarget(AiBusinessApp app) {
+        String appType = StringUtils.defaultString(app.getAppType()).toUpperCase();
+        String entryMode = StringUtils.defaultString(app.getEntryMode()).toUpperCase();
+        if ("MOBILE".equals(appType) || "H5".equals(entryMode)) {
+            return "MOBILE";
+        }
+        if ("INTEGRATION".equals(appType) || "API".equals(entryMode)) {
+            return "API";
+        }
+        return "ADMIN";
+    }
+
+    private JSONObject readOptions(String options) {
+        if (StringUtils.isBlank(options)) {
+            return new JSONObject();
+        }
+        try {
+            return JSON.parseObject(options);
+        } catch (Exception e) {
+            return new JSONObject();
+        }
+    }
+
+    private JSONObject readAdminMenu(JSONObject options) {
+        JSONObject adminMenu = options.getJSONObject("adminMenu");
+        return adminMenu == null ? new JSONObject() : adminMenu;
+    }
+
+    private String writeOptions(JSONObject options) {
+        if (options == null || options.isEmpty()) {
+            return null;
+        }
+        return options.toJSONString();
+    }
+
+    private Object firstNonNull(Object first, Object second) {
+        return first != null ? first : second;
+    }
+
+    private Long readLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Long.valueOf(String.valueOf(value));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Integer readInteger(Object value, Integer fallback) {
+        if (value == null) {
+            return fallback == null ? 0 : fallback;
+        }
+        try {
+            return Integer.valueOf(String.valueOf(value));
+        } catch (Exception e) {
+            return fallback == null ? 0 : fallback;
+        }
+    }
+
+    private boolean readBoolean(Object value, boolean fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        String text = StringUtils.lowerCase(String.valueOf(value));
+        return "true".equals(text) || "1".equals(text);
     }
 
     private BusinessAppQueryDTO normalizeQuery(BusinessAppQueryDTO query) {

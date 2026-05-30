@@ -50,6 +50,7 @@
             @open="openApp"
             @config="openEditor"
             @toggle="toggleApp"
+            @delete="deleteApp"
           />
         </div>
         <n-empty v-else-if="!loading" description="暂无移动应用入口" />
@@ -85,6 +86,7 @@ import {
   businessAppOpenInfo,
   businessAppPage,
   businessSuiteSummary,
+  deleteBusinessApp,
   updateBusinessAppStatus,
 } from '@/api/business-app'
 import AppCard from './components/AppCard.vue'
@@ -176,6 +178,20 @@ async function toggleApp(app) {
   await updateBusinessAppStatus(app.id, app.status === 1 ? 0 : 1)
   message.success(app.status === 1 ? '移动入口已停用' : '移动入口已启用')
   await loadApps()
+}
+
+function deleteApp(app) {
+  window.$dialog?.warning({
+    title: '删除移动入口',
+    content: `确定删除“${app.appName || app.appCode}”吗？`,
+    positiveText: '删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      await deleteBusinessApp(app.id)
+      message.success('移动入口已删除')
+      await loadAll()
+    },
+  })
 }
 
 function handlePageSizeChange(pageSize) {

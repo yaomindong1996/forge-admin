@@ -27,30 +27,60 @@
         <n-icon><OpenOutline /></n-icon>
       </template>
     </n-button>
+    <n-dropdown trigger="click" :options="moreOptions" @select="handleMoreSelect">
+      <n-button class="object-more" quaternary circle size="small" @click.stop>
+        <template #icon>
+          <n-icon><EllipsisVertical /></n-icon>
+        </template>
+      </n-button>
+    </n-dropdown>
   </article>
 </template>
 
 <script setup>
-import { BuildOutline, CubeOutline, OpenOutline } from '@vicons/ionicons5'
+import { BuildOutline, CubeOutline, EllipsisVertical, OpenOutline } from '@vicons/ionicons5'
 import { computed } from 'vue'
 import DictTag from '@/components/DictTag.vue'
 
-defineProps({
+const props = defineProps({
   object: {
     type: Object,
     required: true,
   },
 })
 
-const emit = defineEmits(['open', 'design'])
+const emit = defineEmits(['open', 'design', 'toggle', 'delete'])
 
 const iconComponent = computed(() => CubeOutline)
+const moreOptions = computed(() => [
+  {
+    label: props.object.status === 1 ? '停用对象' : '启用对象',
+    key: 'toggle',
+  },
+  {
+    type: 'divider',
+    key: 'divider',
+  },
+  {
+    label: '删除对象',
+    key: 'delete',
+  },
+])
+
+function handleMoreSelect(key) {
+  if (key === 'toggle') {
+    emit('toggle', props.object)
+    return
+  }
+  if (key === 'delete')
+    emit('delete', props.object)
+}
 </script>
 
 <style scoped>
 .object-card {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto 34px;
+  grid-template-columns: 42px minmax(0, 1fr) auto 34px 34px;
   gap: 12px;
   align-items: center;
   min-height: 104px;
@@ -135,12 +165,17 @@ const iconComponent = computed(() => CubeOutline)
   padding: 0 8px;
 }
 
+.object-more {
+  justify-self: end;
+}
+
 @media (max-width: 520px) {
   .object-card {
     grid-template-columns: 42px minmax(0, 1fr);
   }
 
-  .object-card > .n-button {
+  .object-card > .n-button,
+  .object-card > .n-dropdown {
     grid-column: 2;
     justify-self: end;
   }

@@ -18,7 +18,9 @@ import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeDomainRef;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeFieldSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeModelSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeObjectSchema;
+import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePageModelRef;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePageSchema;
+import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePageZone;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeRelationSchema;
 import com.mdframe.forge.plugin.generator.mapper.AiCrudConfigMapper;
 import com.mdframe.forge.plugin.generator.mapper.AiLowcodeModelMapper;
@@ -291,7 +293,7 @@ public class BusinessObjectDesignerService {
         target.setDomain(domainRef);
 
         LowcodeObjectSchema objectSchema = target.getObject() == null ? new LowcodeObjectSchema() : target.getObject();
-        objectSchema.setCode(StringUtils.defaultIfBlank(objectSchema.getCode(), resolveModelCode(object)));
+        objectSchema.setCode(resolveModelCode(object));
         objectSchema.setName(StringUtils.defaultIfBlank(objectSchema.getName(), object.getObjectName()));
         objectSchema.setDescription(StringUtils.defaultIfBlank(objectSchema.getDescription(), object.getDescription()));
         target.setObject(objectSchema);
@@ -417,23 +419,245 @@ public class BusinessObjectDesignerService {
         return schemaNormalizer.normalizeModelFields(target, true);
     }
 
-    private void applyRelationsToModel(DesignerContext context) {
+    public void applyRelationsToModel(DesignerContext context) {
+        if (context == null || context.getObject() == null || context.getModelSchema() == null) {
+            return;
+        }
         List<AiBusinessObjectRelation> relations = relationMapper.selectRuntimeRelationsBySource(
                 resolveTenantId(), context.getObject().getSuiteCode(), context.getObject().getObjectCode());
         List<LowcodeRelationSchema> relationSchemas = relations.stream()
                 .map(this::toLowcodeRelation)
                 .toList();
         context.getModelSchema().setRelations(relationSchemas);
+        syncInlineEditRelationsToPageSchema(context, relations);
+    }
+
+    private void syncInlineEditRelationsToPageSchema(DesignerContext context,
+                                                     List<AiBusinessObjectRelation> relations) {
+        LowcodePageSchema pageSchema = context.getPageSchema() == null ? new LowcodePageSchema() : context.getPageSchema();
+        LowcodePageModelRef primaryRef = toPageModelRef(context.getObject(), context.getModel(), context.getModelSchema(), true);
+        List<LowcodePageModelRef> refs = new ArrayList<>();
+        refs.add(primaryRef);
+
+        List<String> childFieldRefs = new ArrayList<>();
+        for (AiBusinessObjectRelation relation : relations) {
+            if (!isEmbeddedRelation(relation)) {
+                continue;
+            }
+            AiBusinessObject target = businessObjectMapper.selectByObjectCode(
+                    resolveTenantId(), relation.getSuiteCode(), relation.getTargetObjectCode());
+            if (target == null) {
+                continue;
+            }
+            DesignerContext targetContext = loadContext(target.getId());
+            LowcodePageModelRef childRef = toPageModelRef(target, targetContext.getModel(),
+                    targetContext.getModelSchema(), false);
+            childRef.setRelations(List.of(toRelationToPrimary(relation, primaryRef.getModelCode())));
+            childRef.setProps(toInlineRelationProps(relation));
+            refs.add(childRef);
+            childRef.getFields().stream()
+                    .map(item -> text(item.get("fieldRef")))
+                    .filter(StringUtils::isNotBlank)
+                    .forEach(childFieldRefs::add);
+        }
+
+        pageSchema.setModelRefs(refs);
+        pageSchema.setPrimaryModelId(primaryRef.getModelId());
+        pageSchema.setPrimaryModelCode(primaryRef.getModelCode());
+        if (refs.size() > 1) {
+            pageSchema.setLayoutType("master-detail-crud");
+        } else if ("master-detail-crud".equals(pageSchema.getLayoutType())) {
+            pageSchema.setLayoutType("simple-crud");
+        }
+        syncInlineEditRefsToEditZone(pageSchema, primaryRef, childFieldRefs);
+        context.setPageSchema(pageSchema);
+    }
+
+    private boolean isEmbeddedRelation(AiBusinessObjectRelation relation) {
+        if (relation == null || Integer.valueOf(0).equals(relation.getStatus())) {
+            return false;
+        }
+        String relationType = StringUtils.defaultString(relation.getRelationType()).toUpperCase(Locale.ROOT);
+        if (!Set.of("CHILD_LIST", "DETAIL").contains(relationType)) {
+            return false;
+        }
+        Map<String, Object> config = readMap(relation.getRelationConfig());
+        return readBoolean(config.get("showInDetail"), true)
+                || readBoolean(config.get("inlineCreateEnabled"), true)
+                || readBoolean(config.get("inlineEditEnabled"), true);
+    }
+
+    private Map<String, Object> toInlineRelationProps(AiBusinessObjectRelation relation) {
+        Map<String, Object> config = readMap(relation.getRelationConfig());
+        Map<String, Object> props = new LinkedHashMap<>();
+        props.put("relationName", relation.getRelationName());
+        props.put("tabTitle", StringUtils.firstNonBlank(text(config.get("detailTabTitle")),
+                text(config.get("detailTab")), relation.getRelationName()));
+        props.put("sourceObjectCode", relation.getSourceObjectCode());
+        props.put("targetObjectCode", relation.getTargetObjectCode());
+        props.put("businessObjectCode", relation.getTargetObjectCode());
+        props.put("showInDetail", readBoolean(config.get("showInDetail"), true));
+        props.put("inlineCreateEnabled", readBoolean(config.get("inlineCreateEnabled"), true));
+        props.put("inlineEditEnabled", readBoolean(config.get("inlineEditEnabled"), true));
+        if (StringUtils.isNotBlank(text(config.get("defaultFilter")))) {
+            props.put("defaultFilter", text(config.get("defaultFilter")));
+        }
+        return props;
+    }
+
+    private LowcodeRelationSchema toRelationToPrimary(AiBusinessObjectRelation relation, String primaryObjectCode) {
+        LowcodeRelationSchema schema = new LowcodeRelationSchema();
+        schema.setRelationType(relation.getRelationType());
+        schema.setTargetObjectCode(primaryObjectCode);
+        schema.setSourceField(relation.getTargetFieldCode());
+        schema.setTargetField(relation.getSourceFieldCode());
+        schema.setDisplayField(text(readMap(relation.getRelationConfig()).get("displayField")));
+        return schema;
+    }
+
+    private LowcodePageModelRef toPageModelRef(AiBusinessObject object,
+                                               AiLowcodeModel model,
+                                               LowcodeModelSchema schema,
+                                               boolean primary) {
+        LowcodePageModelRef ref = new LowcodePageModelRef();
+        ref.setModelId(model == null ? null : model.getId());
+        String modelCode = StringUtils.firstNonBlank(
+                object.getModelCode(),
+                schema == null || schema.getObject() == null ? null : schema.getObject().getCode(),
+                resolveModelCode(object));
+        modelCode = normalizeConfigKey(modelCode);
+        ref.setModelCode(modelCode);
+        ref.setModelName(StringUtils.defaultIfBlank(object.getObjectName(),
+                schema == null ? modelCode : StringUtils.defaultIfBlank(schema.getBusinessName(), modelCode)));
+        ref.setTableName(schema == null ? null : schema.getTableName());
+        ref.setPrimary(primary);
+        ref.setFields(toPageModelFields(modelCode, schema, primary));
+        return ref;
+    }
+
+    private List<Map<String, Object>> toPageModelFields(String modelCode,
+                                                        LowcodeModelSchema schema,
+                                                        boolean primary) {
+        if (schema == null || schema.getFields() == null) {
+            return new ArrayList<>();
+        }
+        return schema.getFields().stream()
+                .filter(field -> field != null)
+                .map(field -> toPageModelField(modelCode, field, primary))
+                .toList();
+    }
+
+    private Map<String, Object> toPageModelField(String modelCode,
+                                                 LowcodeFieldSchema field,
+                                                 boolean primary) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        String fieldName = field.getField();
+        item.put("field", fieldName);
+        item.put("sourceField", fieldName);
+        item.put("fieldRef", primary ? fieldName : safeModelKey(modelCode) + "__" + fieldName);
+        item.put("rawLabel", StringUtils.defaultIfBlank(field.getLabel(), fieldName));
+        item.put("label", StringUtils.defaultIfBlank(field.getLabel(), fieldName));
+        item.put("columnName", field.getColumnName());
+        item.put("dataType", field.getDataType());
+        item.put("length", field.getLength());
+        item.put("precision", field.getPrecision());
+        item.put("required", field.getRequired());
+        item.put("defaultValue", field.getDefaultValue());
+        item.put("searchable", field.getSearchable());
+        item.put("listVisible", field.getListVisible());
+        item.put("formVisible", field.getFormVisible());
+        item.put("componentType", field.getComponentType());
+        item.put("queryType", field.getQueryType());
+        item.put("dictType", field.getDictType());
+        item.put("sensitiveType", field.getSensitiveType());
+        item.put("encryptAlgorithm", field.getEncryptAlgorithm());
+        item.put("sortable", field.getSortable());
+        item.put("primaryKey", field.getPrimaryKey());
+        item.put("systemField", field.getSystemField());
+        item.put("readonly", field.getReadonly());
+        item.put("fieldStatus", field.getFieldStatus());
+        item.put("autoIncrement", field.getAutoIncrement());
+        item.put("width", field.getWidth());
+        item.put("remark", field.getRemark());
+        return item;
+    }
+
+    private void syncInlineEditRefsToEditZone(LowcodePageSchema pageSchema,
+                                              LowcodePageModelRef primaryRef,
+                                              List<String> childFieldRefs) {
+        if (pageSchema.getZones() == null) {
+            pageSchema.setZones(new ArrayList<>());
+        }
+        LowcodePageZone editZone = pageSchema.getZones().stream()
+                .filter(zone -> zone != null && "edit".equals(zone.getZoneKey()))
+                .findFirst()
+                .orElse(null);
+        if (editZone == null) {
+            editZone = new LowcodePageZone();
+            editZone.setZoneKey("edit");
+            editZone.setComponentKey("edit-form");
+            editZone.setEnabled(true);
+            editZone.setProps(new LinkedHashMap<>());
+            pageSchema.getZones().add(editZone);
+        }
+        Set<String> primaryFields = primaryRef.getFields().stream()
+                .map(item -> text(item.get("fieldRef")))
+                .filter(StringUtils::isNotBlank)
+                .collect(LinkedHashSet::new, Set::add, Set::addAll);
+        List<String> primaryRefs = editZone.getFieldRefs() == null
+                ? new ArrayList<>()
+                : editZone.getFieldRefs().stream()
+                .filter(primaryFields::contains)
+                .toList();
+        if (primaryRefs.isEmpty()) {
+            primaryRefs = primaryRef.getFields().stream()
+                    .filter(item -> !Boolean.TRUE.equals(item.get("systemField")))
+                    .filter(item -> !Boolean.FALSE.equals(item.get("formVisible")))
+                    .map(item -> text(item.get("fieldRef")))
+                    .filter(StringUtils::isNotBlank)
+                    .toList();
+        }
+        Set<String> childFields = new LinkedHashSet<>(childFieldRefs);
+        List<String> selectedChildRefs = editZone.getFieldRefs() == null
+                ? new ArrayList<>()
+                : editZone.getFieldRefs().stream()
+                .filter(childFields::contains)
+                .toList();
+        Map<String, Object> props = editZone.getProps() == null ? Map.of() : editZone.getProps();
+        boolean customRelationFields = "CUSTOM".equalsIgnoreCase(text(props.get("relationFieldSelectionMode")))
+                || readBoolean(props.get("relationFieldSelectionTouched"), false);
+        if (selectedChildRefs.isEmpty() && !customRelationFields) {
+            selectedChildRefs = childFieldRefs;
+        }
+        LinkedHashSet<String> refs = new LinkedHashSet<>(primaryRefs);
+        refs.addAll(selectedChildRefs);
+        editZone.setFieldRefs(new ArrayList<>(refs));
+    }
+
+    private String safeModelKey(String value) {
+        String key = StringUtils.defaultIfBlank(value, "model").replaceAll("[^A-Za-z0-9_]", "_");
+        return StringUtils.defaultIfBlank(key, "model");
     }
 
     private LowcodeRelationSchema toLowcodeRelation(AiBusinessObjectRelation relation) {
         LowcodeRelationSchema schema = new LowcodeRelationSchema();
         schema.setRelationType(relation.getRelationType());
-        schema.setTargetObjectCode(relation.getTargetObjectCode());
+        schema.setTargetObjectCode(resolveRelationModelCode(relation.getSuiteCode(), relation.getTargetObjectCode()));
         schema.setSourceField(relation.getSourceFieldCode());
         schema.setTargetField(relation.getTargetFieldCode());
         schema.setDisplayField(text(readMap(relation.getRelationConfig()).get("displayField")));
         return schema;
+    }
+
+    private String resolveRelationModelCode(String suiteCode, String objectCode) {
+        if (StringUtils.isBlank(objectCode)) {
+            return objectCode;
+        }
+        AiBusinessObject object = businessObjectMapper.selectByObjectCode(resolveTenantId(), suiteCode, objectCode);
+        if (object == null) {
+            return normalizeConfigKey(objectCode);
+        }
+        return resolveModelCode(object);
     }
 
     private void saveSourceRelations(AiBusinessObject object, List<BusinessObjectRelationDTO> relations) {
@@ -537,16 +761,22 @@ public class BusinessObjectDesignerService {
     }
 
     private boolean hasUnpublishedChanges(AiBusinessObject object, AiCrudConfig config) {
-        if (BusinessObjectDesignStatus.CHANGED.equals(object.getDesignStatus())
-                || BusinessObjectDesignStatus.DESIGNING.equals(object.getDesignStatus())) {
+        String designStatus = BusinessObjectDesignStatus.normalize(object.getDesignStatus());
+        if (BusinessObjectDesignStatus.CHANGED.equals(designStatus)
+                || BusinessObjectDesignStatus.DESIGNING.equals(designStatus)
+                || BusinessObjectDesignStatus.READY.equals(designStatus)) {
             return true;
         }
         if (config == null) {
             return true;
         }
-        int draft = config.getDraftVersion() == null ? 0 : config.getDraftVersion();
-        int published = config.getPublishedVersion() == null ? 0 : config.getPublishedVersion();
-        return draft > published;
+        if (!"PUBLISHED".equals(config.getPublishStatus())) {
+            return true;
+        }
+        if (BusinessObjectDesignStatus.PUBLISHED.equals(designStatus)) {
+            return false;
+        }
+        return object.getLastPublishVersion() == null && config.getPublishedVersion() == null;
     }
 
     private boolean hasBusinessFields(LowcodeModelSchema modelSchema) {
@@ -602,6 +832,23 @@ public class BusinessObjectDesignerService {
         } catch (Exception e) {
             return new LinkedHashMap<>();
         }
+    }
+
+    private boolean readBoolean(Object value, boolean defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value instanceof Number number) {
+            return number.intValue() != 0;
+        }
+        String text = StringUtils.trimToEmpty(String.valueOf(value));
+        if (StringUtils.isBlank(text)) {
+            return defaultValue;
+        }
+        return "true".equalsIgnoreCase(text) || "1".equals(text) || "yes".equalsIgnoreCase(text);
     }
 
     private <T> T readJson(String json, Class<T> type, String fieldName) {

@@ -70,17 +70,38 @@
       @dirty-change="handleDirtyChange"
     />
 
-    <BusinessFormDesigner
-      v-else-if="activePanel === 'form'"
-      ref="formDesignerRef"
-      v-model="draft.pageSchema"
-      :object-id="objectId"
-      :model-schema="draft.modelSchema"
-      :fields="draft.fields"
-      @saved="handleLayoutSaved"
-      @dirty-change="handleDirtyChange"
-      @create-field="activePanel = 'fields'"
-    />
+    <section v-else-if="activePanel === 'form'" class="form-detail-panel">
+      <n-tabs v-model:value="formDetailTab" type="line">
+        <n-tab-pane name="form" tab="表单设计">
+          <BusinessFormDesigner
+            ref="formDesignerRef"
+            v-model="draft.pageSchema"
+            :object-id="objectId"
+            :model-schema="draft.modelSchema"
+            :fields="draft.fields"
+            :relations="draft.relations"
+            @saved="handleLayoutSaved"
+            @dirty-change="handleDirtyChange"
+            @create-field="activePanel = 'fields'"
+            @open-relations="activePanel = 'relations'"
+          />
+        </n-tab-pane>
+        <n-tab-pane name="detail" tab="详情设置">
+          <BusinessDetailDesigner
+            ref="detailDesignerRef"
+            v-model="draft.pageSchema"
+            :object-id="objectId"
+            :model-schema="draft.modelSchema"
+            :fields="draft.fields"
+            :relations="draft.relations"
+            @saved="handleLayoutSaved"
+            @dirty-change="handleDirtyChange"
+            @open-form="formDetailTab = 'form'"
+            @open-relations="activePanel = 'relations'"
+          />
+        </n-tab-pane>
+      </n-tabs>
+    </section>
 
     <BusinessListDesigner
       v-else-if="activePanel === 'list'"
@@ -89,18 +110,6 @@
       :object-id="objectId"
       :model-schema="draft.modelSchema"
       :fields="draft.fields"
-      @saved="handleLayoutSaved"
-      @dirty-change="handleDirtyChange"
-    />
-
-    <BusinessDetailDesigner
-      v-else-if="activePanel === 'detail'"
-      ref="detailDesignerRef"
-      v-model="draft.pageSchema"
-      :object-id="objectId"
-      :model-schema="draft.modelSchema"
-      :fields="draft.fields"
-      :relations="draft.relations"
       @saved="handleLayoutSaved"
       @dirty-change="handleDirtyChange"
     />
@@ -128,8 +137,11 @@
     <BusinessPermissionFlowPanel
       v-else-if="activePanel === 'permission'"
       ref="permissionFlowRef"
-      :object-id="objectId"
-      :object-code="draft.objectCode"
+      v-model:model-schema="draft.modelSchema"
+      v-model:page-schema="draft.pageSchema"
+      :fields="draft.fields"
+      :object-name="draft.objectName"
+      @dirty-change="handleDirtyChange"
     />
 
     <BusinessPublishChecklist
@@ -191,7 +203,8 @@ const saving = ref(false)
 const publishing = ref(false)
 const dirty = ref(false)
 const ready = ref(false)
-const activePanel = ref(route.query.panel || 'fields')
+const activePanel = ref(route.query.panel === 'detail' ? 'form' : route.query.panel || 'fields')
+const formDetailTab = ref(route.query.panel === 'detail' ? 'detail' : route.query.detailTab || 'form')
 const developerMode = ref(false)
 const designer = ref(null)
 const runtimeInfo = ref(null)
@@ -225,7 +238,7 @@ const fieldOptions = computed(() => {
   const modelFields = draft.modelSchema?.fields || []
   const source = modelFields.length ? modelFields : draft.fields.map(toPageField)
   return source
-    .filter(field => field.field)
+    .filter(field => field.field && !isInactiveField(field))
     .map(field => ({
       label: `${field.label || field.field}（${field.field}）`,
       value: field.field,
@@ -260,6 +273,20 @@ watch(activePanel, (panel) => {
     query: {
       ...route.query,
       panel,
+      ...(panel === 'form' ? { detailTab: formDetailTab.value } : {}),
+    },
+  })
+})
+
+watch(formDetailTab, (tab) => {
+  if (activePanel.value !== 'form')
+    return
+  router.replace({
+    path: route.path,
+    query: {
+      ...route.query,
+      panel: 'form',
+      detailTab: tab,
     },
   })
 })
@@ -315,18 +342,18 @@ async function handleSave() {
     return
   }
   if (activePanel.value === 'form') {
-    await formDesignerRef.value?.saveLayout?.()
-    await saveDesignerDraft(false)
+    if (formDetailTab.value === 'detail')
+      await detailDesignerRef.value?.saveLayout?.()
+    else
+      await formDesignerRef.value?.saveLayout?.()
     return
   }
   if (activePanel.value === 'list') {
     await listDesignerRef.value?.saveLayout?.()
-    await saveDesignerDraft(false)
     return
   }
   if (activePanel.value === 'detail') {
     await detailDesignerRef.value?.saveLayout?.()
-    await saveDesignerDraft(false)
     return
   }
   if (activePanel.value === 'relations') {
@@ -338,6 +365,9 @@ async function handleSave() {
     await actionDesignerRef.value?.saveActions?.()
     await loadDesigner()
     return
+  }
+  if (activePanel.value === 'permission') {
+    permissionFlowRef.value?.saveConfig?.()
   }
   await saveDesignerDraft(true)
 }
@@ -361,7 +391,7 @@ async function saveDesignerDraft(showMessage = true) {
 async function handlePreview() {
   if (!objectId.value)
     return
-  const layoutKey = activePanel.value === 'list' ? 'list' : activePanel.value === 'detail' ? 'detail' : 'form'
+  const layoutKey = resolveActiveLayoutKey()
   const res = await previewBusinessObjectLayout(objectId.value, {
     layoutKey,
     layoutName: layoutKey === 'list' ? '列表布局预览' : layoutKey === 'detail' ? '详情布局预览' : '表单布局预览',
@@ -376,11 +406,17 @@ async function handlePreview() {
   }
 }
 
-async function handlePublish() {
+async function handlePublish(options = {}) {
+  const publishOptions = options && typeof options === 'object' && !('target' in options) ? options : {}
   if (!objectId.value)
     return
   if (publishCheckState.value?.publishable === false) {
     message.warning('发布检查存在阻断项，请先修复')
+    activePanel.value = 'publish'
+    return
+  }
+  if (hasTableSyncIssue(publishCheckState.value) && !publishOptions.syncTable) {
+    message.warning('发布前请在发布检查中确认同步数据表结构')
     activePanel.value = 'publish'
     return
   }
@@ -391,7 +427,7 @@ async function handlePublish() {
   try {
     const res = await publishBusinessObject(objectId.value, {
       publishMode: 'PUBLISH',
-      syncTable: false,
+      syncTable: !!publishOptions.syncTable,
       force: false,
       modelSchema: cloneSchema(draft.modelSchema || {}),
       pageSchema: cloneSchema(draft.pageSchema || {}),
@@ -400,7 +436,9 @@ async function handlePublish() {
     message.success(res.data ? `业务对象已发布，版本 ${res.data}` : '业务对象已发布')
     await loadRuntimeInfo()
     await loadDesigner()
-    await publishChecklistRef.value?.refresh?.()
+    await nextTick()
+    if (activePanel.value === 'publish')
+      await publishChecklistRef.value?.refresh?.()
   }
   finally {
     publishing.value = false
@@ -428,8 +466,14 @@ function openRuntime() {
 
 function handleFieldsUpdated(fields) {
   draft.fields = cloneSchema(fields || [])
+  syncDraftModelFields(draft.fields)
   dirty.value = false
-  loadDesigner()
+}
+
+function hasTableSyncIssue(result) {
+  const items = Array.isArray(result?.items) ? result.items : []
+  return items.some(item =>
+    item?.fixAction === 'SYNC_TABLE' || item?.itemCode === 'TABLE_MISSING' || item?.itemCode === 'TABLE_COLUMN_MISSING')
 }
 
 function handleLayoutSaved(pageSchema) {
@@ -457,6 +501,11 @@ function handleFixTarget(panel) {
     message.warning('该修复入口需要高级配置权限')
     return
   }
+  if (panel === 'detail') {
+    activePanel.value = 'form'
+    formDetailTab.value = 'detail'
+    return
+  }
   activePanel.value = panel || 'fields'
 }
 
@@ -464,6 +513,14 @@ function openDeveloperPath(path) {
   if (!path)
     return
   router.push(path)
+}
+
+function resolveActiveLayoutKey() {
+  if (activePanel.value === 'list')
+    return 'list'
+  if (activePanel.value === 'detail' || (activePanel.value === 'form' && formDetailTab.value === 'detail'))
+    return 'detail'
+  return 'form'
 }
 
 function handleDirtyChange(value) {
@@ -586,6 +643,54 @@ function toPageField(field = {}) {
     searchable: field.searchable,
     listVisible: field.listVisible,
     formVisible: field.formVisible,
+    fieldStatus: field.fieldStatus,
+  }
+}
+
+function isInactiveField(field = {}) {
+  const status = String(field.fieldStatus || '').toUpperCase()
+  return status === 'DISABLED' || status === 'HIDDEN'
+}
+
+function syncDraftModelFields(fields = []) {
+  const modelFields = draft.modelSchema?.fields || []
+  const existingMap = new Map(modelFields.map(field => [field.field, field]))
+  draft.modelSchema = {
+    ...(draft.modelSchema || {}),
+    fields: fields.map((field) => {
+      const fieldCode = field.fieldCode || field.field
+      return {
+        ...(existingMap.get(fieldCode) || {}),
+        field: fieldCode,
+        columnName: field.columnName,
+        label: field.fieldName || field.label || fieldCode,
+        dataType: field.dataType,
+        length: field.length,
+        precision: field.precision,
+        required: field.required,
+        defaultValue: field.defaultValue,
+        searchable: field.searchable,
+        listVisible: field.listVisible,
+        formVisible: field.formVisible,
+        componentType: field.componentType,
+        queryType: field.queryType,
+        dictType: field.dictType,
+        sensitiveType: field.sensitiveType,
+        encryptAlgorithm: field.encryptAlgorithm,
+        sortable: field.sortable,
+        systemField: field.systemField,
+        readonly: field.readonly,
+        width: field.width,
+        remark: field.remark,
+        businessFieldType: field.fieldType,
+        fieldStatus: field.fieldStatus,
+        importable: field.importable,
+        exportable: field.exportable,
+        referenceObjectCode: field.referenceObjectCode,
+        referenceDisplayField: field.referenceDisplayField,
+        sortOrder: field.sortOrder,
+      }
+    }),
   }
 }
 
@@ -623,9 +728,22 @@ function hasPermission(source, permission) {
 
 <style scoped>
 .basic-panel,
-.placeholder-panel {
+.placeholder-panel,
+.form-detail-panel {
   min-height: calc(100vh - 106px);
+}
+
+.basic-panel,
+.placeholder-panel {
   padding: 20px;
+}
+
+.form-detail-panel :deep(.n-tabs-nav) {
+  padding: 0 16px;
+}
+
+.form-detail-panel :deep(.n-tab-pane) {
+  padding: 0;
 }
 
 .panel-head {

@@ -2,261 +2,132 @@
   <div class="business-detail-designer">
     <div class="detail-designer-head">
       <div>
-        <h3>详情设计</h3>
-        <p>维护详情分组、页签和关联列表入口。</p>
+        <h3>详情设置</h3>
+        <p>详情主信息自动复用表单设计布局，关联数据来自关系配置。</p>
       </div>
       <n-space size="small">
-        <n-button size="small" secondary @click="appendAllVisibleFields">
-          自动补齐字段
+        <n-button size="small" secondary @click="$emit('openForm')">
+          调整表单
+        </n-button>
+        <n-button size="small" secondary @click="$emit('openRelations')">
+          配置关系
         </n-button>
         <n-button size="small" type="primary" :loading="saving" @click="saveLayout">
-          保存详情
+          保存设置
         </n-button>
       </n-space>
     </div>
 
     <div class="detail-designer-body">
       <main class="detail-workspace">
-        <n-tabs v-model:value="activeSubTab" type="line" animated>
-          <n-tab-pane name="basic" tab="基本信息">
-            <div class="detail-group-toolbar">
-              <n-space size="small">
-                <n-select
-                  v-model:value="selectedGroupKey"
-                  :options="groupOptions"
-                  size="small"
-                  style="width: 180px"
-                />
-                <n-button size="small" secondary @click="addGroup">
-                  新建分组
-                </n-button>
-                <n-button size="small" secondary @click="applyDefaultLayout">
-                  恢复默认
-                </n-button>
-              </n-space>
-              <n-tag size="small" type="info" :bordered="false">
-                {{ visibleFieldCount }} 个可见字段
-              </n-tag>
+        <section class="detail-section">
+          <div class="detail-section-head">
+            <div>
+              <h4>主信息展示</h4>
+              <p>查看详情按表单字段顺序只读展示，不再单独维护第二套字段分组。</p>
             </div>
+            <n-tag size="small" type="info" :bordered="false">
+              {{ formFieldRefs.length }} 个字段
+            </n-tag>
+          </div>
 
-            <div class="detail-group-list">
-              <section v-for="(group, index) in detailConfig.groups" :key="group.key" class="detail-group-card">
-                <header class="detail-group-head">
-                  <div class="group-head-main">
-                    <n-input
-                      v-model:value="group.title"
-                      size="small"
-                      placeholder="分组标题"
-                      @update:value="markDirty"
-                    />
-                    <n-select
-                      v-model:value="group.columns"
-                      :options="columnOptions"
-                      size="small"
-                      style="width: 92px"
-                      @update:value="markDirty"
-                    />
-                  </div>
-                  <n-space size="small">
-                    <n-button quaternary circle size="small" :disabled="index === 0" @click="moveGroup(index, -1)">
-                      <template #icon>
-                        <n-icon><ChevronUpOutline /></n-icon>
-                      </template>
-                    </n-button>
-                    <n-button quaternary circle size="small" :disabled="index === detailConfig.groups.length - 1" @click="moveGroup(index, 1)">
-                      <template #icon>
-                        <n-icon><ChevronDownOutline /></n-icon>
-                      </template>
-                    </n-button>
-                    <n-popconfirm @positive-click="removeGroup(index)">
-                      <template #trigger>
-                        <n-button quaternary circle size="small" :disabled="detailConfig.groups.length === 1">
-                          <template #icon>
-                            <n-icon><TrashOutline /></n-icon>
-                          </template>
-                        </n-button>
-                      </template>
-                      确认删除该分组？
-                    </n-popconfirm>
-                  </n-space>
-                </header>
+          <div v-if="fieldPreviewRows.length" class="field-preview-grid">
+            <article v-for="field in fieldPreviewRows" :key="field.field" class="field-preview-item">
+              <strong>{{ field.label || field.field }}</strong>
+              <span>{{ field.field }} · {{ field.componentType || field.dataType || 'input' }}</span>
+              <em v-if="field.required">必填</em>
+              <em v-else-if="isReadonlySystemField(field)">系统字段</em>
+            </article>
+          </div>
+          <n-empty v-else description="表单暂未配置字段" />
+        </section>
 
-                <div class="detail-group-meta">
-                  <span>已选字段 {{ group.items.length }}</span>
-                  <span>可见字段 {{ group.items.filter(item => !item.hidden).length }}</span>
-                  <span>只读字段 {{ group.items.filter(item => item.readonly).length }}</span>
-                </div>
-
-                <div class="detail-group-add">
-                  <n-select
-                    :value="null"
-                    :options="availableFieldOptions(group.key)"
-                    clearable
-                    filterable
-                    placeholder="选择字段后自动加入当前分组"
-                    @update:value="value => addFieldToGroup(group.key, value)"
-                  />
-                </div>
-
-                <div class="detail-field-list">
-                  <article v-for="(item, fieldIndex) in group.items" :key="item.fieldRef" class="detail-field-item">
-                    <div class="field-item-main">
-                      <strong>{{ resolveFieldLabel(item.fieldRef) }}</strong>
-                      <p>{{ resolveFieldMeta(item.fieldRef) }}</p>
-                    </div>
-                    <div class="field-item-switches">
-                      <n-switch :value="!item.hidden" @update:value="value => updateFieldVisibility(group.key, fieldIndex, value)" />
-                      <span>显示</span>
-                      <n-switch :value="item.readonly" @update:value="value => updateFieldReadonly(group.key, fieldIndex, value)" />
-                      <span>只读</span>
-                    </div>
-                    <n-space size="small" class="field-item-actions">
-                      <n-button quaternary circle size="small" :disabled="fieldIndex === 0" @click="moveField(group.key, fieldIndex, -1)">
-                        <template #icon>
-                          <n-icon><ChevronUpOutline /></n-icon>
-                        </template>
-                      </n-button>
-                      <n-button quaternary circle size="small" :disabled="fieldIndex === group.items.length - 1" @click="moveField(group.key, fieldIndex, 1)">
-                        <template #icon>
-                          <n-icon><ChevronDownOutline /></n-icon>
-                        </template>
-                      </n-button>
-                      <n-popconfirm @positive-click="removeField(group.key, fieldIndex)">
-                        <template #trigger>
-                          <n-button quaternary circle size="small">
-                            <template #icon>
-                              <n-icon><CloseOutline /></n-icon>
-                            </template>
-                          </n-button>
-                        </template>
-                        确认移除该字段？
-                      </n-popconfirm>
-                    </n-space>
-                  </article>
-                  <n-empty v-if="!group.items.length" description="该分组暂无字段" />
-                </div>
-              </section>
+        <section class="detail-section">
+          <div class="detail-section-head">
+            <div>
+              <h4>关联数据页签</h4>
+              <p>页签名称、筛选字段和是否可在编辑表单维护，统一在关系配置中设置。</p>
             </div>
-          </n-tab-pane>
+            <n-tag size="small" :type="relationRows.length ? 'success' : 'default'" :bordered="false">
+              {{ relationRows.length }} 个关系
+            </n-tag>
+          </div>
 
-          <n-tab-pane name="relations" tab="关联数据">
-            <div class="detail-relations">
-              <div class="detail-subhead">
-                <div>
-                  <h4>关联页签</h4>
-                  <p>将业务关系挂到详情页签，发布检查会校验目标对象是否可打开。</p>
-                </div>
-                <n-switch v-model:value="detailConfig.showRelationTab" @update:value="markDirty">
-                  <template #checked>
-                    启用
-                  </template>
-                  <template #unchecked>
-                    关闭
-                  </template>
-                </n-switch>
+          <div v-if="relationRows.length" class="relation-preview-list">
+            <article v-for="relation in relationRows" :key="relation.id || relation.clientKey" class="relation-preview-item">
+              <div class="relation-preview-main">
+                <strong>{{ relation.tabTitle }}</strong>
+                <span>{{ relation.sentence }}</span>
               </div>
-
-              <div v-if="relationOptions.length" class="relation-link-list">
-                <article v-for="relation in relationOptions" :key="relation.id" class="relation-link-card">
-                  <div class="relation-link-head">
-                    <div>
-                      <strong>{{ relation.relationName }}</strong>
-                      <p>{{ relation.sourceObjectName || relation.sourceObjectCode }} → {{ relation.targetObjectName || relation.targetObjectCode }}</p>
-                    </div>
-                    <n-switch :value="relation.enabled" @update:value="value => updateRelationEnabled(relation.id, value)" />
-                  </div>
-                  <div class="relation-link-form">
-                    <n-input
-                      v-model:value="relation.tabTitle"
-                      size="small"
-                      placeholder="页签名称"
-                      @update:value="markDirty"
-                    />
-                    <n-input
-                      v-model:value="relation.defaultFilter"
-                      size="small"
-                      placeholder="默认筛选条件"
-                      @update:value="markDirty"
-                    />
-                  </div>
-                </article>
+              <div class="relation-preview-meta">
+                <n-tag size="small" :bordered="false">
+                  {{ relationTypeLabel(relation.relationType) }}
+                </n-tag>
+                <n-tag v-if="relation.inlineEditEnabled" size="small" type="success" :bordered="false">
+                  编辑表单可维护
+                </n-tag>
+                <n-tag v-if="relation.defaultFilter" size="small" type="info" :bordered="false">
+                  已配置筛选
+                </n-tag>
               </div>
-              <n-empty v-else description="暂无可挂载的关联配置" />
-            </div>
-          </n-tab-pane>
+            </article>
+          </div>
+          <n-empty v-else description="暂无启用的关联数据页签" />
+        </section>
 
-          <n-tab-pane name="logs" tab="操作日志">
-            <n-alert type="info" :bordered="false">
-              当前只保存详情页签开关和说明，不重写日志底层。
-            </n-alert>
-            <div class="detail-toggle-list">
-              <label class="detail-toggle-row">
-                <span>显示操作日志页签</span>
-                <n-switch v-model:value="detailConfig.showOperationLog" @update:value="markDirty" />
-              </label>
-              <label class="detail-toggle-row">
-                <span>显示审批记录页签</span>
-                <n-switch v-model:value="detailConfig.showApprovalLog" @update:value="markDirty" />
-              </label>
+        <section class="detail-section">
+          <div class="detail-section-head">
+            <div>
+              <h4>附加页签</h4>
+              <p>操作日志和审批记录是详情页附加能力，不影响表单布局。</p>
             </div>
-          </n-tab-pane>
-
-          <n-tab-pane name="approval" tab="审批记录">
-            <n-alert type="info" :bordered="false">
-              审批记录页签只负责展示开关和入口说明，流程绑定由权限流程面板维护。
-            </n-alert>
-          </n-tab-pane>
-        </n-tabs>
+          </div>
+          <div class="detail-toggle-list">
+            <label class="detail-toggle-row">
+              <span>操作日志</span>
+              <n-switch v-model:value="detailOptions.showOperationLog" @update:value="markDirty" />
+            </label>
+            <label class="detail-toggle-row">
+              <span>审批记录</span>
+              <n-switch v-model:value="detailOptions.showApprovalLog" @update:value="markDirty" />
+            </label>
+          </div>
+        </section>
       </main>
 
-      <aside class="detail-shelf">
-        <div class="detail-shelf-head">
-          <div>
-            <h4>字段库</h4>
-            <p>点击字段即可加入当前分组，系统字段同样可显示为只读。</p>
+      <aside class="detail-summary-pane">
+        <section>
+          <h4>详情来源</h4>
+          <div class="source-row">
+            <span>主信息</span>
+            <strong>表单设计</strong>
           </div>
-        </div>
-
-        <div class="detail-shelf-tabs">
-          <button type="button" :class="{ active: shelfTab === 'unused' }" @click="shelfTab = 'unused'">
-            未使用 {{ unusedFields.length }}
-          </button>
-          <button type="button" :class="{ active: shelfTab === 'used' }" @click="shelfTab = 'used'">
-            已使用 {{ usedFields.length }}
-          </button>
-          <button type="button" :class="{ active: shelfTab === 'system' }" @click="shelfTab = 'system'">
-            系统 {{ systemFields.length }}
-          </button>
-        </div>
-
-        <div class="detail-shelf-list">
-          <button
-            v-for="field in visibleShelfFields"
-            :key="field.field"
-            type="button"
-            class="detail-shelf-item"
-            :disabled="usedFieldSet.has(field.field)"
-            @click="addFieldToGroup(selectedGroupKey, field.field)"
-          >
-            <strong>{{ field.label || field.field }}</strong>
-            <span>{{ field.field }} · {{ field.componentType || field.dataType || 'input' }}</span>
-            <em v-if="usedFieldSet.has(field.field)">已使用</em>
-            <em v-else-if="field.systemField">系统字段</em>
-          </button>
-          <n-empty v-if="!visibleShelfFields.length" description="当前分组没有字段" />
-        </div>
+          <div class="source-row">
+            <span>关联页签</span>
+            <strong>关系配置</strong>
+          </div>
+          <div class="source-row">
+            <span>编辑关联数据</span>
+            <strong>{{ inlineRelationText }}</strong>
+          </div>
+        </section>
       </aside>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ChevronDownOutline, ChevronUpOutline, CloseOutline, TrashOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import { saveBusinessObjectDetailLayout } from '@/api/business-app'
 import { cloneSchema, isSameSchema } from '@/components/lowcode-builder/model/model-schema'
-import { createDefaultPageSchema, isReadonlySystemField, syncPageSchemaWithModel } from '@/components/lowcode-builder/page/page-schema'
+import {
+  buildPageDesignModelSchema,
+  createDefaultPageSchema,
+  createPageModelRef,
+  isReadonlySystemField,
+  syncPageSchemaWithModel,
+} from '@/components/lowcode-builder/page/page-schema'
 
 const props = defineProps({
   objectId: {
@@ -281,62 +152,41 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['update:modelValue', 'saved', 'dirtyChange'])
+const emit = defineEmits(['update:modelValue', 'saved', 'dirtyChange', 'openForm', 'openRelations'])
 
 const message = useMessage()
 const saving = ref(false)
-const activeSubTab = ref('basic')
-const shelfTab = ref('unused')
-const selectedGroupKey = ref('')
 
-const designFields = computed(() => {
+const baseModelSchema = computed(() => {
   const modelFields = props.modelSchema?.fields || []
-  if (modelFields.length)
-    return modelFields
-  return props.fields.map(toPageField)
+  return {
+    ...(props.modelSchema || {}),
+    fields: modelFields.length ? modelFields : props.fields.map(toPageField),
+  }
 })
-
-const effectiveModelSchema = computed(() => ({
-  ...(props.modelSchema || {}),
-  fields: designFields.value,
-}))
-
-const localSchema = ref(resolveSchema(props.modelValue, effectiveModelSchema.value))
+const localSchema = ref(resolveSchema(props.modelValue, resolveDesignModelSchema(props.modelValue, baseModelSchema.value)))
+const effectiveModelSchema = computed(() => resolveDesignModelSchema(localSchema.value, baseModelSchema.value))
+const designFields = computed(() => effectiveModelSchema.value.fields || [])
+const editZone = computed(() => localSchema.value.zones?.find(zone => zone.zoneKey === 'edit') || null)
 const detailZone = computed(() => localSchema.value.zones?.find(zone => zone.zoneKey === 'detail') || null)
-const detailConfig = ref(resolveDetailConfig(detailZone.value, designFields.value, props.relations))
-
 const fieldMap = computed(() => new Map(designFields.value.map(field => [field.field, field])))
-const usedFieldSet = computed(() => new Set(detailConfig.value.groups.flatMap(group => group.items.map(item => item.fieldRef))))
-const visibleFieldCount = computed(() => detailConfig.value.groups.reduce((sum, group) => sum + group.items.filter(item => !item.hidden).length, 0))
-const systemFields = computed(() => designFields.value.filter(field => isReadonlySystemField(field)))
-const usedFields = computed(() => designFields.value.filter(field => usedFieldSet.value.has(field.field)))
-const unusedFields = computed(() => designFields.value.filter(field => !usedFieldSet.value.has(field.field) && !isReadonlySystemField(field)))
-const visibleShelfFields = computed(() => {
-  if (shelfTab.value === 'used')
-    return usedFields.value
-  if (shelfTab.value === 'system')
-    return systemFields.value
-  return unusedFields.value
+const formFieldRefs = computed(() => {
+  return resolveFormFieldRefs(editZone.value, fieldMap.value)
+    .filter(ref => isPrimaryDetailField(fieldMap.value.get(ref)))
 })
-const relationOptions = computed(() => detailConfig.value.relationTabs)
-const groupOptions = computed(() => detailConfig.value.groups.map(group => ({
-  label: group.title || '未命名分组',
-  value: group.key,
-})))
-const columnOptions = [
-  { label: '1 列', value: 1 },
-  { label: '2 列', value: 2 },
-  { label: '3 列', value: 3 },
-  { label: '4 列', value: 4 },
-]
+const fieldPreviewRows = computed(() => formFieldRefs.value.map(ref => fieldMap.value.get(ref)).filter(Boolean))
+const relationRows = computed(() => normalizeRelationRows(props.relations || []))
+const inlineRelationCount = computed(() => relationRows.value.filter(item => item.inlineEditEnabled).length)
+const inlineRelationText = computed(() => inlineRelationCount.value ? `${inlineRelationCount.value} 个` : '未启用')
+const detailOptions = ref(resolveDetailOptions(detailZone.value))
 
 watch(
   () => props.modelValue,
   (value) => {
-    const next = resolveSchema(value, effectiveModelSchema.value)
+    const next = resolveSchema(value, resolveDesignModelSchema(value, baseModelSchema.value))
     if (!isSameSchema(next, localSchema.value))
       localSchema.value = next
-    detailConfig.value = resolveDetailConfig(next.zones?.find(zone => zone.zoneKey === 'detail') || null, designFields.value, props.relations)
+    detailOptions.value = resolveDetailOptions(next.zones?.find(zone => zone.zoneKey === 'detail') || null)
   },
   { deep: true, immediate: true },
 )
@@ -347,15 +197,13 @@ watch(
     const next = syncPageSchemaWithModel(localSchema.value, value)
     if (!isSameSchema(next, localSchema.value))
       localSchema.value = next
-    detailConfig.value = resolveDetailConfig(next.zones?.find(zone => zone.zoneKey === 'detail') || null, designFields.value, props.relations)
   },
   { deep: true },
 )
 
 watch(
   () => props.relations,
-  (value) => {
-    detailConfig.value = resolveDetailConfig(detailZone.value, designFields.value, value || [])
+  () => {
     syncDetailSchema()
   },
   { deep: true },
@@ -372,27 +220,6 @@ watch(
   { deep: true },
 )
 
-watch(
-  detailConfig,
-  () => {
-    syncDetailSchema()
-  },
-  { deep: true },
-)
-
-function syncDetailSchema() {
-  const zone = buildDetailZone(detailConfig.value, detailZone.value)
-  let zones = localSchema.value.zones || []
-  if (zones.some(item => item.zoneKey === 'detail'))
-    zones = zones.map(item => item.zoneKey === 'detail' ? zone : item)
-  else
-    zones = [...zones, zone]
-  localSchema.value = {
-    ...localSchema.value,
-    zones,
-  }
-}
-
 function resolveSchema(pageSchema, modelSchema) {
   return syncPageSchemaWithModel(
     cloneSchema(pageSchema || createDefaultPageSchema(modelSchema)),
@@ -400,297 +227,202 @@ function resolveSchema(pageSchema, modelSchema) {
   )
 }
 
-function resolveDetailConfig(zone, fields, relations) {
-  const props = zone?.props || {}
-  const groups = normalizeGroups(props.detailGroups, zone?.fieldRefs || [], fields)
-  const relationTabs = normalizeRelationTabs(props.relationTabs, relations)
+function resolveDesignModelSchema(pageSchema, modelSchema) {
+  const refs = mergePrimaryModelRef(pageSchema?.modelRefs || [], modelSchema || {})
+  return buildPageDesignModelSchema(modelSchema || {}, refs)
+}
+
+function mergePrimaryModelRef(modelRefs, modelSchema) {
+  if (!Array.isArray(modelRefs) || !modelRefs.length)
+    return []
+  const primaryRef = createPageModelRef({ modelSchema }, { primary: true })
+  const refs = modelRefs.map(ref => ref?.primary
+    ? {
+        ...ref,
+        modelCode: primaryRef.modelCode || ref.modelCode,
+        modelName: primaryRef.modelName || ref.modelName,
+        tableName: primaryRef.tableName || ref.tableName,
+        relations: primaryRef.relations?.length ? primaryRef.relations : ref.relations,
+        fields: primaryRef.fields,
+      }
+    : ref)
+  if (!refs.some(ref => ref?.primary))
+    refs.unshift(primaryRef)
+  return refs
+}
+
+function resolveDetailOptions(zone) {
+  const zoneProps = zone?.props || {}
   return {
-    groups,
-    relationTabs,
-    showRelationTab: props.showRelationTab !== false,
-    showOperationLog: props.showOperationLog !== false,
-    showApprovalLog: props.showApprovalLog !== false,
+    showOperationLog: zoneProps.showOperationLog !== false,
+    showApprovalLog: zoneProps.showApprovalLog !== false,
   }
 }
 
-function normalizeGroups(groups, fieldRefs, fields) {
-  const fieldMap = new Map((fields || []).map(field => [field.field, field]))
-  const validRefs = new Set((fields || []).map(field => field.field).filter(Boolean))
-  const fallbackRefs = (fieldRefs || []).length ? fieldRefs : (fields || []).map(field => field.field)
-  const sourceGroups = Array.isArray(groups) && groups.length
-    ? groups
-    : [{
-        key: 'basic',
-        title: '基本信息',
-        columns: 2,
-        items: fallbackRefs.map(fieldRef => createGroupFieldItem(fieldRef, fieldMap.get(fieldRef))).filter(Boolean),
-      }]
-  const normalized = sourceGroups.map((group, index) => {
-    const items = Array.isArray(group.items) && group.items.length
-      ? group.items
-      : (group.fieldRefs || []).map(fieldRef => createGroupFieldItem(fieldRef, fieldMap.get(fieldRef))).filter(Boolean)
-    return {
-      key: group.key || `group_${index + 1}`,
-      title: group.title || `分组 ${index + 1}`,
-      columns: normalizeColumns(group.columns),
-      items: items
-        .map(item => normalizeGroupFieldItem(item, fieldMap.get(item.fieldRef)))
-        .filter(item => item && validRefs.has(item.fieldRef)),
-    }
-  })
-  if (!normalized.length) {
-    normalized.push({
-      key: 'basic',
-      title: '基本信息',
-      columns: 2,
-      items: [],
+function resolveFormFieldRefs(zone, fields) {
+  const canvasItems = zone?.props?.canvas?.items || []
+  const canvasRefs = canvasItems
+    .filter(item => item.fieldRef)
+    .sort(compareCanvasItem)
+    .map(item => item.fieldRef)
+  const refs = canvasRefs.length ? canvasRefs : (zone?.fieldRefs || [])
+  return Array.from(new Set(refs.filter(ref => fields.has(ref))))
+}
+
+function compareCanvasItem(left, right) {
+  const leftY = Number(left.y || 0)
+  const rightY = Number(right.y || 0)
+  if (Math.abs(leftY - rightY) > 8)
+    return leftY - rightY
+  const leftX = Number(left.x || 0)
+  const rightX = Number(right.x || 0)
+  if (leftX !== rightX)
+    return leftX - rightX
+  return Number(left.zIndex || 0) - Number(right.zIndex || 0)
+}
+
+function normalizeRelationRows(relations) {
+  return (relations || [])
+    .map((relation, index) => {
+      const config = parseRelationConfig(relation.relationConfig)
+      return {
+        ...relation,
+        clientKey: relation.id || `relation_${index}`,
+        tabTitle: config.detailTabTitle || relation.detailTabTitle || relation.relationName || relation.targetObjectName || relation.targetObjectCode || `关联 ${index + 1}`,
+        defaultFilter: config.defaultFilter || relation.defaultFilter || '',
+        inlineEditEnabled: config.inlineEditEnabled === true || config.inlineEditEnabled === 'true',
+        showInDetail: config.showInDetail !== false,
+        sentence: relationSentence(relation),
+      }
     })
+    .filter(relation => relation.status !== 0 && relation.showInDetail)
+}
+
+function parseRelationConfig(value) {
+  if (!value)
+    return {}
+  try {
+    const parsed = JSON.parse(value)
+    return parsed && typeof parsed === 'object' ? parsed : {}
   }
-  return normalized
-}
-
-function normalizeRelationTabs(relationTabs, relations) {
-  const relationMap = new Map((relations || []).map(item => [item.id, item]))
-  const source = Array.isArray(relationTabs) && relationTabs.length
-    ? relationTabs
-    : (relations || []).map(relation => ({
-        relationId: relation.id,
-        relationName: relation.relationName,
-        enabled: true,
-        tabTitle: relation.relationName,
-        defaultFilter: relation.relationConfig || '',
-      }))
-  return source.map((item, index) => {
-    const relation = relationMap.get(item.relationId)
+  catch {
     return {
-      relationId: item.relationId || relation?.id || null,
-      relationName: item.relationName || relation?.relationName || `关联 ${index + 1}`,
-      sourceObjectCode: relation?.sourceObjectCode || item.sourceObjectCode || '',
-      sourceObjectName: relation?.sourceObjectName || item.sourceObjectName || '',
-      targetObjectCode: relation?.targetObjectCode || item.targetObjectCode || '',
-      targetObjectName: relation?.targetObjectName || item.targetObjectName || '',
-      enabled: item.enabled !== false,
-      tabTitle: item.tabTitle || relation?.relationName || `关联 ${index + 1}`,
-      defaultFilter: item.defaultFilter || relation?.relationConfig || '',
+      defaultFilter: value,
     }
-  })
+  }
 }
 
-function buildDetailZone(config, currentZone) {
-  const fieldRefs = config.groups.flatMap(group => group.items.filter(item => !item.hidden).map(item => item.fieldRef)).filter(Boolean)
+function relationSentence(relation = {}) {
+  const source = relation.sourceObjectName || relation.sourceObjectCode || '当前对象'
+  const target = relation.targetObjectName || relation.targetObjectCode || '目标对象'
+  const verbs = {
+    REFERENCE: '属于 / 引用',
+    CHILD_LIST: '有多个',
+    DETAIL: '包含明细',
+    MANY_TO_MANY: '关联多个',
+  }
+  return `${source}${verbs[relation.relationType] || '关联'}${target}`
+}
+
+function relationTypeLabel(value) {
+  const labels = {
+    REFERENCE: '引用',
+    CHILD_LIST: '一对多',
+    DETAIL: '明细',
+    MANY_TO_MANY: '多对多',
+  }
+  return labels[value] || value || '关系'
+}
+
+function isPrimaryDetailField(field = {}) {
+  const sourceField = field.sourceField || field.field
+  return !field.modelCode || field.field === sourceField
+}
+
+function buildDetailZone(currentZone) {
+  const groups = [{
+    key: 'form_layout',
+    title: '主信息',
+    columns: resolveFormColumns(editZone.value),
+    items: formFieldRefs.value.map(fieldRef => ({
+      fieldRef,
+      hidden: false,
+      readonly: true,
+    })),
+  }]
   return {
     ...(currentZone || {}),
     zoneKey: 'detail',
     componentKey: 'detail-panel',
     enabled: true,
-    fieldRefs,
+    fieldRefs: formFieldRefs.value,
     props: {
       ...(currentZone?.props || {}),
-      detailGroups: config.groups,
-      relationTabs: config.relationTabs,
-      showRelationTab: config.showRelationTab,
-      showOperationLog: config.showOperationLog,
-      showApprovalLog: config.showApprovalLog,
+      detailSource: 'FORM_LAYOUT',
+      detailGroups: groups,
+      relationTabs: relationRows.value.map(relation => ({
+        relationId: relation.id || null,
+        relationName: relation.relationName,
+        targetObjectCode: relation.targetObjectCode,
+        targetObjectName: relation.targetObjectName,
+        enabled: true,
+        tabTitle: relation.tabTitle,
+        defaultFilter: relation.defaultFilter,
+        inlineEditEnabled: relation.inlineEditEnabled,
+      })),
+      showRelationTab: relationRows.value.length > 0,
+      showOperationLog: detailOptions.value.showOperationLog,
+      showApprovalLog: detailOptions.value.showApprovalLog,
     },
   }
 }
 
-function createGroupFieldItem(fieldRef, field) {
-  if (!fieldRef)
-    return null
-  return {
-    fieldRef,
-    hidden: false,
-    readonly: isReadonlySystemField(field),
-  }
-}
-
-function normalizeGroupFieldItem(item, field) {
-  if (!item?.fieldRef)
-    return null
-  return {
-    fieldRef: item.fieldRef,
-    hidden: Boolean(item.hidden),
-    readonly: item.readonly ?? isReadonlySystemField(field),
-  }
-}
-
-function normalizeColumns(columns) {
-  const value = Number(columns)
-  if ([1, 2, 3, 4].includes(value))
-    return value
+function resolveFormColumns(zone) {
+  const cols = Number(zone?.props?.editGridCols || zone?.props?.canvas?.gridCols || 2)
+  if ([1, 2, 3, 4].includes(cols))
+    return cols
   return 2
 }
 
-function updateDetailConfig(mutator) {
-  const next = cloneSchema(detailConfig.value || {})
-  mutator(next)
-  next.groups = normalizeGroups(next.groups, designFields.value.map(field => field.field), designFields.value)
-  detailConfig.value = next
+function syncDetailSchema() {
+  const zone = buildDetailZone(detailZone.value)
+  let zones = localSchema.value.zones || []
+  if (zones.some(item => item.zoneKey === 'detail'))
+    zones = zones.map(item => item.zoneKey === 'detail' ? zone : item)
+  else
+    zones = [...zones, zone]
+  const nextSchema = {
+    ...localSchema.value,
+    zones,
+  }
+  if (!isSameSchema(nextSchema, localSchema.value))
+    localSchema.value = nextSchema
+}
+
+function markDirty() {
   syncDetailSchema()
-}
-
-function addGroup() {
-  updateDetailConfig((config) => {
-    const index = config.groups.length + 1
-    config.groups.push({
-      key: `group_${index}`,
-      title: `分组 ${index}`,
-      columns: 2,
-      items: [],
-    })
-    selectedGroupKey.value = config.groups[config.groups.length - 1].key
-  })
-}
-
-function removeGroup(index) {
-  updateDetailConfig((config) => {
-    if (config.groups.length === 1)
-      return
-    config.groups.splice(index, 1)
-    if (!config.groups.some(group => group.key === selectedGroupKey.value))
-      selectedGroupKey.value = config.groups[0]?.key || ''
-  })
-}
-
-function moveGroup(index, direction) {
-  updateDetailConfig((config) => {
-    const nextIndex = index + direction
-    if (nextIndex < 0 || nextIndex >= config.groups.length)
-      return
-    const [item] = config.groups.splice(index, 1)
-    config.groups.splice(nextIndex, 0, item)
-  })
-}
-
-function availableFieldOptions(groupKey) {
-  const currentGroup = detailConfig.value.groups.find(group => group.key === groupKey)
-  const used = new Set(detailConfig.value.groups.flatMap(group => group.items.map(item => item.fieldRef)))
-  return designFields.value
-    .filter(field => !used.has(field.field) || currentGroup?.items.some(item => item.fieldRef === field.field))
-    .map(field => ({
-      label: `${field.label || field.field}（${field.field}）`,
-      value: field.field,
-    }))
-}
-
-function addFieldToGroup(groupKey, fieldRef) {
-  if (!fieldRef)
-    return
-  updateDetailConfig((config) => {
-    const targetGroup = config.groups.find(group => group.key === groupKey) || config.groups[0]
-    if (!targetGroup)
-      return
-    if (targetGroup.items.some(item => item.fieldRef === fieldRef))
-      return
-    const field = fieldMap.value.get(fieldRef)
-    targetGroup.items.push(createGroupFieldItem(fieldRef, field))
-    selectedGroupKey.value = targetGroup.key
-  })
-}
-
-function appendAllVisibleFields() {
-  updateDetailConfig((config) => {
-    const targetGroup = config.groups[0]
-    if (!targetGroup)
-      return
-    designFields.value.forEach((field) => {
-      if (usedFieldSet.value.has(field.field))
-        return
-      targetGroup.items.push(createGroupFieldItem(field.field, field))
-    })
-  })
-}
-
-function applyDefaultLayout() {
-  detailConfig.value = resolveDetailConfig(detailZone.value, designFields.value, props.relations)
-  syncDetailSchema()
-}
-
-function removeField(groupKey, fieldIndex) {
-  updateDetailConfig((config) => {
-    const targetGroup = config.groups.find(group => group.key === groupKey)
-    if (!targetGroup)
-      return
-    targetGroup.items.splice(fieldIndex, 1)
-  })
-}
-
-function moveField(groupKey, fieldIndex, direction) {
-  updateDetailConfig((config) => {
-    const targetGroup = config.groups.find(group => group.key === groupKey)
-    if (!targetGroup)
-      return
-    const nextIndex = fieldIndex + direction
-    if (nextIndex < 0 || nextIndex >= targetGroup.items.length)
-      return
-    const [item] = targetGroup.items.splice(fieldIndex, 1)
-    targetGroup.items.splice(nextIndex, 0, item)
-  })
-}
-
-function updateFieldVisibility(groupKey, fieldIndex, value) {
-  updateDetailConfig((config) => {
-    const targetGroup = config.groups.find(group => group.key === groupKey)
-    if (!targetGroup)
-      return
-    targetGroup.items[fieldIndex].hidden = !value
-  })
-}
-
-function updateFieldReadonly(groupKey, fieldIndex, value) {
-  updateDetailConfig((config) => {
-    const targetGroup = config.groups.find(group => group.key === groupKey)
-    if (!targetGroup)
-      return
-    targetGroup.items[fieldIndex].readonly = !!value
-  })
-}
-
-function updateRelationEnabled(relationId, value) {
-  updateDetailConfig((config) => {
-    const relation = config.relationTabs.find(item => item.relationId === relationId)
-    if (!relation)
-      return
-    relation.enabled = !!value
-  })
-}
-
-function resolveFieldLabel(fieldRef) {
-  const field = fieldMap.value.get(fieldRef)
-  return field?.label || fieldRef || '-'
-}
-
-function resolveFieldMeta(fieldRef) {
-  const field = fieldMap.value.get(fieldRef)
-  if (!field)
-    return fieldRef || '-'
-  return [field.field, field.componentType || field.dataType || 'input'].filter(Boolean).join(' · ')
+  emit('dirtyChange', true)
 }
 
 async function saveLayout() {
   if (!props.objectId)
     return
+  syncDetailSchema()
   saving.value = true
   try {
     const schema = syncPageSchemaWithModel(localSchema.value, effectiveModelSchema.value)
+    const detail = schema.zones?.find(zone => zone.zoneKey === 'detail')
     await saveBusinessObjectDetailLayout(props.objectId, {
       layoutKey: 'detail',
-      layoutName: '详情布局',
+      layoutName: '详情设置',
       layoutType: schema.layoutType,
       pageSchema: cloneSchema(schema),
-      zones: schema.zones?.filter(zone => zone.zoneKey === 'detail') || [],
-      settings: {
-        detailGroups: detailConfig.value.groups,
-        relationTabs: detailConfig.value.relationTabs,
-        showRelationTab: detailConfig.value.showRelationTab,
-        showOperationLog: detailConfig.value.showOperationLog,
-        showApprovalLog: detailConfig.value.showApprovalLog,
-      },
+      zones: detail ? [detail] : [],
+      settings: detail?.props || {},
     })
     emit('saved', cloneSchema(schema))
     emit('dirtyChange', false)
-    message.success('详情布局已保存')
+    message.success('详情设置已保存')
   }
   finally {
     saving.value = false
@@ -713,11 +445,8 @@ function toPageField(field) {
     searchable: field.searchable,
     listVisible: field.listVisible,
     formVisible: field.formVisible,
+    fieldStatus: field.fieldStatus,
   }
-}
-
-function markDirty() {
-  emit('dirtyChange', true)
 }
 
 defineExpose({
@@ -742,225 +471,130 @@ defineExpose({
 }
 
 .detail-designer-head h3,
-.detail-subhead h4,
-.detail-shelf-head h4 {
+.detail-section h4,
+.detail-summary-pane h4 {
   margin: 0;
   color: #111827;
   font-size: 15px;
+  letter-spacing: 0;
 }
 
 .detail-designer-head p,
-.detail-subhead p,
-.detail-shelf-head p {
+.detail-section p {
   margin: 4px 0 0;
   color: #64748b;
   font-size: 12px;
+  line-height: 1.5;
 }
 
 .detail-designer-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr) 280px;
   min-height: 0;
 }
 
 .detail-workspace {
+  display: grid;
+  align-content: start;
+  gap: 12px;
   min-width: 0;
   overflow: auto;
   background: #f8fafc;
   padding: 14px;
 }
 
-.detail-group-toolbar,
-.detail-subhead,
-.detail-group-head,
-.detail-group-meta,
-.detail-field-item,
-.relation-link-head,
-.relation-link-form,
-.detail-toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.detail-group-list {
-  display: grid;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.detail-group-card,
-.relation-link-card {
+.detail-section,
+.detail-summary-pane section {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #fff;
-  padding: 12px;
+  padding: 14px;
 }
 
-.group-head-main {
+.detail-section-head,
+.detail-toggle-row,
+.relation-preview-item,
+.source-row {
   display: flex;
-  gap: 8px;
-  flex: 1;
-}
-
-.detail-group-meta {
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  margin-top: 10px;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.detail-group-add {
-  margin-top: 10px;
-}
-
-.detail-field-list {
-  display: grid;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.detail-field-item {
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.field-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.field-preview-item,
+.relation-preview-item,
+.detail-toggle-row,
+.source-row {
   border: 1px solid #eef2f7;
   border-radius: 8px;
   background: #fdfefe;
   padding: 10px 12px;
 }
 
-.field-item-main {
+.field-preview-item {
+  display: grid;
+  gap: 4px;
   min-width: 0;
-  flex: 1;
 }
 
-.field-item-main strong {
-  display: block;
+.field-preview-item strong,
+.relation-preview-main strong,
+.source-row strong {
   overflow: hidden;
   color: #111827;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.field-item-main p {
-  margin: 4px 0 0;
+.field-preview-item span,
+.field-preview-item em,
+.relation-preview-main span,
+.source-row span {
+  overflow: hidden;
   color: #64748b;
   font-size: 12px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.field-item-switches {
+.relation-preview-list,
+.detail-toggle-list,
+.detail-summary-pane {
+  display: grid;
+  gap: 10px;
+}
+
+.relation-preview-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.relation-preview-meta {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 6px;
-  color: #475569;
-  font-size: 12px;
 }
 
-.detail-relations,
-.detail-toggle-list {
-  display: grid;
-  gap: 12px;
-}
-
-.detail-toggle-row {
-  justify-content: space-between;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
-  padding: 12px 14px;
-}
-
-.relation-link-card strong {
-  color: #111827;
-  font-size: 14px;
-}
-
-.relation-link-card p {
-  margin: 4px 0 0;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.relation-link-form {
-  margin-top: 10px;
-}
-
-.detail-shelf {
-  display: grid;
+.detail-summary-pane {
   align-content: start;
-  gap: 12px;
   border-left: 1px solid #e5e7eb;
   background: #fbfcfe;
-  overflow: auto;
   padding: 12px;
 }
 
-.detail-shelf-tabs {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.detail-shelf-tabs button {
-  border: 0;
-  border-radius: 4px;
-  background: #f1f5f9;
-  color: #475569;
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 28px;
-  padding: 0 10px;
-}
-
-.detail-shelf-tabs button.active {
-  background: #eaf2ff;
-  color: #1d4ed8;
-  font-weight: 700;
-}
-
-.detail-shelf-list {
-  display: grid;
-  gap: 8px;
-}
-
-.detail-shelf-item {
-  display: grid;
-  gap: 4px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
-  cursor: pointer;
-  padding: 10px 12px;
-  text-align: left;
-}
-
-.detail-shelf-item:disabled {
-  cursor: not-allowed;
-  opacity: 0.72;
-}
-
-.detail-shelf-item strong {
-  overflow: hidden;
-  color: #111827;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.detail-shelf-item span {
-  color: #64748b;
-  font-size: 12px;
-}
-
-.detail-shelf-item em {
-  width: fit-content;
-  border-radius: 4px;
-  background: #fff7ed;
-  color: #c2410c;
-  font-size: 11px;
-  font-style: normal;
-  line-height: 18px;
-  padding: 0 6px;
+.source-row {
+  margin-top: 10px;
 }
 
 @media (max-width: 1100px) {
@@ -968,7 +602,7 @@ defineExpose({
     grid-template-columns: 1fr;
   }
 
-  .detail-shelf {
+  .detail-summary-pane {
     border-left: 0;
     border-top: 1px solid #e5e7eb;
   }
