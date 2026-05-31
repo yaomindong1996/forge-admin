@@ -253,12 +253,12 @@ async function saveObject() {
 function resolveDesignerPanel(createMode) {
   switch (createMode) {
     case 'BLANK':
-      return 'fields'
+      return 'form'
     case 'DB_IMPORT':
     case 'AI_GENERATE':
-      return 'fields'
+      return 'form'
     default:
-      return 'fields'
+      return 'form'
   }
 }
 

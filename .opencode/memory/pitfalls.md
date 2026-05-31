@@ -292,6 +292,29 @@ curl -I http://localhost:3000/node_modules/.vite/deps/@form-create_designer.js
 
 ---
 
+## 10. fcDesigner 不能在窄栅格里被动压缩
+
+**发现日期**: 2026-05-31
+
+**问题描述**:
+低代码对象设计器接入 `@form-create/designer` 后，如果外层业务设计区仍保留空的右侧栅格列，或让 `fcDesigner` 根容器随父容器无限收缩，1024px 宽度下中间表单画布会被挤到很窄，字段标题和输入框文字出现竖排、遮挡。
+
+**根本原因**:
+`fcDesigner` 自身由左侧组件区、中间画布、右侧属性区组成，左侧约 266px，右侧约 320px。外层再额外预留 300px 空列时，真正留给设计器的宽度不足，Element/FormCreate 内部不会自动切换为可用的移动布局，而是继续压缩中间画布。
+
+**解决方案**:
+- 业务对象表单设计页不要给主 `fcDesigner` 容器保留空的第二栅格列。
+- `fcDesigner` 外层画布容器设置 `overflow: auto`。
+- `._fc-designer` / `.fc-designer` 设置稳定 `min-width`，窄屏通过画布内部横向滚动承载完整设计器。
+- 移动端只允许局部设计器滚动，不让 body 出现横向溢出。
+
+**影响范围**:
+- `BusinessFormCreateDesigner.vue`
+- `BusinessFormDesigner.vue`
+- 其他复用 `@form-create/designer` 且嵌入后台工作台的页面
+
+---
+
 ## 7. form-create 设计器默认锁定字段 ID
 
 **发现日期**: 2026-05-26
@@ -1168,3 +1191,19 @@ function createFieldForm(field) {
 **影响范围**:
 - `userSelect` / 人员字段
 - 所有主子表、关联明细、动态 CRUD 运行态表单
+
+## 32. 设计器部分保存 DTO 禁止默认空集合
+
+**发现日期**: 2026-05-31
+
+**问题描述**:
+业务对象设计器多个面板都会调用 `PUT /ai/business/object/{objectId}/designer` 做部分保存。如果后端 DTO 把 `relations` 这类集合字段默认初始化为 `new ArrayList<>()`，Jackson 在请求未传该字段时仍会保留空集合，Service 的 `dto.getRelations() != null` 会误判为“用户明确保存空关系”，从而清空已有对象关系。
+
+**解决方案**:
+用于 PATCH/部分保存语义的 DTO 集合和 Map 字段保持 `null` 默认值，用 `null` 表示“不更新该配置”，用显式 `[]` 表示“清空该配置”。前端通用草稿保存也不要携带关系配置，关系应只由关系面板专门保存。
+
+**影响范围**:
+- `BusinessObjectDesignerDTO`
+- `BusinessObjectDesignerService.saveDesigner`
+- `object-designer.[objectCode].vue`
+- 所有通过 designer 聚合接口做局部保存的表单、列表、详情、关系和高级配置面板

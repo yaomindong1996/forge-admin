@@ -119,7 +119,7 @@
 <script setup>
 import { useMessage } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
-import { saveBusinessObjectDetailLayout } from '@/api/business-app'
+import { saveBusinessObjectDesigner, saveBusinessObjectDetailLayout } from '@/api/business-app'
 import { cloneSchema, isSameSchema } from '@/components/lowcode-builder/model/model-schema'
 import {
   buildPageDesignModelSchema,
@@ -128,6 +128,7 @@ import {
   isReadonlySystemField,
   syncPageSchemaWithModel,
 } from '@/components/lowcode-builder/page/page-schema'
+import { createViewSchemaFromPageSchema } from './form-first/viewSchema'
 
 const props = defineProps({
   objectId: {
@@ -150,9 +151,13 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  viewSchema: {
+    type: Object,
+    default: null,
+  },
 })
 
-const emit = defineEmits(['update:modelValue', 'saved', 'dirtyChange', 'openForm', 'openRelations'])
+const emit = defineEmits(['update:modelValue', 'update:viewSchema', 'saved', 'dirtyChange', 'openForm', 'openRelations'])
 
 const message = useMessage()
 const saving = ref(false)
@@ -214,6 +219,7 @@ watch(
   (value) => {
     if (!isSameSchema(value, props.modelValue)) {
       emit('update:modelValue', cloneSchema(value))
+      emit('update:viewSchema', cloneSchema(buildCurrentViewSchema(value)))
       emit('dirtyChange', true)
     }
   },
@@ -420,6 +426,11 @@ async function saveLayout() {
       zones: detail ? [detail] : [],
       settings: detail?.props || {},
     })
+    const viewSchema = buildCurrentViewSchema(schema)
+    await saveBusinessObjectDesigner(props.objectId, {
+      viewSchema: cloneSchema(viewSchema),
+    })
+    emit('update:viewSchema', cloneSchema(viewSchema))
     emit('saved', cloneSchema(schema))
     emit('dirtyChange', false)
     message.success('详情设置已保存')
@@ -427,6 +438,10 @@ async function saveLayout() {
   finally {
     saving.value = false
   }
+}
+
+function buildCurrentViewSchema(schema = localSchema.value) {
+  return createViewSchemaFromPageSchema(schema, designFields.value, props.viewSchema || {})
 }
 
 function toPageField(field) {

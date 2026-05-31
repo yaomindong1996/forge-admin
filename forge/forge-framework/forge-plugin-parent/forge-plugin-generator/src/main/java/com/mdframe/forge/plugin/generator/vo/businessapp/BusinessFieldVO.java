@@ -79,6 +79,8 @@ public class BusinessFieldVO {
 
     private String templateName;
 
+    private Map<String, Object> fieldBinding = new LinkedHashMap<>();
+
     private Map<String, Object> basicProps = new LinkedHashMap<>();
 
     private Map<String, Object> advancedProps = new LinkedHashMap<>();

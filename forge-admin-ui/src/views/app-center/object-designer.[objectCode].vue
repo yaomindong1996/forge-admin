@@ -65,9 +65,11 @@
       ref="fieldManagerRef"
       :object-id="objectId"
       :fields="draft.fields"
+      :form-designer-schema="draft.formDesignerSchema"
       :developer-mode="developerMode"
       @updated="handleFieldsUpdated"
       @dirty-change="handleDirtyChange"
+      @add-to-form="handleAddFieldToForm"
     />
 
     <section v-else-if="activePanel === 'form'" class="form-detail-panel">
@@ -76,11 +78,15 @@
           <BusinessFormDesigner
             ref="formDesignerRef"
             v-model="draft.pageSchema"
+            v-model:form-designer-schema="draft.formDesignerSchema"
             :object-id="objectId"
+            :object-code="draft.objectCode"
+            :object-name="draft.objectName"
             :model-schema="draft.modelSchema"
             :fields="draft.fields"
             :relations="draft.relations"
             @saved="handleLayoutSaved"
+            @fields-updated="handleFieldsUpdated"
             @dirty-change="handleDirtyChange"
             @create-field="activePanel = 'fields'"
             @open-relations="activePanel = 'relations'"
@@ -90,6 +96,7 @@
           <BusinessDetailDesigner
             ref="detailDesignerRef"
             v-model="draft.pageSchema"
+            v-model:view-schema="draft.viewSchema"
             :object-id="objectId"
             :model-schema="draft.modelSchema"
             :fields="draft.fields"
@@ -107,6 +114,7 @@
       v-else-if="activePanel === 'list'"
       ref="listDesignerRef"
       v-model="draft.pageSchema"
+      v-model:view-schema="draft.viewSchema"
       :object-id="objectId"
       :model-schema="draft.modelSchema"
       :fields="draft.fields"
@@ -117,12 +125,14 @@
     <BusinessRelationDesigner
       v-else-if="activePanel === 'relations'"
       ref="relationDesignerRef"
+      v-model:linkage-schema="draft.linkageSchema"
       :object-id="objectId"
       :suite-code="draft.suiteCode"
       :object-code="draft.objectCode"
       :object-name="draft.objectName"
       :fields="draft.fields"
       @updated="handleRelationsUpdated"
+      @fields-updated="handleFieldsUpdated"
       @dirty-change="handleDirtyChange"
     />
 
@@ -203,7 +213,7 @@ const saving = ref(false)
 const publishing = ref(false)
 const dirty = ref(false)
 const ready = ref(false)
-const activePanel = ref(route.query.panel === 'detail' ? 'form' : route.query.panel || 'fields')
+const activePanel = ref(route.query.panel === 'detail' ? 'form' : route.query.panel || 'form')
 const formDetailTab = ref(route.query.panel === 'detail' ? 'detail' : route.query.detailTab || 'form')
 const developerMode = ref(false)
 const designer = ref(null)
@@ -293,7 +303,7 @@ watch(formDetailTab, (tab) => {
 
 watch(canAdvanced, (value) => {
   if (!value && activePanel.value === 'advanced')
-    activePanel.value = 'fields'
+    activePanel.value = 'form'
 }, { immediate: true })
 
 async function loadDesigner() {
@@ -470,6 +480,15 @@ function handleFieldsUpdated(fields) {
   dirty.value = false
 }
 
+async function handleAddFieldToForm(field) {
+  if (!field)
+    return
+  activePanel.value = 'form'
+  formDetailTab.value = 'form'
+  await nextTick()
+  formDesignerRef.value?.appendFieldToForm?.(toPageField(field))
+}
+
 function hasTableSyncIssue(result) {
   const items = Array.isArray(result?.items) ? result.items : []
   return items.some(item =>
@@ -506,7 +525,7 @@ function handleFixTarget(panel) {
     formDetailTab.value = 'detail'
     return
   }
-  activePanel.value = panel || 'fields'
+  activePanel.value = panel || 'form'
 }
 
 function openDeveloperPath(path) {
@@ -551,7 +570,9 @@ function buildDesignerPayload() {
     modelSchema: cloneSchema(draft.modelSchema || {}),
     pageSchema: cloneSchema(draft.pageSchema || {}),
     fields: draft.fields.map(toFieldPayload),
-    relations: cloneSchema(draft.relations || []),
+    formDesignerSchema: cloneSchema(draft.formDesignerSchema || {}),
+    viewSchema: cloneSchema(draft.viewSchema || {}),
+    linkageSchema: cloneSchema(draft.linkageSchema || {}),
     designerOptions: cloneSchema(draft.designerOptions || {}),
   }
 }
@@ -574,6 +595,9 @@ function createEmptyDraft() {
     lastPublishVersion: null,
     modelSchema: null,
     pageSchema: null,
+    formDesignerSchema: null,
+    viewSchema: null,
+    linkageSchema: null,
     fields: [],
     relations: [],
     designerOptions: {},
@@ -587,6 +611,9 @@ function createDraftFromDesigner(value = {}) {
     status: value?.status ?? 1,
     modelSchema: cloneSchema(value?.modelSchema || {}),
     pageSchema: cloneSchema(value?.pageSchema || null),
+    formDesignerSchema: cloneSchema(value?.formDesignerSchema || null),
+    viewSchema: cloneSchema(value?.viewSchema || null),
+    linkageSchema: cloneSchema(value?.linkageSchema || null),
     fields: cloneSchema(value?.fields || []),
     relations: cloneSchema(value?.relations || []),
     designerOptions: cloneSchema(value?.designerOptions || {}),
@@ -623,6 +650,7 @@ function toFieldPayload(field = {}) {
     placeholder: field.basicProps?.placeholder || '',
     remark: field.remark,
     sortOrder: field.sortOrder,
+    fieldBinding: cloneSchema(field.fieldBinding || {}),
     basicProps: cloneSchema(field.basicProps || {}),
     advancedProps: cloneSchema(field.advancedProps || {}),
   }

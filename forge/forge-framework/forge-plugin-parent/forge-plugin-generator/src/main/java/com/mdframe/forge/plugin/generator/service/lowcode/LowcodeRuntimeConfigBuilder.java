@@ -163,6 +163,8 @@ public class LowcodeRuntimeConfigBuilder {
                 masterDetailRuntime ? "1080px" : "800px"));
         options.put("searchGridCols", 4);
         options.put("editGridCols", resolveEditGridCols(pageSchema));
+        options.put("editLabelPlacement", StringUtils.defaultIfBlank(text(editProps.get("labelPlacement")), "left"));
+        options.put("editLabelWidth", editProps.getOrDefault("labelWidth", "auto"));
 
         LowcodePageZone tableZone = findZone(pageSchema, "table");
         if (tableZone != null && tableZone.getProps() != null) {
@@ -446,6 +448,11 @@ public class LowcodeRuntimeConfigBuilder {
             return List.of();
         }
         Set<String> selectedEditRefSet = new LinkedHashSet<>(selectedEditRefs);
+        boolean hasSelectedChildRefs = ref.getFields().stream()
+                .map(source -> StringUtils.defaultIfBlank(text(source.get("fieldRef")),
+                        safeKey(ref.getModelCode()) + "__"
+                                + StringUtils.defaultIfBlank(text(source.get("sourceField")), text(source.get("field")))))
+                .anyMatch(selectedEditRefSet::contains);
         Map<String, Integer> selectedOrder = new LinkedHashMap<>();
         for (int i = 0; i < selectedEditRefs.size(); i++) {
             selectedOrder.putIfAbsent(selectedEditRefs.get(i), i);
@@ -458,7 +465,7 @@ public class LowcodeRuntimeConfigBuilder {
             }
             String fieldRef = StringUtils.defaultIfBlank(text(source.get("fieldRef")),
                     safeKey(ref.getModelCode()) + "__" + field.getField());
-            if (!selectedEditRefSet.isEmpty() && !selectedEditRefSet.contains(fieldRef)) {
+            if (hasSelectedChildRefs && !selectedEditRefSet.contains(fieldRef)) {
                 continue;
             }
             if (!isChildEditFieldAllowed(field, childFkField)) {
@@ -1244,6 +1251,12 @@ public class LowcodeRuntimeConfigBuilder {
         item.put("type", componentType);
         item.put("queryType", queryType);
         applyAlignment(item, pageSetting);
+        if (pageSetting.containsKey("defaultValue")) {
+            item.put("defaultValue", pageSetting.get("defaultValue"));
+        }
+        if (pageSetting.containsKey("collapsed")) {
+            item.put("collapsed", booleanWithDefault(pageSetting.get("collapsed"), false));
+        }
         RelationLookupMeta lookupMeta = resolveRelationLookup(modelSchema, pageSchema, field.getField());
         if (lookupMeta != null) {
             item.put("type", "select");
@@ -1301,8 +1314,15 @@ public class LowcodeRuntimeConfigBuilder {
         item.put("title", StringUtils.defaultIfBlank(field.getLabel(), field.getField()));
         item.put("dataIndex", field.getField());
         applyAlignment(item, pageSetting);
-        if (field.getWidth() != null && field.getWidth() > 0) {
+        Integer settingWidth = integerValue(pageSetting.get("width"));
+        if (settingWidth != null && settingWidth > 0) {
+            item.put("width", settingWidth);
+        } else if (field.getWidth() != null && field.getWidth() > 0) {
             item.put("width", field.getWidth());
+        }
+        String fixed = normalizeFixed(text(pageSetting.get("fixed")));
+        if (StringUtils.isNotBlank(fixed)) {
+            item.put("fixed", fixed);
         }
         Object sortable = pageSetting.get("sortable");
         if (Boolean.TRUE.equals(sortable) || Boolean.TRUE.equals(field.getSortable())) {
@@ -1381,6 +1401,11 @@ public class LowcodeRuntimeConfigBuilder {
         return Set.of("left", "center", "right").contains(align) ? align : null;
     }
 
+    private String normalizeFixed(String value) {
+        String fixed = StringUtils.defaultString(value).trim().toLowerCase(Locale.ROOT);
+        return Set.of("left", "right").contains(fixed) ? fixed : null;
+    }
+
     private Map<String, Object> sanitizeFieldBasicProps(LowcodeFieldSchema field) {
         if (field == null || field.getBasicProps() == null || field.getBasicProps().isEmpty()) {
             return new LinkedHashMap<>();
@@ -1389,9 +1414,39 @@ public class LowcodeRuntimeConfigBuilder {
         copyBasicProp(field.getBasicProps(), props, "placeholder");
         copyBasicProp(field.getBasicProps(), props, "cascade");
         copyBasicProp(field.getBasicProps(), props, "cascadeConfig");
+        copyBasicProp(field.getBasicProps(), props, "sourceField");
+        copyBasicProp(field.getBasicProps(), props, "sourceDictType");
+        copyBasicProp(field.getBasicProps(), props, "linkedDictType");
+        copyBasicProp(field.getBasicProps(), props, "linkedDictValue");
+        copyBasicProp(field.getBasicProps(), props, "parentDictCode");
+        copyBasicProp(field.getBasicProps(), props, "matchMode");
+        copyBasicProp(field.getBasicProps(), props, "emptyStrategy");
+        copyBasicProp(field.getBasicProps(), props, "clearOnSourceChange");
         copyBasicProp(field.getBasicProps(), props, "clearable");
         copyBasicProp(field.getBasicProps(), props, "filterable");
         copyBasicProp(field.getBasicProps(), props, "multiple");
+        copyBasicProp(field.getBasicProps(), props, "optionSource");
+        copyBasicProp(field.getBasicProps(), props, "labelValueField");
+        copyBasicProp(field.getBasicProps(), props, "targetField");
+        copyBasicProp(field.getBasicProps(), props, "rootCode");
+        copyBasicProp(field.getBasicProps(), props, "dataRight");
+        copyBasicProp(field.getBasicProps(), props, "virtualDisabled");
+        copyBasicProp(field.getBasicProps(), props, "limit");
+        copyBasicProp(field.getBasicProps(), props, "fileSize");
+        copyBasicProp(field.getBasicProps(), props, "fileType");
+        copyBasicProp(field.getBasicProps(), props, "storageType");
+        copyBasicProp(field.getBasicProps(), props, "valueType");
+        copyBasicProp(field.getBasicProps(), props, "showTip");
+        copyBasicProp(field.getBasicProps(), props, "showFileList");
+        copyBasicProp(field.getBasicProps(), props, "uploadButtonText");
+        copyBasicProp(field.getBasicProps(), props, "businessType");
+        copyBasicProp(field.getBasicProps(), props, "businessId");
+        copyBasicProp(field.getBasicProps(), props, "referenceObjectCode");
+        copyBasicProp(field.getBasicProps(), props, "referenceDisplayField");
+        copyBasicProp(field.getBasicProps(), props, "targetObjectCode");
+        copyBasicProp(field.getBasicProps(), props, "relationKey");
+        copyBasicProp(field.getBasicProps(), props, "inlineCreateEnabled");
+        copyBasicProp(field.getBasicProps(), props, "showInDetail");
         return props;
     }
 
@@ -1472,9 +1527,28 @@ public class LowcodeRuntimeConfigBuilder {
             if (props instanceof Map<?, ?> propsMap) {
                 setting.put("props", new LinkedHashMap<>((Map<String, Object>) propsMap));
             }
+            String componentType = extractForgeComponentType(rule);
+            if (StringUtils.isNotBlank(componentType)) {
+                setting.put("componentType", componentType);
+            }
+            String dictType = text(getNestedValue(rule, "props.dictType"));
+            if (StringUtils.isNotBlank(dictType)) {
+                setting.put("dictType", dictType);
+            }
             Object style = rule.get("style");
             if (style != null) {
                 setting.put("formItemStyle", style);
+            }
+            Object forgeLayout = getNestedValue(rule, "_forge.layout");
+            if (forgeLayout instanceof Map<?, ?> layoutMap) {
+                Object align = layoutMap.get("align");
+                if (align != null) {
+                    setting.put("align", align);
+                }
+                Object forgeLabelWidth = layoutMap.get("labelWidth");
+                if (forgeLabelWidth != null) {
+                    setting.put("labelWidth", forgeLabelWidth);
+                }
             }
             Object col = rule.get("col");
             if (col instanceof Map<?, ?> colMap) {
@@ -1496,6 +1570,42 @@ public class LowcodeRuntimeConfigBuilder {
             return setting;
         }
         return Map.of();
+    }
+
+    private String extractForgeComponentType(Map<String, Object> rule) {
+        String componentKey = text(getNestedValue(rule, "_forge.componentKey"));
+        if (StringUtils.isNotBlank(componentKey)) {
+            return componentKey;
+        }
+        String dragTag = text(rule.get("_fc_drag_tag"));
+        if (StringUtils.isBlank(dragTag)) {
+            return null;
+        }
+        return switch (dragTag) {
+            case "forgeDictSelect" -> "dictSelect";
+            case "forgeRegionTreeSelect" -> "regionTreeSelect";
+            case "forgeOrgTreeSelect" -> "orgTreeSelect";
+            case "forgeUserSelect" -> "userSelect";
+            case "forgeFileUpload" -> "fileUpload";
+            case "forgeImageUpload" -> "imageUpload";
+            case "forgeObjectReference" -> "objectReference";
+            case "forgeSubTable" -> "subTable";
+            default -> null;
+        };
+    }
+
+    private Object getNestedValue(Map<String, Object> source, String path) {
+        if (source == null || StringUtils.isBlank(path)) {
+            return null;
+        }
+        Object current = source;
+        for (String segment : path.split("\\.")) {
+            if (!(current instanceof Map<?, ?> map)) {
+                return null;
+            }
+            current = map.get(segment);
+        }
+        return current;
     }
 
     @SuppressWarnings("unchecked")
@@ -1575,13 +1685,20 @@ public class LowcodeRuntimeConfigBuilder {
         item.put("label", label);
         item.put("type", componentType);
         applyAlignment(item, pageSetting);
-        item.put("required", !isSystemField(field) && Boolean.TRUE.equals(field.getRequired()));
-        if (isSystemField(field) || Boolean.TRUE.equals(field.getReadonly())) {
+        boolean required = pageSetting.containsKey("required")
+                ? booleanWithDefault(pageSetting.get("required"), false)
+                : Boolean.TRUE.equals(field.getRequired());
+        boolean readonly = pageSetting.containsKey("readonly")
+                ? booleanWithDefault(pageSetting.get("readonly"), false)
+                : Boolean.TRUE.equals(field.getReadonly());
+        item.put("required", !isSystemField(field) && required);
+        if (isSystemField(field) || readonly) {
             item.put("disabled", true);
             item.put("readonly", true);
         }
-        if (StringUtils.isNotBlank(field.getDictType())) {
-            item.put("dictType", field.getDictType());
+        String dictType = StringUtils.defaultIfBlank(text(pageSetting.get("dictType")), field.getDictType());
+        if (StringUtils.isNotBlank(dictType)) {
+            item.put("dictType", dictType);
         }
         if (field.getDefaultValue() != null) {
             item.put("defaultValue", field.getDefaultValue());
@@ -1605,7 +1722,7 @@ public class LowcodeRuntimeConfigBuilder {
 
         Map<String, Object> props = new LinkedHashMap<>();
         props.put("placeholder", buildPlaceholder(componentType, label));
-        if (isSystemField(field) || Boolean.TRUE.equals(field.getReadonly())) {
+        if (isSystemField(field) || readonly) {
             props.put("disabled", true);
         }
         if (field.getLength() != null && field.getLength() > 0 && isTextComponent(componentType)) {
@@ -1619,7 +1736,7 @@ public class LowcodeRuntimeConfigBuilder {
         if (designerProps instanceof Map<?, ?> designerPropsMap) {
             props.putAll((Map<String, Object>) designerPropsMap);
         }
-        if (isSystemField(field) || Boolean.TRUE.equals(field.getReadonly())) {
+        if (isSystemField(field) || readonly) {
             props.put("disabled", true);
         }
         item.put("props", props);
@@ -1628,7 +1745,7 @@ public class LowcodeRuntimeConfigBuilder {
             applyRelationLookupProps(item, lookupMeta, label);
         }
 
-        if (Boolean.TRUE.equals(field.getRequired())) {
+        if (required) {
             Map<String, Object> rule = new LinkedHashMap<>();
             rule.put("required", true);
             rule.put("message", buildPlaceholder(componentType, label));
@@ -1856,6 +1973,16 @@ public class LowcodeRuntimeConfigBuilder {
         field.setAutoIncrement(Boolean.TRUE.equals(booleanValue(source.get("autoIncrement"))));
         field.setWidth(integerValue(source.get("width")));
         field.setRemark(text(source.get("remark")));
+        Object basicProps = source.get("basicProps");
+        if (basicProps instanceof Map<?, ?> basicPropsMap) {
+            Map<String, Object> props = new LinkedHashMap<>();
+            basicPropsMap.forEach((key, value) -> {
+                if (key != null) {
+                    props.put(String.valueOf(key), value);
+                }
+            });
+            field.setBasicProps(props);
+        }
         return field;
     }
 
@@ -2035,7 +2162,8 @@ public class LowcodeRuntimeConfigBuilder {
                 || "orgTreeSelect".equals(componentType)
                 || "userSelect".equals(componentType)
                 || "regionTreeSelect".equals(componentType)
-                || "cascader".equals(componentType);
+                || "cascader".equals(componentType)
+                || "objectReference".equals(componentType);
     }
 
     private String buildPlaceholder(String componentType, String label) {
@@ -2044,7 +2172,8 @@ public class LowcodeRuntimeConfigBuilder {
                 || "daterange".equals(componentType) || "datetimerange".equals(componentType) || "timerange".equals(componentType)
                 || "dictSelect".equals(componentType) || "treeSelect".equals(componentType) || "orgTreeSelect".equals(componentType)
                 || "userSelect".equals(componentType) || "regionTreeSelect".equals(componentType) || "cascader".equals(componentType)
-                || "fileUpload".equals(componentType) || "imageUpload".equals(componentType) || "upload".equals(componentType)) {
+                || "objectReference".equals(componentType) || "fileUpload".equals(componentType)
+                || "imageUpload".equals(componentType) || "upload".equals(componentType)) {
             return "请选择" + label;
         }
         return "请输入" + label;

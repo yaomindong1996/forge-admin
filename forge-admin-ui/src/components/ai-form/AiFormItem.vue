@@ -559,6 +559,22 @@
       v-on="getComponentEvents(field)"
     />
 
+    <!-- 业务对象引用选择 -->
+    <n-select
+      v-else-if="field.type === 'objectReference'"
+      :value="resolveOptionValue(value)"
+      :placeholder="getPlaceholder(field)"
+      :disabled="disabledHandler(field)"
+      :options="currentOptions"
+      :loading="remoteLoading"
+      :clearable="field.clearable !== false"
+      :filterable="field.filterable !== false"
+      :multiple="field.multiple"
+      v-bind="field.props"
+      @update:value="handleUpdate"
+      v-on="getComponentEvents(field)"
+    />
+
     <!-- 纯文本展示 -->
     <div
       v-else-if="field.type === 'text'"
@@ -666,6 +682,8 @@ function getPlaceholder(field) {
  * 处理禁用状态
  */
 function disabledHandler(field) {
+  if (isCascadeDisabledByEmptyParent())
+    return true
   if (typeof field.disabled === 'boolean') {
     return field.disabled
   }
@@ -698,6 +716,14 @@ const cascadeSourceValue = computed(() => {
 })
 const sourceFieldConfig = computed(() => findSchemaField(cascadeConfig.value?.sourceField))
 const sourceDictType = computed(() => cascadeConfig.value?.sourceDictType || sourceFieldConfig.value?.dictType || sourceFieldConfig.value?.props?.dictType || '')
+
+function isCascadeDisabledByEmptyParent() {
+  const cascade = cascadeConfig.value
+  if (!cascade?.enabled || cascade.emptyStrategy !== 'disabled' || !cascade.sourceField)
+    return false
+  const sourceValue = props.formData?.[cascade.sourceField]
+  return sourceValue === null || sourceValue === undefined || sourceValue === ''
+}
 
 watch(
   remoteOptionSource,
@@ -865,7 +891,7 @@ function resolveDynamicOptionSource(field = {}) {
   const cascade = cascadeConfig.value
   if (cascade?.enabled && cascade.mode === 'remoteParam' && cascade.sourceField && cascade.paramName) {
     const sourceValue = props.formData?.[cascade.sourceField]
-    if (sourceValue === null || sourceValue === undefined || sourceValue === '') {
+    if ((sourceValue === null || sourceValue === undefined || sourceValue === '') && cascade.emptyStrategy !== 'all') {
       next.waitForParent = true
     }
     next.params = {
@@ -983,7 +1009,17 @@ function normalizeOptionNode(row, source = {}, includeChildren = false) {
 }
 
 function resolveCascadeConfig(field = {}) {
-  const raw = field.cascade || field.cascadeConfig || field.props?.cascade || field.props?.cascadeConfig
+  const configured = [field.cascade, field.cascadeConfig, field.props?.cascade, field.props?.cascadeConfig]
+    .find(item => item && typeof item === 'object' && item.sourceField)
+  const raw = configured || {
+    sourceField: field.sourceField || field.props?.sourceField,
+    sourceDictType: field.sourceDictType || field.props?.sourceDictType,
+    linkedDictType: field.linkedDictType || field.props?.linkedDictType,
+    mode: field.matchMode || field.props?.matchMode || field.mode || field.props?.mode,
+    paramName: field.paramName || field.props?.paramName,
+    emptyStrategy: field.emptyStrategy || field.props?.emptyStrategy,
+    clearOnParentChange: field.clearOnParentChange ?? field.clearOnSourceChange ?? field.props?.clearOnParentChange ?? field.props?.clearOnSourceChange,
+  }
   if (!raw || raw.enabled === false || !raw.sourceField)
     return null
   return {
@@ -993,7 +1029,8 @@ function resolveCascadeConfig(field = {}) {
     linkedDictType: raw.linkedDictType || '',
     mode: raw.mode || raw.matchMode || 'linkedDict',
     paramName: raw.paramName || '',
-    clearOnParentChange: raw.clearOnParentChange !== false,
+    emptyStrategy: raw.emptyStrategy || 'empty',
+    clearOnParentChange: raw.clearOnParentChange !== false && raw.clearOnSourceChange !== false,
   }
 }
 
@@ -1003,7 +1040,7 @@ function resolveCascadedOptions(options = []) {
     return options
   const sourceValue = props.formData?.[cascade.sourceField]
   if (sourceValue === null || sourceValue === undefined || sourceValue === '')
-    return []
+    return cascade.emptyStrategy === 'all' ? options : []
   if (cascade.mode === 'remoteParam')
     return options
   return (Array.isArray(options) ? options : []).filter(option => matchesCascade(option, sourceValue, cascade))

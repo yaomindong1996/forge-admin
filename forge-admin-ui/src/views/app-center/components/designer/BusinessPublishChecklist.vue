@@ -3,7 +3,7 @@
     <div class="publish-check-head">
       <div>
         <h3>发布检查</h3>
-        <p>按字段、页面、关系、数据表和运行配置检查发布风险。</p>
+        <p>按字段、页面、关系级联、数据表和运行配置检查发布风险。</p>
       </div>
       <n-space size="small">
         <n-button size="small" secondary :loading="checking" @click="refresh">
@@ -288,7 +288,7 @@ function resolveFixPanel(item = {}) {
     return 'list'
   if (target === 'detail')
     return 'detail'
-  if (target === 'relations' || item.category === 'RELATION')
+  if (target === 'relations' || item.category === 'RELATION' || item.category === 'LINKAGE')
     return 'relations'
   if (target === 'publish')
     return 'publish'

@@ -42,9 +42,9 @@ public class LowcodeSchemaValidator {
             "varchar", "char", "text", "longtext", "int", "bigint", "decimal", "date", "datetime", "time", "tinyint"
     );
     private static final Set<String> COMPONENT_TYPES = Set.of(
-        "input", "textarea", "select", "radio", "checkbox", "switch", "date", "datetime", "time",
+            "input", "textarea", "select", "radio", "checkbox", "switch", "date", "datetime", "time",
             "number", "upload", "imageUpload", "fileUpload", "cascader", "treeSelect",
-            "dictSelect", "orgTreeSelect", "userSelect", "regionTreeSelect"
+            "dictSelect", "orgTreeSelect", "userSelect", "regionTreeSelect", "objectReference"
     );
     private static final Set<String> QUERY_TYPES = Set.of(
             "eq", "ne", "like", "left_like", "right_like", "gt", "ge", "gte", "lt", "le", "lte", "in", "between"

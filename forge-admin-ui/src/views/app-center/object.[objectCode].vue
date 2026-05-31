@@ -15,7 +15,7 @@
         <DictTag v-if="object" dict-type="sys_enable_disable" :value="object.status" :bordered="false" />
       </div>
       <div class="object-actions">
-        <n-button type="primary" @click="openDesigner('fields')">
+        <n-button type="primary" @click="openDesigner('form')">
           <template #icon>
             <n-icon><BuildOutline /></n-icon>
           </template>
@@ -92,7 +92,7 @@
             <p>{{ runtimeHint }}</p>
           </div>
           <n-space :wrap="true">
-            <n-button secondary @click="openDesigner('fields')">
+            <n-button secondary @click="openDesigner('form')">
               <template #icon>
                 <n-icon><BuildOutline /></n-icon>
               </template>
@@ -234,7 +234,7 @@ const operationSteps = computed(() => [
     desc: '维护对象基础信息、字段、表单、列表和详情。',
     state: object.value?.modelCode ? 'done' : 'todo',
     stateLabel: object.value?.modelCode ? '已设计' : '去设计',
-    action: () => openDesigner('fields'),
+    action: () => openDesigner('form'),
   },
   {
     key: 'page',
@@ -302,7 +302,7 @@ function openRuntime() {
   router.push(runtimeInfo.value.routePath)
 }
 
-function openDesigner(panel = 'fields') {
+function openDesigner(panel = 'form') {
   const code = object.value?.objectCode || objectCode.value
   if (!code)
     return

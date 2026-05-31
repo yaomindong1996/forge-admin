@@ -292,6 +292,11 @@ const alignOptions = [
   { label: '居中', value: 'center' },
   { label: '右对齐', value: 'right' },
 ]
+const fixedOptions = [
+  { label: '不固定', value: '' },
+  { label: '固定左侧', value: 'left' },
+  { label: '固定右侧', value: 'right' },
+]
 
 const ComponentPreviewControl = defineComponent({
   name: 'ComponentPreviewControl',
@@ -602,6 +607,22 @@ const FieldOrderEditor = defineComponent({
                         placeholder: '对齐',
                         onUpdateValue: value => updateSetting(element.field, { align: value || 'left' }),
                       }),
+                      h(NInputNumber, {
+                        value: setting.width || element.width || 160,
+                        min: 80,
+                        max: 800,
+                        size: 'tiny',
+                        showButton: false,
+                        placeholder: '列宽',
+                        onUpdateValue: value => updateSetting(element.field, { width: value || null }),
+                      }),
+                      h(NSelect, {
+                        value: setting.fixed || '',
+                        options: fixedOptions,
+                        size: 'tiny',
+                        placeholder: '固定列',
+                        onUpdateValue: value => updateSetting(element.field, { fixed: value || null }),
+                      }),
                       isNameRenderType(tableRenderType)
                         ? h(NSelect, {
                             value: setting.targetField || `${element.field}Name`,
@@ -678,8 +699,9 @@ const tableColumns = computed(() => [
   ...tableFields.value.map(field => ({
     key: field.field,
     title: field.label || field.field,
-    minWidth: field.width || 140,
+    width: resolveZoneFieldWidth('table', field.field, field),
     align: resolveZoneFieldAlign('table', field.field),
+    fixed: resolveZoneFieldFixed('table', field.field),
     ellipsis: { tooltip: true },
   })),
   { key: 'actions', title: '操作', width: 140, fixed: 'right' },
@@ -715,6 +737,18 @@ function resolveZoneFieldAlign(zoneKey, fieldName) {
   const zone = findZone(zoneKey)
   const align = zone?.props?.fieldSettings?.[fieldName]?.align
   return ['left', 'center', 'right'].includes(align) ? align : 'left'
+}
+
+function resolveZoneFieldWidth(zoneKey, fieldName, field = {}) {
+  const zone = findZone(zoneKey)
+  const width = Number(zone?.props?.fieldSettings?.[fieldName]?.width || field.width || 140)
+  return width > 0 ? width : 140
+}
+
+function resolveZoneFieldFixed(zoneKey, fieldName) {
+  const zone = findZone(zoneKey)
+  const fixed = zone?.props?.fieldSettings?.[fieldName]?.fixed
+  return ['left', 'right'].includes(fixed) ? fixed : undefined
 }
 
 function resolveSearchControlType(field, queryType = '') {
@@ -1061,7 +1095,7 @@ function resolveSampleValue(field, index = 0) {
 }
 
 :deep(.table-setting-row) {
-  grid-template-columns: auto minmax(110px, 0.8fr) 88px minmax(140px, 1.2fr);
+  grid-template-columns: auto minmax(110px, 0.8fr) 88px 88px 100px minmax(140px, 1.2fr);
 }
 
 :deep(.field-inline-switch) {

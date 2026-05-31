@@ -16,6 +16,7 @@
         <result column="model_snapshot" property="modelSnapshot"/>
         <result column="page_snapshot" property="pageSnapshot"/>
         <result column="relation_snapshot" property="relationSnapshot"/>
+        <result column="designer_options_snapshot" property="designerOptionsSnapshot"/>
         <result column="publish_status" property="publishStatus"/>
         <result column="publish_version" property="publishVersion"/>
         <result column="remark" property="remark"/>
@@ -40,6 +41,7 @@
         model_snapshot,
         page_snapshot,
         relation_snapshot,
+        designer_options_snapshot,
         publish_status,
         publish_version,
         remark,

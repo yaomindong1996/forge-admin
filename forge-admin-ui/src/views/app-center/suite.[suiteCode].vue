@@ -240,7 +240,7 @@ function openObject(object) {
   })
 }
 
-function openObjectDesigner(object, panel = 'fields') {
+function openObjectDesigner(object, panel = 'form') {
   if (!object?.objectCode)
     return
   router.push({
@@ -264,7 +264,7 @@ function openObjectWizard() {
 
 async function handleObjectSaved(data) {
   await loadAll()
-  openObjectDesigner(data, data?.designerPanel || 'fields')
+  openObjectDesigner(data, data?.designerPanel || 'form')
 }
 
 function handleObjectPageSizeChange(pageSize) {
@@ -466,6 +466,11 @@ function handleAcceptanceAction(action, data) {
 
 .suite-section {
   margin-bottom: 16px;
+}
+
+.suite-section :deep(.n-spin-content) {
+  display: block;
+  width: 100%;
 }
 
 .suite-content-grid {

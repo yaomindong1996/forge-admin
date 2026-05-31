@@ -2,6 +2,9 @@ package com.mdframe.forge.plugin.generator.vo.businessapp;
 
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeModelSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePageSchema;
+import com.mdframe.forge.plugin.generator.dto.businessapp.FormDesignerSchemaDTO;
+import com.mdframe.forge.plugin.generator.dto.businessapp.LinkageSchemaDTO;
+import com.mdframe.forge.plugin.generator.dto.businessapp.ViewSchemaDTO;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -51,6 +54,12 @@ public class BusinessObjectDesignerVO {
     private LowcodeModelSchema modelSchema;
 
     private LowcodePageSchema pageSchema;
+
+    private FormDesignerSchemaDTO formDesignerSchema;
+
+    private ViewSchemaDTO viewSchema;
+
+    private LinkageSchemaDTO linkageSchema;
 
     private List<BusinessFieldVO> fields = new ArrayList<>();
 

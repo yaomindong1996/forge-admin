@@ -433,7 +433,7 @@ function openObject(object) {
   })
 }
 
-function openObjectDesigner(object, panel = 'fields') {
+function openObjectDesigner(object, panel = 'form') {
   if (!object?.objectCode)
     return
   router.push({
@@ -464,7 +464,7 @@ async function handleObjectSaved(payload) {
   activeView.value = 'objects'
   suiteCode.value = payload?.suiteCode || suiteCode.value
   await loadAll()
-  openObjectDesigner(payload, payload?.designerPanel || 'fields')
+  openObjectDesigner(payload, payload?.designerPanel || 'form')
 }
 
 async function handleSuiteSaved(payload) {
@@ -548,6 +548,11 @@ function deleteApp(app) {
   border-radius: 8px;
   background: #fff;
   padding: 16px;
+}
+
+.head-actions {
+  justify-content: flex-end;
+  max-width: 620px;
 }
 
 .page-title-block h1,
@@ -714,11 +719,16 @@ function deleteApp(app) {
 }
 
 .workspace-head {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
   align-items: center;
   padding: 16px;
+}
+
+.workspace-actions {
+  justify-content: flex-end;
+  max-width: 620px;
 }
 
 .selected-suite-title {
@@ -748,13 +758,14 @@ function deleteApp(app) {
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
   gap: 0;
   overflow: hidden;
 }
 
 .metric-item {
   min-width: 0;
+  min-height: 76px;
   border-right: 1px solid #eef2f7;
   padding: 14px 16px;
 }
@@ -781,12 +792,18 @@ function deleteApp(app) {
 }
 
 .workspace-toolbar {
+  background: #fbfcfe;
   padding: 12px;
 }
 
 .workspace-content {
   min-width: 0;
   padding: 10px 14px 16px;
+}
+
+.workspace-content :deep(.n-spin-content) {
+  display: block;
+  width: 100%;
 }
 
 .workspace-content :deep(.n-tabs-nav) {
@@ -797,7 +814,7 @@ function deleteApp(app) {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 12px;
   align-items: stretch;
 }
@@ -829,8 +846,15 @@ function deleteApp(app) {
 @media (max-width: 860px) {
   .page-head,
   .workspace-head {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .head-actions,
+  .workspace-actions {
+    justify-content: flex-start;
+    max-width: none;
   }
 
   .app-center-layout {

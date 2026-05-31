@@ -4,8 +4,6 @@ import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeModelSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePageSchema;
 import lombok.Data;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,9 +31,15 @@ public class BusinessObjectDesignerDTO {
 
     private LowcodePageSchema pageSchema;
 
-    private List<BusinessFieldDTO> fields = new ArrayList<>();
+    private FormDesignerSchemaDTO formDesignerSchema;
 
-    private List<BusinessObjectRelationDTO> relations = new ArrayList<>();
+    private ViewSchemaDTO viewSchema;
 
-    private Map<String, Object> designerOptions = new LinkedHashMap<>();
+    private LinkageSchemaDTO linkageSchema;
+
+    private List<BusinessFieldDTO> fields;
+
+    private List<BusinessObjectRelationDTO> relations;
+
+    private Map<String, Object> designerOptions;
 }

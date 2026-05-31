@@ -37,21 +37,14 @@
 
       <div class="form-builder-grid" :class="{ 'relation-mode': !isPrimaryObjectActive }">
         <template v-if="isPrimaryObjectActive">
-          <CanvasFormDesigner
-            :zone="canvasEditZone"
+          <BusinessFormCreateDesigner
+            ref="formCreateDesignerRef"
+            v-model="localFormDesignerSchema"
             :fields="primaryDesignFields"
-            :selected-item-id="selectedItemId"
-            @select-item="selectedItemId = $event"
-            @update:zone="handleZoneUpdate"
-          />
-          <ComponentPropertyPanel
-            :zone="canvasEditZone"
-            :selected-item="selectedItem"
-            :fields="primaryDesignFields"
-            :layout-type="localSchema.layoutType"
-            @update:zone="handleZoneUpdate"
-            @update-item="handleItemUpdate"
-            @remove-item="handleItemRemove"
+            :object-code="objectCode"
+            :object-name="objectName"
+            @save="handleFormDesignerSave"
+            @dirty-change="emit('dirtyChange', $event)"
           />
         </template>
 
@@ -197,9 +190,7 @@
           :key="field.field"
           type="button"
           class="shelf-field"
-          draggable="true"
           :disabled="isReadonlySystemField(field) || usedFieldSet.has(field.field)"
-          @dragstart="handleFieldDragStart($event, field)"
           @click="appendField(field)"
         >
           <strong>{{ field.label || field.field }}</strong>
@@ -217,27 +208,37 @@
 import { ChevronDownOutline, ChevronUpOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
-import { saveBusinessObjectFormLayout } from '@/api/business-app'
+import { saveBusinessObjectDesigner, saveBusinessObjectFormLayout } from '@/api/business-app'
 import { cloneSchema, isSameSchema } from '@/components/lowcode-builder/model/model-schema'
-import CanvasFormDesigner from '@/components/lowcode-builder/page/CanvasFormDesigner.vue'
-import ComponentPropertyPanel from '@/components/lowcode-builder/page/ComponentPropertyPanel.vue'
 import {
   buildPageDesignModelSchema,
-  createCanvasItem,
   createDefaultPageSchema,
   createPageModelRef,
   isReadonlySystemField,
-  patchZoneCanvas,
-  resolveDefaultFieldComponentKey,
   syncPageSchemaWithModel,
 } from '@/components/lowcode-builder/page/page-schema'
+import BusinessFormCreateDesigner from './BusinessFormCreateDesigner.vue'
+import { buildAutoFieldAssets } from './form-first/autoFieldRegistry'
+import { extractForgeSchemaFieldRefs, forgeSchemaToFormCreate } from './form-first/forgeToFormCreate'
 
 const props = defineProps({
   objectId: {
     type: [Number, String],
     default: null,
   },
+  objectCode: {
+    type: String,
+    default: '',
+  },
+  objectName: {
+    type: String,
+    default: '',
+  },
   modelValue: {
+    type: Object,
+    default: null,
+  },
+  formDesignerSchema: {
     type: Object,
     default: null,
   },
@@ -255,13 +256,13 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['update:modelValue', 'saved', 'dirtyChange', 'createField', 'openRelations'])
+const emit = defineEmits(['update:modelValue', 'update:formDesignerSchema', 'saved', 'fieldsUpdated', 'dirtyChange', 'createField', 'openRelations'])
 
 const message = useMessage()
-const selectedItemId = ref('')
 const saving = ref(false)
 const shelfTab = ref('unused')
 const activeObjectKey = ref('primary')
+const formCreateDesignerRef = ref(null)
 
 const baseModelSchema = computed(() => {
   const modelFields = props.modelSchema?.fields || []
@@ -272,6 +273,7 @@ const baseModelSchema = computed(() => {
 })
 
 const localSchema = ref(resolveSchema(props.modelValue, resolveDesignModelSchema(props.modelValue, baseModelSchema.value)))
+const localFormDesignerSchema = ref(cloneSchema(props.formDesignerSchema || null))
 const effectiveModelSchema = computed(() => resolveDesignModelSchema(localSchema.value, baseModelSchema.value))
 const designFields = computed(() => effectiveModelSchema.value.fields || [])
 const editZone = computed(() => localSchema.value.zones?.find(zone => zone.zoneKey === 'edit') || null)
@@ -281,15 +283,11 @@ const primaryDesignFields = computed(() => designFields.value.filter(field => !i
 const relationFields = computed(() => designFields.value.filter(field => isRelationField(field)))
 const primaryFieldSet = computed(() => new Set(primaryDesignFields.value.map(field => field.field)))
 const relationFieldSet = computed(() => new Set(relationFields.value.map(field => field.field)))
-const canvasEditZone = computed(() => sanitizeEditZoneForCanvas(editZone.value))
-const usedFieldSet = computed(() => new Set(resolveCanvasFieldRefs(canvasEditZone.value?.props?.canvas?.items || []).filter(ref => primaryFieldSet.value.has(ref))))
+const usedFieldSet = computed(() => new Set(extractForgeSchemaFieldRefs(localFormDesignerSchema.value || {}).filter(ref => primaryFieldSet.value.has(ref))))
 const selectedRelationFieldRefs = computed(() => (editZone.value?.fieldRefs || []).filter(ref => relationFieldSet.value.has(ref)))
 const selectedRelationFieldSet = computed(() => new Set(selectedRelationFieldRefs.value))
-const selectedItem = computed(() => {
-  const items = canvasEditZone.value?.props?.canvas?.items || []
-  return items.find(item => item.id === selectedItemId.value) || null
-})
 const businessFields = computed(() => primaryDesignFields.value.filter(field => !isReadonlySystemField(field)))
+const primaryBusinessFields = computed(() => primaryDesignFields.value.filter(field => !isReadonlySystemField(field)))
 const systemFields = computed(() => primaryDesignFields.value.filter(field => isReadonlySystemField(field)))
 const usedFields = computed(() => businessFields.value.filter(field => usedFieldSet.value.has(field.field)))
 const unusedFields = computed(() => businessFields.value.filter(field => !usedFieldSet.value.has(field.field)))
@@ -373,11 +371,30 @@ watch(
 )
 
 watch(
+  () => props.formDesignerSchema,
+  (value) => {
+    const next = cloneSchema(value || null)
+    if (!isSameSchema(next, localFormDesignerSchema.value))
+      localFormDesignerSchema.value = next
+  },
+  { deep: true },
+)
+
+watch(
   effectiveModelSchema,
   (value) => {
     const next = syncPageSchemaWithModel(localSchema.value, value)
     if (!isSameSchema(next, localSchema.value))
       localSchema.value = next
+  },
+  { deep: true },
+)
+
+watch(
+  localFormDesignerSchema,
+  (value) => {
+    emit('update:formDesignerSchema', cloneSchema(value || null))
+    syncFormDesignerSchemaToPageSchema(value)
   },
   { deep: true },
 )
@@ -398,76 +415,36 @@ watch(formObjectTabs, (tabs) => {
     activeObjectKey.value = 'primary'
 }, { deep: true })
 
-function handleZoneUpdate(zone) {
-  replaceZone(zone?.zoneKey === 'edit' ? normalizeEditZoneFieldRefs(zone) : zone)
+function handleFormDesignerSave(schema) {
+  localFormDesignerSchema.value = cloneSchema(schema || localFormDesignerSchema.value)
+  syncFormDesignerSchemaToPageSchema(localFormDesignerSchema.value)
+  message.success('表单配置已应用')
 }
 
-function handleItemUpdate(item) {
-  if (!canvasEditZone.value)
+function syncFormDesignerSchemaToPageSchema(schema, fields = primaryDesignFields.value) {
+  if (!editZone.value || !schema)
     return
-  const canvas = canvasEditZone.value.props?.canvas || { items: [] }
-  handleZoneUpdate(patchZoneCanvas(canvasEditZone.value, {
-    ...canvas,
-    items: (canvas.items || []).map(current => current.id === item.id ? item : current),
-  }))
-}
-
-function handleItemRemove(item) {
-  if (!canvasEditZone.value || !item)
-    return
-  const canvas = canvasEditZone.value.props?.canvas || { items: [] }
-  handleZoneUpdate(patchZoneCanvas(canvasEditZone.value, {
-    ...canvas,
-    items: (canvas.items || []).filter(current => current.id !== item.id),
-  }))
-  selectedItemId.value = ''
-}
-
-function handleFieldDragStart(event, field) {
-  if (isReadonlySystemField(field) || usedFieldSet.value.has(field.field)) {
-    event.preventDefault()
-    return
-  }
-  event.dataTransfer.effectAllowed = 'copy'
-  event.dataTransfer.setData('application/x-lowcode-component', JSON.stringify({
-    componentKey: resolveDefaultFieldComponentKey(field),
-    fieldRef: field.field,
-    label: field.label || field.field,
-  }))
+  const fieldSet = new Set((fields || []).map(field => field.field || field.fieldCode).filter(Boolean))
+  const { rules, options } = forgeSchemaToFormCreate({
+    schema,
+    fields,
+  })
+  const fieldRefs = extractForgeSchemaFieldRefs(schema).filter(ref => fieldSet.has(ref))
+  replaceZone({
+    ...editZone.value,
+    fieldRefs: mergeUniqueRefs(fieldRefs, selectedRelationFieldRefs.value),
+    props: {
+      ...(editZone.value.props || {}),
+      formCreateRule: rules,
+      formCreateOptions: options,
+    },
+  })
 }
 
 function appendField(field) {
-  if (!canvasEditZone.value || isReadonlySystemField(field) || usedFieldSet.value.has(field.field))
+  if (isReadonlySystemField(field) || usedFieldSet.value.has(field.field))
     return
-  const canvas = canvasEditZone.value.props?.canvas || { width: 1040, height: 420, items: [] }
-  const index = (canvas.items || []).filter(item => item.fieldRef).length
-  const paddingX = 32
-  const gapX = 24
-  const colCount = 2
-  const fieldWidth = Math.min(340, Math.max(300, Math.floor((Number(canvas.width || 1040) - paddingX * 2 - gapX) / colCount)))
-  const componentKey = resolveDefaultFieldComponentKey(field)
-  const fieldHeight = ['field-textarea', 'field-upload', 'field-image-upload'].includes(componentKey) ? 76 : 64
-  const col = index % colCount
-  const row = Math.floor(index / colCount)
-  const item = createCanvasItem({
-    componentKey,
-    fieldRef: field.field,
-    label: field.label || field.field,
-    x: paddingX + col * (fieldWidth + gapX),
-    y: 32 + row * 88,
-    w: fieldWidth,
-    h: fieldHeight,
-    zIndex: (canvas.items || []).length + 1,
-  }, {
-    zoneKey: 'edit',
-    fields: primaryDesignFields.value,
-  })
-  handleZoneUpdate(patchZoneCanvas(canvasEditZone.value, {
-    ...canvas,
-    height: Math.max(Number(canvas.height || 420), item.y + item.h + 48),
-    items: [...(canvas.items || []), item],
-  }))
-  selectedItemId.value = item.id
+  formCreateDesignerRef.value?.appendField?.(field)
 }
 
 function appendAllUnusedFields() {
@@ -553,24 +530,6 @@ function replaceZone(zone) {
   localSchema.value = {
     ...localSchema.value,
     zones: (localSchema.value.zones || []).map(item => item.zoneKey === zone.zoneKey ? zone : item),
-  }
-}
-
-function sanitizeEditZoneForCanvas(zone) {
-  if (!zone)
-    return null
-  const canvas = zone.props?.canvas || { width: 1040, height: 420, items: [] }
-  const items = (canvas.items || []).filter(item => !item.fieldRef || primaryFieldSet.value.has(item.fieldRef))
-  return {
-    ...zone,
-    fieldRefs: (zone.fieldRefs || []).filter(ref => primaryFieldSet.value.has(ref)),
-    props: {
-      ...(zone.props || {}),
-      canvas: {
-        ...canvas,
-        items,
-      },
-    },
   }
 }
 
@@ -751,9 +710,27 @@ function resolveRelationToggle(relation = {}, config = {}, key, defaultValue) {
 async function saveLayout() {
   if (!props.objectId)
     return
-  const schema = syncPageSchemaWithModel(localSchema.value, effectiveModelSchema.value)
+  const formSchema = formCreateDesignerRef.value?.flushDesigner?.() || localFormDesignerSchema.value
+  const { fields: nextFields, createdFields } = buildAutoFieldAssets(formSchema, primaryBusinessFields.value)
+  const nextModelSchema = {
+    ...effectiveModelSchema.value,
+    fields: [
+      ...systemFields.value,
+      ...nextFields.map(toPageField),
+      ...relationFields.value,
+    ],
+  }
+  if (formSchema)
+    syncFormDesignerSchemaToPageSchema(formSchema, nextModelSchema.fields)
+  const schema = syncPageSchemaWithModel(localSchema.value, nextModelSchema)
   saving.value = true
   try {
+    if (createdFields.length || formSchema) {
+      await saveBusinessObjectDesigner(props.objectId, {
+        fields: nextFields.map(toBusinessFieldPayload),
+        formDesignerSchema: cloneSchema(formSchema || localFormDesignerSchema.value || {}),
+      })
+    }
     await saveBusinessObjectFormLayout(props.objectId, {
       layoutKey: 'form',
       layoutName: '表单布局',
@@ -764,8 +741,10 @@ async function saveLayout() {
     })
     localSchema.value = schema
     emit('saved', cloneSchema(schema))
+    if (createdFields.length)
+      emit('fieldsUpdated', nextFields)
     emit('dirtyChange', false)
-    message.success('表单布局已保存')
+    message.success(createdFields.length ? `表单布局已保存，已自动创建 ${createdFields.length} 个字段` : '表单布局已保存')
   }
   finally {
     saving.value = false
@@ -813,6 +792,10 @@ function resolveCanvasFieldRefs(items) {
   return Array.from(refs)
 }
 
+function mergeUniqueRefs(...groups) {
+  return Array.from(new Set(groups.flat().filter(Boolean)))
+}
+
 function toPageField(field) {
   return {
     ...field,
@@ -835,8 +818,45 @@ function toPageField(field) {
   }
 }
 
+function toBusinessFieldPayload(field = {}) {
+  return {
+    fieldName: field.fieldName || field.label || field.field,
+    fieldCode: field.fieldCode || field.field,
+    columnName: field.columnName,
+    fieldType: field.fieldType || field.businessFieldType || 'TEXT',
+    dataType: field.dataType,
+    length: field.length,
+    precision: field.precision,
+    required: field.required,
+    defaultValue: field.defaultValue,
+    searchable: field.searchable,
+    listVisible: field.listVisible,
+    formVisible: field.formVisible,
+    importable: field.importable,
+    exportable: field.exportable,
+    componentType: field.componentType,
+    queryType: field.queryType,
+    dictType: field.dictType,
+    sensitiveType: field.sensitiveType,
+    encryptAlgorithm: field.encryptAlgorithm,
+    sortable: field.sortable,
+    systemField: false,
+    readonly: field.readonly,
+    fieldStatus: field.fieldStatus || 'ENABLED',
+    referenceObjectCode: field.referenceObjectCode,
+    referenceDisplayField: field.referenceDisplayField,
+    placeholder: field.placeholder || field.basicProps?.placeholder || '',
+    remark: field.remark,
+    sortOrder: field.sortOrder,
+    fieldBinding: { ...(field.fieldBinding || field.basicProps?.fieldBinding || {}) },
+    basicProps: { ...(field.basicProps || {}) },
+    advancedProps: { ...(field.advancedProps || {}) },
+  }
+}
+
 defineExpose({
   saveLayout,
+  appendFieldToForm: appendField,
 })
 </script>
 
@@ -908,7 +928,7 @@ defineExpose({
 
 .form-builder-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   min-height: calc(100vh - 168px);
   background: #f8fafc;

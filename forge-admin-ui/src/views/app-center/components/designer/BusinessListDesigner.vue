@@ -56,47 +56,6 @@
           @update:model-value="handleGridLayoutUpdate"
         />
       </main>
-
-      <aside class="list-summary">
-        <section>
-          <h4>查询条件</h4>
-          <p>{{ searchFields.length }} 个字段</p>
-          <div class="summary-tags">
-            <n-tag v-for="field in searchFields" :key="field.field" size="small" :bordered="false">
-              {{ field.label || field.field }}
-            </n-tag>
-          </div>
-        </section>
-        <section>
-          <h4>表格列</h4>
-          <p>{{ tableFields.length }} 个字段</p>
-          <div class="summary-tags">
-            <n-tag v-for="field in tableFields" :key="field.field" size="small" :bordered="false" type="info">
-              {{ field.label || field.field }}
-            </n-tag>
-          </div>
-        </section>
-        <section>
-          <h4>工具栏</h4>
-          <div class="action-list">
-            <span v-if="tableZone?.props?.showImport">导入</span>
-            <span v-if="tableZone?.props?.showExport">导出</span>
-            <span v-if="tableZone?.props?.enableCustomQuery !== false">自定义查询</span>
-            <span v-if="tableZone?.props?.hideBatchDelete !== true">批量删除</span>
-          </div>
-        </section>
-        <section>
-          <h4>行操作</h4>
-          <div class="action-list">
-            <span>查看</span>
-            <span>编辑</span>
-            <span>删除</span>
-            <span v-for="action in customActions" :key="action.actionCode || action.label">
-              {{ action.label || action.actionName || action.actionCode }}
-            </span>
-          </div>
-        </section>
-      </aside>
     </div>
   </div>
 </template>
@@ -104,7 +63,7 @@
 <script setup>
 import { useMessage } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
-import { saveBusinessObjectListLayout } from '@/api/business-app'
+import { saveBusinessObjectDesigner, saveBusinessObjectListLayout } from '@/api/business-app'
 import { cloneSchema, isSameSchema } from '@/components/lowcode-builder/model/model-schema'
 import ListPageGridDesigner from '@/components/lowcode-builder/page/ListPageGridDesigner.vue'
 import {
@@ -118,6 +77,7 @@ import {
   syncPageSchemaWithModel,
 } from '@/components/lowcode-builder/page/page-schema'
 import StructuredListPageDesigner from '@/components/lowcode-builder/page/StructuredListPageDesigner.vue'
+import { createViewSchemaFromPageSchema } from './form-first/viewSchema'
 
 const props = defineProps({
   objectId: {
@@ -136,9 +96,13 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  viewSchema: {
+    type: Object,
+    default: null,
+  },
 })
 
-const emit = defineEmits(['update:modelValue', 'saved', 'dirtyChange'])
+const emit = defineEmits(['update:modelValue', 'update:viewSchema', 'saved', 'dirtyChange'])
 
 const message = useMessage()
 const saving = ref(false)
@@ -159,12 +123,6 @@ const listLayoutMode = computed(() => localSchema.value.listLayoutMode || 'struc
 const treeLayoutEnabled = computed(() => localSchema.value.layoutType === 'tree-crud')
 const layoutModeLabel = computed(() => resolveLayoutModeLabel(localSchema.value.layoutType))
 const layoutModeTagType = computed(() => localSchema.value.layoutType === 'simple-crud' ? 'default' : 'info')
-const searchZone = computed(() => localSchema.value.zones?.find(zone => zone.zoneKey === 'search') || null)
-const tableZone = computed(() => localSchema.value.zones?.find(zone => zone.zoneKey === 'table') || null)
-const fieldMap = computed(() => new Map(designFields.value.map(field => [field.field, field])))
-const searchFields = computed(() => (searchZone.value?.fieldRefs || []).map(ref => fieldMap.value.get(ref)).filter(Boolean))
-const tableFields = computed(() => (tableZone.value?.fieldRefs || []).map(ref => fieldMap.value.get(ref)).filter(Boolean))
-const customActions = computed(() => tableZone.value?.props?.customActions || [])
 
 watch(
   () => props.modelValue,
@@ -193,6 +151,7 @@ watch(
     }
     if (!isSameSchema(value, props.modelValue)) {
       emit('update:modelValue', cloneSchema(value))
+      emit('update:viewSchema', cloneSchema(buildCurrentViewSchema(value)))
       emit('dirtyChange', true)
     }
   },
@@ -262,7 +221,12 @@ async function saveLayout() {
         listLayoutMode: schema.listLayoutMode,
       },
     })
+    const viewSchema = buildCurrentViewSchema(schema)
+    await saveBusinessObjectDesigner(props.objectId, {
+      viewSchema: cloneSchema(viewSchema),
+    })
     setLocalSchema(schema, { external: true })
+    emit('update:viewSchema', cloneSchema(viewSchema))
     emit('saved', cloneSchema(schema))
     emit('dirtyChange', false)
     message.success('列表布局已保存')
@@ -274,6 +238,10 @@ async function saveLayout() {
   finally {
     saving.value = false
   }
+}
+
+function buildCurrentViewSchema(schema = localSchema.value) {
+  return createViewSchemaFromPageSchema(schema, designFields.value, props.viewSchema || {})
 }
 
 function resolveSchema(pageSchema, modelSchema) {
@@ -442,7 +410,7 @@ defineExpose({
 
 .list-designer-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
 }
 
@@ -454,67 +422,10 @@ defineExpose({
   padding: 14px;
 }
 
-.list-summary {
-  display: grid;
-  align-content: start;
-  gap: 12px;
-  border-left: 1px solid #e5e7eb;
-  background: #fbfcfe;
-  overflow: auto;
-  padding: 12px;
-}
-
-.list-summary section {
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
-  padding: 12px;
-}
-
-.list-summary h4 {
-  margin: 0;
-  color: #111827;
-  font-size: 13px;
-  letter-spacing: 0;
-}
-
-.list-summary p {
-  margin: 4px 0 10px;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.summary-tags,
-.action-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.action-list span {
-  border-radius: 4px;
-  background: #f1f5f9;
-  color: #475569;
-  font-size: 12px;
-  line-height: 22px;
-  padding: 0 8px;
-}
-
 @container (max-width: 1180px) {
-  .list-designer-head,
-  .list-designer-body {
-    grid-template-columns: 1fr;
-  }
-
   .list-designer-head {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .list-summary {
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    border-left: 0;
-    border-top: 1px solid #e5e7eb;
   }
 }
 </style>

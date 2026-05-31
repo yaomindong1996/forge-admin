@@ -49,6 +49,9 @@ public class AiBusinessObjectDesignVersion extends TenantEntity {
     /** 关系快照 JSON */
     private String relationSnapshot;
 
+    /** 表单优先设计器扩展快照 JSON */
+    private String designerOptionsSnapshot;
+
     /** 发布状态：DRAFT/PUBLISHED/FAILED */
     private String publishStatus;
 

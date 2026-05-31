@@ -1,9 +1,9 @@
 <template>
-  <div class="field-list">
-    <div class="field-list-head">
+  <div class="field-list" :class="{ headless: !showHead }">
+    <div v-if="showHead" class="field-list-head">
       <div>
         <h3>业务字段</h3>
-        <p>{{ fields.length }} 个字段，草稿模型实时同步。</p>
+        <p>{{ resolvedTotalCount === fields.length ? `${fields.length} 个字段，草稿模型实时同步。` : `筛选展示 ${fields.length} / ${resolvedTotalCount} 个字段。` }}</p>
       </div>
       <n-button type="primary" size="small" @click="$emit('create')">
         <template #icon>
@@ -36,8 +36,28 @@
             {{ fieldTypeLabel(field.fieldType) }} · {{ field.componentType || '自动控件' }}
             <em>{{ field.fieldCode || '-' }}</em>
           </span>
+          <div class="field-flags">
+            <small v-if="isDesignerField(field)">表单生成</small>
+            <small v-if="isUsedInForm(field)">已入表单</small>
+            <small v-else-if="field.formVisible !== false">未入表单</small>
+            <small v-if="field.listVisible !== false">列表</small>
+            <small v-if="field.searchable">查询</small>
+          </div>
         </div>
         <div class="field-actions" @click.stop>
+          <n-button
+            v-if="!isUsedInForm(field)"
+            quaternary
+            circle
+            size="small"
+            :disabled="field.systemField || field.formVisible === false"
+            title="加入表单"
+            @click="$emit('addToForm', field)"
+          >
+            <template #icon>
+              <n-icon><AddOutline /></n-icon>
+            </template>
+          </n-button>
           <n-button quaternary circle size="small" :disabled="index === 0" @click="$emit('move', index, index - 1)">
             <template #icon>
               <n-icon><ChevronUpOutline /></n-icon>
@@ -74,8 +94,9 @@ import {
   CopyOutline,
   TrashOutline,
 } from '@vicons/ionicons5'
+import { computed } from 'vue'
 
-defineProps({
+const props = defineProps({
   fields: {
     type: Array,
     default: () => [],
@@ -84,9 +105,24 @@ defineProps({
     type: String,
     default: '',
   },
+  showHead: {
+    type: Boolean,
+    default: true,
+  },
+  totalCount: {
+    type: Number,
+    default: 0,
+  },
+  usedFieldCodes: {
+    type: Array,
+    default: () => [],
+  },
 })
 
-defineEmits(['select', 'create', 'patch', 'duplicate', 'delete', 'move'])
+defineEmits(['select', 'create', 'patch', 'duplicate', 'delete', 'move', 'addToForm'])
+
+const resolvedTotalCount = computed(() => props.totalCount || props.fields.length)
+const usedFieldCodeSet = computed(() => new Set(props.usedFieldCodes))
 
 function fieldTypeLabel(value) {
   const labels = {
@@ -110,6 +146,15 @@ function fieldTypeLabel(value) {
   }
   return labels[value] || value || '文本'
 }
+
+function isDesignerField(field = {}) {
+  const binding = field.fieldBinding || field.basicProps?.fieldBinding || {}
+  return binding.source === 'designer' || binding.createIfMissing === true
+}
+
+function isUsedInForm(field = {}) {
+  return usedFieldCodeSet.value.has(field.fieldCode || field.field)
+}
 </script>
 
 <style scoped>
@@ -117,6 +162,10 @@ function fieldTypeLabel(value) {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
+}
+
+.field-list.headless {
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .field-list-head {
@@ -152,7 +201,7 @@ function fieldTypeLabel(value) {
 
 .field-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 136px;
+  grid-template-columns: minmax(0, 1fr) 176px;
   align-items: center;
   gap: 8px;
   width: 100%;
@@ -211,6 +260,22 @@ function fieldTypeLabel(value) {
   font-style: normal;
 }
 
+.field-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 7px;
+}
+
+.field-flags small {
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  line-height: 20px;
+  padding: 0 6px;
+}
+
 .field-actions {
   display: flex;
   justify-content: flex-end;
@@ -219,7 +284,7 @@ function fieldTypeLabel(value) {
 
 @media (max-width: 1180px) {
   .field-row {
-    grid-template-columns: minmax(0, 1fr) 136px;
+    grid-template-columns: minmax(0, 1fr) 176px;
   }
 }
 </style>

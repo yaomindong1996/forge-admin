@@ -40,8 +40,17 @@
                   :key="row.__rowKey"
                 >
                   <td v-for="field in child.fields" :key="field.field">
+                    <AiFormItem
+                      v-if="useRuntimeCell(field)"
+                      class="child-runtime-cell"
+                      :field="toRuntimeCellField(field)"
+                      :value="row[field.field]"
+                      :form-data="row"
+                      :context="buildRuntimeCellContext(child, rowIndex)"
+                      @update:value="updateCell(child, rowIndex, field, $event)"
+                    />
                     <n-input
-                      v-if="field.type === 'textarea'"
+                      v-else-if="field.type === 'textarea'"
                       type="textarea"
                       :value="row[field.field]"
                       :placeholder="field.props?.placeholder || `请输入${field.label || field.field}`"
@@ -136,6 +145,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import AiFormItem from '@/components/ai-form/AiFormItem.vue'
 import UserSelectPicker from '@/components/common/UserSelectPicker.vue'
 
 const props = defineProps({
@@ -192,6 +202,7 @@ function addRow(child) {
     ...localValue.value,
     [key]: [...rowsFor(child), createEmptyRow(child)],
   }
+  commit()
 }
 
 function removeRow(child, rowIndex) {
@@ -228,6 +239,48 @@ function updateRow(child, rowIndex, patch) {
     [key]: rows,
   }
   commit()
+}
+
+function useRuntimeCell(field = {}) {
+  if (field.type === 'select') {
+    return Boolean(field.dictType || field.props?.dictType || field.optionSource || field.props?.optionSource)
+  }
+  return [
+    'dictSelect',
+    'orgTreeSelect',
+    'regionTreeSelect',
+    'objectReference',
+    'fileUpload',
+    'imageUpload',
+    'cascader',
+    'treeSelect',
+    'customSelect',
+    'radio',
+    'checkbox',
+  ].includes(field.type)
+}
+
+function toRuntimeCellField(field = {}) {
+  return {
+    ...field,
+    disabled: props.readonly || field.disabled || field.readonly,
+    readonly: props.readonly || field.readonly,
+    showLabel: false,
+    showFeedback: false,
+    size: field.size || 'small',
+    props: {
+      ...(field.props || {}),
+      size: field.props?.size || field.size || 'small',
+    },
+  }
+}
+
+function buildRuntimeCellContext(child, rowIndex) {
+  return {
+    schema: child.fields || [],
+    allSchema: child.fields || [],
+    patchFormData: patch => updateRow(child, rowIndex, patch),
+  }
 }
 
 function applyRowPatch(row, patch) {
@@ -411,6 +464,19 @@ defineExpose({
   border-bottom: 1px solid #eef2f7;
   padding: 8px 10px;
   vertical-align: top;
+}
+
+.child-runtime-cell {
+  width: 100%;
+}
+
+.child-runtime-cell :deep(.n-form-item) {
+  margin: 0;
+}
+
+.child-runtime-cell :deep(.n-form-item-feedback-wrapper) {
+  display: none;
+  min-height: 0;
 }
 
 .child-edit-table tr:last-child td {

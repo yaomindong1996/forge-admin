@@ -4,7 +4,7 @@
       <div class="property-head">
         <div>
           <h3>{{ form.fieldName || '字段属性' }}</h3>
-          <p>{{ form.fieldCode || '保存后自动生成字段编码和列名' }}</p>
+          <p>{{ developerMode ? (form.fieldCode || '保存后自动生成字段编码和列名') : '维护表单展示、校验和视图可见性' }}</p>
         </div>
         <n-tag v-if="field.systemField" size="small" :bordered="false">
           系统字段
@@ -27,7 +27,7 @@
             </n-form-item-gi>
           </n-grid>
 
-          <n-form-item label="字段英文名">
+          <n-form-item v-if="developerMode" label="字段英文名">
             <n-input
               v-model:value="form.fieldCode"
               :disabled="field.systemField"
@@ -35,7 +35,7 @@
             />
           </n-form-item>
 
-          <n-grid v-if="showStorageOptions" :cols="2" :x-gap="12">
+          <n-grid v-if="developerMode && showStorageOptions" :cols="2" :x-gap="12">
             <n-form-item-gi v-if="supportsLength" label="字段长度">
               <n-input-number
                 v-model:value="form.length"
@@ -153,6 +153,9 @@
           <n-collapse v-if="developerMode" class="advanced-collapse">
             <n-collapse-item title="高级属性" name="advanced">
               <n-grid :cols="2" :x-gap="12">
+                <n-form-item-gi label="字段英文名">
+                  <n-input v-model:value="form.fieldCode" :disabled="field.systemField" placeholder="自动生成" />
+                </n-form-item-gi>
                 <n-form-item-gi label="数据库列名">
                   <n-input v-model:value="form.columnName" :disabled="field.systemField" placeholder="自动生成" />
                 </n-form-item-gi>
@@ -260,6 +263,7 @@ const componentOptions = [
   { label: '人员选择', value: 'userSelect' },
   { label: '部门树', value: 'orgTreeSelect' },
   { label: '地区树', value: 'regionTreeSelect' },
+  { label: '引用对象', value: 'objectReference' },
 ]
 
 const queryTypeOptions = [
@@ -483,7 +487,7 @@ function applyFieldTypeDefaults(fieldType) {
     USER: { dataType: 'bigint', componentType: 'userSelect', length: null, precision: null, queryType: 'eq' },
     DEPT: { dataType: 'bigint', componentType: 'orgTreeSelect', length: null, precision: null, queryType: 'eq' },
     REGION: { dataType: 'varchar', componentType: 'regionTreeSelect', length: 32, precision: 2, queryType: 'eq' },
-    REFERENCE: { dataType: 'bigint', componentType: 'select', length: null, precision: null, queryType: 'eq' },
+    REFERENCE: { dataType: 'bigint', componentType: 'objectReference', length: null, precision: null, queryType: 'eq' },
   }[fieldType]
   if (!defaults)
     return

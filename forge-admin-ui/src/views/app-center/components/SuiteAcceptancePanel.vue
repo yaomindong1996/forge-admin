@@ -358,7 +358,13 @@ function handleChannelClick(channel) {
 
 <style scoped>
 .suite-acceptance-panel {
+  container-type: inline-size;
   padding: 0;
+}
+
+.suite-acceptance-panel :deep(.n-spin-content) {
+  display: block;
+  width: 100%;
 }
 
 .acceptance-content {
@@ -713,6 +719,52 @@ function handleChannelClick(channel) {
 .suite-acceptance-panel.compact .compact-row :deep(.n-tag) {
   grid-column: 1 / -1;
   justify-self: start;
+}
+
+@container (min-width: 720px) {
+  .suite-acceptance-panel.compact .acceptance-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(160px, 220px) auto;
+    align-items: center;
+  }
+
+  .suite-acceptance-panel.compact .hero-title-row h3 {
+    font-size: 18px;
+  }
+
+  .suite-acceptance-panel.compact .hero-copy p {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
+  }
+
+  .suite-acceptance-panel.compact .hero-action {
+    justify-self: end;
+  }
+
+  .suite-acceptance-panel.compact .acceptance-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .suite-acceptance-panel.compact .block-head {
+    display: flex;
+  }
+
+  .suite-acceptance-panel.compact .acceptance-objects {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+
+  .suite-acceptance-panel.compact .acceptance-secondary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .suite-acceptance-panel.compact .compact-row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .suite-acceptance-panel.compact .compact-row :deep(.n-tag) {
+    grid-column: auto;
+    justify-self: auto;
+  }
 }
 
 @media (max-width: 900px) {

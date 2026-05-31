@@ -23,6 +23,8 @@ public class BusinessLayoutDTO {
 
     private LowcodePageSchema pageSchema;
 
+    private ViewSchemaDTO viewSchema;
+
     private List<LowcodePageZone> zones = new ArrayList<>();
 
     private Map<String, Object> settings = new LinkedHashMap<>();

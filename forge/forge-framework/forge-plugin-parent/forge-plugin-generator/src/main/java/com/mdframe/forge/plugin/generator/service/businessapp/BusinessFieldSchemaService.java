@@ -73,7 +73,7 @@ public class BusinessFieldSchemaService {
             Map.entry("USER", new FieldDefaults("bigint", "userSelect", null, null, "eq", 140)),
             Map.entry("DEPT", new FieldDefaults("bigint", "orgTreeSelect", null, null, "eq", 140)),
             Map.entry("REGION", new FieldDefaults("varchar", "regionTreeSelect", 32, 2, "eq", 160)),
-            Map.entry("REFERENCE", new FieldDefaults("bigint", "select", null, null, "eq", 160))
+            Map.entry("REFERENCE", new FieldDefaults("bigint", "objectReference", null, null, "eq", 160))
     );
 
     private final LowcodeModelSchemaNormalizer schemaNormalizer;
@@ -90,12 +90,19 @@ public class BusinessFieldSchemaService {
             throw new BusinessException("字段名称不能为空");
         }
 
+        Map<String, Object> dtoFieldBinding = copyProps(dto.getFieldBinding());
+        String bindingFieldCode = mapText(dtoFieldBinding, "fieldCode");
+        String bindingColumnName = mapText(dtoFieldBinding, "columnName");
         String fieldType = normalizeFieldType(dto.getFieldType(), fieldName);
-        validateFieldTypeOptions(fieldType, dto);
+        validateFieldTypeOptions(fieldType, dto, dtoFieldBinding);
         FieldDefaults defaults = FIELD_DEFAULTS.getOrDefault(fieldType, FIELD_DEFAULTS.get("TEXT"));
 
-        String fieldCode = normalizeFieldCode(StringUtils.defaultIfBlank(dto.getFieldCode(), generateFieldCode(fieldName)));
-        String columnName = normalizeColumnName(StringUtils.defaultIfBlank(dto.getColumnName(), camelToSnake(fieldCode)));
+        String fieldCode = normalizeFieldCode(StringUtils.defaultIfBlank(
+                StringUtils.defaultIfBlank(dto.getFieldCode(), bindingFieldCode),
+                generateFieldCode(fieldName)));
+        String columnName = normalizeColumnName(StringUtils.defaultIfBlank(
+                StringUtils.defaultIfBlank(dto.getColumnName(), bindingColumnName),
+                camelToSnake(fieldCode)));
 
         LowcodeFieldSchema schema = new LowcodeFieldSchema();
         schema.setField(fieldCode);
@@ -130,6 +137,7 @@ public class BusinessFieldSchemaService {
         schema.setSortOrder(dto.getSortOrder());
         schema.setBasicProps(copyProps(dto.getBasicProps()));
         schema.setAdvancedProps(copyProps(dto.getAdvancedProps()));
+        schema.getBasicProps().put("fieldBinding", normalizeFieldBinding(dtoFieldBinding, schema, "designer"));
         if (StringUtils.isNotBlank(dto.getPlaceholder())) {
             schema.getBasicProps().put("placeholder", dto.getPlaceholder());
         }
@@ -195,6 +203,7 @@ public class BusinessFieldSchemaService {
         vo.setRemark(schema.getRemark());
         vo.setCanDelete(!Boolean.TRUE.equals(schema.getSystemField()) && !SYSTEM_FIELDS.contains(schema.getField()));
         vo.setReferenceStatus("NORMAL");
+        vo.setFieldBinding(resolveFieldBinding(schema));
         fillProps(vo, schema);
         return vo;
     }
@@ -246,13 +255,16 @@ public class BusinessFieldSchemaService {
         return normalizeColumnName(value);
     }
 
-    private void validateFieldTypeOptions(String fieldType, BusinessFieldDTO dto) {
-        if (DICT_FIELD_TYPES.contains(fieldType) && StringUtils.isBlank(dto.getDictType())) {
+    private void validateFieldTypeOptions(String fieldType, BusinessFieldDTO dto, Map<String, Object> fieldBinding) {
+        boolean designerDraftField = "designer".equalsIgnoreCase(StringUtils.defaultString(mapText(fieldBinding, "source")))
+                && readBoolean(fieldBinding.get("createIfMissing"), false);
+        if (DICT_FIELD_TYPES.contains(fieldType) && StringUtils.isBlank(dto.getDictType()) && !designerDraftField) {
             throw new BusinessException("字典字段必须配置字典类型");
         }
         if ("REFERENCE".equals(fieldType)
                 && (StringUtils.isBlank(dto.getReferenceObjectCode())
-                || StringUtils.isBlank(dto.getReferenceDisplayField()))) {
+                || StringUtils.isBlank(dto.getReferenceDisplayField()))
+                && !designerDraftField) {
             throw new BusinessException("引用对象字段必须配置目标对象和回显字段");
         }
     }
@@ -435,6 +447,60 @@ public class BusinessFieldSchemaService {
         advancedProps.put("dictType", schema.getDictType());
         advancedProps.put("sensitiveType", schema.getSensitiveType());
         advancedProps.put("encryptAlgorithm", schema.getEncryptAlgorithm());
+    }
+
+    private Map<String, Object> resolveFieldBinding(LowcodeFieldSchema schema) {
+        Map<String, Object> basicProps = schema.getBasicProps();
+        Object binding = basicProps == null ? null : basicProps.get("fieldBinding");
+        if (binding instanceof Map<?, ?> map) {
+            Map<String, Object> source = new LinkedHashMap<>();
+            map.forEach((key, value) -> {
+                if (key != null) {
+                    source.put(String.valueOf(key), value);
+                }
+            });
+            return normalizeFieldBinding(source, schema, StringUtils.defaultIfBlank(mapText(source, "source"), "field_asset"));
+        }
+        return normalizeFieldBinding(new LinkedHashMap<>(), schema, "field_asset");
+    }
+
+    private Map<String, Object> normalizeFieldBinding(Map<String, Object> source,
+                                                      LowcodeFieldSchema schema,
+                                                      String defaultSource) {
+        Map<String, Object> binding = new LinkedHashMap<>();
+        String fieldCode = StringUtils.defaultIfBlank(mapText(source, "fieldCode"), schema.getField());
+        binding.put("mode", StringUtils.defaultIfBlank(mapText(source, "mode"), "field"));
+        binding.put("fieldCode", fieldCode);
+        binding.put("columnName", StringUtils.defaultIfBlank(mapText(source, "columnName"), schema.getColumnName()));
+        binding.put("createIfMissing", readBoolean(source.get("createIfMissing"), false));
+        binding.put("source", StringUtils.defaultIfBlank(mapText(source, "source"), defaultSource));
+        binding.put("locked", readBoolean(source.get("locked"),
+                Boolean.TRUE.equals(schema.getReadonly()) || Boolean.TRUE.equals(schema.getSystemField())));
+        return binding;
+    }
+
+    private boolean readBoolean(Object value, boolean defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value instanceof Number number) {
+            return number.intValue() != 0;
+        }
+        String text = StringUtils.trimToEmpty(String.valueOf(value));
+        if (StringUtils.isBlank(text)) {
+            return defaultValue;
+        }
+        return "true".equalsIgnoreCase(text) || "1".equals(text) || "yes".equalsIgnoreCase(text);
+    }
+
+    private String mapText(Map<String, Object> source, String key) {
+        if (source == null || !source.containsKey(key) || source.get(key) == null) {
+            return null;
+        }
+        return StringUtils.trimToNull(String.valueOf(source.get(key)));
     }
 
     private Map<String, Object> copyProps(Map<String, Object> source) {

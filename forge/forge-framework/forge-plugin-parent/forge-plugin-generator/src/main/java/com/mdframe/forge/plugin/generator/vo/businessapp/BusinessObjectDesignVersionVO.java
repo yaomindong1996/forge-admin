@@ -36,6 +36,8 @@ public class BusinessObjectDesignVersionVO {
 
     private Object relationSnapshot;
 
+    private Object designerOptionsSnapshot;
+
     private String publishStatus;
 
     private Integer publishVersion;

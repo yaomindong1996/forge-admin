@@ -100,13 +100,17 @@ const suiteOptions = computed(() => props.suites.map(item => ({
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+  min-width: 0;
 }
 
 .filter-search {
-  width: min(360px, 100%);
+  flex: 1 1 260px;
+  width: auto;
+  max-width: 420px;
 }
 
 .filter-select {
+  flex: 0 0 180px;
   width: 180px;
 }
 

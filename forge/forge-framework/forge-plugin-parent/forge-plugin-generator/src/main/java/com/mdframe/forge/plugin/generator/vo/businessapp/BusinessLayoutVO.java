@@ -2,6 +2,7 @@ package com.mdframe.forge.plugin.generator.vo.businessapp;
 
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePageSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePageZone;
+import com.mdframe.forge.plugin.generator.dto.businessapp.ViewSchemaDTO;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -22,6 +23,8 @@ public class BusinessLayoutVO {
     private String layoutType;
 
     private LowcodePageSchema pageSchema;
+
+    private ViewSchemaDTO viewSchema;
 
     private List<LowcodePageZone> zones = new ArrayList<>();
 

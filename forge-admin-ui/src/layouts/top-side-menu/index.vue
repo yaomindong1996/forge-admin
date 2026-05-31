@@ -5,27 +5,27 @@
 
     <!-- 顶部一级菜单 -->
     <header
-      class="layout-header h-60 flex flex-shrink-0 items-center px-20"
+      class="layout-header top-layout-header h-60 flex flex-shrink-0 items-center px-20"
       border-b="1px solid light_border dark:dark_border"
     >
-      <TheLogo class="mr-20" />
-      <TheTitle />
-      <MenuCollapse class="mr-10" />
-      <TopMenu class="top-menu-wrapper flex-1" />
+      <TheLogo class="brand-logo mr-20" />
+      <TheTitle class="brand-title" />
+      <MenuCollapse class="menu-collapse-action mr-10" />
+      <TopMenu class="top-menu-wrapper main-top-menu flex-1" />
 
       <!-- 菜单搜索 -->
-      <div class="mx-16">
+      <div class="header-search mx-16">
         <MenuSearch />
       </div>
 
-      <div class="flex items-center">
-        <span class="mx-6 opacity-20">|</span>
-        <div class="text-18 flex flex-shrink-0 items-center px-12">
+      <div class="header-actions flex items-center">
+        <span class="header-divider mx-6 opacity-20">|</span>
+        <div class="header-actions-inner text-18 flex flex-shrink-0 items-center px-12">
           <!--          <ThemeConfigButton class="mr-16" /> -->
-          <ToggleTheme />
-          <Fullscreen />
+          <ToggleTheme class="mobile-hidden-action" />
+          <Fullscreen class="mobile-hidden-action" />
           <!--          <ThemeSetting class="mr-16" /> -->
-          <MessageNotification class="mr-16" />
+          <MessageNotification class="mobile-hidden-action mr-16" />
           <UserAvatar />
         </div>
       </div>
@@ -99,8 +99,50 @@ const showSidebar = computed(() => {
 
   return false
 })
-
-function handleLinkClick(link) {
-  window.open(link)
-}
 </script>
+
+<style scoped>
+.top-layout-header,
+.main-top-menu,
+.header-search,
+.header-actions {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .top-layout-header {
+    gap: 8px;
+    padding-right: 12px !important;
+    padding-left: 12px !important;
+  }
+
+  .brand-logo {
+    flex-shrink: 0;
+    margin-right: 4px !important;
+  }
+
+  .brand-title,
+  .header-search,
+  .header-divider,
+  .mobile-hidden-action {
+    display: none !important;
+  }
+
+  .menu-collapse-action {
+    margin-right: 0 !important;
+  }
+
+  .main-top-menu {
+    flex: 1 1 auto;
+  }
+
+  .header-actions-inner {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+  }
+
+  .header-actions :deep(#user-dropdown .ml-8) {
+    display: none !important;
+  }
+}
+</style>

@@ -32,7 +32,7 @@
         {{ openTip(app) }}
       </n-tooltip>
       <n-dropdown trigger="click" :options="moreOptions(app)" @select="key => handleMoreSelect(key, app)">
-        <n-button quaternary circle size="small">
+        <n-button quaternary circle size="small" aria-label="更多操作">
           <template #icon>
             <n-icon><EllipsisVertical /></n-icon>
           </template>
@@ -113,7 +113,7 @@ function handleMoreSelect(key, app) {
   grid-template-columns: 42px minmax(0, 1fr);
   gap: 12px 14px;
   align-items: start;
-  min-height: 132px;
+  min-height: 156px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #fff;

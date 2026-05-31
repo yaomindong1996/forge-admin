@@ -68,6 +68,7 @@ public class BusinessObjectDesignVersionService
         version.setModelSnapshot(writeJson(dto.getModelSnapshot()));
         version.setPageSnapshot(writeJson(dto.getPageSnapshot()));
         version.setRelationSnapshot(writeJson(dto.getRelationSnapshot()));
+        version.setDesignerOptionsSnapshot(writeJson(dto.getDesignerOptionsSnapshot()));
         version.setPublishStatus(StringUtils.defaultIfBlank(dto.getPublishStatus(), "DRAFT").toUpperCase(Locale.ROOT));
         version.setPublishVersion(dto.getPublishVersion());
         version.setRemark(StringUtils.trimToNull(dto.getRemark()));
@@ -95,6 +96,7 @@ public class BusinessObjectDesignVersionService
         vo.setModelSnapshot(readJson(version.getModelSnapshot(), LowcodeModelSchema.class));
         vo.setPageSnapshot(readJson(version.getPageSnapshot(), LowcodePageSchema.class));
         vo.setRelationSnapshot(readJson(version.getRelationSnapshot(), Object.class));
+        vo.setDesignerOptionsSnapshot(readJson(version.getDesignerOptionsSnapshot(), Object.class));
         vo.setPublishStatus(version.getPublishStatus());
         vo.setPublishVersion(version.getPublishVersion());
         vo.setRemark(version.getRemark());

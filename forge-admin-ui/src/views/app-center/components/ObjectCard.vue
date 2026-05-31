@@ -17,24 +17,26 @@
         <span>{{ object.appCount || 0 }} 入口</span>
       </div>
     </div>
-    <n-button secondary size="small" @click.stop="emit('design', object)">
-      <template #icon>
-        <n-icon><BuildOutline /></n-icon>
-      </template>
-      设计对象
-    </n-button>
-    <n-button quaternary circle size="small" @click.stop="emit('open', object)">
-      <template #icon>
-        <n-icon><OpenOutline /></n-icon>
-      </template>
-    </n-button>
-    <n-dropdown trigger="click" :options="moreOptions" @select="handleMoreSelect">
-      <n-button class="object-more" quaternary circle size="small" @click.stop>
+    <div class="object-actions">
+      <n-button secondary size="small" @click.stop="emit('design', object)">
         <template #icon>
-          <n-icon><EllipsisVertical /></n-icon>
+          <n-icon><BuildOutline /></n-icon>
+        </template>
+        设计对象
+      </n-button>
+      <n-button quaternary circle size="small" aria-label="打开业务对象" @click.stop="emit('open', object)">
+        <template #icon>
+          <n-icon><OpenOutline /></n-icon>
         </template>
       </n-button>
-    </n-dropdown>
+      <n-dropdown trigger="click" :options="moreOptions" @select="handleMoreSelect">
+        <n-button class="object-more" quaternary circle size="small" aria-label="更多操作" @click.stop>
+          <template #icon>
+            <n-icon><EllipsisVertical /></n-icon>
+          </template>
+        </n-button>
+      </n-dropdown>
+    </div>
   </article>
 </template>
 
@@ -81,10 +83,10 @@ function handleMoreSelect(key) {
 <style scoped>
 .object-card {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto 34px 34px;
-  gap: 12px;
-  align-items: center;
-  min-height: 104px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px 14px;
+  align-items: start;
+  min-height: 156px;
   cursor: pointer;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
@@ -170,15 +172,25 @@ function handleMoreSelect(key) {
   justify-self: end;
 }
 
+.object-actions {
+  display: flex;
+  grid-column: 2;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 34px;
+  border-top: 1px solid #eef2f7;
+  padding-top: 10px;
+}
+
 @media (max-width: 520px) {
   .object-card {
-    grid-template-columns: 42px minmax(0, 1fr);
+    grid-template-columns: 40px minmax(0, 1fr);
   }
 
-  .object-card > .n-button,
-  .object-card > .n-dropdown {
+  .object-actions {
     grid-column: 2;
-    justify-self: end;
+    justify-content: space-between;
   }
 }
 </style>

@@ -19,6 +19,9 @@
             <n-tag size="small" :type="publishStatusType" :bordered="false">
               {{ publishStatusLabel }}
             </n-tag>
+            <n-tag v-if="dirty" size="small" type="warning" :bordered="false">
+              未保存
+            </n-tag>
           </div>
           <p>
             {{ designer?.suiteName || designer?.suiteCode || '未关联业务套件' }}
@@ -65,7 +68,7 @@
           type="button"
           class="nav-item"
           :class="{ active: item.key === activePanel }"
-          @click="$emit('update:activePanel', item.key)"
+          @click="handlePanelClick(item.key)"
         >
           <n-icon>
             <component :is="item.icon" />
@@ -148,14 +151,14 @@ const props = defineProps({
   },
 })
 
-defineEmits(['update:activePanel', 'save', 'preview', 'publish', 'back', 'refresh', 'openRuntime'])
+const emit = defineEmits(['update:activePanel', 'save', 'preview', 'publish', 'back', 'refresh', 'openRuntime'])
 
 const navItems = [
   { key: 'basic', label: '基本信息', icon: OptionsOutline },
-  { key: 'fields', label: '字段管理', icon: TextOutline },
   { key: 'form', label: '表单设计', icon: ReaderOutline },
+  { key: 'fields', label: '字段资产', icon: TextOutline },
   { key: 'list', label: '列表设计', icon: ListOutline },
-  { key: 'relations', label: '关系配置', icon: GitNetworkOutline },
+  { key: 'relations', label: '关系与级联', icon: GitNetworkOutline },
   { key: 'actions', label: '自定义操作', icon: BuildOutline },
   { key: 'permission', label: '数据权限', icon: KeyOutline },
   { key: 'publish', label: '发布检查', icon: CheckmarkDoneOutline },
@@ -172,6 +175,26 @@ const filteredNavItems = computed(() => {
     return navItems
   return navItems.filter(item => item.key !== 'advanced')
 })
+
+function handlePanelClick(key) {
+  if (key === props.activePanel)
+    return
+  if (!props.dirty) {
+    emit('update:activePanel', key)
+    return
+  }
+  if (!window.$dialog) {
+    emit('update:activePanel', key)
+    return
+  }
+  window.$dialog.warning({
+    title: '未保存变更',
+    content: '当前面板存在尚未保存的设计变更，切换后草稿仍会保留，但发布前需要先保存。',
+    positiveText: '继续切换',
+    negativeText: '留在当前',
+    onPositiveClick: () => emit('update:activePanel', key),
+  })
+}
 
 const designStatusLabel = computed(() => {
   const status = props.designer?.designStatus || 'DRAFT'
@@ -218,13 +241,20 @@ const publishStatusType = computed(() => {
 
 <style scoped>
 .designer-shell {
-  min-height: 100%;
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100vw;
+  height: 100vh;
   background: #f6f8fb;
 }
 
 .designer-main-content {
   position: relative;
   min-height: 100%;
+  height: 100%;
 }
 
 .designer-loading-mask {
@@ -301,10 +331,13 @@ const publishStatusType = computed(() => {
 .designer-workbench {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
-  min-height: calc(100vh - 72px);
+  min-height: 0;
+  height: calc(100vh - 72px);
 }
 
 .designer-nav {
+  min-height: 0;
+  overflow-y: auto;
   border-right: 1px solid #e5e7eb;
   background: #fff;
   padding: 14px 10px;
@@ -359,6 +392,8 @@ const publishStatusType = computed(() => {
 
 .designer-main {
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
   padding: 16px;
 }
 
@@ -390,11 +425,13 @@ const publishStatusType = computed(() => {
 
   .designer-workbench {
     grid-template-columns: 1fr;
+    height: calc(100vh - 116px);
   }
 
   .designer-nav {
     display: flex;
     overflow-x: auto;
+    overflow-y: hidden;
     border-right: 0;
     border-bottom: 1px solid #e5e7eb;
   }

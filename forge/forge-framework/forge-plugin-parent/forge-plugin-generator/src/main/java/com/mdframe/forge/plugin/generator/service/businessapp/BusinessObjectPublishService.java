@@ -1,5 +1,7 @@
 package com.mdframe.forge.plugin.generator.service.businessapp;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdframe.forge.plugin.generator.constant.BusinessObjectDesignStatus;
 import com.mdframe.forge.plugin.generator.constant.BusinessPublishCheckLevel;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessObject;
@@ -45,6 +47,9 @@ import java.util.Set;
 public class BusinessObjectPublishService {
 
     private static final String DDL_PERMISSION = "ai:lowcode:deploy-ddl";
+    private static final String FORM_DESIGNER_SCHEMA_OPTION_KEY = "formDesignerSchema";
+    private static final String VIEW_SCHEMA_OPTION_KEY = "viewSchema";
+    private static final String LINKAGE_SCHEMA_OPTION_KEY = "linkageSchema";
 
     private final BusinessObjectDesignerService designerService;
     private final BusinessObjectDesignVersionService designVersionService;
@@ -54,14 +59,18 @@ public class BusinessObjectPublishService {
     private final LowcodeDdlService ddlService;
     private final AiCrudConfigMapper crudConfigMapper;
     private final BusinessObjectMapper businessObjectMapper;
+    private final ObjectMapper objectMapper;
 
     public BusinessPublishCheckVO publishCheck(Long objectId) {
         BusinessObjectDesignerService.DesignerContext context = designerService.loadContext(objectId);
+        designerService.compileFormFirstRuntimeSchema(context);
         designerService.applyRelationsToModel(context);
         List<BusinessPublishCheckItemVO> items = new ArrayList<>();
         checkFields(context.getModelSchema(), items);
         checkPage(context.getModelSchema(), context.getPageSchema(), items);
+        checkFormFirstSchemas(context, items);
         checkRelations(context, items);
+        checkLinkage(context, items);
         checkRuntimeConfig(context, items);
         checkTable(context.getModelSchema(), items);
         return buildResult(items);
@@ -109,6 +118,7 @@ public class BusinessObjectPublishService {
         versionDTO.setModelSnapshot(context.getModelSchema());
         versionDTO.setPageSnapshot(context.getPageSchema());
         versionDTO.setRelationSnapshot(context.getRelations());
+        versionDTO.setDesignerOptionsSnapshot(readDesignerOptions(context));
         versionDTO.setPublishStatus("PUBLISHED");
         versionDTO.setPublishVersion(publishedConfig.getPublishedVersion());
         versionDTO.setRemark(dto == null ? null : dto.getRemark());
@@ -133,6 +143,7 @@ public class BusinessObjectPublishService {
         rollbackVersion.setModelSnapshot(context.getModelSchema());
         rollbackVersion.setPageSnapshot(context.getPageSchema());
         rollbackVersion.setRelationSnapshot(context.getRelations());
+        rollbackVersion.setDesignerOptionsSnapshot(readDesignerOptions(context));
         rollbackVersion.setPublishStatus(context.getConfig() == null ? "DRAFT" : context.getConfig().getPublishStatus());
         rollbackVersion.setPublishVersion(context.getConfig() == null ? null : context.getConfig().getPublishedVersion());
         rollbackVersion.setRemark("回滚到设计版本 " + version.getVersionNo());
@@ -242,6 +253,103 @@ public class BusinessObjectPublishService {
         }
     }
 
+    private void checkFormFirstSchemas(BusinessObjectDesignerService.DesignerContext context,
+                                       List<BusinessPublishCheckItemVO> items) {
+        Set<String> modelFields = collectFields(context.getModelSchema());
+        Map<String, Object> designerOptions = readDesignerOptions(context);
+        Map<String, Object> formSchema = mapValue(designerOptions.get(FORM_DESIGNER_SCHEMA_OPTION_KEY));
+        Map<String, Object> viewSchema = mapValue(designerOptions.get(VIEW_SCHEMA_OPTION_KEY));
+        boolean checked = false;
+        if (!formSchema.isEmpty()) {
+            checked = true;
+            checkFormDesignerSchema(formSchema, modelFields, items);
+        } else if (hasBusinessFields(context.getModelSchema())) {
+            add(items, "FORM_SCHEMA_DEFAULT", "FORM", BusinessPublishCheckLevel.PASS,
+                    "表单检查通过", "未保存独立表单 Schema，将按字段注册表生成默认表单", null, null,
+                    null, null, "form", 130);
+        }
+        if (!viewSchema.isEmpty()) {
+            checked = true;
+            checkViewSchema(viewSchema, modelFields, items);
+        }
+        if (checked && items.stream().noneMatch(item -> Set.of("FORM", "VIEW").contains(item.getCategory())
+                && BusinessPublishCheckLevel.BLOCK.equals(item.getLevel()))) {
+            add(items, "FORM_FIRST_PASS", "FORM", BusinessPublishCheckLevel.PASS,
+                    "表单优先检查通过", "表单组件、视图投影和字段注册表引用一致", null, null,
+                    null, null, "form", 180);
+        }
+    }
+
+    private void checkFormDesignerSchema(Map<String, Object> formSchema, Set<String> modelFields,
+                                         List<BusinessPublishCheckItemVO> items) {
+        List<Map<String, Object>> components = listOfMap(formSchema.get("components"));
+        if (components.isEmpty()) {
+            add(items, "FORM_COMPONENT_EMPTY", "FORM", BusinessPublishCheckLevel.BLOCK,
+                    "表单组件为空", "请先在表单设计中放入至少一个业务字段组件", null, null,
+                    "CONFIG_FORM", "设计表单", "form", 131);
+            return;
+        }
+        int fieldComponentCount = 0;
+        Set<String> componentIds = new LinkedHashSet<>();
+        for (int index = 0; index < components.size(); index++) {
+            Map<String, Object> component = components.get(index);
+            String componentId = text(component.get("id"));
+            if (StringUtils.isNotBlank(componentId) && !componentIds.add(componentId)) {
+                add(items, "FORM_COMPONENT_DUPLICATE", "FORM", BusinessPublishCheckLevel.BLOCK,
+                        "表单组件重复", "组件 ID 重复: " + componentId, null, null,
+                        "FIX_FORM", "修复表单", "form", 132);
+            }
+            Map<String, Object> binding = mapValue(component.get("fieldBinding"));
+            if (!"field".equals(StringUtils.defaultIfBlank(text(binding.get("mode")), "field"))) {
+                continue;
+            }
+            String fieldCode = text(binding.get("fieldCode"));
+            if (StringUtils.isBlank(fieldCode)) {
+                add(items, "FORM_FIELD_BINDING_EMPTY", "FORM", BusinessPublishCheckLevel.BLOCK,
+                        "表单字段未绑定", "组件 " + StringUtils.defaultIfBlank(componentId, String.valueOf(index + 1)) + " 未绑定业务字段",
+                        null, null, "BIND_FIELD", "绑定字段", "form", 133);
+                continue;
+            }
+            fieldComponentCount++;
+            if (!modelFields.contains(fieldCode)) {
+                add(items, "FORM_FIELD_MISSING", "FORM", BusinessPublishCheckLevel.BLOCK,
+                        "表单引用字段不存在", "表单组件引用了不存在字段: " + fieldCode, fieldCode, null,
+                        "FIX_FORM", "修复表单", "form", 134);
+            }
+        }
+        if (fieldComponentCount == 0) {
+            add(items, "FORM_FIELD_COMPONENT_EMPTY", "FORM", BusinessPublishCheckLevel.BLOCK,
+                    "表单缺少业务字段", "表单中没有绑定业务字段的组件", null, null,
+                    "CONFIG_FORM", "设计表单", "form", 135);
+        }
+    }
+
+    private void checkViewSchema(Map<String, Object> viewSchema, Set<String> modelFields,
+                                 List<BusinessPublishCheckItemVO> items) {
+        checkViewFieldRefs(listOfMap(mapValue(viewSchema.get("search")).get("fields")),
+                modelFields, "查询条件", "search", items, 141);
+        checkViewFieldRefs(listOfMap(mapValue(viewSchema.get("list")).get("columns")),
+                modelFields, "数据列表", "list", items, 142);
+        List<Map<String, Object>> sections = listOfMap(mapValue(viewSchema.get("detail")).get("sections"));
+        for (Map<String, Object> section : sections) {
+            String sectionKey = StringUtils.defaultIfBlank(text(section.get("sectionKey")), text(section.get("key")));
+            checkViewFieldRefs(listOfMap(section.get("fields")), modelFields,
+                    "详情视图", StringUtils.defaultIfBlank(sectionKey, "detail"), items, 143);
+        }
+    }
+
+    private void checkViewFieldRefs(List<Map<String, Object>> refs, Set<String> modelFields, String viewName,
+                                    String fixTarget, List<BusinessPublishCheckItemVO> items, int sortOrder) {
+        for (Map<String, Object> ref : refs) {
+            String fieldCode = StringUtils.defaultIfBlank(text(ref.get("fieldCode")), text(ref.get("field")));
+            if (StringUtils.isNotBlank(fieldCode) && !modelFields.contains(fieldCode)) {
+                add(items, "VIEW_FIELD_MISSING", "VIEW", BusinessPublishCheckLevel.BLOCK,
+                        viewName + "引用字段不存在", viewName + "引用了不存在字段: " + fieldCode,
+                        fieldCode, null, "FIX_VIEW", "修复视图", fixTarget, sortOrder);
+            }
+        }
+    }
+
     private void checkRelations(BusinessObjectDesignerService.DesignerContext context,
                                 List<BusinessPublishCheckItemVO> items) {
         List<BusinessObjectRelationVO> relations = context.getRelations();
@@ -294,6 +402,109 @@ public class BusinessObjectPublishService {
                 && BusinessPublishCheckLevel.BLOCK.equals(item.getLevel()))) {
             add(items, "RELATION_PASS", "RELATION", BusinessPublishCheckLevel.PASS,
                     "关系检查通过", "对象关系目标和当前对象字段有效", null, null, null, null, "relations", 290);
+        }
+    }
+
+    private void checkLinkage(BusinessObjectDesignerService.DesignerContext context,
+                              List<BusinessPublishCheckItemVO> items) {
+        List<Map<String, Object>> rules = resolveLinkageRules(context);
+        if (rules.isEmpty()) {
+            add(items, "LINKAGE_PASS", "LINKAGE", BusinessPublishCheckLevel.PASS,
+                    "级联检查通过", "未配置字段级联规则", null, null, null, null, "relations", 295);
+            return;
+        }
+        Map<String, LowcodeFieldSchema> fieldMap = collectFieldMap(context.getModelSchema());
+        Set<String> ruleIds = new LinkedHashSet<>();
+        for (int index = 0; index < rules.size(); index++) {
+            Map<String, Object> rule = rules.get(index);
+            String ruleId = StringUtils.defaultIfBlank(text(rule.get("ruleId")), "第 " + (index + 1) + " 条规则");
+            if (!ruleIds.add(ruleId)) {
+                add(items, "LINKAGE_RULE_DUPLICATE", "LINKAGE", BusinessPublishCheckLevel.BLOCK,
+                        "级联规则重复", "级联规则 ID 重复: " + ruleId, null, null,
+                        "EDIT_LINKAGE", "编辑级联", "relations", 296);
+            }
+            if (isFalse(rule.get("enabled"))) {
+                continue;
+            }
+            String sourceField = text(rule.get("sourceField"));
+            String targetField = text(rule.get("targetField"));
+            if (StringUtils.isBlank(sourceField)) {
+                add(items, "LINKAGE_SOURCE_EMPTY", "LINKAGE", BusinessPublishCheckLevel.BLOCK,
+                        "级联上级字段为空", ruleId + " 缺少上级字段", null, null,
+                        "EDIT_LINKAGE", "编辑级联", "relations", 297);
+            } else if (!fieldMap.containsKey(sourceField)) {
+                add(items, "LINKAGE_SOURCE_MISSING", "LINKAGE", BusinessPublishCheckLevel.BLOCK,
+                        "级联上级字段不存在", ruleId + " 引用了不存在的上级字段: " + sourceField, sourceField, null,
+                        "EDIT_LINKAGE", "编辑级联", "relations", 298);
+            }
+            LowcodeFieldSchema target = null;
+            if (StringUtils.isBlank(targetField)) {
+                add(items, "LINKAGE_TARGET_EMPTY", "LINKAGE", BusinessPublishCheckLevel.BLOCK,
+                        "级联目标字段为空", ruleId + " 缺少目标字段", null, null,
+                        "EDIT_LINKAGE", "编辑级联", "relations", 299);
+            } else {
+                target = fieldMap.get(targetField);
+                if (target == null) {
+                    add(items, "LINKAGE_TARGET_MISSING", "LINKAGE", BusinessPublishCheckLevel.BLOCK,
+                            "级联目标字段不存在", ruleId + " 引用了不存在的目标字段: " + targetField, targetField, null,
+                            "EDIT_LINKAGE", "编辑级联", "relations", 300);
+                }
+            }
+            checkLinkageRuleConfig(items, ruleId, rule, target);
+        }
+        if (items.stream().noneMatch(item -> "LINKAGE".equals(item.getCategory())
+                && BusinessPublishCheckLevel.BLOCK.equals(item.getLevel()))) {
+            add(items, "LINKAGE_PASS", "LINKAGE", BusinessPublishCheckLevel.PASS,
+                    "级联检查通过", "字段级联规则引用和参数完整", null, null, null, null, "relations", 305);
+        }
+    }
+
+    private void checkLinkageRuleConfig(List<BusinessPublishCheckItemVO> items, String ruleId,
+                                        Map<String, Object> rule, LowcodeFieldSchema target) {
+        String type = StringUtils.defaultIfBlank(text(rule.get("type")), text(rule.get("matchMode")));
+        String dataSourceType = StringUtils.defaultIfBlank(text(rule.get("dataSourceType")), resolveLinkageDataSourceType(type));
+        Map<String, Object> dictConfig = mapValue(rule.get("dictConfig"));
+        Map<String, Object> remoteConfig = mapValue(rule.get("remoteConfig"));
+        Map<String, Object> objectConfig = mapValue(rule.get("objectConfig"));
+        if ("dict".equals(dataSourceType)) {
+            String targetDictType = StringUtils.defaultIfBlank(text(dictConfig.get("targetDictType")),
+                    target == null ? null : target.getDictType());
+            if (StringUtils.isBlank(targetDictType)) {
+                add(items, "LINKAGE_DICT_TARGET_EMPTY", "LINKAGE", BusinessPublishCheckLevel.BLOCK,
+                        "目标字典类型为空", ruleId + " 缺少目标字典类型", target == null ? null : target.getField(), null,
+                        "EDIT_LINKAGE", "编辑级联", "relations", 301);
+            }
+            if ("linkedDict".equals(type)) {
+                String linkedDictType = StringUtils.defaultIfBlank(text(dictConfig.get("linkedDictType")),
+                        text(dictConfig.get("sourceDictType")));
+                if (StringUtils.isBlank(linkedDictType)) {
+                    add(items, "LINKAGE_DICT_LINKED_EMPTY", "LINKAGE", BusinessPublishCheckLevel.BLOCK,
+                            "关联字典类型为空", ruleId + " 缺少 linked_dict_type 匹配值", target == null ? null : target.getField(), null,
+                            "EDIT_LINKAGE", "编辑级联", "relations", 302);
+                }
+            }
+            return;
+        }
+        String paramName = StringUtils.defaultIfBlank(text(remoteConfig.get("paramName")), text(rule.get("paramName")));
+        if (StringUtils.isBlank(paramName)) {
+            add(items, "LINKAGE_REMOTE_PARAM_EMPTY", "LINKAGE", BusinessPublishCheckLevel.BLOCK,
+                    "远程参数为空", ruleId + " 缺少请求参数名", target == null ? null : target.getField(), null,
+                    "EDIT_LINKAGE", "编辑级联", "relations", 303);
+        }
+        if ("remote".equals(dataSourceType) && "remoteParam".equals(type)
+                && StringUtils.isBlank(text(remoteConfig.get("url")))) {
+            add(items, "LINKAGE_REMOTE_URL_EMPTY", "LINKAGE", BusinessPublishCheckLevel.BLOCK,
+                    "远程接口为空", ruleId + " 缺少远程选项接口", target == null ? null : target.getField(), null,
+                    "EDIT_LINKAGE", "编辑级联", "relations", 304);
+        }
+        if ("object".equals(dataSourceType)) {
+            String targetObjectCode = StringUtils.defaultIfBlank(text(objectConfig.get("targetObjectCode")),
+                    target == null ? null : target.getReferenceObjectCode());
+            if (StringUtils.isBlank(targetObjectCode)) {
+                add(items, "LINKAGE_OBJECT_TARGET_EMPTY", "LINKAGE", BusinessPublishCheckLevel.BLOCK,
+                        "目标对象为空", ruleId + " 缺少引用目标对象", target == null ? null : target.getField(), null,
+                        "EDIT_LINKAGE", "编辑级联", "relations", 306);
+            }
         }
     }
 
@@ -481,6 +692,155 @@ public class BusinessObjectPublishService {
         items.add(item);
     }
 
+    private List<Map<String, Object>> resolveLinkageRules(BusinessObjectDesignerService.DesignerContext context) {
+        List<Map<String, Object>> rules = new ArrayList<>(readLinkageRulesFromDesignerOptions(context));
+        Set<String> existingKeys = new LinkedHashSet<>();
+        rules.forEach(rule -> existingKeys.add(linkageKey(rule)));
+        if (context.getModelSchema() != null && context.getModelSchema().getFields() != null) {
+            for (LowcodeFieldSchema field : context.getModelSchema().getFields()) {
+                Map<String, Object> cascade = mapValue(field == null || field.getBasicProps() == null
+                        ? null : field.getBasicProps().get("cascade"));
+                if (cascade.isEmpty() || isFalse(cascade.get("enabled"))) {
+                    continue;
+                }
+                String sourceField = text(cascade.get("sourceField"));
+                String targetField = field.getField();
+                if (StringUtils.isBlank(sourceField) || StringUtils.isBlank(targetField)) {
+                    continue;
+                }
+                Map<String, Object> rule = buildLinkageRuleFromCascade(field, cascade);
+                String key = linkageKey(rule);
+                if (existingKeys.add(key)) {
+                    rules.add(rule);
+                }
+            }
+        }
+        return rules;
+    }
+
+    private List<Map<String, Object>> readLinkageRulesFromDesignerOptions(
+            BusinessObjectDesignerService.DesignerContext context) {
+        Map<String, Object> designerOptions = readDesignerOptions(context);
+        try {
+            Object value = designerOptions.get(LINKAGE_SCHEMA_OPTION_KEY);
+            Map<String, Object> schema;
+            if (value instanceof String text && StringUtils.isNotBlank(text)) {
+                schema = objectMapper.readValue(text, new TypeReference<>() {});
+            } else {
+                schema = mapValue(value);
+            }
+            Object rules = schema.get("rules");
+            if (rules instanceof List<?> list) {
+                return list.stream()
+                        .filter(Map.class::isInstance)
+                        .map(item -> mapValue(item))
+                        .toList();
+            }
+        } catch (Exception ignored) {
+            return List.of();
+        }
+        return List.of();
+    }
+
+    private Map<String, Object> readDesignerOptions(BusinessObjectDesignerService.DesignerContext context) {
+        if (context == null || context.getObject() == null
+                || StringUtils.isBlank(context.getObject().getDesignerOptions())) {
+            return new LinkedHashMap<>();
+        }
+        try {
+            return objectMapper.readValue(context.getObject().getDesignerOptions(), new TypeReference<>() {});
+        } catch (Exception ignored) {
+            return new LinkedHashMap<>();
+        }
+    }
+
+    private Map<String, Object> buildLinkageRuleFromCascade(LowcodeFieldSchema field, Map<String, Object> cascade) {
+        String mode = StringUtils.defaultIfBlank(text(cascade.get("mode")), text(cascade.get("matchMode")));
+        String type = StringUtils.defaultIfBlank(text(cascade.get("type")), mode);
+        if (StringUtils.isBlank(type)) {
+            type = "linkedDict";
+        }
+        Map<String, Object> rule = new LinkedHashMap<>();
+        String sourceField = text(cascade.get("sourceField"));
+        rule.put("ruleId", StringUtils.defaultIfBlank(text(cascade.get("ruleId")),
+                "linkage_" + sourceField + "_" + field.getField()));
+        rule.put("type", type);
+        rule.put("sourceField", sourceField);
+        rule.put("targetField", field.getField());
+        rule.put("dataSourceType", resolveLinkageDataSourceType(type));
+        rule.put("matchMode", type);
+        rule.put("dictConfig", buildCascadeDictConfig(field, cascade));
+        rule.put("remoteConfig", buildCascadeRemoteConfig(cascade));
+        rule.put("objectConfig", buildCascadeObjectConfig(field, cascade));
+        rule.put("emptyStrategy", StringUtils.defaultIfBlank(text(cascade.get("emptyStrategy")), "empty"));
+        rule.put("clearOnSourceChange", !isFalse(cascade.get("clearOnSourceChange"))
+                && !isFalse(cascade.get("clearOnParentChange")));
+        rule.put("enabled", !isFalse(cascade.get("enabled")));
+        return rule;
+    }
+
+    private Map<String, Object> buildCascadeDictConfig(LowcodeFieldSchema field, Map<String, Object> cascade) {
+        Map<String, Object> config = new LinkedHashMap<>();
+        config.put("sourceDictType", text(cascade.get("sourceDictType")));
+        config.put("targetDictType", StringUtils.defaultIfBlank(text(cascade.get("targetDictType")),
+                field.getDictType()));
+        config.put("linkedDictType", text(cascade.get("linkedDictType")));
+        return config;
+    }
+
+    private Map<String, Object> buildCascadeRemoteConfig(Map<String, Object> cascade) {
+        Map<String, Object> config = new LinkedHashMap<>();
+        config.put("url", text(cascade.get("url")));
+        config.put("method", StringUtils.defaultIfBlank(text(cascade.get("method")), "GET"));
+        config.put("paramName", StringUtils.defaultIfBlank(text(cascade.get("paramName")),
+                text(cascade.get("sourceField"))));
+        return config;
+    }
+
+    private Map<String, Object> buildCascadeObjectConfig(LowcodeFieldSchema field, Map<String, Object> cascade) {
+        Map<String, Object> config = new LinkedHashMap<>();
+        config.put("targetObjectCode", StringUtils.defaultIfBlank(text(cascade.get("targetObjectCode")),
+                field.getReferenceObjectCode()));
+        config.put("displayField", StringUtils.defaultIfBlank(text(cascade.get("displayField")),
+                field.getReferenceDisplayField()));
+        return config;
+    }
+
+    private String linkageKey(Map<String, Object> rule) {
+        return text(rule.get("sourceField")) + "->" + text(rule.get("targetField"));
+    }
+
+    private String resolveLinkageDataSourceType(String type) {
+        if ("parentDictCode".equals(type) || "linkedDict".equals(type)) {
+            return "dict";
+        }
+        if ("orgScope".equals(type)) {
+            return "org";
+        }
+        if ("objectReference".equals(type)) {
+            return "object";
+        }
+        return "remote";
+    }
+
+    private Map<String, LowcodeFieldSchema> collectFieldMap(LowcodeModelSchema modelSchema) {
+        Map<String, LowcodeFieldSchema> fields = new LinkedHashMap<>();
+        if (modelSchema != null && modelSchema.getFields() != null) {
+            for (LowcodeFieldSchema field : modelSchema.getFields()) {
+                if (field != null && StringUtils.isNotBlank(field.getField())) {
+                    fields.put(field.getField(), field);
+                }
+            }
+        }
+        return fields;
+    }
+
+    private boolean hasBusinessFields(LowcodeModelSchema modelSchema) {
+        return modelSchema != null && modelSchema.getFields() != null
+                && modelSchema.getFields().stream()
+                .anyMatch(field -> field != null && !Boolean.TRUE.equals(field.getSystemField()));
+    }
+
     private Set<String> collectFields(LowcodeModelSchema modelSchema) {
         Set<String> fields = new LinkedHashSet<>();
         if (modelSchema != null && modelSchema.getFields() != null) {
@@ -529,6 +889,28 @@ public class BusinessObjectPublishService {
 
     private String text(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> mapValue(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
+        }
+        return new LinkedHashMap<>();
+    }
+
+    private List<Map<String, Object>> listOfMap(Object value) {
+        if (!(value instanceof List<?> list)) {
+            return List.of();
+        }
+        return list.stream()
+                .filter(Map.class::isInstance)
+                .map(this::mapValue)
+                .toList();
+    }
+
+    private boolean isFalse(Object value) {
+        return Boolean.FALSE.equals(value) || "false".equalsIgnoreCase(text(value)) || "0".equals(text(value));
     }
 
     private boolean hasPermission(String permission) {

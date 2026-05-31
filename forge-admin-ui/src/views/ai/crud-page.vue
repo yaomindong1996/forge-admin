@@ -202,6 +202,8 @@ const crudProps = computed(() => {
     modalType: options.modalType || cfg.modalType || 'modal',
     modalWidth: options.modalWidth || cfg.modalWidth || '800px',
     editGridCols: options.editGridCols || cfg.editGridCols || 1,
+    editLabelWidth: options.editLabelWidth || cfg.editLabelWidth || 'auto',
+    editLabelPlacement: options.editLabelPlacement || cfg.editLabelPlacement || 'left',
     loadDetailOnEdit: options.loadDetailOnEdit ?? cfg.loadDetailOnEdit ?? true,
     searchGridCols: options.searchGridCols || cfg.searchGridCols || 4,
     hideAdd: !!options.hideAdd,
