@@ -49,7 +49,8 @@ public interface MenuRegisterAdapter {
     /**
      * 解析或创建业务套件目录，用于业务应用入口挂载到管理端菜单。
      */
-    default Long resolveOrCreateBusinessSuiteParentId(Long parentId, String suiteCode, String suiteName, Integer sort) {
+    default Long resolveOrCreateBusinessSuiteParentId(Long parentId, String suiteCode, String suiteName,
+                                                       String icon, Integer sort) {
         return parentId;
     }
 }

@@ -408,8 +408,11 @@ function toPageField(field = {}) {
     columnName: field.columnName,
     dataType: field.dataType,
     componentType: field.componentType,
+    dictType: field.dictType,
     systemField: field.systemField,
     fieldStatus: field.fieldStatus,
+    basicProps: { ...(field.basicProps || {}) },
+    advancedProps: { ...(field.advancedProps || {}) },
   }
 }
 

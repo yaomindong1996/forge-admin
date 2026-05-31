@@ -218,10 +218,49 @@ Vite dev server 的 `node_modules/.vite` 预构建缓存与浏览器中已加载
 
 **解决方案**:
 1. 停止旧的 Vite dev server。
+2. 删除 `forge-admin-ui/node_modules/.vite`。
+3. 将新引入的大型运行时依赖加入 `vite.config.js` 的 `optimizeDeps.include`。
+4. 使用 Node 20.19.0 重新启动前端 dev server，必要时加 `--force`。
 
 ---
 
-## 7. 前端全量构建 Node 默认堆内存不足
+## 7. 动态菜单路径高亮必须支持路由参数匹配
+
+**发现日期**: 2026-05-31
+
+**问题描述**:
+动态 CRUD 菜单打开 `/ai/crud-page/crm_customer` 后页面正常渲染，但子级菜单选中态只闪一下或不明显。
+
+**根本原因**:
+菜单高亮逻辑如果只做 path 精确匹配，无法兼容 `/ai/crud-page/:configKey` 这类动态路由配置，也容易让通用渲染页和具体业务页抢选中态。
+
+**解决方案**:
+菜单 path 匹配应统一走工具方法，支持 `:param` 动态段，并保持“精确路径优先于动态路径”。
+
+---
+
+## 8. 顶部菜单目录不应直接按自身 path 跳转
+
+**发现日期**: 2026-05-31
+
+**问题描述**:
+布局设置为“顶部菜单”时点击“流程管理”，会从目录路径 `/flow` 落到无匹配路由，再进入报表 SSO 桥，最终打开 `/report/design`。
+
+**根本原因**:
+目录型菜单本身只是分组，不一定存在可渲染页面；如果直接用目录 path 跳转，会触发无匹配路由兜底逻辑。
+
+**解决方案**:
+点击 `module` 类型且有子菜单的目录时，应该跳转到第一个有效子菜单，而不是直接跳转目录自身 path。
+
+纯 `top-menu` 布局没有左侧二级菜单承载下级项，下拉菜单数据应将中间 `module` 目录透传/扁平化到实际页面菜单，否则用户只能看到目录名，看不到可点击子菜单。
+
+菜单工具处理后的 `icon` 可能已经是 Naive UI render 函数，二次加工菜单数据时不能再传给 `IconRenderer`；只有字符串图标值才应该包装成 `h(IconRenderer, { icon })`。
+
+Naive UI 横向菜单的 `responsive` 会把溢出的顶级菜单折进“...”里；动态多级菜单在该折叠层下容易看不到子级。纯顶部菜单布局应禁用 `responsive`，改用带左右箭头的横向滚动承载溢出项，避免用户找不到被挤到右侧的菜单。
+
+---
+
+## 9. 前端全量构建 Node 默认堆内存不足
 
 **发现日期**: 2026-05-30
 
@@ -242,9 +281,6 @@ NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build
 
 **补充说明**:
 构建过程中可能仍出现 UnoCSS 图标解析和 chunk size warning，当前不影响构建成功。
-2. 删除 `forge-admin-ui/node_modules/.vite`。
-3. 将新引入的大型运行时依赖加入 `vite.config.js` 的 `optimizeDeps.include`。
-4. 使用 Node 20.19.0 重新启动前端 dev server，必要时加 `--force`。
 
 **验证方式**:
 直接请求动态模块和优化依赖，确认返回 200：

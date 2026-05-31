@@ -1,7 +1,10 @@
 <template>
   <article class="app-card">
     <div class="app-icon">
-      <n-icon><AppsOutline /></n-icon>
+      <IconRenderer v-if="app.icon" :icon="app.icon" :size="22" />
+      <n-icon v-else>
+        <AppsOutline />
+      </n-icon>
     </div>
     <div class="app-main">
       <div class="app-title-line">
@@ -17,55 +20,32 @@
       </div>
     </div>
     <div class="app-actions">
-      <n-space :size="6">
-        <n-tooltip trigger="hover">
-          <template #trigger>
-            <n-button quaternary circle size="small" :disabled="isOpenDisabled(app)" @click="emit('open', app)">
-              <template #icon>
-                <n-icon><OpenOutline /></n-icon>
-              </template>
-            </n-button>
+      <n-tooltip trigger="hover">
+        <template #trigger>
+          <n-button secondary size="small" :disabled="isOpenDisabled(app)" @click="emit('open', app)">
+            <template #icon>
+              <n-icon><OpenOutline /></n-icon>
+            </template>
+            打开
+          </n-button>
+        </template>
+        {{ openTip(app) }}
+      </n-tooltip>
+      <n-dropdown trigger="click" :options="moreOptions(app)" @select="key => handleMoreSelect(key, app)">
+        <n-button quaternary circle size="small">
+          <template #icon>
+            <n-icon><EllipsisVertical /></n-icon>
           </template>
-          {{ openTip(app) }}
-        </n-tooltip>
-        <n-tooltip trigger="hover">
-          <template #trigger>
-            <n-button quaternary circle size="small" @click="emit('config', app)">
-              <template #icon>
-                <n-icon><SettingsOutline /></n-icon>
-              </template>
-            </n-button>
-          </template>
-          配置
-        </n-tooltip>
-        <n-tooltip trigger="hover">
-          <template #trigger>
-            <n-button quaternary circle size="small" @click="emit('toggle', app)">
-              <template #icon>
-                <n-icon><PowerOutline /></n-icon>
-              </template>
-            </n-button>
-          </template>
-          {{ app.status === 1 ? '停用' : '启用' }}
-        </n-tooltip>
-        <n-tooltip trigger="hover">
-          <template #trigger>
-            <n-button quaternary circle size="small" @click="emit('delete', app)">
-              <template #icon>
-                <n-icon><TrashOutline /></n-icon>
-              </template>
-            </n-button>
-          </template>
-          删除
-        </n-tooltip>
-      </n-space>
+        </n-button>
+      </n-dropdown>
     </div>
   </article>
 </template>
 
 <script setup>
-import { AppsOutline, OpenOutline, PowerOutline, SettingsOutline, TrashOutline } from '@vicons/ionicons5'
+import { AppsOutline, EllipsisVertical, OpenOutline } from '@vicons/ionicons5'
 import DictTag from '@/components/DictTag.vue'
+import IconRenderer from '@/components/IconRenderer.vue'
 
 defineProps({
   app: {
@@ -91,19 +71,53 @@ function openTip(app) {
     return '未配置打开地址'
   return '打开'
 }
+
+function moreOptions(app) {
+  return [
+    {
+      label: '配置入口',
+      key: 'config',
+    },
+    {
+      label: app.status === 1 ? '停用入口' : '启用入口',
+      key: 'toggle',
+    },
+    {
+      type: 'divider',
+      key: 'divider',
+    },
+    {
+      label: '删除入口',
+      key: 'delete',
+    },
+  ]
+}
+
+function handleMoreSelect(key, app) {
+  if (key === 'config') {
+    emit('config', app)
+    return
+  }
+  if (key === 'toggle') {
+    emit('toggle', app)
+    return
+  }
+  if (key === 'delete')
+    emit('delete', app)
+}
 </script>
 
 <style scoped>
 .app-card {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  min-height: 104px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px 14px;
+  align-items: start;
+  min-height: 132px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #fff;
-  padding: 12px;
+  padding: 14px;
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease;
@@ -188,16 +202,23 @@ function openTip(app) {
 }
 
 .app-actions {
-  justify-self: end;
+  display: flex;
+  grid-column: 2;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 32px;
+  border-top: 1px solid #eef2f7;
+  padding-top: 10px;
 }
 
 @media (max-width: 520px) {
   .app-card {
-    grid-template-columns: 42px minmax(0, 1fr);
+    grid-template-columns: 40px minmax(0, 1fr);
   }
 
   .app-actions {
-    grid-column: 2;
+    justify-content: space-between;
   }
 }
 </style>

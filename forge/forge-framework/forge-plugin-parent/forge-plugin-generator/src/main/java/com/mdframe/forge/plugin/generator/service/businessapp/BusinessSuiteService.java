@@ -1,15 +1,19 @@
 package com.mdframe.forge.plugin.generator.service.businessapp;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessSuite;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessSuiteDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessSuiteQueryDTO;
 import com.mdframe.forge.plugin.generator.mapper.BusinessSuiteMapper;
+import com.mdframe.forge.plugin.generator.service.MenuRegisterAdapter;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessSuiteSummaryVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessSuiteVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,9 +25,12 @@ import java.util.regex.Pattern;
  * 业务应用平台业务套件服务。
  */
 @Service
+@RequiredArgsConstructor
 public class BusinessSuiteService extends ServiceImpl<BusinessSuiteMapper, AiBusinessSuite> {
 
     private static final Pattern CODE_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z0-9_]{1,63}$");
+
+    private final MenuRegisterAdapter menuRegisterAdapter;
 
     public Page<BusinessSuiteVO> page(Integer pageNum, Integer pageSize, BusinessSuiteQueryDTO query) {
         Page<BusinessSuiteVO> page = new Page<>(normalizePageNum(pageNum), normalizePageSize(pageSize));
@@ -54,6 +61,7 @@ public class BusinessSuiteService extends ServiceImpl<BusinessSuiteMapper, AiBus
         AiBusinessSuite suite = new AiBusinessSuite();
         copyDtoToEntity(dto, suite, true);
         save(suite);
+        syncMenuDirectory(suite);
         return suite.getId();
     }
 
@@ -65,6 +73,7 @@ public class BusinessSuiteService extends ServiceImpl<BusinessSuiteMapper, AiBus
         AiBusinessSuite suite = requireEntity(dto.getId());
         copyDtoToEntity(dto, suite, false);
         updateById(suite);
+        syncMenuDirectory(suite);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -124,6 +133,83 @@ public class BusinessSuiteService extends ServiceImpl<BusinessSuiteMapper, AiBus
         suite.setStatus(normalizeStatus(dto.getStatus()));
         suite.setSortOrder(dto.getSortOrder() == null ? 0 : dto.getSortOrder());
         suite.setOptions(StringUtils.trimToNull(dto.getOptions()));
+    }
+
+    private void syncMenuDirectory(AiBusinessSuite suite) {
+        JSONObject options = readOptions(suite.getOptions());
+        JSONObject adminMenu = readAdminMenu(options);
+        boolean syncEnabled = readBoolean(adminMenu.get("syncEnabled"), false);
+        if (!syncEnabled) {
+            return;
+        }
+
+        Long parentId = readLong(adminMenu.get("parentId"));
+        Integer sort = readInteger(adminMenu.get("sort"), suite.getSortOrder());
+        Long menuResourceId = menuRegisterAdapter.resolveOrCreateBusinessSuiteParentId(
+                parentId, suite.getSuiteCode(), suite.getSuiteName(), suite.getIcon(), sort);
+        adminMenu.put("syncEnabled", true);
+        adminMenu.put("parentId", parentId);
+        adminMenu.put("sort", sort);
+        adminMenu.put("menuResourceId", menuResourceId);
+        options.put("adminMenu", adminMenu);
+        suite.setOptions(writeOptions(options));
+        updateById(suite);
+    }
+
+    private JSONObject readOptions(String options) {
+        if (StringUtils.isBlank(options)) {
+            return new JSONObject();
+        }
+        try {
+            return JSON.parseObject(options);
+        } catch (Exception e) {
+            return new JSONObject();
+        }
+    }
+
+    private JSONObject readAdminMenu(JSONObject options) {
+        JSONObject adminMenu = options.getJSONObject("adminMenu");
+        return adminMenu == null ? new JSONObject() : adminMenu;
+    }
+
+    private String writeOptions(JSONObject options) {
+        if (options == null || options.isEmpty()) {
+            return null;
+        }
+        return options.toJSONString();
+    }
+
+    private Long readLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Long.valueOf(String.valueOf(value));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Integer readInteger(Object value, Integer fallback) {
+        if (value == null) {
+            return fallback == null ? 0 : fallback;
+        }
+        try {
+            return Integer.valueOf(String.valueOf(value));
+        } catch (Exception e) {
+            return fallback == null ? 0 : fallback;
+        }
+    }
+
+    private boolean readBoolean(Object value, boolean fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        String text = StringUtils.lowerCase(String.valueOf(value));
+        return "true".equals(text) || "1".equals(text);
     }
 
     private BusinessSuiteQueryDTO normalizeQuery(BusinessSuiteQueryDTO query) {

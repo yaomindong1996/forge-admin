@@ -244,6 +244,8 @@ const formRules = computed(() => {
 
 const itemContext = computed(() => ({
   ...props.context,
+  schema: visibleSchema.value,
+  allSchema: props.schema,
   patchFormData,
 }))
 

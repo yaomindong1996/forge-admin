@@ -21,6 +21,7 @@
     :show-label="field.showLabel !== false"
     :show-feedback="field.showFeedback !== false"
     :style="field.formItemStyle"
+    :class="fieldAlignClass"
   >
     <!-- 输入框 -->
     <n-input
@@ -100,6 +101,8 @@
       :clearable="field.clearable !== false"
       :filterable="field.filterable !== false"
       :multiple="field.multiple"
+      :form-data="formData"
+      :cascade="dictCascadeConfig"
       v-bind="field.props"
       @update:value="handleUpdate"
     />
@@ -613,6 +616,7 @@ import DictSelect from '@/components/DictSelect.vue'
 import FileUpload from '@/components/file-upload/index.vue'
 import ImageUpload from '@/components/image-upload/index.vue'
 import RegionTreeSelect from '@/components/RegionTreeSelect.vue'
+import { getDictData } from '@/composables/useDict'
 import { request } from '@/utils'
 import AiCustomSelect from './AiCustomSelect.vue'
 
@@ -640,6 +644,8 @@ const emit = defineEmits(['update:value'])
 const { copy } = useClipboard()
 const remoteOptions = ref([])
 const remoteLoading = ref(false)
+const dictOptions = ref([])
+const sourceDictOptions = ref([])
 const pickerDefaultTimestamp = Date.now()
 let remoteRequestSeq = 0
 
@@ -673,7 +679,25 @@ function disabledHandler(field) {
   return false
 }
 
-const remoteOptionSource = computed(() => resolveOptionSource(props.field))
+const fieldAlign = computed(() => normalizeAlign(props.field?.align || props.field?.textAlign || props.field?.props?.align))
+const fieldAlignClass = computed(() => fieldAlign.value === 'left' ? '' : `ai-form-item-align-${fieldAlign.value}`)
+const fieldDictType = computed(() => props.field?.dictType || props.field?.props?.dictType || '')
+const cascadeConfig = computed(() => resolveCascadeConfig(props.field))
+const dictCascadeConfig = computed(() => {
+  if (!cascadeConfig.value)
+    return null
+  return {
+    ...cascadeConfig.value,
+    sourceOptions: sourceDictOptions.value,
+  }
+})
+const remoteOptionSource = computed(() => resolveDynamicOptionSource(props.field))
+const cascadeSourceValue = computed(() => {
+  const cascade = cascadeConfig.value
+  return cascade?.enabled && cascade.sourceField ? props.formData?.[cascade.sourceField] : undefined
+})
+const sourceFieldConfig = computed(() => findSchemaField(cascadeConfig.value?.sourceField))
+const sourceDictType = computed(() => cascadeConfig.value?.sourceDictType || sourceFieldConfig.value?.dictType || sourceFieldConfig.value?.props?.dictType || '')
 
 watch(
   remoteOptionSource,
@@ -686,6 +710,14 @@ watch(
   },
   { immediate: true, deep: true },
 )
+
+watch(fieldDictType, loadDictOptions, { immediate: true })
+watch(sourceDictType, loadSourceDictOptions, { immediate: true })
+watch(cascadeSourceValue, (value, oldValue) => {
+  if (oldValue === undefined || value === oldValue || !cascadeConfig.value?.clearOnParentChange)
+    return
+  clearCurrentValue()
+})
 
 /**
  * 获取选项数据 - 使用 computed 确保响应式
@@ -713,21 +745,28 @@ const currentOptions = computed(() => {
       return []
     }
 
-    return result
+    return resolveCascadedOptions(result)
   }
 
   // 其次使用 options 数组
   if (field.options && Array.isArray(field.options) && field.options.length > 0) {
-    return field.options
+    return resolveCascadedOptions(field.options)
   }
 
   // 检查 props.options（兼容旧的配置方式）
   if (field.props?.options && Array.isArray(field.props.options) && field.props.options.length > 0) {
-    return field.props.options
+    return resolveCascadedOptions(field.props.options)
+  }
+
+  if (fieldDictType.value) {
+    const options = resolveCascadedOptions(dictOptions.value)
+    if (field.type === 'cascader')
+      return buildDictTreeOptions(options)
+    return withCurrentValueOption(options)
   }
 
   if (remoteOptionSource.value) {
-    return remoteOptions.value
+    return withCurrentValueOption(resolveCascadedOptions(remoteOptions.value))
   }
 
   // 最后处理 enumType (仅当 options 为空时)
@@ -743,10 +782,57 @@ const currentOptions = computed(() => {
   return []
 })
 
+function withCurrentValueOption(options = []) {
+  const result = Array.isArray(options) ? [...options] : []
+  const field = props.field || {}
+  const labelValueField = field.labelValueField || field.props?.labelValueField
+  if (!labelValueField || props.value === null || props.value === undefined || props.value === '')
+    return result
+  const labelValue = props.formData?.[labelValueField]
+    ?? field.labelValue
+    ?? field.props?.labelValue
+  if (labelValue === null || labelValue === undefined || labelValue === '')
+    return result
+  const values = Array.isArray(props.value)
+    ? props.value
+    : field.multiple && typeof props.value === 'string'
+      ? props.value.split(',').map(item => item.trim()).filter(Boolean)
+      : [props.value]
+  const labels = Array.isArray(labelValue)
+    ? labelValue
+    : String(labelValue).split(',').map(item => item.trim()).filter(Boolean)
+  values.forEach((value, index) => {
+    if (flattenOptionNodes(result).some(option => isSameOptionValue(option?.value ?? option?.key, value)))
+      return
+    result.unshift({
+      value,
+      key: value,
+      label: labels[index] || labels[0] || String(value),
+    })
+  })
+  return result
+}
+
 function cacheAsyncOptions(field, promise) {
   promise.then((options) => {
     field._cachedOptions = options
   })
+}
+
+async function loadDictOptions(dictType) {
+  if (!dictType) {
+    dictOptions.value = []
+    return
+  }
+  dictOptions.value = await getDictData(dictType)
+}
+
+async function loadSourceDictOptions(dictType) {
+  if (!dictType) {
+    sourceDictOptions.value = []
+    return
+  }
+  sourceDictOptions.value = await getDictData(dictType)
 }
 
 function resolveOptionSource(field = {}) {
@@ -768,9 +854,48 @@ function resolveOptionSource(field = {}) {
   return null
 }
 
+function resolveDynamicOptionSource(field = {}) {
+  const source = resolveOptionSource(field)
+  if (!source)
+    return null
+  const next = {
+    ...source,
+    params: resolveDynamicParams(source.params || {}),
+  }
+  const cascade = cascadeConfig.value
+  if (cascade?.enabled && cascade.mode === 'remoteParam' && cascade.sourceField && cascade.paramName) {
+    const sourceValue = props.formData?.[cascade.sourceField]
+    if (sourceValue === null || sourceValue === undefined || sourceValue === '') {
+      next.waitForParent = true
+    }
+    next.params = {
+      ...next.params,
+      [cascade.paramName]: sourceValue,
+    }
+  }
+  return next
+}
+
+function resolveDynamicParams(params = {}) {
+  const result = {}
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (typeof value === 'string') {
+      const matched = value.match(/^\$\{(.+)\}$/) || value.match(/^\$form\.(.+)$/)
+      result[key] = matched ? props.formData?.[matched[1]] : value
+      return
+    }
+    result[key] = value
+  })
+  return result
+}
+
 async function loadRemoteOptions(source, keyword = '') {
   if (!source?.api)
     return
+  if (source.waitForParent) {
+    remoteOptions.value = []
+    return
+  }
   const requestSeq = ++remoteRequestSeq
   remoteLoading.value = true
   try {
@@ -855,6 +980,102 @@ function normalizeOptionNode(row, source = {}, includeChildren = false) {
     option.children = children.map(child => normalizeOptionNode(child, source, true)).filter(Boolean)
   }
   return option
+}
+
+function resolveCascadeConfig(field = {}) {
+  const raw = field.cascade || field.cascadeConfig || field.props?.cascade || field.props?.cascadeConfig
+  if (!raw || raw.enabled === false || !raw.sourceField)
+    return null
+  return {
+    enabled: true,
+    sourceField: raw.sourceField,
+    sourceDictType: raw.sourceDictType || '',
+    linkedDictType: raw.linkedDictType || '',
+    mode: raw.mode || raw.matchMode || 'linkedDict',
+    paramName: raw.paramName || '',
+    clearOnParentChange: raw.clearOnParentChange !== false,
+  }
+}
+
+function resolveCascadedOptions(options = []) {
+  const cascade = cascadeConfig.value
+  if (!cascade?.enabled || !cascade.sourceField)
+    return options
+  const sourceValue = props.formData?.[cascade.sourceField]
+  if (sourceValue === null || sourceValue === undefined || sourceValue === '')
+    return []
+  if (cascade.mode === 'remoteParam')
+    return options
+  return (Array.isArray(options) ? options : []).filter(option => matchesCascade(option, sourceValue, cascade))
+}
+
+function matchesCascade(option, sourceValue, cascade) {
+  const raw = option.raw || option
+  if (cascade.mode === 'parentDictCode') {
+    const parentDictCode = raw.parentDictCode ?? raw.parent_dict_code
+    const sourceDictCode = resolveSourceDictCode(sourceValue)
+    return isSameOptionValue(parentDictCode, sourceDictCode) || isSameOptionValue(parentDictCode, sourceValue)
+  }
+  if (cascade.mode === 'linkedDict') {
+    const linkedType = raw.linkedDictType ?? raw.linked_dict_type
+    const linkedValue = raw.linkedDictValue ?? raw.linked_dict_value
+    const expectedType = cascade.linkedDictType || cascade.sourceDictType || sourceDictType.value
+    const typeMatched = !expectedType || isSameOptionValue(linkedType, expectedType)
+    return typeMatched && isSameOptionValue(linkedValue, sourceValue)
+  }
+  return true
+}
+
+function resolveSourceDictCode(sourceValue) {
+  const matched = sourceDictOptions.value.find(option => isSameOptionValue(option.value, sourceValue))
+  return matched?.dictCode ?? matched?.raw?.dictCode ?? sourceValue
+}
+
+function buildDictTreeOptions(options = []) {
+  const nodes = (Array.isArray(options) ? options : []).map(option => ({
+    ...option,
+    key: option.dictCode ?? option.key ?? option.value,
+    value: option.value,
+    label: option.label,
+    children: [],
+  }))
+  const byCode = new Map(nodes.map(node => [String(node.dictCode ?? node.key), node]))
+  const roots = []
+  nodes.forEach((node) => {
+    const parentCode = node.parentDictCode ?? node.raw?.parentDictCode
+    if (parentCode !== null && parentCode !== undefined && parentCode !== '' && Number(parentCode) !== 0 && byCode.has(String(parentCode))) {
+      byCode.get(String(parentCode)).children.push(node)
+    }
+    else {
+      roots.push(node)
+    }
+  })
+  nodes.forEach((node) => {
+    if (!node.children.length)
+      delete node.children
+  })
+  return roots
+}
+
+function findSchemaField(fieldName) {
+  if (!fieldName)
+    return null
+  const schemas = [
+    ...(props.context?.schema || []),
+    ...(props.context?.allSchema || []),
+  ]
+  return schemas.find(item => item?.field === fieldName) || null
+}
+
+function normalizeAlign(value) {
+  const align = String(value || '').toLowerCase()
+  return ['left', 'center', 'right'].includes(align) ? align : 'left'
+}
+
+function clearCurrentValue() {
+  if (props.value === null || props.value === undefined || props.value === '')
+    return
+  emit('update:value', props.field?.multiple ? [] : null)
 }
 
 function getNestedValue(source, path) {
@@ -1106,5 +1327,28 @@ function handleUploadRemove(field, file) {
 .time-range-separator {
   color: #64748b;
   font-size: 12px;
+}
+
+.ai-form-item-align-center :deep(.n-input__input-el),
+.ai-form-item-align-center :deep(.n-input__textarea-el),
+.ai-form-item-align-center :deep(.n-input-number-input),
+.ai-form-item-align-center :deep(.n-base-selection-label__render-label) {
+  text-align: center;
+}
+
+.ai-form-item-align-right :deep(.n-input__input-el),
+.ai-form-item-align-right :deep(.n-input__textarea-el),
+.ai-form-item-align-right :deep(.n-input-number-input),
+.ai-form-item-align-right :deep(.n-base-selection-label__render-label) {
+  text-align: right;
+}
+
+.ai-form-item-align-center :deep(.n-base-selection-label),
+.ai-form-item-align-right :deep(.n-base-selection-label) {
+  justify-content: center;
+}
+
+.ai-form-item-align-right :deep(.n-base-selection-label) {
+  justify-content: flex-end;
 }
 </style>

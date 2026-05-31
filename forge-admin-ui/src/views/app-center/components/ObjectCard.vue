@@ -1,7 +1,8 @@
 <template>
   <article class="object-card" @click="emit('open', object)">
     <div class="object-icon">
-      <n-icon :component="iconComponent" />
+      <IconRenderer v-if="object.icon" :icon="object.icon" :size="22" />
+      <n-icon v-else :component="CubeOutline" />
     </div>
     <div class="object-main">
       <div class="object-title-line">
@@ -41,6 +42,7 @@
 import { BuildOutline, CubeOutline, EllipsisVertical, OpenOutline } from '@vicons/ionicons5'
 import { computed } from 'vue'
 import DictTag from '@/components/DictTag.vue'
+import IconRenderer from '@/components/IconRenderer.vue'
 
 const props = defineProps({
   object: {
@@ -51,7 +53,6 @@ const props = defineProps({
 
 const emit = defineEmits(['open', 'design', 'toggle', 'delete'])
 
-const iconComponent = computed(() => CubeOutline)
 const moreOptions = computed(() => [
   {
     label: props.object.status === 1 ? '停用对象' : '启用对象',

@@ -68,6 +68,18 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+
+  // 当前表单数据，用于字典级联过滤
+  formData: {
+    type: Object,
+    default: () => ({}),
+  },
+
+  // { enabled, sourceField, mode: parentDictCode | linkedDict }
+  cascade: {
+    type: Object,
+    default: null,
+  },
 })
 
 const emit = defineEmits(['update:value'])
@@ -77,10 +89,11 @@ const loading = ref(false)
 
 // 字典选项
 const dictOptions = computed(() => {
-  return dictList.value.map(item => ({
+  return filterDictList(dictList.value).map(item => ({
     label: item.label,
     value: item.value,
     disabled: item.status === 0, // 状态为 0 时禁用
+    raw: item.raw || item,
   }))
 })
 
@@ -108,5 +121,42 @@ watch(() => props.dictType, () => {
 // 更新值
 function handleUpdate(val) {
   emit('update:value', val)
+}
+
+function filterDictList(list = []) {
+  const cascade = props.cascade || {}
+  if (!cascade.enabled || !cascade.sourceField)
+    return list
+  const sourceValue = props.formData?.[cascade.sourceField]
+  if (sourceValue === null || sourceValue === undefined || sourceValue === '')
+    return []
+  const mode = cascade.mode || cascade.matchMode || 'linkedDict'
+  return list.filter((item) => {
+    const raw = item.raw || item
+    if (mode === 'parentDictCode') {
+      return isSameValue(raw.parentDictCode ?? item.parentDictCode, sourceValue)
+        || isSameValue(raw.parentDictCode ?? item.parentDictCode, resolveSourceDictCode(sourceValue))
+    }
+    if (mode === 'linkedDict') {
+      const linkedType = cascade.linkedDictType || cascade.sourceDictType
+      const typeMatched = !linkedType || isSameValue(raw.linkedDictType ?? item.linkedDictType, linkedType)
+      return typeMatched && isSameValue(raw.linkedDictValue ?? item.linkedDictValue, sourceValue)
+    }
+    return true
+  })
+}
+
+function resolveSourceDictCode(sourceValue) {
+  const sourceOptions = props.cascade?.sourceOptions || []
+  const matched = sourceOptions.find(item => isSameValue(item.value, sourceValue))
+  return matched?.dictCode ?? matched?.raw?.dictCode ?? sourceValue
+}
+
+function isSameValue(left, right) {
+  if (left === right)
+    return true
+  if (left === null || left === undefined || right === null || right === undefined)
+    return false
+  return String(left) === String(right)
 }
 </script>

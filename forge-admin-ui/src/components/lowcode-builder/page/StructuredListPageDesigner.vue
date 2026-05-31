@@ -29,6 +29,7 @@
             :key="queryField.field"
             :label="queryField.label || queryField.field"
             :show-feedback="false"
+            :style="{ textAlign: resolveZoneFieldAlign('search', queryField.field) }"
           >
             <ComponentPreviewControl
               :field="queryField"
@@ -285,6 +286,11 @@ const treeLoadModeOptions = [
 const sortOrderOptions = [
   { label: '降序', value: 'desc' },
   { label: '升序', value: 'asc' },
+]
+const alignOptions = [
+  { label: '左对齐', value: 'left' },
+  { label: '居中', value: 'center' },
+  { label: '右对齐', value: 'right' },
 ]
 
 const ComponentPreviewControl = defineComponent({
@@ -563,6 +569,13 @@ const FieldOrderEditor = defineComponent({
                         placeholder: '映射字段',
                         onUpdateValue: value => updateSetting(element.field, { queryField: value }),
                       }),
+                      h(NSelect, {
+                        value: setting.align || 'left',
+                        options: alignOptions,
+                        size: 'tiny',
+                        placeholder: '对齐',
+                        onUpdateValue: value => updateSetting(element.field, { align: value || 'left' }),
+                      }),
                     ])
                   : null,
                 editorProps.mode === 'table'
@@ -581,6 +594,13 @@ const FieldOrderEditor = defineComponent({
                         size: 'tiny',
                         placeholder: '渲染方式',
                         onUpdateValue: value => updateSetting(element.field, { renderType: value }),
+                      }),
+                      h(NSelect, {
+                        value: setting.align || 'left',
+                        options: alignOptions,
+                        size: 'tiny',
+                        placeholder: '对齐',
+                        onUpdateValue: value => updateSetting(element.field, { align: value || 'left' }),
                       }),
                       isNameRenderType(tableRenderType)
                         ? h(NSelect, {
@@ -659,6 +679,7 @@ const tableColumns = computed(() => [
     key: field.field,
     title: field.label || field.field,
     minWidth: field.width || 140,
+    align: resolveZoneFieldAlign('table', field.field),
     ellipsis: { tooltip: true },
   })),
   { key: 'actions', title: '操作', width: 140, fixed: 'right' },
@@ -688,6 +709,12 @@ function resolveFields(zone, fallback) {
 
 function resolveSearchQueryType(field) {
   return searchZone.value?.props?.fieldSettings?.[field.field]?.queryType || field.queryType || 'like'
+}
+
+function resolveZoneFieldAlign(zoneKey, fieldName) {
+  const zone = findZone(zoneKey)
+  const align = zone?.props?.fieldSettings?.[fieldName]?.align
+  return ['left', 'center', 'right'].includes(align) ? align : 'left'
 }
 
 function resolveSearchControlType(field, queryType = '') {
@@ -1030,11 +1057,11 @@ function resolveSampleValue(field, index = 0) {
 }
 
 :deep(.search-setting-row) {
-  grid-template-columns: 96px minmax(110px, 1fr) minmax(120px, 1fr);
+  grid-template-columns: 92px minmax(104px, 1fr) minmax(120px, 1fr) 88px;
 }
 
 :deep(.table-setting-row) {
-  grid-template-columns: auto minmax(110px, 0.8fr) minmax(140px, 1.2fr);
+  grid-template-columns: auto minmax(110px, 0.8fr) 88px minmax(140px, 1.2fr);
 }
 
 :deep(.field-inline-switch) {

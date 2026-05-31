@@ -76,7 +76,7 @@
           <n-input v-model:value="form.entryUrl" :placeholder="entryUrlPlaceholder" />
         </n-form-item>
         <n-form-item label="入口图标">
-          <n-input v-model:value="form.icon" placeholder="例如：ionicons5:PhonePortraitOutline" />
+          <IconSelector v-model="form.icon" />
         </n-form-item>
 
         <template v-if="isMobileApp">
@@ -134,6 +134,7 @@ import { SaveOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { businessObjectList, createBusinessApp, updateBusinessApp } from '@/api/business-app'
+import IconSelector from '@/components/IconSelector.vue'
 import MenuParentSelect from '@/components/lowcode-builder/shared/MenuParentSelect.vue'
 import { useDict } from '@/composables/useDict'
 
@@ -400,12 +401,16 @@ function buildOptions() {
   }
   options.mountTarget = form.mountTarget
   if (isAdminMount.value) {
+    const previousAdminMenu = options.adminMenu || {}
     options.adminMenu = {
       parentId: form.adminMenuParentId || null,
       syncEnabled: Boolean(form.adminMenuSyncEnabled),
       suiteAsParent: Boolean(form.suiteAsMenuParent),
       sort: Number(form.menuSort || 0),
     }
+    const menuResourceId = previousAdminMenu.menuResourceId || options.menuResourceId
+    if (menuResourceId)
+      options.adminMenu.menuResourceId = menuResourceId
   }
   else {
     delete options.adminMenu

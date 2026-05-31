@@ -2280,6 +2280,10 @@ public class DynamicCrudService {
         if (ref == null || ref.getFields() == null || ref.getFields().isEmpty()) {
             return null;
         }
+        String configured = resolveRefSourceField(ref, relation == null ? null : relation.getDisplayField());
+        if (hasRefSourceField(ref, configured)) {
+            return configured;
+        }
         Set<String> excluded = new LinkedHashSet<>();
         excluded.add(resolveRefSourceField(ref, relation == null ? null : relation.getTargetField()));
         excluded.add(resolveRefSourceField(ref, relation == null ? null : relation.getSourceField()));
@@ -2310,6 +2314,20 @@ public class DynamicCrudService {
             return sourceField;
         }
         return null;
+    }
+
+    private boolean hasRefSourceField(LowcodePageModelRef ref, String sourceField) {
+        if (ref == null || ref.getFields() == null || StringUtils.isBlank(sourceField)) {
+            return false;
+        }
+        for (Map<String, Object> field : ref.getFields()) {
+            String candidate = StringUtils.defaultIfBlank(text(field.get("sourceField")), text(field.get("field")));
+            String columnName = text(field.get("columnName"));
+            if (sourceField.equals(candidate) || sourceField.equals(columnName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String resolveRefSourceField(LowcodePageModelRef ref, String value) {

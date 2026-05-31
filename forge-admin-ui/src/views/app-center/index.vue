@@ -24,6 +24,12 @@
           </template>
           集成
         </n-button>
+        <n-button type="primary" @click="openSuiteEditor(null)">
+          <template #icon>
+            <n-icon><AlbumsOutline /></n-icon>
+          </template>
+          新建套件
+        </n-button>
       </n-space>
     </header>
 
@@ -34,16 +40,28 @@
             <strong>业务套件</strong>
             <span>{{ suites.length }} 个套件</span>
           </div>
-          <n-tooltip trigger="hover">
-            <template #trigger>
-              <n-button quaternary circle size="small" @click="loadAll">
-                <template #icon>
-                  <n-icon><RefreshOutline /></n-icon>
-                </template>
-              </n-button>
-            </template>
-            刷新
-          </n-tooltip>
+          <n-space :size="4">
+            <n-tooltip trigger="hover">
+              <template #trigger>
+                <n-button quaternary circle size="small" @click="openSuiteEditor(null)">
+                  <template #icon>
+                    <n-icon><AddOutline /></n-icon>
+                  </template>
+                </n-button>
+              </template>
+              新建套件
+            </n-tooltip>
+            <n-tooltip trigger="hover">
+              <template #trigger>
+                <n-button quaternary circle size="small" @click="loadAll">
+                  <template #icon>
+                    <n-icon><RefreshOutline /></n-icon>
+                  </template>
+                </n-button>
+              </template>
+              刷新
+            </n-tooltip>
+          </n-space>
         </div>
 
         <n-spin :show="loadingSuites">
@@ -71,7 +89,10 @@
               type="button"
               @click="selectSuite(suite)"
             >
-              <span class="suite-mark">{{ suiteInitial(suite) }}</span>
+              <span class="suite-mark" :class="{ 'has-icon': suite.icon }">
+                <IconRenderer v-if="suite.icon" :icon="suite.icon" :size="22" />
+                <template v-else>{{ suiteInitial(suite) }}</template>
+              </span>
               <span class="suite-nav-copy">
                 <strong>{{ suite.suiteName || suite.suiteCode }}</strong>
                 <small>{{ suite.objectCount || 0 }} 个对象 · {{ suite.appCount || 0 }} 个入口</small>
@@ -84,7 +105,10 @@
       <main class="workspace">
         <section class="workspace-head">
           <div class="selected-suite-title">
-            <span class="suite-mark large">{{ activeSuiteInitial }}</span>
+            <span class="suite-mark large" :class="{ 'has-icon': activeSuite?.icon }">
+              <IconRenderer v-if="activeSuite?.icon" :icon="activeSuite.icon" :size="24" />
+              <template v-else>{{ activeSuiteInitial }}</template>
+            </span>
             <div>
               <h2>{{ activeSuiteName }}</h2>
               <p>{{ activeSuiteDescription }}</p>
@@ -96,6 +120,12 @@
                 <n-icon><OpenOutline /></n-icon>
               </template>
               进入套件
+            </n-button>
+            <n-button secondary :disabled="!activeSuite" @click="openSuiteEditor(activeSuite)">
+              <template #icon>
+                <n-icon><CreateOutline /></n-icon>
+              </template>
+              编辑套件
             </n-button>
             <n-button secondary @click="openObjectWizard">
               <template #icon>
@@ -206,12 +236,19 @@
       :default-suite-code="suiteCode"
       @saved="handleObjectSaved"
     />
+    <SuiteEditorDrawer
+      v-model:show="suiteEditorVisible"
+      :suite="editingSuite"
+      @saved="handleSuiteSaved"
+    />
   </div>
 </template>
 
 <script setup>
 import {
   AddOutline,
+  AlbumsOutline,
+  CreateOutline,
   CubeOutline,
   GitNetworkOutline,
   GridOutline,
@@ -233,11 +270,13 @@ import {
   updateBusinessAppStatus,
   updateBusinessObjectStatus,
 } from '@/api/business-app'
+import IconRenderer from '@/components/IconRenderer.vue'
 import AppCard from './components/AppCard.vue'
 import AppEditorDrawer from './components/AppEditorDrawer.vue'
 import AppFilterBar from './components/AppFilterBar.vue'
 import BusinessObjectWizardDrawer from './components/BusinessObjectWizardDrawer.vue'
 import ObjectCard from './components/ObjectCard.vue'
+import SuiteEditorDrawer from './components/SuiteEditorDrawer.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -258,6 +297,8 @@ const loadingApps = ref(false)
 const editorVisible = ref(false)
 const editingApp = ref(null)
 const objectWizardVisible = ref(false)
+const suiteEditorVisible = ref(false)
+const editingSuite = ref(null)
 const pageSizeOptions = [6, 12, 24, 48]
 const objectPagination = ref({
   pageNum: 1,
@@ -414,11 +455,21 @@ function openObjectWizard() {
   objectWizardVisible.value = true
 }
 
+function openSuiteEditor(suite) {
+  editingSuite.value = suite ? { ...suite } : null
+  suiteEditorVisible.value = true
+}
+
 async function handleObjectSaved(payload) {
   activeView.value = 'objects'
   suiteCode.value = payload?.suiteCode || suiteCode.value
   await loadAll()
   openObjectDesigner(payload, payload?.designerPanel || 'fields')
+}
+
+async function handleSuiteSaved(payload) {
+  suiteCode.value = payload?.suiteCode || suiteCode.value
+  await loadAll()
 }
 
 async function openApp(app) {
@@ -493,6 +544,10 @@ function deleteApp(app) {
   gap: 16px;
   align-items: flex-start;
   margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
 }
 
 .page-title-block h1,
@@ -611,6 +666,11 @@ function deleteApp(app) {
   font-weight: 700;
 }
 
+.suite-mark.has-icon {
+  background: #f8fafc;
+  color: #2563eb;
+}
+
 .suite-mark.all {
   background: #ecfdf5;
   color: #15803d;
@@ -726,17 +786,20 @@ function deleteApp(app) {
 
 .workspace-content {
   min-width: 0;
-  padding: 12px 14px 16px;
+  padding: 10px 14px 16px;
 }
 
 .workspace-content :deep(.n-tabs-nav) {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #eef2f7;
+  padding-bottom: 10px;
 }
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: 12px;
+  align-items: stretch;
 }
 
 .card-pagination {

@@ -72,24 +72,35 @@
                   <n-form-item-gi label="页面显示名称">
                     <n-input v-model:value="relation.relationName" placeholder="例如：客户有多个联系人" @update:value="markDirty" />
                   </n-form-item-gi>
-                  <n-form-item-gi label="用本对象哪个信息匹配">
+                  <n-form-item-gi :label="sourceFieldLabel(relation)">
                     <n-select
                       v-model:value="relation.sourceFieldCode"
                       :options="sourceFieldOptions"
                       clearable
                       filterable
-                      placeholder="通常选择：记录ID"
+                      :placeholder="sourceFieldPlaceholder(relation)"
                       @update:value="markDirty"
                     />
                   </n-form-item-gi>
-                  <n-form-item-gi label="目标对象里哪个字段指向本对象">
+                  <n-form-item-gi :label="targetFieldLabel(relation)">
                     <n-select
                       v-model:value="relation.targetFieldCode"
                       :options="targetFieldOptions(relation)"
                       :loading="targetFieldLoadingMap[relation.targetObjectCode]"
                       clearable
                       filterable
-                      placeholder="选择目标对象中的所属字段"
+                      :placeholder="targetFieldPlaceholder(relation)"
+                      @update:value="markDirty"
+                    />
+                  </n-form-item-gi>
+                  <n-form-item-gi :label="displayFieldLabel(relation)">
+                    <n-select
+                      v-model:value="relation.displayField"
+                      :options="targetDisplayFieldOptions(relation)"
+                      :loading="targetFieldLoadingMap[relation.targetObjectCode]"
+                      clearable
+                      filterable
+                      placeholder="选择列表中显示的名称字段"
                       @update:value="markDirty"
                     />
                   </n-form-item-gi>
@@ -129,7 +140,13 @@
                     <n-input v-model:value="relation.defaultFilter" placeholder="可选，运行态自动带入" @update:value="markDirty" />
                   </n-form-item-gi>
                   <n-form-item-gi :span="3" label="说明">
-                    <n-input v-model:value="relation.description" type="textarea" :rows="2" placeholder="描述这条业务关系的使用场景" @update:value="markDirty" />
+                    <n-input
+                      v-model:value="relation.description"
+                      type="textarea"
+                      :rows="3"
+                      placeholder="描述这条业务关系的使用场景"
+                      @update:value="markDirty"
+                    />
                   </n-form-item-gi>
                 </n-grid>
               </n-form>
@@ -209,9 +226,9 @@ const targetFieldsMap = ref({})
 const targetFieldLoadingMap = ref({})
 
 const relationTypeOptions = [
-  { label: '当前对象属于目标对象', value: 'REFERENCE' },
-  { label: '当前对象拥有多条目标记录', value: 'CHILD_LIST' },
-  { label: '当前对象包含明细记录', value: 'DETAIL' },
+  { label: '属于目标对象', value: 'REFERENCE' },
+  { label: '拥有多条目标记录', value: 'CHILD_LIST' },
+  { label: '包含明细记录', value: 'DETAIL' },
   { label: '当前对象与目标对象多对多关联', value: 'MANY_TO_MANY' },
 ]
 
@@ -253,7 +270,9 @@ async function loadRelations() {
   loading.value = true
   try {
     const res = await businessObjectRelations(props.objectId)
-    localRelations.value = (res.data || []).map(normalizeRelation)
+    localRelations.value = (res.data || [])
+      .filter(relation => !props.objectCode || !relation.sourceObjectCode || relation.sourceObjectCode === props.objectCode)
+      .map(normalizeRelation)
     emit('updated', localRelations.value)
     localRelations.value.forEach(relation => loadTargetFields(relation.targetObjectCode))
   }
@@ -283,17 +302,21 @@ async function addRelation() {
   }
   const targetName = objectNameMap.value.get(target.value) || target.label
   await loadTargetFields(target.value)
+  const relationType = inferDefaultRelationType(target.value)
+  const sourceFieldCode = firstSourceField(relationType, target.value)
+  const targetFieldCode = firstTargetField(target.value, relationType)
   const relation = {
     clientKey: createClientKey(),
-    relationType: 'CHILD_LIST',
+    relationType,
     targetObjectCode: target.value,
-    relationName: `${props.objectName || props.objectCode}有多个${targetName}`,
-    sourceFieldCode: firstSourceField(),
-    targetFieldCode: firstTargetField(target.value),
+    relationName: relationLabel({ relationType, targetObjectCode: target.value }),
+    sourceFieldCode,
+    targetFieldCode,
+    displayField: firstDisplayField(target.value, targetFieldCode),
     detailTabTitle: targetName,
     showInDetail: true,
-    inlineCreateEnabled: true,
-    inlineEditEnabled: true,
+    inlineCreateEnabled: canInlineEdit({ relationType }),
+    inlineEditEnabled: canInlineEdit({ relationType }),
     defaultFilter: '',
     description: '',
     status: 1,
@@ -314,7 +337,11 @@ function updateRelationType(relation, value) {
     relation.inlineCreateEnabled = false
     relation.inlineEditEnabled = false
   }
-  relation.relationName = relation.relationName || relationLabel(relation)
+  relation.sourceFieldCode = firstSourceField(value, relation.targetObjectCode, relation.sourceFieldCode)
+  relation.targetFieldCode = firstTargetField(relation.targetObjectCode, value, relation.targetFieldCode)
+  if (!relation.displayField)
+    relation.displayField = firstDisplayField(relation.targetObjectCode, relation.targetFieldCode)
+  relation.relationName = relationLabel(relation)
   markDirty()
 }
 
@@ -324,7 +351,9 @@ async function updateTargetObject(relation, value) {
   const targetName = objectNameMap.value.get(value) || value
   relation.detailTabTitle = relation.detailTabTitle || targetName
   relation.relationName = relationLabel(relation)
-  relation.targetFieldCode = firstTargetField(value)
+  relation.sourceFieldCode = firstSourceField(relation.relationType, value, relation.sourceFieldCode)
+  relation.targetFieldCode = firstTargetField(value, relation.relationType)
+  relation.displayField = firstDisplayField(value, relation.targetFieldCode)
   markDirty()
 }
 
@@ -356,6 +385,11 @@ async function saveRelations() {
     message.warning(`请先补全「${invalidRelation.relationName || relationLabel(invalidRelation)}」的关联对象和匹配字段`)
     return
   }
+  const missingDisplayRelation = localRelations.value.find(relation => relation.relationType === 'REFERENCE' && !relation.displayField)
+  if (missingDisplayRelation) {
+    message.warning(`请先为「${missingDisplayRelation.relationName || relationLabel(missingDisplayRelation)}」选择目标对象回显字段`)
+    return
+  }
   saving.value = true
   try {
     const payload = localRelations.value.map(toRelationPayload)
@@ -384,6 +418,7 @@ function normalizeRelation(relation = {}) {
     inlineCreateEnabled: canInlineEdit(relation) && config.inlineCreateEnabled !== false && config.inlineCreateEnabled !== 'false',
     inlineEditEnabled: canInlineEdit(relation) && config.inlineEditEnabled !== false && config.inlineEditEnabled !== 'false',
     defaultFilter: config.defaultFilter || '',
+    displayField: config.displayField || '',
     status: relation.status ?? 1,
     sortOrder: relation.sortOrder ?? 0,
   }
@@ -415,6 +450,8 @@ function buildRelationConfig(relation) {
   config.inlineEditEnabled = canInlineEdit(relation) && relation.inlineEditEnabled === true
   if (relation.defaultFilter)
     config.defaultFilter = relation.defaultFilter
+  if (relation.displayField)
+    config.displayField = relation.displayField
   return Object.keys(config).length ? JSON.stringify(config) : ''
 }
 
@@ -436,12 +473,42 @@ function relationSentence(relation) {
   const source = props.objectName || props.objectCode || '当前对象'
   const target = objectNameMap.value.get(relation.targetObjectCode) || relation.targetObjectName || relation.targetObjectCode || '目标对象'
   const verbs = {
-    REFERENCE: '属于 / 引用',
+    REFERENCE: '属于',
     CHILD_LIST: '有多个',
     DETAIL: '包含明细',
     MANY_TO_MANY: '关联多个',
   }
   return `${source}${verbs[relation.relationType] || '关联'}${target}`
+}
+
+function sourceFieldLabel(relation) {
+  return relation?.relationType === 'REFERENCE'
+    ? '当前对象中的关联字段'
+    : '当前对象匹配字段'
+}
+
+function sourceFieldPlaceholder(relation) {
+  return relation?.relationType === 'REFERENCE'
+    ? '例如：customerId'
+    : '通常选择：记录ID'
+}
+
+function targetFieldLabel(relation) {
+  return relation?.relationType === 'REFERENCE'
+    ? '目标对象主键字段'
+    : '目标对象里指向本对象的字段'
+}
+
+function targetFieldPlaceholder(relation) {
+  return relation?.relationType === 'REFERENCE'
+    ? '通常选择：记录ID'
+    : '选择目标对象中的所属字段'
+}
+
+function displayFieldLabel(relation) {
+  return relation?.relationType === 'REFERENCE'
+    ? '运行态显示字段'
+    : '目标对象回显字段'
 }
 
 function targetFieldOptions(relation) {
@@ -456,6 +523,23 @@ function targetFieldOptions(relation) {
     options.unshift({
       label: `已配置字段：${relation.targetFieldCode}`,
       value: relation.targetFieldCode,
+    })
+  }
+  return options
+}
+
+function targetDisplayFieldOptions(relation) {
+  const fields = targetFieldsMap.value[relation.targetObjectCode] || []
+  const options = fields
+    .filter(field => field.field && !isInactiveField(field) && !field.systemField && field.field !== relation.targetFieldCode)
+    .map(field => ({
+      label: businessFieldLabel(field),
+      value: field.field,
+    }))
+  if (relation.displayField && !options.some(item => item.value === relation.displayField)) {
+    options.unshift({
+      label: `已配置字段：${relation.displayField}`,
+      value: relation.displayField,
     })
   }
   return options
@@ -493,8 +577,16 @@ async function loadTargetFields(objectCode) {
   }
 }
 
-function firstTargetField(objectCode) {
+function firstTargetField(objectCode, relationType = 'CHILD_LIST', currentValue = '') {
   const fields = targetFieldsMap.value[objectCode] || []
+  if (relationType === 'REFERENCE') {
+    if (currentValue && currentValue !== 'id' && fields.some(field => field.field === currentValue && !isInactiveField(field)))
+      return currentValue
+    return fields.find(field => field.field === 'id' && !isInactiveField(field))?.field
+      || fields.find(field => field.primaryKey && !isInactiveField(field))?.field
+      || fields.find(field => !isInactiveField(field))?.field
+      || ''
+  }
   const sourceObject = lowerFirst(props.objectCode || '')
   const candidates = [
     `${sourceObject}Id`,
@@ -509,7 +601,30 @@ function firstTargetField(objectCode) {
       const sourceName = props.objectName || props.objectCode || ''
       return sourceName && label.includes(sourceName)
     })
-    || activeFields.find(field => field.field !== 'id' && !field.systemField)
+  if (matched)
+    return matched.field
+  if (currentValue && currentValue !== 'id' && fields.some(field => field.field === currentValue && !isInactiveField(field)))
+    return currentValue
+  const fallback = activeFields.find(field => field.field !== 'id' && !field.systemField)
+  return fallback?.field || ''
+}
+
+function inferDefaultRelationType(targetObjectCode) {
+  return findReferenceSourceField(targetObjectCode) ? 'REFERENCE' : 'CHILD_LIST'
+}
+
+function firstDisplayField(objectCode, relationField = '') {
+  const targetObject = businessObjects.value.find(item => item.objectCode === objectCode)
+  const fields = targetFieldsMap.value[objectCode] || []
+  const activeFields = fields.filter(field => field.field && !isInactiveField(field) && !field.systemField && field.field !== relationField)
+  const configured = targetObject?.displayField
+  const matched = activeFields.find(field => configured && field.field === configured)
+    || activeFields.find((field) => {
+      const fieldName = String(field.field || '').toLowerCase()
+      const label = String(field.label || field.fieldName || '')
+      return fieldName.includes('name') || label.includes('名称') || label.includes('姓名')
+    })
+    || activeFields[0]
   return matched?.field || ''
 }
 
@@ -543,8 +658,38 @@ function canInlineEdit(relation = {}) {
   return ['CHILD_LIST', 'DETAIL'].includes(relation.relationType)
 }
 
-function firstSourceField() {
+function firstSourceField(relationType = 'CHILD_LIST', targetObjectCode = '', currentValue = '') {
+  if (relationType === 'REFERENCE') {
+    const matched = findReferenceSourceField(targetObjectCode)
+    if (matched)
+      return matched.value
+    if (currentValue && sourceFieldOptions.value.some(item => item.value === currentValue))
+      return currentValue
+  }
+  else {
+    const idField = sourceFieldOptions.value.find(item => item.value === 'id')?.value
+    if (idField)
+      return idField
+    if (currentValue && sourceFieldOptions.value.some(item => item.value === currentValue))
+      return currentValue
+  }
   return sourceFieldOptions.value.find(item => item.value === 'id')?.value || sourceFieldOptions.value[0]?.value || ''
+}
+
+function findReferenceSourceField(targetObjectCode = '') {
+  const targetObject = businessObjects.value.find(item => item.objectCode === targetObjectCode)
+  const targetCode = lowerFirst(targetObjectCode || '')
+  const targetName = targetObject?.objectName || ''
+  const candidates = [
+    `${targetCode}Id`,
+    `${targetCode}Code`,
+    targetObjectCode,
+  ].filter(Boolean)
+  return sourceFieldOptions.value.find(item => candidates.includes(item.value))
+    || sourceFieldOptions.value.find((item) => {
+      const label = item.label || ''
+      return targetName && label.includes(targetName)
+    })
 }
 
 function createClientKey() {
@@ -569,6 +714,8 @@ function toPageField(field) {
     field: field.field || field.fieldCode,
     label: field.label || field.fieldName || field.fieldCode,
     fieldStatus: field.fieldStatus,
+    basicProps: { ...(field.basicProps || {}) },
+    advancedProps: { ...(field.advancedProps || {}) },
   }
 }
 
@@ -644,11 +791,16 @@ defineExpose({
   margin-bottom: 12px;
 }
 
+.relation-card-head > div {
+  min-width: 0;
+}
+
 .relation-card-head strong,
 .relation-summary-pane h4 {
   margin: 0;
   color: #111827;
   font-size: 14px;
+  overflow-wrap: anywhere;
 }
 
 .relation-card-head p,
@@ -658,6 +810,7 @@ defineExpose({
   color: #64748b;
   font-size: 12px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .relation-summary-pane {
@@ -676,12 +829,14 @@ defineExpose({
 }
 
 .sentence-list span {
+  display: block;
   border-radius: 4px;
   background: #eef6ff;
   color: #1d4ed8;
   font-size: 12px;
-  line-height: 24px;
-  padding: 0 8px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  padding: 6px 8px;
 }
 
 .relation-summary-pane ul {

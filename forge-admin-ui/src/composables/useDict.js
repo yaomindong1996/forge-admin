@@ -36,6 +36,9 @@ async function loadDictData(dictType) {
         value: item.dictValue,
         dictCode: item.dictCode,
         dictSort: item.dictSort,
+        parentDictCode: item.parentDictCode,
+        linkedDictType: item.linkedDictType,
+        linkedDictValue: item.linkedDictValue,
         cssClass: item.cssClass,
         listClass: item.listClass || 'default', // 默认为 default
         isDefault: item.isDefault,

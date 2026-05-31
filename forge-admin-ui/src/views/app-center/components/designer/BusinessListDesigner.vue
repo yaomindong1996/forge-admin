@@ -399,6 +399,8 @@ function toPageField(field) {
     listVisible: field.listVisible,
     formVisible: field.formVisible,
     fieldStatus: field.fieldStatus,
+    basicProps: { ...(field.basicProps || {}) },
+    advancedProps: { ...(field.advancedProps || {}) },
   }
 }
 

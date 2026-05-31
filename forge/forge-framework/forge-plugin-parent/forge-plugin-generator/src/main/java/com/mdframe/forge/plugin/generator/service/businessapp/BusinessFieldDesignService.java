@@ -183,11 +183,16 @@ public class BusinessFieldDesignService {
         merged.setReferenceDisplayField(StringUtils.defaultIfBlank(dto == null ? null : dto.getReferenceDisplayField(), existing.getReferenceDisplayField()));
         merged.setRemark(StringUtils.defaultIfBlank(dto == null ? null : dto.getRemark(), existing.getRemark()));
         merged.setSortOrder(dto != null && dto.getSortOrder() != null ? dto.getSortOrder() : existing.getSortOrder());
-        if (dto != null) {
-            merged.setBasicProps(dto.getBasicProps());
-            merged.setAdvancedProps(dto.getAdvancedProps());
-        }
+        merged.setBasicProps(mergeProps(existing.getBasicProps(), dto == null ? null : dto.getBasicProps()));
+        merged.setAdvancedProps(mergeProps(existing.getAdvancedProps(), dto == null ? null : dto.getAdvancedProps()));
         return merged;
+    }
+
+    private Map<String, Object> mergeProps(Map<String, Object> existing, Map<String, Object> requested) {
+        if (requested == null) {
+            return existing == null ? new LinkedHashMap<>() : new LinkedHashMap<>(existing);
+        }
+        return new LinkedHashMap<>(requested);
     }
 
     private String resolveRequestedFieldCode(LowcodeFieldSchema existing, BusinessFieldDTO dto) {

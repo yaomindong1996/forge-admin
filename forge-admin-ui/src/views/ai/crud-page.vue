@@ -84,6 +84,11 @@ function transformColumns(columns, transConfig, options = {}) {
       })
       return newCol
     }
+    if (col.render && typeof col.render === 'object' && col.render.type === 'relationName') {
+      const targetField = col.render.targetField || `${key}Name`
+      newCol.render = row => row[targetField] ?? row[key] ?? '-'
+      return newCol
+    }
     if (col.render && typeof col.render === 'object' && ['orgName', 'userName', 'regionName', 'fileUpload'].includes(col.render.type)) {
       const targetField = col.render.targetField || `${key}Name`
       newCol.render = row => row[targetField] ?? row[key] ?? '-'

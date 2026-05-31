@@ -128,6 +128,11 @@ public class BusinessFieldSchemaService {
         schema.setReferenceObjectCode(StringUtils.trimToNull(dto.getReferenceObjectCode()));
         schema.setReferenceDisplayField(StringUtils.trimToNull(dto.getReferenceDisplayField()));
         schema.setSortOrder(dto.getSortOrder());
+        schema.setBasicProps(copyProps(dto.getBasicProps()));
+        schema.setAdvancedProps(copyProps(dto.getAdvancedProps()));
+        if (StringUtils.isNotBlank(dto.getPlaceholder())) {
+            schema.getBasicProps().put("placeholder", dto.getPlaceholder());
+        }
         return schema;
     }
 
@@ -411,6 +416,7 @@ public class BusinessFieldSchemaService {
 
     private void fillProps(BusinessFieldVO vo, LowcodeFieldSchema schema) {
         Map<String, Object> basicProps = vo.getBasicProps();
+        basicProps.putAll(copyProps(schema.getBasicProps()));
         basicProps.put("required", schema.getRequired());
         basicProps.put("defaultValue", schema.getDefaultValue());
         basicProps.put("searchable", schema.getSearchable());
@@ -420,6 +426,7 @@ public class BusinessFieldSchemaService {
         basicProps.put("exportable", schema.getExportable());
 
         Map<String, Object> advancedProps = vo.getAdvancedProps();
+        advancedProps.putAll(copyProps(schema.getAdvancedProps()));
         advancedProps.put("fieldCode", schema.getField());
         advancedProps.put("columnName", schema.getColumnName());
         advancedProps.put("dataType", schema.getDataType());
@@ -428,6 +435,10 @@ public class BusinessFieldSchemaService {
         advancedProps.put("dictType", schema.getDictType());
         advancedProps.put("sensitiveType", schema.getSensitiveType());
         advancedProps.put("encryptAlgorithm", schema.getEncryptAlgorithm());
+    }
+
+    private Map<String, Object> copyProps(Map<String, Object> source) {
+        return source == null ? new LinkedHashMap<>() : new LinkedHashMap<>(source);
     }
 
     private List<String> extractAsciiWords(String value) {

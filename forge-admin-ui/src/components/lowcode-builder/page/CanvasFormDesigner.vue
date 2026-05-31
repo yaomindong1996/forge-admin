@@ -463,6 +463,7 @@ function drawDetailPreview(api, group, item, width, height) {
     y: 10 + contentHeight / 2 - 6,
     width: Math.max(24, width - labelWidth - 42),
     fill: '#0f172a',
+    textAlign: item.style?.textAlign || 'left',
   })
 }
 
@@ -474,6 +475,7 @@ function drawFormFieldPreview(api, group, item, width, height) {
     y: Math.max(40, height / 2 + 4),
     width: labelWidth,
     fill: '#475569',
+    textAlign: item.style?.textAlign === 'right' ? 'right' : 'left',
   })
   drawControlSketch(api, group, item, 22 + labelWidth, 40, Math.max(72, width - labelWidth - 36), Math.max(28, height - 52))
 }
@@ -526,6 +528,7 @@ function drawControlSketch(api, group, item, x, y, width, height) {
     y: y + 9,
     width: width - 20,
     fill: isUpload ? '#1d4ed8' : '#94a3b8',
+    textAlign: item.style?.textAlign || 'left',
   })
   if (['field-select', 'field-dict-select', 'field-tree-select', 'field-org-tree-select', 'field-user-select', 'field-region-tree-select', 'field-cascader'].includes(componentKey)
     || field.dictType || ['select', 'radio', 'checkbox', 'dictSelect', 'treeSelect', 'orgTreeSelect', 'userSelect', 'regionTreeSelect', 'cascader'].includes(componentType)) {

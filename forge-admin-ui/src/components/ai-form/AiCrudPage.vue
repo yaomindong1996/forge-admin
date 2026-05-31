@@ -947,6 +947,10 @@ function resolveColumnRender(col) {
       size: 'small',
     })
   }
+  else if (renderType === 'relationName') {
+    const targetField = col.render.targetField || `${key}Name`
+    nextCol.render = row => row[targetField] ?? row[key] ?? '-'
+  }
   else if (renderType === 'orgName' || renderType === 'userName' || renderType === 'regionName') {
     const targetField = col.render.targetField || `${key}Name`
     nextCol.render = row => row[targetField] ?? row[key] ?? '-'

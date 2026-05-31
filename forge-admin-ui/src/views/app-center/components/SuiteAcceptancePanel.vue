@@ -1,5 +1,5 @@
 <template>
-  <div class="suite-acceptance-panel">
+  <div class="suite-acceptance-panel" :class="{ compact }">
     <NSpin :show="loading">
       <div v-if="acceptance" class="acceptance-content">
         <div class="acceptance-hero" :class="`hero-${statusTone}`">
@@ -164,6 +164,10 @@ const props = defineProps({
   suiteCode: {
     type: String,
     default: null,
+  },
+  compact: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -645,6 +649,70 @@ function handleChannelClick(channel) {
   color: #64748b;
   font-size: 12px;
   white-space: nowrap;
+}
+
+.suite-acceptance-panel.compact .acceptance-content {
+  gap: 12px;
+}
+
+.suite-acceptance-panel.compact .acceptance-hero {
+  grid-template-columns: 1fr;
+  gap: 12px;
+  padding: 14px;
+}
+
+.suite-acceptance-panel.compact .hero-title-row h3 {
+  font-size: 15px;
+}
+
+.suite-acceptance-panel.compact .hero-copy p {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.suite-acceptance-panel.compact .hero-meter span {
+  font-size: 24px;
+}
+
+.suite-acceptance-panel.compact .hero-action {
+  justify-self: stretch;
+}
+
+.suite-acceptance-panel.compact .acceptance-steps {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.suite-acceptance-panel.compact .acceptance-step {
+  min-height: 74px;
+  padding: 10px;
+}
+
+.suite-acceptance-panel.compact .acceptance-block {
+  padding: 12px;
+}
+
+.suite-acceptance-panel.compact .block-head {
+  display: block;
+}
+
+.suite-acceptance-panel.compact .acceptance-objects,
+.suite-acceptance-panel.compact .acceptance-secondary {
+  grid-template-columns: 1fr;
+}
+
+.suite-acceptance-panel.compact .acceptance-object {
+  padding: 10px;
+}
+
+.suite-acceptance-panel.compact .compact-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.suite-acceptance-panel.compact .compact-row :deep(.n-tag) {
+  grid-column: 1 / -1;
+  justify-self: start;
 }
 
 @media (max-width: 900px) {

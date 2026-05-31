@@ -644,6 +644,8 @@ function toPageField(field = {}) {
     listVisible: field.listVisible,
     formVisible: field.formVisible,
     fieldStatus: field.fieldStatus,
+    basicProps: cloneSchema(field.basicProps || {}),
+    advancedProps: cloneSchema(field.advancedProps || {}),
   }
 }
 
@@ -689,6 +691,8 @@ function syncDraftModelFields(fields = []) {
         referenceObjectCode: field.referenceObjectCode,
         referenceDisplayField: field.referenceDisplayField,
         sortOrder: field.sortOrder,
+        basicProps: cloneSchema(field.basicProps || {}),
+        advancedProps: cloneSchema(field.advancedProps || {}),
       }
     }),
   }

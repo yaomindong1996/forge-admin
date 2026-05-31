@@ -40,6 +40,20 @@
                 @blur="form.newSuiteCode = normalizeCode(form.newSuiteCode)"
               />
             </n-form-item>
+            <n-form-item label="套件图标">
+              <IconSelector v-model="form.newSuiteIcon" />
+            </n-form-item>
+            <n-grid :cols="2" :x-gap="12">
+              <n-form-item-gi label="创建管理端目录">
+                <n-switch v-model:value="form.createSuiteMenu" />
+              </n-form-item-gi>
+              <n-form-item-gi v-if="form.createSuiteMenu" label="目录排序">
+                <n-input-number v-model:value="form.suiteMenuSort" :min="0" :show-button="false" />
+              </n-form-item-gi>
+            </n-grid>
+            <n-form-item v-if="form.createSuiteMenu" label="父级菜单或模块">
+              <MenuParentSelect v-model:value="form.suiteMenuParentId" placeholder="选择套件目录挂载位置，默认顶级" />
+            </n-form-item>
             <n-form-item label="业务说明">
               <n-input
                 v-model:value="form.newSuiteDescription"
@@ -82,7 +96,7 @@
                 <n-input v-model:value="form.displayField" placeholder="例如：customerName" />
               </n-form-item-gi>
               <n-form-item-gi label="图标">
-                <n-input v-model:value="form.icon" placeholder="可选，菜单或对象图标标识" />
+                <IconSelector v-model="form.icon" />
               </n-form-item-gi>
               <n-form-item-gi label="启用状态">
                 <n-switch v-model:value="form.status" :checked-value="1" :unchecked-value="0" />
@@ -127,6 +141,8 @@ import { useMessage } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { createBusinessObject, createBusinessSuite } from '@/api/business-app'
 import DictSelect from '@/components/DictSelect.vue'
+import IconSelector from '@/components/IconSelector.vue'
+import MenuParentSelect from '@/components/lowcode-builder/shared/MenuParentSelect.vue'
 
 const props = defineProps({
   show: {
@@ -253,11 +269,25 @@ async function resolveSuiteCode() {
   await createBusinessSuite({
     suiteCode,
     suiteName: form.newSuiteName.trim(),
+    icon: trimToNull(form.newSuiteIcon),
     description: trimToNull(form.newSuiteDescription),
     status: 1,
     sortOrder: 0,
+    options: buildSuiteOptions(),
   })
   return suiteCode
+}
+
+function buildSuiteOptions() {
+  if (!form.createSuiteMenu)
+    return null
+  return JSON.stringify({
+    adminMenu: {
+      syncEnabled: true,
+      parentId: form.suiteMenuParentId || null,
+      sort: Number(form.suiteMenuSort || 0),
+    },
+  })
 }
 
 function validateStep() {
@@ -317,7 +347,11 @@ function defaultForm() {
     suiteCode: null,
     newSuiteName: '',
     newSuiteCode: '',
+    newSuiteIcon: '',
     newSuiteDescription: '',
+    createSuiteMenu: true,
+    suiteMenuParentId: null,
+    suiteMenuSort: 0,
     createMode: 'BLANK',
     objectName: '',
     objectCode: '',

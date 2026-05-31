@@ -1569,7 +1569,13 @@ function resolveCanvasItemLayoutSetting(item, canvas, gridCols) {
   return {
     span,
     labelWidth: item.style?.labelWidth || 86,
+    align: normalizeAlign(item.style?.textAlign || item.style?.align),
   }
+}
+
+function normalizeAlign(value) {
+  const align = String(value || '').toLowerCase()
+  return ['left', 'center', 'right'].includes(align) ? align : undefined
 }
 
 function createItemId(zoneKey, componentKey, fieldRef) {

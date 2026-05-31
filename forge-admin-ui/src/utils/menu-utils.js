@@ -5,6 +5,65 @@
 import { h } from 'vue'
 import IconRenderer from '@/components/IconRenderer.vue'
 
+function isExternalPath(path) {
+  return /^[a-z][a-z\d+.-]*:\/\//i.test(path) || String(path || '').startsWith('//')
+}
+
+function normalizeMenuPath(path) {
+  const value = String(path || '').trim()
+  if (!value)
+    return ''
+  if (isExternalPath(value))
+    return value
+
+  const [pathWithoutHash] = value.split('#')
+  const [pathname] = pathWithoutHash.split('?')
+  const normalized = pathname.replace(/\/+/g, '/')
+  if (!normalized || normalized === '/')
+    return normalized
+  return normalized.startsWith('/') ? normalized : `/${normalized}`
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function routePatternMatches(patternPath, targetPath) {
+  if (!patternPath.includes(':'))
+    return false
+
+  const pattern = patternPath
+    .split('/')
+    .map(segment => segment.startsWith(':') ? '[^/]+' : escapeRegExp(segment))
+    .join('/')
+  return new RegExp(`^${pattern}$`).test(targetPath)
+}
+
+export function isSameMenuPath(menuPath, targetPath) {
+  const normalizedMenuPath = normalizeMenuPath(menuPath)
+  const normalizedTargetPath = normalizeMenuPath(targetPath)
+  if (!normalizedMenuPath || !normalizedTargetPath)
+    return false
+  if (normalizedMenuPath === normalizedTargetPath)
+    return true
+  return routePatternMatches(normalizedMenuPath, normalizedTargetPath)
+    || routePatternMatches(normalizedTargetPath, normalizedMenuPath)
+}
+
+function getMenuPathMatchScore(menuPath, targetPath) {
+  const normalizedMenuPath = normalizeMenuPath(menuPath)
+  const normalizedTargetPath = normalizeMenuPath(targetPath)
+  if (!normalizedMenuPath || !normalizedTargetPath)
+    return 0
+  if (normalizedMenuPath === normalizedTargetPath)
+    return 2
+  if (routePatternMatches(normalizedMenuPath, normalizedTargetPath)
+    || routePatternMatches(normalizedTargetPath, normalizedMenuPath)) {
+    return 1
+  }
+  return 0
+}
+
 /**
  * 生成唯一ID
  * @param {string} prefix 前缀
@@ -186,4 +245,42 @@ export function findMenuItem(menuItems, key) {
     }
   }
   return null
+}
+
+/**
+ * 根据路由路径查找匹配的菜单ID，支持 /path/:param 动态路由。
+ * 精确路径优先于动态路径，避免通用渲染页抢占具体业务菜单高亮。
+ *
+ * @param {Array} menuItems 菜单数据
+ * @param {string} targetPath 当前路由路径
+ * @returns {string | number | null} 匹配的菜单 key
+ */
+export function findMenuIdByPath(menuItems, targetPath) {
+  if (!menuItems || !Array.isArray(menuItems))
+    return null
+
+  let bestKey = null
+  let bestScore = 0
+
+  const visit = (items) => {
+    for (const item of items) {
+      const score = getMenuPathMatchScore(item.path, targetPath)
+      if (score > bestScore) {
+        bestKey = item.key ?? item.id
+        bestScore = score
+        if (score === 2)
+          return true
+      }
+
+      if (item.children && item.children.length > 0) {
+        const foundExact = visit(item.children)
+        if (foundExact)
+          return true
+      }
+    }
+    return false
+  }
+
+  visit(menuItems)
+  return bestKey
 }

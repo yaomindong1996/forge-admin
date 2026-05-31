@@ -43,6 +43,14 @@ public class LowcodeRuntimeConfigBuilder {
     private final LowcodeSchemaValidator schemaValidator;
     private final LowcodePolicyService policyService;
 
+    private record RelationLookupMeta(String modelCode,
+                                      String modelName,
+                                      String configKey,
+                                      String sourceField,
+                                      String targetField,
+                                      String displayField) {
+    }
+
     public LowcodeRuntimeConfig buildRuntimeConfig(String configKey,
                                                    LowcodeModelSchema modelSchema,
                                                    LowcodePageSchema pageSchema) {
@@ -88,7 +96,8 @@ public class LowcodeRuntimeConfigBuilder {
         List<Map<String, Object>> columns = resolveFields(modelSchema, pageSchema, "table",
                 field -> field.getListVisible() == null || Boolean.TRUE.equals(field.getListVisible()))
                 .stream()
-                .map(field -> buildTableColumn(field, resolveFieldSetting(pageSchema, "table", field.getField())))
+                .map(field -> buildTableColumn(field, resolveFieldSetting(pageSchema, "table", field.getField()),
+                        modelSchema, pageSchema))
                 .collect(Collectors.toCollection(ArrayList::new));
 
         Map<String, Object> actions = new LinkedHashMap<>();
@@ -115,7 +124,8 @@ public class LowcodeRuntimeConfigBuilder {
         List<Map<String, Object>> fields = orderedFields
                 .stream()
                 .filter(field -> !childFieldRefs.contains(field.getField()))
-                .map(field -> buildEditField(field, resolveEditFieldSetting(pageSchema, field.getField())))
+                .map(field -> buildEditField(field, resolveEditFieldSetting(pageSchema, field.getField()),
+                        modelSchema, pageSchema))
                 .collect(Collectors.toCollection(ArrayList::new));
         appendTreeRuntimeField(fields, modelSchema, pageSchema, "edit");
         decorateTreeRuntimeFields(fields, configKey, modelSchema, pageSchema);
@@ -764,6 +774,9 @@ public class LowcodeRuntimeConfigBuilder {
     }
 
     private String resolveRefSourceField(LowcodePageModelRef ref, String value) {
+        if (ref == null || ref.getFields() == null || StringUtils.isBlank(value)) {
+            return value;
+        }
         for (Map<String, Object> field : ref.getFields()) {
             String sourceField = StringUtils.defaultIfBlank(text(field.get("sourceField")), text(field.get("field")));
             String fieldRef = StringUtils.defaultIfBlank(text(field.get("fieldRef")), sourceField);
@@ -1043,6 +1056,10 @@ public class LowcodeRuntimeConfigBuilder {
         if (ref == null || ref.getFields() == null || ref.getFields().isEmpty()) {
             return null;
         }
+        String configured = resolveRefSourceField(ref, relation == null ? null : relation.getDisplayField());
+        if (hasRefSourceField(ref, configured)) {
+            return configured;
+        }
         Set<String> excluded = new LinkedHashSet<>();
         excluded.add(resolveRefSourceField(ref, relation == null ? null : relation.getTargetField()));
         excluded.add(resolveRefSourceField(ref, relation == null ? null : relation.getSourceField()));
@@ -1076,6 +1093,20 @@ public class LowcodeRuntimeConfigBuilder {
         return null;
     }
 
+    private boolean hasRefSourceField(LowcodePageModelRef ref, String sourceField) {
+        if (ref == null || ref.getFields() == null || StringUtils.isBlank(sourceField)) {
+            return false;
+        }
+        for (Map<String, Object> field : ref.getFields()) {
+            String candidate = StringUtils.defaultIfBlank(text(field.get("sourceField")), text(field.get("field")));
+            String columnName = text(field.get("columnName"));
+            if (sourceField.equals(candidate) || sourceField.equals(columnName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private String normalizePrimaryFieldName(LowcodeModelSchema modelSchema, String value) {
         if (StringUtils.isBlank(value) || modelSchema == null || modelSchema.getFields() == null) {
             return value;
@@ -1090,6 +1121,105 @@ public class LowcodeRuntimeConfigBuilder {
 
     private String buildRelationDisplayAlias(String sourceField) {
         return StringUtils.isBlank(sourceField) ? null : sourceField + "Name";
+    }
+
+    private RelationLookupMeta resolveRelationLookup(LowcodeModelSchema modelSchema,
+                                                     LowcodePageSchema pageSchema,
+                                                     String fieldName) {
+        if (StringUtils.isBlank(fieldName) || modelSchema == null || pageSchema == null
+                || pageSchema.getModelRefs() == null || pageSchema.getModelRefs().size() <= 1) {
+            return null;
+        }
+        LowcodePageModelRef primaryRef = resolvePrimaryRef(modelSchema, pageSchema);
+        if (primaryRef == null) {
+            return null;
+        }
+        List<LowcodeRelationSchema> primaryRelations = primaryRef.getRelations() != null && !primaryRef.getRelations().isEmpty()
+                ? primaryRef.getRelations()
+                : modelSchema.getRelations();
+        for (LowcodePageModelRef ref : pageSchema.getModelRefs()) {
+            if (ref == null || Boolean.TRUE.equals(ref.getPrimary()) || StringUtils.isBlank(ref.getModelCode())) {
+                continue;
+            }
+            LowcodeRelationSchema relation = findRelationFromPrimary(primaryRelations, ref.getModelCode());
+            if (relation == null || !"REFERENCE".equalsIgnoreCase(StringUtils.defaultString(relation.getRelationType()))) {
+                continue;
+            }
+            String sourceField = normalizePrimaryFieldName(modelSchema, relation.getSourceField());
+            if (!fieldName.equals(sourceField)) {
+                continue;
+            }
+            String displayField = resolveRelationDisplayField(ref, relation);
+            Map<String, Object> props = ref.getProps() == null ? Map.of() : ref.getProps();
+            return new RelationLookupMeta(
+                    ref.getModelCode(),
+                    ref.getModelName(),
+                    text(props.get("targetConfigKey")),
+                    sourceField,
+                    StringUtils.defaultIfBlank(relation.getTargetField(), text(props.get("targetField"))),
+                    displayField
+            );
+        }
+        return null;
+    }
+
+    private Map<String, Object> buildRelationLookupConfig(RelationLookupMeta lookupMeta) {
+        Map<String, Object> config = new LinkedHashMap<>();
+        if (lookupMeta == null) {
+            return config;
+        }
+        putIfNotBlank(config, "modelCode", lookupMeta.modelCode());
+        putIfNotBlank(config, "modelName", lookupMeta.modelName());
+        putIfNotBlank(config, "configKey", lookupMeta.configKey());
+        putIfNotBlank(config, "sourceField", lookupMeta.sourceField());
+        putIfNotBlank(config, "targetField", lookupMeta.targetField());
+        putIfNotBlank(config, "displayField", lookupMeta.displayField());
+        putIfNotBlank(config, "targetFieldAlias", buildRelationDisplayAlias(lookupMeta.sourceField()));
+        return config;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void applyRelationLookupProps(Map<String, Object> item,
+                                          RelationLookupMeta lookupMeta,
+                                          String label) {
+        if (item == null || lookupMeta == null) {
+            return;
+        }
+        Map<String, Object> props = item.get("props") instanceof Map<?, ?> propsMap
+                ? new LinkedHashMap<>((Map<String, Object>) propsMap)
+                : new LinkedHashMap<>();
+        props.putIfAbsent("clearable", true);
+        props.putIfAbsent("filterable", true);
+        props.putIfAbsent("placeholder", "请选择" + StringUtils.defaultIfBlank(label, "关联数据"));
+        putIfNotBlank(props, "labelValueField", buildRelationDisplayAlias(lookupMeta.sourceField()));
+        Map<String, Object> optionSource = buildRelationOptionSource(lookupMeta);
+        if (!optionSource.isEmpty()) {
+            item.put("optionSource", optionSource);
+            props.put("optionSource", optionSource);
+        }
+        item.put("props", props);
+    }
+
+    private Map<String, Object> buildRelationOptionSource(RelationLookupMeta lookupMeta) {
+        if (lookupMeta == null || StringUtils.isBlank(lookupMeta.configKey())) {
+            return Map.of();
+        }
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("type", "list");
+        source.put("api", "get@/ai/crud/" + lookupMeta.configKey() + "/page");
+        source.put("recordsField", "records");
+        source.put("valueField", StringUtils.defaultIfBlank(lookupMeta.targetField(), "id"));
+        source.put("keyField", StringUtils.defaultIfBlank(lookupMeta.targetField(), "id"));
+        source.put("labelField", StringUtils.defaultIfBlank(lookupMeta.displayField(), "name"));
+        source.put("fallbackLabelFields", List.of(
+                StringUtils.defaultIfBlank(lookupMeta.displayField(), "name"),
+                "name", "title", "label", "customerName", "contactName", "objectName"
+        ));
+        source.put("params", Map.of(
+                "pageNum", 1,
+                "pageSize", 50
+        ));
+        return source;
     }
 
     private Map<String, Object> buildSearchField(LowcodeFieldSchema field) {
@@ -1113,6 +1243,13 @@ public class LowcodeRuntimeConfigBuilder {
         String componentType = resolveSearchComponentType(effectiveField, queryType, pageSetting);
         item.put("type", componentType);
         item.put("queryType", queryType);
+        applyAlignment(item, pageSetting);
+        RelationLookupMeta lookupMeta = resolveRelationLookup(modelSchema, pageSchema, field.getField());
+        if (lookupMeta != null) {
+            item.put("type", "select");
+            item.put("queryType", "eq");
+            item.put("relationLookup", buildRelationLookupConfig(lookupMeta));
+        }
         if ("daterange".equals(componentType) || "datetimerange".equals(componentType) || "timerange".equals(componentType)) {
             item.put("startPlaceholder", "开始" + StringUtils.defaultIfBlank(field.getLabel(), field.getField()));
             item.put("endPlaceholder", "结束" + StringUtils.defaultIfBlank(field.getLabel(), field.getField()));
@@ -1121,11 +1258,16 @@ public class LowcodeRuntimeConfigBuilder {
         if (StringUtils.isNotBlank(dictType)) {
             item.put("dictType", dictType);
         }
+        Map<String, Object> props = sanitizeFieldBasicProps(field);
         Object designerProps = pageSetting.get("props");
         if (designerProps instanceof Map<?, ?> designerPropsMap) {
-            Map<String, Object> props = new LinkedHashMap<>();
             props.putAll((Map<String, Object>) designerPropsMap);
+        }
+        if (!props.isEmpty()) {
             item.put("props", props);
+        }
+        if (lookupMeta != null) {
+            applyRelationLookupProps(item, lookupMeta, StringUtils.defaultIfBlank(field.getLabel(), field.getField()));
         }
         return item;
     }
@@ -1147,10 +1289,18 @@ public class LowcodeRuntimeConfigBuilder {
     }
 
     private Map<String, Object> buildTableColumn(LowcodeFieldSchema field, Map<String, Object> pageSetting) {
+        return buildTableColumn(field, pageSetting, null, null);
+    }
+
+    private Map<String, Object> buildTableColumn(LowcodeFieldSchema field,
+                                                 Map<String, Object> pageSetting,
+                                                 LowcodeModelSchema modelSchema,
+                                                 LowcodePageSchema pageSchema) {
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("key", field.getField());
         item.put("title", StringUtils.defaultIfBlank(field.getLabel(), field.getField()));
         item.put("dataIndex", field.getField());
+        applyAlignment(item, pageSetting);
         if (field.getWidth() != null && field.getWidth() > 0) {
             item.put("width", field.getWidth());
         }
@@ -1163,7 +1313,15 @@ public class LowcodeRuntimeConfigBuilder {
         String renderType = StringUtils.defaultIfBlank(text(pageSetting.get("renderType")),
                 resolveDefaultRenderType(field, componentType));
         String targetField = StringUtils.defaultIfBlank(text(pageSetting.get("targetField")), field.getField() + "Name");
-        if ("dictTag".equals(renderType) || (StringUtils.isBlank(renderType) && StringUtils.isNotBlank(field.getDictType()))) {
+        RelationLookupMeta lookupMeta = resolveRelationLookup(modelSchema, pageSchema, field.getField());
+        if (lookupMeta != null) {
+            Map<String, Object> render = new LinkedHashMap<>();
+            render.put("type", "relationName");
+            render.put("targetField", buildRelationDisplayAlias(field.getField()));
+            render.put("relationModelCode", lookupMeta.modelCode());
+            render.put("displayField", lookupMeta.displayField());
+            item.put("render", render);
+        } else if ("dictTag".equals(renderType) || (StringUtils.isBlank(renderType) && StringUtils.isNotBlank(field.getDictType()))) {
             Map<String, Object> render = new LinkedHashMap<>();
             render.put("type", "dictTag");
             render.put("dictType", field.getDictType());
@@ -1208,6 +1366,39 @@ public class LowcodeRuntimeConfigBuilder {
             case "fileUpload", "imageUpload" -> componentType;
             default -> "";
         };
+    }
+
+    private void applyAlignment(Map<String, Object> item, Map<String, Object> pageSetting) {
+        String align = normalizeAlign(StringUtils.defaultIfBlank(text(pageSetting.get("align")),
+                text(pageSetting.get("textAlign"))));
+        if (StringUtils.isNotBlank(align)) {
+            item.put("align", align);
+        }
+    }
+
+    private String normalizeAlign(String value) {
+        String align = StringUtils.defaultString(value).trim().toLowerCase(Locale.ROOT);
+        return Set.of("left", "center", "right").contains(align) ? align : null;
+    }
+
+    private Map<String, Object> sanitizeFieldBasicProps(LowcodeFieldSchema field) {
+        if (field == null || field.getBasicProps() == null || field.getBasicProps().isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+        Map<String, Object> props = new LinkedHashMap<>();
+        copyBasicProp(field.getBasicProps(), props, "placeholder");
+        copyBasicProp(field.getBasicProps(), props, "cascade");
+        copyBasicProp(field.getBasicProps(), props, "cascadeConfig");
+        copyBasicProp(field.getBasicProps(), props, "clearable");
+        copyBasicProp(field.getBasicProps(), props, "filterable");
+        copyBasicProp(field.getBasicProps(), props, "multiple");
+        return props;
+    }
+
+    private void copyBasicProp(Map<String, Object> source, Map<String, Object> target, String key) {
+        if (source.containsKey(key)) {
+            target.put(key, source.get(key));
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -1365,12 +1556,25 @@ public class LowcodeRuntimeConfigBuilder {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> buildEditField(LowcodeFieldSchema field, Map<String, Object> pageSetting) {
+        return buildEditField(field, pageSetting, null, null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> buildEditField(LowcodeFieldSchema field,
+                                               Map<String, Object> pageSetting,
+                                               LowcodeModelSchema modelSchema,
+                                               LowcodePageSchema pageSchema) {
         Map<String, Object> item = new LinkedHashMap<>();
         String label = StringUtils.defaultIfBlank(field.getLabel(), field.getField());
+        RelationLookupMeta lookupMeta = resolveRelationLookup(modelSchema, pageSchema, field.getField());
         String componentType = resolveEditComponentType(field, pageSetting);
+        if (lookupMeta != null) {
+            componentType = "select";
+        }
         item.put("field", field.getField());
         item.put("label", label);
         item.put("type", componentType);
+        applyAlignment(item, pageSetting);
         item.put("required", !isSystemField(field) && Boolean.TRUE.equals(field.getRequired()));
         if (isSystemField(field) || Boolean.TRUE.equals(field.getReadonly())) {
             item.put("disabled", true);
@@ -1410,6 +1614,7 @@ public class LowcodeRuntimeConfigBuilder {
         if (field.getPrecision() != null && field.getPrecision() >= 0 && "number".equals(componentType)) {
             props.put("precision", field.getPrecision());
         }
+        props.putAll(sanitizeFieldBasicProps(field));
         Object designerProps = pageSetting.get("props");
         if (designerProps instanceof Map<?, ?> designerPropsMap) {
             props.putAll((Map<String, Object>) designerPropsMap);
@@ -1418,6 +1623,10 @@ public class LowcodeRuntimeConfigBuilder {
             props.put("disabled", true);
         }
         item.put("props", props);
+        if (lookupMeta != null) {
+            item.put("relationLookup", buildRelationLookupConfig(lookupMeta));
+            applyRelationLookupProps(item, lookupMeta, label);
+        }
 
         if (Boolean.TRUE.equals(field.getRequired())) {
             Map<String, Object> rule = new LinkedHashMap<>();

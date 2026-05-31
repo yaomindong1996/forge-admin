@@ -98,6 +98,12 @@ export const manualRoutes = [
     meta: { title: '业务对象设计' },
   },
   {
+    name: 'BusinessAppEntry',
+    path: '/app-center/app/:appId',
+    component: () => import('@/views/app-center/app-entry.vue'),
+    meta: { title: '应用入口' },
+  },
+  {
     name: 'ReportSsoBridge',
     path: SSO_BRIDGE_ROUTE,
     component: () => import('@/views/report/design.vue'),

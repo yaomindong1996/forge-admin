@@ -99,7 +99,7 @@ public class BusinessObjectDesignerService {
         vo.setModelSchema(context.getModelSchema());
         vo.setPageSchema(context.getPageSchema());
         vo.setFields(fieldSchemaService.toFieldVOList(context.getModelSchema()));
-        vo.setRelations(context.getRelations());
+        vo.setRelations(sourceRelations(object, context.getRelations()));
         vo.setDesignerOptions(readMap(object.getDesignerOptions()));
         return vo;
     }
@@ -121,8 +121,8 @@ public class BusinessObjectDesignerService {
             if (dto.getDesignerOptions() != null && !dto.getDesignerOptions().isEmpty()) {
                 object.setDesignerOptions(writeJson(dto.getDesignerOptions(), "designerOptions"));
             }
-            if (dto.getRelations() != null && !dto.getRelations().isEmpty()) {
-                saveSourceRelations(object, dto.getRelations());
+            if (dto.getRelations() != null) {
+                saveSourceRelations(object, sourceRelationDTOs(object, dto.getRelations()));
                 context.setRelations(relationMapper.selectRelationsByObject(
                         resolveTenantId(), object.getSuiteCode(), object.getObjectCode()));
                 applyRelationsToModel(context);
@@ -150,6 +150,28 @@ public class BusinessObjectDesignerService {
         context.setPageSchema(pageSchema);
         context.setRelations(relations);
         return context;
+    }
+
+    private List<BusinessObjectRelationVO> sourceRelations(AiBusinessObject object, List<BusinessObjectRelationVO> relations) {
+        if (object == null || relations == null) {
+            return new ArrayList<>();
+        }
+        return relations.stream()
+                .filter(relation -> relation != null
+                        && StringUtils.equals(object.getObjectCode(), relation.getSourceObjectCode()))
+                .toList();
+    }
+
+    private List<BusinessObjectRelationDTO> sourceRelationDTOs(AiBusinessObject object,
+                                                               List<BusinessObjectRelationDTO> relations) {
+        if (object == null || relations == null) {
+            return new ArrayList<>();
+        }
+        return relations.stream()
+                .filter(relation -> relation != null
+                        && (StringUtils.isBlank(relation.getSourceObjectCode())
+                        || StringUtils.equals(object.getObjectCode(), relation.getSourceObjectCode())))
+                .toList();
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -437,40 +459,58 @@ public class BusinessObjectDesignerService {
         LowcodePageSchema pageSchema = context.getPageSchema() == null ? new LowcodePageSchema() : context.getPageSchema();
         LowcodePageModelRef primaryRef = toPageModelRef(context.getObject(), context.getModel(), context.getModelSchema(), true);
         List<LowcodePageModelRef> refs = new ArrayList<>();
+        Set<String> addedModelCodes = new LinkedHashSet<>();
         refs.add(primaryRef);
+        addedModelCodes.add(primaryRef.getModelCode());
 
         List<String> childFieldRefs = new ArrayList<>();
+        boolean hasEmbeddedRelations = false;
         for (AiBusinessObjectRelation relation : relations) {
-            if (!isEmbeddedRelation(relation)) {
-                continue;
-            }
             AiBusinessObject target = businessObjectMapper.selectByObjectCode(
                     resolveTenantId(), relation.getSuiteCode(), relation.getTargetObjectCode());
             if (target == null) {
                 continue;
             }
             DesignerContext targetContext = loadContext(target.getId());
-            LowcodePageModelRef childRef = toPageModelRef(target, targetContext.getModel(),
+            LowcodePageModelRef targetRef = toPageModelRef(target, targetContext.getModel(),
                     targetContext.getModelSchema(), false);
-            childRef.setRelations(List.of(toRelationToPrimary(relation, primaryRef.getModelCode())));
-            childRef.setProps(toInlineRelationProps(relation));
-            refs.add(childRef);
-            childRef.getFields().stream()
-                    .map(item -> text(item.get("fieldRef")))
-                    .filter(StringUtils::isNotBlank)
-                    .forEach(childFieldRefs::add);
+            if (isEmbeddedRelation(relation)) {
+                targetRef.setRelations(List.of(toRelationToPrimary(relation, primaryRef.getModelCode())));
+                targetRef.setProps(toInlineRelationProps(relation));
+                hasEmbeddedRelations = true;
+                addPageModelRef(refs, addedModelCodes, targetRef);
+                targetRef.getFields().stream()
+                        .map(item -> text(item.get("fieldRef")))
+                        .filter(StringUtils::isNotBlank)
+                        .forEach(childFieldRefs::add);
+                continue;
+            }
+            if (isReferenceLookupRelation(relation)) {
+                targetRef.setRelations(List.of(toLowcodeRelation(relation)));
+                targetRef.setProps(toLookupRelationProps(relation));
+                addPageModelRef(refs, addedModelCodes, targetRef);
+            }
         }
 
         pageSchema.setModelRefs(refs);
         pageSchema.setPrimaryModelId(primaryRef.getModelId());
         pageSchema.setPrimaryModelCode(primaryRef.getModelCode());
-        if (refs.size() > 1) {
+        if (hasEmbeddedRelations) {
             pageSchema.setLayoutType("master-detail-crud");
         } else if ("master-detail-crud".equals(pageSchema.getLayoutType())) {
             pageSchema.setLayoutType("simple-crud");
         }
         syncInlineEditRefsToEditZone(pageSchema, primaryRef, childFieldRefs);
         context.setPageSchema(pageSchema);
+    }
+
+    private boolean addPageModelRef(List<LowcodePageModelRef> refs, Set<String> addedModelCodes, LowcodePageModelRef ref) {
+        if (ref == null || StringUtils.isBlank(ref.getModelCode()) || addedModelCodes.contains(ref.getModelCode())) {
+            return false;
+        }
+        refs.add(ref);
+        addedModelCodes.add(ref.getModelCode());
+        return true;
     }
 
     private boolean isEmbeddedRelation(AiBusinessObjectRelation relation) {
@@ -485,6 +525,16 @@ public class BusinessObjectDesignerService {
         return readBoolean(config.get("showInDetail"), true)
                 || readBoolean(config.get("inlineCreateEnabled"), true)
                 || readBoolean(config.get("inlineEditEnabled"), true);
+    }
+
+    private boolean isReferenceLookupRelation(AiBusinessObjectRelation relation) {
+        if (relation == null || Integer.valueOf(0).equals(relation.getStatus())) {
+            return false;
+        }
+        String relationType = StringUtils.defaultString(relation.getRelationType()).toUpperCase(Locale.ROOT);
+        return "REFERENCE".equals(relationType)
+                && StringUtils.isNotBlank(relation.getSourceFieldCode())
+                && StringUtils.isNotBlank(relation.getTargetFieldCode());
     }
 
     private Map<String, Object> toInlineRelationProps(AiBusinessObjectRelation relation) {
@@ -502,6 +552,29 @@ public class BusinessObjectDesignerService {
         if (StringUtils.isNotBlank(text(config.get("defaultFilter")))) {
             props.put("defaultFilter", text(config.get("defaultFilter")));
         }
+        putIfNotBlank(props, "displayField", resolveRelationDisplayField(relation));
+        return props;
+    }
+
+    private void putIfNotBlank(Map<String, Object> target, String key, String value) {
+        if (StringUtils.isNotBlank(value)) {
+            target.put(key, value);
+        }
+    }
+
+    private Map<String, Object> toLookupRelationProps(AiBusinessObjectRelation relation) {
+        Map<String, Object> config = readMap(relation.getRelationConfig());
+        Map<String, Object> props = new LinkedHashMap<>();
+        AiBusinessObject target = businessObjectMapper.selectByObjectCode(
+                resolveTenantId(), relation.getSuiteCode(), relation.getTargetObjectCode());
+        props.put("relationName", relation.getRelationName());
+        props.put("sourceObjectCode", relation.getSourceObjectCode());
+        props.put("targetObjectCode", relation.getTargetObjectCode());
+        props.put("sourceField", relation.getSourceFieldCode());
+        props.put("targetField", relation.getTargetFieldCode());
+        putIfNotBlank(props, "displayField", resolveRelationDisplayField(relation, target, config));
+        putIfNotBlank(props, "targetConfigKey", target == null ? null : target.getConfigKey());
+        putIfNotBlank(props, "targetDisplayField", target == null ? null : target.getDisplayField());
         return props;
     }
 
@@ -511,7 +584,7 @@ public class BusinessObjectDesignerService {
         schema.setTargetObjectCode(primaryObjectCode);
         schema.setSourceField(relation.getTargetFieldCode());
         schema.setTargetField(relation.getSourceFieldCode());
-        schema.setDisplayField(text(readMap(relation.getRelationConfig()).get("displayField")));
+        schema.setDisplayField(resolveRelationDisplayField(relation));
         return schema;
     }
 
@@ -645,8 +718,25 @@ public class BusinessObjectDesignerService {
         schema.setTargetObjectCode(resolveRelationModelCode(relation.getSuiteCode(), relation.getTargetObjectCode()));
         schema.setSourceField(relation.getSourceFieldCode());
         schema.setTargetField(relation.getTargetFieldCode());
-        schema.setDisplayField(text(readMap(relation.getRelationConfig()).get("displayField")));
+        schema.setDisplayField(resolveRelationDisplayField(relation));
         return schema;
+    }
+
+    private String resolveRelationDisplayField(AiBusinessObjectRelation relation) {
+        if (relation == null) {
+            return null;
+        }
+        Map<String, Object> config = readMap(relation.getRelationConfig());
+        AiBusinessObject target = businessObjectMapper.selectByObjectCode(
+                resolveTenantId(), relation.getSuiteCode(), relation.getTargetObjectCode());
+        return resolveRelationDisplayField(relation, target, config);
+    }
+
+    private String resolveRelationDisplayField(AiBusinessObjectRelation relation,
+                                               AiBusinessObject target,
+                                               Map<String, Object> config) {
+        String configured = config == null ? null : text(config.get("displayField"));
+        return StringUtils.firstNonBlank(configured, target == null ? null : target.getDisplayField());
     }
 
     private String resolveRelationModelCode(String suiteCode, String objectCode) {

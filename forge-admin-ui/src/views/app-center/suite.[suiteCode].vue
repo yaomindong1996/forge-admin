@@ -5,7 +5,10 @@
         返回应用中心
       </n-button>
       <div class="suite-title">
-        <span>{{ suiteInitial }}</span>
+        <span class="suite-avatar" :class="{ 'has-icon': suite?.icon }">
+          <IconRenderer v-if="suite?.icon" :icon="suite.icon" :size="28" />
+          <template v-else>{{ suiteInitial }}</template>
+        </span>
         <div>
           <h1>{{ suite?.suiteName || suiteCode }}</h1>
           <p>{{ suite?.description || '业务套件详情' }}</p>
@@ -18,93 +21,100 @@
       </div>
     </header>
 
-    <section class="suite-section">
-      <div class="section-head">
-        <div>
-          <h2>业务对象</h2>
-          <p>优先从对象进入关系、能力和标准业务入口。</p>
-        </div>
-        <n-button type="primary" @click="openObjectWizard">
-          新建对象
-        </n-button>
-      </div>
-      <n-spin :show="loadingObjects">
-        <div v-if="objects.length" class="object-grid">
-          <ObjectCard
-            v-for="object in objects"
-            :key="object.id"
-            :object="object"
-            @open="openObject"
-            @design="openObjectDesigner"
-            @toggle="toggleObject"
-            @delete="deleteObject"
-          />
-        </div>
-        <n-empty v-else-if="!loadingObjects" description="当前套件暂无业务对象" />
-      </n-spin>
-      <div v-if="objectTotal > objectPagination.pageSize" class="card-pagination">
-        <n-pagination
-          v-model:page="objectPagination.pageNum"
-          v-model:page-size="objectPagination.pageSize"
-          :item-count="objectTotal"
-          :page-sizes="pageSizeOptions"
-          show-size-picker
-          @update:page="loadObjects"
-          @update:page-size="handleObjectPageSizeChange"
-        />
-      </div>
-    </section>
+    <div class="suite-content-grid">
+      <main class="suite-main">
+        <section class="suite-section">
+          <div class="section-head">
+            <div>
+              <h2>业务对象</h2>
+              <p>优先从对象进入关系、能力和标准业务入口。</p>
+            </div>
+            <n-button type="primary" @click="openObjectWizard">
+              新建对象
+            </n-button>
+          </div>
+          <n-spin :show="loadingObjects">
+            <div v-if="objects.length" class="object-grid">
+              <ObjectCard
+                v-for="object in objects"
+                :key="object.id"
+                :object="object"
+                @open="openObject"
+                @design="openObjectDesigner"
+                @toggle="toggleObject"
+                @delete="deleteObject"
+              />
+            </div>
+            <n-empty v-else-if="!loadingObjects" description="当前套件暂无业务对象" />
+          </n-spin>
+          <div v-if="objectTotal > objectPagination.pageSize" class="card-pagination">
+            <n-pagination
+              v-model:page="objectPagination.pageNum"
+              v-model:page-size="objectPagination.pageSize"
+              :item-count="objectTotal"
+              :page-sizes="pageSizeOptions"
+              show-size-picker
+              @update:page="loadObjects"
+              @update:page-size="handleObjectPageSizeChange"
+            />
+          </div>
+        </section>
 
-    <section class="suite-section acceptance-section">
-      <div class="section-head">
-        <div>
-          <h2>交付验收</h2>
-          <p>检查业务套件是否达到最小交付标准。</p>
-        </div>
-      </div>
-      <SuiteAcceptancePanel
-        :suite-code="suiteCode"
-        @object-click="handleAcceptanceObjectClick"
-        @action="handleAcceptanceAction"
-      />
-    </section>
+        <section class="suite-section">
+          <div class="section-head">
+            <div>
+              <h2>场景入口</h2>
+              <p>业务应用、看板、移动端和集成入口按场景展示。</p>
+            </div>
+            <n-button type="primary" @click="openEditor(null)">
+              新增入口
+            </n-button>
+          </div>
+          <n-spin :show="loadingApps">
+            <div v-if="apps.length" class="app-grid">
+              <AppCard
+                v-for="app in apps"
+                :key="app.id"
+                :app="app"
+                @open="openApp"
+                @config="openEditor"
+                @toggle="toggleApp"
+                @delete="deleteApp"
+              />
+            </div>
+            <n-empty v-else-if="!loadingApps" description="当前套件暂无应用入口" />
+          </n-spin>
+          <div v-if="appTotal > appPagination.pageSize" class="card-pagination">
+            <n-pagination
+              v-model:page="appPagination.pageNum"
+              v-model:page-size="appPagination.pageSize"
+              :item-count="appTotal"
+              :page-sizes="pageSizeOptions"
+              show-size-picker
+              @update:page="loadApps"
+              @update:page-size="handleAppPageSizeChange"
+            />
+          </div>
+        </section>
+      </main>
 
-    <section class="suite-section">
-      <div class="section-head">
-        <div>
-          <h2>场景入口</h2>
-          <p>业务应用、看板、移动端和集成入口按场景展示。</p>
-        </div>
-        <n-button type="primary" @click="openEditor(null)">
-          新增入口
-        </n-button>
-      </div>
-      <n-spin :show="loadingApps">
-        <div v-if="apps.length" class="app-grid">
-          <AppCard
-            v-for="app in apps"
-            :key="app.id"
-            :app="app"
-            @open="openApp"
-            @config="openEditor"
-            @toggle="toggleApp"
-            @delete="deleteApp"
+      <aside class="suite-side">
+        <section class="suite-section acceptance-section">
+          <div class="section-head compact">
+            <div>
+              <h2>交付验收</h2>
+              <p>检查业务套件是否达到最小交付标准。</p>
+            </div>
+          </div>
+          <SuiteAcceptancePanel
+            :suite-code="suiteCode"
+            compact
+            @object-click="handleAcceptanceObjectClick"
+            @action="handleAcceptanceAction"
           />
-        </div>
-        <n-empty v-else-if="!loadingApps" description="当前套件暂无应用入口" />
-      </n-spin>
-      <div v-if="appTotal > appPagination.pageSize" class="card-pagination">
-        <n-pagination
-          v-model:page="appPagination.pageNum"
-          v-model:page-size="appPagination.pageSize"
-          :item-count="appTotal"
-          :page-sizes="pageSizeOptions"
-          show-size-picker
-          @update:page="loadApps"
-          @update:page-size="handleAppPageSizeChange"
-        />
-      </div>
-    </section>
+        </section>
+      </aside>
+    </div>
 
     <AppEditorDrawer
       v-model:show="editorVisible"
@@ -135,6 +145,7 @@ import {
   updateBusinessAppStatus,
   updateBusinessObjectStatus,
 } from '@/api/business-app'
+import IconRenderer from '@/components/IconRenderer.vue'
 import { useTabStore } from '@/store'
 import AppCard from './components/AppCard.vue'
 import AppEditorDrawer from './components/AppEditorDrawer.vue'
@@ -402,6 +413,11 @@ function handleAcceptanceAction(action, data) {
   font-weight: 700;
 }
 
+.suite-title > span.has-icon {
+  background: #f8fafc;
+  color: #2563eb;
+}
+
 .suite-title h1,
 .section-head h2 {
   margin: 0;
@@ -452,6 +468,23 @@ function handleAcceptanceAction(action, data) {
   margin-bottom: 16px;
 }
 
+.suite-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 420px);
+  gap: 16px;
+  align-items: start;
+}
+
+.suite-main,
+.suite-side {
+  min-width: 0;
+}
+
+.suite-side {
+  position: sticky;
+  top: 16px;
+}
+
 .acceptance-section {
   border-color: #dbeafe;
   background: #f8fbff;
@@ -464,10 +497,14 @@ function handleAcceptanceAction(action, data) {
   margin-bottom: 14px;
 }
 
+.section-head.compact {
+  display: block;
+}
+
 .object-grid,
 .app-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: 12px;
 }
 
@@ -475,6 +512,16 @@ function handleAcceptanceAction(action, data) {
   display: flex;
   justify-content: flex-end;
   margin-top: 14px;
+}
+
+@media (max-width: 1100px) {
+  .suite-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .suite-side {
+    position: static;
+  }
 }
 
 @media (max-width: 680px) {

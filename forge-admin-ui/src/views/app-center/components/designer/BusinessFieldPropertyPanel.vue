@@ -78,6 +78,47 @@
             />
           </n-form-item>
 
+          <section v-if="needsDict" class="cascade-config">
+            <div class="cascade-config-head">
+              <div>
+                <strong>级联过滤</strong>
+                <span>根据上级字段值过滤当前字典选项。</span>
+              </div>
+              <n-switch
+                :value="form.basicProps.cascade.enabled"
+                :disabled="field.systemField"
+                size="small"
+                @update:value="updateCascadeEnabled"
+              />
+            </div>
+            <div v-if="form.basicProps.cascade.enabled" class="cascade-grid">
+              <n-form-item label="上级字段">
+                <n-select
+                  v-model:value="form.basicProps.cascade.sourceField"
+                  :options="cascadeSourceFieldOptions"
+                  :disabled="field.systemField"
+                  filterable
+                  clearable
+                  placeholder="选择上级字典或关联字段"
+                />
+              </n-form-item>
+              <n-form-item label="匹配方式">
+                <n-select
+                  v-model:value="form.basicProps.cascade.mode"
+                  :options="cascadeModeOptions"
+                  :disabled="field.systemField"
+                />
+              </n-form-item>
+              <n-form-item v-if="form.basicProps.cascade.mode === 'remoteParam'" label="请求参数名">
+                <n-input
+                  v-model:value="form.basicProps.cascade.paramName"
+                  :disabled="field.systemField"
+                  placeholder="例如：orgId / parentId"
+                />
+              </n-form-item>
+            </div>
+          </section>
+
           <div class="switch-grid">
             <label>
               <span>必填</span>
@@ -247,6 +288,11 @@ const encryptOptions = [
   { label: 'AES', value: 'AES' },
   { label: 'SM4', value: 'SM4' },
 ]
+const cascadeModeOptions = [
+  { label: '字典父子(parent_dict_code)', value: 'parentDictCode' },
+  { label: '关联字典(linked_dict_type/value)', value: 'linkedDict' },
+  { label: '远程参数过滤', value: 'remoteParam' },
+]
 
 const payload = computed(() => normalizePayload(form))
 const changed = computed(() => JSON.stringify(payload.value) !== baseline)
@@ -262,6 +308,12 @@ const lengthMax = computed(() => {
     return 255
   return 2048
 })
+const cascadeSourceFieldOptions = computed(() => props.allFields
+  .filter(item => item && item.fieldCode !== form.fieldCode && item.fieldStatus !== 'HIDDEN')
+  .map(item => ({
+    label: `${item.fieldName || item.label || item.fieldCode}（${item.fieldCode || item.field}）`,
+    value: item.fieldCode || item.field,
+  })))
 
 watch(
   () => props.field,
@@ -306,6 +358,7 @@ function resetForm() {
 
 function createFieldForm(field) {
   const currentField = field || {}
+  const basicProps = { ...(currentField.basicProps || {}) }
   return {
     fieldName: currentField.fieldName || '',
     fieldCode: currentField.fieldCode || '',
@@ -335,16 +388,24 @@ function createFieldForm(field) {
     placeholder: currentField.basicProps?.placeholder || currentField.placeholder || '',
     remark: currentField.remark || '',
     sortOrder: currentField.sortOrder ?? 0,
-    basicProps: { ...(currentField.basicProps || {}) },
+    basicProps: {
+      ...basicProps,
+      cascade: createDefaultCascade(basicProps.cascade || currentField.cascade || currentField.props?.cascade),
+    },
     advancedProps: { ...(currentField.advancedProps || {}) },
   }
 }
 
 function normalizePayload(source) {
+  const cascade = normalizeCascade(source.basicProps?.cascade)
   const basicProps = {
     ...(source.basicProps || {}),
     placeholder: source.placeholder || '',
   }
+  if (cascade.enabled)
+    basicProps.cascade = cascade
+  else
+    delete basicProps.cascade
   return {
     fieldName: source.fieldName,
     fieldCode: source.fieldCode,
@@ -377,6 +438,32 @@ function normalizePayload(source) {
     basicProps,
     advancedProps: { ...(source.advancedProps || {}) },
   }
+}
+
+function updateCascadeEnabled(value) {
+  form.basicProps.cascade = createDefaultCascade({
+    ...(form.basicProps.cascade || {}),
+    enabled: value,
+  })
+}
+
+function createDefaultCascade(source = {}) {
+  return {
+    enabled: !!source.enabled,
+    sourceField: source.sourceField || '',
+    mode: source.mode || source.matchMode || 'linkedDict',
+    paramName: source.paramName || '',
+    clearOnParentChange: source.clearOnParentChange !== false,
+  }
+}
+
+function normalizeCascade(source = {}) {
+  const cascade = createDefaultCascade(source)
+  if (!cascade.enabled || !cascade.sourceField)
+    return { ...cascade, enabled: false }
+  if (cascade.mode !== 'remoteParam')
+    cascade.paramName = ''
+  return cascade
 }
 
 function applyFieldTypeDefaults(fieldType) {
@@ -495,6 +582,45 @@ defineExpose({
 
 .dict-property-item :deep(.create-dict-button) {
   width: 72px;
+}
+
+.cascade-config {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: #fff;
+  padding: 12px;
+}
+
+.cascade-config-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cascade-config-head strong,
+.cascade-config-head span {
+  display: block;
+}
+
+.cascade-config-head strong {
+  color: #111827;
+  font-size: 13px;
+}
+
+.cascade-config-head span {
+  margin-top: 3px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.cascade-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
 }
 
 .property-footer {

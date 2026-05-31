@@ -6,7 +6,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePermissionStore } from '@/store'
 import { isExternal } from '@/utils'
-import { findMenuItem, processMenuData } from '@/utils/menu-utils'
+import { findMenuIdByPath, findMenuItem, isSameMenuPath, processMenuData } from '@/utils/menu-utils'
 import {
   DEFAULT_REPORT_BASE_URL,
   DEFAULT_SSO_TARGET_CLIENT,
@@ -203,33 +203,6 @@ function isNoMatchRoute(resolvedRoute) {
 }
 
 /**
- * 根据路由路径查找匹配的菜单ID
- * @param {Array} items - 已处理的菜单项
- * @param {string} targetPath - 要匹配的路由路径
- * @returns {string|null} 匹配的菜单key或null
- */
-function findMenuIdByPath(items, targetPath) {
-  if (!items || !Array.isArray(items))
-    return null
-
-  const normalizedTargetPath = normalizeLocalPath(targetPath)
-  if (!normalizedTargetPath) {
-    return null
-  }
-  for (const item of items) {
-    if (normalizeLocalPath(item.path) === normalizedTargetPath) {
-      return item.key || item.id
-    }
-    if (item.children && item.children.length > 0) {
-      const found = findMenuIdByPath(item.children, normalizedTargetPath)
-      if (found)
-        return found
-    }
-  }
-  return null
-}
-
-/**
  * 查找包含指定路径的顶级菜单
  * @param {Array} menus - 权限仓库中的原始菜单
  * @param {string} targetPath - 要匹配的路由路径
@@ -241,7 +214,7 @@ export function findTopMenuByPath(menus, targetPath) {
 
   const findInMenu = (items) => {
     for (const item of items) {
-      if (item.path === targetPath) {
+      if (isSameMenuPath(item.path, targetPath)) {
         return item
       }
       if (item.children && item.children.length > 0) {
@@ -441,6 +414,14 @@ export function useMenu() {
           return
         }
         router.push(targetPath)
+      }
+      return
+    }
+
+    if (originalItem.type === 'module' && originalItem.children?.length) {
+      const firstMenu = findFirstMenuWithPath(originalItem)
+      if (firstMenu?.path) {
+        handleMenuSelect(firstMenu.key || firstMenu.id, firstMenu.path)
       }
       return
     }

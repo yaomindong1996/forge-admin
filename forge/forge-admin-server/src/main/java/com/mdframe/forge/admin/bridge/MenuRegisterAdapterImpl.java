@@ -73,8 +73,19 @@ public class MenuRegisterAdapterImpl implements MenuRegisterAdapter {
     @Override
     public Long registerAppMenu(String menuName, Long parentId, String path, String component,
                                 String perms, String icon, Integer sort, boolean enabled) {
+        Long tenantId = resolveTenantId();
+        SysResource existing = resourceMapper.selectOneByPerms(tenantId, 2, perms);
+        if (existing != null && existing.getId() != null) {
+            updateAppMenu(existing.getId(), menuName, parentId, path, component, perms, icon, sort, enabled);
+            return existing.getId();
+        }
+        SysResource existingByPath = resourceMapper.selectOneByPath(tenantId, 2, path);
+        if (existingByPath != null && existingByPath.getId() != null) {
+            updateAppMenu(existingByPath.getId(), menuName, parentId, path, component, perms, icon, sort, enabled);
+            return existingByPath.getId();
+        }
         SysResource resource = new SysResource();
-        resource.setTenantId(resolveTenantId());
+        resource.setTenantId(tenantId);
         resource.setResourceName(menuName);
         resource.setParentId(parentId != null ? parentId : 0L);
         resource.setResourceType(2);
@@ -169,7 +180,8 @@ public class MenuRegisterAdapterImpl implements MenuRegisterAdapter {
     }
 
     @Override
-    public Long resolveOrCreateBusinessSuiteParentId(Long parentId, String suiteCode, String suiteName, Integer sort) {
+    public Long resolveOrCreateBusinessSuiteParentId(Long parentId, String suiteCode, String suiteName,
+                                                     String icon, Integer sort) {
         String normalizedCode = StringUtils.trimToNull(suiteCode);
         if (normalizedCode == null) {
             return parentId;
@@ -179,7 +191,7 @@ public class MenuRegisterAdapterImpl implements MenuRegisterAdapter {
         SysResource existing = resourceMapper.selectOneByPerms(tenantId, 1, perms);
         Long resolvedParentId = parentId != null ? parentId : 0L;
         if (existing != null && existing.getId() != null) {
-            updateBusinessSuiteParentIfNeeded(existing, resolvedParentId, suiteName, sort);
+            updateBusinessSuiteParentIfNeeded(existing, resolvedParentId, suiteName, icon, sort);
             return existing.getId();
         }
 
@@ -196,7 +208,7 @@ public class MenuRegisterAdapterImpl implements MenuRegisterAdapter {
         resource.setMenuStatus(1);
         resource.setVisible(1);
         resource.setPerms(perms);
-        resource.setIcon("ionicons5:AlbumsOutline");
+        resource.setIcon(StringUtils.defaultIfBlank(icon, "ionicons5:AlbumsOutline"));
         resource.setKeepAlive(0);
         resource.setAlwaysShow(1);
         resource.setClientCode(DEFAULT_CLIENT_CODE);
@@ -223,7 +235,8 @@ public class MenuRegisterAdapterImpl implements MenuRegisterAdapter {
         }
     }
 
-    private void updateBusinessSuiteParentIfNeeded(SysResource existing, Long parentId, String suiteName, Integer sort) {
+    private void updateBusinessSuiteParentIfNeeded(SysResource existing, Long parentId, String suiteName,
+                                                   String icon, Integer sort) {
         SysResource resource = new SysResource();
         resource.setId(existing.getId());
         boolean changed = false;
@@ -233,6 +246,10 @@ public class MenuRegisterAdapterImpl implements MenuRegisterAdapter {
         }
         if (StringUtils.isNotBlank(suiteName) && !suiteName.equals(existing.getResourceName())) {
             resource.setResourceName(suiteName);
+            changed = true;
+        }
+        if (StringUtils.isNotBlank(icon) && !icon.equals(existing.getIcon())) {
+            resource.setIcon(icon);
             changed = true;
         }
         if (sort != null && !sort.equals(existing.getSort())) {

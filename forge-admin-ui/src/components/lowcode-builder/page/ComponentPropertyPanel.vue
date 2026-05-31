@@ -136,6 +136,16 @@
               @update:value="patchItemStyle({ labelWidth: Number($event || 86) })"
             />
           </n-form-item>
+          <n-form-item label="内容对齐">
+            <n-select
+              :value="selectedItem.style?.textAlign || 'left'"
+              :options="alignOptions"
+              size="small"
+              @update:value="patchItemStyle({ textAlign: $event || 'left' })"
+            />
+          </n-form-item>
+        </div>
+        <div class="layout-grid">
           <n-form-item label="圆角">
             <n-input-number
               :value="selectedItem.style?.radius || 6"
@@ -282,6 +292,11 @@ const emit = defineEmits(['update:zone', 'updateItem', 'removeItem'])
 const treeLoadModeOptions = [
   { label: '全量加载', value: 'full' },
   { label: '懒加载', value: 'lazy' },
+]
+const alignOptions = [
+  { label: '左对齐', value: 'left' },
+  { label: '居中', value: 'center' },
+  { label: '右对齐', value: 'right' },
 ]
 
 const fieldOptions = computed(() => props.fields.map(field => ({

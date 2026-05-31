@@ -12,6 +12,7 @@
           :key="field.field"
           :label="field.label || field.field"
           :show-feedback="false"
+          :style="{ textAlign: fieldAlign(field.field) }"
         >
           <n-tree-select
             v-if="['treeSelect', 'orgTreeSelect', 'regionTreeSelect'].includes(componentType(field))"
@@ -224,6 +225,7 @@ const tableColumns = computed(() => [
     key: field.field,
     title: field.label || field.field,
     minWidth: 96,
+    align: fieldAlign(field.field),
     ellipsis: { tooltip: true },
   })),
   { key: '__actions', title: '操作', width: 96, fixed: 'right' },
@@ -245,6 +247,11 @@ function componentType(field) {
 
 function hasAction(key) {
   return Array.isArray(props.block.props?.actions) && props.block.props.actions.includes(key)
+}
+
+function fieldAlign(fieldName) {
+  const align = props.block.props?.fieldSettings?.[fieldName]?.align
+  return ['left', 'center', 'right'].includes(align) ? align : 'left'
 }
 
 function trendClass(trend) {

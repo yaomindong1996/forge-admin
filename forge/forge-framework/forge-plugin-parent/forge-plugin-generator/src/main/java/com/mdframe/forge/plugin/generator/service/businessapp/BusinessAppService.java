@@ -187,12 +187,12 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         if (suiteAsParent) {
             AiBusinessSuite suite = suiteService.requireByCode(app.getSuiteCode());
             parentId = menuRegisterAdapter.resolveOrCreateBusinessSuiteParentId(
-                    parentId, app.getSuiteCode(), suite.getSuiteName(), app.getSortOrder());
+                    parentId, app.getSuiteCode(), suite.getSuiteName(), suite.getIcon(), app.getSortOrder());
         }
 
         String path = "/app-center/app/" + app.getId();
         String component = "app-center/app-entry";
-        String perms = "ai:businessApp:open";
+        String perms = buildAppMenuPerms(app);
         boolean enabled = Integer.valueOf(1).equals(app.getStatus());
         if (menuResourceId == null) {
             menuResourceId = menuRegisterAdapter.registerAppMenu(
@@ -232,6 +232,11 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         String mountTarget = StringUtils.defaultIfBlank(options.getString("mountTarget"), deriveMountTarget(app));
         boolean syncEnabled = readBoolean(firstNonNull(adminMenu.get("syncEnabled"), options.get("adminMenuSyncEnabled")), true);
         return "ADMIN".equalsIgnoreCase(mountTarget) && syncEnabled;
+    }
+
+    private String buildAppMenuPerms(AiBusinessApp app) {
+        String appCode = StringUtils.defaultIfBlank(app.getAppCode(), String.valueOf(app.getId()));
+        return "ai:businessApp:open:" + StringUtils.lowerCase(appCode);
     }
 
     private String deriveMountTarget(AiBusinessApp app) {

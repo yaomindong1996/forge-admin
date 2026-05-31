@@ -3,7 +3,9 @@ package com.mdframe.forge.plugin.generator.dto.lowcode;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * 单表低代码字段协议。
@@ -82,6 +84,12 @@ public class LowcodeFieldSchema {
 
     /** 引用对象回显字段，仅引用对象字段使用。 */
     private String referenceDisplayField;
+
+    /** 面向业务设计器的基础组件属性，例如 placeholder、cascade。 */
+    private Map<String, Object> basicProps = new LinkedHashMap<>();
+
+    /** 面向开发者模式的扩展属性。 */
+    private Map<String, Object> advancedProps = new LinkedHashMap<>();
 
     @JsonProperty("fieldCode")
     public void setLegacyFieldCode(String fieldCode) {

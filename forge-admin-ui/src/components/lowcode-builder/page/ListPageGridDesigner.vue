@@ -464,6 +464,13 @@
                       placeholder="映射字段"
                       @update:value="updateFieldSetting(element.field, { queryField: $event })"
                     />
+                    <n-select
+                      :value="resolveFieldSetting(element.field).align || 'left'"
+                      size="tiny"
+                      :options="alignOptions"
+                      placeholder="对齐"
+                      @update:value="updateFieldSetting(element.field, { align: $event || 'left' })"
+                    />
                   </div>
                   <div v-if="selectedBlock.blockType === 'data-table'" class="field-setting-row table-setting-row">
                     <n-select
@@ -472,6 +479,13 @@
                       :options="tableRenderOptions"
                       placeholder="渲染方式"
                       @update:value="updateFieldSetting(element.field, { renderType: $event })"
+                    />
+                    <n-select
+                      :value="resolveFieldSetting(element.field).align || 'left'"
+                      size="tiny"
+                      :options="alignOptions"
+                      placeholder="对齐"
+                      @update:value="updateFieldSetting(element.field, { align: $event || 'left' })"
                     />
                     <n-select
                       v-if="isNameRenderType(resolveFieldSetting(element.field).renderType || resolveDefaultTableRenderType(element))"
@@ -766,6 +780,11 @@ const treeLoadModeOptions = [
 const sortOrderOptions = [
   { label: '降序', value: 'desc' },
   { label: '升序', value: 'asc' },
+]
+const alignOptions = [
+  { label: '左对齐', value: 'left' },
+  { label: '居中', value: 'center' },
+  { label: '右对齐', value: 'right' },
 ]
 
 const canvasRef = ref(null)
@@ -1854,11 +1873,11 @@ function removeTab(idx) {
 }
 
 .search-setting-row {
-  grid-template-columns: 96px minmax(110px, 1fr) minmax(120px, 1fr);
+  grid-template-columns: 92px minmax(104px, 1fr) minmax(120px, 1fr) 88px;
 }
 
 .table-setting-row {
-  grid-template-columns: minmax(110px, 0.8fr) minmax(140px, 1.2fr);
+  grid-template-columns: minmax(110px, 0.8fr) 88px minmax(140px, 1.2fr);
 }
 
 .f-handle {
