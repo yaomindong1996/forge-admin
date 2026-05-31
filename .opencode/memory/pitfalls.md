@@ -315,6 +315,23 @@ curl -I http://localhost:3000/node_modules/.vite/deps/@form-create_designer.js
 
 ---
 
+## 11. fcDesigner 布局组件不能当业务字段处理
+
+**发现日期**: 2026-05-31
+
+**问题描述**:
+表单优先对象设计器中拖入 `fcRow`、`col`、`elCard`、`elTabs`、`elCollapse`、`elDivider` 等布局/辅助组件后，保存再进入会退化成普通输入框，运行态编辑页也不会按设计器布局渲染。
+
+**根本原因**:
+form-create rule 转 Forge `FormDesignerSchema` 时，如果布局节点没有显式字段，会根据标题自动生成 fieldCode，并按普通字段绑定保存。再次回显到 fcDesigner 时，未知 componentKey 又被降级成 input。
+
+**解决方案**:
+- 布局/辅助组件必须归一为 `fieldBinding.mode = virtual`，禁止进入字段注册表和 DDL 同步。
+- 双向转换需要保留原始 form-create `type`、`children`、`style/native/wrap` 等元数据。
+- 运行态需要单独下发 `formLayout/editFormLayout`，由 `AiForm` 递归渲染布局节点；扁平 `editSchema` 只适合作为字段配置。
+
+---
+
 ## 7. form-create 设计器默认锁定字段 ID
 
 **发现日期**: 2026-05-26
@@ -1207,3 +1224,66 @@ function createFieldForm(field) {
 - `BusinessObjectDesignerService.saveDesigner`
 - `object-designer.[objectCode].vue`
 - 所有通过 designer 聚合接口做局部保存的表单、列表、详情、关系和高级配置面板
+
+## 33. 表单优先设计保存必须同步运行态 fieldSettings
+
+**发现日期**: 2026-05-31
+
+**问题描述**:
+业务对象表单设计器保存时如果只写回 `formCreateRule/formCreateOptions`，后端 `saveDesigner` 虽然会把 `FormDesignerSchema` 编译到编辑区 `fieldSettings`，但随后 `saveBusinessObjectFormLayout` 可能用前端旧 pageSchema 覆盖掉编译结果。运行态 `AiCrudPage` 最终读取到的字段顺序、span、labelWidth、align、label 就会和设计态不一致。
+
+**解决方案**:
+前端保存表单设计时也要把 `FormDesignerSchema.components` 编译为 `editZone.props.fieldSettings`，并同步 `fieldRefs`、`editGridCols`、`labelPlacement`、`labelWidth`。编译时只替换主表字段设置，必须保留关系字段设置。
+
+**影响范围**:
+- `BusinessFormDesigner.vue`
+- `BusinessObjectDesignerService.applyFormDesignerSchemaToEditZone`
+- `LowcodeRuntimeConfigBuilder.buildEditSchema`
+- 所有表单优先业务对象运行态新增/编辑/详情表单
+
+## 34. 组织树 optionSource 为空时必须回退默认数据源
+
+**发现日期**: 2026-05-31
+
+**问题描述**:
+表单设计器中的组织/部门树组件可能保存空 `optionSource` 或没有 `api` 的中间属性。运行态如果只判断 `field.props.optionSource` 是否存在，就会跳过默认 `/system/org/tree`，导致组织列表不渲染。
+
+**解决方案**:
+运行态解析远程选项源时必须判断 `optionSource` 是否有效；只有存在 `api/url` 或真实静态选项时才使用配置源。组织树组件遇到空配置要回退默认系统组织树接口，并对 `RespInfo.data`、分页 records/list/rows 和嵌套 data 做统一解包。
+
+**影响范围**:
+- `AiFormItem.vue`
+- 所有动态 CRUD 中的 `orgTreeSelect`、`deptTreeSelect`、`elTreeSelect` 等组织/部门选择别名
+
+## 35. 表单设计新增字段需要触发受控 DDL 同步
+
+**发现日期**: 2026-05-31
+
+**问题描述**:
+表单优先设计器拖入新字段后，如果只保存 `LowcodeModelSchema.fields` 和表单布局，运行态新增/编辑提交时数据库物理表仍缺少对应列，最终出现保存失败或字段数据无法落库。
+
+**解决方案**:
+表单设计器保存时在字段注册表更新后请求同步 DDL；后端使用已有 `LowcodeDdlService.previewCreateTable/executeCreateTable` 执行受控 CREATE/ALTER，且必须继续校验 `ai:lowcode:deploy-ddl` 权限和二次确认标记。不要在前端直接拼 SQL。
+
+**影响范围**:
+- `BusinessFormDesigner.vue`
+- `BusinessObjectDesignerDTO`
+- `BusinessObjectDesignerService.saveDesigner`
+- `LowcodeDdlService`
+
+## 36. 跳转桥接路由不能登记顶部 Tab
+
+**发现日期**: 2026-05-31
+
+**问题描述**:
+应用入口菜单挂载到 `/app-center/app/:appId` 这类桥接页时，页面会先进入桥接路由，再 `router.replace` 到真实运行态页面。如果 tab guard 对桥接页也登记 tab，顶部会同时出现“应用入口”和真实业务页两个 tab，用户关闭真实业务页时还会被桥接 tab 干扰。
+
+**解决方案**:
+桥接路由、全屏设计器路由这类非最终业务页面应在路由 meta 中标记 `skipTab`，tab guard 遇到后直接跳过并清理同路径遗留 tab。真实动态 CRUD 页需要按运行态页面自身登记 tab，并在唯一业务 tab 场景下也允许关闭。
+
+**影响范围**:
+- `router/index.js`
+- `router/guards/tab-guard.js`
+- `store/modules/tab.js`
+- 顶部 tab 组件
+- 所有桥接跳转、全屏弹层式设计器和动态 CRUD 运行态页面

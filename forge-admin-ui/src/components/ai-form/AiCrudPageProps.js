@@ -232,6 +232,30 @@ export const aiCrudPageProps = {
     validator: value => ['left', 'top'].includes(value),
   },
 
+  editLabelAlign: {
+    type: String,
+    default: 'right',
+    validator: value => ['left', 'right'].includes(value),
+  },
+
+  /**
+   * 编辑表单列间距
+   * @type {number}
+   */
+  editXGap: {
+    type: Number,
+    default: 16,
+  },
+
+  /**
+   * 编辑表单行间距
+   * @type {number}
+   */
+  editYGap: {
+    type: Number,
+    default: 16,
+  },
+
   /**
    * 编辑表单自定义 class
    * @type {string | object | Array}

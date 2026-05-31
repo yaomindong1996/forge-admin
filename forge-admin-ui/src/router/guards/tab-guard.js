@@ -64,6 +64,10 @@ export function createTabGuard(router) {
     if (EXCLUDE_TAB.includes(to.path))
       return
     const tabStore = useTabStore()
+    if (to.meta?.skipTab) {
+      tabStore.removeTabSilently(to.fullPath)
+      return
+    }
     const permissionStore = usePermissionStore()
     const { name } = to
     // key 用 to.fullPath（含查询参数），避免同一页面不同参数共用同一 Tab
@@ -107,11 +111,16 @@ export function createTabGuard(router) {
 
     // 检查是否已存在相同 path 的 tab
     const existingTab = tabStore.tabs.find(item => item.path === path)
+    const forceClosable = !!to.meta?.forceClosable || isCrudRuntimePath(to.path)
+    const closable = to.meta?.closable !== false
     if (!existingTab) {
-      tabStore.addTab({ name, path, title: title || path, icon, keepAlive, key: path })
+      tabStore.addTab({ name, path, title: title || path, icon, keepAlive, key: path, closable, forceClosable })
     }
-    else if (shouldUpdateExistingTitle(existingTab.title, title, to.path)) {
-      tabStore.updateTabTitle(path, title)
+    else {
+      tabStore.updateTabMeta(path, { closable, forceClosable })
+      if (shouldUpdateExistingTitle(existingTab.title, title, to.path)) {
+        tabStore.updateTabTitle(path, title)
+      }
     }
     tabStore.setActiveTab(path)
   })

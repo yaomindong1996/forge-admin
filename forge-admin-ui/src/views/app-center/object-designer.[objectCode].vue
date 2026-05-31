@@ -202,6 +202,35 @@ import BusinessPermissionFlowPanel from './components/designer/BusinessPermissio
 import BusinessPublishChecklist from './components/designer/BusinessPublishChecklist.vue'
 import BusinessRelationDesigner from './components/designer/BusinessRelationDesigner.vue'
 
+const props = defineProps({
+  embedded: {
+    type: Boolean,
+    default: false,
+  },
+  embeddedObjectCode: {
+    type: String,
+    default: '',
+  },
+  embeddedObjectId: {
+    type: [Number, String],
+    default: null,
+  },
+  embeddedSuiteCode: {
+    type: String,
+    default: '',
+  },
+  initialPanel: {
+    type: String,
+    default: 'form',
+  },
+  initialDetailTab: {
+    type: String,
+    default: 'form',
+  },
+})
+
+const emit = defineEmits(['close', 'saved'])
+
 const route = useRoute()
 const router = useRouter()
 const message = useMessage()
@@ -213,8 +242,8 @@ const saving = ref(false)
 const publishing = ref(false)
 const dirty = ref(false)
 const ready = ref(false)
-const activePanel = ref(route.query.panel === 'detail' ? 'form' : route.query.panel || 'form')
-const formDetailTab = ref(route.query.panel === 'detail' ? 'detail' : route.query.detailTab || 'form')
+const activePanel = ref(resolveInitialPanel())
+const formDetailTab = ref(resolveInitialDetailTab())
 const developerMode = ref(false)
 const designer = ref(null)
 const runtimeInfo = ref(null)
@@ -229,8 +258,8 @@ const permissionFlowRef = ref(null)
 const publishChecklistRef = ref(null)
 const draft = reactive(createEmptyDraft())
 
-const objectCode = computed(() => route.params.objectCode)
-const suiteCode = computed(() => route.query.suiteCode || draft.suiteCode)
+const objectCode = computed(() => props.embedded ? props.embeddedObjectCode : route.params.objectCode)
+const suiteCode = computed(() => (props.embedded ? props.embeddedSuiteCode : route.query.suiteCode) || draft.suiteCode)
 const objectId = computed(() => designer.value?.objectId || draft.objectId)
 const pageTitle = computed(() => `${draft.objectName || objectCode.value || '业务对象'}设计`)
 const canAdvanced = computed(() => {
@@ -254,6 +283,18 @@ const fieldOptions = computed(() => {
       value: field.field,
     }))
 })
+
+function resolveInitialPanel() {
+  const panel = props.embedded ? props.initialPanel : route.query.panel
+  return panel === 'detail' ? 'form' : panel || 'form'
+}
+
+function resolveInitialDetailTab() {
+  if (!props.embedded && route.query.panel === 'detail')
+    return 'detail'
+  return props.embedded ? props.initialDetailTab || 'form' : route.query.detailTab || 'form'
+}
+
 onMounted(() => {
   loadDesigner()
   window.addEventListener('beforeunload', handleBeforeUnload)
@@ -270,6 +311,8 @@ onBeforeRouteLeave(() => {
 })
 
 watch(pageTitle, (title) => {
+  if (props.embedded)
+    return
   if (!title)
     return
   route.meta.title = title
@@ -278,6 +321,8 @@ watch(pageTitle, (title) => {
 }, { immediate: true })
 
 watch(activePanel, (panel) => {
+  if (props.embedded)
+    return
   router.replace({
     path: route.path,
     query: {
@@ -289,6 +334,8 @@ watch(activePanel, (panel) => {
 })
 
 watch(formDetailTab, (tab) => {
+  if (props.embedded)
+    return
   if (activePanel.value !== 'form')
     return
   router.replace({
@@ -330,8 +377,9 @@ async function loadDesigner() {
 }
 
 async function resolveBusinessObject() {
-  if (route.query.objectId)
-    return { id: Array.isArray(route.query.objectId) ? route.query.objectId[0] : route.query.objectId }
+  const queryObjectId = props.embedded ? props.embeddedObjectId : route.query.objectId
+  if (queryObjectId)
+    return { id: Array.isArray(queryObjectId) ? queryObjectId[0] : queryObjectId }
   const res = await businessObjectList({
     suiteCode: suiteCode.value,
     objectCode: objectCode.value,
@@ -392,6 +440,7 @@ async function saveDesignerDraft(showMessage = true) {
     if (showMessage)
       message.success('设计器已保存')
     await loadDesigner()
+    emit('saved')
   }
   finally {
     saving.value = false
@@ -446,6 +495,7 @@ async function handlePublish(options = {}) {
     message.success(res.data ? `业务对象已发布，版本 ${res.data}` : '业务对象已发布')
     await loadRuntimeInfo()
     await loadDesigner()
+    emit('saved')
     await nextTick()
     if (activePanel.value === 'publish')
       await publishChecklistRef.value?.refresh?.()
@@ -455,7 +505,16 @@ async function handlePublish(options = {}) {
   }
 }
 
-function handleBack() {
+async function handleBack() {
+  if (props.embedded) {
+    if (dirty.value) {
+      const confirmed = await confirmLeave()
+      if (!confirmed)
+        return
+    }
+    emit('close')
+    return
+  }
   if (route.query.returnTo) {
     router.push(String(route.query.returnTo))
     return
@@ -498,6 +557,7 @@ function hasTableSyncIssue(result) {
 function handleLayoutSaved(pageSchema) {
   draft.pageSchema = cloneSchema(pageSchema || draft.pageSchema)
   dirty.value = false
+  emit('saved')
 }
 
 function handleRelationsUpdated(relations) {

@@ -1,5 +1,5 @@
 import { getDesignPlaceholderOptions, resolveDesignerDragTag } from './forgeBusinessComponents'
-import { normalizeFormDesignerSchema } from './formDesignerSchema'
+import { isFieldComponent, normalizeFormDesignerSchema } from './formDesignerSchema'
 
 export function forgeSchemaToFormCreate(input = {}) {
   const schema = normalizeFormDesignerSchema(input.schema || input.formDesignerSchema || input)
@@ -15,12 +15,13 @@ export function convertComponentToRule(component = {}, fieldMap = new Map(), gri
   if (!component || typeof component !== 'object')
     return null
   const fieldCode = component.fieldBinding?.fieldCode || ''
+  const fieldComponent = isFieldComponent(component)
   const field = fieldMap.get(fieldCode) || {}
   const rule = {
     type: resolveFormCreateType(component, field),
-    field: fieldCode || undefined,
+    field: fieldComponent && fieldCode ? fieldCode : undefined,
     title: component.label || field.fieldName || field.label || fieldCode || '字段',
-    name: fieldCode || component.id,
+    name: fieldComponent && fieldCode ? fieldCode : component.id,
     props: buildRuleProps(component, field),
     col: buildRuleCol(component, gridColumns),
     _forge: {
@@ -38,6 +39,7 @@ export function convertComponentToRule(component = {}, fieldMap = new Map(), gri
 
   if (component.props?.defaultValue !== undefined)
     rule.value = component.props.defaultValue
+  applyFormCreateMeta(rule, component)
   if (component.validation?.required || component.validation?.rules?.length)
     rule.validate = buildRuleValidate(component)
   const options = resolveRuleOptions(component)
@@ -45,6 +47,8 @@ export function convertComponentToRule(component = {}, fieldMap = new Map(), gri
     rule.options = options
   if (Array.isArray(component.children) && component.children.length)
     rule.children = component.children.map(child => convertComponentToRule(child, fieldMap, gridColumns)).filter(Boolean)
+  if (!fieldComponent && !rule.children?.length && component.props?.formCreateChild)
+    rule.children = [component.props.formCreateChild]
   if (!rule.field)
     delete rule.field
   return rule
@@ -68,6 +72,8 @@ function buildFormCreateOptions(schema = {}) {
       schemaVersion: schema.schemaVersion,
       formKey: schema.formKey,
       gridColumns: layout.gridColumns || 2,
+      rowGap: Number(layout.rowGap ?? 16),
+      columnGap: Number(layout.columnGap ?? 16),
     },
   }
 }
@@ -82,6 +88,8 @@ function buildRuleCol(component = {}, gridColumns = 2) {
 
 function resolveFormCreateType(component = {}, field = {}) {
   const componentKey = component.componentKey || field.componentType || 'input'
+  if (!isFieldComponent(component))
+    return component.props?.__fcType || resolveLayoutFormCreateType(componentKey)
   const typeMap = {
     input: 'input',
     textarea: 'input',
@@ -107,10 +115,36 @@ function resolveFormCreateType(component = {}, field = {}) {
   return typeMap[componentKey] || 'input'
 }
 
-function buildRuleProps(component = {}, field = {}) {
-  const props = {
-    ...(component.props || {}),
+function resolveLayoutFormCreateType(componentKey = '') {
+  const typeMap = {
+    row: 'fcRow',
+    fcRow: 'fcRow',
+    col: 'col',
+    card: 'elCard',
+    elCard: 'elCard',
+    tabs: 'elTabs',
+    elTabs: 'elTabs',
+    tabPane: 'elTabPane',
+    elTabPane: 'elTabPane',
+    collapse: 'elCollapse',
+    elCollapse: 'elCollapse',
+    collapseItem: 'elCollapseItem',
+    elCollapseItem: 'elCollapseItem',
+    divider: 'elDivider',
+    elDivider: 'elDivider',
+    title: 'fcTitle',
+    fcTitle: 'fcTitle',
+    table: 'fcTable',
+    fcTable: 'fcTable',
+    tableGrid: 'fcTableGrid',
+    fcTableGrid: 'fcTableGrid',
+    space: 'div',
   }
+  return typeMap[componentKey] || componentKey || 'div'
+}
+
+function buildRuleProps(component = {}, field = {}) {
+  const props = sanitizeRuleProps(component.props || {})
   const componentKey = component.componentKey || field.componentType || 'input'
   if (componentKey === 'textarea') {
     props.type = 'textarea'
@@ -163,6 +197,23 @@ function buildRuleProps(component = {}, field = {}) {
   return props
 }
 
+function sanitizeRuleProps(source = {}) {
+  const props = { ...(source || {}) }
+  delete props.__fcType
+  delete props.__fc
+  return props
+}
+
+function applyFormCreateMeta(rule = {}, component = {}) {
+  if (isFieldComponent(component))
+    return
+  const meta = component.props?.__fc || {}
+  ;['style', 'native', 'wrap', 'slot', 'effect'].forEach((key) => {
+    if (meta[key] !== undefined)
+      rule[key] = cloneValue(meta[key])
+  })
+}
+
 function resolveRuleOptions(component = {}) {
   if (Array.isArray(component.props?.options))
     return component.props.options
@@ -191,4 +242,8 @@ function collectComponentFieldRefs(component = {}) {
     })
   }
   return refs
+}
+
+function cloneValue(value) {
+  return JSON.parse(JSON.stringify(value ?? null))
 }

@@ -162,6 +162,52 @@ function transformFields(fields) {
   })
 }
 
+function transformEditFields(fields = [], layout = []) {
+  const transformedFields = transformFields(fields)
+  if (!Array.isArray(layout) || !layout.length)
+    return transformedFields
+
+  const fieldMap = new Map(transformedFields.map(field => [field.field, field]))
+  const usedFields = new Set()
+  const nodes = layout
+    .map(node => hydrateRuntimeLayoutNode(node, fieldMap, usedFields))
+    .filter(Boolean)
+
+  transformedFields.forEach((field) => {
+    if (field.field && !usedFields.has(field.field))
+      nodes.push(field)
+  })
+  return nodes
+}
+
+function hydrateRuntimeLayoutNode(node = {}, fieldMap, usedFields) {
+  if (!node || typeof node !== 'object')
+    return null
+  if (node.nodeType === 'field') {
+    const field = fieldMap.get(node.field)
+    if (!field)
+      return null
+    usedFields.add(node.field)
+    return {
+      ...field,
+      nodeType: 'field',
+      key: node.key || field.field,
+      span: node.span || field.span,
+      gridStyle: node.gridStyle || field.gridStyle,
+    }
+  }
+
+  const children = (node.children || [])
+    .map(child => hydrateRuntimeLayoutNode(child, fieldMap, usedFields))
+    .filter(Boolean)
+  if (!children.length && !['divider'].includes(node.nodeType))
+    return null
+  return {
+    ...node,
+    children,
+  }
+}
+
 function resolveDateTimeProps(type) {
   switch (String(type || '').toLowerCase()) {
     case 'date':
@@ -194,7 +240,7 @@ const crudProps = computed(() => {
   return {
     searchSchema: transformFields(cfg.searchSchema),
     columns: transformColumns(cfg.columnsSchema, cfg.transConfig, { treeTable, includeDetailAction: true }),
-    editSchema: transformFields(cfg.editSchema),
+    editSchema: transformEditFields(cfg.editSchema, options.editFormLayout),
     childrenConfig: transformChildrenConfig(masterDetailConfig.children || []),
     apiConfig,
     options,
@@ -204,6 +250,9 @@ const crudProps = computed(() => {
     editGridCols: options.editGridCols || cfg.editGridCols || 1,
     editLabelWidth: options.editLabelWidth || cfg.editLabelWidth || 'auto',
     editLabelPlacement: options.editLabelPlacement || cfg.editLabelPlacement || 'left',
+    editLabelAlign: options.editLabelAlign || cfg.editLabelAlign || 'right',
+    editXGap: normalizeNumberOption(options.editXGap ?? cfg.editXGap, 16),
+    editYGap: normalizeNumberOption(options.editYGap ?? cfg.editYGap, 16),
     loadDetailOnEdit: options.loadDetailOnEdit ?? cfg.loadDetailOnEdit ?? true,
     searchGridCols: options.searchGridCols || cfg.searchGridCols || 4,
     hideAdd: !!options.hideAdd,
@@ -231,6 +280,11 @@ function resolveDefaultSortParams(defaultSort = {}) {
     orderByColumn,
     isAsc,
   }
+}
+
+function normalizeNumberOption(value, fallback) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : fallback
 }
 
 function isTreeTableRuntime(cfg = {}) {

@@ -76,6 +76,10 @@
 | Task 39 | Phase 8 | CRM 客户对象端到端验收 | pending | P0 |
 | Task 40 | Phase 8 | Spec、任务、执行日志回填 | completed | P1 |
 | Task 41 | Phase 8 | 设计器交互回归修复 | completed | P0 |
+| Task 42 | Phase 8 | 动态运行态表单组件与布局回归修复 | completed | P0 |
+| Task 43 | Phase 8 | 组织数据源、运行态样式和字段 DDL 同步修复 | completed | P0 |
+| Task 44 | Phase 8 | 表单布局组件与保存入口收敛 | completed | P0 |
+| Task 45 | Phase 8 | 应用入口、设计器弹层和多列表单回归修复 | completed | P0 |
 
 ---
 
@@ -1158,4 +1162,78 @@ cd forge && JAVA_HOME=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jd
 - `BusinessRelationDesigner` 拆分关系脏状态和级联同步，外部 schema 重置不再反向 emit，保存级联时不会携带未加载或未修改的空关系数组。
 - `object-designer.[objectCode].vue` 的通用草稿保存不再携带 `relations`，关系只由关系面板专门保存。
 - `BusinessObjectDesignerDTO` 的 `fields`、`relations`、`designerOptions` 改为可空，后端可以区分“未传字段”和“明确传空数组”。
+- 验证通过：目标文件 ESLint、`mvn -pl forge-admin-server -am compile -DskipTests`、`NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build`。
+
+### Task 42: 动态运行态表单组件与布局回归修复
+
+**目标**: 修复运行态动态页面中组织选择、用户选择回显以及编辑表单布局与设计态不一致的问题。
+
+**问题清单**:
+- 运行态表单项只识别严格的 `orgTreeSelect`、`userSelect` 类型，历史别名或设计器中间类型会退化为普通输入框。
+- 用户选择后只回填单一 `targetField`，遇到 `ownerUserIdName`、`ownerUserName`、`ownerName` 等不同翻译字段时展示不稳定。
+- 组织树当前值缺少名称兜底选项，编辑详情中值能回填但显示名称可能丢失。
+- 表单设计保存后只写回 `formCreateRule/formCreateOptions`，运行态直接消费的 `fieldSettings` 没同步，导致顺序、span、labelWidth、align、label 不一致。
+- 后端运行态编辑字段 label 优先取模型字段，未优先使用设计器覆盖 label。
+
+**执行状态**: completed
+- `AiFormItem` 增加组织/用户组件别名识别，组织树默认读取 `/system/org/tree`，并在选择或编辑回填时通过候选名称字段补齐展示文本。
+- `AiFormItem` 用户选择回填支持 `labelValueField`、`targetField`、`${field}Name`、`*UserName`、`*Name` 等候选字段，选择和清空都会同步显示字段。
+- `AiForm` 必填校验把组织/用户别名按选择类组件处理。
+- `BusinessFormDesigner` 保存表单设计时同步编译 `fieldSettings`、`fieldRefs`、`editGridCols`、`labelPlacement`、`labelWidth`，并保留关系字段配置。
+- `LowcodeRuntimeConfigBuilder` 运行态编辑字段优先使用设计器 label/defaultValue，规范组织/用户历史别名，并为组织/用户字段补齐默认 `labelValueField/targetField`。
+- 验证通过：目标文件 ESLint、`mvn -pl forge-admin-server -am compile -DskipTests`、`NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build`。
+
+### Task 43: 组织数据源、运行态样式和字段 DDL 同步修复
+
+**目标**: 继续修复真实使用中暴露的组织列表不渲染、编辑页样式与设计器不一致、表单新增字段未同步数据库列的问题。
+
+**问题清单**:
+- 组织树字段如果保存了空 `optionSource`，运行态会跳过默认 `/system/org/tree` 数据源。
+- 远程选项只读取 `res.data`，对 `RespInfo`、分页 records/list/rows、嵌套 data 等响应形态不够健壮。
+- 编辑表单运行态缺少设计器行距、列距和标签右对齐参数，且 2 列表单默认弹窗宽度偏窄。
+- 表单设计器拖入新字段后只保存字段注册表，未通过低代码受控 DDL 同步物理表缺失列。
+
+**执行状态**: completed
+- `AiFormItem` 对空/无效 `optionSource` 增加回退逻辑，组织选择默认走 `/system/org/tree`，并增强远程响应解包和 tree option 字段兜底。
+- `AiForm` / `AiCrudPage` / 动态 CRUD 页面支持编辑表单 `labelAlign`、`editXGap`、`editYGap`，运行态默认标签右对齐、行列间距 16。
+- `FormDesignerSchema`、form-create 双向转换、前后端编译链路保存 `rowGap/columnGap`，后端运行配置输出更接近设计器布局；2 列编辑表单默认弹窗宽度提升到 `1040px`。
+- `BusinessObjectDesignerDTO` 新增 `syncDdl/confirmSyncDdl`，`BusinessObjectDesignerService.saveDesigner` 在表单保存后使用 `LowcodeDdlService` 预览并执行缺失表结构同步，继续校验 `ai:lowcode:deploy-ddl` 权限。
+- `BusinessFormDesigner` 保存表单时请求同步 DDL，新增字段保存后会同步缺失数据库列。
+- 验证通过：目标文件 ESLint、`mvn -pl forge-admin-server -am compile -DskipTests`、`NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build`。
+
+### Task 44: 表单布局组件与保存入口收敛
+
+**目标**: 修复 fcDesigner 布局组件保存/回显异常、运行态编辑表单未按设计布局渲染、表单设计页保存按钮过多的问题。
+
+**问题清单**:
+- fcDesigner 的 `fcRow/col/elCard/elTabs/elCollapse/elDivider` 等布局节点会被转换成普通字段，重新进入设计器后布局退化。
+- 编辑页运行态只消费扁平 `editSchema`，卡片、标签页、折叠面板、栅格行列等设计布局无法还原。
+- 表单设计页同时存在顶部全局“保存”、表单面板“保存表单”、设计器工具栏“应用表单配置”，保存入口重复。
+- 表单优先编译后仍可能受旧 canvas 排序影响，导致字段顺序和设计器顺序不一致。
+
+**执行状态**: completed
+- `FormDesignerSchema` 将布局/辅助组件归一为虚拟节点，form-create 双向转换保留原始类型、children、style/native/wrap 等元数据，不再生成伪字段。
+- `BusinessFormDesigner` 和后端编译链路生成 `formLayout` 树，并把 row/col 继承 span 编译到 `fieldSettings`；表单优先编译会清理旧 `canvas`。
+- `LowcodeRuntimeConfigBuilder` 下发 `options.editFormLayout`，动态 CRUD 页面把布局树与字段 schema 合并。
+- `AiForm` 新增递归布局渲染，支持 row/col/card/tabs/collapse/divider，同时继续复用原有 `AiFormItem` 字段渲染和校验。
+- 移除表单面板“保存表单”和设计器工具栏“应用表单配置”，只保留对象设计器顶部全局“保存”。
+- 验证通过：目标文件 ESLint、`mvn -pl forge-admin-server -am compile -DskipTests`、`NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build`。
+
+### Task 45: 应用入口、设计器弹层和多列表单回归修复
+
+**目标**: 修复应用入口挂载菜单后的重复 tab、对象设计器新开页面污染 tab、动态搜索区按钮错位，并补齐表单两列/三列配置到运行态适配。
+
+**问题清单**:
+- `/app-center/app/:appId` 作为应用入口桥接页会先登记“应用入口”tab，再 `replace` 到实际动态页面，形成重复 tab。
+- 动态 CRUD 页面作为唯一 tab 时无法关闭，用户从菜单打开客户页后只能关闭桥接入口 tab。
+- 对象设计器从应用总览、套件页、对象详情页进入时走路由跳转，顶部会堆积多个设计器 tab。
+- `AiForm` 搜索操作区独立开 grid 后落到第一列，导致“搜索/重置/展开”按钮靠左。
+- 表单设计缺少显式的一列/两列/三列控制，三列表单运行态弹窗宽度也偏窄。
+
+**执行状态**: completed
+- `BusinessAppEntry` 和 `BusinessObjectDesigner` 路由增加 `skipTab`，tab guard 会跳过桥接/设计器路由并清理遗留桥接 tab。
+- 动态 CRUD tab 增加 `forceClosable`，顶部 tab 组件改为按 tab 计算关闭能力，客户动态页即使是唯一业务 tab 也可以关闭。
+- 应用总览、套件详情、对象详情的“设计对象”改为直接挂载 `object-designer.[objectCode].vue` 全屏弹层，不再通过路由新开 tab；设计器直接 URL 访问仍保持兼容。
+- `AiForm` 搜索操作区跨整行右对齐，折叠按钮判断改为基于可见字段。
+- `BusinessFormDesigner` 增加“表单列数”控制，保存到 `FormDesignerSchema.layout.gridColumns`，发布运行态继续映射到 `editGridCols/formLayout`；三列表单默认弹窗宽度提升到 `1180px`。
 - 验证通过：目标文件 ESLint、`mvn -pl forge-admin-server -am compile -DskipTests`、`NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build`。

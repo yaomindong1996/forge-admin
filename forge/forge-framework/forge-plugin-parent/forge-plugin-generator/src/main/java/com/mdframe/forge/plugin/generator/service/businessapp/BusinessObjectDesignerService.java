@@ -33,11 +33,13 @@ import com.mdframe.forge.plugin.generator.mapper.BusinessObjectMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessObjectRelationMapper;
 import com.mdframe.forge.plugin.generator.service.AiCrudConfigService;
 import com.mdframe.forge.plugin.generator.service.lowcode.LowcodeDomainService;
+import com.mdframe.forge.plugin.generator.service.lowcode.LowcodeDdlService;
 import com.mdframe.forge.plugin.generator.service.lowcode.LowcodeModelSchemaNormalizer;
 import com.mdframe.forge.plugin.generator.service.lowcode.LowcodeSchemaValidator;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectDesignerVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectRelationVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectVO;
+import com.mdframe.forge.plugin.generator.vo.lowcode.LowcodeDdlPreviewVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import lombok.Data;
@@ -63,15 +65,17 @@ import java.util.Set;
 public class BusinessObjectDesignerService {
 
     private static final String GENERAL_DOMAIN_CODE = "general";
+    private static final String DDL_PERMISSION = "ai:lowcode:deploy-ddl";
     private static final String FORM_DESIGNER_SCHEMA_OPTION_KEY = "formDesignerSchema";
     private static final String VIEW_SCHEMA_OPTION_KEY = "viewSchema";
     private static final String LINKAGE_SCHEMA_OPTION_KEY = "linkageSchema";
     private static final String LINKAGE_SCHEMA_MANAGED_BY = "linkageSchema";
     private static final Set<String> FORM_FIELD_COMPONENT_KEYS = Set.of(
-            "input", "textarea", "number", "integer", "money", "date", "datetime", "time",
+            "input", "textarea", "number", "inputNumber", "integer", "money", "date", "datetime", "time",
             "switch", "select", "radio", "checkbox", "dictSelect", "cascader",
-            "regionTreeSelect", "orgTreeSelect", "userSelect", "fileUpload", "imageUpload",
-            "objectReference"
+            "regionTreeSelect", "orgTreeSelect", "orgSelect", "departmentSelect", "departmentTreeSelect",
+            "deptSelect", "deptTreeSelect", "elTreeSelect", "orgName", "deptName", "userSelect",
+            "userPicker", "userName", "fileUpload", "imageUpload", "upload", "objectReference"
     );
 
     private final ObjectMapper objectMapper;
@@ -85,6 +89,7 @@ public class BusinessObjectDesignerService {
     private final BusinessObjectDesignVersionMapper designVersionMapper;
     private final AiCrudConfigService crudConfigService;
     private final LowcodeDomainService domainService;
+    private final LowcodeDdlService ddlService;
     private final LowcodeModelSchemaNormalizer schemaNormalizer;
     private final LowcodeSchemaValidator schemaValidator;
     private final BusinessFieldSchemaService fieldSchemaService;
@@ -160,7 +165,27 @@ public class BusinessObjectDesignerService {
                 applyRelationsToModel(context);
             }
         }
-        saveDraft(context, BusinessObjectDesignStatus.CHANGED);
+        DesignerContext savedContext = saveDraft(context, BusinessObjectDesignStatus.CHANGED);
+        if (dto != null && Boolean.TRUE.equals(dto.getSyncDdl())) {
+            syncTableStructure(savedContext.getModelSchema(), dto);
+        }
+    }
+
+    private void syncTableStructure(LowcodeModelSchema modelSchema, BusinessObjectDesignerDTO dto) {
+        if (modelSchema == null || StringUtils.isBlank(modelSchema.getTableName())) {
+            return;
+        }
+        LowcodeDdlPreviewVO preview = ddlService.previewCreateTable(modelSchema);
+        if (preview.getDdlStatements() == null || preview.getDdlStatements().isEmpty()) {
+            return;
+        }
+        if (!Boolean.TRUE.equals(dto.getConfirmSyncDdl())) {
+            throw new BusinessException("同步表结构需要二次确认");
+        }
+        if (!SessionHelper.hasPermission(DDL_PERMISSION)) {
+            throw new BusinessException("缺少同步表结构权限: " + DDL_PERMISSION);
+        }
+        ddlService.executeCreateTable(modelSchema);
     }
 
     public DesignerContext loadContext(Long objectId) {
@@ -1313,6 +1338,8 @@ public class BusinessObjectDesignerService {
         layout.put("labelPlacement", "left");
         layout.put("labelWidth", 100);
         layout.put("gridColumns", 2);
+        layout.put("rowGap", 16);
+        layout.put("columnGap", 16);
         LowcodePageZone editZone = findZone(pageSchema, "edit");
         if (editZone == null || editZone.getProps() == null) {
             return layout;
@@ -1321,6 +1348,8 @@ public class BusinessObjectDesignerService {
         layout.put("labelPlacement", StringUtils.defaultIfBlank(text(props.get("labelPlacement")), "left"));
         layout.put("labelWidth", integerValue(props.get("labelWidth"), 100));
         layout.put("gridColumns", clamp(integerValue(props.get("editGridCols"), 2), 1, 3));
+        layout.put("rowGap", integerValue(props.get("rowGap"), 16));
+        layout.put("columnGap", integerValue(props.get("columnGap"), 16));
         Map<String, Object> options = mapValue(props.get("formCreateOptions"));
         Map<String, Object> form = mapValue(options.get("form"));
         Map<String, Object> forge = mapValue(options.get("_forge"));
@@ -1333,6 +1362,12 @@ public class BusinessObjectDesignerService {
         }
         if (forge.containsKey("gridColumns")) {
             layout.put("gridColumns", clamp(integerValue(forge.get("gridColumns"), integerValue(layout.get("gridColumns"), 2)), 1, 3));
+        }
+        if (forge.containsKey("rowGap")) {
+            layout.put("rowGap", integerValue(forge.get("rowGap"), integerValue(layout.get("rowGap"), 16)));
+        }
+        if (forge.containsKey("columnGap")) {
+            layout.put("columnGap", integerValue(forge.get("columnGap"), integerValue(layout.get("columnGap"), 16)));
         }
         return layout;
     }
@@ -1657,24 +1692,11 @@ public class BusinessObjectDesignerService {
         Map<String, Object> compiledSettings = new LinkedHashMap<>();
         int gridColumns = clamp(integerValue(mapValue(formSchema.getLayout()).get("gridColumns"), 2), 1, 3);
         int defaultLabelWidth = integerValue(mapValue(formSchema.getLayout()).get("labelWidth"), 100);
+        int rowGap = integerValue(mapValue(formSchema.getLayout()).get("rowGap"), 16);
+        int columnGap = integerValue(mapValue(formSchema.getLayout()).get("columnGap"), 16);
 
-        for (Map<String, Object> component : flattenFormComponents(formSchema.getComponents())) {
-            String componentKey = text(component.get("componentKey"));
-            if (!FORM_FIELD_COMPONENT_KEYS.contains(componentKey)) {
-                continue;
-            }
-            Map<String, Object> binding = mapValue(component.get("fieldBinding"));
-            String fieldCode = text(binding.get("fieldCode"));
-            if (StringUtils.isBlank(fieldCode) || !modelFields.contains(fieldCode)) {
-                continue;
-            }
-            Map<String, Object> visibility = mapValue(component.get("visibility"));
-            if (readBoolean(visibility.get("hidden"), false)) {
-                continue;
-            }
-            formFieldRefs.add(fieldCode);
-            compiledSettings.put(fieldCode, buildFormFieldSetting(component, componentKey, gridColumns, defaultLabelWidth));
-        }
+        collectRuntimeFormFields(formSchema.getComponents(), modelFields, gridColumns, defaultLabelWidth,
+                null, formFieldRefs, compiledSettings);
 
         List<String> retainedRelationRefs = editZone.getFieldRefs() == null
                 ? new ArrayList<>()
@@ -1692,20 +1714,191 @@ public class BusinessObjectDesignerService {
         props.put("editGridCols", gridColumns);
         props.put("labelPlacement", StringUtils.defaultIfBlank(text(mapValue(formSchema.getLayout()).get("labelPlacement")), "left"));
         props.put("labelWidth", defaultLabelWidth);
+        props.put("labelAlign", "right");
+        props.put("rowGap", rowGap);
+        props.put("columnGap", columnGap);
+        props.put("formLayout", buildRuntimeFormLayout(formSchema.getComponents(), modelFields, gridColumns));
         props.put("compiledFrom", FORM_DESIGNER_SCHEMA_OPTION_KEY);
         props.remove("formCreateRule");
         props.remove("formCreateOptions");
+        props.remove("canvas");
         editZone.setProps(props);
+    }
+
+    private void collectRuntimeFormFields(List<Map<String, Object>> components, Set<String> modelFields,
+                                          int gridColumns, int defaultLabelWidth, Integer inheritedSpan,
+                                          List<String> formFieldRefs, Map<String, Object> compiledSettings) {
+        if (components == null) {
+            return;
+        }
+        for (Map<String, Object> component : components) {
+            if (component == null) {
+                continue;
+            }
+            String componentKey = text(component.get("componentKey"));
+            if (FORM_FIELD_COMPONENT_KEYS.contains(componentKey)) {
+                Map<String, Object> binding = mapValue(component.get("fieldBinding"));
+                String fieldCode = text(binding.get("fieldCode"));
+                if (StringUtils.isBlank(fieldCode) || !modelFields.contains(fieldCode)) {
+                    continue;
+                }
+                Map<String, Object> visibility = mapValue(component.get("visibility"));
+                if (readBoolean(visibility.get("hidden"), false)) {
+                    continue;
+                }
+                formFieldRefs.add(fieldCode);
+                compiledSettings.put(fieldCode, buildFormFieldSetting(component, componentKey, gridColumns,
+                        defaultLabelWidth, inheritedSpan));
+                continue;
+            }
+            Integer nextSpan = isColumnLayoutComponent(componentKey)
+                    ? clamp(integerValue(mapValue(component.get("layout")).get("span"),
+                    integerValue(mapValue(component.get("props")).get("span"), inheritedSpan == null ? 1 : inheritedSpan)),
+                    1, gridColumns)
+                    : inheritedSpan;
+            collectRuntimeFormFields(listOfMap(component.get("children")), modelFields, gridColumns,
+                    defaultLabelWidth, nextSpan, formFieldRefs, compiledSettings);
+        }
+    }
+
+    private List<Map<String, Object>> buildRuntimeFormLayout(List<Map<String, Object>> components,
+                                                             Set<String> modelFields,
+                                                             int gridColumns) {
+        List<Map<String, Object>> nodes = new ArrayList<>();
+        if (components == null) {
+            return nodes;
+        }
+        int index = 0;
+        for (Map<String, Object> component : components) {
+            Object node = buildRuntimeFormLayoutNode(component, modelFields, gridColumns, index++);
+            if (node instanceof List<?> list) {
+                for (Object item : list) {
+                    if (item instanceof Map<?, ?> map) {
+                        nodes.add(new LinkedHashMap<>((Map<String, Object>) map));
+                    }
+                }
+            } else if (node instanceof Map<?, ?> map) {
+                nodes.add(new LinkedHashMap<>((Map<String, Object>) map));
+            }
+        }
+        return nodes;
+    }
+
+    private Object buildRuntimeFormLayoutNode(Map<String, Object> component, Set<String> modelFields,
+                                              int gridColumns, int index) {
+        if (component == null) {
+            return null;
+        }
+        String componentKey = text(component.get("componentKey"));
+        String key = StringUtils.defaultIfBlank(text(component.get("id")), componentKey + "_" + index);
+        if (FORM_FIELD_COMPONENT_KEYS.contains(componentKey)) {
+            Map<String, Object> binding = mapValue(component.get("fieldBinding"));
+            String fieldCode = text(binding.get("fieldCode"));
+            if (StringUtils.isBlank(fieldCode) || !modelFields.contains(fieldCode)
+                    || readBoolean(mapValue(component.get("visibility")).get("hidden"), false)) {
+                return null;
+            }
+            Map<String, Object> node = new LinkedHashMap<>();
+            node.put("nodeType", "field");
+            node.put("key", key);
+            node.put("field", fieldCode);
+            node.put("span", clamp(integerValue(mapValue(component.get("layout")).get("span"), 1), 1, gridColumns));
+            return node;
+        }
+
+        List<Map<String, Object>> children = buildRuntimeFormLayout(listOfMap(component.get("children")),
+                modelFields, gridColumns);
+        Map<String, Object> props = sanitizeRuntimeLayoutProps(mapValue(component.get("props")));
+        String label = resolveRuntimeLayoutLabel(component);
+        int span = clamp(integerValue(mapValue(component.get("layout")).get("span"),
+                integerValue(props.get("span"), gridColumns)), 1, gridColumns);
+
+        if (isRowLayoutComponent(componentKey)) {
+            return runtimeLayoutNode("row", key, label, props, children, gridColumns);
+        }
+        if (isColumnLayoutComponent(componentKey)) {
+            return runtimeLayoutNode("col", key, label, props, children, span);
+        }
+        if (Set.of("elCard", "card").contains(componentKey)) {
+            return runtimeLayoutNode("card", key, label, props, children, gridColumns);
+        }
+        if (Set.of("elTabs", "tabs").contains(componentKey)) {
+            return runtimeLayoutNode("tabs", key, label, props, children, gridColumns);
+        }
+        if (Set.of("elTabPane", "tabPane").contains(componentKey)) {
+            return runtimeLayoutNode("tabPane", key, label, props, children, gridColumns);
+        }
+        if (Set.of("elCollapse", "collapse").contains(componentKey)) {
+            return runtimeLayoutNode("collapse", key, label, props, children, gridColumns);
+        }
+        if (Set.of("elCollapseItem", "collapseItem").contains(componentKey)) {
+            return runtimeLayoutNode("collapseItem", key, label, props, children, gridColumns);
+        }
+        if (Set.of("elDivider", "divider", "fcTitle", "title").contains(componentKey)) {
+            return runtimeLayoutNode("divider", key, label, props, List.of(), gridColumns);
+        }
+        return children.isEmpty() ? null : children;
+    }
+
+    private Map<String, Object> runtimeLayoutNode(String nodeType, String key, String label,
+                                                  Map<String, Object> props,
+                                                  List<Map<String, Object>> children,
+                                                  int span) {
+        Map<String, Object> node = new LinkedHashMap<>();
+        node.put("nodeType", nodeType);
+        node.put("key", key);
+        if (StringUtils.isNotBlank(label)) {
+            node.put("label", label);
+        }
+        if (props != null && !props.isEmpty()) {
+            node.put("props", props);
+        }
+        if (children != null && !children.isEmpty()) {
+            node.put("children", children);
+        }
+        node.put("span", span);
+        return node;
+    }
+
+    private Map<String, Object> sanitizeRuntimeLayoutProps(Map<String, Object> source) {
+        Map<String, Object> props = new LinkedHashMap<>(source);
+        props.remove("__fc");
+        props.remove("__fcType");
+        props.remove("fieldBinding");
+        return props;
+    }
+
+    private String resolveRuntimeLayoutLabel(Map<String, Object> component) {
+        Map<String, Object> props = mapValue(component.get("props"));
+        return StringUtils.defaultIfBlank(text(props.get("header")),
+                StringUtils.defaultIfBlank(text(props.get("label")),
+                        StringUtils.defaultIfBlank(text(props.get("title")),
+                                StringUtils.defaultIfBlank(text(props.get("formCreateChild")), text(component.get("label"))))));
+    }
+
+    private boolean isRowLayoutComponent(String componentKey) {
+        return Set.of("fcRow", "row").contains(componentKey);
+    }
+
+    private boolean isColumnLayoutComponent(String componentKey) {
+        return "col".equals(componentKey);
     }
 
     private Map<String, Object> buildFormFieldSetting(Map<String, Object> component, String componentKey,
                                                       int gridColumns, int defaultLabelWidth) {
+        return buildFormFieldSetting(component, componentKey, gridColumns, defaultLabelWidth, null);
+    }
+
+    private Map<String, Object> buildFormFieldSetting(Map<String, Object> component, String componentKey,
+                                                      int gridColumns, int defaultLabelWidth,
+                                                      Integer inheritedSpan) {
         Map<String, Object> setting = new LinkedHashMap<>();
         setting.put("componentType", normalizeRuntimeComponentType(componentKey));
         putIfNotBlank(setting, "label", text(component.get("label")));
         Map<String, Object> layout = mapValue(component.get("layout"));
         setting.put("align", normalizeAlign(text(layout.get("align"))));
-        setting.put("span", clamp(integerValue(layout.get("span"), 1), 1, gridColumns));
+        setting.put("span", clamp(inheritedSpan == null ? integerValue(layout.get("span"), 1) : inheritedSpan,
+                1, gridColumns));
         setting.put("labelWidth", integerValue(layout.get("labelWidth"), defaultLabelWidth));
         Map<String, Object> props = new LinkedHashMap<>(mapValue(component.get("props")));
         props.remove("fieldBinding");
@@ -2039,7 +2232,11 @@ public class BusinessObjectDesignerService {
 
     private String normalizeRuntimeComponentType(String componentKey) {
         return switch (StringUtils.defaultString(componentKey)) {
-            case "integer", "money" -> "number";
+            case "inputNumber", "integer", "money" -> "number";
+            case "upload" -> "fileUpload";
+            case "orgSelect", "departmentSelect", "departmentTreeSelect", "deptSelect", "deptTreeSelect",
+                    "elTreeSelect", "orgName", "deptName" -> "orgTreeSelect";
+            case "userPicker", "userName" -> "userSelect";
             default -> componentKey;
         };
     }

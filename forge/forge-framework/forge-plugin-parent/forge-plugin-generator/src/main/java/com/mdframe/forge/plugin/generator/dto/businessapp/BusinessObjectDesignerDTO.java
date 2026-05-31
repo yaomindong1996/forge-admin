@@ -42,4 +42,10 @@ public class BusinessObjectDesignerDTO {
     private List<BusinessObjectRelationDTO> relations;
 
     private Map<String, Object> designerOptions;
+
+    /** true 表示保存业务对象设计后同步缺失数据表结构。 */
+    private Boolean syncDdl;
+
+    /** 同步表结构二次确认标记。 */
+    private Boolean confirmSyncDdl;
 }

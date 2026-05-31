@@ -5,6 +5,7 @@ const FIELD_COMPONENT_KEYS = new Set([
   'input',
   'textarea',
   'number',
+  'inputNumber',
   'integer',
   'money',
   'date',
@@ -18,10 +19,60 @@ const FIELD_COMPONENT_KEYS = new Set([
   'cascader',
   'regionTreeSelect',
   'orgTreeSelect',
+  'orgSelect',
+  'departmentSelect',
+  'departmentTreeSelect',
+  'deptSelect',
+  'deptTreeSelect',
+  'elTreeSelect',
+  'orgName',
+  'deptName',
   'userSelect',
+  'userPicker',
+  'userName',
   'fileUpload',
   'imageUpload',
+  'upload',
   'objectReference',
+])
+
+export const LAYOUT_COMPONENT_KEYS = new Set([
+  'fcRow',
+  'row',
+  'col',
+  'elCard',
+  'card',
+  'elTabs',
+  'tabs',
+  'elTabPane',
+  'tabPane',
+  'elCollapse',
+  'collapse',
+  'elCollapseItem',
+  'collapseItem',
+  'fcTable',
+  'table',
+  'fcTableGrid',
+  'tableGrid',
+])
+
+export const VIRTUAL_COMPONENT_KEYS = new Set([
+  ...LAYOUT_COMPONENT_KEYS,
+  'elDivider',
+  'divider',
+  'fcTitle',
+  'title',
+  'text',
+  'html',
+  'space',
+  'elAlert',
+  'alert',
+  'elButton',
+  'button',
+  'elTag',
+  'tag',
+  'elImage',
+  'image',
 ])
 
 const KNOWN_FIELD_CODES = {
@@ -53,6 +104,8 @@ export function createDefaultFormDesignerSchema(options = {}) {
       labelPlacement: 'left',
       labelWidth: 100,
       gridColumns: 2,
+      rowGap: 16,
+      columnGap: 16,
     },
     components: fields
       .filter(field => field && field.formVisible !== false && !field.systemField && !field.readonly)
@@ -184,6 +237,14 @@ export function isFieldComponent(component = {}) {
   return FIELD_COMPONENT_KEYS.has(component.componentKey)
 }
 
+export function isLayoutComponent(component = {}) {
+  return LAYOUT_COMPONENT_KEYS.has(component.componentKey)
+}
+
+export function isVirtualComponent(component = {}) {
+  return VIRTUAL_COMPONENT_KEYS.has(component.componentKey) || !isFieldComponent(component)
+}
+
 export function extractFieldBindings(schema = {}) {
   return normalizeFormDesignerSchema(schema).components.filter(component => isFieldComponent(component) && component.fieldBinding?.mode === 'field').map(component => ({
     componentId: component.id,
@@ -205,8 +266,8 @@ function normalizeLayout(layout = {}) {
     labelPlacement: source.labelPlacement || 'left',
     labelWidth: Number(source.labelWidth || 100),
     gridColumns: Number(source.gridColumns || 2),
-    ...(source.rowGap ? { rowGap: source.rowGap } : {}),
-    ...(source.columnGap ? { columnGap: source.columnGap } : {}),
+    rowGap: Number(source.rowGap ?? 16),
+    columnGap: Number(source.columnGap ?? 16),
   }
 }
 
@@ -214,12 +275,15 @@ function normalizeComponent(component, index) {
   if (!isPlainObject(component))
     return null
   const componentKey = component.componentKey || component.type || 'input'
-  const label = component.label || component.title || component.fieldBinding?.fieldCode || '字段'
+  const fieldComponent = FIELD_COMPONENT_KEYS.has(componentKey)
+  const label = component.label || component.title || component.props?.header || component.props?.label || component.props?.title || component.fieldBinding?.fieldCode || (fieldComponent ? '字段' : '布局')
   return {
     id: component.id || `cmp_${component.fieldBinding?.fieldCode || index}`,
     componentKey,
     label,
-    fieldBinding: normalizeFieldBinding(component.fieldBinding, component.field || component.name),
+    fieldBinding: fieldComponent
+      ? normalizeFieldBinding(component.fieldBinding, component.field || component.name)
+      : normalizeFieldBinding({ ...(component.fieldBinding || {}), mode: 'virtual', fieldCode: '' }),
     props: isPlainObject(component.props) ? component.props : {},
     layout: normalizeComponentLayout(component.layout),
     validation: normalizeValidation(component.validation),

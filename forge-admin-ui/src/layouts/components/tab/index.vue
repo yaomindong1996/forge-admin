@@ -2,7 +2,7 @@
   <div id="top-tab">
     <n-tabs
       :value="tabStore.activeTab"
-      :closable="tabStore.tabs.length > 1"
+      :closable="hasClosableTabs"
       type="card"
       size="small"
       @close="(path) => tabStore.removeTab(path)"
@@ -11,6 +11,7 @@
         v-for="item in tabStore.tabs"
         :key="item.path"
         :name="item.path"
+        :closable="isTabClosable(item)"
         @click="handleItemClick(item.path)"
         @contextmenu.prevent="handleContextMenu($event, item)"
       >
@@ -42,6 +43,16 @@ const contextMenuOption = reactive({
   y: 0,
   currentPath: '',
 })
+
+const hasClosableTabs = computed(() => tabStore.tabs.some(isTabClosable))
+
+function isTabClosable(tab) {
+  if (tab?.closable === false)
+    return false
+  if (tab?.forceClosable)
+    return true
+  return tabStore.tabs.length > 1
+}
 
 function handleItemClick(path) {
   tabStore.setActiveTab(path)

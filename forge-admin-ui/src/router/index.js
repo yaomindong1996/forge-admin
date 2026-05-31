@@ -95,13 +95,13 @@ export const manualRoutes = [
     name: 'BusinessObjectDesigner',
     path: '/app-center/object/:objectCode/designer',
     component: () => import('@/views/app-center/object-designer.[objectCode].vue'),
-    meta: { title: '业务对象设计' },
+    meta: { title: '业务对象设计', skipTab: true },
   },
   {
     name: 'BusinessAppEntry',
     path: '/app-center/app/:appId',
     component: () => import('@/views/app-center/app-entry.vue'),
-    meta: { title: '应用入口' },
+    meta: { title: '应用入口', skipTab: true },
   },
   {
     name: 'ReportSsoBridge',

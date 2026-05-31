@@ -241,6 +241,17 @@
       :suite="editingSuite"
       @saved="handleSuiteSaved"
     />
+    <BusinessObjectDesignerPage
+      v-if="designerVisible"
+      :key="designerMountKey"
+      embedded
+      :embedded-object-code="designingObject?.objectCode || ''"
+      :embedded-object-id="designingObject?.id || null"
+      :embedded-suite-code="designingObject?.suiteCode || suiteCode || ''"
+      :initial-panel="designerPanel"
+      @saved="loadAll"
+      @close="closeObjectDesigner"
+    />
   </div>
 </template>
 
@@ -259,7 +270,7 @@ import {
 } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import {
   businessAppOpenInfo,
   businessAppPage,
@@ -277,9 +288,9 @@ import AppFilterBar from './components/AppFilterBar.vue'
 import BusinessObjectWizardDrawer from './components/BusinessObjectWizardDrawer.vue'
 import ObjectCard from './components/ObjectCard.vue'
 import SuiteEditorDrawer from './components/SuiteEditorDrawer.vue'
+import BusinessObjectDesignerPage from './object-designer.[objectCode].vue'
 
 const router = useRouter()
-const route = useRoute()
 const message = useMessage()
 
 const activeView = ref('objects')
@@ -299,6 +310,9 @@ const editingApp = ref(null)
 const objectWizardVisible = ref(false)
 const suiteEditorVisible = ref(false)
 const editingSuite = ref(null)
+const designerVisible = ref(false)
+const designingObject = ref(null)
+const designerPanel = ref('form')
 const pageSizeOptions = [6, 12, 24, 48]
 const objectPagination = ref({
   pageNum: 1,
@@ -320,6 +334,7 @@ const activeSuiteDescription = computed(() => {
   return '聚合展示当前范围内的业务对象和应用入口。'
 })
 const activeSuiteInitial = computed(() => activeSuite.value ? suiteInitial(activeSuite.value) : '全')
+const designerMountKey = computed(() => `${designingObject.value?.objectCode || 'object'}_${designerPanel.value}`)
 const metrics = computed(() => [
   { label: '业务对象', value: objectTotal.value },
   { label: '应用入口', value: appTotal.value },
@@ -436,14 +451,18 @@ function openObject(object) {
 function openObjectDesigner(object, panel = 'form') {
   if (!object?.objectCode)
     return
-  router.push({
-    path: `/app-center/object/${object.objectCode}/designer`,
-    query: {
-      suiteCode: object.suiteCode,
-      panel,
-      returnTo: route.fullPath,
-    },
-  })
+  designingObject.value = {
+    ...object,
+    suiteCode: object.suiteCode || suiteCode.value,
+  }
+  designerPanel.value = panel || 'form'
+  designerVisible.value = true
+}
+
+async function closeObjectDesigner() {
+  designerVisible.value = false
+  designingObject.value = null
+  await loadAll()
 }
 
 function openEditor(app) {

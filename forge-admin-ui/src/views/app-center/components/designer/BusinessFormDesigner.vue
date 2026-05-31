@@ -26,11 +26,22 @@
               </n-radio-button>
             </n-radio-group>
           </div>
+          <div v-if="isPrimaryObjectActive" class="layout-columns-control">
+            <span>表单列数</span>
+            <n-radio-group v-model:value="formGridColumns" size="small">
+              <n-radio-button :value="1">
+                单列
+              </n-radio-button>
+              <n-radio-button :value="2">
+                两列
+              </n-radio-button>
+              <n-radio-button :value="3">
+                三列
+              </n-radio-button>
+            </n-radio-group>
+          </div>
           <n-button v-if="isPrimaryObjectActive" size="small" secondary :disabled="!unusedFields.length" @click="appendAllUnusedFields">
             补齐未使用字段
-          </n-button>
-          <n-button size="small" type="primary" :loading="saving" @click="saveLayout">
-            保存表单
           </n-button>
         </div>
       </div>
@@ -43,7 +54,6 @@
             :fields="primaryDesignFields"
             :object-code="objectCode"
             :object-name="objectName"
-            @save="handleFormDesignerSave"
             @dirty-change="emit('dirtyChange', $event)"
           />
         </template>
@@ -220,6 +230,7 @@ import {
 import BusinessFormCreateDesigner from './BusinessFormCreateDesigner.vue'
 import { buildAutoFieldAssets } from './form-first/autoFieldRegistry'
 import { extractForgeSchemaFieldRefs, forgeSchemaToFormCreate } from './form-first/forgeToFormCreate'
+import { normalizeFormDesignerSchema } from './form-first/formDesignerSchema'
 
 const props = defineProps({
   objectId: {
@@ -258,6 +269,41 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'update:formDesignerSchema', 'saved', 'fieldsUpdated', 'dirtyChange', 'createField', 'openRelations'])
 
+const FORM_FIELD_COMPONENT_KEYS = new Set([
+  'input',
+  'textarea',
+  'number',
+  'inputNumber',
+  'integer',
+  'money',
+  'date',
+  'datetime',
+  'time',
+  'switch',
+  'select',
+  'radio',
+  'checkbox',
+  'dictSelect',
+  'cascader',
+  'regionTreeSelect',
+  'orgTreeSelect',
+  'orgSelect',
+  'departmentSelect',
+  'departmentTreeSelect',
+  'deptSelect',
+  'deptTreeSelect',
+  'elTreeSelect',
+  'orgName',
+  'deptName',
+  'userSelect',
+  'userPicker',
+  'userName',
+  'fileUpload',
+  'imageUpload',
+  'upload',
+  'objectReference',
+])
+
 const message = useMessage()
 const saving = ref(false)
 const shelfTab = ref('unused')
@@ -294,6 +340,10 @@ const unusedFields = computed(() => businessFields.value.filter(field => !usedFi
 const editModalType = computed({
   get: () => editZone.value?.props?.modalType || 'modal',
   set: value => updateEditZoneProps({ modalType: value || 'modal' }),
+})
+const formGridColumns = computed({
+  get: () => clampNumber(localFormDesignerSchema.value?.layout?.gridColumns, 1, 3, 2),
+  set: value => updateFormDesignerLayout({ gridColumns: clampNumber(value, 1, 3, 2) }),
 })
 const relationFieldGroups = computed(() => {
   return pageModelRefs.value
@@ -415,21 +465,22 @@ watch(formObjectTabs, (tabs) => {
     activeObjectKey.value = 'primary'
 }, { deep: true })
 
-function handleFormDesignerSave(schema) {
-  localFormDesignerSchema.value = cloneSchema(schema || localFormDesignerSchema.value)
-  syncFormDesignerSchemaToPageSchema(localFormDesignerSchema.value)
-  message.success('表单配置已应用')
-}
-
 function syncFormDesignerSchemaToPageSchema(schema, fields = primaryDesignFields.value) {
   if (!editZone.value || !schema)
     return
+  const normalizedSchema = normalizeFormDesignerSchema(schema)
+  const layout = normalizedSchema.layout || {}
+  const gridColumns = clampNumber(layout.gridColumns, 1, 3, 2)
+  const defaultLabelWidth = resolveNumber(layout.labelWidth, 100)
   const fieldSet = new Set((fields || []).map(field => field.field || field.fieldCode).filter(Boolean))
   const { rules, options } = forgeSchemaToFormCreate({
-    schema,
+    schema: normalizedSchema,
     fields,
   })
-  const fieldRefs = extractForgeSchemaFieldRefs(schema).filter(ref => fieldSet.has(ref))
+  const compiledSettings = buildFormRuntimeFieldSettings(normalizedSchema, fieldSet, gridColumns, defaultLabelWidth)
+  const formLayout = buildRuntimeFormLayout(normalizedSchema, fieldSet, gridColumns)
+  const fieldRefs = Object.keys(compiledSettings)
+  const modelFieldSet = buildPrimaryModelFieldSet(fields)
   replaceZone({
     ...editZone.value,
     fieldRefs: mergeUniqueRefs(fieldRefs, selectedRelationFieldRefs.value),
@@ -437,8 +488,213 @@ function syncFormDesignerSchemaToPageSchema(schema, fields = primaryDesignFields
       ...(editZone.value.props || {}),
       formCreateRule: rules,
       formCreateOptions: options,
+      fieldSettings: replaceModelFieldSettings(editZone.value.props?.fieldSettings, modelFieldSet, compiledSettings),
+      editGridCols: gridColumns,
+      labelPlacement: layout.labelPlacement || 'left',
+      labelWidth: defaultLabelWidth,
+      labelAlign: 'right',
+      rowGap: resolveNumber(layout.rowGap, 16),
+      columnGap: resolveNumber(layout.columnGap, 16),
+      formLayout,
+      canvas: undefined,
+      compiledFrom: 'formDesignerSchema',
     },
   })
+}
+
+function buildFormRuntimeFieldSettings(schema, fieldSet, gridColumns, defaultLabelWidth) {
+  const settings = {}
+  collectRuntimeFieldComponents(schema.components, gridColumns).forEach(({ component, inheritedSpan }) => {
+    const componentKey = component?.componentKey || 'input'
+    if (!FORM_FIELD_COMPONENT_KEYS.has(componentKey))
+      return
+    const fieldCode = component?.fieldBinding?.fieldCode || ''
+    if (!fieldCode || !fieldSet.has(fieldCode) || component?.visibility?.hidden)
+      return
+    settings[fieldCode] = buildRuntimeFormFieldSetting(component, gridColumns, defaultLabelWidth, inheritedSpan)
+  })
+  return settings
+}
+
+function buildRuntimeFormFieldSetting(component, gridColumns, defaultLabelWidth, inheritedSpan = null) {
+  const layout = component.layout || {}
+  const props = { ...(component.props || {}) }
+  delete props.fieldBinding
+  const setting = {
+    componentType: normalizeRuntimeComponentType(component.componentKey),
+    align: normalizeAlign(layout.align),
+    span: clampNumber(inheritedSpan || layout.span, 1, gridColumns, 1),
+    labelWidth: resolveNumber(layout.labelWidth, defaultLabelWidth),
+  }
+  if (component.label)
+    setting.label = component.label
+  if (Object.keys(props).length)
+    setting.props = props
+  if (component.validation && Object.prototype.hasOwnProperty.call(component.validation, 'required'))
+    setting.required = Boolean(component.validation.required)
+  if (component.visibility && Object.prototype.hasOwnProperty.call(component.visibility, 'readonly'))
+    setting.readonly = Boolean(component.visibility.readonly)
+  if (props.dictType)
+    setting.dictType = props.dictType
+  if (Object.prototype.hasOwnProperty.call(props, 'defaultValue'))
+    setting.defaultValue = props.defaultValue
+  return setting
+}
+
+function collectRuntimeFieldComponents(components = [], gridColumns = 2, inheritedSpan = null) {
+  const result = []
+  const walk = (items = [], parentSpan = inheritedSpan) => {
+    ;(Array.isArray(items) ? items : []).forEach((component) => {
+      if (!component || typeof component !== 'object')
+        return
+      const componentKey = component.componentKey || ''
+      if (FORM_FIELD_COMPONENT_KEYS.has(componentKey)) {
+        result.push({ component, inheritedSpan: parentSpan })
+        return
+      }
+      const nextSpan = isColumnLayoutComponent(componentKey)
+        ? clampNumber(component.layout?.span || component.props?.span, 1, gridColumns, parentSpan || 1)
+        : parentSpan
+      if (Array.isArray(component.children))
+        walk(component.children, nextSpan)
+    })
+  }
+  walk(components, inheritedSpan)
+  return result
+}
+
+function buildRuntimeFormLayout(schema, fieldSet, gridColumns) {
+  return buildRuntimeFormLayoutNodes(schema.components || [], fieldSet, gridColumns)
+}
+
+function buildRuntimeFormLayoutNodes(components = [], fieldSet, gridColumns) {
+  const nodes = []
+  ;(Array.isArray(components) ? components : []).forEach((component, index) => {
+    const node = buildRuntimeFormLayoutNode(component, index, fieldSet, gridColumns)
+    if (Array.isArray(node))
+      nodes.push(...node)
+    else if (node)
+      nodes.push(node)
+  })
+  return nodes
+}
+
+function buildRuntimeFormLayoutNode(component = {}, index = 0, fieldSet, gridColumns) {
+  if (!component || typeof component !== 'object')
+    return null
+  const componentKey = component.componentKey || ''
+  const key = component.id || `${componentKey || 'node'}_${index}`
+  if (FORM_FIELD_COMPONENT_KEYS.has(componentKey)) {
+    const fieldCode = component.fieldBinding?.fieldCode || ''
+    if (!fieldCode || !fieldSet.has(fieldCode) || component.visibility?.hidden)
+      return null
+    return {
+      nodeType: 'field',
+      key,
+      field: fieldCode,
+      span: clampNumber(component.layout?.span, 1, gridColumns, 1),
+    }
+  }
+
+  const children = buildRuntimeFormLayoutNodes(component.children || [], fieldSet, gridColumns)
+  const props = sanitizeRuntimeLayoutProps(component.props || {})
+  const label = resolveRuntimeLayoutLabel(component)
+  const span = clampNumber(component.layout?.span || component.props?.span, 1, gridColumns, gridColumns)
+
+  if (isRowLayoutComponent(componentKey)) {
+    return { nodeType: 'row', key, props, children, span: gridColumns }
+  }
+  if (isColumnLayoutComponent(componentKey)) {
+    return { nodeType: 'col', key, props, children, span }
+  }
+  if (['elCard', 'card'].includes(componentKey)) {
+    return { nodeType: 'card', key, label, props, children, span: gridColumns }
+  }
+  if (['elTabs', 'tabs'].includes(componentKey)) {
+    return { nodeType: 'tabs', key, props, children, span: gridColumns }
+  }
+  if (['elTabPane', 'tabPane'].includes(componentKey)) {
+    return { nodeType: 'tabPane', key, label, props, children, span: gridColumns }
+  }
+  if (['elCollapse', 'collapse'].includes(componentKey)) {
+    return { nodeType: 'collapse', key, props, children, span: gridColumns }
+  }
+  if (['elCollapseItem', 'collapseItem'].includes(componentKey)) {
+    return { nodeType: 'collapseItem', key, label, props, children, span: gridColumns }
+  }
+  if (['elDivider', 'divider', 'fcTitle', 'title'].includes(componentKey)) {
+    return { nodeType: 'divider', key, label, props, span: gridColumns }
+  }
+  return children.length ? children : null
+}
+
+function sanitizeRuntimeLayoutProps(source = {}) {
+  const props = { ...(source || {}) }
+  delete props.__fc
+  delete props.__fcType
+  delete props.fieldBinding
+  return props
+}
+
+function resolveRuntimeLayoutLabel(component = {}) {
+  const props = component.props || {}
+  return props.header || props.label || props.title || props.formCreateChild || component.label || ''
+}
+
+function isRowLayoutComponent(componentKey = '') {
+  return ['fcRow', 'row'].includes(componentKey)
+}
+
+function isColumnLayoutComponent(componentKey = '') {
+  return componentKey === 'col'
+}
+
+function replaceModelFieldSettings(existingSettings, modelFields, compiledSettings) {
+  const next = isPlainObject(existingSettings) ? { ...existingSettings } : {}
+  ;(modelFields || new Set()).forEach(field => delete next[field])
+  return {
+    ...next,
+    ...compiledSettings,
+  }
+}
+
+function buildPrimaryModelFieldSet(fields = []) {
+  return new Set((fields || [])
+    .filter(field => !isRelationField(field))
+    .map(field => field.field || field.fieldCode)
+    .filter(Boolean))
+}
+
+function normalizeRuntimeComponentType(componentKey) {
+  if (componentKey === 'integer' || componentKey === 'money' || componentKey === 'inputNumber')
+    return 'number'
+  if (componentKey === 'upload')
+    return 'fileUpload'
+  if (['orgSelect', 'departmentSelect', 'departmentTreeSelect', 'deptSelect', 'deptTreeSelect', 'elTreeSelect', 'orgName', 'deptName'].includes(componentKey))
+    return 'orgTreeSelect'
+  if (['userPicker', 'userName'].includes(componentKey))
+    return 'userSelect'
+  return componentKey || 'input'
+}
+
+function normalizeAlign(value) {
+  return ['left', 'center', 'right'].includes(value) ? value : 'left'
+}
+
+function clampNumber(value, min, max, fallback = min) {
+  const number = Number(value)
+  if (!Number.isFinite(number))
+    return fallback
+  return Math.max(min, Math.min(max, number))
+}
+
+function resolveNumber(value, fallback) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : fallback
+}
+
+function isPlainObject(value) {
+  return value && typeof value === 'object' && !Array.isArray(value)
 }
 
 function appendField(field) {
@@ -461,6 +717,19 @@ function updateEditZoneProps(patch = {}) {
       ...patch,
     },
   })
+}
+
+function updateFormDesignerLayout(patch = {}) {
+  const flushedSchema = formCreateDesignerRef.value?.flushDesigner?.()
+  const currentSchema = normalizeFormDesignerSchema(flushedSchema || localFormDesignerSchema.value || {})
+  localFormDesignerSchema.value = {
+    ...currentSchema,
+    layout: {
+      ...(currentSchema.layout || {}),
+      ...patch,
+    },
+  }
+  emit('dirtyChange', true)
 }
 
 function toggleRelationField(field, checked) {
@@ -729,6 +998,8 @@ async function saveLayout() {
       await saveBusinessObjectDesigner(props.objectId, {
         fields: nextFields.map(toBusinessFieldPayload),
         formDesignerSchema: cloneSchema(formSchema || localFormDesignerSchema.value || {}),
+        syncDdl: true,
+        confirmSyncDdl: true,
       })
     }
     await saveBusinessObjectFormLayout(props.objectId, {
@@ -744,7 +1015,7 @@ async function saveLayout() {
     if (createdFields.length)
       emit('fieldsUpdated', nextFields)
     emit('dirtyChange', false)
-    message.success(createdFields.length ? `表单布局已保存，已自动创建 ${createdFields.length} 个字段` : '表单布局已保存')
+    message.success(createdFields.length ? `表单布局已保存，已自动创建 ${createdFields.length} 个字段并同步表结构` : '表单布局已保存，表结构已检查同步')
   }
   finally {
     saving.value = false
@@ -913,14 +1184,16 @@ defineExpose({
 }
 
 .object-switch-control,
-.modal-type-control {
+.modal-type-control,
+.layout-columns-control {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .object-switch-control span,
-.modal-type-control span {
+.modal-type-control span,
+.layout-columns-control span {
   color: #64748b;
   font-size: 12px;
   white-space: nowrap;

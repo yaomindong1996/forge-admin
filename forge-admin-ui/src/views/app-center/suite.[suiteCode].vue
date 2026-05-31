@@ -128,6 +128,17 @@
       :default-suite-code="suiteCode"
       @saved="handleObjectSaved"
     />
+    <BusinessObjectDesignerPage
+      v-if="designerVisible"
+      :key="designerMountKey"
+      embedded
+      :embedded-object-code="designingObject?.objectCode || ''"
+      :embedded-object-id="designingObject?.id || null"
+      :embedded-suite-code="designingObject?.suiteCode || suiteCode || ''"
+      :initial-panel="designerPanel"
+      @saved="loadAll"
+      @close="closeObjectDesigner"
+    />
   </div>
 </template>
 
@@ -152,6 +163,7 @@ import AppEditorDrawer from './components/AppEditorDrawer.vue'
 import BusinessObjectWizardDrawer from './components/BusinessObjectWizardDrawer.vue'
 import ObjectCard from './components/ObjectCard.vue'
 import SuiteAcceptancePanel from './components/SuiteAcceptancePanel.vue'
+import BusinessObjectDesignerPage from './object-designer.[objectCode].vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -168,6 +180,9 @@ const loadingApps = ref(false)
 const editorVisible = ref(false)
 const editingApp = ref(null)
 const objectWizardVisible = ref(false)
+const designerVisible = ref(false)
+const designingObject = ref(null)
+const designerPanel = ref('form')
 const pageSizeOptions = [6, 12, 24, 48]
 const objectPagination = ref({
   pageNum: 1,
@@ -181,6 +196,7 @@ const appPagination = ref({
 const suiteInitial = computed(() => String(suite.value?.suiteName || suiteCode.value || 'A').slice(0, 2).toUpperCase())
 const enabledAppCount = computed(() => apps.value.filter(item => item.status === 1).length)
 const pageTitle = computed(() => suite.value?.suiteName || suiteCode.value || '业务套件详情')
+const designerMountKey = computed(() => `${designingObject.value?.objectCode || 'object'}_${designerPanel.value}`)
 
 onMounted(loadAll)
 
@@ -243,14 +259,18 @@ function openObject(object) {
 function openObjectDesigner(object, panel = 'form') {
   if (!object?.objectCode)
     return
-  router.push({
-    path: `/app-center/object/${object.objectCode}/designer`,
-    query: {
-      suiteCode: object.suiteCode,
-      panel,
-      returnTo: route.fullPath,
-    },
-  })
+  designingObject.value = {
+    ...object,
+    suiteCode: object.suiteCode || suiteCode.value,
+  }
+  designerPanel.value = panel || 'form'
+  designerVisible.value = true
+}
+
+async function closeObjectDesigner() {
+  designerVisible.value = false
+  designingObject.value = null
+  await loadAll()
 }
 
 function openEditor(app) {

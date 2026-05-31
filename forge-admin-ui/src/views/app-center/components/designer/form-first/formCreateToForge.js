@@ -3,6 +3,7 @@ import {
   camelToSnake,
   FORM_DESIGNER_SCHEMA_VERSION,
   generateFieldCode,
+  isFieldComponent,
   normalizeFieldBinding,
   normalizeFormDesignerSchema,
 } from './formDesignerSchema'
@@ -28,18 +29,19 @@ export function convertRuleToComponent(rule = {}, index = 0, fieldContext = crea
   if (!rule || typeof rule !== 'object')
     return null
   const componentKey = resolveForgeComponentKey(rule)
+  const fieldComponent = isFieldComponent({ componentKey })
   const forgeBinding = rule._forge?.fieldBinding || {}
   const label = rule.title || rule.label || forgeBinding.fieldCode || rule.field || rule.name || '字段'
-  const fieldCode = resolveFieldCode(rule, label, forgeBinding, fieldContext)
+  const fieldCode = fieldComponent ? resolveFieldCode(rule, label, forgeBinding, fieldContext) : ''
   return {
     id: rule._forge?.id || rule.id || `cmp_${fieldCode || index}`,
     componentKey,
     label,
     fieldBinding: normalizeFieldBinding({
-      mode: forgeBinding.mode || (fieldCode ? 'field' : 'virtual'),
+      mode: fieldComponent ? forgeBinding.mode || (fieldCode ? 'field' : 'virtual') : 'virtual',
       fieldCode,
       columnName: forgeBinding.columnName || (fieldCode ? camelToSnake(fieldCode) : ''),
-      createIfMissing: forgeBinding.createIfMissing ?? Boolean(fieldCode),
+      createIfMissing: fieldComponent ? forgeBinding.createIfMissing ?? Boolean(fieldCode) : false,
       source: forgeBinding.source || 'designer',
       locked: Boolean(forgeBinding.locked),
     }, fieldCode),
@@ -142,6 +144,8 @@ function buildLayoutFromOptions(options = {}) {
     labelPlacement: form.labelPosition === 'top' ? 'top' : 'left',
     labelWidth: Number.parseInt(form.labelWidth || 100, 10) || 100,
     gridColumns: Number(options._forge?.gridColumns || 2),
+    rowGap: Number(options._forge?.rowGap ?? 16),
+    columnGap: Number(options._forge?.columnGap ?? 16),
   }
 }
 
@@ -172,6 +176,28 @@ function resolveForgeComponentKey(rule = {}) {
     cascader: 'cascader',
     tree: 'orgTreeSelect',
     elTreeSelect: 'orgTreeSelect',
+    fcRow: 'fcRow',
+    row: 'fcRow',
+    col: 'col',
+    elCard: 'elCard',
+    card: 'elCard',
+    elTabs: 'elTabs',
+    tabs: 'elTabs',
+    elTabPane: 'elTabPane',
+    tabPane: 'elTabPane',
+    elCollapse: 'elCollapse',
+    collapse: 'elCollapse',
+    elCollapseItem: 'elCollapseItem',
+    collapseItem: 'elCollapseItem',
+    elDivider: 'elDivider',
+    divider: 'elDivider',
+    fcTitle: 'fcTitle',
+    title: 'fcTitle',
+    fcTable: 'fcTable',
+    table: 'fcTable',
+    fcTableGrid: 'fcTableGrid',
+    tableGrid: 'fcTableGrid',
+    div: rule.native || rule.wrap ? 'space' : 'div',
   }
   return typeMap[type] || type
 }
@@ -194,7 +220,24 @@ function buildForgeProps(rule = {}) {
     props.defaultValue = cloneValue(rule.value)
   if (rule._forge?.props)
     Object.assign(props, cloneValue(rule._forge.props))
+  if (!isFieldComponent({ componentKey })) {
+    props.__fcType = rule.type || componentKey
+    const meta = pickFormCreateMeta(rule)
+    if (Object.keys(meta).length)
+      props.__fc = meta
+    if (Array.isArray(rule.children) && rule.children.length && rule.children.every(child => typeof child !== 'object'))
+      props.formCreateChild = rule.children.join('')
+  }
   return props
+}
+
+function pickFormCreateMeta(rule = {}) {
+  const meta = {}
+  ;['style', 'native', 'wrap', 'slot', 'effect'].forEach((key) => {
+    if (rule[key] !== undefined)
+      meta[key] = cloneValue(rule[key])
+  })
+  return meta
 }
 
 function buildForgeLayout(rule = {}, gridColumns = 2) {

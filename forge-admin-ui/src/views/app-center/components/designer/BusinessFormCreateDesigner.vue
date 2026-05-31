@@ -12,9 +12,6 @@
         <n-button size="small" secondary @click="repairRefs">
           清理失效字段
         </n-button>
-        <n-button size="small" type="primary" @click="emitSave">
-          应用表单配置
-        </n-button>
       </n-space>
     </div>
     <div class="form-create-canvas">
@@ -68,7 +65,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['update:modelValue', 'save', 'dirtyChange'])
+const emit = defineEmits(['update:modelValue', 'dirtyChange'])
 
 installFormCreate(getCurrentInstance()?.appContext?.app)
 
@@ -254,11 +251,6 @@ function appendField(field = {}) {
   emit('update:modelValue', schema)
   emit('dirtyChange', true)
   nextTick(loadDesigner)
-}
-
-function emitSave() {
-  const schema = flushDesigner()
-  emit('save', schema)
 }
 
 defineExpose({

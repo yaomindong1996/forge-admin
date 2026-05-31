@@ -23,6 +23,15 @@ export const useTabStore = defineStore('tab', {
       this.tabs = tabs
       setSessionStorage(TABS_KEY, tabs)
     },
+    removeTabCache(tab) {
+      if (!tab?.path)
+        return
+      const cacheName = tab.path.substring(1).replace(/\//g, '-').replace(/\?.*/, '')
+      const cacheIndex = this.cacheViews.indexOf(cacheName)
+      if (cacheIndex > -1) {
+        this.cacheViews.splice(cacheIndex, 1)
+      }
+    },
     // 修改 addTab 方法，添加缓存视图处理
     addTab(tab) {
       if (this.tabs.some(item => item.key === tab.key))
@@ -48,6 +57,15 @@ export const useTabStore = defineStore('tab', {
       tab.title = title
       setSessionStorage(TABS_KEY, this.tabs)
     },
+    updateTabMeta(path, patch = {}) {
+      if (!path || !patch || !Object.keys(patch).length)
+        return
+      const tab = this.tabs.find(item => item.path === path || item.key === path)
+      if (!tab)
+        return
+      Object.assign(tab, patch)
+      setSessionStorage(TABS_KEY, this.tabs)
+    },
     // 修改 removeTab 方法，删除对应的缓存视图
     removeTab(key) {
       const index = this.tabs.findIndex(item => item.key === key)
@@ -57,13 +75,7 @@ export const useTabStore = defineStore('tab', {
 
       // 删除对应的缓存视图
       const tab = this.tabs[index]
-      if (tab.path) {
-        const cacheName = tab.path.substring(1).replace(/\//g, '-').replace(/\?.*/, '')
-        const cacheIndex = this.cacheViews.indexOf(cacheName)
-        if (cacheIndex > -1) {
-          this.cacheViews.splice(cacheIndex, 1)
-        }
-      }
+      this.removeTabCache(tab)
 
       this.tabs.splice(index, 1)
       setSessionStorage(TABS_KEY, this.tabs)
@@ -71,7 +83,25 @@ export const useTabStore = defineStore('tab', {
         return
       const newTab = this.tabs[index] || this.tabs[index - 1] || { path: '/' }
       useRouterStore().router?.push(newTab.path)
-      this.setActiveTab(isLast ? newTab.key : this.tabs[index]?.key || newTab.key)
+      this.setActiveTab(isLast ? (newTab.key || newTab.path) : this.tabs[index]?.key || newTab.key || newTab.path)
+    },
+    removeTabSilently(keyOrPath) {
+      if (!keyOrPath)
+        return
+      const removedActive = this.tabs.some(item => (item.key === keyOrPath || item.path === keyOrPath) && item.key === this.activeTab)
+      const nextTabs = []
+      this.tabs.forEach((tab) => {
+        if (tab.key === keyOrPath || tab.path === keyOrPath) {
+          this.removeTabCache(tab)
+          return
+        }
+        nextTabs.push(tab)
+      })
+      if (nextTabs.length === this.tabs.length)
+        return
+      this.setTabs(nextTabs)
+      if (removedActive)
+        this.activeTab = nextTabs[nextTabs.length - 1]?.key || ''
     },
     setActiveTab(key) {
       this.activeTab = key

@@ -463,7 +463,8 @@
 
     <!-- 系统组织树选择 -->
     <n-tree-select
-      v-else-if="field.type === 'orgTreeSelect'"
+      v-else-if="isOrgTreeSelectField(field)"
+      v-bind="field.props"
       :value="resolveOptionValue(value)"
       :placeholder="getPlaceholder(field)"
       :disabled="disabledHandler(field)"
@@ -473,14 +474,14 @@
       :filterable="field.filterable !== false"
       :multiple="field.multiple"
       :cascade="field.cascade !== false"
-      v-bind="field.props"
       @update:value="handleTreeSelectUpdate(field, $event)"
       v-on="getComponentEvents(field)"
     />
 
     <!-- 系统用户选择 -->
     <UserSelectPicker
-      v-else-if="field.type === 'userSelect'"
+      v-else-if="isUserSelectField(field)"
+      v-bind="field.props"
       :model-value="value"
       :label-value="resolveUserSelectLabel(field)"
       :placeholder="getPlaceholder(field)"
@@ -488,7 +489,6 @@
       :clearable="field.clearable !== false"
       :multiple="field.multiple"
       :size="field.size"
-      v-bind="field.props"
       @update:model-value="handleUpdate"
       @update:label-value="handleUserSelectLabelUpdate(field, $event)"
       @select="handleUserSelect(field, $event)"
@@ -665,6 +665,28 @@ const sourceDictOptions = ref([])
 const pickerDefaultTimestamp = Date.now()
 let remoteRequestSeq = 0
 
+const ORG_TREE_SELECT_TYPES = new Set([
+  'orgTreeSelect',
+  'orgSelect',
+  'organizationSelect',
+  'departmentSelect',
+  'departmentTreeSelect',
+  'deptSelect',
+  'deptTreeSelect',
+  'elTreeSelect',
+  'orgName',
+  'deptName',
+  'forgeOrgTreeSelect',
+])
+const USER_SELECT_TYPES = new Set([
+  'userSelect',
+  'userPicker',
+  'user',
+  'userName',
+  'sysUserSelect',
+  'forgeUserSelect',
+])
+
 /**
  * 获取占位符文本
  */
@@ -811,12 +833,9 @@ const currentOptions = computed(() => {
 function withCurrentValueOption(options = []) {
   const result = Array.isArray(options) ? [...options] : []
   const field = props.field || {}
-  const labelValueField = field.labelValueField || field.props?.labelValueField
-  if (!labelValueField || props.value === null || props.value === undefined || props.value === '')
+  if (props.value === null || props.value === undefined || props.value === '')
     return result
-  const labelValue = props.formData?.[labelValueField]
-    ?? field.labelValue
-    ?? field.props?.labelValue
+  const labelValue = resolveSelectionLabelValue(field)
   if (labelValue === null || labelValue === undefined || labelValue === '')
     return result
   const values = Array.isArray(props.value)
@@ -862,11 +881,12 @@ async function loadSourceDictOptions(dictType) {
 }
 
 function resolveOptionSource(field = {}) {
-  if (field.type === 'userSelect')
+  if (isUserSelectField(field))
     return null
-  if (field.optionSource || field.props?.optionSource)
-    return field.optionSource || field.props.optionSource
-  if (field.type === 'orgTreeSelect') {
+  const configuredSource = field.optionSource || field.props?.optionSource
+  if (hasEffectiveOptionSource(configuredSource))
+    return normalizeOptionSource(configuredSource)
+  if (isOrgTreeSelectField(field)) {
     return {
       type: 'tree',
       api: 'get@/system/org/tree',
@@ -878,6 +898,29 @@ function resolveOptionSource(field = {}) {
     }
   }
   return null
+}
+
+function hasEffectiveOptionSource(source) {
+  if (!source)
+    return false
+  if (typeof source === 'string')
+    return source.trim() !== ''
+  if (typeof source !== 'object')
+    return false
+  return Boolean(
+    String(source.api || source.url || '').trim()
+    || Array.isArray(source.options)
+    || Array.isArray(source.data),
+  )
+}
+
+function normalizeOptionSource(source) {
+  if (typeof source === 'string')
+    return { api: source }
+  const next = { ...(source || {}) }
+  if (!next.api && next.url)
+    next.api = next.url
+  return next
 }
 
 function resolveDynamicOptionSource(field = {}) {
@@ -939,7 +982,7 @@ async function loadRemoteOptions(source, keyword = '') {
     })
     if (requestSeq !== remoteRequestSeq)
       return
-    remoteOptions.value = normalizeRemoteOptions(res?.data, source)
+    remoteOptions.value = normalizeRemoteOptions(res, source)
   }
   catch (error) {
     console.warn(`[AiFormItem] 加载 ${props.field?.field || ''} 选项失败:`, error)
@@ -968,17 +1011,25 @@ function normalizeRemoteOptions(data, source = {}) {
   return rows.map(row => normalizeOptionNode(row, source, isTree)).filter(Boolean)
 }
 
-function extractOptionRows(data, source = {}) {
+function extractOptionRows(data, source = {}, depth = 0) {
   if (Array.isArray(data))
     return data
-  if (!data || typeof data !== 'object')
+  if (!data || typeof data !== 'object' || depth > 4)
     return []
   if (source.recordsField) {
     const nested = getNestedValue(data, source.recordsField)
     if (Array.isArray(nested))
       return nested
   }
-  return data.records || data.list || data.rows || []
+  for (const key of ['records', 'list', 'rows', 'items']) {
+    if (Array.isArray(data[key]))
+      return data[key]
+  }
+  if (Array.isArray(data.data))
+    return data.data
+  if (data.data && typeof data.data === 'object')
+    return extractOptionRows(data.data, source, depth + 1)
+  return []
 }
 
 function normalizeOptionNode(row, source = {}, includeChildren = false) {
@@ -988,9 +1039,12 @@ function normalizeOptionNode(row, source = {}, includeChildren = false) {
   const keyField = source.keyField || valueField
   const labelField = source.labelField || 'label'
   const childrenField = source.childrenField || 'children'
-  const fallbackLabelFields = source.fallbackLabelFields || ['label', 'name', 'title']
-  const value = row[valueField] ?? row.value ?? row.key ?? row[keyField]
-  const label = row[labelField] ?? fallbackLabelFields.map(field => row[field]).find(item => item !== undefined && item !== null && item !== '')
+  const fallbackValueFields = source.fallbackValueFields || ['value', 'key', keyField, 'id', 'orgId', 'deptId', 'code']
+  const fallbackLabelFields = source.fallbackLabelFields || ['label', 'name', 'title', 'orgName', 'deptName', 'orgShortName']
+  const value = resolveFirstFilled(row, [valueField, ...fallbackValueFields])
+  const label = resolveFirstFilled(row, [labelField, ...fallbackLabelFields])
+  if (value === undefined || value === null || value === '')
+    return null
   const option = {
     ...row,
     value,
@@ -1006,6 +1060,16 @@ function normalizeOptionNode(row, source = {}, includeChildren = false) {
     option.children = children.map(child => normalizeOptionNode(child, source, true)).filter(Boolean)
   }
   return option
+}
+
+function resolveFirstFilled(source, fields = []) {
+  const keys = fields.filter((field, index, all) => field && all.indexOf(field) === index)
+  for (const key of keys) {
+    const value = source?.[key]
+    if (value !== undefined && value !== null && value !== '')
+      return value
+  }
+  return undefined
 }
 
 function resolveCascadeConfig(field = {}) {
@@ -1171,9 +1235,118 @@ function isSameOptionValue(left, right) {
   return String(left) === String(right)
 }
 
+function normalizeRuntimeFieldType(type) {
+  const value = String(type || '')
+  if (ORG_TREE_SELECT_TYPES.has(value))
+    return 'orgTreeSelect'
+  if (USER_SELECT_TYPES.has(value))
+    return 'userSelect'
+  return value
+}
+
+function isOrgTreeSelectField(field = {}) {
+  return normalizeRuntimeFieldType(field.type || field.componentType) === 'orgTreeSelect'
+}
+
+function isUserSelectField(field = {}) {
+  return normalizeRuntimeFieldType(field.type || field.componentType) === 'userSelect'
+}
+
+function resolveSelectionLabelValue(field = {}) {
+  for (const candidate of resolveSelectionLabelFields(field)) {
+    const value = props.formData?.[candidate]
+    if (isFilledValue(value))
+      return value
+  }
+  return field.labelValue ?? field.props?.labelValue ?? ''
+}
+
+function resolveSelectionLabelFields(field = {}) {
+  const fieldName = String(field.field || '')
+  const candidates = [
+    field.props?.labelValueField,
+    field.labelValueField,
+    field.props?.targetField,
+    field.targetField,
+  ]
+  if (fieldName) {
+    candidates.push(`${fieldName}Name`)
+    if (fieldName.endsWith('UserId')) {
+      candidates.push(fieldName.replace(/UserId$/, 'UserName'))
+      candidates.push(fieldName.replace(/UserId$/, 'Name'))
+    }
+    if (fieldName.endsWith('DeptId')) {
+      candidates.push(fieldName.replace(/DeptId$/, 'DeptName'))
+      candidates.push(fieldName.replace(/DeptId$/, 'Name'))
+    }
+    if (fieldName.endsWith('OrgId')) {
+      candidates.push(fieldName.replace(/OrgId$/, 'OrgName'))
+      candidates.push(fieldName.replace(/OrgId$/, 'Name'))
+    }
+    if (fieldName.endsWith('Id'))
+      candidates.push(fieldName.replace(/Id$/, 'Name'))
+    candidates.push(`${fieldName}Label`, `${fieldName}Text`)
+  }
+  if (isUserSelectField(field))
+    candidates.push('userName', 'realName', 'nickname')
+  if (isOrgTreeSelectField(field))
+    candidates.push('orgName', 'deptName', 'departmentName')
+  return candidates
+    .map(value => String(value || '').trim())
+    .filter((value, index, all) => value && all.indexOf(value) === index)
+}
+
+function patchSelectionLabelValue(field = {}, labelValue) {
+  const candidates = resolveSelectionLabelFields(field)
+  if (!candidates.length || typeof props.context?.patchFormData !== 'function')
+    return
+  const normalizedLabel = normalizeLabelValue(labelValue)
+  const patch = {}
+  candidates.forEach((candidate, index) => {
+    if (index === 0 || Object.prototype.hasOwnProperty.call(props.formData || {}, candidate))
+      patch[candidate] = isFilledValue(normalizedLabel) ? normalizedLabel : undefined
+  })
+  props.context.patchFormData(patch)
+}
+
+function syncSelectionLabelFromOptions(field = {}, value) {
+  const values = Array.isArray(value)
+    ? value
+    : field.multiple && typeof value === 'string'
+      ? value.split(',').map(item => item.trim()).filter(Boolean)
+      : [value]
+  const labels = values
+    .map(item => flattenOptionNodes(currentOptions.value).find(option => isSameOptionValue(option?.value ?? option?.key, item))?.label)
+    .filter(Boolean)
+  if (labels.length)
+    patchSelectionLabelValue(field, field.multiple ? labels : labels[0])
+}
+
+function normalizeLabelValue(value) {
+  if (Array.isArray(value))
+    return value.map(item => String(item || '').trim()).filter(Boolean).join(',')
+  return value === null || value === undefined ? '' : String(value).trim()
+}
+
+function resolveUserLabel(user = {}) {
+  return String(user?.realName || user?.name || user?.nickname || user?.username || '').trim()
+}
+
+function isFilledValue(value) {
+  if (Array.isArray(value))
+    return value.length > 0
+  return value !== null && value !== undefined && String(value).trim() !== ''
+}
+
 function handleTreeSelectUpdate(field, newValue) {
   const normalizedValue = normalizeOptionValue(newValue, currentOptions.value, field?.multiple)
   syncIncludeChildrenFlag(field, normalizedValue)
+  if (isOrgTreeSelectField(field) || field?.type === 'treeSelect') {
+    if (isFilledValue(normalizedValue))
+      syncSelectionLabelFromOptions(field, normalizedValue)
+    else
+      patchSelectionLabelValue(field, '')
+  }
   emit('update:value', normalizedValue)
 }
 
@@ -1199,38 +1372,32 @@ function handleRegionTreeSelectUpdate(field, newValue) {
 }
 
 function resolveUserSelectLabel(field) {
-  const targetField = resolveUserSelectLabelField(field)
-  return props.formData?.[targetField] ?? field?.labelValue ?? field?.props?.labelValue ?? ''
-}
-
-function resolveUserSelectLabelField(field) {
-  return field?.props?.targetField || field?.targetField || `${field?.field || ''}Name`
+  return resolveSelectionLabelValue(field) ?? ''
 }
 
 function handleUserSelectLabelUpdate(field, labelValue) {
-  const targetField = resolveUserSelectLabelField(field)
-  if (!targetField)
-    return
-  props.context?.patchFormData?.({
-    [targetField]: Array.isArray(labelValue) ? labelValue.join(',') : labelValue || undefined,
-  })
+  patchSelectionLabelValue(field, labelValue)
 }
 
 function handleUserSelect(field, users) {
+  const selectedUsers = Array.isArray(users) ? users : users ? [users] : []
+  const labels = selectedUsers.map(resolveUserLabel).filter(Boolean)
+  if (labels.length)
+    patchSelectionLabelValue(field, field?.multiple ? labels : labels[0])
   const events = getComponentEvents(field)
   if (typeof events.select === 'function')
     events.select(users)
 }
 
 function syncIncludeChildrenFlag(field, value) {
-  if (!props.context?.isSearch || !field?.field || !['treeSelect', 'orgTreeSelect'].includes(field.type))
+  if (!props.context?.isSearch || !field?.field || !(field.type === 'treeSelect' || isOrgTreeSelectField(field)))
     return
   const includeChildrenKey = `${field.field}_includeChildren`
   if (Array.isArray(value) || value === null || value === undefined || value === '') {
     props.context?.patchFormData?.({ [includeChildrenKey]: undefined })
     return
   }
-  if (field.type === 'orgTreeSelect') {
+  if (isOrgTreeSelectField(field)) {
     props.context?.patchFormData?.({ [includeChildrenKey]: true })
     return
   }

@@ -17,42 +17,41 @@
     :rules="formRules"
     :label-placement="labelPlacement"
     :label-width="labelWidth"
+    :label-align="labelAlign"
     :size="size"
   >
-    <n-grid :cols="gridCols" :x-gap="xGap" :y-gap="yGap">
-      <n-gi
-        v-for="field in visibleSchema"
-        :key="field.field"
-        :span="field.span || 1"
-        :style="field.gridStyle"
-      >
-        <AiFormItem
-          :field="field"
-          :value="formValue[field.field]"
-          :form-data="formValue"
-          :context="itemContext"
-          @update:value="handleFieldChange(field.field, $event)"
-        >
-          <!-- 支持自定义插槽 -->
-          <template v-for="slotName in Object.keys($slots)" #[slotName]="slotProps">
-            <slot :name="slotName" v-bind="slotProps" />
-          </template>
-        </AiFormItem>
-      </n-gi>
+    <AiFormLayoutNodes
+      :nodes="visibleSchema"
+      :form-value="formValue"
+      :item-context="itemContext"
+      :grid-cols="gridCols"
+      :x-gap="xGap"
+      :y-gap="yGap"
+      :show-feedback="showFeedback"
+      @field-change="handleFieldChange"
+    >
+      <!-- 支持自定义插槽 -->
+      <template v-for="slotName in Object.keys($slots)" #[slotName]="slotProps">
+        <slot :name="slotName" v-bind="slotProps" />
+      </template>
+    </AiFormLayoutNodes>
 
+    <n-grid
+      v-if="$slots.formAction || (enableCollapse && visibleFieldSchema.length > maxVisibleFields)"
+      :cols="gridCols"
+      :x-gap="xGap"
+      :y-gap="yGap"
+      class="af-action-grid"
+    >
       <!-- 表单操作区域 -->
-      <n-gi
-        v-if="$slots.formAction || (enableCollapse && schema.length > maxVisibleFields)"
-        :span="formActionSpan"
-        style="display: flex; align-items: baseline; justify-content: flex-end"
-      >
+      <n-gi :span="gridCols" class="af-action-cell">
         <n-space align="baseline">
           <!-- 自定义操作按钮 -->
           <slot name="formAction" :form-data="formValue" />
 
           <!-- 折叠/展开按钮 -->
           <n-button
-            v-if="enableCollapse && schema.length > maxVisibleFields"
+            v-if="enableCollapse && visibleFieldSchema.length > maxVisibleFields"
             text
             type="primary"
             @click="toggleCollapse"
@@ -86,7 +85,7 @@
 <script setup>
 import { ChevronDownOutline, ChevronUpOutline } from '@vicons/ionicons5'
 import { computed, ref, watch } from 'vue'
-import AiFormItem from './AiFormItem.vue'
+import AiFormLayoutNodes from './AiFormLayoutNodes.vue'
 
 const props = defineProps({
   // 表单配置 schema
@@ -113,6 +112,11 @@ const props = defineProps({
   labelWidth: {
     type: [String, Number],
     default: 'auto',
+  },
+  labelAlign: {
+    type: String,
+    default: 'right',
+    validator: value => ['left', 'right'].includes(value),
   },
   // 表单尺寸
   size: {
@@ -206,13 +210,16 @@ function isFieldVisible(field) {
 }
 
 const conditionVisibleSchema = computed(() => {
-  return props.schema.filter(isFieldVisible)
+  return filterVisibleNodes(props.schema)
 })
+
+const allFieldSchema = computed(() => flattenFieldNodes(props.schema))
+const visibleFieldSchema = computed(() => flattenFieldNodes(conditionVisibleSchema.value))
 
 // 生成表单验证规则
 const formRules = computed(() => {
   const rules = {}
-  conditionVisibleSchema.value.forEach((field) => {
+  visibleFieldSchema.value.forEach((field) => {
     if (field.rules) {
       rules[field.field] = normalizeFieldRules(field, field.rules)
     }
@@ -242,18 +249,12 @@ const formRules = computed(() => {
   return rules
 })
 
-const itemContext = computed(() => ({
-  ...props.context,
-  schema: visibleSchema.value,
-  allSchema: props.schema,
-  patchFormData,
-}))
-
 function isDateLikeType(type) {
   return ['date', 'datetime', 'daterange', 'datetimerange', 'month', 'year', 'time', 'timerange'].includes(type)
 }
 
 function isSelectionLikeType(type) {
+  const normalizedType = normalizeSelectionType(type)
   return [
     'select',
     'dictSelect',
@@ -268,7 +269,16 @@ function isSelectionLikeType(type) {
     'upload',
     'imageUpload',
     'fileUpload',
-  ].includes(type)
+  ].includes(normalizedType)
+}
+
+function normalizeSelectionType(type) {
+  const value = String(type || '')
+  if (['orgSelect', 'organizationSelect', 'departmentSelect', 'departmentTreeSelect', 'deptSelect', 'deptTreeSelect', 'elTreeSelect', 'orgName', 'deptName', 'forgeOrgTreeSelect'].includes(value))
+    return 'orgTreeSelect'
+  if (['userPicker', 'user', 'userName', 'sysUserSelect', 'forgeUserSelect'].includes(value))
+    return 'userSelect'
+  return value
 }
 
 function hasFormValue(value) {
@@ -301,64 +311,26 @@ function normalizeFieldRules(field, fieldRules) {
 const visibleSchema = computed(() => {
   let fields = conditionVisibleSchema.value
 
-  // 移除后面没有字段的 divider
-  const fieldsWithoutEmptyDividers = []
-  for (let i = 0; i < fields.length; i++) {
-    const field = fields[i]
-
-    // 如果是 divider，检查后面是否有非 divider 字段
-    if (field.type === 'divider') {
-      // 查找下一个非 divider 字段
-      let hasNextField = false
-      for (let j = i + 1; j < fields.length; j++) {
-        if (fields[j].type !== 'divider') {
-          hasNextField = true
-          break
-        }
-      }
-
-      // 只有当后面有字段时才添加这个 divider
-      if (hasNextField) {
-        fieldsWithoutEmptyDividers.push(field)
-      }
-    }
-    else {
-      fieldsWithoutEmptyDividers.push(field)
-    }
-  }
-
-  fields = fieldsWithoutEmptyDividers
+  if (!hasLayoutNodes(fields))
+    fields = removeEmptyDividers(fields)
 
   // 应用折叠逻辑
-  if (props.enableCollapse && fields.length > props.maxVisibleFields) {
+  if (props.enableCollapse && !hasLayoutNodes(fields) && fields.length > props.maxVisibleFields) {
     fields = isCollapsed.value
       ? fields.slice(0, props.maxVisibleFields)
       : fields
   }
 
   // 合并 showFeedback 到每个字段
-  return fields.map(field => ({
-    ...field,
-    showFeedback: field.showFeedback ?? props.showFeedback,
-  }))
+  return applyShowFeedback(fields)
 })
 
-// 计算 formAction 所占的 span
-const formActionSpan = computed(() => {
-  if (!props.enableCollapse && !props.$slots?.formAction) {
-    return 0
-  }
-
-  // 计算已显示字段占用的总 span
-  const totalSpan = visibleSchema.value.reduce((sum, field) => {
-    return sum + (field.span || 1)
-  }, 0)
-
-  // 计算剩余的 span
-  const remainingSpan = (props.gridCols - (totalSpan % props.gridCols)) % props.gridCols
-
-  return remainingSpan || props.gridCols
-})
+const itemContext = computed(() => ({
+  ...props.context,
+  schema: visibleFieldSchema.value,
+  allSchema: allFieldSchema.value,
+  patchFormData,
+}))
 
 // 字段值变化
 async function handleFieldChange(field, value) {
@@ -369,7 +341,7 @@ async function handleFieldChange(field, value) {
   emit('update:value', { ...formValue.value })
 
   // 触发字段变化事件
-  const fieldConfig = props.schema.find(f => f.field === field)
+  const fieldConfig = allFieldSchema.value.find(f => f.field === field)
   if (fieldConfig?.onChange) {
     await fieldConfig.onChange({
       value,
@@ -411,7 +383,7 @@ async function handleSubmit() {
 function handleReset() {
   formRef.value?.restoreValidation()
   const resetData = {}
-  props.schema.forEach((field) => {
+  allFieldSchema.value.forEach((field) => {
     resetData[field.field] = field.defaultValue ?? null
   })
   formValue.value = resetData
@@ -436,4 +408,92 @@ defineExpose({
   reset: handleReset,
   getFormData: () => ({ ...formValue.value }),
 })
+
+function filterVisibleNodes(nodes = []) {
+  return (Array.isArray(nodes) ? nodes : [])
+    .map((node) => {
+      if (!node || typeof node !== 'object')
+        return null
+      if (isRuntimeLayoutNode(node)) {
+        const children = filterVisibleNodes(node.children || [])
+        if (!children.length && !['divider'].includes(node.nodeType))
+          return null
+        return {
+          ...node,
+          children,
+        }
+      }
+      return isFieldVisible(node) ? node : null
+    })
+    .filter(Boolean)
+}
+
+function flattenFieldNodes(nodes = []) {
+  const result = []
+  const walk = (items = []) => {
+    ;(Array.isArray(items) ? items : []).forEach((node) => {
+      if (!node || typeof node !== 'object')
+        return
+      if (isRuntimeLayoutNode(node)) {
+        walk(node.children || [])
+        return
+      }
+      if (node.field)
+        result.push(node)
+    })
+  }
+  walk(nodes)
+  return result
+}
+
+function isRuntimeLayoutNode(node = {}) {
+  return node.nodeType && node.nodeType !== 'field'
+}
+
+function hasLayoutNodes(nodes = []) {
+  return (Array.isArray(nodes) ? nodes : []).some(node => isRuntimeLayoutNode(node))
+}
+
+function removeEmptyDividers(fields = []) {
+  const result = []
+  for (let i = 0; i < fields.length; i += 1) {
+    const field = fields[i]
+    if (field.type !== 'divider') {
+      result.push(field)
+      continue
+    }
+    const hasNextField = fields.slice(i + 1).some(item => item.type !== 'divider')
+    if (hasNextField)
+      result.push(field)
+  }
+  return result
+}
+
+function applyShowFeedback(nodes = []) {
+  return (Array.isArray(nodes) ? nodes : []).map((node) => {
+    if (isRuntimeLayoutNode(node)) {
+      return {
+        ...node,
+        children: applyShowFeedback(node.children || []),
+      }
+    }
+    return {
+      ...node,
+      showFeedback: node.showFeedback ?? props.showFeedback,
+    }
+  })
+}
 </script>
+
+<style scoped>
+.af-action-grid {
+  margin-top: 2px;
+}
+
+.af-action-cell {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  min-width: 0;
+}
+</style>

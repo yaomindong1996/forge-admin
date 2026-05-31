@@ -159,12 +159,20 @@ public class LowcodeRuntimeConfigBuilder {
         LowcodePageZone editZone = findZone(pageSchema, "edit");
         Map<String, Object> editProps = editZone == null || editZone.getProps() == null ? Map.of() : editZone.getProps();
         options.put("modalType", resolveModalType(editProps.get("modalType")));
+        int editGridCols = resolveEditGridCols(pageSchema);
         options.put("modalWidth", StringUtils.defaultIfBlank(text(editProps.get("modalWidth")),
-                masterDetailRuntime ? "1080px" : "800px"));
+                resolveDefaultModalWidth(masterDetailRuntime, editGridCols)));
         options.put("searchGridCols", 4);
-        options.put("editGridCols", resolveEditGridCols(pageSchema));
+        options.put("editGridCols", editGridCols);
         options.put("editLabelPlacement", StringUtils.defaultIfBlank(text(editProps.get("labelPlacement")), "left"));
+        options.put("editLabelAlign", StringUtils.defaultIfBlank(text(editProps.get("labelAlign")), "right"));
         options.put("editLabelWidth", editProps.getOrDefault("labelWidth", "auto"));
+        options.put("editXGap", intValue(editProps.get("columnGap"), 16));
+        options.put("editYGap", intValue(editProps.get("rowGap"), 16));
+        Object formLayout = editProps.get("formLayout");
+        if (formLayout instanceof List<?> layout && !layout.isEmpty()) {
+            options.put("editFormLayout", layout);
+        }
 
         LowcodePageZone tableZone = findZone(pageSchema, "table");
         if (tableZone != null && tableZone.getProps() != null) {
@@ -192,6 +200,16 @@ public class LowcodeRuntimeConfigBuilder {
             options.put("treeConfig", buildTreeConfig(modelSchema, pageSchema, extractTreeConfigOverrides(pageSchema)));
         }
         return options;
+    }
+
+    private String resolveDefaultModalWidth(boolean masterDetailRuntime, int editGridCols) {
+        if (masterDetailRuntime) {
+            return "1080px";
+        }
+        if (editGridCols >= 3) {
+            return "1180px";
+        }
+        return editGridCols > 1 ? "1040px" : "800px";
     }
 
     private String resolveModalType(Object value) {
@@ -278,6 +296,10 @@ public class LowcodeRuntimeConfigBuilder {
             return fields == null ? List.of() : fields;
         }
         LowcodePageZone zone = findZone(pageSchema, zoneKey);
+        if (zone != null && zone.getProps() != null
+                && "formDesignerSchema".equals(text(zone.getProps().get("compiledFrom")))) {
+            return fields;
+        }
         List<Map<String, Object>> items = extractCanvasItems(zone);
         if (items.isEmpty()) {
             return fields;
@@ -1675,7 +1697,8 @@ public class LowcodeRuntimeConfigBuilder {
                                                LowcodeModelSchema modelSchema,
                                                LowcodePageSchema pageSchema) {
         Map<String, Object> item = new LinkedHashMap<>();
-        String label = StringUtils.defaultIfBlank(field.getLabel(), field.getField());
+        String label = StringUtils.defaultIfBlank(text(pageSetting.get("label")),
+                StringUtils.defaultIfBlank(field.getLabel(), field.getField()));
         RelationLookupMeta lookupMeta = resolveRelationLookup(modelSchema, pageSchema, field.getField());
         String componentType = resolveEditComponentType(field, pageSetting);
         if (lookupMeta != null) {
@@ -1700,7 +1723,9 @@ public class LowcodeRuntimeConfigBuilder {
         if (StringUtils.isNotBlank(dictType)) {
             item.put("dictType", dictType);
         }
-        if (field.getDefaultValue() != null) {
+        if (pageSetting.containsKey("defaultValue")) {
+            item.put("defaultValue", pageSetting.get("defaultValue"));
+        } else if (field.getDefaultValue() != null) {
             item.put("defaultValue", field.getDefaultValue());
         }
         Object span = pageSetting.get("span");
@@ -1736,6 +1761,7 @@ public class LowcodeRuntimeConfigBuilder {
         if (designerProps instanceof Map<?, ?> designerPropsMap) {
             props.putAll((Map<String, Object>) designerPropsMap);
         }
+        applySelectionLabelProps(props, field.getField(), componentType);
         if (isSystemField(field) || readonly) {
             props.put("disabled", true);
         }
@@ -2150,10 +2176,27 @@ public class LowcodeRuntimeConfigBuilder {
     }
 
     private String normalizeEditComponentType(String componentType) {
-        if ("inputNumber".equals(componentType)) {
-            return "number";
+        return switch (StringUtils.defaultString(componentType)) {
+            case "inputNumber" -> "number";
+            case "orgSelect", "organizationSelect", "departmentSelect", "deptSelect",
+                    "departmentTreeSelect", "deptTreeSelect", "elTreeSelect", "orgName", "deptName",
+                    "forgeOrgTreeSelect" -> "orgTreeSelect";
+            case "userPicker", "user", "userName", "sysUserSelect", "forgeUserSelect" -> "userSelect";
+            default -> componentType;
+        };
+    }
+
+    private void applySelectionLabelProps(Map<String, Object> props, String fieldName, String componentType) {
+        if (StringUtils.isBlank(fieldName)
+                || (!"orgTreeSelect".equals(componentType) && !"userSelect".equals(componentType))) {
+            return;
         }
-        return componentType;
+        if (StringUtils.isBlank(text(props.get("labelValueField")))) {
+            props.put("labelValueField", fieldName + "Name");
+        }
+        if (StringUtils.isBlank(text(props.get("targetField")))) {
+            props.put("targetField", fieldName + "Name");
+        }
     }
 
     private boolean isBusinessSelectComponent(String componentType) {

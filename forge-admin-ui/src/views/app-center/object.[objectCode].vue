@@ -160,6 +160,17 @@
         </div>
       </n-tab-pane>
     </n-tabs>
+    <BusinessObjectDesignerPage
+      v-if="designerVisible"
+      :key="designerMountKey"
+      embedded
+      :embedded-object-code="object?.objectCode || objectCode"
+      :embedded-object-id="object?.id || null"
+      :embedded-suite-code="suiteCode || ''"
+      :initial-panel="designerPanel"
+      @saved="loadObject"
+      @close="closeDesigner"
+    />
   </div>
 </template>
 
@@ -193,6 +204,7 @@ import { useTabStore, useUserStore } from '@/store'
 import BusinessBindingPanel from './components/BusinessBindingPanel.vue'
 import ObjectRelationPanel from './components/ObjectRelationPanel.vue'
 import ReadinessPanel from './components/ReadinessPanel.vue'
+import BusinessObjectDesignerPage from './object-designer.[objectCode].vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -207,6 +219,8 @@ const readinessSectionRef = ref(null)
 const templateLoading = ref(false)
 const importing = ref(false)
 const exportLoading = ref(false)
+const designerVisible = ref(false)
+const designerPanel = ref('form')
 const objectCode = computed(() => route.params.objectCode)
 const suiteCode = computed(() => route.query.suiteCode || object.value?.suiteCode)
 const pageTitle = computed(() => object.value?.objectName || objectCode.value || '业务对象详情')
@@ -219,6 +233,7 @@ const runtimeHint = computed(() => {
     return '先进入对象设计器处理提示中的缺口，再打开业务应用或使用导入导出。'
   return '请先完成对象设计和发布检查，再生成标准业务应用入口。'
 })
+const designerMountKey = computed(() => `${object.value?.objectCode || objectCode.value}_${designerPanel.value}`)
 const canAdvanced = computed(() => {
   return userStore.isAdmin
     || hasPermission(userStore.permissions, 'ai:businessObject:advanced')
@@ -306,13 +321,13 @@ function openDesigner(panel = 'form') {
   const code = object.value?.objectCode || objectCode.value
   if (!code)
     return
-  router.push({
-    path: `/app-center/object/${code}/designer`,
-    query: {
-      ...buildBusinessContextQuery(),
-      panel,
-    },
-  })
+  designerPanel.value = panel || 'form'
+  designerVisible.value = true
+}
+
+async function closeDesigner() {
+  designerVisible.value = false
+  await loadObject()
 }
 
 function scrollToReadiness() {
@@ -436,16 +451,6 @@ async function exportData() {
   }
   finally {
     exportLoading.value = false
-  }
-}
-
-function buildBusinessContextQuery() {
-  return {
-    domainCode: suiteCode.value,
-    suiteCode: suiteCode.value,
-    objectCode: object.value?.objectCode || objectCode.value,
-    objectName: object.value?.objectName || objectCode.value,
-    returnTo: route.fullPath,
   }
 }
 

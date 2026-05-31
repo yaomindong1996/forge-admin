@@ -198,6 +198,9 @@
         :grid-cols="editGridCols"
         :label-width="editLabelWidth"
         :label-placement="editLabelPlacement"
+        :label-align="editLabelAlign"
+        :x-gap="editXGap"
+        :y-gap="editYGap"
         :show-actions="false"
         :context="formContext"
       >
@@ -249,6 +252,9 @@
           :grid-cols="editGridCols"
           :label-width="editLabelWidth"
           :label-placement="editLabelPlacement"
+          :label-align="editLabelAlign"
+          :x-gap="editXGap"
+          :y-gap="editYGap"
           :show-actions="false"
           :context="formContext"
         >
