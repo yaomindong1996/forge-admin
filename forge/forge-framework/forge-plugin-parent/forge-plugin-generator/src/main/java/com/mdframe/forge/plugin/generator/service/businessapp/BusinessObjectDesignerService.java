@@ -77,6 +77,30 @@ public class BusinessObjectDesignerService {
             "deptSelect", "deptTreeSelect", "elTreeSelect", "orgName", "deptName", "userSelect",
             "userPicker", "userName", "fileUpload", "imageUpload", "upload", "objectReference"
     );
+    private static final Set<String> DICT_FIELD_TYPES = Set.of("DICT", "SELECT", "RADIO", "CHECKBOX", "MULTI_SELECT");
+    private static final Set<String> DICT_COMPONENT_TYPES = Set.of("dictSelect", "select", "radio", "checkbox", "cascader");
+    private static final Map<String, ComponentFieldDefaults> COMPONENT_FIELD_DEFAULTS = Map.ofEntries(
+            Map.entry("input", new ComponentFieldDefaults("TEXT", "varchar", 128, 2, "like")),
+            Map.entry("textarea", new ComponentFieldDefaults("MULTILINE", "text", null, 2, "like")),
+            Map.entry("number", new ComponentFieldDefaults("NUMBER", "int", 11, 0, "eq")),
+            Map.entry("inputNumber", new ComponentFieldDefaults("NUMBER", "int", 11, 0, "eq")),
+            Map.entry("integer", new ComponentFieldDefaults("NUMBER", "int", 11, 0, "eq")),
+            Map.entry("money", new ComponentFieldDefaults("MONEY", "decimal", 18, 2, "eq")),
+            Map.entry("date", new ComponentFieldDefaults("DATE", "date", null, null, "eq")),
+            Map.entry("datetime", new ComponentFieldDefaults("DATETIME", "datetime", null, null, "eq")),
+            Map.entry("switch", new ComponentFieldDefaults("SWITCH", "tinyint", 1, 0, "eq")),
+            Map.entry("select", new ComponentFieldDefaults("DICT", "varchar", 64, 2, "eq")),
+            Map.entry("dictSelect", new ComponentFieldDefaults("DICT", "varchar", 64, 2, "eq")),
+            Map.entry("radio", new ComponentFieldDefaults("RADIO", "varchar", 64, 2, "eq")),
+            Map.entry("checkbox", new ComponentFieldDefaults("CHECKBOX", "varchar", 255, 2, "in")),
+            Map.entry("cascader", new ComponentFieldDefaults("DICT", "varchar", 128, 2, "eq")),
+            Map.entry("regionTreeSelect", new ComponentFieldDefaults("REGION", "varchar", 32, 2, "eq")),
+            Map.entry("orgTreeSelect", new ComponentFieldDefaults("DEPT", "bigint", null, null, "eq")),
+            Map.entry("userSelect", new ComponentFieldDefaults("USER", "bigint", null, null, "eq")),
+            Map.entry("fileUpload", new ComponentFieldDefaults("FILE", "varchar", 512, 2, "eq")),
+            Map.entry("imageUpload", new ComponentFieldDefaults("IMAGE", "varchar", 512, 2, "eq")),
+            Map.entry("objectReference", new ComponentFieldDefaults("REFERENCE", "bigint", null, null, "eq"))
+    );
 
     private final ObjectMapper objectMapper;
     private final BusinessObjectService objectService;
@@ -137,7 +161,8 @@ public class BusinessObjectDesignerService {
             if (dto.getModelSchema() != null) {
                 context.setModelSchema(enrichModelSchema(object, dto.getModelSchema()));
             } else if (dto.getFields() != null && !dto.getFields().isEmpty()) {
-                context.setModelSchema(rebuildModelFields(context.getModelSchema(), dto.getFields()));
+                context.setModelSchema(rebuildModelFields(context.getModelSchema(),
+                        normalizeDesignerFieldPayloads(dto.getFields(), resolvePayloadFormSchema(dto))));
             }
             if (dto.getPageSchema() != null) {
                 context.setPageSchema(ensurePageSchema(dto.getPageSchema(), context.getModelSchema()));
@@ -543,6 +568,220 @@ public class BusinessObjectDesignerService {
         }
         target.setFields(newFields);
         return schemaNormalizer.normalizeModelFields(target, true);
+    }
+
+    private List<BusinessFieldDTO> normalizeDesignerFieldPayloads(List<BusinessFieldDTO> fields,
+                                                                  FormDesignerSchemaDTO formSchema) {
+        if (fields == null || fields.isEmpty()) {
+            return List.of();
+        }
+        Map<String, Map<String, Object>> formFieldComponents = collectFormFieldComponentMap(formSchema);
+        List<BusinessFieldDTO> normalized = new ArrayList<>();
+        for (BusinessFieldDTO field : fields) {
+            if (field == null) {
+                continue;
+            }
+            normalized.add(normalizeDesignerFieldPayload(field, formFieldComponents));
+        }
+        return normalized;
+    }
+
+    private BusinessFieldDTO normalizeDesignerFieldPayload(BusinessFieldDTO field,
+                                                           Map<String, Map<String, Object>> formFieldComponents) {
+        String fieldCode = StringUtils.defaultIfBlank(
+                field.getFieldCode(),
+                text(mapValue(field.getFieldBinding()).get("fieldCode")));
+        if (StringUtils.isBlank(fieldCode)) {
+            return field;
+        }
+
+        Map<String, Object> component = formFieldComponents.get(fieldCode);
+        if (component != null) {
+            String componentType = normalizeRuntimeComponentType(text(component.get("componentKey")));
+            if (StringUtils.isNotBlank(componentType)) {
+                field.setComponentType(componentType);
+                applyComponentDefaults(field, componentType);
+            }
+            Map<String, Object> props = mapValue(component.get("props"));
+            if (props.containsKey("dictType")) {
+                field.setDictType(text(props.get("dictType")));
+            }
+            if (props.containsKey("referenceObjectCode")) {
+                field.setReferenceObjectCode(text(props.get("referenceObjectCode")));
+            }
+            if (props.containsKey("referenceDisplayField")) {
+                field.setReferenceDisplayField(text(props.get("referenceDisplayField")));
+            }
+        }
+
+        boolean dictField = isDictFieldPayload(field);
+        boolean referenceField = isReferenceFieldPayload(field);
+        if (component == null) {
+            if (isUnconfiguredDictFieldPayload(field) || isUnconfiguredReferenceFieldPayload(field)) {
+                downgradeDesignerFieldToText(field);
+            }
+            return field;
+        }
+
+        if (dictField && !requiresDictConfig(component)) {
+            downgradeDesignerFieldToText(field);
+        } else if (referenceField && !requiresReferenceConfig(component)) {
+            downgradeDesignerFieldToText(field);
+        }
+        return field;
+    }
+
+    private FormDesignerSchemaDTO resolvePayloadFormSchema(BusinessObjectDesignerDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        if (dto.getFormDesignerSchema() != null) {
+            return dto.getFormDesignerSchema();
+        }
+        Object rawSchema = dto.getDesignerOptions() == null
+                ? null
+                : dto.getDesignerOptions().get(FORM_DESIGNER_SCHEMA_OPTION_KEY);
+        if (rawSchema == null) {
+            return null;
+        }
+        try {
+            if (rawSchema instanceof String text && StringUtils.isNotBlank(text)) {
+                return objectMapper.readValue(text, FormDesignerSchemaDTO.class);
+            }
+            return objectMapper.convertValue(rawSchema, FormDesignerSchemaDTO.class);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Map<String, Map<String, Object>> collectFormFieldComponentMap(FormDesignerSchemaDTO formSchema) {
+        Map<String, Map<String, Object>> result = new LinkedHashMap<>();
+        if (formSchema == null || formSchema.getComponents() == null) {
+            return result;
+        }
+        collectFormFieldComponents(formSchema.getComponents(), result);
+        return result;
+    }
+
+    private void collectFormFieldComponents(List<Map<String, Object>> components,
+                                            Map<String, Map<String, Object>> result) {
+        if (components == null) {
+            return;
+        }
+        for (Map<String, Object> component : components) {
+            if (component == null) {
+                continue;
+            }
+            String componentKey = text(component.get("componentKey"));
+            Map<String, Object> binding = mapValue(component.get("fieldBinding"));
+            String bindingMode = StringUtils.defaultIfBlank(text(binding.get("mode")), "field");
+            String fieldCode = text(binding.get("fieldCode"));
+            if (FORM_FIELD_COMPONENT_KEYS.contains(componentKey)
+                    && "field".equals(bindingMode)
+                    && StringUtils.isNotBlank(fieldCode)) {
+                result.put(fieldCode, component);
+            }
+            collectFormFieldComponents(listOfMap(component.get("children")), result);
+        }
+    }
+
+    private boolean isDictFieldPayload(BusinessFieldDTO field) {
+        String fieldType = StringUtils.defaultString(field.getFieldType()).toUpperCase(Locale.ROOT);
+        String componentType = normalizeRuntimeComponentType(field.getComponentType());
+        return DICT_FIELD_TYPES.contains(fieldType) || DICT_COMPONENT_TYPES.contains(componentType);
+    }
+
+    private void applyComponentDefaults(BusinessFieldDTO field, String componentType) {
+        if (field == null) {
+            return;
+        }
+        ComponentFieldDefaults defaults = COMPONENT_FIELD_DEFAULTS.get(componentType);
+        if (defaults == null) {
+            return;
+        }
+        field.setFieldType(defaults.fieldType());
+        field.setDataType(defaults.dataType());
+        field.setQueryType(defaults.queryType());
+        if (field.getLength() == null) {
+            field.setLength(defaults.length());
+        }
+        if (field.getPrecision() == null) {
+            field.setPrecision(defaults.precision());
+        }
+    }
+
+    private void applyComponentDefaults(LowcodeFieldSchema field, String componentType) {
+        if (field == null) {
+            return;
+        }
+        ComponentFieldDefaults defaults = COMPONENT_FIELD_DEFAULTS.get(componentType);
+        if (defaults == null) {
+            return;
+        }
+        field.setBusinessFieldType(defaults.fieldType());
+        field.setDataType(defaults.dataType());
+        field.setQueryType(defaults.queryType());
+        if (field.getLength() == null) {
+            field.setLength(defaults.length());
+        }
+        if (field.getPrecision() == null) {
+            field.setPrecision(defaults.precision());
+        }
+    }
+
+    private boolean isUnconfiguredDictFieldPayload(BusinessFieldDTO field) {
+        String dictType = StringUtils.firstNonBlank(
+                field.getDictType(),
+                text(mapValue(field.getBasicProps()).get("dictType")),
+                text(mapValue(field.getAdvancedProps()).get("dictType"))
+        );
+        return isDictFieldPayload(field) && StringUtils.isBlank(dictType);
+    }
+
+    private boolean isReferenceFieldPayload(BusinessFieldDTO field) {
+        String fieldType = StringUtils.defaultString(field.getFieldType()).toUpperCase(Locale.ROOT);
+        String componentType = normalizeRuntimeComponentType(field.getComponentType());
+        return "REFERENCE".equals(fieldType) || "objectReference".equals(componentType);
+    }
+
+    private boolean isUnconfiguredReferenceFieldPayload(BusinessFieldDTO field) {
+        String referenceObjectCode = StringUtils.firstNonBlank(
+                field.getReferenceObjectCode(),
+                text(mapValue(field.getBasicProps()).get("referenceObjectCode"))
+        );
+        String referenceDisplayField = StringUtils.firstNonBlank(
+                field.getReferenceDisplayField(),
+                text(mapValue(field.getBasicProps()).get("referenceDisplayField"))
+        );
+        return isReferenceFieldPayload(field)
+                && (StringUtils.isBlank(referenceObjectCode) || StringUtils.isBlank(referenceDisplayField));
+    }
+
+    private boolean requiresDictConfig(Map<String, Object> component) {
+        return component != null
+                && DICT_COMPONENT_TYPES.contains(normalizeRuntimeComponentType(text(component.get("componentKey"))));
+    }
+
+    private boolean requiresReferenceConfig(Map<String, Object> component) {
+        return component != null
+                && "objectReference".equals(normalizeRuntimeComponentType(text(component.get("componentKey"))));
+    }
+
+    private void downgradeDesignerFieldToText(BusinessFieldDTO field) {
+        field.setFieldType("TEXT");
+        field.setComponentType("input");
+        field.setQueryType("like");
+        field.setDictType("");
+        field.setReferenceObjectCode("");
+        field.setReferenceDisplayField("");
+        Map<String, Object> basicProps = new LinkedHashMap<>(mapValue(field.getBasicProps()));
+        basicProps.put("dictType", "");
+        basicProps.put("referenceObjectCode", "");
+        basicProps.put("referenceDisplayField", "");
+        field.setBasicProps(basicProps);
+        Map<String, Object> advancedProps = new LinkedHashMap<>(mapValue(field.getAdvancedProps()));
+        advancedProps.put("dictType", "");
+        field.setAdvancedProps(advancedProps);
     }
 
     public void applyRelationsToModel(DesignerContext context) {
@@ -1171,6 +1410,11 @@ public class BusinessObjectDesignerService {
         if (setting.containsKey("required")) {
             validation.put("required", readBoolean(setting.get("required"), false));
         }
+        putIfNotBlank(validation, "requiredMessage", text(setting.get("requiredMessage")));
+        List<Map<String, Object>> rules = listOfMap(setting.get("rules"));
+        if (!rules.isEmpty()) {
+            validation.put("rules", rules);
+        }
         component.put("validation", validation);
 
         Map<String, Object> visibility = new LinkedHashMap<>(mapValue(component.get("visibility")));
@@ -1229,6 +1473,17 @@ public class BusinessObjectDesignerService {
     private Map<String, Object> buildMigratedRuleProps(Map<String, Object> rule) {
         Map<String, Object> props = new LinkedHashMap<>(mapValue(rule.get("props")));
         props.putAll(mapValue(getNestedValue(rule, "_forge.props")));
+        Map<String, Object> formCreateMeta = new LinkedHashMap<>();
+        putIfPresent(formCreateMeta, "style", rule.get("style"));
+        putIfPresent(formCreateMeta, "class", rule.get("class"));
+        putIfPresent(formCreateMeta, "className", rule.get("className"));
+        putIfPresent(formCreateMeta, "native", rule.get("native"));
+        putIfPresent(formCreateMeta, "wrap", rule.get("wrap"));
+        putIfPresent(formCreateMeta, "slot", rule.get("slot"));
+        putIfPresent(formCreateMeta, "effect", rule.get("effect"));
+        if (!formCreateMeta.isEmpty()) {
+            props.put("__fc", formCreateMeta);
+        }
         if (rule.containsKey("value")) {
             props.put("defaultValue", rule.get("value"));
         }
@@ -1254,17 +1509,40 @@ public class BusinessObjectDesignerService {
     private Map<String, Object> buildMigratedRuleValidation(Map<String, Object> rule, String componentKey, String label) {
         Map<String, Object> validation = new LinkedHashMap<>();
         List<Map<String, Object>> rules = listOfMap(rule.get("validate"));
-        boolean required = rules.stream().anyMatch(item -> readBoolean(item.get("required"), false));
-        validation.put("required", required);
-        validation.put("requiredMessage", required
-                ? rules.stream()
+        Object requiredSwitch = rule.get("$required");
+        boolean requiredFromSwitch = isRequiredSwitchEnabled(requiredSwitch);
+        boolean required = requiredFromSwitch || rules.stream().anyMatch(item -> readBoolean(item.get("required"), false));
+        String requiredMessage = requiredFromSwitch && requiredSwitch instanceof String message && StringUtils.isNotBlank(message)
+                ? message
+                : rules.stream()
+                .filter(item -> readBoolean(item.get("required"), false))
                 .map(item -> text(item.get("message")))
                 .filter(StringUtils::isNotBlank)
                 .findFirst()
-                .orElse(buildFormPlaceholder(componentKey, label))
-                : "");
+                .orElse(buildFormPlaceholder(componentKey, label));
+        if (requiredFromSwitch && rules.stream().noneMatch(item -> readBoolean(item.get("required"), false))) {
+            Map<String, Object> requiredRule = new LinkedHashMap<>();
+            requiredRule.put("required", true);
+            requiredRule.put("message", requiredMessage);
+            requiredRule.put("trigger", List.of("blur", "change"));
+            rules = new ArrayList<>(rules);
+            rules.add(0, requiredRule);
+        }
+        validation.put("required", required);
+        validation.put("requiredMessage", required ? requiredMessage : "");
         validation.put("rules", rules);
         return validation;
+    }
+
+    private boolean isRequiredSwitchEnabled(Object value) {
+        if (value == null) {
+            return false;
+        }
+        if (value instanceof String text && StringUtils.isNotBlank(text)
+                && !"false".equalsIgnoreCase(text) && !"0".equals(text)) {
+            return true;
+        }
+        return readBoolean(value, false);
     }
 
     private Map<String, Object> buildMigratedRuleVisibility(Map<String, Object> rule) {
@@ -1336,7 +1614,10 @@ public class BusinessObjectDesignerService {
     private Map<String, Object> resolveFormDesignerLayout(LowcodePageSchema pageSchema) {
         Map<String, Object> layout = new LinkedHashMap<>();
         layout.put("labelPlacement", "left");
+        layout.put("labelAlign", "right");
         layout.put("labelWidth", 100);
+        layout.put("size", "medium");
+        layout.put("showFeedback", true);
         layout.put("gridColumns", 2);
         layout.put("rowGap", 16);
         layout.put("columnGap", 16);
@@ -1346,7 +1627,14 @@ public class BusinessObjectDesignerService {
         }
         Map<String, Object> props = editZone.getProps();
         layout.put("labelPlacement", StringUtils.defaultIfBlank(text(props.get("labelPlacement")), "left"));
+        layout.put("labelAlign", normalizeLabelAlign(text(props.get("labelAlign"))));
         layout.put("labelWidth", integerValue(props.get("labelWidth"), 100));
+        layout.put("size", normalizeRuntimeFormSize(text(props.get("size"))));
+        layout.put("showFeedback", readBoolean(props.get("showFeedback"), true));
+        layout.put("hideRequiredAsterisk", readBoolean(props.get("hideRequiredAsterisk"), false));
+        layout.put("inlineFeedback", readBoolean(props.get("inlineFeedback"), false));
+        putIfPresent(layout, "formStyle", props.get("editFormStyle"));
+        putIfNotBlank(layout, "formClass", text(props.get("editFormClass")));
         layout.put("gridColumns", clamp(integerValue(props.get("editGridCols"), 2), 1, 3));
         layout.put("rowGap", integerValue(props.get("rowGap"), 16));
         layout.put("columnGap", integerValue(props.get("columnGap"), 16));
@@ -1356,9 +1644,33 @@ public class BusinessObjectDesignerService {
         String labelPosition = text(form.get("labelPosition"));
         if (StringUtils.isNotBlank(labelPosition)) {
             layout.put("labelPlacement", "top".equals(labelPosition) ? "top" : "left");
+            layout.put("labelAlign", "left".equals(labelPosition) ? "left" : "right");
         }
         if (form.containsKey("labelWidth")) {
             layout.put("labelWidth", integerValue(form.get("labelWidth"), integerValue(layout.get("labelWidth"), 100)));
+        }
+        if (form.containsKey("size")) {
+            layout.put("size", normalizeRuntimeFormSize(text(form.get("size"))));
+        }
+        if (form.containsKey("showMessage")) {
+            layout.put("showFeedback", readBoolean(form.get("showMessage"), true));
+        }
+        if (form.containsKey("hideRequiredAsterisk")) {
+            layout.put("hideRequiredAsterisk", readBoolean(form.get("hideRequiredAsterisk"), false));
+        }
+        if (form.containsKey("inlineMessage")) {
+            layout.put("inlineFeedback", readBoolean(form.get("inlineMessage"), false));
+        }
+        putIfPresent(layout, "formStyle", form.get("style"));
+        putIfNotBlank(layout, "formClass", StringUtils.defaultIfBlank(text(form.get("className")), text(form.get("class"))));
+        if (forge.containsKey("labelAlign")) {
+            layout.put("labelAlign", normalizeLabelAlign(text(forge.get("labelAlign"))));
+        }
+        if (forge.containsKey("size")) {
+            layout.put("size", normalizeRuntimeFormSize(text(forge.get("size"))));
+        }
+        if (forge.containsKey("showFeedback")) {
+            layout.put("showFeedback", readBoolean(forge.get("showFeedback"), true));
         }
         if (forge.containsKey("gridColumns")) {
             layout.put("gridColumns", clamp(integerValue(forge.get("gridColumns"), integerValue(layout.get("gridColumns"), 2)), 1, 3));
@@ -1643,6 +1955,7 @@ public class BusinessObjectDesignerService {
             String runtimeComponentType = normalizeRuntimeComponentType(componentKey);
             if (StringUtils.isNotBlank(runtimeComponentType)) {
                 field.setComponentType(runtimeComponentType);
+                applyComponentDefaults(field, runtimeComponentType);
             }
             Map<String, Object> validation = mapValue(component.get("validation"));
             if (validation.containsKey("required")) {
@@ -1676,6 +1989,8 @@ public class BusinessObjectDesignerService {
                     : new LinkedHashMap<>(field.getBasicProps());
             basicProps.putAll(props);
             basicProps.remove("fieldBinding");
+            basicProps.remove("__fc");
+            basicProps.remove("__fcType");
             field.setBasicProps(basicProps);
             field.setSortOrder(order++);
         }
@@ -1714,7 +2029,13 @@ public class BusinessObjectDesignerService {
         props.put("editGridCols", gridColumns);
         props.put("labelPlacement", StringUtils.defaultIfBlank(text(mapValue(formSchema.getLayout()).get("labelPlacement")), "left"));
         props.put("labelWidth", defaultLabelWidth);
-        props.put("labelAlign", "right");
+        props.put("labelAlign", normalizeLabelAlign(text(mapValue(formSchema.getLayout()).get("labelAlign"))));
+        props.put("size", normalizeRuntimeFormSize(text(mapValue(formSchema.getLayout()).get("size"))));
+        props.put("showFeedback", readBoolean(mapValue(formSchema.getLayout()).get("showFeedback"), true));
+        props.put("hideRequiredAsterisk", readBoolean(mapValue(formSchema.getLayout()).get("hideRequiredAsterisk"), false));
+        props.put("inlineFeedback", readBoolean(mapValue(formSchema.getLayout()).get("inlineFeedback"), false));
+        putIfPresent(props, "editFormStyle", mapValue(formSchema.getLayout()).get("formStyle"));
+        putIfNotBlank(props, "editFormClass", text(mapValue(formSchema.getLayout()).get("formClass")));
         props.put("rowGap", rowGap);
         props.put("columnGap", columnGap);
         props.put("formLayout", buildRuntimeFormLayout(formSchema.getComponents(), modelFields, gridColumns));
@@ -1751,11 +2072,12 @@ public class BusinessObjectDesignerService {
                         defaultLabelWidth, inheritedSpan));
                 continue;
             }
-            Integer nextSpan = isColumnLayoutComponent(componentKey)
-                    ? clamp(integerValue(mapValue(component.get("layout")).get("span"),
-                    integerValue(mapValue(component.get("props")).get("span"), inheritedSpan == null ? 1 : inheritedSpan)),
-                    1, gridColumns)
-                    : inheritedSpan;
+            Integer nextSpan = inheritedSpan;
+            if (isColumnLayoutComponent(componentKey)) {
+                int fallbackSpan = inheritedSpan == null ? 1 : inheritedSpan;
+                nextSpan = clamp(integerValue(mapValue(component.get("layout")).get("span"),
+                        integerValue(mapValue(component.get("props")).get("span"), fallbackSpan)), 1, gridColumns);
+            }
             collectRuntimeFormFields(listOfMap(component.get("children")), modelFields, gridColumns,
                     defaultLabelWidth, nextSpan, formFieldRefs, compiledSettings);
         }
@@ -1900,14 +2222,31 @@ public class BusinessObjectDesignerService {
         setting.put("span", clamp(inheritedSpan == null ? integerValue(layout.get("span"), 1) : inheritedSpan,
                 1, gridColumns));
         setting.put("labelWidth", integerValue(layout.get("labelWidth"), defaultLabelWidth));
-        Map<String, Object> props = new LinkedHashMap<>(mapValue(component.get("props")));
-        props.remove("fieldBinding");
+        Map<String, Object> rawProps = new LinkedHashMap<>(mapValue(component.get("props")));
+        Map<String, Object> formCreateMeta = mapValue(rawProps.get("__fc"));
+        Map<String, Object> props = sanitizeRuntimeFieldProps(rawProps);
+        copyRuntimeFieldProps(setting, props);
+        applyRuntimeFieldMeta(setting, component, props, formCreateMeta);
         if (!props.isEmpty()) {
             setting.put("props", props);
         }
         Map<String, Object> validation = mapValue(component.get("validation"));
         if (validation.containsKey("required")) {
             setting.put("required", readBoolean(validation.get("required"), false));
+        }
+        putIfNotBlank(setting, "requiredMessage", text(validation.get("requiredMessage")));
+        List<Map<String, Object>> rules = listOfMap(validation.get("rules"));
+        if (!rules.isEmpty()) {
+            setting.put("rules", rules);
+            rules.stream()
+                    .filter(rule -> readBoolean(rule.get("required"), false))
+                    .findFirst()
+                    .ifPresent(rule -> {
+                        putIfPresent(setting, "trigger", rule.get("trigger"));
+                        if (StringUtils.isBlank(text(setting.get("requiredMessage")))) {
+                            putIfNotBlank(setting, "requiredMessage", text(rule.get("message")));
+                        }
+                    });
         }
         Map<String, Object> visibility = mapValue(component.get("visibility"));
         if (visibility.containsKey("readonly")) {
@@ -1918,6 +2257,43 @@ public class BusinessObjectDesignerService {
             setting.put("defaultValue", props.get("defaultValue"));
         }
         return setting;
+    }
+
+    private Map<String, Object> sanitizeRuntimeFieldProps(Map<String, Object> source) {
+        Map<String, Object> props = new LinkedHashMap<>(source);
+        props.remove("__fc");
+        props.remove("__fcType");
+        props.remove("fieldBinding");
+        return props;
+    }
+
+    private void copyRuntimeFieldProps(Map<String, Object> setting, Map<String, Object> props) {
+        List.of("placeholder", "clearable", "filterable", "multiple", "size", "maxlength", "showCount",
+                        "rows", "autosize", "min", "max", "step", "precision", "showButton",
+                        "checkedValue", "uncheckedValue", "checkedText", "uncheckedText", "format",
+                        "valueFormat", "startPlaceholder", "endPlaceholder", "showFeedback", "showLabel")
+                .forEach(key -> putIfPresent(setting, key, props.get(key)));
+    }
+
+    private void applyRuntimeFieldMeta(Map<String, Object> setting,
+                                       Map<String, Object> component,
+                                       Map<String, Object> props,
+                                       Map<String, Object> formCreateMeta) {
+        putIfPresent(setting, "componentStyle", firstPresent(formCreateMeta.get("style"), props.get("style")));
+        putIfPresent(setting, "componentClass", firstPresent(props.get("className"), props.get("class")));
+        putIfPresent(setting, "formItemClass", firstPresent(formCreateMeta.get("className"), formCreateMeta.get("class")));
+        Map<String, Object> wrap = mapValue(formCreateMeta.get("wrap"));
+        putIfPresent(setting, "formItemStyle", firstPresent(mapValue(component.get("layout")).get("formItemStyle"), wrap.get("style")));
+        if (wrap.containsKey("labelWidth")) {
+            setting.put("labelWidth", integerValue(wrap.get("labelWidth"), integerValue(setting.get("labelWidth"), 100)));
+        }
+        if (wrap.containsKey("show") && !readBoolean(wrap.get("show"), true)) {
+            setting.put("showLabel", false);
+        }
+    }
+
+    private Object firstPresent(Object primary, Object fallback) {
+        return primary != null ? primary : fallback;
     }
 
     private void applyViewSchemaToPageZones(LowcodePageSchema pageSchema, LowcodeModelSchema modelSchema,
@@ -2254,6 +2630,19 @@ public class BusinessObjectDesignerService {
         return Set.of("left", "center", "right").contains(align) ? align : "left";
     }
 
+    private String normalizeLabelAlign(String value) {
+        String align = StringUtils.defaultString(value).trim().toLowerCase(Locale.ROOT);
+        return Set.of("left", "right").contains(align) ? align : "right";
+    }
+
+    private String normalizeRuntimeFormSize(String value) {
+        String size = StringUtils.defaultString(value).trim().toLowerCase(Locale.ROOT);
+        if ("default".equals(size) || "medium".equals(size)) {
+            return "medium";
+        }
+        return Set.of("small", "large").contains(size) ? size : "medium";
+    }
+
     private String normalizeFixed(String value) {
         String fixed = StringUtils.defaultString(value).trim().toLowerCase(Locale.ROOT);
         return Set.of("left", "right").contains(fixed) ? fixed : null;
@@ -2421,5 +2810,9 @@ public class BusinessObjectDesignerService {
         private LowcodeModelSchema modelSchema;
         private LowcodePageSchema pageSchema;
         private List<BusinessObjectRelationVO> relations = new ArrayList<>();
+    }
+
+    private record ComponentFieldDefaults(String fieldType, String dataType, Integer length,
+                                          Integer precision, String queryType) {
     }
 }

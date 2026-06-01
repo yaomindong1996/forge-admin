@@ -240,3 +240,90 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && NODE_OPTIONS=--max-old-space-size=81
 - 应用总览、套件详情、对象详情里的对象设计入口改为直接挂载全屏设计器弹层，不再通过路由新开设计器页签；设计器路由仍保留直达兼容。
 - 搜索区操作按钮改为跨整行右对齐，避免按钮落在搜索 grid 第一列。
 - 表单设计器新增单列/两列/三列控制，运行态三列表单默认弹窗宽度提升到 `1180px`。
+
+### 2026-06-01 fcDesigner 画布列数和布局组件中文化修复
+
+```bash
+source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm --dir forge-admin-ui exec eslint src/views/app-center/components/designer/BusinessFormDesigner.vue src/views/app-center/components/designer/BusinessFormCreateDesigner.vue src/views/app-center/components/designer/form-first/formDesignerSchema.js src/views/app-center/components/designer/form-first/forgeToFormCreate.js src/views/app-center/components/designer/form-first/formCreateToForge.js
+```
+
+结果：通过。
+
+```bash
+source ~/.nvm/nvm.sh && nvm use v20.19.0 && NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build
+```
+
+结果：通过。仍存在既有 UnoCSS 图标加载、CSS `//` 注释、动态/静态 import chunk 和大 chunk 警告。
+
+```bash
+JAVA_HOME=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jdk/Contents/Home PATH=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jdk/Contents/Home/bin:$PATH mvn -pl forge-admin-server -am compile -DskipTests
+```
+
+结果：通过。
+
+修复摘要：
+
+- `BusinessFormDesigner` 的单列/两列/三列切换不再只写 `layout.gridColumns`，会同步重算每个组件的 form-create `col.span`。
+- `BusinessFormCreateDesigner` 引入 fcDesigner 官方中文 locale，字段重置和字段追加保留当前画布列数。
+- `FormDesignerSchema` 增加布局组件中文默认名和英文/原始名称归一化，`row/col/card/tabs/collapse/divider` 等布局节点回显为中文。
+- `formCreateToForge` 读回设计器规则时按当前业务列数重新归一化，避免把 form-create 24 栅格的 `col.props.span=12` 误当成 Forge 两列跨度。
+- `BusinessObjectDesignerService` 修复空栅格布局保存时 `inheritedSpan` 被 Java 三元表达式自动拆箱导致的 NPE。
+
+### 2026-06-01 删除字典组件后残留字段校验修复
+
+```bash
+source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm --dir forge-admin-ui exec eslint src/views/app-center/components/designer/BusinessFormDesigner.vue
+```
+
+结果：通过。
+
+```bash
+git diff --check
+```
+
+结果：通过。
+
+```bash
+JAVA_HOME=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jdk/Contents/Home PATH=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jdk/Contents/Home/bin:$PATH mvn -pl forge-admin-server -am compile -DskipTests
+```
+
+结果：通过。
+
+```bash
+source ~/.nvm/nvm.sh && nvm use v20.19.0 && NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build
+```
+
+结果：通过。仍存在既有 UnoCSS 图标加载、CSS `//` 注释、动态/静态 import chunk 和大 chunk 警告。
+
+修复摘要：
+
+- `BusinessFormDesigner` 保存前不再只看字段是否在字段资产里，而是按当前画布组件映射归一化字段；删除字典/引用组件后，未配置的残留字段会自动降为普通文本字段。
+- 如果字段原来是字典/引用，但当前画布上已改成普通输入，也会同步降级并清理 `dictType/referenceObjectCode/referenceDisplayField`。
+- `BusinessObjectDesignerService.saveDesigner` 在后端重建模型字段前做同样兜底，防止旧前端缓存或其它入口绕过前端处理后仍触发“字典字段必须配置字典类型”。
+
+### 2026-06-01 fcDesigner 栅格布局临时 ref 展示修复
+
+```bash
+source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm --dir forge-admin-ui exec eslint src/views/app-center/components/designer/form-first/formDesignerSchema.js src/views/app-center/components/designer/form-first/forgeToFormCreate.js src/views/app-center/components/designer/form-first/formCreateToForge.js
+```
+
+结果：通过。
+
+```bash
+git diff --check
+```
+
+结果：通过。
+
+```bash
+source ~/.nvm/nvm.sh && nvm use v20.19.0 && NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build
+```
+
+结果：通过。仍存在既有 UnoCSS 图标加载、CSS `//` 注释、动态/静态 import chunk 和大 chunk 警告。
+
+修复摘要：
+
+- `FormDesignerSchema` 增加 `ref_...` 临时引用识别，布局标题归一化会剥离 fcDesigner 生成的临时 ref。
+- 旧 schema 里已保存的布局临时 id 会被替换为稳定的 `cmp_<componentKey>_<index>`。
+- `formCreateToForge` 不再把 `ref_...` 当作布局标题、组件 id 或字段编码来源。
+- `forgeToFormCreate` 回写布局 rule 时不再给非字段组件写 `name`，避免 fcDesigner 把布局 id 当展示前缀。

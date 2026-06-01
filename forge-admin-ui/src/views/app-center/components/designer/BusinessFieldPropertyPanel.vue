@@ -205,6 +205,7 @@ import { computed, nextTick, reactive, watch } from 'vue'
 import DictTypeSelect from '@/components/lowcode-builder/shared/DictTypeSelect.vue'
 import FieldTypeSelect from '@/components/lowcode-builder/shared/FieldTypeSelect.vue'
 import RegionTreeSelect from '@/components/RegionTreeSelect.vue'
+import { camelToSnake } from './form-first/namingUtils'
 
 const props = defineProps({
   field: {
@@ -254,6 +255,9 @@ const componentOptions = [
   { label: '输入框', value: 'input' },
   { label: '多行文本', value: 'textarea' },
   { label: '数字输入', value: 'number' },
+  { label: '下拉选择', value: 'select' },
+  { label: '单选框', value: 'radio' },
+  { label: '多选框', value: 'checkbox' },
   { label: '字典选择', value: 'dictSelect' },
   { label: '日期', value: 'date' },
   { label: '日期时间', value: 'datetime' },
@@ -494,15 +498,6 @@ function applyFieldTypeDefaults(fieldType) {
   Object.assign(form, defaults)
   if (!['DICT', 'RADIO', 'CHECKBOX'].includes(fieldType))
     form.dictType = ''
-}
-
-function camelToSnake(value) {
-  return String(value || '')
-    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
-    .replace(/\W+/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .toLowerCase()
 }
 
 defineExpose({

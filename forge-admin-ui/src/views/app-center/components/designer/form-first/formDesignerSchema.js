@@ -1,5 +1,15 @@
+import {
+  camelToSnake,
+  generateFieldCode,
+} from './namingUtils'
+
 export const FORM_DESIGNER_SCHEMA_VERSION = 'form-first-v1'
 export const FORM_DESIGNER_SCHEMA_KEY = 'formDesignerSchema'
+
+export {
+  camelToSnake,
+  generateFieldCode,
+}
 
 const FIELD_COMPONENT_KEYS = new Set([
   'input',
@@ -75,42 +85,136 @@ export const VIRTUAL_COMPONENT_KEYS = new Set([
   'image',
 ])
 
-const KNOWN_FIELD_CODES = {
-  客户名称: 'customerName',
-  联系电话: 'contactPhone',
-  客户等级: 'customerLevel',
-  客户状态: 'customerStatus',
-  负责人: 'ownerUserId',
-  所属部门: 'ownerDeptId',
-  所属地区: 'regionCode',
-  备注: 'remark',
-  客户编码: 'customerCode',
-  联系人: 'contactName',
-  联系邮箱: 'contactEmail',
-  详细地址: 'address',
-  跟进状态: 'followStatus',
-  创建时间: 'createTime',
-  更新时间: 'updateTime',
+const FULL_ROW_COMPONENT_KEYS = new Set([
+  'textarea',
+  'fileUpload',
+  'imageUpload',
+  'upload',
+  'subTable',
+  'elDivider',
+  'divider',
+  'fcTitle',
+  'title',
+  'fcTable',
+  'table',
+  'fcTableGrid',
+  'tableGrid',
+])
+
+const FULL_ROW_LAYOUT_COMPONENT_KEYS = new Set([
+  'fcRow',
+  'row',
+  'elCard',
+  'card',
+  'elTabs',
+  'tabs',
+  'elTabPane',
+  'tabPane',
+  'elCollapse',
+  'collapse',
+  'elCollapseItem',
+  'collapseItem',
+])
+
+const LAYOUT_COMPONENT_LABELS = {
+  fcRow: '栅格布局',
+  row: '栅格布局',
+  col: '栅格列',
+  elCard: '卡片',
+  card: '卡片',
+  elTabs: '标签页',
+  tabs: '标签页',
+  elTabPane: '标签面板',
+  tabPane: '标签面板',
+  elCollapse: '折叠面板',
+  collapse: '折叠面板',
+  elCollapseItem: '折叠项',
+  collapseItem: '折叠项',
+  elDivider: '分割线',
+  divider: '分割线',
+  fcTitle: '标题',
+  title: '标题',
+  fcTable: '表格布局',
+  table: '表格布局',
+  fcTableGrid: '表格单元格',
+  tableGrid: '表格单元格',
 }
+
+const RAW_LAYOUT_LABELS = new Set([
+  '',
+  'layout',
+  'row',
+  'Row',
+  'fcRow',
+  'FcRow',
+  'col',
+  'Col',
+  'Grid',
+  'elCard',
+  'ElCard',
+  'card',
+  'Card',
+  'elTabs',
+  'ElTabs',
+  'tabs',
+  'Tabs',
+  'elTabPane',
+  'ElTabPane',
+  'tabPane',
+  'TabPane',
+  'Tab Pane',
+  'elCollapse',
+  'ElCollapse',
+  'collapse',
+  'Collapse',
+  'elCollapseItem',
+  'ElCollapseItem',
+  'collapseItem',
+  'CollapseItem',
+  'Collapse Item',
+  'elDivider',
+  'ElDivider',
+  'divider',
+  'Divider',
+  'fcTitle',
+  'FcTitle',
+  'title',
+  'Title',
+  'fcTable',
+  'FcTable',
+  'table',
+  'Table',
+  'fcTableGrid',
+  'FcTableGrid',
+  'tableGrid',
+  'TableGrid',
+  'Table Grid',
+  'div',
+  '布局',
+])
 
 export function createDefaultFormDesignerSchema(options = {}) {
   const formKey = options.formKey || buildFormKey(options.objectCode)
   const fields = Array.isArray(options.fields) ? options.fields : []
-  return normalizeFormDesignerSchema({
+  const gridColumns = clampGridColumns(options.gridColumns, 2)
+  return applyGridColumnsToFormDesignerSchema({
     schemaVersion: FORM_DESIGNER_SCHEMA_VERSION,
     formKey,
     formName: options.formName || options.objectName || '业务表单',
     layout: {
       labelPlacement: 'left',
+      labelAlign: 'right',
       labelWidth: 100,
-      gridColumns: 2,
+      size: 'medium',
+      showFeedback: true,
+      gridColumns,
       rowGap: 16,
       columnGap: 16,
     },
     components: fields
       .filter(field => field && field.formVisible !== false && !field.systemField && !field.readonly)
       .map((field, index) => createComponentFromField(field, index)),
-  })
+  }, gridColumns)
 }
 
 export function normalizeFormDesignerSchema(source = {}) {
@@ -195,6 +299,35 @@ export function createComponentFromField(field = {}, index = 0) {
   }, index)
 }
 
+export function applyGridColumnsToFormDesignerSchema(source = {}, gridColumns = 2) {
+  const columns = clampGridColumns(gridColumns, 2)
+  const schema = normalizeFormDesignerSchema(source)
+  return normalizeFormDesignerSchema({
+    ...schema,
+    layout: {
+      ...(schema.layout || {}),
+      gridColumns: columns,
+    },
+    components: (schema.components || []).map(component => applyGridColumnsToComponent(component, columns)),
+  })
+}
+
+export function normalizeDesignerComponentLabel(componentKey = '', label = '') {
+  const fallback = LAYOUT_COMPONENT_LABELS[componentKey]
+  if (!fallback)
+    return label || ''
+  const value = stripTemporaryDesignerRef(String(label || '').trim())
+  return !value || RAW_LAYOUT_LABELS.has(value) ? fallback : value
+}
+
+export function resolveDesignerComponentDefaultLabel(componentKey = '') {
+  return LAYOUT_COMPONENT_LABELS[componentKey] || ''
+}
+
+export function isTemporaryDesignerRef(value = '') {
+  return /^ref_[A-Z0-9]+$/i.test(String(value || '').trim())
+}
+
 export function createFieldBindingFromLabel(label, options = {}) {
   const fieldCode = options.fieldCode || generateFieldCode(label)
   return {
@@ -205,32 +338,6 @@ export function createFieldBindingFromLabel(label, options = {}) {
     source: options.source || 'designer',
     locked: Boolean(options.locked),
   }
-}
-
-export function generateFieldCode(label = '') {
-  const text = String(label || '').trim()
-  if (KNOWN_FIELD_CODES[text])
-    return KNOWN_FIELD_CODES[text]
-  const words = text.match(/[A-Z0-9]+/gi) || []
-  if (words.length) {
-    return words.map((word, index) => {
-      const normalized = word.slice(0, 1).toUpperCase() + word.slice(1)
-      return index === 0 ? normalized.slice(0, 1).toLowerCase() + normalized.slice(1) : normalized
-    }).join('')
-  }
-  let hash = 0
-  for (let index = 0; index < text.length; index += 1)
-    hash = ((hash * 31) + text.charCodeAt(index)) >>> 0
-  return `field${hash.toString(36)}`
-}
-
-export function camelToSnake(value = '') {
-  return String(value || '')
-    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
-    .replace(/\W+/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .toLowerCase()
 }
 
 export function isFieldComponent(component = {}) {
@@ -262,13 +369,23 @@ export function cloneValue(value) {
 
 function normalizeLayout(layout = {}) {
   const source = isPlainObject(layout) ? layout : {}
-  return {
+  const normalized = {
     labelPlacement: source.labelPlacement || 'left',
-    labelWidth: Number(source.labelWidth || 100),
-    gridColumns: Number(source.gridColumns || 2),
+    labelAlign: normalizeLabelAlign(source.labelAlign),
+    labelWidth: resolveNumber(source.labelWidth, 100),
+    size: normalizeFormSize(source.size),
+    showFeedback: source.showFeedback === undefined ? true : Boolean(source.showFeedback),
+    hideRequiredAsterisk: Boolean(source.hideRequiredAsterisk),
+    inlineFeedback: Boolean(source.inlineFeedback || source.inlineMessage),
+    gridColumns: clampGridColumns(source.gridColumns, 2),
     rowGap: Number(source.rowGap ?? 16),
     columnGap: Number(source.columnGap ?? 16),
   }
+  if (source.formStyle !== undefined)
+    normalized.formStyle = cloneValue(source.formStyle)
+  if (source.formClass !== undefined)
+    normalized.formClass = source.formClass
+  return normalized
 }
 
 function normalizeComponent(component, index) {
@@ -276,9 +393,11 @@ function normalizeComponent(component, index) {
     return null
   const componentKey = component.componentKey || component.type || 'input'
   const fieldComponent = FIELD_COMPONENT_KEYS.has(componentKey)
-  const label = component.label || component.title || component.props?.header || component.props?.label || component.props?.title || component.fieldBinding?.fieldCode || (fieldComponent ? '字段' : '布局')
+  const sourceLabel = component.label || component.title || component.props?.header || component.props?.label || component.props?.title || component.fieldBinding?.fieldCode || (fieldComponent ? '字段' : '布局')
+  const label = normalizeDesignerComponentLabel(componentKey, sourceLabel)
+  const sourceId = String(component.id || '').trim()
   return {
-    id: component.id || `cmp_${component.fieldBinding?.fieldCode || index}`,
+    id: sourceId && !isTemporaryDesignerRef(sourceId) ? sourceId : `cmp_${fieldComponent ? component.fieldBinding?.fieldCode || index : `${componentKey}_${index}`}`,
     componentKey,
     label,
     fieldBinding: fieldComponent
@@ -292,6 +411,13 @@ function normalizeComponent(component, index) {
       ? component.children.map((child, childIndex) => normalizeComponent(child, childIndex)).filter(Boolean)
       : [],
   }
+}
+
+function stripTemporaryDesignerRef(value = '') {
+  return String(value || '')
+    .trim()
+    .replace(/^ref_[A-Z0-9]+[\s:：-]*/i, '')
+    .trim()
 }
 
 export function normalizeFieldBinding(binding = {}, fallbackFieldCode = '') {
@@ -317,6 +443,34 @@ function normalizeComponentLayout(layout = {}) {
   }
 }
 
+function applyGridColumnsToComponent(component = {}, gridColumns = 2) {
+  const next = cloneValue(component)
+  const componentKey = next.componentKey || ''
+  const fieldComponent = FIELD_COMPONENT_KEYS.has(componentKey)
+  const fullRow = FULL_ROW_COMPONENT_KEYS.has(componentKey) || FULL_ROW_LAYOUT_COMPONENT_KEYS.has(componentKey)
+  next.label = normalizeDesignerComponentLabel(componentKey, next.label)
+  next.layout = {
+    ...(next.layout || {}),
+    span: componentKey === 'col' || (!fieldComponent && !fullRow) ? 1 : fullRow ? gridColumns : 1,
+  }
+  if (componentKey === 'col') {
+    next.props = {
+      ...(next.props || {}),
+      span: toFormCreateColSpan(next.layout.span, gridColumns),
+    }
+  }
+  next.children = Array.isArray(next.children)
+    ? next.children.map(child => applyGridColumnsToComponent(child, gridColumns))
+    : []
+  return next
+}
+
+function toFormCreateColSpan(span, gridColumns) {
+  const columns = clampGridColumns(gridColumns, 2)
+  const normalizedSpan = Math.max(1, Math.min(columns, Number(span || 1)))
+  return Math.max(1, Math.min(24, Math.ceil((24 * normalizedSpan) / columns)))
+}
+
 function normalizeValidation(validation = {}) {
   const source = isPlainObject(validation) ? validation : {}
   return {
@@ -336,6 +490,25 @@ function normalizeVisibility(visibility = {}) {
 
 function normalizeAlign(value) {
   return ['left', 'center', 'right'].includes(value) ? value : 'left'
+}
+
+function normalizeLabelAlign(value) {
+  return ['left', 'right'].includes(value) ? value : 'right'
+}
+
+function normalizeFormSize(value) {
+  if (value === 'default' || value === 'medium')
+    return 'medium'
+  return ['small', 'large'].includes(value) ? value : 'medium'
+}
+
+function resolveNumber(value, fallback) {
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number.parseInt(value, 10)
+    return Number.isFinite(parsed) ? parsed : fallback
+  }
+  const number = Number(value)
+  return Number.isFinite(number) ? number : fallback
 }
 
 function resolveComponentKey(field = {}) {
@@ -399,6 +572,13 @@ function buildComponentProps(field = {}, label = '') {
 
 function resolveDefaultSpan(componentKey) {
   return ['textarea', 'fileUpload', 'imageUpload', 'subTable'].includes(componentKey) ? 2 : 1
+}
+
+function clampGridColumns(value, fallback = 2) {
+  const number = Number(value)
+  if (!Number.isFinite(number))
+    return fallback
+  return Math.max(1, Math.min(3, number))
 }
 
 function buildPlaceholder(componentKey, label) {

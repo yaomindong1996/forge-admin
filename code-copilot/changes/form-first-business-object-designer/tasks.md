@@ -80,6 +80,7 @@
 | Task 43 | Phase 8 | 组织数据源、运行态样式和字段 DDL 同步修复 | completed | P0 |
 | Task 44 | Phase 8 | 表单布局组件与保存入口收敛 | completed | P0 |
 | Task 45 | Phase 8 | 应用入口、设计器弹层和多列表单回归修复 | completed | P0 |
+| Task 46 | Phase 8 | fcDesigner 画布列数和布局组件中文化修复 | completed | P0 |
 
 ---
 
@@ -1237,3 +1238,51 @@ cd forge && JAVA_HOME=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jd
 - `AiForm` 搜索操作区跨整行右对齐，折叠按钮判断改为基于可见字段。
 - `BusinessFormDesigner` 增加“表单列数”控制，保存到 `FormDesignerSchema.layout.gridColumns`，发布运行态继续映射到 `editGridCols/formLayout`；三列表单默认弹窗宽度提升到 `1180px`。
 - 验证通过：目标文件 ESLint、`mvn -pl forge-admin-server -am compile -DskipTests`、`NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build`。
+
+### Task 46: fcDesigner 画布列数和布局组件中文化修复
+
+**目标**: 修复表单设计器中“单列/两列/三列”只影响运行态、不影响 fcDesigner 画布的问题，并让布局组件拖入后显示中文业务化名称。
+
+**问题清单**:
+- `FormDesignerSchema.layout.gridColumns` 只保存了业务列数，但 fcDesigner 画布实际按 form-create rule 的 `col.span` 渲染，导致画布一直看起来像单列。
+- 拖入 `fcRow/col/elCard/elTabs/elCollapse/elDivider` 等布局组件后，部分节点标题或回显名称保留英文/原始组件名。
+- `col.props.span=12` 属于 form-create 24 栅格，转换成 Forge schema 时不能直接当成业务列跨度，否则两列布局回显会被撑成整行。
+- 空栅格布局保存时，后端递归编译运行态字段会把 `null inheritedSpan` 误拆箱，导致 `PUT /ai/business/object/{objectId}/designer` 空指针。
+
+**执行状态**: completed
+- `BusinessFormDesigner` 切换表单列数时，立即把当前 schema 组件重算为对应的 form-create `col.span`：单列 24、两列 12、三列 8。
+- `BusinessFormCreateDesigner` 重置字段和追加字段时保留当前列数，并向 fcDesigner 显式传入中文 locale。
+- `FormDesignerSchema` 增加布局组件中文默认名称和英文/原始名称归一化，保存、回显和拖入后的布局节点统一显示中文。
+- `formCreateToForge` 读回 fcDesigner 规则时也会按当前列数重算布局，避免 `col.props.span` 被误解释成业务列跨度。
+- `BusinessObjectDesignerService` 修复 `collectRuntimeFormFields` 中 `inheritedSpan` 三元表达式拆箱问题，空布局容器不再触发 NPE。
+- 验证通过：目标文件 ESLint、`mvn -pl forge-admin-server -am compile -DskipTests`、`NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build`。
+
+### Task 47: 删除字典组件后残留字段校验修复
+
+**目标**: 修复 fcDesigner 删除字典/引用组件后，保存仍提示“字典字段必须配置字典类型”或引用字段配置不完整的问题。
+
+**问题清单**:
+- fcDesigner 删除画布组件只移除 `FormDesignerSchema.components`，不会自动删除字段资产注册表中的历史字段。
+- 表单保存时会把全部主表业务字段提交给后端，旧的 `DICT/SELECT/RADIO/CHECKBOX/CASCADER/REFERENCE` 字段如果已经不在当前画布或已改成普通输入，仍可能触发字段类型必填校验。
+- 仅靠前端归一化不够，旧页面缓存、其它保存入口或历史数据仍可能绕过前端处理。
+
+**执行状态**: completed
+- `BusinessFormDesigner` 保存前按当前 `FormDesignerSchema` 建立字段到画布组件的映射；字段已移出画布且未配置字典/引用，或字段在画布上已切回普通组件时，自动降级为普通文本字段。
+- 前端降级时同步清理 `dictType`、`referenceObjectCode`、`referenceDisplayField`，并把 `componentType/queryType` 调整为 `input/like`。
+- `BusinessObjectDesignerService.saveDesigner` 在重建模型字段前增加后端兜底，对提交字段和当前表单 schema 做同样归一化，避免残留字段资产再次触发后端校验。
+- 验证通过：`BusinessFormDesigner.vue` ESLint、`git diff --check`、`mvn -pl forge-admin-server -am compile -DskipTests`、`NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build`。
+
+### Task 48: fcDesigner 栅格布局临时 ref 展示修复
+
+**目标**: 修复栅格布局、栅格列等布局组件前显示 `ref_Fs5x...` 这类 fcDesigner 临时引用串的问题。
+
+**问题清单**:
+- fcDesigner 会给布局 rule 生成 `ref_...` 临时 `id/name/title`。
+- 布局组件不是业务字段，但 form-create 转 Forge schema 时可能把临时 ref 当成布局标题或组件 id 保存。
+- Forge schema 回写到 fcDesigner 时，非字段布局组件继续写入 `name=component.id`，导致画布上再次显示临时 ref。
+
+**执行状态**: completed
+- `FormDesignerSchema` 增加 `ref_...` 临时引用识别，布局标题归一化时会剥离临时 ref，旧 schema 中保存的临时布局 id 也会被替换为稳定 `cmp_<componentKey>_<index>`。
+- `formCreateToForge` 转换布局组件时跳过临时 `ref_...` 作为标题/id，字段编码生成也不再把 `ref_...` 当作有效字段名。
+- `forgeToFormCreate` 回写布局 rule 时不再给非字段组件写 `name`，避免 fcDesigner 把布局 id 当作展示前缀。
+- 验证通过：目标文件 ESLint、`git diff --check`、`NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build`。

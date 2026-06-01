@@ -167,6 +167,10 @@ public class LowcodeRuntimeConfigBuilder {
         options.put("editLabelPlacement", StringUtils.defaultIfBlank(text(editProps.get("labelPlacement")), "left"));
         options.put("editLabelAlign", StringUtils.defaultIfBlank(text(editProps.get("labelAlign")), "right"));
         options.put("editLabelWidth", editProps.getOrDefault("labelWidth", "auto"));
+        options.put("editSize", normalizeRuntimeFormSize(text(editProps.get("size"))));
+        options.put("editShowFeedback", booleanWithDefault(editProps.get("showFeedback"), true));
+        copyOption(editProps, options, "editFormClass");
+        copyOption(editProps, options, "editFormStyle");
         options.put("editXGap", intValue(editProps.get("columnGap"), 16));
         options.put("editYGap", intValue(editProps.get("rowGap"), 16));
         Object formLayout = editProps.get("formLayout");
@@ -1557,9 +1561,45 @@ public class LowcodeRuntimeConfigBuilder {
             if (StringUtils.isNotBlank(dictType)) {
                 setting.put("dictType", dictType);
             }
+            Object requiredSwitch = rule.get("$required");
+            List<Map<String, Object>> validationRules = copyRuleList(rule.get("validate"));
+            boolean requiredFromSwitch = isRequiredSwitchEnabled(requiredSwitch);
+            boolean required = requiredFromSwitch
+                    || validationRules.stream().anyMatch(item -> booleanWithDefault(item.get("required"), false));
+            if (required) {
+                setting.put("required", true);
+                String requiredMessage = requiredFromSwitch && requiredSwitch instanceof String message && StringUtils.isNotBlank(message)
+                        ? message
+                        : validationRules.stream()
+                        .filter(item -> booleanWithDefault(item.get("required"), false))
+                        .map(item -> text(item.get("message")))
+                        .filter(StringUtils::isNotBlank)
+                        .findFirst()
+                        .orElse("");
+                if (StringUtils.isNotBlank(requiredMessage)) {
+                    setting.put("requiredMessage", requiredMessage);
+                }
+                if (requiredFromSwitch && validationRules.stream().noneMatch(item -> booleanWithDefault(item.get("required"), false))) {
+                    Map<String, Object> requiredRule = new LinkedHashMap<>();
+                    requiredRule.put("required", true);
+                    requiredRule.put("message", StringUtils.defaultIfBlank(requiredMessage, "该字段为必填项"));
+                    requiredRule.put("trigger", List.of("blur", "change"));
+                    validationRules.add(0, requiredRule);
+                }
+            } else if (requiredSwitch != null) {
+                setting.put("required", false);
+                validationRules.removeIf(item -> booleanWithDefault(item.get("required"), false));
+            }
+            if (!validationRules.isEmpty()) {
+                setting.put("rules", validationRules);
+            }
             Object style = rule.get("style");
             if (style != null) {
-                setting.put("formItemStyle", style);
+                setting.put("componentStyle", style);
+            }
+            Object className = firstPresent(rule.get("className"), rule.get("class"));
+            if (className != null) {
+                setting.put("formItemClass", className);
             }
             Object forgeLayout = getNestedValue(rule, "_forge.layout");
             if (forgeLayout instanceof Map<?, ?> layoutMap) {
@@ -1711,10 +1751,29 @@ public class LowcodeRuntimeConfigBuilder {
         boolean required = pageSetting.containsKey("required")
                 ? booleanWithDefault(pageSetting.get("required"), false)
                 : Boolean.TRUE.equals(field.getRequired());
+        List<Map<String, Object>> validationRules = resolveRuntimeValidationRules(pageSetting);
+        if (!pageSetting.containsKey("required")
+                && validationRules.stream().anyMatch(rule -> booleanWithDefault(rule.get("required"), false))) {
+            required = true;
+        }
         boolean readonly = pageSetting.containsKey("readonly")
                 ? booleanWithDefault(pageSetting.get("readonly"), false)
                 : Boolean.TRUE.equals(field.getReadonly());
+        if (!required) {
+            validationRules.removeIf(rule -> booleanWithDefault(rule.get("required"), false));
+        }
         item.put("required", !isSystemField(field) && required);
+        String requiredMessage = StringUtils.defaultIfBlank(text(pageSetting.get("requiredMessage")),
+                resolveRequiredRuleMessage(validationRules));
+        if (StringUtils.isNotBlank(requiredMessage)) {
+            item.put("requiredMessage", requiredMessage);
+        }
+        Object trigger = StringUtils.isNotBlank(text(pageSetting.get("trigger")))
+                ? pageSetting.get("trigger")
+                : resolveRequiredRuleTrigger(validationRules);
+        if (trigger != null) {
+            item.put("trigger", trigger);
+        }
         if (isSystemField(field) || readonly) {
             item.put("disabled", true);
             item.put("readonly", true);
@@ -1744,6 +1803,11 @@ public class LowcodeRuntimeConfigBuilder {
         if (labelWidth != null) {
             item.put("labelWidth", labelWidth);
         }
+        copyRuntimeSetting(item, pageSetting, "componentStyle");
+        copyRuntimeSetting(item, pageSetting, "componentClass");
+        copyRuntimeSetting(item, pageSetting, "formItemClass");
+        copyRuntimeSetting(item, pageSetting, "showFeedback");
+        copyRuntimeSetting(item, pageSetting, "showLabel");
 
         Map<String, Object> props = new LinkedHashMap<>();
         props.put("placeholder", buildPlaceholder(componentType, label));
@@ -1759,8 +1823,15 @@ public class LowcodeRuntimeConfigBuilder {
         props.putAll(sanitizeFieldBasicProps(field));
         Object designerProps = pageSetting.get("props");
         if (designerProps instanceof Map<?, ?> designerPropsMap) {
-            props.putAll((Map<String, Object>) designerPropsMap);
+            Map<String, Object> sanitizedDesignerProps = new LinkedHashMap<>((Map<String, Object>) designerPropsMap);
+            Map<String, Object> formCreateMeta = mapValue(sanitizedDesignerProps.get("__fc"));
+            sanitizedDesignerProps.remove("__fc");
+            sanitizedDesignerProps.remove("__fcType");
+            sanitizedDesignerProps.remove("fieldBinding");
+            props.putAll(sanitizedDesignerProps);
+            applyFormCreateMeta(item, formCreateMeta, props);
         }
+        copyRuntimePropsToField(item, props);
         applySelectionLabelProps(props, field.getField(), componentType);
         if (isSystemField(field) || readonly) {
             props.put("disabled", true);
@@ -1772,13 +1843,142 @@ public class LowcodeRuntimeConfigBuilder {
         }
 
         if (required) {
-            Map<String, Object> rule = new LinkedHashMap<>();
-            rule.put("required", true);
-            rule.put("message", buildPlaceholder(componentType, label));
-            rule.put("trigger", List.of("blur", "change"));
-            item.put("rules", List.of(rule));
+            String message = StringUtils.defaultIfBlank(requiredMessage, buildPlaceholder(componentType, label));
+            if (validationRules.stream().noneMatch(rule -> booleanWithDefault(rule.get("required"), false))) {
+                Map<String, Object> rule = new LinkedHashMap<>();
+                rule.put("required", true);
+                rule.put("message", message);
+                rule.put("trigger", trigger == null ? List.of("blur", "change") : trigger);
+                validationRules.add(0, rule);
+            } else {
+                validationRules.forEach(rule -> {
+                    if (booleanWithDefault(rule.get("required"), false) && StringUtils.isBlank(text(rule.get("message")))) {
+                        rule.put("message", message);
+                    }
+                });
+            }
+            item.put("requiredMessage", message);
+        }
+        if (!validationRules.isEmpty()) {
+            item.put("rules", validationRules);
         }
         return item;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> resolveRuntimeValidationRules(Map<String, Object> pageSetting) {
+        Object source = pageSetting.get("rules");
+        if (!(source instanceof List<?> list)) {
+            return new ArrayList<>();
+        }
+        List<Map<String, Object>> rules = new ArrayList<>();
+        for (Object item : list) {
+            if (item instanceof Map<?, ?> map) {
+                rules.add(new LinkedHashMap<>((Map<String, Object>) map));
+            }
+        }
+        return rules;
+    }
+
+    private String resolveRequiredRuleMessage(List<Map<String, Object>> validationRules) {
+        return validationRules.stream()
+                .filter(rule -> booleanWithDefault(rule.get("required"), false))
+                .map(rule -> text(rule.get("message")))
+                .filter(StringUtils::isNotBlank)
+                .findFirst()
+                .orElse("");
+    }
+
+    private Object resolveRequiredRuleTrigger(List<Map<String, Object>> validationRules) {
+        return validationRules.stream()
+                .filter(rule -> booleanWithDefault(rule.get("required"), false))
+                .map(rule -> rule.get("trigger"))
+                .filter(value -> value != null && StringUtils.isNotBlank(String.valueOf(value)))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void copyRuntimeSetting(Map<String, Object> item, Map<String, Object> pageSetting, String key) {
+        if (pageSetting.containsKey(key)) {
+            item.put(key, pageSetting.get(key));
+        }
+    }
+
+    private void copyRuntimePropsToField(Map<String, Object> item, Map<String, Object> props) {
+        List.of("placeholder", "clearable", "filterable", "multiple", "size", "maxlength", "showCount",
+                        "rows", "autosize", "min", "max", "step", "precision", "showButton",
+                        "checkedValue", "uncheckedValue", "checkedText", "uncheckedText", "format",
+                        "valueFormat", "startPlaceholder", "endPlaceholder", "showFeedback", "showLabel")
+                .forEach(key -> {
+                    if (props.containsKey(key)) {
+                        item.put(key, props.get(key));
+                    }
+                });
+    }
+
+    private void applyFormCreateMeta(Map<String, Object> item, Map<String, Object> formCreateMeta, Map<String, Object> props) {
+        if (formCreateMeta == null || formCreateMeta.isEmpty()) {
+            return;
+        }
+        Object style = firstPresent(formCreateMeta.get("style"), props.get("style"));
+        if (style != null) {
+            item.put("componentStyle", style);
+        }
+        Object componentClass = firstPresent(props.get("className"), props.get("class"));
+        if (componentClass != null) {
+            item.put("componentClass", componentClass);
+        }
+        Object formItemClass = firstPresent(formCreateMeta.get("className"), formCreateMeta.get("class"));
+        if (formItemClass != null) {
+            item.put("formItemClass", formItemClass);
+        }
+        Map<String, Object> wrap = mapValue(formCreateMeta.get("wrap"));
+        if (wrap.get("style") != null) {
+            item.put("formItemStyle", wrap.get("style"));
+        }
+        if (wrap.containsKey("labelWidth")) {
+            item.put("labelWidth", wrap.get("labelWidth"));
+        }
+        if (wrap.containsKey("show") && !booleanWithDefault(wrap.get("show"), true)) {
+            item.put("showLabel", false);
+        }
+    }
+
+    private Object firstPresent(Object primary, Object fallback) {
+        return primary != null ? primary : fallback;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> copyRuleList(Object source) {
+        if (!(source instanceof List<?> list)) {
+            return new ArrayList<>();
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Object item : list) {
+            if (item instanceof Map<?, ?> map) {
+                result.add(new LinkedHashMap<>((Map<String, Object>) map));
+            }
+        }
+        return result;
+    }
+
+    private boolean isRequiredSwitchEnabled(Object value) {
+        if (value == null) {
+            return false;
+        }
+        if (value instanceof String text && StringUtils.isNotBlank(text)
+                && !"false".equalsIgnoreCase(text) && !"0".equals(text)) {
+            return true;
+        }
+        return booleanWithDefault(value, false);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> mapValue(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            return new LinkedHashMap<>((Map<String, Object>) map);
+        }
+        return new LinkedHashMap<>();
     }
 
     private Map<String, Object> buildDefaultSort(LowcodeModelSchema modelSchema, LowcodePageSchema pageSchema) {
@@ -2184,6 +2384,14 @@ public class LowcodeRuntimeConfigBuilder {
             case "userPicker", "user", "userName", "sysUserSelect", "forgeUserSelect" -> "userSelect";
             default -> componentType;
         };
+    }
+
+    private String normalizeRuntimeFormSize(String value) {
+        String size = StringUtils.defaultString(value).trim().toLowerCase(Locale.ROOT);
+        if ("default".equals(size) || "medium".equals(size)) {
+            return "medium";
+        }
+        return Set.of("small", "large").contains(size) ? size : "medium";
     }
 
     private void applySelectionLabelProps(Map<String, Object> props, String fieldName, String componentType) {

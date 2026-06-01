@@ -536,7 +536,7 @@ function buildRuntimeCrudProps(cfg) {
   return {
     searchSchema: transformFields(cfg.searchSchema),
     columns: transformColumns(cfg.columnsSchema, cfg.transConfig),
-    editSchema: transformFields(cfg.editSchema),
+    editSchema: transformEditFields(cfg.editSchema, options.editFormLayout),
     childrenConfig: transformChildrenConfig(options.masterDetailConfig?.children || []),
     apiConfig: cfg.apiConfig || {},
     options,
@@ -544,6 +544,15 @@ function buildRuntimeCrudProps(cfg) {
     modalType: options.modalType || cfg.modalType || 'modal',
     modalWidth: options.modalWidth || cfg.modalWidth || '800px',
     editGridCols: options.editGridCols || cfg.editGridCols || 1,
+    editLabelWidth: options.editLabelWidth || cfg.editLabelWidth || 'auto',
+    editLabelPlacement: options.editLabelPlacement || cfg.editLabelPlacement || 'left',
+    editLabelAlign: options.editLabelAlign || cfg.editLabelAlign || 'right',
+    editSize: options.editSize || cfg.editSize || 'medium',
+    editShowFeedback: options.editShowFeedback ?? cfg.editShowFeedback ?? true,
+    editFormClass: options.editFormClass || cfg.editFormClass || '',
+    editFormStyle: options.editFormStyle || cfg.editFormStyle,
+    editXGap: normalizeNumberOption(options.editXGap ?? cfg.editXGap, 16),
+    editYGap: normalizeNumberOption(options.editYGap ?? cfg.editYGap, 16),
     loadDetailOnEdit: options.loadDetailOnEdit ?? cfg.loadDetailOnEdit ?? true,
     searchGridCols: options.searchGridCols || cfg.searchGridCols || 4,
     hideBatchDelete: !!options.hideBatchDelete,
@@ -648,6 +657,52 @@ function transformFields(fields) {
   })
 }
 
+function transformEditFields(fields = [], layout = []) {
+  const transformedFields = transformFields(fields)
+  if (!Array.isArray(layout) || !layout.length)
+    return transformedFields
+
+  const fieldMap = new Map(transformedFields.map(field => [field.field, field]))
+  const usedFields = new Set()
+  const nodes = layout
+    .map(node => hydrateRuntimeLayoutNode(node, fieldMap, usedFields))
+    .filter(Boolean)
+
+  transformedFields.forEach((field) => {
+    if (field.field && !usedFields.has(field.field))
+      nodes.push(field)
+  })
+  return nodes
+}
+
+function hydrateRuntimeLayoutNode(node = {}, fieldMap, usedFields) {
+  if (!node || typeof node !== 'object')
+    return null
+  if (node.nodeType === 'field') {
+    const field = fieldMap.get(node.field)
+    if (!field)
+      return null
+    usedFields.add(node.field)
+    return {
+      ...field,
+      nodeType: 'field',
+      key: node.key || field.field,
+      span: node.span || field.span,
+      gridStyle: node.gridStyle || field.gridStyle,
+    }
+  }
+
+  const children = (node.children || [])
+    .map(child => hydrateRuntimeLayoutNode(child, fieldMap, usedFields))
+    .filter(Boolean)
+  if (!children.length && !['divider'].includes(node.nodeType))
+    return null
+  return {
+    ...node,
+    children,
+  }
+}
+
 function resolveDateTimeProps(type) {
   switch (String(type || '').toLowerCase()) {
     case 'date':
@@ -704,6 +759,11 @@ function extractApiUrl(apiConfigValue) {
     return ''
   const parts = String(apiConfigValue).split('@')
   return parts.length > 1 ? parts.slice(1).join('@') : apiConfigValue
+}
+
+function normalizeNumberOption(value, fallback) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : fallback
 }
 </script>
 

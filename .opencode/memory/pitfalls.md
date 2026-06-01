@@ -1287,3 +1287,85 @@ function createFieldForm(field) {
 - `store/modules/tab.js`
 - 顶部 tab 组件
 - 所有桥接跳转、全屏弹层式设计器和动态 CRUD 运行态页面
+
+## 37. fcDesigner 画布列数必须写入 rule.col.span
+
+**发现日期**: 2026-06-01
+
+**问题描述**:
+低代码对象表单设计中已保存 `FormDesignerSchema.layout.gridColumns`，但 fcDesigner 画布仍然按单列展示；拖入 `row/col` 后再次回显，列宽还可能被撑成整行。
+
+**根本原因**:
+fcDesigner / form-create 的画布宽度看每个 rule 的 `col.span`，不是看 Forge 自定义的 `gridColumns`。同时 `col.props.span` 是 form-create 的 24 栅格值，不能直接当成 Forge 的 1/2/3 业务列跨度。
+
+**解决方案**:
+切换单列/两列/三列、字段追加、字段重置、form-create rule 转 Forge schema 时，都必须统一重算组件 span：
+
+- 单列：普通字段 `col.span=24`
+- 两列：普通字段 `col.span=12`
+- 三列：普通字段 `col.span=8`
+- `col` 布局组件的 `props.span` 也要按当前业务列数换算
+- 布局容器、分割线、标题、子表等整行组件应跨满当前业务列数
+
+**影响范围**:
+- `BusinessFormDesigner.vue`
+- `BusinessFormCreateDesigner.vue`
+- `formDesignerSchema.js`
+- `forgeToFormCreate.js`
+- `formCreateToForge.js`
+
+## 38. fcDesigner 删除组件不会自动删除字段资产
+
+**发现日期**: 2026-06-01
+
+**问题描述**:
+表单优先设计器中删除字典、级联、引用等组件后，保存仍可能提示“字典字段必须配置字典类型”或“引用对象字段必须配置目标对象和回显字段”。
+
+**根本原因**:
+fcDesigner 删除的是画布 rule / `FormDesignerSchema.components`，字段资产注册表仍保留历史字段。表单保存会把全部主表业务字段提交给后端，如果旧字段还是 `DICT/SELECT/RADIO/CHECKBOX/MULTI_SELECT/REFERENCE` 且缺少配置，后端字段校验会继续拦截。
+
+**解决方案**:
+保存表单前必须基于当前画布组件映射归一化字段资产：
+
+- 字段已不在画布且字典/引用配置不完整时，降级为普通 `TEXT/input/like`
+- 字段在画布上已从字典/引用改成普通输入时，也要同步降级并清理 `dictType/referenceObjectCode/referenceDisplayField`
+- 后端 `BusinessObjectDesignerService.saveDesigner` 也要在重建模型字段前做兜底，不能只依赖前端
+
+**影响范围**:
+- `BusinessFormDesigner.vue`
+- `BusinessObjectDesignerService.saveDesigner`
+- 表单优先字段资产、字典/级联/引用组件保存链路
+
+## 39. fcDesigner 布局组件的 ref_ 临时值不能进入 Forge Schema
+
+**发现日期**: 2026-06-01
+
+**问题描述**:
+表单设计器拖入栅格布局、栅格列等布局组件后，画布组件标题前可能出现 `ref_Fs5x...` 这类随机字符串。
+
+**根本原因**:
+fcDesigner / form-create 会给布局 rule 生成 `ref_...` 临时 `id/name/title`。布局组件不是业务字段，如果 form-create 转 Forge schema 时把这些临时值当作布局标题或组件 id 保存，回写画布时就会展示出来。
+
+**解决方案**:
+布局组件标题归一化时要剥离 `ref_...`；旧 schema 中保存的临时布局 id 要替换为稳定 `cmp_<componentKey>_<index>`；Forge schema 回写 form-create rule 时，非字段布局组件不要写 `name`。
+
+**影响范围**:
+- `formDesignerSchema.js`
+- `formCreateToForge.js`
+- `forgeToFormCreate.js`
+- fcDesigner 布局组件保存和回显
+
+## 40. 业务对象编码推理只应自动作用于新建
+
+**发现日期**: 2026-06-01
+
+**问题描述**:
+给新建业务对象增加中文名称到对象编码的自动推理时，如果后端更新接口也无条件把 `objectCode` 归一化为 lower_snake，会把历史对象（如 CRM 样板中的 `CUSTOMER`）在普通编辑保存时改成 `customer`，导致关系、应用入口、菜单路由或历史数据引用不一致。
+
+**根本原因**:
+`ai_business_object.object_code` 既是用户可维护编码，也是关系和入口绑定键。历史数据中同时存在大写业务对象编码和 lower_snake 运行态 `model_code/config_key`。对象编码推理是“创建默认值”能力，不应在更新已有对象时强制迁移主键式编码。
+
+**解决方案**:
+- 新建对象时可以根据中文对象名推理 lower_snake `objectCode`，并生成 `suite_object` 风格 `modelCode`。
+- 更新对象时保留原有 `objectCode/modelCode`，除非请求明确传入新值。
+- 如果要迁移历史对象编码，必须走单独数据修复脚本，并同步关系、应用入口、权限和菜单引用。

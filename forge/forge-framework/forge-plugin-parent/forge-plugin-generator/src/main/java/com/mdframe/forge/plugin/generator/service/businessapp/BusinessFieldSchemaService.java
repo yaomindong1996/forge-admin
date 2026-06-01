@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -21,7 +20,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * 业务字段到低代码字段协议的转换服务。
@@ -30,27 +28,9 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class BusinessFieldSchemaService {
 
-    private static final Pattern SAFE_WORD_PATTERN = Pattern.compile("[A-Za-z0-9]+");
     private static final Set<String> DICT_FIELD_TYPES = Set.of("DICT", "SELECT", "RADIO", "CHECKBOX", "MULTI_SELECT");
     private static final Set<String> SYSTEM_FIELDS = Set.of(
             "id", "tenantId", "createBy", "createTime", "createDept", "updateBy", "updateTime", "delFlag"
-    );
-
-    private static final Map<String, String> KNOWN_FIELD_CODES = Map.ofEntries(
-            Map.entry("客户名称", "customerName"),
-            Map.entry("联系电话", "contactPhone"),
-            Map.entry("客户等级", "customerLevel"),
-            Map.entry("负责人", "ownerUserId"),
-            Map.entry("所属部门", "ownerDeptId"),
-            Map.entry("所属地区", "regionCode"),
-            Map.entry("备注", "remark"),
-            Map.entry("客户编码", "customerCode"),
-            Map.entry("联系人", "contactName"),
-            Map.entry("联系邮箱", "contactEmail"),
-            Map.entry("详细地址", "address"),
-            Map.entry("跟进状态", "followStatus"),
-            Map.entry("创建时间", "createTime"),
-            Map.entry("更新时间", "updateTime")
     );
 
     private static final Map<String, FieldDefaults> FIELD_DEFAULTS = Map.ofEntries(
@@ -77,6 +57,7 @@ public class BusinessFieldSchemaService {
     );
 
     private final LowcodeModelSchemaNormalizer schemaNormalizer;
+    private final BusinessNamingService businessNamingService;
 
     public LowcodeFieldSchema buildFieldSchema(BusinessFieldDTO dto) {
         if (dto == null) {
@@ -226,25 +207,11 @@ public class BusinessFieldSchemaService {
     }
 
     public String generateFieldCode(String fieldName) {
-        String label = StringUtils.trimToEmpty(fieldName);
-        String known = KNOWN_FIELD_CODES.get(label);
-        if (StringUtils.isNotBlank(known)) {
-            return known;
-        }
-        List<String> words = extractAsciiWords(label);
-        if (!words.isEmpty()) {
-            return toLowerCamel(words);
-        }
-        return "field" + Integer.toUnsignedString(hash(label), 36);
+        return businessNamingService.generateFieldCode(fieldName);
     }
 
     public String camelToSnake(String value) {
-        return StringUtils.defaultString(value)
-                .replaceAll("([a-z0-9])([A-Z])", "$1_$2")
-                .replaceAll("[^A-Za-z0-9_]+", "_")
-                .replaceAll("_+", "_")
-                .replaceAll("^_+|_+$", "")
-                .toLowerCase(Locale.ROOT);
+        return businessNamingService.camelToSnake(value);
     }
 
     public String normalizeBusinessFieldCode(String value) {
@@ -293,31 +260,13 @@ public class BusinessFieldSchemaService {
     }
 
     private String normalizeFieldCode(String value) {
-        String cleaned = StringUtils.defaultIfBlank(value, "field")
-                .replaceAll("[^A-Za-z0-9_]+", "_")
-                .replaceAll("_+", "_")
-                .replaceAll("^_+|_+$", "");
-        if (StringUtils.isBlank(cleaned)) {
-            cleaned = "field";
-        }
-        String normalized;
-        if (cleaned.contains("_")) {
-            normalized = toLowerCamel(List.of(cleaned.split("_")));
-        } else if (cleaned.equals(cleaned.toUpperCase(Locale.ROOT))) {
-            normalized = cleaned.toLowerCase(Locale.ROOT);
-        } else {
-            normalized = StringUtils.uncapitalize(cleaned);
-        }
-        if (!Character.isLowerCase(normalized.charAt(0))) {
-            normalized = "field" + StringUtils.capitalize(normalized);
-        }
-        return StringUtils.left(normalized, 64);
+        return businessNamingService.normalizeFieldCode(value, value);
     }
 
     private String normalizeColumnName(String value) {
         String cleaned = camelToSnake(value);
         if (StringUtils.isBlank(cleaned)) {
-            cleaned = "field_" + Integer.toUnsignedString(hash(value), 36);
+            cleaned = "field";
         }
         if (!Character.isLowerCase(cleaned.charAt(0))) {
             cleaned = "field_" + cleaned;
@@ -505,39 +454,6 @@ public class BusinessFieldSchemaService {
 
     private Map<String, Object> copyProps(Map<String, Object> source) {
         return source == null ? new LinkedHashMap<>() : new LinkedHashMap<>(source);
-    }
-
-    private List<String> extractAsciiWords(String value) {
-        List<String> words = new ArrayList<>();
-        var matcher = SAFE_WORD_PATTERN.matcher(StringUtils.defaultString(value));
-        while (matcher.find()) {
-            words.add(matcher.group());
-        }
-        return words;
-    }
-
-    private String toLowerCamel(List<String> words) {
-        StringBuilder result = new StringBuilder();
-        for (String word : words) {
-            if (StringUtils.isBlank(word)) {
-                continue;
-            }
-            String lower = word.toLowerCase(Locale.ROOT);
-            if (result.length() == 0) {
-                result.append(lower);
-            } else {
-                result.append(StringUtils.capitalize(lower));
-            }
-        }
-        return result.length() == 0 ? "field" : result.toString();
-    }
-
-    private int hash(String value) {
-        int result = 0;
-        for (byte b : StringUtils.defaultString(value).getBytes(StandardCharsets.UTF_8)) {
-            result = 31 * result + b;
-        }
-        return result;
     }
 
     private record FieldDefaults(String dataType, String componentType, Integer length,

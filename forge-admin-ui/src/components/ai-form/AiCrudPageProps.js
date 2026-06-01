@@ -239,6 +239,25 @@ export const aiCrudPageProps = {
   },
 
   /**
+   * 编辑表单尺寸
+   * @type {'small'|'medium'|'large'}
+   */
+  editSize: {
+    type: String,
+    default: 'medium',
+    validator: value => ['small', 'medium', 'large'].includes(value),
+  },
+
+  /**
+   * 是否显示编辑表单校验反馈
+   * @type {boolean}
+   */
+  editShowFeedback: {
+    type: Boolean,
+    default: true,
+  },
+
+  /**
    * 编辑表单列间距
    * @type {number}
    */
@@ -263,6 +282,15 @@ export const aiCrudPageProps = {
   editFormClass: {
     type: [String, Object, Array],
     default: '',
+  },
+
+  /**
+   * 编辑表单自定义 style
+   * @type {string | object | Array}
+   */
+  editFormStyle: {
+    type: [String, Object, Array],
+    default: undefined,
   },
 
   /**

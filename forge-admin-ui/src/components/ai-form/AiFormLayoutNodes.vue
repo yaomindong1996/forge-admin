@@ -5,6 +5,7 @@
       :key="resolveNodeKey(node)"
       :span="resolveNodeSpan(node)"
       :style="node.gridStyle"
+      :class="node.gridClass"
     >
       <AiFormItem
         v-if="isFieldNode(node)"
@@ -56,6 +57,8 @@
         size="small"
         :title="node.label || node.props?.header || undefined"
         :bordered="true"
+        :style="node.style"
+        :class="node.className"
         class="af-layout-card"
       >
         <AiFormLayoutNodes
@@ -78,6 +81,8 @@
         v-else-if="node.nodeType === 'tabs'"
         :type="resolveTabsType(node.props?.type)"
         :placement="resolveTabsPlacement(node.props?.tabPosition)"
+        :style="node.style"
+        :class="node.className"
         class="af-layout-tabs"
       >
         <n-tab-pane
@@ -107,6 +112,8 @@
       <n-collapse
         v-else-if="node.nodeType === 'collapse'"
         :accordion="!!node.props?.accordion"
+        :style="node.style"
+        :class="node.className"
         class="af-layout-collapse"
       >
         <n-collapse-item
@@ -136,6 +143,8 @@
       <n-divider
         v-else-if="node.nodeType === 'divider'"
         :title-placement="node.props?.contentPosition || node.props?.titlePlacement || 'left'"
+        :style="node.style"
+        :class="node.className"
       >
         {{ node.label }}
       </n-divider>

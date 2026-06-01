@@ -230,7 +230,7 @@ import {
 import BusinessFormCreateDesigner from './BusinessFormCreateDesigner.vue'
 import { buildAutoFieldAssets } from './form-first/autoFieldRegistry'
 import { extractForgeSchemaFieldRefs, forgeSchemaToFormCreate } from './form-first/forgeToFormCreate'
-import { normalizeFormDesignerSchema } from './form-first/formDesignerSchema'
+import { applyGridColumnsToFormDesignerSchema, normalizeFormDesignerSchema } from './form-first/formDesignerSchema'
 
 const props = defineProps({
   objectId: {
@@ -303,6 +303,31 @@ const FORM_FIELD_COMPONENT_KEYS = new Set([
   'upload',
   'objectReference',
 ])
+
+const DICT_FIELD_TYPES = new Set(['DICT', 'SELECT', 'RADIO', 'CHECKBOX', 'MULTI_SELECT'])
+const DICT_COMPONENT_TYPES = new Set(['dictSelect', 'select', 'radio', 'checkbox', 'cascader'])
+const COMPONENT_FIELD_DEFAULTS = {
+  input: { fieldType: 'TEXT', businessFieldType: 'TEXT', dataType: 'varchar', componentType: 'input', length: 128, precision: 2, queryType: 'like' },
+  textarea: { fieldType: 'MULTILINE', businessFieldType: 'MULTILINE', dataType: 'text', componentType: 'textarea', length: null, precision: 2, queryType: 'like' },
+  number: { fieldType: 'NUMBER', businessFieldType: 'NUMBER', dataType: 'int', componentType: 'number', length: 11, precision: 0, queryType: 'eq' },
+  inputNumber: { fieldType: 'NUMBER', businessFieldType: 'NUMBER', dataType: 'int', componentType: 'number', length: 11, precision: 0, queryType: 'eq' },
+  integer: { fieldType: 'NUMBER', businessFieldType: 'NUMBER', dataType: 'int', componentType: 'number', length: 11, precision: 0, queryType: 'eq' },
+  money: { fieldType: 'MONEY', businessFieldType: 'MONEY', dataType: 'decimal', componentType: 'number', length: 18, precision: 2, queryType: 'eq' },
+  date: { fieldType: 'DATE', businessFieldType: 'DATE', dataType: 'date', componentType: 'date', length: null, precision: null, queryType: 'eq' },
+  datetime: { fieldType: 'DATETIME', businessFieldType: 'DATETIME', dataType: 'datetime', componentType: 'datetime', length: null, precision: null, queryType: 'eq' },
+  switch: { fieldType: 'SWITCH', businessFieldType: 'SWITCH', dataType: 'tinyint', componentType: 'switch', length: 1, precision: 0, queryType: 'eq' },
+  select: { fieldType: 'DICT', businessFieldType: 'DICT', dataType: 'varchar', componentType: 'select', length: 64, precision: 2, queryType: 'eq' },
+  dictSelect: { fieldType: 'DICT', businessFieldType: 'DICT', dataType: 'varchar', componentType: 'dictSelect', length: 64, precision: 2, queryType: 'eq' },
+  radio: { fieldType: 'RADIO', businessFieldType: 'RADIO', dataType: 'varchar', componentType: 'radio', length: 64, precision: 2, queryType: 'eq' },
+  checkbox: { fieldType: 'CHECKBOX', businessFieldType: 'CHECKBOX', dataType: 'varchar', componentType: 'checkbox', length: 255, precision: 2, queryType: 'in' },
+  cascader: { fieldType: 'DICT', businessFieldType: 'DICT', dataType: 'varchar', componentType: 'cascader', length: 128, precision: 2, queryType: 'eq' },
+  regionTreeSelect: { fieldType: 'REGION', businessFieldType: 'REGION', dataType: 'varchar', componentType: 'regionTreeSelect', length: 32, precision: 2, queryType: 'eq' },
+  orgTreeSelect: { fieldType: 'DEPT', businessFieldType: 'DEPT', dataType: 'bigint', componentType: 'orgTreeSelect', length: null, precision: null, queryType: 'eq' },
+  userSelect: { fieldType: 'USER', businessFieldType: 'USER', dataType: 'bigint', componentType: 'userSelect', length: null, precision: null, queryType: 'eq' },
+  fileUpload: { fieldType: 'FILE', businessFieldType: 'FILE', dataType: 'varchar', componentType: 'fileUpload', length: 512, precision: 2, queryType: 'eq' },
+  imageUpload: { fieldType: 'IMAGE', businessFieldType: 'IMAGE', dataType: 'varchar', componentType: 'imageUpload', length: 512, precision: 2, queryType: 'eq' },
+  objectReference: { fieldType: 'REFERENCE', businessFieldType: 'REFERENCE', dataType: 'bigint', componentType: 'objectReference', length: null, precision: null, queryType: 'eq' },
+}
 
 const message = useMessage()
 const saving = ref(false)
@@ -492,7 +517,13 @@ function syncFormDesignerSchemaToPageSchema(schema, fields = primaryDesignFields
       editGridCols: gridColumns,
       labelPlacement: layout.labelPlacement || 'left',
       labelWidth: defaultLabelWidth,
-      labelAlign: 'right',
+      labelAlign: layout.labelAlign || 'right',
+      size: normalizeRuntimeFormSize(layout.size),
+      showFeedback: layout.showFeedback !== false,
+      hideRequiredAsterisk: Boolean(layout.hideRequiredAsterisk),
+      inlineFeedback: Boolean(layout.inlineFeedback),
+      editFormStyle: layout.formStyle,
+      editFormClass: layout.formClass,
       rowGap: resolveNumber(layout.rowGap, 16),
       columnGap: resolveNumber(layout.columnGap, 16),
       formLayout,
@@ -518,8 +549,9 @@ function buildFormRuntimeFieldSettings(schema, fieldSet, gridColumns, defaultLab
 
 function buildRuntimeFormFieldSetting(component, gridColumns, defaultLabelWidth, inheritedSpan = null) {
   const layout = component.layout || {}
-  const props = { ...(component.props || {}) }
-  delete props.fieldBinding
+  const rawProps = { ...(component.props || {}) }
+  const formCreateMeta = rawProps.__fc && typeof rawProps.__fc === 'object' ? rawProps.__fc : {}
+  const props = sanitizeRuntimeFieldProps(rawProps)
   const setting = {
     componentType: normalizeRuntimeComponentType(component.componentKey),
     align: normalizeAlign(layout.align),
@@ -530,8 +562,19 @@ function buildRuntimeFormFieldSetting(component, gridColumns, defaultLabelWidth,
     setting.label = component.label
   if (Object.keys(props).length)
     setting.props = props
+  applyRuntimeFieldMeta(setting, component, props, formCreateMeta)
   if (component.validation && Object.prototype.hasOwnProperty.call(component.validation, 'required'))
     setting.required = Boolean(component.validation.required)
+  if (component.validation?.requiredMessage)
+    setting.requiredMessage = component.validation.requiredMessage
+  if (Array.isArray(component.validation?.rules) && component.validation.rules.length) {
+    setting.rules = component.validation.rules.map(rule => ({ ...rule }))
+    const requiredRule = setting.rules.find(rule => rule?.required)
+    if (requiredRule?.trigger)
+      setting.trigger = requiredRule.trigger
+    if (!setting.requiredMessage && requiredRule?.message)
+      setting.requiredMessage = requiredRule.message
+  }
   if (component.visibility && Object.prototype.hasOwnProperty.call(component.visibility, 'readonly'))
     setting.readonly = Boolean(component.visibility.readonly)
   if (props.dictType)
@@ -593,6 +636,7 @@ function buildRuntimeFormLayoutNode(component = {}, index = 0, fieldSet, gridCol
       key,
       field: fieldCode,
       span: clampNumber(component.layout?.span, 1, gridColumns, 1),
+      ...buildRuntimeLayoutMeta(component),
     }
   }
 
@@ -600,32 +644,96 @@ function buildRuntimeFormLayoutNode(component = {}, index = 0, fieldSet, gridCol
   const props = sanitizeRuntimeLayoutProps(component.props || {})
   const label = resolveRuntimeLayoutLabel(component)
   const span = clampNumber(component.layout?.span || component.props?.span, 1, gridColumns, gridColumns)
+  const meta = buildRuntimeLayoutMeta(component)
 
   if (isRowLayoutComponent(componentKey)) {
-    return { nodeType: 'row', key, props, children, span: gridColumns }
+    return { nodeType: 'row', key, props, children, span: gridColumns, ...meta }
   }
   if (isColumnLayoutComponent(componentKey)) {
-    return { nodeType: 'col', key, props, children, span }
+    return { nodeType: 'col', key, props, children, span, ...meta }
   }
   if (['elCard', 'card'].includes(componentKey)) {
-    return { nodeType: 'card', key, label, props, children, span: gridColumns }
+    return { nodeType: 'card', key, label, props, children, span: gridColumns, ...meta }
   }
   if (['elTabs', 'tabs'].includes(componentKey)) {
-    return { nodeType: 'tabs', key, props, children, span: gridColumns }
+    return { nodeType: 'tabs', key, props, children, span: gridColumns, ...meta }
   }
   if (['elTabPane', 'tabPane'].includes(componentKey)) {
-    return { nodeType: 'tabPane', key, label, props, children, span: gridColumns }
+    return { nodeType: 'tabPane', key, label, props, children, span: gridColumns, ...meta }
   }
   if (['elCollapse', 'collapse'].includes(componentKey)) {
-    return { nodeType: 'collapse', key, props, children, span: gridColumns }
+    return { nodeType: 'collapse', key, props, children, span: gridColumns, ...meta }
   }
   if (['elCollapseItem', 'collapseItem'].includes(componentKey)) {
-    return { nodeType: 'collapseItem', key, label, props, children, span: gridColumns }
+    return { nodeType: 'collapseItem', key, label, props, children, span: gridColumns, ...meta }
   }
   if (['elDivider', 'divider', 'fcTitle', 'title'].includes(componentKey)) {
-    return { nodeType: 'divider', key, label, props, span: gridColumns }
+    return { nodeType: 'divider', key, label, props, span: gridColumns, ...meta }
   }
   return children.length ? children : null
+}
+
+function sanitizeRuntimeFieldProps(source = {}) {
+  const props = { ...(source || {}) }
+  delete props.__fc
+  delete props.__fcType
+  delete props.fieldBinding
+  return props
+}
+
+function applyRuntimeFieldMeta(setting, component = {}, props = {}, formCreateMeta = {}) {
+  copyPropsToRuntimeField(setting, props)
+  copyDefined(setting, 'componentStyle', formCreateMeta.style ?? props.style)
+  copyDefined(setting, 'componentClass', props.className ?? props.class)
+  copyDefined(setting, 'formItemClass', formCreateMeta.className ?? formCreateMeta.class)
+  copyDefined(setting, 'formItemStyle', component.layout?.formItemStyle ?? formCreateMeta.wrap?.style)
+  if (formCreateMeta.wrap?.labelWidth !== undefined)
+    setting.labelWidth = resolveNumber(formCreateMeta.wrap.labelWidth, setting.labelWidth)
+  if (formCreateMeta.wrap?.show === false)
+    setting.showLabel = false
+}
+
+function copyPropsToRuntimeField(setting, props = {}) {
+  ;[
+    'placeholder',
+    'clearable',
+    'filterable',
+    'multiple',
+    'size',
+    'maxlength',
+    'showCount',
+    'rows',
+    'autosize',
+    'min',
+    'max',
+    'step',
+    'precision',
+    'showButton',
+    'checkedValue',
+    'uncheckedValue',
+    'checkedText',
+    'uncheckedText',
+    'format',
+    'valueFormat',
+    'startPlaceholder',
+    'endPlaceholder',
+    'showFeedback',
+    'showLabel',
+  ].forEach(key => copyDefined(setting, key, props[key]))
+}
+
+function copyDefined(target, key, value) {
+  if (value !== undefined && value !== null)
+    target[key] = value
+}
+
+function buildRuntimeLayoutMeta(component = {}) {
+  const props = component.props || {}
+  const formCreateMeta = props.__fc && typeof props.__fc === 'object' ? props.__fc : {}
+  const meta = {}
+  copyDefined(meta, 'style', formCreateMeta.style ?? props.style)
+  copyDefined(meta, 'className', formCreateMeta.className ?? formCreateMeta.class ?? props.className ?? props.class)
+  return meta
 }
 
 function sanitizeRuntimeLayoutProps(source = {}) {
@@ -689,8 +797,18 @@ function clampNumber(value, min, max, fallback = min) {
 }
 
 function resolveNumber(value, fallback) {
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number.parseInt(value, 10)
+    return Number.isFinite(parsed) ? parsed : fallback
+  }
   const number = Number(value)
   return Number.isFinite(number) ? number : fallback
+}
+
+function normalizeRuntimeFormSize(value) {
+  if (value === 'default' || value === 'medium')
+    return 'medium'
+  return ['small', 'large'].includes(value) ? value : 'medium'
 }
 
 function isPlainObject(value) {
@@ -722,11 +840,13 @@ function updateEditZoneProps(patch = {}) {
 function updateFormDesignerLayout(patch = {}) {
   const flushedSchema = formCreateDesignerRef.value?.flushDesigner?.()
   const currentSchema = normalizeFormDesignerSchema(flushedSchema || localFormDesignerSchema.value || {})
+  const nextGridColumns = patch.gridColumns ? clampNumber(patch.gridColumns, 1, 3, 2) : currentSchema.layout?.gridColumns || 2
   localFormDesignerSchema.value = {
-    ...currentSchema,
+    ...applyGridColumnsToFormDesignerSchema(currentSchema, nextGridColumns),
     layout: {
       ...(currentSchema.layout || {}),
       ...patch,
+      gridColumns: nextGridColumns,
     },
   }
   emit('dirtyChange', true)
@@ -981,11 +1101,13 @@ async function saveLayout() {
     return
   const formSchema = formCreateDesignerRef.value?.flushDesigner?.() || localFormDesignerSchema.value
   const { fields: nextFields, createdFields } = buildAutoFieldAssets(formSchema, primaryBusinessFields.value)
+  const formFieldComponents = buildFormFieldComponentMap(formSchema || {})
+  const normalizedFields = nextFields.map(field => normalizeUnconfiguredDesignerField(field, formFieldComponents))
   const nextModelSchema = {
     ...effectiveModelSchema.value,
     fields: [
       ...systemFields.value,
-      ...nextFields.map(toPageField),
+      ...normalizedFields.map(toPageField),
       ...relationFields.value,
     ],
   }
@@ -996,7 +1118,7 @@ async function saveLayout() {
   try {
     if (createdFields.length || formSchema) {
       await saveBusinessObjectDesigner(props.objectId, {
-        fields: nextFields.map(toBusinessFieldPayload),
+        fields: normalizedFields.map(toBusinessFieldPayload),
         formDesignerSchema: cloneSchema(formSchema || localFormDesignerSchema.value || {}),
         syncDdl: true,
         confirmSyncDdl: true,
@@ -1013,13 +1135,144 @@ async function saveLayout() {
     localSchema.value = schema
     emit('saved', cloneSchema(schema))
     if (createdFields.length)
-      emit('fieldsUpdated', nextFields)
+      emit('fieldsUpdated', normalizedFields)
     emit('dirtyChange', false)
     message.success(createdFields.length ? `表单布局已保存，已自动创建 ${createdFields.length} 个字段并同步表结构` : '表单布局已保存，表结构已检查同步')
   }
   finally {
     saving.value = false
   }
+}
+
+function buildFormFieldComponentMap(schema = {}) {
+  const map = new Map()
+  collectFormFieldComponents(normalizeFormDesignerSchema(schema).components, map)
+  return map
+}
+
+function collectFormFieldComponents(components = [], map = new Map()) {
+  ;(Array.isArray(components) ? components : []).forEach((component) => {
+    if (!component || typeof component !== 'object')
+      return
+    const fieldCode = component.fieldBinding?.mode === 'field' ? component.fieldBinding?.fieldCode : ''
+    if (fieldCode)
+      map.set(fieldCode, component)
+    if (Array.isArray(component.children))
+      collectFormFieldComponents(component.children, map)
+  })
+  return map
+}
+
+function normalizeUnconfiguredDesignerField(field = {}, formFieldComponents = new Map()) {
+  const fieldCode = field.fieldCode || field.field
+  if (!fieldCode)
+    return field
+
+  const formComponent = formFieldComponents.get(fieldCode)
+  const componentType = normalizeRuntimeComponentType(formComponent?.componentKey || field.componentType)
+  const mergedField = mergeFieldWithFormComponent(field, formComponent, componentType)
+  if (isDictField(mergedField) && formComponent && !requiresDictConfig(formComponent))
+    return downgradeDesignerFieldToText(mergedField)
+  if (isReferenceField(mergedField) && formComponent && !requiresReferenceConfig(formComponent))
+    return downgradeDesignerFieldToText(mergedField)
+  if (!formComponent && (isUnconfiguredDictField(mergedField) || isUnconfiguredReferenceField(mergedField)))
+    return downgradeDesignerFieldToText(mergedField)
+  return mergedField
+}
+
+function mergeFieldWithFormComponent(field = {}, formComponent = null, componentType = '') {
+  if (!formComponent)
+    return field
+  const props = formComponent.props || {}
+  const defaults = COMPONENT_FIELD_DEFAULTS[componentType] || {}
+  return {
+    ...applyComponentFieldDefaults(field, defaults),
+    componentType: componentType || field.componentType,
+    dictType: props.dictType ?? field.dictType,
+    referenceObjectCode: props.referenceObjectCode ?? field.referenceObjectCode,
+    referenceDisplayField: props.referenceDisplayField ?? field.referenceDisplayField,
+    basicProps: {
+      ...(field.basicProps || {}),
+      ...(props || {}),
+    },
+    advancedProps: {
+      ...(field.advancedProps || {}),
+      ...(props.dictType !== undefined ? { dictType: props.dictType } : {}),
+    },
+  }
+}
+
+function applyComponentFieldDefaults(field = {}, defaults = {}) {
+  if (!Object.keys(defaults).length)
+    return { ...field }
+  return {
+    ...field,
+    fieldType: defaults.fieldType || field.fieldType,
+    businessFieldType: defaults.businessFieldType || defaults.fieldType || field.businessFieldType,
+    dataType: defaults.dataType || field.dataType,
+    length: field.length ?? defaults.length,
+    precision: field.precision ?? defaults.precision,
+    queryType: defaults.queryType || field.queryType,
+  }
+}
+
+function downgradeDesignerFieldToText(field = {}) {
+  return {
+    ...field,
+    fieldType: 'TEXT',
+    businessFieldType: 'TEXT',
+    componentType: 'input',
+    queryType: 'like',
+    dictType: '',
+    referenceObjectCode: '',
+    referenceDisplayField: '',
+    basicProps: {
+      ...(field.basicProps || {}),
+      dictType: '',
+      referenceObjectCode: '',
+      referenceDisplayField: '',
+    },
+    advancedProps: {
+      ...(field.advancedProps || {}),
+      dictType: '',
+    },
+  }
+}
+
+function requiresDictConfig(component = null) {
+  if (!component)
+    return false
+  return DICT_COMPONENT_TYPES.has(normalizeRuntimeComponentType(component.componentKey))
+}
+
+function requiresReferenceConfig(component = null) {
+  if (!component)
+    return false
+  return normalizeRuntimeComponentType(component.componentKey) === 'objectReference'
+}
+
+function isUnconfiguredDictField(field = {}) {
+  const dictType = field.dictType || field.basicProps?.dictType || field.advancedProps?.dictType
+  return isDictField(field) && !String(dictType || '').trim()
+}
+
+function isUnconfiguredReferenceField(field = {}) {
+  const referenceObjectCode = field.referenceObjectCode || field.basicProps?.referenceObjectCode
+  const referenceDisplayField = field.referenceDisplayField || field.basicProps?.referenceDisplayField
+  return isReferenceField(field)
+    && (!String(referenceObjectCode || '').trim() || !String(referenceDisplayField || '').trim())
+}
+
+function isDictField(field = {}) {
+  const fieldType = String(field.fieldType || field.businessFieldType || '').toUpperCase()
+  const componentType = normalizeRuntimeComponentType(field.componentType)
+  return DICT_FIELD_TYPES.has(fieldType) || DICT_COMPONENT_TYPES.has(componentType)
+}
+
+function isReferenceField(field = {}) {
+  const fieldType = String(field.fieldType || field.businessFieldType || '').toUpperCase()
+  const componentType = normalizeRuntimeComponentType(field.componentType)
+  return fieldType === 'REFERENCE' || componentType === 'objectReference'
 }
 
 function resolveSchema(pageSchema, modelSchema) {

@@ -61,6 +61,17 @@
 
 ---
 
+## 追加修复：fcDesigner 参数到运行态 AiForm 同步
+
+- [x] 表单配置同步：`labelPosition/labelWidth/size/showMessage/inlineMessage/hideRequiredAsterisk/style/class` 转换为运行态 `editLabelPlacement/editLabelWidth/editSize/editShowFeedback/editFormStyle/editFormClass`。
+- [x] 组件配置同步：保留 fcDesigner `style/class/wrap` 元信息，并映射为运行态 `componentStyle/componentClass/formItemClass/formItemStyle/showLabel`。
+- [x] 校验配置同步：支持 fcDesigner `$required`、`validate`、必填提示语，生成 `required/requiredMessage/rules/trigger`。
+- [x] 运行态渲染同步：`AiCrudPage` 透传编辑表单尺寸、反馈和样式；`AiFormItem` 增加统一控制容器承接组件样式。
+- [x] 后端运行配置同步：`BusinessObjectDesignerService` 和 `LowcodeRuntimeConfigBuilder` 都补齐同一套字段映射。
+- [x] 验证：前端目标文件 eslint 通过；`mvn -pl forge-admin-server -am compile -DskipTests` 通过；`pnpm --dir forge-admin-ui build` 通过（仅保留项目既有 UnoCSS 图标、CSS 注释和 chunk 警告）。
+
+---
+
 ## Phase 0：产品基线
 
 ### Task 0: 业务对象设计器产品基线确认
@@ -800,3 +811,38 @@ source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm --dir forge-admin-ui build
 **回填结果**:
 - 已记录 `BusinessFieldPropertyPanel.vue` 空字段防护、长 ID 字符串传递、CRM 样板关系字段方向修复和 Task 24-26 验证结果。
 - 当前变更可进入 `/review lowcode-business-object-designer`。
+
+---
+
+## Phase 6：表单优先易用性增量修正
+
+### Task 28: 字段和对象编码自动推理
+
+**目标**: 用户输入中文字段名或对象名时，系统自动生成可维护的英文编码和数据库列/表模型编码，避免 `field_xxx` 这类随机字段污染表结构。
+
+**实现要点**:
+- 新增前端 `namingUtils.js`，按常见业务中文词推理 lowerCamel 字段编码和 lower_snake 对象/模型编码。
+- 新增后端 `BusinessNamingService`，保证手动字段创建、对象创建和后端兜底逻辑一致。
+- 新增字段弹窗根据“字段名称”自动填充“字段英文名”，用户手动修改后不再覆盖。
+- 新建业务对象根据“对象名称”自动填充 lower_snake 对象编码，并创建 `suite_object` 风格的 `modelCode` 用于运行态表名。
+- 后端对象更新保留既有对象编码和模型编码，避免历史 CRM 等大写对象编码被更新操作意外改写。
+
+**状态**: 已完成。
+
+### Task 29: fcDesigner 字典配置入口和表单配置优先
+
+**目标**: 表单设计器中下拉、单选、多选、字典选择组件都能直接选择系统字典类型，并在保存时以表单设计配置覆盖字段资产。
+
+**实现要点**:
+- fcDesigner 属性面板为 `select`、`radio`、`checkbox` 和业务字典组件追加“系统字典”配置项，选项来自 `/system/dict/type/list`，支持直接输入新字典类型。
+- 表单预览时根据组件 `props.dictType` 拉取真实字典项，替换静态占位选项。
+- form-create 转 Forge Schema 时保留原生 `select/radio/checkbox` 组件类型，不再把带 `dictType` 的普通选择器强制改成 `dictSelect`。
+- 保存表单时，字段资产的 `fieldType/dataType/componentType/queryType/dictType/reference*` 以当前表单组件为准同步。
+- 后端保存草稿时再次按 FormDesignerSchema 归一化字段，防止绕过前端时字段资产和表单配置不一致。
+
+**状态**: 已完成。
+
+**验证结果**:
+- `source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm --dir forge-admin-ui exec eslint ...` 目标文件 lint 通过。
+- `JAVA_HOME=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jdk/Contents/Home PATH=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jdk/Contents/Home/bin:$PATH mvn -pl forge-admin-server -am compile -DskipTests` 通过。
+- `source ~/.nvm/nvm.sh && nvm use v20.19.0 && NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build` 通过；仍有项目既有 UnoCSS 图标缺失、CSS `//` 注释和大 chunk 警告。

@@ -33,6 +33,7 @@ public class BusinessObjectService extends ServiceImpl<BusinessObjectMapper, AiB
 
     private final BusinessSuiteService suiteService;
     private final BusinessAppMapper businessAppMapper;
+    private final BusinessNamingService businessNamingService;
 
     public Page<BusinessObjectVO> page(Integer pageNum, Integer pageSize, BusinessObjectQueryDTO query) {
         Page<BusinessObjectVO> page = new Page<>(normalizePageNum(pageNum), normalizePageSize(pageSize));
@@ -182,8 +183,11 @@ public class BusinessObjectService extends ServiceImpl<BusinessObjectMapper, AiB
 
     private void copyDtoToEntity(BusinessObjectDTO dto, AiBusinessObject object, boolean create) {
         String suiteCode = StringUtils.trimToNull(dto.getSuiteCode());
-        String objectCode = StringUtils.trimToNull(dto.getObjectCode());
         String objectName = StringUtils.trimToNull(dto.getObjectName());
+        String rawObjectCode = StringUtils.trimToNull(dto.getObjectCode());
+        String objectCode = create
+                ? businessNamingService.normalizeObjectCode(rawObjectCode, objectName)
+                : StringUtils.defaultIfBlank(rawObjectCode, object.getObjectCode());
         String objectType = StringUtils.defaultIfBlank(dto.getObjectType(), "MASTER").toUpperCase();
         suiteService.requireByCode(suiteCode);
         if (StringUtils.isBlank(objectCode) || !CODE_PATTERN.matcher(objectCode).matches()) {
@@ -205,13 +209,24 @@ public class BusinessObjectService extends ServiceImpl<BusinessObjectMapper, AiB
         object.setObjectName(objectName);
         object.setObjectType(objectType);
         object.setModelId(dto.getModelId());
-        object.setModelCode(StringUtils.trimToNull(dto.getModelCode()));
+        object.setModelCode(resolveModelCode(dto, object, suiteCode, objectCode, create));
         object.setDisplayField(StringUtils.trimToNull(dto.getDisplayField()));
         object.setIcon(StringUtils.trimToNull(dto.getIcon()));
         object.setDescription(StringUtils.trimToNull(dto.getDescription()));
         object.setStatus(normalizeStatus(dto.getStatus()));
         object.setSortOrder(dto.getSortOrder() == null ? 0 : dto.getSortOrder());
         object.setOptions(StringUtils.trimToNull(dto.getOptions()));
+    }
+
+    private String resolveModelCode(BusinessObjectDTO dto, AiBusinessObject object, String suiteCode,
+                                    String objectCode, boolean create) {
+        if (StringUtils.isNotBlank(dto.getModelCode())) {
+            return businessNamingService.normalizeModelCode(dto.getModelCode(), objectCode);
+        }
+        if (!create && StringUtils.isNotBlank(object.getModelCode())) {
+            return object.getModelCode();
+        }
+        return businessNamingService.buildModelCode(suiteCode, objectCode);
     }
 
     private BusinessObjectQueryDTO normalizeQuery(BusinessObjectQueryDTO query) {

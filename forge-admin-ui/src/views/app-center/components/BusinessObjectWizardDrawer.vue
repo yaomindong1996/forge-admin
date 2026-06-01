@@ -36,8 +36,8 @@
             <n-form-item label="套件编码" required>
               <n-input
                 v-model:value="form.newSuiteCode"
-                placeholder="例如：CONTRACT"
-                @blur="form.newSuiteCode = normalizeCode(form.newSuiteCode)"
+                placeholder="例如：CONTRACT_MANAGEMENT"
+                @blur="form.newSuiteCode = normalizeCode(form.newSuiteCode, form.newSuiteName)"
               />
             </n-form-item>
             <n-form-item label="套件图标">
@@ -85,8 +85,8 @@
               <n-form-item-gi label="对象编码" required>
                 <n-input
                   v-model:value="form.objectCode"
-                  placeholder="例如：CUSTOMER"
-                  @blur="form.objectCode = normalizeCode(form.objectCode)"
+                  placeholder="例如：customer"
+                  @blur="form.objectCode = normalizeObjectCode(form.objectCode, form.objectName)"
                 />
               </n-form-item-gi>
               <n-form-item-gi label="对象类型" required>
@@ -143,6 +143,7 @@ import { createBusinessObject, createBusinessSuite } from '@/api/business-app'
 import DictSelect from '@/components/DictSelect.vue'
 import IconSelector from '@/components/IconSelector.vue'
 import MenuParentSelect from '@/components/lowcode-builder/shared/MenuParentSelect.vue'
+import { buildModelCode, generateObjectCode, generateSuiteCode, normalizeObjectCode, normalizeSuiteCode } from './designer/form-first/namingUtils'
 
 const props = defineProps({
   show: {
@@ -164,6 +165,8 @@ const message = useMessage()
 const currentStep = ref(1)
 const saving = ref(false)
 const form = reactive(defaultForm())
+const lastSuggestedObjectCode = ref('')
+const lastSuggestedSuiteCode = ref('')
 
 const createModes = [
   {
@@ -200,6 +203,8 @@ watch(() => props.show, (visible) => {
   if (!visible)
     return
   Object.assign(form, defaultForm())
+  lastSuggestedObjectCode.value = ''
+  lastSuggestedSuiteCode.value = ''
   currentStep.value = 1
   if (props.defaultSuiteCode) {
     form.suiteMode = 'EXISTING'
@@ -209,6 +214,34 @@ watch(() => props.show, (visible) => {
     form.suiteCode = props.suites[0].suiteCode
   }
 })
+
+watch(
+  () => form.objectName,
+  (value) => {
+    if (!String(value || '').trim())
+      return
+    const suggested = generateObjectCode(value)
+    if (!suggested)
+      return
+    if (!form.objectCode || form.objectCode === lastSuggestedObjectCode.value)
+      form.objectCode = suggested
+    lastSuggestedObjectCode.value = suggested
+  },
+)
+
+watch(
+  () => form.newSuiteName,
+  (value) => {
+    if (!String(value || '').trim())
+      return
+    const suggested = generateSuiteCode(value)
+    if (!suggested)
+      return
+    if (!form.newSuiteCode || form.newSuiteCode === lastSuggestedSuiteCode.value)
+      form.newSuiteCode = suggested
+    lastSuggestedSuiteCode.value = suggested
+  },
+)
 
 function nextStep() {
   if (!validateStep())
@@ -222,10 +255,12 @@ async function saveObject() {
   saving.value = true
   try {
     const suiteCode = await resolveSuiteCode()
+    const objectCode = normalizeObjectCode(form.objectCode, form.objectName)
     const res = await createBusinessObject({
       suiteCode,
       objectName: form.objectName.trim(),
-      objectCode: normalizeCode(form.objectCode),
+      objectCode,
+      modelCode: buildModelCode(suiteCode, objectCode),
       objectType: form.objectType,
       displayField: trimToNull(form.displayField),
       icon: trimToNull(form.icon),
@@ -237,7 +272,7 @@ async function saveObject() {
     emit('saved', {
       id: res.data,
       suiteCode,
-      objectCode: normalizeCode(form.objectCode),
+      objectCode,
       objectName: form.objectName.trim(),
       createMode: form.createMode,
       nextAction: 'OPEN_DESIGNER',
@@ -265,7 +300,7 @@ function resolveDesignerPanel(createMode) {
 async function resolveSuiteCode() {
   if (form.suiteMode === 'EXISTING')
     return form.suiteCode
-  const suiteCode = normalizeCode(form.newSuiteCode)
+  const suiteCode = normalizeCode(form.newSuiteCode, form.newSuiteName)
   await createBusinessSuite({
     suiteCode,
     suiteName: form.newSuiteName.trim(),
@@ -301,7 +336,7 @@ function validateStep() {
         message.warning('请输入套件名称')
         return false
       }
-      if (!isValidCode(form.newSuiteCode)) {
+      if (!isValidCode(form.newSuiteCode, form.newSuiteName)) {
         message.warning('套件编码需以字母开头，仅包含字母、数字和下划线')
         return false
       }
@@ -316,24 +351,24 @@ function validateStep() {
       message.warning('请输入对象名称')
       return false
     }
-    if (!isValidCode(form.objectCode)) {
-      message.warning('对象编码需以字母开头，仅包含字母、数字和下划线')
+    if (!isValidObjectCode(form.objectCode)) {
+      message.warning('对象编码需以小写字母开头，仅包含小写字母、数字和下划线，长度不超过48')
       return false
     }
   }
   return true
 }
 
-function normalizeCode(value) {
-  return String(value || '')
-    .trim()
-    .replace(/[\s-]+/g, '_')
-    .replace(/\W/g, '')
-    .toUpperCase()
+function normalizeCode(value, fallbackName = '') {
+  return normalizeSuiteCode(value, fallbackName)
 }
 
-function isValidCode(value) {
-  return /^[a-z]\w{1,63}$/i.test(normalizeCode(value))
+function isValidCode(value, fallbackName = '') {
+  return /^[a-z]\w{1,31}$/i.test(normalizeCode(value, fallbackName))
+}
+
+function isValidObjectCode(value) {
+  return /^[a-z][a-z0-9_]{1,47}$/.test(normalizeObjectCode(value, form.objectName))
 }
 
 function trimToNull(value) {

@@ -83,7 +83,11 @@
           <n-input v-model:value="createForm.fieldName" placeholder="例如：客户等级" />
         </n-form-item>
         <n-form-item label="字段英文名">
-          <n-input v-model:value="createForm.fieldCode" placeholder="例如：customerLevel，留空自动生成" />
+          <n-input
+            v-model:value="createForm.fieldCode"
+            placeholder="例如：customerLevel，留空自动生成"
+            @blur="createForm.fieldCode = normalizeFieldCode(createForm.fieldCode, createForm.fieldName)"
+          />
         </n-form-item>
         <n-form-item label="字段类型">
           <n-select v-model:value="createForm.fieldType" :options="fieldTypeOptions" filterable />
@@ -142,6 +146,7 @@ import DictTypeSelect from '@/components/lowcode-builder/shared/DictTypeSelect.v
 import BusinessFieldList from './BusinessFieldList.vue'
 import BusinessFieldPropertyPanel from './BusinessFieldPropertyPanel.vue'
 import { extractForgeSchemaFieldRefs } from './form-first/forgeToFormCreate'
+import { generateFieldCode, normalizeFieldCode } from './form-first/namingUtils'
 
 const props = defineProps({
   objectId: {
@@ -176,6 +181,7 @@ const creating = ref(false)
 const createVisible = ref(false)
 const propertyVisible = ref(false)
 const createForm = reactive(createDefaultCreateForm())
+const lastSuggestedCreateFieldCode = ref('')
 
 const fieldTypeOptions = [
   { label: '文本', value: 'TEXT' },
@@ -238,6 +244,20 @@ watch(
   { immediate: true, deep: true },
 )
 
+watch(
+  () => createForm.fieldName,
+  (value) => {
+    if (!String(value || '').trim())
+      return
+    const suggested = normalizeFieldCode(generateFieldCode(value), value)
+    if (!suggested)
+      return
+    if (!createForm.fieldCode || createForm.fieldCode === lastSuggestedCreateFieldCode.value)
+      createForm.fieldCode = suggested
+    lastSuggestedCreateFieldCode.value = suggested
+  },
+)
+
 function selectField(field) {
   const nextCode = field?.fieldCode || ''
   if (!nextCode)
@@ -294,6 +314,7 @@ function closePropertyPanel(discardChanges = false) {
 
 function openCreateModal() {
   Object.assign(createForm, createDefaultCreateForm())
+  lastSuggestedCreateFieldCode.value = ''
   createVisible.value = true
 }
 
@@ -525,7 +546,7 @@ function isDesignerField(field = {}) {
 function normalizeFieldPayload(source) {
   return {
     fieldName: source.fieldName,
-    fieldCode: source.fieldCode || '',
+    fieldCode: normalizeFieldCode(source.fieldCode, source.fieldName),
     columnName: source.columnName || '',
     fieldType: source.fieldType || 'TEXT',
     dataType: source.dataType || '',

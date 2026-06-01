@@ -25,17 +25,22 @@ const COMPONENT_BY_DRAG_TAG = Object.entries(DRAG_TAG_BY_COMPONENT).reduce((resu
 
 let fieldIndex = 0
 const installedDesigners = new WeakSet()
+const componentRuleVersions = new WeakMap()
 const previewOptionCache = new Map()
+let dictTypeOptions = []
+let dictTypeOptionsLoaded = false
+let dictTypeOptionsLoading = null
 
 export function installForgeBusinessComponents(designer) {
-  if (!designer || installedDesigners.has(designer))
+  if (!designer)
     return
-  designer.addMenu?.({ ...FORGE_BUSINESS_MENU, list: [] })
-  designer.addComponent?.(createForgeBusinessDragRules())
-  Object.entries(createForgeBusinessComponentRules()).forEach(([name, rule]) => {
-    designer.setComponentRuleConfig?.(name, rule, true)
-  })
-  installedDesigners.add(designer)
+  if (!installedDesigners.has(designer)) {
+    designer.addMenu?.({ ...FORGE_BUSINESS_MENU, list: [] })
+    designer.addComponent?.(createForgeBusinessDragRules())
+    installedDesigners.add(designer)
+  }
+  installForgeBusinessComponentRules(designer)
+  loadDictTypeOptions().then(() => installForgeBusinessComponentRules(designer))
 }
 
 export function resolveDesignerDragTag(componentKey) {
@@ -160,7 +165,7 @@ function createForgeBusinessDragRules() {
 function createForgeBusinessComponentRules() {
   return {
     [DRAG_TAG_BY_COMPONENT.dictSelect]: () => [
-      inputRule('dictType', '字典类型', '例如：sys_customer_level'),
+      dictTypeRule(),
       switchRule('multiple', '多选'),
       switchRule('filterable', '可搜索', true),
       switchRule('clearable', '可清空', true),
@@ -214,7 +219,26 @@ function createForgeBusinessComponentRules() {
       switchRule('inlineCreateEnabled', '允许行内新增', true),
       switchRule('showInDetail', '详情页展示', true),
     ],
+    select: () => [
+      dictTypeRule('dictType', '系统字典'),
+    ],
+    radio: () => [
+      dictTypeRule('dictType', '系统字典'),
+    ],
+    checkbox: () => [
+      dictTypeRule('dictType', '系统字典'),
+    ],
   }
+}
+
+function installForgeBusinessComponentRules(designer) {
+  const version = dictTypeOptionsLoaded ? `dict-loaded-${dictTypeOptions.length}` : 'dict-loading'
+  if (componentRuleVersions.get(designer) === version)
+    return
+  Object.entries(createForgeBusinessComponentRules()).forEach(([name, rule]) => {
+    designer.setComponentRuleConfig?.(name, rule, true)
+  })
+  componentRuleVersions.set(designer, version)
 }
 
 function createSelectDragRule({ name, label, title, componentKey, props = {}, options = [] }) {
@@ -371,19 +395,29 @@ function switchRule(field, title, value = false) {
   }
 }
 
-function selectRule(field, title, options = [], value = undefined) {
+function selectRule(field, title, options = [], value = undefined, props = {}) {
   const rule = {
     type: 'select',
     field,
     title,
     props: {
       clearable: true,
+      ...props,
     },
     options,
   }
   if (value !== undefined)
     rule.value = value
   return rule
+}
+
+function dictTypeRule(field = 'dictType', title = '字典类型') {
+  return selectRule(field, title, dictTypeOptions, undefined, {
+    filterable: true,
+    allowCreate: true,
+    defaultFirstOption: true,
+    placeholder: dictTypeOptionsLoaded ? '选择系统字典或输入新字典类型' : '正在加载系统字典，可直接输入新类型',
+  })
 }
 
 function buildForgeMeta(componentKey, overrides = {}) {
@@ -407,12 +441,14 @@ function buildForgeMeta(componentKey, overrides = {}) {
 }
 
 async function hydratePreviewRule(rule = {}) {
-  const componentKey = rule._forge?.componentKey || resolveForgeComponentKeyFromDragTag(rule._fc_drag_tag)
+  const componentKey = resolvePreviewComponentKey(rule)
   try {
-    if (componentKey === 'dictSelect') {
+    if (['dictSelect', 'select', 'radio', 'checkbox', 'cascader'].includes(componentKey)) {
       const dictType = rule.props?.dictType
-      rule.options = dictType ? await cachedPreviewOptions(`dict:${dictType}`, () => getDictData(dictType)) : []
-      return
+      if (dictType) {
+        rule.options = await cachedPreviewOptions(`dict:${dictType}`, () => getDictData(dictType))
+        return
+      }
     }
     if (componentKey === 'userSelect') {
       rule.options = await cachedPreviewOptions('system:user:page', loadUserPreviewOptions)
@@ -447,6 +483,41 @@ async function hydratePreviewRule(rule = {}) {
   catch (error) {
     console.warn(`[form-first] 加载 ${componentKey || rule.type} 预览数据失败`, error)
   }
+}
+
+function resolvePreviewComponentKey(rule = {}) {
+  const componentKey = rule._forge?.componentKey || resolveForgeComponentKeyFromDragTag(rule._fc_drag_tag)
+  if (componentKey)
+    return componentKey
+  const type = rule.type || ''
+  if (['select', 'radio', 'checkbox', 'cascader'].includes(type))
+    return type
+  return ''
+}
+
+async function loadDictTypeOptions() {
+  if (dictTypeOptionsLoaded)
+    return dictTypeOptions
+  if (dictTypeOptionsLoading)
+    return dictTypeOptionsLoading
+  dictTypeOptionsLoading = request.get('/system/dict/type/list', {
+    params: { dictStatus: 1 },
+  }).then((res) => {
+    dictTypeOptions = (Array.isArray(res?.data) ? res.data : [])
+      .filter(item => item?.dictType)
+      .map(item => ({
+        label: item.dictName ? `${item.dictName}（${item.dictType}）` : item.dictType,
+        value: item.dictType,
+      }))
+    dictTypeOptionsLoaded = true
+    return dictTypeOptions
+  }).catch((error) => {
+    console.warn('[form-first] 加载系统字典类型失败', error)
+    return dictTypeOptions
+  }).finally(() => {
+    dictTypeOptionsLoading = null
+  })
+  return dictTypeOptionsLoading
 }
 
 async function cachedPreviewOptions(key, loader) {

@@ -19,6 +19,7 @@
         ref="designerRef"
         :height="height"
         :config="designerConfig"
+        :locale="designerLocale"
         @create="queueFlush"
         @copy="queueFlush"
         @delete="queueFlush"
@@ -34,13 +35,14 @@
 
 <script setup>
 import FcDesigner from '@form-create/designer'
+import designerZhCn from '@form-create/designer/locale/zh-cn.es'
 import { computed, getCurrentInstance, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { cloneValue, installFormCreate } from '@/components/form-create/formCreateBridge'
 import { repairFormDesignerFieldRefs } from './form-first/fieldReferenceUtils'
 import { hydrateForgeBusinessPreviewRules, installForgeBusinessComponents } from './form-first/forgeBusinessComponents'
 import { forgeSchemaToFormCreate } from './form-first/forgeToFormCreate'
 import { formCreateToForgeSchema } from './form-first/formCreateToForge'
-import { createComponentFromField, createDefaultFormDesignerSchema, normalizeFormDesignerSchema } from './form-first/formDesignerSchema'
+import { applyGridColumnsToFormDesignerSchema, createComponentFromField, createDefaultFormDesignerSchema, normalizeFormDesignerSchema } from './form-first/formDesignerSchema'
 
 const props = defineProps({
   modelValue: {
@@ -76,6 +78,7 @@ const previewHydrateTimer = ref(null)
 const localSnapshot = ref('')
 let loadSeq = 0
 let destroyed = false
+const designerLocale = designerZhCn
 
 const designerConfig = {
   showAi: false,
@@ -223,10 +226,12 @@ async function refreshPreviewOptions() {
 }
 
 function resetFromFields() {
+  const gridColumns = normalizedSchema.value.layout?.gridColumns || 2
   const schema = createDefaultFormDesignerSchema({
     objectCode: props.objectCode,
     objectName: props.objectName,
     fields: props.fields,
+    gridColumns,
   })
   emit('update:modelValue', schema)
   emit('dirtyChange', true)
@@ -248,7 +253,7 @@ function appendField(field = {}) {
   if (schema.components.some(component => component.fieldBinding?.fieldCode === fieldCode))
     return
   schema.components.push(createComponentFromField(field, schema.components.length))
-  emit('update:modelValue', schema)
+  emit('update:modelValue', applyGridColumnsToFormDesignerSchema(schema, schema.layout?.gridColumns || 2))
   emit('dirtyChange', true)
   nextTick(loadDesigner)
 }
