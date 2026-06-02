@@ -18,7 +18,7 @@
       </div>
     </div>
     <div class="object-actions">
-      <n-button secondary size="small" @click.stop="emit('design', object)">
+      <n-button secondary size="small" @click.stop="emit('design', object, 'form')">
         <template #icon>
           <n-icon><BuildOutline /></n-icon>
         </template>
@@ -53,9 +53,25 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['open', 'design', 'toggle', 'delete'])
+const emit = defineEmits(['open', 'design', 'stats', 'toggle', 'delete'])
 
 const moreOptions = computed(() => [
+  {
+    label: '单据设置',
+    key: 'document',
+  },
+  {
+    label: '流程自动化',
+    key: 'automation',
+  },
+  {
+    label: '报表看板',
+    key: 'stats',
+  },
+  {
+    type: 'divider',
+    key: 'divider-capability',
+  },
   {
     label: props.object.status === 1 ? '停用对象' : '启用对象',
     key: 'toggle',
@@ -71,6 +87,14 @@ const moreOptions = computed(() => [
 ])
 
 function handleMoreSelect(key) {
+  if (key === 'document' || key === 'automation') {
+    emit('design', props.object, key)
+    return
+  }
+  if (key === 'stats') {
+    emit('stats', props.object)
+    return
+  }
   if (key === 'toggle') {
     emit('toggle', props.object)
     return

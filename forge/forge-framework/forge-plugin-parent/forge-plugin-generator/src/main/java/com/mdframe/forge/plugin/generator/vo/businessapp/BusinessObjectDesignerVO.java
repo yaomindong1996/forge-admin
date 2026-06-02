@@ -61,6 +61,8 @@ public class BusinessObjectDesignerVO {
 
     private LinkageSchemaDTO linkageSchema;
 
+    private BusinessDocumentConfigVO documentConfig;
+
     private List<BusinessFieldVO> fields = new ArrayList<>();
 
     private List<BusinessObjectRelationVO> relations = new ArrayList<>();

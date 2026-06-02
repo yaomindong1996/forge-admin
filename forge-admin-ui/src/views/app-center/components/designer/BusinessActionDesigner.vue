@@ -3,14 +3,14 @@
     <div class="action-designer-head">
       <div>
         <h3>自定义操作</h3>
-        <p>维护工具栏、行操作和详情操作，普通模式只填写业务动作，不填写接口 JSON。</p>
+        <p>维护工具栏、行操作和详情操作，普通模式只填写业务动作。</p>
       </div>
       <n-space size="small">
         <n-button size="small" secondary @click="loadActions">
           刷新
         </n-button>
-        <n-button size="small" secondary @click="addApprovalAction">
-          添加发起审批
+        <n-button size="small" secondary @click="addFlowAction">
+          添加发起流程
         </n-button>
         <n-button size="small" secondary @click="addAction('ROW')">
           新增操作
@@ -51,13 +51,13 @@
               <n-form label-placement="top" :show-feedback="false" size="small" class="action-form">
                 <n-grid :cols="3" :x-gap="12" :y-gap="4" responsive="screen">
                   <n-form-item-gi label="操作名称">
-                    <n-input v-model:value="action.actionName" placeholder="例如：发起审批" @update:value="value => updateActionName(action, value)" />
+                    <n-input v-model:value="action.actionName" placeholder="例如：发起流程" @update:value="value => updateActionName(action, value)" />
                   </n-form-item-gi>
                   <n-form-item-gi label="操作位置">
                     <n-select v-model:value="action.actionPosition" :options="positionOptions" @update:value="markDirty" />
                   </n-form-item-gi>
                   <n-form-item-gi label="操作类型">
-                    <n-select v-model:value="action.actionType" :options="actionTypeOptions" @update:value="markDirty" />
+                    <n-select v-model:value="action.actionType" :options="actionTypeOptions" @update:value="value => updateActionType(action, value)" />
                   </n-form-item-gi>
                   <n-form-item-gi label="权限标识">
                     <n-input v-model:value="action.permission" placeholder="例如：ai:businessObject:publish" @update:value="markDirty" />
@@ -81,9 +81,46 @@
                   <n-form-item-gi v-if="action.actionType === 'OPEN_PAGE'" :span="3" label="目标页面">
                     <n-input v-model:value="action.actionConfig.targetPath" placeholder="例如：/app-center/object/CUSTOMER" @update:value="markDirty" />
                   </n-form-item-gi>
-                  <n-form-item-gi v-else-if="action.actionType === 'START_APPROVAL'" :span="3" label="流程标识">
-                    <n-input v-model:value="action.actionConfig.flowKey" placeholder="选择流程前可先填写流程编码" @update:value="markDirty" />
-                  </n-form-item-gi>
+                  <template v-else-if="action.actionType === 'START_FLOW'">
+                    <n-form-item-gi label="流程模型">
+                      <n-select
+                        v-model:value="action.actionConfig.flowModelKey"
+                        :options="flowModelOptions"
+                        :loading="flowModelsLoading"
+                        clearable
+                        filterable
+                        placeholder="选择已发布流程"
+                        @update:value="value => updateFlowModel(action, value)"
+                      />
+                    </n-form-item-gi>
+                    <n-form-item-gi :span="2" label="流程标题模板">
+                      <n-input v-model:value="action.actionConfig.titleTemplate" placeholder="例如：${name}-流程" @update:value="markDirty" />
+                    </n-form-item-gi>
+                    <n-form-item-gi :span="3" label="变量映射">
+                      <div class="action-mapping-list">
+                        <div v-for="(mapping, mappingIndex) in action.actionConfig.variableMapping" :key="mapping.clientKey" class="action-mapping-row">
+                          <n-select
+                            v-model:value="mapping.formField"
+                            :options="fieldOptions"
+                            clearable
+                            filterable
+                            placeholder="单据字段"
+                            @update:value="value => updateMappingLabel(mapping, value)"
+                          />
+                          <span>→</span>
+                          <n-input v-model:value="mapping.flowVariable" placeholder="流程变量名" @update:value="markDirty" />
+                          <n-button quaternary circle size="small" @click="removeMapping(action, mappingIndex)">
+                            <template #icon>
+                              <n-icon><TrashOutline /></n-icon>
+                            </template>
+                          </n-button>
+                        </div>
+                        <n-button dashed size="small" @click="addMapping(action)">
+                          添加变量映射
+                        </n-button>
+                      </div>
+                    </n-form-item-gi>
+                  </template>
                   <n-form-item-gi v-else-if="action.actionType === 'OPEN_EXTERNAL'" :span="3" label="外部链接">
                     <n-input v-model:value="action.actionConfig.url" placeholder="https://example.com" @update:value="markDirty" />
                   </n-form-item-gi>
@@ -113,7 +150,7 @@
         </section>
         <section>
           <h4>发布关注</h4>
-          <p>自定义操作会进入发布检查摘要；发起审批类操作需要在权限流程面板完成流程挂接。</p>
+          <p>自定义操作会进入发布检查摘要；发起流程操作需要完成流程绑定和按钮权限配置。</p>
         </section>
       </aside>
     </div>
@@ -123,16 +160,21 @@
 <script setup>
 import { TrashOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
   businessObjectActions,
   saveBusinessObjectActions,
 } from '@/api/business-app'
+import flowApi from '@/api/flow'
 
 const props = defineProps({
   objectId: {
     type: [Number, String],
     default: null,
+  },
+  fields: {
+    type: Array,
+    default: () => [],
   },
 })
 
@@ -141,7 +183,9 @@ const emit = defineEmits(['updated', 'dirtyChange'])
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
+const flowModelsLoading = ref(false)
 const localActions = ref([])
+const flowModelOptions = ref([])
 
 const positionOptions = [
   { label: '工具栏', value: 'TOOLBAR' },
@@ -152,16 +196,24 @@ const positionOptions = [
 const actionTypeOptions = [
   { label: '打开页面', value: 'OPEN_PAGE' },
   { label: '调用能力', value: 'CALL_API' },
-  { label: '发起审批', value: 'START_APPROVAL' },
+  { label: '发起流程', value: 'START_FLOW' },
   { label: '执行触发器', value: 'TRIGGER' },
   { label: '打开外部链接', value: 'OPEN_EXTERNAL' },
 ]
 
+const fieldOptions = computed(() => props.fields
+  .filter(field => fieldCode(field) && !isInactiveField(field))
+  .map(field => ({
+    label: `${field.fieldName || field.label || fieldCode(field)}（${fieldCode(field)}）`,
+    value: fieldCode(field),
+  })))
 const actionStats = computed(() => positionOptions.map(item => ({
   position: item.value,
   label: item.label,
   count: localActions.value.filter(action => action.actionPosition === item.value && action.status !== 0).length,
 })))
+
+onMounted(loadFlowModels)
 
 watch(() => props.objectId, () => {
   loadActions()
@@ -183,6 +235,24 @@ async function loadActions() {
   }
 }
 
+async function loadFlowModels() {
+  flowModelsLoading.value = true
+  try {
+    const res = await flowApi.getModelList({ status: 1 })
+    flowModelOptions.value = (res.data || []).map(model => ({
+      label: `${model.modelName || model.name || model.modelKey || model.key}（${model.modelKey || model.key}）`,
+      value: model.modelKey || model.key,
+      modelName: model.modelName || model.name || model.modelKey || model.key,
+    })).filter(item => item.value)
+  }
+  catch {
+    flowModelOptions.value = []
+  }
+  finally {
+    flowModelsLoading.value = false
+  }
+}
+
 function addAction(position = 'ROW') {
   localActions.value.push(normalizeAction({
     actionCode: `custom_${Date.now()}`,
@@ -197,18 +267,18 @@ function addAction(position = 'ROW') {
   emit('dirtyChange', true)
 }
 
-function addApprovalAction() {
+function addFlowAction() {
   localActions.value.push(normalizeAction({
-    actionCode: `start_approval_${Date.now()}`,
-    actionName: '发起审批',
+    actionCode: `start_flow_${Date.now()}`,
+    actionName: '发起流程',
     actionPosition: 'ROW',
-    actionType: 'START_APPROVAL',
+    actionType: 'START_FLOW',
     confirmRequired: true,
-    successMessage: '审批已发起',
-    failureMessage: '审批发起失败',
+    successMessage: '流程已发起',
+    failureMessage: '流程发起失败',
     status: 1,
     sortOrder: localActions.value.length * 10 + 10,
-    actionConfig: {},
+    actionConfig: { variableMapping: [] },
   }))
   emit('dirtyChange', true)
 }
@@ -258,7 +328,7 @@ function normalizeAction(action = {}) {
     failureMessage: action.failureMessage || '',
     status: action.status ?? 1,
     sortOrder: action.sortOrder ?? 0,
-    actionConfig: action.actionConfig || {},
+    actionConfig: normalizeActionConfig(action.actionType, action.actionConfig),
   }
 }
 
@@ -274,7 +344,7 @@ function toActionPayload(action = {}) {
     failureMessage: action.failureMessage,
     status: action.status ?? 1,
     sortOrder: action.sortOrder ?? 0,
-    actionConfig: action.actionConfig || {},
+    actionConfig: normalizeActionConfigForPayload(action.actionType, action.actionConfig),
   }
 }
 
@@ -288,7 +358,105 @@ function normalizeActionType(value) {
     .replace(/([a-z])([A-Z])/g, '$1_$2')
     .replace('-', '_')
     .toUpperCase()
+  if (normalized === 'START_APPROVAL')
+    return 'START_FLOW'
   return actionTypeOptions.some(item => item.value === normalized) ? normalized : 'OPEN_PAGE'
+}
+
+function normalizeActionConfig(actionType, config = {}) {
+  const source = typeof config === 'string' ? safeParseJson(config) : { ...(config || {}) }
+  if (normalizeActionType(actionType) !== 'START_FLOW')
+    return source
+  return {
+    ...source,
+    flowModelKey: source.flowModelKey || source.flowKey || '',
+    flowModelName: source.flowModelName || '',
+    titleTemplate: source.titleTemplate || '',
+    variableMapping: normalizeVariableMapping(source.variableMapping || []),
+  }
+}
+
+function normalizeActionConfigForPayload(actionType, config = {}) {
+  const source = normalizeActionConfig(actionType, config)
+  if (normalizeActionType(actionType) !== 'START_FLOW')
+    return source
+  return {
+    ...source,
+    variableMapping: (source.variableMapping || [])
+      .map(item => ({
+        formField: item.formField || '',
+        flowVariable: item.flowVariable || '',
+        label: item.label || fieldLabel(item.formField),
+      }))
+      .filter(item => item.formField && item.flowVariable),
+  }
+}
+
+function updateActionType(action, value) {
+  action.actionType = normalizeActionType(value)
+  action.actionConfig = normalizeActionConfig(action.actionType, action.actionConfig)
+  markDirty()
+}
+
+function normalizeVariableMapping(list = []) {
+  return (list || []).map(item => ({
+    clientKey: item.clientKey || `mapping_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    formField: item.formField || item.field || null,
+    flowVariable: item.flowVariable || item.variable || '',
+    label: item.label || fieldLabel(item.formField || item.field),
+  })).filter(item => item.formField || item.flowVariable)
+}
+
+function updateFlowModel(action, value) {
+  const model = flowModelOptions.value.find(item => item.value === value)
+  action.actionConfig.flowModelName = model?.modelName || ''
+  markDirty()
+}
+
+function addMapping(action) {
+  if (!Array.isArray(action.actionConfig.variableMapping))
+    action.actionConfig.variableMapping = []
+  action.actionConfig.variableMapping.push({
+    clientKey: `mapping_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    formField: null,
+    flowVariable: '',
+    label: '',
+  })
+  markDirty()
+}
+
+function removeMapping(action, index) {
+  action.actionConfig.variableMapping.splice(index, 1)
+  markDirty()
+}
+
+function updateMappingLabel(mapping, value) {
+  mapping.label = fieldLabel(value)
+  markDirty()
+}
+
+function fieldLabel(code) {
+  if (!code)
+    return ''
+  return fieldOptions.value.find(item => item.value === code)?.label || code
+}
+
+function fieldCode(field = {}) {
+  return field.fieldCode || field.field || ''
+}
+
+function isInactiveField(field = {}) {
+  const status = String(field.fieldStatus || '').toUpperCase()
+  return status === 'DISABLED' || status === 'HIDDEN'
+}
+
+function safeParseJson(value) {
+  try {
+    return JSON.parse(value || '{}')
+  }
+  catch {
+    return {}
+  }
 }
 
 function normalizeActionCode(value) {
@@ -426,6 +594,25 @@ defineExpose({
   font-size: 18px;
 }
 
+.action-mapping-list {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.action-mapping-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 24px minmax(180px, 1fr) 32px;
+  gap: 8px;
+  align-items: center;
+}
+
+.action-mapping-row span {
+  color: #64748b;
+  font-size: 12px;
+  text-align: center;
+}
+
 @media (max-width: 1100px) {
   .action-designer-body {
     grid-template-columns: 1fr;
@@ -434,6 +621,10 @@ defineExpose({
   .action-summary-pane {
     border-left: 0;
     border-top: 1px solid #e5e7eb;
+  }
+
+  .action-mapping-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

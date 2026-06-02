@@ -13,7 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 业务审批运行接口。
+ * 业务审批运行兼容接口。
+ * <p>
+ * 新页面应使用 /ai/business/flow，旧审批入口仅转发到流程运行服务。
  */
 @Slf4j
 @RestController

@@ -185,7 +185,7 @@ const mountTargetOptions = [
   {
     label: '外部接口',
     value: 'API',
-    description: '给其它系统调用或集成中心使用。',
+    description: '登记 API、Webhook 或外部系统调用资源。',
   },
 ]
 const entryModeMeta = {
@@ -199,7 +199,7 @@ const entryModeMeta = {
     title: '内部路由',
     description: '打开系统内已经存在的 Vue 路由，适合跳转到已开发好的管理页面。',
     urlLabel: '内部路由',
-    urlPlaceholder: '例如：/app-center/mobile 或 /system/user',
+    urlPlaceholder: '例如：/app-center/stats 或 /system/user',
   },
   IFRAME: {
     title: '内嵌页面',
@@ -223,7 +223,7 @@ const entryModeMeta = {
     title: '接口入口',
     description: '不直接打开页面，用于登记 API、Webhook 或外部系统集成资源。',
     urlLabel: '接口说明地址',
-    urlPlaceholder: '/app-center/integration',
+    urlPlaceholder: '例如：api://crm.customer.webhook',
   },
 }
 
@@ -261,7 +261,7 @@ const objectPlaceholder = computed(() => {
 const mobileSceneOptions = [
   { label: 'H5 入口', value: 'h5' },
   { label: '移动待办', value: 'todo' },
-  { label: '移动审批', value: 'approval' },
+  { label: '移动流程待办', value: 'approval' },
   { label: '移动业务', value: 'business' },
 ]
 const visibleScopeOptions = [
@@ -292,14 +292,14 @@ watch(() => props.show, (visible) => {
 watch(() => form.mountTarget, () => {
   normalizeEntryModeForMount()
   form.appType = resolveAppType()
-  if (isIntegrationApp.value && !form.entryUrl)
-    form.entryUrl = '/app-center/integration'
+  if (isIntegrationApp.value && form.entryUrl === '/app-center/integration')
+    form.entryUrl = ''
 })
 
 watch(() => form.entryMode, () => {
   form.appType = resolveAppType()
-  if (form.entryMode === 'API' && !form.entryUrl)
-    form.entryUrl = '/app-center/integration'
+  if (form.entryMode === 'API' && form.entryUrl === '/app-center/integration')
+    form.entryUrl = ''
 })
 
 async function loadObjects() {

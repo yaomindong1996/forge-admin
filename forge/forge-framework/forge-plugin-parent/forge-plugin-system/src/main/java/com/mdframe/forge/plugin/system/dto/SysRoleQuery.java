@@ -32,4 +32,9 @@ public class SysRoleQuery extends PageQuery {
      * 角色状态（0-禁用，1-正常）
      */
     private Integer roleStatus;
+
+    /**
+     * 角色类型（1-管理角色，2-业务角色，3-审批角色，4-数据角色）
+     */
+    private Integer roleType;
 }

@@ -117,6 +117,7 @@ public class BusinessObjectDesignerService {
     private final LowcodeModelSchemaNormalizer schemaNormalizer;
     private final LowcodeSchemaValidator schemaValidator;
     private final BusinessFieldSchemaService fieldSchemaService;
+    private final BusinessDocumentConfigService documentConfigService;
 
     public BusinessObjectDesignerVO getDesigner(Long objectId) {
         DesignerContext context = loadContext(objectId);
@@ -149,6 +150,7 @@ public class BusinessObjectDesignerService {
                 context.getPageSchema(), designerOptions));
         vo.setViewSchema(resolveViewSchema(context.getModelSchema(), context.getPageSchema(), designerOptions));
         vo.setLinkageSchema(resolveLinkageSchema(designerOptions));
+        vo.setDocumentConfig(documentConfigService.getConfig(object.getId()));
         return vo;
     }
 

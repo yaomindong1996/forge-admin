@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessMessageChannelMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessMessageChannel">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="channel_code" property="channelCode"/>
+        <result column="channel_name" property="channelName"/>
+        <result column="channel_type" property="channelType"/>
+        <result column="channel_config_ref" property="channelConfigRef"/>
+        <result column="webhook_url" property="webhookUrl"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="options" property="options"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id,
+        tenant_id,
+        channel_code,
+        channel_name,
+        channel_type,
+        channel_config_ref,
+        webhook_url,
+        description,
+        status,
+        sort_order,
+        options,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <select id="selectByChannelCode" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_message_channel
+        WHERE tenant_id = #{tenantId}
+          AND channel_code = #{channelCode}
+        LIMIT 1
+    </select>
+
+    <select id="selectUserIdsByRoleIds" resultType="java.lang.Long">
+        SELECT DISTINCT user_id
+        FROM sys_user_role
+        WHERE tenant_id = #{tenantId}
+          AND role_id IN
+        <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
+            #{roleId}
+        </foreach>
+    </select>
+
+    <select id="selectUserIdsByOrgIds" resultType="java.lang.Long">
+        SELECT DISTINCT user_id
+        FROM sys_user_org
+        WHERE tenant_id = #{tenantId}
+          AND org_id IN
+        <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
+            #{orgId}
+        </foreach>
+    </select>
+</mapper>

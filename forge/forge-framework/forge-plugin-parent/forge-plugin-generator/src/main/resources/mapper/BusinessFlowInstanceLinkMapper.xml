@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessFlowInstanceLinkMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessFlowInstanceLink">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="object_code" property="objectCode"/>
+        <result column="record_id" property="recordId"/>
+        <result column="business_key" property="businessKey"/>
+        <result column="flow_model_key" property="flowModelKey"/>
+        <result column="process_instance_id" property="processInstanceId"/>
+        <result column="flow_status" property="flowStatus"/>
+        <result column="start_user_id" property="startUserId"/>
+        <result column="start_time" property="startTime"/>
+        <result column="end_time" property="endTime"/>
+        <result column="result" property="result"/>
+        <result column="variables_snapshot" property="variablesSnapshot"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id,
+        tenant_id,
+        object_code,
+        record_id,
+        business_key,
+        flow_model_key,
+        process_instance_id,
+        flow_status,
+        start_user_id,
+        start_time,
+        end_time,
+        result,
+        variables_snapshot,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <select id="selectLatestByBusinessKey" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_flow_instance_link
+        WHERE tenant_id = #{tenantId}
+          AND business_key = #{businessKey}
+        ORDER BY start_time DESC, create_time DESC, id DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectRunningByBusinessKey" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_flow_instance_link
+        WHERE tenant_id = #{tenantId}
+          AND business_key = #{businessKey}
+          AND (
+            flow_status IN ('STARTED', 'RUNNING', 'IN_PROCESS')
+            OR (end_time IS NULL AND (result IS NULL OR result = ''))
+          )
+        ORDER BY start_time DESC, create_time DESC, id DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectByProcessInstanceId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_flow_instance_link
+        WHERE tenant_id = #{tenantId}
+          AND process_instance_id = #{processInstanceId}
+        LIMIT 1
+    </select>
+
+</mapper>

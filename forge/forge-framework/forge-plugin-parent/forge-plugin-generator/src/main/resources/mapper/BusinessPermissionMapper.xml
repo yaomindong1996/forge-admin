@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessPermissionMapper">
+
+    <select id="selectExistingPermissions" resultType="java.lang.String">
+        SELECT DISTINCT perms
+        FROM sys_resource
+        WHERE tenant_id = #{tenantId}
+          AND resource_type IN (3, 4)
+          AND perms IS NOT NULL
+          AND perms != ''
+          AND perms IN
+        <foreach collection="permissions" item="permission" open="(" separator="," close=")">
+            #{permission}
+        </foreach>
+    </select>
+</mapper>

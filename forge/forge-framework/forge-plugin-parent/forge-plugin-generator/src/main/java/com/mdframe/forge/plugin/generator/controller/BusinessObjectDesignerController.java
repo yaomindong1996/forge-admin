@@ -13,11 +13,13 @@ import com.mdframe.forge.plugin.generator.service.businessapp.BusinessObjectActi
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessObjectDesignVersionService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessObjectDesignerService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessObjectPublishService;
+import com.mdframe.forge.plugin.generator.service.businessapp.BusinessPermissionService;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessFieldVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessLayoutVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectActionVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectDesignVersionVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectDesignerVO;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessPermissionSummaryVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessPublishCheckVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessReadinessItemVO;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
@@ -55,6 +57,7 @@ public class BusinessObjectDesignerController {
     private final BusinessObjectActionService actionService;
     private final BusinessObjectPublishService publishService;
     private final BusinessObjectDesignVersionService designVersionService;
+    private final BusinessPermissionService permissionService;
 
     @GetMapping("/{objectId}/designer")
     @SaCheckPermission("ai:businessObject:design")
@@ -176,6 +179,13 @@ public class BusinessObjectDesignerController {
     @OperationLog(module = "业务对象权限", type = OperationType.QUERY, desc = "查询业务对象权限摘要")
     public RespInfo<BusinessReadinessItemVO> permissionSummary(@PathVariable Long objectId) {
         return RespInfo.success(actionService.permissionSummary(objectId));
+    }
+
+    @GetMapping("/{objectId}/permission-actions")
+    @SaCheckPermission("ai:businessObject:design")
+    @OperationLog(module = "业务对象权限", type = OperationType.QUERY, desc = "查询业务对象动作权限摘要")
+    public RespInfo<BusinessPermissionSummaryVO> permissionActions(@PathVariable Long objectId) {
+        return RespInfo.success(permissionService.documentActionSummary(objectId));
     }
 
     @GetMapping("/{objectId}/publish-check")

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessStatsMapper">
+
+    <select id="selectOverview" resultType="java.util.Map">
+        SELECT
+            COUNT(*) AS total,
+            COALESCE(SUM(CASE WHEN DATE(create_time) = CURDATE() THEN 1 ELSE 0 END), 0) AS today,
+            COALESCE(SUM(CASE WHEN create_time >= DATE_FORMAT(CURDATE(), '%Y-%m-01') THEN 1 ELSE 0 END), 0) AS month
+        FROM ${tableName}
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
+    </select>
+
+    <select id="selectGroupCount" resultType="java.util.Map">
+        SELECT
+            ${columnName} AS label,
+            COUNT(*) AS value
+        FROM ${tableName}
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
+        GROUP BY ${columnName}
+        ORDER BY value DESC
+    </select>
+
+    <select id="selectTrend" resultType="java.util.Map">
+        SELECT
+        <choose>
+            <when test="period == 'week'">
+                DATE_FORMAT(create_time, '%Y-%u')
+            </when>
+            <when test="period == 'month'">
+                DATE_FORMAT(create_time, '%Y-%m')
+            </when>
+            <otherwise>
+                DATE(create_time)
+            </otherwise>
+        </choose>
+            AS label,
+            COUNT(*) AS value
+        FROM ${tableName}
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
+          AND create_time >= DATE_SUB(CURDATE(), INTERVAL #{days} DAY)
+        GROUP BY label
+        ORDER BY label ASC
+    </select>
+
+    <select id="selectSum" resultType="java.lang.Long">
+        SELECT COALESCE(SUM(${columnName}), 0)
+        FROM ${tableName}
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
+    </select>
+
+    <select id="selectFlowResultDistribution" resultType="java.util.Map">
+        SELECT
+            COALESCE(result, flow_status, 'UNKNOWN') AS label,
+            COUNT(*) AS value
+        FROM ai_business_flow_instance_link
+        WHERE tenant_id = #{tenantId}
+          AND object_code = #{objectCode}
+        GROUP BY COALESCE(result, flow_status, 'UNKNOWN')
+        ORDER BY value DESC
+    </select>
+</mapper>

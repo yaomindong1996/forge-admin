@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessDocumentConfigMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessDocumentConfig">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="object_id" property="objectId"/>
+        <result column="suite_code" property="suiteCode"/>
+        <result column="object_code" property="objectCode"/>
+        <result column="config_key" property="configKey"/>
+        <result column="document_name" property="documentName"/>
+        <result column="document_no_rule" property="documentNoRule"/>
+        <result column="document_enabled" property="documentEnabled"/>
+        <result column="status_field" property="statusField"/>
+        <result column="starter_field" property="starterField"/>
+        <result column="owner_field" property="ownerField"/>
+        <result column="default_flow_key" property="defaultFlowKey"/>
+        <result column="status_mapping" property="statusMapping"/>
+        <result column="options" property="options"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id,
+        tenant_id,
+        object_id,
+        suite_code,
+        object_code,
+        config_key,
+        document_name,
+        document_no_rule,
+        document_enabled,
+        status_field,
+        starter_field,
+        owner_field,
+        default_flow_key,
+        status_mapping,
+        options,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <select id="selectByObjectCode" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_document_config
+        WHERE tenant_id = #{tenantId}
+          AND object_code = #{objectCode}
+        LIMIT 1
+    </select>
+
+    <select id="selectByObjectId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_document_config
+        WHERE tenant_id = #{tenantId}
+          AND object_id = #{objectId}
+        LIMIT 1
+    </select>
+
+</mapper>

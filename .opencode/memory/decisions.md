@@ -27,3 +27,11 @@ Forge 的 AI Agent 角色提示词必须优先配置在 `ai_agent.system_prompt`
 首期不从零自研完整表单画布，优先复用系统已集成的 `fcDesigner` / form-create 能力。`fcDesigner` 负责拖拽画布、组件排序、基础属性编辑和预览，Forge 负责业务组件适配、字段绑定、FormDesignerSchema、ViewSchema、LinkageSchema、发布检查和运行态编译。
 
 form-create rule/options 只作为设计器可编辑表示，不能成为 Forge 运行时唯一事实来源。保存和发布必须通过 Forge Adapter 转换为 `FormDesignerSchema + FieldRegistry + ViewSchema + LinkageSchema`，发布运行态继续编译到 `AiCrudPage`、`AiForm`、`DynamicCrudController` 和 `LowcodeRuntimeConfigBuilder`。
+
+## 4. 审批场景统一归入 Flowable 流程引擎
+
+**记录日期**: 2026-06-02
+
+低代码应用不再建设独立“审批引擎”。审批是业务单据绑定 Flowable 流程后的使用场景，发起、待办、结果回写、消息通知和触发器联动都围绕流程实例完成。
+
+内置示例和 seed 数据必须部署真实 Flowable 流程定义，不能用模拟审批实例 ID 代替。业务对象的流程绑定和自动触发器需要显式维护业务字段到流程变量的映射，确保 BPMN 节点表达式需要的变量在启动时已经存在。

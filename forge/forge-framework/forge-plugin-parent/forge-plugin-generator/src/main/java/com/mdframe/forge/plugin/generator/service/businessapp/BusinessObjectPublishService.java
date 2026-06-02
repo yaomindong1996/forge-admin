@@ -20,7 +20,9 @@ import com.mdframe.forge.plugin.generator.service.lowcode.LowcodePublishService;
 import com.mdframe.forge.plugin.generator.service.lowcode.LowcodeRuntimeConfigBuilder;
 import com.mdframe.forge.plugin.generator.service.lowcode.LowcodeSchemaValidator;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectDesignVersionVO;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessDocumentConfigVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectRelationVO;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessPermissionSummaryVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessPublishCheckItemVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessPublishCheckVO;
 import com.mdframe.forge.plugin.generator.vo.lowcode.LowcodeDdlPreviewVO;
@@ -59,6 +61,8 @@ public class BusinessObjectPublishService {
     private final LowcodeDdlService ddlService;
     private final AiCrudConfigMapper crudConfigMapper;
     private final BusinessObjectMapper businessObjectMapper;
+    private final BusinessDocumentConfigService documentConfigService;
+    private final BusinessPermissionService permissionService;
     private final ObjectMapper objectMapper;
 
     public BusinessPublishCheckVO publishCheck(Long objectId) {
@@ -72,6 +76,8 @@ public class BusinessObjectPublishService {
         checkRelations(context, items);
         checkLinkage(context, items);
         checkRuntimeConfig(context, items);
+        checkDocumentConfig(context, items);
+        checkPermissionSummary(context, items);
         checkTable(context.getModelSchema(), items);
         return buildResult(items);
     }
@@ -523,6 +529,48 @@ public class BusinessObjectPublishService {
         }
     }
 
+    private void checkDocumentConfig(BusinessObjectDesignerService.DesignerContext context,
+                                     List<BusinessPublishCheckItemVO> items) {
+        BusinessDocumentConfigVO config = documentConfigService.getConfig(context.getObject().getId());
+        if (!Boolean.TRUE.equals(config.getDocumentEnabled())) {
+            add(items, "DOCUMENT_DISABLED", "DOCUMENT", BusinessPublishCheckLevel.PASS,
+                    "单据模式未启用", "当前对象按普通 CRUD 发布", null, null,
+                    null, null, "flow", 350);
+            return;
+        }
+        Set<String> fields = collectDocumentFields(context.getModelSchema());
+        if (StringUtils.isBlank(config.getStatusField())) {
+            add(items, "DOCUMENT_STATUS_EMPTY", "DOCUMENT", BusinessPublishCheckLevel.BLOCK,
+                    "单据状态字段为空", "启用单据模式后必须配置状态字段", null, null,
+                    "CONFIG_DOCUMENT", "配置单据", "flow", 351);
+        } else if (!fields.contains(config.getStatusField())) {
+            add(items, "DOCUMENT_STATUS_MISSING", "DOCUMENT", BusinessPublishCheckLevel.BLOCK,
+                    "单据状态字段不存在", "状态字段不存在: " + config.getStatusField(), config.getStatusField(), null,
+                    "CONFIG_DOCUMENT", "配置单据", "flow", 352);
+        }
+        if (StringUtils.isNotBlank(config.getStarterField()) && !fields.contains(config.getStarterField())) {
+            add(items, "DOCUMENT_STARTER_MISSING", "DOCUMENT", BusinessPublishCheckLevel.BLOCK,
+                    "单据发起人字段不存在", "发起人字段不存在: " + config.getStarterField(), config.getStarterField(), null,
+                    "CONFIG_DOCUMENT", "配置单据", "flow", 353);
+        }
+        if (StringUtils.isNotBlank(config.getOwnerField()) && !fields.contains(config.getOwnerField())) {
+            add(items, "DOCUMENT_OWNER_MISSING", "DOCUMENT", BusinessPublishCheckLevel.BLOCK,
+                    "单据负责人字段不存在", "负责人字段不存在: " + config.getOwnerField(), config.getOwnerField(), null,
+                    "CONFIG_DOCUMENT", "配置单据", "flow", 354);
+        }
+        if (StringUtils.isBlank(config.getDefaultFlowKey())) {
+            add(items, "DOCUMENT_FLOW_EMPTY", "DOCUMENT", BusinessPublishCheckLevel.WARN,
+                    "默认流程未配置", "单据可保存，但运行态发起流程前需要先配置默认流程", null, null,
+                    "CONFIG_FLOW", "配置流程", "flow", 355);
+        }
+        if (items.stream().noneMatch(item -> "DOCUMENT".equals(item.getCategory())
+                && !BusinessPublishCheckLevel.PASS.equals(item.getLevel()))) {
+            add(items, "DOCUMENT_PASS", "DOCUMENT", BusinessPublishCheckLevel.PASS,
+                    "单据检查通过", "单据状态字段和流程配置满足发布要求", null, null,
+                    null, null, "flow", 359);
+        }
+    }
+
     private void checkTable(LowcodeModelSchema modelSchema, List<BusinessPublishCheckItemVO> items) {
         if (modelSchema == null || StringUtils.isBlank(modelSchema.getTableName())) {
             add(items, "TABLE_NAME_EMPTY", "TABLE", BusinessPublishCheckLevel.BLOCK,
@@ -572,6 +620,24 @@ public class BusinessObjectPublishService {
                     "数据表检查未完成", "当前环境无法完成数据表检查: " + e.getMessage(), null, null,
                     "CHECK_DATABASE", "检查数据库", "advanced", 430);
         }
+    }
+
+    private void checkPermissionSummary(BusinessObjectDesignerService.DesignerContext context,
+                                        List<BusinessPublishCheckItemVO> items) {
+        BusinessPermissionSummaryVO summary = permissionService.documentActionSummary(context.getObject().getId());
+        List<String> missingRequired = summary.getActionPermissions().stream()
+                .filter(item -> Boolean.TRUE.equals(item.getRequired()) && !Boolean.TRUE.equals(item.getConfigured()))
+                .map(BusinessPermissionSummaryVO.ActionPermissionVO::getActionName)
+                .toList();
+        if (!missingRequired.isEmpty()) {
+            add(items, "PERMISSION_ACTION_MISSING", "PERMISSION", BusinessPublishCheckLevel.WARN,
+                    "关键按钮权限未配置", "缺少动作权限资源: " + String.join("、", missingRequired),
+                    null, null, "CONFIG_PERMISSION", "配置权限", "permission", 360);
+            return;
+        }
+        add(items, "PERMISSION_ACTION_PASS", "PERMISSION", BusinessPublishCheckLevel.PASS,
+                "按钮权限检查通过", "保存、提交、流程、触发器和报表动作权限已有摘要", null, null,
+                null, null, "permission", 369);
     }
 
     private BusinessPublishCheckVO buildResult(List<BusinessPublishCheckItemVO> items) {
@@ -851,6 +917,41 @@ public class BusinessObjectPublishService {
             }
         }
         return fields;
+    }
+
+    private Set<String> collectDocumentFields(LowcodeModelSchema modelSchema) {
+        Set<String> fields = new LinkedHashSet<>(collectFields(modelSchema));
+        fields.addAll(Set.of("id", "tenantId", "tenant_id", "createBy", "create_by", "createTime", "create_time",
+                "createDept", "create_dept", "updateBy", "update_by", "updateTime", "update_time"));
+        if (modelSchema != null && modelSchema.getFields() != null) {
+            for (LowcodeFieldSchema field : modelSchema.getFields()) {
+                if (field == null) {
+                    continue;
+                }
+                if (StringUtils.isNotBlank(field.getColumnName())) {
+                    fields.add(field.getColumnName());
+                    fields.add(snakeToCamel(field.getColumnName()));
+                }
+            }
+        }
+        return fields;
+    }
+
+    private String snakeToCamel(String value) {
+        if (StringUtils.isBlank(value) || !value.contains("_")) {
+            return value;
+        }
+        StringBuilder result = new StringBuilder();
+        boolean upperNext = false;
+        for (char ch : value.toCharArray()) {
+            if (ch == '_') {
+                upperNext = true;
+                continue;
+            }
+            result.append(upperNext ? Character.toUpperCase(ch) : ch);
+            upperNext = false;
+        }
+        return result.toString();
     }
 
     private Set<String> collectPageFields(LowcodeModelSchema modelSchema, LowcodePageSchema pageSchema) {

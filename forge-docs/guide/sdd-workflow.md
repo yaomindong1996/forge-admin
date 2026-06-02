@@ -134,6 +134,7 @@ Spec 文档包含 13 个章节：
 **规则**：
 - 测试必须先 Red（失败），再 Green（通过）
 - 确保测试能真正验证业务逻辑
+- 默认遵循 `code-copilot/rules/automated-testing-standard.md`，先读取已有 `test-spec.md` 和 `execution-log.md`，按本轮代码差异做增量验证，不重复从零开始规划。
 
 ---
 

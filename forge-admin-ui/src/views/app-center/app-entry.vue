@@ -61,7 +61,8 @@ async function openAppEntry() {
     return
   }
   if (info.openType === 'API') {
-    router.replace('/app-center/integration')
+    loading.value = false
+    message.value = 'API 类型入口已保留为接口能力，不再跳转独立集成中心'
     return
   }
   router.replace(info.targetUrl)

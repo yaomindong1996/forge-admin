@@ -31,8 +31,8 @@ public class BusinessEngineSummaryService {
 
         List<BusinessEngineSummaryVO> result = new ArrayList<>();
 
-        // 审批引擎
-        result.add(buildEngineSummary(tenantId, "APPROVAL", "审批引擎", "ionicons5:CheckmarkDoneOutline"));
+        // 流程引擎
+        result.add(buildEngineSummary(tenantId, "FLOW", "流程引擎", "ionicons5:GitBranchOutline"));
 
         // 报表引擎
         result.add(buildEngineSummary(tenantId, "REPORT", "报表引擎", "ionicons5:BarChartOutline"));
@@ -45,9 +45,6 @@ public class BusinessEngineSummaryService {
 
         // 触发器引擎
         result.add(buildEngineSummary(tenantId, "TRIGGER", "触发器引擎", "ionicons5:FlashOutline"));
-
-        // 导入导出引擎
-        result.add(buildEngineSummary(tenantId, "IMPORT_EXPORT", "导入导出", "ionicons5:SwapHorizontalOutline"));
 
         return result;
     }

@@ -1369,3 +1369,32 @@ fcDesigner / form-create 会给布局 rule 生成 `ref_...` 临时 `id/name/titl
 - 新建对象时可以根据中文对象名推理 lower_snake `objectCode`，并生成 `suite_object` 风格 `modelCode`。
 - 更新对象时保留原有 `objectCode/modelCode`，除非请求明确传入新值。
 - 如果要迁移历史对象编码，必须走单独数据修复脚本，并同步关系、应用入口、权限和菜单引用。
+
+## 41. Flyway 会扫描注释和字符串中的占位符
+
+**发现日期**: 2026-06-02
+
+**问题描述**:
+Flyway 执行 SQL 脚本时会处理 `${...}` 占位符，即使它出现在 SQL 字符串或注释里也可能触发 placeholder 解析。低代码 seed 脚本中如果把消息模板、流程标题模板写成 `${field}`，会被 Flyway 当成配置占位符，导致迁移失败。
+
+**解决方案**:
+Flyway 脚本中的内置模板优先使用 `{field}` 这类不触发 Flyway placeholder 的格式；运行时模板引擎可以兼容 `{field}` 和历史 `${field}`。如果必须保留 `${...}`，需要明确关闭或转义 Flyway placeholder，但项目 seed 脚本默认不走这条路。
+
+**影响范围**:
+- `forge/db/migration/` 中所有包含 JSON、消息模板、流程标题模板的 SQL 脚本
+- 触发器动作配置、消息模板、流程变量标题模板初始化脚本
+
+## 42. Flowable 节点表达式变量必须由低代码映射提供
+
+**发现日期**: 2026-06-02
+
+**问题描述**:
+低代码单据发起 Flowable 流程时，只部署流程定义不够。BPMN 中用户任务 assignee/candidate 表达式引用的变量也必须从业务单据映射到流程变量，否则流程可以启动但任务创建时无法正确分配处理人，或启动阶段因表达式缺变量失败。
+
+**解决方案**:
+seed 流程绑定和触发器 `START_FLOW` 动作时，需要对照已部署 BPMN 的 JUEL 表达式补齐变量映射。例如 `leave_multi` 需要提供 `deptManager`，CRM 商机样板用 `createBy -> deptManager` 作为默认部门经理变量映射。
+
+**影响范围**:
+- `ai_business_binding` 中 `binding_type=FLOW` 的变量映射
+- `ai_business_trigger` 中 `START_FLOW` 动作配置
+- 所有使用 Flowable 表达式分配审批人的低代码单据流程

@@ -1,9 +1,10 @@
 package com.mdframe.forge.plugin.generator.service.businessapp;
 
-import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessBinding;
-import com.mdframe.forge.plugin.generator.mapper.BusinessBindingMapper;
+import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessFlowStartDTO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApprovalRuntimeVO;
-import com.mdframe.forge.starter.core.session.SessionHelper;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessDocumentRuntimeVO;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessFlowBindingVO;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessFlowRuntimeVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -17,7 +18,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class BusinessApprovalRuntimeService {
 
-    private final BusinessBindingMapper bindingMapper;
+    private final BusinessFlowService flowService;
+    private final BusinessDocumentRuntimeService documentRuntimeService;
 
     /**
      * 查询审批运行状态
@@ -27,58 +29,46 @@ public class BusinessApprovalRuntimeService {
      * @return 审批运行状态
      */
     public BusinessApprovalRuntimeVO getApprovalRuntime(String targetCode, Long recordId) {
-        Long tenantId = resolveTenantId();
-
         BusinessApprovalRuntimeVO vo = new BusinessApprovalRuntimeVO();
         vo.setTargetCode(targetCode);
         vo.setRecordId(recordId);
 
-        // 查询审批能力挂接
-        AiBusinessBinding approvalBinding = bindingMapper.selectBindingByTypeAndCode(
-                tenantId, "OBJECT", targetCode, "APPROVAL");
-
-        if (approvalBinding == null) {
+        BusinessDocumentRuntimeVO runtime = documentRuntimeService.getRuntime(targetCode, recordId);
+        BusinessFlowBindingVO binding = flowService.getFlowBinding(targetCode);
+        if (!Boolean.TRUE.equals(runtime.getDocumentEnabled())) {
             vo.setHasFlow(false);
             vo.setCanStart(false);
             vo.setApprovalStatus("NONE");
             vo.setApprovalStatusLabel("未配置");
-            vo.setMessage("审批能力未配置，请先配置审批流程");
-            vo.setNextAction("CONFIGURE_APPROVAL");
-            vo.setNextActionLabel("配置审批流程");
-            return vo;
-        }
-
-        vo.setHasFlow(true);
-        vo.setFlowDefinitionName(approvalBinding.getBindingName());
-
-        // 检查是否有流程配置
-        String flowKey = approvalBinding.getBindingKey();
-        if (StringUtils.isBlank(flowKey)) {
-            vo.setCanStart(false);
-            vo.setApprovalStatus("NONE");
-            vo.setApprovalStatusLabel("未配置流程");
-            vo.setMessage("审批流程未配置，请先配置流程");
+            vo.setMessage(StringUtils.defaultIfBlank(runtime.getMessage(), "当前对象未启用单据模式"));
             vo.setNextAction("CONFIGURE_FLOW");
             vo.setNextActionLabel("配置流程");
             return vo;
         }
 
-        // 检查是否有记录 ID
-        if (recordId == null) {
+        vo.setHasFlow((binding != null && StringUtils.isNotBlank(binding.getFlowModelKey()))
+                || !"CONFIG_FLOW".equals(runtime.getNextAction()));
+        if (binding != null) {
+            vo.setFlowDefinitionId(binding.getFlowModelKey());
+            vo.setFlowDefinitionName(StringUtils.defaultIfBlank(binding.getFlowModelName(), binding.getFlowModelKey()));
+        }
+        if (StringUtils.isNotBlank(runtime.getProcessInstanceId())) {
             vo.setCanStart(false);
-            vo.setApprovalStatus("NONE");
-            vo.setApprovalStatusLabel("无记录");
-            vo.setMessage("请先保存记录后再发起审批");
+            vo.setApprovalStatus(toApprovalStatus(runtime));
+            vo.setApprovalStatusLabel(toApprovalStatusLabel(vo.getApprovalStatus()));
+            vo.setMessage(runtime.getMessage());
+            vo.setNextAction("VIEW_FLOW");
+            vo.setNextActionLabel("查看流程");
             return vo;
         }
 
-        // 可以发起审批
-        vo.setCanStart(true);
+        boolean canStart = runtime.getAvailableActions() != null && runtime.getAvailableActions().contains("START_FLOW");
+        vo.setCanStart(canStart);
         vo.setApprovalStatus("NONE");
-        vo.setApprovalStatusLabel("可发起");
-        vo.setMessage("可以发起审批");
-        vo.setNextAction("START_APPROVAL");
-        vo.setNextActionLabel("发起审批");
+        vo.setApprovalStatusLabel(canStart ? "可发起" : "不可发起");
+        vo.setMessage(runtime.getMessage());
+        vo.setNextAction(canStart ? "START_FLOW" : runtime.getNextAction());
+        vo.setNextActionLabel(canStart ? "发起流程" : "配置流程");
 
         return vo;
     }
@@ -91,31 +81,35 @@ public class BusinessApprovalRuntimeService {
      * @return 审批流程实例 ID
      */
     public Long startApproval(String targetCode, Long recordId) {
-        Long tenantId = resolveTenantId();
-
-        // 查询审批能力挂接
-        AiBusinessBinding approvalBinding = bindingMapper.selectBindingByTypeAndCode(
-                tenantId, "OBJECT", targetCode, "APPROVAL");
-
-        if (approvalBinding == null || StringUtils.isBlank(approvalBinding.getBindingKey())) {
-            return null;
-        }
-
-        // 这里应该调用流程引擎服务发起审批
-        // 暂时返回模拟的流程实例 ID
-        // TODO: 集成 Flowable 流程引擎
-        log.info("发起审批: targetCode={}, recordId={}, flowKey={}", targetCode, recordId, approvalBinding.getBindingKey());
-
-        return recordId;
+        BusinessFlowStartDTO dto = new BusinessFlowStartDTO();
+        dto.setObjectCode(targetCode);
+        dto.setRecordId(recordId);
+        BusinessFlowRuntimeVO runtime = flowService.startDocumentFlowForCompatibility(dto);
+        log.info("审批兼容入口已转发到流程服务: targetCode={}, recordId={}, processInstanceId={}",
+                targetCode, recordId, runtime.getProcessInstanceId());
+        return runtime.getLinkId();
     }
 
-    private Long resolveTenantId() {
-        Long tenantId;
-        try {
-            tenantId = SessionHelper.getTenantId();
-        } catch (Exception e) {
-            tenantId = null;
+    private String toApprovalStatus(BusinessDocumentRuntimeVO runtime) {
+        if ("APPROVED".equalsIgnoreCase(runtime.getFlowStatus()) || "APPROVED".equalsIgnoreCase(runtime.getDocumentStatus())) {
+            return "APPROVED";
         }
-        return tenantId != null ? tenantId : 1L;
+        if ("REJECTED".equalsIgnoreCase(runtime.getFlowStatus()) || "REJECTED".equalsIgnoreCase(runtime.getDocumentStatus())) {
+            return "REJECTED";
+        }
+        if ("CANCELED".equalsIgnoreCase(runtime.getFlowStatus()) || "CANCELED".equalsIgnoreCase(runtime.getDocumentStatus())) {
+            return "CANCELED";
+        }
+        return "PENDING";
+    }
+
+    private String toApprovalStatusLabel(String status) {
+        return switch (status) {
+            case "APPROVED" -> "已通过";
+            case "REJECTED" -> "已驳回";
+            case "CANCELED" -> "已撤回";
+            case "PENDING" -> "审批中";
+            default -> "未发起";
+        };
     }
 }

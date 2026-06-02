@@ -5,7 +5,7 @@ import java.util.Map;
 public class MessageTemplateEngine {
     
     /**
-     * 简单模板替换：将 ${key} 替换为 params 中的值
+     * 简单模板替换：兼容 ${key} 与 {key}。
      */
     public String render(String template, Map<String, Object> params) {
         if (template == null || template.isEmpty() || params == null || params.isEmpty()) {
@@ -15,7 +15,9 @@ public class MessageTemplateEngine {
         for (Map.Entry<String, Object> e : params.entrySet()) {
             String key = e.getKey();
             Object val = e.getValue();
-            result = result.replace("${" + key + "}", val == null ? "" : String.valueOf(val));
+            String text = val == null ? "" : String.valueOf(val);
+            result = result.replace("${" + key + "}", text)
+                    .replace("{" + key + "}", text);
         }
         return result;
     }

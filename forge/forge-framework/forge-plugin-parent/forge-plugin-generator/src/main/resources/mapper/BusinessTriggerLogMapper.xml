@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessTriggerLogMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessTriggerLog">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="trigger_id" property="triggerId"/>
+        <result column="trigger_name" property="triggerName"/>
+        <result column="suite_code" property="suiteCode"/>
+        <result column="object_code" property="objectCode"/>
+        <result column="record_id" property="recordId"/>
+        <result column="event_type" property="eventType"/>
+        <result column="event_data" property="eventData"/>
+        <result column="action_type" property="actionType"/>
+        <result column="action_result" property="actionResult"/>
+        <result column="execute_status" property="executeStatus"/>
+        <result column="error_message" property="errorMessage"/>
+        <result column="todo_code" property="todoCode"/>
+        <result column="correlation_id" property="correlationId"/>
+        <result column="execute_time" property="executeTime"/>
+        <result column="duration_ms" property="durationMs"/>
+        <result column="retry_count" property="retryCount"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id,
+        tenant_id,
+        trigger_id,
+        trigger_name,
+        suite_code,
+        object_code,
+        record_id,
+        event_type,
+        event_data,
+        action_type,
+        action_result,
+        execute_status,
+        error_message,
+        todo_code,
+        correlation_id,
+        execute_time,
+        duration_ms,
+        retry_count,
+        create_time
+    </sql>
+
+    <select id="selectTriggerLogPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_trigger_log
+        WHERE tenant_id = #{tenantId}
+        <if test="triggerId != null">
+          AND trigger_id = #{triggerId}
+        </if>
+        ORDER BY execute_time DESC, id DESC
+    </select>
+
+</mapper>

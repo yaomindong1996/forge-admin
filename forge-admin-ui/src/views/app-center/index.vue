@@ -10,19 +10,7 @@
           <template #icon>
             <n-icon><HardwareChipOutline /></n-icon>
           </template>
-          引擎中心
-        </n-button>
-        <n-button secondary @click="router.push('/app-center/mobile')">
-          <template #icon>
-            <n-icon><PhonePortraitOutline /></n-icon>
-          </template>
-          移动端
-        </n-button>
-        <n-button secondary @click="router.push('/app-center/integration')">
-          <template #icon>
-            <n-icon><GitNetworkOutline /></n-icon>
-          </template>
-          集成
+          底座能力
         </n-button>
         <n-button type="primary" @click="openSuiteEditor(null)">
           <template #icon>
@@ -174,6 +162,7 @@
                     :object="object"
                     @open="openObject"
                     @design="openObjectDesigner"
+                    @stats="openObjectStats"
                     @toggle="toggleObject"
                     @delete="deleteObject"
                   />
@@ -261,11 +250,9 @@ import {
   AlbumsOutline,
   CreateOutline,
   CubeOutline,
-  GitNetworkOutline,
   GridOutline,
   HardwareChipOutline,
   OpenOutline,
-  PhonePortraitOutline,
   RefreshOutline,
 } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
@@ -503,10 +490,23 @@ async function openApp(app) {
     return
   }
   if (info.openType === 'API') {
-    router.push('/app-center/integration')
+    message.info('API 类型入口已保留为接口能力，不再跳转独立集成中心')
     return
   }
   router.push(info.targetUrl)
+}
+
+function openObjectStats(object) {
+  const query = {
+    suiteCode: object?.suiteCode || suiteCode.value || undefined,
+    objectCode: object?.objectCode || undefined,
+  }
+  if (object?.configKey)
+    query.configKey = object.configKey
+  router.push({
+    path: '/app-center/stats',
+    query,
+  })
 }
 
 async function toggleApp(app) {

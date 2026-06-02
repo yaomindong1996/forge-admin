@@ -136,10 +136,31 @@
       @dirty-change="handleDirtyChange"
     />
 
+    <BusinessDocumentPanel
+      v-else-if="activePanel === 'document'"
+      ref="documentPanelRef"
+      :object-id="objectId"
+      :object-name="draft.objectName"
+      :fields="draft.fields"
+      :initial-config="draft.documentConfig"
+      @saved="loadDesigner"
+      @dirty-change="handleDirtyChange"
+    />
+
+    <BusinessFlowBindingPanel
+      v-else-if="activePanel === 'automation'"
+      ref="flowBindingPanelRef"
+      :object-code="draft.objectCode"
+      :fields="draft.fields"
+      @saved="loadDesigner"
+      @dirty-change="handleDirtyChange"
+    />
+
     <BusinessActionDesigner
       v-else-if="activePanel === 'actions'"
       ref="actionDesignerRef"
       :object-id="objectId"
+      :fields="draft.fields"
       @updated="handleActionsUpdated"
       @dirty-change="handleDirtyChange"
     />
@@ -194,7 +215,9 @@ import { useTabStore, useUserStore } from '@/store'
 import BusinessActionDesigner from './components/designer/BusinessActionDesigner.vue'
 import BusinessAdvancedConfig from './components/designer/BusinessAdvancedConfig.vue'
 import BusinessDetailDesigner from './components/designer/BusinessDetailDesigner.vue'
+import BusinessDocumentPanel from './components/designer/BusinessDocumentPanel.vue'
 import BusinessFieldManager from './components/designer/BusinessFieldManager.vue'
+import BusinessFlowBindingPanel from './components/designer/BusinessFlowBindingPanel.vue'
 import BusinessFormDesigner from './components/designer/BusinessFormDesigner.vue'
 import BusinessListDesigner from './components/designer/BusinessListDesigner.vue'
 import BusinessObjectDesignerShell from './components/designer/BusinessObjectDesignerShell.vue'
@@ -253,6 +276,8 @@ const formDesignerRef = ref(null)
 const listDesignerRef = ref(null)
 const detailDesignerRef = ref(null)
 const relationDesignerRef = ref(null)
+const documentPanelRef = ref(null)
+const flowBindingPanelRef = ref(null)
 const actionDesignerRef = ref(null)
 const permissionFlowRef = ref(null)
 const publishChecklistRef = ref(null)
@@ -286,6 +311,8 @@ const fieldOptions = computed(() => {
 
 function resolveInitialPanel() {
   const panel = props.embedded ? props.initialPanel : route.query.panel
+  if (panel === 'flow')
+    return 'automation'
   return panel === 'detail' ? 'form' : panel || 'form'
 }
 
@@ -416,6 +443,16 @@ async function handleSave() {
   }
   if (activePanel.value === 'relations') {
     await relationDesignerRef.value?.saveRelations?.()
+    await loadDesigner()
+    return
+  }
+  if (activePanel.value === 'document') {
+    await documentPanelRef.value?.saveConfig?.()
+    await loadDesigner()
+    return
+  }
+  if (activePanel.value === 'automation') {
+    await flowBindingPanelRef.value?.saveConfig?.()
     await loadDesigner()
     return
   }
@@ -576,6 +613,7 @@ function handlePublishCheckUpdated(check) {
 }
 
 function handleFixTarget(panel) {
+  const targetPanel = panel === 'flow' ? 'automation' : panel
   if (panel === 'advanced' && !canAdvanced.value) {
     message.warning('该修复入口需要高级配置权限')
     return
@@ -585,7 +623,7 @@ function handleFixTarget(panel) {
     formDetailTab.value = 'detail'
     return
   }
-  activePanel.value = panel || 'form'
+  activePanel.value = targetPanel || 'form'
 }
 
 function openDeveloperPath(path) {
@@ -660,6 +698,7 @@ function createEmptyDraft() {
     linkageSchema: null,
     fields: [],
     relations: [],
+    documentConfig: null,
     designerOptions: {},
   }
 }
@@ -676,6 +715,7 @@ function createDraftFromDesigner(value = {}) {
     linkageSchema: cloneSchema(value?.linkageSchema || null),
     fields: cloneSchema(value?.fields || []),
     relations: cloneSchema(value?.relations || []),
+    documentConfig: cloneSchema(value?.documentConfig || null),
     designerOptions: cloneSchema(value?.designerOptions || {}),
   }
 }

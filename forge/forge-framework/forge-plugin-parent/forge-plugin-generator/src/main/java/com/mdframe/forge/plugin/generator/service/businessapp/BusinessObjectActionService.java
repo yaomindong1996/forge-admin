@@ -8,6 +8,7 @@ import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessBinding;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessObjectActionDTO;
 import com.mdframe.forge.plugin.generator.mapper.BusinessBindingMapper;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectActionVO;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessPermissionSummaryVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessReadinessItemVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
@@ -33,11 +34,13 @@ public class BusinessObjectActionService {
 
     private static final String DESIGNER_ACTIONS_KEY = "actions";
     private static final Set<String> ACTION_POSITIONS = Set.of("TOOLBAR", "ROW", "DETAIL");
-    private static final Set<String> ACTION_TYPES = Set.of("OPEN_PAGE", "CALL_API", "START_APPROVAL", "TRIGGER", "OPEN_EXTERNAL");
+    private static final Set<String> ACTION_TYPES = Set.of("OPEN_PAGE", "CALL_API", "START_FLOW", "START_APPROVAL", "TRIGGER", "OPEN_EXTERNAL");
+    private static final String PERMISSION_PATTERN = "^[A-Za-z0-9:_-]{3,128}$";
 
     private final ObjectMapper objectMapper;
     private final BusinessObjectDesignerService designerService;
     private final BusinessBindingMapper bindingMapper;
+    private final BusinessPermissionService permissionService;
 
     public List<BusinessObjectActionVO> listActions(Long objectId) {
         BusinessObjectDesignerService.DesignerContext context = designerService.loadContext(objectId);
@@ -55,15 +58,29 @@ public class BusinessObjectActionService {
 
     public BusinessReadinessItemVO permissionSummary(Long objectId) {
         BusinessObjectDesignerService.DesignerContext context = designerService.loadContext(objectId);
+        BusinessPermissionSummaryVO actionSummary = permissionService.documentActionSummary(objectId);
+        List<String> missingRequiredActions = actionSummary.getActionPermissions().stream()
+                .filter(item -> Boolean.TRUE.equals(item.getRequired()) && !Boolean.TRUE.equals(item.getConfigured()))
+                .map(BusinessPermissionSummaryVO.ActionPermissionVO::getActionName)
+                .toList();
         AiBusinessBinding permissionBinding = bindingMapper.selectBindingByTypeAndCode(
                 resolveTenantId(), "OBJECT", context.getObject().getObjectCode(), "PERMISSION");
         BusinessReadinessItemVO item = new BusinessReadinessItemVO();
         item.setItemCode("PERMISSION_SUMMARY");
         item.setItemName("对象权限");
-        if (permissionBinding == null) {
+        if (!missingRequiredActions.isEmpty()) {
             item.setStatus(BusinessReadinessStatus.MISSING);
-            item.setStatusLabel("未配置");
-            item.setMessage("对象权限尚未挂接，发布后将依赖菜单和接口默认权限");
+            item.setStatusLabel("权限缺口");
+            item.setMessage("关键单据动作权限未配置: " + String.join("、", missingRequiredActions));
+            item.setNextAction("CONFIGURE_PERMISSION");
+            item.setNextActionLabel("配置权限");
+            item.setNextActionUrl("/system/role");
+            return item;
+        }
+        if (permissionBinding == null) {
+            item.setStatus(BusinessReadinessStatus.CONFIGURED);
+            item.setStatusLabel("基础权限已就绪");
+            item.setMessage("关键单据动作权限已存在，对象权限尚未挂接，发布后将依赖菜单和接口默认权限");
             item.setNextAction("CONFIGURE_PERMISSION");
             item.setNextActionLabel("配置权限");
             item.setNextActionUrl("/system/role");
@@ -138,7 +155,7 @@ public class BusinessObjectActionService {
         vo.setActionName(actionName);
         vo.setActionPosition(position);
         vo.setActionType(type);
-        vo.setPermission(StringUtils.trimToNull(dto.getPermission()));
+        vo.setPermission(normalizePermission(dto.getPermission(), type));
         vo.setConfirmRequired(Boolean.TRUE.equals(dto.getConfirmRequired()));
         vo.setSuccessMessage(StringUtils.trimToNull(dto.getSuccessMessage()));
         vo.setFailureMessage(StringUtils.trimToNull(dto.getFailureMessage()));
@@ -227,7 +244,25 @@ public class BusinessObjectActionService {
         if (!ACTION_TYPES.contains(type)) {
             throw new BusinessException("操作类型不正确: " + actionType);
         }
+        if ("START_APPROVAL".equals(type)) {
+            return "START_FLOW";
+        }
         return type;
+    }
+
+    private String normalizePermission(String permission, String actionType) {
+        String actualPermission = StringUtils.trimToNull(permission);
+        if (StringUtils.isBlank(actualPermission)) {
+            actualPermission = switch (actionType) {
+                case "START_FLOW" -> "ai:businessFlow:start";
+                case "TRIGGER" -> "ai:businessTrigger:execute";
+                default -> null;
+            };
+        }
+        if (StringUtils.isNotBlank(actualPermission) && !actualPermission.matches(PERMISSION_PATTERN)) {
+            throw new BusinessException("权限标识格式不正确: " + actualPermission);
+        }
+        return actualPermission;
     }
 
     private String normalizeActionCode(String actionCode) {

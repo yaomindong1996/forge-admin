@@ -1,41 +1,5 @@
 <template>
   <div class="data-scope-config-page">
-    <div class="page-header">
-      <div class="header-main">
-        <div class="title-row">
-          <div class="title-icon">
-            <i class="i-material-symbols:policy-outline-rounded" />
-          </div>
-          <div>
-            <h2 class="page-title">
-              数据权限配置
-            </h2>
-            <div class="header-desc">
-              按资源与 Mapper 方法维护数据范围字段，支撑用户、组织、租户与行政区划隔离
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="scope-summary">
-        <div
-          v-for="item in summaryItems"
-          :key="item.label"
-          class="summary-item"
-        >
-          <i :class="item.icon" />
-          <div>
-            <div class="summary-label">
-              {{ item.label }}
-            </div>
-            <div class="summary-value">
-              {{ item.value }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="data-scope-content">
       <AiCrudPage
         ref="crudRef"
@@ -54,22 +18,29 @@
         add-button-text="新增配置"
         :load-detail-on-edit="true"
         :edit-grid-cols="2"
-        edit-label-placement="top"
+        edit-label-placement="left"
+        edit-label-align="left"
+        edit-label-width="110"
         edit-form-class="data-scope-edit-form"
-        modal-width="1080px"
+        modal-width="900px"
         :hide-selection="true"
         :striped="true"
-        :scroll-x="1460"
-        max-height="var(--data-scope-table-max-height)"
+        :scroll-x="1100"
         :search-grid-cols="3"
         :search-max-visible-fields="3"
         :search-y-gap="8"
         search-label-width="84"
       >
+        <template #toolbar-left>
+          <div class="page-tip">
+            <i class="i-material-symbols:info-outline" />
+            <span>配置哪些 SQL 查询需要数据权限过滤，系统会根据用户角色自动追加 WHERE 条件实现数据隔离</span>
+          </div>
+        </template>
+
         <template #form-mapperMethod="{ value: mapperValue, updateValue }">
           <ScopeColumnEditor
             :value="mapperValue"
-            title="Mapper Method"
             description="完整接口方法名，需与 XML SQL 的 mapperMethod 精确匹配"
             placeholder="com.mdframe.forge.plugin.system.mapper.SysUserMapper.selectUserPage"
             :examples="mapperExamples"
@@ -83,8 +54,7 @@
         <template #form-userIdColumn="{ value: userColumnValue, updateValue }">
           <ScopeColumnEditor
             :value="userColumnValue"
-            title="USER Scope"
-            description="本人数据范围字段，可直接填写字段名，也可使用 SQL 表达式"
+            description="简单模式填字段名，复杂模式用 <sql> 开头"
             placeholder="user_id 或 create_by"
             :examples="userColumnExamples"
             :tokens="commonSqlTokens"
@@ -96,8 +66,7 @@
         <template #form-orgIdColumn="{ value: orgColumnValue, updateValue }">
           <ScopeColumnEditor
             :value="orgColumnValue"
-            title="ORG Scope"
-            description="组织数据范围字段，支持当前组织、下级组织和自定义组织集合"
+            description="支持当前组织、下级组织和自定义组织集合"
             placeholder="org_id 或 dept_id"
             :examples="orgColumnExamples"
             :tokens="commonSqlTokens"
@@ -109,7 +78,6 @@
         <template #form-tenantIdColumn="{ value: tenantColumnValue, updateValue }">
           <ScopeColumnEditor
             :value="tenantColumnValue"
-            title="TENANT Scope"
             description="租户隔离字段，通常为 tenant_id"
             placeholder="tenant_id"
             :examples="tenantColumnExamples"
@@ -122,8 +90,7 @@
         <template #form-regionCodeColumn="{ value: regionColumnValue, updateValue }">
           <ScopeColumnEditor
             :value="regionColumnValue"
-            title="REGION Scope"
-            description="行政区划数据范围字段，支持本级、下级和祖先区划变量"
+            description="支持本级、下级和祖先区划变量"
             placeholder="region_code 或 area_code"
             :examples="regionColumnExamples"
             :tokens="regionSqlTokens"
@@ -145,24 +112,6 @@ import { request } from '@/utils'
 defineOptions({ name: 'DataScopeConfig' })
 
 const crudRef = ref(null)
-
-const summaryItems = [
-  {
-    label: '资源定位',
-    value: 'resourceCode',
-    icon: 'i-material-symbols:barcode-scanner-rounded',
-  },
-  {
-    label: 'SQL 匹配',
-    value: 'mapperMethod',
-    icon: 'i-material-symbols:account-tree-outline-rounded',
-  },
-  {
-    label: '范围字段',
-    value: 'user/org/tenant/region',
-    icon: 'i-material-symbols:rule-settings-rounded',
-  },
-]
 
 // 是否启用选项
 const enabledOptions = [
@@ -213,10 +162,6 @@ const ScopeColumnEditor = defineComponent({
     value: {
       type: [String, Number],
       default: '',
-    },
-    title: {
-      type: String,
-      required: true,
     },
     description: {
       type: String,
@@ -303,10 +248,7 @@ const ScopeColumnEditor = defineComponent({
     }
 
     return () => h('div', { class: ['scope-column-editor', `tone-${props.tone}`] }, [
-      h('div', { class: 'scope-editor-head' }, [
-        h('div', { class: 'scope-editor-title' }, props.title),
-        h('div', { class: 'scope-editor-desc' }, props.description),
-      ]),
+      props.description ? h('div', { class: 'scope-editor-desc' }, props.description) : null,
       h(NInput, {
         value: getValue(),
         type: 'textarea',
@@ -458,31 +400,31 @@ const tableColumns = computed(() => [
   {
     prop: 'resource',
     label: '资源',
-    width: 280,
+    width: 240,
     render: renderResourceCell,
   },
   {
     prop: 'mapperMethod',
     label: 'Mapper 精确匹配',
-    width: 340,
+    width: 280,
     render: renderMapperCell,
   },
   {
     prop: 'tableAlias',
     label: '表别名',
-    width: 100,
+    width: 90,
     render: renderAliasCell,
   },
   {
     prop: 'scopeFields',
     label: '权限字段',
-    width: 360,
+    width: 300,
     render: renderScopeFields,
   },
   {
     prop: 'enabled',
     label: '状态',
-    width: 90,
+    width: 80,
     render: (row) => {
       return h(
         NTag,
@@ -499,18 +441,13 @@ const tableColumns = computed(() => [
   {
     prop: 'remark',
     label: '备注',
-    width: 160,
+    width: 140,
     render: renderRemark,
-  },
-  {
-    prop: 'createTime',
-    label: '创建时间',
-    width: 180,
   },
   {
     prop: 'action',
     label: '操作',
-    width: 130,
+    width: 120,
     fixed: 'right',
     actions: [
       { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
@@ -523,7 +460,7 @@ const tableColumns = computed(() => [
 const editSchema = [
   {
     type: 'divider',
-    label: '基础信息',
+    label: '① 绑定查询接口',
     props: {
       titlePlacement: 'left',
     },
@@ -533,19 +470,20 @@ const editSchema = [
     field: 'resourceCode',
     label: '资源编码',
     type: 'input',
-    span: 2,
+    span: 1,
     rules: [{ required: true, message: '请输入资源编码', trigger: 'blur' }],
     props: {
-      placeholder: '请输入资源编码，如：system:user:list',
+      placeholder: '如 system:user:list',
     },
   },
   {
     field: 'resourceName',
     label: '资源名称',
     type: 'input',
+    span: 1,
     rules: [{ required: true, message: '请输入资源名称', trigger: 'blur' }],
     props: {
-      placeholder: '请输入资源名称',
+      placeholder: '如 用户列表查询',
     },
   },
   {
@@ -555,31 +493,25 @@ const editSchema = [
     span: 2,
     rules: [{ required: true, message: '请输入Mapper方法', trigger: 'blur' }],
     props: {
-      placeholder: '请输入Mapper方法，如：com.mdframe.forge.plugin.system.mapper.SysUserMapper.selectList',
+      placeholder: 'com.mdframe.forge...Mapper.selectXxx',
       rows: 2,
     },
-  },
-  {
-    type: 'divider',
-    label: '字段配置',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
   },
   {
     field: 'tableAlias',
     label: '主表别名',
     type: 'input',
+    span: 1,
     defaultValue: 't',
     props: {
-      placeholder: '请输入主表别名，如：t、lc、o',
+      placeholder: '如 t',
     },
   },
   {
     field: 'enabled',
     label: '是否启用',
     type: 'radioButton',
+    span: 1,
     defaultValue: 1,
     props: {
       options: enabledOptions,
@@ -587,62 +519,70 @@ const editSchema = [
     },
   },
   {
+    type: 'divider',
+    label: '② 配置过滤字段（按需填写）',
+    props: {
+      titlePlacement: 'left',
+    },
+    span: 2,
+  },
+  {
     field: 'userIdColumn',
-    label: '用户ID字段',
+    label: '用户字段',
     type: 'slot',
     span: 2,
     defaultValue: 'user_id',
     rules: [{ required: true, message: '请输入用户ID字段', trigger: 'blur' }],
     props: {
-      placeholder: '简单模式：字段名（如：user_id、create_by）\n复杂模式：<sql>开头，支持占位符#{userId}、#{tenantId}、#{orgIds}、#{customOrgIds}',
+      placeholder: 'user_id 或 create_by',
       rows: 3,
       type: 'textarea',
     },
   },
   {
     field: 'orgIdColumn',
-    label: '组织ID字段',
+    label: '组织字段',
     type: 'slot',
     span: 2,
     defaultValue: 'org_id',
     rules: [{ required: true, message: '请输入组织ID字段', trigger: 'blur' }],
     props: {
-      placeholder: '简单模式：字段名（如：org_id、dept_id）\n复杂模式：<sql>开头，支持占位符#{userId}、#{tenantId}、#{orgIds}、#{customOrgIds}',
+      placeholder: 'org_id 或 dept_id',
       rows: 3,
       type: 'textarea',
     },
   },
   {
     field: 'tenantIdColumn',
-    label: '租户ID字段',
+    label: '租户字段',
     type: 'slot',
     span: 2,
     defaultValue: 'tenant_id',
     rules: [{ required: true, message: '请输入租户ID字段', trigger: 'blur' }],
     props: {
-      placeholder: '简单模式：字段名（如：tenant_id）\n复杂模式：<sql>开头，支持占位符#{userId}、#{tenantId}、#{orgIds}、#{customOrgIds}',
+      placeholder: 'tenant_id',
       rows: 3,
       type: 'textarea',
     },
   },
   {
     field: 'regionCodeColumn',
-    label: '行政区划字段',
+    label: '区划字段',
     type: 'slot',
     span: 2,
     props: {
-      placeholder: '用于 REGION（本行政区划）数据权限\n简单模式：字段名（如：area_code、region_code）\n复杂模式：<sql>开头，支持占位符#{regionCode}、#{regionLevel}、#{regionAncestors}',
+      placeholder: 'region_code 或 area_code（选填）',
       rows: 3,
       type: 'textarea',
     },
   },
   {
     field: 'userRegionColumn',
-    label: '用户行政区划字段',
+    label: '用户区划字段',
     type: 'input',
     span: 1,
     props: {
-      placeholder: '可选，配合用户表别名做 OR 匹配（如：area_code）',
+      placeholder: '选填，如 area_code',
     },
   },
   {
@@ -651,12 +591,12 @@ const editSchema = [
     type: 'input',
     span: 1,
     props: {
-      placeholder: '可选，配合用户行政区划字段（如：u）',
+      placeholder: '选填，如 u',
     },
   },
   {
     type: 'divider',
-    label: '其他信息',
+    label: '③ 备注',
     props: {
       titlePlacement: 'left',
     },
@@ -668,8 +608,8 @@ const editSchema = [
     type: 'textarea',
     span: 2,
     props: {
-      placeholder: '请输入备注说明',
-      rows: 3,
+      placeholder: '描述该配置的用途或注意事项',
+      rows: 2,
     },
   },
 ]
@@ -706,195 +646,40 @@ function handleDelete(row) {
 
 <style scoped>
 .data-scope-config-page {
-  --data-scope-table-max-height: calc(100vh - 268px);
   height: 100%;
-  min-height: 0;
-  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  overflow: hidden;
-  background: #f6f8fb;
-  color: #0f172a;
-}
-
-.page-header {
-  flex-shrink: 0;
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 14px 18px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
-  border: 1px solid #dbe5f3;
-  border-radius: 14px;
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
-}
-
-.header-main {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.title-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: #fff;
-  font-size: 20px;
-  background: linear-gradient(135deg, #1e40af 0%, #0f766e 100%);
-  box-shadow: 0 10px 18px rgba(30, 64, 175, 0.18);
-}
-
-.page-title {
-  margin: 0;
-  color: #0f172a;
-  font-size: 18px;
-  line-height: 25px;
-  font-weight: 700;
-}
-
-.header-desc {
-  margin-top: 3px;
-  color: #64748b;
-  font-size: 13px;
-  line-height: 20px;
-}
-
-.scope-summary {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(132px, 1fr));
-  gap: 10px;
-  min-width: 480px;
-}
-
-.summary-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  background: rgba(255, 255, 255, 0.82);
-}
-
-.summary-item i {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: #1d4ed8;
-  font-size: 18px;
-  background: #eff6ff;
-}
-
-.summary-label {
-  color: #64748b;
-  font-size: 12px;
-  line-height: 16px;
-}
-
-.summary-value {
-  max-width: 160px;
-  margin-top: 2px;
-  overflow: hidden;
-  color: #0f172a;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
-  line-height: 18px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .data-scope-content {
   flex: 1;
   min-height: 0;
-  overflow: hidden;
-  padding: 12px 14px;
   background: #fff;
-  border: 1px solid #dbe5f3;
-  border-radius: 14px;
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
+  border-radius: 8px;
 }
 
 .data-scope-content :deep(.ai-crud-page) {
   height: 100%;
-  min-height: 0;
-  background: transparent;
 }
 
-.data-scope-content :deep(.ai-crud-search) {
-  padding: 0 0 8px;
-  background: transparent;
-  border-bottom: 1px solid #eef2f7;
-}
-
-.data-scope-content :deep(.ai-crud-main) {
-  min-height: 0;
-  overflow: hidden;
-  background: transparent;
-}
-
-.data-scope-content :deep(.ai-search-box) {
-  padding: 10px 12px 2px;
-}
-
-.data-scope-content :deep(.ai-table-toolbar) {
-  min-height: 42px;
-  padding: 8px 0;
-}
-
-.data-scope-content :deep(.n-data-table) {
-  border-radius: 10px;
-}
-
-.data-scope-content :deep(.n-data-table-th) {
-  background: #f8fafc !important;
-  color: #334155;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.data-scope-content :deep(.n-data-table-tr:hover .n-data-table-td) {
-  background: #f8fbff;
-}
-
+/* 表格单元格样式 */
 .resource-cell {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-width: 0;
+  gap: 4px;
 }
 
 .resource-name-line {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
+  gap: 6px;
 }
 
 .resource-name {
   overflow: hidden;
-  color: #0f172a;
-  font-size: 14px;
-  font-weight: 700;
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -905,11 +690,10 @@ function handleDelete(row) {
   display: inline-block;
   max-width: 100%;
   overflow: hidden;
-  color: #64748b;
+  color: #6b7280;
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  vertical-align: bottom;
 }
 
 .resource-code,
@@ -922,44 +706,46 @@ function handleDelete(row) {
 }
 
 .mapper-method {
-  max-width: 300px;
-  padding: 3px 7px;
-  border-radius: 6px;
-  background: #eef2ff;
-  color: #3730a3;
-  font-weight: 600;
+  max-width: 260px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #4338ca;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .alias-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 38px;
-  height: 24px;
-  padding: 0 8px;
-  border-radius: 7px;
-  background: #f1f5f9;
-  color: #334155;
+  min-width: 32px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #374151;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .alias-badge.is-empty,
 .empty-text {
-  color: #94a3b8;
+  color: #9ca3af;
 }
 
 .scope-field-tags {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
 
 .scope-field-tag {
   cursor: help;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
 }
 
 .tooltip-text {
@@ -967,325 +753,207 @@ function handleDelete(row) {
   white-space: pre-wrap;
 }
 
+/* ScopeColumnEditor 编辑器样式 */
 :global(.scope-column-editor) {
   width: 100%;
-  padding: 12px;
-  border: 1px solid #dbeafe;
-  border-radius: 10px;
-  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
-}
-
-:global(.scope-editor-head) {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-:global(.scope-editor-title) {
-  color: #1e40af;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafbfc;
 }
 
 :global(.scope-editor-desc) {
-  color: #64748b;
-  font-size: 12px;
-  line-height: 18px;
-  text-align: right;
+  margin-bottom: 6px;
+  color: #9ca3af;
+  font-size: 11px;
+  line-height: 16px;
 }
 
 :global(.scope-code-input textarea) {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 :global(.scope-editor-section) {
-  margin-top: 10px;
-  padding: 10px;
-  border: 1px solid #e2e8f0;
-  border-radius: 9px;
-  background: #f8fafc;
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fff;
 }
 
 :global(.scope-editor-section-head) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 :global(.scope-editor-section-title) {
-  display: inline-flex;
-  align-items: center;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 6px;
-  background: #e0f2fe;
-  color: #0369a1;
-  font-size: 12px;
-  font-weight: 700;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 :global(.scope-editor-section-hint) {
-  color: #94a3b8;
-  font-size: 12px;
+  color: #9ca3af;
+  font-size: 11px;
 }
 
 :global(.scope-editor-example-list) {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 4px;
 }
 
 :global(.scope-token-list) {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
 
 :global(.scope-example-row) {
   width: 100%;
-  min-height: 42px;
-  padding: 8px;
-  display: grid;
-  grid-template-columns: 82px minmax(0, 1fr);
-  align-items: start;
-  column-gap: 10px;
-  border: 1px solid #dbeafe;
-  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
   background: #fff;
-  color: #334155;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
 }
 
-:global(.scope-example-row:hover),
-:global(.scope-example-row:focus-visible) {
-  border-color: #2563eb;
-  background: #eff6ff;
-  outline: none;
+:global(.scope-example-row:hover) {
+  border-color: #6366f1;
+  background: #f5f3ff;
 }
 
 :global(.scope-token-button) {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 28px;
-  padding: 0 9px;
-  border: 1px solid #dbeafe;
-  border-radius: 7px;
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
   background: #fff;
-  color: #334155;
+  color: #374151;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
 }
 
-:global(.scope-token-button:hover),
-:global(.scope-token-button:focus-visible) {
-  border-color: #2563eb;
-  background: #eff6ff;
-  color: #1d4ed8;
-  outline: none;
+:global(.scope-token-button:hover) {
+  border-color: #6366f1;
+  background: #f5f3ff;
+  color: #4f46e5;
 }
 
 :global(.scope-example-label) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 20px;
-  width: 82px;
-  padding: 0 6px;
-  border-radius: 6px;
+  flex-shrink: 0;
+  padding: 2px 6px;
+  border-radius: 4px;
   background: #eff6ff;
-  color: #1d4ed8;
-  font-size: 12px;
+  color: #2563eb;
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
 }
 
-:global(.scope-example-code),
-:global(.scope-token-button) {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
-}
-
 :global(.scope-example-code) {
-  display: block;
-  width: 100%;
-  min-height: 26px;
-  padding: 4px 7px;
-  border: 1px solid #e2e8f0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  color: #4b5563;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 编辑器色调 */
+:global(.tone-indigo) {
+  border-left: 3px solid #4338ca;
+}
+:global(.tone-blue) {
+  border-left: 3px solid #2563eb;
+}
+:global(.tone-teal) {
+  border-left: 3px solid #0f766e;
+}
+:global(.tone-amber) {
+  border-left: 3px solid #b45309;
+}
+:global(.tone-green) {
+  border-left: 3px solid #15803d;
+}
+
+/* 页面提示 */
+.page-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
   border-radius: 6px;
-  background: #f8fafc;
-  color: #334155;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 12px;
   line-height: 18px;
-  white-space: pre-wrap;
-  word-break: break-all;
 }
 
-:global(.tone-indigo .scope-editor-title) {
-  color: #4338ca;
+.page-tip i {
+  flex-shrink: 0;
+  font-size: 14px;
 }
 
-:global(.tone-teal .scope-editor-title) {
-  color: #0f766e;
-}
-
-:global(.tone-amber .scope-editor-title) {
-  color: #b45309;
-}
-
-:global(.tone-green .scope-editor-title) {
-  color: #15803d;
-}
-
+/* 编辑表单样式 */
 :global(.data-scope-edit-form) {
-  padding: 2px 4px 14px;
+  padding: 4px 8px 12px;
+}
+
+:global(.data-scope-edit-form .n-form-item-label) {
+  text-align: left;
+  justify-content: flex-start;
 }
 
 :global(.data-scope-edit-form .n-divider) {
-  margin-top: 6px;
-  margin-bottom: 14px;
-  color: #334155;
-  font-weight: 700;
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+:global(.data-scope-edit-form .n-divider .n-divider__title) {
+  color: #374151;
+  font-weight: 600;
+  font-size: 13px;
 }
 
 :global(.data-scope-edit-form .n-form-item-label__text) {
-  color: #334155;
-  font-weight: 600;
+  color: #374151;
+  font-weight: 500;
+  font-size: 13px;
 }
 
-@media (max-width: 1180px) {
-  .page-header {
-    flex-direction: column;
-  }
-
-  .scope-summary {
-    min-width: 0;
-  }
-}
-
-@media (max-width: 768px) {
-  .data-scope-config-page {
-    --data-scope-table-max-height: calc(100vh - 198px);
-    padding: 10px;
-    gap: 10px;
-  }
-
-  .page-header,
-  .data-scope-content {
-    border-radius: 10px;
-  }
-
-  .page-header {
-    padding: 10px 12px;
-  }
-
-  .title-icon {
-    width: 32px;
-    height: 32px;
-    font-size: 17px;
-  }
-
-  .page-title {
-    font-size: 16px;
-    line-height: 22px;
-  }
-
-  .header-desc {
-    display: none;
-  }
-
-  .scope-summary {
-    display: none;
-  }
-
-  .data-scope-content {
-    padding: 10px;
-  }
-
-  :global(.scope-editor-head) {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  :global(.scope-editor-desc) {
-    text-align: left;
-  }
-
-  :global(.scope-example-row) {
-    grid-template-columns: 1fr;
-    row-gap: 6px;
-  }
-
-  :global(.scope-example-label) {
-    justify-content: flex-start;
-    width: auto;
-  }
-}
-
-@media (max-height: 720px) {
-  .data-scope-config-page {
-    --data-scope-table-max-height: calc(100vh - 190px);
-    padding: 10px 12px;
-    gap: 10px;
-  }
-
-  .page-header {
-    padding: 10px 14px;
-  }
-
-  .header-desc,
-  .scope-summary {
-    display: none;
-  }
-
-  .data-scope-content {
-    padding: 10px 12px;
-  }
-}
-
-.dark .data-scope-config-page {
-  background: #0f172a;
-  color: #e2e8f0;
-}
-
-.dark .page-header,
+/* 深色模式 */
 .dark .data-scope-content {
   background: #111827;
-  border-color: #1f2937;
-  box-shadow: none;
 }
 
-.dark .page-title,
-.dark .resource-name,
-.dark .summary-value {
-  color: #f8fafc;
+.dark .resource-name {
+  color: #f3f4f6;
 }
 
-.dark .header-desc,
-.dark .summary-label,
 .dark .resource-code,
 .dark .remark-text {
-  color: #94a3b8;
-}
-
-.dark .summary-item,
-:global(.dark .scope-column-editor),
-:global(.dark .scope-editor-section),
-:global(.dark .scope-example-row),
-:global(.dark .scope-token-button) {
-  background: #0f172a;
-  border-color: #334155;
+  color: #9ca3af;
 }
 
 .dark .mapper-method {
@@ -1294,8 +962,40 @@ function handleDelete(row) {
 }
 
 .dark .alias-badge {
-  background: #1e293b;
-  color: #cbd5e1;
+  background: #1f2937;
+  color: #d1d5db;
+}
+
+:global(.dark .scope-column-editor) {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+:global(.dark .scope-editor-section) {
+  background: #111827;
+  border-color: #374151;
+}
+
+:global(.dark .scope-example-row) {
+  background: #111827;
+  border-color: #374151;
+}
+
+:global(.dark .scope-example-row:hover) {
+  border-color: #6366f1;
+  background: #1e1b4b;
+}
+
+:global(.dark .scope-token-button) {
+  background: #111827;
+  border-color: #374151;
+  color: #d1d5db;
+}
+
+:global(.dark .scope-token-button:hover) {
+  border-color: #6366f1;
+  background: #1e1b4b;
+  color: #a5b4fc;
 }
 
 :global(.dark .scope-example-label) {
@@ -1304,8 +1004,6 @@ function handleDelete(row) {
 }
 
 :global(.dark .scope-example-code) {
-  border-color: #334155;
-  background: #111827;
-  color: #cbd5e1;
+  color: #d1d5db;
 }
 </style>

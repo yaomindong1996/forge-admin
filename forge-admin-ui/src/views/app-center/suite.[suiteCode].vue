@@ -29,9 +29,14 @@
               <h2>业务对象</h2>
               <p>优先从对象进入关系、能力和标准业务入口。</p>
             </div>
-            <n-button type="primary" @click="openObjectWizard">
-              新建对象
-            </n-button>
+            <n-space size="small">
+              <n-button secondary @click="openSuiteStats">
+                套件看板
+              </n-button>
+              <n-button type="primary" @click="openObjectWizard">
+                新建对象
+              </n-button>
+            </n-space>
           </div>
           <n-spin :show="loadingObjects">
             <div v-if="objects.length" class="object-grid">
@@ -41,6 +46,7 @@
                 :object="object"
                 @open="openObject"
                 @design="openObjectDesigner"
+                @stats="openObjectStats"
                 @toggle="toggleObject"
                 @delete="deleteObject"
               />
@@ -64,7 +70,7 @@
           <div class="section-head">
             <div>
               <h2>场景入口</h2>
-              <p>业务应用、看板、移动端和集成入口按场景展示。</p>
+              <p>业务应用、报表看板和自动化入口按场景展示。</p>
             </div>
             <n-button type="primary" @click="openEditor(null)">
               新增入口
@@ -311,10 +317,30 @@ async function openApp(app) {
     return
   }
   if (info.openType === 'API') {
-    router.push('/app-center/integration')
+    message.info('API 类型入口已保留为接口能力，不再跳转独立集成中心')
     return
   }
   router.push(info.targetUrl)
+}
+
+function openObjectStats(object) {
+  const query = {
+    suiteCode: object?.suiteCode || suiteCode.value,
+    objectCode: object?.objectCode || undefined,
+  }
+  if (object?.configKey)
+    query.configKey = object.configKey
+  router.push({
+    path: '/app-center/stats',
+    query,
+  })
+}
+
+function openSuiteStats() {
+  router.push({
+    path: '/app-center/stats',
+    query: { suiteCode: suiteCode.value },
+  })
 }
 
 async function toggleApp(app) {
@@ -381,13 +407,13 @@ function handleAcceptanceAction(action, data) {
       router.push('/app-center/engines')
       break
     case 'OPEN_MOBILE_CENTER':
-      router.push('/app-center/mobile')
+      message.info('移动能力已收敛到业务入口和运行页配置')
       break
     case 'OPEN_INTEGRATION_CENTER':
-      router.push('/app-center/integration')
+      message.info('集成能力已收敛到消息通道和触发器配置')
       break
     case 'OPEN_CHANNEL_CENTER':
-      router.push('/app-center/mobile')
+      router.push('/app-center/trigger')
       break
     default:
       break

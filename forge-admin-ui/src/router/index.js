@@ -104,6 +104,18 @@ export const manualRoutes = [
     meta: { title: '应用入口', skipTab: true },
   },
   {
+    name: 'BusinessTriggerConfig',
+    path: '/app-center/trigger',
+    component: () => import('@/views/app-center/trigger.vue'),
+    meta: { title: '触发器配置' },
+  },
+  {
+    name: 'BusinessStatsDashboard',
+    path: '/app-center/stats',
+    component: () => import('@/views/app-center/stats-dashboard.vue'),
+    meta: { title: '数据统计看板' },
+  },
+  {
     name: 'ReportSsoBridge',
     path: SSO_BRIDGE_ROUTE,
     component: () => import('@/views/report/design.vue'),

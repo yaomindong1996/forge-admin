@@ -287,6 +287,7 @@
               :data="roleUsers"
               :pagination="userPaginationConfig"
               :row-key="row => row.id"
+              remote
               striped
               size="small"
               @update:page="handleUserPageChange"
@@ -321,6 +322,7 @@ defineOptions({ name: 'SystemRole' })
 const USER_TYPE_DICT = 'sys_user_type'
 const USER_STATUS_DICT = 'sys_user_status'
 const ROLE_DATA_SCOPE_DICT = 'sys_role_data_scope'
+const ROLE_TYPE_DICT = 'sys_role_type'
 const NORMAL_DISABLE_DICT = 'sys_normal_disable'
 const YES_NO_DICT = 'sys_yes_no'
 
@@ -357,10 +359,11 @@ const userPagination = ref({
   itemCount: 0,
 })
 
-const { dict } = useDict(USER_TYPE_DICT, USER_STATUS_DICT, ROLE_DATA_SCOPE_DICT, NORMAL_DISABLE_DICT, YES_NO_DICT)
+const { dict } = useDict(USER_TYPE_DICT, USER_STATUS_DICT, ROLE_DATA_SCOPE_DICT, ROLE_TYPE_DICT, NORMAL_DISABLE_DICT, YES_NO_DICT)
 
 const userStatusOptions = computed(() => toNumberOptions(dict.value[USER_STATUS_DICT]))
 const dataScopeOptions = computed(() => toNumberOptions(dict.value[ROLE_DATA_SCOPE_DICT]))
+const roleTypeOptions = computed(() => toNumberOptions(dict.value[ROLE_TYPE_DICT]))
 const roleStatusOptions = computed(() => toNumberOptions(dict.value[NORMAL_DISABLE_DICT]))
 const yesNoOptions = computed(() => toNumberOptions(dict.value[YES_NO_DICT]))
 
@@ -494,6 +497,15 @@ const searchSchema = computed(() => [
     },
   },
   {
+    field: 'roleType',
+    label: '角色类型',
+    type: 'select',
+    props: {
+      placeholder: '请选择角色类型',
+      options: roleTypeOptions.value,
+    },
+  },
+  {
     field: 'roleStatus',
     label: '状态',
     type: 'select',
@@ -515,6 +527,14 @@ const tableColumns = computed(() => [
     prop: 'roleKey',
     label: '权限字符',
     width: 150,
+  },
+  {
+    prop: 'roleType',
+    label: '角色类型',
+    width: 120,
+    render: (row) => {
+      return h(DictTag, { dictType: ROLE_TYPE_DICT, value: row.roleType, size: 'small' })
+    },
   },
   {
     prop: 'dataScope',
@@ -582,6 +602,17 @@ const editSchema = computed(() => [
     rules: [{ required: true, message: '请输入权限字符', trigger: 'blur' }],
     props: {
       placeholder: '请输入权限字符，如：admin',
+    },
+  },
+  {
+    field: 'roleType',
+    label: '角色类型',
+    type: 'select',
+    defaultValue: 1,
+    rules: [{ required: true, type: 'number', message: '请选择角色类型', trigger: 'change' }],
+    props: {
+      placeholder: '请选择角色类型',
+      options: roleTypeOptions.value,
     },
   },
   {

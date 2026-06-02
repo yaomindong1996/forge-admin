@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessTriggerMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessTrigger">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="suite_code" property="suiteCode"/>
+        <result column="object_code" property="objectCode"/>
+        <result column="trigger_name" property="triggerName"/>
+        <result column="trigger_desc" property="triggerDesc"/>
+        <result column="trigger_type" property="triggerType"/>
+        <result column="scenario_type" property="scenarioType"/>
+        <result column="blocking_mode" property="blockingMode"/>
+        <result column="developer_mode" property="developerMode"/>
+        <result column="event_type" property="eventType"/>
+        <result column="event_condition" property="eventCondition"/>
+        <result column="action_type" property="actionType"/>
+        <result column="action_config" property="actionConfig"/>
+        <result column="status" property="status"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="execute_count" property="executeCount"/>
+        <result column="last_execute_time" property="lastExecuteTime"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id,
+        tenant_id,
+        suite_code,
+        object_code,
+        trigger_name,
+        trigger_desc,
+        trigger_type,
+        scenario_type,
+        blocking_mode,
+        developer_mode,
+        event_type,
+        event_condition,
+        action_type,
+        action_config,
+        status,
+        sort_order,
+        execute_count,
+        last_execute_time,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <select id="selectTriggerPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_trigger
+        WHERE tenant_id = #{tenantId}
+        <if test="objectCode != null and objectCode != ''">
+          AND object_code = #{objectCode}
+        </if>
+        <if test="scenarioType != null and scenarioType != ''">
+          AND scenario_type = #{scenarioType}
+        </if>
+        ORDER BY sort_order ASC, id DESC
+    </select>
+
+    <select id="selectActiveByObjectAndEvent"
+            resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_trigger
+        WHERE tenant_id = #{tenantId}
+          AND object_code = #{objectCode}
+          AND event_type = #{eventType}
+          AND status = 1
+          AND trigger_type = 'EVENT'
+        ORDER BY sort_order ASC
+    </select>
+
+</mapper>

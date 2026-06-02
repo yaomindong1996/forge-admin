@@ -43,8 +43,10 @@ code-copilot/                   # AI 辅助编码规则 & 变更管理
 | `/apply <变更名>` | 按 Spec 执行编码 |
 | `/fix <变更名>` | Review 后增量修正 |
 | `/review <变更名>` | 两阶段审查（Spec 合规 + 代码质量） |
-| `/test <变更名>` | 生成测试 |
+| `/test <变更名>` | 按自动化测试标准增量生成/执行测试 |
 | `/archive <变更名>` | 归档并沉淀知识 |
+
+> 执行 `/test`、阶段收尾验证、Review 后修复验证或归档前验收时，必须先读取 `code-copilot/rules/automated-testing-standard.md`，复用当前变更已有 `test-spec.md`、`execution-log.md`、`spec.md`、`tasks.md`，按本轮差异做增量验证；禁止每次从零开始重新规划测试流程。
 
 ### 2.2 后端
 
@@ -489,6 +491,8 @@ curl -s -X DELETE http://localhost:8580/system/user/123 \
 
 ## 7. 质量检查
 
+自动化测试与验证统一遵循 `code-copilot/rules/automated-testing-standard.md`。执行前必须先复用已有验证基线，执行后必须把命令、结果、警告、跳过项和服务清理情况追加到当前变更的 `execution-log.md`。
+
 | 检查项 | 后端命令 | 前端命令 |
 |--------|---------|---------|
 | 编译 | `cd forge && mvn clean compile` | `cd forge-admin-ui && pnpm build` |
@@ -509,9 +513,10 @@ curl -s -X DELETE http://localhost:8580/system/user/123 \
 4. **`code-copilot/rules/coding-style.md`** — 编码规范
 5. **`code-copilot/rules/domain-rules.md`** — 业务领域约束
 6. **`code-copilot/rules/security.md`** — 安全红线
-7. **`.opencode/memory/pitfalls.md`** — 踩坑记录（每次新对话必读）
-8. **`.opencode/memory/decisions.md`** — 项目决策记录
-9. **`forge-docs/guide/conventions.md`** — 完整编码规范
+7. **`code-copilot/rules/automated-testing-standard.md`** — 自动化测试与验证标准（执行 `/test` 和阶段验证时必读）
+8. **`.opencode/memory/pitfalls.md`** — 踩坑记录（每次新对话必读）
+9. **`.opencode/memory/decisions.md`** — 项目决策记录
+10. **`forge-docs/guide/conventions.md`** — 完整编码规范
 
 **优先级规则**：本文件与子文件冲突时，以本文件为准；Spec 文档与通用规则冲突时，以 Spec 为准。
 

@@ -33,6 +33,11 @@ public class SysRoleDTO implements Serializable {
     private String roleKey;
 
     /**
+     * 角色类型（1-管理角色，2-业务角色，3-审批角色，4-数据角色）
+     */
+    private Integer roleType;
+
+    /**
      * 权限范围（1-全部数据，2-本租户数据，3-本组织数据，4-本组织及子组织，5-个人数据）
      */
     private Integer dataScope;

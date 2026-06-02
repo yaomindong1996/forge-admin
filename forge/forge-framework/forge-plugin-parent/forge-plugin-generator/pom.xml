@@ -72,6 +72,20 @@
             <artifactId>forge-starter-file</artifactId>
         </dependency>
 
+        <!-- 消息插件（触发器SEND_MESSAGE动作复用） -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-plugin-message</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- 流程客户端（触发器START_FLOW动作调用） -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-flow-client</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Velocity模板引擎 -->
         <dependency>
             <groupId>org.apache.velocity</groupId>

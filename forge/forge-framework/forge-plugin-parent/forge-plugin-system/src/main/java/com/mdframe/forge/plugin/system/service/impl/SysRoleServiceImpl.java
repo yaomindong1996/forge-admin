@@ -52,6 +52,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
                 .like(StringUtils.isNotBlank(query.getRoleName()), SysRole::getRoleName, query.getRoleName())
                 .eq(StringUtils.isNotBlank(query.getRoleKey()), SysRole::getRoleKey, query.getRoleKey())
                 .eq(query.getRoleStatus() != null, SysRole::getRoleStatus, query.getRoleStatus())
+                .eq(query.getRoleType() != null, SysRole::getRoleType, query.getRoleType())
                 .orderByAsc(SysRole::getSort)
                 .orderByDesc(SysRole::getCreateTime);
 

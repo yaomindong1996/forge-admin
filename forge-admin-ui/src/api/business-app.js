@@ -247,3 +247,123 @@ export function businessObjectDesignVersions(objectId) {
 export function rollbackBusinessObjectDesignVersion(objectId, versionId) {
   return request.post(`/ai/business/object/${objectId}/versions/${versionId}/rollback`)
 }
+
+// ==================== 触发器管理 ====================
+
+export function businessTriggerPage(params) {
+  return request.get('/ai/business/trigger/page', { params })
+}
+
+export function businessTriggerDetail(id) {
+  return request.get(`/ai/business/trigger/${id}`)
+}
+
+export function createBusinessTrigger(data) {
+  return request.post('/ai/business/trigger', data)
+}
+
+export function updateBusinessTrigger(data) {
+  return request.put('/ai/business/trigger', data)
+}
+
+export function deleteBusinessTrigger(id) {
+  return request.delete(`/ai/business/trigger/${id}`)
+}
+
+export function updateBusinessTriggerStatus(id, status) {
+  return request.put(`/ai/business/trigger/${id}/status/${status}`)
+}
+
+export function businessTriggerLogs(params) {
+  return request.get('/ai/business/trigger/logs', { params })
+}
+
+export function businessTriggerScenarioTemplates() {
+  return request.get('/ai/business/trigger/scenario-templates')
+}
+
+// ==================== 单据与流程 ====================
+
+export function businessDocumentConfig(objectId) {
+  return request.get(`/ai/business/document/config/${objectId}`)
+}
+
+export function saveBusinessDocumentConfig(objectId, data) {
+  return request.put(`/ai/business/document/config/${objectId}`, data)
+}
+
+export function businessDocumentRuntime(objectCode, recordId) {
+  return request.get(`/ai/business/document/${objectCode}/${recordId}/runtime`)
+}
+
+export function businessFlowBinding(objectCode) {
+  return request.get(`/ai/business/flow/binding/${objectCode}`)
+}
+
+export function saveBusinessFlowBinding(objectCode, data) {
+  return request.put(`/ai/business/flow/binding/${objectCode}`, data)
+}
+
+export function startBusinessDocumentFlow(data) {
+  return request.post('/ai/business/flow/start', data)
+}
+
+export function businessFlowStatus(objectCode, recordId) {
+  return request.get(`/ai/business/flow/status/${objectCode}/${recordId}`)
+}
+
+// ==================== 流程集成（历史兼容） ====================
+
+export function startBusinessFlow(data) {
+  return request.post('/ai/business/trigger/flow/start', data)
+}
+
+export function getFlowBinding(objectCode) {
+  return request.get(`/ai/business/trigger/flow/binding/${objectCode}`)
+}
+
+export function saveFlowBinding(objectCode, data) {
+  return request.post(`/ai/business/trigger/flow/binding/${objectCode}`, data)
+}
+
+export function getFlowStatus(objectCode, recordId) {
+  return request.get(`/ai/business/trigger/flow/status/${objectCode}/${recordId}`)
+}
+
+// ==================== 统计接口 ====================
+
+export function businessStatsOverview(configKey) {
+  return request.get(`/ai/business/stats/${configKey}/overview`)
+}
+
+export function businessStatsGroup(configKey, field) {
+  return request.get(`/ai/business/stats/${configKey}/group`, { params: { field } })
+}
+
+export function businessStatsTrend(configKey, params) {
+  return request.get(`/ai/business/stats/${configKey}/trend`, { params })
+}
+
+export function businessStatsMetrics(configKey, params) {
+  const searchParams = new URLSearchParams()
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === '')
+      return
+    if (Array.isArray(value)) {
+      value.forEach(item => searchParams.append(key, item))
+      return
+    }
+    searchParams.append(key, value)
+  })
+  return request.get(`/ai/business/stats/${configKey}/metrics`, { params: searchParams })
+}
+
+// ==================== 权限接口 ====================
+
+export function getPermissionOverview(objectCode) {
+  return request.get(`/ai/business/trigger/permission/${objectCode}`)
+}
+
+export function businessObjectPermissionActions(objectId) {
+  return request.get(`/ai/business/object/${objectId}/permission-actions`)
+}

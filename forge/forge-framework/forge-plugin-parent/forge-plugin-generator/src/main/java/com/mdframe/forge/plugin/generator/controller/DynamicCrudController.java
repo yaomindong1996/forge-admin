@@ -8,6 +8,7 @@ import com.mdframe.forge.plugin.generator.dto.DynamicCrudImportResult;
 import com.mdframe.forge.plugin.generator.dto.DynamicCrudQuery;
 import com.mdframe.forge.plugin.generator.service.DynamicCrudExcelService;
 import com.mdframe.forge.plugin.generator.service.DynamicCrudService;
+import com.mdframe.forge.plugin.generator.service.businessapp.BusinessEventPublisher;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.domain.PageQuery;
@@ -31,6 +32,7 @@ public class DynamicCrudController {
 
     private final DynamicCrudService dynamicCrudService;
     private final DynamicCrudExcelService dynamicCrudExcelService;
+    private final BusinessEventPublisher businessEventPublisher;
 
     @ApiEncrypt
     @GetMapping("/page")
@@ -67,7 +69,9 @@ public class DynamicCrudController {
     @PostMapping
     public RespInfo<Void> create(@PathVariable String configKey,
                                   @RequestBody Map<String, Object> data) {
-        dynamicCrudService.insert(configKey, data);
+        Map<String, Object> createdData = dynamicCrudService.insert(configKey, data);
+        // 发布记录创建事件，触发器引擎异步处理
+        businessEventPublisher.publishRecordCreated(configKey, createdData != null ? createdData : data);
         return RespInfo.success();
     }
 
@@ -76,7 +80,18 @@ public class DynamicCrudController {
     @PutMapping
     public RespInfo<Void> update(@PathVariable String configKey,
                                   @RequestBody Map<String, Object> data) {
+        // 获取更新前的数据用于变更检测
+        Map<String, Object> previousData = null;
+        if (data.get("id") != null) {
+            try {
+                previousData = dynamicCrudService.selectById(configKey, Long.parseLong(String.valueOf(data.get("id"))));
+            } catch (Exception e) {
+                log.debug("获取更新前数据失败: {}", e.getMessage());
+            }
+        }
         dynamicCrudService.updateById(configKey, data);
+        // 发布记录更新事件
+        businessEventPublisher.publishRecordUpdated(configKey, data, previousData);
         return RespInfo.success();
     }
 
@@ -85,6 +100,8 @@ public class DynamicCrudController {
     public RespInfo<Void> delete(@PathVariable String configKey,
                                   @PathVariable Long id) {
         dynamicCrudService.deleteById(configKey, id);
+        // 发布记录删除事件
+        businessEventPublisher.publishRecordDeleted(configKey, String.valueOf(id));
         return RespInfo.success();
     }
 
