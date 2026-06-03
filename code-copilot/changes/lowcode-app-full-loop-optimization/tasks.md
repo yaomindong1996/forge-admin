@@ -1219,3 +1219,17 @@ cd forge-admin-ui && source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - 已补齐到期字段白名单校验、候选记录批量上限、同日 `SUCCESS/TODO` 去重、扫描时间回写和 `SCHEDULED` 兼容归一。
 - 已在前端触发器配置中补齐到期字段、提前天数、回看天数、批量大小和最小执行间隔配置。
 - 验证已完成：后端 generator/job 模块 compile 通过，前端 `pnpm build` 通过，`git diff --check` 通过；未启动后端/数据库/多实例做真实任务注册、Quartz 集群触发和扫描落库验证，已在执行日志中记录为跳过。
+
+## Phase 10：用户反馈 BUG 跟进记录
+
+**状态**: completed
+
+**本轮补充项**:
+- 修复运行态 `/ai/crud-page` 头部重复“新增”按钮：标准新增由 `AiCrudPage` 内置按钮承载，运行态自定义 toolbar action 和发布侧历史标准 CRUD action 做去重。
+- 修复主流程“已配置但仍提示请先配置”的排查链路：保存主流程时重新启用已有 `FLOW` 绑定，并在发起失败时输出绑定、运行配置、单据配置和候选 `flowModelKey` 来源日志。
+- 修复“套件作为父级目录”后入口配置未感知自动生成目录：保存 `adminMenu.actualParentId/suiteMenuResourceId`，编辑抽屉只读回显实际挂载目录。
+
+**验证结果**:
+- `git diff --check` 通过。
+- 后端 `forge-plugin-generator` 及依赖模块 compile 通过。
+- 前端 `pnpm --dir forge-admin-ui build` 通过；既有 UnoCSS 图标、CSS 注释、动态/静态导入和 chunk size 警告不阻断。

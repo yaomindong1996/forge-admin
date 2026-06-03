@@ -191,10 +191,13 @@ function normalizeRuntimePageAction(action = {}, position = 'row') {
   const key = action.key || action.actionCode || action.actionName || action.label
   if (!key)
     return null
+  const label = action.label || action.actionName || key
+  if (position === 'toolbar' && isBuiltinCreateToolbarAction(key, label, actionType, routePath))
+    return null
   return {
     ...action,
     key,
-    label: action.label || action.actionName || key,
+    label,
     type: resolveRuntimeButtonType(action, actionType),
     position: actionPosition,
     actionType,
@@ -202,6 +205,22 @@ function normalizeRuntimePageAction(action = {}, position = 'row') {
     openTarget: action.openTarget || config.openTarget || (actionType === 'external' ? '_blank' : '_self'),
     confirmText: action.confirmText || (action.confirmRequired ? `确认执行“${action.actionName || action.label || key}”？` : ''),
   }
+}
+
+function isBuiltinCreateToolbarAction(key, label, actionType, routePath) {
+  if (actionType !== 'route' || routePath)
+    return false
+  const normalizedKey = normalizeActionIdentity(key)
+  const normalizedLabel = normalizeActionIdentity(label)
+  return ['add', 'create', 'new', '新增', '新建'].includes(normalizedKey)
+    || ['add', 'create', 'new', '新增', '新建'].includes(normalizedLabel)
+}
+
+function normalizeActionIdentity(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[-_\s]+/g, '')
 }
 
 function normalizeActionPosition(value) {

@@ -229,6 +229,9 @@ public class BusinessObjectPublishService {
             String actionType = StringUtils.defaultIfBlank(text(action.get("actionType")), "OPEN_PAGE").toUpperCase();
             String position = normalizeActionPosition(action.get("actionPosition"));
             Map<String, Object> config = mapValue(action.get("actionConfig"));
+            if (isBuiltinCrudAction(position, actionCode, actionName, actionType, config)) {
+                continue;
+            }
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("key", StringUtils.defaultIfBlank(actionCode, "custom_" + result.size()));
             item.put("label", StringUtils.defaultIfBlank(actionName, "自定义操作"));
@@ -243,6 +246,35 @@ public class BusinessObjectPublishService {
             result.add(item);
         }
         return result;
+    }
+
+    private boolean isBuiltinCrudAction(String position, String actionCode, String actionName,
+                                        String actionType, Map<String, Object> config) {
+        if (!"OPEN_PAGE".equals(actionType) || StringUtils.isNotBlank(resolveActionRoutePath(actionType, config))) {
+            return false;
+        }
+        if ("toolbar".equals(position)) {
+            return matchesActionIdentity(actionCode, actionName, Set.of("add", "create", "new", "新增", "新建"));
+        }
+        if ("row".equals(position)) {
+            return matchesActionIdentity(actionCode, actionName, Set.of("edit", "detail", "delete", "addchild",
+                    "编辑", "查看详情", "详情", "删除", "添加下级"));
+        }
+        return false;
+    }
+
+    private boolean matchesActionIdentity(String actionCode, String actionName, Set<String> candidates) {
+        String code = normalizeActionIdentity(actionCode);
+        String name = normalizeActionIdentity(actionName);
+        return candidates.contains(code) || candidates.contains(name);
+    }
+
+    private String normalizeActionIdentity(String value) {
+        return StringUtils.lowerCase(StringUtils.defaultString(value))
+                .replace("-", "")
+                .replace("_", "")
+                .replace(" ", "")
+                .trim();
     }
 
     private String normalizeActionPosition(Object value) {

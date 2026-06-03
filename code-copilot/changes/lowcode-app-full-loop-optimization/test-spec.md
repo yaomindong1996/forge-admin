@@ -101,3 +101,13 @@
 | P0 | 前端生产构建 | `source ~/.nvm/nvm.sh && nvm use v20.19.0 && NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build` | 构建通过，无新增阻断错误 |
 
 本轮聚焦应用入口发布检查误报、菜单父级回显、菜单资源 ID 精度、主流程绑定读取优先级和旧审批兼容运行态。未启动后端、Flow 服务、前端 dev server 或数据库时，菜单同步落库、发布检查接口和浏览器回显验证记录为跳过。
+
+## 11. Phase 10 BUG 运行态按钮、主流程诊断和套件目录回显验证
+
+| 优先级 | 验证项 | 命令 | 期望 |
+|--------|--------|------|------|
+| P0 | 补丁空白检查 | `git diff --check` | 无 trailing whitespace / conflict marker |
+| P0 | 后端插件编译 | `JAVA_HOME=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jdk/Contents/Home PATH=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jdk/Contents/Home/bin:$PATH mvn -pl forge-framework/forge-plugin-parent/forge-plugin-generator -am compile -DskipTests` | `BUILD SUCCESS` |
+| P0 | 前端生产构建 | `source ~/.nvm/nvm.sh && nvm use v20.19.0 && NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build` | 构建通过，无新增阻断错误 |
+
+本轮聚焦 `/ai/crud-page` 头部重复“新增”按钮、主流程发起失败日志诊断和“套件作为父级目录”后的实际挂载目录回显。未启动后端、Flow 服务、前端 dev server 或数据库时，真实流程发起日志、菜单同步落库和浏览器回显验证记录为跳过。

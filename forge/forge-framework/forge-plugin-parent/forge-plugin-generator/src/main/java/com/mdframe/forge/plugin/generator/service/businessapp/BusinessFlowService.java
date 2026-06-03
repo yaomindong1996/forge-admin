@@ -178,10 +178,16 @@ public class BusinessFlowService {
                 tenantId, "OBJECT", objectCode, "FLOW");
 
         if (existing != null) {
+            existing.setTargetType("OBJECT");
+            existing.setTargetCode(objectCode);
+            existing.setBindingType("FLOW");
             existing.setBindingConfig(config.toJSONString());
             existing.setBindingKey(flowModelKey);
             existing.setBindingName(resolveBindingName(config));
+            existing.setStatus(1);
             bindingMapper.updateById(existing);
+            log.info("[低代码流程绑定] 更新主流程绑定: tenantId={}, objectCode={}, bindingId={}, flowModelKey={}",
+                    tenantId, objectCode, existing.getId(), flowModelKey);
         } else {
             AiBusinessBinding binding = new AiBusinessBinding();
             binding.setTenantId(tenantId);
@@ -194,6 +200,8 @@ public class BusinessFlowService {
             binding.setStatus(1);
             binding.setSortOrder(0);
             bindingMapper.insert(binding);
+            log.info("[低代码流程绑定] 创建主流程绑定: tenantId={}, objectCode={}, bindingId={}, flowModelKey={}",
+                    tenantId, objectCode, binding.getId(), flowModelKey);
         }
         documentConfigService.syncDefaultFlowKeyByObjectCode(tenantId, objectCode, flowModelKey);
     }
@@ -334,14 +342,33 @@ public class BusinessFlowService {
 
         AiBusinessBinding binding = selectFlowBindingForStart(tenantId, dto.getObjectCode());
         JSONObject bindingConfig = binding == null ? new JSONObject() : readBindingConfig(binding.getBindingConfig());
+        String dtoFlowModelKey = StringUtils.trimToNull(dto.getFlowModelKey());
+        String bindingConfigFlowModelKey = resolveFlowModelKey(bindingConfig);
+        String bindingKey = binding == null ? null : StringUtils.trimToNull(binding.getBindingKey());
+        String documentDefaultFlowKey = documentConfig == null ? null : StringUtils.trimToNull(documentConfig.getDefaultFlowKey());
         String flowModelKey = StringUtils.firstNonBlank(
-                StringUtils.trimToNull(dto.getFlowModelKey()),
-                resolveFlowModelKey(bindingConfig),
-                binding == null ? null : binding.getBindingKey(),
-                documentConfig == null ? null : documentConfig.getDefaultFlowKey());
+                dtoFlowModelKey,
+                bindingConfigFlowModelKey,
+                bindingKey,
+                documentDefaultFlowKey);
         if (StringUtils.isBlank(flowModelKey)) {
+            log.warn("[低代码流程启动] 主流程解析失败: tenantId={}, objectCode={}, recordId={}, checkPermission={}, " +
+                            "configKey={}, documentConfigId={}, documentEnabled={}, documentDefaultFlowKey={}, " +
+                            "runtimeConfigId={}, runtimeConfigKey={}, binding={}, dtoFlowModelKey={}, " +
+                            "bindingConfigFlowModelKey={}, bindingConfigPreview={}",
+                    tenantId, dto.getObjectCode(), dto.getRecordId(), checkPermission, configKey,
+                    documentConfig == null ? null : documentConfig.getId(),
+                    documentConfig == null ? null : documentConfig.getDocumentEnabled(),
+                    documentDefaultFlowKey,
+                    runtimeConfig == null ? null : runtimeConfig.getId(),
+                    runtimeConfig == null ? null : runtimeConfig.getConfigKey(),
+                    describeBinding(binding), dtoFlowModelKey, bindingConfigFlowModelKey, previewBindingConfig(bindingConfig));
             throw new BusinessException("请先在流程与自动化中配置主流程");
         }
+        log.info("[低代码流程启动] 主流程解析成功: tenantId={}, objectCode={}, recordId={}, configKey={}, " +
+                        "flowModelKey={}, bindingId={}, bindingType={}",
+                tenantId, dto.getObjectCode(), dto.getRecordId(), configKey, flowModelKey,
+                binding == null ? null : binding.getId(), binding == null ? null : binding.getBindingType());
 
         Map<String, Object> flowVariables = buildFlowVariables(bindingConfig, recordData);
         if (dto.getVariables() != null) {
@@ -562,7 +589,18 @@ public class BusinessFlowService {
         }
         AiBusinessBinding legacyApprovalBinding = bindingMapper.selectBindingByTypeAndCode(
                 tenantId, "OBJECT", objectCode, "APPROVAL");
-        return isBindingEnabled(legacyApprovalBinding) ? legacyApprovalBinding : null;
+        if (isBindingEnabled(legacyApprovalBinding)) {
+            log.info("[低代码流程启动] 使用历史审批绑定作为主流程: tenantId={}, objectCode={}, binding={}",
+                    tenantId, objectCode, describeBinding(legacyApprovalBinding));
+            return legacyApprovalBinding;
+        }
+        if (binding != null || legacyApprovalBinding != null) {
+            log.warn("[低代码流程启动] 未找到启用的主流程绑定: tenantId={}, objectCode={}, flowBinding={}, approvalBinding={}",
+                    tenantId, objectCode, describeBinding(binding), describeBinding(legacyApprovalBinding));
+        } else {
+            log.warn("[低代码流程启动] 未找到主流程绑定记录: tenantId={}, objectCode={}", tenantId, objectCode);
+        }
+        return null;
     }
 
     private AiBusinessBinding selectMainFlowBindingForConfig(Long tenantId, String objectCode) {
@@ -580,6 +618,26 @@ public class BusinessFlowService {
 
     private boolean isBindingEnabled(AiBusinessBinding binding) {
         return binding != null && !Integer.valueOf(0).equals(binding.getStatus());
+    }
+
+    private String describeBinding(AiBusinessBinding binding) {
+        if (binding == null) {
+            return "null";
+        }
+        return "id=" + binding.getId()
+                + ", type=" + binding.getBindingType()
+                + ", status=" + binding.getStatus()
+                + ", targetCode=" + binding.getTargetCode()
+                + ", bindingKey=" + binding.getBindingKey()
+                + ", bindingName=" + binding.getBindingName()
+                + ", configBlank=" + StringUtils.isBlank(binding.getBindingConfig());
+    }
+
+    private String previewBindingConfig(JSONObject bindingConfig) {
+        if (bindingConfig == null || bindingConfig.isEmpty()) {
+            return "{}";
+        }
+        return StringUtils.left(bindingConfig.toJSONString(), 400);
     }
 
     private BusinessFlowRuntimeVO toRuntimeVO(AiBusinessFlowInstanceLink link, String message) {

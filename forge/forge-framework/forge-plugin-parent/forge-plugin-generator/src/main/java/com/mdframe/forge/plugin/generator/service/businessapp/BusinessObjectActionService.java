@@ -187,9 +187,7 @@ public class BusinessObjectActionService {
     }
 
     private List<BusinessObjectActionVO> defaultActions() {
-        return List.of(defaultAction("add", "新增", "TOOLBAR", 10),
-                defaultAction("edit", "编辑", "ROW", 20),
-                defaultAction("delete", "删除", "ROW", 30));
+        return List.of();
     }
 
     private BusinessObjectActionVO defaultAction(String code, String name, String position, Integer sortOrder) {

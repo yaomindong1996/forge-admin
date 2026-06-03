@@ -3,7 +3,8 @@
     :value="normalizedValue"
     :options="treeData"
     :loading="loading"
-    clearable
+    :clearable="!disabled"
+    :disabled="disabled"
     filterable
     block-line
     default-expand-all
@@ -32,6 +33,10 @@ const props = defineProps({
   autoLoad: {
     type: Boolean,
     default: true,
+  },
+  disabled: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -100,6 +105,8 @@ function renderLabel({ option }) {
 }
 
 function handleUpdateValue(nextValue) {
+  if (props.disabled)
+    return
   emit('update:value', normalizeTreeKey(nextValue))
 }
 

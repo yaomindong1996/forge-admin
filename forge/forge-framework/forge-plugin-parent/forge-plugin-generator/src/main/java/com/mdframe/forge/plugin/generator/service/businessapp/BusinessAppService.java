@@ -185,6 +185,9 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         if (!isManagementMenuEnabled(app, options, adminMenu)) {
             removeManagementMenuIfExists(menuResourceId);
             adminMenu.remove("menuResourceId");
+            adminMenu.remove("activeMenuKey");
+            adminMenu.remove("actualParentId");
+            adminMenu.remove("suiteMenuResourceId");
             if (adminMenu.isEmpty()) {
                 options.remove("adminMenu");
             } else {
@@ -206,6 +209,7 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
             parentId = menuRegisterAdapter.resolveOrCreateBusinessSuiteParentId(
                     parentId, app.getSuiteCode(), suite.getSuiteName(), suite.getIcon(), app.getSortOrder());
         }
+        Long actualParentId = parentId;
 
         String path = resolveManagementMenuPath(app, options);
         String component = resolveManagementMenuComponent(app);
@@ -219,9 +223,19 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
                     menuResourceId, app.getAppName(), parentId, path, component, perms, app.getIcon(), sort, enabled);
         }
         adminMenu.put("menuResourceId", menuResourceId == null ? null : String.valueOf(menuResourceId));
-        adminMenu.put("activeMenuKey", String.valueOf(menuResourceId));
+        adminMenu.put("activeMenuKey", menuResourceId == null ? null : String.valueOf(menuResourceId));
         adminMenu.put("parentId", originalParentId == null ? null : String.valueOf(originalParentId));
         adminMenu.put("originalParentId", originalParentId == null ? null : String.valueOf(originalParentId));
+        if (actualParentId == null) {
+            adminMenu.remove("actualParentId");
+        } else {
+            adminMenu.put("actualParentId", String.valueOf(actualParentId));
+        }
+        if (suiteAsParent && actualParentId != null) {
+            adminMenu.put("suiteMenuResourceId", String.valueOf(actualParentId));
+        } else {
+            adminMenu.remove("suiteMenuResourceId");
+        }
         adminMenu.put("suiteAsParent", suiteAsParent);
         adminMenu.put("syncEnabled", true);
         adminMenu.put("sort", sort);

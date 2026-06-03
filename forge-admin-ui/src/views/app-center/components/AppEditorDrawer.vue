@@ -33,8 +33,11 @@
         </n-form-item>
 
         <template v-if="isAdminMount">
-          <n-form-item label="父级菜单或模块">
+          <n-form-item :label="form.suiteAsMenuParent ? '套件目录上级' : '父级菜单或模块'">
             <MenuParentSelect v-model:value="form.adminMenuParentId" placeholder="选择挂载在哪个管理端菜单下" />
+          </n-form-item>
+          <n-form-item v-if="form.suiteAsMenuParent && form.suiteMenuResourceId" label="实际挂载目录">
+            <MenuParentSelect :value="form.suiteMenuResourceId" placeholder="已生成套件目录" disabled />
           </n-form-item>
           <n-grid :cols="3" :x-gap="12">
             <n-form-item-gi label="同步为菜单">
@@ -420,6 +423,19 @@ function hydrateOptions() {
       ?? options.parentId
       ?? null,
     )
+    form.actualMenuParentId = normalizeMenuParentId(
+      adminMenu.actualParentId
+      ?? props.app?.adminMenuActualParentId
+      ?? null,
+    )
+    form.suiteMenuResourceId = normalizeMenuParentId(
+      adminMenu.suiteMenuResourceId
+      ?? (normalizeBoolean(props.app?.suiteAsMenuParent ?? adminMenu.suiteAsParent ?? options.suiteAsMenuParent, true)
+        ? adminMenu.actualParentId
+        : null)
+      ?? props.app?.suiteMenuResourceId
+      ?? null,
+    )
     form.adminMenuSyncEnabled = normalizeBoolean(props.app?.adminMenuSyncEnabled ?? adminMenu.syncEnabled ?? options.adminMenuSyncEnabled, true)
     form.suiteAsMenuParent = normalizeBoolean(props.app?.suiteAsMenuParent ?? adminMenu.suiteAsParent ?? options.suiteAsMenuParent, true)
     form.menuSort = Number(props.app?.menuSort ?? adminMenu.sort ?? options.menuSort ?? form.sortOrder ?? 0)
@@ -436,6 +452,8 @@ function hydrateOptions() {
   catch {
     form.mountTarget = deriveMountTarget()
     form.adminMenuParentId = null
+    form.actualMenuParentId = null
+    form.suiteMenuResourceId = null
     form.adminMenuSyncEnabled = true
     form.suiteAsMenuParent = true
     form.menuSort = Number(form.sortOrder || 0)
@@ -471,6 +489,10 @@ function buildOptions() {
     const activeMenuKey = previousAdminMenu.activeMenuKey || props.app?.menuResourceId
     if (activeMenuKey)
       options.adminMenu.activeMenuKey = String(activeMenuKey)
+    if (previousAdminMenu.actualParentId)
+      options.adminMenu.actualParentId = String(previousAdminMenu.actualParentId)
+    if (previousAdminMenu.suiteMenuResourceId)
+      options.adminMenu.suiteMenuResourceId = String(previousAdminMenu.suiteMenuResourceId)
   }
   else {
     delete options.adminMenu
@@ -643,6 +665,8 @@ function defaultForm() {
     sortOrder: 0,
     options: '',
     adminMenuParentId: null,
+    actualMenuParentId: null,
+    suiteMenuResourceId: null,
     adminMenuSyncEnabled: true,
     suiteAsMenuParent: true,
     menuSort: 0,

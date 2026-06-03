@@ -345,3 +345,35 @@ Task 34 已改为复用系统自带任务调度能力。定时触发扫描由任
 ## 4. 结论
 
 发布检查现在会优先读取真正可用的运行态入口，缺省打开模式不再误报；菜单父级和资源 ID 避免 Long 精度丢失；主流程摘要和发起兼容层能识别新 `FLOW` 与历史 `APPROVAL` 绑定。
+
+---
+
+# Phase 10 BUG 跟进执行日志：运行态按钮、主流程诊断和套件目录回显
+
+> 执行时间：2026-06-03 20:06 CST
+> 范围：修复 `/ai/crud-page` 头部重复“新增”、主流程发起失败诊断日志、应用入口“套件作为父级目录”实际挂载目录回显。
+
+## 1. 本轮改动
+
+- `/ai/crud-page` 运行态过滤 `add/create/new/新增/新建` 这类无目标路由的标准新增 toolbar action，避免和 `AiCrudPage` 内置新增按钮重复。
+- 业务对象自定义操作不再默认预置标准 CRUD 动作；发布运行态时跳过历史保存的标准新增、编辑、详情、删除动作，避免老数据继续生成重复按钮。
+- 保存主流程绑定时，已有 `FLOW` 绑定会同步修正 `targetType/targetCode/bindingType` 并置为启用，避免页面保存后仍因停用绑定提示“请先配置主流程”。
+- 流程发起解析主流程失败时增加诊断日志，输出租户、对象、记录、运行配置、单据配置、绑定状态、候选 `flowModelKey` 来源和 `binding_config` 截断预览。
+- 应用入口菜单同步保存 `adminMenu.actualParentId/suiteMenuResourceId`；入口编辑抽屉在勾选“套件作为父级目录”后只读回显实际生成的套件目录，父级选择框继续表示套件目录的上级。
+
+## 2. 验证命令
+
+- `git diff --check`：通过。
+- `JAVA_HOME=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jdk/Contents/Home PATH=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jdk/Contents/Home/bin:$PATH mvn -pl forge-framework/forge-plugin-parent/forge-plugin-generator -am compile -DskipTests`：`BUILD SUCCESS`。
+- `source ~/.nvm/nvm.sh && nvm use v20.19.0 && NODE_OPTIONS=--max-old-space-size=8192 pnpm --dir forge-admin-ui build`：构建通过。
+
+## 3. 警告和跳过项
+
+- Maven 保留既有 deprecation / unchecked 编译提示，未阻断。
+- 前端构建保留既有 UnoCSS 图标加载失败、CSS `//` 注释、动态/静态导入混用和 chunk size 提示，未阻断。
+- 本轮未启动后端服务、Flow 服务、前端 dev server 或数据库，未执行真实流程发起日志、菜单同步落库和浏览器回显验证；原因是本轮按用户反馈完成代码修正和构建验证，联调需要可用业务对象、菜单资源、流程模型和记录数据。
+- 本轮未启动任何长期服务，无需停止服务。
+
+## 4. 结论
+
+运行态重复新增按钮已从前端渲染和发布数据两侧兜底去重；主流程保存会重新启用已停用的 `FLOW` 绑定，发起失败时可通过新增日志定位绑定/配置来源；入口配置能回显自动生成的套件目录实际挂载位置。
