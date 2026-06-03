@@ -164,7 +164,13 @@
           AND object_code = #{objectCode}
           AND app_type = 'BUSINESS'
           AND entry_mode = 'RUNTIME'
-        ORDER BY status DESC, sort_order ASC, id ASC
+        ORDER BY status DESC,
+                 CASE WHEN config_key IS NULL OR config_key = '' THEN 1 ELSE 0 END,
+                 CASE WHEN options IS NOT NULL AND options LIKE '%"menuResourceId"%' THEN 0 ELSE 1 END,
+                 CASE WHEN options IS NOT NULL AND options LIKE '%"runtimeOpenMode"%' THEN 0 ELSE 1 END,
+                 sort_order ASC,
+                 update_time DESC,
+                 id DESC
         LIMIT 1
     </select>
 

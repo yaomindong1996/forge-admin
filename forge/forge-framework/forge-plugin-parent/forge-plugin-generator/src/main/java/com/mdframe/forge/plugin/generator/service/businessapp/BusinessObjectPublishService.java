@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdframe.forge.plugin.generator.constant.BusinessObjectDesignStatus;
 import com.mdframe.forge.plugin.generator.constant.BusinessPublishCheckLevel;
+import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApp;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessObject;
 import com.mdframe.forge.plugin.generator.domain.entity.AiCrudConfig;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessObjectDesignVersionDTO;
@@ -14,7 +15,9 @@ import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePageSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePageZone;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePublishDTO;
 import com.mdframe.forge.plugin.generator.mapper.AiCrudConfigMapper;
+import com.mdframe.forge.plugin.generator.mapper.BusinessAppMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessObjectMapper;
+import com.mdframe.forge.plugin.generator.mapper.BusinessTriggerMapper;
 import com.mdframe.forge.plugin.generator.service.lowcode.LowcodeDdlService;
 import com.mdframe.forge.plugin.generator.service.lowcode.LowcodePublishService;
 import com.mdframe.forge.plugin.generator.service.lowcode.LowcodeRuntimeConfigBuilder;
@@ -52,6 +55,8 @@ public class BusinessObjectPublishService {
     private static final String FORM_DESIGNER_SCHEMA_OPTION_KEY = "formDesignerSchema";
     private static final String VIEW_SCHEMA_OPTION_KEY = "viewSchema";
     private static final String LINKAGE_SCHEMA_OPTION_KEY = "linkageSchema";
+    private static final String DESIGNER_ACTIONS_KEY = "actions";
+    private static final Set<String> RUNTIME_OPEN_MODES = Set.of("LIST", "CREATE_FORM", "DETAIL");
 
     private final BusinessObjectDesignerService designerService;
     private final BusinessObjectDesignVersionService designVersionService;
@@ -60,7 +65,9 @@ public class BusinessObjectPublishService {
     private final LowcodeSchemaValidator schemaValidator;
     private final LowcodeDdlService ddlService;
     private final AiCrudConfigMapper crudConfigMapper;
+    private final BusinessAppMapper businessAppMapper;
     private final BusinessObjectMapper businessObjectMapper;
+    private final BusinessTriggerMapper triggerMapper;
     private final BusinessDocumentConfigService documentConfigService;
     private final BusinessPermissionService permissionService;
     private final ObjectMapper objectMapper;
@@ -76,6 +83,7 @@ public class BusinessObjectPublishService {
         checkRelations(context, items);
         checkLinkage(context, items);
         checkRuntimeConfig(context, items);
+        checkAppEntry(context, items);
         checkDocumentConfig(context, items);
         checkPermissionSummary(context, items);
         checkTable(context.getModelSchema(), items);
@@ -171,8 +179,110 @@ public class BusinessObjectPublishService {
         publishDTO.setObjectName(context.getObject().getObjectName());
         publishDTO.setRemark(dto == null ? null : dto.getRemark());
         publishDTO.setModelSchema(context.getModelSchema());
-        publishDTO.setPageSchema(context.getPageSchema());
+        publishDTO.setPageSchema(buildPublishPageSchema(context));
         return publishDTO;
+    }
+
+    private LowcodePageSchema buildPublishPageSchema(BusinessObjectDesignerService.DesignerContext context) {
+        LowcodePageSchema pageSchema = context.getPageSchema();
+        List<Map<String, Object>> customActions = buildRuntimeCustomActions(readDesignerOptions(context));
+        if (pageSchema == null || customActions.isEmpty()) {
+            return pageSchema;
+        }
+        LowcodePageSchema next = objectMapper.convertValue(pageSchema, LowcodePageSchema.class);
+        LowcodePageZone tableZone = findOrCreateZone(next, "table");
+        Map<String, Object> props = tableZone.getProps() == null ? new LinkedHashMap<>() : new LinkedHashMap<>(tableZone.getProps());
+        props.put("customActions", customActions);
+        tableZone.setProps(props);
+        return next;
+    }
+
+    private LowcodePageZone findOrCreateZone(LowcodePageSchema pageSchema, String zoneKey) {
+        if (pageSchema.getZones() == null) {
+            pageSchema.setZones(new ArrayList<>());
+        }
+        for (LowcodePageZone zone : pageSchema.getZones()) {
+            if (zone != null && zoneKey.equalsIgnoreCase(zone.getZoneKey())) {
+                return zone;
+            }
+        }
+        LowcodePageZone zone = new LowcodePageZone();
+        zone.setZoneKey(zoneKey);
+        zone.setComponentKey(zoneKey);
+        zone.setEnabled(true);
+        pageSchema.getZones().add(zone);
+        return zone;
+    }
+
+    private List<Map<String, Object>> buildRuntimeCustomActions(Map<String, Object> designerOptions) {
+        List<Map<String, Object>> actions = listOfMap(designerOptions.get(DESIGNER_ACTIONS_KEY));
+        if (actions.isEmpty()) {
+            return List.of();
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> action : actions) {
+            if (!Integer.valueOf(1).equals(intValue(action.get("status"), 1))) {
+                continue;
+            }
+            String actionCode = text(action.get("actionCode"));
+            String actionName = text(action.get("actionName"));
+            String actionType = StringUtils.defaultIfBlank(text(action.get("actionType")), "OPEN_PAGE").toUpperCase();
+            String position = normalizeActionPosition(action.get("actionPosition"));
+            Map<String, Object> config = mapValue(action.get("actionConfig"));
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("key", StringUtils.defaultIfBlank(actionCode, "custom_" + result.size()));
+            item.put("label", StringUtils.defaultIfBlank(actionName, "自定义操作"));
+            item.put("position", position);
+            item.put("type", resolveActionButtonType(actionType));
+            item.put("actionType", resolveRuntimeActionType(actionType));
+            putIfNotBlank(item, "routePath", resolveActionRoutePath(actionType, config));
+            putIfNotBlank(item, "openTarget", StringUtils.defaultIfBlank(text(config.get("openTarget")), "_self"));
+            if (Boolean.TRUE.equals(booleanValue(action.get("confirmRequired")))) {
+                item.put("confirmText", "确认执行“" + StringUtils.defaultIfBlank(actionName, "该操作") + "”？");
+            }
+            result.add(item);
+        }
+        return result;
+    }
+
+    private String normalizeActionPosition(Object value) {
+        String position = StringUtils.defaultIfBlank(text(value), "ROW").trim().toUpperCase();
+        if ("TOOLBAR".equals(position)) {
+            return "toolbar";
+        }
+        if ("DETAIL".equals(position)) {
+            return "detail";
+        }
+        return "row";
+    }
+
+    private String resolveRuntimeActionType(String actionType) {
+        return switch (actionType) {
+            case "START_FLOW" -> "START_FLOW";
+            case "OPEN_EXTERNAL" -> "external";
+            case "TRIGGER" -> "TRIGGER";
+            case "CALL_API" -> "CALL_API";
+            default -> "route";
+        };
+    }
+
+    private String resolveActionButtonType(String actionType) {
+        return switch (actionType) {
+            case "START_FLOW" -> "success";
+            case "OPEN_EXTERNAL" -> "info";
+            case "TRIGGER", "CALL_API" -> "warning";
+            default -> "primary";
+        };
+    }
+
+    private String resolveActionRoutePath(String actionType, Map<String, Object> config) {
+        if ("OPEN_EXTERNAL".equals(actionType)) {
+            return text(config.get("url"));
+        }
+        if ("OPEN_PAGE".equals(actionType)) {
+            return StringUtils.firstNonBlank(text(config.get("targetPath")), text(config.get("routePath")));
+        }
+        return null;
     }
 
     private void checkFields(LowcodeModelSchema modelSchema, List<BusinessPublishCheckItemVO> items) {
@@ -529,6 +639,60 @@ public class BusinessObjectPublishService {
         }
     }
 
+    private void checkAppEntry(BusinessObjectDesignerService.DesignerContext context,
+                               List<BusinessPublishCheckItemVO> items) {
+        Long tenantId = resolveTenantId(context);
+        AiBusinessObject object = context.getObject();
+        AiBusinessApp app = businessAppMapper.selectRuntimeAppByObject(
+                tenantId, object.getSuiteCode(), object.getObjectCode());
+        if (app == null) {
+            add(items, "APP_ENTRY_MISSING", "APP_ENTRY", BusinessPublishCheckLevel.WARN,
+                    "应用入口未创建", "发布后需要配置业务应用入口和菜单挂载，否则用户无法从菜单进入填报页", null, null,
+                    "CONFIG_APP_ENTRY", "配置入口", "publish", 320);
+            return;
+        }
+        if (Integer.valueOf(0).equals(app.getStatus())) {
+            add(items, "APP_ENTRY_DISABLED", "APP_ENTRY", BusinessPublishCheckLevel.WARN,
+                    "应用入口已停用", "当前业务应用入口已停用，菜单点击后不会进入运行态", null, null,
+                    "ENABLE_APP_ENTRY", "启用入口", "publish", 321);
+        }
+        if (!"RUNTIME".equalsIgnoreCase(StringUtils.defaultString(app.getEntryMode()))) {
+            add(items, "APP_ENTRY_MODE_INVALID", "APP_ENTRY", BusinessPublishCheckLevel.WARN,
+                    "入口打开模式不是运行态", "业务单据挂载建议使用 RUNTIME 模式，直接打开填报/列表页面", null, null,
+                    "CONFIG_APP_ENTRY", "调整入口", "publish", 322);
+        }
+        if (StringUtils.isBlank(app.getConfigKey())) {
+            add(items, "APP_ENTRY_CONFIG_EMPTY", "APP_ENTRY", BusinessPublishCheckLevel.WARN,
+                    "入口缺少运行配置", "应用入口没有绑定 configKey，无法稳定打开动态填报页面", null, null,
+                    "CONFIG_APP_ENTRY", "绑定运行配置", "publish", 323);
+        }
+        Map<String, Object> options = readAppOptions(app.getOptions());
+        Map<String, Object> adminMenu = mapValue(options.get("adminMenu"));
+        Object menuResourceId = firstNonNull(adminMenu.get("menuResourceId"), options.get("menuResourceId"));
+        String mountTarget = StringUtils.defaultIfBlank(text(options.get("mountTarget")), "ADMIN");
+        boolean syncEnabled = !isFalse(firstNonNull(adminMenu.get("syncEnabled"), options.get("adminMenuSyncEnabled")));
+        if ("ADMIN".equalsIgnoreCase(mountTarget) && syncEnabled
+                && (menuResourceId == null || StringUtils.isBlank(String.valueOf(menuResourceId)))) {
+            add(items, "APP_MENU_MISSING", "APP_ENTRY", BusinessPublishCheckLevel.WARN,
+                    "菜单资源未同步", "未发现应用入口的菜单资源 ID，动态菜单可能无法保持选中态", null, null,
+                    "CONFIG_APP_ENTRY", "同步菜单", "publish", 324);
+        }
+        Object runtimeOpenModeValue = firstNonNull(options.get("runtimeOpenMode"), adminMenu.get("runtimeOpenMode"));
+        String runtimeOpenMode = text(runtimeOpenModeValue);
+        if (StringUtils.isNotBlank(runtimeOpenMode)
+                && !RUNTIME_OPEN_MODES.contains(runtimeOpenMode.trim().toUpperCase())) {
+            add(items, "APP_RUNTIME_OPEN_MODE_EMPTY", "APP_ENTRY", BusinessPublishCheckLevel.WARN,
+                    "运行打开模式不合法", "运行打开模式仅支持 LIST、CREATE_FORM、DETAIL，缺省时系统按 LIST 打开", null, null,
+                    "CONFIG_APP_ENTRY", "配置打开方式", "publish", 325);
+        }
+        if (items.stream().noneMatch(item -> "APP_ENTRY".equals(item.getCategory())
+                && !BusinessPublishCheckLevel.PASS.equals(item.getLevel()))) {
+            add(items, "APP_ENTRY_PASS", "APP_ENTRY", BusinessPublishCheckLevel.PASS,
+                    "应用入口检查通过", "运行入口、菜单资源和打开模式已具备基础配置", null, null,
+                    null, null, "publish", 329);
+        }
+    }
+
     private void checkDocumentConfig(BusinessObjectDesignerService.DesignerContext context,
                                      List<BusinessPublishCheckItemVO> items) {
         BusinessDocumentConfigVO config = documentConfigService.getConfig(context.getObject().getId());
@@ -558,10 +722,44 @@ public class BusinessObjectPublishService {
                     "单据负责人字段不存在", "负责人字段不存在: " + config.getOwnerField(), config.getOwnerField(), null,
                     "CONFIG_DOCUMENT", "配置单据", "flow", 354);
         }
-        if (StringUtils.isBlank(config.getDefaultFlowKey())) {
+        if (StringUtils.isBlank(config.getNoRuleTemplate()) && StringUtils.isBlank(config.getDocumentNoRule())) {
+            add(items, "DOCUMENT_NO_RULE_EMPTY", "DOCUMENT", BusinessPublishCheckLevel.WARN,
+                    "编号规则未配置", "单据可运行，但建议配置编号规则以便追踪流程和消息", null, null,
+                    "CONFIG_DOCUMENT", "配置编号规则", "document", 354);
+        }
+        if (config.getStatusMappingRows() == null || config.getStatusMappingRows().isEmpty()) {
+            add(items, "DOCUMENT_STATUS_MAPPING_EMPTY", "DOCUMENT", BusinessPublishCheckLevel.BLOCK,
+                    "状态映射为空", "启用单据模式后必须配置标准状态到字段值的映射", null, null,
+                    "CONFIG_DOCUMENT", "配置状态映射", "document", 354);
+        }
+        Map<String, Object> mainFlowSummary = config.getMainFlowSummary() == null
+                ? Map.of()
+                : config.getMainFlowSummary();
+        boolean mainFlowConfigured = Boolean.TRUE.equals(mainFlowSummary.get("configured"));
+        String startMode = StringUtils.defaultIfBlank(text(mainFlowSummary.get("startMode")), "MANUAL");
+        if (!mainFlowConfigured) {
             add(items, "DOCUMENT_FLOW_EMPTY", "DOCUMENT", BusinessPublishCheckLevel.WARN,
-                    "默认流程未配置", "单据可保存，但运行态发起流程前需要先配置默认流程", null, null,
+                    "主流程未配置", "单据可保存，但发起主流程前需要先在流程与自动化中配置主流程", null, null,
                     "CONFIG_FLOW", "配置流程", "flow", 355);
+        } else if (!Boolean.TRUE.equals(mainFlowSummary.get("complete"))) {
+            String gapText = summarizeFlowGaps(mainFlowSummary.get("gaps"));
+            add(items, "DOCUMENT_FLOW_INCOMPLETE", "DOCUMENT", BusinessPublishCheckLevel.WARN,
+                    "主流程配置不完整", StringUtils.defaultIfBlank(gapText, "主流程已选择，但变量映射、发起方式或按钮配置仍需补齐"), null, null,
+                    "CONFIG_FLOW", "配置流程", "flow", 356);
+        }
+        if (requiresTrigger(startMode)) {
+            Long triggerCount = triggerMapper.countActiveByObjectAndAction(
+                    resolveTenantId(context), context.getObject().getObjectCode(), "START_FLOW");
+            if (triggerCount == null || triggerCount <= 0) {
+                add(items, "DOCUMENT_TRIGGER_MISSING", "DOCUMENT", BusinessPublishCheckLevel.WARN,
+                        "自动发起触发器缺失", "主流程发起方式包含触发器，但当前对象没有启用的发起主流程触发器", null, null,
+                        "CONFIG_TRIGGER", "配置触发器", "trigger", 357);
+            }
+        }
+        if (requiresManualButton(startMode)) {
+            add(items, "DOCUMENT_MANUAL_BUTTON_PASS", "DOCUMENT", BusinessPublishCheckLevel.PASS,
+                    "手动发起按钮自动生成", "业务对象页面会按状态、权限和流程绑定自动生成发起主流程按钮", null, null,
+                    null, null, "publish", 358);
         }
         if (items.stream().noneMatch(item -> "DOCUMENT".equals(item.getCategory())
                 && !BusinessPublishCheckLevel.PASS.equals(item.getLevel()))) {
@@ -620,6 +818,32 @@ public class BusinessObjectPublishService {
                     "数据表检查未完成", "当前环境无法完成数据表检查: " + e.getMessage(), null, null,
                     "CHECK_DATABASE", "检查数据库", "advanced", 430);
         }
+    }
+
+    private String summarizeFlowGaps(Object gaps) {
+        if (gaps instanceof List<?> list && !list.isEmpty()) {
+            return "主流程缺口: " + String.join("、", list.stream()
+                    .map(String::valueOf)
+                    .filter(StringUtils::isNotBlank)
+                    .toList());
+        }
+        return null;
+    }
+
+    private boolean requiresTrigger(String startMode) {
+        String normalized = StringUtils.defaultIfBlank(startMode, "MANUAL").trim().toUpperCase();
+        return "TRIGGER".equals(normalized)
+                || "BOTH".equals(normalized)
+                || "MANUAL_AND_TRIGGER".equals(normalized)
+                || "MANUAL_TRIGGER".equals(normalized);
+    }
+
+    private boolean requiresManualButton(String startMode) {
+        String normalized = StringUtils.defaultIfBlank(startMode, "MANUAL").trim().toUpperCase();
+        return "MANUAL".equals(normalized)
+                || "BOTH".equals(normalized)
+                || "MANUAL_AND_TRIGGER".equals(normalized)
+                || "MANUAL_TRIGGER".equals(normalized);
     }
 
     private void checkPermissionSummary(BusinessObjectDesignerService.DesignerContext context,
@@ -990,6 +1214,51 @@ public class BusinessObjectPublishService {
 
     private String text(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    private void putIfNotBlank(Map<String, Object> target, String key, String value) {
+        if (StringUtils.isNotBlank(value)) {
+            target.put(key, value);
+        }
+    }
+
+    private Integer intValue(Object value, Integer fallback) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value instanceof String text && StringUtils.isNotBlank(text)) {
+            try {
+                return Integer.parseInt(text);
+            } catch (Exception ignored) {
+                return fallback;
+            }
+        }
+        return fallback;
+    }
+
+    private Boolean booleanValue(Object value) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value == null) {
+            return false;
+        }
+        return Boolean.parseBoolean(String.valueOf(value));
+    }
+
+    private Map<String, Object> readAppOptions(String options) {
+        if (StringUtils.isBlank(options)) {
+            return new LinkedHashMap<>();
+        }
+        try {
+            return objectMapper.readValue(options, new TypeReference<>() {});
+        } catch (Exception e) {
+            return new LinkedHashMap<>();
+        }
+    }
+
+    private Object firstNonNull(Object first, Object second) {
+        return first != null ? first : second;
     }
 
     @SuppressWarnings("unchecked")

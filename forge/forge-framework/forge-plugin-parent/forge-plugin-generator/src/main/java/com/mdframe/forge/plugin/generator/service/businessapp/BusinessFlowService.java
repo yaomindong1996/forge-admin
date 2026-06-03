@@ -8,9 +8,11 @@ import com.mdframe.forge.flow.client.FlowResult;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessBinding;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessDocumentConfig;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessFlowInstanceLink;
+import com.mdframe.forge.plugin.generator.domain.entity.AiCrudConfig;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessFlowBindingDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessFlowCallbackDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessFlowStartDTO;
+import com.mdframe.forge.plugin.generator.mapper.AiCrudConfigMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessBindingMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessFlowInstanceLinkMapper;
 import com.mdframe.forge.plugin.generator.service.DynamicCrudService;
@@ -52,9 +54,11 @@ public class BusinessFlowService {
 
     private final BusinessBindingMapper bindingMapper;
     private final BusinessFlowInstanceLinkMapper flowInstanceLinkMapper;
+    private final AiCrudConfigMapper crudConfigMapper;
     private final BusinessDocumentConfigService documentConfigService;
     private final BusinessDocumentRuntimeService documentRuntimeService;
     private final DynamicCrudService dynamicCrudService;
+    private final BusinessFlowVariableResolver variableResolver;
     private final ApplicationEventPublisher applicationEventPublisher;
 
     /**
@@ -67,7 +71,7 @@ public class BusinessFlowService {
      */
     public JSONObject startFlow(String objectCode, String recordId, Map<String, Object> recordData) {
         if (flowClient == null) {
-            throw new RuntimeException("流程服务未配置，无法发起流程");
+            throw new RuntimeException("流程服务未配置，无法发起主流程");
         }
         Long tenantId = resolveTenantId();
 
@@ -118,13 +122,26 @@ public class BusinessFlowService {
      */
     public BusinessFlowBindingVO getFlowBinding(String objectCode) {
         Long tenantId = resolveTenantId();
-        AiBusinessBinding binding = bindingMapper.selectBindingByTypeAndCode(
-                tenantId, "OBJECT", objectCode, "FLOW");
+        AiBusinessBinding binding = selectMainFlowBindingForConfig(tenantId, objectCode);
 
         if (binding == null) {
-            return null;
+            AiBusinessDocumentConfig documentConfig = documentConfigService.selectEnabledByObjectCode(objectCode);
+            if (documentConfig == null || StringUtils.isBlank(documentConfig.getDefaultFlowKey())) {
+                return null;
+            }
+            return legacyDocumentFlowToVO(objectCode, documentConfig);
         }
         return toVO(objectCode, binding);
+    }
+
+    /**
+     * 查询流程模型变量候选项和字段映射建议。
+     */
+    public Map<String, Object> getVariableCandidates(String modelKey, String objectCode) {
+        if (StringUtils.isBlank(modelKey)) {
+            throw new BusinessException("流程模型Key不能为空");
+        }
+        return variableResolver.resolve(modelKey, objectCode);
     }
 
     /**
@@ -178,6 +195,7 @@ public class BusinessFlowService {
             binding.setSortOrder(0);
             bindingMapper.insert(binding);
         }
+        documentConfigService.syncDefaultFlowKeyByObjectCode(tenantId, objectCode, flowModelKey);
     }
 
     /**
@@ -254,7 +272,7 @@ public class BusinessFlowService {
             vo.setRecordId(recordId);
             vo.setBusinessKey(businessKey);
             vo.setFlowStatus("NOT_STARTED");
-            vo.setMessage("尚未发起流程");
+            vo.setMessage("尚未发起主流程");
             return vo;
         }
         return toRuntimeVO(link, null);
@@ -283,33 +301,32 @@ public class BusinessFlowService {
                                                             String starterUserName,
                                                             Long tenantId) {
         if (dto == null) {
-            throw new BusinessException("发起流程参数不能为空");
+            throw new BusinessException("发起主流程参数不能为空");
         }
         if (StringUtils.isBlank(dto.getObjectCode())) {
             throw new BusinessException("业务对象编码不能为空");
         }
         if (dto.getRecordId() == null) {
-            throw new BusinessException("请先保存记录后再发起流程");
+            throw new BusinessException("请先保存记录后再发起主流程");
         }
         if (flowClient == null) {
-            throw new BusinessException("流程服务未配置，无法发起流程");
+            throw new BusinessException("流程服务未配置，无法发起主流程");
         }
 
         AiBusinessDocumentConfig documentConfig = documentConfigService.selectEnabledByObjectCode(tenantId, dto.getObjectCode());
-        if (documentConfig == null) {
-            throw new BusinessException("业务对象未启用单据模式，无法发起流程");
-        }
-        if (StringUtils.isBlank(documentConfig.getConfigKey())) {
-            throw new BusinessException("单据缺少动态运行配置，无法发起流程");
-        }
-
-        Map<String, Object> recordData = dynamicCrudService.selectById(documentConfig.getConfigKey(), dto.getRecordId());
+        AiCrudConfig runtimeConfig = documentConfig == null
+                ? resolvePublishedRuntimeConfig(tenantId, dto.getObjectCode())
+                : null;
+        String configKey = resolveStartConfigKey(documentConfig, runtimeConfig);
+        Map<String, Object> recordData = dynamicCrudService.selectById(configKey, dto.getRecordId());
         if (recordData == null) {
             throw new BusinessException("记录不存在或无权限访问");
         }
 
         String businessKey = buildBusinessKey(dto.getObjectCode(), dto.getRecordId());
-        documentRuntimeService.validateStartAllowed(dto.getObjectCode(), dto.getRecordId(), checkPermission);
+        if (documentConfig != null) {
+            documentRuntimeService.validateStartAllowed(dto.getObjectCode(), dto.getRecordId(), checkPermission);
+        }
         AiBusinessFlowInstanceLink runningLink = flowInstanceLinkMapper.selectRunningByBusinessKey(tenantId, businessKey);
         if (runningLink != null) {
             return toRuntimeVO(runningLink, "当前单据已有流转中的流程");
@@ -321,9 +338,9 @@ public class BusinessFlowService {
                 StringUtils.trimToNull(dto.getFlowModelKey()),
                 resolveFlowModelKey(bindingConfig),
                 binding == null ? null : binding.getBindingKey(),
-                documentConfig.getDefaultFlowKey());
+                documentConfig == null ? null : documentConfig.getDefaultFlowKey());
         if (StringUtils.isBlank(flowModelKey)) {
-            throw new BusinessException("流程绑定配置中缺少流程模型Key");
+            throw new BusinessException("请先在流程与自动化中配置主流程");
         }
 
         Map<String, Object> flowVariables = buildFlowVariables(bindingConfig, recordData);
@@ -357,7 +374,9 @@ public class BusinessFlowService {
         link.setVariablesSnapshot(JSON.toJSONString(flowVariables));
         flowInstanceLinkMapper.insert(link);
 
-        updateDocumentStatus(documentConfig, dto.getRecordId(), "IN_PROCESS");
+        if (documentConfig != null) {
+            updateDocumentStatus(documentConfig, dto.getRecordId(), "IN_PROCESS");
+        }
         return toRuntimeVO(link, "流程已发起");
     }
 
@@ -369,13 +388,17 @@ public class BusinessFlowService {
         }
         AiBusinessDocumentConfig documentConfig = documentConfigService.selectEnabledByObjectCode(
                 link.getTenantId(), link.getObjectCode());
-        if (documentConfig == null) {
-            throw new BusinessException("流程关联的业务对象未启用单据模式");
-        }
-
-        Map<String, Object> previousData = dynamicCrudService.selectById(documentConfig.getConfigKey(), link.getRecordId());
+        AiCrudConfig runtimeConfig = documentConfig == null
+                ? resolvePublishedRuntimeConfig(link.getTenantId(), link.getObjectCode())
+                : null;
+        String configKey = documentConfig != null ? documentConfig.getConfigKey() : runtimeConfig == null ? null : runtimeConfig.getConfigKey();
+        Map<String, Object> previousData = StringUtils.isBlank(configKey)
+                ? null
+                : dynamicCrudService.selectById(configKey, link.getRecordId());
         String result = normalizeCallbackResult(dto);
-        updateDocumentStatus(documentConfig, link.getRecordId(), result);
+        if (documentConfig != null) {
+            updateDocumentStatus(documentConfig, link.getRecordId(), result);
+        }
 
         link.setFlowStatus(result);
         link.setResult(result);
@@ -385,8 +408,27 @@ public class BusinessFlowService {
         }
         flowInstanceLinkMapper.updateById(link);
 
-        Map<String, Object> currentData = dynamicCrudService.selectById(documentConfig.getConfigKey(), link.getRecordId());
-        publishFlowResultEvent(link, documentConfig, result, previousData, currentData, dto);
+        Map<String, Object> currentData = StringUtils.isBlank(configKey)
+                ? null
+                : dynamicCrudService.selectById(configKey, link.getRecordId());
+        if (documentConfig != null) {
+            publishFlowResultEvent(link, documentConfig, result, previousData, currentData, dto);
+        } else if (runtimeConfig != null) {
+            publishFlowResultEvent(link, runtimeConfig, result, previousData, currentData, dto);
+        }
+    }
+
+    private String resolveStartConfigKey(AiBusinessDocumentConfig documentConfig, AiCrudConfig runtimeConfig) {
+        if (documentConfig != null) {
+            if (StringUtils.isBlank(documentConfig.getConfigKey())) {
+                throw new BusinessException("单据缺少发布配置，无法发起主流程");
+            }
+            return documentConfig.getConfigKey();
+        }
+        if (runtimeConfig == null || StringUtils.isBlank(runtimeConfig.getConfigKey())) {
+            throw new BusinessException("业务对象缺少已发布运行配置，无法发起主流程");
+        }
+        return runtimeConfig.getConfigKey();
     }
 
     private AiBusinessFlowInstanceLink findCallbackLink(Long tenantId, BusinessFlowCallbackDTO dto) {
@@ -451,6 +493,43 @@ public class BusinessFlowService {
         applicationEventPublisher.publishEvent(event);
     }
 
+    private void publishFlowResultEvent(AiBusinessFlowInstanceLink link,
+                                        AiCrudConfig config,
+                                        String result,
+                                        Map<String, Object> previousData,
+                                        Map<String, Object> currentData,
+                                        BusinessFlowCallbackDTO dto) {
+        String eventType = switch (result) {
+            case "APPROVED" -> BusinessEvent.FLOW_APPROVED;
+            case "REJECTED" -> BusinessEvent.FLOW_REJECTED;
+            case "CANCELED" -> BusinessEvent.FLOW_CANCELED;
+            default -> null;
+        };
+        if (eventType == null) {
+            return;
+        }
+        BusinessEvent event = BusinessEvent.builder()
+                .eventType(eventType)
+                .objectCode(link.getObjectCode())
+                .configKey(config.getConfigKey())
+                .recordId(String.valueOf(link.getRecordId()))
+                .recordData(currentData)
+                .previousData(previousData)
+                .operatorId(dto.getOperatorId() != null ? dto.getOperatorId() : link.getStartUserId())
+                .operatorName(resolveUsername())
+                .tenantId(link.getTenantId())
+                .build();
+        applicationEventPublisher.publishEvent(event);
+    }
+
+    private AiCrudConfig resolvePublishedRuntimeConfig(Long tenantId, String objectCode) {
+        if (StringUtils.isBlank(objectCode)) {
+            return null;
+        }
+        return crudConfigMapper.selectPublishedByObjectCode(
+                tenantId != null ? tenantId : resolveTenantId(), objectCode);
+    }
+
     private String normalizeCallbackResult(BusinessFlowCallbackDTO dto) {
         String value = StringUtils.firstNonBlank(dto.getResult(), dto.getFlowStatus());
         if (StringUtils.isBlank(value)) {
@@ -484,6 +563,19 @@ public class BusinessFlowService {
         AiBusinessBinding legacyApprovalBinding = bindingMapper.selectBindingByTypeAndCode(
                 tenantId, "OBJECT", objectCode, "APPROVAL");
         return isBindingEnabled(legacyApprovalBinding) ? legacyApprovalBinding : null;
+    }
+
+    private AiBusinessBinding selectMainFlowBindingForConfig(Long tenantId, String objectCode) {
+        AiBusinessBinding binding = bindingMapper.selectBindingByTypeAndCode(tenantId, "OBJECT", objectCode, "FLOW");
+        if (isBindingEnabled(binding)) {
+            return binding;
+        }
+        AiBusinessBinding legacyApprovalBinding = bindingMapper.selectBindingByTypeAndCode(
+                tenantId, "OBJECT", objectCode, "APPROVAL");
+        if (isBindingEnabled(legacyApprovalBinding)) {
+            return legacyApprovalBinding;
+        }
+        return binding != null ? binding : legacyApprovalBinding;
     }
 
     private boolean isBindingEnabled(AiBusinessBinding binding) {
@@ -606,12 +698,64 @@ public class BusinessFlowService {
         vo.setFlowModelKey(StringUtils.defaultIfBlank(resolveFlowModelKey(config), binding.getBindingKey()));
         vo.setFlowModelName(StringUtils.defaultIfBlank(config.getString("flowModelName"), binding.getBindingName()));
         vo.setTitleTemplate(config.getString("titleTemplate"));
-        vo.setStartMode(StringUtils.defaultIfBlank(config.getString("startMode"), "MANUAL"));
+        vo.setStartMode(normalizeStartMode(config.getString("startMode")));
         vo.setVariableMapping(normalizeVariableMapping(config.getJSONArray("variableMapping")));
         vo.setConditionFlows(readMapList(config.getJSONArray("conditionFlows")));
         vo.setOptions(readOptions(config.getJSONObject("options")));
         vo.setStatus(binding.getStatus());
+        enrichBindingSummary(vo, "AI_BUSINESS_BINDING");
         return vo;
+    }
+
+    private BusinessFlowBindingVO legacyDocumentFlowToVO(String objectCode, AiBusinessDocumentConfig documentConfig) {
+        BusinessFlowBindingVO vo = new BusinessFlowBindingVO();
+        vo.setObjectCode(objectCode);
+        vo.setFlowModelKey(documentConfig.getDefaultFlowKey());
+        vo.setFlowModelName(documentConfig.getDefaultFlowKey());
+        vo.setStartMode("MANUAL");
+        vo.setStatus(1);
+        vo.setCompatibilitySource("DOCUMENT_DEFAULT_FLOW");
+        vo.setComplete(false);
+        vo.setGaps(List.of("历史默认流程缺少变量映射，请在流程与自动化中保存一次主流程"));
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("configured", true);
+        summary.put("flowModelKey", documentConfig.getDefaultFlowKey());
+        summary.put("flowModelName", documentConfig.getDefaultFlowKey());
+        summary.put("startMode", "MANUAL");
+        summary.put("variableMappingCount", 0);
+        summary.put("complete", false);
+        summary.put("gaps", vo.getGaps());
+        summary.put("compatibilitySource", "DOCUMENT_DEFAULT_FLOW");
+        vo.setMainFlowSummary(summary);
+        return vo;
+    }
+
+    private void enrichBindingSummary(BusinessFlowBindingVO vo, String compatibilitySource) {
+        List<String> gaps = new ArrayList<>();
+        if (StringUtils.isBlank(vo.getFlowModelKey())) {
+            gaps.add("未配置主流程");
+        }
+        if (StringUtils.isBlank(vo.getStartMode())) {
+            gaps.add("发起方式未配置");
+        }
+        if (vo.getVariableMapping() == null || vo.getVariableMapping().isEmpty()) {
+            gaps.add("变量映射缺失");
+        }
+        boolean complete = gaps.isEmpty();
+        vo.setComplete(complete);
+        vo.setGaps(gaps);
+        vo.setCompatibilitySource(compatibilitySource);
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("configured", StringUtils.isNotBlank(vo.getFlowModelKey()));
+        summary.put("bindingId", vo.getBindingId());
+        summary.put("flowModelKey", vo.getFlowModelKey());
+        summary.put("flowModelName", vo.getFlowModelName());
+        summary.put("startMode", vo.getStartMode());
+        summary.put("variableMappingCount", vo.getVariableMapping() == null ? 0 : vo.getVariableMapping().size());
+        summary.put("complete", complete);
+        summary.put("gaps", gaps);
+        summary.put("compatibilitySource", compatibilitySource);
+        vo.setMainFlowSummary(summary);
     }
 
     private BusinessFlowBindingDTO toDTO(JSONObject config) {
@@ -620,7 +764,7 @@ public class BusinessFlowService {
         dto.setFlowModelKey(resolveFlowModelKey(source));
         dto.setFlowModelName(source.getString("flowModelName"));
         dto.setTitleTemplate(source.getString("titleTemplate"));
-        dto.setStartMode(source.getString("startMode"));
+        dto.setStartMode(normalizeStartMode(source.getString("startMode")));
         dto.setVariableMapping(normalizeVariableMapping(source.getJSONArray("variableMapping")));
         dto.setConditionFlows(readMapList(source.getJSONArray("conditionFlows")));
         dto.setOptions(readOptions(source.getJSONObject("options")));
@@ -632,7 +776,7 @@ public class BusinessFlowService {
         config.put("flowModelKey", StringUtils.trimToNull(dto.getFlowModelKey()));
         config.put("flowModelName", StringUtils.trimToNull(dto.getFlowModelName()));
         config.put("titleTemplate", StringUtils.trimToNull(dto.getTitleTemplate()));
-        config.put("startMode", StringUtils.defaultIfBlank(dto.getStartMode(), "MANUAL"));
+        config.put("startMode", normalizeStartMode(dto.getStartMode()));
         JSONArray variableMapping = new JSONArray();
         if (dto.getVariableMapping() != null) {
             for (BusinessFlowBindingDTO.VariableMappingDTO item : dto.getVariableMapping()) {
@@ -650,6 +794,20 @@ public class BusinessFlowService {
         config.put("conditionFlows", dto.getConditionFlows() == null ? new ArrayList<>() : dto.getConditionFlows());
         config.put("options", dto.getOptions() == null ? new LinkedHashMap<>() : dto.getOptions());
         return config;
+    }
+
+    private String normalizeStartMode(String startMode) {
+        String normalized = StringUtils.defaultIfBlank(startMode, "MANUAL").trim().toUpperCase();
+        if ("MANUAL_AND_TRIGGER".equals(normalized) || "MANUAL_TRIGGER".equals(normalized) || "BOTH".equals(normalized)) {
+            return "BOTH";
+        }
+        if ("AUTO".equals(normalized) || "AUTOMATIC".equals(normalized)) {
+            return "TRIGGER";
+        }
+        if ("TRIGGER".equals(normalized)) {
+            return "TRIGGER";
+        }
+        return "MANUAL";
     }
 
     private List<BusinessFlowBindingDTO.VariableMappingDTO> normalizeVariableMapping(JSONArray variableMapping) {

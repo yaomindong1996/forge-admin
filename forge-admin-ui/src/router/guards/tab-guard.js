@@ -5,19 +5,27 @@ export const EXCLUDE_TAB = ['/404', '/403', '/login', '/login/callback']
 /**
  * 从扁平菜单数组中查找路径对应的中文名称
  */
-function findTitleFromAllMenus(allMenus, targetPath) {
+function findTitleFromAllMenus(allMenus, targetPath, menuKey) {
   // 首页路径判断：支持 '/' 和 '/home'
   if (targetPath === '/' || targetPath === '/home' || targetPath === window.$homePath) {
     return '首页'
   }
   if (!allMenus || !Array.isArray(allMenus))
     return null
+  if (menuKey !== undefined && menuKey !== null && menuKey !== '') {
+    const menu = allMenus.find(item => String(item.key || item.id) === String(menuKey))
+    if (menu)
+      return menu.label || menu.name || null
+  }
   const found = allMenus.find(menu => isSameRoutePath(menu.path, targetPath))
   return found?.label || found?.name || null
 }
 
 function normalizeRoutePath(path) {
-  const normalized = String(path || '').trim().replace(/\/+/g, '/')
+  const value = String(path || '').trim()
+  const [pathWithoutHash] = value.split('#')
+  const [pathname] = pathWithoutHash.split('?')
+  const normalized = String(pathname || '').replace(/\/+/g, '/')
   if (!normalized || normalized === '/')
     return normalized
   return normalized.startsWith('/') ? normalized : `/${normalized}`
@@ -76,8 +84,10 @@ export function createTabGuard(router) {
 
     // 1. 优先使用 route.meta.title（由 permission-guard 注册路由时设置）
     let title = to.meta?.title
+    if (isCrudRuntimePath(to.path) && to.query?.title)
+      title = String(to.query.title)
     if (isGenericCrudTitle(title, to.path) && permissionStore.allMenus?.length) {
-      title = findTitleFromAllMenus(permissionStore.allMenus, to.path) || title
+      title = findTitleFromAllMenus(permissionStore.allMenus, to.path, to.query?.menuKey || to.query?.menuResourceId) || title
     }
 
     if (to.path === '/home') {
@@ -86,7 +96,7 @@ export function createTabGuard(router) {
 
     // 2. 从所有菜单（包括隐藏的）中查找中文名
     if (!title && permissionStore.allMenus?.length) {
-      title = findTitleFromAllMenus(permissionStore.allMenus, to.path)
+      title = findTitleFromAllMenus(permissionStore.allMenus, to.path, to.query?.menuKey || to.query?.menuResourceId)
     }
 
     const icon = to.meta?.icon

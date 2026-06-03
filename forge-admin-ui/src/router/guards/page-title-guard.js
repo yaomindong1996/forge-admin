@@ -2,15 +2,23 @@ import { usePermissionStore, useTabStore } from '@/store'
 
 const baseTitle = import.meta.env.VITE_TITLE
 
-function findTitleFromAllMenus(allMenus, targetPath) {
+function findTitleFromAllMenus(allMenus, targetPath, menuKey) {
   if (!Array.isArray(allMenus))
     return null
+  if (menuKey !== undefined && menuKey !== null && menuKey !== '') {
+    const menu = allMenus.find(item => String(item.key || item.id) === String(menuKey))
+    if (menu)
+      return menu.label || menu.name || menu.meta?.title || null
+  }
   const found = allMenus.find(menu => isSameRoutePath(menu.path, targetPath))
   return found?.label || found?.name || found?.meta?.title || null
 }
 
 function normalizeRoutePath(path) {
-  const normalized = String(path || '').trim().replace(/\/+/g, '/')
+  const value = String(path || '').trim()
+  const [pathWithoutHash] = value.split('#')
+  const [pathname] = pathWithoutHash.split('?')
+  const normalized = String(pathname || '').replace(/\/+/g, '/')
   if (!normalized || normalized === '/')
     return normalized
   return normalized.startsWith('/') ? normalized : `/${normalized}`
@@ -45,8 +53,10 @@ export function createPageTitleGuard(router) {
       const dynamicTitle = tabStore.tabs.find(tab => tab.path === to.fullPath || tab.key === to.fullPath)?.title
       if (dynamicTitle && dynamicTitle !== 'CRUD页面')
         pageTitle = dynamicTitle
+      else if (to.query?.title)
+        pageTitle = String(to.query.title)
       else if (!pageTitle || pageTitle === 'CRUD页面')
-        pageTitle = findTitleFromAllMenus(permissionStore.allMenus, to.path) || pageTitle
+        pageTitle = findTitleFromAllMenus(permissionStore.allMenus, to.path, to.query?.menuKey || to.query?.menuResourceId) || pageTitle
     }
     if (pageTitle) {
       document.title = `${pageTitle} | ${baseTitle}`

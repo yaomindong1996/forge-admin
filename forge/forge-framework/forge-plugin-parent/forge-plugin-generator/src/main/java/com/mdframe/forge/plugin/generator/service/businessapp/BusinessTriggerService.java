@@ -12,6 +12,7 @@ import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessTriggerScenario
 import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
+import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -109,6 +110,11 @@ public class BusinessTriggerService {
         return triggerMapper.selectActiveByObjectAndEvent(tenantId, objectCode, eventType);
     }
 
+    public List<AiBusinessTrigger> selectActiveScheduleTriggers(Integer limit) {
+        int normalizedLimit = Math.min(Math.max(limit == null ? 100 : limit, 1), 500);
+        return TenantContextHolder.executeIgnore(() -> triggerMapper.selectActiveScheduleTriggers(normalizedLimit));
+    }
+
     /**
      * 记录触发器执行日志
      */
@@ -130,6 +136,19 @@ public class BusinessTriggerService {
         }
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    public void touchScheduleScanTime(Long tenantId, Long triggerId) {
+        if (tenantId == null || triggerId == null) {
+            return;
+        }
+        TenantContextHolder.executeWithTenant(tenantId, () -> {
+            AiBusinessTrigger trigger = new AiBusinessTrigger();
+            trigger.setId(triggerId);
+            trigger.setLastExecuteTime(LocalDateTime.now());
+            triggerMapper.updateById(trigger);
+        });
+    }
+
     /**
      * 查询触发器执行日志
      */
@@ -139,10 +158,20 @@ public class BusinessTriggerService {
         return triggerLogMapper.selectTriggerLogPage(page, tenantId, triggerId);
     }
 
+    public boolean hasSuccessOrTodoLogSince(Long tenantId, Long triggerId, String recordId,
+                                            String eventType, LocalDateTime sinceTime) {
+        if (tenantId == null || triggerId == null || StringUtils.isBlank(recordId)
+                || StringUtils.isBlank(eventType) || sinceTime == null) {
+            return false;
+        }
+        Long count = triggerLogMapper.countSuccessOrTodoSince(tenantId, triggerId, recordId, eventType, sinceTime);
+        return count != null && count > 0;
+    }
+
     public List<BusinessTriggerScenarioTemplateVO> scenarioTemplates() {
         List<BusinessTriggerScenarioTemplateVO> templates = new ArrayList<>();
-        templates.add(template("RECORD_CREATED_START_FLOW", "新增记录后发起流程",
-                "记录创建后按条件自动发起已绑定流程", BusinessEvent.RECORD_CREATED, "START_FLOW", null));
+        templates.add(template("RECORD_CREATED_START_FLOW", "新增记录后发起主流程",
+                "记录创建后按条件自动发起主流程", BusinessEvent.RECORD_CREATED, "START_FLOW", null));
         templates.add(template("STATUS_CHANGED_SEND_MESSAGE", "状态变更后发送消息",
                 "单据状态变化后发送站内消息", BusinessEvent.STATUS_CHANGED, "SEND_MESSAGE", "CREATOR"));
         templates.add(template("FLOW_APPROVED_CREATE_RECORD", "流程通过后创建记录",
@@ -157,31 +186,42 @@ public class BusinessTriggerService {
     public String normalizeActionConfig(String actionType, String actionConfig) {
         JSONObject config = readJson(actionConfig, "动作配置");
         if ("START_FLOW".equals(actionType)) {
-            JSONArray normalized = new JSONArray();
-            JSONArray mappings = config.getJSONArray("variableMapping");
-            if (mappings != null) {
-                for (int i = 0; i < mappings.size(); i++) {
-                    JSONObject item = mappings.getJSONObject(i);
-                    if (item == null) {
-                        continue;
-                    }
-                    String formField = StringUtils.firstNonBlank(item.getString("formField"), item.getString("field"));
-                    String flowVariable = StringUtils.firstNonBlank(item.getString("flowVariable"), item.getString("variable"));
-                    if (StringUtils.isBlank(formField) || StringUtils.isBlank(flowVariable)) {
-                        continue;
-                    }
-                    JSONObject mapping = new JSONObject();
-                    mapping.put("formField", formField.trim());
-                    mapping.put("flowVariable", flowVariable.trim());
-                    mapping.put("label", StringUtils.trimToNull(item.getString("label")));
-                    normalized.add(mapping);
-                }
-            }
-            config.put("variableMapping", normalized);
-            config.put("flowModelKey", StringUtils.trimToNull(config.getString("flowModelKey")));
-            config.put("titleTemplate", StringUtils.trimToNull(config.getString("titleTemplate")));
+            return normalizeStartFlowActionConfig(config).toJSONString();
         }
         return config.toJSONString();
+    }
+
+    private JSONObject normalizeStartFlowActionConfig(JSONObject config) {
+        JSONObject normalizedConfig = new JSONObject();
+        boolean useMainFlow = config.getBoolean("useMainFlow") == null || config.getBooleanValue("useMainFlow");
+        normalizedConfig.put("useMainFlow", useMainFlow);
+        if (useMainFlow) {
+            return normalizedConfig;
+        }
+        normalizedConfig.put("flowModelKey", StringUtils.trimToNull(config.getString("flowModelKey")));
+        normalizedConfig.put("titleTemplate", StringUtils.trimToNull(config.getString("titleTemplate")));
+        JSONArray normalized = new JSONArray();
+        JSONArray mappings = config.getJSONArray("variableMapping");
+        if (mappings != null) {
+            for (int i = 0; i < mappings.size(); i++) {
+                JSONObject item = mappings.getJSONObject(i);
+                if (item == null) {
+                    continue;
+                }
+                String formField = StringUtils.firstNonBlank(item.getString("formField"), item.getString("field"));
+                String flowVariable = StringUtils.firstNonBlank(item.getString("flowVariable"), item.getString("variable"));
+                if (StringUtils.isBlank(formField) || StringUtils.isBlank(flowVariable)) {
+                    continue;
+                }
+                JSONObject mapping = new JSONObject();
+                mapping.put("formField", formField.trim());
+                mapping.put("flowVariable", flowVariable.trim());
+                mapping.put("label", StringUtils.trimToNull(item.getString("label")));
+                normalized.add(mapping);
+            }
+        }
+        normalizedConfig.put("variableMapping", normalized);
+        return normalizedConfig;
     }
 
     private void validateTrigger(AiBusinessTrigger trigger) {
@@ -204,7 +244,7 @@ public class BusinessTriggerService {
     }
 
     private void fillDefaults(AiBusinessTrigger trigger) {
-        trigger.setTriggerType(StringUtils.defaultIfBlank(trigger.getTriggerType(), "EVENT"));
+        trigger.setTriggerType(normalizeTriggerType(trigger.getTriggerType()));
         trigger.setBlockingMode(StringUtils.defaultIfBlank(trigger.getBlockingMode(), "ASYNC"));
         if (trigger.getDeveloperMode() == null) {
             trigger.setDeveloperMode(0);
@@ -215,6 +255,14 @@ public class BusinessTriggerService {
         if (trigger.getSortOrder() == null) {
             trigger.setSortOrder(0);
         }
+    }
+
+    private String normalizeTriggerType(String triggerType) {
+        String normalized = StringUtils.defaultIfBlank(triggerType, "EVENT").trim().toUpperCase();
+        if ("SCHEDULED".equals(normalized)) {
+            return "SCHEDULE";
+        }
+        return normalized;
     }
 
     private JSONObject readJson(String json, String label) {

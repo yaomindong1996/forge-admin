@@ -54,6 +54,10 @@ forge:
     clustered: true
     # Quartz表前缀
     table-prefix: QRTZ_
+    # Quartz集群节点检查间隔(ms)
+    cluster-checkin-interval: 15000
+    # Quartz misfire阈值(ms)
+    misfire-threshold: 12000
     # 分布式模式配置
     distributed:
       # 服务注册中心类型

@@ -1,8 +1,6 @@
 package com.mdframe.forge.plugin.job.config;
 
-
 import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
@@ -15,9 +13,9 @@ import java.util.Properties;
  */
 @Configuration
 public class ScheduleConfig {
-    
+
     @Bean
-    public SchedulerFactoryBean schedulerFactoryBean(DataSource dataSource) {
+    public SchedulerFactoryBean schedulerFactoryBean(DataSource dataSource, JobProperties jobProperties) {
 
         SchedulerFactoryBean factory = new SchedulerFactoryBean();
         if (dataSource instanceof DynamicRoutingDataSource) {
@@ -33,17 +31,20 @@ public class ScheduleConfig {
         prop.put("org.quartz.scheduler.instanceId", "AUTO");
         // 线程池配置
         prop.put("org.quartz.threadPool.class", "org.quartz.simpl.SimpleThreadPool");
-        prop.put("org.quartz.threadPool.threadCount", "20");
+        prop.put("org.quartz.threadPool.threadCount", String.valueOf(normalizeThreadPoolSize(jobProperties)));
         prop.put("org.quartz.threadPool.threadPriority", "5");
         // JobStore配置
         prop.put("org.quartz.jobStore.class", "org.springframework.scheduling.quartz.LocalDataSourceJobStore");
         prop.put("org.quartz.jobStore.driverDelegateClass", "org.quartz.impl.jdbcjobstore.StdJDBCDelegate");
-        prop.put("org.quartz.jobStore.clusterCheckinInterval", "15000");
+        prop.put("org.quartz.jobStore.isClustered", String.valueOf(Boolean.TRUE.equals(jobProperties.getClustered())));
+        prop.put("org.quartz.jobStore.clusterCheckinInterval", String.valueOf(normalizePositive(
+                jobProperties.getClusterCheckinInterval(), 15000L)));
         prop.put("org.quartz.jobStore.maxMisfiresToHandleAtATime", "1");
         prop.put("org.quartz.jobStore.txIsolationLevelSerializable", "true");
 
-        prop.put("org.quartz.jobStore.misfireThreshold", "12000");
-        prop.put("org.quartz.jobStore.tablePrefix", "QRTZ_");
+        prop.put("org.quartz.jobStore.misfireThreshold", String.valueOf(normalizePositive(
+                jobProperties.getMisfireThreshold(), 12000L)));
+        prop.put("org.quartz.jobStore.tablePrefix", normalizeTablePrefix(jobProperties.getTablePrefix()));
         factory.setQuartzProperties(prop);
 
         factory.setSchedulerName("ForgeScheduler_");
@@ -57,5 +58,27 @@ public class ScheduleConfig {
         factory.setAutoStartup(true);
 
         return factory;
+    }
+
+    private int normalizeThreadPoolSize(JobProperties jobProperties) {
+        Integer threadPoolSize = jobProperties.getThreadPoolSize();
+        if (threadPoolSize == null) {
+            return 20;
+        }
+        return Math.min(Math.max(threadPoolSize, 1), 100);
+    }
+
+    private long normalizePositive(Long value, long fallback) {
+        if (value == null || value <= 0) {
+            return fallback;
+        }
+        return value;
+    }
+
+    private String normalizeTablePrefix(String tablePrefix) {
+        if (tablePrefix == null || tablePrefix.isBlank()) {
+            return "QRTZ_";
+        }
+        return tablePrefix.trim();
     }
 }

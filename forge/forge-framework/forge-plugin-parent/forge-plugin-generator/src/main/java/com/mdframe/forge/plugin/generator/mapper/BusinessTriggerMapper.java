@@ -19,4 +19,10 @@ public interface BusinessTriggerMapper extends BaseMapper<AiBusinessTrigger> {
     List<AiBusinessTrigger> selectActiveByObjectAndEvent(@Param("tenantId") Long tenantId,
                                                          @Param("objectCode") String objectCode,
                                                          @Param("eventType") String eventType);
+
+    List<AiBusinessTrigger> selectActiveScheduleTriggers(@Param("limit") Integer limit);
+
+    Long countActiveByObjectAndAction(@Param("tenantId") Long tenantId,
+                                      @Param("objectCode") String objectCode,
+                                      @Param("actionType") String actionType);
 }

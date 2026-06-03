@@ -9,9 +9,67 @@
 -->
 
 <template>
-  <div class="ai-crud-page">
+  <div class="ai-crud-page" :class="{ 'is-form-only': formOnly }">
+    <div v-if="formOnlySubmitted" class="ai-crud-form-only-result">
+      <n-result
+        status="success"
+        :title="formOnlySuccessTitle"
+        :description="formOnlySuccessDescription"
+      >
+        <template #footer>
+          <n-button type="primary" @click="resetFormOnly">
+            继续填报
+          </n-button>
+        </template>
+      </n-result>
+    </div>
+
+    <div v-else-if="formOnly" class="ai-crud-form-only">
+      <header class="form-only-head">
+        <h2>{{ resolvedFormOnlyTitle }}</h2>
+      </header>
+      <div class="form-only-body">
+        <AiForm
+          ref="formRef"
+          v-model:value="formData"
+          :class="editFormClass"
+          :style="editFormStyle"
+          :schema="modalFormSchema"
+          :grid-cols="editGridCols"
+          :label-width="editLabelWidth"
+          :label-placement="editLabelPlacement"
+          :label-align="editLabelAlign"
+          :size="editSize"
+          :x-gap="editXGap"
+          :y-gap="editYGap"
+          :show-feedback="editShowFeedback"
+          :show-actions="false"
+          :context="formContext"
+        >
+          <template v-for="slotName in formSlots" #[slotName]="slotProps">
+            <slot :name="`form-${slotName}`" v-bind="slotProps" />
+          </template>
+        </AiForm>
+        <ChildTableEditor
+          v-if="hasChildrenConfig"
+          ref="childFormRef"
+          v-model:value="childFormData"
+          :children-config="visibleChildrenConfig"
+          :readonly="isDetailMode"
+        />
+      </div>
+      <footer class="form-only-footer">
+        <n-button secondary @click="resetFormOnly">
+          重置
+        </n-button>
+        <n-button type="primary" :loading="confirmLoading" @click="handleModalConfirm">
+          {{ formOnlySubmitText }}
+        </n-button>
+      </footer>
+    </div>
+
     <!-- 搜索表单区域 -->
-    <div v-if="showSearch && searchSchema.length > 0" class="ai-crud-search">
+    <div v-if="!formOnly && showSearch && searchSchema.length > 0" class="ai-crud-search">
       <AiSearch
         ref="searchRef"
         v-model="searchParams"
@@ -38,7 +96,7 @@
     </div>
 
     <!-- 主内容区域 -->
-    <div class="ai-crud-main">
+    <div v-if="!formOnly" class="ai-crud-main">
       <!-- 数据表格区域 -->
       <div class="ai-crud-table">
         <AiTable
@@ -180,7 +238,7 @@
 
     <!-- 新增/编辑弹窗 - Modal 模式 -->
     <n-modal
-      v-if="modalType === 'modal'"
+      v-if="!formOnly && modalType === 'modal'"
       v-model:show="modalVisible"
       :title="modalTitle"
       preset="card"
@@ -239,7 +297,7 @@
 
     <!-- 新增/编辑抽屉 - Drawer 模式 -->
     <n-drawer
-      v-else
+      v-else-if="!formOnly"
       v-model:show="modalVisible"
       :width="modalWidth"
       :placement="drawerPlacement"
@@ -479,6 +537,7 @@ const formData = ref({})
 const childFormData = ref({})
 const confirmLoading = ref(false)
 const currentRow = ref(null)
+const formOnlySubmitted = ref(false)
 
 // 导入
 const importModalVisible = ref(false)
@@ -511,8 +570,9 @@ const maxActionButtons = 2
  * @param {Array} actions - 操作按钮配置 [{ label, key, type, onClick, visible }]
  */
 function renderActionColumn(row, actions, maxVisibleActions = maxActionButtons) {
+  const mergedActions = mergeRuntimeActions(actions, row)
   // 过滤不可见的按钮
-  const visibleActions = actions.filter((action) => {
+  const visibleActions = mergedActions.filter((action) => {
     if (typeof action.visible === 'function')
       return action.visible(row)
     if (action.visible === false)
@@ -533,11 +593,17 @@ function renderActionColumn(row, actions, maxVisibleActions = maxActionButtons) 
       }
       const typeClass = action.type ? `type-${action.type}` : ''
       const isDanger = action.type === 'error' || action.type === 'danger'
+      const disabled = isActionDisabled(action, row)
       nodes.push(h('a', {
-        class: ['table-action-link', typeClass, isDanger ? 'danger' : ''],
+        class: ['table-action-link', typeClass, isDanger ? 'danger' : '', disabled ? 'disabled' : ''],
+        title: disabled ? actionDisabledReason(action, row) : action.label,
         onClick: (e) => {
           e?.stopPropagation()
           e?.preventDefault()
+          if (disabled) {
+            showActionDisabledMessage(action, row)
+            return
+          }
           if (action.onClick)
             action.onClick(row)
           else handleActionClick(action, row)
@@ -552,6 +618,7 @@ function renderActionColumn(row, actions, maxVisibleActions = maxActionButtons) 
   const dropdownOptions = visibleActions.slice(maxVisibleActions).map(action => ({
     label: action.label,
     key: action.key || action.label,
+    disabled: isActionDisabled(action, row),
   }))
 
   const inlineNodes = inlineActions.map((action, index) => {
@@ -561,11 +628,17 @@ function renderActionColumn(row, actions, maxVisibleActions = maxActionButtons) 
     }
     const typeClass = action.type ? `type-${action.type}` : ''
     const isDanger = action.type === 'error' || action.type === 'danger'
+    const disabled = isActionDisabled(action, row)
     nodes.push(h('a', {
-      class: ['table-action-link', typeClass, isDanger ? 'danger' : ''],
+      class: ['table-action-link', typeClass, isDanger ? 'danger' : '', disabled ? 'disabled' : ''],
+      title: disabled ? actionDisabledReason(action, row) : action.label,
       onClick: (e) => {
         e?.stopPropagation()
         e?.preventDefault()
+        if (disabled) {
+          showActionDisabledMessage(action, row)
+          return
+        }
         if (action.onClick)
           action.onClick(row)
         else handleActionClick(action, row)
@@ -582,6 +655,10 @@ function renderActionColumn(row, actions, maxVisibleActions = maxActionButtons) 
       trigger: 'click',
       onSelect: (key) => {
         const action = visibleActions.find(a => (a.key || a.label) === key)
+        if (action && isActionDisabled(action, row)) {
+          showActionDisabledMessage(action, row)
+          return
+        }
         if (action?.onClick)
           action.onClick(row)
         else handleActionClick(action || key, row)
@@ -593,6 +670,72 @@ function renderActionColumn(row, actions, maxVisibleActions = maxActionButtons) 
       }, '更多'),
     }),
   ])
+}
+
+function mergeRuntimeActions(actions = [], row) {
+  const next = Array.isArray(actions) ? [...actions] : []
+  const runtimeActions = [
+    ...(Array.isArray(props.runtimeActions) ? props.runtimeActions : []),
+    ...(Array.isArray(row?._runtimeActions) ? row._runtimeActions : []),
+  ].map(action => normalizeRuntimeAction(action, row)).filter(Boolean)
+  runtimeActions.forEach((action) => {
+    const existingIndex = next.findIndex(item => sameAction(item, action))
+    if (existingIndex >= 0) {
+      next[existingIndex] = {
+        ...next[existingIndex],
+        ...action,
+        label: next[existingIndex].label || action.label,
+      }
+    }
+    else {
+      next.push(action)
+    }
+  })
+  return next
+}
+
+function normalizeRuntimeAction(action, row) {
+  if (!action || action.visible === false)
+    return null
+  const key = action.key || action.actionType || action.label
+  if (!key)
+    return null
+  return {
+    ...action,
+    key,
+    label: action.label || key,
+    actionType: action.actionType || key,
+    objectCode: action.objectCode || row?._runtimeObjectCode,
+    recordId: action.recordId || resolveRowKeyValue(row),
+  }
+}
+
+function sameAction(left, right) {
+  if (!left || !right)
+    return false
+  const leftKey = String(left.key || '').toUpperCase()
+  const rightKey = String(right.key || '').toUpperCase()
+  const leftType = String(left.actionType || '').toUpperCase()
+  const rightType = String(right.actionType || '').toUpperCase()
+  if (leftKey && rightKey && leftKey === rightKey)
+    return true
+  return leftType && rightType && leftType === rightType
+}
+
+function isActionDisabled(action, row) {
+  if (typeof action.disabled === 'function')
+    return !!action.disabled(row)
+  return !!action.disabled
+}
+
+function actionDisabledReason(action, row) {
+  if (typeof action.disabledReason === 'function')
+    return action.disabledReason(row)
+  return action.disabledReason || '当前状态不可执行'
+}
+
+function showActionDisabledMessage(action, row) {
+  window.$message?.warning(actionDisabledReason(action, row))
 }
 
 /**
@@ -628,6 +771,10 @@ function handleConfiguredAction(action, row) {
   if (action.confirmText && !confirmConfiguredAction(resolveActionText(action.confirmText, row)))
     return
   const actionType = action.actionType || 'route'
+  if (actionType === 'START_FLOW' || action.key === 'START_FLOW') {
+    startFlowAction(action, row)
+    return
+  }
   if (actionType === 'refresh') {
     loadList()
     return
@@ -645,6 +792,26 @@ function handleConfiguredAction(action, row) {
   }
   if (actionType === 'external' && action.routePath) {
     window.open(buildActionTarget(action, row), action.openTarget || '_blank')
+  }
+}
+
+async function startFlowAction(action, row) {
+  const objectCode = action.objectCode || row?._runtimeObjectCode || row?.objectCode
+  const recordId = action.recordId || resolveRowKeyValue(row)
+  if (!objectCode || !recordId) {
+    window.$message.warning('缺少业务对象或记录ID，无法发起主流程')
+    return
+  }
+  try {
+    await request.post('/ai/business/flow/start', {
+      objectCode,
+      recordId,
+    })
+    window.$message.success('流程已发起')
+    loadList()
+  }
+  catch (error) {
+    window.$message.error(error.message || '发起主流程失败')
   }
 }
 
@@ -852,7 +1019,7 @@ function getColumnKey(col) {
 
 function isActionColumnConfig(col) {
   const key = getColumnKey(col)
-  return key === 'action' || key === 'actions'
+  return ['action', 'actions', 'operation', 'operations'].includes(key)
 }
 
 const activeSourceColumns = computed(() => {
@@ -872,10 +1039,10 @@ const activeSourceColumns = computed(() => {
 const tableColumns = computed(() => {
   const cols = []
 
-  // 判断是否是操作列（兼容 action / actions 两种写法）
+  // 判断是否是操作列（兼容 action / actions / operation 等写法）
   const isActionCol = (col) => {
     const key = col.prop || col.key || col.dataIndex || ''
-    return key === 'action' || key === 'actions'
+    return ['action', 'actions', 'operation', 'operations'].includes(key)
   }
 
   activeSourceColumns.value.forEach((col) => {
@@ -1092,6 +1259,8 @@ const formContext = computed(() => {
     currentRow: currentRow.value,
   }
 })
+
+const resolvedFormOnlyTitle = computed(() => props.formOnlyTitle || props.addButtonText || '单据填报')
 
 /**
  * 计算横向滚动宽度
@@ -1463,6 +1632,18 @@ watch(
   },
 )
 
+watch(
+  () => props.formOnly,
+  (value, oldValue) => {
+    if (value && !oldValue) {
+      handleAdd()
+      return
+    }
+    if (!value && oldValue && !props.lazy)
+      loadList()
+  },
+)
+
 /**
  * 统一规范化编辑表单回填数据
  * - number/inputNumber：字符串 → 数字
@@ -1586,6 +1767,7 @@ function buildMasterDetailSubmitData(data) {
  * 新增
  */
 async function handleAdd(defaultValues = null, options = {}) {
+  formOnlySubmitted.value = false
   const presetValues = isPlainRecord(defaultValues)
     ? defaultValues
     : null
@@ -1593,8 +1775,8 @@ async function handleAdd(defaultValues = null, options = {}) {
   modalStatus.value = 'add'
   currentRow.value = null
 
-  // 先打开弹窗
-  modalVisible.value = true
+  if (!props.formOnly)
+    modalVisible.value = true
 
   // 使用 nextTick 确保弹窗已渲染
   await nextTick()
@@ -2004,12 +2186,18 @@ async function handleModalConfirm() {
     }
 
     window.$message.success(`${isEdit ? '编辑' : '新增'}成功`)
-    modalVisible.value = false
+    if (props.formOnly) {
+      formOnlySubmitted.value = true
+    }
+    else {
+      modalVisible.value = false
+    }
 
     // 触发提交成功事件
     emit('submit-success', { data, response, isEdit })
 
-    loadList()
+    if (!props.formOnly)
+      loadList()
   }
   catch (error) {
     console.error('提交失败:', error)
@@ -2050,6 +2238,11 @@ function handleModalClose() {
   formRef.value?.restoreValidation()
 
   emit('modal-close')
+}
+
+function resetFormOnly() {
+  formOnlySubmitted.value = false
+  handleAdd()
 }
 
 /**
@@ -2549,6 +2742,10 @@ defineExpose({
  * ==================== 生命周期 ====================
  */
 onMounted(() => {
+  if (props.formOnly) {
+    handleAdd()
+    return
+  }
   if (!props.lazy) {
     loadList()
   }
@@ -2560,11 +2757,15 @@ onBeforeUnmount(() => {
 
 // 监听公共参数变化
 watch(() => props.publicParams, () => {
+  if (props.formOnly)
+    return
   pagination.value.page = 1
   loadList()
 }, { deep: true })
 
 watch(() => props.publicQuery, () => {
+  if (props.formOnly)
+    return
   pagination.value.page = 1
   loadList()
 }, { deep: true })
@@ -2578,6 +2779,53 @@ watch(() => props.publicQuery, () => {
   flex-direction: column;
   gap: 0;
   background: var(--bg-primary);
+}
+
+.ai-crud-page.is-form-only {
+  overflow: auto;
+  background: #f6f8fb;
+  padding: 16px;
+}
+
+.ai-crud-form-only,
+.ai-crud-form-only-result {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.ai-crud-form-only-result {
+  display: grid;
+  min-height: 360px;
+  place-items: center;
+}
+
+.form-only-head {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 18px;
+}
+
+.form-only-head h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.form-only-body {
+  padding: 18px;
+}
+
+.form-only-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid #e5e7eb;
+  background: #f8fafc;
+  padding: 12px 18px;
 }
 
 /* 搜索区域 */
@@ -2675,6 +2923,13 @@ watch(() => props.publicQuery, () => {
 :deep(.table-action-link:hover) {
   background: var(--primary-50);
   color: var(--primary-700);
+}
+
+:deep(.table-action-link.disabled),
+:deep(.table-action-link.disabled:hover) {
+  background: transparent;
+  color: var(--text-disabled, #94a3b8);
+  cursor: not-allowed;
 }
 
 :deep(.table-action-link.type-info) {

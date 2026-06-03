@@ -81,4 +81,27 @@
         ORDER BY sort_order ASC
     </select>
 
+    <select id="selectActiveScheduleTriggers" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_trigger
+        WHERE status = 1
+          AND trigger_type IN ('SCHEDULE', 'SCHEDULED')
+        ORDER BY
+          CASE WHEN last_execute_time IS NULL THEN 0 ELSE 1 END ASC,
+          last_execute_time ASC,
+          sort_order ASC,
+          id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="countActiveByObjectAndAction" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_trigger
+        WHERE tenant_id = #{tenantId}
+          AND object_code = #{objectCode}
+          AND action_type = #{actionType}
+          AND status = 1
+    </select>
+
 </mapper>

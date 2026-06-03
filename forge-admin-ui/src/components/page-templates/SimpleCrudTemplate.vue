@@ -1,9 +1,10 @@
 <template>
   <!-- 标准 CRUD 模板：直接复用 AiCrudPage 组件 -->
-  <AiCrudPage v-bind="crudProps" />
+  <AiCrudPage ref="crudRef" v-bind="crudProps" />
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import AiCrudPage from '@/components/ai-form/AiCrudPage.vue'
 
 /**
@@ -16,5 +17,13 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+})
+
+const crudRef = ref(null)
+
+defineExpose({
+  showAdd: (...args) => crudRef.value?.showAdd?.(...args),
+  showDetail: (...args) => crudRef.value?.showDetail?.(...args),
+  refresh: (...args) => crudRef.value?.refresh?.(...args),
 })
 </script>

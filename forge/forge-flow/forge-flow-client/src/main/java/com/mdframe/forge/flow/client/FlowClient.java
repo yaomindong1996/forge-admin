@@ -350,6 +350,14 @@ public class FlowClient {
         return get(builder.toUriString(), new TypeReference<FlowResult<Map<String, Object>>>() {});
     }
 
+    /**
+     * 根据模型 Key 获取流程模型详情。
+     */
+    public FlowResult<Map<String, Object>> getModelByKey(String modelKey) {
+        String url = flowServiceUrl + "/api/flow/model/key/" + modelKey;
+        return get(url, new TypeReference<FlowResult<Map<String, Object>>>() {});
+    }
+
     // ==================== HTTP 方法封装 ====================
 
     private HttpHeaders buildHeaders() {

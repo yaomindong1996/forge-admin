@@ -5,7 +5,7 @@
     布局：左侧树 + 右侧标准 CRUD 表格
     当 treeConfig 未配置时，降级为标准 CRUD
   -->
-  <div v-if="hasTree" class="tree-crud-layout">
+  <div v-if="hasTree && !crudProps.formOnly" class="tree-crud-layout">
     <!-- 左侧树形导航 -->
     <div class="tree-crud-left">
       <div class="tree-header">
@@ -31,6 +31,7 @@
     <!-- 右侧 CRUD 表格 -->
     <div class="tree-crud-right">
       <AiCrudPage
+        ref="crudRef"
         v-bind="mergedCrudProps"
         @submit-success="loadTreeData"
         @delete="loadTreeData"
@@ -38,7 +39,7 @@
     </div>
   </div>
   <!-- 无树形配置时降级为标准 CRUD -->
-  <AiCrudPage v-else v-bind="crudProps" />
+  <AiCrudPage v-else ref="crudRef" v-bind="crudProps" />
 </template>
 
 <script setup>
@@ -67,6 +68,7 @@ const treeLoading = ref(false)
 const treeData = ref([])
 const selectedKeys = ref([])
 const selectedId = ref(null)
+const crudRef = ref(null)
 const normalizedTreeData = computed(() => normalizeTreeNodes(treeData.value))
 
 // 合并 crudProps，注入 parentId 过滤
@@ -251,6 +253,12 @@ function resolveTreeTargetValue(node, fallbackKey) {
   const targetField = treeConfig.value?.targetField || treeConfig.value?.keyField || 'id'
   return node[targetField] ?? node.targetValue ?? node.key ?? fallbackKey ?? null
 }
+
+defineExpose({
+  showAdd: (...args) => crudRef.value?.showAdd?.(...args),
+  showDetail: (...args) => crudRef.value?.showDetail?.(...args),
+  refresh: (...args) => crudRef.value?.refresh?.(...args),
+})
 </script>
 
 <style scoped>

@@ -41,7 +41,7 @@
                     @update:value="handleFlowChange"
                   />
                 </n-form-item-gi>
-                <n-form-item-gi label="发起方式">
+                <n-form-item-gi label="谁来发起">
                   <n-select
                     v-model:value="form.startMode"
                     :options="startModeOptions"
@@ -49,10 +49,12 @@
                   />
                 </n-form-item-gi>
                 <n-form-item-gi :span="2" label="流程标题模板">
-                  <n-input
-                    v-model:value="form.titleTemplate"
+                  <TemplateVariableEditor
+                    v-model="form.titleTemplate"
+                    :fields="fieldOptions"
+                    :variables="variableOptions"
                     placeholder="例如：${opportunityName}-流程"
-                    @update:value="markDirty"
+                    @update:model-value="markDirty"
                   />
                 </n-form-item-gi>
               </n-grid>
@@ -63,36 +65,18 @@
             <div class="flow-card-head">
               <div>
                 <h4>变量映射</h4>
-                <p>保存为 formField / flowVariable，发起流程时由后端转换为流程变量。</p>
-              </div>
-              <n-button size="small" dashed @click="addMapping">
-                添加映射
-              </n-button>
-            </div>
-            <div v-if="form.variableMapping.length" class="mapping-list">
-              <div v-for="(mapping, index) in form.variableMapping" :key="mapping.clientKey" class="mapping-row">
-                <n-select
-                  v-model:value="mapping.formField"
-                  :options="fieldOptions"
-                  clearable
-                  filterable
-                  placeholder="单据字段"
-                  @update:value="value => updateMappingLabel(mapping, value)"
-                />
-                <span>→</span>
-                <n-input
-                  v-model:value="mapping.flowVariable"
-                  placeholder="流程变量名"
-                  @update:value="markDirty"
-                />
-                <n-button quaternary circle size="small" @click="removeMapping(index)">
-                  <template #icon>
-                    <n-icon><TrashOutline /></n-icon>
-                  </template>
-                </n-button>
+                <p>流程变量来自已选模型，推荐映射只补充空项，不覆盖手动配置。</p>
               </div>
             </div>
-            <n-empty v-else description="暂无变量映射" />
+            <FlowVariableMappingEditor
+              v-model="form.variableMapping"
+              :field-options="fieldOptions"
+              :variable-options="variableOptions"
+              :suggestions="mappingSuggestions"
+              :warnings="variableWarnings"
+              :loading="variablesLoading"
+              @update:model-value="markDirty"
+            />
           </section>
         </n-spin>
       </main>
@@ -113,6 +97,10 @@
               <span>变量映射</span>
               <strong>{{ validMappingCount }} 项</strong>
             </div>
+            <div>
+              <span>变量候选</span>
+              <strong>{{ variableOptions.length }} 项</strong>
+            </div>
           </div>
         </section>
       </aside>
@@ -121,11 +109,12 @@
 </template>
 
 <script setup>
-import { TrashOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
-import { businessFlowBinding, saveBusinessFlowBinding } from '@/api/business-app'
+import { businessFlowBinding, businessFlowVariables, saveBusinessFlowBinding } from '@/api/business-app'
 import flowApi from '@/api/flow'
+import FlowVariableMappingEditor from './FlowVariableMappingEditor.vue'
+import TemplateVariableEditor from './TemplateVariableEditor.vue'
 
 const props = defineProps({
   objectCode: {
@@ -148,13 +137,17 @@ const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
 const flowModelsLoading = ref(false)
+const variablesLoading = ref(false)
 const flowModelOptions = ref([])
+const variableOptions = ref([])
+const mappingSuggestions = ref([])
+const variableWarnings = ref([])
 const form = reactive(createDefaultBinding())
 
 const startModeOptions = [
-  { label: '手动发起', value: 'MANUAL' },
+  { label: '用户点击按钮', value: 'MANUAL' },
   { label: '触发器自动发起', value: 'TRIGGER' },
-  { label: '手动与触发器', value: 'BOTH' },
+  { label: '按钮和触发器都可以', value: 'BOTH' },
 ]
 
 const fieldOptions = computed(() => props.fields
@@ -182,6 +175,7 @@ async function loadBinding() {
       loadFlowModels(),
     ])
     assignBinding(bindingRes.data || props.initialBinding || createDefaultBinding())
+    await loadVariableCandidates()
     emit('loaded', { ...form })
     emit('dirtyChange', false)
   }
@@ -280,27 +274,35 @@ function createDefaultBinding() {
 
 function handleFlowChange(value) {
   form.flowModelName = flowModelOptions.value.find(item => item.value === value)?.modelName || ''
+  form.variableMapping = []
+  loadVariableCandidates()
   markDirty()
 }
 
-function addMapping() {
-  form.variableMapping.push({
-    clientKey: `mapping_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    formField: null,
-    flowVariable: '',
-    label: '',
-  })
-  markDirty()
-}
-
-function removeMapping(index) {
-  form.variableMapping.splice(index, 1)
-  markDirty()
-}
-
-function updateMappingLabel(mapping, value) {
-  mapping.label = fieldLabel(value)
-  markDirty()
+async function loadVariableCandidates() {
+  variableOptions.value = []
+  mappingSuggestions.value = []
+  variableWarnings.value = []
+  if (!form.flowModelKey)
+    return
+  variablesLoading.value = true
+  try {
+    const res = await businessFlowVariables(form.flowModelKey, { objectCode: props.objectCode })
+    const data = res.data || {}
+    variableOptions.value = (data.flowVariables || []).map(item => ({
+      label: `${item.displayName || item.variableName}（${item.variableName}）`,
+      value: item.variableName,
+      source: item.source,
+    })).filter(item => item.value)
+    mappingSuggestions.value = data.mappingSuggestions || []
+    variableWarnings.value = data.warnings || []
+  }
+  catch (e) {
+    variableWarnings.value = [e.message || '流程变量候选项加载失败']
+  }
+  finally {
+    variablesLoading.value = false
+  }
 }
 
 function selectedFlowName() {
@@ -320,6 +322,10 @@ function fieldCode(field = {}) {
 
 function normalizeStartMode(value) {
   const normalized = String(value || 'MANUAL').toUpperCase()
+  if (['MANUAL_AND_TRIGGER', 'MANUAL_TRIGGER'].includes(normalized))
+    return 'BOTH'
+  if (['AUTO', 'AUTOMATIC'].includes(normalized))
+    return 'TRIGGER'
   return startModeOptions.some(item => item.value === normalized) ? normalized : 'MANUAL'
 }
 
@@ -406,6 +412,10 @@ defineExpose({
 .mapping-list {
   display: grid;
   gap: 8px;
+}
+
+.variable-warning {
+  margin-top: 10px;
 }
 
 .mapping-row {

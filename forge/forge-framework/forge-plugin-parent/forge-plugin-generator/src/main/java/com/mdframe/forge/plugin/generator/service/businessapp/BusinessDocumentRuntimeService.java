@@ -4,6 +4,7 @@ import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessDocumentConfig
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessFlowInstanceLink;
 import com.mdframe.forge.plugin.generator.mapper.BusinessFlowInstanceLinkMapper;
 import com.mdframe.forge.plugin.generator.service.DynamicCrudService;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessDocumentConfigVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessDocumentRuntimeVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
@@ -11,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -63,6 +65,7 @@ public class BusinessDocumentRuntimeService {
         List<String> actions = permissionService.resolveAvailableActions(objectCode, recordId, recordData);
         vo.setAvailableActions(actions);
         fillNextAction(vo, config, link, actions);
+        fillRuntimeActions(vo, config, link, actions);
         return vo;
     }
 
@@ -72,11 +75,30 @@ public class BusinessDocumentRuntimeService {
             throw new BusinessException(StringUtils.defaultIfBlank(runtime.getMessage(), "当前对象未启用单据模式"));
         }
         if (StringUtils.isBlank(runtime.getBusinessKey()) || recordId == null) {
-            throw new BusinessException("请先保存记录后再发起流程");
+            throw new BusinessException("请先保存记录后再发起主流程");
         }
         if (checkPermission && (runtime.getAvailableActions() == null
                 || !runtime.getAvailableActions().contains("START_FLOW"))) {
-            throw new BusinessException("缺少发起流程权限");
+            throw new BusinessException("缺少发起主流程权限");
+        }
+        if (!checkPermission) {
+            if ("CONFIG_FLOW".equals(runtime.getNextAction())) {
+                throw new BusinessException(StringUtils.defaultIfBlank(runtime.getMessage(), "请先配置主流程"));
+            }
+            if ("VIEW_FLOW".equals(runtime.getNextAction())) {
+                throw new BusinessException("当前单据已有流转中的流程");
+            }
+            if ("WAIT_STATUS".equals(runtime.getNextAction())) {
+                throw new BusinessException(StringUtils.defaultIfBlank(runtime.getMessage(), "当前单据状态不可发起主流程"));
+            }
+            return;
+        }
+        BusinessDocumentRuntimeVO.RuntimeActionVO startAction = findRuntimeAction(runtime, "START_FLOW");
+        if (startAction == null || !Boolean.TRUE.equals(startAction.getVisible())) {
+            throw new BusinessException(StringUtils.defaultIfBlank(runtime.getMessage(), "当前单据不可发起主流程"));
+        }
+        if (Boolean.TRUE.equals(startAction.getDisabled())) {
+            throw new BusinessException(StringUtils.defaultIfBlank(startAction.getDisabledReason(), "当前单据不可发起主流程"));
         }
     }
 
@@ -89,7 +111,9 @@ public class BusinessDocumentRuntimeService {
 
     private void fillNextAction(BusinessDocumentRuntimeVO vo, AiBusinessDocumentConfig config,
                                 AiBusinessFlowInstanceLink link, List<String> actions) {
-        if (StringUtils.isBlank(config.getDefaultFlowKey())) {
+        BusinessDocumentConfigVO configVO = documentConfigService.toVO(config);
+        Map<String, Object> mainFlowSummary = configVO.getMainFlowSummary();
+        if (!isMainFlowConfigured(mainFlowSummary)) {
             vo.setNextAction("CONFIG_FLOW");
             vo.setMessage("单据模式已启用，尚未配置默认流程");
             return;
@@ -99,13 +123,129 @@ public class BusinessDocumentRuntimeService {
             vo.setMessage("流程流转中");
             return;
         }
+        if (!isManualStartMode(text(mainFlowSummary.get("startMode")))) {
+            vo.setNextAction("CONFIG_TRIGGER");
+            vo.setMessage("当前主流程配置为触发器自动发起");
+            return;
+        }
+        StatusPolicy statusPolicy = resolveStatusPolicy(configVO, vo.getDocumentStatus());
+        if (!statusPolicy.allowStartFlow()) {
+            vo.setNextAction("WAIT_STATUS");
+            vo.setMessage(StringUtils.defaultIfBlank(statusPolicy.reason(), "当前单据状态不可发起主流程"));
+            return;
+        }
         if (actions.contains("START_FLOW")) {
             vo.setNextAction("START_FLOW");
-            vo.setMessage("可发起流程");
+            vo.setMessage("可发起主流程");
             return;
         }
         vo.setNextAction("REQUEST_PERMISSION");
         vo.setMessage("缺少可执行的单据动作权限");
+    }
+
+    private void fillRuntimeActions(BusinessDocumentRuntimeVO vo, AiBusinessDocumentConfig config,
+                                    AiBusinessFlowInstanceLink link, List<String> actions) {
+        List<BusinessDocumentRuntimeVO.RuntimeActionVO> runtimeActions = new ArrayList<>();
+        BusinessDocumentConfigVO configVO = documentConfigService.toVO(config);
+        Map<String, Object> mainFlowSummary = configVO.getMainFlowSummary();
+        String startMode = mainFlowSummary == null ? "MANUAL" : text(mainFlowSummary.get("startMode"));
+        if (!isManualStartMode(startMode)) {
+            vo.setRuntimeActions(runtimeActions);
+            return;
+        }
+
+        BusinessDocumentRuntimeVO.RuntimeActionVO action = new BusinessDocumentRuntimeVO.RuntimeActionVO();
+        action.setKey("START_FLOW");
+        action.setLabel("发起主流程");
+        action.setType("success");
+        action.setActionType("START_FLOW");
+        action.setVisible(true);
+        action.setDisabled(false);
+        action.setObjectCode(config.getObjectCode());
+        action.setRecordId(readRecordId(vo));
+
+        if (!isMainFlowConfigured(mainFlowSummary)) {
+            action.setDisabled(true);
+            action.setDisabledReason("请先配置主流程");
+        } else if (link != null && isRunningFlow(link.getFlowStatus())) {
+            action.setDisabled(true);
+            action.setDisabledReason("当前单据已有流转中的流程");
+        } else {
+            StatusPolicy statusPolicy = resolveStatusPolicy(configVO, vo.getDocumentStatus());
+            if (!statusPolicy.allowStartFlow()) {
+                action.setDisabled(true);
+                action.setDisabledReason(StringUtils.defaultIfBlank(statusPolicy.reason(), "当前单据状态不可发起主流程"));
+            } else if (actions == null || !actions.contains("START_FLOW")) {
+                action.setDisabled(true);
+                action.setDisabledReason("缺少发起主流程权限");
+            }
+        }
+        runtimeActions.add(action);
+        vo.setRuntimeActions(runtimeActions);
+    }
+
+    private BusinessDocumentRuntimeVO.RuntimeActionVO findRuntimeAction(BusinessDocumentRuntimeVO runtime,
+                                                                        String actionKey) {
+        if (runtime == null || runtime.getRuntimeActions() == null) {
+            return null;
+        }
+        return runtime.getRuntimeActions().stream()
+                .filter(action -> actionKey.equalsIgnoreCase(action.getKey()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean isMainFlowConfigured(Map<String, Object> mainFlowSummary) {
+        return mainFlowSummary != null && Boolean.TRUE.equals(mainFlowSummary.get("configured"))
+                && StringUtils.isNotBlank(text(mainFlowSummary.get("flowModelKey")));
+    }
+
+    private boolean isManualStartMode(String startMode) {
+        String normalized = StringUtils.defaultIfBlank(startMode, "MANUAL").trim().toUpperCase();
+        return "MANUAL".equals(normalized)
+                || "BOTH".equals(normalized)
+                || "MANUAL_AND_TRIGGER".equals(normalized)
+                || "MANUAL_TRIGGER".equals(normalized);
+    }
+
+    private StatusPolicy resolveStatusPolicy(BusinessDocumentConfigVO configVO, String documentStatus) {
+        if (StringUtils.isBlank(documentStatus)) {
+            return new StatusPolicy(false, "单据状态为空，不能发起主流程");
+        }
+        if (configVO.getStatusMappingRows() != null) {
+            for (BusinessDocumentConfigVO.StatusMappingRowVO row : configVO.getStatusMappingRows()) {
+                if (row == null) {
+                    continue;
+                }
+                boolean matched = documentStatus.equals(row.getStatusValue())
+                        || documentStatus.equalsIgnoreCase(StringUtils.defaultString(row.getStandardStatus()));
+                if (!matched) {
+                    continue;
+                }
+                if (Boolean.TRUE.equals(row.getAllowStartFlow())) {
+                    return new StatusPolicy(true, null);
+                }
+                String label = StringUtils.firstNonBlank(row.getDisplayName(), row.getStandardLabel(), documentStatus);
+                return new StatusPolicy(false, "当前状态「" + label + "」不可发起主流程");
+            }
+        }
+        if ("DRAFT".equalsIgnoreCase(documentStatus) || "SUBMITTED".equalsIgnoreCase(documentStatus)) {
+            return new StatusPolicy(true, null);
+        }
+        return new StatusPolicy(false, "当前状态「" + documentStatus + "」不可发起主流程");
+    }
+
+    private Long readRecordId(BusinessDocumentRuntimeVO vo) {
+        String businessKey = vo.getBusinessKey();
+        if (StringUtils.isBlank(businessKey) || !businessKey.contains(":")) {
+            return null;
+        }
+        String idText = StringUtils.substringAfter(businessKey, ":");
+        try {
+            return Long.valueOf(idText);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private boolean isRunningFlow(String flowStatus) {
@@ -179,5 +319,8 @@ public class BusinessDocumentRuntimeService {
             tenantId = null;
         }
         return tenantId != null ? tenantId : 1L;
+    }
+
+    private record StatusPolicy(boolean allowStartFlow, String reason) {
     }
 }

@@ -83,6 +83,7 @@ import { useMessage } from 'naive-ui'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
+  businessAppDetail,
   businessAppOpenInfo,
   businessAppPage,
   businessSuiteSummary,
@@ -115,7 +116,7 @@ const summaryCards = computed(() => [
 ])
 const entryModeOptions = [
   { label: 'H5', value: 'H5' },
-  { label: '内部路由', value: 'ROUTE' },
+  { label: '系统已有页面', value: 'ROUTE' },
   { label: '外部链接', value: 'EXTERNAL' },
 ]
 
@@ -147,16 +148,25 @@ async function loadApps() {
   }
 }
 
-function openEditor(app) {
-  editingApp.value = app
-    ? { ...app }
-    : {
-        appType: 'MOBILE',
-        entryMode: 'H5',
-        appCode: '',
-        appName: '',
-        status: 1,
-      }
+async function openEditor(app) {
+  if (app?.id) {
+    try {
+      const res = await businessAppDetail(app.id)
+      editingApp.value = { ...app, ...(res.data || {}) }
+    }
+    catch {
+      editingApp.value = { ...app }
+    }
+  }
+  else {
+    editingApp.value = {
+      appType: 'MOBILE',
+      entryMode: 'H5',
+      appCode: '',
+      appName: '',
+      status: 1,
+    }
+  }
   editorVisible.value = true
 }
 

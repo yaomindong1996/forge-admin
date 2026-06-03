@@ -108,21 +108,25 @@ function parseCondition(value) {
     return {
       logic: normalizeLogic(source.logic),
       rules: source.rules.map(normalizeRule),
+      extras: extractExtras(source),
     }
   }
   if (source.field || source.op || source.operator) {
     return {
       logic: 'AND',
       rules: [normalizeRule(source)],
+      extras: extractExtras(source),
     }
   }
   return {
     logic: 'AND',
     rules: [],
+    extras: extractExtras(source),
   }
 }
 
 function serializeCondition(value) {
+  const extras = value.extras && typeof value.extras === 'object' ? value.extras : {}
   const rules = (value.rules || [])
     .map(rule => ({
       field: rule.field || '',
@@ -131,8 +135,9 @@ function serializeCondition(value) {
     }))
     .filter(rule => rule.field)
   if (!rules.length)
-    return ''
+    return Object.keys(extras).length ? JSON.stringify(extras) : ''
   return JSON.stringify({
+    ...extras,
     logic: normalizeLogic(value.logic),
     rules,
   })
@@ -153,6 +158,19 @@ function createRule() {
 
 function normalizeLogic(value) {
   return String(value || 'AND').toUpperCase() === 'OR' ? 'OR' : 'AND'
+}
+
+function extractExtras(source = {}) {
+  if (!source || typeof source !== 'object')
+    return {}
+  const extras = { ...source }
+  delete extras.logic
+  delete extras.rules
+  delete extras.field
+  delete extras.op
+  delete extras.operator
+  delete extras.value
+  return extras
 }
 
 function safeParse(value) {

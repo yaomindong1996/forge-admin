@@ -9,17 +9,17 @@
         <n-button size="small" secondary :loading="checking" @click="refresh">
           重新检查
         </n-button>
-        <n-button size="small" type="success" :disabled="publishing || !publishable" @click="handlePublish">
+        <n-button size="small" type="success" :loading="publishing" :disabled="!publishable" @click="handlePublish">
           {{ publishing ? '发布中' : '发布对象' }}
         </n-button>
       </n-space>
     </div>
 
     <div class="publish-check-body">
-      <div v-if="checking" class="publish-loading-mask">
+      <div v-if="checking || publishing" class="publish-loading-mask">
         <span class="loading-dot" />
       </div>
-      <div class="publish-check-content" :class="{ loading: checking }">
+      <div class="publish-check-content" :class="{ loading: checking || publishing }">
         <div class="publish-summary">
           <section class="publish-status-panel" :class="`status-${String(checkResult.overallStatus || 'WARN').toLowerCase()}`">
             <span>总体状态</span>
@@ -29,7 +29,7 @@
               同步数据表结构
             </n-checkbox>
             <n-space size="small">
-              <n-button size="small" type="success" :disabled="publishing || !publishable" @click="handlePublish">
+              <n-button size="small" type="success" :loading="publishing" :disabled="!publishable" @click="handlePublish">
                 {{ publishing ? '发布中' : '发布对象' }}
               </n-button>
               <n-button size="small" secondary :disabled="!runtimeInfo?.canOpen" @click="$emit('openRuntime')">

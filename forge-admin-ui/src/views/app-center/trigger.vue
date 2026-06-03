@@ -15,7 +15,7 @@
         </n-space>
       </div>
       <h1>触发器配置</h1>
-      <p>基于业务事件的自动化规则：当记录创建、修改或状态变更时自动发起流程、推送消息或更新字段。</p>
+      <p>基于业务事件的自动化规则：当记录创建、修改或状态变更时自动发起主流程、推送消息或更新字段。</p>
     </header>
 
     <section class="trigger-filters">
@@ -68,10 +68,17 @@
     <n-modal v-model:show="editorVisible" preset="card" :title="editingTrigger ? '编辑触发器' : '新增触发器'" style="width: 680px">
       <n-form ref="formRef" :model="formData" :rules="formRules" label-placement="left" label-width="100">
         <n-form-item label="触发器名称" path="triggerName">
-          <n-input v-model:value="formData.triggerName" placeholder="例：商机创建时发起流程" />
+          <n-input v-model:value="formData.triggerName" placeholder="例：商机创建时发起主流程" />
         </n-form-item>
         <n-form-item label="业务对象" path="objectCode">
-          <n-select v-model:value="formData.objectCode" :options="objectOptions" placeholder="选择业务对象" />
+          <n-select
+            v-model:value="formData.objectCode"
+            :options="objectOptions"
+            clearable
+            filterable
+            placeholder="选择业务对象"
+            @update:value="handleObjectCodeChange"
+          />
         </n-form-item>
         <n-form-item label="场景模板">
           <n-select
@@ -87,6 +94,46 @@
         </n-form-item>
         <n-form-item label="事件类型" path="eventType">
           <n-select v-model:value="formData.eventType" :options="eventTypeOptions" placeholder="选择事件类型" />
+        </n-form-item>
+        <n-form-item v-if="isScheduledTrigger && formData.developerMode !== 1" label="定时参数">
+          <div class="schedule-config-grid">
+            <n-select
+              :value="scheduleConfig.dueField"
+              :options="fieldOptions"
+              clearable
+              filterable
+              placeholder="到期字段"
+              @update:value="value => updateScheduleField('dueField', value || '')"
+            />
+            <n-input-number
+              :value="scheduleConfig.lookAheadDays"
+              :min="0"
+              :max="365"
+              placeholder="提前天数"
+              @update:value="value => updateScheduleField('lookAheadDays', value || 0)"
+            />
+            <n-input-number
+              :value="scheduleConfig.lookBehindDays"
+              :min="0"
+              :max="30"
+              placeholder="回看天数"
+              @update:value="value => updateScheduleField('lookBehindDays', value || 0)"
+            />
+            <n-input-number
+              :value="scheduleConfig.batchSize"
+              :min="1"
+              :max="200"
+              placeholder="单批数量"
+              @update:value="value => updateScheduleField('batchSize', value || 50)"
+            />
+            <n-input-number
+              :value="scheduleConfig.minIntervalMinutes"
+              :min="5"
+              :max="1440"
+              placeholder="最小间隔分钟"
+              @update:value="value => updateScheduleField('minIntervalMinutes', value || 5)"
+            />
+          </div>
         </n-form-item>
         <n-form-item label="开发者模式">
           <n-switch v-model:value="formData.developerMode" :checked-value="1" :unchecked-value="0" />
@@ -123,7 +170,6 @@
           :action-type="formData.actionType"
           :field-options="fieldOptions"
           :object-options="objectOptions"
-          :flow-model-options="flowModelOptions"
           :receiver-rule-options="receiverRuleOptions"
         />
 
@@ -136,7 +182,7 @@
           <n-button @click="editorVisible = false">
             取消
           </n-button>
-          <n-button type="primary" :loading="submitting" @click="handleSubmit">
+          <n-button type="primary" :loading="submitting" :disabled="!formData.objectCode" @click="handleSubmit">
             保存
           </n-button>
         </n-space>
@@ -155,7 +201,7 @@
 <script setup>
 import { useMessage } from 'naive-ui'
 import { computed, h, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   businessObjectFields,
   businessObjectList,
@@ -167,11 +213,11 @@ import {
   updateBusinessTrigger,
   updateBusinessTriggerStatus,
 } from '@/api/business-app'
-import flowApi from '@/api/flow'
 import TriggerActionConfigPanel from './components/TriggerActionConfigPanel.vue'
 import TriggerConditionBuilder from './components/TriggerConditionBuilder.vue'
 
 const router = useRouter()
+const route = useRoute()
 const message = useMessage()
 const triggers = ref([])
 const loading = ref(false)
@@ -183,6 +229,7 @@ const filterScenarioType = ref(null)
 const total = ref(0)
 const pagination = ref({ pageNum: 1, pageSize: 10 })
 const objectOptions = ref([])
+const businessObjects = ref([])
 const scenarioTemplates = ref([])
 const logDrawerVisible = ref(false)
 const logTriggerName = ref('')
@@ -190,14 +237,17 @@ const logs = ref([])
 const formRef = ref(null)
 
 const enabledCount = computed(() => triggers.value.filter(t => t.status === 1).length)
+const isScheduledTrigger = computed(() => {
+  const triggerType = String(formData.value.triggerType || '').toUpperCase()
+  return ['SCHEDULE', 'SCHEDULED'].includes(triggerType) || formData.value.eventType === 'SCHEDULED_DUE'
+})
+const scheduleConfig = computed(() => readScheduleConfig())
 const scenarioTemplateOptions = computed(() => scenarioTemplates.value.map(item => ({
   label: item.scenarioName || item.scenarioType,
   value: item.scenarioType,
 })))
 
 const formData = ref(initFormData())
-const flowModelOptions = ref([])
-const flowModelsLoading = ref(false)
 const fieldOptions = ref([])
 const objectFieldsCache = ref({})
 
@@ -218,7 +268,7 @@ const receiverRuleOptions = [
 
 const triggerTypeOptions = [
   { label: '事件触发', value: 'EVENT' },
-  { label: '定时触发', value: 'SCHEDULED' },
+  { label: '定时触发', value: 'SCHEDULE' },
 ]
 const eventTypeOptions = [
   { label: '记录创建', value: 'RECORD_CREATED' },
@@ -231,7 +281,7 @@ const eventTypeOptions = [
   { label: '到期提醒', value: 'SCHEDULED_DUE' },
 ]
 const actionTypeOptions = [
-  { label: '发起流程', value: 'START_FLOW' },
+  { label: '发起主流程', value: 'START_FLOW' },
   { label: '发送消息', value: 'SEND_MESSAGE' },
   { label: '创建记录', value: 'CREATE_RECORD' },
   { label: '更新字段', value: 'UPDATE_FIELD' },
@@ -277,20 +327,34 @@ const logColumns = [
 onMounted(loadAll)
 
 async function loadAll() {
-  await Promise.all([loadObjects(), loadScenarioTemplates(), loadFlowModels(), loadTriggers()])
+  await loadObjects()
+  applyRouteObjectContext()
+  await loadScenarioTemplates()
+  await loadTriggers()
 }
 
 async function loadObjects() {
   try {
     const res = await businessObjectList({})
-    objectOptions.value = (res.data || []).map(item => ({
+    businessObjects.value = res.data || []
+    objectOptions.value = businessObjects.value.map(item => ({
       label: item.objectName || item.objectCode,
       value: item.objectCode,
+      objectId: item.id,
+      suiteCode: item.suiteCode,
     }))
   }
   catch {
+    businessObjects.value = []
     objectOptions.value = []
   }
+}
+
+function applyRouteObjectContext() {
+  const queryObjectCode = normalizeQueryValue(route.query.objectCode)
+  if (!queryObjectCode)
+    return
+  filterObjectCode.value = queryObjectCode
 }
 
 async function loadScenarioTemplates() {
@@ -332,10 +396,9 @@ function openEditor(trigger) {
     formData.value = normalizeFormData(trigger)
   }
   else {
-    formData.value = initFormData()
+    formData.value = initFormData(resolveDefaultObjectCode())
   }
   editorVisible.value = true
-  loadFlowModels()
   if (formData.value.objectCode) {
     loadFieldOptions(formData.value.objectCode)
   }
@@ -343,6 +406,14 @@ function openEditor(trigger) {
 
 async function handleSubmit() {
   await formRef.value?.validate()
+  if (!formData.value.objectCode) {
+    message.warning('请先选择业务对象')
+    return
+  }
+  if (isScheduledTrigger.value && !scheduleConfig.value.dueField) {
+    message.warning('请选择定时触发的到期字段')
+    return
+  }
   submitting.value = true
   try {
     const payload = normalizeSubmitPayload(formData.value)
@@ -393,10 +464,10 @@ function actionTypeLabel(type) {
   return actionTypeOptions.find(o => o.value === type)?.label || type
 }
 
-function initFormData() {
+function initFormData(defaultObjectCode = null) {
   return {
     triggerName: '',
-    objectCode: null,
+    objectCode: defaultObjectCode,
     triggerType: 'EVENT',
     scenarioType: null,
     blockingMode: 'ASYNC',
@@ -409,31 +480,14 @@ function initFormData() {
   }
 }
 
-async function loadFlowModels() {
-  flowModelsLoading.value = true
-  try {
-    const res = await flowApi.getModelList({ status: 1 })
-    flowModelOptions.value = (res.data || []).map(m => ({
-      label: `${m.modelName || m.name}（${m.modelKey || m.key}）`,
-      value: m.modelKey || m.key,
-    }))
-  }
-  catch {
-    flowModelOptions.value = []
-  }
-  finally {
-    flowModelsLoading.value = false
-  }
-}
-
 async function loadFieldOptions(objectCode) {
   if (objectFieldsCache.value[objectCode]) {
     fieldOptions.value = objectFieldsCache.value[objectCode]
     return
   }
   try {
-    // 通过 objectOptions 找到 objectId
-    const obj = (await businessObjectList({ objectCode })).data?.find(o => o.objectCode === objectCode)
+    const obj = businessObjects.value.find(o => o.objectCode === objectCode)
+      || (await businessObjectList({ objectCode })).data?.find(o => o.objectCode === objectCode)
     if (!obj)
       return
     const res = await businessObjectFields(obj.id)
@@ -449,6 +503,15 @@ async function loadFieldOptions(objectCode) {
   }
 }
 
+function handleObjectCodeChange(value) {
+  formData.value.objectCode = value || null
+  fieldOptions.value = []
+  formData.value.eventCondition = ''
+  formData.value.actionConfig = ''
+  if (value)
+    loadFieldOptions(value)
+}
+
 function handleActionTypeChange() {
   formData.value.actionConfig = ''
 }
@@ -459,7 +522,7 @@ function applyScenarioTemplate(scenarioType) {
     return
   formData.value.eventType = template.eventType || formData.value.eventType
   formData.value.actionType = template.actionType || formData.value.actionType
-  formData.value.triggerType = template.eventType === 'SCHEDULED_DUE' ? 'SCHEDULED' : 'EVENT'
+  formData.value.triggerType = template.eventType === 'SCHEDULED_DUE' ? 'SCHEDULE' : 'EVENT'
   if (!formData.value.triggerName)
     formData.value.triggerName = template.scenarioName || ''
   if (!formData.value.triggerDesc)
@@ -471,6 +534,11 @@ function applyScenarioTemplate(scenarioType) {
       receiverIds: '',
     })
   }
+  else if (template.actionType === 'START_FLOW') {
+    formData.value.actionConfig = JSON.stringify({
+      useMainFlow: true,
+    })
+  }
   else {
     formData.value.actionConfig = ''
   }
@@ -480,6 +548,7 @@ function normalizeFormData(trigger = {}) {
   return {
     ...initFormData(),
     ...trigger,
+    triggerType: normalizeTriggerType(trigger.triggerType),
     developerMode: Number(trigger.developerMode || 0),
     actionConfig: stringifyJson(trigger.actionConfig),
     eventCondition: stringifyJson(trigger.eventCondition),
@@ -487,11 +556,55 @@ function normalizeFormData(trigger = {}) {
 }
 
 function normalizeSubmitPayload(value = {}) {
+  const object = businessObjects.value.find(item => item.objectCode === value.objectCode)
   return {
     ...value,
+    suiteCode: value.suiteCode || object?.suiteCode || '',
+    triggerType: normalizeTriggerType(value.triggerType),
     developerMode: Number(value.developerMode || 0),
     actionConfig: value.actionConfig || '{}',
     eventCondition: value.eventCondition || '',
+  }
+}
+
+function normalizeTriggerType(value) {
+  const type = String(value || 'EVENT').toUpperCase()
+  return type === 'SCHEDULED' ? 'SCHEDULE' : type
+}
+
+function readScheduleConfig() {
+  const condition = safeParseObject(formData.value.eventCondition)
+  const schedule = condition.schedule && typeof condition.schedule === 'object'
+    ? condition.schedule
+    : {}
+  return {
+    dueField: schedule.dueField || '',
+    lookAheadDays: Number(schedule.lookAheadDays || 0),
+    lookBehindDays: Number(schedule.lookBehindDays || 0),
+    batchSize: Number(schedule.batchSize || 50),
+    minIntervalMinutes: Math.max(Number(schedule.minIntervalMinutes || 5), 5),
+  }
+}
+
+function updateScheduleField(key, value) {
+  const condition = safeParseObject(formData.value.eventCondition)
+  const schedule = condition.schedule && typeof condition.schedule === 'object'
+    ? { ...condition.schedule }
+    : {}
+  schedule[key] = value
+  condition.schedule = schedule
+  formData.value.eventCondition = JSON.stringify(condition)
+}
+
+function safeParseObject(value) {
+  if (!value)
+    return {}
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  }
+  catch {
+    return {}
   }
 }
 
@@ -510,6 +623,19 @@ watch(() => formData.value.objectCode, (val) => {
   else
     fieldOptions.value = []
 })
+
+watch(() => route.query.objectCode, () => {
+  applyRouteObjectContext()
+  loadTriggers()
+})
+
+function resolveDefaultObjectCode() {
+  return normalizeQueryValue(route.query.objectCode) || filterObjectCode.value || null
+}
+
+function normalizeQueryValue(value) {
+  return Array.isArray(value) ? value[0] : value
+}
 </script>
 
 <style scoped>
@@ -522,5 +648,18 @@ watch(() => formData.value.objectCode, (val) => {
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
+}
+
+.schedule-config-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .schedule-config-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

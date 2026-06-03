@@ -1,7 +1,7 @@
 # 任务清单：lowcode-app-full-loop-optimization
 > status: proposed
 > created: 2026-06-01
-> 拆分顺序：边界确认 → 数据模型 → 后端协议 → 流程运行 → 触发器动作 → 消息/报表/权限 → 前端配置入口 → 示例验收 → 构建归档
+> 拆分顺序：边界确认 → 数据模型 → 后端协议 → 流程运行 → 触发器动作 → 消息/报表/权限 → 前端配置入口 → 示例验收 → 构建归档 → Phase 9 运行态 BUG 与配置体验优化 → Phase 10 定时触发闭环
 > 原则：每个任务可独立提交；查询 SQL 写 Mapper XML；分页参数使用 `pageNum/pageSize`；内置数据 `tenant_id=1`；Flyway 脚本必须防重复；普通业务用户不直接看到 JSON/Schema/configKey。
 
 ## 前置条件
@@ -27,6 +27,8 @@
 | Phase 6 | 前端入口 | Task 14-18 | 入口收敛、单据设置、流程动作、触发器、报表页面 |
 | Phase 7 | 示例验收 | Task 19-20 | 商机闭环、离职申请闭环 |
 | Phase 8 | 验证归档 | Task 21-22 | 编译构建、Spec/Task 回填 |
+| Phase 9 | BUG 与体验优化 | Task 23-33 | 动态菜单选中态、填报入口、编号规则、主流程合并、变量候选、自动发起按钮、触发器前置对象、闭环步骤条 |
+| Phase 10 | 定时触发闭环 | Task 34 | 低频扫描、批量上限、到期字段筛选、同日去重、执行日志 |
 
 ## 任务总览
 
@@ -55,6 +57,18 @@
 | Task 20 | Phase 7 | 离职申请闭环初始化和验收 | completed | P1 |
 | Task 21 | Phase 8 | 编译、构建、接口和页面验证 | completed | P0 |
 | Task 22 | Phase 8 | Spec、任务和验收记录回填 | completed | P0 |
+| Task 23 | Phase 9 | 动态应用菜单归属和 open-info 协议 | completed | P0 |
+| Task 24 | Phase 9 | 前端菜单选中态和应用入口跳转稳定化 | completed | P0 |
+| Task 25 | Phase 9 | 运行态打开模式和单据填报入口 | completed | P0 |
+| Task 26 | Phase 9 | 单据编号规则和状态映射后端协议 | completed | P0 |
+| Task 27 | Phase 9 | 单据设置面板体验重构 | completed | P0 |
+| Task 28 | Phase 9 | 主流程配置合并和兼容迁移 | completed | P0 |
+| Task 29 | Phase 9 | 流程变量候选项和自动映射建议 | completed | P0 |
+| Task 30 | Phase 9 | 流程绑定面板和标题模板体验重构 | completed | P0 |
+| Task 31 | Phase 9 | 运行态自动发起流程按钮 | completed | P0 |
+| Task 32 | Phase 9 | 触发器新增前置对象和动作配置优化 | completed | P0 |
+| Task 33 | Phase 9 | 单据闭环步骤条、发布检查和验证回填 | completed | P0 |
+| Task 34 | Phase 10 | 定时触发扫描器和到期提醒配置 | completed | P0 |
 
 ---
 
@@ -780,3 +794,428 @@ cd forge-admin-ui && source ~/.nvm/nvm.sh && nvm use v20.19.0 && pnpm build
 - 已更新 `spec.md`、`tasks.md` 的 Phase 8 执行记录和 HARD-GATE 结论。
 - 已向 `.opencode/memory/pitfalls.md` 记录 Flyway 占位符和流程变量映射验证坑。
 - 已向 `.opencode/memory/decisions.md` 记录审批能力统一归入 Flowable 流程引擎的产品/架构决策。
+
+---
+
+## Phase 9：BUG 与体验优化
+
+### Task 23: 动态应用菜单归属和 open-info 协议
+
+**状态**: completed
+
+**目标**: 后端返回稳定的应用菜单归属和最终打开路由，消除 `/app-center/app/{id}` 中转导致的菜单选中态丢失。
+
+**涉及文件**:
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/vo/businessapp/BusinessAppOpenInfoVO.java` — 增加 `activeMenuKey`、`menuResourceId`、`targetRoute`、`runtimeOpenMode`、`appName`。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/dto/businessapp/BusinessAppDTO.java` — 接收入口运行态打开模式。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/vo/businessapp/BusinessAppVO.java` — 回显入口运行态打开模式和菜单资源 ID。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessAppOpenService.java` — 统一生成目标路由、菜单归属和入口校验结果。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessAppService.java` — 保存 `options.runtimeOpenMode`，同步菜单时保存或回填菜单归属。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/MenuRegisterAdapter.java` — 如需更新已有动态菜单 path，必须保留原 `sys_resource.id` 和角色授权。
+- 可选新增 `forge/db/migration/V1.0.55__fix_dynamic_business_app_menu_route.sql` — 仅当已有菜单 path 需要批量修复时新增，脚本必须按菜单 ID 或 path 防重复。
+
+**关键改动**:
+- `RUNTIME` 应用 open-info 返回最终可访问路由，例如 `/ai/crud-page/{configKey}?appId={id}&menuKey={menuKey}`。
+- `activeMenuKey` 优先使用动态应用菜单自身 path 或资源 ID 派生 key，不使用父级 `/app-center`。
+- `runtimeOpenMode` 允许值为 `LIST`、`CREATE_FORM`、`DETAIL`；空值按 `LIST` 兼容。
+- 外链、H5、IFRAME、API 入口继续复用现有安全校验，不新增绕过。
+- 如果 Flyway 修复历史菜单，只能 `UPDATE` 已有资源，不允许删除重建导致角色授权丢失。
+
+**验收标准**:
+- `/ai/business/app/{id}/open-info` 对已发布 `RUNTIME` 应用返回 `targetRoute`、`activeMenuKey`、`menuResourceId` 和 `runtimeOpenMode`。
+- 已同步过的动态应用菜单保留原资源 ID，角色菜单授权不丢失。
+- 未发布对象、缺失 `configKey` 或运行配置不可用时，open-info 返回明确 message，前端可展示下一步。
+- 后端接口仍带现有权限控制和租户隔离，不返回敏感配置。
+
+**执行结果**:
+- 已在 `BusinessAppDTO`、`BusinessAppVO`、`BusinessAppOpenInfoVO` 增加 `runtimeOpenMode`、`targetRoute`、`menuResourceId`、`activeMenuKey` 协议字段。
+- `BusinessAppService` 已将 `runtimeOpenMode` 保存到 `ai_business_app.options`，并在 RUNTIME 应用菜单同步时使用最终运行页路径 `/ai/crud-page/{configKey}?appId=...&runtimeOpenMode=...`；已有菜单通过 `menuResourceId` 或 perms 更新，不删除重建。
+- `BusinessAppOpenService` 已返回带 `appId/menuKey/menuResourceId/runtimeOpenMode/mode/title` 的 `targetRoute`，并保留原运行配置、安全和权限校验。
+- 本轮未新增 Flyway：数据结构未变，历史菜单会在应用入口保存、状态更新或同步菜单时按原资源 ID 更新。
+
+### Task 24: 前端菜单选中态和应用入口跳转稳定化
+
+**状态**: completed
+
+**目标**: 点击动态应用菜单、刷新运行页和 Tab 切换时，当前业务应用菜单稳定选中，父级目录只展开不闪动为选中项。
+
+**涉及文件**:
+- 修改 `forge-admin-ui/src/composables/useMenu.js` — `activeKey` 优先读取 `route.query.menuKey`、`route.query.appId`、`route.meta.parentKey`。
+- 修改 `forge-admin-ui/src/utils/menu-utils.js` — 路由匹配支持 query 中的菜单归属，保留原 path 匹配兜底。
+- 修改 `forge-admin-ui/src/views/app-center/app-entry.vue` — 调用 open-info 后跳转到带 `appId/menuKey/menuResourceId` 的 `targetRoute`。
+- 修改 `forge-admin-ui/src/views/ai/crud-page.vue` — 页面标题和 Tab 标题优先使用应用名称，刷新后恢复菜单归属。
+- 修改 `forge-admin-ui/src/api/business-app.js` — open-info 类型字段和目标路由字段对齐。
+
+**关键改动**:
+- 应用入口跳转使用 `router.replace({ path, query })` 保留菜单归属 query。
+- `useMenu` 的当前 key 解析顺序为：显式 `menuKey` → `appId` 对应动态菜单 → `meta.parentKey` → 当前路径匹配。
+- 展开态可以包含父级套件目录，但选中态只落在当前动态应用菜单。
+- 浏览器刷新 `/ai/crud-page/{configKey}?appId=...&menuKey=...` 后不依赖中转页即可恢复菜单选中。
+
+**验收标准**:
+- 点击 CRM 商机动态菜单不再短暂选中 `/app-center` 或“应用总览”。
+- 刷新运行页后，侧边栏仍选中当前商机菜单。
+- 浏览器后退、前进和切换 Tab 后，菜单选中态与当前业务应用一致。
+- 没有 `appId/menuKey` 的普通动态 CRUD 页面仍按原路径选中。
+
+**执行结果**:
+- `useMenu.activeKey` 已优先识别 `menuKey/menuResourceId/appId`，点击动态应用菜单时自动把当前菜单 key、资源 ID 和标题写入路由 query。
+- `permission.js` 已在动态路由注册时剥离菜单 path 中的 query，避免 `/ai/crud-page/{configKey}?mode=...` 被注册成非法 route path。
+- `tab-guard.js`、`page-title-guard.js` 已支持按 `menuKey` 或 `title` 恢复动态应用 Tab/浏览器标题。
+- `app-entry.vue` 兼容历史 `/app-center/app/{id}` 中转页，跳转时使用 `targetRoute` 并保留菜单归属 query。
+- 本轮未修改 `menu-utils.js` 和 `business-app.js`；现有路径归一化已满足 query 剥离，API 方法签名无需变化。
+
+### Task 25: 运行态打开模式和单据填报入口
+
+**状态**: completed
+
+**目标**: 应用入口支持列表管理和新增填报两种主要运行模式，业务单据填报类入口点击后直接打开新增表单。
+
+**涉及文件**:
+- 修改 `forge-admin-ui/src/views/app-center/components/AppEditorDrawer.vue` — 增加“运行态打开模式”控件，默认值按应用类型和单据配置建议。
+- 修改 `forge-admin-ui/src/api/business-app.js` — 保存和回显 `runtimeOpenMode`。
+- 修改 `forge-admin-ui/src/views/ai/crud-page.vue` — 解析 `mode=create`，配置加载完成后触发新增表单。
+- 修改 `forge-admin-ui/src/components/ai-form/AiCrudPage.vue` — 暴露或复用新增动作入口，支持父页面触发一次性打开新增表单。
+- 修改 `forge-admin-ui/src/components/ai-form/AiCrudPageProps.js` — 如现有 props 不足，补充 `initialMode` 或 `autoOpenCreate`。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessAppOpenService.java` — 生成 `CREATE_FORM` 目标路由 query。
+
+**关键改动**:
+- `LIST` 打开 `/ai/crud-page/{configKey}`，保留现有列表管理体验。
+- `CREATE_FORM` 打开 `/ai/crud-page/{configKey}?mode=create&appId=...&menuKey=...`，页面只自动打开一次新增表单。
+- 新增保存成功后默认回到列表并刷新；后续如支持停留详情或继续新增，配置放入 `options.createSuccessAction`。
+- 未发布对象、运行配置缺失、单据必填字段缺失时展示配置缺口，不进入空白表单。
+
+**验收标准**:
+- 普通管理类入口默认打开列表。
+- 单据填报类入口打开后自动弹出新增表单。
+- 新增保存成功后列表刷新并能看到新记录。
+- 手动关闭新增弹窗后刷新页面不会重复提交，也不会无限弹窗。
+
+**执行结果**:
+- `AppEditorDrawer.vue` 已增加运行态打开模式控件：`LIST`、`CREATE_FORM`、`DETAIL`；新建入口名称包含“填报/申请/提交/录入/上报/登记”时默认建议 `CREATE_FORM`。
+- `crud-page.vue` 已支持 `mode=create` 自动调用运行页新增表单，支持 `mode=detail&recordId=...` 打开详情；新增保存成功后移除 `mode=create` 并停留在列表。
+- `SimpleCrudTemplate.vue`、`MasterDetailCrudTemplate.vue`、`TreeCrudTemplate.vue` 已透出 `showAdd/showDetail/refresh`，保证不同运行模板都能响应填报入口。
+- 本轮复用了 `AiCrudPage` 已有 `showAdd` 暴露能力，未新增 `AiCrudPageProps`；新增成功后的列表刷新沿用 `AiCrudPage` 原有提交成功逻辑。
+
+### Task 26: 单据编号规则和状态映射后端协议
+
+**状态**: completed
+
+**目标**: 后端提供编号规则内置变量、预览校验和结构化状态映射协议，让前端不再要求用户手填隐式语法。
+
+**涉及文件**:
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/controller/BusinessDocumentController.java` — 增加编号变量和预览接口。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessDocumentConfigService.java` — 编号规则校验、状态映射标准化、主流程摘要回显。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/dto/businessapp/BusinessDocumentConfigDTO.java` — 扩展 `noRuleTemplate`、结构化 `statusMapping`、状态动作策略。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/vo/businessapp/BusinessDocumentConfigVO.java` — 回显编号规则预览结果、状态映射表和主流程摘要。
+- 新增 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/dto/businessapp/BusinessDocumentNoRulePreviewDTO.java` — 编号规则预览入参。
+- 新增 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/vo/businessapp/BusinessDocumentNoRuleTokenVO.java` — 内置变量定义。
+- 新增 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/vo/businessapp/BusinessDocumentNoRulePreviewVO.java` — 预览结果和错误明细。
+
+**关键改动**:
+- 新增 `GET /ai/business/document/no-rule/tokens`，返回 `${yyyy}`、`${yyyyMM}`、`${yyyyMMdd}`、`${HHmmss}`、`${seq}`、`${seq:4}`、`${suiteCode}`、`${objectCode}`、`${starter}`、`${deptCode}`、`${field:<fieldCode>}`。
+- 新增 `POST /ai/business/document/no-rule/preview`，只用样例数据生成预览，不占用真实序列号。
+- 保存单据配置时校验未知变量、空序列、非法字符和长度风险。
+- 状态映射保存为标准状态、存储值、展示名称、标签类型、允许编辑、允许删除、允许发起流程。
+- 状态字段绑定字典时，状态存储值优先来自字典项；未绑定字典时允许默认状态集并返回维护字典建议。
+
+**验收标准**:
+- 编号变量接口返回分组、说明、示例和可插入文本。
+- 编号预览接口对未知变量返回具体变量名和修复建议。
+- 保存状态映射后，再次查询能按结构化表格完整回显。
+- 预览接口不会写入业务表、不会更新序列号、不会产生真实单据编号。
+
+**执行结果**:
+- `BusinessDocumentController` 已新增 `GET /ai/business/document/no-rule/tokens` 和 `POST /ai/business/document/no-rule/preview`，均保留 `ai:businessObject:design` 权限。
+- `BusinessDocumentConfigDTO/VO` 已扩展 `noRuleTemplate`、`statusMappingRows`、`statusActionPolicy`、`noRulePreview` 和 `mainFlowSummary`。
+- `BusinessDocumentConfigService` 已支持编号变量渲染和未知变量校验；预览只使用样例数据和内存序号，不写业务表、不占用真实序列。
+- 状态映射继续写入兼容 `status_mapping` 简单映射，同时把结构化状态行写入 `options.statusMappingRows` 并回显。
+
+### Task 27: 单据设置面板体验重构
+
+**状态**: completed
+
+**目标**: 把单据设置页从松散技术表单调整为可操作工作台，完成编号规则、状态映射和发布摘要的产品化配置。
+
+**涉及文件**:
+- 修改 `forge-admin-ui/src/views/app-center/components/designer/BusinessDocumentPanel.vue` — 重构布局，移除独立默认流程选择器。
+- 新增 `forge-admin-ui/src/views/app-center/components/designer/DocumentNoRuleEditor.vue` — 编号规则变量插入、预览和错误展示。
+- 新增 `forge-admin-ui/src/views/app-center/components/designer/DocumentStatusMappingTable.vue` — 状态映射表格、默认状态集、从字典生成。
+- 新增 `forge-admin-ui/src/views/app-center/components/designer/DocumentConfigSummary.vue` — 单据配置和发布检查摘要。
+- 修改 `forge-admin-ui/src/api/business-app.js` — 接入编号变量、编号预览、单据配置保存回显。
+
+**关键改动**:
+- 页面布局采用左侧基础配置、中间状态映射、右侧摘要与下一步，不使用嵌套卡片堆叠。
+- 编号规则输入支持点击变量插入到光标位置、实时预览和错误定位。
+- 状态映射支持“一键使用默认状态集”和“一键从字典生成映射”。
+- 主流程只展示摘要和“去配置主流程”按钮，不再在单据设置页出现第二个流程下拉。
+- 保存按钮必须有 loading、防重复提交和保存后摘要刷新。
+
+**验收标准**:
+- 用户可不记忆 `${seq:4}` 语法完成编号规则配置。
+- 状态映射可通过默认状态集或字典生成，仍允许高级用户手动调整。
+- 单据设置页没有大面积空白、重复说明、嵌套卡片和裸 JSON。
+- 保存失败能定位到具体字段或映射行，保存成功后主流程摘要和发布摘要刷新。
+
+**执行结果**:
+- `BusinessDocumentPanel.vue` 已重构为基础配置、编号规则、状态映射和右侧摘要工作台，移除单据页独立默认流程下拉。
+- 新增 `DocumentNoRuleEditor.vue`，支持编号变量分组展示、点击插入、实时预览和错误/警告展示。
+- 新增 `DocumentStatusMappingTable.vue`，支持默认状态集、从状态字段本地选项生成、结构化动作策略编辑。
+- 新增 `DocumentConfigSummary.vue`，展示状态字段、编号规则、状态映射和主流程摘要，并提供“去配置主流程”入口。
+- `object-designer.[objectCode].vue` 已把单据摘要的主流程入口切到 `automation` 面板。
+
+### Task 28: 主流程配置合并和兼容迁移
+
+**状态**: completed
+
+**目标**: 合并“单据设置默认流程”和“流程与自动化流程模型”，以主流程绑定为唯一事实来源，同时兼容历史配置。
+
+**涉及文件**:
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessFlowService.java` — 主流程绑定读取、保存、完整度检查和兼容转换。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessDocumentConfigService.java` — 单据配置返回主流程摘要，保存时同步兼容字段。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessObjectPublishService.java` — 发布检查以 `ai_business_binding` 主流程为准。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/dto/businessapp/BusinessFlowBindingDTO.java` — 明确 `startMode`、`titleTemplate`、`variableMappings` 和状态回写配置。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/vo/businessapp/BusinessFlowBindingVO.java` — 返回主流程摘要、完整度、缺口列表和兼容来源。
+- 可选新增 `forge/db/migration/V1.0.56__backfill_business_main_flow_binding.sql` — 将仅存在于 `default_flow_key` 的历史配置回填到 `ai_business_binding`，脚本必须防重复。
+
+**关键改动**:
+- 事实来源顺序：有效 `ai_business_binding(target_type=OBJECT,target_code=objectCode,binding_type=FLOW)` → 历史 `ai_business_document_config.default_flow_key` 兼容读取。
+- 保存主流程后，同步更新 `ai_business_document_config.default_flow_key` 作为兼容快照。
+- 单据设置页不保存新的独立流程选择；流程与自动化页负责主流程模型、变量映射、标题模板、发起方式、状态回写。
+- 发布检查提示“未配置主流程”“变量映射缺失”“发起方式未配置”“手动按钮缺失”“触发器缺失”等具体项。
+
+**验收标准**:
+- 历史只配置 `default_flow_key` 的对象仍能打开并看到主流程摘要。
+- 新保存主流程后，单据设置页和流程与自动化页显示一致。
+- `default_flow_key` 和 `ai_business_binding` 不一致时，以 `ai_business_binding` 为准，并在保存后回写兼容字段。
+- 发布检查不再把两处流程配置当作两个独立要求。
+
+**执行结果**:
+- `BusinessFlowService#getFlowBinding` 已按 `ai_business_binding(FLOW)` 优先读取；无主绑定但存在历史 `default_flow_key` 时返回兼容主流程 VO。
+- `BusinessFlowService#saveFlowBinding` 保存主流程后同步回写 `ai_business_document_config.default_flow_key` 作为兼容快照。
+- `BusinessDocumentConfigService` 查询单据配置时返回 `mainFlowSummary`，且保存单据配置时不再以单据页流程选择作为新事实来源。
+- `BusinessObjectPublishService` 发布检查已改为读取主流程摘要，提示主流程未配置或变量映射缺失等缺口。
+- 本轮未新增 Flyway：未改变表结构；历史 `default_flow_key` 通过读取兼容和保存回写完成渐进迁移。
+
+### Task 29: 流程变量候选项和自动映射建议
+
+**状态**: completed
+
+**目标**: 选择流程模型后，后端自动提取流程变量候选项并给出字段映射建议，减少手填变量名。
+
+**涉及文件**:
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/controller/BusinessFlowController.java` — 增加流程变量候选项接口。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessFlowService.java` — 组装变量候选项、字段候选项和映射建议。
+- 新增 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessFlowVariableResolver.java` — 解析 BPMN、动态表单和内置变量。
+- 新增 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/vo/businessapp/BusinessFlowVariableCandidateVO.java` — 流程变量候选项。
+- 新增 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/vo/businessapp/BusinessFlowVariableMappingSuggestionVO.java` — 自动映射建议。
+- 修改 `forge/forge-flow/forge-flow-client/src/main/java/com/mdframe/forge/flow/client/FlowClient.java` 或业务侧适配服务 — 获取流程模型详情时只返回变量解析所需字段。
+- 参考 `forge/forge-flow/forge-flow-server/src/main/java/com/mdframe/forge/flow/controller/FlowModelController.java` — 确认模型详情、BPMN XML 和表单 JSON 可获取字段。
+
+**关键改动**:
+- 新增 `GET /ai/business/flow/model/{modelKey}/variables?objectCode=...`。
+- 候选来源包括 BPMN 条件表达式 `${variable}`、审批人表达式、`flowable:assignee`、`candidateUsers`、`candidateGroups`、动态表单字段、模板变量配置和内置变量。
+- 内置变量至少包括 `initiator`、`startUserId`、`businessKey`、`recordId`、`objectCode`、`deptId`、`deptManager`。
+- BPMN XML 解析必须禁用外部实体，避免 XXE；解析失败时返回空候选和可读警告，不阻断高级自定义变量。
+- 自动映射按字段编码、字段名称和常见别名匹配，例如 `amount`、`opportunityAmount`、`deptManager`。
+- 接口不得返回历史流程实例变量值、业务记录数据或敏感表单数据。
+
+**验收标准**:
+- 选择已发布流程模型后接口返回变量候选项、来源、显示名和推荐映射。
+- 无法解析 BPMN 时仍返回内置变量并给出 warning。
+- 推荐映射不会覆盖用户已手动配置的映射。
+- 变量候选项接口有权限控制，普通无配置权限用户不可调用。
+
+**执行结果**:
+- `BusinessFlowController` 已新增 `GET /ai/business/flow/model/{modelKey}/variables?objectCode=...`，保留 `ai:businessFlow:config` 权限。
+- 新增 `BusinessFlowVariableResolver`，解析内置变量、BPMN 表达式/审批人属性、流程动态表单字段和业务对象字段候选项。
+- BPMN XML 解析已禁用外部实体；解析失败时返回内置变量和 warning，不阻断高级自定义变量。
+- 新增 `BusinessFlowVariableCandidateVO`、`BusinessFlowVariableMappingSuggestionVO`，并在 `FlowClient` 增加按模型 Key 获取模型详情能力。
+- `BusinessFlowBindingPanel.vue` 已接入变量候选项，下拉选择流程变量，并支持“一键应用推荐映射”且不覆盖已有映射。
+
+### Task 30: 流程绑定面板和标题模板体验重构
+
+**状态**: completed
+
+**目标**: 将流程与自动化页面升级为主流程配置工作台，变量映射和标题模板均支持选择、插入、预览和高级输入。
+
+**涉及文件**:
+- 修改 `forge-admin-ui/src/views/app-center/components/designer/BusinessFlowBindingPanel.vue` — 主流程模型、发起方式、变量映射、标题模板和状态回写重构。
+- 修改 `forge-admin-ui/src/views/app-center/components/TriggerActionConfigPanel.vue` — `START_FLOW` 动作复用流程变量候选项和标题模板编辑器。
+- 新增 `forge-admin-ui/src/views/app-center/components/designer/FlowVariableMappingEditor.vue` — 字段到流程变量映射表。
+- 新增 `forge-admin-ui/src/views/app-center/components/designer/TemplateVariableEditor.vue` — 标题模板变量插入和预览。
+- 修改 `forge-admin-ui/src/api/business-app.js` — 接入主流程保存、变量候选项、映射建议和标题预览所需接口。
+- 修改 `forge-admin-ui/src/api/flow.js` — 流程模型选择仅展示可发起或已发布流程。
+
+**关键改动**:
+- 流程变量列默认使用下拉选择，候选项来自 Task 29；高级模式允许新增自定义变量。
+- 提供“一键应用推荐映射”，只填充空映射，不覆盖用户已有选择。
+- 标题模板支持插入单据字段和内置变量，展示实时预览，例如 `商机名称-商机审批-20260602`。
+- 保存前校验未知变量，错误文案必须包含具体变量名和修复入口。
+- 旧协议 `field/variable` 读取时转换为 `formField/flowVariable`，保存时统一写新协议。
+
+**验收标准**:
+- 用户选择流程模型后，变量映射右侧自动出现流程变量候选项。
+- 一键推荐能为常见字段生成映射，用户保存刷新后不丢失。
+- 标题模板可通过点击变量完成，不需要手写 `${fieldCode}`。
+- 触发器里的发起流程动作和主流程配置使用同一套变量选择体验。
+
+**执行结果**:
+- 新增 `FlowVariableMappingEditor.vue`，统一支持单据字段选择、流程变量下拉、自定义变量和推荐映射补空。
+- 新增 `TemplateVariableEditor.vue`，支持单据字段/流程变量 token 点击插入、标题模板实时预览和未知变量提示。
+- `BusinessFlowBindingPanel.vue` 已重构为主流程配置工作台，选择流程后加载候选变量和映射建议。
+- `TriggerActionConfigPanel.vue` 的 `START_FLOW` 动作已复用同一套变量映射和标题模板编辑器。
+
+### Task 31: 运行态自动发起流程按钮
+
+**状态**: completed
+
+**目标**: 主流程发起方式为手动或手动+自动时，运行态根据状态、权限和配置自动生成“发起流程”按钮并绑定真实发起事件。
+
+**涉及文件**:
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessDocumentRuntimeService.java` — 返回自动流程按钮可用性和禁用原因。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessFlowService.java` — `/ai/business/flow/start` 支持运行态按钮发起并返回状态摘要。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessPermissionService.java` — 校验 `ai:businessFlow:start` 和对象按钮权限。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/vo/businessapp/BusinessDocumentRuntimeVO.java` — 增加 `runtimeActions` 或自动按钮摘要。
+- 修改 `forge-admin-ui/src/views/ai/crud-page.vue` — 加载单据运行态并向 `AiCrudPage` 传递自动按钮配置。
+- 修改 `forge-admin-ui/src/components/ai-form/AiCrudPage.vue` — 渲染自动“发起流程”按钮，补齐 `START_FLOW` 执行分支。
+- 修改 `forge-admin-ui/src/views/app-center/components/designer/BusinessActionDesigner.vue` — 自定义“发起流程”改为覆盖配置，避免重复按钮。
+
+**关键改动**:
+- 主流程 `startMode` 为 `MANUAL` 或 `BOTH` 且记录为草稿、无进行中流程、有权限时展示按钮。
+- 流程中、已通过、已驳回、已撤回、已关闭默认隐藏或禁用，并展示可理解原因。
+- 点击按钮调用 `POST /ai/business/flow/start`，payload 包含 `objectCode`、`recordId`，优先使用主流程绑定，不要求前端传完整流程配置。
+- 发起成功后刷新列表行、单据运行态、流程状态和操作按钮。
+- 如果自定义操作中已配置 `START_FLOW` 覆盖项，按相同位置去重，只保留一个按钮。
+
+**验收标准**:
+- 草稿商机记录行操作或详情页自动出现“发起流程”。
+- 点击后真实创建 Flowable 流程实例，并把单据状态刷新为流程中。
+- 进行中记录不再出现可重复发起的按钮。
+- 无权限用户前端不可见且直接调用接口会被后端拒绝。
+
+**执行结果**:
+- `BusinessDocumentRuntimeVO` 新增 `runtimeActions`，返回运行态自动按钮、禁用态和禁用原因。
+- `BusinessDocumentRuntimeService` 按主流程配置、发起方式、单据状态、进行中流程和动作权限生成“发起流程”按钮。
+- `AiCrudConfigRenderVO/AiCrudConfigService` 已向运行页透出 `objectCode`。
+- `crud-page.vue` 加载列表后为当前页记录附加 `_runtimeActions`，`AiCrudPage.vue` 合并行级动作并执行 `START_FLOW`。
+- 运行态按钮调用 `POST /ai/business/flow/start`，payload 为 `{ objectCode, recordId }`，发起成功后刷新列表。
+
+### Task 32: 触发器新增前置对象和动作配置优化
+
+**状态**: completed
+
+**目标**: 修复新增触发器空对象提交报错，确保全局新增先选业务对象，对象上下文新增自动带入对象和字段。
+
+**涉及文件**:
+- 修改 `forge-admin-ui/src/views/app-center/trigger.vue` — 新增弹窗第一步选择业务对象，支持 query 默认对象和保存前阻断。
+- 修改 `forge-admin-ui/src/views/app-center/components/TriggerActionConfigPanel.vue` — 业务对象确定后再加载字段、条件和动作配置。
+- 修改 `forge-admin-ui/src/views/app-center/components/designer/BusinessObjectDesignerShell.vue` — 从对象设计器进入触发器配置时携带 `objectCode`。
+- 修改 `forge-admin-ui/src/views/app-center/object-designer.[objectCode].vue` — 主链路跳转触发器时传递当前对象上下文。
+- 修改 `forge-admin-ui/src/api/business-app.js` — 触发器新增、更新前端请求保持对象编码必填。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessTriggerService.java` — 后端错误文案保持明确，场景模板补齐默认动作配置。
+
+**关键改动**:
+- 全局触发器页点击新增时，如果没有上下文，弹窗先选择业务对象；未选对象时禁用后续字段和保存按钮。
+- 从对象设计器进入时，URL query 携带 `objectCode`，新增弹窗默认选中当前对象并立即加载字段。
+- 业务对象变化后重新加载字段选项、条件构造器和动作配置，清理不属于新对象的旧字段映射。
+- 选择场景模板后自动填充事件类型、动作类型、默认条件和默认动作配置；缺少主流程时提示“请先配置主流程”。
+- 前端提交前校验 `objectCode`、`triggerName`、`eventType`、`actionType`、`actionConfig`，不把空对象编码交给后端。
+
+**验收标准**:
+- 全局新增触发器未选择对象时无法保存，并提示“请先选择业务对象”。
+- 从商机对象进入触发器配置后，新增弹窗自动带入 `OPPORTUNITY` 并能看到商机字段。
+- 切换业务对象后，字段下拉、条件行和动作映射不会保留上一个对象的非法字段。
+- 后端仍保留对象编码校验，接口被绕过时返回明确业务错误。
+
+**执行结果**:
+- `trigger.vue` 支持 `route.query.objectCode` 作为对象上下文，新建触发器默认带入当前对象。
+- 全局新增触发器时对象选择变为前置条件，未选对象保存按钮禁用，提交前提示“请先选择业务对象”。
+- 切换业务对象时清空条件、动作配置和字段选项，并按新对象重新加载字段。
+- `TriggerActionConfigPanel` 接收 `objectCode`，发起流程动作按当前对象加载流程变量候选和推荐映射。
+
+### Task 33: 单据闭环步骤条、发布检查和验证回填
+
+**状态**: completed
+
+**目标**: 把单据设置、主流程、发起方式、触发器、发布检查和试运行串成连续配置链路，并完成 Phase 9 验证记录。
+
+**涉及文件**:
+- 修改 `forge-admin-ui/src/views/app-center/components/designer/BusinessObjectDesignerShell.vue` — 增加“单据闭环配置”步骤条和完成度摘要。
+- 修改 `forge-admin-ui/src/views/app-center/object-designer.[objectCode].vue` — 步骤切换、下一步动作、试运行入口和发布检查刷新。
+- 修改 `forge-admin-ui/src/views/app-center/components/designer/BusinessPublishChecklist.vue` — 汇总单据字段、编号规则、状态映射、主流程、变量映射、手动按钮、触发器、菜单入口和权限缺口。
+- 修改 `forge-admin-ui/src/views/app-center/components/ReadinessPanel.vue` — 展示闭环配置完成度和运行缺口。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessObjectPublishService.java` — 发布检查增加 Phase 9 缺口项。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessObjectReadinessService.java` — 运行态 readiness 增加菜单入口、打开模式和主流程完整度。
+- 修改 `code-copilot/changes/lowcode-app-full-loop-optimization/test-spec.md` — 如进入 `/test` 阶段，补充 Phase 9 增量测试清单。
+- 修改 `code-copilot/changes/lowcode-app-full-loop-optimization/execution-log.md` — 记录 Phase 9 实际执行命令、结果、警告和跳过项。
+- 修改 `code-copilot/changes/lowcode-app-full-loop-optimization/spec.md` — 回填 Phase 9 实施结论和风险。
+- 修改 `code-copilot/changes/lowcode-app-full-loop-optimization/tasks.md` — 回填 Task 23-33 状态和验证结果。
+
+**关键改动**:
+- 步骤条顺序固定为：单据设置 → 主流程 → 发起方式 → 自动化触发器 → 发布检查 → 试运行。
+- 每一步展示完成状态、阻断项、警告项和下一步按钮。
+- 单据设置保存后，如果主流程未配置，下一步直接进入主流程配置。
+- 主流程保存后，如果发起方式包含 `TRIGGER` 或 `BOTH`，下一步进入触发器配置并自动带入对象和流程。
+- 试运行入口至少包含打开填报入口、创建草稿记录、手动发起流程、查看流程状态。
+- 执行阶段验证前必须读取 `code-copilot/rules/automated-testing-standard.md`，复用已有 `test-spec.md`、`execution-log.md`、`spec.md`、`tasks.md` 做增量验证。
+
+**验收标准**:
+- 业务对象设计器能连续完成单据设置、主流程、触发器、发布检查和试运行，不需要用户在多个页面来回找入口。
+- 发布检查能定位菜单选中态、运行态打开模式、编号规则、状态映射、变量映射、自动按钮和触发器缺口。
+- CRM 商机配置完成后，点击动态菜单、填报、发起流程和状态刷新主路径通过。
+- Phase 9 的后端构建、前端构建、关键接口和页面验证结果追加到 `execution-log.md`。
+
+**执行结果**:
+- `BusinessObjectDesignerShell.vue` 新增“单据闭环配置”步骤条，并支持从更多菜单进入触发器配置。
+- `object-designer.[objectCode].vue` 串联单据保存、主流程保存、触发器配置、发布检查和试运行入口。
+- `BusinessObjectPublishService` 发布检查补充应用入口、菜单资源、运行打开模式、编号规则、状态映射、自动按钮和触发器缺口项。
+- `BusinessObjectReadinessService` 增加 `DOCUMENT_CLOSURE_STATUS`，提示单据、主流程和触发器就绪缺口。
+- 已新增 `test-spec.md` 并在 `execution-log.md` 追加 Task 30-33 的后端编译、前端构建和 diff 检查结果。
+
+## Phase 10：定时触发闭环
+
+### Task 34: 定时触发扫描器和到期提醒配置
+
+**状态**: completed
+
+**目标**: 将触发器 `SCHEDULE` 类型从配置占位补齐为真实执行能力，并控制扫描频率、批量大小和重复触发风险。
+
+**涉及文件**:
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessTriggerSchedulerService.java` — 新增低频扫描任务，注册到系统任务调度中心，默认每 5 分钟扫描一次启用的定时触发器，并通过 Redisson 全局锁作为并发兜底。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/pom.xml` — 引入 `forge-starter-job`，让低代码模块只依赖任务注解，不直接耦合任务插件实现。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-job/src/main/java/com/mdframe/forge/plugin/job/config/ScheduleConfig.java`、`JobProperties.java` — 补齐 Quartz 集群配置和可配置项。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessTriggerExecutor.java` — 暴露单条触发器同步执行入口，复用现有动作执行和日志，使记录级锁覆盖完整执行过程。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/businessapp/BusinessTriggerService.java` — 统一 `SCHEDULE/SCHEDULED` 枚举，补齐定时触发器查询、日志去重和扫描时间回写方法。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/mapper/BusinessTriggerMapper.java`、`BusinessTriggerMapper.xml` — XML 查询启用的定时触发器。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/mapper/BusinessTriggerLogMapper.java`、`BusinessTriggerLogMapper.xml` — 查询同一触发器、记录、事件在时间窗口内是否已成功执行。
+- 修改 `forge/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/DynamicCrudService.java` — 提供定时扫描候选记录的受控读取方法，按到期字段区间查询并限制批量。
+- 修改 `forge-admin-ui/src/views/app-center/trigger.vue` — 定时触发配置统一使用 `SCHEDULE`，增加到期字段、提前天数、回看天数、单批数量和最小执行间隔配置。
+
+**关键改动**:
+- 不为每个触发器创建秒级 Quartz 任务；采用一个系统任务中心低频扫描任务，默认 cron `0 0/5 * * * ?`。
+- 集群部署下优先依赖 Quartz JDBC 集群调度；同时保留 Redisson 全局扫描锁和记录级执行锁，防止手动触发、补偿执行或配置缺失导致重复动作。
+- 若运行环境没有 `RedissonClient`，扫描任务仍依赖任务中心集群触发和日志去重；如需手动并发兜底建议启用 Redis/Redisson。
+- 每轮最多扫描有限数量的启用定时触发器，单个触发器默认最多处理 50 条候选记录，上限 200。
+- 到期提醒必须配置 `schedule.dueField`，扫描器只按到期字段区间查询，不做无条件全表扫描。
+- 同一 `triggerId + recordId + eventType` 默认按自然日去重，成功或 TODO 后当天不重复触发。
+- 触发器可配置 `schedule.minIntervalMinutes`，默认至少 5 分钟，避免同一触发器被过于频繁扫描。
+- 无候选数据、缺少运行配置或配置缺失时也会回写本次扫描时间，避免同一触发器被每轮重复优先扫描。
+- 兼容历史前端写入的 `SCHEDULED`，保存时规范为 `SCHEDULE`。
+
+**验收标准**:
+- 新增“到期提醒”触发器后，保存的 `triggerType` 为 `SCHEDULE`，且事件类型为 `SCHEDULED_DUE`。
+- 扫描任务默认在系统任务中心每 5 分钟执行一次，不进行秒级轮询，并可在任务中心调整 cron。
+- 未配置到期字段的定时触发器不会全表扫描，并写出可读警告日志。
+- 候选记录只按到期字段窗口读取，单轮处理量受 `batchSize` 限制。
+- 同一记录当天成功触发后不会重复发送消息或重复发起动作。
+- 后端编译、前端构建和 `git diff --check` 通过，跳过项按测试标准记录。
+
+**执行结果**:
+- 已新增 `BusinessTriggerSchedulerService`，使用 `@ScheduledJob(name="lowcodeBusinessTriggerScanJob", group="LOWCODE", cron="0 0/5 * * * ?")` 注册到系统任务调度中心，并通过 `forge.business-trigger.schedule.cluster-lock-enabled=true` 保留 Redisson 全局扫描锁兜底。
+- 已为 `forge-plugin-generator` 增加 `forge-starter-job` 依赖，低代码模块不直接依赖 `forge-plugin-job`。
+- 已补齐 Quartz 集群配置：`forge.job.clustered` 默认 `true`，并支持线程数、集群 checkin 间隔、misfire 阈值和表前缀配置。
+- 已增加记录级分布式锁，锁 key 按 `tenantId + triggerId + recordId + naturalDay` 生成；定时触发动作改为同步执行，确保锁覆盖动作和执行日志写入。
+- 已补齐到期字段白名单校验、候选记录批量上限、同日 `SUCCESS/TODO` 去重、扫描时间回写和 `SCHEDULED` 兼容归一。
+- 已在前端触发器配置中补齐到期字段、提前天数、回看天数、批量大小和最小执行间隔配置。
+- 验证已完成：后端 generator/job 模块 compile 通过，前端 `pnpm build` 通过，`git diff --check` 通过；未启动后端/数据库/多实例做真实任务注册、Quartz 集群触发和扫描落库验证，已在执行日志中记录为跳过。

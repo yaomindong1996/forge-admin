@@ -60,6 +60,7 @@
               filterable
               :options="objectOptions"
               :placeholder="objectPlaceholder"
+              @update:value="handleObjectCodeChange"
             />
           </n-form-item-gi>
         </n-grid>
@@ -69,8 +70,22 @@
           <p>{{ entryModeExplain.description }}</p>
         </div>
 
-        <n-form-item v-if="showConfigKey" label="运行配置键">
-          <n-input v-model:value="form.configKey" placeholder="RUNTIME 模式可填写 configKey" />
+        <n-form-item v-if="showConfigKey" label="业务对象打开方式">
+          <n-radio-group :value="form.runtimeOpenMode" class="runtime-mode-grid" @update:value="handleRuntimeOpenModeChange">
+            <label v-for="item in runtimeOpenModeOptions" :key="item.value" class="runtime-mode-card">
+              <n-radio :value="item.value" />
+              <span>
+                <strong>{{ item.label }}</strong>
+                <small>{{ item.description }}</small>
+              </span>
+            </label>
+          </n-radio-group>
+        </n-form-item>
+        <n-alert v-if="showConfigKey" class="runtime-mode-tip" type="info" :bordered="false">
+          {{ runtimeModeTip }}
+        </n-alert>
+        <n-form-item v-if="showConfigKey" label="发布配置">
+          <n-input v-model:value="form.configKey" placeholder="选择业务对象后通常会自动带出" />
         </n-form-item>
         <n-form-item v-if="showEntryUrl" :label="entryUrlLabel">
           <n-input v-model:value="form.entryUrl" :placeholder="entryUrlPlaceholder" />
@@ -158,6 +173,7 @@ const message = useMessage()
 const formRef = ref(null)
 const saving = ref(false)
 const objectOptions = ref([])
+const runtimeOpenModeTouched = ref(false)
 const { dict } = useDict('ai_business_app_entry_mode')
 
 const form = reactive(defaultForm())
@@ -190,15 +206,15 @@ const mountTargetOptions = [
 ]
 const entryModeMeta = {
   RUNTIME: {
-    title: '运行态页面',
-    description: '对象发布后生成的动态 CRUD 页面，适合客户、合同等标准业务对象。',
+    title: '业务对象页面',
+    description: '打开当前业务对象发布后的列表或填报页，适合客户、合同、申请单等对象。',
     urlLabel: '入口地址',
-    urlPlaceholder: '运行态页面通常由运行配置键自动生成',
+    urlPlaceholder: '业务对象页面通常由发布配置自动生成',
   },
   ROUTE: {
-    title: '内部路由',
-    description: '打开系统内已经存在的 Vue 路由，适合跳转到已开发好的管理页面。',
-    urlLabel: '内部路由',
+    title: '系统已有页面',
+    description: '打开系统里已经开发好的页面，适合跳转到固定管理页或报表页。',
+    urlLabel: '页面地址',
     urlPlaceholder: '例如：/app-center/stats 或 /system/user',
   },
   IFRAME: {
@@ -243,7 +259,7 @@ const entryModeOptions = computed(() => {
     const meta = entryModeMeta[value]
     const item = dictMap.get(value)
     return {
-      label: item?.label || meta?.title || value,
+      label: meta?.title || item?.label || value,
       value,
     }
   })
@@ -251,9 +267,10 @@ const entryModeOptions = computed(() => {
 const entryModeExplain = computed(() => entryModeMeta[form.entryMode] || entryModeMeta.ROUTE)
 const entryUrlLabel = computed(() => entryModeExplain.value.urlLabel)
 const entryUrlPlaceholder = computed(() => entryModeExplain.value.urlPlaceholder)
+const selectedObject = computed(() => objectOptions.value.find(item => item.value === form.objectCode) || null)
 const objectPlaceholder = computed(() => {
   if (form.entryMode === 'RUNTIME')
-    return '运行态页面必须关联已发布对象'
+    return '业务对象页面必须关联已发布对象'
   if (isIntegrationApp.value)
     return '可选，用于标识接口服务的业务对象'
   return '可选，关联后按业务对象归集'
@@ -276,10 +293,35 @@ const platformTypeOptions = [
   { label: '企微 / 飞书 / 钉钉', value: 'collaboration' },
   { label: '外部系统', value: 'external' },
 ]
+const runtimeOpenModeOptions = computed(() => [
+  {
+    label: '列表管理',
+    value: 'LIST',
+    description: '显示列表和操作列，适合需要查看、编辑和执行自定义操作的对象。',
+  },
+  {
+    label: '单据填报',
+    value: 'CREATE_FORM',
+    description: '只显示新增表单，不显示列表和行操作，适合一次性申请、登记、上报。',
+  },
+  {
+    label: '详情查看',
+    value: 'DETAIL',
+    description: '用于带记录 ID 的详情入口，未带记录时回到列表。',
+  },
+])
+const runtimeModeTip = computed(() => {
+  if (form.runtimeOpenMode === 'CREATE_FORM')
+    return '单据填报入口没有列表上下文，因此不会显示列表操作列和行操作按钮；需要自定义操作时请选择“列表管理”。'
+  if (form.runtimeOpenMode === 'DETAIL')
+    return '详情查看需要打开时带上记录 ID；普通菜单入口没有记录 ID 时会回到列表。'
+  return '列表管理会展示搜索、列表、操作列和自定义操作，适合日常管理和流程处理。'
+})
 
 watch(() => props.show, (visible) => {
   if (!visible)
     return
+  runtimeOpenModeTouched.value = false
   Object.assign(form, defaultForm(), props.app || {})
   hydrateOptions()
   if (!form.suiteCode && props.suites.length)
@@ -298,8 +340,15 @@ watch(() => form.mountTarget, () => {
 
 watch(() => form.entryMode, () => {
   form.appType = resolveAppType()
+  if (form.entryMode === 'RUNTIME' && !runtimeOpenModeTouched.value)
+    form.runtimeOpenMode = inferRuntimeOpenMode()
   if (form.entryMode === 'API' && form.entryUrl === '/app-center/integration')
     form.entryUrl = ''
+})
+
+watch(() => form.appName, () => {
+  if (!form.id && form.entryMode === 'RUNTIME' && !runtimeOpenModeTouched.value)
+    form.runtimeOpenMode = inferRuntimeOpenMode()
 })
 
 async function loadObjects() {
@@ -311,13 +360,15 @@ async function loadObjects() {
   objectOptions.value = (res.data || []).map(item => ({
     label: item.objectName || item.objectCode,
     value: item.objectCode,
+    objectType: item.objectType,
+    configKey: item.configKey,
   }))
 }
 
 async function save() {
   await formRef.value?.validate()
   if (form.entryMode === 'RUNTIME' && !form.objectCode) {
-    message.warning('运行态页面需要关联业务对象')
+    message.warning('业务对象页面需要关联业务对象')
     return
   }
   if (showEntryUrl.value && !String(form.entryUrl || '').trim()) {
@@ -353,7 +404,7 @@ async function save() {
 
 function hydrateOptions() {
   try {
-    const options = form.options ? JSON.parse(form.options) : {}
+    const options = parseOptions(form.options)
     const adminMenu = options.adminMenu || {}
     const allowedDomains = Array.isArray(options.allowedDomains)
       ? options.allowedDomains
@@ -361,10 +412,18 @@ function hydrateOptions() {
         ? [options.allowedDomains]
         : []
     form.mountTarget = normalizeMountTarget(options.mountTarget || deriveMountTarget())
-    form.adminMenuParentId = adminMenu.parentId ?? options.adminMenuParentId ?? null
-    form.adminMenuSyncEnabled = normalizeBoolean(adminMenu.syncEnabled ?? options.adminMenuSyncEnabled, true)
-    form.suiteAsMenuParent = normalizeBoolean(adminMenu.suiteAsParent ?? options.suiteAsMenuParent, true)
-    form.menuSort = Number(adminMenu.sort ?? options.menuSort ?? form.sortOrder ?? 0)
+    form.adminMenuParentId = normalizeMenuParentId(
+      props.app?.adminMenuParentId
+      ?? adminMenu.originalParentId
+      ?? adminMenu.parentId
+      ?? options.adminMenuParentId
+      ?? options.parentId
+      ?? null,
+    )
+    form.adminMenuSyncEnabled = normalizeBoolean(props.app?.adminMenuSyncEnabled ?? adminMenu.syncEnabled ?? options.adminMenuSyncEnabled, true)
+    form.suiteAsMenuParent = normalizeBoolean(props.app?.suiteAsMenuParent ?? adminMenu.suiteAsParent ?? options.suiteAsMenuParent, true)
+    form.menuSort = Number(props.app?.menuSort ?? adminMenu.sort ?? options.menuSort ?? form.sortOrder ?? 0)
+    form.runtimeOpenMode = normalizeRuntimeOpenMode(props.app?.runtimeOpenMode || options.runtimeOpenMode || inferRuntimeOpenMode())
     form.allowedDomains = allowedDomains.join('\n')
     form.mobileScene = options.mobileScene || defaultMobileScene(form.entryMode)
     form.visibleScope = options.visibleScope || 'all'
@@ -380,6 +439,7 @@ function hydrateOptions() {
     form.adminMenuSyncEnabled = true
     form.suiteAsMenuParent = true
     form.menuSort = Number(form.sortOrder || 0)
+    form.runtimeOpenMode = inferRuntimeOpenMode()
     form.allowedDomains = ''
     form.mobileScene = defaultMobileScene(form.entryMode)
     form.visibleScope = 'all'
@@ -389,28 +449,28 @@ function hydrateOptions() {
   }
   normalizeEntryModeForMount()
   form.appType = resolveAppType()
+  if (form.entryMode !== 'RUNTIME')
+    form.runtimeOpenMode = 'LIST'
 }
 
 function buildOptions() {
-  let options = {}
-  try {
-    options = form.options ? JSON.parse(form.options) : {}
-  }
-  catch {
-    options = {}
-  }
+  const options = parseOptions(form.options)
   options.mountTarget = form.mountTarget
   if (isAdminMount.value) {
     const previousAdminMenu = options.adminMenu || {}
     options.adminMenu = {
       parentId: form.adminMenuParentId || null,
+      originalParentId: form.adminMenuParentId || null,
       syncEnabled: Boolean(form.adminMenuSyncEnabled),
       suiteAsParent: Boolean(form.suiteAsMenuParent),
       sort: Number(form.menuSort || 0),
     }
-    const menuResourceId = previousAdminMenu.menuResourceId || options.menuResourceId
+    const menuResourceId = props.app?.menuResourceId || previousAdminMenu.menuResourceId || options.menuResourceId
     if (menuResourceId)
-      options.adminMenu.menuResourceId = menuResourceId
+      options.adminMenu.menuResourceId = String(menuResourceId)
+    const activeMenuKey = previousAdminMenu.activeMenuKey || props.app?.menuResourceId
+    if (activeMenuKey)
+      options.adminMenu.activeMenuKey = String(activeMenuKey)
   }
   else {
     delete options.adminMenu
@@ -418,6 +478,12 @@ function buildOptions() {
     delete options.adminMenuSyncEnabled
     delete options.suiteAsMenuParent
     delete options.menuSort
+  }
+  if (form.entryMode === 'RUNTIME') {
+    options.runtimeOpenMode = normalizeRuntimeOpenMode(form.runtimeOpenMode)
+  }
+  else {
+    delete options.runtimeOpenMode
   }
   const allowedDomains = String(form.allowedDomains || '')
     .split(/[\n,，]/)
@@ -458,6 +524,18 @@ function buildOptions() {
       delete options[key]
   })
   return Object.keys(options).length ? JSON.stringify(options) : null
+}
+
+function handleRuntimeOpenModeChange(value) {
+  runtimeOpenModeTouched.value = true
+  form.runtimeOpenMode = normalizeRuntimeOpenMode(value)
+}
+
+function handleObjectCodeChange(value) {
+  form.objectCode = value || null
+  form.configKey = selectedObject.value?.configKey || ''
+  if (form.entryMode === 'RUNTIME' && !runtimeOpenModeTouched.value)
+    form.runtimeOpenMode = inferRuntimeOpenMode()
 }
 
 function allowedEntryModesForTarget(target) {
@@ -514,6 +592,38 @@ function defaultPlatformType(entryMode) {
   return entryMode === 'API' ? 'api' : 'external'
 }
 
+function normalizeRuntimeOpenMode(value) {
+  const mode = String(value || 'LIST').toUpperCase()
+  return ['LIST', 'CREATE_FORM', 'DETAIL'].includes(mode) ? mode : 'LIST'
+}
+
+function normalizeMenuParentId(value) {
+  if (value === null || value === undefined || value === '')
+    return null
+  return String(value)
+}
+
+function parseOptions(options) {
+  if (!options)
+    return {}
+  if (typeof options === 'string') {
+    try {
+      const parsed = JSON.parse(options)
+      return parsed && typeof parsed === 'object' ? parsed : {}
+    }
+    catch {
+      return {}
+    }
+  }
+  return typeof options === 'object' ? { ...options } : {}
+}
+
+function inferRuntimeOpenMode() {
+  if (form.entryMode !== 'RUNTIME')
+    return 'LIST'
+  return /填报|申请|提交|录入|上报|登记/.test(String(form.appName || '')) ? 'CREATE_FORM' : 'LIST'
+}
+
 function defaultForm() {
   return {
     id: null,
@@ -524,6 +634,7 @@ function defaultForm() {
     suiteCode: null,
     objectCode: null,
     entryMode: 'RUNTIME',
+    runtimeOpenMode: 'LIST',
     entryUrl: '',
     configKey: '',
     icon: '',
@@ -553,6 +664,18 @@ function defaultForm() {
   width: 100%;
 }
 
+.runtime-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.runtime-mode-tip {
+  margin-top: -6px;
+  margin-bottom: 12px;
+}
+
 .mount-card {
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr);
@@ -573,18 +696,42 @@ function defaultForm() {
   background: #f8fbff;
 }
 
+.runtime-mode-card {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  min-height: 74px;
+  cursor: pointer;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  padding: 10px 12px;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.runtime-mode-card:hover {
+  border-color: #2f6feb;
+  background: #f8fbff;
+}
+
 .mount-card strong,
-.mount-card small {
+.mount-card small,
+.runtime-mode-card strong,
+.runtime-mode-card small {
   display: block;
 }
 
-.mount-card strong {
+.mount-card strong,
+.runtime-mode-card strong {
   color: #111827;
   font-size: 14px;
   line-height: 1.4;
 }
 
-.mount-card small {
+.mount-card small,
+.runtime-mode-card small {
   margin-top: 4px;
   color: #6b7280;
   font-size: 12px;
@@ -618,7 +765,8 @@ function defaultForm() {
 }
 
 @media (max-width: 640px) {
-  .mount-target-grid {
+  .mount-target-grid,
+  .runtime-mode-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -3,10 +3,12 @@
     <component
       :is="currentTemplate"
       v-if="configLoaded && currentTemplate"
+      ref="runtimeCrudRef"
       :crud-props="crudProps"
     />
     <AiCrudPage
       v-else-if="configLoaded && !currentTemplate"
+      ref="runtimeCrudRef"
       v-bind="crudProps"
     />
     <div v-else-if="loading" class="loading-wrapper">
@@ -25,9 +27,10 @@
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent, h, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, defineAsyncComponent, h, nextTick, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { crudConfigRender } from '@/api/ai'
+import { businessDocumentRuntime } from '@/api/business-app'
 import catalog from '@/catalog'
 import AiCrudPage from '@/components/ai-form/AiCrudPage.vue'
 import DictTag from '@/components/DictTag.vue'
@@ -36,6 +39,7 @@ import { useTabStore } from '@/store'
 import { request } from '@/utils'
 
 const route = useRoute()
+const router = useRouter()
 const tabStore = useTabStore()
 
 const loading = ref(false)
@@ -43,6 +47,10 @@ const configLoaded = ref(false)
 const errorMsg = ref('')
 const renderConfig = ref(null)
 const dictCache = ref({})
+const runtimeCrudRef = ref(null)
+const lastInitialActionKey = ref('')
+const runtimeOpenMode = computed(() => String(route.query?.runtimeOpenMode || '').toUpperCase())
+const formOnlyRuntime = computed(() => runtimeOpenMode.value === 'CREATE_FORM')
 
 /** 当前加载的模板组件（null 表示降级到 AiCrudPage） */
 const currentTemplate = ref(null)
@@ -61,16 +69,24 @@ function transformColumns(columns, transConfig, options = {}) {
   }
 
   let treeColumnApplied = false
+  const isActionColumnKey = key => ['actions', 'action', 'operations', 'operation'].includes(String(key || ''))
   const result = (columns || []).map((col) => {
     // 统一提取字段名，优先级：prop > key > dataIndex
     const key = col.prop || col.key || col.dataIndex
     // 统一补prop字段，AiTable需要这个字段来匹配数据
     const newCol = { ...col, prop: key }
-    if (['actions', 'action'].includes(key) && Array.isArray(col.actions) && options.includeDetailAction) {
+    if (isActionColumnKey(key)) {
+      const mergedActions = mergeRowActions(Array.isArray(col.actions) ? col.actions : [], options.rowActions || [])
+      if (mergedActions.length) {
+        newCol.actions = options.includeDetailAction ? ensureDetailRowAction(mergedActions) : mergedActions
+        newCol.width = Math.max(Number(col.width) || 0, newCol.actions.length * 58, 180)
+      }
+    }
+    else if (Array.isArray(col.actions) && options.includeDetailAction) {
       newCol.actions = ensureDetailRowAction(col.actions)
       newCol.width = Math.max(Number(col.width) || 0, newCol.actions.length * 58, 180)
     }
-    if (options.treeTable && !treeColumnApplied && key && !['actions', 'action'].includes(key)) {
+    if (options.treeTable && !treeColumnApplied && key && !isActionColumnKey(key)) {
       newCol.tree = true
       treeColumnApplied = true
     }
@@ -103,7 +119,38 @@ function transformColumns(columns, transConfig, options = {}) {
     return newCol
   })
 
+  const rowActions = normalizeRuntimePageActions(options.rowActions || [], 'row')
+  const hasActionColumn = result.some((col) => {
+    const key = col.prop || col.key || col.dataIndex
+    return isActionColumnKey(key)
+  })
+  if (!hasActionColumn && rowActions.length) {
+    result.push({
+      key: 'actions',
+      title: '操作',
+      dataIndex: 'actions',
+      prop: 'actions',
+      width: Math.max(180, rowActions.length * 58),
+      fixed: 'right',
+      actions: options.includeDetailAction ? ensureDetailRowAction(rowActions) : rowActions,
+      maxActionButtons: 3,
+    })
+  }
+
   return result
+}
+
+function mergeRowActions(baseActions = [], extraActions = []) {
+  const next = [...baseActions]
+  const existingKeys = new Set(next.map(action => String(action?.key || action?.actionCode || '').toLowerCase()).filter(Boolean))
+  normalizeRuntimePageActions(extraActions, 'row').forEach((action) => {
+    const key = String(action.key || '').toLowerCase()
+    if (!key || existingKeys.has(key))
+      return
+    existingKeys.add(key)
+    next.push(action)
+  })
+  return next
 }
 
 function ensureDetailRowAction(actions = []) {
@@ -118,6 +165,80 @@ function ensureDetailRowAction(actions = []) {
   }
   next.unshift(detailAction)
   return next
+}
+
+function normalizeRuntimePageActions(actions = [], position = 'row') {
+  if (!Array.isArray(actions))
+    return []
+  return actions
+    .map(action => normalizeRuntimePageAction(action, position))
+    .filter(Boolean)
+}
+
+function normalizeRuntimePageAction(action = {}, position = 'row') {
+  if (!action || action.visible === false || action.status === 0)
+    return null
+  const actionPosition = normalizeActionPosition(action.position || action.actionPosition || position)
+  if (actionPosition !== position)
+    return null
+  const actionType = normalizeActionType(action.actionType || action.type)
+  const config = action.actionConfig || {}
+  const routePath = action.routePath
+    || config.targetPath
+    || config.routePath
+    || config.url
+    || ''
+  const key = action.key || action.actionCode || action.actionName || action.label
+  if (!key)
+    return null
+  return {
+    ...action,
+    key,
+    label: action.label || action.actionName || key,
+    type: resolveRuntimeButtonType(action, actionType),
+    position: actionPosition,
+    actionType,
+    routePath,
+    openTarget: action.openTarget || config.openTarget || (actionType === 'external' ? '_blank' : '_self'),
+    confirmText: action.confirmText || (action.confirmRequired ? `确认执行“${action.actionName || action.label || key}”？` : ''),
+  }
+}
+
+function normalizeActionPosition(value) {
+  const text = String(value || 'row').toLowerCase()
+  if (text === 'toolbar')
+    return 'toolbar'
+  if (text === 'detail')
+    return 'detail'
+  return 'row'
+}
+
+function normalizeActionType(value) {
+  const text = String(value || 'route')
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .replace('-', '_')
+    .toUpperCase()
+  if (text === 'START_FLOW')
+    return 'START_FLOW'
+  if (text === 'OPEN_EXTERNAL' || text === 'EXTERNAL')
+    return 'external'
+  if (text === 'OPEN_PAGE' || text === 'ROUTE')
+    return 'route'
+  return text || 'route'
+}
+
+function resolveRuntimeButtonType(action = {}, actionType = '') {
+  if (action.buttonType)
+    return action.buttonType
+  if (action.type && !['OPEN_PAGE', 'OPEN_EXTERNAL', 'START_FLOW', 'CALL_API', 'TRIGGER', 'route', 'external'].includes(action.type))
+    return action.type
+  if (actionType === 'START_FLOW')
+    return 'success'
+  if (actionType === 'external')
+    return 'info'
+  if (['TRIGGER', 'CALL_API'].includes(actionType))
+    return 'warning'
+  return 'primary'
 }
 
 /**
@@ -239,7 +360,11 @@ const crudProps = computed(() => {
   const masterDetailConfig = options.masterDetailConfig || {}
   return {
     searchSchema: transformFields(cfg.searchSchema),
-    columns: transformColumns(cfg.columnsSchema, cfg.transConfig, { treeTable, includeDetailAction: true }),
+    columns: transformColumns(cfg.columnsSchema, cfg.transConfig, {
+      treeTable,
+      includeDetailAction: true,
+      rowActions: options.rowActions,
+    }),
     editSchema: transformEditFields(cfg.editSchema, options.editFormLayout),
     childrenConfig: transformChildrenConfig(masterDetailConfig.children || []),
     apiConfig,
@@ -269,11 +394,17 @@ const crudProps = computed(() => {
     importTemplateUrl: extractApiUrl(cfg.apiConfig?.importTemplate),
     enableCustomQuery: options.enableCustomQuery !== false,
     customQueryConfigKey: cfg.configKey,
-    toolbarActions: options.toolbarActions || [],
+    toolbarActions: normalizeRuntimePageActions(options.toolbarActions || [], 'toolbar'),
     publicParams: treeTable ? { ...defaultSortParams, loadMode: treeLoadMode } : defaultSortParams,
-    beforeRenderList: treeTable ? list => normalizeTreeTableNodes(list, treeConfig) : null,
+    beforeRenderList: list => prepareRuntimeList(list, { treeTable, treeConfig }),
     treeConfig: treeTable ? treeConfig : {},
     tableProps: treeTable ? buildTreeTableProps(cfg) : {},
+    onSubmitSuccess: handleRuntimeSubmitSuccess,
+    formOnly: formOnlyRuntime.value,
+    formOnlyTitle: resolveRuntimeTitle(cfg),
+    formOnlySubmitText: '提交',
+    formOnlySuccessTitle: '提交成功',
+    formOnlySuccessDescription: '单据已保存',
   }
 })
 
@@ -362,6 +493,58 @@ function normalizeTreeTableNodes(nodes = [], treeConfig = {}) {
   })
 }
 
+async function prepareRuntimeList(list = [], options = {}) {
+  const treeTable = !!options.treeTable
+  const treeConfig = options.treeConfig || {}
+  const normalizedList = treeTable ? normalizeTreeTableNodes(list, treeConfig) : list
+  const objectCode = resolveBusinessObjectCode(renderConfig.value)
+  if (!objectCode || !Array.isArray(normalizedList) || !normalizedList.length)
+    return normalizedList
+  await attachRuntimeActions(normalizedList, objectCode, treeConfig)
+  return normalizedList
+}
+
+async function attachRuntimeActions(rows = [], objectCode, treeConfig = {}) {
+  const childrenField = treeConfig.childrenField || 'children'
+  await Promise.all(rows.map(async (row) => {
+    if (!row || typeof row !== 'object')
+      return
+    row._runtimeObjectCode = objectCode
+    const recordId = resolveRuntimeRecordId(row)
+    if (recordId) {
+      try {
+        const res = await businessDocumentRuntime(objectCode, recordId)
+        row._runtimeActions = res.data?.runtimeActions || []
+        row._documentRuntime = res.data || null
+      }
+      catch (error) {
+        row._runtimeActions = []
+        console.warn('[crud-page] 加载单据运行态失败', error.message)
+      }
+    }
+    if (Array.isArray(row[childrenField]) && row[childrenField].length)
+      await attachRuntimeActions(row[childrenField], objectCode, treeConfig)
+  }))
+}
+
+function resolveRuntimeRecordId(row = {}) {
+  const rowKey = renderConfig.value?.rowKey || 'id'
+  return row[rowKey] ?? row.id ?? row.Id
+}
+
+function resolveBusinessObjectCode(cfg = {}) {
+  const options = cfg.options || {}
+  const modelSchema = cfg.modelSchema || {}
+  return cfg.objectCode
+    || cfg.businessObjectCode
+    || options.objectCode
+    || options.businessObjectCode
+    || modelSchema.objectCode
+    || modelSchema.modelCode
+    || modelSchema.object?.code
+    || ''
+}
+
 function parseApiConfigValue(apiConfigValue) {
   const text = String(apiConfigValue || '')
   const [method, ...urlParts] = text.includes('@') ? text.split('@') : ['get', text]
@@ -379,6 +562,8 @@ function extractApiUrl(apiConfigValue) {
 }
 
 function resolveRuntimeTitle(cfg = {}) {
+  if (route.query?.title)
+    return String(route.query.title)
   return cfg.menuName || cfg.appName || cfg.objectName || cfg.tableComment || cfg.configKey
 }
 
@@ -466,6 +651,7 @@ async function loadConfig() {
       currentTemplate.value = null
     }
     configLoaded.value = true
+    scheduleInitialRuntimeAction()
   }
   catch (e) {
     errorMsg.value = e.message || '加载配置失败'
@@ -473,6 +659,58 @@ async function loadConfig() {
   finally {
     loading.value = false
   }
+}
+
+async function scheduleInitialRuntimeAction() {
+  if (!configLoaded.value)
+    return
+  if (formOnlyRuntime.value)
+    return
+  const mode = String(route.query?.mode || '').toLowerCase()
+  if (!['create', 'detail'].includes(mode))
+    return
+  const actionKey = `${route.fullPath}:${renderConfig.value?.configKey || ''}:${mode}`
+  if (lastInitialActionKey.value === actionKey)
+    return
+  lastInitialActionKey.value = actionKey
+
+  const crud = await waitRuntimeCrudRef()
+  if (!crud)
+    return
+  if (mode === 'create') {
+    crud.showAdd?.()
+    return
+  }
+  const recordId = route.query?.recordId || route.query?.id
+  if (recordId) {
+    const rowKey = crudProps.value.rowKey || 'id'
+    crud.showDetail?.({ [rowKey]: recordId, id: recordId })
+  }
+}
+
+async function waitRuntimeCrudRef() {
+  for (let i = 0; i < 10; i++) {
+    await nextTick()
+    const crud = runtimeCrudRef.value
+    if (crud?.showAdd || crud?.showDetail)
+      return crud
+    await new Promise(resolve => window.setTimeout(resolve, 50))
+  }
+  return null
+}
+
+function handleRuntimeSubmitSuccess(payload = {}) {
+  if (formOnlyRuntime.value)
+    return
+  if (payload.isEdit || String(route.query?.mode || '').toLowerCase() !== 'create')
+    return
+  const query = { ...route.query }
+  delete query.mode
+  router.replace({
+    path: route.path,
+    query,
+    hash: route.hash,
+  })
 }
 
 onMounted(() => {
@@ -486,6 +724,13 @@ watch(
     if (newKey && newKey !== oldKey) {
       loadConfig()
     }
+  },
+)
+
+watch(
+  () => route.query?.mode,
+  () => {
+    scheduleInitialRuntimeAction()
   },
 )
 </script>

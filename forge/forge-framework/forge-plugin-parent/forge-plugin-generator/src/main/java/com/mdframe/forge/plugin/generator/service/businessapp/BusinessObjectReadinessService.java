@@ -7,6 +7,8 @@ import com.mdframe.forge.plugin.generator.domain.entity.AiCrudConfig;
 import com.mdframe.forge.plugin.generator.mapper.AiCrudConfigMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessAppMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessObjectMapper;
+import com.mdframe.forge.plugin.generator.mapper.BusinessTriggerMapper;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessDocumentConfigVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectReadinessVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessReadinessItemVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 业务对象就绪度服务
@@ -30,6 +33,8 @@ public class BusinessObjectReadinessService {
     private final BusinessObjectMapper businessObjectMapper;
     private final BusinessAppMapper businessAppMapper;
     private final AiCrudConfigMapper aiCrudConfigMapper;
+    private final BusinessDocumentConfigService documentConfigService;
+    private final BusinessTriggerMapper triggerMapper;
 
     /**
      * 查询业务对象就绪度
@@ -96,6 +101,12 @@ public class BusinessObjectReadinessService {
         BusinessReadinessItemVO bindingItem = checkBindingStatus(object, tenantId);
         items.add(bindingItem);
         totalScore += getItemScore(bindingItem.getStatus());
+        maxScore += 100;
+
+        // 8. 检查单据闭环
+        BusinessReadinessItemVO documentClosureItem = checkDocumentClosureStatus(object, tenantId);
+        items.add(documentClosureItem);
+        totalScore += getItemScore(documentClosureItem.getStatus());
         maxScore += 100;
 
         vo.setItems(items);
@@ -196,6 +207,7 @@ public class BusinessObjectReadinessService {
             item.setStatus(BusinessReadinessStatus.RUNNABLE);
             item.setStatusLabel("正常");
             item.setMessage("应用入口已启用");
+            item.setNextActionUrl(StringUtils.defaultIfBlank(app.getEntryUrl(), "/ai/crud-page/" + app.getConfigKey()));
         }
 
         return item;
@@ -258,6 +270,7 @@ public class BusinessObjectReadinessService {
             item.setStatus(BusinessReadinessStatus.RUNNABLE);
             item.setStatusLabel("已发布");
             item.setMessage("运行配置已发布");
+            item.setNextActionUrl("/ai/crud-page/" + configKey);
         }
 
         return item;
@@ -313,6 +326,77 @@ public class BusinessObjectReadinessService {
             }
         }
 
+        return item;
+    }
+
+    private BusinessReadinessItemVO checkDocumentClosureStatus(AiBusinessObject object, Long tenantId) {
+        BusinessReadinessItemVO item = new BusinessReadinessItemVO();
+        item.setItemCode("DOCUMENT_CLOSURE_STATUS");
+        item.setItemName("单据闭环");
+
+        if (object == null) {
+            item.setStatus(BusinessReadinessStatus.MISSING);
+            item.setStatusLabel("未创建");
+            item.setMessage("业务对象不存在，无法检查单据闭环");
+            return item;
+        }
+
+        BusinessDocumentConfigVO config = documentConfigService.getConfig(object.getId());
+        if (!Boolean.TRUE.equals(config.getDocumentEnabled())) {
+            item.setStatus(BusinessReadinessStatus.REGISTERED);
+            item.setStatusLabel("未启用");
+            item.setMessage("当前对象按普通 CRUD 运行，未启用单据闭环");
+            item.setNextAction("CONFIGURE_DOCUMENT");
+            item.setNextActionLabel("配置单据");
+            item.setNextActionUrl("/app-center/object-designer/" + object.getObjectCode() + "?panel=document");
+            return item;
+        }
+        if (StringUtils.isBlank(config.getStatusField())) {
+            item.setStatus(BusinessReadinessStatus.MISSING);
+            item.setStatusLabel("缺状态字段");
+            item.setMessage("单据模式已启用，但未配置状态字段");
+            item.setNextAction("CONFIGURE_DOCUMENT");
+            item.setNextActionLabel("配置单据状态");
+            item.setNextActionUrl("/app-center/object-designer/" + object.getObjectCode() + "?panel=document");
+            return item;
+        }
+
+        Map<String, Object> mainFlow = config.getMainFlowSummary();
+        if (mainFlow == null || !Boolean.TRUE.equals(mainFlow.get("configured"))) {
+            item.setStatus(BusinessReadinessStatus.CONFIGURED);
+            item.setStatusLabel("缺主流程");
+            item.setMessage("单据已配置，尚未绑定主流程");
+            item.setNextAction("CONFIGURE_FLOW");
+            item.setNextActionLabel("配置主流程");
+            item.setNextActionUrl("/app-center/object-designer/" + object.getObjectCode() + "?panel=automation");
+            return item;
+        }
+        if (!Boolean.TRUE.equals(mainFlow.get("complete"))) {
+            item.setStatus(BusinessReadinessStatus.CONFIGURED);
+            item.setStatusLabel("流程待完善");
+            item.setMessage("主流程仍有缺口: " + summarizeGaps(mainFlow.get("gaps")));
+            item.setNextAction("CONFIGURE_FLOW");
+            item.setNextActionLabel("完善流程配置");
+            item.setNextActionUrl("/app-center/object-designer/" + object.getObjectCode() + "?panel=automation");
+            return item;
+        }
+        Object startModeValue = mainFlow.get("startMode");
+        String startMode = StringUtils.defaultIfBlank(startModeValue == null ? null : String.valueOf(startModeValue), "MANUAL");
+        if (requiresTrigger(startMode)) {
+            Long triggerCount = triggerMapper.countActiveByObjectAndAction(tenantId, object.getObjectCode(), "START_FLOW");
+            if (triggerCount == null || triggerCount <= 0) {
+                item.setStatus(BusinessReadinessStatus.CONFIGURED);
+                item.setStatusLabel("缺触发器");
+                item.setMessage("发起方式包含触发器，但未配置启用的发起主流程触发器");
+                item.setNextAction("CONFIGURE_TRIGGER");
+                item.setNextActionLabel("配置触发器");
+                item.setNextActionUrl("/app-center/trigger?objectCode=" + object.getObjectCode());
+                return item;
+            }
+        }
+        item.setStatus(BusinessReadinessStatus.RUNNABLE);
+        item.setStatusLabel("已闭环");
+        item.setMessage("单据设置、主流程、发起方式和触发器配置已具备闭环能力");
         return item;
     }
 
@@ -461,6 +545,24 @@ public class BusinessObjectReadinessService {
                 || "IMPORT_EXPORT_STATUS".equals(itemCode);
     }
 
+    private boolean requiresTrigger(String startMode) {
+        String normalized = StringUtils.defaultIfBlank(startMode, "MANUAL").trim().toUpperCase();
+        return "TRIGGER".equals(normalized)
+                || "BOTH".equals(normalized)
+                || "MANUAL_AND_TRIGGER".equals(normalized)
+                || "MANUAL_TRIGGER".equals(normalized);
+    }
+
+    private String summarizeGaps(Object gaps) {
+        if (gaps instanceof List<?> list && !list.isEmpty()) {
+            return String.join("、", list.stream()
+                    .map(String::valueOf)
+                    .filter(StringUtils::isNotBlank)
+                    .toList());
+        }
+        return "变量映射、发起方式或状态回写未完善";
+    }
+
     private boolean optionEnabled(String options, String key) {
         if (StringUtils.isBlank(options) || StringUtils.isBlank(key)) {
             return false;
@@ -491,8 +593,10 @@ public class BusinessObjectReadinessService {
         for (BusinessReadinessItemVO item : items) {
             if ("CONFIG_STATUS".equals(item.getItemCode()) && 
                 BusinessReadinessStatus.RUNNABLE.equals(item.getStatus())) {
-                // 这里需要从实际数据中获取，暂时返回空
-                return "";
+                String url = item.getNextActionUrl();
+                if (StringUtils.isNotBlank(url) && url.contains("/ai/crud-page/")) {
+                    return StringUtils.substringAfter(url, "/ai/crud-page/");
+                }
             }
         }
         return "";

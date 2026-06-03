@@ -129,7 +129,12 @@
           AND target_type = #{targetType}
           AND target_code = #{targetCode}
           AND binding_type = #{bindingType}
-        ORDER BY sort_order ASC, id ASC
+        ORDER BY status DESC,
+                 CASE WHEN binding_key IS NULL OR binding_key = '' THEN 1 ELSE 0 END,
+                 CASE WHEN binding_config IS NULL OR binding_config = '' THEN 1 ELSE 0 END,
+                 sort_order ASC,
+                 update_time DESC,
+                 id DESC
         LIMIT 1
     </select>
 

@@ -15,8 +15,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * 业务应用入口打开方式解析服务。
@@ -24,6 +29,8 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class BusinessAppOpenService {
+
+    private static final Set<String> RUNTIME_OPEN_MODES = Set.of("LIST", "CREATE_FORM", "DETAIL");
 
     private final BusinessAppMapper businessAppMapper;
     private final AiCrudConfigMapper aiCrudConfigMapper;
@@ -41,6 +48,13 @@ public class BusinessAppOpenService {
     }
 
     private BusinessAppOpenInfoVO buildOpenInfo(AiBusinessApp app) {
+        JSONObject options = readOptions(app.getOptions());
+        JSONObject adminMenu = readAdminMenu(options);
+        Long menuResourceId = readLong(firstNonNull(adminMenu.get("menuResourceId"), options.get("menuResourceId")));
+        String activeMenuKey = menuResourceId == null ? null : String.valueOf(menuResourceId);
+        String runtimeOpenMode = resolveRuntimeOpenMode(options.getString("runtimeOpenMode"));
+        String targetUrl = resolveTargetUrl(app, runtimeOpenMode, menuResourceId);
+
         BusinessAppOpenInfoVO vo = new BusinessAppOpenInfoVO();
         vo.setAppId(app.getId());
         vo.setAppCode(app.getAppCode());
@@ -48,9 +62,13 @@ public class BusinessAppOpenService {
         vo.setAppType(app.getAppType());
         vo.setEntryMode(app.getEntryMode());
         vo.setConfigKey(app.getConfigKey());
+        vo.setRuntimeOpenMode(runtimeOpenMode);
+        vo.setMenuResourceId(menuResourceId);
+        vo.setActiveMenuKey(activeMenuKey);
         vo.setPermissionGranted(hasPermission("ai:businessApp:open"));
         vo.setOpenType(resolveOpenType(app.getEntryMode()));
-        vo.setTargetUrl(resolveTargetUrl(app));
+        vo.setTargetUrl(targetUrl);
+        vo.setTargetRoute(targetUrl);
 
         // RUNTIME 模式下校验 configKey 对应的运行配置是否存在
         String runtimeMessage = validateRuntimeConfig(app);
@@ -112,15 +130,80 @@ public class BusinessAppOpenService {
         return null;
     }
 
-    private String resolveTargetUrl(AiBusinessApp app) {
+    private String resolveTargetUrl(AiBusinessApp app, String runtimeOpenMode, Long menuResourceId) {
         String entryMode = StringUtils.defaultIfBlank(app.getEntryMode(), "ROUTE").toUpperCase();
         if ("RUNTIME".equals(entryMode)) {
             if (StringUtils.isNotBlank(app.getConfigKey())) {
-                return "/ai/crud-page/" + app.getConfigKey();
+                return buildRuntimeTargetRoute(app, runtimeOpenMode, menuResourceId);
             }
             return StringUtils.trimToNull(app.getEntryUrl());
         }
-        return StringUtils.trimToNull(app.getEntryUrl());
+        String entryUrl = StringUtils.trimToNull(app.getEntryUrl());
+        if (isInternalPath(entryUrl)) {
+            return appendMenuContext(entryUrl, app, menuResourceId);
+        }
+        return entryUrl;
+    }
+
+    private String buildRuntimeTargetRoute(AiBusinessApp app, String runtimeOpenMode, Long menuResourceId) {
+        Map<String, String> query = new LinkedHashMap<>();
+        query.put("appId", String.valueOf(app.getId()));
+        if (menuResourceId != null) {
+            query.put("menuKey", String.valueOf(menuResourceId));
+            query.put("menuResourceId", String.valueOf(menuResourceId));
+        }
+        query.put("runtimeOpenMode", runtimeOpenMode);
+        if ("CREATE_FORM".equals(runtimeOpenMode)) {
+            query.put("mode", "create");
+        } else if ("DETAIL".equals(runtimeOpenMode)) {
+            query.put("mode", "detail");
+        }
+        if (StringUtils.isNotBlank(app.getAppName())) {
+            query.put("title", app.getAppName());
+        }
+        return appendQuery("/ai/crud-page/" + app.getConfigKey(), query);
+    }
+
+    private String appendMenuContext(String targetUrl, AiBusinessApp app, Long menuResourceId) {
+        Map<String, String> query = new LinkedHashMap<>();
+        query.put("appId", String.valueOf(app.getId()));
+        if (menuResourceId != null) {
+            query.put("menuKey", String.valueOf(menuResourceId));
+            query.put("menuResourceId", String.valueOf(menuResourceId));
+        }
+        if (StringUtils.isNotBlank(app.getAppName())) {
+            query.put("title", app.getAppName());
+        }
+        return appendQuery(targetUrl, query);
+    }
+
+    private String appendQuery(String targetUrl, Map<String, String> query) {
+        if (StringUtils.isBlank(targetUrl) || query == null || query.isEmpty()) {
+            return targetUrl;
+        }
+        StringBuilder builder = new StringBuilder(targetUrl);
+        builder.append(targetUrl.contains("?") ? "&" : "?");
+        boolean first = true;
+        for (Map.Entry<String, String> entry : query.entrySet()) {
+            if (StringUtils.isBlank(entry.getKey()) || StringUtils.isBlank(entry.getValue())) {
+                continue;
+            }
+            if (!first) {
+                builder.append("&");
+            }
+            builder.append(urlEncode(entry.getKey()))
+                    .append("=")
+                    .append(urlEncode(entry.getValue()));
+            first = false;
+        }
+        if (first) {
+            return targetUrl;
+        }
+        return builder.toString();
+    }
+
+    private String urlEncode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     private String validateOpenSecurity(AiBusinessApp app, String openType, String targetUrl) {
@@ -193,6 +276,42 @@ public class BusinessAppOpenService {
         } catch (Exception e) {
             return List.of();
         }
+    }
+
+    private JSONObject readOptions(String options) {
+        if (StringUtils.isBlank(options)) {
+            return new JSONObject();
+        }
+        try {
+            return JSON.parseObject(options);
+        } catch (Exception e) {
+            return new JSONObject();
+        }
+    }
+
+    private JSONObject readAdminMenu(JSONObject options) {
+        JSONObject adminMenu = options.getJSONObject("adminMenu");
+        return adminMenu == null ? new JSONObject() : adminMenu;
+    }
+
+    private Object firstNonNull(Object first, Object second) {
+        return first != null ? first : second;
+    }
+
+    private Long readLong(Object value) {
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Long.valueOf(String.valueOf(value));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String resolveRuntimeOpenMode(String value) {
+        String mode = StringUtils.defaultIfBlank(value, "LIST").toUpperCase();
+        return RUNTIME_OPEN_MODES.contains(mode) ? mode : "LIST";
     }
 
     private void addAllowedDomain(List<String> domains, Object value) {

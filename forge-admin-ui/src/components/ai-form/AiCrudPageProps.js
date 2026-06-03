@@ -414,6 +414,60 @@ export const aiCrudPageProps = {
   },
 
   /**
+   * 运行态行操作配置。低代码业务对象可按记录状态追加动作。
+   * @type {Array<object>}
+   */
+  runtimeActions: {
+    type: Array,
+    default: () => [],
+  },
+
+  /**
+   * 是否只显示新增表单，不渲染列表和弹窗。
+   * @type {boolean}
+   */
+  formOnly: {
+    type: Boolean,
+    default: false,
+  },
+
+  /**
+   * 表单填报页标题
+   * @type {string}
+   */
+  formOnlyTitle: {
+    type: String,
+    default: '',
+  },
+
+  /**
+   * 表单填报页提交按钮文案
+   * @type {string}
+   */
+  formOnlySubmitText: {
+    type: String,
+    default: '提交',
+  },
+
+  /**
+   * 表单填报成功标题
+   * @type {string}
+   */
+  formOnlySuccessTitle: {
+    type: String,
+    default: '提交成功',
+  },
+
+  /**
+   * 表单填报成功说明
+   * @type {string}
+   */
+  formOnlySuccessDescription: {
+    type: String,
+    default: '单据已保存',
+  },
+
+  /**
    * 导出按钮文本
    * @type {string}
    */

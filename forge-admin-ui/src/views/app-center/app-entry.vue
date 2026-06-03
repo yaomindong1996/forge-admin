@@ -56,7 +56,7 @@ async function openAppEntry() {
   if (info.openType === 'IFRAME') {
     router.replace({
       path: '/iframe',
-      query: { page: info.targetUrl },
+      query: buildContextQuery({ page: info.targetUrl }, info),
     })
     return
   }
@@ -65,7 +65,7 @@ async function openAppEntry() {
     message.value = 'API 类型入口已保留为接口能力，不再跳转独立集成中心'
     return
   }
-  router.replace(info.targetUrl)
+  router.replace(buildRouteLocation(info.targetRoute || info.targetUrl, info))
 }
 
 function openExternal() {
@@ -78,6 +78,40 @@ function resolveAppId() {
     return route.params.appId
   const match = String(route.path || '').match(/\/app-center\/app\/([^/]+)$/)
   return match?.[1] || null
+}
+
+function buildRouteLocation(targetUrl, info = {}) {
+  const target = String(targetUrl || '').trim()
+  if (!target)
+    return { path: '/app-center' }
+  const [pathAndQuery, hashValue = ''] = target.split('#')
+  const [path, queryString = ''] = pathAndQuery.split('?')
+  const query = {}
+  const params = new URLSearchParams(queryString)
+  params.forEach((value, key) => {
+    query[key] = value
+  })
+  return {
+    path: path || '/app-center',
+    query: buildContextQuery(query, info),
+    hash: hashValue ? `#${hashValue}` : undefined,
+  }
+}
+
+function buildContextQuery(query = {}, info = {}) {
+  const nextQuery = { ...query }
+  if (info.appId && !nextQuery.appId)
+    nextQuery.appId = String(info.appId)
+  const menuKey = info.activeMenuKey || info.menuResourceId
+  if (menuKey && !nextQuery.menuKey)
+    nextQuery.menuKey = String(menuKey)
+  if (info.menuResourceId && !nextQuery.menuResourceId)
+    nextQuery.menuResourceId = String(info.menuResourceId)
+  if (info.appName && !nextQuery.title)
+    nextQuery.title = info.appName
+  if (info.runtimeOpenMode && !nextQuery.runtimeOpenMode)
+    nextQuery.runtimeOpenMode = info.runtimeOpenMode
+  return nextQuery
 }
 </script>
 

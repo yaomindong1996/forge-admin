@@ -29,6 +29,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -170,6 +171,45 @@ public class DynamicCrudService {
                                                       Integer maxRows) {
         int limit = normalizeExportLimit(maxRows);
         return selectExportPageRows(configKey, query, 1, limit, null);
+    }
+
+    /**
+     * 定时触发器候选记录读取。只允许按运行配置字段白名单内的到期字段做区间查询，
+     * 避免后台扫描器出现无条件全表读取。
+     */
+    public List<Map<String, Object>> selectScheduledCandidateRows(String configKey,
+                                                                  String dueField,
+                                                                  LocalDateTime windowStart,
+                                                                  LocalDateTime windowEnd,
+                                                                  Integer batchSize) {
+        AiCrudConfig config = getConfig(configKey);
+        if (StringUtils.isBlank(dueField)) {
+            throw new BusinessException("定时触发缺少到期字段");
+        }
+        Set<String> allowedFields = buildAllowedCustomFields(config);
+        if (!allowedFields.contains(dueField)) {
+            throw new BusinessException("定时触发到期字段不在运行配置字段范围内: " + dueField);
+        }
+
+        Map<String, String> columnMapping = repository.getColumnMapping(config.getTableName());
+        Map<String, Object> searchParams = new LinkedHashMap<>();
+        searchParams.put(dueField, List.of(windowStart, windowEnd));
+        Map<String, String> searchTypeMap = new LinkedHashMap<>();
+        searchTypeMap.put(dueField, "between");
+
+        List<Map<String, Object>> rows = repository.selectList(
+                config.getTableName(),
+                searchParams,
+                allowedFields,
+                searchTypeMap,
+                columnMapping,
+                "id ASC",
+                normalizeScheduledBatchSize(batchSize),
+                null
+        );
+        List<Map<String, Object>> camelCaseRows = DynamicQueryGenerator.convertListToCamelCase(rows);
+        applyReadPipeline(camelCaseRows, config);
+        return camelCaseRows;
     }
 
     /**
@@ -2700,6 +2740,13 @@ public class DynamicCrudService {
             return MAX_EXPORT_ROWS;
         }
         return Math.min(maxRows, MAX_EXPORT_ROWS);
+    }
+
+    private int normalizeScheduledBatchSize(Integer batchSize) {
+        if (batchSize == null || batchSize < 1) {
+            return 50;
+        }
+        return Math.min(batchSize, 200);
     }
 
     private int normalizeExportPageSize(Integer pageSize) {

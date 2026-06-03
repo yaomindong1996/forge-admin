@@ -59,4 +59,5 @@ public class BusinessEvent {
     public static final String FLOW_APPROVED = "FLOW_APPROVED";
     public static final String FLOW_REJECTED = "FLOW_REJECTED";
     public static final String FLOW_CANCELED = "FLOW_CANCELED";
+    public static final String SCHEDULED_DUE = "SCHEDULED_DUE";
 }

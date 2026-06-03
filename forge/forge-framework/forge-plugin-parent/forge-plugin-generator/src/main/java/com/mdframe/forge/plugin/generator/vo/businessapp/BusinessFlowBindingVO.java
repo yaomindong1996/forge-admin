@@ -33,4 +33,12 @@ public class BusinessFlowBindingVO {
     private Map<String, Object> options = new LinkedHashMap<>();
 
     private Integer status;
+
+    private Map<String, Object> mainFlowSummary = new LinkedHashMap<>();
+
+    private Boolean complete;
+
+    private List<String> gaps = new ArrayList<>();
+
+    private String compatibilitySource;
 }

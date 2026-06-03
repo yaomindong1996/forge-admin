@@ -10,7 +10,7 @@
           刷新
         </n-button>
         <n-button size="small" secondary @click="addFlowAction">
-          添加发起流程
+          添加发起主流程
         </n-button>
         <n-button size="small" secondary @click="addAction('ROW')">
           新增操作
@@ -51,7 +51,7 @@
               <n-form label-placement="top" :show-feedback="false" size="small" class="action-form">
                 <n-grid :cols="3" :x-gap="12" :y-gap="4" responsive="screen">
                   <n-form-item-gi label="操作名称">
-                    <n-input v-model:value="action.actionName" placeholder="例如：发起流程" @update:value="value => updateActionName(action, value)" />
+                    <n-input v-model:value="action.actionName" placeholder="例如：发起主流程" @update:value="value => updateActionName(action, value)" />
                   </n-form-item-gi>
                   <n-form-item-gi label="操作位置">
                     <n-select v-model:value="action.actionPosition" :options="positionOptions" @update:value="markDirty" />
@@ -82,42 +82,10 @@
                     <n-input v-model:value="action.actionConfig.targetPath" placeholder="例如：/app-center/object/CUSTOMER" @update:value="markDirty" />
                   </n-form-item-gi>
                   <template v-else-if="action.actionType === 'START_FLOW'">
-                    <n-form-item-gi label="流程模型">
-                      <n-select
-                        v-model:value="action.actionConfig.flowModelKey"
-                        :options="flowModelOptions"
-                        :loading="flowModelsLoading"
-                        clearable
-                        filterable
-                        placeholder="选择已发布流程"
-                        @update:value="value => updateFlowModel(action, value)"
-                      />
-                    </n-form-item-gi>
-                    <n-form-item-gi :span="2" label="流程标题模板">
-                      <n-input v-model:value="action.actionConfig.titleTemplate" placeholder="例如：${name}-流程" @update:value="markDirty" />
-                    </n-form-item-gi>
-                    <n-form-item-gi :span="3" label="变量映射">
-                      <div class="action-mapping-list">
-                        <div v-for="(mapping, mappingIndex) in action.actionConfig.variableMapping" :key="mapping.clientKey" class="action-mapping-row">
-                          <n-select
-                            v-model:value="mapping.formField"
-                            :options="fieldOptions"
-                            clearable
-                            filterable
-                            placeholder="单据字段"
-                            @update:value="value => updateMappingLabel(mapping, value)"
-                          />
-                          <span>→</span>
-                          <n-input v-model:value="mapping.flowVariable" placeholder="流程变量名" @update:value="markDirty" />
-                          <n-button quaternary circle size="small" @click="removeMapping(action, mappingIndex)">
-                            <template #icon>
-                              <n-icon><TrashOutline /></n-icon>
-                            </template>
-                          </n-button>
-                        </div>
-                        <n-button dashed size="small" @click="addMapping(action)">
-                          添加变量映射
-                        </n-button>
+                    <n-form-item-gi :span="3" label="主流程">
+                      <div class="main-flow-action-hint">
+                        <strong>使用“流程与自动化”中配置的主流程</strong>
+                        <span>这里只维护按钮名称、位置、权限和确认文案。</span>
                       </div>
                     </n-form-item-gi>
                   </template>
@@ -150,7 +118,7 @@
         </section>
         <section>
           <h4>发布关注</h4>
-          <p>自定义操作会进入发布检查摘要；发起流程操作需要完成流程绑定和按钮权限配置。</p>
+          <p>发起主流程按钮会复用当前对象的主流程配置；流程模型、标题和变量映射在流程与自动化里维护。</p>
         </section>
       </aside>
     </div>
@@ -160,12 +128,11 @@
 <script setup>
 import { TrashOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   businessObjectActions,
   saveBusinessObjectActions,
 } from '@/api/business-app'
-import flowApi from '@/api/flow'
 
 const props = defineProps({
   objectId: {
@@ -183,9 +150,7 @@ const emit = defineEmits(['updated', 'dirtyChange'])
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
-const flowModelsLoading = ref(false)
 const localActions = ref([])
-const flowModelOptions = ref([])
 
 const positionOptions = [
   { label: '工具栏', value: 'TOOLBAR' },
@@ -196,24 +161,16 @@ const positionOptions = [
 const actionTypeOptions = [
   { label: '打开页面', value: 'OPEN_PAGE' },
   { label: '调用能力', value: 'CALL_API' },
-  { label: '发起流程', value: 'START_FLOW' },
+  { label: '发起主流程', value: 'START_FLOW' },
   { label: '执行触发器', value: 'TRIGGER' },
   { label: '打开外部链接', value: 'OPEN_EXTERNAL' },
 ]
 
-const fieldOptions = computed(() => props.fields
-  .filter(field => fieldCode(field) && !isInactiveField(field))
-  .map(field => ({
-    label: `${field.fieldName || field.label || fieldCode(field)}（${fieldCode(field)}）`,
-    value: fieldCode(field),
-  })))
 const actionStats = computed(() => positionOptions.map(item => ({
   position: item.value,
   label: item.label,
   count: localActions.value.filter(action => action.actionPosition === item.value && action.status !== 0).length,
 })))
-
-onMounted(loadFlowModels)
 
 watch(() => props.objectId, () => {
   loadActions()
@@ -235,24 +192,6 @@ async function loadActions() {
   }
 }
 
-async function loadFlowModels() {
-  flowModelsLoading.value = true
-  try {
-    const res = await flowApi.getModelList({ status: 1 })
-    flowModelOptions.value = (res.data || []).map(model => ({
-      label: `${model.modelName || model.name || model.modelKey || model.key}（${model.modelKey || model.key}）`,
-      value: model.modelKey || model.key,
-      modelName: model.modelName || model.name || model.modelKey || model.key,
-    })).filter(item => item.value)
-  }
-  catch {
-    flowModelOptions.value = []
-  }
-  finally {
-    flowModelsLoading.value = false
-  }
-}
-
 function addAction(position = 'ROW') {
   localActions.value.push(normalizeAction({
     actionCode: `custom_${Date.now()}`,
@@ -270,7 +209,7 @@ function addAction(position = 'ROW') {
 function addFlowAction() {
   localActions.value.push(normalizeAction({
     actionCode: `start_flow_${Date.now()}`,
-    actionName: '发起流程',
+    actionName: '发起主流程',
     actionPosition: 'ROW',
     actionType: 'START_FLOW',
     confirmRequired: true,
@@ -278,7 +217,7 @@ function addFlowAction() {
     failureMessage: '流程发起失败',
     status: 1,
     sortOrder: localActions.value.length * 10 + 10,
-    actionConfig: { variableMapping: [] },
+    actionConfig: { useMainFlow: true },
   }))
   emit('dirtyChange', true)
 }
@@ -368,11 +307,7 @@ function normalizeActionConfig(actionType, config = {}) {
   if (normalizeActionType(actionType) !== 'START_FLOW')
     return source
   return {
-    ...source,
-    flowModelKey: source.flowModelKey || source.flowKey || '',
-    flowModelName: source.flowModelName || '',
-    titleTemplate: source.titleTemplate || '',
-    variableMapping: normalizeVariableMapping(source.variableMapping || []),
+    useMainFlow: true,
   }
 }
 
@@ -381,14 +316,7 @@ function normalizeActionConfigForPayload(actionType, config = {}) {
   if (normalizeActionType(actionType) !== 'START_FLOW')
     return source
   return {
-    ...source,
-    variableMapping: (source.variableMapping || [])
-      .map(item => ({
-        formField: item.formField || '',
-        flowVariable: item.flowVariable || '',
-        label: item.label || fieldLabel(item.formField),
-      }))
-      .filter(item => item.formField && item.flowVariable),
+    useMainFlow: true,
   }
 }
 
@@ -396,58 +324,6 @@ function updateActionType(action, value) {
   action.actionType = normalizeActionType(value)
   action.actionConfig = normalizeActionConfig(action.actionType, action.actionConfig)
   markDirty()
-}
-
-function normalizeVariableMapping(list = []) {
-  return (list || []).map(item => ({
-    clientKey: item.clientKey || `mapping_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    formField: item.formField || item.field || null,
-    flowVariable: item.flowVariable || item.variable || '',
-    label: item.label || fieldLabel(item.formField || item.field),
-  })).filter(item => item.formField || item.flowVariable)
-}
-
-function updateFlowModel(action, value) {
-  const model = flowModelOptions.value.find(item => item.value === value)
-  action.actionConfig.flowModelName = model?.modelName || ''
-  markDirty()
-}
-
-function addMapping(action) {
-  if (!Array.isArray(action.actionConfig.variableMapping))
-    action.actionConfig.variableMapping = []
-  action.actionConfig.variableMapping.push({
-    clientKey: `mapping_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    formField: null,
-    flowVariable: '',
-    label: '',
-  })
-  markDirty()
-}
-
-function removeMapping(action, index) {
-  action.actionConfig.variableMapping.splice(index, 1)
-  markDirty()
-}
-
-function updateMappingLabel(mapping, value) {
-  mapping.label = fieldLabel(value)
-  markDirty()
-}
-
-function fieldLabel(code) {
-  if (!code)
-    return ''
-  return fieldOptions.value.find(item => item.value === code)?.label || code
-}
-
-function fieldCode(field = {}) {
-  return field.fieldCode || field.field || ''
-}
-
-function isInactiveField(field = {}) {
-  const status = String(field.fieldStatus || '').toUpperCase()
-  return status === 'DISABLED' || status === 'HIDDEN'
 }
 
 function safeParseJson(value) {
@@ -594,23 +470,24 @@ defineExpose({
   font-size: 18px;
 }
 
-.action-mapping-list {
+.main-flow-action-hint {
   display: grid;
-  gap: 8px;
+  gap: 4px;
   width: 100%;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e40af;
+  padding: 10px 12px;
 }
 
-.action-mapping-row {
-  display: grid;
-  grid-template-columns: minmax(180px, 1fr) 24px minmax(180px, 1fr) 32px;
-  gap: 8px;
-  align-items: center;
+.main-flow-action-hint strong {
+  font-size: 13px;
 }
 
-.action-mapping-row span {
-  color: #64748b;
+.main-flow-action-hint span {
+  color: #475569;
   font-size: 12px;
-  text-align: center;
 }
 
 @media (max-width: 1100px) {
@@ -623,8 +500,5 @@ defineExpose({
     border-top: 1px solid #e5e7eb;
   }
 
-  .action-mapping-row {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

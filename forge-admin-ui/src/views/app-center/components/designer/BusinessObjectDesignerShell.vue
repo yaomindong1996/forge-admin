@@ -44,7 +44,7 @@
           </template>
           保存
         </n-button>
-        <n-button :disabled="publishing || publishDisabled" type="success" secondary @click="$emit('publish')">
+        <n-button :loading="publishing" :disabled="publishDisabled" type="success" secondary @click="$emit('publish')">
           <template #icon>
             <n-icon><RocketOutline /></n-icon>
           </template>
@@ -76,6 +76,24 @@
           <span>{{ item.label }}</span>
           <em v-if="item.key === 'publish' && designer?.hasUnpublishedChanges">待发布</em>
         </button>
+
+        <div v-if="closureSteps.length" class="closure-steps">
+          <div class="closure-steps-head">
+            <strong>单据闭环配置</strong>
+            <span>{{ closureDoneCount }}/{{ closureSteps.length }}</span>
+          </div>
+          <button
+            v-for="step in closureSteps"
+            :key="step.key"
+            type="button"
+            class="closure-step"
+            :class="[`step-${step.status || 'todo'}`]"
+            @click="handleStepClick(step)"
+          >
+            <span>{{ step.label }}</span>
+            <em>{{ step.statusLabel }}</em>
+          </button>
+        </div>
       </aside>
 
       <main class="designer-main">
@@ -151,9 +169,13 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  closureSteps: {
+    type: Array,
+    default: () => [],
+  },
 })
 
-const emit = defineEmits(['update:activePanel', 'save', 'preview', 'publish', 'back', 'refresh', 'openRuntime'])
+const emit = defineEmits(['update:activePanel', 'save', 'preview', 'publish', 'back', 'refresh', 'openRuntime', 'openTrigger'])
 
 const navItems = [
   { key: 'basic', label: '基本信息', icon: OptionsOutline },
@@ -172,6 +194,7 @@ const navItems = [
 const moreOptions = [
   { label: '刷新设计器', key: 'refresh' },
   { label: '打开运行应用', key: 'openRuntime' },
+  { label: '配置触发器', key: 'openTrigger' },
 ]
 
 const filteredNavItems = computed(() => {
@@ -179,6 +202,7 @@ const filteredNavItems = computed(() => {
     return navItems
   return navItems.filter(item => item.key !== 'advanced')
 })
+const closureDoneCount = computed(() => props.closureSteps.filter(step => step.status === 'done').length)
 
 function handlePanelClick(key) {
   if (key === props.activePanel)
@@ -198,6 +222,18 @@ function handlePanelClick(key) {
     negativeText: '留在当前',
     onPositiveClick: () => emit('update:activePanel', key),
   })
+}
+
+function handleStepClick(step = {}) {
+  if (step.key === 'trigger') {
+    emit('openTrigger')
+    return
+  }
+  if (step.key === 'runtime') {
+    emit('openRuntime')
+    return
+  }
+  handlePanelClick(step.panel || step.key)
 }
 
 const designStatusLabel = computed(() => {
@@ -392,6 +428,80 @@ const publishStatusType = computed(() => {
   font-style: normal;
   line-height: 20px;
   padding: 0 6px;
+}
+
+.closure-steps {
+  display: grid;
+  gap: 6px;
+  margin-top: 16px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 14px;
+}
+
+.closure-steps-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #334155;
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+.closure-steps-head strong {
+  font-size: 12px;
+}
+
+.closure-steps-head span {
+  color: #64748b;
+}
+
+.closure-step {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 32px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+  padding: 0 8px;
+}
+
+.closure-step:hover {
+  border-color: #bfdbfe;
+  background: #f8fbff;
+}
+
+.closure-step span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.closure-step em {
+  border-radius: 4px;
+  font-size: 11px;
+  font-style: normal;
+  line-height: 20px;
+  padding: 0 6px;
+}
+
+.closure-step.step-done em {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.closure-step.step-warn em {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.closure-step.step-todo em {
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .designer-main {

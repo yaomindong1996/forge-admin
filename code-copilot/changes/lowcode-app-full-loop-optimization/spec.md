@@ -441,3 +441,307 @@ Phase 8 自检通过。当前变更已完成 Spec 定义的低代码业务单据
 - **确认时间**：2026-06-02 08:00（Asia/Shanghai）
 - **确认人**：Codex（按本轮用户指令自动执行 Phase 8）
 - **结论**：Phase 0 边界已冻结；Phase 1-2 已落地单据配置、流程实例关联、单据运行态和流程绑定后端协议；Phase 3 已完成真实发起流程、实例关联、单据状态回写、流程回调幂等处理和旧审批入口兼容转发；Phase 4 已完成触发器 XML 分页查询、场景模板、变量映射协议兼容、创建记录/更新字段动作和 Webhook TODO 日志闭环；Phase 5 已完成站内消息与三方 TODO 通道、业务统计指标后端能力、单据动作权限摘要和权限资源补齐；Phase 6 已完成应用中心入口收敛、单据设置、流程自动化、自定义操作、触发器结构化配置和业务报表看板前端接入；Phase 7 已补齐 CRM 商机和 HR 离职申请示例初始化；Phase 8 已完成 Flyway、后端 package、前端 build、核心接口、商机主流程和文档归档验证。本变更进入可 review/archive 状态。
+
+## 18. Phase 9 BUG 增补：应用入口、单据流程配置和自动化体验优化
+> status: proposed
+> created: 2026-06-02
+> priority: P0
+> source: 低代码应用运行态用户反馈
+
+### 18.1 背景
+
+Phase 8 已经跑通低代码业务单据的最小闭环，但实际配置和使用时仍有明显断点：
+
+- 管理端同步出的应用菜单点击后会先进入 `/app-center/app/{appId}` 中转页，再跳到 `/ai/crud-page/{configKey}`，当前菜单无法稳定保持选中态，父级“应用总览”和套件目录会短暂闪动。
+- 单据设置和流程自动化虽然已有表单，但仍偏技术配置，用户需要手填编号变量、状态值、流程变量和标题模板，不知道可填什么。
+- 单据设置里的“默认流程”和流程与自动化里的“流程模型”概念重叠，用户不知道两处选流程有什么区别。
+- 业务单据作为应用入口挂载时，用户预期点击后进入填报页面，而不是普通管理列表。
+- 手动发起流程时，配置了 `MANUAL` 或 `BOTH` 后，运行页没有自动出现可用的“发起流程”按钮，也没有自动绑定按钮事件。
+- 全局新增触发器时，如果没有先选择业务对象，会提交到后端并报“业务对象编码不能为空”。
+- 单据配置、流程配置、触发器配置、发布检查和试运行之间仍是分散页面，串联不流畅。
+
+本阶段目标不是新增独立中心，而是把“配置完成即可使用”补齐为产品级体验。
+
+### 18.2 目标
+
+- 应用入口菜单点击后，当前动态应用菜单稳定选中，不再闪动 `/app-center` 或父级目录。
+- 单据设置、流程与自动化、触发器配置形成一个向导化主链路，减少跨页面跳转和重复配置。
+- 编号规则、状态映射、流程变量映射、流程标题模板从“手填文本”升级为“选择变量、插入变量、实时预览、必要时高级输入”。
+- 单据主流程只配置一次，单据运行、手动发起和触发器自动发起复用同一套流程绑定。
+- 单据填报类应用入口支持直接打开新增填报页面，普通管理类入口仍打开列表页。
+- 手动发起流程按钮由运行态根据单据配置、流程绑定、状态和权限自动生成。
+- 触发器新增时必须先确定业务对象，前端在提交前给出明确阻断，不把空 `objectCode` 交给后端。
+
+### 18.3 非目标
+
+- 不重写 `AiCrudPage` 为新的运行时框架。
+- 不新建“审批中心”或“自动化中心”。
+- 不实现完整 BPMN 静态分析器；本阶段只抽取低代码配置需要的流程变量候选项。
+- 不实现复杂编号服务的全量规则引擎；本阶段先支持内置变量、序列号和预览校验。
+- 不删除历史兼容字段和接口，旧配置需要能继续读取并迁移到新展示协议。
+
+### 18.4 现状定位
+
+- `BusinessAppService#syncManagementMenu` 当前把管理端应用菜单固定注册到 `/app-center/app/{id}`，组件为 `app-center/app-entry`。
+- `app-entry.vue` 对 `RUNTIME` 入口调用 `businessAppOpenInfo` 后执行 `router.replace(info.targetUrl)`，最终路由变成 `/ai/crud-page/{configKey}`。
+- `useMenu.activeKey` 主要通过当前 `route.path` 和菜单 path 匹配选中项，最终运行页没有与动态应用菜单 path 相同的菜单项，因此选中态丢失。
+- `BusinessDocumentPanel.vue` 的编号规则是普通输入框，状态映射是原始值输入。
+- `BusinessFlowBindingPanel.vue` 和 `TriggerActionConfigPanel.vue` 的流程变量名仍需要手填。
+- `AiCrudPage.vue` 当前只内置处理新增、编辑、详情、删除、路由跳转和外链，自定义 `START_FLOW` 没有运行态执行分支。
+- `trigger.vue` 全局新增触发器时允许空对象进入弹窗，后端 `BusinessTriggerService#validateTrigger` 会抛出“业务对象编码不能为空”。
+
+### 18.5 功能要求
+
+#### 18.5.1 动态应用菜单选中态
+
+- [ ] 管理端同步出的业务应用菜单必须有稳定的最终打开路由，不允许只依赖 `/app-center/app/{appId}` 中转后丢失菜单归属。
+- [ ] `RUNTIME` 菜单可以直接注册为 `/ai/crud-page/{configKey}`，并通过 query 或 meta 携带 `appId/menuKey/menuResourceId`；如果继续保留中转页，也必须在跳转后保留 active menu key。
+- [ ] `BusinessAppOpenInfoVO` 需要返回当前入口的 `activeMenuKey`、`menuResourceId`、`targetRoute` 和 `runtimeOpenMode`，前端打开时按这些字段写入路由 query。
+- [ ] `useMenu.activeKey` 需要优先识别 `route.query.menuKey`、`route.query.appId` 或 `route.meta.parentKey`，再按路径匹配。
+- [ ] 点击应用菜单时，侧边栏只选中当前应用菜单；父级套件目录只保持展开，不显示为当前选中项。
+- [ ] 浏览器刷新 `/ai/crud-page/{configKey}?appId=...&menuKey=...` 后，仍能恢复同一个应用菜单选中态。
+- [ ] Tab 标题和浏览器标题使用业务应用名称优先，其次才是运行配置名称。
+
+#### 18.5.2 应用入口打开模式
+
+- [ ] 应用入口配置增加“运行态打开模式”：`LIST` 列表管理、`CREATE_FORM` 新增填报、`DETAIL` 详情查看。
+- [ ] 普通业务管理入口默认 `LIST`；启用单据模式且入口名称/类型为填报类时默认建议 `CREATE_FORM`。
+- [ ] `CREATE_FORM` 模式打开 `/ai/crud-page/{configKey}?mode=create&appId=...&menuKey=...` 后，运行页自动打开新增表单。
+- [ ] 新增表单保存成功后，页面按配置选择停留在详情、回到列表或继续新增，默认回到列表并刷新数据。
+- [ ] 如果对象未发布、运行配置缺失或单据状态字段缺失，入口页展示明确下一步，不进入空白表单。
+- [ ] 外链、H5、IFRAME、API 入口继续沿用现有安全校验，不受本阶段影响。
+
+#### 18.5.3 单据设置体验
+
+- [ ] 编号规则从普通输入升级为模板编辑器，提供变量选择、点击插入、实时样例预览和错误提示。
+- [ ] 内置编号变量至少包括：`${yyyy}`、`${yyyyMM}`、`${yyyyMMdd}`、`${HHmmss}`、`${seq}`、`${seq:4}`、`${suiteCode}`、`${objectCode}`、`${starter}`、`${deptCode}`、`${field:<fieldCode>}`。
+- [ ] 编号变量以分组菜单或变量标签展示，用户选择后自动插入到光标位置，不要求记忆语法。
+- [ ] 编号规则保存前校验未知变量、空序列、非法字符和长度风险。
+- [ ] 状态映射改为结构化表格：标准状态、存储值、展示名称、标签类型、是否允许编辑、是否允许删除、是否允许发起流程。
+- [ ] 状态字段如果绑定了字典，存储值优先从字典项选择；如果没有字典，允许使用默认状态值并提示建议维护字典。
+- [ ] 提供“一键使用默认状态集”和“一键从字典生成映射”。
+- [ ] 单据设置页采用工作台布局：左侧主配置、中间映射表、右侧发布检查摘要，不再使用松散堆叠的小卡片。
+- [ ] 页面内所有保存按钮必须有 loading、防重复提交和保存后摘要刷新。
+
+#### 18.5.4 单据主流程合并
+
+- [ ] “单据设置里的默认流程”和“流程与自动化里的流程模型”合并为一个“主流程配置”。
+- [ ] 主流程配置的事实来源优先使用 `ai_business_binding` 的 `binding_type=FLOW` 配置；`ai_business_document_config.default_flow_key` 仅保留兼容读取或同步快照。
+- [ ] 单据设置页只展示主流程摘要和“去配置主流程”入口，不再提供第二个独立流程选择器。
+- [ ] 流程与自动化页维护主流程模型、变量映射、标题模板、发起方式、条件流程和状态回写。
+- [ ] 保存主流程后，同步更新单据配置摘要，避免两个页面显示不一致。
+- [ ] 发布检查以主流程配置为准，提示“未配置主流程”“变量映射缺失”“发起方式未配置”“手动按钮缺失”等问题。
+
+#### 18.5.5 流程变量映射和标题模板
+
+- [ ] 选择流程模型后，系统自动加载流程变量候选项。
+- [ ] 流程变量候选项需要从以下来源提取：BPMN 条件表达式中的 `${variable}`、审批人 SPEL 表达式、`flowable:assignee`/`candidateUsers`/`candidateGroups` 中的变量、动态表单字段、流程模板变量配置、流程引擎内置变量。
+- [ ] 内置流程变量至少包括：`initiator`、`startUserId`、`businessKey`、`recordId`、`objectCode`、`deptId`、`deptManager`。
+- [ ] 变量映射右侧不再是普通文本输入，默认使用流程变量下拉选择；高级模式允许新增自定义变量。
+- [ ] 系统按字段编码、字段名称、常见别名自动推荐映射，例如 `amount`、`opportunityAmount`、`deptManager`。
+- [ ] 标题模板编辑器支持点击插入单据字段和内置变量，并展示实时预览，例如“商机名称-商机审批-20260602”。
+- [ ] 标题模板保存前校验未知变量；未知变量必须给出具体变量名和修复入口。
+- [ ] 变量映射仍统一保存为 `formField` 和 `flowVariable`，旧协议 `field` 和 `variable` 继续兼容读取。
+
+#### 18.5.6 手动发起流程按钮
+
+- [ ] 当主流程发起方式为 `MANUAL` 或 `BOTH` 时，运行态自动生成“发起流程”按钮，不要求用户在自定义操作里手动添加。
+- [ ] 自动按钮默认出现在行操作和详情页；是否展示受单据状态、流程状态、按钮权限和主流程配置共同控制。
+- [ ] 状态为草稿、已提交且未存在进行中流程时可以发起；流程中、已通过、已驳回、已撤回、已关闭默认不展示或禁用。
+- [ ] 点击按钮调用 `/ai/business/flow/start`，payload 至少包含 `objectCode`、`recordId`、`flowModelKey`、`titleTemplate` 或主流程绑定引用。
+- [ ] 发起成功后刷新列表行、单据运行态、流程状态和操作按钮，不需要用户手动刷新。
+- [ ] 自定义操作页保留“发起流程”覆盖配置，用于修改按钮文案、位置、确认文案和权限标识，但不得造成重复按钮。
+- [ ] 后端仍必须校验 `ai:businessFlow:start` 权限和单据状态，前端隐藏不是安全边界。
+
+#### 18.5.7 触发器新增体验
+
+- [ ] 全局进入触发器页面时，新增触发器弹窗第一步必须选择业务对象；未选择时禁用后续字段或禁用保存。
+- [ ] 从对象设计器或套件对象上下文进入触发器页面时，URL query 携带 `objectCode`，新增弹窗自动带入并锁定或默认选中当前对象。
+- [ ] 业务对象选择后再加载字段、条件构造器和动作配置，避免字段下拉为空。
+- [ ] 场景模板选择后自动填充事件类型、动作类型、默认条件和默认动作配置；如果缺少主流程、消息模板或目标对象，页面展示缺口提示。
+- [ ] 前端提交前必须校验 `objectCode`、`triggerName`、`eventType`、`actionType`、`actionConfig`，不允许把空对象编码提交给后端。
+- [ ] 后端错误仍保留，但前端错误文案应转成用户可处理的动作，例如“请先选择业务对象”。
+
+#### 18.5.8 配置串联主链路
+
+- [ ] 业务对象设计器增加“单据闭环配置”步骤条：单据设置 → 主流程 → 发起方式 → 自动化触发器 → 发布检查 → 试运行。
+- [ ] 每一步展示完成状态、阻断项、警告项和下一步按钮。
+- [ ] 单据设置保存后，如果主流程未配置，下一步直接进入主流程配置。
+- [ ] 主流程保存后，如果发起方式包含 `TRIGGER` 或 `BOTH`，下一步进入触发器配置并自动带入对象和流程。
+- [ ] 发布检查页汇总单据字段、编号规则、状态映射、主流程、变量映射、手动按钮、触发器、菜单入口和权限缺口。
+- [ ] 试运行至少支持打开填报入口、创建一条草稿记录、手动发起流程、查看流程状态四个动作的入口。
+- [ ] 所有配置页保持紧凑后台产品风格，避免大面积空白、重复说明、嵌套卡片和纯技术字段暴露。
+
+### 18.6 数据与配置变更
+
+| 类型 | 位置 | 变更 |
+|------|------|------|
+| 复用 | `ai_business_app.options` | 增加 `runtimeOpenMode`, `activeMenuKey`, `adminMenu.menuResourceId` 回显使用，不新增表字段 |
+| 复用 | `ai_business_document_config.options` | 保存编号规则预览配置、状态动作策略和兼容标记 |
+| 复用 | `ai_business_binding.binding_config` | 作为主流程配置事实来源，保存流程模型、变量映射、标题模板、发起方式和条件流程 |
+| 复用 | `ai_business_object.designer_options` | 保存自定义按钮覆盖配置，自动按钮不强制写入此处 |
+| 可选 | `sys_resource` | 如调整应用菜单 path 或组件，需要用新 Flyway 脚本修复已有动态应用菜单，不修改历史脚本 |
+
+数据约束：
+
+- 新增或修复菜单资源必须 `tenant_id=1`，并具备 `NOT EXISTS` 或按 `menuResourceId` 防重复保护。
+- 已有应用入口如果已同步菜单，需要保留原角色授权，不得删除菜单后重建导致授权丢失。
+- `ai_business_document_config.default_flow_key` 和 `ai_business_binding` 不一致时，以 `ai_business_binding` 为准，并在保存时回写兼容字段。
+
+### 18.7 接口变更
+
+| 操作 | 接口 | 方法 | 说明 |
+|------|------|------|------|
+| 调整 | `/ai/business/app/{id}/open-info` | GET | 返回 `activeMenuKey`, `menuResourceId`, `targetRoute`, `runtimeOpenMode` |
+| 调整 | `/ai/business/app` | POST/PUT | 保存入口时校验并保存 `runtimeOpenMode`，同步菜单时保留菜单归属 |
+| 新增 | `/ai/business/document/no-rule/tokens` | GET | 返回编号规则内置变量、说明、示例和适用范围 |
+| 新增 | `/ai/business/document/no-rule/preview` | POST | 按对象、规则和样例数据返回编号预览和校验结果 |
+| 调整 | `/ai/business/document/config/{objectId}` | GET/PUT | 单据配置返回主流程摘要，不再把 `defaultFlowKey` 作为唯一流程配置入口 |
+| 调整 | `/ai/business/flow/binding/{objectCode}` | GET/PUT | 返回流程变量候选项摘要、自动映射建议和配置完整度 |
+| 新增 | `/ai/business/flow/model/{modelKey}/variables` | GET | 返回流程变量候选项，供单据流程和触发器动作配置使用 |
+| 调整 | `/ai/business/flow/start` | POST | 支持运行态自动按钮发起，返回流程实例和单据状态摘要 |
+| 调整 | `/ai/business/trigger` | POST/PUT | 后端继续校验对象编码，前端提交前必须拦截空对象 |
+
+接口安全要求：
+
+- 新增保存和发起类接口必须按项目现有规则补齐 `@SaCheckPermission`。
+- 查询流程变量候选项不得返回敏感表单数据或历史流程实例变量值，只返回变量定义和来源。
+- 编号预览接口只使用样例数据或当前对象字段元数据，不生成真实编号，不占用序列号。
+
+### 18.8 前端影响范围
+
+| 文件 | 变更方向 |
+|------|----------|
+| `forge-admin-ui/src/composables/useMenu.js` | activeKey 支持 `menuKey/appId` 优先匹配，避免动态应用菜单失焦 |
+| `forge-admin-ui/src/utils/menu-utils.js` | 保持路径匹配能力，必要时支持 query 中的菜单归属解析 |
+| `forge-admin-ui/src/views/app-center/app-entry.vue` | 中转页保留菜单归属 query；RUNTIME 可直接 replace 到带 `menuKey` 的目标路由 |
+| `forge-admin-ui/src/views/app-center/components/AppEditorDrawer.vue` | 增加运行态打开模式，保存到 `options.runtimeOpenMode` |
+| `forge-admin-ui/src/views/ai/crud-page.vue` | 支持 `mode=create` 自动打开新增表单；向 `AiCrudPage` 传入单据运行态和自动流程按钮配置 |
+| `forge-admin-ui/src/components/ai-form/AiCrudPage.vue` | 增加 `START_FLOW` 自定义动作执行分支和自动流程按钮渲染 |
+| `BusinessDocumentPanel.vue` | 编号规则变量选择、预览、状态映射表格化，移除独立流程选择器 |
+| `BusinessFlowBindingPanel.vue` | 主流程配置、流程变量候选项、自动映射建议、标题模板变量插入和预览 |
+| `BusinessActionDesigner.vue` | 发起流程按钮变成覆盖配置，避免和自动按钮重复 |
+| `trigger.vue` | 新增触发器前置业务对象选择、query 默认对象、提交前阻断 |
+| `TriggerActionConfigPanel.vue` | START_FLOW 变量下拉选择，复用流程变量候选项和标题模板编辑器 |
+| `BusinessObjectDesignerShell.vue` | 增加单据闭环配置步骤条和配置完成度摘要 |
+
+### 18.9 后端影响范围
+
+| 类/模块 | 变更方向 |
+|---------|----------|
+| `BusinessAppService` | 保存运行态打开模式，调整菜单同步时的 path 或菜单归属信息，保留已有授权 |
+| `BusinessAppOpenService` | open-info 返回目标路由、菜单归属和打开模式 |
+| `BusinessDocumentConfigService` | 单据配置与主流程绑定联动，兼容 `default_flow_key` |
+| `BusinessFlowService` | 提供主流程完整度、变量候选项摘要、自动映射建议和运行态发起结果 |
+| `BusinessTriggerService` | 场景模板补齐默认动作配置，错误文案保持明确 |
+| `BusinessObjectPublishService` | 发布检查增加菜单选中态、运行态打开模式、自动按钮和触发器串联检查 |
+| `FlowClient` 或业务侧适配服务 | 获取流程模型详情并解析变量候选项，避免前端直接解析完整 BPMN |
+| `MenuRegisterAdapter` | 如菜单 path 变更，需要支持更新已有菜单且不丢角色授权 |
+
+### 18.10 验收标准
+
+- [ ] 配置 CRM 商机应用入口并同步为管理端菜单后，点击菜单直接进入商机运行页或填报页，当前商机菜单保持选中，父级只展开不闪动为选中态。
+- [ ] 刷新运行页后，菜单选中态、Tab 标题和页面标题仍是当前业务应用。
+- [ ] 单据设置中编号规则可以通过变量选择完成，不需要用户手记 `${yyyyMMdd}`、`${seq}` 等语法。
+- [ ] 状态映射可以通过默认状态集或字典生成，不再要求逐项手填原始状态值。
+- [ ] 单据设置页不再独立选择默认流程，只展示主流程摘要和下一步入口。
+- [ ] 选择流程模型后，变量映射右侧自动出现流程变量候选项，并能一键应用推荐映射。
+- [ ] 流程标题模板可以插入字段变量并实时预览。
+- [ ] 主流程发起方式为手动时，商机运行页行操作或详情页自动出现“发起流程”按钮；点击后真实调用 `/ai/business/flow/start` 并刷新状态。
+- [ ] 业务单据填报类应用入口打开后自动弹出新增表单，保存后能回到列表并看到新记录。
+- [ ] 新增触发器时未选择业务对象，前端保存按钮禁用或提示“请先选择业务对象”，不会向后端提交空 `objectCode`。
+- [ ] 从对象设计器进入触发器配置时，新增弹窗自动带入当前对象并加载字段。
+- [ ] 单据闭环配置步骤条能显示每一步完成状态，并能从单据设置连续进入主流程、触发器、发布检查和试运行。
+
+### 18.11 测试策略
+
+- **菜单回归**：用已同步菜单的 CRM 商机入口验证点击、刷新、浏览器后退、Tab 切换后的 activeKey。
+- **入口模式验证**：分别验证 `LIST` 和 `CREATE_FORM`，确认普通对象不自动弹表单，单据填报入口自动弹新增表单。
+- **单据设置验证**：编号规则 token 插入、未知变量校验、预览接口、状态映射默认生成和保存回显。
+- **流程配置验证**：流程变量候选项接口、自动映射建议、标题模板预览、保存后主流程摘要一致。
+- **手动发起验证**：草稿记录显示按钮，流程中记录隐藏或禁用按钮，无权限用户不可见且接口拒绝。
+- **触发器验证**：全局新增必须选择对象；对象上下文新增自动带对象；场景模板填充事件和动作配置。
+- **构建验证**：`cd forge && mvn -pl forge-admin-server -am package -DskipTests`，`cd forge-admin-ui && pnpm build`。
+- **日志记录**：执行前读取 `code-copilot/rules/automated-testing-standard.md`，并把命令、结果、警告和跳过项追加到 `execution-log.md`。
+
+### 18.12 风险与关注点
+
+- ⚠️ 菜单授权风险：已有动态应用菜单可能已经绑定角色，更新 path 时必须保留原 `sys_resource.id`。
+- ⚠️ 兼容风险：历史入口仍可能依赖 `/app-center/app/{id}` 中转页，不能直接删除该路由。
+- ⚠️ 双流程配置风险：`default_flow_key` 和 `ai_business_binding` 可能存在历史不一致，必须给出迁移优先级和页面提示。
+- ⚠️ 变量解析风险：BPMN 表达式无法 100% 静态识别，本阶段只做候选项和建议，不阻断高级自定义变量。
+- ⚠️ 自动按钮风险：自动生成和自定义操作可能重复，需要按 `START_FLOW` 动作和位置去重。
+- ⚠️ 编号预览风险：预览不能消耗真实序列号，真实编号生成如未落地，需要在页面明确标记“预览规则”或补齐后端生成点。
+
+### 18.13 Task 30-33 实施结论
+
+- 流程与自动化页面已接入标题模板变量插入、实时预览、流程变量候选下拉和推荐映射补空；触发器 `START_FLOW` 动作复用同一套配置体验。
+- 运行态单据接口已返回自动动作摘要，主流程发起方式为 `MANUAL` 或 `BOTH` 时，前端可自动渲染“发起流程”行操作并调用 `/ai/business/flow/start`。
+- 触发器新增已前置业务对象选择，从对象设计器进入时通过 `objectCode` query 自动带入上下文，保存前不再把空对象编码提交给后端。
+- 对象设计器已增加单据闭环步骤条，串联单据设置、主流程、触发器、发布检查和试运行入口；发布检查/readiness 已补充菜单入口、打开模式、编号规则、状态映射、主流程、自动按钮和触发器缺口。
+- 本轮验证已完成：后端 `forge-plugin-generator` 及依赖模块 compile 通过，前端 `pnpm build` 通过，`git diff --check` 通过。接口联调和浏览器点击验证因本轮未启动服务/数据库记录为跳过项。
+
+## 19. Phase 10 增补：定时触发闭环
+
+### 19.1 背景
+
+当前触发器表结构和前端已经预留 `SCHEDULE`/到期提醒配置，但真实执行链路仍只依赖业务事件发布。`BusinessTriggerMapper.selectActiveByObjectAndEvent` 还限定 `trigger_type='EVENT'`，因此定时触发器不会被执行。用户明确要求补齐定时触发能力，同时注意效率和执行间隔，避免过于频繁扫描。
+
+### 19.2 功能要求
+
+- 定时触发器统一保存为 `triggerType=SCHEDULE`，兼容历史 `SCHEDULED`。
+- 默认只实现“到期提醒”类定时触发，事件类型为 `SCHEDULED_DUE`。
+- 定时触发配置写入 `eventCondition.schedule`，至少包含：
+  - `dueField`：到期日期/时间字段，必填。
+  - `lookAheadDays`：提前扫描天数，默认 `0`。
+  - `lookBehindDays`：回看天数，默认 `0`。
+  - `batchSize`：单轮处理条数，默认 `50`，最大 `200`。
+  - `minIntervalMinutes`：同一触发器最小扫描间隔，默认 `5`。
+- 扫描任务必须接入系统自带任务调度中心，默认 cron 为 `0 0/5 * * * ?`，可通过任务中心调整，但不得默认秒级轮询。
+- 集群部署时优先依赖 Quartz JDBC 集群调度保证同一任务只被一个节点触发；Redisson 全局锁和记录级锁作为手动触发、配置缺失或补偿场景的兜底防重。
+- 单条到期记录执行前需要有记录级防重保护，避免锁超时、手动补偿或后续扩展导致同一记录重复动作。
+- 未配置到期字段、对象没有运行配置、到期字段不在运行配置字段白名单内时，必须跳过，不允许全表扫描。
+- 同一触发器、同一记录、同一事件默认按自然日去重；当天成功或 TODO 后不重复执行。
+
+### 19.3 非目标
+
+- 不实现用户自定义 cron 表达式的全量调度平台。
+- 不为每个业务触发器动态创建 Quartz Job。
+- 不做复杂时间轮或秒级任务。
+- 不绕过动态 CRUD 安全读取业务表数据。
+- 不在本阶段引入新的分布式任务调度平台；复用系统已有任务调度中心和 Redis/Redisson 基础设施。
+
+### 19.4 验收策略
+
+- 后端编译验证扫描器、Mapper XML 和动态读取方法可编译。
+- 前端构建验证定时触发配置项可打包。
+- 如本地服务和数据库可用，再追加接口/数据库验证：新增 `SCHEDULE` 到期提醒触发器，扫描器执行后写入 `ai_business_trigger_log`，同一记录当天不重复。
+
+### 19.5 Task 34 实施结论
+
+- 已新增 `BusinessTriggerSchedulerService` 并注册为系统任务中心任务：任务名 `lowcodeBusinessTriggerScanJob`，分组 `LOWCODE`，默认 cron `0 0/5 * * * ?`，每轮最多扫描有限数量触发器，单触发器默认处理 50 条、最大 200 条候选记录。
+- 已将集群安全方案调整为“系统任务调度中心 Quartz 集群触发 + Redisson 全局扫描锁 + 记录级执行锁”。全局锁 key 为 `forge:business-trigger:schedule:scan`，未抢到锁的节点直接跳过本轮；记录级锁按 `tenantId + triggerId + recordId + naturalDay` 生成。
+- `RedissonClient` 通过 `ObjectProvider` 可选注入；未检测到 Redisson 时仍可依赖任务调度中心集群触发和日志去重，生产如需手动并发兜底建议启用 Redis/Redisson。
+- 已补齐 `ScheduleConfig` 的 Quartz 集群配置：`forge.job.clustered` 默认 `true`，并支持 `thread-pool-size`、`cluster-checkin-interval`、`misfire-threshold`、`table-prefix` 配置。
+- 定时触发执行改为同步调用单条触发器动作，确保记录级锁覆盖动作执行和执行日志写入；普通业务事件触发仍保留异步执行。
+- 到期字段必须来自运行态字段白名单，候选读取走 `DynamicCrudService.selectScheduledCandidateRows`，按字段区间和批量上限查询，不拼接未校验业务表字段。
+- 同一自然日内已写入 `SUCCESS/TODO` 日志的 `triggerId + recordId + SCHEDULED_DUE` 不再重复执行；每次有效扫描后回写扫描时间，减少无候选数据触发器的重复优先扫描。
+- 本轮验证已完成：后端 `forge-plugin-generator`、`forge-plugin-job` 及依赖模块 compile 通过，前端 `pnpm build` 通过，`git diff --check` 通过。未启动后端服务、数据库或多实例环境，真实 Quartz 集群触发、任务中心注册和落库去重验证记录为跳过项。
+
+### 19.6 用户反馈跟进结论
+
+- 对象类型只描述数据结构，不决定入口只能打开哪种页面；`SINGLE`/单表对象仍可选择“列表管理”或“单据填报”。
+- “单据填报”是一次性填报场景，进入页面直接显示新增表单，没有列表上下文，因此不显示列表操作列和行操作按钮。
+- 需要自定义操作、行级发起主流程、编辑/删除等列表上下文时，应选择“列表管理”；发起主流程按钮复用“流程与自动化”的主流程配置，不再重复选择流程。
+- 应用入口详情接口需要拍平父级菜单字段，并保留 `originalParentId`，避免套件父目录实际挂载后编辑回填丢失。
+- 自定义操作保存于业务对象 `designerOptions.actions`，发布时必须注入运行态 table zone 的 `customActions`，并由运行态列表合并到操作列。
+- 发起主流程是“业务对象主流程”能力，不强制依赖单据模式；启用单据模式时执行状态字段和单据动作校验，未启用单据模式时按对象主流程绑定和已发布运行配置直接发起流程。
+
+### 19.7 发布检查与回显一致性补充
+
+- 发布检查读取应用入口时必须优先选择启用、已绑定运行配置、已同步菜单资源、已配置打开模式且最近更新的运行态入口，避免同一对象存在历史入口时误报“菜单资源未同步”。
+- `runtimeOpenMode` 缺省值按 `LIST` 处理，不再作为“未配置”警告；只有存在非法值时才提示配置错误。
+- 菜单资源 ID、父级菜单 ID 和原始父级菜单 ID 在 `options.adminMenu` 中按字符串保存，避免雪花 Long 被前端 `JSON.parse` 转 Number 后丢精度。
+- 前端父级菜单选择器统一用字符串 key/value，应用入口编辑器优先使用详情接口拍平的 `adminMenuParentId`、`menuResourceId` 回填和保存。
+- 主流程摘要读取优先启用的 `FLOW` 绑定，并兼容历史 `APPROVAL` 绑定；旧空绑定或停用绑定不应抢先导致“请先配置主流程”误报。
+- 旧审批兼容运行态在对象未启用完整单据状态能力但已经配置主流程时，应提示“已配置主流程，未启用完整单据状态能力”，不再把“未启用单据模式”作为流程不可发起原因。

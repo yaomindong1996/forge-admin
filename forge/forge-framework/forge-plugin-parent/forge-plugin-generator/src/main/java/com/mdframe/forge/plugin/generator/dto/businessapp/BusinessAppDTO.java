@@ -26,6 +26,8 @@ public class BusinessAppDTO {
 
     private String configKey;
 
+    private String runtimeOpenMode;
+
     private String icon;
 
     private String description;

@@ -72,6 +72,12 @@
             <artifactId>forge-starter-file</artifactId>
         </dependency>
 
+        <!-- Starter Job（低代码定时触发器注册到系统任务调度中心） -->
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-job</artifactId>
+        </dependency>
+
         <!-- 消息插件（触发器SEND_MESSAGE动作复用） -->
         <dependency>
             <groupId>com.mdframe.forge</groupId>

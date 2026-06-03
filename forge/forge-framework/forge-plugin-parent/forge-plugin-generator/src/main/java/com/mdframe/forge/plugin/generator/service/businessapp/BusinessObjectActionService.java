@@ -161,7 +161,7 @@ public class BusinessObjectActionService {
         vo.setFailureMessage(StringUtils.trimToNull(dto.getFailureMessage()));
         vo.setStatus(dto.getStatus() == null ? 1 : dto.getStatus());
         vo.setSortOrder(dto.getSortOrder() == null ? 0 : dto.getSortOrder());
-        vo.setActionConfig(dto.getActionConfig() == null ? new LinkedHashMap<>() : dto.getActionConfig());
+        vo.setActionConfig(normalizeActionConfig(type, dto.getActionConfig()));
         return vo;
     }
 
@@ -263,6 +263,15 @@ public class BusinessObjectActionService {
             throw new BusinessException("权限标识格式不正确: " + actualPermission);
         }
         return actualPermission;
+    }
+
+    private Map<String, Object> normalizeActionConfig(String actionType, Map<String, Object> config) {
+        if (!"START_FLOW".equals(actionType)) {
+            return config == null ? new LinkedHashMap<>() : config;
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("useMainFlow", true);
+        return result;
     }
 
     private String normalizeActionCode(String actionCode) {

@@ -83,6 +83,7 @@ import { useMessage } from 'naive-ui'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
+  businessAppDetail,
   businessAppOpenInfo,
   businessAppPage,
   businessSuiteSummary,
@@ -150,17 +151,26 @@ async function loadApps() {
   }
 }
 
-function openEditor(app) {
-  editingApp.value = app
-    ? { ...app }
-    : {
-        appType: 'INTEGRATION',
-        entryMode: 'API',
-        entryUrl: '/app-center/integration',
-        appCode: '',
-        appName: '',
-        status: 1,
-      }
+async function openEditor(app) {
+  if (app?.id) {
+    try {
+      const res = await businessAppDetail(app.id)
+      editingApp.value = { ...app, ...(res.data || {}) }
+    }
+    catch {
+      editingApp.value = { ...app }
+    }
+  }
+  else {
+    editingApp.value = {
+      appType: 'INTEGRATION',
+      entryMode: 'API',
+      entryUrl: '/app-center/integration',
+      appCode: '',
+      appName: '',
+      status: 1,
+    }
+  }
   editorVisible.value = true
 }
 

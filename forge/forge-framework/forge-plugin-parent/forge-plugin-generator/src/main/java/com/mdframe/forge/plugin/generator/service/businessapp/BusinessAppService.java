@@ -35,6 +35,7 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
     private static final Pattern CODE_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z0-9_]{1,63}$");
     private static final Set<String> APP_TYPES = Set.of("BUSINESS", "EMBEDDED", "MOBILE", "INTEGRATION");
     private static final Set<String> ENTRY_MODES = Set.of("RUNTIME", "ROUTE", "IFRAME", "EXTERNAL", "H5", "API");
+    private static final Set<String> RUNTIME_OPEN_MODES = Set.of("LIST", "CREATE_FORM", "DETAIL");
     private static final Set<String> SENSITIVE_QUERY_KEYS = Set.of(
             "token", "access_token", "password", "secret", "ak", "sk", "client_secret", "webhook_secret"
     );
@@ -49,11 +50,15 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
 
     public Page<BusinessAppVO> page(Integer pageNum, Integer pageSize, BusinessAppQueryDTO query) {
         Page<BusinessAppVO> page = new Page<>(normalizePageNum(pageNum), normalizePageSize(pageSize));
-        return baseMapper.selectAppPage(page, resolveTenantId(), normalizeQuery(query));
+        Page<BusinessAppVO> result = baseMapper.selectAppPage(page, resolveTenantId(), normalizeQuery(query));
+        result.getRecords().forEach(this::enrichAppVO);
+        return result;
     }
 
     public List<BusinessAppVO> list(BusinessAppQueryDTO query) {
-        return baseMapper.selectAppList(resolveTenantId(), normalizeQuery(query));
+        List<BusinessAppVO> list = baseMapper.selectAppList(resolveTenantId(), normalizeQuery(query));
+        list.forEach(this::enrichAppVO);
+        return list;
     }
 
     public BusinessAppVO detail(Long id) {
@@ -61,6 +66,7 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         if (vo == null) {
             throw new BusinessException("应用入口不存在");
         }
+        enrichAppVO(vo);
         return vo;
     }
 
@@ -147,7 +153,15 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         if (baseMapper.countByAppCode(resolveTenantId(), appCode, excludeId) > 0) {
             throw new BusinessException("应用编码已存在: " + appCode);
         }
-        validateNoSensitiveEntryConfig(dto.getEntryUrl(), dto.getOptions());
+        JSONObject options = readOptions(dto.getOptions());
+        String runtimeOpenMode = resolveRuntimeOpenMode(firstNonNull(dto.getRuntimeOpenMode(), options.get("runtimeOpenMode")));
+        if ("RUNTIME".equals(entryMode)) {
+            options.put("runtimeOpenMode", runtimeOpenMode);
+        } else {
+            options.remove("runtimeOpenMode");
+        }
+        String normalizedOptions = writeOptions(options);
+        validateNoSensitiveEntryConfig(dto.getEntryUrl(), normalizedOptions);
         app.setTenantId(resolveTenantId());
         app.setAppCode(appCode);
         app.setAppName(appName);
@@ -161,7 +175,7 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         app.setDescription(StringUtils.trimToNull(dto.getDescription()));
         app.setStatus(normalizeStatus(dto.getStatus()));
         app.setSortOrder(dto.getSortOrder() == null ? 0 : dto.getSortOrder());
-        app.setOptions(StringUtils.trimToNull(dto.getOptions()));
+        app.setOptions(normalizedOptions);
     }
 
     private void syncManagementMenu(AiBusinessApp app) {
@@ -181,7 +195,10 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
             return;
         }
 
-        Long parentId = readLong(firstNonNull(adminMenu.get("parentId"), options.get("adminMenuParentId")));
+        Long originalParentId = readLong(firstNonNull(
+                adminMenu.get("originalParentId"),
+                firstNonNull(adminMenu.get("parentId"), options.get("adminMenuParentId"))));
+        Long parentId = originalParentId;
         boolean suiteAsParent = readBoolean(firstNonNull(adminMenu.get("suiteAsParent"), options.get("suiteAsMenuParent")), true);
         Integer sort = readInteger(firstNonNull(adminMenu.get("sort"), options.get("menuSort")), app.getSortOrder());
         if (suiteAsParent) {
@@ -190,8 +207,8 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
                     parentId, app.getSuiteCode(), suite.getSuiteName(), suite.getIcon(), app.getSortOrder());
         }
 
-        String path = "/app-center/app/" + app.getId();
-        String component = "app-center/app-entry";
+        String path = resolveManagementMenuPath(app, options);
+        String component = resolveManagementMenuComponent(app);
         String perms = buildAppMenuPerms(app);
         boolean enabled = Integer.valueOf(1).equals(app.getStatus());
         if (menuResourceId == null) {
@@ -201,11 +218,15 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
             menuRegisterAdapter.updateAppMenu(
                     menuResourceId, app.getAppName(), parentId, path, component, perms, app.getIcon(), sort, enabled);
         }
-        adminMenu.put("menuResourceId", menuResourceId);
-        adminMenu.put("parentId", readLong(firstNonNull(adminMenu.get("parentId"), options.get("adminMenuParentId"))));
+        adminMenu.put("menuResourceId", menuResourceId == null ? null : String.valueOf(menuResourceId));
+        adminMenu.put("activeMenuKey", String.valueOf(menuResourceId));
+        adminMenu.put("parentId", originalParentId == null ? null : String.valueOf(originalParentId));
+        adminMenu.put("originalParentId", originalParentId == null ? null : String.valueOf(originalParentId));
         adminMenu.put("suiteAsParent", suiteAsParent);
         adminMenu.put("syncEnabled", true);
         adminMenu.put("sort", sort);
+        adminMenu.put("path", path);
+        adminMenu.put("component", component);
         options.put("adminMenu", adminMenu);
         app.setOptions(writeOptions(options));
         updateById(app);
@@ -239,6 +260,34 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         return "ai:businessApp:open:" + StringUtils.lowerCase(appCode);
     }
 
+    private String resolveManagementMenuPath(AiBusinessApp app, JSONObject options) {
+        String entryMode = StringUtils.defaultString(app.getEntryMode()).toUpperCase();
+        if ("RUNTIME".equals(entryMode) && StringUtils.isNotBlank(app.getConfigKey())) {
+            String runtimeOpenMode = resolveRuntimeOpenMode(options == null ? null : options.get("runtimeOpenMode"));
+            StringBuilder path = new StringBuilder("/ai/crud-page/")
+                    .append(app.getConfigKey())
+                    .append("?appId=")
+                    .append(app.getId())
+                    .append("&runtimeOpenMode=")
+                    .append(runtimeOpenMode);
+            if ("CREATE_FORM".equals(runtimeOpenMode)) {
+                path.append("&mode=create");
+            } else if ("DETAIL".equals(runtimeOpenMode)) {
+                path.append("&mode=detail");
+            }
+            return path.toString();
+        }
+        return "/app-center/app/" + app.getId();
+    }
+
+    private String resolveManagementMenuComponent(AiBusinessApp app) {
+        String entryMode = StringUtils.defaultString(app.getEntryMode()).toUpperCase();
+        if ("RUNTIME".equals(entryMode) && StringUtils.isNotBlank(app.getConfigKey())) {
+            return "ai/crud-page";
+        }
+        return "app-center/app-entry";
+    }
+
     private String deriveMountTarget(AiBusinessApp app) {
         String appType = StringUtils.defaultString(app.getAppType()).toUpperCase();
         String entryMode = StringUtils.defaultString(app.getEntryMode()).toUpperCase();
@@ -265,6 +314,22 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
     private JSONObject readAdminMenu(JSONObject options) {
         JSONObject adminMenu = options.getJSONObject("adminMenu");
         return adminMenu == null ? new JSONObject() : adminMenu;
+    }
+
+    private void enrichAppVO(BusinessAppVO vo) {
+        if (vo == null) {
+            return;
+        }
+        JSONObject options = readOptions(vo.getOptions());
+        JSONObject adminMenu = readAdminMenu(options);
+        vo.setRuntimeOpenMode(resolveRuntimeOpenMode(options.get("runtimeOpenMode")));
+        vo.setMenuResourceId(readLong(firstNonNull(adminMenu.get("menuResourceId"), options.get("menuResourceId"))));
+        vo.setAdminMenuParentId(readLong(firstNonNull(
+                adminMenu.get("originalParentId"),
+                firstNonNull(adminMenu.get("parentId"), options.get("adminMenuParentId")))));
+        vo.setAdminMenuSyncEnabled(readBoolean(firstNonNull(adminMenu.get("syncEnabled"), options.get("adminMenuSyncEnabled")), true));
+        vo.setSuiteAsMenuParent(readBoolean(firstNonNull(adminMenu.get("suiteAsParent"), options.get("suiteAsMenuParent")), true));
+        vo.setMenuSort(readInteger(firstNonNull(adminMenu.get("sort"), options.get("menuSort")), vo.getSortOrder()));
     }
 
     private String writeOptions(JSONObject options) {
@@ -309,6 +374,11 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         }
         String text = StringUtils.lowerCase(String.valueOf(value));
         return "true".equals(text) || "1".equals(text);
+    }
+
+    private String resolveRuntimeOpenMode(Object value) {
+        String mode = StringUtils.defaultIfBlank(value == null ? null : String.valueOf(value), "LIST").toUpperCase();
+        return RUNTIME_OPEN_MODES.contains(mode) ? mode : "LIST";
     }
 
     private BusinessAppQueryDTO normalizeQuery(BusinessAppQueryDTO query) {

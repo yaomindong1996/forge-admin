@@ -60,6 +60,19 @@ public class BusinessTriggerExecutor {
         }
     }
 
+    @Async
+    public void executeTriggerAsync(AiBusinessTrigger trigger, BusinessEvent event) {
+        executeSingleTrigger(trigger, event);
+    }
+
+    public void executeTrigger(AiBusinessTrigger trigger, BusinessEvent event) {
+        executeSingleTrigger(trigger, event);
+    }
+
+    public boolean matchesCondition(AiBusinessTrigger trigger, BusinessEvent event) {
+        return evaluateCondition(trigger, event);
+    }
+
     /**
      * 执行单个触发器
      */
@@ -132,6 +145,21 @@ public class BusinessTriggerExecutor {
      * {"or": [...conditions]}
      */
     private boolean evaluateConditionNode(JSONObject node, BusinessEvent event) {
+        JSONArray rules = node.getJSONArray("rules");
+        if (rules != null) {
+            boolean orLogic = "OR".equalsIgnoreCase(node.getString("logic"));
+            for (int i = 0; i < rules.size(); i++) {
+                boolean matched = evaluateConditionNode(rules.getJSONObject(i), event);
+                if (orLogic && matched) {
+                    return true;
+                }
+                if (!orLogic && !matched) {
+                    return false;
+                }
+            }
+            return !orLogic;
+        }
+
         // AND 逻辑
         JSONArray andConditions = node.getJSONArray("and");
         if (andConditions != null) {
@@ -156,7 +184,7 @@ public class BusinessTriggerExecutor {
 
         // 字段条件
         String field = node.getString("field");
-        String op = node.getString("op");
+        String op = StringUtils.firstNonBlank(node.getString("op"), node.getString("operator"));
         Object expectedValue = node.get("value");
 
         if (field == null || op == null) {
@@ -179,6 +207,12 @@ public class BusinessTriggerExecutor {
             case "lte", "le" -> compare(actualValue, expectedValue, "lte");
             case "in" -> matchesAny(actualValue, expectedValue);
             case "not_in" -> !matchesAny(actualValue, expectedValue);
+            case "contains" -> actualValue != null && expectedValue != null
+                    && String.valueOf(actualValue).contains(String.valueOf(expectedValue));
+            case "changed" -> {
+                Object prevValue = previousData != null ? previousData.get(field) : null;
+                yield !Objects.equals(String.valueOf(prevValue), String.valueOf(actualValue));
+            }
             case "changed_to" -> {
                 Object prevValue = previousData != null ? previousData.get(field) : null;
                 yield !Objects.equals(String.valueOf(prevValue), String.valueOf(expectedValue))
@@ -318,7 +352,8 @@ public class BusinessTriggerExecutor {
      * 发起流程动作
      */
     private JSONObject executeStartFlowAction(JSONObject config, BusinessEvent event) {
-        String flowModelKey = config.getString("flowModelKey");
+        boolean useMainFlow = config.getBoolean("useMainFlow") == null || config.getBooleanValue("useMainFlow");
+        String flowModelKey = useMainFlow ? null : StringUtils.trimToNull(config.getString("flowModelKey"));
         JSONArray variableMapping = config.getJSONArray("variableMapping");
 
         // 构建流程变量
@@ -341,9 +376,7 @@ public class BusinessTriggerExecutor {
         // 调用流程服务发起流程
         String businessKey = event.getObjectCode() + ":" + event.getRecordId();
         String title = StringUtils.firstNonBlank(config.getString("title"), config.getString("titleTemplate"));
-        if (title == null || title.isBlank()) {
-            title = event.getObjectCode() + " 审批";
-        } else {
+        if (StringUtils.isNotBlank(title)) {
             title = renderTemplate(title, event.getRecordData());
         }
 
@@ -351,7 +384,8 @@ public class BusinessTriggerExecutor {
                 event.getOperatorId(), event.getOperatorName(), event.getTenantId(), flowVariables);
 
         JSONObject result = new JSONObject();
-        result.put("flowModelKey", flowModelKey);
+        result.put("useMainFlow", useMainFlow);
+        result.put("flowModelKey", runtime.getFlowModelKey());
         result.put("businessKey", businessKey);
         result.put("processInstanceId", runtime.getProcessInstanceId());
         result.put("status", runtime.getFlowStatus());

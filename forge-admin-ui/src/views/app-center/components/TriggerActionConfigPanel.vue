@@ -1,43 +1,9 @@
 <template>
   <div class="trigger-action-config">
     <template v-if="actionType === 'START_FLOW'">
-      <n-form-item label="关联流程">
-        <n-select
-          v-model:value="config.flowModelKey"
-          :options="flowModelOptions"
-          clearable
-          filterable
-          placeholder="选择已发布流程模型"
-          @update:value="emitConfig"
-        />
-      </n-form-item>
-      <n-form-item label="流程标题">
-        <n-input v-model:value="config.titleTemplate" placeholder="例：${name}-流程" @update:value="emitConfig" />
-      </n-form-item>
-      <n-form-item label="变量映射">
-        <div class="mapping-list">
-          <div v-for="(item, index) in config.variableMapping" :key="item.clientKey" class="mapping-row">
-            <n-select
-              v-model:value="item.formField"
-              :options="fieldOptions"
-              clearable
-              filterable
-              placeholder="表单字段"
-              @update:value="emitConfig"
-            />
-            <span>→</span>
-            <n-input v-model:value="item.flowVariable" placeholder="流程变量名" @update:value="emitConfig" />
-            <n-button quaternary circle size="small" @click="removeVariableMapping(index)">
-              <template #icon>
-                <n-icon><TrashOutline /></n-icon>
-              </template>
-            </n-button>
-          </div>
-          <n-button dashed size="small" @click="addVariableMapping">
-            添加变量映射
-          </n-button>
-        </div>
-      </n-form-item>
+      <n-alert type="info" :bordered="false">
+        使用“流程与自动化”中配置的主流程。触发条件满足后自动发起，不需要在这里再次选择流程。
+      </n-alert>
     </template>
 
     <template v-else-if="actionType === 'SEND_MESSAGE'">
@@ -148,10 +114,6 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
-  flowModelOptions: {
-    type: Array,
-    default: () => [],
-  },
   receiverRuleOptions: {
     type: Array,
     default: () => [],
@@ -167,16 +129,6 @@ watch(() => [props.actionType, props.modelValue], ([actionType, value]) => {
   if (JSON.stringify(configPayload(config, actionType)) !== JSON.stringify(configPayload(next, actionType)))
     Object.assign(config, next)
 }, { deep: true })
-
-function addVariableMapping() {
-  config.variableMapping.push(createMapping({ formField: null, flowVariable: '' }))
-  emitConfig()
-}
-
-function removeVariableMapping(index) {
-  config.variableMapping.splice(index, 1)
-  emitConfig()
-}
 
 function addFieldMapping() {
   config.fieldMapping.push(createMapping({ sourceField: null, targetField: '' }))
@@ -195,9 +147,7 @@ function emitConfig() {
 function normalizeConfig(actionType, value) {
   const source = safeParse(value)
   return {
-    flowModelKey: source.flowModelKey || source.flowKey || null,
-    titleTemplate: source.titleTemplate || '',
-    variableMapping: normalizeVariableMapping(source.variableMapping || []),
+    useMainFlow: source.useMainFlow !== false,
     templateCode: source.templateCode || '',
     receiverRule: source.receiverRule || null,
     receiverIds: source.receiverIds || '',
@@ -214,14 +164,7 @@ function normalizeConfig(actionType, value) {
 function configPayload(value, actionType) {
   if (actionType === 'START_FLOW') {
     return {
-      flowModelKey: value.flowModelKey || '',
-      titleTemplate: value.titleTemplate || '',
-      variableMapping: (value.variableMapping || [])
-        .map(item => ({
-          formField: item.formField || '',
-          flowVariable: item.flowVariable || '',
-        }))
-        .filter(item => item.formField && item.flowVariable),
+      useMainFlow: true,
     }
   }
   if (actionType === 'SEND_MESSAGE') {
@@ -256,13 +199,6 @@ function configPayload(value, actionType) {
     }
   }
   return safeParse(props.modelValue)
-}
-
-function normalizeVariableMapping(list = []) {
-  return list.map(item => createMapping({
-    formField: item.formField || item.field || null,
-    flowVariable: item.flowVariable || item.variable || '',
-  }))
 }
 
 function normalizeFieldMapping(list = []) {

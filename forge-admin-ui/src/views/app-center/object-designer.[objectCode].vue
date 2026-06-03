@@ -9,12 +9,14 @@
     :publish-disabled="publishDisabled"
     :preview-disabled="!objectId"
     :show-advanced="canAdvanced"
+    :closure-steps="closureSteps"
     @save="handleSave"
     @preview="handlePreview"
     @publish="handlePublish"
     @back="handleBack"
     @refresh="loadDesigner"
     @open-runtime="openRuntime"
+    @open-trigger="openTriggerConfig"
   >
     <section v-if="activePanel === 'basic'" class="basic-panel">
       <div class="panel-head">
@@ -140,10 +142,13 @@
       v-else-if="activePanel === 'document'"
       ref="documentPanelRef"
       :object-id="objectId"
+      :suite-code="draft.suiteCode"
+      :object-code="draft.objectCode"
       :object-name="draft.objectName"
       :fields="draft.fields"
       :initial-config="draft.documentConfig"
-      @saved="loadDesigner"
+      @saved="handleDocumentSaved"
+      @configure-flow="activePanel = 'automation'"
       @dirty-change="handleDirtyChange"
     />
 
@@ -152,7 +157,7 @@
       ref="flowBindingPanelRef"
       :object-code="draft.objectCode"
       :fields="draft.fields"
-      @saved="loadDesigner"
+      @saved="handleFlowSaved"
       @dirty-change="handleDirtyChange"
     />
 
@@ -298,6 +303,21 @@ const publishDisabled = computed(() => {
     return true
   return publishCheckState.value?.publishable === false
 })
+const closureSteps = computed(() => {
+  const documentConfig = draft.documentConfig || {}
+  const mainFlow = documentConfig.mainFlowSummary || {}
+  const startMode = normalizeStartMode(mainFlow.startMode)
+  const triggerRequired = startMode === 'TRIGGER' || startMode === 'BOTH'
+  const hasTriggerGap = hasPublishItem('DOCUMENT_TRIGGER_MISSING')
+  return [
+    step('document', '单据设置', 'document', Boolean(documentConfig.documentEnabled && documentConfig.statusField)),
+    step('flow', '主流程', 'automation', Boolean(mainFlow.configured)),
+    step('start', '发起方式', 'automation', Boolean(startMode), !startMode && Boolean(mainFlow.configured)),
+    step('trigger', '自动化触发器', 'trigger', triggerRequired && !hasTriggerGap, triggerRequired && hasTriggerGap),
+    step('publish', '发布检查', 'publish', publishCheckState.value?.publishable === true, publishCheckState.value?.publishable === false),
+    step('runtime', '试运行', 'runtime', Boolean(runtimeInfo.value?.canOpen), Boolean(runtimeInfo.value && !runtimeInfo.value.canOpen)),
+  ]
+})
 const fieldOptions = computed(() => {
   const modelFields = draft.modelSchema?.fields || []
   const source = modelFields.length ? modelFields : draft.fields.map(toPageField)
@@ -320,6 +340,15 @@ function resolveInitialDetailTab() {
   if (!props.embedded && route.query.panel === 'detail')
     return 'detail'
   return props.embedded ? props.initialDetailTab || 'form' : route.query.detailTab || 'form'
+}
+
+function normalizeStartMode(value) {
+  const normalized = String(value || '').toUpperCase()
+  if (['MANUAL_AND_TRIGGER', 'MANUAL_TRIGGER'].includes(normalized))
+    return 'BOTH'
+  if (['AUTO', 'AUTOMATIC'].includes(normalized))
+    return 'TRIGGER'
+  return normalized
 }
 
 onMounted(() => {
@@ -570,6 +599,25 @@ function openRuntime() {
   router.push(runtimeInfo.value.routePath)
 }
 
+function openTriggerConfig() {
+  const code = draft.objectCode || objectCode.value
+  if (!code) {
+    message.warning('缺少业务对象编码，无法打开触发器配置')
+    return
+  }
+  if (props.embedded) {
+    emit('close')
+    return
+  }
+  router.push({
+    path: '/app-center/trigger',
+    query: {
+      objectCode: code,
+      returnTo: route.fullPath,
+    },
+  })
+}
+
 function handleFieldsUpdated(fields) {
   draft.fields = cloneSchema(fields || [])
   syncDraftModelFields(draft.fields)
@@ -601,6 +649,23 @@ function handleRelationsUpdated(relations) {
   draft.relations = cloneSchema(relations || [])
 }
 
+async function handleDocumentSaved() {
+  await loadDesigner()
+  const mainFlow = draft.documentConfig?.mainFlowSummary || {}
+  if (draft.documentConfig?.documentEnabled && !mainFlow.configured)
+    activePanel.value = 'automation'
+}
+
+async function handleFlowSaved(binding = {}) {
+  await loadDesigner()
+  const startMode = String(binding.startMode || draft.documentConfig?.mainFlowSummary?.startMode || '').toUpperCase()
+  if (startMode === 'TRIGGER' || startMode === 'BOTH') {
+    openTriggerConfig()
+    return
+  }
+  activePanel.value = 'publish'
+}
+
 function handleActionsUpdated(actions) {
   draft.designerOptions = {
     ...(draft.designerOptions || {}),
@@ -612,8 +677,33 @@ function handlePublishCheckUpdated(check) {
   publishCheckState.value = check || null
 }
 
+function hasPublishItem(itemCode) {
+  const items = Array.isArray(publishCheckState.value?.items) ? publishCheckState.value.items : []
+  return items.some(item => item?.itemCode === itemCode && item?.level !== 'PASS')
+}
+
+function step(key, label, panel, done, warn = false) {
+  const status = done ? 'done' : warn ? 'warn' : 'todo'
+  const labels = {
+    done: '完成',
+    warn: '待处理',
+    todo: '未完成',
+  }
+  return {
+    key,
+    label,
+    panel,
+    status,
+    statusLabel: labels[status],
+  }
+}
+
 function handleFixTarget(panel) {
   const targetPanel = panel === 'flow' ? 'automation' : panel
+  if (targetPanel === 'trigger') {
+    openTriggerConfig()
+    return
+  }
   if (panel === 'advanced' && !canAdvanced.value) {
     message.warning('该修复入口需要高级配置权限')
     return

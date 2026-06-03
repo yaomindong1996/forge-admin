@@ -169,7 +169,7 @@ public class BusinessPermissionService {
         permissions.add(Map.of("code", "ai:businessDocument:save", "name", "保存单据"));
         permissions.add(Map.of("code", "ai:businessDocument:submit", "name", "提交单据"));
         permissions.add(Map.of("code", "ai:businessDocument:withdraw", "name", "撤回单据"));
-        permissions.add(Map.of("code", "ai:businessFlow:start", "name", "发起流程"));
+        permissions.add(Map.of("code", "ai:businessFlow:start", "name", "发起主流程"));
         permissions.add(Map.of("code", "ai:businessFlow:view", "name", "查看流程"));
         permissions.add(Map.of("code", "ai:businessFlow:callback", "name", "流程回调"));
         permissions.add(Map.of("code", "ai:businessDocument:view", "name", "查看单据状态"));
@@ -186,7 +186,7 @@ public class BusinessPermissionService {
                 new ActionPermissionDefinition("DELETE", "删除", List.of(prefix + ":delete"), false),
                 new ActionPermissionDefinition("SUBMIT", "提交", List.of("ai:businessDocument:submit", prefix + ":edit"), true),
                 new ActionPermissionDefinition("WITHDRAW", "撤回", List.of("ai:businessDocument:withdraw", prefix + ":edit"), false),
-                new ActionPermissionDefinition("START_FLOW", "发起流程", List.of("ai:businessFlow:start"), true),
+                new ActionPermissionDefinition("START_FLOW", "发起主流程", List.of("ai:businessFlow:start"), true),
                 new ActionPermissionDefinition("VIEW_FLOW", "查看流程", List.of("ai:businessFlow:view"), true),
                 new ActionPermissionDefinition("TRIGGER", "执行触发器", List.of("ai:businessTrigger:execute"), false),
                 new ActionPermissionDefinition("VIEW_STATS", "查看报表", List.of("ai:businessStats:view"), false)

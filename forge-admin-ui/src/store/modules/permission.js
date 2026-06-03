@@ -2,6 +2,15 @@ import { hyphenate } from '@vueuse/core'
 import { defineStore } from 'pinia'
 import { isExternal } from '@/utils'
 
+function stripRouteQuery(path) {
+  const value = String(path || '').trim()
+  if (!value || isExternal(value))
+    return value
+  const [pathWithoutHash] = value.split('#')
+  const [pathname] = pathWithoutHash.split('?')
+  return pathname || value
+}
+
 export const usePermissionStore = defineStore('permission', {
   state: () => ({
     accessRoutes: [],
@@ -96,6 +105,7 @@ export const usePermissionStore = defineStore('permission', {
             if (!routePath.startsWith('/') && !isExternal(routePath)) {
               routePath = `/${routePath}`
             }
+            routePath = stripRouteQuery(routePath)
 
             // 处理外链
             let componentPath = item.component
@@ -154,6 +164,8 @@ export const usePermissionStore = defineStore('permission', {
               normalizedPath = `/${normalizedPath}`
             }
             allMenusFlat.push({
+              id: item.id,
+              key: String(item.id),
               path: normalizedPath,
               label: item.resourceName,
               name: item.resourceName,
@@ -264,6 +276,7 @@ export const usePermissionStore = defineStore('permission', {
             if (routePath && !routePath.startsWith('/')) {
               routePath = `/${routePath}`
             }
+            routePath = stripRouteQuery(routePath)
             if (routePath && componentPath) {
               hiddenRoutes.push({
                 name: String(item.id),

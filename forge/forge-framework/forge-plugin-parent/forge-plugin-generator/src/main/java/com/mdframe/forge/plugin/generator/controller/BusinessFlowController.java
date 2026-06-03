@@ -20,7 +20,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 /**
  * 业务流程配置接口。
@@ -40,6 +43,14 @@ public class BusinessFlowController {
     @OperationLog(module = "业务流程", type = OperationType.QUERY, desc = "查询业务流程绑定")
     public RespInfo<BusinessFlowBindingVO> getBinding(@PathVariable String objectCode) {
         return RespInfo.success(flowService.getFlowBinding(objectCode));
+    }
+
+    @GetMapping("/model/{modelKey}/variables")
+    @SaCheckPermission("ai:businessFlow:config")
+    @OperationLog(module = "业务流程", type = OperationType.QUERY, desc = "查询流程变量候选项")
+    public RespInfo<Map<String, Object>> variables(@PathVariable String modelKey,
+                                                   @RequestParam(required = false) String objectCode) {
+        return RespInfo.success(flowService.getVariableCandidates(modelKey, objectCode));
     }
 
     @PutMapping("/binding/{objectCode}")

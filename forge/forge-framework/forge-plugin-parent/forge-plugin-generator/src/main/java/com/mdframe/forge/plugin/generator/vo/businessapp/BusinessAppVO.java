@@ -32,6 +32,18 @@ public class BusinessAppVO {
 
     private String configKey;
 
+    private String runtimeOpenMode;
+
+    private Long menuResourceId;
+
+    private Long adminMenuParentId;
+
+    private Boolean adminMenuSyncEnabled;
+
+    private Boolean suiteAsMenuParent;
+
+    private Integer menuSort;
+
     private String icon;
 
     private String description;

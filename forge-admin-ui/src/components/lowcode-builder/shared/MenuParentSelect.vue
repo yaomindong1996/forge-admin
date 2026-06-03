@@ -1,6 +1,6 @@
 <template>
   <n-tree-select
-    :value="value"
+    :value="normalizedValue"
     :options="treeData"
     :loading="loading"
     clearable
@@ -15,7 +15,7 @@
 
 <script setup>
 import { NTag } from 'naive-ui'
-import { h, onMounted, ref, watch } from 'vue'
+import { computed, h, onMounted, ref, watch } from 'vue'
 import { request } from '@/utils'
 
 defineOptions({ name: 'MenuParentSelect' })
@@ -39,6 +39,7 @@ const emit = defineEmits(['update:value', 'loaded'])
 
 const loading = ref(false)
 const treeData = ref([])
+const normalizedValue = computed(() => normalizeTreeKey(props.value))
 
 watch(
   () => props.autoLoad,
@@ -73,7 +74,7 @@ async function loadMenuTree() {
 function convertToTree(list) {
   return (list || []).map(item => ({
     label: item.resourceName,
-    key: item.id,
+    key: normalizeTreeKey(item.id),
     resourceType: item.resourceType,
     disabled: !isSelectableMenu(item.resourceType),
     children: item.children?.length ? convertToTree(item.children) : undefined,
@@ -99,7 +100,13 @@ function renderLabel({ option }) {
 }
 
 function handleUpdateValue(nextValue) {
-  emit('update:value', nextValue ?? null)
+  emit('update:value', normalizeTreeKey(nextValue))
+}
+
+function normalizeTreeKey(value) {
+  if (value === null || value === undefined || value === '')
+    return null
+  return String(value)
 }
 </script>
 

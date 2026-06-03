@@ -20,26 +20,26 @@ public class JobExamples {
     
     // ============ 方式1：@ScheduledJob注解（Bean直连模式）============
     
-    /**
-     * 示例1：简单定时任务
-     */
-    @ScheduledJob(cron = "0/5 * * * * ?",
-                  name = "simpleTask",
-                  description = "每5秒执行一次")
-    public void simpleTask() {
-        log.info("执行简单定时任务");
-    }
-    
-    /**
-     * 示例2：带参数的任务
-     */
-    @ScheduledJob(cron = "0 0/10 * * * ?",
-                  name = "paramTask",
-                  description = "每10分钟执行")
-    public String taskWithParam(String param) {
-        log.info("执行参数任务: {}", param);
-        return "SUCCESS";
-    }
+//    /**
+//     * 示例1：简单定时任务
+//     */
+//    @ScheduledJob(cron = "0/5 * * * * ?",
+//                  name = "simpleTask",
+//                  description = "每5秒执行一次")
+//    public void simpleTask() {
+//        log.info("执行简单定时任务");
+//    }
+//
+//    /**
+//     * 示例2：带参数的任务
+//     */
+//    @ScheduledJob(cron = "0 0/10 * * * ?",
+//                  name = "paramTask",
+//                  description = "每10分钟执行")
+//    public String taskWithParam(String param) {
+//        log.info("执行参数任务: {}", param);
+//        return "SUCCESS";
+//    }
     
     // ============ 方式2：@JobHandler注解（Handler模式）============
     

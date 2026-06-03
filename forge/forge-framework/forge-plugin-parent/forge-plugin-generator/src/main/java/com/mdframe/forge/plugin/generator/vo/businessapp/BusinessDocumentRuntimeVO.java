@@ -25,7 +25,31 @@ public class BusinessDocumentRuntimeVO {
 
     private List<String> availableActions = new ArrayList<>();
 
+    private List<RuntimeActionVO> runtimeActions = new ArrayList<>();
+
     private String nextAction;
 
     private String message;
+
+    @Data
+    public static class RuntimeActionVO {
+
+        private String key;
+
+        private String label;
+
+        private String type;
+
+        private String actionType;
+
+        private Boolean visible;
+
+        private Boolean disabled;
+
+        private String disabledReason;
+
+        private String objectCode;
+
+        private Long recordId;
+    }
 }

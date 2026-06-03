@@ -148,9 +148,9 @@ public class BusinessSuiteService extends ServiceImpl<BusinessSuiteMapper, AiBus
         Long menuResourceId = menuRegisterAdapter.resolveOrCreateBusinessSuiteParentId(
                 parentId, suite.getSuiteCode(), suite.getSuiteName(), suite.getIcon(), sort);
         adminMenu.put("syncEnabled", true);
-        adminMenu.put("parentId", parentId);
+        adminMenu.put("parentId", parentId == null ? null : String.valueOf(parentId));
         adminMenu.put("sort", sort);
-        adminMenu.put("menuResourceId", menuResourceId);
+        adminMenu.put("menuResourceId", menuResourceId == null ? null : String.valueOf(menuResourceId));
         options.put("adminMenu", adminMenu);
         suite.setOptions(writeOptions(options));
         updateById(suite);

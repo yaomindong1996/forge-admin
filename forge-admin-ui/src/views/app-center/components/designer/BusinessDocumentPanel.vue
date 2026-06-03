@@ -3,7 +3,7 @@
     <div class="document-head">
       <div>
         <h3>单据设置</h3>
-        <p>配置当前对象的单据生命周期、编号和责任字段。</p>
+        <p>维护单据基础字段、编号规则和状态生命周期，主流程统一在流程与自动化中配置。</p>
       </div>
       <n-space align="center" size="small">
         <n-tag :type="form.documentEnabled ? 'success' : 'default'" :bordered="false">
@@ -21,30 +21,22 @@
     <div class="document-body">
       <main class="document-main">
         <n-spin :show="loading">
-          <section class="document-card">
-            <div class="document-card-head">
+          <section class="document-section">
+            <div class="section-head">
               <div>
-                <h4>单据模式</h4>
-                <p>未启用时对象仍按普通 CRUD 运行。</p>
+                <h4>基础配置</h4>
+                <p>启用后运行态会按单据生命周期处理状态、流程和权限。</p>
               </div>
               <n-switch v-model:value="form.documentEnabled" @update:value="markDirty" />
             </div>
 
             <n-form label-placement="top" size="small" :show-feedback="false">
-              <n-grid :cols="2" :x-gap="14" :y-gap="4" responsive="screen">
+              <n-grid :cols="2" :x-gap="14" :y-gap="6" responsive="screen">
                 <n-form-item-gi label="单据名称">
                   <n-input
                     v-model:value="form.documentName"
                     :disabled="!form.documentEnabled"
                     :placeholder="defaultDocumentName"
-                    @update:value="markDirty"
-                  />
-                </n-form-item-gi>
-                <n-form-item-gi label="编号规则">
-                  <n-input
-                    v-model:value="form.documentNoRule"
-                    :disabled="!form.documentEnabled"
-                    placeholder="例如：OPP-${yyyyMMdd}-${seq}"
                     @update:value="markDirty"
                   />
                 </n-form-item-gi>
@@ -56,18 +48,6 @@
                     clearable
                     filterable
                     placeholder="选择单据状态字段"
-                    @update:value="markDirty"
-                  />
-                </n-form-item-gi>
-                <n-form-item-gi label="默认流程">
-                  <n-select
-                    v-model:value="form.defaultFlowKey"
-                    :disabled="!form.documentEnabled"
-                    :options="flowModelOptions"
-                    :loading="flowModelsLoading"
-                    clearable
-                    filterable
-                    placeholder="选择已发布流程"
                     @update:value="markDirty"
                   />
                 </n-form-item-gi>
@@ -95,53 +75,55 @@
                 </n-form-item-gi>
               </n-grid>
             </n-form>
+            <div class="document-help-list">
+              <span><strong>状态字段</strong>保存草稿、流程中、已通过等状态值。</span>
+              <span><strong>发起人/负责人</strong>用于流程发起、待办归属和消息接收。</span>
+              <span><strong>主流程</strong>在“流程与自动化”维护，这里只读取摘要。</span>
+            </div>
           </section>
 
-          <section class="document-card">
-            <div class="document-card-head">
+          <section class="document-section">
+            <div class="section-head">
+              <div>
+                <h4>编号规则</h4>
+                <p>点击变量即可插入模板，预览只使用样例数据，不占用真实流水号。</p>
+              </div>
+            </div>
+            <DocumentNoRuleEditor
+              v-model="form.noRuleTemplate"
+              :disabled="!form.documentEnabled"
+              :suite-code="effectiveSuiteCode"
+              :object-code="effectiveObjectCode"
+              :field-options="fieldOptions"
+              @preview="handleNoRulePreview"
+              @update:model-value="markDirty"
+            />
+          </section>
+
+          <section class="document-section">
+            <div class="section-head">
               <div>
                 <h4>状态映射</h4>
-                <p>把标准生命周期映射到当前对象字段值。</p>
+                <p>将标准单据状态映射到当前对象字段值，并控制该状态下能否编辑、删除或发起主流程。</p>
               </div>
             </div>
-            <div class="status-grid">
-              <div v-for="status in statusDefinitions" :key="status.key" class="status-row">
-                <span>{{ status.label }}</span>
-                <n-input
-                  v-model:value="form.statusMapping[status.key]"
-                  :disabled="!form.documentEnabled"
-                  :placeholder="status.defaultValue"
-                  size="small"
-                  @update:value="markDirty"
-                />
-              </div>
-            </div>
+            <DocumentStatusMappingTable
+              :rows="form.statusMappingRows"
+              :disabled="!form.documentEnabled"
+              :status-field="form.statusField"
+              :fields="fields"
+              @update:rows="updateStatusRows"
+            />
           </section>
         </n-spin>
       </main>
 
       <aside class="document-side">
-        <section>
-          <h4>发布关注</h4>
-          <div class="document-facts">
-            <div>
-              <span>状态字段</span>
-              <strong>{{ form.statusField || '-' }}</strong>
-            </div>
-            <div>
-              <span>默认流程</span>
-              <strong>{{ form.defaultFlowKey || '-' }}</strong>
-            </div>
-            <div>
-              <span>发起人</span>
-              <strong>{{ form.starterField || '-' }}</strong>
-            </div>
-            <div>
-              <span>负责人</span>
-              <strong>{{ form.ownerField || '-' }}</strong>
-            </div>
-          </div>
-        </section>
+        <DocumentConfigSummary
+          :form="form"
+          :no-rule-preview="noRulePreview"
+          @configure-flow="$emit('configureFlow')"
+        />
       </aside>
     </div>
   </div>
@@ -151,12 +133,22 @@
 import { useMessage } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
 import { businessDocumentConfig, saveBusinessDocumentConfig } from '@/api/business-app'
-import flowApi from '@/api/flow'
+import DocumentConfigSummary from './DocumentConfigSummary.vue'
+import DocumentNoRuleEditor from './DocumentNoRuleEditor.vue'
+import DocumentStatusMappingTable from './DocumentStatusMappingTable.vue'
 
 const props = defineProps({
   objectId: {
     type: [Number, String],
     default: null,
+  },
+  suiteCode: {
+    type: String,
+    default: '',
+  },
+  objectCode: {
+    type: String,
+    default: '',
   },
   objectName: {
     type: String,
@@ -172,27 +164,17 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['dirtyChange', 'saved', 'loaded'])
+const emit = defineEmits(['dirtyChange', 'saved', 'loaded', 'configureFlow'])
 
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
-const flowModelsLoading = ref(false)
-const flowModelOptions = ref([])
-
-const statusDefinitions = [
-  { key: 'DRAFT', label: '草稿', defaultValue: 'DRAFT' },
-  { key: 'SUBMITTED', label: '已提交', defaultValue: 'SUBMITTED' },
-  { key: 'IN_PROCESS', label: '流程中', defaultValue: 'IN_PROCESS' },
-  { key: 'APPROVED', label: '已通过', defaultValue: 'APPROVED' },
-  { key: 'REJECTED', label: '已驳回', defaultValue: 'REJECTED' },
-  { key: 'CANCELED', label: '已撤回', defaultValue: 'CANCELED' },
-  { key: 'CLOSED', label: '已关闭', defaultValue: 'CLOSED' },
-]
-
+const noRulePreview = ref(null)
 const form = reactive(createDefaultConfig())
 
 const defaultDocumentName = computed(() => `${props.objectName || '业务对象'}单据`)
+const effectiveSuiteCode = computed(() => props.suiteCode || form.suiteCode || '')
+const effectiveObjectCode = computed(() => props.objectCode || form.objectCode || '')
 const fieldOptions = computed(() => props.fields
   .filter(field => fieldCode(field) && !isInactiveField(field))
   .map(field => ({
@@ -216,10 +198,7 @@ async function loadConfig() {
   }
   loading.value = true
   try {
-    const [configRes] = await Promise.all([
-      businessDocumentConfig(props.objectId),
-      loadFlowModels(),
-    ])
+    const configRes = await businessDocumentConfig(props.objectId)
     assignConfig(configRes.data || props.initialConfig || createDefaultConfig())
     emit('loaded', { ...form })
     emit('dirtyChange', false)
@@ -229,28 +208,15 @@ async function loadConfig() {
   }
 }
 
-async function loadFlowModels() {
-  flowModelsLoading.value = true
-  try {
-    const res = await flowApi.getModelList({ status: 1 })
-    flowModelOptions.value = (res.data || []).map(model => ({
-      label: `${model.modelName || model.name || model.modelKey || model.key}（${model.modelKey || model.key}）`,
-      value: model.modelKey || model.key,
-    })).filter(item => item.value)
-  }
-  catch {
-    flowModelOptions.value = []
-  }
-  finally {
-    flowModelsLoading.value = false
-  }
-}
-
 async function saveConfig() {
   if (!props.objectId)
     return
   if (form.documentEnabled && !form.statusField) {
     message.warning('启用单据模式后必须选择状态字段')
+    return
+  }
+  if (noRulePreview.value?.valid === false) {
+    message.warning('编号规则存在错误，请先修正预览提示')
     return
   }
   saving.value = true
@@ -267,15 +233,19 @@ async function saveConfig() {
 }
 
 function buildPayload() {
+  const statusMappingRows = normalizeStatusRows(form.statusMappingRows)
   return {
     documentEnabled: !!form.documentEnabled,
     documentName: form.documentName || defaultDocumentName.value,
-    documentNoRule: form.documentNoRule || '',
+    documentNoRule: form.noRuleTemplate || '',
+    noRuleTemplate: form.noRuleTemplate || '',
     statusField: form.statusField || '',
     starterField: form.starterField || '',
     ownerField: form.ownerField || '',
-    defaultFlowKey: form.defaultFlowKey || '',
-    statusMapping: normalizeStatusMapping(form.statusMapping),
+    defaultFlowKey: form.defaultFlowKey || form.mainFlowSummary?.flowModelKey || '',
+    statusMapping: statusMappingFromRows(statusMappingRows),
+    statusMappingRows,
+    statusActionPolicy: form.statusActionPolicy || {},
     options: { ...(form.options || {}) },
   }
 }
@@ -285,16 +255,65 @@ function assignConfig(value = {}) {
     ...createDefaultConfig(),
     ...value,
     documentEnabled: readBoolean(value.documentEnabled, false),
-    statusMapping: normalizeStatusMapping(value.statusMapping || {}),
+    noRuleTemplate: value.noRuleTemplate || value.documentNoRule || '',
+    statusMappingRows: normalizeStatusRows(value.statusMappingRows || rowsFromLegacyMapping(value.statusMapping || {})),
+    statusActionPolicy: { ...(value.statusActionPolicy || {}) },
+    mainFlowSummary: { ...(value.mainFlowSummary || {}) },
     options: { ...(value.options || {}) },
   })
+  noRulePreview.value = value.noRulePreview || null
 }
 
-function normalizeStatusMapping(mapping = {}) {
-  return statusDefinitions.reduce((result, item) => {
-    result[item.key] = mapping[item.key] || item.defaultValue
+function updateStatusRows(rows) {
+  form.statusMappingRows = normalizeStatusRows(rows)
+  markDirty()
+}
+
+function handleNoRulePreview(preview) {
+  noRulePreview.value = preview
+}
+
+function normalizeStatusRows(rows = []) {
+  const defaults = defaultStatusRows()
+  const byKey = new Map(defaults.map(row => [row.standardStatus, { ...row }]))
+  for (const row of rows || []) {
+    if (!row?.standardStatus)
+      continue
+    const key = String(row.standardStatus).toUpperCase()
+    byKey.set(key, { ...(byKey.get(key) || {}), ...row, standardStatus: key })
+  }
+  return Array.from(byKey.values())
+}
+
+function rowsFromLegacyMapping(mapping = {}) {
+  return defaultStatusRows().map(row => ({
+    ...row,
+    statusValue: mapping[row.standardStatus] || row.statusValue,
+  }))
+}
+
+function statusMappingFromRows(rows = []) {
+  return rows.reduce((result, row) => {
+    if (row.standardStatus && row.statusValue)
+      result[row.standardStatus] = row.statusValue
     return result
   }, {})
+}
+
+function defaultStatusRows() {
+  return [
+    row('DRAFT', '草稿', 'DRAFT', '草稿', 'default', true, true, true),
+    row('SUBMITTED', '已提交', 'SUBMITTED', '已提交', 'info', false, false, false),
+    row('IN_PROCESS', '流程中', 'IN_PROCESS', '流程中', 'warning', false, false, false),
+    row('APPROVED', '已通过', 'APPROVED', '已通过', 'success', false, false, false),
+    row('REJECTED', '已驳回', 'REJECTED', '已驳回', 'error', true, false, true),
+    row('CANCELED', '已撤回', 'CANCELED', '已撤回', 'default', true, false, true),
+    row('CLOSED', '已关闭', 'CLOSED', '已关闭', 'default', false, false, false),
+  ]
+}
+
+function row(standardStatus, standardLabel, statusValue, displayName, tagType, allowEdit, allowDelete, allowStartFlow) {
+  return { standardStatus, standardLabel, statusValue, displayName, tagType, allowEdit, allowDelete, allowStartFlow }
 }
 
 function createDefaultConfig() {
@@ -302,11 +321,14 @@ function createDefaultConfig() {
     documentEnabled: false,
     documentName: '',
     documentNoRule: '',
+    noRuleTemplate: '',
     statusField: '',
     starterField: '',
     ownerField: '',
     defaultFlowKey: '',
-    statusMapping: normalizeStatusMapping({}),
+    statusMappingRows: defaultStatusRows(),
+    statusActionPolicy: {},
+    mainFlowSummary: {},
     options: {},
   }
 }
@@ -357,15 +379,14 @@ defineExpose({
 }
 
 .document-head h3,
-.document-card h4,
-.document-side h4 {
+.document-section h4 {
   margin: 0;
   color: #111827;
   font-size: 15px;
 }
 
 .document-head p,
-.document-card p {
+.document-section p {
   margin: 4px 0 0;
   color: #64748b;
   font-size: 12px;
@@ -374,7 +395,7 @@ defineExpose({
 
 .document-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, 1fr) 300px;
   min-height: 0;
 }
 
@@ -385,19 +406,18 @@ defineExpose({
   padding: 14px;
 }
 
-.document-card,
-.document-side section {
+.document-section {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #fff;
   padding: 14px;
 }
 
-.document-card + .document-card {
+.document-section + .document-section {
   margin-top: 12px;
 }
 
-.document-card-head {
+.section-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -405,62 +425,42 @@ defineExpose({
   margin-bottom: 12px;
 }
 
-.status-grid {
+.document-help-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
+  gap: 6px;
+  margin-top: 10px;
+  border: 1px solid #e0e7ff;
+  border-radius: 8px;
+  background: #f8fbff;
+  padding: 10px 12px;
 }
 
-.status-row {
-  display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-}
-
-.status-row span,
-.document-facts span {
-  color: #64748b;
+.document-help-list span {
+  color: #475569;
   font-size: 12px;
+  line-height: 1.55;
+}
+
+.document-help-list strong {
+  color: #1d4ed8;
 }
 
 .document-side {
-  border-left: 1px solid #e5e7eb;
-  background: #fbfcfe;
-  padding: 12px;
-}
-
-.document-facts {
-  display: grid;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.document-facts div {
   min-width: 0;
-  border-radius: 6px;
-  background: #f1f5f9;
-  padding: 10px;
+  overflow: auto;
+  border-left: 1px solid #e5e7eb;
+  background: #fff;
+  padding: 14px;
 }
 
-.document-facts strong {
-  display: block;
-  overflow: hidden;
-  margin-top: 4px;
-  color: #111827;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .document-body {
     grid-template-columns: 1fr;
   }
 
   .document-side {
-    border-left: 0;
     border-top: 1px solid #e5e7eb;
+    border-left: 0;
   }
 }
 </style>

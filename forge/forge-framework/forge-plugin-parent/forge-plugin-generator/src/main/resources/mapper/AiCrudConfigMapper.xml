@@ -95,6 +95,19 @@
         LIMIT 1
     </select>
 
+    <select id="selectPublishedByObjectCode" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_crud_config
+        WHERE tenant_id = #{tenantId}
+          AND object_code = #{objectCode}
+          AND mode = 'CONFIG'
+          AND build_mode = 'LOWCODE'
+          AND publish_status = 'PUBLISHED'
+        ORDER BY publish_time DESC, id DESC
+        LIMIT 1
+    </select>
+
     <select id="selectLowcodePage" resultMap="BaseResultMap">
         SELECT
         <include refid="Base_Columns"/>

@@ -292,6 +292,14 @@ export function saveBusinessDocumentConfig(objectId, data) {
   return request.put(`/ai/business/document/config/${objectId}`, data)
 }
 
+export function businessDocumentNoRuleTokens() {
+  return request.get('/ai/business/document/no-rule/tokens')
+}
+
+export function previewBusinessDocumentNoRule(data) {
+  return request.post('/ai/business/document/no-rule/preview', data)
+}
+
 export function businessDocumentRuntime(objectCode, recordId) {
   return request.get(`/ai/business/document/${objectCode}/${recordId}/runtime`)
 }
@@ -302,6 +310,10 @@ export function businessFlowBinding(objectCode) {
 
 export function saveBusinessFlowBinding(objectCode, data) {
   return request.put(`/ai/business/flow/binding/${objectCode}`, data)
+}
+
+export function businessFlowVariables(modelKey, params = {}) {
+  return request.get(`/ai/business/flow/model/${modelKey}/variables`, { params })
 }
 
 export function startBusinessDocumentFlow(data) {

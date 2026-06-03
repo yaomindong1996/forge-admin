@@ -22,7 +22,15 @@ public class BusinessAppOpenInfoVO {
 
     private String targetUrl;
 
+    private String targetRoute;
+
     private String configKey;
+
+    private String runtimeOpenMode;
+
+    private Long menuResourceId;
+
+    private String activeMenuKey;
 
     private String runtimeStatus;
 

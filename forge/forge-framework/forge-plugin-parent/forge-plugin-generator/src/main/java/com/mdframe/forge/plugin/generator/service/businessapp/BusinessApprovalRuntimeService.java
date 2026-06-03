@@ -36,13 +36,30 @@ public class BusinessApprovalRuntimeService {
         BusinessDocumentRuntimeVO runtime = documentRuntimeService.getRuntime(targetCode, recordId);
         BusinessFlowBindingVO binding = flowService.getFlowBinding(targetCode);
         if (!Boolean.TRUE.equals(runtime.getDocumentEnabled())) {
-            vo.setHasFlow(false);
-            vo.setCanStart(false);
+            boolean hasFlow = binding != null
+                    && StringUtils.isNotBlank(binding.getFlowModelKey())
+                    && !Integer.valueOf(0).equals(binding.getStatus());
+            vo.setHasFlow(hasFlow);
+            vo.setCanStart(hasFlow && recordId != null);
+            if (binding != null) {
+                vo.setFlowDefinitionId(binding.getFlowModelKey());
+                vo.setFlowDefinitionName(StringUtils.defaultIfBlank(binding.getFlowModelName(), binding.getFlowModelKey()));
+            }
             vo.setApprovalStatus("NONE");
-            vo.setApprovalStatusLabel("未配置");
-            vo.setMessage(StringUtils.defaultIfBlank(runtime.getMessage(), "当前对象未启用单据模式"));
-            vo.setNextAction("CONFIGURE_FLOW");
-            vo.setNextActionLabel("配置流程");
+            vo.setApprovalStatusLabel(hasFlow ? "可发起" : "未配置");
+            if (hasFlow && recordId == null) {
+                vo.setMessage("请先保存记录后再发起主流程");
+                vo.setNextAction("SAVE_RECORD");
+                vo.setNextActionLabel("保存记录");
+            } else if (hasFlow) {
+                vo.setMessage("已配置主流程，当前对象未启用完整单据状态能力");
+                vo.setNextAction("START_FLOW");
+                vo.setNextActionLabel("发起主流程");
+            } else {
+                vo.setMessage(StringUtils.defaultIfBlank(runtime.getMessage(), "请先在流程与自动化中配置主流程"));
+                vo.setNextAction("CONFIGURE_FLOW");
+                vo.setNextActionLabel("配置流程");
+            }
             return vo;
         }
 
@@ -68,7 +85,7 @@ public class BusinessApprovalRuntimeService {
         vo.setApprovalStatusLabel(canStart ? "可发起" : "不可发起");
         vo.setMessage(runtime.getMessage());
         vo.setNextAction(canStart ? "START_FLOW" : runtime.getNextAction());
-        vo.setNextActionLabel(canStart ? "发起流程" : "配置流程");
+        vo.setNextActionLabel(canStart ? "发起主流程" : "配置流程");
 
         return vo;
     }

@@ -153,6 +153,7 @@ import { useMessage } from 'naive-ui'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
+  businessAppDetail,
   businessAppOpenInfo,
   businessAppPage,
   businessObjectPage,
@@ -279,8 +280,19 @@ async function closeObjectDesigner() {
   await loadAll()
 }
 
-function openEditor(app) {
-  editingApp.value = app ? { ...app } : { suiteCode: suiteCode.value }
+async function openEditor(app) {
+  if (app?.id) {
+    try {
+      const res = await businessAppDetail(app.id)
+      editingApp.value = { ...app, ...(res.data || {}) }
+    }
+    catch {
+      editingApp.value = { ...app }
+    }
+  }
+  else {
+    editingApp.value = { suiteCode: suiteCode.value }
+  }
   editorVisible.value = true
 }
 
