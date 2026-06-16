@@ -18,7 +18,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * 文件存储配置Service实现
@@ -31,6 +34,13 @@ public class SysFileStorageConfigServiceImpl extends ServiceImpl<SysFileStorageC
     
     private final StorageConfigProvider configProvider;
     private final FileManager fileManager;
+
+    private static final Set<String> DANGEROUS_EXTENSIONS = Set.of(
+            "jsp", "jspx", "php", "asp", "aspx", "html", "htm",
+            "js", "mjs", "ts", "vue", "sh", "bash", "bat", "cmd",
+            "ps1", "exe", "dll", "so", "dylib", "jar", "war", "ear",
+            "sql", "md", "svg"
+    );
     
     @Override
     public Page<SysFileStorageConfig> page(PageQuery query, SysFileStorageConfig condition) {
@@ -56,6 +66,12 @@ public class SysFileStorageConfigServiceImpl extends ServiceImpl<SysFileStorageC
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void setDefault(Long id) {
+        SysFileStorageConfig config = this.getById(id);
+        if (config == null) {
+            throw new RuntimeException("文件存储配置不存在");
+        }
+        normalizeRequiredAllowedTypes(config);
+
         // 取消所有默认配置
         this.lambdaUpdate()
                 .set(SysFileStorageConfig::getIsDefault, false)
@@ -64,6 +80,7 @@ public class SysFileStorageConfigServiceImpl extends ServiceImpl<SysFileStorageC
         // 设置新的默认配置
         this.lambdaUpdate()
                 .eq(SysFileStorageConfig::getId, id)
+                .set(SysFileStorageConfig::getAllowedTypes, config.getAllowedTypes())
                 .set(SysFileStorageConfig::getIsDefault, true)
                 .update();
         
@@ -75,10 +92,22 @@ public class SysFileStorageConfigServiceImpl extends ServiceImpl<SysFileStorageC
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateEnabled(Long id, Boolean enabled) {
-        this.lambdaUpdate()
+        SysFileStorageConfig config = null;
+        if (Boolean.TRUE.equals(enabled)) {
+            config = this.getById(id);
+            if (config == null) {
+                throw new RuntimeException("文件存储配置不存在");
+            }
+            normalizeRequiredAllowedTypes(config);
+        }
+
+        var update = this.lambdaUpdate()
                 .eq(SysFileStorageConfig::getId, id)
-                .set(SysFileStorageConfig::getEnabled, enabled)
-                .update();
+                .set(SysFileStorageConfig::getEnabled, enabled);
+        if (config != null) {
+            update.set(SysFileStorageConfig::getAllowedTypes, config.getAllowedTypes());
+        }
+        update.update();
         
         // 刷新配置缓存
         configProvider.refreshConfig();
@@ -152,6 +181,7 @@ public class SysFileStorageConfigServiceImpl extends ServiceImpl<SysFileStorageC
 
     @Override
     public boolean save(SysFileStorageConfig entity) {
+        normalizeRequiredAllowedTypes(entity);
         boolean success = super.save(entity);
         configProvider.refreshConfig();
         fileManager.refreshConfiguredStorages();
@@ -161,6 +191,7 @@ public class SysFileStorageConfigServiceImpl extends ServiceImpl<SysFileStorageC
     @Override
     public boolean updateById(SysFileStorageConfig entity) {
         preserveMaskedCredentials(entity);
+        normalizeRequiredAllowedTypes(entity);
         boolean success = super.updateById(entity);
         configProvider.refreshConfig();
         fileManager.refreshConfiguredStorages();
@@ -216,5 +247,37 @@ public class SysFileStorageConfigServiceImpl extends ServiceImpl<SysFileStorageC
         if (secretKeyMasked) {
             entity.setSecretKey(existing.getSecretKey());
         }
+    }
+
+    private void normalizeRequiredAllowedTypes(SysFileStorageConfig entity) {
+        if (entity == null) {
+            throw new RuntimeException("文件存储配置不能为空");
+        }
+        if (StrUtil.isBlank(entity.getAllowedTypes())) {
+            throw new RuntimeException("支持的文件类型不能为空");
+        }
+        Set<String> normalizedTypes = new LinkedHashSet<>();
+        for (String type : entity.getAllowedTypes().split(",")) {
+            String normalizedType = normalizeExtension(type);
+            if (StrUtil.isBlank(normalizedType)) {
+                continue;
+            }
+            if (DANGEROUS_EXTENSIONS.contains(normalizedType)) {
+                throw new RuntimeException("不允许配置高风险文件类型: " + normalizedType);
+            }
+            normalizedTypes.add(normalizedType);
+        }
+        if (normalizedTypes.isEmpty()) {
+            throw new RuntimeException("支持的文件类型不能为空");
+        }
+        entity.setAllowedTypes(String.join(",", normalizedTypes));
+    }
+
+    private String normalizeExtension(String extension) {
+        if (extension == null) {
+            return "";
+        }
+        String normalized = extension.trim().toLowerCase(Locale.ROOT);
+        return normalized.startsWith(".") ? normalized.substring(1) : normalized;
     }
 }

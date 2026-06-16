@@ -6,7 +6,7 @@
 INSERT INTO sys_file_storage_config 
 (config_name, storage_type, is_default, enabled, endpoint, access_key, secret_key, bucket_name, use_https, max_file_size, allowed_types, order_num)
 VALUES 
-('RustFS存储', 'rustfs', 0, 0, 'http://192.168.1.100:9000', 'rustfsadmin', 'rustfssecret', 'forge-files', 0, 500, 'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,zip,rar,mp4,mp3', 3);
+('RustFS存储', 'rustfs', 0, 0, 'http://192.168.1.100:9000', 'rustfsadmin', 'rustfssecret', 'forge-files', 0, 500, 'jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,csv,zip,rar,mp4,mp3', 3);
 
 -- 说明:
 -- 1. endpoint: RustFS服务地址 (根据实际情况修改)

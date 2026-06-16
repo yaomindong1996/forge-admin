@@ -38,6 +38,7 @@
         modal-width="900px"
         max-height="var(--storage-table-max-height)"
         :search-y-gap="8"
+        :before-submit="normalizeSubmitData"
       >
         <!-- 自定义表单项：允许的文件类型 -->
         <template #form-allowedTypes="{ value, updateValue }">
@@ -73,7 +74,7 @@
               </template>
             </NDynamicTags>
             <div class="text-12 mt-4 text-gray-400">
-              常用类型：jpg、png、gif、pdf、doc、docx、xls、xlsx、zip、rar
+              默认类型：{{ DEFAULT_ALLOWED_TYPES }}
             </div>
           </div>
         </template>
@@ -93,6 +94,7 @@ import { request } from '@/utils'
 defineOptions({ name: 'StorageConfig' })
 
 const STORAGE_TYPE_DICT = 'sys_file_storage_type'
+const DEFAULT_ALLOWED_TYPES = 'jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,csv,zip,rar,mp4,mp3'
 
 const crudRef = ref(null)
 const inputRef = ref(null)
@@ -440,6 +442,20 @@ const editSchema = computed(() => [
     label: '允许类型',
     type: 'slot',
     slotName: 'allowedTypes',
+    defaultValue: DEFAULT_ALLOWED_TYPES,
+    rules: [
+      {
+        required: true,
+        message: '请配置支持的文件类型',
+        trigger: 'change',
+        validator: (_rule, value) => {
+          if (!parseAllowedTypes(value).length) {
+            return new Error('请配置支持的文件类型')
+          }
+          return true
+        },
+      },
+    ],
     span: 2,
   },
   {
@@ -463,22 +479,49 @@ function handleEdit(row) {
 function parseAllowedTypes(value) {
   if (!value)
     return []
-  return value.split(',').map(type => type.trim()).filter(Boolean)
+  return [...new Set(value.split(',')
+    .map(normalizeFileType)
+    .filter(Boolean))]
 }
 
 // 处理文件类型标签变化（数组 -> 字符串）
 function handleFileTypesChange(tags, updateValue) {
-  // 将标签数组转换为逗号分隔的字符串
-  const typesString = tags.join(',')
+  const typesString = normalizeAllowedTypes(tags)
   updateValue(typesString)
 }
 
 // 处理文件类型提交
 function handleSubmitFileType(submit) {
   if (fileTypeInput.value && fileTypeInput.value.trim()) {
-    submit(fileTypeInput.value.trim())
+    const normalizedType = normalizeFileType(fileTypeInput.value)
+    if (normalizedType) {
+      submit(normalizedType)
+    }
     fileTypeInput.value = ''
   }
+}
+
+function normalizeSubmitData(data) {
+  const allowedTypes = normalizeAllowedTypes(parseAllowedTypes(data.allowedTypes))
+  if (!allowedTypes) {
+    window.$message.error('请配置支持的文件类型')
+    return false
+  }
+  return {
+    ...data,
+    allowedTypes,
+  }
+}
+
+function normalizeAllowedTypes(types) {
+  return [...new Set(types.map(normalizeFileType).filter(Boolean))].join(',')
+}
+
+function normalizeFileType(type) {
+  if (!type)
+    return ''
+  const value = String(type).trim().toLowerCase()
+  return value.startsWith('.') ? value.slice(1) : value
 }
 
 function isEndpointRequired(storageType) {

@@ -34,17 +34,14 @@ public class FileManager {
 
     private static final long DEFAULT_MAX_FILE_SIZE_MB = 100L;
 
-    private static final Set<String> DEFAULT_ALLOWED_TYPES = Set.of(
-            "jpg", "jpeg", "png", "gif", "webp", "pdf",
-            "doc", "docx", "xls", "xlsx", "txt", "csv",
-            "zip", "rar", "mp4", "mp3"
-    );
+    public static final String DEFAULT_ALLOWED_TYPES =
+            "jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,csv,zip,rar,mp4,mp3";
 
     private static final Set<String> DANGEROUS_EXTENSIONS = Set.of(
             "jsp", "jspx", "php", "asp", "aspx", "html", "htm",
             "js", "mjs", "ts", "vue", "sh", "bash", "bat", "cmd",
             "ps1", "exe", "dll", "so", "dylib", "jar", "war", "ear",
-            "sql", "svg"
+            "sql", "md", "svg"
     );
 
     private static final Set<String> DANGEROUS_MIME_TYPES = Set.of(
@@ -519,14 +516,17 @@ public class FileManager {
 
     private Set<String> resolveAllowedTypes(StorageConfig config) {
         if (config == null || config.getAllowedTypes() == null || config.getAllowedTypes().isBlank()) {
-            return DEFAULT_ALLOWED_TYPES;
+            throw new RuntimeException("文件存储配置未设置允许的文件类型");
         }
         Set<String> configuredTypes = config.getAllowedTypeList().stream()
                 .map(this::normalizeExtension)
                 .filter(type -> !type.isBlank())
                 .filter(type -> !DANGEROUS_EXTENSIONS.contains(type))
                 .collect(java.util.stream.Collectors.toSet());
-        return configuredTypes.isEmpty() ? DEFAULT_ALLOWED_TYPES : configuredTypes;
+        if (configuredTypes.isEmpty()) {
+            throw new RuntimeException("文件存储配置未设置有效的允许文件类型");
+        }
+        return configuredTypes;
     }
 
     private String normalizeExtension(String extension) {

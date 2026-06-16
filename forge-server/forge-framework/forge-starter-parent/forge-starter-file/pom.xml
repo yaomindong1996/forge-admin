@@ -60,6 +60,13 @@
             <artifactId>cos_api</artifactId>
             <version>${tencent.cos.version}</version>
         </dependency>
+
+        <!-- 测试 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>

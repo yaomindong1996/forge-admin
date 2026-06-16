@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS sys_file_storage_config (
     domain VARCHAR(500) COMMENT '访问域名',
     use_https TINYINT(1) DEFAULT 1 COMMENT '是否使用HTTPS',
     max_file_size INT DEFAULT 100 COMMENT '最大文件大小(MB)',
-    allowed_types VARCHAR(500) COMMENT '允许的文件类型(逗号分隔)',
+    allowed_types VARCHAR(500) NOT NULL COMMENT '允许的文件类型(逗号分隔)',
     order_num INT DEFAULT 0 COMMENT '排序',
     extra_config TEXT COMMENT '扩展配置(JSON)',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -65,16 +65,16 @@ CREATE TABLE IF NOT EXISTS sys_file_metadata (
 INSERT INTO sys_file_storage_config 
 (config_name, storage_type, is_default, enabled, base_path, max_file_size, allowed_types, order_num)
 VALUES 
-('本地存储', 'local', 1, 1, '/data/files/', 100, 'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,zip,rar', 1);
+('本地存储', 'local', 1, 1, '/data/files/', 100, 'jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,csv,zip,rar,mp4,mp3', 1);
 
 -- MinIO配置示例（需根据实际情况修改）
 INSERT INTO sys_file_storage_config 
 (config_name, storage_type, is_default, enabled, endpoint, access_key, secret_key, bucket_name, use_https, max_file_size, allowed_types, order_num)
 VALUES 
-('MinIO存储', 'minio', 0, 0, 'http://localhost:9000', 'minioadmin', 'minioadmin', 'forge-files', 0, 500, 'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,zip,rar,mp4,mp3', 2);
+('MinIO存储', 'minio', 0, 0, 'http://localhost:9000', 'minioadmin', 'minioadmin', 'forge-files', 0, 500, 'jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,csv,zip,rar,mp4,mp3', 2);
 
 -- 腾讯云 COS 配置示例（bucket_name 需使用完整桶名，如 forge-files-1250000000）
 INSERT INTO sys_file_storage_config
 (config_name, storage_type, is_default, enabled, access_key, secret_key, bucket_name, region, use_https, max_file_size, allowed_types, order_num)
 VALUES
-('腾讯云COS', 'tencent', 0, 0, 'SecretId', 'SecretKey', 'forge-files-1250000000', 'ap-guangzhou', 1, 500, 'jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,zip,rar,mp4,mp3', 3);
+('腾讯云COS', 'tencent', 0, 0, 'SecretId', 'SecretKey', 'forge-files-1250000000', 'ap-guangzhou', 1, 500, 'jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,txt,csv,zip,rar,mp4,mp3', 3);
