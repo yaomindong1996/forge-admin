@@ -100,13 +100,13 @@
     <n-card class="mt-4" title="流程实例监控">
       <template #header-extra>
         <NSpace>
-          <NButton type="error" secondary :loading="cleanupLoading" @click="handleCleanupCurrentFilter">
+          <NButton type="error" secondary :loading="cleanupLoading" :disabled="isDeletingProcess" @click="handleCleanupCurrentFilter">
             <template #icon>
               <i class="i-mdi:delete-sweep" />
             </template>
             删除当前筛选流程
           </NButton>
-          <NButton @click="loadData">
+          <NButton :disabled="isDeletingProcess" @click="loadData">
             <template #icon>
               <i class="i-mdi:refresh" />
             </template>
@@ -118,7 +118,7 @@
       <n-data-table
         :columns="columns"
         :data="tableData"
-        :loading="loading"
+        :loading="loading || isDeletingProcess"
         :pagination="pagination"
         :remote="true"
         :row-key="row => row.id"
@@ -474,6 +474,10 @@ const statusOptions = computed(() => dict.value.flow_instance_status || [])
 const tableData = ref([])
 const loading = ref(false)
 const cleanupLoading = ref(false)
+const deletingProcessId = ref(null)
+const isDeletingProcess = computed(() => cleanupLoading.value || Boolean(deletingProcessId.value))
+const cleanupLoadingMessageKey = 'flow-monitor-cleanup-loading'
+const deleteLoadingMessageKey = 'flow-monitor-delete-loading'
 const pagination = reactive({
   page: 1,
   pageSize: 10,
@@ -543,12 +547,20 @@ const columns = [
       options.push({
         label: () => h('span', { style: { color: '#d03050' } }, '删除流程数据'),
         key: 'delete',
+        disabled: isDeletingProcess.value,
       })
       return h(NSpace, { size: 'small' }, {
         default: () => [
-          h(NButton, { text: true, type: 'primary', size: 'small', onClick: () => showDetail(row) }, { default: () => '详情' }),
+          h(NButton, {
+            text: true,
+            type: 'primary',
+            size: 'small',
+            disabled: isDeletingProcess.value,
+            onClick: () => showDetail(row),
+          }, { default: () => '详情' }),
           h(NDropdown, {
             options,
+            disabled: isDeletingProcess.value,
             onSelect: (key) => {
               const map = {
                 diagram: () => showDiagram(row),
@@ -994,19 +1006,32 @@ function refreshMonitorData() {
   refreshCharts()
 }
 
+function showDeleteLoading(key, content) {
+  message.loading(content, { key, duration: 600000 })
+}
+
+function closeDeleteLoading(key) {
+  message.destroy?.(key, 0)
+}
+
 function handleCleanupCurrentFilter() {
+  if (isDeletingProcess.value) {
+    return
+  }
   const hasFilter = hasCleanupFilter()
   const totalText = pagination.itemCount > 0 ? `当前匹配 ${pagination.itemCount} 条流程记录。` : '当前没有匹配记录。'
   const scopeText = hasFilter
     ? '将删除当前筛选条件下的流程运行时、历史实例和业务关联记录。'
     : '当前未设置筛选条件，将删除监控列表中的全部流程记录。'
 
-  window.$dialog?.error({
+  let cleanupDialog = null
+  cleanupDialog = window.$dialog?.error({
     title: '确认删除流程数据',
     content: `${scopeText}${totalText}删除后不可恢复，确认继续？`,
     positiveText: '确认删除',
     negativeText: '取消',
     onPositiveClick: async () => {
+      showDeleteLoading(cleanupLoadingMessageKey, '正在删除当前筛选流程数据，请稍候...')
       cleanupLoading.value = true
       try {
         const res = await request.post('/api/flow/monitor/instances/cleanup', {
@@ -1029,23 +1054,32 @@ function handleCleanupCurrentFilter() {
       }
       finally {
         cleanupLoading.value = false
+        closeDeleteLoading(cleanupLoadingMessageKey)
+        cleanupDialog?.destroy?.()
       }
+      return false
     },
   })
 }
 
 function handleDeleteInstance(row) {
+  if (isDeletingProcess.value) {
+    return
+  }
   if (!row.id) {
     message.warning('无法获取流程实例ID')
     return
   }
 
-  window.$dialog?.error({
+  let deleteDialog = null
+  deleteDialog = window.$dialog?.error({
     title: '确认删除流程数据',
     content: `将删除「${row.processName || row.id}」的流程运行时、历史实例和业务关联记录，删除后不可恢复。`,
     positiveText: '确认删除',
     negativeText: '取消',
     onPositiveClick: async () => {
+      showDeleteLoading(deleteLoadingMessageKey, '正在删除流程数据，请稍候...')
+      deletingProcessId.value = row.id
       try {
         const res = await request.post(`/api/flow/monitor/instance/${row.id}/delete`, {
           reason: '管理员删除流程数据',
@@ -1064,6 +1098,12 @@ function handleDeleteInstance(row) {
         console.error('删除流程数据失败', error)
         message.error(getErrorMessage(error, '删除流程数据失败'))
       }
+      finally {
+        deletingProcessId.value = null
+        closeDeleteLoading(deleteLoadingMessageKey)
+        deleteDialog?.destroy?.()
+      }
+      return false
     },
   })
 }

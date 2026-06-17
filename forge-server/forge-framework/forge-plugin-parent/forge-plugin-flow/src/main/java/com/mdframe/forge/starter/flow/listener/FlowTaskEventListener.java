@@ -17,12 +17,17 @@ import com.mdframe.forge.starter.flow.mapper.FlowTaskMapper;
 import com.mdframe.forge.starter.flow.service.FlowErrorLogService;
 import com.mdframe.forge.starter.flow.service.FlowOrgIntegrationService;
 import lombok.extern.slf4j.Slf4j;
+import org.flowable.common.engine.api.delegate.event.FlowableEngineEvent;
 import org.flowable.common.engine.api.delegate.event.FlowableEntityEvent;
 import org.flowable.common.engine.api.delegate.event.FlowableEvent;
 import org.flowable.common.engine.api.delegate.event.FlowableEventListener;
 import org.flowable.common.engine.api.delegate.event.FlowableEventType;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
+import org.flowable.engine.delegate.DelegateExecution;
+import org.flowable.engine.delegate.event.FlowableCancelledEvent;
+import org.flowable.engine.delegate.event.FlowableProcessEngineEvent;
+import org.flowable.engine.impl.persistence.entity.ExecutionEntity;
 import org.flowable.task.service.impl.persistence.entity.TaskEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -43,6 +48,8 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class FlowTaskEventListener implements FlowableEventListener {
+
+    private static final String PHYSICAL_CLEANUP_REASON_KEYWORD = "删除流程数据";
 
     @Autowired
     @Lazy
@@ -458,18 +465,18 @@ public class FlowTaskEventListener implements FlowableEventListener {
      */
     private void handleProcessCancelled(FlowableEvent event) {
         try {
-            Object entity = ((FlowableEntityEvent) event).getEntity();
-            String processInstanceId = null;
-            
-            // PROCESS_CANCELLED 事件的 entity 是 ExecutionEntity
-            if (entity instanceof org.flowable.engine.impl.persistence.entity.ExecutionEntity) {
-                org.flowable.engine.impl.persistence.entity.ExecutionEntity execution =
-                    (org.flowable.engine.impl.persistence.entity.ExecutionEntity) entity;
-                processInstanceId = execution.getProcessInstanceId();
-                log.info("流程取消事件：processInstanceId={}", processInstanceId);
-            }
+            String processInstanceId = resolveProcessInstanceId(event);
+            String cancelCause = resolveCancelCause(event);
+            log.info("流程取消事件：eventClass={}, processInstanceId={}",
+                    event.getClass().getName(), processInstanceId);
             
             if (processInstanceId != null) {
+                if (isPhysicalCleanupCancel(cancelCause)) {
+                    log.info("流程物理删除场景，跳过取消状态同步和事件通知：processInstanceId={}, reason={}",
+                            processInstanceId, cancelCause);
+                    return;
+                }
+
                 // 更新 FlowBusiness 状态为已取消
                 FlowBusiness business = getFlowBusiness(processInstanceId);
                 if (business != null) {
@@ -500,12 +507,63 @@ public class FlowTaskEventListener implements FlowableEventListener {
                 } else {
                     log.warn("未找到流程业务记录：processInstanceId={}", processInstanceId);
                 }
+            } else {
+                log.warn("流程取消事件未获取到流程实例ID：eventClass={}", event.getClass().getName());
             }
             
         } catch (Exception e) {
             log.error("处理流程取消事件失败", e);
             recordEventListenerError(event, "EVENT_PROCESS_CANCELLED", e);
         }
+    }
+
+    private boolean isPhysicalCleanupCancel(String cancelCause) {
+        return cancelCause != null && cancelCause.contains(PHYSICAL_CLEANUP_REASON_KEYWORD);
+    }
+
+    private String resolveCancelCause(FlowableEvent event) {
+        if (event instanceof FlowableCancelledEvent) {
+            Object cause = ((FlowableCancelledEvent) event).getCause();
+            return cause == null ? null : String.valueOf(cause);
+        }
+        return null;
+    }
+
+    String resolveProcessInstanceId(FlowableEvent event) {
+        if (event == null) {
+            return null;
+        }
+        if (event instanceof FlowableEngineEvent) {
+            String processInstanceId = ((FlowableEngineEvent) event).getProcessInstanceId();
+            if (processInstanceId != null && !processInstanceId.isBlank()) {
+                return processInstanceId;
+            }
+        }
+        if (event instanceof FlowableProcessEngineEvent) {
+            try {
+                DelegateExecution execution = ((FlowableProcessEngineEvent) event).getExecution();
+                if (execution != null && execution.getProcessInstanceId() != null
+                        && !execution.getProcessInstanceId().isBlank()) {
+                    return execution.getProcessInstanceId();
+                }
+            } catch (Exception e) {
+                log.debug("从流程事件执行实例获取流程实例ID失败: eventClass={}", event.getClass().getName(), e);
+            }
+        }
+        if (event instanceof FlowableEntityEvent) {
+            return resolveProcessInstanceIdFromEntity(((FlowableEntityEvent) event).getEntity());
+        }
+        return null;
+    }
+
+    private String resolveProcessInstanceIdFromEntity(Object entity) {
+        if (entity instanceof TaskEntity) {
+            return ((TaskEntity) entity).getProcessInstanceId();
+        }
+        if (entity instanceof ExecutionEntity) {
+            return ((ExecutionEntity) entity).getProcessInstanceId();
+        }
+        return null;
     }
 
     /**
@@ -830,18 +888,17 @@ public class FlowTaskEventListener implements FlowableEventListener {
         try {
             FlowErrorLog errorLog = new FlowErrorLog();
             errorLog.setErrorStage(errorStage);
+            String processInstanceId = resolveProcessInstanceId(event);
+            if (processInstanceId != null) {
+                errorLog.setProcessInstanceId(processInstanceId);
+            }
             if (event instanceof FlowableEntityEvent) {
                 Object entity = ((FlowableEntityEvent) event).getEntity();
                 if (entity instanceof TaskEntity) {
                     TaskEntity task = (TaskEntity) entity;
-                    errorLog.setProcessInstanceId(task.getProcessInstanceId());
                     errorLog.setTaskId(task.getId());
                     errorLog.setActivityId(task.getTaskDefinitionKey());
                     errorLog.setActivityName(task.getName());
-                } else if (entity instanceof org.flowable.engine.impl.persistence.entity.ExecutionEntity) {
-                    org.flowable.engine.impl.persistence.entity.ExecutionEntity execution =
-                            (org.flowable.engine.impl.persistence.entity.ExecutionEntity) entity;
-                    errorLog.setProcessInstanceId(execution.getProcessInstanceId());
                 }
             }
             flowErrorLogService.recordError(errorLog, e);

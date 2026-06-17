@@ -1728,3 +1728,50 @@ Detected resolved migration not applied to database: 1.0.56
 
 **验证建议**:
 修复 forge-create 裁剪逻辑后，必须重新生成临时 `minimal-admin` 工程，检查生成后的 `admin-server` 存在降级 `AiClientAdapterImpl` 且没有引用 `plugin-ai`，再执行 `mvn -pl <project>-admin-server -am compile -DskipTests` 或 `package -DskipTests`。
+
+## 60. Flowable 7 流程取消事件不能强转 FlowableEntityEvent
+
+**发现日期**: 2026-06-17
+
+**问题描述**:
+调用 `RuntimeService.deleteProcessInstance` 清理或删除流程实例时，`FlowTaskEventListener` 处理 `PROCESS_CANCELLED` 事件报错：
+
+```text
+FlowableProcessCancelledEventImpl cannot be cast to FlowableEntityEvent
+```
+
+错误会被记录到 `sys_flow_error_log` 的 `EVENT_PROCESS_CANCELLED` 阶段，导致流程取消后的业务状态同步、表单实例状态同步和事件发布逻辑无法正常执行。
+
+**根本原因**:
+Flowable 7.0.1 的 `FlowableProcessCancelledEventImpl` 继承 `FlowableProcessEventImpl`，实现的是 `FlowableCancelledEvent`，并不是 `FlowableEntityEvent`。取消事件的 `processInstanceId` 已通过 `FlowableEngineEvent.getProcessInstanceId()` 设置到事件对象上，不能按 `((FlowableEntityEvent) event).getEntity()` 读取。
+
+**解决方案**:
+流程监听器处理 `PROCESS_CANCELLED` 时，优先从 `FlowableEngineEvent.getProcessInstanceId()` 读取流程实例 ID；必要时再兼容 `FlowableProcessEngineEvent.getExecution()` 和 `FlowableEntityEvent`。错误日志记录也应复用同一个解析逻辑，避免非实体事件丢失流程上下文。
+
+**验证建议**:
+新增测试直接构造 `FlowableProcessCancelledEventImpl`，断言它不是 `FlowableEntityEvent`，并验证监听器仍能解析出 `processInstanceId`。Maven 验证需要使用 Java 17 且带 `-am`，避免单模块构建拿到本地仓库旧版模块依赖。
+
+## 61. window.$message.loading 不返回 Naive 原生销毁句柄
+
+**发现日期**: 2026-06-17
+
+**问题描述**:
+页面里写 `const loading = window.$message.loading('处理中...', { duration: 0 })` 后，再调用 `loading.destroy()` 会报错或导致后续逻辑中断。典型现象是接口已经处理完成，但确认弹窗和 loading 提示仍停留在页面上。
+
+**根本原因**:
+`window.$message` 不是 Naive UI 原生 `message`，而是 `src/utils/naiveTools.js` 中 `setupMessage()` 包装后的对象。包装类的 `loading()`、`success()`、`error()` 等方法只调用 `showMessage()`，没有把 Naive 原生 `MessageReactive` 返回出去。因此不能依赖 `window.$message.loading()` 的返回值销毁消息。
+
+**解决方案**:
+需要手动关闭 loading 时，必须使用固定 `key` 并调用包装对象的 `destroy(key, duration)`：
+
+```js
+window.$message.loading('处理中...', { key: 'xxx-loading', duration: 600000 })
+try {
+  // await request...
+}
+finally {
+  window.$message.destroy?.('xxx-loading', 0)
+}
+```
+
+若 loading 放在 `window.$dialog` 的 `onPositiveClick` 中，还应避免 finally 中抛错；必要时保存 dialog reactive 并在请求结束后显式 `dialog.destroy()`，否则 Promise reject 时 Naive Dialog 不会自动关闭。

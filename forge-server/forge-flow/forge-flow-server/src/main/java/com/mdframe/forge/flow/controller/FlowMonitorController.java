@@ -797,6 +797,7 @@ public class FlowMonitorController {
     }
 
     private Map<String, Object> cleanupProcessInstanceIds(Collection<String> processInstanceIds, String reason) {
+        long cleanupStartTime = System.currentTimeMillis();
         int deletedCount = 0;
         int runtimeDeletedCount = 0;
         int historyDeletedCount = 0;
@@ -810,24 +811,43 @@ public class FlowMonitorController {
             }
 
             try {
+                long instanceStartTime = System.currentTimeMillis();
                 ProcessInstance processInstance = runtimeService.createProcessInstanceQuery()
                         .processInstanceId(processInstanceId)
                         .singleResult();
                 if (processInstance != null) {
+                    long runtimeStartTime = System.currentTimeMillis();
                     runtimeService.deleteProcessInstance(processInstanceId, reason);
                     runtimeDeletedCount++;
+                    log.info("删除流程运行时数据完成：processInstanceId={}, cost={}ms",
+                            processInstanceId, elapsedMillis(runtimeStartTime));
                 }
 
                 HistoricProcessInstance historicProcessInstance = historyService.createHistoricProcessInstanceQuery()
                         .processInstanceId(processInstanceId)
                         .singleResult();
                 if (historicProcessInstance != null) {
+                    long historyStartTime = System.currentTimeMillis();
                     historyService.deleteHistoricProcessInstance(processInstanceId);
                     historyDeletedCount++;
+                    log.info("删除流程历史数据完成：processInstanceId={}, cost={}ms",
+                            processInstanceId, elapsedMillis(historyStartTime));
                 }
 
-                forgeRecordDeletedCount += deleteForgeFlowRecords(processInstanceId);
+                long forgeRecordStartTime = System.currentTimeMillis();
+                int currentForgeRecordDeletedCount = deleteForgeFlowRecords(processInstanceId);
+                forgeRecordDeletedCount += currentForgeRecordDeletedCount;
+                log.info("删除Forge流程关联记录完成：processInstanceId={}, deletedCount={}, cost={}ms",
+                        processInstanceId,
+                        currentForgeRecordDeletedCount,
+                        elapsedMillis(forgeRecordStartTime));
                 deletedCount++;
+                log.info("删除流程数据完成：processInstanceId={}, runtimeDeleted={}, historyDeleted={}, forgeRecordDeleted={}, cost={}ms",
+                        processInstanceId,
+                        processInstance != null,
+                        historicProcessInstance != null,
+                        currentForgeRecordDeletedCount,
+                        elapsedMillis(instanceStartTime));
             } catch (Exception e) {
                 failedCount++;
                 Map<String, String> failure = new HashMap<>();
@@ -845,10 +865,17 @@ public class FlowMonitorController {
         result.put("forgeRecordDeletedCount", forgeRecordDeletedCount);
         result.put("failedCount", failedCount);
         result.put("failures", failures);
+        log.info("流程数据清理汇总：inputCount={}, deletedCount={}, runtimeDeletedCount={}, historyDeletedCount={}, forgeRecordDeletedCount={}, failedCount={}, cost={}ms",
+                processInstanceIds.size(), deletedCount, runtimeDeletedCount, historyDeletedCount,
+                forgeRecordDeletedCount, failedCount, elapsedMillis(cleanupStartTime));
         if (failedCount > 0) {
             throw new BusinessException(500, "部分流程数据删除失败", result);
         }
         return result;
+    }
+
+    private long elapsedMillis(long startTime) {
+        return System.currentTimeMillis() - startTime;
     }
 
     private int deleteForgeFlowRecords(String processInstanceId) {
