@@ -438,9 +438,9 @@ import { NButton, NDropdown, NSpace, NTag } from 'naive-ui'
 import { computed, h, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
-import ProcessDiagramViewer from '@/components/bpmn/ProcessDiagramViewer.vue'
-import UserSelectModal from '@/components/bpmn/UserSelectModal.vue'
+import UserSelectModal from '@/components/common/UserSelectModal.vue'
 import DictTag from '@/components/DictTag.vue'
+import ProcessDiagramViewer from '@/components/flow-designer/viewer/DingFlowViewer.vue'
 import { useDict } from '@/composables/useDict'
 import { request } from '@/utils'
 

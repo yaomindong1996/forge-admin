@@ -78,7 +78,7 @@
           <NTabs v-model:value="activeDetailTab" type="line" class="mt-16" @update:value="handleDetailTabChange">
             <NTabPane name="diagram" tab="设计图">
               <div v-if="versionDetail.bpmnXml" class="version-diagram">
-                <div ref="detailCanvasRef" class="version-diagram-canvas" />
+                <DingFlowViewer :bpmn-xml="versionDetail.bpmnXml" :compact="true" class="version-diagram-canvas" />
               </div>
               <NEmpty v-else description="该版本暂无 BPMN XML，无法渲染设计图" />
             </NTabPane>
@@ -188,7 +188,7 @@
 </template>
 
 <script setup>
-import BpmnJS from 'bpmn-js/lib/NavigatedViewer'
+import { DingFlowViewer } from '@/components/flow-designer'
 import { NButton, NDropdown, NTag } from 'naive-ui'
 import { computed, h, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import versionApi from '@/api/version'
@@ -197,10 +197,6 @@ import { useDict } from '@/composables/useDict'
 import { useAuthStore } from '@/store'
 import { generateUUID } from '@/utils/common'
 import VersionCompare from './versionCompare.vue'
-import 'bpmn-js/dist/assets/diagram-js.css'
-import 'bpmn-js/dist/assets/bpmn-font/css/bpmn.css'
-import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-codes.css'
-import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css'
 
 const props = defineProps({
   modelId: {
@@ -232,11 +228,9 @@ const versionDetail = ref(null)
 const revertTarget = ref(null)
 const tagTarget = ref(null)
 const revertFormRef = ref(null)
-const detailCanvasRef = ref(null)
 const activeDetailTab = ref('diagram')
 const authStore = useAuthStore()
 const currentVersionValue = ref(props.currentVersion)
-let detailViewer = null
 
 const revertForm = reactive({
   changeDescription: '',
@@ -406,31 +400,14 @@ async function handleDetailTabChange(tabName) {
   }
 }
 
+// DingFlowViewer 通过 :bpmn-xml prop 自动渲染，无需手动 importXML
 async function renderVersionDiagram() {
-  if (!detailCanvasRef.value || !versionDetail.value?.bpmnXml)
-    return
-  destroyDetailViewer()
-  detailViewer = new BpmnJS({
-    container: detailCanvasRef.value,
-    keyboard: {
-      bindTo: window,
-    },
-  })
-  try {
-    await detailViewer.importXML(versionDetail.value.bpmnXml)
-    detailViewer.get('canvas').zoom('fit-viewport', 'auto')
-  }
-  catch (error) {
-    console.error('渲染版本设计图失败', error)
-    window.$message?.error('版本设计图渲染失败，请检查 BPMN XML')
-  }
+  // no-op: DingFlowViewer 接收 bpmnXml 后自动解析渲染
 }
 
+// DingFlowViewer 自行管理生命周期，无需手动 destroy
 function destroyDetailViewer() {
-  if (detailViewer) {
-    detailViewer.destroy()
-    detailViewer = null
-  }
+  // no-op
 }
 
 function handleRevert(row) {

@@ -144,7 +144,7 @@
 
         <!-- 流程设计器 -->
         <div class="designer-container">
-          <FlowModeler
+          <DingFlowDesigner
             ref="modelerRef"
             :xml="bpmnXml"
             @change="handleBpmnChange"
@@ -227,19 +227,13 @@
             </button>
           </div>
 
-          <!-- 属性面板 -->
+          <!-- 属性面板（已由 DingFlowDesigner 内部 NodeConfigDrawer 接管，此面板仅在 dockedElement 存在时显示提示） -->
           <div v-if="dockedElement && rightActiveTab === 'properties'" class="docked-properties-panel">
             <div class="docked-panel-header">
               <span class="docked-panel-title">{{ getElementTitle(dockedElement) }}</span>
             </div>
             <div class="docked-panel-body">
-              <NodePropertiesPanel
-                v-if="modelerInstance"
-                :element="dockedElement"
-                :modeler="modelerInstance"
-                :field-catalog="formFieldCatalog"
-                @update="handlePropertiesUpdate"
-              />
+              <n-empty description="节点配置已迁移到画布上的抽屉，点击画布节点即可编辑" size="small" />
             </div>
           </div>
 
@@ -547,8 +541,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { modelListByProvider, providerPage } from '@/api/ai'
 import flowApi from '@/api/flow'
 import { streamFlowGenerate } from '@/api/flow-generator'
-import FlowModeler from '@/components/bpmn/FlowModeler.vue'
-import NodePropertiesPanel from '@/components/bpmn/NodePropertiesPanel.vue'
+import { DingFlowDesigner } from '@/components/flow-designer'
 import FlowFormCreateDesigner from '@/components/form-create/FlowFormCreateDesigner.vue'
 import FlowFormCreateRenderer from '@/components/form-create/FlowFormCreateRenderer.vue'
 import VersionHistory from './version.vue'
@@ -1921,15 +1914,8 @@ function handleBack() {
 }
 
 function handleModelerReady() {
-  if (modelerRef.value) {
-    modelerInstance.value = modelerRef.value.modeler()
-    watch(() => modelerRef.value?.selectedElement, (el) => {
-      if (el) {
-        dockedElement.value = el
-        rightActiveTab.value = 'properties'
-      }
-    }, { immediate: true })
-  }
+  // DingFlowDesigner 不再暴露 modeler() / selectedElement，节点编辑改由画布内 NodeConfigDrawer 接管
+  // 此处保留空实现以兼容 @ready 事件回调签名
 }
 
 function getElementTitle(el) {

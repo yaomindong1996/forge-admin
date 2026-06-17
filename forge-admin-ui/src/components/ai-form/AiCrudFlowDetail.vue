@@ -43,7 +43,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import flowApi from '@/api/flow'
-import ProcessDiagramViewer from '@/components/bpmn/ProcessDiagramViewer.vue'
+import ProcessDiagramViewer from '@/components/flow-designer/viewer/DingFlowViewer.vue'
 import FlowTimeline from '@/components/flow/FlowTimeline.vue'
 
 const props = defineProps({

@@ -1,7 +1,7 @@
 <template>
   <div
-      class="ai-form-section-title"
-      :data-ai-section="anchorId || undefined"
+    class="ai-form-section-title"
+    :data-ai-section="anchorId || undefined"
   >
     <span class="ai-form-section-title__rail" aria-hidden="true" />
     <div class="ai-form-section-title__content">
@@ -50,8 +50,8 @@ defineProps({
   border: 1px solid rgba(22, 93, 255, 0.12);
   border-radius: 6px;
   background:
-      linear-gradient(135deg, rgba(22, 93, 255, 0.08), rgba(22, 93, 255, 0.02) 46%, rgba(255, 255, 255, 0)),
-      var(--bg-secondary, #f7f8fa);
+    linear-gradient(135deg, rgba(22, 93, 255, 0.08), rgba(22, 93, 255, 0.02) 46%, rgba(255, 255, 255, 0)),
+    var(--bg-secondary, #f7f8fa);
 }
 
 .ai-form-section-title__rail {
@@ -113,8 +113,8 @@ defineProps({
 :global(.dark) .ai-form-section-title {
   border-color: rgba(64, 128, 255, 0.22);
   background:
-      linear-gradient(135deg, rgba(64, 128, 255, 0.16), rgba(20, 184, 166, 0.06) 46%, rgba(15, 23, 42, 0)),
-      var(--bg-secondary, #1e293b);
+    linear-gradient(135deg, rgba(64, 128, 255, 0.16), rgba(20, 184, 166, 0.06) 46%, rgba(15, 23, 42, 0)),
+    var(--bg-secondary, #1e293b);
 }
 
 :global(.dark) .ai-form-section-title__badge {

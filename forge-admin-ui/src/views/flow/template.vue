@@ -117,7 +117,7 @@
           <!-- BPMN设计器 -->
           <n-divider>流程设计</n-divider>
           <div class="bpmn-container">
-            <FlowModeler
+            <DingFlowDesigner
               ref="modelerRef"
               :xml="formData.bpmnXml || defaultBpmnXml"
               @change="handleBpmnChange"
@@ -176,8 +176,8 @@ import { NButton, NSpace, NTreeSelect } from 'naive-ui'
 import { computed, h, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import flowApi from '@/api/flow'
-import FlowModeler from '@/components/bpmn/FlowModeler.vue'
 import DictTag from '@/components/DictTag.vue'
+import { DingFlowDesigner } from '@/components/flow-designer'
 import { useDict } from '@/composables/useDict'
 
 const router = useRouter()

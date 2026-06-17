@@ -41,7 +41,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import UserSelectModal from '@/components/bpmn/UserSelectModal.vue'
+import UserSelectModal from '@/components/common/UserSelectModal.vue'
 
 const props = defineProps({
   modelValue: {
