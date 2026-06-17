@@ -196,9 +196,16 @@
         "starter-web",
         "starter-orm",
         "starter-log",
+        "starter-datascope",
         "starter-tenant",
         "starter-crypto",
-        "starter-trans"
+        "starter-trans",
+        "starter-excel",
+        "starter-file",
+        "starter-job",
+        "starter-id",
+        "plugin-message",
+        "flow-client"
       ]
     },
     "plugin-ai": {

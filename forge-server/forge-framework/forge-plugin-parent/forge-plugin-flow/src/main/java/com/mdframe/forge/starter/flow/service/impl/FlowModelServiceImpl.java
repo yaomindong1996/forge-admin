@@ -4,8 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
+import com.mdframe.forge.starter.flow.entity.FlowBusiness;
 import com.mdframe.forge.starter.flow.entity.FlowModel;
+import com.mdframe.forge.starter.flow.mapper.FlowBusinessMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowModelMapper;
 import com.mdframe.forge.starter.flow.service.FlowModelService;
 import com.mdframe.forge.starter.flow.event.FlowModelPublishEvent;
@@ -15,8 +18,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.bpmn.model.BpmnModel;
 import org.flowable.common.engine.impl.util.io.BytesStreamSource;
+import org.flowable.engine.HistoryService;
 import org.flowable.engine.ProcessEngineConfiguration;
 import org.flowable.engine.RepositoryService;
+import org.flowable.engine.RuntimeService;
 import org.flowable.engine.repository.Deployment;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.image.ProcessDiagramGenerator;
@@ -40,6 +45,15 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
 
     @Autowired(required = false)
     private RepositoryService repositoryService;
+
+    @Autowired(required = false)
+    private RuntimeService runtimeService;
+
+    @Autowired(required = false)
+    private HistoryService historyService;
+
+    @Autowired
+    private FlowBusinessMapper flowBusinessMapper;
     
     @Autowired(required = false)
     private ProcessEngineConfiguration processEngineConfiguration;
@@ -120,12 +134,16 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
     public void deleteModel(String id) {
         FlowModel model = getById(id);
         if (model != null) {
+            validateNoProcessData(model);
+
             // 如果已部署，删除部署
             if (model.getDeploymentId() != null && !model.getDeploymentId().isEmpty() && repositoryService != null) {
                 try {
-                    repositoryService.deleteDeployment(model.getDeploymentId(), true);
+                    repositoryService.deleteDeployment(model.getDeploymentId(), false);
                 } catch (Exception e) {
-                    log.warn("删除部署失败：{}", e.getMessage());
+                    log.warn("删除流程模型部署失败：modelKey={}, deploymentId={}",
+                            model.getModelKey(), model.getDeploymentId(), e);
+                    throw new BusinessException(500, "删除流程部署失败：" + e.getMessage());
                 }
             }
             removeById(id);
@@ -617,6 +635,37 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
                         "请在流程设计器中检查所有连线是否完整连接到目标节点，重新保存后再部署。",
                         flowId, missing));
             }
+        }
+    }
+
+    private void validateNoProcessData(FlowModel model) {
+        String modelKey = model.getModelKey();
+        if (modelKey == null || modelKey.trim().isEmpty()) {
+            return;
+        }
+
+        long businessCount = flowBusinessMapper.selectCount(new LambdaQueryWrapper<FlowBusiness>()
+                .eq(FlowBusiness::getProcessDefKey, modelKey));
+        long runningCount = 0L;
+        if (runtimeService != null) {
+            runningCount = runtimeService.createProcessInstanceQuery()
+                    .processDefinitionKey(modelKey)
+                    .count();
+        }
+        long historyCount = 0L;
+        if (historyService != null) {
+            historyCount = historyService.createHistoricProcessInstanceQuery()
+                    .processDefinitionKey(modelKey)
+                    .count();
+        }
+
+        if (businessCount > 0 || runningCount > 0 || historyCount > 0) {
+            throw new BusinessException(400, String.format(
+                    "流程模型「%s」下已有流程数据（业务记录 %d 条、运行中实例 %d 条、历史实例 %d 条），请先在流程监控中清理相关流程后再删除模型",
+                    model.getModelName() != null ? model.getModelName() : modelKey,
+                    businessCount,
+                    runningCount,
+                    historyCount));
         }
     }
 

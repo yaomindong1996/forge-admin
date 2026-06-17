@@ -446,9 +446,7 @@ async function pruneBackendSourceGlue(serverRoot, selectedArtifacts) {
     })
   }
   else if (!selectedArtifacts.has('forge-plugin-ai')) {
-    await fs.rm(path.join(adminServerRoot, 'src/main/java/com/mdframe/forge/admin/bridge/AiClientAdapterImpl.java'), {
-      force: true,
-    })
+    await writeFallbackAiClientAdapter(adminServerRoot)
   }
   if (!selectedArtifacts.has('forge-plugin-ai')) {
     await fs.rm(path.join(adminServerRoot, 'src/main/java/com/mdframe/forge/admin/ai'), {
@@ -456,6 +454,75 @@ async function pruneBackendSourceGlue(serverRoot, selectedArtifacts) {
       force: true,
     })
   }
+}
+
+async function writeFallbackAiClientAdapter(adminServerRoot) {
+  const adapterFile = path.join(adminServerRoot, 'src/main/java/com/mdframe/forge/admin/bridge/AiClientAdapterImpl.java')
+  const content = `package com.mdframe.forge.admin.bridge;
+
+import com.mdframe.forge.plugin.generator.service.AiClientAdapter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
+
+import java.util.Map;
+
+/**
+ * Fallback AI adapter for generated projects that keep generator but exclude plugin-ai.
+ */
+@Component
+public class AiClientAdapterImpl implements AiClientAdapter {
+
+    private static final Logger log = LoggerFactory.getLogger(AiClientAdapterImpl.class);
+    private static final String FALLBACK_REASON = "plugin-ai is not included in this generated project";
+
+    @Override
+    public AiClientResult call(String agentCode, String message, Map<String, String> contextVars) {
+        return fallback(agentCode);
+    }
+
+    @Override
+    public AiClientResult call(String agentCode, String message, Map<String, String> contextVars,
+                               Integer timeoutSeconds) {
+        return fallback(agentCode);
+    }
+
+    @Override
+    public Flux<String> stream(String userInput, String agentCode, String message, Map<String, String> contextVars) {
+        return emptyStream(agentCode);
+    }
+
+    @Override
+    public Flux<String> stream(String userInput, String sessionId, String agentCode, String message,
+                               Map<String, String> contextVars) {
+        return emptyStream(agentCode);
+    }
+
+    @Override
+    public Flux<String> stream(String userInput, String sessionId, String agentCode, String message,
+                               Map<String, String> contextVars, Long providerId, Long modelId,
+                               Double temperature, Integer maxTokens) {
+        return emptyStream(agentCode);
+    }
+
+    @Override
+    public String loadContextSpec(String agentCode) {
+        return "";
+    }
+
+    private AiClientResult fallback(String agentCode) {
+        log.warn("[AiClientAdapter] Skip AI call because plugin-ai is not included: agentCode={}", agentCode);
+        return AiClientResult.fallback(FALLBACK_REASON);
+    }
+
+    private Flux<String> emptyStream(String agentCode) {
+        log.warn("[AiClientAdapter] Skip AI stream because plugin-ai is not included: agentCode={}", agentCode);
+        return Flux.empty();
+    }
+}
+`
+  await fs.writeFile(adapterFile, content)
 }
 
 function artifactsByType(catalog, type) {

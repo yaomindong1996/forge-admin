@@ -9,10 +9,23 @@ import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import com.mdframe.forge.starter.core.domain.RespInfo;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.flow.entity.FlowBusiness;
+import com.mdframe.forge.starter.flow.entity.FlowCc;
+import com.mdframe.forge.starter.flow.entity.FlowComment;
+import com.mdframe.forge.starter.flow.entity.FlowErrorLog;
+import com.mdframe.forge.starter.flow.entity.FlowFillBatchItem;
+import com.mdframe.forge.starter.flow.entity.FlowFormInstance;
+import com.mdframe.forge.starter.flow.entity.FlowTask;
 import com.mdframe.forge.starter.flow.mapper.FlowBusinessMapper;
+import com.mdframe.forge.starter.flow.mapper.FlowCcMapper;
+import com.mdframe.forge.starter.flow.mapper.FlowCommentMapper;
+import com.mdframe.forge.starter.flow.mapper.FlowErrorLogMapper;
+import com.mdframe.forge.starter.flow.mapper.FlowFillBatchItemMapper;
+import com.mdframe.forge.starter.flow.mapper.FlowFormInstanceMapper;
+import com.mdframe.forge.starter.flow.mapper.FlowTaskMapper;
 import com.mdframe.forge.starter.flow.service.FlowInstanceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +35,7 @@ import org.flowable.engine.TaskService;
 import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.task.api.Task;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -29,6 +43,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.*;
 
 /**
@@ -44,6 +59,12 @@ import java.util.*;
 public class FlowMonitorController {
 
     private final FlowBusinessMapper flowBusinessMapper;
+    private final FlowTaskMapper flowTaskMapper;
+    private final FlowCommentMapper flowCommentMapper;
+    private final FlowCcMapper flowCcMapper;
+    private final FlowErrorLogMapper flowErrorLogMapper;
+    private final FlowFormInstanceMapper flowFormInstanceMapper;
+    private final FlowFillBatchItemMapper flowFillBatchItemMapper;
     private final RuntimeService runtimeService;
     private final TaskService taskService;
     private final HistoryService historyService;
@@ -112,7 +133,9 @@ public class FlowMonitorController {
             @RequestParam(required = false) String processName,
             @RequestParam(required = false) String initiator,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String modelKey) {
+            @RequestParam(required = false) String modelKey,
+            @RequestParam(required = false) Long startTime,
+            @RequestParam(required = false) Long endTime) {
         
         Map<String, Object> result = new HashMap<>();
         List<Map<String, Object>> list = new ArrayList<>();
@@ -136,6 +159,11 @@ public class FlowMonitorController {
             // 模型Key查询（对应 processDefKey）
             wrapper.eq(modelKey != null && !modelKey.isEmpty(),
                     FlowBusiness::getProcessDefKey, modelKey);
+
+            LocalDateTime startDateTime = toLocalDateTime(startTime);
+            LocalDateTime endDateTime = toLocalDateTime(endTime);
+            wrapper.ge(startDateTime != null, FlowBusiness::getCreateTime, startDateTime);
+            wrapper.le(endDateTime != null, FlowBusiness::getCreateTime, endDateTime);
             
             // 按创建时间倒序
             wrapper.orderByDesc(FlowBusiness::getCreateTime);
@@ -446,6 +474,80 @@ public class FlowMonitorController {
     }
 
     /**
+     * 管理员删除单个流程实例数据。
+     */
+    @PostMapping("/instance/{processInstanceId}/delete")
+    @Transactional(rollbackFor = Exception.class)
+    public RespInfo<Map<String, Object>> deleteProcessInstance(
+            @PathVariable String processInstanceId,
+            @RequestBody(required = false) Map<String, Object> params) {
+        if (isBlank(processInstanceId)) {
+            throw new BusinessException(400, "流程实例ID不能为空");
+        }
+
+        String reason = stringParam(params, "reason");
+        if (isBlank(reason)) {
+            reason = "管理员删除流程数据";
+        }
+
+        Map<String, Object> result = cleanupProcessInstanceIds(List.of(processInstanceId), reason);
+        return RespInfo.success("流程数据已删除", result);
+    }
+
+    /**
+     * 管理员删除当前筛选条件下的流程实例数据。
+     */
+    @PostMapping("/instances/cleanup")
+    @Transactional(rollbackFor = Exception.class)
+    public RespInfo<Map<String, Object>> cleanupProcessInstances(@RequestBody Map<String, Object> params) {
+        String confirmText = stringParam(params, "confirmText");
+        if (!"确认删除流程数据".equals(confirmText)) {
+            throw new BusinessException(400, "确认文本不正确，无法删除流程数据");
+        }
+
+        String processName = stringParam(params, "processName");
+        String initiator = stringParam(params, "initiator");
+        String status = stringParam(params, "status");
+        String modelKey = stringParam(params, "modelKey");
+        Long startTime = longParam(params, "startTime");
+        Long endTime = longParam(params, "endTime");
+
+        List<FlowBusiness> businesses = flowBusinessMapper.selectList(
+                buildBusinessQuery(processName, initiator, status, modelKey, startTime, endTime));
+
+        Set<String> processInstanceIds = new LinkedHashSet<>();
+        for (FlowBusiness business : businesses) {
+            if (!isBlank(business.getProcessInstanceId())) {
+                processInstanceIds.add(business.getProcessInstanceId());
+            }
+        }
+        addFlowableProcessIdsByModelKey(processInstanceIds, modelKey, status);
+
+        String reason = stringParam(params, "reason");
+        if (isBlank(reason)) {
+            reason = "管理员批量删除流程数据";
+        }
+
+        Map<String, Object> result = cleanupProcessInstanceIds(processInstanceIds, reason);
+
+        int businessOnlyDeletedCount = 0;
+        for (FlowBusiness business : businesses) {
+            if (isBlank(business.getProcessInstanceId())) {
+                businessOnlyDeletedCount += flowBusinessMapper.deleteById(business.getId());
+            }
+        }
+
+        int deletedCount = ((Number) result.getOrDefault("deletedCount", 0)).intValue();
+        result.put("deletedCount", deletedCount + businessOnlyDeletedCount);
+        result.put("businessOnlyDeletedCount", businessOnlyDeletedCount);
+        result.put("matchedBusinessCount", businesses.size());
+
+        log.info("批量删除流程数据完成：modelKey={}, status={}, matchedBusinessCount={}, result={}",
+                modelKey, status, businesses.size(), result);
+        return RespInfo.success("流程数据已删除", result);
+    }
+
+    /**
      * 获取流程实例的所有变量
      */
     @GetMapping("/variables/{processInstanceId}")
@@ -631,5 +733,171 @@ public class FlowMonitorController {
             log.error("激活流程失败：processInstanceId={}", processInstanceId, e);
             return RespInfo.error("激活流程失败：" + e.getMessage());
         }
+    }
+
+    private LambdaQueryWrapper<FlowBusiness> buildBusinessQuery(String processName,
+                                                               String initiator,
+                                                               String status,
+                                                               String modelKey,
+                                                               Long startTime,
+                                                               Long endTime) {
+        LambdaQueryWrapper<FlowBusiness> wrapper = new LambdaQueryWrapper<>();
+        wrapper.like(!isBlank(processName), FlowBusiness::getTitle, processName);
+        wrapper.like(!isBlank(initiator), FlowBusiness::getApplyUserName, initiator);
+        wrapper.eq(!isBlank(status), FlowBusiness::getStatus, status);
+        wrapper.eq(!isBlank(modelKey), FlowBusiness::getProcessDefKey, modelKey);
+        LocalDateTime startDateTime = toLocalDateTime(startTime);
+        LocalDateTime endDateTime = toLocalDateTime(endTime);
+        wrapper.ge(startDateTime != null, FlowBusiness::getCreateTime, startDateTime);
+        wrapper.le(endDateTime != null, FlowBusiness::getCreateTime, endDateTime);
+        return wrapper;
+    }
+
+    private void addFlowableProcessIdsByModelKey(Set<String> processInstanceIds, String modelKey, String status) {
+        if (isBlank(modelKey)) {
+            return;
+        }
+
+        if (isBlank(status) || "running".equals(status)) {
+            List<ProcessInstance> runningInstances = runtimeService.createProcessInstanceQuery()
+                    .processDefinitionKey(modelKey)
+                    .active()
+                    .list();
+            for (ProcessInstance processInstance : runningInstances) {
+                processInstanceIds.add(processInstance.getId());
+            }
+        }
+
+        if (isBlank(status) || "suspended".equals(status)) {
+            List<ProcessInstance> suspendedInstances = runtimeService.createProcessInstanceQuery()
+                    .processDefinitionKey(modelKey)
+                    .suspended()
+                    .list();
+            for (ProcessInstance processInstance : suspendedInstances) {
+                processInstanceIds.add(processInstance.getId());
+            }
+        }
+
+        if (isBlank(status)) {
+            List<HistoricProcessInstance> historicInstances = historyService.createHistoricProcessInstanceQuery()
+                    .processDefinitionKey(modelKey)
+                    .list();
+            for (HistoricProcessInstance historicInstance : historicInstances) {
+                processInstanceIds.add(historicInstance.getId());
+            }
+        } else if (!"running".equals(status) && !"suspended".equals(status)) {
+            List<HistoricProcessInstance> historicInstances = historyService.createHistoricProcessInstanceQuery()
+                    .processDefinitionKey(modelKey)
+                    .finished()
+                    .list();
+            for (HistoricProcessInstance historicInstance : historicInstances) {
+                processInstanceIds.add(historicInstance.getId());
+            }
+        }
+    }
+
+    private Map<String, Object> cleanupProcessInstanceIds(Collection<String> processInstanceIds, String reason) {
+        int deletedCount = 0;
+        int runtimeDeletedCount = 0;
+        int historyDeletedCount = 0;
+        int forgeRecordDeletedCount = 0;
+        int failedCount = 0;
+        List<Map<String, String>> failures = new ArrayList<>();
+
+        for (String processInstanceId : processInstanceIds) {
+            if (isBlank(processInstanceId)) {
+                continue;
+            }
+
+            try {
+                ProcessInstance processInstance = runtimeService.createProcessInstanceQuery()
+                        .processInstanceId(processInstanceId)
+                        .singleResult();
+                if (processInstance != null) {
+                    runtimeService.deleteProcessInstance(processInstanceId, reason);
+                    runtimeDeletedCount++;
+                }
+
+                HistoricProcessInstance historicProcessInstance = historyService.createHistoricProcessInstanceQuery()
+                        .processInstanceId(processInstanceId)
+                        .singleResult();
+                if (historicProcessInstance != null) {
+                    historyService.deleteHistoricProcessInstance(processInstanceId);
+                    historyDeletedCount++;
+                }
+
+                forgeRecordDeletedCount += deleteForgeFlowRecords(processInstanceId);
+                deletedCount++;
+            } catch (Exception e) {
+                failedCount++;
+                Map<String, String> failure = new HashMap<>();
+                failure.put("processInstanceId", processInstanceId);
+                failure.put("message", e.getMessage());
+                failures.add(failure);
+                log.warn("删除流程数据失败：processInstanceId={}", processInstanceId, e);
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("deletedCount", deletedCount);
+        result.put("runtimeDeletedCount", runtimeDeletedCount);
+        result.put("historyDeletedCount", historyDeletedCount);
+        result.put("forgeRecordDeletedCount", forgeRecordDeletedCount);
+        result.put("failedCount", failedCount);
+        result.put("failures", failures);
+        if (failedCount > 0) {
+            throw new BusinessException(500, "部分流程数据删除失败", result);
+        }
+        return result;
+    }
+
+    private int deleteForgeFlowRecords(String processInstanceId) {
+        int deleted = 0;
+        deleted += flowTaskMapper.delete(new LambdaQueryWrapper<FlowTask>()
+                .eq(FlowTask::getProcessInstanceId, processInstanceId));
+        deleted += flowCommentMapper.delete(new LambdaQueryWrapper<FlowComment>()
+                .eq(FlowComment::getProcessInstanceId, processInstanceId));
+        deleted += flowCcMapper.delete(new LambdaQueryWrapper<FlowCc>()
+                .eq(FlowCc::getProcessInstanceId, processInstanceId));
+        deleted += flowErrorLogMapper.delete(new LambdaQueryWrapper<FlowErrorLog>()
+                .eq(FlowErrorLog::getProcessInstanceId, processInstanceId));
+        deleted += flowFormInstanceMapper.delete(new LambdaQueryWrapper<FlowFormInstance>()
+                .eq(FlowFormInstance::getProcessInstanceId, processInstanceId));
+        deleted += flowFillBatchItemMapper.delete(new LambdaQueryWrapper<FlowFillBatchItem>()
+                .eq(FlowFillBatchItem::getProcessInstanceId, processInstanceId));
+        deleted += flowBusinessMapper.delete(new LambdaQueryWrapper<FlowBusiness>()
+                .eq(FlowBusiness::getProcessInstanceId, processInstanceId));
+        return deleted;
+    }
+
+    private String stringParam(Map<String, Object> params, String key) {
+        if (params == null || params.get(key) == null) {
+            return null;
+        }
+        String value = String.valueOf(params.get(key)).trim();
+        return value.isEmpty() ? null : value;
+    }
+
+    private Long longParam(Map<String, Object> params, String key) {
+        String value = stringParam(params, key);
+        if (isBlank(value)) {
+            return null;
+        }
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException e) {
+            throw new BusinessException(400, key + " 参数格式错误");
+        }
+    }
+
+    private LocalDateTime toLocalDateTime(Long timestamp) {
+        if (timestamp == null) {
+            return null;
+        }
+        return LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.systemDefault());
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }

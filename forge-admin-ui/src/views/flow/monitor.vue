@@ -100,6 +100,12 @@
     <n-card class="mt-4" title="流程实例监控">
       <template #header-extra>
         <NSpace>
+          <NButton type="error" secondary :loading="cleanupLoading" @click="handleCleanupCurrentFilter">
+            <template #icon>
+              <i class="i-mdi:delete-sweep" />
+            </template>
+            删除当前筛选流程
+          </NButton>
           <NButton @click="loadData">
             <template #icon>
               <i class="i-mdi:refresh" />
@@ -467,6 +473,7 @@ const statusOptions = computed(() => dict.value.flow_instance_status || [])
 // 表格数据
 const tableData = ref([])
 const loading = ref(false)
+const cleanupLoading = ref(false)
 const pagination = reactive({
   page: 1,
   pageSize: 10,
@@ -532,6 +539,11 @@ const columns = [
         options.push({ type: 'divider', key: 'd1' })
         options.push({ label: '管理', key: 'admin' })
       }
+      options.push({ type: 'divider', key: 'd2' })
+      options.push({
+        label: () => h('span', { style: { color: '#d03050' } }, '删除流程数据'),
+        key: 'delete',
+      })
       return h(NSpace, { size: 'small' }, {
         default: () => [
           h(NButton, { text: true, type: 'primary', size: 'small', onClick: () => showDetail(row) }, { default: () => '详情' }),
@@ -543,6 +555,7 @@ const columns = [
                 variables: () => showVariables(row),
                 errors: () => showInstanceErrorLogs(row),
                 admin: () => showAdminActions(row),
+                delete: () => handleDeleteInstance(row),
               }
               map[key]?.()
             },
@@ -885,7 +898,7 @@ async function loadData() {
     const params = {
       page: pagination.page,
       pageSize: pagination.pageSize,
-      ...searchForm,
+      ...buildSearchParams(),
     }
     const res = await request.get('/api/flow/monitor/instances', { params })
     if (res.code === 200) {
@@ -899,6 +912,20 @@ async function loadData() {
   finally {
     loading.value = false
   }
+}
+
+function buildSearchParams() {
+  const params = {
+    processName: searchForm.processName,
+    initiator: searchForm.initiator,
+    status: searchForm.status,
+    modelKey: searchForm.modelKey,
+  }
+  if (Array.isArray(searchForm.dateRange) && searchForm.dateRange.length === 2) {
+    params.startTime = searchForm.dateRange[0]
+    params.endTime = searchForm.dateRange[1]
+  }
+  return params
 }
 
 // 加载任务趋势数据
@@ -945,6 +972,100 @@ function handleReset() {
     modelKey: null,
   })
   handleSearch()
+}
+
+function hasCleanupFilter() {
+  return Boolean(
+    searchForm.processName
+    || searchForm.initiator
+    || searchForm.status
+    || searchForm.modelKey
+    || (Array.isArray(searchForm.dateRange) && searchForm.dateRange.length === 2),
+  )
+}
+
+function getErrorMessage(error, fallback) {
+  return error?.message || error?.response?.data?.message || error?.error?.message || fallback
+}
+
+function refreshMonitorData() {
+  loadData()
+  loadStatistics()
+  refreshCharts()
+}
+
+function handleCleanupCurrentFilter() {
+  const hasFilter = hasCleanupFilter()
+  const totalText = pagination.itemCount > 0 ? `当前匹配 ${pagination.itemCount} 条流程记录。` : '当前没有匹配记录。'
+  const scopeText = hasFilter
+    ? '将删除当前筛选条件下的流程运行时、历史实例和业务关联记录。'
+    : '当前未设置筛选条件，将删除监控列表中的全部流程记录。'
+
+  window.$dialog?.error({
+    title: '确认删除流程数据',
+    content: `${scopeText}${totalText}删除后不可恢复，确认继续？`,
+    positiveText: '确认删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      cleanupLoading.value = true
+      try {
+        const res = await request.post('/api/flow/monitor/instances/cleanup', {
+          ...buildSearchParams(),
+          confirmText: '确认删除流程数据',
+          reason: '管理员批量删除流程数据',
+        })
+        if (res.code === 200) {
+          const count = res.data?.deletedCount ?? 0
+          message.success(`已删除 ${count} 条流程数据`)
+          refreshMonitorData()
+        }
+        else {
+          message.error(res.message || '删除流程数据失败')
+        }
+      }
+      catch (error) {
+        console.error('批量删除流程数据失败', error)
+        message.error(getErrorMessage(error, '删除流程数据失败'))
+      }
+      finally {
+        cleanupLoading.value = false
+      }
+    },
+  })
+}
+
+function handleDeleteInstance(row) {
+  if (!row.id) {
+    message.warning('无法获取流程实例ID')
+    return
+  }
+
+  window.$dialog?.error({
+    title: '确认删除流程数据',
+    content: `将删除「${row.processName || row.id}」的流程运行时、历史实例和业务关联记录，删除后不可恢复。`,
+    positiveText: '确认删除',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        const res = await request.post(`/api/flow/monitor/instance/${row.id}/delete`, {
+          reason: '管理员删除流程数据',
+        })
+        if (res.code === 200) {
+          message.success('流程数据已删除')
+          detailDrawerVisible.value = false
+          adminActionsModalVisible.value = false
+          refreshMonitorData()
+        }
+        else {
+          message.error(res.message || '删除流程数据失败')
+        }
+      }
+      catch (error) {
+        console.error('删除流程数据失败', error)
+        message.error(getErrorMessage(error, '删除流程数据失败'))
+      }
+    },
+  })
 }
 
 // 分页变化

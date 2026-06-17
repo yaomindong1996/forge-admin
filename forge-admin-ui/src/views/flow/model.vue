@@ -793,17 +793,22 @@ async function handleActivate(row) {
 async function handleDelete(row) {
   window.$dialog?.error({
     title: '确认删除',
-    content: `删除后不可恢复，确定要删除「${row.modelName}」吗？`,
+    content: `删除「${row.modelName}」前会校验该模型下是否存在流程实例或历史数据；如存在数据，系统会拒绝删除。删除后不可恢复，确定继续？`,
     positiveText: '确定删除',
     negativeText: '取消',
     onPositiveClick: async () => {
-      const res = await flowApi.deleteModel(row.id)
-      if (res.code === 200) {
-        window.$message?.success('删除成功')
-        fetchData()
+      try {
+        const res = await flowApi.deleteModel(row.id)
+        if (res.code === 200) {
+          window.$message?.success('删除成功')
+          fetchData()
+        }
+        else {
+          window.$message?.error(res.message || '删除失败')
+        }
       }
-      else {
-        window.$message?.error(res.message || '删除失败')
+      catch (error) {
+        window.$message?.error(error?.message || error?.response?.data?.message || '删除失败')
       }
     },
   })

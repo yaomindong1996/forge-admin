@@ -1712,3 +1712,19 @@ Detected resolved migration not applied to database: 1.0.56
 - 应用中心运行态、对象详情、对象设计器、引擎中心入口。
 - 所有 `src/router/index.js` 手写路由和 `unplugin-vue-router` 动态参数路由。
 - `forge-server/db/migration/` 中系统菜单和权限资源脚本。
+
+## 59. forge-create minimal-admin 保留 generator 时必须提供 AI 降级适配器并补齐依赖
+
+**发现日期**: 2026-06-17
+
+**问题描述**:
+使用 `forge-create --preset minimal-admin` 生成最小后端工程后，启动可能报 `AiCrudConfigGenerateService required a bean of type AiClientAdapter that could not be found`。补上适配器后还可能在 `lingxi-plugin-generator` 编译阶段报缺少 `plugin-message`、`starter-job`、`starter-file`、`starter-excel`、`starter-id` 或 `flow-client` 相关类型。
+
+**根本原因**:
+`minimal-admin` 默认保留 `plugin-generator` 但不包含 `plugin-ai`。脚手架裁剪后删除了 admin-server 中原本依赖 `plugin-ai` 的 `AiClientAdapterImpl`，而 `AiCrudConfigGenerateService` 又强制构造注入 `AiClientAdapter`。同时 `scripts/forge-create/module-catalog.json` 中 `plugin-generator.dependencies` 没有覆盖其 POM 和源码直接引用的全部编译依赖，导致生成工程的 POM 被裁剪过头。
+
+**解决方案**:
+当选择了 `plugin-generator` 但未选择 `plugin-ai` 时，脚手架应生成一个不依赖 `plugin-ai` 的 `AiClientAdapterImpl` 降级实现：同步 AI 调用返回 fallback，流式调用返回 `Flux.empty()`。同时 `plugin-generator` 的模块目录依赖必须包含 `starter-datascope`、`starter-excel`、`starter-file`、`starter-job`、`starter-id`、`plugin-message` 和 `flow-client`，避免生成工程缺编译依赖。
+
+**验证建议**:
+修复 forge-create 裁剪逻辑后，必须重新生成临时 `minimal-admin` 工程，检查生成后的 `admin-server` 存在降级 `AiClientAdapterImpl` 且没有引用 `plugin-ai`，再执行 `mvn -pl <project>-admin-server -am compile -DskipTests` 或 `package -DskipTests`。
