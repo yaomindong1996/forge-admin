@@ -36,18 +36,26 @@
       :style="field.formItemStyle"
       :class="formItemClass"
   >
-    <div
-        class="ai-form-control"
-        :style="componentControlStyle"
-        :class="componentControlClass"
-    >
+    <template #label>
+      <span class="ai-form-item-label">
+        <span class="ai-form-item-label__text">{{ field.label }}</span>
+        <span v-if="fieldBadge" class="ai-form-item-label__badge">{{ fieldBadge }}</span>
+      </span>
+    </template>
+
+    <div class="ai-form-item-body">
       <div
-          v-if="shouldRenderReadonlySelectionText(field)"
-          class="ai-form-readonly-text"
-          :title="resolveReadonlySelectionText(field)"
+          class="ai-form-control"
+          :style="componentControlStyle"
+          :class="componentControlClass"
       >
-        {{ resolveReadonlySelectionText(field) }}
-      </div>
+        <div
+            v-if="shouldRenderReadonlySelectionText(field)"
+            class="ai-form-readonly-text"
+            :title="resolveReadonlySelectionText(field)"
+        >
+          {{ resolveReadonlySelectionText(field) }}
+        </div>
 
       <!-- 输入框 -->
       <n-input
@@ -651,6 +659,10 @@
           @update:value="handleUpdate"
           v-on="getComponentEvents(field)"
       />
+      </div>
+      <p v-if="fieldDescription" class="ai-form-item-description">
+        {{ fieldDescription }}
+      </p>
     </div>
   </n-form-item>
 </template>
@@ -779,6 +791,8 @@ const componentControlClass = computed(() => [
   `ai-form-control--${props.field?.type || 'input'}`,
   props.field?.componentClass,
 ].filter(Boolean))
+const fieldDescription = computed(() => props.field?.props?.description || props.field?.description || '')
+const fieldBadge = computed(() => props.field?.props?.badge || props.field?.badge || '')
 const isSectionTitleField = computed(() => {
   return !isLegacyGroupTitleField(props.field) && ['divider', 'elDivider', 'AiFormSectionTitle', 'aiFormSectionTitle', 'formSectionTitle', 'FormSectionTitle']
     .includes(props.field?.type || props.field?.componentKey || props.field?.nodeType)
@@ -1644,6 +1658,52 @@ function handleUploadRemove(field, file) {
 .ai-form-control {
   width: 100%;
   min-width: 0;
+}
+
+.ai-form-item-body {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 6px;
+}
+
+.ai-form-item-label {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+  vertical-align: middle;
+}
+
+.ai-form-item-label__text {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-form-item-label__badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  max-width: 72px;
+  flex: 0 0 auto;
+  padding: 0 6px;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.ai-form-item-description {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 18px;
+  word-break: break-word;
 }
 
 .ai-form-readonly-text {

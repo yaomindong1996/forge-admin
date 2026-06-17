@@ -7,18 +7,33 @@
       <button
         v-if="leftCollapsed"
         type="button"
-        class="collapsed-rail-button"
+        class="side-rail-toggle-button"
         title="展开组件库"
         @click="leftCollapsed = false"
       >
         <n-icon><ChevronForwardOutline /></n-icon>
       </button>
       <ForgeFieldShelf
-        v-else
+        v-if="!leftCollapsed"
         :fields="fields"
         :used-field-set="usedFieldSet"
         @append-field="appendField"
-      />
+      >
+        <template #actions>
+          <n-button
+            class="field-shelf-collapse-button"
+            circle
+            size="small"
+            secondary
+            title="收起组件库"
+            @click="leftCollapsed = true"
+          >
+            <template #icon>
+              <n-icon><ChevronBackOutline /></n-icon>
+            </template>
+          </n-button>
+        </template>
+      </ForgeFieldShelf>
     </aside>
 
     <main class="designer-center">
@@ -42,27 +57,45 @@
           <p>{{ canvasMetaText }}</p>
         </div>
         <NSpace size="small" align="center">
-          <n-button class="designer-toolbar-button" circle size="small" secondary :title="leftCollapsed ? '展开组件库' : '收起组件库'" @click="leftCollapsed = !leftCollapsed">
+          <n-button class="designer-toolbar-text-button" size="small" secondary :disabled="!canUndo" @click="undoSchema">
             <template #icon>
-              <n-icon>
-                <ChevronForwardOutline v-if="leftCollapsed" />
-                <ChevronBackOutline v-else />
-              </n-icon>
+              <n-icon><ArrowUndoOutline /></n-icon>
             </template>
+            撤销
           </n-button>
-          <n-button class="designer-toolbar-button" circle size="small" secondary :title="rightOpen ? '收起属性栏' : '打开属性栏'" @click="rightOpen = !rightOpen">
+          <n-button class="designer-toolbar-text-button" size="small" secondary :disabled="!canRedo" @click="redoSchema">
+            <template #icon>
+              <n-icon><ArrowRedoOutline /></n-icon>
+            </template>
+            重做
+          </n-button>
+          <n-button class="designer-toolbar-text-button designer-toolbar-danger-button" size="small" secondary :disabled="!canClearCanvas" @click="openClearCanvasDialog">
+            <template #icon>
+              <n-icon><TrashOutline /></n-icon>
+            </template>
+            清空
+          </n-button>
+          <n-dropdown trigger="click" :options="designerMoreOptions" @select="handleDesignerMoreSelect">
+            <n-button class="designer-toolbar-more-button" circle size="small" type="primary" title="更多操作">
+              <template #icon>
+                <n-icon><EllipsisHorizontalOutline /></n-icon>
+              </template>
+            </n-button>
+          </n-dropdown>
+          <n-button
+            class="designer-toolbar-icon-button"
+            circle
+            size="small"
+            type="primary"
+            :title="rightOpen ? '收起属性栏' : '打开属性栏'"
+            @click="rightOpen ? (rightOpen = false) : openPropertyPanel(selectedId)"
+          >
             <template #icon>
               <n-icon>
                 <ChevronForwardOutline v-if="rightOpen" />
                 <ChevronBackOutline v-else />
               </n-icon>
             </template>
-          </n-button>
-          <n-button class="designer-toolbar-text-button" size="small" secondary @click="resetFromFields">
-            按字段生成
-          </n-button>
-          <n-button class="designer-toolbar-text-button" size="small" secondary @click="repairRefs">
-            清理失效字段
           </n-button>
         </NSpace>
       </div>
@@ -102,24 +135,14 @@
         :fields="fields"
         :selected-id="selectedId"
         @update:schema="updateSchema"
-        @update:selected-id="selectedId = $event"
+        @update:selected-id="handleCanvasSelectedIdChange"
         @configure="openPropertyPanel"
       />
     </main>
 
     <aside class="designer-right">
-      <button
-        v-if="!rightOpen"
-        type="button"
-        class="right-rail-button"
-        title="打开属性栏"
-        @click="openPropertyPanel(selectedId)"
-      >
-        <n-icon><ChevronBackOutline /></n-icon>
-        <span>属性</span>
-      </button>
       <ForgePropertyPanel
-        v-else
+        v-if="rightOpen"
         :schema="normalizedSchema"
         :selected-id="selectedId"
         @update:schema="updateSchema"
@@ -136,6 +159,24 @@
     :bordered="false"
     :style="{ width: '70%' }"
   >
+    <div class="designer-preview-toolbar">
+      <div>
+        <strong>{{ previewModeTitle }}</strong>
+        <span>{{ previewModeDescription }}</span>
+      </div>
+      <n-radio-group
+        v-model:value="previewMode"
+        size="small"
+      >
+        <n-radio-button
+          v-for="option in previewModeOptions"
+          :key="option.value"
+          :value="option.value"
+        >
+          {{ option.label }}
+        </n-radio-button>
+      </n-radio-group>
+    </div>
     <div class="designer-preview-runtime">
       <template v-for="section in previewSections" :key="section.id">
         <AiForm
@@ -253,6 +294,46 @@
   </n-modal>
 
   <n-modal
+    v-model:show="clearDialogVisible"
+    preset="card"
+    title="清空画布"
+    class="designer-clear-modal"
+    :bordered="false"
+    :mask-closable="false"
+    style="width: 420px"
+  >
+    <div class="designer-clear-content">
+      <div class="designer-clear-warning">
+        <n-icon><WarningOutline /></n-icon>
+        <div>
+          <strong>清空后会删除画布上的组件配置</strong>
+          <span>字段资产不会删除，操作可通过撤销恢复。</span>
+        </div>
+      </div>
+      <n-radio-group v-model:value="clearScope">
+        <NSpace vertical size="small">
+          <n-radio value="current">
+            仅清空当前画布：{{ normalizedSchema.formName || '当前表单' }}
+          </n-radio>
+          <n-radio value="all">
+            清空全部画布：主表单和 {{ formAssets.length }} 个子表单
+          </n-radio>
+        </NSpace>
+      </n-radio-group>
+    </div>
+    <template #footer>
+      <div class="designer-clear-footer">
+        <n-button size="small" @click="clearDialogVisible = false">
+          取消
+        </n-button>
+        <n-button size="small" type="error" @click="confirmClearCanvas">
+          确认清空
+        </n-button>
+      </div>
+    </template>
+  </n-modal>
+
+  <n-modal
     v-model:show="renameDialogVisible"
     preset="card"
     title="编辑表单名称"
@@ -281,9 +362,9 @@
 </template>
 
 <script setup>
-import { ChevronBackOutline, ChevronForwardOutline } from '@vicons/ionicons5'
+import { ArrowRedoOutline, ArrowUndoOutline, ChevronBackOutline, ChevronForwardOutline, EllipsisHorizontalOutline, TrashOutline, WarningOutline } from '@vicons/ionicons5'
 import { NSpace } from 'naive-ui'
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import AiCrudPage from '@/components/ai-form/AiCrudPage.vue'
 import AiForm from '@/components/ai-form/AiForm.vue'
 import AiFormGroupTitle from '@/components/ai-form/AiFormGroupTitle.vue'
@@ -317,9 +398,13 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  extraMoreOptions: {
+    type: Array,
+    default: () => [],
+  },
 })
 
-const emit = defineEmits(['update:modelValue', 'dirtyChange'])
+const emit = defineEmits(['update:modelValue', 'dirtyChange', 'moreSelect'])
 
 const selectedId = ref('')
 const leftCollapsed = ref(false)
@@ -327,6 +412,21 @@ const rightOpen = ref(false)
 const formTabsMenuVisible = ref(false)
 const formTabsMenuX = ref(0)
 const formTabsMenuY = ref(0)
+const undoStack = ref([])
+const redoStack = ref([])
+const HISTORY_LIMIT = 50
+const previewMode = ref('create')
+const clearDialogVisible = ref(false)
+const clearScope = ref('current')
+const previewModeOptions = [
+  { label: '新增', value: 'create' },
+  { label: '编辑', value: 'edit' },
+  { label: '详情', value: 'detail' },
+]
+const baseDesignerMoreOptions = [
+  { label: '按字段生成', key: 'resetFromFields' },
+  { label: '清理失效字段', key: 'repairRefs' },
+]
 
 const normalizedSchema = computed(() => normalizeFormDesignerSchema(props.modelValue || createDefaultFormDesignerSchema({
   objectCode: props.objectCode,
@@ -334,9 +434,29 @@ const normalizedSchema = computed(() => normalizeFormDesignerSchema(props.modelV
   fields: props.fields,
 })))
 const previewLayout = computed(() => normalizedSchema.value.layout || {})
-const previewSections = computed(() => buildRuntimePreviewSections(normalizedSchema.value))
+const previewSections = computed(() => buildRuntimePreviewSections(normalizedSchema.value, previewMode.value))
 const usedFieldSet = computed(() => new Set(extractForgeSchemaFieldRefs(normalizedSchema.value || {})))
 const formAssets = computed(() => Array.isArray(normalizedSchema.value.settings?.formAssets) ? normalizedSchema.value.settings.formAssets : [])
+const designerMoreOptions = computed(() => [
+  ...baseDesignerMoreOptions,
+  ...(props.extraMoreOptions || []),
+])
+const canUndo = computed(() => undoStack.value.length > 0)
+const canRedo = computed(() => redoStack.value.length > 0)
+const canClearCanvas = computed(() => {
+  if (normalizedSchema.value.components?.length)
+    return true
+  return formAssets.value.some(asset => asset?.schema?.components?.length)
+})
+const previewModeTitle = computed(() => previewModeOptions.find(item => item.value === previewMode.value)?.label || '新增')
+const previewModeDescription = computed(() => {
+  const modeMap = {
+    create: '空表单状态，按默认值初始化。',
+    edit: '模拟详情接口返回后进入编辑。',
+    detail: '模拟详情接口返回，并按只读态展示。',
+  }
+  return modeMap[previewMode.value] || ''
+})
 const formTabsMenuOptions = [
   { label: '＋ 新建空白表单', key: 'create' },
   { label: '⧉ 复制当前表单', key: 'duplicate' },
@@ -347,9 +467,66 @@ const canvasMetaText = computed(() => {
   return `${fieldCount} 个业务字段 · ${componentCount} 个画布节点 · ${normalizedSchema.value.layout?.gridColumns || 2} 列`
 })
 
-function updateSchema(schema) {
-  emit('update:modelValue', normalizeFormDesignerSchema(schema || {}))
+function updateSchema(schema, options = {}) {
+  const nextSchema = normalizeFormDesignerSchema(schema || {})
+  const currentSchema = normalizeFormDesignerSchema(normalizedSchema.value || {})
+  if (isSameDesignerSchema(nextSchema, currentSchema))
+    return
+  if (options.recordHistory !== false) {
+    pushHistorySnapshot(currentSchema)
+    redoStack.value = []
+  }
+  emit('update:modelValue', nextSchema)
   emit('dirtyChange', true)
+}
+
+function pushHistorySnapshot(schema) {
+  undoStack.value = [...undoStack.value, cloneDesignerSchema(schema)].slice(-HISTORY_LIMIT)
+}
+
+function undoSchema() {
+  if (!canUndo.value)
+    return
+  const currentSchema = normalizeFormDesignerSchema(normalizedSchema.value || {})
+  const previousSchema = undoStack.value[undoStack.value.length - 1]
+  undoStack.value = undoStack.value.slice(0, -1)
+  redoStack.value = [cloneDesignerSchema(currentSchema), ...redoStack.value].slice(0, HISTORY_LIMIT)
+  selectedId.value = ''
+  updateSchema(previousSchema, { recordHistory: false })
+}
+
+function redoSchema() {
+  if (!canRedo.value)
+    return
+  const currentSchema = normalizeFormDesignerSchema(normalizedSchema.value || {})
+  const nextSchema = redoStack.value[0]
+  redoStack.value = redoStack.value.slice(1)
+  pushHistorySnapshot(currentSchema)
+  selectedId.value = ''
+  updateSchema(nextSchema, { recordHistory: false })
+}
+
+function handleDesignerShortcut(event) {
+  const isUndoKey = (event.metaKey || event.ctrlKey) && !event.shiftKey && event.key?.toLowerCase?.() === 'z'
+  const isRedoKey = (event.metaKey || event.ctrlKey) && ((event.shiftKey && event.key?.toLowerCase?.() === 'z') || event.key?.toLowerCase?.() === 'y')
+  if (!isUndoKey && !isRedoKey)
+    return
+  const target = event.target
+  if (target?.closest?.('input, textarea, [contenteditable="true"]'))
+    return
+  event.preventDefault()
+  if (isRedoKey)
+    redoSchema()
+  else
+    undoSchema()
+}
+
+function cloneDesignerSchema(value) {
+  return JSON.parse(JSON.stringify(value || {}))
+}
+
+function isSameDesignerSchema(left, right) {
+  return JSON.stringify(left || {}) === JSON.stringify(right || {})
 }
 
 function appendField(field = {}) {
@@ -381,6 +558,53 @@ function resetFromFields() {
       ...(nextSchema.layout || {}),
       ...(normalizedSchema.value.layout || {}),
     },
+  })
+}
+
+function openClearCanvasDialog() {
+  clearScope.value = 'current'
+  clearDialogVisible.value = true
+}
+
+function handleDesignerMoreSelect(key = '') {
+  if (key === 'resetFromFields') {
+    resetFromFields()
+    return
+  }
+  if (key === 'repairRefs')
+    repairRefs()
+  else
+    emit('moreSelect', key)
+}
+
+function confirmClearCanvas() {
+  const schema = normalizeFormDesignerSchema(normalizedSchema.value)
+  selectedId.value = ''
+  clearDialogVisible.value = false
+
+  if (clearScope.value === 'all') {
+    updateSchema({
+      ...schema,
+      components: [],
+      settings: {
+        ...(schema.settings || {}),
+        formAssets: formAssets.value.map(asset => ({
+          ...asset,
+          schema: asset.schema
+            ? {
+                ...asset.schema,
+                components: [],
+              }
+            : asset.schema,
+        })),
+      },
+    })
+    return
+  }
+
+  updateSchema({
+    ...schema,
+    components: [],
   })
 }
 
@@ -496,6 +720,12 @@ function openPropertyPanel(componentId = '') {
   rightOpen.value = true
 }
 
+function handleCanvasSelectedIdChange(componentId = '') {
+  selectedId.value = componentId
+  if (componentId)
+    rightOpen.value = true
+}
+
 function flushDesigner() {
   return normalizeFormDesignerSchema(normalizedSchema.value)
 }
@@ -583,7 +813,7 @@ function getRuntimeFieldCode(component) {
   )
 }
 
-function normalizeRuntimeComponent(component) {
+function normalizeRuntimeComponent(component, mode = 'create') {
   if (!component)
     return component
 
@@ -592,6 +822,9 @@ function normalizeRuntimeComponent(component) {
   const nodeType = resolveRuntimeNodeType(componentKey)
   const fieldCode = getRuntimeFieldCode(component)
   const rules = [...(component.validation?.rules || [])]
+  const runtimeProps = resolveRuntimeProps(component.props || {}, componentKey)
+  const readonly = mode === 'detail' || Boolean(component.visibility?.readonly)
+  const disabled = readonly || Boolean(runtimeProps.disabled)
 
   if (component.validation?.required && !rules.some(rule => rule?.required)) {
     rules.unshift({
@@ -603,7 +836,7 @@ function normalizeRuntimeComponent(component) {
 
   const normalized = {
     ...component,
-    ...component.props,
+    ...runtimeProps,
     type: runtimeType,
     component: runtimeType,
     componentKey,
@@ -615,15 +848,16 @@ function normalizeRuntimeComponent(component) {
     required: Boolean(component.validation?.required),
     rules,
     hidden: Boolean(component.visibility?.hidden),
-    readonly: Boolean(component.visibility?.readonly),
-    disabled: Boolean(component.visibility?.readonly || component.props?.disabled),
+    readonly,
+    disabled,
     span: component.layout?.span ?? component.span,
     children: Array.isArray(component.children)
-      ? component.children.map(child => normalizeRuntimeComponent(child)).filter(Boolean)
+      ? component.children.map(child => normalizeRuntimeComponent(child, mode)).filter(Boolean)
       : component.children,
     props: {
-      ...component.props,
-      disabled: Boolean(component.visibility?.readonly || component.props?.disabled),
+      ...runtimeProps,
+      disabled,
+      readonly,
     },
   }
 
@@ -638,6 +872,13 @@ function normalizeRuntimeComponent(component) {
   }
 
   return normalized
+}
+
+function resolveRuntimeProps(props = {}, componentKey = '') {
+  const nextProps = { ...(props || {}) }
+  if (nextProps.dictType && ['select', 'dictSelect', 'radio', 'radioButton', 'checkbox', 'cascader'].includes(componentKey))
+    delete nextProps.options
+  return nextProps
 }
 
 function resolveRuntimeNodeType(componentKey = '') {
@@ -666,12 +907,14 @@ function resolveRuntimeNodeType(componentKey = '') {
   return ''
 }
 
-function buildRuntimeFormSchema(schema) {
+function buildRuntimeFormSchema(schema, mode = 'create') {
   const components = Array.isArray(schema) ? schema : schema?.components || []
-  return components.map(component => normalizeRuntimeComponent(component)).filter(Boolean)
+  return components.map(component => normalizeRuntimeComponent(component, mode)).filter(Boolean)
 }
 
-function getDefaultRuntimeValue(component) {
+function getDefaultRuntimeValue(component, mode = 'create') {
+  if (mode === 'edit' || mode === 'detail')
+    return getMockRuntimeValue(component)
   if (component?.props && Object.prototype.hasOwnProperty.call(component.props, 'defaultValue')) {
     return component.props.defaultValue
   }
@@ -688,12 +931,39 @@ function getDefaultRuntimeValue(component) {
   return ''
 }
 
-function buildRuntimeFormValue(schema) {
+function getMockRuntimeValue(component) {
+  const componentKey = component?.componentKey || component?.type
+  const label = component?.label || component?.props?.placeholder || '字段'
+  const options = Array.isArray(component?.props?.options) ? component.props.options : []
+  const firstOption = options[0]?.value ?? options[0]?.label ?? '1'
+
+  if (['number', 'inputNumber', 'rate', 'slider'].includes(componentKey))
+    return 100
+  if (['select', 'radio', 'radioGroup'].includes(componentKey))
+    return firstOption
+  if (['checkbox', 'checkboxGroup'].includes(componentKey))
+    return [firstOption]
+  if (componentKey === 'switch')
+    return true
+  if (componentKey === 'date')
+    return '2026-06-17'
+  if (componentKey === 'datetime')
+    return '2026-06-17 09:30:00'
+  if (componentKey === 'time')
+    return '09:30:00'
+  if (componentKey === 'textarea')
+    return `${label}的模拟详情内容`
+  if (['upload', 'imageUpload'].includes(componentKey))
+    return []
+  return `${label}示例`
+}
+
+function buildRuntimeFormValue(schema, mode = 'create') {
   const components = Array.isArray(schema) ? schema : schema?.components || []
   return components.reduce((model, component) => {
     const fieldCode = getRuntimeFieldCode(component)
     if (fieldCode)
-      model[fieldCode] = getDefaultRuntimeValue(component)
+      model[fieldCode] = getDefaultRuntimeValue(component, mode)
     return model
   }, {})
 }
@@ -770,30 +1040,30 @@ function buildSectionTitleRuntimeProps(component) {
   }
 }
 
-function createRuntimeFormSection(components, index) {
-  const schema = buildRuntimeFormSchema(components)
+function createRuntimeFormSection(components, index, mode = 'create') {
+  const schema = buildRuntimeFormSchema(components, mode)
   return {
     id: `form-${index}`,
     kind: 'form',
     schema,
-    value: buildRuntimeFormValue(components),
+    value: buildRuntimeFormValue(components, mode),
   }
 }
 
-function createRuntimeBlockSection(component, index) {
+function createRuntimeBlockSection(component, index, mode = 'create') {
   const componentKey = component?.componentKey || component?.type
-  const childSchema = buildRuntimeFormSchema(component?.children || [])
+  const childSchema = buildRuntimeFormSchema(component?.children || [], mode)
   return {
     id: component?.id || `${componentKey}-${index}`,
     kind: 'block',
     componentKey,
     component,
     childSchema,
-    childValue: buildRuntimeFormValue(component?.children || []),
+    childValue: buildRuntimeFormValue(component?.children || [], mode),
   }
 }
 
-function buildRuntimePreviewSections(schema) {
+function buildRuntimePreviewSections(schema, mode = 'create') {
   const normalized = normalizeFormDesignerSchema(schema || {})
   const sections = []
   let formBuffer = []
@@ -801,17 +1071,17 @@ function buildRuntimePreviewSections(schema) {
   ;(normalized.components || []).forEach((component, index) => {
     if (isRuntimeBlockComponent(component)) {
       if (formBuffer.length) {
-        sections.push(createRuntimeFormSection(formBuffer, sections.length))
+        sections.push(createRuntimeFormSection(formBuffer, sections.length, mode))
         formBuffer = []
       }
-      sections.push(createRuntimeBlockSection(component, index))
+      sections.push(createRuntimeBlockSection(component, index, mode))
       return
     }
     formBuffer.push(component)
   })
 
   if (formBuffer.length) {
-    sections.push(createRuntimeFormSection(formBuffer, sections.length))
+    sections.push(createRuntimeFormSection(formBuffer, sections.length, mode))
   }
 
   return sections
@@ -837,16 +1107,16 @@ function normalizeRuntimeContainerItems(component, fallbackLabel) {
 function getRuntimeTabs(component) {
   return normalizeRuntimeContainerItems(component, '标签').map(tab => ({
     ...tab,
-    schema: buildRuntimeFormSchema(tab.children),
-    value: buildRuntimeFormValue(tab.children),
+    schema: buildRuntimeFormSchema(tab.children, previewMode.value),
+    value: buildRuntimeFormValue(tab.children, previewMode.value),
   }))
 }
 
 function getRuntimeCollapsePanels(component) {
   return normalizeRuntimeContainerItems(component, '面板').map(panel => ({
     ...panel,
-    schema: buildRuntimeFormSchema(panel.children),
-    value: buildRuntimeFormValue(panel.children),
+    schema: buildRuntimeFormSchema(panel.children, previewMode.value),
+    value: buildRuntimeFormValue(panel.children, previewMode.value),
   }))
 }
 
@@ -905,7 +1175,7 @@ function buildCrudRuntimeProps(component) {
     schema: runtimeColumns,
     columns: runtimeColumns,
     formAssets: formAssets.value,
-    searchSchema: component?.props?.searchSchema || component?.props?.querySchema || buildRuntimeFormSchema(searchComponents),
+    searchSchema: component?.props?.searchSchema || component?.props?.querySchema || buildRuntimeFormSchema(searchComponents, previewMode.value),
   }
 }
 
@@ -921,7 +1191,7 @@ function openRenameCurrentForm() {
 }
 
 function confirmRenameCurrentForm() {
-  const activeSchema = props.modelValue
+  const activeSchema = cloneDesignerSchema(normalizedSchema.value)
   const nextName = renameFormName.value.trim()
   if (!activeSchema || !nextName)
     return
@@ -938,14 +1208,22 @@ function confirmRenameCurrentForm() {
   }
 
   renameDialogVisible.value = false
-  emit('update:modelValue', { ...activeSchema })
+  updateSchema({ ...activeSchema })
 }
+
+onMounted(() => {
+  window.addEventListener('keydown', handleDesignerShortcut)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleDesignerShortcut)
+})
 </script>
 
 <style scoped>
 .forge-form-designer {
   display: grid;
-  grid-template-columns: 248px minmax(0, 1fr) 46px;
+  grid-template-columns: 248px minmax(0, 1fr) 0;
   height: clamp(680px, calc(100vh - 190px), 860px);
   min-height: 680px;
   border: 1px solid #dbe3ee;
@@ -955,7 +1233,7 @@ function confirmRenameCurrentForm() {
 }
 
 .forge-form-designer.left-collapsed {
-  grid-template-columns: 42px minmax(0, 1fr) 46px;
+  grid-template-columns: 42px minmax(0, 1fr) 0;
 }
 
 .forge-form-designer.right-open {
@@ -979,7 +1257,7 @@ function confirmRenameCurrentForm() {
   overflow: hidden;
 }
 
-.collapsed-rail-button {
+.side-rail-toggle-button {
   position: absolute;
   top: 12px;
   left: 7px;
@@ -992,9 +1270,15 @@ function confirmRenameCurrentForm() {
   border-radius: 7px;
   background: #fff;
   color: #475569;
+  z-index: 5;
 }
 
-.collapsed-rail-button:hover {
+.side-rail-toggle-button {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.side-rail-toggle-button:hover {
   border-color: #93c5fd;
   background: #eff6ff;
   color: #2563eb;
@@ -1006,30 +1290,8 @@ function confirmRenameCurrentForm() {
   overflow: hidden;
 }
 
-.right-rail-button {
-  display: grid;
-  grid-template-rows: 24px auto;
-  place-items: center;
-  gap: 8px;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  cursor: pointer;
-  border: 0;
-  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
-  color: #475569;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0;
-}
-
-.right-rail-button span {
-  writing-mode: vertical-rl;
-}
-
-.right-rail-button:hover {
-  background: #eff6ff;
-  color: #2563eb;
+.forge-form-designer.right-collapsed .designer-right {
+  border-left: 0;
 }
 
 .designer-center {
@@ -1070,11 +1332,11 @@ function confirmRenameCurrentForm() {
 
 @media (max-width: 1360px) {
   .forge-form-designer {
-    grid-template-columns: 220px minmax(0, 1fr) 46px;
+    grid-template-columns: 220px minmax(0, 1fr) 0;
   }
 
   .forge-form-designer.left-collapsed {
-    grid-template-columns: 42px minmax(0, 1fr) 46px;
+    grid-template-columns: 42px minmax(0, 1fr) 0;
   }
 
   .forge-form-designer.right-open {
@@ -1107,7 +1369,6 @@ function confirmRenameCurrentForm() {
   padding: 8px 12px 6px;
 }
 
-.designer-toolbar-button,
 .designer-toolbar-text-button {
   --n-color: #eef6ff !important;
   --n-color-hover: #dbeafe !important;
@@ -1122,6 +1383,61 @@ function confirmRenameCurrentForm() {
   --n-text-color-pressed: #1e3a8a !important;
   --n-text-color-focus: #1d4ed8 !important;
   font-weight: 600;
+}
+
+.designer-toolbar-more-button,
+.designer-toolbar-icon-button {
+  --n-color: #2563eb !important;
+  --n-color-hover: #1d4ed8 !important;
+  --n-color-pressed: #1e40af !important;
+  --n-color-focus: #2563eb !important;
+  --n-border: 1px solid #2563eb !important;
+  --n-border-hover: 1px solid #1d4ed8 !important;
+  --n-border-pressed: 1px solid #1e40af !important;
+  --n-border-focus: 1px solid #2563eb !important;
+  --n-text-color: #fff !important;
+  --n-text-color-hover: #fff !important;
+  --n-text-color-pressed: #fff !important;
+  --n-text-color-focus: #fff !important;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.18);
+}
+
+.designer-toolbar-more-button :deep(.n-button__icon),
+.designer-toolbar-more-button :deep(.n-icon),
+.designer-toolbar-icon-button :deep(.n-button__icon),
+.designer-toolbar-icon-button :deep(.n-icon) {
+  color: #fff !important;
+}
+
+.field-shelf-collapse-button {
+  flex: 0 0 auto;
+  --n-color: #f8fafc !important;
+  --n-color-hover: #eff6ff !important;
+  --n-color-pressed: #dbeafe !important;
+  --n-color-focus: #f8fafc !important;
+  --n-border: 1px solid #cbd5e1 !important;
+  --n-border-hover: 1px solid #93c5fd !important;
+  --n-border-pressed: 1px solid #60a5fa !important;
+  --n-border-focus: 1px solid #93c5fd !important;
+  --n-text-color: #475569 !important;
+  --n-text-color-hover: #2563eb !important;
+  --n-text-color-pressed: #1d4ed8 !important;
+  --n-text-color-focus: #2563eb !important;
+}
+
+.designer-toolbar-danger-button {
+  --n-color: #fff7f7 !important;
+  --n-color-hover: #fee2e2 !important;
+  --n-color-pressed: #fecaca !important;
+  --n-color-focus: #fff7f7 !important;
+  --n-border: 1px solid #fecaca !important;
+  --n-border-hover: 1px solid #fca5a5 !important;
+  --n-border-pressed: 1px solid #f87171 !important;
+  --n-border-focus: 1px solid #fca5a5 !important;
+  --n-text-color: #dc2626 !important;
+  --n-text-color-hover: #b91c1c !important;
+  --n-text-color-pressed: #991b1b !important;
+  --n-text-color-focus: #dc2626 !important;
 }
 
 .designer-form-tab {
@@ -1306,8 +1622,84 @@ function confirmRenameCurrentForm() {
   gap: 8px;
 }
 
+.designer-clear-content {
+  display: grid;
+  gap: 16px;
+}
+
+.designer-clear-warning {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.designer-clear-warning :deep(.n-icon) {
+  margin-top: 1px;
+  font-size: 22px;
+}
+
+.designer-clear-warning strong,
+.designer-clear-warning span {
+  display: block;
+}
+
+.designer-clear-warning strong {
+  color: #7c2d12;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.designer-clear-warning span {
+  margin-top: 2px;
+  color: #9a3412;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.designer-clear-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .designer-preview-modal {
   width: min(760px, calc(100vw - 48px));
+}
+
+.designer-preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: -4px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #dbe6f5;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.designer-preview-toolbar strong,
+.designer-preview-toolbar span {
+  display: block;
+}
+
+.designer-preview-toolbar strong {
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 20px;
+}
+
+.designer-preview-toolbar span {
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .designer-preview-runtime-form {

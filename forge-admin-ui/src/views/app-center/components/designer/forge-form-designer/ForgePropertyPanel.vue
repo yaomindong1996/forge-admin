@@ -26,11 +26,24 @@
       </div>
     </div>
 
+    <div class="property-search-box">
+      <n-input
+        v-model:value="propertySearchKeyword"
+        size="small"
+        clearable
+        placeholder="搜索属性：字典 / 默认值 / 校验 / 弹窗"
+        @update:value="handlePropertySearch"
+      />
+      <div v-if="propertySearchHit" class="property-search-hit">
+        已定位：{{ propertySearchHit }}
+      </div>
+    </div>
+
     <template v-if="selectedComponent">
       <n-tabs v-model:value="propertyActiveTab" type="line" size="medium" animated class="property-tabs">
         <n-tab-pane name="basic" tab="基础配置">
           <n-form label-placement="top" :show-feedback="false" class="property-form">
-            <n-collapse class="config-collapse" :default-expanded-names="basicExpandedNames">
+            <n-collapse v-model:expanded-names="selectedBasicExpandedNames" class="config-collapse">
               <n-collapse-item title="标识" name="identity">
                 <section class="panel-item">
                   <n-form-item label="显示名称">
@@ -82,11 +95,11 @@
                     />
                   </n-form-item>
                   <n-form-item v-if="isDictLikeField" label="字典类型">
-                    <n-input
-                      :value="selectedComponent.props?.dictType"
-                      clearable
-                      placeholder="例如 crm_follow_type"
-                      @update:value="updateComponent({ props: { dictType: $event } })"
+                    <DictTypeSelect
+                      :value="selectedComponent.props?.dictType || ''"
+                      :fields="dictTypeFields"
+                      compact
+                      @update:value="updateDictType"
                     />
                   </n-form-item>
                   <n-form-item v-if="activePropGroups.length" label="组件属性">
@@ -94,7 +107,12 @@
                       <template #icon>
                         <span class="button-icon">
                           <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Zm8.25-3.5c0-.48-.05-.95-.14-1.4l2.02-1.57-1.9-3.3-2.39.96a8.57 8.57 0 0 0-2.43-1.4L15.05 2h-6.1l-.36 3.29a8.57 8.57 0 0 0-2.43 1.4l-2.39-.96-1.9 3.3 2.02 1.57a7.22 7.22 0 0 0 0 2.8L1.87 14.97l1.9 3.3 2.39-.96a8.57 8.57 0 0 0 2.43 1.4l.36 3.29h6.1l.36-3.29a8.57 8.57 0 0 0 2.43-1.4l2.39.96 1.9-3.3-2.02-1.57c.09-.45.14-.92.14-1.4Z" fill="currentColor" />
+                            <path d="M4 7h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M17 7h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M4 17h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M11 17h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <circle cx="15" cy="7" r="2" stroke="currentColor" stroke-width="2" />
+                            <circle cx="9" cy="17" r="2" stroke="currentColor" stroke-width="2" />
                           </svg>
                         </span>
                       </template>
@@ -151,7 +169,12 @@
                       <template #icon>
                         <span class="button-icon">
                           <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Zm8.25-3.5c0-.48-.05-.95-.14-1.4l2.02-1.57-1.9-3.3-2.39.96a8.57 8.57 0 0 0-2.43-1.4L15.05 2h-6.1l-.36 3.29a8.57 8.57 0 0 0-2.43 1.4l-2.39-.96-1.9 3.3 2.02 1.57a7.22 7.22 0 0 0 0 2.8L1.87 14.97l1.9 3.3 2.39-.96a8.57 8.57 0 0 0 2.43 1.4l.36 3.29h6.1l.36-3.29a8.57 8.57 0 0 0 2.43-1.4l2.39.96 1.9-3.3-2.02-1.57c.09-.45.14-.92.14-1.4Z" fill="currentColor" />
+                            <path d="M4 7h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M17 7h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M4 17h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <path d="M11 17h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                            <circle cx="15" cy="7" r="2" stroke="currentColor" stroke-width="2" />
+                            <circle cx="9" cy="17" r="2" stroke="currentColor" stroke-width="2" />
                           </svg>
                         </span>
                       </template>
@@ -179,7 +202,7 @@
                 </section>
               </n-collapse-item>
 
-              <n-collapse-item v-if="isOptionField" title="选项配置" name="options">
+              <n-collapse-item v-if="isManualOptionField" title="选项配置" name="options">
                 <section class="panel-item">
                   <div class="option-list">
                     <div v-for="(option, optionIndex) in selectedOptions" :key="`option-${optionIndex}`" class="option-editor-row">
@@ -228,7 +251,10 @@
                       </template>
                     </div>
                   </div>
-                  <n-button size="small" secondary block @click="addOption">
+                  <n-button class="option-add-button" size="small" secondary block @click="addOption">
+                    <template #icon>
+                      <span class="option-add-icon">+</span>
+                    </template>
                     新增选项
                   </n-button>
                 </section>
@@ -1821,7 +1847,7 @@
     <n-tabs v-else v-model:value="formPropertyActiveTab" type="line" size="medium" animated class="property-tabs form-property-tabs">
       <n-tab-pane name="basic" tab="基础配置">
         <n-form label-placement="top" :show-feedback="false" class="property-form">
-          <n-collapse class="form-property-collapse" :default-expanded-names="['assets']">
+          <n-collapse v-model:expanded-names="formBasicExpandedNames" class="form-property-collapse">
             <n-collapse-item title="表单资产" name="assets">
               <section class="panel-item form-asset-panel">
                 <div class="panel-title-row">
@@ -2119,7 +2145,7 @@
 
       <n-tab-pane name="style" tab="样式配置">
         <n-form label-placement="top" :show-feedback="false" class="property-form">
-          <n-collapse class="form-property-collapse" :default-expanded-names="['appearance']">
+          <n-collapse v-model:expanded-names="formStyleExpandedNames" class="form-property-collapse">
             <n-collapse-item title="表单外观" name="appearance">
               <section class="panel-item">
                 <div class="panel-item-title">
@@ -2291,7 +2317,8 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import DictTypeSelect from '@/components/lowcode-builder/shared/DictTypeSelect.vue'
 import { cloneValue, findDesignerComponentPath, getDesignerComponent, isFieldComponent, isLayoutComponent, normalizeFormDesignerSchema, updateDesignerComponent, updateDesignerLayout } from '../form-first/formDesignerSchema'
 
 const props = defineProps({
@@ -2313,6 +2340,12 @@ const crudFieldDrawerVisible = ref(false)
 const editingCrudFieldId = ref('')
 const propertyActiveTab = ref('basic')
 const formPropertyActiveTab = ref('basic')
+const basicExpandedNames = ['identity']
+const selectedBasicExpandedNames = ref([...basicExpandedNames])
+const formBasicExpandedNames = ref(['assets'])
+const formStyleExpandedNames = ref(['appearance'])
+const propertySearchKeyword = ref('')
+const propertySearchHit = ref('')
 const selectedCodeDraft = ref('')
 const selectedCodeDraftTarget = ref('')
 const schemaCodeDraft = ref('')
@@ -2347,6 +2380,7 @@ const layoutChildren = computed(() => selectedComponent.value?.children || [])
 const interactionRules = computed(() => Array.isArray(selectedComponent.value?.props?.__events) ? selectedComponent.value.props.__events : [])
 const defaultTrigger = computed(() => selectedComponent.value?.componentKey === 'button' ? 'click' : 'change')
 const componentTargetOptions = computed(() => collectComponentTargetOptions(props.schema.components || []))
+const dictTypeFields = computed(() => collectDictTypeFields(props.schema.components || []))
 const selectedComponentCodeRaw = computed(() => JSON.stringify(selectedComponent.value || {}, null, 2))
 const selectedCodeText = computed(() => selectedCodeDraftTarget.value === props.selectedId ? selectedCodeDraft.value : selectedComponentCodeRaw.value)
 const schemaCodeRaw = computed(() => JSON.stringify(props.schema || {}, null, 2))
@@ -2372,7 +2406,11 @@ const datePickerType = computed(() => {
   return map[key] || 'date'
 })
 
-const basicExpandedNames = ['identity']
+watch(() => props.selectedId, () => {
+  propertySearchHit.value = ''
+  selectedBasicExpandedNames.value = [...basicExpandedNames]
+})
+
 const gridColumnOptions = Array.from({ length: maxFormGridColumns }).map((_, index) => index + 1)
 const gridColumnMarks = gridColumnOptions.reduce((marks, item) => {
   marks[item] = `${item}`
@@ -2391,6 +2429,27 @@ const buttonTypeOptions = [
   { label: '成功 success', value: 'success' },
   { label: '警告 warning', value: 'warning' },
   { label: '错误 error', value: 'error' },
+]
+const propertySearchIndex = [
+  { keys: ['标识', '名称', '绑定字段', 'field', '字段编码'], label: '基础配置 / 标识', selectedTab: 'basic', selectedExpand: ['identity'], formTab: 'basic', formExpand: ['assets'] },
+  { keys: ['字段', '占位', '默认', '默认值', '字典', 'dict', '组件属性'], label: '基础配置 / 字段组件', selectedTab: 'basic', selectedExpand: ['field'] },
+  { keys: ['选项', 'option', '新增选项'], label: '基础配置 / 选项配置', selectedTab: 'basic', selectedExpand: ['options'] },
+  { keys: ['按钮', 'button', '块级', '禁用'], label: '基础配置 / 按钮组件', selectedTab: 'basic', selectedExpand: ['button'] },
+  { keys: ['说明', '说明文本', '角标', '辅助', 'badge'], label: '基础配置 / 辅助展示', selectedTab: 'basic', selectedExpand: ['assist'] },
+  { keys: ['日期', '时间', '格式', 'datetime', 'date'], label: '基础配置 / 日期时间组件', selectedTab: 'basic', selectedExpand: ['temporal'] },
+  { keys: ['crud字段', '查询字段', '表格列字段', '编辑字段'], label: '基础配置 / CRUD 字段配置', selectedTab: 'basic', selectedExpand: ['crud-field'] },
+  { keys: ['crud', '查询', '表格', '列表', '分页', '接口', 'api'], label: 'CRUD 配置', selectedTab: 'crud' },
+  { keys: ['布局', '跨度', '栅格', '列数', '宽度', 'labelWidth'], label: '布局', selectedTab: 'layout', formTab: 'basic', formExpand: ['layout'] },
+  { keys: ['校验', '必填', '只读', '隐藏', '状态', 'required', 'readonly'], label: '状态 / 可见性与校验', selectedTab: 'state', formTab: 'basic', formExpand: ['spacing'] },
+  { keys: ['事件', '交互', '联动', '弹窗事件', 'openModal'], label: '交互 / 事件规则', selectedTab: 'interaction' },
+  { keys: ['样式', '颜色', '背景', '边框', '圆角', '阴影', '间距', 'padding', 'margin'], label: '样式配置', selectedTab: 'style', formTab: 'style', formExpand: ['appearance', 'spacing'] },
+  { keys: ['表单资产', '多表单', '表单名称', '表单编码'], label: '表单属性 / 表单资产', formTab: 'basic', formExpand: ['assets'] },
+  { keys: ['弹窗', '抽屉', 'modal', 'drawer', '打开方式'], label: '表单属性 / AiForm 布局', formTab: 'basic', formExpand: ['layout'] },
+  { keys: ['反馈', '折叠', '最大显示字段', '行间距', '列间距'], label: '表单属性 / 间距与反馈', formTab: 'basic', formExpand: ['spacing'] },
+  { keys: ['操作', '提交', '重置', '取消'], label: '表单属性 / 操作按钮', formTab: 'basic', formExpand: ['actions'] },
+  { keys: ['外观', '透明度'], label: '表单属性 / 表单外观', formTab: 'style', formExpand: ['appearance'] },
+  { keys: ['自定义', 'class', 'css'], label: '样式配置 / 自定义样式', selectedTab: 'style', formTab: 'style', formExpand: ['custom-style'] },
+  { keys: ['源码', 'json', 'schema'], label: '源码', selectedTab: 'source', formTab: 'source' },
 ]
 const cardSizeOptions = [
   { label: '小 small', value: 'small' },
@@ -2656,6 +2715,7 @@ const selectedOptions = computed(() => selectedComponent.value?.props?.options |
 const isFieldInsideCrud = computed(() => isField.value && hasAncestorComponent(props.schema, props.selectedId, ['AiCrudPage', 'crudBlock']))
 const selectedCrudFieldConfig = computed(() => isFieldInsideCrud.value ? selectedComponent.value?.props?.__crudConfig || {} : null)
 const isOptionField = computed(() => ['select', 'radio', 'radioButton', 'checkbox', 'cascader', 'treeSelect'].includes(selectedComponent.value?.componentKey || ''))
+const isManualOptionField = computed(() => isOptionField.value && !selectedComponent.value?.props?.dictType)
 const activePropGroups = computed(() => buildNaivePropGroups(selectedComponent.value?.componentKey || ''))
 const isDictLikeField = computed(() => {
   const key = selectedComponent.value?.componentKey || ''
@@ -2666,6 +2726,15 @@ function updateComponent(patch) {
   if (!props.selectedId)
     return
   emit('update:schema', updateDesignerComponent(props.schema, props.selectedId, patch))
+}
+
+function updateDictType(value = '') {
+  updateComponent({
+    props: {
+      dictType: value || '',
+      options: [],
+    },
+  })
 }
 
 function updateFieldBindingCode(value = '') {
@@ -2679,6 +2748,50 @@ function updateFieldBindingCode(value = '') {
       columnName: fieldCode,
     },
   })
+}
+
+function handlePropertySearch(value = '') {
+  const keyword = String(value || '').trim().toLowerCase()
+  if (!keyword) {
+    propertySearchHit.value = ''
+    return
+  }
+
+  const hit = propertySearchIndex.find(item => item.keys.some(key => String(key).toLowerCase().includes(keyword) || keyword.includes(String(key).toLowerCase())))
+  if (!hit) {
+    propertySearchHit.value = '未找到匹配配置'
+    return
+  }
+
+  propertySearchHit.value = hit.label
+  if (selectedComponent.value) {
+    if (!hit.selectedTab && hit.formTab) {
+      emit('update:selectedId', '')
+      formPropertyActiveTab.value = hit.formTab
+      if (hit.formTab === 'style' && hit.formExpand?.length)
+        formStyleExpandedNames.value = mergeExpandNames(formStyleExpandedNames.value, hit.formExpand)
+      else if (hit.formExpand?.length)
+        formBasicExpandedNames.value = mergeExpandNames(formBasicExpandedNames.value, hit.formExpand)
+      return
+    }
+    propertyActiveTab.value = hit.selectedTab || hit.formTab || 'basic'
+    if (hit.selectedExpand?.length)
+      selectedBasicExpandedNames.value = mergeExpandNames(selectedBasicExpandedNames.value, hit.selectedExpand)
+    return
+  }
+
+  formPropertyActiveTab.value = hit.formTab || hit.selectedTab || 'basic'
+  if (hit.formPropertyTab === 'style' || formPropertyActiveTab.value === 'style') {
+    if (hit.formExpand?.length)
+      formStyleExpandedNames.value = mergeExpandNames(formStyleExpandedNames.value, hit.formExpand)
+    return
+  }
+  if (hit.formExpand?.length)
+    formBasicExpandedNames.value = mergeExpandNames(formBasicExpandedNames.value, hit.formExpand)
+}
+
+function mergeExpandNames(current = [], names = []) {
+  return Array.from(new Set([...(Array.isArray(current) ? current : []), ...names]))
 }
 
 function showFormSettings() {
@@ -3029,6 +3142,18 @@ function collectComponentTargetOptions(components = [], result = [], depth = 0) 
   return result
 }
 
+function collectDictTypeFields(components = [], result = []) {
+  ;(Array.isArray(components) ? components : []).forEach((component) => {
+    if (!component)
+      return
+    const dictType = component.props?.dictType || component.dictType || component.basicProps?.dictType || component.advancedProps?.dictType
+    if (dictType)
+      result.push({ dictType })
+    collectDictTypeFields(component.children || [], result)
+  })
+  return result
+}
+
 function updateSelectedCodeDraft(value) {
   selectedCodeDraftTarget.value = props.selectedId
   selectedCodeDraft.value = value
@@ -3279,6 +3404,10 @@ function removeOption(index) {
 function updateSelectedProp(item = {}, value) {
   if (!item.key)
     return
+  if (item.key === 'dictType') {
+    updateDictType(value)
+    return
+  }
   updateComponent({
     props: {
       [item.key]: normalizePropValue(item, value),
@@ -3908,6 +4037,37 @@ function toKebabCase(value = '') {
   color: #1f2329;
 }
 
+.property-search-box {
+  display: grid;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.property-search-box :deep(.n-input) {
+  --n-border: 1px solid #dbe3ee !important;
+  --n-border-hover: 1px solid #7aa7ff !important;
+  --n-border-focus: 1px solid #3478f6 !important;
+  --n-box-shadow-focus: 0 0 0 2px rgba(52, 120, 246, 0.12) !important;
+  border-radius: 7px;
+}
+
+.property-search-hit {
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 8px;
+  overflow: hidden;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .property-tabs {
   flex: 1;
   min-height: 0;
@@ -4010,25 +4170,73 @@ function toKebabCase(value = '') {
 }
 
 .more-config-button {
-  --n-color: #eef6ff !important;
-  --n-color-hover: #dbeafe !important;
-  --n-color-pressed: #bfdbfe !important;
-  --n-color-focus: #eef6ff !important;
-  --n-border: 1px solid #bfdbfe !important;
-  --n-border-hover: 1px solid #93c5fd !important;
-  --n-border-pressed: 1px solid #60a5fa !important;
-  --n-border-focus: 1px solid #93c5fd !important;
-  --n-text-color: #1d4ed8 !important;
-  --n-text-color-hover: #1e40af !important;
-  --n-text-color-pressed: #1e3a8a !important;
-  --n-text-color-focus: #1d4ed8 !important;
+  --n-color: #f8fbff !important;
+  --n-color-hover: #eef6ff !important;
+  --n-color-pressed: #deedff !important;
+  --n-color-focus: #f8fbff !important;
+  --n-border: 1px dashed #6ea8ff !important;
+  --n-border-hover: 1px dashed #3478f6 !important;
+  --n-border-pressed: 1px dashed #1d4ed8 !important;
+  --n-border-focus: 1px dashed #3478f6 !important;
+  --n-text-color: #0f4fb8 !important;
+  --n-text-color-hover: #073f96 !important;
+  --n-text-color-pressed: #063277 !important;
+  --n-text-color-focus: #0f4fb8 !important;
+  height: 34px;
+  justify-content: center;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.75),
+    0 4px 12px rgba(37, 99, 235, 0.1);
   font-weight: 600;
+  border: 2px dashed #3478f6;
+}
+
+.more-config-button :deep(.n-button__content) {
+  justify-content: center;
+  width: 100%;
 }
 
 .button-icon {
   display: inline-grid;
   place-items: center;
-  color: currentColor;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 13px;
+}
+
+.more-config-button:hover .button-icon {
+  background: #1d4ed8;
+}
+
+.option-add-button {
+  --n-color: #f0fdf4 !important;
+  --n-color-hover: #dcfce7 !important;
+  --n-color-pressed: #bbf7d0 !important;
+  --n-border: 1px dashed #86efac !important;
+  --n-border-hover: 1px dashed #4ade80 !important;
+  --n-border-pressed: 1px dashed #22c55e !important;
+  --n-text-color: #15803d !important;
+  --n-text-color-hover: #166534 !important;
+  --n-text-color-pressed: #14532d !important;
+  height: 34px;
+  font-weight: 700;
+}
+
+.option-add-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #22c55e;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .panel-item-title {

@@ -464,62 +464,73 @@ async function loadRuntimeInfo(id = objectId.value) {
 }
 
 async function handleSave() {
-  if (activePanel.value === 'fields') {
-    await fieldManagerRef.value?.saveSelectedField?.()
+  if (saving.value)
     return
-  }
-  if (activePanel.value === 'form') {
-    if (formDetailTab.value === 'detail')
+  saving.value = true
+  await waitForSaveLoadingPaint()
+  try {
+    if (activePanel.value === 'fields') {
+      await fieldManagerRef.value?.saveSelectedField?.()
+      return
+    }
+    if (activePanel.value === 'form') {
+      if (formDetailTab.value === 'detail')
+        await detailDesignerRef.value?.saveLayout?.()
+      else
+        await formDesignerRef.value?.saveLayout?.()
+      await loadDesigner()
+      return
+    }
+    if (activePanel.value === 'list') {
+      await listDesignerRef.value?.saveLayout?.()
+      await loadDesigner()
+      return
+    }
+    if (activePanel.value === 'detail') {
       await detailDesignerRef.value?.saveLayout?.()
-    else
-      await formDesignerRef.value?.saveLayout?.()
-    await loadDesigner()
-    return
+      await loadDesigner()
+      return
+    }
+    if (activePanel.value === 'relations') {
+      await relationDesignerRef.value?.saveRelations?.()
+      await loadDesigner()
+      return
+    }
+    if (activePanel.value === 'document') {
+      await persistPendingDesignerDraft()
+      await documentPanelRef.value?.saveConfig?.()
+      await loadDesigner()
+      return
+    }
+    if (activePanel.value === 'automation') {
+      await persistPendingDesignerDraft()
+      await flowBindingPanelRef.value?.saveConfig?.()
+      await loadDesigner()
+      return
+    }
+    if (activePanel.value === 'actions') {
+      await persistPendingDesignerDraft()
+      await actionDesignerRef.value?.saveActions?.()
+      await loadDesigner()
+      return
+    }
+    if (activePanel.value === 'permission') {
+      permissionFlowRef.value?.saveConfig?.()
+    }
+    await saveDesignerDraft(true, { manageSaving: false })
   }
-  if (activePanel.value === 'list') {
-    await listDesignerRef.value?.saveLayout?.()
-    await loadDesigner()
-    return
+  finally {
+    saving.value = false
   }
-  if (activePanel.value === 'detail') {
-    await detailDesignerRef.value?.saveLayout?.()
-    await loadDesigner()
-    return
-  }
-  if (activePanel.value === 'relations') {
-    await relationDesignerRef.value?.saveRelations?.()
-    await loadDesigner()
-    return
-  }
-  if (activePanel.value === 'document') {
-    await persistPendingDesignerDraft()
-    await documentPanelRef.value?.saveConfig?.()
-    await loadDesigner()
-    return
-  }
-  if (activePanel.value === 'automation') {
-    await persistPendingDesignerDraft()
-    await flowBindingPanelRef.value?.saveConfig?.()
-    await loadDesigner()
-    return
-  }
-  if (activePanel.value === 'actions') {
-    await persistPendingDesignerDraft()
-    await actionDesignerRef.value?.saveActions?.()
-    await loadDesigner()
-    return
-  }
-  if (activePanel.value === 'permission') {
-    permissionFlowRef.value?.saveConfig?.()
-  }
-  await saveDesignerDraft(true)
 }
 
 async function saveDesignerDraft(showMessage = true, options = {}) {
   if (!objectId.value)
     return
   const reload = options.reload !== false
-  saving.value = true
+  const manageSaving = options.manageSaving !== false
+  if (manageSaving)
+    saving.value = true
   try {
     await saveBusinessObjectDesigner(objectId.value, buildDesignerPayload())
     dirty.value = false
@@ -531,8 +542,14 @@ async function saveDesignerDraft(showMessage = true, options = {}) {
     emit('saved')
   }
   finally {
-    saving.value = false
+    if (manageSaving)
+      saving.value = false
   }
+}
+
+async function waitForSaveLoadingPaint() {
+  await nextTick()
+  await new Promise(resolve => setTimeout(resolve, 0))
 }
 
 async function handlePanelSwitch(panel) {

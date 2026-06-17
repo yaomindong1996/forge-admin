@@ -13,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -233,7 +234,10 @@ public class BusinessFieldSchemaService {
     private void validateFieldTypeOptions(String fieldType, BusinessFieldDTO dto, Map<String, Object> fieldBinding) {
         boolean designerDraftField = "designer".equalsIgnoreCase(StringUtils.defaultString(mapText(fieldBinding, "source")))
                 && readBoolean(fieldBinding.get("createIfMissing"), false);
-        if (DICT_FIELD_TYPES.contains(fieldType) && StringUtils.isBlank(dto.getDictType()) && !designerDraftField) {
+        if (DICT_FIELD_TYPES.contains(fieldType)
+                && StringUtils.isBlank(dto.getDictType())
+                && !designerDraftField
+                && !hasInlineOptions(dto)) {
             throw new BusinessException("字典字段必须配置字典类型");
         }
         if ("REFERENCE".equals(fieldType)
@@ -242,6 +246,26 @@ public class BusinessFieldSchemaService {
                 && !designerDraftField) {
             throw new BusinessException("引用对象字段必须配置目标对象和回显字段");
         }
+    }
+
+    private boolean hasInlineOptions(BusinessFieldDTO dto) {
+        if (dto == null) {
+            return false;
+        }
+        Map<String, Object> basicProps = dto.getBasicProps();
+        Map<String, Object> advancedProps = dto.getAdvancedProps();
+        return hasOptionItems(basicProps == null ? null : basicProps.get("options"))
+                || hasOptionItems(advancedProps == null ? null : advancedProps.get("options"));
+    }
+
+    private boolean hasOptionItems(Object options) {
+        if (options instanceof Collection<?> collection) {
+            return !collection.isEmpty();
+        }
+        if (options instanceof Object[] array) {
+            return array.length > 0;
+        }
+        return false;
     }
 
     private String normalizeFieldType(String fieldType, String fieldName) {

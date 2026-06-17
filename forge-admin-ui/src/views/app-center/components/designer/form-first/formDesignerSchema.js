@@ -744,7 +744,7 @@ function normalizeComponent(component, index, usedIds = new Set()) {
     componentKey,
     label,
     fieldBinding,
-    props: isPlainObject(component.props) ? component.props : {},
+    props: normalizeComponentProps(componentKey, component.props),
     layout: normalizeComponentLayout(component.layout),
     validation: normalizeValidation(component.validation),
     visibility: normalizeVisibility(component.visibility),
@@ -752,6 +752,13 @@ function normalizeComponent(component, index, usedIds = new Set()) {
       ? component.children.map((child, childIndex) => normalizeComponent(child, childIndex, usedIds)).filter(Boolean)
       : [],
   }
+}
+
+function normalizeComponentProps(componentKey = '', props = {}) {
+  const normalizedProps = isPlainObject(props) ? { ...props } : {}
+  if (normalizedProps.dictType && ['select', 'dictSelect', 'radio', 'radioButton', 'checkbox', 'cascader'].includes(componentKey))
+    delete normalizedProps.options
+  return normalizedProps
 }
 
 function collectReservedComponentIds(components = [], ids = new Set()) {

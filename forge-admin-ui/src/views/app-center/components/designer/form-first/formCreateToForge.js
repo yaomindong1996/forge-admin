@@ -380,7 +380,7 @@ function buildForgeProps(rule = {}) {
   }
   if (['fileUpload', 'imageUpload'].includes(componentKey) && props.action === '/')
     delete props.action
-  if (Array.isArray(rule.options) && ['select', 'radio', 'checkbox', 'cascader'].includes(componentKey))
+  if (!props.dictType && Array.isArray(rule.options) && ['select', 'radio', 'checkbox', 'cascader'].includes(componentKey))
     props.options = cloneValue(rule.options)
   if (rule.value !== undefined)
     props.defaultValue = cloneValue(rule.value)

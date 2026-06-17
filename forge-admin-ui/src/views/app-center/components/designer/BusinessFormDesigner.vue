@@ -2,7 +2,7 @@
   <div class="business-form-designer" :class="{ 'relation-object-active': !isPrimaryObjectActive, 'native-form-active': isPrimaryObjectActive && !useLegacyFormCreateDesigner }">
     <section class="form-canvas-region">
       <div class="designer-section-head">
-        <div>
+        <div class="designer-section-main">
           <h3>{{ activeObjectTitle }}</h3>
           <p>{{ activeObjectDescription }}</p>
         </div>
@@ -40,11 +40,14 @@
               </n-radio-button>
             </n-radio-group>
           </div>
-          <n-button v-if="isPrimaryObjectActive" size="small" secondary :disabled="!unusedFields.length" @click="appendAllUnusedFields">
-            补齐未使用字段
-          </n-button>
-          <n-button v-if="isPrimaryObjectActive" size="small" secondary @click="useLegacyFormCreateDesigner = !useLegacyFormCreateDesigner">
-            {{ useLegacyFormCreateDesigner ? '使用新版画布' : '旧版画布' }}
+          <n-button
+            v-if="isPrimaryObjectActive && useLegacyFormCreateDesigner"
+            class="designer-head-compact-button"
+            size="small"
+            secondary
+            @click="useLegacyFormCreateDesigner = false"
+          >
+            使用新版画布
           </n-button>
         </div>
       </div>
@@ -67,7 +70,9 @@
             :fields="primaryDesignFields"
             :object-code="objectCode"
             :object-name="objectName"
+            :extra-more-options="formDesignerMoreOptions"
             @dirty-change="emit('dirtyChange', $event)"
+            @more-select="handleFormDesignerMoreSelect"
           />
         </template>
 
@@ -391,6 +396,21 @@ const formGridColumns = computed({
   get: () => clampNumber(localFormDesignerSchema.value?.layout?.gridColumns, 1, 4, 2),
   set: value => updateFormDesignerLayout({ gridColumns: clampNumber(value, 1, 4, 2) }),
 })
+const formDesignerMoreOptions = computed(() => [
+  {
+    type: 'divider',
+    key: 'businessFormDivider',
+  },
+  {
+    label: '补齐未使用字段',
+    key: 'appendUnusedFields',
+    disabled: !unusedFields.value.length,
+  },
+  {
+    label: useLegacyFormCreateDesigner.value ? '使用新版画布' : '旧版画布',
+    key: 'toggleDesignerVersion',
+  },
+])
 const relationFieldGroups = computed(() => {
   return pageModelRefs.value
     .filter(ref => ref && !ref.primary)
@@ -888,6 +908,15 @@ function appendField(field) {
 
 function appendAllUnusedFields() {
   unusedFields.value.forEach(appendField)
+}
+
+function handleFormDesignerMoreSelect(key = '') {
+  if (key === 'appendUnusedFields') {
+    appendAllUnusedFields()
+    return
+  }
+  if (key === 'toggleDesignerVersion')
+    useLegacyFormCreateDesigner.value = !useLegacyFormCreateDesigner.value
 }
 
 function updateEditZoneProps(patch = {}) {
@@ -1569,6 +1598,20 @@ defineExpose({
   padding: 14px 16px;
 }
 
+.designer-section-head {
+  min-height: 40px;
+  gap: 10px;
+  padding: 7px 12px;
+}
+
+.designer-section-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .designer-section-head h3,
 .shelf-head h3 {
   margin: 0;
@@ -1584,12 +1627,23 @@ defineExpose({
   font-size: 12px;
 }
 
+.designer-section-head p {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .designer-head-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
+  flex: 0 0 auto;
 }
 
 .object-switch-control,
@@ -1606,6 +1660,22 @@ defineExpose({
   color: #64748b;
   font-size: 12px;
   white-space: nowrap;
+}
+
+.designer-head-compact-button {
+  flex: 0 0 auto;
+  --n-color: #f8fafc !important;
+  --n-color-hover: #eff6ff !important;
+  --n-color-pressed: #dbeafe !important;
+  --n-color-focus: #f8fafc !important;
+  --n-border: 1px solid #cbd5e1 !important;
+  --n-border-hover: 1px solid #93c5fd !important;
+  --n-border-pressed: 1px solid #60a5fa !important;
+  --n-border-focus: 1px solid #93c5fd !important;
+  --n-text-color: #475569 !important;
+  --n-text-color-hover: #2563eb !important;
+  --n-text-color-pressed: #1d4ed8 !important;
+  --n-text-color-focus: #2563eb !important;
 }
 
 .form-builder-grid {
@@ -1990,20 +2060,21 @@ defineExpose({
   }
 }
 .designer-section-head {
-  min-height: 44px;
-  padding: 8px 12px;
+  min-height: 40px;
+  padding: 7px 12px;
 }
 
 .designer-section-head h3 {
+  flex: 0 0 auto;
   margin: 0;
   font-size: 15px;
   line-height: 20px;
 }
 
 .designer-section-head p {
-  margin: 2px 0 0;
+  margin: 0;
   font-size: 12px;
-  line-height: 16px;
+  line-height: 18px;
 }
 
 .designer-head-actions {

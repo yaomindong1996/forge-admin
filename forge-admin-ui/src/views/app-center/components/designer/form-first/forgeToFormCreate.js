@@ -292,6 +292,8 @@ function applyFormCreateMeta(rule = {}, component = {}) {
 }
 
 function resolveRuleOptions(component = {}) {
+  if (component.props?.dictType)
+    return []
   if (Array.isArray(component.props?.options))
     return component.props.options
   return getDesignPlaceholderOptions(component.componentKey)

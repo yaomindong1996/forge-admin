@@ -11,13 +11,16 @@
         filterable
         clearable
         size="small"
-        placeholder="选择系统字典或输入新字典类型"
+        placeholder="选择系统字典或输入字典编码"
+        :filter="filterDictOption"
         @focus="loadDictTypes"
         @update:value="handleValueUpdate"
       />
-      <n-button class="create-dict-button" size="small" secondary :disabled="disabled" @click="openCreateModal">
-        新增字典
-      </n-button>
+      <div class="dict-select-actions">
+        <n-button class="create-dict-button" size="small" type="primary" :disabled="disabled" @click="openCreateModal">
+          新增字典
+        </n-button>
+      </div>
     </div>
 
     <n-modal
@@ -125,18 +128,25 @@ const options = computed(() => {
   systemDictTypes.value.forEach((item) => {
     if (item.dictType) {
       map.set(item.dictType, {
-        label: props.compact ? item.dictName || item.dictType : item.dictName ? `${item.dictName}（${item.dictType}）` : item.dictType,
+        label: formatDictTypeLabel(item),
         value: item.dictType,
+        dictName: item.dictName,
+        dictType: item.dictType,
       })
     }
   })
   props.fields.forEach((field) => {
     if (field.dictType && !map.has(field.dictType)) {
-      map.set(field.dictType, { label: field.dictType, value: field.dictType })
+      map.set(field.dictType, {
+        label: field.dictName ? `${field.dictName} · ${field.dictType}` : field.dictType,
+        value: field.dictType,
+        dictName: field.dictName,
+        dictType: field.dictType,
+      })
     }
   })
   if (props.value && !map.has(props.value)) {
-    map.set(props.value, { label: props.value, value: props.value })
+    map.set(props.value, { label: props.value, value: props.value, dictType: props.value })
   }
   return Array.from(map.values())
 })
@@ -167,6 +177,21 @@ function handleValueUpdate(value) {
   if (nextValue === props.value)
     return
   emit('update:value', nextValue)
+}
+
+function formatDictTypeLabel(item = {}) {
+  if (!item.dictType)
+    return ''
+  return item.dictName ? `${item.dictName} · ${item.dictType}` : item.dictType
+}
+
+function filterDictOption(pattern = '', option = {}) {
+  const keyword = String(pattern || '').trim().toLowerCase()
+  if (!keyword)
+    return true
+  return [option.label, option.value, option.dictName, option.dictType]
+    .filter(Boolean)
+    .some(item => String(item).toLowerCase().includes(keyword))
 }
 
 function openCreateModal() {
@@ -267,24 +292,54 @@ async function saveDict() {
 
 .dict-select-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 88px;
-  align-items: start;
   gap: 8px;
 }
 
 .dict-select-control {
   min-width: 0;
+  width: 100%;
 }
 
 .dict-select-control :deep(.n-base-selection) {
-  min-height: 28px;
+  min-height: 32px;
+  border-color: #cbd5e1;
+  background: #fff;
+}
+
+.dict-select-control :deep(.n-base-selection-label) {
+  color: #111827;
+  font-weight: 500;
+}
+
+.dict-select-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .create-dict-button {
-  width: 88px;
-  height: 28px;
-  min-height: 28px;
-  padding: 0;
+  min-width: 92px;
+  height: 32px;
+  min-height: 32px;
+  font-weight: 700;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.18);
+}
+
+.create-dict-button:hover {
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
+}
+
+.create-dict-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #fff;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .dict-item-list {

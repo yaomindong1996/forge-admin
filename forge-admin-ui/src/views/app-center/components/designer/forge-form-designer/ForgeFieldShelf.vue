@@ -1,10 +1,11 @@
 <template>
   <div class="forge-field-shelf">
     <div class="shelf-head">
-      <div>
+      <div class="shelf-head-main">
         <h3>字段与布局</h3>
         <p>拖入画布或点击添加。</p>
       </div>
+      <slot name="actions" />
     </div>
 
     <n-input
@@ -309,9 +310,17 @@ function finishDragging() {
 }
 
 .shelf-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
   padding: 10px 12px 8px;
   border-bottom: 1px solid #dbe3ee;
   background: #fff;
+}
+
+.shelf-head-main {
+  min-width: 0;
 }
 
 .shelf-head h3,

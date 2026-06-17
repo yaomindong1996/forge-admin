@@ -610,6 +610,11 @@ public class BusinessObjectDesignerService {
             if (props.containsKey("dictType")) {
                 field.setDictType(text(props.get("dictType")));
             }
+            if (props.containsKey("options")) {
+                Map<String, Object> basicProps = new LinkedHashMap<>(mapValue(field.getBasicProps()));
+                basicProps.putIfAbsent("options", props.get("options"));
+                field.setBasicProps(basicProps);
+            }
             if (props.containsKey("referenceObjectCode")) {
                 field.setReferenceObjectCode(text(props.get("referenceObjectCode")));
             }

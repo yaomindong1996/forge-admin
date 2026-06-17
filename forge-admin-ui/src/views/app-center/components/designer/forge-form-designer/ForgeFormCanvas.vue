@@ -1,5 +1,10 @@
 <template>
   <div class="forge-form-canvas" :class="{ 'preview-mode': previewMode }" @click="handleCanvasBlankClick" @dragover.prevent @drop="handleRootDrop">
+    <transition name="drop-error">
+      <div v-if="designerDropError" class="drop-error-toast">
+        {{ designerDropError }}
+      </div>
+    </transition>
     <div class="canvas-stage">
       <div
         v-if="!schema.components?.length"
@@ -54,7 +59,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import { createComponentFromField, insertDesignerComponent, moveDesignerComponent, normalizeFormDesignerSchema } from '../form-first/formDesignerSchema'
-import { clearDesignerDropKey, designerDropKey, setDesignerDropKey } from './designerDragState'
+import { clearDesignerDropKey, designerDropError, designerDropKey, setDesignerDropKey } from './designerDragState'
 import { createForgeFieldTemplateComponent, createForgeLayoutComponent } from './designerLayoutFactory'
 import ForgeFormCanvasNode from './ForgeFormCanvasNode.vue'
 
@@ -190,6 +195,7 @@ defineExpose({
 
 <style scoped>
 .forge-form-canvas {
+  position: relative;
   height: 100%;
   min-height: 0;
   overflow: auto;
@@ -197,6 +203,38 @@ defineExpose({
   background:
     linear-gradient(#eef2f7 1px, transparent 1px), linear-gradient(90deg, #eef2f7 1px, transparent 1px), #f8fafc;
   background-size: 24px 24px;
+}
+
+.drop-error-toast {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  margin: 0 auto 8px;
+  padding: 6px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  background: #fff1f2;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 8px 18px rgba(185, 28, 28, 0.1);
+}
+
+.drop-error-enter-active,
+.drop-error-leave-active {
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.drop-error-enter-from,
+.drop-error-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 .canvas-stage {

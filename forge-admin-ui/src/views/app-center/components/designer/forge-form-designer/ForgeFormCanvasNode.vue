@@ -333,10 +333,12 @@ import {
 } from '../form-first/formDesignerSchema'
 import {
   clearDesignerDragSource,
+  clearDesignerDropError,
   clearDesignerDropKey,
   designerDragSourceId,
   designerDropKey,
   setDesignerDragSource,
+  setDesignerDropError,
   setDesignerDropKey,
 } from './designerDragState'
 import { createForgeFieldTemplateComponent, createForgeLayoutComponent } from './designerLayoutFactory'
@@ -483,7 +485,7 @@ const childrenGridStyle = computed(() => {
 const previewField = computed(() => {
   const componentKey = props.component.componentKey || 'input'
   const fieldCode = props.component.fieldBinding?.fieldCode || props.component.id || componentKey
-  const rawProps = { ...(props.component.props || {}) }
+  const rawProps = resolveRuntimeOptionProps({ ...(props.component.props || {}) }, componentKey)
   delete rawProps.disabled
   delete rawProps.readonly
   return {
@@ -498,7 +500,7 @@ const previewField = computed(() => {
     disabled: false,
     readonly: false,
     dictType: rawProps.dictType,
-    options: rawProps.options || buildPreviewOptions(componentKey),
+    options: resolvePreviewOptions(rawProps, componentKey),
     props: {
       ...rawProps,
       disabled: false,
@@ -698,6 +700,7 @@ function handleNodeDragOver(event) {
     return
   if (designerDragSourceId.value === props.component.id || document.documentElement.dataset.forgeDesignerDraggingId === props.component.id) {
     clearDropPreview()
+    showInvalidDrop('不能拖入组件自身')
     return
   }
   const rect = nodeRef.value?.getBoundingClientRect()
@@ -707,11 +710,13 @@ function handleNodeDragOver(event) {
   const canDropInside = canPreviewDropIntoCurrentNode(event)
 
   if (canDropInside && ratio > 0.28 && ratio < 0.72) {
+    clearDesignerDropError()
     activeDropPosition.value = 'inside'
     setDesignerDropKey(insideDropKey.value)
     return
   }
 
+  clearDesignerDropError()
   const nextPosition = resolveDropPosition(ratio)
   activeDropPosition.value = nextPosition
   setDesignerDropKey(nextPosition === 'before' ? beforeDropKey.value : afterDropKey.value)
@@ -735,27 +740,34 @@ function handleNodeDrop(event) {
 }
 
 function handleInsideDrop(event) {
-  if (!canDropIntoCurrentNode(event))
+  if (!canDropIntoCurrentNode(event)) {
+    showInvalidDrop(resolveInvalidDropMessage(event))
     return
+  }
   handleDropToChildren((props.component.children || []).length, event)
 }
 
 function handleChildDrop(index, event) {
   if (isGridRow.value) {
     const child = resolveDraggedComponent(event)
-    if (child?.componentKey !== 'col')
+    if (child?.componentKey !== 'col') {
+      showInvalidDrop('栅格布局只能拖入栅格列')
       return
+    }
   }
   if (isTableLayout.value) {
     const child = resolveDraggedComponent(event)
-    if (!['tableGrid', 'fcTableGrid'].includes(child?.componentKey))
+    if (!['tableGrid', 'fcTableGrid'].includes(child?.componentKey)) {
+      showInvalidDrop('表格布局只能拖入表格单元格')
       return
+    }
   }
   handleDropToChildren(index, event)
 }
 
 function handleDropToChildren(index, event) {
   clearDropPreview()
+  clearDesignerDropError()
   const target = { parentId: props.component.id, index }
   const sourceId = event.dataTransfer.getData(DRAG_COMPONENT_MIME)
   if (sourceId) {
@@ -865,7 +877,14 @@ function updatePointerDropPreview(event) {
   }
 
   const targetId = targetWrap.dataset.forgeNodeId || ''
-  if (!targetId || targetId === props.component.id || isDescendantNodeWrap(targetWrap)) {
+  if (!targetId || targetId === props.component.id) {
+    showInvalidDrop('不能拖入组件自身')
+    clearPointerDropPreview()
+    return
+  }
+
+  if (isDescendantNodeWrap(targetWrap)) {
+    showInvalidDrop('不能拖入自己的子组件')
     clearPointerDropPreview()
     return
   }
@@ -880,6 +899,7 @@ function updatePointerDropPreview(event) {
   const targetComponent = getDesignerComponent(props.schema, targetId)
   const ratio = rect.height > 0 ? (event.clientY - rect.top) / rect.height : 0.5
   if (canPointerDropInside(targetComponent, ratio)) {
+    clearDesignerDropError()
     activeDropPosition.value = 'inside'
     activePointerDropTarget = { parentId: targetId, index: targetComponent?.children?.length || 0 }
     setDesignerDropKey(`${targetId}:inside`)
@@ -889,6 +909,7 @@ function updatePointerDropPreview(event) {
   const targetParentId = targetWrap.dataset.forgeParentId || ''
   const parentComponent = targetParentId ? getDesignerComponent(props.schema, targetParentId) : null
   if (!canAcceptDesignerChild(parentComponent, props.component)) {
+    showInvalidDrop(resolveInvalidPointerDropMessage(parentComponent))
     clearPointerDropPreview()
     return
   }
@@ -900,6 +921,7 @@ function updatePointerDropPreview(event) {
     parentId: targetParentId,
     index: targetIndex + (position === 'after' ? 1 : 0),
   }
+  clearDesignerDropError()
   setDesignerDropKey(`${targetId}:${position}`)
 }
 
@@ -927,6 +949,34 @@ function canPointerDropInside(targetComponent, ratio) {
   if (['row', 'fcRow', 'table', 'fcTable', 'tabs', 'elTabs', 'collapse', 'elCollapse'].includes(targetKey))
     return false
   return canAcceptDesignerChild(targetComponent, props.component)
+}
+
+function showInvalidDrop(message = '当前位置不能放置该组件') {
+  setDesignerDropError(message)
+}
+
+function resolveInvalidDropMessage(event) {
+  if (isField.value)
+    return '字段组件不能作为容器'
+  if (isTitle.value)
+    return '标题组件不能作为容器'
+  if (isGridRow.value)
+    return '栅格布局只能接收栅格列'
+  const child = resolveDraggedComponent(event)
+  if (!canAcceptDesignerChild(props.component, child))
+    return '该容器不支持放入这个组件'
+  return '当前位置不能放置该组件'
+}
+
+function resolveInvalidPointerDropMessage(parentComponent) {
+  if (!parentComponent)
+    return '当前位置不能放置该组件'
+  const key = parentComponent.componentKey || ''
+  if (['row', 'fcRow'].includes(key))
+    return '栅格布局只能拖入栅格列'
+  if (['table', 'fcTable'].includes(key))
+    return '表格布局只能拖入表格单元格'
+  return '该容器不支持放入这个组件'
 }
 
 function mountPointerDragImage(event) {
@@ -1020,7 +1070,7 @@ function isCrudRoleEnabled(field = {}, role = 'table', index = 0, maxSearchField
 function toCrudFormField(component = {}, area = 'edit') {
   const componentKey = component.componentKey || 'input'
   const field = component.fieldBinding?.fieldCode || component.id || componentKey
-  const rawProps = { ...(component.props || {}) }
+  const rawProps = resolveRuntimeOptionProps({ ...(component.props || {}) }, componentKey)
   const crudConfig = rawProps.__crudConfig || {}
   delete rawProps.__designerStyle
   delete rawProps.customStyleText
@@ -1038,7 +1088,7 @@ function toCrudFormField(component = {}, area = 'edit') {
     readonly: area === 'edit' ? Boolean(crudConfig.edit?.readonly) : false,
     span: Math.max(1, Math.min(6, Number(areaConfig.span || component.layout?.span || 1))),
     dictType: rawProps.dictType,
-    options: rawProps.options || buildPreviewOptions(componentKey),
+    options: resolvePreviewOptions(rawProps, componentKey),
     showFeedback: false,
     props: {
       ...rawProps,
@@ -1185,6 +1235,23 @@ function buildPreviewOptions(componentKey = '') {
     { label: '选项一', value: '1' },
     { label: '选项二', value: '2' },
   ]
+}
+
+function resolveRuntimeOptionProps(rawProps = {}, componentKey = '') {
+  const nextProps = { ...(rawProps || {}) }
+  if (shouldUseDictOptions(nextProps, componentKey))
+    delete nextProps.options
+  return nextProps
+}
+
+function resolvePreviewOptions(rawProps = {}, componentKey = '') {
+  if (shouldUseDictOptions(rawProps, componentKey))
+    return undefined
+  return rawProps.options || buildPreviewOptions(componentKey)
+}
+
+function shouldUseDictOptions(rawProps = {}, componentKey = '') {
+  return Boolean(rawProps.dictType) && ['select', 'dictSelect', 'radio', 'radioButton', 'checkbox', 'cascader'].includes(componentKey)
 }
 function buildGroupTitleProps(component) {
   return {
@@ -1504,7 +1571,6 @@ function buildFormDividerProps(component) {
 .canvas-node:active .drag-handle {
   cursor: grabbing;
 }
-
 
 .crud-preview {
   display: grid;

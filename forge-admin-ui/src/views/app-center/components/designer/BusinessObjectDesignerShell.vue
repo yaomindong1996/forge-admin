@@ -60,8 +60,20 @@
       </div>
     </header>
 
-    <div class="designer-workbench">
-      <aside class="designer-nav">
+    <div class="designer-workbench" :class="{ 'nav-collapsed': navCollapsed }">
+      <aside class="designer-nav" :class="{ collapsed: navCollapsed }">
+        <button
+          type="button"
+          class="nav-collapse-button"
+          :title="navCollapsed ? '展开导航' : '收起导航'"
+          @click="navCollapsed = !navCollapsed"
+        >
+          <n-icon>
+            <ChevronForwardOutline v-if="navCollapsed" />
+            <ChevronBackOutline v-else />
+          </n-icon>
+          <span>导航</span>
+        </button>
         <button
           v-for="item in filteredNavItems"
           :key="item.key"
@@ -69,6 +81,7 @@
           class="nav-item"
           :class="{ active: item.key === activePanel, disabled: loading }"
           :disabled="loading"
+          :title="navCollapsed ? item.label : ''"
           @click="handlePanelClick(item.key)"
         >
           <n-icon>
@@ -120,6 +133,8 @@ import {
   ArrowBackOutline,
   BuildOutline,
   CheckmarkDoneOutline,
+  ChevronBackOutline,
+  ChevronForwardOutline,
   CubeOutline,
   DocumentTextOutline,
   EllipsisHorizontalOutline,
@@ -135,7 +150,7 @@ import {
   SettingsOutline,
   TextOutline,
 } from '@vicons/ionicons5'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 const props = defineProps({
   designer: {
@@ -191,6 +206,7 @@ const emit = defineEmits([
   'openTrigger',
   'openFunctionMarket',
 ])
+const navCollapsed = ref(true)
 
 const navItems = [
   { key: 'basic', label: '基本信息', icon: OptionsOutline },
@@ -395,12 +411,53 @@ function handleTopbarActionsClick(event) {
   height: calc(100vh - 72px);
 }
 
+.designer-workbench.nav-collapsed {
+  grid-template-columns: 54px minmax(0, 1fr);
+}
+
 .designer-nav {
   min-height: 0;
   overflow-y: auto;
   border-right: 1px solid #e5e7eb;
   background: #fff;
   padding: 14px 10px;
+}
+
+.designer-nav.collapsed {
+  padding: 12px 7px;
+}
+
+.nav-collapse-button {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  min-height: 34px;
+  margin-bottom: 10px;
+  padding: 0 9px;
+  cursor: pointer;
+  border: 1px solid #dbe5f2;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 650;
+  text-align: left;
+}
+
+.nav-collapse-button:hover {
+  border-color: #93c5fd;
+  background: #eef6ff;
+}
+
+.designer-nav.collapsed .nav-collapse-button {
+  grid-template-columns: 1fr;
+  place-items: center;
+  padding: 0;
+}
+
+.designer-nav.collapsed .nav-collapse-button span {
+  display: none;
 }
 
 .nav-item {
@@ -417,6 +474,17 @@ function handleTopbarActionsClick(event) {
   font-size: 13px;
   text-align: left;
   padding: 0 10px;
+}
+
+.designer-nav.collapsed .nav-item {
+  grid-template-columns: 1fr;
+  place-items: center;
+  padding: 0;
+}
+
+.designer-nav.collapsed .nav-item span,
+.designer-nav.collapsed .nav-item em {
+  display: none;
 }
 
 .nav-item + .nav-item {
@@ -468,6 +536,10 @@ function handleTopbarActionsClick(event) {
   margin-top: 16px;
   border-top: 1px solid #e5e7eb;
   padding-top: 14px;
+}
+
+.designer-nav.collapsed .closure-steps {
+  display: none;
 }
 
 .closure-steps-head {
@@ -574,12 +646,33 @@ function handleTopbarActionsClick(event) {
     height: calc(100vh - 116px);
   }
 
+  .designer-workbench.nav-collapsed {
+    grid-template-columns: 1fr;
+  }
+
   .designer-nav {
     display: flex;
     overflow-x: auto;
     overflow-y: hidden;
     border-right: 0;
     border-bottom: 1px solid #e5e7eb;
+  }
+
+  .designer-nav.collapsed {
+    padding: 10px;
+  }
+
+  .designer-nav.collapsed .nav-collapse-button span,
+  .designer-nav.collapsed .nav-item span,
+  .designer-nav.collapsed .nav-item em {
+    display: inline;
+  }
+
+  .designer-nav.collapsed .nav-collapse-button,
+  .designer-nav.collapsed .nav-item {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    place-items: initial;
+    padding: 0 10px;
   }
 
   .nav-item {
