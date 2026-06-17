@@ -401,6 +401,26 @@
   font-size: 14px !important;
 }
 
+/* InputNumber 的加减按钮是 Naive 内部按钮，不能套用全局业务按钮尺寸。 */
+.n-input-number .n-button {
+  min-width: 22px !important;
+  width: 22px !important;
+  height: 16px !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  transform: none !important;
+}
+
+.n-input-number .n-button__content,
+.n-input-number .n-button__icon {
+  min-width: 0 !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+}
+
 .n-button:not(.n-button--primary-type):not(.n-button--error-type):not(.n-button--success-type):not(
     .n-button--warning-type
   ):not(.n-button--info-type):not(.n-button--text-type):not(.n-button--quaternary-type):not(.n-button--tertiary-type) {
@@ -429,6 +449,19 @@
 
 .n-button:active:not(:disabled) {
   transform: translateY(1px) scale(0.98) !important;
+}
+
+.n-input-number .n-button,
+.n-input-number .n-button:hover:not(:disabled),
+.n-input-number .n-button:active:not(:disabled),
+.n-input-number .n-button:focus:not(:disabled) {
+  min-width: 22px !important;
+  width: 22px !important;
+  height: 16px !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .n-button:disabled {

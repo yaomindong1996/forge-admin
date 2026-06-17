@@ -6,7 +6,9 @@ import AiCrudPage from './AiCrudPage.vue'
 import AiCustomQuery from './AiCustomQuery.vue'
 import AiCustomSelect from './AiCustomSelect.vue'
 import AiForm from './AiForm.vue'
+import AiFormGroupTitle from './AiFormGroupTitle.vue'
 import AiFormItem from './AiFormItem.vue'
+import AiFormSectionTitle from './AiFormSectionTitle.vue'
 import AiSearch from './AiSearch.vue'
 import AiTable from './AiTable.vue'
 import AiTableFilter from './AiTableFilter.vue'
@@ -20,7 +22,9 @@ export {
   AiCustomQuery,
   AiCustomSelect,
   AiForm,
+  AiFormGroupTitle,
   AiFormItem,
+  AiFormSectionTitle,
   AiSearch,
   AiTable,
   AiTableFilter,

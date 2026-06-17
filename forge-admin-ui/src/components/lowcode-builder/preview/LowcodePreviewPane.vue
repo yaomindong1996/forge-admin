@@ -552,6 +552,7 @@ function buildRuntimeCrudProps(cfg) {
     editShowFeedback: options.editShowFeedback ?? cfg.editShowFeedback ?? true,
     editFormClass: options.editFormClass || cfg.editFormClass || '',
     editFormStyle: options.editFormStyle || cfg.editFormStyle,
+    formAssets: options.formAssets || cfg.formAssets || [],
     editXGap: normalizeNumberOption(options.editXGap ?? cfg.editXGap, 16),
     editYGap: normalizeNumberOption(options.editYGap ?? cfg.editYGap, 16),
     loadDetailOnEdit: options.loadDetailOnEdit ?? cfg.loadDetailOnEdit ?? true,
@@ -724,6 +725,7 @@ function hasRuntimeFormulaConfig(formulaConfig) {
 function hydrateRuntimeLayoutNode(node = {}, fieldMap, usedFields) {
   if (!node || typeof node !== 'object')
     return null
+  const nodeType = resolveRuntimeLayoutNodeType(node)
   if (node.nodeType === 'field') {
     const field = fieldMap.get(node.field)
     if (!field)
@@ -741,12 +743,52 @@ function hydrateRuntimeLayoutNode(node = {}, fieldMap, usedFields) {
   const children = (node.children || [])
     .map(child => hydrateRuntimeLayoutNode(child, fieldMap, usedFields))
     .filter(Boolean)
-  if (!children.length && !['divider'].includes(node.nodeType))
+  if (!children.length && !isStandaloneRuntimeLayoutNode({ ...node, nodeType }))
     return null
   return {
     ...node,
+    nodeType,
     children,
   }
+}
+
+function resolveRuntimeLayoutNodeType(node = {}) {
+  if (isGroupTitleRuntimeLayoutNode(node))
+    return 'groupTitle'
+  if (isLegacyGroupTitleRuntimeLayoutNode(node))
+    return 'groupTitle'
+  if (isSectionTitleRuntimeLayoutNode(node))
+    return 'divider'
+  if (isActionRuntimeLayoutNode(node))
+    return node.componentKey || node.type || node.nodeType
+  return node.nodeType
+}
+
+function isGroupTitleRuntimeLayoutNode(node = {}) {
+  return ['title', 'fcTitle', 'sectionTitle', 'groupTitle', 'groupHeader', 'GroupHeader', 'titleBlock', 'section']
+    .includes(node.componentKey || node.type || node.nodeType)
+}
+
+function isSectionTitleRuntimeLayoutNode(node = {}) {
+  return ['divider', 'elDivider', 'AiFormSectionTitle', 'aiFormSectionTitle', 'formSectionTitle', 'FormSectionTitle']
+    .includes(node.componentKey || node.type || node.nodeType)
+}
+
+function isLegacyGroupTitleRuntimeLayoutNode(node = {}) {
+  const props = node.props || {}
+  return node.nodeType === 'divider'
+    && !node.componentKey
+    && Object.prototype.hasOwnProperty.call(props, 'description')
+    && !Object.prototype.hasOwnProperty.call(props, 'title')
+}
+
+function isStandaloneRuntimeLayoutNode(node = {}) {
+  return isSectionTitleRuntimeLayoutNode(node) || isGroupTitleRuntimeLayoutNode(node) || isActionRuntimeLayoutNode(node)
+}
+
+function isActionRuntimeLayoutNode(node = {}) {
+  return ['button', 'table', 'tableGrid', 'AiCrudPage', 'aiCrudPage', 'crud', 'crudBlock']
+    .includes(node.componentKey || node.type || node.nodeType)
 }
 
 function resolveDateTimeProps(type) {

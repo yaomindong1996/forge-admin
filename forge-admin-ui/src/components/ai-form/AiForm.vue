@@ -46,6 +46,7 @@
             :y-gap="yGap"
             :show-feedback="showFeedback"
             @field-change="handleFieldChange"
+            @node-action="handleNodeAction"
         >
           <!-- 支持自定义插槽 -->
           <template v-for="slotName in Object.keys($slots)" #[slotName]="slotProps">
@@ -92,6 +93,33 @@
         {{ cancelText }}
       </n-button>
     </n-space>
+
+    <n-modal
+        v-model:show="actionModalVisible"
+        preset="card"
+        :title="actionModalTitle"
+        :bordered="false"
+        class="ai-form-action-modal"
+        style="width: min(760px, 92vw)"
+    >
+      <AiForm
+          v-if="actionModalSchema.length"
+          v-model:value="actionModalValue"
+          :schema="actionModalSchema"
+          :label-placement="actionModalLayout.labelPlacement || labelPlacement"
+          :label-width="actionModalLayout.labelWidth ?? labelWidth"
+          :label-align="actionModalLayout.labelAlign || labelAlign"
+          :size="actionModalLayout.size || size"
+          :grid-cols="actionModalLayout.gridCols || actionModalLayout.gridColumns || gridCols"
+          :x-gap="actionModalLayout.xGap || actionModalLayout.columnGap || xGap"
+          :y-gap="actionModalLayout.yGap || actionModalLayout.rowGap || yGap"
+          :show-feedback="actionModalLayout.showFeedback !== false"
+          :show-actions="false"
+          :context="itemContext"
+          :form-assets="formAssets"
+      />
+      <n-empty v-else description="未找到可渲染的弹窗表单" />
+    </n-modal>
   </n-form>
 </template>
 
@@ -193,15 +221,24 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  formAssets: {
+    type: Array,
+    default: () => [],
+  },
 })
 
-const emit = defineEmits(['update:value', 'submit', 'reset', 'cancel'])
+const emit = defineEmits(['update:value', 'submit', 'reset', 'cancel', 'nodeAction'])
 const slots = useSlots()
 
 const formRef = ref(null)
 const formValue = ref({})
 const isCollapsed = ref(true)
 const activeSectionId = ref('')
+const actionModalVisible = ref(false)
+const actionModalTitle = ref('业务弹窗')
+const actionModalSchema = ref([])
+const actionModalValue = ref({})
+const actionModalLayout = ref({})
 
 // 初始化表单数据
 watch(() => props.value, (newVal) => {
@@ -346,6 +383,7 @@ const itemContext = computed(() => ({
   ...props.context,
   schema: visibleFieldSchema.value,
   allSchema: allFieldSchema.value,
+  formAssets: resolveFormAssets(),
   patchFormData,
 }))
 
@@ -424,6 +462,125 @@ function patchFormData(patch = {}) {
   })
   formValue.value = next
   emit('update:value', { ...formValue.value })
+}
+
+function handleNodeAction(payload = {}) {
+  emit('nodeAction', payload)
+  const event = payload.event || {}
+  if (event.action === 'setValue' && event.targetId) {
+    patchFormData({ [event.targetId]: event.value ?? event.targetValue ?? event.whenValue ?? '' })
+    return
+  }
+  if (event.action !== 'openModal')
+    return
+  const asset = findFormAsset(event.modalFormKey)
+  actionModalTitle.value = event.modalTitle || asset?.formName || '业务弹窗'
+  actionModalLayout.value = asset?.schema?.layout || {}
+  actionModalSchema.value = buildActionModalSchema(asset?.schema)
+  actionModalValue.value = buildDefaultModalValue(actionModalSchema.value)
+  actionModalVisible.value = true
+}
+
+function resolveFormAssets() {
+  const contextAssets = Array.isArray(props.context?.formAssets) ? props.context.formAssets : []
+  return props.formAssets.length ? props.formAssets : contextAssets
+}
+
+function findFormAsset(formKey = '') {
+  const assets = resolveFormAssets()
+  if (!formKey || formKey === 'current')
+    return null
+  return assets.find(asset => asset?.formKey === formKey || asset?.schema?.formKey === formKey) || null
+}
+
+function buildActionModalSchema(schema = {}) {
+  if (!schema)
+    return []
+  const components = Array.isArray(schema) ? schema : schema.components || []
+  return components.map(normalizeDesignerComponentForRuntime).filter(Boolean)
+}
+
+function normalizeDesignerComponentForRuntime(component = {}) {
+  if (!component || typeof component !== 'object')
+    return null
+  const componentKey = component.componentKey || component.type || 'input'
+  const nodeType = resolveDesignerNodeType(componentKey)
+  const children = Array.isArray(component.children)
+    ? component.children.map(normalizeDesignerComponentForRuntime).filter(Boolean)
+    : []
+  const base = {
+    ...component,
+    ...(component.props || {}),
+    componentKey,
+    type: normalizeDesignerFieldType(componentKey),
+    component: normalizeDesignerFieldType(componentKey),
+    field: component.fieldBinding?.fieldCode || component.field || component.id,
+    prop: component.fieldBinding?.fieldCode || component.field || component.id,
+    label: component.label,
+    span: component.layout?.span ?? component.span,
+    required: Boolean(component.validation?.required),
+    requiredMessage: component.validation?.requiredMessage,
+    hidden: Boolean(component.visibility?.hidden),
+    readonly: Boolean(component.visibility?.readonly),
+    disabled: Boolean(component.visibility?.readonly || component.props?.disabled),
+    props: {
+      ...(component.props || {}),
+      disabled: Boolean(component.visibility?.readonly || component.props?.disabled),
+    },
+    children,
+  }
+  if (nodeType) {
+    base.nodeType = nodeType
+    if (nodeType !== 'field')
+      delete base.field
+  }
+  if (Array.isArray(component.validation?.rules) && component.validation.rules.length)
+    base.rules = component.validation.rules.map(rule => ({ ...rule }))
+  return base
+}
+
+function resolveDesignerNodeType(componentKey = '') {
+  if (['row', 'fcRow'].includes(componentKey))
+    return 'row'
+  if (componentKey === 'col')
+    return 'col'
+  if (['card', 'elCard'].includes(componentKey))
+    return 'card'
+  if (['tabs', 'elTabs'].includes(componentKey))
+    return 'tabs'
+  if (['tabPane', 'elTabPane'].includes(componentKey))
+    return 'tabPane'
+  if (['collapse', 'elCollapse'].includes(componentKey))
+    return 'collapse'
+  if (['collapseItem', 'elCollapseItem'].includes(componentKey))
+    return 'collapseItem'
+  if (['divider', 'elDivider', 'AiFormSectionTitle', 'aiFormSectionTitle', 'formSectionTitle', 'FormSectionTitle'].includes(componentKey))
+    return 'divider'
+  if (['title', 'fcTitle', 'groupTitle'].includes(componentKey))
+    return 'groupTitle'
+  if (['button', 'table', 'tableGrid'].includes(componentKey))
+    return componentKey
+  if (['AiCrudPage', 'aiCrudPage', 'crud', 'crudBlock'].includes(componentKey))
+    return 'AiCrudPage'
+  return ''
+}
+
+function normalizeDesignerFieldType(componentKey = '') {
+  if (['inputNumber', 'integer', 'money'].includes(componentKey))
+    return 'number'
+  if (componentKey === 'colorPicker')
+    return 'color'
+  if (componentKey === 'upload')
+    return 'fileUpload'
+  return componentKey || 'input'
+}
+
+function buildDefaultModalValue(schema = []) {
+  const result = {}
+  flattenFieldNodes(schema).forEach((field) => {
+    result[field.field] = field.defaultValue ?? field.props?.defaultValue ?? null
+  })
+  return result
 }
 
 // 提交表单
@@ -574,7 +731,7 @@ function filterVisibleNodes(nodes = []) {
           return null
         if (isRuntimeLayoutNode(node)) {
           const children = filterVisibleNodes(node.children || [])
-          if (!children.length && !['divider'].includes(node.nodeType))
+          if (!children.length && !isStandaloneRuntimeLayoutNode(node))
             return null
           return {
             ...node,
@@ -687,7 +844,30 @@ function collectSectionNavItems(nodes = []) {
 }
 
 function isDividerNode(node = {}) {
-  return node.type === 'divider' || node.nodeType === 'divider'
+  return !isLegacyGroupTitleNode(node) && ['divider', 'elDivider', 'AiFormSectionTitle', 'aiFormSectionTitle', 'formSectionTitle', 'FormSectionTitle']
+    .includes(node.type || node.nodeType || node.componentKey)
+}
+
+function isGroupTitleNode(node = {}) {
+  return isLegacyGroupTitleNode(node) || ['title', 'fcTitle', 'sectionTitle', 'groupTitle', 'groupHeader', 'GroupHeader', 'titleBlock', 'section']
+    .includes(node.type || node.nodeType || node.componentKey)
+}
+
+function isStandaloneRuntimeLayoutNode(node = {}) {
+  return isDividerNode(node) || isGroupTitleNode(node) || isActionRuntimeNode(node)
+}
+
+function isActionRuntimeNode(node = {}) {
+  return ['button', 'table', 'AiCrudPage', 'aiCrudPage', 'crud', 'crudBlock']
+    .includes(node.type || node.nodeType || node.componentKey)
+}
+
+function isLegacyGroupTitleNode(node = {}) {
+  const props = node.props || {}
+  return node.nodeType === 'divider'
+    && !node.componentKey
+    && Object.prototype.hasOwnProperty.call(props, 'description')
+    && !Object.prototype.hasOwnProperty.call(props, 'title')
 }
 </script>
 

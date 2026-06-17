@@ -1,5 +1,5 @@
 <template>
-  <div class="business-form-designer" :class="{ 'relation-object-active': !isPrimaryObjectActive }">
+  <div class="business-form-designer" :class="{ 'relation-object-active': !isPrimaryObjectActive, 'native-form-active': isPrimaryObjectActive && !useLegacyFormCreateDesigner }">
     <section class="form-canvas-region">
       <div class="designer-section-head">
         <div>
@@ -15,7 +15,7 @@
               </n-radio-button>
             </n-radio-group>
           </div>
-          <div class="modal-type-control">
+          <div v-if="useLegacyFormCreateDesigner" class="modal-type-control">
             <span>编辑打开方式</span>
             <n-radio-group v-model:value="editModalType" size="small">
               <n-radio-button value="modal">
@@ -26,7 +26,7 @@
               </n-radio-button>
             </n-radio-group>
           </div>
-          <div v-if="isPrimaryObjectActive" class="layout-columns-control">
+          <div v-if="isPrimaryObjectActive && useLegacyFormCreateDesigner" class="layout-columns-control">
             <span>表单列数</span>
             <n-radio-group v-model:value="formGridColumns" size="small">
               <n-radio-button :value="1">
@@ -43,13 +43,26 @@
           <n-button v-if="isPrimaryObjectActive" size="small" secondary :disabled="!unusedFields.length" @click="appendAllUnusedFields">
             补齐未使用字段
           </n-button>
+          <n-button v-if="isPrimaryObjectActive" size="small" secondary @click="useLegacyFormCreateDesigner = !useLegacyFormCreateDesigner">
+            {{ useLegacyFormCreateDesigner ? '使用新版画布' : '旧版画布' }}
+          </n-button>
         </div>
       </div>
 
       <div class="form-builder-grid" :class="{ 'relation-mode': !isPrimaryObjectActive }">
         <template v-if="isPrimaryObjectActive">
           <BusinessFormCreateDesigner
+            v-if="useLegacyFormCreateDesigner"
             ref="formCreateDesignerRef"
+            v-model="localFormDesignerSchema"
+            :fields="primaryDesignFields"
+            :object-code="objectCode"
+            :object-name="objectName"
+            @dirty-change="emit('dirtyChange', $event)"
+          />
+          <ForgeFormDesigner
+            v-else
+            ref="forgeFormDesignerRef"
             v-model="localFormDesignerSchema"
             :fields="primaryDesignFields"
             :object-code="objectCode"
@@ -171,7 +184,7 @@
       </div>
     </section>
 
-    <aside v-if="isPrimaryObjectActive" class="field-shelf">
+    <aside v-if="isPrimaryObjectActive && useLegacyFormCreateDesigner" class="field-shelf">
       <div class="shelf-head">
         <div>
           <h3>字段库</h3>
@@ -228,6 +241,7 @@ import {
   syncPageSchemaWithModel,
 } from '@/components/lowcode-builder/page/page-schema'
 import BusinessFormCreateDesigner from './BusinessFormCreateDesigner.vue'
+import ForgeFormDesigner from './forge-form-designer/ForgeFormDesigner.vue'
 import { buildAutoFieldAssets } from './form-first/autoFieldRegistry'
 import { extractForgeSchemaFieldRefs, forgeSchemaToFormCreate } from './form-first/forgeToFormCreate'
 import { applyGridColumnsToFormDesignerSchema, normalizeFormDesignerSchema } from './form-first/formDesignerSchema'
@@ -334,6 +348,9 @@ const saving = ref(false)
 const shelfTab = ref('unused')
 const activeObjectKey = ref('primary')
 const formCreateDesignerRef = ref(null)
+const forgeFormDesignerRef = ref(null)
+const useLegacyFormCreateDesigner = ref(false)
+const activeFormDesignerRef = computed(() => useLegacyFormCreateDesigner.value ? formCreateDesignerRef.value : forgeFormDesignerRef.value)
 
 const baseModelSchema = computed(() => {
   const modelFields = props.modelSchema?.fields || []
@@ -371,8 +388,8 @@ const editModalType = computed({
   set: value => updateEditZoneProps({ modalType: value || 'modal' }),
 })
 const formGridColumns = computed({
-  get: () => clampNumber(localFormDesignerSchema.value?.layout?.gridColumns, 1, 3, 2),
-  set: value => updateFormDesignerLayout({ gridColumns: clampNumber(value, 1, 3, 2) }),
+  get: () => clampNumber(localFormDesignerSchema.value?.layout?.gridColumns, 1, 4, 2),
+  set: value => updateFormDesignerLayout({ gridColumns: clampNumber(value, 1, 4, 2) }),
 })
 const relationFieldGroups = computed(() => {
   return pageModelRefs.value
@@ -460,6 +477,25 @@ watch(
 )
 
 watch(
+  () => editZone.value?.props?.modalType,
+  (value) => {
+    if (!['modal', 'drawer'].includes(value))
+      return
+    const rawHasModalType = Object.prototype.hasOwnProperty.call(props.formDesignerSchema?.layout || {}, 'modalType')
+    if (rawHasModalType || localFormDesignerSchema.value?.layout?.modalType === value)
+      return
+    localFormDesignerSchema.value = normalizeFormDesignerSchema({
+      ...(localFormDesignerSchema.value || {}),
+      layout: {
+        ...(localFormDesignerSchema.value?.layout || {}),
+        modalType: value,
+      },
+    })
+  },
+  { immediate: true },
+)
+
+watch(
   effectiveModelSchema,
   (value) => {
     const next = syncPageSchemaWithModel(localSchema.value, value)
@@ -473,6 +509,9 @@ watch(
   localFormDesignerSchema,
   (value) => {
     emit('update:formDesignerSchema', cloneSchema(value || null))
+    const nextModalType = value?.layout?.modalType
+    if (['modal', 'drawer'].includes(nextModalType) && editZone.value?.props?.modalType !== nextModalType)
+      updateEditZoneProps({ modalType: nextModalType })
     syncFormDesignerSchemaToPageSchema(value)
   },
   { deep: true },
@@ -499,7 +538,7 @@ function syncFormDesignerSchemaToPageSchema(schema, fields = primaryDesignFields
     return
   const normalizedSchema = normalizeFormDesignerSchema(schema)
   const layout = normalizedSchema.layout || {}
-  const gridColumns = clampNumber(layout.gridColumns, 1, 3, 2)
+  const gridColumns = clampNumber(layout.gridColumns, 1, 4, 2)
   const defaultLabelWidth = resolveNumber(layout.labelWidth, 100)
   const fieldSet = new Set((fields || []).map(field => field.field || field.fieldCode).filter(Boolean))
   const { rules, options } = forgeSchemaToFormCreate({
@@ -528,6 +567,7 @@ function syncFormDesignerSchemaToPageSchema(schema, fields = primaryDesignFields
       inlineFeedback: Boolean(layout.inlineFeedback),
       editFormStyle: layout.formStyle,
       editFormClass: layout.formClass,
+      formAssets: Array.isArray(normalizedSchema.settings?.formAssets) ? normalizedSchema.settings.formAssets : [],
       rowGap: resolveNumber(layout.rowGap, 16),
       columnGap: resolveNumber(layout.columnGap, 16),
       formLayout,
@@ -651,28 +691,49 @@ function buildRuntimeFormLayoutNode(component = {}, index = 0, fieldSet, gridCol
   const meta = buildRuntimeLayoutMeta(component)
 
   if (isRowLayoutComponent(componentKey)) {
-    return { nodeType: 'row', key, props, children, span: gridColumns, ...meta }
+    return { nodeType: 'row', componentKey, key, props, children, span: gridColumns, ...meta }
   }
   if (isColumnLayoutComponent(componentKey)) {
-    return { nodeType: 'col', key, props, children, span, ...meta }
+    return { nodeType: 'col', componentKey, key, props, children, span, ...meta }
   }
   if (['elCard', 'card'].includes(componentKey)) {
-    return { nodeType: 'card', key, label, props, children, span: gridColumns, ...meta }
+    return { nodeType: 'card', componentKey, key, label, props, children, span: gridColumns, ...meta }
   }
   if (['elTabs', 'tabs'].includes(componentKey)) {
-    return { nodeType: 'tabs', key, props, children, span: gridColumns, ...meta }
+    return { nodeType: 'tabs', componentKey, key, props, children, span: gridColumns, ...meta }
   }
   if (['elTabPane', 'tabPane'].includes(componentKey)) {
-    return { nodeType: 'tabPane', key, label, props, children, span: gridColumns, ...meta }
+    return { nodeType: 'tabPane', componentKey, key, label, props, children, span: gridColumns, ...meta }
   }
   if (['elCollapse', 'collapse'].includes(componentKey)) {
-    return { nodeType: 'collapse', key, props, children, span: gridColumns, ...meta }
+    return { nodeType: 'collapse', componentKey, key, props, children, span: gridColumns, ...meta }
   }
   if (['elCollapseItem', 'collapseItem'].includes(componentKey)) {
-    return { nodeType: 'collapseItem', key, label, props, children, span: gridColumns, ...meta }
+    return { nodeType: 'collapseItem', componentKey, key, label, props, children, span: gridColumns, ...meta }
   }
-  if (['elDivider', 'divider', 'fcTitle', 'title'].includes(componentKey)) {
-    return { nodeType: 'divider', key, label, props, span: gridColumns, ...meta }
+  if (componentKey === 'button') {
+    return { nodeType: 'button', componentKey, key, label, props, span, align: normalizeAlign(component.layout?.align), ...meta }
+  }
+  if (['table', 'tableGrid'].includes(componentKey)) {
+    return {
+      nodeType: componentKey,
+      componentKey,
+      key,
+      label,
+      props,
+      children,
+      span: componentKey === 'table' ? gridColumns : span,
+      ...meta,
+    }
+  }
+  if (['AiCrudPage', 'aiCrudPage', 'crud', 'crudBlock'].includes(componentKey)) {
+    return { nodeType: 'AiCrudPage', componentKey, key, label, props, children, span: gridColumns, ...meta }
+  }
+  if (['elDivider', 'divider', 'AiFormSectionTitle'].includes(componentKey)) {
+    return { nodeType: 'divider', componentKey, key, label, props, span: gridColumns, ...meta }
+  }
+  if (['fcTitle', 'title', 'groupTitle'].includes(componentKey)) {
+    return { nodeType: 'groupTitle', componentKey, key, label, props, span: gridColumns, ...meta }
   }
   return children.length ? children : null
 }
@@ -822,7 +883,7 @@ function isPlainObject(value) {
 function appendField(field) {
   if (isReadonlySystemField(field) || usedFieldSet.value.has(field.field))
     return
-  formCreateDesignerRef.value?.appendField?.(field)
+  activeFormDesignerRef.value?.appendField?.(field)
 }
 
 function appendAllUnusedFields() {
@@ -842,9 +903,9 @@ function updateEditZoneProps(patch = {}) {
 }
 
 function updateFormDesignerLayout(patch = {}) {
-  const flushedSchema = formCreateDesignerRef.value?.flushDesigner?.()
+  const flushedSchema = activeFormDesignerRef.value?.flushDesigner?.()
   const currentSchema = normalizeFormDesignerSchema(flushedSchema || localFormDesignerSchema.value || {})
-  const nextGridColumns = patch.gridColumns ? clampNumber(patch.gridColumns, 1, 3, 2) : currentSchema.layout?.gridColumns || 2
+  const nextGridColumns = patch.gridColumns ? clampNumber(patch.gridColumns, 1, 4, 2) : currentSchema.layout?.gridColumns || 2
   localFormDesignerSchema.value = {
     ...applyGridColumnsToFormDesignerSchema(currentSchema, nextGridColumns),
     layout: {
@@ -1159,7 +1220,7 @@ function syncDesignerDraft() {
 }
 
 function buildCurrentDesignerDraft() {
-  const formSchema = formCreateDesignerRef.value?.flushDesigner?.() || localFormDesignerSchema.value
+  const formSchema = activeFormDesignerRef.value?.flushDesigner?.() || localFormDesignerSchema.value
   const normalizedFormSchema = normalizeFormDesignerSchema(formSchema || {})
   const { fields: nextFields, createdFields } = buildAutoFieldAssets(normalizedFormSchema, primaryBusinessFieldAssets.value)
   const formFieldComponents = buildFormFieldComponentMap(normalizedFormSchema)
@@ -1484,6 +1545,10 @@ defineExpose({
 }
 
 .business-form-designer.relation-object-active {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.business-form-designer.native-form-active {
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -1923,5 +1988,25 @@ defineExpose({
   .designer-head-actions {
     flex-wrap: wrap;
   }
+}
+.designer-section-head {
+  min-height: 44px;
+  padding: 8px 12px;
+}
+
+.designer-section-head h3 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.designer-section-head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.designer-head-actions {
+  gap: 8px;
 }
 </style>

@@ -294,6 +294,15 @@ export const aiCrudPageProps = {
   },
 
   /**
+   * 表单资产列表，用于运行态按钮打开其他表单弹窗。
+   * @type {Array<object>}
+   */
+  formAssets: {
+    type: Array,
+    default: () => [],
+  },
+
+  /**
    * 弹窗宽度
    * @type {string}
    */

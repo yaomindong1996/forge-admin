@@ -31,20 +31,20 @@
         </div>
       </div>
 
-      <div class="topbar-actions">
-        <n-button secondary :disabled="previewDisabled" @click="$emit('preview')">
+      <div class="topbar-actions" @click.capture="handleTopbarActionsClick">
+        <n-button secondary :disabled="loading || previewDisabled" @click="$emit('preview')">
           <template #icon>
             <n-icon><EyeOutline /></n-icon>
           </template>
           预览
         </n-button>
-        <n-button :loading="saving" type="primary" @click="$emit('save')">
+        <n-button :loading="saving" :disabled="loading" type="primary" @click="$emit('save')">
           <template #icon>
             <n-icon><SaveOutline /></n-icon>
           </template>
           保存
         </n-button>
-        <n-button :loading="publishing" :disabled="publishDisabled" type="success" secondary @click="$emit('publish')">
+        <n-button :loading="publishing" :disabled="loading || publishDisabled" type="success" secondary @click="$emit('publish')">
           <template #icon>
             <n-icon><RocketOutline /></n-icon>
           </template>
@@ -67,7 +67,8 @@
           :key="item.key"
           type="button"
           class="nav-item"
-          :class="{ active: item.key === activePanel }"
+          :class="{ active: item.key === activePanel, disabled: loading }"
+          :disabled="loading"
           @click="handlePanelClick(item.key)"
         >
           <n-icon>
@@ -99,7 +100,11 @@
       <main class="designer-main">
         <div class="designer-main-content">
           <div v-if="loading" class="designer-loading-mask">
-            <span class="loading-dot" />
+            <n-spin size="large">
+              <template #description>
+                正在加载设计器配置...
+              </template>
+            </n-spin>
           </div>
           <div class="panel-frame" :class="{ dirty }">
             <slot />
@@ -216,6 +221,8 @@ const filteredNavItems = computed(() => {
 const closureDoneCount = computed(() => props.closureSteps.filter(step => step.status === 'done').length)
 
 function handlePanelClick(key) {
+  if (props.loading)
+    return
   if (key === props.activePanel)
     return
   if (!props.dirty) {
@@ -236,6 +243,8 @@ function handlePanelClick(key) {
 }
 
 function handleStepClick(step = {}) {
+  if (props.loading)
+    return
   if (step.key === 'trigger') {
     emit('openTrigger')
     return
@@ -288,6 +297,19 @@ const publishStatusType = computed(() => {
     return 'error'
   return 'warning'
 })
+function handleTopbarActionsClick(event) {
+  const button = event.target?.closest?.('button')
+  if (!button)
+    return
+  const actionText = `${button.textContent || ''} ${button.title || ''} ${button.getAttribute('aria-label') || ''}`
+  if (!actionText.includes('预览'))
+    return
+
+  event.preventDefault()
+  event.stopPropagation()
+  event.stopImmediatePropagation?.()
+  window.dispatchEvent(new CustomEvent('forge-form-designer:preview-current-form'))
+}
 </script>
 
 <style scoped>
@@ -314,22 +336,9 @@ const publishStatusType = computed(() => {
   display: grid;
   place-items: center;
   inset: 0;
-  background: rgba(248, 250, 252, 0.58);
-}
-
-.loading-dot {
-  width: 24px;
-  height: 24px;
-  border: 2px solid #cbd5e1;
-  border-top-color: #2563eb;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.82);
+  backdrop-filter: blur(2px);
 }
 
 .designer-topbar {
@@ -417,6 +426,18 @@ const publishStatusType = computed(() => {
 .nav-item:hover {
   background: #f1f5f9;
   color: #111827;
+}
+
+.nav-item.disabled,
+.nav-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.nav-item.disabled:hover,
+.nav-item:disabled:hover {
+  background: transparent;
+  color: #475569;
 }
 
 .nav-item.active {
@@ -564,5 +585,13 @@ const publishStatusType = computed(() => {
   .nav-item {
     min-width: 124px;
   }
+}
+.panel-frame {
+  min-height: 0;
+  padding: 10px;
+}
+
+.panel-frame > * {
+  min-height: 0;
 }
 </style>

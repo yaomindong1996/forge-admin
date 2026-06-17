@@ -169,6 +169,8 @@ function resolveLayoutFormCreateType(componentKey = '') {
     fcRow: 'fcRow',
     col: 'col',
     card: 'elCard',
+    AiCrudPage: 'elCard',
+    crudBlock: 'elCard',
     elCard: 'elCard',
     tabs: 'elTabs',
     elTabs: 'elTabs',
@@ -260,7 +262,7 @@ function applyLayoutRuleProps(props, component = {}, gridColumns = 2, label = ''
   if (componentKey === 'col') {
     props.span = buildRuleCol(component, gridColumns).span
   }
-  if (['elCard', 'card'].includes(componentKey)) {
+  if (['elCard', 'card', 'AiCrudPage', 'crudBlock'].includes(componentKey)) {
     props.header = props.header || normalizedLabel || resolveDesignerComponentDefaultLabel(componentKey)
   }
   if (['elTabPane', 'tabPane'].includes(componentKey)) {

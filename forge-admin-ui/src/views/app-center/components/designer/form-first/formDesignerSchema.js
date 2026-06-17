@@ -5,6 +5,7 @@ import {
 
 export const FORM_DESIGNER_SCHEMA_VERSION = 'form-first-v1'
 export const FORM_DESIGNER_SCHEMA_KEY = 'formDesignerSchema'
+export const MAX_FORM_GRID_COLUMNS = 6
 
 export {
   camelToSnake,
@@ -20,13 +21,23 @@ const FIELD_COMPONENT_KEYS = new Set([
   'money',
   'date',
   'datetime',
+  'daterange',
+  'datetimerange',
+  'month',
+  'year',
   'time',
+  'timerange',
   'switch',
   'select',
   'radio',
+  'radioButton',
   'checkbox',
+  'slider',
+  'rate',
+  'color',
   'dictSelect',
   'cascader',
+  'treeSelect',
   'regionTreeSelect',
   'orgTreeSelect',
   'orgSelect',
@@ -44,6 +55,8 @@ const FIELD_COMPONENT_KEYS = new Set([
   'imageUpload',
   'upload',
   'objectReference',
+  'customSelect',
+  'text',
 ])
 
 export const LAYOUT_COMPONENT_KEYS = new Set([
@@ -64,12 +77,15 @@ export const LAYOUT_COMPONENT_KEYS = new Set([
   'table',
   'fcTableGrid',
   'tableGrid',
+  'AiCrudPage',
+  'crudBlock',
 ])
 
 export const VIRTUAL_COMPONENT_KEYS = new Set([
   ...LAYOUT_COMPONENT_KEYS,
   'elDivider',
   'divider',
+  'AiFormSectionTitle',
   'fcTitle',
   'title',
   'text',
@@ -94,13 +110,23 @@ const GENERIC_COMPONENT_ID_SUFFIXES = new Set([
   'money',
   'date',
   'datetime',
+  'daterange',
+  'datetimerange',
+  'month',
+  'year',
   'time',
+  'timerange',
   'switch',
   'select',
   'radio',
+  'radiobutton',
   'checkbox',
+  'slider',
+  'rate',
+  'color',
   'dictselect',
   'cascader',
+  'treeselect',
   'regiontreeselect',
   'orgtreeselect',
   'orgselect',
@@ -118,6 +144,8 @@ const GENERIC_COMPONENT_ID_SUFFIXES = new Set([
   'imageupload',
   'upload',
   'objectreference',
+  'customselect',
+  'text',
   'fcrow',
   'row',
   'col',
@@ -135,6 +163,7 @@ const GENERIC_COMPONENT_ID_SUFFIXES = new Set([
   'table',
   'fctablegrid',
   'tablegrid',
+  'crudblock',
   'eldivider',
   'divider',
   'fctitle',
@@ -166,6 +195,8 @@ const FULL_ROW_COMPONENT_KEYS = new Set([
   'table',
   'fcTableGrid',
   'tableGrid',
+  'AiCrudPage',
+  'crudBlock',
 ])
 
 const FULL_ROW_LAYOUT_COMPONENT_KEYS = new Set([
@@ -199,12 +230,15 @@ const LAYOUT_COMPONENT_LABELS = {
   collapseItem: '折叠项',
   elDivider: '分割线',
   divider: '分割线',
-  fcTitle: '标题',
-  title: '标题',
+  AiFormSectionTitle: '表单分隔线',
+  fcTitle: '分组标题',
+  title: '分组标题',
   fcTable: '表格布局',
   table: '表格布局',
   fcTableGrid: '表格单元格',
   tableGrid: '表格单元格',
+  AiCrudPage: 'CRUD区块',
+  crudBlock: 'CRUD区块',
 }
 
 const RAW_LAYOUT_LABELS = new Set([
@@ -256,6 +290,12 @@ const RAW_LAYOUT_LABELS = new Set([
   'tableGrid',
   'TableGrid',
   'Table Grid',
+  'AiCrudPage',
+  'AI CRUD Page',
+  'crudBlock',
+  'CrudBlock',
+  'CRUD Block',
+  'CRUD区块',
   'div',
   '布局',
 ])
@@ -271,8 +311,9 @@ export function createDefaultFormDesignerSchema(options = {}) {
     layout: {
       labelPlacement: 'left',
       labelAlign: 'right',
-      labelWidth: 100,
+      labelWidth: 'auto',
       size: 'medium',
+      modalType: options.modalType || 'modal',
       showFeedback: true,
       gridColumns,
       rowGap: 16,
@@ -445,10 +486,210 @@ export function extractFieldBindings(schema = {}) {
   }))
 }
 
+export function findDesignerComponentPath(source = {}, componentId = '') {
+  if (!componentId)
+    return null
+  const schema = normalizeFormDesignerSchema(source)
+  return findComponentPathInList(schema.components, componentId, [])
+}
+
+export function getDesignerComponent(source = {}, componentId = '') {
+  const schema = normalizeFormDesignerSchema(source)
+  const path = findDesignerComponentPath(schema, componentId)
+  if (!path)
+    return null
+  return getComponentAtPath(schema.components, path)
+}
+
+export function insertDesignerComponent(source = {}, target = {}, component = {}) {
+  const schema = normalizeFormDesignerSchema(source)
+  const nextComponent = normalizeComponent(component, schema.components.length, collectReservedComponentIds(schema.components))
+  if (!nextComponent)
+    return schema
+  const parentChildren = resolveTargetChildren(schema, target.parentId)
+  const index = clampInsertIndex(target.index, parentChildren.length)
+  parentChildren.splice(index, 0, nextComponent)
+  return normalizeFormDesignerSchema(schema)
+}
+
+export function moveDesignerComponent(source = {}, sourceId = '', target = {}) {
+  if (!sourceId)
+    return normalizeFormDesignerSchema(source)
+  const schema = normalizeFormDesignerSchema(source)
+  const sourcePath = findComponentPathInList(schema.components, sourceId, [])
+  if (!sourcePath)
+    return schema
+  const sourceComponent = getComponentAtPath(schema.components, sourcePath)
+  if (!sourceComponent || isDescendantTarget(sourceComponent, target.parentId))
+    return schema
+  const sourceParentId = resolveParentComponentId(schema.components, sourcePath)
+  const removed = removeComponentAtPath(schema.components, sourcePath)
+  if (!removed)
+    return schema
+  const parentChildren = resolveTargetChildren(schema, target.parentId)
+  const movingDownInSameParent = sourceParentId === (target.parentId || '') && sourcePath[sourcePath.length - 1] < Number(target.index)
+  const index = clampInsertIndex(movingDownInSameParent ? Number(target.index) - 1 : target.index, parentChildren.length)
+  parentChildren.splice(index, 0, removed)
+  return normalizeFormDesignerSchema(schema)
+}
+
+export function removeDesignerComponent(source = {}, componentId = '') {
+  if (!componentId)
+    return normalizeFormDesignerSchema(source)
+  const schema = normalizeFormDesignerSchema(source)
+  const path = findComponentPathInList(schema.components, componentId, [])
+  if (!path)
+    return schema
+  removeComponentAtPath(schema.components, path)
+  return normalizeFormDesignerSchema(schema)
+}
+
+export function duplicateDesignerComponent(source = {}, componentId = '') {
+  const schema = normalizeFormDesignerSchema(source)
+  const path = findComponentPathInList(schema.components, componentId, [])
+  const component = path ? getComponentAtPath(schema.components, path) : null
+  if (!component)
+    return schema
+  const copy = cloneValue(component)
+  rewriteComponentIds(copy, collectReservedComponentIds(schema.components))
+  const parentPath = path.slice(0, -1)
+  const parentChildren = parentPath.length ? getComponentAtPath(schema.components, parentPath)?.children : schema.components
+  parentChildren.splice(path[path.length - 1] + 1, 0, copy)
+  return normalizeFormDesignerSchema(schema)
+}
+
+export function updateDesignerComponent(source = {}, componentId = '', patch = {}) {
+  const schema = normalizeFormDesignerSchema(source)
+  const path = findComponentPathInList(schema.components, componentId, [])
+  const component = path ? getComponentAtPath(schema.components, path) : null
+  if (!component)
+    return schema
+  Object.assign(component, mergeComponentPatch(component, patch))
+  return normalizeFormDesignerSchema(schema)
+}
+
+export function updateDesignerLayout(source = {}, patch = {}) {
+  const schema = normalizeFormDesignerSchema(source)
+  const next = normalizeFormDesignerSchema({
+    ...schema,
+    layout: {
+      ...(schema.layout || {}),
+      ...(isPlainObject(patch) ? patch : {}),
+    },
+  })
+  if (Object.prototype.hasOwnProperty.call(patch || {}, 'gridColumns'))
+    return reconcileDesignerGridColumns(next, next.layout.gridColumns)
+  return next
+}
+
+export function canAcceptDesignerChild(parentComponent = null, childComponent = {}) {
+  if (!childComponent)
+    return false
+  if (!parentComponent)
+    return true
+  const parentKey = parentComponent.componentKey || ''
+  const childKey = childComponent.componentKey || ''
+  if (['tabs', 'elTabs'].includes(parentKey))
+    return ['tabPane', 'elTabPane'].includes(childKey)
+  if (['collapse', 'elCollapse'].includes(parentKey))
+    return ['collapseItem', 'elCollapseItem'].includes(childKey)
+  if (['table', 'fcTable'].includes(parentKey))
+    return ['tableGrid', 'fcTableGrid'].includes(childKey)
+  if (['tabPane', 'elTabPane', 'collapseItem', 'elCollapseItem', 'card', 'elCard', 'crudBlock', 'row', 'fcRow', 'col', 'tableGrid', 'fcTableGrid'].includes(parentKey))
+    return true
+  return false
+}
+
 export function cloneValue(value) {
   if (value === undefined)
     return undefined
   return JSON.parse(JSON.stringify(value ?? null))
+}
+
+function findComponentPathInList(components = [], componentId = '', parentPath = []) {
+  for (let index = 0; index < components.length; index += 1) {
+    const component = components[index]
+    const path = [...parentPath, index]
+    if (component?.id === componentId)
+      return path
+    const childPath = findComponentPathInList(component?.children || [], componentId, path)
+    if (childPath)
+      return childPath
+  }
+  return null
+}
+
+function getComponentAtPath(components = [], path = []) {
+  let current = null
+  let children = components
+  for (const index of path) {
+    current = children[index]
+    if (!current)
+      return null
+    children = current.children || []
+  }
+  return current
+}
+
+function resolveParentComponentId(components = [], path = []) {
+  if (!path.length || path.length === 1)
+    return ''
+  const parent = getComponentAtPath(components, path.slice(0, -1))
+  return parent?.id || ''
+}
+
+function removeComponentAtPath(components = [], path = []) {
+  if (!path.length)
+    return null
+  const parentPath = path.slice(0, -1)
+  const parent = parentPath.length ? getComponentAtPath(components, parentPath) : null
+  const children = parent ? parent.children || [] : components
+  const index = path[path.length - 1]
+  const [removed] = children.splice(index, 1)
+  return removed || null
+}
+
+function resolveTargetChildren(schema = {}, parentId = '') {
+  if (!parentId)
+    return schema.components
+  const path = findComponentPathInList(schema.components, parentId, [])
+  const parent = path ? getComponentAtPath(schema.components, path) : null
+  if (!parent)
+    return schema.components
+  if (!Array.isArray(parent.children))
+    parent.children = []
+  return parent.children
+}
+
+function clampInsertIndex(index, length) {
+  const number = Number(index)
+  if (!Number.isFinite(number))
+    return length
+  return Math.max(0, Math.min(length, number))
+}
+
+function isDescendantTarget(component = {}, targetParentId = '') {
+  if (!targetParentId)
+    return false
+  if (component.id === targetParentId)
+    return true
+  return (component.children || []).some(child => isDescendantTarget(child, targetParentId))
+}
+
+function rewriteComponentIds(component = {}, usedIds = new Set()) {
+  component.id = reserveComponentId(`${component.id || 'cmp_component'}_copy`, usedIds)
+  ;(component.children || []).forEach(child => rewriteComponentIds(child, usedIds))
+}
+
+function mergeComponentPatch(component = {}, patch = {}) {
+  const source = isPlainObject(patch) ? patch : {}
+  return {
+    ...source,
+    props: source.props ? { ...(component.props || {}), ...source.props } : component.props,
+    layout: source.layout ? { ...(component.layout || {}), ...source.layout } : component.layout,
+    validation: source.validation ? { ...(component.validation || {}), ...source.validation } : component.validation,
+    visibility: source.visibility ? { ...(component.visibility || {}), ...source.visibility } : component.visibility,
+  }
 }
 
 function normalizeLayout(layout = {}) {
@@ -456,19 +697,34 @@ function normalizeLayout(layout = {}) {
   const normalized = {
     labelPlacement: source.labelPlacement || 'left',
     labelAlign: normalizeLabelAlign(source.labelAlign),
-    labelWidth: resolveNumber(source.labelWidth, 100),
+    labelWidth: normalizeLabelWidth(source.labelWidth),
     size: normalizeFormSize(source.size),
+    modalType: ['modal', 'drawer'].includes(source.modalType) ? source.modalType : 'modal',
     showFeedback: source.showFeedback === undefined ? true : Boolean(source.showFeedback),
     hideRequiredAsterisk: Boolean(source.hideRequiredAsterisk),
     inlineFeedback: Boolean(source.inlineFeedback || source.inlineMessage),
-    gridColumns: clampGridColumns(source.gridColumns, 2),
-    rowGap: Number(source.rowGap ?? 16),
-    columnGap: Number(source.columnGap ?? 16),
+    gridColumns: clampGridColumns(source.gridColumns ?? source.gridCols, 2),
+    gridCols: clampGridColumns(source.gridCols ?? source.gridColumns, 2),
+    rowGap: Number(source.rowGap ?? source.yGap ?? 16),
+    columnGap: Number(source.columnGap ?? source.xGap ?? 16),
+    xGap: Number(source.xGap ?? source.columnGap ?? 16),
+    yGap: Number(source.yGap ?? source.rowGap ?? 16),
   }
   if (source.formStyle !== undefined)
     normalized.formStyle = cloneValue(source.formStyle)
+  if (source.formStyleText !== undefined)
+    normalized.formStyleText = source.formStyleText
   if (source.formClass !== undefined)
     normalized.formClass = source.formClass
+  normalized.showActions = source.showActions === undefined ? true : Boolean(source.showActions)
+  normalized.showSubmit = source.showSubmit === undefined ? true : Boolean(source.showSubmit)
+  normalized.showReset = source.showReset === undefined ? true : Boolean(source.showReset)
+  normalized.showCancel = Boolean(source.showCancel)
+  normalized.submitText = source.submitText || '提交'
+  normalized.resetText = source.resetText || '重置'
+  normalized.cancelText = source.cancelText || '取消'
+  normalized.enableCollapse = Boolean(source.enableCollapse)
+  normalized.maxVisibleFields = resolveNumber(source.maxVisibleFields, 6)
   return normalized
 }
 
@@ -574,10 +830,15 @@ function applyGridColumnsToComponent(component = {}, gridColumns = 2) {
   const componentKey = next.componentKey || ''
   const fieldComponent = FIELD_COMPONENT_KEYS.has(componentKey)
   const fullRow = FULL_ROW_COMPONENT_KEYS.has(componentKey) || FULL_ROW_LAYOUT_COMPONENT_KEYS.has(componentKey)
+  const currentSpan = resolveNumber(next.layout?.span, fullRow ? gridColumns : 1)
   next.label = normalizeDesignerComponentLabel(componentKey, next.label)
   next.layout = {
     ...(next.layout || {}),
-    span: componentKey === 'col' || (!fieldComponent && !fullRow) ? 1 : fullRow ? gridColumns : 1,
+    span: componentKey === 'col' || (!fieldComponent && !fullRow)
+      ? 1
+      : fullRow
+        ? gridColumns
+        : Math.max(1, Math.min(gridColumns, currentSpan)),
   }
   if (componentKey === 'col') {
     next.props = {
@@ -589,6 +850,18 @@ function applyGridColumnsToComponent(component = {}, gridColumns = 2) {
     ? next.children.map(child => applyGridColumnsToComponent(child, gridColumns))
     : []
   return next
+}
+
+function reconcileDesignerGridColumns(source = {}, gridColumns = 2) {
+  const columns = clampGridColumns(gridColumns, 2)
+  return normalizeFormDesignerSchema({
+    ...source,
+    layout: {
+      ...(source.layout || {}),
+      gridColumns: columns,
+    },
+    components: (source.components || []).map(component => applyGridColumnsToComponent(component, columns)),
+  })
 }
 
 function toFormCreateColSpan(span, gridColumns) {
@@ -622,6 +895,14 @@ function normalizeLabelAlign(value) {
   return ['left', 'right'].includes(value) ? value : 'right'
 }
 
+function normalizeLabelWidth(value) {
+  if (value === undefined || value === null || value === '')
+    return 'auto'
+  if (String(value).trim() === 'auto')
+    return 'auto'
+  return resolveNumber(value, 100)
+}
+
 function normalizeFormSize(value) {
   if (value === 'default' || value === 'medium')
     return 'medium'
@@ -648,18 +929,38 @@ function resolveComponentKey(field = {}) {
     return 'money'
   if (componentType === 'datetime' || businessType === 'DATETIME')
     return 'datetime'
+  if (componentType === 'daterange')
+    return 'daterange'
+  if (componentType === 'datetimerange')
+    return 'datetimerange'
+  if (componentType === 'month')
+    return 'month'
+  if (componentType === 'year')
+    return 'year'
   if (componentType === 'date' || businessType === 'DATE')
     return 'date'
   if (componentType === 'time')
     return 'time'
+  if (componentType === 'timerange')
+    return 'timerange'
   if (componentType === 'switch' || businessType === 'SWITCH')
     return 'switch'
+  if (componentType === 'radioButton')
+    return 'radioButton'
   if (componentType === 'radio' || businessType === 'RADIO')
     return 'radio'
   if (componentType === 'checkbox' || ['CHECKBOX', 'MULTI_SELECT'].includes(businessType))
     return 'checkbox'
+  if (componentType === 'slider')
+    return 'slider'
+  if (componentType === 'rate')
+    return 'rate'
+  if (componentType === 'color')
+    return 'color'
   if (field.dictType || componentType === 'dictSelect')
     return 'dictSelect'
+  if (componentType === 'treeSelect')
+    return 'treeSelect'
   if (componentType === 'regionTreeSelect' || businessType === 'REGION')
     return 'regionTreeSelect'
   if (componentType === 'orgTreeSelect' || businessType === 'DEPT')
@@ -672,6 +973,8 @@ function resolveComponentKey(field = {}) {
     return 'fileUpload'
   if (businessType === 'REFERENCE')
     return 'objectReference'
+  if (componentType === 'customSelect')
+    return 'customSelect'
   if (componentType === 'select' || businessType === 'SELECT' || businessType === 'DICT')
     return 'select'
   return 'input'
@@ -697,18 +1000,18 @@ function buildComponentProps(field = {}, label = '') {
 }
 
 function resolveDefaultSpan(componentKey) {
-  return ['textarea', 'fileUpload', 'imageUpload', 'subTable'].includes(componentKey) ? 2 : 1
+  return ['textarea', 'fileUpload', 'imageUpload', 'subTable', 'daterange', 'datetimerange', 'timerange'].includes(componentKey) ? 2 : 1
 }
 
 function clampGridColumns(value, fallback = 2) {
   const number = Number(value)
   if (!Number.isFinite(number))
     return fallback
-  return Math.max(1, Math.min(3, number))
+  return Math.max(1, Math.min(MAX_FORM_GRID_COLUMNS, number))
 }
 
 function buildPlaceholder(componentKey, label) {
-  if (['select', 'radio', 'checkbox', 'dictSelect', 'date', 'datetime', 'time', 'regionTreeSelect', 'orgTreeSelect', 'userSelect', 'fileUpload', 'imageUpload', 'objectReference'].includes(componentKey))
+  if (['select', 'radio', 'radioButton', 'checkbox', 'dictSelect', 'date', 'datetime', 'daterange', 'datetimerange', 'month', 'year', 'time', 'timerange', 'regionTreeSelect', 'orgTreeSelect', 'treeSelect', 'userSelect', 'fileUpload', 'imageUpload', 'objectReference', 'customSelect', 'color'].includes(componentKey))
     return `请选择${label}`
   return `请输入${label}`
 }

@@ -3,15 +3,24 @@
 -->
 
 <template>
-  <!-- 分组标题 -->
+  <!-- 表单分隔线 -->
   <AiFormSectionTitle
-      v-if="field.type === 'divider'"
+      v-if="isSectionTitleField"
       :title="field.label"
       :anchor-id="field.__sectionId"
       :description="field.props?.description || field.description"
       :badge="field.props?.badge || field.badge"
       :style="field.style || field.formItemStyle"
       :class="field.className"
+  />
+
+  <!-- 分组标题 -->
+  <AiFormGroupTitle
+      v-else-if="isGroupTitleField"
+      :label="field.label"
+      :title="field.props?.title || field.title"
+      :style="field.style || field.formItemStyle"
+      :class-name="field.className"
   />
 
   <!-- 普通表单项 -->
@@ -179,6 +188,10 @@
               :key="option.value"
               :value="option.value"
               :disabled="option.disabled"
+              :label="option.props?.label"
+              :indeterminate="!!option.indeterminate"
+              :focusable="option.focusable !== false"
+              v-bind="option.props"
           >
             {{ option.label }}
           </n-checkbox>
@@ -654,6 +667,7 @@ import RegionTreeSelect from '@/components/RegionTreeSelect.vue'
 import { getDictData } from '@/composables/useDict'
 import { request } from '@/utils'
 import AiCustomSelect from './AiCustomSelect.vue'
+import AiFormGroupTitle from './AiFormGroupTitle.vue'
 import AiFormSectionTitle from './AiFormSectionTitle.vue'
 
 const props = defineProps({
@@ -765,6 +779,14 @@ const componentControlClass = computed(() => [
   `ai-form-control--${props.field?.type || 'input'}`,
   props.field?.componentClass,
 ].filter(Boolean))
+const isSectionTitleField = computed(() => {
+  return !isLegacyGroupTitleField(props.field) && ['divider', 'elDivider', 'AiFormSectionTitle', 'aiFormSectionTitle', 'formSectionTitle', 'FormSectionTitle']
+    .includes(props.field?.type || props.field?.componentKey || props.field?.nodeType)
+})
+const isGroupTitleField = computed(() => {
+  return isLegacyGroupTitleField(props.field) || ['title', 'fcTitle', 'sectionTitle', 'groupTitle', 'groupHeader', 'GroupHeader', 'titleBlock', 'section']
+    .includes(props.field?.type || props.field?.componentKey || props.field?.nodeType)
+})
 const isFieldRequired = computed(() => {
   if (props.field?.required === true)
     return true
@@ -784,6 +806,14 @@ const dictCascadeConfig = computed(() => {
   }
 })
 const remoteOptionSource = computed(() => resolveDynamicOptionSource(props.field))
+
+function isLegacyGroupTitleField(field = {}) {
+  const fieldProps = field?.props || {}
+  return field?.nodeType === 'divider'
+    && !field?.componentKey
+    && Object.prototype.hasOwnProperty.call(fieldProps, 'description')
+    && !Object.prototype.hasOwnProperty.call(fieldProps, 'title')
+}
 const cascadeSourceValue = computed(() => {
   const cascade = cascadeConfig.value
   return cascade?.enabled && cascade.sourceField ? props.formData?.[cascade.sourceField] : undefined
