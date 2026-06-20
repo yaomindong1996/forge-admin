@@ -1,8 +1,20 @@
 <template>
   <div class="ai-crud-page-wrapper">
+    <ListPageGridDesigner
+      v-if="configLoaded && runtimeGridLayout && !formOnlyRuntime"
+      class="runtime-list-grid"
+      :model-value="runtimeGridLayout"
+      :fields="runtimeFields"
+      :model-schema="renderConfig?.modelSchema || {}"
+      :layout-type="runtimeEffectiveLayoutType"
+      :page-name="resolveRuntimeTitle(renderConfig)"
+      readonly
+      :runtime-crud-props="crudProps"
+      :runtime-record="runtimeDetailRecord"
+    />
     <component
       :is="currentTemplate"
-      v-if="configLoaded && currentTemplate"
+      v-else-if="configLoaded && currentTemplate"
       ref="runtimeCrudRef"
       :crud-props="crudProps"
     />
@@ -34,9 +46,11 @@ import { businessDocumentRuntime } from '@/api/business-app'
 import catalog from '@/catalog'
 import AiCrudPage from '@/components/ai-form/AiCrudPage.vue'
 import DictTag from '@/components/DictTag.vue'
+import { applyCrudHookRules, CRUD_HOOK_RULE_TARGETS, normalizeCrudHookRules } from '@/components/lowcode-builder/page/crud-hook-rules'
+import ListPageGridDesigner from '@/components/lowcode-builder/page/ListPageGridDesigner.vue'
 import { getDictData } from '@/composables/useDict'
 import { useTabStore } from '@/store'
-import { request } from '@/utils'
+import { postEncrypt, request } from '@/utils'
 import { getDefaultPageTitle } from '@/utils/page-title'
 
 const route = useRoute()
@@ -50,11 +64,87 @@ const renderConfig = ref(null)
 const dictCache = ref({})
 const runtimeCrudRef = ref(null)
 const lastInitialActionKey = ref('')
+const runtimeDetailRecord = ref({})
+const runtimeDetailLoading = ref(false)
 const runtimeOpenMode = computed(() => String(route.query?.runtimeOpenMode || '').toUpperCase())
 const formOnlyRuntime = computed(() => runtimeOpenMode.value === 'CREATE_FORM')
 
 /** 当前加载的模板组件（null 表示降级到 AiCrudPage） */
 const currentTemplate = ref(null)
+
+const activeRuntimePageKey = computed(() => String(route.query?.pageKey || 'list').trim() || 'list')
+const runtimePages = computed(() => {
+  const pages = renderConfig.value?.pageSchema?.pages
+  return Array.isArray(pages) ? pages : []
+})
+const activeRuntimePage = computed(() => {
+  const key = activeRuntimePageKey.value
+  return runtimePages.value.find(page => page?.pageKey === key) || null
+})
+const activeRuntimeGridLayout = computed(() => {
+  const pageSchema = renderConfig.value?.pageSchema || {}
+  const page = activeRuntimePage.value
+  if (page?.gridLayout && Array.isArray(page.gridLayout.items))
+    return page.gridLayout
+  if (activeRuntimePageKey.value !== 'list')
+    return null
+  const layout = pageSchema.listGridLayout
+  if (!layout || !Array.isArray(layout.items))
+    return null
+  return layout
+})
+const runtimeGridLayout = computed(() => {
+  const layout = activeRuntimeGridLayout.value
+  if (!layout)
+    return null
+  const pageSchema = renderConfig.value?.pageSchema || {}
+  return {
+    ...layout,
+    layoutType: layout.layoutType || pageSchema.layoutType || renderConfig.value?.layoutType || 'simple-crud',
+  }
+})
+const runtimeEffectiveLayoutType = computed(() => (
+  runtimeGridLayout.value?.layoutType
+  || renderConfig.value?.pageSchema?.layoutType
+  || renderConfig.value?.layoutType
+  || 'simple-crud'
+))
+
+const runtimeFields = computed(() => {
+  const fields = renderConfig.value?.modelSchema?.fields
+  return Array.isArray(fields) ? fields.map(normalizeRuntimeField).filter(field => field.field) : []
+})
+
+const runtimeColumnSettings = computed(() => {
+  const settings = {}
+  const items = activeRuntimeGridLayout.value?.items
+  if (!Array.isArray(items)) {
+    return settings
+  }
+  ;['data-table', 'AiCrudPage', 'AiTable'].forEach((blockType) => {
+    const block = items.find(item => item?.blockType === blockType)
+    const fieldSettings = block?.props?.fieldSettings
+    if (fieldSettings && typeof fieldSettings === 'object') {
+      Object.assign(settings, fieldSettings)
+    }
+  })
+  return settings
+})
+const runtimeAiCrudBlockProps = computed(() => {
+  const items = activeRuntimeGridLayout.value?.items
+  if (!Array.isArray(items))
+    return {}
+  return items.find(item => item?.blockType === 'AiCrudPage')?.props || {}
+})
+
+function normalizeRuntimeField(field = {}) {
+  return {
+    ...field,
+    field: field.field || field.fieldCode || field.columnName || '',
+    label: field.label || field.fieldName || field.field || field.fieldCode || field.columnName || '',
+    componentType: field.componentType || field.componentKey || field.dataType || 'input',
+  }
+}
 
 /**
  * 转换表格列配置：将 JSON 格式的 render 对象转为 Vue render 函数
@@ -74,8 +164,9 @@ function transformColumns(columns, transConfig, options = {}) {
   const result = (columns || []).map((col) => {
     // 统一提取字段名，优先级：prop > key > dataIndex
     const key = col.prop || col.key || col.dataIndex
+    const columnSetting = key ? options.columnSettings?.[key] || {} : {}
     // 统一补prop字段，AiTable需要这个字段来匹配数据
-    const newCol = { ...col, prop: key }
+    const newCol = { ...col, ...columnSetting, prop: key }
     if (isActionColumnKey(key)) {
       const mergedActions = mergeRowActions(Array.isArray(col.actions) ? col.actions : [], options.rowActions || [])
       if (mergedActions.length) {
@@ -92,31 +183,37 @@ function transformColumns(columns, transConfig, options = {}) {
       treeColumnApplied = true
     }
 
+    if (options.fitTableToContainer && !newCol.fixed && !isActionColumnKey(key)) {
+      delete newCol.width
+      delete newCol.minWidth
+      delete newCol.maxWidth
+    }
+
+    let baseRender = null
     // dictTag 渲染
     if (col.render && typeof col.render === 'object' && col.render.type === 'dictTag') {
-      newCol.render = row => h(DictTag, {
+      baseRender = row => h(DictTag, {
         dictType: col.render.dictType,
         value: row[key],
         size: 'small',
       })
-      return newCol
     }
-    if (col.render && typeof col.render === 'object' && col.render.type === 'relationName') {
+    else if (col.render && typeof col.render === 'object' && col.render.type === 'relationName') {
       const targetField = col.render.targetField || `${key}Name`
-      newCol.render = row => row[targetField] ?? row[key] ?? '-'
-      return newCol
+      baseRender = row => row[targetField] ?? row[key] ?? '-'
     }
-    if (col.render && typeof col.render === 'object' && ['orgName', 'userName', 'regionName', 'fileUpload'].includes(col.render.type)) {
+    else if (col.render && typeof col.render === 'object' && ['orgName', 'userName', 'regionName', 'fileUpload'].includes(col.render.type)) {
       const targetField = col.render.targetField || `${key}Name`
-      newCol.render = row => row[targetField] ?? row[key] ?? '-'
-      return newCol
+      baseRender = row => row[targetField] ?? row[key] ?? '-'
     }
     // 如果该字段有翻译配置，优先显示翻译后的值，没有则显示原字段值
-    if (transMap[key]) {
+    else if (transMap[key]) {
       const targetField = transMap[key]
-      newCol.render = row => row[targetField] ?? row[key]
-      return newCol
+      baseRender = row => row[targetField] ?? row[key]
     }
+    if (baseRender)
+      newCol.render = baseRender
+    applyRuntimeColumnPresentation(newCol, newCol, key)
     return newCol
   })
 
@@ -139,6 +236,63 @@ function transformColumns(columns, transConfig, options = {}) {
   }
 
   return result
+}
+
+function applyRuntimeColumnPresentation(targetCol, sourceCol = {}, key = '') {
+  const hasTextColor = !!sourceCol.textColor
+  const isNavigable = sourceCol.clickAction === 'navigate'
+  if (!hasTextColor && !isNavigable)
+    return
+  const baseRender = typeof targetCol.render === 'function'
+    ? targetCol.render
+    : row => row[key] ?? '-'
+  targetCol.render = (row) => {
+    const content = baseRender(row)
+    const style = hasTextColor ? { color: sourceCol.textColor } : {}
+    if (!isNavigable)
+      return h('span', { style }, content)
+    const children = Array.isArray(content) ? content : [content]
+    return h('a', {
+      class: 'runtime-column-link',
+      style,
+      href: buildRuntimeColumnTarget(sourceCol, row),
+      onClick: (event) => {
+        event.preventDefault()
+        const target = buildRuntimeColumnRoute(sourceCol, row)
+        if (target)
+          router.push(target)
+      },
+    }, children)
+  }
+}
+
+function buildRuntimeColumnRoute(col = {}, row = {}) {
+  const configKey = renderConfig.value?.configKey || resolveRouteConfigKey()
+  if (!configKey)
+    return null
+  const paramName = col.targetParamName || 'id'
+  const paramField = col.targetParamField || 'id'
+  const paramValue = row[paramField] ?? row.id
+  const query = {
+    ...route.query,
+    pageKey: col.targetPageKey || 'detail',
+    [paramName]: paramValue,
+  }
+  if ((col.targetPageKey || 'detail') === 'detail') {
+    query.mode = 'detail'
+    query.recordId = paramValue
+  }
+  return {
+    path: `/ai/crud-page/${encodeURIComponent(configKey)}`,
+    query,
+  }
+}
+
+function buildRuntimeColumnTarget(col = {}, row = {}) {
+  const target = buildRuntimeColumnRoute(col, row)
+  if (!target)
+    return '#'
+  return router.resolve(target).href
 }
 
 function mergeRowActions(baseActions = [], extraActions = []) {
@@ -412,10 +566,15 @@ const crudProps = computed(() => {
     return {}
   const cfg = renderConfig.value
   const options = cfg.options || {}
-  const treeTable = isTreeTableRuntime(cfg)
+  const treeTable = isTreeTableRuntime(cfg, runtimeEffectiveLayoutType.value)
   const treeConfig = options.treeConfig || {}
+  const gridCrudProps = runtimeAiCrudBlockProps.value || {}
   const treeLoadMode = resolveTreeLoadMode(treeConfig)
   const defaultSortParams = resolveDefaultSortParams(options.defaultSort)
+  const crudHookHandlers = buildCrudHookHandlers(normalizeCrudHookRules(
+    options.crudHookRules || cfg.crudHookRules || gridCrudProps.crudHookRules || {},
+    options.beforeSubmitRules || cfg.beforeSubmitRules || gridCrudProps.beforeSubmitRules || [],
+  ))
   const apiConfig = treeTable
     ? { ...(cfg.apiConfig || {}), list: cfg.apiConfig?.tree || cfg.apiConfig?.list }
     : cfg.apiConfig || {}
@@ -426,6 +585,8 @@ const crudProps = computed(() => {
       treeTable,
       includeDetailAction: true,
       rowActions: options.rowActions,
+      columnSettings: runtimeColumnSettings.value,
+      fitTableToContainer: !!runtimeGridLayout.value,
     }),
     editSchema: transformEditFields(cfg.editSchema, options.editFormLayout, buildRuntimeFieldMetaMap(cfg.modelSchema)),
     childrenConfig: transformChildrenConfig(masterDetailConfig.children || []),
@@ -460,6 +621,7 @@ const crudProps = computed(() => {
     toolbarActions: normalizeRuntimePageActions(options.toolbarActions || [], 'toolbar'),
     businessObjectCode: resolveBusinessObjectCode(cfg),
     publicParams: treeTable ? { ...defaultSortParams, loadMode: treeLoadMode } : defaultSortParams,
+    ...crudHookHandlers,
     beforeRenderList: list => prepareRuntimeList(list, { treeTable, treeConfig }),
     treeConfig: treeTable ? treeConfig : {},
     tableProps: buildRuntimeTableProps(cfg),
@@ -530,8 +692,17 @@ function normalizeNumberOption(value, fallback) {
   return Number.isFinite(number) ? number : fallback
 }
 
-function isTreeTableRuntime(cfg = {}) {
-  return !!cfg.options?.treeConfig && (cfg.layoutType || 'simple-crud') !== 'tree-crud'
+function buildCrudHookHandlers(rules = {}) {
+  return CRUD_HOOK_RULE_TARGETS.reduce((handlers, target) => {
+    const list = (rules[target.value] || []).filter(rule => rule.field)
+    if (list.length)
+      handlers[target.value] = data => applyCrudHookRules(data, list)
+    return handlers
+  }, {})
+}
+
+function isTreeTableRuntime(cfg = {}, layoutType = '') {
+  return !!cfg.options?.treeConfig && (layoutType || cfg.layoutType || 'simple-crud') !== 'tree-crud'
 }
 
 function resolveTreeLoadMode(treeConfig = {}) {
@@ -690,10 +861,133 @@ function extractApiUrl(apiConfigValue) {
   return parts.length > 1 ? parts.slice(1).join('@') : apiConfigValue
 }
 
-function resolveRuntimeTitle(cfg = {}) {
+function resolveRuntimeDetailRecordId() {
+  return route.query?.recordId || route.query?.id || route.query?.[crudProps.value.rowKey || 'id'] || ''
+}
+
+function replaceRuntimeApiParams(url = '', params = {}) {
+  let finalUrl = String(url || '')
+  let hasPlaceholder = false
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '')
+      return
+    const encoded = encodeURIComponent(String(value))
+    if (finalUrl.includes(`:${key}`)) {
+      finalUrl = finalUrl.replaceAll(`:${key}`, encoded)
+      hasPlaceholder = true
+    }
+    if (finalUrl.includes(`{${key}}`)) {
+      finalUrl = finalUrl.replaceAll(`{${key}}`, encoded)
+      hasPlaceholder = true
+    }
+  })
+  return { url: finalUrl, hasPlaceholder }
+}
+
+function resolveRuntimeDetailApi(recordId) {
+  const cfg = renderConfig.value || {}
+  const page = activeRuntimePage.value || {}
+  const rawApi = page.detailApi || cfg.apiConfig?.detail || ''
+  if (!rawApi && cfg.api) {
+    return {
+      method: 'get',
+      url: `${cfg.api}/${encodeURIComponent(String(recordId))}`,
+      params: {},
+    }
+  }
+  const parsed = parseApiConfigValue(rawApi)
+  const rowKey = crudProps.value.rowKey || cfg.rowKey || 'id'
+  const urlParams = {
+    id: recordId,
+    [rowKey]: recordId,
+  }
+  const { url, hasPlaceholder } = replaceRuntimeApiParams(parsed.url, urlParams)
+  const method = String(parsed.method || page.detailMethod || 'get').toLowerCase()
+  const params = {}
+  let finalUrl = url
+  if (!hasPlaceholder) {
+    if (method === 'get') {
+      finalUrl = `${url.replace(/\/$/, '')}/${encodeURIComponent(String(recordId))}`
+    }
+    else {
+      params[rowKey] = recordId
+    }
+  }
+  return { method, url: finalUrl, params }
+}
+
+function resolveRuntimeDetailData(payload, dataField = 'data') {
+  if (!payload || typeof payload !== 'object')
+    return payload || {}
+  const field = String(dataField || '').trim()
+  if (!field || field === '.' || field === '$')
+    return payload
+  return field.split('.').reduce((data, key) => {
+    if (data && typeof data === 'object' && key in data)
+      return data[key]
+    return undefined
+  }, payload) ?? payload.data ?? payload
+}
+
+async function loadRuntimeDetailRecord() {
+  if (!configLoaded.value || formOnlyRuntime.value)
+    return
+  if (activeRuntimePageKey.value !== 'detail') {
+    runtimeDetailRecord.value = {}
+    return
+  }
+  const recordId = resolveRuntimeDetailRecordId()
+  if (!recordId) {
+    runtimeDetailRecord.value = {}
+    return
+  }
+  runtimeDetailLoading.value = true
+  try {
+    const { method, url, params } = resolveRuntimeDetailApi(recordId)
+    if (!url) {
+      runtimeDetailRecord.value = {}
+      return
+    }
+    const requestMethod = method === 'postencrypt' ? 'postEncrypt' : method
+    const response = requestMethod === 'postEncrypt'
+      ? await postEncrypt(url, {}, { params, needTip: false })
+      : await request({ method: requestMethod, url, params, needTip: false })
+    runtimeDetailRecord.value = resolveRuntimeDetailData(response, activeRuntimePage.value?.detailDataField || 'data') || {}
+  }
+  catch (error) {
+    runtimeDetailRecord.value = {}
+    console.warn('[crud-page] 加载详情页记录失败', error?.message || error)
+  }
+  finally {
+    runtimeDetailLoading.value = false
+  }
+}
+
+function resolveBaseRuntimeTitle(cfg = {}) {
   if (route.query?.title)
     return String(route.query.title)
   return cfg.menuName || cfg.appName || cfg.objectName || cfg.tableComment || cfg.configKey
+}
+
+function resolveRuntimeTitle(cfg = {}) {
+  const baseTitle = resolveBaseRuntimeTitle(cfg)
+  if (activeRuntimePageKey.value === 'list')
+    return baseTitle
+
+  const pageTitle = activeRuntimePage.value?.pageName
+    || (activeRuntimePageKey.value === 'detail' ? '详情页' : activeRuntimePageKey.value)
+  if (!baseTitle || baseTitle === pageTitle)
+    return pageTitle
+  return `${baseTitle} - ${pageTitle}`
+}
+
+function syncRuntimeTitle() {
+  const title = resolveRuntimeTitle(renderConfig.value || {})
+  if (!title)
+    return
+  route.meta.title = title
+  document.title = `${title} | ${getDefaultPageTitle()}`
+  tabStore.updateTabTitle(route.fullPath, title)
 }
 
 function normalizeConfigKey(value) {
@@ -782,12 +1076,7 @@ async function loadConfig() {
     const cfg = res.data
     renderConfig.value = cfg
     // 动态页面的 Tab/浏览器标题以发布菜单名为准，避免再次点击 Tab 时回退成主模型名。
-    const title = resolveRuntimeTitle(cfg)
-    if (title) {
-      route.meta.title = title
-      document.title = `${title} | ${getDefaultPageTitle()}`
-      tabStore.updateTabTitle(route.fullPath, title)
-    }
+    syncRuntimeTitle()
     await preloadDicts(cfg)
     // 加载模板组件
     const layoutType = cfg.layoutType || 'simple-crud'
@@ -800,6 +1089,7 @@ async function loadConfig() {
       currentTemplate.value = null
     }
     configLoaded.value = true
+    await loadRuntimeDetailRecord()
     scheduleInitialRuntimeAction()
   }
   catch (e) {
@@ -817,6 +1107,8 @@ async function scheduleInitialRuntimeAction() {
     return
   const mode = String(route.query?.mode || '').toLowerCase()
   if (!['create', 'detail'].includes(mode))
+    return
+  if (mode === 'detail' && activeRuntimePageKey.value !== 'list' && runtimeGridLayout.value)
     return
   const actionKey = `${route.fullPath}:${renderConfig.value?.configKey || ''}:${mode}`
   if (lastInitialActionKey.value === actionKey)
@@ -882,11 +1174,28 @@ watch(
     scheduleInitialRuntimeAction()
   },
 )
+
+watch(
+  () => [
+    activeRuntimePageKey.value,
+    route.query?.recordId || '',
+    route.query?.id || '',
+    renderConfig.value?.configKey || '',
+  ],
+  () => {
+    syncRuntimeTitle()
+    loadRuntimeDetailRecord()
+    scheduleInitialRuntimeAction()
+  },
+)
 </script>
 
 <style scoped>
 .ai-crud-page-wrapper {
   height: 100%;
+  min-height: 0;
+  overflow: auto;
+  background: transparent;
 }
 
 .loading-wrapper,
@@ -895,5 +1204,37 @@ watch(
   justify-content: center;
   align-items: center;
   height: 400px;
+}
+
+.runtime-column-link {
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.runtime-column-link:hover {
+  text-decoration: underline;
+}
+
+.runtime-list-grid {
+  min-height: 100%;
+  padding: 0;
+  background: transparent;
+}
+
+.runtime-list-grid :deep(.canvas-panel) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.runtime-list-grid :deep(.canvas-scroll) {
+  min-height: 100%;
+  overflow: visible;
+}
+
+.runtime-list-grid :deep(.canvas-grid) {
+  background: transparent;
+  box-shadow: none;
 }
 </style>

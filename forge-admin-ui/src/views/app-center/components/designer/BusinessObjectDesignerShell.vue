@@ -314,6 +314,8 @@ const publishStatusType = computed(() => {
   return 'warning'
 })
 function handleTopbarActionsClick(event) {
+  if (props.activePanel !== 'form')
+    return
   const button = event.target?.closest?.('button')
   if (!button)
     return
@@ -612,7 +614,7 @@ function handleTopbarActionsClick(event) {
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  padding: 16px;
+  padding: 12px;
 }
 
 .designer-main :deep(.n-spin-container),

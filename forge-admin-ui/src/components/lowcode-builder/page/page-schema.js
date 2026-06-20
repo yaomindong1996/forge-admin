@@ -440,9 +440,12 @@ export function syncPageSchemaWithModel(pageSchema, modelSchema) {
   }
 
   const listLayoutMode = current.listLayoutMode || 'grid'
-  let listGridLayout = current.listGridLayout
+  const listPageGridLayout = Array.isArray(current.pages)
+    ? current.pages.find(page => page?.pageKey === 'list')?.gridLayout
+    : null
+  let listGridLayout = listPageGridLayout || current.listGridLayout
   if (listLayoutMode === 'grid') {
-    if (!listGridLayout || !listGridLayout.items?.length) {
+    if (!listGridLayout) {
       listGridLayout = bootstrapGridLayoutFromZones(zones, modelSchema, { layoutType })
     }
     listGridLayout = syncGridLayoutWithModel(listGridLayout, modelSchema, { layoutType })
@@ -525,6 +528,8 @@ export function resolveModelFieldRef(modelCode, fieldName, primary = false) {
 export const LIST_PAGE_GRID_COLS = 12
 export const LIST_PAGE_GRID_ROW_HEIGHT = 32
 export const LIST_PAGE_GRID_GAP = 8
+export const LIST_PAGE_DESIGN_WIDTH = 1366
+export const LIST_PAGE_GRID_BASE_COL_WIDTH = Math.floor((LIST_PAGE_DESIGN_WIDTH - (LIST_PAGE_GRID_COLS - 1) * LIST_PAGE_GRID_GAP) / LIST_PAGE_GRID_COLS)
 
 export const listPageBlockCatalog = [
   {
@@ -548,6 +553,58 @@ export const listPageBlockCatalog = [
     unique: true,
   },
   {
+    blockType: 'back-button',
+    group: 'page',
+    title: '返回上一页',
+    desc: '详情页返回入口',
+    defaultW: 2,
+    defaultH: 1,
+  },
+  {
+    blockType: 'page-title',
+    group: 'page',
+    title: '页面标题',
+    desc: '标题、副标题和状态提示',
+    defaultW: 8,
+    defaultH: 2,
+  },
+  {
+    blockType: 'detail-info',
+    group: 'data',
+    title: '详情信息',
+    desc: '只读详情字段展示',
+    defaultW: 12,
+    defaultH: 8,
+    multiField: true,
+    requireFields: true,
+  },
+  {
+    blockType: 'AiCrudPage',
+    group: 'action',
+    title: 'AiCrudPage',
+    desc: '系统完整 CRUD 组件',
+    defaultW: 12,
+    defaultH: 14,
+    unique: true,
+  },
+  {
+    blockType: 'AiTable',
+    group: 'data',
+    title: 'AiTable',
+    desc: '系统表格组合组件',
+    defaultW: 12,
+    defaultH: 9,
+    unique: true,
+  },
+  {
+    blockType: 'AiForm',
+    group: 'data',
+    title: 'AiForm',
+    desc: '系统表单组合组件',
+    defaultW: 12,
+    defaultH: 6,
+  },
+  {
     blockType: 'data-table',
     group: 'data',
     title: '数据列表',
@@ -561,8 +618,8 @@ export const listPageBlockCatalog = [
   {
     blockType: 'tree-panel',
     group: 'data',
-    title: '左侧导航树',
-    desc: '左树右表场景使用',
+    title: '筛选树',
+    desc: '左树右表模板中筛选右侧列表',
     defaultW: 3,
     defaultH: 14,
     unique: true,
@@ -577,12 +634,102 @@ export const listPageBlockCatalog = [
     defaultH: 2,
   },
   {
+    blockType: 'info-panel',
+    group: 'extra',
+    title: '提示面板',
+    desc: '说明、警告、成功提示',
+    defaultW: 6,
+    defaultH: 2,
+  },
+  {
     blockType: 'custom-html',
     group: 'extra',
     title: '说明文本',
     desc: '富文本 / Markdown 提示',
     defaultW: 6,
     defaultH: 3,
+  },
+  {
+    blockType: 'action-button',
+    group: 'action',
+    title: '按钮',
+    desc: '单个命令按钮',
+    defaultW: 2,
+    defaultH: 1,
+  },
+  {
+    blockType: 'button-group',
+    group: 'action',
+    title: '按钮组',
+    desc: '多个页面操作按钮',
+    defaultW: 5,
+    defaultH: 2,
+  },
+  {
+    blockType: 'tag-list',
+    group: 'extra',
+    title: '标签列表',
+    desc: '状态、分类、关键词展示',
+    defaultW: 4,
+    defaultH: 2,
+  },
+  {
+    blockType: 'steps',
+    group: 'extra',
+    title: '步骤条',
+    desc: '流程步骤展示',
+    defaultW: 8,
+    defaultH: 2,
+  },
+  {
+    blockType: 'timeline',
+    group: 'extra',
+    title: '时间线',
+    desc: '操作记录和流转轨迹',
+    defaultW: 6,
+    defaultH: 5,
+  },
+  {
+    blockType: 'empty-state',
+    group: 'extra',
+    title: '空状态',
+    desc: '暂无数据、引导操作',
+    defaultW: 5,
+    defaultH: 4,
+  },
+  {
+    blockType: 'card',
+    group: 'layout',
+    title: '卡片容器',
+    desc: '页面分组容器 / 信息卡片',
+    defaultW: 6,
+    defaultH: 5,
+    container: true,
+  },
+  {
+    blockType: 'tabs',
+    group: 'layout',
+    title: 'Tabs 标签页',
+    desc: '多页签布局容器',
+    defaultW: 12,
+    defaultH: 6,
+    container: true,
+  },
+  {
+    blockType: 'divider',
+    group: 'layout',
+    title: '分隔线',
+    desc: '横向 / 竖向分隔',
+    defaultW: 12,
+    defaultH: 1,
+  },
+  {
+    blockType: 'spacer',
+    group: 'layout',
+    title: '留白占位',
+    desc: '调整页面间距',
+    defaultW: 12,
+    defaultH: 1,
   },
   {
     blockType: 'sub-table-tabs',
@@ -730,56 +877,29 @@ export function createDefaultListGridLayout(modelSchema, options = {}) {
       gridY: 0,
       gridW: 3,
       gridH: 18,
-      label: '导航树',
+      label: '筛选树',
       props: {
+        style: createDefaultBlockFrameStyle(0, 0, 3, 18, 'fixed'),
+        events: [],
         ...treeConfig,
       },
       fieldRefs: [],
     })
   }
 
-  let yCursor = 0
   items.push({
-    id: 'block_search',
-    blockType: 'search-form',
+    id: 'block_crud',
+    blockType: 'AiCrudPage',
     gridX: mainX,
-    gridY: yCursor,
+    gridY: 0,
     gridW: mainW,
-    gridH: 4,
-    label: '查询表单',
+    gridH: 16,
+    label: '业务列表',
     props: {
-      fieldSettings: {},
-      collapsible: true,
-    },
-    fieldRefs: filterPageFields(fields, 'search').map(f => f.field),
-  })
-  yCursor += 4
-
-  items.push({
-    id: 'block_toolbar',
-    blockType: 'toolbar',
-    gridX: mainX,
-    gridY: yCursor,
-    gridW: mainW,
-    gridH: 2,
-    label: '操作工具栏',
-    props: {
-      actions: ['add', 'import', 'export', 'custom-query'],
-      customActions: [],
-    },
-    fieldRefs: [],
-  })
-  yCursor += 2
-
-  items.push({
-    id: 'block_table',
-    blockType: 'data-table',
-    gridX: mainX,
-    gridY: yCursor,
-    gridW: mainW,
-    gridH: 10,
-    label: '数据列表',
-    props: {
+      ...createDefaultAiCrudPageProps(),
+      title: modelSchema?.businessName || modelSchema?.object?.name || '业务列表',
+      style: createDefaultBlockFrameStyle(mainX, 0, mainW, 16),
+      events: [],
       fieldSettings: {},
       defaultSortField: 'id',
       defaultSortOrder: 'desc',
@@ -791,6 +911,7 @@ export function createDefaultListGridLayout(modelSchema, options = {}) {
     cols: LIST_PAGE_GRID_COLS,
     rowHeight: LIST_PAGE_GRID_ROW_HEIGHT,
     gap: LIST_PAGE_GRID_GAP,
+    designWidth: LIST_PAGE_DESIGN_WIDTH,
     layoutType,
     items,
   }
@@ -803,7 +924,8 @@ export function syncGridLayoutWithModel(layout, modelSchema, options = {}) {
     ? 'tree-crud'
     : modelSchema?.appType === 'MASTER_DETAIL' ? 'master-detail-crud' : 'simple-crud')
   const fallback = createDefaultListGridLayout(modelSchema, { layoutType })
-  const source = (layout?.items || []).length ? layout : fallback
+  const hasExplicitItems = Array.isArray(layout?.items)
+  const source = hasExplicitItems ? layout : fallback
   const modeChanged = Boolean(source.layoutType && source.layoutType !== layoutType)
   const sourceItems = (source.items || []).filter((item) => {
     const meta = resolveListPageBlockMeta(item.blockType) || {}
@@ -813,7 +935,10 @@ export function syncGridLayoutWithModel(layout, modelSchema, options = {}) {
     const fieldSet = item.blockType === 'search-form' ? searchFieldSet : tableFieldSet
     const refs = (item.fieldRefs || []).filter(field => fieldSet.has(field))
     const props = item.blockType === 'tree-panel'
-      ? resolveDefaultTreeConfig(modelSchema, item.props || {})
+      ? {
+          ...sanitizeGridBlockProps(item.blockType, item.props || {}, new Set(refs), fieldSet),
+          ...resolveDefaultTreeConfig(modelSchema, item.props || {}),
+        }
       : sanitizeGridBlockProps(item.blockType, item.props || {}, new Set(refs), fieldSet)
     return {
       id: item.id || createBlockId(item.blockType),
@@ -825,24 +950,28 @@ export function syncGridLayoutWithModel(layout, modelSchema, options = {}) {
       gridH: Math.max(resolveBlockMinGridH(item.blockType, meta), Number(item.gridH) || meta.defaultH || 2),
       props,
       fieldRefs: refs,
+      children: sanitizeContainerChildren(item.children || [], modelSchema, layoutType),
     }
   })
-  const items = normalizeGridItemsForLayout(sourceItems, modelSchema, layoutType, modeChanged)
+  const preserveEmpty = hasExplicitItems && !sourceItems.length
+  const items = normalizeGridItemsForLayout(sourceItems, modelSchema, layoutType, modeChanged, preserveEmpty, hasExplicitItems)
   return {
     cols: Number(source.cols) || LIST_PAGE_GRID_COLS,
     rowHeight: Number(source.rowHeight) || LIST_PAGE_GRID_ROW_HEIGHT,
     gap: Number(source.gap) || LIST_PAGE_GRID_GAP,
+    designWidth: clampNumber(source.designWidth || LIST_PAGE_DESIGN_WIDTH, 960, 2560),
     layoutType,
     items,
   }
 }
 
-function normalizeGridItemsForLayout(items, modelSchema, layoutType, modeChanged) {
+function normalizeGridItemsForLayout(items, modelSchema, layoutType, modeChanged, preserveEmpty = false, hasExplicitItems = false) {
   const next = [...items]
   const isTree = layoutType === 'tree-crud'
   const treeIndex = next.findIndex(item => item.blockType === 'tree-panel')
-  const needsTreeInsert = isTree && treeIndex < 0
-  const defaultLayout = (modeChanged || needsTreeInsert)
+  const needsTreeInsert = !preserveEmpty && !hasExplicitItems && isTree && treeIndex < 0
+  const needsTreeRepair = !preserveEmpty && isTree && hasTreeLayoutOverlapRisk(next)
+  const defaultLayout = (modeChanged || needsTreeInsert || needsTreeRepair)
     ? createDefaultListGridLayout(modelSchema, { layoutType })
     : null
 
@@ -853,14 +982,27 @@ function normalizeGridItemsForLayout(items, modelSchema, layoutType, modeChanged
       next.unshift(treeBlock)
   }
 
-  if (!modeChanged && !needsTreeInsert)
+  if (!modeChanged && !needsTreeInsert && !needsTreeRepair)
     return next
 
   const defaultByType = new Map((defaultLayout?.items || []).map(item => [item.blockType, item]))
   return next.map((item) => {
-    if (!['search-form', 'toolbar', 'data-table', 'tree-panel'].includes(item.blockType))
+    const repairableTypes = new Set(['search-form', 'toolbar', 'data-table', 'tree-panel', 'AiCrudPage', 'AiTable'])
+    const mainTypes = new Set(['search-form', 'toolbar', 'data-table', 'AiCrudPage', 'AiTable'])
+    if (!repairableTypes.has(item.blockType))
       return item
     const defaultItem = defaultByType.get(item.blockType)
+    if (!defaultItem && mainTypes.has(item.blockType)) {
+      return {
+        ...item,
+        gridX: 3,
+        gridW: Math.min(9, Math.max(1, Number(item.gridW || 9))),
+        props: {
+          ...(item.props || {}),
+          style: createDefaultBlockFrameStyle(3, Number(item.gridY || 0), 9, Number(item.gridH || 2)),
+        },
+      }
+    }
     if (!defaultItem)
       return item
     return {
@@ -870,9 +1012,30 @@ function normalizeGridItemsForLayout(items, modelSchema, layoutType, modeChanged
       gridW: defaultItem.gridW,
       gridH: Math.max(item.gridH || 1, defaultItem.gridH || 1),
       props: item.blockType === 'tree-panel'
-        ? { ...defaultItem.props, ...(item.props || {}) }
-        : item.props,
+        ? {
+            ...defaultItem.props,
+            ...(item.props || {}),
+            style: defaultItem.props?.style || item.props?.style,
+          }
+        : ['AiCrudPage', 'AiTable', 'data-table', 'search-form', 'toolbar'].includes(item.blockType)
+            ? { ...(item.props || {}), style: defaultItem.props?.style || item.props?.style }
+            : item.props,
     }
+  })
+}
+
+function hasTreeLayoutOverlapRisk(items = []) {
+  const mainTypes = new Set(['AiCrudPage', 'AiTable', 'data-table', 'search-form', 'toolbar'])
+  const tree = items.find(item => item.blockType === 'tree-panel')
+  const treeStyle = tree?.props?.style || {}
+  if (tree && (tree.gridX !== 0 || treeStyle.widthMode !== 'fixed'))
+    return true
+  return items.some((item) => {
+    if (!mainTypes.has(item.blockType))
+      return false
+    const gridX = Number(item.gridX || 0)
+    const styleX = Number(item.props?.style?.x ?? item.props?.style?.left ?? gridX * (LIST_PAGE_GRID_BASE_COL_WIDTH + LIST_PAGE_GRID_GAP))
+    return gridX < 3 || styleX < 3 * (LIST_PAGE_GRID_BASE_COL_WIDTH + LIST_PAGE_GRID_GAP)
   })
 }
 
@@ -897,7 +1060,7 @@ export function bootstrapGridLayoutFromZones(zones, modelSchema, options = {}) {
       gridY: 0,
       gridW: 3,
       gridH: 18,
-      label: '导航树',
+      label: '筛选树',
       props: {
         ...defaultTreeConfig,
       },
@@ -973,6 +1136,7 @@ export function bootstrapGridLayoutFromZones(zones, modelSchema, options = {}) {
     cols: LIST_PAGE_GRID_COLS,
     rowHeight: LIST_PAGE_GRID_ROW_HEIGHT,
     gap: LIST_PAGE_GRID_GAP,
+    designWidth: LIST_PAGE_DESIGN_WIDTH,
     layoutType,
     items,
   }
@@ -980,8 +1144,9 @@ export function bootstrapGridLayoutFromZones(zones, modelSchema, options = {}) {
 
 export function applyGridLayoutToZones(zones, gridLayout, modelSchema) {
   const items = gridLayout?.items || []
-  const search = items.find(i => i.blockType === 'search-form')
-  const table = items.find(i => i.blockType === 'data-table')
+  const crud = items.find(i => i.blockType === 'AiCrudPage')
+  const search = items.find(i => i.blockType === 'search-form') || crud
+  const table = items.find(i => i.blockType === 'data-table') || crud || items.find(i => i.blockType === 'AiTable')
   const tree = items.find(i => i.blockType === 'tree-panel')
   const toolbar = items.find(i => i.blockType === 'toolbar')
   const searchFieldSet = new Set(filterPageFields(modelSchema?.fields || [], 'search').map(f => f.field))
@@ -1007,16 +1172,23 @@ export function applyGridLayoutToZones(zones, gridLayout, modelSchema) {
     if (zone.zoneKey === 'table') {
       const refs = (table?.fieldRefs || []).filter(ref => tableFieldSet.has(ref))
       const actions = toolbar?.props?.actions || []
+      const tableProps = table?.props || {}
+      const crudProps = crud?.props || {}
+      const sourceProps = {
+        ...crudProps,
+        ...tableProps,
+      }
       const nextProps = {
         ...(zone.props || {}),
-        fieldSettings: sanitizeFieldSettings(table?.props?.fieldSettings || zone.props?.fieldSettings, new Set(refs)),
-        showImport: actions.includes('import'),
-        showExport: actions.includes('export'),
-        hideBatchDelete: !actions.includes('batch-delete'),
-        enableCustomQuery: actions.includes('custom-query'),
-        customActions: toolbar?.props?.customActions || zone.props?.customActions || [],
-        defaultSortField: table?.props?.defaultSortField || zone.props?.defaultSortField || 'id',
-        defaultSortOrder: table?.props?.defaultSortOrder || zone.props?.defaultSortOrder || 'desc',
+        ...pickRuntimeTableProps(sourceProps),
+        fieldSettings: sanitizeFieldSettings(sourceProps.fieldSettings || zone.props?.fieldSettings, new Set(refs)),
+        showImport: toolbar ? actions.includes('import') : sourceProps.showImport === true,
+        showExport: toolbar ? actions.includes('export') : sourceProps.showExport === true,
+        hideBatchDelete: toolbar ? !actions.includes('batch-delete') : sourceProps.hideBatchDelete === true,
+        enableCustomQuery: toolbar ? actions.includes('custom-query') : sourceProps.enableCustomQuery === true,
+        customActions: toolbar ? (toolbar.props?.customActions || sourceProps.customActions || []) : (sourceProps.customActions || []),
+        defaultSortField: sourceProps.defaultSortField || zone.props?.defaultSortField || 'id',
+        defaultSortOrder: sourceProps.defaultSortOrder || zone.props?.defaultSortOrder || 'desc',
       }
       if (tree) {
         nextProps.treeConfig = {
@@ -1035,6 +1207,9 @@ export function applyGridLayoutToZones(zones, gridLayout, modelSchema) {
           loadMode: tree.props?.loadMode || zone.props?.treeConfig?.loadMode || 'full',
         }
       }
+      else {
+        delete nextProps.treeConfig
+      }
       return {
         ...zone,
         enabled: !!table,
@@ -1046,15 +1221,168 @@ export function applyGridLayoutToZones(zones, gridLayout, modelSchema) {
   })
 }
 
+function pickRuntimeTableProps(props = {}) {
+  const keys = [
+    'title',
+    'api',
+    'rowKey',
+    'listApi',
+    'detailApi',
+    'createApi',
+    'updateApi',
+    'deleteApi',
+    'importApi',
+    'exportApi',
+    'listMethod',
+    'listDataField',
+    'listTotalField',
+    'isEncrypt',
+    'showSearch',
+    'showPagination',
+    'searchGridCols',
+    'searchLabelWidth',
+    'searchEnableCollapse',
+    'searchMaxVisibleFields',
+    'searchYGap',
+    'tableSize',
+    'renderMode',
+    'showRenderModeSwitch',
+    'hideSelection',
+    'striped',
+    'bordered',
+    'maxHeight',
+    'scrollX',
+    'editGridCols',
+    'editLabelWidth',
+    'editLabelPlacement',
+    'editLabelAlign',
+    'editSize',
+    'editShowFeedback',
+    'editXGap',
+    'editYGap',
+    'modalWidth',
+    'detailModalWidth',
+    'modalType',
+    'drawerPlacement',
+    'hideModalFooter',
+    'hideDefaultDetailContent',
+    'hideToolbar',
+    'hideAdd',
+    'hideBatchDelete',
+    'showImport',
+    'showExport',
+    'showExportTasks',
+    'enableCustomQuery',
+    'addButtonText',
+    'exportButtonText',
+    'exportFileName',
+    'crudHookRules',
+    'beforeSubmitRules',
+    'previewLiveData',
+  ]
+  return keys.reduce((next, key) => {
+    if (Object.prototype.hasOwnProperty.call(props, key))
+      next[key] = props[key]
+    return next
+  }, {})
+}
+
 function sanitizeGridBlockProps(blockType, props = {}, ownerFieldSet = new Set(), queryFieldSet = new Set()) {
-  const next = { ...(props || {}) }
+  const next = {
+    ...(props || {}),
+    style: sanitizeBlockStyle(props?.style || {}, blockType),
+    events: sanitizeBlockEvents(props?.events),
+  }
+  if (blockType !== 'tree-panel')
+    delete next.treeConfig
   if (blockType === 'search-form') {
     next.fieldSettings = sanitizeFieldSettings(next.fieldSettings, ownerFieldSet, queryFieldSet)
   }
-  else if (blockType === 'data-table') {
+  else if (['data-table', 'AiCrudPage', 'AiTable', 'AiForm', 'detail-info'].includes(blockType)) {
     next.fieldSettings = sanitizeFieldSettings(next.fieldSettings, ownerFieldSet)
   }
   return next
+}
+
+function sanitizeBlockStyle(style = {}, blockType = '') {
+  const next = {
+    ...createDefaultBlockStyle(),
+    ...(style || {}),
+  }
+  const widthModeSet = ['full', 'auto', 'fixed']
+  if (!widthModeSet.includes(next.widthMode)) {
+    const rawWidth = next.width
+    const numericWidth = Number(String(rawWidth ?? '').replace('px', ''))
+    const isLegacyFullWidth = blockType !== 'tree-panel' && Number.isFinite(numericWidth) && numericWidth >= 900
+    if (rawWidth === 'auto')
+      next.widthMode = 'auto'
+    else if (rawWidth === '100%' || rawWidth === '' || isLegacyFullWidth)
+      next.widthMode = 'full'
+    else
+      next.widthMode = 'fixed'
+  }
+  if (next.widthMode === 'full')
+    next.width = '100%'
+  if (next.widthMode === 'auto')
+    next.width = 'auto'
+  if (next.widthMode === 'fixed' && (next.width === '' || next.width === '100%' || next.width === 'auto'))
+    next.width = 320
+  if (!['fixed'].includes(next.heightMode))
+    next.heightMode = 'fixed'
+  return next
+}
+
+function sanitizeBlockEvents(events = []) {
+  if (!Array.isArray(events))
+    return []
+  return events
+    .filter(event => event && typeof event === 'object')
+    .map((event, index) => ({
+      id: event.id || `evt_${Date.now()}_${index}`,
+      trigger: event.trigger || 'click',
+      action: event.action || 'none',
+      targetBlockId: event.targetBlockId || '',
+      targetPageKey: event.targetPageKey || '',
+      description: event.description || '',
+      params: Array.isArray(event.params)
+        ? event.params.map(param => ({
+            name: param?.name || '',
+            value: param?.value || '',
+          }))
+        : [],
+    }))
+}
+
+function sanitizeContainerChildren(children = [], modelSchema = {}, layoutType = 'simple-crud') {
+  if (!Array.isArray(children))
+    return []
+  return children
+    .filter(child => child && typeof child === 'object' && resolveListPageBlockMeta(child.blockType))
+    .map((child) => {
+      const meta = resolveListPageBlockMeta(child.blockType) || {}
+      const props = child.blockType === 'tree-panel'
+        ? {
+            ...sanitizeGridBlockProps(child.blockType, child.props || {}),
+            ...resolveDefaultTreeConfig(modelSchema, child.props || {}),
+          }
+        : sanitizeGridBlockProps(child.blockType, child.props || {})
+      return {
+        id: child.id || createBlockId(child.blockType),
+        blockType: child.blockType,
+        label: child.label || meta.title || child.blockType,
+        gridX: clampNumber(child.gridX, 0, LIST_PAGE_GRID_COLS - 1),
+        gridY: Math.max(0, Number(child.gridY) || 0),
+        gridW: clampNumber(child.gridW || meta.defaultW || 12, 1, LIST_PAGE_GRID_COLS),
+        gridH: Math.max(resolveBlockMinGridH(child.blockType, meta), Number(child.gridH) || meta.defaultH || 2),
+        props,
+        fieldRefs: Array.isArray(child.fieldRefs) ? child.fieldRefs : [],
+        children: sanitizeContainerChildren(child.children || [], modelSchema, layoutType),
+      }
+    })
+    .filter((child) => {
+      const meta = resolveListPageBlockMeta(child.blockType) || {}
+      return !meta.onlyFor || meta.onlyFor.includes(layoutType)
+    })
 }
 
 function sanitizeFieldSettings(settings = {}, ownerFieldSet = new Set(), queryFieldSet = null) {
@@ -1092,25 +1420,124 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
     gridY: Math.max(0, Number(position.gridY) || 0),
     gridW: Math.min(meta.defaultW || 6, LIST_PAGE_GRID_COLS),
     gridH: meta.defaultH || 2,
-    props: {},
+    props: {
+      style: createDefaultBlockStyle(),
+      events: [],
+    },
     fieldRefs: [],
+    children: [],
+  }
+  if (blockType === 'back-button') {
+    base.props = {
+      ...base.props,
+      text: '返回',
+      type: 'default',
+      action: 'back',
+      events: [
+        {
+          id: `evt_back_${Date.now()}`,
+          trigger: 'click',
+          action: 'back',
+          targetBlockId: '',
+          description: '返回上一页',
+          params: [],
+        },
+      ],
+    }
+  }
+  if (blockType === 'page-title') {
+    base.props = {
+      ...base.props,
+      title: '页面标题',
+      subtitle: '页面说明或当前业务对象摘要',
+      statusText: '',
+      statusType: 'info',
+      size: 'medium',
+    }
+  }
+  if (blockType === 'detail-info') {
+    base.fieldRefs = filterPageFields(fields, 'detail').slice(0, 8).map(f => f.field)
+    base.props = {
+      ...base.props,
+      title: '详情信息',
+      columnCount: 2,
+      labelPlacement: 'left',
+      bordered: false,
+      fieldSettings: {},
+    }
   }
   if (blockType === 'search-form') {
     base.fieldRefs = filterPageFields(fields, 'search').slice(0, 8).map(f => f.field)
-    base.props = { fieldSettings: {}, collapsible: true }
+    base.props = { ...base.props, fieldSettings: {}, collapsible: true }
   }
   if (blockType === 'data-table') {
     base.fieldRefs = filterPageFields(fields, 'table').map(f => f.field)
-    base.props = { fieldSettings: {}, defaultSortField: 'id', defaultSortOrder: 'desc' }
+    base.props = { ...base.props, fieldSettings: {}, defaultSortField: 'id', defaultSortOrder: 'desc' }
   }
   if (blockType === 'toolbar') {
-    base.props = { actions: ['add', 'import', 'export', 'custom-query'], customActions: [] }
+    base.props = { ...base.props, actions: ['add', 'import', 'export', 'custom-query'], customActions: [] }
+  }
+  if (blockType === 'AiCrudPage') {
+    base.props = {
+      ...base.props,
+      ...createDefaultAiCrudPageProps(),
+    }
+    base.fieldRefs = filterPageFields(fields, 'table').slice(0, 8).map(f => f.field)
+  }
+  if (blockType === 'AiTable') {
+    base.props = {
+      ...base.props,
+      title: 'AiTable',
+      rowKey: 'id',
+      size: 'small',
+      renderMode: 'table',
+      showToolbar: true,
+      showPagination: true,
+      showRefresh: true,
+      showDensity: true,
+      showColumnFilter: true,
+      showSearchToggle: false,
+      showFullscreen: false,
+      showRenderModeSwitch: true,
+      hideSelection: false,
+      striped: false,
+      bordered: true,
+      singleLine: false,
+      maxHeight: '',
+      scrollX: undefined,
+    }
+    base.fieldRefs = filterPageFields(fields, 'table').slice(0, 8).map(f => f.field)
+  }
+  if (blockType === 'AiForm') {
+    base.props = {
+      ...base.props,
+      title: 'AiForm',
+      gridCols: 2,
+      labelPlacement: 'left',
+      labelWidth: 100,
+      labelAlign: 'right',
+      size: 'medium',
+      xGap: 12,
+      yGap: 0,
+      showActions: true,
+      showSubmit: true,
+      showReset: true,
+      showCancel: false,
+      submitText: '提交',
+      resetText: '重置',
+      cancelText: '取消',
+      enableCollapse: false,
+      maxVisibleFields: 6,
+      showFeedback: true,
+    }
+    base.fieldRefs = filterPageFields(fields, 'table').slice(0, 6).map(f => f.field)
   }
   if (blockType === 'tree-panel') {
-    base.props = resolveDefaultTreeConfig(modelSchema)
+    base.props = { ...base.props, ...resolveDefaultTreeConfig(modelSchema) }
   }
   if (blockType === 'stats-strip') {
     base.props = {
+      ...base.props,
       metrics: [
         { label: '总数', value: '128', trend: '+8%' },
         { label: '活跃', value: '92', trend: '+3%' },
@@ -1119,14 +1546,81 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       ],
     }
   }
+  if (blockType === 'info-panel') {
+    base.props = {
+      ...base.props,
+      title: '提示信息',
+      content: '在这里展示当前页面的说明、风险提醒或操作结果。',
+      type: 'info',
+    }
+  }
   if (blockType === 'custom-html') {
     base.props = {
+      ...base.props,
       title: '说明',
       content: '在此填写业务说明、操作指引或链接。',
     }
   }
+  if (blockType === 'action-button') {
+    base.props = {
+      ...base.props,
+      text: '操作',
+      type: 'primary',
+      secondary: false,
+      block: false,
+    }
+  }
+  if (blockType === 'button-group') {
+    base.props = {
+      ...base.props,
+      buttons: [
+        { key: 'primary', text: '主操作', type: 'primary' },
+        { key: 'secondary', text: '次操作', type: 'default' },
+      ],
+    }
+  }
+  if (blockType === 'tag-list') {
+    base.props = {
+      ...base.props,
+      tags: [
+        { label: '启用', type: 'success' },
+        { label: '重点', type: 'warning' },
+        { label: '业务', type: 'info' },
+      ],
+    }
+  }
+  if (blockType === 'steps') {
+    base.props = {
+      ...base.props,
+      current: 1,
+      steps: [
+        { title: '提交', description: '创建业务记录' },
+        { title: '处理', description: '业务审核中' },
+        { title: '完成', description: '流程结束' },
+      ],
+    }
+  }
+  if (blockType === 'timeline') {
+    base.props = {
+      ...base.props,
+      title: '操作记录',
+      items: [
+        { title: '创建记录', time: '2026-06-18 09:00', content: '系统创建业务数据' },
+        { title: '更新状态', time: '2026-06-18 10:30', content: '处理人更新状态' },
+      ],
+    }
+  }
+  if (blockType === 'empty-state') {
+    base.props = {
+      ...base.props,
+      title: '暂无数据',
+      description: '当前条件下没有可展示的数据',
+      actionText: '新建数据',
+    }
+  }
   if (blockType === 'sub-table-tabs') {
     base.props = {
+      ...base.props,
       tabs: [
         { key: 'detail', title: '基本信息' },
         { key: 'related', title: '关联记录' },
@@ -1134,9 +1628,144 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
     }
   }
   if (blockType === 'section-divider') {
-    base.props = { title: '分组标题' }
+    base.props = { ...base.props, title: '分组标题' }
+  }
+  if (blockType === 'card') {
+    base.props = {
+      ...base.props,
+      title: '卡片标题',
+      content: '',
+    }
+    base.children = []
+  }
+  if (blockType === 'tabs') {
+    base.props = {
+      ...base.props,
+      tabs: [
+        { key: 'tab1', title: '标签一', children: [] },
+        { key: 'tab2', title: '标签二', children: [] },
+      ],
+    }
+    base.children = []
+  }
+  if (blockType === 'divider') {
+    base.props = {
+      ...base.props,
+      orientation: 'horizontal',
+      title: '',
+    }
+  }
+  if (blockType === 'spacer') {
+    base.props = {
+      ...base.props,
+      style: {
+        ...base.props.style,
+        backgroundColor: 'transparent',
+        borderWidth: 0,
+        boxShadow: 'none',
+      },
+    }
   }
   return base
+}
+
+export function createDefaultBlockStyle() {
+  return {
+    x: '',
+    y: '',
+    widthMode: 'full',
+    width: '100%',
+    heightMode: 'fixed',
+    height: '100%',
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    borderWidth: 0,
+    borderStyle: 'none',
+    borderRadius: 0,
+    boxShadow: 'none',
+    padding: 0,
+    margin: 0,
+    minWidth: '',
+    maxWidth: '',
+    minHeight: '',
+    maxHeight: '',
+    customStyle: '',
+  }
+}
+
+function createDefaultBlockFrameStyle(gridX = 0, gridY = 0, gridW = 12, gridH = 2, widthMode = 'full') {
+  const fixedWidth = gridW * LIST_PAGE_GRID_BASE_COL_WIDTH + (gridW - 1) * LIST_PAGE_GRID_GAP
+  return {
+    ...createDefaultBlockStyle(),
+    x: gridX * (LIST_PAGE_GRID_BASE_COL_WIDTH + LIST_PAGE_GRID_GAP),
+    y: gridY * (LIST_PAGE_GRID_ROW_HEIGHT + LIST_PAGE_GRID_GAP),
+    widthMode,
+    width: widthMode === 'full' ? '100%' : fixedWidth,
+    height: gridH * LIST_PAGE_GRID_ROW_HEIGHT + (gridH - 1) * LIST_PAGE_GRID_GAP,
+  }
+}
+
+function createDefaultAiCrudPageProps() {
+  return {
+    title: 'AiCrudPage',
+    description: '系统完整 CRUD 页面组件',
+    api: '',
+    rowKey: 'id',
+    listApi: '',
+    detailApi: '',
+    createApi: '',
+    updateApi: '',
+    deleteApi: '',
+    importApi: '',
+    exportApi: '',
+    listMethod: 'get',
+    listDataField: 'records',
+    listTotalField: 'total',
+    isEncrypt: false,
+    showSearch: true,
+    showPagination: true,
+    searchGridCols: 4,
+    searchLabelWidth: 'auto',
+    searchEnableCollapse: true,
+    searchMaxVisibleFields: 3,
+    searchYGap: 16,
+    tableSize: 'small',
+    renderMode: 'table',
+    showRenderModeSwitch: true,
+    hideSelection: false,
+    striped: false,
+    bordered: false,
+    maxHeight: '',
+    scrollX: undefined,
+    editGridCols: 1,
+    editLabelWidth: 'auto',
+    editLabelPlacement: 'left',
+    editLabelAlign: 'right',
+    editSize: 'medium',
+    editShowFeedback: true,
+    editXGap: 16,
+    editYGap: 8,
+    modalWidth: '800px',
+    detailModalWidth: 'min(1080px, 92vw)',
+    modalType: 'modal',
+    drawerPlacement: 'right',
+    hideModalFooter: false,
+    hideDefaultDetailContent: false,
+    hideToolbar: false,
+    hideAdd: false,
+    hideBatchDelete: false,
+    showImport: false,
+    showExport: false,
+    showExportTasks: true,
+    enableCustomQuery: false,
+    addButtonText: '新增',
+    exportButtonText: '导出',
+    exportFileName: '',
+    customActions: [],
+    crudHookRules: {},
+    beforeSubmitRules: [],
+    previewLiveData: false,
+  }
 }
 
 function createBlockId(blockType) {
@@ -1157,6 +1786,14 @@ function clonePlain(value) {
 function resolveBlockMinGridH(blockType, meta = {}) {
   if (blockType === 'toolbar')
     return Math.max(2, Number(meta.defaultH) || 2)
+  if (blockType === 'AiCrudPage')
+    return Math.max(10, Number(meta.defaultH) || 10)
+  if (blockType === 'AiTable')
+    return Math.max(8, Number(meta.defaultH) || 8)
+  if (blockType === 'AiForm')
+    return Math.max(5, Number(meta.defaultH) || 5)
+  if (blockType === 'detail-info')
+    return Math.max(5, Number(meta.defaultH) || 5)
   return 1
 }
 

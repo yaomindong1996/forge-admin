@@ -1,0 +1,250 @@
+# 任务清单：forge-list-designer-productivity-upgrades
+> status: apply
+> spec: `code-copilot/changes/forge-list-designer-productivity-upgrades/spec.md`
+
+## 本轮任务
+
+- [x] 分析列表设计器与表单设计器可复用能力边界。
+- [x] 列表设计器增加会话级撤销/重做和快捷键。
+- [x] 压缩列表设计器头部区域，并收纳低频操作。
+- [x] 自由布局画布增加拖拽落点反馈，并把移动/缩放合并为单次提交。
+- [x] 结构化列表配置改为左预览、右字段配置工作区，保留大窗口编辑入口。
+- [x] 自由布局区块属性配置从抽屉改为固定右侧配置面板。
+- [x] 自由布局区块缩放改为八方向锚点，支持上下左右和四角缩放。
+- [x] 自由布局增加左侧区块库、右侧配置区块收起展开。
+- [x] 自由布局区块增加顶部拖动手柄和右上角更多操作。
+- [x] 清理选中态重复边框，实心化缩放锚点。
+- [x] 优化自由布局画布、区块库、右侧配置区块的视觉层次。
+- [x] 左侧区块库补充 `AiCrudPage`、`AiTable`、`AiForm` 系统组件区块。
+- [x] 自由布局拖动命中其它区块时支持位置交换。
+- [x] 修正更多操作可见性、画布边界、属性 label 竖直居中和分组标题标记遮挡问题。
+- [x] 自由画布改为列表设计默认主模式，结构化配置改为快速配置辅助模式。
+- [x] 自由画布列宽跟随中间工作区自适应，修复右侧空白区域不可拖拽/缩放问题。
+- [x] 自由画布移动过程改为视觉跟手和落点色块预览，松手后再提交 schema。
+- [x] 自由画布增加“清空当前画布”功能，区别于“重置默认”。
+- [x] 修复空画布被同步逻辑自动回填默认区块的问题，逐个删除到最后也能保持空画布。
+- [x] 区块库增加搜索，支持按名称、描述、组件 key 过滤。
+- [x] 自由画布增加源码查看弹窗，展示当前布局 JSON 和选中区块 JSON。
+- [x] 优化配置字段弹层样式，避免字段设置下拉超出抽屉。
+- [x] 左侧“区块库”改为“页面组件”，组件库定位从固定业务区块调整为通用页面组件。
+- [x] 右侧属性面板增加通用外观配置：宽高、背景、边框、圆角、阴影、内边距、自定义 style。
+- [x] 新增通用布局组件：卡片、Tabs、横向/竖向分隔线、留白占位。
+- [x] 卡片和 Tabs 支持承载子组件，拖入容器后按 children 渲染。
+- [x] 页面组件库增加“返回上一页”组件，详情页默认内置返回入口。
+- [x] 自由布局支持页面级多画布，默认包含列表页和详情页，并支持新增空白页面。
+- [x] 多页面管理补充新增、复制、删除自定义页、页面重命名、页面编码、类型、路径、说明和入参配置。
+- [x] 默认详情页允许删除，并通过 `removedPageKeys` 防止保存/刷新后自动补回。
+- [x] 默认详情页改为页面标题、返回上一页和 `detail-info` 只读详情信息组件，不再默认使用 `AiForm`。
+- [x] 当前页面支持重置布局和清空布局，重置/清空只作用于当前页面。
+- [x] 页面编码变更时同步更新事件里的目标页面引用。
+- [x] 右侧属性面板为每个页面组件增加通用事件配置，事件统一写入 `props.events`。
+- [x] 通用事件配置补充目标页面选择，支持页面跳转类动作引用页面资源。
+- [x] 左侧导航树增加节点选择联动目标配置，可生成 `nodeSelect -> filterBlock` 事件。
+- [x] 左侧页面组件改为两列布局展示。
+- [x] 页面组件默认样式去掉边框和圆角，保留右侧显式外观配置能力。
+- [x] 页面组件库扩充页面标题、详情信息、提示面板、按钮、按钮组、标签列表、步骤条、时间线、空状态等常用组件。
+- [x] `AiCrudPage`、`AiTable`、`AiForm` 右侧属性补充结构化配置，覆盖显示项、布局、接口、搜索、表格、弹窗、工具栏和事件说明，不再要求手写接口 JSON 或回调方法名。
+- [x] 系统组件画布预览移除额外说明头，直接渲染真实组件内容。
+- [x] 页面组件外观区分设计画布显示框和运行时 CSS 尺寸，默认 `width: 100%`，支持 `100% / auto / 固定 px` 宽度模式。
+- [x] 设计画布宽度改为布局级可配置，默认 1366，可在工具栏选择 1200/1366/1440/1600/1920 或手输宽度。
+- [x] 自由画布拖拽、缩放和右侧位置尺寸编辑改为 px 交互，`gridX/gridY/gridW/gridH` 仅保留兼容同步；预览态不使用设计画布宽度，按预览容器计算 `100%` 宽度。
+- [x] 新建/重置列表页默认生成 `AiCrudPage`，按当前模型字段初始化，作为可直接调整的默认页面。
+- [x] 页面路径 UI 文案调整为路由片段/页面标识，说明当前多页面由统一业务对象运行页承载。
+- [x] 画布模块 hover 保留区域边框和阴影反馈，移除组件名称浮标。
+- [x] 优化多页面切换区视觉和交互，隐藏横向滚动条，增加页面类型颜色提示和操作说明。
+- [x] 修复顶部预览被表单设计器事件拦截的问题；列表预览改为本地全屏弹窗，不保存、不校验、不调预览接口。
+- [x] 字段列配置增加链接文本、文字颜色、点击跳转目标页面等无代码配置，并在设计器预览中渲染链接样式。
+- [x] 字段列跳转配置补充参数名和取值字段，默认 `id = row.id`。
+- [x] 详情页页面配置补充详情接口、请求方式和详情数据字段。
+- [x] 自由画布字段配置改为带标签的两列配置，补充跳转参数说明，避免下拉超出抽屉。
+- [x] 快速配置改名为 CRUD 配置，明确只配置默认 `AiCrudPage`，并将字段、列属性同步到 `listGridLayout` 和 `pages.list.gridLayout`。
+- [x] 保存前按当前画布规范化同步 `zones/viewSchema`，避免发布后应用页面继续使用旧结构化配置。
+- [x] CRUD 配置去掉遮挡式字段弹窗，改为右侧内联配置区，配置属性、字段配置和树表模板配置统一在同一侧面板完成。
+- [x] CRUD 配置左侧预览改为复用 `GridBlockRenderer` 的 `AiCrudPage` 渲染逻辑，不再手拼一套查询表格预览。
+- [x] 列表模板入口从“左侧导航”调整为“标准 CRUD 列表 / 左树右表模板”，避免用户误解为系统侧边菜单配置。
+- [x] CRUD 列配置补齐文字颜色、点击动作、目标页面、参数名和取值字段，与自由画布列配置使用同一套字段 schema。
+- [x] 树区块命名从“左侧导航树”调整为“筛选树”，树表模板说明明确为“树节点筛选右侧列表”。
+- [x] CRUD 配置工作区改为 flex 布局，右侧配置面板增加“展开配置/收起配置”和整体滚动条，避免配置项过多时无法滚动。
+- [x] 左树右表模板增加主区块重排修复，发现 CRUD 主区仍压到树区域时自动按模板恢复为左侧筛选树、右侧 CRUD。
+- [x] CRUD 配置工作区取消固定视口高度，改为跟随列表设计主体的真实左右 flex 分栏，预览区和配置区各自滚动。
+- [x] 切换标准 CRUD / 左树右表模板时重建标准布局骨架，只继承字段、排序、列样式和树配置，避免旧 px 坐标继续遮盖筛选树。
+- [x] 小分辨率下压缩列表设计器顶部区域，页面设置改为按需展开，画布内部去掉固定最小高度。
+- [x] 自由画布增加设计期缩放，支持 50% / 67% / 75% / 90% / 100% / 125%，拖拽、移动和缩放坐标按缩放比例换算。
+- [x] 左树右表刷新恢复优先读取 `pages.list.gridLayout`，避免刷新后误判为标准 CRUD 或树区块空白。
+- [x] 优化筛选树区块预览样式，增加标题、副标题、搜索占位、节点层级和字段映射说明。
+- [x] 预览弹窗内容改为全高 flex 布局并保留内部滚动，避免预览内容溢出弹窗。
+- [x] CRUD 配置右侧面板支持收起，收起后保留窄条入口可再次展开。
+- [x] 自由画布移动、缩放和位置尺寸输入增加区块重叠拦截，避免一个区块覆盖住另一个区块。
+- [x] 页面操作按钮简化文案并补充图标：新增、复制、重置、清空、删除、设置。
+- [x] AiCrudPage 的表单与弹窗配置区补充说明，明确新增/编辑弹窗使用表单设计字段和 AIForm 渲染。
+- [x] 页面设计“设置”移入页面操作区，标题区只保留页面切换说明，避免设置和收起关系混乱。
+- [x] CRUD 配置补齐 AiCrudPage 常用属性：基础显示、接口、搜索表格、弹窗工具栏和事件配置，并同步写入默认 CRUD 区块。
+- [x] 优化 CRUD 配置和右侧组件属性折叠面板样式，提升分组边界、标题层级和表单可读性。
+- [x] 修复 CRUD 配置收起按钮不可见问题，改回面板头部明确可见操作。
+- [x] 修复 CRUD 配置模式顶部预览仍读取旧 zones 的问题，预览优先使用当前 `pages.list.gridLayout/listGridLayout`。
+- [x] 左树右表“生成联动事件”自动选择当前业务列表组件作为目标，避免写死不存在的 `block_table`。
+- [x] CRUD 配置补充真实接口预览开关、字段配置入口、字典标签预览和自定义列表操作按钮配置。
+- [x] 记录运行态承接边界：多页面保存在 `pageSchema.pages[]`，统一业务对象路由后续需要解释 `targetPageKey` 和页面参数完成内部导航。
+- [x] 更新多画布设计判断：首期采用 `pageSchema.pages[]` 承载列表页、详情页和自定义页面，后续补运行态动作目标。
+- [x] 修复 CRUD 快速配置“配置查询字段 / 配置列表字段”点击后无明显反馈，切换激活态并自动滚动到字段配置区域。
+- [x] CRUD 快速配置左树右表模式的内嵌预览同步展示筛选树和右侧 AiCrudPage，不再只在弹窗预览里看到树。
+- [x] CRUD 快速配置接口区按当前业务配置推导默认 `/ai/crud/{configKey}` 接口并回显到输入框和真实接口预览。
+- [x] 发布运行态同步列级文字颜色、点击跳转、目标页面、参数名和取值字段，运行页列渲染支持颜色和跳详情。
+- [x] 预览弹窗补充只读画布滚动容器高度和 overflow 约束，避免内容纵向溢出后没有滚动条。
+- [x] 修复从列表设计切换到发布或直接发布时未强制同步列表草稿的问题，发布前会规范化并写回最新 `pageSchema/viewSchema`。
+- [x] 列表布局保存时同步完整 `pageSchema` 到设计器草稿，避免应用页继续读取旧发布结构。
+- [x] 优化 CRUD 快速配置预览卡片和左树右表滚动，预览区改为 flex 包裹，左树右表内部保留横向/纵向滚动。
+- [x] 修复发布 JSON 中 `AiCrudPage.props.fieldSettings` 已存在但运行态列配置未读取的问题，运行态编译器会从自由画布区块读取列颜色、跳转、默认排序和自定义操作。
+- [x] 应用运行页 `/ai/crud-page/:configKey` 支持渲染已发布的 `listGridLayout` 只读画布，主 `AiCrudPage` 区块复用真实运行态 `crudProps`，避免设计器布局在应用页丢失。
+- [x] 优化列表预览弹窗和只读画布样式，修复弹窗宽高溢出、设计态网格背景混入预览、预览背景和内容背景不一致的问题。
+- [x] 运行页从发布 `pageSchema.listGridLayout.items[].props.fieldSettings` 兜底合并列颜色、点击跳转，避免旧 `columnsSchema` 未重新编译时列样式不生效。
+- [x] 只读/运行态画布保留发布设计宽度，不再按当前容器压缩导致 1366 设计宽度变成约 1108。
+- [x] 列表设计器保存协议补齐 `pages[]` 与 `removedPageKeys` 后端承接，避免详情页清空、删除内置页后保存又被默认布局补回。
+- [x] 详情页本地预览改为预览当前选中页面，不再固定预览列表页。
+- [x] 左树右表模板切换保留自定义区块并把落在树区域的区块右移；保存/刷新时不再自动补回已删除的树区块。
+- [x] 应用运行页按 `pageKey` 选择 `pages[].gridLayout`，`pageKey=detail&id=...` 不再回到列表页旧渲染。
+- [x] 详情页运行态按记录 ID 加载详情数据并传给 `detail-info` 区块，详情画布字段显示真实记录值。
+- [x] 运行态只读画布去掉设计网格、设计背景和额外 padding，宽度按父容器 100% 计算，不再强制使用 1366 设计宽。
+- [x] 返回上一页组件改为运行态真实返回，直接打开详情页时兜底回到列表查询参数。
+- [x] 详情页显式空布局不再被默认详情组件回填，删除默认组件后保存/刷新应保持删除状态。
+- [x] 页面组件外观配置拆出内边距/外边距输入，支持 CSS 间距值。
+- [x] 筛选树区块增加展开/收起控制，运行态树节点展开状态受控。
+- [x] 修复 CRUD 快速配置左树右表预览右侧 CRUD 显示不全和滚动受限问题。
+- [x] CRUD 快速配置和自由画布右侧配置组件增加配置项搜索。
+- [x] AiCrudPage 增加可视化提交前参数处理规则，并在运行页编译为 `beforeSubmit`。
+- [x] 设计态 AiCrudPage 新增/编辑弹窗预览优先使用当前对象完整字段集合。
+- [x] 回调参数处理抽成共享编辑器，CRUD 快速配置和自由画布 AiCrudPage 属性统一复用。
+- [x] 回调规则扩展为统一 `crudHookRules`，覆盖加载前、搜索前、表单/详情渲染前、提交前和构建提交数据后。
+- [x] 统一两处配置搜索样式，并压缩 CRUD 快速配置面板布局，避免输入框溢出。
+- [x] 执行定向 eslint 和前端构建。
+
+## 验证记录
+
+- `pnpm --dir forge-admin-ui exec eslint src/views/app-center/components/designer/BusinessListDesigner.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue`：通过。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/StructuredListPageDesigner.vue src/views/app-center/components/designer/BusinessListDesigner.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue`：通过，有既有 `vue/one-component-per-file` warning。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/ListPageGridDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/StructuredListPageDesigner.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue code-copilot/changes/forge-list-designer-productivity-upgrades/spec.md code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue code-copilot/changes/forge-list-designer-productivity-upgrades/spec.md code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/views/app-center/components/designer/BusinessListDesigner.vue src/components/lowcode-builder/page/page-schema.js src/components/lowcode-builder/page/ListPageGridDesigner.vue src/views/ai/crud-page.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/page-schema.js`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/page-schema.js src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/components/lowcode-builder/page/page-schema.js`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/page-schema.js src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/components/lowcode-builder/page/page-schema.js code-copilot/changes/forge-list-designer-productivity-upgrades/spec.md code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/page-schema.js src/components/lowcode-builder/page/ListPageGridDesigner.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/ListPageGridDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue`：通过。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/ListPageGridDesigner.vue src/views/app-center/components/designer/BusinessListDesigner.vue src/views/app-center/components/designer/BusinessObjectDesignerShell.vue 'src/views/app-center/object-designer.[objectCode].vue'`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue forge-admin-ui/src/views/app-center/components/designer/BusinessObjectDesignerShell.vue 'forge-admin-ui/src/views/app-center/object-designer.[objectCode].vue'`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/page-schema.js`：通过。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/components/lowcode-builder/page/page-schema.js`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/components/lowcode-builder/page/page-schema.js`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue code-copilot/changes/forge-list-designer-productivity-upgrades/spec.md code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/components/lowcode-builder/page/page-schema.js`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/components/lowcode-builder/page/page-schema.js code-copilot/changes/forge-list-designer-productivity-upgrades/spec.md code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/StructuredListPageDesigner.vue src/views/app-center/components/designer/BusinessListDesigner.vue src/views/app-center/components/designer/BusinessObjectDesignerShell.vue 'src/views/app-center/object-designer.[objectCode].vue'`：通过，有既有 `vue/one-component-per-file` warning。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/StructuredListPageDesigner.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue forge-admin-ui/src/views/app-center/components/designer/BusinessObjectDesignerShell.vue 'forge-admin-ui/src/views/app-center/object-designer.[objectCode].vue' code-copilot/changes/forge-list-designer-productivity-upgrades/spec.md code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/page-schema.js src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue code-copilot/changes/forge-list-designer-productivity-upgrades/spec.md code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+
+## 2026-06-20 补充处理
+
+- [x] 左侧筛选树新增区块级折叠：折叠后树模块变为 44px 侧栏，右侧 CRUD 同行区块自动左移并补满释放宽度。
+- [x] 树节点展开/收起保留在树标题内，整块树折叠改为边缘箭头按钮，避免交互含义混淆。
+- [x] 修复 CRUD 快速配置搜索区域行高占位、背景和固定展示；自由画布配置搜索保持独立固定区域。
+- [x] 预览弹窗内容区、画布滚动区和内部网格统一白底并撑满高度。
+- [x] 回调参数处理编辑器改为单列规则输入，降低右侧窄面板溢出风险。
+- [x] 执行定向 eslint、空白检查和前端构建。
+
+## 2026-06-20 验证记录
+
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/GridBlockRenderer.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/StructuredListPageDesigner.vue src/components/lowcode-builder/page/CrudHookRulesEditor.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/StructuredListPageDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/CrudHookRulesEditor.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/GridBlockRenderer.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/StructuredListPageDesigner.vue src/components/lowcode-builder/page/page-schema.js src/views/ai/crud-page.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/StructuredListPageDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-admin-ui/src/views/ai/crud-page.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/CrudHookRulesEditor.vue src/components/lowcode-builder/page/crud-hook-rules.js src/components/lowcode-builder/page/GridBlockRenderer.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/StructuredListPageDesigner.vue src/components/lowcode-builder/page/page-schema.js src/views/ai/crud-page.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/CrudHookRulesEditor.vue forge-admin-ui/src/components/lowcode-builder/page/crud-hook-rules.js forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/StructuredListPageDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-admin-ui/src/views/ai/crud-page.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/GridBlockRenderer.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue src/views/app-center/components/designer/BusinessListDesigner.vue src/views/ai/crud-page.vue`：通过；`nvm use v20.19.0` 本机返回 N/A，实际使用当前可用 pnpm 执行。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue forge-admin-ui/src/views/ai/crud-page.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/views/ai/crud-page.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/views/ai/crud-page.vue forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md code-copilot/changes/forge-list-designer-productivity-upgrades/test-spec.md code-copilot/changes/forge-list-designer-productivity-upgrades/execution-log.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/views/ai/crud-page.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/views/ai/crud-page.vue forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/views/ai/crud-page.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/views/app-center/components/designer/BusinessListDesigner.vue src/components/lowcode-builder/page/page-schema.js`：通过；`nvm use v20.19.0` 本机返回 N/A，实际使用当前 Node `v20.20.0`。
+- `git diff --check -- forge-admin-ui/src/views/ai/crud-page.vue forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-server/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/dto/lowcode/LowcodePageSchema.java`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/views/ai/crud-page.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/views/ai/crud-page.vue forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/StructuredListPageDesigner.vue src/views/app-center/components/designer/BusinessListDesigner.vue src/views/ai/crud-page.vue src/components/lowcode-builder/page/page-schema.js src/components/lowcode-builder/page/GridBlockRenderer.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/StructuredListPageDesigner.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue forge-admin-ui/src/views/ai/crud-page.vue forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-server/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/lowcode/LowcodeRuntimeConfigBuilder.java`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-generator -am compile -DskipTests`：首次使用默认 JDK 失败于上游 `forge-starter-file`，原因是当前 JDK 不满足 Java 17 编译。
+- `JAVA_HOME=/Users/yaominliang/Library/Java/JavaVirtualMachines/ms-17.0.15-1/Contents/Home PATH=/Users/yaominliang/Library/Java/JavaVirtualMachines/ms-17.0.15-1/Contents/Home/bin:$PATH mvn -pl forge-framework/forge-plugin-parent/forge-plugin-generator -am compile -DskipTests`：通过。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/StructuredListPageDesigner.vue src/views/app-center/components/designer/BusinessListDesigner.vue 'src/views/app-center/object-designer.[objectCode].vue' src/views/ai/crud-page.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/StructuredListPageDesigner.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue 'forge-admin-ui/src/views/app-center/object-designer.[objectCode].vue' forge-admin-ui/src/views/ai/crud-page.vue forge-server/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/lowcode/LowcodeRuntimeConfigBuilder.java`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `JAVA_HOME=/Users/yaominliang/Library/Java/JavaVirtualMachines/ms-17.0.15-1/Contents/Home PATH=/Users/yaominliang/Library/Java/JavaVirtualMachines/ms-17.0.15-1/Contents/Home/bin:$PATH mvn -pl forge-framework/forge-plugin-parent/forge-plugin-generator -am compile -DskipTests`：通过。
+- `pnpm --dir forge-admin-ui exec eslint src/views/ai/crud-page.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/views/ai/crud-page.vue forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue forge-server/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/service/lowcode/LowcodeRuntimeConfigBuilder.java`：通过。
+- `JAVA_HOME=/Users/yaominliang/Library/Java/JavaVirtualMachines/ms-17.0.15-1/Contents/Home PATH=/Users/yaominliang/Library/Java/JavaVirtualMachines/ms-17.0.15-1/Contents/Home/bin:$PATH mvn -pl forge-framework/forge-plugin-parent/forge-plugin-generator -am compile -DskipTests`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/views/ai/crud-page.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/page-schema.js src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/views/ai/crud-page.vue forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue forge-server/forge-framework/forge-plugin-parent/forge-plugin-generator/src/main/java/com/mdframe/forge/plugin/generator/dto/lowcode/LowcodePageSchema.java`：通过。
+- `JAVA_HOME=/Users/yaominliang/Library/Java/JavaVirtualMachines/ms-17.0.15-1/Contents/Home PATH=/Users/yaominliang/Library/Java/JavaVirtualMachines/ms-17.0.15-1/Contents/Home/bin:$PATH mvn -pl forge-framework/forge-plugin-parent/forge-plugin-generator -am compile -DskipTests`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/StructuredListPageDesigner.vue src/views/app-center/components/designer/BusinessListDesigner.vue src/components/lowcode-builder/page/page-schema.js`：通过，有既有 `vue/one-component-per-file` warning。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/StructuredListPageDesigner.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/components/lowcode-builder/page/page-schema.js src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/StructuredListPageDesigner.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过，有既有 `vue/one-component-per-file` warning。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/StructuredListPageDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/StructuredListPageDesigner.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/components/lowcode-builder/page/page-schema.js src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/StructuredListPageDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/StructuredListPageDesigner.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过，有既有 `vue/one-component-per-file` warning；本机 `nvm use v20.19.0` 返回 N/A，但当前 shell 仍可执行 pnpm。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/StructuredListPageDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/StructuredListPageDesigner.vue src/views/app-center/components/designer/BusinessListDesigner.vue src/components/lowcode-builder/page/page-schema.js src/components/lowcode-builder/page/GridBlockRenderer.vue`：通过，有既有 `vue/one-component-per-file` warning。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/StructuredListPageDesigner.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/StructuredListPageDesigner.vue src/components/lowcode-builder/page/page-schema.js`：通过，有既有 `vue/one-component-per-file` warning。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/StructuredListPageDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/page-schema.js`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/page-schema.js src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue code-copilot/changes/forge-list-designer-productivity-upgrades/spec.md code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/page-schema.js src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue code-copilot/changes/forge-list-designer-productivity-upgrades/spec.md code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/page-schema.js src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue code-copilot/changes/forge-list-designer-productivity-upgrades/spec.md code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/page-schema.js src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue code-copilot/changes/forge-list-designer-productivity-upgrades/spec.md code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/page-schema.js src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/page-schema.js forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue code-copilot/changes/forge-list-designer-productivity-upgrades/spec.md code-copilot/changes/forge-list-designer-productivity-upgrades/tasks.md`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。保留项目既有 warning：CSS 中存在 `//` 注释、`src/store/index.js` 同时动态/静态导入导致 chunk 提示。

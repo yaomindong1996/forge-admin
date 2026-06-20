@@ -1684,7 +1684,7 @@ defineExpose({
   gap: 14px;
   min-height: calc(100vh - 168px);
   background: #f8fafc;
-  padding: 14px;
+  padding: 8px;
 }
 
 .form-builder-grid.relation-mode {

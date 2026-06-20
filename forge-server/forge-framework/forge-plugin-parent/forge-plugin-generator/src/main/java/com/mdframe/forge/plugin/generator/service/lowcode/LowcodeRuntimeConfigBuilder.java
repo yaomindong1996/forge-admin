@@ -85,7 +85,7 @@ public class LowcodeRuntimeConfigBuilder {
     private List<Map<String, Object>> buildSearchSchema(String configKey, LowcodeModelSchema modelSchema, LowcodePageSchema pageSchema) {
         List<Map<String, Object>> fields = resolveFields(modelSchema, pageSchema, "search", field -> Boolean.TRUE.equals(field.getSearchable()))
                 .stream()
-                .map(field -> buildSearchField(field, resolveFieldSetting(pageSchema, "search", field.getField()), modelSchema, pageSchema))
+                .map(field -> buildSearchField(field, resolveRuntimeFieldSetting(pageSchema, "search", field.getField()), modelSchema, pageSchema))
                 .collect(Collectors.toCollection(ArrayList::new));
         appendTreeRuntimeField(fields, modelSchema, pageSchema, "search");
         decorateTreeRuntimeFields(fields, configKey, modelSchema, pageSchema);
@@ -96,7 +96,7 @@ public class LowcodeRuntimeConfigBuilder {
         List<Map<String, Object>> columns = resolveFields(modelSchema, pageSchema, "table",
                 field -> field.getListVisible() == null || Boolean.TRUE.equals(field.getListVisible()))
                 .stream()
-                .map(field -> buildTableColumn(field, resolveFieldSetting(pageSchema, "table", field.getField()),
+                .map(field -> buildTableColumn(field, resolveRuntimeFieldSetting(pageSchema, "table", field.getField()),
                         modelSchema, pageSchema))
                 .collect(Collectors.toCollection(ArrayList::new));
 
@@ -158,17 +158,26 @@ public class LowcodeRuntimeConfigBuilder {
         boolean masterDetailRuntime = isMasterDetailRuntime(pageSchema);
         LowcodePageZone editZone = findZone(pageSchema, "edit");
         Map<String, Object> editProps = editZone == null || editZone.getProps() == null ? Map.of() : editZone.getProps();
-        options.put("modalType", resolveModalType(editProps.get("modalType")));
+        Map<String, Object> crudBlockProps = resolveGridBlockProps(pageSchema, List.of("AiCrudPage"));
+        options.put("modalType", resolveModalType(firstPresent(editProps.get("modalType"), crudBlockProps.get("modalType"))));
         int editGridCols = resolveEditGridCols(pageSchema);
         options.put("modalWidth", StringUtils.defaultIfBlank(text(editProps.get("modalWidth")),
-                resolveDefaultModalWidth(masterDetailRuntime, editGridCols)));
-        options.put("searchGridCols", 4);
+                StringUtils.defaultIfBlank(text(crudBlockProps.get("modalWidth")),
+                        resolveDefaultModalWidth(masterDetailRuntime, editGridCols))));
+        options.put("searchGridCols", integerValue(crudBlockProps.get("searchGridCols")) == null
+                ? 4
+                : integerValue(crudBlockProps.get("searchGridCols")));
         options.put("editGridCols", editGridCols);
-        options.put("editLabelPlacement", StringUtils.defaultIfBlank(text(editProps.get("labelPlacement")), "left"));
-        options.put("editLabelAlign", StringUtils.defaultIfBlank(text(editProps.get("labelAlign")), "right"));
-        options.put("editLabelWidth", editProps.getOrDefault("labelWidth", "auto"));
-        options.put("editSize", normalizeRuntimeFormSize(text(editProps.get("size"))));
-        options.put("editShowFeedback", booleanWithDefault(editProps.get("showFeedback"), true));
+        options.put("editLabelPlacement", StringUtils.defaultIfBlank(text(editProps.get("labelPlacement")),
+                StringUtils.defaultIfBlank(text(crudBlockProps.get("editLabelPlacement")), "left")));
+        options.put("editLabelAlign", StringUtils.defaultIfBlank(text(editProps.get("labelAlign")),
+                StringUtils.defaultIfBlank(text(crudBlockProps.get("editLabelAlign")), "right")));
+        options.put("editLabelWidth", editProps.getOrDefault("labelWidth",
+                crudBlockProps.getOrDefault("editLabelWidth", "auto")));
+        options.put("editSize", normalizeRuntimeFormSize(StringUtils.defaultIfBlank(text(editProps.get("size")),
+                text(crudBlockProps.get("editSize")))));
+        options.put("editShowFeedback", booleanWithDefault(firstPresent(editProps.get("showFeedback"),
+                crudBlockProps.get("editShowFeedback")), true));
         copyOption(editProps, options, "editFormClass");
         copyOption(editProps, options, "editFormStyle");
         options.put("editXGap", intValue(editProps.get("columnGap"), 16));
@@ -179,12 +188,26 @@ public class LowcodeRuntimeConfigBuilder {
         }
 
         LowcodePageZone tableZone = findZone(pageSchema, "table");
+        Map<String, Object> tableProps = new LinkedHashMap<>();
         if (tableZone != null && tableZone.getProps() != null) {
-            copyOption(tableZone.getProps(), options, "showImport");
-            copyOption(tableZone.getProps(), options, "showExport");
-            copyOption(tableZone.getProps(), options, "hideBatchDelete");
-            copyOption(tableZone.getProps(), options, "enableCustomQuery");
-            options.put("tableRowGap", intValue(tableZone.getProps().get("rowGap"), 8));
+            tableProps.putAll(tableZone.getProps());
+        }
+        tableProps.putAll(resolveGridBlockProps(pageSchema, List.of("data-table", "AiCrudPage", "AiTable")));
+        if (!tableProps.isEmpty()) {
+            copyOption(tableProps, options, "showImport");
+            copyOption(tableProps, options, "showExport");
+            copyOption(tableProps, options, "showPagination");
+            copyOption(tableProps, options, "hideAdd");
+            copyOption(tableProps, options, "hideToolbar");
+            copyOption(tableProps, options, "hideSelection");
+            copyOption(tableProps, options, "hideBatchDelete");
+            copyOption(tableProps, options, "enableCustomQuery");
+            copyOption(tableProps, options, "showRenderModeSwitch");
+            copyOption(tableProps, options, "renderMode");
+            copyOption(tableProps, options, "tableSize");
+            copyOption(tableProps, options, "bordered");
+            copyOption(tableProps, options, "striped");
+            options.put("tableRowGap", intValue(tableProps.get("rowGap"), 8));
         }
         Set<String> toolbarActions = resolveToolbarStandardActions(pageSchema);
         if (!toolbarActions.isEmpty()) {
@@ -1400,7 +1423,21 @@ public class LowcodeRuntimeConfigBuilder {
             render.put("targetField", targetField);
             item.put("render", render);
         }
+        copyTableColumnDesignerSettings(item, pageSetting);
         return item;
+    }
+
+    private void copyTableColumnDesignerSettings(Map<String, Object> item, Map<String, Object> pageSetting) {
+        putIfNotBlank(item, "renderType", text(pageSetting.get("renderType")));
+        putIfNotBlank(item, "targetField", text(pageSetting.get("targetField")));
+        putIfNotBlank(item, "textColor", text(pageSetting.get("textColor")));
+        String clickAction = StringUtils.defaultIfBlank(text(pageSetting.get("clickAction")), "none");
+        if (!"none".equals(clickAction)) {
+            item.put("clickAction", clickAction);
+            putIfNotBlank(item, "targetPageKey", text(pageSetting.get("targetPageKey")));
+            putIfNotBlank(item, "targetParamName", text(pageSetting.get("targetParamName")));
+            putIfNotBlank(item, "targetParamField", text(pageSetting.get("targetParamField")));
+        }
     }
 
     private String resolveDefaultRenderType(LowcodeFieldSchema field, String componentType) {
@@ -1497,6 +1534,83 @@ public class LowcodeRuntimeConfigBuilder {
         Object value = settingsMap.get(fieldName);
         if (value instanceof Map<?, ?> map) {
             return (Map<String, Object>) map;
+        }
+        return Map.of();
+    }
+
+    private Map<String, Object> resolveRuntimeFieldSetting(LowcodePageSchema pageSchema, String zoneKey, String fieldName) {
+        Map<String, Object> result = new LinkedHashMap<>(resolveFieldSetting(pageSchema, zoneKey, fieldName));
+        Map<String, Object> gridSetting = resolveGridFieldSetting(pageSchema, zoneKey, fieldName);
+        result.putAll(gridSetting);
+        return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> resolveGridFieldSetting(LowcodePageSchema pageSchema, String zoneKey, String fieldName) {
+        if (pageSchema == null || pageSchema.getListGridLayout() == null || StringUtils.isBlank(fieldName)) {
+            return Map.of();
+        }
+        Object items = pageSchema.getListGridLayout().get("items");
+        if (!(items instanceof List<?> list)) {
+            return Map.of();
+        }
+        for (String blockType : runtimeSettingBlockTypes(zoneKey)) {
+            for (Object item : list) {
+                if (!(item instanceof Map<?, ?> block)) {
+                    continue;
+                }
+                if (!blockType.equals(text(block.get("blockType")))) {
+                    continue;
+                }
+                Object propsValue = block.get("props");
+                if (!(propsValue instanceof Map<?, ?> props)) {
+                    continue;
+                }
+                Object settingsValue = props.get("fieldSettings");
+                if (!(settingsValue instanceof Map<?, ?> settings)) {
+                    continue;
+                }
+                Object value = settings.get(fieldName);
+                if (value instanceof Map<?, ?> map) {
+                    return (Map<String, Object>) map;
+                }
+            }
+        }
+        return Map.of();
+    }
+
+    private List<String> runtimeSettingBlockTypes(String zoneKey) {
+        if ("search".equals(zoneKey)) {
+            return List.of("search-form", "AiCrudPage");
+        }
+        if ("table".equals(zoneKey)) {
+            return List.of("data-table", "AiCrudPage", "AiTable");
+        }
+        return List.of();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> resolveGridBlockProps(LowcodePageSchema pageSchema, List<String> blockTypes) {
+        if (pageSchema == null || pageSchema.getListGridLayout() == null || blockTypes == null || blockTypes.isEmpty()) {
+            return Map.of();
+        }
+        Object items = pageSchema.getListGridLayout().get("items");
+        if (!(items instanceof List<?> list)) {
+            return Map.of();
+        }
+        for (String blockType : blockTypes) {
+            for (Object item : list) {
+                if (!(item instanceof Map<?, ?> block)) {
+                    continue;
+                }
+                if (!blockType.equals(text(block.get("blockType")))) {
+                    continue;
+                }
+                Object props = block.get("props");
+                if (props instanceof Map<?, ?> map) {
+                    return new LinkedHashMap<>((Map<String, Object>) map);
+                }
+            }
         }
         return Map.of();
     }
@@ -1997,7 +2111,11 @@ public class LowcodeRuntimeConfigBuilder {
 
     private Map<String, Object> buildDefaultSort(LowcodeModelSchema modelSchema, LowcodePageSchema pageSchema) {
         LowcodePageZone tableZone = findZone(pageSchema, "table");
-        Map<String, Object> props = tableZone != null && tableZone.getProps() != null ? tableZone.getProps() : Map.of();
+        Map<String, Object> props = new LinkedHashMap<>();
+        if (tableZone != null && tableZone.getProps() != null) {
+            props.putAll(tableZone.getProps());
+        }
+        props.putAll(resolveGridBlockProps(pageSchema, List.of("data-table", "AiCrudPage", "AiTable")));
         Object defaultSort = props.get("defaultSort");
         String sortField = text(props.get("defaultSortField"));
         String sortOrder = text(props.get("defaultSortOrder"));
@@ -2056,10 +2174,12 @@ public class LowcodeRuntimeConfigBuilder {
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> resolveCustomActions(LowcodePageSchema pageSchema, String position) {
         LowcodePageZone tableZone = findZone(pageSchema, "table");
-        if (tableZone == null || tableZone.getProps() == null) {
-            return List.of();
+        Map<String, Object> props = new LinkedHashMap<>();
+        if (tableZone != null && tableZone.getProps() != null) {
+            props.putAll(tableZone.getProps());
         }
-        Object value = tableZone.getProps().get("customActions");
+        props.putAll(resolveGridBlockProps(pageSchema, List.of("data-table", "AiCrudPage", "AiTable")));
+        Object value = props.get("customActions");
         if (!(value instanceof List<?> list)) {
             return List.of();
         }

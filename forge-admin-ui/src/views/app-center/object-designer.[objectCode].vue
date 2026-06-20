@@ -217,7 +217,6 @@ import {
   businessObjectDesigner,
   businessObjectList,
   businessObjectRuntimeInfo,
-  previewBusinessObjectLayout,
   publishBusinessObject,
   saveBusinessObjectDesigner,
 } from '@/api/business-app'
@@ -556,6 +555,7 @@ async function handlePanelSwitch(panel) {
   if (!panel || panel === activePanel.value)
     return
   await syncActiveFormDraft()
+  await syncActiveListDraft()
   activePanel.value = panel
 }
 
@@ -569,30 +569,32 @@ async function syncActiveFormDraft() {
   await nextTick()
 }
 
+async function syncActiveListDraft() {
+  if (activePanel.value !== 'list')
+    return
+  await nextTick()
+  const result = listDesignerRef.value?.syncDesignerDraft?.()
+  if (result?.dirty)
+    designerDraftDirty.value = true
+  await nextTick()
+}
+
 async function persistPendingDesignerDraft() {
   if (!designerDraftDirty.value)
     return
   await saveDesignerDraft(false, { reload: false })
 }
 
-async function handlePreview() {
-  if (!objectId.value)
+function handlePreview() {
+  if (activePanel.value === 'form') {
+    window.dispatchEvent(new CustomEvent('forge-form-designer:preview-current-form'))
     return
-  await syncActiveFormDraft()
-  await persistPendingDesignerDraft()
-  const layoutKey = resolveActiveLayoutKey()
-  const res = await previewBusinessObjectLayout(objectId.value, {
-    layoutKey,
-    layoutName: layoutKey === 'list' ? '列表布局预览' : layoutKey === 'detail' ? '详情布局预览' : '表单布局预览',
-    layoutType: draft.pageSchema?.layoutType,
-    pageSchema: cloneSchema(draft.pageSchema || {}),
-    zones: draft.pageSchema?.zones || [],
-    settings: {},
-  })
-  if (res.data) {
-    message.success('运行配置预览已生成，可进入发布检查继续确认')
-    activePanel.value = 'publish'
   }
+  if (activePanel.value === 'list') {
+    window.dispatchEvent(new CustomEvent('forge-list-designer:preview-current-list'))
+    return
+  }
+  message.info('当前面板暂未接入本地预览')
 }
 
 async function handlePublish(options = {}) {
@@ -600,6 +602,7 @@ async function handlePublish(options = {}) {
   if (!objectId.value)
     return
   await syncActiveFormDraft()
+  await syncActiveListDraft()
   await persistPendingDesignerDraft()
   if (publishCheckState.value?.publishable === false) {
     message.warning('发布检查存在阻断项，请先修复')
@@ -820,19 +823,13 @@ function openDeveloperPath(path) {
   router.push(path)
 }
 
-function resolveActiveLayoutKey() {
-  if (activePanel.value === 'list')
-    return 'list'
-  if (activePanel.value === 'detail' || (activePanel.value === 'form' && formDetailTab.value === 'detail'))
-    return 'detail'
-  return 'form'
-}
-
 function handleDirtyChange(value) {
   if (!ready.value)
     return
   dirty.value = !!value
   if (value && activePanel.value === 'form' && formDetailTab.value === 'form')
+    designerDraftDirty.value = true
+  if (value && activePanel.value === 'list')
     designerDraftDirty.value = true
 }
 
