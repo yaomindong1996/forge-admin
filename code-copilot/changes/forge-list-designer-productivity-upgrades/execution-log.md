@@ -1,5 +1,92 @@
 # 执行日志：forge-list-designer-productivity-upgrades
 
+## 2026-06-21 12:20:52 CST
+
+### 变更范围
+
+- 列表自由画布顶部摘要去掉“行 x 列”信息，只保留区块数、设计宽度、预览形态和缩放比例。
+- `list-page-switch` 展开态增加面板间距，避免页面配置、页面入参贴住上方页签。
+- `page-config-row` 改为浅底卡片式配置面板，输入区统一宽度和视觉层级。
+- `page-param-row` 改为轻量参数面板，参数项使用紧凑条目样式，删除参数改为图标按钮。
+
+### 命令与结果
+
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/ListPageGridDesigner.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过；`nvm use v20.19.0` 本机返回 N/A，实际使用当前 Node `v20.20.0`。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。
+
+### 警告
+
+- 构建保留项目既有 warning：CSS 中存在 `//` 注释。
+- 构建保留项目既有 warning：`src/store/index.js` 同时被动态和静态导入，Rollup 不会将其移动到单独 chunk。
+
+### 跳过项
+
+- 未进行浏览器手工验证或 Playwright 截图：本轮未启动 Vite/后端服务。
+- 未执行后端编译：本轮只改前端 Vue 设计器布局和 scoped 样式。
+
+### 服务清理
+
+- 本轮未启动常驻服务，无需清理 PID。
+
+## 2026-06-21 12:12:25 CST
+
+### 变更范围
+
+- 视图控制从常驻表单面板改为底部图标控件：预览视口图标弹出预览形态、设计宽度和自定义宽度；缩放按钮弹出缩放选择和加减按钮。
+- 自由画布缩放 stage 改为 flex 居中，拖放、缩放和切换设计宽度后画布主体保持在中间。
+- `list-designer-head` 压缩为紧凑单行，撤销/重做改为图标按钮，去掉重复的布局状态标签。
+- `list-page-switch` 压缩为页面标题、页面 tabs、图标操作同一行，新增/设置/复制/重置/清空/删除改为图标按钮。
+
+### 命令与结果
+
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/ListPageGridDesigner.vue src/views/app-center/components/designer/forge-form-designer/ForgeFormCanvas.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/views/app-center/components/designer/forge-form-designer/ForgeFormCanvas.vue forge-admin-ui/src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。
+
+### 警告
+
+- 构建保留项目既有 warning：CSS 中存在 `//` 注释。
+- 构建保留项目既有 warning：`src/store/index.js` 同时被动态和静态导入，Rollup 不会将其移动到单独 chunk。
+
+### 跳过项
+
+- 未进行浏览器手工验证或 Playwright 截图：本轮未启动 Vite/后端服务。
+- 未执行后端编译：本轮只改前端 Vue 设计器布局与缩放交互。
+
+### 服务清理
+
+- 本轮未启动常驻服务，无需清理 PID。
+
+## 2026-06-21 12:00:09 CST
+
+### 变更范围
+
+- 列表自由画布顶部工具条只保留源码、专注画布、清空和重置默认等主操作。
+- 设计宽度、预览形态、缩放控制迁移到画布内部右上角浮动视图控制区，降低中间画布顶部拥挤。
+- 列表自由画布支持 `Ctrl/⌘ + 滚轮` 缩放，普通滚轮仍保留滚动画布行为。
+- 工具栏状态摘要显示当前预览形态、设计宽度和缩放比例。
+
+### 命令与结果
+
+- `git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/views/app-center/components/designer/forge-form-designer/ForgeFormCanvas.vue`：通过。
+- `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/ListPageGridDesigner.vue src/views/app-center/components/designer/forge-form-designer/ForgeFormCanvas.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。
+
+### 警告
+
+- 构建保留项目既有 warning：CSS 中存在 `//` 注释。
+- 构建保留项目既有 warning：`src/store/index.js` 同时被动态和静态导入，Rollup 不会将其移动到单独 chunk。
+
+### 跳过项
+
+- 未进行浏览器手工验证或 Playwright 截图：本轮未启动 Vite/后端服务。
+- 未执行后端编译：本轮只改前端 Vue 设计器布局与缩放交互。
+
+### 服务清理
+
+- 本轮未启动常驻服务，无需清理 PID。
+
 ## 2026-06-20 18:48:00 CST
 
 ### 变更范围

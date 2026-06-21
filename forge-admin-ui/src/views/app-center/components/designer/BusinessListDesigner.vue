@@ -3,20 +3,18 @@
     <div class="list-designer-head">
       <div class="list-designer-title">
         <h3>列表设计</h3>
-        <p>维护查询条件、表格列、工具栏按钮和行操作。</p>
+        <p>{{ layoutModeLabel }} · {{ designerPages.length }} 个页面</p>
       </div>
       <n-space class="list-designer-actions" size="small" align="center">
-        <n-button class="list-toolbar-text-button" size="small" secondary :disabled="!canUndo" @click="undoSchema">
+        <n-button class="list-toolbar-icon-button" circle size="small" secondary :disabled="!canUndo" title="撤销" @click="undoSchema">
           <template #icon>
             <n-icon><ArrowUndoOutline /></n-icon>
           </template>
-          撤销
         </n-button>
-        <n-button class="list-toolbar-text-button" size="small" secondary :disabled="!canRedo" @click="redoSchema">
+        <n-button class="list-toolbar-icon-button" circle size="small" secondary :disabled="!canRedo" title="重做" @click="redoSchema">
           <template #icon>
             <n-icon><ArrowRedoOutline /></n-icon>
           </template>
-          重做
         </n-button>
         <n-select
           class="list-template-select"
@@ -33,13 +31,6 @@
             CRUD配置
           </n-radio-button>
         </n-radio-group>
-        <n-tag
-          size="small"
-          :type="layoutModeTagType"
-          :bordered="false"
-        >
-          {{ layoutModeLabel }}
-        </n-tag>
         <n-dropdown trigger="click" :options="listMoreOptions" @select="handleListMoreSelect">
           <n-button class="list-toolbar-more-button" circle size="small" type="primary" title="更多操作">
             <template #icon>
@@ -51,16 +42,14 @@
     </div>
 
     <div v-if="listLayoutMode === 'grid'" class="list-page-switch">
-      <div class="page-switch-head">
+      <div class="page-switch-row">
         <div class="page-switch-title">
           <span class="page-switch-icon">P</span>
           <div>
             <strong>页面设计</strong>
-            <small>切换页面后，中间画布编辑的是当前页面布局</small>
+            <small>{{ activeDesignerPage?.pageName || '当前页面' }} · {{ pageTypeText(activeDesignerPage?.pageType) }}</small>
           </div>
         </div>
-      </div>
-      <div class="page-switch-row">
         <div class="page-tab-list">
           <button
             v-for="page in designerPages"
@@ -73,31 +62,27 @@
             <span class="page-tab-name">{{ page.pageName || page.pageKey }}</span>
             <small>{{ pageTypeText(page.pageType) }} · {{ page.pageKey }}</small>
           </button>
-          <n-button class="page-tool-button" size="small" secondary type="primary" @click="addDesignerPage">
+          <n-button class="page-tool-button page-icon-button" circle size="small" secondary type="primary" title="新增页面" @click="addDesignerPage">
             <template #icon>
               <n-icon><AddOutline /></n-icon>
             </template>
-            新增
           </n-button>
         </div>
         <n-space size="small" align="center" class="page-actions">
-          <n-button class="page-tool-button" size="small" secondary @click="pageSettingsExpanded = !pageSettingsExpanded">
+          <n-button class="page-tool-button page-icon-button" circle size="small" secondary :title="pageSettingsExpanded ? '收起页面设置' : '页面设置'" @click="pageSettingsExpanded = !pageSettingsExpanded">
             <template #icon>
               <n-icon><SettingsOutline /></n-icon>
             </template>
-            {{ pageSettingsExpanded ? '收起设置' : '设置' }}
           </n-button>
-          <n-button class="page-tool-button" size="small" secondary @click="duplicateActivePage">
+          <n-button class="page-tool-button page-icon-button" circle size="small" secondary title="复制页面" @click="duplicateActivePage">
             <template #icon>
               <n-icon><CopyOutline /></n-icon>
             </template>
-            复制
           </n-button>
-          <n-button class="page-tool-button" size="small" secondary @click="resetActivePageLayout">
+          <n-button class="page-tool-button page-icon-button" circle size="small" secondary title="重置当前页面布局" @click="resetActivePageLayout">
             <template #icon>
               <n-icon><RefreshOutline /></n-icon>
             </template>
-            重置
           </n-button>
           <n-popconfirm
             :show-icon="false"
@@ -106,11 +91,10 @@
             @positive-click="clearActivePageLayout"
           >
             <template #trigger>
-              <n-button class="page-tool-button" size="small" secondary>
+              <n-button class="page-tool-button page-icon-button" circle size="small" secondary title="清空当前页面布局">
                 <template #icon>
                   <n-icon><CloseCircleOutline /></n-icon>
                 </template>
-                清空
               </n-button>
             </template>
             清空当前页面画布上的所有组件？
@@ -123,11 +107,10 @@
             @positive-click="removeActivePage"
           >
             <template #trigger>
-              <n-button class="page-tool-button" size="small" secondary type="error" :disabled="isProtectedPage(activePageKey)">
+              <n-button class="page-tool-button page-icon-button" circle size="small" secondary type="error" :disabled="isProtectedPage(activePageKey)" title="删除当前页面">
                 <template #icon>
                   <n-icon><TrashOutline /></n-icon>
                 </template>
-                删除
               </n-button>
             </template>
             删除当前页面及布局？列表页不允许删除。
@@ -189,11 +172,13 @@
             placeholder="默认值 / 字段映射"
             @update:value="updateActivePageParam(paramIdx, { value: $event })"
           />
-          <n-button size="tiny" quaternary @click="removeActivePageParam(paramIdx)">
-            删
+          <n-button size="tiny" quaternary circle title="删除参数" @click="removeActivePageParam(paramIdx)">
+            <template #icon>
+              <n-icon><TrashOutline /></n-icon>
+            </template>
           </n-button>
         </div>
-        <n-button size="tiny" dashed @click="addActivePageParam">
+        <n-button class="page-param-add-button" size="tiny" dashed @click="addActivePageParam">
           + 参数
         </n-button>
       </div>
@@ -365,7 +350,6 @@ const listLayoutMode = computed(() => localSchema.value.listLayoutMode || 'grid'
 const treeLayoutEnabled = computed(() => localSchema.value.layoutType === 'tree-crud')
 const currentTemplateValue = computed(() => treeLayoutEnabled.value ? 'tree-crud' : 'simple-crud')
 const layoutModeLabel = computed(() => resolveLayoutModeLabel(localSchema.value.layoutType))
-const layoutModeTagType = computed(() => localSchema.value.layoutType === 'simple-crud' ? 'default' : 'info')
 const canUndo = computed(() => undoStack.value.length > 0)
 const canRedo = computed(() => redoStack.value.length > 0)
 const listPreviewVisible = ref(false)
@@ -1596,17 +1580,17 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  min-height: 46px;
+  gap: 10px;
+  min-height: 40px;
   border-bottom: 1px solid #e5e7eb;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: #fff;
 }
 
 .list-designer-title {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -1637,13 +1621,27 @@ onBeforeUnmount(() => {
 }
 
 .list-template-select {
-  width: 136px;
+  width: 128px;
+}
+
+.list-toolbar-icon-button {
+  flex: 0 0 auto;
+  --n-color: #f8fafc !important;
+  --n-color-hover: #eef6ff !important;
+  --n-color-pressed: #dbeafe !important;
+  --n-color-focus: #f8fafc !important;
+  --n-border: 1px solid #dbe3ee !important;
+  --n-border-hover: 1px solid #93c5fd !important;
+  --n-border-pressed: 1px solid #60a5fa !important;
+  --n-border-focus: 1px solid #93c5fd !important;
+  --n-text-color: #475569 !important;
+  --n-text-color-hover: #1d4ed8 !important;
 }
 
 .list-page-switch {
   display: grid;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 8px;
+  padding: 8px 10px 10px;
   border-bottom: 1px solid #eef2f7;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 251, 255, 0.98) 100%),
@@ -1660,35 +1658,40 @@ onBeforeUnmount(() => {
 .page-switch-title {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 7px;
   min-width: 0;
+  flex: 0 0 auto;
 }
 
 .page-switch-icon {
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
   background: #2563eb;
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
-  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.22);
+  box-shadow: 0 6px 12px rgba(37, 99, 235, 0.18);
 }
 
 .page-switch-title strong {
   display: block;
   color: #0f172a;
-  font-size: 13px;
-  line-height: 16px;
+  font-size: 12px;
+  line-height: 15px;
 }
 
 .page-switch-title small {
   display: block;
+  max-width: 150px;
+  overflow: hidden;
   color: #64748b;
-  font-size: 11px;
-  line-height: 15px;
+  font-size: 10px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .page-switch-row,
@@ -1702,17 +1705,20 @@ onBeforeUnmount(() => {
 }
 
 .page-switch-row {
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  justify-content: stretch;
+  gap: 8px;
 }
 
 .page-tab-list {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: 1px;
+  padding-bottom: 0;
   scrollbar-width: none;
 }
 
@@ -1726,11 +1732,12 @@ onBeforeUnmount(() => {
   grid-template-columns: minmax(0, 1fr);
   gap: 1px;
   flex: 0 0 auto;
-  min-width: 108px;
-  max-width: 168px;
-  padding: 6px 9px 6px 24px;
+  min-width: 96px;
+  max-width: 148px;
+  min-height: 30px;
+  padding: 4px 8px 4px 21px;
   border: 1px solid #dbe3ee;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #fff;
   color: #475569;
   text-align: left;
@@ -1741,10 +1748,10 @@ onBeforeUnmount(() => {
 .page-tab-button::before {
   content: '';
   position: absolute;
-  top: 12px;
-  left: 10px;
-  width: 8px;
-  height: 8px;
+  top: 10px;
+  left: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 999px;
   background: #94a3b8;
   box-shadow: 0 0 0 3px #f1f5f9;
@@ -1776,13 +1783,13 @@ onBeforeUnmount(() => {
 
 .page-tab-name {
   color: #0f172a;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
 .page-tab-button small {
   color: #64748b;
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .page-tab-button:hover,
@@ -1802,13 +1809,14 @@ onBeforeUnmount(() => {
 }
 
 .page-tool-button {
-  --n-padding: 0 10px !important;
   min-width: 0;
   font-weight: 600;
 }
 
-.page-tool-button :deep(.n-button__icon) {
-  margin-right: 4px;
+.page-icon-button {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
 }
 
 .page-config-row {
@@ -1819,23 +1827,42 @@ onBeforeUnmount(() => {
     minmax(108px, 0.7fr)
     minmax(160px, 1.2fr)
     minmax(180px, 1.4fr);
+  gap: 8px;
+  align-items: end;
+  padding: 10px;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+}
+
+.page-config-row :deep(.n-input),
+.page-config-row :deep(.n-base-selection) {
+  width: 100%;
 }
 
 .page-param-row {
+  display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  padding: 8px;
-  border: 1px dashed #dbe3ee;
+  gap: 6px;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.72);
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
 }
 
 .page-data-row {
   display: grid;
   grid-template-columns: auto 88px minmax(260px, 1fr) minmax(140px, 0.45fr);
-  padding: 8px;
-  border: 1px solid #dbeafe;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #f8fbff;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
 }
 
 .page-method-select {
@@ -1843,17 +1870,42 @@ onBeforeUnmount(() => {
 }
 
 .page-param-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #eef6ff;
   color: #475569;
   font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.page-param-title::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #2563eb;
 }
 
 .page-param-item {
   display: grid;
-  grid-template-columns: 92px 140px auto;
+  grid-template-columns: minmax(96px, 0.85fr) minmax(150px, 1fr) 24px;
   gap: 4px;
   align-items: center;
-  min-width: 270px;
+  flex: 0 1 330px;
+  min-width: 300px;
+  padding: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
+.page-param-add-button {
+  flex: 0 0 auto;
 }
 
 .list-toolbar-text-button {
@@ -2051,6 +2103,7 @@ onBeforeUnmount(() => {
   .list-designer-head {
     align-items: flex-start;
     flex-direction: column;
+    gap: 6px;
   }
 
   .list-designer-title {
@@ -2059,6 +2112,26 @@ onBeforeUnmount(() => {
 
   .list-designer-actions {
     justify-content: flex-start;
+    max-width: 100%;
+    overflow-x: auto;
+    padding-bottom: 1px;
+  }
+
+  .page-switch-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .page-actions {
+    grid-column: 2;
+    justify-content: flex-end;
+  }
+
+  .page-config-row {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+
+  .page-param-item {
+    flex-basis: 360px;
   }
 }
 </style>

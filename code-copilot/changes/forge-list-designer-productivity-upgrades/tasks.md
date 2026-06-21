@@ -186,6 +186,17 @@
 - [x] 单按钮组件配置拆分基础样式和按钮状态，补充开关说明并修复预览写死禁用导致点击无反馈的问题。
 - [x] 移除列表设计工具栏内重复的“保存列表”按钮，统一使用右上角“保存”入口。
 
+## 2026-06-21 补充处理
+
+- [x] 列表自由画布顶部只保留源码、专注、清空、重置等主操作。
+- [x] 将设计宽度、预览形态和缩放控制迁移到画布内浮动视图控制区，减少中间画布顶部按钮拥挤。
+- [x] 列表自由画布支持 `Ctrl/⌘ + 滚轮` 缩放，并在工具栏信息区显示当前预览形态、设计宽度和缩放比例。
+- [x] 将视图控制改为 Figma 式底部图标控件，点击图标弹出宽度、预览形态和缩放输入。
+- [x] 自由画布缩放容器改为居中布局，拖放、缩放和切换宽度时画布主体保持在中间。
+- [x] 压缩 `list-designer-head` 和 `list-page-switch`，撤销/重做、页面操作改为图标按钮，页面切换区压成单行。
+- [x] 画布摘要去掉行列信息，只保留区块数、设计宽度、预览形态和缩放比例。
+- [x] 优化页面设置展开区，`page-config-row` 和 `page-param-row` 改为有间距的轻量面板，参数删除改为图标按钮。
+
 ## 2026-06-20 验证记录
 
 - `pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/GridBlockRenderer.vue src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/StructuredListPageDesigner.vue src/components/lowcode-builder/page/CrudHookRulesEditor.vue src/views/app-center/components/designer/BusinessListDesigner.vue`：通过。

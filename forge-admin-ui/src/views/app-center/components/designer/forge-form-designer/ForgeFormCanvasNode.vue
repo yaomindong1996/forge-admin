@@ -18,14 +18,14 @@
     <article
       ref="nodeRef"
       class="canvas-node"
-      :class="[`node-${component.componentKey}`, { selected: isSelected, layout: isLayout, dragging }]"
+      :class="[`node-${component.componentKey}`, { 'selected': isSelected, 'layout': isLayout, 'dragging': dragging, 'resizing': resizing, 'structural-slot': isStructuralSlot, 'border-hidden': designerBorderHidden }]"
       :style="nodeCustomStyle"
       draggable="false"
       tabindex="0"
       @click.stop="$emit('select', component.id)"
       @focus="$emit('select', component.id)"
     >
-      <div class="node-overlay">
+      <div v-if="!isStructuralSlot" class="node-overlay">
         <div class="quick-actions">
           <button
             v-if="isField"
@@ -107,6 +107,16 @@
           </svg>
         </span>
       </div>
+      <div v-if="isSelected" class="node-resize-handles" @click.stop>
+        <span
+          v-for="direction in resizeDirections"
+          :key="direction"
+          class="resize-anchor"
+          :class="`anchor-${direction}`"
+          :title="resizeAnchorTitle(direction)"
+          @pointerdown.stop.prevent="startNodeResize(direction, $event)"
+        />
+      </div>
 
       <AiFormItem
         v-if="isField"
@@ -141,7 +151,13 @@
           {{ component.props?.text || component.label || '按钮' }}
         </n-button>
       </div>
-      <div v-else-if="isCrudBlock" class="crud-preview">
+      <div
+        v-else-if="isCrudBlock"
+        class="crud-preview"
+        @dragenter.prevent.stop="handleInsideDragOver"
+        @dragover.prevent.stop="handleInsideDragOver"
+        @drop.stop="handleInsideDrop"
+      >
         <div class="crud-live-preview">
           <AiCrudPage
             v-bind="crudPreviewOptions"
@@ -172,6 +188,9 @@
         <div
           class="layout-children real-layout-children"
           :class="{ active: activeInside }"
+          @dragenter.prevent.stop="handleInsideDragOver"
+          @dragover.prevent.stop="handleInsideDragOver"
+          @drop.stop="handleInsideDrop"
         >
           <div v-if="!component.children?.length" class="empty-child-zone" :class="{ active: activeInside }">
             拖入字段或布局
@@ -232,7 +251,13 @@
           />
         </n-tab-pane>
         <n-tab-pane v-if="!component.children?.length" name="empty" tab="标签一">
-          <div class="layout-children real-layout-children" :class="{ active: activeInside }">
+          <div
+            class="layout-children real-layout-children"
+            :class="{ active: activeInside }"
+            @dragenter.prevent.stop="handleInsideDragOver"
+            @dragover.prevent.stop="handleInsideDragOver"
+            @drop.stop="handleInsideDrop"
+          >
             <div class="empty-child-zone" :class="{ active: activeInside }">
               拖入标签页
             </div>
@@ -271,7 +296,13 @@
           />
         </n-collapse-item>
         <n-collapse-item v-if="!component.children?.length" name="empty" title="分组一">
-          <div class="layout-children real-layout-children" :class="{ active: activeInside }">
+          <div
+            class="layout-children real-layout-children"
+            :class="{ active: activeInside }"
+            @dragenter.prevent.stop="handleInsideDragOver"
+            @dragover.prevent.stop="handleInsideDragOver"
+            @drop.stop="handleInsideDrop"
+          >
             <div class="empty-child-zone" :class="{ active: activeInside }">
               拖入折叠项
             </div>
@@ -283,6 +314,9 @@
         class="layout-children"
         :class="{ 'grid-layout-children': isGridRow, 'table-layout-children': isTableLayout, 'active': activeInside }"
         :style="childrenGridStyle"
+        @dragenter.prevent.stop="handleInsideDragOver"
+        @dragover.prevent.stop="handleInsideDragOver"
+        @drop.stop="handleInsideDrop"
       >
         <div v-if="!component.children?.length" class="empty-child-zone" :class="{ active: activeInside }">
           拖入字段或布局
@@ -386,15 +420,20 @@ const DRAG_LAYOUT_MIME = 'application/x-forge-form-layout'
 const DRAG_TEMPLATE_MIME = 'application/x-forge-form-template'
 const FORGE_DRAG_TYPES = [DRAG_COMPONENT_MIME, DRAG_FIELD_MIME, DRAG_LAYOUT_MIME, DRAG_TEMPLATE_MIME]
 const MAX_FORM_GRID_COLUMNS = 24
+const resizeDirections = ['n', 'e', 's', 'w', 'ne', 'nw', 'se', 'sw']
 let activeDragImage = null
 let activeDragImageOffset = { x: 0, y: 0 }
 let activePointerDropTarget = null
 let activePointerHandle = null
 let activePointerId = null
 let pointerDragStarted = false
+let activeResizeHandle = null
+let activeResizePointerId = null
+let activeResizeState = null
 
 const activeDropPosition = ref('')
 const dragging = ref(false)
+const resizing = ref(false)
 const nodeRef = ref(null)
 const nodeHeight = ref(72)
 const previewValue = ref(null)
@@ -411,6 +450,9 @@ const isTableLayout = computed(() => ['table', 'fcTable'].includes(props.compone
 const isCardLayout = computed(() => ['card', 'elCard'].includes(props.component.componentKey))
 const isTabsLayout = computed(() => ['tabs', 'elTabs'].includes(props.component.componentKey))
 const isCollapseLayout = computed(() => ['collapse', 'elCollapse'].includes(props.component.componentKey))
+const isStructuralSlot = computed(() => ['col', 'tableGrid', 'fcTableGrid', 'tabPane', 'elTabPane', 'collapseItem', 'elCollapseItem'].includes(props.component.componentKey))
+const selectedDesignerStyle = computed(() => props.component.props?.__designerStyle || {})
+const designerBorderHidden = computed(() => selectedDesignerStyle.value.hideInnerBorder || selectedDesignerStyle.value.borderStyle === 'none')
 const beforeDropKey = computed(() => `${props.component.id}:before`)
 const afterDropKey = computed(() => `${props.component.id}:after`)
 const insideDropKey = computed(() => `${props.component.id}:inside`)
@@ -441,18 +483,22 @@ const dropIndicatorStyle = computed(() => ({
 }))
 const nodeCustomStyle = computed(() => {
   const designerStyle = props.component.props?.__designerStyle || {}
-  return {
+  const minHeight = designerStyle.minHeight || undefined
+  const style = {
     ...(designerStyle.customStyle || {}),
     width: designerStyle.width || undefined,
     height: designerStyle.height || undefined,
-    minHeight: designerStyle.minHeight || undefined,
+    minHeight: isStructuralSlot.value ? undefined : minHeight,
     backgroundColor: designerStyle.backgroundColor || undefined,
     borderColor: designerStyle.borderColor || undefined,
-    borderStyle: designerStyle.borderStyle || undefined,
+    borderStyle: designerStyle.borderStyle === 'none' ? undefined : designerStyle.borderStyle || undefined,
     borderRadius: designerStyle.borderRadius || undefined,
     boxShadow: designerStyle.boxShadow || undefined,
     opacity: designerStyle.opacity || undefined,
   }
+  if (minHeight)
+    style['--forge-slot-min-height'] = minHeight
+  return style
 })
 const nodeMenuOptions = computed(() => [
   { label: '配置', key: 'config' },
@@ -476,6 +522,7 @@ const nodeMenuOptions = computed(() => [
       { label: '恢复默认', key: 'border-default' },
       { label: '灰色虚线', key: 'border-dashed' },
       { label: '蓝色实线', key: 'border-blue' },
+      { label: '隐藏边框', key: 'border-none' },
     ],
   },
   { label: '移入', key: 'move-into', disabled: true },
@@ -616,6 +663,7 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
   resizeObserver = null
   cancelPointerDrag()
+  cancelNodeResize()
   removeDragImage()
 })
 
@@ -695,6 +743,108 @@ function cancelPointerDrag() {
   cleanupPointerDrag()
 }
 
+function startNodeResize(direction, event) {
+  if (event.button !== 0 || !nodeRef.value)
+    return
+  event.preventDefault()
+  emit('select', props.component.id)
+  const rect = nodeRef.value.getBoundingClientRect()
+  activeResizeHandle = event.currentTarget
+  activeResizePointerId = event.pointerId
+  activeResizeHandle?.setPointerCapture?.(event.pointerId)
+  activeResizeState = {
+    direction,
+    startX: event.clientX,
+    startY: event.clientY,
+    startWidth: rect.width,
+    startHeight: rect.height,
+    startSpan: nodeSpan.value,
+    columnWidth: Math.max(24, rect.width / Math.max(1, nodeSpan.value)),
+    designerStyle: { ...(props.component.props?.__designerStyle || {}) },
+  }
+  resizing.value = true
+  window.addEventListener('pointermove', handleNodeResizeMove, { capture: true, passive: false })
+  window.addEventListener('pointerup', finishNodeResize, true)
+  window.addEventListener('pointercancel', cancelNodeResize, true)
+}
+
+function handleNodeResizeMove(event) {
+  if (!activeResizeState)
+    return
+  event.preventDefault()
+  const deltaX = event.clientX - activeResizeState.startX
+  const deltaY = event.clientY - activeResizeState.startY
+  const direction = activeResizeState.direction || ''
+  const patch = {}
+  const nextDesignerStyle = { ...activeResizeState.designerStyle }
+
+  if (direction.includes('e') || direction.includes('w')) {
+    const horizontalDelta = deltaX * (direction.includes('w') ? -1 : 1)
+    if (isSpanResizable()) {
+      const nextSpan = clamp(
+        activeResizeState.startSpan + Math.round(horizontalDelta / activeResizeState.columnWidth),
+        1,
+        parentGridColumns.value,
+      )
+      patch.layout = { span: nextSpan }
+      if (props.component.componentKey === 'col')
+        patch.props = { span: nextSpan }
+    }
+    else {
+      nextDesignerStyle.width = `${Math.round(Math.max(96, activeResizeState.startWidth + horizontalDelta))}px`
+      nextDesignerStyle.widthMode = 'fixed'
+    }
+  }
+
+  if (direction.includes('s') || direction.includes('n')) {
+    const verticalDelta = deltaY * (direction.includes('n') ? -1 : 1)
+    nextDesignerStyle.minHeight = `${Math.round(Math.max(44, activeResizeState.startHeight + verticalDelta))}px`
+    nextDesignerStyle.heightMode = 'custom'
+  }
+
+  patch.props = {
+    ...(patch.props || {}),
+    __designerStyle: nextDesignerStyle,
+  }
+  emit('update:schema', updateDesignerComponent(props.schema, props.component.id, patch))
+}
+
+function finishNodeResize() {
+  cleanupNodeResize()
+}
+
+function cancelNodeResize() {
+  cleanupNodeResize()
+}
+
+function cleanupNodeResize() {
+  resizing.value = false
+  activeResizeState = null
+  try {
+    activeResizeHandle?.releasePointerCapture?.(activeResizePointerId)
+  }
+  catch {
+    // Pointer capture can already be released by the browser after cancel/up.
+  }
+  activeResizeHandle = null
+  activeResizePointerId = null
+  window.removeEventListener('pointermove', handleNodeResizeMove, true)
+  window.removeEventListener('pointerup', finishNodeResize, true)
+  window.removeEventListener('pointercancel', cancelNodeResize, true)
+}
+
+function isSpanResizable() {
+  return props.depth === 0 || props.component.componentKey === 'col'
+}
+
+function resizeAnchorTitle(direction) {
+  if (direction === 'n' || direction === 's')
+    return '调整高度'
+  if (direction === 'e' || direction === 'w')
+    return '调整宽度'
+  return '调整宽高'
+}
+
 function handleBeforeDrop(event) {
   clearDropPreview()
   emit('dropBefore', event)
@@ -708,6 +858,12 @@ function handleAfterDrop(event) {
 function handleNodeDragOver(event) {
   if (!hasForgeDragType(event))
     return
+  const target = event.target
+  const insideDropArea = target?.closest?.('.layout-children, .crud-empty-drop')
+  if (insideDropArea && nodeRef.value?.contains?.(insideDropArea)) {
+    handleInsideDragOver(event)
+    return
+  }
   if (designerDragSourceId.value === props.component.id || document.documentElement.dataset.forgeDesignerDraggingId === props.component.id) {
     clearDropPreview()
     showInvalidDrop('不能拖入组件自身')
@@ -732,6 +888,25 @@ function handleNodeDragOver(event) {
   setDesignerDropKey(nextPosition === 'before' ? beforeDropKey.value : afterDropKey.value)
 }
 
+function handleInsideDragOver(event) {
+  if (!hasForgeDragType(event))
+    return
+  if (designerDragSourceId.value === props.component.id || document.documentElement.dataset.forgeDesignerDraggingId === props.component.id) {
+    clearDropPreview()
+    showInvalidDrop('不能拖入组件自身')
+    return
+  }
+  if (!canDropIntoCurrentNode(event)) {
+    showInvalidDrop(resolveInvalidDropMessage(event))
+    return
+  }
+  const slotTarget = resolveContainerSlotTarget(event)
+  clearDesignerDropError()
+  activeDropPosition.value = 'inside'
+  event.dataTransfer.dropEffect = event.dataTransfer.effectAllowed === 'copy' ? 'copy' : 'move'
+  setDesignerDropKey(slotTarget?.dropKey || insideDropKey.value)
+}
+
 function handleNodeDragLeave() {
   // Drag events fire leave/enter repeatedly for form controls inside the node.
   // Keep the latest preview until the next dragover/drop/dragend to avoid flicker.
@@ -750,8 +925,17 @@ function handleNodeDrop(event) {
 }
 
 function handleInsideDrop(event) {
+  const slotTarget = resolveContainerSlotTarget(event)
+  if (slotTarget) {
+    handleDropToTarget(slotTarget, event)
+    return
+  }
   if (isGridRow.value) {
     handleRowDropToColumn(0, event)
+    return
+  }
+  if (isTableLayout.value) {
+    handleTableDropToCell(0, event)
     return
   }
   if (!canDropIntoCurrentNode(event)) {
@@ -769,7 +953,7 @@ function handleChildDrop(index, event) {
   if (isTableLayout.value) {
     const child = resolveDraggedComponent(event)
     if (!['tableGrid', 'fcTableGrid'].includes(child?.componentKey)) {
-      showInvalidDrop('表格布局只能拖入表格单元格')
+      handleTableDropToCell(index, event)
       return
     }
   }
@@ -839,12 +1023,36 @@ function handleRowDropToColumn(index, event) {
   }, event)
 }
 
+function handleTableDropToCell(index, event) {
+  const child = resolveDraggedComponent(event)
+  if (['tableGrid', 'fcTableGrid'].includes(child?.componentKey)) {
+    handleDropToChildren(index, event)
+    return
+  }
+  const cells = (props.component.children || []).filter(item => ['tableGrid', 'fcTableGrid'].includes(item?.componentKey))
+  const targetCell = cells[Math.max(0, Math.min(cells.length - 1, Number(index) || 0))]
+  if (!targetCell) {
+    showInvalidDrop('请先添加表格单元格')
+    return
+  }
+  if (!canAcceptDesignerChild(targetCell, child)) {
+    showInvalidDrop('该单元格不支持放入这个组件')
+    return
+  }
+  handleDropToTarget({
+    parentId: targetCell.id,
+    index: targetCell.children?.length || 0,
+  }, event)
+}
+
 function canDropIntoCurrentNode(event) {
   if (isField.value || isTitle.value)
     return false
   const child = resolveDraggedComponent(event)
   if (isGridRow.value)
-    return child?.componentKey !== 'col'
+    return child?.componentKey === 'col' || resolveContainerSlotTarget(event, child)?.parentId
+  if (isTableLayout.value)
+    return ['tableGrid', 'fcTableGrid'].includes(child?.componentKey) || Boolean(resolveContainerSlotTarget(event, child)?.parentId)
   return canAcceptDesignerChild(props.component, child)
 }
 
@@ -880,6 +1088,91 @@ function resolveDraggedComponent(event) {
   if (templateText)
     return createForgeFieldTemplateComponent(parsePayload(templateText), props.schema)
   return null
+}
+
+function resolveContainerSlotTarget(event, draggedComponent = resolveDraggedComponent(event), containerComponent = props.component) {
+  if (!draggedComponent)
+    return null
+  const containerKey = containerComponent?.componentKey || ''
+  const childKey = draggedComponent.componentKey || ''
+  if (['row', 'fcRow'].includes(containerKey) && childKey === 'col') {
+    const index = resolveLayoutSlotIndex(event, containerComponent.children || [])
+    return {
+      parentId: containerComponent.id,
+      index,
+      dropKey: `${containerComponent.id}:inside`,
+    }
+  }
+  if (['table', 'fcTable'].includes(containerKey) && ['tableGrid', 'fcTableGrid'].includes(childKey)) {
+    const index = resolveLayoutSlotIndex(event, containerComponent.children || [])
+    return {
+      parentId: containerComponent.id,
+      index,
+      dropKey: `${containerComponent.id}:inside`,
+    }
+  }
+  let slotKeys = []
+  if (['row', 'fcRow'].includes(containerKey))
+    slotKeys = ['col']
+  else if (['table', 'fcTable'].includes(containerKey))
+    slotKeys = ['tableGrid', 'fcTableGrid']
+  if (!slotKeys.length)
+    return null
+  const slots = (containerComponent.children || []).filter(item => slotKeys.includes(item?.componentKey))
+  const targetSlot = resolveLayoutSlotAtPoint(event, slots)
+  if (!targetSlot || !canAcceptDesignerChild(targetSlot, draggedComponent))
+    return null
+  return {
+    parentId: targetSlot.id,
+    index: targetSlot.children?.length || 0,
+    dropKey: `${targetSlot.id}:inside`,
+  }
+}
+
+function resolveLayoutSlotAtPoint(event, slots = []) {
+  if (!slots.length)
+    return null
+  const rects = slots
+    .map((slot, index) => {
+      const rect = findNodeWrapRect(slot.id)
+      return rect ? { slot, index, rect } : null
+    })
+    .filter(Boolean)
+  if (!rects.length)
+    return slots[0]
+  const matched = rects.find(({ rect }) =>
+    event.clientX >= rect.left
+    && event.clientX <= rect.right
+    && event.clientY >= rect.top
+    && event.clientY <= rect.bottom)
+  if (matched)
+    return matched.slot
+  const sortedRects = rects
+    .map((entry) => {
+      const centerX = entry.rect.left + entry.rect.width / 2
+      const centerY = entry.rect.top + entry.rect.height / 2
+      return {
+        ...entry,
+        distance: Math.abs(event.clientX - centerX) + Math.abs(event.clientY - centerY),
+      }
+    })
+    .sort((a, b) => a.distance - b.distance)
+  const nearest = sortedRects[0]
+  return nearest?.slot || slots[0]
+}
+
+function resolveLayoutSlotIndex(event, slots = []) {
+  const targetSlot = resolveLayoutSlotAtPoint(event, slots)
+  const index = slots.findIndex(item => item?.id === targetSlot?.id)
+  return index === -1 ? slots.length : index + 1
+}
+
+function findNodeWrapRect(componentId = '') {
+  if (!componentId)
+    return null
+  const wraps = Array.from(document.querySelectorAll('[data-forge-node-id]'))
+  const wrap = wraps.find(item => item?.dataset?.forgeNodeId === componentId)
+  return wrap?.getBoundingClientRect?.() || null
 }
 
 function hasForgeDragType(event) {
@@ -938,6 +1231,17 @@ function updatePointerDropPreview(event) {
 
   const targetComponent = getDesignerComponent(props.schema, targetId)
   const ratio = rect.height > 0 ? (event.clientY - rect.top) / rect.height : 0.5
+  const slotTarget = resolveContainerSlotTarget(event, props.component, targetComponent)
+  if (slotTarget) {
+    clearDesignerDropError()
+    activeDropPosition.value = 'inside'
+    activePointerDropTarget = {
+      parentId: slotTarget.parentId,
+      index: slotTarget.index,
+    }
+    setDesignerDropKey(slotTarget.dropKey)
+    return
+  }
   if (canPointerDropInside(targetComponent, ratio)) {
     clearDesignerDropError()
     activeDropPosition.value = 'inside'
@@ -1257,8 +1561,13 @@ function resolveBorderStyle(key) {
     'border-default': { borderColor: undefined, borderStyle: undefined },
     'border-dashed': { borderColor: '#9ca3af', borderStyle: 'dashed' },
     'border-blue': { borderColor: '#2563eb', borderStyle: 'solid' },
+    'border-none': { borderColor: 'transparent', borderStyle: 'none', hideInnerBorder: true },
   }
   return map[key] || {}
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value))
 }
 
 function parsePayload(value) {
@@ -1435,12 +1744,12 @@ function buildFormDividerProps(component) {
 
 .canvas-node.node-row,
 .canvas-node.node-fcRow {
-  border-color: rgba(148, 163, 184, 0.26);
-  background: rgba(248, 251, 255, 0.72);
+  border-color: transparent;
+  background: #fbfdff;
   padding: 24px 6px 6px;
 }
 
-.canvas-node.node-col {
+.canvas-node.structural-slot {
   border-color: transparent;
   background: transparent;
   padding: 0;
@@ -1457,15 +1766,15 @@ function buildFormDividerProps(component) {
 
 .canvas-node.node-table,
 .canvas-node.node-fcTable {
-  border-color: #d1d5db;
-  background: #f8fafc;
+  border-color: transparent;
+  background: #fbfdff;
 }
 
 .canvas-node.node-tableGrid,
 .canvas-node.node-fcTableGrid {
   min-height: 82px;
-  border-style: dashed;
-  background: #fff;
+  border-color: transparent;
+  background: transparent;
 }
 
 .canvas-node.node-crudBlock,
@@ -1474,21 +1783,38 @@ function buildFormDividerProps(component) {
   background: #fff;
 }
 
-.canvas-node.node-col:hover,
-.canvas-node.node-col:focus {
+.canvas-node.structural-slot:hover,
+.canvas-node.structural-slot:focus {
   border-color: transparent;
   background: transparent;
   box-shadow: none;
 }
 
-.canvas-node.node-col .layout-children {
-  min-height: 76px;
-  border-color: rgba(147, 197, 253, 0.7);
-  background: #fbfdff;
-  box-shadow: inset 0 0 0 1px rgba(219, 234, 254, 0.45);
+.canvas-node.structural-slot .layout-children {
+  min-height: var(--forge-slot-min-height, 96px);
+  align-content: start;
+  border-color: transparent;
+  background: #f8fafc;
+  box-shadow: none;
 }
 
-.canvas-node.node-col .layout-children.active {
+.canvas-node.node-row > .layout-children,
+.canvas-node.node-fcRow > .layout-children,
+.canvas-node.node-table > .layout-children,
+.canvas-node.node-fcTable > .layout-children {
+  min-height: var(--forge-slot-min-height, auto);
+}
+
+.canvas-node.node-row:hover,
+.canvas-node.node-fcRow:hover,
+.canvas-node.node-table:hover,
+.canvas-node.node-fcTable:hover,
+.canvas-node.structural-slot:hover .layout-children,
+.canvas-node.structural-slot:focus .layout-children {
+  border-color: #dbe3ee;
+}
+
+.canvas-node.structural-slot .layout-children.active {
   border-color: #2563eb;
   background: #eff6ff;
   box-shadow:
@@ -1496,9 +1822,110 @@ function buildFormDividerProps(component) {
     0 6px 16px rgba(37, 99, 235, 0.12);
 }
 
-.canvas-node.node-col.selected .layout-children {
+.canvas-node.structural-slot.selected .layout-children {
   border-color: #2563eb;
-  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.24);
+  background: #eff6ff;
+  box-shadow:
+    inset 0 0 0 1px rgba(37, 99, 235, 0.24),
+    0 10px 22px rgba(37, 99, 235, 0.1);
+}
+
+.canvas-node.layout.selected,
+.canvas-node.node-row.selected,
+.canvas-node.node-fcRow.selected,
+.canvas-node.node-table.selected,
+.canvas-node.node-fcTable.selected {
+  border-color: #2563eb !important;
+  background: #eff6ff;
+  box-shadow:
+    0 0 0 2px rgba(37, 99, 235, 0.18),
+    0 10px 22px rgba(37, 99, 235, 0.1);
+}
+
+.canvas-node.structural-slot.selected {
+  border-color: transparent !important;
+  background: transparent;
+  box-shadow: none;
+}
+
+.canvas-node.border-hidden:not(.selected) {
+  border-color: transparent !important;
+  box-shadow: none;
+}
+
+.canvas-node.border-hidden:not(.selected) :deep(.n-card) {
+  border-color: transparent !important;
+}
+
+.node-resize-handles {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  pointer-events: none;
+}
+
+.resize-anchor {
+  position: absolute;
+  display: block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 2px 7px rgba(37, 99, 235, 0.32);
+  pointer-events: auto;
+}
+
+.anchor-n {
+  top: -6px;
+  left: 50%;
+  cursor: ns-resize;
+  transform: translateX(-50%);
+}
+
+.anchor-e {
+  top: 50%;
+  right: -6px;
+  cursor: ew-resize;
+  transform: translateY(-50%);
+}
+
+.anchor-s {
+  bottom: -6px;
+  left: 50%;
+  cursor: ns-resize;
+  transform: translateX(-50%);
+}
+
+.anchor-w {
+  top: 50%;
+  left: -6px;
+  cursor: ew-resize;
+  transform: translateY(-50%);
+}
+
+.anchor-ne {
+  top: -6px;
+  right: -6px;
+  cursor: nesw-resize;
+}
+
+.anchor-nw {
+  top: -6px;
+  left: -6px;
+  cursor: nwse-resize;
+}
+
+.anchor-se {
+  right: -6px;
+  bottom: -6px;
+  cursor: nwse-resize;
+}
+
+.anchor-sw {
+  bottom: -6px;
+  left: -6px;
+  cursor: nesw-resize;
 }
 
 .node-overlay {
@@ -1763,9 +2190,9 @@ function buildFormDividerProps(component) {
 .layout-children {
   display: grid;
   gap: 8px;
-  border: 1px dashed #d8dee8;
+  border: 1px solid transparent;
   border-radius: 7px;
-  background: #fbfdff;
+  background: #f8fafc;
   padding: 10px;
   transition:
     border-color 180ms ease,
@@ -1785,10 +2212,9 @@ function buildFormDividerProps(component) {
 
 .table-layout-children {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0;
-  border-style: solid;
-  padding: 0;
-  background: #e5e7eb;
+  gap: 6px;
+  padding: 6px;
+  background: #f1f5f9;
 }
 
 .table-layout-children > :deep(.node-wrap) {
@@ -1799,10 +2225,13 @@ function buildFormDividerProps(component) {
   display: grid;
   place-items: center;
   min-height: 64px;
-  border: 1px dashed #bfdbfe;
+  border: 0;
   border-radius: 7px;
+  background: #fff;
   color: #2563eb;
   font-size: 12px;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(191, 219, 254, 0.42);
   transition:
     background 180ms ease,
     box-shadow 180ms ease;
@@ -1818,7 +2247,7 @@ function buildFormDividerProps(component) {
 
 .empty-child-zone.active {
   background: #dbeafe;
-  box-shadow: 6px 6px 0 rgba(147, 197, 253, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.28);
 }
 
 @media (prefers-reduced-motion: reduce) {

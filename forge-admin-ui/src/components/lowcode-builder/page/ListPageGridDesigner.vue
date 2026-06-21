@@ -95,55 +95,9 @@
       <div v-if="!readonly" class="canvas-toolbar">
         <div class="toolbar-info">
           <strong>{{ pageName || '列表页面' }} · {{ layoutTitle }}</strong>
-          <span>{{ blocks.length }} 个区块 · {{ totalRows }} 行 × 12 列 · {{ canvasGridWidth }}px</span>
+          <span>{{ blocks.length }} 个区块 · {{ canvasGridWidth }}px · {{ canvasViewportSummary }}</span>
         </div>
-        <n-space v-if="!readonly" size="small" align="center">
-          <div class="canvas-width-control">
-            <span>设计宽度</span>
-            <n-select
-              :value="designCanvasWidth"
-              :options="canvasWidthOptions"
-              size="small"
-              class="canvas-width-select"
-              @update:value="updateDesignWidth"
-            />
-            <n-input-number
-              :value="designCanvasWidth"
-              :min="375"
-              :max="2560"
-              :step="10"
-              size="small"
-              class="canvas-width-input"
-              :show-button="false"
-              @update:value="updateDesignWidth"
-            />
-          </div>
-          <div class="canvas-preview-control">
-            <span>预览形态</span>
-            <n-select
-              :value="canvasPreviewMode"
-              :options="canvasPreviewModeOptions"
-              size="small"
-              class="canvas-preview-select"
-              @update:value="applyCanvasPreviewMode"
-            />
-          </div>
-          <div class="canvas-zoom-control">
-            <span>缩放</span>
-            <n-button size="tiny" secondary @click="updateCanvasZoom(canvasZoom - 0.1)">
-              -
-            </n-button>
-            <n-select
-              :value="canvasZoom"
-              :options="canvasZoomOptions"
-              size="small"
-              class="canvas-zoom-select"
-              @update:value="updateCanvasZoom"
-            />
-            <n-button size="tiny" secondary @click="updateCanvasZoom(canvasZoom + 0.1)">
-              +
-            </n-button>
-          </div>
+        <n-space v-if="!readonly" class="canvas-primary-actions" size="small" align="center">
           <n-button size="small" secondary @click="sourceModalOpen = true">
             源码
           </n-button>
@@ -175,7 +129,7 @@
         </n-space>
       </div>
 
-      <div ref="canvasScrollRef" class="canvas-scroll">
+      <div ref="canvasScrollRef" class="canvas-scroll" @wheel="handleCanvasWheel">
         <div class="canvas-zoom-stage" :style="canvasZoomStageStyle">
           <div
             ref="canvasRef"
@@ -295,6 +249,87 @@
               </template>
             </div>
           </div>
+        </div>
+        <div v-if="!readonly" class="canvas-viewport-dock">
+          <n-popover trigger="click" placement="top-end" :width="282" :to="false">
+            <template #trigger>
+              <n-button class="viewport-icon-button" circle secondary title="预览形态和设计宽度">
+                <template #icon>
+                  <n-icon><BrowsersOutline /></n-icon>
+                </template>
+              </n-button>
+            </template>
+            <div class="canvas-viewport-popover">
+              <div class="viewport-popover-head">
+                <strong>预览视口</strong>
+                <span>{{ canvasPreviewModeLabel }} · {{ designCanvasWidth }}px</span>
+              </div>
+              <label class="canvas-viewport-field">
+                <span>预览形态</span>
+                <n-select
+                  :value="canvasPreviewMode"
+                  :options="canvasPreviewModeOptions"
+                  size="small"
+                  class="canvas-preview-select"
+                  @update:value="applyCanvasPreviewMode"
+                />
+              </label>
+              <label class="canvas-viewport-field">
+                <span>设计宽度</span>
+                <n-select
+                  :value="designCanvasWidth"
+                  :options="canvasWidthOptions"
+                  size="small"
+                  class="canvas-width-select"
+                  @update:value="updateDesignWidth"
+                />
+              </label>
+              <label class="canvas-viewport-field">
+                <span>自定义宽度</span>
+                <n-input-number
+                  :value="designCanvasWidth"
+                  :min="375"
+                  :max="2560"
+                  :step="10"
+                  size="small"
+                  class="canvas-width-input"
+                  :show-button="false"
+                  @update:value="updateDesignWidth"
+                />
+              </label>
+            </div>
+          </n-popover>
+          <n-popover trigger="click" placement="top-end" :width="244" :to="false">
+            <template #trigger>
+              <n-button class="viewport-zoom-button" secondary title="画布缩放">
+                <template #icon>
+                  <n-icon><ResizeOutline /></n-icon>
+                </template>
+                {{ canvasZoomLabel }}
+              </n-button>
+            </template>
+            <div class="canvas-viewport-popover">
+              <div class="viewport-popover-head">
+                <strong>画布缩放</strong>
+                <span>Ctrl/⌘ + 滚轮也可缩放</span>
+              </div>
+              <div class="canvas-viewport-zoom-actions">
+                <n-button size="small" secondary @click="updateCanvasZoom(canvasZoom - 0.1)">
+                  -
+                </n-button>
+                <n-select
+                  :value="canvasZoom"
+                  :options="canvasZoomOptions"
+                  size="small"
+                  class="canvas-zoom-select"
+                  @update:value="updateCanvasZoom"
+                />
+                <n-button size="small" secondary @click="updateCanvasZoom(canvasZoom + 0.1)">
+                  +
+                </n-button>
+              </div>
+            </div>
+          </n-popover>
         </div>
       </div>
     </main>
@@ -2711,11 +2746,13 @@
 
 <script setup>
 import {
+  BrowsersOutline,
   ChevronBackOutline,
   ChevronForwardOutline,
   ContractOutline,
   EllipsisHorizontalOutline,
   ExpandOutline,
+  ResizeOutline,
   SearchOutline,
 } from '@vicons/ionicons5'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -3087,6 +3124,11 @@ const canvasStyle = computed(() => ({
   width: `${canvasGridWidth.value}px`,
   minHeight: `${canvasGridHeight.value}px`,
 }))
+const canvasZoomLabel = computed(() => `${Math.round(canvasZoom.value * 100)}%`)
+const canvasPreviewModeLabel = computed(() => canvasPreviewModeOptions.find(item => item.value === canvasPreviewMode.value)?.label || '桌面')
+const canvasViewportSummary = computed(() => {
+  return `${canvasPreviewModeLabel.value} ${designCanvasWidth.value}px / ${canvasZoomLabel.value}`
+})
 const canvasScaleStyle = computed(() => ({
   transform: `scale(${canvasZoom.value})`,
   transformOrigin: '0 0',
@@ -4795,6 +4837,14 @@ function updateCanvasZoom(value) {
   canvasZoom.value = clamp(Number(value) || 1, 0.5, 1.25)
 }
 
+function handleCanvasWheel(event) {
+  if (!event.ctrlKey && !event.metaKey)
+    return
+  event.preventDefault()
+  const delta = event.deltaY > 0 ? -0.08 : 0.08
+  updateCanvasZoom(Number((canvasZoom.value + delta).toFixed(2)))
+}
+
 function patchBlockProps(id, patch) {
   localLayout.value = {
     ...localLayout.value,
@@ -6303,6 +6353,7 @@ function centerCanvasViewport() {
 }
 
 .canvas-panel {
+  position: relative;
   background: radial-gradient(circle at 18px 18px, rgba(37, 99, 235, 0.08) 0 1px, transparent 1px 100%), #eef3f8;
   background-size:
     18px 18px,
@@ -6317,17 +6368,22 @@ function centerCanvasViewport() {
 }
 
 .canvas-scroll {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 0;
+  padding: 0 12px 14px;
+  overscroll-behavior: contain;
 }
 
 .canvas-zoom-stage {
   position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
   min-width: 100%;
   box-sizing: content-box;
-  padding: 1px;
+  padding: 14px 1px 58px;
 }
 
 .canvas-toolbar {
@@ -6341,34 +6397,106 @@ function centerCanvasViewport() {
   background: #fff;
 }
 
-.canvas-width-control,
-.canvas-preview-control,
-.canvas-zoom-control {
-  display: inline-grid;
+.canvas-primary-actions {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+}
+
+.canvas-viewport-dock {
+  position: sticky;
+  z-index: 18;
+  bottom: 12px;
+  display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px;
-  padding: 3px 6px 3px 8px;
+  width: max-content;
+  max-width: calc(100% - 20px);
+  margin: -48px 8px 0 auto;
+  padding: 5px;
   border: 1px solid #dbe3ee;
-  border-radius: 7px;
-  background: #f8fafc;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+  backdrop-filter: blur(10px);
   color: #475569;
+}
+
+.canvas-viewport-popover {
+  display: grid;
+  gap: 10px;
+}
+
+.viewport-popover-head {
+  display: grid;
+  gap: 2px;
+}
+
+.viewport-popover-head strong {
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.viewport-popover-head span {
+  color: #64748b;
   font-size: 12px;
+  line-height: 16px;
 }
 
-.canvas-width-control {
-  grid-template-columns: auto 104px 68px;
+.canvas-viewport-field,
+.canvas-viewport-zoom {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
 }
 
-.canvas-preview-control {
-  grid-template-columns: auto 96px;
+.canvas-viewport-field span,
+.canvas-viewport-zoom > span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
 }
 
-.canvas-zoom-control {
-  grid-template-columns: auto 24px 82px 24px;
+.canvas-viewport-zoom-actions {
+  display: grid;
+  grid-template-columns: 34px minmax(92px, 1fr) 34px;
+  gap: 6px;
+  align-items: center;
+}
+
+.viewport-icon-button,
+.viewport-zoom-button {
+  --n-color: #fff !important;
+  --n-color-hover: #eff6ff !important;
+  --n-color-pressed: #dbeafe !important;
+  --n-color-focus: #fff !important;
+  --n-border: 1px solid #dbe3ee !important;
+  --n-border-hover: 1px solid #93c5fd !important;
+  --n-border-pressed: 1px solid #60a5fa !important;
+  --n-border-focus: 1px solid #93c5fd !important;
+  --n-text-color: #334155 !important;
+  --n-text-color-hover: #1d4ed8 !important;
+  --n-text-color-pressed: #1e40af !important;
+  --n-text-color-focus: #1d4ed8 !important;
+  font-weight: 700;
+}
+
+.viewport-icon-button {
+  width: 30px;
+  height: 30px;
+}
+
+.viewport-zoom-button {
+  min-width: 76px;
+  height: 30px;
+  padding: 0 9px !important;
 }
 
 .canvas-width-select,
 .canvas-width-input,
+.canvas-preview-select,
 .canvas-zoom-select {
   width: 100%;
 }
@@ -7563,6 +7691,7 @@ function centerCanvasViewport() {
     flex-direction: column;
   }
 
+  .canvas-primary-actions,
   .canvas-toolbar :deep(.n-space) {
     flex-wrap: wrap;
   }
@@ -7571,9 +7700,17 @@ function centerCanvasViewport() {
     display: none;
   }
 
-  .canvas-width-control,
-  .canvas-zoom-control {
-    padding: 2px 5px;
+  .canvas-scroll {
+    padding: 0 8px 8px;
+  }
+
+  .canvas-zoom-stage {
+    padding: 10px 1px 58px;
+  }
+
+  .canvas-viewport-dock {
+    margin-right: auto;
+    margin-left: auto;
   }
 
   .action-modal-layout,
