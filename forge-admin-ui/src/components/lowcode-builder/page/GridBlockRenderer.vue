@@ -169,7 +169,11 @@
 
     <!-- 栅格布局 -->
     <template v-else-if="block.blockType === 'grid-layout'">
-      <div class="layout-grid-preview" :style="gridLayoutStyle">
+      <div
+        class="layout-grid-preview"
+        :class="{ 'is-nested-moving': !!nestedMovingBlockId }"
+        :style="gridLayoutStyle"
+      >
         <div
           v-for="cell in gridLayoutCells"
           :key="cell.key"
@@ -182,12 +186,15 @@
           :data-grid-cell-key="cell.key"
           :data-grid-container-id="block.id"
         >
-          <div v-if="cell.children?.length" class="layout-grid-cell-body">
+          <div v-if="hasGridCellChildren(cell)" class="layout-grid-cell-body">
             <div
               v-for="child in cell.children"
               :key="child.id"
               class="layout-grid-cell-child"
-              :class="{ selected: child.id === selectedBlockId }"
+              :class="{
+                'selected': child.id === selectedBlockId,
+                'is-moving-source': child.id === nestedMovingBlockId,
+              }"
               :style="nestedChildShellStyle(child)"
               :data-grid-child-id="child.id"
               @click.stop="emit('childBlockSelect', child.id)"
@@ -237,12 +244,13 @@
               <GridBlockRenderer
                 :block="child"
                 :fields="fields"
-                :selected="child.id === selectedBlockId"
+                :selected="false"
                 :selected-block-id="selectedBlockId"
                 :readonly="readonly"
                 :runtime-crud-props="runtimeCrudProps"
                 :runtime-record="runtimeRecord"
                 :active-drop-cell="activeDropCell"
+                :nested-moving-block-id="nestedMovingBlockId"
                 @child-block-select="emit('childBlockSelect', $event)"
                 @child-block-menu-select="emit('childBlockMenuSelect', $event)"
                 @child-block-drag-start="emit('childBlockDragStart', $event)"
@@ -263,10 +271,10 @@
               </template>
             </div>
           </div>
-          <div v-if="isActiveDropCell(cell)" class="layout-grid-cell-drop-preview">
+          <div v-if="shouldShowGridCellDropPreview(cell)" class="layout-grid-cell-drop-preview">
             释放到此格
           </div>
-          <div v-else-if="!readonly && !cell.children?.length" class="layout-grid-cell-empty">
+          <div v-else-if="shouldShowGridCellEmpty(cell)" class="layout-grid-cell-empty">
             拖入组件
           </div>
         </div>
@@ -691,6 +699,7 @@
               :runtime-crud-props="runtimeCrudProps"
               :runtime-record="runtimeRecord"
               :active-drop-cell="activeDropCell"
+              :nested-moving-block-id="nestedMovingBlockId"
               @click.stop="emit('childBlockSelect', child.id)"
               @child-block-select="emit('childBlockSelect', $event)"
               @child-block-menu-select="emit('childBlockMenuSelect', $event)"
@@ -727,6 +736,7 @@
               :runtime-crud-props="runtimeCrudProps"
               :runtime-record="runtimeRecord"
               :active-drop-cell="activeDropCell"
+              :nested-moving-block-id="nestedMovingBlockId"
               @click.stop="emit('childBlockSelect', child.id)"
               @child-block-select="emit('childBlockSelect', $event)"
               @child-block-menu-select="emit('childBlockMenuSelect', $event)"
@@ -803,6 +813,10 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  nestedMovingBlockId: {
+    type: String,
+    default: '',
+  },
 })
 
 const emit = defineEmits([
@@ -868,6 +882,17 @@ function gridCellStyle(cell = {}) {
 }
 function isActiveDropCell(cell = {}) {
   return props.activeDropCell?.containerId === props.block.id && props.activeDropCell?.cellKey === cell.key
+}
+function hasGridCellChildren(cell = {}) {
+  return Array.isArray(cell.children) && cell.children.length > 0
+}
+function shouldShowGridCellDropPreview(cell = {}) {
+  if (!isActiveDropCell(cell))
+    return false
+  return !hasGridCellChildren(cell) || Boolean(props.nestedMovingBlockId)
+}
+function shouldShowGridCellEmpty(cell = {}) {
+  return !props.readonly && !hasGridCellChildren(cell) && !isActiveDropCell(cell)
 }
 function clampGridSpan(value, fallback = 1) {
   const columns = Math.max(1, Number(props.block.props?.columns || 24))
@@ -2035,7 +2060,7 @@ watch(
 }
 
 .layout-grid-cell.bordered {
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed rgba(148, 163, 184, 0.42);
 }
 
 .layout-grid-cell::after {
@@ -2056,13 +2081,31 @@ watch(
 }
 
 .layout-grid-cell.is-drop-active::after {
-  border-color: #2563eb;
-  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.72);
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.layout-grid-preview.is-nested-moving .layout-grid-cell {
+  background: transparent;
+}
+
+.layout-grid-preview.is-nested-moving .layout-grid-cell.bordered {
+  border-color: transparent;
+}
+
+.layout-grid-preview.is-nested-moving .layout-grid-cell::after {
+  border-color: transparent;
+  background: transparent;
+}
+
+.layout-grid-preview.is-nested-moving .layout-grid-cell.is-drop-active {
+  background: rgba(239, 246, 255, 0.72);
 }
 
 .layout-grid-cell-body {
   position: absolute;
   inset: 8px;
+  z-index: 2;
   min-width: 0;
   min-height: 0;
 }
@@ -2077,6 +2120,23 @@ watch(
     border-color 160ms ease,
     box-shadow 160ms ease;
   cursor: pointer;
+}
+
+.layout-grid-preview.is-nested-moving .layout-grid-cell-child {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.layout-grid-cell-child.is-moving-source {
+  opacity: 0.2;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  pointer-events: none;
+}
+
+.layout-grid-cell-child.is-moving-source .nested-block-node-overlay,
+.layout-grid-cell-child.is-moving-source .nested-resize-anchor {
+  display: none;
 }
 
 .nested-block-node-overlay {
@@ -2224,15 +2284,25 @@ watch(
   border-color: #93c5fd;
 }
 
+.layout-grid-preview.is-nested-moving .layout-grid-cell-child:hover {
+  border-color: transparent;
+}
+
 .layout-grid-cell-child.selected {
   border-color: #2563eb;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.layout-grid-preview.is-nested-moving .layout-grid-cell-child.selected {
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .layout-grid-cell-empty {
   display: grid;
   position: absolute;
   inset: 8px;
+  z-index: 1;
   place-items: center;
   border: 1px dashed #bfdbfe;
   border-radius: 6px;
@@ -2243,26 +2313,30 @@ watch(
 
 .layout-grid-cell-drop-preview {
   position: absolute;
-  inset: 8px;
-  z-index: 34;
+  inset: 6px;
+  z-index: 1;
   display: grid;
   place-items: center;
   border: 2px solid #2563eb;
   border-radius: 8px;
-  background: repeating-linear-gradient(
-    -45deg,
-    rgba(37, 99, 235, 0.14) 0,
-    rgba(37, 99, 235, 0.14) 8px,
-    rgba(219, 234, 254, 0.72) 8px,
-    rgba(219, 234, 254, 0.72) 16px
-  );
+  background: rgba(219, 234, 254, 0.82);
   color: #1d4ed8;
   font-size: 12px;
   font-weight: 700;
   pointer-events: none;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.85),
-    0 12px 24px rgba(37, 99, 235, 0.16);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.9),
+    0 10px 22px rgba(37, 99, 235, 0.2);
+}
+
+.layout-grid-preview.is-nested-moving .layout-grid-cell-drop-preview {
+  inset: 4px;
+  border-width: 2px;
+  background: linear-gradient(135deg, rgba(219, 234, 254, 0.95), rgba(239, 246, 255, 0.88));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.92),
+    0 0 0 3px rgba(37, 99, 235, 0.12),
+    0 14px 28px rgba(37, 99, 235, 0.22);
 }
 
 .system-component-preview {

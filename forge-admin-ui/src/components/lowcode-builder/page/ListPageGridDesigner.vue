@@ -271,6 +271,7 @@
                 :runtime-record="runtimeRecord"
                 :runtime-tree-active-key="runtimeTreeActiveKey"
                 :active-drop-cell="activeDropCell"
+                :nested-moving-block-id="nestedMovingBlockId"
                 @child-block-select="handleBlockClick"
                 @child-block-menu-select="handleNestedBlockMenuSelect"
                 @child-block-drag-start="handleNestedBlockDragStart"

@@ -98,6 +98,100 @@ git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageG
 - 未启动浏览器做真实拖拽录屏/截图验证；本轮通过代码路径、定向 ESLint、构建和空白检查验证。
 - 本轮未启动任何服务，无需清理服务进程。
 
+## 2026-06-21 列表栅格内部拖拽落点降噪验证
+
+### 变更范围
+
+- `ListPageGridDesigner.vue` 向 `GridBlockRenderer.vue` 透传 `nestedMovingBlockId`，使栅格内部能准确识别正在拖动的子组件。
+- `GridBlockRenderer.vue` 在栅格拖动状态下隐藏普通 cell 边框、子组件 hover/selected 边框和拖动源操作层，避免多层边框叠加。
+- 栅格目标 cell 落点改为单一浅蓝投放层，去掉高噪声斜纹背景，增强拖动时的落点辨识度。
+
+### 前端定向 ESLint
+
+命令：
+
+```bash
+source ~/.nvm/nvm.sh && nvm use v20.19.5 && COREPACK_HOME=/private/tmp/corepack pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/ListPageGridDesigner.vue src/components/lowcode-builder/page/GridBlockRenderer.vue
+```
+
+结果：通过。
+
+### 前端构建
+
+命令：
+
+```bash
+source ~/.nvm/nvm.sh && nvm use v20.19.5 && COREPACK_HOME=/private/tmp/corepack pnpm --dir forge-admin-ui build
+```
+
+结果：通过，`✓ built in 2m 43s`。
+
+警告：
+- CSS 中存在既有 `//` 注释，Vite/esbuild 提示 CSS 注释应使用 `/* ... */`。
+- `src/store/index.js` 同时被动态和静态导入，Vite 提示不会拆到独立 chunk。
+
+### 空白字符检查
+
+命令：
+
+```bash
+git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/ListPageGridDesigner.vue forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue
+```
+
+结果：通过。
+
+### 未覆盖项
+
+- 未启动浏览器做真实拖拽截图验证；本轮通过代码路径、定向 ESLint、构建和空白检查验证。
+- 本轮未启动任何服务，无需清理服务进程。
+
+## 2026-06-21 列表栅格放置后提示层遮挡修复验证
+
+### 变更范围
+
+- `GridBlockRenderer.vue` 新增栅格 cell 显示判断，已有 children 的 cell 不再渲染整块空状态/落点覆盖层。
+- 空状态 `拖入组件` 仅在 cell 真实为空且不是当前 active drop cell 时显示。
+- 栅格内容层级提升到提示层之上，避免拖拽状态清理延迟一帧时覆盖刚放入的组件。
+
+### 前端定向 ESLint
+
+命令：
+
+```bash
+source ~/.nvm/nvm.sh && nvm use v20.19.5 && COREPACK_HOME=/private/tmp/corepack pnpm --dir forge-admin-ui exec eslint src/components/lowcode-builder/page/GridBlockRenderer.vue
+```
+
+结果：通过。
+
+### 前端构建
+
+命令：
+
+```bash
+source ~/.nvm/nvm.sh && nvm use v20.19.5 && COREPACK_HOME=/private/tmp/corepack pnpm --dir forge-admin-ui build
+```
+
+结果：通过，`✓ built in 1m 6s`。
+
+警告：
+- CSS 中存在既有 `//` 注释，Vite/esbuild 提示 CSS 注释应使用 `/* ... */`。
+- `src/store/index.js` 同时被动态和静态导入，Vite 提示不会拆到独立 chunk。
+
+### 空白字符检查
+
+命令：
+
+```bash
+git diff --check -- forge-admin-ui/src/components/lowcode-builder/page/GridBlockRenderer.vue
+```
+
+结果：通过。
+
+### 未覆盖项
+
+- 未启动浏览器做真实拖拽截图验证；本轮通过代码路径、定向 ESLint、构建和空白检查验证。
+- 本轮未启动任何服务，无需清理服务进程。
+
 ## 2026-06-21 栅格拖拽丝滑度与配置入口修复验证
 
 ### 变更范围
