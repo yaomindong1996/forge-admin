@@ -318,6 +318,8 @@
           :edit-y-gap="block.props?.editYGap ?? 8"
           :modal-width="block.props?.modalWidth || '800px'"
           :detail-modal-width="block.props?.detailModalWidth || 'min(1080px, 92vw)'"
+          :form-open-mode="block.props?.formOpenMode || block.props?.modalType || 'modal'"
+          :tab-workspace="block.props?.tabWorkspace || {}"
           :modal-type="block.props?.modalType || 'modal'"
           :drawer-placement="block.props?.drawerPlacement || 'right'"
           :hide-modal-footer="block.props?.hideModalFooter === true"
@@ -1075,6 +1077,8 @@ const effectiveRuntimeCrudProps = computed(() => {
     editYGap: blockProps.editYGap ?? props.runtimeCrudProps.editYGap,
     modalWidth: blockProps.modalWidth || props.runtimeCrudProps.modalWidth,
     detailModalWidth: blockProps.detailModalWidth || props.runtimeCrudProps.detailModalWidth,
+    formOpenMode: blockProps.formOpenMode || props.runtimeCrudProps.formOpenMode || blockProps.modalType || props.runtimeCrudProps.modalType,
+    tabWorkspace: blockProps.tabWorkspace || props.runtimeCrudProps.tabWorkspace,
     modalType: blockProps.modalType || props.runtimeCrudProps.modalType,
     drawerPlacement: blockProps.drawerPlacement || props.runtimeCrudProps.drawerPlacement,
     hideModalFooter: blockProps.hideModalFooter ?? props.runtimeCrudProps.hideModalFooter,

@@ -1266,9 +1266,9 @@
                   <n-form-item label="弹出方式">
                     <div class="style-grid three">
                       <n-select
-                        :value="selectedBlock.props?.modalType || 'modal'"
-                        :options="modalTypeOptions"
-                        @update:value="patchBlockProps(selectedBlock.id, { modalType: $event || 'modal' })"
+                        :value="selectedBlock.props?.formOpenMode || selectedBlock.props?.modalType || 'modal'"
+                        :options="formOpenModeOptions"
+                        @update:value="patchBlockProps(selectedBlock.id, normalizeFormOpenModePatch($event))"
                       />
                       <n-select
                         :value="selectedBlock.props?.drawerPlacement || 'right'"
@@ -2938,9 +2938,11 @@ const requestMethodOptions = [
   { label: 'GET', value: 'get' },
   { label: 'POST', value: 'post' },
 ]
-const modalTypeOptions = [
+const formOpenModeOptions = [
   { label: '弹窗', value: 'modal' },
   { label: '抽屉', value: 'drawer' },
+  { label: '平铺', value: 'flat' },
+  { label: '多页签', value: 'tabWorkspace' },
 ]
 const drawerPlacementOptions = [
   { label: '右侧', value: 'right' },
@@ -4851,6 +4853,14 @@ function patchBlockProps(id, patch) {
     items: normalizeGridItems(mapBlocksInTree(blocks.value, b => b.id === id
       ? { ...b, props: { ...(b.props || {}), ...patch } }
       : b)),
+  }
+}
+
+function normalizeFormOpenModePatch(value) {
+  const formOpenMode = value === 'tabWorkspace' ? 'tabWorkspace' : (['modal', 'drawer', 'flat'].includes(value) ? value : 'modal')
+  return {
+    formOpenMode,
+    modalType: ['modal', 'drawer'].includes(formOpenMode) ? formOpenMode : 'modal',
   }
 }
 

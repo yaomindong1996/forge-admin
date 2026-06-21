@@ -1,7 +1,7 @@
 <template>
   <div class="ai-crud-page-wrapper">
     <ListPageGridDesigner
-      v-if="configLoaded && runtimeGridLayout && !formOnlyRuntime"
+      v-if="shouldRenderRuntimeGrid"
       class="runtime-list-grid"
       :model-value="runtimeGridLayout"
       :fields="runtimeFields"
@@ -105,6 +105,14 @@ const runtimeGridLayout = computed(() => {
     layoutType: layout.layoutType || pageSchema.layoutType || renderConfig.value?.layoutType || 'simple-crud',
   }
 })
+// 标准列表入口必须渲染真实 CRUD 组件；listGridLayout 只是设计态/自定义页布局元数据。
+const standardListRuntime = computed(() => activeRuntimePageKey.value === 'list' && !formOnlyRuntime.value)
+const shouldRenderRuntimeGrid = computed(() => (
+  configLoaded.value
+  && runtimeGridLayout.value
+  && !formOnlyRuntime.value
+  && !standardListRuntime.value
+))
 const runtimeEffectiveLayoutType = computed(() => (
   runtimeGridLayout.value?.layoutType
   || renderConfig.value?.pageSchema?.layoutType
@@ -852,13 +860,15 @@ const crudProps = computed(() => {
       includeDetailAction: true,
       rowActions: options.rowActions,
       columnSettings: runtimeColumnSettings.value,
-      fitTableToContainer: !!runtimeGridLayout.value,
+      fitTableToContainer: shouldRenderRuntimeGrid.value,
     }),
     editSchema: transformEditFields(activeRuntimeFormProfile.value.editSchema, activeRuntimeFormProfile.value.editFormLayout || options.editFormLayout, buildRuntimeFieldMetaMap(cfg.modelSchema)),
     childrenConfig: transformChildrenConfig(masterDetailConfig.children || []),
     apiConfig,
     options,
     rowKey: cfg.rowKey || 'id',
+    formOpenMode: options.formOpenMode || cfg.formOpenMode || options.modalType || cfg.modalType || 'modal',
+    tabWorkspace: options.tabWorkspace || cfg.tabWorkspace || {},
     modalType: options.modalType || cfg.modalType || 'modal',
     modalWidth: options.modalWidth || cfg.modalWidth || '800px',
     editGridCols: options.editGridCols || cfg.editGridCols || 1,

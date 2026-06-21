@@ -1005,6 +1005,8 @@ function buildDesignerRuntimeCrudProps(schema = {}, fields = []) {
     editYGap: editProps.editYGap ?? editProps.rowGap ?? tableProps.editYGap ?? 8,
     modalWidth: tableProps.modalWidth || editProps.modalWidth || '800px',
     detailModalWidth: tableProps.detailModalWidth || 'min(1080px, 92vw)',
+    formOpenMode: tableProps.formOpenMode || editProps.formOpenMode || tableProps.modalType || editProps.modalType || 'modal',
+    tabWorkspace: tableProps.tabWorkspace || editProps.tabWorkspace || {},
     modalType: tableProps.modalType || editProps.modalType || 'modal',
     drawerPlacement: tableProps.drawerPlacement || 'right',
     hideModalFooter: tableProps.hideModalFooter === true,

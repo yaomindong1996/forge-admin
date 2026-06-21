@@ -315,6 +315,7 @@ export function createDefaultFormDesignerSchema(options = {}) {
       labelWidth: 'auto',
       size: 'medium',
       modalType: options.modalType || 'modal',
+      formOpenMode: options.formOpenMode || options.modalType || 'modal',
       showFeedback: true,
       gridColumns,
       rowGap: 16,
@@ -779,6 +780,7 @@ function normalizeLayout(layout = {}) {
     labelWidth: normalizeLabelWidth(source.labelWidth),
     size: normalizeFormSize(source.size),
     modalType: ['modal', 'drawer'].includes(source.modalType) ? source.modalType : 'modal',
+    formOpenMode: normalizeFormOpenMode(source.formOpenMode || source.modalType),
     showFeedback: source.showFeedback === undefined ? true : Boolean(source.showFeedback),
     hideRequiredAsterisk: Boolean(source.hideRequiredAsterisk),
     inlineFeedback: Boolean(source.inlineFeedback || source.inlineMessage),
@@ -812,7 +814,10 @@ function normalizeComponent(component, index, usedIds = new Set()) {
     return null
   const componentKey = component.componentKey || component.type || 'input'
   const fieldComponent = FIELD_COMPONENT_KEYS.has(componentKey)
-  const sourceLabel = component.label || component.title || component.props?.header || component.props?.label || component.props?.title || component.fieldBinding?.fieldCode || (fieldComponent ? '字段' : '布局')
+  const hasExplicitLabel = Object.prototype.hasOwnProperty.call(component, 'label')
+  const sourceLabel = hasExplicitLabel
+    ? component.label
+    : component.title || component.props?.header || component.props?.label || component.props?.title || component.fieldBinding?.fieldCode || (fieldComponent ? '字段' : '布局')
   const label = normalizeDesignerComponentLabel(componentKey, sourceLabel)
   const sourceId = String(component.id || '').trim()
   const fieldBinding = fieldComponent
@@ -827,6 +832,7 @@ function normalizeComponent(component, index, usedIds = new Set()) {
     layout: normalizeComponentLayout(component.layout),
     validation: normalizeValidation(component.validation),
     visibility: normalizeVisibility(component.visibility),
+    advancedProps: isPlainObject(component.advancedProps) ? { ...component.advancedProps } : {},
     children: Array.isArray(component.children)
       ? component.children.map((child, childIndex) => normalizeComponent(child, childIndex, usedIds)).filter(Boolean)
       : [],
@@ -996,6 +1002,12 @@ function normalizeFormSize(value) {
   if (value === 'default' || value === 'medium')
     return 'medium'
   return ['small', 'large'].includes(value) ? value : 'medium'
+}
+
+function normalizeFormOpenMode(value) {
+  if (value === 'tabWorkspace')
+    return 'tabWorkspace'
+  return ['modal', 'drawer', 'flat'].includes(value) ? value : 'modal'
 }
 
 function resolveNumber(value, fallback) {

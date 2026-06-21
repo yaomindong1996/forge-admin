@@ -913,6 +913,47 @@ public class DynamicCrudRepository {
         return count != null && count > 0;
     }
 
+    public boolean existsByColumns(String tableName,
+                                   Map<String, Object> columnValues,
+                                   Long excludeId) {
+        return existsByColumns(tableName, columnValues, excludeId, null);
+    }
+
+    public boolean existsByColumns(String tableName,
+                                   Map<String, Object> columnValues,
+                                   Long excludeId,
+                                   SqlCondition dataScopeCondition) {
+        validateTableName(tableName);
+        if (columnValues == null || columnValues.isEmpty()) {
+            return false;
+        }
+
+        StringBuilder whereClause = new StringBuilder();
+        MapSqlParameterSource params = buildBaseQueryParams();
+        int index = 0;
+        for (Map.Entry<String, Object> entry : columnValues.entrySet()) {
+            String columnName = entry.getKey();
+            validateIdentifier(columnName);
+            String paramName = "uniqueValue" + index++;
+            Object value = entry.getValue();
+            if (value == null) {
+                appendWhereCondition(whereClause, columnName + " IS NULL");
+            } else {
+                appendWhereCondition(whereClause, columnName + " = :" + paramName);
+                params.addValue(paramName, value);
+            }
+        }
+        appendBaseQueryConditions(whereClause, new MapSqlParameterSource(), tableName);
+        if (excludeId != null) {
+            appendWhereCondition(whereClause, "id <> :excludeId");
+            params.addValue("excludeId", excludeId);
+        }
+        appendSqlCondition(whereClause, params, dataScopeCondition);
+        String sql = buildSelectSql("SELECT COUNT(1)", tableName, whereClause) + " LIMIT 1";
+        Long count = namedJdbcTemplate.queryForObject(sql, params, Long.class);
+        return count != null && count > 0;
+    }
+
     // ==================== 新增操作 ====================
 
     /**

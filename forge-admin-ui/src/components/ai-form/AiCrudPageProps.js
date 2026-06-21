@@ -356,6 +356,26 @@ export const aiCrudPageProps = {
   },
 
   /**
+   * 表单打开方式：modal/drawer 沿用覆盖层，flat 为同页单面板，tabWorkspace 为同页多页签。
+   * 为空时兼容 modalType。
+   * @type {'' | 'modal' | 'drawer' | 'flat' | 'tabWorkspace'}
+   */
+  formOpenMode: {
+    type: String,
+    default: '',
+    validator: value => ['', 'modal', 'drawer', 'flat', 'tabWorkspace'].includes(value),
+  },
+
+  /**
+   * 多页签录入工作区配置。
+   * @type {object}
+   */
+  tabWorkspace: {
+    type: Object,
+    default: () => ({}),
+  },
+
+  /**
    * 抽屉位置：'left' | 'right' | 'top' | 'bottom'
    * @type {string}
    */

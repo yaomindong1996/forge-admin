@@ -1312,6 +1312,14 @@
                   />
                 </label>
                 <label v-if="isField">
+                  <span>唯一校验</span>
+                  <n-switch
+                    size="small"
+                    :value="!!selectedComponent.advancedProps?.unique"
+                    @update:value="updateUniqueValidation"
+                  />
+                </label>
+                <label v-if="isField">
                   <span>只读</span>
                   <n-switch
                     size="small"
@@ -1703,19 +1711,13 @@
                   @update:value="updateCrudOption('editYGap', $event || 8)"
                 />
               </n-form-item>
-              <n-form-item label="编辑弹窗">
-                <n-radio-group
-                  :value="crudOptions.modalType || 'modal'"
+              <n-form-item label="编辑打开方式">
+                <n-select
+                  :value="crudOptions.formOpenMode || crudOptions.modalType || 'modal'"
+                  :options="formOpenModeOptions"
                   size="small"
-                  @update:value="updateCrudOption('modalType', $event)"
-                >
-                  <n-radio-button value="modal">
-                    弹窗
-                  </n-radio-button>
-                  <n-radio-button value="drawer">
-                    抽屉
-                  </n-radio-button>
-                </n-radio-group>
+                  @update:value="updateCrudFormOpenMode"
+                />
               </n-form-item>
               <n-form-item label="弹窗宽度">
                 <n-input
@@ -2225,18 +2227,12 @@
                   AiForm 布局
                 </div>
                 <n-form-item label="编辑打开方式">
-                  <n-radio-group
-                    :value="schema.layout?.modalType || 'modal'"
+                  <n-select
+                    :value="schema.layout?.formOpenMode || schema.layout?.modalType || 'modal'"
+                    :options="formOpenModeOptions"
                     size="small"
-                    @update:value="updateFormLayout({ modalType: $event || 'modal' })"
-                  >
-                    <n-radio-button value="modal">
-                      弹出框
-                    </n-radio-button>
-                    <n-radio-button value="drawer">
-                      抽屉
-                    </n-radio-button>
-                  </n-radio-group>
+                    @update:value="updateFormOpenModeLayout"
+                  />
                 </n-form-item>
                 <n-form-item label="表单列数">
                   <div class="slider-control">
@@ -2757,7 +2753,7 @@ const propertySearchIndex = [
   { keys: ['crud字段', '查询字段', '表格列字段', '编辑字段'], label: '基础配置 / CRUD 字段配置', selectedTab: 'basic', selectedExpand: ['crud-field'] },
   { keys: ['crud', '查询', '表格', '列表', '分页', '接口', 'api'], label: 'CRUD 配置', selectedTab: 'crud' },
   { keys: ['布局', '跨度', '栅格', '列数', '宽度', 'labelWidth'], label: '布局', selectedTab: 'layout', formTab: 'basic', formExpand: ['layout'] },
-  { keys: ['校验', '必填', '只读', '隐藏', '状态', 'required', 'readonly'], label: '状态 / 可见性与校验', selectedTab: 'state', formTab: 'basic', formExpand: ['spacing'] },
+  { keys: ['校验', '唯一', '唯一校验', '不能重复', '必填', '只读', '隐藏', '状态', 'unique', 'required', 'readonly'], label: '状态 / 可见性与校验', selectedTab: 'state', formTab: 'basic', formExpand: ['spacing'] },
   { keys: ['事件', '交互', '联动', '弹窗事件', 'openModal'], label: '交互 / 事件规则', selectedTab: 'interaction' },
   { keys: ['样式', '颜色', '背景', '边框', '圆角', '阴影', '间距', 'padding', 'margin'], label: '样式配置', selectedTab: 'style', formTab: 'style', formExpand: ['appearance', 'spacing'] },
   { keys: ['表单资产', '多表单', '表单名称', '表单编码'], label: '表单属性 / 表单资产', formTab: 'basic', formExpand: ['assets'] },
@@ -2856,6 +2852,12 @@ const actionOptions = [
   { label: '打开弹窗（openModal）', value: 'openModal' },
   { label: '调用接口（apiRequest）', value: 'apiRequest' },
 ]
+const formOpenModeOptions = [
+  { label: '弹窗', value: 'modal' },
+  { label: '抽屉', value: 'drawer' },
+  { label: '平铺', value: 'flat' },
+  { label: '多页签', value: 'tabWorkspace' },
+]
 const modalContentModeOptions = [
   { label: '复用当前表单', value: 'currentForm' },
   { label: '引用表单资产', value: 'formAsset' },
@@ -2896,7 +2898,6 @@ const propChineseLabels = {
   multiple: '多选',
   filterable: '可搜索',
   remote: '远程搜索',
-  loading: '加载中',
   maxTagCount: '最多显示标签数',
   placement: '弹出位置',
   fallbackOption: '保留回填选项',
@@ -3065,6 +3066,15 @@ function updateFieldBindingCode(value = '') {
       ...(selectedComponent.value.fieldBinding || {}),
       fieldCode,
       columnName: fieldCode,
+    },
+  })
+}
+
+function updateUniqueValidation(value) {
+  updateComponent({
+    advancedProps: {
+      ...(selectedComponent.value?.advancedProps || {}),
+      unique: Boolean(value),
     },
   })
 }
@@ -3822,6 +3832,29 @@ function updateCrudOption(key, value) {
   })
 }
 
+function normalizeFormOpenModePatch(value) {
+  const formOpenMode = value === 'tabWorkspace' ? 'tabWorkspace' : (['modal', 'drawer', 'flat'].includes(value) ? value : 'modal')
+  return {
+    formOpenMode,
+    modalType: ['modal', 'drawer'].includes(formOpenMode) ? formOpenMode : 'modal',
+  }
+}
+
+function updateCrudFormOpenMode(value) {
+  updateComponent({
+    props: {
+      crudOptions: {
+        ...crudOptions.value,
+        ...normalizeFormOpenModePatch(value),
+      },
+    },
+  })
+}
+
+function updateFormOpenModeLayout(value) {
+  updateFormLayout(normalizeFormOpenModePatch(value))
+}
+
 function updateCrudFieldRole(componentId, role, value) {
   if (!componentId)
     return
@@ -4466,7 +4499,7 @@ function formatPropLabel(key = '', label = '') {
 }
 
 function resolvePxNumber(value, fallback = 0) {
-  const match = String(value ?? '').match(/-?\d+(\.\d+)?/)
+  const match = String(value ?? '').match(/-?\d+(?:\.\d+)?/)
   if (!match)
     return fallback
   return Number(match[0])

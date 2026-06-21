@@ -173,6 +173,11 @@
               必填
             </n-checkbox>
           </n-form-item-gi>
+          <n-form-item-gi>
+            <n-checkbox v-model:checked="createForm.unique">
+              唯一校验
+            </n-checkbox>
+          </n-form-item-gi>
         </n-grid>
       </n-form>
       <template #footer>
@@ -567,6 +572,7 @@ function createDefaultCreateForm() {
     formVisible: true,
     listVisible: true,
     searchable: false,
+    unique: false,
     importable: true,
     exportable: true,
   }
@@ -641,7 +647,7 @@ function normalizeFieldPayload(source) {
       ...(source.basicProps || {}),
       placeholder: source.placeholder || source.basicProps?.placeholder || '',
     },
-    advancedProps: { ...(source.advancedProps || {}) },
+    advancedProps: { ...(source.advancedProps || {}), unique: !!source.unique || source.advancedProps?.unique === true },
     formulaConfig: source.formulaConfig ?? null,
   }
 }

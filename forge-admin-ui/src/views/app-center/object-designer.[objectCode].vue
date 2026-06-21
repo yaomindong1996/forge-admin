@@ -17,6 +17,7 @@
     @refresh="loadDesigner"
     @open-runtime="openRuntime"
     @open-trigger="openTriggerConfig"
+    @open-fields="handlePanelSwitch('fields')"
     @open-function-market="functionMarketVisible = true"
     @update:active-panel="handlePanelSwitch"
   >

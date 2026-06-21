@@ -204,6 +204,7 @@ const emit = defineEmits([
   'refresh',
   'openRuntime',
   'openTrigger',
+  'openFields',
   'openFunctionMarket',
 ])
 const navCollapsed = ref(true)
@@ -211,7 +212,7 @@ const navCollapsed = ref(true)
 const navItems = [
   { key: 'basic', label: '基本信息', icon: OptionsOutline },
   { key: 'form', label: '表单设计', icon: ReaderOutline },
-  { key: 'fields', label: '字段资产', icon: TextOutline },
+  { key: 'fields', label: '高级字段资产', icon: TextOutline },
   { key: 'list', label: '列表设计', icon: ListOutline },
   { key: 'relations', label: '关系与级联', icon: GitNetworkOutline },
   { key: 'document', label: '单据设置', icon: DocumentTextOutline },
@@ -222,17 +223,29 @@ const navItems = [
   { key: 'advanced', label: '高级配置', icon: SettingsOutline },
 ]
 
-const moreOptions = [
-  { label: '函数市场', key: 'openFunctionMarket' },
-  { label: '刷新设计器', key: 'refresh' },
-  { label: '打开运行应用', key: 'openRuntime' },
-  { label: '配置触发器', key: 'openTrigger' },
-]
-
 const filteredNavItems = computed(() => {
-  if (props.showAdvanced)
-    return navItems
-  return navItems.filter(item => item.key !== 'advanced')
+  return navItems.filter((item) => {
+    if (item.key === 'fields')
+      return props.activePanel === 'fields'
+    if (item.key === 'advanced')
+      return props.showAdvanced
+    return true
+  })
+})
+const moreOptions = computed(() => {
+  const options = [
+    { label: '函数市场', key: 'openFunctionMarket' },
+    { label: '刷新设计器', key: 'refresh' },
+    { label: '打开运行应用', key: 'openRuntime' },
+    { label: '配置触发器', key: 'openTrigger' },
+  ]
+  if (props.showAdvanced) {
+    options.splice(1, 0, {
+      label: '高级字段资产',
+      key: 'openFields',
+    })
+  }
+  return options
 })
 const closureDoneCount = computed(() => props.closureSteps.filter(step => step.status === 'done').length)
 

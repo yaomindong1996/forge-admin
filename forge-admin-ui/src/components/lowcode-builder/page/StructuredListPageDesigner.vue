@@ -476,10 +476,10 @@
               <label class="config-control">
                 <span>弹出方式</span>
                 <NSelect
-                  :value="tableZone?.props?.modalType || 'modal'"
-                  :options="modalTypeOptions"
+                  :value="tableZone?.props?.formOpenMode || tableZone?.props?.modalType || 'modal'"
+                  :options="formOpenModeOptions"
                   size="small"
-                  @update:value="updateTableProp('modalType', $event || 'modal')"
+                  @update:value="updateTableFormOpenMode"
                 />
               </label>
               <label class="config-control">
@@ -869,9 +869,11 @@ const renderModeOptions = [
   { label: '表格', value: 'table' },
   { label: '卡片', value: 'card' },
 ]
-const modalTypeOptions = [
+const formOpenModeOptions = [
   { label: '弹窗', value: 'modal' },
   { label: '抽屉', value: 'drawer' },
+  { label: '平铺', value: 'flat' },
+  { label: '多页签', value: 'tabWorkspace' },
 ]
 const drawerPlacementOptions = [
   { label: '右侧', value: 'right' },
@@ -1274,6 +1276,8 @@ const crudPreviewBlock = computed(() => {
       searchLabelWidth: tableProps.searchLabelWidth || 'auto',
       searchMaxVisibleFields: tableProps.searchMaxVisibleFields || 3,
       searchEnableCollapse: tableProps.searchEnableCollapse !== false,
+      formOpenMode: tableProps.formOpenMode || tableProps.modalType || 'modal',
+      tabWorkspace: tableProps.tabWorkspace || {},
       modalType: tableProps.modalType || 'modal',
       drawerPlacement: tableProps.drawerPlacement || 'right',
       modalWidth: tableProps.modalWidth || '800px',
@@ -1417,6 +1421,26 @@ function updateTableProp(key, value) {
     props: {
       [key]: value,
     },
+  }))
+}
+
+function normalizeFormOpenModePatch(value) {
+  const formOpenMode = value === 'tabWorkspace' ? 'tabWorkspace' : (['modal', 'drawer', 'flat'].includes(value) ? value : 'modal')
+  return {
+    formOpenMode,
+    modalType: ['modal', 'drawer'].includes(formOpenMode) ? formOpenMode : 'modal',
+  }
+}
+
+function updateTableFormOpenMode(value) {
+  const patch = normalizeFormOpenModePatch(value)
+  patchZone('table', {
+    props: {
+      ...(tableZone.value?.props || {}),
+      ...patch,
+    },
+  }, createGridPatchForZone('table', {
+    props: patch,
   }))
 }
 

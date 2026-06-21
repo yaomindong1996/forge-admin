@@ -1,3 +1,9 @@
+import {
+  camelToSnake,
+  generateFieldCode,
+  isGenericDesignerComponentId,
+} from '../form-first/formDesignerSchema'
+
 const MAX_FORM_GRID_COLUMNS = 24
 const DEFAULT_ROW_CELL_COUNT = 4
 
@@ -163,6 +169,13 @@ export function createForgeLayoutComponent(componentKey = 'title', schema = {}) 
           editXGap: 16,
           editYGap: 8,
           modalType: 'modal',
+          formOpenMode: 'modal',
+          tabWorkspace: {
+            maxTabs: 8,
+            reuseRecordTab: true,
+            closeAfterSave: false,
+            showDirtyMark: true,
+          },
           modalWidth: '900px',
           detailModalWidth: 'min(1080px, 92vw)',
           loadDetailOnEdit: true,
@@ -216,7 +229,7 @@ export function createForgeFieldTemplateComponent(template = {}, schema = {}) {
   const gridColumns = clampGridColumns(schema?.layout?.gridColumns, 2)
   const componentKey = template.componentKey || 'input'
   const label = template.label || '字段'
-  const fieldCode = `field_${Date.now().toString(36)}`
+  const fieldCode = reserveTemplateFieldCode(componentKey, label, schema)
   return {
     id: `cmp_${fieldCode}`,
     componentKey,
@@ -224,7 +237,7 @@ export function createForgeFieldTemplateComponent(template = {}, schema = {}) {
     fieldBinding: {
       mode: 'field',
       fieldCode,
-      columnName: fieldCode,
+      columnName: camelToSnake(fieldCode),
       createIfMissing: true,
       source: 'designer',
       locked: false,
@@ -308,6 +321,60 @@ function buildDefaultOptions() {
     { label: '选项一', value: '1' },
     { label: '选项二', value: '2' },
   ]
+}
+
+function reserveTemplateFieldCode(componentKey = '', label = '', schema = {}) {
+  const usedCodes = collectSchemaFieldCodes(schema)
+  const base = buildTemplateFieldCodeBase(componentKey, label)
+  if (!usedCodes.has(base))
+    return base
+  for (let index = 2; index < 1000; index += 1) {
+    const candidate = `${base}${index}`
+    if (!usedCodes.has(candidate))
+      return candidate
+  }
+  return `${base}${Date.now().toString(36)}`
+}
+
+function buildTemplateFieldCodeBase(componentKey = '', label = '') {
+  const generated = generateFieldCode(label)
+  if (generated && !isGenericDesignerFieldCode(generated))
+    return generated
+  const key = String(componentKey || 'input')
+    .replace(/[^a-z0-9]/gi, '')
+    .replace(/^\d+/, '')
+  const suffix = key ? `${key[0].toUpperCase()}${key.slice(1)}` : 'Input'
+  return `field${suffix}`
+}
+
+function collectSchemaFieldCodes(schema = {}) {
+  const codes = new Set()
+  const walk = (components = []) => {
+    ;(Array.isArray(components) ? components : []).forEach((component) => {
+      const fieldCode = component?.fieldBinding?.fieldCode || component?.field || component?.name
+      if (fieldCode)
+        codes.add(fieldCode)
+      if (Array.isArray(component?.children))
+        walk(component.children)
+    })
+  }
+  walk(schema?.components || [])
+  ;(Array.isArray(schema?.settings?.formAssets) ? schema.settings.formAssets : []).forEach((asset) => {
+    walk(asset?.schema?.components || asset?.components || [])
+  })
+  ;(Array.isArray(schema?.forms) ? schema.forms : []).forEach((form) => {
+    walk(form?.schema?.components || form?.components || [])
+  })
+  return codes
+}
+
+function isGenericDesignerFieldCode(value = '') {
+  const text = String(value || '').trim()
+  if (!text)
+    return true
+  if (/^field[0-9a-z]{4,}$/i.test(text))
+    return true
+  return isGenericDesignerComponentId(`cmp_${text}`, text)
 }
 
 function buildTemplatePlaceholder(componentKey, label) {

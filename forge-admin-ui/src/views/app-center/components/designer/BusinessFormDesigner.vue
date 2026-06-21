@@ -17,14 +17,12 @@
           </div>
           <div v-if="useLegacyFormCreateDesigner" class="modal-type-control">
             <span>编辑打开方式</span>
-            <n-radio-group v-model:value="editModalType" size="small">
-              <n-radio-button value="modal">
-                弹出框
-              </n-radio-button>
-              <n-radio-button value="drawer">
-                抽屉
-              </n-radio-button>
-            </n-radio-group>
+            <n-select
+              v-model:value="editFormOpenMode"
+              size="small"
+              :options="formOpenModeOptions"
+              class="form-open-mode-select"
+            />
           </div>
           <div v-if="isPrimaryObjectActive && useLegacyFormCreateDesigner" class="layout-columns-control">
             <span>表单列数</span>
@@ -249,7 +247,7 @@ import BusinessFormCreateDesigner from './BusinessFormCreateDesigner.vue'
 import ForgeFormDesigner from './forge-form-designer/ForgeFormDesigner.vue'
 import { buildAutoFieldAssets } from './form-first/autoFieldRegistry'
 import { extractForgeSchemaFieldRefs, forgeSchemaToFormCreate } from './form-first/forgeToFormCreate'
-import { applyGridColumnsToFormDesignerSchema, normalizeFormDesignerSchema, normalizeFormDesignerSchemaForSave } from './form-first/formDesignerSchema'
+import { applyGridColumnsToFormDesignerSchema, generateFieldCode, normalizeFormDesignerSchema, normalizeFormDesignerSchemaForSave } from './form-first/formDesignerSchema'
 
 const props = defineProps({
   objectId: {
@@ -367,6 +365,7 @@ const baseModelSchema = computed(() => {
 
 const localSchema = ref(resolveSchema(props.modelValue, resolveDesignModelSchema(props.modelValue, baseModelSchema.value)))
 const localFormDesignerSchema = ref(cloneSchema(props.formDesignerSchema || null))
+let localSchemaDirtyMode = null
 const effectiveModelSchema = computed(() => resolveDesignModelSchema(localSchema.value, baseModelSchema.value))
 const designFields = computed(() => effectiveModelSchema.value.fields || [])
 const editZone = computed(() => localSchema.value.zones?.find(zone => zone.zoneKey === 'edit') || null)
@@ -388,9 +387,15 @@ const primaryBusinessFieldAssets = computed(() => {
 const systemFields = computed(() => primaryDesignFields.value.filter(field => isReadonlySystemField(field)))
 const usedFields = computed(() => businessFields.value.filter(field => usedFieldSet.value.has(field.field)))
 const unusedFields = computed(() => businessFields.value.filter(field => !usedFieldSet.value.has(field.field)))
-const editModalType = computed({
-  get: () => editZone.value?.props?.modalType || 'modal',
-  set: value => updateEditZoneProps({ modalType: value || 'modal' }),
+const formOpenModeOptions = [
+  { label: '弹出框', value: 'modal' },
+  { label: '抽屉', value: 'drawer' },
+  { label: '平铺', value: 'flat' },
+  { label: '多页签', value: 'tabWorkspace' },
+]
+const editFormOpenMode = computed({
+  get: () => editZone.value?.props?.formOpenMode || editZone.value?.props?.modalType || 'modal',
+  set: value => updateEditZoneProps(normalizeFormOpenModePatch(value)),
 })
 const formGridColumns = computed({
   get: () => clampNumber(localFormDesignerSchema.value?.layout?.gridColumns, 1, 4, 2),
@@ -480,8 +485,7 @@ watch(
   () => props.modelValue,
   (value) => {
     const next = resolveSchema(value, resolveDesignModelSchema(value, baseModelSchema.value))
-    if (!isSameSchema(next, localSchema.value))
-      localSchema.value = next
+    assignLocalSchema(next, { markDirty: false })
   },
   { deep: true },
 )
@@ -497,18 +501,21 @@ watch(
 )
 
 watch(
-  () => editZone.value?.props?.modalType,
+  () => editZone.value?.props?.formOpenMode || editZone.value?.props?.modalType,
   (value) => {
-    if (!['modal', 'drawer'].includes(value))
+    const nextFormOpenMode = normalizeFormOpenMode(value)
+    if (!['modal', 'drawer', 'flat', 'tabWorkspace'].includes(nextFormOpenMode))
       return
-    const rawHasModalType = Object.prototype.hasOwnProperty.call(props.formDesignerSchema?.layout || {}, 'modalType')
-    if (rawHasModalType || localFormDesignerSchema.value?.layout?.modalType === value)
+    const rawLayout = props.formDesignerSchema?.layout || {}
+    const rawHasOpenMode = Object.prototype.hasOwnProperty.call(rawLayout, 'formOpenMode')
+      || Object.prototype.hasOwnProperty.call(rawLayout, 'modalType')
+    if (rawHasOpenMode || localFormDesignerSchema.value?.layout?.formOpenMode === nextFormOpenMode)
       return
     localFormDesignerSchema.value = normalizeFormDesignerSchema({
       ...(localFormDesignerSchema.value || {}),
       layout: {
         ...(localFormDesignerSchema.value?.layout || {}),
-        modalType: value,
+        ...normalizeFormOpenModePatch(nextFormOpenMode),
       },
     })
   },
@@ -519,8 +526,7 @@ watch(
   effectiveModelSchema,
   (value) => {
     const next = syncPageSchemaWithModel(localSchema.value, value)
-    if (!isSameSchema(next, localSchema.value))
-      localSchema.value = next
+    assignLocalSchema(next, { markDirty: false })
   },
   { deep: true },
 )
@@ -529,9 +535,9 @@ watch(
   localFormDesignerSchema,
   (value) => {
     emit('update:formDesignerSchema', cloneSchema(value || null))
-    const nextModalType = value?.layout?.modalType
-    if (['modal', 'drawer'].includes(nextModalType) && editZone.value?.props?.modalType !== nextModalType)
-      updateEditZoneProps({ modalType: nextModalType })
+    const nextFormOpenMode = normalizeFormOpenMode(value?.layout?.formOpenMode || value?.layout?.modalType)
+    if (editZone.value?.props?.formOpenMode !== nextFormOpenMode)
+      updateEditZoneProps(normalizeFormOpenModePatch(nextFormOpenMode))
     syncFormDesignerSchemaToPageSchema(value)
   },
   { deep: true },
@@ -540,9 +546,12 @@ watch(
 watch(
   localSchema,
   (value) => {
+    const dirtyMode = localSchemaDirtyMode
+    localSchemaDirtyMode = null
     if (!isSameSchema(value, props.modelValue)) {
       emit('update:modelValue', cloneSchema(value))
-      emit('dirtyChange', true)
+      if (dirtyMode !== 'silent')
+        emit('dirtyChange', true)
     }
   },
   { deep: true },
@@ -556,6 +565,14 @@ watch(formObjectTabs, (tabs) => {
 function syncFormDesignerSchemaToPageSchema(schema, fields = primaryDesignFields.value) {
   if (!editZone.value || !schema)
     return
+  const zone = buildFormDesignerEditZone(editZone.value, schema, fields)
+  if (zone)
+    replaceZone(zone, { markDirty: false })
+}
+
+function buildFormDesignerEditZone(zone, schema, fields = primaryDesignFields.value) {
+  if (!zone || !schema)
+    return null
   const normalizedSchema = normalizeFormDesignerSchema(schema)
   const layout = normalizedSchema.layout || {}
   const gridColumns = clampNumber(layout.gridColumns, 1, 4, 2)
@@ -569,14 +586,14 @@ function syncFormDesignerSchemaToPageSchema(schema, fields = primaryDesignFields
   const formLayout = buildRuntimeFormLayout(normalizedSchema, fieldSet, gridColumns)
   const fieldRefs = Object.keys(compiledSettings)
   const modelFieldSet = buildPrimaryModelFieldSet(fields)
-  replaceZone({
-    ...editZone.value,
-    fieldRefs: mergeUniqueRefs(fieldRefs, selectedRelationFieldRefs.value),
+  return {
+    ...zone,
+    fieldRefs: mergeUniqueRefs(fieldRefs, resolveSelectedRelationFieldRefs(zone)),
     props: {
-      ...(editZone.value.props || {}),
+      ...(zone.props || {}),
       formCreateRule: rules,
       formCreateOptions: options,
-      fieldSettings: replaceModelFieldSettings(editZone.value.props?.fieldSettings, modelFieldSet, compiledSettings),
+      fieldSettings: replaceModelFieldSettings(zone.props?.fieldSettings, modelFieldSet, compiledSettings),
       editGridCols: gridColumns,
       labelPlacement: layout.labelPlacement || 'left',
       labelWidth: defaultLabelWidth,
@@ -594,7 +611,11 @@ function syncFormDesignerSchemaToPageSchema(schema, fields = primaryDesignFields
       canvas: undefined,
       compiledFrom: 'formDesignerSchema',
     },
-  })
+  }
+}
+
+function resolveSelectedRelationFieldRefs(zone = {}) {
+  return (zone?.fieldRefs || []).filter(ref => relationFieldSet.value.has(ref))
 }
 
 function buildFormRuntimeFieldSettings(schema, fieldSet, gridColumns, defaultLabelWidth) {
@@ -896,6 +917,20 @@ function normalizeRuntimeFormSize(value) {
   return ['small', 'large'].includes(value) ? value : 'medium'
 }
 
+function normalizeFormOpenMode(value) {
+  if (value === 'tabWorkspace')
+    return 'tabWorkspace'
+  return ['modal', 'drawer', 'flat'].includes(value) ? value : 'modal'
+}
+
+function normalizeFormOpenModePatch(value) {
+  const formOpenMode = normalizeFormOpenMode(value)
+  return {
+    formOpenMode,
+    modalType: ['modal', 'drawer'].includes(formOpenMode) ? formOpenMode : 'modal',
+  }
+}
+
 function isPlainObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value)
 }
@@ -1007,15 +1042,22 @@ function selectedRelationRefsByModel(modelCode) {
   return selectedRelationFieldRefs.value.filter(ref => groupRefSet.has(ref))
 }
 
-function replaceZone(zone) {
+function assignLocalSchema(schema, options = {}) {
+  if (isSameSchema(schema, localSchema.value))
+    return false
+  localSchemaDirtyMode = options.markDirty === false ? 'silent' : 'dirty'
+  localSchema.value = schema
+  return true
+}
+
+function replaceZone(zone, options = {}) {
   if (!zone)
     return
   const nextSchema = {
     ...localSchema.value,
     zones: (localSchema.value.zones || []).map(item => item.zoneKey === zone.zoneKey ? zone : item),
   }
-  if (!isSameSchema(nextSchema, localSchema.value))
-    localSchema.value = nextSchema
+  assignLocalSchema(nextSchema, { markDirty: options.markDirty !== false })
 }
 
 function normalizeEditZoneFieldRefs(zone, relationRefs = Array.from(selectedRelationFieldSet.value), relationSelectionTouched = false) {
@@ -1195,12 +1237,14 @@ function resolveRelationToggle(relation = {}, config = {}, key, defaultValue) {
 async function saveLayout() {
   if (!props.objectId)
     return
-  const { formSchema, createdFields, normalizedFields, schema } = buildCurrentDesignerDraft()
+  const { formSchema, createdFields, normalizedFields, nextModelSchema, schema } = buildCurrentDesignerDraft()
   saving.value = true
   try {
     if (createdFields.length || formSchema) {
       await saveBusinessObjectDesigner(props.objectId, {
         fields: normalizedFields.map(toBusinessFieldPayload),
+        modelSchema: cloneSchema(nextModelSchema || {}),
+        pageSchema: cloneSchema(schema || {}),
         formDesignerSchema: cloneSchema(formSchema || localFormDesignerSchema.value || {}),
         syncDdl: true,
         confirmSyncDdl: true,
@@ -1214,7 +1258,7 @@ async function saveLayout() {
       zones: schema.zones?.filter(zone => zone.zoneKey === 'edit') || [],
       settings: {},
     })
-    localSchema.value = schema
+    assignLocalSchema(schema, { markDirty: false })
     emit('saved', cloneSchema(schema))
     if (formSchema)
       emit('fieldsUpdated', normalizedFields, { persisted: true })
@@ -1228,13 +1272,14 @@ async function saveLayout() {
 
 function syncDesignerDraft() {
   const { formSchema, createdFields, normalizedFields, schema } = buildCurrentDesignerDraft()
-  const formChanged = formSchema && !isSameSchema(formSchema, localFormDesignerSchema.value)
-  const fieldsChanged = !isSameSchema(normalizedFields, primaryBusinessFieldAssets.value)
-  const pageChanged = !isSameSchema(schema, localSchema.value)
+  const baseline = buildDesignerDraftFromFormSchema(localFormDesignerSchema.value)
+  const formChanged = formSchema && !isSameSchema(formSchema, baseline.formSchema)
+  const fieldsChanged = !isSameSchema(normalizedFields, baseline.normalizedFields)
+  const pageChanged = !isSameSchema(schema, baseline.schema)
   if (formChanged)
     localFormDesignerSchema.value = cloneSchema(formSchema)
   if (pageChanged)
-    localSchema.value = schema
+    assignLocalSchema(schema, { markDirty: false })
   if (fieldsChanged)
     emit('fieldsUpdated', normalizedFields, { persisted: false })
   if (formChanged || fieldsChanged || pageChanged)
@@ -1250,21 +1295,44 @@ function syncDesignerDraft() {
 
 function buildCurrentDesignerDraft() {
   const formSchema = activeFormDesignerRef.value?.flushDesigner?.() || localFormDesignerSchema.value
-  const normalizedFormSchema = normalizeFormDesignerSchemaForSave(formSchema || {})
+  return buildDesignerDraftFromFormSchema(formSchema)
+}
+
+function buildDesignerDraftFromFormSchema(formSchema) {
+  const normalizedFormSchema = normalizeGeneratedTemplateFieldCodes(
+    normalizeFormDesignerSchemaForSave(formSchema || {}),
+    primaryBusinessFieldAssets.value,
+  )
   const { fields: nextFields, createdFields } = buildAutoFieldAssets(normalizedFormSchema, primaryBusinessFieldAssets.value)
   const formFieldComponents = buildFormFieldComponentMap(normalizedFormSchema)
   const normalizedFields = nextFields.map(field => normalizeUnconfiguredDesignerField(field, formFieldComponents))
+  const primaryModelFields = [
+    ...systemFields.value,
+    ...normalizedFields.map(toPageField),
+  ]
   const nextModelSchema = {
+    ...baseModelSchema.value,
+    fields: primaryModelFields,
+  }
+  const nextDesignModelSchema = {
     ...effectiveModelSchema.value,
     fields: [
-      ...systemFields.value,
-      ...normalizedFields.map(toPageField),
+      ...primaryModelFields,
       ...relationFields.value,
     ],
   }
-  if (formSchema)
-    syncFormDesignerSchemaToPageSchema(normalizedFormSchema, nextModelSchema.fields)
-  const schema = syncPageSchemaWithModel(localSchema.value, nextModelSchema)
+  let sourceSchema = localSchema.value
+  if (formSchema) {
+    const sourceEditZone = sourceSchema?.zones?.find(zone => zone.zoneKey === 'edit') || null
+    const editZone = buildFormDesignerEditZone(sourceEditZone, normalizedFormSchema, primaryModelFields)
+    if (editZone) {
+      sourceSchema = {
+        ...sourceSchema,
+        zones: (sourceSchema.zones || []).map(zone => zone.zoneKey === editZone.zoneKey ? editZone : zone),
+      }
+    }
+  }
+  const schema = syncPageSchemaWithModel(sourceSchema, nextDesignModelSchema)
   return {
     formSchema: normalizedFormSchema,
     createdFields,
@@ -1272,6 +1340,172 @@ function buildCurrentDesignerDraft() {
     nextModelSchema,
     schema,
   }
+}
+
+function normalizeGeneratedTemplateFieldCodes(schema = {}, existingFields = []) {
+  const next = cloneSchema(schema || {})
+  const existingCodes = new Set((existingFields || [])
+    .map(field => field?.fieldCode || field?.field)
+    .filter(Boolean))
+  const reservedCodes = new Set(existingCodes)
+  const componentGroups = collectFormDesignerComponentGroups(next)
+  componentGroups.forEach((components) => {
+    walkFormDesignerComponents(components, (component) => {
+      const fieldCode = component?.fieldBinding?.fieldCode || ''
+      if (!fieldCode)
+        return
+      if (!shouldRewriteGeneratedTemplateField(component, existingCodes))
+        reservedCodes.add(fieldCode)
+    })
+  })
+  componentGroups.forEach((components) => {
+    walkFormDesignerComponents(components, (component) => {
+      if (!shouldRewriteGeneratedTemplateField(component, existingCodes))
+        return
+      rewriteGeneratedTemplateField(component, reserveGeneratedTemplateFieldCode(component, reservedCodes))
+    })
+  })
+  syncActiveFormSchemaEntry(next)
+  return next
+}
+
+function collectFormDesignerComponentGroups(schema = {}) {
+  const groups = [schema.components || []]
+  const assets = Array.isArray(schema?.settings?.formAssets) ? schema.settings.formAssets : []
+  assets.forEach((asset) => {
+    const assetSchema = asset?.schema || asset
+    groups.push(assetSchema?.components || [])
+  })
+  ;(Array.isArray(schema?.forms) ? schema.forms : []).forEach((form) => {
+    if (form?.formKey && form.formKey === schema.formKey)
+      return
+    groups.push(form?.schema?.components || form?.components || [])
+  })
+  return groups
+}
+
+function syncActiveFormSchemaEntry(schema = {}) {
+  if (!Array.isArray(schema.forms) || !schema.formKey)
+    return
+  const activeForm = schema.forms.find(form => form?.formKey === schema.formKey)
+  if (!activeForm)
+    return
+  activeForm.formName = schema.formName || activeForm.formName
+  activeForm.schema = {
+    ...(activeForm.schema || {}),
+    schemaVersion: schema.schemaVersion,
+    formKey: schema.formKey,
+    formName: schema.formName,
+    layout: cloneSchema(schema.layout || {}),
+    components: cloneSchema(schema.components || []),
+    settings: {
+      ...(activeForm.schema?.settings || {}),
+      formAssets: [],
+    },
+  }
+}
+
+function shouldRewriteGeneratedTemplateField(component = {}, existingCodes = new Set()) {
+  const binding = component?.fieldBinding || {}
+  const fieldCode = binding.fieldCode || ''
+  if (!fieldCode || existingCodes.has(fieldCode))
+    return false
+  if (binding.source && binding.source !== 'designer')
+    return false
+  if (binding.createIfMissing === false)
+    return false
+  return isGeneratedTemplateFieldCode(fieldCode)
+}
+
+function rewriteGeneratedTemplateField(component = {}, nextFieldCode = '') {
+  const oldFieldCode = component?.fieldBinding?.fieldCode || ''
+  if (!nextFieldCode || !oldFieldCode || oldFieldCode === nextFieldCode)
+    return
+  component.id = component.id === `cmp_${oldFieldCode}` ? `cmp_${nextFieldCode}` : component.id
+  component.fieldBinding = {
+    ...(component.fieldBinding || {}),
+    fieldCode: nextFieldCode,
+    columnName: camelToSnake(nextFieldCode),
+  }
+  if (component.props?.fieldCode === oldFieldCode)
+    component.props.fieldCode = nextFieldCode
+  if (component.props?.fieldBinding?.fieldCode === oldFieldCode) {
+    component.props.fieldBinding = {
+      ...(component.props.fieldBinding || {}),
+      fieldCode: nextFieldCode,
+      columnName: camelToSnake(nextFieldCode),
+    }
+  }
+}
+
+function reserveGeneratedTemplateFieldCode(component = {}, reservedCodes = new Set()) {
+  const base = buildGeneratedTemplateFieldBase(component)
+  if (!reservedCodes.has(base)) {
+    reservedCodes.add(base)
+    return base
+  }
+  for (let index = 2; index < 1000; index += 1) {
+    const candidate = `${base}${index}`
+    if (!reservedCodes.has(candidate)) {
+      reservedCodes.add(candidate)
+      return candidate
+    }
+  }
+  const fallback = `${base}${Date.now().toString(36)}`
+  reservedCodes.add(fallback)
+  return fallback
+}
+
+function buildGeneratedTemplateFieldBase(component = {}) {
+  const generated = generateFieldCode(component.label || component.props?.label || component.componentKey || '字段')
+  if (generated && !isGenericGeneratedFieldCode(generated))
+    return generated
+  const key = String(component.componentKey || 'input')
+    .replace(/[^a-z0-9]/gi, '')
+    .replace(/^\d+/, '')
+  const suffix = key ? `${key[0].toUpperCase()}${key.slice(1)}` : 'Input'
+  return `field${suffix}`
+}
+
+function isGeneratedTemplateFieldCode(value = '') {
+  return /^field_[a-z0-9]+(?:_[a-z0-9]+)?$/i.test(String(value || '').trim())
+}
+
+function isGenericGeneratedFieldCode(value = '') {
+  const text = String(value || '').trim()
+  const normalized = text.toLowerCase()
+  if (!text)
+    return true
+  if (/^field[0-9a-z]{4,}$/i.test(text))
+    return true
+  return [
+    'input',
+    'textarea',
+    'number',
+    'integer',
+    'money',
+    'date',
+    'datetime',
+    'time',
+    'switch',
+    'select',
+    'selector',
+    'radio',
+    'checkbox',
+    'dictselect',
+    'cascader',
+    'field',
+  ].includes(normalized)
+}
+
+function walkFormDesignerComponents(components = [], visitor) {
+  ;(Array.isArray(components) ? components : []).forEach((component) => {
+    if (!component || typeof component !== 'object')
+      return
+    visitor(component)
+    if (Array.isArray(component.children))
+      walkFormDesignerComponents(component.children, visitor)
+  })
 }
 
 function normalizeBusinessFieldAsset(field = {}) {
@@ -1340,6 +1574,7 @@ function mergeFieldWithFormComponent(field = {}, formComponent = null, component
     },
     advancedProps: {
       ...(field.advancedProps || {}),
+      ...(formComponent.advancedProps || {}),
       ...(props.dictType !== undefined ? { dictType: props.dictType } : {}),
     },
   }
@@ -1664,6 +1899,10 @@ defineExpose({
   color: #64748b;
   font-size: 12px;
   white-space: nowrap;
+}
+
+.form-open-mode-select {
+  width: 108px;
 }
 
 .designer-head-compact-button {

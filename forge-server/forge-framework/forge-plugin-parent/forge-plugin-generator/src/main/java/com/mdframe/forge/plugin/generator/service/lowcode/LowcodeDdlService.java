@@ -135,7 +135,7 @@ public class LowcodeDdlService {
         appendExistingColumnChanges(modelSchema, columnMetadata, ddlList, warnings);
         appendMissingIndexes(modelSchema, ddlRepository.listIndexes(modelSchema.getTableName()), ddlList, warnings);
         warnings.add("已有表在线变更仅追加缺失字段、同步字段长度/类型/是否必填和索引，不会删除或重命名字段");
-        warnings.add("字段改为必填会执行 NOT NULL 变更；如果历史数据存在空值，数据库可能拒绝执行，请先清洗数据或设置默认值");
+        warnings.add("必填字段只有配置默认值时才同步为 NOT NULL；未配置默认值时由运行态表单校验，数据库列保持可空");
         return ddlList;
     }
 
@@ -157,7 +157,7 @@ public class LowcodeDdlService {
             String expectedSqlType = resolveSqlType(field, dataType);
             boolean typeChanged = !sameSqlType(expectedSqlType, metadata.columnType());
             boolean currentRequired = "NO".equalsIgnoreCase(metadata.isNullable());
-            boolean expectedRequired = Boolean.TRUE.equals(field.getRequired());
+            boolean expectedRequired = shouldUseNotNull(field, dataType);
             boolean requiredChanged = currentRequired != expectedRequired;
             if (!typeChanged && !requiredChanged) {
                 continue;
@@ -171,7 +171,7 @@ public class LowcodeDdlService {
             }
             ddlList.add("ALTER TABLE `" + modelSchema.getTableName() + "` MODIFY COLUMN "
                     + (typeChanged ? buildColumnDefinition(field, false)
-                    : buildExistingColumnDefinition(metadata, expectedRequired)));
+                    : buildExistingColumnDefinition(metadata, field, expectedRequired)));
         }
     }
 
@@ -328,20 +328,42 @@ public class LowcodeDdlService {
         validateIdentifier(field.getColumnName(), "字段列名");
         String dataType = normalizeDataType(field);
         String sqlType = resolveSqlType(field, dataType);
-        String nullable = !forceNullable && Boolean.TRUE.equals(field.getRequired()) ? " NOT NULL" : " DEFAULT NULL";
-        return "`" + field.getColumnName() + "` " + sqlType + nullable
-                + " COMMENT '" + escapeSqlComment(StringUtils.defaultIfBlank(field.getLabel(), field.getColumnName())) + "'";
+        boolean required = !forceNullable && shouldUseNotNull(field, dataType);
+        StringBuilder definition = new StringBuilder();
+        definition.append("`").append(field.getColumnName()).append("` ").append(sqlType);
+        definition.append(required ? " NOT NULL" : " NULL");
+        appendDefaultValue(definition, required ? field.getDefaultValue() : null, !required);
+        definition.append(" COMMENT '")
+                .append(escapeSqlComment(StringUtils.defaultIfBlank(field.getLabel(), field.getColumnName())))
+                .append("'");
+        return definition.toString();
     }
 
-    private String buildExistingColumnDefinition(LowcodeDdlRepository.ColumnMetadata metadata, boolean required) {
+    private String buildExistingColumnDefinition(LowcodeDdlRepository.ColumnMetadata metadata,
+                                                 LowcodeFieldSchema field,
+                                                 boolean required) {
         validateIdentifier(metadata.columnName(), "字段列名");
         StringBuilder definition = new StringBuilder();
         definition.append("`").append(metadata.columnName()).append("` ").append(metadata.columnType());
         definition.append(required ? " NOT NULL" : " NULL");
-        appendDefaultValue(definition, metadata.columnDefault(), !required);
+        appendDefaultValue(definition, required ? field.getDefaultValue() : metadata.columnDefault(), !required);
         appendExtra(definition, metadata.extra());
         definition.append(" COMMENT '").append(escapeSqlComment(metadata.columnComment())).append("'");
         return definition.toString();
+    }
+
+    private boolean shouldUseNotNull(LowcodeFieldSchema field, String dataType) {
+        return Boolean.TRUE.equals(field.getRequired()) && hasUsableDefaultValue(field.getDefaultValue(), dataType);
+    }
+
+    private boolean hasUsableDefaultValue(Object defaultValue, String dataType) {
+        if (defaultValue == null || Set.of("text", "longtext").contains(dataType)) {
+            return false;
+        }
+        if (defaultValue instanceof String text) {
+            return StringUtils.isNotBlank(text);
+        }
+        return true;
     }
 
     private void appendDefaultValue(StringBuilder definition, Object defaultValue, boolean nullable) {

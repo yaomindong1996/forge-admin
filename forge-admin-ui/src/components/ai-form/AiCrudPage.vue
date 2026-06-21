@@ -79,7 +79,7 @@
     </div>
 
     <!-- 搜索表单区域 -->
-    <div v-if="!formOnly && hasSearchSchema && searchPanelVisible" class="ai-crud-search">
+    <div v-if="!formOnly && showInlineListPane && hasSearchSchema && searchPanelVisible" class="ai-crud-search">
       <AiSearch
         ref="searchRef"
         v-model="searchParams"
@@ -106,9 +106,58 @@
     </div>
 
     <!-- 主内容区域 -->
-    <div v-if="!formOnly" class="ai-crud-main">
+    <div
+      v-if="!formOnly"
+      class="ai-crud-main"
+      :class="{
+        'has-inline-workspace': inlineWorkspaceVisible,
+        'is-tab-workspace': isTabWorkspaceMode,
+        'is-form-workspace-active': showInlineFormWorkspacePane,
+      }"
+    >
+      <div
+        v-if="isTabWorkspaceMode && inlineWorkspaceVisible"
+        class="ai-crud-workspace-tabs"
+        role="tablist"
+      >
+        <button
+          type="button"
+          class="inline-form-tab inline-form-tab--list"
+          :class="{ active: activeInlineWorkspaceKey === INLINE_WORKSPACE_LIST_KEY }"
+          role="tab"
+          :aria-selected="activeInlineWorkspaceKey === INLINE_WORKSPACE_LIST_KEY"
+          @click="handleInlineWorkspaceListTab"
+        >
+          <span class="inline-form-tab__title">列表</span>
+        </button>
+        <button
+          v-for="tab in inlineFormTabs"
+          :key="tab.key"
+          type="button"
+          class="inline-form-tab"
+          :class="{ active: tab.key === activeInlineWorkspaceKey }"
+          role="tab"
+          :aria-selected="tab.key === activeInlineWorkspaceKey"
+          @click="handleInlineFormTabChange(tab.key)"
+        >
+          <span class="inline-form-tab__title">{{ inlineFormTabTitle(tab) }}</span>
+          <span
+            v-if="resolvedTabWorkspace.showDirtyMark && tab.dirty"
+            class="inline-form-tab__dirty"
+            aria-label="未保存"
+          />
+          <span
+            class="inline-form-tab__close"
+            title="关闭"
+            @click.stop="closeInlineFormTab(tab.key)"
+          >
+            <n-icon size="13"><CloseOutline /></n-icon>
+          </span>
+        </button>
+      </div>
+
       <!-- 数据表格区域 -->
-      <div class="ai-crud-table">
+      <div v-show="showInlineListPane" class="ai-crud-table">
         <AiTable
           ref="tableRef"
           v-model:checked-row-keys="selectedKeys"
@@ -247,11 +296,134 @@
           </template>
         </AiTable>
       </div>
+
+      <div
+        v-if="showInlineFormWorkspacePane"
+        class="ai-crud-inline-workspace"
+        :class="{ 'is-tab-workspace': isTabWorkspaceMode }"
+      >
+        <section class="ai-crud-inline-form-panel">
+          <header class="inline-form-panel-head">
+            <div>
+              <strong>{{ activeInlineFormTitle }}</strong>
+              <span>{{ inlineFormModeLabel }}</span>
+            </div>
+            <n-button
+              quaternary
+              :circle="isTabWorkspaceMode"
+              size="small"
+              @click="handleCloseActiveInlineFormTab"
+            >
+              <template #icon>
+                <n-icon><CloseOutline /></n-icon>
+              </template>
+              <template v-if="!isTabWorkspaceMode">
+                返回列表
+              </template>
+            </n-button>
+          </header>
+
+          <div class="inline-form-panel-body">
+            <n-tabs
+              v-if="showDetailFlowTabs"
+              v-model:value="detailActiveTab"
+              type="line"
+              animated
+              class="ai-crud-detail-tabs"
+            >
+              <n-tab-pane name="business" tab="业务数据">
+                <AiForm
+                  v-if="showDefaultDetailContent"
+                  ref="formRef"
+                  v-model:value="formData"
+                  :class="resolvedEditFormClass"
+                  :style="editFormStyle"
+                  :schema="modalFormSchema"
+                  :grid-cols="editGridCols"
+                  :label-width="editLabelWidth"
+                  :label-placement="editLabelPlacement"
+                  :label-align="editLabelAlign"
+                  :size="editSize"
+                  :x-gap="editXGap"
+                  :y-gap="editYGap"
+                  :show-feedback="editShowFeedback"
+                  :show-actions="false"
+                  :context="formContext"
+                  :form-assets="formAssets"
+                >
+                  <template v-for="slotName in formSlots" #[slotName]="slotProps">
+                    <slot :name="`form-${slotName}`" v-bind="slotProps" />
+                  </template>
+                </AiForm>
+                <ChildTableEditor
+                  v-if="showDefaultDetailChildren"
+                  ref="childFormRef"
+                  v-model:value="childFormData"
+                  :children-config="visibleChildrenConfig"
+                  :readonly="isDetailMode"
+                />
+              </n-tab-pane>
+              <n-tab-pane name="flow" tab="流程进度" display-directive="show:lazy">
+                <AiCrudFlowDetail
+                  :runtime="detailRuntime"
+                  :loading="detailRuntimeLoading"
+                  :show-timeline="detailFlowTimelineVisible"
+                  :show-diagram="detailFlowDiagramVisible"
+                />
+              </n-tab-pane>
+            </n-tabs>
+            <template v-else>
+              <AiForm
+                ref="formRef"
+                v-model:value="formData"
+                :class="resolvedEditFormClass"
+                :style="editFormStyle"
+                :schema="modalFormSchema"
+                :grid-cols="editGridCols"
+                :label-width="editLabelWidth"
+                :label-placement="editLabelPlacement"
+                :label-align="editLabelAlign"
+                :size="editSize"
+                :x-gap="editXGap"
+                :y-gap="editYGap"
+                :show-feedback="editShowFeedback"
+                :show-actions="false"
+                :context="formContext"
+                :form-assets="formAssets"
+              >
+                <template v-for="slotName in formSlots" #[slotName]="slotProps">
+                  <slot :name="`form-${slotName}`" v-bind="slotProps" />
+                </template>
+              </AiForm>
+              <ChildTableEditor
+                v-if="showDefaultDetailChildren"
+                ref="childFormRef"
+                v-model:value="childFormData"
+                :children-config="visibleChildrenConfig"
+                :readonly="isDetailMode"
+              />
+            </template>
+          </div>
+
+          <footer v-if="!hideModalFooter && !isDetailMode" class="inline-form-panel-footer">
+            <n-button @click="handleInlineFormCancel">
+              取消
+            </n-button>
+            <n-button
+              type="primary"
+              :loading="confirmLoading"
+              @click="handleModalConfirm"
+            >
+              确定
+            </n-button>
+          </footer>
+        </section>
+      </div>
     </div>
 
     <!-- 新增/编辑/详情弹窗 - Modal 模式。详情默认使用弹窗，避免动态页详情占用右侧抽屉。 -->
     <n-modal
-      v-if="!formOnly && (modalType === 'modal' || isDetailMode)"
+      v-if="!formOnly && !usesInlineFormWorkspace && (modalType === 'modal' || isDetailMode)"
       v-model:show="modalVisible"
       :title="modalTitle"
       preset="card"
@@ -361,7 +533,7 @@
 
     <!-- 新增/编辑抽屉 - Drawer 模式 -->
     <n-drawer
-      v-else-if="!formOnly && !isDetailMode"
+      v-else-if="!formOnly && !usesInlineFormWorkspace && !isDetailMode"
       v-model:show="modalVisible"
       :width="modalWidth"
       :placement="drawerPlacement"
@@ -519,6 +691,7 @@
 /* eslint-disable vue/custom-event-name-casing */
 import {
   Add,
+  CloseOutline,
   CloudUploadOutline,
   DownloadOutline,
   RefreshOutline,
@@ -608,6 +781,11 @@ const formData = ref({})
 const childFormData = ref({})
 const confirmLoading = ref(false)
 const currentRow = ref(null)
+const inlineFormTabs = ref([])
+const activeInlineFormTabKey = ref('')
+const INLINE_WORKSPACE_LIST_KEY = 'list'
+const activeInlineWorkspaceKey = ref(INLINE_WORKSPACE_LIST_KEY)
+const inlineFormHydrating = ref(false)
 const formOnlySubmitted = ref(false)
 const detailRuntime = ref(null)
 const detailRuntimeLoading = ref(false)
@@ -616,6 +794,7 @@ const actionLoadingKeys = ref(new Set())
 const flowStartPageLoading = ref(false)
 const formulaRuntimeTimers = new Map()
 const formulaRuntimeSequences = new Map()
+let inlineFormTabSequence = 0
 
 // 导入
 const importModalVisible = ref(false)
@@ -1455,6 +1634,46 @@ const formSlots = computed(() => {
 
 const isDetailMode = computed(() => modalStatus.value === 'detail')
 
+const resolvedFormOpenMode = computed(() => {
+  const configured = String(props.formOpenMode || '').trim()
+  if (['modal', 'drawer', 'flat', 'tabWorkspace'].includes(configured))
+    return configured
+  return props.modalType === 'drawer' ? 'drawer' : 'modal'
+})
+
+const usesInlineFormWorkspace = computed(() => ['flat', 'tabWorkspace'].includes(resolvedFormOpenMode.value))
+const isTabWorkspaceMode = computed(() => resolvedFormOpenMode.value === 'tabWorkspace')
+const inlineWorkspaceVisible = computed(() => usesInlineFormWorkspace.value && inlineFormTabs.value.length > 0)
+const showInlineListPane = computed(() => {
+  return !inlineWorkspaceVisible.value
+    || (isTabWorkspaceMode.value && activeInlineWorkspaceKey.value === INLINE_WORKSPACE_LIST_KEY)
+})
+const showInlineFormWorkspacePane = computed(() => {
+  return inlineWorkspaceVisible.value
+    && (!isTabWorkspaceMode.value || activeInlineWorkspaceKey.value !== INLINE_WORKSPACE_LIST_KEY)
+})
+const activeInlineFormTab = computed(() => inlineFormTabs.value.find(tab => tab.key === activeInlineFormTabKey.value) || null)
+const activeInlineFormTitle = computed(() => activeInlineFormTab.value?.title || modalTitle.value || '编辑')
+const inlineFormModeLabel = computed(() => {
+  if (modalStatus.value === 'add')
+    return '新增'
+  if (modalStatus.value === 'edit')
+    return '编辑'
+  if (modalStatus.value === 'detail')
+    return '详情'
+  return '表单'
+})
+
+const resolvedTabWorkspace = computed(() => {
+  const config = props.tabWorkspace || {}
+  return {
+    maxTabs: Math.max(1, Number(config.maxTabs || 8)),
+    reuseRecordTab: config.reuseRecordTab !== false,
+    closeAfterSave: config.closeAfterSave === true,
+    showDirtyMark: config.showDirtyMark !== false,
+  }
+})
+
 const activeModalWidth = computed(() => {
   if (isDetailMode.value)
     return props.detailModalWidth
@@ -1528,7 +1747,7 @@ const runtimeFormFieldMap = computed(() => {
 const runtimeFormulaCalculationEnabled = computed(() => {
   if (isDetailMode.value || formOnlySubmitted.value)
     return false
-  return props.formOnly || modalVisible.value
+  return props.formOnly || modalVisible.value || inlineWorkspaceVisible.value
 })
 
 const runtimeFormulaSignature = computed(() => {
@@ -1914,6 +2133,18 @@ watch(runtimeFormulaSignature, () => {
   if (!runtimeFormulaCalculationEnabled.value)
     return
   runtimeFormulaFields.value.forEach(scheduleRuntimeFormulaCalculation)
+})
+
+watch(formData, () => {
+  persistActiveInlineFormTab({ dirty: true })
+}, { deep: true })
+
+watch(childFormData, () => {
+  persistActiveInlineFormTab({ dirty: true })
+}, { deep: true })
+
+watch(detailActiveTab, () => {
+  persistActiveInlineFormTab()
 })
 
 const resolvedFormOnlyTitle = computed(() => props.formOnlyTitle || props.addButtonText || '单据填报')
@@ -2466,6 +2697,242 @@ function buildMasterDetailSubmitData(data) {
   return payload
 }
 
+function cloneInlineFormValue(value) {
+  if (value === null || value === undefined || typeof value !== 'object')
+    return value
+  try {
+    if (typeof structuredClone === 'function')
+      return structuredClone(value)
+  }
+  catch {}
+  try {
+    return JSON.parse(JSON.stringify(value))
+  }
+  catch {
+    return Array.isArray(value) ? [...value] : { ...value }
+  }
+}
+
+function buildInlineRecordTabKey(status, row) {
+  const idValue = resolveRowKeyValue(row)
+  if (!isUsableKeyValue(idValue))
+    return ''
+  return `${status}:${idValue}`
+}
+
+function findReusableInlineFormTab(status, row) {
+  if (!usesInlineFormWorkspace.value || !isTabWorkspaceMode.value || status === 'add')
+    return null
+  if (!resolvedTabWorkspace.value.reuseRecordTab)
+    return null
+  const key = buildInlineRecordTabKey(status, row)
+  if (!key)
+    return null
+  return inlineFormTabs.value.find(tab => tab.key === key) || null
+}
+
+function activateReusableInlineFormTab(status, row) {
+  const tab = findReusableInlineFormTab(status, row)
+  if (!tab)
+    return false
+  handleInlineFormTabChange(tab.key)
+  return true
+}
+
+function buildInlineFormTabKey(status, row) {
+  if (!isTabWorkspaceMode.value)
+    return 'flat'
+  if (status !== 'add') {
+    const reusableKey = buildInlineRecordTabKey(status, row)
+    if (reusableKey)
+      return reusableKey
+  }
+  inlineFormTabSequence += 1
+  return `${status || 'form'}:${inlineFormTabSequence}`
+}
+
+function openFormContainer(status, title, row = null, context = {}) {
+  if (!usesInlineFormWorkspace.value || props.formOnly) {
+    modalVisible.value = true
+    return true
+  }
+  const existing = findReusableInlineFormTab(status, row)
+  if (existing) {
+    handleInlineFormTabChange(existing.key)
+    return true
+  }
+  if (isTabWorkspaceMode.value && inlineFormTabs.value.length >= resolvedTabWorkspace.value.maxTabs) {
+    window.$message.warning(`最多同时打开 ${resolvedTabWorkspace.value.maxTabs} 个录入页签`)
+    return false
+  }
+
+  const tab = {
+    key: buildInlineFormTabKey(status, row),
+    status,
+    title,
+    row: cloneInlineFormValue(row),
+    context: cloneInlineFormValue(context),
+    formData: cloneInlineFormValue(formData.value || {}),
+    childFormData: cloneInlineFormValue(childFormData.value || {}),
+    detailRuntime: cloneInlineFormValue(detailRuntime.value),
+    detailActiveTab: detailActiveTab.value,
+    dirty: false,
+  }
+  if (isTabWorkspaceMode.value) {
+    inlineFormTabs.value = [...inlineFormTabs.value, tab]
+    activeInlineWorkspaceKey.value = tab.key
+  }
+  else {
+    inlineFormTabs.value = [tab]
+  }
+  activeInlineFormTabKey.value = tab.key
+  hydrateInlineFormTab(tab)
+  return true
+}
+
+function hydrateInlineFormTab(tab) {
+  if (!tab)
+    return
+  inlineFormHydrating.value = true
+  modalStatus.value = tab.status || ''
+  modalTitle.value = tab.title || ''
+  currentRow.value = cloneInlineFormValue(tab.row)
+  detailRuntime.value = cloneInlineFormValue(tab.detailRuntime)
+  detailActiveTab.value = tab.detailActiveTab || 'business'
+  formData.value = cloneInlineFormValue(tab.formData || {})
+  childFormData.value = cloneInlineFormValue(tab.childFormData || {})
+  nextTick(() => {
+    formRef.value?.restoreValidation()
+    inlineFormHydrating.value = false
+  })
+}
+
+function persistActiveInlineFormTab({ dirty = false } = {}) {
+  if (!usesInlineFormWorkspace.value || inlineFormHydrating.value)
+    return
+  const tab = activeInlineFormTab.value
+  if (!tab)
+    return
+  tab.formData = cloneInlineFormValue(formData.value || {})
+  tab.childFormData = cloneInlineFormValue(childFormData.value || {})
+  tab.detailRuntime = cloneInlineFormValue(detailRuntime.value)
+  tab.detailActiveTab = detailActiveTab.value
+  if (dirty)
+    tab.dirty = true
+}
+
+function markActiveInlineFormClean() {
+  const tab = activeInlineFormTab.value
+  if (!tab)
+    return
+  persistActiveInlineFormTab({ dirty: false })
+  tab.dirty = false
+}
+
+function handleInlineFormTabChange(key) {
+  if (!key)
+    return
+  persistActiveInlineFormTab()
+  const tab = inlineFormTabs.value.find(item => item.key === key)
+  if (!tab)
+    return
+  activeInlineWorkspaceKey.value = key
+  if (key === activeInlineFormTabKey.value) {
+    hydrateInlineFormTab(tab)
+    return
+  }
+  activeInlineFormTabKey.value = key
+  hydrateInlineFormTab(tab)
+}
+
+function handleInlineWorkspaceListTab() {
+  persistActiveInlineFormTab()
+  activeInlineWorkspaceKey.value = INLINE_WORKSPACE_LIST_KEY
+}
+
+function inlineFormTabTitle(tab) {
+  return tab?.title || '表单'
+}
+
+function closeInlineFormTab(key = activeInlineFormTabKey.value, force = false) {
+  const tab = inlineFormTabs.value.find(item => item.key === key)
+  if (!tab)
+    return
+  if (!force && tab.dirty) {
+    window.$dialog.warning({
+      title: '关闭录入页签',
+      content: '当前页签存在未保存变更，确定关闭吗？',
+      positiveText: '关闭',
+      negativeText: '取消',
+      onPositiveClick: () => closeInlineFormTab(key, true),
+    })
+    return
+  }
+
+  const listPaneActive = isTabWorkspaceMode.value && activeInlineWorkspaceKey.value === INLINE_WORKSPACE_LIST_KEY
+  const workspacePaneActive = activeInlineWorkspaceKey.value === key
+  const index = inlineFormTabs.value.findIndex(item => item.key === key)
+  inlineFormTabs.value = inlineFormTabs.value.filter(item => item.key !== key)
+  if (activeInlineFormTabKey.value !== key) {
+    if (workspacePaneActive)
+      activeInlineWorkspaceKey.value = INLINE_WORKSPACE_LIST_KEY
+    return
+  }
+  const nextTab = inlineFormTabs.value[Math.max(0, index - 1)] || inlineFormTabs.value[0]
+  if (nextTab) {
+    activeInlineFormTabKey.value = nextTab.key
+    if (!listPaneActive)
+      activeInlineWorkspaceKey.value = nextTab.key
+    hydrateInlineFormTab(nextTab)
+  }
+  else {
+    activeInlineFormTabKey.value = ''
+    activeInlineWorkspaceKey.value = INLINE_WORKSPACE_LIST_KEY
+    modalStatus.value = ''
+    modalTitle.value = ''
+    currentRow.value = null
+    detailRuntime.value = null
+    formData.value = {}
+    childFormData.value = {}
+    emit('modal-close')
+  }
+}
+
+function handleCloseActiveInlineFormTab() {
+  persistActiveInlineFormTab()
+  closeInlineFormTab()
+}
+
+function handleInlineFormCancel() {
+  persistActiveInlineFormTab()
+  closeInlineFormTab()
+}
+
+function handleInlineFormSubmitSuccess(response, isEdit) {
+  const tab = activeInlineFormTab.value
+  if (!tab)
+    return
+  const previousKey = tab.key
+  if (!isEdit) {
+    const savedRecord = response?.data && typeof response.data === 'object' ? response.data : response
+    const idValue = resolveRowKeyValue(savedRecord || {})
+    if (isUsableKeyValue(idValue)) {
+      tab.status = 'edit'
+      tab.row = cloneInlineFormValue(savedRecord)
+      tab.title = modalTitle.value === props.addButtonText ? '编辑' : tab.title
+      tab.key = isTabWorkspaceMode.value ? `edit:${idValue}` : tab.key
+      activeInlineFormTabKey.value = tab.key
+      if (activeInlineWorkspaceKey.value === previousKey)
+        activeInlineWorkspaceKey.value = tab.key
+      modalStatus.value = 'edit'
+      currentRow.value = cloneInlineFormValue(savedRecord)
+    }
+  }
+  markActiveInlineFormClean()
+  if (resolvedTabWorkspace.value.closeAfterSave)
+    closeInlineFormTab(tab.key, true)
+}
+
 /**
  * 新增
  */
@@ -2477,14 +2944,8 @@ async function handleAdd(defaultValues = null, options = {}) {
   modalTitle.value = options.title || props.addButtonText
   modalStatus.value = 'add'
   currentRow.value = null
-
-  if (!props.formOnly)
-    modalVisible.value = true
-
-  // 使用 nextTick 确保弹窗已渲染
-  await nextTick()
-  // 清除上一次潜留的表单校验状态
-  formRef.value?.restoreValidation()
+  detailRuntime.value = null
+  detailActiveTab.value = 'business'
 
   // 初始化表单数据，设置默认值
   const initialData = {}
@@ -2513,8 +2974,13 @@ async function handleAdd(defaultValues = null, options = {}) {
     childFormData.value = buildInitialChildrenData()
   }
 
+  if (!props.formOnly && !openFormContainer('add', modalTitle.value, null, options))
+    return
+
   await nextTick()
+  formRef.value?.restoreValidation()
   refreshRuntimeFormulas(0)
+  markActiveInlineFormClean()
 
   emit('add', { defaults: presetValues, context: options })
   emit('modal-open', { status: 'add', row: null, defaults: presetValues, context: options })
@@ -2555,6 +3021,12 @@ function isPlainRecord(value) {
  * 编辑
  */
 async function handleEdit(row) {
+  if (activateReusableInlineFormTab('edit', row)) {
+    emit('edit', row)
+    emit('modal-open', { status: 'edit', row })
+    return
+  }
+
   modalTitle.value = row?.__modalTitle || '编辑'
   modalStatus.value = 'edit'
   currentRow.value = row
@@ -2575,11 +3047,13 @@ async function handleEdit(row) {
     applyDetailData(data)
   }
 
-  modalVisible.value = true
+  if (!openFormContainer('edit', modalTitle.value, row))
+    return
   // 清除上一次潜留的表单校验状态
   await nextTick()
   formRef.value?.restoreValidation()
   refreshRuntimeFormulas(0)
+  markActiveInlineFormClean()
 
   emit('edit', row)
   emit('modal-open', { status: 'edit', row })
@@ -2589,6 +3063,12 @@ async function handleEdit(row) {
  * 查看详情
  */
 async function handleDetail(row) {
+  if (activateReusableInlineFormTab('detail', row)) {
+    emit('detail', row)
+    emit('modal-open', { status: 'detail', row })
+    return
+  }
+
   modalTitle.value = row?.__modalTitle || '查看详情'
   modalStatus.value = 'detail'
   currentRow.value = row
@@ -2610,9 +3090,11 @@ async function handleDetail(row) {
 
   await loadDetailRuntime(renderRow)
 
-  modalVisible.value = true
+  if (!openFormContainer('detail', modalTitle.value, row))
+    return
   await nextTick()
   formRef.value?.restoreValidation()
+  markActiveInlineFormClean()
 
   emit('detail', row)
   emit('modal-open', { status: 'detail', row })
@@ -2832,7 +3314,10 @@ async function performDelete(rows, keys) {
  */
 async function handleModalConfirm() {
   if (isDetailMode.value) {
-    modalVisible.value = false
+    if (usesInlineFormWorkspace.value)
+      handleCloseActiveInlineFormTab()
+    else
+      modalVisible.value = false
     return
   }
 
@@ -2923,6 +3408,9 @@ async function handleModalConfirm() {
     window.$message.success(`${isEdit ? '编辑' : '新增'}成功`)
     if (props.formOnly) {
       formOnlySubmitted.value = true
+    }
+    else if (usesInlineFormWorkspace.value) {
+      handleInlineFormSubmitSuccess(response, isEdit)
     }
     else {
       modalVisible.value = false
@@ -3449,7 +3937,10 @@ defineExpose({
    * 关闭弹窗
    */
   closeModal: () => {
-    modalVisible.value = false
+    if (usesInlineFormWorkspace.value)
+      handleCloseActiveInlineFormTab()
+    else
+      modalVisible.value = false
   },
 
   /**
@@ -3662,8 +4153,16 @@ watch(() => stableSerialize(props.publicQuery || {}), () => {
   display: flex;
   flex-direction: column;
   background: var(--bg-primary);
-  overflow: auto;
+  overflow: hidden;
   min-height: 0;
+}
+
+.ai-crud-main.has-inline-workspace {
+  gap: 12px;
+}
+
+.ai-crud-main.is-tab-workspace {
+  gap: 0;
 }
 
 /* 工具栏区域 */
@@ -3697,6 +4196,15 @@ watch(() => stableSerialize(props.publicQuery || {}), () => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+
+.ai-crud-main.has-inline-workspace:not(.is-tab-workspace) .ai-crud-table {
+  flex: 1 1 auto;
+  min-height: clamp(220px, 38vh, 460px);
+}
+
+.ai-crud-main.is-tab-workspace .ai-crud-table {
+  flex: 1 1 auto;
 }
 
 .ai-crud-table :deep(.ai-table-wrapper) {
@@ -3812,6 +4320,194 @@ watch(() => stableSerialize(props.publicQuery || {}), () => {
   padding-top: 10px;
 }
 
+.ai-crud-inline-workspace {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
+  max-height: min(52vh, 560px);
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  box-shadow: 0 8px 22px rgb(15 23 42 / 8%);
+}
+
+.ai-crud-inline-workspace.is-tab-workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  border-top: 0;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: none;
+}
+
+.ai-crud-main.is-form-workspace-active:not(.is-tab-workspace) .ai-crud-inline-workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  box-shadow: none;
+}
+
+.ai-crud-workspace-tabs,
+.ai-crud-inline-tabs {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-height: 42px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 7px 10px 0;
+  border-bottom: 1px solid var(--border-light);
+  background: #f8fafc;
+  scrollbar-width: thin;
+}
+
+.ai-crud-workspace-tabs {
+  border: 1px solid var(--border-light);
+  border-bottom: 0;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.inline-form-tab {
+  height: 34px;
+  max-width: 220px;
+  min-width: 104px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  line-height: 1;
+  padding: 0 8px 0 12px;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.inline-form-tab--list {
+  min-width: 72px;
+}
+
+.inline-form-tab:hover {
+  background: #eef2f7;
+  color: var(--text-primary);
+}
+
+.inline-form-tab.active {
+  position: relative;
+  background: var(--bg-primary);
+  border-color: var(--border-light);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.inline-form-tab.active::before {
+  position: absolute;
+  top: 0;
+  left: 10px;
+  right: 10px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--primary-500, #2563eb);
+  content: '';
+}
+
+.inline-form-tab__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inline-form-tab__dirty {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--warning-500, #f59e0b);
+}
+
+.inline-form-tab__close {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 4px;
+  color: var(--text-tertiary);
+}
+
+.inline-form-tab__close:hover {
+  background: var(--error-50, #fef2f2);
+  color: var(--error-600, #dc2626);
+}
+
+.ai-crud-inline-form-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+
+.inline-form-panel-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.inline-form-panel-head > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inline-form-panel-head strong {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.inline-form-panel-head span {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.inline-form-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+}
+
+.inline-form-panel-body .ai-crud-detail-tabs {
+  min-height: 0;
+}
+
+.inline-form-panel-footer {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-light);
+  background: #f8fafc;
+}
+
 .export-task-current {
   padding: 12px;
   margin-bottom: 12px;
@@ -3845,6 +4541,35 @@ watch(() => stableSerialize(props.publicQuery || {}), () => {
   .toolbar-right {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .ai-crud-main {
+    overflow: auto;
+  }
+
+  .ai-crud-main.has-inline-workspace:not(.is-tab-workspace) .ai-crud-table {
+    flex: 0 0 auto;
+    min-height: 360px;
+  }
+
+  .ai-crud-inline-workspace {
+    max-height: none;
+  }
+
+  .ai-crud-inline-form-panel {
+    min-height: 320px;
+  }
+
+  .inline-form-panel-body {
+    padding: 12px;
+  }
+
+  .inline-form-panel-footer {
+    flex-direction: column-reverse;
+  }
+
+  .inline-form-panel-footer :deep(.n-button) {
+    width: 100%;
   }
 }
 

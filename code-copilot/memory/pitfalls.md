@@ -1550,10 +1550,14 @@ Flow 服务启动前必须按 `tenant_id + business_key` 查询 `sys_flow_busine
 **解决方案**:
 表单设计器基础配置的“组件字段ID”必须优先从已有字段中选择；转换时把 form-create 自动生成的 `F...` 字段视为临时字段，不直接作为永久业务字段。`form-create -> Forge schema` 转换必须同时兼容 `rule.field/name`、`props.fieldCode`、`props.fieldBinding.fieldCode` 和根级 `fieldBinding.fieldCode`，当旧 `_forge.fieldBinding` 与新选择不一致时优先保留用户刚修改的字段。切换出表单设计面板前调用 `syncDesignerDraft()` 同步草稿字段和 Schema；单据、流程、动作等面板保存前如果存在未持久化表单草稿，先静默保存草稿且不 reload 页面，避免当前面板输入丢失。自动字段资产合并必须优先使用真实字段资产 `props.fields`，不能用页面模型 `modelSchema.fields` 反向覆盖字段资产名称。
 
+**2026-06-21 补充**:
+新版 Forge 原生表单画布的组件模板也可能生成 `field_mqn7a19j` 这类 `field_` + base36 时间戳字段编码。该编码同样不能直接作为稳定业务字段保存；拖入模板组件时应生成 `fieldInput`、`fieldSelect` 等可读且可去重的字段编码。保存表单布局前，必须把字段列表、`modelSchema`、`pageSchema` 和 `formDesignerSchema` 一起通过设计器保存接口落库，再调用布局保存接口，否则布局接口会用后端旧模型字段校验新页面区域，继续报“页面区域引用了不存在的字段”。
+
 **影响范围**:
 - `BusinessFormDesigner` 面板切换和保存流程
 - `form-first/formCreateToForge`
 - `form-first/forgeToFormCreate`
+- `forge-form-designer/designerLayoutFactory`
 - 表单设计器基础配置字段绑定控件
 - 单据设置、流程设置、动作设置保存前的草稿同步
 
@@ -1795,3 +1799,137 @@ finally {
 操作日志切面对 `@ApiDecrypt` 接口应保留路径参数和 URL 参数，但将 `@RequestBody` 参数记录为 `[DECRYPTED_REQUEST_BODY_OMITTED]`，避免设计器、发布、密钥或敏感业务数据明文落库。
 
 同时前端显式 `encrypt: true` 的请求在缺少会话密钥或加密失败时必须阻断发送，禁止降级为明文请求。
+
+## 63. 低代码关联字段 fieldRef 不能写入 modelSchema.fields
+
+**发现日期**: 2026-06-21
+
+**问题描述**:
+低代码表单设计器保存包含关联对象字段的布局时，后端可能报：
+
+```text
+字段名格式不正确: crm_contact__contactName
+```
+
+**根本原因**:
+`crm_contact__contactName` 是页面层关联模型字段引用 `fieldRef`，用于区分不同模型的同名字段，不是真实业务字段名。后端 `LowcodeSchemaValidator` 对 `modelSchema.fields` 使用真实字段命名规则校验，只允许 camelCase 字段；但页面校验会从 `pageSchema.modelRefs[].fields[].fieldRef` 额外放行关联引用。前端保存时如果把关联 `fieldRef` 混入 `modelSchema.fields`，就会被当作真实业务字段校验失败。
+
+**解决方案**:
+表单、列表或详情设计器保存时必须区分两类 Schema：
+
+- `modelSchema.fields`：只放主模型系统字段和主模型业务字段，用于字段注册、DDL 和后端模型校验。
+- 页面设计态 Schema / `pageSchema.modelRefs`：可以保留关联模型字段及 `fieldRef`，用于页面区域引用和布局同步。
+
+不要通过放宽后端字段命名规则解决该问题，否则会污染真实业务字段和数据库列名边界。
+
+## 64. 低代码设计器派生 Schema 同步不能直接触发 dirty
+
+**发现日期**: 2026-06-21
+
+**问题描述**:
+进入低代码表单设计器后没有做任何修改，切换左侧面板仍弹出：
+
+```text
+未保存变更
+当前面板存在尚未保存的设计变更，切换后草稿仍会保留，但发布前需要先保存。
+```
+
+**根本原因**:
+表单设计器存在多层派生状态：`formDesignerSchema` 会编译成 `pageSchema.zones[].props.formCreateRule`、`fieldSettings`、运行态布局等；字段资产也会按当前表单组件做属性归一化。如果在“切换前检查”或加载后的 watcher 中直接写回 `localSchema`，再由 `localSchema` watcher 统一 `emit('dirtyChange', true)`，内部规范化同步就会被误判为用户修改。
+
+**解决方案**:
+设计器 dirty 判断必须区分内部派生同步和用户操作：
+
+- 草稿构建函数应尽量纯计算，不在检查过程中直接修改响应式状态。
+- `syncDesignerDraft()` 应与保存态基线比较，而不是把归一化结果直接和原始字段资产比较。
+- 加载、模型同步、表单 Schema 编译等内部同步写入 `localSchema` 时使用静默模式；拖拽、关系字段勾选、属性编辑等用户动作再显式标记 dirty。
+
+排查类似问题时，优先检查 watcher、`replaceZone()`、`syncPageSchemaWithModel()`、`flushDesigner()` 是否在只读检查路径中产生了响应式写入。
+
+## 65. 低代码应用 LIST 入口不能用只读设计器画布承载运行态
+
+**发现日期**: 2026-06-21
+
+**问题描述**:
+配置应用入口后访问类似：
+
+```text
+/ai/crud-page/crm_customer?appId=1910000000000000301&runtimeOpenMode=LIST
+```
+
+页面展示成静态预览/设计器只读画布，而不是实际可操作的业务列表页。
+
+**根本原因**:
+`crud-page.vue` 优先判断 `runtimeGridLayout`，只要发布配置里带了 `pageSchema.listGridLayout`，就会进入 `ListPageGridDesigner readonly`。该组件本质仍是页面设计器画布，`search-form`、`toolbar`、`data-table` 等区块多为 disabled 或 sampleRows 预览，不能替代真实运行态 CRUD。
+
+**解决方案**:
+标准列表入口必须走 `AiCrudPage`/业务模板运行态：
+
+- `pageKey=list` 或未显式传 `pageKey` 的入口，直接渲染 `currentTemplate` / `AiCrudPage`。
+- 只有非标准自定义页面（例如独立详情页）才允许使用网格运行容器。
+- 表格列配置可以继续读取 `listGridLayout` 的字段样式，但不能因为存在 `listGridLayout` 就把 LIST 入口切到设计器画布。
+
+排查低代码入口“看起来像预览页”时，优先检查 `/ai/crud-page/:configKey` 的模板分支顺序，以及 `runtimeOpenMode`、`pageKey`、`listGridLayout` 三者的组合。
+
+## 66. 动态 CRUD 写入白名单不能只依赖 editSchema
+
+**发现日期**: 2026-06-21
+
+**问题描述**:
+低代码表单设计器新增字段并同步 DDL 后，业务表已经有对应数据库列，但运行态新增或编辑记录时该字段值没有保存入库。
+
+**根本原因**:
+`DynamicCrudService.insert()` / `updateById()` 过滤请求体字段时只从 `ai_crud_config.edit_schema` 提取允许写入字段。设计器保存会先更新 `model_schema` / `page_schema` 并同步 DDL，但如果运行态 `edit_schema` 尚未重新生成或发布，新字段虽然已在模型和数据库中存在，仍会被旧写入白名单静默过滤。
+
+**解决方案**:
+动态 CRUD 的用户写入白名单应以 `editSchema` 为主，并用 `modelSchema` 中已落表的可写字段兜底：
+
+- 仅补充启用、非系统、非主键、非自增、非只读、表单可见的模型字段。
+- 必须校验对应 `columnName` 真实存在于业务表，避免请求体任意字段透传。
+- 继续追加 STORED 公式字段，并过滤 `id`、租户、创建人、更新时间等不可变系统字段。
+
+排查“表字段已经有了但新增数据没保存”时，优先检查后端写入白名单、运行态 `edit_schema` 是否滞后于 `model_schema`，以及 DDL 后 `DynamicCrudRepository` 表结构缓存是否已清理。
+
+## 67. 表单删除的自动字段不能继续参与模型和 DDL
+
+**发现日期**: 2026-06-21
+
+**问题描述**:
+低代码表单设计器曾经新增过字段，之后又从表单中删除，但发布检查仍提示：
+
+```text
+数据表结构未同步
+发布时勾选同步数据表结构后自动执行受控变更: 新增列 `field_mqn7a19j`
+```
+
+同时，如果该字段曾经设置为必填，后续即使运行态表单不再需要它，也可能因为数据库 `NOT NULL` 约束影响新增数据。
+
+**根本原因**:
+自动字段资产构建只追加缺失字段，不会清理已从表单移除的 `source=designer/createIfMissing=true` 字段。字段残留在 `modelSchema.fields` 后，发布检查和 DDL 预览仍把它当成有效业务字段。另一方面，低代码里的“必填”是运行态表单语义，直接映射为数据库 `NOT NULL` 会让隐藏字段、被删除字段或多表单差异阻断保存，除非字段明确配置了默认值。
+
+**解决方案**:
+表单优先链路必须区分自动字段和手工字段资产：
+
+- 当前表单仍绑定的自动字段继续保留并同步属性。
+- 已不在表单中绑定的自动创建字段从本次保存的字段资产和 `modelSchema.fields` 中移除。
+- 手工字段资产即使未入表单也继续保留，避免高级字段维护被误删。
+- DDL 同步中，`required=true` 只有在字段配置了非空默认值时才生成 `NOT NULL DEFAULT ...`；没有默认值时数据库列保持可空，由运行态表单校验必填。
+
+排查发布检查提示“新增列 field_xxx 但表单没有这个字段”时，先检查 `model_schema.fields` 是否残留自动创建字段，再检查自动字段资产清理逻辑是否按当前表单绑定字段集过滤。
+
+## 68. 动态 CRUD 唯一校验必须覆盖主子表和关联保存分支
+
+**发现日期**: 2026-06-21
+
+**问题描述**:
+低代码字段在表单设计器中设置“唯一校验”后，运行态仍能新增重复数据，典型场景是客户管理这类带关联对象或主子结构的动态 CRUD。
+
+**根本原因**:
+`DynamicCrudService.insert()` / `updateById()` 的普通单表路径会执行 `validateUniqueConstraints()`，但主子表和关联运行态会提前进入 `insertMasterDetailData`、`insertJoinedData`、`updateMasterDetailData`、`updateJoinedData` 分支并返回，导致后续单表唯一校验被绕过。请求体是 `{ main, children }` 时，如果校验函数只看顶层字段，也会找不到主表字段值。
+
+**解决方案**:
+- 所有写主表数据的动态保存分支都必须在写库前执行同一套主表唯一校验。
+- 唯一校验读取字段值时先归一到主表 payload，兼容普通扁平结构和 `{ main, children }` 结构。
+- 旧运行配置可从 `editSchema.advancedProps.unique` fallback 生成唯一约束，约束集合必须是可追加集合，不能返回不可变 `List.of()`。
+
+排查“设置唯一但还能重复新增”时，先确认当前运行态是否是 `master-detail-crud`、关联字段运行态或其他提前 return 的保存分支，再检查 `ai_crud_config.model_schema` / `edit_schema` 中是否实际包含唯一配置。

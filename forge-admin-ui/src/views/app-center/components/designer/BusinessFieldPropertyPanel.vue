@@ -134,6 +134,10 @@
                   <n-switch v-model:value="form.required" :disabled="field.systemField" size="small" />
                 </label>
                 <label>
+                  <span>唯一校验</span>
+                  <n-switch v-model:value="form.advancedProps.unique" :disabled="field.systemField" size="small" />
+                </label>
+                <label>
                   <span>显示在表单</span>
                   <n-switch v-model:value="form.formVisible" :disabled="field.readonly" size="small" />
                 </label>

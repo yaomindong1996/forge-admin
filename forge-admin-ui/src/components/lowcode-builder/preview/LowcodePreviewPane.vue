@@ -542,6 +542,8 @@ function buildRuntimeCrudProps(cfg) {
     apiConfig: cfg.apiConfig || {},
     options,
     rowKey: cfg.rowKey || 'id',
+    formOpenMode: options.formOpenMode || cfg.formOpenMode || options.modalType || cfg.modalType || 'modal',
+    tabWorkspace: options.tabWorkspace || cfg.tabWorkspace || {},
     modalType: options.modalType || cfg.modalType || 'modal',
     modalWidth: options.modalWidth || cfg.modalWidth || '800px',
     editGridCols: options.editGridCols || cfg.editGridCols || 1,

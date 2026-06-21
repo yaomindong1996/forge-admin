@@ -159,7 +159,17 @@ public class LowcodeRuntimeConfigBuilder {
         LowcodePageZone editZone = findZone(pageSchema, "edit");
         Map<String, Object> editProps = editZone == null || editZone.getProps() == null ? Map.of() : editZone.getProps();
         Map<String, Object> crudBlockProps = resolveGridBlockProps(pageSchema, List.of("AiCrudPage"));
-        options.put("modalType", resolveModalType(firstPresent(editProps.get("modalType"), crudBlockProps.get("modalType"))));
+        String formOpenMode = resolveFormOpenMode(firstPresent(
+                editProps.get("formOpenMode"),
+                crudBlockProps.get("formOpenMode"),
+                editProps.get("modalType"),
+                crudBlockProps.get("modalType")));
+        options.put("formOpenMode", formOpenMode);
+        options.put("modalType", resolveModalType(firstPresent(
+                editProps.get("modalType"),
+                crudBlockProps.get("modalType"),
+                formOpenMode)));
+        options.put("tabWorkspace", buildTabWorkspaceOptions(editProps, crudBlockProps));
         int editGridCols = resolveEditGridCols(pageSchema);
         options.put("modalWidth", StringUtils.defaultIfBlank(text(editProps.get("modalWidth")),
                 StringUtils.defaultIfBlank(text(crudBlockProps.get("modalWidth")),
@@ -211,8 +221,14 @@ public class LowcodeRuntimeConfigBuilder {
             copyOption(tableProps, options, "tableSize");
             copyOption(tableProps, options, "bordered");
             copyOption(tableProps, options, "striped");
+            copyOption(tableProps, options, "formOpenMode");
+            copyOption(tableProps, options, "modalType");
+            copyOption(tableProps, options, "drawerPlacement");
+            copyOption(tableProps, options, "tabWorkspace");
             options.put("tableRowGap", intValue(tableProps.get("rowGap"), 8));
         }
+        options.put("formOpenMode", resolveFormOpenMode(options.get("formOpenMode")));
+        options.put("modalType", resolveModalType(options.get("modalType")));
         Set<String> toolbarActions = resolveToolbarStandardActions(pageSchema);
         if (!toolbarActions.isEmpty()) {
             options.put("hideAdd", !toolbarActions.contains("add"));
@@ -247,6 +263,35 @@ public class LowcodeRuntimeConfigBuilder {
     private String resolveModalType(Object value) {
         String modalType = StringUtils.defaultIfBlank(text(value), "modal").toLowerCase(Locale.ROOT);
         return Set.of("modal", "drawer").contains(modalType) ? modalType : "modal";
+    }
+
+    private String resolveFormOpenMode(Object value) {
+        String mode = StringUtils.defaultIfBlank(text(value), "modal");
+        if ("tabworkspace".equalsIgnoreCase(mode)) {
+            return "tabWorkspace";
+        }
+        String normalized = mode.toLowerCase(Locale.ROOT);
+        return Set.of("modal", "drawer", "flat").contains(normalized) ? normalized : "modal";
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> buildTabWorkspaceOptions(Map<String, Object> editProps,
+                                                          Map<String, Object> crudBlockProps) {
+        Map<String, Object> source = new LinkedHashMap<>();
+        Object editConfig = editProps.get("tabWorkspace");
+        if (editConfig instanceof Map<?, ?> map) {
+            source.putAll((Map<String, Object>) map);
+        }
+        Object crudConfig = crudBlockProps.get("tabWorkspace");
+        if (crudConfig instanceof Map<?, ?> map) {
+            source.putAll((Map<String, Object>) map);
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("maxTabs", Math.max(1, intValue(source.get("maxTabs"), 8)));
+        result.put("reuseRecordTab", booleanWithDefault(source.get("reuseRecordTab"), true));
+        result.put("closeAfterSave", booleanWithDefault(source.get("closeAfterSave"), false));
+        result.put("showDirtyMark", booleanWithDefault(source.get("showDirtyMark"), true));
+        return result;
     }
 
     private Set<String> resolveToolbarStandardActions(LowcodePageSchema pageSchema) {
@@ -1909,6 +1954,9 @@ public class LowcodeRuntimeConfigBuilder {
         if (formulaField) {
             item.put("formulaConfig", new LinkedHashMap<>(formulaConfig));
         }
+        if (field.getAdvancedProps() != null && !field.getAdvancedProps().isEmpty()) {
+            item.put("advancedProps", new LinkedHashMap<>(field.getAdvancedProps()));
+        }
         String dictType = StringUtils.defaultIfBlank(text(pageSetting.get("dictType")), field.getDictType());
         if (StringUtils.isNotBlank(dictType)) {
             item.put("dictType", dictType);
@@ -2077,8 +2125,16 @@ public class LowcodeRuntimeConfigBuilder {
         }
     }
 
-    private Object firstPresent(Object primary, Object fallback) {
-        return primary != null ? primary : fallback;
+    private Object firstPresent(Object... values) {
+        if (values == null) {
+            return null;
+        }
+        for (Object value : values) {
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
     }
 
     @SuppressWarnings("unchecked")
