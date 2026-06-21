@@ -1569,8 +1569,10 @@ defineExpose({
 .business-form-designer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 280px;
-  min-height: calc(100vh - 106px);
+  height: calc(100vh - 106px);
+  min-height: 0;
   container-type: inline-size;
+  overflow: hidden;
 }
 
 .business-form-designer.relation-object-active {
@@ -1585,7 +1587,9 @@ defineExpose({
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
+  min-height: 0;
   border-right: 1px solid #e5e7eb;
+  overflow: hidden;
 }
 
 .designer-section-head,
@@ -1682,8 +1686,10 @@ defineExpose({
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 14px;
-  min-height: calc(100vh - 168px);
+  height: 100%;
+  min-height: 0;
   background: #f8fafc;
+  overflow: hidden;
   padding: 8px;
 }
 

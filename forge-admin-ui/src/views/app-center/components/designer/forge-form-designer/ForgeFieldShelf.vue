@@ -143,7 +143,7 @@ import {
 } from '@vicons/ionicons5'
 import { computed, ref } from 'vue'
 import { isReadonlySystemField } from '@/components/lowcode-builder/page/page-schema'
-import { clearDesignerDragSource, clearDesignerDropKey } from './designerDragState'
+import { clearDesignerDragPreview, clearDesignerDragSource, clearDesignerDropKey, setDesignerDragPreview } from './designerDragState'
 
 const props = defineProps({
   fields: {
@@ -279,23 +279,36 @@ function handleFieldDragStart(event, field) {
   draggingKey.value = `field:${field.field || field.fieldCode}`
   event.dataTransfer.effectAllowed = 'copy'
   event.dataTransfer.setData('application/x-forge-form-field', JSON.stringify(field))
+  setDesignerDragPreview({
+    componentKey: field.componentType || field.componentKey || field.type || 'input',
+    label: field.label || field.fieldName || field.field || '字段',
+  })
 }
 
 function handleLayoutDragStart(event, item) {
   draggingKey.value = `layout:${item.componentKey}`
   event.dataTransfer.effectAllowed = 'copy'
   event.dataTransfer.setData('application/x-forge-form-layout', JSON.stringify(item))
+  setDesignerDragPreview({
+    componentKey: item.componentKey,
+    label: item.label,
+  })
 }
 
 function handleTemplateDragStart(event, item) {
   draggingKey.value = `template:${item.componentKey}`
   event.dataTransfer.effectAllowed = 'copy'
   event.dataTransfer.setData('application/x-forge-form-template', JSON.stringify(item))
+  setDesignerDragPreview({
+    componentKey: item.componentKey,
+    label: item.label,
+  })
 }
 
 function finishDragging() {
   draggingKey.value = ''
   clearDesignerDragSource()
+  clearDesignerDragPreview()
   clearDesignerDropKey()
 }
 </script>

@@ -610,7 +610,7 @@
                 <n-radio-group
                   :value="selectedDesignerStyle.borderStyle || 'solid'"
                   size="small"
-                  @update:value="updateDesignerStyle({ borderStyle: $event })"
+                  @update:value="updateDesignerBorderStyle"
                 >
                   <n-radio-button value="solid">
                     实线
@@ -630,9 +630,9 @@
                     :show-alpha="true"
                     :modes="['hex']"
                     :swatches="colorSwatches"
-                    @update:value="updateDesignerStyle({ borderColor: $event || undefined })"
+                    @update:value="updateDesignerBorderColor"
                   />
-                  <n-button size="small" quaternary @click="updateDesignerStyle({ borderColor: undefined })">
+                  <n-button size="small" quaternary @click="updateDesignerBorderColor('')">
                     默认
                   </n-button>
                 </div>
@@ -3701,6 +3701,38 @@ function updateDesignerStyle(stylePatch = {}) {
         ...stylePatch,
       },
     },
+  })
+}
+
+function updateDesignerBorderStyle(value) {
+  if (value === 'none') {
+    updateDesignerStyle({
+      borderStyle: 'none',
+      borderColor: 'transparent',
+      hideInnerBorder: true,
+    })
+    return
+  }
+  updateDesignerStyle({
+    borderStyle: value || undefined,
+    borderColor: selectedDesignerStyle.value.borderColor === 'transparent'
+      ? undefined
+      : selectedDesignerStyle.value.borderColor,
+    hideInnerBorder: false,
+  })
+}
+
+function updateDesignerBorderColor(value) {
+  if (!value) {
+    updateDesignerStyle({ borderColor: undefined })
+    return
+  }
+  updateDesignerStyle({
+    borderColor: value,
+    borderStyle: selectedDesignerStyle.value.borderStyle === 'none'
+      ? 'solid'
+      : selectedDesignerStyle.value.borderStyle || 'solid',
+    hideInnerBorder: false,
   })
 }
 

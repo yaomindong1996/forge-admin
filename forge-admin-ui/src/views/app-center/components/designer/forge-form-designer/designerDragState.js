@@ -2,6 +2,7 @@ import { ref } from 'vue'
 
 export const designerDropKey = ref('')
 export const designerDragSourceId = ref('')
+export const designerDragPreviewComponent = ref(null)
 export const designerDropError = ref('')
 let dropErrorTimer = null
 
@@ -39,4 +40,12 @@ export function setDesignerDragSource(sourceId = '') {
 
 export function clearDesignerDragSource() {
   designerDragSourceId.value = ''
+}
+
+export function setDesignerDragPreview(component = null) {
+  designerDragPreviewComponent.value = component || null
+}
+
+export function clearDesignerDragPreview() {
+  designerDragPreviewComponent.value = null
 }

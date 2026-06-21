@@ -58,10 +58,9 @@
         v-else-if="isCardNode(node)"
         size="small"
         :title="node.label || node.props?.header || undefined"
-        :bordered="true"
-        :style="node.style"
-        :class="node.className"
-        class="af-layout-card"
+        :bordered="node.props?.bordered !== false"
+        :style="resolveLayoutStyle(node)"
+        :class="resolveLayoutClass(node, 'af-layout-card')"
       >
         <AiFormLayoutNodes
           :nodes="node.children || []"
@@ -83,10 +82,9 @@
       <n-tabs
         v-else-if="isTabsNode(node)"
         :type="resolveTabsType(node.props?.type)"
-        :placement="resolveTabsPlacement(node.props?.tabPosition)"
-        :style="node.style"
-        :class="node.className"
-        class="af-layout-tabs"
+        :placement="resolveTabsPlacement(node.props?.placement || node.props?.tabPosition)"
+        :style="resolveLayoutStyle(node)"
+        :class="resolveLayoutClass(node, 'af-layout-tabs')"
       >
         <n-tab-pane
           v-for="pane in resolvePaneChildren(node, 'tabPane')"
@@ -116,9 +114,8 @@
       <n-collapse
         v-else-if="isCollapseNode(node)"
         :accordion="!!node.props?.accordion"
-        :style="node.style"
-        :class="node.className"
-        class="af-layout-collapse"
+        :style="resolveLayoutStyle(node)"
+        :class="resolveLayoutClass(node, 'af-layout-collapse')"
       >
         <n-collapse-item
           v-for="item in resolvePaneChildren(node, 'collapseItem')"
@@ -187,9 +184,8 @@
 
       <div
         v-else-if="isTableNode(node)"
-        class="af-layout-table"
-        :style="node.style"
-        :class="node.className"
+        :class="resolveLayoutClass(node, 'af-layout-table')"
+        :style="resolveLayoutStyle(node)"
       >
         <AiFormLayoutNodes
           :nodes="resolveTableCells(node)"
@@ -210,9 +206,8 @@
 
       <div
         v-else-if="isTableGridNode(node)"
-        class="af-layout-table-cell"
-        :style="node.style"
-        :class="node.className"
+        :class="resolveLayoutClass(node, 'af-layout-table-cell')"
+        :style="resolveLayoutStyle(node)"
       >
         <AiFormLayoutNodes
           :nodes="node.children || []"
@@ -396,11 +391,11 @@ function isButtonNode(node = {}) {
 }
 
 function isTableNode(node = {}) {
-  return resolveNodeType(node) === 'table'
+  return ['table', 'fcTable'].includes(resolveNodeType(node))
 }
 
 function isTableGridNode(node = {}) {
-  return resolveNodeType(node) === 'tableGrid'
+  return ['tableGrid', 'fcTableGrid'].includes(resolveNodeType(node))
 }
 
 function isCrudNode(node = {}) {
@@ -498,6 +493,60 @@ function resolveCrudColumns(node = {}) {
   }]
 }
 
+function resolveLayoutClass(node = {}, baseClass = '') {
+  return [
+    baseClass,
+    node.className,
+    node.class,
+    {
+      'is-borderless': isLayoutBorderHidden(node),
+    },
+  ]
+}
+
+function resolveLayoutStyle(node = {}) {
+  const designerStyle = resolveDesignerStyle(node)
+  const style = {
+    ...(isPlainObject(designerStyle.customStyle) ? designerStyle.customStyle : {}),
+  }
+  ;[
+    'width',
+    'height',
+    'minHeight',
+    'backgroundColor',
+    'borderColor',
+    'borderStyle',
+    'borderRadius',
+    'boxShadow',
+    'opacity',
+  ].forEach((key) => {
+    if (designerStyle[key] !== undefined && designerStyle[key] !== '')
+      style[key] = designerStyle[key]
+  })
+  if (isLayoutBorderHidden(node)) {
+    style.borderColor = 'transparent'
+    style.borderStyle = 'none'
+  }
+  if (Object.keys(style).length)
+    return node.style ? [node.style, style] : style
+  return node.style
+}
+
+function isLayoutBorderHidden(node = {}) {
+  const designerStyle = resolveDesignerStyle(node)
+  return node.props?.bordered === false
+    || designerStyle.hideInnerBorder
+    || designerStyle.borderStyle === 'none'
+}
+
+function resolveDesignerStyle(node = {}) {
+  return isPlainObject(node.props?.__designerStyle) ? node.props.__designerStyle : {}
+}
+
+function isPlainObject(value) {
+  return Object.prototype.toString.call(value) === '[object Object]'
+}
+
 function isGroupTitleNode(node = {}) {
   return isLegacyGroupTitleNode(node) || ['title', 'fcTitle', 'sectionTitle', 'groupTitle', 'groupHeader', 'GroupHeader', 'titleBlock', 'section']
     .includes(resolveNodeType(node))
@@ -556,15 +605,30 @@ function isLegacyGroupTitleNode(node = {}) {
   border-radius: 6px;
 }
 
+.af-layout-table.is-borderless {
+  border-color: transparent !important;
+  border-style: none !important;
+}
+
 .af-layout-table :deep(.af-layout-grid) {
   gap: 0 !important;
+}
+
+.af-layout-table.is-borderless :deep(.af-layout-table-cell) {
+  border-right-color: transparent !important;
+  border-bottom-color: transparent !important;
 }
 
 .af-layout-table-cell {
   min-height: 56px;
   padding: 12px;
   border-right: 1px solid #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
+  //border-bottom: 1px solid #e2e8f0;
+}
+
+.af-layout-table-cell.is-borderless {
+  border-right-color: transparent !important;
+  border-bottom-color: transparent !important;
 }
 
 .af-layout-crud {

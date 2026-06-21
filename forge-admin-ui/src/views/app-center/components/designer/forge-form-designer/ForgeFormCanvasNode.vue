@@ -369,6 +369,7 @@ import {
   clearDesignerDragSource,
   clearDesignerDropError,
   clearDesignerDropKey,
+  designerDragPreviewComponent,
   designerDragSourceId,
   designerDropKey,
   setDesignerDragSource,
@@ -423,6 +424,7 @@ const MAX_FORM_GRID_COLUMNS = 24
 const resizeDirections = ['n', 'e', 's', 'w', 'ne', 'nw', 'se', 'sw']
 let activeDragImage = null
 let activeDragImageOffset = { x: 0, y: 0 }
+let activeDragImageScale = 1
 let activePointerDropTarget = null
 let activePointerHandle = null
 let activePointerId = null
@@ -484,20 +486,27 @@ const dropIndicatorStyle = computed(() => ({
 const nodeCustomStyle = computed(() => {
   const designerStyle = props.component.props?.__designerStyle || {}
   const minHeight = designerStyle.minHeight || undefined
+  const backgroundColor = designerStyle.backgroundColor || undefined
+  const borderRadius = designerStyle.borderRadius || undefined
+  const borderColor = designerBorderHidden.value ? 'transparent' : designerStyle.borderColor || undefined
   const style = {
     ...(designerStyle.customStyle || {}),
     width: designerStyle.width || undefined,
     height: designerStyle.height || undefined,
     minHeight: isStructuralSlot.value ? undefined : minHeight,
-    backgroundColor: designerStyle.backgroundColor || undefined,
-    borderColor: designerStyle.borderColor || undefined,
-    borderStyle: designerStyle.borderStyle === 'none' ? undefined : designerStyle.borderStyle || undefined,
-    borderRadius: designerStyle.borderRadius || undefined,
+    backgroundColor,
+    borderColor,
+    borderStyle: designerStyle.borderStyle || undefined,
+    borderRadius,
     boxShadow: designerStyle.boxShadow || undefined,
     opacity: designerStyle.opacity || undefined,
   }
   if (minHeight)
     style['--forge-slot-min-height'] = minHeight
+  if (backgroundColor)
+    style['--forge-node-background'] = backgroundColor
+  if (borderRadius)
+    style['--forge-node-radius'] = borderRadius
   return style
 })
 const nodeMenuOptions = computed(() => [
@@ -689,6 +698,9 @@ function startPointerDrag(event) {
   document.body.classList.add('forge-pointer-dragging')
   setDesignerDragSource(props.component.id)
   clearDesignerDropKey()
+  window.dispatchEvent(new CustomEvent('forge-form-designer:canvas-drag-start', {
+    detail: { componentId: props.component.id },
+  }))
   mountPointerDragImage(event)
   window.addEventListener('pointermove', handlePointerMove, { capture: true, passive: false })
   window.addEventListener('pointerup', finishPointerDrag, true)
@@ -896,15 +908,22 @@ function handleInsideDragOver(event) {
     showInvalidDrop('不能拖入组件自身')
     return
   }
+  const slotTarget = resolveContainerSlotTarget(event)
+  if (slotTarget) {
+    clearDesignerDropError()
+    activeDropPosition.value = 'inside'
+    event.dataTransfer.dropEffect = event.dataTransfer.effectAllowed === 'copy' ? 'copy' : 'move'
+    setDesignerDropKey(slotTarget.dropKey)
+    return
+  }
   if (!canDropIntoCurrentNode(event)) {
     showInvalidDrop(resolveInvalidDropMessage(event))
     return
   }
-  const slotTarget = resolveContainerSlotTarget(event)
   clearDesignerDropError()
   activeDropPosition.value = 'inside'
   event.dataTransfer.dropEffect = event.dataTransfer.effectAllowed === 'copy' ? 'copy' : 'move'
-  setDesignerDropKey(slotTarget?.dropKey || insideDropKey.value)
+  setDesignerDropKey(insideDropKey.value)
 }
 
 function handleNodeDragLeave() {
@@ -1074,6 +1093,9 @@ function resolveDraggedComponent(event) {
   if (sourceId)
     return getDesignerComponent(props.schema, sourceId)
 
+  if (designerDragPreviewComponent.value)
+    return designerDragPreviewComponent.value
+
   const fieldText = event.dataTransfer.getData(DRAG_FIELD_MIME)
   if (fieldText)
     return createComponentFromField(parsePayload(fieldText), 0)
@@ -1119,7 +1141,7 @@ function resolveContainerSlotTarget(event, draggedComponent = resolveDraggedComp
   if (!slotKeys.length)
     return null
   const slots = (containerComponent.children || []).filter(item => slotKeys.includes(item?.componentKey))
-  const targetSlot = resolveLayoutSlotAtPoint(event, slots)
+  const targetSlot = resolveLayoutSlotFromEventTarget(event, slots) || resolveLayoutSlotAtPoint(event, slots)
   if (!targetSlot || !canAcceptDesignerChild(targetSlot, draggedComponent))
     return null
   return {
@@ -1127,6 +1149,20 @@ function resolveContainerSlotTarget(event, draggedComponent = resolveDraggedComp
     index: targetSlot.children?.length || 0,
     dropKey: `${targetSlot.id}:inside`,
   }
+}
+
+function resolveLayoutSlotFromEventTarget(event, slots = []) {
+  if (!slots.length)
+    return null
+  const slotIds = new Set(slots.map(slot => slot?.id).filter(Boolean))
+  let current = event.target?.closest?.('[data-forge-node-id]')
+  while (current && nodeRef.value?.contains?.(current)) {
+    const nodeId = current.dataset?.forgeNodeId
+    if (slotIds.has(nodeId))
+      return slots.find(slot => slot?.id === nodeId) || null
+    current = current.parentElement?.closest?.('[data-forge-node-id]')
+  }
+  return null
 }
 
 function resolveLayoutSlotAtPoint(event, slots = []) {
@@ -1352,6 +1388,11 @@ function mountPointerDragImage(event) {
     return
 
   const rect = nodeRef.value.getBoundingClientRect()
+  const layoutWidth = nodeRef.value.offsetWidth || rect.width
+  const layoutHeight = nodeRef.value.offsetHeight || rect.height
+  const scaleX = layoutWidth > 0 ? rect.width / layoutWidth : 1
+  const scaleY = layoutHeight > 0 ? rect.height / layoutHeight : scaleX
+  activeDragImageScale = Math.max(0.1, Math.min(2, Number.isFinite(scaleX) ? scaleX : 1))
   const clone = nodeRef.value.cloneNode(true)
   clone.classList.add('drag-follow-clone')
   Object.assign(clone.style, {
@@ -1359,13 +1400,14 @@ function mountPointerDragImage(event) {
     top: '0',
     left: '0',
     zIndex: '2147483647',
-    width: `${rect.width}px`,
-    height: `${rect.height}px`,
+    width: `${layoutWidth}px`,
+    height: `${layoutHeight}px`,
     margin: '0',
     background: props.component.props?.__designerStyle?.backgroundColor || '#fff',
     pointerEvents: 'none',
     transition: 'none',
-    willChange: 'transform',
+    transform: `scale(${activeDragImageScale}, ${Math.max(0.1, Math.min(2, Number.isFinite(scaleY) ? scaleY : activeDragImageScale))})`,
+    willChange: 'left, top, transform',
   })
   document.body.appendChild(clone)
   activeDragImage = clone
@@ -1380,6 +1422,7 @@ function removeDragImage() {
   activeDragImage?.remove?.()
   activeDragImage = null
   activeDragImageOffset = { x: 0, y: 0 }
+  activeDragImageScale = 1
 }
 
 function updateDragImagePosition(event) {
@@ -1389,7 +1432,8 @@ function updateDragImagePosition(event) {
     return
   const x = Math.round(event.clientX - activeDragImageOffset.x)
   const y = Math.round(event.clientY - activeDragImageOffset.y)
-  activeDragImage.style.transform = `translate3d(${x}px, ${y}px, 0)`
+  activeDragImage.style.left = `${x}px`
+  activeDragImage.style.top = `${y}px`
 }
 
 function clampDragOffset(value, size, minOffset) {
@@ -1558,9 +1602,9 @@ function resolveBackgroundStyle(key) {
 
 function resolveBorderStyle(key) {
   const map = {
-    'border-default': { borderColor: undefined, borderStyle: undefined },
-    'border-dashed': { borderColor: '#9ca3af', borderStyle: 'dashed' },
-    'border-blue': { borderColor: '#2563eb', borderStyle: 'solid' },
+    'border-default': { borderColor: undefined, borderStyle: undefined, hideInnerBorder: false },
+    'border-dashed': { borderColor: '#9ca3af', borderStyle: 'dashed', hideInnerBorder: false },
+    'border-blue': { borderColor: '#2563eb', borderStyle: 'solid', hideInnerBorder: false },
     'border-none': { borderColor: 'transparent', borderStyle: 'none', hideInnerBorder: true },
   }
   return map[key] || {}
@@ -1686,7 +1730,7 @@ function buildFormDividerProps(component) {
   position: relative;
   min-width: 0;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--forge-node-radius, 6px);
   background: transparent;
   padding: 32px 8px 8px;
   transition:
@@ -1745,7 +1789,7 @@ function buildFormDividerProps(component) {
 .canvas-node.node-row,
 .canvas-node.node-fcRow {
   border-color: transparent;
-  background: #fbfdff;
+  background: var(--forge-node-background, #fbfdff);
   padding: 24px 6px 6px;
 }
 
@@ -1767,7 +1811,7 @@ function buildFormDividerProps(component) {
 .canvas-node.node-table,
 .canvas-node.node-fcTable {
   border-color: transparent;
-  background: #fbfdff;
+  background: var(--forge-node-background, #fbfdff);
 }
 
 .canvas-node.node-tableGrid,
@@ -1848,13 +1892,33 @@ function buildFormDividerProps(component) {
   box-shadow: none;
 }
 
-.canvas-node.border-hidden:not(.selected) {
+.canvas-node.border-hidden:not(.selected),
+.canvas-node.border-hidden:not(.selected):hover,
+.canvas-node.border-hidden:not(.selected):focus {
   border-color: transparent !important;
   box-shadow: none;
 }
 
-.canvas-node.border-hidden:not(.selected) :deep(.n-card) {
+.canvas-node.border-hidden > .layout-children:not(.active),
+.canvas-node.border-hidden .canvas-node.structural-slot:not(.selected) > .layout-children:not(.active),
+.canvas-node.border-hidden .empty-child-zone:not(.active) {
   border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.canvas-node.border-hidden > .table-layout-children:not(.active) {
+  gap: 8px;
+  padding: 0;
+}
+
+.canvas-node.border-hidden :deep(.n-card),
+.canvas-node.border-hidden :deep(.n-card.n-card--bordered),
+.canvas-node.border-hidden :deep(.n-tabs-pane-wrapper),
+.canvas-node.border-hidden :deep(.n-collapse),
+.canvas-node.border-hidden :deep(.n-collapse-item) {
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 .node-resize-handles {
@@ -2152,7 +2216,8 @@ function buildFormDividerProps(component) {
 
 .real-layout {
   overflow: hidden;
-  background: #fff;
+  border-radius: var(--forge-node-radius, 6px);
+  background: var(--forge-node-background, #fff);
 }
 
 .real-layout-card :deep(.n-card-header) {
@@ -2184,15 +2249,15 @@ function buildFormDividerProps(component) {
 }
 
 .real-layout-children {
-  background: #fff;
+  background: var(--forge-node-background, #fff);
 }
 
 .layout-children {
   display: grid;
   gap: 8px;
   border: 1px solid transparent;
-  border-radius: 7px;
-  background: #f8fafc;
+  border-radius: var(--forge-node-radius, 7px);
+  background: var(--forge-node-background, #f8fafc);
   padding: 10px;
   transition:
     border-color 180ms ease,

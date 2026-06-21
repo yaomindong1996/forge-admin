@@ -1,5 +1,119 @@
 # 执行日志：forge-form-designer-productivity-upgrades
 
+## 2026-06-21 15:28:04 CST
+
+### 变更范围
+
+- 修复从左侧组件库/字段资产拖入栅格、表格内部投放区时，`dragover` 阶段可能读不到 `dataTransfer.getData(...)` payload，导致预览误判“不支持”的问题。
+- `designerDragState` 新增共享的拖拽预览组件状态；左侧 `ForgeFieldShelf` 在字段、组件模板、布局拖拽开始时写入预览对象，拖拽结束时清理。
+- `ForgeFormCanvasNode` 在解析拖拽组件时优先使用共享预览对象，让左侧拖入和画布内移动使用同一套 slot 命中、错误清除和落点高亮逻辑。
+
+### 命令与结果
+
+- `pnpm --dir forge-admin-ui exec eslint src/views/app-center/components/designer/forge-form-designer/ForgeFieldShelf.vue src/views/app-center/components/designer/forge-form-designer/ForgeFormCanvasNode.vue src/views/app-center/components/designer/forge-form-designer/designerDragState.js`：通过。
+- `git diff --check -- forge-admin-ui/src/views/app-center/components/designer/forge-form-designer/ForgeFieldShelf.vue forge-admin-ui/src/views/app-center/components/designer/forge-form-designer/ForgeFormCanvasNode.vue forge-admin-ui/src/views/app-center/components/designer/forge-form-designer/designerDragState.js`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。
+
+### 警告
+
+- 构建保留项目既有 warning：CSS 中存在 `//` 注释。
+- 构建保留项目既有 warning：`src/store/index.js` 同时被动态和静态导入，Rollup 不会将其移动到单独 chunk。
+
+### 跳过项
+
+- 未进行浏览器手工验证或 Playwright 截图：本轮未启动 Vite/后端服务。
+- 未执行后端编译：本轮只改前端 Vue 表单设计器拖拽预览状态和命中逻辑。
+
+### 服务清理
+
+- 本轮未启动常驻服务，无需清理 PID。
+
+## 2026-06-21 15:21:57 CST
+
+### 变更范围
+
+- 修复栅格/表格内部投放区拖拽预览与实际 drop 不一致：拖拽进入容器时先解析真实 DOM 命中的内部 slot，再回退到最近列/单元格推断。
+- 调整 `handleInsideDragOver` 校验顺序：如果已经解析到可接收的内部 slot，直接清除错误并高亮该 slot，不再先按外层容器报“不支持”。
+- 拖拽高亮 `dropKey` 改为优先指向具体栅格列/表格单元格的 `:inside`，让灰色/蓝色落点跟随“拖入字段或布局”块，而不是显示到外层容器。
+
+### 命令与结果
+
+- `pnpm --dir forge-admin-ui exec eslint src/views/app-center/components/designer/forge-form-designer/ForgeFormCanvasNode.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/views/app-center/components/designer/forge-form-designer/ForgeFormCanvasNode.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。
+
+### 警告
+
+- 构建保留项目既有 warning：CSS 中存在 `//` 注释。
+- 构建保留项目既有 warning：`src/store/index.js` 同时被动态和静态导入，Rollup 不会将其移动到单独 chunk。
+
+### 跳过项
+
+- 未进行浏览器手工验证或 Playwright 截图：本轮未启动 Vite/后端服务。
+- 未执行后端编译：本轮只改前端 Vue 表单设计器拖拽预览命中逻辑。
+
+### 服务清理
+
+- 本轮未启动常驻服务，无需清理 PID。
+
+## 2026-06-21 15:15:26 CST
+
+### 变更范围
+
+- 修复表单画布缩放后拖拽镜像变形：拖拽浮层使用节点未缩放的布局宽高克隆，再按当前画布缩放比例整体缩放，避免输入框和内部布局被压扁。
+- 表单画布节点开始拖拽时派发设计器拖拽事件，父级收到后自动收起右侧属性面板，释放中间画布空间。
+- 表单设计器右侧属性栏收起后第三列宽度改为 0，并隐藏右侧容器，不再保留空白窄栏。
+- 表单设计器外层高度改为跟随父级确定高度；业务表单设计区域改为 `height: calc(100vh - 106px)`，内部使用 `minmax(0, 1fr)` 和 `overflow: hidden`，让滚动集中到左右面板和画布内部，行为更接近列表设计器。
+
+### 命令与结果
+
+- `pnpm --dir forge-admin-ui exec eslint src/views/app-center/components/designer/forge-form-designer/ForgeFormCanvasNode.vue src/views/app-center/components/designer/forge-form-designer/ForgeFormDesigner.vue src/views/app-center/components/designer/BusinessFormDesigner.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/views/app-center/components/designer/forge-form-designer/ForgeFormCanvasNode.vue forge-admin-ui/src/views/app-center/components/designer/forge-form-designer/ForgeFormDesigner.vue forge-admin-ui/src/views/app-center/components/designer/BusinessFormDesigner.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。
+
+### 警告
+
+- 构建保留项目既有 warning：CSS 中存在 `//` 注释。
+- 构建保留项目既有 warning：`src/store/index.js` 同时被动态和静态导入，Rollup 不会将其移动到单独 chunk。
+
+### 跳过项
+
+- 未进行浏览器手工验证或 Playwright 截图：本轮未启动 Vite/后端服务。
+- 未执行后端编译：本轮只改前端 Vue 表单设计器拖拽交互、三栏布局和 scoped 样式。
+
+### 服务清理
+
+- 本轮未启动常驻服务，无需清理 PID。
+
+## 2026-06-21 13:22:04 CST
+
+### 变更范围
+
+- 表单画布底部 dock 新增“预览视口和设计宽度”图标入口，交互与列表设计器保持一致。
+- 支持桌面、窄屏、弹窗、抽屉、移动端预设，并提供 390/720/768/960/1200/1366/1440/1920 和自定义宽度。
+- 表单画布舞台改为按当前设计宽度渲染，并继续保留独立缩放控制和 `Ctrl/⌘ + 滚轮` 缩放。
+- 设计宽度作为设计器视口状态维护，不写入表单 schema，避免影响运行态响应式表单协议。
+
+### 命令与结果
+
+- `pnpm --dir forge-admin-ui exec eslint src/views/app-center/components/designer/forge-form-designer/ForgeFormCanvas.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/views/app-center/components/designer/forge-form-designer/ForgeFormCanvas.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。
+
+### 警告
+
+- 构建保留项目既有 warning：CSS 中存在 `//` 注释。
+- 构建保留项目既有 warning：`src/store/index.js` 同时被动态和静态导入，Rollup 不会将其移动到单独 chunk。
+
+### 跳过项
+
+- 未进行浏览器手工验证或 Playwright 截图：本轮未启动 Vite/后端服务。
+- 未执行后端编译：本轮只改前端 Vue 表单画布视口控制和 scoped 样式。
+
+### 服务清理
+
+- 本轮未启动常驻服务，无需清理 PID。
+
 ## 2026-06-21 13:04:44 CST
 
 ### 变更范围
@@ -53,6 +167,36 @@
 
 - 未进行浏览器手工验证或 Playwright 截图：本轮未启动 Vite/后端服务。
 - 未执行后端编译：本轮只改前端 Vue 设计器节点交互和 scoped 样式。
+
+### 服务清理
+
+- 本轮未启动常驻服务，无需清理 PID。
+
+## 2026-06-21 15:40:54 CST
+
+### 变更范围
+
+- 修复表格布局“不显示边框”只影响设计器外层节点、不影响真实运行类的问题；`AiFormLayoutNodes.vue` 现在会读取节点 `props.__designerStyle`，并把 `hideInnerBorder` / `borderStyle: none` / `props.bordered === false` 统一映射为 `is-borderless`。
+- `af-layout-table.is-borderless` 会隐藏表格外边框，并通过 scoped `:deep` 压掉子级 `af-layout-table-cell` 的右边框和下边框。
+- `af-layout-table-cell.is-borderless` 单独配置无边框时也会隐藏自身单元格边框。
+- 兼容 `fcTable` / `fcTableGrid` 运行节点类型，避免 schema 转换后表格布局在公共 AiForm 渲染中识别不一致。
+- 顺手修正公共布局节点对部分属性的透传：卡片运行态不再硬编码 `bordered=true`，标签页运行态兼容设计器使用的 `placement` 属性，卡片/标签页/折叠面板/表格会读取设计器样式。
+
+### 命令与结果
+
+- `pnpm --dir forge-admin-ui exec eslint src/components/ai-form/AiFormLayoutNodes.vue src/views/app-center/components/designer/forge-form-designer/ForgeFormCanvasNode.vue src/views/app-center/components/designer/forge-form-designer/ForgePropertyPanel.vue`：通过。
+- `git diff --check -- forge-admin-ui/src/components/ai-form/AiFormLayoutNodes.vue forge-admin-ui/src/views/app-center/components/designer/forge-form-designer/ForgeFormCanvasNode.vue forge-admin-ui/src/views/app-center/components/designer/forge-form-designer/ForgePropertyPanel.vue`：通过。
+- `pnpm --dir forge-admin-ui build`：通过。
+
+### 警告
+
+- 构建保留项目既有 warning：CSS 中存在 `//` 注释。
+- 构建保留项目既有 warning：`src/store/index.js` 同时被动态和静态导入，Rollup 不会将其移动到单独 chunk。
+
+### 跳过项
+
+- 未进行浏览器手工验证或 Playwright 截图：本轮未启动 Vite/后端服务。
+- 未执行后端编译：本轮只改前端 Vue 设计器和公共 AiForm 布局渲染。
 
 ### 服务清理
 

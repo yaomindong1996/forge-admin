@@ -731,6 +731,10 @@ function handleCanvasSelectedIdChange(componentId = '') {
     rightOpen.value = true
 }
 
+function handleCanvasDragStart() {
+  rightOpen.value = false
+}
+
 function flushDesigner() {
   const currentSchema = normalizeFormDesignerSchema(normalizedSchema.value)
   const sourceSchema = props.modelValue && typeof props.modelValue === 'object' ? props.modelValue : {}
@@ -1229,10 +1233,12 @@ function confirmRenameCurrentForm() {
 
 onMounted(() => {
   window.addEventListener('keydown', handleDesignerShortcut)
+  window.addEventListener('forge-form-designer:canvas-drag-start', handleCanvasDragStart)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleDesignerShortcut)
+  window.removeEventListener('forge-form-designer:canvas-drag-start', handleCanvasDragStart)
 })
 </script>
 
@@ -1240,8 +1246,8 @@ onBeforeUnmount(() => {
 .forge-form-designer {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr) 0;
-  height: clamp(680px, calc(100vh - 190px), 860px);
-  min-height: 680px;
+  height: 100%;
+  min-height: 0;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
   background: #eef3f8;
@@ -1307,6 +1313,7 @@ onBeforeUnmount(() => {
 }
 
 .forge-form-designer.right-collapsed .designer-right {
+  display: none;
   border-left: 0;
 }
 
@@ -1523,6 +1530,7 @@ onBeforeUnmount(() => {
 .forge-form-designer {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr) 350px;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
 }
@@ -1532,11 +1540,11 @@ onBeforeUnmount(() => {
 }
 
 .forge-form-designer.right-collapsed {
-  grid-template-columns: 260px minmax(0, 1fr) 36px;
+  grid-template-columns: 260px minmax(0, 1fr) 0;
 }
 
 .forge-form-designer.left-collapsed.right-collapsed {
-  grid-template-columns: 36px minmax(0, 1fr) 36px;
+  grid-template-columns: 36px minmax(0, 1fr) 0;
 }
 
 .designer-left,

@@ -67,6 +67,54 @@
       </div>
     </div>
     <div v-if="!previewMode" class="canvas-viewport-dock">
+      <n-popover trigger="click" placement="top-end" :width="282" :to="false">
+        <template #trigger>
+          <n-button class="viewport-icon-button" circle secondary title="预览形态和设计宽度">
+            <template #icon>
+              <n-icon><BrowsersOutline /></n-icon>
+            </template>
+          </n-button>
+        </template>
+        <div class="canvas-viewport-popover">
+          <div class="viewport-popover-head">
+            <strong>预览视口</strong>
+            <span>{{ canvasPreviewModeLabel }} · {{ canvasDesignWidth }}px</span>
+          </div>
+          <label class="canvas-viewport-field">
+            <span>预览形态</span>
+            <n-select
+              :value="canvasPreviewMode"
+              :options="canvasPreviewModeOptions"
+              size="small"
+              class="canvas-preview-select"
+              @update:value="applyCanvasPreviewMode"
+            />
+          </label>
+          <label class="canvas-viewport-field">
+            <span>设计宽度</span>
+            <n-select
+              :value="canvasDesignWidth"
+              :options="canvasWidthOptions"
+              size="small"
+              class="canvas-width-select"
+              @update:value="updateCanvasDesignWidth"
+            />
+          </label>
+          <label class="canvas-viewport-field">
+            <span>自定义宽度</span>
+            <n-input-number
+              :value="canvasDesignWidth"
+              :min="375"
+              :max="1920"
+              :step="10"
+              size="small"
+              class="canvas-width-input"
+              :show-button="false"
+              @update:value="updateCanvasDesignWidth"
+            />
+          </label>
+        </div>
+      </n-popover>
       <n-popover trigger="click" placement="top-end" :width="238" :to="false">
         <template #trigger>
           <n-button class="viewport-zoom-button" secondary title="画布缩放">
@@ -107,7 +155,7 @@
 </template>
 
 <script setup>
-import { ResizeOutline } from '@vicons/ionicons5'
+import { BrowsersOutline, ResizeOutline } from '@vicons/ionicons5'
 import { computed, reactive, ref } from 'vue'
 import { createComponentFromField, insertDesignerComponent, moveDesignerComponent, normalizeFormDesignerSchema } from '../form-first/formDesignerSchema'
 import { clearDesignerDropKey, designerDropError, designerDropKey, setDesignerDropKey } from './designerDragState'
@@ -142,6 +190,18 @@ const FORGE_DRAG_TYPES = [DRAG_COMPONENT_MIME, DRAG_FIELD_MIME, DRAG_LAYOUT_MIME
 const previewModel = reactive({})
 const rootDropActive = ref(false)
 const canvasZoom = ref(1)
+const canvasDesignWidth = ref(1200)
+const canvasPreviewMode = ref('desktop')
+const canvasWidthOptions = [
+  { label: '390 移动', value: 390 },
+  { label: '720 抽屉', value: 720 },
+  { label: '768 窄屏', value: 768 },
+  { label: '960 弹窗', value: 960 },
+  { label: '1200 默认', value: 1200 },
+  { label: '1366 桌面', value: 1366 },
+  { label: '1440', value: 1440 },
+  { label: '1920', value: 1920 },
+]
 const canvasZoomOptions = [
   { label: '67%', value: 0.67 },
   { label: '75%', value: 0.75 },
@@ -150,7 +210,15 @@ const canvasZoomOptions = [
   { label: '110%', value: 1.1 },
   { label: '125%', value: 1.25 },
 ]
+const canvasPreviewModeOptions = [
+  { label: '桌面', value: 'desktop' },
+  { label: '窄屏', value: 'narrow' },
+  { label: '弹窗', value: 'modal' },
+  { label: '抽屉', value: 'drawer' },
+  { label: '移动', value: 'mobile' },
+]
 const canvasZoomLabel = computed(() => `${Math.round(canvasZoom.value * 100)}%`)
+const canvasPreviewModeLabel = computed(() => canvasPreviewModeOptions.find(item => item.value === canvasPreviewMode.value)?.label || '桌面')
 const rootTopActive = computed(() => designerDropKey.value === 'root:before')
 const MAX_FORM_GRID_COLUMNS = 24
 const gridColumns = computed(() => Math.max(1, Math.min(MAX_FORM_GRID_COLUMNS, Number(props.schema.layout?.gridColumns || 2))))
@@ -161,13 +229,32 @@ const gridStyle = computed(() => ({
   rowGap: `${resolveGap(props.schema.layout?.rowGap, 16)}px`,
 }))
 const canvasStageShellStyle = computed(() => ({
-  width: `${Math.max(100, canvasZoom.value * 100)}%`,
+  width: `${Math.round(canvasDesignWidth.value * canvasZoom.value)}px`,
+  minWidth: '100%',
 }))
 const canvasStageStyle = computed(() => ({
-  width: canvasZoom.value > 1 ? `${100 / canvasZoom.value}%` : '100%',
+  width: `${canvasDesignWidth.value}px`,
   transform: `scale(${canvasZoom.value})`,
   transformOrigin: '50% 0',
 }))
+
+function updateCanvasDesignWidth(value) {
+  canvasDesignWidth.value = clamp(Number(value) || 1200, 375, 1920)
+}
+
+function applyCanvasPreviewMode(value = 'desktop') {
+  const modeMap = {
+    desktop: { width: 1200, zoom: 1 },
+    narrow: { width: 768, zoom: 0.9 },
+    modal: { width: 960, zoom: 0.9 },
+    drawer: { width: 720, zoom: 0.9 },
+    mobile: { width: 390, zoom: 1 },
+  }
+  const next = modeMap[value] || modeMap.desktop
+  canvasPreviewMode.value = value
+  updateCanvasDesignWidth(next.width)
+  updateCanvasZoom(next.zoom)
+}
 
 function updateCanvasZoom(value) {
   canvasZoom.value = clamp(Number(value) || 1, 0.67, 1.25)
@@ -359,6 +446,14 @@ defineExpose({
   gap: 10px;
 }
 
+.canvas-viewport-field {
+  display: grid;
+  gap: 5px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .viewport-popover-head {
   display: grid;
   gap: 2px;
@@ -384,8 +479,33 @@ defineExpose({
   gap: 6px;
 }
 
+.canvas-preview-select,
+.canvas-width-select,
+.canvas-width-input,
 .canvas-zoom-select {
   width: 100%;
+}
+
+.canvas-width-input :deep(.n-input__input-el) {
+  text-align: center;
+}
+
+.viewport-icon-button {
+  --n-color: #fff !important;
+  --n-color-hover: #eff6ff !important;
+  --n-color-pressed: #dbeafe !important;
+  --n-color-focus: #fff !important;
+  --n-border: 1px solid #dbe3ee !important;
+  --n-border-hover: 1px solid #93c5fd !important;
+  --n-border-pressed: 1px solid #60a5fa !important;
+  --n-border-focus: 1px solid #93c5fd !important;
+  --n-text-color: #334155 !important;
+  --n-text-color-hover: #1d4ed8 !important;
+  --n-text-color-pressed: #1e40af !important;
+  --n-text-color-focus: #1d4ed8 !important;
+  width: 30px;
+  height: 30px;
+  font-weight: 700;
 }
 
 .viewport-zoom-button {
@@ -417,8 +537,7 @@ defineExpose({
 }
 
 .canvas-stage {
-  max-width: 1280px;
-  width: min(1280px, 100%);
+  flex: none;
   min-height: 100%;
   margin: 0 auto;
   border: 1px solid #d1d5db;
@@ -426,7 +545,9 @@ defineExpose({
   background: #fff;
   padding: 12px;
   box-shadow: 0 12px 34px rgba(15, 23, 42, 0.06);
-  transition: transform 160ms ease;
+  transition:
+    width 160ms ease,
+    transform 160ms ease;
   will-change: transform;
 }
 
