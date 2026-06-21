@@ -56,6 +56,16 @@
           <n-form-item-gi label="打开方式" path="entryMode">
             <n-select v-model:value="form.entryMode" :options="entryModeOptions" />
           </n-form-item-gi>
+          <n-form-item-gi label="入口类型">
+            <n-select
+              v-model:value="form.entryType"
+              :options="entryTypeOptions"
+              @update:value="handleEntryTypeChange"
+            />
+          </n-form-item-gi>
+        </n-grid>
+
+        <n-grid :cols="2" :x-gap="12">
           <n-form-item-gi label="关联业务单元">
             <n-select
               v-model:value="form.objectCode"
@@ -65,6 +75,19 @@
               :placeholder="objectPlaceholder"
               @update:value="handleObjectCodeChange"
             />
+          </n-form-item-gi>
+          <n-form-item-gi label="入口权限码">
+            <n-input
+              v-model:value="form.permissionCode"
+              clearable
+              placeholder="例如：ai:business:customer:list"
+            >
+              <template #suffix>
+                <n-button text type="primary" @click="applyDefaultPermissionCode">
+                  生成
+                </n-button>
+              </template>
+            </n-input>
           </n-form-item-gi>
         </n-grid>
 
@@ -102,6 +125,41 @@
         <n-alert v-if="showConfigKey && !isDynamicRenderMode" class="runtime-mode-tip" type="info" :bordered="false">
           下载代码模式不会打开在线页面，保存后可在应用总览中预览和下载完整功能代码。
         </n-alert>
+        <div v-if="showConfigKey && isDynamicRenderMode" class="runtime-target-panel">
+          <n-grid :cols="2" :x-gap="12">
+            <n-form-item-gi label="目标页面">
+              <n-select
+                v-model:value="form.targetPageKey"
+                :options="runtimePageOptions"
+                :loading="objectDesignerLoading"
+                filterable
+                placeholder="选择入口打开的页面"
+              />
+            </n-form-item-gi>
+            <n-form-item-gi label="目标表单">
+              <n-select
+                v-model:value="form.targetFormKey"
+                :options="runtimeFormOptions"
+                :loading="objectDesignerLoading"
+                clearable
+                filterable
+                placeholder="默认表单"
+              />
+            </n-form-item-gi>
+          </n-grid>
+          <n-form-item label="入口参数">
+            <CrudDefaultParamsEditor
+              v-model="form.defaultParamsConfig"
+              title="入口默认参数"
+              description="配置打开入口时固定带入运行页的 query/defaultParams。"
+              :sections="entryParamSections"
+              :field-options="entryParamFieldOptions"
+            />
+          </n-form-item>
+          <div class="runtime-target-help">
+            入口负责决定从哪个页面进入；表单只决定新增、编辑、详情或填报时使用哪套字段结构。多个入口可以指向同一个业务单元的不同页面或不同表单。
+          </div>
+        </div>
         <n-form-item v-if="showConfigKey" label="业务页面配置">
           <n-input v-model:value="form.configKey" placeholder="选择业务单元后通常会自动带出" />
         </n-form-item>
@@ -166,10 +224,12 @@
 import { SaveOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, reactive, ref, watch } from 'vue'
-import { businessObjectList, createBusinessApp, updateBusinessApp } from '@/api/business-app'
+import { businessObjectDesigner, businessObjectList, createBusinessApp, updateBusinessApp } from '@/api/business-app'
 import IconSelector from '@/components/IconSelector.vue'
+import CrudDefaultParamsEditor from '@/components/lowcode-builder/page/CrudDefaultParamsEditor.vue'
 import MenuParentSelect from '@/components/lowcode-builder/shared/MenuParentSelect.vue'
 import { useDict } from '@/composables/useDict'
+import { normalizeMultiFormDesignerSchema } from './designer/form-first/formDesignerSchema'
 
 const props = defineProps({
   show: {
@@ -191,7 +251,10 @@ const message = useMessage()
 const formRef = ref(null)
 const saving = ref(false)
 const objectOptions = ref([])
+const selectedObjectDesigner = ref(null)
+const objectDesignerLoading = ref(false)
 const runtimeOpenModeTouched = ref(false)
+let objectDesignerRequestSeq = 0
 const { dict } = useDict('ai_business_app_entry_mode', 'ai_business_app_mode')
 
 const form = reactive(defaultForm())
@@ -261,6 +324,26 @@ const entryModeMeta = {
     urlPlaceholder: '例如：api://crm.customer.webhook',
   },
 }
+const entryTypeOptions = [
+  { label: '对象列表入口', value: 'OBJECT_LIST' },
+  { label: '新增表单入口', value: 'CREATE_FORM' },
+  { label: '详情页入口', value: 'DETAIL_PAGE' },
+  { label: '审批/待办入口', value: 'APPROVAL_TODO' },
+  { label: '报表/看板入口', value: 'REPORT_DASHBOARD' },
+  { label: '外链/API 入口', value: 'EXTERNAL_OR_API' },
+]
+const entryParamSections = [
+  {
+    key: 'publicQuery',
+    label: '入口 Query 参数',
+    description: '打开运行页时追加到 URL，例如 source、status、recordId。',
+  },
+  {
+    key: 'formDefaultValues',
+    label: '表单默认值',
+    description: '打开新增或填报表单时预填字段值。',
+  },
+]
 
 const suiteOptions = computed(() => props.suites.map(item => ({
   label: item.suiteName || item.suiteCode,
@@ -310,6 +393,49 @@ const entryModeExplain = computed(() => entryModeMeta[form.entryMode] || entryMo
 const entryUrlLabel = computed(() => entryModeExplain.value.urlLabel)
 const entryUrlPlaceholder = computed(() => entryModeExplain.value.urlPlaceholder)
 const selectedObject = computed(() => objectOptions.value.find(item => item.value === form.objectCode) || null)
+const runtimePageOptions = computed(() => {
+  const pageSchema = selectedObjectDesigner.value?.pageSchema || {}
+  const pages = Array.isArray(pageSchema.pages) ? pageSchema.pages : []
+  const options = pages
+    .filter(page => page?.pageKey)
+    .map(page => ({
+      label: `${page.pageName || page.pageKey}${page.pageKey === 'list' ? '（默认）' : ''}`,
+      value: page.pageKey,
+    }))
+  const existing = new Set(options.map(item => item.value))
+  ;[
+    { label: '列表页（默认）', value: 'list' },
+    { label: '详情页', value: 'detail' },
+    { label: '新增页', value: 'create' },
+    { label: '编辑页', value: 'edit' },
+  ].forEach((item) => {
+    if (!existing.has(item.value))
+      options.push(item)
+  })
+  return options
+})
+const runtimeFormOptions = computed(() => {
+  if (!selectedObjectDesigner.value?.formDesignerSchema)
+    return []
+  const schema = normalizeMultiFormDesignerSchema(selectedObjectDesigner.value?.formDesignerSchema || {})
+  return (schema.forms || [])
+    .filter(item => item?.formKey)
+    .map(item => ({
+      label: `${item.formName || item.formKey}${item.formKey === schema.defaultFormKey ? '（默认）' : ''}`,
+      value: item.formKey,
+    }))
+})
+const entryParamFieldOptions = computed(() => {
+  const fields = selectedObjectDesigner.value?.modelSchema?.fields?.length
+    ? selectedObjectDesigner.value.modelSchema.fields
+    : selectedObjectDesigner.value?.fields || []
+  return (Array.isArray(fields) ? fields : [])
+    .map(field => ({
+      label: `${field.label || field.fieldName || field.field || field.fieldCode}（${field.field || field.fieldCode}）`,
+      value: field.field || field.fieldCode,
+    }))
+    .filter(item => item.value)
+})
 const objectPlaceholder = computed(() => {
   if (form.entryMode === 'RUNTIME')
     return '业务页面必须关联已发布业务单元'
@@ -384,10 +510,12 @@ watch(() => form.entryMode, () => {
   form.appType = resolveAppType()
   if (form.entryMode === 'RUNTIME' && !runtimeOpenModeTouched.value)
     form.runtimeOpenMode = inferRuntimeOpenMode()
+  form.entryType = inferEntryType()
   if (form.entryMode !== 'RUNTIME')
     form.appMode = 'DYNAMIC_RENDER'
   if (form.entryMode === 'API' && form.entryUrl === '/app-center/integration')
     form.entryUrl = ''
+  normalizeRuntimeTargets()
 })
 
 watch(() => form.appName, () => {
@@ -404,9 +532,11 @@ async function loadObjects() {
   objectOptions.value = (res.data || []).map(item => ({
     label: item.objectName || item.objectCode,
     value: item.objectCode,
+    objectId: item.id || item.objectId,
     objectType: item.objectType,
     configKey: item.configKey,
   }))
+  loadSelectedObjectDesigner()
 }
 
 async function save() {
@@ -493,6 +623,11 @@ function hydrateOptions() {
     form.menuSort = Number(props.app?.menuSort ?? adminMenu.sort ?? options.menuSort ?? form.sortOrder ?? 0)
     form.runtimeOpenMode = normalizeRuntimeOpenMode(props.app?.runtimeOpenMode || options.runtimeOpenMode || inferRuntimeOpenMode())
     form.appMode = normalizeAppMode(props.app?.appMode || options.appMode || 'DYNAMIC_RENDER')
+    form.entryType = normalizeEntryType(options.entryType || inferEntryType())
+    form.permissionCode = String(options.permissionCode || '').trim()
+    form.targetPageKey = String(options.targetPageKey || '').trim() || defaultTargetPageKey(form.runtimeOpenMode)
+    form.targetFormKey = String(options.targetFormKey || '').trim()
+    form.defaultParamsConfig = normalizeEntryDefaultParams(options.defaultParams)
     form.allowedDomains = allowedDomains.join('\n')
     form.mobileScene = options.mobileScene || defaultMobileScene(form.entryMode)
     form.visibleScope = options.visibleScope || 'all'
@@ -512,6 +647,11 @@ function hydrateOptions() {
     form.menuSort = Number(form.sortOrder || 0)
     form.runtimeOpenMode = inferRuntimeOpenMode()
     form.appMode = 'DYNAMIC_RENDER'
+    form.entryType = inferEntryType()
+    form.permissionCode = ''
+    form.targetPageKey = defaultTargetPageKey(form.runtimeOpenMode)
+    form.targetFormKey = ''
+    form.defaultParamsConfig = normalizeEntryDefaultParams()
     form.allowedDomains = ''
     form.mobileScene = defaultMobileScene(form.entryMode)
     form.visibleScope = 'all'
@@ -525,11 +665,18 @@ function hydrateOptions() {
     form.runtimeOpenMode = 'LIST'
   if (form.entryMode !== 'RUNTIME')
     form.appMode = 'DYNAMIC_RENDER'
+  normalizeRuntimeTargets()
 }
 
 function buildOptions() {
   const options = parseOptions(form.options)
   options.mountTarget = form.mountTarget
+  options.entryType = normalizeEntryType(form.entryType)
+  const permissionCode = String(form.permissionCode || '').trim()
+  if (permissionCode)
+    options.permissionCode = permissionCode
+  else
+    delete options.permissionCode
   if (isAdminMount.value) {
     const previousAdminMenu = options.adminMenu || {}
     const menuResourceId = props.app?.menuResourceId || previousAdminMenu.menuResourceId || options.menuResourceId
@@ -568,10 +715,23 @@ function buildOptions() {
   if (form.entryMode === 'RUNTIME') {
     options.runtimeOpenMode = normalizeRuntimeOpenMode(form.runtimeOpenMode)
     options.appMode = normalizeAppMode(form.appMode)
+    if (normalizeAppMode(form.appMode) === 'DYNAMIC_RENDER') {
+      options.targetPageKey = form.targetPageKey || defaultTargetPageKey(form.runtimeOpenMode)
+      options.targetFormKey = form.targetFormKey || null
+      options.defaultParams = extractEntryDefaultParams(form.defaultParamsConfig)
+    }
+    else {
+      delete options.targetPageKey
+      delete options.targetFormKey
+      delete options.defaultParams
+    }
   }
   else {
     delete options.runtimeOpenMode
     delete options.appMode
+    delete options.targetPageKey
+    delete options.targetFormKey
+    delete options.defaultParams
   }
   const allowedDomains = String(form.allowedDomains || '')
     .split(/[\n,，]/)
@@ -617,13 +777,77 @@ function buildOptions() {
 function handleRuntimeOpenModeChange(value) {
   runtimeOpenModeTouched.value = true
   form.runtimeOpenMode = normalizeRuntimeOpenMode(value)
+  if (!form.targetPageKey || ['LIST', 'CREATE_FORM', 'DETAIL'].includes(form.runtimeOpenMode))
+    form.targetPageKey = defaultTargetPageKey(form.runtimeOpenMode)
+  form.entryType = entryTypeFromRuntimeMode(form.runtimeOpenMode)
 }
 
 function handleObjectCodeChange(value) {
   form.objectCode = value || null
   form.configKey = selectedObject.value?.configKey || ''
+  form.targetPageKey = defaultTargetPageKey(form.runtimeOpenMode)
+  form.targetFormKey = ''
+  if (!form.permissionCode)
+    form.permissionCode = defaultPermissionCode()
+  selectedObjectDesigner.value = null
+  loadSelectedObjectDesigner()
   if (form.entryMode === 'RUNTIME' && !runtimeOpenModeTouched.value)
     form.runtimeOpenMode = inferRuntimeOpenMode()
+}
+
+function handleEntryTypeChange(value) {
+  form.entryType = normalizeEntryType(value)
+  const runtimeMode = runtimeModeFromEntryType(form.entryType)
+  if (runtimeMode) {
+    runtimeOpenModeTouched.value = true
+    form.runtimeOpenMode = runtimeMode
+    form.targetPageKey = defaultTargetPageKey(runtimeMode)
+  }
+  if (!form.permissionCode)
+    form.permissionCode = defaultPermissionCode()
+}
+
+function applyDefaultPermissionCode() {
+  form.permissionCode = defaultPermissionCode()
+}
+
+async function loadSelectedObjectDesigner() {
+  const objectId = selectedObject.value?.objectId
+  const seq = ++objectDesignerRequestSeq
+  if (!objectId) {
+    selectedObjectDesigner.value = null
+    normalizeRuntimeTargets()
+    return
+  }
+  objectDesignerLoading.value = true
+  try {
+    const res = await businessObjectDesigner(objectId)
+    if (seq !== objectDesignerRequestSeq)
+      return
+    selectedObjectDesigner.value = res.data || null
+    normalizeRuntimeTargets()
+  }
+  catch (error) {
+    if (seq === objectDesignerRequestSeq) {
+      selectedObjectDesigner.value = null
+      console.warn('[AppEditorDrawer] 加载业务对象设计数据失败', error?.message || error)
+    }
+  }
+  finally {
+    if (seq === objectDesignerRequestSeq)
+      objectDesignerLoading.value = false
+  }
+}
+
+function normalizeRuntimeTargets() {
+  if (form.entryMode !== 'RUNTIME')
+    return
+  const pageValues = new Set(runtimePageOptions.value.map(item => item.value))
+  if (!form.targetPageKey || !pageValues.has(form.targetPageKey))
+    form.targetPageKey = defaultTargetPageKey(form.runtimeOpenMode)
+  const formValues = new Set(runtimeFormOptions.value.map(item => item.value))
+  if (form.targetFormKey && !formValues.has(form.targetFormKey))
+    form.targetFormKey = ''
 }
 
 function allowedEntryModesForTarget(target) {
@@ -685,6 +909,38 @@ function normalizeRuntimeOpenMode(value) {
   return ['LIST', 'CREATE_FORM', 'DETAIL'].includes(mode) ? mode : 'LIST'
 }
 
+function normalizeEntryType(value) {
+  const type = String(value || '').toUpperCase()
+  return entryTypeOptions.some(item => item.value === type) ? type : inferEntryType()
+}
+
+function entryTypeFromRuntimeMode(value) {
+  const mode = normalizeRuntimeOpenMode(value)
+  if (mode === 'CREATE_FORM')
+    return 'CREATE_FORM'
+  if (mode === 'DETAIL')
+    return 'DETAIL_PAGE'
+  return 'OBJECT_LIST'
+}
+
+function runtimeModeFromEntryType(value) {
+  const type = normalizeEntryType(value)
+  if (type === 'CREATE_FORM')
+    return 'CREATE_FORM'
+  if (type === 'DETAIL_PAGE' || type === 'APPROVAL_TODO')
+    return 'DETAIL'
+  if (type === 'OBJECT_LIST')
+    return 'LIST'
+  return ''
+}
+
+function defaultTargetPageKey(runtimeOpenMode) {
+  const mode = normalizeRuntimeOpenMode(runtimeOpenMode)
+  if (mode === 'DETAIL')
+    return 'detail'
+  return 'list'
+}
+
 function normalizeAppMode(value) {
   const mode = String(value || 'DYNAMIC_RENDER').toUpperCase()
   return ['DYNAMIC_RENDER', 'CODE_DOWNLOAD'].includes(mode) ? mode : 'DYNAMIC_RENDER'
@@ -731,6 +987,47 @@ function inferRuntimeOpenMode() {
   return /填报|申请|提交|录入|上报|登记/.test(String(form.appName || '')) ? 'CREATE_FORM' : 'LIST'
 }
 
+function inferEntryType() {
+  if (form.entryMode === 'API')
+    return 'EXTERNAL_OR_API'
+  if (['IFRAME', 'EXTERNAL', 'H5', 'ROUTE'].includes(form.entryMode))
+    return 'EXTERNAL_OR_API'
+  return entryTypeFromRuntimeMode(form.runtimeOpenMode)
+}
+
+function defaultPermissionCode() {
+  const objectCode = String(form.objectCode || '').trim()
+  if (!objectCode)
+    return ''
+  const prefix = `ai:business:${objectCode}`
+  const entryType = normalizeEntryType(form.entryType)
+  if (entryType === 'CREATE_FORM')
+    return `${prefix}:add`
+  if (entryType === 'DETAIL_PAGE' || entryType === 'APPROVAL_TODO')
+    return `${prefix}:query`
+  if (entryType === 'REPORT_DASHBOARD')
+    return 'ai:businessStats:view'
+  return `${prefix}:list`
+}
+
+function normalizeEntryDefaultParams(value = {}) {
+  if (value?.publicQuery || value?.formDefaultValues)
+    return value
+  return {
+    publicQuery: value && typeof value === 'object' && !Array.isArray(value) ? value : {},
+    formDefaultValues: {},
+  }
+}
+
+function extractEntryDefaultParams(config = {}) {
+  const query = config?.publicQuery && typeof config.publicQuery === 'object' ? config.publicQuery : {}
+  const formValues = config?.formDefaultValues && typeof config.formDefaultValues === 'object' ? config.formDefaultValues : {}
+  return {
+    ...query,
+    ...(Object.keys(formValues).length ? { formDefaultValues: formValues } : {}),
+  }
+}
+
 function defaultForm() {
   return {
     id: null,
@@ -741,6 +1038,7 @@ function defaultForm() {
     suiteCode: null,
     objectCode: null,
     entryMode: 'RUNTIME',
+    entryType: 'OBJECT_LIST',
     appMode: 'DYNAMIC_RENDER',
     runtimeOpenMode: 'LIST',
     entryUrl: '',
@@ -762,6 +1060,10 @@ function defaultForm() {
     platformType: 'api',
     integrationResource: '',
     integrationEvents: '',
+    permissionCode: '',
+    targetPageKey: 'list',
+    targetFormKey: '',
+    defaultParamsConfig: normalizeEntryDefaultParams(),
   }
 }
 </script>
@@ -789,6 +1091,25 @@ function defaultForm() {
 .runtime-mode-tip {
   margin-top: -6px;
   margin-bottom: 12px;
+}
+
+.runtime-target-panel {
+  margin: -2px 0 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+  padding: 12px;
+}
+
+.runtime-target-panel :deep(.n-form-item:last-child) {
+  margin-bottom: 0;
+}
+
+.runtime-target-help {
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .mount-card {

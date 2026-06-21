@@ -75,6 +75,17 @@
         LIMIT 1
     </select>
 
+    <select id="selectVersionByNo" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_crud_config_version
+        WHERE tenant_id = #{tenantId}
+          AND config_id = #{configId}
+          AND version_no = #{versionNo}
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
     <select id="selectMaxVersionNo" resultType="java.lang.Integer">
         SELECT COALESCE(MAX(version_no), 0)
         FROM ai_crud_config_version

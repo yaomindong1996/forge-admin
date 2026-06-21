@@ -52,6 +52,7 @@ import { getDictData } from '@/composables/useDict'
 import { useTabStore } from '@/store'
 import { postEncrypt, request } from '@/utils'
 import { getDefaultPageTitle } from '@/utils/page-title'
+import { normalizeMultiFormDesignerSchema } from '@/views/app-center/components/designer/form-first/formDesignerSchema'
 
 const route = useRoute()
 const router = useRouter()
@@ -73,6 +74,7 @@ const formOnlyRuntime = computed(() => runtimeOpenMode.value === 'CREATE_FORM')
 const currentTemplate = ref(null)
 
 const activeRuntimePageKey = computed(() => String(route.query?.pageKey || 'list').trim() || 'list')
+const activeRuntimeFormKey = computed(() => String(route.query?.formKey || '').trim())
 const runtimePages = computed(() => {
   const pages = renderConfig.value?.pageSchema?.pages
   return Array.isArray(pages) ? pages : []
@@ -136,6 +138,10 @@ const runtimeAiCrudBlockProps = computed(() => {
     return {}
   return items.find(item => item?.blockType === 'AiCrudPage')?.props || {}
 })
+const activeRuntimeFormProfile = computed(() => buildRuntimeFormProfile(renderConfig.value, activeRuntimeFormKey.value))
+const routeEntryPublicQuery = computed(() => extractRouteEntryPublicQuery(route.query || {}))
+const routeEntryFormDefaultValues = computed(() => parseRouteRecordParam(route.query?.formDefaultValues))
+const routeEntrySubmitDefaultParams = computed(() => parseRouteRecordParam(route.query?.submitDefaultParams))
 
 function normalizeRuntimeField(field = {}) {
   return {
@@ -143,6 +149,58 @@ function normalizeRuntimeField(field = {}) {
     field: field.field || field.fieldCode || field.columnName || '',
     label: field.label || field.fieldName || field.field || field.fieldCode || field.columnName || '',
     componentType: field.componentType || field.componentKey || field.dataType || 'input',
+  }
+}
+
+const RUNTIME_ROUTE_PARAM_KEYS = new Set([
+  'appId',
+  'menuKey',
+  'menuResourceId',
+  'runtimeOpenMode',
+  'pageKey',
+  'formKey',
+  'mode',
+  'title',
+  'configKey',
+  'id',
+  'recordId',
+  'formDefaultValues',
+  'submitDefaultParams',
+])
+
+function extractRouteEntryPublicQuery(query = {}) {
+  return Object.entries(query).reduce((result, [key, value]) => {
+    if (!key || RUNTIME_ROUTE_PARAM_KEYS.has(key))
+      return result
+    const normalizedValue = normalizeRouteParamValue(value)
+    if (normalizedValue !== undefined && normalizedValue !== '')
+      result[key] = normalizedValue
+    return result
+  }, {})
+}
+
+function normalizeRouteParamValue(value) {
+  if (Array.isArray(value))
+    return value.length > 1 ? value : value[0]
+  if (value === null || value === undefined)
+    return undefined
+  return value
+}
+
+function parseRouteRecordParam(value) {
+  const normalizedValue = normalizeRouteParamValue(value)
+  if (!normalizedValue)
+    return {}
+  if (typeof normalizedValue === 'object' && !Array.isArray(normalizedValue))
+    return normalizedValue
+  if (typeof normalizedValue !== 'string')
+    return {}
+  try {
+    const parsed = JSON.parse(normalizedValue)
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  }
+  catch {
+    return {}
   }
 }
 
@@ -276,8 +334,11 @@ function buildRuntimeColumnRoute(col = {}, row = {}) {
   const query = {
     ...route.query,
     pageKey: col.targetPageKey || 'detail',
+    formKey: col.targetFormKey || route.query?.formKey || undefined,
     [paramName]: paramValue,
   }
+  if (!query.formKey)
+    delete query.formKey
   if ((col.targetPageKey || 'detail') === 'detail') {
     query.mode = 'detail'
     query.recordId = paramValue
@@ -357,6 +418,7 @@ function normalizeRuntimePageAction(action = {}, position = 'row') {
     position: actionPosition,
     actionType,
     routePath,
+    targetFormKey: action.targetFormKey || config.targetFormKey || '',
     openTarget: action.openTarget || config.openTarget || (actionType === 'external' ? '_blank' : '_self'),
     confirmText: action.confirmText || (action.confirmRequired ? `确认执行“${action.actionName || action.label || key}”？` : ''),
   }
@@ -456,6 +518,189 @@ function transformFields(fields, fieldMetaMap = new Map()) {
 
     return newField
   })
+}
+
+function buildRuntimeFormProfile(cfg = {}, requestedFormKey = '') {
+  const baseEditSchema = Array.isArray(cfg?.editSchema) ? cfg.editSchema : []
+  const formDesignerSchema = cfg?.options?.formDesignerSchema || cfg?.formDesignerSchema
+  if (!formDesignerSchema)
+    return { editSchema: baseEditSchema, editFormLayout: cfg?.options?.editFormLayout, formAssets: cfg?.options?.formAssets || cfg?.formAssets || [], governance: {} }
+  const multiSchema = normalizeMultiFormDesignerSchema(formDesignerSchema)
+  const selectedForm = resolveRuntimeForm(multiSchema, requestedFormKey)
+  if (!selectedForm?.schema)
+    return { editSchema: baseEditSchema, editFormLayout: cfg?.options?.editFormLayout, formAssets: [], governance: {} }
+  const governance = normalizeFormGovernance(selectedForm.schema.settings?.governance || selectedForm.schema.governance)
+  const baseFieldMap = new Map(baseEditSchema.map(field => [field.field, field]))
+  const components = flattenDesignerComponents(selectedForm.schema.components || [])
+  const editSchema = components
+    .map(component => buildRuntimeFieldFromDesignerComponent(component, baseFieldMap))
+    .filter(Boolean)
+  return {
+    editSchema: applyRuntimeFormGovernance(editSchema.length ? editSchema : baseEditSchema, governance),
+    editFormLayout: buildRuntimeFormLayoutFromDesignerComponents(selectedForm.schema.components || []),
+    formAssets: buildRuntimeFormAssets(multiSchema, selectedForm.formKey),
+    governance,
+  }
+}
+
+function normalizeFormGovernance(value = {}) {
+  if (!value || typeof value !== 'object')
+    return {}
+  return {
+    permission: value.permission && typeof value.permission === 'object' ? value.permission : {},
+    fieldRules: Array.isArray(value.fieldRules) ? value.fieldRules : [],
+    events: Array.isArray(value.events) ? value.events : [],
+  }
+}
+
+function applyRuntimeFormGovernance(fields = [], governance = {}) {
+  const permission = governance.permission || {}
+  if (permission.visible === false)
+    return []
+  const ruleMap = new Map((governance.fieldRules || [])
+    .filter(rule => rule?.field)
+    .map(rule => [rule.field, rule]))
+
+  return (Array.isArray(fields) ? fields : [])
+    .map(field => applyRuntimeFieldGovernance(field, ruleMap.get(field?.field), permission))
+    .filter(Boolean)
+}
+
+function applyRuntimeFieldGovernance(field = {}, rule = {}, permission = {}) {
+  if (!field?.field)
+    return field
+  if (rule?.hidden === true)
+    return null
+  const next = { ...field, props: { ...(field.props || {}) } }
+  if (Object.prototype.hasOwnProperty.call(rule, 'required')) {
+    next.required = !!rule.required
+    if (!next.required && Array.isArray(next.rules))
+      next.rules = next.rules.filter(item => !item?.required)
+  }
+  if (Object.prototype.hasOwnProperty.call(rule, 'defaultValue'))
+    next.defaultValue = rule.defaultValue
+  const readonly = permission.editable === false
+    ? true
+    : Object.prototype.hasOwnProperty.call(rule, 'readonly')
+      ? !!rule.readonly
+      : next.readonly
+  if (readonly) {
+    next.readonly = true
+    next.disabled = true
+    next.props.readonly = true
+    next.props.disabled = true
+  }
+  return next
+}
+
+function resolveRuntimeForm(multiSchema = {}, requestedFormKey = '') {
+  const forms = Array.isArray(multiSchema.forms) ? multiSchema.forms : []
+  if (!forms.length)
+    return null
+  return forms.find(form => form.formKey === requestedFormKey)
+    || forms.find(form => form.formKey === multiSchema.defaultFormKey)
+    || forms[0]
+}
+
+function flattenDesignerComponents(components = []) {
+  const result = []
+  ;(Array.isArray(components) ? components : []).forEach((component) => {
+    if (!component || typeof component !== 'object')
+      return
+    result.push(component)
+    result.push(...flattenDesignerComponents(component.children || []))
+  })
+  return result
+}
+
+function buildRuntimeFieldFromDesignerComponent(component = {}, baseFieldMap = new Map()) {
+  const fieldCode = component.fieldBinding?.fieldCode
+  if (!fieldCode)
+    return null
+  const visibility = component.visibility || {}
+  if (visibility.hidden === true)
+    return null
+  const base = baseFieldMap.get(fieldCode) || { field: fieldCode, type: 'input', label: fieldCode }
+  const props = { ...(base.props || {}), ...(component.props || {}) }
+  const validation = component.validation || {}
+  return {
+    ...base,
+    field: fieldCode,
+    label: component.label || base.label || fieldCode,
+    type: normalizeDesignerRuntimeFieldType(component.componentKey || base.type),
+    required: validation.required ?? base.required,
+    readonly: visibility.readonly ?? base.readonly,
+    disabled: visibility.readonly ?? base.disabled,
+    defaultValue: props.defaultValue ?? base.defaultValue,
+    dictType: props.dictType || base.dictType,
+    props,
+  }
+}
+
+function normalizeDesignerRuntimeFieldType(componentKey = '') {
+  const key = String(componentKey || '').trim()
+  const map = {
+    inputNumber: 'number',
+    integer: 'number',
+    money: 'number',
+    dictSelect: 'select',
+    orgTreeSelect: 'treeSelect',
+    deptTreeSelect: 'treeSelect',
+    departmentTreeSelect: 'treeSelect',
+    regionTreeSelect: 'treeSelect',
+    userSelect: 'select',
+    imageUpload: 'imageUpload',
+    fileUpload: 'fileUpload',
+  }
+  return map[key] || key || 'input'
+}
+
+function buildRuntimeFormLayoutFromDesignerComponents(components = []) {
+  return (Array.isArray(components) ? components : [])
+    .map(component => buildRuntimeFormLayoutNode(component))
+    .filter(Boolean)
+}
+
+function buildRuntimeFormLayoutNode(component = {}) {
+  if (!component || typeof component !== 'object')
+    return null
+  const fieldCode = component.fieldBinding?.fieldCode
+  if (fieldCode) {
+    return {
+      nodeType: 'field',
+      key: component.id || fieldCode,
+      field: fieldCode,
+      span: component.layout?.span,
+      gridStyle: component.layout?.gridStyle,
+    }
+  }
+  const children = buildRuntimeFormLayoutFromDesignerComponents(component.children || [])
+  const node = {
+    nodeType: component.componentKey || component.nodeType || 'groupTitle',
+    componentKey: component.componentKey,
+    key: component.id,
+    label: component.label,
+    props: component.props || {},
+    span: component.layout?.span,
+    align: component.layout?.align,
+    style: component.style,
+    children,
+  }
+  if (!children.length && !isStandaloneRuntimeLayoutNode(node))
+    return null
+  return node
+}
+
+function buildRuntimeFormAssets(multiSchema = {}, activeFormKey = '') {
+  const forms = Array.isArray(multiSchema.forms) ? multiSchema.forms : []
+  return forms
+    .filter(form => form?.formKey && form.formKey !== activeFormKey)
+    .map(form => ({
+      formKey: form.formKey,
+      formName: form.formName || form.formKey,
+      usage: form.usage || [],
+      schema: form.schema || {},
+    }))
 }
 
 function transformEditFields(fields = [], layout = [], fieldMetaMap = new Map()) {
@@ -575,6 +820,27 @@ const crudProps = computed(() => {
     options.crudHookRules || cfg.crudHookRules || gridCrudProps.crudHookRules || {},
     options.beforeSubmitRules || cfg.beforeSubmitRules || gridCrudProps.beforeSubmitRules || [],
   ))
+  const governanceEventHandlers = buildFormGovernanceEventHandlers(activeRuntimeFormProfile.value.governance?.events || [])
+  const runtimeHookHandlers = composeRuntimeHookHandlers(crudHookHandlers, governanceEventHandlers)
+  const configuredPublicParams = {
+    ...(options.publicParams || cfg.publicParams || {}),
+    ...(gridCrudProps.publicParams || {}),
+  }
+  const configuredPublicQuery = {
+    ...(options.publicQuery || cfg.publicQuery || {}),
+    ...(gridCrudProps.publicQuery || {}),
+    ...routeEntryPublicQuery.value,
+  }
+  const formDefaultValues = {
+    ...(options.formDefaultValues || cfg.formDefaultValues || {}),
+    ...(gridCrudProps.formDefaultValues || {}),
+    ...routeEntryFormDefaultValues.value,
+  }
+  const submitDefaultParams = {
+    ...(options.submitDefaultParams || cfg.submitDefaultParams || {}),
+    ...(gridCrudProps.submitDefaultParams || {}),
+    ...routeEntrySubmitDefaultParams.value,
+  }
   const apiConfig = treeTable
     ? { ...(cfg.apiConfig || {}), list: cfg.apiConfig?.tree || cfg.apiConfig?.list }
     : cfg.apiConfig || {}
@@ -588,7 +854,7 @@ const crudProps = computed(() => {
       columnSettings: runtimeColumnSettings.value,
       fitTableToContainer: !!runtimeGridLayout.value,
     }),
-    editSchema: transformEditFields(cfg.editSchema, options.editFormLayout, buildRuntimeFieldMetaMap(cfg.modelSchema)),
+    editSchema: transformEditFields(activeRuntimeFormProfile.value.editSchema, activeRuntimeFormProfile.value.editFormLayout || options.editFormLayout, buildRuntimeFieldMetaMap(cfg.modelSchema)),
     childrenConfig: transformChildrenConfig(masterDetailConfig.children || []),
     apiConfig,
     options,
@@ -603,7 +869,7 @@ const crudProps = computed(() => {
     editShowFeedback: options.editShowFeedback ?? cfg.editShowFeedback ?? true,
     editFormClass: options.editFormClass || cfg.editFormClass || '',
     editFormStyle: options.editFormStyle || cfg.editFormStyle,
-    formAssets: options.formAssets || cfg.formAssets || [],
+    formAssets: activeRuntimeFormProfile.value.formAssets || options.formAssets || cfg.formAssets || [],
     editXGap: normalizeNumberOption(options.editXGap ?? cfg.editXGap, 12),
     editYGap: normalizeNumberOption(options.editYGap ?? cfg.editYGap, 8),
     loadDetailOnEdit: options.loadDetailOnEdit ?? cfg.loadDetailOnEdit ?? true,
@@ -613,6 +879,7 @@ const crudProps = computed(() => {
     showImport: !!options.showImport,
     showExport: !!options.showExport,
     showPagination: treeTable ? false : options.showPagination !== false,
+    enableTreeAddChild: treeTable && (options.enableTreeAddChild === true || gridCrudProps.enableTreeAddChild === true),
     importApi: extractApiUrl(cfg.apiConfig?.import),
     exportApi: cfg.apiConfig?.export || '',
     importTemplateUrl: extractApiUrl(cfg.apiConfig?.importTemplate),
@@ -620,8 +887,13 @@ const crudProps = computed(() => {
     customQueryConfigKey: cfg.configKey,
     toolbarActions: normalizeRuntimePageActions(options.toolbarActions || [], 'toolbar'),
     businessObjectCode: resolveBusinessObjectCode(cfg),
-    publicParams: treeTable ? { ...defaultSortParams, loadMode: treeLoadMode } : defaultSortParams,
-    ...crudHookHandlers,
+    publicParams: treeTable
+      ? { ...configuredPublicParams, ...defaultSortParams, loadMode: treeLoadMode }
+      : { ...configuredPublicParams, ...defaultSortParams },
+    publicQuery: configuredPublicQuery,
+    formDefaultValues,
+    submitDefaultParams,
+    ...runtimeHookHandlers,
     beforeRenderList: list => prepareRuntimeList(list, { treeTable, treeConfig }),
     treeConfig: treeTable ? treeConfig : {},
     tableProps: buildRuntimeTableProps(cfg),
@@ -699,6 +971,136 @@ function buildCrudHookHandlers(rules = {}) {
       handlers[target.value] = data => applyCrudHookRules(data, list)
     return handlers
   }, {})
+}
+
+function buildFormGovernanceEventHandlers(events = []) {
+  return (Array.isArray(events) ? events : []).reduce((handlers, eventItem) => {
+    const hookName = normalizeFormGovernanceHook(eventItem?.hook)
+    if (!hookName || !eventItem?.handler)
+      return handlers
+    if (!handlers[hookName])
+      handlers[hookName] = []
+    handlers[hookName].push(eventItem)
+    return handlers
+  }, {})
+}
+
+function normalizeFormGovernanceHook(hook = '') {
+  const value = String(hook || '')
+  if (value === 'beforeLoad' || value === 'afterLoad')
+    return 'beforeRenderForm'
+  if (value === 'beforeSubmit')
+    return 'beforeSubmit'
+  if (value === 'afterSubmit')
+    return 'afterSubmit'
+  return ''
+}
+
+function composeRuntimeHookHandlers(...handlerGroups) {
+  const hookNames = new Set(handlerGroups.flatMap(group => Object.keys(group || {})))
+  return Array.from(hookNames).reduce((handlers, hookName) => {
+    const handlersForHook = handlerGroups
+      .map(group => group?.[hookName])
+      .filter(Boolean)
+    handlers[hookName] = async (payload) => {
+      let nextPayload = payload
+      for (const handler of handlersForHook) {
+        if (Array.isArray(handler)) {
+          nextPayload = await runFormGovernanceEvents(handler, hookName, nextPayload)
+        }
+        else {
+          nextPayload = await handler(nextPayload)
+        }
+        if (nextPayload === false)
+          return false
+      }
+      return nextPayload
+    }
+    return handlers
+  }, {})
+}
+
+async function runFormGovernanceEvents(events = [], hookName = '', payload) {
+  for (const eventItem of events) {
+    await runFormGovernanceEvent(eventItem, hookName, payload)
+  }
+  return payload
+}
+
+async function runFormGovernanceEvent(eventItem = {}, hookName = '', payload) {
+  const action = String(eventItem.action || '')
+  if (action === 'customScript') {
+    return runWhitelistedFormScript(eventItem.handler, payload)
+  }
+  if (action === 'setFieldValue') {
+    applySetFieldValueEvent(eventItem.handler, payload)
+    return
+  }
+  if (action !== 'request')
+    return
+  const apiConfig = parseApiConfigValue(eventItem.handler)
+  if (!apiConfig.url)
+    return
+  const method = apiConfig.method || 'post'
+  const requestConfig = {
+    method,
+    url: apiConfig.url,
+  }
+  if (method === 'get')
+    requestConfig.params = payload
+  else
+    requestConfig.data = payload
+  try {
+    const response = await request(requestConfig)
+    applyFormEventResultMapping(payload, response?.data, eventItem.resultMapping)
+  }
+  catch (error) {
+    console.warn(`[crud-page] 表单事件请求失败(${hookName}):`, error?.message || error)
+    throw error
+  }
+}
+
+function runWhitelistedFormScript(handler = '', payload = {}) {
+  const name = String(handler || '').trim()
+  if (!name || name === 'noop')
+    return
+  const scripts = {
+    fillCurrentDate: () => {
+      payload.currentDate = new Date().toISOString().slice(0, 10)
+    },
+    fillCurrentTime: () => {
+      payload.currentTime = new Date().toISOString()
+    },
+  }
+  if (!scripts[name]) {
+    console.warn(`[crud-page] 表单事件脚本不在白名单内: ${name}`)
+    return
+  }
+  scripts[name]()
+}
+
+function applySetFieldValueEvent(handler = '', payload = {}) {
+  const [field, ...valueParts] = String(handler || '').split('=')
+  const fieldName = field?.trim()
+  if (!fieldName)
+    return
+  payload[fieldName] = valueParts.join('=').trim()
+}
+
+function applyFormEventResultMapping(payload = {}, responseData, mappingText = '') {
+  const mappings = String(mappingText || '').split(',').map(item => item.trim()).filter(Boolean)
+  mappings.forEach((item) => {
+    const [from, to] = item.split('->').map(part => part?.trim())
+    if (!from || !to)
+      return
+    const value = getByPath(responseData, from)
+    if (value !== undefined)
+      payload[to] = value
+  })
+}
+
+function getByPath(source, path = '') {
+  return String(path || '').split('.').filter(Boolean).reduce((value, key) => value?.[key], source)
 }
 
 function isTreeTableRuntime(cfg = {}, layoutType = '') {
@@ -1180,6 +1582,7 @@ watch(
     activeRuntimePageKey.value,
     route.query?.recordId || '',
     route.query?.id || '',
+    route.query?._refresh || '',
     renderConfig.value?.configKey || '',
   ],
   () => {

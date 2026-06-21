@@ -569,6 +569,15 @@ export const listPageBlockCatalog = [
     defaultH: 2,
   },
   {
+    blockType: 'grid-layout',
+    group: 'layout',
+    title: '栅格布局',
+    desc: '单行多列容器，每格可设置 span 和 gutter',
+    defaultW: 12,
+    defaultH: 6,
+    container: true,
+  },
+  {
     blockType: 'detail-info',
     group: 'data',
     title: '详情信息',
@@ -934,12 +943,18 @@ export function syncGridLayoutWithModel(layout, modelSchema, options = {}) {
     const meta = resolveListPageBlockMeta(item.blockType) || {}
     const fieldSet = item.blockType === 'search-form' ? searchFieldSet : tableFieldSet
     const refs = (item.fieldRefs || []).filter(field => fieldSet.has(field))
-    const props = item.blockType === 'tree-panel'
+    let props = item.blockType === 'tree-panel'
       ? {
           ...sanitizeGridBlockProps(item.blockType, item.props || {}, new Set(refs), fieldSet),
           ...resolveDefaultTreeConfig(modelSchema, item.props || {}),
         }
       : sanitizeGridBlockProps(item.blockType, item.props || {}, new Set(refs), fieldSet)
+    if (item.blockType === 'grid-layout') {
+      props = {
+        ...props,
+        cells: sanitizeGridCells(props.cells || [], modelSchema, layoutType),
+      }
+    }
     return {
       id: item.id || createBlockId(item.blockType),
       blockType: item.blockType,
@@ -954,7 +969,7 @@ export function syncGridLayoutWithModel(layout, modelSchema, options = {}) {
     }
   })
   const preserveEmpty = hasExplicitItems && !sourceItems.length
-  const items = normalizeGridItemsForLayout(sourceItems, modelSchema, layoutType, modeChanged, preserveEmpty, hasExplicitItems)
+  const items = normalizeGridItemsForLayout(sourceItems, modelSchema, layoutType, modeChanged, preserveEmpty, hasExplicitItems, source.designWidth || LIST_PAGE_DESIGN_WIDTH)
   return {
     cols: Number(source.cols) || LIST_PAGE_GRID_COLS,
     rowHeight: Number(source.rowHeight) || LIST_PAGE_GRID_ROW_HEIGHT,
@@ -965,12 +980,12 @@ export function syncGridLayoutWithModel(layout, modelSchema, options = {}) {
   }
 }
 
-function normalizeGridItemsForLayout(items, modelSchema, layoutType, modeChanged, preserveEmpty = false, hasExplicitItems = false) {
+function normalizeGridItemsForLayout(items, modelSchema, layoutType, modeChanged, preserveEmpty = false, hasExplicitItems = false, designWidth = LIST_PAGE_DESIGN_WIDTH) {
   const next = [...items]
   const isTree = layoutType === 'tree-crud'
   const treeIndex = next.findIndex(item => item.blockType === 'tree-panel')
   const needsTreeInsert = !preserveEmpty && !hasExplicitItems && isTree && treeIndex < 0
-  const needsTreeRepair = !preserveEmpty && isTree && hasTreeLayoutOverlapRisk(next)
+  const needsTreeRepair = !preserveEmpty && isTree && hasTreePanelStructureRisk(next)
   const defaultLayout = (modeChanged || needsTreeInsert || needsTreeRepair)
     ? createDefaultListGridLayout(modelSchema, { layoutType })
     : null
@@ -983,10 +998,10 @@ function normalizeGridItemsForLayout(items, modelSchema, layoutType, modeChanged
   }
 
   if (!modeChanged && !needsTreeInsert && !needsTreeRepair)
-    return next
+    return alignTreeLayoutMainBlocks(next, layoutType, designWidth)
 
   const defaultByType = new Map((defaultLayout?.items || []).map(item => [item.blockType, item]))
-  return next.map((item) => {
+  const repaired = next.map((item) => {
     const repairableTypes = new Set(['search-form', 'toolbar', 'data-table', 'tree-panel', 'AiCrudPage', 'AiTable'])
     const mainTypes = new Set(['search-form', 'toolbar', 'data-table', 'AiCrudPage', 'AiTable'])
     if (!repairableTypes.has(item.blockType))
@@ -1022,21 +1037,92 @@ function normalizeGridItemsForLayout(items, modelSchema, layoutType, modeChanged
             : item.props,
     }
   })
+  return alignTreeLayoutMainBlocks(repaired, layoutType, designWidth)
 }
 
-function hasTreeLayoutOverlapRisk(items = []) {
-  const mainTypes = new Set(['AiCrudPage', 'AiTable', 'data-table', 'search-form', 'toolbar'])
+function hasTreePanelStructureRisk(items = []) {
   const tree = items.find(item => item.blockType === 'tree-panel')
   const treeStyle = tree?.props?.style || {}
-  if (tree && (tree.gridX !== 0 || treeStyle.widthMode !== 'fixed'))
-    return true
-  return items.some((item) => {
-    if (!mainTypes.has(item.blockType))
-      return false
-    const gridX = Number(item.gridX || 0)
-    const styleX = Number(item.props?.style?.x ?? item.props?.style?.left ?? gridX * (LIST_PAGE_GRID_BASE_COL_WIDTH + LIST_PAGE_GRID_GAP))
-    return gridX < 3 || styleX < 3 * (LIST_PAGE_GRID_BASE_COL_WIDTH + LIST_PAGE_GRID_GAP)
+  return !!tree && (tree.gridX !== 0 || treeStyle.widthMode !== 'fixed')
+}
+
+function alignTreeLayoutMainBlocks(items = [], layoutType = 'simple-crud', designWidth = LIST_PAGE_DESIGN_WIDTH) {
+  if (layoutType !== 'tree-crud')
+    return items
+  const tree = items.find(item => item.blockType === 'tree-panel')
+  if (!tree)
+    return items
+  const treeFrame = resolveSchemaItemFrame(tree, designWidth)
+  const mainX = Math.min(
+    Math.max(0, Math.round(treeFrame.x + treeFrame.width + LIST_PAGE_GRID_GAP)),
+    Math.max(0, designWidth - 24),
+  )
+  return items.map((item) => {
+    if (!isTreeMainBlock(item) || !isFullWidthBlock(item) || !isFrameVerticalOverlap(resolveSchemaItemFrame(item, designWidth), treeFrame))
+      return item
+    const itemFrame = resolveSchemaItemFrame(item, designWidth)
+    return {
+      ...item,
+      gridX: pixelXToGridX(mainX, designWidth),
+      gridW: Math.max(1, LIST_PAGE_GRID_COLS - pixelXToGridX(mainX, designWidth)),
+      props: {
+        ...(item.props || {}),
+        style: {
+          ...(item.props?.style || createDefaultBlockStyle()),
+          x: mainX,
+          widthMode: 'full',
+          width: '100%',
+          height: itemFrame.height,
+        },
+      },
+    }
   })
+}
+
+function isTreeMainBlock(item = {}) {
+  return ['AiCrudPage', 'AiTable', 'data-table', 'search-form', 'toolbar'].includes(item.blockType)
+}
+
+function isFullWidthBlock(item = {}) {
+  const style = item.props?.style || {}
+  return style.widthMode === 'full' || style.width === '100%' || style.width === '' || style.width === undefined || style.width === null
+}
+
+function resolveSchemaItemFrame(item = {}, designWidth = LIST_PAGE_DESIGN_WIDTH) {
+  const colWidth = Math.floor((designWidth - (LIST_PAGE_GRID_COLS - 1) * LIST_PAGE_GRID_GAP) / LIST_PAGE_GRID_COLS)
+  const cellWidth = colWidth + LIST_PAGE_GRID_GAP
+  const fallbackX = Number(item.gridX || 0) * cellWidth
+  const fallbackY = Number(item.gridY || 0) * (LIST_PAGE_GRID_ROW_HEIGHT + LIST_PAGE_GRID_GAP)
+  const fallbackWidth = (Number(item.gridW || 1) * colWidth) + (Math.max(1, Number(item.gridW || 1)) - 1) * LIST_PAGE_GRID_GAP
+  const fallbackHeight = (Number(item.gridH || 1) * LIST_PAGE_GRID_ROW_HEIGHT) + (Math.max(1, Number(item.gridH || 1)) - 1) * LIST_PAGE_GRID_GAP
+  const style = item.props?.style || {}
+  const x = resolveStyleNumber(style.x ?? style.left, fallbackX)
+  const y = resolveStyleNumber(style.y ?? style.top, fallbackY)
+  const width = isFullWidthBlock(item)
+    ? Math.max(24, designWidth - x)
+    : Math.max(24, resolveStyleNumber(style.width, fallbackWidth))
+  const height = Math.max(24, resolveStyleNumber(style.height, fallbackHeight))
+  return { x, y, width, height }
+}
+
+function resolveStyleNumber(value, fallback = 0) {
+  if (value === null || value === undefined || value === '' || value === '100%' || value === 'auto')
+    return Math.round(fallback)
+  if (typeof value === 'number')
+    return Math.round(value)
+  const num = Number(String(value).trim().replace('px', ''))
+  return Number.isFinite(num) ? Math.round(num) : Math.round(fallback)
+}
+
+function pixelXToGridX(x = 0, designWidth = LIST_PAGE_DESIGN_WIDTH) {
+  const colWidth = Math.floor((designWidth - (LIST_PAGE_GRID_COLS - 1) * LIST_PAGE_GRID_GAP) / LIST_PAGE_GRID_COLS)
+  return clampNumber(Math.round((Number(x) || 0) / (colWidth + LIST_PAGE_GRID_GAP)), 0, LIST_PAGE_GRID_COLS - 1)
+}
+
+function isFrameVerticalOverlap(a = {}, b = {}) {
+  const aTop = Number(a.y) || 0
+  const bTop = Number(b.y) || 0
+  return aTop < bTop + (Number(b.height) || 0) && bTop < aTop + (Number(a.height) || 0)
 }
 
 export function bootstrapGridLayoutFromZones(zones, modelSchema, options = {}) {
@@ -1237,6 +1323,10 @@ function pickRuntimeTableProps(props = {}) {
     'listDataField',
     'listTotalField',
     'isEncrypt',
+    'publicParams',
+    'publicQuery',
+    'formDefaultValues',
+    'submitDefaultParams',
     'showSearch',
     'showPagination',
     'searchGridCols',
@@ -1279,6 +1369,12 @@ function pickRuntimeTableProps(props = {}) {
     'crudHookRules',
     'beforeSubmitRules',
     'previewLiveData',
+    'previewMode',
+    'previewRecordId',
+    'lastPreviewStatus',
+    'lastPreviewMessage',
+    'lastPreviewError',
+    'lastPreviewAt',
   ]
   return keys.reduce((next, key) => {
     if (Object.prototype.hasOwnProperty.call(props, key))
@@ -1360,12 +1456,18 @@ function sanitizeContainerChildren(children = [], modelSchema = {}, layoutType =
     .filter(child => child && typeof child === 'object' && resolveListPageBlockMeta(child.blockType))
     .map((child) => {
       const meta = resolveListPageBlockMeta(child.blockType) || {}
-      const props = child.blockType === 'tree-panel'
+      let props = child.blockType === 'tree-panel'
         ? {
             ...sanitizeGridBlockProps(child.blockType, child.props || {}),
             ...resolveDefaultTreeConfig(modelSchema, child.props || {}),
           }
         : sanitizeGridBlockProps(child.blockType, child.props || {})
+      if (child.blockType === 'grid-layout') {
+        props = {
+          ...props,
+          cells: sanitizeGridCells(props.cells || [], modelSchema, layoutType),
+        }
+      }
       return {
         id: child.id || createBlockId(child.blockType),
         blockType: child.blockType,
@@ -1383,6 +1485,17 @@ function sanitizeContainerChildren(children = [], modelSchema = {}, layoutType =
       const meta = resolveListPageBlockMeta(child.blockType) || {}
       return !meta.onlyFor || meta.onlyFor.includes(layoutType)
     })
+}
+
+function sanitizeGridCells(cells = [], modelSchema = {}, layoutType = 'simple-crud') {
+  if (!Array.isArray(cells))
+    return []
+  return cells.map((cell, index) => ({
+    key: cell?.key || `cell_${index + 1}`,
+    title: cell?.title ?? `栅格 ${index + 1}`,
+    span: clampNumber(cell?.span ?? 6, 1, 24),
+    children: sanitizeContainerChildren(cell?.children || [], modelSchema, layoutType),
+  }))
 }
 
 function sanitizeFieldSettings(settings = {}, ownerFieldSet = new Set(), queryFieldSet = null) {
@@ -1454,6 +1567,25 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       statusType: 'info',
       size: 'medium',
     }
+  }
+  if (blockType === 'grid-layout') {
+    base.props = {
+      ...base.props,
+      columns: 24,
+      gutter: 16,
+      cellMinHeight: 120,
+      alignItems: 'stretch',
+      justifyItems: 'stretch',
+      showCellBorder: true,
+      cellBackground: 'transparent',
+      cells: Array.from({ length: 4 }).map((_, index) => ({
+        key: `cell_${index + 1}`,
+        title: `栅格 ${index + 1}`,
+        span: 6,
+        children: [],
+      })),
+    }
+    base.children = []
   }
   if (blockType === 'detail-info') {
     base.fieldRefs = filterPageFields(fields, 'detail').slice(0, 8).map(f => f.field)
@@ -1566,8 +1698,11 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       ...base.props,
       text: '操作',
       type: 'primary',
+      size: 'small',
       secondary: false,
       block: false,
+      disabled: false,
+      loading: false,
     }
   }
   if (blockType === 'button-group') {
@@ -1764,7 +1899,17 @@ function createDefaultAiCrudPageProps() {
     customActions: [],
     crudHookRules: {},
     beforeSubmitRules: [],
+    publicParams: {},
+    publicQuery: {},
+    formDefaultValues: {},
+    submitDefaultParams: {},
     previewLiveData: false,
+    previewMode: 'mock',
+    previewRecordId: '',
+    lastPreviewStatus: 'idle',
+    lastPreviewMessage: '当前使用模拟预览，不请求接口',
+    lastPreviewError: '',
+    lastPreviewAt: '',
   }
 }
 

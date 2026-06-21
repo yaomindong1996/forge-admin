@@ -725,18 +725,6 @@ body {
   font-weight: 600;
 }
 
-/* 选中节点左侧指示条 */
-.n-tree-node--selected > .n-tree-node-content::before {
-  position: absolute;
-  top: 6px;
-  bottom: 6px;
-  left: 5px;
-  width: 3px;
-  border-radius: 999px;
-  background: var(--primary-color, #165dff);
-  content: '';
-}
-
 /* 展开/折叠图标 */
 .n-tree-node-switcher {
   width: 20px;
@@ -773,10 +761,6 @@ body {
 
 .dark .n-tree-node--selected > .n-tree-node-content {
   background: color-mix(in srgb, var(--primary-color, #165dff) 16%, transparent);
-}
-
-.dark .n-tree-node--selected > .n-tree-node-content::before {
-  background: var(--primary-color, #4080ff);
 }
 
 .dark .n-tree-node-switcher {

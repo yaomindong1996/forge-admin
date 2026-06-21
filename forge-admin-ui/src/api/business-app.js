@@ -234,7 +234,7 @@ export function businessObjectDesigner(objectId) {
 }
 
 export function saveBusinessObjectDesigner(objectId, data) {
-  return request.put(`/ai/business/object/${objectId}/designer`, data)
+  return request.put(`/ai/business/object/${objectId}/designer`, data || {}, { encrypt: true })
 }
 
 export function businessObjectFields(objectId) {
@@ -242,15 +242,15 @@ export function businessObjectFields(objectId) {
 }
 
 export function createBusinessObjectField(objectId, data) {
-  return request.post(`/ai/business/object/${objectId}/fields`, data)
+  return request.post(`/ai/business/object/${objectId}/fields`, data || {}, { encrypt: true })
 }
 
 export function sortBusinessObjectFields(objectId, fieldCodes) {
-  return request.put(`/ai/business/object/${objectId}/fields/sort`, fieldCodes)
+  return request.put(`/ai/business/object/${objectId}/fields/sort`, fieldCodes || [], { encrypt: true })
 }
 
 export function updateBusinessObjectField(objectId, fieldCode, data) {
-  return request.put(`/ai/business/object/${objectId}/fields/${fieldCode}`, data)
+  return request.put(`/ai/business/object/${objectId}/fields/${fieldCode}`, data || {}, { encrypt: true })
 }
 
 export function deleteBusinessObjectField(objectId, fieldCode) {
@@ -262,19 +262,19 @@ export function businessObjectLayout(objectId, layoutKey) {
 }
 
 export function saveBusinessObjectFormLayout(objectId, data) {
-  return request.put(`/ai/business/object/${objectId}/layout/form`, data)
+  return request.put(`/ai/business/object/${objectId}/layout/form`, data || {}, { encrypt: true })
 }
 
 export function saveBusinessObjectListLayout(objectId, data) {
-  return request.put(`/ai/business/object/${objectId}/layout/list`, data)
+  return request.put(`/ai/business/object/${objectId}/layout/list`, data || {}, { encrypt: true })
 }
 
 export function saveBusinessObjectDetailLayout(objectId, data) {
-  return request.put(`/ai/business/object/${objectId}/layout/detail`, data)
+  return request.put(`/ai/business/object/${objectId}/layout/detail`, data || {}, { encrypt: true })
 }
 
 export function previewBusinessObjectLayout(objectId, data) {
-  return request.post(`/ai/business/object/${objectId}/layout/preview`, data)
+  return request.post(`/ai/business/object/${objectId}/layout/preview`, data || {}, { encrypt: true })
 }
 
 export function businessObjectActions(objectId) {
@@ -282,7 +282,7 @@ export function businessObjectActions(objectId) {
 }
 
 export function saveBusinessObjectActions(objectId, data) {
-  return request.put(`/ai/business/object/${objectId}/actions`, data)
+  return request.put(`/ai/business/object/${objectId}/actions`, data || [], { encrypt: true })
 }
 
 export function businessObjectPermissionSummary(objectId) {
@@ -294,7 +294,7 @@ export function businessObjectPublishCheck(objectId) {
 }
 
 export function publishBusinessObject(objectId, data) {
-  return request.post(`/ai/business/object/${objectId}/publish`, data)
+  return request.post(`/ai/business/object/${objectId}/publish`, data || {}, { encrypt: true })
 }
 
 export function businessObjectDesignVersions(objectId) {

@@ -157,7 +157,11 @@
     title="预览当前表单"
     class="designer-preview-modal"
     :bordered="false"
-    :style="{ width: '70%' }"
+    :style="{
+      width: 'min(1120px, calc(100vw - 40px))',
+      maxWidth: 'calc(100vw - 40px)',
+      height: 'min(860px, calc(100vh - 40px))',
+    }"
   >
     <div class="designer-preview-toolbar">
       <div>
@@ -376,6 +380,7 @@ import {
   createComponentFromField,
   createDefaultFormDesignerSchema,
   normalizeFormDesignerSchema,
+  normalizeFormDesignerSchemaForSave,
 } from '../form-first/formDesignerSchema'
 import ForgeFieldShelf from './ForgeFieldShelf.vue'
 import ForgeFormCanvas from './ForgeFormCanvas.vue'
@@ -727,7 +732,18 @@ function handleCanvasSelectedIdChange(componentId = '') {
 }
 
 function flushDesigner() {
-  return normalizeFormDesignerSchema(normalizedSchema.value)
+  const currentSchema = normalizeFormDesignerSchema(normalizedSchema.value)
+  const sourceSchema = props.modelValue && typeof props.modelValue === 'object' ? props.modelValue : {}
+  return normalizeFormDesignerSchemaForSave({
+    ...sourceSchema,
+    ...currentSchema,
+    defaultFormKey: sourceSchema.defaultFormKey || sourceSchema.settings?.defaultFormKey || currentSchema.settings?.defaultFormKey || currentSchema.formKey,
+    settings: {
+      ...(sourceSchema.settings || {}),
+      ...(currentSchema.settings || {}),
+      formAssets: currentSchema.settings?.formAssets || sourceSchema.settings?.formAssets || [],
+    },
+  })
 }
 
 function countComponents(components = []) {
@@ -1667,16 +1683,39 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
-.designer-preview-modal {
-  width: min(760px, calc(100vw - 48px));
+:global(.designer-preview-modal.n-card) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+}
+
+:global(.designer-preview-modal .n-card-header) {
+  flex: 0 0 auto;
+  min-height: 56px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+:global(.designer-preview-modal .n-card__content),
+:global(.designer-preview-modal .n-card-content) {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  background: #fff;
+  overscroll-behavior: contain;
 }
 
 .designer-preview-toolbar {
+  position: sticky;
+  z-index: 5;
+  top: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  margin: -4px 0 14px;
+  margin: 0 0 14px;
   padding: 10px 12px;
   border: 1px solid #dbe6f5;
   border-radius: 8px;
@@ -1710,7 +1749,10 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 720px;
+  min-height: 100%;
   padding: 2px 0 0;
+  background: #fff;
 }
 
 .designer-preview-runtime-card,

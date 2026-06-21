@@ -1,5 +1,5 @@
 <template>
-  <div class="grid-block" :class="[`block-${block.blockType}`, { selected }]" :style="blockStyle">
+  <div class="grid-block" :class="[`block-${block.blockType}`, { selected }]" :style="blockStyle" :data-block-id="block.id">
     <!-- 查询表单 -->
     <template v-if="block.blockType === 'search-form'">
       <div class="block-header">
@@ -167,13 +167,121 @@
       </div>
     </template>
 
+    <!-- 栅格布局 -->
+    <template v-else-if="block.blockType === 'grid-layout'">
+      <div class="layout-grid-preview" :style="gridLayoutStyle">
+        <div
+          v-for="cell in gridLayoutCells"
+          :key="cell.key"
+          class="layout-grid-cell"
+          :class="{
+            'bordered': block.props?.showCellBorder !== false,
+            'is-drop-active': isActiveDropCell(cell),
+          }"
+          :style="gridCellStyle(cell)"
+          :data-grid-cell-key="cell.key"
+          :data-grid-container-id="block.id"
+        >
+          <div v-if="cell.children?.length" class="layout-grid-cell-body">
+            <div
+              v-for="child in cell.children"
+              :key="child.id"
+              class="layout-grid-cell-child"
+              :class="{ selected: child.id === selectedBlockId }"
+              :style="nestedChildShellStyle(child)"
+              :data-grid-child-id="child.id"
+              @click.stop="emit('childBlockSelect', child.id)"
+            >
+              <div v-if="!readonly" class="nested-block-node-overlay">
+                <span
+                  class="nested-block-drag-handle"
+                  title="拖动组件"
+                  @click.stop
+                  @pointerdown.stop.prevent="emit('childBlockMoveStart', { block: child, event: $event })"
+                >
+                  <svg
+                    width="1em"
+                    height="1em"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M8.25 6.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm0 7.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm1.75 5.5a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0ZM14.753 6.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5ZM16.5 12a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0Zm-1.747 9a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Z"
+                      fill="currentColor"
+                    />
+                  </svg>
+                </span>
+                <n-dropdown
+                  trigger="click"
+                  placement="bottom-end"
+                  :options="nestedBlockMenuOptions"
+                  @select="key => emit('childBlockMenuSelect', { key, block: child })"
+                >
+                  <button
+                    type="button"
+                    class="nested-block-menu-trigger"
+                    title="更多操作"
+                    @click.stop
+                    @mousedown.stop
+                  >
+                    <svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <circle cx="256" cy="256" r="32" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" />
+                      <circle cx="416" cy="256" r="32" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" />
+                      <circle cx="96" cy="256" r="32" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" />
+                    </svg>
+                  </button>
+                </n-dropdown>
+              </div>
+              <GridBlockRenderer
+                :block="child"
+                :fields="fields"
+                :selected="child.id === selectedBlockId"
+                :selected-block-id="selectedBlockId"
+                :readonly="readonly"
+                :runtime-crud-props="runtimeCrudProps"
+                :runtime-record="runtimeRecord"
+                :active-drop-cell="activeDropCell"
+                @child-block-select="emit('childBlockSelect', $event)"
+                @child-block-menu-select="emit('childBlockMenuSelect', $event)"
+                @child-block-drag-start="emit('childBlockDragStart', $event)"
+                @child-block-move-start="emit('childBlockMoveStart', $event)"
+                @child-block-drag-end="emit('childBlockDragEnd')"
+                @child-block-resize-start="emit('childBlockResizeStart', $event)"
+              />
+              <template v-if="!readonly && child.id === selectedBlockId">
+                <button
+                  v-for="anchor in resizeAnchors"
+                  :key="anchor"
+                  type="button"
+                  class="nested-resize-anchor"
+                  :class="`anchor-${anchor}`"
+                  title="调整组件大小"
+                  @pointerdown.stop="emit('childBlockResizeStart', { block: child, event: $event, anchor })"
+                />
+              </template>
+            </div>
+          </div>
+          <div v-if="isActiveDropCell(cell)" class="layout-grid-cell-drop-preview">
+            释放到此格
+          </div>
+          <div v-else-if="!readonly && !cell.children?.length" class="layout-grid-cell-empty">
+            拖入组件
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- 系统 AiCrudPage 组件 -->
     <template v-else-if="block.blockType === 'AiCrudPage'">
       <div class="system-component-preview ai-crud-preview">
         <AiCrudPage
-          v-if="runtimeCrudProps"
+          v-if="effectiveRuntimeCrudProps"
           ref="runtimeCrudRef"
-          v-bind="runtimeCrudProps"
+          v-bind="effectiveRuntimeCrudProps"
+          @load-list-success="handleCrudPreviewSuccess"
+          @load-list-error="handleCrudPreviewError"
         />
         <AiCrudPage
           v-else
@@ -218,6 +326,7 @@
           :export-file-name="block.props?.exportFileName || ''"
           :render-mode="block.props?.renderMode || 'table'"
           :show-render-mode-switch="block.props?.showRenderModeSwitch !== false"
+          :enable-tree-add-child="block.props?.enableTreeAddChild === true"
           :table-size="block.props?.tableSize || 'small'"
           :bordered="!!block.props?.bordered"
           :striped="!!block.props?.striped"
@@ -228,7 +337,13 @@
           :list-data-field="block.props?.listDataField || 'records'"
           :list-total-field="block.props?.listTotalField || 'total'"
           :is-encrypt="block.props?.isEncrypt === true"
+          :public-params="block.props?.publicParams || {}"
+          :public-query="block.props?.publicQuery || {}"
+          :form-default-values="block.props?.formDefaultValues || {}"
+          :submit-default-params="block.props?.submitDefaultParams || {}"
           v-bind="designerCrudHookHandlers"
+          @load-list-success="handleCrudPreviewSuccess"
+          @load-list-error="handleCrudPreviewError"
         />
       </div>
     </template>
@@ -299,25 +414,29 @@
         >
           <span>{{ treePanelCollapsed ? '›' : '‹' }}</span>
         </button>
-        <div v-if="treePanelCollapsed" class="tree-panel-rail">
-          <span>筛选树</span>
-          <strong>{{ block.props?.treeTitle || '筛选树' }}</strong>
+        <div
+          v-if="treePanelCollapsed"
+          class="tree-panel-rail"
+          :title="block.props?.treeTitle || '筛选树'"
+        >
+          <span>树</span>
         </div>
         <div v-else class="tree-preview-head">
           <div>
             <strong>{{ block.props?.treeTitle || '筛选树' }}</strong>
             <span>{{ block.props?.sourceModelName || '按树节点筛选右侧列表' }}</span>
           </div>
-          <div class="tree-head-actions">
-            <small>{{ block.props?.loadMode === 'lazy' ? '懒加载' : '全量' }}</small>
-            <div class="tree-expand-actions">
-              <button type="button" @click.stop="expandTree">
-                展开
-              </button>
-              <button type="button" @click.stop="collapseTree">
-                收起
-              </button>
-            </div>
+          <small>{{ block.props?.loadMode === 'lazy' ? '懒加载' : '全量' }}</small>
+        </div>
+        <div v-if="!treePanelCollapsed" class="tree-node-toolbar">
+          <span>节点层级</span>
+          <div class="tree-expand-actions">
+            <button type="button" @click.stop="expandTree">
+              展开
+            </button>
+            <button type="button" @click.stop="collapseTree">
+              收起
+            </button>
           </div>
         </div>
         <template v-if="!treePanelCollapsed && readonly && runtimeCrudProps">
@@ -421,16 +540,21 @@
 
     <!-- 单按钮 -->
     <template v-else-if="block.blockType === 'action-button'">
-      <div class="action-button-preview">
+      <div v-if="actionButtonVisible" class="action-button-preview" :class="{ 'is-block': !!block.props?.block }">
         <n-button
           :type="block.props?.type === 'default' ? undefined : block.props?.type"
           :secondary="!!block.props?.secondary"
           :block="!!block.props?.block"
-          size="small"
-          disabled
+          :disabled="!!block.props?.disabled"
+          :loading="!!block.props?.loading"
+          :size="block.props?.size || 'small'"
+          @click.stop="handleActionButtonClick"
         >
           {{ block.props?.text || '操作' }}
         </n-button>
+      </div>
+      <div v-else class="block-empty">
+        当前权限或显示条件不满足
       </div>
     </template>
 
@@ -561,10 +685,18 @@
               :key="child.id"
               :block="child"
               :fields="fields"
-              :selected="false"
+              :selected="child.id === selectedBlockId"
+              :selected-block-id="selectedBlockId"
               :readonly="readonly"
               :runtime-crud-props="runtimeCrudProps"
               :runtime-record="runtimeRecord"
+              :active-drop-cell="activeDropCell"
+              @click.stop="emit('childBlockSelect', child.id)"
+              @child-block-select="emit('childBlockSelect', $event)"
+              @child-block-menu-select="emit('childBlockMenuSelect', $event)"
+              @child-block-move-start="emit('childBlockMoveStart', $event)"
+              @child-block-drag-end="emit('childBlockDragEnd')"
+              @child-block-resize-start="emit('childBlockResizeStart', $event)"
             />
           </div>
           <div v-else-if="!block.props?.content" class="container-empty">
@@ -589,10 +721,18 @@
               :key="child.id"
               :block="child"
               :fields="fields"
-              :selected="false"
+              :selected="child.id === selectedBlockId"
+              :selected-block-id="selectedBlockId"
               :readonly="readonly"
               :runtime-crud-props="runtimeCrudProps"
               :runtime-record="runtimeRecord"
+              :active-drop-cell="activeDropCell"
+              @click.stop="emit('childBlockSelect', child.id)"
+              @child-block-select="emit('childBlockSelect', $event)"
+              @child-block-menu-select="emit('childBlockMenuSelect', $event)"
+              @child-block-move-start="emit('childBlockMoveStart', $event)"
+              @child-block-drag-end="emit('childBlockDragEnd')"
+              @child-block-resize-start="emit('childBlockResizeStart', $event)"
             />
           </div>
           <div v-else class="sub-tab-empty">
@@ -622,6 +762,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AiCrudPage from '@/components/ai-form/AiCrudPage.vue'
 import AiForm from '@/components/ai-form/AiForm.vue'
 import AiTable from '@/components/ai-form/AiTable.vue'
+import { useUserStore } from '@/store'
 import { request } from '@/utils'
 import { applyCrudHookRules, CRUD_HOOK_RULE_TARGETS, normalizeCrudHookRules } from './crud-hook-rules'
 
@@ -654,12 +795,31 @@ const props = defineProps({
     type: [String, Number],
     default: '__all__',
   },
+  selectedBlockId: {
+    type: String,
+    default: '',
+  },
+  activeDropCell: {
+    type: Object,
+    default: null,
+  },
 })
 
-const emit = defineEmits(['runtimeTreeSelect', 'treePanelCollapseChange'])
+const emit = defineEmits([
+  'runtimeTreeSelect',
+  'treePanelCollapseChange',
+  'crudPreviewStateChange',
+  'childBlockSelect',
+  'childBlockMenuSelect',
+  'childBlockDragStart',
+  'childBlockMoveStart',
+  'childBlockDragEnd',
+  'childBlockResizeStart',
+])
 
 const route = useRoute()
 const router = useRouter()
+const userStore = useUserStore()
 const fieldMap = computed(() => new Map(props.fields.map(f => [f.field, f])))
 const resolvedFields = computed(() => (props.block.fieldRefs || [])
   .map(ref => fieldMap.value.get(ref))
@@ -675,6 +835,79 @@ const treePanelCollapsed = ref(false)
 const runtimeTreeChildrenField = computed(() => props.block.props?.childrenField || 'children')
 const runtimeSelectedTreeKeys = computed(() => props.runtimeTreeActiveKey === '__all__' ? [] : [props.runtimeTreeActiveKey])
 const runtimeTreeTotal = computed(() => countTreeNodes(runtimeTreeNodes.value, runtimeTreeChildrenField.value))
+const resizeAnchors = ['top-left', 'top', 'top-right', 'right', 'bottom-right', 'bottom', 'bottom-left', 'left']
+const nestedBlockMenuOptions = [
+  { label: '复制', key: 'duplicate' },
+  { label: '删除', key: 'delete' },
+]
+const crudPreviewMode = computed(() => props.block.props?.previewMode || (props.block.props?.previewLiveData === true ? 'realList' : 'mock'))
+const gridLayoutCells = computed(() => {
+  const rawCells = Array.isArray(props.block.props?.cells) ? props.block.props.cells : []
+  const sourceCells = rawCells.length ? rawCells : [{ key: 'cell_1', title: '栅格 1', span: 24, children: [] }]
+  return sourceCells.map((cell, index) => {
+    return {
+      key: cell.key || `cell_${index + 1}`,
+      title: cell.title ?? `栅格 ${index + 1}`,
+      span: clampGridSpan(cell.span, 6),
+      children: Array.isArray(cell.children) ? cell.children : [],
+    }
+  })
+})
+const gridLayoutStyle = computed(() => ({
+  gridTemplateColumns: `repeat(${Math.max(1, Number(props.block.props?.columns || 24))}, minmax(0, 1fr))`,
+  gap: `${Math.max(0, Number(props.block.props?.rowGap ?? 0))}px ${Math.max(0, Number(props.block.props?.gutter ?? props.block.props?.gap ?? 16))}px`,
+  alignItems: props.block.props?.alignItems || 'stretch',
+  justifyItems: props.block.props?.justifyItems || 'stretch',
+}))
+function gridCellStyle(cell = {}) {
+  return {
+    gridColumn: `span ${clampGridSpan(cell.span, 6)}`,
+    minHeight: `${Math.max(24, Number(props.block.props?.cellMinHeight || 120))}px`,
+    backgroundColor: props.block.props?.cellBackground || 'transparent',
+  }
+}
+function isActiveDropCell(cell = {}) {
+  return props.activeDropCell?.containerId === props.block.id && props.activeDropCell?.cellKey === cell.key
+}
+function clampGridSpan(value, fallback = 1) {
+  const columns = Math.max(1, Number(props.block.props?.columns || 24))
+  const number = Number(value)
+  return Math.max(1, Math.min(columns, Number.isFinite(number) ? number : fallback))
+}
+function nestedChildShellStyle(child = {}) {
+  const style = child.props?.style || {}
+  const widthMode = style.widthMode || (style.width === '100%' || !style.width ? 'full' : 'fixed')
+  const x = Math.max(0, Number(style.x ?? style.left ?? 0) || 0)
+  const y = Math.max(0, Number(style.y ?? style.top ?? 0) || 0)
+  const width = widthMode === 'fixed'
+    ? normalizeCssSize(style.width, '100%')
+    : widthMode === 'auto' ? 'auto' : `calc(100% - ${x}px)`
+  return {
+    left: `${x}px`,
+    top: `${y}px`,
+    width,
+    height: normalizeCssSize(style.height, ''),
+  }
+}
+function normalizeCssSize(value, fallback = '') {
+  if (value === null || value === undefined || value === '')
+    return fallback
+  if (typeof value === 'number')
+    return `${value}px`
+  const text = String(value).trim()
+  if (!text)
+    return fallback
+  return /^\d+(?:\.\d+)?$/.test(text) ? `${text}px` : text
+}
+const actionButtonVisible = computed(() => {
+  if (props.block.blockType !== 'action-button')
+    return true
+  if (!props.readonly)
+    return true
+  const eventItem = resolvePrimaryClickEvent()
+  return hasRuntimePermission(eventItem?.permissionCode)
+    && matchDisplayCondition(eventItem?.displayCondition, props.runtimeRecord || {})
+})
 const blockStyle = computed(() => {
   const style = {
     width: '100%',
@@ -767,6 +1000,101 @@ const aiFormSchema = computed(() => {
   const formFields = props.fields.length ? props.fields : resolvedFields.value
   return formFields.map(field => toAiFormField(field, 'form'))
 })
+const blockApiConfig = computed(() => ({
+  list: props.block.props?.listApi || '',
+  detail: props.block.props?.detailApi || '',
+  create: props.block.props?.createApi || '',
+  update: props.block.props?.updateApi || '',
+  delete: props.block.props?.deleteApi || '',
+  import: props.block.props?.importApi || '',
+  export: props.block.props?.exportApi || '',
+}))
+const effectiveRuntimeCrudProps = computed(() => {
+  if (!props.runtimeCrudProps)
+    return null
+  const blockProps = props.block.props || {}
+  const rules = normalizeCrudHookRules(blockProps.crudHookRules || {}, blockProps.beforeSubmitRules || [])
+  const hookHandlers = CRUD_HOOK_RULE_TARGETS.reduce((handlers, target) => {
+    const list = (rules[target.value] || []).filter(rule => rule.field)
+    if (list.length)
+      handlers[target.value] = data => applyCrudHookRules(data, list)
+    return handlers
+  }, {})
+  return {
+    ...props.runtimeCrudProps,
+    ...hookHandlers,
+    api: blockProps.api || props.runtimeCrudProps.api || '',
+    rowKey: blockProps.rowKey || props.runtimeCrudProps.rowKey || 'id',
+    title: blockProps.title || props.runtimeCrudProps.title,
+    columns: props.runtimeCrudProps.columns?.length ? props.runtimeCrudProps.columns : aiTableColumns.value,
+    searchSchema: props.runtimeCrudProps.searchSchema?.length ? props.runtimeCrudProps.searchSchema : aiSearchSchema.value,
+    editSchema: props.runtimeCrudProps.editSchema?.length ? props.runtimeCrudProps.editSchema : aiFormSchema.value,
+    apiConfig: {
+      ...(props.runtimeCrudProps.apiConfig || {}),
+      ...Object.fromEntries(Object.entries(blockApiConfig.value).filter(([, value]) => value)),
+    },
+    showSearch: blockProps.showSearch ?? props.runtimeCrudProps.showSearch,
+    showPagination: blockProps.showPagination ?? props.runtimeCrudProps.showPagination,
+    searchGridCols: blockProps.searchGridCols || props.runtimeCrudProps.searchGridCols,
+    searchLabelWidth: blockProps.searchLabelWidth || props.runtimeCrudProps.searchLabelWidth,
+    searchEnableCollapse: blockProps.searchEnableCollapse ?? props.runtimeCrudProps.searchEnableCollapse,
+    searchMaxVisibleFields: blockProps.searchMaxVisibleFields || props.runtimeCrudProps.searchMaxVisibleFields,
+    searchYGap: blockProps.searchYGap ?? props.runtimeCrudProps.searchYGap,
+    editGridCols: blockProps.editGridCols || props.runtimeCrudProps.editGridCols,
+    editLabelWidth: blockProps.editLabelWidth || props.runtimeCrudProps.editLabelWidth,
+    editLabelPlacement: blockProps.editLabelPlacement || props.runtimeCrudProps.editLabelPlacement,
+    editLabelAlign: blockProps.editLabelAlign || props.runtimeCrudProps.editLabelAlign,
+    editSize: blockProps.editSize || props.runtimeCrudProps.editSize,
+    editShowFeedback: blockProps.editShowFeedback ?? props.runtimeCrudProps.editShowFeedback,
+    editXGap: blockProps.editXGap ?? props.runtimeCrudProps.editXGap,
+    editYGap: blockProps.editYGap ?? props.runtimeCrudProps.editYGap,
+    modalWidth: blockProps.modalWidth || props.runtimeCrudProps.modalWidth,
+    detailModalWidth: blockProps.detailModalWidth || props.runtimeCrudProps.detailModalWidth,
+    modalType: blockProps.modalType || props.runtimeCrudProps.modalType,
+    drawerPlacement: blockProps.drawerPlacement || props.runtimeCrudProps.drawerPlacement,
+    hideModalFooter: blockProps.hideModalFooter ?? props.runtimeCrudProps.hideModalFooter,
+    hideDefaultDetailContent: blockProps.hideDefaultDetailContent ?? props.runtimeCrudProps.hideDefaultDetailContent,
+    hideToolbar: blockProps.hideToolbar ?? props.runtimeCrudProps.hideToolbar,
+    hideAdd: blockProps.hideAdd ?? props.runtimeCrudProps.hideAdd,
+    hideBatchDelete: blockProps.hideBatchDelete ?? props.runtimeCrudProps.hideBatchDelete,
+    showImport: blockProps.showImport ?? props.runtimeCrudProps.showImport,
+    showExport: blockProps.showExport ?? props.runtimeCrudProps.showExport,
+    showExportTasks: blockProps.showExportTasks ?? props.runtimeCrudProps.showExportTasks,
+    enableCustomQuery: blockProps.enableCustomQuery ?? props.runtimeCrudProps.enableCustomQuery,
+    addButtonText: blockProps.addButtonText || props.runtimeCrudProps.addButtonText,
+    exportButtonText: blockProps.exportButtonText || props.runtimeCrudProps.exportButtonText,
+    exportFileName: blockProps.exportFileName || props.runtimeCrudProps.exportFileName,
+    renderMode: blockProps.renderMode || props.runtimeCrudProps.renderMode,
+    showRenderModeSwitch: blockProps.showRenderModeSwitch ?? props.runtimeCrudProps.showRenderModeSwitch,
+    enableTreeAddChild: blockProps.enableTreeAddChild ?? props.runtimeCrudProps.enableTreeAddChild,
+    tableSize: blockProps.tableSize || props.runtimeCrudProps.tableSize,
+    bordered: blockProps.bordered ?? props.runtimeCrudProps.bordered,
+    striped: blockProps.striped ?? props.runtimeCrudProps.striped,
+    hideSelection: blockProps.hideSelection ?? props.runtimeCrudProps.hideSelection,
+    maxHeight: blockProps.maxHeight || props.runtimeCrudProps.maxHeight,
+    scrollX: blockProps.scrollX || props.runtimeCrudProps.scrollX,
+    listMethod: blockProps.listMethod || props.runtimeCrudProps.listMethod,
+    listDataField: blockProps.listDataField || props.runtimeCrudProps.listDataField,
+    listTotalField: blockProps.listTotalField || props.runtimeCrudProps.listTotalField,
+    isEncrypt: blockProps.isEncrypt ?? props.runtimeCrudProps.isEncrypt,
+    publicParams: {
+      ...(props.runtimeCrudProps.publicParams || {}),
+      ...(blockProps.publicParams || {}),
+    },
+    publicQuery: {
+      ...(props.runtimeCrudProps.publicQuery || {}),
+      ...(blockProps.publicQuery || {}),
+    },
+    formDefaultValues: {
+      ...(props.runtimeCrudProps.formDefaultValues || {}),
+      ...(blockProps.formDefaultValues || {}),
+    },
+    submitDefaultParams: {
+      ...(props.runtimeCrudProps.submitDefaultParams || {}),
+      ...(blockProps.submitDefaultParams || {}),
+    },
+  }
+})
 const designerCrudHookHandlers = computed(() => {
   const rules = normalizeCrudHookRules(props.block.props?.crudHookRules || {}, props.block.props?.beforeSubmitRules || [])
   return CRUD_HOOK_RULE_TARGETS.reduce((handlers, target) => {
@@ -775,6 +1103,13 @@ const designerCrudHookHandlers = computed(() => {
       handlers[target.value] = data => applyCrudHookRules(data, list)
     return handlers
   }, {})
+})
+const livePreviewRecord = computed(() => {
+  const rowKey = props.block.props?.rowKey || props.runtimeCrudProps?.rowKey || 'id'
+  const id = props.block.props?.previewRecordId
+  return id === undefined || id === null || id === ''
+    ? props.runtimeRecord || {}
+    : { ...(props.runtimeRecord || {}), [rowKey]: id }
 })
 const blockTableRowHeight = computed(() => `${Math.max(34, 32 + Number(props.block.props?.rowGap ?? 8))}px`)
 const detailInfoGridStyle = computed(() => ({
@@ -841,7 +1176,7 @@ function renderTableCell(field, row = {}) {
   const isLink = setting.renderType === 'link' || setting.clickAction === 'navigate'
   if (isLink) {
     const targetTip = setting.targetPageKey
-      ? `跳转到：${setting.targetPageKey}，参数 ${setting.targetParamName || 'id'} = ${setting.targetParamField || 'id'}`
+      ? `跳转到：${setting.targetPageKey}${setting.targetFormKey ? ` / ${setting.targetFormKey}` : ''}，参数 ${setting.targetParamName || 'id'} = ${setting.targetParamField || 'id'}`
       : '跳转页面'
     return h('a', {
       href: '#',
@@ -937,7 +1272,7 @@ function detailValue(field, idx) {
 async function loadRuntimeTree() {
   if (!props.readonly || props.block.blockType !== 'tree-panel' || !props.runtimeCrudProps)
     return
-  const treeApi = props.runtimeCrudProps.apiConfig?.tree
+  const treeApi = effectiveRuntimeCrudProps.value?.apiConfig?.tree
   if (!treeApi)
     return
   runtimeTreeLoading.value = true
@@ -1074,19 +1409,300 @@ function handleRuntimeTreeSelected(keys = []) {
   })
 }
 
+function emitCrudPreviewState(patch = {}) {
+  if (props.block.blockType !== 'AiCrudPage')
+    return
+  emit('crudPreviewStateChange', {
+    blockId: props.block.id,
+    patch: {
+      lastPreviewAt: new Date().toISOString(),
+      ...patch,
+    },
+  })
+}
+
+function handleCrudPreviewSuccess(payload = {}) {
+  if (props.block.props?.previewLiveData !== true)
+    return
+  emitCrudPreviewState({
+    lastPreviewStatus: 'success',
+    lastPreviewError: '',
+    lastPreviewMessage: `接口预览成功，读取 ${Number(payload.total ?? payload.list?.length ?? 0)} 条数据`,
+  })
+  applyCrudPreviewMode(payload?.list || [])
+}
+
+function handleCrudPreviewError(error) {
+  if (props.block.props?.previewLiveData !== true)
+    return
+  emitCrudPreviewState({
+    lastPreviewStatus: 'error',
+    lastPreviewError: error?.message || '接口请求失败',
+    lastPreviewMessage: '接口预览失败，请检查接口地址、响应字段或权限',
+  })
+}
+
+async function applyCrudPreviewMode(list = []) {
+  await Promise.resolve()
+  const mode = crudPreviewMode.value
+  if (!['create', 'edit', 'detail'].includes(mode))
+    return
+  const crud = runtimeCrudRef.value
+  if (!crud)
+    return
+  if (mode === 'create') {
+    crud.showAdd?.(props.block.props?.formDefaultValues || {})
+    emitCrudPreviewState({
+      lastPreviewStatus: 'success',
+      lastPreviewMessage: '新增表单预览已打开',
+      lastPreviewError: '',
+    })
+    return
+  }
+  const row = Object.keys(livePreviewRecord.value || {}).length
+    ? livePreviewRecord.value
+    : list[0]
+  if (!row) {
+    emitCrudPreviewState({
+      lastPreviewStatus: 'error',
+      lastPreviewError: '缺少预览记录，请填写记录 ID 或确保列表接口返回数据',
+      lastPreviewMessage: '无法打开编辑/详情预览',
+    })
+    return
+  }
+  if (mode === 'edit') {
+    await crud.showEdit?.(row)
+    emitCrudPreviewState({
+      lastPreviewStatus: 'success',
+      lastPreviewMessage: '编辑表单预览已打开',
+      lastPreviewError: '',
+    })
+    return
+  }
+  await crud.showDetail?.(row)
+  emitCrudPreviewState({
+    lastPreviewStatus: 'success',
+    lastPreviewMessage: '详情状态预览已打开',
+    lastPreviewError: '',
+  })
+}
+
 function handleBackClick() {
   if (!props.readonly)
     return
+  if (props.block.props?.action === 'navigate' && props.block.props?.targetPageKey) {
+    const query = { ...route.query, pageKey: props.block.props.targetPageKey }
+    ;['mode', 'id', 'recordId'].forEach(key => delete query[key])
+    if (props.block.props.targetFormKey)
+      query.formKey = props.block.props.targetFormKey
+    else
+      delete query.formKey
+    router.replace({
+      path: route.path,
+      query,
+      hash: route.hash,
+    })
+    return
+  }
   if (window.history.length > 1) {
     router.back()
     return
   }
   const query = { ...route.query }
-  ;['pageKey', 'mode', 'id', 'recordId'].forEach(key => delete query[key])
+  ;['pageKey', 'formKey', 'mode', 'id', 'recordId'].forEach(key => delete query[key])
   router.replace({
     path: route.path,
     query,
     hash: route.hash,
+  })
+}
+
+async function handleActionButtonClick() {
+  if (!props.readonly)
+    return
+  const eventItem = resolvePrimaryClickEvent()
+  if (!eventItem || eventItem.action === 'none')
+    return
+  if (eventItem.confirmText && !(await confirmRuntimeAction(resolveRuntimeText(eventItem.confirmText))))
+    return
+  if (eventItem.action === 'navigate') {
+    navigateRuntimeEvent(eventItem)
+    return
+  }
+  if (eventItem.action === 'request') {
+    await requestRuntimeEvent(eventItem)
+    handleRuntimeEventSuccess(eventItem)
+  }
+}
+
+function resolvePrimaryClickEvent() {
+  const events = Array.isArray(props.block.props?.events) ? props.block.props.events : []
+  return events.find(item => (item.trigger || 'click') === 'click') || null
+}
+
+function navigateRuntimeEvent(eventItem = {}) {
+  if (!eventItem.targetPageKey)
+    return
+  const query = {
+    ...route.query,
+    pageKey: eventItem.targetPageKey,
+  }
+  if (eventItem.targetFormKey)
+    query.formKey = eventItem.targetFormKey
+  else
+    delete query.formKey
+  appendRuntimeEventParams(query, eventItem.params || [])
+  router.push({ path: route.path, query, hash: route.hash })
+}
+
+async function requestRuntimeEvent(eventItem = {}) {
+  const apiConfig = parseRuntimeApiConfig(eventItem.requestUrl)
+  if (!apiConfig.url)
+    return
+  const payload = {}
+  appendRuntimeEventParams(payload, eventItem.params || [])
+  await request({
+    method: apiConfig.method,
+    url: apiConfig.url,
+    ...(apiConfig.method === 'get' ? { params: payload } : { data: payload }),
+  })
+}
+
+function appendRuntimeEventParams(target = {}, params = []) {
+  ;(Array.isArray(params) ? params : []).forEach((param) => {
+    const name = String(param?.name || '').trim()
+    if (!name)
+      return
+    const value = resolveRuntimeParamValue(param)
+    if (value !== undefined && value !== '')
+      target[name] = value
+  })
+  return target
+}
+
+function resolveRuntimeParamValue(param = {}) {
+  const sourceType = param.sourceType || 'static'
+  const sourceField = String(param.sourceField || '').trim()
+  if (sourceType === 'rowField' && sourceField)
+    return props.runtimeRecord?.[sourceField] ?? ''
+  if (sourceType === 'routeQuery' && sourceField)
+    return route.query?.[sourceField] ?? ''
+  if (sourceType === 'system' && sourceField)
+    return resolveSystemRuntimeParam(sourceField)
+  return resolveRuntimeText(param.value || '')
+}
+
+function resolveRuntimeText(template = '') {
+  let text = String(template || '')
+  const data = props.runtimeRecord || {}
+  Object.keys(data).forEach((key) => {
+    const value = data[key]
+    if (value === null || value === undefined || value === '')
+      return
+    text = text.replaceAll(`:${key}`, value)
+    text = text.replaceAll(`\${${key}}`, value)
+  })
+  Object.keys(route.query || {}).forEach((key) => {
+    const value = route.query[key]
+    if (value === null || value === undefined || value === '')
+      return
+    text = text.replaceAll(resolveTemplatePlaceholder(`route.${key}`), Array.isArray(value) ? value[0] : value)
+  })
+  return text
+    .replaceAll(resolveTemplatePlaceholder('system.now'), new Date().toISOString())
+    .replaceAll(resolveTemplatePlaceholder('system.today'), new Date().toISOString().slice(0, 10))
+}
+
+function resolveTemplatePlaceholder(name = '') {
+  return ['$', '{', name, '}'].join('')
+}
+
+function resolveSystemRuntimeParam(sourceField = '') {
+  if (sourceField === 'now')
+    return new Date().toISOString()
+  if (sourceField === 'today')
+    return new Date().toISOString().slice(0, 10)
+  if (sourceField === 'tenantId')
+    return route.query?.tenantId || ''
+  return ''
+}
+
+function hasRuntimePermission(permissionCode = '') {
+  const code = String(permissionCode || '').trim()
+  if (!code)
+    return true
+  if (userStore.isAdmin || userStore.isTenantAdmin)
+    return true
+  const permissions = [
+    ...(Array.isArray(userStore.permissions) ? userStore.permissions : []),
+    ...(Array.isArray(userStore.apiPermissions) ? userStore.apiPermissions : []),
+    ...(Array.isArray(userStore.getDataPermission) ? userStore.getDataPermission : []),
+  ]
+  return permissions.includes('**') || permissions.includes(code)
+}
+
+function matchDisplayCondition(expression = '', row = {}) {
+  const text = String(expression || '').trim()
+  if (!text)
+    return true
+  const lowerText = text.toLowerCase()
+  const inIndex = lowerText.indexOf(' in ')
+  if (inIndex > 0) {
+    const actual = resolveConditionValue(row, text.slice(0, inIndex).trim())
+    return text.slice(inIndex + 4).split(',').map(item => item.trim()).filter(Boolean).includes(String(actual ?? ''))
+  }
+  const operator = text.includes('!=') ? '!=' : text.includes('==') ? '==' : text.includes('=') ? '=' : ''
+  if (operator) {
+    const [fieldName, ...expectedParts] = text.split(operator)
+    const actual = String(resolveConditionValue(row, fieldName.trim()) ?? '')
+    const expected = String(expectedParts.join(operator) || '').trim().replace(/^['"]|['"]$/g, '')
+    return operator === '!=' ? actual !== expected : actual === expected
+  }
+  return true
+}
+
+function resolveConditionValue(row = {}, path = '') {
+  return String(path || '').split('.').filter(Boolean).reduce((value, key) => value?.[key], row)
+}
+
+function parseRuntimeApiConfig(value = '') {
+  const text = String(value || '').trim()
+  const [method, ...urlParts] = text.includes('@') ? text.split('@') : ['post', text]
+  return {
+    method: String(method || 'post').toLowerCase(),
+    url: urlParts.join('@') || text,
+  }
+}
+
+function handleRuntimeEventSuccess(eventItem = {}) {
+  if (eventItem.successBehavior === 'goBack') {
+    router.back()
+  }
+  else if (eventItem.successBehavior === 'refreshList') {
+    router.replace({
+      path: route.path,
+      query: { ...route.query, _refresh: Date.now() },
+      hash: route.hash,
+    })
+  }
+}
+
+function confirmRuntimeAction(message = '确认执行该操作？') {
+  if (!window.$dialog?.warning) {
+    const nativeConfirm = globalThis?.confirm
+    return Promise.resolve(typeof nativeConfirm !== 'function' || nativeConfirm(message))
+  }
+  return new Promise((resolve) => {
+    window.$dialog.warning({
+      title: '确认操作',
+      content: message,
+      positiveText: '确定',
+      negativeText: '取消',
+      onPositiveClick: () => resolve(true),
+      onNegativeClick: () => resolve(false),
+      onClose: () => resolve(false),
+      onMaskClick: () => resolve(false),
+    })
   })
 }
 
@@ -1132,6 +1748,24 @@ watch(
   ],
   () => loadRuntimeTree(),
 )
+
+watch(
+  () => [
+    props.block.props?.previewLiveData,
+    crudPreviewMode.value,
+    props.block.props?.previewRecordId,
+  ],
+  () => {
+    if (props.block.blockType !== 'AiCrudPage' || props.block.props?.previewLiveData !== true)
+      return
+    emitCrudPreviewState({
+      lastPreviewStatus: 'loading',
+      lastPreviewMessage: '正在请求真实接口预览',
+      lastPreviewError: '',
+    })
+    runtimeCrudRef.value?.loadList?.()
+  },
+)
 </script>
 
 <style scoped>
@@ -1145,6 +1779,11 @@ watch(
   border-radius: 0;
   background: transparent;
   overflow: hidden;
+}
+
+.grid-block.block-AiCrudPage {
+  min-width: 0;
+  overflow: visible;
 }
 
 .grid-block.selected {
@@ -1376,6 +2015,256 @@ watch(
   height: var(--block-table-row-height, 40px);
 }
 
+.layout-grid-preview {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.layout-grid-cell {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px;
+  border-radius: 6px;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.layout-grid-cell.bordered {
+  border: 1px dashed #cbd5e1;
+}
+
+.layout-grid-cell::after {
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  content: '';
+  border: 2px solid transparent;
+  border-radius: 7px;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.layout-grid-cell:hover,
+.layout-grid-cell.is-drop-active {
+  background-color: rgba(37, 99, 235, 0.04);
+}
+
+.layout-grid-cell.is-drop-active::after {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.layout-grid-cell-body {
+  position: absolute;
+  inset: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.layout-grid-cell-child {
+  position: absolute;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+  cursor: pointer;
+}
+
+.nested-block-node-overlay {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  left: 6px;
+  z-index: 36;
+  height: 24px;
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 160ms ease;
+}
+
+.layout-grid-cell-child:hover .nested-block-node-overlay,
+.layout-grid-cell-child.selected .nested-block-node-overlay {
+  opacity: 1;
+}
+
+.nested-block-drag-handle,
+.nested-block-menu-trigger {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 24px;
+  border: 1px solid #bfdbfe;
+  border-radius: 5px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.14);
+}
+
+.nested-block-drag-handle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: grab;
+}
+
+.nested-block-drag-handle svg {
+  width: 15px;
+  height: 15px;
+  transform: rotate(90deg);
+}
+
+.nested-block-menu-trigger {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0;
+  background: #1d4ed8;
+  color: #fff;
+  cursor: pointer;
+}
+
+.nested-block-drag-handle:hover,
+.nested-block-menu-trigger:hover {
+  background: #2563eb;
+  color: #fff;
+}
+
+.nested-block-drag-handle:active {
+  cursor: grabbing;
+}
+
+:global(.list-grid-nested-moving),
+:global(.list-grid-nested-moving *) {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+.nested-resize-anchor {
+  position: absolute;
+  z-index: 38;
+  display: block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #1d4ed8;
+  box-shadow: 0 2px 6px rgba(29, 78, 216, 0.36);
+}
+
+.nested-resize-anchor::before {
+  position: absolute;
+  inset: -8px;
+  content: '';
+  border-radius: 999px;
+}
+
+.nested-resize-anchor.anchor-top-left {
+  top: -7px;
+  left: -7px;
+  cursor: nwse-resize;
+}
+
+.nested-resize-anchor.anchor-top {
+  top: -7px;
+  left: 50%;
+  cursor: ns-resize;
+  transform: translateX(-50%);
+}
+
+.nested-resize-anchor.anchor-top-right {
+  top: -7px;
+  right: -7px;
+  cursor: nesw-resize;
+}
+
+.nested-resize-anchor.anchor-right {
+  top: 50%;
+  right: -7px;
+  cursor: ew-resize;
+  transform: translateY(-50%);
+}
+
+.nested-resize-anchor.anchor-bottom-right {
+  right: -7px;
+  bottom: -7px;
+  cursor: nwse-resize;
+}
+
+.nested-resize-anchor.anchor-bottom {
+  bottom: -7px;
+  left: 50%;
+  cursor: ns-resize;
+  transform: translateX(-50%);
+}
+
+.nested-resize-anchor.anchor-bottom-left {
+  bottom: -7px;
+  left: -7px;
+  cursor: nesw-resize;
+}
+
+.nested-resize-anchor.anchor-left {
+  top: 50%;
+  left: -7px;
+  cursor: ew-resize;
+  transform: translateY(-50%);
+}
+
+.layout-grid-cell-child:hover {
+  border-color: #93c5fd;
+}
+
+.layout-grid-cell-child.selected {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.layout-grid-cell-empty {
+  display: grid;
+  position: absolute;
+  inset: 8px;
+  place-items: center;
+  border: 1px dashed #bfdbfe;
+  border-radius: 6px;
+  background: rgba(239, 246, 255, 0.7);
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.layout-grid-cell-drop-preview {
+  position: absolute;
+  inset: 8px;
+  z-index: 34;
+  display: grid;
+  place-items: center;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(37, 99, 235, 0.14) 0,
+    rgba(37, 99, 235, 0.14) 8px,
+    rgba(219, 234, 254, 0.72) 8px,
+    rgba(219, 234, 254, 0.72) 16px
+  );
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 700;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.85),
+    0 12px 24px rgba(37, 99, 235, 0.16);
+}
+
 .system-component-preview {
   display: grid;
   gap: 8px;
@@ -1383,7 +2272,15 @@ watch(
   overflow: hidden;
 }
 
+.ai-crud-preview {
+  width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+
 .ai-crud-preview :deep(.ai-crud-page) {
+  width: 100%;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -1422,19 +2319,19 @@ watch(
 
 .tree-panel-edge-toggle {
   position: absolute;
-  top: 9px;
-  right: 9px;
+  top: 10px;
+  right: -11px;
   z-index: 8;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 44px;
   padding: 0;
-  border: 1px solid #1d4ed8;
-  border-radius: 6px;
-  background: #2563eb;
-  color: #fff;
-  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.18);
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #2563eb;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
   cursor: pointer;
   transition:
     border-color 160ms ease,
@@ -1444,10 +2341,10 @@ watch(
 }
 
 .tree-panel-edge-toggle:hover {
-  border-color: #1e40af;
-  background: #1d4ed8;
+  border-color: #2563eb;
+  background: #2563eb;
   color: #fff;
-  transform: translateY(-1px);
+  transform: translateX(-1px);
 }
 
 .tree-panel-edge-toggle span {
@@ -1459,8 +2356,9 @@ watch(
 }
 
 .tree-preview.is-panel-collapsed .tree-panel-edge-toggle {
-  top: 8px;
-  right: 8px;
+  top: 50%;
+  right: -11px;
+  transform: translateY(-50%);
   border-color: #bfdbfe;
   background: #fff;
   color: #1d4ed8;
@@ -1471,38 +2369,32 @@ watch(
   border-color: #2563eb;
   background: #2563eb;
   color: #fff;
-  transform: translateY(-1px);
+  transform: translateY(-50%) translateX(-1px);
 }
 
 .tree-panel-rail {
   display: grid;
+  align-content: center;
   justify-items: center;
-  gap: 8px;
   width: 100%;
-  min-height: 180px;
+  min-height: 72px;
   color: #1d4ed8;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
 }
 
 .tree-panel-rail span {
-  padding: 7px 0;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  min-height: 54px;
+  padding: 8px 0;
   border-radius: 999px;
   background: #dbeafe;
   color: #1e40af;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0;
-}
-
-.tree-panel-rail strong {
-  max-height: 220px;
-  overflow: hidden;
-  color: #0f172a;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-overflow: ellipsis;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
 }
 
 .tree-preview-head {
@@ -1514,14 +2406,6 @@ watch(
   padding-right: 34px;
   padding-bottom: 8px;
   border-bottom: 1px solid #eef2f7;
-}
-
-.tree-head-actions {
-  display: flex;
-  flex: 0 0 auto;
-  flex-direction: row;
-  align-items: flex-end;
-  gap: 6px;
 }
 
 .tree-preview-head strong {
@@ -1541,6 +2425,7 @@ watch(
 }
 
 .tree-preview-head small {
+  flex: 0 0 auto;
   padding: 2px 6px;
   border: 1px solid #bfdbfe;
   border-radius: 999px;
@@ -1550,20 +2435,35 @@ watch(
   font-weight: 700;
 }
 
+.tree-node-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+  padding: 2px 0 0;
+}
+
+.tree-node-toolbar > span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .tree-expand-actions {
   display: inline-flex;
   flex: 0 0 auto;
   overflow: hidden;
-  border: 1px solid #dbeafe;
+  border: 1px solid #e2e8f0;
   border-radius: 6px;
-  background: #fff;
+  background: #f8fafc;
 }
 
 .tree-expand-actions button {
   height: 24px;
   padding: 0 8px;
   border: 0;
-  border-right: 1px solid #dbeafe;
+  border-right: 1px solid #e2e8f0;
   background: transparent;
   color: #2563eb;
   font-size: 11px;
@@ -1668,6 +2568,28 @@ watch(
   min-height: 0;
   overflow: auto;
   font-size: 12px;
+}
+
+.tree-preview :deep(.n-tree-node),
+.tree-preview :deep(.n-tree-node-content) {
+  width: 100%;
+}
+
+.tree-preview :deep(.n-tree-node) {
+  display: flex;
+  align-items: stretch;
+}
+
+.tree-preview :deep(.n-tree-node-content) {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  min-height: 30px;
+}
+
+.tree-preview :deep(.n-tree-node-content__text) {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
 }
 
 .tree-empty {
@@ -1779,6 +2701,14 @@ watch(
   display: flex;
   align-items: center;
   height: 100%;
+}
+
+.action-button-preview.is-block {
+  width: 100%;
+}
+
+.action-button-preview.is-block :deep(.n-button) {
+  width: 100%;
 }
 
 .button-group-preview,

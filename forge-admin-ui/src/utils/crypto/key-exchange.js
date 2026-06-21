@@ -29,12 +29,10 @@ function restoreKeyState() {
     const publicKey = localStorage.getItem(STORAGE_KEYS.PUBLIC_KEY)
     const exchanged = localStorage.getItem(STORAGE_KEYS.EXCHANGED) === 'true'
 
-    if (sessionKey) {
-      keyExchangeState.sessionKey = sessionKey
-      keyExchangeState.exchanged = exchanged
-      // 恢复加密配置
-      updateCryptoConfig({ secretKey: sessionKey })
-      console.log('[Crypto] 密钥状态已从本地存储恢复')
+    if (sessionKey || exchanged) {
+      clearStoredKeyState()
+      updateCryptoConfig({ secretKey: '' })
+      console.warn('[Crypto] 已清理本地旧会话密钥，等待重新协商')
     }
 
     if (publicKey) {
@@ -95,10 +93,10 @@ function generateSessionKey(length = 16) {
 /**
  * 获取 RSA 公钥
  * @param {object} axios axios 实例
- * @param {boolean} forceRefresh 是否强制刷新
- * @returns {Promise<string>} RSA公钥
+ * @param {boolean} _forceRefresh 是否强制刷新
+ * @returns {Promise<string>} RSA 公钥
  */
-export async function fetchPublicKey(axios, forceRefresh = false) {
+export async function fetchPublicKey(axios, _forceRefresh = false) {
   // if (keyExchangeState.publicKey && !forceRefresh) {
   //   return keyExchangeState.publicKey
   // }
@@ -135,7 +133,7 @@ export async function exchangeKey(axios, sessionId) {
 
   // 如果正在交换中，等待完成
   if (keyExchangeState.exchanging) {
-    console.log('[Crypto] 密钥交换进行中，等待完成...')
+    console.warn('[Crypto] 密钥交换进行中，等待完成...')
     return new Promise((resolve) => {
       const maxWait = 50 // 最多等待5秒
       let count = 0
@@ -149,7 +147,7 @@ export async function exchangeKey(axios, sessionId) {
     })
   }
 
-  console.log('[Crypto] 开始执行密钥交换...')
+  console.warn('[Crypto] 开始执行密钥交换...')
   keyExchangeState.exchanging = true
 
   try {
@@ -183,7 +181,7 @@ export async function exchangeKey(axios, sessionId) {
       // 持久化密钥状态
       saveKeyState()
 
-      console.log('[Crypto] 密钥交换成功')
+      console.warn('[Crypto] 密钥交换成功')
       return true
     }
 
@@ -208,7 +206,7 @@ export function getSessionKey() {
 
 /**
  * 检查是否已完成密钥交换
- * @returns {boolean}
+ * @returns {boolean} 是否已完成密钥交换
  */
 export function isKeyExchanged() {
   return keyExchangeState.exchanged
@@ -229,18 +227,18 @@ export function resetKeyExchange() {
   // 重置加密配置
   updateCryptoConfig({ secretKey: '' })
 
-  console.log('[Crypto] 密钥交换状态已重置')
+  console.warn('[Crypto] 密钥交换状态已重置')
 }
 
 /**
  * 初始化密钥交换（在应用启动或登录后调用）
  * @param {object} axios axios 实例
  * @param {string} sessionId 会话标识
- * @returns {Promise<boolean>}
+ * @returns {Promise<boolean>} 是否初始化成功
  */
 export async function initKeyExchange(axios, sessionId) {
   if (!cryptoConfig.enableDynamicKey) {
-    console.log('[Crypto] 动态密钥未启用，使用静态密钥')
+    console.warn('[Crypto] 动态密钥未启用，使用静态密钥')
     return true
   }
 

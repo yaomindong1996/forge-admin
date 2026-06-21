@@ -1,5 +1,7 @@
 import { sm4 } from 'sm-crypto'
 
+const BASE64_CHUNK_SIZE = 0x8000
+
 /**
  * SM4 加密
  * @param {string} plainText 明文
@@ -36,11 +38,20 @@ export function sm4Decrypt(cipherText, key) {
  * Hex 转 Base64
  */
 function hexToBase64(hexString) {
-  const bytes = []
+  const chunks = []
+  let binary = ''
   for (let i = 0; i < hexString.length; i += 2) {
-    bytes.push(Number.parseInt(hexString.substr(i, 2), 16))
+    binary += String.fromCharCode(Number.parseInt(hexString.slice(i, i + 2), 16))
+    if (binary.length >= BASE64_CHUNK_SIZE) {
+      chunks.push(binary)
+      binary = ''
+    }
   }
-  return btoa(String.fromCharCode.apply(null, bytes))
+
+  if (binary) {
+    chunks.push(binary)
+  }
+  return btoa(chunks.join(''))
 }
 
 /**
@@ -48,12 +59,20 @@ function hexToBase64(hexString) {
  */
 function base64ToHex(base64String) {
   const raw = atob(base64String)
+  const chunks = []
   let result = ''
   for (let i = 0; i < raw.length; i++) {
     const hex = raw.charCodeAt(i).toString(16)
     result += (hex.length === 2 ? hex : `0${hex}`)
+    if (result.length >= BASE64_CHUNK_SIZE) {
+      chunks.push(result)
+      result = ''
+    }
   }
-  return result
+  if (result) {
+    chunks.push(result)
+  }
+  return chunks.join('')
 }
 
 /**

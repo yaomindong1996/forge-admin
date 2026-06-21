@@ -126,6 +126,9 @@ public class DecryptRequestBodyAdvice implements RequestBodyAdvice {
                 decryptedData = encryptor.decrypt(request.getData());
                 log.debug("请求解密成功(默认密钥), 算法: {}", algorithm);
             }
+            if (StrUtil.isBlank(decryptedData)) {
+                throw new IOException("请求解密结果为空，请确认前端已完成密钥协商并按加密格式提交");
+            }
 
             // 返回解密后的输入流
             return new DecryptedHttpInputMessage(

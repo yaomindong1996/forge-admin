@@ -91,7 +91,7 @@ const FORGE_DRAG_TYPES = [DRAG_COMPONENT_MIME, DRAG_FIELD_MIME, DRAG_LAYOUT_MIME
 const previewModel = reactive({})
 const rootDropActive = ref(false)
 const rootTopActive = computed(() => designerDropKey.value === 'root:before')
-const MAX_FORM_GRID_COLUMNS = 6
+const MAX_FORM_GRID_COLUMNS = 24
 const gridColumns = computed(() => Math.max(1, Math.min(MAX_FORM_GRID_COLUMNS, Number(props.schema.layout?.gridColumns || 2))))
 const gridStyle = computed(() => ({
   ...(isPlainObject(props.schema.layout?.formStyle) ? props.schema.layout.formStyle : {}),

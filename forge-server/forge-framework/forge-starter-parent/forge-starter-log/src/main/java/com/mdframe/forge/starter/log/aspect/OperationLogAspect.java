@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSONObject;
 import com.mdframe.forge.starter.apiconfig.domain.dto.ApiConfigInfo;
 import com.mdframe.forge.starter.apiconfig.service.IApiConfigManager;
+import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.log.OperationLog;
 import com.mdframe.forge.starter.core.context.LogProperties;
 import com.mdframe.forge.starter.log.domain.OperationLogInfo;
@@ -21,9 +22,11 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -103,6 +106,7 @@ public class OperationLogAspect {
         Method method = signature.getMethod();
         String methodName = method.getDeclaringClass().getSimpleName() + "." + method.getName();
         OperationLog annotation = method.getAnnotation(OperationLog.class);
+        boolean decryptEndpoint = isApiDecryptEndpoint(joinPoint, method);
 
         String requestParams = "";
         if (annotation != null) {
@@ -112,7 +116,7 @@ public class OperationLogAspect {
 
             // 保存请求参数
             if (annotation.saveRequestParams()) {
-                requestParams = getRequestParams(joinPoint, request);
+                requestParams = getRequestParams(joinPoint, request, decryptEndpoint);
                 logInfo.setRequestParams(truncate(requestParams, logProperties.getRequestParamsMaxLength()));
             }
         } else {
@@ -121,7 +125,7 @@ public class OperationLogAspect {
                 logInfo.setOperationModule(apiConfig.getModuleCode());
                 logInfo.setOperationType("GET".equals(apiConfig.getReqMethod()) ? "QUERY" : "UPDATE");
                 logInfo.setOperationDesc(apiConfig.getApiName());
-                requestParams = getRequestParams(joinPoint, request);
+                requestParams = getRequestParams(joinPoint, request, decryptEndpoint);
                 logInfo.setRequestParams(truncate(requestParams, logProperties.getRequestParamsMaxLength()));
             }
         }
@@ -198,7 +202,7 @@ public class OperationLogAspect {
     /**
      * 获取请求参数
      */
-    private String getRequestParams(ProceedingJoinPoint joinPoint, HttpServletRequest request) {
+    private String getRequestParams(ProceedingJoinPoint joinPoint, HttpServletRequest request, boolean redactRequestBody) {
         try {
             Map<String, Object> params = new HashMap<>();
 
@@ -219,7 +223,11 @@ public class OperationLogAspect {
                     String paramName = parameterNames != null && i < parameterNames.length
                             ? parameterNames[i]
                             : "arg" + i;
-                    params.put(paramName, arg);
+                    if (redactRequestBody && hasParameterAnnotation(signature.getMethod(), i, RequestBody.class)) {
+                        params.put(paramName, "[DECRYPTED_REQUEST_BODY_OMITTED]");
+                    } else {
+                        params.put(paramName, arg);
+                    }
                 }
             }
 
@@ -235,6 +243,34 @@ public class OperationLogAspect {
             log.error("获取请求参数失败", e);
             return "";
         }
+    }
+
+    /**
+     * 判断当前接口是否启用了请求解密。
+     */
+    private boolean isApiDecryptEndpoint(ProceedingJoinPoint joinPoint, Method method) {
+        if (method.isAnnotationPresent(ApiDecrypt.class)
+                || method.getDeclaringClass().isAnnotationPresent(ApiDecrypt.class)) {
+            return true;
+        }
+        Object target = joinPoint.getTarget();
+        return target != null && target.getClass().isAnnotationPresent(ApiDecrypt.class);
+    }
+
+    /**
+     * 判断方法参数是否带指定注解。
+     */
+    private boolean hasParameterAnnotation(Method method, int parameterIndex, Class<? extends Annotation> annotationClass) {
+        Annotation[][] annotations = method.getParameterAnnotations();
+        if (parameterIndex < 0 || parameterIndex >= annotations.length) {
+            return false;
+        }
+        for (Annotation annotation : annotations[parameterIndex]) {
+            if (annotationClass.isInstance(annotation)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

@@ -25,23 +25,23 @@ export function createCrudHookRule(hookName = 'beforeSubmit') {
   }
 }
 
-export function normalizeCrudHookRules(source = {}, legacyBeforeSubmitRules = []) {
+export function normalizeCrudHookRules(source = {}, legacyBeforeSubmitRules = [], options = {}) {
   const result = {}
   CRUD_HOOK_RULE_TARGETS.forEach((target) => {
     const list = Array.isArray(source?.[target.value]) ? source[target.value] : []
-    result[target.value] = normalizeRuleList(list, target.value)
+    result[target.value] = normalizeRuleList(list, target.value, options)
   })
   if (legacyBeforeSubmitRules?.length) {
     result.beforeSubmit = [
       ...(result.beforeSubmit || []),
-      ...normalizeRuleList(legacyBeforeSubmitRules, 'beforeSubmit'),
+      ...normalizeRuleList(legacyBeforeSubmitRules, 'beforeSubmit', options),
     ]
   }
   return result
 }
 
-export function normalizeRuleList(list = [], hookName = 'beforeSubmit') {
-  return (Array.isArray(list) ? list : [])
+export function normalizeRuleList(list = [], hookName = 'beforeSubmit', options = {}) {
+  const normalized = (Array.isArray(list) ? list : [])
     .map(rule => ({
       id: rule?.id || `hook_rule_${Math.random().toString(36).slice(2, 8)}`,
       hookName: rule?.hookName || hookName,
@@ -50,7 +50,7 @@ export function normalizeRuleList(list = [], hookName = 'beforeSubmit') {
       sourceField: String(rule?.sourceField || '').trim(),
       value: rule?.value ?? '',
     }))
-    .filter(rule => rule.field || rule.sourceField || rule.value !== '')
+  return options.keepEmpty ? normalized : normalized.filter(rule => rule.field || rule.sourceField || rule.value !== '')
 }
 
 export function hasCrudHookRules(rules = {}) {

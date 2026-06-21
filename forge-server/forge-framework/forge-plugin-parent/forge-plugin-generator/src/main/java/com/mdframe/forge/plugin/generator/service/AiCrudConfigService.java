@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessDocumentConfig;
 import com.mdframe.forge.plugin.generator.domain.entity.AiCrudConfig;
+import com.mdframe.forge.plugin.generator.domain.entity.AiCrudConfigVersion;
 import com.mdframe.forge.plugin.generator.domain.entity.AiPageTemplate;
 import com.mdframe.forge.plugin.generator.dto.AiCrudConfigDTO;
 import com.mdframe.forge.plugin.generator.dto.AiCrudConfigRenderVO;
@@ -14,6 +15,7 @@ import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeModelSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodePageSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeRuntimeConfig;
 import com.mdframe.forge.plugin.generator.mapper.AiCrudConfigMapper;
+import com.mdframe.forge.plugin.generator.mapper.AiCrudConfigVersionMapper;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessDocumentConfigService;
 import com.mdframe.forge.plugin.generator.service.lowcode.LowcodeRuntimeConfigBuilder;
 import com.mdframe.forge.starter.core.domain.PageQuery;
@@ -41,6 +43,7 @@ public class AiCrudConfigService extends ServiceImpl<AiCrudConfigMapper, AiCrudC
     private final MenuRegisterAdapter menuRegisterAdapter;
     private final LowcodeRuntimeConfigBuilder lowcodeRuntimeConfigBuilder;
     private final BusinessDocumentConfigService documentConfigService;
+    private final AiCrudConfigVersionMapper versionMapper;
     @Lazy
     private final AiPageTemplateService pageTemplateService;
 
@@ -168,7 +171,89 @@ public class AiCrudConfigService extends ServiceImpl<AiCrudConfigMapper, AiCrudC
         if ("LOWCODE".equals(config.getBuildMode()) && !"PUBLISHED".equals(config.getPublishStatus())) {
             throw new BusinessException("低代码应用尚未发布");
         }
-        return buildRenderConfig(config);
+        return buildRenderConfig(resolvePublishedRuntimeConfig(config));
+    }
+
+    private AiCrudConfig resolvePublishedRuntimeConfig(AiCrudConfig config) {
+        if (config == null
+                || !"LOWCODE".equals(config.getBuildMode())
+                || !"PUBLISHED".equals(config.getPublishStatus())) {
+            return config;
+        }
+        Integer versionNo = config.getPublishedVersion();
+        if (versionNo == null || versionNo <= 0) {
+            log.warn("[AiCrudConfigService] 已发布配置缺少 publishedVersion, configKey={}", config.getConfigKey());
+            return config;
+        }
+        Long tenantId = config.getTenantId() == null ? getCurrentTenantId() : config.getTenantId();
+        AiCrudConfigVersion version = versionMapper.selectVersionByNo(tenantId, config.getId(), versionNo);
+        if (version == null) {
+            log.warn("[AiCrudConfigService] 未找到发布版本快照, configKey={}, versionNo={}", config.getConfigKey(), versionNo);
+            return config;
+        }
+        AiCrudConfig published = new AiCrudConfig();
+        published.setId(config.getId());
+        published.setTenantId(config.getTenantId());
+        published.setConfigKey(config.getConfigKey());
+        published.setTableName(config.getTableName());
+        published.setTableComment(config.getTableComment());
+        published.setAppName(config.getAppName());
+        published.setMenuName(config.getMenuName());
+        published.setMode(config.getMode());
+        published.setBuildMode(config.getBuildMode());
+        published.setStatus(config.getStatus());
+        published.setPublishStatus(config.getPublishStatus());
+        published.setMenuParentId(config.getMenuParentId());
+        published.setMenuSort(config.getMenuSort());
+        published.setMenuResourceId(config.getMenuResourceId());
+        published.setLayoutType(config.getLayoutType());
+        published.setDomainId(version.getDomainId() == null ? config.getDomainId() : version.getDomainId());
+        published.setDomainCode(StringUtils.defaultIfBlank(version.getDomainCode(), config.getDomainCode()));
+        published.setObjectCode(StringUtils.defaultIfBlank(version.getObjectCode(), config.getObjectCode()));
+        published.setObjectName(StringUtils.defaultIfBlank(version.getObjectName(), config.getObjectName()));
+        published.setDraftVersion(config.getDraftVersion());
+        published.setPublishedVersion(config.getPublishedVersion());
+        published.setPublishTime(config.getPublishTime());
+        published.setPublishBy(config.getPublishBy());
+        published.setModelSchema(StringUtils.defaultIfBlank(version.getModelSchema(), config.getModelSchema()));
+        published.setPageSchema(StringUtils.defaultIfBlank(version.getPageSchema(), config.getPageSchema()));
+        published.setSearchSchema(StringUtils.defaultIfBlank(version.getSearchSchema(), config.getSearchSchema()));
+        published.setColumnsSchema(StringUtils.defaultIfBlank(version.getColumnsSchema(), config.getColumnsSchema()));
+        published.setEditSchema(StringUtils.defaultIfBlank(version.getEditSchema(), config.getEditSchema()));
+        published.setApiConfig(StringUtils.defaultIfBlank(version.getApiConfig(), config.getApiConfig()));
+        published.setOptions(StringUtils.defaultIfBlank(version.getOptions(), config.getOptions()));
+        applyPublishedSnapshotFields(published, config, version);
+        return published;
+    }
+
+    private void applyPublishedSnapshotFields(AiCrudConfig published, AiCrudConfig draft, AiCrudConfigVersion version) {
+        if (StringUtils.isBlank(version.getPublishSnapshot())) {
+            published.setDictConfig(draft.getDictConfig());
+            published.setDesensitizeConfig(draft.getDesensitizeConfig());
+            published.setEncryptConfig(draft.getEncryptConfig());
+            published.setTransConfig(draft.getTransConfig());
+            return;
+        }
+        try {
+            Map<String, Object> snapshot = objectMapper.readValue(
+                    version.getPublishSnapshot(), new TypeReference<Map<String, Object>>() {});
+            published.setTableName(StringUtils.defaultIfBlank(text(snapshot.get("tableName")), published.getTableName()));
+            published.setTableComment(StringUtils.defaultIfBlank(text(snapshot.get("tableComment")), draft.getTableComment()));
+            published.setAppName(StringUtils.defaultIfBlank(text(snapshot.get("appName")), draft.getAppName()));
+            published.setMenuName(StringUtils.defaultIfBlank(text(snapshot.get("menuName")), draft.getMenuName()));
+            published.setLayoutType(StringUtils.defaultIfBlank(text(snapshot.get("layoutType")), draft.getLayoutType()));
+            published.setDictConfig(StringUtils.defaultIfBlank(text(snapshot.get("dictConfig")), draft.getDictConfig()));
+            published.setDesensitizeConfig(StringUtils.defaultIfBlank(text(snapshot.get("desensitizeConfig")), draft.getDesensitizeConfig()));
+            published.setEncryptConfig(StringUtils.defaultIfBlank(text(snapshot.get("encryptConfig")), draft.getEncryptConfig()));
+            published.setTransConfig(StringUtils.defaultIfBlank(text(snapshot.get("transConfig")), draft.getTransConfig()));
+        } catch (Exception e) {
+            log.warn("[AiCrudConfigService] 读取发布快照失败, configKey={}, versionNo={}",
+                    draft.getConfigKey(), version.getVersionNo(), e);
+            published.setDictConfig(draft.getDictConfig());
+            published.setDesensitizeConfig(draft.getDesensitizeConfig());
+            published.setEncryptConfig(draft.getEncryptConfig());
+            published.setTransConfig(draft.getTransConfig());
+        }
     }
 
     public AiCrudConfigRenderVO buildRenderConfig(AiCrudConfig config) {

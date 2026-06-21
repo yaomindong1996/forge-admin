@@ -61,6 +61,8 @@ public class BusinessObjectPublishService {
     private static final String LINKAGE_SCHEMA_OPTION_KEY = "linkageSchema";
     private static final String DESIGNER_ACTIONS_KEY = "actions";
     private static final Set<String> RUNTIME_OPEN_MODES = Set.of("LIST", "CREATE_FORM", "DETAIL");
+    private static final Set<String> APP_ENTRY_TYPES = Set.of(
+            "OBJECT_LIST", "CREATE_FORM", "DETAIL_PAGE", "APPROVAL_TODO", "REPORT_DASHBOARD", "EXTERNAL_OR_API");
     private static final Set<String> GENERIC_FORM_COMPONENT_ID_SUFFIXES = Set.of(
             "input", "textarea", "number", "inputnumber", "integer", "money", "date", "datetime", "time",
             "switch", "select", "radio", "checkbox", "dictselect", "cascader", "regiontreeselect",
@@ -71,6 +73,15 @@ public class BusinessObjectPublishService {
             "collapse", "elcollapseitem", "collapseitem", "fctable", "table", "fctablegrid",
             "tablegrid", "eldivider", "divider", "fctitle", "title", "text", "html", "space",
             "elalert", "alert", "elbutton", "button", "eltag", "tag", "elimage", "image");
+    private static final Set<String> REQUIRED_BLOCK_ITEM_CODES = Set.of(
+            "FIELD_EMPTY", "FIELD_LABEL_EMPTY", "FIELD_CODE_EMPTY", "FIELD_DUPLICATE",
+            "PAGE_EMPTY", "PAGE_REF_MISSING", "PAGE_SCHEMA_INVALID", "PAGE_TARGET_MISSING",
+            "FORM_TARGET_MISSING", "FORM_COMPONENT_EMPTY", "FORM_COMPONENT_DUPLICATE",
+            "FORM_FIELD_BINDING_EMPTY", "FORM_FIELD_MISSING", "FORM_FIELD_COMPONENT_EMPTY",
+            "VIEW_FIELD_MISSING", "RUNTIME_INVALID", "APP_ENTRY_PAGE_MISSING", "APP_ENTRY_FORM_MISSING",
+            "TABLE_NAME_EMPTY", "TABLE_MISSING", "TABLE_PK_MISSING", "TABLE_COLUMN_MISSING",
+            "TABLE_COLUMN_CHANGED", "TABLE_INDEX_MISSING"
+    );
 
     private final BusinessObjectDesignerService designerService;
     private final BusinessObjectDesignVersionService designVersionService;
@@ -94,7 +105,7 @@ public class BusinessObjectPublishService {
         designerService.applyRelationsToModel(context);
         List<BusinessPublishCheckItemVO> items = new ArrayList<>();
         checkFields(context.getModelSchema(), items);
-        checkPage(context.getModelSchema(), context.getPageSchema(), items);
+        checkPage(context, items);
         checkFormFirstSchemas(context, items);
         checkRelations(context, items);
         checkLinkage(context, items);
@@ -120,7 +131,7 @@ public class BusinessObjectPublishService {
         context = designerService.saveDraft(context, BusinessObjectDesignStatus.READY);
         BusinessPublishCheckVO check = publishCheck(objectId);
         if (Boolean.FALSE.equals(check.getPublishable()) && (dto == null || !Boolean.TRUE.equals(dto.getForce()))) {
-            throw new BusinessException("发布检查存在阻断项，请先修复后再发布");
+            throw new BusinessException(buildPublishBlockedMessage(check));
         }
 
         LowcodePublishDTO publishDTO = buildPublishDTO(context, dto);
@@ -156,6 +167,36 @@ public class BusinessObjectPublishService {
         Long versionId = designVersionService.createVersion(versionDTO);
         enqueueCrossObjectRecompute(context);
         return versionId;
+    }
+
+    private String buildPublishBlockedMessage(BusinessPublishCheckVO check) {
+        List<BusinessPublishCheckItemVO> blockItems = check == null || check.getBlockItems() == null
+                ? List.of()
+                : check.getBlockItems();
+        if (blockItems.isEmpty()) {
+            return "发布检查存在阻断项，请先修复后再发布";
+        }
+        String summary = blockItems.stream()
+                .limit(3)
+                .map(this::formatBlockItem)
+                .filter(StringUtils::isNotBlank)
+                .reduce((left, right) -> left + "；" + right)
+                .orElse("");
+        int remain = Math.max(blockItems.size() - 3, 0);
+        String suffix = remain > 0 ? "；另有 " + remain + " 项" : "";
+        return "发布检查存在 " + blockItems.size() + " 个阻断项：" + summary + suffix;
+    }
+
+    private String formatBlockItem(BusinessPublishCheckItemVO item) {
+        if (item == null) {
+            return "";
+        }
+        String title = StringUtils.defaultIfBlank(item.getTitle(), item.getItemCode());
+        String target = StringUtils.defaultIfBlank(item.getZoneKey(), item.getFieldCode());
+        if (StringUtils.isNotBlank(target)) {
+            return title + "（" + target + "）";
+        }
+        return title;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -258,6 +299,7 @@ public class BusinessObjectPublishService {
             item.put("type", resolveActionButtonType(actionType));
             item.put("actionType", resolveRuntimeActionType(actionType));
             putIfNotBlank(item, "routePath", resolveActionRoutePath(actionType, config));
+            putIfNotBlank(item, "targetFormKey", text(config.get("targetFormKey")));
             putIfNotBlank(item, "openTarget", StringUtils.defaultIfBlank(text(config.get("openTarget")), "_self"));
             if (Boolean.TRUE.equals(booleanValue(action.get("confirmRequired")))) {
                 item.put("confirmText", "确认执行“" + StringUtils.defaultIfBlank(actionName, "该操作") + "”？");
@@ -386,8 +428,10 @@ public class BusinessObjectPublishService {
         }
     }
 
-    private void checkPage(LowcodeModelSchema modelSchema, LowcodePageSchema pageSchema,
+    private void checkPage(BusinessObjectDesignerService.DesignerContext context,
                            List<BusinessPublishCheckItemVO> items) {
+        LowcodeModelSchema modelSchema = context.getModelSchema();
+        LowcodePageSchema pageSchema = context.getPageSchema();
         if (pageSchema == null) {
             add(items, "PAGE_EMPTY", "PAGE", BusinessPublishCheckLevel.BLOCK,
                     "页面布局为空", "请先配置表单、列表或详情布局", null, null,
@@ -417,6 +461,249 @@ public class BusinessObjectPublishService {
             add(items, "PAGE_SCHEMA_INVALID", "PAGE", BusinessPublishCheckLevel.BLOCK,
                     "页面协议校验失败", e.getMessage(), null, null,
                     "FIX_LAYOUT", "修复布局", "form", 120);
+        }
+        checkPageTargetReferences(pageSchema, collectFormKeys(readDesignerOptions(context)), items);
+        checkPageActionCompleteness(pageSchema, collectFields(modelSchema), items);
+    }
+
+    private void checkPageTargetReferences(LowcodePageSchema pageSchema, Set<String> formKeys,
+                                           List<BusinessPublishCheckItemVO> items) {
+        Set<String> pageKeys = collectPageKeys(pageSchema);
+        List<Map<String, Object>> targets = collectPageTargetConfigs(pageSchema);
+        int index = 0;
+        for (Map<String, Object> target : targets) {
+            index++;
+            String source = StringUtils.defaultIfBlank(text(target.get("_source")), "页面动作");
+            String targetPageKey = text(target.get("targetPageKey"));
+            if (StringUtils.isNotBlank(targetPageKey) && !pageKeys.contains(targetPageKey)) {
+                add(items, "PAGE_TARGET_MISSING", "PAGE", BusinessPublishCheckLevel.BLOCK,
+                        "目标页面不存在", source + " 引用了不存在的页面: " + targetPageKey,
+                        targetPageKey, source, "FIX_PAGE_TARGET", "修复页面跳转", "list", 121 + index);
+            }
+            String targetFormKey = text(target.get("targetFormKey"));
+            if (StringUtils.isNotBlank(targetFormKey) && !formKeys.contains(targetFormKey)) {
+                add(items, "FORM_TARGET_MISSING", "PAGE", BusinessPublishCheckLevel.BLOCK,
+                        "目标表单不存在", source + " 引用了不存在的表单: " + targetFormKey,
+                        targetFormKey, source, "FIX_FORM_TARGET", "修复表单跳转", "list", 141 + index);
+            }
+        }
+    }
+
+    private Set<String> collectPageKeys(LowcodePageSchema pageSchema) {
+        Set<String> keys = new LinkedHashSet<>();
+        keys.add("list");
+        keys.add("detail");
+        if (pageSchema != null && pageSchema.getPages() != null) {
+            pageSchema.getPages().forEach(page -> {
+                String key = text(page.get("pageKey"));
+                if (StringUtils.isNotBlank(key)) {
+                    keys.add(key);
+                }
+            });
+        }
+        return keys;
+    }
+
+    private Set<String> collectFormKeys(Map<String, Object> designerOptions) {
+        Set<String> keys = new LinkedHashSet<>();
+        Map<String, Object> formSchema = mapValue(designerOptions.get(FORM_DESIGNER_SCHEMA_OPTION_KEY));
+        addIfNotBlank(keys, text(formSchema.get("formKey")));
+        addIfNotBlank(keys, text(formSchema.get("defaultFormKey")));
+        listOfMap(formSchema.get("forms")).forEach(form -> {
+            addIfNotBlank(keys, text(form.get("formKey")));
+            addIfNotBlank(keys, text(mapValue(form.get("schema")).get("formKey")));
+        });
+        listOfMap(mapValue(formSchema.get("settings")).get("formAssets")).forEach(asset -> {
+            addIfNotBlank(keys, text(asset.get("formKey")));
+            addIfNotBlank(keys, text(mapValue(asset.get("schema")).get("formKey")));
+        });
+        return keys;
+    }
+
+    private void addIfNotBlank(Set<String> keys, String value) {
+        if (StringUtils.isNotBlank(value)) {
+            keys.add(value);
+        }
+    }
+
+    private List<Map<String, Object>> collectPageTargetConfigs(LowcodePageSchema pageSchema) {
+        if (pageSchema == null) {
+            return List.of();
+        }
+        List<Map<String, Object>> targets = new ArrayList<>();
+        collectLayoutTargetConfigs(pageSchema.getListGridLayout(), "列表页", targets);
+        if (pageSchema.getPages() != null) {
+            pageSchema.getPages().forEach(page -> collectLayoutTargetConfigs(
+                    mapValue(page.get("gridLayout")),
+                    StringUtils.defaultIfBlank(text(page.get("pageName")), text(page.get("pageKey"))),
+                    targets));
+        }
+        return targets;
+    }
+
+    private void collectLayoutTargetConfigs(Map<String, Object> layout, String pageName,
+                                            List<Map<String, Object>> targets) {
+        for (Map<String, Object> block : listOfMap(layout.get("items"))) {
+            Map<String, Object> props = mapValue(block.get("props"));
+            collectTargetConfig(props, pageName + "/" + StringUtils.defaultIfBlank(text(block.get("blockType")), "区块"), targets);
+            listOfMap(props.get("events")).forEach(event -> collectTargetConfig(event, pageName + "/事件", targets));
+            listOfMap(props.get("customActions")).forEach(action -> collectTargetConfig(action, pageName + "/自定义操作", targets));
+            mapValue(props.get("fieldSettings")).forEach((field, setting) ->
+                    collectTargetConfig(mapValue(setting), pageName + "/字段 " + field, targets));
+        }
+    }
+
+    private void collectTargetConfig(Map<String, Object> source, String sourceName,
+                                     List<Map<String, Object>> targets) {
+        String targetPageKey = text(source.get("targetPageKey"));
+        String targetFormKey = text(source.get("targetFormKey"));
+        if (StringUtils.isBlank(targetPageKey) && StringUtils.isBlank(targetFormKey)) {
+            return;
+        }
+        Map<String, Object> target = new LinkedHashMap<>();
+        target.put("_source", sourceName);
+        putIfNotBlank(target, "targetPageKey", targetPageKey);
+        putIfNotBlank(target, "targetFormKey", targetFormKey);
+        targets.add(target);
+    }
+
+    private void checkPageActionCompleteness(LowcodePageSchema pageSchema, Set<String> modelFields,
+                                             List<BusinessPublishCheckItemVO> items) {
+        if (pageSchema == null) {
+            return;
+        }
+        List<Map<String, Object>> layouts = new ArrayList<>();
+        layouts.add(pageSchema.getListGridLayout());
+        if (pageSchema.getPages() != null) {
+            pageSchema.getPages().forEach(page -> layouts.add(mapValue(page.get("gridLayout"))));
+        }
+        int index = 0;
+        for (Map<String, Object> layout : layouts) {
+            for (Map<String, Object> block : listOfMap(layout.get("items"))) {
+                index++;
+                String blockType = text(block.get("blockType"));
+                Map<String, Object> props = mapValue(block.get("props"));
+                String blockName = StringUtils.defaultIfBlank(text(props.get("title")), blockType);
+                checkPreviewCompleteness(blockType, props, blockName, items, index);
+                if ("action-button".equals(blockType) && listOfMap(props.get("events")).isEmpty()) {
+                    add(items, "PAGE_BUTTON_ACTION_EMPTY", "PAGE", BusinessPublishCheckLevel.WARN,
+                            "按钮未配置点击动作", "按钮「" + blockName + "」没有配置事件回调，运行态点击后不会执行业务动作",
+                            text(block.get("id")), blockName, "CONFIG_BUTTON_ACTION", "配置按钮动作", "list", 151 + index);
+                }
+                int eventSortOrder = 170 + index;
+                int actionSortOrder = 190 + index;
+                listOfMap(props.get("events")).forEach(event ->
+                        checkEventActionCompleteness(event, StringUtils.defaultIfBlank(blockName, "区块") + "/事件", modelFields, items, eventSortOrder));
+                listOfMap(props.get("customActions")).forEach(action ->
+                        checkCustomActionCompleteness(action, StringUtils.defaultIfBlank(blockName, "区块") + "/自定义操作", modelFields, items, actionSortOrder));
+            }
+        }
+    }
+
+    private void checkPreviewCompleteness(String blockType, Map<String, Object> props, String blockName,
+                                          List<BusinessPublishCheckItemVO> items, int index) {
+        if (!"AiCrudPage".equals(blockType) || !Boolean.TRUE.equals(props.get("previewLiveData"))) {
+            return;
+        }
+        String status = text(props.get("lastPreviewStatus"));
+        String error = text(props.get("lastPreviewError"));
+        String mode = StringUtils.defaultIfBlank(text(props.get("previewMode")), "realList");
+        if ("error".equalsIgnoreCase(status) || StringUtils.isNotBlank(error)) {
+            add(items, "PAGE_PREVIEW_API_ERROR", "PAGE", BusinessPublishCheckLevel.BLOCK,
+                    "真实接口预览失败", "组件「" + blockName + "」的 " + mode + " 预览失败: " + StringUtils.defaultIfBlank(error, "未知错误"),
+                    null, blockName, "FIX_PREVIEW_API", "修复接口预览", "list", 160 + index);
+        } else if (!"success".equalsIgnoreCase(status)) {
+            add(items, "PAGE_PREVIEW_API_NOT_VERIFIED", "PAGE", BusinessPublishCheckLevel.WARN,
+                    "真实接口预览未验证通过", "组件「" + blockName + "」已开启真实接口预览，但还没有成功请求记录",
+                    null, blockName, "CHECK_PREVIEW_API", "执行接口预览", "list", 161 + index);
+        }
+    }
+
+    private void checkEventActionCompleteness(Map<String, Object> event, String source,
+                                              Set<String> modelFields, List<BusinessPublishCheckItemVO> items, int sortOrder) {
+        String action = StringUtils.defaultIfBlank(text(event.get("action")), "none");
+        if ("none".equalsIgnoreCase(action)) {
+            add(items, "PAGE_EVENT_ACTION_NONE", "PAGE", BusinessPublishCheckLevel.WARN,
+                    "事件未配置动作", source + " 选择了无动作，触发后不会产生业务行为",
+                    null, source, "CONFIG_EVENT_ACTION", "配置事件动作", "list", sortOrder);
+            return;
+        }
+        if ("navigate".equalsIgnoreCase(action) && StringUtils.isBlank(text(event.get("targetPageKey")))) {
+            add(items, "PAGE_EVENT_TARGET_EMPTY", "PAGE", BusinessPublishCheckLevel.BLOCK,
+                    "跳转事件缺少目标页面", source + " 是页面跳转，但未选择目标页面",
+                    null, source, "CONFIG_EVENT_TARGET", "配置目标页面", "list", sortOrder + 1);
+        }
+        if (Set.of("refreshBlock", "filterBlock").contains(action) && StringUtils.isBlank(text(event.get("targetBlockId")))) {
+            add(items, "PAGE_EVENT_BLOCK_EMPTY", "PAGE", BusinessPublishCheckLevel.BLOCK,
+                    "组件事件缺少目标组件", source + " 需要选择目标组件",
+                    null, source, "CONFIG_EVENT_TARGET", "配置目标组件", "list", sortOrder + 2);
+        }
+        if ("request".equalsIgnoreCase(action) && StringUtils.isBlank(text(event.get("requestUrl")))) {
+            add(items, "PAGE_EVENT_API_EMPTY", "PAGE", BusinessPublishCheckLevel.BLOCK,
+                    "接口事件缺少地址", source + " 是接口请求，但未配置请求地址",
+                    null, source, "CONFIG_EVENT_API", "配置接口地址", "list", sortOrder + 3);
+        }
+        checkActionParams(event.get("params"), source + "/参数", modelFields, items, sortOrder + 4);
+    }
+
+    private void checkCustomActionCompleteness(Map<String, Object> action, String source,
+                                               Set<String> modelFields, List<BusinessPublishCheckItemVO> items, int sortOrder) {
+        String actionType = StringUtils.defaultIfBlank(text(action.get("actionType")), "route");
+        if ("refresh".equalsIgnoreCase(actionType)) {
+            return;
+        }
+        if (StringUtils.isBlank(text(action.get("routePath")))) {
+            add(items, "PAGE_CUSTOM_ACTION_TARGET_EMPTY", "PAGE", BusinessPublishCheckLevel.BLOCK,
+                    "自定义操作缺少目标地址", source + " 是" + ("external".equalsIgnoreCase(actionType) ? "外部链接" : "站内跳转") + "，但未配置目标地址",
+                    text(action.get("key")), source, "CONFIG_CUSTOM_ACTION", "配置自定义操作", "list", sortOrder);
+        }
+        checkActionParams(action.get("params"), source + "/参数", modelFields, items, sortOrder + 1);
+    }
+
+    private void checkActionParams(Object paramsValue, String source, Set<String> modelFields,
+                                   List<BusinessPublishCheckItemVO> items, int sortOrder) {
+        if (!(paramsValue instanceof List<?> params) || params.isEmpty()) {
+            return;
+        }
+        int index = 0;
+        for (Object item : params) {
+            index++;
+            if (!(item instanceof Map<?, ?> param)) {
+                continue;
+            }
+            String name = text(param.get("name"));
+            String sourceType = StringUtils.defaultIfBlank(text(param.get("sourceType")), "static");
+            String sourceField = text(param.get("sourceField"));
+            String value = text(param.get("value"));
+            if (StringUtils.isBlank(name)) {
+                add(items, "PAGE_ACTION_PARAM_NAME_EMPTY", "PAGE", BusinessPublishCheckLevel.BLOCK,
+                        "动作参数缺少参数名", source + " 第 " + index + " 行未填写参数名",
+                        null, source, "CONFIG_ACTION_PARAM", "配置参数映射", "list", sortOrder + index);
+            }
+            if ("rowField".equalsIgnoreCase(sourceType)) {
+                if (StringUtils.isBlank(sourceField)) {
+                    add(items, "PAGE_ACTION_PARAM_FIELD_EMPTY", "PAGE", BusinessPublishCheckLevel.BLOCK,
+                            "动作参数缺少来源字段", source + " 参数「" + name + "」选择了当前行字段，但未选择字段",
+                            name, source, "CONFIG_ACTION_PARAM", "配置参数映射", "list", sortOrder + index + 10);
+                } else if (!modelFields.contains(sourceField)) {
+                    add(items, "PAGE_ACTION_PARAM_FIELD_MISSING", "PAGE", BusinessPublishCheckLevel.BLOCK,
+                            "动作参数引用字段不存在", source + " 参数「" + name + "」引用了不存在的字段: " + sourceField,
+                            sourceField, source, "CONFIG_ACTION_PARAM", "修复参数映射", "list", sortOrder + index + 20);
+                }
+            } else if (Set.of("routeQuery", "system").contains(sourceType) && StringUtils.isBlank(sourceField)) {
+                add(items, "PAGE_ACTION_PARAM_SOURCE_EMPTY", "PAGE", BusinessPublishCheckLevel.BLOCK,
+                        "动作参数缺少来源", source + " 参数「" + name + "」选择了" + sourceType + "，但未选择具体来源",
+                        name, source, "CONFIG_ACTION_PARAM", "配置参数映射", "list", sortOrder + index + 25);
+            } else if (!Set.of("static", "routeQuery", "system").contains(sourceType) && StringUtils.isNotBlank(sourceType)) {
+                add(items, "PAGE_ACTION_PARAM_SOURCE_INVALID", "PAGE", BusinessPublishCheckLevel.BLOCK,
+                        "动作参数来源无效", source + " 参数「" + name + "」使用了不支持的来源类型: " + sourceType,
+                        name, source, "CONFIG_ACTION_PARAM", "修复参数映射", "list", sortOrder + index + 30);
+            }
+            if ("static".equalsIgnoreCase(sourceType) && StringUtils.isBlank(value)) {
+                add(items, "PAGE_ACTION_PARAM_VALUE_EMPTY", "PAGE", BusinessPublishCheckLevel.WARN,
+                        "动作参数固定值为空", source + " 参数「" + name + "」没有固定值，运行态会传空",
+                        name, source, "CONFIG_ACTION_PARAM", "检查参数映射", "list", sortOrder + index + 40);
+            }
         }
     }
 
@@ -491,6 +778,45 @@ public class BusinessObjectPublishService {
             add(items, "FORM_FIELD_COMPONENT_EMPTY", "FORM", BusinessPublishCheckLevel.BLOCK,
                     "表单缺少业务字段", "表单中没有绑定业务字段的组件", null, null,
                     "CONFIG_FORM", "设计表单", "form", 135);
+        }
+        checkFormGovernance(formSchema, modelFields, items);
+    }
+
+    private void checkFormGovernance(Map<String, Object> formSchema, Set<String> modelFields,
+                                     List<BusinessPublishCheckItemVO> items) {
+        Map<String, Object> governance = mapValue(mapValue(formSchema.get("settings")).get("governance"));
+        if (governance.isEmpty()) {
+            return;
+        }
+        int index = 0;
+        for (Map<String, Object> rule : listOfMap(governance.get("fieldRules"))) {
+            index++;
+            String field = text(rule.get("field"));
+            if (StringUtils.isBlank(field)) {
+                add(items, "FORM_RULE_FIELD_EMPTY", "FORM", BusinessPublishCheckLevel.WARN,
+                        "表单字段规则未选择字段", "第 " + index + " 条字段覆盖规则没有选择字段", null, null,
+                        "CONFIG_FORM_RULE", "配置字段规则", "form", 136 + index);
+            } else if (!modelFields.contains(field)) {
+                add(items, "FORM_RULE_FIELD_MISSING", "FORM", BusinessPublishCheckLevel.BLOCK,
+                        "表单字段规则引用不存在字段", "字段覆盖规则引用了不存在字段: " + field, field, null,
+                        "CONFIG_FORM_RULE", "修复字段规则", "form", 146 + index);
+            }
+        }
+        index = 0;
+        for (Map<String, Object> event : listOfMap(governance.get("events"))) {
+            index++;
+            String action = StringUtils.defaultIfBlank(text(event.get("action")), "customScript");
+            String handler = text(event.get("handler"));
+            if (!"none".equalsIgnoreCase(action) && StringUtils.isBlank(handler)) {
+                add(items, "FORM_EVENT_HANDLER_EMPTY", "FORM", BusinessPublishCheckLevel.WARN,
+                        "表单事件缺少处理器", "第 " + index + " 个表单事件没有配置脚本名、接口地址或动作编码",
+                        null, null, "CONFIG_FORM_EVENT", "配置表单事件", "form", 156 + index);
+            } else if ("customScript".equalsIgnoreCase(action) && StringUtils.isNotBlank(handler)
+                    && !Set.of("noop", "fillCurrentDate", "fillCurrentTime").contains(handler)) {
+                add(items, "FORM_EVENT_SCRIPT_NOT_ALLOWED", "FORM", BusinessPublishCheckLevel.BLOCK,
+                        "表单事件脚本未登记", "脚本「" + handler + "」不在运行态白名单内，可用: noop、fillCurrentDate、fillCurrentTime",
+                        handler, null, "CONFIG_FORM_EVENT", "修复表单事件", "form", 166 + index);
+            }
         }
     }
 
@@ -769,6 +1095,32 @@ public class BusinessObjectPublishService {
                     "CONFIG_APP_ENTRY", "绑定运行配置", "publish", 323);
         }
         Map<String, Object> options = readAppOptions(app.getOptions());
+        String entryType = StringUtils.defaultIfBlank(text(options.get("entryType")), "OBJECT_LIST").toUpperCase();
+        if (!APP_ENTRY_TYPES.contains(entryType)) {
+            add(items, "APP_ENTRY_TYPE_INVALID", "APP_ENTRY", BusinessPublishCheckLevel.WARN,
+                    "入口类型不合法", "入口类型仅支持对象列表、新增表单、详情、审批/待办、报表/看板、外链/API", entryType, null,
+                    "CONFIG_APP_ENTRY", "调整入口类型", "publish", 323);
+        }
+        String permissionCode = text(options.get("permissionCode"));
+        if (StringUtils.isBlank(permissionCode)) {
+            add(items, "APP_ENTRY_PERMISSION_EMPTY", "APP_ENTRY", BusinessPublishCheckLevel.WARN,
+                    "入口权限码未配置", "建议为每个入口配置独立权限码，方便多个入口指向同一业务对象时分开授权", null, null,
+                    "CONFIG_APP_ENTRY", "配置入口权限", "publish", 323);
+        }
+        Set<String> pageKeys = collectPageKeys(context.getPageSchema());
+        Set<String> formKeys = collectFormKeys(readDesignerOptions(context));
+        String targetPageKey = text(options.get("targetPageKey"));
+        if (StringUtils.isNotBlank(targetPageKey) && !pageKeys.contains(targetPageKey)) {
+            add(items, "APP_ENTRY_PAGE_MISSING", "APP_ENTRY", BusinessPublishCheckLevel.BLOCK,
+                    "入口目标页面不存在", "访问入口引用了不存在的页面: " + targetPageKey, targetPageKey, null,
+                    "CONFIG_APP_ENTRY", "修复入口页面", "publish", 323);
+        }
+        String targetFormKey = text(options.get("targetFormKey"));
+        if (StringUtils.isNotBlank(targetFormKey) && !formKeys.contains(targetFormKey)) {
+            add(items, "APP_ENTRY_FORM_MISSING", "APP_ENTRY", BusinessPublishCheckLevel.BLOCK,
+                    "入口目标表单不存在", "访问入口引用了不存在的表单: " + targetFormKey, targetFormKey, null,
+                    "CONFIG_APP_ENTRY", "修复入口表单", "publish", 324);
+        }
         Map<String, Object> adminMenu = mapValue(options.get("adminMenu"));
         Object menuResourceId = firstNonNull(adminMenu.get("menuResourceId"), options.get("menuResourceId"));
         String mountTarget = StringUtils.defaultIfBlank(text(options.get("mountTarget")), "ADMIN");
@@ -786,6 +1138,17 @@ public class BusinessObjectPublishService {
             add(items, "APP_RUNTIME_OPEN_MODE_EMPTY", "APP_ENTRY", BusinessPublishCheckLevel.WARN,
                     "运行打开模式不合法", "运行打开模式仅支持 LIST、CREATE_FORM、DETAIL，缺省时系统按 LIST 打开", null, null,
                     "CONFIG_APP_ENTRY", "配置打开方式", "publish", 325);
+        }
+        Map<String, Object> defaultParams = mapValue(options.get("defaultParams"));
+        if (!defaultParams.isEmpty()) {
+            for (String key : defaultParams.keySet()) {
+                String lowerKey = StringUtils.lowerCase(key);
+                if (StringUtils.containsAny(lowerKey, "password", "passwd", "token", "secret", "apikey", "accesskey")) {
+                    add(items, "APP_ENTRY_PARAM_SENSITIVE", "APP_ENTRY", BusinessPublishCheckLevel.BLOCK,
+                            "入口默认参数包含敏感键", "默认参数不能保存密码、Token 或密钥类长期凭证: " + key,
+                            key, null, "CONFIG_APP_ENTRY", "清理默认参数", "publish", 326);
+                }
+            }
         }
         if (items.stream().noneMatch(item -> "APP_ENTRY".equals(item.getCategory())
                 && !BusinessPublishCheckLevel.PASS.equals(item.getLevel()))) {
@@ -1072,7 +1435,7 @@ public class BusinessObjectPublishService {
         BusinessPublishCheckItemVO item = new BusinessPublishCheckItemVO();
         item.setItemCode(code);
         item.setCategory(category);
-        item.setLevel(level);
+        item.setLevel(normalizePublishCheckLevel(code, level));
         item.setTitle(title);
         item.setMessage(message);
         item.setFieldCode(fieldCode);
@@ -1082,6 +1445,13 @@ public class BusinessObjectPublishService {
         item.setFixTarget(fixTarget);
         item.setSortOrder(sortOrder);
         items.add(item);
+    }
+
+    private String normalizePublishCheckLevel(String code, String level) {
+        if (!BusinessPublishCheckLevel.BLOCK.equals(level)) {
+            return level;
+        }
+        return REQUIRED_BLOCK_ITEM_CODES.contains(code) ? level : BusinessPublishCheckLevel.WARN;
     }
 
     private List<Map<String, Object>> resolveLinkageRules(BusinessObjectDesignerService.DesignerContext context) {

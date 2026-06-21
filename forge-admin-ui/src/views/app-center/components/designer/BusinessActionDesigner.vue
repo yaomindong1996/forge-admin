@@ -78,9 +78,21 @@
                     <n-input-number v-model:value="action.sortOrder" :min="0" style="width: 100%" @update:value="markDirty" />
                   </n-form-item-gi>
 
-                  <n-form-item-gi v-if="action.actionType === 'OPEN_PAGE'" :span="3" label="目标页面">
-                    <n-input v-model:value="action.actionConfig.targetPath" placeholder="例如：/app-center/object/CUSTOMER" @update:value="markDirty" />
-                  </n-form-item-gi>
+                  <template v-if="action.actionType === 'OPEN_PAGE'">
+                    <n-form-item-gi :span="formOptions.length ? 2 : 3" label="目标页面">
+                      <n-input v-model:value="action.actionConfig.targetPath" placeholder="例如：/ai/crud-page/customer?pageKey=detail&id=:id" @update:value="markDirty" />
+                    </n-form-item-gi>
+                    <n-form-item-gi v-if="formOptions.length" label="目标表单">
+                      <n-select
+                        v-model:value="action.actionConfig.targetFormKey"
+                        :options="formOptions"
+                        clearable
+                        filterable
+                        placeholder="默认表单"
+                        @update:value="markDirty"
+                      />
+                    </n-form-item-gi>
+                  </template>
                   <template v-else-if="action.actionType === 'START_FLOW'">
                     <n-form-item-gi :span="3" label="主流程">
                       <div class="main-flow-action-hint">
@@ -140,6 +152,10 @@ const props = defineProps({
     default: null,
   },
   fields: {
+    type: Array,
+    default: () => [],
+  },
+  formOptions: {
     type: Array,
     default: () => [],
   },

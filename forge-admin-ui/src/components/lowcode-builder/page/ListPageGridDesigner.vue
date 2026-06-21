@@ -1,10 +1,10 @@
 <template>
   <div
     class="list-grid-designer"
-    :class="{ 'left-collapsed': paletteCollapsed, 'right-collapsed': propertyCollapsed, readonly }"
+    :class="{ 'left-collapsed': paletteCollapsed && !canvasFocusMode, 'right-collapsed': propertyCollapsed && !canvasFocusMode, 'canvas-focused': canvasFocusMode, readonly }"
   >
     <button
-      v-if="paletteCollapsed && !readonly"
+      v-if="paletteCollapsed && !readonly && !canvasFocusMode"
       type="button"
       class="side-rail-toggle-button left"
       title="展开页面组件"
@@ -13,7 +13,7 @@
       <n-icon><ChevronForwardOutline /></n-icon>
     </button>
 
-    <aside v-else-if="!readonly" class="palette-panel">
+    <aside v-else-if="!readonly && !canvasFocusMode" class="palette-panel">
       <div class="palette-panel-head">
         <div>
           <div class="panel-title">
@@ -57,16 +57,24 @@
               v-for="item in group.items"
               :key="item.blockType"
               class="palette-item"
+              :class="{
+                'is-disabled': isBlockDisabled(item),
+                'is-existing': resolveBlockDisabledReason(item) === '已在画布中',
+                'is-unavailable': resolveBlockDisabledReason(item) === '当前布局不可用',
+              }"
               type="button"
-              draggable="true"
-              :disabled="isBlockDisabled(item)"
-              :title="isBlockDisabled(item) ? '该区块已存在或不适用当前布局' : item.desc"
+              :draggable="!isBlockDisabled(item)"
+              :aria-disabled="isBlockDisabled(item)"
+              :title="resolveBlockDisabledReason(item) || item.desc"
               @dragstart="handlePaletteDragStart($event, item)"
               @dragend="resetCanvasDragState"
               @click="handlePaletteClick(item)"
             >
               <span class="item-title">{{ item.title }}</span>
               <span class="item-desc">{{ item.desc }}</span>
+              <span v-if="resolveBlockDisabledReason(item)" class="item-lock-reason">
+                {{ resolveBlockDisabledReason(item) }}
+              </span>
             </button>
           </div>
         </section>
@@ -101,13 +109,23 @@
             />
             <n-input-number
               :value="designCanvasWidth"
-              :min="960"
+              :min="375"
               :max="2560"
               :step="10"
               size="small"
               class="canvas-width-input"
               :show-button="false"
               @update:value="updateDesignWidth"
+            />
+          </div>
+          <div class="canvas-preview-control">
+            <span>预览形态</span>
+            <n-select
+              :value="canvasPreviewMode"
+              :options="canvasPreviewModeOptions"
+              size="small"
+              class="canvas-preview-select"
+              @update:value="applyCanvasPreviewMode"
             />
           </div>
           <div class="canvas-zoom-control">
@@ -128,6 +146,15 @@
           </div>
           <n-button size="small" secondary @click="sourceModalOpen = true">
             源码
+          </n-button>
+          <n-button size="small" secondary @click="toggleCanvasFocus">
+            <template #icon>
+              <n-icon>
+                <ContractOutline v-if="canvasFocusMode" />
+                <ExpandOutline v-else />
+              </n-icon>
+            </template>
+            {{ canvasFocusMode ? '退出专注' : '专注画布' }}
           </n-button>
           <n-popconfirm
             :show-icon="false"
@@ -238,12 +265,21 @@
                 :block="block"
                 :fields="fields"
                 :selected="block.id === selectedBlockId"
+                :selected-block-id="selectedBlockId || ''"
                 :readonly="readonly"
                 :runtime-crud-props="resolvedRuntimeCrudProps"
                 :runtime-record="runtimeRecord"
                 :runtime-tree-active-key="runtimeTreeActiveKey"
+                :active-drop-cell="activeDropCell"
+                @child-block-select="handleBlockClick"
+                @child-block-menu-select="handleNestedBlockMenuSelect"
+                @child-block-drag-start="handleNestedBlockDragStart"
+                @child-block-move-start="payload => startNestedMove(payload.block, payload.event)"
+                @child-block-drag-end="resetCanvasDragState"
+                @child-block-resize-start="payload => startNestedResize(payload.block, payload.event, payload.anchor)"
                 @runtime-tree-select="handleRuntimeTreeSelect"
                 @tree-panel-collapse-change="handleTreePanelCollapseChange"
+                @crud-preview-state-change="handleCrudPreviewStateChange"
               />
               <template v-if="!readonly">
                 <button
@@ -263,7 +299,7 @@
     </main>
 
     <button
-      v-if="propertyCollapsed && !readonly"
+      v-if="propertyCollapsed && !readonly && !canvasFocusMode"
       type="button"
       class="side-rail-toggle-button right"
       title="展开配置区块"
@@ -272,7 +308,7 @@
       <n-icon><ChevronBackOutline /></n-icon>
     </button>
 
-    <aside v-else-if="!readonly" class="block-property-panel">
+    <aside v-else-if="!readonly && !canvasFocusMode" class="block-property-panel">
       <div class="property-panel-head">
         <div>
           <div class="property-panel-title">
@@ -330,6 +366,142 @@
                 @update:value="patchBlock(selectedBlock.id, { label: $event })"
               />
             </n-form-item>
+
+            <template v-if="selectedBlock.blockType === 'grid-layout'">
+              <n-divider>栅格配置</n-divider>
+              <n-form-item label="栅格结构">
+                <div class="grid-config-grid three">
+                  <label class="grid-config-field">
+                    <span>总列数</span>
+                    <n-input-number
+                      :value="selectedBlock.props?.columns || 24"
+                      :min="1"
+                      :max="24"
+                      size="small"
+                      placeholder="24"
+                      @update:value="updateGridLayoutStructure({ columns: $event || 24 })"
+                    />
+                  </label>
+                  <label class="grid-config-field">
+                    <span>列间距</span>
+                    <n-input-number
+                      :value="selectedBlock.props?.gutter ?? selectedBlock.props?.gap ?? 16"
+                      :min="0"
+                      size="small"
+                      placeholder="16"
+                      @update:value="patchBlockProps(selectedBlock.id, { gutter: $event ?? 0 })"
+                    />
+                  </label>
+                  <label class="grid-config-field">
+                    <span>组件行距</span>
+                    <n-input-number
+                      :value="selectedBlock.props?.rowGap ?? 0"
+                      :min="0"
+                      size="small"
+                      placeholder="0"
+                      @update:value="patchBlockProps(selectedBlock.id, { rowGap: $event ?? 0 })"
+                    />
+                  </label>
+                </div>
+              </n-form-item>
+              <n-form-item label="格子样式">
+                <div class="grid-config-grid four">
+                  <label class="grid-config-field">
+                    <span>最小高度</span>
+                    <n-input-number
+                      :value="selectedBlock.props?.cellMinHeight || 120"
+                      :min="24"
+                      size="small"
+                      placeholder="120"
+                      @update:value="patchBlockProps(selectedBlock.id, { cellMinHeight: $event || 24 })"
+                    />
+                  </label>
+                  <label class="grid-config-field">
+                    <span>垂直位置</span>
+                    <n-select
+                      :value="selectedBlock.props?.alignItems || 'stretch'"
+                      :options="gridVerticalAlignOptions"
+                      size="small"
+                      @update:value="patchBlockProps(selectedBlock.id, { alignItems: $event })"
+                    />
+                  </label>
+                  <label class="grid-config-field">
+                    <span>水平位置</span>
+                    <n-select
+                      :value="selectedBlock.props?.justifyItems || 'stretch'"
+                      :options="gridHorizontalAlignOptions"
+                      size="small"
+                      @update:value="patchBlockProps(selectedBlock.id, { justifyItems: $event })"
+                    />
+                  </label>
+                  <label class="grid-config-switch">
+                    <span>显示格子边框</span>
+                    <n-switch
+                      :value="selectedBlock.props?.showCellBorder !== false"
+                      @update:value="patchBlockProps(selectedBlock.id, { showCellBorder: $event })"
+                    />
+                  </label>
+                </div>
+              </n-form-item>
+              <n-form-item label="格子背景">
+                <n-color-picker
+                  :value="selectedBlock.props?.cellBackground || 'transparent'"
+                  :show-alpha="true"
+                  size="small"
+                  @update:value="patchBlockProps(selectedBlock.id, { cellBackground: $event || 'transparent' })"
+                />
+              </n-form-item>
+              <n-form-item label="格子内容">
+                <div class="container-child-editor">
+                  <div
+                    v-for="(cell, idx) in selectedGridCells"
+                    :key="cell.key"
+                    class="grid-cell-editor"
+                  >
+                    <div class="grid-cell-editor-head">
+                      <n-input
+                        :value="cell.title"
+                        size="small"
+                        :placeholder="`栅格 ${idx + 1}`"
+                        @update:value="updateGridCell(idx, { title: $event })"
+                      />
+                      <n-input-number
+                        :value="cell.span || 6"
+                        :min="1"
+                        :max="selectedBlock.props?.columns || 24"
+                        size="small"
+                        class="grid-cell-span-input"
+                        placeholder="span"
+                        @update:value="updateGridCell(idx, { span: $event || 1 })"
+                      />
+                      <n-button size="tiny" quaternary type="error" @click="removeGridCell(idx)">
+                        删格
+                      </n-button>
+                    </div>
+                    <div
+                      v-for="child in (cell.children || [])"
+                      :key="child.id"
+                      class="container-child-row"
+                    >
+                      <span>{{ child.label || child.blockType }}</span>
+                      <n-button size="tiny" quaternary type="error" @click="removeGridCellChild(selectedBlock.id, cell.key, child.id)">
+                        删除
+                      </n-button>
+                    </div>
+                    <n-select
+                      :options="childBlockTypeOptions"
+                      size="small"
+                      placeholder="添加组件到此格"
+                      clearable
+                      @update:value="value => value && appendGridCellChild(selectedBlock.id, cell.key, value)"
+                    />
+                  </div>
+                  <n-button size="small" dashed block @click="addGridCell">
+                    + 添加格子
+                  </n-button>
+                </div>
+              </n-form-item>
+            </template>
 
             <n-form-item label="位置与尺寸 px">
               <div class="grid-pos-editor">
@@ -567,6 +739,15 @@
                     placeholder="目标页面"
                     @update:value="updateBlockEvent(eventIdx, { targetPageKey: $event || '' })"
                   />
+                  <n-select
+                    v-if="formTargetOptions.length"
+                    :value="eventItem.targetFormKey"
+                    :options="formTargetOptions"
+                    size="small"
+                    clearable
+                    placeholder="目标表单"
+                    @update:value="updateBlockEvent(eventIdx, { targetFormKey: $event || '' })"
+                  />
                   <n-input
                     :value="eventItem.description"
                     size="small"
@@ -586,10 +767,47 @@
                       placeholder="参数名"
                       @update:value="updateBlockEventParam(eventIdx, paramIdx, { name: normalizeParamName($event) })"
                     />
+                    <n-select
+                      :value="param.sourceType || 'static'"
+                      :options="paramSourceOptions"
+                      size="tiny"
+                      @update:value="updateBlockEventParam(eventIdx, paramIdx, normalizeParamSourcePatch($event, param))"
+                    />
+                    <n-select
+                      v-if="param.sourceType === 'rowField'"
+                      :value="param.sourceField || ''"
+                      :options="rowFieldOptions"
+                      size="tiny"
+                      filterable
+                      clearable
+                      placeholder="当前行字段"
+                      @update:value="updateBlockEventParam(eventIdx, paramIdx, buildParamValuePatch({ ...param, sourceType: 'rowField' }, $event))"
+                    />
+                    <n-select
+                      v-else-if="param.sourceType === 'routeQuery'"
+                      :value="param.sourceField || ''"
+                      :options="routeParamOptions"
+                      size="tiny"
+                      filterable
+                      tag
+                      clearable
+                      placeholder="路由参数"
+                      @update:value="updateBlockEventParam(eventIdx, paramIdx, buildParamValuePatch({ ...param, sourceType: 'routeQuery' }, $event))"
+                    />
+                    <n-select
+                      v-else-if="param.sourceType === 'system'"
+                      :value="param.sourceField || ''"
+                      :options="systemVariableOptions"
+                      size="tiny"
+                      clearable
+                      placeholder="系统变量"
+                      @update:value="updateBlockEventParam(eventIdx, paramIdx, buildParamValuePatch({ ...param, sourceType: 'system' }, $event))"
+                    />
                     <n-input
+                      v-else
                       :value="param.value"
                       size="tiny"
-                      placeholder="参数值，如 :id / ${field}"
+                      placeholder="固定值"
                       @update:value="updateBlockEventParam(eventIdx, paramIdx, { value: $event })"
                     />
                     <n-button size="tiny" quaternary @click="removeBlockEventParam(eventIdx, paramIdx)">
@@ -671,8 +889,8 @@
                     <n-form-item label="基础路径 / 行主键">
                       <div class="style-grid">
                         <n-input
-                          :value="selectedBlock.props?.api"
-                          placeholder="/api/business/object"
+                          :value="selectedBlock.props?.api || defaultApiValues.api"
+                          :placeholder="defaultApiValues.api"
                           @update:value="patchBlockProps(selectedBlock.id, { api: $event })"
                         />
                         <n-input
@@ -683,49 +901,87 @@
                       </div>
                     </n-form-item>
                     <n-form-item label="真实接口预览">
-                      <n-switch
-                        :value="selectedBlock.props?.previewLiveData === true"
-                        @update:value="patchBlockProps(selectedBlock.id, { previewLiveData: $event })"
-                      />
-                      <div class="field-help">
-                        默认不请求接口，避免设计器误触发真实数据；打开后中间预览会按接口配置加载数据。
+                      <div class="preview-config-panel">
+                        <div class="switch-line">
+                          <span>启用真实请求</span>
+                          <n-switch
+                            :value="selectedBlock.props?.previewLiveData === true"
+                            @update:value="patchBlockProps(selectedBlock.id, {
+                              previewLiveData: $event,
+                              previewMode: $event ? (selectedBlock.props?.previewMode === 'mock' ? 'realList' : (selectedBlock.props?.previewMode || 'realList')) : 'mock',
+                              lastPreviewStatus: $event ? 'loading' : 'idle',
+                              lastPreviewMessage: $event ? '正在请求真实接口预览' : '当前使用模拟预览，不请求接口',
+                              lastPreviewError: '',
+                            })"
+                          />
+                        </div>
+                        <div class="style-grid two">
+                          <n-select
+                            :value="selectedBlock.props?.previewMode || (selectedBlock.props?.previewLiveData === true ? 'realList' : 'mock')"
+                            :options="crudPreviewModeOptions"
+                            @update:value="patchBlockProps(selectedBlock.id, {
+                              previewMode: $event || 'mock',
+                              previewLiveData: $event !== 'mock',
+                              lastPreviewStatus: $event === 'mock' ? 'idle' : 'loading',
+                              lastPreviewMessage: $event === 'mock' ? '当前使用模拟预览，不请求接口' : '正在请求真实接口预览',
+                              lastPreviewError: '',
+                            })"
+                          />
+                          <n-input
+                            :value="selectedBlock.props?.previewRecordId || ''"
+                            :disabled="!['edit', 'detail'].includes(selectedBlock.props?.previewMode)"
+                            placeholder="编辑/详情记录 ID"
+                            @update:value="patchBlockProps(selectedBlock.id, { previewRecordId: $event || '' })"
+                          />
+                        </div>
+                        <div
+                          class="preview-status"
+                          :class="`is-${selectedBlock.props?.lastPreviewStatus || 'idle'}`"
+                        >
+                          <strong>{{ crudPreviewStatusText(selectedBlock.props?.lastPreviewStatus) }}</strong>
+                          <span>{{ selectedBlock.props?.lastPreviewMessage || '默认使用模拟数据预览；打开真实请求后会显示接口请求状态。' }}</span>
+                          <em v-if="selectedBlock.props?.lastPreviewError">{{ selectedBlock.props.lastPreviewError }}</em>
+                        </div>
+                        <div class="field-help">
+                          默认 mock，不请求接口；选择列表/新增/编辑/详情真实预览后，中间画布会请求接口并打开对应状态。编辑和详情建议填写记录 ID。
+                        </div>
                       </div>
                     </n-form-item>
                     <n-form-item label="接口地址">
                       <div class="api-config-grid">
                         <n-input
-                          :value="selectedBlock.props?.listApi"
-                          placeholder="列表 GET@/api/page"
+                          :value="selectedBlock.props?.listApi || defaultApiValues.listApi"
+                          :placeholder="defaultApiValues.listApi"
                           @update:value="patchBlockProps(selectedBlock.id, { listApi: $event })"
                         />
                         <n-input
-                          :value="selectedBlock.props?.detailApi"
-                          placeholder="详情 GET@/api/:id"
+                          :value="selectedBlock.props?.detailApi || defaultApiValues.detailApi"
+                          :placeholder="defaultApiValues.detailApi"
                           @update:value="patchBlockProps(selectedBlock.id, { detailApi: $event })"
                         />
                         <n-input
-                          :value="selectedBlock.props?.createApi"
-                          placeholder="新增 POST@/api"
+                          :value="selectedBlock.props?.createApi || defaultApiValues.createApi"
+                          :placeholder="defaultApiValues.createApi"
                           @update:value="patchBlockProps(selectedBlock.id, { createApi: $event })"
                         />
                         <n-input
-                          :value="selectedBlock.props?.updateApi"
-                          placeholder="编辑 PUT@/api/:id"
+                          :value="selectedBlock.props?.updateApi || defaultApiValues.updateApi"
+                          :placeholder="defaultApiValues.updateApi"
                           @update:value="patchBlockProps(selectedBlock.id, { updateApi: $event })"
                         />
                         <n-input
-                          :value="selectedBlock.props?.deleteApi"
-                          placeholder="删除 DELETE@/api/:id"
+                          :value="selectedBlock.props?.deleteApi || defaultApiValues.deleteApi"
+                          :placeholder="defaultApiValues.deleteApi"
                           @update:value="patchBlockProps(selectedBlock.id, { deleteApi: $event })"
                         />
                         <n-input
-                          :value="selectedBlock.props?.importApi"
-                          placeholder="导入 POST@/api/import"
+                          :value="selectedBlock.props?.importApi || defaultApiValues.importApi"
+                          :placeholder="defaultApiValues.importApi"
                           @update:value="patchBlockProps(selectedBlock.id, { importApi: $event })"
                         />
                         <n-input
-                          :value="selectedBlock.props?.exportApi"
-                          placeholder="导出 GET@/api/export"
+                          :value="selectedBlock.props?.exportApi || defaultApiValues.exportApi"
+                          :placeholder="defaultApiValues.exportApi"
                           @update:value="patchBlockProps(selectedBlock.id, { exportApi: $event })"
                         />
                       </div>
@@ -1012,20 +1268,72 @@
                 </n-collapse-item>
 
                 <n-collapse-item v-if="selectedBlock.blockType === 'AiCrudPage' && propertySectionVisible(['工具栏与导入导出', '工具栏', '导入', '导出', '自定义查询', '自定义操作', '按钮文案', '回调', '参数处理', '提交前', '搜索前', '加载列表前'])" name="toolbar" title="工具栏与导入导出">
-                  <n-form-item label="工具按钮">
-                    <n-checkbox-group
-                      :value="resolveAiCrudToolbarFlags(selectedBlock)"
-                      @update:value="updateAiCrudToolbarFlags"
-                    >
-                      <n-space>
-                        <n-checkbox value="hideAdd" label="隐藏新增" />
-                        <n-checkbox value="hideBatchDelete" label="隐藏批量删除" />
-                        <n-checkbox value="showImport" label="导入" />
-                        <n-checkbox value="showExport" label="导出" />
-                        <n-checkbox value="enableCustomQuery" label="自定义查询" />
-                        <n-checkbox value="showExportTasks" label="导出任务" />
-                      </n-space>
-                    </n-checkbox-group>
+                  <n-form-item label="工具栏显示项">
+                    <div class="toolbar-toggle-list">
+                      <div class="switch-line toolbar-toggle-row">
+                        <span class="switch-line-text">
+                          <strong>新增按钮</strong>
+                          <small>控制顶部工具栏里的“新增”按钮。</small>
+                        </span>
+                        <n-switch
+                          :value="isAiCrudToolbarSwitchOn(selectedBlock, 'add')"
+                          @update:value="updateAiCrudToolbarSwitch('add', $event)"
+                        />
+                      </div>
+                      <div class="switch-line toolbar-toggle-row">
+                        <span class="switch-line-text">
+                          <strong>批量删除按钮</strong>
+                          <small>控制勾选多行后使用的“批量删除”。</small>
+                        </span>
+                        <n-switch
+                          :value="isAiCrudToolbarSwitchOn(selectedBlock, 'batchDelete')"
+                          @update:value="updateAiCrudToolbarSwitch('batchDelete', $event)"
+                        />
+                      </div>
+                      <div class="switch-line toolbar-toggle-row">
+                        <span class="switch-line-text">
+                          <strong>导入按钮</strong>
+                          <small>控制顶部“导入”，需要下方导入接口地址可用。</small>
+                        </span>
+                        <n-switch
+                          :value="isAiCrudToolbarSwitchOn(selectedBlock, 'import')"
+                          @update:value="updateAiCrudToolbarSwitch('import', $event)"
+                        />
+                      </div>
+                      <div class="switch-line toolbar-toggle-row">
+                        <span class="switch-line-text">
+                          <strong>导出按钮</strong>
+                          <small>控制顶部“导出”，需要下方导出接口地址可用。</small>
+                        </span>
+                        <n-switch
+                          :value="isAiCrudToolbarSwitchOn(selectedBlock, 'export')"
+                          @update:value="updateAiCrudToolbarSwitch('export', $event)"
+                        />
+                      </div>
+                      <div class="switch-line toolbar-toggle-row">
+                        <span class="switch-line-text">
+                          <strong>自定义查询</strong>
+                          <small>控制工具栏里的自定义查询入口。</small>
+                        </span>
+                        <n-switch
+                          :value="isAiCrudToolbarSwitchOn(selectedBlock, 'customQuery')"
+                          @update:value="updateAiCrudToolbarSwitch('customQuery', $event)"
+                        />
+                      </div>
+                      <div class="switch-line toolbar-toggle-row">
+                        <span class="switch-line-text">
+                          <strong>导出任务入口</strong>
+                          <small>控制异步导出任务入口；未配置任务时预览不会显示。</small>
+                        </span>
+                        <n-switch
+                          :value="isAiCrudToolbarSwitchOn(selectedBlock, 'exportTasks')"
+                          @update:value="updateAiCrudToolbarSwitch('exportTasks', $event)"
+                        />
+                      </div>
+                      <div class="field-help">
+                        这些开关只控制当前 AiCrudPage 顶部工具栏的按钮。若“搜索与表格”里的“工具栏”关闭，整排工具按钮都会隐藏。
+                      </div>
+                    </div>
                   </n-form-item>
                   <n-form-item label="按钮文案 / 导出文件名">
                     <div class="style-grid three">
@@ -1062,6 +1370,18 @@
                       <n-button size="small" type="primary" secondary block @click="openCustomActionModal">
                         配置自定义操作（{{ customActionList.length }}）
                       </n-button>
+                    </div>
+                  </n-form-item>
+                  <n-form-item label="树表操作">
+                    <div class="switch-line">
+                      <span>显示“添加下级”</span>
+                      <n-switch
+                        :value="selectedBlock.props?.enableTreeAddChild === true"
+                        @update:value="patchBlockProps(selectedBlock.id, { enableTreeAddChild: $event })"
+                      />
+                    </div>
+                    <div class="field-help">
+                      仅树形表维护场景开启；左树右表筛选不需要这个行操作。
                     </div>
                   </n-form-item>
                 </n-collapse-item>
@@ -1171,6 +1491,14 @@
                   </n-form-item>
                 </n-collapse-item>
 
+                <n-collapse-item v-if="selectedBlock.blockType === 'AiCrudPage' && propertySectionVisible(['默认参数', '公共参数', 'publicParams', 'publicQuery', '表单默认值', '提交固定参数', '查询默认参数'])" name="default-params" title="默认参数">
+                  <CrudDefaultParamsEditor
+                    :model-value="resolveSelectedBlockDefaultParams(selectedBlock)"
+                    :field-options="sortFieldOptions"
+                    @update:model-value="updateSelectedBlockDefaultParams"
+                  />
+                </n-collapse-item>
+
                 <n-collapse-item v-if="propertySectionVisible(['事件回调', '事件', '回调', '点击', '加载完成', '提交成功', '参数处理', '提交前', '搜索前', '加载列表前'])" name="event-help" title="事件回调">
                   <template v-if="selectedBlock.blockType === 'AiCrudPage'">
                     <CrudHookRulesEditor
@@ -1209,12 +1537,23 @@
                 </div>
               </n-form-item>
               <n-form-item v-if="selectedBlock.props?.action === 'navigate'" label="返回目标页面">
-                <n-select
-                  :value="selectedBlock.props?.targetPageKey"
-                  :options="pageTargetOptions"
-                  clearable
-                  @update:value="patchBlockProps(selectedBlock.id, { targetPageKey: $event || '' })"
-                />
+                <div class="style-grid">
+                  <n-select
+                    :value="selectedBlock.props?.targetPageKey"
+                    :options="pageTargetOptions"
+                    clearable
+                    placeholder="目标页面"
+                    @update:value="patchBlockProps(selectedBlock.id, { targetPageKey: $event || '' })"
+                  />
+                  <n-select
+                    v-if="formTargetOptions.length"
+                    :value="selectedBlock.props?.targetFormKey"
+                    :options="formTargetOptions"
+                    clearable
+                    placeholder="目标表单"
+                    @update:value="patchBlockProps(selectedBlock.id, { targetFormKey: $event || '' })"
+                  />
+                </div>
               </n-form-item>
             </template>
 
@@ -1468,7 +1807,7 @@
             </template>
 
             <template v-if="selectedBlock.blockType === 'action-button'">
-              <n-form-item label="按钮配置">
+              <n-form-item label="基础样式">
                 <div class="style-grid three">
                   <n-input
                     :value="selectedBlock.props?.text"
@@ -1480,10 +1819,125 @@
                     :options="actionTypeOptions"
                     @update:value="patchBlockProps(selectedBlock.id, { type: $event || 'primary' })"
                   />
-                  <n-switch
-                    :value="!!selectedBlock.props?.secondary"
-                    @update:value="patchBlockProps(selectedBlock.id, { secondary: $event })"
+                  <n-select
+                    :value="selectedBlock.props?.size || 'small'"
+                    :options="componentSizeOptions"
+                    @update:value="patchBlockProps(selectedBlock.id, { size: $event || 'small' })"
                   />
+                </div>
+              </n-form-item>
+              <n-form-item label="点击动作">
+                <div class="action-button-event-grid">
+                  <n-select
+                    :value="resolvePrimaryClickEvent(selectedBlock).action"
+                    :options="blockEventActionOptions"
+                    placeholder="点击后执行"
+                    @update:value="updatePrimaryClickEvent({ action: $event || 'none' })"
+                  />
+                  <n-select
+                    v-if="resolvePrimaryClickEvent(selectedBlock).action === 'navigate'"
+                    :value="resolvePrimaryClickEvent(selectedBlock).targetPageKey"
+                    :options="pageTargetOptions"
+                    clearable
+                    filterable
+                    placeholder="目标页面"
+                    @update:value="updatePrimaryClickEvent({ targetPageKey: $event || '' })"
+                  />
+                  <n-select
+                    v-if="resolvePrimaryClickEvent(selectedBlock).action === 'navigate' && formTargetOptions.length"
+                    :value="resolvePrimaryClickEvent(selectedBlock).targetFormKey"
+                    :options="formTargetOptions"
+                    clearable
+                    filterable
+                    placeholder="目标表单"
+                    @update:value="updatePrimaryClickEvent({ targetFormKey: $event || '' })"
+                  />
+                  <n-input
+                    v-if="resolvePrimaryClickEvent(selectedBlock).action === 'request'"
+                    :value="resolvePrimaryClickEvent(selectedBlock).requestUrl"
+                    clearable
+                    placeholder="接口地址，例如 post@/api/xxx"
+                    @update:value="updatePrimaryClickEvent({ requestUrl: $event || '' })"
+                  />
+                </div>
+                <div class="field-help">
+                  这里会写入按钮的 click 事件；参数、权限、确认提示可在“事件回调”里继续补充。
+                </div>
+              </n-form-item>
+              <n-form-item label="权限与确认">
+                <div class="action-button-event-grid">
+                  <n-input
+                    :value="resolvePrimaryClickEvent(selectedBlock).permissionCode"
+                    clearable
+                    placeholder="权限码，例如 ai:business:customer:edit"
+                    @update:value="updatePrimaryClickEvent({ permissionCode: $event || '' })"
+                  />
+                  <n-input
+                    :value="resolvePrimaryClickEvent(selectedBlock).confirmText"
+                    clearable
+                    placeholder="确认提示，留空则不弹窗"
+                    @update:value="updatePrimaryClickEvent({ confirmText: $event || '' })"
+                  />
+                  <n-input
+                    :value="resolvePrimaryClickEvent(selectedBlock).displayCondition || ''"
+                    clearable
+                    placeholder="显示条件，如 status=待处理"
+                    @update:value="updatePrimaryClickEvent({ displayCondition: $event || '' })"
+                  />
+                </div>
+              </n-form-item>
+              <n-form-item label="成功后行为">
+                <n-select
+                  :value="resolvePrimaryClickEvent(selectedBlock).successBehavior || 'none'"
+                  :options="successBehaviorOptions"
+                  @update:value="updatePrimaryClickEvent({ successBehavior: $event || 'none' })"
+                />
+              </n-form-item>
+              <n-form-item label="按钮状态">
+                <div class="toolbar-toggle-list">
+                  <div class="switch-line toolbar-toggle-row">
+                    <span class="switch-line-text">
+                      <strong>次要按钮</strong>
+                      <small>打开后使用浅色按钮样式，适合“取消、查看、次操作”。</small>
+                    </span>
+                    <n-switch
+                      :value="!!selectedBlock.props?.secondary"
+                      @update:value="patchBlockProps(selectedBlock.id, { secondary: $event })"
+                    />
+                  </div>
+                  <div class="switch-line toolbar-toggle-row">
+                    <span class="switch-line-text">
+                      <strong>撑满宽度</strong>
+                      <small>打开后按钮宽度撑满当前按钮组件区块。</small>
+                    </span>
+                    <n-switch
+                      :value="!!selectedBlock.props?.block"
+                      @update:value="patchBlockProps(selectedBlock.id, { block: $event })"
+                    />
+                  </div>
+                  <div class="switch-line toolbar-toggle-row">
+                    <span class="switch-line-text">
+                      <strong>禁用状态</strong>
+                      <small>打开后按钮不可点击，用来预览无权限或条件不满足状态。</small>
+                    </span>
+                    <n-switch
+                      :value="!!selectedBlock.props?.disabled"
+                      @update:value="patchBlockProps(selectedBlock.id, { disabled: $event })"
+                    />
+                  </div>
+                  <div class="switch-line toolbar-toggle-row">
+                    <span class="switch-line-text">
+                      <strong>加载状态</strong>
+                      <small>打开后显示加载中，用来预览提交中的按钮状态。</small>
+                    </span>
+                    <n-switch
+                      :value="!!selectedBlock.props?.loading"
+                      @update:value="patchBlockProps(selectedBlock.id, { loading: $event })"
+                    />
+                  </div>
+                  <div class="field-help">
+                    这里的开关只改当前按钮的显示状态；点击后要跳转、刷新或调用接口，请在“事件回调”里配置点击事件。
+                  </div>
                 </div>
               </n-form-item>
             </template>
@@ -1944,6 +2398,18 @@
                         @update:value="updateFieldSetting(element.field, { targetPageKey: $event || '' })"
                       />
                     </label>
+                    <label v-if="resolveFieldSetting(element.field).clickAction === 'navigate' && formTargetOptions.length" class="field-setting-control">
+                      <span>目标表单</span>
+                      <n-select
+                        :value="resolveFieldSetting(element.field).targetFormKey || ''"
+                        size="tiny"
+                        :options="formTargetOptions"
+                        clearable
+                        filterable
+                        placeholder="默认表单"
+                        @update:value="updateFieldSetting(element.field, { targetFormKey: $event || '' })"
+                      />
+                    </label>
                     <label v-if="resolveFieldSetting(element.field).clickAction === 'navigate'" class="field-setting-control">
                       <span>参数名</span>
                       <n-input
@@ -2088,13 +2554,25 @@
                 </n-form-item>
               </div>
 
-              <n-form-item label="目标地址">
-                <n-input
-                  :value="activeAction.routePath"
-                  :disabled="(activeAction.actionType || 'route') === 'refresh'"
-                  :placeholder="actionPathPlaceholder(activeAction)"
-                  @update:value="updateActiveCustomAction({ routePath: $event })"
-                />
+              <n-form-item label="目标地址 / 表单">
+                <div class="action-form-grid">
+                  <n-input
+                    :value="activeAction.routePath"
+                    :disabled="(activeAction.actionType || 'route') === 'refresh'"
+                    :placeholder="actionPathPlaceholder(activeAction)"
+                    @update:value="updateActiveCustomAction({ routePath: $event })"
+                  />
+                  <n-select
+                    v-if="formTargetOptions.length"
+                    :value="activeAction.targetFormKey || ''"
+                    :disabled="(activeAction.actionType || 'route') === 'refresh'"
+                    :options="formTargetOptions"
+                    clearable
+                    filterable
+                    placeholder="目标表单"
+                    @update:value="updateActiveCustomAction({ targetFormKey: $event || '' })"
+                  />
+                </div>
               </n-form-item>
 
               <n-form-item label="确认提示">
@@ -2104,6 +2582,30 @@
                   @update:value="updateActiveCustomAction({ confirmText: $event })"
                 />
               </n-form-item>
+              <n-form-item label="显示条件">
+                <n-input
+                  :value="activeAction.displayCondition || ''"
+                  placeholder="例如 status=待处理、status!=已关闭、type in A,B"
+                  @update:value="updateActiveCustomAction({ displayCondition: $event || '' })"
+                />
+              </n-form-item>
+              <div class="action-form-grid">
+                <n-form-item label="权限码">
+                  <n-input
+                    :value="activeAction.permissionCode || ''"
+                    clearable
+                    placeholder="例如 ai:business:customer:detail"
+                    @update:value="updateActiveCustomAction({ permissionCode: $event || '' })"
+                  />
+                </n-form-item>
+                <n-form-item label="成功后行为">
+                  <n-select
+                    :value="activeAction.successBehavior || 'none'"
+                    :options="successBehaviorOptions"
+                    @update:value="updateActiveCustomAction({ successBehavior: $event || 'none' })"
+                  />
+                </n-form-item>
+              </div>
 
               <n-form-item label="参数映射">
                 <div class="action-param-editor">
@@ -2117,9 +2619,42 @@
                       placeholder="参数名，如 id"
                       @update:value="updateActionParam(paramIdx, { name: normalizeParamName($event) })"
                     />
+                    <n-select
+                      :value="param.sourceType || 'static'"
+                      :options="paramSourceOptions"
+                      @update:value="updateActionParam(paramIdx, normalizeParamSourcePatch($event, param))"
+                    />
+                    <n-select
+                      v-if="param.sourceType === 'rowField'"
+                      :value="param.sourceField || ''"
+                      :options="rowFieldOptions"
+                      filterable
+                      clearable
+                      placeholder="当前行字段"
+                      @update:value="updateActionParam(paramIdx, buildParamValuePatch({ ...param, sourceType: 'rowField' }, $event))"
+                    />
+                    <n-select
+                      v-else-if="param.sourceType === 'routeQuery'"
+                      :value="param.sourceField || ''"
+                      :options="routeParamOptions"
+                      filterable
+                      tag
+                      clearable
+                      placeholder="路由参数"
+                      @update:value="updateActionParam(paramIdx, buildParamValuePatch({ ...param, sourceType: 'routeQuery' }, $event))"
+                    />
+                    <n-select
+                      v-else-if="param.sourceType === 'system'"
+                      :value="param.sourceField || ''"
+                      :options="systemVariableOptions"
+                      clearable
+                      placeholder="系统变量"
+                      @update:value="updateActionParam(paramIdx, buildParamValuePatch({ ...param, sourceType: 'system' }, $event))"
+                    />
                     <n-input
+                      v-else
                       :value="param.value"
-                      placeholder="参数值，如 :id / ${name}"
+                      placeholder="固定值"
                       @update:value="updateActionParam(paramIdx, { value: $event })"
                     />
                     <n-button quaternary type="error" @click="removeActionParam(paramIdx)">
@@ -2174,9 +2709,17 @@
 </template>
 
 <script setup>
-import { ChevronBackOutline, ChevronForwardOutline, EllipsisHorizontalOutline, SearchOutline } from '@vicons/ionicons5'
+import {
+  ChevronBackOutline,
+  ChevronForwardOutline,
+  ContractOutline,
+  EllipsisHorizontalOutline,
+  ExpandOutline,
+  SearchOutline,
+} from '@vicons/ionicons5'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
+import CrudDefaultParamsEditor from './CrudDefaultParamsEditor.vue'
 import CrudHookRulesEditor from './CrudHookRulesEditor.vue'
 import GridBlockRenderer from './GridBlockRenderer.vue'
 import {
@@ -2219,6 +2762,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  formOptions: {
+    type: Array,
+    default: () => [],
+  },
   readonly: {
     type: Boolean,
     default: false,
@@ -2240,6 +2787,9 @@ const gap = 8
 const previewMinWidth = 360
 const TREE_PANEL_COLLAPSED_WIDTH = 44
 const canvasWidthOptions = [
+  { label: '390 移动', value: 390 },
+  { label: '768 窄屏', value: 768 },
+  { label: '960 抽屉', value: 960 },
   { label: '1200', value: 1200 },
   { label: '1366 默认', value: 1366 },
   { label: '1440', value: 1440 },
@@ -2253,6 +2803,20 @@ const canvasZoomOptions = [
   { label: '90%', value: 0.9 },
   { label: '100%', value: 1 },
   { label: '125%', value: 1.25 },
+]
+const canvasPreviewModeOptions = [
+  { label: '桌面', value: 'desktop' },
+  { label: '窄屏', value: 'narrow' },
+  { label: '弹窗', value: 'modal' },
+  { label: '抽屉', value: 'drawer' },
+  { label: '移动', value: 'mobile' },
+]
+const crudPreviewModeOptions = [
+  { label: '模拟数据', value: 'mock' },
+  { label: '真实列表', value: 'realList' },
+  { label: '新增表单', value: 'create' },
+  { label: '编辑表单', value: 'edit' },
+  { label: '详情状态', value: 'detail' },
 ]
 const blockWidthModeOptions = [
   { label: '撑满 100%', value: 'full' },
@@ -2280,6 +2844,29 @@ const actionOpenTargetOptions = [
   { label: '当前页', value: '_self' },
   { label: '新窗口', value: '_blank' },
 ]
+const successBehaviorOptions = [
+  { label: '无', value: 'none' },
+  { label: '刷新列表', value: 'refreshList' },
+  { label: '返回上一页', value: 'goBack' },
+]
+const paramSourceOptions = [
+  { label: '固定值', value: 'static' },
+  { label: '当前行字段', value: 'rowField' },
+  { label: '路由参数', value: 'routeQuery' },
+  { label: '系统变量', value: 'system' },
+]
+const routeParamOptions = [
+  { label: '记录 ID（id）', value: 'id' },
+  { label: '记录 ID（recordId）', value: 'recordId' },
+  { label: '页面 Key（pageKey）', value: 'pageKey' },
+  { label: '表单 Key（formKey）', value: 'formKey' },
+]
+const systemVariableOptions = [
+  { label: '当前时间戳', value: 'now' },
+  { label: '当前日期', value: 'today' },
+  { label: '当前用户 ID', value: 'userId' },
+  { label: '当前租户 ID', value: 'tenantId' },
+]
 const labelPlacementOptions = [
   { label: '左侧', value: 'left' },
   { label: '顶部', value: 'top' },
@@ -2287,6 +2874,18 @@ const labelPlacementOptions = [
 const labelAlignOptions = [
   { label: '左对齐', value: 'left' },
   { label: '右对齐', value: 'right' },
+]
+const gridVerticalAlignOptions = [
+  { label: '垂直填满', value: 'stretch' },
+  { label: '靠上', value: 'start' },
+  { label: '垂直居中', value: 'center' },
+  { label: '靠下', value: 'end' },
+]
+const gridHorizontalAlignOptions = [
+  { label: '水平填满', value: 'stretch' },
+  { label: '靠左', value: 'start' },
+  { label: '水平居中', value: 'center' },
+  { label: '靠右', value: 'end' },
 ]
 const componentSizeOptions = [
   { label: '小', value: 'small' },
@@ -2404,6 +3003,8 @@ const backButtonActionOptions = [
   { label: '跳转页面', value: 'navigate' },
 ]
 const resizeAnchors = ['top-left', 'top', 'top-right', 'right', 'bottom-right', 'bottom', 'bottom-left', 'left']
+const CANVAS_AUTO_SCROLL_EDGE = 56
+const CANVAS_AUTO_SCROLL_MAX_STEP = 20
 
 const canvasRef = ref(null)
 const canvasScrollRef = ref(null)
@@ -2416,15 +3017,20 @@ const paletteKeyword = ref('')
 const propertyKeyword = ref('')
 const paletteCollapsed = ref(false)
 const propertyCollapsed = ref(false)
+const canvasFocusMode = ref(false)
+const canvasPreviewMode = ref('desktop')
 const activeTabKey = ref('')
 const canvasDragActive = ref(false)
 const draggedBlockType = ref('')
+const draggedExistingBlockId = ref('')
 const dragOverCell = ref(null)
 const dragOverPoint = ref(null)
+const activeDropCell = ref(null)
 const deferLayoutEmit = ref(false)
 const movingBlockId = ref('')
 const movingPreviewBlock = ref(null)
 const movingPixelOffset = ref({ x: 0, y: 0 })
+const nestedMovingBlockId = ref('')
 const canvasViewportWidth = ref(0)
 const canvasZoom = ref(1)
 let suppressNextBlockClick = false
@@ -2455,7 +3061,7 @@ const resolvedRuntimeCrudProps = computed(() => {
     },
   }
 })
-const designCanvasWidth = computed(() => clamp(localLayout.value.designWidth || LIST_PAGE_DESIGN_WIDTH, 960, 2560))
+const designCanvasWidth = computed(() => clamp(localLayout.value.designWidth || LIST_PAGE_DESIGN_WIDTH, 375, 2560))
 const totalRows = computed(() => {
   const maxGridBottom = blocks.value.reduce((acc, b) => Math.max(acc, b.gridY + b.gridH), 0)
   const maxPixelBottom = blocks.value.reduce((acc, block) => {
@@ -2489,15 +3095,13 @@ const canvasZoomStageStyle = computed(() => ({
   minHeight: `${(canvasGridHeight.value + (props.readonly ? 0 : 24)) * canvasZoom.value}px`,
 }))
 const collapsedTreeFrames = computed(() => {
-  if (!props.readonly)
-    return []
   return blocks.value
     .filter(block => block.blockType === 'tree-panel' && collapsedTreePanelMap.value[block.id])
     .map(block => ({ block, rect: resolveBlockFrame(block) }))
     .sort((a, b) => a.rect.x - b.rect.x)
 })
 
-const selectedBlock = computed(() => blocks.value.find(b => b.id === selectedBlockId.value) || null)
+const selectedBlock = computed(() => findBlockInTree(blocks.value, selectedBlockId.value) || null)
 const selectedBlockEvents = computed(() => selectedBlock.value?.props?.events || [])
 const selectedBlockStyle = computed(() => ({
   ...createDefaultBlockStyle(),
@@ -2521,17 +3125,24 @@ const selectedBlockCodeText = computed(() => selectedBlock.value
 const customActionList = computed(() => selectedBlock.value?.props?.customActions || [])
 const activeAction = computed(() => customActionList.value[activeActionIndex.value] || null)
 const dropPreviewLabel = computed(() => {
-  const meta = resolveListPageBlockMeta(draggedBlockType.value)
+  const meta = resolveListPageBlockMeta(resolveDraggedPreviewBlockType())
   return meta ? `放置 ${meta.title}` : '放置区块'
 })
 const dropPreviewStyle = computed(() => {
-  if (!canvasDragActive.value || !draggedBlockType.value || !dragOverPoint.value)
+  if (!canvasDragActive.value || !dragOverPoint.value)
     return null
-  const meta = resolveListPageBlockMeta(draggedBlockType.value)
+  if (activeDropCell.value)
+    return null
+  const meta = resolveListPageBlockMeta(resolveDraggedPreviewBlockType())
   if (!meta)
     return null
-  const width = gridWidthToPixels(Math.min(meta.defaultW || 4, LIST_PAGE_GRID_COLS))
-  const height = gridHeightToPixels(Math.max(1, meta.defaultH || 2))
+  const source = draggedExistingBlockId.value ? findBlockInTree(blocks.value, draggedExistingBlockId.value) : null
+  const sourceFrame = source ? resolveDetachedBlockFrame(source, meta) : null
+  const width = Math.min(
+    sourceFrame?.width || gridWidthToPixels(Math.min(meta.defaultW || 4, LIST_PAGE_GRID_COLS)),
+    canvasGridWidth.value,
+  )
+  const height = sourceFrame?.height || gridHeightToPixels(Math.max(1, meta.defaultH || 2))
   const x = clamp(dragOverPoint.value.x, 0, Math.max(0, canvasGridWidth.value - width))
   const y = Math.max(0, dragOverPoint.value.y)
   return {
@@ -2561,7 +3172,32 @@ const layoutTitle = computed(() => {
   return '标准单表'
 })
 const selectedBlockMeta = computed(() => selectedBlock.value ? resolveListPageBlockMeta(selectedBlock.value.blockType) : null)
+
+function resolveDraggedPreviewBlockType() {
+  if (draggedBlockType.value)
+    return draggedBlockType.value
+  if (!draggedExistingBlockId.value)
+    return ''
+  return findBlockInTree(blocks.value, draggedExistingBlockId.value)?.blockType || ''
+}
+
+function resolveDetachedBlockFrame(block = {}, meta = null) {
+  const style = block.props?.style || {}
+  const fallbackGridW = Math.min(Number(block.gridW) || meta?.defaultW || 4, LIST_PAGE_GRID_COLS)
+  const fallbackGridH = Math.max(1, Number(block.gridH) || meta?.defaultH || 2)
+  const fallbackWidth = gridWidthToPixels(fallbackGridW)
+  const fallbackHeight = gridHeightToPixels(fallbackGridH)
+  const width = style.widthMode === 'auto'
+    ? Math.min(520, Math.max(240, fallbackWidth))
+    : resolveCssNumber(style.width, fallbackWidth)
+  const height = resolveCssNumber(style.height, fallbackHeight)
+  return {
+    width: Math.max(24, Math.min(width || fallbackWidth, canvasGridWidth.value)),
+    height: Math.max(24, height || fallbackHeight),
+  }
+}
 const blockTargetOptions = computed(() => blocks.value
+  .flatMap(block => collectBlocksInTree(block))
   .filter(block => block.id !== selectedBlock.value?.id)
   .map(block => ({
     label: `${block.label || block.blockType}（${block.blockType}）`,
@@ -2571,9 +3207,21 @@ const pageTargetOptions = computed(() => props.pages.map(page => ({
   label: `${page.pageName || page.pageKey}（${page.pageType || 'custom'}）`,
   value: page.pageKey,
 })))
+const formTargetOptions = computed(() => props.formOptions
+  .filter(item => item?.value)
+  .map(item => ({
+    label: item.label || item.value,
+    value: item.value,
+  })))
+const rowFieldOptions = computed(() => props.fields
+  .filter(field => field?.field)
+  .map(field => ({
+    label: `${field.label || field.field}（${field.field}）`,
+    value: field.field,
+  })))
 const childBlockTypeOptions = computed(() => listPageBlockCatalog
   .filter(item => !item.unique)
-  .filter(item => item.blockType !== 'card' && item.blockType !== 'tabs')
+  .filter(item => !['card', 'tabs', 'grid-layout'].includes(item.blockType))
   .filter(item => !item.onlyFor || item.onlyFor.includes(props.layoutType))
   .map(item => ({
     label: `${item.title}（${item.blockType}）`,
@@ -2588,6 +3236,7 @@ const activeTabChildren = computed(() => {
   const tab = tabs.find(item => item.key === activeTabKey.value) || tabs[0]
   return tab?.children || []
 })
+const selectedGridCells = computed(() => normalizeGridLayoutCells(selectedBlock.value))
 
 const primaryModelCode = computed(() => props.modelSchema?.pageModelRefs?.find(ref => ref.primary)?.modelCode || '')
 const primaryFieldOptions = computed(() => props.fields
@@ -2603,6 +3252,25 @@ const sortFieldOptions = computed(() => {
     options.unshift({ label: 'ID（id）', value: 'id' })
   }
   return options
+})
+const defaultApiValues = computed(() => {
+  const key = props.modelSchema?.configKey
+    || props.modelSchema?.object?.configKey
+    || props.modelSchema?.object?.code
+    || props.modelSchema?.objectCode
+    || props.modelSchema?.modelCode
+    || ''
+  const prefix = key ? `/ai/crud/${key}` : '/ai/crud/当前配置'
+  return {
+    api: prefix,
+    listApi: `get@${prefix}/page`,
+    detailApi: `get@${prefix}/:id`,
+    createApi: `post@${prefix}`,
+    updateApi: `put@${prefix}`,
+    deleteApi: `delete@${prefix}/:id`,
+    importApi: `post@${prefix}/import`,
+    exportApi: `get@${prefix}/export`,
+  }
 })
 const treeSourceOptions = computed(() => resolveTreeSourceRefs(props.modelSchema).map(ref => ({
   label: `${ref.modelName || ref.modelCode || '数据模型'}${ref.primary ? '（主模型）' : '（引用模型）'}`,
@@ -2723,16 +3391,23 @@ function emitLayoutChange(value = localLayout.value) {
 function resolveBlockStyle(block) {
   const componentStyle = block.props?.style || {}
   const rect = resolveRuntimeBlockFrame(block, resolveBlockFrame(block))
+  const widthMode = resolveBlockWidthMode(block)
+  const collapsedTree = isTreePanelCollapsed(block)
   const style = {
     left: `${rect.x}px`,
     top: `${rect.y}px`,
-    width: `${rect.width}px`,
     height: `${rect.height}px`,
     minWidth: resolveAbsoluteCssSize(componentStyle.minWidth),
     maxWidth: resolveAbsoluteCssSize(componentStyle.maxWidth),
     minHeight: resolveAbsoluteCssSize(componentStyle.minHeight),
     maxHeight: resolveAbsoluteCssSize(componentStyle.maxHeight),
   }
+  if (collapsedTree)
+    style.width = `${rect.width}px`
+  else if (widthMode === 'full')
+    style.right = '0'
+  else
+    style.width = `${rect.width}px`
   if (movingBlockId.value === block.id) {
     style.transform = `translate3d(${movingPixelOffset.value.x}px, ${movingPixelOffset.value.y}px, 0) scale(0.995)`
   }
@@ -2740,7 +3415,7 @@ function resolveBlockStyle(block) {
 }
 
 function resolveRuntimeBlockFrame(block, rect) {
-  if (!props.readonly || !collapsedTreeFrames.value.length)
+  if (!collapsedTreeFrames.value.length)
     return rect
   const next = { ...rect }
   for (const { block: treeBlock, rect: treeRect } of collapsedTreeFrames.value) {
@@ -2760,6 +3435,10 @@ function resolveRuntimeBlockFrame(block, rect) {
     }
   }
   return next
+}
+
+function isTreePanelCollapsed(block = {}) {
+  return block.blockType === 'tree-panel' && collapsedTreePanelMap.value[block.id]
 }
 
 function isVerticalFrameOverlap(a, b) {
@@ -2988,41 +3667,82 @@ function updateAiCrudEditFlags(values = []) {
   })
 }
 
-function resolveAiCrudToolbarFlags(block = {}) {
+function isAiCrudToolbarSwitchOn(block = {}, key) {
   const props = block.props || {}
-  const flags = []
-  if (props.hideAdd === true)
-    flags.push('hideAdd')
-  if (props.hideBatchDelete === true)
-    flags.push('hideBatchDelete')
-  if (props.showImport === true)
-    flags.push('showImport')
-  if (props.showExport === true)
-    flags.push('showExport')
-  if (props.enableCustomQuery === true)
-    flags.push('enableCustomQuery')
-  if (props.showExportTasks !== false)
-    flags.push('showExportTasks')
-  return flags
+  if (key === 'add')
+    return props.hideAdd !== true
+  if (key === 'batchDelete')
+    return props.hideBatchDelete !== true
+  if (key === 'import')
+    return props.showImport === true
+  if (key === 'export')
+    return props.showExport === true
+  if (key === 'customQuery')
+    return props.enableCustomQuery === true
+  if (key === 'exportTasks')
+    return props.showExportTasks !== false
+  return false
 }
 
-function updateAiCrudToolbarFlags(values = []) {
+function updateAiCrudToolbarSwitch(key, checked) {
   if (!selectedBlock.value)
     return
-  patchBlockProps(selectedBlock.value.id, {
-    hideAdd: values.includes('hideAdd'),
-    hideBatchDelete: values.includes('hideBatchDelete'),
-    showImport: values.includes('showImport'),
-    showExport: values.includes('showExport'),
-    enableCustomQuery: values.includes('enableCustomQuery'),
-    showExportTasks: values.includes('showExportTasks'),
-  })
+  const value = checked === true
+  const propPatchMap = {
+    add: { hideAdd: !value },
+    batchDelete: { hideBatchDelete: !value },
+    import: { showImport: value },
+    export: { showExport: value },
+    customQuery: { enableCustomQuery: value },
+    exportTasks: { showExportTasks: value },
+  }
+  patchBlockProps(selectedBlock.value.id, propPatchMap[key] || {})
 }
 
 function updateSelectedBlockHookRules(rules) {
   if (!selectedBlock.value)
     return
   patchBlockProps(selectedBlock.value.id, { crudHookRules: rules || {}, beforeSubmitRules: [] })
+}
+
+function resolveSelectedBlockDefaultParams(block = {}) {
+  const props = block?.props || {}
+  return {
+    publicParams: props.publicParams || {},
+    publicQuery: props.publicQuery || {},
+    formDefaultValues: props.formDefaultValues || {},
+    submitDefaultParams: props.submitDefaultParams || {},
+  }
+}
+
+function updateSelectedBlockDefaultParams(params = {}) {
+  if (!selectedBlock.value)
+    return
+  if (isSameDefaultParams(resolveSelectedBlockDefaultParams(selectedBlock.value), params))
+    return
+  patchBlockProps(selectedBlock.value.id, {
+    publicParams: params.publicParams || {},
+    publicQuery: params.publicQuery || {},
+    formDefaultValues: params.formDefaultValues || {},
+    submitDefaultParams: params.submitDefaultParams || {},
+  })
+}
+
+function isSameDefaultParams(left = {}, right = {}) {
+  return JSON.stringify(normalizeDefaultParams(left)) === JSON.stringify(normalizeDefaultParams(right))
+}
+
+function normalizeDefaultParams(source = {}) {
+  return ['publicParams', 'publicQuery', 'formDefaultValues', 'submitDefaultParams'].reduce((result, key) => {
+    const params = source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])
+      ? source[key]
+      : {}
+    result[key] = Object.keys(params).sort().reduce((next, paramKey) => {
+      next[paramKey] = params[paramKey]
+      return next
+    }, {})
+    return result
+  }, {})
 }
 
 function resolveAiTableVisibleFlags(block = {}) {
@@ -3119,9 +3839,29 @@ function updateAiFormFlags(values = []) {
 }
 
 function isBlockDisabled(item) {
-  if (item.unique && blocks.value.some(b => b.blockType === item.blockType))
-    return true
+  return !!resolveBlockDisabledReason(item)
+}
+
+function resolveBlockDisabledReason(item = {}) {
+  if (item.unique && findExistingBlockByType(item.blockType))
+    return '已在画布中'
   if (item.onlyFor && !item.onlyFor.includes(props.layoutType))
+    return '当前布局不可用'
+  return ''
+}
+
+function findExistingBlockByType(blockType) {
+  return blocks.value.find(block => blockContainsType(block, blockType))
+}
+
+function blockContainsType(block = {}, blockType = '') {
+  if (block.blockType === blockType)
+    return true
+  if ((block.children || []).some(child => blockContainsType(child, blockType)))
+    return true
+  if ((block.props?.tabs || []).some(tab => (tab.children || []).some(child => blockContainsType(child, blockType))))
+    return true
+  if ((block.props?.cells || []).some(cell => (cell.children || []).some(child => blockContainsType(child, blockType))))
     return true
   return false
 }
@@ -3140,12 +3880,46 @@ function handlePaletteDragStart(event, item) {
   event.dataTransfer.setData('application/x-list-block', item.blockType)
 }
 
+function handleNestedBlockDragStart(payload = {}) {
+  const block = payload.block || {}
+  if (!block.id)
+    return
+  selectBlock(block.id)
+  draggedExistingBlockId.value = block.id
+  draggedBlockType.value = block.blockType || ''
+  canvasDragActive.value = true
+}
+
 function handlePaletteClick(item) {
   if (props.readonly)
     return
-  if (isBlockDisabled(item))
+  const existingBlock = item.unique ? findExistingBlockByType(item.blockType) : null
+  if (existingBlock) {
+    selectBlock(existingBlock.id)
+    scrollBlockIntoView(existingBlock)
     return
+  }
+  const disabledReason = resolveBlockDisabledReason(item)
+  if (disabledReason) {
+    window.$message?.info(disabledReason)
+    return
+  }
   appendBlock(item.blockType)
+}
+
+function scrollBlockIntoView(block) {
+  const scrollEl = canvasScrollRef.value
+  if (!scrollEl || !block)
+    return
+  nextTick(() => {
+    const rect = resolveBlockFrame(block)
+    const zoom = canvasZoom.value || 1
+    scrollEl.scrollTo({
+      left: Math.max(0, rect.x * zoom - 32),
+      top: Math.max(0, rect.y * zoom - 32),
+      behavior: 'smooth',
+    })
+  })
 }
 
 function resolveBlockMoreOptions(block = {}) {
@@ -3204,6 +3978,20 @@ function handleBlockMoreSelect(key, block = {}) {
     removeBlock(block.id)
 }
 
+function handleNestedBlockMenuSelect(payload = {}) {
+  const key = payload.key
+  const block = payload.block || {}
+  if (!block.id)
+    return
+  selectBlock(block.id)
+  if (key === 'duplicate') {
+    duplicateBlock(block.id)
+    return
+  }
+  if (key === 'delete')
+    removeBlock(block.id)
+}
+
 function handleTreeSourceChange(sourceModelCode) {
   if (!selectedBlock.value)
     return
@@ -3214,18 +4002,36 @@ function handleTreeSourceChange(sourceModelCode) {
 function handleCanvasDrop(event) {
   if (props.readonly)
     return
+  const existingBlockId = event.dataTransfer?.getData('application/x-list-existing-block') || draggedExistingBlockId.value
   const blockType = event.dataTransfer?.getData('application/x-list-block')
+  if (existingBlockId) {
+    const container = resolveDropContainer(event)
+    if (container?.block?.blockType === 'grid-layout' && container.cellKey) {
+      resetCanvasDragState()
+      moveExistingBlockToGridCell(existingBlockId, container.id, container.cellKey)
+      return
+    }
+    if (container?.block && container.block.blockType !== 'grid-layout' && container.block.id !== existingBlockId) {
+      resetCanvasDragState()
+      moveExistingBlockToContainer(existingBlockId, container.id)
+      return
+    }
+    const point = pixelToPoint(event.clientX, event.clientY)
+    resetCanvasDragState()
+    moveExistingBlockToCanvas(existingBlockId, point)
+    return
+  }
   resetCanvasDragState()
   if (!blockType)
     return
   const meta = resolveListPageBlockMeta(blockType)
   if (!meta)
     return
-  if (meta.unique && blocks.value.some(block => block.blockType === blockType))
+  if (meta.unique && findExistingBlockByType(blockType))
     return
   const container = resolveDropContainer(event)
   if (container) {
-    appendContainerChild(container.id, blockType)
+    appendContainerChild(container.id, blockType, container.cellKey)
     return
   }
   const point = pixelToPoint(event.clientX, event.clientY)
@@ -3236,21 +4042,30 @@ function handleCanvasDragEnter(event) {
   if (props.readonly)
     return
   const blockType = event.dataTransfer?.getData('application/x-list-block') || draggedBlockType.value
-  if (!blockType)
+  const existingBlockId = event.dataTransfer?.getData('application/x-list-existing-block') || draggedExistingBlockId.value
+  if (!blockType && !existingBlockId)
     return
   canvasDragActive.value = true
-  draggedBlockType.value = blockType
+  draggedExistingBlockId.value = existingBlockId || ''
+  draggedBlockType.value = blockType || findBlockInTree(blocks.value, existingBlockId)?.blockType || ''
 }
 
 function handleCanvasDragOver(event) {
   if (props.readonly)
     return
   const blockType = event.dataTransfer?.getData('application/x-list-block') || draggedBlockType.value
-  if (!blockType)
+  const existingBlockId = event.dataTransfer?.getData('application/x-list-existing-block') || draggedExistingBlockId.value
+  if (!blockType && !existingBlockId)
     return
   canvasDragActive.value = true
-  draggedBlockType.value = blockType
-  dragOverCell.value = pixelToCell(event.clientX, event.clientY)
+  draggedExistingBlockId.value = existingBlockId || ''
+  draggedBlockType.value = blockType || findBlockInTree(blocks.value, existingBlockId)?.blockType || ''
+  autoScrollCanvasOnPointer(event)
+  const container = resolveDropContainer(event)
+  activeDropCell.value = container?.block?.blockType === 'grid-layout' && container.cellKey
+    ? { containerId: container.id, cellKey: container.cellKey }
+    : null
+  dragOverCell.value = activeDropCell.value ? null : pixelToCell(event.clientX, event.clientY)
   dragOverPoint.value = pixelToPoint(event.clientX, event.clientY)
 }
 
@@ -3265,8 +4080,45 @@ function handleCanvasDragLeave(event) {
 function resetCanvasDragState() {
   canvasDragActive.value = false
   draggedBlockType.value = ''
+  draggedExistingBlockId.value = ''
   dragOverCell.value = null
   dragOverPoint.value = null
+  activeDropCell.value = null
+}
+
+function resolveAutoScrollStep(distanceToEdge) {
+  const ratio = clamp((CANVAS_AUTO_SCROLL_EDGE - distanceToEdge) / CANVAS_AUTO_SCROLL_EDGE, 0, 1)
+  return Math.max(1, Math.round(ratio * CANVAS_AUTO_SCROLL_MAX_STEP))
+}
+
+function autoScrollCanvasOnPointer(event) {
+  const scrollEl = canvasScrollRef.value
+  if (!scrollEl)
+    return
+  const rect = scrollEl.getBoundingClientRect()
+  let nextLeft = scrollEl.scrollLeft
+  let nextTop = scrollEl.scrollTop
+
+  if (event.clientX < rect.left + CANVAS_AUTO_SCROLL_EDGE) {
+    nextLeft -= resolveAutoScrollStep(event.clientX - rect.left)
+  }
+  else if (event.clientX > rect.right - CANVAS_AUTO_SCROLL_EDGE) {
+    nextLeft += resolveAutoScrollStep(rect.right - event.clientX)
+  }
+
+  if (event.clientY < rect.top + CANVAS_AUTO_SCROLL_EDGE) {
+    nextTop -= resolveAutoScrollStep(event.clientY - rect.top)
+  }
+  else if (event.clientY > rect.bottom - CANVAS_AUTO_SCROLL_EDGE) {
+    nextTop += resolveAutoScrollStep(rect.bottom - event.clientY)
+  }
+
+  nextLeft = clamp(nextLeft, 0, scrollEl.scrollWidth - scrollEl.clientWidth)
+  nextTop = clamp(nextTop, 0, scrollEl.scrollHeight - scrollEl.clientHeight)
+  if (nextLeft !== scrollEl.scrollLeft)
+    scrollEl.scrollLeft = nextLeft
+  if (nextTop !== scrollEl.scrollTop)
+    scrollEl.scrollTop = nextTop
 }
 
 function appendBlock(blockType, position) {
@@ -3309,20 +4161,72 @@ function appendBlock(blockType, position) {
 }
 
 function resolveDropContainer(event) {
-  const node = event.target?.closest?.('[data-block-id]')
-  const blockId = node?.dataset?.blockId
-  if (!blockId)
+  const match = resolveClosestContainerBlock(event.target)
+  if (!match?.block)
     return null
-  const block = blocks.value.find(item => item.id === blockId)
-  return isContainerBlock(block) ? block : null
+  const cellNode = event.target?.closest?.('[data-grid-cell-key][data-grid-container-id]')
+  const cellKey = match.block.blockType === 'grid-layout' && cellNode?.dataset?.gridContainerId === match.block.id
+    ? cellNode.dataset.gridCellKey || ''
+    : ''
+  return {
+    block: match.block,
+    id: match.block.id,
+    cellKey,
+  }
+}
+
+function resolveDropContainerFromPoint(clientX, clientY) {
+  const target = document.elementFromPoint(clientX, clientY)
+  const match = resolveClosestContainerBlock(target)
+  if (match?.block) {
+    const cellNode = target?.closest?.('[data-grid-cell-key][data-grid-container-id]')
+    if (match.block.blockType === 'grid-layout' && cellNode?.dataset?.gridContainerId === match.block.id) {
+      return {
+        block: match.block,
+        id: match.block.id,
+        cellKey: cellNode.dataset.gridCellKey || '',
+        cellRect: cellNode.getBoundingClientRect?.() || null,
+      }
+    }
+    return {
+      block: match.block,
+      id: match.block.id,
+      cellKey: '',
+    }
+  }
+  const cellNode = target?.closest?.('[data-grid-cell-key][data-grid-container-id]')
+  if (cellNode) {
+    const containerId = cellNode.dataset.gridContainerId || ''
+    const block = findBlockInTree(blocks.value, containerId)
+    if (block?.blockType === 'grid-layout') {
+      return {
+        block,
+        id: block.id,
+        cellKey: cellNode.dataset.gridCellKey || '',
+        cellRect: cellNode.getBoundingClientRect?.() || null,
+      }
+    }
+  }
+  return null
+}
+
+function resolveClosestContainerBlock(target) {
+  let node = target?.closest?.('[data-block-id]')
+  while (node) {
+    const block = findBlockInTree(blocks.value, node.dataset?.blockId || '')
+    if (isContainerBlock(block))
+      return { node, block }
+    node = node.parentElement?.closest?.('[data-block-id]')
+  }
+  return null
 }
 
 function isContainerBlock(block = {}) {
-  return ['card', 'tabs'].includes(block?.blockType)
+  return ['card', 'tabs', 'grid-layout'].includes(block?.blockType)
 }
 
-function appendContainerChild(containerId, blockType) {
-  const container = blocks.value.find(block => block.id === containerId)
+function appendContainerChild(containerId, blockType, cellKey = '') {
+  const container = findBlockInTree(blocks.value, containerId)
   if (!container || !blockType)
     return
   if (container.blockType === 'tabs') {
@@ -3330,16 +4234,21 @@ function appendContainerChild(containerId, blockType) {
     selectBlock(containerId)
     return
   }
+  if (container.blockType === 'grid-layout') {
+    const child = appendGridCellChild(containerId, cellKey || normalizeGridLayoutCells(container)[0]?.key, blockType)
+    selectBlock(child?.id || containerId)
+    return
+  }
   const child = createContainerChildBlock(blockType)
   if (!child)
     return
   localLayout.value = {
     ...localLayout.value,
-    items: blocks.value.map(block => block.id === containerId
+    items: normalizeGridItems(mapBlocksInTree(blocks.value, block => block.id === containerId
       ? { ...block, children: [...(block.children || []), child] }
-      : block),
+      : block)),
   }
-  selectBlock(containerId)
+  selectBlock(child.id)
 }
 
 function createContainerChildBlock(blockType) {
@@ -3353,6 +4262,18 @@ function createContainerChildBlock(blockType) {
     gridY: 0,
     gridW: LIST_PAGE_GRID_COLS,
     gridH: Math.max(1, child.gridH || 2),
+    props: {
+      ...(child.props || {}),
+      style: {
+        ...createDefaultBlockStyle(),
+        ...(child.props?.style || {}),
+        x: 0,
+        y: 0,
+        widthMode: 'full',
+        width: '100%',
+        height: child.props?.style?.height || gridHeightToPixels(child.gridH || 2),
+      },
+    },
   }
 }
 
@@ -3363,6 +4284,266 @@ function removeContainerChild(containerId, childId) {
       ? { ...block, children: (block.children || []).filter(child => child.id !== childId) }
       : block),
   }
+}
+
+function normalizeGridLayoutCells(block = {}) {
+  if (block?.blockType !== 'grid-layout')
+    return []
+  const columns = Math.max(1, Math.min(24, Number(block.props?.columns || 24)))
+  const cells = Array.isArray(block.props?.cells) ? block.props.cells : []
+  const sourceCells = cells.length ? cells : [{ key: 'cell_1', title: '栅格 1', span: columns, children: [] }]
+  return sourceCells.map((cell, index) => {
+    return {
+      key: cell.key || `cell_${index + 1}`,
+      title: cell.title ?? `栅格 ${index + 1}`,
+      span: clamp(Number(cell.span) || 6, 1, columns),
+      children: Array.isArray(cell.children) ? cell.children : [],
+    }
+  })
+}
+
+function patchGridLayoutCells(containerId, updater) {
+  localLayout.value = {
+    ...localLayout.value,
+    items: blocks.value.map((block) => {
+      if (block.id !== containerId || block.blockType !== 'grid-layout')
+        return block
+      const cells = updater(normalizeGridLayoutCells(block))
+      return {
+        ...block,
+        props: {
+          ...(block.props || {}),
+          cells,
+        },
+      }
+    }),
+  }
+}
+
+function appendGridCellChild(containerId, cellKey, blockType) {
+  const container = findBlockInTree(blocks.value, containerId)
+  if (!container || container.blockType !== 'grid-layout' || !blockType)
+    return null
+  const child = createContainerChildBlock(blockType)
+  if (!child)
+    return null
+  const targetKey = cellKey || normalizeGridLayoutCells(container)[0]?.key
+  localLayout.value = {
+    ...localLayout.value,
+    items: normalizeGridItems(mapBlocksInTree(blocks.value, (block) => {
+      if (block.id !== containerId || block.blockType !== 'grid-layout')
+        return block
+      const cells = normalizeGridLayoutCells(block).map((cell, index) => {
+        const match = cell.key === targetKey || (!targetKey && index === 0)
+        return match ? { ...cell, children: [...(cell.children || []), child] } : cell
+      })
+      return {
+        ...block,
+        props: {
+          ...(block.props || {}),
+          cells,
+        },
+      }
+    })),
+  }
+  return child
+}
+
+function removeGridCellChild(containerId, cellKey, childId) {
+  patchGridLayoutCells(containerId, cells => cells.map(cell => cell.key === cellKey
+    ? { ...cell, children: (cell.children || []).filter(child => child.id !== childId) }
+    : cell))
+}
+
+function moveExistingBlockToGridCell(blockId, containerId, cellKey, stylePatch = {}) {
+  if (!blockId || !containerId || blockId === containerId)
+    return
+  const source = findBlockInTree(blocks.value, blockId)
+  const container = findBlockInTree(blocks.value, containerId)
+  if (!source || container?.blockType !== 'grid-layout')
+    return
+  const cleanedItems = removeBlockFromTree(blocks.value, blockId)
+  const movedSource = {
+    ...source,
+    props: {
+      ...(source.props || {}),
+      style: {
+        ...createDefaultBlockStyle(),
+        ...(source.props?.style || {}),
+        ...stylePatch,
+      },
+    },
+  }
+  const targetKey = cellKey || normalizeGridLayoutCells(container)[0]?.key
+  localLayout.value = {
+    ...localLayout.value,
+    items: normalizeGridItems(mapBlocksInTree(cleanedItems, (block) => {
+      if (block.id !== containerId || block.blockType !== 'grid-layout')
+        return block
+      const cells = normalizeGridLayoutCells(block).map((cell, index) => {
+        const match = cell.key === targetKey || (!targetKey && index === 0)
+        return match ? { ...cell, children: [...(cell.children || []), movedSource] } : cell
+      })
+      return {
+        ...block,
+        props: {
+          ...(block.props || {}),
+          cells,
+        },
+      }
+    })),
+  }
+  selectBlock(blockId)
+}
+
+function moveExistingBlockToContainer(blockId, containerId) {
+  if (!blockId || !containerId || blockId === containerId)
+    return
+  const source = findBlockInTree(blocks.value, blockId)
+  const container = findBlockInTree(blocks.value, containerId)
+  if (!source || !isContainerBlock(container) || container.blockType === 'grid-layout')
+    return
+  if (collectBlocksInTree(source).some(block => block.id === containerId))
+    return
+  const movedSource = {
+    ...source,
+    gridX: 0,
+    gridY: 0,
+    gridW: LIST_PAGE_GRID_COLS,
+    props: {
+      ...(source.props || {}),
+      style: {
+        ...createDefaultBlockStyle(),
+        ...(source.props?.style || {}),
+        x: 0,
+        y: 0,
+        widthMode: 'full',
+        width: '100%',
+      },
+    },
+  }
+  const cleanedItems = removeBlockFromTree(blocks.value, blockId)
+  localLayout.value = {
+    ...localLayout.value,
+    items: normalizeGridItems(mapBlocksInTree(cleanedItems, (block) => {
+      if (block.id !== containerId)
+        return block
+      if (block.blockType === 'tabs') {
+        const tabs = block.props?.tabs?.length
+          ? block.props.tabs
+          : [{ key: 'tab_1', title: '标签 1', children: [] }]
+        return {
+          ...block,
+          props: {
+            ...(block.props || {}),
+            tabs: tabs.map((tab, index) => index === 0
+              ? { ...tab, children: [...(tab.children || []), movedSource] }
+              : tab),
+          },
+        }
+      }
+      return {
+        ...block,
+        children: [...(block.children || []), movedSource],
+      }
+    })),
+  }
+  selectBlock(blockId)
+}
+
+function moveExistingBlockToCanvas(blockId, point = { x: 0, y: 0 }) {
+  if (!blockId)
+    return
+  const source = findBlockInTree(blocks.value, blockId)
+  if (!source)
+    return
+  const meta = resolveListPageBlockMeta(source.blockType)
+  const sourceFrame = resolveDetachedBlockFrame(source, meta)
+  const width = Math.min(sourceFrame.width, canvasGridWidth.value)
+  const height = sourceFrame.height
+  const frame = {
+    x: clamp(Number(point.x) || 0, 0, Math.max(0, canvasGridWidth.value - width)),
+    y: Math.max(0, Number(point.y) || 0),
+    width,
+    height,
+  }
+  const gridPatch = frameToGridPatch(frame)
+  const movedBlock = {
+    ...source,
+    ...gridPatch,
+    props: {
+      ...(source.props || {}),
+      style: {
+        ...createDefaultBlockStyle(),
+        ...(source.props?.style || {}),
+        ...frame,
+        widthMode: 'fixed',
+        width: frame.width,
+        height: frame.height,
+      },
+    },
+  }
+  localLayout.value = {
+    ...localLayout.value,
+    items: normalizeGridItems([...removeBlockFromTree(blocks.value, blockId), movedBlock]),
+  }
+  selectBlock(blockId)
+}
+
+function updateGridCell(index, patch) {
+  if (!selectedBlock.value || selectedBlock.value.blockType !== 'grid-layout')
+    return
+  patchGridLayoutCells(selectedBlock.value.id, cells => cells.map((cell, idx) => idx === index ? { ...cell, ...patch } : cell))
+}
+
+function updateGridLayoutStructure(patch = {}) {
+  if (!selectedBlock.value || selectedBlock.value.blockType !== 'grid-layout')
+    return
+  const current = selectedBlock.value
+  const nextColumns = clamp(Number(patch.columns ?? current.props?.columns ?? 24), 1, 24)
+  const nextCells = normalizeGridLayoutCells(current).map(cell => ({
+    ...cell,
+    span: clamp(Number(cell.span) || 1, 1, nextColumns),
+  }))
+  patchBlockProps(current.id, {
+    ...patch,
+    columns: nextColumns,
+    cells: nextCells,
+  })
+}
+
+function addGridCell() {
+  if (!selectedBlock.value || selectedBlock.value.blockType !== 'grid-layout')
+    return
+  const cells = normalizeGridLayoutCells(selectedBlock.value)
+  const columns = Math.max(1, Number(selectedBlock.value.props?.columns || 24))
+  const usedSpan = cells.reduce((sum, cell) => sum + (Number(cell.span) || 0), 0)
+  const remainder = usedSpan % columns
+  const nextSpan = clamp(remainder > 0 ? columns - remainder : Math.min(6, columns), 1, columns)
+  const nextCells = [
+    ...cells,
+    {
+      key: `cell_${Date.now()}`,
+      title: `栅格 ${cells.length + 1}`,
+      span: nextSpan,
+      children: [],
+    },
+  ]
+  patchBlockProps(selectedBlock.value.id, {
+    cells: nextCells,
+  })
+}
+
+function removeGridCell(index) {
+  if (!selectedBlock.value || selectedBlock.value.blockType !== 'grid-layout')
+    return
+  const cells = normalizeGridLayoutCells(selectedBlock.value)
+  if (cells.length <= 1)
+    return
+  const nextCells = cells.filter((_, idx) => idx !== index)
+  patchBlockProps(selectedBlock.value.id, {
+    cells: nextCells,
+  })
 }
 
 function appendTabChild(blockType, containerId = selectedBlock.value?.id) {
@@ -3431,26 +4612,182 @@ function pixelToPoint(clientX, clientY) {
   }
 }
 
+function findBlockInTree(list = [], id = '') {
+  if (!id)
+    return null
+  for (const block of list || []) {
+    if (block?.id === id)
+      return block
+    const nested = findBlockInTree(resolveNestedBlocks(block), id)
+    if (nested)
+      return nested
+  }
+  return null
+}
+
+function collectBlocksInTree(block = {}) {
+  if (!block?.id)
+    return []
+  return [block, ...resolveNestedBlocks(block).flatMap(child => collectBlocksInTree(child))]
+}
+
+function resolveNestedBlocks(block = {}) {
+  const children = Array.isArray(block.children) ? block.children : []
+  const tabChildren = (block.props?.tabs || []).flatMap(tab => Array.isArray(tab.children) ? tab.children : [])
+  const cellChildren = (block.props?.cells || []).flatMap(cell => Array.isArray(cell.children) ? cell.children : [])
+  return [...children, ...tabChildren, ...cellChildren]
+}
+
+function mapBlocksInTree(list = [], mapper) {
+  return (list || []).map(block => mapBlockInTree(block, mapper))
+}
+
+function mapBlockSiblingsInTree(list = [], mapper) {
+  const mappedList = mapper(list || [])
+  return mappedList.map((block) => {
+    let next = block
+    if (Array.isArray(next.children) && next.children.length) {
+      next = {
+        ...next,
+        children: mapBlockSiblingsInTree(next.children, mapper),
+      }
+    }
+    if (Array.isArray(next.props?.tabs) && next.props.tabs.length) {
+      next = {
+        ...next,
+        props: {
+          ...(next.props || {}),
+          tabs: next.props.tabs.map(tab => ({
+            ...tab,
+            children: mapBlockSiblingsInTree(tab.children || [], mapper),
+          })),
+        },
+      }
+    }
+    if (Array.isArray(next.props?.cells) && next.props.cells.length) {
+      next = {
+        ...next,
+        props: {
+          ...(next.props || {}),
+          cells: next.props.cells.map(cell => ({
+            ...cell,
+            children: mapBlockSiblingsInTree(cell.children || [], mapper),
+          })),
+        },
+      }
+    }
+    return next
+  })
+}
+
+function mapBlockInTree(block = {}, mapper) {
+  let next = block
+  if (Array.isArray(next.children) && next.children.length) {
+    next = {
+      ...next,
+      children: mapBlocksInTree(next.children, mapper),
+    }
+  }
+  if (Array.isArray(next.props?.tabs) && next.props.tabs.length) {
+    next = {
+      ...next,
+      props: {
+        ...(next.props || {}),
+        tabs: next.props.tabs.map(tab => ({
+          ...tab,
+          children: mapBlocksInTree(tab.children || [], mapper),
+        })),
+      },
+    }
+  }
+  if (Array.isArray(next.props?.cells) && next.props.cells.length) {
+    next = {
+      ...next,
+      props: {
+        ...(next.props || {}),
+        cells: next.props.cells.map(cell => ({
+          ...cell,
+          children: mapBlocksInTree(cell.children || [], mapper),
+        })),
+      },
+    }
+  }
+  return mapper(next)
+}
+
+function removeBlockFromTree(list = [], id = '') {
+  return (list || [])
+    .filter(block => block?.id !== id)
+    .map((block) => {
+      let next = block
+      if (Array.isArray(next.children) && next.children.length) {
+        next = {
+          ...next,
+          children: removeBlockFromTree(next.children, id),
+        }
+      }
+      if (Array.isArray(next.props?.tabs) && next.props.tabs.length) {
+        next = {
+          ...next,
+          props: {
+            ...(next.props || {}),
+            tabs: next.props.tabs.map(tab => ({
+              ...tab,
+              children: removeBlockFromTree(tab.children || [], id),
+            })),
+          },
+        }
+      }
+      if (Array.isArray(next.props?.cells) && next.props.cells.length) {
+        next = {
+          ...next,
+          props: {
+            ...(next.props || {}),
+            cells: next.props.cells.map(cell => ({
+              ...cell,
+              children: removeBlockFromTree(cell.children || [], id),
+            })),
+          },
+        }
+      }
+      return next
+    })
+}
+
 function patchBlock(id, patch) {
   localLayout.value = {
     ...localLayout.value,
-    items: normalizeGridItems(blocks.value.map(b => b.id === id
+    items: normalizeGridItems(mapBlocksInTree(blocks.value, b => b.id === id
       ? {
           ...b,
           ...patch,
-          gridX: clamp(patch.gridX ?? b.gridX, 0, 11),
-          gridW: clamp(patch.gridW ?? b.gridW, 1, 12),
+          gridX: clamp(patch.gridX ?? b.gridX, 0, LIST_PAGE_GRID_COLS - 1),
+          gridW: clamp(patch.gridW ?? b.gridW, 1, LIST_PAGE_GRID_COLS),
         }
       : b)),
   }
 }
 
 function updateDesignWidth(value) {
-  const nextWidth = clamp(value || LIST_PAGE_DESIGN_WIDTH, 960, 2560)
+  const nextWidth = clamp(value || LIST_PAGE_DESIGN_WIDTH, 375, 2560)
   localLayout.value = {
     ...localLayout.value,
     designWidth: nextWidth,
   }
+}
+
+function applyCanvasPreviewMode(value = 'desktop') {
+  const modeMap = {
+    desktop: { width: 1366, zoom: 1 },
+    narrow: { width: 768, zoom: 0.9 },
+    modal: { width: 960, zoom: 0.9 },
+    drawer: { width: 720, zoom: 0.9 },
+    mobile: { width: 390, zoom: 1 },
+  }
+  const next = modeMap[value] || modeMap.desktop
+  canvasPreviewMode.value = value
+  updateDesignWidth(next.width)
+  updateCanvasZoom(next.zoom)
 }
 
 function updateCanvasZoom(value) {
@@ -3460,10 +4797,26 @@ function updateCanvasZoom(value) {
 function patchBlockProps(id, patch) {
   localLayout.value = {
     ...localLayout.value,
-    items: normalizeGridItems(blocks.value.map(b => b.id === id
+    items: normalizeGridItems(mapBlocksInTree(blocks.value, b => b.id === id
       ? { ...b, props: { ...(b.props || {}), ...patch } }
       : b)),
   }
+}
+
+function handleCrudPreviewStateChange(payload = {}) {
+  if (!payload.blockId || !payload.patch)
+    return
+  patchBlockProps(payload.blockId, payload.patch)
+}
+
+function crudPreviewStatusText(status) {
+  if (status === 'loading')
+    return '请求中'
+  if (status === 'success')
+    return '预览成功'
+  if (status === 'error')
+    return '预览失败'
+  return '模拟预览'
 }
 
 function patchBlockFrame(id, patch) {
@@ -3482,37 +4835,87 @@ function patchBlockFrame(id, patch) {
   next.height = Math.max(24, Number(next.height) || current.height)
   next.x = clamp(Number(next.x) || 0, 0, Math.max(0, canvasGridWidth.value - next.width))
   next.y = Math.max(0, Number(next.y) || 0)
-  if (doesFrameOverlapBlocks(id, next))
+  if (doesFrameOverlapBlocks(id, next, { ignoreTreeMainBlocks: source.blockType === 'tree-panel' }))
     return false
   const gridPatch = frameToGridPatch(next)
   const nextWidthValue = nextWidthMode === 'full' ? '100%' : nextWidthMode === 'auto' ? 'auto' : next.width
+  const patchedItems = blocks.value.map(block => block.id === id
+    ? {
+        ...block,
+        ...gridPatch,
+        props: {
+          ...(block.props || {}),
+          style: {
+            ...createDefaultBlockStyle(),
+            ...(block.props?.style || {}),
+            x: next.x,
+            y: next.y,
+            widthMode: nextWidthMode,
+            width: nextWidthValue,
+            height: next.height,
+          },
+        },
+      }
+    : block)
+  const nextItems = applyTreePanelResponsiveMainFrames(source, next, patchedItems)
   localLayout.value = {
     ...localLayout.value,
-    items: normalizeGridItems(blocks.value.map(block => block.id === id
-      ? {
-          ...block,
-          ...gridPatch,
-          props: {
-            ...(block.props || {}),
-            style: {
-              ...createDefaultBlockStyle(),
-              ...(block.props?.style || {}),
-              x: next.x,
-              y: next.y,
-              widthMode: nextWidthMode,
-              width: nextWidthValue,
-              height: next.height,
-            },
-          },
-        }
-      : block)),
+    items: normalizeGridItems(nextItems),
   }
   return true
 }
 
-function doesFrameOverlapBlocks(sourceId, frame) {
+function applyTreePanelResponsiveMainFrames(source = {}, nextTreeFrame = {}, items = []) {
+  if (props.layoutType !== 'tree-crud' || source.blockType !== 'tree-panel')
+    return items
+  const mainX = clamp(
+    Math.round((Number(nextTreeFrame.x) || 0) + (Number(nextTreeFrame.width) || 0) + gap),
+    0,
+    Math.max(0, canvasGridWidth.value - 24),
+  )
+  const mainWidth = Math.max(24, canvasGridWidth.value - mainX)
+  return items.map((block) => {
+    if (!isTreeCrudMainBlock(block) || resolveBlockWidthMode(block) !== 'full')
+      return block
+    const rect = resolveBlockFrame(block)
+    if (!isVerticalFrameOverlap(rect, nextTreeFrame))
+      return block
+    const nextFrame = {
+      ...rect,
+      x: mainX,
+      width: mainWidth,
+    }
+    const gridPatch = frameToGridPatch(nextFrame)
+    return {
+      ...block,
+      ...gridPatch,
+      props: {
+        ...(block.props || {}),
+        style: {
+          ...createDefaultBlockStyle(),
+          ...(block.props?.style || {}),
+          x: nextFrame.x,
+          y: nextFrame.y,
+          widthMode: 'full',
+          width: '100%',
+          height: nextFrame.height,
+        },
+      },
+    }
+  })
+}
+
+function isTreeCrudMainBlock(block = {}) {
+  return props.layoutType === 'tree-crud'
+    && ['AiCrudPage', 'AiTable', 'data-table', 'search-form', 'toolbar'].includes(block.blockType)
+}
+
+function doesFrameOverlapBlocks(sourceId, frame, options = {}) {
+  const source = blocks.value.find(block => block.id === sourceId)
   return blocks.value.some((block) => {
     if (block.id === sourceId)
+      return false
+    if (options.ignoreTreeMainBlocks && source?.blockType === 'tree-panel' && isTreeCrudMainBlock(block) && resolveBlockWidthMode(block) === 'full')
       return false
     return framesOverlap(frame, resolveBlockFrame(block))
   })
@@ -3578,9 +4981,47 @@ function addBlockEvent() {
     action: 'none',
     targetBlockId: '',
     targetPageKey: '',
+    targetFormKey: '',
     description: '',
     params: [],
   })
+  patchBlockProps(selectedBlock.value.id, { events: list })
+}
+
+function resolvePrimaryClickEvent(block = selectedBlock.value) {
+  const eventItem = (block?.props?.events || []).find(item => (item.trigger || 'click') === 'click')
+  return {
+    trigger: 'click',
+    action: 'none',
+    targetBlockId: '',
+    targetPageKey: '',
+    targetFormKey: '',
+    requestUrl: '',
+    description: '',
+    params: [],
+    permissionCode: '',
+    confirmText: '',
+    displayCondition: '',
+    successBehavior: 'none',
+    ...(eventItem || {}),
+  }
+}
+
+function updatePrimaryClickEvent(patch = {}) {
+  if (!selectedBlock.value)
+    return
+  const list = [...(selectedBlock.value.props?.events || [])]
+  const index = list.findIndex(item => (item.trigger || 'click') === 'click')
+  const nextEvent = {
+    id: index >= 0 ? list[index].id : `evt_${Date.now()}`,
+    ...resolvePrimaryClickEvent(selectedBlock.value),
+    ...patch,
+    trigger: 'click',
+  }
+  if (index >= 0)
+    list[index] = nextEvent
+  else
+    list.unshift(nextEvent)
   patchBlockProps(selectedBlock.value.id, { events: list })
 }
 
@@ -3605,7 +5046,7 @@ function addBlockEventParam(eventIdx) {
   if (!eventItem)
     return
   updateBlockEvent(eventIdx, {
-    params: [...(eventItem.params || []), { name: '', value: '' }],
+    params: [...(eventItem.params || []), createActionParam()],
   })
 }
 
@@ -3636,7 +5077,7 @@ function eventActionText(action) {
 }
 
 function patchBlockStyle(id, patch) {
-  const source = blocks.value.find(block => block.id === id)
+  const source = findBlockInTree(blocks.value, id)
   if (!source)
     return
   patchBlockProps(id, {
@@ -3653,7 +5094,7 @@ function removeBlock(id) {
     return
   localLayout.value = {
     ...localLayout.value,
-    items: normalizeGridItems(blocks.value.filter(b => b.id !== id)),
+    items: normalizeGridItems(removeBlockFromTree(blocks.value, id)),
   }
   if (selectedBlockId.value === id) {
     selectedBlockId.value = null
@@ -3662,12 +5103,14 @@ function removeBlock(id) {
 
 function duplicateBlock(id) {
   const source = blocks.value.find(block => block.id === id)
-  if (!source)
+  if (!source) {
+    duplicateNestedBlock(id)
     return
+  }
   const meta = resolveListPageBlockMeta(source.blockType)
   if (meta?.unique)
     return
-  const copy = JSON.parse(JSON.stringify(source))
+  const copy = cloneBlockWithFreshIds(source, `${source.id}_copy_${Date.now()}`)
   const sourceFrame = resolveBlockFrame(source)
   const sourceWidthMode = resolveBlockWidthMode(source)
   const nextFrame = {
@@ -3683,7 +5126,6 @@ function duplicateBlock(id) {
     height: sourceFrame.height,
   }
   const gridPatch = frameToGridPatch(nextFrame)
-  copy.id = `${source.id}_copy_${Date.now()}`
   copy.label = `${source.label || resolveListPageBlockMeta(source.blockType)?.title || '区块'} 副本`
   copy.gridX = gridPatch.gridX
   copy.gridY = gridPatch.gridY
@@ -3702,6 +5144,66 @@ function duplicateBlock(id) {
     items: normalizeGridItems([...blocks.value, copy]),
   }
   selectBlock(copy.id)
+}
+
+function duplicateNestedBlock(id) {
+  const source = findBlockInTree(blocks.value, id)
+  if (!source)
+    return
+  const meta = resolveListPageBlockMeta(source.blockType)
+  if (meta?.unique)
+    return
+  const copy = cloneBlockWithFreshIds(source, `${source.id}_copy_${Date.now()}`)
+  copy.label = `${source.label || meta?.title || '组件'} 副本`
+  let inserted = false
+  localLayout.value = {
+    ...localLayout.value,
+    items: normalizeGridItems(mapBlockSiblingsInTree(blocks.value, (siblings) => {
+      const sourceIndex = siblings.findIndex(item => item.id === id)
+      if (sourceIndex < 0 || inserted)
+        return siblings
+      const next = [...siblings]
+      next.splice(sourceIndex + 1, 0, copy)
+      inserted = true
+      return next
+    })),
+  }
+  if (inserted)
+    selectBlock(copy.id)
+}
+
+function cloneBlockWithFreshIds(block = {}, rootId = '') {
+  const copy = JSON.parse(JSON.stringify(block))
+  const stamp = Date.now()
+  const applyIds = (node, suffix = 'root') => {
+    const next = {
+      ...node,
+      id: suffix === 'root' ? (rootId || `${node.id}_copy_${stamp}`) : `${node.id}_copy_${stamp}_${suffix}`,
+    }
+    if (Array.isArray(next.children)) {
+      next.children = next.children.map((child, index) => applyIds(child, `${suffix}_child_${index}`))
+    }
+    if (Array.isArray(next.props?.tabs)) {
+      next.props = {
+        ...(next.props || {}),
+        tabs: next.props.tabs.map((tab, tabIndex) => ({
+          ...tab,
+          children: (tab.children || []).map((child, childIndex) => applyIds(child, `${suffix}_tab_${tabIndex}_${childIndex}`)),
+        })),
+      }
+    }
+    if (Array.isArray(next.props?.cells)) {
+      next.props = {
+        ...(next.props || {}),
+        cells: next.props.cells.map((cell, cellIndex) => ({
+          ...cell,
+          children: (cell.children || []).map((child, childIndex) => applyIds(child, `${suffix}_cell_${cellIndex}_${childIndex}`)),
+        })),
+      }
+    }
+    return next
+  }
+  return applyIds(copy)
 }
 
 function reorderBlockLayer(id, offset) {
@@ -3832,6 +5334,7 @@ function gridRowsForPixels(height) {
 
 // 拖动移动
 let moveCtx = null
+let nestedMoveCtx = null
 function startMove(block, event) {
   if (props.readonly)
     return
@@ -3849,6 +5352,8 @@ function startMove(block, event) {
     blockId: block.id,
     startX: event.clientX,
     startY: event.clientY,
+    startScrollLeft: canvasScrollRef.value?.scrollLeft || 0,
+    startScrollTop: canvasScrollRef.value?.scrollTop || 0,
     originX: rect.x,
     originY: rect.y,
     originW: rect.width,
@@ -3857,15 +5362,137 @@ function startMove(block, event) {
   window.addEventListener('pointermove', onMove)
   window.addEventListener('pointerup', endMove)
 }
+
+function startNestedMove(block, event) {
+  if (props.readonly || !block?.id)
+    return
+  if (event.button !== 0)
+    return
+  event.preventDefault()
+  selectBlock(block.id)
+  draggedExistingBlockId.value = block.id
+  draggedBlockType.value = block.blockType || ''
+  canvasDragActive.value = true
+  nestedMovingBlockId.value = block.id
+  const node = event.target?.closest?.('.layout-grid-cell-child')
+  const rect = node?.getBoundingClientRect?.()
+  const zoom = canvasZoom.value || 1
+  nestedMoveCtx = {
+    blockId: block.id,
+    startX: event.clientX,
+    startY: event.clientY,
+    pointerOffsetX: rect ? (event.clientX - rect.left) / zoom : 0,
+    pointerOffsetY: rect ? (event.clientY - rect.top) / zoom : 0,
+    originW: rect ? rect.width / zoom : 120,
+    originH: rect ? rect.height / zoom : 48,
+    moved: false,
+  }
+  document.body.classList.add('list-grid-nested-moving')
+  updateNestedMovePreview(event)
+  window.addEventListener('pointermove', onNestedMove, { passive: false })
+  window.addEventListener('pointerup', endNestedMove)
+  window.addEventListener('pointercancel', cancelNestedMove)
+}
+
+function onNestedMove(event) {
+  if (!nestedMoveCtx)
+    return
+  event.preventDefault()
+  const dx = event.clientX - nestedMoveCtx.startX
+  const dy = event.clientY - nestedMoveCtx.startY
+  if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+    nestedMoveCtx.moved = true
+    suppressNextBlockClick = true
+  }
+  updateNestedMovePreview(event)
+}
+
+function updateNestedMovePreview(event) {
+  if (!nestedMoveCtx)
+    return
+  autoScrollCanvasOnPointer(event)
+  canvasDragActive.value = true
+  draggedExistingBlockId.value = nestedMoveCtx.blockId
+  const block = findBlockInTree(blocks.value, nestedMoveCtx.blockId)
+  draggedBlockType.value = block?.blockType || draggedBlockType.value
+  const container = resolveDropContainerFromPoint(event.clientX, event.clientY)
+  activeDropCell.value = container?.block?.blockType === 'grid-layout' && container.cellKey
+    ? { containerId: container.id, cellKey: container.cellKey }
+    : null
+  dragOverCell.value = activeDropCell.value ? null : pixelToCell(event.clientX, event.clientY)
+  dragOverPoint.value = pixelToPoint(event.clientX, event.clientY)
+}
+
+function endNestedMove(event) {
+  if (!nestedMoveCtx)
+    return
+  const ctx = nestedMoveCtx
+  const blockId = ctx.blockId
+  const container = resolveDropContainerFromPoint(event.clientX, event.clientY)
+  const cellStylePatch = container?.cellRect ? resolveNestedCellDropStyle(event, container, ctx) : {}
+  const point = pixelToPoint(event.clientX, event.clientY)
+  cleanupNestedMove()
+  if (!ctx.moved)
+    return
+  if (container?.block?.blockType === 'grid-layout' && container.cellKey) {
+    moveExistingBlockToGridCell(blockId, container.id, container.cellKey, cellStylePatch)
+    return
+  }
+  if (container?.block && container.block.blockType !== 'grid-layout' && container.block.id !== blockId) {
+    moveExistingBlockToContainer(blockId, container.id)
+    return
+  }
+  moveExistingBlockToCanvas(blockId, point)
+}
+
+function cancelNestedMove() {
+  cleanupNestedMove()
+}
+
+function cleanupNestedMove() {
+  nestedMoveCtx = null
+  nestedMovingBlockId.value = ''
+  document.body.classList.remove('list-grid-nested-moving')
+  resetCanvasDragState()
+  window.removeEventListener('pointermove', onNestedMove)
+  window.removeEventListener('pointerup', endNestedMove)
+  window.removeEventListener('pointercancel', cancelNestedMove)
+}
+
+function resolveNestedCellDropStyle(event, container = {}, ctx = {}) {
+  if (!container.cellRect)
+    return {}
+  const zoom = canvasZoom.value || 1
+  const cellWidth = Math.max(24, container.cellRect.width / zoom - 16)
+  const cellHeight = Math.max(24, container.cellRect.height / zoom - 16)
+  const nextX = clamp(
+    (event.clientX - container.cellRect.left) / zoom - (ctx.pointerOffsetX || 0) - 8,
+    0,
+    Math.max(0, cellWidth - Math.min(ctx.originW || 24, cellWidth)),
+  )
+  const nextY = clamp(
+    (event.clientY - container.cellRect.top) / zoom - (ctx.pointerOffsetY || 0) - 8,
+    0,
+    Math.max(0, cellHeight - Math.min(ctx.originH || 24, cellHeight)),
+  )
+  return {
+    x: Math.round(nextX),
+    y: Math.round(nextY),
+  }
+}
 function onMove(event) {
   if (!moveCtx)
     return
-  const block = blocks.value.find(b => b.id === moveCtx.blockId)
+  const block = findBlockInTree(blocks.value, moveCtx.blockId)
   if (!block)
     return
+  autoScrollCanvasOnPointer(event)
   const zoom = canvasZoom.value || 1
-  const rawDx = (event.clientX - moveCtx.startX) / zoom
-  const rawDy = (event.clientY - moveCtx.startY) / zoom
+  const scrollEl = canvasScrollRef.value
+  const scrollDx = (scrollEl?.scrollLeft || 0) - (moveCtx.startScrollLeft || 0)
+  const scrollDy = (scrollEl?.scrollTop || 0) - (moveCtx.startScrollTop || 0)
+  const rawDx = (event.clientX - moveCtx.startX + scrollDx) / zoom
+  const rawDy = (event.clientY - moveCtx.startY + scrollDy) / zoom
   const minDx = -moveCtx.originX
   const widthMode = resolveBlockWidthMode(block)
   const maxDx = widthMode === 'full'
@@ -3900,7 +5527,7 @@ function onMove(event) {
 function endMove() {
   const preview = movingPreviewBlock.value
   if (moveCtx && preview) {
-    const block = blocks.value.find(item => item.id === moveCtx.blockId)
+    const block = findBlockInTree(blocks.value, moveCtx.blockId)
     if (block) {
       const rect = resolveBlockFrame(preview)
       patchBlockFrame(block.id, { x: rect.x, y: rect.y, width: rect.width, height: rect.height })
@@ -3917,6 +5544,7 @@ function endMove() {
 
 // Resize
 let resizeCtx = null
+let nestedResizeCtx = null
 function startResize(block, event, anchor = 'bottom-right') {
   if (props.readonly)
     return
@@ -3931,6 +5559,8 @@ function startResize(block, event, anchor = 'bottom-right') {
     anchor,
     startX: event.clientX,
     startY: event.clientY,
+    startScrollLeft: canvasScrollRef.value?.scrollLeft || 0,
+    startScrollTop: canvasScrollRef.value?.scrollTop || 0,
     originX: rect.x,
     originY: rect.y,
     originW: rect.width,
@@ -3943,10 +5573,14 @@ function startResize(block, event, anchor = 'bottom-right') {
 function onResize(event) {
   if (!resizeCtx)
     return
+  autoScrollCanvasOnPointer(event)
   const zoom = canvasZoom.value || 1
-  const dw = Math.round((event.clientX - resizeCtx.startX) / zoom)
-  const dh = Math.round((event.clientY - resizeCtx.startY) / zoom)
-  const block = blocks.value.find(b => b.id === resizeCtx.blockId)
+  const scrollEl = canvasScrollRef.value
+  const scrollDx = (scrollEl?.scrollLeft || 0) - (resizeCtx.startScrollLeft || 0)
+  const scrollDy = (scrollEl?.scrollTop || 0) - (resizeCtx.startScrollTop || 0)
+  const dw = Math.round((event.clientX - resizeCtx.startX + scrollDx) / zoom)
+  const dh = Math.round((event.clientY - resizeCtx.startY + scrollDy) / zoom)
+  const block = findBlockInTree(blocks.value, resizeCtx.blockId)
   if (!block)
     return
   const anchor = resizeCtx.anchor || 'bottom-right'
@@ -3985,6 +5619,55 @@ function endResize() {
   window.removeEventListener('pointerup', endResize)
 }
 
+function startNestedResize(block, event, anchor = 'bottom-right') {
+  if (props.readonly || !block?.id)
+    return
+  if (event.button !== 0)
+    return
+  event.preventDefault()
+  selectBlock(block.id)
+  const node = event.target?.closest?.('.layout-grid-cell-child')
+  const rect = node?.getBoundingClientRect?.()
+  const currentStyle = block.props?.style || {}
+  nestedResizeCtx = {
+    blockId: block.id,
+    anchor,
+    startX: event.clientX,
+    startY: event.clientY,
+    originW: rect?.width || resolveCssNumber(currentStyle.width, 240),
+    originH: rect?.height || resolveCssNumber(currentStyle.height, 96),
+  }
+  window.addEventListener('pointermove', onNestedResize)
+  window.addEventListener('pointerup', endNestedResize)
+}
+
+function onNestedResize(event) {
+  if (!nestedResizeCtx)
+    return
+  const zoom = canvasZoom.value || 1
+  const dx = Math.round((event.clientX - nestedResizeCtx.startX) / zoom)
+  const dy = Math.round((event.clientY - nestedResizeCtx.startY) / zoom)
+  const anchor = nestedResizeCtx.anchor || 'bottom-right'
+  const patch = {}
+  if (anchor.includes('right') || anchor.includes('left')) {
+    const widthDelta = anchor.includes('left') ? -dx : dx
+    patch.widthMode = 'fixed'
+    patch.width = Math.max(80, nestedResizeCtx.originW + widthDelta)
+  }
+  if (anchor.includes('bottom') || anchor.includes('top')) {
+    const heightDelta = anchor.includes('top') ? -dy : dy
+    patch.height = Math.max(40, nestedResizeCtx.originH + heightDelta)
+  }
+  if (Object.keys(patch).length)
+    patchBlockStyle(nestedResizeCtx.blockId, patch)
+}
+
+function endNestedResize() {
+  nestedResizeCtx = null
+  window.removeEventListener('pointermove', onNestedResize)
+  window.removeEventListener('pointerup', endNestedResize)
+}
+
 function flushDeferredLayoutEmit() {
   if (!deferLayoutEmit.value)
     return
@@ -4013,7 +5696,9 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   endMove()
+  cancelNestedMove()
   endResize()
+  endNestedResize()
   canvasResizeObserver?.disconnect?.()
   canvasResizeObserver = null
   window.removeEventListener('resize', updateCanvasViewportWidth)
@@ -4200,7 +5885,12 @@ function addCustomAction() {
     type: 'primary',
     actionType: 'route',
     routePath: '',
+    targetFormKey: '',
     openTarget: '_self',
+    permissionCode: '',
+    confirmText: '',
+    displayCondition: '',
+    successBehavior: 'none',
     params: [],
   })
   patchBlockProps(selectedBlock.value.id, { customActions: list })
@@ -4233,7 +5923,7 @@ function updateActiveCustomAction(patch) {
 }
 
 function addActionParam() {
-  const params = [...(activeAction.value?.params || []), { name: '', value: '' }]
+  const params = [...(activeAction.value?.params || []), createActionParam()]
   updateActiveCustomAction({ params })
 }
 
@@ -4247,6 +5937,43 @@ function removeActionParam(idx) {
   const params = [...(activeAction.value?.params || [])]
   params.splice(idx, 1)
   updateActiveCustomAction({ params })
+}
+
+function createActionParam() {
+  return {
+    name: '',
+    sourceType: 'static',
+    sourceField: '',
+    value: '',
+  }
+}
+
+function normalizeParamSourcePatch(sourceType = 'static', param = {}) {
+  return {
+    sourceType,
+    sourceField: '',
+    value: sourceType === 'static' ? (param.value || '') : '',
+  }
+}
+
+function buildParamValuePatch(param = {}, sourceField = '') {
+  const sourceType = param.sourceType || 'static'
+  return {
+    sourceField: sourceField || '',
+    value: resolveParamTemplateValue(sourceType, sourceField),
+  }
+}
+
+function resolveParamTemplateValue(sourceType = 'static', sourceField = '') {
+  if (!sourceField)
+    return ''
+  if (sourceType === 'rowField')
+    return `:${sourceField}`
+  if (sourceType === 'routeQuery')
+    return `\${route.${sourceField}}`
+  if (sourceType === 'system')
+    return `\${system.${sourceField}}`
+  return ''
 }
 
 function normalizeActionKey(value) {
@@ -4303,10 +6030,31 @@ function propertySectionVisible(keywords = []) {
     return true
   return keywords.some(item => String(item || '').toLowerCase().includes(keyword))
 }
+
+function toggleCanvasFocus() {
+  const nextFocused = !canvasFocusMode.value
+  canvasFocusMode.value = nextFocused
+  if (nextFocused)
+    centerCanvasViewport()
+}
+
+function centerCanvasViewport() {
+  nextTick(() => {
+    const scrollEl = canvasScrollRef.value
+    if (!scrollEl)
+      return
+    scrollEl.scrollTo({
+      left: Math.max(0, (scrollEl.scrollWidth - scrollEl.clientWidth) / 2),
+      top: scrollEl.scrollTop,
+      behavior: 'smooth',
+    })
+  })
+}
 </script>
 
 <style scoped>
 .list-grid-designer {
+  position: relative;
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr) 380px;
   gap: 12px;
@@ -4316,15 +6064,34 @@ function propertySectionVisible(keywords = []) {
 }
 
 .list-grid-designer.left-collapsed {
-  grid-template-columns: 42px minmax(0, 1fr) 380px;
+  grid-template-columns: minmax(0, 1fr) 380px;
 }
 
 .list-grid-designer.right-collapsed {
-  grid-template-columns: 280px minmax(0, 1fr) 42px;
+  grid-template-columns: 280px minmax(0, 1fr);
 }
 
 .list-grid-designer.left-collapsed.right-collapsed {
-  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.list-grid-designer.canvas-focused {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.list-grid-designer.canvas-focused .side-rail-toggle-button {
+  display: none;
+}
+
+.list-grid-designer.canvas-focused .canvas-scroll {
+  padding: 0 14px 14px;
+}
+
+.list-grid-designer.canvas-focused .canvas-zoom-stage {
+  min-width: max-content;
+  margin-right: auto;
+  margin-left: auto;
+  padding: 12px;
 }
 
 .list-grid-designer.readonly,
@@ -4333,7 +6100,7 @@ function propertySectionVisible(keywords = []) {
 .list-grid-designer.readonly.left-collapsed.right-collapsed {
   grid-template-columns: minmax(0, 1fr);
   min-height: 0;
-  background: transparent;
+  background: #fff;
 }
 
 .palette-panel,
@@ -4362,8 +6129,7 @@ function propertySectionVisible(keywords = []) {
   gap: 10px;
 }
 
-.panel-collapse-button,
-.side-rail-toggle-button {
+.panel-collapse-button {
   --n-color: #eef6ff !important;
   --n-color-hover: #dbeafe !important;
   --n-color-pressed: #bfdbfe !important;
@@ -4376,21 +6142,34 @@ function propertySectionVisible(keywords = []) {
 }
 
 .side-rail-toggle-button {
+  position: absolute;
+  z-index: 20;
+  top: 50%;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 100%;
-  min-height: 220px;
+  width: 30px;
+  height: 44px;
   border: 1px solid #dbe3ee;
-  border-radius: 8px;
-  background: #fff;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
   color: #1d4ed8;
   cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.side-rail-toggle-button.left {
+  left: 6px;
+}
+
+.side-rail-toggle-button.right {
+  right: 6px;
 }
 
 .side-rail-toggle-button:hover {
   border-color: #93c5fd;
   background: #eff6ff;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
 }
 
 .panel-title {
@@ -4468,16 +6247,34 @@ function propertySectionVisible(keywords = []) {
   transition: all 0.15s;
 }
 
-.palette-item:hover:not(:disabled) {
+.palette-item:hover:not(.is-disabled) {
   border-color: #2563eb;
   background: #eff6ff;
   box-shadow: 0 8px 18px rgba(37, 99, 235, 0.1);
   transform: translateY(-1px);
 }
 
-.palette-item:disabled {
+.palette-item.is-disabled {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+
+.palette-item.is-existing {
+  cursor: pointer;
+}
+
+.palette-item.is-unavailable {
   cursor: not-allowed;
-  opacity: 0.5;
+}
+
+.palette-item.is-disabled .item-title,
+.palette-item.is-disabled .item-desc {
+  color: #94a3b8;
+}
+
+.palette-item.is-disabled:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
 }
 
 .item-title {
@@ -4491,6 +6288,17 @@ function propertySectionVisible(keywords = []) {
   font-size: 11px;
   color: #64748b;
   line-height: 15px;
+}
+
+.item-lock-reason {
+  justify-self: start;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
 }
 
 .canvas-panel {
@@ -4533,6 +6341,7 @@ function propertySectionVisible(keywords = []) {
 }
 
 .canvas-width-control,
+.canvas-preview-control,
 .canvas-zoom-control {
   display: inline-grid;
   align-items: center;
@@ -4547,6 +6356,10 @@ function propertySectionVisible(keywords = []) {
 
 .canvas-width-control {
   grid-template-columns: auto 104px 68px;
+}
+
+.canvas-preview-control {
+  grid-template-columns: auto 96px;
 }
 
 .canvas-zoom-control {
@@ -4592,20 +6405,22 @@ function propertySectionVisible(keywords = []) {
 
 .list-grid-designer.readonly .canvas-panel {
   border: 0;
-  background: transparent;
+  background: #fff;
 }
 
 .list-grid-designer.readonly .canvas-scroll {
   overflow: visible;
+  background: #fff;
 }
 
 .list-grid-designer.readonly .canvas-zoom-stage {
   padding: 0;
+  background: #fff;
 }
 
 .list-grid-designer.readonly .canvas-grid {
   margin: 0;
-  background: transparent;
+  background: #fff;
   box-shadow: none;
 }
 
@@ -5062,6 +6877,69 @@ function propertySectionVisible(keywords = []) {
   gap: 6px;
 }
 
+.grid-config-grid {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.grid-config-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid-config-grid.four {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-config-field,
+.grid-config-switch {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
+.grid-config-field > span,
+.grid-config-switch > span {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.grid-config-switch {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.grid-config-switch > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.grid-cell-editor {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
+.grid-cell-editor-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.grid-cell-span-input {
+  width: 72px;
+}
+
 .event-param-list {
   display: grid;
   gap: 6px;
@@ -5069,7 +6947,7 @@ function propertySectionVisible(keywords = []) {
 
 .event-param-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) auto;
+  grid-template-columns: minmax(76px, 0.8fr) minmax(76px, 0.8fr) minmax(110px, 1.2fr) auto;
   gap: 6px;
   align-items: center;
 }
@@ -5339,6 +7217,13 @@ function propertySectionVisible(keywords = []) {
   gap: 12px;
 }
 
+.action-button-event-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
 .action-param-editor {
   display: grid;
   width: 100%;
@@ -5347,7 +7232,7 @@ function propertySectionVisible(keywords = []) {
 
 .action-param-row {
   display: grid;
-  grid-template-columns: minmax(120px, 0.8fr) minmax(180px, 1.2fr) auto;
+  grid-template-columns: minmax(92px, 0.8fr) minmax(92px, 0.8fr) minmax(130px, 1.2fr) auto;
   gap: 8px;
   align-items: center;
 }
@@ -5443,6 +7328,95 @@ function propertySectionVisible(keywords = []) {
   color: #475569;
   font-size: 12px;
   line-height: 1.55;
+}
+
+.preview-config-panel {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+}
+
+.preview-status {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.preview-status strong {
+  color: #0f172a;
+  font-size: 12px;
+}
+
+.preview-status em {
+  font-style: normal;
+  color: #dc2626;
+  word-break: break-all;
+}
+
+.preview-status.is-loading {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.preview-status.is-success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.preview-status.is-error {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.switch-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.toolbar-toggle-list {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.toolbar-toggle-row {
+  align-items: flex-start;
+}
+
+.switch-line-text {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.switch-line-text strong {
+  color: #0f172a;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.switch-line-text small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
 }
 
 .field-setting-control {
@@ -5559,11 +7533,6 @@ function propertySectionVisible(keywords = []) {
   .list-grid-designer.left-collapsed.right-collapsed {
     grid-template-columns: 1fr;
     min-height: auto;
-  }
-
-  .side-rail-toggle-button {
-    width: 100%;
-    min-height: 42px;
   }
 
   .palette-groups {

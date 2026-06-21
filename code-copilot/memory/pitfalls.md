@@ -1775,3 +1775,23 @@ finally {
 ```
 
 若 loading 放在 `window.$dialog` 的 `onPositiveClick` 中，还应避免 finally 中抛错；必要时保存 dialog reactive 并在请求结束后显式 `dialog.destroy()`，否则 Promise reject 时 Naive Dialog 不会自动关闭。
+
+## 62. 加密接口后端操作日志可能记录解密后的请求体
+
+**发现日期**: 2026-06-20
+
+**问题描述**:
+排查 `@ApiDecrypt` 接口是否加密时，浏览器请求体、后端 Controller 入参和 `sys_operation_log.request_params` 容易被混为一谈。典型现象是 `/ai/business/object/{objectId}/publish` 前端请求已经能被后端解密并进入发布检查，但异步操作日志仍把解密后的 `@RequestBody` DTO 序列化进 `request_params`，看起来像“发布接口报文还是明文”。
+
+**根本原因**:
+请求解密发生在 Spring MVC 读取 `@RequestBody` 阶段之后，操作日志切面记录的是 Controller 方法参数，不是网络上传输的原始请求体。带 `@ApiDecrypt` 的接口如果继续保存完整方法入参，就会把解密后的业务 JSON 落库。
+
+**解决方案**:
+排查加密链路时必须区分：
+- 浏览器 Network Payload：真实传输报文，应为 `{ data, algorithm }`。
+- Controller 参数：后端解密后的业务对象，业务代码应看到明文。
+- 操作日志 `request_params`：审计日志，不应保存解密后的完整 `@RequestBody`。
+
+操作日志切面对 `@ApiDecrypt` 接口应保留路径参数和 URL 参数，但将 `@RequestBody` 参数记录为 `[DECRYPTED_REQUEST_BODY_OMITTED]`，避免设计器、发布、密钥或敏感业务数据明文落库。
+
+同时前端显式 `encrypt: true` 的请求在缺少会话密钥或加密失败时必须阻断发送，禁止降级为明文请求。

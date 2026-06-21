@@ -218,7 +218,7 @@
                   />
 
                   <n-button
-                    v-for="action in toolbarActions"
+                    v-for="action in visibleToolbarActions"
                     :key="action.key || action.label"
                     size="small"
                     :type="resolveButtonType(action)"
@@ -527,12 +527,13 @@ import {
 } from '@vicons/ionicons5'
 import { NButton, NDropdown, NProgress, NTag } from 'naive-ui'
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { customQueryExecute } from '@/api/ai'
 import { previewFormula } from '@/api/formula'
 import AuthImage from '@/components/common/AuthImage.vue'
 import DictTag from '@/components/DictTag.vue'
 import ChildTableEditor from '@/components/page-templates/ChildTableEditor.vue'
+import { useUserStore } from '@/store'
 import { downloadFile, request } from '@/utils'
 import { postEncrypt } from '@/utils/encrypt-request'
 import AiCrudFlowDetail from './AiCrudFlowDetail.vue'
@@ -566,6 +567,8 @@ const emit = defineEmits([
   'custom-action', // 自定义按钮点击
 ])
 const router = useRouter()
+const route = useRoute()
+const userStore = useUserStore()
 
 /**
  * ==================== Refs ====================
@@ -632,6 +635,10 @@ const exportTaskPagination = ref({
   pageSize: 10,
   itemCount: 0,
 })
+const visibleToolbarActions = computed(() => (Array.isArray(props.toolbarActions) ? props.toolbarActions : [])
+  .filter(action => action?.visible !== false
+    && hasRuntimePermission(action?.permissionCode)
+    && matchDisplayCondition(action?.displayCondition || action?.visibleCondition, {})))
 
 /**
  * 操作列最大显示按钮数
@@ -651,6 +658,10 @@ function renderActionColumn(row, actions, maxVisibleActions = maxActionButtons) 
     if (typeof action.visible === 'function')
       return action.visible(row)
     if (action.visible === false)
+      return false
+    if (!hasRuntimePermission(action.permissionCode))
+      return false
+    if (!matchDisplayCondition(action.displayCondition || action.visibleCondition, row))
       return false
     return true
   })
@@ -815,6 +826,49 @@ function showActionDisabledMessage(action, row) {
   window.$message?.warning(actionDisabledReason(action, row))
 }
 
+function hasRuntimePermission(permissionCode = '') {
+  const code = String(permissionCode || '').trim()
+  if (!code)
+    return true
+  if (userStore.isAdmin || userStore.isTenantAdmin)
+    return true
+  const permissions = [
+    ...(Array.isArray(userStore.permissions) ? userStore.permissions : []),
+    ...(Array.isArray(userStore.apiPermissions) ? userStore.apiPermissions : []),
+    ...(Array.isArray(userStore.getDataPermission) ? userStore.getDataPermission : []),
+  ]
+  return permissions.includes('**') || permissions.includes(code)
+}
+
+function matchDisplayCondition(expression = '', row = {}) {
+  const text = String(expression || '').trim()
+  if (!text)
+    return true
+  const lowerText = text.toLowerCase()
+  const inIndex = lowerText.indexOf(' in ')
+  if (inIndex > 0) {
+    const actual = resolveConditionValue(row, text.slice(0, inIndex).trim())
+    const expectedValues = text.slice(inIndex + 4).split(',').map(item => item.trim()).filter(Boolean)
+    return expectedValues.includes(String(actual ?? ''))
+  }
+  const operator = text.includes('!=') ? '!=' : text.includes('==') ? '==' : text.includes('=') ? '=' : ''
+  if (operator) {
+    const [fieldName, ...expectedParts] = text.split(operator)
+    const actual = String(resolveConditionValue(row, fieldName.trim()) ?? '')
+    const expected = stripConditionQuote(expectedParts.join(operator))
+    return operator === '!=' ? actual !== expected : actual === expected
+  }
+  return true
+}
+
+function resolveConditionValue(row = {}, path = '') {
+  return String(path || '').split('.').filter(Boolean).reduce((value, key) => value?.[key], row)
+}
+
+function stripConditionQuote(value = '') {
+  return String(value || '').trim().replace(/^['"]|['"]$/g, '')
+}
+
 /**
  * 处理操作列按钮点击（内置 key 映射）
  */
@@ -865,11 +919,20 @@ async function handleConfiguredAction(action, row) {
     else {
       router.push(path)
     }
+    handleConfiguredActionSuccess(action)
     return
   }
   if (actionType === 'external' && action.routePath) {
     window.open(buildActionTarget(action, row), action.openTarget || '_blank')
+    handleConfiguredActionSuccess(action)
   }
+}
+
+function handleConfiguredActionSuccess(action = {}) {
+  if (action.successBehavior === 'refreshList')
+    loadList()
+  else if (action.successBehavior === 'goBack')
+    router.back()
 }
 
 async function startFlowAction(action, row) {
@@ -956,11 +1019,13 @@ function buildActionTarget(action, row) {
   let target = resolveActionText(action.routePath, row)
   const params = Array.isArray(action.params) ? action.params : []
   const query = new URLSearchParams()
+  if (action.targetFormKey)
+    query.set('formKey', action.targetFormKey)
   params.forEach((param) => {
     const name = String(param?.name || '').trim()
     if (!name)
       return
-    const value = resolveActionText(param.value, row)
+    const value = resolveActionParamValue(param, row)
     if (value !== '')
       query.append(name, value)
   })
@@ -969,6 +1034,28 @@ function buildActionTarget(action, row) {
     return target
   target += target.includes('?') ? '&' : '?'
   return `${target}${queryString}`
+}
+
+function resolveActionParamValue(param = {}, row = {}) {
+  const sourceType = param.sourceType || 'static'
+  const sourceField = String(param.sourceField || '').trim()
+  if (sourceType === 'rowField' && sourceField)
+    return row?.[sourceField] ?? ''
+  if (sourceType === 'routeQuery' && sourceField)
+    return route.query?.[sourceField] ?? ''
+  if (sourceType === 'system' && sourceField)
+    return resolveSystemParamValue(sourceField)
+  return resolveActionText(param.value, row)
+}
+
+function resolveSystemParamValue(sourceField = '') {
+  if (sourceField === 'now')
+    return new Date().toISOString()
+  if (sourceField === 'today')
+    return new Date().toISOString().slice(0, 10)
+  if (sourceField === 'tenantId')
+    return route.query?.tenantId || ''
+  return ''
 }
 
 function resolveActionText(template, row) {
@@ -984,7 +1071,20 @@ function resolveActionText(template, row) {
   const idValue = resolveRowKeyValue(data)
   if (isUsableKeyValue(idValue))
     text = text.replaceAll(':id', idValue)
+  Object.keys(route.query || {}).forEach((key) => {
+    const value = route.query[key]
+    if (!isUsableKeyValue(value))
+      return
+    text = text.replaceAll(resolveTemplatePlaceholder(`route.${key}`), Array.isArray(value) ? value[0] : value)
+  })
+  text = text
+    .replaceAll(resolveTemplatePlaceholder('system.now'), new Date().toISOString())
+    .replaceAll(resolveTemplatePlaceholder('system.today'), new Date().toISOString().slice(0, 10))
   return text
+}
+
+function resolveTemplatePlaceholder(name = '') {
+  return ['$', '{', name, '}'].join('')
 }
 
 function resolveButtonType(action) {
@@ -1055,6 +1155,14 @@ function mergeHookRowWithOriginal(row, processedRow) {
       merged.id = originalKey
   }
   return merged
+}
+
+function resolveFormDefaultValues() {
+  return isPlainRecord(props.formDefaultValues) ? props.formDefaultValues : {}
+}
+
+function resolveSubmitDefaultParams() {
+  return isPlainRecord(props.submitDefaultParams) ? props.submitDefaultParams : {}
 }
 
 const resolvedCustomQueryConfigKey = computed(() => {
@@ -1233,7 +1341,7 @@ const tableColumns = computed(() => {
 
 function normalizeRowActions(actions = []) {
   const next = Array.isArray(actions) ? [...actions] : []
-  if (!hasTreeConfig())
+  if (!props.enableTreeAddChild)
     return next
   if (next.some(action => action?.key === 'addChild'))
     return next
@@ -1245,10 +1353,6 @@ function normalizeRowActions(actions = []) {
   }
   next.unshift(addChildAction)
   return next
-}
-
-function hasTreeConfig() {
-  return !!(props.treeConfig && Object.keys(props.treeConfig).length)
 }
 
 function resolveColumnRender(col) {
@@ -1828,13 +1932,14 @@ const computedScrollX = computed(() => {
     return props.scrollX
   }
 
-  // 自动计算所有列的宽度
+  // 自动计算所有列的宽度，兼容只配置 minWidth 的列
   let totalWidth = 0
   let hasWidth = false
 
   tableColumns.value.forEach((col) => {
-    if (col.width) {
-      totalWidth += col.width
+    const width = resolveColumnWidth(col.width ?? col.minWidth)
+    if (width > 0) {
+      totalWidth += width
       hasWidth = true
     }
   })
@@ -1842,6 +1947,15 @@ const computedScrollX = computed(() => {
   // 如果所有列都设置了宽度，返回总宽度，否则返回 undefined
   return hasWidth ? totalWidth : undefined
 })
+
+function resolveColumnWidth(value) {
+  if (typeof value === 'number')
+    return value
+  if (typeof value !== 'string')
+    return 0
+  const matched = value.trim().match(/^(\d+(?:\.\d+)?)px?$/i)
+  return matched ? Number(matched[1]) : 0
+}
 
 /**
  * 计算最大高度
@@ -1964,6 +2078,27 @@ function resolveUrlParamValues(urlParams = {}) {
   if (isUsableKeyValue(urlParams.id))
     return [urlParams.id]
   return Object.values(urlParams).filter(isUsableKeyValue)
+}
+
+function stableSerialize(value, seen = new WeakSet()) {
+  if (value === undefined)
+    return 'undefined'
+  if (typeof value === 'function' || typeof value === 'symbol')
+    return JSON.stringify(String(value))
+  if (value === null || typeof value !== 'object')
+    return JSON.stringify(value)
+  if (seen.has(value))
+    return '"[Circular]"'
+  seen.add(value)
+  if (Array.isArray(value)) {
+    const result = `[${value.map(item => stableSerialize(item, seen)).join(',')}]`
+    seen.delete(value)
+    return result
+  }
+  const keys = Object.keys(value).sort()
+  const result = `{${keys.map(key => `${JSON.stringify(key)}:${stableSerialize(value[key], seen)}`).join(',')}}`
+  seen.delete(value)
+  return result
 }
 
 /**
@@ -2300,11 +2435,11 @@ function normalizeChildrenData(children) {
 
 function applyDetailData(data) {
   if (hasChildrenConfig.value && isMasterDetailPayload(data)) {
-    formData.value = normalizeEditData(data.main || {})
+    formData.value = normalizeEditData({ ...resolveFormDefaultValues(), ...(data.main || {}) })
     childFormData.value = normalizeChildrenData(data.children)
     return
   }
-  formData.value = normalizeEditData(data)
+  formData.value = normalizeEditData({ ...resolveFormDefaultValues(), ...(data || {}) })
   childFormData.value = buildInitialChildrenData()
 }
 
@@ -2365,16 +2500,16 @@ async function handleAdd(defaultValues = null, options = {}) {
   // 合并默认值和钩子返回的数据
   if (formDataFromHook && typeof formDataFromHook === 'object') {
     if (hasChildrenConfig.value && isMasterDetailPayload(formDataFromHook)) {
-      formData.value = { ...initialData, ...(formDataFromHook.main || {}), ...(presetValues || {}) }
+      formData.value = { ...initialData, ...resolveFormDefaultValues(), ...(formDataFromHook.main || {}), ...(presetValues || {}) }
       childFormData.value = normalizeChildrenData(formDataFromHook.children)
     }
     else {
-      formData.value = { ...initialData, ...formDataFromHook, ...(presetValues || {}) }
+      formData.value = { ...initialData, ...resolveFormDefaultValues(), ...formDataFromHook, ...(presetValues || {}) }
       childFormData.value = buildInitialChildrenData()
     }
   }
   else {
-    formData.value = { ...initialData, ...(presetValues || {}) }
+    formData.value = { ...initialData, ...resolveFormDefaultValues(), ...(presetValues || {}) }
     childFormData.value = buildInitialChildrenData()
   }
 
@@ -2709,7 +2844,7 @@ async function handleModalConfirm() {
     // 调用 beforeSubmit 钩子
     const latestFormData = formRef.value?.getFormData?.() || formData.value
     formData.value = latestFormData
-    let data = await callHook('beforeSubmit', latestFormData, data => data)
+    let data = await callHook('beforeSubmit', { ...latestFormData, ...resolveSubmitDefaultParams() }, data => data)
 
     if (data === false) {
       return
@@ -2792,6 +2927,8 @@ async function handleModalConfirm() {
     else {
       modalVisible.value = false
     }
+
+    await callHook('afterSubmit', { data, response, isEdit }, data => data)
 
     // 触发提交成功事件
     emit('submit-success', { data, response, isEdit })
@@ -3353,20 +3490,20 @@ onBeforeUnmount(() => {
   clearRuntimeFormulaTimers()
 })
 
-// 监听公共参数变化
-watch(() => props.publicParams, () => {
+// 监听公共参数内容变化，避免设计器拖拽尺寸时仅对象引用变化导致重复请求
+watch(() => stableSerialize(props.publicParams || {}), () => {
   if (props.formOnly)
     return
   pagination.value.page = 1
   loadList()
-}, { deep: true })
+})
 
-watch(() => props.publicQuery, () => {
+watch(() => stableSerialize(props.publicQuery || {}), () => {
   if (props.formOnly)
     return
   pagination.value.page = 1
   loadList()
-}, { deep: true })
+})
 </script>
 
 <style scoped>

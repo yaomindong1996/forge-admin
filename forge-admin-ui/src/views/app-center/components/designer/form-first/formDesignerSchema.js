@@ -4,8 +4,9 @@ import {
 } from './namingUtils'
 
 export const FORM_DESIGNER_SCHEMA_VERSION = 'form-first-v1'
+export const FORM_DESIGNER_MULTI_SCHEMA_VERSION = 'form-first-v2'
 export const FORM_DESIGNER_SCHEMA_KEY = 'formDesignerSchema'
-export const MAX_FORM_GRID_COLUMNS = 6
+export const MAX_FORM_GRID_COLUMNS = 24
 
 export {
   camelToSnake,
@@ -338,6 +339,84 @@ export function normalizeFormDesignerSchema(source = {}) {
       .map((component, index) => normalizeComponent(component, index, usedIds))
       .filter(Boolean),
     settings: isPlainObject(schema.settings) ? schema.settings : {},
+  }
+}
+
+export function normalizeMultiFormDesignerSchema(source = {}) {
+  const legacySchema = normalizeFormDesignerSchema(source)
+  const defaultFormKey = source?.defaultFormKey || source?.settings?.defaultFormKey || legacySchema.formKey || buildFormKey(source?.objectCode)
+  const formsByKey = new Map()
+
+  const appendForm = (rawForm = {}, fallback = {}) => {
+    const formSchema = normalizeFormDesignerSchema({
+      ...rawForm,
+      formKey: rawForm.formKey || fallback.formKey || defaultFormKey,
+      formName: rawForm.formName || fallback.formName || '业务表单',
+      settings: {
+        ...(rawForm.settings || {}),
+        formAssets: [],
+      },
+    })
+    if (!formSchema.formKey || formsByKey.has(formSchema.formKey))
+      return
+    formsByKey.set(formSchema.formKey, {
+      formKey: formSchema.formKey,
+      formName: formSchema.formName,
+      usage: normalizeFormUsage(rawForm.usage || fallback.usage),
+      schema: formSchema,
+    })
+  }
+
+  appendForm(legacySchema, {
+    formKey: defaultFormKey,
+    formName: legacySchema.formName || '默认表单',
+    usage: ['create', 'edit'],
+  })
+
+  ;(Array.isArray(source?.forms) ? source.forms : []).forEach((form) => {
+    appendForm(form?.schema || form, form)
+  })
+
+  ;(Array.isArray(legacySchema.settings?.formAssets) ? legacySchema.settings.formAssets : []).forEach((asset) => {
+    appendForm(asset?.schema || asset, asset)
+  })
+
+  const forms = Array.from(formsByKey.values())
+  return {
+    ...legacySchema,
+    schemaVersion: FORM_DESIGNER_MULTI_SCHEMA_VERSION,
+    defaultFormKey,
+    forms,
+    settings: {
+      ...(legacySchema.settings || {}),
+      formAssets: forms
+        .filter(form => form.formKey !== legacySchema.formKey)
+        .map(form => ({
+          formKey: form.formKey,
+          formName: form.formName,
+          usage: form.usage,
+          schema: form.schema,
+        })),
+    },
+  }
+}
+
+export function normalizeFormDesignerSchemaForSave(source = {}) {
+  const multiSchema = normalizeMultiFormDesignerSchema(source)
+  const activeForm = multiSchema.forms.find(form => form.formKey === multiSchema.formKey)
+    || multiSchema.forms.find(form => form.formKey === multiSchema.defaultFormKey)
+    || multiSchema.forms[0]
+  const activeSchema = activeForm?.schema || normalizeFormDesignerSchema(multiSchema)
+  return {
+    ...activeSchema,
+    schemaVersion: FORM_DESIGNER_MULTI_SCHEMA_VERSION,
+    defaultFormKey: multiSchema.defaultFormKey || activeSchema.formKey,
+    forms: multiSchema.forms,
+    settings: {
+      ...(activeSchema.settings || {}),
+      ...(multiSchema.settings || {}),
+      formAssets: multiSchema.settings?.formAssets || [],
+    },
   }
 }
 
@@ -832,29 +911,38 @@ function normalizeComponentLayout(layout = {}) {
   }
 }
 
-function applyGridColumnsToComponent(component = {}, gridColumns = 2) {
+function applyGridColumnsToComponent(component = {}, gridColumns = 2, parentComponent = null) {
   const next = cloneValue(component)
   const componentKey = next.componentKey || ''
   const fieldComponent = FIELD_COMPONENT_KEYS.has(componentKey)
   const fullRow = FULL_ROW_COMPONENT_KEYS.has(componentKey) || FULL_ROW_LAYOUT_COMPONENT_KEYS.has(componentKey)
   const currentSpan = resolveNumber(next.layout?.span, fullRow ? gridColumns : 1)
+  const parentGridColumns = ['row', 'fcRow'].includes(parentComponent?.componentKey)
+    ? clampGridColumns(parentComponent.props?.columns, MAX_FORM_GRID_COLUMNS)
+    : gridColumns
+  const nextSpan = componentKey === 'col'
+    ? Math.max(1, Math.min(parentGridColumns, resolveNumber(next.layout?.span ?? next.props?.span, Math.min(6, parentGridColumns))))
+    : (!fieldComponent && !fullRow)
+        ? 1
+        : fullRow
+          ? gridColumns
+          : Math.max(1, Math.min(gridColumns, currentSpan))
   next.label = normalizeDesignerComponentLabel(componentKey, next.label)
   next.layout = {
     ...(next.layout || {}),
-    span: componentKey === 'col' || (!fieldComponent && !fullRow)
-      ? 1
-      : fullRow
-        ? gridColumns
-        : Math.max(1, Math.min(gridColumns, currentSpan)),
+    span: nextSpan,
   }
   if (componentKey === 'col') {
     next.props = {
       ...(next.props || {}),
-      span: toFormCreateColSpan(next.layout.span, gridColumns),
+      span: next.layout.span,
     }
   }
+  else {
+    next.props = next.props || {}
+  }
   next.children = Array.isArray(next.children)
-    ? next.children.map(child => applyGridColumnsToComponent(child, gridColumns))
+    ? next.children.map(child => applyGridColumnsToComponent(child, gridColumns, next))
     : []
   return next
 }
@@ -869,12 +957,6 @@ function reconcileDesignerGridColumns(source = {}, gridColumns = 2) {
     },
     components: (source.components || []).map(component => applyGridColumnsToComponent(component, columns)),
   })
-}
-
-function toFormCreateColSpan(span, gridColumns) {
-  const columns = clampGridColumns(gridColumns, 2)
-  const normalizedSpan = Math.max(1, Math.min(columns, Number(span || 1)))
-  return Math.max(1, Math.min(24, Math.ceil((24 * normalizedSpan) / columns)))
 }
 
 function normalizeValidation(validation = {}) {
@@ -1029,6 +1111,14 @@ function buildRequiredMessage(componentKey, label) {
 
 function buildFormKey(objectCode = '') {
   return objectCode ? `${objectCode}_default_form` : 'default_form'
+}
+
+function normalizeFormUsage(value) {
+  const usage = Array.isArray(value) ? value : []
+  const normalized = usage
+    .map(item => String(item || '').trim())
+    .filter(Boolean)
+  return normalized.length ? Array.from(new Set(normalized)) : ['create', 'edit']
 }
 
 function isPlainObject(value) {

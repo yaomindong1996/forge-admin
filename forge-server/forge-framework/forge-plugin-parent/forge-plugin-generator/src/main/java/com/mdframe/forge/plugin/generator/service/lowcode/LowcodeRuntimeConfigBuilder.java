@@ -186,6 +186,10 @@ public class LowcodeRuntimeConfigBuilder {
         if (formLayout instanceof List<?> layout && !layout.isEmpty()) {
             options.put("editFormLayout", layout);
         }
+        Object formDesignerSchema = editProps.get("formDesignerSchema");
+        if (formDesignerSchema != null) {
+            options.put("formDesignerSchema", formDesignerSchema);
+        }
 
         LowcodePageZone tableZone = findZone(pageSchema, "table");
         Map<String, Object> tableProps = new LinkedHashMap<>();
@@ -1435,6 +1439,7 @@ public class LowcodeRuntimeConfigBuilder {
         if (!"none".equals(clickAction)) {
             item.put("clickAction", clickAction);
             putIfNotBlank(item, "targetPageKey", text(pageSetting.get("targetPageKey")));
+            putIfNotBlank(item, "targetFormKey", text(pageSetting.get("targetFormKey")));
             putIfNotBlank(item, "targetParamName", text(pageSetting.get("targetParamName")));
             putIfNotBlank(item, "targetParamField", text(pageSetting.get("targetParamField")));
         }
@@ -2201,8 +2206,12 @@ public class LowcodeRuntimeConfigBuilder {
             action.put("position", position);
             action.put("actionType", StringUtils.defaultIfBlank(text(source.get("actionType")), "route"));
             putIfNotBlank(action, "routePath", text(source.get("routePath")));
+            putIfNotBlank(action, "targetFormKey", text(source.get("targetFormKey")));
             putIfNotBlank(action, "openTarget", StringUtils.defaultIfBlank(text(source.get("openTarget")), "_self"));
+            putIfNotBlank(action, "permissionCode", text(source.get("permissionCode")));
             putIfNotBlank(action, "confirmText", text(source.get("confirmText")));
+            putIfNotBlank(action, "displayCondition", text(source.get("displayCondition")));
+            putIfNotBlank(action, "successBehavior", text(source.get("successBehavior")));
             List<Map<String, Object>> params = resolveActionParams(source.get("params"));
             if (!params.isEmpty()) {
                 action.put("params", params);
@@ -2227,6 +2236,8 @@ public class LowcodeRuntimeConfigBuilder {
             }
             Map<String, Object> param = new LinkedHashMap<>();
             param.put("name", name);
+            putIfNotBlank(param, "sourceType", text(source.get("sourceType")));
+            putIfNotBlank(param, "sourceField", text(source.get("sourceField")));
             param.put("value", StringUtils.defaultString(text(source.get("value"))));
             result.add(param);
         }

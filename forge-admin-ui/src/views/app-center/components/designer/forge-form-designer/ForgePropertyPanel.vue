@@ -69,6 +69,90 @@
                 </section>
               </n-collapse-item>
 
+              <n-collapse-item v-if="isRowLayout || isColumnLayout" title="栅格快捷配置" name="gridQuick">
+                <section class="panel-item grid-quick-config">
+                  <template v-if="isRowLayout">
+                    <n-form-item label="栅格总列数">
+                      <div class="slider-control">
+                        <n-slider
+                          :value="rowTotalColumns"
+                          :min="1"
+                          :max="maxFormGridColumns"
+                          :step="1"
+                          :marks="gridColumnMarks"
+                          @update:value="updateRowTotalColumns"
+                        />
+                        <n-input-number
+                          :value="rowTotalColumns"
+                          :min="1"
+                          :max="maxFormGridColumns"
+                          :show-button="false"
+                          size="small"
+                          @update:value="updateRowTotalColumns($event || 1)"
+                        />
+                      </div>
+                    </n-form-item>
+                    <n-form-item label="格子数量">
+                      <n-input-number
+                        :value="rowColumnCount"
+                        :min="1"
+                        :max="maxFormGridColumns"
+                        size="small"
+                        @update:value="updateRowCellCount($event || 1)"
+                      />
+                    </n-form-item>
+                    <n-form-item label="列间距">
+                      <n-input-number
+                        :value="selectedComponent.props?.gutter ?? 16"
+                        :min="0"
+                        :max="40"
+                        size="small"
+                        @update:value="updateComponent({ props: { gutter: $event ?? 16 } })"
+                      />
+                    </n-form-item>
+                    <div class="grid-column-span-editor">
+                      <div
+                        v-for="(column, columnIndex) in rowColumns"
+                        :key="column.id || columnIndex"
+                        class="grid-column-span-row"
+                      >
+                        <span>{{ column.label || `第 ${columnIndex + 1} 列` }}</span>
+                        <n-input-number
+                          :value="column.layout?.span || column.props?.span || 1"
+                          :min="1"
+                          :max="rowTotalColumns"
+                          size="small"
+                          :show-button="false"
+                          @update:value="updateRowColumnSpan(columnIndex, $event || 1)"
+                        />
+                      </div>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <n-form-item label="当前格子 span">
+                      <div class="slider-control">
+                        <n-slider
+                          :value="selectedComponent.layout?.span || selectedComponent.props?.span || 1"
+                          :min="1"
+                          :max="maxFormGridColumns"
+                          :step="1"
+                          :marks="gridColumnMarks"
+                          @update:value="updateComponent({ layout: { span: $event || 1 }, props: { span: $event || 1 } })"
+                        />
+                        <n-input-number
+                          :value="selectedComponent.layout?.span || selectedComponent.props?.span || 1"
+                          :min="1"
+                          :max="maxFormGridColumns"
+                          :show-button="false"
+                          size="small"
+                          @update:value="updateComponent({ layout: { span: $event || 1 }, props: { span: $event || 1 } })"
+                        />
+                      </div>
+                    </n-form-item>
+                  </template>
+                </section>
+              </n-collapse-item>
+
               <n-collapse-item v-if="isField" title="字段组件" name="field">
                 <section class="panel-item">
                   <n-form-item label="占位提示">
@@ -907,16 +991,34 @@
                   />
                 </div>
               </n-form-item>
-              <n-form-item v-if="isRowLayout" label="栅格列数">
-                <n-radio-group
+              <n-form-item v-if="isRowLayout" label="栅格总列数">
+                <div class="slider-control">
+                  <n-slider
+                    :value="rowTotalColumns"
+                    :min="1"
+                    :max="maxFormGridColumns"
+                    :step="1"
+                    :marks="gridColumnMarks"
+                    @update:value="updateRowTotalColumns"
+                  />
+                  <n-input-number
+                    :value="rowTotalColumns"
+                    :min="1"
+                    :max="maxFormGridColumns"
+                    :show-button="false"
+                    size="small"
+                    @update:value="updateRowTotalColumns($event || 1)"
+                  />
+                </div>
+              </n-form-item>
+              <n-form-item v-if="isRowLayout" label="格子数量">
+                <n-input-number
                   :value="rowColumnCount"
+                  :min="1"
+                  :max="maxFormGridColumns"
                   size="small"
-                  @update:value="updateRowColumns"
-                >
-                  <n-radio-button v-for="item in gridColumnOptions" :key="item" :value="item">
-                    {{ item }} 列
-                  </n-radio-button>
-                </n-radio-group>
+                  @update:value="updateRowCellCount($event || 1)"
+                />
               </n-form-item>
               <n-form-item v-if="isRowLayout" label="列间距">
                 <n-input-number
@@ -926,16 +1028,44 @@
                   @update:value="updateComponent({ props: { gutter: $event ?? 16 } })"
                 />
               </n-form-item>
+              <n-form-item v-if="isRowLayout" label="每列 span">
+                <div class="grid-column-span-editor">
+                  <div
+                    v-for="(column, columnIndex) in rowColumns"
+                    :key="column.id || columnIndex"
+                    class="grid-column-span-row"
+                  >
+                    <span>{{ column.label || `第 ${columnIndex + 1} 列` }}</span>
+                    <n-input-number
+                      :value="column.layout?.span || column.props?.span || 1"
+                      :min="1"
+                      :max="rowTotalColumns"
+                      size="small"
+                      :show-button="false"
+                      @update:value="updateRowColumnSpan(columnIndex, $event || 1)"
+                    />
+                  </div>
+                </div>
+              </n-form-item>
               <n-form-item v-if="isColumnLayout" label="栅格列宽">
-                <n-radio-group
-                  :value="selectedComponent.layout?.span || 1"
-                  size="small"
-                  @update:value="updateComponent({ layout: { span: $event || 1 }, props: { span: $event || 1 } })"
-                >
-                  <n-radio-button v-for="item in gridColumnOptions" :key="item" :value="item">
-                    {{ item }} 格
-                  </n-radio-button>
-                </n-radio-group>
+                <div class="slider-control">
+                  <n-slider
+                    :value="selectedComponent.layout?.span || selectedComponent.props?.span || 1"
+                    :min="1"
+                    :max="maxFormGridColumns"
+                    :step="1"
+                    :marks="gridColumnMarks"
+                    @update:value="updateComponent({ layout: { span: $event || 1 }, props: { span: $event || 1 } })"
+                  />
+                  <n-input-number
+                    :value="selectedComponent.layout?.span || selectedComponent.props?.span || 1"
+                    :min="1"
+                    :max="maxFormGridColumns"
+                    :show-button="false"
+                    size="small"
+                    @update:value="updateComponent({ layout: { span: $event || 1 }, props: { span: $event || 1 } })"
+                  />
+                </div>
               </n-form-item>
               <n-form-item v-if="isField" label="标签宽度">
                 <n-input-number
@@ -1911,6 +2041,26 @@
                       @update:value="updateCurrentFormMeta({ formKey: $event || schema.formKey })"
                     />
                   </n-form-item>
+                  <n-form-item label="当前表单用途">
+                    <n-select
+                      :value="schema.usage || ['create', 'edit']"
+                      :options="formUsageOptions"
+                      multiple
+                      clearable
+                      placeholder="选择用途"
+                      @update:value="updateCurrentFormMeta({ usage: $event })"
+                    />
+                  </n-form-item>
+                  <n-form-item label="默认表单">
+                    <n-button
+                      size="small"
+                      secondary
+                      :type="defaultFormKey === schema.formKey ? 'primary' : 'default'"
+                      @click="setDefaultFormKey(schema.formKey)"
+                    >
+                      {{ defaultFormKey === schema.formKey ? '当前为默认' : '设为默认' }}
+                    </n-button>
+                  </n-form-item>
                 </div>
                 <div v-if="formAssets.length" class="form-asset-list">
                   <div v-for="asset in formAssets" :key="asset.formKey" class="form-asset-card">
@@ -1921,14 +2071,150 @@
                         placeholder="表单名称"
                         @update:value="updateFormAssetMeta(asset.formKey, { formName: $event || '未命名表单' })"
                       />
+                      <n-select
+                        :value="asset.usage || ['create', 'edit']"
+                        :options="formUsageOptions"
+                        multiple
+                        clearable
+                        size="small"
+                        placeholder="用途"
+                        @update:value="updateFormAssetMeta(asset.formKey, { usage: $event })"
+                      />
                       <button type="button" class="form-asset-switch" @click="switchFormAsset(asset.formKey)">
                         切换编辑
                       </button>
                     </div>
+                    <n-button size="tiny" quaternary :type="defaultFormKey === asset.formKey ? 'primary' : 'default'" @click="setDefaultFormKey(asset.formKey)">
+                      {{ defaultFormKey === asset.formKey ? '默认' : '设默认' }}
+                    </n-button>
                     <n-button size="tiny" quaternary type="error" @click="removeFormAsset(asset.formKey)">
                       删除
                     </n-button>
                   </div>
+                </div>
+              </section>
+            </n-collapse-item>
+
+            <n-collapse-item title="权限、规则与事件" name="governance">
+              <section class="panel-item">
+                <div class="panel-item-title">
+                  表单级权限
+                </div>
+                <div class="style-grid">
+                  <n-input
+                    :value="formPermissionConfig.viewPermission || ''"
+                    clearable
+                    placeholder="查看权限码，例如 ai:business:customer:query"
+                    @update:value="updateFormPermission({ viewPermission: $event || '' })"
+                  />
+                  <n-input
+                    :value="formPermissionConfig.editPermission || ''"
+                    clearable
+                    placeholder="编辑权限码，例如 ai:business:customer:edit"
+                    @update:value="updateFormPermission({ editPermission: $event || '' })"
+                  />
+                </div>
+                <div class="switch-list compact">
+                  <label>
+                    <span>默认可见</span>
+                    <n-switch
+                      size="small"
+                      :value="formPermissionConfig.visible !== false"
+                      @update:value="updateFormPermission({ visible: $event })"
+                    />
+                  </label>
+                  <label>
+                    <span>默认可编辑</span>
+                    <n-switch
+                      size="small"
+                      :value="formPermissionConfig.editable !== false"
+                      @update:value="updateFormPermission({ editable: $event })"
+                    />
+                  </label>
+                </div>
+
+                <div class="panel-item-title">
+                  字段覆盖规则
+                </div>
+                <div class="form-rule-list">
+                  <div v-for="(rule, idx) in formFieldRuleRows" :key="rule.id || idx" class="form-rule-row">
+                    <n-select
+                      :value="rule.field || ''"
+                      :options="formFieldOptions"
+                      filterable
+                      clearable
+                      placeholder="字段"
+                      @update:value="updateFormFieldRule(idx, { field: $event || '' })"
+                    />
+                    <n-switch
+                      size="small"
+                      :value="!!rule.required"
+                      title="必填"
+                      @update:value="updateFormFieldRule(idx, { required: $event })"
+                    />
+                    <n-switch
+                      size="small"
+                      :value="!!rule.readonly"
+                      title="只读"
+                      @update:value="updateFormFieldRule(idx, { readonly: $event })"
+                    />
+                    <n-switch
+                      size="small"
+                      :value="!!rule.hidden"
+                      title="隐藏"
+                      @update:value="updateFormFieldRule(idx, { hidden: $event })"
+                    />
+                    <n-input
+                      :value="rule.defaultValue ?? ''"
+                      clearable
+                      placeholder="默认值"
+                      @update:value="updateFormFieldRule(idx, { defaultValue: $event })"
+                    />
+                    <n-button size="tiny" quaternary type="error" @click="removeFormFieldRule(idx)">
+                      删除
+                    </n-button>
+                  </div>
+                  <n-button size="small" dashed block @click="addFormFieldRule">
+                    + 添加字段规则
+                  </n-button>
+                </div>
+
+                <div class="panel-item-title">
+                  表单事件
+                </div>
+                <div class="form-rule-list">
+                  <div v-for="(eventItem, idx) in formEventRows" :key="eventItem.id || idx" class="form-event-row">
+                    <n-select
+                      :value="eventItem.hook || 'beforeLoad'"
+                      :options="formEventHookOptions"
+                      placeholder="触发时机"
+                      @update:value="updateFormEvent(idx, { hook: $event || 'beforeLoad' })"
+                    />
+                    <n-select
+                      :value="eventItem.action || 'customScript'"
+                      :options="formEventActionOptions"
+                      placeholder="动作"
+                      @update:value="updateFormEvent(idx, { action: $event || 'customScript' })"
+                    />
+                    <n-input
+                      :value="eventItem.handler || ''"
+                      clearable
+                      placeholder="脚本名 / 接口地址 / 动作编码"
+                      @update:value="updateFormEvent(idx, { handler: $event || '' })"
+                    />
+                    <n-input
+                      :value="eventItem.resultMapping || ''"
+                      clearable
+                      placeholder="结果回填，如 data.name->name,total->total"
+                      @update:value="updateFormEvent(idx, { resultMapping: $event || '' })"
+                    />
+                    <n-button size="tiny" quaternary type="error" @click="removeFormEvent(idx)">
+                      删除
+                    </n-button>
+                  </div>
+                  <n-button size="small" dashed block @click="addFormEvent">
+                    + 添加表单事件
+                  </n-button>
                 </div>
               </section>
             </n-collapse-item>
@@ -2340,7 +2626,7 @@ const crudFieldDrawerVisible = ref(false)
 const editingCrudFieldId = ref('')
 const propertyActiveTab = ref('basic')
 const formPropertyActiveTab = ref('basic')
-const basicExpandedNames = ['identity']
+const basicExpandedNames = ['identity', 'gridQuick']
 const selectedBasicExpandedNames = ref([...basicExpandedNames])
 const formBasicExpandedNames = ref(['assets'])
 const formStyleExpandedNames = ref(['appearance'])
@@ -2369,6 +2655,35 @@ const crudOptions = computed(() => selectedComponent.value?.props?.crudOptions |
 const selectedDesignerStyle = computed(() => selectedComponent.value?.props?.__designerStyle || {})
 const formStyle = computed(() => props.schema.layout?.formStyle || {})
 const formAssets = computed(() => Array.isArray(props.schema.settings?.formAssets) ? props.schema.settings.formAssets : [])
+const defaultFormKey = computed(() => props.schema.defaultFormKey || props.schema.settings?.defaultFormKey || props.schema.formKey)
+const formGovernanceSettings = computed(() => props.schema.settings?.governance || {})
+const formPermissionConfig = computed(() => formGovernanceSettings.value.permission || {})
+const formFieldRuleRows = computed(() => Array.isArray(formGovernanceSettings.value.fieldRules) ? formGovernanceSettings.value.fieldRules : [])
+const formEventRows = computed(() => Array.isArray(formGovernanceSettings.value.events) ? formGovernanceSettings.value.events : [])
+const formFieldOptions = computed(() => collectBoundFieldOptions(props.schema.components || []))
+const formUsageOptions = [
+  { label: '新增', value: 'create' },
+  { label: '编辑', value: 'edit' },
+  { label: '详情', value: 'detail' },
+  { label: '填报', value: 'submit' },
+  { label: '审批', value: 'approve' },
+  { label: '移动端', value: 'mobile' },
+]
+const formEventHookOptions = [
+  { label: '加载前', value: 'beforeLoad' },
+  { label: '加载后', value: 'afterLoad' },
+  { label: '提交前', value: 'beforeSubmit' },
+  { label: '提交后', value: 'afterSubmit' },
+  { label: '字段变化', value: 'fieldChange' },
+  { label: '按钮动作', value: 'buttonAction' },
+]
+const formEventActionOptions = [
+  { label: '自定义脚本', value: 'customScript' },
+  { label: '接口请求', value: 'request' },
+  { label: '字段赋值', value: 'setFieldValue' },
+  { label: '显示/隐藏字段', value: 'toggleField' },
+  { label: '刷新选项', value: 'refreshOptions' },
+]
 const formAssetOptions = computed(() => [
   { label: `${props.schema.formName || '主表单'}（当前表单）`, value: 'current' },
   ...formAssets.value.map(asset => ({
@@ -2387,7 +2702,7 @@ const schemaCodeRaw = computed(() => JSON.stringify(props.schema || {}, null, 2)
 const schemaCodeText = computed(() => schemaCodeDirty.value ? schemaCodeDraft.value : schemaCodeRaw.value)
 const selectedOpacityPercent = computed(() => Math.round(Number(selectedDesignerStyle.value.opacity ?? 1) * 100))
 const formOpacityPercent = computed(() => Math.round(Number(formStyle.value.opacity ?? 1) * 100))
-const maxFormGridColumns = 6
+const maxFormGridColumns = 24
 const normalizedFormGridColumns = computed(() => normalizeGridCount(props.schema.layout?.gridColumns || 2))
 const isDatePickerField = computed(() => ['date', 'datetime', 'daterange', 'datetimerange', 'month', 'year', 'quarter'].includes(selectedComponent.value?.componentKey))
 const isTimePickerField = computed(() => ['time', 'timerange'].includes(selectedComponent.value?.componentKey))
@@ -2413,6 +2728,8 @@ watch(() => props.selectedId, () => {
 
 const gridColumnOptions = Array.from({ length: maxFormGridColumns }).map((_, index) => index + 1)
 const gridColumnMarks = gridColumnOptions.reduce((marks, item) => {
+  if (![1, 6, 12, 18, 24].includes(item))
+    return marks
   marks[item] = `${item}`
   return marks
 }, {})
@@ -2707,7 +3024,9 @@ const crudSwitchFields = [
   { key: 'editShowFeedback', label: '编辑校验反馈', defaultValue: true },
   { key: 'hideModalFooter', label: '隐藏弹窗底部', defaultValue: false },
 ]
-const rowColumnCount = computed(() => normalizeGridCount(selectedComponent.value?.props?.columns || selectedComponent.value?.children?.length || props.schema.layout?.gridColumns || 2))
+const rowTotalColumns = computed(() => normalizeGridCount(selectedComponent.value?.props?.columns || maxFormGridColumns))
+const rowColumns = computed(() => (selectedComponent.value?.children || []).filter(child => child?.componentKey === 'col'))
+const rowColumnCount = computed(() => rowColumns.value.length || 1)
 const crudConfigFields = computed(() => collectCrudConfigFields(selectedComponent.value?.children || []))
 const editingCrudField = computed(() => editingCrudFieldId.value ? getDesignerComponent(props.schema, editingCrudFieldId.value) : null)
 const editingCrudConfig = computed(() => editingCrudField.value?.props?.__crudConfig || {})
@@ -2801,13 +3120,119 @@ function showFormSettings() {
 }
 
 function updateCurrentFormMeta(patch = {}) {
+  const nextFormKey = patch.formKey || props.schema.formKey
+  const nextDefaultFormKey = patch.formKey && defaultFormKey.value === props.schema.formKey
+    ? nextFormKey
+    : defaultFormKey.value
   emit('update:schema', {
     ...props.schema,
     ...patch,
+    usage: patch.usage ? resolveFormUsage(patch.usage) : props.schema.usage,
+    defaultFormKey: nextDefaultFormKey,
+    settings: {
+      ...(props.schema.settings || {}),
+      defaultFormKey: nextDefaultFormKey,
+    },
   })
 }
 
+function setDefaultFormKey(formKey = '') {
+  if (!formKey)
+    return
+  emit('update:schema', {
+    ...props.schema,
+    defaultFormKey: formKey,
+    settings: {
+      ...(props.schema.settings || {}),
+      defaultFormKey: formKey,
+    },
+  })
+}
+
+function updateFormGovernance(patch = {}) {
+  emit('update:schema', {
+    ...props.schema,
+    settings: {
+      ...(props.schema.settings || {}),
+      governance: {
+        ...formGovernanceSettings.value,
+        ...patch,
+      },
+    },
+  })
+}
+
+function updateFormPermission(patch = {}) {
+  updateFormGovernance({
+    permission: {
+      ...formPermissionConfig.value,
+      ...patch,
+    },
+  })
+}
+
+function addFormFieldRule() {
+  updateFormGovernance({
+    fieldRules: [
+      ...formFieldRuleRows.value,
+      {
+        id: `rule_${Date.now()}`,
+        field: '',
+        required: false,
+        readonly: false,
+        hidden: false,
+        defaultValue: '',
+      },
+    ],
+  })
+}
+
+function updateFormFieldRule(index, patch = {}) {
+  const list = [...formFieldRuleRows.value]
+  list[index] = { ...(list[index] || {}), ...patch }
+  updateFormGovernance({ fieldRules: list })
+}
+
+function removeFormFieldRule(index) {
+  const list = [...formFieldRuleRows.value]
+  list.splice(index, 1)
+  updateFormGovernance({ fieldRules: list })
+}
+
+function addFormEvent() {
+  updateFormGovernance({
+    events: [
+      ...formEventRows.value,
+      {
+        id: `event_${Date.now()}`,
+        hook: 'beforeLoad',
+        action: 'customScript',
+        handler: '',
+        resultMapping: '',
+      },
+    ],
+  })
+}
+
+function updateFormEvent(index, patch = {}) {
+  const list = [...formEventRows.value]
+  list[index] = { ...(list[index] || {}), ...patch }
+  updateFormGovernance({ events: list })
+}
+
+function removeFormEvent(index) {
+  const list = [...formEventRows.value]
+  list.splice(index, 1)
+  updateFormGovernance({ events: list })
+}
+
 function updateFormAssetMeta(formKey = '', patch = {}) {
+  const nextPatch = {
+    ...patch,
+    ...(Object.prototype.hasOwnProperty.call(patch, 'usage')
+      ? { usage: resolveFormUsage(patch.usage) }
+      : {}),
+  }
   emit('update:schema', {
     ...props.schema,
     settings: {
@@ -2817,11 +3242,11 @@ function updateFormAssetMeta(formKey = '', patch = {}) {
           return asset
         return {
           ...asset,
-          ...patch,
+          ...nextPatch,
           schema: asset.schema
             ? {
                 ...asset.schema,
-                ...patch,
+                ...nextPatch,
               }
             : asset.schema,
         }
@@ -2832,9 +3257,11 @@ function updateFormAssetMeta(formKey = '', patch = {}) {
 
 function duplicateCurrentFormAsset() {
   const nextAssetKey = `${props.schema.formKey || 'form'}_dialog_${Date.now()}`
+  const usage = resolveFormUsage(props.schema.usage)
   const assetSchema = cloneValue(props.schema)
   assetSchema.formKey = nextAssetKey
   assetSchema.formName = `${props.schema.formName || '表单'}弹窗`
+  assetSchema.usage = usage
   assetSchema.settings = {
     ...(assetSchema.settings || {}),
     formAssets: [],
@@ -2847,6 +3274,7 @@ function duplicateCurrentFormAsset() {
         {
           formKey: nextAssetKey,
           formName: assetSchema.formName,
+          usage,
           schema: assetSchema,
         },
         ...formAssets.value,
@@ -2858,10 +3286,12 @@ function duplicateCurrentFormAsset() {
 function createBlankFormAsset() {
   const nextAssetIndex = formAssets.value.length + 2
   const nextAssetKey = `${props.schema.formKey || 'form'}_form_${Date.now()}`
+  const usage = ['create', 'edit']
   const assetSchema = {
     ...cloneValue(props.schema),
     formKey: nextAssetKey,
     formName: `表单 ${nextAssetIndex}`,
+    usage,
     components: [],
     settings: {
       ...(props.schema.settings || {}),
@@ -2876,6 +3306,7 @@ function createBlankFormAsset() {
         {
           formKey: nextAssetKey,
           formName: assetSchema.formName,
+          usage,
           schema: assetSchema,
         },
         ...formAssets.value,
@@ -2888,11 +3319,16 @@ function switchFormAsset(formKey = '') {
   const asset = formAssets.value.find(item => item.formKey === formKey)
   if (!asset?.schema)
     return
+  const nextDefaultFormKey = defaultFormKey.value || props.schema.formKey
+  const currentUsage = resolveFormUsage(props.schema.usage)
+  const assetUsage = resolveFormUsage(asset.usage || asset.schema.usage)
   const currentAsset = {
     formKey: props.schema.formKey,
     formName: props.schema.formName,
+    usage: currentUsage,
     schema: {
       ...cloneValue(props.schema),
+      usage: currentUsage,
       settings: {
         ...(props.schema.settings || {}),
         formAssets: [],
@@ -2903,23 +3339,59 @@ function switchFormAsset(formKey = '') {
     .filter(item => item.formKey !== formKey && item.formKey !== currentAsset.formKey)
     .concat(currentAsset)
   emit('update:selectedId', '')
-  emit('update:schema', normalizeFormDesignerSchema({
+  const nextSchema = normalizeFormDesignerSchema({
     ...cloneValue(asset.schema),
+    usage: assetUsage,
+    defaultFormKey: nextDefaultFormKey,
     settings: {
       ...(asset.schema.settings || {}),
       formAssets: nextAssets,
+      defaultFormKey: nextDefaultFormKey,
     },
-  }))
+  })
+  emit('update:schema', {
+    ...nextSchema,
+    usage: assetUsage,
+    defaultFormKey: nextDefaultFormKey,
+    settings: {
+      ...(nextSchema.settings || {}),
+      defaultFormKey: nextDefaultFormKey,
+    },
+  })
 }
 
 function removeFormAsset(formKey = '') {
+  const nextDefaultFormKey = defaultFormKey.value === formKey ? props.schema.formKey : defaultFormKey.value
   emit('update:schema', {
     ...props.schema,
+    defaultFormKey: nextDefaultFormKey,
     settings: {
       ...(props.schema.settings || {}),
+      defaultFormKey: nextDefaultFormKey,
       formAssets: formAssets.value.filter(item => item.formKey !== formKey),
     },
   })
+}
+
+function resolveFormUsage(value) {
+  const usage = Array.isArray(value)
+    ? value.map(item => String(item || '').trim()).filter(Boolean)
+    : []
+  return usage.length ? Array.from(new Set(usage)) : ['create', 'edit']
+}
+
+function collectBoundFieldOptions(components = [], result = []) {
+  ;(Array.isArray(components) ? components : []).forEach((component) => {
+    const field = component?.fieldBinding?.fieldCode || component?.field || component?.props?.field
+    if (field && !result.some(item => item.value === field)) {
+      result.push({
+        label: `${component.label || field}（${field}）`,
+        value: field,
+      })
+    }
+    collectBoundFieldOptions(component?.children || component?.props?.children || [], result)
+  })
+  return result
 }
 
 function updateLabel(value) {
@@ -3490,11 +3962,35 @@ function updateFormLayout(patch = {}) {
   emit('update:schema', updateDesignerLayout(props.schema, patch))
 }
 
-function updateRowColumns(value) {
+function updateRowTotalColumns(value) {
+  const columns = normalizeGridCount(value)
+  const row = selectedComponent.value
+  if (!row)
+    return
+  const children = cloneValue(row.children || []).map(child => child?.componentKey === 'col'
+    ? {
+        ...child,
+        props: { ...(child.props || {}), span: Math.min(columns, normalizeGridCount(child.props?.span || child.layout?.span || 1)) },
+        layout: { ...(child.layout || {}), span: Math.min(columns, normalizeGridCount(child.layout?.span || child.props?.span || 1)) },
+      }
+    : child)
+  updateComponent({
+    props: {
+      ...(row.props || {}),
+      columns,
+      gutter: row.props?.gutter ?? 16,
+    },
+    children,
+  })
+}
+
+function updateRowCellCount(value) {
   const count = normalizeGridCount(value)
   const row = selectedComponent.value
   if (!row)
     return
+  const totalColumns = normalizeGridCount(row.props?.columns || maxFormGridColumns)
+  const defaultSpan = Math.max(1, Math.floor(totalColumns / Math.max(1, count)))
 
   const currentChildren = Array.isArray(row.children) ? cloneValue(row.children) : []
   const currentColumns = currentChildren.filter(child => child?.componentKey === 'col')
@@ -3512,7 +4008,7 @@ function updateRowColumns(value) {
 
   const nextColumns = currentColumns.slice(0, count)
   while (nextColumns.length < count)
-    nextColumns.push(createColumn(row.id, nextColumns.length))
+    nextColumns.push(createColumn(row.id, nextColumns.length, defaultSpan))
 
   const overflowColumns = currentColumns.slice(count)
   if (overflowColumns.length && nextColumns.length) {
@@ -3524,28 +4020,53 @@ function updateRowColumns(value) {
   }
 
   nextColumns.forEach((column, index) => {
+    const span = Math.min(totalColumns, normalizeGridCount(column.layout?.span || column.props?.span || defaultSpan))
     column.label = `第 ${index + 1} 列`
-    column.layout = { ...(column.layout || {}), span: 1 }
-    column.props = { ...(column.props || {}), span: 1 }
+    column.layout = { ...(column.layout || {}), span }
+    column.props = { ...(column.props || {}), span }
   })
 
   updateComponent({
     label: `${count} 列栅格`,
     props: {
-      columns: count,
+      columns: totalColumns,
       gutter: row.props?.gutter ?? 16,
     },
     children: nextColumns,
   })
 }
 
-function createColumn(rowId, index) {
+function updateRowColumnSpan(index, value) {
+  const row = selectedComponent.value
+  if (!row || !Array.isArray(row.children))
+    return
+  const span = Math.min(normalizeGridCount(row.props?.columns || maxFormGridColumns), normalizeGridCount(value))
+  const children = cloneValue(row.children)
+  const childIndex = children.reduce((matchedIndex, child, currentIndex) => {
+    if (matchedIndex !== -1 || child?.componentKey !== 'col')
+      return matchedIndex
+    const currentColumnIndex = children.slice(0, currentIndex + 1).filter(item => item?.componentKey === 'col').length - 1
+    return currentColumnIndex === index ? currentIndex : -1
+  }, -1)
+  const column = children[childIndex]
+  if (!column || column.componentKey !== 'col')
+    return
+  children[childIndex] = {
+    ...column,
+    props: { ...(column.props || {}), span },
+    layout: { ...(column.layout || {}), span },
+  }
+  updateComponent({ children })
+}
+
+function createColumn(rowId, index, span = 6) {
+  const normalizedSpan = normalizeGridCount(span)
   return {
     id: `${rowId || 'row'}_col_${Date.now()}_${index + 1}`,
     componentKey: 'col',
     label: `第 ${index + 1} 列`,
-    props: { span: 1 },
-    layout: { span: 1, align: 'left' },
+    props: { span: normalizedSpan },
+    layout: { span: normalizedSpan, align: 'left' },
     children: [],
   }
 }
@@ -4097,12 +4618,14 @@ function toKebabCase(value = '') {
 .property-tabs :deep(.n-tabs-pane-wrapper) {
   min-height: 0;
   overflow: auto;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef4fb 100%);
 }
 
 .property-form {
   min-height: 0;
   overflow: auto;
-  padding: 12px 14px 20px;
+  padding: 12px 14px 22px;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef4fb 100%);
 }
 
 .panel-item {
@@ -4156,10 +4679,11 @@ function toKebabCase(value = '') {
 }
 
 .property-form > .panel-item {
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.96);
   padding: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .panel-item-strong {
@@ -4244,9 +4768,9 @@ function toKebabCase(value = '') {
   align-items: center;
   min-height: 20px;
   margin-bottom: 8px;
-  color: #1f2329;
+  color: #0f172a;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 20px;
 }
 
@@ -4279,7 +4803,12 @@ function toKebabCase(value = '') {
 }
 
 .panel-item :deep(.n-form-item) {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .panel-item :deep(.n-form-item:last-child) {
@@ -4287,10 +4816,43 @@ function toKebabCase(value = '') {
 }
 
 .panel-item :deep(.n-form-item-label) {
-  min-height: 20px;
-  color: #646a73;
+  position: relative;
+  display: flex !important;
+  align-items: center;
+  align-self: flex-start;
+  min-height: 24px;
+  height: 24px;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 10px;
+  color: #334155;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.panel-item :deep(.n-form-item-label::before) {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 4px;
+  height: 12px;
+  border-radius: 999px;
+  background: #2563eb;
+  content: '';
+  transform: translateY(-50%);
+}
+
+.panel-item :deep(.n-form-item-label--right-mark) {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.panel-item :deep(.n-form-item-label__text) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  line-height: 20px;
 }
 
 .panel-item :deep(.n-radio-group),
@@ -4318,6 +4880,11 @@ function toKebabCase(value = '') {
   gap: 12px;
   width: 100%;
   padding: 0 2px 8px;
+}
+
+.grid-quick-config {
+  border: 1px solid #bfdbfe;
+  background: linear-gradient(180deg, #eff6ff 0%, #fff 100%);
 }
 
 .spacing-editor {
@@ -4355,6 +4922,28 @@ function toKebabCase(value = '') {
 .spacing-grid span {
   color: #646a73;
   font-size: 12px;
+}
+
+.grid-column-span-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.grid-column-span-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 88px;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.grid-column-span-row span {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .form-asset-panel {
@@ -4966,6 +5555,31 @@ button.form-asset-card,
 .switch-list {
   display: grid;
   gap: 8px;
+}
+
+.switch-list.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 10px 0 14px;
+}
+
+.form-rule-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.form-rule-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 42px 42px 42px minmax(90px, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-event-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) minmax(90px, 1fr) minmax(120px, 1.4fr) auto;
+  align-items: center;
+  gap: 6px;
 }
 
 .switch-list + :deep(.n-form-item) {

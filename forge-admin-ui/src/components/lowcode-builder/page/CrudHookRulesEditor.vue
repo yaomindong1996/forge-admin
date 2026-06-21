@@ -53,7 +53,7 @@
           @update:value="updateRule(idx, { value: $event })"
         />
         <span v-else class="hook-rule-note">清空</span>
-        <NButton size="tiny" quaternary type="error" @click="removeRule(idx)">
+        <NButton size="tiny" quaternary type="error" attr-type="button" @click.stop.prevent="removeRule(idx)">
           删
         </NButton>
       </div>
@@ -62,7 +62,7 @@
       当前回调没有规则。
     </div>
 
-    <NButton size="small" type="primary" secondary block @click="addRule">
+    <NButton size="small" type="primary" secondary block attr-type="button" @click.stop.prevent="addRule">
       新增{{ activeHookMeta?.label || '回调' }}规则
     </NButton>
   </div>
@@ -108,7 +108,7 @@ const activeRules = computed(() => localRules.value?.[activeHook.value] || [])
 watch(
   () => [props.modelValue, props.legacyBeforeSubmitRules],
   () => {
-    localRules.value = normalizeCrudHookRules(props.modelValue || {}, props.legacyBeforeSubmitRules || [])
+    localRules.value = normalizeCrudHookRules(props.modelValue || {}, props.legacyBeforeSubmitRules || [], { keepEmpty: true })
     if (!CRUD_HOOK_RULE_TARGETS.some(item => item.value === activeHook.value))
       activeHook.value = 'beforeSubmit'
   },
@@ -116,8 +116,9 @@ watch(
 )
 
 function emitRules(nextRules) {
-  localRules.value = normalizeCrudHookRules(nextRules || {}, [])
-  emit('update:modelValue', nextRules)
+  const normalized = normalizeCrudHookRules(nextRules || {}, [], { keepEmpty: true })
+  localRules.value = normalized
+  emit('update:modelValue', normalized)
 }
 
 function addRule() {

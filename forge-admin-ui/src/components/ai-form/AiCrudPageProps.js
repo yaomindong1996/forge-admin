@@ -181,12 +181,21 @@ export const aiCrudPageProps = {
   },
 
   /**
-   * 树形表配置。存在时内置“添加下级”等树形操作。
+   * 树形表配置。只负责树形数据结构；“添加下级”需通过 enableTreeAddChild 显式开启。
    * @type {object}
    */
   treeConfig: {
     type: Object,
     default: () => ({}),
+  },
+
+  /**
+   * 是否显示树形表“添加下级”操作。左树右表筛选场景默认不需要。
+   * @type {boolean}
+   */
+  enableTreeAddChild: {
+    type: Boolean,
+    default: false,
   },
 
   // ========== 编辑表单相关 ==========
@@ -730,6 +739,17 @@ export const aiCrudPageProps = {
   },
 
   /**
+   * 表单提交成功后钩子
+   * @type {Function}
+   * @param {object} payload - { data, response, isEdit }
+   * @returns {void | Promise<void>}
+   */
+  afterSubmit: {
+    type: Function,
+    default: null,
+  },
+
+  /**
    * 删除前钩子
    * @type {Function}
    * @param {Array} rows - 待删除的行数据
@@ -817,6 +837,24 @@ export const aiCrudPageProps = {
    * @type {object}
    */
   publicParams: {
+    type: Object,
+    default: () => ({}),
+  },
+
+  /**
+   * 新增/编辑表单打开时的固定默认值，可包含表单外隐藏字段
+   * @type {object}
+   */
+  formDefaultValues: {
+    type: Object,
+    default: () => ({}),
+  },
+
+  /**
+   * 新增/编辑提交前固定合入的参数
+   * @type {object}
+   */
+  submitDefaultParams: {
     type: Object,
     default: () => ({}),
   },

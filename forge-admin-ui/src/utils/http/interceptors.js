@@ -1,6 +1,6 @@
 import { useAuthStore } from '@/store'
-import { cryptoConfig, decryptResponse, encryptRequest, matchPath } from '@/utils/crypto'
-import { resetKeyExchange } from '@/utils/crypto/key-exchange'
+import { cryptoConfig, decryptResponse, encryptRequest, matchPath, shouldEncrypt } from '@/utils/crypto'
+import { getSessionKey, initKeyExchange, resetKeyExchange } from '@/utils/crypto/key-exchange'
 import { isAuthErrorCode, resolveResError, shouldSilenceAuthError } from './helpers'
 
 // 生成 UUID
@@ -205,14 +205,41 @@ export function setupInterceptors(axiosInstance) {
       detail,
     })
   }
-  axiosInstance.interceptors.request.use(reqResolve, reqReject)
+  axiosInstance.interceptors.request.use(config => reqResolve(config, axiosInstance), reqReject)
   axiosInstance.interceptors.response.use(resResolve, resReject)
+}
+
+function shouldEnsureEncryptionSession(config) {
+  return config?.encrypt === true
+    && cryptoConfig.enabled !== false
+    && shouldEncrypt(config.url || '')
+    && !getSessionKey()
+}
+
+function createEncryptSessionError(config) {
+  const message = '安全会话初始化失败，已阻止明文请求，请重试'
+  const error = new Error(message)
+  error.code = 'ENCRYPT_KEY_MISSING'
+  error.config = config
+  return error
+}
+
+async function ensureEncryptionSession(config, axiosInstance, authStore) {
+  if (!shouldEnsureEncryptionSession(config))
+    return
+
+  const exchanged = await initKeyExchange(axiosInstance, authStore.accessToken)
+  if (!exchanged || !getSessionKey()) {
+    const error = createEncryptSessionError(config)
+    window.$message?.error(error.message)
+    throw error
+  }
 }
 
 /**
  * 请求拦截器
  */
-function reqResolve(config) {
+async function reqResolve(config, axiosInstance) {
   // 获取认证存储实例
   const authStore = useAuthStore()
 
@@ -249,6 +276,9 @@ function reqResolve(config) {
       config.headers['X-Nonce'] = generateUUID()
     }
   }
+
+  // 显式加密接口必须先完成会话密钥协商，禁止在无密钥时降级成明文请求
+  await ensureEncryptionSession(config, axiosInstance, authStore)
 
   // 加密处理
   config = encryptRequest(config)

@@ -4,12 +4,19 @@ import { decodeKeyToHex, sm4Decrypt, sm4Encrypt } from './sm4'
 
 /**
  * 检查密钥是否有效
- * @returns {boolean}
+ * @returns {boolean} 密钥是否有效
  */
 function isKeyValid() {
   const key = cryptoConfig.secretKey
   // 密钥必须存在且长度大于0
   return key && key.length > 0
+}
+
+function createEncryptError(message, originalError) {
+  const error = new Error(message)
+  error.code = 'ENCRYPT_REQUEST_FAILED'
+  error.originalError = originalError
+  return error
 }
 
 /**
@@ -74,6 +81,9 @@ export function encryptRequest(config) {
 
   // 检查密钥是否有效
   if (!isKeyValid()) {
+    if (config.encrypt === true) {
+      throw createEncryptError('加密密钥未设置，已阻止明文请求')
+    }
     console.warn('加密密钥未设置，跳过请求加密')
     return config
   }
@@ -90,6 +100,9 @@ export function encryptRequest(config) {
     }
     catch (e) {
       console.error('请求加密失败:', e)
+      if (config.encrypt === true) {
+        throw createEncryptError('请求加密失败，已阻止明文请求', e)
+      }
     }
   }
 

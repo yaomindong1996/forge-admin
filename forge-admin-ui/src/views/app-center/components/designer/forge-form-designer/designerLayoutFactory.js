@@ -1,4 +1,5 @@
-const MAX_FORM_GRID_COLUMNS = 6
+const MAX_FORM_GRID_COLUMNS = 24
+const DEFAULT_ROW_CELL_COUNT = 4
 
 export function createForgeLayoutComponent(componentKey = 'title', schema = {}) {
   const gridColumns = clampGridColumns(schema?.layout?.gridColumns, 2)
@@ -93,19 +94,20 @@ export function createForgeLayoutComponent(componentKey = 'title', schema = {}) 
     }
   }
   if (componentKey === 'row') {
-    const columnCount = Math.max(1, Math.min(MAX_FORM_GRID_COLUMNS, gridColumns))
+    const columnCount = DEFAULT_ROW_CELL_COUNT
+    const columnSpan = Math.max(1, Math.floor(MAX_FORM_GRID_COLUMNS / columnCount))
     return {
       id,
       componentKey: 'row',
       label: `${columnCount} 列栅格`,
-      props: { gutter: 16, columns: columnCount },
+      props: { gutter: 16, columns: MAX_FORM_GRID_COLUMNS },
       layout: { span: gridColumns, align: 'left' },
       children: Array.from({ length: columnCount }).map((_, index) => ({
         id: `${id}_col_${index + 1}`,
         componentKey: 'col',
         label: `第 ${index + 1} 列`,
-        props: { span: 1 },
-        layout: { span: 1, align: 'left' },
+        props: { span: columnSpan },
+        layout: { span: columnSpan, align: 'left' },
         children: [],
       })),
     }

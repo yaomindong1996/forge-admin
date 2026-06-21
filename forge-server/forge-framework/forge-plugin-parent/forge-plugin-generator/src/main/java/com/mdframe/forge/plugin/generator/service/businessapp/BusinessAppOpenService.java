@@ -69,7 +69,10 @@ public class BusinessAppOpenService {
         vo.setRuntimeOpenMode(runtimeOpenMode);
         vo.setMenuResourceId(menuResourceId);
         vo.setActiveMenuKey(activeMenuKey);
-        vo.setPermissionGranted(hasPermission("ai:businessApp:open"));
+        String permissionCode = StringUtils.trimToNull(options.getString("permissionCode"));
+        boolean basePermissionGranted = hasPermission("ai:businessApp:open");
+        boolean entryPermissionGranted = permissionCode == null || hasPermission(permissionCode);
+        vo.setPermissionGranted(basePermissionGranted && entryPermissionGranted);
         vo.setOpenType(resolveOpenType(app.getEntryMode()));
         vo.setTargetUrl(targetUrl);
         vo.setTargetRoute(targetUrl);
@@ -101,7 +104,7 @@ public class BusinessAppOpenService {
             vo.setNextAction("CONFIGURE_ENTRY");
             vo.setNextActionLabel("配置打开地址");
         } else if (!Boolean.TRUE.equals(vo.getPermissionGranted())) {
-            vo.setMessage("缺少访问入口打开权限");
+            vo.setMessage(permissionCode == null ? "缺少访问入口打开权限" : "缺少访问入口权限: " + permissionCode);
             vo.setNextAction("REQUEST_PERMISSION");
             vo.setNextActionLabel("联系管理员授权");
         } else if (securityMessage != null) {
@@ -160,6 +163,7 @@ public class BusinessAppOpenService {
     }
 
     private String buildRuntimeTargetRoute(AiBusinessApp app, String runtimeOpenMode, Long menuResourceId) {
+        JSONObject options = readOptions(app.getOptions());
         Map<String, String> query = new LinkedHashMap<>();
         query.put("appId", String.valueOf(app.getId()));
         if (menuResourceId != null) {
@@ -167,10 +171,27 @@ public class BusinessAppOpenService {
             query.put("menuResourceId", String.valueOf(menuResourceId));
         }
         query.put("runtimeOpenMode", runtimeOpenMode);
+        String targetPageKey = StringUtils.trimToNull(options.getString("targetPageKey"));
+        if (targetPageKey == null) {
+            targetPageKey = "DETAIL".equals(runtimeOpenMode) ? "detail" : "list";
+        }
+        query.put("pageKey", targetPageKey);
+        String targetFormKey = StringUtils.trimToNull(options.getString("targetFormKey"));
+        if (targetFormKey != null) {
+            query.put("formKey", targetFormKey);
+        }
         if ("CREATE_FORM".equals(runtimeOpenMode)) {
             query.put("mode", "create");
         } else if ("DETAIL".equals(runtimeOpenMode)) {
             query.put("mode", "detail");
+        }
+        Object defaultParams = options.get("defaultParams");
+        if (defaultParams instanceof JSONObject params) {
+            params.forEach((key, value) -> {
+                if (StringUtils.isNotBlank(key) && value != null && StringUtils.isNotBlank(String.valueOf(value))) {
+                    query.putIfAbsent(key, String.valueOf(value));
+                }
+            });
         }
         if (StringUtils.isNotBlank(app.getAppName())) {
             query.put("title", app.getAppName());

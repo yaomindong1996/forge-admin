@@ -8,7 +8,7 @@
         </div>
         <div class="designer-head-actions">
           <div v-if="formObjectTabs.length > 1" class="object-switch-control">
-            <span>设计对象</span>
+            <span>表单范围</span>
             <n-radio-group v-model:value="activeObjectKey" size="small">
               <n-radio-button v-for="tab in formObjectTabs" :key="tab.key" :value="tab.key">
                 {{ tab.label }}
@@ -249,7 +249,7 @@ import BusinessFormCreateDesigner from './BusinessFormCreateDesigner.vue'
 import ForgeFormDesigner from './forge-form-designer/ForgeFormDesigner.vue'
 import { buildAutoFieldAssets } from './form-first/autoFieldRegistry'
 import { extractForgeSchemaFieldRefs, forgeSchemaToFormCreate } from './form-first/forgeToFormCreate'
-import { applyGridColumnsToFormDesignerSchema, normalizeFormDesignerSchema } from './form-first/formDesignerSchema'
+import { applyGridColumnsToFormDesignerSchema, normalizeFormDesignerSchema, normalizeFormDesignerSchemaForSave } from './form-first/formDesignerSchema'
 
 const props = defineProps({
   objectId: {
@@ -436,11 +436,11 @@ const relationFormRows = computed(() => normalizeRelationFormRows(props.relation
 const formObjectTabs = computed(() => [
   {
     key: 'primary',
-    label: props.modelSchema?.businessName || props.modelSchema?.object?.name || '当前对象',
+    label: '主表单',
   },
   ...relationFormRows.value.map(row => ({
     key: row.key,
-    label: row.title,
+    label: `${row.title}表单`,
   })),
 ])
 const isPrimaryObjectActive = computed(() => activeObjectKey.value === 'primary')
@@ -460,13 +460,13 @@ const activeRelationAvailableFields = computed(() => {
 })
 const activeObjectTitle = computed(() => {
   if (isPrimaryObjectActive.value)
-    return '主表单画布'
+    return `${props.modelSchema?.businessName || props.modelSchema?.object?.name || props.objectName || '当前对象'}主表单`
   return activeRelationRow.value?.title || '关联对象表单'
 })
 const activeObjectDescription = computed(() => {
   if (isPrimaryObjectActive.value)
-    return '拖拽右侧字段到画布，新增、编辑和查看详情共用这一套主表布局。'
-  return '选择关联对象在新增、编辑或详情中展示的字段，发布后同步到内嵌关联表单。'
+    return '维护当前业务对象的默认表单，可被新增、编辑、详情或入口按 formKey 引用。'
+  return '维护关联对象在当前对象新增、编辑或详情中的内嵌表单字段，不会创建新的业务对象。'
 })
 const visibleShelfFields = computed(() => {
   if (shelfTab.value === 'used')
@@ -1250,7 +1250,7 @@ function syncDesignerDraft() {
 
 function buildCurrentDesignerDraft() {
   const formSchema = activeFormDesignerRef.value?.flushDesigner?.() || localFormDesignerSchema.value
-  const normalizedFormSchema = normalizeFormDesignerSchema(formSchema || {})
+  const normalizedFormSchema = normalizeFormDesignerSchemaForSave(formSchema || {})
   const { fields: nextFields, createdFields } = buildAutoFieldAssets(normalizedFormSchema, primaryBusinessFieldAssets.value)
   const formFieldComponents = buildFormFieldComponentMap(normalizedFormSchema)
   const normalizedFields = nextFields.map(field => normalizeUnconfiguredDesignerField(field, formFieldComponents))

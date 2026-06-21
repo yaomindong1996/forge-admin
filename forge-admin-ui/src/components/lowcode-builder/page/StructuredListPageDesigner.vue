@@ -549,7 +549,7 @@
               </label>
             </div>
           </section>
-          <section v-if="configSectionVisible(['工具栏和事件', '工具栏', '事件', '按钮文案', '导出文件名', '自定义操作', '行操作', '回调', '参数处理', '提交前', '搜索前', '加载列表前', 'beforeSubmit'])" class="config-section">
+          <section v-if="configSectionVisible(['工具栏和事件', '工具栏', '事件', '按钮文案', '导出文件名', '自定义操作', '行操作', '默认参数', '公共参数', '查询默认参数', '提交固定参数', '表单默认值', 'publicParams', 'publicQuery', '回调', '参数处理', '提交前', '搜索前', '加载列表前', 'beforeSubmit'])" class="config-section">
             <div class="config-section-title">
               工具栏和事件
             </div>
@@ -622,6 +622,12 @@
                 新增事件
               </NButton>
             </div>
+            <CrudDefaultParamsEditor
+              class="default-params-block"
+              :model-value="resolveTableDefaultParams()"
+              :field-options="sortFieldOptions"
+              @update:model-value="updateTableDefaultParams"
+            />
             <CrudHookRulesEditor
               class="hook-rules-block"
               :model-value="tableZone?.props?.crudHookRules || {}"
@@ -781,6 +787,7 @@ import { SearchOutline } from '@vicons/ionicons5'
 import { NButton, NColorPicker, NIcon, NInput, NInputNumber, NSelect, NSwitch } from 'naive-ui'
 import { computed, defineComponent, h, nextTick, ref } from 'vue'
 import draggable from 'vuedraggable'
+import CrudDefaultParamsEditor from './CrudDefaultParamsEditor.vue'
 import CrudHookRulesEditor from './CrudHookRulesEditor.vue'
 import GridBlockRenderer from './GridBlockRenderer.vue'
 import { isPageFieldVisible } from './page-schema'
@@ -1282,6 +1289,10 @@ const crudPreviewBlock = computed(() => {
       customActions: tableProps.customActions || [],
       crudHookRules: tableProps.crudHookRules || {},
       beforeSubmitRules: tableProps.beforeSubmitRules || [],
+      publicParams: tableProps.publicParams || {},
+      publicQuery: tableProps.publicQuery || {},
+      formDefaultValues: tableProps.formDefaultValues || {},
+      submitDefaultParams: tableProps.submitDefaultParams || {},
       previewLiveData: tableProps.previewLiveData === true,
       defaultSortField: tableProps.defaultSortField || 'id',
       defaultSortOrder: tableProps.defaultSortOrder || 'desc',
@@ -1527,6 +1538,54 @@ function updateTableHookRules(rules) {
       beforeSubmitRules: [],
     },
   }))
+}
+
+function resolveTableDefaultParams() {
+  const props = tableZone.value?.props || {}
+  return {
+    publicParams: props.publicParams || {},
+    publicQuery: props.publicQuery || {},
+    formDefaultValues: props.formDefaultValues || {},
+    submitDefaultParams: props.submitDefaultParams || {},
+  }
+}
+
+function updateTableDefaultParams(params = {}) {
+  if (isSameDefaultParams(resolveTableDefaultParams(), params))
+    return
+  patchZone('table', {
+    props: {
+      ...(tableZone.value?.props || {}),
+      publicParams: params.publicParams || {},
+      publicQuery: params.publicQuery || {},
+      formDefaultValues: params.formDefaultValues || {},
+      submitDefaultParams: params.submitDefaultParams || {},
+    },
+  }, createGridPatchForZone('table', {
+    props: {
+      publicParams: params.publicParams || {},
+      publicQuery: params.publicQuery || {},
+      formDefaultValues: params.formDefaultValues || {},
+      submitDefaultParams: params.submitDefaultParams || {},
+    },
+  }))
+}
+
+function isSameDefaultParams(left = {}, right = {}) {
+  return JSON.stringify(normalizeDefaultParams(left)) === JSON.stringify(normalizeDefaultParams(right))
+}
+
+function normalizeDefaultParams(source = {}) {
+  return ['publicParams', 'publicQuery', 'formDefaultValues', 'submitDefaultParams'].reduce((result, key) => {
+    const params = source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])
+      ? source[key]
+      : {}
+    result[key] = Object.keys(params).sort().reduce((next, paramKey) => {
+      next[paramKey] = params[paramKey]
+      return next
+    }, {})
+    return result
+  }, {})
 }
 
 function eventTriggerText(trigger) {

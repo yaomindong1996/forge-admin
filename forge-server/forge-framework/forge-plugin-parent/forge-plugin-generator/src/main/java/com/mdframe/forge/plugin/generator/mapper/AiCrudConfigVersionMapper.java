@@ -17,6 +17,10 @@ public interface AiCrudConfigVersionMapper extends BaseMapper<AiCrudConfigVersio
                                           @Param("configId") Long configId,
                                           @Param("id") Long id);
 
+    AiCrudConfigVersion selectVersionByNo(@Param("tenantId") Long tenantId,
+                                          @Param("configId") Long configId,
+                                          @Param("versionNo") Integer versionNo);
+
     Integer selectMaxVersionNo(@Param("tenantId") Long tenantId,
                                @Param("configId") Long configId);
 }

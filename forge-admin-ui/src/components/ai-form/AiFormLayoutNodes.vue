@@ -314,8 +314,8 @@ function resolveNodeSpan(node = {}) {
   if (isRowNode(node) || isCardNode(node) || isTabsNode(node) || isCollapseNode(node) || isCrudNode(node) || isSectionTitleNode(node) || isGroupTitleNode(node))
     return props.gridCols
   if (isTableNode(node))
-    return Math.max(1, Math.min(props.gridCols, Number(node.span || props.gridCols)))
-  return Math.max(1, Math.min(props.gridCols, Number(node.span || 1)))
+    return Math.max(1, Math.min(props.gridCols, Number(node.layout?.span || node.props?.span || node.span || props.gridCols)))
+  return Math.max(1, Math.min(props.gridCols, Number(node.layout?.span || node.props?.span || node.span || 1)))
 }
 
 function resolveNodeKey(node = {}) {
@@ -329,7 +329,7 @@ function resolveGap(value, fallback) {
 
 function resolveRowColumns(node = {}) {
   const number = Number(node.props?.columns || props.gridCols)
-  return Math.max(1, Math.min(4, Number.isFinite(number) ? number : props.gridCols))
+  return Math.max(1, Math.min(24, Number.isFinite(number) ? number : props.gridCols))
 }
 
 function resolveTabsType(value) {
@@ -437,7 +437,7 @@ function handleButtonClick(node = {}) {
 
 function resolveTableColumns(node = {}) {
   const columns = Number(node.props?.columns || node.columns || (node.children || []).length || props.gridCols)
-  return Math.max(1, Math.min(6, Number.isFinite(columns) ? columns : props.gridCols))
+  return Math.max(1, Math.min(24, Number.isFinite(columns) ? columns : props.gridCols))
 }
 
 function resolveTableCells(node = {}) {

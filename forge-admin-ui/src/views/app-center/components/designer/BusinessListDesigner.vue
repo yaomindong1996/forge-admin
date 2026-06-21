@@ -47,9 +47,6 @@
             </template>
           </n-button>
         </n-dropdown>
-        <n-button size="small" type="primary" :loading="saving" @click="saveLayout">
-          保存列表
-        </n-button>
       </n-space>
     </div>
 
@@ -236,6 +233,8 @@
           :layout-type="localSchema.layoutType"
           :page-name="activeDesignerPage?.pageName || '列表页'"
           :pages="designerPages"
+          :form-options="formOptions"
+          :runtime-crud-props="designerRuntimeCrudProps"
           @update:model-value="handleGridLayoutUpdate"
         />
         <StructuredListPageDesigner
@@ -264,6 +263,8 @@
         :layout-type="localSchema.layoutType"
         :page-name="activeDesignerPage?.pageName || '列表页'"
         :pages="designerPages"
+        :form-options="formOptions"
+        :runtime-crud-props="designerRuntimeCrudProps"
         readonly
       />
     </n-modal>
@@ -286,6 +287,11 @@ import { useMessage } from 'naive-ui'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { saveBusinessObjectDesigner, saveBusinessObjectListLayout } from '@/api/business-app'
 import { cloneSchema, isSameSchema } from '@/components/lowcode-builder/model/model-schema'
+import {
+  applyCrudHookRules,
+  CRUD_HOOK_RULE_TARGETS,
+  normalizeCrudHookRules,
+} from '@/components/lowcode-builder/page/crud-hook-rules'
 import ListPageGridDesigner from '@/components/lowcode-builder/page/ListPageGridDesigner.vue'
 import {
   applyGridLayoutToZones,
@@ -326,6 +332,10 @@ const props = defineProps({
   viewSchema: {
     type: Object,
     default: null,
+  },
+  formOptions: {
+    type: Array,
+    default: () => [],
   },
 })
 
@@ -412,6 +422,7 @@ const previewGridLayout = computed(() => {
     : bootstrapGridLayoutFromZones(localSchema.value.zones || [], effectiveModelSchema.value, { layoutType: localSchema.value.layoutType })
   return syncGridLayoutWithModel(source, effectiveModelSchema.value, { layoutType: localSchema.value.layoutType })
 })
+const designerRuntimeCrudProps = computed(() => buildDesignerRuntimeCrudProps(localSchema.value, designFields.value))
 
 watch(
   () => props.modelValue,
@@ -961,6 +972,246 @@ async function saveLayout() {
 
 function buildCurrentViewSchema(schema = localSchema.value) {
   return createViewSchemaFromPageSchema(normalizeSchemaForSave(schema), designFields.value, props.viewSchema || {})
+}
+
+function buildDesignerRuntimeCrudProps(schema = {}, fields = []) {
+  const zones = schema.zones || []
+  const searchZone = zones.find(zone => zone.zoneKey === 'search') || {}
+  const tableZone = zones.find(zone => zone.zoneKey === 'table') || {}
+  const editZone = zones.find(zone => zone.zoneKey === 'edit') || {}
+  const tableProps = tableZone.props || {}
+  const searchProps = searchZone.props || {}
+  const editProps = editZone.props || {}
+  const apiValues = resolveDesignerDefaultApiValues(schema)
+  const fieldMap = buildDesignerFieldMap(fields)
+  const editFields = buildDesignerEditSchema(editZone, fieldMap)
+  const hookHandlers = buildDesignerCrudHookHandlers(tableProps)
+  return {
+    lazy: true,
+    loadDetailOnEdit: false,
+    columns: buildDesignerColumns(tableZone, fieldMap),
+    searchSchema: buildDesignerSearchSchema(searchZone, fieldMap),
+    editSchema: editFields,
+    apiConfig: {
+      list: tableProps.listApi || apiValues.listApi,
+      detail: tableProps.detailApi || apiValues.detailApi,
+      create: tableProps.createApi || apiValues.createApi,
+      update: tableProps.updateApi || apiValues.updateApi,
+      delete: tableProps.deleteApi || apiValues.deleteApi,
+      import: tableProps.importApi || '',
+      export: tableProps.exportApi || '',
+      tree: tableProps.treeApi || '',
+    },
+    api: tableProps.api || apiValues.api,
+    rowKey: tableProps.rowKey || 'id',
+    showSearch: searchZone.enabled !== false && tableProps.showSearch !== false,
+    showPagination: tableProps.showPagination !== false,
+    searchGridCols: searchProps.gridCols || tableProps.searchGridCols || 4,
+    searchLabelWidth: searchProps.labelWidth || tableProps.searchLabelWidth || 'auto',
+    searchEnableCollapse: tableProps.searchEnableCollapse !== false,
+    searchMaxVisibleFields: tableProps.searchMaxVisibleFields || 3,
+    searchYGap: tableProps.searchYGap ?? 16,
+    editGridCols: editProps.editGridCols || tableProps.editGridCols || 1,
+    editLabelWidth: editProps.editLabelWidth || editProps.labelWidth || tableProps.editLabelWidth || 'auto',
+    editLabelPlacement: editProps.editLabelPlacement || editProps.labelPlacement || tableProps.editLabelPlacement || 'left',
+    editLabelAlign: editProps.editLabelAlign || editProps.labelAlign || tableProps.editLabelAlign || 'right',
+    editSize: editProps.editSize || editProps.size || tableProps.editSize || 'medium',
+    editShowFeedback: editProps.editShowFeedback ?? editProps.showFeedback ?? tableProps.editShowFeedback ?? true,
+    editXGap: editProps.editXGap ?? editProps.columnGap ?? tableProps.editXGap ?? 16,
+    editYGap: editProps.editYGap ?? editProps.rowGap ?? tableProps.editYGap ?? 8,
+    modalWidth: tableProps.modalWidth || editProps.modalWidth || '800px',
+    detailModalWidth: tableProps.detailModalWidth || 'min(1080px, 92vw)',
+    modalType: tableProps.modalType || editProps.modalType || 'modal',
+    drawerPlacement: tableProps.drawerPlacement || 'right',
+    hideModalFooter: tableProps.hideModalFooter === true,
+    hideDefaultDetailContent: tableProps.hideDefaultDetailContent === true,
+    hideToolbar: tableProps.hideToolbar === true,
+    hideAdd: tableProps.hideAdd === true,
+    hideBatchDelete: tableProps.hideBatchDelete === true,
+    showImport: tableProps.showImport === true,
+    showExport: tableProps.showExport === true,
+    showExportTasks: tableProps.showExportTasks !== false,
+    enableCustomQuery: tableProps.enableCustomQuery === true,
+    addButtonText: tableProps.addButtonText || '新增',
+    exportButtonText: tableProps.exportButtonText || '导出',
+    exportFileName: tableProps.exportFileName || '',
+    renderMode: tableProps.renderMode || 'table',
+    showRenderModeSwitch: tableProps.showRenderModeSwitch !== false,
+    tableSize: tableProps.tableSize || 'small',
+    bordered: Boolean(tableProps.bordered),
+    striped: Boolean(tableProps.striped),
+    hideSelection: tableProps.hideSelection === true,
+    maxHeight: tableProps.maxHeight || undefined,
+    scrollX: tableProps.scrollX || undefined,
+    listMethod: tableProps.listMethod || 'get',
+    listDataField: tableProps.listDataField || 'records',
+    listTotalField: tableProps.listTotalField || 'total',
+    isEncrypt: tableProps.isEncrypt === true,
+    publicParams: tableProps.publicParams || {},
+    publicQuery: tableProps.publicQuery || {},
+    formDefaultValues: tableProps.formDefaultValues || {},
+    submitDefaultParams: tableProps.submitDefaultParams || {},
+    ...hookHandlers,
+  }
+}
+
+function buildDesignerCrudHookHandlers(tableProps = {}) {
+  const rules = normalizeCrudHookRules(tableProps.crudHookRules || {}, tableProps.beforeSubmitRules || [])
+  return CRUD_HOOK_RULE_TARGETS.reduce((handlers, target) => {
+    const list = (rules[target.value] || []).filter(rule => rule.field)
+    if (list.length)
+      handlers[target.value] = data => applyCrudHookRules(data, list)
+    return handlers
+  }, {})
+}
+
+function resolveDesignerDefaultApiValues(schema = {}) {
+  const modelSchema = effectiveModelSchema.value || {}
+  const key = schema.configKey
+    || modelSchema.configKey
+    || modelSchema.object?.configKey
+    || modelSchema.object?.code
+    || modelSchema.objectCode
+    || modelSchema.modelCode
+    || ''
+  const prefix = key ? `/ai/crud/${key}` : '/ai/crud/当前配置'
+  return {
+    api: prefix,
+    listApi: `get@${prefix}/page`,
+    detailApi: `get@${prefix}/:id`,
+    createApi: `post@${prefix}`,
+    updateApi: `put@${prefix}`,
+    deleteApi: `delete@${prefix}/:id`,
+  }
+}
+
+function buildDesignerFieldMap(fields = []) {
+  return new Map((Array.isArray(fields) ? fields : [])
+    .map(field => [field.field || field.fieldCode, field])
+    .filter(([fieldCode]) => fieldCode))
+}
+
+function buildDesignerColumns(zone = {}, fieldMap = new Map()) {
+  return resolveDesignerZoneRefs(zone, fieldMap).map((fieldCode) => {
+    const field = fieldMap.get(fieldCode) || {}
+    const setting = zone.props?.fieldSettings?.[fieldCode] || {}
+    return {
+      key: fieldCode,
+      field: fieldCode,
+      title: setting.label || field.label || field.fieldName || fieldCode,
+      minWidth: Number(setting.width || field.width || 110),
+      align: setting.align || 'left',
+      ellipsis: { tooltip: true },
+    }
+  })
+}
+
+function buildDesignerSearchSchema(zone = {}, fieldMap = new Map()) {
+  return resolveDesignerZoneRefs(zone, fieldMap).map((fieldCode) => {
+    const field = fieldMap.get(fieldCode) || {}
+    const setting = zone.props?.fieldSettings?.[fieldCode] || {}
+    return buildDesignerRuntimeField(field, setting, 'search')
+  })
+}
+
+function buildDesignerEditSchema(zone = {}, fieldMap = new Map()) {
+  const refs = resolveDesignerZoneRefs(zone, fieldMap)
+  const settings = zone.props?.fieldSettings || {}
+  const fields = refs.map((fieldCode) => {
+    const field = fieldMap.get(fieldCode) || {}
+    return buildDesignerRuntimeField(field, settings[fieldCode] || {}, 'form')
+  })
+  const layout = hydrateDesignerFormLayout(zone.props?.formLayout || [], new Map(fields.map(field => [field.field, field])))
+  return layout.length ? layout : fields
+}
+
+function resolveDesignerZoneRefs(zone = {}, fieldMap = new Map()) {
+  const refs = Array.isArray(zone.fieldRefs) && zone.fieldRefs.length
+    ? zone.fieldRefs
+    : Array.from(fieldMap.keys())
+  return refs.filter(fieldCode => fieldMap.has(fieldCode))
+}
+
+function buildDesignerRuntimeField(field = {}, setting = {}, mode = 'form') {
+  const fieldCode = field.field || field.fieldCode || ''
+  const type = normalizeDesignerRuntimeFieldType(setting.componentType || field.componentType || field.dataType)
+  const runtimeField = {
+    field: fieldCode,
+    label: setting.label || field.label || field.fieldName || fieldCode,
+    type,
+    placeholder: setting.placeholder || field.placeholder || (mode === 'search' ? `请输入${field.label || fieldCode}` : `请输入${field.label || fieldCode}`),
+    span: Number(setting.span || field.span || 1),
+    clearable: true,
+    options: setting.options || field.options || [],
+    dictType: setting.dictType || field.dictType || '',
+    props: {
+      ...(setting.props || {}),
+    },
+  }
+  ;[
+    'labelWidth',
+    'required',
+    'requiredMessage',
+    'rules',
+    'trigger',
+    'readonly',
+    'disabled',
+    'defaultValue',
+    'componentStyle',
+    'componentClass',
+    'formItemStyle',
+    'formItemClass',
+    'showLabel',
+  ].forEach((key) => {
+    if (setting[key] !== undefined)
+      runtimeField[key] = setting[key]
+  })
+  return runtimeField
+}
+
+function hydrateDesignerFormLayout(layout = [], fieldMap = new Map(), usedFields = new Set()) {
+  return (Array.isArray(layout) ? layout : [])
+    .map(node => hydrateDesignerFormLayoutNode(node, fieldMap, usedFields))
+    .filter(Boolean)
+}
+
+function hydrateDesignerFormLayoutNode(node = {}, fieldMap = new Map(), usedFields = new Set()) {
+  if (!node || typeof node !== 'object')
+    return null
+  if (node.nodeType === 'field') {
+    const field = fieldMap.get(node.field)
+    if (!field)
+      return null
+    usedFields.add(node.field)
+    return {
+      ...field,
+      nodeType: 'field',
+      key: node.key || field.field,
+      span: node.span || field.span,
+      gridStyle: node.gridStyle || field.gridStyle,
+    }
+  }
+  const children = hydrateDesignerFormLayout(node.children || [], fieldMap, usedFields)
+  if (!children.length && !isStandaloneDesignerLayoutNode(node))
+    return null
+  return {
+    ...node,
+    children,
+  }
+}
+
+function isStandaloneDesignerLayoutNode(node = {}) {
+  return ['divider', 'groupTitle', 'button'].includes(node.nodeType || node.componentKey || node.type)
+}
+
+function normalizeDesignerRuntimeFieldType(type = '') {
+  if (['int', 'bigint', 'decimal', 'number', 'inputNumber'].includes(type))
+    return 'number'
+  if (['datetime', 'date', 'time'].includes(type))
+    return type
+  if (['textarea', 'select', 'dictSelect', 'checkbox', 'radio', 'switch', 'treeSelect', 'userSelect'].includes(type))
+    return type
+  return 'input'
 }
 
 function syncDesignerDraft() {
@@ -1678,6 +1929,38 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
+:global(.list-preview-modal.n-card) {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 32px);
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  background: #fff;
+}
+
+:global(.list-preview-modal .n-card-header) {
+  flex: 0 0 auto;
+  height: 58px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+:global(.list-preview-modal .n-card__content),
+:global(.list-preview-modal .n-card-content) {
+  display: flex;
+  align-items: flex-start;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  overflow: auto;
+  padding: 12px;
+  background: #fff;
+  overscroll-behavior: contain;
+}
+
 .list-preview-modal :deep(.n-card-header) {
   flex: 0 0 auto;
   height: 58px;
@@ -1692,11 +1975,30 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
+:global(.list-preview-modal .list-grid-designer.readonly) {
+  flex: 0 0 auto;
+  width: max-content;
+  min-width: 100%;
+  min-height: 100%;
+  height: auto;
+  overflow: visible;
+  background: #fff;
+}
+
 .list-preview-modal :deep(.canvas-panel) {
   flex: 1 1 auto;
   min-height: 0;
   border: 0;
   overflow: hidden;
+  background: #fff;
+}
+
+:global(.list-preview-modal .list-grid-designer.readonly .canvas-panel) {
+  width: max-content;
+  min-width: 100%;
+  min-height: 100%;
+  overflow: visible;
+  border: 0;
   background: #fff;
 }
 
@@ -1710,7 +2012,23 @@ onBeforeUnmount(() => {
   background: #fff;
 }
 
+:global(.list-preview-modal .list-grid-designer.readonly .canvas-scroll) {
+  width: max-content;
+  min-width: 100%;
+  min-height: 100%;
+  height: auto;
+  overflow: visible !important;
+  background: #fff;
+}
+
 .list-preview-modal :deep(.canvas-zoom-stage) {
+  min-height: 100%;
+  background: #fff;
+}
+
+:global(.list-preview-modal .list-grid-designer.readonly .canvas-zoom-stage) {
+  width: max-content;
+  min-width: 100%;
   min-height: 100%;
   background: #fff;
 }
@@ -1718,6 +2036,13 @@ onBeforeUnmount(() => {
 .list-preview-modal :deep(.canvas-grid) {
   margin: 0;
   min-height: 100%;
+  background: #fff;
+  box-shadow: none;
+}
+
+:global(.list-preview-modal .list-grid-designer.readonly .canvas-grid) {
+  min-height: 100%;
+  margin: 0;
   background: #fff;
   box-shadow: none;
 }

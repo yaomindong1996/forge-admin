@@ -124,6 +124,7 @@
       :object-id="objectId"
       :model-schema="draft.modelSchema"
       :fields="draft.fields"
+      :form-options="runtimeFormOptions"
       @saved="handleLayoutSaved"
       @dirty-change="handleDirtyChange"
     />
@@ -170,6 +171,7 @@
       ref="actionDesignerRef"
       :object-id="objectId"
       :fields="draft.fields"
+      :form-options="runtimeFormOptions"
       @updated="handleActionsUpdated"
       @dirty-change="handleDirtyChange"
     />
@@ -216,6 +218,7 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import {
   businessObjectDesigner,
   businessObjectList,
+  businessObjectPublishCheck,
   businessObjectRuntimeInfo,
   publishBusinessObject,
   saveBusinessObjectDesigner,
@@ -236,6 +239,7 @@ import BusinessPermissionFlowPanel from './components/designer/BusinessPermissio
 import BusinessPublishChecklist from './components/designer/BusinessPublishChecklist.vue'
 import BusinessRelationDesigner from './components/designer/BusinessRelationDesigner.vue'
 import { renameFormDesignerFieldRefs } from './components/designer/form-first/fieldReferenceUtils'
+import { normalizeMultiFormDesignerSchema } from './components/designer/form-first/formDesignerSchema'
 import { renameViewSchemaFieldRefs, sanitizeViewSchemaFieldRefs } from './components/designer/form-first/viewSchema'
 import FormulaFunctionMarket from './components/designer/formula/FormulaFunctionMarket.vue'
 
@@ -337,6 +341,15 @@ const fieldOptions = computed(() => {
     .map(field => ({
       label: `${field.label || field.field}（${field.field}）`,
       value: field.field,
+    }))
+})
+const runtimeFormOptions = computed(() => {
+  const schema = normalizeMultiFormDesignerSchema(draft.formDesignerSchema || {})
+  return (schema.forms || [])
+    .filter(form => form?.formKey)
+    .map(form => ({
+      label: `${form.formName || form.formKey}${form.formKey === schema.defaultFormKey ? '（默认）' : ''}`,
+      value: form.formKey,
     }))
 })
 
@@ -604,18 +617,23 @@ async function handlePublish(options = {}) {
   await syncActiveFormDraft()
   await syncActiveListDraft()
   await persistPendingDesignerDraft()
-  if (publishCheckState.value?.publishable === false) {
-    message.warning('发布检查存在阻断项，请先修复')
-    activePanel.value = 'publish'
-    return
-  }
-  if (hasTableSyncIssue(publishCheckState.value) && !publishOptions.syncTable) {
-    message.warning('发布前请在发布检查中确认同步数据表结构')
-    activePanel.value = 'publish'
-    return
-  }
   if (dirty.value) {
     await handleSave()
+  }
+  const latestCheck = await refreshPublishCheckState()
+  if (latestCheck?.publishable === false) {
+    message.warning(formatPublishBlockMessage(latestCheck))
+    activePanel.value = 'publish'
+    await nextTick()
+    await publishChecklistRef.value?.refresh?.()
+    return
+  }
+  if (hasTableSyncIssue(latestCheck) && !publishOptions.syncTable) {
+    message.warning('发布前请在发布检查中确认同步数据表结构')
+    activePanel.value = 'publish'
+    await nextTick()
+    await publishChecklistRef.value?.refresh?.()
+    return
   }
   publishing.value = true
   try {
@@ -638,6 +656,27 @@ async function handlePublish(options = {}) {
   finally {
     publishing.value = false
   }
+}
+
+async function refreshPublishCheckState() {
+  if (!objectId.value)
+    return null
+  const res = await businessObjectPublishCheck(objectId.value)
+  publishCheckState.value = res.data || null
+  return publishCheckState.value
+}
+
+function formatPublishBlockMessage(check = {}) {
+  const blocks = Array.isArray(check.blockItems) ? check.blockItems : []
+  if (!blocks.length)
+    return '发布检查存在阻断项，请先修复'
+  const summary = blocks
+    .slice(0, 3)
+    .map(item => item?.zoneKey || item?.fieldCode ? `${item?.title || item?.itemCode}（${item.zoneKey || item.fieldCode}）` : (item?.title || item?.itemCode))
+    .filter(Boolean)
+    .join('；')
+  const remain = blocks.length > 3 ? `；另有 ${blocks.length - 3} 项` : ''
+  return `发布检查存在 ${blocks.length} 个阻断项：${summary}${remain}`
 }
 
 async function handleBack() {

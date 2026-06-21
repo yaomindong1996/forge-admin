@@ -385,7 +385,7 @@ const DRAG_FIELD_MIME = 'application/x-forge-form-field'
 const DRAG_LAYOUT_MIME = 'application/x-forge-form-layout'
 const DRAG_TEMPLATE_MIME = 'application/x-forge-form-template'
 const FORGE_DRAG_TYPES = [DRAG_COMPONENT_MIME, DRAG_FIELD_MIME, DRAG_LAYOUT_MIME, DRAG_TEMPLATE_MIME]
-const MAX_FORM_GRID_COLUMNS = 6
+const MAX_FORM_GRID_COLUMNS = 24
 let activeDragImage = null
 let activeDragImageOffset = { x: 0, y: 0 }
 let activePointerDropTarget = null
@@ -423,7 +423,16 @@ const previewFormData = computed(() => ({
   [props.component.fieldBinding?.fieldCode || props.component.id]: previewValue.value,
 }))
 const rootColumns = computed(() => Math.max(1, Math.min(MAX_FORM_GRID_COLUMNS, Number(props.schema.layout?.gridColumns || 2))))
-const nodeSpan = computed(() => Math.max(1, Math.min(rootColumns.value, Number(props.component.layout?.span || 1))))
+const parentGridColumns = computed(() => {
+  if (props.component.componentKey !== 'col')
+    return rootColumns.value
+  const parent = props.parentId ? getDesignerComponent(props.schema, props.parentId) : null
+  if (!['row', 'fcRow'].includes(parent?.componentKey))
+    return rootColumns.value
+  const columns = Number(parent.props?.columns || MAX_FORM_GRID_COLUMNS)
+  return Math.max(1, Math.min(MAX_FORM_GRID_COLUMNS, Number.isFinite(columns) ? columns : MAX_FORM_GRID_COLUMNS))
+})
+const nodeSpan = computed(() => Math.max(1, Math.min(parentGridColumns.value, Number(props.component.layout?.span || props.component.props?.span || 1))))
 const nodeWrapStyle = computed(() => ({
   gridColumn: props.depth === 0 || props.component.componentKey === 'col' ? `span ${nodeSpan.value}` : undefined,
 }))
@@ -480,6 +489,7 @@ const childrenGridStyle = computed(() => {
   return {
     gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))`,
     columnGap: `${resolveGap(props.component.props?.gutter, 12)}px`,
+    rowGap: `${resolveGap(props.component.props?.rowGap, 8)}px`,
   }
 })
 const previewField = computed(() => {
@@ -740,6 +750,10 @@ function handleNodeDrop(event) {
 }
 
 function handleInsideDrop(event) {
+  if (isGridRow.value) {
+    handleRowDropToColumn(0, event)
+    return
+  }
   if (!canDropIntoCurrentNode(event)) {
     showInvalidDrop(resolveInvalidDropMessage(event))
     return
@@ -749,11 +763,8 @@ function handleInsideDrop(event) {
 
 function handleChildDrop(index, event) {
   if (isGridRow.value) {
-    const child = resolveDraggedComponent(event)
-    if (child?.componentKey !== 'col') {
-      showInvalidDrop('栅格布局只能拖入栅格列')
-      return
-    }
+    handleRowDropToColumn(index, event)
+    return
   }
   if (isTableLayout.value) {
     const child = resolveDraggedComponent(event)
@@ -766,9 +777,12 @@ function handleChildDrop(index, event) {
 }
 
 function handleDropToChildren(index, event) {
+  handleDropToTarget({ parentId: props.component.id, index }, event)
+}
+
+function handleDropToTarget(target, event) {
   clearDropPreview()
   clearDesignerDropError()
-  const target = { parentId: props.component.id, index }
   const sourceId = event.dataTransfer.getData(DRAG_COMPONENT_MIME)
   if (sourceId) {
     emit('select', sourceId)
@@ -779,7 +793,7 @@ function handleDropToChildren(index, event) {
   const fieldText = event.dataTransfer.getData(DRAG_FIELD_MIME)
   if (fieldText) {
     const field = parsePayload(fieldText)
-    const component = createComponentFromField(field, index)
+    const component = createComponentFromField(field, target.index)
     emit('select', component.id)
     emit('update:schema', insertDesignerComponent(props.schema, target, component))
     return
@@ -803,18 +817,44 @@ function handleDropToChildren(index, event) {
   }
 }
 
+function handleRowDropToColumn(index, event) {
+  const child = resolveDraggedComponent(event)
+  if (child?.componentKey === 'col') {
+    handleDropToChildren(index, event)
+    return
+  }
+  const columns = (props.component.children || []).filter(item => item?.componentKey === 'col')
+  const targetColumn = columns[Math.max(0, Math.min(columns.length - 1, Number(index) || 0))]
+  if (!targetColumn) {
+    showInvalidDrop('请先添加栅格列')
+    return
+  }
+  if (!canAcceptDesignerChild(targetColumn, child)) {
+    showInvalidDrop('该格子不支持放入这个组件')
+    return
+  }
+  handleDropToTarget({
+    parentId: targetColumn.id,
+    index: targetColumn.children?.length || 0,
+  }, event)
+}
+
 function canDropIntoCurrentNode(event) {
   if (isField.value || isTitle.value)
     return false
-  if (isGridRow.value)
-    return false
   const child = resolveDraggedComponent(event)
+  if (isGridRow.value)
+    return child?.componentKey !== 'col'
   return canAcceptDesignerChild(props.component, child)
 }
 
 function canPreviewDropIntoCurrentNode(event) {
-  if (!hasForgeDragType(event) || isField.value || isTitle.value || isGridRow.value || isTableLayout.value)
+  if (!hasForgeDragType(event) || isField.value || isTitle.value || isTableLayout.value)
     return false
+  if (isGridRow.value) {
+    const child = resolveDraggedComponent(event)
+    return child?.componentKey !== 'col' && (props.component.children || []).some(item => item?.componentKey === 'col')
+  }
   const parentKey = props.component.componentKey || ''
   if (['tabs', 'elTabs', 'collapse', 'elCollapse'].includes(parentKey))
     return false
@@ -908,13 +948,21 @@ function updatePointerDropPreview(event) {
 
   const targetParentId = targetWrap.dataset.forgeParentId || ''
   const parentComponent = targetParentId ? getDesignerComponent(props.schema, targetParentId) : null
+  const targetIndex = Number(targetWrap.dataset.forgeIndex || 0)
+  const rowColumnTarget = resolvePointerRowColumnTarget(parentComponent, targetIndex)
+  if (rowColumnTarget) {
+    clearDesignerDropError()
+    activeDropPosition.value = 'inside'
+    activePointerDropTarget = rowColumnTarget
+    setDesignerDropKey(`${rowColumnTarget.parentId}:inside`)
+    return
+  }
   if (!canAcceptDesignerChild(parentComponent, props.component)) {
     showInvalidDrop(resolveInvalidPointerDropMessage(parentComponent))
     clearPointerDropPreview()
     return
   }
 
-  const targetIndex = Number(targetWrap.dataset.forgeIndex || 0)
   const position = resolveDropPosition(ratio)
   activeDropPosition.value = position
   activePointerDropTarget = {
@@ -951,6 +999,21 @@ function canPointerDropInside(targetComponent, ratio) {
   return canAcceptDesignerChild(targetComponent, props.component)
 }
 
+function resolvePointerRowColumnTarget(parentComponent, targetIndex = 0) {
+  if (!['row', 'fcRow'].includes(parentComponent?.componentKey))
+    return null
+  if (props.component.componentKey === 'col')
+    return null
+  const columns = (parentComponent.children || []).filter(item => item?.componentKey === 'col')
+  const targetColumn = columns[Math.max(0, Math.min(columns.length - 1, Number(targetIndex) || 0))]
+  if (!targetColumn || !canAcceptDesignerChild(targetColumn, props.component))
+    return null
+  return {
+    parentId: targetColumn.id,
+    index: targetColumn.children?.length || 0,
+  }
+}
+
 function showInvalidDrop(message = '当前位置不能放置该组件') {
   setDesignerDropError(message)
 }
@@ -961,7 +1024,7 @@ function resolveInvalidDropMessage(event) {
   if (isTitle.value)
     return '标题组件不能作为容器'
   if (isGridRow.value)
-    return '栅格布局只能接收栅格列'
+    return '请拖到具体格子里'
   const child = resolveDraggedComponent(event)
   if (!canAcceptDesignerChild(props.component, child))
     return '该容器不支持放入这个组件'
@@ -973,7 +1036,7 @@ function resolveInvalidPointerDropMessage(parentComponent) {
     return '当前位置不能放置该组件'
   const key = parentComponent.componentKey || ''
   if (['row', 'fcRow'].includes(key))
-    return '栅格布局只能拖入栅格列'
+    return '请拖到具体格子里'
   if (['table', 'fcTable'].includes(key))
     return '表格布局只能拖入表格单元格'
   return '该容器不支持放入这个组件'
@@ -1370,10 +1433,26 @@ function buildFormDividerProps(component) {
   user-select: none !important;
 }
 
+.canvas-node.node-row,
+.canvas-node.node-fcRow {
+  border-color: rgba(148, 163, 184, 0.26);
+  background: rgba(248, 251, 255, 0.72);
+  padding: 24px 6px 6px;
+}
+
 .canvas-node.node-col {
-  border-style: dashed;
-  background: #fbfdff;
-  padding: 8px;
+  border-color: transparent;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.canvas-node.node-row > .layout-children,
+.canvas-node.node-fcRow > .layout-children {
+  gap: inherit;
+  border: 0;
+  background: transparent;
+  padding: 0;
 }
 
 .canvas-node.node-table,
@@ -1397,7 +1476,29 @@ function buildFormDividerProps(component) {
 
 .canvas-node.node-col:hover,
 .canvas-node.node-col:focus {
-  background: #f8fbff;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.canvas-node.node-col .layout-children {
+  min-height: 76px;
+  border-color: rgba(147, 197, 253, 0.7);
+  background: #fbfdff;
+  box-shadow: inset 0 0 0 1px rgba(219, 234, 254, 0.45);
+}
+
+.canvas-node.node-col .layout-children.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow:
+    inset 0 0 0 1px rgba(37, 99, 235, 0.2),
+    0 6px 16px rgba(37, 99, 235, 0.12);
+}
+
+.canvas-node.node-col.selected .layout-children {
+  border-color: #2563eb;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.24);
 }
 
 .node-overlay {
@@ -1662,9 +1763,9 @@ function buildFormDividerProps(component) {
 .layout-children {
   display: grid;
   gap: 8px;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed #d8dee8;
   border-radius: 7px;
-  background: #f8fafc;
+  background: #fbfdff;
   padding: 10px;
   transition:
     border-color 180ms ease,

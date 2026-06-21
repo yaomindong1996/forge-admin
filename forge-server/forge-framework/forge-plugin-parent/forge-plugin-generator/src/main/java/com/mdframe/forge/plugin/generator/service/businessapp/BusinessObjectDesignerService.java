@@ -665,10 +665,16 @@ public class BusinessObjectDesignerService {
 
     private Map<String, Map<String, Object>> collectFormFieldComponentMap(FormDesignerSchemaDTO formSchema) {
         Map<String, Map<String, Object>> result = new LinkedHashMap<>();
-        if (formSchema == null || formSchema.getComponents() == null) {
+        if (formSchema == null) {
             return result;
         }
         collectFormFieldComponents(formSchema.getComponents(), result);
+        if (formSchema.getForms() != null) {
+            for (Map<String, Object> form : formSchema.getForms()) {
+                Map<String, Object> schema = mapValue(form.get("schema"));
+                collectFormFieldComponents(listOfMap(schema.get("components")), result);
+            }
+        }
         return result;
     }
 
@@ -2092,6 +2098,7 @@ public class BusinessObjectDesignerService {
         props.put("columnGap", columnGap);
         props.put("formLayout", buildRuntimeFormLayout(formSchema.getComponents(), modelFields, gridColumns));
         props.put("compiledFrom", FORM_DESIGNER_SCHEMA_OPTION_KEY);
+        props.put(FORM_DESIGNER_SCHEMA_OPTION_KEY, formSchema);
         props.remove("formCreateRule");
         props.remove("formCreateOptions");
         props.remove("canvas");

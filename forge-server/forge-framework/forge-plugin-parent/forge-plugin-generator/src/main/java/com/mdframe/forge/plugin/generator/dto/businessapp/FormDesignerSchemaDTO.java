@@ -19,6 +19,10 @@ public class FormDesignerSchemaDTO {
 
     private String formName;
 
+    private String defaultFormKey;
+
+    private List<Map<String, Object>> forms = new ArrayList<>();
+
     private Map<String, Object> layout = new LinkedHashMap<>();
 
     private List<Map<String, Object>> components = new ArrayList<>();
