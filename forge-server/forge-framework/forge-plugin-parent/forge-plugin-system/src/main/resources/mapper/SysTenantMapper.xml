@@ -25,19 +25,21 @@
         <result column="browser_icon" property="browserIcon" />
         <result column="default_business_datasource_id" property="defaultBusinessDatasourceId" />
         <result column="default_business_datasource_code" property="defaultBusinessDatasourceCode" />
+        <result column="del_flag" property="delFlag" />
     </resultMap>
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
         id, tenant_name, contact_person, contact_phone, user_limit, tenant_status,
         expire_time, tenant_desc, create_by, create_time, update_by, update_time,theme_config,system_theme,system_layout,system_logo,system_name,browser_title,browser_icon,
-        default_business_datasource_id, default_business_datasource_code
+        default_business_datasource_id, default_business_datasource_code, del_flag
     </sql>
 
     <select id="countUsersByTenant" resultType="java.lang.Long">
         SELECT COUNT(1)
         FROM sys_user
         WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
     </select>
 
     <select id="countUserTenantBindings" resultType="java.lang.Long">

@@ -21,6 +21,7 @@
         <result column="sort_order" property="sortOrder"/>
         <result column="execute_count" property="executeCount"/>
         <result column="last_execute_time" property="lastExecuteTime"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
         <result column="create_dept" property="createDept"/>
@@ -47,6 +48,7 @@
         sort_order,
         execute_count,
         last_execute_time,
+        del_flag,
         create_by,
         create_time,
         create_dept,
@@ -59,6 +61,7 @@
         <include refid="Base_Columns"/>
         FROM ai_business_trigger
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
         <if test="objectCode != null and objectCode != ''">
           AND object_code = #{objectCode}
         </if>
@@ -74,6 +77,7 @@
         <include refid="Base_Columns"/>
         FROM ai_business_trigger
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND object_code = #{objectCode}
           AND event_type = #{eventType}
           AND status = 1
@@ -86,6 +90,7 @@
         <include refid="Base_Columns"/>
         FROM ai_business_trigger
         WHERE status = 1
+          AND del_flag = '0'
           AND trigger_type IN ('SCHEDULE', 'SCHEDULED')
         ORDER BY
           CASE WHEN last_execute_time IS NULL THEN 0 ELSE 1 END ASC,
@@ -99,6 +104,7 @@
         SELECT COUNT(1)
         FROM ai_business_trigger
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND object_code = #{objectCode}
           AND action_type = #{actionType}
           AND status = 1

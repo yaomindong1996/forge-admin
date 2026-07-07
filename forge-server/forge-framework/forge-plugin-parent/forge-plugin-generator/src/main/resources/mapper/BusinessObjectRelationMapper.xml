@@ -67,10 +67,12 @@
           ON source_obj.tenant_id = r.tenant_id
          AND source_obj.suite_code = r.suite_code
          AND source_obj.object_code = r.source_object_code
+         AND source_obj.del_flag = '0'
         LEFT JOIN ai_business_object target_obj
           ON target_obj.tenant_id = r.tenant_id
          AND target_obj.suite_code = r.suite_code
          AND target_obj.object_code = r.target_object_code
+         AND target_obj.del_flag = '0'
         WHERE r.tenant_id = #{tenantId}
           AND r.suite_code = #{suiteCode}
           AND (r.source_object_code = #{objectCode} OR r.target_object_code = #{objectCode})

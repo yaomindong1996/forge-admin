@@ -19,6 +19,7 @@
         <result column="create_time" property="createTime" />
         <result column="update_by" property="updateBy" />
         <result column="update_time" property="updateTime" />
+        <result column="del_flag" property="delFlag" />
     </resultMap>
 
     <resultMap id="RoleUserResultMap" type="com.mdframe.forge.plugin.system.entity.SysUser">
@@ -50,10 +51,11 @@
     <sql id="RoleColumnList">
         r.id, r.tenant_id, t.tenant_name, r.role_name, r.role_key, r.role_type,
         r.data_scope, r.sort, r.role_status, r.is_system, r.remark,
-        r.create_dept, r.create_by, r.create_time, r.update_by, r.update_time
+        r.create_dept, r.create_by, r.create_time, r.update_by, r.update_time, r.del_flag
     </sql>
 
     <sql id="RoleQueryCondition">
+        AND r.del_flag = 0
         <if test="query.tenantId != null">
             AND r.tenant_id = #{query.tenantId}
         </if>
@@ -96,7 +98,9 @@
     <select id="selectRolePage" resultMap="RoleResultMap">
         SELECT <include refid="RoleColumnList" />
         FROM sys_role r
-        LEFT JOIN sys_tenant t ON t.id = r.tenant_id
+        INNER JOIN sys_tenant t
+            ON t.id = r.tenant_id
+           AND t.del_flag = 0
         <where>
             <include refid="RoleQueryCondition" />
         </where>
@@ -106,8 +110,11 @@
     <select id="selectRoleById" resultMap="RoleResultMap">
         SELECT <include refid="RoleColumnList" />
         FROM sys_role r
-        LEFT JOIN sys_tenant t ON t.id = r.tenant_id
+        INNER JOIN sys_tenant t
+            ON t.id = r.tenant_id
+           AND t.del_flag = 0
         WHERE r.id = #{id}
+          AND r.del_flag = 0
     </select>
 
     <select id="selectRoleUsers" resultMap="RoleUserResultMap">
@@ -135,12 +142,16 @@
                u.update_by,
                u.update_time
         FROM sys_user_org_role ur
-        INNER JOIN sys_user u ON u.id = ur.user_id
+        INNER JOIN sys_user u
+            ON u.id = ur.user_id
+           AND u.del_flag = 0
         INNER JOIN sys_user_tenant sut
             ON sut.user_id = u.id
            AND sut.tenant_id = ur.tenant_id
            AND sut.status = 1
-        LEFT JOIN sys_tenant t ON t.id = ur.tenant_id
+        INNER JOIN sys_tenant t
+            ON t.id = ur.tenant_id
+           AND t.del_flag = 0
         WHERE ur.role_id = #{query.roleId}
           AND ur.tenant_id = #{query.tenantId}
         <if test="query.orgId != null">
@@ -166,6 +177,87 @@
         FROM sys_user_org_role
         WHERE role_id = #{roleId}
           AND tenant_id = #{tenantId}
+    </select>
+
+    <select id="countAssignableTargetUsers" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT u.id)
+        FROM sys_user u
+        LEFT JOIN sys_user_tenant sut
+        ON sut.user_id = u.id
+        AND sut.tenant_id = #{tenantId}
+        AND sut.status = 1
+        WHERE u.id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        AND (u.user_type = 0 OR sut.user_id IS NOT NULL)
+    </select>
+
+    <select id="countNonNormalTargetUsers" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT u.id)
+        FROM sys_user u
+        LEFT JOIN sys_user_tenant sut
+        ON sut.user_id = u.id
+        AND sut.tenant_id = #{tenantId}
+        AND sut.status = 1
+        WHERE u.id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        AND (u.user_type = 0 OR sut.member_type = 1)
+    </select>
+
+    <select id="countUsersExceedingDataScope" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT u.id)
+        FROM sys_user u
+        LEFT JOIN sys_user_tenant sut
+        ON sut.user_id = u.id
+        AND sut.tenant_id = #{tenantId}
+        AND sut.status = 1
+        WHERE u.id IN
+        <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+        AND
+        <choose>
+            <when test="dataScope == 1">
+                CASE WHEN u.user_type = 0 THEN 0 WHEN sut.member_type = 1 THEN 1 ELSE 2 END != 0
+            </when>
+            <when test="dataScope == 2">
+                CASE WHEN u.user_type = 0 THEN 0 WHEN sut.member_type = 1 THEN 1 ELSE 2 END = 2
+            </when>
+            <otherwise>
+                1 = 0
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="countRoleUsersExceedingDataScope" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM sys_user_role ur
+        LEFT JOIN sys_user u ON u.id = ur.user_id
+        LEFT JOIN sys_user_tenant sut
+        ON sut.user_id = ur.user_id
+        AND sut.tenant_id = ur.tenant_id
+        AND sut.status = 1
+        WHERE ur.role_id = #{roleId}
+        AND ur.tenant_id = #{tenantId}
+        AND (
+        u.id IS NULL
+        OR (u.user_type != 0 AND sut.user_id IS NULL)
+        OR
+        <choose>
+            <when test="dataScope == 1">
+                CASE WHEN u.user_type = 0 THEN 0 WHEN sut.member_type = 1 THEN 1 ELSE 2 END != 0
+            </when>
+            <when test="dataScope == 2">
+                CASE WHEN u.user_type = 0 THEN 0 WHEN sut.member_type = 1 THEN 1 ELSE 2 END = 2
+            </when>
+            <otherwise>
+                1 = 0
+            </otherwise>
+        </choose>
+        )
     </select>
 
 </mapper>

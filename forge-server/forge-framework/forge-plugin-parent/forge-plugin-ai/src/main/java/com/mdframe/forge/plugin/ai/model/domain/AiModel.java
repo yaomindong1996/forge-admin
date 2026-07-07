@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.ai.model.domain;
 
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mdframe.forge.starter.tenant.core.TenantEntity;
 import lombok.Data;
@@ -76,4 +77,10 @@ public class AiModel extends TenantEntity {
      * 备注
      */
     private String remark;
+
+    /**
+     * 删除标志（0正常 1删除）
+     */
+    @TableLogic
+    private String delFlag;
 }

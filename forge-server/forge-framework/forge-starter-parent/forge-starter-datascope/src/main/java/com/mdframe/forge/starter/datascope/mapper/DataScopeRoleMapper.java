@@ -12,16 +12,17 @@ import java.util.List;
  */
 @Mapper
 public interface DataScopeRoleMapper {
-    
+
     /**
      * 根据用户ID查询角色ID列表
      */
-    @Select("SELECT role_id FROM sys_user_org_role "
-            + "WHERE user_id = #{userId} AND tenant_id = #{tenantId} AND org_id = #{orgId}")
+    @Select("SELECT uor.role_id FROM sys_user_org_role uor "
+            + "INNER JOIN sys_role r ON r.id = uor.role_id AND r.tenant_id = uor.tenant_id AND r.del_flag = 0 "
+            + "WHERE uor.user_id = #{userId} AND uor.tenant_id = #{tenantId} AND uor.org_id = #{orgId}")
     List<Long> selectRoleIdsByUserId(@Param("userId") Long userId,
                                      @Param("tenantId") Long tenantId,
                                      @Param("orgId") Long orgId);
-    
+
     /**
      * 根据角色ID列表查询最小数据权限范围
      * data_scope值：1-全部，2-本人，3-本组织，4-本组织及子组织，5-自定义
@@ -34,6 +35,7 @@ public interface DataScopeRoleMapper {
             "#{roleId}" +
             "</foreach>" +
             " AND role_status = 1" +
+            " AND del_flag = 0" +
             "</script>")
     Integer selectMinDataScope(@Param("roleIds") List<Long> roleIds);
 

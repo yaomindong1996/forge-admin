@@ -8,6 +8,7 @@
             id AS orgId,
             ancestors
         FROM sys_org
+        WHERE del_flag = 0
     </select>
 
 </mapper>

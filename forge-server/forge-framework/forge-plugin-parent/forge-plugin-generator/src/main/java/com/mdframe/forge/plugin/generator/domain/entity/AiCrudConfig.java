@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.generator.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mdframe.forge.starter.tenant.core.TenantEntity;
 import lombok.Data;
@@ -87,4 +88,7 @@ public class AiCrudConfig extends TenantEntity {
     private String auditStrategy;
     /** 逻辑删除策略 */
     private String logicDeleteStrategy;
+    /** 删除标志（0正常 1删除） */
+    @TableLogic
+    private String delFlag;
 }

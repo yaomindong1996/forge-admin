@@ -9,6 +9,7 @@
             data_scope AS dataScope
         FROM sys_role
         WHERE role_status = 1
+          AND del_flag = 0
     </select>
 
 </mapper>

@@ -95,6 +95,7 @@ public class Employee extends BaseEntity {
     /**
      * 删除标志(0:未删除,1:已删除)
      */
+    @TableLogic
     @TransField(dictType = "del_flag")
     private Integer delFlag;
 

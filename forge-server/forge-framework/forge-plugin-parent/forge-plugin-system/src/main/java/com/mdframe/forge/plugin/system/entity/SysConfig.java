@@ -58,4 +58,10 @@ public class SysConfig extends TenantEntity {
      * 排序
      */
     private Integer sort;
+
+    /**
+     * 删除标志：0-正常 1-删除
+     */
+    @TableLogic
+    private Integer delFlag;
 }

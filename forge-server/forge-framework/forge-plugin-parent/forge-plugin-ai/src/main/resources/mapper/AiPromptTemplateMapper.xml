@@ -15,6 +15,7 @@
         <result column="prompt_content" property="promptContent"/>
         <result column="example_input" property="exampleInput"/>
         <result column="status" property="status"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="is_recommended" property="isRecommended"/>
         <result column="sort_order" property="sortOrder"/>
         <result column="use_count" property="useCount"/>
@@ -68,6 +69,7 @@
         prompt_content,
         example_input,
         status,
+        del_flag,
         is_recommended,
         sort_order,
         use_count,
@@ -83,6 +85,7 @@
 
     <sql id="Query_Where">
         t.tenant_id = #{tenantId}
+        AND t.del_flag = '0'
         <if test="query.keyword != null and query.keyword != ''">
           AND (
             t.template_name LIKE CONCAT('%', #{query.keyword}, '%')
@@ -142,9 +145,11 @@
         LEFT JOIN sys_user cu
           ON cu.tenant_id = t.tenant_id
          AND cu.id = t.create_by
+         AND cu.del_flag = 0
         LEFT JOIN sys_user uu
           ON uu.tenant_id = t.tenant_id
          AND uu.id = t.update_by
+         AND uu.del_flag = 0
         <where>
           <include refid="Query_Where"/>
         </where>
@@ -180,9 +185,11 @@
         LEFT JOIN sys_user cu
           ON cu.tenant_id = t.tenant_id
          AND cu.id = t.create_by
+         AND cu.del_flag = 0
         LEFT JOIN sys_user uu
           ON uu.tenant_id = t.tenant_id
          AND uu.id = t.update_by
+         AND uu.del_flag = 0
         <where>
           <include refid="Query_Where"/>
           AND t.status = '0'
@@ -197,6 +204,7 @@
         FROM ai_prompt_template
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
+          AND del_flag = '0'
         LIMIT 1
     </select>
 
@@ -205,16 +213,20 @@
         FROM ai_prompt_template
         WHERE tenant_id = #{tenantId}
           AND template_code = #{templateCode}
+          AND del_flag = '0'
         <if test="excludeId != null">
           AND id != #{excludeId}
         </if>
     </select>
 
-    <delete id="deleteByTenantId">
-        DELETE FROM ai_prompt_template
+    <update id="deleteByTenantId">
+        UPDATE ai_prompt_template
+        SET del_flag = '1',
+            update_time = NOW()
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
-    </delete>
+          AND del_flag = '0'
+    </update>
 
     <update id="incrementUseCount">
         UPDATE ai_prompt_template
@@ -222,6 +234,7 @@
             update_time = NOW()
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
+          AND del_flag = '0'
           AND status = '0'
     </update>
 
@@ -231,6 +244,7 @@
             update_time = NOW()
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
+          AND del_flag = '0'
           AND status = '0'
     </update>
 
@@ -240,6 +254,7 @@
             update_time = NOW()
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
+          AND del_flag = '0'
           AND status = '0'
     </update>
 </mapper>

@@ -163,7 +163,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         if (roleId == null) {
             return false;
         }
-        
+
         SysRole role = loadRoleForAccess(roleId);
         assertCanMaintainRole(role);
 
@@ -206,7 +206,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         Set<Long> finalResourceIdSet = new HashSet<>();
         if (resourceIds != null && resourceIds.length > 0) {
             finalResourceIdSet.addAll(Arrays.asList(resourceIds));
-            
+
             // 自动补齐父级时使用全量资源构建父链。历史数据中可能存在父级 client_code 为空，
             // 这类父级只作为当前客户端树的结构节点补齐；真正属于其他客户端的父级仍然拦截。
             Set<Long> parentIdsToAdd = new HashSet<>();
@@ -240,7 +240,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         if (StringUtils.isNotBlank(clientCode) && !clientAssignableResourceIdSet.containsAll(finalResourceIdSet)) {
             throw new RuntimeException("权限溢出：不能分配其他客户端的父级资源权限");
         }
-        
+
         // 1. 先删除该角色的资源关联。指定客户端时仅替换当前客户端资源，避免清空其他客户端权限。
         LambdaQueryWrapper<SysRoleResource> deleteWrapper = new LambdaQueryWrapper<>();
         deleteWrapper.eq(SysRoleResource::getRoleId, roleId)
@@ -252,12 +252,12 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             deleteWrapper.in(SysRoleResource::getResourceId, clientAssignableResourceIdSet);
         }
         roleResourceMapper.delete(deleteWrapper);
-        
+
         // 2. 如果没有新的资源ID，直接返回（表示清空所有权限）
         if (finalResourceIdSet.isEmpty()) {
             return true;
         }
-        
+
         // 3. 批量插入新的角色资源关联
         List<SysRoleResource> roleResources = new ArrayList<>();
         for (Long resourceId : finalResourceIdSet) {
@@ -267,7 +267,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             roleResource.setResourceId(resourceId);
             roleResources.add(roleResource);
         }
-        
+
         if (!roleResources.isEmpty()) {
             roleResourceMapper.insertBatch(roleResources);
         }
@@ -291,7 +291,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         }
         SysRole role = loadRoleForAccess(roleId);
         assertCanMaintainRole(role);
-        
+
         LambdaQueryWrapper<SysRoleResource> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysRoleResource::getRoleId, roleId)
                 .eq(SysRoleResource::getTenantId, role.getTenantId())
@@ -310,7 +310,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             return new ArrayList<>();
         }
         SysRole role = loadRoleForAccess(roleId);
-        
+
         LambdaQueryWrapper<SysRoleResource> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SysRoleResource::getRoleId, roleId)
                 .eq(SysRoleResource::getTenantId, role.getTenantId())
@@ -349,12 +349,12 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
                 .map(SysResource::getParentId)
                 .filter(pid -> pid != null && pid != 0L)
                 .collect(Collectors.toSet());
-            
+
             return resourceIds.stream()
                 .filter(id -> !selectedParentIds.contains(id))
                 .collect(Collectors.toList());
         }
-        
+
         return resourceIds;
     }
 
@@ -440,7 +440,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         if (roleId == null || userId == null) {
             return false;
         }
-        
+
         SysRole role = loadRoleForAccess(roleId);
         assertCanMaintainRole(role);
         return TenantContextHolder.executeIgnore(() -> {
@@ -591,63 +591,53 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     }
 
     private void validateDataScopeAllowedForBoundUsers(SysRole role, Integer dataScope) {
-        List<Long> userIds = TenantContextHolder.executeIgnore(() ->
-                userOrgRoleMapper.selectList(new LambdaQueryWrapper<SysUserOrgRole>()
-                                .eq(SysUserOrgRole::getRoleId, role.getId())
-                                .eq(SysUserOrgRole::getTenantId, role.getTenantId()))
-                        .stream()
-                        .map(SysUserOrgRole::getUserId)
-                        .distinct()
-                        .collect(Collectors.toList()));
-        validateDataScopeAllowedForUsers(dataScope, userIds, role.getTenantId());
+        if (dataScope == null) {
+            return;
+        }
+        Long exceedCount = TenantContextHolder.executeIgnore(() ->
+                roleMapper.countRoleUsersExceedingDataScope(dataScope, role.getId(), role.getTenantId()));
+        if (exceedCount != null && exceedCount > 0) {
+            throw new RuntimeException("角色数据范围超过目标用户类型上限");
+        }
     }
 
     private void validateRoleAssignableToUsers(SysRole role, List<Long> userIds) {
         if (CollUtil.isEmpty(userIds)) {
             return;
         }
+        List<Long> normalizedUserIds = userIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (CollUtil.isEmpty(normalizedUserIds)) {
+            return;
+        }
+        Long tenantId = role.getTenantId();
+        Long assignableCount = TenantContextHolder.executeIgnore(() ->
+                roleMapper.countAssignableTargetUsers(normalizedUserIds, tenantId));
+        if (assignableCount == null || assignableCount != normalizedUserIds.size()) {
+            throw new RuntimeException("目标用户不存在或不属于当前租户");
+        }
         LoginUser loginUser = requireLoginUser();
-        for (Long userId : userIds) {
-            int userType = resolveEffectiveUserType(userId, role.getTenantId());
-            if (!loginUser.isAdmin() && userType != SystemConstants.UserType.NORMAL_USER) {
+        if (!loginUser.isAdmin()) {
+            Long nonNormalCount = TenantContextHolder.executeIgnore(() ->
+                    roleMapper.countNonNormalTargetUsers(normalizedUserIds, tenantId));
+            if (nonNormalCount != null && nonNormalCount > 0) {
                 throw new RuntimeException("租户管理员只能给普通用户分配角色");
             }
         }
-        validateDataScopeAllowedForUsers(role.getDataScope(), userIds, role.getTenantId());
+        validateDataScopeAllowedForUsers(role.getDataScope(), normalizedUserIds, tenantId);
     }
 
     private void validateDataScopeAllowedForUsers(Integer dataScope, List<Long> userIds, Long tenantId) {
         if (dataScope == null || CollUtil.isEmpty(userIds)) {
             return;
         }
-        for (Long userId : userIds) {
-            int userType = resolveEffectiveUserType(userId, tenantId);
-            if (!isDataScopeAllowedForUserType(dataScope, userType)) {
-                throw new RuntimeException("角色数据范围超过目标用户类型上限");
-            }
+        Long exceedCount = TenantContextHolder.executeIgnore(() ->
+                roleMapper.countUsersExceedingDataScope(dataScope, userIds, tenantId));
+        if (exceedCount != null && exceedCount > 0) {
+            throw new RuntimeException("角色数据范围超过目标用户类型上限");
         }
-    }
-
-    private int resolveEffectiveUserType(Long userId, Long tenantId) {
-        SysUser user = TenantContextHolder.executeIgnore(() -> userMapper.selectById(userId));
-        if (user == null) {
-            throw new RuntimeException("用户不存在");
-        }
-        if (Objects.equals(user.getUserType(), SystemConstants.UserType.SYSTEM_ADMIN)) {
-            return SystemConstants.UserType.SYSTEM_ADMIN;
-        }
-        SysUserTenant member = TenantContextHolder.executeIgnore(() ->
-                userTenantMapper.selectOne(new LambdaQueryWrapper<SysUserTenant>()
-                        .eq(SysUserTenant::getUserId, userId)
-                        .eq(SysUserTenant::getTenantId, tenantId)
-                        .eq(SysUserTenant::getStatus, 1)
-                        .last("LIMIT 1")));
-        if (member == null) {
-            throw new RuntimeException("目标用户不属于当前租户");
-        }
-        return Objects.equals(member.getMemberType(), SystemConstants.UserType.TENANT_ADMIN)
-                ? SystemConstants.UserType.TENANT_ADMIN
-                : SystemConstants.UserType.NORMAL_USER;
     }
 
     private boolean isDataScopeAllowedForUserType(Integer dataScope, int userType) {

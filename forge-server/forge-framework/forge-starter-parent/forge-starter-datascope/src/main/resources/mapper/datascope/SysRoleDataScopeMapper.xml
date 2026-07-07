@@ -13,12 +13,16 @@
 
     <select id="selectAllRoleDataScopes" resultMap="SysRoleDataScopeResultMap">
         SELECT
-            id,
-            tenant_id,
-            role_id,
-            org_id,
-            create_time
-        FROM sys_role_data_scope
+            rds.id,
+            rds.tenant_id,
+            rds.role_id,
+            rds.org_id,
+            rds.create_time
+        FROM sys_role_data_scope rds
+        INNER JOIN sys_role r
+            ON r.id = rds.role_id
+           AND r.tenant_id = rds.tenant_id
+           AND r.del_flag = 0
     </select>
 
 </mapper>

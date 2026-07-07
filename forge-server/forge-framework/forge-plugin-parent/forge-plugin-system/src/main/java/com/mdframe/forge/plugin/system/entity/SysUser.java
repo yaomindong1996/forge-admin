@@ -126,6 +126,12 @@ public class SysUser extends TenantEntity {
     private Long createDept;
 
     /**
+     * 删除标志（0正常 1删除）
+     */
+    @TableLogic
+    private Integer delFlag;
+
+    /**
      * 所属组织名称（查询列表时填充）
      */
     @TableField(exist = false)

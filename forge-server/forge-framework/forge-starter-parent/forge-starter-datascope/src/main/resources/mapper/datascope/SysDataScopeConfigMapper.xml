@@ -23,6 +23,7 @@
         <result property="createDept" column="create_dept"/>
         <result property="updateBy" column="update_by"/>
         <result property="updateTime" column="update_time"/>
+        <result property="delFlag" column="del_flag"/>
     </resultMap>
 
     <select id="selectEnabledConfigs" resultMap="SysDataScopeConfigResultMap">
@@ -45,9 +46,11 @@
             create_time,
             create_dept,
             update_by,
-            update_time
+            update_time,
+            del_flag
         FROM sys_data_scope_config
         WHERE enabled = 1
+          AND del_flag = 0
     </select>
 
 </mapper>

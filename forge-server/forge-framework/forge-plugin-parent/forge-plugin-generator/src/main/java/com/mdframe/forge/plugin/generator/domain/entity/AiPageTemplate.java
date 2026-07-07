@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.generator.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mdframe.forge.starter.core.domain.BaseEntity;
 import lombok.Data;
@@ -50,4 +51,8 @@ public class AiPageTemplate extends BaseEntity {
      * - AI：大模型生成，适用于复杂组件（主从表、看板、工作流等）
      */
     private String codegenType;
+
+    /** 删除标志（0正常 1删除） */
+    @TableLogic
+    private String delFlag;
 }

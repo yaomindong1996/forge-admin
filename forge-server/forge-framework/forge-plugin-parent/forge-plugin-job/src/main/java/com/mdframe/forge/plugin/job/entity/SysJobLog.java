@@ -2,6 +2,7 @@ package com.mdframe.forge.plugin.job.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
@@ -76,4 +77,10 @@ public class SysJobLog {
      * 重试次数
      */
     private Integer retryCount;
+
+    /**
+     * 删除标志：0-正常 1-删除
+     */
+    @TableLogic
+    private Integer delFlag;
 }

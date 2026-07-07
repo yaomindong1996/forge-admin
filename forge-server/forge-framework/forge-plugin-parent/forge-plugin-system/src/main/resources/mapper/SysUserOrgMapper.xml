@@ -3,12 +3,16 @@
 <mapper namespace="com.mdframe.forge.plugin.system.mapper.SysUserOrgMapper">
 
     <select id="selectOrgIdsByUserTenant" resultType="java.lang.Long">
-        SELECT org_id
-        FROM sys_user_org
-        WHERE tenant_id = #{tenantId}
-          AND user_id = #{userId}
-          AND org_id IS NOT NULL
-        ORDER BY is_main DESC, id ASC
+        SELECT uo.org_id
+        FROM sys_user_org uo
+        INNER JOIN sys_org o
+            ON o.id = uo.org_id
+           AND o.tenant_id = uo.tenant_id
+           AND o.del_flag = 0
+        WHERE uo.tenant_id = #{tenantId}
+          AND uo.user_id = #{userId}
+          AND uo.org_id IS NOT NULL
+        ORDER BY uo.is_main DESC, uo.id ASC
     </select>
 
 </mapper>

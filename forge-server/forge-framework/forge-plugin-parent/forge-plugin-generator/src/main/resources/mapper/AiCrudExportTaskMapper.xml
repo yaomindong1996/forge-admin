@@ -73,6 +73,7 @@
         FROM sys_config
         WHERE config_key = #{configKey}
           AND tenant_id IN (#{tenantId}, 1)
+          AND del_flag = 0
         ORDER BY CASE WHEN tenant_id = #{tenantId} THEN 0 ELSE 1 END
         LIMIT 1
     </select>

@@ -52,11 +52,15 @@
     <select id="selectUserIdsByRoleIds" resultType="java.lang.Long">
         SELECT DISTINCT uor.user_id
         FROM sys_user_org_role uor
-        INNER JOIN sys_user u ON u.id = uor.user_id AND u.user_status = 1
+        INNER JOIN sys_user u
+            ON u.id = uor.user_id
+           AND u.user_status = 1
+           AND u.del_flag = 0
         INNER JOIN sys_role r
             ON r.id = uor.role_id
            AND r.tenant_id = uor.tenant_id
            AND r.role_status = 1
+           AND r.del_flag = 0
         INNER JOIN sys_role_org ro
             ON ro.tenant_id = uor.tenant_id
            AND ro.role_id = uor.role_id
@@ -70,10 +74,15 @@
     </select>
 
     <select id="selectUserIdsByOrgIds" resultType="java.lang.Long">
-        SELECT DISTINCT user_id
-        FROM sys_user_org
-        WHERE tenant_id = #{tenantId}
-          AND org_id IN
+        SELECT DISTINCT uo.user_id
+        FROM sys_user_org uo
+        INNER JOIN sys_user u
+            ON u.id = uo.user_id
+           AND u.tenant_id = uo.tenant_id
+           AND u.user_status = 1
+           AND u.del_flag = 0
+        WHERE uo.tenant_id = #{tenantId}
+          AND uo.org_id IN
         <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
             #{orgId}
         </foreach>

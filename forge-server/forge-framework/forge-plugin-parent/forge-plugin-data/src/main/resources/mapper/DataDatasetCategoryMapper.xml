@@ -12,6 +12,7 @@
         <result column="category_name" property="categoryName"/>
         <result column="sort_order" property="sortOrder"/>
         <result column="status" property="status"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="description" property="description"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
@@ -24,6 +25,7 @@
         SELECT *
         FROM ai_report_data_dataset_category
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
         <if test="categoryName != null and categoryName != ''">
             AND category_name LIKE CONCAT('%', #{categoryName}, '%')
         </if>
@@ -38,6 +40,7 @@
         FROM ai_report_data_dataset_category
         WHERE tenant_id = #{tenantId}
           AND category_code = #{categoryCode}
+          AND del_flag = '0'
         LIMIT 1
     </select>
 
@@ -46,5 +49,6 @@
         FROM ai_report_data_dataset_category
         WHERE tenant_id = #{tenantId}
           AND parent_id = #{parentId}
+          AND del_flag = '0'
     </select>
 </mapper>

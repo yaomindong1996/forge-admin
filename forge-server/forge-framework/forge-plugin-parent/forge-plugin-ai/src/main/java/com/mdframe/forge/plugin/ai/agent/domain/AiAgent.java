@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.ai.agent.domain;
 
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mdframe.forge.starter.tenant.core.TenantEntity;
 import lombok.Data;
@@ -30,4 +31,7 @@ public class AiAgent extends TenantEntity {
     private Integer maxTokens;
     private String extraConfig;
     private String status;
+
+    @TableLogic
+    private String delFlag;
 }

@@ -3,6 +3,7 @@ package com.mdframe.forge.plugin.data.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mdframe.forge.starter.tenant.core.TenantEntity;
 import lombok.Data;
@@ -33,6 +34,9 @@ public class DataBusinessDefinition extends TenantEntity {
     private String usageGuide;
 
     private Integer status;
+
+    @TableLogic
+    private String delFlag;
 
     @TableField(exist = false)
     private Integer datasetCount;

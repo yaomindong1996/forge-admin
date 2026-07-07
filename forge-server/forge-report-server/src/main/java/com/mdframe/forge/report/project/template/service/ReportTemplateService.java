@@ -77,7 +77,7 @@ public class ReportTemplateService extends ServiceImpl<ReportTemplateMapper, Rep
             throw new BusinessException("来源项目不存在");
         }
 
-        ReportTemplate stored = getById(sourceProject.getId());
+        ReportTemplate stored = baseMapper.selectTemplateByIdIncludingDeleted(sourceProject.getId());
         boolean exists = stored != null;
         if (!exists) {
             stored = new ReportTemplate();
@@ -94,6 +94,13 @@ public class ReportTemplateService extends ServiceImpl<ReportTemplateMapper, Rep
         if (!exists) {
             save(stored);
         } else {
+            if ("1".equals(stored.getDelFlag())) {
+                int restored = baseMapper.restoreTemplateById(stored.getId());
+                if (restored <= 0) {
+                    throw new BusinessException("模板恢复失败");
+                }
+                stored.setDelFlag("0");
+            }
             updateById(stored);
         }
         return stored;

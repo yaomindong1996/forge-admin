@@ -23,6 +23,7 @@
         <result column="cache_ttl_seconds" property="cacheTtlSeconds"/>
         <result column="status" property="status"/>
         <result column="publish_status" property="publishStatus"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="access_mode" property="accessMode"/>
         <result column="description" property="description"/>
         <result column="create_by" property="createBy"/>
@@ -38,10 +39,13 @@
         LEFT JOIN ai_report_data_connection c
             ON d.connection_id = c.id
             AND c.tenant_id = #{tenantId}
+            AND c.del_flag = '0'
         LEFT JOIN ai_report_data_dataset_category cat
             ON d.category_id = cat.id
             AND cat.tenant_id = #{tenantId}
+            AND cat.del_flag = '0'
         WHERE d.tenant_id = #{tenantId}
+          AND d.del_flag = '0'
         <if test="datasetName != null and datasetName != ''">
             AND d.dataset_name LIKE CONCAT('%', #{datasetName}, '%')
         </if>
@@ -74,15 +78,18 @@
         SELECT d.id, d.tenant_id, d.dataset_code, d.dataset_name, d.connection_id, d.category_id,
                c.connection_name, cat.category_code, cat.category_name,
                d.dataset_type, d.table_name, d.max_rows, d.timeout_seconds, d.status, d.publish_status,
-               d.access_mode, d.description
+               d.del_flag, d.access_mode, d.description
         FROM ai_report_data_dataset d
         LEFT JOIN ai_report_data_connection c
             ON d.connection_id = c.id
             AND c.tenant_id = #{tenantId}
+            AND c.del_flag = '0'
         LEFT JOIN ai_report_data_dataset_category cat
             ON d.category_id = cat.id
             AND cat.tenant_id = #{tenantId}
+            AND cat.del_flag = '0'
         WHERE d.tenant_id = #{tenantId}
+          AND d.del_flag = '0'
           AND d.status = 1
           AND d.publish_status = 1
         <if test="connectionId != null">
@@ -97,6 +104,7 @@
         FROM ai_report_data_dataset
         WHERE dataset_code = #{datasetCode}
           AND tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND status = 1
           AND publish_status = 1
     </select>
@@ -106,6 +114,7 @@
         FROM ai_report_data_dataset
         WHERE tenant_id = #{tenantId}
           AND category_id = #{categoryId}
+          AND del_flag = '0'
     </select>
 
     <sql id="DatasetAccessFilter">

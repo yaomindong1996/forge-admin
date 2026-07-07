@@ -12,7 +12,9 @@
                sut.is_default,
                sut.status
         FROM sys_user_tenant sut
-        INNER JOIN sys_tenant t ON t.id = sut.tenant_id
+        INNER JOIN sys_tenant t
+            ON t.id = sut.tenant_id
+           AND t.del_flag = 0
         WHERE sut.user_id = #{userId}
         <if test="onlyEnabled != null and onlyEnabled">
           AND sut.status = 1

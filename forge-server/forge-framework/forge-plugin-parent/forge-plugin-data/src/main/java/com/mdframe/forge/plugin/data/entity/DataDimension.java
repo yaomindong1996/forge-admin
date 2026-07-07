@@ -3,6 +3,7 @@ package com.mdframe.forge.plugin.data.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.mdframe.forge.starter.tenant.core.TenantEntity;
@@ -36,6 +37,9 @@ public class DataDimension extends TenantEntity {
     private String labelColumn;
 
     private Integer status;
+
+    @TableLogic
+    private String delFlag;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime lastSyncTime;

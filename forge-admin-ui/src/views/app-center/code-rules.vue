@@ -159,8 +159,17 @@ const editSchema = computed(() => [
 
 <style scoped>
 .code-rule-page {
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
   padding: 16px;
   background: #f5f7fb;
+}
+
+.code-rule-page :deep(.ai-crud-page) {
+  flex: 1;
+  min-height: 0;
 }
 </style>

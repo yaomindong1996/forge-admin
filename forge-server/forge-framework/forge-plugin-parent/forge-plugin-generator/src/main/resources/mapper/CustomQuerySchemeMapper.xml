@@ -12,6 +12,7 @@
         <result column="sort_json" property="sortJson"/>
         <result column="display_json" property="displayJson"/>
         <result column="is_default" property="isDefault"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="remark" property="remark"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
@@ -30,6 +31,7 @@
         sort_json,
         display_json,
         is_default,
+        del_flag,
         remark,
         create_by,
         create_time,
@@ -45,6 +47,7 @@
         WHERE tenant_id = #{tenantId}
           AND create_by = #{userId}
           AND config_key = #{configKey}
+          AND del_flag = '0'
         ORDER BY is_default DESC, update_time DESC, id DESC
     </select>
 
@@ -56,6 +59,7 @@
           AND create_by = #{userId}
           AND config_key = #{configKey}
           AND id = #{id}
+          AND del_flag = '0'
         LIMIT 1
     </select>
 
@@ -67,15 +71,20 @@
         WHERE tenant_id = #{tenantId}
           AND create_by = #{userId}
           AND config_key = #{configKey}
+          AND del_flag = '0'
           AND is_default = 1
     </update>
 
-    <delete id="deleteUserScheme">
-        DELETE FROM ai_custom_query_scheme
+    <update id="deleteUserScheme">
+        UPDATE ai_custom_query_scheme
+        SET del_flag = '1',
+            update_by = #{userId},
+            update_time = NOW()
         WHERE tenant_id = #{tenantId}
           AND create_by = #{userId}
           AND config_key = #{configKey}
           AND id = #{id}
-    </delete>
+          AND del_flag = '0'
+    </update>
 
 </mapper>

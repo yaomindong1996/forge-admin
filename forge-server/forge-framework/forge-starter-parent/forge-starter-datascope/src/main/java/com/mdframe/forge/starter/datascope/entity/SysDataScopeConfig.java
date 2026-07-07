@@ -2,6 +2,7 @@ package com.mdframe.forge.starter.datascope.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mdframe.forge.starter.core.domain.BaseEntity;
 import lombok.Data;
@@ -101,4 +102,10 @@ public class SysDataScopeConfig extends BaseEntity {
      * 备注
      */
     private String remark;
+
+    /**
+     * 删除标志：0-正常 1-删除
+     */
+    @TableLogic
+    private Integer delFlag;
 }

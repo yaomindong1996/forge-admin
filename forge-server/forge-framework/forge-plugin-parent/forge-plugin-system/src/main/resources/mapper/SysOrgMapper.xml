@@ -23,10 +23,9 @@
         <result column="create_time" property="createTime" />
         <result column="update_by" property="updateBy" />
         <result column="update_time" property="updateTime" />
+        <result column="del_flag" property="delFlag" />
     </resultMap>
-    
-    
-    
+
     <!-- 查询组织及其子组织ID列表 -->
     <resultMap id="OrgTreeVOResultMap" type="com.mdframe.forge.plugin.system.vo.SysOrgTreeVO">
         <id column="id" property="id" />
@@ -53,11 +52,18 @@
     <sql id="Base_Column_List">
         id, tenant_id, org_name, parent_id, ancestors, sort, org_type, org_status,
         leader_id, leader_name, phone, address, region_code, remark,
-        create_dept, create_by, create_time, update_by, update_time,org_code,org_parent_code
+        create_dept, create_by, create_time, update_by, update_time, del_flag, org_code,org_parent_code
     </sql>
 
     <!-- 通用查询条件 -->
     <sql id="queryCondition">
+        AND del_flag = 0
+        AND EXISTS (
+            SELECT 1
+            FROM sys_tenant st
+            WHERE st.id = tenant_id
+              AND st.del_flag = 0
+        )
         <if test="query.tenantId != null">
             AND tenant_id = #{query.tenantId}
         </if>
@@ -102,20 +108,23 @@
         </where>
         ORDER BY sort ASC, create_time DESC
     </select>
-    
+
     <sql id="OrgTreeVO_Column_List">
         o.id, o.tenant_id, t.tenant_name, o.org_name, o.parent_id, o.ancestors, o.sort, o.org_type, o.org_status,
         o.leader_id, o.leader_name, o.phone, o.address, o.region_code,
         o.org_code,o.org_parent_code,
         o.remark,
-        CASE WHEN EXISTS (SELECT 1 FROM sys_org c WHERE c.parent_id = o.id AND c.tenant_id = o.tenant_id) THEN true ELSE false END AS has_children
+        CASE WHEN EXISTS (SELECT 1 FROM sys_org c WHERE c.parent_id = o.id AND c.tenant_id = o.tenant_id AND c.del_flag = 0) THEN true ELSE false END AS has_children
     </sql>
-    
+
     <select id="selectOrgLazyTree" resultMap="OrgTreeVOResultMap">
         SELECT <include refid="OrgTreeVO_Column_List" />
         FROM sys_org o
-        LEFT JOIN sys_tenant t ON t.id = o.tenant_id
+        INNER JOIN sys_tenant t
+            ON t.id = o.tenant_id
+           AND t.del_flag = 0
         <where>
+            AND o.del_flag = 0
             <if test="query.tenantId != null">
                 AND o.tenant_id = #{query.tenantId}
             </if>
@@ -146,12 +155,15 @@
         </where>
         ORDER BY o.sort ASC, o.create_time DESC
     </select>
-    
+
     <select id="selectOrgChildrenByParentId" resultMap="OrgTreeVOResultMap">
         SELECT <include refid="OrgTreeVO_Column_List" />
         FROM sys_org o
-        LEFT JOIN sys_tenant t ON t.id = o.tenant_id
+        INNER JOIN sys_tenant t
+            ON t.id = o.tenant_id
+           AND t.del_flag = 0
         WHERE o.parent_id = #{parentId}
+          AND o.del_flag = 0
         <if test="tenantId != null">
             AND o.tenant_id = #{tenantId}
         </if>
@@ -161,13 +173,15 @@
     <!-- 查询组织及其子组织ID列表 -->
     <select id="selectOrgAndChildrenIds" resultType="java.lang.Long">
         SELECT id FROM sys_org
-        WHERE id = #{orgId} OR FIND_IN_SET(#{orgId}, ancestors) > 0
+        WHERE del_flag = 0
+          AND (id = #{orgId} OR FIND_IN_SET(#{orgId}, ancestors) > 0)
     </select>
 
     <select id="countChildOrgs" resultType="java.lang.Long">
         SELECT COUNT(1)
         FROM sys_org
         WHERE parent_id = #{orgId}
+          AND del_flag = 0
     </select>
 
     <select id="countUserOrgBindings" resultType="java.lang.Long">
@@ -181,6 +195,7 @@
         FROM sys_org
         WHERE tenant_id = #{tenantId}
           AND org_status = 1
+          AND del_flag = 0
           AND id IN
           <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
               #{orgId}

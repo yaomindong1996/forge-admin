@@ -33,6 +33,7 @@
         INNER JOIN ai_report_data_dataset ds
             ON bd.dataset_id = ds.id
             AND ds.tenant_id = #{tenantId}
+            AND ds.del_flag = '0'
             AND ds.status = 1
             AND ds.publish_status = 1
         WHERE bd.tenant_id = #{tenantId}

@@ -23,7 +23,7 @@
                (SELECT COALESCE(SUM(r.token_usage), 0) FROM ai_chat_record r WHERE r.session_id = s.id) AS token_usage,
                s.create_time, s.update_time
         FROM ai_chat_session s
-        LEFT JOIN sys_user u ON s.user_id = u.id
+        LEFT JOIN sys_user u ON s.user_id = u.id AND u.del_flag = 0
         <where>
             1=1
             AND s.status = '0'

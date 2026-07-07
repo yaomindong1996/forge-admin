@@ -2,6 +2,7 @@ package com.mdframe.forge.plugin.generator.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mdframe.forge.starter.tenant.core.TenantEntity;
 import lombok.Data;
@@ -52,4 +53,7 @@ public class AiLowcodeDomain extends TenantEntity {
 
     /** 领域扩展协议 JSON */
     private String domainSchema;
+
+    @TableLogic
+    private String delFlag;
 }

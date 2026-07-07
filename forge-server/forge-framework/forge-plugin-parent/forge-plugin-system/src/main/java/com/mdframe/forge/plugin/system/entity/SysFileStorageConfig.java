@@ -2,6 +2,7 @@ package com.mdframe.forge.plugin.system.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mdframe.forge.starter.core.domain.BaseEntity;
 import lombok.Data;
@@ -98,4 +99,10 @@ public class SysFileStorageConfig extends BaseEntity {
      * 扩展配置
      */
     private String extraConfig;
+
+    /**
+     * 删除标志：0-正常 1-删除
+     */
+    @TableLogic
+    private Integer delFlag;
 }

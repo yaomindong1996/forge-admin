@@ -47,6 +47,7 @@
         <result column="tenant_strategy" property="tenantStrategy"/>
         <result column="audit_strategy" property="auditStrategy"/>
         <result column="logic_delete_strategy" property="logicDeleteStrategy"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
         <result column="create_dept" property="createDept"/>
@@ -127,6 +128,7 @@
         tenant_strategy,
         audit_strategy,
         logic_delete_strategy,
+        del_flag,
         create_by,
         create_time,
         create_dept,
@@ -140,6 +142,7 @@
         FROM ai_crud_config
         WHERE tenant_id = #{tenantId}
           AND config_key = #{configKey}
+          AND del_flag = '0'
         LIMIT 1
     </select>
 
@@ -149,6 +152,7 @@
         FROM ai_crud_config
         WHERE tenant_id = #{tenantId}
           AND object_code = #{objectCode}
+          AND del_flag = '0'
           AND mode = 'CONFIG'
           AND build_mode = 'LOWCODE'
           AND publish_status = 'PUBLISHED'
@@ -162,6 +166,7 @@
         FROM ai_crud_config
         WHERE tenant_id = #{tenantId}
           AND (object_code = #{objectCodeOrConfigKey} OR config_key = #{objectCodeOrConfigKey})
+          AND del_flag = '0'
           AND mode = 'CONFIG'
           AND build_mode = 'LOWCODE'
           AND publish_status = 'PUBLISHED'
@@ -202,7 +207,9 @@
         LEFT JOIN ai_lowcode_domain d
           ON d.tenant_id = c.tenant_id
          AND d.id = c.domain_id
+         AND d.del_flag = '0'
         WHERE c.tenant_id = #{tenantId}
+          AND c.del_flag = '0'
           AND c.mode = 'CONFIG'
           AND c.build_mode = 'LOWCODE'
         <if test="keyword != null and keyword != ''">
@@ -240,6 +247,7 @@
         <include refid="Base_Columns"/>
         FROM ai_crud_config
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND mode = 'CONFIG'
           AND build_mode = 'LOWCODE'
           AND publish_status = 'PUBLISHED'

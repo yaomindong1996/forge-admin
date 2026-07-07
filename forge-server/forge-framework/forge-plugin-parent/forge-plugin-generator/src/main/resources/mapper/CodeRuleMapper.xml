@@ -15,6 +15,7 @@
         <result column="builtin" property="builtin"/>
         <result column="remark" property="remark"/>
         <result column="options" property="options"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
         <result column="create_dept" property="createDept"/>
@@ -35,6 +36,7 @@
         builtin,
         remark,
         options,
+        del_flag,
         create_by,
         create_time,
         create_dept,
@@ -47,6 +49,7 @@
         <include refid="Base_Columns"/>
         FROM ai_code_rule
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
         <if test="ruleCode != null and ruleCode != ''">
             AND rule_code LIKE CONCAT('%', #{ruleCode}, '%')
         </if>
@@ -67,6 +70,7 @@
         <include refid="Base_Columns"/>
         FROM ai_code_rule
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND status = 1
         <if test="scene != null and scene != ''">
             AND (scene = #{scene} OR scene = 'COMMON')
@@ -79,6 +83,7 @@
         <include refid="Base_Columns"/>
         FROM ai_code_rule
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND rule_code = #{ruleCode}
         LIMIT 1
     </select>
@@ -88,6 +93,7 @@
         <include refid="Base_Columns"/>
         FROM ai_code_rule
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND id = #{id}
         LIMIT 1
     </select>
@@ -96,6 +102,7 @@
         SELECT COUNT(1)
         FROM ai_code_rule
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND rule_code = #{ruleCode}
         <if test="excludeId != null">
             AND id != #{excludeId}

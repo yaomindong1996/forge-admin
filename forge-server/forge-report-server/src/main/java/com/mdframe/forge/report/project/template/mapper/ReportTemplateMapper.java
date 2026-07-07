@@ -30,4 +30,14 @@ public interface ReportTemplateMapper extends BaseMapper<ReportTemplate> {
      * 查询模板详情
      */
     ReportTemplate selectTemplateDetail(@Param("id") Long id);
+
+    /**
+     * 查询模板详情，包含已逻辑删除记录。
+     */
+    ReportTemplate selectTemplateByIdIncludingDeleted(@Param("id") Long id);
+
+    /**
+     * 恢复已逻辑删除模板。
+     */
+    int restoreTemplateById(@Param("id") Long id);
 }

@@ -5,6 +5,7 @@
     <!-- 基础资源查询条件片段 -->
     <sql id="resourceCondition">
         <where>
+            AND del_flag = 0
             <if test="query != null">
                 <if test="query.resourceType != null and query.resourceType != ''">
                     AND resource_type = #{query.resourceType}
@@ -44,7 +45,10 @@
         SELECT DISTINCT sr.*
         FROM sys_resource sr
         INNER JOIN sys_role_resource srr ON sr.id = srr.resource_id
-        WHERE sr.visible = 1 AND sr.menu_status = 1 AND srr.role_id IN
+        WHERE sr.del_flag = 0
+          AND sr.visible = 1
+          AND sr.menu_status = 1
+          AND srr.role_id IN
         <foreach collection="roleIds" item="roleId" open="(" separator="," close=")">
             #{roleId}
         </foreach>
@@ -53,14 +57,20 @@
         </if>
         ORDER BY sr.sort ASC
     </select>
-    
+
     <!-- 查询指定用户资源列表（用于构建导航菜单） -->
     <select id="selectUserNavigationResources" resultType="com.mdframe.forge.plugin.system.entity.SysResource">
         SELECT DISTINCT sr.*
         FROM sys_resource sr
         INNER JOIN sys_role_resource srr ON sr.id = srr.resource_id
         INNER JOIN sys_user_org_role sur ON srr.role_id = sur.role_id
+        INNER JOIN sys_role r
+            ON r.id = sur.role_id
+           AND r.tenant_id = sur.tenant_id
+           AND r.role_status = 1
+           AND r.del_flag = 0
         WHERE sur.user_id = #{userId}
+          AND sr.del_flag = 0
           AND sr.visible = 1
           AND sr.menu_status = 1
           AND sr.resource_type IN (1, 2)
@@ -76,7 +86,13 @@
         FROM sys_resource sr
         INNER JOIN sys_role_resource srr ON sr.id = srr.resource_id
         INNER JOIN sys_user_org_role sur ON srr.role_id = sur.role_id
+        INNER JOIN sys_role r
+            ON r.id = sur.role_id
+           AND r.tenant_id = sur.tenant_id
+           AND r.role_status = 1
+           AND r.del_flag = 0
         WHERE sur.user_id = #{userId}
+          AND sr.del_flag = 0
           AND sr.visible = 1
           AND sr.resource_type = 4
         <if test="clientCode != null and clientCode != ''">
@@ -90,6 +106,7 @@
         SELECT DISTINCT api_url
         FROM sys_resource
         WHERE visible = 1
+          AND del_flag = 0
           AND resource_type = 4
           AND api_url IS NOT NULL
           AND api_url != ''
@@ -107,6 +124,7 @@
         WHERE tenant_id = #{tenantId}
           AND resource_type = #{resourceType}
           AND perms = #{perms}
+          AND del_flag = 0
         LIMIT 1
     </select>
 
@@ -117,6 +135,7 @@
         WHERE tenant_id = #{tenantId}
           AND resource_type = #{resourceType}
           AND path = #{path}
+          AND del_flag = 0
         LIMIT 1
     </select>
 
@@ -129,6 +148,7 @@
         END
         FROM sys_resource
         WHERE visible = 1
+          AND del_flag = 0
           AND resource_type = 4
           AND api_url IS NOT NULL
           AND api_url != ''
@@ -137,5 +157,5 @@
             #{resourceId}
         </foreach>
     </select>
-    
+
 </mapper>

@@ -25,6 +25,7 @@
         <result column="force_password_change" property="forcePasswordChange" />
         <result column="remark" property="remark" />
         <result column="create_dept" property="createDept" />
+        <result column="del_flag" property="delFlag" />
         <result column="org_name" property="orgName" />
         <result column="tenant_name" property="tenantName" />
         <result column="dept_name" property="deptName" />
@@ -57,13 +58,14 @@
         u.user_client, u.email, u.phone,
         u.id_card, u.gender, u.password, u.salt, u.user_status, u.avatar, u.region_code,
         u.last_login_time, u.last_login_ip, u.login_count, u.force_password_change, u.remark, u.create_dept,
-        u.create_by, u.create_time, u.update_by, u.update_time,
+        u.create_by, u.create_time, u.update_by, u.update_time, u.del_flag,
         COALESCE(tenant_names.tenant_names, t.tenant_name) AS tenant_name,
         orgs.org_name, orgs.org_name AS dept_name
     </sql>
 
     <!-- 通用查询条件 -->
     <sql id="queryCondition">
+        AND u.del_flag = 0
         <if test="query.tenantId != null">
             AND EXISTS (
                 SELECT 1
@@ -100,21 +102,29 @@
             <choose>
                 <when test="query.directOrgOnly != null and query.directOrgOnly">
                     AND u.id IN (
-                        SELECT user_id FROM sys_user_org WHERE
+                        SELECT uo.user_id
+                        FROM sys_user_org uo
+                        INNER JOIN sys_org o
+                            ON o.id = uo.org_id
+                           AND o.tenant_id = uo.tenant_id
+                           AND o.del_flag = 0
+                        WHERE
                         <if test="query.tenantId != null">
-                            tenant_id = #{query.tenantId} AND
+                            uo.tenant_id = #{query.tenantId} AND
                         </if>
-                        org_id = #{query.orgId}
+                        uo.org_id = #{query.orgId}
                     )
                 </when>
                 <otherwise>
                     AND u.id IN (
-                        SELECT user_id FROM sys_user_org WHERE
+                        SELECT uo.user_id
+                        FROM sys_user_org uo
+                        WHERE
                         <if test="query.tenantId != null">
-                            tenant_id = #{query.tenantId} AND
+                            uo.tenant_id = #{query.tenantId} AND
                         </if>
-                        org_id IN (
-                            SELECT id FROM sys_org WHERE
+                        uo.org_id IN (
+                            SELECT id FROM sys_org WHERE del_flag = 0 AND
                             <if test="query.tenantId != null">
                                 tenant_id = #{query.tenantId} AND
                             </if>
@@ -138,7 +148,9 @@
     <select id="selectUserPage" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
         FROM sys_user u
-        LEFT JOIN sys_tenant t ON t.id = u.tenant_id
+        LEFT JOIN sys_tenant t
+            ON t.id = u.tenant_id
+           AND t.del_flag = 0
         <if test="query.tenantId != null">
             LEFT JOIN sys_user_tenant sut_current
                 ON sut_current.user_id = u.id
@@ -149,7 +161,9 @@
             SELECT sut.user_id,
                    GROUP_CONCAT(tn.tenant_name ORDER BY sut.is_default DESC, tn.id ASC SEPARATOR ',') AS tenant_names
             FROM sys_user_tenant sut
-            INNER JOIN sys_tenant tn ON tn.id = sut.tenant_id
+            INNER JOIN sys_tenant tn
+                ON tn.id = sut.tenant_id
+               AND tn.del_flag = 0
             WHERE sut.status = 1
               AND tn.tenant_status = 1
             GROUP BY sut.user_id
@@ -157,7 +171,10 @@
         LEFT JOIN (
             SELECT uo.user_id, GROUP_CONCAT(o.org_name ORDER BY o.sort SEPARATOR ',') AS org_name
             FROM sys_user_org uo
-            LEFT JOIN sys_org o ON o.id = uo.org_id
+            LEFT JOIN sys_org o
+                ON o.id = uo.org_id
+               AND o.tenant_id = uo.tenant_id
+               AND o.del_flag = 0
             <where>
                 <if test="query.tenantId != null">
                     uo.tenant_id = #{query.tenantId}
@@ -175,6 +192,7 @@
         SELECT u.*
         FROM sys_user u
         WHERE u.username = #{username}
+          AND u.del_flag = 0
         <if test="tenantId != null">
           AND (
               u.tenant_id = #{tenantId}
@@ -202,6 +220,7 @@
         SELECT u.*
         FROM sys_user u
         WHERE u.phone = #{phone}
+          AND u.del_flag = 0
         <if test="tenantId != null">
           AND (
               u.tenant_id = #{tenantId}
@@ -229,6 +248,7 @@
         SELECT u.*
         FROM sys_user u
         WHERE u.email = #{email}
+          AND u.del_flag = 0
         <if test="tenantId != null">
           AND (
               u.tenant_id = #{tenantId}

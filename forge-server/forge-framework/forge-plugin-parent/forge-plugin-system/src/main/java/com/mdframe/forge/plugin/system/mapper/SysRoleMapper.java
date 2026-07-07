@@ -10,6 +10,8 @@ import com.mdframe.forge.plugin.system.entity.SysUser;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Collection;
+
 /**
  * 角色Mapper接口
  */
@@ -35,4 +37,28 @@ public interface SysRoleMapper extends BaseMapper<SysRole> {
      * 查询角色绑定用户数量。
      */
     Long countUsersByRole(@Param("roleId") Long roleId, @Param("tenantId") Long tenantId);
+
+    /**
+     * 统计可用于角色分配的目标用户数量。
+     */
+    Long countAssignableTargetUsers(@Param("userIds") Collection<Long> userIds, @Param("tenantId") Long tenantId);
+
+    /**
+     * 统计非普通目标用户数量。
+     */
+    Long countNonNormalTargetUsers(@Param("userIds") Collection<Long> userIds, @Param("tenantId") Long tenantId);
+
+    /**
+     * 统计目标用户中超出指定数据范围上限的数量。
+     */
+    Long countUsersExceedingDataScope(@Param("dataScope") Integer dataScope,
+            @Param("userIds") Collection<Long> userIds,
+            @Param("tenantId") Long tenantId);
+
+    /**
+     * 统计角色已绑定用户中超出指定数据范围上限的数量。
+     */
+    Long countRoleUsersExceedingDataScope(@Param("dataScope") Integer dataScope,
+            @Param("roleId") Long roleId,
+            @Param("tenantId") Long tenantId);
 }

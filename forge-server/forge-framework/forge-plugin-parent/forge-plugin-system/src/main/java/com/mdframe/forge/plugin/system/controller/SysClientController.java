@@ -32,16 +32,14 @@ public class SysClientController {
     
     @GetMapping("/page")
     public RespInfo<Page<SysClientVO>> page(
-        @RequestParam(defaultValue = "1") Long current,
-        @RequestParam(defaultValue = "10") Long size,
+        @RequestParam(defaultValue = "1") Long pageNum,
+        @RequestParam(defaultValue = "10") Long pageSize,
         @RequestParam(required = false) String clientCode,
         @RequestParam(required = false) String clientName,
         @RequestParam(required = false) Integer status
     ) {
         assertPlatformAdmin();
-        Page<SysClient> page = new Page<>();
-        page.setSize(size);
-        page.setCurrent(current);
+        Page<SysClient> page = new Page<>(pageNum, pageSize);
         
         LambdaQueryWrapper<SysClient> wrapper = new LambdaQueryWrapper<>();
         if (clientCode != null && !clientCode.isEmpty()) {

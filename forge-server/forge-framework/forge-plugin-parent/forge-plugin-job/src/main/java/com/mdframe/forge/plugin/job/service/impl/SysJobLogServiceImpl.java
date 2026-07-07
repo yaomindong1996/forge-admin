@@ -34,8 +34,6 @@ public class SysJobLogServiceImpl extends ServiceImpl<SysJobLogMapper, SysJobLog
     @Override
     public int cleanLog(int days) {
         LocalDateTime beforeDate = LocalDateTime.now().minusDays(days);
-        LambdaQueryWrapper<SysJobLog> wrapper = new LambdaQueryWrapper<>();
-        wrapper.lt(SysJobLog::getTriggerTime, beforeDate);
-        return this.baseMapper.delete(wrapper);
+        return this.baseMapper.cleanPhysicalBefore(beforeDate);
     }
 }

@@ -17,7 +17,14 @@
         LEFT JOIN sys_user u
             ON r.user_id = u.id
             AND u.tenant_id = r.tenant_id
+            AND u.del_flag = 0
         WHERE r.notice_id = #{noticeId}
+          AND EXISTS (
+            SELECT 1 FROM sys_notice n
+            WHERE n.notice_id = r.notice_id
+              AND n.tenant_id = r.tenant_id
+              AND n.del_flag = 0
+          )
         ORDER BY r.read_time DESC
     </select>
 
@@ -38,11 +45,14 @@
         INNER JOIN sys_org o
             ON uo.org_id = o.id
             AND o.tenant_id = u.tenant_id
+            AND o.del_flag = 0
         WHERE u.user_status = 1
+        AND u.del_flag = 0
         AND EXISTS (
             SELECT 1 FROM sys_notice n
             WHERE n.notice_id = #{noticeId}
             AND n.tenant_id = u.tenant_id
+            AND n.del_flag = 0
             AND (
                 n.publish_scope = 0
                 OR EXISTS (

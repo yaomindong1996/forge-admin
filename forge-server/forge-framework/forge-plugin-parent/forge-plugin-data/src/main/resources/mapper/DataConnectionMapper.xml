@@ -16,6 +16,7 @@
         <result column="test_sql" property="testSql"/>
         <result column="pool_config_json" property="poolConfigJson"/>
         <result column="status" property="status"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="description" property="description"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
@@ -28,6 +29,7 @@
         SELECT *
         FROM ai_report_data_connection
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
         <if test="connectionName != null and connectionName != ''">
             AND connection_name LIKE CONCAT('%', #{connectionName}, '%')
         </if>
@@ -41,10 +43,11 @@
     </select>
 
     <select id="selectConnectionList" resultMap="BaseResultMap">
-        SELECT id, tenant_id, connection_code, connection_name, db_type, driver_class_name, 
-               jdbc_url, username, schema_name, status, description
+        SELECT id, tenant_id, connection_code, connection_name, db_type, driver_class_name,
+               jdbc_url, username, schema_name, status, del_flag, description
         FROM ai_report_data_connection
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND status = 1
         ORDER BY create_time DESC
     </select>
@@ -54,6 +57,7 @@
         FROM ai_report_data_connection
         WHERE connection_code = #{connectionCode}
           AND tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND status = 1
     </select>
 
@@ -62,6 +66,7 @@
         FROM ai_report_data_dataset
         WHERE connection_id = #{connectionId}
           AND tenant_id = #{tenantId}
+          AND del_flag = '0'
     </select>
 
 </mapper>

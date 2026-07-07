@@ -13,6 +13,7 @@
         <result column="status" property="status"/>
         <result column="sort_order" property="sortOrder"/>
         <result column="options" property="options"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
         <result column="create_dept" property="createDept"/>
@@ -31,6 +32,7 @@
         status,
         sort_order,
         options,
+        del_flag,
         create_by,
         create_time,
         create_dept,
@@ -40,6 +42,7 @@
 
     <sql id="Suite_Query_Where">
         WHERE s.tenant_id = #{tenantId}
+          AND s.del_flag = '0'
         <if test="query != null and query.keyword != null and query.keyword != ''">
           AND (
             s.suite_code LIKE CONCAT('%', #{query.keyword}, '%')
@@ -80,6 +83,7 @@
         LEFT JOIN (
           SELECT tenant_id, suite_code, COUNT(1) AS object_count
           FROM ai_business_object
+          WHERE del_flag = '0'
           GROUP BY tenant_id, suite_code
         ) o ON o.tenant_id = s.tenant_id AND o.suite_code = s.suite_code
         LEFT JOIN (
@@ -87,6 +91,7 @@
                  SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS enabled_app_count,
                  MAX(update_time) AS latest_app_update
           FROM ai_business_app
+          WHERE del_flag = '0'
           GROUP BY tenant_id, suite_code
         ) a ON a.tenant_id = s.tenant_id AND a.suite_code = s.suite_code
     </sql>
@@ -106,6 +111,7 @@
     <select id="selectSuiteDetail" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessSuiteVO">
         <include refid="Suite_VO_Select"/>
         WHERE s.tenant_id = #{tenantId}
+          AND s.del_flag = '0'
           AND s.id = #{id}
         LIMIT 1
     </select>
@@ -115,6 +121,7 @@
         <include refid="Base_Columns"/>
         FROM ai_business_suite
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND suite_code = #{suiteCode}
         LIMIT 1
     </select>
@@ -123,6 +130,7 @@
         SELECT COUNT(1)
         FROM ai_business_suite
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND suite_code = #{suiteCode}
         <if test="excludeId != null">
           AND id != #{excludeId}
@@ -133,6 +141,7 @@
         SELECT COUNT(1)
         FROM ai_business_object
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND suite_code = #{suiteCode}
     </select>
 
@@ -140,6 +149,7 @@
         SELECT COUNT(1)
         FROM ai_business_app
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND suite_code = #{suiteCode}
     </select>
 
@@ -147,6 +157,7 @@
         SELECT COUNT(1)
         FROM ai_business_suite
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND parent_id = #{parentId}
     </select>
 
@@ -171,6 +182,7 @@
         LEFT JOIN (
           SELECT tenant_id, suite_code, COUNT(1) AS object_count
           FROM ai_business_object
+          WHERE del_flag = '0'
           GROUP BY tenant_id, suite_code
         ) o ON o.tenant_id = s.tenant_id AND o.suite_code = s.suite_code
         LEFT JOIN (
@@ -178,9 +190,11 @@
                  SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS enabled_app_count,
                  MAX(update_time) AS latest_app_update
           FROM ai_business_app
+          WHERE del_flag = '0'
           GROUP BY tenant_id, suite_code
         ) a ON a.tenant_id = s.tenant_id AND a.suite_code = s.suite_code
         WHERE s.tenant_id = #{tenantId}
+          AND s.del_flag = '0'
         ORDER BY s.sort_order ASC, s.id ASC
     </select>
 

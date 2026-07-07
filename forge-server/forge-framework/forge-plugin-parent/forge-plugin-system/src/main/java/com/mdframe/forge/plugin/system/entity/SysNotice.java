@@ -113,4 +113,10 @@ public class SysNotice extends TenantEntity {
      * 备注
      */
     private String remark;
+
+    /**
+     * 删除标志：0-正常 1-删除
+     */
+    @TableLogic
+    private Integer delFlag;
 }

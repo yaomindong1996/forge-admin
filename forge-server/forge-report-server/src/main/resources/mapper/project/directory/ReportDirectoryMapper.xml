@@ -10,6 +10,7 @@
         <result column="directory_name" property="directoryName" />
         <result column="sort" property="sort" />
         <result column="remark" property="remark" />
+        <result column="del_flag" property="delFlag" />
         <result column="create_dept" property="createDept" />
         <result column="create_by" property="createBy" />
         <result column="create_time" property="createTime" />
@@ -18,21 +19,23 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id, tenant_id, parent_id, ancestors, directory_name, sort, remark,
+        id, tenant_id, parent_id, ancestors, directory_name, sort, remark, del_flag,
         create_dept, create_by, create_time, update_by, update_time
     </sql>
 
     <select id="selectDirectoryList" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
         FROM ai_report_directory
+        WHERE del_flag = '0'
         ORDER BY sort ASC, create_time DESC
     </select>
 
     <select id="selectDirectoryAndChildrenIds" resultType="java.lang.Long">
         SELECT id
         FROM ai_report_directory
-        WHERE id = #{directoryId}
-           OR FIND_IN_SET(#{directoryId}, ancestors) > 0
+        WHERE del_flag = '0'
+          AND (id = #{directoryId}
+              OR FIND_IN_SET(#{directoryId}, ancestors) > 0)
         ORDER BY sort ASC, create_time DESC
     </select>
 
@@ -40,12 +43,14 @@
         SELECT COUNT(1)
         FROM ai_report_directory
         WHERE parent_id = #{parentId}
+          AND del_flag = '0'
     </select>
 
     <select id="selectDescendants" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List" />
         FROM ai_report_directory
         WHERE FIND_IN_SET(#{directoryId}, ancestors) > 0
+          AND del_flag = '0'
         ORDER BY ancestors ASC, sort ASC, create_time DESC
     </select>
 

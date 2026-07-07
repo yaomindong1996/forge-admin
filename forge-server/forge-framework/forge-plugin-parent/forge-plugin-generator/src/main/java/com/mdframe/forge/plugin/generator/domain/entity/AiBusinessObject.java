@@ -2,6 +2,7 @@ package com.mdframe.forge.plugin.generator.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mdframe.forge.starter.tenant.core.TenantEntity;
 import lombok.Data;
@@ -65,4 +66,7 @@ public class AiBusinessObject extends TenantEntity {
 
     /** 设计器扩展配置 JSON */
     private String designerOptions;
+
+    @TableLogic
+    private String delFlag;
 }

@@ -2,6 +2,7 @@ package com.mdframe.forge.report.project.template.domain;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.mdframe.forge.starter.tenant.core.TenantEntity;
@@ -101,6 +102,12 @@ public class ReportTemplate extends TenantEntity implements Serializable {
      * 发布时间
      */
     private Date publishTime;
+
+    /**
+     * 删除标志（0正常 1删除）
+     */
+    @TableLogic
+    private String delFlag;
 
     /**
      * 被复制次数

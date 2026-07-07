@@ -13,14 +13,14 @@ import java.util.Set;
  */
 @Mapper
 public interface DataScopeOrgMapper {
-    
+
     /**
      * 根据组织ID列表查询所有子孙组织ID
      * 通过ancestors字段实现（例如ancestors='1,2,3'表示祖级组织链）
      */
     @Select("<script>" +
             "SELECT id FROM sys_org " +
-            "WHERE " +
+            "WHERE del_flag = 0 AND " +
             "<foreach collection='orgIds' item='orgId' open='(' separator=' OR ' close=')'>" +
             "FIND_IN_SET(#{orgId}, ancestors) > 0 OR id = #{orgId}" +
             "</foreach>" +

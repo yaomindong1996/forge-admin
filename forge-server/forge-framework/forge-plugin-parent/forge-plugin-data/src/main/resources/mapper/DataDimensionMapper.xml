@@ -14,6 +14,7 @@
         <result column="value_column" property="valueColumn"/>
         <result column="label_column" property="labelColumn"/>
         <result column="status" property="status"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="last_sync_time" property="lastSyncTime"/>
         <result column="description" property="description"/>
         <result column="item_count" property="itemCount"/>
@@ -32,6 +33,7 @@
         LEFT JOIN ai_report_data_connection c
             ON d.connection_id = c.id
             AND c.tenant_id = #{tenantId}
+            AND c.del_flag = '0'
         LEFT JOIN (
             SELECT tenant_id, dimension_id, COUNT(1) AS item_count
             FROM ai_report_data_dimension_item
@@ -45,6 +47,7 @@
     <select id="selectDimensionPage" resultMap="BaseResultMap">
         <include refid="DimensionSelect"/>
         WHERE d.tenant_id = #{tenantId}
+          AND d.del_flag = '0'
         <if test="dimensionName != null and dimensionName != ''">
             AND (d.dimension_name LIKE CONCAT('%', #{dimensionName}, '%')
                 OR d.dimension_code LIKE CONCAT('%', #{dimensionName}, '%'))
@@ -61,6 +64,7 @@
     <select id="selectDimensionList" resultMap="BaseResultMap">
         <include refid="DimensionSelect"/>
         WHERE d.tenant_id = #{tenantId}
+          AND d.del_flag = '0'
         <if test="status != null">
             AND d.status = #{status}
         </if>
@@ -70,6 +74,7 @@
     <select id="selectDimensionByIds" resultMap="BaseResultMap">
         <include refid="DimensionSelect"/>
         WHERE d.tenant_id = #{tenantId}
+          AND d.del_flag = '0'
           AND d.id IN
           <foreach collection="dimensionIds" item="dimensionId" open="(" separator="," close=")">
               #{dimensionId}
@@ -82,6 +87,7 @@
         FROM ai_report_data_dimension
         WHERE tenant_id = #{tenantId}
           AND dimension_code = #{dimensionCode}
+          AND del_flag = '0'
         LIMIT 1
     </select>
 </mapper>

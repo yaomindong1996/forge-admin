@@ -18,6 +18,7 @@
         <result column="runtime_table_name" property="runtimeTableName"/>
         <result column="table_mode" property="tableMode"/>
         <result column="model_schema" property="modelSchema"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
         <result column="create_dept" property="createDept"/>
@@ -41,6 +42,7 @@
         runtime_table_name,
         table_mode,
         model_schema,
+        del_flag,
         create_by,
         create_time,
         create_dept,
@@ -53,6 +55,7 @@
         <include refid="Base_Columns"/>
         FROM ai_lowcode_model
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
         <if test="domainId != null">
           AND domain_id = #{domainId}
         </if>
@@ -77,6 +80,7 @@
         <include refid="Base_Columns"/>
         FROM ai_lowcode_model
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
         <if test="domainId != null">
           AND domain_id = #{domainId}
         </if>
@@ -98,6 +102,7 @@
         <include refid="Base_Columns"/>
         FROM ai_lowcode_model
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND id = #{id}
         LIMIT 1
     </select>
@@ -107,6 +112,7 @@
         <include refid="Base_Columns"/>
         FROM ai_lowcode_model
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND domain_id = #{domainId}
           AND model_code = #{modelCode}
         LIMIT 1
@@ -117,6 +123,7 @@
         <include refid="Base_Columns"/>
         FROM ai_lowcode_model
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND model_code = #{modelCode}
         ORDER BY update_time DESC, id DESC
         LIMIT 1
@@ -126,6 +133,7 @@
         SELECT COUNT(1)
         FROM ai_lowcode_model
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND domain_id = #{domainId}
           AND model_code = #{modelCode}
         <if test="excludeId != null">

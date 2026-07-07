@@ -242,6 +242,12 @@ public class FlowNodeConfig implements Serializable {
     private Integer status;
 
     /**
+     * 删除标志（0-正常/1-删除）
+     */
+    @TableLogic
+    private Integer delFlag;
+
+    /**
      * 创建时间
      */
     @TableField(fill = FieldFill.INSERT)

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mdframe.forge.starter.tenant.core.TenantEntity;
 import lombok.Data;
@@ -35,6 +36,9 @@ public class DataDatasetCategory extends TenantEntity {
     private Integer sortOrder;
 
     private Integer status;
+
+    @TableLogic
+    private String delFlag;
 
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String description;

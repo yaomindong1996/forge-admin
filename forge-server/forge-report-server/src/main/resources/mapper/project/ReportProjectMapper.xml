@@ -17,6 +17,7 @@
         <result column="publish_status" property="publishStatus" />
         <result column="publish_url" property="publishUrl" />
         <result column="publish_time" property="publishTime" />
+        <result column="del_flag" property="delFlag" />
         <result column="create_dept" property="createDept" />
         <result column="create_by" property="createBy" />
         <result column="create_time" property="createTime" />
@@ -27,7 +28,7 @@
     <sql id="Base_Column_List">
         id, tenant_id, directory_id, project_name, remark, index_img, status,
         canvas_width, canvas_height, background_color, component_data,
-        publish_status, publish_url, publish_time,
+        publish_status, publish_url, publish_time, del_flag,
         create_dept, create_by, create_time, update_by, update_time
     </sql>
 
@@ -35,6 +36,7 @@
         SELECT <include refid="Base_Column_List" />
         FROM ai_report_project
         <where>
+            del_flag = '0'
             <if test="projectName != null and projectName != ''">
                 AND project_name LIKE CONCAT('%', #{projectName}, '%')
             </if>
@@ -52,14 +54,15 @@
         SELECT COUNT(1)
         FROM ai_report_project
         <where>
+            del_flag = '0'
             <if test="directoryIds != null and directoryIds.size() > 0">
-                directory_id IN
+                AND directory_id IN
                 <foreach collection="directoryIds" item="directoryId" open="(" separator="," close=")">
                     #{directoryId}
                 </foreach>
             </if>
             <if test="directoryIds == null or directoryIds.size() == 0">
-                1 = 0
+                AND 1 = 0
             </if>
         </where>
     </select>

@@ -2785,25 +2785,40 @@ const resolvedEditFormClass = computed(() => [
  * 计算横向滚动宽度
  * 如果没有设置 scrollX，自动计算所有列的宽度总和
  */
+const DEFAULT_SELECTION_COLUMN_WIDTH = 48
+const DEFAULT_EXPAND_COLUMN_WIDTH = 48
+const DEFAULT_ACTION_COLUMN_WIDTH = 180
+const DEFAULT_DATA_COLUMN_WIDTH = 120
+const TABLE_SCROLL_X_BUFFER = 24
+
 const computedScrollX = computed(() => {
   if (props.scrollX !== undefined) {
     return props.scrollX
   }
 
-  // 自动计算所有列的宽度，兼容只配置 minWidth 的列
-  let totalWidth = 0
-  let hasWidth = false
+  if (!tableColumns.value.length) {
+    return undefined
+  }
 
+  let totalWidth = props.hideSelection ? 0 : DEFAULT_SELECTION_COLUMN_WIDTH
   tableColumns.value.forEach((col) => {
     const width = resolveColumnWidth(col.width ?? col.minWidth)
     if (width > 0) {
       totalWidth += width
-      hasWidth = true
+      return
     }
+    if (col.type === 'expand') {
+      totalWidth += DEFAULT_EXPAND_COLUMN_WIDTH
+      return
+    }
+    if (isActionColumnConfig(col)) {
+      totalWidth += DEFAULT_ACTION_COLUMN_WIDTH
+      return
+    }
+    totalWidth += DEFAULT_DATA_COLUMN_WIDTH
   })
 
-  // 如果所有列都设置了宽度，返回总宽度，否则返回 undefined
-  return hasWidth ? totalWidth : undefined
+  return totalWidth > 0 ? totalWidth + TABLE_SCROLL_X_BUFFER : undefined
 })
 
 function resolveColumnWidth(value) {

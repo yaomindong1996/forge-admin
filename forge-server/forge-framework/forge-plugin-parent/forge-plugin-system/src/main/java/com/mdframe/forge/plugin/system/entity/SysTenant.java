@@ -111,7 +111,13 @@ public class SysTenant extends BaseEntity {
     private String defaultBusinessDatasourceCode;
 
     /**
-    * 主题配置
-    */
+     * 删除标志：0-正常 1-删除
+     */
+    @TableLogic
+    private Integer delFlag;
+
+    /**
+     * 主题配置
+     */
     private String themeConfig;
 }

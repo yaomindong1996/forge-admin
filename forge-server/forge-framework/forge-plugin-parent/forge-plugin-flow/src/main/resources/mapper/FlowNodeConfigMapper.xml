@@ -8,6 +8,7 @@
         INNER JOIN sys_flow_model m ON c.model_id = m.id
         WHERE m.model_key = #{modelKey}
           AND c.node_id = #{nodeId}
+          AND c.del_flag = 0
           AND (m.del_flag IS NULL OR m.del_flag = 0)
         ORDER BY c.update_time DESC, c.create_time DESC
         LIMIT 1

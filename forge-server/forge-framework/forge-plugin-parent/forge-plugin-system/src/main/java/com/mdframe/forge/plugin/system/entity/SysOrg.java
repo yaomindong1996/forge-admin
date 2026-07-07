@@ -46,16 +46,16 @@ public class SysOrg extends TenantEntity {
      * 排序（值越小越靠前）
      */
     private Integer sort;
-    
+
     @TransField(dictType = "sys_org_type")
     private String orgType;
-    
+
     @TableField(exist = false)
     private String orgTypeName;
-    
+
     @TransField(dictType = "sys_normal_disable")
     private Integer orgStatus;
-    
+
     @TableField(exist = false)
     private String orgStatusName;
 
@@ -83,11 +83,17 @@ public class SysOrg extends TenantEntity {
      * 备注
      */
     private String remark;
-    
+
     /**
      * 行政区划编码
      */
     private String regionCode;
+
+    /**
+     * 删除标志：0-正常 1-删除
+     */
+    @TableLogic
+    private Integer delFlag;
 
     /**
      * 子组织列表（非数据库字段）

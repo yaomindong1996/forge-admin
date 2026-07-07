@@ -64,6 +64,7 @@
             SELECT GROUP_CONCAT(COALESCE(cu.real_name, cu.username) ORDER BY cu.id SEPARATOR ',')
             FROM sys_user cu
             WHERE FIND_IN_SET(cu.id, po.countersign_user_ids)
+              AND cu.del_flag = 0
         ) AS countersign_user_names,
         po.cc_role_keys,
         po.arrival_list_file_ids,
@@ -84,9 +85,10 @@
         SELECT
         <include refid="BaseColumns" />
         FROM sample_purchase_order po
-        LEFT JOIN sys_user dept_user ON dept_user.id = po.dept_leader_id
-        LEFT JOIN sys_user engineering_user ON engineering_user.id = po.engineering_manager_id
+        LEFT JOIN sys_user dept_user ON dept_user.id = po.dept_leader_id AND dept_user.del_flag = 0
+        LEFT JOIN sys_user engineering_user ON engineering_user.id = po.engineering_manager_id AND engineering_user.del_flag = 0
         WHERE po.tenant_id = #{tenantId}
+          AND po.del_flag = '0'
         <if test="query != null and query.orderNo != null and query.orderNo != ''">
             AND po.order_no LIKE CONCAT('%', #{query.orderNo}, '%')
         </if>
@@ -106,9 +108,10 @@
         SELECT
         <include refid="BaseColumns" />
         FROM sample_purchase_order po
-        LEFT JOIN sys_user dept_user ON dept_user.id = po.dept_leader_id
-        LEFT JOIN sys_user engineering_user ON engineering_user.id = po.engineering_manager_id
+        LEFT JOIN sys_user dept_user ON dept_user.id = po.dept_leader_id AND dept_user.del_flag = 0
+        LEFT JOIN sys_user engineering_user ON engineering_user.id = po.engineering_manager_id AND engineering_user.del_flag = 0
         WHERE po.tenant_id = #{tenantId}
+          AND po.del_flag = '0'
           AND po.id = #{id}
         LIMIT 1
     </select>
@@ -117,9 +120,10 @@
         SELECT
         <include refid="BaseColumns" />
         FROM sample_purchase_order po
-        LEFT JOIN sys_user dept_user ON dept_user.id = po.dept_leader_id
-        LEFT JOIN sys_user engineering_user ON engineering_user.id = po.engineering_manager_id
+        LEFT JOIN sys_user dept_user ON dept_user.id = po.dept_leader_id AND dept_user.del_flag = 0
+        LEFT JOIN sys_user engineering_user ON engineering_user.id = po.engineering_manager_id AND engineering_user.del_flag = 0
         WHERE po.tenant_id = #{tenantId}
+          AND po.del_flag = '0'
           AND po.id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
@@ -138,6 +142,7 @@
             purchase_items,
             need_date,
             status,
+            del_flag,
             applicant_id,
             applicant_name,
             applicant_dept_id,
@@ -163,6 +168,7 @@
         FROM sample_purchase_order
         WHERE tenant_id = #{tenantId}
           AND business_key = #{businessKey}
+          AND del_flag = '0'
         ORDER BY update_time DESC, id DESC
         LIMIT 1
     </select>

@@ -163,13 +163,16 @@
         LEFT JOIN ai_business_object o
           ON o.tenant_id = b.tenant_id
          AND o.object_code = b.target_code
+         AND o.del_flag = '0'
         LEFT JOIN ai_business_suite s
           ON s.tenant_id = o.tenant_id
          AND s.suite_code = o.suite_code
+         AND s.del_flag = '0'
         WHERE b.tenant_id = #{tenantId}
           AND b.target_type = 'OBJECT'
           AND b.binding_type = 'FLOW'
           AND b.status = 1
+          AND o.id IS NOT NULL
           AND (
             b.binding_key = #{modelKey}
             OR (

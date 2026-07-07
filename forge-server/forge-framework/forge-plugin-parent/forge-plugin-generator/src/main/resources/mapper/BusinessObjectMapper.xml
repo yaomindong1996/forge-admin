@@ -22,6 +22,7 @@
         <result column="last_publish_time" property="lastPublishTime"/>
         <result column="last_publish_version" property="lastPublishVersion"/>
         <result column="designer_options" property="designerOptions"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
         <result column="create_dept" property="createDept"/>
@@ -49,6 +50,7 @@
         last_publish_time,
         last_publish_version,
         designer_options,
+        del_flag,
         create_by,
         create_time,
         create_dept,
@@ -58,6 +60,7 @@
 
     <sql id="Object_Query_Where">
         WHERE o.tenant_id = #{tenantId}
+          AND o.del_flag = '0'
         <if test="query != null and query.keyword != null and query.keyword != ''">
           AND (
             o.object_code LIKE CONCAT('%', #{query.keyword}, '%')
@@ -118,6 +121,7 @@
         FROM ai_business_object o
         LEFT JOIN ai_business_suite s
           ON s.tenant_id = o.tenant_id AND s.suite_code = o.suite_code
+         AND s.del_flag = '0'
         LEFT JOIN (
           SELECT tenant_id, suite_code, source_object_code AS object_code, COUNT(1) AS relation_count
           FROM ai_business_object_relation
@@ -132,6 +136,7 @@
         LEFT JOIN (
           SELECT tenant_id, suite_code, object_code, COUNT(1) AS app_count
           FROM ai_business_app
+          WHERE del_flag = '0'
           GROUP BY tenant_id, suite_code, object_code
         ) a ON a.tenant_id = o.tenant_id AND a.suite_code = o.suite_code AND a.object_code = o.object_code
     </sql>
@@ -151,6 +156,7 @@
     <select id="selectObjectDetail" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectVO">
         <include refid="Object_VO_Select"/>
         WHERE o.tenant_id = #{tenantId}
+          AND o.del_flag = '0'
           AND o.id = #{id}
         LIMIT 1
     </select>
@@ -158,6 +164,7 @@
     <select id="selectObjectDetailByCode" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectVO">
         <include refid="Object_VO_Select"/>
         WHERE o.tenant_id = #{tenantId}
+          AND o.del_flag = '0'
           AND o.suite_code = #{suiteCode}
           AND o.object_code = #{objectCode}
         LIMIT 1
@@ -168,6 +175,7 @@
         <include refid="Base_Columns"/>
         FROM ai_business_object
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND suite_code = #{suiteCode}
           AND object_code = #{objectCode}
         LIMIT 1
@@ -178,6 +186,7 @@
         <include refid="Base_Columns"/>
         FROM ai_business_object
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND object_code = #{objectCode}
         ORDER BY status DESC, update_time DESC, id DESC
         LIMIT 1
@@ -188,6 +197,7 @@
         <include refid="Base_Columns"/>
         FROM ai_business_object
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND config_key = #{configKey}
         ORDER BY status DESC, update_time DESC, id DESC
         LIMIT 1
@@ -197,6 +207,7 @@
         SELECT COUNT(1)
         FROM ai_business_object
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND suite_code = #{suiteCode}
           AND object_code = #{objectCode}
         <if test="excludeId != null">
@@ -216,6 +227,7 @@
         SELECT COUNT(1)
         FROM ai_business_app
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND suite_code = #{suiteCode}
           AND object_code = #{objectCode}
     </select>
@@ -233,6 +245,7 @@
         SET suite_code = #{newSuiteCode},
             update_time = NOW()
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND suite_code = #{oldSuiteCode}
           AND object_code = #{objectCode}
     </update>
@@ -251,6 +264,7 @@
         SET suite_code = #{newSuiteCode},
             update_time = NOW()
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND suite_code = #{oldSuiteCode}
           AND object_code = #{objectCode}
     </update>
@@ -270,6 +284,7 @@
         <include refid="Base_Columns"/>
         FROM ai_business_object
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND suite_code = #{suiteCode}
         ORDER BY sort_order ASC, id ASC
     </select>

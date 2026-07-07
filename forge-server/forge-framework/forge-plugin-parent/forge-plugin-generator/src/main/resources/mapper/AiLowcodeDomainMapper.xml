@@ -19,6 +19,7 @@
         <result column="default_layout_type" property="defaultLayoutType"/>
         <result column="default_table_mode" property="defaultTableMode"/>
         <result column="domain_schema" property="domainSchema"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
         <result column="create_dept" property="createDept"/>
@@ -43,6 +44,7 @@
         default_layout_type,
         default_table_mode,
         domain_schema,
+        del_flag,
         create_by,
         create_time,
         create_dept,
@@ -55,6 +57,7 @@
         <include refid="Base_Columns"/>
         FROM ai_lowcode_domain
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
         <if test="keyword != null and keyword != ''">
           AND (
             domain_code LIKE CONCAT('%', #{keyword}, '%')
@@ -76,6 +79,7 @@
         <include refid="Base_Columns"/>
         FROM ai_lowcode_domain
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
         <if test="keyword != null and keyword != ''">
           AND (
             domain_code LIKE CONCAT('%', #{keyword}, '%')
@@ -94,6 +98,7 @@
         <include refid="Base_Columns"/>
         FROM ai_lowcode_domain
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND id = #{id}
         LIMIT 1
     </select>
@@ -103,6 +108,7 @@
         <include refid="Base_Columns"/>
         FROM ai_lowcode_domain
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND domain_code = #{domainCode}
         LIMIT 1
     </select>
@@ -111,6 +117,7 @@
         SELECT COUNT(1)
         FROM ai_lowcode_domain
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND domain_code = #{domainCode}
         <if test="excludeId != null">
           AND id != #{excludeId}
@@ -121,6 +128,7 @@
         SELECT COUNT(1)
         FROM ai_lowcode_domain
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND parent_id = #{parentId}
           AND domain_name = #{domainName}
         <if test="excludeId != null">
@@ -132,6 +140,7 @@
         SELECT COUNT(1)
         FROM ai_lowcode_domain
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND parent_id = #{parentId}
     </select>
 
@@ -140,6 +149,7 @@
         FROM ai_crud_config
         WHERE tenant_id = #{tenantId}
           AND domain_id = #{domainId}
+          AND del_flag = '0'
           AND mode = 'CONFIG'
           AND build_mode = 'LOWCODE'
     </select>
@@ -153,6 +163,7 @@
         FROM ai_crud_config
         WHERE tenant_id = #{tenantId}
           AND domain_id = #{domainId}
+          AND del_flag = '0'
           AND mode = 'CONFIG'
           AND build_mode = 'LOWCODE'
     </select>
@@ -168,6 +179,7 @@
         FROM ai_crud_config
         WHERE tenant_id = #{tenantId}
           AND domain_id = #{domainId}
+          AND del_flag = '0'
           AND mode = 'CONFIG'
           AND build_mode = 'LOWCODE'
         ORDER BY update_time DESC, id DESC
@@ -188,9 +200,10 @@
           v.create_time AS createTime,
           v.create_by AS createBy
         FROM ai_crud_config_version v
-        LEFT JOIN ai_crud_config c
+        INNER JOIN ai_crud_config c
           ON c.tenant_id = v.tenant_id
          AND c.id = v.config_id
+         AND c.del_flag = '0'
         WHERE v.tenant_id = #{tenantId}
           AND v.domain_id = #{domainId}
         ORDER BY v.create_time DESC, v.id DESC

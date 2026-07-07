@@ -19,6 +19,7 @@
         <result column="template_scope" property="templateScope" />
         <result column="publish_url" property="publishUrl" />
         <result column="publish_time" property="publishTime" />
+        <result column="del_flag" property="delFlag" />
         <result column="copied_count" property="copiedCount" />
         <result column="create_dept" property="createDept" />
         <result column="create_by" property="createBy" />
@@ -32,7 +33,7 @@
     <sql id="Base_Column_List">
         t.id, t.tenant_id, t.source_project_id, t.directory_id, t.template_name, t.remark, t.index_img, t.status,
         t.canvas_width, t.canvas_height, t.background_color, t.component_data,
-        t.publish_status, t.template_scope, t.publish_url, t.publish_time, t.copied_count,
+        t.publish_status, t.template_scope, t.publish_url, t.publish_time, t.del_flag, t.copied_count,
         t.create_dept, t.create_by, t.create_time, t.update_by, t.update_time
     </sql>
 
@@ -88,5 +89,19 @@
           AND t.del_flag = '0'
         LIMIT 1
     </select>
+
+    <select id="selectTemplateByIdIncludingDeleted" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM ai_report_template t
+        WHERE t.id = #{id}
+        LIMIT 1
+    </select>
+
+    <update id="restoreTemplateById">
+        UPDATE ai_report_template
+        SET del_flag = '0'
+        WHERE id = #{id}
+    </update>
 
 </mapper>

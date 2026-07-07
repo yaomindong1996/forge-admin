@@ -13,6 +13,7 @@
         <result column="dimension_definition" property="dimensionDefinition"/>
         <result column="usage_guide" property="usageGuide"/>
         <result column="status" property="status"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="dataset_count" property="datasetCount"/>
         <result column="dataset_names" property="datasetNames"/>
         <result column="create_by" property="createBy"/>
@@ -30,12 +31,13 @@
         LEFT JOIN (
             SELECT bd.tenant_id,
                    bd.business_id,
-                   COUNT(1) AS dataset_count,
+                   COUNT(ds.id) AS dataset_count,
                    GROUP_CONCAT(ds.dataset_name ORDER BY bd.is_primary DESC, bd.sort ASC, bd.id ASC SEPARATOR '、') AS dataset_names
             FROM ai_report_data_business_dataset bd
             LEFT JOIN ai_report_data_dataset ds
                 ON ds.tenant_id = bd.tenant_id
                 AND ds.id = bd.dataset_id
+                AND ds.del_flag = '0'
             WHERE bd.tenant_id = #{tenantId}
             GROUP BY bd.tenant_id, bd.business_id
         ) ds_stat
@@ -46,6 +48,7 @@
     <select id="selectBusinessPage" resultMap="BaseResultMap">
         <include refid="BusinessSelect"/>
         WHERE b.tenant_id = #{tenantId}
+          AND b.del_flag = '0'
         <if test="businessName != null and businessName != ''">
             AND (b.business_name LIKE CONCAT('%', #{businessName}, '%')
                 OR b.business_code LIKE CONCAT('%', #{businessName}, '%'))
@@ -59,6 +62,7 @@
     <select id="selectBusinessList" resultMap="BaseResultMap">
         <include refid="BusinessSelect"/>
         WHERE b.tenant_id = #{tenantId}
+          AND b.del_flag = '0'
         <if test="status != null">
             AND b.status = #{status}
         </if>
@@ -70,6 +74,7 @@
         FROM ai_report_data_business_definition
         WHERE tenant_id = #{tenantId}
           AND business_code = #{businessCode}
+          AND del_flag = '0'
         LIMIT 1
     </select>
 </mapper>

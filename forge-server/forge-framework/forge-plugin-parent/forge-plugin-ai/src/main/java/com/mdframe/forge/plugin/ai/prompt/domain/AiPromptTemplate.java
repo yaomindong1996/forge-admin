@@ -2,6 +2,7 @@ package com.mdframe.forge.plugin.ai.prompt.domain;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.mdframe.forge.starter.tenant.core.TenantEntity;
 import lombok.Data;
@@ -42,6 +43,9 @@ public class AiPromptTemplate extends TenantEntity {
     private String exampleInput;
 
     private String status;
+
+    @TableLogic
+    private String delFlag;
 
     private String isRecommended;
 

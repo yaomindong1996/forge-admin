@@ -24,13 +24,14 @@
         <result column="update_by" property="updateBy"/>
         <result column="update_time" property="updateTime"/>
         <result column="tenant_id" property="tenantId"/>
+        <result column="del_flag" property="delFlag"/>
     </resultMap>
 
     <!-- 通用查询列 -->
     <sql id="Base_Column_List">
         id, api_name, api_code, req_method, url_path, api_version, module_code, service_id,
         auth_flag, encrypt_flag, tenant_flag, limit_flag, sensitive_fields, status, remark,
-        create_by, create_time, update_by, update_time, tenant_id
+        create_by, create_time, update_by, update_time, tenant_id, del_flag
     </sql>
 
     <!-- 根据请求路径和方法查询配置 -->
@@ -41,6 +42,7 @@
         WHERE url_path = #{urlPath}
         AND req_method = #{reqMethod}
         AND status = 1
+        AND del_flag = 0
         LIMIT 1
     </select>
 
@@ -50,6 +52,7 @@
         <include refid="Base_Column_List"/>
         FROM sys_api_config
         WHERE api_code = #{apiCode}
+        AND del_flag = 0
         LIMIT 1
     </select>
 
@@ -59,6 +62,7 @@
         <include refid="Base_Column_List"/>
         FROM sys_api_config
         WHERE module_code = #{moduleCode}
+        AND del_flag = 0
         ORDER BY id ASC
     </select>
 
@@ -68,6 +72,7 @@
         <include refid="Base_Column_List"/>
         FROM sys_api_config
         WHERE status = 1
+        AND del_flag = 0
         ORDER BY id ASC
     </select>
 

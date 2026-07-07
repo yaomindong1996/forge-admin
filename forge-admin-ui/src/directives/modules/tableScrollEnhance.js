@@ -116,7 +116,7 @@ function resolveTableRoot(root) {
   return root.closest?.('.n-data-table') || root
 }
 
-function syncTableScrollLeft(root, source) {
+function collectScrollContainers(root) {
   const tableRoot = resolveTableRoot(root)
   const containers = new Set([tableRoot])
 
@@ -124,12 +124,57 @@ function syncTableScrollLeft(root, source) {
     tableRoot.querySelectorAll(selector).forEach(container => containers.add(container))
   })
 
+  return Array.from(containers).filter(isScrollableX)
+}
+
+function syncTableScrollLeft(root, source, state) {
+  const containers = collectScrollContainers(root)
+  const changedContainers = []
+
+  if (state) {
+    state.syncing = true
+  }
+
   containers.forEach((container) => {
-    if (container === source || !isScrollableX(container)) {
+    if (container === source) {
+      return
+    }
+    if (Math.abs(container.scrollLeft - source.scrollLeft) <= 1) {
       return
     }
     container.scrollLeft = source.scrollLeft
+    changedContainers.push(container)
   })
+
+  changedContainers.forEach(dispatchScrollEvent)
+
+  if (state) {
+    state.syncing = false
+  }
+}
+
+function unbindScrollListeners(state) {
+  if (!state?.scrollContainers?.length || !state.onScroll) {
+    return
+  }
+  state.scrollContainers.forEach(container => container.removeEventListener('scroll', state.onScroll))
+  state.scrollContainers = []
+}
+
+function bindScrollListeners(root, state) {
+  unbindScrollListeners(state)
+  state.onScroll = state.onScroll || ((event) => {
+    if (state.syncing || state.dragging) {
+      return
+    }
+    const source = event.currentTarget
+    if (!(source instanceof HTMLElement)) {
+      return
+    }
+    syncTableScrollLeft(root, source, state)
+  })
+  state.scrollContainers = collectScrollContainers(root)
+  state.scrollContainers.forEach(container => container.addEventListener('scroll', state.onScroll, { passive: true }))
 }
 
 function updateOverflowState(root) {
@@ -153,7 +198,8 @@ function refreshTableState(root) {
     return
   }
 
-  syncTableScrollLeft(root, scrollContainer)
+  const state = ENHANCED_STATE.get(root)
+  syncTableScrollLeft(root, scrollContainer, state)
   dispatchScrollEvent(scrollContainer)
   const header = resolveTableRoot(root).querySelector('.n-data-table-base-table-header')
   if (header) {
@@ -172,6 +218,7 @@ function scheduleTableStateRefresh(root, state) {
   }
   state.refreshTimer = window.setTimeout(() => {
     state.refreshTimer = null
+    bindScrollListeners(root, state)
     refreshTableState(root)
   }, 0)
 }
@@ -184,6 +231,7 @@ function cleanup(el) {
   if (state.refreshTimer) {
     window.clearTimeout(state.refreshTimer)
   }
+  unbindScrollListeners(state)
   el.removeEventListener('mousedown', state.onMouseDown, true)
   el.removeEventListener('click', state.onClickCapture, true)
   document.removeEventListener('mousemove', state.onMouseMove, true)
@@ -213,6 +261,9 @@ function bindTableScrollEnhance(el, value) {
     previousUserSelect: '',
     preventClick: false,
     refreshTimer: null,
+    scrollContainers: [],
+    onScroll: null,
+    syncing: false,
   }
 
   state.onMouseDown = (event) => {
@@ -249,7 +300,7 @@ function bindTableScrollEnhance(el, value) {
     state.moved = true
     state.preventClick = true
     state.scrollContainer.scrollLeft = state.startScrollLeft - deltaX
-    syncTableScrollLeft(el, state.scrollContainer)
+    syncTableScrollLeft(el, state.scrollContainer, state)
     event.preventDefault()
   }
 

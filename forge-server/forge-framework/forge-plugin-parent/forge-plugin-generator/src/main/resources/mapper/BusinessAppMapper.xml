@@ -18,6 +18,7 @@
         <result column="status" property="status"/>
         <result column="sort_order" property="sortOrder"/>
         <result column="options" property="options"/>
+        <result column="del_flag" property="delFlag"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
         <result column="create_dept" property="createDept"/>
@@ -41,6 +42,7 @@
         status,
         sort_order,
         options,
+        del_flag,
         create_by,
         create_time,
         create_dept,
@@ -50,6 +52,7 @@
 
     <sql id="App_Query_Where">
         WHERE a.tenant_id = #{tenantId}
+          AND a.del_flag = '0'
         <if test="query != null and query.keyword != null and query.keyword != ''">
           AND (
             a.app_code LIKE CONCAT('%', #{query.keyword}, '%')
@@ -105,8 +108,10 @@
         FROM ai_business_app a
         LEFT JOIN ai_business_suite s
           ON s.tenant_id = a.tenant_id AND s.suite_code = a.suite_code
+         AND s.del_flag = '0'
         LEFT JOIN ai_business_object o
           ON o.tenant_id = a.tenant_id AND o.suite_code = a.suite_code AND o.object_code = a.object_code
+         AND o.del_flag = '0'
         LEFT JOIN (
           SELECT tenant_id, target_id, COUNT(1) AS binding_count
           FROM ai_business_binding
@@ -130,6 +135,7 @@
     <select id="selectAppDetail" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessAppVO">
         <include refid="App_VO_Select"/>
         WHERE a.tenant_id = #{tenantId}
+          AND a.del_flag = '0'
           AND a.id = #{id}
         LIMIT 1
     </select>
@@ -139,6 +145,7 @@
         <include refid="Base_Columns"/>
         FROM ai_business_app
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND id = #{id}
         LIMIT 1
     </select>
@@ -148,6 +155,7 @@
         <include refid="Base_Columns"/>
         FROM ai_business_app
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND app_code = #{appCode}
         LIMIT 1
     </select>
@@ -157,6 +165,7 @@
         <include refid="Base_Columns"/>
         FROM ai_business_app
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND config_key = #{configKey}
         LIMIT 1
     </select>
@@ -166,6 +175,7 @@
         <include refid="Base_Columns"/>
         FROM ai_business_app
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND suite_code = #{suiteCode}
           AND object_code = #{objectCode}
           AND app_type = 'BUSINESS'
@@ -185,6 +195,7 @@
         <include refid="Base_Columns"/>
         FROM ai_business_app
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND suite_code = #{suiteCode}
           AND object_code = #{objectCode}
           AND app_type = 'BUSINESS'
@@ -200,6 +211,7 @@
         <include refid="Base_Columns"/>
         FROM ai_business_app
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
         <choose>
           <when test="suiteCodes != null and suiteCodes.size() > 0">
             AND suite_code IN
@@ -218,6 +230,7 @@
         SELECT COUNT(1)
         FROM ai_business_app
         WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
           AND app_code = #{appCode}
         <if test="excludeId != null">
           AND id != #{excludeId}

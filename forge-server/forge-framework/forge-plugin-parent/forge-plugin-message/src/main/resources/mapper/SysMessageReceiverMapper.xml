@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mdframe.forge.plugin.message.mapper.SysMessageReceiverMapper">
-    
-    
+
     <select id="selectReceiversWithUserInfo"
             resultType="com.mdframe.forge.plugin.message.domain.vo.ReceiverVO">
         SELECT r.user_id, u.real_name as user_name, o.org_name, r.read_flag, r.read_time
             FROM sys_message_receiver r
-            LEFT JOIN sys_user u ON r.user_id = u.id
+            LEFT JOIN sys_user u
+                ON r.user_id = u.id
+               AND u.del_flag = 0
             LEFT JOIN sys_user_org so on so.user_id = u.id and so.is_main = '1'
-            LEFT JOIN sys_org o ON so.org_id = o.id
+            LEFT JOIN sys_org o
+                ON so.org_id = o.id
+               AND o.tenant_id = so.tenant_id
+               AND o.del_flag = 0
             WHERE r.message_id = #{messageId}
     </select>
     <select id="selectUserWebMessages" resultType="com.mdframe.forge.plugin.message.domain.vo.MessageVO">
