@@ -48,14 +48,18 @@
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-openai</artifactId>
-            <version>${spring-ai.version}</version>
         </dependency>
 
         <!-- Spring AI Client Chat（ChatClient、ChatMemory、MessageChatMemoryAdvisor 等对话客户端接口） -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-client-chat</artifactId>
-            <version>${spring-ai.version}</version>
+        </dependency>
+
+        <!-- DashScope 核心模型（非 starter，供应商配置来自租户数据库） -->
+        <dependency>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-dashscope</artifactId>
         </dependency>
 
         <!-- Caffeine 本地缓存 -->

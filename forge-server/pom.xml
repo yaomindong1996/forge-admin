@@ -55,9 +55,10 @@
         <flowable.version>7.0.1</flowable.version>
         <flyway.version>10.20.1</flyway.version>
 
-        <!-- Spring AI Alibaba (兼容 Spring Boot 3.2.x) -->
-        <spring-ai-alibaba.version>1.1.2.0</spring-ai-alibaba.version>
+        <!-- Spring AI / Spring AI Alibaba -->
         <spring-ai.version>1.1.2</spring-ai.version>
+        <spring-ai-alibaba.version>1.1.2.3</spring-ai-alibaba.version>
+        <spring-ai-alibaba-extensions.version>1.1.2.3</spring-ai-alibaba-extensions.version>
         
         <!-- 插件版本 -->
         <maven-jar-plugin.version>3.2.2</maven-jar-plugin.version>
@@ -140,6 +141,27 @@
                 <groupId>com.mdframe.forge</groupId>
                 <artifactId>forge-dependencies</artifactId>
                 <version>1.0.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-extensions-bom</artifactId>
+                <version>${spring-ai-alibaba-extensions.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-bom</artifactId>
+                <version>${spring-ai-alibaba.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
