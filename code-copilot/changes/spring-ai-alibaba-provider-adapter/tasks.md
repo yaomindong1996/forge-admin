@@ -50,12 +50,12 @@
   }
   ```
 - **实施步骤**：
-  - [ ] 先编写 `AiProviderAdapterCodeTest`，验证两个合法值以及 null/blank/unknown 失败关闭；
-  - [ ] 新增 Flyway 字段检查，字段不存在时添加 `varchar(32) NOT NULL DEFAULT 'openai_compatible'`；
-  - [ ] 字段首次新增时由默认值覆盖历史记录；若字段已存在，只更新 `adapter_code IS NULL OR TRIM(adapter_code)=''`，不得覆盖任何非空值；
-  - [ ] 使用 `NOT EXISTS` 写入 `ai_provider_adapter_type` 及两条 tenant_id=`1` 字典数据；
-  - [ ] 实体显式映射 `adapterCode`，默认值只在服务创建链路和数据库中定义，不依赖前端；
-  - [ ] 运行 Flyway placeholder 静态扫描和 SQL 防重复检查。
+  - [x] 先编写 `AiProviderAdapterCodeTest`，验证两个合法值以及 null/blank/unknown 失败关闭；
+  - [x] 新增 Flyway 字段检查，字段不存在时添加 `varchar(32) NOT NULL DEFAULT 'openai_compatible'`；
+  - [x] 字段首次新增时由默认值覆盖历史记录；若字段已存在，只更新 `adapter_code IS NULL OR TRIM(adapter_code)=''`，不得覆盖任何非空值；
+  - [x] 使用 `NOT EXISTS` 写入 `ai_provider_adapter_type` 及两条 tenant_id=`1` 字典数据；
+  - [x] 实体显式映射 `adapterCode`，默认值只在服务创建链路和数据库中定义，不依赖前端；
+  - [x] 运行 Flyway placeholder 静态扫描和 SQL 防重复检查。
 - **验收标准**：首次迁移的旧记录均为 Compatible；脚本重跑不覆盖预置的 `dashscope_native`；新字典可由 `useDict` 获取；未知代码抛业务异常。
 
 ## Task 3: 建立 Provider Adapter SPI

@@ -34,6 +34,11 @@ public class AiProvider extends TenantEntity {
     private String providerType;
 
     /**
+     * 连接适配器代码（openai_compatible/dashscope_native）
+     */
+    private String adapterCode;
+
+    /**
      * 供应商Logo（文件ID或URL）
      */
     private String logo;

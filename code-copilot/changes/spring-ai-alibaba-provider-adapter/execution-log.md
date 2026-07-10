@@ -24,6 +24,8 @@
 | 2026-07-10 | Git 环境恢复 | 权限放开后创建 `feature/spring-ai-alibaba-provider-adapter` | 已切换到独立 feature 分支；前述 Git 跳过限制解除 |
 | 2026-07-10 | Apply 基线 | 运行 AI 插件 dependency tree 与 `AiInvocationResolverTest` | 变更前仅 Spring AI `1.1.2`；测试 2/2 通过，确认 `-Penable-tests` 生效 |
 | 2026-07-10 | Task 1 | 导入 Spring AI/Extensions/Alibaba 三个 BOM并增加 DashScope Core | dependency tree 收敛：Spring AI `1.1.2`、DashScope `1.1.2.3`；AI 插件 reactor compile SUCCESS，未引入 Starter |
+| 2026-07-10 | Task 2 Red | 仅新增 `AiProviderAdapterCodeTest` 后执行定向测试 | testCompile 按预期失败：`AiProviderAdapterCode` 尚不存在，Red 证据成立 |
+| 2026-07-10 | Task 2 Green | 实现 Adapter Code、实体字段和 `V1.0.17` 迁移 | 定向测试 2/2 通过；全迁移 placeholder 扫描无输出；字段/字典防重复静态检查通过 |
 
 ## 技术决策
 
