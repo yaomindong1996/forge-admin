@@ -42,6 +42,7 @@
 | 2026-07-10 | Code Quality Review | 检查 Adapter、生命周期、缓存、事务与密钥边界 | 发现活动事务未启用同步时可能提前清缓存；改为 fail-closed 并增加回归测试，同时修正 Controller 既有大括号格式 |
 | 2026-07-10 | Review 修复复验 | 运行 AI 插件完整测试 | 45 tests 全过，24 模块 reactor BUILD SUCCESS；未启动服务 |
 | 2026-07-10 | Task 8 | 回填战略方案、阶段路线图、Spec/Task/Test 和长期记忆 | 明确 Alibaba 增强层、依赖基线、核心模块、显式协议路由、阶段边界与旧应用回退前置条件；状态进入 review |
+| 2026-07-11 | `/review` 独立复审 | 不采信既有 PASS 报告，从 `origin/main..HEAD` 重新检查 Spec 与真实代码 | Spec Compliance PASS；Code Quality PASS；无 Critical/Important，记录 2 项非阻断加固建议 |
 
 ## 技术决策
 
@@ -101,6 +102,7 @@
 | 2026-07-10 | 可选公网 DashScope | 检查 `AI_DASHSCOPE_API_KEY` 是否存在 | 环境变量未设置，按 Test Spec 明确跳过真实同步/流式调用 | 不把无凭据/未调用写成通过；无费用产生 | 无服务启动 |
 | 2026-07-10 | Review 修复复验 | `mvn -Penable-tests -pl forge-framework/forge-plugin-parent/forge-plugin-ai -am test` | 45 tests，Failures/Errors/Skipped 均为 0；24 模块 reactor BUILD SUCCESS | JVM CDS 与 spring-jcl/commons-logging 既有警告；无新增阻断 | 无服务启动 |
 | 2026-07-10 | Task 8 静态收尾 | `git diff --check`；未跟踪路线图 `git diff --no-index --check`；`test -f` 路径检查；`rg` 状态/陈旧描述/未完成项检查 | 已跟踪差异无 whitespace 错误；路线图检查仅返回 no-index 差异码且无错误输出；关键路径存在；Spec/Test 均为 review，Task/Test 无未完成项 | 未执行外部写入或服务启动 | 无服务启动 |
+| 2026-07-11 | `/review` 独立验证 | AI 插件 `-Penable-tests -am test`；AI `dependency:tree`；Node `20.19.0` `pnpm build`；`xmllint`；Flyway placeholder/Starter/diff 扫描 | 45 tests、24 模块 reactor BUILD SUCCESS；Spring AI `1.1.2`、DashScope Core `1.1.2.3`；8485 modules、Vite build SUCCESS；静态检查通过 | 保留 JVM CDS、commons-logging、UserSelectModal、import/CSS/bundle 既有警告；公网 API Key/隔离 dev 库缺失项未扩展执行 | 无服务启动 |
 
 ## 代码质量备忘
 
@@ -120,3 +122,10 @@
 - 保留跳过项：未提供 `AI_DASHSCOPE_API_KEY`，未执行付费公网模型调用；未提供隔离 dev 数据库，未实跑 Flyway；
 - 服务清理：本变更未启动后端或前端服务；
 - 当前状态：review，未归档、未推送。
+
+### 2026-07-11 独立复审补充
+
+- 未发现 Critical 或 Important 问题；
+- 非阻断建议 1：后续迁移可对已存在的 `adapter_code` 列继续校验类型、默认值和 nullability，覆盖非标准半迁移数据库；
+- 非阻断建议 2：未来新增 Adapter 时，可把 `testConnection` 的配置校验和网络调用放到不同异常边界，确保任何自定义 Adapter 的网络异常都统一安全化；
+- 最终结论仍为 Spec Compliance PASS / Code Quality PASS，可进入 `/archive`。
