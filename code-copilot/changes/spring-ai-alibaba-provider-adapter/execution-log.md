@@ -35,6 +35,9 @@
 | 2026-07-10 | Task 5 Green | 引入 Save/Test DTO、安全 VO、密钥脱敏、严格 one-of 测试和 Registry 连接测试 | 补齐 blank Adapter、DB 失败、未保存配置测试后共 16 tests 全部通过；分页/默认查询迁入 Mapper XML |
 | 2026-07-10 | Task 5 Commit | 提交 `d46c7e3c` | 代码提交成功；提交后统计上传 Hook 再次因网络超时失败，不影响本地提交 |
 | 2026-07-10 | Task 6 | 改造活动供应商页面与 API 请求 | 增加字典驱动连接协议、受控 Native URL 联动、仅 ID 测试请求；新增/测试 POST 与更新 PUT 均启用请求加密 |
+| 2026-07-10 | Task 6 Commit | 提交 `f82a24ae` | 代码提交成功；提交后统计上传 Hook 第三次因网络超时失败，不影响本地提交 |
+| 2026-07-10 | Task 7 Native 离线回归 | 新增 `AiClientImplTest`，真实 Cache 经 Mock Registry/Fake ChatModel 运行 | 首轮同步通过、流式输出通过，但异步 `doFinally` 落库断言发生竞态；改为 Mockito timeout 后 2 tests 全部通过 |
+| 2026-07-10 | Task 7 全量验证 | AI 插件测试、AI/Admin package、Flyway 静态检查、Node 20 前端构建 | AI 44 tests 全过；AI 24 模块与 Admin 35 模块 package 成功；前端生产构建成功 |
 
 ## 技术决策
 
@@ -82,6 +85,13 @@
 | 2026-07-10 | Task 4 定向回归 | `mvn -Penable-tests -pl forge-framework/forge-plugin-parent/forge-plugin-ai -am test -Dtest=ChatClientCacheTest,AiProviderCacheEvictionSchedulerTest,AiInvocationResolverTest -Dsurefire.failIfNoSpecifiedTests=false` | 12 tests，Failures/Errors/Skipped 均为 0；reactor BUILD SUCCESS | 首轮补充用例因 Mockito `UnnecessaryStubbingException` 失败，修正为 lenient 公共桩后复跑通过 | 无服务启动 |
 | 2026-07-10 | Task 5 定向回归 | `mvn -Penable-tests -pl forge-framework/forge-plugin-parent/forge-plugin-ai -am test -Dtest=AiProviderSecretMaskerTest,AiProviderServiceTest -Dsurefire.failIfNoSpecifiedTests=false`；`xmllint --noout .../AiProviderMapper.xml` | 16 tests，Failures/Errors/Skipped 均为 0；Mapper XML 语法通过 | JVM CDS 与 commons-logging classpath 警告待全量验证统一记录；测试构造器适配和 URL fixture 修正后复跑通过 | 无服务启动 |
 | 2026-07-10 | Task 6 前端静态检查 | `pnpm exec eslint --fix src/api/ai.js src/views/ai/provider-model.vue`；`git diff --check` | ESLint 退出码 0，diff whitespace 检查通过；旧 `provider.vue` 无改动 | 当前系统 Node 为 `v26.0.0`；规定的 Node `v20.19.0` 生产构建留到 Task 7 | 无服务启动 |
+| 2026-07-10 | Native 统一调用链 | `mvn -Penable-tests -pl forge-framework/forge-plugin-parent/forge-plugin-ai -am test -Dtest=AiClientImplTest -Dsurefire.failIfNoSpecifiedTests=false` | 2 tests，Failures/Errors/Skipped 均为 0；验证 Native 同步、流式、`reasoningContent` 和最终会话内容 | 首轮因 Reactor `doFinally` 异步时序导致验证过早，改为 `timeout(2000)` 等待后复跑通过 | 无服务启动 |
+| 2026-07-10 | AI 插件全量测试 | `mvn -Penable-tests -pl forge-framework/forge-plugin-parent/forge-plugin-ai -am test` | 44 tests，Failures/Errors/Skipped 均为 0；24 模块 reactor BUILD SUCCESS | JVM CDS、spring-jcl/commons-logging 既有 classpath 警告 | 无服务启动 |
+| 2026-07-10 | AI 插件打包 | `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-ai -am package -DskipTests` | 24 模块 reactor BUILD SUCCESS，生成 AI 插件 Jar | 按命令显式跳过测试；部分既有模块有 deprecated/unchecked 编译警告 | 无服务启动 |
+| 2026-07-10 | Admin 主应用装配 | `mvn -pl forge-admin-server -am package -DskipTests` | 35 模块 reactor BUILD SUCCESS，Spring Boot repackage 成功 | 按命令显式跳过测试；既有模块有 deprecated/unchecked 编译警告 | 无服务启动 |
+| 2026-07-10 | Flyway 静态验收 | `rg -n '\$\{[^}]+\}' forge-server/db/migration`；`rg` 检查 V1.0.17 字段/字典/tenant；`xmllint --noout AiProviderMapper.xml` | placeholder 扫描无输出；迁移含 `information_schema`、`NOT EXISTS` 语义、tenant_id=`1` 和仅 NULL/blank 回填；XML 合法 | 未提供隔离 dev 数据库，未对用户本地库执行迁移；`forge_schema_history` 实库验证跳过 | 无服务启动 |
+| 2026-07-10 | 前端生产构建 | `source ~/.nvm/nvm.sh`、`nvm use 20.19.0`、`pnpm build` | Node `v20.19.0`；8485 modules transformed；Vite build SUCCESS，耗时 1m23s | 既有 UserSelectModal 重名、动态/静态 import、CSS `//` 注释和 bundle 体积警告 | 无服务启动 |
+| 2026-07-10 | 可选公网 DashScope | 检查 `AI_DASHSCOPE_API_KEY` 是否存在 | 环境变量未设置，按 Test Spec 明确跳过真实同步/流式调用 | 不把无凭据/未调用写成通过；无费用产生 | 无服务启动 |
 
 ## 代码质量备忘
 

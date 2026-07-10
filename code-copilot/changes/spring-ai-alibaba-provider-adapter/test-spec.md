@@ -181,13 +181,13 @@
 
 ## 3. 执行计划
 
-- [ ] Step 1: 运行 `AiInvocationResolverTest` 和目标模块 dependency tree，确认基线；
-- [ ] Step 2: 按 Task 2-5 逐类生成 P0 测试，并强制包含 `AiClientImplTest` 同步/流式用例，保存 Red 输出；
-- [ ] Step 3: 实现最小代码并保存 Green 输出；
-- [ ] Step 4: 运行 AI 插件完整测试、编译和主应用装配；
-- [ ] Step 5: 执行 Flyway 静态检查，有 dev 库时实跑 V1.0.17；
-- [ ] Step 6: 使用 Node `v20.19.0` 执行前端 build；
-- [ ] Step 7: 按环境条件决定是否执行真实 DashScope 集成验证并记录跳过原因；
+- [x] Step 1: 运行 `AiInvocationResolverTest` 和目标模块 dependency tree，确认基线；
+- [x] Step 2: 按 Task 2-5 逐类生成 P0 测试，并强制包含 `AiClientImplTest` 同步/流式用例，保存 Red 输出；
+- [x] Step 3: 实现最小代码并保存 Green 输出；
+- [x] Step 4: 运行 AI 插件完整测试、编译和主应用装配；
+- [x] Step 5: 执行 Flyway 静态检查，有 dev 库时实跑 V1.0.17；
+- [x] Step 6: 使用 Node `v20.19.0` 执行前端 build；
+- [x] Step 7: 按环境条件决定是否执行真实 DashScope 集成验证并记录跳过原因；
 - [ ] Step 8: 回填执行证据、警告、服务清理和 Spec/Task 状态。
 
 ### 3.1 建议命令
@@ -240,6 +240,9 @@ NODE_OPTIONS=--max-old-space-size=8192 pnpm build
 |------|----------|--------|----------|------|-----------|
 | 2026-07-10 | Spec/Tasks/Test Spec 文档 | 占位符/尾随空格、`--no-index --check`、路径/状态一致性、独立读者复审 | 文档静态检查通过；第三轮 Reader Test PASS | 本轮仅文档，不编译业务代码 | 无服务启动 |
 | 2026-07-10 | Task 1 依赖基线 | 变更前后 dependency tree、AI 插件 compile | Spring AI 全部为 `1.1.2`；DashScope Core 为 `1.1.2.3`；compile SUCCESS | 无 DashScope Starter；无服务启动 |
+| 2026-07-10 | Task 2-5 P0 增量 | Adapter Code/Registry/URL Policy/双 Adapter/Cache/Resolver/Secret/Service/Scheduler | 各 Task Red/Green 证据见 `execution-log.md`；最终并入 AI 插件全量 44 tests | JVM CDS 与 commons-logging 警告，不影响测试结论 |
+| 2026-07-10 | Task 7 Native 离线调用 | `AiClientImplTest` 同步、流式、reasoningContent 和持久化 | 2 tests，0 failure/error/skip；真实 Cache 经 Mock Registry/Fake ChatModel 进入统一链路 | 首轮异步落库断言存在竞态，改用 timeout 等待后复跑通过 |
+| 2026-07-10 | Task 7 全量验收 | AI 全量测试、AI package、Admin package、Flyway 静态检查、Node 20 前端 build | 44 tests 全过；24/35 模块 reactor package 成功；前端 8485 modules、build SUCCESS | 无环境 API Key，公网验证跳过；未启动服务；既有编译/Vite 警告已记录 |
 
 ## 6. 执行证据
 

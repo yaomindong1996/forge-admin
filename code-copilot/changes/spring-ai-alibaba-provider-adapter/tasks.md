@@ -222,15 +222,15 @@
   - `code-copilot/changes/spring-ai-alibaba-provider-adapter/test-spec.md` — 回填本轮增量；
   - `code-copilot/changes/spring-ai-alibaba-provider-adapter/execution-log.md` — 记录真实命令和结果。
 - **实施步骤**：
-  - [ ] 执行 P0 目标测试，保留 Red/Green 证据；
-  - [ ] 强制执行 `AiClientImplTest`，离线证明 Native 供应商的同步、流式与 `reasoningContent` 进入统一调用链；不得用“可选公网测试”替代；
-  - [ ] 执行 AI 插件 `-Penable-tests test`；
-  - [ ] 执行 AI 插件及依赖模块 compile/package；
-  - [ ] 执行 `forge-admin-server -am package -DskipTests`，验证主应用装配；
-  - [ ] 执行 Flyway placeholder、字段/字典防重复静态检查；有 dev 库时验证 `forge_schema_history` 和回填结果；
-  - [ ] 使用 Node `v20.19.0` 执行前端 build；
-  - [ ] 可选：人工提供 `AI_DASHSCOPE_API_KEY` 后验证一次同步和流式 `qwen-plus`，未提供时明确记录跳过原因；
-  - [ ] 记录所有警告、跳过项、服务 PID 和清理结果。
+  - [x] 执行 P0 目标测试，保留 Red/Green 证据；
+  - [x] 强制执行 `AiClientImplTest`，离线证明 Native 供应商的同步、流式与 `reasoningContent` 进入统一调用链；不得用“可选公网测试”替代；
+  - [x] 执行 AI 插件 `-Penable-tests test`；
+  - [x] 执行 AI 插件及依赖模块 compile/package；
+  - [x] 执行 `forge-admin-server -am package -DskipTests`，验证主应用装配；
+  - [x] 执行 Flyway placeholder、字段/字典防重复静态检查；有 dev 库时验证 `forge_schema_history` 和回填结果；
+  - [x] 使用 Node `v20.19.0` 执行前端 build；
+  - [x] 可选：人工提供 `AI_DASHSCOPE_API_KEY` 后验证一次同步和流式 `qwen-plus`，未提供时明确记录跳过原因；
+  - [x] 记录所有警告、跳过项、服务 PID 和清理结果。
 - **验收标准**：所有必跑项有可复跑证据；没有把网络/密钥缺失写成通过；没有新增明文密钥或未停止的测试服务。
 
 ## Task 8: 回填文档与阶段结论
