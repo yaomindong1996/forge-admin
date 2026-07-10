@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.ai.provider.mapper.AiProviderMapper">
+
+    <sql id="providerColumns">
+        id,
+        tenant_id,
+        provider_name,
+        provider_type,
+        adapter_code,
+        logo,
+        api_key,
+        base_url,
+        models,
+        default_model,
+        is_default,
+        status,
+        remark,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time,
+        del_flag
+    </sql>
+
+    <select id="selectProviderPage"
+            resultType="com.mdframe.forge.plugin.ai.provider.domain.AiProvider">
+        SELECT
+        <include refid="providerColumns"/>
+        FROM ai_provider
+        WHERE del_flag = '0'
+        <if test="providerName != null and providerName != ''">
+            AND provider_name LIKE CONCAT('%', #{providerName}, '%')
+        </if>
+        <if test="providerType != null and providerType != ''">
+            AND provider_type = #{providerType}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectDefaultProvider"
+            resultType="com.mdframe.forge.plugin.ai.provider.domain.AiProvider">
+        SELECT
+        <include refid="providerColumns"/>
+        FROM ai_provider
+        WHERE is_default = '1'
+          AND status = '0'
+          AND del_flag = '0'
+        ORDER BY create_time DESC
+        LIMIT 1
+    </select>
+</mapper>

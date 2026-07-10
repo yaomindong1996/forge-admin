@@ -93,7 +93,7 @@
 - **实施步骤**：
   - [x] 先写 Registry Red 测试：合法路由、未知值、空值、重复 code，以及 `createChatModel` 的选择→校验→创建顺序；
   - [x] `AiProviderAdapterRegistry#createChatModel` 统一执行 `getRequired → validate → adapter.createChatModel`；校验失败时不得调用创建方法；
-  - [ ] 正式调用、连接测试和 Cache 只依赖 Registry 创建入口，不直接注入具体 Adapter；
+  - [x] 正式调用、连接测试和 Cache 只依赖 Registry 创建入口，不直接注入具体 Adapter；
   - [x] 实现 Registry，错误使用 `BusinessException` 且不包含 API Key；
   - [x] 先写 Base URL Policy Red 测试，覆盖 scheme/query/fragment/userInfo、尾斜杠、官方 DashScope 双向错配和自定义代理域名；
   - [x] Compatible 在官方 DashScope 域名只接受 `/compatible-mode`；Native 只接受根路径或空值默认；自定义域名只校验不改写；
@@ -160,16 +160,16 @@
   public void deleteProvider(Long id);
   ```
 - **实施步骤**：
-  - [ ] 先写 SecretMasker Red 测试：长密钥、短密钥、空值、未变化脱敏值和新明文；
-  - [ ] 先写 Service Red 测试：更新脱敏值保留原密钥、更新明文替换、测试 ID 加载真实密钥、one-of 混合请求拒绝、SDK 敏感异常安全化、持久化成功后调度缓存失效；
-  - [ ] 页面/详情改为 `AiProviderVO`，禁止实体原样返回；
-  - [ ] DTO 的 Adapter 缺失/null 时：新增默认为 `openai_compatible`、更新保留持久化值；显式空字符串/纯空白一律拒绝；
-  - [ ] 更新前加载当前租户实体并执行脱敏回写保护；
-  - [ ] `AiProviderTestDTO` 执行严格 one-of：有 ID 时拒绝任何配置字段，无 ID 时要求 Adapter 所需完整配置，禁止数据库配置与请求字段合并；
-  - [ ] 连接测试通过 Registry 创建 `ChatModel`，固定低 Token Prompt；SDK 异常响应使用固定安全文案，日志仅含 providerId、adapterCode、异常类型；
-  - [ ] 新增、更新和测试接口保持 `@ApiDecrypt/@ApiEncrypt`；
-  - [ ] 修改、删除持久化成功后调用 `AiProviderCacheEvictionScheduler.scheduleAfterCommit(provider)`；失败或回滚不得清除缓存；
-  - [ ] `/templates` 为 DashScope Native 返回 `adapterCode=dashscope_native` 和原生 Base URL，同时保留 Compatible 选择能力。
+  - [x] 先写 SecretMasker Red 测试：长密钥、短密钥、空值、未变化脱敏值和新明文；
+  - [x] 先写 Service Red 测试：更新脱敏值保留原密钥、更新明文替换、测试 ID 加载真实密钥、one-of 混合请求拒绝、SDK 敏感异常安全化、持久化成功后调度缓存失效；
+  - [x] 页面/详情改为 `AiProviderVO`，禁止实体原样返回；
+  - [x] DTO 的 Adapter 缺失/null 时：新增默认为 `openai_compatible`、更新保留持久化值；显式空字符串/纯空白一律拒绝；
+  - [x] 更新前加载当前租户实体并执行脱敏回写保护；
+  - [x] `AiProviderTestDTO` 执行严格 one-of：有 ID 时拒绝任何配置字段，无 ID 时要求 Adapter 所需完整配置，禁止数据库配置与请求字段合并；
+  - [x] 连接测试通过 Registry 创建 `ChatModel`，固定低 Token Prompt；SDK 异常响应使用固定安全文案，日志仅含 providerId、adapterCode、异常类型；
+  - [x] 新增、更新和测试接口保持 `@ApiDecrypt/@ApiEncrypt`；
+  - [x] 修改、删除持久化成功后调用 `AiProviderCacheEvictionScheduler.scheduleAfterCommit(provider)`；失败或回滚不得清除缓存；
+  - [x] `/templates` 为 DashScope Native 返回 `adapterCode=dashscope_native` 和原生 Base URL，同时保留 Compatible 选择能力。
 - **验收标准**：浏览器无法获得真实 API Key；保存未改密钥不会覆盖；连接测试不依赖客户端回传已保存密钥；更新后下一次调用使用新配置。
 
 ## Task 6: 改造当前供应商管理页面

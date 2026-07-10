@@ -30,6 +30,9 @@
 | 2026-07-10 | Task 3 Green | 实现通用运行参数、Adapter SPI/Registry、URL Policy 和两类 ChatModel | 4 个测试类共 12 tests 全部通过；Registry 顺序、失败关闭、DashScope `maxToken` 和 ToolCalling Options 已覆盖 |
 | 2026-07-10 | Task 4 Red | 新增 Cache、事务后失效及 Native Resolver 回归测试 | testCompile 按预期失败：旧 Cache 签名仍依赖 `OpenAiChatOptions`，Scheduler 尚不存在，Red 证据成立 |
 | 2026-07-10 | Task 4 Green | Cache 改用租户安全结构化键并统一委托 Registry；同步/流式调用使用通用运行参数 | 首次补充分支测试发现 Mockito 严格模式的无效桩，调整测试桩作用域后定向 12 tests 全部通过 |
+| 2026-07-10 | Task 4 Commit | 提交 `ebaaac44` | 代码提交成功；提交后统计上传 Hook 因网络超时失败，不影响本地提交 |
+| 2026-07-10 | Task 5 Red | 新增 SecretMasker 和供应商生命周期服务测试 | testCompile 按预期失败：DTO、安全 VO 和密钥工具尚不存在，Red 证据成立 |
+| 2026-07-10 | Task 5 Green | 引入 Save/Test DTO、安全 VO、密钥脱敏、严格 one-of 测试和 Registry 连接测试 | 补齐 blank Adapter、DB 失败、未保存配置测试后共 16 tests 全部通过；分页/默认查询迁入 Mapper XML |
 
 ## 技术决策
 
@@ -75,6 +78,7 @@
 | 2026-07-10 | Reader Test 2-3 | 新上下文 Agent 复审修订文档 | 第二轮补 2 项高风险语义；第三轮 PASS | 本轮仅文档检查 | 无服务启动 |
 | 2026-07-10 | Proposal 最终静态复验 | `git status --short`、`git diff --name-only`、`git diff --check`、四文件逐一 `git diff --no-index --check`、尾随空格扫描、关键源码/vendor/文档路径检查、Flyway 版本序列检查 | 全部通过；当前最高迁移为 `V1.0.16`，计划使用 `V1.0.17` 无版本冲突 | 仅文档变更，未执行 Maven、前端构建或公网模型调用 | 无服务启动 |
 | 2026-07-10 | Task 4 定向回归 | `mvn -Penable-tests -pl forge-framework/forge-plugin-parent/forge-plugin-ai -am test -Dtest=ChatClientCacheTest,AiProviderCacheEvictionSchedulerTest,AiInvocationResolverTest -Dsurefire.failIfNoSpecifiedTests=false` | 12 tests，Failures/Errors/Skipped 均为 0；reactor BUILD SUCCESS | 首轮补充用例因 Mockito `UnnecessaryStubbingException` 失败，修正为 lenient 公共桩后复跑通过 | 无服务启动 |
+| 2026-07-10 | Task 5 定向回归 | `mvn -Penable-tests -pl forge-framework/forge-plugin-parent/forge-plugin-ai -am test -Dtest=AiProviderSecretMaskerTest,AiProviderServiceTest -Dsurefire.failIfNoSpecifiedTests=false`；`xmllint --noout .../AiProviderMapper.xml` | 16 tests，Failures/Errors/Skipped 均为 0；Mapper XML 语法通过 | JVM CDS 与 commons-logging classpath 警告待全量验证统一记录；测试构造器适配和 URL fixture 修正后复跑通过 | 无服务启动 |
 
 ## 代码质量备忘
 

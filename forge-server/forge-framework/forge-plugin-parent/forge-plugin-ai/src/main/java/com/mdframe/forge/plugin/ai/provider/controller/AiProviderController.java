@@ -1,6 +1,5 @@
 package com.mdframe.forge.plugin.ai.provider.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -8,8 +7,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdframe.forge.plugin.ai.constant.AiConstants;
 import com.mdframe.forge.plugin.ai.model.domain.AiModel;
 import com.mdframe.forge.plugin.ai.model.service.AiModelService;
+import com.mdframe.forge.plugin.ai.provider.adapter.AiProviderAdapterCode;
 import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
+import com.mdframe.forge.plugin.ai.provider.dto.AiProviderSaveDTO;
+import com.mdframe.forge.plugin.ai.provider.dto.AiProviderTestDTO;
 import com.mdframe.forge.plugin.ai.provider.service.AiProviderService;
+import com.mdframe.forge.plugin.ai.provider.vo.AiProviderVO;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.domain.RespInfo;
@@ -39,22 +42,32 @@ public class AiProviderController {
     @GetMapping("/templates")
     public RespInfo<List<Map<String, String>>> templates() {
         return RespInfo.success(List.of(
-                template("alibaba", "阿里百炼", "https://dashscope.aliyuncs.com/compatible-mode", "qwen-plus"),
-                template("openai", "OpenAI", "https://api.openai.com", "gpt-4o-mini"),
-                template("zhipu", "智谱 AI", "https://open.bigmodel.cn/api/paas/v4", "glm-4"),
-                template("moonshot", "Moonshot", "https://api.moonshot.cn/v1", "moonshot-v1-8k"),
-                template("deepseek", "DeepSeek", "https://api.deepseek.com", "deepseek-chat"),
-                template("ollama", "Ollama（本地）", "http://localhost:11434", "llama3"),
-                template("custom", "自定义", "", "")
+                template("alibaba_native", "阿里百炼（原生）", "https://dashscope.aliyuncs.com", "qwen-plus",
+                        AiProviderAdapterCode.DASHSCOPE_NATIVE.getCode()),
+                template("alibaba", "阿里百炼（兼容模式）", "https://dashscope.aliyuncs.com/compatible-mode",
+                        "qwen-plus", AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode()),
+                template("openai", "OpenAI", "https://api.openai.com", "gpt-4o-mini",
+                        AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode()),
+                template("zhipu", "智谱 AI", "https://open.bigmodel.cn/api/paas/v4", "glm-4",
+                        AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode()),
+                template("moonshot", "Moonshot", "https://api.moonshot.cn/v1", "moonshot-v1-8k",
+                        AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode()),
+                template("deepseek", "DeepSeek", "https://api.deepseek.com", "deepseek-chat",
+                        AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode()),
+                template("ollama", "Ollama（本地）", "http://localhost:11434", "llama3",
+                        AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode()),
+                template("custom", "自定义", "", "", AiProviderAdapterCode.OPENAI_COMPATIBLE.getCode())
         ));
     }
 
-    private Map<String, String> template(String key, String name, String baseUrl, String defaultModel) {
+    private Map<String, String> template(String key, String name, String baseUrl,
+                                         String defaultModel, String adapterCode) {
         Map<String, String> m = new LinkedHashMap<>();
         m.put("templateKey", key);
         m.put("name", name);
         m.put("baseUrl", baseUrl);
         m.put("defaultModel", defaultModel);
+        m.put("adapterCode", adapterCode);
         return m;
     }
 
@@ -64,20 +77,23 @@ public class AiProviderController {
     @GetMapping("/page")
     @ApiDecrypt
     @ApiEncrypt
-    public RespInfo<Page<AiProvider>> page(
+    public RespInfo<Page<AiProviderVO>> page(
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String providerName,
             @RequestParam(required = false) String providerType,
             @RequestParam(required = false) String status) {
-        LambdaQueryWrapper<AiProvider> wrapper = new LambdaQueryWrapper<AiProvider>()
-                .like(providerName != null && !providerName.isEmpty(), AiProvider::getProviderName, providerName)
-                .eq(providerType != null && !providerType.isEmpty(), AiProvider::getProviderType, providerType)
-                .eq(status != null && !status.isEmpty(), AiProvider::getStatus, status)
-                .orderByDesc(AiProvider::getCreateTime);
-        Page<AiProvider> page = providerService.page(new Page<>(pageNum, pageSize), wrapper);
-        page.getRecords().forEach(this::fillAndMaskProvider);
-        return RespInfo.success(page);
+        Page<AiProvider> page = providerService.pageProviders(
+                pageNum, pageSize, providerName, providerType, status);
+        List<AiProviderVO> records = page.getRecords().stream()
+                .map(provider -> {
+                    fillModelsFromAiModel(provider);
+                    return providerService.toSafeView(provider);
+                })
+                .toList();
+        Page<AiProviderVO> safePage = new Page<>(page.getCurrent(), page.getSize(), page.getTotal());
+        safePage.setRecords(records);
+        return RespInfo.success(safePage);
     }
 
     /**
@@ -86,12 +102,12 @@ public class AiProviderController {
     @GetMapping("/{id}")
     @ApiDecrypt
     @ApiEncrypt
-    public RespInfo<AiProvider> getById(@PathVariable Long id) {
+    public RespInfo<AiProviderVO> getById(@PathVariable Long id) {
         AiProvider provider = providerService.getById(id);
         if (provider != null) {
-            fillAndMaskProvider(provider);
+            fillModelsFromAiModel(provider);
         }
-        return RespInfo.success(provider);
+        return RespInfo.success(providerService.toSafeView(provider));
     }
 
     /**
@@ -100,8 +116,8 @@ public class AiProviderController {
     @PostMapping
     @ApiDecrypt
     @ApiEncrypt
-    public RespInfo<Void> create(@RequestBody AiProvider provider) {
-        providerService.save(provider);
+    public RespInfo<Void> create(@RequestBody AiProviderSaveDTO request) {
+        providerService.createProvider(request);
         return RespInfo.success();
     }
 
@@ -111,10 +127,10 @@ public class AiProviderController {
     @PutMapping
     @ApiDecrypt
     @ApiEncrypt
-    public RespInfo<Void> update(@RequestBody AiProvider provider) {
-        providerService.updateById(provider);
+    public RespInfo<Void> update(@RequestBody AiProviderSaveDTO request) {
+        providerService.updateProvider(request);
         // 双写同步：更新供应商后重新聚合 models
-        syncModelsToProvider(provider.getId());
+        syncModelsToProvider(request.getId());
         return RespInfo.success();
     }
 
@@ -139,13 +155,8 @@ public class AiProviderController {
     @PostMapping("/test")
     @ApiDecrypt
     @ApiEncrypt
-    public RespInfo<String> test(@RequestBody AiProvider provider) {
-        try {
-            return RespInfo.success(providerService.testConnection(provider));
-        } catch (Exception e) {
-            log.warn("[AI供应商测试失败] {}", e.getMessage());
-            return RespInfo.error(e.getMessage());
-        }
+    public RespInfo<String> test(@RequestBody AiProviderTestDTO request) {
+        return RespInfo.success(providerService.testConnection(request));
     }
 
     /**
@@ -157,13 +168,6 @@ public class AiProviderController {
     public RespInfo<Void> setDefault(@PathVariable Long id) {
         providerService.setDefault(id);
         return RespInfo.success();
-    }
-
-    /**
-     * 聚合填充 models/defaultModel 并脱敏 apiKey
-     */
-    private void fillAndMaskProvider(AiProvider provider) {
-        fillModelsFromAiModel(provider);
     }
 
     /**
