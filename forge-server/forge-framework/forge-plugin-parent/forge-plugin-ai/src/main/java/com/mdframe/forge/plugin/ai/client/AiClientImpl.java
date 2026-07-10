@@ -9,6 +9,7 @@ import com.mdframe.forge.plugin.ai.chat.service.AiPromptTemplateRenderer;
 import com.mdframe.forge.plugin.ai.client.dto.AiClientRequest;
 import com.mdframe.forge.plugin.ai.client.dto.AiClientResponse;
 import com.mdframe.forge.plugin.ai.client.dto.AiFallbackReason;
+import com.mdframe.forge.plugin.ai.provider.adapter.AiModelRuntimeOptions;
 import com.mdframe.forge.plugin.ai.session.service.AiChatSessionService;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
@@ -18,7 +19,6 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
-import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
@@ -60,9 +60,9 @@ public class AiClientImpl implements AiClient {
             String sessionId = resolveSessionId(request.getSessionId());
             String historySessionId = StringUtils.hasText(sessionId) ? sessionId : null;
 
-            OpenAiChatOptions options = buildOptions(resolved.model(), resolved.temperature(), resolved.maxTokens());
-            ChatClient baseClient = chatClientCache.getOrCreateBase(
-                    resolved.provider().getId(), resolved.model(), resolved.provider(), options);
+            AiModelRuntimeOptions options = buildOptions(
+                    resolved.model(), resolved.temperature(), resolved.maxTokens());
+            ChatClient baseClient = chatClientCache.getOrCreateBase(resolved.provider(), options);
             ChatClient chatClient = chatClientCache.createSessionClient(
                     baseClient, historySessionId, dbChatMemory);
 
@@ -122,9 +122,9 @@ public class AiClientImpl implements AiClient {
             String sessionId = resolveSessionId(request.getSessionId());
             String historySessionId = StringUtils.hasText(sessionId) ? sessionId : null;
 
-            OpenAiChatOptions options = buildOptions(resolved.model(), resolved.temperature(), resolved.maxTokens());
-            ChatClient baseClient = chatClientCache.getOrCreateBase(
-                    resolved.provider().getId(), resolved.model(), resolved.provider(), options);
+            AiModelRuntimeOptions options = buildOptions(
+                    resolved.model(), resolved.temperature(), resolved.maxTokens());
+            ChatClient baseClient = chatClientCache.getOrCreateBase(resolved.provider(), options);
             ChatClient chatClient = chatClientCache.createSessionClient(
                     baseClient, historySessionId, dbChatMemory);
             
@@ -263,15 +263,8 @@ public class AiClientImpl implements AiClient {
         return contextInjector.injectContext(prompt, agent.getAgentCode());
     }
 
-    private OpenAiChatOptions buildOptions(String model, Double temperature, Integer maxTokens) {
-        OpenAiChatOptions.Builder builder = OpenAiChatOptions.builder().model(model);
-        if (temperature != null) {
-            builder.temperature(temperature);
-        }
-        if (maxTokens != null) {
-            builder.maxTokens(maxTokens);
-        }
-        return builder.build();
+    private AiModelRuntimeOptions buildOptions(String model, Double temperature, Integer maxTokens) {
+        return new AiModelRuntimeOptions(model, temperature, maxTokens);
     }
 
     private AiClientResponse handleBusinessException(BusinessException e, AiClientRequest request) {

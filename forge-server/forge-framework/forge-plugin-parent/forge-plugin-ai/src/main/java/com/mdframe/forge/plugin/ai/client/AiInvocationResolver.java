@@ -57,9 +57,6 @@ public class AiInvocationResolver {
         if (StringUtils.hasText(provider.getStatus()) && !"0".equals(provider.getStatus())) {
             throw new BusinessException("AI 供应商已停用: " + provider.getProviderName());
         }
-        if (!StringUtils.hasText(provider.getBaseUrl()) || !StringUtils.hasText(provider.getApiKey())) {
-            throw new BusinessException("AI 供应商配置不完整");
-        }
         return provider;
     }
 

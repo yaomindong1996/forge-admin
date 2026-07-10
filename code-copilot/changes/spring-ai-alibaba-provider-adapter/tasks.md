@@ -126,14 +126,14 @@
   public void scheduleAfterCommit(AiProvider provider);
   ```
 - **实施步骤**：
-  - [ ] 先写 Cache Red 测试，证明同配置复用、不同租户/Adapter/参数不碰撞、主动失效后重新创建；
-  - [ ] `getOrCreateBase` 从 `provider.getTenantId()` 构造缓存键，不接受独立 tenantId 参数；缓存键只含 tenantId、providerId、adapterCode、model、temperature、maxTokens，不含明文密钥；
-  - [ ] 先写 Eviction Scheduler Red 测试：事务提交前不清理、afterCommit 清理、回滚不清理、无活动事务立即清理；
-  - [ ] 使用 `TransactionSynchronizationManager` 注册 after-commit 回调，Scheduler 从 `AiProvider` 派生 tenantId/providerId；
-  - [ ] `AiClientImpl.call/stream` 共用同一 `AiModelRuntimeOptions` 构建方法；
-  - [ ] 删除 `AiClientImpl`、`ChatClientCache` 中所有 `org.springframework.ai.openai.*` import；
-  - [ ] 保持 `MessageChatMemoryAdvisor`、同步输出、流式输出和会话持久化逻辑不变；
-  - [ ] 扩展 Resolver 测试，确保显式参数、Agent 参数和供应商默认值优先级未改变。
+  - [x] 先写 Cache Red 测试，证明同配置复用、不同租户/Adapter/参数不碰撞、主动失效后重新创建；
+  - [x] `getOrCreateBase` 从 `provider.getTenantId()` 构造缓存键，不接受独立 tenantId 参数；缓存键只含 tenantId、providerId、adapterCode、model、temperature、maxTokens，不含明文密钥；
+  - [x] 先写 Eviction Scheduler Red 测试：事务提交前不清理、afterCommit 清理、回滚不清理、无活动事务立即清理；
+  - [x] 使用 `TransactionSynchronizationManager` 注册 after-commit 回调，Scheduler 从 `AiProvider` 派生 tenantId/providerId；
+  - [x] `AiClientImpl.call/stream` 共用同一 `AiModelRuntimeOptions` 构建方法；
+  - [x] 删除 `AiClientImpl`、`ChatClientCache` 中所有 `org.springframework.ai.openai.*` import；
+  - [x] 保持 `MessageChatMemoryAdvisor`、同步输出、流式输出和会话持久化逻辑不变；
+  - [x] 扩展 Resolver 测试，确保显式参数、Agent 参数和供应商默认值优先级未改变。
 - **验收标准**：`AiClient` 接口零变更；OpenAI Compatible 回归通过；DashScope 模型可以进入相同 ChatClient/Memory/Stream 链路。
 
 ## Task 5: 收口供应商生命周期、连接测试和密钥保护

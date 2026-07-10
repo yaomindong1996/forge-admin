@@ -59,6 +59,25 @@ class AiInvocationResolverTest {
         assertEquals(300, resolved.maxTokens());
     }
 
+    @Test
+    void resolveShouldLeaveNativeEndpointValidationToAdapter() {
+        AiInvocationResolver resolver = new AiInvocationResolver(agentService, providerService);
+        AiAgent agent = buildAgent(2L, "qwen-plus", null, 300);
+        AiProvider provider = buildProvider(2L, null);
+        provider.setAdapterCode("dashscope_native");
+        provider.setBaseUrl(null);
+        provider.setApiKey(null);
+
+        when(agentService.getByCode("copilot")).thenReturn(agent);
+        when(providerService.getById(2L)).thenReturn(provider);
+
+        AiInvocationResolver.ResolvedInvocation resolved = resolver.resolve("copilot", null,
+                null, null, null);
+
+        assertEquals(provider, resolved.provider());
+        assertEquals("qwen-plus", resolved.model());
+    }
+
     private AiAgent buildAgent(Long providerId, String modelName, BigDecimal temperature, Integer maxTokens) {
         AiAgent agent = new AiAgent();
         agent.setAgentCode("copilot");
