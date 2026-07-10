@@ -3,6 +3,7 @@
 > 本文档沉淀 Forge 系统「从低代码平台转向 AI 中枢」的产品战略与技术选型决策，供后续路线规划、方案评审、对外阐述使用。
 >
 > 核心论断：**Forge 距离「AI 中枢」比想象中近；应让低代码从「前台产品」退居为「后台能力工厂」，其产出的业务对象/元数据自动转化为 AI Agent 可调用的工具。技术上坚持 Spring/JVM 主干，不切 Python。**
+> **2026-07-10 已验证基线**：Forge 保留 Spring AI `1.1.2` 作为统一接口层，并叠加 Spring AI Alibaba/Extensions `1.1.2.3`。当前只接入 DashScope 核心模型模块，通过显式 `adapter_code` 支持 `openai_compatible` 与 `dashscope_native`；这是一项供应商适配前置能力，不代表 MCP、Nacos、Admin 或 Agent Framework 阶段已经完成。
 
 ---
 
@@ -27,7 +28,7 @@
 | 流程能力 | `FlowClient`（startProcess/approve/reject/queryTodo）+ `FlowWebhookNotifier`（事件 Webhook 回调，带重试） | 「审批流工具」+ 事件通知出口 |
 | 外部系统代理 | `ExternalProxyService`（鉴权/加密/响应转换） | 统一对接外部系统的能力 |
 | API 配置中枢 | `SysApiConfig`（apiName/apiCode/reqMethod/urlPath/authFlag/encryptFlag/tenantFlag/limitFlag/sensitiveFields） | 做开放平台 + Tool 注册表的骨架 |
-| 多供应商 LLM | `AiClient`/`AiClientImpl`（基于 Spring AI，7 家供应商 + 熔断 + 会话记忆 + 上下文注入） | 统一 LLM 接入层，已就绪 |
+| 多供应商 LLM | `AiClient`/`AiClientImpl`（Spring AI `ChatClient` + 显式 Provider Adapter，支持 OpenAI Compatible 与 DashScope Native） | 统一 LLM 接入层，供应商扩展基础已就绪 |
 
 **结论：核心地基已具备，缺的是「标准化对外出口 + 安全治理 + 元数据目录服务」。**
 
@@ -85,11 +86,11 @@ MCP Server 放在 JVM 内 = 进程内直接方法调用；放到 Python = Python
 - 与现有 `AiClient` 完全同源，零迁移、零学习曲线；
 - 短板：重度多智能体编排、Agent 可视化平台较弱（近期用不到）。
 
-#### 路线 B：Spring AI Alibaba（Spring AI 的增强超集）
-- 1.0 GA 已发布，完全兼容 Spring AI API；
+#### 路线 B：Spring AI Alibaba（Spring AI 的增强层）
+- 当前已验证 Spring AI `1.1.2` 与 Spring AI Alibaba/Extensions `1.1.2.3` 组合，Alibaba 复用 Spring AI 的 `ChatModel`、`ChatClient` 和 Tool Calling 抽象，不是对 Spring AI 的替换；
 - 杀手锏：集成 **Nacos MCP Registry**（分布式注册 + 负载均衡）；**MCP Gateway**（把 Nacos 普通服务自动转 MCP）；**Admin 平台**（可视化 Agent 开发、可观测、评估、MCP 管理）；对通义千问原生友好；
-- 可作为 Spring AI 的「治理增强层」平滑叠加，不推翻现有代码；
-- 代价：引入 Nacos 依赖和运维复杂度。
+- Forge 已先完成 DashScope 核心模型的供应商适配层；Nacos、Admin、MCP Registry 和 Agent Framework 仍需按后续阶段闸门单独评估；
+- 代价：后续治理能力会引入 Nacos 等依赖和运维复杂度。
 
 #### 路线 C：AgentScope（阿里通义实验室）
 - Python 版：百炼底座，2.0 面向生产，多智能体/Sandbox/Runtime 最完整——但是 Python 栈；
@@ -119,8 +120,8 @@ MCP Server 放在 JVM 内 = 进程内直接方法调用；放到 Python = Python
 - **① 近期（阶段一 MCP 出口）→ Spring AI 原生 MCP starter**
   在 `forge-plugin-mcp` 里用 `spring-ai-starter-mcp-server`，进程内直调 `DynamicCrudService`、`FlowClient`、消息服务；与现有 `AiClient` 同源，最快出可演示 Demo。
 
-- **② 中期（多租户 MCP 治理、能力目录、分布式）→ 叠加 Spring AI Alibaba + Nacos**
-  需要「分布式部署 + 按租户/Key 治理 + 可视化管理」时，用 Nacos MCP Registry 和 Admin，无需推翻 Spring AI 代码。
+- **② 中期（多租户 MCP 治理、能力目录、分布式）→ 在现有 Spring AI Alibaba 基线上按需启用 Nacos 治理**
+  当前已完成的 DashScope Provider Adapter 不自动带入 Nacos；只有出现「分布式部署 + 按租户/Key 治理 + 可视化管理」的真实需求并通过阶段闸门后，才引入 Nacos MCP Registry 和 Admin，无需推翻 Spring AI 代码。
 
 - **③ 未来（重度有状态 Agent / 多智能体流水线）→ JVM 内引入 AgentScope Java**
   无侵入嵌入 Spring Boot，用 Harness（记忆/沙箱/工作区）和 A2A 多智能体，依然不切 Python。
@@ -129,7 +130,7 @@ MCP Server 放在 JVM 内 = 进程内直接方法调用；放到 Python = Python
 
 ### 五、一句话总结
 
-> **别切 Python。** 业务能力、权限、租户、事务全在 JVM，MCP 出口就该贴着它们建。**近期用 Spring AI 原生 MCP（同源零成本）→ 需要治理时叠加 Spring AI Alibaba + Nacos → 未来要重度 Agent 时在 JVM 内引入 AgentScope Java。** 三层都在 Spring/JVM 体系内平滑演进，Python 仅作特定场景旁路，通过 MCP/A2A 接入。
+> **别切 Python。** 业务能力、权限、租户、事务全在 JVM，MCP 出口就该贴着它们建。**以 Spring AI 为统一接口，先用已落地的 Spring AI Alibaba Provider Adapter 扩展模型接入 → 近期建设 Spring AI MCP 出口 → 需要治理时再启用 Nacos/Admin → 未来要重度 Agent 时在 JVM 内引入 AgentScope Java。** 这些能力都在 Spring/JVM 体系内分层演进，Python 仅作特定场景旁路，通过 MCP/A2A 接入。
 
 ---
 

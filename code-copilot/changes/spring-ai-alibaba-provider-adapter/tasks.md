@@ -129,7 +129,7 @@
   - [x] 先写 Cache Red 测试，证明同配置复用、不同租户/Adapter/参数不碰撞、主动失效后重新创建；
   - [x] `getOrCreateBase` 从 `provider.getTenantId()` 构造缓存键，不接受独立 tenantId 参数；缓存键只含 tenantId、providerId、adapterCode、model、temperature、maxTokens，不含明文密钥；
   - [x] 先写 Eviction Scheduler Red 测试：事务提交前不清理、afterCommit 清理、回滚不清理、无活动事务立即清理；
-  - [x] 使用 `TransactionSynchronizationManager` 注册 after-commit 回调，Scheduler 从 `AiProvider` 派生 tenantId/providerId；
+  - [x] 使用 `TransactionSynchronizationManager` 注册 after-commit 回调，Scheduler 从 `AiProvider` 派生 tenantId/providerId；实际事务存在但同步未启用时失败关闭，禁止提前清理；
   - [x] `AiClientImpl.call/stream` 共用同一 `AiModelRuntimeOptions` 构建方法；
   - [x] 删除 `AiClientImpl`、`ChatClientCache` 中所有 `org.springframework.ai.openai.*` import；
   - [x] 保持 `MessageChatMemoryAdvisor`、同步输出、流式输出和会话持久化逻辑不变；
@@ -243,10 +243,10 @@
   - `code-copilot/changes/spring-ai-alibaba-provider-adapter/execution-log.md` — 记录收尾验证；
   - `code-copilot/memory/decisions.md` 或 `pitfalls.md` — 仅沉淀经过实现验证的长期决策/踩坑。
 - **实施步骤**：
-  - [ ] 根据实际 dependency tree 和测试结果更新路线图，不把计划写成已完成；
-  - [ ] 在发布/回退说明中加入 Native 记录检查：存在 `dashscope_native` 时必须先切回 Compatible URL 并通过连接测试，才能回退旧应用；
-  - [ ] 记录“核心模型模块而非 Starter”“显式 adapter_code”“历史 Compatible 保持不变”决策；
-  - [ ] 若验证发现新的版本/自动配置问题，写入 `pitfalls.md`；
-  - [ ] 运行 `git diff --check`、链接/路径检查和 Spec-Task-Test 状态一致性检查；
-  - [ ] 进入 `/review`，未通过审查前不归档。
+  - [x] 根据实际 dependency tree 和测试结果更新路线图，不把计划写成已完成；
+  - [x] 在发布/回退说明中加入 Native 记录检查：存在 `dashscope_native` 时必须先切回 Compatible URL 并通过连接测试，才能回退旧应用；
+  - [x] 记录“核心模型模块而非 Starter”“显式 adapter_code”“历史 Compatible 保持不变”决策；
+  - [x] 若验证发现新的版本/自动配置问题，写入 `pitfalls.md`；
+  - [x] 运行 `git diff --check`、链接/路径检查和 Spec-Task-Test 状态一致性检查；
+  - [x] 进入 `/review`，未通过审查前不归档。
 - **验收标准**：代码、Spec、Tasks、Test Spec、执行日志和长期决策不存在状态冲突，文档结论均有实际证据。

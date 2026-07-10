@@ -1,6 +1,6 @@
 # 单测 Spec — Spring AI Alibaba 供应商适配层与 DashScope 原生接入
 
-> status: apply
+> status: review
 > created: 2026-07-10
 
 ## 0. 测试原则
@@ -121,6 +121,7 @@
 | `scheduleAfterCommit` | 事务提交 | provider 实体 | afterCommit 只清理实体 tenantId/providerId |
 | `scheduleAfterCommit` | 事务回滚 | provider 实体 | 不清理 Cache |
 | `scheduleAfterCommit` | 无活动事务 | provider 实体 | 立即清理 |
+| `scheduleAfterCommit` | 实际事务已激活但同步未启用 | provider 实体 | 抛 `BusinessException`，不提前清理 Cache |
 
 #### 类名: `AiClientImpl`
 
@@ -188,7 +189,7 @@
 - [x] Step 5: 执行 Flyway 静态检查，有 dev 库时实跑 V1.0.17；
 - [x] Step 6: 使用 Node `v20.19.0` 执行前端 build；
 - [x] Step 7: 按环境条件决定是否执行真实 DashScope 集成验证并记录跳过原因；
-- [ ] Step 8: 回填执行证据、警告、服务清理和 Spec/Task 状态。
+- [x] Step 8: 回填执行证据、警告、服务清理和 Spec/Task 状态。
 
 ### 3.1 建议命令
 
@@ -243,11 +244,12 @@ NODE_OPTIONS=--max-old-space-size=8192 pnpm build
 | 2026-07-10 | Task 2-5 P0 增量 | Adapter Code/Registry/URL Policy/双 Adapter/Cache/Resolver/Secret/Service/Scheduler | 各 Task Red/Green 证据见 `execution-log.md`；最终并入 AI 插件全量 44 tests | JVM CDS 与 commons-logging 警告，不影响测试结论 |
 | 2026-07-10 | Task 7 Native 离线调用 | `AiClientImplTest` 同步、流式、reasoningContent 和持久化 | 2 tests，0 failure/error/skip；真实 Cache 经 Mock Registry/Fake ChatModel 进入统一链路 | 首轮异步落库断言存在竞态，改用 timeout 等待后复跑通过 |
 | 2026-07-10 | Task 7 全量验收 | AI 全量测试、AI package、Admin package、Flyway 静态检查、Node 20 前端 build | 44 tests 全过；24/35 模块 reactor package 成功；前端 8485 modules、build SUCCESS | 无环境 API Key，公网验证跳过；未启动服务；既有编译/Vite 警告已记录 |
+| 2026-07-10 | Review 修复复验 | 事务同步异常 fail-closed、AI 插件完整测试 | 新增 Scheduler 边缘用例；45 tests，Failures/Errors/Skipped 均为 0；24 模块 reactor BUILD SUCCESS | JVM CDS 与 commons-logging 既有警告；未启动服务 |
 
 ## 6. 执行证据
 
 - `execution-log.md`：`code-copilot/changes/spring-ai-alibaba-provider-adapter/execution-log.md`
 - 关键接口：`/ai/provider/page`、`/ai/provider/{id}`、`/ai/provider`、`/ai/provider/test`、`AiClient.call/stream`
 - 关键数据库检查：`ai_provider.adapter_code`、`sys_dict_type.ai_provider_adapter_type`、对应 `sys_dict_data`、`forge_schema_history` V1.0.17
-- 服务启动与停止：仅在入口集成验证时启动 `forge-admin-server`；PID 和停止结果必须写入执行日志
+- 服务启动与停止：本变更未启动 `forge-admin-server`，无 PID 清理项
 - 公网集成凭据：只从环境变量读取，不写入命令日志、Spec、测试源码或 SQL

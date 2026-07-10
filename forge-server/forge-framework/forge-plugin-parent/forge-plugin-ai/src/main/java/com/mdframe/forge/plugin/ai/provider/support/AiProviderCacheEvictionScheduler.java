@@ -23,8 +23,10 @@ public class AiProviderCacheEvictionScheduler {
         }
         Long tenantId = provider.getTenantId();
         Long providerId = provider.getId();
-        if (TransactionSynchronizationManager.isActualTransactionActive()
-                && TransactionSynchronizationManager.isSynchronizationActive()) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+                throw new BusinessException("AI供应商缓存失效事务同步未启用");
+            }
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
