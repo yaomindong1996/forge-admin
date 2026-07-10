@@ -70,6 +70,16 @@
           <n-form-item-gi label="供应商类型" path="providerType">
             <n-select v-model:value="providerModal.form.providerType" placeholder="请选择类型" :options="providerTypeOptions" />
           </n-form-item-gi>
+          <n-form-item-gi label="连接协议" path="adapterCode">
+            <n-select v-model:value="providerModal.form.adapterCode" placeholder="请选择连接协议" :options="providerAdapterOptions" />
+          </n-form-item-gi>
+          <n-form-item-gi label="状态" path="status">
+            <n-radio-group v-model:value="providerModal.form.status">
+              <n-radio v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </n-radio>
+            </n-radio-group>
+          </n-form-item-gi>
           <n-form-item-gi label="Logo" path="logo">
             <n-upload
               :action="`${uploadPrefix}/system/file/upload`"
@@ -89,13 +99,6 @@
                 <i class="ai-icon:upload" /> 上传Logo
               </NButton>
             </n-upload>
-          </n-form-item-gi>
-          <n-form-item-gi label="状态" path="status">
-            <n-radio-group v-model:value="providerModal.form.status">
-              <n-radio v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
-                {{ opt.label }}
-              </n-radio>
-            </n-radio-group>
           </n-form-item-gi>
           <n-form-item-gi :span="2" label="Base URL" path="baseUrl">
             <n-input v-model:value="providerModal.form.baseUrl" placeholder="如 https://api.openai.com" />
@@ -203,7 +206,7 @@
 
 <script setup>
 import { NButton, NDropdown, NPopconfirm, NSwitch, NTag } from 'naive-ui'
-import { computed, h, onMounted, reactive, ref } from 'vue'
+import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import {
   modelPage as fetchModelPage,
   providerPage as fetchProviderPage,
@@ -224,9 +227,10 @@ import { useDict } from '@/composables/useDict'
 
 defineOptions({ name: 'AiProviderModel' })
 
-const { dict } = useDict('ai_provider_type', 'ai_model_type', 'ai_status', 'ai_is_default')
+const { dict } = useDict('ai_provider_type', 'ai_provider_adapter_type', 'ai_model_type', 'ai_status', 'ai_is_default')
 
 const providerTypeOptions = computed(() => dict.value.ai_provider_type || [])
+const providerAdapterOptions = computed(() => dict.value.ai_provider_adapter_type || [])
 const modelTypeOptions = computed(() => dict.value.ai_model_type || [])
 const statusOptions = computed(() => dict.value.ai_status || [])
 const isDefaultOptions = computed(() => dict.value.ai_is_default || [])
@@ -253,8 +257,26 @@ const providerModal = reactive({
   show: false,
   isEdit: false,
   saving: false,
-  form: { providerName: '', providerType: null, logo: '', baseUrl: '', apiKey: '', status: '0', remark: '' },
+  form: { providerName: '', providerType: null, adapterCode: 'openai_compatible', logo: '', baseUrl: '', apiKey: '', status: '0', remark: '' },
 })
+
+const DASHSCOPE_NATIVE_BASE_URL = 'https://dashscope.aliyuncs.com'
+const KNOWN_DASHSCOPE_COMPATIBLE_URLS = new Set([
+  'https://dashscope.aliyuncs.com/compatible-mode',
+  'https://dashscope.aliyuncs.com/compatible-mode/',
+])
+
+watch(
+  () => providerModal.form.adapterCode,
+  (adapterCode) => {
+    if (adapterCode !== 'dashscope_native')
+      return
+
+    const currentBaseUrl = providerModal.form.baseUrl?.trim() || ''
+    if (!currentBaseUrl || KNOWN_DASHSCOPE_COMPATIBLE_URLS.has(currentBaseUrl))
+      providerModal.form.baseUrl = DASHSCOPE_NATIVE_BASE_URL
+  },
+)
 
 const modelModal = reactive({
   show: false,
@@ -298,6 +320,7 @@ function handleIconUploadFinish({ event }) {
 const providerRules = {
   providerName: [{ required: true, message: '请输入供应商名称', trigger: 'blur' }],
   providerType: [{ required: true, message: '请选择类型', trigger: 'change' }],
+  adapterCode: [{ required: true, message: '请选择连接协议', trigger: 'change' }],
   baseUrl: [{ required: true, message: '请输入 Base URL', trigger: 'blur' }],
   apiKey: [{ required: true, message: '请输入 API Key', trigger: 'blur' }],
 }
@@ -329,6 +352,12 @@ const providerColumns = [
     key: 'providerType',
     width: 96,
     render(row) { return h(DictTag, { dictType: 'ai_provider_type', value: row.providerType, size: 'small' }) },
+  },
+  {
+    title: '连接协议',
+    key: 'adapterCode',
+    width: 130,
+    render(row) { return h(DictTag, { dictType: 'ai_provider_adapter_type', value: row.adapterCode, size: 'small' }) },
   },
   { title: 'Base URL', key: 'baseUrl', width: 240, ellipsis: { tooltip: true } },
   {
@@ -547,7 +576,7 @@ function handleSelectProvider(row) {
 
 function handleAddProvider() {
   providerModal.isEdit = false
-  providerModal.form = { providerName: '', providerType: null, logo: '', baseUrl: '', apiKey: '', status: '0', remark: '' }
+  providerModal.form = { providerName: '', providerType: null, adapterCode: 'openai_compatible', logo: '', baseUrl: '', apiKey: '', status: '0', remark: '' }
   providerModal.show = true
 }
 
@@ -617,7 +646,7 @@ async function handleTestConnection(row) {
   testResult.show = true
   testResult.content = '正在连接...'
   try {
-    const res = await providerTest({ baseUrl: row.baseUrl, apiKey: row.apiKey, defaultModel: row.defaultModel, providerName: row.providerName })
+    const res = await providerTest({ id: row.id })
     if (res.code === 200) {
       testResult.content = typeof res.data === 'string' ? res.data : JSON.stringify(res.data, null, 2)
     }

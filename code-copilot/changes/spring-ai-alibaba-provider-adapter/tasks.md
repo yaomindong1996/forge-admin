@@ -195,14 +195,14 @@
   })
   ```
 - **实施步骤**：
-  - [ ] 在供应商表格和弹窗增加“连接协议”，选项必须来自字典；
-  - [ ] 新增供应商默认 `openai_compatible`，后端仍提供相同默认兜底；
-  - [ ] 选择 `dashscope_native` 时，仅在 Base URL 为空或为系统已知 Compatible 默认值时替换为 `https://dashscope.aliyuncs.com`，不得覆盖用户自定义域名；
-  - [ ] 切回 Compatible 不自动猜测第三方 URL，要求用户明确填写；
-  - [ ] 已保存供应商的“测试连接”仅提交 `{ id: row.id }`；
-  - [ ] `providerAdd/providerTest` 使用 `postEncrypt`；`providerUpdate` 使用带 `encrypt: true` 的 PUT 请求，确保敏感配置不会明文发送；
-  - [ ] API Key 脱敏值可以回显但不能被前端自行还原；后端负责未变化值保留；
-  - [ ] 不修改未绑定菜单的旧 `provider.vue`，并确认后端“新增 null 则 Compatible、更新 null 则保留原值、blank 拒绝”的规则保证旧请求兼容。
+  - [x] 在供应商表格和弹窗增加“连接协议”，选项必须来自字典；
+  - [x] 新增供应商默认 `openai_compatible`，后端仍提供相同默认兜底；
+  - [x] 选择 `dashscope_native` 时，仅在 Base URL 为空或为系统已知 Compatible 默认值时替换为 `https://dashscope.aliyuncs.com`，不得覆盖用户自定义域名；
+  - [x] 切回 Compatible 不自动猜测第三方 URL，要求用户明确填写；
+  - [x] 已保存供应商的“测试连接”仅提交 `{ id: row.id }`；
+  - [x] `providerAdd/providerTest` 使用 `postEncrypt`；`providerUpdate` 使用带 `encrypt: true` 的 PUT 请求，确保敏感配置不会明文发送；
+  - [x] API Key 脱敏值可以回显但不能被前端自行还原；后端负责未变化值保留；
+  - [x] 不修改未绑定菜单的旧 `provider.vue`，并确认后端“新增 null 则 Compatible、更新 null 则保留原值、blank 拒绝”的规则保证旧请求兼容。
 - **验收标准**：活动菜单页面可创建两种 Adapter；切换不误覆盖自定义 URL；测试请求 Network Payload 不含真实或脱敏 API Key。
 
 ## Task 7: 完成自动化和装配验证
