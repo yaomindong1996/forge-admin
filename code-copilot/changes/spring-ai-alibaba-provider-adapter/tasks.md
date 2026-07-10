@@ -91,17 +91,17 @@
   }
   ```
 - **实施步骤**：
-  - [ ] 先写 Registry Red 测试：合法路由、未知值、空值、重复 code，以及 `createChatModel` 的选择→校验→创建顺序；
-  - [ ] `AiProviderAdapterRegistry#createChatModel` 统一执行 `getRequired → validate → adapter.createChatModel`；校验失败时不得调用创建方法；
+  - [x] 先写 Registry Red 测试：合法路由、未知值、空值、重复 code，以及 `createChatModel` 的选择→校验→创建顺序；
+  - [x] `AiProviderAdapterRegistry#createChatModel` 统一执行 `getRequired → validate → adapter.createChatModel`；校验失败时不得调用创建方法；
   - [ ] 正式调用、连接测试和 Cache 只依赖 Registry 创建入口，不直接注入具体 Adapter；
-  - [ ] 实现 Registry，错误使用 `BusinessException` 且不包含 API Key；
-  - [ ] 先写 Base URL Policy Red 测试，覆盖 scheme/query/fragment/userInfo、尾斜杠、官方 DashScope 双向错配和自定义代理域名；
-  - [ ] Compatible 在官方 DashScope 域名只接受 `/compatible-mode`；Native 只接受根路径或空值默认；自定义域名只校验不改写；
-  - [ ] 先写 OpenAI Adapter Red 测试，覆盖模型/温度/最大 Token 和 Base URL 必填；
-  - [ ] 将当前 `OpenAiApi/OpenAiChatModel` 构造迁入 OpenAI Adapter；
-  - [ ] 先写 DashScope Adapter Red 测试，覆盖默认 Base URL、原生 URL 校验和 `maxToken` 映射；
-  - [ ] 使用 `DashScopeApi.builder().apiKey().baseUrl().build()` 与 `DashScopeChatModel.builder()` 实现原生 Adapter；
-  - [ ] 验证返回模型的默认 Options 为 `DashScopeChatOptions`，且实现 `ToolCallingChatOptions`。
+  - [x] 实现 Registry，错误使用 `BusinessException` 且不包含 API Key；
+  - [x] 先写 Base URL Policy Red 测试，覆盖 scheme/query/fragment/userInfo、尾斜杠、官方 DashScope 双向错配和自定义代理域名；
+  - [x] Compatible 在官方 DashScope 域名只接受 `/compatible-mode`；Native 只接受根路径或空值默认；自定义域名只校验不改写；
+  - [x] 先写 OpenAI Adapter Red 测试，覆盖模型/温度/最大 Token 和 Base URL 必填；
+  - [x] 将当前 `OpenAiApi/OpenAiChatModel` 构造迁入 OpenAI Adapter；
+  - [x] 先写 DashScope Adapter Red 测试，覆盖默认 Base URL、原生 URL 校验和 `maxToken` 映射；
+  - [x] 使用 `DashScopeApi.builder().apiKey().baseUrl().build()` 与 `DashScopeChatModel.builder()` 实现原生 Adapter；
+  - [x] 验证返回模型的默认 Options 为 `DashScopeChatOptions`，且实现 `ToolCallingChatOptions`。
 - **验收标准**：新增供应商只需实现 SPI 并注册 Bean；调用层不需要新增 `if/else`；错误适配器不产生网络请求。
 
 ## Task 4: 解耦 AiClient 与 ChatClientCache

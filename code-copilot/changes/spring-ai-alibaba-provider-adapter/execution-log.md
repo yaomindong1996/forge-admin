@@ -26,6 +26,8 @@
 | 2026-07-10 | Task 1 | 导入 Spring AI/Extensions/Alibaba 三个 BOM并增加 DashScope Core | dependency tree 收敛：Spring AI `1.1.2`、DashScope `1.1.2.3`；AI 插件 reactor compile SUCCESS，未引入 Starter |
 | 2026-07-10 | Task 2 Red | 仅新增 `AiProviderAdapterCodeTest` 后执行定向测试 | testCompile 按预期失败：`AiProviderAdapterCode` 尚不存在，Red 证据成立 |
 | 2026-07-10 | Task 2 Green | 实现 Adapter Code、实体字段和 `V1.0.17` 迁移 | 定向测试 2/2 通过；全迁移 placeholder 扫描无输出；字段/字典防重复静态检查通过 |
+| 2026-07-10 | Task 3 Red | 新增 Registry、URL Policy、Compatible/Native Adapter 测试后执行定向测试 | testCompile 按预期失败：SPI/Registry/两个 Adapter 尚不存在，Red 证据成立 |
+| 2026-07-10 | Task 3 Green | 实现通用运行参数、Adapter SPI/Registry、URL Policy 和两类 ChatModel | 4 个测试类共 12 tests 全部通过；Registry 顺序、失败关闭、DashScope `maxToken` 和 ToolCalling Options 已覆盖 |
 
 ## 技术决策
 
