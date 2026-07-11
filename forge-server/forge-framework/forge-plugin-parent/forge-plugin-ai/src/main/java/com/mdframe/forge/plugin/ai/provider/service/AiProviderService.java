@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.ai.constant.AiConstants;
+import com.mdframe.forge.plugin.ai.model.service.AiModelService;
 import com.mdframe.forge.plugin.ai.provider.adapter.AiModelRuntimeOptions;
 import com.mdframe.forge.plugin.ai.provider.adapter.AiProviderAdapterCode;
 import com.mdframe.forge.plugin.ai.provider.adapter.AiProviderAdapterRegistry;
@@ -13,6 +14,7 @@ import com.mdframe.forge.plugin.ai.provider.dto.AiProviderSaveDTO;
 import com.mdframe.forge.plugin.ai.provider.dto.AiProviderTestDTO;
 import com.mdframe.forge.plugin.ai.provider.mapper.AiProviderMapper;
 import com.mdframe.forge.plugin.ai.provider.support.AiProviderCacheEvictionScheduler;
+import com.mdframe.forge.plugin.ai.provider.support.AiProviderFailureDiagnostics;
 import com.mdframe.forge.plugin.ai.provider.support.AiProviderSecretMasker;
 import com.mdframe.forge.plugin.ai.provider.vo.AiProviderVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
@@ -25,6 +27,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.mdframe.forge.plugin.ai.health.AiModelHealthRegistry;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
@@ -40,6 +43,8 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
 
     private final AiProviderAdapterRegistry adapterRegistry;
     private final AiProviderCacheEvictionScheduler evictionScheduler;
+    private final AiModelService modelService;
+    private final AiModelHealthRegistry healthRegistry;
 
     /**
      * 获取默认供应商。
@@ -48,6 +53,17 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
      */
     public AiProvider getDefaultProvider() {
         return baseMapper.selectDefaultProvider();
+    }
+
+    public AiProvider requireEnabledDefaultProvider() {
+        List<AiProvider> providers = baseMapper.selectEnabledDefaultProviders();
+        if (providers == null || providers.isEmpty()) {
+            throw new BusinessException("未配置可用的默认 AI 供应商");
+        }
+        if (providers.size() > 1) {
+            throw new BusinessException("当前租户存在多个默认 AI 供应商");
+        }
+        return providers.get(0);
     }
 
     public Page<AiProvider> pageProviders(Integer pageNum, Integer pageSize,
@@ -111,14 +127,18 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
             String reasoningContent = extractReasoningContent(message);
             log.info("[AI供应商测试] 连接成功, providerId={}, adapterCode={}, model={}",
                     provider.getId(), provider.getAdapterCode(), model);
+            resetProviderHealth(provider);
             return buildTestResult(model, content, reasoningContent);
         } catch (BusinessException e) {
             log.warn("[AI供应商测试] 配置校验失败, providerId={}, adapterCode={}, exceptionType={}",
                     provider.getId(), provider.getAdapterCode(), e.getClass().getSimpleName());
             throw e;
         } catch (Exception e) {
-            log.warn("[AI供应商测试] 连接失败, providerId={}, adapterCode={}, exceptionType={}",
-                    provider.getId(), provider.getAdapterCode(), e.getClass().getSimpleName());
+            AiProviderFailureDiagnostics diagnostics = AiProviderFailureDiagnostics.from(e);
+            log.warn("[AI供应商测试] 连接失败, providerId={}, adapterCode={}, exceptionType={}, "
+                            + "httpStatus={}, errorCode={}",
+                    provider.getId(), provider.getAdapterCode(), e.getClass().getSimpleName(),
+                    diagnostics.httpStatus(), diagnostics.errorCode());
             throw new BusinessException(CONNECTION_TEST_FAILURE_MESSAGE);
         }
     }
@@ -296,13 +316,13 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
     }
 
     private String resolveTestModel(AiProvider provider) {
-        if (StringUtils.hasText(provider.getDefaultModel())) {
-            return provider.getDefaultModel();
+        if (provider.getId() != null) {
+            return modelService.requireEnabledDefaultModelId(provider.getId());
         }
-        if (AiProviderAdapterCode.DASHSCOPE_NATIVE.getCode().equals(provider.getAdapterCode())) {
-            return "qwen-plus";
+        if (!StringUtils.hasText(provider.getDefaultModel())) {
+            throw new BusinessException("请为供应商设置默认模型");
         }
-        return "gpt-3.5-turbo";
+        return provider.getDefaultModel().trim();
     }
 
     private String buildTestResult(String model, String content, String reasoningContent) {
@@ -343,5 +363,11 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
         }
         reasoning = metadata.get("reasoning");
         return reasoning instanceof String reasoningText ? reasoningText : null;
+    }
+
+    private void resetProviderHealth(AiProvider provider) {
+        if (provider != null && provider.getId() != null && provider.getTenantId() != null) {
+            healthRegistry.resetProvider(provider.getTenantId(), provider.getId());
+        }
     }
 }

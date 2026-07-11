@@ -6,6 +6,8 @@ import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 @Mapper
 public interface AiProviderMapper extends BaseMapper<AiProvider> {
 
@@ -17,4 +19,6 @@ public interface AiProviderMapper extends BaseMapper<AiProvider> {
     );
 
     AiProvider selectDefaultProvider();
+
+    List<AiProvider> selectEnabledDefaultProviders();
 }

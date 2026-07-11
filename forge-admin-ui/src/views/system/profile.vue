@@ -386,6 +386,37 @@ const profileRules = {
   realName: [{ required: true, message: '请输入真实姓名', trigger: 'blur' }],
 }
 
+function hasAnyPermission(permissions = [], ...targets) {
+  const permissionSet = new Set(permissions || [])
+  if (permissionSet.has('*') || permissionSet.has('*:*:*'))
+    return true
+  return targets.some((target) => {
+    if (!target)
+      return false
+    if (permissionSet.has(target))
+      return true
+    let splitIndex = target.lastIndexOf(':')
+    while (splitIndex > 0) {
+      const wildcardPermission = `${target.slice(0, splitIndex)}:*`
+      if (permissionSet.has(wildcardPermission))
+        return true
+      splitIndex = target.lastIndexOf(':', splitIndex - 1)
+    }
+    return false
+  })
+}
+
+function findOrgName(list = [], id) {
+  for (const item of list || []) {
+    if (Number(item.id) === Number(id))
+      return item.orgName || item.name || ''
+    const name = findOrgName(item.children || [], id)
+    if (name)
+      return name
+  }
+  return ''
+}
+
 // 手机号表单
 const phoneFormRef = ref(null)
 const phoneLoading = ref(false)
@@ -467,39 +498,37 @@ async function loadSocialBindings() {
 
 // 获取额外的显示信息
 async function fetchExtraInfo() {
+  const roleKeys = userStore.roles || userStore.userInfo?.roleKeys || []
+  roleNames.value = Array.isArray(roleKeys) ? roleKeys.join(', ') : ''
   if (userStore.roleIds && userStore.roleIds.length > 0) {
-    try {
-      const res = await request.get('/system/role/page', {
-        params: { pageNum: 1, pageSize: 1000 },
-      })
-      if (res.code === 200) {
-        const allRoles = res.data.list || res.data.records || []
-        const userRoles = allRoles.filter(role => userStore.roleIds.includes(role.id))
-        roleNames.value = userRoles.map(r => r.roleName).join(', ')
+    const canReadRoles = userStore.isAdmin
+      || userStore.isTenantAdmin
+      || hasAnyPermission(userStore.permissions, 'system:role:list', 'system:role:query')
+    if (canReadRoles) {
+      try {
+        const res = await request.get('/system/role/page', {
+          params: { pageNum: 1, pageSize: 1000 },
+          needTip: false,
+        })
+        if (res.code === 200) {
+          const allRoles = res.data.list || res.data.records || []
+          const userRoles = allRoles.filter(role => userStore.roleIds.includes(role.id))
+          roleNames.value = userRoles.map(r => r.roleName || r.roleKey).filter(Boolean).join(', ') || roleNames.value
+        }
       }
-    }
-    catch (error) {
-      console.error('获取角色信息失败', error)
+      catch (error) {
+        console.error('获取角色信息失败', error)
+      }
     }
   }
 
-  if (userStore.userInfo?.mainOrgId) {
+  deptName.value = userStore.activeOrgName || userStore.userInfo?.activeOrgName || userStore.userInfo?.deptName || ''
+  const targetOrgId = userStore.userInfo?.mainOrgId || userStore.activeOrgId || userStore.userInfo?.activeOrgId
+  if (!deptName.value && targetOrgId) {
     try {
-      const res = await request.get('/system/org/tree')
+      const res = await request.get('/system/org/current/options', { needTip: false })
       if (res.code === 200) {
-        const findOrgName = (list, id) => {
-          for (const item of list) {
-            if (item.id === id)
-              return item.orgName
-            if (item.children) {
-              const name = findOrgName(item.children, id)
-              if (name)
-                return name
-            }
-          }
-          return null
-        }
-        deptName.value = findOrgName(res.data, userStore.userInfo.mainOrgId)
+        deptName.value = findOrgName(res.data, targetOrgId)
       }
     }
     catch (error) {

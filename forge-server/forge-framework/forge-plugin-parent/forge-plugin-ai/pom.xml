@@ -38,6 +38,11 @@
             <artifactId>forge-plugin-system</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-job</artifactId>
+        </dependency>
+
         <!-- WebFlux（Flux<String> 流式 SSE 响应） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

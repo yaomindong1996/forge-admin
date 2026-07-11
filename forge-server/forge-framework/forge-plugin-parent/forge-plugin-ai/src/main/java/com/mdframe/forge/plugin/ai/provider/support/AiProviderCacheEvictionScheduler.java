@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.ai.provider.support;
 
 import com.mdframe.forge.plugin.ai.client.ChatClientCache;
+import com.mdframe.forge.plugin.ai.health.AiModelHealthRegistry;
 import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 public class AiProviderCacheEvictionScheduler {
 
     private final ChatClientCache chatClientCache;
+    private final AiModelHealthRegistry healthRegistry;
 
     public void scheduleAfterCommit(AiProvider provider) {
         if (provider == null || provider.getTenantId() == null || provider.getId() == null) {
@@ -30,11 +32,16 @@ public class AiProviderCacheEvictionScheduler {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    chatClientCache.evictByProvider(tenantId, providerId);
+                    evictRuntimeState(tenantId, providerId);
                 }
             });
             return;
         }
+        evictRuntimeState(tenantId, providerId);
+    }
+
+    private void evictRuntimeState(Long tenantId, Long providerId) {
         chatClientCache.evictByProvider(tenantId, providerId);
+        healthRegistry.resetProvider(tenantId, providerId);
     }
 }

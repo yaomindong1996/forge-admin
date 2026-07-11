@@ -6,26 +6,26 @@ export default {
   /**
    * 我的待办任务
    */
-  getTodoTasks: params =>
-    request.get('/api/flow/task/todo', { params }),
+  getTodoTasks: (params, config = {}) =>
+    request.get('/api/flow/task/todo', { ...config, params }),
 
   /**
    * 我的已办任务
    */
-  getDoneTasks: params =>
-    request.get('/api/flow/task/done', { params }),
+  getDoneTasks: (params, config = {}) =>
+    request.get('/api/flow/task/done', { ...config, params }),
 
   /**
    * 我发起的流程
    */
-  getStartedTasks: params =>
-    request.get('/api/flow/task/started', { params }),
+  getStartedTasks: (params, config = {}) =>
+    request.get('/api/flow/task/started', { ...config, params }),
 
   /**
    * 候选任务（未签收）
    */
-  getCandidateTasks: params =>
-    request.get('/api/flow/task/candidate', { params }),
+  getCandidateTasks: (params, config = {}) =>
+    request.get('/api/flow/task/candidate', { ...config, params }),
 
   /**
    * 签收任务

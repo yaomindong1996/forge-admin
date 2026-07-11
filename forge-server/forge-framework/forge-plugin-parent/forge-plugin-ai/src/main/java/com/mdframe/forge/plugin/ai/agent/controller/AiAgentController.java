@@ -58,13 +58,13 @@ public class AiAgentController {
 
     @PostMapping
     public RespInfo<Void> create(@RequestBody AiAgent agent) {
-        agentService.save(agent);
+        agentService.createAgent(agent);
         return RespInfo.success();
     }
 
     @PutMapping
     public RespInfo<Void> update(@RequestBody AiAgent agent) {
-        agentService.updateById(agent);
+        agentService.updateAgent(agent);
         return RespInfo.success();
     }
 

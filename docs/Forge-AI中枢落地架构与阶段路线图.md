@@ -134,7 +134,7 @@ flowchart TB
 
 它只负责 MCP 协议，不承载业务规则：
 
-- MCP Server 配置和传输端点；
+- MCP Server 配置和 Streamable HTTP 传输端点；禁止使用旧版独立 SSE transport；
 - `tools/list`、`tools/call` 与 Capability Registry 的转换；
 - MCP 错误与 Forge `CapabilityResult` 的协议映射；
 - 会话级客户端身份传递；
@@ -432,7 +432,9 @@ R3 调用必须形成可恢复、一次性执行的状态机：
 
 1. 创建 SDD 变更 `forge-ai-hub-foundation`，明确能力模型、身份模型、风险等级和非目标。
 2. 对 Spring AI `1.1.2` 与当前 Boot `3.5.13` 做 MCP Server 依赖 Spike；只实现内存 `capability.ping` 和一个静态只读工具。
-3. 验证 WebMVC/现有 WebFlux 依赖共存、SSE/Streamable HTTP、Undertow、请求级 Sa-Token 认证、按客户端动态 `tools/list` 和游标分页。
+   - 传输协议必须使用最新 Streamable HTTP，不启用旧版独立 SSE transport；
+   - 若当前 Spring AI 版本不能稳定支持 Streamable HTTP，Spike 必须失败关闭并给出升级/隔离方案，禁止为了调通演示退回 SSE；
+3. 验证 WebMVC/现有 WebFlux 依赖共存、Streamable HTTP、Undertow、请求级 Sa-Token 认证、按客户端动态 `tools/list` 和游标分页。
 4. 定义 `CapabilityDefinition`、`CapabilityInvocation`、`CapabilityResult`、`CapabilityExecutor`、`CapabilitySource` 五个核心接口。
 5. 冻结内部 `capabilityCode` 到协议安全 `protocolToolName` 的映射、错误码、风险等级、Schema 版本和请求 ID 规则。
 6. 验证 Draft 2020-12 到目标 MCP/Function Calling 客户端的公共子集和降级/拒绝规则。
@@ -442,9 +444,10 @@ R3 调用必须形成可恢复、一次性执行的状态机：
 #### 退出闸门
 
 - MCP 客户端可以发现并调用静态只读工具；
+- MCP 客户端通过 Streamable HTTP 完成初始化、`tools/list` 和 `tools/call`，工程中不存在旧版独立 SSE 端点；
 - Spike 不接业务数据库写操作；
 - Maven 依赖树无 Spring AI 版本冲突；
-- 已验证 Streamable HTTP/SSE 每次请求都能识别并隔离客户端身份；
+- 已验证 Streamable HTTP 的普通响应与协议内流式响应都能识别并隔离客户端身份；
 - 已验证工具名称约束、动态工具过滤和分页在目标 MCP 客户端可用；
 - 已验证 required、联合空类型、枚举、嵌套对象、明细数组和 `additionalProperties` 的协议投影；
 - 形成明确 ADR：继续 `1.1.2`、小版本升级，或单独升级 Spring AI；

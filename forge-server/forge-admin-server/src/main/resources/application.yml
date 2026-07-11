@@ -75,6 +75,25 @@ spring:
       observations:
         log-prompt: true      # Spring AI 内部也记录 prompt
         log-completion: true  # Spring AI 内部也记录 completion
+    mcp:
+      server:
+        # 阶段 0 默认关闭；开启前必须提供可信 McpCallerContextResolver
+        enabled: ${FORGE_MCP_ENABLED:false}
+        name: forge-ai-hub
+        version: 1.0.0
+        type: SYNC
+        stdio: false
+        # Spring AI 1.1.2 默认仍是 SSE，必须显式锁定 Streamable HTTP
+        protocol: STREAMABLE
+        annotation-scanner:
+          enabled: false
+        capabilities:
+          tool: true
+          resource: false
+          prompt: false
+          completion: false
+        streamable-http:
+          mcp-endpoint: /mcp
 # MyBatisPlus配置
 # https://baomidou.com/config/
 mybatis-plus:

@@ -53,6 +53,12 @@ public class AiModel extends TenantEntity {
      */
     private Integer maxTokens;
 
+    private Integer contextWindow;
+
+    private Long inputPricePerMillionCent;
+
+    private Long outputPricePerMillionCent;
+
     /**
      * 模型图标（文件ID或URL）
      */

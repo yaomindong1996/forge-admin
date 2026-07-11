@@ -471,10 +471,11 @@ async function loadFlowData() {
     return
   }
   try {
+    const silentConfig = { needTip: false }
     const [todoRes, doneRes, startedRes] = await Promise.all([
-      flowApi.getTodoTasks({ pageNum: 1, pageSize: 1, userId: userStore.userId }),
-      flowApi.getDoneTasks({ pageNum: 1, pageSize: 1, userId: userStore.userId }),
-      flowApi.getStartedTasks({ pageNum: 1, pageSize: 1, userId: userStore.userId }),
+      flowApi.getTodoTasks({ pageNum: 1, pageSize: 1, userId: userStore.userId }, silentConfig),
+      flowApi.getDoneTasks({ pageNum: 1, pageSize: 1, userId: userStore.userId }, silentConfig),
+      flowApi.getStartedTasks({ pageNum: 1, pageSize: 1, userId: userStore.userId }, silentConfig),
     ])
 
     todoCount.value = todoRes.data?.total || 0
@@ -487,6 +488,10 @@ async function loadFlowData() {
     }
   }
   catch {
+    todoCount.value = 0
+    doneCount.value = 0
+    startedCount.value = 0
+    pendingStarted.value = 0
     console.error('加载流程统计失败')
   }
 }
@@ -499,12 +504,16 @@ async function loadTodoList() {
   }
   todoLoading.value = true
   try {
-    const res = await flowApi.getTodoTasks({ pageNum: 1, pageSize: 8, userId: userStore.userId })
+    const res = await flowApi.getTodoTasks(
+      { pageNum: 1, pageSize: 8, userId: userStore.userId },
+      { needTip: false },
+    )
     if (res.data) {
       todoList.value = res.data.records || []
     }
   }
   catch {
+    todoList.value = []
     console.error('加载待办列表失败')
   }
   finally {

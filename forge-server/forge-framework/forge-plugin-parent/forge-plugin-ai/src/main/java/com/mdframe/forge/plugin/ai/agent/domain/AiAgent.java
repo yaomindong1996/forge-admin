@@ -27,6 +27,8 @@ public class AiAgent extends TenantEntity {
     private String systemPrompt;
     private Long providerId;
     private String modelName;
+    private String modelSelectionMode;
+    private Long routePolicyId;
     private BigDecimal temperature;
     private Integer maxTokens;
     private String extraConfig;

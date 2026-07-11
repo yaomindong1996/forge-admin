@@ -24,7 +24,6 @@
         <mapstruct-plus.version>1.4.4</mapstruct-plus.version>
         <mapstruct-plus.lombok.version>0.2.0</mapstruct-plus.lombok.version>
         <lombok.version>1.18.34</lombok.version>
-        <spring-boot.version>3.2.9</spring-boot.version>
         <mybatis-plus.version>3.5.7</mybatis-plus.version>
     </properties>
     

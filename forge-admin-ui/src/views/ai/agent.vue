@@ -218,6 +218,16 @@
                   </button>
                 </template>
                 <div class="model-dropdown-panel">
+                  <div class="model-selector-card model-mode-selector">
+                    <div class="model-selector-field">
+                      <span class="model-selector-label">模型选择方式</span>
+                      <n-select v-model:value="agentForm.modelSelectionMode" :options="modelSelectionModeOptions" size="small" :bordered="false" />
+                    </div>
+                    <div v-if="agentForm.modelSelectionMode === 'POLICY'" class="model-selector-field model-field">
+                      <span class="model-selector-label">路由策略</span>
+                      <n-select v-model:value="agentForm.routePolicyId" :options="routePolicyOptions" filterable clearable size="small" :bordered="false" placeholder="选择路由策略" />
+                    </div>
+                  </div>
                   <div class="model-selector-card">
                     <div class="model-selector-icon">
                       <i class="ai-icon:layers" />
@@ -232,6 +242,7 @@
                         filterable
                         size="small"
                         :bordered="false"
+                        :disabled="agentForm.modelSelectionMode === 'POLICY'"
                         placeholder="选择供应商"
                       />
                     </div>
@@ -248,6 +259,7 @@
                         tag
                         size="small"
                         :bordered="false"
+                        :disabled="agentForm.modelSelectionMode === 'POLICY'"
                         placeholder="选择或输入模型"
                       />
                     </div>
@@ -633,14 +645,22 @@
         <div class="modal-section">
           <n-form label-placement="top">
             <n-form-item label="MCP 工具">
-              <n-select
-                v-model:value="agentForm.extraConfig.mcpTools"
-                :options="mcpToolOptions"
-                multiple
-                clearable
-                filterable
-                placeholder="选择智能体可调用的 MCP 工具"
-              />
+              <div class="w-full">
+                <n-space v-if="selectedMcpToolLabels.length" size="small" class="mb-2">
+                  <n-tag
+                    v-for="tool in selectedMcpToolLabels"
+                    :key="tool"
+                    size="small"
+                    type="warning"
+                    :bordered="false"
+                  >
+                    {{ tool }}（预留）
+                  </n-tag>
+                </n-space>
+                <n-text depth="3">
+                  MCP 能力目录尚未开放配置。历史选项仅保留展示，不会自动启用或改写。
+                </n-text>
+              </div>
             </n-form-item>
             <n-form-item label="推荐问题">
               <n-dynamic-tags v-model:value="agentForm.extraConfig.suggestedQuestions" />
@@ -782,11 +802,15 @@ import {
   contextConfigUpdate,
   modelListByProvider,
   providerPage,
+  routePolicyPage,
   streamAgentChat,
 } from '@/api/ai'
+import { useDict } from '@/composables/useDict'
 import { generateUUID } from '@/utils'
 
 defineOptions({ name: 'AiAgent' })
+
+const { dict } = useDict('ai_agent_model_selection_mode')
 
 const viewMode = ref('market')
 const agentLoading = ref(false)
@@ -804,6 +828,7 @@ const messageListRef = ref(null)
 const agentList = ref([])
 const providerList = ref([])
 const modelList = ref([])
+const routePolicyList = ref([])
 const contextConfigs = ref([])
 const deletedContextIds = ref([])
 const expandedContextNames = ref([])
@@ -854,7 +879,7 @@ const contextTypeOptions = [
   { label: 'SAMPLE', value: 'SAMPLE' },
 ]
 
-const mcpToolOptions = [
+const reservedMcpToolOptions = [
   { label: '知识库检索', value: 'knowledge_search' },
   { label: '数据库查询', value: 'database_query' },
   { label: 'HTTP 请求', value: 'http_request' },
@@ -889,12 +914,18 @@ const modelOptions = computed(() => modelList.value.map(model => ({
   value: model.modelId,
 })))
 
+const modelSelectionModeOptions = computed(() => dict.value.ai_agent_model_selection_mode || [])
+const routePolicyOptions = computed(() => routePolicyList.value.map(policy => ({ label: policy.policyName, value: toIdString(policy.id) })))
+
 const selectedProviderName = computed(() => {
   const provider = providerList.value.find(item => toIdString(item.id) === toIdString(agentForm.providerId))
   return provider?.providerName || '未选择供应商'
 })
 
 const selectedModelLabel = computed(() => {
+  if (agentForm.modelSelectionMode === 'POLICY') {
+    return routePolicyList.value.find(policy => toIdString(policy.id) === toIdString(agentForm.routePolicyId))?.policyName || '选择路由策略'
+  }
   if (!agentForm.modelName) {
     if (!agentForm.providerId) {
       return '选择模型'
@@ -986,6 +1017,8 @@ function createEmptyAgent() {
     systemPrompt: defaultPrompt,
     providerId: null,
     modelName: null,
+    modelSelectionMode: 'PINNED',
+    routePolicyId: null,
     temperature: 0.7,
     maxTokens: 4000,
     status: '1',
@@ -1011,6 +1044,8 @@ function resetAgentForm(agent = createEmptyAgent()) {
     id: toIdString(agent.id) || null,
     providerId: toIdString(agent.providerId) || null,
     modelName: agent.modelName || null,
+    modelSelectionMode: agent.modelSelectionMode || 'PINNED',
+    routePolicyId: toIdString(agent.routePolicyId) || null,
     temperature: Number(agent.temperature ?? 0.7),
     maxTokens: Number(agent.maxTokens ?? 4000),
     status: agent.status ?? '1',
@@ -1056,6 +1091,8 @@ function serializeAgent(status) {
     systemPrompt: agentForm.systemPrompt,
     providerId: toIdString(agentForm.providerId) || null,
     modelName: agentForm.modelName,
+    modelSelectionMode: agentForm.modelSelectionMode || 'PINNED',
+    routePolicyId: agentForm.modelSelectionMode === 'POLICY' ? toIdString(agentForm.routePolicyId) || null : null,
     temperature: modelParamEnabled.temperature ? toNullableNumber(agentForm.temperature) : null,
     maxTokens: modelParamEnabled.maxTokens ? toNullableInteger(agentForm.maxTokens) : null,
     status: status ?? agentForm.status,
@@ -1104,6 +1141,15 @@ async function loadProviders() {
     if (res.code === 200 && res.data) {
       providerList.value = res.data.records || []
     }
+  }
+  catch {}
+}
+
+async function loadRoutePolicies() {
+  try {
+    const res = await routePolicyPage({ pageNum: 1, pageSize: 200, status: '0' })
+    if (res.code === 200)
+      routePolicyList.value = res.data?.records || []
   }
   catch {}
 }
@@ -1192,7 +1238,7 @@ function getAgentTools(agent) {
 }
 
 function getMcpToolLabel(value) {
-  return mcpToolOptions.find(option => option.value === value)?.label || value
+  return reservedMcpToolOptions.find(option => option.value === value)?.label || value
 }
 
 function getContextPreview(context) {
@@ -1330,6 +1376,7 @@ function buildBaseAgentPayload(status = '1') {
     agentName: baseForm.agentName,
     agentCode: baseForm.agentCode,
     description: baseForm.description,
+    providerId: providerList.value[0]?.id ? toIdString(providerList.value[0].id) : null,
     status,
     extraConfig: JSON.stringify(createDefaultExtraConfig()),
   }
@@ -1824,6 +1871,7 @@ function scrollLatestReasoningToBottom(container) {
 
 onMounted(() => {
   loadProviders()
+  loadRoutePolicies()
   loadAgents()
 })
 

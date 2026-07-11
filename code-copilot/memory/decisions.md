@@ -161,3 +161,21 @@ Forge 保留 Spring AI 作为统一 `ChatModel/ChatClient` 接口层，Spring AI
 多租户供应商凭据来自数据库，因此 DashScope 只引入 `spring-ai-alibaba-dashscope` 核心模型模块，运行时动态构建模型；不引入会读取全局 API Key 并自动装配单例 Bean 的 DashScope Starter。模型协议由 `ai_provider.adapter_code` 显式路由，当前稳定值为 `openai_compatible` 和 `dashscope_native`，禁止依据 `providerType` 品牌或 Base URL 猜测。历史记录保持 `openai_compatible`，只有管理员显式切换并通过连接测试后才能使用 Native。
 
 Nacos MCP Registry、Admin、Agent Framework、MCP Server 和 Agent Runtime 仍按 AI 中枢阶段闸门另立变更，不能因 DashScope Adapter 已落地而视为完成。回退到不识别 Native Adapter 的旧应用前，必须确认不存在 `dashscope_native` 记录；存在时先改为 Compatible 协议和 URL/config，并通过连接测试后再部署旧应用。
+
+## 17. AI 模型治理使用显式候选和模型级健康键
+
+**记录日期**: 2026-07-11
+
+模型路由只允许从管理员配置的显式候选中按 `priority ASC → target.id ASC` 确定性选择，不扫描全库、不按品牌猜测、不使用随机权重。调用前可以跳过已经 OPEN 的策略候选；请求一旦发送，失败必须立即结束，禁止在同一请求内换模型补发。
+
+健康状态键固定为 `tenantId/providerPk/modelPk`，默认使用单实例内存 `AiModelHealthRegistry`，通过 Lease 管理 HALF_OPEN 单试探。供应商/模型配置提交后清理对应健康状态。后续多实例共享状态可以替换为 Redis/Nacos 实现，但不得让业务调用链直接依赖注册中心 SDK。
+
+调用治理只保存路由、耗时、Token、价格快照和白名单错误元数据，不保存 Prompt、响应正文、API Key、Header 或原始供应商异常。成本是治理估算，不是计费出账。
+
+## 18. Forge MCP Server 统一使用 Streamable HTTP
+
+**记录日期**: 2026-07-11
+
+Forge 后续 MCP Server 的标准传输协议固定为最新的 **Streamable HTTP**，不实现或启用旧版独立 SSE transport。`forge-ai-hub-foundation` 的依赖 Spike、服务端配置、客户端联调、自动化测试和文档示例都必须以 Streamable HTTP 为准。
+
+允许 Streamable HTTP 协议自身在同一 MCP HTTP 端点内按规范使用流式响应，但禁止重新建设旧式的独立 SSE 建连端点、SSE session 管理或双端点兼容层。若目标 Spring AI 版本无法稳定支持 Streamable HTTP，阶段 0 必须失败关闭并形成版本兼容结论，不能为了演示退回旧 SSE 方案。

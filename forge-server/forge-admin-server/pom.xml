@@ -95,6 +95,11 @@
             <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-plugin-ai</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-plugin-mcp</artifactId>
+        </dependency>
         
         <!-- 外部接口代理转发插件 -->
         <dependency>

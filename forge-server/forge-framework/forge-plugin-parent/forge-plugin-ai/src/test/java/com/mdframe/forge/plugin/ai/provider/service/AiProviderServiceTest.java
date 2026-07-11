@@ -3,11 +3,13 @@ package com.mdframe.forge.plugin.ai.provider.service;
 import com.mdframe.forge.plugin.ai.provider.adapter.AiModelRuntimeOptions;
 import com.mdframe.forge.plugin.ai.provider.adapter.AiProviderAdapterCode;
 import com.mdframe.forge.plugin.ai.provider.adapter.AiProviderAdapterRegistry;
+import com.mdframe.forge.plugin.ai.model.service.AiModelService;
 import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
 import com.mdframe.forge.plugin.ai.provider.dto.AiProviderSaveDTO;
 import com.mdframe.forge.plugin.ai.provider.dto.AiProviderTestDTO;
 import com.mdframe.forge.plugin.ai.provider.mapper.AiProviderMapper;
 import com.mdframe.forge.plugin.ai.provider.support.AiProviderCacheEvictionScheduler;
+import com.mdframe.forge.plugin.ai.health.AiModelHealthRegistry;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,13 +51,19 @@ class AiProviderServiceTest {
     private AiProviderCacheEvictionScheduler evictionScheduler;
 
     @Mock
+    private AiModelService modelService;
+
+    @Mock
+    private AiModelHealthRegistry healthRegistry;
+
+    @Mock
     private ChatModel chatModel;
 
     private AiProviderService service;
 
     @BeforeEach
     void setUp() {
-        service = new AiProviderService(adapterRegistry, evictionScheduler);
+        service = new AiProviderService(adapterRegistry, evictionScheduler, modelService, healthRegistry);
         ReflectionTestUtils.setField(service, "baseMapper", providerMapper);
     }
 
@@ -149,7 +158,9 @@ class AiProviderServiceTest {
     @Test
     void savedConnectionTestShouldLoadRealSecretById() {
         AiProvider persisted = persistedProvider();
+        persisted.setDefaultModel("stale-provider-model");
         when(providerMapper.selectById(10L)).thenReturn(persisted);
+        when(modelService.requireEnabledDefaultModelId(10L)).thenReturn("deepseek-v4-pro");
         when(adapterRegistry.createChatModel(any(AiProvider.class), any(AiModelRuntimeOptions.class)))
                 .thenReturn(chatModel);
         when(chatModel.call(any(Prompt.class))).thenReturn(response("OK", "thinking"));
@@ -159,8 +170,10 @@ class AiProviderServiceTest {
         String result = service.testConnection(request);
 
         ArgumentCaptor<AiProvider> providerCaptor = ArgumentCaptor.forClass(AiProvider.class);
-        verify(adapterRegistry).createChatModel(providerCaptor.capture(), any(AiModelRuntimeOptions.class));
+        ArgumentCaptor<AiModelRuntimeOptions> optionsCaptor = ArgumentCaptor.forClass(AiModelRuntimeOptions.class);
+        verify(adapterRegistry).createChatModel(providerCaptor.capture(), optionsCaptor.capture());
         assertEquals(REAL_SECRET, providerCaptor.getValue().getApiKey());
+        assertEquals("deepseek-v4-pro", optionsCaptor.getValue().model());
         assertTrue(result.contains("OK"));
         assertTrue(result.contains("thinking"));
     }
@@ -181,7 +194,24 @@ class AiProviderServiceTest {
         String result = service.testConnection(request);
 
         verify(providerMapper, never()).selectById(any());
+        verify(modelService, never()).requireEnabledDefaultModelId(anyLong());
         assertTrue(result.contains("OK"));
+    }
+
+    @Test
+    void savedConnectionTestShouldFailBeforeModelCreationWhenDefaultModelIsMissing() {
+        when(providerMapper.selectById(10L)).thenReturn(persistedProvider());
+        when(modelService.requireEnabledDefaultModelId(10L))
+                .thenThrow(new BusinessException("请为供应商设置默认模型"));
+        AiProviderTestDTO request = new AiProviderTestDTO();
+        request.setId(10L);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> service.testConnection(request));
+
+        assertEquals("请为供应商设置默认模型", exception.getMessage());
+        verify(adapterRegistry, never()).createChatModel(any(), any());
+        verify(chatModel, never()).call(any(Prompt.class));
     }
 
     @Test
@@ -200,6 +230,7 @@ class AiProviderServiceTest {
     void sdkFailureShouldNotExposeSensitiveMessage() {
         AiProvider persisted = persistedProvider();
         when(providerMapper.selectById(10L)).thenReturn(persisted);
+        when(modelService.requireEnabledDefaultModelId(10L)).thenReturn("qwen-plus");
         when(adapterRegistry.createChatModel(any(), any())).thenReturn(chatModel);
         when(chatModel.call(any(Prompt.class)))
                 .thenThrow(new IllegalStateException("request failed with key " + REAL_SECRET));
@@ -232,6 +263,26 @@ class AiProviderServiceTest {
 
         assertEquals("sk-r****7890", masked);
         assertFalse(masked.contains("sensitive"));
+    }
+
+    @Test
+    void strictDefaultProviderShouldRejectMissingOrDuplicateConfiguration() {
+        when(providerMapper.selectEnabledDefaultProviders()).thenReturn(java.util.List.of());
+        assertThrows(BusinessException.class, service::requireEnabledDefaultProvider);
+
+        AiProvider first = persistedProvider();
+        AiProvider second = persistedProvider();
+        second.setId(11L);
+        when(providerMapper.selectEnabledDefaultProviders()).thenReturn(java.util.List.of(first, second));
+        assertThrows(BusinessException.class, service::requireEnabledDefaultProvider);
+    }
+
+    @Test
+    void strictDefaultProviderShouldReturnTheOnlyEnabledDefault() {
+        AiProvider provider = persistedProvider();
+        when(providerMapper.selectEnabledDefaultProviders()).thenReturn(java.util.List.of(provider));
+
+        assertEquals(provider, service.requireEnabledDefaultProvider());
     }
 
     private AiProviderSaveDTO completeSaveRequest() {

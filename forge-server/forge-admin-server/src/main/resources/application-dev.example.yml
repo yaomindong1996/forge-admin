@@ -61,6 +61,9 @@ spring.data:
           connectionMinimumIdleSize: 10
         threads: 16
         nettyThreads: 32
+
+# MCP Server 默认关闭。阶段 0 只允许 Streamable HTTP，且开启前必须提供可信调用方身份解析器。
+# FORGE_MCP_ENABLED=true 不能替代身份认证配置；缺少 McpCallerContextResolver 时应用会失败关闭。
 config:
   datasource:
     url: ${spring.datasource.dynamic.datasource.master.url}

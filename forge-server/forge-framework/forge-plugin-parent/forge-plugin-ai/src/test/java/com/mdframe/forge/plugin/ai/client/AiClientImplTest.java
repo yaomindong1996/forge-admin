@@ -6,6 +6,8 @@ import com.mdframe.forge.plugin.ai.chat.memory.DbChatMemory;
 import com.mdframe.forge.plugin.ai.chat.service.AiChatRecordService;
 import com.mdframe.forge.plugin.ai.client.dto.AiClientRequest;
 import com.mdframe.forge.plugin.ai.client.dto.AiClientResponse;
+import com.mdframe.forge.plugin.ai.health.AiModelFailureClassifier;
+import com.mdframe.forge.plugin.ai.invocation.service.AiModelInvocationRecorder;
 import com.mdframe.forge.plugin.ai.provider.adapter.AiModelRuntimeOptions;
 import com.mdframe.forge.plugin.ai.provider.adapter.AiProviderAdapterCode;
 import com.mdframe.forge.plugin.ai.provider.adapter.AiProviderAdapterRegistry;
@@ -65,10 +67,10 @@ class AiClientImplTest {
     private ChatModel chatModel;
 
     @Mock
-    private CircuitBreaker circuitBreaker;
+    private ContextInjector contextInjector;
 
     @Mock
-    private ContextInjector contextInjector;
+    private AiModelInvocationRecorder invocationRecorder;
 
     private ChatClientCache chatClientCache;
     private AiClientImpl client;
@@ -85,8 +87,9 @@ class AiClientImplTest {
                 recordService,
                 sessionService,
                 chatClientCache,
-                circuitBreaker,
-                contextInjector
+                contextInjector,
+                invocationRecorder,
+                new AiModelFailureClassifier()
         );
         provider = nativeProvider();
         when(invocationResolver.resolve(eq("copilot"), any(), any(), any(), any()))

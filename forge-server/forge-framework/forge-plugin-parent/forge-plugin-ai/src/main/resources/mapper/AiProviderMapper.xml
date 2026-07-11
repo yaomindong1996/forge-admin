@@ -55,4 +55,13 @@
         ORDER BY create_time DESC
         LIMIT 1
     </select>
+
+    <select id="selectEnabledDefaultProviders"
+            resultType="com.mdframe.forge.plugin.ai.provider.domain.AiProvider">
+        SELECT <include refid="providerColumns"/>
+        FROM ai_provider
+        WHERE is_default = '1' AND status = '0' AND del_flag = '0'
+        ORDER BY id ASC
+        LIMIT 2
+    </select>
 </mapper>

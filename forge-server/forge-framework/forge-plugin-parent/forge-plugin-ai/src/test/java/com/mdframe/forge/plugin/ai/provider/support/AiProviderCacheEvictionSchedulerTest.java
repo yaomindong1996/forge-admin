@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.ai.provider.support;
 
 import com.mdframe.forge.plugin.ai.client.ChatClientCache;
+import com.mdframe.forge.plugin.ai.health.AiModelHealthRegistry;
 import com.mdframe.forge.plugin.ai.provider.domain.AiProvider;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import org.junit.jupiter.api.AfterEach;
@@ -21,6 +22,9 @@ class AiProviderCacheEvictionSchedulerTest {
     @Mock
     private ChatClientCache cache;
 
+    @Mock
+    private AiModelHealthRegistry healthRegistry;
+
     @AfterEach
     void cleanTransactionState() {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -32,7 +36,7 @@ class AiProviderCacheEvictionSchedulerTest {
     @Test
     void activeTransactionShouldEvictOnlyAfterCommit() {
         beginTransactionSynchronization();
-        AiProviderCacheEvictionScheduler scheduler = new AiProviderCacheEvictionScheduler(cache);
+        AiProviderCacheEvictionScheduler scheduler = new AiProviderCacheEvictionScheduler(cache, healthRegistry);
 
         scheduler.scheduleAfterCommit(provider());
 
@@ -40,12 +44,13 @@ class AiProviderCacheEvictionSchedulerTest {
         TransactionSynchronizationManager.getSynchronizations()
                 .forEach(TransactionSynchronization::afterCommit);
         verify(cache).evictByProvider(1L, 10L);
+        verify(healthRegistry).resetProvider(1L, 10L);
     }
 
     @Test
     void rollbackShouldNotEvict() {
         beginTransactionSynchronization();
-        AiProviderCacheEvictionScheduler scheduler = new AiProviderCacheEvictionScheduler(cache);
+        AiProviderCacheEvictionScheduler scheduler = new AiProviderCacheEvictionScheduler(cache, healthRegistry);
 
         scheduler.scheduleAfterCommit(provider());
         TransactionSynchronizationManager.getSynchronizations()
@@ -57,17 +62,18 @@ class AiProviderCacheEvictionSchedulerTest {
 
     @Test
     void noTransactionShouldEvictImmediately() {
-        AiProviderCacheEvictionScheduler scheduler = new AiProviderCacheEvictionScheduler(cache);
+        AiProviderCacheEvictionScheduler scheduler = new AiProviderCacheEvictionScheduler(cache, healthRegistry);
 
         scheduler.scheduleAfterCommit(provider());
 
         verify(cache).evictByProvider(1L, 10L);
+        verify(healthRegistry).resetProvider(1L, 10L);
     }
 
     @Test
     void activeTransactionWithoutSynchronizationShouldFailClosed() {
         TransactionSynchronizationManager.setActualTransactionActive(true);
-        AiProviderCacheEvictionScheduler scheduler = new AiProviderCacheEvictionScheduler(cache);
+        AiProviderCacheEvictionScheduler scheduler = new AiProviderCacheEvictionScheduler(cache, healthRegistry);
 
         assertThrows(BusinessException.class, () -> scheduler.scheduleAfterCommit(provider()));
 

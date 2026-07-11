@@ -3,6 +3,9 @@
 > 本文档沉淀 Forge 系统「从低代码平台转向 AI 中枢」的产品战略与技术选型决策，供后续路线规划、方案评审、对外阐述使用。
 >
 > 核心论断：**Forge 距离「AI 中枢」比想象中近；应让低代码从「前台产品」退居为「后台能力工厂」，其产出的业务对象/元数据自动转化为 AI Agent 可调用的工具。技术上坚持 Spring/JVM 主干，不切 Python。**
+>
+> 配套工程落地方案：[`Forge-AI中枢落地架构与阶段路线图.md`](./Forge-AI中枢落地架构与阶段路线图.md)
+
 > **2026-07-10 已验证基线**：Forge 保留 Spring AI `1.1.2` 作为统一接口层，并叠加 Spring AI Alibaba/Extensions `1.1.2.3`。当前只接入 DashScope 核心模型模块，通过显式 `adapter_code` 支持 `openai_compatible` 与 `dashscope_native`；这是一项供应商适配前置能力，不代表 MCP、Nacos、Admin 或 Agent Framework 阶段已经完成。
 
 ---
