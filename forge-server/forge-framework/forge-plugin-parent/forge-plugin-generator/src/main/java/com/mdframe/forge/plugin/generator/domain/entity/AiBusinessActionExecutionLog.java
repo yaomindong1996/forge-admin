@@ -48,4 +48,12 @@ public class AiBusinessActionExecutionLog extends TenantEntity {
     private String idempotencyKey;
 
     private Long durationMs;
+
+    private String capabilityRequestId;
+
+    private Long clientId;
+
+    private Long serviceUserId;
+
+    private String actorType;
 }

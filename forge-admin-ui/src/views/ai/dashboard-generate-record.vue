@@ -37,7 +37,7 @@
               {{ [currentRecord.providerName, currentRecord.modelName].filter(Boolean).join(' / ') || '-' }}
             </n-descriptions-item>
             <n-descriptions-item label="生成状态">
-              <DictTag dict-type="ai_dashboard_generate_status" :dict-value="currentRecord.status" size="small" />
+              <DictTag dict-type="ai_dashboard_generate_status" :value="currentRecord.status" size="small" />
             </n-descriptions-item>
             <n-descriptions-item label="生成时间">
               {{ currentRecord.createTime || '-' }}
@@ -196,7 +196,7 @@ const tableColumns = computed(() => [
     label: '状态',
     width: 100,
     render(row) {
-      return h(DictTag, { dictType: 'ai_dashboard_generate_status', dictValue: row.status, size: 'small' })
+      return h(DictTag, { dictType: 'ai_dashboard_generate_status', value: row.status, size: 'small' })
     },
   },
   {

@@ -1,6 +1,6 @@
 import { usePermissionStore, useTabStore } from '@/store'
 
-export const EXCLUDE_TAB = ['/404', '/403', '/login', '/login/callback']
+export const EXCLUDE_TAB = ['/404', '/403', '/login', '/login/callback', '/mcp-authorize']
 
 /**
  * 从扁平菜单数组中查找路径对应的中文名称

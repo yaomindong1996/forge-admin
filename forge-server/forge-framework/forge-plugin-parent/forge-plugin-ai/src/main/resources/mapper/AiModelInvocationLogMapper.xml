@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.ai.invocation.mapper.AiModelInvocationLogMapper">
+  <sql id="filters">
+    <if test="q.agentCode != null and q.agentCode != ''">AND agent_code = #{q.agentCode}</if>
+    <if test="q.providerId != null">AND provider_id = #{q.providerId}</if>
+    <if test="q.modelId != null">AND model_id = #{q.modelId}</if>
+    <if test="q.outcome != null and q.outcome != ''">AND outcome = #{q.outcome}</if>
+    <if test="q.startTime != null">AND create_time &gt;= #{q.startTime}</if>
+    <if test="q.endTime != null">AND create_time &lt;= #{q.endTime}</if>
+  </sql>
+  <select id="selectInvocationPage" resultType="com.mdframe.forge.plugin.ai.invocation.vo.AiInvocationLogVO">
+    SELECT id, request_id, user_id, agent_code, session_id, route_source, route_reason, route_policy_id,
+           provider_id, model_id, provider_model_id, adapter_code, outcome, error_category, http_status,
+           error_code, latency_ms, prompt_tokens, completion_tokens, total_tokens, usage_available, cost_available, create_time
+    FROM ai_model_invocation_log WHERE 1=1 <include refid="filters"/> ORDER BY create_time DESC, id DESC
+  </select>
+  <select id="selectSummary" resultType="java.util.HashMap">
+    SELECT COUNT(1) totalCount,
+           SUM(CASE WHEN outcome = 'SUCCESS' THEN 1 ELSE 0 END) successCount,
+           SUM(CASE WHEN outcome IN ('FAILED','ROUTING_FAILED') THEN 1 ELSE 0 END) failedCount,
+           SUM(CASE WHEN usage_available = 0 THEN 1 ELSE 0 END) usageUnavailableCount,
+           SUM(CASE WHEN usage_available = 1 AND cost_available = 0 THEN 1 ELSE 0 END) costUnavailableCount,
+           SUM(CASE WHEN usage_available = 1 THEN COALESCE(prompt_tokens,0) ELSE 0 END) totalPromptTokens,
+           SUM(CASE WHEN usage_available = 1 THEN COALESCE(completion_tokens,0) ELSE 0 END) totalCompletionTokens,
+           SUM(CASE WHEN cost_available = 1 THEN CAST(prompt_tokens AS DECIMAL(38,0))*CAST(input_price_per_million_cent AS DECIMAL(38,0)) + CAST(completion_tokens AS DECIMAL(38,0))*CAST(output_price_per_million_cent AS DECIMAL(38,0)) ELSE 0 END) costNumerator
+    FROM ai_model_invocation_log WHERE 1=1 <include refid="filters"/>
+  </select>
+  <select id="selectLatencies" resultType="java.lang.Long">
+    SELECT latency_ms FROM ai_model_invocation_log WHERE 1=1 <include refid="filters"/> ORDER BY latency_ms ASC
+  </select>
+  <delete id="deleteBefore">DELETE FROM ai_model_invocation_log WHERE create_time &lt; #{cutoff}</delete>
+</mapper>

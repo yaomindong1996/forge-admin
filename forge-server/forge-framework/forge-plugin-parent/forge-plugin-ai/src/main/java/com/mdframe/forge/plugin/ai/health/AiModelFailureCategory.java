@@ -1,0 +1,2 @@
+package com.mdframe.forge.plugin.ai.health;
+public enum AiModelFailureCategory { TIMEOUT, NETWORK, RATE_LIMIT, PROVIDER_5XX, AUTHENTICATION, MODEL_UNAVAILABLE, VALIDATION, CONTENT_POLICY, CANCELLED, UNKNOWN }

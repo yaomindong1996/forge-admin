@@ -16,6 +16,7 @@ import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectActionVO;
 import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
+import com.mdframe.forge.starter.core.context.ExecutionIdentityContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -33,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -58,12 +60,42 @@ public class BusinessActionExecutionService {
     private final List<BusinessActionStepExecutor> stepExecutors;
 
     public BusinessActionExecuteResultVO execute(BusinessActionExecuteDTO dto) {
+        return executeInternal(dto, null, null);
+    }
+
+    public BusinessActionExecuteResultVO executePublished(
+            BusinessActionExecuteDTO dto,
+            Integer publishedVersion) {
+        if (publishedVersion == null || publishedVersion <= 0) {
+            throw new BusinessException("已发布业务动作版本不能为空");
+        }
+        return executeInternal(dto, publishedVersion, null);
+    }
+
+    public BusinessActionExecuteResultVO executePublished(
+            BusinessActionExecuteDTO dto,
+            Integer publishedVersion,
+            String capabilityRequestId) {
+        if (StringUtils.isBlank(capabilityRequestId)
+                || !capabilityRequestId.matches("^[A-Za-z0-9._:-]{1,64}$")) {
+            throw new BusinessException("能力请求 ID 无效");
+        }
+        if (publishedVersion == null || publishedVersion <= 0) {
+            throw new BusinessException("已发布业务动作版本不能为空");
+        }
+        return executeInternal(dto, publishedVersion, capabilityRequestId);
+    }
+
+    private BusinessActionExecuteResultVO executeInternal(
+            BusinessActionExecuteDTO dto,
+            Integer publishedVersion,
+            String capabilityRequestId) {
         long startTime = System.currentTimeMillis();
         BusinessActionExecutionContext context = null;
         List<BusinessActionStepResultVO> stepResults = new ArrayList<>();
         AiBusinessActionExecutionLog logEntry = null;
         try {
-            context = buildContext(dto);
+            context = buildContext(dto, publishedVersion, capabilityRequestId);
             AiBusinessActionExecutionLog reusableLog = findReusableLog(context);
             if (reusableLog != null) {
                 return fromLog(reusableLog, true);
@@ -106,7 +138,7 @@ public class BusinessActionExecutionService {
     }
 
     public BusinessActionExecuteResultVO preview(BusinessActionExecuteDTO dto) {
-        BusinessActionExecutionContext context = buildContext(dto);
+        BusinessActionExecutionContext context = buildContext(dto, null, null);
         validateActionPermission(context.getAction());
         List<BusinessActionStepResultVO> stepResults = resolveSteps(context.getAction()).stream()
                 .map(step -> {
@@ -131,7 +163,10 @@ public class BusinessActionExecutionService {
                 resolveTenantId(), query == null ? new BusinessActionLogQueryDTO() : query);
     }
 
-    private BusinessActionExecutionContext buildContext(BusinessActionExecuteDTO dto) {
+    private BusinessActionExecutionContext buildContext(
+            BusinessActionExecuteDTO dto,
+            Integer publishedVersion,
+            String capabilityRequestId) {
         if (dto == null) {
             throw new BusinessException("动作执行参数不能为空");
         }
@@ -143,14 +178,38 @@ public class BusinessActionExecutionService {
         if (StringUtils.isBlank(dto.getActionCode())) {
             throw new BusinessException("动作编码不能为空");
         }
-        BusinessObjectActionService.ResolvedBusinessAction resolved =
-                actionService.resolveAction(dto.getSuiteCode(), objectCode, dto.getActionCode());
-        AiBusinessObject object = resolved.object();
+        AiBusinessObject object;
+        BusinessObjectActionVO resolvedAction;
+        if (publishedVersion == null) {
+            BusinessObjectActionService.ResolvedBusinessAction resolved =
+                    actionService.resolveAction(dto.getSuiteCode(), objectCode, dto.getActionCode());
+            object = resolved.object();
+            resolvedAction = resolved.action();
+        }
+        else {
+            BusinessObjectActionService.ResolvedPublishedBusinessAction resolved =
+                    actionService.resolvePublishedAction(
+                            dto.getSuiteCode(), objectCode, dto.getActionCode(), publishedVersion);
+            object = resolved.object();
+            resolvedAction = resolved.action();
+        }
         BusinessActionExecutionContext context = new BusinessActionExecutionContext();
-        context.setTenantId(resolveTenantId());
+        if (object.getTenantId() == null || object.getTenantId() <= 0) {
+            throw new BusinessException("业务对象缺少有效租户");
+        }
+        context.setTenantId(object.getTenantId());
         context.setCorrelationId(UUID.randomUUID().toString().replace("-", ""));
         context.setBusinessObject(object);
-        context.setAction(resolved.action());
+        context.setAction(resolvedAction);
+        context.setPublishedVersion(publishedVersion);
+        if (publishedVersion != null) {
+            var identity = ExecutionIdentityContextHolder.current()
+                    .orElseThrow(() -> new BusinessException("受控业务动作缺少可信执行身份"));
+            context.setCapabilityRequestId(capabilityRequestId);
+            context.setCapabilityClientId(identity.clientId());
+            context.setCapabilityServiceUserId(identity.serviceUserId());
+            context.setCapabilityActorType(identity.actorType());
+        }
         context.setRequest(dto);
         context.setFormData(dto.getFormData() == null ? new LinkedHashMap<>() : new LinkedHashMap<>(dto.getFormData()));
         context.setExtraContext(dto.getContext() == null ? new LinkedHashMap<>() : new LinkedHashMap<>(dto.getContext()));
@@ -320,6 +379,7 @@ public class BusinessActionExecutionService {
         if (existing == null) {
             return null;
         }
+        assertSameIdempotentRequest(existing, context);
         if (STATUS_RUNNING.equalsIgnoreCase(existing.getExecuteStatus())) {
             throw new IdempotentConflictException("业务动作正在执行，请稍候");
         }
@@ -346,6 +406,10 @@ public class BusinessActionExecutionService {
         logEntry.setCorrelationId(context.getCorrelationId());
         logEntry.setIdempotencyKey(StringUtils.trimToNull(context.getRequest().getIdempotencyKey()));
         logEntry.setDurationMs(System.currentTimeMillis() - startTime);
+        logEntry.setCapabilityRequestId(context.getCapabilityRequestId());
+        logEntry.setClientId(context.getCapabilityClientId());
+        logEntry.setServiceUserId(context.getCapabilityServiceUserId());
+        logEntry.setActorType(context.getCapabilityActorType());
         return logEntry;
     }
 
@@ -366,6 +430,7 @@ public class BusinessActionExecutionService {
             if (existing == null) {
                 throw new IdempotentConflictException("业务动作重复提交，请稍候重试");
             }
+            assertSameIdempotentRequest(existing, context);
             if (STATUS_SUCCESS.equalsIgnoreCase(existing.getExecuteStatus())
                     || STATUS_TODO.equalsIgnoreCase(existing.getExecuteStatus())) {
                 throw new IdempotentLogHitException(existing);
@@ -524,13 +589,45 @@ public class BusinessActionExecutionService {
 
     private String buildRequestDigest(BusinessActionExecutionContext context) {
         Map<String, Object> digest = new LinkedHashMap<>();
+        digest.put("suiteCode", context.getBusinessObject().getSuiteCode());
         digest.put("objectCode", context.getRequest().getObjectCode());
         digest.put("recordId", context.getRequest().getRecordId());
         digest.put("actionCode", context.getRequest().getActionCode());
-        digest.put("formKeys", context.getFormData().keySet());
-        digest.put("contextKeys", context.getExtraContext().keySet());
-        String raw = writeJson(digest);
-        return "sha256:" + sha256(raw) + "; " + StringUtils.left(raw, 900);
+        digest.put("publishedVersion", context.getPublishedVersion());
+        digest.put("formData", canonicalize(context.getFormData()));
+        digest.put("context", canonicalize(context.getExtraContext()));
+        return "sha256:" + sha256(writeJson(canonicalize(digest)));
+    }
+
+    private void assertSameIdempotentRequest(
+            AiBusinessActionExecutionLog existing,
+            BusinessActionExecutionContext context) {
+        String currentDigest = buildRequestDigest(context);
+        if (!currentDigest.equals(existing.getRequestDigest())) {
+            throw new IdempotentConflictException("幂等键已被不同业务动作参数使用，请更换幂等键");
+        }
+    }
+
+    private Object canonicalize(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> sorted = new TreeMap<>();
+            map.forEach((key, item) -> sorted.put(String.valueOf(key), canonicalize(item)));
+            return sorted;
+        }
+        if (value instanceof Iterable<?> iterable) {
+            List<Object> items = new ArrayList<>();
+            iterable.forEach(item -> items.add(canonicalize(item)));
+            return items;
+        }
+        if (value != null && value.getClass().isArray()) {
+            List<Object> items = new ArrayList<>();
+            int length = java.lang.reflect.Array.getLength(value);
+            for (int index = 0; index < length; index++) {
+                items.add(canonicalize(java.lang.reflect.Array.get(value, index)));
+            }
+            return items;
+        }
+        return value;
     }
 
     private String writeJson(Object value) {
@@ -574,7 +671,10 @@ public class BusinessActionExecutionService {
         } catch (Exception e) {
             tenantId = null;
         }
-        return tenantId == null ? 1L : tenantId;
+        if (tenantId == null || tenantId <= 0) {
+            throw new BusinessException("未获取到有效租户上下文");
+        }
+        return tenantId;
     }
 
     private record StepExecutionOutcome(List<BusinessActionStepResultVO> stepResults) {

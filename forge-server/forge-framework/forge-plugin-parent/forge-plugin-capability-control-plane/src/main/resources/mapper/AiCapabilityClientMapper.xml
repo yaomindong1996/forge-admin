@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.capability.controlplane.mapper.AiCapabilityClientMapper">
+    <sql id="BaseColumns">
+        id, tenant_id, client_code, client_name, key_id, key_prefix, key_hash, credential_version,
+        service_user_id, active_org_id, oauth_enabled, oauth_client_type, status,
+        expires_at, last_used_at, remark, del_flag,
+        create_by, create_time, create_dept, update_by, update_time
+    </sql>
+    <select id="selectPage" resultType="com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityClient">
+        SELECT <include refid="BaseColumns"/> FROM ai_capability_client
+        WHERE tenant_id = #{tenantId} AND del_flag = 0
+        <if test="keyword != null and keyword != ''">
+            AND (client_code LIKE CONCAT('%', #{keyword}, '%') OR client_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null and status != ''">AND status = #{status}</if>
+        ORDER BY update_time DESC, id DESC
+    </select>
+    <select id="selectTenantById" resultType="com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityClient">
+        SELECT <include refid="BaseColumns"/> FROM ai_capability_client
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0 LIMIT 1
+    </select>
+    <select id="selectByCode" resultType="com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityClient">
+        SELECT <include refid="BaseColumns"/> FROM ai_capability_client
+        WHERE tenant_id = #{tenantId} AND client_code = #{clientCode} AND del_flag = 0 LIMIT 1
+    </select>
+    <select id="selectCredentialByKeyId" resultType="com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityClient">
+        SELECT <include refid="BaseColumns"/> FROM ai_capability_client
+        WHERE key_id = #{keyId} AND del_flag = 0 LIMIT 1
+    </select>
+    <select id="selectCredentialById" resultType="com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityClient">
+        SELECT <include refid="BaseColumns"/> FROM ai_capability_client
+        WHERE id = #{id} AND del_flag = 0 LIMIT 1
+    </select>
+    <update id="touchLastUsed">
+        UPDATE ai_capability_client
+        SET last_used_at = #{lastUsedAt}, update_time = NOW()
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+          AND status = 'ENABLED' AND credential_version = #{credentialVersion}
+          AND key_hash = #{keyHash}
+    </update>
+    <update id="rotateCredential">
+        UPDATE ai_capability_client
+        SET key_id = #{keyId}, key_prefix = #{keyPrefix}, key_hash = #{keyHash},
+            credential_version = credential_version + 1, update_time = NOW()
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+          AND status = 'ENABLED' AND credential_version = #{credentialVersion}
+    </update>
+    <update id="revokeCredential">
+        UPDATE ai_capability_client
+        SET status = 'REVOKED', credential_version = credential_version + 1, update_time = NOW()
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+          AND status = 'ENABLED' AND credential_version = #{credentialVersion}
+    </update>
+    <update id="configureOAuth">
+        UPDATE ai_capability_client
+        SET oauth_enabled = #{oauthEnabled}, oauth_client_type = #{oauthClientType},
+            credential_version = credential_version + 1, update_time = NOW()
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+          AND status = 'ENABLED' AND credential_version = #{credentialVersion}
+    </update>
+</mapper>

@@ -1258,11 +1258,22 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         if (roleIds == null || roleIds.isEmpty()) {
             return;
         }
+        List<SysRole> roles = roleMapper.selectList(new LambdaQueryWrapper<SysRole>()
+                .eq(SysRole::getTenantId, tenantId)
+                .in(SysRole::getId, roleIds)
+                .select(SysRole::getId, SysRole::getOrgScopeType));
+        List<Long> customRoleIds = roles.stream()
+                .filter(role -> !isGlobalRoleScope(role))
+                .map(SysRole::getId)
+                .collect(Collectors.toList());
+        if (customRoleIds.isEmpty()) {
+            return;
+        }
         Long count = roleOrgMapper.selectCount(new LambdaQueryWrapper<SysRoleOrg>()
                 .eq(SysRoleOrg::getTenantId, tenantId)
                 .eq(SysRoleOrg::getOrgId, orgId)
-                .in(SysRoleOrg::getRoleId, roleIds));
-        if (count == null || count != roleIds.size()) {
+                .in(SysRoleOrg::getRoleId, customRoleIds));
+        if (count == null || count != customRoleIds.size()) {
             throw new RuntimeException("角色不适用于目标组织");
         }
     }
@@ -1271,11 +1282,22 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         if (roleId == null || orgId == null || tenantId == null) {
             return false;
         }
+        SysRole role = roleMapper.selectOne(new LambdaQueryWrapper<SysRole>()
+                .eq(SysRole::getTenantId, tenantId)
+                .eq(SysRole::getId, roleId)
+                .select(SysRole::getId, SysRole::getOrgScopeType));
+        if (isGlobalRoleScope(role)) {
+            return true;
+        }
         Long count = roleOrgMapper.selectCount(new LambdaQueryWrapper<SysRoleOrg>()
                 .eq(SysRoleOrg::getTenantId, tenantId)
                 .eq(SysRoleOrg::getRoleId, roleId)
                 .eq(SysRoleOrg::getOrgId, orgId));
         return count != null && count > 0;
+    }
+
+    private boolean isGlobalRoleScope(SysRole role) {
+        return role != null && Objects.equals(role.getOrgScopeType(), SystemConstants.RoleOrgScope.GLOBAL);
     }
 
     private void validateOrgTenant(List<Long> orgIds, Long tenantId) {

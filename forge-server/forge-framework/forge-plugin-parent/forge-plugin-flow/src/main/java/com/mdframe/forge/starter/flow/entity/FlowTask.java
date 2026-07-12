@@ -208,4 +208,19 @@ public class FlowTask {
      * 完成时间
      */
     private LocalDateTime completeTime;
+
+    /**
+     * 受控流程动作幂等键；仅在任务完成事务内写入。
+     */
+    private String actionIdempotencyKey;
+
+    /**
+     * 受控流程动作规范请求摘要。
+     */
+    private String actionRequestDigest;
+
+    /**
+     * 最终执行的受控动作类型（APPROVE/REJECT）。
+     */
+    private String actionType;
 }

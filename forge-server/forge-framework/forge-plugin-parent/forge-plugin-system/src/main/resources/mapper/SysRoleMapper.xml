@@ -9,6 +9,7 @@
         <result column="role_name" property="roleName" />
         <result column="role_key" property="roleKey" />
         <result column="role_type" property="roleType" />
+        <result column="org_scope_type" property="orgScopeType" />
         <result column="data_scope" property="dataScope" />
         <result column="sort" property="sort" />
         <result column="role_status" property="roleStatus" />
@@ -50,7 +51,7 @@
 
     <sql id="RoleColumnList">
         r.id, r.tenant_id, t.tenant_name, r.role_name, r.role_key, r.role_type,
-        r.data_scope, r.sort, r.role_status, r.is_system, r.remark,
+        r.org_scope_type, r.data_scope, r.sort, r.role_status, r.is_system, r.remark,
         r.create_dept, r.create_by, r.create_time, r.update_by, r.update_time, r.del_flag
     </sql>
 
@@ -72,12 +73,15 @@
             AND r.role_type = #{query.roleType}
         </if>
         <if test="query.orgId != null">
-            AND EXISTS (
-                SELECT 1
-                FROM sys_role_org ro
-                WHERE ro.tenant_id = r.tenant_id
-                  AND ro.role_id = r.id
-                  AND ro.org_id = #{query.orgId}
+            AND (
+                r.org_scope_type = 1
+                OR EXISTS (
+                    SELECT 1
+                    FROM sys_role_org ro
+                    WHERE ro.tenant_id = r.tenant_id
+                      AND ro.role_id = r.id
+                      AND ro.org_id = #{query.orgId}
+                )
             )
         </if>
         <if test="query.accessibleRoleIds != null">

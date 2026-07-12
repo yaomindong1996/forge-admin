@@ -124,6 +124,36 @@ public class FlowClient {
     }
 
     /**
+     * 以当前已验证用户身份发起流程。发起人、租户和组织由流程服务从
+     * Authorization 对应的服务端 Session 中解析，请求体不传用户身份。
+     */
+    public FlowResult<String> startProcessForDelegatedUser(
+            String modelKey, String businessKey, String businessType,
+            String title, Map<String, Object> variables) {
+        String url = flowServiceUrl + "/api/flow/instance/start-delegated/" + modelKey;
+        Map<String, Object> params = new HashMap<>();
+        params.put("businessKey", businessKey);
+        params.put("businessType", businessType);
+        params.put("title", title);
+        params.put("variables", variables);
+        return post(url, params, new TypeReference<FlowResult<String>>() {});
+    }
+
+    /**
+     * 以可信 USER 委托身份提交平台高风险审批，不复用普通业务流程发起权限。
+     */
+    public FlowResult<String> startHighRiskApprovalForDelegatedUser(
+            String modelKey, String businessKey, String title, Map<String, Object> variables) {
+        String url = flowServiceUrl + "/api/flow/instance/start-delegated-approval/" + modelKey;
+        Map<String, Object> params = new HashMap<>();
+        params.put("businessKey", businessKey);
+        params.put("businessType", "capability-approval");
+        params.put("title", title);
+        params.put("variables", variables);
+        return post(url, params, new TypeReference<FlowResult<String>>() {});
+    }
+
+    /**
      * 获取流程实例状态
      *
      * @param businessKey 业务唯一标识
@@ -295,6 +325,12 @@ public class FlowClient {
     }
 
     public FlowResult<Void> approve(String taskId, String userId, String comment, String signature, Map<String, Object> variables) {
+        return approve(taskId, userId, comment, signature, variables, null, null, null);
+    }
+
+    public FlowResult<Void> approve(String taskId, String userId, String comment, String signature,
+                                    Map<String, Object> variables, Long tenantId,
+                                    String idempotencyKey, String requestDigest) {
         String url = flowServiceUrl + "/api/flow/task/approve";
         Map<String, Object> params = new HashMap<>();
         params.put("taskId", taskId);
@@ -302,6 +338,9 @@ public class FlowClient {
         params.put("comment", comment);
         if (signature != null) params.put("signature", signature);
         if (variables != null) params.put("variables", variables);
+        if (tenantId != null) params.put("tenantId", tenantId);
+        if (idempotencyKey != null) params.put("idempotencyKey", idempotencyKey);
+        if (requestDigest != null) params.put("requestDigest", requestDigest);
         return post(url, params, new TypeReference<FlowResult<Void>>() {});
     }
 
@@ -317,12 +356,20 @@ public class FlowClient {
     }
 
     public FlowResult<Void> reject(String taskId, String userId, String comment, String signature) {
+        return reject(taskId, userId, comment, signature, null, null, null);
+    }
+
+    public FlowResult<Void> reject(String taskId, String userId, String comment, String signature,
+                                   Long tenantId, String idempotencyKey, String requestDigest) {
         String url = flowServiceUrl + "/api/flow/task/reject";
         Map<String, Object> params = new HashMap<>();
         params.put("taskId", taskId);
         params.put("userId", userId);
         params.put("comment", comment);
         if (signature != null) params.put("signature", signature);
+        if (tenantId != null) params.put("tenantId", tenantId);
+        if (idempotencyKey != null) params.put("idempotencyKey", idempotencyKey);
+        if (requestDigest != null) params.put("requestDigest", requestDigest);
         return post(url, params, new TypeReference<FlowResult<Void>>() {});
     }
 
@@ -443,6 +490,8 @@ public class FlowClient {
         if (tokenProvider != null) {
             try {
                 effectiveToken = tokenProvider.getToken();
+            } catch (FlowTokenAcquisitionException exception) {
+                throw new FlowClientException("获取流程调用身份失败", exception);
             } catch (Exception e) {
                 // TokenProvider 获取失败时降级为静态 token
             }

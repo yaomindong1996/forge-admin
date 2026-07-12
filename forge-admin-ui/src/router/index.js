@@ -19,6 +19,12 @@ export const manualRoutes = [
     meta: { title: '社交登录回调', layout: 'empty' },
   },
   {
+    name: 'McpAuthorize',
+    path: '/mcp-authorize',
+    component: () => import('@/views/ai/mcp-authorize.vue'),
+    meta: { title: 'MCP 访问授权', layout: 'empty', skipTab: true },
+  },
+  {
     name: '404',
     path: '/404',
     component: () => import('@/views/error-page/404.vue'),

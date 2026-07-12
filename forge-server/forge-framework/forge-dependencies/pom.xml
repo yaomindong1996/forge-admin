@@ -466,6 +466,35 @@
 
             <dependency>
                 <groupId>com.mdframe.forge</groupId>
+                <artifactId>forge-plugin-capability-control-plane</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.mdframe.forge</groupId>
+                <artifactId>forge-plugin-capability-identity</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.mdframe.forge</groupId>
+                <artifactId>forge-plugin-capability-secure-actions</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.mdframe.forge</groupId>
+                <artifactId>forge-plugin-capability-flow-actions</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.mdframe.forge</groupId>
+                <artifactId>forge-plugin-capability-high-risk-approval</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.mdframe.forge</groupId>
                 <artifactId>forge-plugin-mcp</artifactId>
                 <version>${revision}</version>
             </dependency>

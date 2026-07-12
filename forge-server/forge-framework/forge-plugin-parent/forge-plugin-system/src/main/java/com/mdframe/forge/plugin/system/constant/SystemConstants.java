@@ -55,11 +55,24 @@ public interface SystemConstants {
          */
         int REGION = 7;
     }
-    
+
+    interface RoleOrgScope {
+
+        /**
+         * 租户全局适用。
+         */
+        int GLOBAL = 1;
+
+        /**
+         * 指定组织适用。
+         */
+        int CUSTOM = 2;
+    }
+
     interface UserStatus {
-        
+
         String LOCKED = "2";
-        
+
         String UNLOCKED = "1";
     }
 }

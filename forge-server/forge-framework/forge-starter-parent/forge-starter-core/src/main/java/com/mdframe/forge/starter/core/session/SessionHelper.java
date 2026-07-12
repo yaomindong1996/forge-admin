@@ -1,6 +1,7 @@
 package com.mdframe.forge.starter.core.session;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.mdframe.forge.starter.core.context.ExecutionIdentityContextHolder;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 
 import java.util.List;
@@ -24,6 +25,12 @@ public class SessionHelper {
      * 获取当前登录用户信息
      */
     public static LoginUser getLoginUser() {
+        LoginUser explicitUser = ExecutionIdentityContextHolder.current()
+                .map(identity -> identity.loginUser())
+                .orElse(null);
+        if (explicitUser != null) {
+            return explicitUser;
+        }
         return (LoginUser) StpUtil.getTokenSession().get(LOGIN_USER_KEY);
     }
 

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.ai.routing.mapper.AiModelRoutingQueryMapper">
+  <select id="selectPolicyCandidates" resultType="com.mdframe.forge.plugin.ai.routing.AiModelRouteCandidate">
+    SELECT t.id target_id, t.tenant_id target_tenant_id, t.policy_id,
+           t.model_id model_pk, m.tenant_id model_tenant_id,
+           m.provider_id provider_pk, p.tenant_id provider_tenant_id,
+           p.provider_name, p.provider_type, p.adapter_code, p.api_key, p.base_url, p.status provider_status,
+           m.model_id, m.model_name, m.model_type, m.status model_status, m.max_tokens, m.context_window,
+           m.input_price_per_million_cent, m.output_price_per_million_cent, t.priority,
+           GROUP_CONCAT(c.capability_code ORDER BY c.capability_code SEPARATOR ',') capability_codes
+    FROM ai_model_route_target t
+    JOIN ai_model m ON m.id = t.model_id AND m.del_flag = '0'
+    JOIN ai_provider p ON p.id = m.provider_id AND p.del_flag = '0'
+    LEFT JOIN ai_model_capability c ON c.model_id = m.id AND c.status = '0' AND c.del_flag = '0'
+    WHERE t.policy_id = #{policyId} AND t.status = '0' AND t.del_flag = '0'
+    GROUP BY t.id, t.tenant_id, t.policy_id, t.model_id, m.tenant_id, m.provider_id, p.tenant_id,
+             p.provider_name, p.provider_type, p.adapter_code,
+             p.api_key, p.base_url, p.status, m.model_id, m.model_name, m.model_type, m.status,
+             m.max_tokens, m.context_window, m.input_price_per_million_cent, m.output_price_per_million_cent, t.priority
+    ORDER BY t.priority ASC, t.id ASC
+  </select>
+</mapper>

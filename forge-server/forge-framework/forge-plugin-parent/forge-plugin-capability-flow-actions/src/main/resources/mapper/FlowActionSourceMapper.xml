@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.capability.flowaction.source.FlowActionSourceMapper">
+
+    <select id="selectPublishedFlowSource"
+            resultType="com.mdframe.forge.plugin.capability.flowaction.source.FlowActionSourceRow">
+        SELECT o.id AS object_id,
+               o.suite_code,
+               o.object_code,
+               o.object_name,
+               o.config_key,
+               v.publish_version AS published_object_version,
+               b.id AS binding_id,
+               b.binding_key,
+               b.binding_config
+        FROM ai_business_object o
+        INNER JOIN ai_business_binding b
+          ON b.tenant_id = o.tenant_id
+         AND b.target_type = 'OBJECT'
+         AND b.target_id = o.id
+         AND b.target_code = o.object_code
+         AND b.binding_type = 'FLOW'
+         AND b.status = 1
+        INNER JOIN ai_business_object_design_version v
+          ON v.tenant_id = o.tenant_id
+         AND v.object_id = o.id
+         AND v.suite_code = o.suite_code
+         AND v.object_code = o.object_code
+         AND v.publish_version = o.last_publish_version
+         AND v.publish_status = 'PUBLISHED'
+        WHERE o.tenant_id = #{tenantId}
+          AND o.suite_code = #{suiteCode}
+          AND o.object_code = #{objectCode}
+          AND o.status = 1
+          AND o.design_status = 'PUBLISHED'
+          AND o.last_publish_version IS NOT NULL
+          AND o.last_publish_version &gt; 0
+          AND o.del_flag = '0'
+        ORDER BY CASE WHEN b.binding_key IS NULL OR b.binding_key = '' THEN 1 ELSE 0 END,
+                 CASE WHEN b.binding_config IS NULL OR b.binding_config = '' THEN 1 ELSE 0 END,
+                 b.sort_order ASC,
+                 b.update_time DESC,
+                 b.id DESC
+        LIMIT 1
+    </select>
+</mapper>

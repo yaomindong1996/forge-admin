@@ -155,7 +155,7 @@ const tableColumns = computed(() => [
     label: '适用场景',
     width: 120,
     render(row) {
-      return h(DictTag, { dictType: 'ai_prompt_usage_scene', dictValue: row.usageScene, size: 'small' })
+      return h(DictTag, { dictType: 'ai_prompt_usage_scene', value: row.usageScene, size: 'small' })
     },
   },
   {
@@ -195,7 +195,7 @@ const tableColumns = computed(() => [
     label: '推荐',
     width: 80,
     render(row) {
-      return h(DictTag, { dictType: 'ai_prompt_recommended', dictValue: row.isRecommended, size: 'small' })
+      return h(DictTag, { dictType: 'ai_prompt_recommended', value: row.isRecommended, size: 'small' })
     },
   },
   {
@@ -203,7 +203,7 @@ const tableColumns = computed(() => [
     label: '状态',
     width: 80,
     render(row) {
-      return h(DictTag, { dictType: 'ai_prompt_status', dictValue: row.status, size: 'small' })
+      return h(DictTag, { dictType: 'ai_prompt_status', value: row.status, size: 'small' })
     },
   },
   {

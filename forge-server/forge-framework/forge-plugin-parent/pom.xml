@@ -23,6 +23,11 @@
         <module>forge-plugin-generator</module>
         <module>forge-plugin-ai</module>
         <module>forge-plugin-capability</module>
+        <module>forge-plugin-capability-control-plane</module>
+        <module>forge-plugin-capability-identity</module>
+        <module>forge-plugin-capability-secure-actions</module>
+        <module>forge-plugin-capability-flow-actions</module>
+        <module>forge-plugin-capability-high-risk-approval</module>
         <module>forge-plugin-mcp</module>
         <module>forge-plugin-external</module>
         <module>forge-plugin-data</module>

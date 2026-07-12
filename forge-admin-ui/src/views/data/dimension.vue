@@ -347,7 +347,7 @@ const tableColumns = computed(() => [
         h('div', { class: 'dimension-name' }, row.dimensionName),
         h(DictTag, {
           dictType: 'data_dimension_source_type',
-          dictValue: row.sourceType,
+          value: row.sourceType,
           size: 'small',
         }),
       ]),
@@ -387,7 +387,7 @@ const tableColumns = computed(() => [
     width: 100,
     render: row => h(DictTag, {
       dictType: 'sys_enable_disable',
-      dictValue: String(row.status),
+      value: String(row.status),
       size: 'small',
     }),
   },
@@ -535,7 +535,7 @@ const itemColumns = computed(() => [
         })
       : h(DictTag, {
           dictType: 'sys_enable_disable',
-          dictValue: String(row.status),
+          value: String(row.status),
           size: 'small',
         }),
   },

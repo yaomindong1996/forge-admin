@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.capability.controlplane.mapper.AiCapabilityGrantMapper">
+    <sql id="BaseColumns">
+        id, tenant_id, client_id, capability_id, version_strategy, fixed_version,
+        field_policy, status, expires_at, del_flag,
+        create_by, create_time, create_dept, update_by, update_time
+    </sql>
+    <select id="selectPage" resultType="com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityGrant">
+        SELECT <include refid="BaseColumns"/> FROM ai_capability_grant
+        WHERE tenant_id = #{tenantId} AND del_flag = 0
+        <if test="clientId != null">AND client_id = #{clientId}</if>
+        <if test="capabilityId != null">AND capability_id = #{capabilityId}</if>
+        <if test="status != null and status != ''">AND status = #{status}</if>
+        ORDER BY update_time DESC, id DESC
+    </select>
+    <select id="selectTenantById" resultType="com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityGrant">
+        SELECT <include refid="BaseColumns"/> FROM ai_capability_grant
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0 LIMIT 1
+    </select>
+    <select id="selectActiveGrant" resultType="com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityGrant">
+        SELECT <include refid="BaseColumns"/> FROM ai_capability_grant
+        WHERE tenant_id = #{tenantId} AND client_id = #{clientId}
+          AND capability_id = #{capabilityId} AND del_flag = 0 LIMIT 1
+    </select>
+    <update id="logicallyRevoke">
+        UPDATE ai_capability_grant
+        SET status = 'REVOKED', del_flag = 1, update_time = NOW()
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+    </update>
+</mapper>

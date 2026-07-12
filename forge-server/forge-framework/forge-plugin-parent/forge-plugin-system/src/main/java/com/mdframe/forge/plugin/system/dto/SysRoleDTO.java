@@ -39,6 +39,11 @@ public class SysRoleDTO implements Serializable {
     private Integer roleType;
 
     /**
+     * 组织适用范围类型（1-租户全局，2-指定组织）
+     */
+    private Integer orgScopeType;
+
+    /**
      * 权限范围（1-全部数据，2-本租户数据，3-本组织数据，4-本组织及子组织，5-个人数据）
      */
     private Integer dataScope;

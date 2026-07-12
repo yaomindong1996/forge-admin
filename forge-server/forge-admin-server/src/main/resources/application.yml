@@ -77,7 +77,7 @@ spring:
         log-completion: true  # Spring AI 内部也记录 completion
     mcp:
       server:
-        # 阶段 0 默认关闭；开启前必须提供可信 McpCallerContextResolver
+        # 默认关闭；开启后只接受 Identity 模块签发的短期 fdu_ Bearer Token
         enabled: ${FORGE_MCP_ENABLED:false}
         name: forge-ai-hub
         version: 1.0.0
@@ -132,6 +132,33 @@ sa-token:
 sms:
   config-type: interface
 forge:
+  capability:
+    # 机器客户端密钥 HMAC Pepper；无默认值，创建/轮换/验证凭据时缺失会失败关闭
+    client-pepper: ${FORGE_CAPABILITY_CLIENT_PEPPER:}
+    secure-actions:
+      # 仅发布固定 search/describe/invoke 元工具；业务动作仍需 USER 委托、grant、字段白名单与 elicitation
+      enabled: ${FORGE_CAPABILITY_SECURE_ACTIONS_ENABLED:${FORGE_MCP_ENABLED:false}}
+    flow-actions:
+      # 复用固定元工具，首批仅开放已发布 FLOW 绑定的 START/APPROVE/REJECT
+      enabled: ${FORGE_CAPABILITY_FLOW_ACTIONS_ENABLED:${FORGE_MCP_ENABLED:false}}
+    high-risk:
+      # HIGH 动作默认关闭；启用前必须通过环境变量提供版本化 256-bit KEK
+      enabled: ${FORGE_CAPABILITY_HIGH_RISK_ENABLED:false}
+      flow-model-key: forge_capability_high_risk_approval
+      crypto:
+        active-key-id: ${FORGE_CAPABILITY_HIGH_RISK_ACTIVE_KEY_ID:}
+        keys:
+          v1: ${FORGE_CAPABILITY_HIGH_RISK_KEK_V1:}
+    identity:
+      enabled: ${FORGE_CAPABILITY_IDENTITY_ENABLED:${FORGE_MCP_ENABLED:false}}
+      issuer: ${FORGE_CAPABILITY_OAUTH_ISSUER:http://localhost:8580}
+      resource: ${FORGE_CAPABILITY_MCP_RESOURCE:http://localhost:8580/mcp}
+      # 两个 Pepper 均需至少 32 字符，禁止与客户端密钥 Pepper 共用
+      token-pepper: ${FORGE_CAPABILITY_TOKEN_PEPPER:}
+      authorization-code-pepper: ${FORGE_CAPABILITY_AUTH_CODE_PEPPER:}
+      access-token-ttl: ${FORGE_CAPABILITY_TOKEN_TTL:10m}
+      authorization-code-ttl: ${FORGE_CAPABILITY_AUTH_CODE_TTL:2m}
+      allowed-origins: ${FORGE_CAPABILITY_MCP_ALLOWED_ORIGINS:}
   crypto:
     secretKey: 8r0fV9G3kLcNz7p2xQaA1w==
   api-config:

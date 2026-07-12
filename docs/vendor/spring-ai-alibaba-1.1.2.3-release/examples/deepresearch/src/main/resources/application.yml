@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: DeepResearch
+  ai:
+    dashscope:
+      api-key: ${AI_DASHSCOPE_API_KEY}
+    mcp:
+      client:
+        enabled: true
+        toolcallback:
+          enabled: true
+        streamable-http:
+          connections:
+            jina:
+              # 官方地址：https://mcp.jina.ai 本地部署：http://127.0.0.1:8787
+              url: "https://mcp.jina.ai"
+              endpoint: "/sse"
+        request-timeout: 60000
+server:
+  port: 8080

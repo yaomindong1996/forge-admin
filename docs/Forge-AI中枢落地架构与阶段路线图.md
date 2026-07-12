@@ -4,7 +4,9 @@
 >
 > 推荐结论：按 **5 个阶段**推进，其中阶段 0 是架构与依赖验证，阶段 1～3 形成可商用的 AI 中枢主链路，阶段 4 再建设 Agent 运行时、RAG 和多智能体。按 3～4 人核心团队估算，30 天形成受限内网 Alpha，6～8 周形成安全的只读试点，4～6 个月可达到企业试点版本。
 
-> **当前进度（2026-07-10）**：已完成阶段 0 的一个前置变更——Spring AI Alibaba 供应商适配层与 DashScope 原生接入。完整阶段 0 的 MCP Spike、能力模型和机器安全边界仍未完成，阶段 1～4 也尚未开始。
+> **当前进度（2026-07-12）**：阶段 0 已归档；阶段 1 的控制面切片已归档，但低代码只读查询/详情执行器、REGION 数据权限闭环和管理端仍未通过阶段 1 完整退出闸门。阶段 2.0～2.3 的代码切片已建设完成：Forge OAuth 2.1/PKCE 用户委托身份、MEDIUM 受控业务动作、Flowable `START/APPROVE/REJECT` 和 HIGH 人工审批均已通过 Review；MCP 保持 `2025-06-18` 单 Streamable HTTP，固定发布 `capability.ping/search/describe/invoke/approval.get`。当前结论是“代码验收完成，环境验收待完成”：尚未真实执行 Flyway、Flowable 人工审批 E2E 及“查询采购单 → 提交动作 → 发起/办理流程 → 查询审批状态”总体链路，因此阶段 2 整体退出闸门尚未正式通过。
+
+> **交接约定（2026-07-12）**：真实 Flyway、Admin/Flow 启动、MCP 客户端协议联调和端到端业务验收由用户自行执行；后续 AI 编码会话不自动启动服务、不执行真实数据迁移、不代替用户宣告 E2E 通过，除非用户再次明确授权。下次代码建设从 `forge-ai-hub-readonly-mcp` 提案开始。
 
 ---
 
@@ -46,8 +48,8 @@
 
 ### 2.2 当前看似已有、实际还不能直接使用的能力
 
-1. 当前依赖是 Spring Boot `3.5.13`、Spring AI `1.1.2`、Spring AI Alibaba/Extensions `1.1.2.3`。工程只引入 `spring-ai-alibaba-dashscope` 核心模型模块，没有引入 DashScope Starter，也没有引入 Nacos、Admin、MCP Registry 或 Agent Framework；MCP starter 的坐标和版本兼容性仍必须单独做 Spike。
-2. 工程内没有 MCP Server、`ToolCallback` 或 Function Calling 注册链路。`AiClient` 当前只有 `call` 和 `stream`，不会读取或执行 Agent 配置里的工具。
+1. 当前依赖是 Spring Boot `3.5.13`、Spring AI `1.1.2`、Spring AI Alibaba/Extensions `1.1.2.3`、MCP SDK `0.17.0`。工程只引入 `spring-ai-alibaba-dashscope` 核心模型模块和 WebMVC MCP Server starter，没有引入 DashScope Starter、Nacos、Admin、MCP Registry 或 Agent Framework；MCP transport 已验证为 Streamable HTTP。
+2. 工程已有协议无关 Capability 内核与 MCP Server，并以固定元工具发布 `capability.ping/search/describe/invoke/approval.get`；真实业务能力通过 `search/describe/invoke` 在请求时按 scope、client grant、用户权限、tenant 和 activeOrg 实时过滤，不依赖 MCP SDK 静态 `tools/list` 暴露异构业务 Tool。`AiClient` 当前仍只有 `call` 和 `stream`，尚未读取或执行 Agent 配置里的工具，这仍属于阶段 4 的 Agent Runtime 范围。
 3. `forge-admin-ui/src/views/ai/agent.vue` 中的 MCP 工具是“知识库检索、数据库查询、HTTP 请求、文件读取、工作流触发、代码执行”六个硬编码选项，只保存到 `extraConfig`，后端不消费。它目前是产品占位，不是已实现能力。
 4. `SysApiConfig` 有鉴权、加密、租户、限流等开关，但自动注册器和启动注册逻辑被关闭，`limitFlag` 没有对应执行器；同时它缺少输入/输出 Schema、风险等级、版本、客户端授权和调用审计，不能直接充当能力目录。
 5. `LowcodeModelSchema` 是设计模型的一部分，但真正运行时还依赖 `AiCrudConfig.searchSchema/columnsSchema/editSchema/options`。工具生成必须以“已发布运行配置”为基准，不能直接把设计草稿变成外部工具。
@@ -426,7 +428,7 @@ R3 调用必须形成可恢复、一次性执行的状态机：
 
 #### 当前状态
 
-供应商适配前置项已经完成：依赖基线、DashScope Core、显式 Adapter 路由和统一调用链均已验证。下列 MCP Spike、能力模型与机器身份工作仍是阶段 0 的待办，不能据此把阶段 0 标记为完成。
+阶段 0 已完成：依赖基线、DashScope Core、显式 Adapter 路由、模型路由治理、Capability 核心契约、Streamable HTTP `/mcp`、可信身份边界、Schema 校验、HMAC 游标和静态 `capability.ping` 均已验证。SDK `0.17.0` 动态目录不足已形成失败关闭结论，作为阶段 1 的首个硬闸门继续处理，而不是回退旧 SSE。
 
 #### 工作项
 
@@ -459,6 +461,10 @@ R3 调用必须形成可恢复、一次性执行的状态机：
 
 交付第一个可以给真实 Agent 试用、但只读且安全隔离的版本。
 
+#### 当前状态
+
+控制面切片 `forge-ai-hub-control-plane` 已于 2026-07-12 归档：五张表、不可变版本、机器客户端一次性密钥、grant 授权交集、安全调用日志、管理 API 和 Admin 机器身份桥接已完成。协议核心、MCP 与持久化控制面保持独立模块。固定元工具 `capability.search/describe/invoke` 已由阶段 2.1 补齐；阶段 1 当前主要缺口是低代码只读查询/详情来源与执行器、REGION 数据权限闭环、发布对账、管理端以及真实环境性能/安全闸门，因此仍未达到完整退出条件。
+
 #### 工作项
 
 1. 新建 `forge-plugin-capability` 和 `forge-plugin-mcp`，接入 `forge-plugin-parent` 与 `forge-admin-server`。
@@ -470,7 +476,7 @@ R3 调用必须形成可恢复、一次性执行的状态机：
 7. 实现发布事件同步与 `sourceVersion/schemaChecksum` 周期对账。
 8. 按机器认证算法实现客户端密钥、短期令牌、服务账号实时加载、组织精确校验、立即吊销和 MCP 路径限制。
 9. 实现授权交集、按执行器 fail-closed 数据权限、输出字段过滤、脱敏和调用日志。
-10. 实现 `capability.search`、`capability.describe` 和按客户端过滤的 `tools/list`。
+10. 实现统一静态元工具 `capability.search`、`capability.describe`、`capability.invoke`；`tools/list` 只暴露这组安全元工具，真实能力目录与调用结果按客户端/grant 动态过滤。
 11. 前端新增 AI 中枢基础页面：能力目录、客户端、授权、调用日志。
 12. 选一个已发布主子表对象作为验收样板，优先使用采购单/采购明细，不为样板硬编码业务逻辑。
 
@@ -478,7 +484,7 @@ R3 调用必须形成可恢复、一次性执行的状态机：
 
 - 外部 MCP 客户端可以发现、查询、查看一个已发布业务对象；
 - 未发布对象不会出现在目录；
-- 不同客户端看到的工具列表按授权过滤；
+- 不同客户端通过元工具看到的真实能力目录按授权过滤，静态 `tools/list` 不泄露任何异构业务能力；
 - 跨租户、跨组织、超出数据范围、敏感字段访问均被阻止；
 - 自动化安全用例中跨租户/组织泄露为 0，缺失上下文和权限计算异常均 fail-closed；
 - 租户业务数据源的 REGION 查询 SQL 不包含 `sys_region_code` 等平台表，区域范围来自主库快照并通过参数绑定；
@@ -492,6 +498,17 @@ R3 调用必须形成可恢复、一次性执行的状态机：
 #### 目标
 
 让 Agent 从“会查”升级为“能安全办事”，但所有副作用都经过业务动作、权限、幂等和风险策略。
+
+#### 当前状态
+
+阶段 2.0～2.3 代码建设已于 2026-07-12 完成 Review 和归档：
+
+- 2.0 `mcp-user-delegation-identity`：受限 Forge OAuth 2.1 Profile、PKCE S256、USER/SERVICE 短期令牌和双身份执行上下文；
+- 2.1 `forge-ai-hub-secure-actions`：已发布 BUSINESS_ACTION、不可变快照、字段白名单、elicitation、幂等与双审计；
+- 2.2 `forge-ai-hub-flow-actions`：已发布 FLOW_ACTION，受控开放 `START/APPROVE/REJECT`，办理人始终来自可信 USER 委托身份；
+- 2.3 `forge-ai-hub-high-risk-approval`：HIGH 动作加密快照、专用 Flowable 人工审批、回调重新授权与至多一次执行。
+
+当前不继续扩展新写能力，先进入隔离环境验收。由于尚未真实执行 V1.0.22～V1.0.26 Flyway、真实 Flowable 待办审批 E2E，且阶段 1 只读采购单查询出口未完成，所以阶段 2 只能标记为“代码验收完成”，不标记为“总体 E2E/生产验收完成”。
 
 #### 工作项
 
@@ -643,41 +660,81 @@ forge-admin-ui/src/
 
 不要用一个超大变更覆盖半年工作，建议按可运行软件拆分：
 
-1. `forge-ai-hub-foundation`：依赖 Spike、核心接口、ADR、静态 MCP 工具；
-2. `forge-ai-hub-readonly-mcp`：能力表、发布态 Schema、机器身份、查询/详情、审计；
-3. `forge-ai-hub-secure-actions`：业务动作、流程、消息、风险、幂等、人工审批；
-4. `forge-ai-hub-open-platform`：OAuth2、配额、版本、运营与可观测；
-5. `forge-ai-hub-agent-runtime`：内部 Tool Calling、RAG、评估、按门槛引入 AgentScope Java。
+1. `forge-ai-hub-foundation` 与 `forge-ai-hub-control-plane`：已归档，交付依赖 Spike、内核、Streamable HTTP 和持久化控制面；
+2. `mcp-user-delegation-identity`：已归档，交付 USER/SERVICE 可信委托身份；
+3. `forge-ai-hub-secure-actions`、`forge-ai-hub-flow-actions`、`forge-ai-hub-high-risk-approval`：已归档，分别交付 R2 业务动作、流程闭环和 R3 人工审批；
+4. `forge-ai-hub-readonly-mcp`：下一个应补齐的阶段 1 缺口，交付已发布低代码对象的查询/详情、REGION 权限和验收样板；
+5. `forge-ai-hub-open-platform` 与 `forge-ai-hub-agent-runtime`：只在前述隔离环境闸门通过后再启动。
 
 每个变更必须独立可构建、可测试、可回滚，并在进入下一阶段前通过本阶段退出闸门。
 
 ---
 
-## 11. 最值得先做的 30 天
+## 11. 下次继续开发的任务清单
 
-### 第 1 周
+### 11.1 恢复会话时的第一个动作
 
-- 创建 `forge-ai-hub-foundation` SDD；
-- 完成 Spring AI MCP 依赖 Spike；
-- 确定能力、身份、风险、返回协议 ADR。
+下次不重做已归档的 foundation、control-plane、identity、secure-actions、flow-actions 或 high-risk-approval。直接执行：
 
-### 第 2 周
+```text
+/propose forge-ai-hub-readonly-mcp
+```
 
-- 创建 `forge-plugin-capability` 骨架；
-- 落 `ai_capability`、版本快照、客户端、授权、调用日志模型；
-- 完成已发布 `AiCrudConfig` 到只读 Capability 的转换。
+该变更必须先 Proposal，然后按 `apply → review → fix → archive` 闭环执行。
 
-### 第 3 周
+### 11.2 P0：只读 MCP 主链缺口
 
-- 完成查询/详情 Schema Builder 和执行器；
-- 接入服务账号、租户、当前组织和数据权限；
-- 完成字段过滤、敏感字段脱敏和审计。
+- [ ] 实现 `LowcodePublishedCapabilitySource`，只从已发布 `AiCrudConfig` 生成查询/详情能力；
+- [ ] 实现 `PublishedCrudSchemaBuilder`，以发布态 `searchSchema/columnsSchema/editSchema/modelSchema/options` 为契约事实来源；
+- [ ] 实现 `DynamicCrudReadExecutor`，只开放参数化分页查询和详情，禁止任意 SQL、任意列、写入、导入导出和删除；
+- [ ] 主键统一按字符串暴露，限制 `pageSize`，排序字段使用白名单；
+- [ ] 返回字段按发布契约、client grant 字段策略和当前用户权限取交集，敏感/内部/审计字段默认排除；
+- [ ] 整改 REGION 数据权限：从平台主库快照解析区域编码，业务数据源只执行参数化 `IN` 条件；
+- [ ] 实现发布事件同步和 `sourceVersion/schemaChecksum` 周期对账；
+- [ ] 完成租户、组织、数据范围、字段脱敏、雪花 ID、分页和授权失败关闭测试；
+- [ ] 以采购单/采购明细作为验收样板，但所有实现保持平台通用。
 
-### 第 4 周
+### 11.3 P1：阶段 1～2 产品闭环缺口
 
-- 接入 `forge-plugin-mcp`；
-- 在测试环境用白名单 MCP 客户端验证 `search/get`；
-- 做跨租户、跨组织、越权、雪花 ID 和分页上限测试；
-- 用采购单主子表场景演示，但保持平台代码通用。
+完成 P0 后再按独立 SDD 变更逐项实现，不合并成一个超大变更：
 
-30 天结束时的正确结果是“受限内网/测试环境、单租户白名单 Alpha 已打通”，不是对外生产试点，更不是“Agent 已能任意操作 Forge”。继续完成凭据安全、负载、安全回归和运维闸门后，才在第 6～8 周进入真实只读试点；这条主链稳定后再开放写动作和流程。
+- [ ] 流程只读能力：待办列表、任务详情、流程状态，只能查询当前可信 USER 可见数据；
+- [ ] 消息能力：只允许已启用模板和受控接收范围，禁止任意正文群发；
+- [ ] `BusinessCapabilityProvider` SPI 和一个 code-first 业务验收 Provider；
+- [ ] 业务动作发布、风险等级、客户端、grant 和调用日志管理页；
+- [ ] RESERVED/PENDING/EXECUTING 长时间停留的对账、超时、恢复和运维告警；
+- [ ] 智能体配置页移除未生效的硬编码危险工具，阶段 4 前继续明确标记为预留。
+
+### 11.4 P2：阶段 3 开放平台与企业治理
+
+- [ ] 按租户/客户端/能力实现 QPS、并发、日配额和熔断；
+- [ ] 完善密钥轮换、吊销传播、IP/网络策略和生产 KMS 适配；
+- [ ] 增加 p95/p99、错误码、审批等待时长、下游健康度、告警和审计留存；
+- [ ] 实现版本兼容性、灰度发布、废弃周期和客户端升级提醒；
+- [ ] 完善客户端门户、授权矩阵、配额和运营报表；
+- [ ] 只在满足 Nacos 引入闸门后考虑 MCP Registry/Admin，当前不作为阻断项。
+
+### 11.5 P3：阶段 4 Agent Runtime
+
+- [ ] 让 `AiClient`/Agent 真正消费 Capability 目录并执行 Tool Calling；
+- [ ] 实现 Agent 运行态、工具选择策略、上下文和会话隔离；
+- [ ] 按明确业务需求引入 RAG、知识库、记忆和评估集；
+- [ ] 建立工具选择准确率、任务完成率、越权拦截率、成本和延迟基线；
+- [ ] 在这一阶段再开始真实模型自主工具调用验收，阶段 1～3 不依赖大模型完成协议与安全测试。
+
+## 12. 用户自行执行的全流程联调清单
+
+本节是环境验收记录模板，由用户自行执行和回填。未回填前，项目文档只能声明“代码验收完成”。
+
+- [ ] 在隔离数据库执行 V1.0.20～V1.0.26，检查 `forge_schema_history`、表、索引、菜单/权限资源和租户数据；
+- [ ] 配置 Redis、MCP Client、服务账号、USER A、tenant/activeOrg、grant 和测试 KEK，密钥不提交到仓库；
+- [ ] 启动 Admin 和 Flow Server，确认无 Mapper XML、Flyway、Bean 装配和流程模型初始化异常；
+- [ ] 通过 MCP `2025-06-18` Streamable HTTP 执行 `initialize`、`tools/list` 和 `tools/call`，确认不存在旧 SSE 端点；
+- [ ] 验证 OAuth 2.1 + PKCE S256 USER 委托、SERVICE 短期令牌、audience/resource/scope 和吊销；
+- [ ] 验证 MEDIUM 业务动作成功、同键重放、异摘要冲突、权限撤销和审计串联；
+- [ ] 验证 Flow `START/APPROVE/REJECT`、任务归属、委托办理人和重复回调；
+- [ ] 验证 HIGH 提交后业务副作用为 0，人工通过/驳回/取消/过期、授权变化和业务状态漂移均符合失败关闭策略；
+- [ ] 完成只读 MCP 后，再验收“查询采购单 → 提交业务动作 → 发起/办理流程 → 查询审批状态”总体链路；
+- [ ] 回填执行日期、环境、命令、关键返回、数据库证据、失败项和清理情况。
+
+联调可以先用 MCP 协议客户端和固定测试数据完成，不需要真实大模型。真实模型的自主 Tool Calling 归属阶段 4。

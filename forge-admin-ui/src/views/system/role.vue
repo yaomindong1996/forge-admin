@@ -552,6 +552,8 @@ const roleList = ref([])
 const roleListLoading = ref(false)
 const roleKeyword = ref('')
 const activeRoleType = ref(null)
+const ROLE_ORG_SCOPE_GLOBAL = 1
+const ROLE_ORG_SCOPE_CUSTOM = 2
 
 // 授权相关
 const authModalVisible = ref(false)
@@ -590,7 +592,7 @@ const userPagination = ref({
 const roleOrgModalVisible = ref(false)
 const roleOrgLoading = ref(false)
 const roleOrgSubmitLoading = ref(false)
-const roleScopeMode = ref('custom')
+const roleScopeMode = ref('global')
 const checkedRoleOrgKeys = ref([])
 const roleOrgExpandedKeys = ref([])
 const roleOrgTreeExpandAll = ref(true)
@@ -618,12 +620,13 @@ const roleTypeTabs = computed(() => {
     return options.map(item => ({ label: item.label, value: item.value }))
   return [{ label: '角色', value: null }]
 })
+const isCurrentRoleGlobalScope = computed(() =>
+  Number(currentRole.value?.orgScopeType ?? ROLE_ORG_SCOPE_GLOBAL) === ROLE_ORG_SCOPE_GLOBAL,
+)
 const roleUserOrgOptions = computed(() => {
   const scopedOrgIds = new Set(normalizeNumberList(roleApplicableOrgIds.value))
-  if (roleOrgTreeData.value.length > 0 && scopedOrgIds.size === 0)
-    return []
   return flattenOrgNodes(roleOrgTreeData.value)
-    .filter(item => scopedOrgIds.has(normalizeSingleNumber(item.id)))
+    .filter(item => isCurrentRoleGlobalScope.value || scopedOrgIds.has(normalizeSingleNumber(item.id)))
     .map(item => ({
       label: item.orgName,
       value: normalizeSingleNumber(item.id),
@@ -632,9 +635,7 @@ const roleUserOrgOptions = computed(() => {
 })
 const roleUserOrgTreeOptions = computed(() => {
   const scopedOrgIds = new Set(normalizeNumberList(roleApplicableOrgIds.value))
-  if (roleOrgTreeData.value.length > 0 && scopedOrgIds.size === 0)
-    return []
-  return buildRoleUserOrgTreeOptions(roleOrgTreeData.value, scopedOrgIds)
+  return buildRoleUserOrgTreeOptions(roleOrgTreeData.value, scopedOrgIds, isCurrentRoleGlobalScope.value)
 })
 const allRoleOrgIds = computed(() => flattenOrgNodes(roleOrgTreeData.value)
   .map(item => normalizeSingleNumber(item.id))
@@ -642,14 +643,14 @@ const allRoleOrgIds = computed(() => flattenOrgNodes(roleOrgTreeData.value)
 const currentRoleScopeLabel = computed(() => {
   if (!currentRole.value?.id)
     return ''
-  if (coversAllRoleOrgs(roleApplicableOrgIds.value))
+  if (isCurrentRoleGlobalScope.value)
     return '租户全局'
   if (roleApplicableOrgIds.value.length > 0)
     return `${roleApplicableOrgIds.value.length} 个组织`
   return '未设置范围'
 })
 const currentRoleScopeTagType = computed(() => {
-  if (coversAllRoleOrgs(roleApplicableOrgIds.value))
+  if (isCurrentRoleGlobalScope.value)
     return 'success'
   return roleApplicableOrgIds.value.length > 0 ? 'info' : 'warning'
 })
@@ -1094,12 +1095,12 @@ function flattenOrgNodes(list = []) {
   })
 }
 
-function buildRoleUserOrgTreeOptions(list = [], scopedOrgIds = new Set()) {
+function buildRoleUserOrgTreeOptions(list = [], scopedOrgIds = new Set(), globalScope = false) {
   return (list || [])
     .map((item) => {
       const value = normalizeSingleNumber(item.id)
-      const children = buildRoleUserOrgTreeOptions(item.children || [], scopedOrgIds)
-      const selectable = value !== null && scopedOrgIds.has(value)
+      const children = buildRoleUserOrgTreeOptions(item.children || [], scopedOrgIds, globalScope)
+      const selectable = value !== null && (globalScope || scopedOrgIds.has(value))
       if (!selectable && children.length === 0)
         return null
       return {
@@ -1110,14 +1111,6 @@ function buildRoleUserOrgTreeOptions(list = [], scopedOrgIds = new Set()) {
       }
     })
     .filter(Boolean)
-}
-
-function coversAllRoleOrgs(orgIds = []) {
-  const allIds = allRoleOrgIds.value
-  if (allIds.length === 0)
-    return false
-  const selectedSet = new Set(normalizeNumberList(orgIds))
-  return allIds.every(orgId => selectedSet.has(orgId))
 }
 
 function getOrgNodeIcon(node = {}) {
@@ -1166,6 +1159,8 @@ async function loadRoleApplicableOrgIds(roleId = currentRole.value?.id) {
 
 // 表单提交前处理
 function beforeSubmit(formData) {
+  if (!formData.id && formData.orgScopeType == null)
+    formData.orgScopeType = ROLE_ORG_SCOPE_GLOBAL
   if (!userStore.isAdmin) {
     formData.tenantId = userStore.userInfo?.tenantId
     if (Number(userStore.userType) === 2 && [1, 2].includes(Number(formData.dataScope)))
@@ -1305,7 +1300,7 @@ async function handleRoleOrgScope(row) {
   try {
     roleOrgLoading.value = true
     checkedRoleOrgKeys.value = normalizeNumberList(roleApplicableOrgIds.value)
-    roleScopeMode.value = coversAllRoleOrgs(checkedRoleOrgKeys.value) ? 'global' : 'custom'
+    roleScopeMode.value = isCurrentRoleGlobalScope.value ? 'global' : 'custom'
   }
   catch (error) {
     console.error('加载角色适用组织失败:', error)
@@ -1331,9 +1326,9 @@ function handleRoleOrgCheckedKeysChange(keys) {
 
 async function handleSubmitRoleOrgs() {
   const nextOrgIds = roleScopeMode.value === 'global'
-    ? normalizeNumberList(allRoleOrgIds.value)
+    ? []
     : normalizeNumberList(checkedRoleOrgKeys.value)
-  if (nextOrgIds.length === 0) {
+  if (roleScopeMode.value === 'custom' && nextOrgIds.length === 0) {
     window.$message.warning('请至少选择一个适用组织')
     return
   }
@@ -1344,7 +1339,13 @@ async function handleSubmitRoleOrgs() {
       window.$message.success('适用组织保存成功')
       roleOrgModalVisible.value = false
       roleApplicableOrgIds.value = nextOrgIds
-      if (roleUserOrgId.value && !roleApplicableOrgIds.value.includes(roleUserOrgId.value)) {
+      currentRole.value.orgScopeType = roleScopeMode.value === 'global'
+        ? ROLE_ORG_SCOPE_GLOBAL
+        : ROLE_ORG_SCOPE_CUSTOM
+      const listRole = roleList.value.find(item => Number(item.id) === Number(currentRole.value.id))
+      if (listRole)
+        listRole.orgScopeType = currentRole.value.orgScopeType
+      if (!isCurrentRoleGlobalScope.value && roleUserOrgId.value && !roleApplicableOrgIds.value.includes(roleUserOrgId.value)) {
         roleUserOrgId.value = null
       }
       await loadRoleUsers()

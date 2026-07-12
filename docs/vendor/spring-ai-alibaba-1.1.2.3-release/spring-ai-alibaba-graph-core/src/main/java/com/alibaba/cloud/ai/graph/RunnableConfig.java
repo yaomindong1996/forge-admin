@@ -1,0 +1,504 @@
+/*
+ * Copyright 2024-2026 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.cloud.ai.graph;
+
+import com.alibaba.cloud.ai.graph.action.InterruptionMetadata;
+import com.alibaba.cloud.ai.graph.internal.node.ParallelNode;
+import com.alibaba.cloud.ai.graph.store.Store;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executor;
+
+import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
+import static java.util.Optional.ofNullable;
+
+/**
+ * A final class representing configuration for a runnable task. This class holds various
+ * parameters such as thread ID, checkpoint ID, next node, and stream mode, providing
+ * methods to modify these parameters safely without permanently altering the original
+ * configuration.
+ */
+public final class RunnableConfig implements HasMetadata<RunnableConfig.Builder> {
+
+	public static final String AGENT_MODEL_NAME = "_AGENT_MODEL_";
+	public static final String AGENT_TOOL_NAME = "_AGENT_TOOL_";
+	public static final String AGENT_HOOK_NAME_PREFIX = "_AGENT_HOOK_";
+
+	public static final String AGENT_NAME_KEY = "_AGENT_";
+
+	public static final String HUMAN_FEEDBACK_METADATA_KEY = "HUMAN_FEEDBACK";
+
+	public static final String STATE_UPDATE_METADATA_KEY = "STATE_UPDATE";
+	public static final String DEFAULT_PARALLEL_EXECUTOR_KEY = "_DEFAULT_PARALLEL_EXECUTOR_";
+	public static final String DEFAULT_PARALLEL_AGGREGATION_STRATEGY_KEY = "_DEFAULT_PARALLEL_AGGREGATION_STRATEGY_";
+
+	/**
+	 * Metadata key for dynamic tool callbacks ({@code List<org.springframework.ai.tool.ToolCallback>}).
+	 * Used internally by AgentLlmNode and AgentToolNode during ReactAgent inference (e.g. when
+	 * ModelInterceptor adds tools via dynamicToolCallbacks). Not part of the public API.
+	 */
+	public static final String DYNAMIC_TOOL_CALLBACKS_METADATA_KEY = "_DYNAMIC_TOOL_CALLBACKS_";
+
+	/**
+	 * Metadata key for enabling merge of reasoning content in streamed assistant message
+	 * metadata. When set to {@link Boolean#TRUE}, last and current chunk metadata (including
+	 * reasoning content) are merged; otherwise only current message metadata is used.
+	 */
+	public static final String MERGE_REASONING_CONTENT_METADATA_KEY = "_MERGE_REASONING_CONTENT_";
+
+	private final String threadId;
+
+	private final String checkPointId;
+
+	private final String nextNode;
+
+	private final CompiledGraph.StreamMode streamMode;
+
+	// Metadata is immutable during execution, it is used for environment information provided for a specific run.
+	private final Map<String, Object> metadata;
+
+	/**
+	 * Comparing to metadata, context is mutable during execution. It passes information between nodes.
+	 * Different from OverAllState, context is specific to a run, it will not be persisted.
+	 */
+	private final ConcurrentMap<String, Object> context;
+
+	private final Store store;
+
+	private final Map<String, Object> interruptedNodes;
+
+	/**
+	 * Creates a new instance of {@code RunnableConfig} as a copy of the provided
+	 * {@code config}.
+	 * @param builder The configuration builder.
+	 */
+	private RunnableConfig(Builder builder) {
+		this.threadId = builder.threadId;
+		this.checkPointId = builder.checkPointId;
+		this.nextNode = builder.nextNode;
+		this.streamMode = builder.streamMode;
+		this.metadata = ofNullable(builder.metadata()).map(HashMap::new).orElse(null);
+		this.interruptedNodes = new ConcurrentHashMap<>();
+		this.store = builder.store;
+		this.context = builder.context;
+	}
+
+	public Store store() {
+		return this.store;
+	}
+
+	/**
+	 * Returns the stream mode of the compiled graph.
+	 * @return {@code StreamMode} representing the current stream mode.
+	 */
+	public CompiledGraph.StreamMode streamMode() {
+		return streamMode;
+	}
+
+	/**
+	 * Returns the thread ID as an {@link Optional}.
+	 * @return the thread ID wrapped in an {@code Optional}, or an empty {@code Optional}
+	 * if no thread ID is set.
+	 */
+	public Optional<String> threadId() {
+		return ofNullable(threadId);
+	}
+
+	/**
+	 * Returns the current {@code checkPointId} wrapped in an {@link Optional}.
+	 * @return an {@link Optional} containing the {@code checkPointId}, or
+	 * {@link Optional#empty()} if it is null.
+	 */
+	public Optional<String> checkPointId() {
+		return ofNullable(checkPointId);
+	}
+
+	/**
+	 * Returns an {@code Optional} describing the next node in the sequence, or an empty
+	 * {@code Optional} if there is no such node.
+	 * @return an {@code Optional} describing the next node, or an empty {@code Optional}
+	 */
+	public Optional<String> nextNode() {
+		return ofNullable(nextNode);
+	}
+
+	/**
+	 * Checks if a node is marked as interrupted in the metadata.
+	 * @param nodeId the ID of the node to check for interruption status
+	 * @return true if the node is marked as interrupted, false otherwise
+	 */
+	public boolean isInterrupted(String nodeId) {
+		return interruptData(HasMetadata.formatNodeId(nodeId)).map(value -> Boolean.TRUE.equals(value)).orElse(false);
+	}
+
+	/**
+	 * Marks a node as not interrupted by setting its value to false in the metadata.
+	 * @param nodeId the ID of the node to mark as not interrupted
+	 */
+	public void withNodeResumed(String nodeId) {
+		String formattedNodeId = HasMetadata.formatNodeId(nodeId);
+		interruptedNodes.put(formattedNodeId, false);
+	}
+
+	/**
+	 * Removes the interrupted marker for a specific node by removing its entry from the
+	 * metadata.
+	 * @param nodeId the ID of the node to remove the interrupted marker for
+	 */
+	public void removeInterrupted(String nodeId) {
+		String formattedNodeId = HasMetadata.formatNodeId(nodeId);
+		if (interruptedNodes == null || !interruptedNodes.containsKey(formattedNodeId)) {
+			return; // No change needed if the marker doesn't exist
+		}
+		interruptedNodes.remove(formattedNodeId);
+	}
+
+	/**
+	 * Marks a node as interrupted by adding it to the metadata with a formatted key. The
+	 * node ID is formatted using {@link #formatNodeId(String)} and associated with a
+	 * value of {@code true} in the metadata map.
+	 * @param nodeId the ID of the node to mark as interrupted; must not be null
+	 * @throws NullPointerException if nodeId is null
+	 */
+	public void markNodeAsInterrupted(String nodeId) {
+		interruptedNodes.put(HasMetadata.formatNodeId(nodeId), true);
+	}
+
+	/**
+	 * Create a new RunnableConfig with the same attributes as this one but with a
+	 * different {@link CompiledGraph.StreamMode}.
+	 * @param streamMode the new stream mode
+	 * @return a new RunnableConfig with the updated stream mode
+	 */
+	public RunnableConfig withStreamMode(CompiledGraph.StreamMode streamMode) {
+		if (this.streamMode == streamMode) {
+			return this;
+		}
+
+		return RunnableConfig.builder(this).streamMode(streamMode).build();
+	}
+
+	/**
+	 * Updates the checkpoint ID of the configuration.
+	 * @param checkPointId The new checkpoint ID to set.
+	 * @return A new instance of {@code RunnableConfig} with the updated checkpoint ID, or
+	 * the current instance if no change is needed.
+	 */
+	public RunnableConfig withCheckPointId(String checkPointId) {
+		if (Objects.equals(this.checkPointId, checkPointId)) {
+			return this;
+		}
+		return RunnableConfig.builder(this).checkPointId(checkPointId).build();
+
+	}
+
+	/**
+	 * Returns a new RunnableConfig that copies this config and adds
+	 * {@link #HUMAN_FEEDBACK_METADATA_KEY} with value {@code "placeholder"} to metadata.
+	 * Used when building a config for resuming a run (e.g. after human feedback is
+	 * collected and the graph is continued).
+	 * @return a new RunnableConfig with human feedback placeholder metadata
+	 */
+	public RunnableConfig withResume() {
+		return RunnableConfig.builder(this)
+				.addMetadata(HUMAN_FEEDBACK_METADATA_KEY, "placeholder")
+				.build();
+	}
+
+	/**
+	 * Returns whether reasoning content in streamed assistant message metadata should be
+	 * merged across chunks. When true, last and current chunk metadata (including
+	 * reasoning content) are merged; when false or unset, only current message metadata
+	 * is used.
+	 * @return true if merge is enabled, false otherwise
+	 */
+	public boolean mergeReasoningContent() {
+		return metadata(MERGE_REASONING_CONTENT_METADATA_KEY).map(v -> Boolean.TRUE.equals(v)).orElse(false);
+	}
+
+	/**
+	 * Returns a new RunnableConfig that copies this config and sets the merge reasoning
+	 * content flag. See {@link #mergeReasoningContent()}.
+	 * @param merge whether to merge reasoning content across streamed chunks
+	 * @return a new RunnableConfig with the given merge flag
+	 */
+	public RunnableConfig withMergeReasoningContent(boolean merge) {
+		return RunnableConfig.builder(this).mergeReasoningContent(merge).build();
+	}
+
+	/**
+	 * Retrieves interrupt data associated with the specified key.
+	 * @param key the key for which to retrieve interrupt data; may be null
+	 * @return an Optional containing the interrupt data if present, or an empty Optional
+	 * if the key is null or no data is found
+	 */
+	public Optional<Object> interruptData(String key) {
+		if (key == null) {
+			return Optional.empty();
+		}
+		return ofNullable(interruptedNodes).map(m -> m.get(key));
+	}
+
+
+	// FIXME, allow modification or not?
+	@Override
+	public Optional<Map<String, Object>> metadata() {
+		return Optional.of(metadata);
+	}
+
+	public Map<String, Object> context() {
+		return context;
+	}
+
+	public void clearContext() {
+		this.context.clear();
+	}
+
+	/**
+	 * return metadata value for key
+	 * @param key given metadata key
+	 * @return metadata value for key if any
+	 */
+	@Override
+	public Optional<Object> metadata(String key) {
+		if (key == null) {
+			return Optional.empty();
+		}
+		return ofNullable(metadata).map(m -> m.get(key));
+	}
+
+
+	@Override
+	public String toString() {
+		return format("RunnableConfig{ threadId=%s, checkPointId=%s, nextNode=%s, streamMode=%s }", threadId,
+				checkPointId, nextNode, streamMode);
+	}
+
+	/**
+	 * Creates a new instance of the {@link Builder} class.
+	 * @return A new {@code Builder} object.
+	 */
+	public static Builder builder() {
+		return new Builder();
+	}
+
+	/**
+	 * Creates a new {@code Builder} instance with the specified {@link RunnableConfig}.
+	 * @param config The configuration for the {@code Builder}.
+	 * @return A new {@code Builder} instance.
+	 */
+	public static Builder builder(RunnableConfig config) {
+		return new Builder(config);
+	}
+
+	/**
+	 * A builder pattern class for constructing {@link RunnableConfig} objects. This class
+	 * provides a fluent interface to set various properties of a {@link RunnableConfig}
+	 * object and then build the final configuration.
+	 */
+	public static class Builder extends HasMetadata.Builder<Builder> {
+
+		private String threadId;
+
+		private String checkPointId;
+
+		private String nextNode;
+
+		private Store store;
+
+		private ConcurrentMap<String, Object> context;
+
+		private CompiledGraph.StreamMode streamMode = CompiledGraph.StreamMode.VALUES;
+
+		/**
+		 * Constructs a new instance of the {@link Builder} with default configuration
+		 * settings. Initializes a new {@link RunnableConfig} object for configuration
+		 * purposes.
+		 */
+		Builder() {
+			this.context = new ConcurrentHashMap<>();
+		}
+
+		/**
+		 * Initializes a new instance of the {@code Builder} class with the specified
+		 * {@link RunnableConfig}.
+		 * @param config The configuration to be used for initialization.
+		 */
+		Builder(RunnableConfig config) {
+			super(requireNonNull(config, "config cannot be null!").metadata);
+			this.threadId = config.threadId;
+			this.checkPointId = config.checkPointId;
+			this.nextNode = config.nextNode;
+			this.streamMode = config.streamMode;
+			this.store = config.store;
+			this.context = new ConcurrentHashMap<>(config.context);
+		}
+
+		/**
+		 * Sets the ID of the thread.
+		 * @param threadId the ID of the thread to set
+		 * @return a reference to this {@code Builder} object so that method calls can be
+		 * chained together
+		 */
+		public Builder threadId(String threadId) {
+			this.threadId = threadId;
+			return this;
+		}
+
+		/**
+		 * Sets the checkpoint ID for the configuration.
+		 * @param checkPointId {@code checkPointId} - the ID of the checkpoint to be set
+		 * @return {@literal this} - a reference to the current `Builder` instance
+		 */
+		public Builder checkPointId(String checkPointId) {
+			this.checkPointId = checkPointId;
+			return this;
+		}
+
+		/**
+		 * Sets the next node in the configuration and returns this builder for method
+		 * chaining.
+		 * @param nextNode The next node to be set.
+		 * @return This builder instance, allowing for method chaining.
+		 */
+		public Builder nextNode(String nextNode) {
+			this.nextNode = nextNode;
+			return this;
+		}
+
+		/**
+		 * Sets the stream mode of the configuration.
+		 * @param streamMode The {@link CompiledGraph.StreamMode} to set.
+		 * @return A reference to this builder for method chaining.
+		 */
+		public Builder streamMode(CompiledGraph.StreamMode streamMode) {
+			this.streamMode = streamMode;
+			return this;
+		}
+
+		public Builder addHumanFeedback(InterruptionMetadata humanFeedback) {
+			return addMetadata(HUMAN_FEEDBACK_METADATA_KEY, humanFeedback);
+		}
+
+		/**
+		 * Adds resume metadata ({@link #HUMAN_FEEDBACK_METADATA_KEY} with value
+		 * {@code "placeholder"}) so the built config is suitable for resuming a run
+		 * (e.g. after human feedback). Equivalent to building and then calling
+		 * {@link RunnableConfig#withResume()}, but allows fluent builder usage.
+		 * @return this builder for chaining
+		 */
+		public Builder resume() {
+			return addMetadata(HUMAN_FEEDBACK_METADATA_KEY, "placeholder");
+		}
+
+		/**
+		 * Enables or disables merging of reasoning content in streamed assistant message
+		 * metadata across chunks. When enabled, last and current chunk metadata (including
+		 * reasoning content) are merged; when disabled, only current message metadata is used.
+		 * @param merge true to enable merge, false to use current message metadata only
+		 * @return this builder for chaining
+		 */
+		public Builder mergeReasoningContent(boolean merge) {
+			return addMetadata(MERGE_REASONING_CONTENT_METADATA_KEY, merge);
+		}
+
+		public Builder addStateUpdate(Map<String, Object> stateUpdate) {
+			return addMetadata(STATE_UPDATE_METADATA_KEY, stateUpdate);
+		}
+
+		/**
+		 * Adds a custom {@link Executor} for a specific parallel node.
+		 * <p>
+		 * This allows you to control the execution of branches within a parallel node.
+		 * When a parallel node is executed, it will look for an executor in the
+		 * {@link RunnableConfig} metadata. If found, it will be used to run the parallel
+		 * branches concurrently.
+		 * @param nodeId the ID of the parallel starting node.
+		 * @param executor the {@link Executor} to use for the parallel node.
+		 * @return this {@code Builder} instance for method chaining.
+		 */
+		public Builder addParallelNodeExecutor(String nodeId, Executor executor) {
+			return addMetadata(ParallelNode.formatNodeId(nodeId), requireNonNull(executor, "executor cannot be null!"));
+		}
+
+		/**
+		 * Sets a default {@link Executor} for all parallel nodes.
+		 * <p>
+		 * This executor will be used for parallel nodes that don't have a specific executor
+		 * configured via {@link #addParallelNodeExecutor(String, Executor)}.
+		 * @param executor the {@link Executor} to use as the default for parallel nodes.
+		 * @return this {@code Builder} instance for method chaining.
+		 */
+		public Builder defaultParallelExecutor(Executor executor) {
+			return addMetadata(DEFAULT_PARALLEL_EXECUTOR_KEY, requireNonNull(executor, "executor cannot be null!"));
+		}
+
+		/**
+		 * Adds an aggregation strategy for a specific parallel node's target node.
+		 * <p>
+		 * This allows you to control how parallel branches are aggregated. When a parallel node
+		 * executes, it will look for an aggregation strategy using the target node ID (the node
+		 * that follows the parallel node). If found, it will use the specified strategy to determine
+		 * whether to wait for all branches (ALL_OF) or proceed with the first completed branch (ANY_OF).
+		 * @param targetNodeId the ID of the merge node (the single node that aggregates results from all parallel branches) that follows the parallel branch nodes.
+		 * @param strategy the {@link NodeAggregationStrategy} to use for aggregation.
+		 * @return this {@code Builder} instance for method chaining.
+		 */
+		public Builder addParallelNodeAggregationStrategy(String targetNodeId, NodeAggregationStrategy strategy) {
+			return addMetadata(ParallelNode.formatTargetNodeId(targetNodeId), 
+					requireNonNull(strategy, "strategy cannot be null!"));
+		}
+
+		/**
+		 * Sets a default aggregation strategy for all parallel nodes.
+		 * <p>
+		 * This strategy will be used for parallel nodes that don't have a specific strategy
+		 * configured via {@link #addParallelNodeAggregationStrategy(String, NodeAggregationStrategy)}.
+		 * @param strategy the {@link NodeAggregationStrategy} to use as the default.
+		 * @return this {@code Builder} instance for method chaining.
+		 */
+		public Builder defaultParallelAggregationStrategy(NodeAggregationStrategy strategy) {
+			return addMetadata(DEFAULT_PARALLEL_AGGREGATION_STRATEGY_KEY, 
+					requireNonNull(strategy, "strategy cannot be null!"));
+		}
+
+		public Builder store(Store store) {
+			this.store = store;
+			return this;
+		}
+
+		public Builder clearContext() {
+			this.context.clear();
+			return this;
+		}
+
+		/**
+		 * Constructs and returns the configured {@code RunnableConfig} object.
+		 * @return the configured {@code RunnableConfig} object
+		 */
+		public RunnableConfig build() {
+			return new RunnableConfig(this);
+		}
+
+	}
+
+}

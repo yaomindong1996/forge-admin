@@ -370,6 +370,19 @@ public class BusinessFlowService {
     }
 
     /**
+     * 查询当前用户已签收、可直接办理的待办上下文。
+     *
+     * <p>该只读校验入口供受控流程动作在 elicitation 前确认真实办理权使用，
+     * 候选但未签收的任务不会被视为可办理任务。</p>
+     */
+    public BusinessTaskFormContextVO getActionableTaskFormContext(BusinessTaskFormContextQueryDTO query) {
+        BusinessTaskFormContextQueryDTO effectiveQuery = query == null ? new BusinessTaskFormContextQueryDTO() : query;
+        validateTaskAccess(effectiveQuery, true);
+        TaskFormRuntimeContext runtime = resolveTaskFormRuntimeContext(effectiveQuery, true);
+        return buildTaskFormContext(effectiveQuery, runtime);
+    }
+
+    /**
      * 查询历史/已办场景下的业务表单上下文，只用于只读展示，不校验运行中待办任务身份。
      */
     public BusinessTaskFormContextVO getTaskFormReadonlyContext(BusinessTaskFormContextQueryDTO query) {
@@ -474,13 +487,13 @@ public class BusinessFlowService {
         validateTaskAccess(query, true);
         TaskFormRuntimeContext runtime = resolveTaskFormRuntimeContext(query, true);
         Map<String, Object> variables = dto.getVariables() == null ? Map.of() : dto.getVariables();
-        String userId = StringUtils.firstNonBlank(
-                StringUtils.trimToNull(dto.getUserId()),
-                String.valueOf(resolveUserId()));
+        String userId = String.valueOf(resolveUserId());
 
         FlowResult<Void> result = "reject".equals(action)
-                ? flowClient.reject(query.getTaskId(), userId, dto.getComment(), dto.getSignature())
-                : flowClient.approve(query.getTaskId(), userId, dto.getComment(), dto.getSignature(), variables);
+                ? flowClient.reject(query.getTaskId(), userId, dto.getComment(), dto.getSignature(),
+                        resolveTrustedTaskTenant(dto), dto.getIdempotencyKey(), dto.getRequestDigest())
+                : flowClient.approve(query.getTaskId(), userId, dto.getComment(), dto.getSignature(), variables,
+                        resolveTrustedTaskTenant(dto), dto.getIdempotencyKey(), dto.getRequestDigest());
         if (result == null || !result.isSuccess()) {
             throw new BusinessException(result == null
                     ? "业务待办办理失败"
@@ -488,6 +501,57 @@ public class BusinessFlowService {
         }
 
         return syncBusinessFlowStatusAfterTaskAction(runtime, query, action, variables);
+    }
+
+    /**
+     * 仅供 FLOW_ACTION 本地审计恢复调用。此时远程任务可能已完成，不能再要求它处于 actionable；
+     * Flow 服务仍以同租户、原签收人、动作、幂等键和请求摘要做最终裁决。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public BusinessFlowRuntimeVO recoverCapabilityTaskAction(BusinessTaskActionDTO dto) {
+        if (dto == null || StringUtils.isBlank(dto.getTaskId())
+                || StringUtils.isBlank(dto.getIdempotencyKey())
+                || StringUtils.isBlank(dto.getRequestDigest())) {
+            throw new BusinessException(409, "FLOW_RECOVERY_EVIDENCE_REQUIRED");
+        }
+        String action = StringUtils.defaultIfBlank(dto.getAction(), "approve").trim().toLowerCase();
+        if (!"approve".equals(action) && !"reject".equals(action)) {
+            throw new BusinessException(409, "POLICY_MISMATCH");
+        }
+        if (flowClient == null) {
+            throw new BusinessException("流程服务未配置，无法恢复业务待办");
+        }
+        Long tenantId = resolveTrustedTaskTenant(dto);
+        String userId = String.valueOf(resolveUserId());
+        Map<String, Object> variables = Map.of();
+        FlowResult<Void> result = "reject".equals(action)
+                ? flowClient.reject(dto.getTaskId(), userId, dto.getComment(), dto.getSignature(),
+                        tenantId, dto.getIdempotencyKey(), dto.getRequestDigest())
+                : flowClient.approve(dto.getTaskId(), userId, dto.getComment(), dto.getSignature(), variables,
+                        tenantId, dto.getIdempotencyKey(), dto.getRequestDigest());
+        if (result == null || !result.isSuccess()) {
+            throw new BusinessException(result == null
+                    ? "业务待办恢复失败"
+                    : StringUtils.defaultIfBlank(result.getMsg(), "业务待办恢复失败"));
+        }
+
+        BusinessTaskFormContextQueryDTO query = new BusinessTaskFormContextQueryDTO();
+        query.setTaskId(dto.getTaskId());
+        query.setObjectCode(dto.getObjectCode());
+        query.setRecordId(dto.getRecordId());
+        if (StringUtils.isNotBlank(dto.getObjectCode()) && dto.getRecordId() != null) {
+            String objectCode = resolveCanonicalObjectCode(tenantId, dto.getObjectCode());
+            query.setBusinessKey(buildBusinessKey(objectCode, dto.getRecordId()));
+        }
+        return syncBusinessFlowStatusAfterTaskAction(null, query, action, variables);
+    }
+
+    private Long resolveTrustedTaskTenant(BusinessTaskActionDTO dto) {
+        Long currentTenantId = resolveTenantId();
+        if (dto.getTenantId() != null && !dto.getTenantId().equals(currentTenantId)) {
+            throw new BusinessException(403, "FLOW_TASK_TENANT_MISMATCH");
+        }
+        return currentTenantId;
     }
 
     private BusinessFlowRuntimeVO syncBusinessFlowStatusAfterTaskAction(TaskFormRuntimeContext runtime,
@@ -2909,7 +2973,18 @@ public class BusinessFlowService {
     public BusinessFlowRuntimeVO startDocumentFlow(BusinessFlowStartDTO dto) {
         Long tenantId = resolveTenantId();
         return TenantContextHolder.executeWithTenant(tenantId,
-                () -> startDocumentFlowInternal(dto, true, null, null, tenantId));
+                () -> startDocumentFlowInternal(dto, true, null, null, tenantId, false));
+    }
+
+    /**
+     * 受控 FLOW_ACTION 专用发起入口。业务 key 永远固定为 objectCode:recordId，
+     * 远程成功而本地回填失败时，同 key 重试可恢复原流程实例。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public BusinessFlowRuntimeVO startDocumentFlowForCapability(BusinessFlowStartDTO dto) {
+        Long tenantId = resolveTenantId();
+        return TenantContextHolder.executeWithTenant(tenantId,
+                () -> startDocumentFlowInternal(dto, true, null, null, tenantId, true));
     }
 
     /**
@@ -2919,7 +2994,7 @@ public class BusinessFlowService {
     public BusinessFlowRuntimeVO startDocumentFlowForCompatibility(BusinessFlowStartDTO dto) {
         Long tenantId = resolveTenantId();
         return TenantContextHolder.executeWithTenant(tenantId,
-                () -> startDocumentFlowInternal(dto, false, null, null, tenantId));
+                () -> startDocumentFlowInternal(dto, false, null, null, tenantId, false));
     }
 
     /**
@@ -2948,7 +3023,7 @@ public class BusinessFlowService {
         }
         Long effectiveTenantId = tenantId != null ? tenantId : resolveTenantId();
         return TenantContextHolder.executeWithTenant(effectiveTenantId,
-                () -> startDocumentFlowInternal(dto, false, userId, userName, effectiveTenantId));
+                () -> startDocumentFlowInternal(dto, false, userId, userName, effectiveTenantId, false));
     }
 
     /**
@@ -3046,7 +3121,8 @@ public class BusinessFlowService {
                                                             boolean checkPermission,
                                                             Long starterUserId,
                                                             String starterUserName,
-                                                            Long tenantId) {
+                                                            Long tenantId,
+                                                            boolean stableBusinessKey) {
         if (dto == null) {
             throw new BusinessException("发起主流程参数不能为空");
         }
@@ -3073,7 +3149,8 @@ public class BusinessFlowService {
         String businessKey = buildBusinessKey(objectCode, dto.getRecordId());
         return executeWithFlowStartLock(tenantId, businessKey, () -> startDocumentFlowLocked(
                 dto, checkPermission, starterUserId, starterUserName, tenantId, documentConfig,
-                runtimeConfig, objectCode, configKey, recordData, businessKey, startContext.requestedObjectCode()));
+                runtimeConfig, objectCode, configKey, recordData, businessKey,
+                startContext.requestedObjectCode(), stableBusinessKey));
     }
 
     private BusinessFlowRuntimeVO startDocumentFlowLocked(BusinessFlowStartDTO dto,
@@ -3087,7 +3164,8 @@ public class BusinessFlowService {
                                                           String configKey,
                                                           Map<String, Object> recordData,
                                                           String businessKey,
-                                                          String requestedObjectCode) {
+                                                          String requestedObjectCode,
+                                                          boolean stableBusinessKey) {
         if (documentConfig != null) {
             documentRuntimeService.validateStartAllowed(objectCode, dto.getRecordId(), checkPermission);
         }
@@ -3135,7 +3213,8 @@ public class BusinessFlowService {
         flowVariables.putIfAbsent("configKey", configKey);
         flowVariables.putIfAbsent("recordId", dto.getRecordId());
         flowVariables.putIfAbsent("businessKey", businessKey);
-        String flowBusinessKey = resolveFlowBusinessKeyForStart(tenantId, businessKey);
+        String flowBusinessKey = stableBusinessKey
+                ? businessKey : resolveFlowBusinessKeyForStart(tenantId, businessKey);
         flowVariables.putIfAbsent("documentBusinessKey", businessKey);
         flowVariables.putIfAbsent("recordBusinessKey", businessKey);
         flowVariables.put("flowBusinessKey", flowBusinessKey);
@@ -3143,9 +3222,12 @@ public class BusinessFlowService {
         String title = StringUtils.defaultIfBlank(dto.getTitle(), buildFlowTitle(bindingConfig, recordData, objectCode));
         Long userId = starterUserId != null ? starterUserId : resolveUserId();
         String userName = StringUtils.defaultIfBlank(starterUserName, resolveUsername());
-        FlowResult<String> result = flowClient.startProcess(
-                flowModelKey, flowBusinessKey, title, flowVariables,
-                userId == null ? null : String.valueOf(userId), userName, null, null);
+        FlowResult<String> result = stableBusinessKey
+                ? flowClient.startProcessForDelegatedUser(
+                        flowModelKey, flowBusinessKey, objectCode, title, flowVariables)
+                : flowClient.startProcess(
+                        flowModelKey, flowBusinessKey, title, flowVariables,
+                        userId == null ? null : String.valueOf(userId), userName, null, null);
         if (result == null || !result.isSuccess() || StringUtils.isBlank(result.getData())) {
             throw new BusinessException("流程发起失败: " + (result == null ? "无返回结果" : result.getMsg()));
         }

@@ -1,0 +1,2 @@
+package com.mdframe.forge.plugin.ai.routing.constant;
+public enum AiModelRouteReason { REQUEST_EXPLICIT_PAIR, REQUEST_PROVIDER_DEFAULT, REQUEST_MODEL_WITH_RESOLVED_PROVIDER, PINNED_MODEL, PROVIDER_DEFAULT, POLICY_PRIORITY }

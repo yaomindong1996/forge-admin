@@ -65,17 +65,13 @@
       @update:expanded-row-keys="handleUpdateExpandedKeys"
     >
       <template #empty>
-        <div class="ai-table-empty-state">
-          <div class="ai-table-empty-icon" aria-hidden="true">
-            <i class="i-material-symbols:folder-open" />
-          </div>
-          <div class="ai-table-empty-title">
-            {{ emptyTitle }}
-          </div>
-          <div class="ai-table-empty-desc">
-            {{ emptyDescription }}
-          </div>
-        </div>
+        <NEmpty class="ai-table-empty-state" :description="emptyTitle" size="large">
+          <template #extra>
+            <div class="ai-table-empty-desc">
+              {{ emptyDescription }}
+            </div>
+          </template>
+        </NEmpty>
       </template>
     </n-data-table>
 
@@ -151,17 +147,13 @@
           </NGridItem>
         </NGrid>
 
-        <div v-else class="ai-card-empty ai-table-empty-state">
-          <div class="ai-table-empty-icon" aria-hidden="true">
-            <i class="i-material-symbols:folder-open" />
-          </div>
-          <div class="ai-table-empty-title">
-            {{ emptyTitle }}
-          </div>
-          <div class="ai-table-empty-desc">
-            {{ emptyDescription }}
-          </div>
-        </div>
+        <NEmpty v-else class="ai-card-empty ai-table-empty-state" :description="emptyTitle" size="large">
+          <template #extra>
+            <div class="ai-table-empty-desc">
+              {{ emptyDescription }}
+            </div>
+          </template>
+        </NEmpty>
       </NSpin>
 
       <NPagination
@@ -175,7 +167,7 @@
 
 <script setup>
 /* eslint-disable vue/custom-event-name-casing */
-import { NCheckbox, NGrid, NGridItem, NPagination, NSpin } from 'naive-ui'
+import { NCheckbox, NEmpty, NGrid, NGridItem, NPagination, NSpin } from 'naive-ui'
 import { computed, h, ref, useSlots, watch } from 'vue'
 import AiToolbarAction from './AiToolbarAction.vue'
 
@@ -1061,27 +1053,24 @@ defineExpose({
   text-align: center;
 }
 
-.ai-table-empty-icon {
-  display: inline-flex;
-  width: 64px;
-  height: 64px;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
+.ai-table-empty-state :deep(.n-empty__icon) {
   color: color-mix(in srgb, var(--text-tertiary) 72%, transparent);
-  font-size: 46px;
+  font-size: 48px;
 }
 
-.ai-table-empty-title {
+.ai-table-empty-state :deep(.n-empty__description) {
   color: var(--text-secondary);
   font-size: 14px;
   font-weight: var(--font-weight-medium);
   line-height: 20px;
 }
 
+.ai-table-empty-state :deep(.n-empty__extra) {
+  margin-top: 4px;
+}
+
 .ai-table-empty-desc {
   max-width: 360px;
-  margin-top: 4px;
   color: var(--text-tertiary);
   font-size: 12px;
   line-height: 18px;

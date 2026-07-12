@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.capability.identity.mapper.AiCapabilityAccessTokenMapper">
+    <sql id="BaseColumns">
+        id, tenant_id, token_key_id, token_prefix, token_hash, client_id, credential_version,
+        actor_type, actor_user_id, service_user_id, active_org_id, audience, scopes, status,
+        issued_at, expires_at, last_used_at, revoked_at, del_flag,
+        create_by, create_time, create_dept, update_by, update_time
+    </sql>
+
+    <select id="selectActiveByTokenKeyId" resultType="com.mdframe.forge.plugin.capability.identity.domain.AiCapabilityAccessToken">
+        SELECT <include refid="BaseColumns"/>
+        FROM ai_capability_access_token
+        WHERE token_key_id = #{tokenKeyId}
+          AND status = 'ACTIVE'
+          AND del_flag = 0
+        LIMIT 1
+    </select>
+
+    <update id="touchLastUsed">
+        UPDATE ai_capability_access_token
+        SET last_used_at = #{lastUsedAt}, update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND status = 'ACTIVE'
+          AND expires_at &gt; #{lastUsedAt}
+          AND del_flag = 0
+    </update>
+
+    <update id="revoke">
+        UPDATE ai_capability_access_token
+        SET status = 'REVOKED', revoked_at = #{revokedAt}, update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND status = 'ACTIVE'
+          AND del_flag = 0
+    </update>
+
+    <update id="revokeByClientVersion">
+        UPDATE ai_capability_access_token
+        SET status = 'REVOKED', revoked_at = #{revokedAt}, update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND client_id = #{clientId}
+          AND credential_version = #{credentialVersion}
+          AND status = 'ACTIVE'
+          AND del_flag = 0
+    </update>
+
+    <!-- 仅清理已过留存期的短期安全令牌历史；普通撤销仍使用状态更新。 -->
+    <delete id="purgeExpiredHistoryBefore">
+        DELETE FROM ai_capability_access_token
+        WHERE (expires_at &lt; #{retentionCutoff}
+            OR (status = 'REVOKED' AND revoked_at &lt; #{retentionCutoff}))
+    </delete>
+</mapper>

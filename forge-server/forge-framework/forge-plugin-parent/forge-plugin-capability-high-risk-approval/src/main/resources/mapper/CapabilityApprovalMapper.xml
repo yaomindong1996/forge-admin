@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.capability.highrisk.mapper.CapabilityApprovalMapper">
+    <sql id="Columns">
+        id, tenant_id, request_id, client_id, credential_version, capability_id,
+        capability_code, capability_version, actor_user_id, service_user_id, active_org_id,
+        idempotency_key, request_digest, business_state_digest, key_id, wrapped_dek,
+        payload_iv, payload_ciphertext, payload_auth_tag, flow_model_key, process_instance_id,
+        execute_status, result_code, result_snapshot, error_code, expires_at, completed_at,
+        del_flag, create_by, create_time, create_dept, update_by, update_time
+    </sql>
+    <select id="selectByIdempotency" resultType="com.mdframe.forge.plugin.capability.highrisk.domain.AiCapabilityApproval">
+        SELECT <include refid="Columns"/>
+        FROM ai_capability_approval
+        WHERE tenant_id = #{tenantId} AND client_id = #{clientId}
+          AND capability_id = #{capabilityId} AND idempotency_key = #{idempotencyKey}
+          AND del_flag = 0
+        LIMIT 1
+    </select>
+    <select id="selectForUpdate" resultType="com.mdframe.forge.plugin.capability.highrisk.domain.AiCapabilityApproval">
+        SELECT <include refid="Columns"/>
+        FROM ai_capability_approval
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+        LIMIT 1 FOR UPDATE
+    </select>
+    <select id="selectTenantById" resultType="com.mdframe.forge.plugin.capability.highrisk.domain.AiCapabilityApproval">
+        SELECT <include refid="Columns"/>
+        FROM ai_capability_approval
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+        LIMIT 1
+    </select>
+    <select id="selectOwned" resultType="com.mdframe.forge.plugin.capability.highrisk.domain.AiCapabilityApproval">
+        SELECT <include refid="Columns"/>
+        FROM ai_capability_approval
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND client_id = #{clientId}
+          AND actor_user_id = #{actorUserId} AND service_user_id = #{serviceUserId}
+          AND active_org_id = #{activeOrgId} AND del_flag = 0
+        LIMIT 1
+    </select>
+    <update id="updateState">
+        UPDATE ai_capability_approval
+        SET process_instance_id = #{approval.processInstanceId},
+            execute_status = #{approval.executeStatus}, result_code = #{approval.resultCode},
+            result_snapshot = #{approval.resultSnapshot}, error_code = #{approval.errorCode},
+            completed_at = #{approval.completedAt}, update_time = NOW()
+        WHERE id = #{approval.id} AND tenant_id = #{approval.tenantId}
+          AND client_id = #{approval.clientId} AND capability_id = #{approval.capabilityId}
+          AND request_digest = #{approval.requestDigest} AND del_flag = 0
+    </update>
+</mapper>

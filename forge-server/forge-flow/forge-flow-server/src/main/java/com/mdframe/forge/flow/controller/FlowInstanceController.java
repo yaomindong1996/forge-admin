@@ -1,8 +1,10 @@
 package com.mdframe.forge.flow.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mdframe.forge.starter.auth.config.FlowDelegationSessionVerifier;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
@@ -37,6 +39,7 @@ public class FlowInstanceController {
     private final FlowInstanceService flowInstanceService;
     private final FlowBusinessMapper flowBusinessMapper;
     private final FlowOrgIntegrationService flowOrgIntegrationService;
+    private final FlowDelegationSessionVerifier flowDelegationSessionVerifier;
 
     /**
      * 发起流程
@@ -45,7 +48,38 @@ public class FlowInstanceController {
     public RespInfo<String> start(
             @PathVariable String modelKey,
             @RequestBody Map<String, Object> params) {
-        
+        return startInternal(modelKey, params, false);
+    }
+
+    /**
+     * 用户委托流程发起入口。发起人、租户和当前组织只从已验证 Session 解析，
+     * 不接受请求体中的代办身份。
+     */
+    @PostMapping("/start-delegated/{modelKey}")
+    @SaCheckPermission("ai:businessFlow:start")
+    public RespInfo<String> startDelegated(
+            @PathVariable String modelKey,
+            @RequestBody Map<String, Object> params) {
+        flowDelegationSessionVerifier.requireTrustedDelegation();
+        return startInternal(modelKey, params, true);
+    }
+
+    /**
+     * 平台 R3 高风险审批专用委托入口。
+     */
+    @PostMapping("/start-delegated-approval/{modelKey}")
+    @SaCheckPermission("ai:capability:approval:submit")
+    public RespInfo<String> startDelegatedApproval(
+            @PathVariable String modelKey,
+            @RequestBody Map<String, Object> params) {
+        flowDelegationSessionVerifier.requireTrustedDelegation();
+        return startInternal(modelKey, params, true);
+    }
+
+    private RespInfo<String> startInternal(
+            String modelKey,
+            Map<String, Object> params,
+            boolean trustedDelegationRequired) {
         String businessKey = (String) params.get("businessKey");
         String businessType = (String) params.get("businessType");
         String title = (String) params.get("title");
@@ -73,16 +107,29 @@ public class FlowInstanceController {
         String requestDeptId = toText(params.get("deptId"));
         String requestDeptName = toText(params.get("deptName"));
         LoginUser loginUser = SessionHelper.getLoginUser();
-        String userId = StringUtils.hasText(requestUserId)
-                ? requestUserId
-                : loginUser != null ? String.valueOf(loginUser.getUserId()) : null;
-        String userName = StringUtils.hasText(requestUserName)
-                ? requestUserName
-                : loginUser != null ? loginUser.getRealName() : null;
-        String deptId = StringUtils.hasText(requestDeptId)
-                ? requestDeptId
-                : loginUser != null && loginUser.getMainOrgId() != null ? String.valueOf(loginUser.getMainOrgId()) : null;
-        String deptName = requestDeptName;
+        if (trustedDelegationRequired && (loginUser == null
+                || loginUser.getUserId() == null
+                || loginUser.getTenantId() == null
+                || loginUser.getActiveOrgId() == null)) {
+            throw new IllegalArgumentException("FLOW_START_DELEGATION_REQUIRED");
+        }
+        String userId = trustedDelegationRequired
+                ? String.valueOf(loginUser.getUserId())
+                : StringUtils.hasText(requestUserId)
+                        ? requestUserId
+                        : loginUser != null ? String.valueOf(loginUser.getUserId()) : null;
+        String userName = trustedDelegationRequired
+                ? loginUser.getRealName()
+                : StringUtils.hasText(requestUserName)
+                        ? requestUserName
+                        : loginUser != null ? loginUser.getRealName() : null;
+        String deptId = trustedDelegationRequired
+                ? loginUser.getActiveOrgId().toString()
+                : StringUtils.hasText(requestDeptId)
+                        ? requestDeptId
+                        : loginUser != null && loginUser.getMainOrgId() != null
+                                ? String.valueOf(loginUser.getMainOrgId()) : null;
+        String deptName = trustedDelegationRequired ? loginUser.getActiveOrgName() : requestDeptName;
 
         if (!StringUtils.hasText(deptName) && StringUtils.hasText(userId) && flowOrgIntegrationService != null) {
             deptName = flowOrgIntegrationService.getUserDeptName(userId);

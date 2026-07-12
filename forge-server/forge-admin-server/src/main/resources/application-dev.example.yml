@@ -62,8 +62,12 @@ spring.data:
         threads: 16
         nettyThreads: 32
 
-# MCP Server 默认关闭。阶段 0 只允许 Streamable HTTP，且开启前必须提供可信调用方身份解析器。
-# FORGE_MCP_ENABLED=true 不能替代身份认证配置；缺少 McpCallerContextResolver 时应用会失败关闭。
+# MCP Server 默认关闭且只允许 Streamable HTTP。开启后长期 fcp_ 密钥只能换取短期 fdu_ Token。
+# FORGE_MCP_ENABLED=true 时必须同时配置 issuer/resource 以及三个互不相同的 Pepper：
+# FORGE_CAPABILITY_CLIENT_PEPPER（至少16字符）、FORGE_CAPABILITY_TOKEN_PEPPER（至少32字符）、
+# FORGE_CAPABILITY_AUTH_CODE_PEPPER（至少32字符）。生产 issuer/resource 必须使用 HTTPS。
+# 浏览器型 MCP 客户端还应通过 FORGE_CAPABILITY_MCP_ALLOWED_ORIGINS 配置精确 Origin 白名单。
+# 受控业务动作默认跟随 FORGE_MCP_ENABLED，可用 FORGE_CAPABILITY_SECURE_ACTIONS_ENABLED=false 单独关闭。
 config:
   datasource:
     url: ${spring.datasource.dynamic.datasource.master.url}

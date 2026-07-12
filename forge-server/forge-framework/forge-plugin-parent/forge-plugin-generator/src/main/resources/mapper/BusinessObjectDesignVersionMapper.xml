@@ -78,4 +78,18 @@
           AND object_id = #{objectId}
     </select>
 
+    <select id="selectPublishedVersion" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_object_design_version
+        WHERE tenant_id = #{tenantId}
+          AND object_id = #{objectId}
+          AND publish_status = 'PUBLISHED'
+        <if test="publishVersion != null">
+          AND publish_version = #{publishVersion}
+        </if>
+        ORDER BY publish_version DESC, version_no DESC, id DESC
+        LIMIT 1
+    </select>
+
 </mapper>

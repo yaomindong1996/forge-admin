@@ -8,6 +8,7 @@ import com.mdframe.forge.starter.apiconfig.service.IApiConfigManager;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.log.OperationLog;
 import com.mdframe.forge.starter.core.context.LogProperties;
+import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.log.context.OperationAuditContext;
 import com.mdframe.forge.starter.log.domain.OperationLogInfo;
 import com.mdframe.forge.starter.log.service.ILogService;
@@ -152,7 +153,10 @@ public class OperationLogAspect {
         logInfo.setOperationContent(buildOperationContent(logInfo, requestUrl));
         // 获取当前登录用户信息
         try {
-            if (StpUtil.isLogin()) {
+            Long userId = SessionHelper.getUserId();
+            if (userId != null) {
+                logInfo.setUserId(userId);
+            } else if (StpUtil.isLogin()) {
                 Object loginId = StpUtil.getLoginId();
                 logInfo.setUserId(Long.valueOf(loginId.toString()));
             }

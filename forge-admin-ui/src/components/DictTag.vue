@@ -28,7 +28,7 @@
     {{ currentDict.label }}
   </n-tag>
   <!-- 没有找到字典项，显示原始值 -->
-  <span v-else>{{ value }}</span>
+  <span v-else>{{ resolvedValue }}</span>
 </template>
 
 <script setup>
@@ -50,6 +50,12 @@ const props = defineProps({
 
   // 字典值
   value: {
+    type: [String, Number],
+    default: '',
+  },
+
+  // 兼容历史页面误传的 dictValue，推荐新代码统一使用 value
+  dictValue: {
     type: [String, Number],
     default: '',
   },
@@ -96,13 +102,19 @@ const emit = defineEmits(['close'])
 
 const dictList = ref([])
 
+const resolvedValue = computed(() => {
+  if (props.value !== null && props.value !== undefined && props.value !== '')
+    return props.value
+  return props.dictValue
+})
+
 // 当前字典项
 const currentDict = computed(() => {
   const list = props.options || dictList.value
   if (!list || list.length === 0)
     return null
 
-  return list.find(item => String(item.value) === String(props.value))
+  return list.find(item => String(item.value) === String(resolvedValue.value))
 })
 
 // 标签类型

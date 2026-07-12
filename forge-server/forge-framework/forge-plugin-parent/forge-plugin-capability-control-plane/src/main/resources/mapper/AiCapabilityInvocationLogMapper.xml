@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.capability.controlplane.mapper.AiCapabilityInvocationLogMapper">
+    <sql id="BaseColumns">
+        id, tenant_id, request_id, client_id, client_code, capability_id, capability_code,
+        capability_version, actor_type, actor_user_id, service_user_id, active_org_id, result_status, result_code,
+        error_code, schema_path, trace_id, duration_ms, del_flag,
+        create_by, create_time, create_dept, update_by, update_time
+    </sql>
+    <insert id="insertIdempotent">
+        INSERT INTO ai_capability_invocation_log (
+            id, tenant_id, request_id, client_id, client_code, capability_id, capability_code,
+            capability_version, actor_type, actor_user_id, service_user_id, active_org_id, result_status, result_code,
+            error_code, schema_path, trace_id, duration_ms, del_flag,
+            create_by, create_time, create_dept, update_by, update_time
+        ) VALUES (
+            #{log.id}, #{log.tenantId}, #{log.requestId}, #{log.clientId}, #{log.clientCode},
+            #{log.capabilityId}, #{log.capabilityCode}, #{log.capabilityVersion},
+            #{log.actorType}, #{log.actorUserId}, #{log.serviceUserId}, #{log.activeOrgId},
+            #{log.resultStatus}, #{log.resultCode},
+            #{log.errorCode}, #{log.schemaPath}, #{log.traceId}, #{log.durationMs}, 0,
+            #{log.createBy}, COALESCE(#{log.createTime}, NOW()), #{log.createDept},
+            #{log.updateBy}, COALESCE(#{log.updateTime}, NOW())
+        )
+        ON DUPLICATE KEY UPDATE id = ai_capability_invocation_log.id
+    </insert>
+    <update id="updateResultByRequestIdentity">
+        UPDATE ai_capability_invocation_log
+        SET result_status = #{log.resultStatus},
+            result_code = #{log.resultCode},
+            error_code = #{log.errorCode},
+            schema_path = #{log.schemaPath},
+            trace_id = #{log.traceId},
+            duration_ms = #{log.durationMs},
+            update_by = COALESCE(#{log.updateBy}, update_by),
+            update_time = COALESCE(#{log.updateTime}, NOW())
+        WHERE tenant_id = #{log.tenantId}
+          AND request_id = #{log.requestId}
+          AND client_id = #{log.clientId}
+          AND client_code = #{log.clientCode}
+          AND capability_id = #{log.capabilityId}
+          AND capability_code = #{log.capabilityCode}
+          AND actor_type = #{log.actorType}
+          AND actor_user_id = #{log.actorUserId}
+          AND service_user_id = #{log.serviceUserId}
+          AND active_org_id = #{log.activeOrgId}
+          AND del_flag = 0
+    </update>
+    <select id="selectPage" resultType="com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityInvocationLog">
+        SELECT <include refid="BaseColumns"/> FROM ai_capability_invocation_log
+        WHERE tenant_id = #{tenantId} AND del_flag = 0
+        <if test="clientId != null">AND client_id = #{clientId}</if>
+        <if test="capabilityCode != null and capabilityCode != ''">AND capability_code = #{capabilityCode}</if>
+        <if test="resultCode != null and resultCode != ''">AND result_code = #{resultCode}</if>
+        ORDER BY create_time DESC, id DESC
+    </select>
+    <select id="selectByRequestId" resultType="com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityInvocationLog">
+        SELECT <include refid="BaseColumns"/> FROM ai_capability_invocation_log
+        WHERE tenant_id = #{tenantId} AND request_id = #{requestId} AND del_flag = 0 LIMIT 1
+    </select>
+</mapper>

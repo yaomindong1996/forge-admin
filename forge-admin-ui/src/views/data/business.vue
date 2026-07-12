@@ -299,7 +299,7 @@ const tableColumns = computed(() => [
         h('div', { class: 'business-name' }, row.businessName),
         h(DictTag, {
           dictType: 'sys_enable_disable',
-          dictValue: String(row.status),
+          value: String(row.status),
           size: 'small',
         }),
       ]),

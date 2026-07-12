@@ -59,6 +59,13 @@ public interface FlowTaskService {
     void approve(String taskId, String userId, String comment, String signature, Map<String, Object> variables);
 
     /**
+     * 带可信租户与远程幂等凭证的审批入口。
+     */
+    void approve(String taskId, String userId, String comment, String signature,
+                 Map<String, Object> variables, Long tenantId,
+                 String idempotencyKey, String requestDigest);
+
+    /**
      * 审批驳回
      */
     default void reject(String taskId, String userId, String comment) {
@@ -69,6 +76,12 @@ public interface FlowTaskService {
      * 审批驳回
      */
     void reject(String taskId, String userId, String comment, String signature);
+
+    /**
+     * 带可信租户与远程幂等凭证的驳回入口。
+     */
+    void reject(String taskId, String userId, String comment, String signature,
+                Long tenantId, String idempotencyKey, String requestDigest);
 
     /**
      * 转办

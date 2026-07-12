@@ -6,9 +6,11 @@ import com.mdframe.forge.plugin.generator.constant.BusinessObjectDesignStatus;
 import com.mdframe.forge.plugin.generator.constant.BusinessReadinessStatus;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessBinding;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessObject;
+import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessObjectDesignVersion;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessObjectActionDTO;
 import com.mdframe.forge.plugin.generator.mapper.BusinessBindingMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessObjectMapper;
+import com.mdframe.forge.plugin.generator.mapper.BusinessObjectDesignVersionMapper;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectActionVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessPermissionSummaryVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessReadinessItemVO;
@@ -43,6 +45,7 @@ public class BusinessObjectActionService {
     private final BusinessObjectDesignerService designerService;
     private final BusinessBindingMapper bindingMapper;
     private final BusinessObjectMapper businessObjectMapper;
+    private final BusinessObjectDesignVersionMapper designVersionMapper;
     private final BusinessPermissionService permissionService;
 
     public List<BusinessObjectActionVO> listActions(Long objectId) {
@@ -70,6 +73,38 @@ public class BusinessObjectActionService {
             throw new BusinessException("业务动作已停用: " + action.getActionName());
         }
         return new ResolvedBusinessAction(object, action);
+    }
+
+    public ResolvedPublishedBusinessAction resolvePublishedAction(
+            String suiteCode,
+            String objectCode,
+            String actionCode,
+            Integer publishVersion) {
+        String normalizedObjectCode = StringUtils.trimToNull(objectCode);
+        String normalizedActionCode = normalizeActionCode(actionCode);
+        if (StringUtils.isBlank(normalizedObjectCode)) {
+            throw new BusinessException("业务对象编码不能为空");
+        }
+        Long tenantId = requireTenantId();
+        AiBusinessObject object = StringUtils.isNotBlank(suiteCode)
+                ? businessObjectMapper.selectByObjectCode(tenantId, suiteCode.trim(), normalizedObjectCode)
+                : businessObjectMapper.selectFirstByObjectCode(tenantId, normalizedObjectCode);
+        if (object == null || !Integer.valueOf(1).equals(object.getStatus())) {
+            throw new BusinessException("已发布业务对象不存在或已停用: " + normalizedObjectCode);
+        }
+        AiBusinessObjectDesignVersion version = designVersionMapper.selectPublishedVersion(
+                tenantId, object.getId(), publishVersion);
+        if (version == null || StringUtils.isBlank(version.getDesignerOptionsSnapshot())) {
+            throw new BusinessException("业务对象缺少可执行的发布快照: " + normalizedObjectCode);
+        }
+        BusinessObjectActionVO action = readActions(version.getDesignerOptionsSnapshot()).stream()
+                .filter(item -> normalizedActionCode.equalsIgnoreCase(item.getActionCode()))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("发布版本中不存在业务动作: " + normalizedActionCode));
+        if (Integer.valueOf(0).equals(action.getStatus())) {
+            throw new BusinessException("发布版本中的业务动作已停用: " + action.getActionName());
+        }
+        return new ResolvedPublishedBusinessAction(object, action, version);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -349,6 +384,26 @@ public class BusinessObjectActionService {
         return tenantId != null ? tenantId : 1L;
     }
 
+    private Long requireTenantId() {
+        Long tenantId;
+        try {
+            tenantId = SessionHelper.getTenantId();
+        }
+        catch (Exception exception) {
+            tenantId = null;
+        }
+        if (tenantId == null || tenantId <= 0) {
+            throw new BusinessException("未获取到有效租户上下文");
+        }
+        return tenantId;
+    }
+
     public record ResolvedBusinessAction(AiBusinessObject object, BusinessObjectActionVO action) {
+    }
+
+    public record ResolvedPublishedBusinessAction(
+            AiBusinessObject object,
+            BusinessObjectActionVO action,
+            AiBusinessObjectDesignVersion version) {
     }
 }

@@ -18,6 +18,10 @@
         <result column="correlation_id" property="correlationId"/>
         <result column="idempotency_key" property="idempotencyKey"/>
         <result column="duration_ms" property="durationMs"/>
+        <result column="capability_request_id" property="capabilityRequestId"/>
+        <result column="client_id" property="clientId"/>
+        <result column="service_user_id" property="serviceUserId"/>
+        <result column="actor_type" property="actorType"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
         <result column="create_dept" property="createDept"/>
@@ -41,6 +45,10 @@
         correlation_id,
         idempotency_key,
         duration_ms,
+        capability_request_id,
+        client_id,
+        service_user_id,
+        actor_type,
         create_by,
         create_time,
         create_dept,

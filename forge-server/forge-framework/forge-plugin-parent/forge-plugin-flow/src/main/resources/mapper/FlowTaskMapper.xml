@@ -12,6 +12,14 @@
         WHERE t.task_id = #{taskId}
     </select>
 
+    <select id="selectByTaskIdForUpdate" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
+        SELECT t.*
+        FROM sys_flow_task t
+        WHERE t.task_id = #{taskId}
+        LIMIT 1
+        FOR UPDATE
+    </select>
+
     <!-- 根据 Flowable 任务ID或流程任务记录ID查询任务（带流程名称） -->
     <select id="selectByIdOrTaskId" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
         SELECT t.*, m.category AS category, c.category_name AS category_name,

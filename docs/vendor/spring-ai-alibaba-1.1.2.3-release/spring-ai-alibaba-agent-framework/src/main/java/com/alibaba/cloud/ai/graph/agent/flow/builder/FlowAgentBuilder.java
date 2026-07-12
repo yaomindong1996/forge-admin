@@ -1,0 +1,202 @@
+/*
+ * Copyright 2024-2025 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.cloud.ai.graph.agent.flow.builder;
+
+import com.alibaba.cloud.ai.graph.CompileConfig;
+import com.alibaba.cloud.ai.graph.agent.Agent;
+import com.alibaba.cloud.ai.graph.agent.flow.agent.FlowAgent;
+import com.alibaba.cloud.ai.graph.agent.hook.Hook;
+import com.alibaba.cloud.ai.graph.checkpoint.BaseCheckpointSaver;
+import com.alibaba.cloud.ai.graph.checkpoint.config.SaverConfig;
+import com.alibaba.cloud.ai.graph.exception.GraphStateException;
+import com.alibaba.cloud.ai.graph.serializer.StateSerializer;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Executor;
+
+/**
+ * Abstract base builder for FlowAgent and its subclasses. Provides common builder
+ * functionality and enforces consistent builder patterns.
+ *
+ * @param <T> the concrete FlowAgent type this builder creates
+ * @param <B> the concrete builder type (for fluent interface support)
+ */
+public abstract class FlowAgentBuilder<T extends FlowAgent, B extends FlowAgentBuilder<T, B>> {
+
+	// Common FlowAgent properties
+	public String name;
+
+	public String description;
+
+	public CompileConfig compileConfig;
+
+	public BaseCheckpointSaver saver;
+
+	public List<Agent> subAgents;
+
+	public StateSerializer stateSerializer;
+
+	public Executor executor;
+
+	public List<Hook> hooks;
+
+	/**
+	 * Sets the agent name.
+	 * @param name the unique name of the agent
+	 * @return this builder instance for method chaining
+	 */
+	public B name(String name) {
+		this.name = name;
+		return self();
+	}
+
+	/**
+	 * Sets the agent description.
+	 * @param description the description of the agent's capability
+	 * @return this builder instance for method chaining
+	 */
+	public B description(String description) {
+		this.description = description;
+		return self();
+	}
+
+	/**
+	 * Sets the compile configuration.
+	 * @param compileConfig the compile configuration
+	 * @return this builder instance for method chaining
+	 */
+	public B compileConfig(CompileConfig compileConfig) {
+		this.compileConfig = compileConfig;
+		return self();
+	}
+
+	public B saver(BaseCheckpointSaver saver) {
+		this.saver = saver;
+		return self();
+	}
+
+	/**
+	 * Sets the list of sub-agents.
+	 * @param subAgents the list of sub-agents
+	 * @return this builder instance for method chaining
+	 */
+	public B subAgents(List<Agent> subAgents) {
+		this.subAgents = subAgents;
+		return self();
+	}
+
+	/**
+	 * Sets the state serializer for the agent.
+	 * @param stateSerializer the state serializer to use
+	 * @return this builder instance for method chaining
+	 */
+	public B stateSerializer(StateSerializer stateSerializer) {
+		this.stateSerializer = stateSerializer;
+		return self();
+	}
+
+	/**
+	 * Sets the executor for parallel nodes.
+	 * <p>
+	 * This executor will be used for all parallel nodes in the agent's execution graph.
+	 * When a parallel node is executed, it will use this executor to run the parallel
+	 * branches concurrently.
+	 * @param executor the {@link Executor} to use for parallel nodes
+	 * @return this builder instance for method chaining
+	 */
+	public B executor(Executor executor) {
+		this.executor = executor;
+		return self();
+	}
+
+	/**
+	 * Sets hooks for the agent. Hooks allow you to intercept and modify agent execution
+	 * at various points (before/after agent, before/after model calls).
+	 * <p>
+	 * Common use cases include:
+	 * <ul>
+	 *   <li>Message trimming to reduce token consumption</li>
+	 *   <li>Conversation summarization for long-running threads</li>
+	 *   <li>Logging and monitoring</li>
+	 *   <li>Content filtering and safety checks</li>
+	 * </ul>
+	 * @param hooks varargs of Hook instances
+	 * @return this builder instance for method chaining
+	 */
+	public B hooks(Hook... hooks) {
+		if (this.hooks == null) {
+			this.hooks = new ArrayList<>();
+		}
+		this.hooks.addAll(Arrays.asList(hooks));
+		return self();
+	}
+
+	/**
+	 * Sets hooks for the agent from a list.
+	 * @param hooks list of Hook instances
+	 * @return this builder instance for method chaining
+	 * @see #hooks(Hook...)
+	 */
+	public B hooks(List<? extends Hook> hooks) {
+		if (this.hooks == null) {
+			this.hooks = new ArrayList<>();
+		}
+		this.hooks.addAll(hooks);
+		return self();
+	}
+
+	/**
+	 * Returns the concrete builder instance. This method enables fluent interface support
+	 * in subclasses.
+	 * @return this builder instance
+	 */
+	protected abstract B self();
+
+	/**
+	 * Validates the builder state before creating the agent. Subclasses can override this
+	 * method to add specific validation logic.
+	 * @throws IllegalArgumentException if validation fails
+	 */
+	protected void validate() {
+		if (name == null || name.trim().isEmpty()) {
+			throw new IllegalArgumentException("Name must be provided");
+		}
+		if (subAgents == null || subAgents.isEmpty()) {
+			throw new IllegalArgumentException("At least one sub-agent must be provided for flow");
+		}
+	}
+
+	/**
+	 * Builds the concrete FlowAgent instance. Subclasses must implement this method to
+	 * create the specific agent type.
+	 * @return the built FlowAgent instance
+	 * @throws GraphStateException if agent creation fails
+	 */
+	public T build() {
+		if (this.saver != null) {
+			if (this.compileConfig == null) {
+				this.compileConfig = CompileConfig.builder().saverConfig(SaverConfig.builder().register(saver).build()).build();
+			}
+			this.compileConfig = CompileConfig.builder(compileConfig).saverConfig(SaverConfig.builder().register(saver).build()).build();
+		}
+		return doBuild();
+	};
+
+	public abstract T doBuild();
+
+}

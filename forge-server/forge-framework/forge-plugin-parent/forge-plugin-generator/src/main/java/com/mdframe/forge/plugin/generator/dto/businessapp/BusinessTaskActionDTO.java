@@ -31,6 +31,21 @@ public class BusinessTaskActionDTO {
 
     private String userId;
 
+    /**
+     * 由受控能力执行身份解析的可信租户，不接受普通前端表单覆盖。
+     */
+    private Long tenantId;
+
+    /**
+     * 受控流程动作远程幂等凭证。
+     */
+    private String idempotencyKey;
+
+    /**
+     * 受控流程动作规范请求摘要。
+     */
+    private String requestDigest;
+
     private String comment;
 
     private String signature;

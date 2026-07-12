@@ -63,6 +63,20 @@ public class TenantContextHolder {
     }
 
     /**
+     * 获取可用于嵌套恢复的原始忽略租户值。
+     */
+    public static Boolean getIgnoreValue() {
+        return IGNORE_TENANT.get();
+    }
+
+    /**
+     * 仅清除忽略租户标记。
+     */
+    public static void clearIgnore() {
+        IGNORE_TENANT.remove();
+    }
+
+    /**
      * 执行忽略租户的操作
      *
      * @param runnable 操作

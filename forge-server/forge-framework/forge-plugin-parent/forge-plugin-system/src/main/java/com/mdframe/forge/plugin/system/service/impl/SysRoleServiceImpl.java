@@ -88,6 +88,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         SysRole role = new SysRole();
         BeanUtil.copyProperties(dto, role);
         role.setTenantId(resolveWriteTenantId(dto.getTenantId()));
+        role.setOrgScopeType(resolveOrgScopeType(dto.getOrgScopeType()));
         validateDataScopeAllowedForCurrentUser(role.getDataScope());
         boolean inserted = TenantContextHolder.executeIgnore(() -> roleMapper.insert(role) > 0);
         if (inserted && dto.getOrgIds() != null) {
@@ -102,6 +103,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         assertCanMaintainRole(existing);
         SysRole role = new SysRole();
         BeanUtil.copyProperties(dto, role);
+        role.setOrgScopeType(null);
         LoginUser loginUser = requireLoginUser();
         if (loginUser.isAdmin()) {
             Long tenantId = dto.getTenantId() != null ? dto.getTenantId() : existing.getTenantId();
@@ -379,35 +381,68 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         SysRole role = loadRoleForAccess(roleId);
         assertCanMaintainRole(role);
         List<Long> normalizedOrgIds = normalizeOrgIds(orgIds);
-        validateOrgTenant(normalizedOrgIds, role.getTenantId());
 
         List<Long> existingOrgIds = selectRoleOrgIds(roleId);
+        if (normalizedOrgIds.isEmpty()) {
+            TenantContextHolder.executeIgnore(() -> roleOrgMapper.delete(new LambdaQueryWrapper<SysRoleOrg>()
+                    .eq(SysRoleOrg::getTenantId, role.getTenantId())
+                    .eq(SysRoleOrg::getRoleId, roleId)));
+            updateRoleOrgScopeType(role, SystemConstants.RoleOrgScope.GLOBAL);
+            return true;
+        }
+
+        validateOrgTenant(normalizedOrgIds, role.getTenantId());
+        updateRoleOrgScopeType(role, SystemConstants.RoleOrgScope.CUSTOM);
+
         List<Long> removedOrgIds = existingOrgIds.stream()
                 .filter(orgId -> !normalizedOrgIds.contains(orgId))
                 .collect(Collectors.toList());
         if (!removedOrgIds.isEmpty()) {
-            userOrgRoleMapper.delete(new LambdaQueryWrapper<SysUserOrgRole>()
-                    .eq(SysUserOrgRole::getTenantId, role.getTenantId())
-                    .eq(SysUserOrgRole::getRoleId, roleId)
-                    .in(SysUserOrgRole::getOrgId, removedOrgIds));
-            roleOrgMapper.delete(new LambdaQueryWrapper<SysRoleOrg>()
-                    .eq(SysRoleOrg::getTenantId, role.getTenantId())
-                    .eq(SysRoleOrg::getRoleId, roleId)
-                    .in(SysRoleOrg::getOrgId, removedOrgIds));
+            TenantContextHolder.executeIgnore(() -> {
+                userOrgRoleMapper.delete(new LambdaQueryWrapper<SysUserOrgRole>()
+                        .eq(SysUserOrgRole::getTenantId, role.getTenantId())
+                        .eq(SysUserOrgRole::getRoleId, roleId)
+                        .in(SysUserOrgRole::getOrgId, removedOrgIds));
+                roleOrgMapper.delete(new LambdaQueryWrapper<SysRoleOrg>()
+                        .eq(SysRoleOrg::getTenantId, role.getTenantId())
+                        .eq(SysRoleOrg::getRoleId, roleId)
+                        .in(SysRoleOrg::getOrgId, removedOrgIds));
+                return true;
+            });
         }
 
         Set<Long> existingOrgIdSet = new HashSet<>(existingOrgIds);
-        for (Long orgId : normalizedOrgIds) {
-            if (existingOrgIdSet.contains(orgId)) {
-                continue;
+        TenantContextHolder.executeIgnore(() -> {
+            for (Long orgId : normalizedOrgIds) {
+                if (existingOrgIdSet.contains(orgId)) {
+                    continue;
+                }
+                SysRoleOrg roleOrg = new SysRoleOrg();
+                roleOrg.setTenantId(role.getTenantId());
+                roleOrg.setRoleId(roleId);
+                roleOrg.setOrgId(orgId);
+                roleOrgMapper.insert(roleOrg);
             }
-            SysRoleOrg roleOrg = new SysRoleOrg();
-            roleOrg.setTenantId(role.getTenantId());
-            roleOrg.setRoleId(roleId);
-            roleOrg.setOrgId(orgId);
-            roleOrgMapper.insert(roleOrg);
-        }
+            return true;
+        });
         return true;
+    }
+
+    private Integer resolveOrgScopeType(Integer orgScopeType) {
+        return Objects.equals(orgScopeType, SystemConstants.RoleOrgScope.CUSTOM)
+                ? SystemConstants.RoleOrgScope.CUSTOM
+                : SystemConstants.RoleOrgScope.GLOBAL;
+    }
+
+    private void updateRoleOrgScopeType(SysRole role, Integer orgScopeType) {
+        SysRole update = new SysRole();
+        update.setId(role.getId());
+        update.setTenantId(role.getTenantId());
+        update.setOrgScopeType(resolveOrgScopeType(orgScopeType));
+        TenantContextHolder.executeIgnore(() -> {
+            roleMapper.updateById(update);
+        });
+        role.setOrgScopeType(update.getOrgScopeType());
     }
 
     @Override

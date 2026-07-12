@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.capability.flowaction.mapper.FlowActionExecutionLogMapper">
+
+    <sql id="BaseColumns">
+        id, tenant_id, request_id, client_id, capability_id, capability_code, capability_version,
+        operation, object_code, record_id, task_ref, idempotency_key, request_digest,
+        actor_type, actor_user_id, service_user_id, active_org_id, execute_status, result_code,
+        result_snapshot, error_code, duration_ms, del_flag,
+        create_by, create_time, create_dept, update_by, update_time
+    </sql>
+
+    <select id="selectByIdempotency"
+            resultType="com.mdframe.forge.plugin.capability.flowaction.domain.AiCapabilityFlowActionLog">
+        SELECT <include refid="BaseColumns"/>
+        FROM ai_capability_flow_action_log
+        WHERE tenant_id = #{tenantId}
+          AND client_id = #{clientId}
+          AND capability_id = #{capabilityId}
+          AND operation = #{operation}
+          AND idempotency_key = #{idempotencyKey}
+          AND del_flag = 0
+        LIMIT 1
+    </select>
+
+    <update id="updateResultByIdentity">
+        UPDATE ai_capability_flow_action_log
+        SET execute_status = #{log.executeStatus},
+            result_code = #{log.resultCode},
+            result_snapshot = #{log.resultSnapshot},
+            error_code = #{log.errorCode},
+            duration_ms = #{log.durationMs},
+            update_by = COALESCE(#{log.updateBy}, update_by),
+            update_time = NOW()
+        WHERE id = #{log.id}
+          AND tenant_id = #{log.tenantId}
+          AND request_id = #{log.requestId}
+          AND client_id = #{log.clientId}
+          AND capability_id = #{log.capabilityId}
+          AND operation = #{log.operation}
+          AND actor_type = #{log.actorType}
+          AND actor_user_id = #{log.actorUserId}
+          AND service_user_id = #{log.serviceUserId}
+          AND active_org_id = #{log.activeOrgId}
+          AND request_digest = #{log.requestDigest}
+          AND del_flag = 0
+    </update>
+</mapper>

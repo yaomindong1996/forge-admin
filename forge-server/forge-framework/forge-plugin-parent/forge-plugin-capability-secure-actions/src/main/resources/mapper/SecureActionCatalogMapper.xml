@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.capability.secureaction.catalog.SecureActionCatalogMapper">
+
+    <sql id="GrantedActionColumns">
+        c.id AS capability_id,
+        c.capability_code,
+        c.capability_name,
+        c.description,
+        v.source_type,
+        v.source_key,
+        v.source_version,
+        v.behavior,
+        v.version,
+        v.input_schema,
+        v.output_schema,
+        v.policy_snapshot,
+        g.field_policy,
+        v.risk_level
+    </sql>
+
+    <sql id="GrantedActionFromWhere">
+        FROM ai_capability_grant g
+        INNER JOIN ai_capability c
+          ON c.tenant_id = g.tenant_id
+         AND c.id = g.capability_id
+         AND c.del_flag = 0
+         AND c.enabled = 1
+         AND c.publish_status = 'PUBLISHED'
+         AND c.risk_level IN ('MEDIUM', 'HIGH')
+         AND c.visibility = 'DISCOVERABLE'
+         AND ((c.source_type = 'BUSINESS_ACTION' AND c.behavior = 'ACTION')
+           OR (c.source_type = 'FLOW_ACTION' AND c.behavior = 'FLOW'))
+        INNER JOIN ai_capability_client cli
+          ON cli.tenant_id = g.tenant_id
+         AND cli.id = g.client_id
+         AND cli.del_flag = 0
+         AND cli.status = 'ENABLED'
+         AND (cli.expires_at IS NULL OR cli.expires_at &gt; NOW())
+        INNER JOIN ai_capability_version v
+          ON v.tenant_id = c.tenant_id
+         AND v.capability_id = c.id
+         AND v.del_flag = 0
+         AND v.status = 'PUBLISHED'
+         AND v.risk_level = c.risk_level
+         AND v.visibility = 'DISCOVERABLE'
+         AND ((v.source_type = 'BUSINESS_ACTION' AND v.behavior = 'ACTION')
+           OR (v.source_type = 'FLOW_ACTION' AND v.behavior = 'FLOW'))
+         AND v.source_type = c.source_type
+         AND v.behavior = c.behavior
+         AND v.version = CASE
+              WHEN g.version_strategy = 'FOLLOW_MAJOR'
+               AND SUBSTRING_INDEX(c.current_version, '.', 1) = SUBSTRING_INDEX(g.fixed_version, '.', 1)
+              THEN c.current_version
+              ELSE g.fixed_version
+             END
+        WHERE g.tenant_id = #{tenantId}
+          AND g.client_id = #{clientId}
+          AND g.del_flag = 0
+          AND g.status = 'ENABLED'
+          AND (g.expires_at IS NULL OR g.expires_at &gt; NOW())
+    </sql>
+
+    <select id="selectGrantedActions" resultType="com.mdframe.forge.plugin.capability.secureaction.catalog.SecureActionCatalogRow">
+        SELECT <include refid="GrantedActionColumns"/>
+        <include refid="GrantedActionFromWhere"/>
+        <if test="keyword != null and keyword != ''">
+          AND (c.capability_code LIKE CONCAT('%', #{keyword}, '%')
+            OR c.capability_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="afterCode != null and afterCode != '' and afterId != null">
+          AND (c.capability_code &gt; #{afterCode}
+            OR (c.capability_code = #{afterCode} AND c.id &gt; #{afterId}))
+        </if>
+        ORDER BY c.capability_code ASC, c.id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectGrantedAction" resultType="com.mdframe.forge.plugin.capability.secureaction.catalog.SecureActionCatalogRow">
+        SELECT <include refid="GrantedActionColumns"/>
+        <include refid="GrantedActionFromWhere"/>
+          AND c.capability_code = #{capabilityCode}
+        LIMIT 1
+    </select>
+</mapper>

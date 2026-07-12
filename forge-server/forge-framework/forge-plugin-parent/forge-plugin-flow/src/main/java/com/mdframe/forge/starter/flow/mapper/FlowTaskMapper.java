@@ -21,6 +21,11 @@ public interface FlowTaskMapper extends BaseMapper<FlowTask> {
     FlowTask selectByTaskId(String taskId);
 
     /**
+     * 锁定任务记录，用于最终办理授权与幂等判定。
+     */
+    FlowTask selectByTaskIdForUpdate(@Param("taskId") String taskId);
+
+    /**
      * 根据任务ID或流程任务记录ID查询任务
      */
     FlowTask selectByIdOrTaskId(@Param("taskId") String taskId);

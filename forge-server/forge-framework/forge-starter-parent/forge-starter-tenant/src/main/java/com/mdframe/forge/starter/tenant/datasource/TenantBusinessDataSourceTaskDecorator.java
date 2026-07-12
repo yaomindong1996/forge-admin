@@ -1,6 +1,8 @@
 package com.mdframe.forge.starter.tenant.datasource;
 
 import com.baomidou.dynamic.datasource.toolkit.DynamicDataSourceContextHolder;
+import com.mdframe.forge.starter.core.context.ExecutionIdentity;
+import com.mdframe.forge.starter.core.context.ExecutionIdentityContextHolder;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -19,10 +21,14 @@ public class TenantBusinessDataSourceTaskDecorator implements TaskDecorator {
         Long tenantId = TenantContextHolder.getTenantId();
         boolean ignoreTenant = TenantContextHolder.isIgnore();
         String dsKey = DynamicDataSourceContextHolder.peek();
+        ExecutionIdentity executionIdentity = ExecutionIdentityContextHolder.current().orElse(null);
         return () -> {
             Long previousTenantId = TenantContextHolder.getTenantId();
             boolean previousIgnoreTenant = TenantContextHolder.isIgnore();
             String previousDsKey = DynamicDataSourceContextHolder.peek();
+            ExecutionIdentityContextHolder.Scope identityScope = executionIdentity == null
+                    ? ExecutionIdentityContextHolder.suspend()
+                    : ExecutionIdentityContextHolder.open(executionIdentity);
             applyTenantContext(tenantId, ignoreTenant);
             boolean pushed = StringUtils.isNotBlank(dsKey);
             if (pushed) {
@@ -33,6 +39,7 @@ public class TenantBusinessDataSourceTaskDecorator implements TaskDecorator {
             try {
                 runnable.run();
             } finally {
+                identityScope.close();
                 if (pushed) {
                     DynamicDataSourceContextHolder.poll();
                 } else if (StringUtils.isNotBlank(previousDsKey)) {

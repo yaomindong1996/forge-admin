@@ -1900,7 +1900,7 @@ const tableColumns = computed(() => [
     width: 110,
     render: row => h(DictTag, {
       dictType: 'data_dataset_publish_status',
-      dictValue: String(row.publishStatus),
+      value: String(row.publishStatus),
       size: 'small',
     }),
   },
@@ -1910,7 +1910,7 @@ const tableColumns = computed(() => [
     width: 110,
     render: row => h(DictTag, {
       dictType: 'data_dataset_access_mode',
-      dictValue: row.accessMode,
+      value: row.accessMode,
       size: 'small',
     }),
   },
@@ -1920,7 +1920,7 @@ const tableColumns = computed(() => [
     width: 110,
     render: row => h(DictTag, {
       dictType: 'sys_enable_disable',
-      dictValue: String(row.status),
+      value: String(row.status),
       size: 'small',
     }),
   },

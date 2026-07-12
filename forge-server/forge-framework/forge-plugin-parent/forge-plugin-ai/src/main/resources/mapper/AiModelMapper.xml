@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.ai.model.mapper.AiModelMapper">
+
+    <sql id="modelColumns">
+        id, provider_id, model_type, model_id, model_name, description, max_tokens,
+        context_window, input_price_per_million_cent, output_price_per_million_cent,
+        icon, is_default, status, sort_order, tenant_id, create_by, create_time,
+        create_dept, update_by, update_time, remark, del_flag
+    </sql>
+
+    <select id="selectEnabledDefaultModelId" resultType="java.lang.String">
+        SELECT model_id
+        FROM ai_model
+        WHERE provider_id = #{providerId}
+          AND status = '0'
+          AND is_default = '1'
+          AND del_flag = '0'
+        ORDER BY sort_order ASC, id ASC
+        LIMIT 1
+    </select>
+
+    <select id="selectEnabledByProviderAndModelId" resultType="com.mdframe.forge.plugin.ai.model.domain.AiModel">
+        SELECT <include refid="modelColumns"/> FROM ai_model
+        WHERE provider_id = #{providerId} AND model_id = #{modelId} AND status = '0' AND del_flag = '0'
+        LIMIT 1
+    </select>
+
+    <select id="selectEnabledById" resultType="com.mdframe.forge.plugin.ai.model.domain.AiModel">
+        SELECT <include refid="modelColumns"/> FROM ai_model
+        WHERE id = #{id} AND status = '0' AND del_flag = '0'
+        LIMIT 1
+    </select>
+
+    <select id="selectEnabledByIds" resultType="com.mdframe.forge.plugin.ai.model.domain.AiModel">
+        SELECT <include refid="modelColumns"/> FROM ai_model
+        WHERE status = '0' AND del_flag = '0' AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+
+</mapper>

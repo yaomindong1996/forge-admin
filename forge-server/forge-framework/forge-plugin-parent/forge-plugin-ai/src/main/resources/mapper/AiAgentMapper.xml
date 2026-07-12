@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.ai.agent.mapper.AiAgentMapper">
+  <select id="selectEnabledByCode" resultType="com.mdframe.forge.plugin.ai.agent.domain.AiAgent">
+    SELECT id, tenant_id, agent_name, agent_code, description, system_prompt, provider_id, model_name,
+           model_selection_mode, route_policy_id, temperature, max_tokens, extra_config, status,
+           create_by, create_time, create_dept, update_by, update_time, del_flag
+    FROM ai_agent WHERE agent_code = #{agentCode} AND status = '0' AND del_flag = '0' LIMIT 1
+  </select>
+</mapper>

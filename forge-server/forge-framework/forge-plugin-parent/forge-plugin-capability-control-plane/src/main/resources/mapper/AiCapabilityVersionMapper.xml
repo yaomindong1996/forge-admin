@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.capability.controlplane.mapper.AiCapabilityVersionMapper">
+    <sql id="BaseColumns">
+        id, tenant_id, capability_id, version, input_schema, output_schema,
+        source_type, source_key, source_version, behavior, risk_level, visibility,
+        policy_snapshot, schema_checksum, status, del_flag,
+        create_by, create_time, create_dept, update_by, update_time
+    </sql>
+    <select id="selectVersion" resultType="com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityVersion">
+        SELECT <include refid="BaseColumns"/> FROM ai_capability_version
+        WHERE tenant_id = #{tenantId} AND capability_id = #{capabilityId}
+          AND version = #{version} AND del_flag = 0 LIMIT 1
+    </select>
+</mapper>

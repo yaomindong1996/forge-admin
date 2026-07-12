@@ -373,7 +373,7 @@ const tableColumns = computed(() => {
       width: 110,
       render: row => h(DictTag, {
         dictType: 'sys_enable_disable',
-        dictValue: String(row.status),
+        value: String(row.status),
         size: 'small',
       }),
     },

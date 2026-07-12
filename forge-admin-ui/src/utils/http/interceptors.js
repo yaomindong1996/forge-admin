@@ -143,8 +143,35 @@ function resolveCurrentPagePath() {
     return ''
   const hashPath = window.location.hash?.replace(/^#/, '')
   if (hashPath)
-    return hashPath
-  return `${window.location.pathname || ''}${window.location.search || ''}`
+    return sanitizePageAuditPath(hashPath)
+  return sanitizePageAuditPath(`${window.location.pathname || ''}${window.location.search || ''}`)
+}
+
+function sanitizePageAuditPath(pagePath) {
+  const [pathname, queryString = ''] = String(pagePath || '').split('?', 2)
+  if (!queryString)
+    return pathname
+  const sensitiveKeys = new Set([
+    'state',
+    'code',
+    'code_verifier',
+    'code_challenge',
+    'client_secret',
+    'access_token',
+    'token',
+  ])
+  try {
+    const params = new URLSearchParams(queryString)
+    for (const key of sensitiveKeys) {
+      if (params.has(key))
+        params.set(key, '[REDACTED]')
+    }
+    const sanitized = params.toString()
+    return sanitized ? `${pathname}?${sanitized}` : pathname
+  }
+  catch {
+    return pathname
+  }
 }
 
 function resolvePageQueryParam(pagePath, names = []) {
@@ -490,7 +517,8 @@ async function reqResolve(config, axiosInstance) {
       config.headers.Authorization = `Bearer ${authStore.accessToken}`
     }
 
-    Object.assign(config.headers, resolvePageAuditHeaders())
+    if (config.pageAudit !== false)
+      Object.assign(config.headers, resolvePageAuditHeaders())
 
     // 添加防重放参数
     const enableReplay = cryptoConfig?.enableReplay !== false

@@ -49,12 +49,12 @@ const tableColumns = computed(() => [
   { prop: 'agentCode', label: 'Agent编码', width: 150 },
   { prop: 'configName', label: '配置名称', width: 150 },
   { prop: 'configType', label: '类型', width: 80, render: (row) => {
-    return h(DictTag, { dictType: 'ai_context_type', dictValue: row.configType, size: 'small' })
+    return h(DictTag, { dictType: 'ai_context_type', value: row.configType, size: 'small' })
   } },
   { prop: 'configContent', label: '内容', minWidth: 200, ellipsis: true },
   { prop: 'sort', label: '排序', width: 70 },
   { prop: 'status', label: '状态', width: 70, render: (row) => {
-    return h(DictTag, { dictType: 'sys_normal_disable', dictValue: row.status, size: 'small' })
+    return h(DictTag, { dictType: 'sys_normal_disable', value: row.status, size: 'small' })
   } },
 ])
 

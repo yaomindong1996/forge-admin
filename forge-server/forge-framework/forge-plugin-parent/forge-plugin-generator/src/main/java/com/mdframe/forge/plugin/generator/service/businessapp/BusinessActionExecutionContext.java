@@ -22,6 +22,16 @@ public class BusinessActionExecutionContext {
 
     private BusinessObjectActionVO action;
 
+    private Integer publishedVersion;
+
+    private String capabilityRequestId;
+
+    private Long capabilityClientId;
+
+    private Long capabilityServiceUserId;
+
+    private String capabilityActorType;
+
     private BusinessActionExecuteDTO request;
 
     private Map<String, Object> recordData = new LinkedHashMap<>();

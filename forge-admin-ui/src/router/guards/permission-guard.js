@@ -10,6 +10,7 @@ const AUTH_ROUTE_ALLOWLIST = new Set([
   '/',
   '/home',
   '/profile',
+  '/mcp-authorize',
   '/403',
 ])
 

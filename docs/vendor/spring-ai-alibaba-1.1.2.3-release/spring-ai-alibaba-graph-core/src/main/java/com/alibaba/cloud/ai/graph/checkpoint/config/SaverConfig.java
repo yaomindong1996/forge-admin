@@ -1,0 +1,69 @@
+/*
+ * Copyright 2024-2026 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.alibaba.cloud.ai.graph.checkpoint.config;
+
+import com.alibaba.cloud.ai.graph.checkpoint.BaseCheckpointSaver;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class SaverConfig {
+
+	private final List<BaseCheckpointSaver> savers = new ArrayList<>();
+
+	public static Builder builder() {
+		return new Builder();
+	}
+
+	public SaverConfig register(BaseCheckpointSaver saver) {
+		savers.add(saver);
+		return this;
+	}
+
+	public BaseCheckpointSaver get() {
+		if (savers.isEmpty()) {
+			return null;
+		}
+		if (savers.size() == 1) {
+			return savers.get(0);
+		}
+		throw new IllegalStateException("Multiple savers configured, but no specific one requested.");
+	}
+
+	public List<BaseCheckpointSaver> getAll() {
+		return savers;
+	}
+
+	public static class Builder {
+
+		private final SaverConfig config;
+
+		Builder() {
+			this.config = new SaverConfig();
+		}
+
+		public Builder register(BaseCheckpointSaver saver) {
+			this.config.register(saver);
+			return this;
+		}
+
+		public SaverConfig build() {
+			return this.config;
+		}
+
+	}
+
+}

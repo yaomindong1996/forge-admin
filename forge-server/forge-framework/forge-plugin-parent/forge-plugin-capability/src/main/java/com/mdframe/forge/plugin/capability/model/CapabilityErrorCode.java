@@ -1,0 +1,15 @@
+package com.mdframe.forge.plugin.capability.model;
+
+public enum CapabilityErrorCode {
+    CAPABILITY_NOT_FOUND,
+    INVALID_ARGUMENT,
+    UNAUTHENTICATED,
+    FORBIDDEN,
+    TENANT_SCOPE_VIOLATION,
+    ORG_SCOPE_VIOLATION,
+    SCHEMA_UNSUPPORTED,
+    OUTPUT_SCHEMA_INVALID,
+    EXECUTION_FAILED,
+    TIMEOUT,
+    INTERNAL_ERROR
+}

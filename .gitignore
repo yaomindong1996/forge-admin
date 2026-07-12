@@ -95,3 +95,4 @@ yarn.lock
 *.secrets
 forge/db/community-export/
 *docs-dist
+!/docs/vendor/

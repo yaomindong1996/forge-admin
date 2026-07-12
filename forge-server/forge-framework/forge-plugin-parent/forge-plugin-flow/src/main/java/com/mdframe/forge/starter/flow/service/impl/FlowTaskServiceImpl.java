@@ -29,6 +29,7 @@ import com.mdframe.forge.starter.flow.service.FlowModelService;
 import com.mdframe.forge.starter.flow.service.FlowNodeConfigService;
 import com.mdframe.forge.starter.flow.service.FlowOrgIntegrationService;
 import com.mdframe.forge.starter.flow.service.FlowTaskService;
+import com.mdframe.forge.starter.core.session.SessionHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.bpmn.model.BpmnModel;
 import org.flowable.bpmn.model.FlowElement;
@@ -287,10 +288,24 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void approve(String taskId, String userId, String comment, String signature, Map<String, Object> variables) {
+        approve(taskId, userId, comment, signature, variables, SessionHelper.getTenantId(), null, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void approve(String taskId, String userId, String comment, String signature,
+                        Map<String, Object> variables, Long tenantId,
+                        String idempotencyKey, String requestDigest) {
+        FlowTask storedTask = authorizeTaskAction(
+                taskId, userId, tenantId, "APPROVE", idempotencyKey, requestDigest, 2);
+        if (storedTask == null) {
+            return;
+        }
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
         if (task == null) {
             throw new RuntimeException("任务不存在或已处理");
         }
+        validateFlowableAssignee(task, userId);
         validateTaskAction(task, ACTION_APPROVE, comment, signature);
         validateRequiredVariables(task, variables);
 
@@ -307,7 +322,10 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
             flowTask.setComment(comment);
             flowTask.setSignature(signature);
             flowTask.setCompleteTime(LocalDateTime.now());
-            lambdaUpdate().eq(FlowTask::getTaskId, taskId).update(flowTask);
+            flowTask.setActionIdempotencyKey(idempotencyKey);
+            flowTask.setActionRequestDigest(requestDigest);
+            flowTask.setActionType(idempotencyKey == null ? null : "APPROVE");
+            updateTaskActionResultRequired(taskId, flowTask);
 
             log.info("审批通过：taskId={}, userId={}", taskId, userId);
             autoApproveRepeatedTasks(task.getProcessInstanceId());
@@ -321,10 +339,23 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void reject(String taskId, String userId, String comment, String signature) {
+        reject(taskId, userId, comment, signature, SessionHelper.getTenantId(), null, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void reject(String taskId, String userId, String comment, String signature,
+                       Long tenantId, String idempotencyKey, String requestDigest) {
+        FlowTask storedTask = authorizeTaskAction(
+                taskId, userId, tenantId, "REJECT", idempotencyKey, requestDigest, 3);
+        if (storedTask == null) {
+            return;
+        }
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
         if (task == null) {
             throw new RuntimeException("任务不存在或已处理");
         }
+        validateFlowableAssignee(task, userId);
         validateTaskAction(task, ACTION_REJECT, comment, signature);
 
         try {
@@ -339,13 +370,44 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
             flowTask.setComment(comment);
             flowTask.setSignature(signature);
             flowTask.setCompleteTime(LocalDateTime.now());
-            lambdaUpdate().eq(FlowTask::getTaskId, taskId).update(flowTask);
+            flowTask.setActionIdempotencyKey(idempotencyKey);
+            flowTask.setActionRequestDigest(requestDigest);
+            flowTask.setActionType(idempotencyKey == null ? null : "REJECT");
+            updateTaskActionResultRequired(taskId, flowTask);
 
             log.info("审批驳回：taskId={}, userId={}", taskId, userId);
         } catch (Exception e) {
             recordTaskError(task.getProcessInstanceId(), taskId, task.getTaskDefinitionKey(),
                     task.getName(), "TASK_REJECT", e);
             throw e;
+        }
+    }
+
+    /**
+     * 在 Flow 服务最终副作用边界重新校验租户、签收人与任务状态。
+     * 返回 null 表示命中已成功的同请求幂等结果。
+     */
+    private FlowTask authorizeTaskAction(String taskId, String userId, Long tenantId,
+                                         String actionType, String idempotencyKey,
+                                         String requestDigest, int completedStatus) {
+        FlowTask storedTask = baseMapper.selectByTaskIdForUpdate(taskId);
+        if (FlowTaskActionAuthorization.authorize(
+                storedTask, userId, tenantId, actionType,
+                idempotencyKey, requestDigest, completedStatus)) {
+            return null;
+        }
+        return storedTask;
+    }
+
+    private void validateFlowableAssignee(Task task, String userId) {
+        if (!userId.equals(task.getAssignee())) {
+            throw new RuntimeException("FLOW_TASK_ASSIGNEE_MISMATCH");
+        }
+    }
+
+    private void updateTaskActionResultRequired(String taskId, FlowTask flowTask) {
+        if (!lambdaUpdate().eq(FlowTask::getTaskId, taskId).update(flowTask)) {
+            throw new IllegalStateException("FLOW_TASK_STATE_UPDATE_FAILED");
         }
     }
 

@@ -7,6 +7,7 @@ import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import com.mdframe.forge.starter.core.domain.RespInfo;
+import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.flow.dto.ProcessDiagramInfo;
 import com.mdframe.forge.starter.flow.dto.TaskFormInfo;
 import com.mdframe.forge.starter.flow.entity.FlowTask;
@@ -117,13 +118,17 @@ public class FlowTaskController {
     @PostMapping("/approve")
     public RespInfo<Void> approve(@RequestBody Map<String, Object> params) {
         String taskId = String.valueOf(params.get("taskId"));
-        String userId = String.valueOf(params.get("userId"));
+        String userId = resolveTrustedUser(params.get("userId"));
         String comment = params.get("comment") != null ? String.valueOf(params.get("comment")) : null;
         String signature = params.get("signature") != null ? String.valueOf(params.get("signature")) : null;
         @SuppressWarnings("unchecked")
         Map<String, Object> variables = (Map<String, Object>) params.get("variables");
         
-        flowTaskService.approve(taskId, userId, comment, signature, variables);
+        Long tenantId = resolveTrustedTenant(params.get("tenantId"));
+        String idempotencyKey = optionalText(params.get("idempotencyKey"));
+        String requestDigest = optionalText(params.get("requestDigest"));
+        flowTaskService.approve(taskId, userId, comment, signature, variables,
+                tenantId, idempotencyKey, requestDigest);
         return RespInfo.success("审批通过", null);
     }
 
@@ -133,12 +138,49 @@ public class FlowTaskController {
     @PostMapping("/reject")
     public RespInfo<Void> reject(@RequestBody Map<String, Object> params) {
         String taskId = String.valueOf(params.get("taskId"));
-        String userId = String.valueOf(params.get("userId"));
+        String userId = resolveTrustedUser(params.get("userId"));
         String comment = params.get("comment") != null ? String.valueOf(params.get("comment")) : null;
         String signature = params.get("signature") != null ? String.valueOf(params.get("signature")) : null;
         
-        flowTaskService.reject(taskId, userId, comment, signature);
+        Long tenantId = resolveTrustedTenant(params.get("tenantId"));
+        String idempotencyKey = optionalText(params.get("idempotencyKey"));
+        String requestDigest = optionalText(params.get("requestDigest"));
+        flowTaskService.reject(taskId, userId, comment, signature,
+                tenantId, idempotencyKey, requestDigest);
         return RespInfo.success("已驳回", null);
+    }
+
+    private Long resolveTrustedTenant(Object requestedTenant) {
+        Long sessionTenant = SessionHelper.getTenantId();
+        Long parsedTenant = requestedTenant == null ? null : Long.valueOf(String.valueOf(requestedTenant));
+        if (sessionTenant == null || sessionTenant <= 0) {
+            throw new IllegalArgumentException("FLOW_TASK_TENANT_REQUIRED");
+        }
+        if (parsedTenant != null && !sessionTenant.equals(parsedTenant)) {
+            throw new IllegalArgumentException("FLOW_TASK_TENANT_MISMATCH");
+        }
+        return sessionTenant;
+    }
+
+    private String resolveTrustedUser(Object requestedUser) {
+        Long sessionUserId = SessionHelper.getUserId();
+        if (sessionUserId == null || sessionUserId <= 0) {
+            throw new IllegalArgumentException("FLOW_TASK_ASSIGNEE_REQUIRED");
+        }
+        String requested = optionalText(requestedUser);
+        String trusted = String.valueOf(sessionUserId);
+        if (requested != null && !trusted.equals(requested)) {
+            throw new IllegalArgumentException("FLOW_TASK_ASSIGNEE_MISMATCH");
+        }
+        return trusted;
+    }
+
+    private String optionalText(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? null : text;
     }
 
     /**

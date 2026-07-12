@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.ai.routing.mapper.AiModelRouteTargetMapper">
+  <select id="selectByPolicyId" resultType="com.mdframe.forge.plugin.ai.routing.vo.AiModelRoutePolicyVO$Target">
+    SELECT t.id, t.policy_id, t.model_id, m.model_name, p.provider_name, t.priority, t.status
+    FROM ai_model_route_target t
+    JOIN ai_model m ON m.id = t.model_id AND m.del_flag = '0'
+    JOIN ai_provider p ON p.id = m.provider_id AND p.del_flag = '0'
+    WHERE t.policy_id = #{policyId} AND t.del_flag = '0'
+    ORDER BY t.priority ASC, t.id ASC
+  </select>
+
+  <select id="selectByPolicyIds" resultType="com.mdframe.forge.plugin.ai.routing.vo.AiModelRoutePolicyVO$Target">
+    SELECT t.id, t.policy_id, t.model_id, m.model_name, p.provider_name, t.priority, t.status
+    FROM ai_model_route_target t
+    JOIN ai_model m ON m.id = t.model_id AND m.del_flag = '0'
+    JOIN ai_provider p ON p.id = m.provider_id AND p.del_flag = '0'
+    WHERE t.policy_id IN
+    <foreach collection="policyIds" item="policyId" open="(" separator="," close=")">
+      #{policyId}
+    </foreach>
+      AND t.del_flag = '0'
+    ORDER BY t.policy_id ASC, t.priority ASC, t.id ASC
+  </select>
+
+  <update id="logicallyDeleteByPolicyId">
+    UPDATE ai_model_route_target SET del_flag = '1', update_time = NOW()
+    WHERE policy_id = #{policyId} AND del_flag = '0'
+  </update>
+</mapper>
