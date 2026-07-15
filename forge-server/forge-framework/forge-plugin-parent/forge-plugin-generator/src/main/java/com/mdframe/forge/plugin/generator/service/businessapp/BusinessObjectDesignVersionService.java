@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 业务对象设计版本服务。
@@ -35,6 +37,15 @@ public class BusinessObjectDesignVersionService
         return baseMapper.selectByObjectId(resolveTenantId(), objectId).stream()
                 .map(this::toVO)
                 .toList();
+    }
+
+    public Map<Long, Long> latestPublishedVersionIds(List<Long> objectIds) {
+        if (objectIds == null || objectIds.isEmpty()) {
+            return Map.of();
+        }
+        return baseMapper.selectLatestPublishedVersions(resolveTenantId(), objectIds).stream()
+                .collect(Collectors.toMap(AiBusinessObjectDesignVersion::getObjectId,
+                        AiBusinessObjectDesignVersion::getId, (left, right) -> left));
     }
 
     public BusinessObjectDesignVersionVO detail(Long objectId, Long versionId) {

@@ -43,9 +43,15 @@ public class BusinessObjectDesignerDTO {
 
     private Map<String, Object> designerOptions;
 
-    /** true 表示保存业务对象设计后同步缺失数据表结构。 */
+    /**
+     * @deprecated 保存设计与数据库同步已拆分；该兼容字段不再触发 DDL。
+     */
+    @Deprecated
     private Boolean syncDdl;
 
-    /** 同步表结构二次确认标记。 */
+    /**
+     * @deprecated 请改用独立 database-sync 接口显式确认。
+     */
+    @Deprecated
     private Boolean confirmSyncDdl;
 }

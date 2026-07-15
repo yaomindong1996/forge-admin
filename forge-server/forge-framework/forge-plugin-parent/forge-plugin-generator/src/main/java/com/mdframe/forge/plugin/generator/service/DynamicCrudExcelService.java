@@ -19,7 +19,9 @@ import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.datascope.context.DataScopeContext;
 import com.mdframe.forge.starter.datascope.service.IDataScopeService;
+import com.mdframe.forge.starter.excel.core.ExcelImportTemplateWriter;
 import com.mdframe.forge.starter.excel.model.ExcelColumnConfig;
+import com.mdframe.forge.starter.excel.model.ImportTemplateColumn;
 import com.mdframe.forge.starter.excel.spi.ExcelConfigProvider;
 import com.mdframe.forge.starter.file.core.FileManager;
 import com.mdframe.forge.starter.file.model.FileMetadata;
@@ -135,7 +137,7 @@ public class DynamicCrudExcelService {
         if (columns.isEmpty()) {
             throw new BusinessException("没有可导入的字段");
         }
-        writeWorkbook(response, buildFileName(config, "导入模板"), "导入模板", buildHeaders(columns), List.of());
+        writeImportTemplateWorkbook(response, buildFileName(config, "导入模板"), columns);
     }
 
     public Page<AiCrudExportTask> selectExportTaskPage(String configKey, PageQuery pageQuery) {
@@ -465,6 +467,8 @@ public class DynamicCrudExcelService {
             meta.setDataType(StringUtils.defaultIfBlank(modelDataTypes.get(field), inferDataType(meta.getType())));
             meta.setDictType(resolveDictType(field, node, transConfig));
             meta.setRequired(resolveRequired(node));
+            meta.setExampleValue(getFirstText(node, "exampleValue", "example", "defaultValue"));
+            meta.setDescription(getFirstText(node, "description", "help", "placeholder"));
             columns.add(meta);
         }
         return applyImportColumnConfig(config, columns);
@@ -553,6 +557,8 @@ public class DynamicCrudExcelService {
         target.setDictType(StringUtils.defaultIfBlank(columnConfig.getDictType(), source.getDictType()));
         target.setTargetField(source.getTargetField());
         target.setRequired(columnConfig.getRequired() != null ? columnConfig.getRequired() : source.isRequired());
+        target.setExampleValue(StringUtils.defaultIfBlank(columnConfig.getExampleValue(), source.getExampleValue()));
+        target.setDescription(StringUtils.defaultIfBlank(columnConfig.getValidationMessage(), source.getDescription()));
         return target;
     }
 
@@ -660,6 +666,108 @@ public class DynamicCrudExcelService {
         } catch (IOException e) {
             throw new BusinessException("写入Excel失败: " + e.getMessage());
         }
+    }
+
+    private void writeImportTemplateWorkbook(HttpServletResponse response,
+                                             String fileName,
+                                             List<ExcelColumnMeta> columns) {
+        try {
+            response.setContentType(XLSX_MIME);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
+                    .replaceAll("\\+", "%20");
+            response.setHeader("Content-Disposition", "attachment;filename*=utf-8''" + encodedFileName);
+            ExcelImportTemplateWriter.write(
+                    response.getOutputStream(),
+                    "导入数据",
+                    columns.stream().map(this::toImportTemplateColumn).toList()
+            );
+        } catch (IOException e) {
+            throw new BusinessException("写入导入模板失败: " + e.getMessage());
+        }
+    }
+
+    private ImportTemplateColumn toImportTemplateColumn(ExcelColumnMeta column) {
+        return new ImportTemplateColumn(
+                column.getField(),
+                column.getLabel(),
+                column.isRequired(),
+                resolveImportTemplateExample(column),
+                resolveImportTemplateDescription(column)
+        );
+    }
+
+    private String resolveImportTemplateExample(ExcelColumnMeta column) {
+        if (StringUtils.isNotBlank(column.getExampleValue())) {
+            return column.getExampleValue();
+        }
+        if (StringUtils.isNotBlank(column.getDictType())) {
+            String dictLabel = selectFirstDictLabel(column.getDictType());
+            return StringUtils.defaultIfBlank(dictLabel, "字典选项示例");
+        }
+
+        String dataType = StringUtils.defaultIfBlank(column.getDataType(), "").toLowerCase(Locale.ROOT);
+        String componentType = StringUtils.defaultIfBlank(column.getType(), "").toLowerCase(Locale.ROOT);
+        if ("date".equals(dataType) || "date".equals(componentType)) {
+            return "2026-07-15";
+        }
+        if ("datetime".equals(dataType) || "datetime".equals(componentType)) {
+            return "2026-07-15 09:30:00";
+        }
+        if ("time".equals(dataType) || "time".equals(componentType)) {
+            return "09:30:00";
+        }
+        if (Set.of("int", "tinyint", "bigint", "decimal").contains(dataType)
+                || Set.of("number", "inputnumber", "input-number").contains(componentType)) {
+            return "100";
+        }
+        if (Set.of("switch", "boolean", "checkbox").contains(componentType)) {
+            return "是";
+        }
+        return StringUtils.defaultIfBlank(column.getLabel(), column.getField()) + "示例";
+    }
+
+    private String resolveImportTemplateDescription(ExcelColumnMeta column) {
+        List<String> descriptions = new ArrayList<>();
+        if (StringUtils.isNotBlank(column.getDescription())) {
+            descriptions.add(column.getDescription());
+        }
+        if (StringUtils.isNotBlank(column.getDictType())) {
+            descriptions.add("填写字典标签或字典值，字典类型：" + column.getDictType());
+        }
+
+        String dataType = StringUtils.defaultIfBlank(column.getDataType(), "").toLowerCase(Locale.ROOT);
+        String componentType = StringUtils.defaultIfBlank(column.getType(), "").toLowerCase(Locale.ROOT);
+        if ("date".equals(dataType) || "date".equals(componentType)) {
+            descriptions.add("日期格式：yyyy-MM-dd");
+        } else if ("datetime".equals(dataType) || "datetime".equals(componentType)) {
+            descriptions.add("日期时间格式：yyyy-MM-dd HH:mm:ss");
+        } else if ("time".equals(dataType) || "time".equals(componentType)) {
+            descriptions.add("时间格式：HH:mm:ss");
+        }
+        if (descriptions.isEmpty()) {
+            descriptions.add("按" + StringUtils.defaultIfBlank(column.getLabel(), column.getField()) + "的业务含义填写");
+        }
+        return String.join("；", descriptions);
+    }
+
+    private String selectFirstDictLabel(String dictType) {
+        if (StringUtils.isBlank(dictType)) {
+            return null;
+        }
+        StringBuilder sql = new StringBuilder("""
+                SELECT dict_label
+                FROM sys_dict_data
+                WHERE dict_type = :dictType
+                  AND status = 1
+                """);
+        sql.append(" AND tenant_id = :tenantId");
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("dictType", dictType)
+                .addValue("tenantId", resolveTenantId());
+        sql.append(" ORDER BY dict_sort ASC, id ASC LIMIT 1");
+        List<String> labels = namedJdbcTemplate.queryForList(sql.toString(), params, String.class);
+        return labels.isEmpty() ? null : labels.get(0);
     }
 
     private void writeAsyncWorkbook(Path targetFile,
@@ -1042,6 +1150,8 @@ public class DynamicCrudExcelService {
         private String dictType;
         private String targetField;
         private boolean required;
+        private String exampleValue;
+        private String description;
     }
 
     @Data

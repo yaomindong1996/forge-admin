@@ -77,6 +77,30 @@ public class LowcodeDomainSchema {
 
         /** 前端默认输出根路径，例如 frontend/src/views/crm。 */
         private String frontendBasePath;
+
+        /** 统一业务类名前缀，例如 Biz。 */
+        private String entityPrefix;
+
+        /** 默认剥离的物理表名前缀。 */
+        private List<String> stripTablePrefixes = new ArrayList<>(List.of("sys_", "ai_", "t_", "tb_"));
+
+        private String backendBasePath = "backend/src/main/java";
+
+        private String mapperXmlBasePath = "backend/src/main/resources/mapper";
+
+        private String frontendApiBasePath = "frontend/src/api";
+
+        private Boolean includeBackend = true;
+
+        private Boolean includeFrontend = true;
+
+        private Boolean includeSql = true;
+
+        private Boolean includeMenuSql = true;
+
+        private Boolean includeDictSql = true;
+
+        private Boolean includeExcelSql = true;
     }
 
     @Data

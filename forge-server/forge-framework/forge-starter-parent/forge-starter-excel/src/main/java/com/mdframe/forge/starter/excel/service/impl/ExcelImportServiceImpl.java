@@ -3,11 +3,13 @@ package com.mdframe.forge.starter.excel.service.impl;
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.event.AnalysisEventListener;
+import com.mdframe.forge.starter.excel.core.ExcelImportTemplateWriter;
 import com.mdframe.forge.starter.excel.model.ExcelColumnConfig;
 import com.mdframe.forge.starter.excel.model.ExcelExportMetadata;
 import com.mdframe.forge.starter.excel.model.GenericRowData;
 import com.mdframe.forge.starter.excel.model.ImportErrorRecord;
 import com.mdframe.forge.starter.excel.model.ImportResult;
+import com.mdframe.forge.starter.excel.model.ImportTemplateColumn;
 import com.mdframe.forge.starter.excel.service.ExcelImportService;
 import com.mdframe.forge.starter.excel.spi.ExcelConfigProvider;
 import com.mdframe.forge.starter.excel.spi.ExcelMetadataProvider;
@@ -75,30 +77,13 @@ public class ExcelImportServiceImpl implements ExcelImportService {
             if (columnConfigs.isEmpty()) {
                 throw new RuntimeException("未找到导入列配置：" + configKey);
             }
-            
-            List<List<String>> headers = new ArrayList<>();
-            for (ExcelColumnConfig config : columnConfigs) {
-                headers.add(Collections.singletonList(config.getColumnName()));
-            }
-            
-            List<Map<String, Object>> sampleData = new ArrayList<>();
-            if (metadata != null && Boolean.TRUE.equals(metadata.getIncludeSample())) {
-                Map<String, Object> sampleRow = new LinkedHashMap<>();
-                for (ExcelColumnConfig config : columnConfigs) {
-                    sampleRow.put(config.getColumnName(), config.getExampleValue() != null ? config.getExampleValue() : "");
-                }
-                sampleData.add(sampleRow);
-            }
-            
-            // 5. 写入 Excel
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            EasyExcel.write(outputStream)
-                    .head(headers)
-                    .sheet("模板")
-                    .doWrite(sampleData);
-            
+            List<ImportTemplateColumn> templateColumns = columnConfigs.stream()
+                    .map(this::toImportTemplateColumn)
+                    .toList();
+            byte[] workbook = ExcelImportTemplateWriter.write("导入数据", templateColumns);
+
             log.info("生成导入模板：configKey={}", configKey);
-            return outputStream.toByteArray();
+            return workbook;
             
         } catch (Exception e) {
             log.error("生成导入模板失败：{}", configKey, e);
@@ -197,6 +182,58 @@ public class ExcelImportServiceImpl implements ExcelImportService {
             return false;
         }
         return metadata.getAllowImport() == null || Boolean.TRUE.equals(metadata.getAllowImport());
+    }
+
+    private ImportTemplateColumn toImportTemplateColumn(ExcelColumnConfig config) {
+        return new ImportTemplateColumn(
+                config.getFieldName(),
+                config.getColumnName(),
+                Boolean.TRUE.equals(config.getRequired()),
+                resolveTemplateExample(config),
+                resolveTemplateDescription(config)
+        );
+    }
+
+    private String resolveTemplateExample(ExcelColumnConfig config) {
+        if (config.getExampleValue() != null && !config.getExampleValue().isBlank()) {
+            return config.getExampleValue();
+        }
+        if (config.getDictType() != null && !config.getDictType().isBlank()) {
+            return "字典选项示例";
+        }
+        if (config.getDateFormat() != null && !config.getDateFormat().isBlank()) {
+            return config.getDateFormat().contains("HH") ? "2026-07-15 09:30:00" : "2026-07-15";
+        }
+        if (config.getNumberFormat() != null && !config.getNumberFormat().isBlank()) {
+            return "100";
+        }
+        return normalizeTemplateText(config.getColumnName(), "示例值") + "示例";
+    }
+
+    private String resolveTemplateDescription(ExcelColumnConfig config) {
+        List<String> descriptions = new ArrayList<>();
+        if (config.getDictType() != null && !config.getDictType().isBlank()) {
+            descriptions.add("填写字典标签或字典值，字典类型：" + config.getDictType());
+        }
+        if (config.getDateFormat() != null && !config.getDateFormat().isBlank()) {
+            descriptions.add("日期格式：" + config.getDateFormat());
+        }
+        if (config.getNumberFormat() != null && !config.getNumberFormat().isBlank()) {
+            descriptions.add("数字格式：" + config.getNumberFormat());
+        }
+        if (config.getValidationMessage() != null && !config.getValidationMessage().isBlank()) {
+            descriptions.add(config.getValidationMessage());
+        } else if (config.getValidationRule() != null && !config.getValidationRule().isBlank()) {
+            descriptions.add("需符合字段校验规则");
+        }
+        if (descriptions.isEmpty()) {
+            descriptions.add("按" + normalizeTemplateText(config.getColumnName(), config.getFieldName()) + "的业务含义填写");
+        }
+        return String.join("；", descriptions);
+    }
+
+    private String normalizeTemplateText(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 
     private <T> void mapGenericRowsToPojo(Class<T> clazz,

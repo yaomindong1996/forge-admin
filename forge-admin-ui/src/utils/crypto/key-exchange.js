@@ -237,6 +237,10 @@ export function resetKeyExchange() {
  * @returns {Promise<boolean>} 是否初始化成功
  */
 export async function initKeyExchange(axios, sessionId) {
+  if (!cryptoConfig.enabled || !cryptoConfig.enableApiCrypto) {
+    console.warn('[Crypto] 全局或 API 加解密已关闭，跳过密钥交换')
+    return true
+  }
   if (!cryptoConfig.enableDynamicKey) {
     console.warn('[Crypto] 动态密钥未启用，使用静态密钥')
     return true
@@ -252,6 +256,9 @@ export async function initKeyExchange(axios, sessionId) {
  * @returns {Promise<string>} 加密后的密码
  */
 export async function encryptPassword(password, axios) {
+  if (!cryptoConfig.enabled) {
+    return password
+  }
   try {
     // 获取 RSA 公钥
     const publicKey = await fetchPublicKey(axios)

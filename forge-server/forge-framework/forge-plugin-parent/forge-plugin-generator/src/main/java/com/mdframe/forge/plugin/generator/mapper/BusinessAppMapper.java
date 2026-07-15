@@ -43,7 +43,19 @@ public interface BusinessAppMapper extends BaseMapper<AiBusinessApp> {
     List<AiBusinessApp> selectAppsBySuiteCodes(@Param("tenantId") Long tenantId,
                                                @Param("suiteCodes") List<String> suiteCodes);
 
+    List<AiBusinessApp> selectByApplicationId(@Param("tenantId") Long tenantId,
+                                              @Param("applicationId") Long applicationId);
+
     Long countByAppCode(@Param("tenantId") Long tenantId,
                         @Param("appCode") String appCode,
                         @Param("excludeId") Long excludeId);
+
+    Long countByApplicationId(@Param("tenantId") Long tenantId,
+                              @Param("applicationId") Long applicationId);
+
+    Long countActiveByApplicationId(@Param("tenantId") Long tenantId,
+                                    @Param("applicationId") Long applicationId);
+
+    int detachDisabledByApplicationId(@Param("tenantId") Long tenantId,
+                                      @Param("applicationId") Long applicationId);
 }

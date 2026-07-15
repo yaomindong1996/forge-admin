@@ -742,15 +742,18 @@ import {
   getSecurityConfig,
   getWatermarkConfig,
   refreshConfig,
+  updateCryptoConfig as saveCryptoConfig,
   updateAuthConfig,
   updateConfigByGroup,
-  updateCryptoConfig,
   updateLogConfig,
   updateLoginConfig,
   updateSecurityConfig,
   updateWatermarkConfig,
 } from '@/api/config'
 import { DictSelect } from '@/components'
+import { applyRuntimeCryptoConfig } from '@/utils/crypto/crypto-config'
+import { initKeyExchange } from '@/utils/crypto/key-exchange'
+import { request } from '@/utils/http'
 
 const activeTab = ref('login')
 const saveAllLoading = ref(false)
@@ -894,7 +897,7 @@ async function saveConfig(groupCode) {
         res = await updateSecurityConfig(configData)
         break
       case 'crypto':
-        res = await updateCryptoConfig(configData)
+        res = await saveCryptoConfig(configData)
         break
       case 'auth':
         res = await updateAuthConfig(configData)
@@ -906,6 +909,14 @@ async function saveConfig(groupCode) {
         res = await updateConfigByGroup(groupCode, configData)
     }
     if (res.code === 200) {
+      if (groupCode === 'crypto') {
+        const runtimeConfig = applyRuntimeCryptoConfig(configData)
+        if (runtimeConfig.enabled && runtimeConfig.enableApiCrypto) {
+          const exchanged = await initKeyExchange(request)
+          if (!exchanged)
+            window.$message.warning('配置已保存，但安全会话初始化失败，请刷新页面后重试')
+        }
+      }
       window.$message.success(`${getGroupName(groupCode)}配置保存成功`)
     }
     else {

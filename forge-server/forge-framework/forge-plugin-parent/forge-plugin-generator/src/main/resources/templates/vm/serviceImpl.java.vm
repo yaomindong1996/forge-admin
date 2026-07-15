@@ -1,7 +1,6 @@
 package ${packageName}.${moduleName}.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import ${packageName}.${moduleName}.dto.${className}DTO;
@@ -18,11 +17,18 @@ import ${packageName}.${moduleName}.mapper.${className}Mapper;
 import ${packageName}.${moduleName}.mapper.${table.className}Mapper;
 #end
 import ${packageName}.${moduleName}.service.I${className}Service;
+#if(${enableServiceExtensions})
+import ${packageName}.${moduleName}.service.extension.${className}ServiceExtension;
+#end
 import com.mdframe.forge.starter.core.domain.PageQuery;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.trans.annotation.DictTranslate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+#if(${enableServiceExtensions})
+import org.springframework.beans.factory.ObjectProvider;
+#end
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +37,9 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+#if(${enableServiceExtensions})
+import java.util.function.Function;
+#end
 
 /**
  * ${functionName}Service实现类
@@ -38,7 +47,7 @@ import java.util.Map;
  * @author ${author}
  * @date ${datetime}
  */
-@Service
+@Service("${classname}Service")
 @RequiredArgsConstructor
 @Slf4j
 public class ${className}ServiceImpl extends ServiceImpl<${className}Mapper, ${className}> implements I${className}Service {
@@ -47,49 +56,69 @@ public class ${className}ServiceImpl extends ServiceImpl<${className}Mapper, ${c
 #foreach($table in $injectedRelatedTables)
     private final ${table.className}Mapper ${table.mapperVarName};
 #end
+#if(${enableServiceExtensions})
+    private final ObjectProvider<${className}ServiceExtension> extensionProvider;
+#end
 
     @Override
     @DictTranslate
     public Page<${className}> select${className}Page(PageQuery pageQuery, ${className}Query query) {
+#if(${enableServiceExtensions})
+        return invokeExtensions(
+                extension -> next -> () -> extension.aroundPage(pageQuery, query, next),
+                () -> {
+#end
         log.info("分页查询参数:{}, 查询条件:{}", pageQuery, query);
-        LambdaQueryWrapper<${className}> wrapper = buildQueryWrapper(query);
-        return ${classname}Mapper.selectPage(pageQuery.toPage(), wrapper);
+        return ${classname}Mapper.selectGeneratedPage(pageQuery.toPage(), query);
+#if(${enableServiceExtensions})
+                });
+#end
     }
 
     @Override
     @DictTranslate
     public List<${className}> select${className}List(${className}Query query) {
+#if(${enableServiceExtensions})
+        return invokeExtensions(
+                extension -> next -> () -> extension.aroundList(query, next),
+                () -> {
+#end
         log.info("查询参数:{}", query);
-        LambdaQueryWrapper<${className}> wrapper = buildQueryWrapper(query);
-        return ${classname}Mapper.selectList(wrapper);
+        return ${classname}Mapper.selectGeneratedList(query);
+#if(${enableServiceExtensions})
+                });
+#end
     }
 
 #if(${hasTreeConfig})
     @Override
     @DictTranslate
     public List<${tree.className}> select${tree.className}Tree(String loadMode, String parentValue) {
-        LambdaQueryWrapper<${tree.className}> wrapper = new LambdaQueryWrapper<>();
+#if(${enableServiceExtensions})
+        return invokeExtensions(
+                extension -> next -> () -> extension.aroundTree(loadMode, parentValue, next),
+                () -> {
+#end
+        List<${tree.className}> rows = ${tree.mapperVarName}.selectTreeRows(loadMode, parentValue);
         if ("lazy".equalsIgnoreCase(loadMode)) {
-            if (StringUtils.isNotBlank(parentValue)) {
-                wrapper.eq(${tree.className}::get${tree.parentFieldCap}, parentValue);
-            } else {
-                wrapper.and(item -> item.isNull(${tree.className}::get${tree.parentFieldCap})
-                        .or().eq(${tree.className}::get${tree.parentFieldCap}, 0)
-                        .or().eq(${tree.className}::get${tree.parentFieldCap}, "0"));
-            }
-            List<${tree.className}> rows = ${tree.mapperVarName}.selectList(wrapper);
-            mark${tree.className}LeafState(rows);
             return rows;
         }
-        List<${tree.className}> rows = ${tree.mapperVarName}.selectList(wrapper);
         return build${tree.className}Tree(rows);
+#if(${enableServiceExtensions})
+                });
+#end
     }
 
 #end
     @Override
 #if(${isMasterDetailLayout})
     @DictTranslate
-    public Map<String, Object> select${className}ById(Long ${pkColumn.javaField}) {
+    public Map<String, Object> select${className}ById(${pkColumn.javaType} ${pkColumn.javaField}) {
+#if(${enableServiceExtensions})
+        return invokeExtensions(
+                extension -> next -> () -> extension.aroundDetail(${pkColumn.javaField}, next),
+                () -> {
+#end
         ${className} main = ${classname}Mapper.selectById(${pkColumn.javaField});
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("main", main);
@@ -100,16 +129,23 @@ public class ${className}ServiceImpl extends ServiceImpl<${className}Mapper, ${c
         }
 #foreach($child in $masterDetailChildren)
         Object ${child.variableName}RelationValue = resolve${child.className}RelationValue(main, ${pkColumn.javaField});
-        LambdaQueryWrapper<${child.className}> ${child.variableName}Wrapper = new LambdaQueryWrapper<>();
-        ${child.variableName}Wrapper.eq(${child.className}::get${child.childFkFieldCap}, ${child.variableName}RelationValue);
-        children.put("${child.childKey}", ${child.mapperVarName}.selectList(${child.variableName}Wrapper));
+        children.put("${child.childKey}", ${classname}Mapper.select${child.className}Rows(${child.variableName}RelationValue));
 #end
         result.put("children", children);
         return result;
+#if(${enableServiceExtensions})
+                });
+#end
     }
 #else
-    public ${className} select${className}ById(Long ${pkColumn.javaField}) {
+    public ${className} select${className}ById(${pkColumn.javaType} ${pkColumn.javaField}) {
+#if(${enableServiceExtensions})
+        return invokeExtensions(
+                extension -> next -> () -> extension.aroundDetail(${pkColumn.javaField}, next),
+                () -> ${classname}Mapper.selectById(${pkColumn.javaField}));
+#else
         return ${classname}Mapper.selectById(${pkColumn.javaField});
+#end
     }
 #end
 
@@ -117,6 +153,11 @@ public class ${className}ServiceImpl extends ServiceImpl<${className}Mapper, ${c
     @Transactional(rollbackFor = Exception.class)
 #if(${isMasterDetailLayout})
     public boolean insert${className}(${className}MasterDetailDTO dto) {
+#if(${enableServiceExtensions})
+        return invokeExtensions(
+                extension -> next -> () -> extension.aroundInsert(dto, next),
+                () -> {
+#end
         ${className}DTO mainDto = dto == null || dto.getMain() == null ? new ${className}DTO() : dto.getMain();
         ${className} ${classname} = new ${className}();
         BeanUtil.copyProperties(mainDto, ${classname});
@@ -128,12 +169,23 @@ public class ${className}ServiceImpl extends ServiceImpl<${className}Mapper, ${c
         save${child.className}Rows(resolveChildRows(dto, "${child.childKey}"), resolve${child.className}RelationValue(${classname}, ${classname}.get${pkColumn.javaField.substring(0,1).toUpperCase()}${pkColumn.javaField.substring(1)}()));
 #end
         return true;
+#if(${enableServiceExtensions})
+                });
+#end
     }
 #else
     public boolean insert${className}(${className}DTO dto) {
+#if(${enableServiceExtensions})
+        return invokeExtensions(
+                extension -> next -> () -> extension.aroundInsert(dto, next),
+                () -> {
+#end
         ${className} ${classname} = new ${className}();
         BeanUtil.copyProperties(dto, ${classname});
         return ${classname}Mapper.insert(${classname}) > 0;
+#if(${enableServiceExtensions})
+                });
+#end
     }
 #end
 
@@ -141,6 +193,11 @@ public class ${className}ServiceImpl extends ServiceImpl<${className}Mapper, ${c
     @Transactional(rollbackFor = Exception.class)
 #if(${isMasterDetailLayout})
     public boolean update${className}(${className}MasterDetailDTO dto) {
+#if(${enableServiceExtensions})
+        return invokeExtensions(
+                extension -> next -> () -> extension.aroundUpdate(dto, next),
+                () -> {
+#end
         if (dto == null || dto.getMain() == null) {
             return false;
         }
@@ -161,18 +218,34 @@ public class ${className}ServiceImpl extends ServiceImpl<${className}Mapper, ${c
         }
 #end
         return updated || childrenChanged;
+#if(${enableServiceExtensions})
+                });
+#end
     }
 #else
     public boolean update${className}(${className}DTO dto) {
+#if(${enableServiceExtensions})
+        return invokeExtensions(
+                extension -> next -> () -> extension.aroundUpdate(dto, next),
+                () -> {
+#end
         ${className} ${classname} = new ${className}();
         BeanUtil.copyProperties(dto, ${classname});
         return ${classname}Mapper.updateById(${classname}) > 0;
+#if(${enableServiceExtensions})
+                });
+#end
     }
 #end
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean delete${className}ById(Long ${pkColumn.javaField}) {
+    public boolean delete${className}ById(${pkColumn.javaType} ${pkColumn.javaField}) {
+#if(${enableServiceExtensions})
+        return invokeExtensions(
+                extension -> next -> () -> extension.aroundDelete(${pkColumn.javaField}, next),
+                () -> {
+#end
 #if(${isMasterDetailLayout})
         ${className} ${classname} = ${classname}Mapper.selectById(${pkColumn.javaField});
         if (${classname} != null) {
@@ -182,44 +255,80 @@ public class ${className}ServiceImpl extends ServiceImpl<${className}Mapper, ${c
         }
 #end
         return ${classname}Mapper.deleteById(${pkColumn.javaField}) > 0;
+#if(${enableServiceExtensions})
+                });
+#end
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean delete${className}ByIds(Long[] ${pkColumn.javaField}s) {
+    public boolean delete${className}ByIds(${pkColumn.javaType}[] ${pkColumn.javaField}s) {
+#if(${enableServiceExtensions})
+        return invokeExtensions(
+                extension -> next -> () -> extension.aroundBatchDelete(${pkColumn.javaField}s, next),
+                () -> {
+#end
 #if(${isMasterDetailLayout})
         if (${pkColumn.javaField}s == null || ${pkColumn.javaField}s.length == 0) {
             return false;
         }
         boolean result = true;
-        for (Long ${pkColumn.javaField} : ${pkColumn.javaField}s) {
+        for (${pkColumn.javaType} ${pkColumn.javaField} : ${pkColumn.javaField}s) {
             result = delete${className}ById(${pkColumn.javaField}) && result;
         }
         return result;
 #else
         return ${classname}Mapper.deleteBatchIds(Arrays.asList(${pkColumn.javaField}s)) > 0;
 #end
+#if(${enableServiceExtensions})
+                });
+#end
     }
 
-    /**
-     * 构建查询条件
-     */
-    private LambdaQueryWrapper<${className}> buildQueryWrapper(${className}Query query) {
-        LambdaQueryWrapper<${className}> wrapper = new LambdaQueryWrapper<>();
-        if (query == null) {
-            return wrapper;
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean import${className}(List<${className}DTO> rows) {
+#if(${enableServiceExtensions})
+        return invokeExtensions(
+                extension -> next -> () -> extension.aroundImport(rows, next),
+                () -> {
+#end
+        if (rows == null || rows.isEmpty()) {
+            return true;
         }
-#foreach($column in $columns)
-#if($column.isQuery == 1)
-#if($column.queryType == 'EQ')
-        wrapper.eq(query.get${column.javaField.substring(0,1).toUpperCase()}${column.javaField.substring(1)}() != null, ${className}::get${column.javaField.substring(0,1).toUpperCase()}${column.javaField.substring(1)}, query.get${column.javaField.substring(0,1).toUpperCase()}${column.javaField.substring(1)}());
-#elseif($column.queryType == 'LIKE')
-        wrapper.like(StringUtils.isNotBlank(query.get${column.javaField.substring(0,1).toUpperCase()}${column.javaField.substring(1)}()), ${className}::get${column.javaField.substring(0,1).toUpperCase()}${column.javaField.substring(1)}, query.get${column.javaField.substring(0,1).toUpperCase()}${column.javaField.substring(1)}());
+        for (${className}DTO row : rows) {
+#if(${isMasterDetailLayout})
+            ${className}MasterDetailDTO aggregate = new ${className}MasterDetailDTO();
+            aggregate.setMain(row);
+            if (!insert${className}(aggregate)) {
+#else
+            if (!insert${className}(row)) {
 #end
+                throw new BusinessException("导入${functionName}失败");
+            }
+        }
+        return true;
+#if(${enableServiceExtensions})
+                });
 #end
-#end
-        return wrapper;
     }
+
+#if(${enableServiceExtensions})
+    private <T> T invokeExtensions(
+            Function<${className}ServiceExtension,
+                    Function<${className}ServiceExtension.Operation<T>,
+                            ${className}ServiceExtension.Operation<T>>> wrapperFactory,
+            ${className}ServiceExtension.Operation<T> terminal) {
+        ${className}ServiceExtension.Operation<T> chain = terminal;
+        List<${className}ServiceExtension> extensions = extensionProvider.orderedStream().toList();
+        for (int index = extensions.size() - 1; index >= 0; index--) {
+            ${className}ServiceExtension.Operation<T> next = chain;
+            chain = wrapperFactory.apply(extensions.get(index)).apply(next);
+        }
+        return chain.proceed();
+    }
+
+#end
 
 #if(${hasTreeConfig})
     private List<${tree.className}> build${tree.className}Tree(List<${tree.className}> rows) {
@@ -246,14 +355,6 @@ public class ${className}ServiceImpl extends ServiceImpl<${className}Mapper, ${c
         }
         normalize${tree.className}TreeLeafState(roots);
         return roots;
-    }
-
-    private void mark${tree.className}LeafState(List<${tree.className}> rows) {
-        for (${tree.className} row : rows) {
-            LambdaQueryWrapper<${tree.className}> childWrapper = new LambdaQueryWrapper<>();
-            childWrapper.eq(${tree.className}::get${tree.parentFieldCap}, row.get${tree.keyFieldCap}());
-            row.setIsLeaf(${tree.mapperVarName}.selectCount(childWrapper) <= 0);
-        }
     }
 
     private void normalize${tree.className}TreeLeafState(List<${tree.className}> nodes) {
@@ -299,9 +400,7 @@ public class ${className}ServiceImpl extends ServiceImpl<${className}Mapper, ${c
         if (relationValue == null) {
             return;
         }
-        LambdaQueryWrapper<${child.className}> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(${child.className}::get${child.childFkFieldCap}, relationValue);
-        ${child.mapperVarName}.delete(wrapper);
+        ${classname}Mapper.clear${child.className}Rows(relationValue);
     }
 
     private void save${child.className}Rows(List<Map<String, Object>> rows, Object relationValue) {

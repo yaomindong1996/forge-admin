@@ -1,7 +1,6 @@
 package com.mdframe.forge.plugin.generator.service.businessapp;
 
 import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.mdframe.forge.plugin.generator.constant.BusinessAppMode;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApp;
@@ -9,7 +8,7 @@ import com.mdframe.forge.plugin.generator.domain.entity.AiCrudConfig;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeCodegenRequest;
 import com.mdframe.forge.plugin.generator.service.AiCrudCodegenService;
 import com.mdframe.forge.plugin.generator.service.AiCrudConfigService;
-import com.mdframe.forge.plugin.generator.service.lowcode.LowcodeCodegenService;
+import com.mdframe.forge.plugin.generator.util.LowcodeCodegenOptionUtils;
 import com.mdframe.forge.plugin.generator.vo.lowcode.LowcodeCodePreviewVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +30,8 @@ public class BusinessAppCodegenService {
 
     private final BusinessAppService appService;
     private final AiCrudConfigService crudConfigService;
-    private final LowcodeCodegenService lowcodeCodegenService;
     private final AiCrudCodegenService codegenService;
+    private final BusinessCodegenConfigAssembler configAssembler;
 
     public Map<String, Object> getOptions(Long appId) {
         AiBusinessApp app = requireCodeDownloadApp(appId);
@@ -53,7 +52,7 @@ public class BusinessAppCodegenService {
         AiBusinessApp app = requireCodeDownloadApp(appId);
         AiCrudConfig config = prepareBusinessCodegenConfig(app, request);
         Map<String, String> files = codegenService.generateFiles(config);
-        ensureNoGenericRuntimeApi(files);
+        configAssembler.assertNoGenericRuntimeApi(files);
 
         LowcodeCodePreviewVO vo = new LowcodeCodePreviewVO();
         vo.setAppId(app.getId());
@@ -69,14 +68,14 @@ public class BusinessAppCodegenService {
         AiBusinessApp app = requireCodeDownloadApp(appId);
         AiCrudConfig config = prepareBusinessCodegenConfig(app, request);
         Map<String, String> files = codegenService.generateFiles(config);
-        ensureNoGenericRuntimeApi(files);
+        configAssembler.assertNoGenericRuntimeApi(files);
         return codegenService.toZip(files);
     }
 
     public String resolveDownloadFilename(Long appId) {
         AiBusinessApp app = requireCodeDownloadApp(appId);
         String name = StringUtils.firstNonBlank(app.getAppCode(), app.getConfigKey(), String.valueOf(app.getId()));
-        return toPathSegment(name).replace("-", "_") + "-code.zip";
+        return configAssembler.toPathSegment(name).replace("-", "_") + "-code.zip";
     }
 
     private AiBusinessApp requireCodeDownloadApp(Long appId) {
@@ -105,31 +104,11 @@ public class BusinessAppCodegenService {
         }
         JSONObject appOptions = readOptions(app.getOptions());
         JSONObject appCodegen = buildCodegenOptions(app, appOptions, request);
-        JSONObject configOptions = readOptions(config.getOptions());
-        configOptions.put("codegen", appCodegen);
-        mirrorCodegenOptions(configOptions, appCodegen);
-        config.setOptions(writeOptions(configOptions));
-
-        AiCrudConfig prepared = lowcodeCodegenService.prepareConfigForCodegen(config, request);
-        applyBusinessApiConfig(prepared, app, appCodegen);
-        return prepared;
-    }
-
-    private void applyBusinessApiConfig(AiCrudConfig config, AiBusinessApp app, JSONObject codegen) {
-        String apiBase = normalizeBusinessApiBase(StringUtils.firstNonBlank(
-                codegen.getString("businessApiBase"),
+        String apiBase = configAssembler.normalizeBusinessApiBase(StringUtils.firstNonBlank(
+                appCodegen.getString("businessApiBase"),
                 defaultBusinessApiBase(app)
         ));
-        config.setApiConfig(buildBusinessApiConfig(apiBase).toJSONString());
-
-        JSONObject options = readOptions(config.getOptions());
-        JSONObject mergedCodegen = readCodegen(options);
-        mergedCodegen.putAll(codegen);
-        mergedCodegen.put("businessApiBase", apiBase);
-        options.put("codegen", mergedCodegen);
-        mirrorCodegenOptions(options, mergedCodegen);
-        rewriteGenericRuntimeLinks(options, apiBase, config.getConfigKey());
-        config.setOptions(writeOptions(options));
+        return configAssembler.prepare(config, request, appCodegen, apiBase);
     }
 
     private JSONObject buildCodegenOptions(AiBusinessApp app, JSONObject appOptions, LowcodeCodegenRequest request) {
@@ -148,7 +127,7 @@ public class BusinessAppCodegenService {
                 request == null ? null : request.getBusinessApiBase(),
                 existing.getString("businessApiBase"),
                 defaultBusinessApiBase(app));
-        codegen.put("businessApiBase", normalizeBusinessApiBase(apiBase));
+        codegen.put("businessApiBase", configAssembler.normalizeBusinessApiBase(apiBase));
 
         putIfNotBlank(codegen, "groupId", StringUtils.firstNonBlank(
                 request == null ? null : request.getGroupId(),
@@ -164,69 +143,43 @@ public class BusinessAppCodegenService {
         putIfNotBlank(codegen, "author", StringUtils.firstNonBlank(
                 request == null ? null : request.getAuthor(),
                 existing.getString("author")));
-        putIfNotBlank(codegen, "frontendBasePath", StringUtils.firstNonBlank(
+        String requestedEntityPrefix = request == null ? null : request.getEntityPrefix();
+        codegen.put("entityPrefix", LowcodeCodegenOptionUtils.normalizeEntityPrefix(
+                requestedEntityPrefix != null ? requestedEntityPrefix : existing.getString("entityPrefix")));
+        codegen.put("stripTablePrefixes", LowcodeCodegenOptionUtils.resolveStripTablePrefixes(
+                request == null ? null : request.getStripTablePrefixes(),
+                existing.get("stripTablePrefixes"), LowcodeCodegenOptionUtils.DEFAULT_STRIP_TABLE_PREFIXES));
+        codegen.put("backendBasePath", LowcodeCodegenOptionUtils.normalizeOutputPath(StringUtils.firstNonBlank(
+                        request == null ? null : request.getBackendBasePath(), existing.getString("backendBasePath")),
+                LowcodeCodegenOptionUtils.DEFAULT_BACKEND_BASE_PATH, "后端 Java 输出路径"));
+        codegen.put("mapperXmlBasePath", LowcodeCodegenOptionUtils.normalizeOutputPath(StringUtils.firstNonBlank(
+                        request == null ? null : request.getMapperXmlBasePath(), existing.getString("mapperXmlBasePath")),
+                LowcodeCodegenOptionUtils.DEFAULT_MAPPER_XML_BASE_PATH, "Mapper XML 输出路径"));
+        codegen.put("frontendBasePath", LowcodeCodegenOptionUtils.normalizeOutputPath(StringUtils.firstNonBlank(
                 request == null ? null : request.getFrontendBasePath(),
-                existing.getString("frontendBasePath")));
+                existing.getString("frontendBasePath")),
+                LowcodeCodegenOptionUtils.DEFAULT_FRONTEND_BASE_PATH, "前端页面输出路径"));
+        codegen.put("frontendApiBasePath", LowcodeCodegenOptionUtils.normalizeOutputPath(StringUtils.firstNonBlank(
+                        request == null ? null : request.getFrontendApiBasePath(), existing.getString("frontendApiBasePath")),
+                LowcodeCodegenOptionUtils.DEFAULT_FRONTEND_API_BASE_PATH, "前端 API 输出路径"));
+        codegen.put("includeBackend", resolveBoolean(request == null ? null : request.getIncludeBackend(),
+                existing.get("includeBackend"), true));
+        codegen.put("includeFrontend", resolveBoolean(request == null ? null : request.getIncludeFrontend(),
+                existing.get("includeFrontend"), true));
         codegen.put("includeSql", resolveBoolean(request == null ? null : request.getIncludeSql(),
                 existing.get("includeSql"), true));
         codegen.put("includeMenuSql", resolveBoolean(request == null ? null : request.getIncludeMenuSql(),
                 existing.get("includeMenuSql"), true));
         codegen.put("includeDictSql", resolveBoolean(request == null ? null : request.getIncludeDictSql(),
                 existing.get("includeDictSql"), true));
+        codegen.put("includeExcelSql", resolveBoolean(request == null ? null : request.getIncludeExcelSql(),
+                existing.get("includeExcelSql"), true));
         return codegen;
     }
 
-    private JSONObject buildBusinessApiConfig(String apiBase) {
-        JSONObject apiConfig = new JSONObject();
-        apiConfig.put("list", "get@" + apiBase + "/page");
-        apiConfig.put("detail", "post@" + apiBase + "/getById");
-        apiConfig.put("add", "post@" + apiBase + "/add");
-        apiConfig.put("create", "post@" + apiBase + "/add");
-        apiConfig.put("update", "post@" + apiBase + "/edit");
-        apiConfig.put("delete", "post@" + apiBase + "/remove/:id");
-        apiConfig.put("importTemplate", "get@" + apiBase + "/import-template");
-        apiConfig.put("import", "post@" + apiBase + "/import");
-        apiConfig.put("export", "post@" + apiBase + "/export");
-        return apiConfig;
-    }
-
     private String defaultBusinessApiBase(AiBusinessApp app) {
-        return "/" + toPathSegment(app.getSuiteCode()) + "/" + toPathSegment(app.getObjectCode());
-    }
-
-    private String normalizeBusinessApiBase(String value) {
-        String apiBase = StringUtils.trimToEmpty(value).replace("\\", "/");
-        if (StringUtils.isBlank(apiBase)) {
-            throw new BusinessException("业务接口前缀不能为空");
-        }
-        if (!apiBase.startsWith("/")) {
-            apiBase = "/" + apiBase;
-        }
-        apiBase = apiBase.replaceAll("/{2,}", "/").replaceAll("/+$", "");
-        if (StringUtils.isBlank(apiBase) || "/".equals(apiBase)) {
-            throw new BusinessException("业务接口前缀不能为空");
-        }
-        String lower = apiBase.toLowerCase(Locale.ROOT);
-        if (lower.startsWith("/ai/crud/")
-                || lower.startsWith("/ai/crud-config")
-                || lower.startsWith("/ai/lowcode/")
-                || lower.startsWith("/rest/")) {
-            throw new BusinessException("下载代码模式不能使用平台通用运行接口");
-        }
-        if (lower.contains("{configkey}") || lower.contains("crud")) {
-            throw new BusinessException("业务接口前缀不能包含旧配置标识");
-        }
-        return apiBase;
-    }
-
-    private String toPathSegment(String value) {
-        String text = StringUtils.defaultString(value, "app").trim();
-        text = text.replaceAll("([a-z0-9])([A-Z])", "$1-$2");
-        text = text.replace('_', '-');
-        text = text.replaceAll("[^A-Za-z0-9\\-]+", "-");
-        text = text.replaceAll("-{2,}", "-").replaceAll("^-|-$", "");
-        text = StringUtils.defaultIfBlank(text, "app");
-        return text.toLowerCase(Locale.ROOT);
+        return "/" + configAssembler.toPathSegment(app.getSuiteCode())
+                + "/" + configAssembler.toPathSegment(app.getObjectCode());
     }
 
     private String resolveModuleName(String apiBase) {
@@ -237,66 +190,6 @@ public class BusinessAppCodegenService {
             }
         }
         return "app";
-    }
-
-    private void mirrorCodegenOptions(JSONObject options, JSONObject codegen) {
-        if (codegen == null) {
-            return;
-        }
-        copyIfPresent(options, codegen, "domainPackage", "packageName");
-        copyIfPresent(options, codegen, "moduleName", "moduleName");
-        copyIfPresent(options, codegen, "author", "author");
-        copyIfPresent(options, codegen, "frontendBasePath", "frontendBasePath");
-        copyIfPresent(options, codegen, "includeSql", "includeSql");
-        copyIfPresent(options, codegen, "includeMenuSql", "includeMenuSql");
-        copyIfPresent(options, codegen, "includeDictSql", "includeDictSql");
-    }
-
-    private void copyIfPresent(JSONObject target, JSONObject source, String sourceKey, String targetKey) {
-        Object value = source.get(sourceKey);
-        if (value != null && !(value instanceof String text && StringUtils.isBlank(text))) {
-            target.put(targetKey, value);
-        }
-    }
-
-    private void rewriteGenericRuntimeLinks(Object value, String apiBase, String configKey) {
-        if (value instanceof JSONObject object) {
-            for (String key : object.keySet()) {
-                Object child = object.get(key);
-                if (child instanceof String text) {
-                    object.put(key, rewriteGenericRuntimeText(text, apiBase, configKey));
-                } else {
-                    rewriteGenericRuntimeLinks(child, apiBase, configKey);
-                }
-            }
-        } else if (value instanceof JSONArray array) {
-            for (int i = 0; i < array.size(); i++) {
-                Object child = array.get(i);
-                if (child instanceof String text) {
-                    array.set(i, rewriteGenericRuntimeText(text, apiBase, configKey));
-                } else {
-                    rewriteGenericRuntimeLinks(child, apiBase, configKey);
-                }
-            }
-        }
-    }
-
-    private String rewriteGenericRuntimeText(String text, String apiBase, String configKey) {
-        String result = text;
-        if (StringUtils.isNotBlank(configKey)) {
-            result = result.replace("/ai/crud/" + configKey, apiBase);
-            result = result.replace("/ai/crud-page/" + configKey, apiBase);
-        }
-        return result.replace("/ai/crud/", apiBase + "/");
-    }
-
-    private void ensureNoGenericRuntimeApi(Map<String, String> files) {
-        for (Map.Entry<String, String> entry : files.entrySet()) {
-            String content = entry.getValue();
-            if (StringUtils.contains(content, "/ai/crud/")) {
-                throw new BusinessException("功能代码仍包含平台通用运行接口，请检查代码包设置: " + entry.getKey());
-            }
-        }
     }
 
     private JSONObject readOptions(String options) {

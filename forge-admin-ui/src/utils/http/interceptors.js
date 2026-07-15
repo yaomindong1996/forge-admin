@@ -521,7 +521,7 @@ async function reqResolve(config, axiosInstance) {
       Object.assign(config.headers, resolvePageAuditHeaders())
 
     // 添加防重放参数
-    const enableReplay = cryptoConfig?.enableReplay !== false
+    const enableReplay = cryptoConfig.enabled !== false && cryptoConfig?.enableReplay !== false
     if (enableReplay && config.replay !== false) {
       const url = config.url || ''
       const path = url.split('?')[0]

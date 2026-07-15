@@ -23,7 +23,7 @@ public class AiBusinessBinding extends TenantEntity {
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
-    /** SUITE/OBJECT/APP */
+    /** SUITE/OBJECT/APPLICATION/APP，APP 仅表示兼容访问入口。 */
     private String targetType;
 
     private Long targetId;

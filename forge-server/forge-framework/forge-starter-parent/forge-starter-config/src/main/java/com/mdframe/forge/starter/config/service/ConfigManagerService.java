@@ -25,6 +25,7 @@ import java.util.Map;
 public class ConfigManagerService {
 
     private final ISysConfigGroupService sysConfigGroupService;
+    private final ConfigSyncService configSyncService;
     
     @Autowired
     private ObjectMapper objectMapper;
@@ -110,7 +111,8 @@ public class ConfigManagerService {
      * 保存加解密配置
      */
     public boolean saveCryptoConfig(CryptoProperties config) {
-        return saveConfigByGroup(config, "crypto");
+        boolean saved = saveConfigByGroup(config, "crypto");
+        return saved && configSyncService.syncConfigGroup("crypto");
     }
 
     /**

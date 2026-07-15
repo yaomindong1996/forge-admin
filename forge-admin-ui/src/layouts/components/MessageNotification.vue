@@ -87,7 +87,7 @@
 
               <div class="message-card-actions" @click.stop>
                 <NButton
-                  v-if="isApprovalMessage(msg)"
+                  v-if="isPendingApprovalMessage(msg)"
                   type="primary"
                   size="small"
                   class="approval-button"
@@ -135,6 +135,10 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import messageApi from '@/api/message'
 import { useAuthStore } from '@/store'
+import {
+  isFlowApprovalMessage,
+  isPendingFlowApprovalMessage,
+} from './message-notification-utils'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -178,7 +182,11 @@ const filteredMessages = computed(() => {
 })
 
 function isApprovalMessage(msg) {
-  return msg?.bizType === 'FLOW_TODO'
+  return isFlowApprovalMessage(msg)
+}
+
+function isPendingApprovalMessage(msg) {
+  return isPendingFlowApprovalMessage(msg)
 }
 
 function getMessageCategory(msg) {
@@ -284,8 +292,13 @@ function openPanel() {
 }
 
 async function handleMessageClick(msg) {
-  if (isApprovalMessage(msg)) {
+  if (isPendingApprovalMessage(msg)) {
     await openApproval(msg)
+    return
+  }
+  if (isApprovalMessage(msg)) {
+    showPanel.value = false
+    router.push('/flow/done')
     return
   }
   await markRead(msg, false)
@@ -300,6 +313,11 @@ async function handleMessageClick(msg) {
 }
 
 async function openApproval(msg) {
+  if (!isPendingApprovalMessage(msg)) {
+    showPanel.value = false
+    router.push('/flow/done')
+    return
+  }
   await markRead(msg, false)
   const taskId = msg.bizKey
   showPanel.value = false

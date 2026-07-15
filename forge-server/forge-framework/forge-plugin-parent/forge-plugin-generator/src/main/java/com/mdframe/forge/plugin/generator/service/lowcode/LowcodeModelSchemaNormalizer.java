@@ -103,7 +103,7 @@ public class LowcodeModelSchemaNormalizer {
         } else if ("decimal".equals(dataType) && field.getLength() == null) {
             field.setLength(18);
         }
-        if (field.getPrecision() == null) {
+        if ("decimal".equals(dataType) && field.getPrecision() == null) {
             field.setPrecision(2);
         }
         if (field.getRequired() == null) {

@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessApplicationMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApplication">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="application_code" property="applicationCode"/>
+        <result column="application_name" property="applicationName"/>
+        <result column="suite_code" property="suiteCode"/>
+        <result column="icon" property="icon"/>
+        <result column="description" property="description"/>
+        <result column="status" property="status"/>
+        <result column="design_status" property="designStatus"/>
+        <result column="last_publish_version" property="lastPublishVersion"/>
+        <result column="last_publish_time" property="lastPublishTime"/>
+        <result column="options" property="options"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id,
+        tenant_id,
+        application_code,
+        application_name,
+        suite_code,
+        icon,
+        description,
+        status,
+        design_status,
+        last_publish_version,
+        last_publish_time,
+        options,
+        del_flag,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <sql id="Application_VO_Select">
+        SELECT a.id AS id,
+               a.application_code AS applicationCode,
+               a.application_name AS applicationName,
+               a.suite_code AS suiteCode,
+               s.suite_name AS suiteName,
+               a.icon AS icon,
+               a.description AS description,
+               a.status AS status,
+               a.design_status AS designStatus,
+               a.last_publish_version AS lastPublishVersion,
+               a.last_publish_time AS lastPublishTime,
+               a.options AS options,
+               COALESCE(object_stats.object_count, 0) AS objectCount,
+               COALESCE(entry_stats.entry_count, 0) AS entryCount,
+               COALESCE(entry_stats.active_entry_count, 0) AS activeEntryCount,
+               COALESCE(binding_stats.flow_count, 0) AS flowCount,
+               (COALESCE(binding_stats.extension_count, 0)
+                + COALESCE(extension_stats.extension_count, 0)) AS extensionCount,
+               (CASE WHEN COALESCE(object_stats.primary_count, 0) = 1 THEN 0 ELSE 1 END
+                + CASE WHEN COALESCE(entry_stats.active_entry_count, 0) > 0 THEN 0 ELSE 1 END) AS problemCount,
+               a.create_time AS createTime,
+               a.update_time AS updateTime
+        FROM ai_business_application a
+        LEFT JOIN ai_business_suite s
+          ON s.tenant_id = a.tenant_id
+         AND s.suite_code = a.suite_code
+         AND s.del_flag = '0'
+        LEFT JOIN (
+          SELECT ao.tenant_id,
+                 ao.application_id,
+                 COUNT(1) AS object_count,
+                 SUM(CASE WHEN ao.object_role = 'PRIMARY' THEN 1 ELSE 0 END) AS primary_count
+          FROM ai_business_application_object ao
+          INNER JOIN ai_business_object o
+            ON o.tenant_id = ao.tenant_id
+           AND o.id = ao.object_id
+           AND o.del_flag = '0'
+          WHERE ao.del_flag = '0'
+          GROUP BY ao.tenant_id, ao.application_id
+        ) object_stats
+          ON object_stats.tenant_id = a.tenant_id
+         AND object_stats.application_id = a.id
+        LEFT JOIN (
+          SELECT tenant_id,
+                 application_id,
+                 COUNT(1) AS entry_count,
+                 SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS active_entry_count
+          FROM ai_business_app
+          WHERE del_flag = '0'
+            AND application_id IS NOT NULL
+          GROUP BY tenant_id, application_id
+        ) entry_stats
+          ON entry_stats.tenant_id = a.tenant_id
+         AND entry_stats.application_id = a.id
+        LEFT JOIN (
+          SELECT tenant_id,
+                 target_id AS application_id,
+                 SUM(CASE WHEN binding_type IN ('FLOW', 'APPROVAL') THEN 1 ELSE 0 END) AS flow_count,
+                 SUM(CASE WHEN binding_type NOT IN ('FLOW', 'APPROVAL') THEN 1 ELSE 0 END) AS extension_count
+          FROM ai_business_binding
+          WHERE target_type = 'APPLICATION'
+          GROUP BY tenant_id, target_id
+        ) binding_stats
+          ON binding_stats.tenant_id = a.tenant_id
+         AND binding_stats.application_id = a.id
+        LEFT JOIN (
+          SELECT tenant_id,
+                 application_id,
+                 COUNT(1) AS extension_count
+          FROM ai_business_extension
+          WHERE del_flag = '0'
+          GROUP BY tenant_id, application_id
+        ) extension_stats
+          ON extension_stats.tenant_id = a.tenant_id
+         AND extension_stats.application_id = a.id
+    </sql>
+
+    <sql id="Application_Query_Where">
+        WHERE a.tenant_id = #{tenantId}
+          AND a.del_flag = '0'
+        <if test="query != null and query.keyword != null and query.keyword != ''">
+          AND (
+            a.application_code LIKE CONCAT('%', #{query.keyword}, '%')
+            OR a.application_name LIKE CONCAT('%', #{query.keyword}, '%')
+            OR a.description LIKE CONCAT('%', #{query.keyword}, '%')
+          )
+        </if>
+        <if test="query != null and query.applicationCode != null and query.applicationCode != ''">
+          AND a.application_code = #{query.applicationCode}
+        </if>
+        <if test="query != null and query.suiteCodes != null and query.suiteCodes.size() > 0">
+          AND a.suite_code IN
+          <foreach collection="query.suiteCodes" item="suiteCode" open="(" close=")" separator=",">
+            #{suiteCode}
+          </foreach>
+        </if>
+        <if test="query != null and (query.suiteCodes == null or query.suiteCodes.size() == 0) and query.suiteCode != null and query.suiteCode != ''">
+          AND a.suite_code = #{query.suiteCode}
+        </if>
+        <if test="query != null and query.status != null">
+          AND a.status = #{query.status}
+        </if>
+        <if test="query != null and query.designStatus != null and query.designStatus != ''">
+          AND a.design_status = #{query.designStatus}
+        </if>
+    </sql>
+
+    <select id="selectApplicationPage" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationVO">
+        <include refid="Application_VO_Select"/>
+        <include refid="Application_Query_Where"/>
+        ORDER BY a.update_time DESC, a.id DESC
+    </select>
+
+    <select id="selectApplicationList" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationVO">
+        <include refid="Application_VO_Select"/>
+        <include refid="Application_Query_Where"/>
+        ORDER BY a.update_time DESC, a.id DESC
+    </select>
+
+    <select id="selectApplicationDetail" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationVO">
+        <include refid="Application_VO_Select"/>
+        WHERE a.tenant_id = #{tenantId}
+          AND a.del_flag = '0'
+          AND a.id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="selectApplicationPublishContext" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationVO">
+        SELECT a.id AS id,
+               a.application_code AS applicationCode,
+               a.application_name AS applicationName,
+               a.suite_code AS suiteCode,
+               s.suite_name AS suiteName,
+               a.icon AS icon,
+               a.description AS description,
+               a.status AS status,
+               a.design_status AS designStatus,
+               a.last_publish_version AS lastPublishVersion,
+               a.last_publish_time AS lastPublishTime,
+               a.options AS options
+        FROM ai_business_application a
+        LEFT JOIN ai_business_suite s
+          ON s.tenant_id = a.tenant_id
+         AND s.suite_code = a.suite_code
+         AND s.del_flag = '0'
+        WHERE a.tenant_id = #{tenantId}
+          AND a.del_flag = '0'
+          AND a.id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="selectApplicationDetailByCode" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationVO">
+        <include refid="Application_VO_Select"/>
+        WHERE a.tenant_id = #{tenantId}
+          AND a.del_flag = '0'
+          AND a.application_code = #{applicationCode}
+        LIMIT 1
+    </select>
+
+    <select id="selectEntityById" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_application
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
+          AND id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="selectEntityByCode" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_business_application
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
+          AND application_code = #{applicationCode}
+        LIMIT 1
+    </select>
+
+    <select id="countByApplicationCode" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_application
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
+          AND application_code = #{applicationCode}
+        <if test="excludeId != null">
+          AND id != #{excludeId}
+        </if>
+    </select>
+
+    <select id="countBySuiteCode" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_application
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
+          AND suite_code = #{suiteCode}
+    </select>
+
+    <update id="markChanged">
+        UPDATE ai_business_application
+        SET design_status = CASE
+              WHEN design_status IN ('PUBLISHED', 'CHANGED') THEN 'CHANGED'
+              ELSE 'DRAFT'
+            END,
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND id = #{applicationId}
+          AND del_flag = '0'
+    </update>
+
+    <update id="markChangedByObjectId">
+        UPDATE ai_business_application a
+        INNER JOIN ai_business_application_object ao
+          ON ao.tenant_id = a.tenant_id
+         AND ao.application_id = a.id
+         AND ao.object_id = #{objectId}
+         AND ao.del_flag = '0'
+        SET a.design_status = CASE
+              WHEN a.design_status IN ('PUBLISHED', 'CHANGED') THEN 'CHANGED'
+              ELSE 'DRAFT'
+            END,
+            a.update_time = NOW()
+        WHERE a.tenant_id = #{tenantId}
+          AND a.del_flag = '0'
+    </update>
+
+    <update id="markPublished">
+        UPDATE ai_business_application
+        SET design_status = 'PUBLISHED',
+            last_publish_version = #{versionNo},
+            last_publish_time = #{publishTime},
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND id = #{applicationId}
+          AND del_flag = '0'
+    </update>
+
+</mapper>

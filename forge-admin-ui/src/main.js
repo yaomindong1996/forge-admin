@@ -6,6 +6,7 @@ import { setupDirectives } from './directives'
 import { setupRouter } from './router'
 import { setupStore } from './store'
 import { setupNaiveDiscreteApi } from './utils'
+import { loadRuntimeCryptoConfig } from './utils/crypto/crypto-config'
 import '@/styles/reset.css'
 import '@/styles/design-tokens.css'
 import '@/styles/animations.css'
@@ -15,6 +16,8 @@ import '@/styles/responsive-vars.css'
 import 'uno.css'
 
 async function bootstrap() {
+  await loadRuntimeCryptoConfig()
+
   const app = createApp(App)
 
   // 先初始化 Store，因为 setupNaiveDiscreteApi 需要用到

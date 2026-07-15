@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessExtensionVersionMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessExtensionVersion">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="extension_id" property="extensionId"/>
+        <result column="version_no" property="versionNo"/>
+        <result column="content" property="content"/>
+        <result column="processed_content" property="processedContent"/>
+        <result column="config_json" property="configJson"/>
+        <result column="content_hash" property="contentHash"/>
+        <result column="validation_passed" property="validationPassed"/>
+        <result column="validation_summary" property="validationSummary"/>
+        <result column="test_passed" property="testPassed"/>
+        <result column="test_summary" property="testSummary"/>
+        <result column="change_summary" property="changeSummary"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id, tenant_id, extension_id, version_no, content, processed_content,
+        config_json, content_hash, validation_passed, validation_summary,
+        test_passed, test_summary, change_summary, del_flag,
+        create_by, create_time, create_dept, update_by, update_time
+    </sql>
+
+    <select id="selectVersions" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM ai_business_extension_version
+        WHERE tenant_id = #{tenantId}
+          AND extension_id = #{extensionId}
+          AND del_flag = '0'
+        ORDER BY version_no DESC, id DESC
+    </select>
+
+    <select id="selectVersion" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM ai_business_extension_version
+        WHERE tenant_id = #{tenantId}
+          AND extension_id = #{extensionId}
+          AND version_no = #{versionNo}
+          AND del_flag = '0'
+        LIMIT 1
+    </select>
+
+    <select id="selectReleaseVersions" resultMap="BaseResultMap">
+        SELECT id, tenant_id, extension_id, version_no, content_hash, del_flag,
+               create_by, create_time, create_dept, update_by, update_time
+        FROM ai_business_extension_version
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
+          AND (extension_id, version_no) IN
+        <foreach collection="releaseVersions" index="extensionId" item="versionNo" open="(" separator="," close=")">
+            (#{extensionId}, #{versionNo})
+        </foreach>
+    </select>
+
+    <select id="selectMaxVersionNo" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(version_no), 0)
+        FROM ai_business_extension_version
+        WHERE tenant_id = #{tenantId}
+          AND extension_id = #{extensionId}
+          AND del_flag = '0'
+    </select>
+
+    <update id="updateValidationResult">
+        UPDATE ai_business_extension_version
+        SET validation_passed = #{passed},
+            validation_summary = #{summary},
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND extension_id = #{extensionId}
+          AND version_no = #{versionNo}
+          AND del_flag = '0'
+    </update>
+
+    <update id="updateTestResult">
+        UPDATE ai_business_extension_version
+        SET test_passed = #{passed},
+            test_summary = #{summary},
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND extension_id = #{extensionId}
+          AND version_no = #{versionNo}
+          AND del_flag = '0'
+    </update>
+
+</mapper>

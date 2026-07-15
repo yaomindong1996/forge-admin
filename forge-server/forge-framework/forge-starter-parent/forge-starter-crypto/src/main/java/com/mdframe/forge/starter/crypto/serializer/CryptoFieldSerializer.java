@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.ContextualSerializer;
+import com.mdframe.forge.starter.core.context.CryptoProperties;
 import com.mdframe.forge.starter.crypto.crypto.CryptoField;
 import com.mdframe.forge.starter.crypto.crypto.Encryptor;
 import com.mdframe.forge.starter.crypto.crypto.EncryptorFactory;
@@ -20,13 +21,17 @@ import java.io.IOException;
 public class CryptoFieldSerializer extends JsonSerializer<String> implements ContextualSerializer {
 
     private EncryptorFactory encryptorFactory;
+    private CryptoProperties cryptoProperties;
     private CryptoField annotation;
 
     public CryptoFieldSerializer() {
     }
 
-    public CryptoFieldSerializer(EncryptorFactory encryptorFactory, CryptoField annotation) {
+    public CryptoFieldSerializer(EncryptorFactory encryptorFactory,
+                                 CryptoProperties cryptoProperties,
+                                 CryptoField annotation) {
         this.encryptorFactory = encryptorFactory;
+        this.cryptoProperties = cryptoProperties;
         this.annotation = annotation;
     }
 
@@ -38,7 +43,10 @@ public class CryptoFieldSerializer extends JsonSerializer<String> implements Con
             return;
         }
 
-        if (annotation == null || !annotation.encrypt() || encryptorFactory == null) {
+        if (annotation == null || !annotation.encrypt() || encryptorFactory == null
+                || cryptoProperties == null
+                || !Boolean.TRUE.equals(cryptoProperties.getEnabled())
+                || !Boolean.TRUE.equals(cryptoProperties.getEnableFieldCrypto())) {
             gen.writeString(value);
             return;
         }
@@ -60,8 +68,9 @@ public class CryptoFieldSerializer extends JsonSerializer<String> implements Con
             CryptoField annotation = property.getAnnotation(CryptoField.class);
             if (annotation != null && annotation.encrypt()) {
                 EncryptorFactory factory = (EncryptorFactory) prov.getAttribute(EncryptorFactory.class);
-                if (factory != null) {
-                    return new CryptoFieldSerializer(factory, annotation);
+                CryptoProperties properties = (CryptoProperties) prov.getAttribute(CryptoProperties.class);
+                if (factory != null && properties != null) {
+                    return new CryptoFieldSerializer(factory, properties, annotation);
                 }
             }
         }

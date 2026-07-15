@@ -41,4 +41,7 @@ public interface BusinessSuiteMapper extends BaseMapper<AiBusinessSuite> {
                               @Param("parentId") Long parentId);
 
     List<BusinessSuiteSummaryVO> selectSuiteSummary(@Param("tenantId") Long tenantId);
+
+    List<String> selectSelfAndDescendantCodes(@Param("tenantId") Long tenantId,
+                                               @Param("suiteCode") String suiteCode);
 }

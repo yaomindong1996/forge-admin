@@ -149,7 +149,10 @@
             <n-button @click="emit('update:show', false)">
               取消
             </n-button>
-            <n-button :disabled="currentStep === 1" @click="currentStep -= 1">
+            <n-button
+              :disabled="currentStep === 1 || (lockSuite && currentStep === 2)"
+              @click="currentStep -= 1"
+            >
               上一步
             </n-button>
             <n-button v-if="currentStep < 3" type="primary" @click="nextStep">
@@ -187,6 +190,14 @@ const props = defineProps({
     type: String,
     default: null,
   },
+  defaultCreateMode: {
+    type: String,
+    default: 'BLANK',
+  },
+  lockSuite: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:show', 'saved'])
@@ -194,7 +205,7 @@ const message = useMessage()
 const MASTER_DATASOURCE_VALUE = 'MASTER'
 const currentStep = ref(1)
 const saving = ref(false)
-const form = reactive(defaultForm())
+const form = reactive(defaultForm(props.defaultCreateMode))
 const lastSuggestedObjectCode = ref('')
 const lastSuggestedSuiteCode = ref('')
 const datasourceLoading = ref(false)
@@ -265,11 +276,11 @@ const footerHint = computed(() => {
 watch(() => props.show, (visible) => {
   if (!visible)
     return
-  Object.assign(form, defaultForm())
+  Object.assign(form, defaultForm(props.defaultCreateMode))
   lastSuggestedObjectCode.value = ''
   lastSuggestedSuiteCode.value = ''
   resetImportState()
-  currentStep.value = 1
+  currentStep.value = props.lockSuite ? 2 : 1
   if (props.defaultSuiteCode) {
     form.suiteMode = 'EXISTING'
     form.suiteCode = props.defaultSuiteCode
@@ -378,12 +389,11 @@ async function saveObject() {
 function resolveDesignerPanel(createMode) {
   switch (createMode) {
     case 'BLANK':
-      return 'form'
     case 'DB_IMPORT':
     case 'AI_GENERATE':
-      return 'form'
+      return 'fields'
     default:
-      return 'form'
+      return 'fields'
   }
 }
 
@@ -617,7 +627,7 @@ function trimToNull(value) {
   return text || null
 }
 
-function defaultForm() {
+function defaultForm(defaultCreateMode = 'BLANK') {
   return {
     suiteMode: 'EXISTING',
     suiteCode: null,
@@ -628,7 +638,7 @@ function defaultForm() {
     createSuiteMenu: true,
     suiteMenuParentId: null,
     suiteMenuSort: 0,
-    createMode: 'BLANK',
+    createMode: defaultCreateMode || 'BLANK',
     objectName: '',
     objectCode: '',
     objectType: 'MASTER',

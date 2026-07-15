@@ -8,6 +8,7 @@
         <result column="app_code" property="appCode"/>
         <result column="app_name" property="appName"/>
         <result column="app_type" property="appType"/>
+        <result column="application_id" property="applicationId"/>
         <result column="suite_code" property="suiteCode"/>
         <result column="object_code" property="objectCode"/>
         <result column="entry_mode" property="entryMode"/>
@@ -32,6 +33,7 @@
         app_code,
         app_name,
         app_type,
+        application_id,
         suite_code,
         object_code,
         entry_mode,
@@ -70,6 +72,9 @@
         <if test="query != null and (query.suiteCodes == null or query.suiteCodes.size() == 0) and query.suiteCode != null and query.suiteCode != ''">
           AND a.suite_code = #{query.suiteCode}
         </if>
+        <if test="query != null and query.applicationId != null">
+          AND a.application_id = #{query.applicationId}
+        </if>
         <if test="query != null and query.objectCode != null and query.objectCode != ''">
           AND a.object_code = #{query.objectCode}
         </if>
@@ -90,6 +95,7 @@
           a.app_code AS appCode,
           a.app_name AS appName,
           a.app_type AS appType,
+          a.application_id AS applicationId,
           a.suite_code AS suiteCode,
           s.suite_name AS suiteName,
           a.object_code AS objectCode,
@@ -236,5 +242,41 @@
           AND id != #{excludeId}
         </if>
     </select>
+
+    <select id="countByApplicationId" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_app
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
+          AND application_id = #{applicationId}
+    </select>
+
+    <select id="selectByApplicationId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM ai_business_app
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND del_flag = '0'
+        ORDER BY sort_order ASC, app_code ASC, id ASC
+    </select>
+
+    <select id="countActiveByApplicationId" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_app
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
+          AND application_id = #{applicationId}
+          AND status = 1
+    </select>
+
+    <update id="detachDisabledByApplicationId">
+        UPDATE ai_business_app
+        SET application_id = NULL,
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
+          AND application_id = #{applicationId}
+          AND status = 0
+    </update>
 
 </mapper>

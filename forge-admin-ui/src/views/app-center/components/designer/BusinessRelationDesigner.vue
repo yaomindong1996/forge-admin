@@ -3,7 +3,7 @@
     <div class="relation-designer-head">
       <div>
         <h3>关系与级联</h3>
-        <p>维护对象关系、字段联动和运行态过滤规则。</p>
+        <p>优先在关系图拖线建立对象关系，再按需配置字段联动和高级行为。</p>
       </div>
       <n-space size="small">
         <n-button size="small" secondary @click="loadRelations">
@@ -20,6 +20,20 @@
 
     <div class="relation-workbench">
       <aside class="relation-step-rail">
+        <div class="rail-block">
+          <button
+            type="button"
+            class="relation-choice er-choice"
+            :class="{ active: activePanel === 'er' }"
+            @click="selectErDiagram"
+          >
+            <strong>可视化关系图</strong>
+            <span>{{ erDiagramSummary }}，拖动字段连接点创建关系</span>
+          </button>
+        </div>
+
+        <div class="rail-divider" />
+
         <div class="rail-block">
           <div class="rail-title">
             <span>对象关系</span>
@@ -41,20 +55,6 @@
             </button>
           </div>
           <n-empty v-else size="small" description="暂无关系" />
-        </div>
-
-        <div class="rail-divider" />
-
-        <div class="rail-block">
-          <button
-            type="button"
-            class="relation-choice er-choice"
-            :class="{ active: activePanel === 'er' }"
-            @click="selectErDiagram"
-          >
-            <strong>关系 ER 图</strong>
-            <span>{{ erDiagramSummary }}</span>
-          </button>
         </div>
 
         <div class="rail-divider" />
@@ -90,7 +90,7 @@
               <section id="relation-section-basic" class="relation-config-card">
                 <header class="section-title-row">
                   <div>
-                    <strong>基础信息</strong>
+                    <strong>关系属性</strong>
                     <span>{{ relationSentence(activeRelation) }}</span>
                   </div>
                   <n-space size="small">
@@ -112,19 +112,14 @@
                     </n-popconfirm>
                   </n-space>
                 </header>
-                <n-form label-placement="top" :show-feedback="false" size="small">
-                  <n-grid :cols="2" :x-gap="16" :y-gap="6" responsive="screen">
-                    <n-form-item-gi label="关系名称">
-                      <n-input v-model:value="activeRelation.relationName" placeholder="例如：采购单-采购明细" @update:value="markDirty" />
-                    </n-form-item-gi>
-                    <n-form-item-gi label="关系类型">
-                      <n-select
-                        v-model:value="activeRelation.relationType"
-                        :options="relationTypeOptions"
-                        @update:value="value => updateRelationType(activeRelation, value)"
-                      />
-                    </n-form-item-gi>
-                    <n-form-item-gi label="目标对象">
+                <div class="relation-identity-grid">
+                  <n-form label-placement="top" :show-feedback="false" size="small">
+                    <n-form-item label="关系名称">
+                      <n-input v-model:value="activeRelation.relationName" placeholder="例如：采购单包含采购明细" @update:value="markDirty" />
+                    </n-form-item>
+                  </n-form>
+                  <n-form label-placement="top" :show-feedback="false" size="small">
+                    <n-form-item label="目标对象">
                       <n-select
                         v-model:value="activeRelation.targetObjectCode"
                         :options="targetObjectOptions"
@@ -132,58 +127,87 @@
                         placeholder="选择目标对象"
                         @update:value="value => updateTargetObject(activeRelation, value)"
                       />
-                    </n-form-item-gi>
-                    <n-form-item-gi label="启用状态">
-                      <n-switch
-                        :value="activeRelation.status !== 0"
-                        @update:value="value => updateStatus(activeRelation, value)"
-                      />
-                    </n-form-item-gi>
-                  </n-grid>
-                </n-form>
+                    </n-form-item>
+                  </n-form>
+                  <div class="relation-identity-state">
+                    <span>关系类型</span>
+                    <strong>一对多明细</strong>
+                  </div>
+                  <div class="relation-identity-state">
+                    <span>启用关系</span>
+                    <n-switch
+                      :value="activeRelation.status !== 0"
+                      @update:value="value => updateStatus(activeRelation, value)"
+                    />
+                  </div>
+                </div>
 
                 <div class="relation-match-box">
                   <div class="relation-match-box-head">
-                    <strong>匹配字段</strong>
+                    <div>
+                      <strong>字段端点</strong>
+                      <span>这两个字段决定主记录与明细记录如何匹配。</span>
+                    </div>
                     <n-tag size="small" :type="relationMatchTagType(activeRelation)" :bordered="false">
                       {{ relationMatchSummary(activeRelation) }}
                     </n-tag>
                   </div>
-                  <n-form label-placement="top" :show-feedback="false" size="small">
-                    <n-grid :cols="3" :x-gap="16" :y-gap="6" responsive="screen">
-                      <n-form-item-gi :label="sourceFieldLabel(activeRelation)">
-                        <n-select
-                          v-model:value="activeRelation.sourceFieldCode"
-                          :options="sourceFieldOptions"
-                          clearable
-                          filterable
-                          :placeholder="sourceFieldPlaceholder(activeRelation)"
-                          @update:value="markDirty"
-                        />
-                      </n-form-item-gi>
-                      <n-form-item-gi :label="targetFieldLabel(activeRelation)">
-                        <n-select
-                          v-model:value="activeRelation.targetFieldCode"
-                          :options="targetFieldOptions(activeRelation)"
-                          :loading="targetFieldLoadingMap[activeRelation.targetObjectCode]"
-                          clearable
-                          filterable
-                          :placeholder="targetFieldPlaceholder(activeRelation)"
-                          @update:value="markDirty"
-                        />
-                      </n-form-item-gi>
-                      <n-form-item-gi :label="displayFieldLabel(activeRelation)">
-                        <n-select
-                          v-model:value="activeRelation.displayField"
-                          :options="targetDisplayFieldOptions(activeRelation)"
-                          :loading="targetFieldLoadingMap[activeRelation.targetObjectCode]"
-                          clearable
-                          filterable
-                          placeholder="选择运行态回显字段"
-                          @update:value="markDirty"
-                        />
-                      </n-form-item-gi>
-                    </n-grid>
+                  <div class="relation-endpoint-flow">
+                    <section class="relation-endpoint-card is-source">
+                      <header>
+                        <span>当前对象</span>
+                        <strong>{{ objectName || objectCode }}</strong>
+                      </header>
+                      <n-form label-placement="top" :show-feedback="false" size="small">
+                        <n-form-item :label="sourceFieldLabel(activeRelation)">
+                          <n-select
+                            v-model:value="activeRelation.sourceFieldCode"
+                            :options="sourceFieldOptions"
+                            clearable
+                            filterable
+                            :placeholder="sourceFieldPlaceholder(activeRelation)"
+                            @update:value="markDirty"
+                          />
+                        </n-form-item>
+                      </n-form>
+                    </section>
+                    <div class="endpoint-connector" aria-hidden="true">
+                      <span>1</span>
+                      <i />
+                      <span>N</span>
+                    </div>
+                    <section class="relation-endpoint-card is-target">
+                      <header>
+                        <span>目标对象</span>
+                        <strong>{{ objectNameMap.get(activeRelation.targetObjectCode) || activeRelation.targetObjectCode || '未选择' }}</strong>
+                      </header>
+                      <n-form label-placement="top" :show-feedback="false" size="small">
+                        <n-form-item :label="targetFieldLabel(activeRelation)">
+                          <n-select
+                            v-model:value="activeRelation.targetFieldCode"
+                            :options="targetFieldOptions(activeRelation)"
+                            :loading="targetFieldLoadingMap[activeRelation.targetObjectCode]"
+                            clearable
+                            filterable
+                            :placeholder="targetFieldPlaceholder(activeRelation)"
+                            @update:value="markDirty"
+                          />
+                        </n-form-item>
+                      </n-form>
+                    </section>
+                  </div>
+                  <n-form label-placement="top" :show-feedback="false" size="small" class="relation-display-field">
+                    <n-form-item :label="displayFieldLabel(activeRelation)">
+                      <n-select
+                        v-model:value="activeRelation.displayField"
+                        :options="targetDisplayFieldOptions(activeRelation)"
+                        :loading="targetFieldLoadingMap[activeRelation.targetObjectCode]"
+                        clearable
+                        filterable
+                        placeholder="选择运行态回显字段"
+                        @update:value="markDirty"
+                      />
+                    </n-form-item>
                   </n-form>
                 </div>
               </section>
@@ -516,13 +540,33 @@
 
           <template v-else-if="activePanel === 'er'">
             <section id="relation-section-er" class="relation-er-panel">
+              <div class="er-object-picker">
+                <div>
+                  <strong>画布对象</strong>
+                  <span>选择要参与连线的目标对象，字段会按需加载。</span>
+                </div>
+                <n-select
+                  :value="erCandidateObjectCodes"
+                  :options="targetObjectOptions"
+                  multiple
+                  filterable
+                  clearable
+                  max-tag-count="responsive"
+                  placeholder="选择目标对象加入画布"
+                  @update:value="updateErCandidateObjects"
+                />
+              </div>
               <LowcodeErDiagram
-                title="关系 ER 图"
+                title="拖线配置对象关系"
                 :subtitle="erDiagramSubtitle"
                 :models="erDiagramModels"
                 :primary-model-code="props.objectCode"
+                :selected-relation-key="activeRelationKey"
+                editable
                 :download-file-name="`${props.objectCode || 'business-object'}-er.svg`"
                 empty-text="暂无可绘制的业务对象关系"
+                @connect="handleErConnect"
+                @relation-select="selectRelation"
               />
             </section>
           </template>
@@ -566,15 +610,8 @@
                   </header>
 
                   <n-form label-placement="top" :show-feedback="false" size="small" class="relation-form">
-                    <n-grid :cols="3" :x-gap="12" :y-gap="4" responsive="screen">
-                      <n-form-item-gi label="规则类型">
-                        <n-select
-                          v-model:value="rule.type"
-                          :options="linkageTypeOptions"
-                          @update:value="value => updateLinkageType(rule, value)"
-                        />
-                      </n-form-item-gi>
-                      <n-form-item-gi label="上级字段">
+                    <div class="linkage-flow-editor">
+                      <n-form-item label="控制字段">
                         <n-select
                           v-model:value="rule.sourceField"
                           :options="sourceFieldOptions"
@@ -583,8 +620,21 @@
                           placeholder="选择控制字段"
                           @update:value="value => updateLinkageSource(rule, value)"
                         />
-                      </n-form-item-gi>
-                      <n-form-item-gi label="目标字段">
+                      </n-form-item>
+                      <div class="linkage-flow-arrow" aria-hidden="true">
+                        →
+                      </div>
+                      <n-form-item label="联动方式">
+                        <n-select
+                          v-model:value="rule.type"
+                          :options="linkageTypeOptions"
+                          @update:value="value => updateLinkageType(rule, value)"
+                        />
+                      </n-form-item>
+                      <div class="linkage-flow-arrow" aria-hidden="true">
+                        →
+                      </div>
+                      <n-form-item label="目标字段">
                         <n-select
                           v-model:value="rule.targetField"
                           :options="linkageTargetFieldOptions(rule)"
@@ -593,8 +643,12 @@
                           placeholder="选择被过滤字段"
                           @update:value="value => updateLinkageTarget(rule, value)"
                         />
-                      </n-form-item-gi>
+                      </n-form-item>
+                    </div>
 
+                    <section class="linkage-detail-section">
+                      <strong>数据来源</strong>
+                      <n-grid :cols="3" :x-gap="12" :y-gap="4" responsive="screen">
                       <template v-if="rule.dataSourceType === 'dict'">
                         <n-form-item-gi label="上级字典类型">
                           <n-input v-model:value="rule.dictConfig.sourceDictType" placeholder="选择或填写字典类型" @update:value="markLinkageDirty" />
@@ -628,27 +682,30 @@
                           />
                         </n-form-item-gi>
                       </template>
+                      </n-grid>
+                    </section>
 
-                      <n-form-item-gi label="上级为空">
+                    <section class="linkage-state-grid">
+                      <n-form-item label="控制字段为空时">
                         <n-select
                           v-model:value="rule.emptyStrategy"
                           :options="emptyStrategyOptions"
                           @update:value="markLinkageDirty"
                         />
-                      </n-form-item-gi>
-                      <n-form-item-gi label="上级变化清空">
+                      </n-form-item>
+                      <n-form-item label="控制值变化后清空目标">
                         <n-switch
                           :value="rule.clearOnSourceChange !== false"
                           @update:value="value => updateRuleClearOnChange(rule, value)"
                         />
-                      </n-form-item-gi>
-                      <n-form-item-gi label="启用状态">
+                      </n-form-item>
+                      <n-form-item label="启用规则">
                         <n-switch
                           :value="rule.enabled !== false"
                           @update:value="value => updateRuleEnabled(rule, value)"
                         />
-                      </n-form-item-gi>
-                    </n-grid>
+                      </n-form-item>
+                    </section>
                   </n-form>
                 </section>
               </div>
@@ -664,59 +721,86 @@
       preset="card"
       title="新增关系"
       :bordered="false"
-      :style="{ width: 'min(640px, calc(100vw - 40px))' }"
+      :style="{ width: 'min(760px, calc(100vw - 32px))' }"
     >
       <n-spin :show="relationWizardLoading">
-        <n-form label-placement="top" size="small" :show-feedback="false">
-          <n-form-item label="关系类型">
-            <n-select
-              v-model:value="relationWizardForm.relationType"
-              :options="relationTypeOptions"
-              @update:value="applyRelationWizardDefaults"
-            />
-          </n-form-item>
-          <n-form-item label="目标对象">
-            <n-select
-              v-model:value="relationWizardForm.targetObjectCode"
-              :options="targetObjectOptions"
-              filterable
-              placeholder="选择目标业务对象"
-              @update:value="applyRelationWizardDefaults"
-            />
-          </n-form-item>
-          <n-grid :cols="2" :x-gap="12">
-            <n-form-item-gi :label="sourceFieldLabel({ relationType: relationWizardForm.relationType })">
+        <n-form label-placement="top" size="small" :show-feedback="false" class="relation-wizard-form">
+          <section class="wizard-section">
+            <header>
+              <span>1</span>
+              <div>
+                <strong>选择目标对象</strong>
+                <small>当前版本统一创建一对多明细关系。</small>
+              </div>
+            </header>
+            <n-form-item label="目标对象">
               <n-select
-                v-model:value="relationWizardForm.sourceFieldCode"
-                :options="sourceFieldOptions"
+                v-model:value="relationWizardForm.targetObjectCode"
+                :options="targetObjectOptions"
                 filterable
-                clearable
-                :placeholder="sourceFieldPlaceholder({ relationType: relationWizardForm.relationType })"
+                placeholder="选择目标业务对象"
+                @update:value="applyRelationWizardDefaults"
               />
-            </n-form-item-gi>
-            <n-form-item-gi :label="targetFieldLabel({ relationType: relationWizardForm.relationType })">
-              <n-select
-                v-model:value="relationWizardForm.targetFieldCode"
-                :options="targetFieldOptions({ targetObjectCode: relationWizardForm.targetObjectCode, targetFieldCode: relationWizardForm.targetFieldCode })"
-                :loading="targetFieldLoadingMap[relationWizardForm.targetObjectCode]"
-                filterable
-                clearable
-                :placeholder="targetFieldPlaceholder({ relationType: relationWizardForm.relationType })"
-              />
-            </n-form-item-gi>
-          </n-grid>
-          <n-form-item v-if="canInlineEdit({ relationType: relationWizardForm.relationType })" label="子表保存模式">
-            <n-select v-model:value="relationWizardForm.saveMode" :options="childSaveModeOptions" />
-            <div class="wizard-field-hint">
-              全量替换：每次保存时删除旧明细再插入新明细；行级合并：根据目标字段匹配已有行并更新，未匹配行新增。
+            </n-form-item>
+          </section>
+
+          <section class="wizard-section">
+            <header>
+              <span>2</span>
+              <div>
+                <strong>确认字段端点</strong>
+                <small>系统会智能推断，你可以在这里调整。</small>
+              </div>
+            </header>
+            <div class="wizard-endpoint-flow">
+              <n-form-item :label="sourceFieldLabel({ relationType: relationWizardForm.relationType })">
+                <n-select
+                  v-model:value="relationWizardForm.sourceFieldCode"
+                  :options="sourceFieldOptions"
+                  filterable
+                  clearable
+                  :placeholder="sourceFieldPlaceholder({ relationType: relationWizardForm.relationType })"
+                />
+              </n-form-item>
+              <div class="wizard-flow-arrow">
+                1 → N
+              </div>
+              <n-form-item :label="targetFieldLabel({ relationType: relationWizardForm.relationType })">
+                <n-select
+                  v-model:value="relationWizardForm.targetFieldCode"
+                  :options="targetFieldOptions({ targetObjectCode: relationWizardForm.targetObjectCode, targetFieldCode: relationWizardForm.targetFieldCode })"
+                  :loading="targetFieldLoadingMap[relationWizardForm.targetObjectCode]"
+                  filterable
+                  clearable
+                  :placeholder="targetFieldPlaceholder({ relationType: relationWizardForm.relationType })"
+                />
+              </n-form-item>
             </div>
-          </n-form-item>
-          <n-form-item label="关系名称">
-            <n-input v-model:value="relationWizardForm.relationName" placeholder="例如：采购单包含采购明细" />
-          </n-form-item>
-          <n-form-item label="详情页签标题">
-            <n-input v-model:value="relationWizardForm.detailTabTitle" placeholder="例如：采购明细" />
-          </n-form-item>
+          </section>
+
+          <section class="wizard-section">
+            <header>
+              <span>3</span>
+              <div>
+                <strong>页面展示</strong>
+                <small>这些文案会出现在表单和详情区域。</small>
+              </div>
+            </header>
+            <n-grid :cols="2" :x-gap="12">
+              <n-form-item-gi label="关系名称">
+                <n-input v-model:value="relationWizardForm.relationName" placeholder="例如：采购单包含采购明细" />
+              </n-form-item-gi>
+              <n-form-item-gi label="详情页签标题">
+                <n-input v-model:value="relationWizardForm.detailTabTitle" placeholder="例如：采购明细" />
+              </n-form-item-gi>
+            </n-grid>
+            <n-form-item v-if="canInlineEdit({ relationType: relationWizardForm.relationType })" label="子表保存模式">
+              <n-select v-model:value="relationWizardForm.saveMode" :options="childSaveModeOptions" />
+              <div class="wizard-field-hint">
+                推荐“行级合并”：按目标字段更新已有明细，未匹配行新增；全量替换会先删除旧明细。
+              </div>
+            </n-form-item>
+          </section>
         </n-form>
       </n-spin>
       <template #footer>
@@ -792,9 +876,10 @@ const emit = defineEmits(['updated', 'dirtyChange', 'fieldsUpdated', 'update:lin
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
-const activePanel = ref('relation')
+const activePanel = ref('er')
 const activeRelationKey = ref('')
 const activeLinkageRuleId = ref('')
+const erCandidateObjectCodes = ref([])
 const businessObjects = ref([])
 const localRelations = ref([])
 const localLinkage = ref(normalizeLinkageSchema())
@@ -814,10 +899,6 @@ const relationWizardForm = ref({
   relationName: '',
   detailTabTitle: '',
 })
-
-const relationTypeOptions = [
-  { label: '包含多个明细', value: 'DETAIL' },
-]
 
 const childSaveModeOptions = [
   { label: '全量替换', value: 'replace' },
@@ -933,6 +1014,10 @@ async function loadRelations() {
     localRelations.value = (res.data || [])
       .filter(relation => !props.objectCode || !relation.sourceObjectCode || relation.sourceObjectCode === props.objectCode)
       .map(normalizeRelation)
+    erCandidateObjectCodes.value = Array.from(new Set([
+      ...erCandidateObjectCodes.value,
+      ...localRelations.value.map(relation => relation.targetObjectCode).filter(Boolean),
+    ]))
     relationsLoaded.value = true
     relationDirty.value = false
     emit('updated', localRelations.value)
@@ -962,10 +1047,13 @@ async function loadBusinessObjects() {
       seen.add(item.objectCode)
       return true
     })
+    if (!erCandidateObjectCodes.value.length && targetObjectOptions.value[0])
+      erCandidateObjectCodes.value = [targetObjectOptions.value[0].value]
     localRelations.value.forEach((relation) => {
       loadTargetFields(relation.targetObjectCode)
       loadTargetFields(selectorCandidateObjectCode(relation))
     })
+    erCandidateObjectCodes.value.forEach(loadTargetFields)
   }
   catch {
     businessObjects.value = []
@@ -1035,20 +1123,30 @@ function confirmRelationWizard() {
     message.warning('请选择目标对象字段')
     return
   }
+  const relation = buildRelationDraft(form)
+  localRelations.value.push(relation)
+  activeRelationKey.value = relation.clientKey
+  markRelationDirty()
+  relationWizardVisible.value = false
+  nextTick(() => scrollToRelationSection('basic'))
+}
+
+function buildRelationDraft(form = {}) {
+  const relationType = normalizeDesignerRelationType(form.relationType)
   const targetName = objectNameMap.value.get(form.targetObjectCode) || form.targetObjectCode
-  const relation = {
+  return {
     clientKey: createClientKey(),
-    relationType: form.relationType,
+    relationType,
     targetObjectCode: form.targetObjectCode,
-    relationName: form.relationName || relationLabel({ relationType: form.relationType, targetObjectCode: form.targetObjectCode }),
+    relationName: form.relationName || relationLabel({ relationType, targetObjectCode: form.targetObjectCode }),
     sourceFieldCode: form.sourceFieldCode,
     targetFieldCode: form.targetFieldCode,
     displayField: firstDisplayField(form.targetObjectCode, form.targetFieldCode),
     detailTabTitle: form.detailTabTitle || targetName,
     showInDetail: true,
-    inlineCreateEnabled: canInlineEdit({ relationType: form.relationType }),
-    inlineEditEnabled: canInlineEdit({ relationType: form.relationType }),
-    saveMode: canInlineEdit({ relationType: form.relationType }) ? form.saveMode : undefined,
+    inlineCreateEnabled: canInlineEdit({ relationType }),
+    inlineEditEnabled: canInlineEdit({ relationType }),
+    saveMode: canInlineEdit({ relationType }) ? (form.saveMode || 'merge') : undefined,
     defaultFilter: '',
     selectorEnabled: false,
     selectorSuiteCode: props.suiteCode || '',
@@ -1063,10 +1161,49 @@ function confirmRelationWizard() {
     status: 1,
     sortOrder: localRelations.value.length * 10 + 10,
   }
-  localRelations.value.push(relation)
-  activeRelationKey.value = relation.clientKey
-  markRelationDirty()
-  relationWizardVisible.value = false
+}
+
+async function handleErConnect(connection = {}) {
+  const currentObjectCode = props.objectCode || ''
+  const sourceIsCurrent = connection.sourceModelCode === currentObjectCode
+  const targetIsCurrent = connection.targetModelCode === currentObjectCode
+  if (sourceIsCurrent === targetIsCurrent) {
+    message.warning(sourceIsCurrent ? '不能在同一个对象内部创建自关联连线' : '请从当前对象连接到目标对象')
+    return
+  }
+
+  const targetObjectCode = sourceIsCurrent ? connection.targetModelCode : connection.sourceModelCode
+  const sourceFieldCode = sourceIsCurrent ? connection.sourceField : connection.targetField
+  const targetFieldCode = sourceIsCurrent ? connection.targetField : connection.sourceField
+  if (!targetObjectOptions.value.some(item => item.value === targetObjectCode)) {
+    message.warning('目标对象不属于当前业务域，不能创建关系')
+    return
+  }
+
+  await loadTargetFields(targetObjectCode)
+  const existing = localRelations.value.find(relation => relation.targetObjectCode === targetObjectCode)
+  if (existing) {
+    existing.sourceFieldCode = sourceFieldCode
+    existing.targetFieldCode = targetFieldCode
+    existing.displayField = existing.displayField || firstDisplayField(targetObjectCode, targetFieldCode)
+    activeRelationKey.value = existing.clientKey
+    markRelationDirty()
+    message.success('已更新关系字段连接')
+  }
+  else {
+    const relation = buildRelationDraft({
+      relationType: 'DETAIL',
+      targetObjectCode,
+      sourceFieldCode,
+      targetFieldCode,
+      saveMode: 'merge',
+    })
+    localRelations.value.push(relation)
+    activeRelationKey.value = relation.clientKey
+    markRelationDirty()
+    message.success('关系已创建，请确认右侧配置后保存')
+  }
+  activePanel.value = 'relation'
   nextTick(() => scrollToRelationSection('basic'))
 }
 
@@ -1086,6 +1223,13 @@ function selectLinkageRule(ruleId) {
 
 function selectErDiagram() {
   activePanel.value = 'er'
+  erCandidateObjectCodes.value.forEach(loadTargetFields)
+}
+
+function updateErCandidateObjects(values) {
+  const relationTargets = localRelations.value.map(relation => relation.targetObjectCode).filter(Boolean)
+  erCandidateObjectCodes.value = Array.from(new Set([...(values || []), ...relationTargets]))
+  erCandidateObjectCodes.value.forEach(loadTargetFields)
 }
 
 function removeActiveRelation() {
@@ -1149,20 +1293,6 @@ function removeLinkageRule(index) {
   if (!rules.some(rule => rule.ruleId === activeLinkageRuleId.value))
     activeLinkageRuleId.value = rules[0]?.ruleId || ''
   syncLinkageModel(true)
-}
-
-function updateRelationType(relation, value) {
-  relation.relationType = normalizeDesignerRelationType(value)
-  if (!canInlineEdit(relation)) {
-    relation.inlineCreateEnabled = false
-    relation.inlineEditEnabled = false
-  }
-  relation.sourceFieldCode = firstSourceField(relation.relationType, relation.targetObjectCode, relation.sourceFieldCode)
-  relation.targetFieldCode = firstTargetField(relation.targetObjectCode, relation.relationType, relation.targetFieldCode)
-  if (!relation.displayField)
-    relation.displayField = firstDisplayField(relation.targetObjectCode, relation.targetFieldCode)
-  relation.relationName = relationLabel(relation)
-  markDirty()
 }
 
 async function updateTargetObject(relation, value) {
@@ -2227,9 +2357,10 @@ function buildErDiagramModels() {
       },
     },
   ]
-  const targetCodes = Array.from(new Set(localRelations.value
-    .map(relation => relation.targetObjectCode)
-    .filter(Boolean)))
+  const targetCodes = Array.from(new Set([
+    ...erCandidateObjectCodes.value,
+    ...localRelations.value.map(relation => relation.targetObjectCode).filter(Boolean),
+  ]))
   targetCodes.forEach((targetCode) => {
     const targetObject = businessObjects.value.find(item => item.objectCode === targetCode) || {}
     models.push({
@@ -2277,6 +2408,7 @@ function normalizeErFields(fields = []) {
 
 function toErRelation(relation = {}) {
   return {
+    relationKey: relation.clientKey || relation.id || '',
     relationType: normalizeErRelationType(relation.relationType),
     targetObjectCode: relation.targetObjectCode,
     sourceField: relation.sourceFieldCode || 'id',
@@ -2594,35 +2726,35 @@ defineExpose({
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: #f6f8fb;
+  background: var(--bg-secondary, #f7f8fa);
 }
 
 .relation-designer-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  border-bottom: 1px solid #e5e9f2;
-  background: #fff;
-  padding: 14px 20px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-light, #e5e6eb);
+  background: var(--bg-primary, #fff);
+  padding: 10px 14px;
 }
 
 .relation-designer-head h3 {
   margin: 0;
-  color: #111827;
-  font-size: 18px;
+  color: var(--text-primary, #1d2129);
+  font-size: 16px;
   font-weight: 650;
 }
 
 .relation-designer-head p {
   margin: 4px 0 0;
-  color: #667085;
+  color: var(--text-tertiary, #86909c);
   font-size: 12px;
 }
 
 .relation-workbench {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr);
   min-height: 0;
   overflow: hidden;
 }
@@ -2630,12 +2762,12 @@ defineExpose({
 .relation-step-rail {
   display: grid;
   align-content: start;
-  gap: 18px;
+  gap: 12px;
   min-height: 0;
   overflow-y: auto;
-  border-right: 1px solid #e5e9f2;
-  background: #fbfcff;
-  padding: 18px 14px;
+  border-right: 1px solid var(--border-light, #e5e6eb);
+  background: var(--bg-secondary, #f7f8fa);
+  padding: 12px 10px;
 }
 
 .rail-block {
@@ -2691,8 +2823,36 @@ defineExpose({
 }
 
 .relation-er-panel {
+  display: grid;
+  gap: 10px;
   min-height: 100%;
-  padding: 16px;
+  padding: 0;
+}
+
+.er-object-picker {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.45fr) minmax(320px, 1fr);
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border-default, #c9cdd4);
+  border-radius: 7px;
+  background: var(--bg-primary, #fff);
+  padding: 9px 11px;
+}
+
+.er-object-picker > div {
+  display: grid;
+  gap: 2px;
+}
+
+.er-object-picker strong {
+  color: var(--text-primary, #1d2129);
+  font-size: 12px;
+}
+
+.er-object-picker span {
+  color: var(--text-tertiary, #86909c);
+  font-size: 11px;
 }
 
 .relation-choice strong {
@@ -2713,7 +2873,7 @@ defineExpose({
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  padding: 20px 24px 28px;
+  padding: 12px 14px 18px;
   scroll-behavior: smooth;
 }
 
@@ -2725,20 +2885,21 @@ defineExpose({
 }
 
 .relation-config-card {
-  border: 1px solid #e3e8f2;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 10px 26px rgb(16 24 40 / 4%);
-  padding: 16px 18px 18px;
+  border: 1px solid var(--border-default, #c9cdd4);
+  border-radius: 7px;
+  background: var(--bg-primary, #fff);
+  padding: 14px;
   scroll-margin-top: 16px;
 }
 
 .relation-match-box {
   display: grid;
-  gap: 12px;
-  margin-top: 14px;
-  border-top: 1px solid #edf1f7;
-  padding-top: 14px;
+  gap: 10px;
+  margin-top: 10px;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 7px;
+  background: var(--bg-secondary, #f7f8fa);
+  padding: 11px;
 }
 
 .relation-match-box-head,
@@ -2749,10 +2910,119 @@ defineExpose({
   gap: 12px;
 }
 
+.relation-match-box-head > div {
+  display: grid;
+  gap: 2px;
+}
+
 .relation-match-box-head strong {
-  color: #111827;
+  color: var(--text-primary, #1d2129);
   font-size: 13px;
   font-weight: 650;
+}
+
+.relation-match-box-head span {
+  color: var(--text-tertiary, #86909c);
+  font-size: 11px;
+}
+
+.relation-identity-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) 112px 92px;
+  align-items: end;
+  gap: 10px;
+}
+
+.relation-identity-grid :deep(.n-form-item) {
+  margin-bottom: 0;
+}
+
+.relation-identity-state {
+  display: flex;
+  min-height: 56px;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 6px;
+  background: var(--bg-secondary, #f7f8fa);
+  padding: 7px 9px;
+}
+
+.relation-identity-state span {
+  color: var(--text-tertiary, #86909c);
+  font-size: 11px;
+}
+
+.relation-identity-state strong {
+  color: var(--text-primary, #1d2129);
+  font-size: 12px;
+}
+
+.relation-endpoint-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.relation-endpoint-card {
+  min-width: 0;
+  border: 1px solid var(--border-default, #c9cdd4);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+  padding: 9px 10px 0;
+}
+
+.relation-endpoint-card header {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 7px;
+}
+
+.relation-endpoint-card header span {
+  color: var(--text-tertiary, #86909c);
+  font-size: 10px;
+}
+
+.relation-endpoint-card header strong {
+  overflow: hidden;
+  color: var(--text-primary, #1d2129);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relation-endpoint-card :deep(.n-form-item) {
+  margin-bottom: 9px;
+}
+
+.endpoint-connector {
+  display: grid;
+  grid-template-columns: 18px minmax(20px, 1fr) 18px;
+  align-items: center;
+  color: var(--primary-color, #165dff);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.endpoint-connector i {
+  height: 1px;
+  background: var(--primary-color, #165dff);
+}
+
+.endpoint-connector span {
+  border: 1px solid var(--primary-color, #165dff);
+  border-radius: 50%;
+  line-height: 16px;
+}
+
+.relation-display-field {
+  max-width: calc(50% - 44px);
+}
+
+.relation-display-field :deep(.n-form-item) {
+  margin-bottom: 0;
 }
 
 .relation-advanced-collapse {
@@ -2829,10 +3099,52 @@ defineExpose({
 }
 
 .relation-card {
-  border: 1px solid #edf1f7;
-  border-radius: 8px;
-  background: #fbfcff;
-  padding: 14px;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 7px;
+  background: var(--bg-secondary, #f7f8fa);
+  padding: 12px;
+}
+
+.linkage-flow-editor {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 26px minmax(180px, 1fr) 26px minmax(160px, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.linkage-flow-editor :deep(.n-form-item),
+.linkage-state-grid :deep(.n-form-item) {
+  margin-bottom: 0;
+}
+
+.linkage-flow-arrow {
+  margin-top: 18px;
+  color: var(--primary-color, #165dff);
+  font-size: 18px;
+  text-align: center;
+}
+
+.linkage-detail-section {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  border-top: 1px solid var(--border-light, #e5e6eb);
+  padding-top: 10px;
+}
+
+.linkage-detail-section > strong {
+  color: var(--text-secondary, #4e5969);
+  font-size: 12px;
+}
+
+.linkage-state-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(120px, 0.7fr);
+  align-items: end;
+  gap: 12px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border-light, #e5e6eb);
+  padding-top: 10px;
 }
 
 .selector-row-head,
@@ -2899,6 +3211,74 @@ defineExpose({
   line-height: 1.5;
 }
 
+.relation-wizard-form {
+  display: grid;
+  gap: 10px;
+}
+
+.wizard-section {
+  display: grid;
+  gap: 9px;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 7px;
+  background: var(--bg-secondary, #f7f8fa);
+  padding: 11px 12px 2px;
+}
+
+.wizard-section > header {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+
+.wizard-section > header > span {
+  flex: 0 0 22px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--primary-color, #165dff);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 22px;
+  text-align: center;
+}
+
+.wizard-section > header > div {
+  display: grid;
+  gap: 2px;
+}
+
+.wizard-section > header strong {
+  color: var(--text-primary, #1d2129);
+  font-size: 13px;
+}
+
+.wizard-section > header small {
+  color: var(--text-tertiary, #86909c);
+  font-size: 11px;
+}
+
+.wizard-section :deep(.n-form-item) {
+  margin-bottom: 9px;
+}
+
+.wizard-endpoint-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.wizard-flow-arrow {
+  margin-top: 18px;
+  border-radius: 999px;
+  color: var(--primary-color, #165dff);
+  background: color-mix(in srgb, var(--primary-color, #165dff) 9%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 24px;
+  text-align: center;
+}
+
 @media (max-width: 1180px) {
   .relation-workbench {
     grid-template-columns: 1fr;
@@ -2909,6 +3289,10 @@ defineExpose({
     grid-template-columns: minmax(0, 1fr);
     border-right: 0;
     border-bottom: 1px solid #e5e9f2;
+  }
+
+  .relation-identity-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -2926,6 +3310,36 @@ defineExpose({
   .selector-toggle-row {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .relation-identity-grid,
+  .relation-endpoint-flow,
+  .er-object-picker,
+  .linkage-flow-editor,
+  .linkage-state-grid,
+  .wizard-endpoint-flow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .endpoint-connector {
+    width: 120px;
+    justify-self: center;
+  }
+
+  .linkage-flow-arrow {
+    margin: -2px 0;
+    transform: rotate(90deg);
+  }
+
+  .relation-display-field {
+    max-width: none;
+  }
+
+  .wizard-flow-arrow {
+    width: 64px;
+    margin: 0;
+    justify-self: center;
+    transform: rotate(90deg);
   }
 
   .selector-row-head {

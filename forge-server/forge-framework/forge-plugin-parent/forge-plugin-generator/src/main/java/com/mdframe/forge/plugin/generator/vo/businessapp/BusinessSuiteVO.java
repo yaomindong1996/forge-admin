@@ -34,6 +34,10 @@ public class BusinessSuiteVO {
 
     private Long enabledAppCount;
 
+    private Long applicationCount;
+
+    private Long enabledApplicationCount;
+
     private LocalDateTime latestUpdateTime;
 
     private LocalDateTime createTime;

@@ -43,7 +43,6 @@ import com.mdframe.forge.plugin.generator.service.lowcode.runtime.LowcodeRuntime
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectDesignerVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectRelationVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectVO;
-import com.mdframe.forge.plugin.generator.vo.lowcode.LowcodeDdlPreviewVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import lombok.Data;
@@ -66,10 +65,9 @@ import java.util.Set;
  */
 @Service
 @RequiredArgsConstructor
-public class BusinessObjectDesignerService {
+public class BusinessObjectDesignerService implements BusinessObjectDesignContextProvider {
 
     private static final String GENERAL_DOMAIN_CODE = "general";
-    private static final String DDL_PERMISSION = "ai:lowcode:deploy-ddl";
     private static final String FORM_DESIGNER_SCHEMA_OPTION_KEY = "formDesignerSchema";
     private static final String VIEW_SCHEMA_OPTION_KEY = "viewSchema";
     private static final String LINKAGE_SCHEMA_OPTION_KEY = "linkageSchema";
@@ -176,9 +174,11 @@ public class BusinessObjectDesignerService {
     private final BusinessFieldSchemaService fieldSchemaService;
     private final BusinessDocumentConfigService documentConfigService;
     private final BusinessAppService businessAppService;
+    private final BusinessApplicationChangeTracker applicationChangeTracker;
 
     public BusinessObjectDesignerVO getDesigner(Long objectId) {
         DesignerContext context = loadContext(objectId);
+        applyRelationsToModel(context);
         BusinessObjectDesignerVO vo = new BusinessObjectDesignerVO();
         BusinessObjectVO objectVO = context.getObjectVO();
         AiBusinessObject object = context.getObject();
@@ -188,6 +188,8 @@ public class BusinessObjectDesignerService {
         vo.setObjectCode(object.getObjectCode());
         vo.setObjectName(object.getObjectName());
         vo.setObjectType(object.getObjectType());
+        vo.setConfigId(context.getConfig() == null ? null : context.getConfig().getId());
+        vo.setConfigKey(context.getConfig() == null ? object.getConfigKey() : context.getConfig().getConfigKey());
         vo.setDisplayField(object.getDisplayField());
         vo.setIcon(object.getIcon());
         vo.setDescription(object.getDescription());
@@ -221,8 +223,7 @@ public class BusinessObjectDesignerService {
             if (dto.getModelSchema() != null) {
                 context.setModelSchema(enrichModelSchema(object, dto.getModelSchema()));
             } else if (dto.getFields() != null && !dto.getFields().isEmpty()) {
-                context.setModelSchema(rebuildModelFields(context.getModelSchema(),
-                        normalizeDesignerFieldPayloads(dto.getFields(), resolvePayloadFormSchema(dto))));
+                context.setModelSchema(rebuildModelFields(context.getModelSchema(), dto.getFields()));
             }
             if (dto.getPageSchema() != null) {
                 context.setPageSchema(ensurePageSchema(dto.getPageSchema(), context.getModelSchema()));
@@ -250,29 +251,10 @@ public class BusinessObjectDesignerService {
                 applyRelationsToModel(context);
             }
         }
-        DesignerContext savedContext = saveDraft(context, BusinessObjectDesignStatus.CHANGED);
-        if (dto != null && Boolean.TRUE.equals(dto.getSyncDdl())) {
-            syncTableStructure(savedContext.getModelSchema(), dto);
-        }
+        saveDraft(context, BusinessObjectDesignStatus.CHANGED);
     }
 
-    private void syncTableStructure(LowcodeModelSchema modelSchema, BusinessObjectDesignerDTO dto) {
-        if (modelSchema == null || StringUtils.isBlank(modelSchema.getTableName())) {
-            return;
-        }
-        LowcodeDdlPreviewVO preview = ddlService.previewCreateTable(modelSchema);
-        if (preview.getDdlStatements() == null || preview.getDdlStatements().isEmpty()) {
-            return;
-        }
-        if (!Boolean.TRUE.equals(dto.getConfirmSyncDdl())) {
-            throw new BusinessException("同步表结构需要二次确认");
-        }
-        if (!SessionHelper.hasPermission(DDL_PERMISSION)) {
-            throw new BusinessException("缺少同步表结构权限: " + DDL_PERMISSION);
-        }
-        ddlService.executeCreateTable(modelSchema);
-    }
-
+    @Override
     public DesignerContext loadContext(Long objectId) {
         AiBusinessObject object = objectService.requireEntity(objectId);
         BusinessObjectVO objectVO = objectService.detail(objectId);
@@ -342,6 +324,7 @@ public class BusinessObjectDesignerService {
         }
         businessObjectMapper.updateById(object);
         businessAppService.syncRuntimeAppsForObject(object.getSuiteCode(), object.getObjectCode(), config.getConfigKey());
+        applicationChangeTracker.markObjectChanged(object.getId());
 
         context.setModel(model);
         context.setConfig(config);
@@ -353,6 +336,23 @@ public class BusinessObjectDesignerService {
     @Transactional(rollbackFor = Exception.class)
     public AiCrudConfig ensureRuntimeDraft(Long objectId) {
         return saveDraft(loadContext(objectId), BusinessObjectDesignStatus.CHANGED).getConfig();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public AiCrudConfig prepareRuntimeDraft(Long objectId) {
+        DesignerContext context = loadContext(objectId);
+        String beforeModelSchema = writeJson(context.getModelSchema(), "modelSchema");
+        String beforePageSchema = writeJson(context.getPageSchema(), "pageSchema");
+        applyRelationsToModel(context);
+        compileFormFirstRuntimeSchema(context);
+        String preparedModelSchema = writeJson(context.getModelSchema(), "modelSchema");
+        String preparedPageSchema = writeJson(context.getPageSchema(), "pageSchema");
+        if (context.getConfig() != null
+                && StringUtils.equals(beforeModelSchema, preparedModelSchema)
+                && StringUtils.equals(beforePageSchema, preparedPageSchema)) {
+            return context.getConfig();
+        }
+        return saveDraft(context, BusinessObjectDesignStatus.CHANGED).getConfig();
     }
 
     public DesignerContext compileFormFirstRuntimeSchema(DesignerContext context) {
@@ -377,9 +377,6 @@ public class BusinessObjectDesignerService {
                 : null;
         LinkageSchemaDTO linkageSchema = hasLinkageSchema ? resolveLinkageSchema(designerOptions) : null;
 
-        if (formSchema != null) {
-            applyFormDesignerSchemaToModel(modelSchema, formSchema);
-        }
         if (linkageSchema != null) {
             applyLinkageSchemaToModel(modelSchema, linkageSchema);
         }
@@ -1124,14 +1121,18 @@ public class BusinessObjectDesignerService {
         if (defaults == null) {
             return;
         }
-        field.setFieldType(defaults.fieldType());
-        field.setDataType(defaults.dataType());
-        field.setQueryType(defaults.queryType());
-        if (field.getLength() == null) {
-            field.setLength(defaults.length());
+        if (StringUtils.isBlank(field.getFieldType())) {
+            field.setFieldType(defaults.fieldType());
         }
-        if (field.getPrecision() == null) {
-            field.setPrecision(defaults.precision());
+        field.setQueryType(defaults.queryType());
+        if (StringUtils.isBlank(field.getDataType())) {
+            field.setDataType(defaults.dataType());
+            if (field.getLength() == null) {
+                field.setLength(defaults.length());
+            }
+            if (field.getPrecision() == null) {
+                field.setPrecision(defaults.precision());
+            }
         }
     }
 
@@ -1143,14 +1144,18 @@ public class BusinessObjectDesignerService {
         if (defaults == null) {
             return;
         }
-        field.setBusinessFieldType(defaults.fieldType());
-        field.setDataType(defaults.dataType());
-        field.setQueryType(defaults.queryType());
-        if (field.getLength() == null) {
-            field.setLength(defaults.length());
+        if (StringUtils.isBlank(field.getBusinessFieldType())) {
+            field.setBusinessFieldType(defaults.fieldType());
         }
-        if (field.getPrecision() == null) {
-            field.setPrecision(defaults.precision());
+        field.setQueryType(defaults.queryType());
+        if (StringUtils.isBlank(field.getDataType())) {
+            field.setDataType(defaults.dataType());
+            if (field.getLength() == null) {
+                field.setLength(defaults.length());
+            }
+            if (field.getPrecision() == null) {
+                field.setPrecision(defaults.precision());
+            }
         }
     }
 
@@ -2182,11 +2187,11 @@ public class BusinessObjectDesignerService {
         if ("textarea".equals(componentType) || "MULTILINE".equals(businessType)) {
             return "textarea";
         }
-        if ("number".equals(componentType) || "NUMBER".equals(businessType)) {
-            return "number";
-        }
         if ("MONEY".equals(businessType)) {
             return "money";
+        }
+        if ("number".equals(componentType) || "NUMBER".equals(businessType)) {
+            return "number";
         }
         if ("datetime".equals(componentType) || "DATETIME".equals(businessType)) {
             return "datetime";

@@ -49,9 +49,9 @@ public interface I${className}Service extends IService<${className}> {
      * 根据ID查询${functionName}详情
      */
 #if(${isMasterDetailLayout})
-    Map<String, Object> select${className}ById(Long ${pkColumn.javaField});
+    Map<String, Object> select${className}ById(${pkColumn.javaType} ${pkColumn.javaField});
 #else
-    ${className} select${className}ById(Long ${pkColumn.javaField});
+    ${className} select${className}ById(${pkColumn.javaType} ${pkColumn.javaField});
 #end
 
     /**
@@ -75,10 +75,15 @@ public interface I${className}Service extends IService<${className}> {
     /**
      * 删除${functionName}
      */
-    boolean delete${className}ById(Long ${pkColumn.javaField});
+    boolean delete${className}ById(${pkColumn.javaType} ${pkColumn.javaField});
 
     /**
      * 批量删除${functionName}
      */
-    boolean delete${className}ByIds(Long[] ${pkColumn.javaField}s);
+    boolean delete${className}ByIds(${pkColumn.javaType}[] ${pkColumn.javaField}s);
+
+    /**
+     * 批量导入${functionName}。导入解析在 Controller 完成，持久化与业务扩展在本事务入口执行。
+     */
+    boolean import${className}(List<${className}DTO> rows);
 }

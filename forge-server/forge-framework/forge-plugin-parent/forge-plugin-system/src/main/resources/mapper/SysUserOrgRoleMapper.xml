@@ -64,7 +64,7 @@
     </select>
 
     <select id="selectRoleNamesByUserOrg" resultType="java.lang.String">
-        SELECT DISTINCT r.role_name
+        SELECT r.role_name
         FROM sys_user_org_role uor
         INNER JOIN sys_role r
             ON r.id = uor.role_id
@@ -73,6 +73,7 @@
         WHERE uor.tenant_id = #{tenantId}
           AND uor.user_id = #{userId}
           AND uor.org_id = #{orgId}
+        GROUP BY r.id, r.role_name, r.sort
         ORDER BY r.sort ASC, r.role_name ASC
     </select>
 </mapper>

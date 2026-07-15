@@ -31,6 +31,10 @@ public class BusinessObjectDesignerVO {
 
     private String objectType;
 
+    private Long configId;
+
+    private String configKey;
+
     private String displayField;
 
     private String icon;

@@ -10,6 +10,7 @@ import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessSuite;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessSuiteDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessSuiteQueryDTO;
 import com.mdframe.forge.plugin.generator.mapper.BusinessAppMapper;
+import com.mdframe.forge.plugin.generator.mapper.BusinessApplicationMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessSuiteMapper;
 import com.mdframe.forge.plugin.generator.service.MenuRegisterAdapter;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessSuiteSummaryVO;
@@ -41,6 +42,7 @@ public class BusinessSuiteService extends ServiceImpl<BusinessSuiteMapper, AiBus
 
     private final MenuRegisterAdapter menuRegisterAdapter;
     private final BusinessAppMapper businessAppMapper;
+    private final BusinessApplicationMapper businessApplicationMapper;
 
     public Page<BusinessSuiteVO> page(Integer pageNum, Integer pageSize, BusinessSuiteQueryDTO query) {
         Page<BusinessSuiteVO> page = new Page<>(normalizePageNum(pageNum), normalizePageSize(pageSize));
@@ -107,6 +109,9 @@ public class BusinessSuiteService extends ServiceImpl<BusinessSuiteMapper, AiBus
         if (baseMapper.countAppsBySuite(tenantId, suite.getSuiteCode()) > 0) {
             throw new BusinessException("该业务套件已存在应用入口，不能删除");
         }
+        if (businessApplicationMapper.countBySuiteCode(tenantId, suite.getSuiteCode()) > 0) {
+            throw new BusinessException("该业务套件已存在业务应用，不能删除");
+        }
         removeById(suite.getId());
     }
 
@@ -120,6 +125,18 @@ public class BusinessSuiteService extends ServiceImpl<BusinessSuiteMapper, AiBus
             throw new BusinessException("业务套件不存在: " + code);
         }
         return suite;
+    }
+
+    public List<String> listSelfAndDescendantCodes(String suiteCode) {
+        String code = StringUtils.trimToNull(suiteCode);
+        if (code == null) {
+            return List.of();
+        }
+        List<String> codes = baseMapper.selectSelfAndDescendantCodes(resolveTenantId(), code);
+        if (codes == null || codes.isEmpty()) {
+            throw new BusinessException("业务套件不存在: " + code);
+        }
+        return codes;
     }
 
     public AiBusinessSuite requireEntity(Long id) {

@@ -59,7 +59,9 @@ export default defineConfig(({ mode, command }) => {
     },
     define: {
       // 为某些依赖（例如 browser-crypto）提供全局对象
-      global: 'window',
+      // globalThis 同时兼容主页面、Web Worker 和 SSR 构建；window 会让 module Worker
+      // 在 Vite 注入 env.mjs 时直接抛出 ReferenceError。
+      global: 'globalThis',
     },
     optimizeDeps: {
       include: [
@@ -71,6 +73,9 @@ export default defineConfig(({ mode, command }) => {
         '@codemirror/lang-xml',
         '@codemirror/theme-one-dark',
         '@form-create/designer',
+        // 表单设计器通过懒加载页面引入该语言包；显式预构建，避免首次进入设计页时
+        // Vite 二次优化依赖并使浏览器中的 element-plus 旧 hash 返回 504。
+        '@form-create/designer/locale/zh-cn.es',
         '@form-create/element-ui',
         '@stomp/stompjs',
         '@vicons/ionicons5',

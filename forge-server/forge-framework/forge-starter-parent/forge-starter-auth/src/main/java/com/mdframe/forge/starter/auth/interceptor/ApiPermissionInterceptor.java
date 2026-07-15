@@ -32,6 +32,7 @@ public class ApiPermissionInterceptor implements HandlerInterceptor {
             "/auth/userInfo",
             "/auth/changePassword",
             "/auth/logout",
+            "/crypto/config",
             "/crypto/public-key",
             "/crypto/exchange"
     );

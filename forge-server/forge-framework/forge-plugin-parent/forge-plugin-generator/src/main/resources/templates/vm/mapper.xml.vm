@@ -3,11 +3,182 @@
 <mapper namespace="${packageName}.${moduleName}.mapper.${className}Mapper">
 
     <resultMap id="BaseResultMap" type="${packageName}.${moduleName}.entity.${className}">
-#foreach ($column in $columns)
+#foreach ($column in $allColumns)
+#if($column.isPk)
+        <id property="${column.javaField}" column="${column.columnName}" />
+#else
         <result property="${column.javaField}" column="${column.columnName}" />
+#end
+#end
+#if(${hasEntityTreeFields})
+        <result property="isLeaf" column="is_leaf" />
 #end
     </resultMap>
 
-    <!-- 可根据需要添加自定义SQL -->
+    <sql id="BaseColumns">
+#foreach ($column in $allColumns)
+        ${column.columnName}#if($foreach.hasNext),#end
+#end
+    </sql>
 
+#if(${isPrimaryCodegenTable})
+    <sql id="GeneratedQueryWhere">
+#foreach($column in $columns)
+#if($column.isQuery == 1)
+#if($column.queryType == 'LIKE')
+        <if test="query != null and query.${column.javaField} != null and query.${column.javaField} != ''">
+            AND ${column.columnName} LIKE CONCAT('%', #{query.${column.javaField}}, '%')
+        </if>
+#elseif($column.queryType == 'LEFT_LIKE')
+        <if test="query != null and query.${column.javaField} != null and query.${column.javaField} != ''">
+            AND ${column.columnName} LIKE CONCAT('%', #{query.${column.javaField}})
+        </if>
+#elseif($column.queryType == 'RIGHT_LIKE')
+        <if test="query != null and query.${column.javaField} != null and query.${column.javaField} != ''">
+            AND ${column.columnName} LIKE CONCAT(#{query.${column.javaField}}, '%')
+        </if>
+#elseif($column.queryType == 'NE')
+        <if test="query != null and query.${column.javaField} != null">
+            AND ${column.columnName} &lt;&gt; #{query.${column.javaField}}
+        </if>
+#elseif($column.queryType == 'GT')
+        <if test="query != null and query.${column.javaField} != null">
+            AND ${column.columnName} &gt; #{query.${column.javaField}}
+        </if>
+#elseif($column.queryType == 'GE' || $column.queryType == 'GTE')
+        <if test="query != null and query.${column.javaField} != null">
+            AND ${column.columnName} &gt;= #{query.${column.javaField}}
+        </if>
+#elseif($column.queryType == 'LT')
+        <if test="query != null and query.${column.javaField} != null">
+            AND ${column.columnName} &lt; #{query.${column.javaField}}
+        </if>
+#elseif($column.queryType == 'LE' || $column.queryType == 'LTE')
+        <if test="query != null and query.${column.javaField} != null">
+            AND ${column.columnName} &lt;= #{query.${column.javaField}}
+        </if>
+#elseif($column.queryType == 'IN')
+        <if test="query != null and query.${column.javaField} != null and query.${column.javaField}.size() > 0">
+            AND ${column.columnName} IN
+            <foreach collection="query.${column.javaField}" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+#elseif($column.queryType == 'BETWEEN')
+        <if test="query != null and query.${column.javaField} != null and query.${column.javaField}.size() >= 2">
+            AND ${column.columnName} BETWEEN #{query.${column.javaField}[0]} AND #{query.${column.javaField}[1]}
+        </if>
+#else
+        <if test="query != null and query.${column.javaField} != null">
+            AND ${column.columnName} = #{query.${column.javaField}}
+        </if>
+#end
+#end
+#end
+    </sql>
+
+#end
+
+#if(${isPrimaryCodegenTable})
+    <select id="selectGeneratedPage" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumns" />
+        FROM ${tableName}
+        <where>
+#if(${hasLogicDeleteColumn})
+            del_flag = '0'
+#else
+            1 = 1
+#end
+            <include refid="GeneratedQueryWhere" />
+        </where>
+#if($pkColumn)
+        ORDER BY ${pkColumn.columnName} DESC
+#end
+    </select>
+
+    <select id="selectGeneratedList" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumns" />
+        FROM ${tableName}
+        <where>
+#if(${hasLogicDeleteColumn})
+            del_flag = '0'
+#else
+            1 = 1
+#end
+            <include refid="GeneratedQueryWhere" />
+        </where>
+#if($pkColumn)
+        ORDER BY ${pkColumn.columnName} DESC
+#end
+    </select>
+
+#end
+#if(${hasEntityTreeFields})
+    <select id="selectTreeRows" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumns" />,
+               CASE WHEN EXISTS (
+                   SELECT 1
+                   FROM ${tableName} child
+                   WHERE child.${tree.parentColumn} = tree_node.${tree.keyColumn}
+#if(${hasLogicDeleteColumn})
+                     AND child.del_flag = '0'
+#end
+               ) THEN 0 ELSE 1 END AS is_leaf
+        FROM ${tableName} tree_node
+        <where>
+#if(${hasLogicDeleteColumn})
+            tree_node.del_flag = '0'
+#else
+            1 = 1
+#end
+            <if test="loadMode != null and loadMode.equalsIgnoreCase('lazy')">
+                <choose>
+                    <when test="parentValue != null and parentValue != ''">
+                        AND tree_node.${tree.parentColumn} = #{parentValue}
+                    </when>
+                    <otherwise>
+                        AND (tree_node.${tree.parentColumn} IS NULL
+                             OR tree_node.${tree.parentColumn} = 0
+                             OR tree_node.${tree.parentColumn} = '0')
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+        ORDER BY tree_node.${tree.keyColumn} ASC
+    </select>
+
+#end
+#if(${isMasterDetailLayout})
+#foreach($child in $masterDetailChildren)
+    <select id="select${child.className}Rows" resultType="${packageName}.${moduleName}.entity.${child.className}">
+        SELECT
+#foreach($column in $child.columns)
+               ${column.columnName}#if($foreach.hasNext),#end
+#end
+        FROM ${child.tableName}
+        WHERE ${child.childFkColumn} = #{relationValue}
+#if($child.hasLogicDelete)
+          AND del_flag = '0'
+#end
+#if($child.pkColumn)
+        ORDER BY ${child.pkColumn.columnName} ASC
+#end
+    </select>
+
+#if($child.hasLogicDelete)
+    <update id="clear${child.className}Rows">
+        UPDATE ${child.tableName}
+        SET del_flag = '1'
+        WHERE ${child.childFkColumn} = #{relationValue}
+          AND del_flag = '0'
+    </update>
+#else
+    <delete id="clear${child.className}Rows">
+        DELETE FROM ${child.tableName}
+        WHERE ${child.childFkColumn} = #{relationValue}
+    </delete>
+#end
+
+#end
+#end
 </mapper>

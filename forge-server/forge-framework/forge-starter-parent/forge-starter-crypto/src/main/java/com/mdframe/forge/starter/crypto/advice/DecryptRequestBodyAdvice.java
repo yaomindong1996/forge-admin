@@ -68,6 +68,9 @@ public class DecryptRequestBodyAdvice implements RequestBodyAdvice {
             return false;
         }
         HttpServletRequest request = attributes.getRequest();
+        if (isPlaintextControlEndpoint(request)) {
+            return false;
+        }
         // 内部服务调用（如 FlowClient）直接传输明文 JSON，无需解密
         if ("true".equalsIgnoreCase(request.getHeader("X-Inner-Call"))) {
             return false;
@@ -198,6 +201,15 @@ public class DecryptRequestBodyAdvice implements RequestBodyAdvice {
         
         // 最后使用 HTTP Session ID（与 KeyExchangeController 保持一致）
         return request.getSession(false) != null ? request.getSession(false).getId() : null;
+    }
+
+    private boolean isPlaintextControlEndpoint(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (contextPath != null && !contextPath.isBlank() && path.startsWith(contextPath)) {
+            path = path.substring(contextPath.length());
+        }
+        return "/crypto/config".equals(path) || "/api/config/manage/crypto".equals(path);
     }
 
     @Override

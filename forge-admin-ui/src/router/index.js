@@ -101,7 +101,19 @@ export const manualRoutes = [
     name: 'BusinessObjectDesigner',
     path: '/app-center/object/:objectCode/designer',
     component: () => import('@/views/app-center/object-designer.[objectCode].vue'),
-    meta: { title: '业务单元设计', skipTab: true },
+    meta: { title: '业务单元设计', skipTab: true, preserveOnQuery: true },
+  },
+  {
+    name: 'BusinessApplicationWorkspace',
+    path: '/app-center/application/:applicationCode',
+    component: () => import('@/views/app-center/application.[applicationCode].vue'),
+    meta: { title: '应用工作台', skipTab: true, preserveOnQuery: true },
+  },
+  {
+    name: 'BusinessApplicationPreview',
+    path: '/app-center/application/:applicationCode/preview',
+    component: () => import('@/views/app-center/application-preview.[applicationCode].vue'),
+    meta: { title: '预览应用', skipTab: true, preserveOnQuery: true },
   },
   {
     name: 'BusinessAppEntry',

@@ -614,49 +614,13 @@
       </n-drawer-content>
     </n-drawer>
 
-    <!-- 导入弹窗 -->
-    <n-modal
+    <AiCrudImportModal
       v-model:show="importModalVisible"
-      title="批量导入"
-      preset="card"
-      style="width: 600px"
-      :mask-closable="false"
-    >
-      <n-upload
-        :data="importData"
-        :custom-request="handleImportRequest"
-        :max="1"
-        accept=".xlsx,.xls"
-      >
-        <n-upload-dragger>
-          <div style="margin-bottom: 12px">
-            <n-icon size="48" :depth="3">
-              <CloudUploadOutline />
-            </n-icon>
-          </div>
-          <n-text style="font-size: var(--font-size-lg)">
-            点击或者拖动文件到该区域来上传
-          </n-text>
-          <n-p depth="3" style="margin: 8px 0 0 0">
-            请上传 .xlsx 或 .xls 格式的文件
-          </n-p>
-        </n-upload-dragger>
-      </n-upload>
-
-      <template v-if="importTemplateUrl" #footer>
-        <n-space justify="space-between">
-          <n-button text @click="handleDownloadTemplate">
-            <template #icon>
-              <n-icon><DownloadOutline /></n-icon>
-            </template>
-            下载导入模板
-          </n-button>
-          <n-button @click="importModalVisible = false">
-            关闭
-          </n-button>
-        </n-space>
-      </template>
-    </n-modal>
+      :importer="executeImport"
+      :template-downloader="hasImportTemplate ? handleDownloadTemplate : null"
+      :has-template="hasImportTemplate"
+      @success="handleImportSuccess"
+    />
 
     <n-modal
       v-model:show="commandActionModalVisible"
@@ -764,6 +728,7 @@ import { useUserStore } from '@/store'
 import { downloadFile, request } from '@/utils'
 import { postEncrypt } from '@/utils/encrypt-request'
 import AiCrudFlowDetail from './AiCrudFlowDetail.vue'
+import AiCrudImportModal from './AiCrudImportModal.vue'
 import { aiCrudPageProps } from './AiCrudPageProps'
 import AiCrudRowExpand from './AiCrudRowExpand.vue'
 import AiCustomQuery from './AiCustomQuery.vue'
@@ -871,6 +836,7 @@ let inlineFormTabSequence = 0
 
 // 导入
 const importModalVisible = ref(false)
+const hasImportTemplate = computed(() => !!(props.importTemplateUrl || props.apiConfig?.importTemplate))
 
 // 导出
 const exportLoading = ref(false)
@@ -1897,8 +1863,12 @@ const resolvedExportTaskConfigKey = computed(() => {
   return match?.[1] || ''
 })
 
+const hasExportTaskApi = computed(() => {
+  return !!props.apiConfig?.exportTasks || !!resolvedExportTaskConfigKey.value
+})
+
 const showExportTaskEntry = computed(() => {
-  return props.showExport && props.showExportTasks && !!resolvedExportTaskConfigKey.value
+  return props.showExport && props.showExportTasks && hasExportTaskApi.value
 })
 
 const toolbarOverflowOptions = computed(() => {
@@ -4236,65 +4206,35 @@ function handleShowImport() {
 }
 
 /**
- * 自定义导入请求，复用统一 axios 拦截器补齐认证和防重放头。
+ * 执行导入请求，复用统一 axios 拦截器补齐认证和防重放头。
  */
-async function handleImportRequest({ file, data, onFinish, onError, onProgress }) {
-  try {
-    const { method, url } = parseApiConfig('import', props.importApi, 'post')
-    const requestMethod = method === 'postEncrypt' ? 'post' : method.toLowerCase()
-    const formData = new FormData()
-    formData.append('file', file.file)
+async function executeImport(file, onProgress) {
+  const { method, url } = parseApiConfig('import', props.importApi, 'post')
+  const requestMethod = method === 'postEncrypt' ? 'post' : method.toLowerCase()
+  const formData = new FormData()
+  formData.append('file', file)
 
-    const extraData = { ...props.importData, ...(data || {}) }
-    Object.entries(extraData).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        formData.append(key, value)
-      }
-    })
+  Object.entries(props.importData || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null)
+      formData.append(key, value)
+  })
 
-    const response = await request({
-      method: requestMethod,
-      url,
-      data: formData,
-      headers: props.importHeaders,
-      encrypt: false,
-      onUploadProgress: (event) => {
-        if (!event.total)
-          return
-        onProgress?.({ percent: Math.round((event.loaded / event.total) * 100) })
-      },
-    })
-
-    const result = response?.data || response
-    if (result?.success === false) {
-      window.$message.error(buildImportFailureMessage(result))
-      onError?.()
-      return
-    }
-
-    window.$message.success(result?.summary || '导入成功')
-    importModalVisible.value = false
-    loadList()
-    onFinish?.()
-  }
-  catch (error) {
-    console.error('导入失败:', error)
-    window.$message.error(error?.message || '导入失败')
-    onError?.()
-  }
+  const response = await request({
+    method: requestMethod,
+    url,
+    data: formData,
+    headers: props.importHeaders,
+    encrypt: false,
+    onUploadProgress: (event) => {
+      if (event.total)
+        onProgress?.(Math.round((event.loaded / event.total) * 100))
+    },
+  })
+  return response?.data || response
 }
 
-function buildImportFailureMessage(result) {
-  if (result?.summary && result?.errors?.length) {
-    return result.summary
-  }
-  const firstError = result?.errors?.[0]
-  if (!firstError) {
-    return result?.summary || '导入校验失败'
-  }
-  const label = firstError.columnName || firstError.label || firstError.field || '字段'
-  const message = firstError.errorMessage || firstError.message || '数据不正确'
-  return `导入校验失败：第${firstError.rowNum || '-'}行【${label}】${message}`
+function handleImportSuccess() {
+  loadList()
 }
 
 /**
@@ -4417,7 +4357,7 @@ async function resolveAsyncExportResult(response) {
 }
 
 async function handleOpenExportTasks() {
-  if (!resolvedExportTaskConfigKey.value) {
+  if (!hasExportTaskApi.value) {
     window.$message.warning('当前导出接口不支持任务查询')
     return
   }
@@ -4427,14 +4367,18 @@ async function handleOpenExportTasks() {
 }
 
 async function loadExportTasks() {
-  if (!resolvedExportTaskConfigKey.value) {
+  if (!hasExportTaskApi.value) {
     return
   }
   exportTaskLoading.value = true
   try {
+    const fallbackUrl = `/ai/crud/${resolvedExportTaskConfigKey.value}/export/tasks`
+    const { method, url } = props.apiConfig?.exportTasks
+      ? parseApiConfig('exportTasks', '', 'get')
+      : { method: 'get', url: fallbackUrl }
     const response = await request({
-      method: 'get',
-      url: `/ai/crud/${resolvedExportTaskConfigKey.value}/export/tasks`,
+      method,
+      url,
       params: {
         pageNum: exportTaskPagination.value.page,
         pageSize: exportTaskPagination.value.pageSize,
@@ -4455,15 +4399,19 @@ async function loadExportTasks() {
 
 async function pollExportTask(taskId) {
   clearExportTaskPollTimer()
-  if (!taskId || !resolvedExportTaskConfigKey.value) {
+  if (!taskId || !hasExportTaskApi.value) {
     return
   }
 
   const fetchTask = async () => {
     try {
+      const fallbackUrl = `/ai/crud/${resolvedExportTaskConfigKey.value}/export/tasks/${taskId}`
+      const { method, url } = props.apiConfig?.exportTask
+        ? parseApiConfig('exportTask', '', 'get', { taskId })
+        : { method: 'get', url: fallbackUrl }
       const response = await request({
-        method: 'get',
-        url: `/ai/crud/${resolvedExportTaskConfigKey.value}/export/tasks/${taskId}`,
+        method,
+        url,
         needTip: false,
       })
       const task = response?.data
@@ -4999,7 +4947,7 @@ watch(() => stableSerialize(props.publicQuery || {}), () => {
 }
 
 .ai-crud-table :deep(.n-data-table-base-table-body) {
-  min-height: 144px;
+  min-height: 0;
 }
 
 .ai-crud-table :deep(.n-data-table-empty) {

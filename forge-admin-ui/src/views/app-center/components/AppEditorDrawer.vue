@@ -1039,6 +1039,7 @@ function extractEntryDefaultParams(config = {}) {
 function defaultForm() {
   return {
     id: null,
+    applicationId: null,
     appName: '',
     appCode: '',
     appType: 'BUSINESS',

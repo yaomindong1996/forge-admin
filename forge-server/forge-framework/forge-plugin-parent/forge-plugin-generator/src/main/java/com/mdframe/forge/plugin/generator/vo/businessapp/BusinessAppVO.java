@@ -18,6 +18,8 @@ public class BusinessAppVO {
 
     private String appType;
 
+    private Long applicationId;
+
     private String suiteCode;
 
     private String suiteName;

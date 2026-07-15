@@ -4981,25 +4981,6 @@ function handleSwitchComponentType(newKey) {
     props: nextProps,
     fieldBinding: nextFieldBinding,
   })
-  const asset = selectedFieldAsset.value
-  if (!asset || !selectedFieldCode.value)
-    return
-  emit('fieldAssetUpdated', {
-    ...asset,
-    fieldCode: selectedFieldCode.value,
-    fieldType: defaults.fieldType,
-    dataType: defaults.dataType,
-    length: defaults.length,
-    precision: defaults.precision,
-    componentType: defaults.componentType || newKey,
-    queryType: defaults.queryType,
-    fieldBinding: nextFieldBinding,
-    basicProps: {
-      ...(asset.basicProps || {}),
-      ...nextProps,
-      fieldBinding: nextFieldBinding,
-    },
-  })
 }
 
 function updateComponentHidden(value) {
@@ -5030,14 +5011,6 @@ function updateValidationPreset(value) {
     nextValidation.message = ''
   }
   updateComponent({ validation: nextValidation })
-  const asset = selectedFieldAsset.value
-  if (!asset || !selectedFieldCode.value)
-    return
-  emit('fieldAssetUpdated', {
-    ...asset,
-    fieldCode: selectedFieldCode.value,
-    validation: nextValidation,
-  })
 }
 
 function normalizePositiveInteger(value) {
@@ -5054,24 +5027,6 @@ function updateFieldMaxLength(value) {
       maxlength: maxLength || undefined,
       showCount: maxLength ? true : undefined,
     },
-  })
-  const asset = selectedFieldAsset.value
-  if (!asset || !selectedFieldCode.value)
-    return
-  const basicProps = { ...(asset.basicProps || {}) }
-  if (maxLength) {
-    basicProps.maxlength = maxLength
-    basicProps.showCount = true
-  }
-  else {
-    delete basicProps.maxlength
-    delete basicProps.showCount
-  }
-  emit('fieldAssetUpdated', {
-    ...asset,
-    fieldCode: selectedFieldCode.value,
-    length: maxLength || null,
-    basicProps,
   })
 }
 

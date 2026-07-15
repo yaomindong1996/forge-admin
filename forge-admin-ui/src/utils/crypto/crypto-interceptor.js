@@ -115,6 +115,9 @@ export function encryptRequest(config) {
  * @returns {object} 处理后的响应
  */
 export function decryptResponse(response) {
+  if (!cryptoConfig.enabled || !cryptoConfig.enableApiCrypto) {
+    return response
+  }
   // 检查是否是加密响应
   if (response.data && response.data.data && response.data.algorithm) {
     // 检查密钥是否有效

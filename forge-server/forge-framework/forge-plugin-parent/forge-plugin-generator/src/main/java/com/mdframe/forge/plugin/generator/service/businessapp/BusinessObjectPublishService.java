@@ -104,6 +104,16 @@ public class BusinessObjectPublishService {
 
     public BusinessPublishCheckVO publishCheck(Long objectId) {
         BusinessObjectDesignerService.DesignerContext context = designerService.loadContext(objectId);
+        return publishCheck(context, null);
+    }
+
+    public BusinessPublishCheckVO publishCheck(Long objectId, BusinessPermissionSummaryVO permissionSummary) {
+        BusinessObjectDesignerService.DesignerContext context = designerService.loadContext(objectId);
+        return publishCheck(context, permissionSummary);
+    }
+
+    private BusinessPublishCheckVO publishCheck(BusinessObjectDesignerService.DesignerContext context,
+                                                BusinessPermissionSummaryVO permissionSummary) {
         designerService.compileFormFirstRuntimeSchema(context);
         designerService.applyRelationsToModel(context);
         List<BusinessPublishCheckItemVO> items = new ArrayList<>();
@@ -115,7 +125,7 @@ public class BusinessObjectPublishService {
         checkRuntimeConfig(context, items);
         checkAppEntry(context, items);
         checkDocumentConfig(context, items);
-        checkPermissionSummary(context, items);
+        checkPermissionSummary(context, permissionSummary, items);
         checkRuntimeDataSource(context.getModelSchema(), items);
         checkTable(context.getModelSchema(), items);
         checkFormula(context, items);
@@ -124,6 +134,13 @@ public class BusinessObjectPublishService {
 
     @Transactional(rollbackFor = Exception.class)
     public Long publish(Long objectId, BusinessObjectPublishDTO dto) {
+        return publish(objectId, dto, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Long publish(Long objectId,
+                        BusinessObjectPublishDTO dto,
+                        BusinessPermissionSummaryVO permissionSummary) {
         BusinessObjectDesignerService.DesignerContext context = designerService.loadContext(objectId);
         if (dto != null && dto.getModelSchema() != null) {
             context.setModelSchema(dto.getModelSchema());
@@ -133,7 +150,7 @@ public class BusinessObjectPublishService {
         }
         designerService.applyRelationsToModel(context);
         context = designerService.saveDraft(context, BusinessObjectDesignStatus.READY);
-        BusinessPublishCheckVO check = publishCheck(objectId);
+        BusinessPublishCheckVO check = publishCheck(context, permissionSummary);
         if (Boolean.FALSE.equals(check.getPublishable()) && (dto == null || !Boolean.TRUE.equals(dto.getForce()))) {
             throw new BusinessException(buildPublishBlockedMessage(check));
         }
@@ -205,6 +222,11 @@ public class BusinessObjectPublishService {
 
     @Transactional(rollbackFor = Exception.class)
     public void rollback(Long objectId, Long versionId) {
+        rollbackForApplication(objectId, versionId);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Long rollbackForApplication(Long objectId, Long versionId) {
         BusinessObjectDesignVersionVO version = designVersionService.detail(objectId, versionId);
         if (version.getConfigId() != null && version.getCrudConfigVersionId() != null) {
             lowcodePublishService.rollback(version.getConfigId(), version.getCrudConfigVersionId());
@@ -225,7 +247,18 @@ public class BusinessObjectPublishService {
         rollbackVersion.setPublishStatus(context.getConfig() == null ? "DRAFT" : context.getConfig().getPublishStatus());
         rollbackVersion.setPublishVersion(context.getConfig() == null ? null : context.getConfig().getPublishedVersion());
         rollbackVersion.setRemark("回滚到设计版本 " + version.getVersionNo());
-        designVersionService.createVersion(rollbackVersion);
+        Long rollbackVersionId = designVersionService.createVersion(rollbackVersion);
+        AiBusinessObject object = businessObjectMapper.selectById(objectId);
+        if (object == null) {
+            throw new BusinessException("业务对象不存在");
+        }
+        object.setDesignStatus(BusinessObjectDesignStatus.PUBLISHED);
+        if (context.getConfig() != null) {
+            object.setLastPublishVersion(context.getConfig().getPublishedVersion());
+            object.setLastPublishTime(context.getConfig().getPublishTime());
+        }
+        businessObjectMapper.updateById(object);
+        return rollbackVersionId;
     }
 
     private LowcodePublishDTO buildPublishDTO(BusinessObjectDesignerService.DesignerContext context,
@@ -1392,17 +1425,26 @@ public class BusinessObjectPublishService {
             List<String> ddlStatements = preview.getDdlStatements();
             if (ddlStatements != null && !ddlStatements.isEmpty()) {
                 boolean canOnlineDdl = hasPermission(DDL_PERMISSION);
+                boolean containsUnsafeDdl = ddlService.containsUnsafeOnlineDdl(ddlStatements);
                 boolean canExecuteOnlineDdl = canOnlineDdl && runtimeContext.isAllowDdl()
-                        && Boolean.TRUE.equals(preview.getExecutable());
-                String itemCode = resolveTableSyncItemCode(ddlStatements);
+                        && Boolean.TRUE.equals(preview.getExecutable()) && !containsUnsafeDdl;
+                String itemCode = containsUnsafeDdl
+                        ? "TABLE_COLUMN_CHANGED" : resolveTableSyncItemCode(ddlStatements);
+                String unavailableMessage = containsUnsafeDdl
+                        ? "数据表差异包含字段类型、长度或必填属性调整，仅允许在数据结构中预览并导出脚本后人工审核执行: "
+                        + summarizeDdlStatements(ddlStatements)
+                        : (!runtimeContext.isAllowDdl() ? "目标数据源禁止在线 DDL，需手工同步: "
+                        + summarizeDdlStatements(ddlStatements)
+                        : "数据表结构与字段配置不一致且当前用户无在线同步权限: "
+                        + summarizeDdlStatements(ddlStatements));
                 add(items, itemCode, "TABLE", canExecuteOnlineDdl ? BusinessPublishCheckLevel.WARN : BusinessPublishCheckLevel.BLOCK,
                         "数据表结构未同步",
                         canExecuteOnlineDdl ? "发布时勾选同步数据表结构后，会在 " + runtimeDatasourceLabel(runtimeContext)
                                 + " 自动执行受控变更: " + summarizeDdlStatements(ddlStatements)
-                                : (!runtimeContext.isAllowDdl() ? "目标数据源禁止在线 DDL，需手工同步: "
-                                + summarizeDdlStatements(ddlStatements)
-                                : "数据表结构与字段配置不一致且当前用户无在线同步权限: " + summarizeDdlStatements(ddlStatements)),
-                        null, null, "SYNC_TABLE", "同步表结构", canExecuteOnlineDdl ? "publish" : "advanced", 430);
+                                : unavailableMessage,
+                        null, null, canExecuteOnlineDdl ? "SYNC_TABLE" : "REVIEW_DDL",
+                        canExecuteOnlineDdl ? "同步表结构" : "查看数据库差异",
+                        canExecuteOnlineDdl ? "publish" : "advanced", 430);
                 if (!canExecuteOnlineDdl) {
                     return;
                 }
@@ -1468,8 +1510,10 @@ public class BusinessObjectPublishService {
     }
 
     private void checkPermissionSummary(BusinessObjectDesignerService.DesignerContext context,
+                                        BusinessPermissionSummaryVO permissionSummary,
                                         List<BusinessPublishCheckItemVO> items) {
-        BusinessPermissionSummaryVO summary = permissionService.documentActionSummary(context.getObject().getId());
+        BusinessPermissionSummaryVO summary = permissionSummary == null
+                ? permissionService.documentActionSummary(context.getObject()) : permissionSummary;
         List<String> missingRequired = summary.getActionPermissions().stream()
                 .filter(item -> Boolean.TRUE.equals(item.getRequired()) && !Boolean.TRUE.equals(item.getConfigured()))
                 .map(BusinessPermissionSummaryVO.ActionPermissionVO::getActionName)

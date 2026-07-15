@@ -55,6 +55,17 @@ import { postEncrypt, request } from '@/utils'
 import { getDefaultPageTitle } from '@/utils/page-title'
 import { normalizeMultiFormDesignerSchema } from '@/views/app-center/components/designer/form-first/formDesignerSchema'
 
+const props = defineProps({
+  runtimeConfig: {
+    type: Object,
+    default: null,
+  },
+  syncDocumentTitle: {
+    type: Boolean,
+    default: true,
+  },
+})
+
 const route = useRoute()
 const router = useRouter()
 const tabStore = useTabStore()
@@ -68,8 +79,10 @@ const runtimeCrudRef = ref(null)
 const lastInitialActionKey = ref('')
 const runtimeDetailRecord = ref({})
 const runtimeDetailLoading = ref(false)
+const embeddedRuntime = computed(() => Boolean(props.runtimeConfig?.configKey))
 const runtimeOpenMode = computed(() => String(route.query?.runtimeOpenMode || '').toUpperCase())
 const formOnlyRuntime = computed(() => runtimeOpenMode.value === 'CREATE_FORM')
+const designPreview = computed(() => !embeddedRuntime.value && String(route.query?.designPreview || '') === '1')
 
 /** 当前加载的模板组件（null 表示降级到 AiCrudPage） */
 const currentTemplate = ref(null)
@@ -175,6 +188,7 @@ const RUNTIME_ROUTE_PARAM_KEYS = new Set([
   'recordId',
   'formDefaultValues',
   'submitDefaultParams',
+  'designPreview',
 ])
 
 function extractRouteEntryPublicQuery(query = {}) {
@@ -1017,9 +1031,12 @@ const crudProps = computed(() => {
     ...(gridCrudProps.submitDefaultParams || {}),
     ...routeEntrySubmitDefaultParams.value,
   }
-  const apiConfig = treeTable
+  const runtimeApiConfig = treeTable
     ? { ...(cfg.apiConfig || {}), list: cfg.apiConfig?.tree || cfg.apiConfig?.list }
     : cfg.apiConfig || {}
+  const apiConfig = designPreview.value
+    ? appendDesignPreviewToApiConfig(runtimeApiConfig)
+    : runtimeApiConfig
   const masterDetailConfig = options.masterDetailConfig || {}
   const runtimeFieldMetaMap = buildRuntimeFieldMetaMap(cfg.modelSchema)
   return {
@@ -1060,9 +1077,9 @@ const crudProps = computed(() => {
     showExport: !!options.showExport,
     showPagination: treeTable ? false : options.showPagination !== false,
     enableTreeAddChild: treeTable && (options.enableTreeAddChild === true || gridCrudProps.enableTreeAddChild === true),
-    importApi: extractApiUrl(cfg.apiConfig?.import),
-    exportApi: cfg.apiConfig?.export || '',
-    importTemplateUrl: extractApiUrl(cfg.apiConfig?.importTemplate),
+    importApi: extractApiUrl(apiConfig?.import),
+    exportApi: apiConfig?.export || '',
+    importTemplateUrl: extractApiUrl(apiConfig?.importTemplate),
     enableCustomQuery: options.enableCustomQuery !== false,
     customQueryConfigKey: cfg.configKey,
     toolbarActions: normalizeRuntimePageActions(options.toolbarActions || [], 'toolbar'),
@@ -1340,7 +1357,9 @@ function buildRuntimeTableProps(cfg = {}) {
 
 async function loadTreeTableChildren(node, cfg = {}) {
   const treeConfig = cfg.options?.treeConfig || {}
-  const treeApi = cfg.apiConfig?.tree
+  const treeApi = designPreview.value
+    ? appendDesignPreviewToApiValue(cfg.apiConfig?.tree)
+    : cfg.apiConfig?.tree
   if (!treeApi || !node)
     return
   const { method, url } = parseApiConfigValue(treeApi)
@@ -1512,6 +1531,19 @@ function extractApiUrl(apiConfigValue) {
   return parts.length > 1 ? parts.slice(1).join('@') : apiConfigValue
 }
 
+function appendDesignPreviewToApiConfig(apiConfig = {}) {
+  return Object.fromEntries(Object.entries(apiConfig || {}).map(([key, value]) => {
+    return [key, appendDesignPreviewToApiValue(value)]
+  }))
+}
+
+function appendDesignPreviewToApiValue(value) {
+  if (!value || typeof value !== 'string' || value.includes('designPreview='))
+    return value
+  const separator = value.includes('?') ? '&' : '?'
+  return `${value}${separator}designPreview=1`
+}
+
 function resolveRuntimeDetailRecordId() {
   return route.query?.recordId || route.query?.id || route.query?.[crudProps.value.rowKey || 'id'] || ''
 }
@@ -1538,11 +1570,15 @@ function replaceRuntimeApiParams(url = '', params = {}) {
 function resolveRuntimeDetailApi(recordId) {
   const cfg = renderConfig.value || {}
   const page = activeRuntimePage.value || {}
-  const rawApi = page.detailApi || cfg.apiConfig?.detail || ''
+  const configuredDetailApi = page.detailApi || cfg.apiConfig?.detail || ''
+  const rawApi = designPreview.value
+    ? appendDesignPreviewToApiValue(configuredDetailApi)
+    : configuredDetailApi
   if (!rawApi && cfg.api) {
+    const detailUrl = `${cfg.api}/${encodeURIComponent(String(recordId))}`
     return {
       method: 'get',
-      url: `${cfg.api}/${encodeURIComponent(String(recordId))}`,
+      url: designPreview.value ? appendDesignPreviewToApiValue(detailUrl) : detailUrl,
       params: {},
     }
   }
@@ -1633,6 +1669,8 @@ function resolveRuntimeTitle(cfg = {}) {
 }
 
 function syncRuntimeTitle() {
+  if (!props.syncDocumentTitle)
+    return
   const title = resolveRuntimeTitle(renderConfig.value || {})
   if (!title)
     return
@@ -1647,6 +1685,10 @@ function normalizeConfigKey(value) {
 }
 
 function resolveRouteConfigKey() {
+  const embeddedKey = normalizeConfigKey(props.runtimeConfig?.configKey)
+  if (embeddedKey)
+    return embeddedKey
+
   const paramKey = normalizeConfigKey(route.params?.configKey)
   if (paramKey)
     return paramKey
@@ -1723,8 +1765,11 @@ async function loadConfig() {
   configLoaded.value = false
 
   try {
-    const res = await crudConfigRender(configKey)
-    const cfg = res.data
+    const cfg = embeddedRuntime.value
+      ? props.runtimeConfig
+      : (await crudConfigRender(configKey, designPreview.value)).data
+    if (!cfg || typeof cfg !== 'object')
+      throw new Error('低代码运行配置为空')
     renderConfig.value = cfg
     // 动态页面的 Tab/浏览器标题以发布菜单名为准，避免再次点击 Tab 时回退成主模型名。
     syncRuntimeTitle()
@@ -1813,10 +1858,19 @@ onMounted(() => {
 watch(
   () => resolveRouteConfigKey(),
   (newKey, oldKey) => {
-    if (newKey && newKey !== oldKey) {
+    if (!embeddedRuntime.value && newKey && newKey !== oldKey) {
       loadConfig()
     }
   },
+)
+
+watch(
+  () => props.runtimeConfig,
+  (next, previous) => {
+    if (next && next !== previous)
+      loadConfig()
+  },
+  { deep: true },
 )
 
 watch(

@@ -33,15 +33,16 @@
             </n-tag>
           </div>
           <span>
-            {{ fieldTypeLabel(field.fieldType) }} · {{ field.componentType || '自动控件' }}
+            {{ fieldTypeLabel(field.fieldType) }} · {{ field.componentType || '自动控件' }} · 数据库列 {{ field.databaseMapping?.columnName || field.columnName || '-' }}
             <em>{{ field.fieldCode || '-' }}</em>
           </span>
           <div class="field-flags">
+            <small :class="syncStatusTone(field.databaseMapping?.syncStatus)">
+              {{ syncStatusLabel(field.databaseMapping?.syncStatus) }}
+            </small>
             <small v-if="isDesignerField(field)">表单生成</small>
-            <small v-if="isUsedInForm(field)">已入表单</small>
-            <small v-else-if="field.formVisible !== false">未入表单</small>
-            <small v-if="field.listVisible !== false">列表</small>
-            <small v-if="field.searchable">查询</small>
+            <small v-if="isUsedInForm(field)">已入当前表单</small>
+            <small v-else-if="!field.systemField">未入当前表单</small>
           </div>
         </div>
         <div class="field-actions" @click.stop>
@@ -50,7 +51,7 @@
             quaternary
             circle
             size="small"
-            :disabled="field.systemField || field.formVisible === false"
+            :disabled="field.systemField"
             title="加入表单"
             @click="$emit('addToForm', field)"
           >
@@ -58,12 +59,24 @@
               <n-icon><AddOutline /></n-icon>
             </template>
           </n-button>
-          <n-button quaternary circle size="small" :disabled="index === 0" @click="$emit('move', index, index - 1)">
+          <n-button
+            quaternary
+            circle
+            size="small"
+            :disabled="field.systemField || index === 0 || fields[index - 1]?.systemField"
+            @click="$emit('move', index, index - 1)"
+          >
             <template #icon>
               <n-icon><ChevronUpOutline /></n-icon>
             </template>
           </n-button>
-          <n-button quaternary circle size="small" :disabled="index === fields.length - 1" @click="$emit('move', index, index + 1)">
+          <n-button
+            quaternary
+            circle
+            size="small"
+            :disabled="field.systemField || index === fields.length - 1 || fields[index + 1]?.systemField"
+            @click="$emit('move', index, index + 1)"
+          >
             <template #icon>
               <n-icon><ChevronDownOutline /></n-icon>
             </template>
@@ -154,6 +167,24 @@ function isDesignerField(field = {}) {
 
 function isUsedInForm(field = {}) {
   return usedFieldCodeSet.value.has(field.fieldCode || field.field)
+}
+
+function syncStatusLabel(status) {
+  const labels = {
+    IN_SYNC: '结构一致',
+    MISSING_DATABASE_COLUMN: '数据库缺列',
+    TYPE_MISMATCH: '类型不一致',
+    UNMAPPED_DATABASE_COLUMN: '数据库列未映射',
+  }
+  return labels[status] || '待检查'
+}
+
+function syncStatusTone(status) {
+  if (status === 'IN_SYNC')
+    return 'sync-ready'
+  if (status === 'TYPE_MISMATCH')
+    return 'sync-error'
+  return 'sync-warning'
 }
 </script>
 
@@ -274,6 +305,24 @@ function isUsedInForm(field = {}) {
   font-size: 11px;
   line-height: 20px;
   padding: 0 6px;
+}
+
+.field-flags .sync-ready,
+.sync-ready {
+  color: #16895a;
+  background: rgba(30, 174, 117, 0.11);
+}
+
+.field-flags .sync-warning,
+.sync-warning {
+  color: #a76508;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.field-flags .sync-error,
+.sync-error {
+  color: #c54747;
+  background: rgba(239, 82, 82, 0.09);
 }
 
 .field-actions {

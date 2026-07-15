@@ -228,7 +228,7 @@
                 :data="modelList"
                 :loading="modelLoading"
                 :row-key="row => row.id"
-                :scroll-x="970"
+                :scroll-x="1030"
                 size="small"
                 class="model-table"
               />
@@ -673,7 +673,7 @@ const modelColumns = [
   {
     title: '操作',
     key: 'actions',
-    width: 100,
+    width: 160,
     fixed: 'right',
     render(row) {
       const actions = [

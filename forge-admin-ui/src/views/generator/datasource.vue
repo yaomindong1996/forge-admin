@@ -470,18 +470,19 @@ function handleDelete(row) {
 
 // 测试连接
 async function handleTestConnection(row) {
+  const messageKey = `datasource-test-${row.datasourceId}`
   try {
-    window.$message.loading('正在测试连接...', { duration: 0, key: 'testConn' })
+    window.$message.loading('正在测试连接...', { key: messageKey })
     const res = await request.post(`/generator/datasource/test/${row.datasourceId}`)
     if (res.code === 200) {
-      window.$message.success('连接成功', { key: 'testConn' })
+      window.$message.success('连接成功', { key: messageKey })
     }
     else {
-      window.$message.error(res.msg || '连接失败', { key: 'testConn' })
+      window.$message.error(res.msg || '连接失败', { key: messageKey })
     }
   }
-  catch {
-    window.$message.error('连接测试失败', { key: 'testConn' })
+  catch (error) {
+    window.$message.error(error?.message || '连接测试失败', { key: messageKey })
   }
 }
 </script>

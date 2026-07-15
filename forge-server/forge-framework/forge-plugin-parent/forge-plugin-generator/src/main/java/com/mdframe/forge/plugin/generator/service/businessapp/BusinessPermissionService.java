@@ -5,6 +5,7 @@ import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessObject;
 import com.mdframe.forge.plugin.generator.mapper.BusinessBindingMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessObjectMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessPermissionMapper;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationObjectVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessPermissionSummaryVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
@@ -128,19 +129,59 @@ public class BusinessPermissionService {
         if (object == null) {
             throw new BusinessException("业务对象不存在");
         }
+        return documentActionSummary(object);
+    }
+
+    public BusinessPermissionSummaryVO documentActionSummary(AiBusinessObject object) {
+        if (object == null) {
+            throw new BusinessException("业务对象不存在");
+        }
         List<ActionPermissionDefinition> definitions = actionDefinitions(object.getObjectCode());
-        List<String> allPermissions = definitions.stream()
+        Set<String> existingPermissions = existingPermissions(definitions);
+        return buildDocumentActionSummary(object.getId(), object.getObjectCode(), object.getObjectName(),
+                definitions, existingPermissions);
+    }
+
+    public List<BusinessPermissionSummaryVO> documentActionSummaries(List<BusinessApplicationObjectVO> objects) {
+        if (objects == null || objects.isEmpty()) {
+            return List.of();
+        }
+        List<String> allPermissions = objects.stream()
+                .filter(Objects::nonNull)
+                .flatMap(object -> actionDefinitions(object.getObjectCode()).stream())
                 .flatMap(definition -> definition.permissionCodes().stream())
                 .distinct()
                 .toList();
         Set<String> existingPermissions = allPermissions.isEmpty()
                 ? Set.of()
                 : new HashSet<>(permissionMapper.selectExistingPermissions(resolveTenantId(), allPermissions));
+        return objects.stream().filter(Objects::nonNull)
+                .map(object -> buildDocumentActionSummary(
+                        object.getObjectId(), object.getObjectCode(), object.getObjectName(),
+                        actionDefinitions(object.getObjectCode()), existingPermissions))
+                .toList();
+    }
 
+    private Set<String> existingPermissions(List<ActionPermissionDefinition> definitions) {
+        List<String> allPermissions = definitions.stream()
+                .flatMap(definition -> definition.permissionCodes().stream())
+                .distinct()
+                .toList();
+        return allPermissions.isEmpty()
+                ? Set.of()
+                : new HashSet<>(permissionMapper.selectExistingPermissions(resolveTenantId(), allPermissions));
+    }
+
+    private BusinessPermissionSummaryVO buildDocumentActionSummary(
+            Long objectId,
+            String objectCode,
+            String objectName,
+            List<ActionPermissionDefinition> definitions,
+            Set<String> existingPermissions) {
         BusinessPermissionSummaryVO summary = new BusinessPermissionSummaryVO();
-        summary.setObjectId(object.getId());
-        summary.setObjectCode(object.getObjectCode());
-        summary.setObjectName(object.getObjectName());
+        summary.setObjectId(objectId);
+        summary.setObjectCode(objectCode);
+        summary.setObjectName(objectName);
         boolean allRequiredConfigured = true;
         for (ActionPermissionDefinition definition : definitions) {
             BusinessPermissionSummaryVO.ActionPermissionVO item = new BusinessPermissionSummaryVO.ActionPermissionVO();

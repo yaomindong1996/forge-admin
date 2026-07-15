@@ -168,7 +168,8 @@ public class DynamicCrudController {
         if (params == null || params.isEmpty()) {
             return null;
         }
-        Set<String> controlParams = Set.of("pageNum", "pageSize", "orderByColumn", "isAsc", "searchParams");
+        Set<String> controlParams = Set.of(
+                "pageNum", "pageSize", "orderByColumn", "isAsc", "searchParams", "designPreview");
         Map<String, Object> result = new HashMap<>();
         for (Map.Entry<String, Object> entry : params.entrySet()) {
             if (!controlParams.contains(entry.getKey())) {

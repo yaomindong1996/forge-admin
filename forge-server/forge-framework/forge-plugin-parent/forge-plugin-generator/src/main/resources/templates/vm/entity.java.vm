@@ -1,7 +1,9 @@
 package ${packageName}.${moduleName}.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
-#if(${hasBaseEntity})
+#if(${hasTenantEntity})
+import com.mdframe.forge.starter.tenant.core.TenantEntity;
+#elseif(${hasBaseEntity})
 import com.mdframe.forge.starter.core.domain.BaseEntity;
 #end
 #if(${hasDictTrans})
@@ -40,7 +42,7 @@ import java.util.List;
 #if(${hasDictTrans})
 @DictTrans
 #end
-public class ${className}#if(${hasBaseEntity}) extends BaseEntity#end {
+public class ${className}#if(${hasTenantEntity}) extends TenantEntity#elseif(${hasBaseEntity}) extends BaseEntity#end {
 
     private static final long serialVersionUID = 1L;
 
@@ -49,12 +51,21 @@ public class ${className}#if(${hasBaseEntity}) extends BaseEntity#end {
      * $column.columnComment
      */
 #if($column.isPk)
+#if($column.isIncrement == 1)
     @TableId(value = "$column.columnName", type = IdType.AUTO)
+#elseif($column.javaType == 'Long')
+    @TableId(value = "$column.columnName", type = IdType.ASSIGN_ID)
+#else
+    @TableId(value = "$column.columnName", type = IdType.INPUT)
+#end
+#end
+#if($column.columnName == 'del_flag')
+    @TableLogic
 #end
 #if($column.dictType && $column.dictType != "")
     @TransField(dictType = "$column.dictType")
 #end
-#if($column.desensitizeType && $column.desensitizeType != "")
+#if($column.desensitizeType && $column.desensitizeType != "" && $column.desensitizeType != "NONE")
     @Desensitize(type = DesensitizeType.${column.desensitizeType})
 #end
     private $column.javaType $column.javaField;

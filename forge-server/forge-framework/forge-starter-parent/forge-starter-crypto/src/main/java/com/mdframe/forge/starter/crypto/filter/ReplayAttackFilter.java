@@ -38,6 +38,13 @@ public class ReplayAttackFilter implements Filter {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         String path = httpRequest.getRequestURI();
+
+        if (!Boolean.TRUE.equals(properties.getEnabled())
+                || !Boolean.TRUE.equals(properties.getEnableReplayProtection())
+                || path.endsWith("/crypto/config")) {
+            chain.doFilter(request, response);
+            return;
+        }
         
         if ("true".equalsIgnoreCase(httpRequest.getHeader("X-Inner-Call"))) {
             chain.doFilter(request, response);

@@ -16,6 +16,8 @@ public class BusinessAppQueryDTO {
 
     private List<String> suiteCodes;
 
+    private Long applicationId;
+
     private String objectCode;
 
     private String appType;

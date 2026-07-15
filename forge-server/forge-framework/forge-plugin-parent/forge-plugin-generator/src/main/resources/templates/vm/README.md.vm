@@ -6,9 +6,10 @@
 
 `${apiBase}`
 
+#if(${includeBackend})
 ## 后端代码
 
-将 `backend/src/main/java` 和 `backend/src/main/resources/mapper` 下的文件合并到后端工程对应模块中。
+将 `${backendBasePath}` 下的 Java 文件和 `${mapperXmlBasePath}` 下的 Mapper XML 合并到后端工程对应模块中。
 
 核心文件：
 
@@ -18,35 +19,60 @@
 - `mapper/${className}Mapper.java`
 - `service/I${className}Service.java`
 - `service/impl/${className}ServiceImpl.java`
+- `service/extension/${className}ServiceExtension.java`
 - `controller/${className}Controller.java`
 - `mapper/${className}Mapper.xml`
 
-接口采用 Forge 代码生成器安全调用风格，详情、更新和删除使用 POST：
+Controller 保持业务专属 URL，并调用生成的 MyBatis-Plus Service。分页、列表、树和主子明细查询位于 Mapper XML；主子写入和导入位于 Service 事务。详情、更新和删除使用 POST：
 
 - `GET ${apiBase}/page`
-- `GET ${apiBase}/list`
+- `GET ${apiBase}/tree`
 - `POST ${apiBase}/getById`
 - `POST ${apiBase}/add`
 - `POST ${apiBase}/edit`
 - `POST ${apiBase}/remove/{id}`
+#end
 
+#if(${includeFrontend})
 ## 前端代码
 
-将 `frontend/src/api/${configKey}.js` 和 `frontend/src/views/${viewPath}/index.vue` 合并到前端工程。
+将 `${frontendApiBasePath}/${configKey}.js` 和 `${frontendBasePath}/${viewPath}` 合并到前端工程。
 
-页面基于项目内置数据管理组件渲染，接口配置已使用上方业务接口前缀。
+生成页通过 `LowcodeRuntimePage` 复用在线低代码解释器，并读取同目录 `runtime-config.json`。后续低代码协议能力升级后，重新下载即可自动使用共享运行能力，无需在生成模板中再次实现。
+#end
 
+## 协议与覆盖报告
+
+- `config/${runtimeConfigKey}-protocol.json`：完整、结构化的低代码协议快照。
+- `config/${runtimeConfigKey}-coverage.json`：协议承载方式和未来字段自动透传策略。
+- `config/${runtimeConfigKey}-config.json`：前端可直接加载的运行配置。
+- `config/${runtimeConfigKey}-ownership.json`：生成文件、首次复制示例和用户文件边界。
+
+#if(${includeSql})
 ## SQL
 
-如 zip 中包含 `sql/` 目录，请先导入菜单 SQL，再导入字典 SQL。导入前请确认：
+请把 `sql/` 目录中的脚本审查后转为新的 Flyway 版本执行。
+#if(${includeExcelSql})
+Excel SQL 为导入导出元数据，导出查询会调用 Spring Bean `${classname}Service` 的 `select${className}List` 方法。
+#end
+执行前请确认：
 
 - 内置数据使用当前租户。
 - 菜单父级资源存在。
 - 字典类型未与现有类型冲突。
+#end
 
 ## 二次开发建议
 
-- 后端查询扩展优先写在 Mapper XML。
+#if(${includeBackend})
+- 后端复杂查询新增 Mapper 方法并把 SQL 写在 Mapper XML；生成 Service 中不使用 `LambdaQueryWrapper`。
+- `examples/.../${className}BusinessExtension.java.example` 是首次复制示例。复制到业务源码并去掉 `.example` 后，该实现属于用户文件，生成器不会向 `service/extension/custom` 输出正式 Java 文件。
+- 扩展实现可调用 `operation.proceed()` 增强默认逻辑，也可以直接返回自定义结果完全替换分页、详情或写入逻辑；多个实现使用 `@Order` 排序。
+- 跨领域编排下沉 Manager，避免 Service 相互注入。主子表默认逻辑已在主 Service 的同一事务中执行。
+#end
+#if(${includeFrontend})
+- 前端新增低代码能力由共享 `LowcodeRuntimePage` 自动承接；后端新增协议语义必须在统一静态编译器补规则，所有下载入口重新生成后自动获得新代码。
+#end
 - 新增下拉、状态等枚举优先维护为系统字典。
 - 敏感字段传输按需补充 `@ApiEncrypt` / `@ApiDecrypt`。
 - 文件和图片回显使用 Forge 鉴权文件能力。

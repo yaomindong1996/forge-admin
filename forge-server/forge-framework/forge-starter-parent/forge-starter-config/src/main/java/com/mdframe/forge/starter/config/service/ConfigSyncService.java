@@ -1,8 +1,5 @@
 package com.mdframe.forge.starter.config.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mdframe.forge.starter.config.config.*;
 import com.mdframe.forge.starter.config.converter.ConfigConverter;
 import com.mdframe.forge.starter.config.entity.SysConfigGroup;
 import com.mdframe.forge.starter.property.refresh.ConfigRefresher;
@@ -25,6 +22,19 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class ConfigSyncService implements ApplicationRunner {
+
+    private static final String UPSERT_SYS_CONFIG_SQL = """
+            INSERT INTO sys_config (
+                tenant_id, config_name, config_key, config_value, config_type,
+                config_desc, sort, create_time, update_time
+            ) VALUES (1, ?, ?, ?, 'Y', ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE
+                config_name = VALUES(config_name),
+                config_value = VALUES(config_value),
+                config_type = 'Y',
+                config_desc = VALUES(config_desc),
+                update_time = CURRENT_TIMESTAMP
+            """;
 
     private final ISysConfigGroupService sysConfigGroupService;
     private final JdbcTemplate jdbcTemplate;
@@ -49,7 +59,7 @@ public class ConfigSyncService implements ApplicationRunner {
             // 触发配置刷新
             boolean refreshResult = configRefresher.refresh(groupToSysConfigAll);
             log.info("配置同步完成，刷新结果: {}", refreshResult);
-            return true;
+            return refreshResult;
         } catch (Exception e) {
             log.error("同步配置失败", e);
             return false;
@@ -73,8 +83,9 @@ public class ConfigSyncService implements ApplicationRunner {
                 // 触发配置刷新
                 boolean refreshResult = configRefresher.refresh(groupToSysConfig);
                 log.info("配置分组[{}]同步完成，刷新结果: {}", groupCode, refreshResult);
+                return refreshResult;
             }
-            return true;
+            return false;
         } catch (Exception e) {
             log.error("同步配置分组[{}]失败", groupCode, e);
             return false;
@@ -106,11 +117,28 @@ public class ConfigSyncService implements ApplicationRunner {
                     yield null;
                 }
             };
+            persistSysConfig(groupCode, configMap);
             return configMap;
         } catch (Exception e) {
             log.error("同步配置分组[{}]到sys_config表失败", configGroup.getGroupCode(), e);
         }
         return null;
+    }
+
+    private void persistSysConfig(String groupCode, Map<String, String> configMap) {
+        if (configMap == null || configMap.isEmpty()) {
+            return;
+        }
+        List<Object[]> batchArgs = configMap.entrySet().stream()
+                .map(entry -> new Object[]{
+                        entry.getKey(),
+                        entry.getKey(),
+                        entry.getValue(),
+                        "配置中心[" + groupCode + "]同步项"
+                })
+                .toList();
+        jdbcTemplate.batchUpdate(UPSERT_SYS_CONFIG_SQL, batchArgs);
+        log.info("配置分组[{}]已写入 sys_config，共 {} 项", groupCode, batchArgs.size());
     }
     
     @Override

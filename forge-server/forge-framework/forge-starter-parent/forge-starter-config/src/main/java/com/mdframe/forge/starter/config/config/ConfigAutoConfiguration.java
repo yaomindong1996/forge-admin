@@ -19,8 +19,9 @@ public class ConfigAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(ConfigManagerService.class)
-    public ConfigManagerService configManagerService(ISysConfigGroupService sysConfigGroupService) {
-        return new ConfigManagerService(sysConfigGroupService);
+    public ConfigManagerService configManagerService(ISysConfigGroupService sysConfigGroupService,
+                                                     ConfigSyncService configSyncService) {
+        return new ConfigManagerService(sysConfigGroupService, configSyncService);
     }
     
     @Bean

@@ -1,17 +1,59 @@
 -- ${functionName}菜单和权限配置
+SET @parent_menu_id = ${menuParentId};
 
--- 菜单SQL（父菜单ID来自代码生成配置）
-SET @parentMenuId = ${menuParentId};
+INSERT INTO sys_resource (
+  tenant_id, resource_name, parent_id, resource_type, sort,
+  path, component, is_external, open_target, is_public,
+  menu_status, visible, perms, keep_alive, always_show,
+  remark, create_by, create_time, update_by, update_time, create_dept, client_code
+)
+SELECT 1, '${functionName}管理', @parent_menu_id, 2, 10,
+       '/${viewPath}', '${viewPath}/index', 0, '_self', 0,
+       1, 1, '${moduleName}:${businessName}:list', 1, 0,
+       '${functionName}管理菜单', 1, NOW(), 1, NOW(), 1, 'pc'
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM sys_resource resource
+  WHERE resource.tenant_id = 1
+    AND resource.resource_type = 2
+    AND resource.perms = '${moduleName}:${businessName}:list'
+    AND resource.del_flag = 0
+);
 
-INSERT INTO sys_resource (tenant_id, resource_name, parent_id, resource_type, path, component, sort, is_public, menu_status, perms, remark) VALUES
-(1, '${functionName}管理', @parentMenuId, 2, '/${moduleName}/${businessName}', '/${moduleName}/${businessName}/index', 1, 0, 1, '${moduleName}:${businessName}:view', '${functionName}管理菜单');
+SET @generated_menu_id = (
+  SELECT id
+  FROM sys_resource
+  WHERE tenant_id = 1
+    AND resource_type = 2
+    AND perms = '${moduleName}:${businessName}:list'
+    AND del_flag = 0
+  ORDER BY id
+  LIMIT 1
+);
 
--- 获取刚插入的菜单ID（实际使用时需要查询）
-SET @menuId = LAST_INSERT_ID();
-
--- 按钮权限SQL
-INSERT INTO sys_resource (tenant_id, resource_name, parent_id, resource_type, sort, is_public, menu_status, perms, remark) VALUES
-(1, '查询${functionName}', @menuId, 3, 1, 0, 1, '${moduleName}:${businessName}:query', '查询${functionName}按钮'),
-(1, '新增${functionName}', @menuId, 3, 2, 0, 1, '${moduleName}:${businessName}:add', '新增${functionName}按钮'),
-(1, '修改${functionName}', @menuId, 3, 3, 0, 1, '${moduleName}:${businessName}:edit', '修改${functionName}按钮'),
-(1, '删除${functionName}', @menuId, 3, 4, 0, 1, '${moduleName}:${businessName}:remove', '删除${functionName}按钮');
+INSERT INTO sys_resource (
+  tenant_id, resource_name, parent_id, resource_type, sort,
+  is_external, open_target, is_public, menu_status, visible,
+  perms, keep_alive, always_show, remark,
+  create_by, create_time, update_by, update_time, create_dept, client_code
+)
+SELECT seed.tenant_id, seed.resource_name, @generated_menu_id, 3, seed.sort,
+       0, '_self', 0, 1, 1,
+       seed.perms, 0, 0, seed.remark,
+       1, NOW(), 1, NOW(), 1, 'pc'
+FROM (
+  SELECT 1 tenant_id, '查询${functionName}' resource_name, 1 sort,
+         '${moduleName}:${businessName}:query' perms, '查询${functionName}按钮' remark
+  UNION ALL SELECT 1, '新增${functionName}', 2, '${moduleName}:${businessName}:add', '新增${functionName}按钮'
+  UNION ALL SELECT 1, '修改${functionName}', 3, '${moduleName}:${businessName}:edit', '修改${functionName}按钮'
+  UNION ALL SELECT 1, '删除${functionName}', 4, '${moduleName}:${businessName}:remove', '删除${functionName}按钮'
+) seed
+WHERE @generated_menu_id IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM sys_resource resource
+    WHERE resource.tenant_id = seed.tenant_id
+      AND resource.resource_type = 3
+      AND resource.perms = seed.perms
+      AND resource.del_flag = 0
+  );

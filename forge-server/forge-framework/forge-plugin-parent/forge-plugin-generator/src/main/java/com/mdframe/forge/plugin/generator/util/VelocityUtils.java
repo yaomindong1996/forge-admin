@@ -55,6 +55,7 @@ public class VelocityUtils {
         
         // 列信息
         List<GenTableColumn> columns = genTable.getColumns();
+        context.put("allColumns", columns);
         context.put("columns", getFilteredColumns(columns)); // 过滤掉基类字段
         context.put("pkColumn", GenUtils.getPkColumn(columns));
 
@@ -72,6 +73,7 @@ public class VelocityUtils {
         context.put("hasBigDecimal", GenUtils.hasBigDecimal(columns));
         context.put("hasDate", GenUtils.hasDate(columns));
         context.put("hasBaseEntity", GenUtils.hasBaseEntity(columns));
+        context.put("hasTenantEntity", hasTenantEntity(columns));
         context.put("hasDictTrans", GenUtils.hasDictTrans(columns));
         context.put("hasDesensitize", false);
         context.put("hasEncrypt", false);
@@ -112,13 +114,21 @@ public class VelocityUtils {
         }
         
         // 过滤掉BaseEntity中的字段
-        List<String> baseFields = Arrays.asList(
-            "createTime", "createBy", "updateTime", "updateBy", "remark"
-        );
+        List<String> baseFields = new ArrayList<>(Arrays.asList(
+            "createTime", "createBy", "createDept", "updateTime", "updateBy"
+        ));
+        if (hasTenantEntity(columns)) {
+            baseFields.add("tenantId");
+        }
         
         return columns.stream()
             .filter(c -> !baseFields.contains(c.getJavaField()))
             .collect(java.util.stream.Collectors.toList());
+    }
+
+    private static boolean hasTenantEntity(List<GenTableColumn> columns) {
+        return columns != null && columns.stream().anyMatch(column ->
+                "tenantId".equals(column.getJavaField()) || "tenant_id".equals(column.getColumnName()));
     }
 
     /**

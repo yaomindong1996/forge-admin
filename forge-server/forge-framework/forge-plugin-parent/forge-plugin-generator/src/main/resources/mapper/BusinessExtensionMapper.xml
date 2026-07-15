@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessExtensionMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessExtension">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="application_id" property="applicationId"/>
+        <result column="object_id" property="objectId"/>
+        <result column="entry_id" property="entryId"/>
+        <result column="extension_code" property="extensionCode"/>
+        <result column="extension_name" property="extensionName"/>
+        <result column="extension_type" property="extensionType"/>
+        <result column="hook_code" property="hookCode"/>
+        <result column="scope_type" property="scopeType"/>
+        <result column="scope_key" property="scopeKey"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="failure_policy" property="failurePolicy"/>
+        <result column="risk_level" property="riskLevel"/>
+        <result column="status" property="status"/>
+        <result column="draft_version" property="draftVersion"/>
+        <result column="enabled_version" property="enabledVersion"/>
+        <result column="lock_user_id" property="lockUserId"/>
+        <result column="lock_username" property="lockUsername"/>
+        <result column="lock_token_hash" property="lockTokenHash"/>
+        <result column="lock_time" property="lockTime"/>
+        <result column="lock_expire_time" property="lockExpireTime"/>
+        <result column="remark" property="remark"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id, tenant_id, application_id, object_id, entry_id,
+        extension_code, extension_name, extension_type, hook_code,
+        scope_type, scope_key, sort_order, failure_policy, risk_level,
+        status, draft_version, enabled_version,
+        lock_user_id, lock_username, lock_token_hash, lock_time, lock_expire_time,
+        remark, del_flag, create_by, create_time, create_dept, update_by, update_time
+    </sql>
+
+    <sql id="Extension_VO_Select">
+        SELECT e.id AS id,
+               e.application_id AS applicationId,
+               e.object_id AS objectId,
+               o.object_code AS objectCode,
+               o.object_name AS objectName,
+               e.entry_id AS entryId,
+               entry_row.app_name AS entryName,
+               e.extension_code AS extensionCode,
+               e.extension_name AS extensionName,
+               e.extension_type AS extensionType,
+               e.hook_code AS hookCode,
+               e.scope_type AS scopeType,
+               e.scope_key AS scopeKey,
+               e.sort_order AS sortOrder,
+               e.failure_policy AS failurePolicy,
+               e.risk_level AS riskLevel,
+               e.status AS status,
+               e.draft_version AS draftVersion,
+               e.enabled_version AS enabledVersion,
+               e.lock_user_id AS lockUserId,
+               e.lock_username AS lockUsername,
+               e.lock_expire_time AS lockExpireTime,
+               v.content AS content,
+               v.processed_content AS processedContent,
+               v.config_json AS configJson,
+               v.validation_passed AS validationPassed,
+               v.validation_summary AS validationSummary,
+               v.test_passed AS testPassed,
+               v.test_summary AS testSummary,
+               e.remark AS remark,
+               e.create_time AS createTime,
+               e.update_time AS updateTime
+        FROM ai_business_extension e
+        LEFT JOIN ai_business_extension_version v
+          ON v.tenant_id = e.tenant_id
+         AND v.extension_id = e.id
+         AND v.version_no = e.draft_version
+         AND v.del_flag = '0'
+        LEFT JOIN ai_business_object o
+          ON o.tenant_id = e.tenant_id
+         AND o.id = e.object_id
+         AND o.del_flag = '0'
+        LEFT JOIN ai_business_app entry_row
+          ON entry_row.tenant_id = e.tenant_id
+         AND entry_row.id = e.entry_id
+         AND entry_row.del_flag = '0'
+    </sql>
+
+    <sql id="Extension_Query_Where">
+        WHERE e.tenant_id = #{tenantId}
+          AND e.del_flag = '0'
+        <if test="query != null and query.applicationId != null">
+          AND e.application_id = #{query.applicationId}
+        </if>
+        <if test="query != null and query.objectId != null">
+          AND e.object_id = #{query.objectId}
+        </if>
+        <if test="query != null and query.entryId != null">
+          AND e.entry_id = #{query.entryId}
+        </if>
+        <if test="query != null and query.keyword != null and query.keyword != ''">
+          AND (e.extension_code LIKE CONCAT('%', #{query.keyword}, '%')
+            OR e.extension_name LIKE CONCAT('%', #{query.keyword}, '%'))
+        </if>
+        <if test="query != null and query.extensionType != null and query.extensionType != ''">
+          AND e.extension_type = #{query.extensionType}
+        </if>
+        <if test="query != null and query.hookCode != null and query.hookCode != ''">
+          AND e.hook_code = #{query.hookCode}
+        </if>
+        <if test="query != null and query.status != null and query.status != ''">
+          AND e.status = #{query.status}
+        </if>
+    </sql>
+
+    <select id="selectExtensionPage" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessExtensionVO">
+        <include refid="Extension_VO_Select"/>
+        <include refid="Extension_Query_Where"/>
+        ORDER BY e.sort_order ASC, e.extension_code ASC, e.id ASC
+    </select>
+
+    <select id="selectExtensionList" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessExtensionVO">
+        <include refid="Extension_VO_Select"/>
+        <include refid="Extension_Query_Where"/>
+        ORDER BY e.sort_order ASC, e.extension_code ASC, e.id ASC
+    </select>
+
+    <select id="selectWorkspaceSummaries" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessExtensionVO">
+        SELECT e.id AS id,
+               e.application_id AS applicationId,
+               e.object_id AS objectId,
+               o.object_code AS objectCode,
+               o.object_name AS objectName,
+               e.entry_id AS entryId,
+               entry_row.app_name AS entryName,
+               e.extension_code AS extensionCode,
+               e.extension_name AS extensionName,
+               e.extension_type AS extensionType,
+               e.hook_code AS hookCode,
+               e.scope_type AS scopeType,
+               e.scope_key AS scopeKey,
+               e.sort_order AS sortOrder,
+               e.failure_policy AS failurePolicy,
+               e.risk_level AS riskLevel,
+               e.status AS status,
+               e.draft_version AS draftVersion,
+               e.enabled_version AS enabledVersion,
+               e.update_time AS updateTime
+        FROM ai_business_extension e
+        LEFT JOIN ai_business_object o
+          ON o.tenant_id = e.tenant_id
+         AND o.id = e.object_id
+         AND o.del_flag = '0'
+        LEFT JOIN ai_business_app entry_row
+          ON entry_row.tenant_id = e.tenant_id
+         AND entry_row.id = e.entry_id
+         AND entry_row.del_flag = '0'
+        WHERE e.tenant_id = #{tenantId}
+          AND e.application_id = #{applicationId}
+          AND e.del_flag = '0'
+        ORDER BY e.sort_order ASC, e.extension_code ASC, e.id ASC
+    </select>
+
+    <select id="selectExtensionDetail" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessExtensionVO">
+        <include refid="Extension_VO_Select"/>
+        WHERE e.tenant_id = #{tenantId}
+          AND e.id = #{id}
+          AND e.del_flag = '0'
+        LIMIT 1
+    </select>
+
+    <select id="selectEntityById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM ai_business_extension
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND del_flag = '0'
+        LIMIT 1
+    </select>
+
+    <select id="selectApplicationById" resultType="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApplication">
+        SELECT id, tenant_id, application_code, application_name, suite_code,
+               status, design_status, del_flag
+        FROM ai_business_application
+        WHERE tenant_id = #{tenantId}
+          AND id = #{applicationId}
+          AND del_flag = '0'
+        LIMIT 1
+    </select>
+
+    <select id="countByExtensionCode" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_extension
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND extension_code = #{extensionCode}
+          AND del_flag = '0'
+        <if test="excludeId != null">
+          AND id != #{excludeId}
+        </if>
+    </select>
+
+    <select id="countApplicationObject" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_application_object ao
+        INNER JOIN ai_business_object o
+          ON o.tenant_id = ao.tenant_id
+         AND o.id = ao.object_id
+         AND o.del_flag = '0'
+        WHERE ao.tenant_id = #{tenantId}
+          AND ao.application_id = #{applicationId}
+          AND ao.object_id = #{objectId}
+          AND ao.del_flag = '0'
+    </select>
+
+    <select id="countApplicationEntry" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_app
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND id = #{entryId}
+          AND del_flag = '0'
+    </select>
+
+    <update id="updateDraftVersion">
+        UPDATE ai_business_extension
+        SET draft_version = #{draftVersion},
+            status = #{status},
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND del_flag = '0'
+    </update>
+
+    <update id="updateLifecycle">
+        UPDATE ai_business_extension
+        SET status = #{status},
+            enabled_version = #{enabledVersion},
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND del_flag = '0'
+    </update>
+
+    <update id="tryAcquireLock">
+        UPDATE ai_business_extension
+        SET lock_user_id = #{userId},
+            lock_username = #{username},
+            lock_token_hash = #{lockToken},
+            lock_time = #{now},
+            lock_expire_time = #{expireTime}
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND del_flag = '0'
+          AND (lock_user_id IS NULL OR lock_expire_time &lt;= #{now})
+    </update>
+
+    <update id="renewLock">
+        UPDATE ai_business_extension
+        SET lock_time = #{now},
+            lock_expire_time = #{expireTime}
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND del_flag = '0'
+          AND lock_user_id = #{userId}
+          AND lock_token_hash = #{lockToken}
+          AND lock_expire_time &gt; #{now}
+    </update>
+
+    <update id="releaseLock">
+        UPDATE ai_business_extension
+        SET lock_user_id = NULL,
+            lock_username = NULL,
+            lock_token_hash = NULL,
+            lock_time = NULL,
+            lock_expire_time = NULL
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND del_flag = '0'
+          AND lock_user_id = #{userId}
+          AND lock_token_hash = #{lockToken}
+    </update>
+
+    <select id="countOwnedLock" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_extension
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND del_flag = '0'
+          AND lock_user_id = #{userId}
+          AND lock_token_hash = #{lockToken}
+          AND lock_expire_time &gt; #{now}
+    </select>
+
+    <select id="selectEnabledForHook" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM ai_business_extension
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND hook_code = #{hookCode}
+          AND status = 'ENABLED'
+          AND enabled_version IS NOT NULL
+          AND del_flag = '0'
+        <if test="objectId != null">
+          AND (object_id IS NULL OR object_id = #{objectId})
+        </if>
+        <if test="objectId == null">
+          AND object_id IS NULL
+        </if>
+        <if test="entryId != null">
+          AND (entry_id IS NULL OR entry_id = #{entryId})
+        </if>
+        <if test="entryId == null">
+          AND entry_id IS NULL
+        </if>
+        ORDER BY sort_order ASC, extension_code ASC, id ASC
+    </select>
+
+    <select id="selectByApplicationId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM ai_business_extension
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND del_flag = '0'
+        ORDER BY sort_order ASC, extension_code ASC, id ASC
+    </select>
+
+    <update id="restoreEnabledVersion">
+        UPDATE ai_business_extension
+        SET status = #{status},
+            enabled_version = #{enabledVersion},
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND id = #{extensionId}
+          AND del_flag = '0'
+    </update>
+
+</mapper>

@@ -183,4 +183,25 @@
         ORDER BY COALESCE(o.sort_order, 0) ASC, b.sort_order ASC, b.id ASC
     </select>
 
+    <select id="selectByApplication" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM ai_business_binding
+        WHERE tenant_id = #{tenantId}
+          AND target_type = 'APPLICATION'
+          AND target_id = #{applicationId}
+        ORDER BY sort_order ASC, binding_type ASC, binding_key ASC, id ASC
+    </select>
+
+    <update id="restoreApplicationBinding">
+        UPDATE ai_business_binding
+        SET binding_config = #{bindingConfig},
+            status = #{status},
+            sort_order = #{sortOrder},
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND target_type = 'APPLICATION'
+          AND target_id = #{applicationId}
+          AND id = #{bindingId}
+    </update>
+
 </mapper>

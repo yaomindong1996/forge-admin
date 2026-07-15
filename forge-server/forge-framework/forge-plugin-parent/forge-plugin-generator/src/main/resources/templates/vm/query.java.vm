@@ -26,7 +26,11 @@ public class ${className}Query implements Serializable {
     /**
      * $column.columnComment
      */
+#if($column.queryType == 'IN' || $column.queryType == 'BETWEEN')
+    private java.util.List<$column.javaType> $column.javaField;
+#else
     private $column.javaType $column.javaField;
+#end
 
 #end
 #end

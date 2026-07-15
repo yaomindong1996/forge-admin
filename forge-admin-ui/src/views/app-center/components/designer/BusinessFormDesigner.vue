@@ -654,7 +654,7 @@ function resolveSelectedRelationFieldRefs(zone = {}) {
 
 function buildVisibleFormFieldSet(fields = []) {
   return new Set((fields || [])
-    .filter(field => field?.formVisible !== false)
+    .filter(field => !['DISABLED', 'HIDDEN'].includes(String(field?.fieldStatus || 'ENABLED').toUpperCase()))
     .map(field => field.field || field.fieldCode)
     .filter(Boolean))
 }
@@ -1374,7 +1374,12 @@ function buildDesignerDraftFromFormSchema(formSchema) {
   )
   const { fields: nextFields, createdFields } = buildAutoFieldAssets(normalizedFormSchema, primaryBusinessFieldAssets.value)
   const formFieldComponents = buildFormFieldComponentMap(normalizedFormSchema)
-  const normalizedFields = nextFields.map(field => normalizeUnconfiguredDesignerField(field, formFieldComponents))
+  const createdFieldCodes = new Set(createdFields.map(field => field.fieldCode || field.field).filter(Boolean))
+  const normalizedFields = nextFields.map(field => normalizeUnconfiguredDesignerField(
+    field,
+    formFieldComponents,
+    createdFieldCodes.has(field.fieldCode || field.field),
+  ))
   const primaryModelFields = [
     ...systemFields.value,
     ...normalizedFields.map(toPageField),
@@ -1628,10 +1633,13 @@ function collectFormFieldComponents(components = [], map = new Map()) {
   return map
 }
 
-function normalizeUnconfiguredDesignerField(field = {}, formFieldComponents = new Map()) {
+function normalizeUnconfiguredDesignerField(field = {}, formFieldComponents = new Map(), createdFromDesigner = false) {
   const fieldCode = field.fieldCode || field.field
   if (!fieldCode)
     return field
+
+  if (!createdFromDesigner)
+    return normalizeBusinessFieldAsset(field)
 
   const formComponent = formFieldComponents.get(fieldCode)
   const componentType = normalizeRuntimeComponentType(formComponent?.componentKey || field.componentType)
@@ -1726,12 +1734,12 @@ function applyComponentFieldDefaults(field = {}, defaults = {}) {
     return { ...field }
   return {
     ...field,
-    fieldType: defaults.fieldType || field.fieldType,
-    businessFieldType: defaults.businessFieldType || defaults.fieldType || field.businessFieldType,
-    dataType: defaults.dataType || field.dataType,
+    fieldType: field.fieldType || defaults.fieldType,
+    businessFieldType: field.businessFieldType || field.fieldType || defaults.businessFieldType || defaults.fieldType,
+    dataType: field.dataType || defaults.dataType,
     length: field.length ?? defaults.length,
     precision: field.precision ?? defaults.precision,
-    queryType: defaults.queryType || field.queryType,
+    queryType: field.queryType || defaults.queryType,
   }
 }
 

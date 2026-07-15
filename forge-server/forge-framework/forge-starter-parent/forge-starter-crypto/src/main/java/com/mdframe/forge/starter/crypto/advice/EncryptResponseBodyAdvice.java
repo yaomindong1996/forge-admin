@@ -71,6 +71,9 @@ public class EncryptResponseBodyAdvice implements ResponseBodyAdvice<Object> {
             return false;
         }
         HttpServletRequest request = attributes.getRequest();
+        if (isPlaintextControlEndpoint(request)) {
+            return false;
+        }
         // 内部服务调用（如 FlowClient）需要明文 JSON 响应，跳过响应加密
         if ("true".equalsIgnoreCase(request.getHeader("X-Inner-Call"))) {
             return false;
@@ -225,5 +228,14 @@ public class EncryptResponseBodyAdvice implements ResponseBodyAdvice<Object> {
             }
         }
         return false;
+    }
+
+    private boolean isPlaintextControlEndpoint(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (contextPath != null && !contextPath.isBlank() && path.startsWith(contextPath)) {
+            path = path.substring(contextPath.length());
+        }
+        return "/crypto/config".equals(path) || "/api/config/manage/crypto".equals(path);
     }
 }

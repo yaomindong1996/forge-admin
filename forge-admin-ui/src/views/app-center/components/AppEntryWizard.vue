@@ -4,8 +4,7 @@
       <div class="entry-wizard">
         <n-steps :current="currentStep" size="small">
           <n-step title="选择场景" />
-          <n-step title="填写信息" />
-          <n-step title="确认保存" />
+          <n-step title="配置入口" />
         </n-steps>
 
         <section v-if="currentStep === 1" class="wizard-step scene-step">
@@ -35,7 +34,7 @@
           <n-form ref="formRef" :model="form" label-placement="top" :show-feedback="false">
             <div class="section-title">
               <span>基础信息</span>
-              <small>{{ currentScene.label }}</small>
+              <small>已按{{ currentScene.label }}自动填充</small>
             </div>
             <n-grid :cols="2" :x-gap="12" :y-gap="2" responsive="screen">
               <n-form-item-gi label="入口名称">
@@ -45,14 +44,7 @@
                   @update:value="handleAppNameChange"
                 />
               </n-form-item-gi>
-              <n-form-item-gi label="入口编码">
-                <n-input
-                  :value="form.appCode"
-                  placeholder="自动生成，可手动调整"
-                  @update:value="handleAppCodeChange"
-                />
-              </n-form-item-gi>
-              <n-form-item-gi label="所属业务域">
+              <n-form-item-gi v-if="!lockSuite" label="所属业务域">
                 <n-select
                   v-model:value="form.suiteCode"
                   filterable
@@ -71,14 +63,24 @@
                 />
               </n-form-item-gi>
             </n-grid>
+            <div v-if="isRuntimeScene && lockSuite" class="auto-config-summary">
+              <span class="auto-config-mark">自动</span>
+              <span v-if="selectedObject">已关联应用内业务单元“{{ selectedObjectName }}”</span>
+              <span v-else-if="objectLoading">正在读取应用内业务单元...</span>
+              <span v-else-if="objectOptions.length">请选择一个应用内业务单元，页面和表单配置会自动带出。</span>
+              <span v-else>当前应用没有可用业务单元，请先在“数据对象”中添加。</span>
+            </div>
 
             <template v-if="isRuntimeScene">
               <div class="section-title">
-                <span>运行配置</span>
-                <small>{{ runtimeModeText }}</small>
+                <span>打开内容</span>
+                <small>默认配置自动生效</small>
               </div>
               <n-grid :cols="2" :x-gap="12" :y-gap="2" responsive="screen">
-                <n-form-item-gi v-if="sceneKey === 'DATA_MANAGE'" label="目标页面">
+                <n-form-item-gi
+                  v-if="sceneKey === 'DATA_MANAGE' && runtimePageOptions.length > 1"
+                  label="目标页面"
+                >
                   <n-select
                     v-model:value="form.targetPageKey"
                     :options="runtimePageOptions"
@@ -87,7 +89,7 @@
                     placeholder="列表页（默认）"
                   />
                 </n-form-item-gi>
-                <n-form-item-gi label="目标表单">
+                <n-form-item-gi v-if="runtimeFormOptions.length > 1" label="目标表单">
                   <n-select
                     v-model:value="form.targetFormKey"
                     :options="runtimeFormOptions"
@@ -97,10 +99,11 @@
                     placeholder="默认表单"
                   />
                 </n-form-item-gi>
-                <n-form-item-gi label="业务页面配置">
-                  <n-input v-model:value="form.configKey" placeholder="选择业务单元后自动带出" />
-                </n-form-item-gi>
               </n-grid>
+              <div class="auto-config-summary runtime-summary">
+                <span class="auto-config-mark">自动</span>
+                <span>{{ runtimeAutoSummary }}</span>
+              </div>
             </template>
 
             <template v-if="sceneKey === 'DASHBOARD'">
@@ -176,81 +179,31 @@
                 <span>菜单配置</span>
                 <small>可选</small>
               </div>
-              <n-grid :cols="3" :x-gap="12" :y-gap="2" responsive="screen">
-                <n-form-item-gi label="同步为管理端菜单">
-                  <n-switch v-model:value="form.adminMenuSyncEnabled" />
-                </n-form-item-gi>
-                <n-form-item-gi label="业务域作为父级目录">
-                  <n-switch v-model:value="form.suiteAsMenuParent" />
-                </n-form-item-gi>
-                <n-form-item-gi label="菜单排序">
-                  <n-input-number v-model:value="form.menuSort" :min="0" :show-button="false" placeholder="排序" />
-                </n-form-item-gi>
-              </n-grid>
-              <n-form-item v-if="form.adminMenuSyncEnabled" label="父级菜单">
-                <MenuParentSelect v-model:value="form.adminMenuParentId" placeholder="选择挂载在哪个管理端菜单下" />
-              </n-form-item>
+              <div class="menu-config-row">
+                <div>
+                  <strong>添加到管理端菜单</strong>
+                  <span>开启后自动放到“{{ selectedSuiteName }}”业务域目录，其他参数使用系统默认值。</span>
+                </div>
+                <n-switch v-model:value="form.adminMenuSyncEnabled" />
+              </div>
             </template>
 
-            <div class="section-title">
-              <span>补充信息</span>
-              <small>可选</small>
-            </div>
-            <n-form-item label="入口图标">
-              <IconSelector v-model="form.icon" />
-            </n-form-item>
-            <n-form-item label="业务说明">
-              <n-input v-model:value="form.description" type="textarea" placeholder="说明这个入口面向的业务场景" />
-            </n-form-item>
-            <n-form-item label="启用状态">
-              <n-switch v-model:value="form.status" :checked-value="1" :unchecked-value="0" />
-            </n-form-item>
+            <n-collapse class="optional-settings">
+              <n-collapse-item title="更多设置" name="optional">
+                <n-form-item label="入口图标">
+                  <IconSelector v-model="form.icon" />
+                </n-form-item>
+                <n-form-item label="业务说明">
+                  <n-input v-model:value="form.description" type="textarea" placeholder="说明这个入口面向的业务场景" />
+                </n-form-item>
+                <n-form-item label="启用状态">
+                  <n-switch v-model:value="form.status" :checked-value="1" :unchecked-value="0" />
+                </n-form-item>
+              </n-collapse-item>
+            </n-collapse>
           </n-form>
         </section>
 
-        <section v-else class="wizard-step confirm-step">
-          <n-descriptions label-placement="left" :column="2" bordered size="small">
-            <n-descriptions-item label="入口名称">
-              {{ form.appName || '-' }}
-            </n-descriptions-item>
-            <n-descriptions-item label="入口类型">
-              {{ currentScene.label }}
-            </n-descriptions-item>
-            <n-descriptions-item label="业务域">
-              {{ selectedSuiteName }}
-            </n-descriptions-item>
-            <n-descriptions-item label="业务单元">
-              {{ selectedObjectName }}
-            </n-descriptions-item>
-            <n-descriptions-item label="打开目标">
-              {{ targetSummary }}
-            </n-descriptions-item>
-            <n-descriptions-item label="同步菜单">
-              {{ form.adminMenuSyncEnabled ? '是' : '否' }}
-            </n-descriptions-item>
-            <n-descriptions-item label="状态">
-              {{ form.status === 1 ? '启用' : '停用' }}
-            </n-descriptions-item>
-            <n-descriptions-item label="编码">
-              {{ form.appCode || '-' }}
-            </n-descriptions-item>
-          </n-descriptions>
-
-          <n-collapse class="advanced-collapse">
-            <n-collapse-item title="高级参数" name="advanced">
-              <div class="advanced-grid">
-                <span>appType</span><strong>{{ buildDraftPayload().appType }}</strong>
-                <span>entryMode</span><strong>{{ buildDraftPayload().entryMode }}</strong>
-                <span>runtimeOpenMode</span><strong>{{ form.entryMode === 'RUNTIME' ? form.runtimeOpenMode : '-' }}</strong>
-                <span>configKey</span><strong>{{ form.configKey || '-' }}</strong>
-                <span>permissionCode</span><strong>{{ form.permissionCode || '-' }}</strong>
-              </div>
-              <n-button class="advanced-button" secondary @click="openAdvancedEditor">
-                使用高级编辑修改
-              </n-button>
-            </n-collapse-item>
-          </n-collapse>
-        </section>
       </div>
 
       <template #footer>
@@ -265,14 +218,14 @@
             <n-button v-if="currentStep > firstStep" @click="currentStep -= 1">
               上一步
             </n-button>
-            <n-button v-if="currentStep < 3" type="primary" @click="goNext">
+            <n-button v-if="currentStep < 2" type="primary" @click="goNext">
               下一步
             </n-button>
             <n-button v-else type="primary" :loading="saving" @click="save">
               <template #icon>
                 <n-icon><SaveOutline /></n-icon>
               </template>
-              {{ form.id ? '保存' : '保存并创建' }}
+              {{ form.id ? '保存' : '创建入口' }}
             </n-button>
           </n-space>
         </n-space>
@@ -302,7 +255,6 @@ import { useMessage } from 'naive-ui'
 import { computed, defineAsyncComponent, reactive, ref, watch } from 'vue'
 import { businessObjectDesigner, businessObjectList, createBusinessApp, updateBusinessApp } from '@/api/business-app'
 import IconSelector from '@/components/IconSelector.vue'
-import MenuParentSelect from '@/components/lowcode-builder/shared/MenuParentSelect.vue'
 import { normalizeMultiFormDesignerSchema } from './designer/form-first/formDesignerSchema'
 
 const props = defineProps({
@@ -317,6 +269,22 @@ const props = defineProps({
   suites: {
     type: Array,
     default: () => [],
+  },
+  applicationId: {
+    type: [Number, String],
+    default: null,
+  },
+  defaultSuiteCode: {
+    type: String,
+    default: null,
+  },
+  lockSuite: {
+    type: Boolean,
+    default: false,
+  },
+  objects: {
+    type: Array,
+    default: null,
   },
 })
 
@@ -457,25 +425,30 @@ const initializing = ref(false)
 const advancedVisible = ref(false)
 const advancedApp = ref(null)
 let designerRequestSeq = 0
+let objectRequestSeq = 0
 
 const currentScene = computed(() => SCENE_TEMPLATES[sceneKey.value] || SCENE_TEMPLATES.DATA_MANAGE)
 const firstStep = computed(() => form.id ? 2 : 1)
 const isRuntimeScene = computed(() => ['DATA_MANAGE', 'FORM_SUBMIT'].includes(sceneKey.value))
-const showObjectSelect = computed(() => sceneKey.value !== 'INTEGRATION' || Boolean(form.suiteCode))
+const showObjectSelect = computed(() => {
+  if (sceneKey.value === 'INTEGRATION' && !form.suiteCode)
+    return false
+  return !(props.lockSuite && Array.isArray(props.objects) && objectOptions.value.length <= 1)
+})
 const showAdminMenuConfig = computed(() => form.mountTarget === 'ADMIN')
-const runtimeModeText = computed(() => form.runtimeOpenMode === 'CREATE_FORM' ? '填报单据' : '管理数据')
 const selectedObject = computed(() => objectOptions.value.find(item => item.value === form.objectCode) || null)
 const selectedSuiteName = computed(() => {
   const suite = props.suites.find(item => item.suiteCode === form.suiteCode)
   return suite?.suiteName || form.suiteCode || '-'
 })
 const selectedObjectName = computed(() => selectedObject.value?.label || form.objectCode || (isRuntimeScene.value ? '-' : '未关联'))
-const targetSummary = computed(() => {
-  if (form.entryMode === 'RUNTIME')
-    return form.runtimeOpenMode === 'CREATE_FORM' ? '打开填报表单' : `打开${pageLabel(form.targetPageKey)}`
-  if (form.entryMode === 'API')
-    return form.integrationResource || '接口能力登记'
-  return form.entryUrl || '-'
+const runtimeAutoSummary = computed(() => {
+  const formOption = runtimeFormOptions.value.find(item => item.value === form.targetFormKey)
+  const formLabel = formOption?.label || '默认表单'
+  const target = form.runtimeOpenMode === 'CREATE_FORM'
+    ? `直接打开${formLabel}`
+    : `打开${pageLabel(form.targetPageKey)}，使用${formLabel}`
+  return form.configKey ? `${target}；业务页面配置已自动关联` : `${target}；业务单元发布后自动关联页面配置`
 })
 const suiteOptions = computed(() => props.suites.map(item => ({
   label: item.suiteName || item.suiteCode,
@@ -490,16 +463,10 @@ const runtimePageOptions = computed(() => {
       label: `${page.pageName || page.pageKey}${page.pageKey === 'list' ? '（默认）' : ''}`,
       value: page.pageKey,
     }))
-  const existing = new Set(options.map(item => item.value))
-  ;[
-    { label: '列表页（默认）', value: 'list' },
-    { label: '详情页', value: 'detail' },
-    { label: '新增页', value: 'create' },
-    { label: '编辑页', value: 'edit' },
-  ].forEach((item) => {
-    if (!existing.has(item.value))
-      options.push(item)
-  })
+  if (!options.length)
+    options.push({ label: '列表页（默认）', value: 'list' })
+  if (form.targetPageKey && !options.some(item => item.value === form.targetPageKey))
+    options.push({ label: pageLabelFallback(form.targetPageKey), value: form.targetPageKey })
   return options
 })
 const runtimeFormOptions = computed(() => {
@@ -548,21 +515,25 @@ watch(sceneKey, (key) => {
   applySceneDefaults(key)
   refreshSuggestedName()
   refreshSuggestedCode()
-})
+}, { flush: 'sync' })
 
 watch(() => form.suiteCode, async (suiteCode, previous) => {
+  if (initializing.value)
+    return
   if (!suiteCode) {
     objectOptions.value = []
     form.objectCode = null
     return
   }
-  await loadObjects()
-  if (!initializing.value && previous && previous !== suiteCode)
+  if (previous && previous !== suiteCode)
     form.objectCode = null
+  await loadObjects()
   refreshSuggestedCode()
-})
+}, { flush: 'sync' })
 
 watch(() => form.objectCode, () => {
+  if (initializing.value)
+    return
   const object = selectedObject.value
   if (object?.configKey)
     form.configKey = object.configKey
@@ -573,11 +544,19 @@ watch(() => form.objectCode, () => {
   refreshSuggestedName()
   refreshSuggestedCode()
   loadSelectedObjectDesigner()
-})
+}, { flush: 'sync' })
 
 function initializeForm() {
   initializing.value = true
+  designerRequestSeq += 1
+  objectRequestSeq += 1
+  objectOptions.value = []
+  selectedObjectDesigner.value = null
+  objectLoading.value = false
+  designerLoading.value = false
   Object.assign(form, defaultForm(), props.app || {})
+  form.applicationId = props.applicationId || form.applicationId || null
+  form.suiteCode = props.defaultSuiteCode || form.suiteCode
   hydrateOptions()
   sceneKey.value = inferSceneKey(form)
   if (!form.suiteCode && props.suites.length)
@@ -645,7 +624,7 @@ async function validateCurrentStep() {
     return false
   }
   if (isRuntimeScene.value && !form.configKey) {
-    message.warning('业务页面入口需要选择业务页面配置')
+    message.warning('关联业务单元尚未发布页面配置，请先发布业务单元后再创建入口')
     return false
   }
   if (['DASHBOARD', 'EXTERNAL_PAGE', 'MOBILE'].includes(sceneKey.value) && !String(form.entryUrl || '').trim()) {
@@ -693,24 +672,39 @@ function handleAdvancedSaved() {
 async function loadObjects() {
   if (!form.suiteCode)
     return
+  const seq = ++objectRequestSeq
   objectLoading.value = true
   try {
-    const res = await businessObjectList({ suiteCode: form.suiteCode, status: 1 })
-    objectOptions.value = (res.data || []).map(item => ({
+    const previousObjectCode = form.objectCode
+    const source = Array.isArray(props.objects)
+      ? props.objects.filter(item => Number(item.objectStatus ?? item.status ?? 1) === 1)
+      : (await businessObjectList({ suiteCode: form.suiteCode, status: 1 })).data || []
+    if (seq !== objectRequestSeq)
+      return
+    objectOptions.value = source.map(item => ({
       label: item.objectName || item.objectCode,
       value: item.objectCode,
-      objectId: item.id || item.objectId,
+      objectId: item.objectId || item.id,
       objectType: item.objectType,
       configKey: item.configKey,
+      objectRole: item.objectRole,
     }))
     if (form.objectCode && !objectOptions.value.some(item => item.value === form.objectCode))
       objectOptions.value.push({ label: form.objectCode, value: form.objectCode, configKey: form.configKey })
+    if (!form.objectCode && !form.id) {
+      const preferred = objectOptions.value.find(item => item.objectRole === 'PRIMARY')
+        || (objectOptions.value.length === 1 ? objectOptions.value[0] : null)
+      if (preferred)
+        form.objectCode = preferred.value
+    }
     if (selectedObject.value?.configKey && !form.configKey)
       form.configKey = selectedObject.value.configKey
-    loadSelectedObjectDesigner()
+    if (form.objectCode === previousObjectCode)
+      loadSelectedObjectDesigner()
   }
   finally {
-    objectLoading.value = false
+    if (seq === objectRequestSeq)
+      objectLoading.value = false
   }
 }
 
@@ -724,8 +718,10 @@ async function loadSelectedObjectDesigner() {
   designerLoading.value = true
   try {
     const res = await businessObjectDesigner(objectId)
-    if (seq === designerRequestSeq)
+    if (seq === designerRequestSeq) {
       selectedObjectDesigner.value = res.data || null
+      applyRuntimeDesignerDefaults()
+    }
   }
   catch (error) {
     if (seq === designerRequestSeq) {
@@ -747,17 +743,23 @@ function handleAppNameChange(value) {
   refreshSuggestedCode()
 }
 
-function handleAppCodeChange(value) {
-  form.appCode = normalizeAppCode(value)
-  appCodeTouched.value = true
-}
-
 function refreshSuggestedName() {
   if (appNameTouched.value)
     return
   const objectName = selectedObject.value?.label
   if (objectName)
     form.appName = `${objectName}${currentScene.value.nameSuffix}`
+}
+
+function applyRuntimeDesignerDefaults() {
+  const formOptions = runtimeFormOptions.value
+  if (!form.targetFormKey || !formOptions.some(item => item.value === form.targetFormKey)) {
+    const schema = normalizeMultiFormDesignerSchema(selectedObjectDesigner.value?.formDesignerSchema || {})
+    form.targetFormKey = schema.defaultFormKey || formOptions[0]?.value || ''
+  }
+  const pageOptions = runtimePageOptions.value
+  if (!form.targetPageKey || !pageOptions.some(item => item.value === form.targetPageKey))
+    form.targetPageKey = pageOptions[0]?.value || defaultTargetPageKey(form.runtimeOpenMode)
 }
 
 function refreshSuggestedCode() {
@@ -785,6 +787,7 @@ function normalizeAppCode(value) {
 function buildDraftPayload() {
   const payload = {
     id: form.id || null,
+    applicationId: form.applicationId || null,
     appName: String(form.appName || '').trim(),
     appCode: normalizeAppCode(form.appCode),
     appType: resolveAppType(),
@@ -966,6 +969,15 @@ function pageLabel(value) {
   return runtimePageOptions.value.find(item => item.value === value)?.label || value || '列表页'
 }
 
+function pageLabelFallback(value) {
+  return {
+    list: '列表页（默认）',
+    detail: '详情页',
+    create: '新增页',
+    edit: '编辑页',
+  }[value] || value || '列表页'
+}
+
 function stripApiPrefix(value) {
   return String(value || '').replace(/^api:\/\//i, '')
 }
@@ -988,6 +1000,7 @@ function parseOptions(options) {
 function defaultForm() {
   return {
     id: null,
+    applicationId: null,
     appName: '',
     appCode: '',
     appType: 'BUSINESS',
@@ -1063,14 +1076,14 @@ function defaultForm() {
 }
 
 .scene-card:hover {
-  border-color: #18a058;
-  background: #f8fffb;
+  border-color: var(--n-primary-color-suppl);
+  background: var(--n-color-hover, #f7f8fa);
 }
 
 .scene-card.active {
-  border-color: #18a058;
-  background: #f0fdf4;
-  box-shadow: inset 0 0 0 1px #18a058;
+  border-color: var(--n-primary-color);
+  background: color-mix(in srgb, var(--n-primary-color) 8%, var(--n-color));
+  box-shadow: inset 0 0 0 1px var(--n-primary-color);
 }
 
 .scene-card.disabled {
@@ -1156,43 +1169,62 @@ function defaultForm() {
   font-size: 12px;
 }
 
-.confirm-step {
-  gap: 12px;
-}
-
-.advanced-collapse {
-  border: 1px solid var(--n-border-color, #e5e7eb);
-  border-radius: 8px;
-  padding: 0 12px;
-}
-
-.advanced-grid {
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
-  gap: 8px 12px;
+.auto-config-summary,
+.menu-config-row {
+  display: flex;
   align-items: center;
-  border-radius: 6px;
-  background: #f8fafc;
-  padding: 12px;
-}
-
-.advanced-grid span {
-  color: var(--n-text-color-3, #64748b);
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--n-border-color, #e5e7eb);
+  border-radius: 7px;
+  background: var(--n-color-embedded, #f7f8fa);
+  color: var(--n-text-color-2, #4e5969);
   font-size: 12px;
 }
 
-.advanced-grid strong {
+.runtime-summary {
+  margin-top: -4px;
+}
+
+.auto-config-mark {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--n-primary-color);
+  background: color-mix(in srgb, var(--n-primary-color) 10%, transparent);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.menu-config-row {
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.menu-config-row > div:first-child {
+  display: flex;
   min-width: 0;
-  overflow: hidden;
-  color: var(--n-text-color, #111827);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  flex-direction: column;
+  gap: 3px;
 }
 
-.advanced-button {
-  margin-top: 12px;
+.menu-config-row strong {
+  color: var(--n-text-color);
+  font-size: 13px;
+}
+
+.menu-config-row span {
+  color: var(--n-text-color-3);
+  line-height: 1.5;
+}
+
+.menu-config-row :deep(.n-switch) {
+  flex: 0 0 auto;
+}
+
+.optional-settings {
+  border-top: 1px solid var(--n-border-color, #e5e7eb);
 }
 
 @media (max-width: 720px) {

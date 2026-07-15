@@ -13,22 +13,40 @@ import ${packageName}.${moduleName}.entity.${tree.className};
 #end
 #end
 import ${packageName}.${moduleName}.service.I${className}Service;
-import com.mdframe.forge.starter.core.domain.PageQuery;
-import com.mdframe.forge.starter.core.domain.RespInfo;
-import com.mdframe.forge.starter.core.annotation.log.OperationLog;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
+import com.mdframe.forge.starter.core.annotation.log.OperationLog;
 import com.mdframe.forge.starter.core.domain.OperationType;
+import com.mdframe.forge.starter.core.domain.PageQuery;
+import com.mdframe.forge.starter.core.domain.RespInfo;
+import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.starter.excel.core.DynamicExportEngine;
+import com.mdframe.forge.starter.excel.model.ImportResult;
+import com.mdframe.forge.starter.excel.service.ExcelImportService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 #if(${isMasterDetailLayout})
 import java.util.Map;
 #end
 
 /**
- * ${functionName}Controller
+ * ${functionName}Controller。
+ *
+ * <p>下载代码使用标准 MyBatis-Plus Service 与 Mapper XML，与平台在线动态运行链路
+ * 互不耦合，便于在本模块内继续开发复杂业务。</p>
  *
  * @author ${author}
  * @date ${datetime}
@@ -40,58 +58,44 @@ import java.util.Map;
 @ApiEncrypt
 public class ${className}Controller {
 
-    private final I${className}Service ${classname}Service;
+    private static final String EXCEL_CONFIG_KEY = "${moduleName}_${businessName}_export";
 
-    /**
-     * 分页查询${functionName}列表
-     */
+    private final I${className}Service ${classname}Service;
+    private final DynamicExportEngine excelExportEngine;
+    private final ExcelImportService excelImportService;
+
     @GetMapping("/page")
     @OperationLog(module = "${functionName}管理", type = OperationType.QUERY, desc = "分页查询${functionName}列表")
     public RespInfo<Page<${className}>> page(PageQuery pageQuery, ${className}Query query) {
-        Page<${className}> page = ${classname}Service.select${className}Page(pageQuery, query);
-        return RespInfo.success(page);
+        return RespInfo.success(${classname}Service.select${className}Page(pageQuery, query));
     }
 
-    /**
-     * 查询${functionName}列表
-     */
     @GetMapping("/list")
     @OperationLog(module = "${functionName}管理", type = OperationType.QUERY, desc = "查询${functionName}列表")
     public RespInfo<List<${className}>> list(${className}Query query) {
-        List<${className}> list = ${classname}Service.select${className}List(query);
-        return RespInfo.success(list);
+        return RespInfo.success(${classname}Service.select${className}List(query));
     }
 
 #if(${hasTreeConfig})
-    /**
-     * 查询${functionName}树形数据
-     */
     @GetMapping("/tree")
     @OperationLog(module = "${functionName}管理", type = OperationType.QUERY, desc = "查询${functionName}树形数据")
-    public RespInfo<List<${tree.className}>> tree(@RequestParam(required = false) String loadMode,
-                                                  @RequestParam(required = false) String parentValue) {
-        List<${tree.className}> tree = ${classname}Service.select${tree.className}Tree(loadMode, parentValue);
-        return RespInfo.success(tree);
+    public RespInfo<List<${tree.className}>> tree(
+            @RequestParam(required = false) String loadMode,
+            @RequestParam(required = false) String parentValue) {
+        return RespInfo.success(${classname}Service.select${tree.className}Tree(loadMode, parentValue));
     }
 
 #end
-    /**
-     * 根据ID查询${functionName}详情
-     */
     @PostMapping("/getById")
+    @OperationLog(module = "${functionName}管理", type = OperationType.QUERY, desc = "查询${functionName}详情")
 #if(${isMasterDetailLayout})
-    public RespInfo<Map<String, Object>> getById(@RequestParam Long ${pkColumn.javaField}) {
-        Map<String, Object> ${classname} = ${classname}Service.select${className}ById(${pkColumn.javaField});
+    public RespInfo<Map<String, Object>> getById(@RequestParam ${pkColumn.javaType} ${pkColumn.javaField}) {
 #else
-    public RespInfo<${className}> getById(@RequestParam Long ${pkColumn.javaField}) {
-        ${className} ${classname} = ${classname}Service.select${className}ById(${pkColumn.javaField});
+    public RespInfo<${className}> getById(@RequestParam ${pkColumn.javaType} ${pkColumn.javaField}) {
 #end
-        return RespInfo.success(${classname});
+        return RespInfo.success(${classname}Service.select${className}ById(${pkColumn.javaField}));
     }
 
-    /**
-     * 新增${functionName}
-     */
     @PostMapping("/add")
     @OperationLog(module = "${functionName}管理", type = OperationType.ADD, desc = "新增${functionName}")
 #if(${isMasterDetailLayout})
@@ -99,13 +103,10 @@ public class ${className}Controller {
 #else
     public RespInfo<Void> add(@RequestBody ${className}DTO dto) {
 #end
-        boolean result = ${classname}Service.insert${className}(dto);
-        return result ? RespInfo.success() : RespInfo.error("新增失败");
+        return ${classname}Service.insert${className}(dto)
+                ? RespInfo.success() : RespInfo.error("新增失败");
     }
 
-    /**
-     * 修改${functionName}
-     */
     @PostMapping("/edit")
     @OperationLog(module = "${functionName}管理", type = OperationType.UPDATE, desc = "修改${functionName}")
 #if(${isMasterDetailLayout})
@@ -113,27 +114,55 @@ public class ${className}Controller {
 #else
     public RespInfo<Void> edit(@RequestBody ${className}DTO dto) {
 #end
-        boolean result = ${classname}Service.update${className}(dto);
-        return result ? RespInfo.success() : RespInfo.error("修改失败");
+        return ${classname}Service.update${className}(dto)
+                ? RespInfo.success() : RespInfo.error("修改失败");
     }
 
-    /**
-     * 删除${functionName}
-     */
     @PostMapping("/remove/{${pkColumn.javaField}}")
     @OperationLog(module = "${functionName}管理", type = OperationType.DELETE, desc = "删除${functionName}")
-    public RespInfo<Void> remove(@PathVariable Long ${pkColumn.javaField}) {
-        boolean result = ${classname}Service.delete${className}ById(${pkColumn.javaField});
-        return result ? RespInfo.success() : RespInfo.error("删除失败");
+    public RespInfo<Void> remove(@PathVariable ${pkColumn.javaType} ${pkColumn.javaField}) {
+        return ${classname}Service.delete${className}ById(${pkColumn.javaField})
+                ? RespInfo.success() : RespInfo.error("删除失败");
     }
 
-    /**
-     * 批量删除${functionName}
-     */
     @PostMapping("/removeBatch")
     @OperationLog(module = "${functionName}管理", type = OperationType.DELETE, desc = "批量删除${functionName}")
-    public RespInfo<Void> removeBatch(@RequestBody Long[] ${pkColumn.javaField}s) {
-        boolean result = ${classname}Service.delete${className}ByIds(${pkColumn.javaField}s);
-        return result ? RespInfo.success() : RespInfo.error("批量删除失败");
+    public RespInfo<Void> removeBatch(@RequestBody ${pkColumn.javaType}[] ${pkColumn.javaField}s) {
+        return ${classname}Service.delete${className}ByIds(${pkColumn.javaField}s)
+                ? RespInfo.success() : RespInfo.error("批量删除失败");
+    }
+
+    @PostMapping("/import")
+    @OperationLog(module = "${functionName}管理", type = OperationType.IMPORT, desc = "导入${functionName}")
+    public RespInfo<ImportResult<${className}DTO>> importExcel(@RequestParam("file") MultipartFile file) {
+        ImportResult<${className}DTO> result = excelImportService.importData(
+                file, EXCEL_CONFIG_KEY, ${className}DTO.class);
+        if (result.isSuccess() && result.getSuccessData() != null && !result.getSuccessData().isEmpty()) {
+            if (!${classname}Service.import${className}(result.getSuccessData())) {
+                throw new BusinessException("导入${functionName}失败");
+            }
+            result.setSuccessRows(result.getSuccessData().size());
+            result.setFailedRows(0);
+            result.buildSummary();
+        }
+        return RespInfo.success(result);
+    }
+
+    @PostMapping("/export")
+    @OperationLog(module = "${functionName}管理", type = OperationType.EXPORT, desc = "导出${functionName}")
+    public void exportExcel(@RequestBody(required = false) java.util.Map<String, Object> queryParams,
+                            HttpServletResponse response) {
+        excelExportEngine.export(response, EXCEL_CONFIG_KEY, queryParams);
+    }
+
+    @GetMapping("/import-template")
+    public void downloadImportTemplate(HttpServletResponse response) throws IOException {
+        byte[] template = excelImportService.downloadTemplate(EXCEL_CONFIG_KEY);
+        String fileName = URLEncoder.encode("${functionName}导入模板.xlsx", StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setHeader("Content-Disposition", "attachment;filename*=UTF-8''" + fileName);
+        response.getOutputStream().write(template);
     }
 }

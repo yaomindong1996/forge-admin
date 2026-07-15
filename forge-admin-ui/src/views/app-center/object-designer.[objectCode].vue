@@ -24,6 +24,20 @@
     @open-function-market="functionMarketVisible = true"
     @update:active-panel="handlePanelSwitch"
   >
+    <BusinessTableMappingSummary
+      v-if="objectId && !isCodeAppDesigner"
+      ref="tableMappingSummaryRef"
+      :object-id="objectId"
+      :expanded="activePanel === 'fields'"
+      :model-schema="draft.modelSchema"
+      @loaded="tableMapping = $event"
+      @open-structure="handlePanelSwitch('fields')"
+      @update:model-schema="handleModelSchemaUpdated"
+      @dirty-change="handleDirtyChange"
+      @apply-indexes="handleModelSchemaApplied"
+      @apply-model-schema="handleModelSchemaApplied"
+    />
+
     <section v-if="activePanel === 'basic'" class="basic-panel">
       <div class="panel-head">
         <div>
@@ -77,6 +91,7 @@
       :relations="draft.relations"
       :form-designer-schema="draft.formDesignerSchema"
       :developer-mode="developerMode"
+      :table-mapping="tableMapping"
       @updated="handleFieldsUpdated"
       @dirty-change="handleDirtyChange"
       @add-to-form="handleAddFieldToForm"
@@ -269,7 +284,7 @@ const props = defineProps({
   },
   initialPanel: {
     type: String,
-    default: 'form',
+    default: 'fields',
   },
   initialDetailTab: {
     type: String,
@@ -289,6 +304,7 @@ const BusinessListDesigner = defineDesignerAsyncComponent(() => import('./compon
 const BusinessPermissionFlowPanel = defineDesignerAsyncComponent(() => import('./components/designer/BusinessPermissionFlowPanel.vue'))
 const BusinessPublishChecklist = defineDesignerAsyncComponent(() => import('./components/designer/BusinessPublishChecklist.vue'))
 const BusinessRelationDesigner = defineDesignerAsyncComponent(() => import('./components/designer/BusinessRelationDesigner.vue'))
+const BusinessTableMappingSummary = defineDesignerAsyncComponent(() => import('./components/designer/BusinessTableMappingSummary.vue'))
 const BusinessTriggerConfigPanel = defineDesignerAsyncComponent(() => import('./trigger.vue'))
 const FormulaFunctionMarket = defineDesignerAsyncComponent(() => import('./components/designer/formula/FormulaFunctionMarket.vue'))
 
@@ -321,6 +337,8 @@ const runtimeInfo = ref(null)
 const publishCheckState = ref(null)
 const functionMarketVisible = ref(false)
 const fieldManagerRef = ref(null)
+const tableMappingSummaryRef = ref(null)
+const tableMapping = ref(null)
 const formDesignerRef = ref(null)
 const listDesignerRef = ref(null)
 const detailDesignerRef = ref(null)
@@ -391,7 +409,7 @@ const runtimeFormOptions = computed(() => {
 
 function resolveInitialPanel() {
   const panel = props.embedded ? props.initialPanel : route.query.panel
-  return normalizePanel(panel) || 'form'
+  return normalizePanel(panel) || 'fields'
 }
 
 function normalizePanel(panel) {
@@ -525,6 +543,8 @@ async function loadDesigner() {
 
 async function resolveBusinessObject() {
   const queryObjectId = props.embedded ? props.embeddedObjectId : route.query.objectId
+  if (props.embedded && queryObjectId)
+    return { id: queryObjectId }
   const object = await findBusinessObjectByCode()
   if (queryObjectId) {
     const id = Array.isArray(queryObjectId) ? queryObjectId[0] : queryObjectId
@@ -959,7 +979,7 @@ function openTriggerConfig() {
     return
   }
   if (props.embedded) {
-    emit('close')
+    activePanel.value = 'triggers'
     return
   }
   activePanel.value = 'triggers'
@@ -973,6 +993,7 @@ async function handleFieldsUpdated(fields, options = {}) {
   draft.viewSchema = sanitizeViewSchemaFieldRefs(draft.viewSchema || {}, draft.fields)
   if (options?.reloadDesigner) {
     await loadDesigner()
+    await tableMappingSummaryRef.value?.refresh?.()
     return
   }
   if (options?.persisted === false) {
@@ -982,6 +1003,7 @@ async function handleFieldsUpdated(fields, options = {}) {
   else {
     dirty.value = false
     designerDraftDirty.value = false
+    await tableMappingSummaryRef.value?.refresh?.()
   }
 }
 
@@ -1147,6 +1169,18 @@ function handleDirtyChange(value) {
     designerDraftDirty.value = true
   if (value && ['list', 'relations', 'actions'].includes(activePanel.value))
     designerDraftDirty.value = true
+}
+
+function handleModelSchemaUpdated(modelSchema) {
+  draft.modelSchema = cloneSchema(modelSchema || {})
+  dirty.value = true
+  designerDraftDirty.value = true
+}
+
+async function handleModelSchemaApplied(modelSchema) {
+  handleModelSchemaUpdated(modelSchema)
+  await saveDesignerDraft(true)
+  await tableMappingSummaryRef.value?.refresh?.()
 }
 
 function markDirty() {

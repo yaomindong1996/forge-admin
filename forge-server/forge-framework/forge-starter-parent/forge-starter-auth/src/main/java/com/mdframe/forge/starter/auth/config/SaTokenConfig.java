@@ -49,6 +49,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
                     // 排除 SSO 票据交换接口
                     .notMatch("/auth/sso/exchange")
                     // 排除密钥交换相关接口（未登录时也需要先完成协商）
+                    .notMatch("/crypto/config")
                     .notMatch("/crypto/public-key")
                     .notMatch("/crypto/exchange")
                     // MCP OAuth 公开元数据与 token 端点由专用认证链处理
@@ -80,7 +81,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
                 // 排除登录相关接口
                 .excludePathPatterns("/auth/login", "/auth/logout", "/auth/loginConfig", "/auth/tenant/options", "/auth/tenant/assets/**", "/auth/register", "/auth/resetPassword",
                         "/auth/captcha", "/auth/captcha/slider", "/auth/captcha/sms", "/auth/sso/exchange")
-                .excludePathPatterns("/crypto/public-key", "/crypto/exchange")
+                .excludePathPatterns("/crypto/config", "/crypto/public-key", "/crypto/exchange")
                 .excludePathPatterns("/.well-known/oauth-protected-resource",
                         "/.well-known/oauth-authorization-server", "/oauth2/token", "/oauth2/revoke")
                 .excludePathPatterns("/ai/capability/oauth/**", "/mcp")

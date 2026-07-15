@@ -27,7 +27,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class BusinessBindingService extends ServiceImpl<BusinessBindingMapper, AiBusinessBinding> {
 
-    private static final Set<String> TARGET_TYPES = Set.of("SUITE", "OBJECT", "APP");
+    private static final Set<String> TARGET_TYPES = Set.of("SUITE", "OBJECT", "APPLICATION", "APP");
     private static final Set<String> BINDING_TYPES = Set.of(
             "FLOW", "APPROVAL", "REPORT", "PERMISSION", "MESSAGE",
             "TRIGGER", "IMPORT", "EXPORT", "MOBILE", "INTEGRATION"
@@ -35,6 +35,7 @@ public class BusinessBindingService extends ServiceImpl<BusinessBindingMapper, A
 
     private final BusinessSuiteService suiteService;
     private final BusinessObjectService objectService;
+    private final BusinessApplicationService applicationService;
     private final BusinessAppService appService;
 
     public List<BusinessBindingVO> list(BusinessBindingQueryDTO query) {
@@ -51,6 +52,7 @@ public class BusinessBindingService extends ServiceImpl<BusinessBindingMapper, A
         AiBusinessBinding binding = new AiBusinessBinding();
         copyDtoToEntity(dto, binding, true);
         save(binding);
+        markApplicationChanged(binding);
         return binding.getId();
     }
 
@@ -60,14 +62,19 @@ public class BusinessBindingService extends ServiceImpl<BusinessBindingMapper, A
             throw new BusinessException("能力挂接ID不能为空");
         }
         AiBusinessBinding binding = requireBinding(dto.getId());
+        Long previousApplicationId = applicationTargetId(binding);
         copyDtoToEntity(dto, binding, false);
         updateById(binding);
+        markApplicationChanged(previousApplicationId);
+        markApplicationChanged(binding);
     }
 
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         AiBusinessBinding binding = requireBinding(id);
+        Long applicationId = applicationTargetId(binding);
         removeById(binding.getId());
+        markApplicationChanged(applicationId);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -104,6 +111,24 @@ public class BusinessBindingService extends ServiceImpl<BusinessBindingMapper, A
             copyDtoToEntity(item, binding, true);
             save(binding);
         }
+        if ("APPLICATION".equals(targetType)) {
+            markApplicationChanged(dto.getTargetId());
+        }
+    }
+
+    private void markApplicationChanged(AiBusinessBinding binding) {
+        markApplicationChanged(applicationTargetId(binding));
+    }
+
+    private void markApplicationChanged(Long applicationId) {
+        if (applicationId != null) {
+            applicationService.markCompositionChanged(applicationId);
+        }
+    }
+
+    private Long applicationTargetId(AiBusinessBinding binding) {
+        return binding != null && "APPLICATION".equalsIgnoreCase(binding.getTargetType())
+                ? binding.getTargetId() : null;
     }
 
     private void copyDtoToEntity(BusinessBindingDTO dto, AiBusinessBinding binding, boolean create) {
@@ -230,6 +255,15 @@ public class BusinessBindingService extends ServiceImpl<BusinessBindingMapper, A
                 return;
             }
             appService.requireEntity(targetId);
+            return;
+        }
+        if ("APPLICATION".equals(targetType)) {
+            if (targetId == null) {
+                throw new BusinessException("业务应用挂接必须指定应用ID");
+            }
+            if (!StringUtils.equals(applicationService.requireEntity(targetId).getApplicationCode(), targetCode)) {
+                throw new BusinessException("业务应用挂接目标ID与编码不一致");
+            }
         }
     }
 

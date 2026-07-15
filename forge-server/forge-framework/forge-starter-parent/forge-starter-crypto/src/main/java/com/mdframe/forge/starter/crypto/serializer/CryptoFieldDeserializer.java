@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.deser.ContextualDeserializer;
+import com.mdframe.forge.starter.core.context.CryptoProperties;
 import com.mdframe.forge.starter.crypto.crypto.CryptoField;
 import com.mdframe.forge.starter.crypto.crypto.Encryptor;
 import com.mdframe.forge.starter.crypto.crypto.EncryptorFactory;
@@ -20,13 +21,17 @@ import java.io.IOException;
 public class CryptoFieldDeserializer extends JsonDeserializer<String> implements ContextualDeserializer {
 
     private EncryptorFactory encryptorFactory;
+    private CryptoProperties cryptoProperties;
     private CryptoField annotation;
 
     public CryptoFieldDeserializer() {
     }
 
-    public CryptoFieldDeserializer(EncryptorFactory encryptorFactory, CryptoField annotation) {
+    public CryptoFieldDeserializer(EncryptorFactory encryptorFactory,
+                                   CryptoProperties cryptoProperties,
+                                   CryptoField annotation) {
         this.encryptorFactory = encryptorFactory;
+        this.cryptoProperties = cryptoProperties;
         this.annotation = annotation;
     }
 
@@ -38,7 +43,10 @@ public class CryptoFieldDeserializer extends JsonDeserializer<String> implements
             return null;
         }
 
-        if (annotation == null || !annotation.decrypt() || encryptorFactory == null) {
+        if (annotation == null || !annotation.decrypt() || encryptorFactory == null
+                || cryptoProperties == null
+                || !Boolean.TRUE.equals(cryptoProperties.getEnabled())
+                || !Boolean.TRUE.equals(cryptoProperties.getEnableFieldCrypto())) {
             return value;
         }
 
@@ -58,8 +66,9 @@ public class CryptoFieldDeserializer extends JsonDeserializer<String> implements
             CryptoField annotation = property.getAnnotation(CryptoField.class);
             if (annotation != null && annotation.decrypt()) {
                 EncryptorFactory factory = (EncryptorFactory) ctxt.getAttribute(EncryptorFactory.class);
-                if (factory != null) {
-                    return new CryptoFieldDeserializer(factory, annotation);
+                CryptoProperties properties = (CryptoProperties) ctxt.getAttribute(CryptoProperties.class);
+                if (factory != null && properties != null) {
+                    return new CryptoFieldDeserializer(factory, properties, annotation);
                 }
             }
         }

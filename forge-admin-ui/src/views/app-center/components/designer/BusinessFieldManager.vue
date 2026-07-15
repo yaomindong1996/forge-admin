@@ -2,14 +2,13 @@
   <div class="field-manager">
     <section class="field-asset-head">
       <div>
-        <h2>字段资产</h2>
-        <p>表单拖入组件会自动沉淀为字段资产，这里只处理字段编码、存储和高级维护。</p>
+        <h2>字段与数据库映射</h2>
+        <p>统一维护字段业务定义、数据库列与同步状态；页面展示、顺序和查询条件在对应设计器配置。</p>
       </div>
-      <div class="field-metrics">
-        <span><strong>{{ fieldStats.total }}</strong>全部</span>
-        <span><strong>{{ fieldStats.designer }}</strong>表单生成</span>
-        <span><strong>{{ fieldStats.searchable }}</strong>查询</span>
-        <span><strong>{{ fieldStats.system }}</strong>系统</span>
+      <div class="field-summary" aria-label="字段概况">
+        <span>业务字段 <strong>{{ fieldStats.business }}</strong></span>
+        <span>系统字段 <strong>{{ fieldStats.system }}</strong></span>
+        <span>结构一致 <strong>{{ fieldStats.inSync }}</strong></span>
       </div>
     </section>
 
@@ -30,6 +29,11 @@
         :options="sourceFilterOptions"
         class="field-filter"
       />
+      <div class="system-field-toggle">
+        <n-switch v-model:value="showSystemFields" size="small" />
+        <span>{{ showSystemFields ? '显示系统字段' : '隐藏系统字段' }}</span>
+        <small>{{ fieldStats.system }} 个</small>
+      </div>
       <n-button type="primary" @click="openCreateModal">
         新增字段
       </n-button>
@@ -53,80 +57,49 @@
         />
       </div>
 
-      <aside class="field-inspector-pane">
-        <n-empty v-if="!selectedField" size="small" description="选择字段后查看摘要" />
-        <template v-else>
-          <div class="field-inspector-head">
-            <div>
-              <span>当前字段</span>
-              <strong>{{ selectedField.fieldName || selectedField.fieldCode }}</strong>
-              <code>{{ selectedField.fieldCode }}</code>
-            </div>
-            <n-tag
-              size="small"
-              :type="selectedField.systemField ? 'info' : 'success'"
-              :bordered="false"
-            >
-              {{ selectedField.systemField ? '系统字段' : '业务字段' }}
-            </n-tag>
-          </div>
-          <dl class="field-inspector-grid">
-            <div>
-              <dt>字段类型</dt>
-              <dd>{{ selectedField.fieldType || '-' }}</dd>
-            </div>
-            <div>
-              <dt>数据库列</dt>
-              <dd>{{ selectedField.columnName || '-' }}</dd>
-            </div>
-            <div>
-              <dt>表单</dt>
-              <dd>{{ selectedField.formVisible === false ? '隐藏' : '显示' }}</dd>
-            </div>
-            <div>
-              <dt>列表</dt>
-              <dd>{{ selectedField.listVisible === false ? '隐藏' : '显示' }}</dd>
-            </div>
-          </dl>
-          <div class="field-inspector-flags">
-            <n-tag v-if="selectedField.required" size="small" type="error" :bordered="false">
-              必填
-            </n-tag>
-            <n-tag v-if="selectedField.searchable" size="small" type="info" :bordered="false">
-              查询条件
-            </n-tag>
-            <n-tag v-if="selectedField.formulaConfig?.type" size="small" type="warning" :bordered="false">
-              {{ selectedField.formulaConfig.type }} 公式
-            </n-tag>
-          </div>
-          <n-button type="primary" block @click="openPropertyPanel(selectedField.fieldCode)">
-            编辑字段属性
-          </n-button>
-        </template>
+      <aside v-if="!compactLayout" class="field-property-pane">
+        <BusinessFieldPropertyPanel
+          ref="propertyPanelRef"
+          :field="selectedField"
+          :all-fields="activeFields"
+          :relations="relations"
+          :object-code="objectCode"
+          :developer-mode="developerMode"
+          :saving="saving"
+          @save="saveField"
+          @dirty-change="$emit('dirtyChange', $event)"
+        />
       </aside>
     </section>
 
-    <n-modal
+    <n-drawer
+      v-if="compactLayout"
       :show="propertyVisible"
-      preset="card"
-      class="field-property-modal"
-      :bordered="false"
+      :width="drawerWidth"
+      placement="right"
       :mask-closable="false"
-      @update:show="handlePropertyModalUpdate"
+      @update:show="handlePropertyDrawerUpdate"
     >
-      <BusinessFieldPropertyPanel
-        ref="propertyPanelRef"
-        class="field-property-modal-panel"
-        :field="selectedField"
-        :all-fields="visibleFields"
-        :relations="relations"
-        :object-code="objectCode"
-        :developer-mode="developerMode"
-        :saving="saving"
-        @save="saveField"
-        @dirty-change="$emit('dirtyChange', $event)"
-      />
-    </n-modal>
+      <n-drawer-content
+        title="字段属性"
+        closable
+        :native-scrollbar="false"
+        body-content-style="padding: 0; overflow: hidden;"
+      >
+        <BusinessFieldPropertyPanel
+          ref="propertyPanelRef"
+          class="field-property-drawer-panel"
+          :field="selectedField"
+          :all-fields="activeFields"
+          :relations="relations"
+          :object-code="objectCode"
+          :developer-mode="developerMode"
+          :saving="saving"
+          @save="saveField"
+          @dirty-change="$emit('dirtyChange', $event)"
+        />
+      </n-drawer-content>
+    </n-drawer>
 
     <n-modal
       v-model:show="createVisible"
@@ -152,22 +125,10 @@
         <n-form-item v-if="needsCreateDict" label="字典类型">
           <DictTypeSelect v-model:value="createForm.dictType" :fields="visibleFields" />
         </n-form-item>
+        <div class="create-field-tip">
+          创建后字段会加入字段资产。是否出现在当前表单、列表或查询区，请在对应页面设计器中配置。
+        </div>
         <n-grid :cols="2" :x-gap="12">
-          <n-form-item-gi>
-            <n-checkbox v-model:checked="createForm.formVisible">
-              显示在表单
-            </n-checkbox>
-          </n-form-item-gi>
-          <n-form-item-gi>
-            <n-checkbox v-model:checked="createForm.listVisible">
-              显示在列表
-            </n-checkbox>
-          </n-form-item-gi>
-          <n-form-item-gi>
-            <n-checkbox v-model:checked="createForm.searchable">
-              作为查询条件
-            </n-checkbox>
-          </n-form-item-gi>
           <n-form-item-gi>
             <n-checkbox v-model:checked="createForm.required">
               必填
@@ -196,7 +157,7 @@
 
 <script setup>
 import { useMessage } from 'naive-ui'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import {
   businessObjectFields,
   createBusinessObjectField,
@@ -235,6 +196,10 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  tableMapping: {
+    type: Object,
+    default: null,
+  },
 })
 
 const emit = defineEmits(['updated', 'dirtyChange', 'addToForm'])
@@ -245,13 +210,17 @@ const selectedFieldCode = ref('')
 const keyword = ref('')
 const statusFilter = ref('all')
 const sourceFilter = ref('all')
+const showSystemFields = ref(false)
 const propertyPanelRef = ref(null)
 const saving = ref(false)
 const creating = ref(false)
 const createVisible = ref(false)
 const propertyVisible = ref(false)
+const compactLayout = ref(false)
+const viewportWidth = ref(typeof window === 'undefined' ? 1280 : window.innerWidth)
 const createForm = reactive(createDefaultCreateForm())
 const lastSuggestedCreateFieldCode = ref('')
+let compactMediaQuery = null
 
 const fieldTypeOptions = [
   { label: '文本', value: 'TEXT' },
@@ -272,22 +241,36 @@ const fieldTypeOptions = [
   { label: '引用对象', value: 'REFERENCE' },
 ]
 
-const orderedFields = computed(() => {
-  return [...localFields.value].sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0))
+const databaseMappingByField = computed(() => {
+  const mappings = new Map()
+  for (const item of props.tableMapping?.fields || []) {
+    if (item.fieldCode)
+      mappings.set(`field:${item.fieldCode}`, item)
+    if (item.columnName)
+      mappings.set(`column:${String(item.columnName).toLowerCase()}`, item)
+  }
+  return mappings
 })
 
-const visibleFields = computed(() => orderedFields.value.filter(field => !isHiddenField(field)))
-const filteredFields = computed(() => visibleFields.value.filter(matchesFieldFilters))
+const orderedFields = computed(() => [...localFields.value]
+  .sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0)))
+
+const activeFields = computed(() => orderedFields.value.filter(field => !isHiddenField(field)))
+const visibleFields = computed(() => activeFields.value
+  .filter(field => showSystemFields.value || !field.systemField))
+const filteredFields = computed(() => visibleFields.value
+  .filter(matchesFieldFilters)
+  .map(field => ({ ...field, databaseMapping: resolveDatabaseMapping(field) })))
 const usedFieldCodes = computed(() => extractForgeSchemaFieldRefs(props.formDesignerSchema || {}))
 const selectedField = computed(() => visibleFields.value.find(field => field.fieldCode === selectedFieldCode.value) || null)
 const needsCreateDict = computed(() => ['DICT', 'RADIO', 'CHECKBOX'].includes(createForm.fieldType))
+const drawerWidth = computed(() => Math.min(520, Math.max(320, viewportWidth.value - 24)))
 const fieldStats = computed(() => {
-  const fields = visibleFields.value
+  const fields = activeFields.value
   return {
-    total: fields.length,
-    designer: fields.filter(isDesignerField).length,
-    searchable: fields.filter(field => field.searchable).length,
-    system: fields.filter(field => field.systemField).length,
+    business: fields.filter(field => !field.systemField).length,
+    system: activeFields.value.filter(field => field.systemField).length,
+    inSync: fields.filter(field => resolveDatabaseMapping(field)?.syncStatus === 'IN_SYNC').length,
   }
 })
 
@@ -301,7 +284,6 @@ const sourceFilterOptions = [
   { label: '全部来源', value: 'all' },
   { label: '表单生成', value: 'designer' },
   { label: '手动维护', value: 'manual' },
-  { label: '系统字段', value: 'system' },
 ]
 
 watch(
@@ -328,12 +310,35 @@ watch(
   },
 )
 
+watch(showSystemFields, (visible) => {
+  if (visible || !selectedFieldCode.value)
+    return
+  const current = localFields.value.find(field => field.fieldCode === selectedFieldCode.value)
+  if (current?.systemField)
+    closePropertyPanel(true, true)
+})
+
+onMounted(() => {
+  compactMediaQuery = window.matchMedia('(max-width: 980px)')
+  applyCompactLayout(compactMediaQuery)
+  compactMediaQuery.addEventListener?.('change', applyCompactLayout)
+  window.addEventListener('resize', updateViewportWidth)
+})
+
+onBeforeUnmount(() => {
+  compactMediaQuery?.removeEventListener?.('change', applyCompactLayout)
+  window.removeEventListener('resize', updateViewportWidth)
+})
+
 function selectField(field) {
   const nextCode = field?.fieldCode || ''
   if (!nextCode)
     return
-  if (nextCode === selectedFieldCode.value)
+  if (nextCode === selectedFieldCode.value) {
+    if (compactLayout.value)
+      propertyVisible.value = true
     return
+  }
   if (propertyPanelRef.value?.hasChanges?.()) {
     window.$dialog.warning({
       title: '未保存字段变更',
@@ -344,7 +349,7 @@ function selectField(field) {
     })
     return
   }
-  selectedFieldCode.value = nextCode
+  openPropertyPanel(nextCode)
 }
 
 function openPropertyPanel(fieldCode) {
@@ -361,7 +366,7 @@ function closePropertyPanel(discardChanges = false, clearSelection = false) {
   emit('dirtyChange', false)
 }
 
-function handlePropertyModalUpdate(show) {
+function handlePropertyDrawerUpdate(show) {
   if (show) {
     propertyVisible.value = true
     return
@@ -377,6 +382,16 @@ function handlePropertyModalUpdate(show) {
     return
   }
   closePropertyPanel(false)
+}
+
+function applyCompactLayout(event) {
+  compactLayout.value = !!event.matches
+  if (!compactLayout.value && selectedFieldCode.value)
+    propertyVisible.value = true
+}
+
+function updateViewportWidth() {
+  viewportWidth.value = window.innerWidth
 }
 
 function openCreateModal() {
@@ -492,7 +507,7 @@ async function saveSelectedField() {
     return saveField(propertyPanelRef.value.getPayload?.() || {}, targetFieldCode)
   }
   if (!selectedField.value) {
-    message.info('字段资产暂无需要保存的字段属性')
+    message.info('当前没有需要保存的字段属性')
     return true
   }
   if (!propertyVisible.value) {
@@ -530,11 +545,20 @@ async function deleteField(field) {
 async function moveField(from, to) {
   if (from === to || from < 0 || to < 0 || to >= visibleFields.value.length)
     return
+  if (visibleFields.value[from]?.systemField || visibleFields.value[to]?.systemField)
+    return
   const nextVisible = [...visibleFields.value]
   const [item] = nextVisible.splice(from, 1)
   nextVisible.splice(to, 0, item)
-  const hiddenFields = orderedFields.value.filter(isHiddenField)
-  const next = [...nextVisible, ...hiddenFields]
+  const visibleCodes = new Set(nextVisible.map(field => field.fieldCode))
+  let visibleIndex = 0
+  const next = orderedFields.value.map((field) => {
+    if (!visibleCodes.has(field.fieldCode))
+      return field
+    const reordered = nextVisible[visibleIndex]
+    visibleIndex += 1
+    return reordered
+  })
   localFields.value = next.map((field, index) => ({ ...field, sortOrder: index + 1 }))
   if (!props.objectId)
     return
@@ -603,14 +627,18 @@ function matchesFieldFilters(field = {}) {
     return false
   if (sourceFilter.value === 'manual' && (isDesignerField(field) || field.systemField))
     return false
-  if (sourceFilter.value === 'system' && !field.systemField)
-    return false
   return true
 }
 
 function isDesignerField(field = {}) {
   const binding = field.fieldBinding || field.basicProps?.fieldBinding || {}
   return binding.source === 'designer' || binding.createIfMissing === true
+}
+
+function resolveDatabaseMapping(field = {}) {
+  return databaseMappingByField.value.get(`field:${field.fieldCode}`)
+    || databaseMappingByField.value.get(`column:${String(field.columnName || '').toLowerCase()}`)
+    || null
 }
 
 function normalizeFieldPayload(source) {
@@ -681,7 +709,7 @@ defineExpose({
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   min-height: calc(100vh - 106px);
-  background: #fbfcfe;
+  background: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
 }
 
 .field-asset-head {
@@ -689,51 +717,55 @@ defineExpose({
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
-  padding: 16px 18px;
+  border-bottom: 1px solid var(--border-default, #e5e6eb);
+  background: var(--n-color, var(--bg-primary, #fff));
+  padding: 14px 18px;
 }
 
 .field-asset-head h2 {
   margin: 0;
-  color: #111827;
+  color: var(--n-text-color, var(--text-primary, #1d2129));
   font-size: 16px;
   letter-spacing: 0;
 }
 
 .field-asset-head p {
   margin: 5px 0 0;
-  color: #64748b;
+  color: var(--n-text-color-3, var(--text-secondary, #86909c));
   font-size: 12px;
 }
 
-.field-metrics {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(72px, auto));
-  gap: 8px;
+.field-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.field-metrics span {
-  display: grid;
-  justify-items: end;
-  gap: 2px;
-  color: #64748b;
+.field-summary span {
+  border: 1px solid var(--border-default, #e5e6eb);
+  border-radius: 5px;
+  background: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
+  color: var(--n-text-color-3, var(--text-secondary, #86909c));
   font-size: 12px;
+  line-height: 24px;
+  padding: 0 8px;
+  white-space: nowrap;
 }
 
-.field-metrics strong {
-  color: #111827;
-  font-size: 18px;
-  line-height: 22px;
+.field-summary strong {
+  margin-left: 3px;
+  color: var(--n-text-color, var(--text-primary, #1d2129));
+  font-size: 12px;
 }
 
 .field-asset-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #fff;
-  padding: 12px 18px;
+  border-bottom: 1px solid var(--border-default, #e5e6eb);
+  background: var(--n-color, var(--bg-primary, #fff));
+  padding: 10px 18px;
 }
 
 .field-search {
@@ -744,9 +776,28 @@ defineExpose({
   width: 132px;
 }
 
+.system-field-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border-default, #e5e6eb);
+  border-radius: 6px;
+  color: var(--n-text-color-2, var(--text-regular, #4e5969));
+  background: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.system-field-toggle small {
+  color: var(--n-text-color-3, var(--text-secondary, #86909c));
+  font-size: 11px;
+}
+
 .field-asset-workbench {
   display: grid;
-  grid-template-columns: minmax(520px, 1fr) 280px;
+  grid-template-columns: minmax(440px, 1fr) minmax(420px, 460px);
   gap: 0;
   min-height: 0;
 }
@@ -754,104 +805,33 @@ defineExpose({
 .field-list-pane {
   min-width: 0;
   min-height: 0;
-  border-right: 1px solid #e5e7eb;
-  background: #fbfcfe;
+  border-right: 1px solid var(--border-default, #e5e6eb);
+  background: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
 }
 
-.field-inspector-pane {
-  display: grid;
-  align-content: start;
-  gap: 14px;
+.field-property-pane {
   min-width: 0;
   min-height: 0;
-  background: #fff;
-  padding: 16px;
-}
-
-.field-inspector-pane :deep(.n-empty) {
-  margin-top: 72px;
-}
-
-.field-inspector-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  border-bottom: 1px solid #e5e7eb;
-  padding-bottom: 14px;
-}
-
-.field-inspector-head div {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-
-.field-inspector-head span,
-.field-inspector-grid dt {
-  color: #64748b;
-  font-size: 12px;
-}
-
-.field-inspector-head strong {
   overflow: hidden;
-  color: #111827;
-  font-size: 16px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  background: var(--n-color, var(--bg-primary, #fff));
 }
 
-.field-inspector-head code,
-.field-inspector-grid dd {
-  overflow: hidden;
-  color: #334155;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.field-inspector-grid {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-}
-
-.field-inspector-grid div {
-  min-width: 0;
-  border: 1px solid #edf1f6;
-  border-radius: 7px;
-  background: #f8fafc;
-  padding: 9px 10px;
-}
-
-.field-inspector-grid dd {
-  margin: 4px 0 0;
-}
-
-.field-inspector-flags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-height: 24px;
-}
-
-.field-property-modal-panel {
+.field-property-drawer-panel {
   width: 100%;
+  height: 100%;
   min-width: 0;
-  height: min(880px, calc(100vh - 48px));
   overflow: hidden;
 }
 
-:global(.field-property-modal) {
-  width: min(1600px, calc(100vw - 16px));
-  max-width: calc(100vw - 16px);
-}
-
-:global(.field-property-modal .n-card__content) {
-  min-width: 0;
-  padding: 0;
+.create-field-tip {
+  margin-bottom: 14px;
+  border: 1px solid var(--border-default, #e5e6eb);
+  border-radius: 6px;
+  background: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
+  color: var(--n-text-color-3, var(--text-secondary, #86909c));
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 9px 10px;
 }
 
 @media (max-width: 980px) {
@@ -861,32 +841,24 @@ defineExpose({
     flex-direction: column;
   }
 
-  .field-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .field-metrics span {
-    justify-items: start;
+  .field-summary {
+    justify-content: flex-start;
   }
 
   .field-search,
-  .field-filter {
+  .field-filter,
+  .system-field-toggle {
     width: 100%;
     max-width: none;
   }
 
   .field-asset-workbench {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(360px, 1fr) auto;
+    grid-template-rows: minmax(360px, 1fr);
   }
 
   .field-list-pane {
     border-right: 0;
-    border-bottom: 1px solid #e5e7eb;
-  }
-
-  .field-inspector-pane {
-    border-top: 1px solid #e5e7eb;
   }
 }
 </style>

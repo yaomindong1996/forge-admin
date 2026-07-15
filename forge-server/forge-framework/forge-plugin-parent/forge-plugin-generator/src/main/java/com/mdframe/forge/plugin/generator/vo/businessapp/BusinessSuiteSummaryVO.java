@@ -30,5 +30,9 @@ public class BusinessSuiteSummaryVO {
 
     private Long enabledAppCount;
 
+    private Long applicationCount;
+
+    private Long enabledApplicationCount;
+
     private LocalDateTime latestUpdateTime;
 }

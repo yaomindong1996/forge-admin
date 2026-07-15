@@ -31,6 +31,9 @@ public class AiBusinessApp extends TenantEntity {
     /** BUSINESS/EMBEDDED/MOBILE/INTEGRATION */
     private String appType;
 
+    /** 归属的业务应用聚合ID，存量访问入口可为空。 */
+    private Long applicationId;
+
     private String suiteCode;
 
     private String objectCode;

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessApplicationObjectMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApplicationObject">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="application_id" property="applicationId"/>
+        <result column="object_id" property="objectId"/>
+        <result column="object_role" property="objectRole"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="options" property="options"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectByApplicationId" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationObjectVO">
+        SELECT ao.id AS id,
+               ao.application_id AS applicationId,
+               ao.object_id AS objectId,
+               ao.object_role AS objectRole,
+               ao.sort_order AS sortOrder,
+               ao.options AS options,
+               o.suite_code AS suiteCode,
+               o.object_code AS objectCode,
+               o.object_name AS objectName,
+               o.object_type AS objectType,
+               o.design_status AS designStatus,
+               o.config_key AS configKey,
+               o.status AS objectStatus,
+               c.runtime_datasource_code AS datasourceCode,
+               COALESCE(c.runtime_table_name, c.table_name) AS tableName,
+               c.model_schema AS modelSchema,
+               c.runtime_datasource_snapshot AS runtimeDatasourceSnapshot,
+               c.draft_version AS designVersion,
+               c.layout_type AS layoutType,
+               o.designer_options AS designerOptions,
+               COALESCE(shared_stats.application_count, 0) AS sharedApplicationCount,
+               o.update_time AS updateTime
+        FROM ai_business_application_object ao
+        INNER JOIN ai_business_object o
+          ON o.tenant_id = ao.tenant_id
+         AND o.id = ao.object_id
+         AND o.del_flag = '0'
+        LEFT JOIN ai_crud_config c
+          ON c.tenant_id = o.tenant_id
+         AND c.config_key = o.config_key
+         AND c.del_flag = '0'
+        LEFT JOIN (
+          SELECT tenant_id, object_id, COUNT(1) AS application_count
+          FROM ai_business_application_object
+          WHERE del_flag = '0'
+          GROUP BY tenant_id, object_id
+        ) shared_stats
+          ON shared_stats.tenant_id = ao.tenant_id
+         AND shared_stats.object_id = ao.object_id
+        WHERE ao.tenant_id = #{tenantId}
+          AND ao.application_id = #{applicationId}
+          AND ao.del_flag = '0'
+        ORDER BY CASE ao.object_role
+                   WHEN 'PRIMARY' THEN 1
+                   WHEN 'DETAIL' THEN 2
+                   WHEN 'REFERENCE' THEN 3
+                   ELSE 4
+                 END,
+                 ao.sort_order ASC,
+                 ao.id ASC
+    </select>
+
+    <select id="countByApplicationId" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_application_object
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND del_flag = '0'
+    </select>
+
+    <select id="countByObjectId" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_application_object
+        WHERE tenant_id = #{tenantId}
+          AND object_id = #{objectId}
+          AND del_flag = '0'
+    </select>
+
+    <select id="countByApplicationAndObjectCode" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM ai_business_application_object ao
+        INNER JOIN ai_business_object o
+          ON o.tenant_id = ao.tenant_id
+         AND o.id = ao.object_id
+         AND o.del_flag = '0'
+        WHERE ao.tenant_id = #{tenantId}
+          AND ao.application_id = #{applicationId}
+          AND ao.del_flag = '0'
+          AND o.suite_code = #{suiteCode}
+          AND o.object_code = #{objectCode}
+    </select>
+
+    <select id="selectApplicationIdsByObjectId" resultType="java.lang.Long">
+        SELECT ao.application_id
+        FROM ai_business_application_object ao
+        INNER JOIN ai_business_application a
+          ON a.tenant_id = ao.tenant_id
+         AND a.id = ao.application_id
+         AND a.del_flag = '0'
+        WHERE ao.tenant_id = #{tenantId}
+          AND ao.object_id = #{objectId}
+          AND ao.del_flag = '0'
+        ORDER BY ao.application_id ASC
+    </select>
+
+    <update id="logicDeleteByApplicationId">
+        UPDATE ai_business_application_object
+        SET del_flag = '1',
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND del_flag = '0'
+    </update>
+
+    <insert id="insertBatch">
+        INSERT INTO ai_business_application_object (
+          id, tenant_id, application_id, object_id, object_role, sort_order, options, del_flag,
+          create_by, create_time, create_dept, update_by, update_time
+        ) VALUES
+        <foreach collection="items" item="item" separator=",">
+          (
+            #{item.id}, #{item.tenantId}, #{item.applicationId}, #{item.objectId},
+            #{item.objectRole}, #{item.sortOrder}, #{item.options}, '0',
+            #{item.createBy}, NOW(), #{item.createDept}, #{item.updateBy}, NOW()
+          )
+        </foreach>
+    </insert>
+
+</mapper>

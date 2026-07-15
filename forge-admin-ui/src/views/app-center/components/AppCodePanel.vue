@@ -10,11 +10,17 @@
       <section class="code-toolbar">
         <div class="toolbar-meta">
           <n-tag :bordered="false" type="info">
-            下载代码
+            {{ isApplicationScope ? '应用代码包' : '下载代码' }}
           </n-tag>
           <span>{{ app?.suiteName || app?.suiteCode || '业务域' }}</span>
-          <span>/</span>
-          <span>{{ app?.objectName || app?.objectCode || '业务单元' }}</span>
+          <template v-if="isApplicationScope">
+            <span>·</span>
+            <span>已选 {{ form.objectIds.length }} 个对象</span>
+          </template>
+          <template v-else>
+            <span>/</span>
+            <span>{{ app?.objectName || app?.objectCode || '业务单元' }}</span>
+          </template>
         </div>
         <n-space>
           <n-button secondary :loading="saving" @click="saveOptions">
@@ -29,26 +35,41 @@
             </template>
             刷新预览
           </n-button>
-          <n-button type="primary" :loading="downloading" @click="downloadCode">
+          <n-button
+            type="primary"
+            :loading="downloading"
+            :disabled="!previewReady"
+            @click="downloadCode"
+          >
             <template #icon>
               <n-icon><DownloadOutline /></n-icon>
             </template>
-            下载代码
+            下载当前预览
           </n-button>
         </n-space>
       </section>
 
-      <n-collapse :default-expanded-names="['settings']" class="settings-collapse">
+      <n-collapse
+        :default-expanded-names="isApplicationScope ? [] : ['settings']"
+        class="settings-collapse"
+      >
         <n-collapse-item title="代码包设置" name="settings">
           <n-form label-placement="top" :model="form">
+            <div class="settings-section-title">
+              基础信息
+            </div>
             <n-grid :cols="4" :x-gap="12" :y-gap="4" responsive="screen">
               <n-form-item-gi label="来源版本">
                 <n-select v-model:value="form.sourceType" :options="sourceTypeOptions" />
               </n-form-item-gi>
-              <n-form-item-gi v-if="form.sourceType === 'VERSION'" label="版本 ID">
+              <n-form-item-gi v-if="!isApplicationScope && form.sourceType === 'VERSION'" label="版本 ID">
                 <n-input-number v-model:value="form.versionId" :show-button="false" placeholder="输入版本 ID" />
               </n-form-item-gi>
-              <n-form-item-gi label="业务接口前缀" :span="form.sourceType === 'VERSION' ? 2 : 3">
+              <n-form-item-gi
+                v-if="!isApplicationScope"
+                label="业务接口前缀"
+                :span="form.sourceType === 'VERSION' ? 2 : 3"
+              >
                 <n-input v-model:value="form.businessApiBase" placeholder="/crm/customer" />
               </n-form-item-gi>
               <n-form-item-gi label="Java 基础包名">
@@ -60,22 +81,93 @@
               <n-form-item-gi label="作者">
                 <n-input v-model:value="form.author" placeholder="Forge Generator" />
               </n-form-item-gi>
-              <n-form-item-gi label="前端输出路径">
-                <n-input v-model:value="form.frontendBasePath" placeholder="frontend/src/views" />
+            </n-grid>
+
+            <div class="settings-section-title">
+              命名策略
+            </div>
+            <n-grid :cols="4" :x-gap="12" :y-gap="4" responsive="screen">
+              <n-form-item-gi label="业务类名前缀">
+                <n-input v-model:value="form.entityPrefix" placeholder="例如 Biz（可不填）" />
+              </n-form-item-gi>
+              <n-form-item-gi label="需要剥离的表前缀" :span="3">
+                <n-dynamic-tags
+                  v-model:value="form.stripTablePrefixes"
+                  :input-props="{ placeholder: '输入前缀后回车，例如 tf_' }"
+                />
               </n-form-item-gi>
             </n-grid>
-            <n-form-item label="包含内容">
-              <n-space>
-                <n-checkbox v-model:checked="form.includeSql">
-                  SQL
+
+            <div class="settings-section-title">
+              输出目录
+            </div>
+            <n-grid :cols="4" :x-gap="12" :y-gap="4" responsive="screen">
+              <n-form-item-gi label="后端 Java 根目录">
+                <n-input v-model:value="form.backendBasePath" placeholder="backend/src/main/java" />
+              </n-form-item-gi>
+              <n-form-item-gi label="Mapper XML 根目录">
+                <n-input v-model:value="form.mapperXmlBasePath" placeholder="backend/src/main/resources/mapper" />
+              </n-form-item-gi>
+              <n-form-item-gi label="前端页面根目录">
+                <n-input v-model:value="form.frontendBasePath" placeholder="frontend/src/views" />
+              </n-form-item-gi>
+              <n-form-item-gi label="前端 API 根目录">
+                <n-input v-model:value="form.frontendApiBasePath" placeholder="frontend/src/api" />
+              </n-form-item-gi>
+            </n-grid>
+
+            <div class="settings-section-title">
+              下载内容
+            </div>
+            <n-form-item class="include-options">
+              <n-space :size="18" wrap>
+                <n-checkbox v-model:checked="form.includeBackend">
+                  后端 Java / Mapper XML
                 </n-checkbox>
-                <n-checkbox v-model:checked="form.includeMenuSql">
+                <n-checkbox v-model:checked="form.includeFrontend">
+                  前端页面 / API
+                </n-checkbox>
+                <n-checkbox v-model:checked="form.includeSql">
+                  数据库 SQL
+                </n-checkbox>
+                <n-checkbox v-model:checked="form.includeMenuSql" :disabled="!form.includeSql">
                   菜单 SQL
                 </n-checkbox>
-                <n-checkbox v-model:checked="form.includeDictSql">
+                <n-checkbox v-model:checked="form.includeDictSql" :disabled="!form.includeSql">
                   字典 SQL
                 </n-checkbox>
+                <n-checkbox v-model:checked="form.includeExcelSql" :disabled="!form.includeSql">
+                  导入导出配置 SQL
+                </n-checkbox>
               </n-space>
+            </n-form-item>
+            <n-form-item v-if="isApplicationScope" label="生成对象">
+              <div class="object-selector">
+                <div class="object-selector-head">
+                  <span>主对象会自动带上已配置的子表或左树依赖，不重复生成冲突代码。</span>
+                  <n-space size="small">
+                    <n-button text type="primary" @click="selectAllObjects">
+                      全选
+                    </n-button>
+                    <n-button text @click="form.objectIds = []">
+                      清空
+                    </n-button>
+                  </n-space>
+                </div>
+                <n-checkbox-group v-model:value="form.objectIds" class="object-checkbox-grid">
+                  <label
+                    v-for="object in availableObjects"
+                    :key="object.objectId"
+                    class="object-checkbox-item"
+                  >
+                    <n-checkbox :value="object.objectId" :disabled="!object.configKey" />
+                    <span class="object-checkbox-copy">
+                      <strong>{{ object.objectName || object.objectCode }}</strong>
+                      <small>{{ objectRoleLabel(object.objectRole) }} · {{ layoutLabel(object.layoutType) }}</small>
+                    </span>
+                  </label>
+                </n-checkbox-group>
+              </div>
             </n-form-item>
           </n-form>
         </n-collapse-item>
@@ -86,7 +178,7 @@
           <aside class="file-list">
             <div class="file-list-header">
               <span>目录</span>
-              <span>{{ fileCount }} 个文件</span>
+              <span>{{ fileCount }} 个文件<span v-if="!previewReady && fileCount"> · 设置已变更</span></span>
             </div>
             <n-tree
               block-line
@@ -143,6 +235,12 @@ import {
   businessDownloadAppCode,
   businessSaveAppCodeOptions,
 } from '@/api/business-app'
+import {
+  businessApplicationCodeOptions,
+  downloadBusinessApplicationCode,
+  previewBusinessApplicationCode,
+  saveBusinessApplicationCodeOptions,
+} from '@/api/business-application'
 
 const props = defineProps({
   show: {
@@ -153,6 +251,10 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  scope: {
+    type: String,
+    default: 'ENTRY',
+  },
 })
 
 const emit = defineEmits(['update:show'])
@@ -161,27 +263,34 @@ const saving = ref(false)
 const previewing = ref(false)
 const downloading = ref(false)
 const loadingOptions = ref(false)
+const availableObjects = ref([])
 const fileMap = ref({})
 const fileTree = ref([])
 const expandedKeys = ref([])
 const selectedFile = ref('')
 const editorContainer = ref(null)
 const form = reactive(defaultForm())
+const previewSignature = ref('')
 let editorView = null
 
-const sourceTypeOptions = [
+const isApplicationScope = computed(() => props.scope === 'APPLICATION')
+const sourceTypeOptions = computed(() => [
   { label: '当前草稿', value: 'DRAFT' },
   { label: '已发布版本', value: 'PUBLISHED' },
-  { label: '指定版本', value: 'VERSION' },
-]
+  ...(!isApplicationScope.value ? [{ label: '指定版本', value: 'VERSION' }] : []),
+])
 
 const visible = computed({
   get: () => props.show,
   set: value => emit('update:show', value),
 })
-const panelTitle = computed(() => `${props.app?.appName || '访问入口'}功能代码`)
+const panelTitle = computed(() => isApplicationScope.value
+  ? `${props.app?.applicationName || '应用'}完整代码`
+  : `${props.app?.appName || '访问入口'}功能代码`)
 const fileCount = computed(() => Object.keys(fileMap.value).length)
 const selectedKeys = computed(() => selectedFile.value ? [selectedFile.value] : [])
+const currentSignature = computed(() => JSON.stringify(normalizePayload(buildPayload())))
+const previewReady = computed(() => fileCount.value > 0 && previewSignature.value === currentSignature.value)
 
 watch(() => props.show, async (value) => {
   if (value) {
@@ -208,6 +317,8 @@ function resetWorkbench() {
   fileTree.value = []
   expandedKeys.value = []
   selectedFile.value = ''
+  availableObjects.value = []
+  previewSignature.value = ''
   destroyEditor()
 }
 
@@ -216,8 +327,18 @@ async function loadOptions() {
     return
   loadingOptions.value = true
   try {
-    const res = await businessAppCodeOptions(props.app.id)
-    Object.assign(form, defaultForm(), res.data || {})
+    const res = isApplicationScope.value
+      ? await businessApplicationCodeOptions(props.app.id)
+      : await businessAppCodeOptions(props.app.id)
+    const options = res.data || {}
+    availableObjects.value = Array.isArray(options.objects) ? options.objects : []
+    Object.assign(form, defaultForm(), options)
+    form.stripTablePrefixes = normalizeStripTablePrefixes(options.stripTablePrefixes)
+    if (isApplicationScope.value) {
+      form.objectIds = availableObjects.value
+        .filter(object => object.configKey)
+        .map(object => object.objectId)
+    }
   }
   finally {
     loadingOptions.value = false
@@ -229,7 +350,10 @@ async function saveOptions() {
     return
   saving.value = true
   try {
-    await businessSaveAppCodeOptions(props.app.id, buildPayload())
+    if (isApplicationScope.value)
+      await saveBusinessApplicationCodeOptions(props.app.id, buildPayload())
+    else
+      await businessSaveAppCodeOptions(props.app.id, buildPayload())
     message.success('代码包设置已保存')
     await previewCode()
   }
@@ -241,11 +365,20 @@ async function saveOptions() {
 async function previewCode() {
   if (!props.app?.id)
     return
+  previewSignature.value = ''
   previewing.value = true
   try {
-    const res = await businessAppCodePreview(props.app.id, buildPayload())
+    if (isApplicationScope.value && !form.objectIds.length) {
+      message.warning('请至少选择一个需要生成代码的数据对象')
+      return
+    }
+    const payload = buildPayload()
+    const res = isApplicationScope.value
+      ? await previewBusinessApplicationCode(props.app.id, payload)
+      : await businessAppCodePreview(props.app.id, payload)
     const files = res.data?.files || {}
     applyPreviewFiles(files)
+    previewSignature.value = JSON.stringify(normalizePayload(payload))
   }
   finally {
     previewing.value = false
@@ -257,11 +390,20 @@ async function downloadCode() {
     return
   downloading.value = true
   try {
-    const blob = await businessDownloadAppCode(props.app.id, buildPayload())
+    if (!previewReady.value) {
+      message.warning('代码包设置已变化，请重新预览后再下载')
+      return
+    }
+    const payload = buildPayload()
+    const blob = isApplicationScope.value
+      ? await downloadBusinessApplicationCode(props.app.id, payload)
+      : await businessDownloadAppCode(props.app.id, payload)
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `${props.app.appCode || props.app.configKey || 'app'}-code.zip`
+    link.download = isApplicationScope.value
+      ? `${props.app.applicationCode || 'application'}-source.zip`
+      : `${props.app.appCode || props.app.configKey || 'app'}-code.zip`
     document.body.appendChild(link)
     link.click()
     link.remove()
@@ -408,11 +550,60 @@ function buildPayload() {
     domainPackage: form.domainPackage,
     moduleName: form.moduleName,
     author: form.author,
+    entityPrefix: form.entityPrefix,
+    stripTablePrefixes: [...form.stripTablePrefixes],
+    backendBasePath: form.backendBasePath,
+    mapperXmlBasePath: form.mapperXmlBasePath,
+    frontendApiBasePath: form.frontendApiBasePath,
+    includeBackend: form.includeBackend,
+    includeFrontend: form.includeFrontend,
     includeSql: form.includeSql,
     includeMenuSql: form.includeMenuSql,
     includeDictSql: form.includeDictSql,
+    includeExcelSql: form.includeExcelSql,
     frontendBasePath: form.frontendBasePath,
+    objectIds: isApplicationScope.value ? [...form.objectIds] : undefined,
   }
+}
+
+function normalizePayload(payload) {
+  return {
+    ...payload,
+    objectIds: Array.isArray(payload.objectIds)
+      ? [...payload.objectIds].map(String).sort((left, right) => left.localeCompare(right))
+      : undefined,
+  }
+}
+
+function normalizeStripTablePrefixes(value) {
+  if (Array.isArray(value))
+    return value.filter(item => typeof item === 'string' && item.trim()).map(item => item.trim())
+  if (typeof value === 'string')
+    return value.split(',').map(item => item.trim()).filter(Boolean)
+  return [...defaultForm().stripTablePrefixes]
+}
+
+function selectAllObjects() {
+  form.objectIds = availableObjects.value
+    .filter(object => object.configKey)
+    .map(object => object.objectId)
+}
+
+function objectRoleLabel(role) {
+  return {
+    PRIMARY: '主对象',
+    DETAIL: '明细对象',
+    REFERENCE: '树形/引用对象',
+    SHARED: '共享对象',
+  }[role] || '应用对象'
+}
+
+function layoutLabel(layoutType) {
+  return {
+    'simple-crud': '单表 CRUD',
+    'tree-crud': '左树右表',
+    'master-detail-crud': '主子表',
+  }[layoutType] || '基础页面'
 }
 
 function defaultForm() {
@@ -424,10 +615,19 @@ function defaultForm() {
     domainPackage: '',
     moduleName: '',
     author: '',
+    entityPrefix: '',
+    stripTablePrefixes: ['sys_', 'ai_', 't_', 'tb_'],
+    backendBasePath: 'backend/src/main/java',
+    mapperXmlBasePath: 'backend/src/main/resources/mapper',
     includeSql: true,
     includeMenuSql: true,
     includeDictSql: true,
+    includeExcelSql: true,
+    includeBackend: true,
+    includeFrontend: true,
     frontendBasePath: 'frontend/src/views',
+    frontendApiBasePath: 'frontend/src/api',
+    objectIds: [],
   }
 }
 
@@ -439,9 +639,9 @@ onUnmounted(() => {
 <style scoped>
 .app-code-workbench {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(300px, 1fr);
   gap: 12px;
-  height: min(78vh, 820px);
+  height: min(84vh, 900px);
   min-height: 560px;
   overflow: hidden;
 }
@@ -465,10 +665,105 @@ onUnmounted(() => {
 }
 
 .settings-collapse {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--n-border-color, var(--border-light, #e5e7eb));
   border-radius: 8px;
-  background: #fff;
+  background: var(--n-color, var(--bg-primary, #fff));
   padding: 0 12px;
+}
+
+.settings-collapse :deep(.n-collapse-item__content-inner) {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.settings-section-title {
+  margin: 2px 0 8px;
+  color: var(--n-text-color-2, var(--text-secondary, #4e5969));
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.settings-section-title:not(:first-child) {
+  margin-top: 8px;
+  border-top: 1px solid var(--n-border-color, var(--border-light, #e5e7eb));
+  padding-top: 10px;
+}
+
+.include-options {
+  margin-bottom: 6px;
+}
+
+.settings-collapse :deep(.n-dynamic-tags) {
+  width: 100%;
+}
+
+.object-selector {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--n-border-color, var(--border-light, #e5e7eb));
+  border-radius: 7px;
+  background: var(--n-color, var(--bg-primary, #fff));
+}
+
+.object-selector-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 36px;
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--n-border-color, var(--border-light, #e5e7eb));
+  color: var(--n-text-color-3, var(--text-tertiary, #86909c));
+  background: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
+  font-size: 11px;
+}
+
+.object-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  max-height: 110px;
+  overflow-y: auto;
+  padding: 7px;
+  background: var(--n-border-color, var(--border-light, #e5e7eb));
+}
+
+.object-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 42px;
+  padding: 5px 8px;
+  background: var(--n-color, var(--bg-primary, #fff));
+  cursor: pointer;
+}
+
+.object-checkbox-item:hover {
+  background: var(--n-color-hover, var(--bg-hover, #f2f3f5));
+}
+
+.object-checkbox-copy {
+  display: grid;
+  min-width: 0;
+}
+
+.object-checkbox-copy strong,
+.object-checkbox-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.object-checkbox-copy strong {
+  color: var(--n-text-color, var(--text-primary, #1d2129));
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.object-checkbox-copy small {
+  color: var(--n-text-color-3, var(--text-tertiary, #86909c));
+  font-size: 10px;
 }
 
 .app-code-workbench :deep(.n-spin-container),
@@ -601,6 +896,10 @@ onUnmounted(() => {
     max-height: 220px;
     border-right: 0;
     border-bottom: 1px solid #e5e7eb;
+  }
+
+  .object-checkbox-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

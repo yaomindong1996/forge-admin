@@ -42,4 +42,14 @@ public interface BusinessBindingMapper extends BaseMapper<AiBusinessBinding> {
 
     List<BusinessBindingSummaryVO> selectFlowBindingsByModelKey(@Param("tenantId") Long tenantId,
                                                                 @Param("modelKey") String modelKey);
+
+    List<AiBusinessBinding> selectByApplication(@Param("tenantId") Long tenantId,
+                                                @Param("applicationId") Long applicationId);
+
+    int restoreApplicationBinding(@Param("tenantId") Long tenantId,
+                                  @Param("applicationId") Long applicationId,
+                                  @Param("bindingId") Long bindingId,
+                                  @Param("bindingConfig") String bindingConfig,
+                                  @Param("status") Integer status,
+                                  @Param("sortOrder") Integer sortOrder);
 }

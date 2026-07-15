@@ -20,7 +20,7 @@ public class LowcodeIndexSchema {
 
     private Boolean unique = false;
 
-    /** true 表示系统根据关联字段自动生成。 */
+    /** 兼容旧版本自动索引标记；true 的历史配置不再参与 DDL 生成。 */
     private Boolean auto = false;
 
     private String remark;

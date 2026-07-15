@@ -3,7 +3,6 @@ package com.mdframe.forge.plugin.generator.service.lowcode;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeFieldSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeIndexSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeModelSchema;
-import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeRelationSchema;
 import com.mdframe.forge.plugin.generator.service.DynamicCrudRepository;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.RuntimeDatabaseDialect;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.RuntimeDatabaseDialect.DdlColumn;
@@ -95,9 +94,25 @@ public class LowcodeDdlService {
         }
         for (String ddl : preview.getDdlStatements()) {
             assertSafeDdl(ddl);
+        }
+        for (String ddl : preview.getDdlStatements()) {
             ddlRepository.executeDdl(context, ddl);
         }
         dynamicCrudRepository.clearTableMetadataCache(context, context.getTableName());
+    }
+
+    /**
+     * 判断预览结果是否包含在线发布不允许执行的非追加式 DDL。
+     *
+     * <p>该策略与最终执行白名单共用同一判断，避免发布检查允许、执行阶段又拒绝。</p>
+     */
+    public boolean containsUnsafeOnlineDdl(List<String> statements) {
+        if (statements == null) {
+            return false;
+        }
+        return statements.stream()
+                .filter(StringUtils::isNotBlank)
+                .anyMatch(statement -> !isSafeOnlineDdl(statement));
     }
 
     public boolean tableExists(String tableName) {
@@ -133,6 +148,28 @@ public class LowcodeDdlService {
         return ddlRepository.listColumns(context, context.getTableName());
     }
 
+    /**
+     * 查询模型绑定表的完整列元数据，供对象设计器展示字段映射差异。
+     *
+     * <p>该方法只读取数据库结构，不生成或执行 DDL。</p>
+     */
+    public Map<String, LowcodeDdlRepository.ColumnMetadata> listColumnMetadata(LowcodeModelSchema modelSchema) {
+        LowcodeRuntimeDataSourceContext context = runtimeDataSourceResolver.resolve(modelSchema);
+        validateIdentifier(context.getTableName(), "表名");
+        return ddlRepository.listColumnMetadata(context, context.getTableName());
+    }
+
+    /**
+     * 查询模型绑定表的索引名称，供对象设计器展示同步状态。
+     *
+     * <p>该方法只读取数据库结构，不生成或执行 DDL。</p>
+     */
+    public Set<String> listIndexes(LowcodeModelSchema modelSchema) {
+        LowcodeRuntimeDataSourceContext context = runtimeDataSourceResolver.resolve(modelSchema);
+        validateIdentifier(context.getTableName(), "表名");
+        return ddlRepository.listIndexes(context, context.getTableName());
+    }
+
     private List<String> buildCreateTableSql(LowcodeRuntimeDataSourceContext context,
                                              LowcodeModelSchema modelSchema,
                                              RuntimeDatabaseDialect dialect,
@@ -160,12 +197,10 @@ public class LowcodeDdlService {
                 "ON UPDATE CURRENT_TIMESTAMP", "更新时间");
         definitions.add(dialect.primaryKeyConstraint(tableName, "id"));
 
-        List<IndexDefinition> indexes = new ArrayList<>();
-        indexes.add(new IndexDefinition(normalizeIndexName("idx_" + tableName + "_tenant", dialect),
-                List.of("tenant_id"), false));
-        indexes.add(new IndexDefinition(normalizeIndexName("idx_" + tableName + "_create_time", dialect),
-                List.of("create_time"), false));
-        indexes.addAll(buildIndexDefinitions(modelSchema, warnings, dialect));
+        List<IndexDefinition> indexes = buildIndexDefinitions(modelSchema, warnings, dialect);
+        if (indexes.isEmpty()) {
+            warnings.add("未配置显式二级索引；系统不会根据查询字段、关联字段或系统字段自动创建索引");
+        }
         for (IndexDefinition index : indexes) {
             String inline = dialect.inlineIndexDefinition(index);
             if (StringUtils.isNotBlank(inline)) {
@@ -204,8 +239,11 @@ public class LowcodeDdlService {
         appendExistingColumnChanges(context.getTableName(), modelSchema, columnMetadata, ddlList, warnings, dialect);
         appendMissingIndexes(modelSchema, context.getTableName(),
                 ddlRepository.listIndexes(context, context.getTableName()), ddlList, warnings, dialect);
-        warnings.add("已有表在线变更仅追加缺失字段、同步字段长度/类型/是否必填和索引，不会删除或重命名字段");
-        warnings.add("必填字段只有配置默认值时才同步为 NOT NULL；未配置默认值时由运行态表单校验，数据库列保持可空");
+        if (indexList(modelSchema).isEmpty()) {
+            warnings.add("未配置显式二级索引；数据库现有索引保持不变，系统不会自动新增索引");
+        }
+        warnings.add("已有表在线变更仅追加缺失字段、同步字段长度/类型/是否必填和显式配置的索引，不会删除或重命名字段");
+        warnings.add("导入字段会保留数据库现有 NOT NULL；新增列或把可空列收紧为必填时，只有配置默认值才同步为 NOT NULL");
         return ddlList;
     }
 
@@ -229,7 +267,8 @@ public class LowcodeDdlService {
             String expectedSqlType = resolveSqlType(field, dataType, dialect);
             boolean typeChanged = !dialect.sameSqlType(expectedSqlType, metadata.columnType());
             boolean currentRequired = "NO".equalsIgnoreCase(metadata.isNullable());
-            boolean expectedRequired = shouldUseNotNull(field, dataType);
+            boolean expectedRequired = shouldUseNotNull(field, dataType)
+                    || (currentRequired && Boolean.TRUE.equals(field.getRequired()));
             boolean requiredChanged = currentRequired != expectedRequired;
             if (!typeChanged && !requiredChanged) {
                 continue;
@@ -321,25 +360,6 @@ public class LowcodeDdlService {
                                                         RuntimeDatabaseDialect dialect) {
         Set<String> indexNames = new HashSet<>();
         List<IndexDefinition> definitions = new ArrayList<>();
-        for (LowcodeFieldSchema field : businessFields(modelSchema)) {
-            String dataType = normalizeDataType(field);
-            if (!Boolean.TRUE.equals(field.getSearchable()) || !INDEXABLE_TYPES.contains(dataType)) {
-                continue;
-            }
-            if ("varchar".equals(dataType) && normalizeLength(field, 255, 1, 2048) > 191) {
-                warnings.add("字段 " + field.getLabel() + " 长度超过191，建表预览不自动创建索引");
-                continue;
-            }
-            appendIndexDefinition(definitions, warnings, indexNames, modelSchema, "idx_" + field.getColumnName(),
-                    List.of(field.getField()), false, dialect);
-        }
-        for (LowcodeRelationSchema relation : relationList(modelSchema)) {
-            if (StringUtils.isBlank(relation.getSourceField())) {
-                continue;
-            }
-            appendIndexDefinition(definitions, warnings, indexNames, modelSchema, "idx_rel_" + relation.getSourceField(),
-                    List.of(relation.getSourceField()), false, dialect);
-        }
         for (LowcodeIndexSchema index : indexList(modelSchema)) {
             if (index == null || index.getFields() == null || index.getFields().isEmpty()) {
                 continue;
@@ -368,12 +388,15 @@ public class LowcodeDdlService {
                                        LowcodeModelSchema modelSchema, String preferredName,
                                        List<String> fieldNames, boolean unique,
                                        RuntimeDatabaseDialect dialect) {
+        if (StringUtils.isBlank(preferredName)) {
+            warnings.add("索引配置缺少索引名称，已跳过；请在数据结构中显式填写索引名称");
+            return;
+        }
         List<String> columns = resolveIndexColumns(modelSchema, fieldNames, warnings);
         if (columns.isEmpty()) {
             return;
         }
-        String indexName = normalizeIndexName(StringUtils.defaultIfBlank(preferredName,
-                "idx_" + String.join("_", columns)), dialect);
+        String indexName = normalizeIndexName(preferredName, dialect);
         if (!indexNames.add(indexName)) {
             return;
         }
@@ -416,12 +439,13 @@ public class LowcodeDdlService {
                 || "UNIQUE".equalsIgnoreCase(StringUtils.defaultString(index.getIndexType()));
     }
 
-    private List<LowcodeRelationSchema> relationList(LowcodeModelSchema modelSchema) {
-        return modelSchema.getRelations() == null ? List.of() : modelSchema.getRelations();
-    }
-
     private List<LowcodeIndexSchema> indexList(LowcodeModelSchema modelSchema) {
-        return modelSchema.getIndexes() == null ? List.of() : modelSchema.getIndexes();
+        if (modelSchema.getIndexes() == null) {
+            return List.of();
+        }
+        return modelSchema.getIndexes().stream()
+                .filter(index -> index != null && !Boolean.TRUE.equals(index.getAuto()))
+                .toList();
     }
 
     private String normalizeIndexName(String indexName, RuntimeDatabaseDialect dialect) {
@@ -598,35 +622,38 @@ public class LowcodeDdlService {
     }
 
     private void assertSafeDdl(String ddl) {
+        if (isSafeOnlineDdl(ddl)) {
+            return;
+        }
+        throw new BusinessException("数据库差异包含高风险或非追加式 DDL（如字段类型、长度或必填属性调整），"
+                + "仅允许预览和导出脚本后人工审核执行");
+    }
+
+    private boolean isSafeOnlineDdl(String ddl) {
+        if (StringUtils.isBlank(ddl)) {
+            return false;
+        }
         String normalized = ddl.trim().toUpperCase(Locale.ROOT);
         if (normalized.startsWith("CREATE TABLE IF NOT EXISTS") || normalized.startsWith("CREATE TABLE ")) {
-            return;
+            return true;
         }
         if (normalized.startsWith("ALTER TABLE") && normalized.contains(" ADD COLUMN ")) {
-            return;
+            return true;
         }
         if (normalized.startsWith("ALTER TABLE") && normalized.contains(" ADD (")) {
-            return;
+            return true;
         }
-        if (normalized.startsWith("ALTER TABLE") && normalized.contains(" MODIFY COLUMN ")) {
-            return;
-        }
-        if (normalized.startsWith("ALTER TABLE") && normalized.contains(" MODIFY (")) {
-            return;
-        }
-        if (normalized.startsWith("ALTER TABLE") && normalized.contains(" ALTER COLUMN ")) {
-            return;
-        }
-        if (normalized.startsWith("ALTER TABLE") && (normalized.contains(" ADD KEY ") || normalized.contains(" ADD UNIQUE KEY "))) {
-            return;
+        if (normalized.startsWith("ALTER TABLE")
+                && (normalized.contains(" ADD KEY ") || normalized.contains(" ADD UNIQUE KEY "))) {
+            return true;
         }
         if (normalized.startsWith("CREATE INDEX ") || normalized.startsWith("CREATE UNIQUE INDEX ")) {
-            return;
+            return true;
         }
         if (normalized.startsWith("COMMENT ON TABLE ") || normalized.startsWith("COMMENT ON COLUMN ")) {
-            return;
+            return true;
         }
-        throw new BusinessException("仅允许执行受控 CREATE TABLE、ALTER TABLE ADD/MODIFY COLUMN、ADD KEY、CREATE INDEX 或 COMMENT 语句");
+        return false;
     }
 
     private List<LowcodeFieldSchema> businessFields(LowcodeModelSchema modelSchema) {

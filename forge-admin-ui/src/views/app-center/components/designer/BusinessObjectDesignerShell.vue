@@ -239,9 +239,8 @@ const emit = defineEmits([
 const navCollapsed = ref(false)
 
 const navItems = [
-  { key: 'basic', label: '基本信息', icon: OptionsOutline },
+  { key: 'fields', label: '数据结构', icon: TextOutline },
   { key: 'form', label: '表单设计', icon: ReaderOutline },
-  { key: 'fields', label: '高级字段资产', icon: TextOutline },
   { key: 'list', label: '列表设计', icon: ListOutline },
   { key: 'actions', label: '业务处理', icon: GitBranchOutline },
   { key: 'triggers', label: '自动化触发器', icon: FlashOutline },
@@ -249,6 +248,7 @@ const navItems = [
   { key: 'flow-app', label: '业务流程配置', icon: GitBranchOutline },
   { key: 'permission', label: '数据权限', icon: KeyOutline },
   { key: 'publish', label: '发布检查', icon: CheckmarkDoneOutline },
+  { key: 'basic', label: '基本信息', icon: OptionsOutline },
   { key: 'advanced', label: '高级配置', icon: SettingsOutline },
 ]
 
@@ -259,8 +259,6 @@ const filteredNavItems = computed(() => {
       return false
     if (item.key === 'actions' && !whitelist.includes(item.key))
       return false
-    if (item.key === 'fields')
-      return props.activePanel === 'fields'
     if (item.key === 'advanced')
       return props.showAdvanced
     return true
@@ -280,7 +278,7 @@ const moreOptions = computed(() => {
   ]
   if (props.showAdvanced) {
     options.splice(1, 0, {
-      label: '高级字段资产',
+      label: '数据结构',
       key: 'openFields',
     })
   }
@@ -836,4 +834,5 @@ function handleTopbarActionsClick(event) {
 .panel-frame > * {
   min-height: 0;
 }
+
 </style>

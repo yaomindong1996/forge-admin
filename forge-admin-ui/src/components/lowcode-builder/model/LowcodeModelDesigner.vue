@@ -268,22 +268,19 @@
                   索引配置
                 </div>
                 <p class="section-desc">
-                  关联字段会自动创建普通索引，也可以维护单字段或联合索引。
+                  只会创建这里明确保存的普通索引或唯一索引，查询字段和关联字段不会自动建索引。
                 </p>
               </div>
               <n-button type="primary" @click="addIndex">
                 添加索引
               </n-button>
             </div>
-            <div v-if="relationIndexFields.length" class="domain-hint">
-              自动关联索引：{{ relationIndexFields.join('、') }}
-            </div>
             <div v-if="localModel.indexes?.length" class="index-list">
               <div v-for="(index, idx) in localModel.indexes" :key="idx" class="index-row">
                 <n-input
                   :value="index.indexName"
                   size="small"
-                  placeholder="索引名，留空自动生成"
+                  placeholder="索引名称，例如 idx_order_no"
                   @update:value="updateIndex(idx, { indexName: normalizeIndexName($event) })"
                 />
                 <n-select
@@ -402,9 +399,6 @@ const targetModelOptions = computed(() => props.dataModels.map(model => ({
   label: `${model.modelName || model.modelCode} (${model.modelCode})`,
   value: model.modelCode,
 })))
-const relationIndexFields = computed(() => Array.from(new Set((localModel.value.relations || [])
-  .map(relation => relation.sourceField)
-  .filter(Boolean))))
 const relationTypeOptions = [
   { label: '引用', value: 'REFERENCE' },
   { label: '一对多', value: 'ONE_TO_MANY' },
@@ -734,6 +728,8 @@ function ensureModelCollections() {
     localModel.value.relations = []
   if (!localModel.value.indexes)
     localModel.value.indexes = []
+  else
+    localModel.value.indexes = localModel.value.indexes.filter(index => index?.auto !== true)
   normalizeLowcodePolicies(localModel.value)
   if (!localModel.value.tableName && localModel.value.object?.code)
     localModel.value.tableName = normalizeTableName(localModel.value.object.code)

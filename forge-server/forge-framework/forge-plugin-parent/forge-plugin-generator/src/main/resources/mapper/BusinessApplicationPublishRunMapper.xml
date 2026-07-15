@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessApplicationPublishRunMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApplicationPublishRun">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="application_id" property="applicationId"/>
+        <result column="idempotency_key" property="idempotencyKey"/>
+        <result column="operation_type" property="operationType"/>
+        <result column="target_version_no" property="targetVersionNo"/>
+        <result column="source_version_no" property="sourceVersionNo"/>
+        <result column="run_status" property="runStatus"/>
+        <result column="current_step" property="currentStep"/>
+        <result column="snapshot_json" property="snapshotJson"/>
+        <result column="snapshot_hash" property="snapshotHash"/>
+        <result column="selection_json" property="selectionJson"/>
+        <result column="step_results_json" property="stepResultsJson"/>
+        <result column="result_version_id" property="resultVersionId"/>
+        <result column="error_code" property="errorCode"/>
+        <result column="error_summary" property="errorSummary"/>
+        <result column="attempt_count" property="attemptCount"/>
+        <result column="started_by" property="startedBy"/>
+        <result column="started_time" property="startedTime"/>
+        <result column="finished_time" property="finishedTime"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id, tenant_id, application_id, idempotency_key, operation_type,
+        target_version_no, source_version_no, run_status, current_step,
+        snapshot_json, snapshot_hash, selection_json, step_results_json,
+        result_version_id, error_code, error_summary, attempt_count,
+        started_by, started_time, finished_time, del_flag,
+        create_by, create_time, create_dept, update_by, update_time
+    </sql>
+
+    <sql id="List_Columns">
+        id, tenant_id, application_id, operation_type,
+        target_version_no, source_version_no, run_status, current_step,
+        step_results_json, result_version_id, error_code, error_summary, attempt_count,
+        started_by, started_time, finished_time, del_flag,
+        create_by, create_time, create_dept, update_by, update_time
+    </sql>
+
+    <select id="lockApplication" resultType="java.lang.Long">
+        SELECT id
+        FROM ai_business_application
+        WHERE tenant_id = #{tenantId}
+          AND id = #{applicationId}
+          AND del_flag = '0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectByIdempotencyKey" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM ai_business_application_publish_run
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND idempotency_key = #{idempotencyKey}
+          AND del_flag = '0'
+        LIMIT 1
+    </select>
+
+    <select id="selectRunById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM ai_business_application_publish_run
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND id = #{runId}
+          AND del_flag = '0'
+        LIMIT 1
+    </select>
+
+    <select id="selectRuns" resultMap="BaseResultMap">
+        SELECT <include refid="List_Columns"/>
+        FROM ai_business_application_publish_run
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND del_flag = '0'
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectMaxTargetVersionNo" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(target_version_no), 0)
+        FROM ai_business_application_publish_run
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND del_flag = '0'
+    </select>
+
+    <update id="claimCreated">
+        UPDATE ai_business_application_publish_run
+        SET run_status = 'RUNNING',
+            started_by = #{startedBy},
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND id = #{runId}
+          AND del_flag = '0'
+          AND run_status = 'CREATED'
+    </update>
+
+    <update id="updateProgress">
+        UPDATE ai_business_application_publish_run
+        SET run_status = #{runStatus},
+            current_step = #{currentStep},
+            step_results_json = #{stepResultsJson},
+            snapshot_json = COALESCE(#{snapshotJson}, snapshot_json),
+            snapshot_hash = COALESCE(#{snapshotHash}, snapshot_hash),
+            result_version_id = #{resultVersionId},
+            error_code = #{errorCode},
+            error_summary = #{errorSummary},
+            finished_time = #{finishedTime},
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND id = #{runId}
+          AND del_flag = '0'
+    </update>
+
+    <update id="incrementAttempt">
+        UPDATE ai_business_application_publish_run
+        SET run_status = 'RUNNING',
+            attempt_count = attempt_count + 1,
+            started_by = #{startedBy},
+            finished_time = NULL,
+            error_code = NULL,
+            error_summary = NULL,
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND id = #{runId}
+          AND del_flag = '0'
+          AND run_status IN ('PARTIAL', 'FAILED')
+    </update>
+
+</mapper>

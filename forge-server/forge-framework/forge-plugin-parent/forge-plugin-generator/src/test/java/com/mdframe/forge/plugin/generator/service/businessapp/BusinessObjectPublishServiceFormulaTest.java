@@ -19,6 +19,7 @@ import com.mdframe.forge.plugin.generator.service.lowcode.LowcodeDdlService;
 import com.mdframe.forge.plugin.generator.service.lowcode.LowcodePublishService;
 import com.mdframe.forge.plugin.generator.service.lowcode.LowcodeRuntimeConfigBuilder;
 import com.mdframe.forge.plugin.generator.service.lowcode.LowcodeSchemaValidator;
+import com.mdframe.forge.plugin.generator.service.lowcode.runtime.LowcodeRuntimeDataSourceResolver;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessPublishCheckItemVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessPublishCheckVO;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +51,7 @@ class BusinessObjectPublishServiceFormulaTest {
     @Mock private LowcodeRuntimeConfigBuilder runtimeConfigBuilder;
     @Mock private LowcodeSchemaValidator schemaValidator;
     @Mock private LowcodeDdlService ddlService;
+    @Mock private LowcodeRuntimeDataSourceResolver runtimeDataSourceResolver;
     @Mock private AiCrudConfigMapper crudConfigMapper;
     @Mock private BusinessAppMapper businessAppMapper;
     @Mock private BusinessObjectMapper businessObjectMapper;
@@ -68,6 +70,7 @@ class BusinessObjectPublishServiceFormulaTest {
                 designerService, designVersionService, lowcodePublishService,
                 runtimeConfigBuilder, schemaValidator, realValidator,
                 new CrossObjectRecomputeTaskService(), ddlService,
+                runtimeDataSourceResolver,
                 crudConfigMapper, businessAppMapper, businessObjectMapper,
                 triggerMapper, documentConfigService, permissionService, objectMapper);
         // Stub document config to disabled so checkDocumentConfig skips early
@@ -77,7 +80,7 @@ class BusinessObjectPublishServiceFormulaTest {
         // Stub permission summary to return empty (skip permission checks)
         BusinessPermissionSummaryVO permSummary = new BusinessPermissionSummaryVO();
         permSummary.setActionPermissions(java.util.Collections.emptyList());
-        when(permissionService.documentActionSummary(anyLong())).thenReturn(permSummary);
+        when(permissionService.documentActionSummary(any(AiBusinessObject.class))).thenReturn(permSummary);
     }
 
     private LowcodeFieldSchema plainField(String name) {

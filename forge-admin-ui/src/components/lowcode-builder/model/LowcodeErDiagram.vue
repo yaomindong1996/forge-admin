@@ -8,6 +8,9 @@
         <p>{{ resolvedSubtitle }}</p>
       </div>
       <div class="head-actions">
+        <span v-if="editable" class="edit-hint">
+          从字段右侧连接点拖到目标字段，即可创建关系
+        </span>
         <div class="legend-strip">
           <span><i class="legend-main" />配置关系</span>
           <span><i class="legend-inferred" />字段推断</span>
@@ -32,9 +35,9 @@
         :height="canvasHeight"
         role="img"
         :aria-label="title"
-        @mousemove="handleDragMove"
-        @mouseup="stopDrag"
-        @mouseleave="stopDrag"
+        @mousemove="handlePointerMove"
+        @mouseup="stopInteraction"
+        @mouseleave="stopInteraction"
       >
         <defs>
           <marker
@@ -65,10 +68,33 @@
         </defs>
 
         <rect :width="canvasWidth" :height="canvasHeight" rx="10" fill="#f8fafc" />
+        <path
+          v-if="connectionPreviewPath"
+          :d="connectionPreviewPath"
+          class="connection-preview"
+          fill="none"
+          stroke="#165dff"
+          stroke-width="2"
+          stroke-dasharray="6 4"
+          :marker-end="`url(#${markerMainId})`"
+        />
         <g>
           <path
             v-for="relation in renderedRelations"
+            :key="`${relation.key}_hit`"
+            :d="relation.path"
+            class="relation-hit-area"
+            :class="{ selectable: relation.relationKey }"
+            fill="none"
+            stroke="transparent"
+            stroke-width="14"
+            @click.stop="selectRelation(relation)"
+          />
+          <path
+            v-for="relation in renderedRelations"
             :key="relation.key"
+            class="relation-line"
+            :class="{ selected: isSelectedRelation(relation), selectable: relation.relationKey }"
             :d="relation.path"
             fill="none"
             :stroke="relation.color"
@@ -76,10 +102,16 @@
             :stroke-dasharray="relation.inferred ? '7 5' : ''"
             :opacity="relation.inferred ? 0.68 : 0.82"
             :marker-end="markerUrl(relation)"
+            @click.stop="selectRelation(relation)"
           >
             <title>{{ relation.tooltip }}</title>
           </path>
-          <g v-for="relation in renderedRelations" :key="`${relation.key}_label`">
+          <g
+            v-for="relation in renderedRelations"
+            :key="`${relation.key}_label`"
+            :class="{ 'relation-label-selectable': relation.relationKey }"
+            @click.stop="selectRelation(relation)"
+          >
             <rect
               :x="relation.labelX - relation.labelWidth / 2"
               :y="relation.labelY - 14"
@@ -152,7 +184,10 @@
             <g
               v-for="field in table.fields"
               :key="`${table.code}_${field.field}`"
+              class="er-field-row"
+              :class="{ connecting: isConnectionSource(table.code, field.field) }"
               :transform="`translate(0, ${field.y})`"
+              @mouseup="finishConnection($event, table.code, field.field)"
             >
               <rect x="0" y="-15" :width="TABLE_W" height="23" fill="transparent" />
               <rect
@@ -194,6 +229,18 @@
               >
                 {{ truncate(field.dataType || '-', 12) }}
               </text>
+              <circle
+                v-if="editable"
+                class="field-connector"
+                :class="{ active: isConnectionSource(table.code, field.field) }"
+                :cx="TABLE_W - 7"
+                cy="-4"
+                r="5"
+                @mousedown.stop="startConnection($event, table.code, field.field)"
+                @mouseup.stop="finishConnection($event, table.code, field.field)"
+              >
+                <title>拖动连接 {{ table.name }}.{{ field.columnName || field.field }}</title>
+              </circle>
             </g>
           </g>
         </g>
@@ -235,7 +282,17 @@ const props = defineProps({
     type: String,
     default: '暂无可绘制的数据模型',
   },
+  editable: {
+    type: Boolean,
+    default: false,
+  },
+  selectedRelationKey: {
+    type: [String, Number],
+    default: '',
+  },
 })
+
+const emit = defineEmits(['connect', 'relationSelect'])
 
 const TABLE_W = 292
 const HEADER_H = 42
@@ -255,6 +312,7 @@ const shadowId = `er-card-shadow-${uid}`
 const svgRef = ref(null)
 const tablePositions = ref({})
 const dragState = ref(null)
+const connectionDraft = ref(null)
 
 const baseModels = computed(() => normalizeModels(props.models))
 const modelUniverse = computed(() => withRelationTargets(baseModels.value))
@@ -299,6 +357,13 @@ const resolvedSubtitle = computed(() => {
   if (props.subtitle)
     return props.subtitle
   return `${diagramTables.value.length} 个模型，${renderedRelations.value.length} 条关系`
+})
+const connectionPreviewPath = computed(() => {
+  const draft = connectionDraft.value
+  if (!draft)
+    return ''
+  const midX = (draft.startX + draft.currentX) / 2
+  return `M ${draft.startX} ${draft.startY} C ${midX} ${draft.startY}, ${midX} ${draft.currentY}, ${draft.currentX} ${draft.currentY}`
 })
 
 watch(
@@ -463,6 +528,7 @@ function normalizeExplicitRelation(sourceModel, relation = {}, index, modelMap) 
       label,
       color: '#2563eb',
       inferred: false,
+      relationKey: relation.relationKey || relation.clientKey || relation.id || '',
       tooltip: `${sourceModel.name}.${sourceField || 'id'} -> ${targetCode}.${targetField || 'id'} (${type})`,
     }
   }
@@ -475,6 +541,7 @@ function normalizeExplicitRelation(sourceModel, relation = {}, index, modelMap) 
     label,
     color: '#2563eb',
     inferred: false,
+    relationKey: relation.relationKey || relation.clientKey || relation.id || '',
     tooltip: `${targetCode}.${targetField || 'id'} -> ${sourceModel.name}.${sourceField} (${type})`,
   }
 }
@@ -618,21 +685,94 @@ function startDrag(event, code) {
   event.preventDefault()
 }
 
-function handleDragMove(event) {
-  if (!dragState.value)
-    return
+function handlePointerMove(event) {
   const point = toSvgPoint(event)
-  tablePositions.value = {
-    ...tablePositions.value,
-    [dragState.value.code]: {
-      x: Math.max(12, point.x - dragState.value.offsetX),
-      y: Math.max(12, point.y - dragState.value.offsetY),
-    },
+  if (dragState.value) {
+    tablePositions.value = {
+      ...tablePositions.value,
+      [dragState.value.code]: {
+        x: Math.max(12, point.x - dragState.value.offsetX),
+        y: Math.max(12, point.y - dragState.value.offsetY),
+      },
+    }
+  }
+  if (connectionDraft.value) {
+    connectionDraft.value = {
+      ...connectionDraft.value,
+      currentX: point.x,
+      currentY: point.y,
+    }
   }
 }
 
 function stopDrag() {
   dragState.value = null
+}
+
+function stopInteraction() {
+  stopDrag()
+  connectionDraft.value = null
+}
+
+function startConnection(event, modelCode, field) {
+  if (!props.editable || event.button !== 0)
+    return
+  const point = resolveFieldConnectionPoint(modelCode, field) || toSvgPoint(event)
+  connectionDraft.value = {
+    sourceModelCode: modelCode,
+    sourceField: field,
+    startX: point.x,
+    startY: point.y,
+    currentX: point.x,
+    currentY: point.y,
+  }
+  dragState.value = null
+  event.preventDefault()
+}
+
+function finishConnection(event, targetModelCode, targetField) {
+  const draft = connectionDraft.value
+  if (!draft)
+    return
+  connectionDraft.value = null
+  if (draft.sourceModelCode === targetModelCode && draft.sourceField === targetField)
+    return
+  emit('connect', {
+    sourceModelCode: draft.sourceModelCode,
+    sourceField: draft.sourceField,
+    targetModelCode,
+    targetField,
+  })
+  event.preventDefault()
+}
+
+function resolveFieldConnectionPoint(modelCode, fieldName) {
+  const table = tableMap.value.get(modelCode)
+  if (!table)
+    return null
+  const field = table.fields.find(item => item.field === fieldName || item.columnName === fieldName)
+  if (!field)
+    return null
+  return {
+    x: table.x + TABLE_W - 7,
+    y: table.y + field.y - 4,
+  }
+}
+
+function isConnectionSource(modelCode, field) {
+  return connectionDraft.value?.sourceModelCode === modelCode
+    && connectionDraft.value?.sourceField === field
+}
+
+function isSelectedRelation(relation) {
+  return Boolean(relation.relationKey)
+    && String(relation.relationKey) === String(props.selectedRelationKey || '')
+}
+
+function selectRelation(relation) {
+  if (!relation.relationKey)
+    return
+  emit('relationSelect', relation.relationKey)
 }
 
 function toSvgPoint(event) {
@@ -722,6 +862,17 @@ function truncate(value, maxLength) {
   justify-content: flex-end;
 }
 
+.edit-hint {
+  border: 1px solid var(--border-default, #c9cdd4);
+  border-radius: 5px;
+  color: var(--text-secondary, #4e5969);
+  background: var(--bg-secondary, #f7f8fa);
+  font-size: 11px;
+  line-height: 24px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
 .legend-strip {
   display: flex;
   align-items: center;
@@ -779,6 +930,40 @@ function truncate(value, maxLength) {
 
 .er-table-group:hover > rect:first-child {
   stroke: #60a5fa;
+}
+
+.relation-hit-area.selectable,
+.relation-line.selectable,
+.relation-label-selectable {
+  cursor: pointer;
+}
+
+.relation-line.selected {
+  stroke: var(--primary-color, #165dff) !important;
+  stroke-width: 3 !important;
+  opacity: 1 !important;
+}
+
+.connection-preview {
+  pointer-events: none;
+}
+
+.er-field-row.connecting > rect:first-child {
+  fill: rgb(22 93 255 / 7%);
+}
+
+.field-connector {
+  cursor: crosshair;
+  fill: #fff;
+  stroke: var(--primary-color, #165dff);
+  stroke-width: 1.8;
+  transition: r 0.15s ease, fill 0.15s ease;
+}
+
+.field-connector:hover,
+.field-connector.active {
+  r: 7px;
+  fill: var(--primary-color, #165dff);
 }
 
 @media (max-width: 900px) {

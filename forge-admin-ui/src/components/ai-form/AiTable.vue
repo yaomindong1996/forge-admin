@@ -1112,11 +1112,11 @@ defineExpose({
 }
 
 :deep(.n-data-table-base-table-body) {
-  min-height: 144px;
+  min-height: 0;
 }
 
 :deep(.n-data-table-base-table-body .n-scrollbar) {
-  min-height: 144px;
+  min-height: 0;
 }
 
 :deep(.n-data-table-base-table-body .n-scrollbar-container) {

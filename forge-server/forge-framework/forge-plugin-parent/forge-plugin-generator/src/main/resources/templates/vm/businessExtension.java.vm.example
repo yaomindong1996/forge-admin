@@ -1,0 +1,31 @@
+package ${packageName}.${moduleName}.service.extension.custom;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mdframe.forge.starter.core.domain.PageQuery;
+import ${packageName}.${moduleName}.dto.${className}Query;
+import ${packageName}.${moduleName}.entity.${className};
+import ${packageName}.${moduleName}.service.extension.${className}ServiceExtension;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+
+/**
+ * ${functionName}业务扩展示例。
+ *
+ * <p>把本文件复制到业务源码目录并去掉 .example 后再修改。生成器不会向 custom 目录
+ * 输出正式 Java 文件，因此重新下载代码不会覆盖用户实现。</p>
+ */
+@Component
+@Order(100)
+public class ${className}BusinessExtension implements ${className}ServiceExtension {
+
+    @Override
+    public Page<${className}> aroundPage(
+            PageQuery pageQuery,
+            ${className}Query query,
+            Operation<Page<${className}>> operation) {
+        // 默认：继续执行生成 Mapper XML 查询。复杂查询可注入自定义 Mapper 并直接返回结果。
+        Page<${className}> result = operation.proceed();
+        // 可在这里补充二次查询、聚合结果或业务字段。
+        return result;
+    }
+}

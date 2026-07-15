@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.generator.constant.GenDatasourceRuntime;
 import com.mdframe.forge.plugin.generator.domain.entity.GenDatasource;
 import com.mdframe.forge.plugin.generator.domain.entity.GenTable;
+import com.mdframe.forge.plugin.generator.domain.entity.GenTableColumn;
 import com.mdframe.forge.plugin.generator.service.IGenDatasourceService;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
@@ -12,11 +13,13 @@ import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.annotation.log.OperationLog;
 import com.mdframe.forge.starter.core.domain.OperationType;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * 代码生成器数据源管理Controller
@@ -27,6 +30,8 @@ import java.util.List;
 @ApiEncrypt
 @ApiDecrypt
 public class GenDatasourceController {
+
+    private static final Pattern TABLE_NAME_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z0-9_]{0,63}$");
 
     private final IGenDatasourceService genDatasourceService;
 
@@ -125,5 +130,18 @@ public class GenDatasourceController {
     public RespInfo<List<GenTable>> getTables(@PathVariable Long datasourceId) {
         List<GenTable> tables = genDatasourceService.selectDbTableList(datasourceId);
         return RespInfo.success(tables);
+    }
+
+    /**
+     * 查询指定数据源数据表的真实字段，供导入和模板关系配置选择。
+     */
+    @GetMapping("/{datasourceId}/tables/{tableName}/columns")
+    public RespInfo<List<GenTableColumn>> getTableColumns(
+            @PathVariable Long datasourceId,
+            @PathVariable String tableName) {
+        if (!TABLE_NAME_PATTERN.matcher(StringUtils.defaultString(tableName)).matches()) {
+            throw new BusinessException("数据表名格式不正确");
+        }
+        return RespInfo.success(genDatasourceService.selectDbTableColumnsByName(datasourceId, tableName));
     }
 }

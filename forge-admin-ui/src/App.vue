@@ -6,30 +6,32 @@
     :theme="appStore.isDark ? darkTheme : undefined"
     :theme-overrides="appStore.naiveThemeOverrides"
   >
-    <n-message-provider>
-      <!-- 当菜单数据未加载完成时显示加载状态 -->
-      <div v-if="showLoading" class="loading-wrapper">
-        <div class="app-loader" aria-hidden="true" />
-        <div class="loading-text">
-          正在加载...
+    <n-dialog-provider>
+      <n-message-provider>
+        <!-- 当菜单数据未加载完成时显示加载状态 -->
+        <div v-if="showLoading" class="loading-wrapper">
+          <div class="app-loader" aria-hidden="true" />
+          <div class="loading-text">
+            正在加载...
+          </div>
         </div>
-      </div>
-      <router-view v-else v-slot="{ Component, route: curRoute }">
-        <component :is="LayoutComponent" :key="curRoute.meta?.layout || appStore.layout">
-          <!--        <transition name="fade-slide" mode="out-in" appear> -->
-          <KeepAlive :include="keepAliveNames">
-            <component :is="Component" v-if="!tabStore.reloading" :key="curRoute.fullPath" />
-          </KeepAlive>
-          <!--        </transition> -->
-        </component>
+        <router-view v-else v-slot="{ Component, route: curRoute }">
+          <component :is="LayoutComponent" :key="curRoute.meta?.layout || appStore.layout">
+            <!--        <transition name="fade-slide" mode="out-in" appear> -->
+            <KeepAlive :include="keepAliveNames">
+              <component :is="Component" v-if="!tabStore.reloading" :key="resolveRouteViewKey(curRoute)" />
+            </KeepAlive>
+            <!--        </transition> -->
+          </component>
 
-        <LayoutSetting v-if="layoutSettingVisible" class="fixed right-12 top-1/2 z-999" />
-      </router-view>
+          <LayoutSetting v-if="layoutSettingVisible" class="fixed right-12 top-1/2 z-999" />
+        </router-view>
 
-      <!-- 全局水印 -->
-      <div v-if="watermarkConfig.enable" class="watermark-layer" :style="watermarkStyle" />
-      <GlobalLoadingOverlay />
-    </n-message-provider>
+        <!-- 全局水印 -->
+        <div v-if="watermarkConfig.enable" class="watermark-layer" :style="watermarkStyle" />
+        <GlobalLoadingOverlay />
+      </n-message-provider>
+    </n-dialog-provider>
   </n-config-provider>
 </template>
 
@@ -51,6 +53,11 @@ const LayoutComponent = shallowRef(null)
 
 const layouts = new Map()
 const layoutModules = import.meta.glob('./layouts/*/index.vue')
+
+function resolveRouteViewKey(curRoute) {
+  return curRoute.meta?.preserveOnQuery ? curRoute.path : curRoute.fullPath
+}
+
 function normalizeLayoutName(name) {
   const layoutName = normalizeLayout(name)
   return layoutModules[`./layouts/${layoutName}/index.vue`] ? layoutName : defaultLayout

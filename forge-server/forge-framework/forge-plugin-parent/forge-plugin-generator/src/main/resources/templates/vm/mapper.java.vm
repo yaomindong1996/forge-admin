@@ -1,16 +1,47 @@
 package ${packageName}.${moduleName}.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+#if(${isPrimaryCodegenTable})
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import ${packageName}.${moduleName}.dto.${className}Query;
+#end
 import ${packageName}.${moduleName}.entity.${className};
+#if(${isMasterDetailLayout})
+#foreach($child in $masterDetailChildren)
+import ${packageName}.${moduleName}.entity.${child.className};
+#end
+#end
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * ${functionName}Mapper接口
- * 
+ *
  * @author ${author}
  * @date ${datetime}
  */
 @Mapper
 public interface ${className}Mapper extends BaseMapper<${className}> {
 
+#if(${isPrimaryCodegenTable})
+    Page<${className}> selectGeneratedPage(Page<${className}> page, @Param("query") ${className}Query query);
+
+    List<${className}> selectGeneratedList(@Param("query") ${className}Query query);
+
+#end
+#if(${hasEntityTreeFields})
+    List<${className}> selectTreeRows(@Param("loadMode") String loadMode,
+                                      @Param("parentValue") String parentValue);
+
+#end
+#if(${isMasterDetailLayout})
+#foreach($child in $masterDetailChildren)
+    List<${child.className}> select${child.className}Rows(@Param("relationValue") Object relationValue);
+
+    int clear${child.className}Rows(@Param("relationValue") Object relationValue);
+
+#end
+#end
 }

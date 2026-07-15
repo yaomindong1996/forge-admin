@@ -92,4 +92,23 @@
         LIMIT 1
     </select>
 
+    <select id="selectLatestPublishedVersions" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM (
+          SELECT <include refid="Base_Columns"/>,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY object_id
+                   ORDER BY publish_version DESC, version_no DESC, id DESC
+                 ) AS row_no
+          FROM ai_business_object_design_version
+          WHERE tenant_id = #{tenantId}
+            AND object_id IN
+            <foreach collection="objectIds" item="objectId" open="(" separator="," close=")">
+              #{objectId}
+            </foreach>
+            AND (publish_status = 'PUBLISHED' OR version_type IN ('publish', 'rollback'))
+        ) ranked
+        WHERE row_no = 1
+    </select>
+
 </mapper>

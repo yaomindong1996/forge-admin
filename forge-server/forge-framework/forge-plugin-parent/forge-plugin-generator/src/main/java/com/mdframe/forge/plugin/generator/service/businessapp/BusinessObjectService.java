@@ -7,6 +7,7 @@ import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessObject;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessObjectDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessObjectQueryDTO;
 import com.mdframe.forge.plugin.generator.mapper.BusinessAppMapper;
+import com.mdframe.forge.plugin.generator.mapper.BusinessApplicationObjectMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessObjectMapper;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectRuntimeInfoVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectVO;
@@ -34,6 +35,7 @@ public class BusinessObjectService extends ServiceImpl<BusinessObjectMapper, AiB
 
     private final BusinessSuiteService suiteService;
     private final BusinessAppMapper businessAppMapper;
+    private final BusinessApplicationObjectMapper applicationObjectMapper;
     private final BusinessNamingService businessNamingService;
 
     public Page<BusinessObjectVO> page(Integer pageNum, Integer pageSize, BusinessObjectQueryDTO query) {
@@ -139,7 +141,7 @@ public class BusinessObjectService extends ServiceImpl<BusinessObjectMapper, AiB
         String oldObjectCode = object.getObjectCode();
         copyDtoToEntity(dto, object, false);
         if (!StringUtils.equals(oldSuiteCode, object.getSuiteCode())) {
-            assertSuiteMoveAllowed(tenantId, oldSuiteCode, oldObjectCode);
+            assertSuiteMoveAllowed(tenantId, object.getId(), oldSuiteCode, oldObjectCode);
         }
         updateById(object);
         if (!StringUtils.equals(oldSuiteCode, object.getSuiteCode())) {
@@ -163,6 +165,9 @@ public class BusinessObjectService extends ServiceImpl<BusinessObjectMapper, AiB
         }
         if (baseMapper.countAppsByObject(tenantId, object.getSuiteCode(), object.getObjectCode()) > 0) {
             throw new BusinessException("该业务对象已关联应用入口，不能删除");
+        }
+        if (applicationObjectMapper.countByObjectId(tenantId, object.getId()) > 0) {
+            throw new BusinessException("该业务对象已加入业务应用，不能删除");
         }
         removeById(object.getId());
     }
@@ -189,6 +194,14 @@ public class BusinessObjectService extends ServiceImpl<BusinessObjectMapper, AiB
             throw new BusinessException("业务对象不存在: " + code);
         }
         return object;
+    }
+
+    public AiBusinessObject findByConfigKey(String configKey) {
+        String normalizedConfigKey = StringUtils.trimToNull(configKey);
+        if (normalizedConfigKey == null) {
+            return null;
+        }
+        return baseMapper.selectByConfigKey(resolveTenantId(), normalizedConfigKey);
     }
 
     private void copyDtoToEntity(BusinessObjectDTO dto, AiBusinessObject object, boolean create) {
@@ -228,9 +241,12 @@ public class BusinessObjectService extends ServiceImpl<BusinessObjectMapper, AiB
         object.setOptions(StringUtils.trimToNull(dto.getOptions()));
     }
 
-    private void assertSuiteMoveAllowed(Long tenantId, String oldSuiteCode, String objectCode) {
+    private void assertSuiteMoveAllowed(Long tenantId, Long objectId, String oldSuiteCode, String objectCode) {
         if (baseMapper.countRelationsByObject(tenantId, oldSuiteCode, objectCode) > 0) {
             throw new BusinessException("业务单元已配置对象关系，暂不支持跨业务域移动，请先调整或删除对象关系");
+        }
+        if (applicationObjectMapper.countByObjectId(tenantId, objectId) > 0) {
+            throw new BusinessException("业务单元已加入业务应用，暂不支持跨业务域移动，请先移除应用关联");
         }
     }
 

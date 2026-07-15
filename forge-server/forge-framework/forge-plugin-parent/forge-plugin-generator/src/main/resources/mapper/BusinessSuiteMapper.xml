@@ -72,6 +72,8 @@
           COALESCE(o.object_count, 0) AS objectCount,
           COALESCE(a.app_count, 0) AS appCount,
           COALESCE(a.enabled_app_count, 0) AS enabledAppCount,
+          COALESCE(application_stats.application_count, 0) AS applicationCount,
+          COALESCE(application_stats.enabled_application_count, 0) AS enabledApplicationCount,
           CASE
             WHEN a.latest_app_update IS NULL THEN s.update_time
             WHEN a.latest_app_update > s.update_time THEN a.latest_app_update
@@ -94,6 +96,17 @@
           WHERE del_flag = '0'
           GROUP BY tenant_id, suite_code
         ) a ON a.tenant_id = s.tenant_id AND a.suite_code = s.suite_code
+        LEFT JOIN (
+          SELECT tenant_id,
+                 suite_code,
+                 COUNT(1) AS application_count,
+                 SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS enabled_application_count
+          FROM ai_business_application
+          WHERE del_flag = '0'
+          GROUP BY tenant_id, suite_code
+        ) application_stats
+          ON application_stats.tenant_id = s.tenant_id
+         AND application_stats.suite_code = s.suite_code
     </sql>
 
     <select id="selectSuitePage" resultType="com.mdframe.forge.plugin.generator.vo.businessapp.BusinessSuiteVO">
@@ -173,6 +186,8 @@
           COALESCE(o.object_count, 0) AS objectCount,
           COALESCE(a.app_count, 0) AS appCount,
           COALESCE(a.enabled_app_count, 0) AS enabledAppCount,
+          COALESCE(application_stats.application_count, 0) AS applicationCount,
+          COALESCE(application_stats.enabled_application_count, 0) AS enabledApplicationCount,
           CASE
             WHEN a.latest_app_update IS NULL THEN s.update_time
             WHEN a.latest_app_update > s.update_time THEN a.latest_app_update
@@ -193,9 +208,40 @@
           WHERE del_flag = '0'
           GROUP BY tenant_id, suite_code
         ) a ON a.tenant_id = s.tenant_id AND a.suite_code = s.suite_code
+        LEFT JOIN (
+          SELECT tenant_id,
+                 suite_code,
+                 COUNT(1) AS application_count,
+                 SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS enabled_application_count
+          FROM ai_business_application
+          WHERE del_flag = '0'
+          GROUP BY tenant_id, suite_code
+        ) application_stats
+          ON application_stats.tenant_id = s.tenant_id
+         AND application_stats.suite_code = s.suite_code
         WHERE s.tenant_id = #{tenantId}
           AND s.del_flag = '0'
         ORDER BY s.sort_order ASC, s.id ASC
+    </select>
+
+    <select id="selectSelfAndDescendantCodes" resultType="java.lang.String">
+        WITH RECURSIVE suite_tree AS (
+          SELECT id, suite_code
+          FROM ai_business_suite
+          WHERE tenant_id = #{tenantId}
+            AND suite_code = #{suiteCode}
+            AND del_flag = '0'
+          UNION ALL
+          SELECT child.id, child.suite_code
+          FROM ai_business_suite child
+          INNER JOIN suite_tree parent
+            ON child.parent_id = parent.id
+          WHERE child.tenant_id = #{tenantId}
+            AND child.del_flag = '0'
+        )
+        SELECT suite_code
+        FROM suite_tree
+        ORDER BY suite_code ASC
     </select>
 
 </mapper>

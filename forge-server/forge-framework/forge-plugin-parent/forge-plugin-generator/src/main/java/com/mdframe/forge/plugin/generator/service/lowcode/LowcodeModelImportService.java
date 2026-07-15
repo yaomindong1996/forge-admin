@@ -38,6 +38,7 @@ public class LowcodeModelImportService {
 
     private static final Pattern TABLE_NAME_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z0-9_]{0,63}$");
     private static final Pattern LENGTH_PATTERN = Pattern.compile("\\((\\d+)");
+    private static final Pattern DECIMAL_PATTERN = Pattern.compile("\\((\\d+)\\s*,\\s*(\\d+)\\)");
     private static final Set<String> AUDIT_COLUMNS = Set.of(
             "id", "tenant_id", "create_by", "create_time", "create_dept", "update_by", "update_time", "del_flag"
     );
@@ -220,9 +221,10 @@ public class LowcodeModelImportService {
         field.setField(fieldName);
         field.setColumnName(column.getColumnName());
         field.setLabel(StringUtils.defaultIfBlank(column.getColumnComment(), fieldName));
+        field.setBusinessFieldType(inferBusinessFieldType(dataType));
         field.setDataType(dataType);
         field.setLength(resolveLength(column.getColumnType(), dataType));
-        field.setPrecision(null);
+        field.setPrecision(resolvePrecision(column.getColumnType(), dataType));
         field.setRequired(column.getIsRequired() != null && column.getIsRequired() == 1);
         field.setSearchable(Boolean.TRUE.equals(isSearchField(fieldName, column.getColumnName())));
         field.setListVisible(true);
@@ -262,7 +264,14 @@ public class LowcodeModelImportService {
         if (type.startsWith("tinyint")) {
             return "tinyint";
         }
-        if (type.startsWith("decimal") || type.startsWith("numeric") || type.startsWith("double") || type.startsWith("float")) {
+        if (type.startsWith("char")) {
+            return "char";
+        }
+        if (type.startsWith("varchar") || type.startsWith("nvarchar") || type.startsWith("varchar2")) {
+            return "varchar";
+        }
+        if (type.startsWith("decimal") || type.startsWith("numeric") || type.startsWith("number")
+                || type.startsWith("double") || type.startsWith("float")) {
             return "decimal";
         }
         if (type.startsWith("datetime") || type.startsWith("timestamp")) {
@@ -270,6 +279,12 @@ public class LowcodeModelImportService {
         }
         if (type.startsWith("date")) {
             return "date";
+        }
+        if (type.startsWith("time")) {
+            return "time";
+        }
+        if (type.contains("longtext")) {
+            return "longtext";
         }
         if (type.contains("text")) {
             return "text";
@@ -295,6 +310,26 @@ public class LowcodeModelImportService {
             return 18;
         }
         return null;
+    }
+
+    private Integer resolvePrecision(String columnType, String dataType) {
+        if (!"decimal".equals(dataType)) {
+            return null;
+        }
+        Matcher matcher = DECIMAL_PATTERN.matcher(StringUtils.defaultString(columnType));
+        return matcher.find() ? Integer.parseInt(matcher.group(2)) : 2;
+    }
+
+    private String inferBusinessFieldType(String dataType) {
+        return switch (StringUtils.defaultString(dataType)) {
+            case "decimal" -> "MONEY";
+            case "int", "bigint" -> "NUMBER";
+            case "tinyint" -> "SWITCH";
+            case "date" -> "DATE";
+            case "datetime", "time" -> "DATETIME";
+            case "text", "longtext" -> "MULTILINE";
+            default -> "TEXT";
+        };
     }
 
     private String inferComponent(String fieldName, String columnName, String comment, String dataType) {

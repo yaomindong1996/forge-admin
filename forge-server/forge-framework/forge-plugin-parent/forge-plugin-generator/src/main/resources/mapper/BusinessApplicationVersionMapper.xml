@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.BusinessApplicationVersionMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApplicationVersion">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="application_id" property="applicationId"/>
+        <result column="version_no" property="versionNo"/>
+        <result column="snapshot_json" property="snapshotJson"/>
+        <result column="snapshot_hash" property="snapshotHash"/>
+        <result column="publish_status" property="publishStatus"/>
+        <result column="publish_summary" property="publishSummary"/>
+        <result column="source_version_no" property="sourceVersionNo"/>
+        <result column="published_by" property="publishedBy"/>
+        <result column="published_time" property="publishedTime"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id, tenant_id, application_id, version_no, snapshot_json, snapshot_hash,
+        publish_status, publish_summary, source_version_no, published_by, published_time,
+        del_flag, create_by, create_time, create_dept, update_by, update_time
+    </sql>
+
+    <sql id="List_Columns">
+        id, tenant_id, application_id, version_no, snapshot_hash,
+        publish_status, publish_summary, source_version_no, published_by, published_time,
+        del_flag, create_by, create_time, create_dept, update_by, update_time
+    </sql>
+
+    <select id="selectVersions" resultMap="BaseResultMap">
+        SELECT <include refid="List_Columns"/>
+        FROM ai_business_application_version
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND del_flag = '0'
+        ORDER BY version_no DESC, id DESC
+    </select>
+
+    <select id="selectVersion" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM ai_business_application_version
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND version_no = #{versionNo}
+          AND del_flag = '0'
+        LIMIT 1
+    </select>
+
+    <select id="selectVersionById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM ai_business_application_version
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND id = #{versionId}
+          AND del_flag = '0'
+        LIMIT 1
+    </select>
+
+    <select id="selectMaxVersionNo" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(version_no), 0)
+        FROM ai_business_application_version
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND del_flag = '0'
+    </select>
+
+</mapper>

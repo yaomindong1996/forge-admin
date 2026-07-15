@@ -240,7 +240,12 @@ public class BusinessFieldSchemaService {
                 && StringUtils.isBlank(resolveDictType(dto))
                 && !designerDraftField
                 && !hasInlineOptions(dto)) {
-            throw new BusinessException("字典字段必须配置字典类型");
+            String fieldLabel = StringUtils.firstNonBlank(
+                    StringUtils.trimToNull(dto.getFieldName()),
+                    StringUtils.trimToNull(dto.getFieldCode()),
+                    "未命名字段"
+            );
+            throw new BusinessException("字段「" + fieldLabel + "」使用字典组件时必须配置字典类型或静态选项");
         }
         if ("REFERENCE".equals(fieldType)
                 && (StringUtils.isBlank(dto.getReferenceObjectCode())
@@ -326,26 +331,38 @@ public class BusinessFieldSchemaService {
     }
 
     private String normalizeFieldType(String fieldType, String fieldName) {
-        String normalized = StringUtils.defaultIfBlank(fieldType, "TEXT").trim().toUpperCase(Locale.ROOT);
+        String requestedType = StringUtils.trimToNull(fieldType);
+        if (requestedType == null) {
+            return inferFieldTypeByName(fieldName);
+        }
+        String normalized = requestedType.toUpperCase(Locale.ROOT);
         if ("TEXTAREA".equals(normalized) || "MULTI_LINE".equals(normalized)) {
             return "MULTILINE";
         }
-        if ("SELECT".equals(normalized) || "RADIO".equals(normalized) || "CHECKBOX".equals(normalized)) {
-            return normalized;
-        }
-        if ("客户等级".equals(fieldName) || fieldName.endsWith("状态") || fieldName.endsWith("类型")) {
+        return FIELD_DEFAULTS.containsKey(normalized) ? normalized : "TEXT";
+    }
+
+    private String inferFieldTypeByName(String fieldName) {
+        String normalizedFieldName = StringUtils.defaultString(fieldName);
+        if ("客户等级".equals(normalizedFieldName)
+                || normalizedFieldName.endsWith("状态")
+                || normalizedFieldName.endsWith("类型")) {
             return "DICT";
         }
-        if ("金额".equals(fieldName) || fieldName.endsWith("金额")) {
+        if ("金额".equals(normalizedFieldName) || normalizedFieldName.endsWith("金额")) {
             return "MONEY";
         }
-        if ("联系电话".equals(fieldName) || fieldName.endsWith("手机号") || fieldName.endsWith("电话")) {
+        if ("联系电话".equals(normalizedFieldName)
+                || normalizedFieldName.endsWith("手机号")
+                || normalizedFieldName.endsWith("电话")) {
             return "PHONE";
         }
-        if ("所属地区".equals(fieldName) || fieldName.endsWith("地区") || fieldName.endsWith("区域")) {
+        if ("所属地区".equals(normalizedFieldName)
+                || normalizedFieldName.endsWith("地区")
+                || normalizedFieldName.endsWith("区域")) {
             return "REGION";
         }
-        return FIELD_DEFAULTS.containsKey(normalized) ? normalized : "TEXT";
+        return "TEXT";
     }
 
     private String normalizeFieldCode(String value) {

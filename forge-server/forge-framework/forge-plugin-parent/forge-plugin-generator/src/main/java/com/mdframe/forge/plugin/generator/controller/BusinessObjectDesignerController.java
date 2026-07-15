@@ -6,12 +6,14 @@ import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessFieldDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessLayoutDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessObjectActionDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessObjectDesignerDTO;
+import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessObjectDatabaseSyncDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessObjectPublishDTO;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessFieldDesignService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessLayoutDesignService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessObjectActionService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessObjectDesignVersionService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessObjectDesignerService;
+import com.mdframe.forge.plugin.generator.service.businessapp.BusinessObjectTableMappingService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessObjectPublishService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessPermissionService;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessFieldVO;
@@ -19,9 +21,11 @@ import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessLayoutVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectActionVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectDesignVersionVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectDesignerVO;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectTableMappingVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessPermissionSummaryVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessPublishCheckVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessReadinessItemVO;
+import com.mdframe.forge.plugin.generator.vo.lowcode.LowcodeDdlPreviewVO;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.log.OperationLog;
@@ -52,6 +56,7 @@ import java.util.List;
 public class BusinessObjectDesignerController {
 
     private final BusinessObjectDesignerService designerService;
+    private final BusinessObjectTableMappingService tableMappingService;
     private final BusinessFieldDesignService fieldDesignService;
     private final BusinessLayoutDesignService layoutDesignService;
     private final BusinessObjectActionService actionService;
@@ -72,6 +77,36 @@ public class BusinessObjectDesignerController {
     public RespInfo<Void> saveDesigner(@PathVariable Long objectId,
                                        @RequestBody BusinessObjectDesignerDTO dto) {
         designerService.saveDesigner(objectId, dto);
+        return RespInfo.success();
+    }
+
+    @GetMapping("/{objectId}/table-mapping")
+    @SaCheckPermission("ai:businessObject:design")
+    @OperationLog(module = "业务对象数据结构", type = OperationType.QUERY, desc = "查询数据库表映射")
+    public RespInfo<BusinessObjectTableMappingVO> tableMapping(@PathVariable Long objectId) {
+        return RespInfo.success(tableMappingService.getTableMapping(objectId));
+    }
+
+    @PostMapping("/{objectId}/database-diff")
+    @SaCheckPermission("ai:businessObject:design")
+    @OperationLog(module = "业务对象数据结构", type = OperationType.QUERY, desc = "预览数据库结构差异")
+    public RespInfo<LowcodeDdlPreviewVO> databaseDiff(
+            @PathVariable Long objectId,
+            @RequestBody BusinessObjectDatabaseSyncDTO dto) {
+        return RespInfo.success(tableMappingService.previewDatabaseDiff(
+                objectId, dto == null ? null : dto.getDesignVersion()));
+    }
+
+    @PostMapping("/{objectId}/database-sync")
+    @SaCheckPermission("ai:lowcode:deploy-ddl")
+    @OperationLog(module = "业务对象数据结构", type = OperationType.UPDATE, desc = "同步数据库结构")
+    public RespInfo<Void> databaseSync(
+            @PathVariable Long objectId,
+            @RequestBody BusinessObjectDatabaseSyncDTO dto) {
+        tableMappingService.syncDatabase(
+                objectId,
+                dto == null ? null : dto.getDesignVersion(),
+                dto != null && Boolean.TRUE.equals(dto.getConfirmOnlineDdl()));
         return RespInfo.success();
     }
 

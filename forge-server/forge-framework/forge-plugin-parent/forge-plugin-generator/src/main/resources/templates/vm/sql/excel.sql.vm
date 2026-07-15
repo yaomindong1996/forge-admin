@@ -1,20 +1,41 @@
--- ${functionName}Excel导出配置
+-- ${functionName}Excel导入导出配置
+-- 生成 Service 显式注册为 ${classname}Service，导出查询调用其 Mapper XML 列表方法。
 
--- 导入导出配置主表
-INSERT INTO sys_excel_export_config (config_key, config_type, export_name, sheet_name, file_name_template, data_source_bean, query_method, auto_trans, pageable, max_rows, status, include_sample, allow_import, remark) VALUES
-('${moduleName}_${businessName}_export', 'BOTH', '${functionName}导入导出', '${functionName}数据', '${functionName}列表_{date}.xlsx', '${classname}Service', 'select${className}List', 1, 0, 50000, 1, 1, 1, '${functionName}导入导出配置');
+INSERT INTO sys_excel_export_config
+    (config_key, config_type, export_name, sheet_name, file_name_template,
+     data_source_bean, query_method, auto_trans, pageable, max_rows, status,
+     include_sample, allow_import, remark)
+SELECT '${moduleName}_${businessName}_export', 'BOTH', '${functionName}导入导出',
+       '${functionName}数据', '${functionName}列表_{date}.xlsx', '${classname}Service',
+       'select${className}List', 1, 0, 50000, 1, 1, 1,
+       '${functionName}静态代码导入导出配置'
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM sys_excel_export_config
+    WHERE config_key = '${moduleName}_${businessName}_export'
+);
 
--- 列配置（根据实际表字段生成）
 #set($columnIndex = 0)
 #foreach($column in $columns)
 #if($column.isList == 1 && !$column.isPk)
 #set($columnIndex = $columnIndex + 1)
-INSERT INTO sys_excel_column_config (config_key, field_name, column_name, width, order_num, export, dict_type, importable, required) VALUES
-('${moduleName}_${businessName}_export', '${column.javaField}', '${column.columnComment}', 20, ${columnIndex}, 1, #if($column.dictType && $column.dictType != '')'${column.dictType}'#else NULL#end, 1, #if($column.isRequired == 1)1#else 0#end);
-#end
-#end
+INSERT INTO sys_excel_column_config
+    (config_key, field_name, column_name, width, order_num, export, dict_type,
+     importable, required)
+SELECT '${moduleName}_${businessName}_export', '${column.javaField}',
+       '${column.columnComment}', 20, ${columnIndex}, 1,
+       #if($column.dictType && $column.dictType != '')'${column.dictType}'#else NULL#end,
+       1, #if($column.isRequired == 1)1#else 0#end
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM sys_excel_column_config
+    WHERE config_key = '${moduleName}_${businessName}_export'
+      AND field_name = '${column.javaField}'
+);
 
--- 使用说明：
--- 1. 导出接口使用 /api/excel/export/${moduleName}_${businessName}_export
--- 2. 导入模板使用 /api/excel/template/${moduleName}_${businessName}_export
--- 3. 导入接口使用 /api/excel/import/${moduleName}_${businessName}_export
+#end
+#end
+-- 生成业务接口：
+-- 1. POST ${businessApiBase}/export
+-- 2. GET  ${businessApiBase}/import-template
+-- 3. POST ${businessApiBase}/import

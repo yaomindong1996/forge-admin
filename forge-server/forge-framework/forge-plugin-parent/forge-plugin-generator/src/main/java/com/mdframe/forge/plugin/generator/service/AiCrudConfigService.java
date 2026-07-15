@@ -215,6 +215,10 @@ public class AiCrudConfigService extends ServiceImpl<AiCrudConfigMapper, AiCrudC
     }
 
     public AiCrudConfigRenderVO getRenderConfig(String configKey) {
+        return getRenderConfig(configKey, false);
+    }
+
+    public AiCrudConfigRenderVO getRenderConfig(String configKey, boolean designPreview) {
         AiCrudConfig config = getByConfigKey(configKey);
         if (config == null || "1".equals(config.getStatus())) {
             throw new BusinessException("CRUD配置不存在或已停用");
@@ -222,13 +226,28 @@ public class AiCrudConfigService extends ServiceImpl<AiCrudConfigMapper, AiCrudC
         if (!"CONFIG".equals(config.getMode())) {
             throw new BusinessException("该配置不是配置驱动模式");
         }
+        if (designPreview) {
+            assertDesignPreviewPermission();
+            return buildDraftRenderConfig(config);
+        }
         if ("LOWCODE".equals(config.getBuildMode()) && !"PUBLISHED".equals(config.getPublishStatus())) {
             throw new BusinessException("低代码应用尚未发布");
         }
         return buildRenderConfig(resolvePublishedRuntimeConfig(config));
     }
 
-    private AiCrudConfig resolvePublishedRuntimeConfig(AiCrudConfig config) {
+    public void assertDesignPreviewPermission() {
+        try {
+            if (SessionHelper.hasPermission("ai:businessObject:design")) {
+                return;
+            }
+        } catch (Exception ignored) {
+            // 统一返回业务权限提示，避免预览链路泄露认证实现细节。
+        }
+        throw new BusinessException("无业务对象设计权限，不能预览设计草稿");
+    }
+
+    public AiCrudConfig resolvePublishedRuntimeConfig(AiCrudConfig config) {
         if (config == null
                 || !"LOWCODE".equals(config.getBuildMode())
                 || !"PUBLISHED".equals(config.getPublishStatus())) {
@@ -311,6 +330,14 @@ public class AiCrudConfigService extends ServiceImpl<AiCrudConfigMapper, AiCrudC
     }
 
     public AiCrudConfigRenderVO buildRenderConfig(AiCrudConfig config) {
+        return buildRenderConfig(config, false);
+    }
+
+    AiCrudConfigRenderVO buildDraftRenderConfig(AiCrudConfig config) {
+        return buildRenderConfig(config, true);
+    }
+
+    private AiCrudConfigRenderVO buildRenderConfig(AiCrudConfig config, boolean forceDraftCompile) {
         AiCrudConfigRenderVO vo = new AiCrudConfigRenderVO();
         vo.setConfigKey(config.getConfigKey());
         vo.setTableName(config.getTableName());
@@ -345,7 +372,7 @@ public class AiCrudConfigService extends ServiceImpl<AiCrudConfigMapper, AiCrudC
                 vo.setPageSchema(objectMapper.readValue(config.getPageSchema(), Object.class));
             }
             if (StringUtils.isNotBlank(config.getModelSchema()) && StringUtils.isNotBlank(config.getPageSchema())) {
-                if (hasStoredRuntimeConfig(config)) {
+                if (!forceDraftCompile && hasStoredRuntimeConfig(config)) {
                     applyStoredRuntimeConfig(config, vo);
                 } else {
                     applyLowcodeRuntimeConfig(config, vo);

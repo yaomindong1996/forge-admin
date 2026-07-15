@@ -1,0 +1,9 @@
+-- ${functionName}表结构。纳入项目时请改为下一个未使用的 Flyway 版本号。
+CREATE TABLE IF NOT EXISTS `${tableName}` (
+#foreach($column in $allColumns)
+  `${column.columnName}` ${column.columnType}#if($column.columnName == 'tenant_id') NOT NULL DEFAULT 1#elseif($column.columnName == 'create_time') NOT NULL DEFAULT CURRENT_TIMESTAMP#elseif($column.columnName == 'update_time') NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP#elseif($column.columnName == 'del_flag') NOT NULL DEFAULT '0'#elseif($column.isRequired == 1 || $column.isPk == 1) NOT NULL#else DEFAULT NULL#end#if($column.isIncrement == 1) AUTO_INCREMENT#end COMMENT '${column.columnComment}'#if($foreach.hasNext),#end
+#end
+#if($pkColumn)
+  ,PRIMARY KEY (`${pkColumn.columnName}`)
+#end
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='${functionName}';

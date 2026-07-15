@@ -30,9 +30,7 @@ const FIELD_DEFAULTS = {
 
 export function buildAutoFieldAssets(schema = {}, existingFields = []) {
   const normalized = normalizeFormDesignerSchema(schema)
-  const boundFieldCodes = collectBoundFieldCodes(normalized.components)
   const existing = cloneFields(existingFields)
-    .filter(field => shouldRetainExistingField(field, boundFieldCodes))
   const existingCodes = new Set(existing.map(field => field.fieldCode || field.field).filter(Boolean))
   const createdFields = []
 
@@ -116,35 +114,6 @@ function shouldCreateField(component = {}, existingCodes) {
   if (binding.mode === 'virtual' || !binding.fieldCode)
     return false
   return binding.createIfMissing !== false && !existingCodes.has(binding.fieldCode)
-}
-
-function shouldRetainExistingField(field = {}, boundFieldCodes = new Set()) {
-  const fieldCode = field.fieldCode || field.field
-  if (!fieldCode)
-    return false
-  if (boundFieldCodes.has(fieldCode))
-    return true
-  return !isDesignerManagedField(field)
-}
-
-function isDesignerManagedField(field = {}) {
-  const binding = field.fieldBinding || field.basicProps?.fieldBinding || {}
-  return binding.source === 'designer' || binding.createIfMissing === true
-}
-
-function collectBoundFieldCodes(components = [], result = new Set()) {
-  ;(Array.isArray(components) ? components : []).forEach((component) => {
-    if (!component || typeof component !== 'object')
-      return
-    if (isFieldComponent(component)) {
-      const binding = component.fieldBinding || {}
-      if (binding.mode !== 'virtual' && binding.fieldCode)
-        result.add(binding.fieldCode)
-    }
-    if (Array.isArray(component.children))
-      collectBoundFieldCodes(component.children, result)
-  })
-  return result
 }
 
 function walkComponents(components = [], visitor) {

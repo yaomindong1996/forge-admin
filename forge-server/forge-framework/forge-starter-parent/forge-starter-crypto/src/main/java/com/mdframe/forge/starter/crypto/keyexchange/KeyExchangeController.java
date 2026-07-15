@@ -3,6 +3,7 @@ package com.mdframe.forge.starter.crypto.keyexchange;
 import cn.dev33.satoken.annotation.SaIgnore;
 import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
+import com.mdframe.forge.starter.core.context.CryptoProperties;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +26,20 @@ import java.util.Map;
 public class KeyExchangeController {
 
     private final KeyExchangeService keyExchangeService;
+    private final CryptoProperties cryptoProperties;
+
+    /**
+     * 获取浏览器运行所需的安全配置。该接口固定匿名、明文，且不返回任何密钥材料。
+     */
+    @GetMapping("/config")
+    @SaIgnore
+    public ResponseEntity<Map<String, Object>> getRuntimeConfig() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 200);
+        result.put("data", CryptoRuntimeConfig.from(cryptoProperties));
+        result.put("msg", "success");
+        return ResponseEntity.ok(result);
+    }
 
     /**
      * 获取RSA公钥

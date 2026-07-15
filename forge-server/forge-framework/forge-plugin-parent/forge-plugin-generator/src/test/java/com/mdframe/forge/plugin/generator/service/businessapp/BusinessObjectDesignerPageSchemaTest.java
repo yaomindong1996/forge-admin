@@ -86,6 +86,27 @@ class BusinessObjectDesignerPageSchemaTest {
     }
 
     @Test
+    @DisplayName("preserves imported decimal type when bound to number component")
+    void preservesImportedDecimalTypeForNumberComponent() throws Exception {
+        BusinessFieldDTO field = new BusinessFieldDTO();
+        field.setFieldType("MONEY");
+        field.setDataType("decimal");
+        field.setLength(18);
+        field.setPrecision(2);
+        Method method = BusinessObjectDesignerService.class.getDeclaredMethod(
+                "applyComponentDefaults", BusinessFieldDTO.class, String.class);
+        method.setAccessible(true);
+
+        method.invoke(designerService(), field, "number");
+
+        assertEquals("MONEY", field.getFieldType());
+        assertEquals("decimal", field.getDataType());
+        assertEquals(18, field.getLength());
+        assertEquals(2, field.getPrecision());
+        assertEquals("eq", field.getQueryType());
+    }
+
+    @Test
     @DisplayName("reads legacy page zone key alias")
     void readsLegacyPageZoneKeyAlias() throws Exception {
         LowcodePageSchema schema = new ObjectMapper().readValue("""

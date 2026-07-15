@@ -73,6 +73,10 @@ export function genDatasourceTables(datasourceId) {
   return request.get(`/generator/datasource/${datasourceId}/tables`)
 }
 
+export function genDatasourceTableColumns(datasourceId, tableName) {
+  return request.get(`/generator/datasource/${datasourceId}/tables/${encodeURIComponent(tableName)}/columns`)
+}
+
 export function updateBusinessObject(data) {
   return request.put('/ai/business/object', data, ENCRYPTED_REQUEST)
 }
@@ -142,7 +146,13 @@ export function syncPublishedApps() {
 }
 
 export function businessAppCodePreview(id, params) {
-  return request.get(`/ai/business/app/${id}/code/preview`, encryptedParams(params))
+  const query = {
+    ...(params || {}),
+    stripTablePrefixes: Array.isArray(params?.stripTablePrefixes)
+      ? params.stripTablePrefixes.join(',')
+      : params?.stripTablePrefixes,
+  }
+  return request.get(`/ai/business/app/${id}/code/preview`, encryptedParams(query))
 }
 
 export function businessAppCodeOptions(id) {
@@ -157,7 +167,12 @@ export async function businessDownloadAppCode(id, params = {}) {
   const authStore = useAuthStore()
   const search = new URLSearchParams()
   Object.entries(params).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '')
+    if (Array.isArray(value)) {
+      if (value.length || key === 'stripTablePrefixes')
+        search.append(key, value.join(','))
+      return
+    }
+    if (value !== undefined && value !== null && (value !== '' || key === 'entityPrefix'))
       search.append(key, value)
   })
   const query = search.toString()

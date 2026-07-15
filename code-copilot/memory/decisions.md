@@ -238,6 +238,14 @@ Forge AI 中枢阶段 2.1 不把每个业务动作动态发布成顶层 MCP Tool
 
 首批操作固定为 START/APPROVE/REJECT。taskId 只是任务定位符，授权必须由服务端实时校验当前 USER A 已签收、任务未完成、businessKey/objectCode/recordId/processDefKey 与能力发布快照一致。发起人和办理人只能来自可信执行身份，客户端 DTO/Header 中的 userId、tenantId、activeOrgId、flowModelKey 和 variables 均不能覆盖。
 
+## 26. 低代码快捷模板只初始化统一 Schema，页面入口为可选资产
+
+**记录日期**: 2026-07-14
+
+单表 CRUD、左树右表和主子表快捷模板统一初始化既有 `LowcodeModelSchema`、`LowcodePageSchema` 和 `BusinessObjectRelation`，不得为三类场景建设独立生成器或运行协议。模板生成结果继续进入相同的数据结构、表单、列表和详情设计器修改；模板资产必须在单事务内生成，失败只保留应用草稿。
+
+页面入口属于可选交付资产，不再是应用发布硬门。没有菜单或访问入口的应用仍可发布业务对象、预览设计草稿和生成代码；只有用户实际选择发布的入口自身配置错误时才按入口资产规则处理。简易数据库表导入统一收进应用/业务对象创建流程，旧模型资产页从主导航隐藏但保留兼容路由、API 和存量数据。
+
 ## 26. 独立 Flow 服务使用短期 Sa-Token 用户委托桥
 
 **记录日期**: 2026-07-12
@@ -257,3 +265,85 @@ Flow 的 delegated START 使用专用内部入口，同时校验业务权限和 
 审批固定使用 `forge_capability_high_risk_approval` 和 `capability-approval:<approvalId>`，默认 BPMN 只在模型不存在或 BPMN 为空时写入，已有非空设计永不覆盖。APPROVED 回调必须按审批行加锁，并重新校验 policy、客户端有效期与 credentialVersion、服务账号、USER A、tenant/activeOrg、实时 grant/权限、能力版本、发布动作字段和业务状态摘要，再使用原幂等键至多执行一次。
 
 审批状态查询只通过固定 `capability.approval.get` 暴露，并绑定原 client、actor、serviceUser、tenant 和 activeOrg；不返回密文、keyId、wrappedDek、taskId 或流程实例详情。高风险功能默认关闭，启用但缺少有效 KEK、固定流程模型或任一重新授权条件时必须失败关闭，禁止降级为 MEDIUM 同步执行。
+
+## 28. 低代码对象保存与数据库同步使用独立编排链路
+
+**记录日期**: 2026-07-13
+
+对象设计器的保存接口只写 ModelSchema、PageSchema、表单/视图 Schema 和设计态元数据，不再根据 `syncDdl/confirmSyncDdl` 兼容字段执行数据库 DDL。数据库差异预览和在线同步固定使用独立的 table-mapping、database-diff、database-sync API，并绑定当前 `draftVersion`。
+
+在线同步必须同时满足显式二次确认、`ai:lowcode:deploy-ddl`、数据源 `allowDdl`、非只读和设计版本一致；只允许 CREATE TABLE 与 ADD COLUMN。MODIFY/ALTER/DROP/RENAME 及其它非追加式 DDL 仅预览/导出，且底层 `LowcodeDdlService` 也不再把 MODIFY/ALTER COLUMN 视为可执行安全语句，避免预览和执行之间结构变化造成绕过。
+
+表映射服务通过小接口 `BusinessObjectDesignContextProvider` 复用统一对象设计上下文，不复制 Schema 或版本表。最近同步摘要保存在 `ai_business_object.designer_options.databaseSync`；应用对象列表会比较同步版本与当前设计版本，版本落后时显示 `OUT_OF_SYNC`。
+
+## 29. 低代码扩展采用隔离执行和显式服务注册
+
+**记录日期**: 2026-07-13
+
+Forge 低代码扩展固定分为 CLIENT_JS、SCOPED_CSS 和 SERVER_BINDING 三类治理能力。CLIENT_JS 只能在独立 Worker 中通过受限消息协议运行，设置超时并禁止访问主页面全局对象；SCOPED_CSS 必须先经过 CSS AST 校验，再限定到应用/对象作用域；SERVER_BINDING 只能绑定服务端显式注册的处理器编码，禁止提交类名、方法名后任意反射。
+
+扩展必须经过版本、编辑锁、验证、测试和状态机后才能启用，执行日志只保存脱敏摘要。任意在线 Java、任意 SQL、主页面 `eval/new Function` 和未注册服务调用不进入低代码扩展能力。
+
+## 30. 应用发布版本与可恢复运行单分离
+
+**记录日期**: 2026-07-13
+
+应用级发布使用两类持久化对象：`ai_business_application_version` 保存成功提交后的不可变快照，只允许新增；`ai_business_application_publish_run` 保存幂等键、候选快照、固定步骤、失败位置、尝试次数和恢复证据。只有全部发布步骤完成后才能写不可变版本并提交应用为 `PUBLISHED`，后续资产变更传播应用为 `CHANGED`。
+
+发布步骤固定为 `PRECHECK → SNAPSHOT → OBJECTS → ENTRIES → EXTENSIONS → COMMIT`，对象完成版本需要逐个写入运行单快照，恢复时跳过已有证据的副作用。历史回滚生成新的 `ROLLBACK` 版本，不覆盖旧版本，不执行反向 DDL 或业务数据回滚；物理表/字段、对象版本、入口、扩展版本或 APPLICATION Binding 不兼容时必须失败关闭。
+
+## 31. 字段资产与页面用法采用单向继承和显式提升
+
+**记录日期**: 2026-07-15
+
+低代码字段资产是字段身份、数据库映射、业务类型、字典/关联、公式、数据硬约束和安全属性的唯一事实源。表单与列表 Schema 只保存当前页面是否使用字段、顺序、布局、标题/提示覆盖、控件表现、列宽/渲染、只读/隐藏和页面校验。
+
+字段资产可以作为新页面的默认值向页面用法单向继承，但页面属性不得自动反写字段资产；需要提升为字段默认时必须由用户显式保存字段。字段编码、数据库映射和安全约束变化继续传播引用，页面覆盖继续保留。运行态展示采用“字段默认 → 页面覆盖 → 动态规则”，但后两层不能放宽字段或数据库硬约束。
+
+设计预览必须从当前草稿图编译；发布版本中的运行配置只服务正式运行，不能作为草稿预览缓存。主子表预览和应用发布前只刷新 PRIMARY 对象的关系聚合图，避免用户逐个对象发布和无边界 N+1 刷新。
+
+## 32. 对象关系可视化复用统一关系协议和按需字段加载
+
+**记录日期**: 2026-07-15
+
+关系可视化不引入第二套图模型或后端接口。`LowcodeErDiagram` 只负责对象布局、字段连接和用户事件，`BusinessRelationDesigner` 负责把任意方向的端点连接归一化为“当前对象字段 → 目标对象字段”的既有 `DETAIL` 关系，保存继续使用 `BusinessObjectRelation` 协议。
+
+ER 画布只加载用户选择加入画布的目标对象及已有关系目标，不能为展示关系页而一次查询业务域内全部对象字段。对象卡拖动属于临时视图状态，不写入关系协议；字段连线、关系属性和高级行为才进入设计草稿。
+
+## 33. 应用代码包复用对象生成器并按关系图聚合
+
+**记录日期**: 2026-07-15
+
+应用级代码预览和下载不建设第二套模板引擎，固定复用 `LowcodeRuntimeConfigBuilder + AiCrudCodegenService + VelocityCodegenStrategy`。应用只负责编排生成范围：主对象先刷新最新草稿关系图并生成单表、左树右表或主子表聚合代码；被主页面消费的 DETAIL/REFERENCE 对象不再重复生成冲突控制器，其余共享对象可批量合并到同一 ZIP。
+
+存在 `modelSchema + pageSchema` 时，代码生成必须重新构建查询、列表、表单、接口和 options，旧派生运行字段不能覆盖最新设计。多对象合并遇到同路径不同内容时失败关闭，禁止静默覆盖。应用代码包只物化数据对象的前后端、Mapper XML、SQL 和清单；流程、扩展与外部集成继续走 Forge 治理运行，不生成绕过治理的任意 Java/SQL。
+
+## 34. 下载代码采用完整协议快照和共享运行内核
+
+**记录日期**: 2026-07-15
+
+> **已被决策 35 替代**：本条只保留 Phase 11 的历史背景。前端共享解释器继续有效，后端委托动态 CRUD 和 classpath 配置注册不再执行。
+
+低代码下载代码不再由 Vue/Java 模板分别解释字段、布局和业务规则。前端生成页固定复用在线 `LowcodeRuntimePage`，后端生成 Controller 固定委托 `DynamicCrudService/DynamicCrudExcelService`；代码包同时携带结构化协议快照、覆盖报告、前端运行配置和后端 classpath 配置。
+
+所有进入 Velocity 的下载入口必须在公共生成策略中派生独立 `generated_*` 运行键，并把当前对象的动态 CRUD URL 投影为业务 Controller URL。普通数据库配置键只作为来源追溯和输出路径，不能让 classpath 配置覆盖或误读平台数据库配置。未知的 model/page/options 嵌套字段整体透传；后续能力由共享解释器和共享运行内核升级，重新下载后自动获得，不在生成模板维护字段白名单或第二套分支。
+
+协议不完整、JSON 非法、存在无法改写的平台通用接口或 classpath 同键不同内容时必须失败关闭。生成包继续依赖 Forge 共享运行模块；若要求完全脱离 Forge 插件独立部署，需要另立运行时抽取变更，不能在本生成链路静默复制实现。
+
+## 35. 下载后端采用静态 MyBatis-Plus 编译和用户所有扩展层
+
+**记录日期**: 2026-07-15
+
+在线低代码预览/运行继续使用 `DynamicCrudService`；下载源码的 Controller 不再调用 `DynamicCrudService/DynamicCrudExcelService`，而是调用生成的类型化 Service。生成 ServiceImpl 继承 MyBatis-Plus `ServiceImpl`，基础写操作使用 MP 内置方法，分页、列表、树、主子明细和复杂查询 SQL 固定写在 Mapper XML，主子和导入写入在生成 Service 事务内完成。
+
+前端下载页继续复用 `LowcodeRuntimePage + runtime-config.json`。后端新增低代码能力统一通过 `VelocityCodegenStrategy` 和 `LowcodeStaticCodegenContributor` 静态编译，所有下载入口重新生成后自动获得，不允许各入口维护分支。协议快照保留完整 JSON；coverage 必须区分静态已编译能力和 `REQUIRES_EXTENSION`，禁止把仅携带 JSON 报告为后端已实现。
+
+每个主对象生成带默认方法的 `ServiceExtension` around 契约。用户扩展实现放在生成器永不输出正式 Java 的 custom 目录，可调用 `operation.proceed()` 增强默认逻辑，也可跳过默认逻辑完整替换。ZIP 只输出 `.java.example` 和 ownership 清单，后续重新下载不能覆盖用户实现。
+
+## 36. 下载包命名与输出目录采用统一受限协议
+
+**记录日期**: 2026-07-15
+
+下载包的业务类名固定按“物理表名 → 删除首个匹配的有序表前缀 → PascalCase → 追加规范化实体前缀”生成，主表、树对象、明细对象以及 Entity/DTO/Query/Mapper/Service/Controller 全部消费同一个最终 `className`。非法 Java 标识符和同路径不同内容必须失败关闭。
+
+后端 Java、Mapper XML、前端页面和前端 API 使用四个独立且只能位于 ZIP 内的相对根目录；拒绝绝对路径、空路径段、`.` 和 `..`。下载范围可以关闭后端、前端或 Excel SQL，但完整 protocol、coverage、ownership 和 README 始终保留。Service/Mapper/Controller 后缀、Lombok、基础实体与 Forge 注解属于框架规范，不开放成任意模板组合。

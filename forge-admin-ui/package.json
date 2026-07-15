@@ -38,6 +38,7 @@
     "chalk": "^5.6.2",
     "codemirror": "^6.0.1",
     "crypto-js": "^4.2.0",
+    "css-tree": "^3.2.1",
     "dagre": "^0.8.5",
     "dayjs": "^1.11.13",
     "diagram-js": "14.11.3",

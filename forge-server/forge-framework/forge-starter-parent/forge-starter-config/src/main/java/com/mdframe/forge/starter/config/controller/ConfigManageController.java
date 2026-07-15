@@ -121,8 +121,9 @@ public class ConfigManageController {
     @PutMapping("/crypto")
     public RespInfo<Void> updateCryptoConfig(@RequestBody CryptoProperties config) {
         assertPlatformAdmin();
-        configManagerService.saveCryptoConfig(config);
-        return RespInfo.success();
+        return configManagerService.saveCryptoConfig(config)
+                ? RespInfo.success()
+                : RespInfo.error("加解密配置保存或运行时刷新失败");
     }
 
     /**

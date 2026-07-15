@@ -1,0 +1,108 @@
+package ${packageName}.${moduleName}.service.extension;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mdframe.forge.starter.core.domain.PageQuery;
+import ${packageName}.${moduleName}.dto.${className}DTO;
+#if(${isMasterDetailLayout})
+import ${packageName}.${moduleName}.dto.${className}MasterDetailDTO;
+#end
+import ${packageName}.${moduleName}.dto.${className}Query;
+import ${packageName}.${moduleName}.entity.${className};
+#if(${hasTreeConfig})
+#if(${tree.separateSource})
+import ${packageName}.${moduleName}.entity.${tree.className};
+#end
+#end
+
+import java.util.List;
+#if(${isMasterDetailLayout})
+import java.util.Map;
+#end
+
+/**
+ * ${functionName}业务扩展契约。
+ *
+ * <p>实现类由业务工程自行创建并交给 Spring 管理，可使用 {@code @Order} 控制顺序。
+ * 调用 {@code operation.proceed()} 可增强默认逻辑；不调用即可完全替换默认实现。</p>
+ */
+public interface ${className}ServiceExtension {
+
+    @FunctionalInterface
+    interface Operation<T> {
+        T proceed();
+    }
+
+    default Page<${className}> aroundPage(
+            PageQuery pageQuery,
+            ${className}Query query,
+            Operation<Page<${className}>> operation) {
+        return operation.proceed();
+    }
+
+    default List<${className}> aroundList(
+            ${className}Query query,
+            Operation<List<${className}>> operation) {
+        return operation.proceed();
+    }
+
+#if(${hasTreeConfig})
+    default List<${tree.className}> aroundTree(
+            String loadMode,
+            String parentValue,
+            Operation<List<${tree.className}>> operation) {
+        return operation.proceed();
+    }
+
+#end
+#if(${isMasterDetailLayout})
+    default Map<String, Object> aroundDetail(
+            ${pkColumn.javaType} ${pkColumn.javaField},
+            Operation<Map<String, Object>> operation) {
+#else
+    default ${className} aroundDetail(
+            ${pkColumn.javaType} ${pkColumn.javaField},
+            Operation<${className}> operation) {
+#end
+        return operation.proceed();
+    }
+
+#if(${isMasterDetailLayout})
+    default boolean aroundInsert(
+            ${className}MasterDetailDTO dto,
+#else
+    default boolean aroundInsert(
+            ${className}DTO dto,
+#end
+            Operation<Boolean> operation) {
+        return operation.proceed();
+    }
+
+#if(${isMasterDetailLayout})
+    default boolean aroundUpdate(
+            ${className}MasterDetailDTO dto,
+#else
+    default boolean aroundUpdate(
+            ${className}DTO dto,
+#end
+            Operation<Boolean> operation) {
+        return operation.proceed();
+    }
+
+    default boolean aroundDelete(
+            ${pkColumn.javaType} ${pkColumn.javaField},
+            Operation<Boolean> operation) {
+        return operation.proceed();
+    }
+
+    default boolean aroundBatchDelete(
+            ${pkColumn.javaType}[] ${pkColumn.javaField}s,
+            Operation<Boolean> operation) {
+        return operation.proceed();
+    }
+
+    default boolean aroundImport(
+            List<${className}DTO> rows,
+            Operation<Boolean> operation) {
+        return operation.proceed();
+    }
+}

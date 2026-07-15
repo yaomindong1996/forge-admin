@@ -21,7 +21,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -45,6 +49,7 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
 
     private final BusinessSuiteService suiteService;
     private final BusinessObjectService objectService;
+    private final BusinessApplicationService applicationService;
     private final BusinessAppOpenService openService;
     private final MenuRegisterAdapter menuRegisterAdapter;
 
@@ -83,6 +88,7 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         copyDtoToEntity(dto, app, true);
         save(app);
         syncManagementMenu(app);
+        applicationService.markCompositionChanged(app.getApplicationId());
         return app.getId();
     }
 
@@ -92,9 +98,14 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
             throw new BusinessException("访问入口ID不能为空");
         }
         AiBusinessApp app = requireEntity(dto.getId());
+        Long previousApplicationId = app.getApplicationId();
         copyDtoToEntity(dto, app, false);
         updateById(app);
         syncManagementMenu(app);
+        applicationService.markCompositionChanged(previousApplicationId);
+        if (!java.util.Objects.equals(previousApplicationId, app.getApplicationId())) {
+            applicationService.markCompositionChanged(app.getApplicationId());
+        }
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -103,6 +114,7 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         app.setStatus(normalizeStatus(status));
         updateById(app);
         syncManagementMenu(app);
+        applicationService.markCompositionChanged(app.getApplicationId());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -126,8 +138,88 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         AiBusinessApp app = requireEntity(id);
+        Long applicationId = app.getApplicationId();
         deleteManagementMenu(app);
         removeById(app.getId());
+        applicationService.markCompositionChanged(applicationId);
+    }
+
+    public List<AiBusinessApp> listByApplicationId(Long applicationId) {
+        applicationService.requireEntity(applicationId);
+        return baseMapper.selectByApplicationId(resolveTenantId(), applicationId);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public List<Long> publishEntries(Long applicationId, List<Long> selectedEntryIds) {
+        applicationService.requireEntity(applicationId);
+        List<AiBusinessApp> entries = baseMapper.selectByApplicationId(resolveTenantId(), applicationId);
+        Set<Long> selected = selectedEntryIds == null || selectedEntryIds.isEmpty()
+                ? entries.stream().map(AiBusinessApp::getId).collect(java.util.stream.Collectors.toSet())
+                : new HashSet<>(selectedEntryIds);
+        List<Long> published = new ArrayList<>();
+        for (AiBusinessApp entry : entries) {
+            if (!selected.contains(entry.getId())) {
+                continue;
+            }
+            if (!Integer.valueOf(1).equals(entry.getStatus())) {
+                throw new BusinessException("访问入口未启用: " + entry.getAppName());
+            }
+            if ("RUNTIME".equalsIgnoreCase(entry.getEntryMode()) && StringUtils.isBlank(entry.getConfigKey())) {
+                throw new BusinessException("运行入口缺少已发布页面配置: " + entry.getAppName());
+            }
+            syncManagementMenu(entry);
+            published.add(entry.getId());
+        }
+        if (published.size() != selected.size()) {
+            throw new BusinessException("发布选择中包含不属于当前应用的访问入口");
+        }
+        return published;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void restoreSnapshotEntries(Long applicationId, List<Map<String, Object>> snapshots) {
+        applicationService.requireEntity(applicationId);
+        Map<Long, AiBusinessApp> current = new LinkedHashMap<>();
+        for (AiBusinessApp entry : baseMapper.selectByApplicationId(resolveTenantId(), applicationId)) {
+            current.put(entry.getId(), entry);
+        }
+        for (Map<String, Object> snapshot : snapshots == null ? List.<Map<String, Object>>of() : snapshots) {
+            Long id = readLong(snapshot.get("id"));
+            AiBusinessApp entry = current.get(id);
+            if (entry == null) {
+                throw new BusinessException("历史版本依赖的访问入口已不存在: " + id);
+            }
+            entry.setAppName(StringUtils.trimToNull(text(snapshot.get("appName"))));
+            entry.setAppType(StringUtils.trimToNull(text(snapshot.get("appType"))));
+            entry.setSuiteCode(StringUtils.trimToNull(text(snapshot.get("suiteCode"))));
+            entry.setObjectCode(StringUtils.trimToNull(text(snapshot.get("objectCode"))));
+            entry.setEntryMode(StringUtils.trimToNull(text(snapshot.get("entryMode"))));
+            entry.setEntryUrl(StringUtils.trimToNull(text(snapshot.get("entryUrl"))));
+            entry.setConfigKey(StringUtils.trimToNull(text(snapshot.get("configKey"))));
+            entry.setIcon(StringUtils.trimToNull(text(snapshot.get("icon"))));
+            entry.setDescription(StringUtils.trimToNull(text(snapshot.get("description"))));
+            entry.setStatus(readInteger(snapshot.get("status"), 1));
+            entry.setSortOrder(readInteger(snapshot.get("sortOrder"), 0));
+            entry.setOptions(normalizeSnapshotOptions(snapshot.get("options")));
+            updateById(entry);
+            syncManagementMenu(entry);
+        }
+    }
+
+    private String normalizeSnapshotOptions(Object value) {
+        if (value == null) {
+            return null;
+        }
+        JSONObject options = value instanceof Map<?, ?> map
+                ? new JSONObject((Map<String, Object>) map)
+                : readOptions(String.valueOf(value));
+        String normalized = writeOptions(options);
+        validateNoSensitiveEntryConfig(null, normalized);
+        return normalized;
+    }
+
+    private String text(Object value) {
+        return value == null ? null : String.valueOf(value);
     }
 
     public AiBusinessApp requireEntity(Long id) {
@@ -192,10 +284,15 @@ public class BusinessAppService extends ServiceImpl<BusinessAppMapper, AiBusines
         }
         String normalizedOptions = writeOptions(options);
         validateNoSensitiveEntryConfig(dto.getEntryUrl(), normalizedOptions);
+        Long applicationId = create || dto.getApplicationId() != null
+                ? dto.getApplicationId()
+                : app.getApplicationId();
+        applicationService.assertEntryScope(applicationId, suiteCode, objectCode);
         app.setTenantId(resolveTenantId());
         app.setAppCode(appCode);
         app.setAppName(appName);
         app.setAppType(appType);
+        app.setApplicationId(applicationId);
         app.setSuiteCode(suiteCode);
         app.setObjectCode(objectCode);
         app.setEntryMode(entryMode);

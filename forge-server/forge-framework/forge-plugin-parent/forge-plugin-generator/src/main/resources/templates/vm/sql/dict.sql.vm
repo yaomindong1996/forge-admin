@@ -8,11 +8,23 @@
 #if($leftParen >= 0 && $rightParen > $leftParen)
 #set($dictName = $comment.substring(0, $leftParen).trim())
 #set($dictItems = $comment.substring($leftParen + 1, $rightParen))
--- ${dictName}字典
-INSERT INTO sys_dict_type (tenant_id, dict_name, dict_type, dict_status, remark) VALUES
-(000000, '${dictName}', '${column.dictType}', 1, '${functionName}${dictName}字典');
+#else
+#set($dictName = $column.columnComment)
+#set($dictItems = "")
+#end
+INSERT INTO sys_dict_type (
+  tenant_id, dict_name, dict_type, dict_status, remark, create_by, create_time, update_by, update_time, create_dept
+)
+SELECT 1, '${dictName}', '${column.dictType}', 1, '${functionName}${dictName}字典', 1, NOW(), 1, NOW(), 1
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM sys_dict_type dict_type
+  WHERE dict_type.tenant_id = 1
+    AND dict_type.dict_type = '${column.dictType}'
+    AND dict_type.del_flag = 0
+);
 
--- 字典数据项
+#if($dictItems != "")
 #set($items = $dictItems.split(",|，"))
 #set($sortIndex = 1)
 #foreach($item in $items)
@@ -28,20 +40,28 @@ INSERT INTO sys_dict_type (tenant_id, dict_name, dict_type, dict_status, remark)
 #if($separatorIndex >= 0)
 #set($dictValue = $item.substring(0, $separatorIndex).trim())
 #set($dictLabel = $item.substring($separatorIndex + 1).trim())
-INSERT INTO sys_dict_data (tenant_id, dict_sort, dict_label, dict_value, dict_type, dict_status, remark) VALUES
-(000000, ${sortIndex}, '${dictLabel}', '${dictValue}', '${column.dictType}', 1, '');
+INSERT INTO sys_dict_data (
+  tenant_id, dict_sort, dict_label, dict_value, dict_type,
+  list_class, is_default, dict_status, remark,
+  create_by, create_time, update_by, update_time, create_dept
+)
+SELECT 1, ${sortIndex}, '${dictLabel}', '${dictValue}', '${column.dictType}',
+       'default', 'N', 1, '${functionName}${dictName}',
+       1, NOW(), 1, NOW(), 1
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM sys_dict_data dict_data
+  WHERE dict_data.tenant_id = 1
+    AND dict_data.dict_type = '${column.dictType}'
+    AND dict_data.dict_value = '${dictValue}'
+    AND dict_data.del_flag = 0
+);
+
 #set($sortIndex = $sortIndex + 1)
 #end
 #end
-
 #else
--- ${column.columnComment}字典
-INSERT INTO sys_dict_type (tenant_id, dict_name, dict_type, dict_status, remark) VALUES
-(000000, '${column.columnComment}', '${column.dictType}', 1, '${functionName}${column.columnComment}字典');
-
--- 注意：需要手动填充字典数据项
--- INSERT INTO sys_dict_data (tenant_id, dict_sort, dict_label, dict_value, dict_type, dict_status, remark) VALUES
--- (000000, 1, '选项1', '1', '${column.dictType}', 1, '');
+-- `${column.dictType}` 未从字段备注识别出字典项，请在部署前补充 sys_dict_data。
 
 #end
 #end

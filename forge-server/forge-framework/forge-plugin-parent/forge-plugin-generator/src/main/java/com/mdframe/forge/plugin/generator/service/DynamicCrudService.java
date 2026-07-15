@@ -29,6 +29,7 @@ import com.mdframe.forge.plugin.generator.service.lowcode.runtime.LowcodeRuntime
 import com.mdframe.forge.plugin.generator.util.DynamicQueryGenerator;
 import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.crypto.crypto.Encryptor;
 import com.mdframe.forge.starter.crypto.crypto.EncryptorFactory;
 import com.mdframe.forge.starter.crypto.desensitize.strategy.DesensitizeStrategy;
@@ -41,6 +42,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -4224,10 +4227,24 @@ public class DynamicCrudService {
         if (!"CONFIG".equals(config.getMode())) {
             throw new BusinessException("该配置不是配置驱动模式: " + configKey);
         }
-        if ("LOWCODE".equals(config.getBuildMode()) && !"PUBLISHED".equals(config.getPublishStatus())) {
+        if ("LOWCODE".equals(config.getBuildMode())
+                && !"PUBLISHED".equals(config.getPublishStatus())
+                && !isAuthorizedDesignPreviewRequest()) {
             throw new BusinessException("低代码应用尚未发布: " + configKey);
         }
         return config;
+    }
+
+    private boolean isAuthorizedDesignPreviewRequest() {
+        if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attributes)
+                || !"1".equals(attributes.getRequest().getParameter("designPreview"))) {
+            return false;
+        }
+        try {
+            return SessionHelper.hasPermission("ai:businessObject:design");
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     private Set<String> buildAllowedCustomFields(AiCrudConfig config) {

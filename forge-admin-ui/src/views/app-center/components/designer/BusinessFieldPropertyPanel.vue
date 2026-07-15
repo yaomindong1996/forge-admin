@@ -4,7 +4,8 @@
       <div v-if="!formulaOnly" class="property-head">
         <div>
           <h3>{{ form.fieldName || '字段属性' }}</h3>
-          <p>{{ developerMode ? (form.fieldCode || '保存后自动生成字段编码和列名') : '维护表单展示、校验和视图可见性' }}</p>
+          <p>维护字段业务定义、数据库映射和全局约束</p>
+          <code v-if="developerMode">{{ form.fieldCode || '保存后自动生成字段编码和列名' }}</code>
         </div>
         <n-tag v-if="field.systemField" size="small" :bordered="false">
           系统字段
@@ -45,67 +46,93 @@
         </n-form>
 
         <n-tabs v-else v-model:value="activeTab" type="line" animated class="property-tabs">
-          <n-tab-pane v-if="isTabVisible('basic')" name="basic" tab="基础属性">
-            <n-form label-placement="top" size="small" :show-feedback="false">
-              <n-grid :cols="2" :x-gap="12">
-                <n-form-item-gi label="字段名称">
-                  <n-input v-model:value="form.fieldName" :disabled="field.systemField" placeholder="例如：客户等级" />
-                </n-form-item-gi>
-                <n-form-item-gi label="字段类型">
-                  <n-select
-                    v-model:value="form.fieldType"
-                    :options="fieldTypeOptions"
-                    :disabled="field.systemField"
-                    filterable
-                  />
-                </n-form-item-gi>
-              </n-grid>
+          <n-tab-pane v-if="isTabVisible('basic')" name="basic" tab="业务定义">
+            <n-form label-placement="top" size="small" :show-feedback="false" class="business-definition-form">
+              <section class="property-section">
+                <header class="property-section-head">
+                  <div>
+                    <strong>字段身份</strong>
+                    <span>业务人员看到的名称和字段语义。</span>
+                  </div>
+                </header>
+                <n-grid :cols="2" :x-gap="12">
+                  <n-form-item-gi label="字段名称">
+                    <n-input v-model:value="form.fieldName" :disabled="field.systemField" placeholder="例如：客户等级" />
+                  </n-form-item-gi>
+                  <n-form-item-gi label="字段类型">
+                    <n-select
+                      v-model:value="form.fieldType"
+                      :options="fieldTypeOptions"
+                      :disabled="field.systemField"
+                      filterable
+                    />
+                  </n-form-item-gi>
+                </n-grid>
+              </section>
 
-              <n-grid v-if="developerMode" :cols="supportsPrecision ? 2 : 1" :x-gap="12">
-                <n-form-item-gi v-if="developerMode" label="字段英文名">
-                  <n-input
-                    v-model:value="form.fieldCode"
-                    :disabled="field.systemField"
-                    placeholder="例如：customerLevel"
-                  />
-                </n-form-item-gi>
-                <n-form-item-gi v-if="developerMode && supportsPrecision" label="小数位">
+              <section class="property-section">
+                <header class="property-section-head">
+                  <div>
+                    <strong>默认值与提示</strong>
+                    <span>作为新页面和新记录的初始建议，可在页面设计器覆盖。</span>
+                  </div>
+                  <label class="property-section-switch">
+                    <span>必填</span>
+                    <n-switch
+                      :value="form.required"
+                      :disabled="field.systemField"
+                      size="small"
+                      @update:value="updateRequired"
+                    />
+                  </label>
+                </header>
+                <n-form-item label="输入提示">
+                  <n-input v-model:value="form.placeholder" :disabled="field.systemField" placeholder="例如：请输入客户等级" />
+                </n-form-item>
+
+                <n-form-item v-if="form.fieldType === 'REGION'" label="默认地区">
+                  <RegionTreeSelect v-model="form.defaultValue" size="small" :disabled="field.systemField" />
+                </n-form-item>
+                <n-form-item v-else-if="['NUMBER', 'MONEY'].includes(form.fieldType)" label="默认值">
                   <n-input-number
-                    v-model:value="form.precision"
-                    :min="0"
-                    :max="8"
+                    v-model:value="form.defaultValue"
                     :show-button="false"
                     :disabled="field.systemField"
                     class="full-input"
+                    placeholder="请输入数字默认值"
                   />
-                </n-form-item-gi>
-              </n-grid>
-
-              <n-form-item label="提示文案">
-                <n-input v-model:value="form.placeholder" :disabled="field.systemField" placeholder="请输入提示文案" />
-              </n-form-item>
-
-              <n-form-item v-if="form.fieldType === 'REGION'" label="默认地区">
-                <RegionTreeSelect v-model="form.defaultValue" size="small" :disabled="field.systemField" />
-              </n-form-item>
-              <n-form-item v-else label="默认值">
-                <n-input v-model:value="form.defaultValue" :disabled="field.systemField" placeholder="可为空" />
-              </n-form-item>
-
-              <n-form-item v-if="needsDict" label="系统字典" class="dict-property-item">
-                <DictTypeSelect
-                  v-model:value="form.dictType"
-                  compact
-                  :fields="allFields"
-                  :disabled="field.systemField"
-                />
-              </n-form-item>
-
-              <section class="field-constraint-config">
-                <div class="field-constraint-head">
-                  <strong>字段约束</strong>
-                  <span>最大长度和常用格式校验会随字段配置保存。</span>
+                </n-form-item>
+                <n-form-item v-else-if="form.fieldType === 'SWITCH'" label="默认值">
+                  <n-select
+                    v-model:value="form.defaultValue"
+                    :options="switchDefaultOptions"
+                    :disabled="field.systemField"
+                  />
+                </n-form-item>
+                <n-form-item v-else label="默认值">
+                  <n-input v-model:value="form.defaultValue" :disabled="field.systemField" placeholder="可为空" />
+                </n-form-item>
+                <div v-if="requiredDefaultHint" class="required-default-hint" :class="{ warning: !hasSafeRequiredDefault }">
+                  {{ requiredDefaultHint }}
                 </div>
+
+                <n-form-item v-if="needsDict" label="系统字典" class="dict-property-item">
+                  <DictTypeSelect
+                    v-model:value="form.dictType"
+                    compact
+                    :fields="allFields"
+                    :disabled="field.systemField"
+                  />
+                </n-form-item>
+              </section>
+
+              <section class="property-section field-constraint-config">
+                <header class="property-section-head">
+                  <div>
+                    <strong>数据约束</strong>
+                    <span>长度和格式属于字段级约束，会影响所有页面。</span>
+                  </div>
+                </header>
                 <n-grid :cols="supportsLength ? 2 : 1" :x-gap="12">
                   <n-form-item-gi v-if="supportsLength" label="最大长度">
                     <n-input-number
@@ -148,13 +175,16 @@
                 </n-grid>
               </section>
 
-              <section v-if="isRelationField" class="relation-config-unified">
-                <div class="record-selector-config-head">
-                  <strong>关联配置</strong>
+              <section v-if="isRelationField" class="property-section relation-config-unified">
+                <header class="property-section-head record-selector-config-head">
+                  <div>
+                    <strong>关联对象</strong>
+                    <span>配置字段从哪个对象选择和如何回显。</span>
+                  </div>
                   <n-tag size="small" :bordered="false" :type="relationSelectionMode === 'dropdown' ? 'info' : 'success'">
                     {{ relationSelectionMode === 'dropdown' ? '下拉选择' : '弹窗选择器' }}
                   </n-tag>
-                </div>
+                </header>
 
                 <n-form-item label="选择方式">
                   <n-radio-group :value="relationSelectionMode" @update:value="switchRelationSelectionMode">
@@ -270,14 +300,27 @@
                 </n-collapse>
               </section>
 
-              <n-form-item label="备注">
-                <n-input v-model:value="form.remark" type="textarea" :rows="4" placeholder="字段说明，业务用户可见" />
-              </n-form-item>
+              <section class="property-section property-note-section">
+                <header class="property-section-head">
+                  <div>
+                    <strong>业务说明</strong>
+                    <span>补充字段口径和使用说明。</span>
+                  </div>
+                </header>
+                <n-form-item label="备注">
+                  <n-input v-model:value="form.remark" type="textarea" :rows="3" placeholder="字段说明，业务用户可见" />
+                </n-form-item>
+              </section>
             </n-form>
           </n-tab-pane>
 
-          <n-tab-pane v-if="isTabVisible('display')" name="display" tab="显示与校验">
+          <n-tab-pane v-if="isTabVisible('display')" name="display" tab="规则与安全">
             <n-form label-placement="top" size="small" :show-feedback="false">
+              <section class="page-config-boundary">
+                <strong>页面配置已独立</strong>
+                <span>表单显示、列表字段、字段顺序和查询条件，请在表单设计或列表设计中配置；这里维护字段默认值和数据约束。</span>
+              </section>
+
               <section v-if="needsDict" class="cascade-config">
                 <div class="cascade-config-head">
                   <div>
@@ -321,24 +364,8 @@
 
               <div class="switch-grid">
                 <label>
-                  <span>必填</span>
-                  <n-switch v-model:value="form.required" :disabled="field.systemField" size="small" />
-                </label>
-                <label>
                   <span>唯一校验</span>
                   <n-switch v-model:value="form.advancedProps.unique" :disabled="field.systemField" size="small" />
-                </label>
-                <label>
-                  <span>显示在表单</span>
-                  <n-switch v-model:value="form.formVisible" :disabled="field.readonly" size="small" />
-                </label>
-                <label>
-                  <span>显示在列表</span>
-                  <n-switch v-model:value="form.listVisible" size="small" />
-                </label>
-                <label>
-                  <span>作为查询条件</span>
-                  <n-switch v-model:value="form.searchable" size="small" />
                 </label>
                 <label>
                   <span>允许导入</span>
@@ -352,8 +379,12 @@
             </n-form>
           </n-tab-pane>
 
-          <n-tab-pane v-if="developerMode && isTabVisible('advanced')" name="advanced" tab="开发者属性">
+          <n-tab-pane v-if="developerMode && isTabVisible('advanced')" name="advanced" tab="数据库与开发">
             <n-form label-placement="top" size="small" :show-feedback="false">
+              <section class="default-inheritance-tip">
+                <strong>页面默认值</strong>
+                <span>默认控件和默认查询方式仅供新建页面继承，已有页面的最终配置不会被这里覆盖。</span>
+              </section>
               <n-grid :cols="2" :x-gap="12">
                 <n-form-item-gi label="字段英文名">
                   <n-input v-model:value="form.fieldCode" :disabled="field.systemField" placeholder="自动生成" />
@@ -364,10 +395,20 @@
                 <n-form-item-gi label="数据类型">
                   <FieldTypeSelect v-model:value="form.dataType" :disabled="field.systemField" />
                 </n-form-item-gi>
-                <n-form-item-gi label="控件类型">
+                <n-form-item-gi v-if="normalizedDataType === 'decimal'" label="小数位">
+                  <n-input-number
+                    v-model:value="form.precision"
+                    :min="0"
+                    :max="8"
+                    :show-button="false"
+                    :disabled="field.systemField"
+                    class="full-input"
+                  />
+                </n-form-item-gi>
+                <n-form-item-gi label="默认控件">
                   <n-select v-model:value="form.componentType" :options="componentOptions" filterable clearable />
                 </n-form-item-gi>
-                <n-form-item-gi label="查询方式">
+                <n-form-item-gi label="默认查询方式">
                   <n-select v-model:value="form.queryType" :options="queryTypeOptions" clearable />
                 </n-form-item-gi>
                 <n-form-item-gi label="字段状态">
@@ -386,39 +427,6 @@
             </n-form>
           </n-tab-pane>
 
-          <n-tab-pane v-if="isTabVisible('formula')" name="formula" tab="公式与调试" class="formula-tab-pane">
-            <n-form label-placement="top" size="small" :show-feedback="false" class="formula-tab-form">
-              <FormulaConfigPanel
-                :form="form"
-                :field="field"
-                :all-fields="allFields"
-                :relations="relations"
-                :saving="saving"
-                :formula-validating="formulaValidating"
-                :formula-previewing="formulaPreviewing"
-                :formula-validate-result="formulaValidateResult"
-                :formula-feedback-lines="formulaFeedbackLines"
-                :can-open-formula-debugger="canOpenFormulaDebugger"
-                :has-formula-tool-fields="hasFormulaToolFields"
-                :preview-disabled="!canOpenFormulaPreview"
-                @toggle-enabled="updateFormulaEnabled"
-                @type-change="onFormulaTypeChange"
-                @insert-token="insertFormulaToken"
-                @insert-string-token="insertStringToken"
-                @condition-expression-change="onConditionExpressionChange"
-                @condition-mode-change="onConditionModeChange"
-                @condition-rule-compiled="onConditionRuleCompiled"
-                @condition-rule-validation="onConditionRuleValidation"
-                @trigger-mode="setFormulaTriggerMode"
-                @save="$emit('save', payload)"
-                @validate="handleValidateFormula"
-                @preview="openFormulaPreview"
-                @open-debugger="formulaDebuggerVisible = true"
-                @open-log="formulaLogVisible = true"
-                @open-graph="formulaGraphVisible = true"
-              />
-            </n-form>
-          </n-tab-pane>
         </n-tabs>
       </div>
 
@@ -432,7 +440,7 @@
       </div>
     </template>
 
-    <n-empty v-else description="选择左侧字段后编辑属性" />
+    <n-empty v-else description="选择左侧字段后维护业务定义和数据库属性" />
 
     <n-modal
       v-model:show="formulaPreviewDialogVisible"
@@ -600,7 +608,7 @@ const props = defineProps({
 const emit = defineEmits(['save', 'dirtyChange'])
 
 const activeTab = ref(props.defaultActiveTab || 'basic')
-const defaultVisibleTabs = ['basic', 'display', 'advanced', 'formula']
+const defaultVisibleTabs = ['basic', 'display', 'advanced']
 const enabledTabs = computed(() => {
   const tabs = (props.visibleTabs || []).filter(Boolean)
   return tabs.length ? tabs : defaultVisibleTabs
@@ -659,6 +667,11 @@ const queryTypeOptions = [
   { label: '多值', value: 'in' },
 ]
 
+const switchDefaultOptions = [
+  { label: '关闭（0）', value: 0 },
+  { label: '开启（1）', value: 1 },
+]
+
 const statusOptions = [
   { label: '启用', value: 'ENABLED' },
   { label: '停用', value: 'DISABLED' },
@@ -687,6 +700,7 @@ const formulaLogVisible = ref(false)
 const formulaGraphVisible = ref(false)
 const formulaConditionRuleValidation = ref(null)
 const formulaPreviewForm = reactive({})
+const automaticRequiredDefault = ref(null)
 let formulaPreviewTimer = null
 let formulaPreviewInitializing = false
 const encryptOptions = [
@@ -773,7 +787,6 @@ const unifiedTargetFieldOptions = computed(() => {
 })
 const normalizedDataType = computed(() => String(form.dataType || '').toLowerCase())
 const supportsLength = computed(() => ['varchar', 'char', 'decimal'].includes(normalizedDataType.value))
-const supportsPrecision = computed(() => normalizedDataType.value === 'decimal')
 const formulaEnabled = computed(() => !!form.formulaType)
 const formulaFeedbackLines = computed(() => {
   const result = formulaValidateResult.value
@@ -815,6 +828,16 @@ const lengthMax = computed(() => {
   if (normalizedDataType.value === 'char')
     return 255
   return 2048
+})
+const hasSafeRequiredDefault = computed(() => hasDefaultValue(form.defaultValue))
+const requiredDefaultHint = computed(() => {
+  if (!form.required)
+    return ''
+  if (hasSafeRequiredDefault.value)
+    return `必填字段已配置默认值：${formatDefaultValue(form.defaultValue)}`
+  if (!supportsAutomaticRequiredDefault(form.fieldType))
+    return '当前类型无法推断合法业务值，请手动选择有效默认值，避免写入无效字典值或关联 ID。'
+  return '开启必填后会按字段类型自动生成默认值，你仍可以手动修改。'
 })
 
 const dependFieldOptions = computed(() => {
@@ -862,6 +885,8 @@ watch(
     if (resetting || !oldValue || value === oldValue || props.field?.systemField)
       return
     applyFieldTypeDefaults(value)
+    if (form.required)
+      applyRequiredDefault(value)
   },
 )
 
@@ -924,6 +949,7 @@ onBeforeUnmount(() => {
 
 function resetForm() {
   resetting = true
+  automaticRequiredDefault.value = null
   Object.assign(form, createFieldForm(props.field))
   baseline = JSON.stringify(normalizePayload(form))
   formulaValidateResult.value = null
@@ -940,6 +966,7 @@ function resetForm() {
 
 function createFieldForm(field) {
   const currentField = field || {}
+  const fieldType = currentField.fieldType || 'TEXT'
   const basicProps = { ...(currentField.basicProps || {}) }
   const validation = currentField.validation || basicProps.validation || currentField.advancedProps?.validation || {}
   const recordSelector = createDefaultRecordSelector(currentField.recordSelector || basicProps.recordSelector || currentField.props?.recordSelector)
@@ -947,12 +974,12 @@ function createFieldForm(field) {
     fieldName: currentField.fieldName || '',
     fieldCode: currentField.fieldCode || '',
     columnName: currentField.columnName || '',
-    fieldType: currentField.fieldType || 'TEXT',
+    fieldType,
     dataType: currentField.dataType || 'varchar',
     length: currentField.length ?? 255,
     precision: currentField.precision ?? 0,
     required: !!currentField.required,
-    defaultValue: currentField.defaultValue ?? '',
+    defaultValue: normalizeDefaultValueForEditor(currentField.defaultValue, fieldType),
     searchable: !!currentField.searchable,
     listVisible: currentField.listVisible !== false,
     formVisible: currentField.formVisible !== false,
@@ -1149,6 +1176,99 @@ function onValidationPresetChange(value) {
     form.sensitiveType = 'ID_CARD'
   if (value === 'BANK_CARD' && !form.sensitiveType)
     form.sensitiveType = 'BANK_CARD'
+}
+
+function updateRequired(value) {
+  form.required = !!value
+  if (form.required) {
+    applyRequiredDefault(form.fieldType)
+    return
+  }
+  if (isCurrentAutomaticDefault())
+    form.defaultValue = emptyDefaultValue(form.fieldType)
+  automaticRequiredDefault.value = null
+}
+
+function applyRequiredDefault(fieldType) {
+  const currentIsAutomatic = isCurrentAutomaticDefault()
+  if (hasDefaultValue(form.defaultValue) && !currentIsAutomatic)
+    return false
+  const suggestion = resolveAutomaticRequiredDefault(fieldType)
+  if (!suggestion.supported) {
+    if (currentIsAutomatic)
+      form.defaultValue = emptyDefaultValue(fieldType)
+    automaticRequiredDefault.value = null
+    return false
+  }
+  form.defaultValue = suggestion.value
+  automaticRequiredDefault.value = suggestion.value
+  return true
+}
+
+function supportsAutomaticRequiredDefault(fieldType) {
+  return resolveAutomaticRequiredDefault(fieldType).supported
+}
+
+function resolveAutomaticRequiredDefault(fieldType) {
+  const type = String(fieldType || '').toUpperCase()
+  if (['NUMBER', 'MONEY', 'SWITCH'].includes(type))
+    return { supported: true, value: 0 }
+  if (type === 'DATE')
+    return { supported: true, value: formatLocalDate(new Date()) }
+  if (type === 'DATETIME')
+    return { supported: true, value: formatLocalDateTime(new Date()) }
+  if (['CHECKBOX', 'FILE', 'IMAGE'].includes(type))
+    return { supported: true, value: '[]' }
+  if (['TEXT', 'MULTILINE'].includes(type))
+    return { supported: true, value: '-' }
+  return { supported: false, value: '' }
+}
+
+function normalizeDefaultValueForEditor(value, fieldType) {
+  const type = String(fieldType || '').toUpperCase()
+  if (value === null || value === undefined || value === '')
+    return ['NUMBER', 'MONEY'].includes(type) ? null : ''
+  if (['NUMBER', 'MONEY', 'SWITCH'].includes(type)) {
+    const numeric = Number(value)
+    return Number.isFinite(numeric) ? numeric : value
+  }
+  return value
+}
+
+function emptyDefaultValue(fieldType) {
+  return ['NUMBER', 'MONEY'].includes(String(fieldType || '').toUpperCase()) ? null : ''
+}
+
+function isCurrentAutomaticDefault() {
+  if (automaticRequiredDefault.value === null)
+    return false
+  return JSON.stringify(form.defaultValue) === JSON.stringify(automaticRequiredDefault.value)
+}
+
+function hasDefaultValue(value) {
+  if (Array.isArray(value))
+    return value.length > 0
+  return value !== null && value !== undefined && String(value).trim() !== ''
+}
+
+function formatDefaultValue(value) {
+  if (Array.isArray(value))
+    return JSON.stringify(value)
+  return String(value)
+}
+
+function formatLocalDate(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function formatLocalDateTime(date) {
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${formatLocalDate(date)} ${hours}:${minutes}:${seconds}`
 }
 
 function buildFormulaConfigPayload(source) {
@@ -2187,12 +2307,17 @@ defineExpose({
   min-height: 0;
   min-width: 0;
   height: 100%;
-  background: #fbfcfe;
+  background: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
 }
 
 .property-panel.formula-only-panel {
   grid-template-rows: minmax(0, 1fr);
-  background: #fff;
+  background: var(--n-color, var(--bg-primary, #fff));
+}
+
+.property-panel > :deep(.n-empty) {
+  align-self: center;
+  grid-row: 1 / -1;
 }
 
 .property-head {
@@ -2200,21 +2325,34 @@ defineExpose({
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-default, #e5e6eb);
+  background: var(--n-color, var(--bg-primary, #fff));
   padding: 16px;
 }
 
 .property-head h3 {
   margin: 0;
-  color: #111827;
+  color: var(--n-text-color, var(--text-primary, #1d2129));
   font-size: 15px;
   letter-spacing: 0;
 }
 
 .property-head p {
   margin: 4px 0 0;
-  color: #64748b;
+  color: var(--n-text-color-3, var(--text-secondary, #86909c));
   font-size: 12px;
+}
+
+.property-head code {
+  display: block;
+  overflow: hidden;
+  max-width: 320px;
+  margin-top: 5px;
+  color: var(--n-text-color-2, var(--text-regular, #4e5969));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .property-body {
@@ -2222,7 +2360,7 @@ defineExpose({
   min-height: 0;
   min-width: 0;
   overflow: hidden;
-  background: #fff;
+  background: var(--n-color, var(--bg-primary, #fff));
   padding: 0 16px 16px;
 }
 
@@ -2251,7 +2389,7 @@ defineExpose({
   position: sticky;
   top: 0;
   z-index: 2;
-  background: #fbfcfe;
+  background: var(--n-color, var(--bg-primary, #fff));
   padding-top: 10px;
 }
 
@@ -2265,25 +2403,13 @@ defineExpose({
 .property-tabs :deep(.n-tabs-pane-wrapper) {
   min-width: 0;
   min-height: 0;
-  background: #fff;
+  background: var(--n-color, var(--bg-primary, #fff));
   overflow: auto;
 }
 
 .property-tabs :deep(.n-form) {
   width: 100%;
   min-width: 0;
-}
-
-.formula-tab-form {
-  display: grid;
-  height: 100%;
-  min-height: 0;
-  background: #fff;
-}
-
-.property-tabs :deep(.formula-tab-pane) {
-  background: #fff;
-  padding-top: 8px;
 }
 
 .switch-grid {
@@ -2298,20 +2424,115 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-default, #e5e6eb);
   border-radius: 6px;
-  background: #fff;
-  color: #475569;
+  background: var(--n-color, var(--bg-primary, #fff));
+  color: var(--n-text-color-2, var(--text-regular, #4e5969));
   font-size: 12px;
   padding: 8px 10px;
+}
+
+.page-config-boundary,
+.default-inheritance-tip {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border-default, #e5e6eb);
+  border-radius: 7px;
+  background: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
+  padding: 10px 12px;
+}
+
+.page-config-boundary strong,
+.default-inheritance-tip strong {
+  color: var(--n-text-color, var(--text-primary, #1d2129));
+  font-size: 12px;
+}
+
+.page-config-boundary span,
+.default-inheritance-tip span {
+  color: var(--n-text-color-3, var(--text-secondary, #86909c));
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .full-input {
   width: 100%;
 }
 
+.business-definition-form {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 2px;
+}
+
+.property-section {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--border-default, #e5e6eb);
+  border-radius: 7px;
+  background: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
+  padding: 11px 12px 2px;
+}
+
+.property-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 1px;
+}
+
+.property-section-head > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.property-section-head strong {
+  color: var(--n-text-color, var(--text-primary, #1d2129));
+  font-size: 13px;
+}
+
+.property-section-head span {
+  color: var(--n-text-color-3, var(--text-secondary, #86909c));
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.property-section-switch {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  color: var(--n-text-color-2, var(--text-regular, #4e5969));
+  font-size: 11px;
+}
+
+.property-section :deep(.n-form-item) {
+  margin-bottom: 9px;
+}
+
+.property-note-section {
+  padding-bottom: 2px;
+}
+
+.required-default-hint {
+  margin: -4px 0 8px;
+  border-left: 2px solid var(--success-color, #00b42a);
+  color: var(--n-text-color-3, var(--text-secondary, #86909c));
+  font-size: 11px;
+  line-height: 1.55;
+  padding-left: 8px;
+}
+
+.required-default-hint.warning {
+  border-left-color: var(--warning-color, #ff7d00);
+  color: var(--warning-color, #d46b08);
+}
+
 .dict-property-item {
-  max-width: 280px;
+  width: 100%;
 }
 
 .dict-property-item :deep(.dict-select-row) {
@@ -2323,29 +2544,7 @@ defineExpose({
 }
 
 .field-constraint-config {
-  display: grid;
   gap: 8px;
-  margin-bottom: 16px;
-  border: 1px solid #bfdbfe;
-  border-radius: 8px;
-  background: #f8fbff;
-  padding: 12px;
-}
-
-.field-constraint-head strong,
-.field-constraint-head span {
-  display: block;
-}
-
-.field-constraint-head strong {
-  color: #0f172a;
-  font-size: 13px;
-}
-
-.field-constraint-head span {
-  margin-top: 3px;
-  color: #64748b;
-  font-size: 12px;
 }
 
 .cascade-config {
@@ -2410,13 +2609,7 @@ defineExpose({
 }
 
 .relation-config-unified {
-  display: grid;
   gap: 10px;
-  margin-bottom: 16px;
-  border: 1px solid #dbe3ee;
-  border-radius: 8px;
-  background: #fff;
-  padding: 12px;
 }
 
 .relation-advanced-collapse {
@@ -2427,8 +2620,8 @@ defineExpose({
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  border-top: 1px solid #e5e7eb;
-  background: #fff;
+  border-top: 1px solid var(--border-default, #e5e6eb);
+  background: var(--n-color, var(--bg-primary, #fff));
   padding: 12px 16px;
 }
 

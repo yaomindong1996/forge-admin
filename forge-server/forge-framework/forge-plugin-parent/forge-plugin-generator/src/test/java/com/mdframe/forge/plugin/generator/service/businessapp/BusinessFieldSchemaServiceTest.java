@@ -49,7 +49,37 @@ class BusinessFieldSchemaServiceTest {
 
         BusinessException error = assertThrows(BusinessException.class, () -> service.buildFieldSchema(dto));
 
-        assertEquals("字典字段必须配置字典类型", error.getMessage());
+        assertEquals("字段「跟进方式」使用字典组件时必须配置字典类型或静态选项", error.getMessage());
+    }
+
+    @Test
+    @DisplayName("explicit text type is not overridden by status field name")
+    void explicitTextTypeIsNotOverriddenByStatusFieldName() {
+        BusinessFieldDTO dto = baseField("订单状态", "orderStatus", "TEXT");
+
+        LowcodeFieldSchema schema = service.buildFieldSchema(dto);
+
+        assertEquals("TEXT", schema.getBusinessFieldType());
+    }
+
+    @Test
+    @DisplayName("explicit switch type is not overridden by status field name")
+    void explicitSwitchTypeIsNotOverriddenByStatusFieldName() {
+        BusinessFieldDTO dto = baseField("启用状态", "enabled", "SWITCH");
+
+        LowcodeFieldSchema schema = service.buildFieldSchema(dto);
+
+        assertEquals("SWITCH", schema.getBusinessFieldType());
+    }
+
+    @Test
+    @DisplayName("unknown explicit type falls back to text instead of field name inference")
+    void unknownExplicitTypeFallsBackToText() {
+        BusinessFieldDTO dto = baseField("订单类型", "orderType", "UNKNOWN");
+
+        LowcodeFieldSchema schema = service.buildFieldSchema(dto);
+
+        assertEquals("TEXT", schema.getBusinessFieldType());
     }
 
     @Test
@@ -66,14 +96,20 @@ class BusinessFieldSchemaServiceTest {
     }
 
     private BusinessFieldDTO baseDictField() {
-        BusinessFieldDTO dto = new BusinessFieldDTO();
-        dto.setFieldName("跟进方式");
-        dto.setFieldCode("type");
-        dto.setColumnName("type");
-        dto.setFieldType("DICT");
+        BusinessFieldDTO dto = baseField("跟进方式", "type", "DICT");
         dto.setComponentType("select");
-        dto.setDataType("varchar");
         dto.setLength(32);
+        return dto;
+    }
+
+    private BusinessFieldDTO baseField(String fieldName, String fieldCode, String fieldType) {
+        BusinessFieldDTO dto = new BusinessFieldDTO();
+        dto.setFieldName(fieldName);
+        dto.setFieldCode(fieldCode);
+        dto.setColumnName(fieldCode);
+        dto.setFieldType(fieldType);
+        dto.setDataType("varchar");
+        dto.setLength(128);
         dto.setRequired(false);
         dto.setListVisible(true);
         dto.setFormVisible(true);
@@ -81,8 +117,8 @@ class BusinessFieldSchemaServiceTest {
         dto.setExportable(true);
         dto.setDictType("");
         dto.getFieldBinding().put("mode", "field");
-        dto.getFieldBinding().put("fieldCode", "type");
-        dto.getFieldBinding().put("columnName", "type");
+        dto.getFieldBinding().put("fieldCode", fieldCode);
+        dto.getFieldBinding().put("columnName", fieldCode);
         dto.getFieldBinding().put("source", "field_asset");
         dto.getFieldBinding().put("createIfMissing", false);
         return dto;
