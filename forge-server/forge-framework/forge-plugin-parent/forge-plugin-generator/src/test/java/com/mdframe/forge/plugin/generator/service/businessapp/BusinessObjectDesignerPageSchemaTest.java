@@ -268,6 +268,7 @@ class BusinessObjectDesignerPageSchemaTest {
                 null,
                 fieldSchemaService,
                 null,
+                null,
                 null
         );
     }

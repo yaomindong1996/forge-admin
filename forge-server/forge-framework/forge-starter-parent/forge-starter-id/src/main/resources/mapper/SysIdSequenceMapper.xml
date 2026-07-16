@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.starter.id.mapper.SysIdSequenceMapper">
+
+    <update id="allocateSegment">
+        UPDATE sys_id_sequence
+        SET max_id = max_id + #{step},
+            version = version + 1
+        WHERE biz_key = #{bizKey}
+          AND version = #{version}
+    </update>
+
+    <select id="selectLegacyMaxId" resultType="java.lang.Long">
+        SELECT MAX(max_id)
+        FROM sys_id_sequence
+        WHERE LEFT(biz_key, CHAR_LENGTH(#{legacyKeyPrefix})) = #{legacyKeyPrefix}
+          AND (
+            SUBSTRING_INDEX(biz_key, ':', -1) = #{legacyPeriod}
+            OR (
+              CHAR_LENGTH(#{legacyPeriod}) = 10
+              AND CHAR_LENGTH(SUBSTRING_INDEX(biz_key, ':', -1)) IN (10, 12, 14)
+              AND LEFT(SUBSTRING_INDEX(biz_key, ':', -1), 10) = #{legacyPeriod}
+            )
+          )
+    </select>
+
+</mapper>

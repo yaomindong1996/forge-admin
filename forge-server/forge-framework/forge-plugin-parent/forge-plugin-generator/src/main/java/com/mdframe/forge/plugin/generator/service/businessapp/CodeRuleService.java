@@ -1,16 +1,27 @@
 package com.mdframe.forge.plugin.generator.service.businessapp;
 
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.generator.domain.entity.AiCodeRule;
+import com.mdframe.forge.plugin.generator.domain.entity.AiCodeRuleSegment;
 import com.mdframe.forge.plugin.generator.dto.businessapp.CodeRulePreviewDTO;
+import com.mdframe.forge.plugin.generator.dto.businessapp.CodeRuleSaveDTO;
+import com.mdframe.forge.plugin.generator.dto.businessapp.CodeRuleSegmentDTO;
+import com.mdframe.forge.plugin.generator.dto.businessapp.CodeRuleStatusDTO;
+import com.mdframe.forge.plugin.generator.manager.coderule.CodeRuleDefinition;
+import com.mdframe.forge.plugin.generator.manager.coderule.CodeRuleEngine;
+import com.mdframe.forge.plugin.generator.manager.coderule.LegacyCodeRuleParser;
 import com.mdframe.forge.plugin.generator.mapper.CodeRuleMapper;
+import com.mdframe.forge.plugin.generator.mapper.CodeRuleSegmentMapper;
+import com.mdframe.forge.plugin.generator.vo.businessapp.CodeRuleCapabilityVO;
+import com.mdframe.forge.plugin.generator.vo.businessapp.CodeRuleDetailVO;
+import com.mdframe.forge.plugin.generator.vo.businessapp.CodeRuleGenerateVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.CodeRulePreviewVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.CodeRuleTokenVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
-import com.mdframe.forge.starter.id.service.ISequenceService;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -18,32 +29,31 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
- * 通用编码规则服务。
+ * 编码规则事务编排与兼容门面。
  */
 @Service
 @RequiredArgsConstructor
 public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
 
-    private static final Pattern RULE_CODE_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z0-9_\\-]{1,63}$");
-    private static final Pattern TOKEN_PATTERN = Pattern.compile("\\$\\{([^}]+)}");
-    private static final Pattern LEGACY_TOKEN_PATTERN = Pattern.compile("(?<!\\$)\\{([^{}]+)}");
-    private static final Pattern LEGACY_SEQ_TOKEN_PATTERN = Pattern.compile("seq(\\d+)");
-    private static final Set<String> RESET_POLICIES = Set.of("AUTO", "NONE", "YEAR", "MONTH", "DAY", "HOUR", "MINUTE", "SECOND");
+    private static final Pattern RULE_CODE_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z0-9_]{0,63}$");
 
-    private final ISequenceService sequenceService;
+    private final CodeRuleSegmentMapper segmentMapper;
+    private final CodeRuleEngine codeRuleEngine;
+    private final LegacyCodeRuleParser legacyParser;
 
+    /**
+     * 兼容旧管理入口的实体分页。
+     */
     public Page<AiCodeRule> page(Integer pageNum,
                                  Integer pageSize,
                                  String ruleCode,
@@ -51,437 +61,706 @@ public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
                                  String scene,
                                  Integer status) {
         Page<AiCodeRule> page = new Page<>(normalizePageNum(pageNum), normalizePageSize(pageSize));
-        return baseMapper.selectRulePage(page, resolveTenantId(), trimToNull(ruleCode), trimToNull(ruleName),
-                trimToNull(scene), status);
+        return baseMapper.selectRulePage(
+                page,
+                resolveTenantId(),
+                trimToNull(ruleCode),
+                trimToNull(ruleName),
+                trimToNull(scene),
+                null,
+                status
+        );
+    }
+
+    public Page<CodeRuleDetailVO> pageDetails(Integer pageNum,
+                                              Integer pageSize,
+                                              String ruleCode,
+                                              String ruleName,
+                                              String category,
+                                              Integer status) {
+        Page<CodeRuleDetailVO> page = new Page<>(normalizePageNum(pageNum), normalizePageSize(pageSize));
+        return baseMapper.selectDetailPage(
+                page,
+                resolveTenantId(),
+                trimToNull(ruleCode),
+                trimToNull(ruleName),
+                trimToNull(category),
+                status
+        );
     }
 
     public List<AiCodeRule> listEnabled(String scene) {
-        return baseMapper.selectEnabledList(resolveTenantId(), trimToNull(scene));
+        return listEnabled(scene, null);
+    }
+
+    public List<AiCodeRule> listEnabled(String scene, String sourceObjectCode) {
+        return baseMapper.selectEnabledList(
+                resolveTenantId(), trimToNull(scene), trimToNull(sourceObjectCode), true);
+    }
+
+    public List<CodeRuleDetailVO> listSelectable(String scene, String sourceObjectCode) {
+        return baseMapper.selectEnabledList(
+                        resolveTenantId(), trimToNull(scene), trimToNull(sourceObjectCode), true).stream()
+                .map(this::toSummaryVO)
+                .toList();
     }
 
     public AiCodeRule detail(Long id) {
-        AiCodeRule rule = baseMapper.selectByRuleId(resolveTenantId(), id);
+        return requireRule(id, resolveTenantId());
+    }
+
+    public CodeRuleDetailVO detailVO(Long id) {
+        Long tenantId = resolveTenantId();
+        AiCodeRule rule = requireRule(id, tenantId);
+        List<AiCodeRuleSegment> entities = segmentMapper.selectByRuleId(tenantId, id);
+        List<CodeRuleSegmentDTO> segments;
+        CodeRuleDetailVO result = toSummaryVO(rule);
+        if (entities.isEmpty()) {
+            segments = legacyParser.parse(rule.getTemplate(), rule.getResetPolicy(), rule.getSeqLength());
+            result.setCompatibilityMode("LEGACY");
+            result.getWarnings().add("该规则仍使用历史模板，保存后会物化为结构化分段");
+        } else {
+            segments = entities.stream().map(this::toSegmentDTO).toList();
+            result.setCompatibilityMode("STRUCTURED");
+        }
+        result.setSegments(new ArrayList<>(segments));
+        result.setSegmentCount(segments.size());
+        return result;
+    }
+
+    /**
+     * 兼容旧实体新增入口，内部仍转为结构化 DTO。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void create(AiCodeRule rule) {
+        if (rule == null) {
+            throw new BusinessException("编码规则不能为空");
+        }
+        create(toSaveDTO(rule, null));
+    }
+
+    /**
+     * 兼容旧实体修改入口。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void update(AiCodeRule rule) {
+        if (rule == null || rule.getId() == null) {
+            throw new BusinessException("编码规则ID不能为空");
+        }
+        CodeRuleDetailVO current = detailVO(rule.getId());
+        update(toSaveDTO(rule, current));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Long create(CodeRuleSaveDTO dto) {
+        CodeRuleSaveDTO source = normalizeAndValidateSave(dto, true);
+        Long tenantId = resolveTenantId();
+        validateUniqueRuleCode(tenantId, source.getRuleCode(), null);
+        CodeRuleDefinition definition = toDefinition(null, tenantId, source.getRuleCode(), source.getRuleName(), source.getSegments());
+        codeRuleEngine.validate(definition);
+
+        AiCodeRule rule = toEntity(source);
+        rule.setTenantId(tenantId);
+        rule.setBuiltin(0);
+        rule.setVersionNo(1);
+        rule.setDelFlag("0");
+        syncLegacySummary(rule, source.getSegments());
+        if (!save(rule)) {
+            throw new BusinessException("新增编码规则失败");
+        }
+        insertSegments(rule.getId(), tenantId, source.getSegments());
+        return rule.getId();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void update(CodeRuleSaveDTO dto) {
+        CodeRuleSaveDTO source = normalizeAndValidateSave(dto, false);
+        Long tenantId = resolveTenantId();
+        AiCodeRule existing = requireRule(source.getId(), tenantId);
+        if (!Objects.equals(existing.getRuleCode(), source.getRuleCode())) {
+            throw new BusinessException("规则编码创建后不能修改");
+        }
+        if (!Objects.equals(existing.getVersionNo(), source.getVersionNo())) {
+            throw new BusinessException("编码规则已被其他用户修改，请刷新后重试");
+        }
+
+        if (Integer.valueOf(1).equals(existing.getBuiltin())) {
+            assertBuiltinFieldsUnchanged(existing, source);
+            updateBuiltin(existing, source);
+            return;
+        }
+
+        validateUniqueRuleCode(tenantId, source.getRuleCode(), source.getId());
+        CodeRuleDefinition definition = toDefinition(
+                source.getId(), tenantId, source.getRuleCode(), source.getRuleName(), source.getSegments());
+        codeRuleEngine.validate(definition);
+
+        AiCodeRule update = toEntity(source);
+        update.setTenantId(tenantId);
+        update.setBuiltin(existing.getBuiltin());
+        update.setVersionNo(source.getVersionNo());
+        syncLegacySummary(update, source.getSegments());
+        if (!updateById(update)) {
+            throw new BusinessException("编码规则已被其他用户修改，请刷新后重试");
+        }
+        replaceSegments(source.getId(), tenantId, source.getSegments());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void updateStatus(Long id, Integer status) {
+        AiCodeRule existing = requireRule(id, resolveTenantId());
+        CodeRuleStatusDTO dto = new CodeRuleStatusDTO();
+        dto.setId(id);
+        dto.setStatus(status);
+        dto.setVersionNo(existing.getVersionNo());
+        updateStatus(dto);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void updateStatus(CodeRuleStatusDTO dto) {
+        if (dto == null || dto.getId() == null || dto.getVersionNo() == null) {
+            throw new BusinessException("规则ID和版本号不能为空");
+        }
+        Long tenantId = resolveTenantId();
+        AiCodeRule existing = requireRule(dto.getId(), tenantId);
+        if (!Objects.equals(existing.getVersionNo(), dto.getVersionNo())) {
+            throw new BusinessException("编码规则已被其他用户修改，请刷新后重试");
+        }
+        AiCodeRule update = new AiCodeRule();
+        update.setId(existing.getId());
+        update.setTenantId(tenantId);
+        update.setStatus(Integer.valueOf(1).equals(dto.getStatus()) ? 1 : 0);
+        update.setVersionNo(dto.getVersionNo());
+        if (!updateById(update)) {
+            throw new BusinessException("编码规则已被其他用户修改，请刷新后重试");
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(Long id) {
+        Long tenantId = resolveTenantId();
+        AiCodeRule existing = requireRule(id, tenantId);
+        if (Integer.valueOf(1).equals(existing.getBuiltin())) {
+            throw new BusinessException("内置编码规则不能删除，可停用后新建自定义规则");
+        }
+        segmentMapper.logicalDeleteByRuleId(tenantId, id, currentUserId());
+        if (!removeById(id)) {
+            throw new BusinessException("删除编码规则失败");
+        }
+    }
+
+    public CodeRulePreviewVO preview(CodeRulePreviewDTO dto) {
+        CodeRulePreviewDTO source = dto == null ? new CodeRulePreviewDTO() : dto;
+        Long tenantId = resolveTenantId();
+        CodeRuleDefinition definition;
+        if (source.getSegments() != null && !source.getSegments().isEmpty()) {
+            definition = toDefinition(source.getId(), tenantId,
+                    StringUtils.defaultIfBlank(source.getRuleCode(), "preview_rule"),
+                    StringUtils.defaultIfBlank(source.getRuleName(), "编码规则预览"),
+                    source.getSegments());
+        } else if (StringUtils.isNotBlank(source.getRuleCode())) {
+            AiCodeRule rule = requireRuleByCode(source.getRuleCode(), tenantId, false);
+            definition = loadDefinition(rule, tenantId);
+            if (StringUtils.isNotBlank(source.getTemplate())) {
+                definition.setSegments(legacyParser.parse(source.getTemplate(), rule.getResetPolicy(), rule.getSeqLength()));
+            }
+        } else {
+            definition = toDefinition(null, tenantId, "preview_rule", "编码规则预览",
+                    legacyParser.parse(StringUtils.defaultIfBlank(source.getTemplate(), "CODE${yyyyMMdd}${seq:4}"), "DAY", 4));
+        }
+        return codeRuleEngine.preview(
+                definition,
+                mergePreviewFields(source),
+                trustedSystemVariables(tenantId, true),
+                source.getSequence() == null ? null : source.getSequence().longValue()
+        );
+    }
+
+    public String generate(String ruleCode, Map<String, Object> context) {
+        return generateResult(ruleCode, extractBusinessFields(context)).getCode();
+    }
+
+    public CodeRuleGenerateVO generateResult(String ruleCode, Map<String, Object> fields) {
+        Long tenantId = resolveTenantId();
+        AiCodeRule rule = requireRuleByCode(ruleCode, tenantId, true);
+        Map<String, Object> businessFields = extractBusinessFields(fields);
+        validateSourceObjectContext(rule, businessFields);
+        return codeRuleEngine.generate(
+                loadDefinition(rule, tenantId),
+                businessFields,
+                trustedSystemVariables(tenantId, false)
+        );
+    }
+
+    public CodeRuleCapabilityVO capabilities() {
+        CodeRuleCapabilityVO result = new CodeRuleCapabilityVO();
+        result.setSegmentTypes(List.of(
+                option("日期", "DATE", "使用服务端白名单日期格式"),
+                option("固定值", "FIXED", "输出固定前缀、后缀或分隔符"),
+                option("流水号（顺序递增）", "SEQ", "每条规则最多一个，按取号顺序递增并支持进制和周期"),
+                option("业务变量", "VARIABLE", "从当前业务记录 fields 中读取"),
+                option("系统变量", "SYS_VAR", "只从可信登录与租户上下文读取")
+        ));
+        result.setDateFormats(List.of(
+                option("年", "yyyy", "2026"),
+                option("年月", "yyyyMM", "202607"),
+                option("年月日", "yyyyMMdd", "20260716"),
+                option("年月日时", "yyyyMMddHH", "2026071617"),
+                option("年月日时分", "yyyyMMddHHmm", "202607161730"),
+                option("年月日时分秒", "yyyyMMddHHmmss", "20260716173021"),
+                option("时分秒", "HHmmss", "173021")
+        ));
+        result.setRadixTypes(List.of(
+                option("十进制", "DECIMAL", "0-9"),
+                option("十六进制", "HEX", "0-9、A-F"),
+                option("大写字母", "ALPHA_UPPER", "A-Z"),
+                option("小写字母", "ALPHA_LOWER", "a-z"),
+                option("数字与大写字母", "ALPHANUMERIC", "0-9、A-Z")
+        ));
+        result.setResetPolicies(List.of(
+                option("不重置", "NONE", "全局持续递增"),
+                option("按年", "YEAR", "每年使用独立计数键"),
+                option("按月", "MONTH", "每月使用独立计数键"),
+                option("按日", "DAY", "每日使用独立计数键"),
+                option("按时", "HOUR", "每小时使用独立计数键")
+        ));
+        result.setSystemVariables(List.of(
+                option("租户ID", "tenantId", "当前租户"),
+                option("用户ID", "userId", "当前登录用户"),
+                option("用户名", "username", "当前登录用户名"),
+                option("部门ID", "deptId", "当前主组织"),
+                option("组织ID", "orgId", "当前活动组织"),
+                option("部门编码", "deptCode", "当前主组织ID兼容值"),
+                option("组织编码", "orgCode", "当前活动组织ID兼容值"),
+                option("发起人", "starter", "当前登录用户名")
+        ));
+        return result;
+    }
+
+    public List<CodeRuleTokenVO> listTokens() {
+        List<CodeRuleTokenVO> tokens = new ArrayList<>();
+        tokens.add(token("${yyyy}", "年份", "日期时间", "当前年份，四位数字", "2026"));
+        tokens.add(token("${yyyyMM}", "年月", "日期时间", "当前年月，六位数字", "202607"));
+        tokens.add(token("${yyyyMMdd}", "年月日", "日期时间", "当前日期，八位数字", "20260716"));
+        tokens.add(token("${yyyyMMddHHmmss}", "年月日时分秒", "日期时间", "当前时间到秒", "20260716173021"));
+        tokens.add(token("${seq:4}", "四位流水号", "序列", "流水号左侧补零到指定长度", "0001"));
+        tokens.add(token("${tenantId}", "租户ID", "系统变量", "当前可信租户ID", "1"));
+        tokens.add(token("${userId}", "用户ID", "系统变量", "当前可信登录用户ID", "10001"));
+        tokens.add(token("${username}", "用户名", "系统变量", "当前可信登录用户名", "zhangsan"));
+        tokens.add(token("${field:<fieldCode>}", "业务字段", "业务字段", "从 fields 读取业务字段", "RAW"));
+        return tokens;
+    }
+
+    private CodeRuleSaveDTO normalizeAndValidateSave(CodeRuleSaveDTO dto, boolean creating) {
+        if (dto == null) {
+            throw new BusinessException("编码规则不能为空");
+        }
+        if (!creating && (dto.getId() == null || dto.getVersionNo() == null)) {
+            throw new BusinessException("规则ID和版本号不能为空");
+        }
+        dto.setRuleCode(StringUtils.trimToNull(dto.getRuleCode()));
+        dto.setRuleName(StringUtils.trimToNull(dto.getRuleName()));
+        dto.setScene(StringUtils.defaultIfBlank(StringUtils.trimToNull(dto.getScene()), "COMMON"));
+        dto.setCategory(StringUtils.defaultIfBlank(StringUtils.trimToNull(dto.getCategory()), "COMMON"));
+        dto.setStatus(Integer.valueOf(0).equals(dto.getStatus()) ? 0 : 1);
+        dto.setInCodeList(Integer.valueOf(0).equals(dto.getInCodeList()) ? 0 : 1);
+        dto.setRemark(StringUtils.trimToNull(dto.getRemark()));
+        if (StringUtils.isBlank(dto.getRuleCode()) || !RULE_CODE_PATTERN.matcher(dto.getRuleCode()).matches()) {
+            throw new BusinessException("规则编码必须以字母开头，且只能包含字母、数字和下划线");
+        }
+        if (StringUtils.isBlank(dto.getRuleName())) {
+            throw new BusinessException("规则名称不能为空");
+        }
+        if (dto.getSegments() == null || dto.getSegments().isEmpty()) {
+            throw new BusinessException("编码规则至少需要一个分段");
+        }
+        for (int index = 0; index < dto.getSegments().size(); index++) {
+            CodeRuleSegmentDTO segment = dto.getSegments().get(index);
+            if (segment != null && StringUtils.isBlank(segment.getSegmentKey())) {
+                segment.setSegmentKey("segment_" + (index + 1) + "_" + Long.toUnsignedString(IdWorker.getId(), 36));
+            }
+            if (segment != null) {
+                segment.setSegmentOrder(index + 1);
+            }
+        }
+        return dto;
+    }
+
+    private void validateUniqueRuleCode(Long tenantId, String ruleCode, Long excludeId) {
+        if (baseMapper.countByRuleCode(tenantId, ruleCode, excludeId) > 0) {
+            throw new BusinessException("规则编码已存在");
+        }
+    }
+
+    private void updateBuiltin(AiCodeRule existing, CodeRuleSaveDTO source) {
+        AiCodeRule update = new AiCodeRule();
+        update.setId(existing.getId());
+        update.setTenantId(existing.getTenantId());
+        update.setRuleName(source.getRuleName());
+        update.setRemark(source.getRemark());
+        update.setStatus(source.getStatus());
+        update.setVersionNo(source.getVersionNo());
+        if (!updateById(update)) {
+            throw new BusinessException("编码规则已被其他用户修改，请刷新后重试");
+        }
+    }
+
+    private void assertBuiltinFieldsUnchanged(AiCodeRule existing, CodeRuleSaveDTO source) {
+        if (!Objects.equals(existing.getScene(), source.getScene())
+                || !Objects.equals(existing.getCategory(), source.getCategory())
+                || !Objects.equals(existing.getSourceObjectId(), source.getSourceObjectId())
+                || !Objects.equals(existing.getSourceObjectCode(), source.getSourceObjectCode())
+                || !Objects.equals(existing.getInCodeList(), source.getInCodeList())) {
+            throw new BusinessException("内置规则只允许修改名称、说明和状态");
+        }
+        List<CodeRuleSegmentDTO> persisted = detailVO(existing.getId()).getSegments();
+        if (!segmentsEquivalent(persisted, source.getSegments())) {
+            throw new BusinessException("内置规则的编码分段不能修改");
+        }
+    }
+
+    private boolean segmentsEquivalent(List<CodeRuleSegmentDTO> left, List<CodeRuleSegmentDTO> right) {
+        if (left == null || right == null || left.size() != right.size()) {
+            return false;
+        }
+        List<CodeRuleSegmentDTO> orderedLeft = left.stream()
+                .sorted(Comparator.comparing(CodeRuleSegmentDTO::getSegmentOrder)).toList();
+        List<CodeRuleSegmentDTO> orderedRight = right.stream()
+                .sorted(Comparator.comparing(CodeRuleSegmentDTO::getSegmentOrder)).toList();
+        for (int index = 0; index < orderedLeft.size(); index++) {
+            if (!segmentFingerprint(orderedLeft.get(index)).equals(segmentFingerprint(orderedRight.get(index)))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private String segmentFingerprint(CodeRuleSegmentDTO value) {
+        return String.join("|",
+                text(value.getSegmentKey()), text(value.getSegmentType()), text(value.getSegmentValue()),
+                text(value.getSegmentLength()), text(value.getPadEnabled()), text(value.getPadChar()),
+                text(value.getPadDirection()), text(value.getGroupEnabled()), text(value.getIncludeInCode()),
+                text(value.getRadixType()), text(value.getResetEnabled()), text(value.getResetPolicy()),
+                text(value.getStartValue()), text(value.getExcludeAmbiguous()));
+    }
+
+    private void replaceSegments(Long ruleId, Long tenantId, List<CodeRuleSegmentDTO> segments) {
+        segmentMapper.logicalDeleteByRuleId(tenantId, ruleId, currentUserId());
+        insertSegments(ruleId, tenantId, segments);
+    }
+
+    private void insertSegments(Long ruleId, Long tenantId, List<CodeRuleSegmentDTO> segments) {
+        LocalDateTime now = LocalDateTime.now();
+        Long userId = currentUserId();
+        Long deptId = currentDeptId();
+        List<AiCodeRuleSegment> entities = new ArrayList<>();
+        for (CodeRuleSegmentDTO dto : segments) {
+            AiCodeRuleSegment entity = toSegmentEntity(dto);
+            entity.setId(IdWorker.getId());
+            entity.setTenantId(tenantId);
+            entity.setRuleId(ruleId);
+            entity.setDelFlag("0");
+            entity.setCreateBy(userId);
+            entity.setCreateDept(deptId);
+            entity.setCreateTime(now);
+            entity.setUpdateBy(userId);
+            entity.setUpdateTime(now);
+            entities.add(entity);
+        }
+        if (!entities.isEmpty() && segmentMapper.insertBatch(entities) != entities.size()) {
+            throw new BusinessException("保存编码规则分段失败");
+        }
+    }
+
+    private CodeRuleDefinition loadDefinition(AiCodeRule rule, Long tenantId) {
+        List<AiCodeRuleSegment> stored = segmentMapper.selectByRuleId(tenantId, rule.getId());
+        List<CodeRuleSegmentDTO> segments = stored.isEmpty()
+                ? legacyParser.parse(rule.getTemplate(), rule.getResetPolicy(), rule.getSeqLength())
+                : stored.stream().map(this::toSegmentDTO).toList();
+        return toDefinition(rule.getId(), tenantId, rule.getRuleCode(), rule.getRuleName(), segments);
+    }
+
+    private CodeRuleDefinition toDefinition(Long ruleId,
+                                            Long tenantId,
+                                            String ruleCode,
+                                            String ruleName,
+                                            List<CodeRuleSegmentDTO> segments) {
+        CodeRuleDefinition definition = new CodeRuleDefinition();
+        definition.setRuleId(ruleId);
+        definition.setTenantId(tenantId);
+        definition.setRuleCode(ruleCode);
+        definition.setRuleName(ruleName);
+        definition.setSegments(new ArrayList<>(segments));
+        return definition;
+    }
+
+    private AiCodeRule requireRule(Long id, Long tenantId) {
+        if (id == null) {
+            throw new BusinessException("编码规则ID不能为空");
+        }
+        AiCodeRule rule = baseMapper.selectByRuleId(tenantId, id);
         if (rule == null) {
             throw new BusinessException("编码规则不存在");
         }
         return rule;
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    public void create(AiCodeRule rule) {
-        if (rule == null) {
-            throw new BusinessException("编码规则不能为空");
-        }
-        normalizeAndValidate(rule, true);
-        rule.setTenantId(resolveTenantId());
-        rule.setBuiltin(0);
-        save(rule);
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public void update(AiCodeRule rule) {
-        if (rule == null || rule.getId() == null) {
-            throw new BusinessException("编码规则ID不能为空");
-        }
-        AiCodeRule exists = detail(rule.getId());
-        normalizeAndValidate(rule, false);
-        rule.setTenantId(exists.getTenantId());
-        rule.setBuiltin(exists.getBuiltin());
-        updateById(rule);
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public void updateStatus(Long id, Integer status) {
-        AiCodeRule exists = detail(id);
-        AiCodeRule update = new AiCodeRule();
-        update.setId(exists.getId());
-        update.setTenantId(exists.getTenantId());
-        update.setStatus(Integer.valueOf(1).equals(status) ? 1 : 0);
-        updateById(update);
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public void delete(Long id) {
-        AiCodeRule exists = detail(id);
-        if (Integer.valueOf(1).equals(exists.getBuiltin())) {
-            throw new BusinessException("内置编码规则不能删除，可停用后新建自定义规则");
-        }
-        removeById(id);
-    }
-
-    public List<CodeRuleTokenVO> listTokens() {
-        List<CodeRuleTokenVO> tokens = new ArrayList<>();
-        tokens.add(token("${yyyy}", "年份", "日期时间", "当前年份，四位数字", "2026", "2026"));
-        tokens.add(token("${yyyyMM}", "年月", "日期时间", "当前年月，六位数字", "202607", "202607"));
-        tokens.add(token("${yyyyMMdd}", "年月日", "日期时间", "当前日期，八位数字", "20260701", "20260701"));
-        tokens.add(token("${yyyyMMddHHmmss}", "年月日时分秒", "日期时间", "当前时间到秒", "20260701153021", "20260701153021"));
-        tokens.add(token("${HHmmss}", "时分秒", "日期时间", "当前时间，六位数字", "153021", "153021"));
-        tokens.add(token("${seq}", "流水号", "序列", "使用规则默认流水号长度", "0001", "0001"));
-        tokens.add(token("${seq:4}", "四位流水号", "序列", "流水号左侧补零到指定长度", "0001", "0001"));
-        tokens.add(token("${tenantId}", "租户ID", "上下文", "当前租户ID", "1", "1"));
-        tokens.add(token("${userId}", "用户ID", "上下文", "当前登录用户ID", "10001", "10001"));
-        tokens.add(token("${username}", "用户名", "上下文", "当前登录用户名", "zhangsan", "zhangsan"));
-        tokens.add(token("${suiteCode}", "套件编码", "上下文", "当前业务套件编码", "CRM", "CRM"));
-        tokens.add(token("${objectCode}", "对象编码", "上下文", "当前业务对象编码", "MATERIAL", "MATERIAL"));
-        tokens.add(token("${deptCode}", "部门编码", "上下文", "当前部门或组织编码", "DEPT01", "DEPT01"));
-        tokens.add(token("${orgCode}", "组织编码", "上下文", "当前组织编码", "ORG01", "ORG01"));
-        tokens.add(token("${field:<fieldCode>}", "业务字段", "业务字段", "读取记录字段值，例如 ${field:materialType}", "RAW", "RAW"));
-        return tokens;
-    }
-
-    public CodeRulePreviewVO preview(CodeRulePreviewDTO dto) {
-        CodeRulePreviewDTO source = dto == null ? new CodeRulePreviewDTO() : dto;
-        AiCodeRule rule = resolvePreviewRule(source);
-        Map<String, Object> context = mergePreviewContext(source);
-        long sequence = source.getSequence() == null ? 1L : Math.max(source.getSequence().longValue(), 1L);
-        return render(rule, context, sequence, LocalDateTime.now(), true);
-    }
-
-    public String generate(String ruleCode, Map<String, Object> context) {
-        AiCodeRule rule = requireEnabledRule(ruleCode);
-        LocalDateTime now = LocalDateTime.now();
-        long sequence = containsSequenceToken(rule.getTemplate())
-                ? sequenceService.nextId(buildSequenceKey(rule, context, now))
-                : 1L;
-        CodeRulePreviewVO rendered = render(rule, context, sequence, now, false);
-        if (!rendered.getErrors().isEmpty()) {
-            String message = rendered.getErrors().stream()
-                    .map(CodeRulePreviewVO.PreviewIssueVO::getMessage)
-                    .findFirst()
-                    .orElse("编码规则不正确");
-            throw new BusinessException(message);
-        }
-        return rendered.getPreviewCode();
-    }
-
-    private void normalizeAndValidate(AiCodeRule rule, boolean creating) {
-        rule.setRuleCode(StringUtils.trimToNull(rule.getRuleCode()));
-        rule.setRuleName(StringUtils.trimToNull(rule.getRuleName()));
-        rule.setScene(StringUtils.defaultIfBlank(StringUtils.trimToNull(rule.getScene()), "COMMON"));
-        rule.setTemplate(normalizeTemplate(rule.getTemplate()));
-        rule.setResetPolicy(normalizeResetPolicy(rule.getResetPolicy()));
-        rule.setSeqLength(normalizeSeqLength(rule.getSeqLength()));
-        rule.setStatus(Integer.valueOf(0).equals(rule.getStatus()) ? 0 : 1);
-        rule.setRemark(StringUtils.trimToNull(rule.getRemark()));
-        rule.setOptions(StringUtils.trimToNull(rule.getOptions()));
-        if (StringUtils.isBlank(rule.getRuleCode())) {
-            throw new BusinessException("规则编码不能为空");
-        }
-        if (!RULE_CODE_PATTERN.matcher(rule.getRuleCode()).matches()) {
-            throw new BusinessException("规则编码只能以字母开头，并包含字母、数字、下划线或短横线");
-        }
-        if (StringUtils.isBlank(rule.getRuleName())) {
-            throw new BusinessException("规则名称不能为空");
-        }
-        if (StringUtils.isBlank(rule.getTemplate())) {
-            throw new BusinessException("编码模板不能为空");
-        }
-        Long excludeId = creating ? null : rule.getId();
-        if (baseMapper.countByRuleCode(resolveTenantId(), rule.getRuleCode(), excludeId) > 0) {
-            throw new BusinessException("规则编码已存在");
-        }
-        CodeRulePreviewVO preview = render(rule, Map.of("fieldCode", "SAMPLE"), 1L, LocalDateTime.now(), true);
-        if (!preview.getErrors().isEmpty()) {
-            String message = preview.getErrors().stream()
-                    .map(CodeRulePreviewVO.PreviewIssueVO::getMessage)
-                    .findFirst()
-                    .orElse("编码模板不正确");
-            throw new BusinessException(message);
-        }
-    }
-
-    private AiCodeRule requireEnabledRule(String ruleCode) {
+    private AiCodeRule requireRuleByCode(String ruleCode, Long tenantId, boolean enabledOnly) {
         String normalized = StringUtils.trimToNull(ruleCode);
-        if (StringUtils.isBlank(normalized)) {
+        if (normalized == null) {
             throw new BusinessException("自动编号未选择编码规则");
         }
-        AiCodeRule rule = baseMapper.selectByRuleCode(resolveTenantId(), normalized);
+        AiCodeRule rule = baseMapper.selectByRuleCode(tenantId, normalized);
         if (rule == null) {
             throw new BusinessException("编码规则不存在: " + normalized);
         }
-        if (!Integer.valueOf(1).equals(rule.getStatus())) {
+        if (enabledOnly && !Integer.valueOf(1).equals(rule.getStatus())) {
             throw new BusinessException("编码规则已停用: " + normalized);
         }
-        rule.setTemplate(normalizeTemplate(rule.getTemplate()));
-        rule.setSeqLength(normalizeSeqLength(rule.getSeqLength()));
-        rule.setResetPolicy(normalizeResetPolicy(rule.getResetPolicy()));
         return rule;
     }
 
-    private AiCodeRule resolvePreviewRule(CodeRulePreviewDTO dto) {
-        if (StringUtils.isNotBlank(dto.getRuleCode())) {
-            AiCodeRule rule = baseMapper.selectByRuleCode(resolveTenantId(), dto.getRuleCode().trim());
-            if (rule == null) {
-                throw new BusinessException("编码规则不存在: " + dto.getRuleCode());
+    private void syncLegacySummary(AiCodeRule rule, List<CodeRuleSegmentDTO> segments) {
+        StringBuilder template = new StringBuilder();
+        CodeRuleSegmentDTO sequence = null;
+        for (CodeRuleSegmentDTO segment : segments) {
+            if (!Integer.valueOf(1).equals(segment.getIncludeInCode())) {
+                continue;
             }
-            rule.setTemplate(StringUtils.defaultIfBlank(normalizeTemplate(dto.getTemplate()), normalizeTemplate(rule.getTemplate())));
-            rule.setSeqLength(normalizeSeqLength(rule.getSeqLength()));
-            rule.setResetPolicy(normalizeResetPolicy(rule.getResetPolicy()));
-            return rule;
+            template.append(switch (segment.getSegmentType()) {
+                case "FIXED" -> StringUtils.defaultString(segment.getSegmentValue());
+                case "DATE" -> "${" + segment.getSegmentValue() + "}";
+                case "SEQ" -> "${seq:" + segment.getSegmentLength() + "}";
+                case "VARIABLE" -> "${field:" + segment.getSegmentValue() + "}";
+                case "SYS_VAR" -> "${" + segment.getSegmentValue() + "}";
+                default -> "";
+            });
+            if ("SEQ".equals(segment.getSegmentType())) {
+                sequence = segment;
+            }
         }
+        rule.setTemplate(template.toString());
+        rule.setSeqLength(sequence == null ? 4 : sequence.getSegmentLength());
+        rule.setResetPolicy(sequence == null ? "NONE" : sequence.getResetPolicy());
+        rule.setOptions(null);
+    }
+
+    private AiCodeRule toEntity(CodeRuleSaveDTO dto) {
         AiCodeRule rule = new AiCodeRule();
-        rule.setRuleCode("preview");
-        rule.setRuleName("预览规则");
-        rule.setTemplate(StringUtils.defaultIfBlank(normalizeTemplate(dto.getTemplate()), "CODE${yyyyMMdd}${seq:4}"));
-        rule.setSeqLength(4);
-        rule.setResetPolicy("AUTO");
+        rule.setId(dto.getId());
+        rule.setRuleCode(dto.getRuleCode());
+        rule.setRuleName(dto.getRuleName());
+        rule.setScene(dto.getScene());
+        rule.setCategory(dto.getCategory());
+        rule.setSourceObjectId(dto.getSourceObjectId());
+        rule.setSourceObjectCode(dto.getSourceObjectCode());
+        rule.setStatus(dto.getStatus());
+        rule.setInCodeList(dto.getInCodeList());
+        rule.setVersionNo(dto.getVersionNo());
+        rule.setRemark(dto.getRemark());
         return rule;
     }
 
-    private CodeRulePreviewVO render(AiCodeRule rule,
-                                     Map<String, Object> context,
-                                     Long sequence,
-                                     LocalDateTime now,
-                                     boolean previewMode) {
-        CodeRulePreviewVO vo = new CodeRulePreviewVO();
-        String template = normalizeTemplate(rule == null ? null : rule.getTemplate());
-        vo.setTemplate(template);
-        if (StringUtils.isBlank(template)) {
-            vo.getErrors().add(issue(null, "编码模板不能为空", "请选择编码规则或填写模板"));
-            vo.setValid(false);
-            return vo;
+    private CodeRuleSaveDTO toSaveDTO(AiCodeRule rule, CodeRuleDetailVO current) {
+        CodeRuleSaveDTO dto = new CodeRuleSaveDTO();
+        dto.setId(rule.getId());
+        dto.setVersionNo(rule.getVersionNo() == null && current != null ? current.getVersionNo() : rule.getVersionNo());
+        dto.setRuleCode(StringUtils.defaultIfBlank(rule.getRuleCode(), current == null ? null : current.getRuleCode()));
+        dto.setRuleName(StringUtils.defaultIfBlank(rule.getRuleName(), current == null ? null : current.getRuleName()));
+        dto.setScene(StringUtils.defaultIfBlank(rule.getScene(), current == null ? "COMMON" : current.getScene()));
+        dto.setCategory(StringUtils.defaultIfBlank(rule.getCategory(), current == null ? "COMMON" : current.getCategory()));
+        dto.setSourceObjectId(rule.getSourceObjectId() == null && current != null
+                ? current.getSourceObjectId() : rule.getSourceObjectId());
+        dto.setSourceObjectCode(StringUtils.defaultIfBlank(rule.getSourceObjectCode(),
+                current == null ? null : current.getSourceObjectCode()));
+        dto.setStatus(rule.getStatus() == null && current != null ? current.getStatus() : rule.getStatus());
+        dto.setInCodeList(rule.getInCodeList() == null && current != null ? current.getInCodeList() : rule.getInCodeList());
+        dto.setRemark(rule.getRemark() == null && current != null ? current.getRemark() : rule.getRemark());
+        if (StringUtils.isNotBlank(rule.getTemplate())) {
+            dto.setSegments(legacyParser.parse(rule.getTemplate(), rule.getResetPolicy(), rule.getSeqLength()));
+        } else if (current != null) {
+            dto.setSegments(new ArrayList<>(current.getSegments()));
         }
-        StringBuilder result = new StringBuilder();
-        Matcher matcher = TOKEN_PATTERN.matcher(template);
-        int lastIndex = 0;
-        while (matcher.find()) {
-            result.append(template, lastIndex, matcher.start());
-            String token = matcher.group(1);
-            vo.getUsedTokens().add("${" + token + "}");
-            result.append(resolveToken(rule, token, context, sequence, now, vo, previewMode));
-            lastIndex = matcher.end();
-        }
-        result.append(template.substring(lastIndex));
-        String code = result.toString();
-        vo.setPreviewCode(code);
-        if (!code.matches("[A-Za-z0-9_\\-./]+")) {
-            vo.getWarnings().add(issue(null, "编码包含空格或特殊字符，可能不适合作为业务编号", "建议只使用字母、数字、短横线、下划线、点和斜线"));
-        }
-        if (code.length() > 96) {
-            vo.getWarnings().add(issue(null, "编码长度超过 96 个字符", "建议缩短固定前缀或字段变量内容"));
-        }
-        vo.setValid(vo.getErrors().isEmpty());
+        return dto;
+    }
+
+    private CodeRuleDetailVO toSummaryVO(AiCodeRule rule) {
+        CodeRuleDetailVO vo = new CodeRuleDetailVO();
+        vo.setId(rule.getId());
+        vo.setTenantId(rule.getTenantId());
+        vo.setRuleCode(rule.getRuleCode());
+        vo.setRuleName(rule.getRuleName());
+        vo.setScene(rule.getScene());
+        vo.setCategory(rule.getCategory());
+        vo.setSourceObjectId(rule.getSourceObjectId());
+        vo.setSourceObjectCode(rule.getSourceObjectCode());
+        vo.setTemplate(rule.getTemplate());
+        vo.setStatus(rule.getStatus());
+        vo.setBuiltin(rule.getBuiltin());
+        vo.setInCodeList(rule.getInCodeList());
+        vo.setVersionNo(rule.getVersionNo());
+        vo.setRemark(rule.getRemark());
+        vo.setCreateTime(rule.getCreateTime());
+        vo.setUpdateTime(rule.getUpdateTime());
         return vo;
     }
 
-    private String resolveToken(AiCodeRule rule,
-                                String token,
-                                Map<String, Object> context,
-                                Long sequence,
-                                LocalDateTime now,
-                                CodeRulePreviewVO vo,
-                                boolean previewMode) {
-        return switch (token) {
-            case "yyyy" -> now.format(DateTimeFormatter.ofPattern("yyyy"));
-            case "yyyyMM" -> now.format(DateTimeFormatter.ofPattern("yyyyMM"));
-            case "yyyyMMdd" -> now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-            case "yyyyMMddHHmmss" -> now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-            case "HHmmss" -> now.format(DateTimeFormatter.ofPattern("HHmmss"));
-            case "seq" -> renderSequenceToken(token, sequence, normalizeSeqLength(rule == null ? null : rule.getSeqLength()), vo);
-            case "tenantId" -> text(firstNonBlank(readContextValue(context, "tenantId"), resolveTenantId()));
-            case "userId" -> text(firstNonBlank(readContextValue(context, "userId"), safeLoginUserId()));
-            case "username" -> text(firstNonBlank(readContextValue(context, "username"), safeUsername()));
-            case "starter" -> text(firstNonBlank(readContextValue(context, "starter"), safeUsername(), "starter"));
-            case "suiteCode" -> text(firstNonBlank(readContextValue(context, "suiteCode"), "SUITE"));
-            case "objectCode" -> text(firstNonBlank(readContextValue(context, "objectCode"), "OBJECT"));
-            case "deptCode" -> text(firstNonBlank(readContextValue(context, "deptCode"), safeDeptCode(), "DEPT"));
-            case "orgCode" -> text(firstNonBlank(readContextValue(context, "orgCode"), readContextValue(context, "deptCode"), safeDeptCode(), "ORG"));
-            case "ruleCode" -> text(firstNonBlank(rule == null ? null : rule.getRuleCode(), "RULE"));
-            case "ruleName" -> text(firstNonBlank(rule == null ? null : rule.getRuleName(), "规则"));
-            default -> resolveDynamicToken(token, context, sequence, vo, previewMode);
-        };
+    private CodeRuleSegmentDTO toSegmentDTO(AiCodeRuleSegment entity) {
+        CodeRuleSegmentDTO dto = new CodeRuleSegmentDTO();
+        dto.setSegmentKey(entity.getSegmentKey());
+        dto.setSegmentOrder(entity.getSegmentOrder());
+        dto.setSegmentType(entity.getSegmentType());
+        dto.setSegmentValue(entity.getSegmentValue());
+        dto.setSegmentLength(entity.getSegmentLength());
+        dto.setPadEnabled(entity.getPadEnabled());
+        dto.setPadChar(entity.getPadChar());
+        dto.setPadDirection(entity.getPadDirection());
+        dto.setGroupEnabled(entity.getGroupEnabled());
+        dto.setIncludeInCode(entity.getIncludeInCode());
+        dto.setRadixType(entity.getRadixType());
+        dto.setResetEnabled(entity.getResetEnabled());
+        dto.setResetPolicy(entity.getResetPolicy());
+        dto.setStartValue(entity.getStartValue());
+        dto.setExcludeAmbiguous(entity.getExcludeAmbiguous());
+        return dto;
     }
 
-    private String resolveDynamicToken(String token,
-                                       Map<String, Object> context,
-                                       Long sequence,
-                                       CodeRulePreviewVO vo,
-                                       boolean previewMode) {
-        if (token.startsWith("seq:")) {
-            String lengthText = token.substring("seq:".length()).trim();
-            int length;
-            try {
-                length = Integer.parseInt(lengthText);
-            } catch (Exception e) {
-                vo.getErrors().add(issue("${" + token + "}", "流水号长度必须是数字", "例如 ${seq:4}"));
-                return "";
-            }
-            return renderSequenceToken(token, sequence, length, vo);
-        }
-        if (token.startsWith("field:")) {
-            String fieldCode = token.substring("field:".length()).trim();
-            if (StringUtils.isBlank(fieldCode)) {
-                vo.getErrors().add(issue("${" + token + "}", "字段变量缺少字段编码", "改为 ${field:字段编码}"));
-                return "";
-            }
-            Object value = readContextValue(context, fieldCode);
-            if (isBlankValue(value)) {
-                CodeRulePreviewVO.PreviewIssueVO issue = issue("${" + token + "}", "上下文中没有字段 " + fieldCode,
-                        "预览时可传入 sampleData，运行态会读取真实记录字段");
-                if (previewMode) {
-                    vo.getWarnings().add(issue);
-                    return fieldCode;
-                }
-                vo.getErrors().add(issue);
-                return "";
-            }
-            return String.valueOf(value);
-        }
-        vo.getErrors().add(issue("${" + token + "}", "未知编码变量: ${" + token + "}", "从内置变量列表选择，或使用 ${field:<fieldCode>} 引用业务字段"));
-        return "";
+    private AiCodeRuleSegment toSegmentEntity(CodeRuleSegmentDTO dto) {
+        AiCodeRuleSegment entity = new AiCodeRuleSegment();
+        entity.setSegmentKey(dto.getSegmentKey());
+        entity.setSegmentOrder(dto.getSegmentOrder());
+        entity.setSegmentType(dto.getSegmentType());
+        entity.setSegmentValue(dto.getSegmentValue());
+        entity.setSegmentLength(dto.getSegmentLength());
+        entity.setPadEnabled(dto.getPadEnabled());
+        entity.setPadChar(dto.getPadChar());
+        entity.setPadDirection(dto.getPadDirection());
+        entity.setGroupEnabled(dto.getGroupEnabled());
+        entity.setIncludeInCode(dto.getIncludeInCode());
+        entity.setRadixType(dto.getRadixType());
+        entity.setResetEnabled(dto.getResetEnabled());
+        entity.setResetPolicy(dto.getResetPolicy());
+        entity.setStartValue(dto.getStartValue());
+        entity.setExcludeAmbiguous(dto.getExcludeAmbiguous());
+        return entity;
     }
 
-    private String renderSequenceToken(String token, Long sequence, Integer length, CodeRulePreviewVO vo) {
-        int normalizedLength = length == null ? 4 : length;
-        if (normalizedLength <= 0 || normalizedLength > 16) {
-            vo.getErrors().add(issue("${" + token + "}", "流水号长度建议在 1-16 之间", "例如 ${seq:4}"));
-            return "";
-        }
-        String seqText = String.valueOf(Math.max(sequence == null ? 1L : sequence, 1L));
-        return StringUtils.leftPad(seqText, normalizedLength, '0');
-    }
-
-    private String buildSequenceKey(AiCodeRule rule, Map<String, Object> context, LocalDateTime now) {
-        String tenantId = String.valueOf(resolveTenantId());
-        String period = resolveSequencePeriod(rule, now);
-        String ruleCode = safeSequencePart(rule == null ? "RULE" : rule.getRuleCode());
-        Object scope = firstNonBlank(readContextValue(context, "sequenceScope"), readContextValue(context, "objectCode"), "global");
-        return "code-rule:" + tenantId + ":" + ruleCode + ":" + safeSequencePart(text(scope)) + ":" + period;
-    }
-
-    private String resolveSequencePeriod(AiCodeRule rule, LocalDateTime now) {
-        String policy = normalizeResetPolicy(rule == null ? null : rule.getResetPolicy());
-        if ("AUTO".equals(policy)) {
-            policy = inferResetPolicy(rule == null ? null : rule.getTemplate());
-        }
-        return switch (policy) {
-            case "SECOND" -> now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-            case "MINUTE" -> now.format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"));
-            case "HOUR" -> now.format(DateTimeFormatter.ofPattern("yyyyMMddHH"));
-            case "DAY" -> now.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-            case "MONTH" -> now.format(DateTimeFormatter.ofPattern("yyyyMM"));
-            case "YEAR" -> now.format(DateTimeFormatter.ofPattern("yyyy"));
-            default -> "all";
-        };
-    }
-
-    private String inferResetPolicy(String template) {
-        String value = StringUtils.defaultString(template);
-        if (value.contains("yyyyMMddHHmmss")) {
-            return "SECOND";
-        }
-        if (value.contains("yyyyMMdd")) {
-            return "DAY";
-        }
-        if (value.contains("yyyyMM")) {
-            return "MONTH";
-        }
-        if (value.contains("yyyy")) {
-            return "YEAR";
-        }
-        return "NONE";
-    }
-
-    private boolean containsSequenceToken(String template) {
-        Matcher matcher = TOKEN_PATTERN.matcher(StringUtils.defaultString(template));
-        while (matcher.find()) {
-            String token = matcher.group(1);
-            if ("seq".equals(token) || token.startsWith("seq:")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private Map<String, Object> mergePreviewContext(CodeRulePreviewDTO dto) {
+    private Map<String, Object> mergePreviewFields(CodeRulePreviewDTO dto) {
         Map<String, Object> result = new LinkedHashMap<>();
-        if (dto.getContext() != null) {
-            result.putAll(dto.getContext());
-        }
-        if (dto.getSampleData() != null) {
-            result.put("sampleData", dto.getSampleData());
-            result.putAll(dto.getSampleData());
-        }
+        result.putAll(extractBusinessFields(dto.getContext()));
+        result.putAll(extractBusinessFields(dto.getSampleData()));
+        result.putAll(extractBusinessFields(dto.getFields()));
         return result;
     }
 
     @SuppressWarnings("unchecked")
-    private Object readContextValue(Map<String, Object> context, String key) {
-        if (context == null || StringUtils.isBlank(key)) {
-            return null;
+    private Map<String, Object> extractBusinessFields(Map<String, Object> source) {
+        if (source == null || source.isEmpty()) {
+            return new LinkedHashMap<>();
         }
-        for (String alias : fieldAliases(key)) {
-            if (context.containsKey(alias)) {
-                return context.get(alias);
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (String nestedKey : List.of("recordData", "record", "data", "sampleData", "fields")) {
+            Object nested = source.get(nestedKey);
+            if (nested instanceof Map<?, ?> nestedMap) {
+                result.putAll((Map<String, Object>) nestedMap);
             }
         }
-        for (String nestedKey : List.of("recordData", "record", "data", "sampleData")) {
-            Object nested = context.get(nestedKey);
-            if (nested instanceof Map<?, ?> map) {
-                Map<String, Object> nestedMap = (Map<String, Object>) map;
-                for (String alias : fieldAliases(key)) {
-                    if (nestedMap.containsKey(alias)) {
-                        return nestedMap.get(alias);
-                    }
-                }
+        source.forEach((key, value) -> {
+            if (!(value instanceof Map<?, ?>)) {
+                result.put(key, value);
             }
-        }
-        return null;
+        });
+        return result;
     }
 
-    private List<String> fieldAliases(String key) {
-        String value = StringUtils.defaultString(key).trim();
-        if (StringUtils.isBlank(value)) {
-            return List.of();
+    private void validateSourceObjectContext(AiCodeRule rule, Map<String, Object> fields) {
+        if (rule == null || StringUtils.isBlank(rule.getSourceObjectCode())) {
+            return;
         }
-        return List.of(value, snakeToCamel(value), camelToSnake(value));
+        Object objectCodeValue = fields == null ? null : fields.get("objectCode");
+        String actualObjectCode = objectCodeValue == null ? null : StringUtils.trimToNull(String.valueOf(objectCodeValue));
+        if (StringUtils.isBlank(actualObjectCode)) {
+            throw new BusinessException("编码规则已绑定业务对象，生成上下文缺少objectCode");
+        }
+        if (!StringUtils.equals(rule.getSourceObjectCode(), actualObjectCode)) {
+            throw new BusinessException("编码规则绑定的业务对象与当前低代码对象不一致");
+        }
     }
 
-    private String normalizeTemplate(String template) {
-        String value = StringUtils.trimToNull(template);
-        if (value == null) {
+    private Map<String, Object> trustedSystemVariables(Long tenantId, boolean previewMode) {
+        LoginUser user = safeLoginUser();
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("tenantId", tenantId);
+        if (user != null) {
+            values.put("userId", user.getUserId());
+            values.put("username", StringUtils.firstNonBlank(user.getUsername(), user.getRealName()));
+            values.put("deptId", user.getMainOrgId());
+            values.put("orgId", user.getActiveOrgId() == null ? user.getMainOrgId() : user.getActiveOrgId());
+            values.put("deptCode", user.getMainOrgId());
+            values.put("orgCode", user.getActiveOrgId() == null ? user.getMainOrgId() : user.getActiveOrgId());
+            values.put("starter", StringUtils.firstNonBlank(user.getUsername(), user.getRealName()));
+        } else if (previewMode) {
+            values.put("userId", 10001L);
+            values.put("username", "demo");
+            values.put("deptId", 100L);
+            values.put("orgId", 100L);
+            values.put("deptCode", "100");
+            values.put("orgCode", "100");
+            values.put("starter", "demo");
+        }
+        values.values().removeIf(Objects::isNull);
+        return values;
+    }
+
+    private LoginUser safeLoginUser() {
+        try {
+            return SessionHelper.getLoginUser();
+        } catch (Exception ignored) {
             return null;
         }
-        Matcher matcher = LEGACY_TOKEN_PATTERN.matcher(value);
-        StringBuffer buffer = new StringBuffer();
-        while (matcher.find()) {
-            matcher.appendReplacement(buffer, Matcher.quoteReplacement("${" + normalizeLegacyToken(matcher.group(1)) + "}"));
-        }
-        matcher.appendTail(buffer);
-        return buffer.toString();
     }
 
-    private String normalizeLegacyToken(String token) {
-        String value = StringUtils.defaultString(token).trim();
-        Matcher seqMatcher = LEGACY_SEQ_TOKEN_PATTERN.matcher(value);
-        if (seqMatcher.matches()) {
-            return "seq:" + seqMatcher.group(1);
+    private Long resolveTenantId() {
+        Long tenantId = null;
+        try {
+            tenantId = SessionHelper.getTenantId();
+        } catch (Exception ignored) {
+            // 后台任务可由 TenantContextHolder 提供租户。
         }
-        return value;
+        if (tenantId == null) {
+            tenantId = TenantContextHolder.getTenantId();
+        }
+        if (tenantId == null || tenantId <= 0) {
+            throw new BusinessException("缺少有效租户上下文");
+        }
+        return tenantId;
     }
 
-    private String normalizeResetPolicy(String value) {
-        String policy = StringUtils.defaultIfBlank(value, "AUTO").trim().toUpperCase(Locale.ROOT);
-        if (!RESET_POLICIES.contains(policy)) {
-            throw new BusinessException("不支持的重置周期: " + value);
+    private Long currentUserId() {
+        try {
+            return SessionHelper.getUserId();
+        } catch (Exception ignored) {
+            return null;
         }
-        return policy;
     }
 
-    private Integer normalizeSeqLength(Integer value) {
-        int length = value == null ? 4 : value;
-        if (length <= 0 || length > 16) {
-            throw new BusinessException("流水号长度必须在 1-16 之间");
+    private Long currentDeptId() {
+        try {
+            return SessionHelper.getActiveOrgId();
+        } catch (Exception ignored) {
+            return null;
         }
-        return length;
+    }
+
+    private CodeRuleCapabilityVO.OptionVO option(String label, String value, String description) {
+        return new CodeRuleCapabilityVO.OptionVO(label, value, description);
     }
 
     private CodeRuleTokenVO token(String insertText,
                                   String label,
                                   String groupName,
                                   String description,
-                                  String example,
-                                  String sampleValue) {
+                                  String example) {
         CodeRuleTokenVO vo = new CodeRuleTokenVO();
         vo.setToken(insertText);
         vo.setInsertText(insertText);
@@ -489,86 +768,8 @@ public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
         vo.setGroupName(groupName);
         vo.setDescription(description);
         vo.setExample(example);
-        vo.setSampleValue(sampleValue);
+        vo.setSampleValue(example);
         return vo;
-    }
-
-    private CodeRulePreviewVO.PreviewIssueVO issue(String token, String message, String suggestion) {
-        CodeRulePreviewVO.PreviewIssueVO vo = new CodeRulePreviewVO.PreviewIssueVO();
-        vo.setToken(token);
-        vo.setMessage(message);
-        vo.setSuggestion(suggestion);
-        return vo;
-    }
-
-    private boolean isBlankValue(Object value) {
-        if (value == null) {
-            return true;
-        }
-        if (value instanceof String text) {
-            return StringUtils.isBlank(text);
-        }
-        if (value instanceof Collection<?> collection) {
-            return collection.isEmpty();
-        }
-        return false;
-    }
-
-    private Object firstNonBlank(Object... values) {
-        if (values == null) {
-            return null;
-        }
-        for (Object value : values) {
-            if (!isBlankValue(value)) {
-                return value;
-            }
-        }
-        return null;
-    }
-
-    private LoginUser safeLoginUser() {
-        try {
-            return SessionHelper.getLoginUser();
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private Long safeLoginUserId() {
-        LoginUser user = safeLoginUser();
-        return user == null ? null : user.getUserId();
-    }
-
-    private String safeUsername() {
-        LoginUser user = safeLoginUser();
-        if (user == null) {
-            return null;
-        }
-        return StringUtils.firstNonBlank(user.getUsername(), user.getRealName(),
-                user.getUserId() == null ? null : String.valueOf(user.getUserId()));
-    }
-
-    private String safeDeptCode() {
-        LoginUser user = safeLoginUser();
-        if (user == null) {
-            return null;
-        }
-        return StringUtils.firstNonBlank(
-                user.getMainOrgId() == null ? null : String.valueOf(user.getMainOrgId()),
-                user.getDeptName());
-    }
-
-    private Long resolveTenantId() {
-        Long tenantId;
-        try {
-            tenantId = SessionHelper.getTenantId();
-        } catch (Exception e) {
-            tenantId = null;
-        }
-        if (tenantId == null) {
-            tenantId = TenantContextHolder.getTenantId();
-        }
-        return tenantId != null ? tenantId : 1L;
     }
 
     private int normalizePageNum(Integer pageNum) {
@@ -576,54 +777,14 @@ public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
     }
 
     private int normalizePageSize(Integer pageSize) {
-        if (pageSize == null || pageSize < 1) {
-            return 10;
-        }
-        return Math.min(pageSize, 200);
+        return pageSize == null || pageSize < 1 ? 10 : Math.min(pageSize, 200);
     }
 
     private String trimToNull(String value) {
         return StringUtils.trimToNull(value);
     }
 
-    private String safeSequencePart(String value) {
-        String result = StringUtils.defaultIfBlank(value, "NA").replaceAll("[^A-Za-z0-9_\\-]", "_");
-        return StringUtils.defaultIfBlank(result, "NA");
-    }
-
     private String text(Object value) {
-        return value == null ? null : String.valueOf(value);
-    }
-
-    private String camelToSnake(String value) {
-        if (StringUtils.isBlank(value)) {
-            return value;
-        }
-        StringBuilder result = new StringBuilder();
-        for (int i = 0; i < value.length(); i++) {
-            char ch = value.charAt(i);
-            if (Character.isUpperCase(ch) && i > 0) {
-                result.append('_');
-            }
-            result.append(Character.toLowerCase(ch));
-        }
-        return result.toString();
-    }
-
-    private String snakeToCamel(String value) {
-        if (StringUtils.isBlank(value)) {
-            return value;
-        }
-        StringBuilder result = new StringBuilder();
-        boolean upperNext = false;
-        for (char ch : value.toCharArray()) {
-            if (ch == '_' || ch == '-') {
-                upperNext = true;
-                continue;
-            }
-            result.append(upperNext ? Character.toUpperCase(ch) : ch);
-            upperNext = false;
-        }
-        return result.toString();
+        return value == null ? "" : String.valueOf(value);
     }
 }

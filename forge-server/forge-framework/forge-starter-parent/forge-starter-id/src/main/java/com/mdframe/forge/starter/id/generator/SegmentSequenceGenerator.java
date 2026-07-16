@@ -2,197 +2,226 @@ package com.mdframe.forge.starter.id.generator;
 
 import com.mdframe.forge.starter.id.entity.SysIdSequence;
 import com.mdframe.forge.starter.id.mapper.SysIdSequenceMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.util.StringUtils;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 /**
- * 段模式序列生成器
- * 基于数据库号段分配，内存中高速生成ID，保证同业务类型严格递增
+ * 基于数据库号段的序列生成器。
+ *
+ * <p>数据库负责跨实例分配不重叠号段，进程内按业务键串行切换当前号段。
+ * 号段预分配允许出现空洞，但不会重复或在段边界跳过仍未消费的当前号段。</p>
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class SegmentSequenceGenerator {
-    
-    private final SysIdSequenceMapper sequenceMapper;
-    
-    /**
-     * 各业务类型的号段缓存
-     * key: bizKey
-     * value: Segment对象
-     */
-    private final Map<String, Segment> segmentCache = new ConcurrentHashMap<>();
-    
-    /**
-     * 默认步长
-     */
+
     private static final int DEFAULT_STEP = 1000;
-    
-    /**
-     * 预取阈值（剩余量低于此值时触发预取）
-     */
-    private static final int PREFETCH_THRESHOLD = 100;
-    
-    /**
-     * 获取下一个ID
-     */
-    public long nextId(String bizKey) {
-        Segment segment = segmentCache.computeIfAbsent(bizKey, this::loadSegment);
-        
-        long id = segment.next();
-        
-        // 剩余量不足时，异步预取下一段
-        if (segment.remaining() <= PREFETCH_THRESHOLD) {
-            tryPrefetch(bizKey);
-        }
-        
-        return id;
+    private static final int MAX_ALLOCATE_RETRIES = 8;
+
+    private final SysIdSequenceMapper sequenceMapper;
+    private final TransactionTemplate allocationTransaction;
+
+    private final Map<String, SegmentHolder> segmentCache = new ConcurrentHashMap<>();
+
+    public SegmentSequenceGenerator(SysIdSequenceMapper sequenceMapper,
+                                    PlatformTransactionManager transactionManager) {
+        this.sequenceMapper = sequenceMapper;
+        this.allocationTransaction = new TransactionTemplate(transactionManager);
+        this.allocationTransaction.setName("forge-sequence-segment-allocation");
+        this.allocationTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
-    
+
+    public long nextId(String bizKey) {
+        return nextId(bizKey, 1L);
+    }
+
     /**
-     * 批量获取ID
+     * 获取下一个序列值。startValue 只在业务键首次写入数据库时生效。
      */
+    public long nextId(String bizKey, long startValue) {
+        return nextId(bizKey, startValue, null, null);
+    }
+
+    /**
+     * 获取下一个序列值。新 key 第一次初始化时可读取旧编码规则的已分配水位。
+     */
+    public long nextId(String bizKey,
+                       long startValue,
+                       String legacyKeyPrefix,
+                       String legacyPeriod) {
+        validateArguments(bizKey, startValue);
+        SegmentHolder holder = segmentCache.computeIfAbsent(bizKey, ignored -> new SegmentHolder());
+        return holder.next(() -> loadSegment(bizKey, startValue, legacyKeyPrefix, legacyPeriod));
+    }
+
     public long[] nextBatch(String bizKey, int size) {
+        if (size < 0) {
+            throw new IllegalArgumentException("批量序列数量不能小于0");
+        }
         long[] ids = new long[size];
         for (int i = 0; i < size; i++) {
             ids[i] = nextId(bizKey);
         }
         return ids;
     }
-    
-    /**
-     * 尝试预取下一段
-     */
-    private void tryPrefetch(String bizKey) {
-        segmentCache.compute(bizKey, (key, oldSegment) -> {
-            if (oldSegment == null || oldSegment.remaining() <= PREFETCH_THRESHOLD) {
-                Segment newSegment = loadSegment(key);
-                if (oldSegment != null) {
-                    // 将新段设置为下一段，当前段用完后自动切换
-                    oldSegment.setNext(newSegment);
-                    return oldSegment;
-                }
-                return newSegment;
-            }
-            return oldSegment;
-        });
+
+    private Segment loadSegment(String bizKey,
+                                long startValue,
+                                String legacyKeyPrefix,
+                                String legacyPeriod) {
+        Segment segment = allocationTransaction.execute(status ->
+                allocateSegment(bizKey, startValue, legacyKeyPrefix, legacyPeriod));
+        if (segment == null) {
+            throw new IllegalStateException("分配ID号段事务未返回结果: " + bizKey);
+        }
+        return segment;
     }
-    
-    /**
-     * 从数据库加载一个新号段
-     */
-    private Segment loadSegment(String bizKey) {
-        // 查询序列配置
+
+    private Segment allocateSegment(String bizKey,
+                                    long startValue,
+                                    String legacyKeyPrefix,
+                                    String legacyPeriod) {
         SysIdSequence sequence = sequenceMapper.selectById(bizKey);
-        
         if (sequence == null) {
-            // 首次使用，初始化序列
-            sequence = initSequence(bizKey);
+            sequence = initSequence(bizKey, resolveInitialValue(startValue, legacyKeyPrefix, legacyPeriod));
         }
-        
-        int step = sequence.getStep() != null ? sequence.getStep() : DEFAULT_STEP;
-        int version = sequence.getVersion();
-        
-        // 使用乐观锁分配号段
-        int updated = sequenceMapper.allocateSegment(bizKey, step, version);
-        
-        if (updated == 0) {
-            // 版本冲突，说明有其他节点也在分配，重试一次
-            log.warn("分配号段版本冲突，重试: {}", bizKey);
-            sequence = sequenceMapper.selectById(bizKey);
-            step = sequence.getStep() != null ? sequence.getStep() : DEFAULT_STEP;
-            updated = sequenceMapper.allocateSegment(bizKey, step, sequence.getVersion());
-            
-            if (updated == 0) {
-                throw new IllegalStateException("分配ID号段失败，请稍后重试: " + bizKey);
+
+        for (int attempt = 1; attempt <= MAX_ALLOCATE_RETRIES; attempt++) {
+            int step = normalizeStep(sequence.getStep());
+            int version = sequence.getVersion() == null ? 0 : sequence.getVersion();
+            long currentMaxId = requireMaxId(sequence, bizKey);
+            long end = safeAdd(currentMaxId, step, bizKey);
+            int updated = sequenceMapper.allocateSegment(bizKey, step, version);
+            if (updated > 0) {
+                long start = currentMaxId + 1;
+                log.debug("成功分配号段: bizKey={}, range=[{}, {}]", bizKey, start, end);
+                return new Segment(start, end);
             }
+
+            sequence = sequenceMapper.selectById(bizKey);
+            if (sequence == null) {
+                sequence = initSequence(bizKey, resolveInitialValue(startValue, legacyKeyPrefix, legacyPeriod));
+            }
+            log.debug("分配号段版本冲突，准备第{}次重试: {}", attempt + 1, bizKey);
         }
-        
-        // 重新查询获取更新后的maxId
-        SysIdSequence updated序列 = sequenceMapper.selectById(bizKey);
-        long end = updated序列.getMaxId();
-        long start = end - step + 1;
-        
-        log.debug("成功分配号段: bizKey={}, range=[{}, {}]", bizKey, start, end);
-        
-        return new Segment(start, end);
+        throw new IllegalStateException("分配ID号段失败，请稍后重试: " + bizKey);
     }
-    
-    /**
-     * 初始化序列配置
-     */
-    private synchronized SysIdSequence initSequence(String bizKey) {
-        // 双重检查，避免并发重复插入
+
+    private long resolveInitialValue(long startValue,
+                                     String legacyKeyPrefix,
+                                     String legacyPeriod) {
+        if (!StringUtils.hasText(legacyKeyPrefix) || !StringUtils.hasText(legacyPeriod)) {
+            return startValue;
+        }
+        Long legacyMaxId = sequenceMapper.selectLegacyMaxId(legacyKeyPrefix, legacyPeriod);
+        if (legacyMaxId == null) {
+            return startValue;
+        }
+        long legacyNextValue = safeAdd(legacyMaxId, 1, legacyKeyPrefix);
+        return Math.max(startValue, legacyNextValue);
+    }
+
+    private long requireMaxId(SysIdSequence sequence, String bizKey) {
+        if (sequence.getMaxId() == null) {
+            throw new IllegalStateException("序列最大水位不能为空: " + bizKey);
+        }
+        return sequence.getMaxId();
+    }
+
+    private long safeAdd(long value, long increment, String bizKey) {
+        try {
+            return Math.addExact(value, increment);
+        } catch (ArithmeticException e) {
+            throw new IllegalStateException("序列水位已超过long范围: " + bizKey, e);
+        }
+    }
+
+    private SysIdSequence initSequence(String bizKey, long startValue) {
         SysIdSequence existing = sequenceMapper.selectById(bizKey);
         if (existing != null) {
             return existing;
         }
-        
+
         SysIdSequence sequence = new SysIdSequence();
         sequence.setBizKey(bizKey);
-        sequence.setMaxId(0L);
+        sequence.setMaxId(startValue - 1);
         sequence.setStep(DEFAULT_STEP);
         sequence.setVersion(0);
         sequence.setResetPolicy("NONE");
         sequence.setSeqLength(8);
-        
-        sequenceMapper.insert(sequence);
-        log.info("初始化序列配置: {}", bizKey);
-        
-        return sequence;
+
+        try {
+            int inserted = sequenceMapper.insert(sequence);
+            if (inserted > 0) {
+                log.info("初始化序列配置: bizKey={}, startValue={}", bizKey, startValue);
+                return sequence;
+            }
+        } catch (DuplicateKeyException e) {
+            log.debug("序列配置已被其它实例初始化: {}", bizKey);
+        }
+
+        existing = sequenceMapper.selectById(bizKey);
+        if (existing == null) {
+            throw new IllegalStateException("初始化序列配置失败: " + bizKey);
+        }
+        return existing;
     }
-    
-    /**
-     * 号段对象
-     */
-    static class Segment {
-        private final long start;
+
+    private int normalizeStep(Integer step) {
+        return step == null || step <= 0 ? DEFAULT_STEP : step;
+    }
+
+    private void validateArguments(String bizKey, long startValue) {
+        if (!StringUtils.hasText(bizKey)) {
+            throw new IllegalArgumentException("业务序列键不能为空");
+        }
+        if (startValue < 0) {
+            throw new IllegalArgumentException("序列起始值不能小于0");
+        }
+    }
+
+    private static final class SegmentHolder {
+
+        private Segment current;
+
+        private synchronized long next(Supplier<Segment> segmentLoader) {
+            if (current == null || !current.hasRemaining()) {
+                current = segmentLoader.get();
+            }
+            return current.next();
+        }
+    }
+
+    private static final class Segment {
+
         private final long end;
         private final AtomicLong cursor;
-        private volatile Segment next;
-        
-        public Segment(long start, long end) {
-            this.start = start;
+
+        private Segment(long start, long end) {
             this.end = end;
             this.cursor = new AtomicLong(start - 1);
         }
-        
-        /**
-         * 获取下一个ID
-         */
-        public long next() {
+
+        private boolean hasRemaining() {
+            return cursor.get() < end;
+        }
+
+        private long next() {
             long value = cursor.incrementAndGet();
-            
-            if (value <= end) {
-                return value;
+            if (value > end) {
+                throw new IllegalStateException("ID号段已耗尽");
             }
-            
-            // 当前段耗尽，切换到下一段
-            if (next != null) {
-                return next.next();
-            }
-            
-            throw new IllegalStateException("ID号段已耗尽，且没有预取的下一段");
-        }
-        
-        /**
-         * 剩余可用数量
-         */
-        public long remaining() {
-            long current = cursor.get();
-            return Math.max(0, end - current);
-        }
-        
-        /**
-         * 设置下一段
-         */
-        public void setNext(Segment next) {
-            this.next = next;
+            return value;
         }
     }
 }

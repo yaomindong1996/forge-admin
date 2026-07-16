@@ -746,6 +746,7 @@
                         <div v-if="selectedGenerationRule" class="auto-code-rule-summary">
                           <span>{{ selectedGenerationRule.ruleName }}</span>
                           <code>{{ selectedGenerationRule.template }}</code>
+                          <small>{{ selectedGenerationRule.category || 'COMMON' }} · 结构化规则</small>
                         </div>
                         <div class="auto-code-preview-row">
                           <n-button
@@ -4178,6 +4179,7 @@ const dictDefaultOptions = ref({})
 const dictDefaultOptionsLoading = ref({})
 const codeRules = ref([])
 const codeRuleLoading = ref(false)
+let codeRuleRequestVersion = 0
 const codeRulePreview = ref(null)
 const codeRulePreviewing = ref(false)
 const selectedComponent = computed(() => getDesignerComponent(props.schema, props.selectedId))
@@ -4367,6 +4369,13 @@ const datePickerType = computed(() => {
 watch(() => props.selectedId, () => {
   propertySearchHit.value = ''
   selectedBasicExpandedNames.value = [...basicExpandedNames]
+})
+
+watch(() => props.objectCode, () => {
+  codeRuleRequestVersion += 1
+  codeRules.value = []
+  codeRuleLoading.value = false
+  loadCodeRuleOptions()
 })
 
 const gridColumnOptions = Array.from({ length: maxFormGridColumns }).map((_, index) => index + 1)
@@ -5220,13 +5229,17 @@ function updateDictType(value = '') {
 async function loadCodeRuleOptions() {
   if (codeRules.value.length || codeRuleLoading.value)
     return
+  const requestVersion = ++codeRuleRequestVersion
+  const requestedObjectCode = props.objectCode || ''
   codeRuleLoading.value = true
   try {
-    const res = await codeRuleList({ scene: 'COMMON' })
-    codeRules.value = Array.isArray(res.data) ? res.data : []
+    const res = await codeRuleList({ scene: 'COMMON', objectCode: requestedObjectCode || undefined })
+    if (requestVersion === codeRuleRequestVersion && requestedObjectCode === (props.objectCode || ''))
+      codeRules.value = Array.isArray(res.data) ? res.data : []
   }
   finally {
-    codeRuleLoading.value = false
+    if (requestVersion === codeRuleRequestVersion)
+      codeRuleLoading.value = false
   }
 }
 
@@ -5422,13 +5435,11 @@ async function previewSelectedGenerationRule(ruleCode = selectedGenerationRuleCo
     const res = await previewCodeRule({
       ruleCode,
       sequence: 1,
-      context: {
+      fields: {
         suiteCode: props.schema?.suiteCode || props.schema?.settings?.suiteCode || 'SUITE',
         objectCode: props.schema?.objectCode || props.schema?.settings?.objectCode || 'OBJECT',
         fieldCode,
-        sampleData: {
-          [fieldCode]: selectedComponent.value?.label || fieldCode,
-        },
+        [fieldCode]: selectedComponent.value?.label || fieldCode,
       },
     })
     codeRulePreview.value = res.data || null
@@ -8030,6 +8041,11 @@ onBeforeUnmount(() => {
   font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.auto-code-rule-summary small {
+  color: #64748b;
+  font-size: 11px;
 }
 
 .auto-code-preview-row {

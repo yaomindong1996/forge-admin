@@ -51,7 +51,7 @@ class BusinessExtensionVersionServiceTest {
         });
         BusinessExtensionVersionService service = new BusinessExtensionVersionService(
                 extensionMapper, new PermissiveLockService(extensionMapper), new ObjectMapper(),
-                new BusinessExtensionStateMachine());
+                new BusinessExtensionStateMachine(), null);
         setBaseMapper(service, versionMapper);
         BusinessExtensionVersionDTO dto = new BusinessExtensionVersionDTO();
         dto.setContent("return { changed: true }");
@@ -96,7 +96,7 @@ class BusinessExtensionVersionServiceTest {
         });
         BusinessExtensionVersionService service = new BusinessExtensionVersionService(
                 extensionMapper, new PermissiveLockService(extensionMapper), new ObjectMapper(),
-                new BusinessExtensionStateMachine());
+                new BusinessExtensionStateMachine(), null);
         setBaseMapper(service, versionMapper);
 
         Integer rollbackVersion = service.rollback(extension.getId(), 1, "lock-token");

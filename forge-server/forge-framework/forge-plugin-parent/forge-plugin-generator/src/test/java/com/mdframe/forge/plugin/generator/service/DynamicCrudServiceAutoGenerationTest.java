@@ -59,6 +59,9 @@ class DynamicCrudServiceAutoGenerationTest {
         assertTrue(allowedFields.contains("materialCode"));
         assertTrue(allowedFields.contains("material_code"));
         assertEquals("material_code", codeRuleService.getLastRuleCode());
+        assertEquals("水泥", ((Map<?, ?>) codeRuleService.getLastContext().get("fields")).get("materialName"));
+        assertEquals("PW_MATERIAL", ((Map<?, ?>) codeRuleService.getLastContext().get("fields")).get("objectCode"));
+        assertNull(codeRuleService.getLastContext().get("tenantId"));
     }
 
     @Test
@@ -193,9 +196,10 @@ class DynamicCrudServiceAutoGenerationTest {
         private final Map<String, String> generatedCodes = new LinkedHashMap<>();
         private int generateCalls;
         private String lastRuleCode;
+        private Map<String, Object> lastContext;
 
         FakeCodeRuleService() {
-            super(null);
+            super(null, null, null);
         }
 
         void setGeneratedCode(String ruleCode, String generatedCode) {
@@ -210,10 +214,15 @@ class DynamicCrudServiceAutoGenerationTest {
             return lastRuleCode;
         }
 
+        Map<String, Object> getLastContext() {
+            return lastContext;
+        }
+
         @Override
         public String generate(String ruleCode, Map<String, Object> context) {
             generateCalls++;
             lastRuleCode = ruleCode;
+            lastContext = context;
             return generatedCodes.get(ruleCode);
         }
     }

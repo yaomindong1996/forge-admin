@@ -27,6 +27,19 @@ public class SequenceServiceImpl implements ISequenceService {
     public long nextId(String bizKey) {
         return segmentGenerator.nextId(bizKey);
     }
+
+    @Override
+    public long nextId(String bizKey, long startValue) {
+        return segmentGenerator.nextId(bizKey, startValue);
+    }
+
+    @Override
+    public long nextId(String bizKey,
+                       long startValue,
+                       String legacyKeyPrefix,
+                       String legacyPeriod) {
+        return segmentGenerator.nextId(bizKey, startValue, legacyKeyPrefix, legacyPeriod);
+    }
     
     @Override
     public long[] nextBatch(String bizKey, int size) {

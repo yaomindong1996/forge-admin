@@ -57,8 +57,10 @@ public class CodeRuleController {
     @GetMapping("/list")
     @SaCheckPermission("ai:businessObject:design")
     @OperationLog(module = "编码规则", type = OperationType.QUERY, desc = "查询可用编码规则")
-    public RespInfo<List<AiCodeRule>> list(@RequestParam(required = false) String scene) {
-        return RespInfo.success(codeRuleService.listEnabled(scene));
+    public RespInfo<List<AiCodeRule>> list(
+            @RequestParam(required = false) String scene,
+            @RequestParam(required = false) String objectCode) {
+        return RespInfo.success(codeRuleService.listEnabled(scene, objectCode));
     }
 
     @GetMapping("/tokens")
@@ -80,7 +82,8 @@ public class CodeRuleController {
     @OperationLog(module = "编码规则", type = OperationType.OTHER, desc = "生成编码样例")
     public RespInfo<Map<String, String>> generate(@RequestBody CodeRuleGenerateDTO dto) {
         CodeRuleGenerateDTO request = dto == null ? new CodeRuleGenerateDTO() : dto;
-        return RespInfo.success(Map.of("code", codeRuleService.generate(request.getRuleCode(), request.getContext())));
+        Map<String, Object> fields = request.getFields() == null ? request.getContext() : request.getFields();
+        return RespInfo.success(Map.of("code", codeRuleService.generate(request.getRuleCode(), fields)));
     }
 
     @GetMapping("/{id}")

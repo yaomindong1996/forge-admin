@@ -12,5 +12,9 @@ public class CodeRuleGenerateDTO {
 
     private String ruleCode;
 
+    /** 新协议业务字段；只能用于 VARIABLE。 */
+    private Map<String, Object> fields;
+
+    /** 旧协议别名，兼容既有低代码调用。 */
     private Map<String, Object> context;
 }

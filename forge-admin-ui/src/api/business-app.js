@@ -464,6 +464,46 @@ export function generateCodeRule(data) {
   return request.post('/ai/code-rule/generate', data)
 }
 
+export function systemCodeRulePage(params) {
+  return request.get('/system/code-rule/page', { params })
+}
+
+export function systemCodeRuleList(params = {}) {
+  return request.get('/system/code-rule/list', { params })
+}
+
+export function systemCodeRuleDetail(id) {
+  return request.post('/system/code-rule/getById', null, { params: { id } })
+}
+
+export function addSystemCodeRule(data) {
+  return request.post('/system/code-rule/add', data)
+}
+
+export function editSystemCodeRule(data) {
+  return request.post('/system/code-rule/edit', data)
+}
+
+export function removeSystemCodeRule(id) {
+  return request.post(`/system/code-rule/remove/${id}`)
+}
+
+export function updateSystemCodeRuleStatus(data) {
+  return request.post('/system/code-rule/status', data)
+}
+
+export function previewSystemCodeRule(data) {
+  return request.post('/system/code-rule/preview', data)
+}
+
+export function generateSystemCodeRule(data) {
+  return request.post('/system/code-rule/generate', data)
+}
+
+export function systemCodeRuleCapabilities(params = {}) {
+  return request.get('/system/code-rule/capabilities', { params })
+}
+
 export function businessFlowBinding(objectCode) {
   return request.get(`/ai/business/flow/binding/${objectCode}`)
 }

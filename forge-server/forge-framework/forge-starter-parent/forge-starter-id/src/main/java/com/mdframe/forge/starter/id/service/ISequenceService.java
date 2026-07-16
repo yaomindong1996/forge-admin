@@ -12,6 +12,31 @@ public interface ISequenceService {
      * @return 序列ID
      */
     long nextId(String bizKey);
+
+    /**
+     * 获取下一个序列ID，并在业务键首次初始化时使用指定起始值。
+     *
+     * @param bizKey 业务键
+     * @param startValue 新业务键的首个返回值，必须大于等于0
+     * @return 序列ID
+     */
+    long nextId(String bizKey, long startValue);
+
+    /**
+     * 获取下一个序列值，并在新 key 首次初始化时兼容旧编码规则已分配水位。
+     *
+     * @param bizKey 新序列键
+     * @param startValue 配置的起始值
+     * @param legacyKeyPrefix 旧序列键前缀；为空时不读取旧水位
+     * @param legacyPeriod 旧序列周期；小时周期会兼容旧分钟/秒周期并取最大水位
+     * @return 下一个序列值
+     */
+    default long nextId(String bizKey,
+                        long startValue,
+                        String legacyKeyPrefix,
+                        String legacyPeriod) {
+        return nextId(bizKey, startValue);
+    }
     
     /**
      * 批量获取序列ID

@@ -2455,18 +2455,16 @@ public class DynamicCrudService {
                                                      Map<String, Object> recordData,
                                                      AutoGenerationField field) {
         Map<String, Object> context = new LinkedHashMap<>();
+        Map<String, Object> fields = new LinkedHashMap<>();
         if (recordData != null) {
-            context.putAll(recordData);
-            context.put("recordData", recordData);
+            fields.putAll(recordData);
         }
-        context.put("tenantId", config.getTenantId());
-        context.put("suiteCode", StringUtils.defaultIfBlank(config.getDomainCode(), ""));
-        context.put("objectCode", StringUtils.defaultIfBlank(config.getObjectCode(), ""));
-        context.put("configKey", StringUtils.defaultIfBlank(config.getConfigKey(), ""));
-        context.put("fieldCode", StringUtils.defaultIfBlank(field.fieldName(), field.columnName()));
-        context.put("fieldName", StringUtils.defaultIfBlank(field.label(), field.fieldName()));
-        context.put("sequenceScope", StringUtils.defaultIfBlank(config.getObjectCode(), config.getConfigKey())
-                + ":" + StringUtils.defaultIfBlank(field.fieldName(), field.columnName()));
+        fields.put("suiteCode", StringUtils.defaultIfBlank(config.getDomainCode(), ""));
+        fields.put("objectCode", StringUtils.defaultIfBlank(config.getObjectCode(), ""));
+        fields.put("configKey", StringUtils.defaultIfBlank(config.getConfigKey(), ""));
+        fields.put("fieldCode", StringUtils.defaultIfBlank(field.fieldName(), field.columnName()));
+        fields.put("fieldName", StringUtils.defaultIfBlank(field.label(), field.fieldName()));
+        context.put("fields", fields);
         return context;
     }
 

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.CodeRuleSegmentMapper">
+
+    <resultMap id="BaseResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.AiCodeRuleSegment">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="rule_id" property="ruleId"/>
+        <result column="segment_key" property="segmentKey"/>
+        <result column="segment_order" property="segmentOrder"/>
+        <result column="segment_type" property="segmentType"/>
+        <result column="segment_value" property="segmentValue"/>
+        <result column="segment_length" property="segmentLength"/>
+        <result column="pad_enabled" property="padEnabled"/>
+        <result column="pad_char" property="padChar"/>
+        <result column="pad_direction" property="padDirection"/>
+        <result column="group_enabled" property="groupEnabled"/>
+        <result column="include_in_code" property="includeInCode"/>
+        <result column="radix_type" property="radixType"/>
+        <result column="reset_enabled" property="resetEnabled"/>
+        <result column="reset_policy" property="resetPolicy"/>
+        <result column="start_value" property="startValue"/>
+        <result column="exclude_ambiguous" property="excludeAmbiguous"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Columns">
+        id, tenant_id, rule_id, segment_key, segment_order, segment_type, segment_value,
+        segment_length, pad_enabled, pad_char, pad_direction, group_enabled, include_in_code,
+        radix_type, reset_enabled, reset_policy, start_value, exclude_ambiguous, del_flag,
+        create_by, create_time, create_dept, update_by, update_time
+    </sql>
+
+    <select id="selectByRuleId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_code_rule_segment
+        WHERE tenant_id = #{tenantId}
+          AND rule_id = #{ruleId}
+          AND del_flag = '0'
+        ORDER BY segment_order ASC, id ASC
+    </select>
+
+    <update id="logicalDeleteByRuleId">
+        UPDATE ai_code_rule_segment
+        SET del_flag = '1',
+            update_by = #{updateBy},
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND rule_id = #{ruleId}
+          AND del_flag = '0'
+    </update>
+
+    <insert id="insertBatch">
+        INSERT INTO ai_code_rule_segment (
+            id, tenant_id, rule_id, segment_key, segment_order, segment_type, segment_value,
+            segment_length, pad_enabled, pad_char, pad_direction, group_enabled, include_in_code,
+            radix_type, reset_enabled, reset_policy, start_value, exclude_ambiguous, del_flag,
+            create_by, create_time, create_dept, update_by, update_time
+        ) VALUES
+        <foreach collection="segments" item="segment" separator=",">
+            (
+                #{segment.id}, #{segment.tenantId}, #{segment.ruleId}, #{segment.segmentKey},
+                #{segment.segmentOrder}, #{segment.segmentType}, #{segment.segmentValue},
+                #{segment.segmentLength}, #{segment.padEnabled}, #{segment.padChar},
+                #{segment.padDirection}, #{segment.groupEnabled}, #{segment.includeInCode},
+                #{segment.radixType}, #{segment.resetEnabled}, #{segment.resetPolicy},
+                #{segment.startValue}, #{segment.excludeAmbiguous}, '0',
+                #{segment.createBy}, #{segment.createTime}, #{segment.createDept},
+                #{segment.updateBy}, #{segment.updateTime}
+            )
+        </foreach>
+    </insert>
+
+</mapper>
