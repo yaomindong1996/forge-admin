@@ -36,6 +36,17 @@ class CodeRuleMigrationContractTest {
                 < sql.lastIndexOf("CREATE INDEX idx_ai_code_rule_source_object"));
     }
 
+    @Test
+    void shouldPersistVariableSourceAndBackfillBoundVariablesAsLowCode() throws IOException {
+        String sql = Files.readString(resolveMigration());
+
+        assertTrue(sql.contains("`variable_source` varchar(16) NOT NULL DEFAULT 'CUSTOM'"));
+        assertTrue(sql.contains("COLUMN_NAME = 'variable_source'"));
+        assertTrue(sql.contains("SET segment.variable_source = 'LOWCODE'"));
+        assertTrue(sql.contains("segment.segment_type = 'VARIABLE'"));
+        assertTrue(sql.contains("rule.source_object_id IS NOT NULL"));
+    }
+
     private Path resolveMigration() {
         Path current = Path.of("").toAbsolutePath();
         for (int depth = 0; depth < 8 && current != null; depth++) {

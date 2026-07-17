@@ -165,6 +165,7 @@ CREATE TABLE IF NOT EXISTS `ai_code_rule_segment` (
   `segment_order` int NOT NULL COMMENT '分段顺序，从1开始',
   `segment_type` varchar(16) NOT NULL COMMENT 'DATE/FIXED/SEQ/VARIABLE/SYS_VAR',
   `segment_value` varchar(128) DEFAULT NULL COMMENT '格式、固定值或变量名',
+  `variable_source` varchar(16) NOT NULL DEFAULT 'CUSTOM' COMMENT 'VARIABLE来源：CUSTOM/LOWCODE',
   `segment_length` int DEFAULT NULL COMMENT '声明长度或最大长度',
   `pad_enabled` tinyint NOT NULL DEFAULT 0 COMMENT '是否补位',
   `pad_char` varchar(4) DEFAULT NULL COMMENT '补位字符',
@@ -187,6 +188,28 @@ CREATE TABLE IF NOT EXISTS `ai_code_rule_segment` (
   UNIQUE KEY `uk_ai_code_rule_segment_key_active` (`tenant_id`, `rule_id`, `segment_key`, `logic_delete_active`),
   KEY `idx_ai_code_rule_segment_order` (`tenant_id`, `rule_id`, `segment_order`, `del_flag`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='编码规则结构化分段';
+
+SET @column_exists = (
+  SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ai_code_rule_segment' AND COLUMN_NAME = 'variable_source'
+);
+SET @sql = IF(@column_exists = 0,
+  'ALTER TABLE ai_code_rule_segment ADD COLUMN variable_source varchar(16) NOT NULL DEFAULT ''CUSTOM'' COMMENT ''VARIABLE来源：CUSTOM/LOWCODE'' AFTER segment_value',
+  'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 兼容已在早期验收环境保存的强绑定规则；其它历史变量保持 CUSTOM。
+UPDATE ai_code_rule_segment segment
+INNER JOIN ai_code_rule rule
+  ON rule.tenant_id = segment.tenant_id
+ AND rule.id = segment.rule_id
+ AND rule.del_flag = '0'
+SET segment.variable_source = 'LOWCODE'
+WHERE segment.del_flag = '0'
+  AND segment.segment_type = 'VARIABLE'
+  AND rule.source_object_id IS NOT NULL
+  AND rule.source_object_code IS NOT NULL
+  AND rule.source_object_code != '';
 
 INSERT INTO sys_dict_type (
   tenant_id, dict_name, dict_type, dict_status, remark,
@@ -271,12 +294,12 @@ WHERE NOT EXISTS (
 -- 已知旧规则物化为分段；其它自定义占位模板由运行时 legacy parser 兼容并在首次保存时物化。
 INSERT INTO ai_code_rule_segment (
   tenant_id, rule_id, segment_key, segment_order, segment_type, segment_value,
-  segment_length, pad_enabled, pad_char, pad_direction, group_enabled, include_in_code,
+  variable_source, segment_length, pad_enabled, pad_char, pad_direction, group_enabled, include_in_code,
   radix_type, reset_enabled, reset_policy, start_value, exclude_ambiguous,
   create_by, create_time, create_dept, update_by, update_time
 )
 SELECT rule.tenant_id, rule.id, seed.segment_key, seed.segment_order, seed.segment_type, seed.segment_value,
-       seed.segment_length, seed.pad_enabled, seed.pad_char, 'LEFT', seed.group_enabled, 1,
+       'CUSTOM', seed.segment_length, seed.pad_enabled, seed.pad_char, 'LEFT', seed.group_enabled, 1,
        seed.radix_type, seed.reset_enabled, seed.reset_policy, 1, 0,
        COALESCE(rule.create_by, 1), NOW(), COALESCE(rule.create_dept, 1), COALESCE(rule.update_by, 1), NOW()
 FROM (

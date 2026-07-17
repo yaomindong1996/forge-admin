@@ -47,21 +47,28 @@ class SystemCodeRuleControllerContractTest {
     }
 
     @Test
-    void shouldCollectVariableFieldsAndDetectOutOfScopeMappings() {
-        CodeRuleSaveDTO dto = variableRule("warehouseCode");
-        dto.getSegments().addAll(variableRule("warehouseType").getSegments());
+    void shouldOnlyCollectLowCodeFieldsAndValidateCustomVariableNames() {
+        CodeRuleSaveDTO dto = variableRule("warehouseCode", "LOWCODE");
+        dto.getSegments().addAll(variableRule("externalType", "CUSTOM").getSegments());
+        dto.getSegments().addAll(variableRule("warehouseType", "LOWCODE").getSegments());
 
-        Set<String> requested = SystemCodeRuleController.variableFieldCodes(dto);
+        Set<String> requested = SystemCodeRuleController.lowCodeVariableFieldCodes(dto);
+        Set<String> customNames = SystemCodeRuleController.customVariableNames(dto);
         Set<String> missing = SystemCodeRuleController.missingVariableFieldCodes(
                 requested, Set.of("warehouseCode"));
 
         assertEquals(Set.of("warehouseCode", "warehouseType"), requested);
+        assertTrue(SystemCodeRuleController.hasLowCodeVariable(dto));
+        assertEquals(Set.of("externalType"), customNames);
         assertEquals(Set.of("warehouseType"), missing);
+        assertTrue(SystemCodeRuleController.isSafeCustomVariableName("customerType"));
+        assertFalse(SystemCodeRuleController.isSafeCustomVariableName("customer-type"));
     }
 
-    private CodeRuleSaveDTO variableRule(String fieldCode) {
+    private CodeRuleSaveDTO variableRule(String fieldCode, String variableSource) {
         CodeRuleSegmentDTO segment = new CodeRuleSegmentDTO();
         segment.setSegmentType("VARIABLE");
+        segment.setVariableSource(variableSource);
         segment.setSegmentValue(fieldCode);
         CodeRuleSaveDTO dto = new CodeRuleSaveDTO();
         dto.setSourceObjectId(100L);

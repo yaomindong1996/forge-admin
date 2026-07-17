@@ -21,6 +21,7 @@ class LegacyCodeRuleParserTest {
 
         assertEquals(List.of("FIXED", "DATE", "VARIABLE", "FIXED", "SYS_VAR", "SEQ"),
                 segments.stream().map(CodeRuleSegmentDTO::getSegmentType).toList());
+        assertEquals("CUSTOM", segments.get(2).getVariableSource());
         assertEquals(5, segments.get(5).getSegmentLength());
         assertEquals("HOUR", segments.get(5).getResetPolicy());
 
@@ -51,6 +52,7 @@ class LegacyCodeRuleParserTest {
 
         List<CodeRuleSegmentDTO> custom = parser.parse("X-${customToken}", "NONE", 4);
         assertEquals("VARIABLE", custom.get(1).getSegmentType());
+        assertEquals("CUSTOM", custom.get(1).getVariableSource());
         assertEquals("customToken", custom.get(1).getSegmentValue());
     }
 }

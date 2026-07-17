@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * 结构化编码规则校验、预览与生成引擎。
@@ -38,6 +39,8 @@ public class CodeRuleEngine {
     private static final Set<String> RADIX_TYPES = Set.of(
             "DECIMAL", "HEX", "ALPHA_UPPER", "ALPHA_LOWER", "ALPHANUMERIC"
     );
+    private static final Set<String> VARIABLE_SOURCES = Set.of("CUSTOM", "LOWCODE");
+    private static final Pattern VARIABLE_NAME_PATTERN = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]{0,63}$");
 
     private final ISequenceService sequenceService;
     private final CodeRuleRadixCodec radixCodec;
@@ -282,6 +285,8 @@ public class CodeRuleEngine {
         segment.setSegmentType(StringUtils.upperCase(StringUtils.trimToEmpty(segment.getSegmentType())));
         segment.setSegmentKey(StringUtils.trimToNull(segment.getSegmentKey()));
         segment.setSegmentValue(StringUtils.trimToNull(segment.getSegmentValue()));
+        segment.setVariableSource(StringUtils.upperCase(
+                StringUtils.defaultIfBlank(segment.getVariableSource(), "CUSTOM")));
         segment.setPadEnabled(Integer.valueOf(1).equals(segment.getPadEnabled()) ? 1 : 0);
         segment.setPadDirection("RIGHT".equalsIgnoreCase(segment.getPadDirection()) ? "RIGHT" : "LEFT");
         segment.setGroupEnabled(Integer.valueOf(1).equals(segment.getGroupEnabled()) ? 1 : 0);
@@ -333,6 +338,14 @@ public class CodeRuleEngine {
         if (("VARIABLE".equals(segment.getSegmentType()) || "SYS_VAR".equals(segment.getSegmentType()))
                 && StringUtils.isBlank(segment.getSegmentValue())) {
             throw new BusinessException("变量分段必须选择变量名");
+        }
+        if ("VARIABLE".equals(segment.getSegmentType())) {
+            if (!VARIABLE_SOURCES.contains(segment.getVariableSource())) {
+                throw new BusinessException("不支持的业务变量来源: " + segment.getVariableSource());
+            }
+            if (!VARIABLE_NAME_PATTERN.matcher(segment.getSegmentValue()).matches()) {
+                throw new BusinessException("业务变量名必须以字母或下划线开头，且只能包含字母、数字和下划线");
+            }
         }
         if ("SYS_VAR".equals(segment.getSegmentType()) && !SYSTEM_VARIABLES.contains(segment.getSegmentValue())) {
             throw new BusinessException("不支持的系统变量: " + segment.getSegmentValue());

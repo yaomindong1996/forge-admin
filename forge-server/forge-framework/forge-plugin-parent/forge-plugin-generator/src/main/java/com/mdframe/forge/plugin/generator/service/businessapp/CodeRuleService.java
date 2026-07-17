@@ -334,6 +334,10 @@ public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
                 option("组织编码", "orgCode", "当前活动组织ID兼容值"),
                 option("发起人", "starter", "当前登录用户名")
         ));
+        result.setVariableSources(List.of(
+                option("自定义变量", "CUSTOM", "由业务代码通过 fields 传入"),
+                option("低代码字段", "LOWCODE", "映射当前低代码业务对象的字段")
+        ));
         return result;
     }
 
@@ -381,7 +385,19 @@ public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
             }
             if (segment != null) {
                 segment.setSegmentOrder(index + 1);
+                segment.setVariableSource(StringUtils.upperCase(
+                        StringUtils.defaultIfBlank(segment.getVariableSource(), "CUSTOM")));
             }
+        }
+        boolean hasLowCodeVariable = dto.getSegments().stream()
+                .filter(Objects::nonNull)
+                .anyMatch(segment -> "VARIABLE".equalsIgnoreCase(segment.getSegmentType())
+                        && "LOWCODE".equalsIgnoreCase(segment.getVariableSource()));
+        if (!hasLowCodeVariable) {
+            dto.setSourceObjectId(null);
+            dto.setSourceObjectCode(null);
+        } else if (dto.getSourceObjectId() == null || StringUtils.isBlank(dto.getSourceObjectCode())) {
+            throw new BusinessException("低代码业务变量必须绑定来源业务对象");
         }
         return dto;
     }
@@ -438,6 +454,7 @@ public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
     private String segmentFingerprint(CodeRuleSegmentDTO value) {
         return String.join("|",
                 text(value.getSegmentKey()), text(value.getSegmentType()), text(value.getSegmentValue()),
+                text(value.getVariableSource()),
                 text(value.getSegmentLength()), text(value.getPadEnabled()), text(value.getPadChar()),
                 text(value.getPadDirection()), text(value.getGroupEnabled()), text(value.getIncludeInCode()),
                 text(value.getRadixType()), text(value.getResetEnabled()), text(value.getResetPolicy()),
@@ -611,6 +628,7 @@ public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
         dto.setSegmentOrder(entity.getSegmentOrder());
         dto.setSegmentType(entity.getSegmentType());
         dto.setSegmentValue(entity.getSegmentValue());
+        dto.setVariableSource(entity.getVariableSource());
         dto.setSegmentLength(entity.getSegmentLength());
         dto.setPadEnabled(entity.getPadEnabled());
         dto.setPadChar(entity.getPadChar());
@@ -631,6 +649,7 @@ public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
         entity.setSegmentOrder(dto.getSegmentOrder());
         entity.setSegmentType(dto.getSegmentType());
         entity.setSegmentValue(dto.getSegmentValue());
+        entity.setVariableSource(StringUtils.defaultIfBlank(dto.getVariableSource(), "CUSTOM"));
         entity.setSegmentLength(dto.getSegmentLength());
         entity.setPadEnabled(dto.getPadEnabled());
         entity.setPadChar(dto.getPadChar());

@@ -10,6 +10,7 @@
         <result column="segment_order" property="segmentOrder"/>
         <result column="segment_type" property="segmentType"/>
         <result column="segment_value" property="segmentValue"/>
+        <result column="variable_source" property="variableSource"/>
         <result column="segment_length" property="segmentLength"/>
         <result column="pad_enabled" property="padEnabled"/>
         <result column="pad_char" property="padChar"/>
@@ -30,7 +31,7 @@
     </resultMap>
 
     <sql id="Base_Columns">
-        id, tenant_id, rule_id, segment_key, segment_order, segment_type, segment_value,
+        id, tenant_id, rule_id, segment_key, segment_order, segment_type, segment_value, variable_source,
         segment_length, pad_enabled, pad_char, pad_direction, group_enabled, include_in_code,
         radix_type, reset_enabled, reset_policy, start_value, exclude_ambiguous, del_flag,
         create_by, create_time, create_dept, update_by, update_time
@@ -58,7 +59,7 @@
 
     <insert id="insertBatch">
         INSERT INTO ai_code_rule_segment (
-            id, tenant_id, rule_id, segment_key, segment_order, segment_type, segment_value,
+            id, tenant_id, rule_id, segment_key, segment_order, segment_type, segment_value, variable_source,
             segment_length, pad_enabled, pad_char, pad_direction, group_enabled, include_in_code,
             radix_type, reset_enabled, reset_policy, start_value, exclude_ambiguous, del_flag,
             create_by, create_time, create_dept, update_by, update_time
@@ -67,6 +68,7 @@
             (
                 #{segment.id}, #{segment.tenantId}, #{segment.ruleId}, #{segment.segmentKey},
                 #{segment.segmentOrder}, #{segment.segmentType}, #{segment.segmentValue},
+                #{segment.variableSource},
                 #{segment.segmentLength}, #{segment.padEnabled}, #{segment.padChar},
                 #{segment.padDirection}, #{segment.groupEnabled}, #{segment.includeInCode},
                 #{segment.radixType}, #{segment.resetEnabled}, #{segment.resetPolicy},

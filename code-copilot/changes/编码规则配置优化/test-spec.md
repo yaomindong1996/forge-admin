@@ -163,3 +163,41 @@
 | Admin 聚合编译 | passed，42/42 | Java 17；Generator 与 Admin 装配成功 |
 | XML/Flyway | passed | 三个 Mapper XML；placeholder 无残留；来源对象补列先于索引；场景字典 tenant_id=1 |
 | 真实环境 | skipped | 未启动 Admin/MySQL/Redis，未实跑 Flyway 和登录态 HTTP |
+
+## 13. VARIABLE 双来源增量验证计划（2026-07-17）
+
+- [x] 前端纯函数：CUSTOM VARIABLE 不选择业务对象时合法；LOWCODE VARIABLE 缺少来源对象时失败；切换来源时清理 `segmentValue`。
+- [x] Controller 契约：只收集 LOWCODE VARIABLE 做字段目录校验，CUSTOM 变量只验证安全标识符。
+- [x] Service/引擎：纯 CUSTOM 规则无 `objectCode` 可生成；LOWCODE/混合规则继续拒绝缺失或不匹配的 `objectCode`。
+- [x] Legacy/迁移：`${field:xxx}` 和未知历史变量默认 CUSTOM；Flyway 包含 `variable_source` 防重补列及已绑定存量分段 LOWCODE 回填。
+- [x] 前端页面：来源方式在 VARIABLE 分段内选择，只有 LOWCODE 分段显示来源对象与字段下拉；保持 Forge 亮/暗主题 Token。
+- [x] 增量构建：Generator 定向测试、ESLint/Vitest、前端 build、Admin reactor compile 和 XML/Flyway 静态检查。
+- [x] 真实环境：按既定分工不启动 Admin/MySQL/Redis，不实跑 Flyway/HTTP，并在执行日志记录跳过原因。
+
+| 范围 | 结果 | 证据 |
+|------|------|------|
+| Red | passed | 前端旧实现 2 项失败；后端测试编译 7 处缺少 `variableSource`/分类契约 |
+| Generator | passed，20/20 | Controller 2、migration 3、engine 4、legacy 2、Mapper 2、Dynamic CRUD 3、对象绑定 4 |
+| 前端 ESLint/Vitest | passed，11/11 | 4 个相关 Vue/JS 文件 0 errors；纯函数用例全部通过 |
+| 前端生产构建 | passed | 8691 modules，`exit 0`；仅仓库既有非阻断警告 |
+| Admin 聚合编译 | passed，42/42 | Java 17，Generator 与 Admin 装配成功 |
+| XML/Flyway/差异 | passed | Mapper XML 语法、placeholder 和 `git diff --check` 通过 |
+| 真实环境 | skipped | 未启动 Admin/MySQL/Redis，未实跑 Flyway、HTTP 和浏览器登录态验收 |
+
+## 14. LOWCODE 弹窗映射增量验证计划（2026-07-17）
+
+- [x] Red：新增 `applyLowCodeVariableMapping` 用例，旧实现因函数不存在而失败。
+- [x] 同对象重新映射：只更新目标 LOWCODE 分段，其它分段保持。
+- [x] 切换来源对象：目标分段使用新字段，其它 LOWCODE 分段清空，CUSTOM 分段不受影响。
+- [x] 弹窗交互静态契约：分段组件不再渲染顶部 `segment-editor__mapping`；选择 LOWCODE 和行内重新映射均触发工作台 Modal。
+- [x] 取消弹窗不改动规则草稿；确认前必须同时选中业务对象和字段。
+- [x] 定向 ESLint/Vitest、前端生产构建和差异格式检查通过；不启动 Admin/MySQL/Redis。
+
+| 范围 | 结果 | 证据 |
+|------|------|------|
+| Red | passed | 新增 2 个映射原子应用用例，旧实现因 `applyLowCodeVariableMapping is not a function` 失败 |
+| Vitest | passed，13/13 | 同对象保留、换对象清理、CUSTOM 保留与既有双来源用例全部通过 |
+| ESLint | passed | `code-rule-utils.js`、定向测试和两个编辑组件 0 errors |
+| 交互静态契约 | passed | 无顶部 `segment-editor__mapping`；存在行内 `request-low-code-mapping`、工作台 `n-modal` 和原子应用函数 |
+| 前端生产构建 | passed | 8691 modules，`exit 0`；仅仓库既有非阻断警告 |
+| 真实页面 | skipped | 未启动 Admin/MySQL/Redis，未执行登录态浏览器点击验收 |

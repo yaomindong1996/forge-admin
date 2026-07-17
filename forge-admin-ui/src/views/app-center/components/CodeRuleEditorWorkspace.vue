@@ -78,23 +78,6 @@
                       <span>用于兼容旧调用方的场景筛选；低代码字段的精确范围由业务对象绑定控制。</span>
                     </div>
                   </n-form-item>
-                  <n-form-item label="字段来源业务对象" class="basic-form-grid__wide">
-                    <div class="source-object-field">
-                      <n-select
-                        :value="draft.sourceObjectId"
-                        :options="businessObjectOptions"
-                        :loading="businessFieldLoading"
-                        :disabled="isBuiltin || !variableSegments.length"
-                        filterable
-                        clearable
-                        placeholder="先添加业务变量段，再选择低代码业务对象"
-                        @update:value="handleSourceObjectChange"
-                      />
-                      <span>
-                        仅业务变量段需要绑定。绑定后只能选择该对象中已启用的非系统字段，运行时也会校验当前对象。
-                      </span>
-                    </div>
-                  </n-form-item>
                   <n-form-item label="启用状态">
                     <div class="switch-field">
                       <n-switch
@@ -132,8 +115,9 @@
               v-model="draft.segments"
               :capabilities="effectiveCapabilities"
               :disabled="isBuiltin"
-              :source-object-selected="Boolean(draft.sourceObjectId)"
-              :business-fields-loading="businessFieldLoading"
+              :source-object-id="draft.sourceObjectId"
+              :business-object-options="businessObjectOptions"
+              @request-low-code-mapping="openLowCodeMapping"
             />
 
             <n-alert
@@ -256,6 +240,80 @@
         </div>
       </n-spin>
     </div>
+
+    <n-modal
+      :show="mappingModalVisible"
+      preset="card"
+      title="低代码字段映射"
+      style="width: min(620px, calc(100vw - 32px))"
+      :bordered="false"
+      :mask-closable="true"
+      @update:show="handleMappingModalVisibility"
+    >
+      <div class="mapping-dialog">
+        <div class="mapping-dialog__context">
+          <i class="i-material-symbols:account-tree-outline" />
+          <div>
+            <strong>配置第 {{ mappingTargetSegment?.segmentOrder || '—' }} 段</strong>
+            <span>选择后，该分段将从低代码业务记录的对应字段取值。</span>
+          </div>
+        </div>
+
+        <n-alert
+          v-if="mappingObjectChanged && mappingOtherLowCodeCount"
+          type="warning"
+          :bordered="false"
+          title="来源对象将变更"
+        >
+          一条规则的低代码变量共用同一对象。确认后将清空其它 {{ mappingOtherLowCodeCount }} 个分段的旧字段映射。
+        </n-alert>
+
+        <n-form label-placement="top" :show-feedback="false" class="mapping-dialog__form">
+          <n-form-item label="来源业务对象" required>
+            <n-select
+              :value="mappingDraft.sourceObjectId"
+              :options="businessObjectOptions"
+              filterable
+              clearable
+              placeholder="选择低代码业务对象"
+              @update:value="handleMappingObjectChange"
+            />
+          </n-form-item>
+          <n-form-item label="映射字段" required>
+            <n-select
+              v-model:value="mappingDraft.fieldCode"
+              :options="mappingFieldOptions"
+              :loading="mappingLoading"
+              :disabled="!mappingDraft.sourceObjectId || mappingLoading"
+              filterable
+              clearable
+              placeholder="选择已启用的非系统字段"
+            />
+          </n-form-item>
+        </n-form>
+
+        <div v-if="mappingSelectedField?.description" class="mapping-dialog__field-note">
+          <i class="i-material-symbols:info-outline-rounded" />
+          <span>{{ mappingSelectedField.description }}</span>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="mapping-dialog__footer">
+          <n-button @click="closeMappingModal">
+            取消
+          </n-button>
+          <n-button
+            type="primary"
+            :disabled="!canConfirmMapping"
+            :loading="mappingLoading"
+            @click="confirmLowCodeMapping"
+          >
+            确认映射
+          </n-button>
+        </div>
+      </template>
+    </n-modal>
   </section>
 </template>
 
@@ -270,6 +328,7 @@ import {
   systemCodeRuleDetail,
 } from '@/api/business-app'
 import {
+  applyLowCodeVariableMapping,
   buildCodeRulePreviewPayload,
   createEmptyCodeRuleDraft,
   createLatestRequestGuard,
@@ -305,12 +364,22 @@ const previewing = ref(false)
 const preview = ref(null)
 const objectCapabilities = ref(null)
 const businessFieldLoading = ref(false)
+const mappingModalVisible = ref(false)
+const mappingLoading = ref(false)
+const mappingFieldOptions = ref([])
+const mappingObjectCapabilities = ref(null)
+const mappingTargetSegmentKey = ref(null)
+const mappingDraft = reactive({
+  sourceObjectId: null,
+  fieldCode: null,
+})
 const draft = reactive(createEmptyCodeRuleDraft())
 const sampleFields = reactive({})
 let previewTimer = null
 const detailRequestGuard = createLatestRequestGuard()
 const previewRequestGuard = createLatestRequestGuard()
 const capabilityRequestGuard = createLatestRequestGuard()
+const mappingRequestGuard = createLatestRequestGuard()
 
 const isBuiltin = computed(() => Number(draft.builtin) === 1)
 const workspaceTitle = computed(() => props.ruleId
@@ -318,11 +387,30 @@ const workspaceTitle = computed(() => props.ruleId
   : '新增编码规则')
 const validation = computed(() => validateCodeRuleDraft(draft))
 const variableSegments = computed(() => draft.segments.filter(segment => segment.segmentType === 'VARIABLE'))
+const lowCodeVariableSegments = computed(() => variableSegments.value
+  .filter(segment => segment.variableSource === 'LOWCODE'))
 const effectiveCapabilities = computed(() => ({
   ...props.capabilities,
   ...(objectCapabilities.value || {}),
 }))
 const businessObjectOptions = computed(() => effectiveCapabilities.value.businessObjects || [])
+const mappingTargetSegment = computed(() => draft.segments
+  .find(segment => segment.segmentKey === mappingTargetSegmentKey.value))
+const mappingOtherLowCodeCount = computed(() => draft.segments.filter(segment => (
+  segment.segmentKey !== mappingTargetSegmentKey.value
+  && segment.segmentType === 'VARIABLE'
+  && segment.variableSource === 'LOWCODE'
+  && segment.segmentValue
+)).length)
+const mappingObjectChanged = computed(() => Boolean(mappingDraft.sourceObjectId)
+  && String(mappingDraft.sourceObjectId) !== String(draft.sourceObjectId || ''))
+const mappingSelectedField = computed(() => mappingFieldOptions.value
+  .find(option => option.value === mappingDraft.fieldCode))
+const canConfirmMapping = computed(() => Boolean(
+  mappingDraft.sourceObjectId
+  && mappingDraft.fieldCode
+  && !mappingLoading.value,
+))
 
 watch(() => props.ruleId, async () => {
   await initializeDraft()
@@ -338,7 +426,7 @@ watch(variableSegments, (segments) => {
     if (sampleFields[key] === undefined)
       sampleFields[key] = key.toUpperCase().slice(0, 8)
   })
-  if (!segments.length) {
+  if (!lowCodeVariableSegments.value.length) {
     draft.sourceObjectId = null
     draft.sourceObjectCode = null
     objectCapabilities.value = null
@@ -354,18 +442,25 @@ onBeforeUnmount(() => {
   detailRequestGuard.invalidate()
   previewRequestGuard.invalidate()
   capabilityRequestGuard.invalidate()
+  mappingRequestGuard.invalidate()
 })
 
 function resetDraft(value = createEmptyCodeRuleDraft()) {
   Object.keys(draft).forEach(key => delete draft[key])
   Object.assign(draft, JSON.parse(JSON.stringify(value)))
   draft.sampleSequence = Number(draft.sampleSequence ?? 1)
-  draft.segments = normalizeCodeRuleSegments(draft.segments || [])
+  const hasLegacyObjectBinding = Boolean(draft.sourceObjectId)
+  draft.segments = normalizeCodeRuleSegments((draft.segments || []).map(segment => (
+    hasLegacyObjectBinding && segment.segmentType === 'VARIABLE' && !segment.variableSource
+      ? { ...segment, variableSource: 'LOWCODE' }
+      : segment
+  )))
   draft.sourceObjectId = draft.sourceObjectId ? String(draft.sourceObjectId) : null
   preview.value = null
 }
 
 async function initializeDraft() {
+  closeMappingModal()
   const requestVersion = detailRequestGuard.begin()
   const requestedRuleId = props.ruleId
   loading.value = true
@@ -384,7 +479,7 @@ async function initializeDraft() {
       sampleSequence: 1,
       segments: res.data?.segments || [],
     })
-    await loadBusinessFields(draft.sourceObjectId)
+    await loadBusinessFields(lowCodeVariableSegments.value.length ? draft.sourceObjectId : null)
   }
   finally {
     if (detailRequestGuard.isLatest(requestVersion)) {
@@ -431,24 +526,12 @@ function savePayload() {
     ruleName: draft.ruleName,
     scene: draft.scene || 'COMMON',
     category: draft.category,
-    sourceObjectId: draft.sourceObjectId || null,
+    sourceObjectId: lowCodeVariableSegments.value.length ? (draft.sourceObjectId || null) : null,
     status: Number(draft.status) === 0 ? 0 : 1,
     inCodeList: Number(draft.inCodeList) === 0 ? 0 : 1,
     remark: draft.remark || null,
     segments: validation.value.segments,
   }
-}
-
-async function handleSourceObjectChange(value) {
-  const nextObjectId = value ? String(value) : null
-  if (String(draft.sourceObjectId || '') === String(nextObjectId || ''))
-    return
-  draft.sourceObjectId = nextObjectId
-  draft.sourceObjectCode = null
-  draft.segments = draft.segments.map(segment => segment.segmentType === 'VARIABLE'
-    ? { ...segment, segmentValue: '' }
-    : segment)
-  await loadBusinessFields(nextObjectId)
 }
 
 async function loadBusinessFields(sourceObjectId) {
@@ -471,6 +554,110 @@ async function loadBusinessFields(sourceObjectId) {
     if (capabilityRequestGuard.isLatest(requestVersion))
       businessFieldLoading.value = false
   }
+}
+
+async function openLowCodeMapping(segmentKey) {
+  const segment = draft.segments.find(item => item.segmentKey === segmentKey)
+  if (!segment || segment.segmentType !== 'VARIABLE')
+    return
+
+  mappingRequestGuard.invalidate()
+  mappingTargetSegmentKey.value = segmentKey
+  mappingDraft.sourceObjectId = draft.sourceObjectId ? String(draft.sourceObjectId) : null
+  mappingDraft.fieldCode = segment.variableSource === 'LOWCODE' ? segment.segmentValue : null
+  mappingFieldOptions.value = mappingDraft.sourceObjectId
+    ? [...(effectiveCapabilities.value.businessFields || [])]
+    : []
+  mappingObjectCapabilities.value = mappingDraft.sourceObjectId ? objectCapabilities.value : null
+  mappingModalVisible.value = true
+  if (mappingDraft.sourceObjectId)
+    await loadMappingFields(mappingDraft.sourceObjectId, mappingDraft.fieldCode)
+}
+
+async function handleMappingObjectChange(value) {
+  const sourceObjectId = value ? String(value) : null
+  mappingDraft.sourceObjectId = sourceObjectId
+  mappingDraft.fieldCode = null
+  await loadMappingFields(sourceObjectId, null)
+}
+
+async function loadMappingFields(sourceObjectId, preferredFieldCode) {
+  mappingRequestGuard.invalidate()
+  mappingObjectCapabilities.value = null
+  if (!sourceObjectId) {
+    mappingFieldOptions.value = []
+    mappingLoading.value = false
+    return
+  }
+
+  const requestVersion = mappingRequestGuard.begin()
+  const keepCurrentOptions = String(sourceObjectId) === String(draft.sourceObjectId || '')
+  if (!keepCurrentOptions)
+    mappingFieldOptions.value = []
+  mappingLoading.value = true
+  try {
+    const res = await systemCodeRuleCapabilities({ sourceObjectId: String(sourceObjectId) })
+    if (!mappingRequestGuard.isLatest(requestVersion)
+      || !mappingModalVisible.value
+      || String(mappingDraft.sourceObjectId || '') !== String(sourceObjectId)) {
+      return
+    }
+    mappingObjectCapabilities.value = res.data || null
+    mappingFieldOptions.value = res.data?.businessFields || []
+    const resolvedFieldCode = preferredFieldCode || mappingDraft.fieldCode
+    mappingDraft.fieldCode = mappingFieldOptions.value.some(option => option.value === resolvedFieldCode)
+      ? resolvedFieldCode
+      : null
+  }
+  finally {
+    if (mappingRequestGuard.isLatest(requestVersion))
+      mappingLoading.value = false
+  }
+}
+
+function confirmLowCodeMapping() {
+  if (!canConfirmMapping.value) {
+    message.warning('请选择来源业务对象和映射字段')
+    return
+  }
+  try {
+    const result = applyLowCodeVariableMapping(
+      draft.segments,
+      mappingTargetSegmentKey.value,
+      {
+        sourceObjectId: mappingDraft.sourceObjectId,
+        fieldCode: mappingDraft.fieldCode,
+      },
+      draft.sourceObjectId,
+    )
+    draft.sourceObjectId = result.sourceObjectId
+    draft.sourceObjectCode = null
+    draft.segments = result.segments
+    if (mappingObjectCapabilities.value)
+      objectCapabilities.value = mappingObjectCapabilities.value
+    if (result.clearedSegmentKeys.length)
+      message.warning(`已清空其它 ${result.clearedSegmentKeys.length} 个低代码字段映射，请重新配置`)
+    closeMappingModal()
+  }
+  catch (error) {
+    message.warning(error?.message || '低代码字段映射失败')
+  }
+}
+
+function handleMappingModalVisibility(show) {
+  if (!show)
+    closeMappingModal()
+}
+
+function closeMappingModal() {
+  mappingRequestGuard.invalidate()
+  mappingModalVisible.value = false
+  mappingLoading.value = false
+  mappingTargetSegmentKey.value = null
+  mappingDraft.sourceObjectId = null
+  mappingDraft.fieldCode = null
+  mappingFieldOptions.value = []
+  mappingObjectCapabilities.value = null
 }
 
 async function saveRule() {
@@ -496,6 +683,7 @@ function closeWorkspace() {
   detailRequestGuard.invalidate()
   previewRequestGuard.invalidate()
   capabilityRequestGuard.invalidate()
+  closeMappingModal()
   emit('close')
 }
 </script>
@@ -626,13 +814,11 @@ function closeWorkspace() {
   grid-column: 1 / -1;
 }
 
-.form-field-with-help,
-.source-object-field {
+.form-field-with-help {
   width: 100%;
 }
 
-.form-field-with-help > span,
-.source-object-field > span {
+.form-field-with-help > span {
   display: block;
   margin-top: 6px;
   color: var(--text-tertiary, #86909c);
@@ -647,6 +833,71 @@ function closeWorkspace() {
   min-height: 34px;
   color: var(--text-secondary, #4e5969);
   font-size: 13px;
+}
+
+.mapping-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mapping-dialog__context {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 11px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 8px;
+  background: var(--bg-secondary, #f7f8fa);
+}
+
+.mapping-dialog__context > i {
+  color: var(--primary-color, #4242f7);
+  font-size: 24px;
+}
+
+.mapping-dialog__context > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mapping-dialog__context strong {
+  color: var(--text-primary, #1d2129);
+  font-size: 14px;
+}
+
+.mapping-dialog__context span,
+.mapping-dialog__field-note {
+  color: var(--text-tertiary, #86909c);
+  font-size: 12px;
+}
+
+.mapping-dialog__form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.mapping-dialog__field-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: -8px;
+}
+
+.mapping-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .mapping-dialog__form {
+    grid-template-columns: 1fr;
+  }
 }
 
 .code-rule-editor__preview {

@@ -123,6 +123,7 @@ public class LegacyCodeRuleParser {
         CodeRuleSegmentDTO segment = new CodeRuleSegmentDTO();
         segment.setSegmentKey(type.toLowerCase(Locale.ROOT) + "_" + counter);
         segment.setSegmentType(type);
+        segment.setVariableSource("CUSTOM");
         segment.setPadEnabled(0);
         segment.setPadDirection("LEFT");
         segment.setGroupEnabled(0);

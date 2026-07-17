@@ -21,6 +21,15 @@ class CodeRuleMapperContractTest {
         assertTrue(xml.contains("<otherwise>"));
     }
 
+    @Test
+    void segmentMapperShouldRoundTripVariableSource() throws IOException {
+        String xml = Files.readString(resolveSegmentMapper());
+
+        assertTrue(xml.contains("column=\"variable_source\" property=\"variableSource\""));
+        assertTrue(xml.contains("segment_value, variable_source"));
+        assertTrue(xml.contains("#{segment.variableSource}"));
+    }
+
     private Path resolveMapper() {
         Path current = Path.of("").toAbsolutePath();
         for (int depth = 0; depth < 8 && current != null; depth++) {
@@ -37,5 +46,10 @@ class CodeRuleMapperContractTest {
             current = current.getParent();
         }
         return Path.of("src/main/resources/mapper/CodeRuleMapper.xml");
+    }
+
+    private Path resolveSegmentMapper() {
+        Path mapper = resolveMapper();
+        return mapper.resolveSibling("CodeRuleSegmentMapper.xml");
     }
 }

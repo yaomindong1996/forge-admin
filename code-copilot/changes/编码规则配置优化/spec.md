@@ -56,7 +56,8 @@ Forge 当前编码规则使用 `ai_code_rule.template` 保存 `${...}` 模板，
 - [x] 低代码字段自动编号继续读取 `generation.ruleCode`，生成上下文中的业务字段映射为新请求的 `fields`。
 - [x] UI 继续使用 `AiCrudPage` 承载查询和列表，新增/编辑进入同路由下的全屏配置工作台和分段编辑器。
 - [x] 适用场景改用 `sys_code_rule_scene` 字典；该字段保留旧调用方场景筛选语义，低代码精确范围改由业务对象绑定控制。
-- [x] VARIABLE 规则保存 `source_object_id/source_object_code`，只能选择来源对象中启用的非系统字段；低代码规则列表和运行时生成均校验当前对象。
+- [x] VARIABLE 支持 `CUSTOM` 自定义变量和 `LOWCODE` 低代码字段两种分段来源；只有 LOWCODE 分段需要保存 `source_object_id/source_object_code` 并校验字段归属，CUSTOM 由业务代码通过 `fields` 显式传值。
+- [x] LOWCODE 变量映射由当前分段行触发弹窗，在弹窗内完成“业务对象 → 字段”两级选择；行内回显映射摘要，不再把来源对象放在分段表格顶部。
 
 ## 4. 业务规则
 
@@ -77,14 +78,19 @@ Forge 当前编码规则使用 `ai_code_rule.template` 保存 `${...}` 模板，
 15. 编号允许因事务回滚、号段预分配和服务重启产生空洞，保证唯一递增但不承诺连续无缺口。
 16. 内置规则禁止删除；自定义规则和分段均采用逻辑删除。
 17. 分段拼接顺序由 `segmentOrder` 和拖拽排序表达，不新增重复的“顺序段”；SEQ 对用户显示为“流水号（顺序递增）”。
-18. 没有 VARIABLE 分段时来源对象自动清空；存在 VARIABLE 时必须选择来源对象，字段编码必须来自该对象当前启用的非系统字段目录。
+18. VARIABLE 分段必须声明 `variableSource=CUSTOM|LOWCODE`；历史协议缺省和 legacy parser 物化均按 `CUSTOM` 处理。
+19. CUSTOM 变量名必须是安全标识符，不要求来源业务对象；真实生成时调用方必须通过 `fields.<variableName>` 提供值。
+20. LOWCODE 变量必须选择一个启用的来源业务对象，字段编码必须来自该对象当前启用的非系统字段目录。
+21. 纯 CUSTOM VARIABLE 规则是通用规则，保存时清空来源对象；只要存在任一 LOWCODE VARIABLE，规则就是对象专属规则，列表筛选和运行时继续校验当前 `objectCode`。
+22. LOWCODE 映射弹窗打开和取消不修改规则草稿；只有点击“确认映射”后才原子更新当前分段、来源对象和字段。
+23. 一条规则的 LOWCODE 分段共用同一来源对象；在映射弹窗切换对象时，确认前必须提示影响，确认后清空其它 LOWCODE 分段的旧字段映射，禁止保留跨对象字段。
 
 ## 5. 数据变更
 
 | 操作 | 表名 | 字段/索引 | 说明 |
 |------|------|-----------|------|
 | 修改 | `ai_code_rule` | `category`, `source_object_id`, `source_object_code`, `version_no`, `in_code_list`, `del_flag`, `logic_delete_active` | 增加分类、低代码来源对象、乐观锁、可选择标记和逻辑删除；将旧唯一键升级为仅约束有效记录 |
-| 新增 | `ai_code_rule_segment` | 标准审计字段、`del_flag`、`logic_delete_active` | 保存稳定分段定义 |
+| 新增 | `ai_code_rule_segment` | `variable_source`、标准审计字段、`del_flag`、`logic_delete_active` | 保存稳定分段定义；VARIABLE 来源为 CUSTOM/LOWCODE，默认 CUSTOM |
 | 新增索引 | `ai_code_rule_segment` | `(tenant_id, rule_id, segment_order, del_flag)` | 详情和生成按序读取 |
 | 新增唯一索引 | `ai_code_rule_segment` | `(tenant_id, rule_id, segment_key, logic_delete_active)` | 稳定分段键仅约束未删除记录 |
 | 新增字典 | `sys_dict_type/sys_dict_data` | `sys_code_rule_category` | 编码分类，tenant_id 固定 1 |
@@ -148,6 +154,8 @@ Forge 当前编码规则使用 `ai_code_rule.template` 保存 `${...}` 模板，
 - 序列继续复用 `ISequenceService` 的数据库号段能力，不在 Generator 内另建 Redis 计数器；先修复缓存跨段问题并补起始值接口。
 - 规则分类使用字典；段类型和进制属于可执行能力，由后端 capability 接口返回，不能仅靠插入字典扩展。
 - 适用场景属于兼容筛选维度，使用 `sys_code_rule_scene` 字典；VARIABLE 的精确字段边界使用低代码业务对象和字段元数据，不复用自由文本场景。
+- VARIABLE 来源是分段级属性：CUSTOM 保持引擎现有 `fields` 取值协议，LOWCODE 只在配置和运行时增加元数据边界；不为两种来源分叉生成引擎。
+- LOWCODE 映射使用工作台内的 Naive UI Modal，映射草稿与规则草稿隔离；字段目录仍按选中对象调用 capability 接口加载，不新增后端协议。
 - 对象专属规则在无 `objectCode` 的选择请求中不可见；精确匹配当前对象时优先于 COMMON 场景过滤，运行时仍再次校验对象编码。
 - 列表继续复用 `AiCrudPage`，复杂主从编辑使用同路由查询状态切换到全屏工作台，保持通用 CRUD 与业务编辑器边界，同时避免新增权限路由。
 - UI 采用克制的企业配置工作台风格，遵循现有主题变量，不引入渐变、重动画或新的设计体系。
@@ -165,6 +173,8 @@ Forge 当前编码规则使用 `ai_code_rule.template` 保存 `${...}` 模板，
 | Task 6 | complete | 低代码兼容与回归 | `generation.ruleCode` 与业务 `fields` 分层完成 |
 | Task 7 | complete | 测试、构建和审查 | 定向测试、Admin 编译、前端构建和两阶段自审通过 |
 | Task 9 | complete | 场景字典、来源对象字段映射、低代码规则过滤与运行时校验 | Generator 15/15、前端 Vitest 9/9、Admin 42/42 和生产构建通过 |
+| Task 10 | complete | VARIABLE 分段 CUSTOM/LOWCODE 双来源、按需对象映射与自定义 `fields` 调用 | Generator 20/20、前端 11/11、ESLint、Admin 42/42 和生产构建通过 |
+| Task 11 | complete | LOWCODE 字段映射弹窗、行内摘要和对象切换原子应用 | 前端 Vitest 13/13、ESLint、生产构建和交互静态契约通过 |
 
 ## 12. 审查结论
 

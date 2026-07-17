@@ -184,6 +184,30 @@
   - 运行时生成校验规则绑定对象与当前低代码对象一致。
 - **验收**：Generator 定向测试、前端 ESLint/Vitest/build、Mapper/Flyway 静态检查和 Admin 聚合编译通过。
 
+## Task 10: VARIABLE 自定义变量与低代码映射双来源
+
+- [x] 已完成
+- **目标**：解除 VARIABLE 对低代码业务对象的全局强绑定，同时保留 LOWCODE 字段的设计态和运行时边界。
+- **数据协议**：
+  ```text
+  variableSource = CUSTOM | LOWCODE
+  CUSTOM  -> segmentValue=调用方变量名，生成时从 fields 取值
+  LOWCODE -> segmentValue=低代码字段编码，规则主表保存来源对象
+  ```
+- **Red**：
+  - [x] `code-rule-utils.spec.js` 先覆盖 CUSTOM 无对象合法、LOWCODE 无对象失败、切换来源清理旧值。
+  - [x] `SystemCodeRuleControllerContractTest` 先覆盖只收集 LOWCODE 字段和 CUSTOM 安全变量名。
+  - [x] `LegacyCodeRuleParserTest` 与 `CodeRuleMigrationContractTest` 先覆盖缺省 CUSTOM、字段迁移及回填。
+- **Green 后端**：
+  - [x] 修改 `CodeRuleSegmentDTO`、`AiCodeRuleSegment`、`CodeRuleSegmentMapper.xml`、`CodeRuleService`，完成 `variableSource` 持久化、详情回显、等价指纹和 legacy 默认。
+  - [x] 修改 `SystemCodeRuleController`，只校验 LOWCODE 字段目录；纯 CUSTOM 规则清空来源对象。
+  - [x] 修改 `V1.0.36__add_structured_code_rule_segments.sql`，用 `information_schema` 防重增加 `variable_source`，已绑定对象的存量 VARIABLE 回填 LOWCODE。
+- **Green 前端**：
+  - [x] 修改 `code-rule-utils.js`，VARIABLE 默认 CUSTOM，分类校验并在切换来源时清空不兼容值。
+  - [x] 修改 `CodeRuleSegmentEditor.vue`，在 VARIABLE 行内选择“自定义变量 / 低代码字段”；只存在 LOWCODE 分段时在分段区展示来源对象。
+  - [x] 修改 `CodeRuleEditorWorkspace.vue`，基础信息不再固定展示低代码来源，切换对象只清理 LOWCODE 字段。
+- **验证**：Generator 定向测试、相关 Vue/JS ESLint、Vitest、前端生产构建、Admin 聚合编译、Mapper XML/Flyway/差异格式静态检查。
+
 ## Review 发现（2026-07-16）
 
 - [x] 完成阶段一 Spec Compliance Review；结论 FAIL，按流程未进入正式 Code Quality Review。
@@ -195,3 +219,27 @@
 - [x] 用户验收复修：移除编码规则页面错误的 Naive 组件内部背景变量，统一使用 Forge 系统主题 Token，并通过定向 ESLint、Vitest 和生产构建。
 - [x] 用户验收复修：新增/编辑由抽屉改为同路由全屏工作台，分段操作列固定在右侧；无需新增菜单路由或放开权限守卫。
 - [ ] 重新执行 `/review 编码规则配置优化`；本项属于 Fix 后下一阶段，不在本轮 `/fix` 内提前标记通过。
+
+## Task 11: LOWCODE 分段弹窗映射
+
+- [x] 已完成
+- **目标**：从分段顶部移除全局映射区，用当前 VARIABLE 行触发的弹窗完成业务对象和字段选择。
+- **文件**：
+  - `forge-admin-ui/src/views/app-center/code-rule-utils.js`：提供可测试的映射原子应用函数。
+  - `forge-admin-ui/src/views/app-center/__tests__/code-rule-utils.spec.js`：覆盖同对象保留、切换对象清理和 CUSTOM 不受影响。
+  - `forge-admin-ui/src/views/app-center/components/CodeRuleSegmentEditor.vue`：移除顶部映射区，LOWCODE 行显示摘要/重新映射入口。
+  - `forge-admin-ui/src/views/app-center/components/CodeRuleEditorWorkspace.vue`：管理 Modal 映射草稿、对象字段加载和确认提交。
+- **核心契约**：
+  ```js
+  applyLowCodeVariableMapping(segments, targetSegmentKey, {
+    sourceObjectId,
+    fieldCode,
+  }, currentSourceObjectId)
+  // => { segments, sourceObjectId, clearedSegmentKeys, objectChanged }
+  ```
+- **Red/Green**：
+  - [x] 先增加纯函数用例并确认旧实现因缺少契约而失败。
+  - [x] 实现最小原子应用函数，同对象时只更新目标分段，切换对象时清空其它 LOWCODE 映射。
+  - [x] 选择 LOWCODE 时只打开弹窗，取消时不修改 `variableSource/segmentValue/sourceObjectId`。
+  - [x] 确认后一次性应用对象与字段，对象改变时在弹窗中显示其它映射将被清理的提示。
+- **验证**：Vitest、两个 Vue 组件与工具函数 ESLint、前端生产构建、`git diff --check`。

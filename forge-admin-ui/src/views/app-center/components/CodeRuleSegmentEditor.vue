@@ -29,7 +29,7 @@
       <div class="segment-editor__table-head">
         <span>顺序</span>
         <span>段类型</span>
-        <span>编码格式 / 值</span>
+        <span>来源 / 格式 / 值</span>
         <span>长度</span>
         <span>补位</span>
         <span>分组</span>
@@ -83,18 +83,38 @@
                   :disabled="disabled"
                   @update:value="value => patchFixedValue(index, value)"
                 />
-                <n-select
-                  v-else-if="segment.segmentType === 'VARIABLE'"
-                  size="small"
-                  filterable
-                  clearable
-                  :value="segment.segmentValue"
-                  :options="businessFieldOptions"
-                  :loading="businessFieldsLoading"
-                  :placeholder="sourceObjectSelected ? '选择业务字段' : '请先选择字段来源业务对象'"
-                  :disabled="disabled || !sourceObjectSelected || businessFieldsLoading"
-                  @update:value="value => patchSegment(index, { segmentValue: value })"
-                />
+                <div v-else-if="segment.segmentType === 'VARIABLE'" class="segment-editor__variable-value">
+                  <n-select
+                    size="small"
+                    :value="segment.variableSource || 'CUSTOM'"
+                    :options="variableSourceOptions"
+                    :disabled="disabled"
+                    @update:value="value => changeVariableSource(index, value)"
+                  />
+                  <button
+                    v-if="segment.variableSource === 'LOWCODE'"
+                    type="button"
+                    class="segment-editor__mapping-summary"
+                    :class="{ 'is-empty': !segment.segmentValue }"
+                    :disabled="disabled"
+                    @click="requestLowCodeMapping(segment.segmentKey)"
+                  >
+                    <i class="i-material-symbols:account-tree-outline" />
+                    <span>
+                      <strong>{{ lowCodeFieldLabel(segment) }}</strong>
+                      <small>{{ lowCodeObjectLabel }}</small>
+                    </span>
+                    <i class="i-material-symbols:edit-outline-rounded" />
+                  </button>
+                  <n-input
+                    v-else
+                    size="small"
+                    :value="segment.segmentValue"
+                    placeholder="变量名，如 customerType"
+                    :disabled="disabled"
+                    @update:value="value => patchSegment(index, { segmentValue: value })"
+                  />
+                </div>
                 <n-select
                   v-else-if="segment.segmentType === 'SYS_VAR'"
                   size="small"
@@ -259,7 +279,7 @@
 
     <footer class="segment-editor__tips">
       <span><i class="i-material-symbols:info-outline-rounded" /> 流水号固定左补；超过进制容量会失败，不会截断。</span>
-      <span>业务变量只能选择已绑定低代码对象中的启用业务字段。</span>
+      <span>业务变量可映射低代码字段，也可由业务代码通过 fields 传入自定义变量。</span>
       <span>参与分组的段共同决定独立计数器，原始分组值不会写入计数键。</span>
     </footer>
   </section>
@@ -270,6 +290,7 @@ import { computed, ref } from 'vue'
 import draggable from 'vuedraggable'
 import {
   changeCodeRuleSegmentType,
+  changeCodeRuleVariableSource,
   createCodeRuleSegment,
   normalizeCodeRuleSegments,
 } from '../code-rule-utils'
@@ -284,11 +305,17 @@ const props = defineProps({
     default: () => ({}),
   },
   disabled: Boolean,
-  sourceObjectSelected: Boolean,
-  businessFieldsLoading: Boolean,
+  sourceObjectId: {
+    type: [Number, String],
+    default: null,
+  },
+  businessObjectOptions: {
+    type: Array,
+    default: () => [],
+  },
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'requestLowCodeMapping'])
 const expandedKeys = ref(new Set())
 
 const rows = computed({
@@ -302,6 +329,18 @@ const radixTypeOptions = computed(() => props.capabilities.radixTypes || [])
 const resetPolicyOptions = computed(() => props.capabilities.resetPolicies || [])
 const systemVariableOptions = computed(() => props.capabilities.systemVariables || [])
 const businessFieldOptions = computed(() => props.capabilities.businessFields || [])
+const variableSourceOptions = computed(() => props.capabilities.variableSources?.length
+  ? props.capabilities.variableSources
+  : [
+      { label: '自定义变量', value: 'CUSTOM' },
+      { label: '低代码字段', value: 'LOWCODE' },
+    ])
+const lowCodeObjectLabel = computed(() => {
+  if (!props.sourceObjectId)
+    return '尚未选择来源对象'
+  const option = props.businessObjectOptions.find(item => String(item.value) === String(props.sourceObjectId))
+  return option?.label || `业务对象 ${props.sourceObjectId}`
+})
 const padDirectionOptions = [
   { label: '左侧补位', value: 'LEFT' },
   { label: '右侧补位', value: 'RIGHT' },
@@ -337,6 +376,29 @@ function changeType(index, type) {
   const next = [...rows.value]
   next[index] = changeCodeRuleSegmentType(next[index], type)
   emitRows(next)
+}
+
+function changeVariableSource(index, variableSource) {
+  if (variableSource === 'LOWCODE') {
+    requestLowCodeMapping(rows.value[index]?.segmentKey)
+    return
+  }
+  const next = [...rows.value]
+  next[index] = changeCodeRuleVariableSource(next[index], variableSource)
+  emitRows(next)
+}
+
+function requestLowCodeMapping(segmentKey) {
+  if (!segmentKey || props.disabled)
+    return
+  emit('requestLowCodeMapping', segmentKey)
+}
+
+function lowCodeFieldLabel(segment) {
+  if (!segment?.segmentValue)
+    return '选择对象与字段'
+  const option = businessFieldOptions.value.find(item => item.value === segment.segmentValue)
+  return option?.label || segment.segmentValue
 }
 
 function addSegment(type) {
@@ -401,10 +463,10 @@ function toggleExpanded(key) {
 .segment-editor__table-head,
 .segment-editor__row-main {
   display: grid;
-  grid-template-columns: 48px 126px minmax(180px, 1fr) 68px 58px 58px 78px 76px;
+  grid-template-columns: 48px 126px minmax(320px, 1fr) 68px 58px 58px 78px 76px;
   gap: 10px;
   align-items: center;
-  min-width: 820px;
+  min-width: 960px;
 }
 
 .segment-editor__table-head {
@@ -484,6 +546,72 @@ function toggleExpanded(key) {
   padding-left: 8px;
   background: var(--bg-primary, #fff);
   box-shadow: -10px 0 12px -12px var(--text-tertiary, #86909c);
+}
+
+.segment-editor__value {
+  min-width: 0;
+}
+
+.segment-editor__variable-value {
+  display: grid;
+  grid-template-columns: 128px minmax(150px, 1fr);
+  gap: 8px;
+  min-width: 0;
+}
+
+.segment-editor__mapping-summary {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 18px;
+  gap: 7px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 3px 8px;
+  color: var(--text-primary, #1d2129);
+  text-align: left;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+  cursor: pointer;
+}
+
+.segment-editor__mapping-summary:hover:not(:disabled) {
+  color: var(--primary-color, #4242f7);
+  border-color: var(--primary-color, #4242f7);
+  background: color-mix(in srgb, var(--primary-color, #4242f7) 5%, var(--bg-primary, #fff));
+}
+
+.segment-editor__mapping-summary:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.segment-editor__mapping-summary.is-empty {
+  border-style: dashed;
+}
+
+.segment-editor__mapping-summary > span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.segment-editor__mapping-summary strong,
+.segment-editor__mapping-summary small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.segment-editor__mapping-summary strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.segment-editor__mapping-summary small {
+  color: var(--text-tertiary, #86909c);
+  font-size: 10px;
 }
 
 .segment-editor__advanced {

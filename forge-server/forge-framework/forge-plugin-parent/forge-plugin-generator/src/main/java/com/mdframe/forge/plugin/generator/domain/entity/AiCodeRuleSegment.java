@@ -37,6 +37,9 @@ public class AiCodeRuleSegment extends TenantEntity {
     /** 日期格式、固定值、变量名或系统变量名。 */
     private String segmentValue;
 
+    /** VARIABLE 的取值来源：CUSTOM/LOWCODE。 */
+    private String variableSource;
+
     private Integer segmentLength;
 
     private Integer padEnabled;

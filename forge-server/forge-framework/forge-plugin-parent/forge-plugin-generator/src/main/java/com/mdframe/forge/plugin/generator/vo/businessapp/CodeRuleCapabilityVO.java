@@ -23,6 +23,8 @@ public class CodeRuleCapabilityVO {
 
     private List<OptionVO> systemVariables = new ArrayList<>();
 
+    private List<OptionVO> variableSources = new ArrayList<>();
+
     /** 当前租户可用于规则字段映射的低代码业务对象。 */
     private List<OptionVO> businessObjects = new ArrayList<>();
 

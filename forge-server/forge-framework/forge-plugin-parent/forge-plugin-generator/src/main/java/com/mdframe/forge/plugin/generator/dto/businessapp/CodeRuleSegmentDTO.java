@@ -24,6 +24,10 @@ public class CodeRuleSegmentDTO {
     @Size(max = 128, message = "分段配置值长度不能超过128个字符")
     private String segmentValue;
 
+    /** VARIABLE 的取值来源：CUSTOM/LOWCODE；历史协议默认 CUSTOM。 */
+    @Size(max = 16, message = "变量来源长度不能超过16个字符")
+    private String variableSource = "CUSTOM";
+
     @Min(value = 1, message = "分段长度不能小于1")
     @Max(value = 96, message = "分段长度不能超过96")
     private Integer segmentLength;

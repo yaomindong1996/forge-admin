@@ -20,6 +20,7 @@ const TYPE_DEFAULTS = {
   },
   VARIABLE: {
     segmentValue: null,
+    variableSource: 'CUSTOM',
     segmentLength: 8,
   },
   SYS_VAR: {
@@ -68,6 +69,7 @@ export function createCodeRuleSegment(type = 'FIXED', order = 1) {
     segmentOrder: order,
     segmentType: normalizedType,
     segmentValue: null,
+    variableSource: 'CUSTOM',
     segmentLength: null,
     padEnabled: 0,
     padChar: null,
@@ -91,6 +93,59 @@ export function changeCodeRuleSegmentType(segment, type) {
   return next
 }
 
+export function changeCodeRuleVariableSource(segment, variableSource) {
+  return {
+    ...segment,
+    variableSource: variableSource === 'LOWCODE' ? 'LOWCODE' : 'CUSTOM',
+    segmentValue: null,
+  }
+}
+
+export function applyLowCodeVariableMapping(
+  segments,
+  targetSegmentKey,
+  mapping,
+  currentSourceObjectId,
+) {
+  const sourceObjectId = mapping?.sourceObjectId === null || mapping?.sourceObjectId === undefined
+    ? null
+    : String(mapping.sourceObjectId)
+  const fieldCode = String(mapping?.fieldCode || '').trim()
+  if (!sourceObjectId || !fieldCode)
+    throw new Error('低代码字段映射必须选择业务对象和字段')
+
+  const targetExists = (segments || []).some(segment => segment?.segmentKey === targetSegmentKey)
+  if (!targetExists)
+    throw new Error('待映射的编码分段已不存在')
+
+  const objectChanged = String(currentSourceObjectId || '') !== sourceObjectId
+  const clearedSegmentKeys = []
+  const nextSegments = (segments || []).map((segment) => {
+    if (segment?.segmentKey === targetSegmentKey) {
+      return {
+        ...segment,
+        variableSource: 'LOWCODE',
+        segmentValue: fieldCode,
+      }
+    }
+    if (objectChanged
+      && segment?.segmentType === 'VARIABLE'
+      && segment?.variableSource === 'LOWCODE'
+      && segment?.segmentValue) {
+      clearedSegmentKeys.push(segment.segmentKey)
+      return { ...segment, segmentValue: null }
+    }
+    return segment
+  })
+
+  return {
+    sourceObjectId,
+    objectChanged,
+    clearedSegmentKeys,
+    segments: normalizeCodeRuleSegments(nextSegments),
+  }
+}
+
 export function normalizeCodeRuleSegments(segments = []) {
   return [...segments]
     .sort((left, right) => Number(left?.segmentOrder || 0) - Number(right?.segmentOrder || 0))
@@ -103,6 +158,9 @@ export function normalizeCodeRuleSegments(segments = []) {
       padEnabled: Number(segment?.padEnabled) === 1 ? 1 : 0,
       resetEnabled: Number(segment?.resetEnabled) === 1 ? 1 : 0,
       excludeAmbiguous: Number(segment?.excludeAmbiguous) === 1 ? 1 : 0,
+      variableSource: segment?.segmentType === 'VARIABLE' && segment?.variableSource === 'LOWCODE'
+        ? 'LOWCODE'
+        : 'CUSTOM',
     }))
 }
 
@@ -133,7 +191,7 @@ export function validateCodeRuleDraft(draft = {}) {
     errors.push('至少需要一个列入编码的分段')
   if (segments.filter(segment => segment.segmentType === 'SEQ').length > 1)
     errors.push('一条规则最多只能包含一个流水号段')
-  if (segments.some(segment => segment.segmentType === 'VARIABLE') && !draft.sourceObjectId)
+  if (segments.some(segment => segment.segmentType === 'VARIABLE' && segment.variableSource === 'LOWCODE') && !draft.sourceObjectId)
     errors.push('业务变量段必须选择字段来源业务对象')
 
   const keys = new Set()
@@ -146,6 +204,13 @@ export function validateCodeRuleDraft(draft = {}) {
       errors.push(`${label}未选择分段类型`)
     if (['DATE', 'FIXED', 'VARIABLE', 'SYS_VAR'].includes(segment.segmentType) && !String(segment.segmentValue || '').trim())
       errors.push(`${label}缺少配置值`)
+    const variableName = String(segment.segmentValue || '').trim()
+    if (segment.segmentType === 'VARIABLE'
+      && segment.variableSource === 'CUSTOM'
+      && variableName
+      && !variableName.match(/^[A-Z_]\w{0,63}$/i)) {
+      errors.push(`${label}的自定义变量名必须以字母或下划线开头，且只能包含字母、数字和下划线`)
+    }
     if (segment.segmentType === 'SEQ' && !(Number(segment.segmentLength) >= 1 && Number(segment.segmentLength) <= 32))
       errors.push(`${label}的流水长度必须在 1 到 32 之间`)
     if (Number(segment.groupEnabled) === 1 && Number(segment.includeInCode) !== 1)

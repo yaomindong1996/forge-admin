@@ -169,3 +169,41 @@ Review 结论：`NEEDS_FIX`。当前状态为 `reviewed_with_findings`，不得�
 
 - 本轮启动服务：无；停止服务：无；遗留 PID：无。
 - 未执行真实 MySQL/Flyway 和登录态 HTTP，继续由可用环境补验。
+
+## 11. VARIABLE 自定义/低代码双来源复修（2026-07-17）
+
+用户指出“业务变量”不应全部强制映射低代码对象：业务代码也需要配置自定义变量名，并在调用编码规则时通过 `fields` 传值。复核确认引擎原本已支持该取值协议，阻断点位于管理侧保存校验和前端交互。
+
+| 时间 | 范围 | 命令/动作 | 结果 | 备注 |
+|------|------|-----------|------|------|
+| 2026-07-17 07:21 | Red / 前端 | `pnpm exec vitest run src/views/app-center/__tests__/code-rule-utils.spec.js` | failed as expected，2 项 | 缺少 CUSTOM 默认属性和来源切换函数 |
+| 2026-07-17 07:21 | Red / 后端 | Generator 定向测试 | failed as expected，testCompile 7 处 | DTO、Controller 分类契约和 legacy 尚无 `variableSource` |
+| 2026-07-17 07:27 | Green / 核心 | 前端 Vitest/ESLint；Generator 6 个测试类 | passed | 前端 11/11；后端 15/15；ESLint 0 errors |
+| 2026-07-17 07:30 | Generator 全部编码规则回归 | 7 个测试类 | passed，20/20 | 包含 Dynamic CRUD 自动编号和纯 CUSTOM/混合 LOWCODE 对象边界 |
+| 2026-07-17 07:30 | XML/Flyway/差异 | `xmllint --noout`、placeholder 扫描、`git diff --check` | passed | `variable_source` 防重补列和已绑定分段回填契约已覆盖 |
+| 2026-07-17 07:33 | 前端生产构建 | `NODE_OPTIONS=--max-old-space-size=8192 pnpm build` | passed，8691 modules | 1m17s；仅仓库既有动态/静态导入、CSS `//` 注释和组件同名警告 |
+| 2026-07-17 07:34 | Admin 聚合编译 | `mvn -pl forge-admin-server -am compile -DskipTests` | passed，42/42 | Java 17，19.459s |
+
+- 交互改为 VARIABLE 行内先选“自定义变量 / 低代码字段”；只存在 LOWCODE 分段时，分段区才显示来源业务对象。
+- 纯 CUSTOM 规则自动清空来源对象并作为通用规则；含任一 LOWCODE 分段的混合规则继续按 `objectCode` 筛选和运行时校验。
+- 本轮未使用 `ui-ux-pro-max`，页面继续使用 Forge 系统主题 Token。
+- 本轮未启动 Admin/MySQL/Redis，未实跑 Flyway、HTTP 或浏览器登录态验收；启动/停止服务均为无，无遗留 PID。
+
+## 12. LOWCODE 字段映射弹窗复修（2026-07-17）
+
+用户验收指出，低代码字段映射放在分段表格顶部时，用户操作当前分段后需要回到顶部才能选择对象，滚动后入口不可见。本轮将映射改为当前 VARIABLE 行触发的 Modal。
+
+| 时间 | 范围 | 命令/动作 | 结果 | 备注 |
+|------|------|-----------|------|------|
+| 2026-07-17 07:55 | Red | `pnpm exec vitest run src/views/app-center/__tests__/code-rule-utils.spec.js` | failed as expected，2 项 | 旧实现缺少 `applyLowCodeVariableMapping` |
+| 2026-07-17 07:59 | Green | Vitest + 定向 ESLint | passed，13/13 | 相关 Vue/JS 0 errors |
+| 2026-07-17 08:00 | 交互静态契约 | 顶部映射区、弹窗/行内入口、主题变量和 `git diff --check` 扫描 | passed | 首次扫描模式过宽命中 `mapping-summary`，收紧为精确 class 后通过，不是产品代码失败 |
+| 2026-07-17 08:02 | 前端生产构建 | `NODE_OPTIONS=--max-old-space-size=8192 pnpm build` | passed，8691 modules | 1m26s；仅仓库既有非阻断警告 |
+| 2026-07-17 08:06 | 收尾回归 | Node v20.19.0 下定向 ESLint、Vitest、精确入口/主题扫描与 `git diff --check` | passed，13/13 | ESLint 0 errors；顶部全局映射区无残留；保留用户既有 `.DS_Store` 差异 |
+
+- 选择“低代码字段”只打开映射弹窗，取消/遮罩关闭不修改规则草稿。
+- 弹窗内按“来源业务对象 → 映射字段”两级选择；确认后才一次性应用。
+- 已映射分段行内显示对象与字段摘要，可直接点击重新映射；不再存在表格顶部全局映射区。
+- 切换对象时弹窗显示影响提示，确认后清空其它 LOWCODE 分段的跨对象映射，CUSTOM 分段不受影响。
+- `frontend-design` 仅用于确认局部弹窗的交互层级；实现保持 Forge 企业配置页的克制风格和系统主题 Token，未使用 `ui-ux-pro-max`。
+- 本轮未启动 Admin/MySQL/Redis，未执行登录态浏览器验收；启动/停止服务均为无，无遗留 PID。

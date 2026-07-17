@@ -37,7 +37,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -49,6 +51,10 @@ import java.util.stream.Collectors;
 @ApiDecrypt
 @ApiEncrypt
 public class SystemCodeRuleController {
+
+    private static final Set<String> VARIABLE_SOURCES = Set.of("CUSTOM", "LOWCODE");
+    private static final Pattern CUSTOM_VARIABLE_PATTERN =
+            Pattern.compile("^[A-Za-z_][A-Za-z0-9_]{0,63}$");
 
     private final CodeRuleService codeRuleService;
     private final BusinessObjectService businessObjectService;
@@ -169,14 +175,22 @@ public class SystemCodeRuleController {
         if (dto == null) {
             return;
         }
-        Set<String> variableFieldCodes = variableFieldCodes(dto);
-        if (variableFieldCodes.isEmpty()) {
+        normalizeVariableSources(dto);
+        Set<String> customNames = customVariableNames(dto);
+        Set<String> invalidCustomNames = customNames.stream()
+                .filter(name -> !isSafeCustomVariableName(name))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (!invalidCustomNames.isEmpty()) {
+            throw new BusinessException("自定义变量名格式不正确: " + String.join(", ", invalidCustomNames));
+        }
+        Set<String> variableFieldCodes = lowCodeVariableFieldCodes(dto);
+        if (!hasLowCodeVariable(dto)) {
             dto.setSourceObjectId(null);
             dto.setSourceObjectCode(null);
             return;
         }
         if (dto.getSourceObjectId() == null) {
-            throw new BusinessException("业务变量段必须选择字段来源业务对象");
+            throw new BusinessException("低代码业务变量必须选择字段来源业务对象");
         }
         BusinessObjectVO object = businessObjectService.detail(dto.getSourceObjectId());
         if (!Integer.valueOf(1).equals(object.getStatus())) {
@@ -192,14 +206,54 @@ public class SystemCodeRuleController {
         dto.setSourceObjectCode(object.getObjectCode());
     }
 
-    static Set<String> variableFieldCodes(CodeRuleSaveDTO dto) {
+    static Set<String> lowCodeVariableFieldCodes(CodeRuleSaveDTO dto) {
         List<CodeRuleSegmentDTO> segments = dto == null || dto.getSegments() == null
                 ? List.of() : dto.getSegments();
         return segments.stream()
                 .filter(segment -> segment != null && "VARIABLE".equalsIgnoreCase(segment.getSegmentType()))
+                .filter(segment -> "LOWCODE".equalsIgnoreCase(segment.getVariableSource()))
                 .map(segment -> segment.getSegmentValue() == null ? "" : segment.getSegmentValue().trim())
                 .filter(value -> !value.isEmpty())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    static boolean hasLowCodeVariable(CodeRuleSaveDTO dto) {
+        List<CodeRuleSegmentDTO> segments = dto == null || dto.getSegments() == null
+                ? List.of() : dto.getSegments();
+        return segments.stream()
+                .filter(Objects::nonNull)
+                .anyMatch(segment -> "VARIABLE".equalsIgnoreCase(segment.getSegmentType())
+                        && "LOWCODE".equalsIgnoreCase(segment.getVariableSource()));
+    }
+
+    static Set<String> customVariableNames(CodeRuleSaveDTO dto) {
+        List<CodeRuleSegmentDTO> segments = dto == null || dto.getSegments() == null
+                ? List.of() : dto.getSegments();
+        return segments.stream()
+                .filter(segment -> segment != null && "VARIABLE".equalsIgnoreCase(segment.getSegmentType()))
+                .filter(segment -> !"LOWCODE".equalsIgnoreCase(segment.getVariableSource()))
+                .map(segment -> segment.getSegmentValue() == null ? "" : segment.getSegmentValue().trim())
+                .filter(value -> !value.isEmpty())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    static boolean isSafeCustomVariableName(String value) {
+        return value != null && CUSTOM_VARIABLE_PATTERN.matcher(value).matches();
+    }
+
+    private void normalizeVariableSources(CodeRuleSaveDTO dto) {
+        List<CodeRuleSegmentDTO> segments = dto.getSegments() == null ? List.of() : dto.getSegments();
+        for (CodeRuleSegmentDTO segment : segments) {
+            if (segment == null || !"VARIABLE".equalsIgnoreCase(segment.getSegmentType())) {
+                continue;
+            }
+            String variableSource = StringUtils.upperCase(
+                    StringUtils.defaultIfBlank(segment.getVariableSource(), "CUSTOM"));
+            if (!VARIABLE_SOURCES.contains(variableSource)) {
+                throw new BusinessException("不支持的业务变量来源: " + variableSource);
+            }
+            segment.setVariableSource(variableSource);
+        }
     }
 
     static Set<String> missingVariableFieldCodes(Set<String> requestedFieldCodes,
