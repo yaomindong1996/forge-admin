@@ -13,7 +13,7 @@
     <select id="selectLegacyMaxId" resultType="java.lang.Long">
         SELECT MAX(max_id)
         FROM sys_id_sequence
-        WHERE LEFT(biz_key, CHAR_LENGTH(#{legacyKeyPrefix})) = #{legacyKeyPrefix}
+        WHERE biz_key LIKE #{escapedLegacyKeyPattern} ESCAPE '!'
           AND (
             SUBSTRING_INDEX(biz_key, ':', -1) = #{legacyPeriod}
             OR (

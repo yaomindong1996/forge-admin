@@ -14,6 +14,7 @@ import com.mdframe.forge.starter.core.annotation.log.OperationLog;
 import com.mdframe.forge.starter.core.domain.OperationType;
 import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.domain.RespInfo;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -72,15 +73,14 @@ public class CodeRuleController {
 
     @PostMapping("/preview")
     @SaCheckPermission("ai:businessObject:design")
-    @OperationLog(module = "编码规则", type = OperationType.QUERY, desc = "预览编码规则")
-    public RespInfo<CodeRulePreviewVO> preview(@RequestBody CodeRulePreviewDTO dto) {
+    public RespInfo<CodeRulePreviewVO> preview(@Valid @RequestBody CodeRulePreviewDTO dto) {
         return RespInfo.success(codeRuleService.preview(dto));
     }
 
     @PostMapping("/generate")
     @SaCheckPermission("ai:businessObject:design")
     @OperationLog(module = "编码规则", type = OperationType.OTHER, desc = "生成编码样例")
-    public RespInfo<Map<String, String>> generate(@RequestBody CodeRuleGenerateDTO dto) {
+    public RespInfo<Map<String, String>> generate(@Valid @RequestBody CodeRuleGenerateDTO dto) {
         CodeRuleGenerateDTO request = dto == null ? new CodeRuleGenerateDTO() : dto;
         Map<String, Object> fields = request.getFields() == null ? request.getContext() : request.getFields();
         return RespInfo.success(Map.of("code", codeRuleService.generate(request.getRuleCode(), fields)));

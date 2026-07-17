@@ -18,6 +18,6 @@ public interface SysIdSequenceMapper extends BaseMapper<SysIdSequence> {
      * <p>旧 key 包含调用方 scope，新结构化规则会把多个旧 scope 合并到稳定规则 key，
      * 因此取相同规则、相同周期下所有旧 scope 的最大值作为新 key 的安全起点。</p>
      */
-    Long selectLegacyMaxId(@Param("legacyKeyPrefix") String legacyKeyPrefix,
+    Long selectLegacyMaxId(@Param("escapedLegacyKeyPattern") String escapedLegacyKeyPattern,
                            @Param("legacyPeriod") String legacyPeriod);
 }

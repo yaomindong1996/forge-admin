@@ -14,6 +14,8 @@ import java.util.Map;
 @Component
 public class CodeRuleRadixCodec {
 
+    private static final BigInteger LONG_MAX_VALUE = BigInteger.valueOf(Long.MAX_VALUE);
+
     private static final Map<String, String> ALPHABETS = Map.of(
             "DECIMAL", "0123456789",
             "HEX", "0123456789ABCDEF",
@@ -30,7 +32,7 @@ public class CodeRuleRadixCodec {
             throw new BusinessException("流水号长度必须在1到32之间");
         }
         String alphabet = alphabet(radixType, excludeAmbiguous);
-        BigInteger capacity = BigInteger.valueOf(alphabet.length()).pow(length);
+        BigInteger capacity = capacity(radixType, length, excludeAmbiguous);
         if (BigInteger.valueOf(value).compareTo(capacity) >= 0) {
             throw new BusinessException("流水号已超过当前进制和长度的容量，请增加流水号长度");
         }
@@ -43,6 +45,35 @@ public class CodeRuleRadixCodec {
         } while (remaining > 0);
         encoded.reverse();
         return StringUtils.leftPad(encoded.toString(), length, alphabet.charAt(0));
+    }
+
+    public int requiredLength(long value, String radixType, boolean excludeAmbiguous) {
+        if (value < 0) {
+            throw new BusinessException("流水号不能小于0");
+        }
+        BigInteger remaining = BigInteger.valueOf(value);
+        BigInteger radix = BigInteger.valueOf(alphabet(radixType, excludeAmbiguous).length());
+        int length = 1;
+        while (remaining.compareTo(radix) >= 0) {
+            remaining = remaining.divide(radix);
+            length++;
+        }
+        return length;
+    }
+
+    public long maxValue(String radixType, int length, boolean excludeAmbiguous) {
+        BigInteger maximum = capacity(radixType, length, excludeAmbiguous).subtract(BigInteger.ONE);
+        return maximum.min(LONG_MAX_VALUE).longValue();
+    }
+
+    public int recommendedAllocationStep(String radixType,
+                                         int length,
+                                         boolean excludeAmbiguous) {
+        BigInteger suggested = capacity(radixType, length, excludeAmbiguous)
+                .divide(BigInteger.valueOf(1_000L));
+        return suggested.max(BigInteger.ONE)
+                .min(BigInteger.valueOf(1_000L))
+                .intValue();
     }
 
     public String alphabet(String radixType, boolean excludeAmbiguous) {
@@ -60,5 +91,12 @@ public class CodeRuleRadixCodec {
                 .replace("i", "")
                 .replace("o", "")
                 .replace("z", "");
+    }
+
+    private BigInteger capacity(String radixType, int length, boolean excludeAmbiguous) {
+        if (length < 1 || length > 32) {
+            throw new BusinessException("流水号长度必须在1到32之间");
+        }
+        return BigInteger.valueOf(alphabet(radixType, excludeAmbiguous).length()).pow(length);
     }
 }

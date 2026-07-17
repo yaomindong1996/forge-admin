@@ -59,6 +59,9 @@ public class AiCodeRule extends TenantEntity {
     @Version
     private Integer versionNo;
 
+    /** 1-升级存量规则需要读取旧计数器水位，0-新规则使用严格容量。 */
+    private Integer legacyCompatEnabled;
+
     private String remark;
 
     private String options;

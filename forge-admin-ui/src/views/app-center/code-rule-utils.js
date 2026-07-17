@@ -47,6 +47,13 @@ export function createLatestRequestGuard() {
   }
 }
 
+export function isCanceledRequest(error) {
+  return error?.code === 'ERR_CANCELED'
+    || error?.name === 'CanceledError'
+    || error?.error?.code === 'ERR_CANCELED'
+    || error?.error?.name === 'CanceledError'
+}
+
 export function hasCodeRulePermission(userStore, permission) {
   if (userStore?.isAdmin)
     return true

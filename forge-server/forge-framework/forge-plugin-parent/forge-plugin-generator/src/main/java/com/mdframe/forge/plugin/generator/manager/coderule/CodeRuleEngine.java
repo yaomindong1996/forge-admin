@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.generator.manager.coderule;
 
 import com.mdframe.forge.plugin.generator.dto.businessapp.CodeRuleSegmentDTO;
+import com.mdframe.forge.plugin.generator.util.DynamicQueryGenerator;
 import com.mdframe.forge.plugin.generator.vo.businessapp.CodeRuleGenerateVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.CodeRulePreviewVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
@@ -41,11 +42,21 @@ public class CodeRuleEngine {
     );
     private static final Set<String> VARIABLE_SOURCES = Set.of("CUSTOM", "LOWCODE");
     private static final Pattern VARIABLE_NAME_PATTERN = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]{0,63}$");
+    private static final int LEGACY_WIDTH_CACHE_MAX_SIZE = 2_048;
+    private static final int MAX_SEGMENT_COUNT = 32;
+    private static final int MAX_BUSINESS_FIELD_COUNT = 256;
+    private static final int MAX_UNDECLARED_VARIABLE_LENGTH = 96;
 
     private final ISequenceService sequenceService;
     private final CodeRuleRadixCodec radixCodec;
     private final CodeRuleSequenceKeyFactory keyFactory;
     private final Clock clock;
+    private final Map<LegacyWidthCacheKey, Integer> legacyWidthCache = new LinkedHashMap<>(16, 0.75F, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<LegacyWidthCacheKey, Integer> eldest) {
+            return size() > LEGACY_WIDTH_CACHE_MAX_SIZE;
+        }
+    };
 
     @Autowired
     public CodeRuleEngine(ISequenceService sequenceService,
@@ -68,6 +79,9 @@ public class CodeRuleEngine {
         List<CodeRuleSegmentDTO> segments = orderedSegments(definition);
         if (segments.isEmpty()) {
             throw new BusinessException("编码规则至少需要一个分段");
+        }
+        if (segments.size() > MAX_SEGMENT_COUNT) {
+            throw new BusinessException("一条编码规则最多只能包含" + MAX_SEGMENT_COUNT + "个分段");
         }
         Set<String> segmentKeys = new HashSet<>();
         int sequenceCount = 0;
@@ -130,10 +144,10 @@ public class CodeRuleEngine {
         }
         RenderResult rendered = render(definition, fields, trustedSystemVariables, null, false);
         CodeRuleGenerateVO result = new CodeRuleGenerateVO();
-        result.setCode(rendered.preview().getPreviewCode());
-        result.setSequence(rendered.preview().getSequence());
-        result.setGroupKey(rendered.preview().getGroupKey());
-        result.setPeriod(rendered.preview().getPeriod());
+        result.setCode(rendered.code());
+        result.setSequence(rendered.sequence());
+        result.setGroupKey(rendered.groupKey());
+        result.setPeriod(rendered.period());
         return result;
     }
 
@@ -145,16 +159,18 @@ public class CodeRuleEngine {
         List<String> validationWarnings = validate(definition);
         List<CodeRuleSegmentDTO> segments = orderedSegments(definition);
         LocalDateTime now = LocalDateTime.now(clock);
-        Map<String, Object> safeFields = safeMap(fields);
+        Map<String, Object> safeFields = safeBusinessFields(fields);
         Map<String, Object> safeSystemVariables = safeMap(trustedSystemVariables);
         LinkedHashMap<String, String> resolvedValues = new LinkedHashMap<>();
         LinkedHashMap<String, String> groupValues = new LinkedHashMap<>();
         CodeRuleSegmentDTO sequenceSegment = null;
 
-        CodeRulePreviewVO preview = new CodeRulePreviewVO();
-        preview.setTemplate(toCompatibilityTemplate(segments));
-        preview.setFormatExpression(toFormatExpression(segments));
-        validationWarnings.forEach(message -> preview.getWarnings().add(issue(null, message, null)));
+        CodeRulePreviewVO preview = previewMode ? new CodeRulePreviewVO() : null;
+        if (previewMode) {
+            preview.setTemplate(toCompatibilityTemplate(segments));
+            preview.setFormatExpression(toFormatExpression(segments));
+            validationWarnings.forEach(message -> preview.getWarnings().add(issue(null, message, null)));
+        }
 
         for (CodeRuleSegmentDTO segment : segments) {
             if ("SEQ".equals(segment.getSegmentType())) {
@@ -166,6 +182,9 @@ public class CodeRuleEngine {
             if (Integer.valueOf(1).equals(segment.getGroupEnabled())) {
                 groupValues.put(segment.getSegmentKey(), value);
             }
+        }
+        if (!previewMode) {
+            validateResolvedOutputBeforeSequence(segments, resolvedValues);
         }
 
         Long sequence = null;
@@ -180,19 +199,30 @@ public class CodeRuleEngine {
                     throw new BusinessException("未保存的编码规则不能执行真实生成");
                 }
                 sequenceKey = keyFactory.build(definition, sequenceSegment, groupValues, now);
+                boolean legacyCompatible = isLegacyCompatible(definition);
+                String legacyKeyPrefix = legacyCompatible
+                        ? keyFactory.legacyKeyPrefix(definition) : null;
+                boolean excludeAmbiguous = Integer.valueOf(1)
+                        .equals(sequenceSegment.getExcludeAmbiguous());
+                int allocationStep = legacyCompatible ? 1_000 : radixCodec.recommendedAllocationStep(
+                        sequenceSegment.getRadixType(),
+                        sequenceSegment.getSegmentLength(),
+                        excludeAmbiguous);
+                long maxValue = legacyCompatible ? Long.MAX_VALUE : radixCodec.maxValue(
+                        sequenceSegment.getRadixType(),
+                        sequenceSegment.getSegmentLength(),
+                        excludeAmbiguous);
                 sequence = sequenceService.nextId(
                         sequenceKey.key(),
                         startValue,
-                        keyFactory.legacyKeyPrefix(definition),
-                        sequenceKey.period()
+                        legacyKeyPrefix,
+                        sequenceKey.period(),
+                        allocationStep,
+                        maxValue
                 );
             }
-            String sequenceValue = radixCodec.encode(
-                    sequence,
-                    sequenceSegment.getRadixType(),
-                    sequenceSegment.getSegmentLength(),
-                    Integer.valueOf(1).equals(sequenceSegment.getExcludeAmbiguous())
-            );
+            String sequenceValue = encodeSequence(
+                    definition, sequenceSegment, sequence, startValue, sequenceKey.period(), previewMode);
             resolvedValues.put(sequenceSegment.getSegmentKey(), sequenceValue);
         }
 
@@ -202,25 +232,135 @@ public class CodeRuleEngine {
             if (Integer.valueOf(1).equals(segment.getIncludeInCode())) {
                 code.append(value);
             }
-            preview.getSegmentPreviews().add(segmentPreview(segment, value));
+            if (previewMode) {
+                preview.getSegmentPreviews().add(segmentPreview(segment, value));
+            }
         }
-        preview.setPreviewCode(code.toString());
-        preview.setTotalLength(code.length());
-        preview.setSequence(sequence);
-        preview.setGroupKey(sequenceKey == null ? (groupValues.isEmpty() ? "global" : keyFactory.groupHash(groupValues).substring(0, 12))
-                : sequenceKey.groupHash());
-        preview.setPeriod(sequenceKey == null ? "all" : sequenceKey.period());
-        if (!code.toString().matches("[A-Za-z0-9_\\-./]+")) {
-            preview.getErrors().add(issue(null, "编码包含不允许的字符", "仅允许字母、数字、短横线、下划线、点和斜线"));
+        String renderedCode = code.toString();
+        String groupKey = sequenceKey == null
+                ? (groupValues.isEmpty() ? "global" : keyFactory.groupHash(groupValues).substring(0, 12))
+                : sequenceKey.groupHash();
+        String period = sequenceKey == null ? "all" : sequenceKey.period();
+        if (previewMode) {
+            preview.setPreviewCode(renderedCode);
+            preview.setTotalLength(code.length());
+            preview.setSequence(sequence);
+            preview.setGroupKey(groupKey);
+            preview.setPeriod(period);
+            if (!renderedCode.matches("[A-Za-z0-9_\\-./]+")) {
+                preview.getErrors().add(issue(
+                        null,
+                        "编码包含不允许的字符",
+                        "仅允许字母、数字、短横线、下划线、点和斜线"));
+            }
+            if (code.length() > 96) {
+                preview.getErrors().add(issue(
+                        null,
+                        "编码实际长度超过96个字符",
+                        "请缩短固定值或变量长度"));
+            }
+            preview.setValid(preview.getErrors().isEmpty());
+        } else {
+            validateGeneratedCode(renderedCode);
+        }
+        return new RenderResult(preview, renderedCode, sequence, groupKey, period);
+    }
+
+    private void validateResolvedOutputBeforeSequence(List<CodeRuleSegmentDTO> segments,
+                                                      Map<String, String> resolvedValues) {
+        int projectedLength = 0;
+        for (CodeRuleSegmentDTO segment : segments) {
+            if (!Integer.valueOf(1).equals(segment.getIncludeInCode())) {
+                continue;
+            }
+            if ("SEQ".equals(segment.getSegmentType())) {
+                projectedLength += segment.getSegmentLength();
+                continue;
+            }
+            String value = resolvedValues.getOrDefault(segment.getSegmentKey(), "");
+            if (!value.matches("[A-Za-z0-9_\\-./]+")) {
+                throw new BusinessException("编码包含不允许的字符");
+            }
+            projectedLength += value.length();
+        }
+        if (projectedLength > 96) {
+            throw new BusinessException("编码实际长度超过96个字符");
+        }
+    }
+
+    private void validateGeneratedCode(String code) {
+        if (!code.matches("[A-Za-z0-9_\\-./]+")) {
+            throw new BusinessException("编码包含不允许的字符");
         }
         if (code.length() > 96) {
-            preview.getErrors().add(issue(null, "编码实际长度超过96个字符", "请缩短固定值或变量长度"));
+            throw new BusinessException("编码实际长度超过96个字符");
         }
-        preview.setValid(preview.getErrors().isEmpty());
-        if (!previewMode && !preview.getValid()) {
-            throw new BusinessException(preview.getErrors().get(0).getMessage());
+    }
+
+    private String encodeSequence(CodeRuleDefinition definition,
+                                  CodeRuleSegmentDTO sequenceSegment,
+                                  long sequence,
+                                  long startValue,
+                                  String period,
+                                  boolean previewMode) {
+        String radixType = sequenceSegment.getRadixType();
+        boolean excludeAmbiguous = Integer.valueOf(1).equals(sequenceSegment.getExcludeAmbiguous());
+        int configuredLength = sequenceSegment.getSegmentLength();
+        int requiredLength = radixCodec.requiredLength(sequence, radixType, excludeAmbiguous);
+        if (previewMode || requiredLength <= configuredLength) {
+            return radixCodec.encode(sequence, radixType, configuredLength, excludeAmbiguous);
         }
-        return new RenderResult(preview);
+        if (!isLegacyCompatible(definition)) {
+            return radixCodec.encode(sequence, radixType, configuredLength, excludeAmbiguous);
+        }
+
+        LegacyWidthCacheKey cacheKey = new LegacyWidthCacheKey(
+                definition.getTenantId(),
+                definition.getRuleId(),
+                sequenceSegment.getSegmentKey(),
+                period,
+                radixType,
+                configuredLength,
+                excludeAmbiguous
+        );
+        int compatibleLength = resolveCompatibleLength(
+                cacheKey, definition, startValue, period, radixType, configuredLength, excludeAmbiguous);
+        return radixCodec.encode(sequence, radixType, compatibleLength, excludeAmbiguous);
+    }
+
+    private boolean isLegacyCompatible(CodeRuleDefinition definition) {
+        return Integer.valueOf(1).equals(definition.getLegacyCompatEnabled());
+    }
+
+    private int resolveCompatibleLength(LegacyWidthCacheKey cacheKey,
+                                        CodeRuleDefinition definition,
+                                        long startValue,
+                                        String period,
+                                        String radixType,
+                                        int configuredLength,
+                                        boolean excludeAmbiguous) {
+        synchronized (legacyWidthCache) {
+            Integer cachedLength = legacyWidthCache.get(cacheKey);
+            if (cachedLength != null) {
+                return cachedLength;
+            }
+        }
+
+        long legacyStartValue = sequenceService.resolveLegacyStartValue(
+                startValue,
+                keyFactory.legacyKeyPrefix(definition),
+                period
+        );
+        int resolvedLength = Math.max(configuredLength,
+                radixCodec.requiredLength(legacyStartValue, radixType, excludeAmbiguous));
+        synchronized (legacyWidthCache) {
+            Integer cachedLength = legacyWidthCache.get(cacheKey);
+            if (cachedLength != null) {
+                return cachedLength;
+            }
+            legacyWidthCache.put(cacheKey, resolvedLength);
+            return resolvedLength;
+        }
     }
 
     private String resolveValue(CodeRuleSegmentDTO segment,
@@ -232,8 +372,8 @@ public class CodeRuleEngine {
         String raw = switch (segment.getSegmentType()) {
             case "DATE" -> now.format(DateTimeFormatter.ofPattern(segment.getSegmentValue()));
             case "FIXED" -> StringUtils.defaultString(segment.getSegmentValue());
-            case "VARIABLE" -> resolveMapValue(segment, fields, previewMode, preview, "业务字段");
-            case "SYS_VAR" -> resolveMapValue(segment, systemVariables, previewMode, preview, "系统变量");
+            case "VARIABLE" -> resolveMapValue(segment, fields, previewMode, preview, "业务字段", true);
+            case "SYS_VAR" -> resolveMapValue(segment, systemVariables, previewMode, preview, "系统变量", false);
             default -> throw new BusinessException("不支持的编码分段类型: " + segment.getSegmentType());
         };
         return applyLength(segment, raw);
@@ -243,8 +383,9 @@ public class CodeRuleEngine {
                                    Map<String, Object> values,
                                    boolean previewMode,
                                    CodeRulePreviewVO preview,
-                                   String sourceName) {
-        Object value = values.get(segment.getSegmentValue());
+                                   String sourceName,
+                                   boolean resolveFieldAliases) {
+        Object value = readMapValue(values, segment.getSegmentValue(), resolveFieldAliases);
         if (value != null && StringUtils.isNotBlank(String.valueOf(value))) {
             return String.valueOf(value);
         }
@@ -260,9 +401,32 @@ public class CodeRuleEngine {
         return sample;
     }
 
+    private Object readMapValue(Map<String, Object> values, String key, boolean resolveFieldAliases) {
+        if (values.containsKey(key)) {
+            return values.get(key);
+        }
+        if (!resolveFieldAliases) {
+            return null;
+        }
+        String camelAlias = DynamicQueryGenerator.snakeToCamel(key);
+        if (values.containsKey(camelAlias)) {
+            return values.get(camelAlias);
+        }
+        String snakeAlias = DynamicQueryGenerator.camelToSnake(key);
+        return values.get(snakeAlias);
+    }
+
     private String applyLength(CodeRuleSegmentDTO segment, String value) {
         Integer length = segment.getSegmentLength();
         if (length == null || "DATE".equals(segment.getSegmentType())) {
+            if (length == null
+                    && ("VARIABLE".equals(segment.getSegmentType())
+                    || "SYS_VAR".equals(segment.getSegmentType()))
+                    && value.length() > MAX_UNDECLARED_VARIABLE_LENGTH) {
+                throw new BusinessException(
+                        "分段“" + segment.getSegmentKey() + "”的值不能超过"
+                                + MAX_UNDECLARED_VARIABLE_LENGTH + "个字符");
+            }
             return value;
         }
         if (value.length() > length) {
@@ -367,8 +531,9 @@ public class CodeRuleEngine {
             return List.of();
         }
         return definition.getSegments().stream()
-                .sorted(Comparator.comparing(CodeRuleSegmentDTO::getSegmentOrder,
-                        Comparator.nullsLast(Integer::compareTo)))
+                .sorted(Comparator.nullsLast(
+                        Comparator.comparing(CodeRuleSegmentDTO::getSegmentOrder,
+                                Comparator.nullsLast(Integer::compareTo))))
                 .toList();
     }
 
@@ -439,6 +604,27 @@ public class CodeRuleEngine {
         return source == null ? Map.of() : source;
     }
 
-    private record RenderResult(CodeRulePreviewVO preview) {
+    private Map<String, Object> safeBusinessFields(Map<String, Object> source) {
+        Map<String, Object> fields = safeMap(source);
+        if (fields.size() > MAX_BUSINESS_FIELD_COUNT) {
+            throw new BusinessException("业务上下文字段不能超过" + MAX_BUSINESS_FIELD_COUNT + "个");
+        }
+        return fields;
+    }
+
+    private record RenderResult(CodeRulePreviewVO preview,
+                                String code,
+                                Long sequence,
+                                String groupKey,
+                                String period) {
+    }
+
+    private record LegacyWidthCacheKey(Long tenantId,
+                                       Long ruleId,
+                                       String segmentKey,
+                                       String period,
+                                       String radixType,
+                                       int configuredLength,
+                                       boolean excludeAmbiguous) {
     }
 }

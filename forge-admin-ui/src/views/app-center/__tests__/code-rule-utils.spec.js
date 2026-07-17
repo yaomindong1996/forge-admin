@@ -7,6 +7,7 @@ import {
   createCodeRuleSegment,
   createLatestRequestGuard,
   hasCodeRulePermission,
+  isCanceledRequest,
   normalizeCodeRuleSegments,
   validateCodeRuleDraft,
 } from '../code-rule-utils'
@@ -176,6 +177,12 @@ describe('code rule utilities', () => {
     expect(guard.isLatest(second)).toBe(true)
     guard.invalidate()
     expect(guard.isLatest(second)).toBe(false)
+  })
+
+  it('recognizes direct and interceptor-wrapped canceled requests', () => {
+    expect(isCanceledRequest({ code: 'ERR_CANCELED' })).toBe(true)
+    expect(isCanceledRequest({ error: { name: 'CanceledError' } })).toBe(true)
+    expect(isCanceledRequest({ code: 500 })).toBe(false)
   })
 
   it('checks independent code-rule permissions and wildcard grants', () => {

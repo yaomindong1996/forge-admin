@@ -40,6 +40,24 @@ public class SequenceServiceImpl implements ISequenceService {
                        String legacyPeriod) {
         return segmentGenerator.nextId(bizKey, startValue, legacyKeyPrefix, legacyPeriod);
     }
+
+    @Override
+    public long nextId(String bizKey,
+                       long startValue,
+                       String legacyKeyPrefix,
+                       String legacyPeriod,
+                       int allocationStep,
+                       long maxValue) {
+        return segmentGenerator.nextId(
+                bizKey, startValue, legacyKeyPrefix, legacyPeriod, allocationStep, maxValue);
+    }
+
+    @Override
+    public long resolveLegacyStartValue(long startValue,
+                                        String legacyKeyPrefix,
+                                        String legacyPeriod) {
+        return segmentGenerator.resolveLegacyStartValue(startValue, legacyKeyPrefix, legacyPeriod);
+    }
     
     @Override
     public long[] nextBatch(String bizKey, int size) {

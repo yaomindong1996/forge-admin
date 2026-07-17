@@ -20,5 +20,7 @@ public class CodeRuleDefinition {
 
     private String ruleName;
 
+    private Integer legacyCompatEnabled;
+
     private List<CodeRuleSegmentDTO> segments = new ArrayList<>();
 }

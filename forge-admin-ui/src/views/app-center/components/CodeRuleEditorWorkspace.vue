@@ -332,6 +332,7 @@ import {
   buildCodeRulePreviewPayload,
   createEmptyCodeRuleDraft,
   createLatestRequestGuard,
+  isCanceledRequest,
   normalizeCodeRuleSegments,
   validateCodeRuleDraft,
 } from '../code-rule-utils'
@@ -376,6 +377,7 @@ const mappingDraft = reactive({
 const draft = reactive(createEmptyCodeRuleDraft())
 const sampleFields = reactive({})
 let previewTimer = null
+let previewAbortController = null
 const detailRequestGuard = createLatestRequestGuard()
 const previewRequestGuard = createLatestRequestGuard()
 const capabilityRequestGuard = createLatestRequestGuard()
@@ -439,6 +441,7 @@ watch([draft, sampleFields], () => schedulePreview(), { deep: true })
 
 onBeforeUnmount(() => {
   clearTimeout(previewTimer)
+  cancelPreviewRequest()
   detailRequestGuard.invalidate()
   previewRequestGuard.invalidate()
   capabilityRequestGuard.invalidate()
@@ -491,6 +494,7 @@ async function initializeDraft() {
 
 function schedulePreview(delay = 450) {
   clearTimeout(previewTimer)
+  cancelPreviewRequest()
   previewRequestGuard.invalidate()
   if (loading.value || !validation.value.valid) {
     previewing.value = false
@@ -504,18 +508,39 @@ async function refreshPreview() {
   clearTimeout(previewTimer)
   if (!validation.value.valid)
     return
+  cancelPreviewRequest()
+  const abortController = new AbortController()
+  previewAbortController = abortController
   const requestVersion = previewRequestGuard.begin()
   const payload = buildCodeRulePreviewPayload(draft, sampleFields)
   previewing.value = true
   try {
-    const res = await previewSystemCodeRule(payload)
+    const res = await previewSystemCodeRule(payload, {
+      signal: abortController.signal,
+      needTip: false,
+    })
     if (previewRequestGuard.isLatest(requestVersion))
       preview.value = res.data || null
   }
+  catch (error) {
+    if (!isCanceledRequest(error) && previewRequestGuard.isLatest(requestVersion)) {
+      preview.value = null
+      message.error(error?.message || '编码规则预览失败')
+    }
+  }
   finally {
+    if (previewAbortController === abortController)
+      previewAbortController = null
     if (previewRequestGuard.isLatest(requestVersion))
       previewing.value = false
   }
+}
+
+function cancelPreviewRequest() {
+  if (!previewAbortController)
+    return
+  previewAbortController.abort()
+  previewAbortController = null
 }
 
 function savePayload() {
@@ -680,6 +705,7 @@ async function saveRule() {
 }
 
 function closeWorkspace() {
+  cancelPreviewRequest()
   detailRequestGuard.invalidate()
   previewRequestGuard.invalidate()
   capabilityRequestGuard.invalidate()

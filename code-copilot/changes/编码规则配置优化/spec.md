@@ -1,5 +1,5 @@
 # 编码规则配置优化
-> status: fixed_pending_review
+> status: reviewed_passed
 > created: 2026-07-16
 > complexity: 🔴复杂
 
@@ -53,21 +53,29 @@ Forge 当前编码规则使用 `ai_code_rule.template` 保存 `${...}` 模板，
 - [x] 预览支持未保存规则直接携带 segments，使用示例序号和示例变量，不访问真实计数器。
 - [x] 新增 `/system/code-rule` 管理接口和 capability 接口，保留旧 `/ai/code-rule` list/preview/generate 兼容协议。
 - [x] 旧 `ai_code_rule` 全量迁移：已知模板由 SQL 回填，其它历史模板由 legacy parser 兼容物化并返回迁移提示。
+- [x] 旧号段水位高于历史流水宽度时优先保证唯一续接，仅按旧水位所需的最小宽度兼容扩宽；没有旧水位的新规则仍严格按配置宽度溢出失败。
 - [x] 低代码字段自动编号继续读取 `generation.ruleCode`，生成上下文中的业务字段映射为新请求的 `fields`。
 - [x] UI 继续使用 `AiCrudPage` 承载查询和列表，新增/编辑进入同路由下的全屏配置工作台和分段编辑器。
 - [x] 适用场景改用 `sys_code_rule_scene` 字典；该字段保留旧调用方场景筛选语义，低代码精确范围改由业务对象绑定控制。
 - [x] VARIABLE 支持 `CUSTOM` 自定义变量和 `LOWCODE` 低代码字段两种分段来源；只有 LOWCODE 分段需要保存 `source_object_id/source_object_code` 并校验字段归属，CUSTOM 由业务代码通过 `fields` 显式传值。
 - [x] LOWCODE 变量映射由当前分段行触发弹窗，在弹窗内完成“业务对象 → 字段”两级选择；行内回显映射摘要，不再把来源对象放在分段表格顶部。
+- [x] 规则编码在租户内永久唯一，逻辑删除后不得复用；已有 SEQ 必须保留原 `segmentKey`，禁止通过删除、改型或替换分段重置计数器。
+- [x] 高基数分组/周期号段缓存有界且过期可淘汰，号段分配采用 `REQUIRES_NEW + READ_COMMITTED` 保证多实例重试可见性。
+- [x] 新规则按进制容量选择号段步长并裁剪数据库水位，缓存淘汰或 JVM 重启后不会因固定预分配 1000 直接跳出固定宽度容量。
+- [x] 原始 `/sequence` API 默认关闭；显式开启后仅允许 POST、要求 `system:sequence:use`，并限制 `bizKey` 长度和字符集。
+- [x] 存量规则用 `legacy_compat_enabled=1` 安全续接旧水位，新建规则显式写 0，不再为每个新分组扫描 legacy key。
+- [x] 真实生成按 `tenantId/ruleId/versionNo` 缓存不可变分段快照，不构造预览模板、表达式、分段预览或 warning VO。
+- [x] 实时预览会取消上一条请求，两个预览接口不写操作日志；真实生成继续保留审计。
 
 ## 4. 业务规则
 
-1. `ruleCode` 在租户内、未删除记录中唯一；创建后不可修改，格式为字母开头，后续只允许字母、数字和下划线，保留历史大小写。
+1. `ruleCode` 在租户内历史永久唯一，逻辑删除后仍保留且不得复用；创建后不可修改，格式为字母开头，后续只允许字母、数字和下划线，保留历史大小写。
 2. 编码分类使用 `sys_code_rule_category` 字典；现有 `scene` 保留为兼容适用范围，不与分类混用。
 3. 规则至少包含一个 `includeInCode=true` 的分段，总声明长度不得超过 96。
 4. 首期每条规则最多一个 SEQ；无 SEQ 的规则允许生成确定性编码，但预览提示“不会自动递增”。
 5. SEQ 仅允许左补，补位字符由进制固定：DECIMAL/HEX/ALPHANUMERIC 为 `0`，ALPHA_UPPER 为 `A`，ALPHA_LOWER 为 `a`。
 6. 固定宽度进制按零基数字位转换，但业务序号值由 `startValue` 决定；默认 `startValue=1`，因此所有进制首个值均对应数值 1。
-7. SEQ 容量为 `radix^length`；序号值必须落在 `[0, capacity-1]`，否则抛出溢出异常。
+7. SEQ 容量为 `radix^length`；新规则序号值必须落在 `[0, capacity-1]`，否则抛出溢出异常。历史规则因旧号段预分配水位已经超过原宽度时，为避免回退水位造成重复编号，真实生成允许按“旧安全起点”所需的最小宽度兼容扩宽；扩宽只覆盖旧水位所需位数，后续序号超过该有效宽度仍抛出溢出异常。
 8. `excludeAmbiguous` 只对 ALPHA_UPPER、ALPHA_LOWER、ALPHANUMERIC 生效，移除 I/O/Z 或 i/o/z。
 9. `resetEnabled=false` 时周期强制为 NONE；为 true 时只允许 YEAR/MONTH/DAY/HOUR。周期使用应用配置时区，本轮以注入 `Clock` 的服务端时区为基线。
 10. 多个参与分组段按 `segmentOrder` 解析，使用长度前缀规范化后做 SHA-256 摘要；原始分组值不进入日志和计数 key。
@@ -76,7 +84,7 @@ Forge 当前编码规则使用 `ai_code_rule.template` 保存 `${...}` 模板，
 13. 真实生成只允许 VARIABLE 从业务 `fields` 取值；SYS_VAR 不读取同名业务字段。
 14. 缺少租户上下文、规则停用、变量缺失、格式非法或序列溢出时失败关闭。
 15. 编号允许因事务回滚、号段预分配和服务重启产生空洞，保证唯一递增但不承诺连续无缺口。
-16. 内置规则禁止删除；自定义规则和分段均采用逻辑删除。
+16. 内置规则禁止删除；自定义规则和分段均采用逻辑删除。自定义规则删除只影响可见性，规则编码和已分配计数器身份永久保留。
 17. 分段拼接顺序由 `segmentOrder` 和拖拽排序表达，不新增重复的“顺序段”；SEQ 对用户显示为“流水号（顺序递增）”。
 18. VARIABLE 分段必须声明 `variableSource=CUSTOM|LOWCODE`；历史协议缺省和 legacy parser 物化均按 `CUSTOM` 处理。
 19. CUSTOM 变量名必须是安全标识符，不要求来源业务对象；真实生成时调用方必须通过 `fields.<variableName>` 提供值。
@@ -84,14 +92,24 @@ Forge 当前编码规则使用 `ai_code_rule.template` 保存 `${...}` 模板，
 21. 纯 CUSTOM VARIABLE 规则是通用规则，保存时清空来源对象；只要存在任一 LOWCODE VARIABLE，规则就是对象专属规则，列表筛选和运行时继续校验当前 `objectCode`。
 22. LOWCODE 映射弹窗打开和取消不修改规则草稿；只有点击“确认映射”后才原子更新当前分段、来源对象和字段。
 23. 一条规则的 LOWCODE 分段共用同一来源对象；在映射弹窗切换对象时，确认前必须提示影响，确认后清空其它 LOWCODE 分段的旧字段映射，禁止保留跨对象字段。
+24. 已存在 SEQ 的规则更新时必须保留同一 `segmentKey` 且该段仍为 SEQ；允许排序和属性调整，禁止删除、改型或用新 key 替换。原本没有 SEQ 的规则允许首次增加。
+25. VARIABLE 业务字段兼容 exact、snake_case 与 camelCase 别名；SYS_VAR 仍只按声明键读取可信系统上下文，禁止使用业务字段别名兜底。
+26. 新建规则的号段步长按 `clamp(radix^length / 1000, 1, 1000)` 计算，数据库 UPDATE 前按剩余容量裁剪；达到 `capacity-1` 后失败且不得推进水位。
+27. 升级前既有规则默认启用 legacy 兼容并允许按旧安全水位最小扩宽；新代码创建的规则关闭 legacy 兼容并严格遵守配置容量。
+28. `/sequence` 不是默认公共能力；只有配置 `forge.id.sequence.enable-api=true` 后才注册，且所有取号入口要求专用权限、POST 和安全 `bizKey`。
+29. 一条规则最多 32 个分段，业务上下文字段最多 256 个；未声明长度的 VARIABLE/SYS_VAR 单值最多 96 个字符。
+30. 同一规则版本的分段定义最多加载一次，缓存值必须是不可变快照，每次调用返回独立 DTO，禁止引擎规范化污染后续请求。
+31. 真实生成必须在取号前拒绝已知非法字符和可预判的总长度超限；预览仍返回逐段错误，不消耗真实流水。
+32. 实时预览属于高频只读操作，不写操作日志；新预览发起、草稿失效或离开工作台时必须取消旧请求，并保留最新请求 Guard。
 
 ## 5. 数据变更
 
 | 操作 | 表名 | 字段/索引 | 说明 |
 |------|------|-----------|------|
-| 修改 | `ai_code_rule` | `category`, `source_object_id`, `source_object_code`, `version_no`, `in_code_list`, `del_flag`, `logic_delete_active` | 增加分类、低代码来源对象、乐观锁、可选择标记和逻辑删除；将旧唯一键升级为仅约束有效记录 |
+| 修改 | `ai_code_rule` | `category`, `source_object_id`, `source_object_code`, `version_no`, `legacy_compat_enabled`, `in_code_list`, `del_flag`, `logic_delete_active` | 增加分类、低代码来源对象、乐观锁、legacy 兼容标记、可选择标记和逻辑删除；存量规则默认兼容，新规则显式关闭 |
+| 调整唯一索引 | `ai_code_rule` | `(tenant_id, rule_code)` | 规则编码跨逻辑删除记录永久唯一，禁止删除后重建导致新 ruleId 重置计数器 |
 | 新增 | `ai_code_rule_segment` | `variable_source`、标准审计字段、`del_flag`、`logic_delete_active` | 保存稳定分段定义；VARIABLE 来源为 CUSTOM/LOWCODE，默认 CUSTOM |
-| 新增索引 | `ai_code_rule_segment` | `(tenant_id, rule_id, segment_order, del_flag)` | 详情和生成按序读取 |
+| 调整索引 | `ai_code_rule_segment` | `(tenant_id, rule_id, del_flag, segment_order, id)` | 先按租户、规则和活跃状态定位，再稳定按序读取 |
 | 新增唯一索引 | `ai_code_rule_segment` | `(tenant_id, rule_id, segment_key, logic_delete_active)` | 稳定分段键仅约束未删除记录 |
 | 新增字典 | `sys_dict_type/sys_dict_data` | `sys_code_rule_category` | 编码分类，tenant_id 固定 1 |
 | 新增字典 | `sys_dict_type/sys_dict_data` | `sys_code_rule_scene` | 兼容适用场景，tenant_id 固定 1 |
@@ -115,13 +133,14 @@ Forge 当前编码规则使用 `ai_code_rule.template` 保存 `${...}` 模板，
 | 新增 | `/system/code-rule/generate` | POST | 生成编码，返回 code/sequence/group/period |
 | 新增 | `/system/code-rule/capabilities?sourceObjectId=...` | GET | 返回段类型、日期格式、系统变量、进制、业务对象及指定对象字段能力 |
 | 兼容 | `/ai/code-rule/list|preview|generate` | GET/POST | 委托新引擎并兼容 context/template 字段 |
+| 收口 | `/sequence/next*` | POST | 默认不注册；显式开启后要求 `system:sequence:use`，限制 `bizKey` 且禁止 GET 取号 |
 
 管理接口使用 POST-safe 配置协议，所有请求/响应继续使用 `@ApiDecrypt/@ApiEncrypt`。权限拆分为 `system:codeRule:list/add/edit/remove/use`。
 
 ## 7. 影响范围
 
 - `forge-plugin-generator`：编码规则实体、Mapper、DTO/VO、生成引擎、Controller、低代码自动编号。
-- `forge-starter-id`：号段缓存切换与起始值支持。
+- `forge-starter-id`：号段缓存切换、起始值、旧水位只读解析、有界缓存和 READ_COMMITTED 分配事务。
 - `forge-admin-ui`：编码规则列表、全屏编辑工作台、分段编辑器、API 和低代码字段预览摘要。
 - 低代码对象设计器：自动编号规则选项按当前 `objectCode` 过滤，通用规则与当前对象专属规则可见。
 - `forge-server/db/migration`：结构、字典、菜单权限和历史规则迁移。
@@ -150,8 +169,10 @@ Forge 当前编码规则使用 `ai_code_rule.template` 保存 `${...}` 模板，
 
 - 保留 `ai_code_rule` 主表，新增 `ai_code_rule_segment`，避免重建规则 ID 和低代码绑定。
 - `segmentKey` 是计数器稳定身份，`segmentOrder` 只控制展示和拼接顺序。
+- `ruleCode` 和既有 SEQ `segmentKey` 都属于计数器永久身份：逻辑删除不释放 ruleCode，规则更新不允许替换已有 SEQ 的 key。
 - 生成引擎拆为无状态 Manager/Compiler，`CodeRuleService` 负责事务编排，避免 Service 互相注入。
 - 序列继续复用 `ISequenceService` 的数据库号段能力，不在 Generator 内另建 Redis 计数器；先修复缓存跨段问题并补起始值接口。
+- 号段缓存使用 Caffeine 限制最大 10000 项并在 60 分钟无访问后过期；淘汰只产生允许的号段空洞。分配事务使用 `REQUIRES_NEW + READ_COMMITTED`，避免 MySQL RR 快照让乐观重试持续读取旧版本。
 - 规则分类使用字典；段类型和进制属于可执行能力，由后端 capability 接口返回，不能仅靠插入字典扩展。
 - 适用场景属于兼容筛选维度，使用 `sys_code_rule_scene` 字典；VARIABLE 的精确字段边界使用低代码业务对象和字段元数据，不复用自由文本场景。
 - VARIABLE 来源是分段级属性：CUSTOM 保持引擎现有 `fields` 取值协议，LOWCODE 只在配置和运行时增加元数据边界；不为两种来源分叉生成引擎。
@@ -159,6 +180,10 @@ Forge 当前编码规则使用 `ai_code_rule.template` 保存 `${...}` 模板，
 - 对象专属规则在无 `objectCode` 的选择请求中不可见；精确匹配当前对象时优先于 COMMON 场景过滤，运行时仍再次校验对象编码。
 - 列表继续复用 `AiCrudPage`，复杂主从编辑使用同路由查询状态切换到全屏工作台，保持通用 CRUD 与业务编辑器边界，同时避免新增权限路由。
 - UI 采用克制的企业配置工作台风格，遵循现有主题变量，不引入渐变、重动画或新的设计体系。
+- 新规则使用容量感知号段；存量规则通过 `legacy_compat_enabled` 保留升级安全边界。该标记由 `V1.0.37` 默认置 1，新建服务代码显式写 0，兼容滚动升级。
+- legacy 水位查询由对 `biz_key` 做函数改为尾部通配的参数化前缀 LIKE，并使用 `!` 显式转义 `_/%`，让主键可参与前缀范围过滤且不受反斜杠 SQL mode 影响。
+- 规则定义缓存只缓存同版本分段快照；每次仍保留一次规则主表查询，以及时感知跨实例的版本、状态和删除变化，避免用长 TTL 换取错误编号。
+- 数据库计数器行不自动 TTL 清理，因为删除仍可能使用的计数器会造成编号复用；本轮通过关闭原始 API、限制输入和缓存规模收口非业务膨胀，合法高基数留给容量监控和留存策略治理。
 
 ## 11. 执行日志
 
@@ -175,6 +200,14 @@ Forge 当前编码规则使用 `ai_code_rule.template` 保存 `${...}` 模板，
 | Task 9 | complete | 场景字典、来源对象字段映射、低代码规则过滤与运行时校验 | Generator 15/15、前端 Vitest 9/9、Admin 42/42 和生产构建通过 |
 | Task 10 | complete | VARIABLE 分段 CUSTOM/LOWCODE 双来源、按需对象映射与自定义 `fields` 调用 | Generator 20/20、前端 11/11、ESLint、Admin 42/42 和生产构建通过 |
 | Task 11 | complete | LOWCODE 字段映射弹窗、行内摘要和对象切换原子应用 | 前端 Vitest 13/13、ESLint、生产构建和交互静态契约通过 |
+| Task 12 | complete | 旧号段水位与固定宽度组合兼容 | 归档前 Review 发现 P0 后完成 Red/Green；Starter ID 7/7、Generator 21/21、Admin 42/42 通过 |
+| Task 13 | complete | 归档前两阶段复审安全与质量修复 | 规则/SEQ 身份保护、缓存上限、事务隔离、legacy/字段别名兼容；Starter ID 9/9、Generator 25/25、Admin 42/42 通过 |
+| Task 14 | complete | SDD 归档与知识沉淀 | 状态统一为 done，四份 SDD 文档及需求/UI 原型归档到日期目录 |
+| Task 15 | complete | 容量感知号段、CAS 热路径及测试 | 有限容量按剩余值裁剪；当前段 CAS 消费；Starter ID 15/15 通过 |
+| Task 16 | complete | 原始 `/sequence` API 收口 | 默认关闭、POST、专用权限及 `bizKey` 边界完成 |
+| Task 17 | complete | `V1.0.37`、legacy 标记与索引友好查询 | 存量/新规则兼容边界分离；转义前缀 LIKE 和活跃分段索引完成 |
+| Task 18 | complete | 规则定义缓存、生成快路径与输入上限 | Caffeine 不可变快照、版本重载、32/256/96 上限完成 |
+| Task 19 | complete | 预览降载、聚合验证与复审 | AbortController、预览免审计、全量增量验证和两阶段复审完成 |
 
 ## 12. 审查结论
 
@@ -218,8 +251,71 @@ Forge 当前编码规则使用 `ai_code_rule.template` 保存 `${...}` 模板，
 - 主题复修覆盖列表页、编辑工作台、基础信息、分段表格、展开区和实时预览；亮色/暗色均读取系统 Token，不再把 `--n-color`、`--n-action-color` 当作页面背景。
 - 用户验收确认复杂分段配置不适合抽屉；现已改为列表与编辑工作台同路由切换，分段操作列固定在横向滚动区域右侧。
 
+## 12.6 归档前复审补修
+
+> review-date: 2026-07-17
+> status: fixed_pending_review
+
+- 归档前阶段一复审发现：旧号段默认预分配 1000 个值，历史三位 `material_code` 只要使用过一次，旧数据库水位就可能为 1000；按 R1 从 1001 续接会与三位十进制容量冲突。
+- 修复保持新规则固定宽度语义：先严格按配置宽度编码，只有实际溢出时才只读解析旧安全起点；确有旧水位时按其所需的最小位数兼容扩宽，没有旧水位仍失败。
+- 兼容宽度不会随当前实际序号无限扩张；例如旧安全起点 1001 只允许四位，后续达到 10000 时仍按容量溢出失败。
+- Red：新增组合测试后，旧接口缺少 `resolveLegacyStartValue`，Generator 测试编译失败。
+- Green：Starter ID 7/7、Generator 编码规则 21/21、Admin reactor 42/42 编译通过；未启动服务、数据库或 Redis。
+
+## 12.7 最终两阶段复审
+
+> review-date: 2026-07-17
+> conclusion: PASS_WITH_COMMENTS
+
+- 阶段一 Spec Compliance：PASS。R1-R4、旧水位容量、VARIABLE CUSTOM/LOWCODE、对象边界、LOWCODE Modal、主题与兼容接口均符合 Spec。
+- 阶段二 Code Quality：PASS_WITH_COMMENTS，P0/P1 为零。归档前新增修复包括：兼容宽度有界缓存、号段缓存上限/过期、READ_COMMITTED 乐观重试、`HHmmss` 旧 NONE/all 语义、VARIABLE snake/camel 别名、ruleCode 历史唯一和 SEQ identity 保护。
+- P2 保留：冷缓存并发首个溢出请求可能重复少量旧水位查询；旧水位 SQL 仅在首次/淘汰后执行；前端可后续提前禁用已有 SEQ 的删除/改型，当前后端已失败关闭。
+- 最终验证：Starter ID 9/9、Generator 编码规则 25/25、Admin reactor 42/42；前端复用最新 13/13、ESLint 0 errors 和 8691 modules 生产构建基线。
+- 真实 Flyway、MySQL/Redis、登录态 HTTP 和浏览器点击验收未执行，按既定分工保留为环境验收项。
+
 ## 13. 确认记录（HARD-GATE）
 
 - **确认时间**：2026-07-16
 - **确认人**：用户
 - **确认内容**：用户确认按上一轮分析方案实施，并要求遵循 SDD 开发流程；授权进入 `/apply`。
+
+## 14. 归档记录（HARD-GATE）
+
+- **状态**：done
+- **归档时间**：2026-07-17
+- **归档人**：code-copilot（用户明确要求归档）
+- **归档路径**：`code-copilot/changes/archive/2026-07-17-编码规则配置优化/`
+- **Review 结论**：Spec Compliance PASS；Code Quality PASS_WITH_COMMENTS，P0/P1 为零。
+- **归档验收**：Starter ID 9/9、Generator 编码规则 25/25、Admin reactor 42/42；前端复用 Vitest 13/13、ESLint 0 errors 和 8691 modules 生产构建基线；最终 `git diff --check`、三个 Mapper XML 和 Flyway placeholder 静态检查通过。
+- **环境验收保留项**：未启动 Admin/MySQL/Redis，未实跑 Flyway、登录态 HTTP 或浏览器点击，按既定分工由可用环境补验。
+
+## 15. 归档后性能与可用性复审（2026-07-17）
+
+> conclusion: NEEDS_FIX
+> fix-authorized: true
+
+- **P0 / 固定宽度提前耗尽**：数据库号段固定预分配 1000，JVM 重启或 Caffeine 淘汰会丢弃未消费区间；三位十进制新规则生成一次后，下一次可能从 1001 继续并立即溢出。
+- **P0 / 原始序列接口暴露**：`/sequence` 默认启用、使用 GET 执行取号、没有专用权限且接受任意 `bizKey`，登录用户可制造序列表膨胀和缓存淘汰，放大正常编码规则不可用风险。
+- **P1 / 冷 key SQL 放大**：每个新分组和新周期都会执行 legacy 水位查询，旧 SQL 对 `biz_key` 使用函数，无法稳定利用主键前缀范围。
+- **P1 / 运行时重复加载**：每次生成都查询规则主表和分段表，并构造只供预览使用的模板、表达式和分段 VO。
+- **P1 / 高基数治理不足**：缓存容量有界但数据库 key 永久增长；同一热门 key 的每次取号仍进入 `synchronized`。
+- 用户明确回复“开始修复”，原归档状态作废，目录恢复到 `code-copilot/changes/编码规则配置优化/`，按 `/fix` 增量执行。
+
+## 16. 性能 Fix 最终两阶段复审（2026-07-17）
+
+> conclusion: PASS_WITH_COMMENTS
+> status: reviewed_passed
+
+### 阶段一：Spec Compliance — PASS
+
+- Task 15-19 全部完成。有限容量号段、API 收口、legacy 标记与 V1.0.37、规则分段缓存、生成快路径、输入上限和预览降载均与本轮增量 Spec 一致。
+- 新规则严格容量、存量规则安全续接的边界已显式落库；低代码 `generation.ruleCode`、CUSTOM/LOWCODE 字段协议、主题和全屏工作台没有回退。
+- 验证结果：Starter ID 15/15，Generator 编码规则 31/31，前端 Vitest 14/14、定向 ESLint 0 errors，Admin reactor 42/42，前端生产构建 8691 modules。
+
+### 阶段二：Code Quality — PASS_WITH_COMMENTS
+
+- P0/P1 为零。数据库分配在 UPDATE 前裁剪且容量耗尽不推进；热门 key 使用 CAS；新规则不扫 legacy；分段定义按版本缓存并返回深拷贝；真实生成不构造预览 VO。
+- SQL/XML/迁移静态检查通过：三个 Mapper XML 合法，legacy 查询不再对 `biz_key` 使用函数，V1.0.36/V1.0.37 无 Flyway placeholder，tracked/untracked 差异无空白错误。
+- P2 保留：合法的高基数“规则 × 分组 × 周期”仍会形成持久计数器行，不能在未证明业务停用时自动删除，否则会复用编号；建议生产监控 `sys_id_sequence` 增长率并另行制定可审计留存策略。
+- 为跨实例及时感知规则停用和版本变化，真实生成仍保留一次轻量规则主表查询；已消除更重的分段查询和预览对象构造。
+- 未启动 Admin/MySQL/Redis，未实跑 Flyway、登录态 HTTP 或浏览器点击；这些属于环境验收保留项，不改变静态实现与自动化审查结论。

@@ -492,8 +492,8 @@ export function updateSystemCodeRuleStatus(data) {
   return request.post('/system/code-rule/status', data)
 }
 
-export function previewSystemCodeRule(data) {
-  return request.post('/system/code-rule/preview', data)
+export function previewSystemCodeRule(data, config = {}) {
+  return request.post('/system/code-rule/preview', data, config)
 }
 
 export function generateSystemCodeRule(data) {

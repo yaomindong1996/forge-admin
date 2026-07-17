@@ -1,5 +1,5 @@
 # 任务拆分 — 编码规则配置优化
-> status: fixed_pending_review
+> status: reviewed_passed
 > created: 2026-07-16
 > 拆分顺序：SDD 基线 → 序列底座 → 数据模型 → 生成引擎 → API → 前端 → 低代码兼容 → 验证
 
@@ -218,7 +218,7 @@
 - [x] 补充旧计数器续接、多实例竞争、`REQUIRES_NEW` 事务契约和前端异步过期响应测试。
 - [x] 用户验收复修：移除编码规则页面错误的 Naive 组件内部背景变量，统一使用 Forge 系统主题 Token，并通过定向 ESLint、Vitest 和生产构建。
 - [x] 用户验收复修：新增/编辑由抽屉改为同路由全屏工作台，分段操作列固定在右侧；无需新增菜单路由或放开权限守卫。
-- [ ] 重新执行 `/review 编码规则配置优化`；本项属于 Fix 后下一阶段，不在本轮 `/fix` 内提前标记通过。
+- [x] 重新执行 `/review 编码规则配置优化`；阶段一 PASS，阶段二 PASS_WITH_COMMENTS，P0/P1 为零。
 
 ## Task 11: LOWCODE 分段弹窗映射
 
@@ -243,3 +243,78 @@
   - [x] 选择 LOWCODE 时只打开弹窗，取消时不修改 `variableSource/segmentValue/sourceObjectId`。
   - [x] 确认后一次性应用对象与字段，对象改变时在弹窗中显示其它映射将被清理的提示。
 - **验证**：Vitest、两个 Vue 组件与工具函数 ESLint、前端生产构建、`git diff --check`。
+
+## Task 12: 旧号段水位与固定宽度组合兼容
+
+- [x] 已完成
+- **目标**：修复归档前 Review 发现的“旧号段已预分配到 1000，但历史三位流水迁移后从 1001 续接立即溢出”问题。
+- **Red**：
+  - [x] `CodeRuleEngineTest` 增加旧安全起点 1001 + DECIMAL 三位的组合用例；旧实现因缺少只读旧起点契约而测试编译失败。
+- **Green**：
+  - [x] `ISequenceService` 增加不消耗序列的 `resolveLegacyStartValue` 默认契约，`SequenceServiceImpl` 委托号段生成器实现。
+  - [x] `CodeRuleEngine` 只在严格宽度实际溢出时解析旧起点，并按旧起点所需的最小进制位数重试。
+  - [x] 没有旧水位的新规则继续溢出失败；旧起点 1001 只兼容到四位，实际值达到 10000 时仍失败。
+- **验证**：Starter ID 7/7、Generator 编码规则 21/21、Admin reactor 42/42、`git diff --check`。
+
+## Task 13: 归档前两阶段复审安全与质量修复
+
+- [x] 已完成
+- **目标**：关闭最终 Review 发现的计数器重置、多实例可见性、缓存增长和旧协议兼容风险。
+- **Red/Green**：
+  - [x] 兼容宽度缓存：连续两次历史扩宽/新规则溢出从查询 2 次降为 1 次，并缓存负结果。
+  - [x] 高基数号段缓存：由永久 Map 改为 Caffeine `maximumSize=10000 + expireAfterAccess=60m`；淘汰后继续取号为 1001，不重复。
+  - [x] 多实例事务：号段分配显式 `REQUIRES_NEW + READ_COMMITTED`，测试记录并断言隔离级别。
+  - [x] legacy 语义：AUTO + 单独 `HHmmss` 保持旧 NONE/all，旧 all 水位从 1001 续接。
+  - [x] 字段别名：VARIABLE 恢复 exact → snake/camel 别名，SYS_VAR 不使用业务别名。
+  - [x] 计数器身份：ruleCode 跨删除记录永久唯一；已有 SEQ 更新必须保留同一 `segmentKey`。
+- **最终 Review**：Spec Compliance PASS；Code Quality PASS_WITH_COMMENTS，P0/P1 为零。
+- **验证**：Starter ID 9/9、Generator 编码规则 25/25、Admin reactor 42/42、XML/Flyway/差异静态检查。
+
+## Task 14: SDD 归档与知识沉淀
+
+- [x] 已完成
+- **完成日期**：2026-07-17
+- [x] Spec、Tasks、Test Spec、Execution Log 状态统一为 `done`。
+- [x] 最终 Review 结论和环境验收保留项已回填。
+- [x] 可复用的计数器身份决策及旧水位/缓存踩坑已写入长期记忆。
+- [x] 四份 SDD 文档、`功能需求文档.md` 和 `参考UI设计.png` 一并归档到 `code-copilot/changes/archive/2026-07-17-编码规则配置优化/`。
+
+## Task 15: 容量感知号段与无锁消费热路径
+
+- [x] **Red**：在 `SegmentSequenceGeneratorTest` 增加“有限容量生成一次 → 缓存淘汰 → 下一次为 2”以及“达到上限不推进数据库水位”用例。
+- [x] **接口**：扩展 `ISequenceService`、`SequenceServiceImpl` 和 `SegmentSequenceGenerator`，新增有限容量取号契约：
+  ```java
+  long nextId(String bizKey, long startValue, String legacyKeyPrefix,
+              String legacyPeriod, int allocationStep, long maxValue);
+  ```
+- [x] **实现**：新规则根据进制容量计算 `allocationStep=clamp(capacity/1000, 1, 1000)`；分配前按剩余容量裁剪步长，容量耗尽时不再 UPDATE。
+- [x] **并发**：`SegmentHolder` 使用 CAS 消费当前段，仅在当前段耗尽时同步加载新段。
+- [x] **验证**：Starter ID 定向测试 Green，现有跨段、多实例、缓存淘汰和事务隔离用例保持通过。
+
+## Task 16: 关闭原始序列接口默认暴露
+
+- [x] **Red**：新增 `SequenceControllerContractTest`，断言 `matchIfMissing=false`、写操作使用 POST、四个入口均要求 `system:sequence:use`。
+- [x] **实现**：修改 `SequenceController`，默认不注册 HTTP API；增加专用权限和 `bizKey` 长度/安全字符校验。
+- [x] **验证**：Starter ID 编译与契约测试通过；不新增默认菜单或角色授权。
+
+## Task 17: legacy 边界与索引友好查询
+
+- [x] **Red**：扩展 Mapper/Flyway 契约测试，断言 legacy 查询使用转义后的左前缀 LIKE，不再对 `biz_key` 使用 `LEFT(...)`；新建规则不携带 legacy 前缀。
+- [x] **迁移**：新增 `V1.0.37__optimize_code_rule_runtime.sql`，为 `ai_code_rule` 增加 `legacy_compat_enabled`；升级前既有规则默认兼容，新代码创建规则显式写 0；重建分段活跃查询索引为 `(tenant_id, rule_id, del_flag, segment_order, id)`。
+- [x] **实现**：`AiCodeRule`、Mapper、`CodeRuleDefinition` 和 `CodeRuleService` 传递兼容标记；`SysIdSequenceMapper.xml` 使用 `LIKE ... ESCAPE '!'` 的参数化可索引前缀范围。
+- [x] **验证**：Generator migration/Mapper/legacy/engine 契约测试 Green，V1.0.36/V1.0.37 placeholder 扫描无输出。
+
+## Task 18: 规则定义缓存与生成快路径
+
+- [x] **Red**：新增同一 `tenantId + ruleId + versionNo` 连续生成只加载一次分段、版本变化重新加载、缓存返回深拷贝的测试。
+- [x] **缓存**：在 Generator 显式引入 Caffeine；缓存不可变分段快照，key 为 `tenantId/ruleId/versionNo`，最大 10000、无访问 30 分钟过期。
+- [x] **生成快路径**：真实生成不构造 compatibility template、format expression、分段预览和 warning VO；仍保留字符、长度、租户和变量失败关闭，并在可预判时于取号前拒绝非法输出。
+- [x] **输入上限**：一条规则最多 32 个分段，业务上下文字段最多 256 个，单个未声明长度变量最多 96 字符。
+- [x] **验证**：Generator 既有回归及新增缓存/上限/快路径测试共 31/31 通过。
+
+## Task 19: 预览请求降载与收尾验证
+
+- [x] **后端**：移除两个实时预览入口的 `@OperationLog`，避免编辑输入产生高频审计写入；生成接口保留日志。
+- [x] **前端**：`previewSystemCodeRule` 接收 Axios config，工作台用 `AbortController` 取消已过期预览请求，保留 latest-request guard；取消静默，真实错误仍提示。
+- [x] **验证**：前端 Vitest、定向 ESLint、生产构建；Starter ID、Generator、Admin reactor；三个 Mapper XML、Flyway、`git diff --check`。
+- [x] **文档**：回填 `spec.md`、`tasks.md`、`test-spec.md`、`execution-log.md`，重新执行两阶段 Review；结论为 PASS_WITH_COMMENTS，当前保持活动目录等待用户决定是否再次归档。

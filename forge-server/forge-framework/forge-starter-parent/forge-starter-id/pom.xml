@@ -69,6 +69,12 @@
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
         </dependency>
+
+        <!-- 有界本地号段缓存，防止高基数分组与周期键导致常驻内存无界增长 -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
         
         <!-- Lombok -->
         <dependency>

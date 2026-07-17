@@ -18,6 +18,7 @@
         <result column="builtin" property="builtin"/>
         <result column="in_code_list" property="inCodeList"/>
         <result column="version_no" property="versionNo"/>
+        <result column="legacy_compat_enabled" property="legacyCompatEnabled"/>
         <result column="remark" property="remark"/>
         <result column="options" property="options"/>
         <result column="del_flag" property="delFlag"/>
@@ -44,6 +45,7 @@
         builtin,
         in_code_list,
         version_no,
+        legacy_compat_enabled,
         remark,
         options,
         del_flag,
@@ -175,11 +177,10 @@
         LIMIT 1
     </select>
 
-    <select id="countByRuleCode" resultType="int">
+    <select id="countRuleCodeHistory" resultType="int">
         SELECT COUNT(1)
         FROM ai_code_rule
         WHERE tenant_id = #{tenantId}
-          AND del_flag = '0'
           AND rule_code = #{ruleCode}
         <if test="excludeId != null">
             AND id != #{excludeId}

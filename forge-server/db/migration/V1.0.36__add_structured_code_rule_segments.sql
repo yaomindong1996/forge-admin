@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS `ai_code_rule` (
   `update_by` bigint DEFAULT NULL COMMENT '更新人',
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_ai_code_rule_code_active` (`tenant_id`, `rule_code`, `logic_delete_active`),
+  UNIQUE KEY `uk_ai_code_rule_code` (`tenant_id`, `rule_code`),
   KEY `idx_ai_code_rule_category` (`tenant_id`, `category`, `status`, `del_flag`),
   KEY `idx_ai_code_rule_source_object` (`tenant_id`, `source_object_code`, `status`, `del_flag`),
   KEY `idx_ai_code_rule_update` (`tenant_id`, `update_time`)
@@ -106,19 +106,19 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @index_exists = (
   SELECT COUNT(*) FROM information_schema.STATISTICS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ai_code_rule' AND INDEX_NAME = 'uk_ai_code_rule_code_active'
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ai_code_rule' AND INDEX_NAME = 'uk_ai_code_rule_code'
 );
 SET @sql = IF(@index_exists = 0,
-  'CREATE UNIQUE INDEX uk_ai_code_rule_code_active ON ai_code_rule (tenant_id, rule_code, logic_delete_active)',
+  'CREATE UNIQUE INDEX uk_ai_code_rule_code ON ai_code_rule (tenant_id, rule_code)',
   'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 SET @index_exists = (
   SELECT COUNT(*) FROM information_schema.STATISTICS
-  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ai_code_rule' AND INDEX_NAME = 'uk_ai_code_rule_code'
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'ai_code_rule' AND INDEX_NAME = 'uk_ai_code_rule_code_active'
 );
 SET @sql = IF(@index_exists > 0,
-  'ALTER TABLE ai_code_rule DROP INDEX uk_ai_code_rule_code',
+  'ALTER TABLE ai_code_rule DROP INDEX uk_ai_code_rule_code_active',
   'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 

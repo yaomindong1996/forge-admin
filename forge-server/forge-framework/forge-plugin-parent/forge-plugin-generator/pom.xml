@@ -84,6 +84,12 @@
             <artifactId>forge-starter-id</artifactId>
         </dependency>
 
+        <!-- 编码规则定义本地缓存 -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- 消息插件（触发器SEND_MESSAGE动作复用） -->
         <dependency>
             <groupId>com.mdframe.forge</groupId>

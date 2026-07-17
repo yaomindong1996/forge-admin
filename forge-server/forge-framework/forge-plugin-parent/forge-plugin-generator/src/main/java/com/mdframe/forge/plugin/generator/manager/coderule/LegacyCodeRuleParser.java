@@ -156,7 +156,7 @@ public class LegacyCodeRuleParser {
     }
 
     private String inferResetPolicy(String template) {
-        if (template.contains("yyyyMMddHH") || template.contains("HHmmss")) {
+        if (template.contains("yyyyMMddHH")) {
             return "HOUR";
         }
         if (template.contains("yyyyMMdd")) {

@@ -38,7 +38,7 @@ public interface CodeRuleMapper extends BaseMapper<AiCodeRule> {
     AiCodeRule selectByRuleId(@Param("tenantId") Long tenantId,
                               @Param("id") Long id);
 
-    int countByRuleCode(@Param("tenantId") Long tenantId,
-                        @Param("ruleCode") String ruleCode,
-                        @Param("excludeId") Long excludeId);
+    int countRuleCodeHistory(@Param("tenantId") Long tenantId,
+                             @Param("ruleCode") String ruleCode,
+                             @Param("excludeId") Long excludeId);
 }

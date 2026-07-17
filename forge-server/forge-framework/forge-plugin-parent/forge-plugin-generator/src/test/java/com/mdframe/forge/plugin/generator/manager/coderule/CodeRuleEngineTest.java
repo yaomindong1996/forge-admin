@@ -99,6 +99,71 @@ class CodeRuleEngineTest {
     }
 
     @Test
+    void newRulesShouldUseFiniteCapacityWithoutLegacyLookup() {
+        CountingSequenceService sequenceService = new CountingSequenceService(1L);
+        CodeRuleDefinition definition = definition(List.of(
+                sequence("seq-new", 1, 3, "DECIMAL", "NONE", 1L)
+        ));
+        definition.setLegacyCompatEnabled(0);
+
+        CodeRuleGenerateVO result = engine(sequenceService).generate(
+                definition,
+                Map.of(),
+                Map.of("tenantId", 1L)
+        );
+
+        assertEquals("001", result.getCode());
+        assertEquals(1, sequenceService.lastAllocationStep);
+        assertEquals(999L, sequenceService.lastMaxValue);
+        assertEquals(null, sequenceService.lastLegacyKeyPrefix);
+        assertEquals(0, sequenceService.legacyResolutionCalls.get());
+    }
+
+    @Test
+    void generateShouldWidenOnlyToLegacyAllocatedWatermark() {
+        CountingSequenceService legacySequence = new CountingSequenceService(1_001L, 1_001L);
+        CodeRuleDefinition legacyDefinition = definition(List.of(
+                sequence("sequence_1", 1, 3, "DECIMAL", "HOUR", 1L)
+        ));
+        CodeRuleEngine legacyEngine = engine(legacySequence);
+
+        CodeRuleGenerateVO legacyResult = legacyEngine.generate(
+                legacyDefinition,
+                Map.of(),
+                Map.of("tenantId", 1L)
+        );
+        legacyEngine.generate(legacyDefinition, Map.of(), Map.of("tenantId", 1L));
+
+        assertEquals("1001", legacyResult.getCode());
+        assertEquals(1, legacySequence.legacyResolutionCalls.get());
+
+        CountingSequenceService exhaustedLegacySequence = new CountingSequenceService(10_000L, 1_001L);
+        assertThrows(BusinessException.class, () -> engine(exhaustedLegacySequence).generate(
+                legacyDefinition,
+                Map.of(),
+                Map.of("tenantId", 1L)
+        ));
+
+        CountingSequenceService newSequence = new CountingSequenceService(1_000L, 1L);
+        CodeRuleDefinition newDefinition = definition(List.of(
+                sequence("seq-new", 1, 3, "DECIMAL", "HOUR", 1L)
+        ));
+        CodeRuleEngine newEngine = engine(newSequence);
+
+        assertThrows(BusinessException.class, () -> newEngine.generate(
+                newDefinition,
+                Map.of(),
+                Map.of("tenantId", 1L)
+        ));
+        assertThrows(BusinessException.class, () -> newEngine.generate(
+                newDefinition,
+                Map.of(),
+                Map.of("tenantId", 1L)
+        ));
+        assertEquals(1, newSequence.legacyResolutionCalls.get());
+    }
+
+    @Test
     void keyCanonicalizationShouldAvoidDelimiterCollisions() {
         CodeRuleSequenceKeyFactory factory = new CodeRuleSequenceKeyFactory();
         Map<String, String> left = new LinkedHashMap<>();
@@ -109,6 +174,72 @@ class CodeRuleEngineTest {
         right.put("b", "2:3");
 
         assertNotEquals(factory.groupHash(left), factory.groupHash(right));
+    }
+
+    @Test
+    void generateShouldResolveBusinessFieldAliasesWithoutWeakeningSystemVariables() {
+        CodeRuleEngine engine = engine(new CountingSequenceService(1L));
+
+        CodeRuleGenerateVO snakeField = engine.generate(
+                definition(List.of(segment("warehouse", 1, "VARIABLE", "warehouse_code", 3))),
+                Map.of("warehouseCode", "WH1"),
+                Map.of("tenantId", 1L)
+        );
+        assertEquals("WH1", snakeField.getCode());
+
+        CodeRuleGenerateVO camelField = engine.generate(
+                definition(List.of(segment("customer", 1, "VARIABLE", "customerCode", 3))),
+                Map.of("customer_code", "C01"),
+                Map.of("tenantId", 1L)
+        );
+        assertEquals("C01", camelField.getCode());
+
+        assertThrows(BusinessException.class, () -> engine.generate(
+                definition(List.of(segment("org", 1, "SYS_VAR", "orgCode", 3))),
+                Map.of(),
+                Map.of("tenantId", 1L, "org_code", "ORG")
+        ));
+    }
+
+    @Test
+    void shouldRejectOversizedDefinitionsAndBusinessInputsBeforeTakingSequence() {
+        CountingSequenceService sequenceService = new CountingSequenceService(1L);
+        CodeRuleEngine engine = engine(sequenceService);
+        List<CodeRuleSegmentDTO> tooManySegments = new ArrayList<>();
+        for (int index = 0; index < 33; index++) {
+            tooManySegments.add(segment("fixed_" + index, index + 1, "FIXED", "A", 1));
+        }
+        assertThrows(BusinessException.class, () -> engine.generate(
+                definition(tooManySegments), Map.of(), Map.of("tenantId", 1L)));
+
+        Map<String, Object> tooManyFields = new LinkedHashMap<>();
+        for (int index = 0; index < 257; index++) {
+            tooManyFields.put("field" + index, "A");
+        }
+        assertThrows(BusinessException.class, () -> engine.generate(
+                definition(List.of(sequence("seq", 1, 3, "DECIMAL", "NONE", 1L))),
+                tooManyFields,
+                Map.of("tenantId", 1L)));
+
+        CodeRuleSegmentDTO unboundedVariable = segment(
+                "external", 1, "VARIABLE", "externalCode", 1);
+        unboundedVariable.setSegmentLength(null);
+        assertThrows(BusinessException.class, () -> engine.generate(
+                definition(List.of(unboundedVariable)),
+                Map.of("externalCode", "X".repeat(97)),
+                Map.of("tenantId", 1L)));
+
+        CodeRuleSegmentDTO allowedVariable = segment(
+                "external", 1, "VARIABLE", "externalCode", 1);
+        allowedVariable.setSegmentLength(null);
+        assertThrows(BusinessException.class, () -> engine.generate(
+                definition(List.of(
+                        allowedVariable,
+                        segment("separator", 2, "FIXED", "-", 1),
+                        sequence("seq", 3, 3, "DECIMAL", "NONE", 1L))),
+                Map.of("externalCode", "X".repeat(96)),
+                Map.of("tenantId", 1L)));
+        assertEquals(0, sequenceService.calls.get());
     }
 
     private CodeRuleEngine engine(ISequenceService sequenceService) {
@@ -126,6 +257,7 @@ class CodeRuleEngineTest {
         definition.setRuleId(100L);
         definition.setRuleCode("purchase_no");
         definition.setRuleName("采购单号");
+        definition.setLegacyCompatEnabled(1);
         definition.setSegments(new ArrayList<>(segments));
         return definition;
     }
@@ -167,13 +299,22 @@ class CodeRuleEngineTest {
     private static final class CountingSequenceService implements ISequenceService {
 
         private final long value;
+        private final long legacyStartValue;
         private final AtomicInteger calls = new AtomicInteger();
+        private final AtomicInteger legacyResolutionCalls = new AtomicInteger();
         private String lastKey;
         private String lastLegacyKeyPrefix;
         private String lastLegacyPeriod;
+        private int lastAllocationStep;
+        private long lastMaxValue;
 
         private CountingSequenceService(long value) {
+            this(value, 1L);
+        }
+
+        private CountingSequenceService(long value, long legacyStartValue) {
             this.value = value;
+            this.legacyStartValue = legacyStartValue;
         }
 
         @Override
@@ -196,6 +337,28 @@ class CodeRuleEngineTest {
             lastLegacyKeyPrefix = legacyKeyPrefix;
             lastLegacyPeriod = legacyPeriod;
             return nextId(bizKey, startValue);
+        }
+
+        @Override
+        public long nextId(String bizKey,
+                           long startValue,
+                           String legacyKeyPrefix,
+                           String legacyPeriod,
+                           int allocationStep,
+                           long maxValue) {
+            lastLegacyKeyPrefix = legacyKeyPrefix;
+            lastLegacyPeriod = legacyPeriod;
+            lastAllocationStep = allocationStep;
+            lastMaxValue = maxValue;
+            return nextId(bizKey, startValue);
+        }
+
+        @Override
+        public long resolveLegacyStartValue(long startValue,
+                                            String legacyKeyPrefix,
+                                            String legacyPeriod) {
+            legacyResolutionCalls.incrementAndGet();
+            return legacyStartValue;
         }
 
         @Override

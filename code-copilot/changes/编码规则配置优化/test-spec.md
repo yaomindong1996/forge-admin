@@ -1,5 +1,5 @@
 # 单测 Spec — 编码规则配置优化
-> status: fixed_pending_review
+> status: reviewed_passed
 > created: 2026-07-16
 
 ## 0. 测试原则
@@ -201,3 +201,93 @@
 | 交互静态契约 | passed | 无顶部 `segment-editor__mapping`；存在行内 `request-low-code-mapping`、工作台 `n-modal` 和原子应用函数 |
 | 前端生产构建 | passed | 8691 modules，`exit 0`；仅仓库既有非阻断警告 |
 | 真实页面 | skipped | 未启动 Admin/MySQL/Redis，未执行登录态浏览器点击验收 |
+
+## 15. 归档前旧水位容量组合验证（2026-07-17）
+
+- [x] Red：新增“旧安全起点 1001 + DECIMAL 三位”组合用例，旧实现因缺少只读旧起点契约而编译失败。
+- [x] 兼容路径：实际值 1001、旧安全起点 1001 时输出 `1001`，避免水位回退和立即溢出。
+- [x] 兼容边界：旧安全起点 1001 只扩宽到四位，实际值 10000 时仍抛出容量异常。
+- [x] 严格路径：没有旧水位的新规则在三位实际值 1000 时继续抛出容量异常。
+- [x] 回归：Starter ID、Generator 编码规则测试和 Admin 聚合编译。
+
+| 范围 | 结果 | 证据 |
+|------|------|------|
+| Red | passed | `CodeRuleEngineTest` 新契约在旧接口下 testCompile 失败 |
+| Starter ID | passed，7/7 | 起始值、跨段、并发、多实例、旧水位只读解析和 `REQUIRES_NEW` |
+| Generator | passed，21/21 | Engine 5，其余编码规则/低代码回归 16 |
+| Admin 聚合编译 | passed，42/42 | Starter ID、Generator 与 Admin 装配成功 |
+| 真实环境 | skipped | 未启动 Admin/MySQL/Redis，未执行真实 Flyway、HTTP 或浏览器验收 |
+
+## 16. 最终 Code Quality Fix 回归（2026-07-17）
+
+- [x] 兼容宽度缓存：历史扩宽和无旧水位负结果均按规则/分段/周期/进制配置缓存。
+- [x] 号段缓存：高基数 key 后缓存规模不超过 10000；淘汰旧 holder 后从数据库新号段继续取号且不重复。
+- [x] 事务隔离：`REQUIRES_NEW` 同时显式使用 `READ_COMMITTED`。
+- [x] legacy 协议：单独 `HHmmss` + AUTO 保持 NONE/all；旧 all 水位续接。
+- [x] 字段协议：VARIABLE 双向 snake/camel alias；SYS_VAR 拒绝别名业务值。
+- [x] 计数器身份：ruleCode 查询包含逻辑删除历史且数据库永久唯一；已有 SEQ 删除/替换拒绝，排序/属性编辑和首次添加允许。
+
+| 范围 | 结果 | 证据 |
+|------|------|------|
+| Starter ID | passed，9/9 | 高基数缓存、淘汰唯一性、READ_COMMITTED、旧 all 水位及既有回归 |
+| Generator | passed，25/25 | Engine 6、legacy 2、migration 4、Mapper 3、Controller 2、Dynamic CRUD 3、对象/SEQ identity 5 |
+| Admin 聚合编译 | passed，42/42 | 新 Caffeine 依赖、Starter ID、Generator 与 Admin 装配成功 |
+| 前端基线 | reused | Vitest 13/13、定向 ESLint 0 errors、生产构建 8691 modules |
+| 真实环境 | skipped | 未启动 Admin/MySQL/Redis，未实跑 Flyway、HTTP 或浏览器登录态验收 |
+
+## 17. 归档验收（2026-07-17）
+
+- [x] 四份 SDD 文档状态、最终 Review 结论和跳过项一致。
+- [x] `git diff --check` 通过。
+- [x] `CodeRuleMapper.xml`、`CodeRuleSegmentMapper.xml`、`SysIdSequenceMapper.xml` 通过 `xmllint --noout`。
+- [x] `V1.0.36__add_structured_code_rule_segments.sql` 无 Flyway `${...}` placeholder。
+- [x] 本轮仅调整归档文档与目录，不重复执行已经通过的后端、前端测试和构建。
+- [x] 本轮未启动服务，无需清理 PID。
+
+## 18. 归档后性能修复增量验证计划（2026-07-17）
+
+### P0
+
+- [x] 有限容量号段在 JVM 重启等价缓存淘汰后不跳过整个 1000 区间。
+- [x] 分配区间不得超过当前进制/宽度最大值，失败时数据库水位不推进。
+- [x] `/sequence` API 默认关闭、仅 POST、具备专用权限和 `bizKey` 边界。
+
+### P1
+
+- [x] 新建结构化规则不查询 legacy 水位；迁移规则继续安全续接。
+- [x] legacy SQL 使用可索引的转义前缀 LIKE；下划线规则编码不扩大匹配范围。
+- [x] 同版本规则分段只加载一次，版本变化后重新加载且并发调用不共享可变 DTO。
+- [x] 真实生成不构造预览专属字段；规则分段和上下文字段数量有硬上限。
+- [x] 热门 key 的当前号段通过 CAS 并发消费，只有段切换进入同步区。
+
+### P2
+
+- [x] 前端新预览发起时取消旧请求；取消不弹错误、不覆盖新响应。
+- [x] 自动预览接口不写操作日志，真实生成继续保留审计。
+
+### 增量命令
+
+- Starter ID：`SegmentSequenceGeneratorTest,SequenceControllerContractTest`。
+- Generator：编码规则 Engine、Service cache、Mapper、Migration、Controller、Dynamic CRUD 全集。
+- 前端：`code-rule-utils.spec.js`、相关 API/工作台 ESLint 和生产构建。
+- 静态：三个 Mapper `xmllint`、V1.0.36/V1.0.37 placeholder、`git diff --check`。
+- 真实 Flyway、MySQL/Redis、登录态 HTTP 和浏览器点击继续按既定分工跳过。
+
+## 19. 归档后性能 Fix 验证结果（2026-07-17）
+
+| 范围 | 结果 | 关键证据 |
+|------|------|----------|
+| Red / Task 15-16 | passed | 六参数 `nextId` 缺失导致 Starter ID testCompile 失败；新增容量、缓存淘汰、API 默认关闭/POST/权限/边界契约可识别旧实现 |
+| Red / Task 17 | passed | `SysIdSequenceMapperContractTest` 在旧 `LEFT(biz_key,...)` 查询下 1 项失败；V1.0.37 和 legacy 标记契约随后补齐 |
+| Red / Task 18 | passed | `CodeRuleServiceDefinitionCacheTest` 因旧 `loadDefinition` 私有且无缓存契约导致 testCompile 3 处失败 |
+| Starter ID | passed，15/15 | `SegmentSequenceGeneratorTest` 12、`SequenceControllerContractTest` 2、`SysIdSequenceMapperContractTest` 1 |
+| Generator | passed，31/31 | Controller 3、migration 5、engine 8、legacy 2、Mapper 4、Dynamic CRUD 3、对象/SEQ identity 5、定义缓存 1 |
+| 前端 | passed，14/14 | latest guard、取消识别和既有分段/映射/权限用例；相关 API/JS/Vue ESLint 0 errors |
+| 前端生产构建 | passed | Node v20.19.0；8691 modules；仅仓库既有组件同名、动态/静态导入及 CSS 注释警告 |
+| Admin 聚合编译 | passed，42/42 | Java 17；Starter ID、Generator、Caffeine 和 Admin 装配成功 |
+| XML/Flyway/差异 | passed | 三个 Mapper `xmllint`；V1.0.36/V1.0.37 placeholder、`LEFT(biz_key` 和空白检查无输出 |
+| 两阶段 Review | PASS / PASS_WITH_COMMENTS | P0/P1 为零；合法高基数计数器行的监控/留存策略作为 P2 运维治理项 |
+| 真实环境 | skipped | 未启动 Admin/MySQL/Redis，未实跑 Flyway、登录态 HTTP 或浏览器点击验收 |
+
+- 聚合 `-am` 定向测试尝试仍会在既有 `forge-starter-datascope` 的 surefire groups/engine 配置处提前失败；按历史基线改为目标模块直跑，目标测试均成功，Admin reactor compile 另行覆盖完整装配。
+- 本轮未启动任何服务，无新增或遗留 PID。

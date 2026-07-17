@@ -23,11 +23,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 class SegmentSequenceGeneratorTest {
 
     private final Map<String, SysIdSequence> rows = new ConcurrentHashMap<>();
     private final AtomicReference<Runnable> afterNextAllocation = new AtomicReference<>();
+    private String lastLegacyQueryPrefix;
 
     private SysIdSequenceMapper mapper;
     private RecordingTransactionManager transactionManager;
@@ -111,6 +113,46 @@ class SegmentSequenceGeneratorTest {
         );
 
         assertEquals(5_001L, value);
+        assertEquals("code-rule:1:document!_daily!_no:%", lastLegacyQueryPrefix);
+    }
+
+    @Test
+    void shouldResolveLegacyStartWithoutConsumingSequence() {
+        SysIdSequence legacy = sequence(
+                "code-rule:1:material_code:legacy_scope:2026071709",
+                1_000L,
+                1
+        );
+        rows.put(legacy.getBizKey(), legacy);
+        int rowCount = rows.size();
+
+        long value = generator.resolveLegacyStartValue(
+                1L,
+                "code-rule:1:material_code:",
+                "2026071709"
+        );
+
+        assertEquals(1_001L, value);
+        assertEquals(rowCount, rows.size());
+    }
+
+    @Test
+    void shouldContinueTimeOnlyAutoRuleFromLegacyAllPeriod() {
+        SysIdSequence legacy = sequence(
+                "code-rule:1:time_only:legacy_scope:all",
+                1_000L,
+                1
+        );
+        rows.put(legacy.getBizKey(), legacy);
+
+        long value = generator.nextId(
+                "cr:1:101:segment:global:all",
+                1L,
+                "code-rule:1:time_only:",
+                "all"
+        );
+
+        assertEquals(1_001L, value);
     }
 
     @Test
@@ -132,8 +174,58 @@ class SegmentSequenceGeneratorTest {
 
         assertEquals(List.of(TransactionDefinition.PROPAGATION_REQUIRES_NEW),
                 transactionManager.propagationBehaviors);
+        assertEquals(List.of(TransactionDefinition.ISOLATION_READ_COMMITTED),
+                transactionManager.isolationLevels);
         assertEquals(1, transactionManager.commits);
         assertEquals(0, transactionManager.rollbacks);
+    }
+
+    @Test
+    void shouldBoundHighCardinalityCacheAndRemainUniqueAfterEviction() {
+        long first = generator.nextId("code-rule:evicted", 1L);
+        for (int index = 0; index <= SegmentSequenceGenerator.MAX_SEGMENT_CACHE_SIZE; index++) {
+            generator.nextId("code-rule:group:" + index, 1L);
+        }
+        generator.cleanUpSegmentCache();
+
+        assertTrue(generator.estimatedSegmentCacheSize()
+                <= SegmentSequenceGenerator.MAX_SEGMENT_CACHE_SIZE);
+        assertEquals(1_001L, generator.nextId("code-rule:evicted", 1L));
+        assertEquals(1L, first);
+    }
+
+    @Test
+    void shouldNotLoseFiniteCapacityAfterCacheEviction() {
+        long first = generator.nextId(
+                "cr:1:finite:segment:global:all", 1L, null, null, 1, 999L);
+        for (int index = 0; index <= SegmentSequenceGenerator.MAX_SEGMENT_CACHE_SIZE; index++) {
+            generator.nextId("code-rule:finite-group:" + index, 1L);
+        }
+        generator.cleanUpSegmentCache();
+
+        long second = generator.nextId(
+                "cr:1:finite:segment:global:all", 1L, null, null, 1, 999L);
+
+        assertEquals(1L, first);
+        assertEquals(2L, second);
+    }
+
+    @Test
+    void shouldRejectExhaustedCapacityWithoutAdvancingWatermark() {
+        String bizKey = "cr:1:exhausted:segment:global:all";
+        SysIdSequence exhausted = sequence(bizKey, 999L, 3);
+        rows.put(bizKey, exhausted);
+
+        assertThrows(IllegalStateException.class, () -> generator.nextId(
+                bizKey, 1L, null, null, 1, 999L));
+
+        assertEquals(999L, rows.get(bizKey).getMaxId());
+        assertEquals(3, rows.get(bizKey).getVersion());
+    }
+
+    @Test
+    void shouldRejectBizKeyLongerThanDatabaseColumn() {
+        assertThrows(IllegalArgumentException.class, () -> generator.nextId("x".repeat(101), 1L));
     }
 
     private SysIdSequence copy(SysIdSequence source) {
@@ -197,12 +289,36 @@ class SegmentSequenceGeneratorTest {
     }
 
     private Long selectLegacyMaxId(String legacyKeyPrefix, String period) {
+        lastLegacyQueryPrefix = legacyKeyPrefix;
+        String literalPrefix = unescapeLikePrefixPattern(legacyKeyPrefix);
         return rows.values().stream()
-                .filter(item -> item.getBizKey().startsWith(legacyKeyPrefix))
+                .filter(item -> item.getBizKey().startsWith(literalPrefix))
                 .filter(item -> matchesPeriod(item.getBizKey(), period))
                 .map(SysIdSequence::getMaxId)
                 .max(Long::compareTo)
                 .orElse(null);
+    }
+
+    private String unescapeLikePrefixPattern(String value) {
+        String pattern = value.endsWith("%")
+                ? value.substring(0, value.length() - 1) : value;
+        StringBuilder result = new StringBuilder(value.length());
+        boolean escaped = false;
+        for (int index = 0; index < pattern.length(); index++) {
+            char current = pattern.charAt(index);
+            if (escaped) {
+                result.append(current);
+                escaped = false;
+            } else if (current == '!') {
+                escaped = true;
+            } else {
+                result.append(current);
+            }
+        }
+        if (escaped) {
+            result.append('!');
+        }
+        return result.toString();
     }
 
     private boolean matchesPeriod(String bizKey, String period) {
@@ -225,12 +341,14 @@ class SegmentSequenceGeneratorTest {
     private static final class RecordingTransactionManager implements PlatformTransactionManager {
 
         private final List<Integer> propagationBehaviors = new ArrayList<>();
+        private final List<Integer> isolationLevels = new ArrayList<>();
         private int commits;
         private int rollbacks;
 
         @Override
         public TransactionStatus getTransaction(TransactionDefinition definition) {
             propagationBehaviors.add(definition.getPropagationBehavior());
+            isolationLevels.add(definition.getIsolationLevel());
             return new SimpleTransactionStatus();
         }
 

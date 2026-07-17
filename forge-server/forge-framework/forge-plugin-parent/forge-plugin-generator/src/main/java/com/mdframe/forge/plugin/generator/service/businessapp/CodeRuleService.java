@@ -3,6 +3,8 @@ package com.mdframe.forge.plugin.generator.service.businessapp;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.mdframe.forge.plugin.generator.domain.entity.AiCodeRule;
 import com.mdframe.forge.plugin.generator.domain.entity.AiCodeRuleSegment;
 import com.mdframe.forge.plugin.generator.dto.businessapp.CodeRulePreviewDTO;
@@ -33,9 +35,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /**
@@ -46,10 +48,17 @@ import java.util.regex.Pattern;
 public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
 
     private static final Pattern RULE_CODE_PATTERN = Pattern.compile("^[A-Za-z][A-Za-z0-9_]{0,63}$");
+    private static final int DEFINITION_CACHE_MAX_SIZE = 10_000;
+    private static final int DEFINITION_CACHE_EXPIRE_MINUTES = 30;
 
     private final CodeRuleSegmentMapper segmentMapper;
     private final CodeRuleEngine codeRuleEngine;
     private final LegacyCodeRuleParser legacyParser;
+    private final Cache<DefinitionCacheKey, List<CodeRuleSegmentSnapshot>> definitionCache =
+            Caffeine.newBuilder()
+                    .maximumSize(DEFINITION_CACHE_MAX_SIZE)
+                    .expireAfterAccess(DEFINITION_CACHE_EXPIRE_MINUTES, TimeUnit.MINUTES)
+                    .build();
 
     /**
      * 兼容旧管理入口的实体分页。
@@ -163,6 +172,7 @@ public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
         rule.setTenantId(tenantId);
         rule.setBuiltin(0);
         rule.setVersionNo(1);
+        rule.setLegacyCompatEnabled(0);
         rule.setDelFlag("0");
         syncLegacySummary(rule, source.getSegments());
         if (!save(rule)) {
@@ -190,6 +200,7 @@ public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
             return;
         }
 
+        validateSequenceIdentity(loadDefinition(existing, tenantId).getSegments(), source.getSegments());
         validateUniqueRuleCode(tenantId, source.getRuleCode(), source.getId());
         CodeRuleDefinition definition = toDefinition(
                 source.getId(), tenantId, source.getRuleCode(), source.getRuleName(), source.getSegments());
@@ -403,8 +414,27 @@ public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
     }
 
     private void validateUniqueRuleCode(Long tenantId, String ruleCode, Long excludeId) {
-        if (baseMapper.countByRuleCode(tenantId, ruleCode, excludeId) > 0) {
-            throw new BusinessException("规则编码已存在");
+        if (baseMapper.countRuleCodeHistory(tenantId, ruleCode, excludeId) > 0) {
+            throw new BusinessException("规则编码已被使用，删除后也不能复用");
+        }
+    }
+
+    static void validateSequenceIdentity(List<CodeRuleSegmentDTO> currentSegments,
+                                         List<CodeRuleSegmentDTO> nextSegments) {
+        CodeRuleSegmentDTO currentSequence = currentSegments == null ? null : currentSegments.stream()
+                .filter(Objects::nonNull)
+                .filter(segment -> "SEQ".equalsIgnoreCase(segment.getSegmentType()))
+                .findFirst()
+                .orElse(null);
+        if (currentSequence == null) {
+            return;
+        }
+        boolean preserved = nextSegments != null && nextSegments.stream()
+                .filter(Objects::nonNull)
+                .anyMatch(segment -> "SEQ".equalsIgnoreCase(segment.getSegmentType())
+                        && Objects.equals(currentSequence.getSegmentKey(), segment.getSegmentKey()));
+        if (!preserved) {
+            throw new BusinessException("已有流水号段不能删除或替换；如需新计数器，请创建新的规则编码");
         }
     }
 
@@ -489,12 +519,28 @@ public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
         }
     }
 
-    private CodeRuleDefinition loadDefinition(AiCodeRule rule, Long tenantId) {
+    CodeRuleDefinition loadDefinition(AiCodeRule rule, Long tenantId) {
+        DefinitionCacheKey cacheKey = new DefinitionCacheKey(
+                tenantId, rule.getId(), rule.getVersionNo());
+        List<CodeRuleSegmentSnapshot> snapshots = definitionCache.get(
+                cacheKey, ignored -> loadDefinitionSnapshots(rule, tenantId));
+        List<CodeRuleSegmentDTO> segments = snapshots.stream()
+                .map(CodeRuleSegmentSnapshot::toDto)
+                .toList();
+        CodeRuleDefinition definition = toDefinition(
+                rule.getId(), tenantId, rule.getRuleCode(), rule.getRuleName(), segments);
+        definition.setLegacyCompatEnabled(rule.getLegacyCompatEnabled());
+        return definition;
+    }
+
+    private List<CodeRuleSegmentSnapshot> loadDefinitionSnapshots(AiCodeRule rule, Long tenantId) {
         List<AiCodeRuleSegment> stored = segmentMapper.selectByRuleId(tenantId, rule.getId());
         List<CodeRuleSegmentDTO> segments = stored.isEmpty()
                 ? legacyParser.parse(rule.getTemplate(), rule.getResetPolicy(), rule.getSeqLength())
                 : stored.stream().map(this::toSegmentDTO).toList();
-        return toDefinition(rule.getId(), tenantId, rule.getRuleCode(), rule.getRuleName(), segments);
+        return segments.stream()
+                .map(CodeRuleSegmentSnapshot::from)
+                .toList();
     }
 
     private CodeRuleDefinition toDefinition(Long ruleId,
@@ -507,6 +553,7 @@ public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
         definition.setTenantId(tenantId);
         definition.setRuleCode(ruleCode);
         definition.setRuleName(ruleName);
+        definition.setLegacyCompatEnabled(0);
         definition.setSegments(new ArrayList<>(segments));
         return definition;
     }
@@ -805,5 +852,67 @@ public class CodeRuleService extends ServiceImpl<CodeRuleMapper, AiCodeRule> {
 
     private String text(Object value) {
         return value == null ? "" : String.valueOf(value);
+    }
+
+    private record DefinitionCacheKey(Long tenantId, Long ruleId, Integer versionNo) {
+    }
+
+    private record CodeRuleSegmentSnapshot(String segmentKey,
+                                           Integer segmentOrder,
+                                           String segmentType,
+                                           String segmentValue,
+                                           String variableSource,
+                                           Integer segmentLength,
+                                           Integer padEnabled,
+                                           String padChar,
+                                           String padDirection,
+                                           Integer groupEnabled,
+                                           Integer includeInCode,
+                                           String radixType,
+                                           Integer resetEnabled,
+                                           String resetPolicy,
+                                           Long startValue,
+                                           Integer excludeAmbiguous) {
+
+        private static CodeRuleSegmentSnapshot from(CodeRuleSegmentDTO source) {
+            return new CodeRuleSegmentSnapshot(
+                    source.getSegmentKey(),
+                    source.getSegmentOrder(),
+                    source.getSegmentType(),
+                    source.getSegmentValue(),
+                    source.getVariableSource(),
+                    source.getSegmentLength(),
+                    source.getPadEnabled(),
+                    source.getPadChar(),
+                    source.getPadDirection(),
+                    source.getGroupEnabled(),
+                    source.getIncludeInCode(),
+                    source.getRadixType(),
+                    source.getResetEnabled(),
+                    source.getResetPolicy(),
+                    source.getStartValue(),
+                    source.getExcludeAmbiguous());
+        }
+
+        private CodeRuleSegmentDTO toDto() {
+            CodeRuleSegmentDTO target = new CodeRuleSegmentDTO();
+            target.setSegmentKey(segmentKey);
+            target.setSegmentOrder(segmentOrder);
+            target.setSegmentType(segmentType);
+            target.setSegmentValue(segmentValue);
+            target.setVariableSource(variableSource);
+            target.setSegmentLength(segmentLength);
+            target.setPadEnabled(padEnabled);
+            target.setPadChar(padChar);
+            target.setPadDirection(padDirection);
+            target.setGroupEnabled(groupEnabled);
+            target.setIncludeInCode(includeInCode);
+            target.setRadixType(radixType);
+            target.setResetEnabled(resetEnabled);
+            target.setResetPolicy(resetPolicy);
+            target.setStartValue(startValue);
+            target.setExcludeAmbiguous(excludeAmbiguous);
+            return target;
+        }
     }
 }

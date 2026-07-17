@@ -50,5 +50,6 @@ public class CodeRuleSaveDTO {
 
     @Valid
     @NotEmpty(message = "编码规则至少需要一个分段")
+    @Size(max = 32, message = "一条编码规则最多只能包含32个分段")
     private List<CodeRuleSegmentDTO> segments = new ArrayList<>();
 }

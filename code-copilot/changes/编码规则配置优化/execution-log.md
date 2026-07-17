@@ -1,5 +1,5 @@
 # 执行日志 — 编码规则配置优化
-> status: fixed_pending_review
+> status: reviewed_passed
 > created: 2026-07-16
 
 ## 1. 基线
@@ -40,13 +40,13 @@
 | 2026-07-16 19:26 | Admin 聚合编译 | `mvn -pl forge-admin-server -am compile -DskipTests` | passed，42/42 | Java 17；19.579s；Generator 与 Admin 均成功 |
 | 2026-07-16 19:26 | XML/Flyway/差异 | `xmllint --noout` 两个 Mapper；Flyway `${...}` 扫描；逻辑删除迁移断言；tracked/untracked diff check | passed | placeholder 扫描无输出；两个 XML 语法正确；tracked 差异和 28 个 untracked 文件均无空白错误 |
 
-### 3.2 验证环境
+### 3.1 验证环境
 
 - Java：OpenJDK 17.0.13，`JAVA_HOME=/opt/homebrew/Cellar/openjdk@17/17.0.13/libexec/openjdk.jdk/Contents/Home`。
 - Node：v20.19.0；pnpm 9.0.0。
 - Maven：因 `~/.m2` 只读，使用 `/tmp/forge-code-rule-maven-settings.xml` 和 `/tmp/forge-code-rule-m2-local`，依赖镜像只读指向用户现有 Maven 缓存。
 
-## 3.1 提交记录
+## 3.2 提交记录
 
 - Task 0 提交：`3e453277 [编码规则配置优化] 建立SDD变更基线`。
 - Task 0 首次提交只包含当时已在索引中的需求文档、UI 原型和 `AGENTS.md`；四份新 SDD 文件仍在工作区。
@@ -114,7 +114,6 @@ Review 结论：`NEEDS_FIX`。当前状态为 `reviewed_with_findings`，不得�
 - 真实 Flyway、`forge_schema_history`、数据库水位和登录态 `/system/code-rule` HTTP 仍未执行；按既定分工由可用环境补验。
 - Git 元数据不可写，本轮未生成新提交；现有基线提交仍为 `3e453277`。
 - 本轮启动服务：无；停止服务：无；遗留 PID：无。
-- 下一步重新执行 `/review 编码规则配置优化`，Fix 结果不能替代独立复审结论。
 
 ## 8. 用户验收主题复修（2026-07-16）
 
@@ -207,3 +206,96 @@ Review 结论：`NEEDS_FIX`。当前状态为 `reviewed_with_findings`，不得�
 - 切换对象时弹窗显示影响提示，确认后清空其它 LOWCODE 分段的跨对象映射，CUSTOM 分段不受影响。
 - `frontend-design` 仅用于确认局部弹窗的交互层级；实现保持 Forge 企业配置页的克制风格和系统主题 Token，未使用 `ui-ux-pro-max`。
 - 本轮未启动 Admin/MySQL/Redis，未执行登录态浏览器验收；启动/停止服务均为无，无遗留 PID。
+
+## 13. 归档前 Review 与旧水位容量补修（2026-07-17）
+
+| 时间 | 范围 | 命令/动作 | 结果 | 备注 |
+|------|------|-----------|------|------|
+| 2026-07-17 08:40 | Spec Compliance | 归档前复核 R1-R4、VARIABLE 双来源、LOWCODE Modal 和主题 | failed，1 个 P0 | 旧水位 1000 从 1001 续接，与 `material_code` 三位容量冲突；阶段二未启动 |
+| 2026-07-17 09:02 | Red | `CodeRuleEngineTest` 增加旧水位与固定宽度组合测试 | failed as expected | 旧接口缺少 `resolveLegacyStartValue`；测试编译识别缺失契约 |
+| 2026-07-17 09:09 | Starter ID | `SegmentSequenceGeneratorTest` | passed，7/7 | JDK 17；新增旧安全起点只读解析且不创建/推进序列用例 |
+| 2026-07-17 09:05 | Generator Green | 7 个编码规则相关测试类 | passed，21/21 | 兼容扩宽、严格溢出和有效兼容宽度耗尽均覆盖 |
+| 2026-07-17 09:06 | Admin 聚合编译 | `mvn -pl forge-admin-server -am compile -DskipTests` | passed，42/42 | 使用临时 Maven 本地仓库；Starter ID、Generator 和 Admin 成功 |
+
+- 修复只在实际容量溢出时查询旧水位；普通生成路径没有新增查询。
+- 旧安全起点只决定最小兼容宽度，不按当前序号无限扩宽；新规则严格宽度语义不变。
+- 默认 `~/.m2` 安装因仓库写权限失败，按已有验证基线改用 `/tmp/forge-code-rule-m2-local`；不影响源码测试和 reactor 编译结论。
+- 本轮启动服务：无；停止服务：无；遗留 PID：无。
+
+## 14. 最终阶段二 Review 修复与归档验收（2026-07-17）
+
+| 时间 | 范围 | 命令/动作 | 结果 | 备注 |
+|------|------|-----------|------|------|
+| 2026-07-17 09:17 | 兼容宽度缓存 Red | 连续两次历史扩宽生成 | failed as expected | 旧实现解析旧水位 2 次；证明高频查询问题可检测 |
+| 2026-07-17 09:18 | 兼容宽度缓存 Green | 有界 LRU 缓存兼容宽度和负结果 | passed | 最大 2048；key 含规则、分段、周期和进制配置 |
+| 2026-07-17 09:20 | 号段缓存 Red | 高基数 key 缓存上限契约 | failed as expected | 旧实现缺少上限、清理和规模契约 |
+| 2026-07-17 09:21 | 事务隔离 Red | `REQUIRES_NEW` 隔离级别断言 | failed as expected | 旧值为 DEFAULT；MySQL RR 下乐观重试可能重复读旧快照 |
+| 2026-07-17 09:23 | legacy AUTO Red | `HHmmss + AUTO` 契约 | failed as expected | 旧 parser 错误推断 HOUR，实际历史语义为 NONE/all |
+| 2026-07-17 09:24 | 字段别名 Red | VARIABLE snake/camel 双向兼容 | failed as expected | `warehouse_code` 无法读取 `warehouseCode` |
+| 2026-07-17 09:26 | 规则编码身份 Red | Mapper/Flyway 历史唯一契约 | failed as expected | 旧实现只约束未删除记录，允许换 ruleId 重置计数器 |
+| 2026-07-17 09:31 | SEQ identity Red | 删除/替换已有 SEQ | failed as expected | 旧 Service 缺少稳定 segmentKey 更新约束 |
+| 2026-07-17 09:33 | Generator 最终回归 | 7 个编码规则相关测试类 | passed，25/25 | 0 failure/error/skip |
+| 2026-07-17 09:34 | Admin 最终聚合编译 | `mvn -pl forge-admin-server -am compile -DskipTests` | passed，42/42 | JDK 17，Caffeine/Starter ID/Generator/Admin 装配成功 |
+
+- 最终 Review：Spec Compliance PASS；Code Quality PASS_WITH_COMMENTS，P0/P1 为零。
+- P2：冷缓存并发首次溢出可能重复少量旧水位查询；旧水位 SQL 非 sargable 但只在首次/淘汰后执行；前端可后续提前禁用已有 SEQ 删除/改型。
+- 真实 Flyway、数据库、Redis、登录态 HTTP 和浏览器点击未执行，按既定分工继续作为环境验收项。
+- 本轮启动服务：无；停止服务：无；遗留 PID：无。
+
+## 15. 归档记录（2026-07-17）
+
+| 时间 | 范围 | 命令/动作 | 结果 | 备注 |
+|------|------|-----------|------|------|
+| 2026-07-17 | 文档一致性 | 核对 Spec、Tasks、Test Spec、Execution Log 状态、章节和 Review 结论 | passed | 四份文档状态统一为 done；最终 Review 为 PASS / PASS_WITH_COMMENTS |
+| 2026-07-17 | 静态验收 | `git diff --check`；三个 Mapper `xmllint --noout`；V1.0.36 placeholder 扫描 | passed | 无空白、XML 语法或 Flyway placeholder 问题 |
+| 2026-07-17 | 知识沉淀 | 核对 `decisions.md`、`pitfalls.md` | passed | 计数器身份、旧水位容量和缓存/事务经验已沉淀 |
+| 2026-07-17 | 目录归档 | 移动完整变更目录到日期前缀归档目录 | passed | 包含四份 SDD 文档、功能需求文档和 UI 原型 |
+
+- 归档路径：`code-copilot/changes/archive/2026-07-17-编码规则配置优化/`。
+- 未提交或推送：当前环境 Git 元数据不可写；所有实现和归档差异保留在工作区。
+- 本轮未启动 Admin/MySQL/Redis，无新增服务或遗留 PID。
+
+## 16. 归档后性能 Review 与 Fix 启动（2026-07-17）
+
+| 时间 | 范围 | 命令/动作 | 结果 | 备注 |
+|------|------|-----------|------|------|
+| 2026-07-17 09:57 | Review 回归基线 | Starter ID 与 Generator 编码规则测试 | passed，34/34 | Starter ID 9/9；Generator 25/25；现有测试未覆盖容量×淘汰组合 |
+| 2026-07-17 | 静态复核 | 号段、缓存、legacy SQL、规则加载、原始序列 API、低代码生成链路 | NEEDS_FIX | 发现 2 个 P0、3 个 P1 和预览降载项 |
+| 2026-07-17 | 用户授权 | 用户回复“开始修复” | confirmed | 归档目录恢复为活动变更；状态改为 fix_in_progress |
+
+- 本轮按 `writing-plans` 将修复拆为 Task 15-19，并按 `forge-coding-standards` 执行后端、SQL 和接口修改。
+- 未使用 `ui-ux-pro-max`；未启动 Admin/MySQL/Redis。
+
+## 17. 归档后性能 Fix 执行与复审（2026-07-17）
+
+| 时间 | 范围 | 命令/动作 | 结果 | 备注 |
+|------|------|-----------|------|------|
+| 10:26 | Task 15-16 Green | Starter ID 定向执行容量、缓存淘汰和 `/sequence` 契约 | passed，14/14 | 随后加入索引友好 Mapper 契约，最终套件为 15/15 |
+| 10:33 | Task 17 Red | `SysIdSequenceMapperContractTest` | failed as expected，1/1 | 旧 SQL 仍是 `LEFT(biz_key,...)`，证明契约可识别非 sargable 查询 |
+| 10:37 | Task 17 Green | Engine、Mapper、Migration 定向测试 | passed，16/16 | 新规则严格容量、V1.0.37、legacy 标记和转义前缀 LIKE 生效 |
+| 10:38 | Task 18 Red | Engine + Definition Cache 测试编译 | failed as expected，3 处 | 旧 `loadDefinition` 私有且没有同版本缓存/深拷贝契约 |
+| 10:41 | Task 18 Green | Engine、Mapper、Migration、Definition Cache | passed，18/18 | Caffeine 10000/30m；版本变化重载；DTO 独立副本；32/256/96 上限 |
+| 10:43 | 前端降载 | Vitest + 定向 ESLint | passed，14/14 | AbortController 取消、latest guard、取消静默且真实错误提示；0 lint errors |
+| 10:47 | Starter ID 最终回归 | 三个测试类 | passed，15/15 | 12 个生成器测试、2 个 Controller 契约、1 个 Mapper 契约 |
+| 10:47 | Generator 最终回归 | 八个编码规则相关测试类 | passed，31/31 | 0 failures/errors/skipped |
+| 10:49 | 前端生产构建 | `pnpm build` | passed，8691 modules | 约 1m55s；仅仓库既有组件同名、动态/静态导入和 CSS 注释警告 |
+| 10:54 | Admin 聚合编译 | `mvn -pl forge-admin-server -am compile -DskipTests` | passed，42/42 | Java 17；最终 `!` 转义 LIKE、Starter ID、Generator、Caffeine 与 Admin 装配成功 |
+| 10:54 | Review 后前端增量 | Vitest + 定向 ESLint | passed，14/14 | 非取消预览错误恢复用户提示；取消仍不弹错 |
+| 10:55 | XML/Flyway/差异 | 三个 Mapper `xmllint`；V1.0.36/V1.0.37 placeholder；旧 `LEFT(biz_key`；tracked/untracked diff check | passed | 无 XML、placeholder、非索引查询或空白错误 |
+| 10:58 | Review 后最终前端构建 | `pnpm build` | passed，8691 modules | 自审后的取消/错误提示逻辑进入最终产物；仅仓库既有非阻断警告 |
+
+### 17.1 实现结论
+
+- P0 固定宽度提前耗尽已修复：新规则按容量选择步长，数据库号段按剩余容量裁剪；达到上限不 UPDATE；当前段 CAS 消费。
+- P0 原始序列接口已收口：默认关闭、仅 POST、专用权限，`bizKey` 最长 100 且字符白名单；未新增默认授权。
+- P1 legacy 查询已降载：`V1.0.37` 将存量/新规则兼容边界分离；新规则不扫描旧水位；存量查询使用参数化尾通配 LIKE 和 `!` 转义。
+- P1 生成热路径已降载：同版本分段只加载一次并返回深拷贝；真实生成不构造预览 VO；可预判非法输出在取号前拒绝。
+- P2 预览已降载：旧请求会被取消，取消错误静默；两个预览入口不再写操作日志，真实生成审计保持。
+
+### 17.2 两阶段 Review
+
+- Spec Compliance：PASS。Task 15-19 与增量 Spec 一致，既有低代码协议、主题、全屏工作台和权限边界无回退。
+- Code Quality：PASS_WITH_COMMENTS，P0/P1 为零。合法高基数分组/周期对应的数据库计数器行仍需生产监控和另行制定可审计留存策略；不能直接 TTL 删除以免编号复用。
+- 真实环境：未启动 Admin/MySQL/Redis，未实跑 Flyway、登录态 HTTP 或浏览器点击；按既定分工保留为环境验收项。
+- 服务清理：本轮未启动服务，无需停止，无遗留 PID。
+- 当前状态：`reviewed_passed`，保持活动变更目录，等待用户决定是否再次归档。

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CodeRuleMapperContractTest {
@@ -28,6 +29,27 @@ class CodeRuleMapperContractTest {
         assertTrue(xml.contains("column=\"variable_source\" property=\"variableSource\""));
         assertTrue(xml.contains("segment_value, variable_source"));
         assertTrue(xml.contains("#{segment.variableSource}"));
+    }
+
+    @Test
+    void ruleCodeHistoryCheckShouldIncludeLogicallyDeletedRules() throws IOException {
+        String xml = Files.readString(resolveMapper());
+        int start = xml.indexOf("<select id=\"countRuleCodeHistory\"");
+        int end = xml.indexOf("</select>", start);
+
+        assertTrue(start >= 0);
+        assertTrue(end > start);
+        String query = xml.substring(start, end);
+        assertTrue(query.contains("rule_code = #{ruleCode}"));
+        assertFalse(query.contains("del_flag"));
+    }
+
+    @Test
+    void ruleMapperShouldRoundTripLegacyCompatibilityFlag() throws IOException {
+        String xml = Files.readString(resolveMapper());
+
+        assertTrue(xml.contains("column=\"legacy_compat_enabled\" property=\"legacyCompatEnabled\""));
+        assertTrue(xml.contains("legacy_compat_enabled,"));
     }
 
     private Path resolveMapper() {

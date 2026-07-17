@@ -72,6 +72,28 @@ class CodeRuleServiceObjectBindingTest {
         assertInstanceOf(BusinessException.class, exception.getCause());
     }
 
+    @Test
+    void shouldPreserveExistingSequenceIdentityDuringUpdate() {
+        CodeRuleSegmentDTO currentSequence = segment("seq_1", "SEQ");
+
+        assertThrows(BusinessException.class, () -> CodeRuleService.validateSequenceIdentity(
+                List.of(currentSequence),
+                List.of(segment("fixed_1", "FIXED"))
+        ));
+        assertThrows(BusinessException.class, () -> CodeRuleService.validateSequenceIdentity(
+                List.of(currentSequence),
+                List.of(segment("seq_2", "SEQ"))
+        ));
+        assertDoesNotThrow(() -> CodeRuleService.validateSequenceIdentity(
+                List.of(currentSequence),
+                List.of(segment("fixed_1", "FIXED"), segment("seq_1", "SEQ"))
+        ));
+        assertDoesNotThrow(() -> CodeRuleService.validateSequenceIdentity(
+                List.of(segment("fixed_1", "FIXED")),
+                List.of(currentSequence)
+        ));
+    }
+
     private CodeRuleSaveDTO variableRule(String variableSource) {
         CodeRuleSegmentDTO segment = new CodeRuleSegmentDTO();
         segment.setSegmentType("VARIABLE");
@@ -84,6 +106,13 @@ class CodeRuleServiceObjectBindingTest {
         dto.setCategory("CUSTOMER");
         dto.setSegments(List.of(segment));
         return dto;
+    }
+
+    private CodeRuleSegmentDTO segment(String segmentKey, String segmentType) {
+        CodeRuleSegmentDTO segment = new CodeRuleSegmentDTO();
+        segment.setSegmentKey(segmentKey);
+        segment.setSegmentType(segmentType);
+        return segment;
     }
 
     private void assertBusinessException(Method method,

@@ -27,6 +27,10 @@ class LegacyCodeRuleParserTest {
 
         List<CodeRuleSegmentDTO> automatic = parser.parse("DOC${yyyyMMdd}${seq:4}", "AUTO", 4);
         assertEquals("DAY", automatic.get(2).getResetPolicy());
+
+        List<CodeRuleSegmentDTO> timeOnly = parser.parse("X${HHmmss}${seq:3}", "AUTO", 3);
+        assertEquals("NONE", timeOnly.get(2).getResetPolicy());
+        assertEquals(0, timeOnly.get(2).getResetEnabled());
     }
 
     @Test

@@ -2,10 +2,13 @@ package com.mdframe.forge.plugin.generator.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.mdframe.forge.plugin.generator.domain.entity.AiCodeRule;
+import com.mdframe.forge.plugin.generator.dto.businessapp.CodeRuleGenerateDTO;
+import com.mdframe.forge.plugin.generator.dto.businessapp.CodeRulePreviewDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.CodeRuleSaveDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.CodeRuleSegmentDTO;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
+import com.mdframe.forge.starter.core.annotation.log.OperationLog;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,6 +23,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SystemCodeRuleControllerContractTest {
@@ -63,6 +67,23 @@ class SystemCodeRuleControllerContractTest {
         assertEquals(Set.of("warehouseType"), missing);
         assertTrue(SystemCodeRuleController.isSafeCustomVariableName("customerType"));
         assertFalse(SystemCodeRuleController.isSafeCustomVariableName("customer-type"));
+    }
+
+    @Test
+    void realtimePreviewShouldNotWriteOperationLogButGenerationShouldRemainAudited() throws Exception {
+        Method systemPreview = SystemCodeRuleController.class.getMethod(
+                "preview", CodeRulePreviewDTO.class);
+        Method systemGenerate = SystemCodeRuleController.class.getMethod(
+                "generate", CodeRuleGenerateDTO.class);
+        Method legacyPreview = CodeRuleController.class.getMethod(
+                "preview", CodeRulePreviewDTO.class);
+        Method legacyGenerate = CodeRuleController.class.getMethod(
+                "generate", CodeRuleGenerateDTO.class);
+
+        assertNull(systemPreview.getAnnotation(OperationLog.class));
+        assertNull(legacyPreview.getAnnotation(OperationLog.class));
+        assertNotNull(systemGenerate.getAnnotation(OperationLog.class));
+        assertNotNull(legacyGenerate.getAnnotation(OperationLog.class));
     }
 
     private CodeRuleSaveDTO variableRule(String fieldCode, String variableSource) {

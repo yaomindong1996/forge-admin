@@ -125,15 +125,15 @@ public class SystemCodeRuleController {
 
     @PostMapping("/preview")
     @SaCheckPermission("system:codeRule:use")
-    @OperationLog(module = "编码规则", type = OperationType.QUERY, desc = "预览编码规则")
-    public RespInfo<CodeRulePreviewVO> preview(@RequestBody(required = false) CodeRulePreviewDTO dto) {
+    public RespInfo<CodeRulePreviewVO> preview(
+            @Valid @RequestBody(required = false) CodeRulePreviewDTO dto) {
         return RespInfo.success(codeRuleService.preview(dto));
     }
 
     @PostMapping("/generate")
     @SaCheckPermission("system:codeRule:use")
     @OperationLog(module = "编码规则", type = OperationType.OTHER, desc = "生成业务编码")
-    public RespInfo<CodeRuleGenerateVO> generate(@RequestBody CodeRuleGenerateDTO dto) {
+    public RespInfo<CodeRuleGenerateVO> generate(@Valid @RequestBody CodeRuleGenerateDTO dto) {
         CodeRuleGenerateDTO request = dto == null ? new CodeRuleGenerateDTO() : dto;
         Map<String, Object> fields = request.getFields() == null ? request.getContext() : request.getFields();
         return RespInfo.success(codeRuleService.generateResult(request.getRuleCode(), fields));
