@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MES 定时任务管理模块 · 产品需求文档 v1.4</title>
+<style>
+  :root{
+    --brand:#2f54eb; --brand-soft:#eef2ff; --ink:#1f2329; --ink-2:#5b6168;
+    --line:#e6e8eb; --bg:#f7f8fa; --ok:#16a34a; --warn:#d97706; --err:#dc2626;
+    --p0:#dc2626; --p1:#d97706; --p2:#2563eb;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);background:var(--bg);line-height:1.7;font-size:14px}
+  .page{max-width:980px;margin:0 auto;background:#fff;padding:56px 64px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  header.doc{border-bottom:3px solid var(--brand);padding-bottom:20px;margin-bottom:28px}
+  header.doc .tag{display:inline-block;background:var(--brand);color:#fff;font-size:12px;
+    padding:3px 10px;border-radius:4px;letter-spacing:1px}
+  header.doc h1{font-size:26px;margin:14px 0 6px;letter-spacing:.5px}
+  header.doc .meta{color:var(--ink-2);font-size:13px;display:flex;gap:22px;flex-wrap:wrap}
+  h2{font-size:19px;margin:34px 0 12px;padding-left:11px;border-left:4px solid var(--brand)}
+  h3{font-size:15px;margin:20px 0 8px;color:var(--ink)}
+  p{margin:8px 0;color:#2c3138}
+  ul,ol{margin:8px 0 8px 22px}
+  li{margin:4px 0}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:13px}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:var(--brand-soft);color:#26324f;font-weight:600;white-space:nowrap}
+  tr:nth-child(even) td{background:#fafbfc}
+  code{background:#f0f2f5;padding:1px 6px;border-radius:4px;font-family:"SFMono-Regular",Consolas,monospace;font-size:12.5px;color:#b3176b}
+  .pill{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:10px;color:#fff}
+  .p0{background:var(--p0)} .p1{background:var(--p1)} .p2{background:var(--p2)}
+  .note{background:#fffbe6;border:1px solid #ffe58f;border-radius:8px;padding:12px 16px;margin:14px 0;color:#735c00}
+  .info{background:var(--brand-soft);border:1px solid #c7d2fe;border-radius:8px;padding:12px 16px;margin:14px 0;color:#26324f}
+  .new{background:#e8f7ee;border:1px solid #a7e0bd;border-radius:8px;padding:12px 16px;margin:14px 0;color:#14532d}
+  .kv{display:grid;grid-template-columns:140px 1fr;gap:6px 16px;margin:10px 0;font-size:13px}
+  .kv dt{color:var(--ink-2)} .kv dd{color:var(--ink)}
+  .flow{background:#fafbfc;border:1px solid var(--line);border-radius:8px;padding:16px;margin:12px 0}
+  .flow .step{display:flex;align-items:center;gap:10px;margin:6px 0}
+  .flow .num{width:22px;height:22px;border-radius:50%;background:var(--brand);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:12px;flex:none}
+  .toc{background:#fafbfc;border:1px solid var(--line);border-radius:8px;padding:14px 22px;margin:18px 0}
+  .toc a{color:var(--brand);text-decoration:none}
+  .toc a:hover{text-decoration:underline}
+  footer.doc{margin-top:36px;border-top:1px solid var(--line);padding-top:14px;color:var(--ink-2);font-size:12px}
+  @media print{body{background:#fff}.page{box-shadow:none;max-width:none;padding:0}}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="doc">
+    <span class="tag">PRODUCT REQUIREMENTS DOCUMENT</span>
+    <h1>MES 定时任务管理模块 · 产品需求文档</h1>
+    <div class="meta">
+      <span>版本：v1.4</span>
+      <span>日期：2026-07-16</span>
+      <span>作者：Buddy（产品专家）</span>
+      <span>归属：MES / 系统管理域</span>
+      <span>状态：评审稿</span>
+    </div>
+  </header>
+
+  <div class="toc">
+    <strong>目录</strong>
+    <ol>
+      <li><a href="#s1">文档概述与范围</a></li>
+      <li><a href="#s2">业务背景与问题</a></li>
+      <li><a href="#s3">术语与定义</a></li>
+      <li><a href="#s4">用户角色与权限</a></li>
+      <li><a href="#s5">功能需求清单（FR）</a></li>
+      <li><a href="#s6">关键功能详设</a></li>
+      <li><a href="#s7">数据模型</a></li>
+      <li><a href="#s8">非功能需求</a></li>
+      <li><a href="#s9">交互与业务流程</a></li>
+      <li><a href="#s10">验收标准</a></li>
+      <li><a href="#s11">里程碑与迭代计划</a></li>
+    </ol>
+  </div>
+
+  <div class="new"><strong>v1.4 变更摘要（评审 P2 推进）：</strong>延续 v1.3 评审修复，本期补全 4 项 P2 治理能力——<b>① API 触发幂等（FR-25）</b>：开放 API 触发支持 <code>Idempotency-Key</code>，重试不重复执行；<b>② Webhook 出站白名单 / 防 SSRF（FR-26）</b>：告警地址须命中出站白名单且禁止内网保留段；<b>③ 流程节点失败重试（FR-27）</b>：节点级重试次数/间隔/退避/超时 + 整流程失败策略（中止/跳过/告警后继续）；<b>④ 禁止绑定草稿流程（FR-28）</b>：仅已发布流程可被任务绑定，草稿保存不误伤线上。<br><strong>v1.3 变更摘要（评审修订）：</strong>针对需求评审意见修复 1 项 P0 + 2 项 P1——<b>① 一次性任务（P0）</b>：原「仅一次」误用 6 段 Cron 表达为「每天」，现拆分为独立调度类型 <code>schedule_type</code>（cron / once），一次性任务存为 <code>fire_once_time</code>（datetime）并在到期后自动结束，与 XXL-JOB 模型一致；<b>② 时区（P1）</b>：任务新增 <code>timezone</code> 字段，<code>每天 HH:MM</code> 等语义以任务时区为基准，规避多厂区错时；<b>③ 周字段映射（P1）</b>：明确存储口径与 Quartz 的双向映射规则（0=周日…6=周六 ↔ 1=SUN…7=SAT）。新增 FR-23（一次性任务，P0）、FR-24（任务时区，P1）；验收标准加严。<br><strong>v1.2 变更摘要：</strong>相较 v1.1，本期重点强化 Cron 易用性——将「简单模式」从静态预设下拉升级为<b>可视化频率向导</b>（按「每隔几分钟 / 每小时 / 每天 / 每周 / 每月 / 仅一次」分类选择，再选时/分/星期/日期），并新增<b>常用快捷</b>一键套用；中文可读描述与「未来 5 次触发」由向导状态<b>实时精确推算</b>（跨天/跨周/跨月）。验收标准同步加严（见 §10）。<br><strong>v1.1 变更摘要：</strong>新增 FlowNode 轻量流程编排、开放 API 接入、Cron 双模式易用三项能力（FR-19~FR-22）。</div>
+
+  <h2 id="s1">1. 文档概述与范围</h2>
+  <h3>1.1 目的</h3>
+  <p>本文件定义 MES（制造执行系统）中「定时任务」模块的功能范围、业务流程、数据模型与交互规范，作为前端（Vben Admin）、后端调度/流程服务与测试验收的统一依据。原型见随附《MES定时任务模块_交互原型.html》。</p>
+  <h3>1.2 范围</h3>
+  <div class="kv">
+    <dt>本期纳入</dt><dd>任务定义与启停、<b>Cron 双模式易用配置（频率向导 + 常用快捷 / 专家原生表达式）</b>、执行日志、失败告警、<b>FlowNode 轻量流程编排（顺序 + 条件分支）</b>、<b>开放 API 接入（外部触发/查询）</b>、基础权限与审计。</dd>
+    <dt>本期不纳入</dt><dd>跨服务分布式 DAG 编排、可视化拖拽画布（MVP 以节点列表方式编排，画布为后续增强）、跨集群调度高可用（列技术债）。</dd>
+    <dt>关联模块</dt><dd>MES 设备采集、生产报表、WMS 库存、工单（WO）、QMS 质量、ERP 集成网关、开放平台网关。</dd>
+  </div>
+  <div class="note"><strong>设计假设：</strong>调度内核沿用项目既有 Quartz / 自研调度服务，本模块聚焦「管控面」；流程执行由新增的轻量 FlowNode 引擎承载；前端基于 Vben Admin（Ant Design Vue）。</div>
+
+  <h2 id="s2">2. 业务背景与问题</h2>
+  <p>MES 中大量运维与业务流程需周期性自动执行。当前任务散落在各微服务、由各团队手工维护 Cron，缺乏统一管控，存在不可视、不可控、无告警、难排查、高风险等问题。此外，两类新诉求凸显：</p>
+  <ul>
+    <li><strong>编排诉求</strong>：单个定时点往往要串起「采集 → 转换 → 校验 → 推送 ERP」等多步动作，纯单点调用目标难以表达，亟需 FlowNode 把多节点编排为一条可观测的执行流。</li>
+    <li><strong>集成诉求</strong>：外部系统（ERP、WMS、低代码平台）希望在业务事件发生时主动触发 MES 任务/流程，并回查执行结果，需提供标准化开放 API 与 Token 鉴权。</li>
+    <li><strong>易用性诉求</strong>：一线工艺/设备人员看不懂 6 段 Cron，配置易出错；需提供「说人话」的简单模式与可读化描述。</li>
+  </ul>
+
+  <h2 id="s3">3. 术语与定义</h2>
+  <table>
+    <tr><th>术语</th><th>定义</th></tr>
+    <tr><td>调度引擎</td><td>按 Cron 触发任务/流程执行的底层服务（类 Quartz / XXL-JOB 风格）。</td></tr>
+    <tr><td>Cron 表达式</td><td>6 段（秒 分 时 日 月 周）时间表达式，描述<b>周期型</b>触发。本模块<b>周字段采用 0=周日 … 6=周六</b>（见 §6.2.3 映射规则）。</td></tr>
+    <tr><td>调度类型 schedule_type</td><td>区分任务触发方式：<b>cron</b>=按周期（存 Cron 表达式）；<b>once</b>=一次性（存 <code>fire_once_time</code> 指定日期时刻，触发后自动结束）。</td></tr>
+    <tr><td>时区 timezone</td><td>任务周期/触发时刻的解释基准（IANA 时区，如 Asia/Shanghai）。「每天 08:00」等语义均以任务时区为准，规避多厂区错时。</td></tr>
+    <tr><td>简单模式 / 专家模式</td><td>简单模式以「频率预设 + 中文可读描述」配置周期；专家模式直接编辑原生 Cron 表达式。两者等价互转。</td></tr>
+    <tr><td>FlowNode（流程节点）</td><td>流程编排中的最小执行单元；一个任务可绑定一条由多个 FlowNode 组成的执行流。</td></tr>
+    <tr><td>流程编排（Flow）</td><td>由开始/结束节点及若干业务节点组成的有向执行流，支持顺序与条件分支（轻量 DAG）。</td></tr>
+    <tr><td>开放 API</td><td>对外暴露的 REST 接口，用于触发任务/流程、查询状态与日志。</td></tr>
+    <tr><td>API Token</td><td>调用开放 API 的凭证，带作用域（scope）与有效期，Bearer 方式鉴权。</td></tr>
+    <tr><td>Misfire 策略</td><td>调度错过触发时点后的补偿策略：立即执行一次 / 下次触发 / 丢弃。</td></tr>
+  </table>
+
+  <h2 id="s4">4. 用户角色与权限</h2>
+  <table>
+    <tr><th>角色</th><th>职责</th><th>权限要点</th></tr>
+    <tr><td>系统管理员</td><td>全量配置与兜底</td><td>全部操作：增删改、启停、手动/API 触发、流程编排、Token 管理、审计。</td></tr>
+    <tr><td>MES 运维</td><td>日常监控与干预</td><td>查看、执行一次、启停、查看日志；不可建/删系统级任务与 Token。</td></tr>
+    <tr><td>业务配置员</td><td>在授权范围内配置</td><td>仅可在被授予「任务类型」内新建/编辑/启停业务任务与流程节点。</td></tr>
+    <tr><td>集成开发者</td><td>对接外部系统</td><td>管理 API Token、查看端点文档；仅能在授权作用域内触发/查询。</td></tr>
+    <tr><td>审计员</td><td>合规检视</td><td>只读 + 日志查看 + 操作审计，无写权限。</td></tr>
+  </table>
+  <div class="info">权限以「任务组（taskGroup）+ 操作」二维矩阵控制；系统级任务组（SYSTEM）仅管理员可改；API Token 作用域按任务组/流程授权。</div>
+
+  <h2 id="s5">5. 功能需求清单（FR）</h2>
+  <table>
+    <tr><th>编号</th><th>功能</th><th>优先级</th><th>说明</th><th>关键验收点</th></tr>
+    <tr><td>FR-01</td><td>任务列表</td><td><span class="pill p0">P0</span></td><td>分页展示全部任务，含状态、Cron、下次执行时间。</td><td>字段完整、可分页排序。</td></tr>
+    <tr><td>FR-02</td><td>搜索与筛选</td><td><span class="pill p0">P0</span></td><td>按任务名/类型/状态/任务组筛选。</td><td>组合筛选结果准确。</td></tr>
+    <tr><td>FR-03</td><td>新建任务</td><td><span class="pill p0">P0</span></td><td>支持执行方式：单任务 / 流程（绑定 Flow）。</td><td>提交后即时生效。</td></tr>
+    <tr><td>FR-04</td><td>编辑任务</td><td><span class="pill p0">P0</span></td><td>修改任意可编辑字段并热更新。</td><td>运行中任务修改后不丢状态。</td></tr>
+    <tr><td>FR-05</td><td>启停任务</td><td><span class="pill p0">P0</span></td><td>暂停/恢复单个任务调度。</td><td>暂停后不再触发。</td></tr>
+    <tr><td>FR-06</td><td>手动执行一次</td><td><span class="pill p0">P0</span></td><td>立即触发一次（不影响周期）。</td><td>执行类型标记「手动」。</td></tr>
+    <tr><td>FR-07</td><td>删除任务</td><td><span class="pill p1">P1</span></td><td>软删除并清理调度注册。</td><td>删除后日志保留。</td></tr>
+    <tr style="background:#eef6ff"><td>FR-21</td><td>Cron 双模式易用</td><td><span class="pill p0">P0</span></td><td>「简单模式」= 频率向导（按频率类别选择 + 时/分/星期/日期控件）+ 常用快捷一键套用，自动生成表达式并展示中文描述；「专家模式」原生 6 段 Cron；两种模式均实时预览「未来 5 次触发」。</td><td>向导生成的表达式与专家模式一致；中文描述与实际调度一致；下次触发按向导状态精确推算。</td></tr>
+    <tr style="background:#fff4f4"><td>FR-23</td><td>一次性任务（schedule_type=once）</td><td><span class="pill p0">P0</span></td><td>新增独立于 Cron 的「仅一次」调度类型：用户指定日期时刻（fire_once_time），系统到点触发一次后自动置为「已完成/已结束」，不再重复。到期前可编辑/取消。</td><td>仅一次任务<b>不存 Cron 表达式</b>；触发后状态正确流转；编辑回显日期时刻；到期后不可重复触发。</td></tr>
+    <tr><td>FR-24</td><td>任务时区</td><td><span class="pill p1">P1</span></td><td>任务可指定 timezone（默认 Asia/Shanghai / 厂区本地时区）；周期与触发时刻按时区解释，多厂区各自一致。</td><td>同一 Cron 在不同时区展示/触发时刻正确；时区变更后下次触发重算。</td></tr>
+    <tr><td>FR-08</td><td>Cron 校验</td><td><span class="pill p0">P0</span></td><td>实时语法校验，非法拦截提交。</td><td>非法表达式不可保存。</td></tr>
+    <tr><td>FR-09</td><td>任务类型模板</td><td><span class="pill p1">P1</span></td><td>预置 MES 任务类型，带出默认配置。</td><td>选类型带出默认值。</td></tr>
+    <tr><td>FR-10</td><td>执行日志</td><td><span class="pill p0">P0</span></td><td>记录每次执行时间、耗时、状态、触发类型。</td><td>日志可查、可筛选、可导出。</td></tr>
+    <tr><td>FR-11</td><td>异常详情</td><td><span class="pill p1">P1</span></td><td>查看失败任务的异常栈。</td><td>异常信息完整。</td></tr>
+    <tr><td>FR-12</td><td>失败告警</td><td><span class="pill p1">P1</span></td><td>失败按渠道（站内/邮件/Webhook）通知。</td><td>失败触发通知。</td></tr>
+    <tr><td>FR-13</td><td>任务详情</td><td><span class="pill p1">P1</span></td><td>概览：状态、Cron 可读描述、下次/上次执行、连续失败。</td><td>信息聚合准确。</td></tr>
+    <tr><td>FR-14</td><td>并发控制</td><td><span class="pill p1">P1</span></td><td>禁止/允许并发执行。</td><td>禁止时上一次未完则跳过。</td></tr>
+    <tr><td>FR-15</td><td>Misfire 策略</td><td><span class="pill p2">P2</span></td><td>立即/下次/丢弃三种补偿。</td><td>重启后按策略补偿。</td></tr>
+    <tr><td>FR-16</td><td>操作审计</td><td><span class="pill p2">P2</span></td><td>记录增删改启停/API 触发与操作人。</td><td>审计可回溯。</td></tr>
+    <tr><td>FR-17</td><td>批量操作</td><td><span class="pill p2">P2</span></td><td>列表多选批量启停/删除。</td><td>批量结果一致。</td></tr>
+    <tr><td>FR-18</td><td>调度监控看板</td><td><span class="pill p2">P2</span></td><td>成功率、失败 TOP、近 24h 执行量。</td><td>指标与日志一致。</td></tr>
+    <tr style="background:#eef6ff"><td>FR-19</td><td>FlowNode 流程编排</td><td><span class="pill p1">P1</span></td><td>任务可绑定由多节点（采集/转换/校验/API调用/脚本/条件/通知）组成的执行流，支持顺序与条件分支。</td><td>流程按节点顺序/分支正确执行，节点失败可定位。</td></tr>
+    <tr style="background:#eef6ff"><td>FR-22</td><td>API 调用节点</td><td><span class="pill p1">P1</span></td><td>FlowNode 支持 API 调用节点（方法/URL/Header/Body），打通对外集成。</td><td>节点按配置调用外部接口并记录响应。</td></tr>
+    <tr style="background:#eef6ff"><td>FR-20</td><td>开放 API 接入</td><td><span class="pill p1">P1</span></td><td>提供 REST API 供外部触发任务/流程、查询状态与日志；API Token 鉴权 + 作用域。</td><td>合法 Token 可触发并查询，无 Token/越权被拒。</td></tr>
+    <tr style="background:#eef6ff"><td>FR-25</td><td>API 触发幂等</td><td><span class="pill p2">P2</span></td><td>开放 API 触发任务/流程支持 <code>Idempotency-Key</code>（或请求指纹）；同一 key 在 TTL（默认 24h）内重复提交仅执行一次，重复请求直接返回既有执行记录；TTL 外视为新请求重新执行。</td><td>网络重试不重复执行；重复请求返回既有执行 ID/状态；越 TTL 重新执行。</td></tr>
+    <tr style="background:#eef6ff"><td>FR-26</td><td>Webhook 出站白名单（防 SSRF）</td><td><span class="pill p2">P2</span></td><td>配置 Webhook 告警地址时，目标 URL 须命中「出站地址白名单」（域名/网段/IP），且禁止指向内网保留地址段（10/8、172.16/12、192.168/16、127/8、169.254/16 等）；不命中或命中内网段则拒绝保存/发送；发送失败有重试上限。</td><td>内网地址被拒；非白名单域名被拒；白名单内正常送达。</td></tr>
+    <tr style="background:#eef6ff"><td>FR-27</td><td>流程节点失败重试</td><td><span class="pill p2">P2</span></td><td>FlowNode 支持按节点配置重试次数、重试间隔（固定/指数退避）、单节点超时（ms）；整流程可配置失败策略（遇节点失败即中止 / 跳过继续 / 告警后继续）。</td><td>节点失败按策略重试/跳过/中止；超时中断；策略生效。</td></tr>
+    <tr style="background:#eef6ff"><td>FR-28</td><td>禁止绑定草稿流程</td><td><span class="pill p2">P2</span></td><td>任务（流程方式）保存时校验所绑流程 <code>status=已发布(PUBLISHED)</code>；草稿态流程不可被绑定；流程编辑「另存为草稿」不影响已发布版本，发布需显式动作。</td><td>绑草稿流程被拒；已发布流程可绑定；草稿保存不误伤线上。</td></tr>
+  </table>
+
+  <h2 id="s6">6. 关键功能详设</h2>
+
+  <h3>6.1 新建 / 编辑任务（FR-03 / FR-04）</h3>
+  <p>表单在 v1.0 基础上新增「执行方式」：</p>
+  <table>
+    <tr><th>字段</th><th>类型</th><th>必填</th><th>规则 / 默认值</th></tr>
+    <tr><td>任务名称</td><td>文本</td><td>是</td><td>唯一，2–50 字。</td></tr>
+    <tr><td>执行方式</td><td>单选</td><td>是</td><td><b>单任务</b>（直接调用目标）/ <b>流程</b>（绑定一条 Flow，见 §6.5）。</td></tr>
+    <tr><td>任务类型</td><td>下拉</td><td>是</td><td>见 §6.4 枚举；流程方式下可留空。</td></tr>
+    <tr><td>调用目标 / 绑定流程</td><td>—</td><td>是</td><td>单任务=Bean/URL；流程=选择 Flow。</td></tr>
+    <tr><td>调用参数</td><td>JSON</td><td>否</td><td>合法 JSON。</td></tr>
+    <tr><td>Cron 表达式</td><td>双模式</td><td>是</td><td>见 §6.2；含中文可读描述。</td></tr>
+    <tr><td>并发/Misfire/告警</td><td>—</td><td>—</td><td>同 v1.0。</td></tr>
+  </table>
+
+  <h3>6.2 Cron 双模式易用配置（FR-21 / FR-08）</h3>
+  <p>触发方式分两类，由 <code>schedule_type</code> 区分：<b>周期型（cron）</b>走下方双模式配置；<b>一次性（once）</b>走独立「仅一次」表单（见 §6.2.4），二者不共用表达式。所有周期型任务后台统一存为 Cron 表达式并冗余一份中文可读描述。</p>
+
+  <h3>6.2.1 简单模式（默认）= 频率向导 + 常用快捷</h3>
+  <p><strong>① 常用快捷（一键套用）</strong>：在向导上方提供高频预设 chips，点击即套用，覆盖一线最高频场景：每 5 分钟、每 30 分钟、每小时整点、每天 08:00、每天 20:00、每周一 09:00、工作日 08:30、每月 1 号 00:00。</p>
+  <p><strong>② 频率向导（可视化配置）</strong>：按「业务语言」选择，全程不接触原生 Cron 语法：</p>
+  <table>
+    <tr><th>频率类别</th><th>向导控件</th><th>生成的 Cron（6 段）</th><th>中文可读描述</th></tr>
+    <tr><td>每隔几分钟</td><td>间隔 chips（1/5/10/15/30 分钟）</td><td><code>0 0/N * * * ?</code></td><td>每 N 分钟执行一次</td></tr>
+    <tr><td>每小时</td><td>分钟下拉（0–59）</td><td><code>0 M * * * ?</code></td><td>每小时的第 M 分钟 / 整点执行</td></tr>
+    <tr><td>每天</td><td>时、分下拉</td><td><code>0 M H * * ?</code></td><td>每天 HH:MM:00 执行</td></tr>
+    <tr><td>每周</td><td>星期多选 + 时、分下拉</td><td><code>0 M H ? * DOW</code></td><td>每[周X、周Y] HH:MM:00 执行</td></tr>
+    <tr><td>每月</td><td>月内日期下拉 + 时、分下拉</td><td><code>0 M H D * ?</code></td><td>每月 D 号 HH:MM:00 执行</td></tr>
+  </table>
+  <p><strong>时区说明：</strong>上述「每天 / 每周 / 每月」等时刻均以任务 <code>timezone</code> 字段为基准（FR-24，默认 Asia/Shanghai）。跨厂区部署时，各厂区任务以其本地时区解释 Cron，避免统一服务器时区带来的错时问题。</p>
+  <p>向导与「专家模式」下的 6 段表达式<b>双向互转</b>：编辑已有任务时，系统尝试将存量 Cron <b>反解析</b>回最接近的向导配置；无法精确对应的复杂表达式（如多个不规则取值、步进组合）自动回退到专家模式，不丢配置。</p>
+
+  <h3>6.2.2 实时反馈</h3>
+  <ul>
+    <li><strong>中文可读描述</strong>：如「<code>每周一、周三、周五 09:30:00 执行</code>」，随向导选择实时刷新。</li>
+    <li><strong>未来 5 次触发</strong>：由向导状态<b>逐分钟精确推算</b>真实日期时间（已验证跨天/跨周/跨月正确），帮助用户确认周期，替代硬编码示意值。</li>
+  </ul>
+
+  <h3>6.2.3 专家模式与校验</h3>
+  <ul>
+    <li>直接编辑 6 段表达式，适合不规则/复杂周期；实时语法校验（FR-08），非法不可保存。</li>
+    <li><strong>周字段语义与映射规则</strong>：本模块向导/存储统一采用 <code>0=周日 … 6=周六</code>（与 JS/标准一致）。若调度内核为 Quartz（<code>1=SUN…7=SAT</code>），在落库/对接时按下方映射做<b>双向转换</b>，<b>该约定须在 API 契约评审时锁定</b>：</li>
+  </ul>
+  <table>
+    <tr><th>含义</th><th>本系统存储值</th><th>Quartz 值</th></tr>
+    <tr><td>周日</td><td>0</td><td>1</td></tr>
+    <tr><td>周一</td><td>1</td><td>2</td></tr>
+    <tr><td>周二</td><td>2</td><td>3</td></tr>
+    <tr><td>周三</td><td>3</td><td>4</td></tr>
+    <tr><td>周四</td><td>4</td><td>5</td></tr>
+    <tr><td>周五</td><td>5</td><td>6</td></tr>
+    <tr><td>周六</td><td>6</td><td>7</td></tr>
+  </table>
+  <div class="info">等价性要求：简单模式生成的表达式在专家模式打开后完全一致；专家模式编辑后若能解析，简单模式回显最接近的中文描述（无法精确对应时提示「自定义周期」）。</div>
+
+  <h3>6.2.4 一次性任务（schedule_type = once，FR-23）</h3>
+  <p>针对「某年某月某日某时执行一次」场景，<b>不</b>使用 Cron 表达式，而是独立表单选择日期 + 时刻（<code>fire_once_time</code>）。系统到点触发一次后，任务状态流转为「已结束」，不重复调度；到期前可编辑日期时刻或取消。</p>
+  <ul>
+    <li><strong>预览</strong>：展示唯一一次触发时间；若该时间已过去，提示「时间已过，保存后不会再次触发」。</li>
+    <li><strong>落库</strong>：<code>mes_job.schedule_type='once'</code>、<code>fire_once_time=datetime</code>、<code>cron_expression</code> 留空。</li>
+    <li><strong>回填</strong>：编辑「仅一次」任务时，回显日期时刻而非 Cron 向导（与周期型互不串）。</li>
+  </ul>
+
+  <h3>6.3 执行日志（FR-10 / FR-11）</h3>
+  <ul>
+    <li>列表字段：任务名、任务组、触发类型（自动/手动/<b>API</b>）、开始时间、耗时(ms)、状态、操作（详情）。</li>
+    <li>失败行可展开异常栈；流程任务可下钻到「失败节点」。</li>
+  </ul>
+
+  <h3>6.4 MES 任务类型枚举（FR-09）</h3>
+  <table>
+    <tr><th>类型编码</th><th>名称</th><th>典型调用目标</th><th>默认周期</th></tr>
+    <tr><td>EQUIP_COLLECT</td><td>设备数据采集</td><td><code>equipCollectionJob.collect</code></td><td>每 1 分钟</td></tr>
+    <tr><td>REPORT_GEN</td><td>生产报表生成</td><td><code>reportJob.daily</code></td><td>每日 08:00</td></tr>
+    <tr><td>WMS_WARN</td><td>库存预警检查</td><td><code>wmsWarnJob.check</code></td><td>每 30 分钟</td></tr>
+    <tr><td>WO_ESCALATE</td><td>工单超时升级</td><td><code>woEscalateJob.run</code></td><td>每 15 分钟</td></tr>
+    <tr><td>ERP_SYNC</td><td>ERP 订单同步</td><td><code>erpSyncJob.sync</code></td><td>每日 02:30</td></tr>
+    <tr><td>DATA_ARCHIVE</td><td>历史数据归档</td><td><code>archiveJob.archive</code></td><td>每日 03:00</td></tr>
+    <tr><td>QMS_AGG</td><td>质量数据汇总</td><td><code>qmsAggJob.aggregate</code></td><td>每日 12:00</td></tr>
+    <tr><td>MAINT_REMIND</td><td>保养计划提醒</td><td><code>maintRemindJob.remind</code></td><td>每周一 09:00</td></tr>
+  </table>
+
+  <h3>6.5 FlowNode 流程编排（FR-19 / FR-22）</h3>
+  <p>当任务「执行方式 = 流程」时，绑定一条 Flow。Flow 由节点构成，MVP 支持顺序执行与条件分支（轻量 DAG）。</p>
+  <table>
+    <tr><th>节点类型</th><th>说明</th><th>关键配置</th></tr>
+    <tr><td>START / END</td><td>流程起止</td><td>—</td></tr>
+    <tr><td>COLLECT 采集</td><td>采集设备/接口数据</td><td>数据源、模式</td></tr>
+    <tr><td>TRANSFORM 转换</td><td>数据清洗/映射</td><td>规则 / 脚本</td></tr>
+    <tr><td>VALIDATE 校验</td><td>业务规则校验</td><td>校验表达式</td></tr>
+    <tr style="background:#eef6ff"><td>API_CALL API调用</td><td>调用外部 REST 接口</td><td>方法、URL、Header、Body（FR-22）</td></tr>
+    <tr><td>SCRIPT 脚本</td><td>自定义逻辑</td><td>语言、代码</td></tr>
+    <tr><td>CONDITION 条件分支</td><td>按表达式分流</td><td>表达式、true→、false→</td></tr>
+    <tr><td>NOTIFY 通知</td><td>发送通知</td><td>渠道、模板</td></tr>
+  </table>
+  <p>编排交互：以「节点列表 + 连接线」方式呈现（后续增强为拖拽画布）；支持新增/删除/排序节点、配置节点参数、设置分支条件。每个节点独立记录执行状态与耗时，便于失败定位。</p>
+  <h3>6.5.1 节点重试与整流程失败策略（FR-27）</h3>
+  <p>为提升流程健壮性，每个节点可独立配置重试与超时（FR-27），整流程再统一约定失败处置方式：</p>
+  <table>
+    <tr><th>配置项</th><th>说明</th><th>取值 / 默认</th></tr>
+    <tr><td>节点重试次数 <code>retry_count</code></td><td>节点执行失败后的重试上限</td><td>0–5，默认 0（不重试）</td></tr>
+    <tr><td>重试间隔 <code>retry_interval</code></td><td>两次重试之间的间隔</td><td>毫秒，默认 1000</td></tr>
+    <tr><td>退避策略 <code>retry_backoff</code></td><td>间隔是否随次数增长</td><td><code>fixed</code> 固定 / <code>exponential</code> 指数退避（默认 fixed）</td></tr>
+    <tr><td>节点超时 <code>timeout_ms</code></td><td>单节点执行超时，超时即判失败并走重试/失败策略</td><td>毫秒，默认 30000</td></tr>
+    <tr><td>整流程失败策略 <code>on_node_failure</code></td><td>任一节点失败（重试后仍失败）时的处置</td><td><code>0=中止</code> / <code>1=跳过继续</code> / <code>2=告警后继续</code>（默认 0 中止）</td></tr>
+  </table>
+  <div class="info">重试仅对「可重试」错误（网络超时、5xx、限流）生效；业务校验失败（VALIDATE 不通过、4xx 明确拒绝）默认不可重试，直接按失败策略处置。指数退避上限封顶，避免长尾。</div>
+
+  <h3>6.6 开放 API 接入（FR-20 / FR-25）</h3>
+  <p>对外暴露 REST 接口，供 ERP / WMS / 低代码等外部系统触发与查询；采用 Bearer Token 鉴权，Token 带作用域与有效期。</p>
+  <table>
+    <tr><th>方法</th><th>路径</th><th>说明</th></tr>
+    <tr><td>POST</td><td><code>/api/v1/mes/jobs/{jobId}/trigger</code></td><td>触发指定任务一次（触发类型记 API）；支持 <code>Idempotency-Key</code> 请求头（FR-25）。</td></tr>
+    <tr><td>GET</td><td><code>/api/v1/mes/jobs/{jobId}</code></td><td>查询任务定义与当前状态/下次执行。</td></tr>
+    <tr><td>GET</td><td><code>/api/v1/mes/jobs/{jobId}/logs</code></td><td>查询该任务执行日志（分页）。</td></tr>
+    <tr><td>POST</td><td><code>/api/v1/mes/flows/{flowId}/run</code></td><td>触发指定流程执行。</td></tr>
+    <tr><td>GET</td><td><code>/api/v1/mes/flows/{flowId}/status</code></td><td>查询流程执行状态与各节点进度。</td></tr>
+  </table>
+  <p>Token 管理：列表展示名称、作用域（任务组/流程）、有效期、状态；可创建/吊销；密钥仅创建时明文展示一次。</p>
+  <h3>6.6.1 触发幂等（FR-25）</h3>
+  <p>外网调用方常因网络抖动重试 POST 触发请求，若不幂等会导致同一业务事件被重复执行。约定如下：</p>
+  <ul>
+    <li>调用方在触发请求头携带 <code>Idempotency-Key: &lt;唯一串&gt;</code>（建议 UUID 或「业务单号+动作」）；也可由网关按 <code>Token + jobId/flowId + Body 指纹</code> 自动生成。</li>
+    <li>服务端以 key 为键缓存执行记录，<b>TTL 默认 24h</b>：TTL 内重复 key 直接返回首次执行的结果（执行 ID / 状态 / 日志），<b>不二次触发</b>；TTL 外视为新请求重新执行。</li>
+    <li>幂等键与执行记录落 <code>mes_job_log.idempotency_key</code>，便于审计与排查。</li>
+  </ul>
+
+  <h3>6.7 失败告警与 Webhook 出站白名单（FR-12 / FR-26）</h3>
+  <p>失败告警支持站内 / 邮件 / Webhook 三渠道（FR-12）。其中 <b>Webhook 是最易引入 SSRF 风险的入口</b>：恶意或误配的回调地址可能指向内网元数据服务（如 169.254.169.254）或内部系统，造成信息泄露或服务被打。规范如下（FR-26）：</p>
+  <ul>
+    <li><strong>出站白名单</strong>：所有 Webhook 目标 URL 的域名/网段/IP 须命中 <code>mes_outbound_whitelist</code> 表，未命中拒绝保存与发送。</li>
+    <li><strong>内网保留段硬拦截</strong>：即使命中白名单，仍禁止解析到内网保留地址（10/8、172.16/12、192.168/16、127/8、169.254/16、::1 等），且禁用非 http/https 协议（如 file://、gopher://）。</li>
+    <li><strong>发送安全</strong>：出站请求设短超时与大小上限；发送失败按固定上限重试（默认 3 次）后判失败，避免风暴；不回显响应体到任务日志。</li>
+    <li><strong>白名单治理</strong>：白名单由管理员维护，支持域名 / CIDR / 精确 IP 三类，可启用/停用。</li>
+  </ul>
+
+  <h2 id="s7">7. 数据模型</h2>
+  <h3>7.1 任务实体（mes_job）</h3>
+  <table>
+    <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+    <tr><td>id</td><td>bigint</td><td>主键</td></tr>
+    <tr><td>task_name</td><td>varchar</td><td>任务名称（唯一）</td></tr>
+    <tr><td>invoke_mode</td><td>tinyint</td><td><b>0=单任务 1=流程</b></td></tr>
+    <tr><td>task_type</td><td>varchar</td><td>MES 任务类型（单任务时有值）</td></tr>
+    <tr><td>task_group</td><td>varchar</td><td>任务组</td></tr>
+    <tr><td>invoke_target</td><td>varchar</td><td>调用目标（单任务时有值）</td></tr>
+    <tr><td>flow_id</td><td>bigint</td><td><b>绑定流程 ID（流程方式时有值）</b></td></tr>
+    <tr><td>invoke_params</td><td>text</td><td>调用参数（JSON）</td></tr>
+    <tr><td>schedule_type</td><td>tinyint</td><td><b>0=周期(cron) 1=一次性(once)</b></td></tr>
+    <tr><td>cron_expression</td><td>varchar</td><td>周期型任务存 Cron 表达式；一次性任务留空</td></tr>
+    <tr><td>fire_once_time</td><td>datetime</td><td><b>一次性任务触发时刻；周期型为空</b></td></tr>
+    <tr><td>timezone</td><td>varchar</td><td>IANA 时区（如 Asia/Shanghai），周期解释基准（FR-24）</td></tr>
+    <tr><td>cron_human_desc</td><td>varchar</td><td><b>中文可读描述，周期型有效；如「每天 08:00:00 执行」</b></td></tr>
+    <tr><td>status</td><td>tinyint</td><td>0=运行中 1=已暂停</td></tr>
+    <tr><td>concurrent / misfire_policy</td><td>tinyint</td><td>并发 / Misfire 策略</td></tr>
+    <tr><td>alarm_enabled / alarm_channels</td><td>—</td><td>失败告警开关与渠道</td></tr>
+    <tr><td>next_exec_time</td><td>datetime</td><td>下次执行（冗余）</td></tr>
+    <tr><td>remark / creator / updater / 时间戳</td><td>—</td><td>备注与审计</td></tr>
+  </table>
+  <h3>7.2 执行日志实体（mes_job_log）</h3>
+  <table>
+    <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+    <tr><td>id</td><td>bigint</td><td>主键</td></tr>
+    <tr><td>job_id / job_name / job_group</td><td>—</td><td>关联任务</td></tr>
+    <tr><td>flow_id</td><td>bigint</td><td>关联流程（流程任务时有值）</td></tr>
+    <tr><td>execute_type</td><td>tinyint</td><td>0=自动 1=手动 <b>2=API</b></td></tr>
+    <tr><td>start_time / end_time / duration_ms</td><td>—</td><td>起止与耗时</td></tr>
+    <tr><td>status</td><td>tinyint</td><td>0=成功 1=失败</td></tr>
+    <tr><td>fail_node</td><td>varchar</td><td><b>失败节点 ID（流程任务时有值）</b></td></tr>
+    <tr><td>exception_msg</td><td>text</td><td>异常栈</td></tr>
+    <tr><td>idempotency_key</td><td>varchar</td><td><b>幂等键（API 触发时有值，FR-25）</b></td></tr>
+  </table>
+  <h3>7.3 流程与节点实体</h3>
+  <table>
+    <tr><th>实体</th><th>字段</th><th>说明</th></tr>
+    <tr><td>mes_flow</td><td>id, name, remark, status(<b>0=草稿 DRAFT / 1=已发布 PUBLISHED</b>), on_node_failure(0中止/1跳过/2告警后继续), create_time</td><td>流程定义（仅 PUBLISHED 可被任务绑定，FR-28）</td></tr>
+    <tr><td>mes_flow_node</td><td>id, flow_id, node_type, node_name, config(JSON), order_no, next_node_id, condition_expr, <b>retry_count, retry_interval, retry_backoff(fixed/exponential), timeout_ms</b></td><td>流程节点（顺序/分支 + 重试/超时，FR-27）</td></tr>
+    <tr><td>mes_outbound_whitelist</td><td>id, type(0域名/1 IP/2 CIDR), value, enabled, remark, create_time</td><td>Webhook 出站白名单（FR-26，防 SSRF）</td></tr>
+  </table>
+  <h3>7.4 API Token 实体（mes_api_token）</h3>
+  <table>
+    <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+    <tr><td>id / token_name</td><td>—</td><td>主键与名称</td></tr>
+    <tr><td>token</td><td>varchar</td><td>凭证（密文存储，仅创建时明文展示）</td></tr>
+    <tr><td>scope</td><td>varchar</td><td>作用域（任务组/流程 ID 列表）</td></tr>
+    <tr><td>expire_time / status</td><td>—</td><td>有效期与启用状态</td></tr>
+  </table>
+
+  <h2 id="s8">8. 非功能需求</h2>
+  <ul>
+    <li><strong>性能</strong>：任务列表首屏 &lt; 800ms；日志按时间分区，单任务日志保留 ≥ 90 天。</li>
+    <li><strong>可用性</strong>：调度引擎单点故障不影响已注册任务恢复；服务重启后按 Misfire 策略补偿。</li>
+    <li><strong>安全</strong>：调用目标仅允许白名单 Bean / 内网 URL；<b>开放 API 强制 Bearer Token 鉴权，按作用域最小授权，越权返回 403</b>；Token 密文存储；<b>触发接口支持 Idempotency-Key 幂等（TTL 去重，FR-25）</b>；<b>Webhook 告警地址须命中出站白名单并硬拦截内网保留段（防 SSRF，FR-26）</b>。</li>
+    <li><strong>流程引擎</strong>：节点失败支持重试（次数/间隔/退避/超时）+ 整流程失败策略（中止 / 跳过 / 告警后继续，FR-27）；单流程节点数 MVP ≤ 20，单节点超时可控。</li>
+    <li><strong>审计</strong>：所有写操作与 API 触发均落审计日志，含前后值与调用方 Token。</li>
+    <li><strong>兼容性</strong>：前端适配 Chrome/Edge 最新版；响应式支持 1280px 以上。</li>
+  </ul>
+
+  <h2 id="s9">9. 交互与业务流程</h2>
+  <div class="flow">
+    <div class="step"><span class="num">1</span><span>新建任务：选执行方式 → 单任务填调用目标 / 流程选 Flow → Cron 双模式配置 → 保存 → 调度注册。</span></div>
+    <div class="step"><span class="num">2</span><span>流程执行：触发后 FlowNode 引擎按节点顺序执行，遇 CONDITION 按表达式分流；节点失败记录 fail_node 并告警。</span></div>
+    <div class="step"><span class="num">3</span><span>API 触发：外部系统持 Token 调用 /trigger → 鉴权+作用域校验 → 触发 → 日志 execute_type=API；可轮询状态/日志。</span></div>
+    <div class="step"><span class="num">4</span><span>异常闭环：执行失败 → 写日志(status=失败) → 若开启告警则按渠道通知 → 运维在日志/流程视图定位失败节点。</span></div>
+  </div>
+
+  <h2 id="s10">10. 验收标准</h2>
+  <ul>
+    <li>P0 功能（FR-01~08、10、21）全部可用。</li>
+    <li><b>Cron 双模式</b>：频率向导生成的 5 类表达式与专家模式一致；中文描述与实际调度一致（偏差 &lt; 1 周期）；「未来 5 次触发」推算值与实际首次触发完全一致；存量 Cron 可正确反解析回向导或安全回退专家模式。</li>
+    <li><b>一次性任务（FR-23）</b>：<code>schedule_type=once</code> 任务不写 Cron 表达式，仅存 <code>fire_once_time</code>；到点触发一次后状态流转为「已结束」且不再触发；编辑回显日期时刻而非 Cron；过期时间提示准确。</li>
+    <li><b>任务时区（FR-24）</b>：同一 Cron 在不同 timezone 下展示/触发时刻正确；周字段在存储值与 Quartz 间按 §6.2.3 映射表双向一致。</li>
+    <li><b>流程编排</b>：绑定流程的任务按节点顺序/分支正确执行；节点失败可在日志定位到 fail_node。</li>
+    <li><b>开放 API</b>：合法 Token 在作用域内可触发并查询；无 Token / 越权 / 过期 Token 返回 401/403。</li>
+    <li><b>API 触发幂等（FR-25）</b>：同一 Idempotency-Key 在 TTL 内重复触发仅执行一次并返回首次结果；越 TTL 重新执行；幂等键落日志可查。</li>
+    <li><b>Webhook 出站白名单（FR-26）</b>：非白名单域名、内网保留段、非 http(s) 协议的 Webhook 地址均被拒绝；白名单内地址正常送达且失败重试有上限。</li>
+    <li><b>流程节点重试（FR-27）</b>：节点按 retry_count/interval/backoff/timeout 重试；整流程按 on_node_failure 处置（中止/跳过/告警后继续）生效。</li>
+    <li><b>禁止绑定草稿流程（FR-28）</b>：任务绑定流程保存时校验 status=PUBLISHED；草稿态流程被拒；流程「另存为草稿」不影响已发布版本。</li>
+    <li>暂停任务周期内确不触发；失败任务开启告警时 1 分钟内送达。</li>
+  </ul>
+
+  <h2 id="s11">11. 里程碑与迭代计划</h2>
+  <table>
+    <tr><th>阶段</th><th>范围</th><th>交付物</th></tr>
+    <tr><td>M1（基础+易用）</td><td>FR-01~08、10、13、21、23、24</td><td>任务增删改查、启停、手动执行、<b>Cron 双模式易用</b>、<b>一次性任务</b>、<b>任务时区</b>、日志、详情。</td></tr>
+    <tr><td>M2（编排+集成）</td><td>FR-09、11、12、14、19、22、20</td><td>任务类型模板、异常详情、失败告警、并发、<b>FlowNode 流程编排 + API 调用节点</b>、<b>开放 API + Token</b>。</td></tr>
+    <tr><td>M3（治理）</td><td>FR-15、16、17、18、25、26、27、28</td><td>Misfire、审计、批量操作、调度监控看板；<b>API 触发幂等、Webhook 出站白名单（防 SSRF）、流程节点重试、禁止绑定草稿流程</b>。</td></tr>
+  </table>
+
+  <div class="info"><strong>下一步建议：</strong>（1）与后端确认 FlowNode 引擎执行模型（顺序/分支语义）与节点失败策略；（2）确认开放 API 网关与 Token 发放流程（建议接入统一开放平台）；（3）确认 Cron 简单模式预设集合是否覆盖一线高频场景；（4）基于原型组织需求评审，锁定 M1 范围。</div>
+
+  <footer class="doc">
+    本文档为评审稿（v1.4），已在 v1.3 基础上补全评审 P2 治理能力（FR-25~28）。最终以研发评审确认版为准。原型文件：MES定时任务模块_交互原型.html
+  </footer>
+</div>
+</body>
+</html>
