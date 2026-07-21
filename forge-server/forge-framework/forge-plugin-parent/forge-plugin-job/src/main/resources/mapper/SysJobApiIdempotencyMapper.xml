@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.job.mapper.SysJobApiIdempotencyMapper">
+
+    <sql id="IdempotencyColumns">
+        id, tenant_id, token_id, job_config_id, idempotency_key_hash,
+        execution_id, expires_at, create_by, create_time, create_dept,
+        update_by, update_time, remark, del_flag
+    </sql>
+
+    <select id="selectEffective" resultType="com.mdframe.forge.plugin.job.entity.SysJobApiIdempotency">
+        SELECT <include refid="IdempotencyColumns"/>
+        FROM sys_job_api_idempotency
+        WHERE tenant_id = #{tenantId}
+          AND token_id = #{tokenId}
+          AND job_config_id = #{jobConfigId}
+          AND idempotency_key_hash = #{keyHash}
+          AND expires_at &gt; #{now}
+          AND del_flag = 0
+        LIMIT 1
+    </select>
+
+    <update id="expireMatching">
+        UPDATE sys_job_api_idempotency
+        SET del_flag = 1,
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND token_id = #{tokenId}
+          AND job_config_id = #{jobConfigId}
+          AND idempotency_key_hash = #{keyHash}
+          AND expires_at &lt;= #{now}
+          AND del_flag = 0
+    </update>
+
+    <insert id="insertReservation" parameterType="com.mdframe.forge.plugin.job.entity.SysJobApiIdempotency"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_job_api_idempotency (
+            tenant_id, token_id, job_config_id, idempotency_key_hash,
+            execution_id, expires_at, create_by, create_time, create_dept,
+            update_by, update_time, remark, del_flag
+        ) VALUES (
+            #{tenantId}, #{tokenId}, #{jobConfigId}, #{idempotencyKeyHash},
+            #{executionId}, #{expiresAt}, #{createBy}, NOW(), #{createDept},
+            #{updateBy}, NOW(), #{remark}, 0
+        )
+    </insert>
+
+</mapper>

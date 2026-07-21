@@ -2,7 +2,10 @@ package com.mdframe.forge.plugin.job.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.mdframe.forge.plugin.job.dto.JobConfigQuery;
+import com.mdframe.forge.plugin.job.dto.JobConfigSaveRequest;
 import com.mdframe.forge.plugin.job.entity.SysJobConfig;
+import com.mdframe.forge.plugin.job.vo.JobConfigVO;
 
 /**
  * 任务配置Service
@@ -12,40 +15,50 @@ public interface ISysJobConfigService extends IService<SysJobConfig> {
     /**
      * 分页查询任务列表
      */
-    Page<SysJobConfig> selectJobPage(Page<SysJobConfig> page, SysJobConfig query);
+    Page<JobConfigVO> selectJobPage(Page<JobConfigVO> page, JobConfigQuery query);
+
+    /**
+     * 查询任务详情
+     */
+    JobConfigVO selectJobDetail(Long id);
     
     /**
      * 添加任务并启动
      */
-    boolean addJob(SysJobConfig jobConfig);
+    void addJob(JobConfigSaveRequest request);
     
     /**
      * 更新任务
      */
-    boolean updateJob(SysJobConfig jobConfig);
+    void updateJob(JobConfigSaveRequest request);
     
     /**
      * 删除任务
      */
-    boolean deleteJob(Long id);
+    void deleteJob(Long id);
     
     /**
      * 启动任务
      */
-    boolean startJob(Long id);
+    void startJob(Long id);
     
     /**
      * 停止任务
      */
-    boolean stopJob(Long id);
+    void stopJob(Long id);
     
     /**
      * 立即执行一次
      */
-    boolean triggerJob(Long id);
+    void triggerJob(Long id);
+
+    /**
+     * 重新同步数据库期望状态到Quartz
+     */
+    void retrySynchronization(Long id);
     
     /**
      * 更新Cron表达式
      */
-    boolean updateCron(Long id, String cronExpression);
+    void updateCron(Long id, String cronExpression);
 }

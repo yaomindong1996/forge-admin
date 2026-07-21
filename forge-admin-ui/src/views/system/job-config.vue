@@ -1,237 +1,297 @@
 <template>
-  <div class="job-config-page">
-    <!-- 页面头部 -->
-    <div class="page-header">
-      <div class="header-left">
-        <div class="title-row">
-          <div class="title-icon job-icon">
-            <i class="i-material-symbols:schedule-rounded" />
+  <div class="job-config-page" :style="pageThemeStyle">
+    <main class="job-content">
+      <section
+        class="monitor-overview"
+        :class="{ 'is-loading': monitorLoading }"
+        :aria-busy="monitorLoading"
+        aria-label="近 24 小时任务运行概览"
+      >
+        <div class="monitor-heading-block">
+          <div>
+            <i class="i-material-symbols:monitoring-rounded" />
+            <strong>运行概览</strong>
           </div>
-          <h2 class="page-title">
-            定时任务管理
-          </h2>
+          <span>近 24 小时</span>
         </div>
-        <div class="header-desc">
-          定时任务调度配置，支持Cron表达式与任务执行控制
-        </div>
-      </div>
-      <div class="header-right">
-        <NButton type="warning" size="small" @click="handleCleanLogs(7)">
-          <template #icon>
-            <i class="i-material-symbols:delete-sweep-outline" />
-          </template>
-          清理7天前日志
-        </NButton>
-        <NButton type="error" size="small" @click="handleCleanLogs(0)">
-          <template #icon>
-            <i class="i-material-symbols:delete-forever-outline" />
-          </template>
-          清空所有日志
-        </NButton>
-      </div>
-    </div>
 
-    <!-- 任务列表 -->
-    <div class="job-content">
+        <div class="monitor-metric">
+          <span>执行次数</span>
+          <div><strong>{{ monitorSummary.totalCount }}</strong><small>次</small></div>
+          <small>滚动统计窗口</small>
+        </div>
+
+        <div class="monitor-metric is-success">
+          <span><i />执行成功</span>
+          <div><strong>{{ monitorSummary.successCount }}</strong><small>次</small></div>
+          <small>成功率 {{ monitorSummary.successRate.toFixed(2) }}%</small>
+        </div>
+
+        <div class="monitor-metric" :class="{ 'is-error': monitorSummary.failedCount > 0 }">
+          <span><i />执行失败</span>
+          <div><strong>{{ monitorSummary.failedCount }}</strong><small>次</small></div>
+          <small>失败率 {{ monitorSummary.failureRate.toFixed(2) }}%</small>
+        </div>
+
+        <div class="monitor-metric">
+          <span>当前窗口</span>
+          <div><strong :class="{ 'is-running': monitorSummary.runningCount > 0 }">{{ monitorSummary.runningCount }}</strong><small>运行中</small></div>
+          <small>接收 {{ monitorSummary.acceptedCount }} · 跳过 {{ monitorSummary.skippedCount }}</small>
+        </div>
+
+        <NTooltip v-if="monitorSummary.consecutiveFailureTaskCount > 0">
+          <template #trigger>
+            <div class="monitor-metric risk-metric is-error is-clickable">
+              <span><i />连续失败</span>
+              <div><strong>{{ monitorSummary.consecutiveFailureTaskCount }}</strong><small>个任务</small></div>
+              <small>悬停查看任务清单</small>
+            </div>
+          </template>
+          <div class="failure-task-tooltip">
+            <div v-for="task in monitorSummary.failureTasks" :key="task.jobConfigId">
+              {{ task.jobName }} · {{ task.consecutiveFailures }} 次
+            </div>
+          </div>
+        </NTooltip>
+        <div v-else class="monitor-metric risk-metric is-healthy">
+          <span><i />连续失败</span>
+          <div><strong>0</strong><small>个任务</small></div>
+          <small>当前运行正常</small>
+        </div>
+      </section>
+
+      <div class="job-toolbar">
+        <NButton v-if="canAdd" type="primary" @click="handleCreate">
+          <template #icon>
+            <i class="i-material-symbols:add-rounded" />
+          </template>
+          新建任务
+        </NButton>
+        <NTooltip>
+          <template #trigger>
+            <NButton secondary circle aria-label="刷新任务列表" @click="handleRefresh">
+              <template #icon>
+                <i class="i-material-symbols:refresh-rounded" />
+              </template>
+            </NButton>
+          </template>
+          刷新任务列表
+        </NTooltip>
+        <NDropdown
+          v-if="hasManagementActions"
+          trigger="click"
+          :options="pageManagementOptions"
+          @select="handlePageManagement"
+        >
+          <NButton secondary>
+            <template #icon>
+              <i class="i-material-symbols:settings-outline-rounded" />
+            </template>
+            管理
+          </NButton>
+        </NDropdown>
+      </div>
       <AiCrudPage
         ref="crudRef"
-        :api-config="{
-          list: 'get@/job/config/page',
-          detail: 'get@/job/config/:id',
-          add: 'post@/job/config',
-          update: 'put@/job/config',
-          delete: 'delete@/job/config/:id',
-        }"
+        :api-config="{ list: 'get@/job/config/page' }"
         :search-schema="searchSchema"
         :columns="tableColumns"
-        :edit-schema="editSchema"
         row-key="id"
-        :edit-grid-cols="2"
-        :edit-x-gap="20"
-        :edit-y-gap="14"
-        edit-form-class="job-config-edit-form"
-        edit-label-placement="top"
-        edit-label-align="left"
-        modal-width="min(980px, calc(100vw - 48px))"
-        add-button-text="新增定时任务"
-        :before-submit="beforeSubmit"
-        modal-type="modal"
+        :hide-add="true"
+        :hide-toolbar="true"
         max-height="var(--job-table-max-height)"
         :search-y-gap="8"
-      >
-        <!-- Cron表达式自定义插槽 -->
-        <template #form-cronExpression="{ value, updateValue }">
-          <div class="cron-expression-field">
-            <NInput
-              :value="value"
-              placeholder="请输入Cron表达式，如：0 0 12 * * ?"
-              @update:value="updateValue"
-            />
-            <NPopover
-              trigger="click"
-              placement="bottom-start"
-              scrollable
-              :style="{ maxHeight: '500px' }"
-            >
-              <template #trigger>
-                <NButton secondary type="primary" size="small">
-                  选择常用
-                </NButton>
-              </template>
-              <div class="cron-selector-list">
-                <div
-                  v-for="item in commonCronList"
-                  :key="item.expression"
-                  class="cron-selector-item"
-                  @click="updateValue(item.expression)"
-                >
-                  <div class="cron-desc">
-                    {{ item.description }}
-                  </div>
-                  <code class="cron-expr">{{ item.expression }}</code>
-                </div>
-              </div>
-            </NPopover>
-          </div>
-        </template>
-      </AiCrudPage>
-    </div>
+      />
+    </main>
 
-    <!-- 运行日志弹窗 -->
-    <n-modal
+    <NModal
       v-model:show="logModalVisible"
-      :title="`运行日志 - ${currentJob.jobName || ''}`"
+      title="运行日志"
       preset="card"
-      style="width: 90%; max-width: 1400px"
+      class="job-log-modal"
       :mask-closable="false"
     >
-      <JobLogList ref="logListRef" :job-name="currentJob.jobName" />
+      <JobLogList
+        ref="logListRef"
+        :job-config-id="currentJob.id"
+        :job-name="currentJob.jobName"
+      />
       <template #footer>
-        <n-space justify="end">
+        <NSpace justify="end">
           <NButton @click="logModalVisible = false">
             关闭
           </NButton>
           <NButton type="primary" @click="handleRefreshLog">
             <template #icon>
-              <i class="i-material-symbols:refresh" />
+              <i class="i-material-symbols:refresh-rounded" />
             </template>
             刷新
           </NButton>
-        </n-space>
+        </NSpace>
       </template>
-    </n-modal>
+    </NModal>
   </div>
 </template>
 
 <script setup>
-import { NButton, NInput, NPopover } from 'naive-ui'
-import { computed, h, ref } from 'vue'
+import dayjs from 'dayjs'
+import { NButton, NDropdown, NEllipsis, NModal, NSpace, NTag, NTooltip, useThemeVars } from 'naive-ui'
+import { computed, h, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { getJobMonitorSummary } from '@/api/system/job'
 import { AiCrudPage } from '@/components/ai-form'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables'
+import { useUserStore } from '@/store'
 import { request } from '@/utils'
+import { hasJobPermission, JOB_PERMISSIONS } from './job-config/job-permission'
 import JobLogList from './job-log-list.vue'
+import { normalizeJobMonitorSummary } from './job-log-query'
+import { resolveJobExecutionMode } from './job-view-contract'
 
 defineOptions({ name: 'JobConfig' })
 
-const { dict } = useDict('sys_job_status', 'sys_job_run_mode')
-
+const router = useRouter()
+const route = useRoute()
+const userStore = useUserStore()
+const themeVars = useThemeVars()
+const { dict } = useDict(
+  'sys_job_status',
+  'sys_job_invoke_mode',
+  'sys_job_run_mode',
+  'sys_job_sync_status',
+  'sys_job_schedule_type',
+  'sys_job_log_status',
+)
 const jobStatusOptions = computed(() => dict.value.sys_job_status || [])
+const jobInvokeModeOptions = computed(() => dict.value.sys_job_invoke_mode || [])
 const jobRunModeOptions = computed(() => dict.value.sys_job_run_mode || [])
+const jobSyncStatusOptions = computed(() => dict.value.sys_job_sync_status || [])
+const jobScheduleTypeOptions = computed(() => dict.value.sys_job_schedule_type || [])
+const jobLogStatusOptions = computed(() => dict.value.sys_job_log_status || [])
+const pageThemeStyle = computed(() => ({
+  '--action-color': themeVars.value.actionColor,
+  '--body-color': themeVars.value.bodyColor,
+  '--border-color': themeVars.value.borderColor,
+  '--card-color': themeVars.value.cardColor,
+  '--divider-color': themeVars.value.dividerColor,
+  '--error-color': themeVars.value.errorColor,
+  '--primary-color': themeVars.value.primaryColor,
+  '--success-color': themeVars.value.successColor,
+  '--text-color-1': themeVars.value.textColor1,
+  '--text-color-2': themeVars.value.textColor2,
+  '--text-color-3': themeVars.value.textColor3,
+}))
 
 const crudRef = ref(null)
 const logModalVisible = ref(false)
 const logListRef = ref(null)
 const currentJob = ref({})
+const monitorLoading = ref(false)
+const monitorSummary = ref(normalizeJobMonitorSummary())
 
-// 常用的Cron表达式
-const commonCronList = [
-  { description: '每分钟执行一次', expression: '0 * * * * ?' },
-  { description: '每5分钟执行一次', expression: '0 0/5 * * * ?' },
-  { description: '每10分钟执行一次', expression: '0 0/10 * * * ?' },
-  { description: '每15分钟执行一次', expression: '0 0/15 * * * ?' },
-  { description: '每30分钟执行一次', expression: '0 0/30 * * * ?' },
-  { description: '每小时执行一次', expression: '0 0 * * * ?' },
-  { description: '每天凌晨1点执行', expression: '0 0 1 * * ?' },
-  { description: '每天凌晨2点执行', expression: '0 0 2 * * ?' },
-  { description: '每天上午9点执行', expression: '0 0 9 * * ?' },
-  { description: '每天中午12点执行', expression: '0 0 12 * * ?' },
-  { description: '每天下午6点执行', expression: '0 0 18 * * ?' },
-  { description: '每天晚上11点执行', expression: '0 0 23 * * ?' },
-  { description: '每周一上午9点执行', expression: '0 0 9 ? * MON' },
-  { description: '每月1号凌晨1点执行', expression: '0 0 1 1 * ?' },
-  { description: '每天上午9点到下午6点，每小时执行一次', expression: '0 0 9-18 * * ?' },
-  { description: '工作日上午9点到下午6点，每小时执行一次', expression: '0 0 9-18 ? * MON-FRI' },
-]
+const canAdd = computed(() => hasJobPermission(userStore, route, JOB_PERMISSIONS.configAdd))
+const canEdit = computed(() => hasJobPermission(userStore, route, JOB_PERMISSIONS.configEdit))
+const canRemove = computed(() => hasJobPermission(userStore, route, JOB_PERMISSIONS.configRemove))
+const canStart = computed(() => hasJobPermission(userStore, route, JOB_PERMISSIONS.configStart))
+const canStop = computed(() => hasJobPermission(userStore, route, JOB_PERMISSIONS.configStop))
+const canTrigger = computed(() => hasJobPermission(userStore, route, JOB_PERMISSIONS.configTrigger))
+const canSync = computed(() => hasJobPermission(userStore, route, JOB_PERMISSIONS.configSync))
+const canViewLogs = computed(() => hasJobPermission(userStore, route, JOB_PERMISSIONS.logList))
+const canCleanLogs = computed(() => hasJobPermission(userStore, route, JOB_PERMISSIONS.logClean))
+const canManageApiTokens = computed(() => hasJobPermission(userStore, route, JOB_PERMISSIONS.apiTokenList))
+const hasManagementActions = computed(() => canManageApiTokens.value || canCleanLogs.value)
 
-function findDictLabel(options, value) {
-  const item = options.find(option => String(option.value) === String(value))
-  return item?.label || value || '-'
-}
+const pageManagementOptions = computed(() => {
+  const options = []
+  if (canManageApiTokens.value) {
+    options.push({ label: '开放 API 凭证', key: 'api-tokens' })
+  }
+  if (canCleanLogs.value) {
+    if (options.length)
+      options.push({ type: 'divider', key: 'divider' })
+    options.push(
+      { label: '清理 7 天前日志', key: 'clean-7' },
+      { label: '清空全部日志', key: 'clean-all' },
+    )
+  }
+  return options
+})
 
-// 搜索表单
 const searchSchema = computed(() => [
   {
     field: 'jobName',
-    label: '任务名称',
+    label: '任务',
     type: 'input',
-    props: {
-      placeholder: '请输入任务名称',
-    },
+    props: { placeholder: '搜索任务名称' },
   },
   {
     field: 'jobGroup',
-    label: '任务分组',
+    label: '分组',
     type: 'input',
+    props: { placeholder: '输入任务分组' },
+  },
+  {
+    field: 'scheduleType',
+    label: '调度方式',
+    type: 'select',
     props: {
-      placeholder: '请输入任务分组',
+      placeholder: '全部调度方式',
+      options: jobScheduleTypeOptions.value,
+      clearable: true,
     },
   },
   {
     field: 'status',
-    label: '任务状态',
+    label: '状态',
     type: 'select',
     props: {
-      placeholder: '请选择状态',
-      options: [
-        { label: '全部', value: null },
-        ...jobStatusOptions.value,
-      ],
+      placeholder: '全部状态',
+      options: jobStatusOptions.value,
+      clearable: true,
+    },
+  },
+  {
+    field: 'executeMode',
+    label: '执行方式',
+    type: 'select',
+    props: {
+      placeholder: '全部方式',
+      options: jobRunModeOptions.value,
       clearable: true,
     },
   },
 ])
 
-// 表格列配置
 const tableColumns = computed(() => [
   {
     prop: 'jobName',
     label: '任务',
-    minWidth: 200,
+    minWidth: 180,
     render: row => h(SystemTableCell, {
       title: row.jobName,
-      subtitle: row.jobGroup,
-      interactive: true,
-      tooltip: `查看任务：${row.jobName || row.jobGroup || '-'}`,
-      onActivate: () => crudRef.value?.showDetail(row),
+      subtitle: [row.jobGroup, row.description].filter(Boolean).join(' · '),
+      interactive: canEdit.value,
+      tooltip: canEdit.value ? `编辑任务：${row.jobName || '-'}` : undefined,
+      onActivate: canEdit.value ? () => handleEdit(row) : undefined,
     }),
   },
   {
-    prop: 'executeMode',
-    label: '执行模式',
-    width: 190,
-    minWidth: 190,
-    className: 'job-run-mode-column',
+    prop: 'executionSummary',
+    label: '执行内容',
+    minWidth: 180,
     render: (row) => {
-      const label = findDictLabel(jobRunModeOptions.value, row.executeMode)
-      return h('div', {
-        class: 'job-run-mode-cell',
-        title: label,
-      }, [
+      const executionMode = resolveJobExecutionMode(
+        row,
+        jobRunModeOptions.value,
+        jobInvokeModeOptions.value,
+      )
+      return h('div', { class: 'execution-cell' }, [
+        h('span', { class: 'cell-main' }, row.executionSummary || resolveExecutionFallback(row)),
         h(DictTag, {
-          options: jobRunModeOptions.value,
-          value: row.executeMode,
+          options: executionMode.options,
+          value: executionMode.value,
           size: 'small',
           forceTag: true,
         }),
@@ -239,327 +299,316 @@ const tableColumns = computed(() => [
     },
   },
   {
-    prop: 'executorBean',
-    label: 'Bean名称',
-    width: 150,
-    ellipsis: { tooltip: true },
-    render: row => row.executorBean || '-',
-  },
-  {
-    prop: 'executorMethod',
-    label: '方法名',
-    width: 120,
-    render: row => row.executorMethod || '-',
-  },
-  {
-    prop: 'executorHandler',
-    label: 'Handler',
-    width: 120,
-    ellipsis: { tooltip: true },
-    render: row => row.executorHandler || '-',
-  },
-  {
-    prop: 'cronExpression',
-    label: 'Cron表达式',
-    width: 140,
-    render: row => h('code', { class: 'text-primary text-12' }, row.cronExpression),
+    prop: 'scheduleSummary',
+    label: '执行计划',
+    minWidth: 220,
+    render: row => h('div', { class: 'schedule-cell' }, [
+      h('div', { class: 'schedule-heading' }, [
+        h(DictTag, {
+          options: jobScheduleTypeOptions.value,
+          value: row.scheduleType,
+          size: 'small',
+          forceTag: true,
+        }),
+        h(NEllipsis, { class: 'cell-main', tooltip: { width: 320 } }, {
+          default: () => resolveScheduleSummary(row),
+        }),
+      ]),
+      h('span', { class: 'cell-secondary' }, resolveScheduleSubline(row)),
+    ]),
   },
   {
     prop: 'status',
-    label: '状态',
-    width: 100,
-    render: (row) => {
-      return h(DictTag, {
+    label: '当前状态',
+    width: 150,
+    render: row => h('div', { class: 'status-cell' }, [
+      h(DictTag, {
         options: jobStatusOptions.value,
         value: String(row.status),
         size: 'small',
-      })
-    },
+      }),
+      h(DictTag, {
+        options: jobSyncStatusOptions.value,
+        value: row.syncStatus,
+        size: 'small',
+        forceTag: true,
+      }),
+      row.syncError
+        ? h(NEllipsis, { class: 'sync-error', tooltip: { width: 420 } }, {
+            default: () => row.syncError,
+          })
+        : null,
+    ]),
   },
   {
-    prop: 'description',
-    label: '任务描述',
-    minWidth: 150,
-    ellipsis: { tooltip: true },
-    render: row => row.description || '-',
+    prop: 'nextFireTime',
+    label: '下次执行',
+    width: 140,
+    render: row => h('div', { class: 'time-cell' }, [
+      h('span', { class: 'cell-main' }, resolveNextFireTime(row)),
+      row.nextFireTime && row.status !== 2
+        ? h('span', { class: 'cell-secondary' }, dayjs(row.nextFireTime).format('YYYY-MM-DD'))
+        : null,
+    ]),
+  },
+  {
+    prop: 'lastExecutionStatus',
+    label: '最近结果',
+    width: 120,
+    render: row => h('div', { class: 'result-cell' }, [
+      row.lastExecutionStatus == null
+        ? h(NTag, { size: 'small', bordered: false }, { default: () => '尚未执行' })
+        : h(DictTag, {
+            options: jobLogStatusOptions.value,
+            value: String(row.lastExecutionStatus),
+            size: 'small',
+            forceTag: true,
+          }),
+      row.lastExecutionTime
+        ? h('span', { class: 'cell-secondary' }, dayjs(row.lastExecutionTime).format('MM-DD HH:mm'))
+        : null,
+      row.consecutiveFailures > 0
+        ? h('span', { class: 'failure-count' }, `连续失败 ${row.consecutiveFailures} 次`)
+        : null,
+    ]),
   },
   {
     prop: 'action',
     label: '操作',
-    width: 160,
+    width: 250,
     fixed: 'right',
+    maxActionButtons: 3,
     actions: [
-      { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
-      { label: '启动', key: 'start', type: 'primary', onClick: handleStart, visible: row => row.status === 0 },
-      { label: '停止', key: 'stop', type: 'primary', onClick: handleStop, visible: row => row.status !== 0 },
-      { label: '运行一次', key: 'trigger', type: 'primary', onClick: handleTrigger },
-      { label: '运行日志', key: 'log', type: 'primary', onClick: handleViewLog },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
+      {
+        label: '重新同步',
+        loadingLabel: '同步中...',
+        failureMessage: '重新同步失败，配置已保留，请查看失败原因',
+        key: 'sync',
+        type: 'warning',
+        onClick: handleRetrySynchronization,
+        visible: row => canSync.value && shouldRetrySynchronization(row),
+      },
+      { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit, visible: row => canEdit.value && !isDeletePending(row) },
+      { label: '立即运行', key: 'trigger', type: 'success', onClick: handleTrigger, visible: row => canTrigger.value && canRunOnce(row) },
+      { label: '查看日志', key: 'log', type: 'info', onClick: handleViewLog, visible: () => canViewLogs.value },
+      { label: '启用', key: 'start', type: 'success', onClick: handleStart, visible: row => canStart.value && !isDeletePending(row) && row.status === 0 },
+      { label: '停用', key: 'stop', type: 'warning', onClick: handleStop, visible: row => canStop.value && !isDeletePending(row) && row.status === 1 },
+      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: row => canRemove.value && !isDeletePending(row) },
     ],
   },
 ])
 
-// 编辑表单配置
-const editSchema = computed(() => [
-  {
-    type: 'title',
-    label: '基本信息',
-    span: 2,
-  },
-  {
-    field: 'jobName',
-    label: '任务名称',
-    type: 'input',
-    rules: [{ required: true, message: '请输入任务名称', trigger: 'blur' }],
-    props: { placeholder: '请输入任务名称（唯一标识）' },
-  },
-  {
-    field: 'jobGroup',
-    label: '任务分组',
-    type: 'input',
-    defaultValue: 'DEFAULT',
-    rules: [{ required: true, message: '请输入任务分组', trigger: 'blur' }],
-    props: { placeholder: '如：DEFAULT' },
-  },
-  {
-    field: 'description',
-    label: '任务描述',
-    type: 'textarea',
-    span: 2,
-    props: { placeholder: '请输入任务描述', rows: 2 },
-  },
-  {
-    type: 'title',
-    label: '执行配置',
-    span: 2,
-  },
-  {
-    field: 'executeMode',
-    label: '执行模式',
-    type: 'radioButton',
-    defaultValue: 'BEAN',
-    span: 2,
-    rules: [{ required: true, message: '请选择执行模式', trigger: 'change' }],
-    props: {
-      class: 'job-config-segmented',
-      options: jobRunModeOptions.value,
-    },
-  },
-  {
-    field: 'executorBean',
-    label: 'Bean名称',
-    type: 'input',
-    vIf: formData => formData.executeMode === 'BEAN',
-    rules: [{ required: true, message: '请输入Bean名称', trigger: 'blur' }],
-    props: { placeholder: '如：demoJob' },
-  },
-  {
-    field: 'executorMethod',
-    label: '方法名',
-    type: 'input',
-    vIf: formData => formData.executeMode === 'BEAN',
-    rules: [{ required: true, message: '请输入方法名', trigger: 'blur' }],
-    props: { placeholder: '如：execute' },
-  },
-  {
-    field: 'executorHandler',
-    label: 'Handler名称',
-    type: 'input',
-    span: 2,
-    vIf: formData => formData.executeMode === 'HANDLER',
-    rules: [{ required: true, message: '请输入Handler名称', trigger: 'blur' }],
-    props: { placeholder: '请输入Handler名称' },
-  },
-  {
-    field: 'jobParam',
-    label: '任务参数',
-    type: 'textarea',
-    span: 2,
-    props: { placeholder: '请输入任务参数（JSON格式，可选）', rows: 3 },
-  },
-  {
-    type: 'title',
-    label: '调度配置',
-    span: 2,
-  },
-  {
-    field: 'cronExpression',
-    label: 'Cron表达式',
-    type: 'slot',
-    slotName: 'cronExpression',
-    span: 2,
-    rules: [{ required: true, message: '请输入Cron表达式', trigger: 'blur' }],
-  },
-  {
-    field: 'status',
-    label: '任务状态',
-    type: 'radioButton',
-    defaultValue: '0',
-    span: 2,
-    props: {
-      class: 'job-config-segmented',
-      options: jobStatusOptions.value,
-    },
-  },
-  {
-    type: 'title',
-    label: '高级配置',
-    span: 2,
-  },
-  {
-    field: 'retryCount',
-    label: '失败重试次数',
-    type: 'number',
-    defaultValue: 0,
-    props: {
-      placeholder: '0',
-      min: 0,
-      max: 5,
-    },
-  },
-  {
-    field: 'alarmEmail',
-    label: '告警邮箱',
-    type: 'input',
-    props: { placeholder: '失败时发送告警的邮箱（可选）' },
-  },
-  {
-    field: 'webhookUrl',
-    label: 'WebHook地址',
-    type: 'input',
-    span: 2,
-    props: { placeholder: '失败时回调的WebHook地址（可选）' },
-  },
-])
-
-// 表单提交前处理
-function beforeSubmit(formData) {
-  // 清理不需要的字段
-  const data = { ...formData }
-
-  // 根据执行模式清理多余字段
-  if (data.executeMode === 'BEAN') {
-    delete data.executorHandler
-  }
-  else if (data.executeMode === 'HANDLER') {
-    delete data.executorBean
-    delete data.executorMethod
-  }
-
-  return data
+function resolveExecutionFallback(row) {
+  if (row.invokeMode === 'FLOW')
+    return [row.flowModelKey, row.flowModelVersion].filter(Boolean).join(' · ') || '未绑定流程模型'
+  if (row.executeMode === 'HANDLER')
+    return row.executorHandler || '未配置任务处理器'
+  if (row.executeMode === 'RPC')
+    return [row.executorService, row.executorHandler].filter(Boolean).join(' · ') || '未配置远程服务'
+  return [row.executorBean, row.executorMethod].filter(Boolean).join(' · ') || '未配置本地服务方法'
 }
 
-// 编辑
+function resolveScheduleSummary(row) {
+  if (row.scheduleType === 'ONCE') {
+    const option = jobScheduleTypeOptions.value
+      .find(item => String(item.value) === String(row.scheduleType))
+    const label = option?.label || row.scheduleType
+    return row.fireOnceTime
+      ? `${label} · ${dayjs(row.fireOnceTime).format('YYYY-MM-DD HH:mm')}`
+      : label
+  }
+  return row.scheduleSummary || row.cronExpression || '自定义执行计划'
+}
+
+function resolveScheduleSubline(row) {
+  const timezone = row.timezone || '未设置时区'
+  if (row.status === 2)
+    return `计划已结束 · ${timezone}`
+  if (row.status === 0)
+    return `当前已停用 · ${timezone}`
+  return `任务时区 · ${timezone}`
+}
+
+function resolveNextFireTime(row) {
+  if (row.status === 2)
+    return '计划已结束'
+  if (row.syncStatus !== 'SYNCED')
+    return '等待同步'
+  if (row.status === 0)
+    return '已停用'
+  return row.nextFireTime ? dayjs(row.nextFireTime).format('HH:mm') : '--'
+}
+
+function shouldRetrySynchronization(row) {
+  return ['FAILED', 'DELETE_PENDING'].includes(row.syncStatus)
+}
+
+function isDeletePending(row) {
+  return row.syncStatus === 'DELETE_PENDING'
+}
+
+function canRunOnce(row) {
+  return row.syncStatus === 'SYNCED'
+}
+
+function handleCreate() {
+  if (!canAdd.value)
+    return
+  router.push('/system/job-config/editor')
+}
+
 function handleEdit(row) {
-  crudRef.value?.showEdit(row)
+  if (!canEdit.value)
+    return
+  router.push(`/system/job-config/editor/${row.id}`)
 }
 
-// 删除
+function handleRefresh() {
+  crudRef.value?.refresh()
+  loadMonitorSummary()
+}
+
+function handleOpenApiTokens() {
+  if (!canManageApiTokens.value)
+    return
+  router.push('/system/job-api-token')
+}
+
 function handleDelete(row) {
+  if (!canRemove.value)
+    return
   window.$dialog.warning({
-    title: '确认删除',
-    content: `确定要删除任务"${row.jobName}"吗？删除后将无法恢复！`,
-    positiveText: '确定',
+    title: '删除任务',
+    content: `确定删除“${row.jobName}”吗？任务配置删除后不可恢复。`,
+    positiveText: '删除',
     negativeText: '取消',
     onPositiveClick: async () => {
       try {
         await request.delete(`/job/config/${row.id}`)
-        window.$message.success('删除成功')
-        crudRef.value?.refresh()
+        window.$message.success('任务已删除')
       }
-      catch (error) {
-        console.error('删除失败:', error)
+      finally {
+        handleRefresh()
       }
     },
   })
 }
 
-// 启动任务
 async function handleStart(row) {
-  try {
-    await request.post(`/job/config/${row.id}/start`)
-    window.$message.success('启动成功')
-    crudRef.value?.refresh()
-  }
-  catch (error) {
-    console.error('启动失败:', error)
-  }
+  if (!canStart.value)
+    return
+  await request.post(`/job/config/${row.id}/start`)
+  window.$message.success('任务已启用并同步到调度服务')
+  handleRefresh()
 }
 
-// 停止任务
-async function handleStop(row) {
+function handleStop(row) {
+  if (!canStop.value)
+    return
   window.$dialog.warning({
-    title: '确认停止',
-    content: `确定要停止任务"${row.jobName}"吗？`,
-    positiveText: '确定',
+    title: '停用任务',
+    content: `停用“${row.jobName}”后将不再按计划执行，是否继续？`,
+    positiveText: '停用',
     negativeText: '取消',
     onPositiveClick: async () => {
+      await request.post(`/job/config/${row.id}/stop`)
+      window.$message.success('任务已停用')
+      handleRefresh()
+    },
+  })
+}
+
+function handleTrigger(row) {
+  if (!canTrigger.value)
+    return
+  window.$dialog.info({
+    title: '立即运行任务',
+    content: `将立即运行“${row.jobName}”。当前计划为“${row.scheduleSummary || '自定义执行计划'}”，启停状态不会改变。`,
+    positiveText: '立即运行',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      window.$message.loading('正在提交任务...', { key: 'trigger', duration: 0 })
       try {
-        await request.post(`/job/config/${row.id}/stop`)
-        window.$message.success('停止成功')
-        crudRef.value?.refresh()
+        await request.post(`/job/config/${row.id}/trigger`)
+        window.$message.success('任务已提交，可在运行日志中查看结果', { key: 'trigger' })
       }
       catch (error) {
-        console.error('停止失败:', error)
+        window.$message.error('任务提交失败', { key: 'trigger' })
+        throw error
       }
     },
   })
 }
 
-// 立即执行一次
-async function handleTrigger(row) {
-  try {
-    window.$message.loading('正在执行...', { key: 'trigger', duration: 0 })
-    await request.post(`/job/config/${row.id}/trigger`)
-    window.$message.success('任务已提交执行', { key: 'trigger' })
-  }
-  catch (error) {
-    window.$message.error('执行失败', { key: 'trigger' })
-    console.error('执行失败:', error)
-  }
+async function handleRetrySynchronization(row) {
+  if (!canSync.value)
+    return
+  await request.post(`/job/config/${row.id}/sync`)
+  window.$message.success('调度同步已恢复')
+  handleRefresh()
 }
 
-// 查看运行日志
 function handleViewLog(row) {
+  if (!canViewLogs.value)
+    return
   currentJob.value = row
   logModalVisible.value = true
 }
 
-// 刷新日志
 function handleRefreshLog() {
   logListRef.value?.refresh()
+  loadMonitorSummary()
 }
 
-// 清理日志
-function handleCleanLogs(days) {
-  const title = days === 0 ? '清空所有日志' : `清理${days}天前日志`
-  const content = days === 0
-    ? '确定要清空所有任务日志吗？此操作不可恢复！'
-    : `确定要清理${days}天前的任务日志吗？`
+async function loadMonitorSummary() {
+  monitorLoading.value = true
+  try {
+    const response = await getJobMonitorSummary()
+    monitorSummary.value = normalizeJobMonitorSummary(response.data)
+  }
+  catch (error) {
+    console.error('加载任务监控摘要失败:', error)
+    window.$message.error('加载任务监控摘要失败')
+  }
+  finally {
+    monitorLoading.value = false
+  }
+}
 
+function handlePageManagement(key) {
+  if (key === 'api-tokens')
+    handleOpenApiTokens()
+  else if (key === 'clean-7')
+    handleCleanLogs(7)
+  else if (key === 'clean-all')
+    handleCleanLogs(0)
+}
+
+function handleCleanLogs(days) {
+  if (!canCleanLogs.value)
+    return
+  const cleanAll = days === 0
   window.$dialog.warning({
-    title,
-    content,
-    positiveText: '确定',
+    title: cleanAll ? '清空所有日志' : `清理 ${days} 天前日志`,
+    content: cleanAll
+      ? '确定清空全部任务运行日志吗？此操作不可恢复。'
+      : `确定清理 ${days} 天前的任务运行日志吗？`,
+    positiveText: cleanAll ? '清空' : '清理',
     negativeText: '取消',
     onPositiveClick: async () => {
-      try {
-        const res = await request.delete('/job/log/clean', { params: { days } })
-        const count = res.data || 0
-        window.$message.success(`清理成功，共清理 ${count} 条日志`)
-      }
-      catch (error) {
-        window.$message.error('清理失败')
-        console.error('清理失败:', error)
-      }
+      const response = await request.delete('/job/log/clean', { params: { days } })
+      window.$message.success(`已清理 ${response.data || 0} 条日志`)
+      handleRefresh()
     },
   })
 }
+
+onMounted(loadMonitorSummary)
 </script>
 
 <style scoped>
 .job-config-page {
-  --job-table-max-height: calc(100vh - 248px);
+  --job-table-max-height: calc(100vh - 278px);
   height: 100%;
   min-height: 0;
   padding: 14px;
@@ -569,327 +618,518 @@ function handleCleanLogs(days) {
   overflow: hidden;
 }
 
-/* 页面头部 */
-.page-header {
-  flex-shrink: 0;
-  background: #fff;
-  border-radius: 12px;
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+.monitor-overview {
+  flex: 0 0 auto;
+  min-height: 112px;
+  display: grid;
+  grid-template-columns: minmax(158px, 0.72fr) minmax(260px, 1.35fr) minmax(250px, 1.1fr) minmax(205px, 0.9fr);
+  align-items: stretch;
+  background: transparent;
+  border-top: 1px solid var(--divider-color);
+  border-bottom: 1px solid var(--divider-color);
+  transition: opacity 0.2s ease;
 }
 
-.header-left {
+.monitor-overview.is-loading {
+  opacity: 0.58;
+}
+
+.monitor-total-block,
+.monitor-panel {
+  min-width: 0;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.title-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 17px;
 }
 
-.title-icon.job-icon {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+.monitor-panel {
+  gap: 12px;
+  border-left: 1px solid var(--divider-color);
 }
 
-.page-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-}
-
-.header-desc {
-  font-size: 12px;
-  color: #64748b;
-}
-
-.header-right {
+.monitor-section-title,
+.monitor-panel-heading,
+.result-label,
+.risk-summary,
+.risk-summary > div {
   display: flex;
   align-items: center;
+}
+
+.monitor-section-title {
+  gap: 7px;
+  color: var(--text-color-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.monitor-section-title i {
+  color: var(--primary-color);
+  font-size: 17px;
+}
+
+.monitor-total-value {
+  margin-top: 5px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.monitor-total-value strong {
+  color: var(--text-color-1);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.monitor-total-value span {
+  color: var(--text-color-2);
+  font-size: 12px;
+}
+
+.monitor-total-block > small,
+.monitor-panel-heading small,
+.result-breakdown small,
+.risk-hint {
+  color: var(--text-color-3);
+  font-size: 11px;
+}
+
+.monitor-total-block > small {
+  margin-top: 2px;
+}
+
+.monitor-panel-heading {
+  justify-content: space-between;
   gap: 10px;
 }
 
-/* 任务列表内容 */
+.monitor-panel-heading > span {
+  color: var(--text-color-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.result-meter {
+  width: 100%;
+  height: 5px;
+  display: flex;
+  overflow: hidden;
+  background: var(--divider-color);
+  border-radius: 3px;
+}
+
+.result-meter span {
+  height: 100%;
+  transition: width 0.2s ease;
+}
+
+.result-meter span.is-success {
+  background: var(--success-color);
+}
+
+.result-meter span.is-error {
+  background: var(--error-color);
+}
+
+.result-breakdown {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.result-breakdown > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 1px 8px;
+}
+
+.result-breakdown strong {
+  color: var(--text-color-1);
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.result-label {
+  gap: 6px;
+  color: var(--text-color-2);
+  font-size: 12px;
+}
+
+.result-label i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.result-label.is-success i {
+  background: var(--success-color);
+}
+
+.result-label.is-error i {
+  background: var(--error-color);
+}
+
+.result-breakdown small {
+  grid-column: 1 / -1;
+  padding-left: 12px;
+}
+
+.window-breakdown {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.window-breakdown > div {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.window-breakdown > div + div {
+  border-left: 1px solid var(--divider-color);
+}
+
+.window-breakdown strong {
+  color: var(--text-color-1);
+  font-size: 19px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.window-breakdown strong.is-running {
+  color: var(--primary-color);
+}
+
+.window-breakdown span {
+  color: var(--text-color-3);
+  font-size: 11px;
+}
+
+.risk-panel {
+  gap: 7px;
+}
+
+.risk-panel.is-clickable {
+  cursor: help;
+}
+
+.risk-summary {
+  gap: 9px;
+}
+
+.risk-summary > i {
+  color: var(--error-color);
+  font-size: 23px;
+}
+
+.risk-summary.is-healthy > i {
+  color: var(--success-color);
+}
+
+.risk-summary > div {
+  align-items: baseline;
+  gap: 5px;
+}
+
+.risk-summary strong {
+  color: var(--text-color-1);
+  font-size: 19px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.risk-summary span {
+  color: var(--text-color-2);
+  font-size: 12px;
+}
+
+.risk-panel.is-alert {
+  box-shadow: inset 3px 0 0 var(--error-color);
+}
+
+.monitor-overview {
+  min-height: 78px;
+  grid-template-columns: minmax(130px, 0.8fr) repeat(5, minmax(130px, 1fr));
+  background: transparent;
+  border-top: 0;
+  border-bottom: 1px solid var(--divider-color);
+}
+
+.monitor-heading-block,
+.monitor-metric {
+  min-width: 0;
+  padding: 11px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.monitor-heading-block > div,
+.monitor-metric > span,
+.monitor-metric > div {
+  display: flex;
+  align-items: center;
+}
+
+.monitor-heading-block > div {
+  gap: 7px;
+  color: var(--text-color-1);
+}
+
+.monitor-heading-block i {
+  color: var(--primary-color);
+  font-size: 17px;
+}
+
+.monitor-heading-block strong {
+  font-size: 13px;
+}
+
+.monitor-heading-block > span {
+  margin-top: 3px;
+  color: var(--text-color-3);
+  font-size: 11px;
+}
+
+.monitor-metric {
+  gap: 2px;
+  border-left: 1px solid var(--divider-color);
+}
+
+.monitor-metric > span {
+  gap: 6px;
+  color: var(--text-color-3);
+  font-size: 11px;
+}
+
+.monitor-metric > span i {
+  width: 6px;
+  height: 6px;
+  background: var(--text-color-3);
+  border-radius: 50%;
+}
+
+.monitor-metric > div {
+  align-items: baseline;
+  gap: 5px;
+}
+
+.monitor-metric > div strong {
+  color: var(--text-color-1);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.monitor-metric > div small,
+.monitor-metric > small {
+  color: var(--text-color-3);
+  font-size: 10px;
+}
+
+.monitor-metric.is-success > span i {
+  background: var(--success-color);
+}
+
+.monitor-metric.is-error > span i {
+  background: var(--error-color);
+}
+
+.monitor-metric.is-error > div strong {
+  color: var(--error-color);
+}
+
+.monitor-metric.is-healthy > span i {
+  background: var(--success-color);
+}
+
+.monitor-metric > div strong.is-running {
+  color: var(--primary-color);
+}
+
+.monitor-metric.is-clickable {
+  cursor: help;
+}
+
+.failure-task-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+}
+
 .job-content {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: #fff;
-  border-radius: 12px;
-  padding: 12px 14px;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  background: var(--card-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.job-toolbar {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 0 4px 9px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--divider-color);
+}
+
+.job-content :deep(.ai-crud-page),
+.job-content :deep(.ai-crud-main) {
+  min-height: 0;
 }
 
 .job-content :deep(.ai-crud-page) {
-  height: 100%;
-  min-height: 0;
+  flex: 1;
+  height: auto;
 }
 
 .job-content :deep(.ai-crud-main) {
-  min-height: 0;
-  overflow: hidden;
+  height: 100%;
 }
 
 .job-content :deep(.ai-search-box) {
-  padding: 10px 12px 2px;
+  padding: 10px 12px 4px;
 }
 
-.job-content :deep(.ai-table-toolbar) {
-  min-height: 42px;
-  padding: 8px 12px;
+.job-content :deep(.execution-cell),
+.job-content :deep(.schedule-cell),
+.job-content :deep(.status-cell),
+.job-content :deep(.time-cell),
+.job-content :deep(.result-cell) {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 5px;
 }
 
-.job-content :deep(.job-run-mode-column) {
-  overflow: visible;
+.job-content :deep(.status-cell) {
+  align-items: flex-start;
 }
 
-.job-content :deep(.job-run-mode-cell) {
+.job-content :deep(.cell-main) {
+  max-width: 100%;
+  color: var(--text-color-1);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.job-content :deep(.schedule-heading) {
+  min-width: 0;
+  max-width: 100%;
   display: flex;
   align-items: center;
+  gap: 7px;
+}
+
+.job-content :deep(.schedule-heading .cell-main) {
   min-width: 0;
 }
 
-.job-content :deep(.job-run-mode-cell .n-tag) {
-  max-width: 168px;
-}
-
-.job-content :deep(.job-run-mode-cell .n-tag__content) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.job-config-page :deep(.job-config-edit-form) {
-  width: 100%;
-}
-
-.job-config-page :deep(.job-config-edit-form .ai-form-body--with-nav) {
-  display: block;
-}
-
-.job-config-page :deep(.job-config-edit-form .ai-form-section-nav) {
-  display: none;
-}
-
-.job-config-page :deep(.job-config-edit-form .ai-form-content) {
-  width: 100%;
-  min-width: 0;
-}
-
-.job-config-page :deep(.job-config-edit-form .af-layout-grid) {
-  align-items: start;
-}
-
-.job-config-page :deep(.job-config-edit-form .n-form-item) {
-  min-width: 0;
-  margin-bottom: 0;
-}
-
-.job-config-page :deep(.job-config-edit-form .n-form-item-label) {
-  justify-content: flex-start !important;
-  text-align: left !important;
-}
-
-.job-config-page :deep(.job-config-edit-form .ai-form-item-label) {
-  justify-content: flex-start;
-  width: 100%;
-  text-align: left;
-}
-
-.job-config-page :deep(.job-config-edit-form .ai-form-group-title),
-.job-config-page :deep(.job-config-edit-form .ai-form-section-title) {
-  justify-content: flex-start;
-  margin: 6px 0 2px;
-  text-align: left;
-}
-
-.job-config-page :deep(.job-config-edit-form .ai-form-group-title__text),
-.job-config-page :deep(.job-config-edit-form .ai-form-section-title__text) {
-  font-size: 14px;
-}
-
-.job-config-page :deep(.job-config-edit-form .n-input),
-.job-config-page :deep(.job-config-edit-form .n-input-number),
-.job-config-page :deep(.job-config-edit-form .n-input-number .n-input) {
-  width: 100%;
-}
-
-.job-config-page :deep(.job-config-edit-form .job-config-segmented) {
-  display: inline-flex;
+.job-content :deep(.cell-secondary),
+.job-content :deep(.sync-error) {
   max-width: 100%;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.job-config-page :deep(.job-config-edit-form .job-config-segmented .n-radio-button) {
-  min-width: 132px;
-  text-align: center;
-}
-
-.cron-expression-field {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  width: 100%;
-}
-
-/* Cron选择器样式 */
-.job-content :deep(.cron-selector-list) {
-  max-height: 450px;
-  overflow-y: auto;
-  padding: 8px;
-  width: 500px;
-}
-
-.job-content :deep(.cron-selector-item) {
-  padding: 12px 16px;
-  margin-bottom: 8px;
-  border: 1px solid #e8e8e8;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.3s;
-  background: #fff;
-}
-
-.job-content :deep(.cron-selector-item:hover) {
-  border-color: #f59e0b;
-  background: #fffbeb;
-  transform: translateX(4px);
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
-}
-
-.job-content :deep(.cron-desc) {
-  font-size: 14px;
-  color: #262626;
-  margin-bottom: 6px;
-  font-weight: 500;
-}
-
-.job-content :deep(.cron-expr) {
-  font-family: 'Courier New', 'Consolas', monospace;
+  color: var(--text-color-3);
   font-size: 12px;
-  color: #f59e0b;
-  background: #fffbeb;
-  padding: 4px 10px;
-  border-radius: 4px;
-  display: inline-block;
 }
 
-/* 深色模式 */
-.dark .page-header {
-  background: #0f172a !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+.job-content :deep(.sync-error) {
+  color: var(--error-color);
 }
 
-.dark .page-title {
-  color: #f1f5f9;
+.job-content :deep(.failure-count) {
+  color: var(--error-color);
+  font-size: 12px;
 }
 
-.dark .header-desc {
-  color: #94a3b8;
-}
-
-.dark .job-content {
-  background: #0f172a !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.dark .job-content :deep(.cron-selector-item) {
-  background: #1e293b;
-  border-color: #334155;
-}
-
-.dark .job-content :deep(.cron-selector-item:hover) {
-  border-color: #f59e0b;
-  background: #292524;
-}
-
-.dark .job-content :deep(.cron-desc) {
-  color: #f1f5f9;
-}
-
-.dark .job-content :deep(.cron-expr) {
-  color: #fbbf24;
-  background: #422006;
+:global(.job-log-modal) {
+  width: min(1120px, 94vw);
 }
 
 @media (max-width: 768px) {
   .job-config-page {
-    --job-table-max-height: calc(100vh - 212px);
+    --job-table-max-height: 520px;
+    height: auto;
+    min-height: 100%;
     padding: 10px;
     gap: 10px;
+    overflow-y: auto;
   }
 
-  .page-header {
-    align-items: flex-start;
-    flex-direction: column;
+  .monitor-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .monitor-heading-block {
+    grid-column: 1 / -1;
     padding: 10px 12px;
-    border-radius: 10px;
   }
 
-  .header-desc {
-    display: none;
+  .monitor-heading-block > span {
+    margin-top: 0;
   }
 
-  .header-right {
-    flex-wrap: wrap;
-    gap: 8px;
+  .monitor-metric {
+    padding: 10px 12px;
+    border-top: 1px solid var(--divider-color);
+  }
+
+  .monitor-metric:nth-child(even) {
+    border-left: 0;
+  }
+
+  .monitor-metric:nth-child(odd) {
+    border-left: 1px solid var(--divider-color);
   }
 
   .job-content {
-    padding: 10px;
-    border-radius: 10px;
+    padding: 8px;
   }
 
-  .cron-expression-field {
-    grid-template-columns: 1fr;
-  }
-
-  .job-config-page :deep(.job-config-edit-form .job-config-segmented) {
-    display: flex;
-  }
-
-  .job-config-page :deep(.job-config-edit-form .job-config-segmented .n-radio-button) {
-    flex: 1 1 140px;
+  .job-toolbar {
+    overflow-x: auto;
   }
 }
 
-@media (max-height: 720px) {
+@media (min-width: 769px) and (max-width: 1120px) {
   .job-config-page {
-    --job-table-max-height: calc(100vh - 190px);
-    padding: 10px 12px;
-    gap: 10px;
+    --job-table-max-height: calc(100vh - 390px);
   }
 
-  .page-header {
-    padding: 10px 14px;
+  .monitor-overview {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .header-desc {
-    display: none;
+  .monitor-heading-block {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--divider-color);
   }
 
-  .job-content {
-    padding: 10px 12px;
+  .monitor-heading-block > span {
+    margin-top: 0;
+  }
+
+  .monitor-metric:nth-child(2) {
+    border-left: 0;
   }
 }
 </style>

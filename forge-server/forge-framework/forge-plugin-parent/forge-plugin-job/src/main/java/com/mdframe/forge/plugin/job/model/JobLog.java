@@ -14,6 +14,11 @@ public class JobLog {
      * 日志ID
      */
     private Long id;
+
+    /**
+     * 任务配置ID
+     */
+    private Long jobConfigId;
     
     /**
      * 任务名称
@@ -39,6 +44,26 @@ public class JobLog {
      * 触发时间
      */
     private LocalDateTime triggerTime;
+
+    /**
+     * 触发类型：UNKNOWN、SCHEDULED、MANUAL
+     */
+    private String triggerType;
+
+    /**
+     * Quartz 原计划触发时间
+     */
+    private LocalDateTime scheduledFireTime;
+
+    /**
+     * Quartz 执行实例ID
+     */
+    private String fireInstanceId;
+
+    /**
+     * Flowable流程实例ID
+     */
+    private String processInstanceId;
     
     /**
      * 开始执行时间
@@ -56,7 +81,7 @@ public class JobLog {
     private Long duration;
     
     /**
-     * 执行状态：1-成功 0-失败
+     * 执行状态：0-失败 1-成功 2-运行中 3-已跳过
      */
     private Integer status;
     

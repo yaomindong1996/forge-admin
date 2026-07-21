@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.starter.outbound.mapper.SysOutboundWhitelistMapper">
+
+    <sql id="WhitelistColumns">
+        id,
+        tenant_id,
+        scene,
+        protocol,
+        host,
+        port_start,
+        port_end,
+        allow_private,
+        status,
+        remark,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time,
+        del_flag
+    </sql>
+
+    <select id="selectWhitelistPage"
+            resultType="com.mdframe.forge.starter.outbound.domain.entity.SysOutboundWhitelist">
+        SELECT <include refid="WhitelistColumns"/>
+        FROM sys_outbound_whitelist
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
+        <if test="query.scene != null and query.scene != ''">
+            AND scene = #{query.scene}
+        </if>
+        <if test="query.protocol != null and query.protocol != ''">
+            AND protocol = #{query.protocol}
+        </if>
+        <if test="query.host != null and query.host != ''">
+            AND host = #{query.host}
+        </if>
+        <if test="query.status != null">
+            AND status = #{query.status}
+        </if>
+        ORDER BY update_time DESC, id DESC
+    </select>
+
+    <select id="selectByIdForTenant"
+            resultType="com.mdframe.forge.starter.outbound.domain.entity.SysOutboundWhitelist">
+        SELECT <include refid="WhitelistColumns"/>
+        FROM sys_outbound_whitelist
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND del_flag = 0
+        LIMIT 1
+    </select>
+
+    <select id="countOverlappingRules" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM sys_outbound_whitelist
+        WHERE tenant_id = #{tenantId}
+          AND scene = #{scene}
+          AND protocol = #{protocol}
+          AND host = #{host}
+          AND port_start &lt;= #{portEnd}
+          AND port_end &gt;= #{portStart}
+          AND del_flag = 0
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <update id="updateRule">
+        UPDATE sys_outbound_whitelist
+        SET scene = #{entity.scene},
+            protocol = #{entity.protocol},
+            host = #{entity.host},
+            port_start = #{entity.portStart},
+            port_end = #{entity.portEnd},
+            allow_private = #{entity.allowPrivate},
+            status = #{entity.status},
+            remark = #{entity.remark},
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{entity.tenantId}
+          AND id = #{entity.id}
+          AND del_flag = 0
+    </update>
+
+    <update id="logicDelete">
+        UPDATE sys_outbound_whitelist
+        SET del_flag = 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND del_flag = 0
+    </update>
+
+    <select id="selectActiveRules"
+            resultType="com.mdframe.forge.starter.outbound.domain.entity.SysOutboundWhitelist">
+        SELECT <include refid="WhitelistColumns"/>
+        FROM sys_outbound_whitelist
+        WHERE tenant_id = #{tenantId}
+          AND scene = #{scene}
+          AND protocol = #{protocol}
+          AND host = #{host}
+          AND #{port} BETWEEN port_start AND port_end
+          AND status = 1
+          AND del_flag = 0
+        ORDER BY port_start DESC, port_end ASC, id ASC
+    </select>
+</mapper>

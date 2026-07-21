@@ -1,106 +1,105 @@
 package com.mdframe.forge.plugin.job.executor.impl;
 
-import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpResponse;
-import com.alibaba.fastjson2.JSONObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdframe.forge.plugin.job.config.JobProperties;
 import com.mdframe.forge.plugin.job.executor.IJobExecutorRouter;
+import com.mdframe.forge.starter.outbound.client.SecureOutboundClient;
+import com.mdframe.forge.starter.outbound.constant.OutboundScenes;
+import com.mdframe.forge.starter.outbound.model.OutboundRequest;
+import com.mdframe.forge.starter.outbound.model.OutboundResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 远程执行器路由（分布式模式）
- * 通过HTTP调用远程服务执行任务
+ * 分布式模式下通过受控 HTTP 调用远程任务执行器。
  */
 @Slf4j
 @Component
 @ConditionalOnProperty(prefix = "forge.job", name = "deploy-mode", havingValue = "DISTRIBUTED")
 @RequiredArgsConstructor
 public class RemoteJobExecutorRouter implements IJobExecutorRouter {
-    
+
+    private static final int SUCCESS_CODE = 200;
+
     private final JobProperties jobProperties;
-    
+    private final SecureOutboundClient outboundClient;
+    private final ObjectMapper objectMapper;
+
     @Override
     public String route(String executeMode,
-                       String executorBean,
-                       String executorMethod,
-                       String executorHandler,
-                       String executorService,
-                       String jobParam) throws Exception {
-        
+                        String executorBean,
+                        String executorMethod,
+                        String executorHandler,
+                        String executorService,
+                        String jobParam) {
         if (!"RPC".equals(executeMode)) {
             throw new UnsupportedOperationException("远程路由仅支持RPC模式");
         }
-        
-        if (executorService == null || executorService.isEmpty()) {
-            throw new RuntimeException("未指定执行器服务名称");
+        if (executorService == null || executorService.isBlank()) {
+            throw new IllegalArgumentException("未指定执行器服务名称");
         }
-        
-        return executeRpcMode(executorService, executorHandler, jobParam);
+        return executeRpcMode(executorService.trim(), executorHandler, jobParam);
     }
-    
+
     @Override
     public boolean support(String executeMode) {
         return "RPC".equals(executeMode);
     }
-    
-    /**
-     * RPC模式执行
-     */
-    private String executeRpcMode(String serviceName, String handlerName, String param) throws Exception {
-        // 构建请求参数
-        Map<String, Object> requestBody = new HashMap<>();
+
+    private String executeRpcMode(String serviceName, String handlerName, String param) {
+        byte[] requestBody = serializeRequest(handlerName, param);
+        String token = jobProperties.validatedExecutorToken();
+        log.info("调用远程任务执行器: service={}, handler={}", serviceName, handlerName);
+
+        OutboundResponse response = outboundClient.execute(OutboundRequest.builder()
+                .scene(OutboundScenes.JOB_RPC)
+                .url(buildServiceUrl(serviceName))
+                .method("POST")
+                .headers(Map.of(
+                        "Authorization", "Bearer " + token,
+                        "Accept", "application/json"))
+                .contentType("application/json")
+                .body(requestBody)
+                .build());
+        if (response.getStatusCode() < 200 || response.getStatusCode() >= 300) {
+            throw new IllegalStateException("远程任务执行HTTP失败: " + response.getStatusCode());
+        }
+        JsonNode body = parseResponse(response);
+        if (!body.has("code") || body.get("code").asInt() != SUCCESS_CODE) {
+            throw new IllegalStateException("远程任务执行失败");
+        }
+        log.info("远程任务执行成功: service={}, handler={}", serviceName, handlerName);
+        JsonNode data = body.get("data");
+        return data == null || data.isNull() ? null : data.asText();
+    }
+
+    private byte[] serializeRequest(String handlerName, String param) {
+        Map<String, Object> requestBody = new LinkedHashMap<>();
         requestBody.put("handlerName", handlerName);
         requestBody.put("param", param);
-        
-        String url = buildServiceUrl(serviceName);
-        
-        log.info("远程调用任务执行器: service={}, handler={}, url={}", serviceName, handlerName, url);
-        
-        // 发起HTTP调用（支持重试）
-        int retryCount = jobProperties.getDistributed().getRetryCount();
-        Exception lastException = null;
-        
-        for (int i = 0; i <= retryCount; i++) {
-            try {
-                HttpResponse response = HttpRequest.post(url)
-                        .body(JSONObject.toJSONString(requestBody))
-                        .timeout(jobProperties.getDistributed().getTimeout())
-                        .execute();
-                
-                if (response.isOk()) {
-                    String result = response.body();
-                    log.info("远程执行成功: {}", result);
-                    return result;
-                } else {
-                    throw new RuntimeException("远程调用失败: " + response.getStatus());
-                }
-            } catch (Exception e) {
-                lastException = e;
-                if (i < retryCount) {
-                    log.warn("远程调用失败，第{}次重试: {}", i + 1, e.getMessage());
-                    Thread.sleep(1000 * (i + 1)); // 递增延迟
-                }
-            }
+        try {
+            return objectMapper.writeValueAsBytes(requestBody);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("远程任务请求序列化失败", exception);
         }
-        
-        throw new RuntimeException("远程调用失败，已重试" + retryCount + "次", lastException);
     }
-    
-    /**
-     * 构建服务URL
-     * 支持从注册中心获取服务地址（Nacos/Eureka）
-     */
+
+    private JsonNode parseResponse(OutboundResponse response) {
+        try {
+            return objectMapper.readTree(response.getBody());
+        } catch (Exception exception) {
+            throw new IllegalStateException("远程任务执行响应格式不合法", exception);
+        }
+    }
+
     private String buildServiceUrl(String serviceName) {
-        // TODO: 集成服务发现（Nacos/Eureka/Consul）
-        // 这里先简化处理，实际应该从注册中心获取服务实例
-        
-        // 格式：http://{serviceName}/job/executor/execute
         return "http://" + serviceName + "/job/executor/execute";
     }
 }

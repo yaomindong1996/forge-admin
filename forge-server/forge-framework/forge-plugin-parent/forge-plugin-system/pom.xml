@@ -79,6 +79,11 @@
             <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-starter-message</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-outbound</artifactId>
+        </dependency>
         
     </dependencies>
     

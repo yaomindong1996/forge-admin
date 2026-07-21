@@ -21,6 +21,16 @@
             <artifactId>forge-starter-core</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-outbound</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-job</artifactId>
+        </dependency>
+
         <!-- Forge Message (消息通知) -->
         <dependency>
             <groupId>com.mdframe.forge</groupId>

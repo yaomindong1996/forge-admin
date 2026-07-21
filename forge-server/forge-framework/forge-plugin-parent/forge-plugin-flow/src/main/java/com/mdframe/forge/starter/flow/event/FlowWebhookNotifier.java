@@ -4,16 +4,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.mdframe.forge.starter.core.domain.FlowEventMessage;
+import com.mdframe.forge.starter.outbound.client.SecureOutboundClient;
+import com.mdframe.forge.starter.outbound.constant.OutboundScenes;
+import com.mdframe.forge.starter.outbound.model.OutboundRequest;
+import com.mdframe.forge.starter.outbound.model.OutboundResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 
-import java.time.Duration;
-import java.util.HashMap;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -65,26 +69,24 @@ import java.util.Map;
 @Component
 public class FlowWebhookNotifier {
 
-    /** Webhook 请求超时时间 */
-    private static final int TIMEOUT_SECONDS = 10;
-
     /** 最大重试次数 */
     private static final int MAX_RETRY = 2;
 
-    private final RestTemplate restTemplate;
+    private static final long RETRY_DELAY_MILLIS = 1000L;
+
+    private final SecureOutboundClient outboundClient;
     private final ObjectMapper objectMapper;
+    private final long retryDelayMillis;
 
-    public FlowWebhookNotifier() {
-        // 创建带超时配置的 RestTemplate
-        org.springframework.http.client.SimpleClientHttpRequestFactory factory =
-                new org.springframework.http.client.SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout((int) Duration.ofSeconds(TIMEOUT_SECONDS).toMillis());
-        factory.setReadTimeout((int) Duration.ofSeconds(TIMEOUT_SECONDS).toMillis());
-        this.restTemplate = new RestTemplate(factory);
+    @Autowired
+    public FlowWebhookNotifier(SecureOutboundClient outboundClient) {
+        this(outboundClient, createObjectMapper(), RETRY_DELAY_MILLIS);
+    }
 
-        this.objectMapper = new ObjectMapper();
-        this.objectMapper.registerModule(new JavaTimeModule());
-        this.objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    FlowWebhookNotifier(SecureOutboundClient outboundClient, ObjectMapper objectMapper, long retryDelayMillis) {
+        this.outboundClient = outboundClient;
+        this.objectMapper = objectMapper;
+        this.retryDelayMillis = retryDelayMillis;
     }
 
     /**
@@ -98,27 +100,29 @@ public class FlowWebhookNotifier {
         if (!StringUtils.hasText(webhookUrl)) {
             return;
         }
+        String safeTarget = safeTarget(webhookUrl);
 
         for (int attempt = 1; attempt <= MAX_RETRY; attempt++) {
             try {
                 doSend(webhookUrl, message);
-                log.info("[FlowWebhook] 回调成功(attempt={}): url={}, eventType={}, businessKey={}",
-                        attempt, webhookUrl, message.getEventType(), message.getBusinessKey());
-                return; // 成功则退出重试循环
+                log.info("[FlowWebhook] 回调成功(attempt={}): target={}, eventType={}, businessKey={}",
+                        attempt, safeTarget, message.getEventType(), message.getBusinessKey());
+                return;
             } catch (Exception e) {
-                log.warn("[FlowWebhook] 回调失败(attempt={}/{}): url={}, eventType={}, error={}",
-                        attempt, MAX_RETRY, webhookUrl, message.getEventType(), e.getMessage());
+                log.warn("[FlowWebhook] 回调失败(attempt={}/{}): target={}, eventType={}, error={}",
+                        attempt, MAX_RETRY, safeTarget, message.getEventType(), e.getMessage());
                 if (attempt < MAX_RETRY) {
-                    // 等待后重试（指数退避：1s, 2s）
                     try {
-                        Thread.sleep(1000L * attempt);
+                        if (retryDelayMillis > 0) {
+                            Thread.sleep(retryDelayMillis * attempt);
+                        }
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
                         return;
                     }
                 } else {
-                    log.error("[FlowWebhook] 回调最终失败，已放弃: url={}, eventType={}, businessKey={}",
-                            webhookUrl, message.getEventType(), message.getBusinessKey(), e);
+                    log.error("[FlowWebhook] 回调最终失败，已放弃: target={}, eventType={}, businessKey={}",
+                            safeTarget, message.getEventType(), message.getBusinessKey(), e);
                 }
             }
         }
@@ -128,28 +132,47 @@ public class FlowWebhookNotifier {
      * 执行实际的 HTTP 请求
      */
     private void doSend(String webhookUrl, FlowEventMessage message) throws JsonProcessingException {
-        String body = objectMapper.writeValueAsString(message);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        // 标识为内部服务调用，跳过业务侧的防重放、加解密等安全过滤器
-        headers.set("X-Inner-Call", "true");
-        // 携带流程事件元数据头，方便业务侧快速过滤，无需解析 body
-        headers.set("X-Flow-Event-Type", message.getEventType());
+        byte[] body = objectMapper.writeValueAsString(message).getBytes(StandardCharsets.UTF_8);
+        Map<String, String> headers = new LinkedHashMap<>();
+        headers.put("X-Flow-Event-Type", message.getEventType());
         if (message.getProcessDefKey() != null) {
-            headers.set("X-Flow-Process-Key", message.getProcessDefKey());
+            headers.put("X-Flow-Process-Key", message.getProcessDefKey());
         }
         if (message.getBusinessKey() != null) {
-            headers.set("X-Flow-Business-Key", message.getBusinessKey());
+            headers.put("X-Flow-Business-Key", message.getBusinessKey());
         }
 
-        HttpEntity<String> entity = new HttpEntity<>(body, headers);
-
-        ResponseEntity<String> response = restTemplate.exchange(
-                webhookUrl, HttpMethod.POST, entity, String.class);
-
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            throw new RestClientException("Webhook 返回非 2xx 状态码: " + response.getStatusCode());
+        OutboundResponse response = outboundClient.execute(OutboundRequest.builder()
+                .scene(OutboundScenes.FLOW_API)
+                .url(webhookUrl)
+                .method("POST")
+                .headers(headers)
+                .contentType("application/json")
+                .body(body)
+                .build());
+        if (response.getStatusCode() < 200 || response.getStatusCode() >= 300) {
+            throw new IllegalStateException("Webhook 返回非 2xx 状态码: " + response.getStatusCode());
         }
+    }
+
+    private String safeTarget(String webhookUrl) {
+        try {
+            URI uri = URI.create(webhookUrl.trim());
+            if (uri.getScheme() == null || uri.getHost() == null) {
+                return "<invalid>";
+            }
+            int port = uri.getPort();
+            return uri.getScheme().toLowerCase(Locale.ROOT) + "://" + uri.getHost().toLowerCase(Locale.ROOT)
+                    + (port == -1 ? "" : ":" + port);
+        } catch (IllegalArgumentException exception) {
+            return "<invalid>";
+        }
+    }
+
+    private static ObjectMapper createObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
     }
 }

@@ -67,6 +67,13 @@ forge:
     column: tenant_id
     auto-detect-tenant-column: true
   flow:
+    job:
+      technical-identity:
+        tenant-id: ${FORGE_FLOW_JOB_TENANT_ID:}
+        user-id: ${FORGE_FLOW_JOB_USER_ID:}
+        user-name: ${FORGE_FLOW_JOB_USER_NAME:}
+        active-org-id: ${FORGE_FLOW_JOB_ACTIVE_ORG_ID:}
+        active-org-name: ${FORGE_FLOW_JOB_ACTIVE_ORG_NAME:}
     overdue-reminder:
       enabled: true
       scan-interval-ms: 300000

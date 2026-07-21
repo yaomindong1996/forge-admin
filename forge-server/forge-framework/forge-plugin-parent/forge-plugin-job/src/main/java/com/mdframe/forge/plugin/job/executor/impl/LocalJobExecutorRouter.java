@@ -3,6 +3,8 @@ package com.mdframe.forge.plugin.job.executor.impl;
 import cn.hutool.extra.spring.SpringUtil;
 import com.mdframe.forge.plugin.job.executor.IJobExecutor;
 import com.mdframe.forge.plugin.job.executor.IJobExecutorRouter;
+import com.mdframe.forge.plugin.job.service.JobExecutorCatalogService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -14,7 +16,10 @@ import java.lang.reflect.Method;
  */
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class LocalJobExecutorRouter implements IJobExecutorRouter {
+
+    private final JobExecutorCatalogService executorCatalogService;
     
     @Override
     public String route(String executeMode,
@@ -67,7 +72,8 @@ public class LocalJobExecutorRouter implements IJobExecutorRouter {
      * Handler模式执行
      */
     private String executeHandlerMode(String handlerName, String param) throws Exception {
-        IJobExecutor executor = SpringUtil.getBean(handlerName, IJobExecutor.class);
+        String beanName = executorCatalogService.resolveHandlerBeanName(handlerName);
+        IJobExecutor executor = SpringUtil.getBean(beanName, IJobExecutor.class);
         return executor.execute(param);
     }
     

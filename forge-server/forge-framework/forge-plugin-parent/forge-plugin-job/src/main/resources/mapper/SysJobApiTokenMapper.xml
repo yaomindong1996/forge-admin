@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.job.mapper.SysJobApiTokenMapper">
+
+    <sql id="TokenColumns">
+        id, tenant_id, caller_name, caller_description,
+        token_key_id, token_prefix, token_hash, scopes,
+        resource_job_ids, resource_job_groups, status,
+        issued_at, expires_at, last_used_at, revoked_at,
+        create_by, create_time, create_dept, update_by, update_time,
+        remark, del_flag
+    </sql>
+
+    <select id="selectTokenPage" resultType="com.mdframe.forge.plugin.job.entity.SysJobApiToken">
+        SELECT <include refid="TokenColumns"/>
+        FROM sys_job_api_token
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
+        <if test="callerName != null and callerName != ''">
+            AND caller_name LIKE CONCAT('%', #{callerName}, '%')
+        </if>
+        <if test="status == 'ACTIVE'">
+            AND status = 'ACTIVE' AND expires_at &gt; #{now}
+        </if>
+        <if test="status == 'REVOKED'">
+            AND status = 'REVOKED'
+        </if>
+        <if test="status == 'EXPIRED'">
+            AND status = 'ACTIVE' AND expires_at &lt;= #{now}
+        </if>
+        ORDER BY create_time DESC, id DESC
+    </select>
+
+    <select id="selectTenantById" resultType="com.mdframe.forge.plugin.job.entity.SysJobApiToken">
+        SELECT <include refid="TokenColumns"/>
+        FROM sys_job_api_token
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND del_flag = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectActiveByTokenKeyId" resultType="com.mdframe.forge.plugin.job.entity.SysJobApiToken">
+        SELECT <include refid="TokenColumns"/>
+        FROM sys_job_api_token
+        WHERE token_key_id = #{tokenKeyId}
+          AND status = 'ACTIVE'
+          AND del_flag = 0
+        LIMIT 1
+    </select>
+
+    <update id="touchLastUsed">
+        UPDATE sys_job_api_token
+        SET last_used_at = #{lastUsedAt},
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND status = 'ACTIVE'
+          AND expires_at &gt; #{lastUsedAt}
+          AND del_flag = 0
+    </update>
+
+    <update id="revoke">
+        UPDATE sys_job_api_token
+        SET status = 'REVOKED',
+            revoked_at = #{revokedAt},
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND id = #{id}
+          AND status = 'ACTIVE'
+          AND del_flag = 0
+    </update>
+
+</mapper>
