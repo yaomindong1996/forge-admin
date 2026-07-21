@@ -23,7 +23,7 @@ server:
 # 日志配置
 logging:
   level:
-    com.forge: @logging.level@
+    com.forge: info
     org.springframework: error
     org.mybatis.spring.mapper: error
     com.mdframe.forge.plugin.ai.client.AiClientImpl: INFO
@@ -132,6 +132,16 @@ sa-token:
 sms:
   config-type: interface
 forge:
+  flow:
+    job:
+      remote:
+        enabled: ${FORGE_FLOW_JOB_REMOTE_ENABLED:true}
+        url: ${FORGE_FLOW_JOB_REMOTE_URL:http://127.0.0.1:8081}
+        token: ${FORGE_FLOW_JOB_REMOTE_TOKEN:e91558ee6c499b1e927820b08461b1ebd3c57be7e41a43955d68092dd4b9f492}
+  job:
+    open-api:
+      enabled: ${FORGE_JOB_OPEN_API_ENABLED:true}
+      token-pepper: ${FORGE_JOB_OPEN_API_TOKEN_PEPPER:e91558ee6c499b1e927820b08461b1ebd3c57be7e41a43955d68092dd4b9f492}
   capability:
     # 机器客户端密钥 HMAC Pepper；无默认值，创建/轮换/验证凭据时缺失会失败关闭
     client-pepper: ${FORGE_CAPABILITY_CLIENT_PEPPER:}

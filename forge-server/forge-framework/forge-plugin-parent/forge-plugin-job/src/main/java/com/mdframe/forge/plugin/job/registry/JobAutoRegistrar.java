@@ -1,11 +1,13 @@
 package com.mdframe.forge.plugin.job.registry;
 
-import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mdframe.forge.plugin.job.constant.JobConcurrentPolicy;
+import com.mdframe.forge.plugin.job.constant.JobMisfirePolicy;
 import com.mdframe.forge.plugin.job.entity.SysJobConfig;
+import com.mdframe.forge.plugin.job.constant.JobScheduleType;
+import com.mdframe.forge.plugin.job.manager.JobScheduleCoordinator;
 import com.mdframe.forge.plugin.job.mapper.SysJobConfigMapper;
-import com.mdframe.forge.plugin.job.model.JobConfig;
-import com.mdframe.forge.plugin.job.scheduler.JobScheduler;
+import com.mdframe.forge.plugin.job.service.JobExecutorCatalogService;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.job.annotation.JobHandler;
 import com.mdframe.forge.starter.job.annotation.ScheduledJob;
 import lombok.RequiredArgsConstructor;
@@ -26,21 +28,26 @@ import java.lang.reflect.Method;
 @Component
 @RequiredArgsConstructor
 public class JobAutoRegistrar implements BeanPostProcessor {
-    
-    private final JobScheduler jobScheduler;
-    
+
     private final SysJobConfigMapper sysJobConfigMapper;
+
+    private final JobExecutorCatalogService executorCatalogService;
     
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
         Class<?> targetClass = AopProxyUtils.ultimateTargetClass(bean);
-   
+
+        JobHandler classJobHandler = AnnotationUtils.findAnnotation(targetClass, JobHandler.class);
+        if (classJobHandler != null) {
+            registerJobHandler(beanName, null, classJobHandler);
+        }
+
         // 扫描方法级别的注解
         for (Method method : targetClass.getDeclaredMethods()) {
             // 处理@JobHandler
             JobHandler methodJobHandler = AnnotationUtils.findAnnotation(method, JobHandler.class);
             if (methodJobHandler != null) {
-                registerJobHandler(beanName, methodJobHandler);
+                registerJobHandler(beanName, method.getName(), methodJobHandler);
             }
             
             // 处理@ScheduledJob
@@ -56,16 +63,18 @@ public class JobAutoRegistrar implements BeanPostProcessor {
     /**
      * 注册JobHandler
      */
-    private void registerJobHandler(String beanName, JobHandler jobHandler) {
+    private void registerJobHandler(String beanName, String methodName, JobHandler jobHandler) {
         String jobName = jobHandler.value();
-        log.info("注册任务Handler: {} -> {}", jobName, beanName);
-        // Handler在需要时动态创建任务，这里仅记录
+        executorCatalogService.registerHandler(beanName, methodName, jobHandler);
+        log.info("注册任务Handler目录: {} -> {}{}", jobName, beanName,
+                methodName == null ? "" : "#" + methodName);
     }
     
     /**
      * 注册ScheduledJob
      */
     private void registerScheduledJob(String beanName, String methodName, ScheduledJob scheduledJob) {
+        executorCatalogService.registerScheduledJob(beanName, methodName, scheduledJob);
         if (!scheduledJob.enabled()) {
             log.info("任务未启用，跳过注册: {}", scheduledJob.name());
             return;
@@ -76,29 +85,33 @@ public class JobAutoRegistrar implements BeanPostProcessor {
             jobName = beanName + "." + methodName;
         }
         
-        JobConfig jobConfig = new JobConfig();
+        String jobGroup = scheduledJob.group();
+        SysJobConfig existing = sysJobConfigMapper.selectByJobKey(jobName, jobGroup);
+        if (existing != null) {
+            log.debug("注解任务配置已存在，保留数据库配置: {}.{}", jobGroup, jobName);
+            return;
+        }
+
+        SysJobConfig jobConfig = new SysJobConfig();
         jobConfig.setJobName(jobName);
-        jobConfig.setJobGroup(scheduledJob.group());
+        jobConfig.setJobGroup(jobGroup);
         jobConfig.setDescription(scheduledJob.description());
         jobConfig.setExecutorBean(beanName);
         jobConfig.setExecutorMethod(methodName);
+        jobConfig.setScheduleType(JobScheduleType.CRON);
         jobConfig.setCronExpression(scheduledJob.cron());
+        jobConfig.setTimezone(JobScheduleType.DEFAULT_TIMEZONE);
         jobConfig.setExecuteMode("BEAN");
-        jobConfig.setStatus(1); // 运行状态
-        
-        LambdaQueryWrapper<SysJobConfig> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(SysJobConfig::getJobName, jobName);
-        SysJobConfig sysJobConfig = sysJobConfigMapper.selectOne(queryWrapper);
-        if (sysJobConfig == null) {
-            sysJobConfig = new SysJobConfig();
-            BeanUtil.copyProperties(jobConfig, sysJobConfig);
-            sysJobConfigMapper.insert(sysJobConfig);
-            boolean success = jobScheduler.addJob(jobConfig);
-            if (success) {
-                log.info("自动注册定时任务: {} -> {}#{}", jobName, beanName, methodName);
-            } else {
-                log.warn("任务注册失败或已存在: {}", jobName);
-            }
+        jobConfig.setStatus(1);
+        jobConfig.setConcurrentPolicy(JobConcurrentPolicy.DEFAULT);
+        jobConfig.setMisfirePolicy(JobMisfirePolicy.DEFAULT);
+        jobConfig.setIdempotentFlag(0);
+        jobConfig.setRetryCount(0);
+        jobConfig.setSyncStatus(JobScheduleCoordinator.SYNC_PENDING);
+        jobConfig.setVersion(0);
+        if (sysJobConfigMapper.insert(jobConfig) <= 0) {
+            throw new BusinessException("注解任务配置登记失败: " + jobGroup + "." + jobName);
         }
+        log.info("登记注解任务期望配置: {}.{} -> {}#{}", jobGroup, jobName, beanName, methodName);
     }
 }

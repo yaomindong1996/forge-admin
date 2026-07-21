@@ -17,6 +17,11 @@ public class SysJobLog {
     
     @TableId(type = IdType.AUTO)
     private Long id;
+
+    /**
+     * 任务配置ID
+     */
+    private Long jobConfigId;
     
     /**
      * 任务名称
@@ -42,11 +47,36 @@ public class SysJobLog {
      * 触发时间
      */
     private LocalDateTime triggerTime;
+
+    /**
+     * 触发类型：UNKNOWN、SCHEDULED、MANUAL
+     */
+    private String triggerType;
+
+    /**
+     * Quartz 原计划触发时间
+     */
+    private LocalDateTime scheduledFireTime;
+
+    /**
+     * Quartz 执行实例ID
+     */
+    private String fireInstanceId;
+
+    /**
+     * Flowable流程实例ID
+     */
+    private String processInstanceId;
     
     /**
      * 开始执行时间
      */
     private LocalDateTime startTime;
+
+    /**
+     * 运行中任务最近心跳时间。
+     */
+    private LocalDateTime heartbeatTime;
     
     /**
      * 结束执行时间
@@ -59,7 +89,7 @@ public class SysJobLog {
     private Long duration;
     
     /**
-     * 执行状态：1-成功 0-失败
+     * 执行状态：0-失败 1-成功 2-运行中 3-已跳过
      */
     private Integer status;
     

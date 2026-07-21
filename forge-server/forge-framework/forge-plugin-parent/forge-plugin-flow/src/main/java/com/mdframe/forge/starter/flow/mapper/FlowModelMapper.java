@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.starter.flow.entity.FlowModel;
+import com.mdframe.forge.starter.job.flow.JobFlowBindingSnapshot;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -28,4 +29,9 @@ public interface FlowModelMapper extends BaseMapper<FlowModel> {
     Map<String, Object> selectStatusStatistics(@Param("modelName") String modelName,
                                                @Param("category") String category,
                                                @Param("createBy") String createBy);
+
+    JobFlowBindingSnapshot selectPublishedJobBinding(
+            @Param("tenantId") Long tenantId,
+            @Param("modelKey") String modelKey,
+            @Param("modelVersion") Integer modelVersion);
 }

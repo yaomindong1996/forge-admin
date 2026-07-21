@@ -357,3 +357,29 @@ ER 画布只加载用户选择加入画布的目标对象及已有关系目标�
 VARIABLE 的来源是分段级属性，固定为 `CUSTOM | LOWCODE`。CUSTOM 由业务代码按安全变量名通过 `fields` 传值，不绑定低代码对象；LOWCODE 使用低代码元数据，规则保存来源业务对象 ID 和稳定对象编码，变量只能选择该对象中启用的非系统字段。纯 CUSTOM 规则是通用规则；含任一 LOWCODE 分段的混合规则是对象专属规则。规则选择接口在有 `objectCode` 时只返回通用规则和当前对象专属规则，无对象上下文时不暴露对象专属规则；运行时生成再次校验当前对象编码。
 
 `ruleCode` 和既有 SEQ 的 `segmentKey` 都是计数器永久身份。规则逻辑删除后编码不得复用；编辑已有流水规则必须保留同一 SEQ `segmentKey`，只允许排序和属性调整。需要全新计数器时必须创建不同 `ruleCode`，不能通过删段、改型或重建同编码规则隐式重置。
+
+## 38. 定时任务 Flowable 编排使用固定定义与技术身份
+
+**记录日期**: 2026-07-21
+
+定时任务启动 Flowable 时，`invoke_mode` 只区分 SINGLE/FLOW 上层编排；SINGLE 继续解释既有 BEAN/HANDLER/RPC，FLOW 不复用或扩展任意脚本执行入口。流程绑定在保存任务时固定 `modelKey + modelVersion + deploymentId + processDefinitionId`，执行时只按 `processDefinitionId` 启动，不查询 latestVersion、不自动部署草稿。
+
+跨模块契约固定放在 `forge-starter-job` 的 `JobFlowExecutor` SPI 中，内嵌 Flowable 和独立 Flow 服务分别提供本地/远程适配器。远程适配必须走 `SecureOutboundClient + FLOW_API`，不发送 `X-Inner-Call`；专用 Flow API 复用 `system:jobConfig:trigger` 权限，Token 只能来自服务端配置。
+
+流程发起身份只来自 Flow 服务技术身份配置，业务参数只能作为嵌套 `jobInput`，不能覆盖用户、租户、当前组织或 businessKey。businessKey 固定为 `job:<jobConfigId>:<executionId>`；同一执行按该键幂等恢复。Flowable 返回真实 processInstanceId 即视为调度成功，后续流程节点结果由流程历史和流程告警负责，不反向改写任务启动结果。
+
+## 39. 定时任务内部 RPC 使用专用身份和独立出站场景
+
+**记录日期**: 2026-07-21
+
+`/job/executor/execute` 是内部服务端点，不复用用户登录态、开放 API Token 或可伪造的内部请求头。端点默认关闭，显式启用后只接受环境注入的专用 Bearer Token；通用认证拦截器可忽略该路径，但端点自身认证必须失败关闭并返回真实 HTTP 401/503。
+
+调度端 RPC 固定进入 `SecureOutboundClient + JOB_RPC`，服务 Token 只来自服务端配置。JOB_RPC 使用独立白名单和私网授权，不能借用 JOB_WEBHOOK/FLOW_API；成功必须同时满足 HTTP 2xx 与 `RespInfo.code=200`。
+
+## 40. 定时任务配置同步使用分布式锁与版本收敛
+
+**记录日期**: 2026-07-21
+
+DB 到 Quartz 的同步不是普通最终写入。同一 Quartz Key 必须先取得 Redis 分布式锁，Redis 不可用时失败关闭；同步状态更新必须携带读取时的配置 version，版本变化后重新读取最新配置并继续收敛，不能让旧请求覆盖新状态或在逻辑删除后复活任务。
+
+连续失败统计也按完成顺序推进，以 `end_time + executionId` 作为原子排序条件。ALLOW 并行执行中较早开始但较晚结束的旧执行，不能覆盖已由更新执行推进的统计状态。

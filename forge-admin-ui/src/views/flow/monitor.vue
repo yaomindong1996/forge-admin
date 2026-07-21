@@ -1150,6 +1150,23 @@ async function showDetail(row) {
   }
 }
 
+async function openRoutedInstance(processInstanceId) {
+  try {
+    const res = await request.get(
+      `/api/flow/monitor/instance/${encodeURIComponent(processInstanceId)}`,
+    )
+    if (res.code !== 200 || !res.data?.id) {
+      message.warning('未找到对应的流程实例')
+      return
+    }
+    await showDetail(res.data)
+  }
+  catch (error) {
+    console.error('加载指定流程实例失败', error)
+    message.error('流程实例加载失败')
+  }
+}
+
 // 显示流程图
 function showDiagram(row) {
   if (!row.id) {
@@ -1629,6 +1646,11 @@ onMounted(() => {
   if (route.query.modelKey) {
     searchForm.modelKey = route.query.modelKey
   }
+  const routedProcessInstanceId = Array.isArray(route.query.processInstanceId)
+    ? route.query.processInstanceId[0]
+    : route.query.processInstanceId
+  if (routedProcessInstanceId)
+    openRoutedInstance(String(routedProcessInstanceId))
   loadStatistics()
   loadData()
   initCharts()

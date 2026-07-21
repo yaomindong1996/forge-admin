@@ -3,6 +3,8 @@ package com.mdframe.forge.plugin.job.config;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Duration;
+
 /**
  * 任务调度配置属性
  */
@@ -46,9 +48,72 @@ public class JobProperties {
     private Long misfireThreshold = 12000L;
 
     /**
+     * 独立服务账号开放 API 配置。
+     */
+    private OpenApi openApi = new OpenApi();
+
+    /**
+     * 远程执行器服务间认证 Token，只允许通过部署配置注入。
+     */
+    private String executorToken;
+
+    /**
+     * 运行中任务心跳间隔。
+     */
+    private Duration executionHeartbeatInterval = Duration.ofSeconds(30);
+
+    /**
+     * 启动时判定执行记录失联的超时时间。
+     */
+    private Duration executionRecoveryTimeout = Duration.ofMinutes(15);
+
+    /**
+     * 获取 Quartz 配置同步分布式锁的最长等待时间。
+     */
+    private Long scheduleSyncLockWaitMillis = 5000L;
+
+    /**
      * Quartz表前缀
      */
     private String tablePrefix = "QRTZ_";
+
+    public String validatedExecutorToken() {
+        if (executorToken == null || executorToken.trim().length() < 32) {
+            throw new IllegalStateException("任务执行器服务Token必须配置且至少32个字符");
+        }
+        return executorToken.trim();
+    }
+
+    public Duration validatedExecutionHeartbeatInterval() {
+        if (executionHeartbeatInterval == null
+                || executionHeartbeatInterval.compareTo(Duration.ofSeconds(5)) < 0
+                || executionHeartbeatInterval.compareTo(Duration.ofMinutes(5)) > 0) {
+            throw new IllegalStateException("任务执行心跳间隔必须为5秒到5分钟");
+        }
+        return executionHeartbeatInterval;
+    }
+
+    public Duration validatedExecutionRecoveryTimeout() {
+        if (executionRecoveryTimeout == null
+                || executionRecoveryTimeout.compareTo(Duration.ofMinutes(1)) < 0
+                || executionRecoveryTimeout.compareTo(Duration.ofHours(24)) > 0) {
+            throw new IllegalStateException("任务执行恢复超时必须为1分钟到24小时");
+        }
+        Duration heartbeat = validatedExecutionHeartbeatInterval();
+        if (executionRecoveryTimeout.compareTo(heartbeat.multipliedBy(2)) <= 0) {
+            throw new IllegalStateException("任务执行恢复超时必须大于心跳间隔的两倍");
+        }
+        return executionRecoveryTimeout;
+    }
+
+    public long validatedScheduleSyncLockWaitMillis() {
+        if (scheduleSyncLockWaitMillis == null
+                || scheduleSyncLockWaitMillis < 0
+                || scheduleSyncLockWaitMillis > 30000) {
+            throw new IllegalStateException("任务同步锁等待时间必须为0到30000毫秒");
+        }
+        return scheduleSyncLockWaitMillis;
+    }
 
     @Data
     public static class Distributed {
@@ -71,6 +136,58 @@ public class JobProperties {
          * 失败重试次数
          */
         private Integer retryCount = 3;
+
+    }
+
+    @Data
+    public static class OpenApi {
+
+        private Boolean enabled = true;
+
+        private String tokenPepper;
+
+        private Duration idempotencyTtl = Duration.ofHours(24);
+
+        private Duration lastUsedTouchInterval = Duration.ofMinutes(1);
+
+        private Integer readRateLimitPerMinute = 120;
+
+        private Integer triggerRateLimitPerMinute = 20;
+
+        private Long idempotencyLockWaitMillis = 2000L;
+
+        private Long idempotencyLockLeaseMillis = 30000L;
+
+        public Duration validatedIdempotencyTtl() {
+            if (idempotencyTtl == null || idempotencyTtl.compareTo(Duration.ofMinutes(1)) < 0
+                    || idempotencyTtl.compareTo(Duration.ofHours(24)) > 0) {
+                throw new IllegalStateException("开放API幂等有效期必须为1分钟到24小时");
+            }
+            return idempotencyTtl;
+        }
+
+        public Duration validatedLastUsedTouchInterval() {
+            if (lastUsedTouchInterval == null || lastUsedTouchInterval.isNegative()
+                    || lastUsedTouchInterval.compareTo(Duration.ofMinutes(5)) > 0) {
+                throw new IllegalStateException("开放API最后使用时间节流必须为0到5分钟");
+            }
+            return lastUsedTouchInterval;
+        }
+
+        public int validatedReadRateLimit() {
+            return validateRateLimit(readRateLimitPerMinute, "读取");
+        }
+
+        public int validatedTriggerRateLimit() {
+            return validateRateLimit(triggerRateLimitPerMinute, "触发");
+        }
+
+        private int validateRateLimit(Integer value, String type) {
+            if (value == null || value < 1 || value > 10000) {
+                throw new IllegalStateException("开放API" + type + "限流必须为1到10000次/分钟");
+            }
+            return value;
+        }
     }
 
     /**

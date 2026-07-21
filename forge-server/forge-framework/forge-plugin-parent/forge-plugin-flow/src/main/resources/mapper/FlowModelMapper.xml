@@ -2,6 +2,15 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mdframe.forge.starter.flow.mapper.FlowModelMapper">
 
+    <resultMap id="JobFlowBindingResultMap" type="com.mdframe.forge.starter.job.flow.JobFlowBindingSnapshot">
+        <constructor>
+            <arg column="model_key" javaType="java.lang.String"/>
+            <arg column="model_version" javaType="java.lang.Integer"/>
+            <arg column="deployment_id" javaType="java.lang.String"/>
+            <arg column="process_definition_id" javaType="java.lang.String"/>
+        </constructor>
+    </resultMap>
+
     <!-- 分页查询流程模型（支持父级分类查询子级数据） -->
     <select id="selectModelPage" resultType="com.mdframe.forge.starter.flow.entity.FlowModel">
         SELECT m.*, c.category_name AS category_name
@@ -70,6 +79,29 @@
                 AND m.create_by = #{createBy}
             </if>
         </where>
+    </select>
+
+    <select id="selectPublishedJobBinding" resultMap="JobFlowBindingResultMap">
+        SELECT m.model_key,
+               v.version AS model_version,
+               v.deployment_id,
+               v.process_definition_id
+        FROM sys_flow_model m
+        INNER JOIN sys_flow_model_version v
+                ON v.model_id = m.id
+               AND v.tenant_id = m.tenant_id
+               AND v.del_flag = 0
+        WHERE m.tenant_id = #{tenantId}
+          AND m.model_key = #{modelKey}
+          AND m.status = 1
+          AND m.del_flag = 0
+          AND v.version = #{modelVersion}
+          AND v.publish_time IS NOT NULL
+          AND v.deployment_id IS NOT NULL
+          AND v.deployment_id &lt;&gt; ''
+          AND v.process_definition_id IS NOT NULL
+          AND v.process_definition_id &lt;&gt; ''
+        LIMIT 1
     </select>
 
 </mapper>

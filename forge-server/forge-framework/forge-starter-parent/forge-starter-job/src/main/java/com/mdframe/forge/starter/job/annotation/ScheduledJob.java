@@ -4,7 +4,7 @@ import java.lang.annotation.*;
 
 /**
  * Spring Bean直连模式的定时任务注解
- * 自动注册到Quartz调度器
+ * 自动登记到数据库期望配置，容器启动完成后统一同步到Quartz调度器
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.job.mapper.SysJobConfigMapper">
+
+    <sql id="JobConfigColumns">
+        job.id,
+        job.job_name,
+        job.job_group,
+        job.description,
+        job.executor_bean,
+        job.executor_method,
+        job.executor_handler,
+        job.executor_service,
+        job.schedule_type,
+        job.cron_expression,
+        job.fire_once_time,
+        job.timezone,
+        job.job_param,
+        job.status,
+        job.execute_mode,
+        job.invoke_mode,
+        job.flow_model_key,
+        job.flow_model_version,
+        job.flow_deployment_id,
+        job.flow_process_definition_id,
+        job.concurrent_policy,
+        job.misfire_policy,
+        job.idempotent_flag,
+        job.retry_count,
+        job.consecutive_failures,
+        job.alarm_enabled,
+        job.alarm_channels,
+        job.alarm_recipient_user_ids,
+        job.alarm_email,
+        job.webhook_url,
+        job.sync_status,
+        job.sync_error,
+        job.sync_time,
+        job.version,
+        (
+            SELECT log.status
+            FROM sys_job_log log
+            WHERE log.job_config_id = job.id
+              AND log.del_flag = 0
+            ORDER BY log.start_time DESC, log.id DESC
+            LIMIT 1
+        ) AS last_execution_status,
+        (
+            SELECT log.start_time
+            FROM sys_job_log log
+            WHERE log.job_config_id = job.id
+              AND log.del_flag = 0
+            ORDER BY log.start_time DESC, log.id DESC
+            LIMIT 1
+        ) AS last_execution_time,
+        job.create_time,
+        job.update_time
+    </sql>
+
+    <select id="selectJobPage" resultType="com.mdframe.forge.plugin.job.vo.JobConfigVO">
+        SELECT
+        <include refid="JobConfigColumns"/>
+        FROM sys_job_config job
+        WHERE job.del_flag = 0
+        <if test="query != null and query.jobName != null and query.jobName != ''">
+            AND job.job_name LIKE CONCAT('%', #{query.jobName}, '%')
+        </if>
+        <if test="query != null and query.jobGroup != null and query.jobGroup != ''">
+            AND job.job_group = #{query.jobGroup}
+        </if>
+        <if test="query != null and query.executeMode != null and query.executeMode != ''">
+            AND job.execute_mode = #{query.executeMode}
+        </if>
+        <if test="query != null and query.invokeMode != null and query.invokeMode != ''">
+            AND job.invoke_mode = #{query.invokeMode}
+        </if>
+        <if test="query != null and query.scheduleType != null and query.scheduleType != ''">
+            AND job.schedule_type = #{query.scheduleType}
+        </if>
+        <if test="query != null and query.status != null">
+            AND job.status = #{query.status}
+        </if>
+        <if test="query != null and query.syncStatus != null and query.syncStatus != ''">
+            AND job.sync_status = #{query.syncStatus}
+        </if>
+        ORDER BY job.create_time DESC, job.id DESC
+    </select>
+
+    <select id="selectJobDetail" resultType="com.mdframe.forge.plugin.job.vo.JobConfigVO">
+        SELECT
+        <include refid="JobConfigColumns"/>
+        FROM sys_job_config job
+        WHERE job.id = #{id}
+          AND job.del_flag = 0
+    </select>
+
+    <select id="selectRecoveryCandidates" resultType="com.mdframe.forge.plugin.job.entity.SysJobConfig">
+        SELECT
+        <include refid="JobConfigColumns"/>
+        FROM sys_job_config job
+        WHERE job.del_flag = 0
+          AND job.status &lt;&gt; 2
+        ORDER BY job.id
+    </select>
+
+    <select id="selectByJobKey" resultType="com.mdframe.forge.plugin.job.entity.SysJobConfig">
+        SELECT
+        <include refid="JobConfigColumns"/>
+        FROM sys_job_config job
+        WHERE job.job_name = #{jobName}
+          AND job.job_group = #{jobGroup}
+          AND job.del_flag = 0
+        LIMIT 1
+    </select>
+
+    <update id="updateSyncState">
+        UPDATE sys_job_config
+        SET sync_status = #{syncStatus},
+            sync_error = #{syncError},
+            sync_time = #{syncTime},
+            version = version + 1,
+            update_time = NOW()
+        WHERE id = #{id}
+          AND version = #{expectedVersion}
+          AND del_flag = 0
+    </update>
+
+    <update id="logicalDeleteByVersion">
+        UPDATE sys_job_config
+        SET del_flag = 1,
+            version = version + 1,
+            update_time = NOW()
+        WHERE id = #{id}
+          AND version = #{expectedVersion}
+          AND del_flag = 0
+    </update>
+
+    <update id="markOnceMissedCompleted">
+        UPDATE sys_job_config
+        SET status = 2,
+            sync_status = 'SYNCED',
+            sync_error = NULL,
+            sync_time = #{syncTime},
+            version = version + 1,
+            update_time = NOW()
+        WHERE id = #{id}
+          AND schedule_type = 'ONCE'
+          AND fire_once_time = #{fireOnceTime}
+          AND timezone = #{timezone}
+          AND version = #{expectedVersion}
+          AND status IN (0, 1)
+          AND del_flag = 0
+    </update>
+
+    <update id="markOnceCompleted">
+        UPDATE sys_job_config
+        SET status = 2,
+            version = version + 1,
+            update_time = NOW()
+        WHERE id = #{id}
+          AND schedule_type = 'ONCE'
+          AND fire_once_time = #{fireOnceTime}
+          AND timezone = #{timezone}
+          AND status IN (0, 1)
+          AND del_flag = 0
+    </update>
+
+    <update id="applyExecutionOutcome">
+        UPDATE sys_job_config job
+        INNER JOIN sys_job_log execution
+          ON execution.id = #{executionId}
+         AND execution.job_config_id = job.id
+         AND execution.status = #{status}
+         AND execution.del_flag = 0
+        SET job.consecutive_failures = CASE
+                WHEN #{status} = 1 THEN 0
+                ELSE job.consecutive_failures + 1
+            END,
+            job.last_completion_time = execution.end_time,
+            job.last_completion_execution_id = execution.id,
+            job.update_time = NOW()
+        WHERE job.del_flag = 0
+          AND #{status} IN (0, 1)
+          AND execution.end_time IS NOT NULL
+          AND (
+            job.last_completion_time IS NULL
+            OR execution.end_time &gt; job.last_completion_time
+            OR (
+              execution.end_time = job.last_completion_time
+              AND execution.id &gt; COALESCE(job.last_completion_execution_id, 0)
+            )
+          )
+    </update>
+
+    <select id="selectConsecutiveFailureTaskCount" resultType="int">
+        SELECT COUNT(*)
+        FROM sys_job_config job
+        WHERE job.del_flag = 0
+          AND job.consecutive_failures &gt; 0
+    </select>
+
+    <select id="selectConsecutiveFailureTasks" resultType="com.mdframe.forge.plugin.job.vo.JobFailureTaskVO">
+        SELECT job.id AS job_config_id,
+               job.job_name,
+               job.job_group,
+               job.consecutive_failures,
+               (
+                   SELECT MAX(COALESCE(log.end_time, log.start_time, log.trigger_time))
+                   FROM sys_job_log log
+                   WHERE log.job_config_id = job.id
+                     AND log.status = 0
+                     AND log.del_flag = 0
+               ) AS last_failure_time
+        FROM sys_job_config job
+        WHERE job.del_flag = 0
+          AND job.consecutive_failures &gt; 0
+        ORDER BY job.consecutive_failures DESC, last_failure_time DESC, job.id
+        LIMIT #{limit}
+    </select>
+
+    <sql id="OpenApiResourceFilter">
+        <choose>
+            <when test="(jobIds != null and !jobIds.isEmpty()) or (jobGroups != null and !jobGroups.isEmpty())">
+                AND (
+                <if test="jobIds != null and !jobIds.isEmpty()">
+                    job.id IN
+                    <foreach collection="jobIds" item="jobId" open="(" separator="," close=")">
+                        #{jobId}
+                    </foreach>
+                </if>
+                <if test="jobIds != null and !jobIds.isEmpty() and jobGroups != null and !jobGroups.isEmpty()">
+                    OR
+                </if>
+                <if test="jobGroups != null and !jobGroups.isEmpty()">
+                    job.job_group IN
+                    <foreach collection="jobGroups" item="jobGroup" open="(" separator="," close=")">
+                        #{jobGroup}
+                    </foreach>
+                </if>
+                )
+            </when>
+            <otherwise>
+                AND 1 = 0
+            </otherwise>
+        </choose>
+    </sql>
+
+    <sql id="OpenApiSummaryColumns">
+        job.id,
+        job.job_name,
+        job.job_group,
+        job.description,
+        job.schedule_type,
+        job.timezone,
+        job.status,
+        job.sync_status,
+        (
+            SELECT log.status
+            FROM sys_job_log log
+            WHERE log.job_config_id = job.id
+              AND log.del_flag = 0
+            ORDER BY log.start_time DESC, log.id DESC
+            LIMIT 1
+        ) AS last_execution_status,
+        (
+            SELECT COALESCE(log.start_time, log.trigger_time)
+            FROM sys_job_log log
+            WHERE log.job_config_id = job.id
+              AND log.del_flag = 0
+            ORDER BY log.start_time DESC, log.id DESC
+            LIMIT 1
+        ) AS last_execution_time
+    </sql>
+
+    <select id="selectOpenJobPage" resultType="com.mdframe.forge.plugin.job.vo.JobOpenApiSummaryVO">
+        SELECT <include refid="OpenApiSummaryColumns"/>
+        FROM sys_job_config job
+        WHERE job.del_flag = 0
+        <include refid="OpenApiResourceFilter"/>
+        ORDER BY job.job_group, job.job_name, job.id
+    </select>
+
+    <select id="selectOpenJobById" resultType="com.mdframe.forge.plugin.job.vo.JobOpenApiSummaryVO">
+        SELECT <include refid="OpenApiSummaryColumns"/>
+        FROM sys_job_config job
+        WHERE job.id = #{id}
+          AND job.del_flag = 0
+        <include refid="OpenApiResourceFilter"/>
+        LIMIT 1
+    </select>
+
+    <select id="selectOpenTriggerTarget" resultType="com.mdframe.forge.plugin.job.model.JobApiTriggerTarget">
+        SELECT job.id,
+               job.job_name,
+               job.job_group,
+               job.status,
+               job.sync_status
+        FROM sys_job_config job
+        WHERE job.id = #{id}
+          AND job.del_flag = 0
+        <include refid="OpenApiResourceFilter"/>
+        LIMIT 1
+    </select>
+
+    <select id="countOpenJobById" resultType="int">
+        SELECT COUNT(*)
+        FROM sys_job_config job
+        WHERE job.id = #{id}
+          AND job.del_flag = 0
+    </select>
+
+    <select id="selectJobApiResourceOptions" resultType="com.mdframe.forge.plugin.job.vo.JobApiResourceOptionVO">
+        SELECT job.id,
+               job.job_name,
+               job.job_group,
+               job.description
+        FROM sys_job_config job
+        WHERE job.del_flag = 0
+        ORDER BY job.job_group, job.job_name, job.id
+    </select>
+
+</mapper>

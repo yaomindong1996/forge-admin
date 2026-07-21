@@ -2,9 +2,279 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mdframe.forge.plugin.job.mapper.SysJobLogMapper">
 
+    <sql id="SafeLogColumns">
+            job_log.id,
+            job_log.job_config_id,
+            job_log.job_name,
+            job_log.job_group,
+            job_log.executor_handler,
+            job_log.trigger_time,
+            job_log.trigger_type,
+            job_log.scheduled_fire_time,
+            job_log.start_time,
+            job_log.end_time,
+            job_log.duration,
+            job_log.status,
+            job_log.retry_count
+    </sql>
+
+    <sql id="JobLogFilters">
+        <if test="query != null and query.jobConfigId != null">
+            AND job_log.job_config_id = #{query.jobConfigId}
+        </if>
+        <if test="query != null and query.jobName != null and query.jobName != ''">
+            AND job_log.job_name LIKE CONCAT('%', #{query.jobName}, '%')
+        </if>
+        <if test="query != null and query.jobGroup != null and query.jobGroup != ''">
+            AND job_log.job_group = #{query.jobGroup}
+        </if>
+        <if test="query != null and query.status != null">
+            AND job_log.status = #{query.status}
+        </if>
+        <if test="query != null and query.triggerType != null and query.triggerType != ''">
+            AND job_log.trigger_type = #{query.triggerType}
+        </if>
+        <if test="query != null and query.startTime != null">
+            AND job_log.trigger_time &gt;= #{query.startTime}
+        </if>
+        <if test="query != null and query.endTime != null">
+            AND job_log.trigger_time &lt;= #{query.endTime}
+        </if>
+    </sql>
+
+    <select id="selectLogPage" resultType="com.mdframe.forge.plugin.job.vo.JobLogVO">
+        SELECT
+        <include refid="SafeLogColumns"/>
+        FROM sys_job_log job_log
+        WHERE job_log.del_flag = 0
+        <include refid="JobLogFilters"/>
+        ORDER BY job_log.trigger_time DESC, job_log.id DESC
+    </select>
+
+    <select id="selectLogDetail" resultType="com.mdframe.forge.plugin.job.vo.JobLogDetailVO">
+        SELECT
+        <include refid="SafeLogColumns"/>,
+            job_log.fire_instance_id,
+            job_log.process_instance_id,
+            job_log.result AS result_summary,
+            job_log.exception_msg AS exception_summary
+        FROM sys_job_log job_log
+        WHERE job_log.id = #{id}
+          AND job_log.del_flag = 0
+    </select>
+
+    <select id="selectExportList" resultType="com.mdframe.forge.plugin.job.vo.JobLogExportVO">
+        SELECT job_log.job_name,
+               job_log.job_group,
+               job_log.executor_handler,
+               job_log.trigger_type,
+               job_log.status,
+               job_log.scheduled_fire_time,
+               job_log.trigger_time,
+               job_log.start_time,
+               job_log.end_time,
+               job_log.duration,
+               job_log.retry_count
+        FROM sys_job_log job_log
+        WHERE job_log.del_flag = 0
+        <include refid="JobLogFilters"/>
+        ORDER BY job_log.trigger_time DESC, job_log.id DESC
+    </select>
+
+    <select id="selectRecentExecutions" resultType="com.mdframe.forge.plugin.job.vo.JobLogVO">
+        SELECT
+        <include refid="SafeLogColumns"/>
+        FROM sys_job_log job_log
+        WHERE job_log.job_config_id = #{jobConfigId}
+          AND job_log.del_flag = 0
+        ORDER BY job_log.trigger_time DESC, job_log.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectMonitorSummary" resultType="com.mdframe.forge.plugin.job.vo.JobMonitorSummaryVO">
+        SELECT COUNT(*) AS total_count,
+               COALESCE(SUM(CASE WHEN job_log.status = 1 THEN 1 ELSE 0 END), 0) AS success_count,
+               COALESCE(SUM(CASE WHEN job_log.status = 0 THEN 1 ELSE 0 END), 0) AS failed_count,
+               COALESCE(SUM(CASE WHEN job_log.status = 2 THEN 1 ELSE 0 END), 0) AS running_count,
+               COALESCE(SUM(CASE WHEN job_log.status = 3 THEN 1 ELSE 0 END), 0) AS skipped_count,
+               COALESCE(SUM(CASE WHEN job_log.status = 4 THEN 1 ELSE 0 END), 0) AS accepted_count
+        FROM sys_job_log job_log
+        WHERE job_log.del_flag = 0
+          AND job_log.trigger_time &gt;= #{windowStart}
+          AND job_log.trigger_time &lt; #{windowEnd}
+    </select>
+
+    <select id="selectJobConfigIdById" resultType="long">
+        SELECT job_config_id
+        FROM sys_job_log
+        WHERE id = #{id}
+          AND del_flag = 0
+    </select>
+
+    <select id="selectFailureAlarmContext" resultType="com.mdframe.forge.plugin.job.vo.JobFailureAlarmContextVO">
+        SELECT job_log.id AS execution_id,
+               job_log.job_config_id,
+               job_log.job_name,
+               job_log.job_group,
+               COALESCE(job_log.end_time, job_log.start_time, job_log.trigger_time) AS failure_time,
+               job_log.exception_msg AS exception_summary,
+               job.alarm_enabled,
+               job.alarm_channels,
+               job.alarm_recipient_user_ids,
+               job.alarm_email
+        FROM sys_job_log job_log
+        INNER JOIN sys_job_config job ON job.id = job_log.job_config_id
+        WHERE job_log.id = #{id}
+          AND job_log.status = 0
+          AND job_log.del_flag = 0
+          AND job.del_flag = 0
+    </select>
+
+    <update id="completeRunningExecution">
+        UPDATE sys_job_log
+        SET status = #{status},
+            result = #{result},
+            exception_msg = #{exceptionMsg},
+            retry_count = #{retryCount},
+            end_time = NOW(),
+            duration = TIMESTAMPDIFF(MICROSECOND, start_time, NOW()) DIV 1000
+        WHERE id = #{id}
+          AND status = 2
+          AND del_flag = 0
+    </update>
+
+    <update id="completeRunningFlowExecution">
+        UPDATE sys_job_log
+        SET status = #{status},
+            result = #{result},
+            exception_msg = NULL,
+            process_instance_id = #{processInstanceId},
+            retry_count = #{retryCount},
+            end_time = NOW(),
+            duration = TIMESTAMPDIFF(MICROSECOND, start_time, NOW()) DIV 1000
+        WHERE id = #{id}
+          AND status = 2
+          AND del_flag = 0
+    </update>
+
     <delete id="cleanPhysicalBefore">
-        DELETE FROM sys_job_log
-        WHERE trigger_time &lt; #{beforeDate}
+        DELETE job_log
+        FROM sys_job_log job_log
+        WHERE job_log.status IN (0, 1, 3)
+          AND job_log.trigger_time &lt; #{beforeDate}
+          AND NOT EXISTS (
+            SELECT 1
+            FROM sys_job_api_idempotency idempotency
+            WHERE idempotency.execution_id = job_log.id
+              AND idempotency.expires_at &gt; NOW()
+              AND idempotency.del_flag = 0
+          )
     </delete>
+
+    <update id="refreshHeartbeat">
+        UPDATE sys_job_log
+        SET heartbeat_time = NOW()
+        WHERE id = #{id}
+          AND status = 2
+          AND del_flag = 0
+    </update>
+
+    <update id="failStaleExecutions">
+        UPDATE sys_job_log
+        SET status = 0,
+            exception_msg = #{exceptionMsg},
+            end_time = NOW(),
+            duration = CASE
+                WHEN start_time IS NULL THEN 0
+                ELSE GREATEST(TIMESTAMPDIFF(MICROSECOND, start_time, NOW()) DIV 1000, 0)
+            END
+        WHERE del_flag = 0
+          AND (
+            (status = 2 AND COALESCE(heartbeat_time, start_time, trigger_time) &lt; #{cutoff})
+            OR (status = 4 AND trigger_time &lt; #{cutoff})
+          )
+    </update>
+
+    <sql id="OpenApiExecutionResourceFilter">
+        <choose>
+            <when test="(jobIds != null and !jobIds.isEmpty()) or (jobGroups != null and !jobGroups.isEmpty())">
+                AND (
+                <if test="jobIds != null and !jobIds.isEmpty()">
+                    job.id IN
+                    <foreach collection="jobIds" item="jobId" open="(" separator="," close=")">
+                        #{jobId}
+                    </foreach>
+                </if>
+                <if test="jobIds != null and !jobIds.isEmpty() and jobGroups != null and !jobGroups.isEmpty()">
+                    OR
+                </if>
+                <if test="jobGroups != null and !jobGroups.isEmpty()">
+                    job.job_group IN
+                    <foreach collection="jobGroups" item="jobGroup" open="(" separator="," close=")">
+                        #{jobGroup}
+                    </foreach>
+                </if>
+                )
+            </when>
+            <otherwise>
+                AND 1 = 0
+            </otherwise>
+        </choose>
+    </sql>
+
+    <select id="selectOpenExecutionById" resultType="com.mdframe.forge.plugin.job.vo.JobOpenApiExecutionVO">
+        SELECT job_log.id,
+               job_log.job_config_id AS job_id,
+               job_log.job_name,
+               job_log.job_group,
+               job_log.trigger_type,
+               job_log.status,
+               job_log.trigger_time,
+               job_log.start_time,
+               job_log.end_time,
+               job_log.duration,
+               job_log.retry_count
+        FROM sys_job_log job_log
+        INNER JOIN sys_job_config job ON job.id = job_log.job_config_id
+        WHERE job_log.id = #{id}
+          AND job_log.del_flag = 0
+          AND job.del_flag = 0
+        <include refid="OpenApiExecutionResourceFilter"/>
+        LIMIT 1
+    </select>
+
+    <select id="countOpenExecutionById" resultType="int">
+        SELECT COUNT(*)
+        FROM sys_job_log
+        WHERE id = #{id}
+          AND del_flag = 0
+    </select>
+
+    <update id="startReservedExecution">
+        UPDATE sys_job_log
+        SET status = 2,
+            scheduled_fire_time = #{scheduledFireTime},
+            fire_instance_id = #{fireInstanceId},
+            start_time = #{startTime},
+            heartbeat_time = #{startTime},
+            executor_handler = #{executorHandler},
+            job_param = #{jobParam}
+        WHERE id = #{id}
+          AND status = 4
+          AND trigger_type = 'OPEN_API'
+          AND del_flag = 0
+    </update>
+
+    <update id="failAcceptedExecution">
+        UPDATE sys_job_log
+        SET status = 0,
+            exception_msg = #{exceptionMsg},
+            end_time = NOW(),
+            duration = 0
+        WHERE id = #{id}
+          AND status = 4
+          AND trigger_type = 'OPEN_API'
+          AND del_flag = 0
+    </update>
 
 </mapper>

@@ -59,6 +59,8 @@ public class SaTokenConfig implements WebMvcConfigurer {
                     .notMatch("/oauth2/revoke")
                     // /mcp 必须由 MCP Bearer Filter 强制认证，禁止通用 Sa-Token 二次拦截
                     .notMatch("/mcp")
+                    // 定时任务开放API由独立服务账号Bearer认证处理
+                    .notMatch("/openapi/v1/jobs", "/openapi/v1/jobs/**", "/openapi/v1/executions/**")
                     // 排除获取验证码接口
                     .notMatch("/auth/captcha")
                     .notMatch("/auth/captcha/slider")
@@ -85,6 +87,7 @@ public class SaTokenConfig implements WebMvcConfigurer {
                 .excludePathPatterns("/.well-known/oauth-protected-resource",
                         "/.well-known/oauth-authorization-server", "/oauth2/token", "/oauth2/revoke")
                 .excludePathPatterns("/ai/capability/oauth/**", "/mcp")
+                .excludePathPatterns("/openapi/v1/jobs", "/openapi/v1/jobs/**", "/openapi/v1/executions/**")
                 // 排除静态资源
                 .excludePathPatterns("/static/**", "/css/**", "/js/**", "/images/**")
                 // 排除Swagger文档
