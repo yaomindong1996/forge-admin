@@ -42,6 +42,9 @@
         </template>
         预览应用
       </n-button>
+      <n-button secondary @click="emit('runtime')">
+        进入应用
+      </n-button>
       <n-button secondary @click="emit('code')">
         <template #icon>
           <n-icon><CodeSlashOutline /></n-icon>
@@ -82,7 +85,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['back', 'refresh', 'preview', 'code', 'primaryAction', 'publish'])
+const emit = defineEmits(['back', 'refresh', 'preview', 'runtime', 'code', 'primaryAction', 'publish'])
 
 const readinessLabel = computed(() => {
   if (Number(props.workspace?.blockingCount || 0) > 0)

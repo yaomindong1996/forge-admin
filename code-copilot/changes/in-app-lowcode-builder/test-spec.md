@@ -60,7 +60,7 @@
 
 | 时间 | 变更范围 | 必跑项 | 实际命令 | 结果 | 跳过/警告 |
 |---|---|---|---|---|---|
-| 2026-07-21 | Task 1 | 编排 Schema 定向 Vitest | `pnpm --dir forge-admin-ui test src/views/app-center/in-app-builder/__tests__/in-app-builder-schema.spec.js` | passed | 4 tests passed；先记录缺少模块的预期 Red 结果，再实现并通过 Green。 |
+| 2026-07-21 | Task 1-2 | 编排 Schema 与 options 合并定向 Vitest | `pnpm --dir forge-admin-ui test src/views/app-center/in-app-builder/__tests__/in-app-builder-schema.spec.js` | passed | 5 tests passed；先记录缺少模块的预期 Red 结果，再实现并通过 Green。 |
 
 ## 6. 执行证据
 

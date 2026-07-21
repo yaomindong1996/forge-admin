@@ -47,7 +47,7 @@
 
 ## Task 2: 应用 options 读写适配与草稿脏状态
 
-> status: in_progress
+> status: completed
 
 - **目标**：在不改变后端协议的前提下，从应用工作台数据读取/合并 `options.inAppBuilder`，并按既有应用更新接口保存草稿。
 - **涉及文件**：
@@ -67,6 +67,8 @@
   - 如接口契约不满足，停止并回填 Spec，不以 LocalStorage 作为共享持久化替代。
 
 ## Task 3: 应用运行壳与前端路由
+
+> status: in_progress
 
 - **目标**：为应用增加前端运行壳路由，使用应用级导航而非系统全局侧栏，并复用现有页面/入口运行能力。
 - **涉及文件**：

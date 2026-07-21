@@ -16,3 +16,6 @@
 | 2026-07-21 | Task 1 Red | `pnpm --dir forge-admin-ui test src/views/app-center/in-app-builder/__tests__/in-app-builder-schema.spec.js` | failed-as-expected | 测试无法解析尚不存在的 `in-app-builder-schema` 模块，证明用例先于实现执行；未启动服务。 |
 | 2026-07-21 | Task 1 Green | 同上 | passed | 1 test file、4 tests 全部通过；未启动服务。 |
 | 2026-07-21 | Task 1 lint | `pnpm --dir forge-admin-ui exec eslint src/views/app-center/in-app-builder/in-app-builder-schema.js src/views/app-center/in-app-builder/__tests__/in-app-builder-schema.spec.js` | passed | 首次发现 `style/quote-props`、`style/arrow-parens` 共 8 项并用 apply_patch 修复；最终 0 error、0 warning；未启动服务。 |
+| 2026-07-21 | Task 2 | `pnpm --dir forge-admin-ui test src/views/app-center/in-app-builder/__tests__/in-app-builder-schema.spec.js` | passed | options 合并用例加入后共 5 tests 通过；未启动服务。 |
+| 2026-07-21 | Task 2-3 lint | `pnpm --dir forge-admin-ui exec eslint …`（运行壳、工作台头、路由、Schema、测试） | passed | 初次运行壳仅有格式错误，已使用 ESLint `--fix` 机械格式化；最终 0 error、0 warning。 |
+| 2026-07-21 | Task 2-3 build | `pnpm --dir forge-admin-ui build` | passed | Vite 生产构建 8694 modules、3m25s；保留仓库既有动态导入与 CSS 注释告警，未启动开发服务。 |

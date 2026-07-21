@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createNavigationNode,
   insertPageComponent,
+  mergeInAppBuilderOptions,
   moveNavigationNode,
   normalizeInAppBuilder,
   removeNavigationNode,
@@ -66,5 +67,16 @@ describe('in-app builder schema', () => {
     expect(result.schema.pages.page_home.layout.items).toEqual([
       expect.objectContaining({ id: result.selectedComponentId, componentKey: 'page-title' }),
     ])
+  })
+
+  it('preserves unrelated application options when saving the builder schema', () => {
+    const schema = normalizeInAppBuilder({}, APPLICATION, [])
+    const options = mergeInAppBuilderOptions(JSON.stringify({ release: { version: 2 }, extension: { enabled: true } }), schema)
+
+    expect(options).toMatchObject({
+      release: { version: 2 },
+      extension: { enabled: true },
+      inAppBuilder: expect.objectContaining({ homePageId: 'page_home' }),
+    })
   })
 })

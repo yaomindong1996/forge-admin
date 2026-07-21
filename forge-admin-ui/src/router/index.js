@@ -104,6 +104,12 @@ export const manualRoutes = [
     meta: { title: '业务单元设计', skipTab: true, preserveOnQuery: true },
   },
   {
+    name: 'BusinessApplicationRuntime',
+    path: '/app-center/application/:applicationCode/runtime',
+    component: () => import('@/views/app-center/application-runtime.[applicationCode].vue'),
+    meta: { title: '运行应用', skipTab: true, preserveOnQuery: true },
+  },
+  {
     name: 'BusinessApplicationWorkspace',
     path: '/app-center/application/:applicationCode',
     component: () => import('@/views/app-center/application.[applicationCode].vue'),

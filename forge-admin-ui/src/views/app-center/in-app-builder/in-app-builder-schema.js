@@ -47,6 +47,19 @@ export function normalizeInAppBuilder(rawOptions, application = {}, objects = []
   return schema
 }
 
+export function mergeInAppBuilderOptions(applicationOptions, schema) {
+  const options = parseOptions(applicationOptions)
+  return {
+    ...options,
+    inAppBuilder: clone({
+      schemaVersion: IN_APP_BUILDER_SCHEMA_VERSION,
+      homePageId: schema.homePageId,
+      nodes: schema.nodes,
+      pages: schema.pages,
+    }),
+  }
+}
+
 export function createNavigationNode(schema, input = {}) {
   const next = clone(schema)
   const type = input.type === 'group' ? 'group' : 'page'

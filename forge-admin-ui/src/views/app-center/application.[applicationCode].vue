@@ -9,6 +9,7 @@
           @back="router.push('/app-center')"
           @refresh="refreshWorkspace"
           @preview="openApplicationPreview"
+          @runtime="openApplicationRuntime"
           @code="openApplicationCode"
           @primary-action="handlePrimaryAction"
           @publish="openApplicationPublish"
@@ -270,6 +271,15 @@ function handlePrimaryAction() {
 function openApplicationPublish() {
   publishRequestToken.value += 1
   selectSection('releases')
+}
+
+function openApplicationRuntime() {
+  if (!application.value?.applicationCode)
+    return
+  router.push({
+    name: 'BusinessApplicationRuntime',
+    params: { applicationCode: application.value.applicationCode },
+  })
 }
 
 function openApplicationCode() {
