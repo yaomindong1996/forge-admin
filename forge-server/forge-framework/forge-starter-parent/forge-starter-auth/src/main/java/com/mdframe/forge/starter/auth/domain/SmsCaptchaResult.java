@@ -1,5 +1,6 @@
 package com.mdframe.forge.starter.auth.domain;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -46,6 +47,7 @@ public class SmsCaptchaResult implements Serializable {
     /**
      * 验证码（开发环境可返回，生产环境不返回）
      */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String code;
 
     /**
