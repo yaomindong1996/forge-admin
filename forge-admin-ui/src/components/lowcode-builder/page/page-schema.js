@@ -1574,7 +1574,7 @@ function sanitizeBlockStyle(style = {}, blockType = '') {
     next.width = 'auto'
   if (next.widthMode === 'fixed' && (next.width === '' || next.width === '100%' || next.width === 'auto'))
     next.width = 320
-  if (!['fixed'].includes(next.heightMode))
+  if (!['fixed', 'auto', 'full'].includes(next.heightMode))
     next.heightMode = 'fixed'
   return next
 }
@@ -1715,9 +1715,16 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       ...base.props,
       title: '页面标题',
       subtitle: '页面说明或当前业务对象摘要',
+      content: '<h1>页面标题</h1><p>页面说明或当前业务对象摘要</p>',
       statusText: '',
       statusType: 'info',
       size: 'medium',
+      textAlign: 'left',
+      fontStyle: 'normal',
+      textDecoration: 'none',
+      indent: 0,
+      titleTextStyle: { fontSize: 20, fontWeight: 800, textAlign: 'left', color: '#0f172a' },
+      subtitleTextStyle: { fontSize: 13, fontWeight: 400, textAlign: 'left', color: '#64748b' },
     }
   }
   if (blockType === 'grid-layout') {
@@ -1767,6 +1774,11 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       ...createDefaultAiCrudPageProps(),
       searchFieldRefs: filterPageFields(fields, 'search').slice(0, 8).map(f => f.field),
       searchFieldSettings: {},
+      style: {
+        ...base.props.style,
+        heightMode: 'full',
+        height: '100%',
+      },
     }
     base.fieldRefs = filterPageFields(fields, 'table').slice(0, 8).map(f => f.field)
   }
@@ -1953,6 +1965,10 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       level: 2,
       weight: 800,
       align: 'left',
+      textAlign: 'left',
+      fontStyle: 'normal',
+      textDecoration: 'none',
+      indent: 0,
       color: '#0f172a',
       subtitle: '',
     }
@@ -1963,6 +1979,12 @@ export function createGridBlock(blockType, modelSchema, position = {}) {
       dataBinding: createWidgetDataBinding('content', { contentField: 'content' }),
       content: '这里是一段页面说明文字，可用于介绍当前业务页面、操作规则或注意事项。',
       align: 'left',
+      textAlign: 'left',
+      fontStyle: 'normal',
+      textDecoration: 'none',
+      listType: 'none',
+      quote: false,
+      indent: 0,
       color: '#475569',
       lineHeight: 1.7,
       clamp: 0,

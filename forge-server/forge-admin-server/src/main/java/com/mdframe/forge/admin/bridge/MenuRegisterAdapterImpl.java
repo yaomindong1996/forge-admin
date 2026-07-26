@@ -1,6 +1,7 @@
 package com.mdframe.forge.admin.bridge;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessApplicationPageMenuDTO;
 import com.mdframe.forge.plugin.generator.service.MenuRegisterAdapter;
 import com.mdframe.forge.plugin.system.entity.SysResource;
 import com.mdframe.forge.plugin.system.entity.SysRoleResource;
@@ -12,6 +13,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @Component
@@ -237,6 +247,113 @@ public class MenuRegisterAdapterImpl implements MenuRegisterAdapter {
         log.info("[MenuRegisterAdapter] 创建业务套件菜单目录成功: suiteCode={}, menuId={}",
                 normalizedCode, resource.getId());
         return resource.getId();
+    }
+
+    @Override
+    public Map<String, Long> syncApplicationPageMenus(String applicationCode,
+                                                       List<BusinessApplicationPageMenuDTO> menus) {
+        String normalizedCode = StringUtils.trimToNull(applicationCode);
+        if (normalizedCode == null) {
+            return Map.of();
+        }
+        Long tenantId = resolveTenantId();
+        String prefix = "ai:business:application:" + normalizedCode + ":page:";
+        List<BusinessApplicationPageMenuDTO> pending = new ArrayList<>(menus == null ? List.of() : menus);
+        pending.removeIf(item -> item == null || StringUtils.isBlank(item.getNodeId()) || StringUtils.isBlank(item.getPerms()));
+        pending.sort(Comparator.comparing(item -> item.getSort() == null ? 0 : item.getSort()));
+        Map<String, Long> resolvedIds = new LinkedHashMap<>();
+        Set<String> activePerms = new HashSet<>();
+        while (!pending.isEmpty()) {
+            boolean progressed = false;
+            for (java.util.Iterator<BusinessApplicationPageMenuDTO> iterator = pending.iterator(); iterator.hasNext();) {
+                BusinessApplicationPageMenuDTO item = iterator.next();
+                Long parentId = item.getParentNodeId() == null ? resolveDefaultLowcodeParentId()
+                        : resolvedIds.get(item.getParentNodeId());
+                if (item.getParentNodeId() != null && parentId == null) {
+                    continue;
+                }
+                Long resourceId = upsertApplicationPageMenu(tenantId, item, parentId);
+                resolvedIds.put(item.getNodeId(), resourceId);
+                activePerms.add(item.getPerms());
+                syncApplicationPageRoles(tenantId, resourceId, item);
+                iterator.remove();
+                progressed = true;
+            }
+            if (!progressed) {
+                throw new IllegalStateException("应用页面菜单父级引用无效或存在循环");
+            }
+        }
+        for (SysResource stale : resourceMapper.selectList(new LambdaQueryWrapper<SysResource>()
+                .eq(SysResource::getTenantId, tenantId)
+                .likeRight(SysResource::getPerms, prefix))) {
+            if (!activePerms.contains(stale.getPerms())) {
+                SysResource disabled = new SysResource();
+                disabled.setId(stale.getId());
+                disabled.setMenuStatus(0);
+                disabled.setVisible(0);
+                resourceService.updateById(disabled);
+            }
+        }
+        return resolvedIds;
+    }
+
+    private Long upsertApplicationPageMenu(Long tenantId, BusinessApplicationPageMenuDTO item, Long parentId) {
+        int resourceType = item.isDirectory() ? 1 : 2;
+        SysResource existing = resourceMapper.selectOneByPerms(tenantId, resourceType, item.getPerms());
+        SysResource resource = new SysResource();
+        resource.setId(existing == null ? null : existing.getId());
+        resource.setTenantId(tenantId);
+        resource.setResourceName(item.getMenuName());
+        resource.setParentId(normalizeResourceParentId(resource.getId(), parentId));
+        resource.setResourceType(resourceType);
+        resource.setSort(item.getSort() == null ? 0 : item.getSort());
+        resource.setPath(item.getPath());
+        resource.setComponent(item.isDirectory() ? null : item.getComponent());
+        resource.setIsExternal(0);
+        resource.setIsPublic(0);
+        resource.setMenuStatus(item.isVisible() ? 1 : 0);
+        resource.setVisible(item.isVisible() ? 1 : 0);
+        resource.setPerms(item.getPerms());
+        resource.setIcon(StringUtils.defaultIfBlank(item.getIcon(), item.isDirectory()
+                ? "ionicons5:FolderOpenOutline" : "ionicons5:AppsOutline"));
+        resource.setKeepAlive(0);
+        resource.setAlwaysShow(item.isDirectory() ? 1 : 0);
+        resource.setClientCode(DEFAULT_CLIENT_CODE);
+        if (existing == null) {
+            resourceService.save(resource);
+        } else {
+            resourceService.updateById(resource);
+        }
+        return resource.getId();
+    }
+
+    private void syncApplicationPageRoles(Long tenantId, Long resourceId, BusinessApplicationPageMenuDTO item) {
+        if (resourceId == null) {
+            return;
+        }
+        Set<Long> roleIds = new HashSet<>();
+        if (item.isInheritRuntimeRoles()) {
+            SysResource runtime = resourceMapper.selectOneByPerms(tenantId, 2, "ai:businessApplication:runtime");
+            if (runtime != null && runtime.getId() != null) {
+                roleResourceMapper.selectList(new LambdaQueryWrapper<SysRoleResource>()
+                                .eq(SysRoleResource::getTenantId, tenantId)
+                                .eq(SysRoleResource::getResourceId, runtime.getId()))
+                        .forEach(binding -> roleIds.add(binding.getRoleId()));
+            }
+        }
+        if (item.getRoleIds() != null) {
+            item.getRoleIds().stream().filter(java.util.Objects::nonNull).forEach(roleIds::add);
+        }
+        roleResourceMapper.delete(new LambdaQueryWrapper<SysRoleResource>()
+                .eq(SysRoleResource::getTenantId, tenantId)
+                .eq(SysRoleResource::getResourceId, resourceId));
+        for (Long roleId : roleIds) {
+            SysRoleResource binding = new SysRoleResource();
+            binding.setTenantId(tenantId);
+            binding.setRoleId(roleId);
+            binding.setResourceId(resourceId);
+            roleResourceMapper.insert(binding);
+        }
     }
 
     private void updateDomainParentIfNeeded(SysResource existing, Long parentId, String domainName, Integer sort) {

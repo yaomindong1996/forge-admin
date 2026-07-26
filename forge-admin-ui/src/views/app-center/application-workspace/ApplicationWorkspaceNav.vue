@@ -10,7 +10,7 @@
     >
       <n-icon><component :is="iconMap[item.sectionKey] || GridOutline" /></n-icon>
       <span class="nav-copy">
-        <strong>{{ item.sectionName }}</strong>
+        <strong>{{ sectionLabel[item.sectionKey] || item.sectionName }}</strong>
         <small>{{ sectionDescription[item.sectionKey] }}</small>
       </span>
       <span
@@ -64,12 +64,17 @@ const iconMap = {
 
 const sectionDescription = {
   overview: '状态与待办',
-  objects: '表与业务字段',
-  entries: '表单、列表、详情',
+  objects: '字段、表单、列表和规则',
+  entries: '菜单、访问方式与权限',
   automation: '流程与触发器',
   enhancements: '动作与扩展',
   permissions: '访问与数据权限',
   releases: '检查、版本、历史',
+}
+
+const sectionLabel = {
+  objects: '业务对象',
+  entries: '页面入口',
 }
 </script>
 

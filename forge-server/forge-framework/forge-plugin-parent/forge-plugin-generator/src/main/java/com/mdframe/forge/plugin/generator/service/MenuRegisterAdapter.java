@@ -1,5 +1,10 @@
 package com.mdframe.forge.plugin.generator.service;
 
+import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessApplicationPageMenuDTO;
+
+import java.util.List;
+import java.util.Map;
+
 public interface MenuRegisterAdapter {
 
     Long registerMenu(String menuName, Long parentId, String configKey, Integer sort);
@@ -66,5 +71,14 @@ public interface MenuRegisterAdapter {
     default Long resolveOrCreateBusinessSuiteParentId(Long parentId, String suiteCode, String suiteName,
                                                        String icon, Integer sort) {
         return parentId;
+    }
+
+    /**
+     * 同步应用已发布页面对应的系统菜单及角色授权。
+     * 仅由发布/回滚调用，禁止在保存草稿时调用。
+     */
+    default Map<String, Long> syncApplicationPageMenus(String applicationCode,
+                                                        List<BusinessApplicationPageMenuDTO> menus) {
+        return Map.of();
     }
 }

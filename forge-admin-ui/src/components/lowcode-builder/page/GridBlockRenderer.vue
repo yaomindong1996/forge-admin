@@ -104,15 +104,15 @@
 
     <!-- 页面标题 -->
     <template v-else-if="block.blockType === 'page-title'">
-      <div class="page-title-preview" :class="`size-${block.props?.size || 'medium'}`">
-        <div>
-          <div class="page-title-main">
-            {{ block.props?.title || block.label || '页面标题' }}
-          </div>
-          <div v-if="block.props?.subtitle" class="page-title-sub">
-            {{ block.props.subtitle }}
-          </div>
-        </div>
+      <div class="page-title-preview" :class="`size-${block.props?.size || 'medium'}`" :style="pageTitleStyle">
+        <InlineRichText
+          class="page-title-rich-editor"
+          :model-value="pageTitleRichContent"
+          :editable="inlineTextEditing"
+          placeholder="输入标题、说明或任意富文本内容"
+          @activate="emit('blockActivate', block.id)"
+          @update:model-value="updatePageTitleRichContent"
+        />
         <n-tag v-if="block.props?.statusText" size="small" :type="block.props?.statusType || 'info'" :bordered="false">
           {{ block.props.statusText }}
         </n-tag>
@@ -307,9 +307,9 @@
         <AiCrudPage
           v-else
           ref="runtimeCrudRef"
-          :lazy="block.props?.previewLiveData !== true"
-          :api="block.props?.api || ''"
-          :api-config="resolvedApiConfig"
+          :lazy="!shouldRequestCrudPreviewApi"
+          :api="shouldRequestCrudPreviewApi ? (block.props?.api || '') : ''"
+          :api-config="shouldRequestCrudPreviewApi ? resolvedApiConfig : {}"
           :row-key="block.props?.rowKey || 'id'"
           :columns="aiTableColumns"
           :search-schema="aiSearchSchema"
@@ -340,10 +340,10 @@
           :hide-toolbar="block.props?.hideToolbar === true"
           :hide-add="block.props?.hideAdd === true"
           :hide-batch-delete="block.props?.hideBatchDelete === true"
-          :show-import="block.props?.showImport !== false"
-          :show-export="block.props?.showExport !== false"
-          :show-export-tasks="block.props?.showExportTasks !== false"
-          :enable-custom-query="block.props?.enableCustomQuery !== false"
+          :show-import="!isStaticCrudPreview && block.props?.showImport !== false"
+          :show-export="!isStaticCrudPreview && block.props?.showExport !== false"
+          :show-export-tasks="!isStaticCrudPreview && block.props?.showExportTasks !== false"
+          :enable-custom-query="!isStaticCrudPreview && block.props?.enableCustomQuery !== false"
           :add-button-text="block.props?.addButtonText || '新增'"
           :export-button-text="block.props?.exportButtonText || '导出'"
           :export-file-name="block.props?.exportFileName || ''"
@@ -364,10 +364,13 @@
           :public-query="block.props?.publicQuery || {}"
           :form-default-values="block.props?.formDefaultValues || {}"
           :submit-default-params="block.props?.submitDefaultParams || {}"
-          v-bind="designerCrudHookHandlers"
+          v-bind="resolvedDesignerCrudHookHandlers"
           @load-list-success="handleCrudPreviewSuccess"
           @load-list-error="handleCrudPreviewError"
         />
+        <div v-if="isStaticCrudPreview" class="ai-crud-preview-static-tip">
+          静态结构预览 · 可填写新增表单；配置真实数据接口后才会提交、查询数据
+        </div>
       </div>
     </template>
 
@@ -551,11 +554,11 @@
 
     <!-- 说明文本 -->
     <template v-else-if="block.blockType === 'custom-html'">
-      <div class="custom-html">
-        <div v-if="boundCustomTitle" class="custom-title">
+      <div class="custom-html" :style="textContentStyle">
+        <div v-if="boundCustomTitle" class="custom-title" :style="textContentStyle">
           {{ boundCustomTitle }}
         </div>
-        <div class="custom-body">
+        <div class="custom-body" :style="textContentStyle">
           {{ boundCustomContent || '在右侧填写说明内容' }}
         </div>
       </div>
@@ -739,7 +742,15 @@
 
     <!-- 段落 -->
     <template v-else-if="block.blockType === 'paragraph'">
-      <p class="paragraph-preview" :style="paragraphStyle">
+      <component :is="paragraphListTag" v-if="paragraphListTag" class="paragraph-preview paragraph-list-preview" :style="paragraphStyle">
+        <li v-for="(line, index) in paragraphLines" :key="`${line}-${index}`">
+          {{ line }}
+        </li>
+      </component>
+      <blockquote v-else-if="block.props?.quote" class="paragraph-preview paragraph-quote-preview" :style="paragraphStyle">
+        {{ boundParagraphContent || '段落内容' }}
+      </blockquote>
+      <p v-else class="paragraph-preview" :style="paragraphStyle">
         {{ boundParagraphContent || '段落内容' }}
       </p>
     </template>
@@ -764,7 +775,7 @@
     <template v-else-if="block.blockType === 'text-tip'">
       <div class="text-tip-preview" :class="`type-${boundTextTipType || 'info'}`">
         <span v-if="block.props?.showIcon !== false" class="tip-icon">i</span>
-        <div>
+        <div :style="textContentStyle">
           <strong>{{ boundTextTipTitle || '提示' }}</strong>
           <p>{{ boundTextTipContent || '提示内容' }}</p>
         </div>
@@ -1056,8 +1067,10 @@ import AiForm from '@/components/ai-form/AiForm.vue'
 import AiTable from '@/components/ai-form/AiTable.vue'
 import SignaturePad from '@/components/flow/SignaturePad.vue'
 import FieldValueRenderer from '@/components/lowcode-builder/shared/FieldValueRenderer.vue'
+import InlineRichText from '@/components/lowcode-builder/shared/InlineRichText.vue'
 import { pageWidgetComponentKeys } from '@/components/lowcode-builder/shared/page-widget-schema'
 import PageWidgetRenderer from '@/components/lowcode-builder/shared/PageWidgetRenderer.vue'
+import { resolveCurrentConfigPlaceholder } from '@/components/lowcode-builder/shared/runtime-crud-props'
 import { matchSimpleExpression, resolveRuntimeControl } from '@/components/lowcode-builder/shared/runtime-rules'
 import { useUserStore } from '@/store'
 import { request } from '@/utils'
@@ -1077,6 +1090,10 @@ const props = defineProps({
     default: false,
   },
   readonly: {
+    type: Boolean,
+    default: false,
+  },
+  inlineTextEditing: {
     type: Boolean,
     default: false,
   },
@@ -1117,6 +1134,8 @@ const emit = defineEmits([
   'childBlockMoveStart',
   'childBlockDragEnd',
   'childBlockResizeStart',
+  'inlineTextUpdate',
+  'blockActivate',
 ])
 
 const localDataBindableBlockTypes = new Set([
@@ -1472,10 +1491,15 @@ const effectiveRuntimeCrudProps = computed(() => {
       handlers[target.value] = data => applyCrudHookRules(data, list)
     return handlers
   }, {})
+  const runtimeConfigKey = props.runtimeCrudProps.configKey || ''
+  const runtimeBlockApi = resolveCurrentConfigPlaceholder(blockProps.api, runtimeConfigKey)
+  const runtimeBlockApiConfig = Object.fromEntries(Object.entries(blockApiConfig.value)
+    .map(([key, value]) => [key, resolveCurrentConfigPlaceholder(value, runtimeConfigKey)])
+    .filter(([, value]) => value))
   return {
     ...props.runtimeCrudProps,
     ...hookHandlers,
-    api: blockProps.api || props.runtimeCrudProps.api || '',
+    api: runtimeBlockApi || props.runtimeCrudProps.api || '',
     rowKey: blockProps.rowKey || props.runtimeCrudProps.rowKey || 'id',
     title: blockProps.title || props.runtimeCrudProps.title,
     columns: props.runtimeCrudProps.columns?.length ? props.runtimeCrudProps.columns : aiTableColumns.value,
@@ -1483,7 +1507,7 @@ const effectiveRuntimeCrudProps = computed(() => {
     editSchema: props.runtimeCrudProps.editSchema?.length ? props.runtimeCrudProps.editSchema : aiFormSchema.value,
     apiConfig: {
       ...(props.runtimeCrudProps.apiConfig || {}),
-      ...Object.fromEntries(Object.entries(blockApiConfig.value).filter(([, value]) => value)),
+      ...runtimeBlockApiConfig,
     },
     showSearch: blockProps.showSearch ?? props.runtimeCrudProps.showSearch,
     showPagination: blockProps.showPagination ?? props.runtimeCrudProps.showPagination,
@@ -1583,6 +1607,11 @@ function normalizeModalType(value) {
   return ['modal', 'drawer'].includes(normalized) ? normalized : ''
 }
 
+function preventStaticCrudSubmit() {
+  window.$message?.info('当前是静态结构预览，绑定真实数据接口后即可提交新增数据')
+  return false
+}
+
 const designerCrudHookHandlers = computed(() => {
   const rules = normalizeCrudHookRules(props.block.props?.crudHookRules || {}, props.block.props?.beforeSubmitRules || [])
   return CRUD_HOOK_RULE_TARGETS.reduce((handlers, target) => {
@@ -1612,6 +1641,16 @@ const resolvedApiConfig = computed(() => ({
   import: props.block.props?.importApi || '',
   export: props.block.props?.exportApi || '',
 }))
+const hasConfiguredCrudRequest = computed(() => {
+  const blockProps = props.block.props || {}
+  return Boolean(blockProps.api || Object.values(resolvedApiConfig.value).some(Boolean))
+})
+const shouldRequestCrudPreviewApi = computed(() => props.block.props?.previewLiveData === true && hasConfiguredCrudRequest.value)
+const isStaticCrudPreview = computed(() => props.block.blockType === 'AiCrudPage' && !shouldRequestCrudPreviewApi.value)
+const resolvedDesignerCrudHookHandlers = computed(() => ({
+  ...designerCrudHookHandlers.value,
+  ...(isStaticCrudPreview.value ? { beforeSubmit: preventStaticCrudSubmit } : {}),
+}))
 const previewPagination = {
   page: 1,
   pageSize: 10,
@@ -1624,18 +1663,71 @@ const toolbarCustomActions = computed(() => (props.block.props?.customActions ||
 const transferOptions = computed(() => normalizeOptionItems(props.block.props?.options))
 const transferValue = computed(() => Array.isArray(props.block.props?.value) ? props.block.props.value : [])
 const transferSelectedOptions = computed(() => transferOptions.value.filter(item => transferValue.value.includes(item.value)))
+const resolvedTextAlign = computed(() => props.block.props?.textAlign || props.block.props?.align || 'left')
+const resolvedTextFontSize = computed(() => Number(props.block.props?.fontSize) || 0)
+const resolvedTextFontWeight = computed(() => Number(props.block.props?.fontWeight || props.block.props?.weight || 0) || undefined)
+const textContentStyle = computed(() => ({
+  color: props.block.props?.color || undefined,
+  textAlign: resolvedTextAlign.value,
+  fontSize: resolvedTextFontSize.value ? `${resolvedTextFontSize.value}px` : undefined,
+  fontWeight: resolvedTextFontWeight.value,
+  fontStyle: props.block.props?.fontStyle || 'normal',
+  textDecoration: props.block.props?.textDecoration || 'none',
+  paddingInlineStart: Number(props.block.props?.indent || 0) > 0 ? `${Number(props.block.props.indent) * 16}px` : undefined,
+}))
+const pageTitleStyle = computed(() => ({
+  textAlign: resolvedTextAlign.value,
+  paddingInlineStart: Number(props.block.props?.indent || 0) > 0 ? `${Number(props.block.props.indent) * 16}px` : undefined,
+}))
+const pageTitleRichContent = computed(() => props.block.props?.content || createLegacyPageTitleContent(
+  props.block.props?.title || props.block.label || '页面标题',
+  props.block.props?.subtitle || '',
+))
 const textTitleStyle = computed(() => ({
   color: props.block.props?.color || '#0f172a',
-  fontSize: `${resolveTitleFontSize(props.block.props?.level || 2)}px`,
-  fontWeight: Number(props.block.props?.weight || 800),
-  textAlign: props.block.props?.align || 'left',
+  fontSize: `${resolvedTextFontSize.value || resolveTitleFontSize(props.block.props?.level || 2)}px`,
+  fontWeight: resolvedTextFontWeight.value || 800,
+  textAlign: resolvedTextAlign.value,
+  fontStyle: props.block.props?.fontStyle || 'normal',
+  textDecoration: props.block.props?.textDecoration || 'none',
+  paddingInlineStart: Number(props.block.props?.indent || 0) > 0 ? `${Number(props.block.props.indent) * 16}px` : undefined,
 }))
 const paragraphStyle = computed(() => ({
   color: props.block.props?.color || '#475569',
-  textAlign: props.block.props?.align || 'left',
+  textAlign: resolvedTextAlign.value,
+  fontSize: resolvedTextFontSize.value ? `${resolvedTextFontSize.value}px` : undefined,
+  fontWeight: resolvedTextFontWeight.value,
+  fontStyle: props.block.props?.fontStyle || 'normal',
+  textDecoration: props.block.props?.textDecoration || 'none',
+  paddingInlineStart: Number(props.block.props?.indent || 0) > 0 ? `${Number(props.block.props.indent) * 16}px` : undefined,
   lineHeight: Number(props.block.props?.lineHeight || 1.7),
   WebkitLineClamp: Number(props.block.props?.clamp || 0) || undefined,
 }))
+const paragraphListTag = computed(() => ({ ordered: 'ol', unordered: 'ul' })[props.block.props?.listType] || '')
+const paragraphLines = computed(() => String(boundParagraphContent.value || '段落内容').split(/\n+/).filter(Boolean))
+
+function updatePageTitleRichContent(value) {
+  emit('inlineTextUpdate', {
+    blockId: props.block.id,
+    patch: { content: value },
+  })
+}
+
+function createLegacyPageTitleContent(title, subtitle) {
+  const safeTitle = escapeRichText(String(title || '页面标题'))
+  const safeSubtitle = escapeRichText(String(subtitle || ''))
+  return `<h1>${safeTitle}</h1>${safeSubtitle ? `<p>${safeSubtitle}</p>` : ''}`
+}
+
+function escapeRichText(value) {
+  return value.replace(/[&<>"']/g, (char) => {
+    if (char === '\"')
+      return '&quot;'
+    if (char === String.fromCharCode(39))
+      return '&#39;'
+    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[char]
+  })
+}
 const watermarkContent = computed(() => {
   if (Array.isArray(props.block.props?.content))
     return props.block.props.content
@@ -2551,8 +2643,20 @@ watch(
 }
 
 .grid-block.block-AiCrudPage {
+  display: flex;
   min-width: 0;
+  /* CRUD 的实际高度由页面区块框决定。这里不能再设固定最小高度，
+   * 否则当用户缩小区块时内容会越出自己的框并压住相邻组件。 */
+  min-height: 0;
   overflow: hidden;
+}
+
+.grid-block.block-page-title,
+.grid-block.block-page-title:focus-within {
+  position: relative;
+  /* 操作层（拖拽、更多、缩放锚点）在应用页壳上，标题正文不应盖住它。 */
+  z-index: 1;
+  overflow: visible;
 }
 
 .grid-block.selected {
@@ -2660,26 +2764,47 @@ watch(
   min-height: 56px;
 }
 
-.page-title-main {
+.page-title-rich-editor {
+  width: min(100%, 920px);
+  min-height: 0;
+  height: 100%;
+  overflow: visible;
+  color: #1f2329;
+  cursor: text;
+  line-height: 1.3;
+}
+
+.page-title-rich-editor :deep(*) {
+  cursor: text;
+}
+
+.page-title-rich-editor :deep(h1) {
+  margin: 0;
   color: #0f172a;
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
-.page-title-preview.size-small .page-title-main {
+.page-title-preview.size-small .page-title-rich-editor :deep(h1) {
+  font-size: 20px;
+}
+
+.page-title-preview.size-large .page-title-rich-editor :deep(h1) {
+  font-size: 32px;
+}
+
+.page-title-rich-editor :deep(p) {
+  margin: 4px 0 0;
+  color: rgba(100, 106, 115, 0.79);
   font-size: 16px;
-}
-
-.page-title-preview.size-large .page-title-main {
-  font-size: 26px;
-}
-
-.page-title-sub {
-  margin-top: 4px;
-  color: #64748b;
-  font-size: 13px;
   line-height: 1.5;
+}
+
+.page-title-rich-editor :deep(ul),
+.page-title-rich-editor :deep(ol) {
+  margin: 6px 0;
+  padding-left: 22px;
 }
 
 .block-table {
@@ -3131,6 +3256,9 @@ watch(
 }
 
 .ai-crud-preview {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   width: 100%;
   height: 100%;
   min-width: 0;
@@ -3139,17 +3267,26 @@ watch(
 }
 
 .ai-crud-preview :deep(.ai-crud-page) {
+  display: flex;
+  flex: 1 1 0;
   width: 100%;
-  height: 100%;
+  height: auto;
   min-width: 0;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .ai-crud-preview :deep(.ai-crud-main.has-inline-workspace:not(.is-tab-workspace) .ai-crud-table),
 .ai-crud-preview :deep(.ai-crud-detail-tabs),
 .ai-crud-preview :deep(.ai-crud-inline-workspace) {
   min-height: 0;
+}
+.ai-crud-preview-static-tip {
+  flex: 0 0 auto;
+  padding: 0 10px 8px;
+  color: #86909c;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .system-component-preview :deep(.ai-crud-search),
@@ -3841,6 +3978,30 @@ watch(
   overflow: hidden;
   white-space: pre-wrap;
   -webkit-box-orient: vertical;
+}
+
+.paragraph-list-preview {
+  display: block;
+  height: auto;
+  min-height: 100%;
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.paragraph-list-preview li + li {
+  margin-top: 4px;
+}
+
+.paragraph-quote-preview {
+  display: block;
+  height: auto;
+  min-height: 100%;
+  margin: 0;
+  border-left: 3px solid #94a3b8;
+  padding-left: 12px;
+  color: #475569;
+  white-space: pre-wrap;
 }
 
 .single-stat-preview {

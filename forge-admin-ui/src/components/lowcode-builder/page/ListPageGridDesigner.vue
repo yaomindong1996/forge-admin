@@ -1,7 +1,7 @@
 <template>
   <div
     class="list-grid-designer"
-    :class="{ 'left-collapsed': paletteCollapsed && !canvasFocusMode, 'right-collapsed': propertyCollapsed && !canvasFocusMode, 'canvas-focused': canvasFocusMode, readonly }"
+    :class="{ 'left-collapsed': paletteCollapsed && !canvasFocusMode, 'right-collapsed': propertyCollapsed && !canvasFocusMode, 'canvas-focused': canvasFocusMode, 'panel-only': panelOnly, readonly }"
   >
     <button
       v-if="paletteCollapsed && !readonly && !canvasFocusMode"
@@ -659,27 +659,36 @@
                       <em>px</em>
                     </label>
                   </div>
-                  <div class="segmented-mini">
+                  <div class="designer-segmented-control width-mode-control">
                     <button
                       type="button"
                       :class="{ active: selectedBlockWidthMode === 'auto' }"
                       @click="setBlockWidthMode(selectedBlock.id, 'auto')"
                     >
-                      内容
+                      <n-icon class="designer-segmented-icon">
+                        <RemoveOutline />
+                      </n-icon>
+                      <span>默认宽度</span>
                     </button>
                     <button
                       type="button"
                       :class="{ active: selectedBlockWidthMode === 'full' }"
                       @click="setBlockWidthMode(selectedBlock.id, 'full')"
                     >
-                      填充
+                      <n-icon class="designer-segmented-icon">
+                        <SwapHorizontalOutline />
+                      </n-icon>
+                      <span>填充容器</span>
                     </button>
                     <button
                       type="button"
                       :class="{ active: selectedBlockWidthMode === 'fixed' }"
                       @click="setBlockWidthMode(selectedBlock.id, 'fixed')"
                     >
-                      固定
+                      <n-icon class="designer-segmented-icon">
+                        <ResizeOutline />
+                      </n-icon>
+                      <span>固定宽度</span>
                     </button>
                   </div>
                 </div>
@@ -687,7 +696,7 @@
                 <div class="position-rule">
                   <div class="position-rule-head">
                     <span>高度</span>
-                    <label class="position-inline-number">
+                    <label v-if="selectedBlockHeightMode === 'fixed'" class="position-inline-number">
                       <n-input-number
                         :value="selectedBlockFrame.height"
                         :min="24"
@@ -698,156 +707,210 @@
                       <em>px</em>
                     </label>
                   </div>
+                  <div class="designer-segmented-control height-mode-control">
+                    <button
+                      type="button"
+                      :class="{ active: selectedBlockHeightMode === 'fixed' }"
+                      @click="setBlockHeightMode(selectedBlock.id, 'fixed')"
+                    >
+                      <n-icon class="designer-segmented-icon vertical-icon">
+                        <RemoveOutline />
+                      </n-icon>
+                      <span>默认高度</span>
+                    </button>
+                    <button
+                      type="button"
+                      :class="{ active: selectedBlockHeightMode === 'auto' }"
+                      @click="setBlockHeightMode(selectedBlock.id, 'auto')"
+                    >
+                      <n-icon class="designer-segmented-icon">
+                        <ResizeOutline />
+                      </n-icon>
+                      <span>适应内容</span>
+                    </button>
+                    <button
+                      type="button"
+                      :class="{ active: selectedBlockHeightMode === 'full' }"
+                      @click="setBlockHeightMode(selectedBlock.id, 'full')"
+                    >
+                      <n-icon class="designer-segmented-icon vertical-icon">
+                        <SwapHorizontalOutline />
+                      </n-icon>
+                      <span>填充容器</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="position-rule">
+                  <div class="position-rule-head">
+                    <span>对齐方式</span>
+                  </div>
+                  <div class="designer-segmented-control align-mode-control">
+                    <button type="button" :class="{ active: selectedBlockContentAlign === 'left' }" @click="setBlockContentAlign(selectedBlock.id, 'left')">
+                      <n-icon class="designer-segmented-icon">
+                        <ReorderThreeOutline />
+                      </n-icon>
+                      <span>左对齐</span>
+                    </button>
+                    <button type="button" :class="{ active: selectedBlockContentAlign === 'center' }" @click="setBlockContentAlign(selectedBlock.id, 'center')">
+                      <n-icon class="designer-segmented-icon">
+                        <ReorderThreeOutline />
+                      </n-icon>
+                      <span>居中对齐</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <n-divider>外观样式</n-divider>
-              <n-form-item label="临界值 px（最小 / 最大）">
-                <div class="style-grid four">
-                  <n-input-number
-                    :value="toNumberOrNull(selectedBlockStyle.minWidth)"
-                    :min="0"
-                    :show-button="false"
-                    placeholder="最小宽"
-                    clearable
-                    @update:value="patchBlockStyle(selectedBlock.id, { minWidth: $event ?? '' })"
-                  />
-                  <n-input-number
-                    :value="toNumberOrNull(selectedBlockStyle.maxWidth)"
-                    :min="0"
-                    :show-button="false"
-                    placeholder="最大宽"
-                    clearable
-                    @update:value="patchBlockStyle(selectedBlock.id, { maxWidth: $event ?? '' })"
-                  />
-                  <n-input-number
-                    :value="toNumberOrNull(selectedBlockStyle.minHeight)"
-                    :min="0"
-                    :show-button="false"
-                    placeholder="最小高"
-                    clearable
-                    @update:value="patchBlockStyle(selectedBlock.id, { minHeight: $event ?? '' })"
-                  />
-                  <n-input-number
-                    :value="toNumberOrNull(selectedBlockStyle.maxHeight)"
-                    :min="0"
-                    :show-button="false"
-                    placeholder="最大高"
-                    clearable
-                    @update:value="patchBlockStyle(selectedBlock.id, { maxHeight: $event ?? '' })"
-                  />
-                </div>
-              </n-form-item>
-              <div class="appearance-control list-appearance-control">
-                <div class="appearance-field">
-                  <label>背景色</label>
-                  <div class="appearance-input-shell">
-                    <label class="appearance-swatch" :style="{ backgroundColor: selectedBlockBackgroundPreview }" title="选择背景色">
+              <template v-if="!panelOnly">
+                <n-divider>外观样式</n-divider>
+                <n-form-item label="临界值 px（最小 / 最大）">
+                  <div class="style-grid four">
+                    <n-input-number
+                      :value="toNumberOrNull(selectedBlockStyle.minWidth)"
+                      :min="0"
+                      :show-button="false"
+                      placeholder="最小宽"
+                      clearable
+                      @update:value="patchBlockStyle(selectedBlock.id, { minWidth: $event ?? '' })"
+                    />
+                    <n-input-number
+                      :value="toNumberOrNull(selectedBlockStyle.maxWidth)"
+                      :min="0"
+                      :show-button="false"
+                      placeholder="最大宽"
+                      clearable
+                      @update:value="patchBlockStyle(selectedBlock.id, { maxWidth: $event ?? '' })"
+                    />
+                    <n-input-number
+                      :value="toNumberOrNull(selectedBlockStyle.minHeight)"
+                      :min="0"
+                      :show-button="false"
+                      placeholder="最小高"
+                      clearable
+                      @update:value="patchBlockStyle(selectedBlock.id, { minHeight: $event ?? '' })"
+                    />
+                    <n-input-number
+                      :value="toNumberOrNull(selectedBlockStyle.maxHeight)"
+                      :min="0"
+                      :show-button="false"
+                      placeholder="最大高"
+                      clearable
+                      @update:value="patchBlockStyle(selectedBlock.id, { maxHeight: $event ?? '' })"
+                    />
+                  </div>
+                </n-form-item>
+                <div class="appearance-control list-appearance-control">
+                  <div class="appearance-field">
+                    <label>背景色</label>
+                    <div class="appearance-input-shell">
+                      <label class="appearance-swatch" :style="{ backgroundColor: selectedBlockBackgroundPreview }" title="选择背景色">
+                        <input
+                          type="color"
+                          :value="selectedBlockBackgroundColorInput"
+                          @input="updateSelectedBlockBackground($event.target.value)"
+                        >
+                      </label>
                       <input
-                        type="color"
-                        :value="selectedBlockBackgroundColorInput"
+                        :value="selectedBlockBackgroundHex"
+                        class="appearance-hex-input"
+                        placeholder="透明"
                         @input="updateSelectedBlockBackground($event.target.value)"
                       >
-                    </label>
-                    <input
-                      :value="selectedBlockBackgroundHex"
-                      class="appearance-hex-input"
-                      placeholder="透明"
-                      @input="updateSelectedBlockBackground($event.target.value)"
-                    >
-                    <span class="appearance-percent">100%</span>
+                      <span class="appearance-percent">100%</span>
+                    </div>
                   </div>
-                </div>
-                <div class="appearance-field">
-                  <label>边框 (Border)</label>
-                  <div class="appearance-input-shell">
-                    <select
-                      :value="selectedBlockStyle.borderStyle"
-                      class="appearance-select"
-                      @change="updateSelectedBlockBorderStyle($event.target.value)"
-                    >
-                      <option value="solid">
-                        实线
-                      </option>
-                      <option value="dashed">
-                        虚线
-                      </option>
-                      <option value="none">
-                        无
-                      </option>
-                    </select>
-                    <label class="appearance-swatch" :style="{ backgroundColor: selectedBlockBorderPreview }" title="选择边框颜色">
+                  <div class="appearance-field">
+                    <label>边框 (Border)</label>
+                    <div class="appearance-input-shell">
+                      <select
+                        :value="selectedBlockStyle.borderStyle"
+                        class="appearance-select"
+                        @change="updateSelectedBlockBorderStyle($event.target.value)"
+                      >
+                        <option value="solid">
+                          实线
+                        </option>
+                        <option value="dashed">
+                          虚线
+                        </option>
+                        <option value="none">
+                          无
+                        </option>
+                      </select>
+                      <label class="appearance-swatch" :style="{ backgroundColor: selectedBlockBorderPreview }" title="选择边框颜色">
+                        <input
+                          type="color"
+                          :value="selectedBlockBorderPreview"
+                          @input="updateSelectedBlockBorderColor($event.target.value)"
+                        >
+                      </label>
                       <input
-                        type="color"
-                        :value="selectedBlockBorderPreview"
+                        :value="selectedBlockBorderHex"
+                        class="appearance-hex-input"
+                        placeholder="E4E4E7"
                         @input="updateSelectedBlockBorderColor($event.target.value)"
                       >
-                    </label>
-                    <input
-                      :value="selectedBlockBorderHex"
-                      class="appearance-hex-input"
-                      placeholder="E4E4E7"
-                      @input="updateSelectedBlockBorderColor($event.target.value)"
-                    >
+                    </div>
                   </div>
-                </div>
-                <div class="appearance-field">
-                  <label>圆角 (Border Radius)</label>
-                  <div class="appearance-radius-shell">
-                    <span>R</span>
-                    <input
-                      :value="Number(selectedBlockStyle.borderRadius)"
-                      type="number"
-                      min="0"
-                      max="48"
-                      @input="patchBlockStyle(selectedBlock.id, { borderRadius: Number($event.target.value || 0) })"
-                    >
-                  </div>
-                </div>
-                <div class="appearance-field">
-                  <label class="appearance-row-label">
-                    <span>阴影 (Shadow)</span>
-                    <select
-                      :value="selectedBlockStyle.boxShadow"
-                      class="appearance-plain-select"
-                      @change="patchBlockStyle(selectedBlock.id, { boxShadow: $event.target.value || 'none' })"
-                    >
-                      <option
-                        v-for="option in shadowOptions"
-                        :key="option.value"
-                        :value="option.value"
+                  <div class="appearance-field">
+                    <label>圆角 (Border Radius)</label>
+                    <div class="appearance-radius-shell">
+                      <span>R</span>
+                      <input
+                        :value="Number(selectedBlockStyle.borderRadius)"
+                        type="number"
+                        min="0"
+                        max="48"
+                        @input="patchBlockStyle(selectedBlock.id, { borderRadius: Number($event.target.value || 0) })"
                       >
-                        {{ option.label }}
-                      </option>
-                    </select>
-                  </label>
+                    </div>
+                  </div>
+                  <div class="appearance-field">
+                    <label class="appearance-row-label">
+                      <span>阴影 (Shadow)</span>
+                      <select
+                        :value="selectedBlockStyle.boxShadow"
+                        class="appearance-plain-select"
+                        @change="patchBlockStyle(selectedBlock.id, { boxShadow: $event.target.value || 'none' })"
+                      >
+                        <option
+                          v-for="option in shadowOptions"
+                          :key="option.value"
+                          :value="option.value"
+                        >
+                          {{ option.label }}
+                        </option>
+                      </select>
+                    </label>
+                  </div>
                 </div>
-              </div>
-              <n-form-item label="内边距 / 外边距">
-                <div class="style-grid">
+                <n-form-item label="内边距 / 外边距">
+                  <div class="style-grid">
+                    <n-input
+                      :value="String(selectedBlockStyle.padding ?? 0)"
+                      size="small"
+                      placeholder="内边距，如 12 或 8px 12px"
+                      @update:value="patchBlockStyle(selectedBlock.id, { padding: normalizeSpacingValue($event) })"
+                    />
+                    <n-input
+                      :value="String(selectedBlockStyle.margin ?? 0)"
+                      size="small"
+                      placeholder="外边距，如 12 或 8px 12px"
+                      @update:value="patchBlockStyle(selectedBlock.id, { margin: normalizeSpacingValue($event) })"
+                    />
+                  </div>
+                </n-form-item>
+                <n-form-item label="自定义 style">
                   <n-input
-                    :value="String(selectedBlockStyle.padding ?? 0)"
-                    size="small"
-                    placeholder="内边距，如 12 或 8px 12px"
-                    @update:value="patchBlockStyle(selectedBlock.id, { padding: normalizeSpacingValue($event) })"
+                    :value="selectedBlockStyle.customStyle"
+                    type="textarea"
+                    :rows="3"
+                    placeholder="例如：backdrop-filter: blur(8px);"
+                    @update:value="patchBlockStyle(selectedBlock.id, { customStyle: $event })"
                   />
-                  <n-input
-                    :value="String(selectedBlockStyle.margin ?? 0)"
-                    size="small"
-                    placeholder="外边距，如 12 或 8px 12px"
-                    @update:value="patchBlockStyle(selectedBlock.id, { margin: normalizeSpacingValue($event) })"
-                  />
-                </div>
-              </n-form-item>
-              <n-form-item label="自定义 style">
-                <n-input
-                  :value="selectedBlockStyle.customStyle"
-                  type="textarea"
-                  :rows="3"
-                  placeholder="例如：backdrop-filter: blur(8px);"
-                  @update:value="patchBlockStyle(selectedBlock.id, { customStyle: $event })"
-                />
-              </n-form-item>
+                </n-form-item>
+              </template>
             </div>
 
             <div v-show="propertyPanelTab === 'interaction'" class="property-tab-content">
@@ -2093,19 +2156,14 @@
               </template>
 
               <template v-if="selectedBlock.blockType === 'page-title'">
-                <n-form-item label="标题 / 副标题">
-                  <div class="metrics-editor">
-                    <n-input
-                      :value="selectedBlock.props?.title"
-                      placeholder="标题"
-                      @update:value="patchBlockProps(selectedBlock.id, { title: $event })"
-                    />
-                    <n-input
-                      :value="selectedBlock.props?.subtitle"
-                      placeholder="副标题"
-                      @update:value="patchBlockProps(selectedBlock.id, { subtitle: $event })"
-                    />
-                  </div>
+                <n-form-item label="富文本内容">
+                  <n-input
+                    :value="selectedBlock.props?.content || ''"
+                    type="textarea"
+                    :rows="5"
+                    placeholder="在页面中直接编辑内容；这里可查看或粘贴 HTML"
+                    @update:value="patchBlockProps(selectedBlock.id, { content: $event })"
+                  />
                 </n-form-item>
                 <n-form-item label="状态 / 尺寸">
                   <div class="style-grid three">
@@ -4623,6 +4681,14 @@ const props = defineProps({
     type: Array,
     default: null,
   },
+  panelOnly: {
+    type: Boolean,
+    default: false,
+  },
+  activeBlockId: {
+    type: String,
+    default: '',
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'update:customActions'])
@@ -5331,6 +5397,10 @@ const localLayout = ref(normalizeDesignerLayout(syncGridLayoutWithModel(
 )))
 
 const blocks = computed(() => localLayout.value.items || [])
+watch(() => props.activeBlockId, (blockId) => {
+  if (blockId && blocks.value.some(block => block.id === blockId))
+    selectedBlockId.value = blockId
+}, { immediate: true })
 const runtimeTreeFilter = ref({})
 const runtimeTreeActiveKey = ref('__all__')
 const collapsedTreePanelMap = ref({})
@@ -5420,6 +5490,8 @@ const selectedBlockFrame = computed(() => selectedBlock.value
   ? resolveBlockFrame(selectedBlock.value)
   : { x: 0, y: 0, width: 24, height: 24 })
 const selectedBlockWidthMode = computed(() => selectedBlock.value ? resolveBlockWidthMode(selectedBlock.value) : 'full')
+const selectedBlockHeightMode = computed(() => selectedBlock.value ? resolveBlockHeightMode(selectedBlock.value) : 'fixed')
+const selectedBlockContentAlign = computed(() => selectedBlock.value?.props?.style?.textAlign || selectedBlock.value?.props?.textAlign || selectedBlock.value?.props?.align || 'left')
 const selectedBlockFixedWidth = computed(() => {
   if (!selectedBlock.value)
     return 24
@@ -5937,15 +6009,16 @@ function resolveBlockStyle(block) {
   const componentStyle = block.props?.style || {}
   const rect = resolveRuntimeBlockFrame(block, resolveBlockFrame(block))
   const widthMode = resolveBlockWidthMode(block)
+  const heightMode = resolveBlockHeightMode(block)
   const collapsedTree = isTreePanelCollapsed(block)
   const style = {
     left: `${rect.x}px`,
     top: `${rect.y}px`,
-    height: `${rect.height}px`,
     minWidth: resolveAbsoluteCssSize(componentStyle.minWidth),
     maxWidth: resolveAbsoluteCssSize(componentStyle.maxWidth),
     minHeight: resolveAbsoluteCssSize(componentStyle.minHeight),
     maxHeight: resolveAbsoluteCssSize(componentStyle.maxHeight),
+    textAlign: componentStyle.textAlign || block.props?.textAlign || block.props?.align || 'left',
   }
   if (collapsedTree)
     style.width = `${rect.width}px`
@@ -5953,6 +6026,12 @@ function resolveBlockStyle(block) {
     style.right = '0'
   else
     style.width = `${rect.width}px`
+  if (heightMode === 'full')
+    style.bottom = '0'
+  else if (heightMode === 'auto')
+    style.height = 'auto'
+  else
+    style.height = `${rect.height}px`
   if (movingBlockId.value === block.id) {
     style.transform = `translate3d(${movingPixelOffset.value.x}px, ${movingPixelOffset.value.y}px, 0) scale(0.995)`
   }
@@ -6015,6 +6094,11 @@ function resolveBlockWidthMode(block = {}) {
   if (style.width === '100%' || style.width === '' || style.width === undefined || style.width === null)
     return 'full'
   return 'fixed'
+}
+
+function resolveBlockHeightMode(block = {}) {
+  const mode = block.props?.style?.heightMode
+  return ['fixed', 'auto', 'full'].includes(mode) ? mode : 'fixed'
 }
 
 function resolveFrameWidth(value, mode, x = 0, fallback = 320) {
@@ -7730,8 +7814,11 @@ function patchBlockFrame(id, patch) {
     return false
   const current = resolveBlockFrame(source)
   const widthChanged = Object.prototype.hasOwnProperty.call(patch, 'width')
+  const heightChanged = Object.prototype.hasOwnProperty.call(patch, 'height')
   const currentWidthMode = resolveBlockWidthMode(source)
+  const currentHeightMode = resolveBlockHeightMode(source)
   const nextWidthMode = widthChanged ? 'fixed' : currentWidthMode
+  const nextHeightMode = heightChanged ? 'fixed' : currentHeightMode
   const next = {
     ...current,
     ...patch,
@@ -7757,6 +7844,8 @@ function patchBlockFrame(id, patch) {
             y: next.y,
             widthMode: nextWidthMode,
             width: nextWidthValue,
+            ...(props.panelOnly && widthChanged ? { pageFlowWidth: `${next.width}px` } : {}),
+            heightMode: nextHeightMode,
             height: next.height,
           },
         },
@@ -7844,13 +7933,16 @@ function setBlockWidthMode(id, mode = 'full') {
     return
   const widthMode = ['full', 'auto', 'fixed'].includes(mode) ? mode : 'full'
   const current = resolveBlockFrame(source)
+  const fixedRuntimeWidth = props.panelOnly && resolveBlockWidthMode(source) !== 'fixed'
+    ? Math.max(280, Math.min(640, Math.round(canvasGridWidth.value * 0.52)))
+    : current.width
   const nextFrame = {
     ...current,
     width: widthMode === 'full'
       ? Math.max(24, canvasGridWidth.value - current.x)
       : widthMode === 'auto'
         ? Math.max(240, Math.min(520, current.width))
-        : current.width,
+        : fixedRuntimeWidth,
   }
   const gridPatch = frameToGridPatch(nextFrame)
   localLayout.value = {
@@ -7868,12 +7960,65 @@ function setBlockWidthMode(id, mode = 'full') {
               y: nextFrame.y,
               widthMode,
               width: widthMode === 'full' ? '100%' : widthMode === 'auto' ? 'auto' : nextFrame.width,
+              ...(props.panelOnly
+                ? { pageFlowWidth: widthMode === 'full' ? 'calc(100% - 48px)' : `${nextFrame.width}px` }
+                : {}),
               height: nextFrame.height,
             },
           },
         }
       : block)),
   }
+}
+
+function setBlockHeightMode(id, mode = 'fixed') {
+  const source = blocks.value.find(block => block.id === id)
+  if (!source)
+    return
+  const heightMode = ['fixed', 'auto', 'full'].includes(mode) ? mode : 'fixed'
+  const current = resolveBlockFrame(source)
+  const nextFrame = {
+    ...current,
+    height: heightMode === 'auto' ? Math.max(48, Math.min(240, current.height)) : current.height,
+  }
+  const gridPatch = frameToGridPatch(nextFrame)
+  localLayout.value = {
+    ...localLayout.value,
+    items: normalizeGridItems(blocks.value.map(block => block.id === id
+      ? {
+          ...block,
+          ...gridPatch,
+          props: {
+            ...(block.props || {}),
+            style: {
+              ...createDefaultBlockStyle(),
+              ...(block.props?.style || {}),
+              x: nextFrame.x,
+              y: nextFrame.y,
+              width: nextFrame.width,
+              heightMode,
+              height: nextFrame.height,
+            },
+          },
+        }
+      : block)),
+  }
+}
+
+function setBlockContentAlign(id, align = 'left') {
+  const source = findBlockInTree(blocks.value, id)
+  if (!source)
+    return
+  const textAlign = align === 'center' ? 'center' : 'left'
+  patchBlockProps(id, {
+    align: textAlign,
+    textAlign,
+    style: {
+      ...createDefaultBlockStyle(),
+      ...(source.props?.style || {}),
+      textAlign,
+    },
+  })
 }
 
 function addBlockEvent() {
@@ -10766,6 +10911,21 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
   min-height: 0;
 }
 
+.list-grid-designer.panel-only {
+  display: block;
+  height: 100%;
+}
+
+.list-grid-designer.panel-only > :not(.block-property-panel) {
+  display: none !important;
+}
+
+.list-grid-designer.panel-only .block-property-panel {
+  width: 100%;
+  height: 100%;
+  border-left: 0;
+}
+
 .property-panel-head {
   align-items: center;
   min-height: 48px;
@@ -11442,38 +11602,67 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
   text-align: right;
 }
 
-.segmented-mini {
+.designer-segmented-control {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2px;
   padding: 2px;
-  border: 1px solid rgba(228, 228, 231, 0.72);
-  border-radius: 6px;
-  background: rgba(244, 244, 245, 0.8);
+  border: 1px solid #dcdfe4;
+  border-radius: 7px;
+  background: #fff;
 }
 
-.segmented-mini button {
+.width-mode-control {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.align-mode-control {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.height-mode-control {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.designer-segmented-control button {
+  display: inline-flex;
   min-width: 0;
-  height: 25px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   cursor: pointer;
-  border: 1px solid transparent;
-  border-radius: 4px;
+  border: 0;
+  border-radius: 5px;
   background: transparent;
-  color: #71717a;
+  color: #1f2329;
   font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.designer-segmented-icon {
+  flex: 0 0 auto;
+  font-size: 14px;
+}
+
+.designer-segmented-icon.vertical-icon {
+  transform: rotate(90deg);
+}
+
+.designer-segmented-control button:hover {
+  background: #f2f3f5;
+}
+
+.designer-segmented-control button.active {
+  background: #edf4ff;
+  color: #1456f0;
   font-weight: 600;
 }
 
-.segmented-mini button:hover {
-  color: #3f3f46;
-  background: rgba(228, 228, 231, 0.5);
-}
-
-.segmented-mini button.active {
-  border-color: rgba(212, 212, 216, 0.72);
-  background: #fff;
-  color: #4f46e5;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+.segmented-mini {
+  min-width: 0;
+  display: none;
 }
 
 .appearance-control {

@@ -1,7 +1,7 @@
 <template>
   <n-drawer :show="show" width="min(920px, 96vw)" @update:show="value => emit('update:show', value)">
     <n-drawer-content :title="isEditing ? '编辑应用' : '新建应用'" closable>
-      <div v-if="!isEditing" class="application-steps">
+      <div v-if="!isEditing && !isDirectPageStart" class="application-steps">
         <n-steps :current="currentStep" size="small">
           <n-step title="基本信息" description="定义稳定应用身份" />
           <n-step title="模板与起点" description="直接生成常用页面结构" />
@@ -107,8 +107,8 @@
             <n-button @click="emit('update:show', false)">
               取消
             </n-button>
-            <n-button v-if="!isEditing && currentStep === 1" type="primary" @click="goNext">
-              下一步
+            <n-button v-if="!isEditing && currentStep === 1" type="primary" :loading="saving" @click="isDirectPageStart ? save() : goNext()">
+              {{ isDirectPageStart ? '创建并开始设计' : '下一步' }}
             </n-button>
             <n-button v-else type="primary" :loading="saving" @click="save">
               {{ primaryActionText }}
@@ -186,6 +186,8 @@ const form = reactive(defaultForm())
 const templateConfig = reactive(defaultTemplateConfig())
 
 const isEditing = computed(() => Boolean(form.id))
+const isDirectPageStart = computed(() => !isEditing.value && initializeMode.value === 'BLANK')
+const isTemplateMode = computed(() => initializeMode.value.startsWith('TEMPLATE_'))
 const hasManagedAssets = computed(() => Number(form.objectCount || 0) > 0 || Number(form.entryCount || 0) > 0)
 const primaryActionText = computed(() => {
   if (isEditing.value)
@@ -198,6 +200,8 @@ const primaryActionText = computed(() => {
     return '重试生成并进入应用'
   if (createdApplicationId.value)
     return '进入空白应用'
+  if (isDirectPageStart.value)
+    return '创建并开始设计'
   return '创建并进入应用'
 })
 const initializationRecoveryHint = computed(() => {
@@ -210,7 +214,6 @@ const initializationRecoveryHint = computed(() => {
   }
   return '可更换主对象后重试，或改为空白应用继续进入。'
 })
-const isTemplateMode = computed(() => initializeMode.value.startsWith('TEMPLATE_'))
 const selectedTemplateCode = computed(() => ({
   TEMPLATE_SINGLE_CRUD: 'SINGLE_CRUD',
   TEMPLATE_TREE_TABLE: 'TREE_TABLE',
@@ -311,10 +314,12 @@ watch(() => form.suiteCode, () => {
     loadDatasources()
     loadObjectOptions()
   }
-  else if (initializeMode.value === 'DATABASE_TABLE')
+  else if (initializeMode.value === 'DATABASE_TABLE') {
     loadDatasources()
-  else if (initializeMode.value === 'EXISTING_OBJECT')
+  }
+  else if (initializeMode.value === 'EXISTING_OBJECT') {
     loadObjectOptions()
+  }
 })
 
 async function goNext() {

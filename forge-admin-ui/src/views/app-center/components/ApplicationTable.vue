@@ -69,7 +69,7 @@
                 circle
                 size="small"
                 class="action-icon-button enter-application-button"
-                aria-label="进入应用"
+                aria-label="打开应用工作台"
                 @click="emit('enter', application)"
               >
                 <template #icon>
@@ -77,7 +77,7 @@
                 </template>
               </n-button>
             </template>
-            进入应用
+            打开应用工作台
           </n-tooltip>
           <n-tooltip v-if="isDraftApplication(application)" trigger="hover">
             <template #trigger>
@@ -203,12 +203,19 @@ function formatDate(value) {
   color: var(--n-text-color, var(--text-primary, #1d2129));
   background: var(--n-color, var(--bg-primary, #fff));
   cursor: pointer;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
 }
 
 .application-card:hover,
 .application-card:focus-visible {
-  border-color: color-mix(in srgb, var(--n-primary-color, var(--primary-color, #165dff)) 55%, var(--n-border-color, #c9cdd4));
+  border-color: color-mix(
+    in srgb,
+    var(--n-primary-color, var(--primary-color, #165dff)) 55%,
+    var(--n-border-color, #c9cdd4)
+  );
   box-shadow: 0 5px 14px rgb(29 33 41 / 8%);
   transform: translateY(-1px);
 }

@@ -3147,3 +3147,18 @@ Flyway 脚本为新环境写了包含完整字段的 `CREATE TABLE IF NOT EXISTS
 
 **影响范围**:
 - 所有为测试注入 Clock、Executor、随机源或外部适配器而增加重载构造器的 Spring Service/Component。
+
+## 125. 隐藏路由资源不能复用同类菜单资源的权限编码
+
+**发现日期**: 2026-07-21
+
+**问题描述**:
+为应用运行页新增隐藏 `sys_resource` 时，若直接复用已有资源的 `perms`，会违反 `uk_tenant_resource_active (tenant_id, resource_type, perms, logic_delete_active)` 唯一索引，Flyway 迁移失败并阻断应用启动。
+
+**解决方案**:
+- 每个同类型的资源使用独立权限码，例如运行页使用 `ai:businessApplication:runtime`；
+- 若目标是继承可见菜单的访问边界，`sys_role_resource` 的来源查询可以仍按原权限码（如 `ai:businessApplication:list`）筛选角色；
+- 已失败的 Flyway 版本不能靠新增后续版本绕过，必须先 repair 失败迁移记录，再重新执行修正后的原脚本。
+
+**影响范围**:
+- 所有向 `sys_resource` 添加隐藏路由、工作台子页、预览页或其他同资源类型权限的 Flyway 迁移。

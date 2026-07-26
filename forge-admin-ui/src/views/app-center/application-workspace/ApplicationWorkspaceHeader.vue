@@ -36,23 +36,35 @@
       <n-button secondary :loading="refreshing" @click="emit('refresh')">
         刷新
       </n-button>
+      <n-button secondary @click="emit('primaryAction')">
+        <template #icon>
+          <n-icon><LayersOutline /></n-icon>
+        </template>
+        管理业务对象
+      </n-button>
+      <n-button secondary @click="emit('pageDesign')">
+        <template #icon>
+          <n-icon><CreateOutline /></n-icon>
+        </template>
+        设计页面
+      </n-button>
       <n-button secondary @click="emit('preview')">
         <template #icon>
           <n-icon><EyeOutline /></n-icon>
         </template>
-        预览应用
+        预览草稿
       </n-button>
       <n-button secondary @click="emit('runtime')">
-        进入应用
+        <template #icon>
+          <n-icon><OpenOutline /></n-icon>
+        </template>
+        运行应用
       </n-button>
       <n-button secondary @click="emit('code')">
         <template #icon>
           <n-icon><CodeSlashOutline /></n-icon>
         </template>
         代码
-      </n-button>
-      <n-button secondary @click="emit('primaryAction')">
-        {{ primaryActionLabel }}
       </n-button>
       <n-button type="primary" @click="emit('publish')">
         <template #icon>
@@ -65,7 +77,7 @@
 </template>
 
 <script setup>
-import { AppsOutline, ArrowBackOutline, CodeSlashOutline, EyeOutline, RocketOutline } from '@vicons/ionicons5'
+import { AppsOutline, ArrowBackOutline, CodeSlashOutline, CreateOutline, EyeOutline, LayersOutline, OpenOutline, RocketOutline } from '@vicons/ionicons5'
 import { computed } from 'vue'
 import DictTag from '@/components/DictTag.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
@@ -85,7 +97,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['back', 'refresh', 'preview', 'runtime', 'code', 'primaryAction', 'publish'])
+const emit = defineEmits(['back', 'refresh', 'pageDesign', 'preview', 'runtime', 'code', 'primaryAction', 'publish'])
 
 const readinessLabel = computed(() => {
   if (Number(props.workspace?.blockingCount || 0) > 0)
@@ -102,8 +114,6 @@ const readinessClass = computed(() => {
     return 'is-warning'
   return 'is-ready'
 })
-
-const primaryActionLabel = computed(() => Number(props.application?.entryCount || 0) > 0 ? '查看页面入口' : '配置数据对象')
 </script>
 
 <style scoped>

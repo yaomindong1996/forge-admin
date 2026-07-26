@@ -45,6 +45,7 @@ public class BusinessApplicationPublishService {
     private final BusinessObjectDesignerService objectDesignerService;
     private final BusinessObjectDesignVersionService objectVersionService;
     private final BusinessAppService businessAppService;
+    private final BusinessApplicationPageMenuPublishService pageMenuPublishService;
     private final BusinessExtensionMapper extensionMapper;
     private final BusinessExtensionExecutionService extensionExecutionService;
 
@@ -69,6 +70,10 @@ public class BusinessApplicationPublishService {
         SnapshotBundle candidate = snapshotService.prepare(
                 applicationId, resolvedCheck.application(), resolvedCheck.selection(),
                 resolvedCheck.permissionSummaries(), resolvedCheck.bindings());
+        List<String> pageMenuErrors = pageMenuPublishService.validate(candidate.snapshot());
+        if (!pageMenuErrors.isEmpty()) {
+            throw new BusinessException("应用页面发布检查未通过：" + String.join("；", pageMenuErrors));
+        }
         AiBusinessApplicationPublishRun run = runService.reserve(applicationId, idempotencyKey,
                 "PUBLISH", null, candidate, check.getSelection());
         if (BusinessApplicationPublishStatus.SUCCESS.equals(run.getRunStatus())
@@ -140,6 +145,14 @@ public class BusinessApplicationPublishService {
                 run = runService.markStepRunning(run, step);
                 List<Long> entries = businessAppService.publishEntries(run.getApplicationId(), selection.getEntryIds());
                 run = runService.markStepSuccess(run, step, "已切换 " + entries.size() + " 个页面入口");
+            }
+            if (!runService.isStepComplete(run, BusinessApplicationPublishStep.PAGE_MENUS)) {
+                step = BusinessApplicationPublishStep.PAGE_MENUS;
+                run = runService.markStepRunning(run, step);
+                Map<String, Object> snapshot = snapshotService.parse(run.getSnapshotJson());
+                int count = pageMenuPublishService.sync(snapshot).size();
+                run = runService.updateSnapshot(run, snapshotService.bundle(snapshot));
+                run = runService.markStepSuccess(run, step, "已同步 " + count + " 个应用页面菜单");
             }
             if (!runService.isStepComplete(run, BusinessApplicationPublishStep.EXTENSIONS)) {
                 step = BusinessApplicationPublishStep.EXTENSIONS;

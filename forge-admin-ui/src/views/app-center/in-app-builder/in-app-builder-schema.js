@@ -1,4 +1,4 @@
-export const IN_APP_BUILDER_SCHEMA_VERSION = 1
+export const IN_APP_BUILDER_SCHEMA_VERSION = 2
 export const HOME_PAGE_ID = 'page_home'
 
 export const inAppPageTypes = [
@@ -29,7 +29,7 @@ const DEFAULT_COMPONENT_PROPS = {
   'divider': { label: '' },
 }
 
-export function normalizeInAppBuilder(rawOptions, application = {}, objects = []) {
+export function normalizeInAppBuilder(rawOptions, _application = {}, objects = []) {
   const options = parseOptions(rawOptions)
   const saved = clone(options.inAppBuilder || {})
   const nodes = normalizeNodes(saved.nodes)
@@ -40,9 +40,11 @@ export function normalizeInAppBuilder(rawOptions, application = {}, objects = []
     homePageId,
     nodes,
     pages,
+    formAssets: normalizeFormAssets(saved.formAssets),
   }
 
-  ensureHomePage(schema, application)
+  // 页面是应用设计的显式产物。空应用保持为空，不能为了运行壳自动造出一个“首页”。
+  // 已保存的旧首页仍会被原样保留，确保历史应用可以继续打开。
   normalizeObjectReferences(schema, objects)
   return schema
 }
@@ -56,8 +58,61 @@ export function mergeInAppBuilderOptions(applicationOptions, schema) {
       homePageId: schema.homePageId,
       nodes: schema.nodes,
       pages: schema.pages,
+      formAssets: schema.formAssets,
     }),
   }
+}
+
+/**
+ * 应用内表单是页面组件可复用的设计资产，不属于左侧发布导航。
+ * 字段目录不单独持久化，始终由 formDesignerSchema 的控件绑定派生。
+ */
+export function createInAppFormAsset(schema, input = {}) {
+  const next = clone(schema)
+  const title = String(input.name || input.formName || '未命名表单').trim() || '未命名表单'
+  const id = createFormAssetId(next.formAssets, title)
+  const formKey = String(input.formKey || input.formDesignerSchema?.formKey || id).trim() || id
+  next.formAssets = [
+    ...(next.formAssets || []),
+    {
+      id,
+      formKey,
+      name: title,
+      formDesignerSchema: clone(input.formDesignerSchema || {}),
+    },
+  ]
+  return { schema: next, formAssetId: id }
+}
+
+export function updateInAppFormAsset(schema, formAssetId, patch = {}) {
+  const next = clone(schema)
+  const index = (next.formAssets || []).findIndex(asset => asset.id === String(formAssetId || ''))
+  if (index < 0)
+    throw new Error('表单不存在')
+  const current = next.formAssets[index]
+  next.formAssets[index] = {
+    ...current,
+    ...(Object.prototype.hasOwnProperty.call(patch, 'name') ? { name: String(patch.name || '').trim() || current.name } : {}),
+    ...(Object.prototype.hasOwnProperty.call(patch, 'formKey') ? { formKey: String(patch.formKey || '').trim() || current.formKey } : {}),
+    ...(Object.prototype.hasOwnProperty.call(patch, 'formDesignerSchema') ? { formDesignerSchema: clone(patch.formDesignerSchema || {}) } : {}),
+  }
+  return next
+}
+
+export function removeInAppFormAsset(schema, formAssetId) {
+  const next = clone(schema)
+  const id = String(formAssetId || '')
+  next.formAssets = (next.formAssets || []).filter(asset => asset.id !== id)
+  Object.values(next.pages || {}).forEach((page) => {
+    const items = page?.layout?.gridLayout?.items
+    if (!Array.isArray(items))
+      return
+    items.forEach((item) => {
+      if (item?.props?.formAssetId === id)
+        item.props.formAssetId = ''
+    })
+  })
+  return next
 }
 
 export function createNavigationNode(schema, input = {}) {
@@ -76,9 +131,12 @@ export function createNavigationNode(schema, input = {}) {
   }
   if (type === 'page') {
     node.pageType = normalizePageType(input.pageType)
+    node.pageTemplate = String(input.pageTemplate || input.templateKey || '').trim()
     node.objectRef = normalizeObjectRef(input.objectRef)
     node.entryRef = normalizeEntryRef(input.entryRef)
     next.pages[id] = normalizePageLayout(input.layout, node)
+    if (!next.homePageId)
+      next.homePageId = id
   }
   next.nodes.push(node)
   return next
@@ -89,8 +147,6 @@ export function moveNavigationNode(schema, nodeId, targetParentId = null, target
   const node = findNode(next, nodeId)
   if (!node)
     throw new Error('页面或页面组不存在')
-  if (node.id === next.homePageId && targetParentId !== null)
-    throw new Error('首页不能移动到页面组')
   const normalizedParentId = normalizeParentId(next, targetParentId)
   if (node.id === normalizedParentId || isDescendant(next.nodes, normalizedParentId, node.id))
     throw new Error('页面组不能移动到自身或其子节点内')
@@ -114,8 +170,6 @@ export function removeNavigationNode(schema, nodeId, strategy) {
   const node = findNode(next, nodeId)
   if (!node)
     throw new Error('页面或页面组不存在')
-  if (node.id === next.homePageId)
-    throw new Error('首页不能删除')
   const descendants = collectDescendants(next.nodes, node.id)
   if (node.type === 'group' && descendants.length && !strategy?.type)
     throw new Error('请选择页面组删除后的子页面处理方式')
@@ -130,7 +184,7 @@ export function removeNavigationNode(schema, nodeId, strategy) {
       child.sort = resolveNextSort(next.nodes.filter(item => item.parentId === targetParentId && item.id !== child.id)) + index
     })
     next.nodes = next.nodes.filter(item => item.id !== node.id)
-    return normalizeSiblingSort(next)
+    return normalizeHomePage(normalizeSiblingSort(next))
   }
 
   const removedIds = new Set([node.id, ...descendants.map(item => item.id)])
@@ -138,7 +192,7 @@ export function removeNavigationNode(schema, nodeId, strategy) {
   removedIds.forEach((id) => {
     delete next.pages[id]
   })
-  return normalizeSiblingSort(next)
+  return normalizeHomePage(normalizeSiblingSort(next))
 }
 
 export function insertPageComponent(schema, pageId, component = {}, target = {}) {
@@ -222,6 +276,7 @@ function normalizeNodes(nodes) {
         ? {}
         : {
             pageType: normalizePageType(node.pageType),
+            pageTemplate: String(node.pageTemplate || node.templateKey || '').trim(),
             objectRef: normalizeObjectRef(node.objectRef),
             entryRef: normalizeEntryRef(node.entryRef),
           }),
@@ -232,7 +287,7 @@ function resolveHomePageId(homePageId, nodes) {
   const saved = String(homePageId || '').trim()
   if (saved && nodes.some(node => node.id === saved && node.type === 'page'))
     return saved
-  return nodes.find(node => node.pageType === 'home')?.id || HOME_PAGE_ID
+  return nodes.find(node => node.pageType === 'home')?.id || nodes.find(node => node.type === 'page')?.id || null
 }
 
 function normalizePages(pages, nodes) {
@@ -244,27 +299,26 @@ function normalizePages(pages, nodes) {
   }, {})
 }
 
-function ensureHomePage(schema, application) {
-  let home = schema.nodes.find(node => node.id === schema.homePageId && node.type === 'page')
-  if (!home) {
-    home = {
-      id: HOME_PAGE_ID,
-      type: 'page',
-      pageType: 'home',
-      title: '首页',
-      icon: 'home',
-      parentId: null,
-      sort: -10,
-      objectRef: null,
-      entryRef: null,
-    }
-    schema.nodes.unshift(home)
-    schema.homePageId = home.id
-  }
-  home.pageType = 'home'
-  home.parentId = null
-  home.sort = Math.min(...schema.nodes.filter(node => node.id !== home.id).map(node => Number(node.sort) || 0), 0) - 10
-  schema.pages[home.id] = normalizePageLayout(schema.pages[home.id], home, application)
+function normalizeFormAssets(formAssets) {
+  const used = new Set()
+  return (Array.isArray(formAssets) ? formAssets : [])
+    .filter((asset) => {
+      const id = String(asset?.id || '').trim()
+      if (!id || used.has(id))
+        return false
+      used.add(id)
+      return true
+    })
+    .map((asset) => {
+      const id = String(asset.id).trim()
+      const name = String(asset.name || asset.formName || '未命名表单').trim() || '未命名表单'
+      return {
+        id,
+        formKey: String(asset.formKey || id).trim() || id,
+        name,
+        formDesignerSchema: clone(asset.formDesignerSchema || asset.schema || {}),
+      }
+    })
 }
 
 function normalizeObjectReferences(schema, objects) {
@@ -290,6 +344,12 @@ function normalizePageLayout(layout, node, application = {}) {
       items: Array.isArray(source.layout?.items)
         ? source.layout.items.map(item => clone(item)).filter(item => item?.id && item?.componentKey)
         : [],
+      ...(source.layout?.gridLayout && typeof source.layout.gridLayout === 'object'
+        ? { gridLayout: clone(source.layout.gridLayout) }
+        : {}),
+      ...(source.layout?.pageTitleComponentInitialized === true
+        ? { pageTitleComponentInitialized: true }
+        : {}),
     },
   }
 }
@@ -310,10 +370,20 @@ function normalizeObjectRef(value) {
     objectId,
     objectCode,
     pageKey: String(value.pageKey || 'list').trim() || 'list',
+    pageMode: String(value.pageMode || 'crud').trim() || 'crud',
+    objectName: String(value.objectName || '').trim(),
+    configKey: String(value.configKey || '').trim(),
     formKey: String(value.formKey || '').trim(),
     defaultParams: clone(value.defaultParams || {}),
     valid: value.valid !== false,
   }
+}
+
+function normalizeHomePage(schema) {
+  const exists = schema.homePageId && schema.nodes.some(node => node.id === schema.homePageId && node.type === 'page')
+  if (!exists)
+    schema.homePageId = schema.nodes.filter(node => node.type === 'page').sort(sortNodes)[0]?.id || null
+  return schema
 }
 
 function normalizeEntryRef(value) {
@@ -409,6 +479,16 @@ function createComponentId(items, componentKey) {
   let candidate = `component_${prefix}`
   while (ids.has(candidate))
     candidate = `component_${prefix}_${sequence++}`
+  return candidate
+}
+
+function createFormAssetId(formAssets, title) {
+  const ids = new Set((formAssets || []).map(asset => asset.id))
+  const base = slugify(title) || 'form'
+  let sequence = 1
+  let candidate = `form_${base}`
+  while (ids.has(candidate))
+    candidate = `form_${base}_${sequence++}`
   return candidate
 }
 

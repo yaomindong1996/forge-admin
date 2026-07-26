@@ -11,8 +11,9 @@
           <n-icon><CubeOutline /></n-icon>
         </div>
         <div class="object-title">
+          <span class="object-workbench-kind">业务对象设计</span>
           <div class="title-row">
-            <h1>{{ designer?.objectName || designer?.objectCode || '业务单元设计' }}</h1>
+            <h1>{{ designer?.objectName || designer?.objectCode || '未命名业务对象' }}</h1>
             <n-tag size="small" :type="designStatusType" :bordered="false">
               {{ designStatusLabel }}
             </n-tag>
@@ -24,6 +25,7 @@
             </n-tag>
           </div>
           <p>
+            <span class="object-workbench-description">维护字段、表单、列表和业务规则</span>
             {{ designer?.suiteName || designer?.suiteCode || '未关联业务域' }}
             <span v-if="designer?.updateTime">最近保存 {{ designer.updateTime }}</span>
             <span v-if="designer?.lastPublishTime">最后发布 {{ designer.lastPublishTime }}</span>
@@ -427,6 +429,20 @@ function handleTopbarActionsClick(event) {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+.object-workbench-kind {
+  display: block;
+  margin-bottom: 1px;
+  color: #71717a;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  line-height: 14px;
+}
+.object-workbench-description {
+  margin-right: 9px;
+  color: #52525b;
+  font-weight: 600;
 }
 
 .topbar-actions {
@@ -834,5 +850,4 @@ function handleTopbarActionsClick(event) {
 .panel-frame > * {
   min-height: 0;
 }
-
 </style>

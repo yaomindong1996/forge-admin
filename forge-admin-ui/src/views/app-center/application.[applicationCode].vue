@@ -8,6 +8,7 @@
           :refreshing="refreshing"
           @back="router.push('/app-center')"
           @refresh="refreshWorkspace"
+          @page-design="openApplicationPageDesigner"
           @preview="openApplicationPreview"
           @runtime="openApplicationRuntime"
           @code="openApplicationCode"
@@ -69,7 +70,6 @@
 </template>
 
 <script setup>
-import { useMessage } from 'naive-ui'
 import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
@@ -89,7 +89,6 @@ const ApplicationCapabilityPanel = defineAsyncComponent(() => import('./applicat
 const AppCodePanel = defineAsyncComponent(() => import('./components/AppCodePanel.vue'))
 const route = useRoute()
 const router = useRouter()
-const message = useMessage()
 const application = ref(null)
 const workspace = ref(null)
 const initialLoading = ref(false)
@@ -265,7 +264,7 @@ function openFullScreenDesigner(payload = {}) {
 }
 
 function handlePrimaryAction() {
-  selectSection(Number(application.value?.entryCount || 0) > 0 ? 'entries' : 'objects')
+  selectSection('objects')
 }
 
 function openApplicationPublish() {
@@ -282,6 +281,16 @@ function openApplicationRuntime() {
   })
 }
 
+function openApplicationPageDesigner() {
+  if (!application.value?.applicationCode)
+    return
+  router.push({
+    name: 'BusinessApplicationRuntime',
+    params: { applicationCode: application.value.applicationCode },
+    query: { edit: '1' },
+  })
+}
+
 function openApplicationCode() {
   if (!application.value?.id)
     return
@@ -289,20 +298,11 @@ function openApplicationCode() {
 }
 
 function openApplicationPreview() {
-  const objects = workspace.value?.objects || []
-  const primary = objects.find(item => item.objectRole === 'PRIMARY' && item.configKey)
-    || objects.find(item => item.configKey)
-  if (!primary?.configKey) {
-    message.warning(objects.length ? '主对象还没有可预览的页面配置，请先完成对象设计' : '应用还没有数据对象，请先添加对象')
-    selectSection('objects')
-    return
-  }
   const target = router.resolve({
-    name: 'AiCrudPageDynamic',
-    params: { configKey: primary.configKey },
+    name: 'BusinessApplicationRuntime',
+    params: { applicationCode: application.value.applicationCode },
     query: {
-      designPreview: '1',
-      title: `${application.value?.applicationName || primary.objectName || '应用'}预览`,
+      draft: '1',
     },
   })
   window.open(target.href, '_blank', 'noopener,noreferrer')

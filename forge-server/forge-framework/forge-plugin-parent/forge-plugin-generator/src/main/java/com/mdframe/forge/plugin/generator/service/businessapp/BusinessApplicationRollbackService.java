@@ -52,6 +52,7 @@ public class BusinessApplicationRollbackService {
     private final BusinessObjectTableMappingService tableMappingService;
     private final BusinessObjectPublishService objectPublishService;
     private final BusinessAppService businessAppService;
+    private final BusinessApplicationPageMenuPublishService pageMenuPublishService;
     private final BusinessBindingMapper bindingMapper;
     private final BusinessExtensionMapper extensionMapper;
     private final BusinessExtensionVersionMapper extensionVersionMapper;
@@ -116,6 +117,14 @@ public class BusinessApplicationRollbackService {
                 businessAppService.restoreSnapshotEntries(run.getApplicationId(), listOfMap(snapshot.get("entries")));
                 restoreBindings(run.getApplicationId(), listOfMap(snapshot.get("bindings")));
                 run = runService.markStepSuccess(run, step, "页面入口和应用挂接配置已恢复");
+            }
+            if (!runService.isStepComplete(run, BusinessApplicationPublishStep.PAGE_MENUS)) {
+                step = BusinessApplicationPublishStep.PAGE_MENUS;
+                run = runService.markStepRunning(run, step);
+                snapshot = snapshotService.parse(run.getSnapshotJson());
+                int count = pageMenuPublishService.sync(snapshot).size();
+                run = runService.updateSnapshot(run, snapshotService.bundle(snapshot));
+                run = runService.markStepSuccess(run, step, "已恢复 " + count + " 个应用页面菜单");
             }
             if (!runService.isStepComplete(run, BusinessApplicationPublishStep.EXTENSIONS)) {
                 step = BusinessApplicationPublishStep.EXTENSIONS;

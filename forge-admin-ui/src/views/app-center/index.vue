@@ -9,7 +9,7 @@
           </div>
           <n-button quaternary circle size="small" aria-label="新建业务域" @click="openSuiteEditor(null)">
             <template #icon>
-              <n-icon><AddOutline /></n-icon>
+              <NIcon><AddOutline /></NIcon>
             </template>
           </n-button>
         </div>
@@ -22,7 +22,7 @@
             @click="selectSuite(null)"
           >
             <span class="suite-icon all">
-              <n-icon><AppsOutline /></n-icon>
+              <NIcon><AppsOutline /></NIcon>
             </span>
             <span class="suite-copy">
               <strong>全部应用</strong>
@@ -45,10 +45,10 @@
               :aria-label="isSuiteExpanded(row.suite) ? '收起子业务域' : '展开子业务域'"
               @click="toggleSuiteExpanded(row.suite)"
             >
-              <n-icon>
+              <NIcon>
                 <ChevronDownOutline v-if="isSuiteExpanded(row.suite)" />
                 <ChevronForwardOutline v-else />
-              </n-icon>
+              </NIcon>
             </button>
             <span v-else class="suite-toggle-placeholder" />
 
@@ -75,7 +75,7 @@
             >
               <n-button quaternary circle size="tiny" class="suite-more" aria-label="业务域操作">
                 <template #icon>
-                  <n-icon><EllipsisVertical /></n-icon>
+                  <NIcon><EllipsisVertical /></NIcon>
                 </template>
               </n-button>
             </n-dropdown>
@@ -101,12 +101,14 @@
             />
             <div class="toolbar-actions">
               <span class="result-summary">{{ resultRangeText }}</span>
-              <n-button type="primary" @click="openApplicationEditor(null)">
-                <template #icon>
-                  <n-icon><AddOutline /></n-icon>
-                </template>
-                新建应用
-              </n-button>
+              <n-dropdown trigger="click" :options="newApplicationModeOptions" @select="handleNewApplicationModeSelect">
+                <n-button type="primary" aria-label="新建应用" title="新建应用">
+                  <template #icon>
+                    <NIcon><AddOutline /></NIcon>
+                  </template>
+                  <span class="new-application-button-label">新建应用 <NIcon><ChevronDownOutline /></NIcon></span>
+                </n-button>
+              </n-dropdown>
             </div>
           </div>
 
@@ -135,11 +137,11 @@
             >
               <template #extra>
                 <n-space>
-                  <n-button type="primary" @click="openApplicationEditor(null)">
-                    新建应用
+                  <n-button type="primary" @click="openApplicationEditor(null, 'BLANK')">
+                    新建页面应用
                   </n-button>
-                  <n-button secondary @click="openApplicationEditor(null, 'EXISTING_OBJECT')">
-                    从现有对象整理应用
+                  <n-button secondary @click="openApplicationEditor(null, 'TEMPLATE_SINGLE_CRUD')">
+                    传统业务对象应用
                   </n-button>
                 </n-space>
               </template>
@@ -203,10 +205,13 @@ import {
   AppsOutline,
   ChevronDownOutline,
   ChevronForwardOutline,
+  CubeOutline,
   EllipsisVertical,
+  GridOutline,
+  ServerOutline,
 } from '@vicons/ionicons5'
-import { useMessage } from 'naive-ui'
-import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
+import { NIcon, useMessage } from 'naive-ui'
+import { computed, defineAsyncComponent, h, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   businessSuiteSummary,
@@ -247,7 +252,7 @@ const applicationEditorVisible = ref(false)
 const editingApplication = ref(null)
 const applicationCodeVisible = ref(false)
 const codeApplication = ref(null)
-const editorInitializeMode = ref('TEMPLATE_SINGLE_CRUD')
+const editorInitializeMode = ref('BLANK')
 const suiteEditorVisible = ref(false)
 const editingSuite = ref(null)
 let applicationRequestVersion = 0
@@ -256,6 +261,34 @@ const pageSizeOptions = [
   { label: '10 条/页', value: 10 },
   { label: '20 条/页', value: 20 },
   { label: '50 条/页', value: 50 },
+]
+
+function renderNewApplicationModeIcon(icon) {
+  return () => h(NIcon, { size: 16 }, { default: () => h(icon) })
+}
+
+const newApplicationModeOptions = [
+  {
+    label: '页面应用（直接设计页面）',
+    key: 'BLANK',
+    icon: renderNewApplicationModeIcon(AppsOutline),
+  },
+  {
+    label: '传统业务对象（从模板生成）',
+    key: 'TEMPLATE_SINGLE_CRUD',
+    icon: renderNewApplicationModeIcon(GridOutline),
+  },
+  { type: 'divider', key: 'mode-divider' },
+  {
+    label: '挂接已有业务对象（不新建字段）',
+    key: 'EXISTING_OBJECT',
+    icon: renderNewApplicationModeIcon(CubeOutline),
+  },
+  {
+    label: '从数据库表导入业务对象',
+    key: 'DATABASE_TABLE',
+    icon: renderNewApplicationModeIcon(ServerOutline),
+  },
 ]
 
 const allApplicationTotal = computed(() => suites.value.reduce(
@@ -391,7 +424,7 @@ function syncRouteQuery() {
   })
 }
 
-async function openApplicationEditor(application, initializeMode = 'TEMPLATE_SINGLE_CRUD') {
+async function openApplicationEditor(application, initializeMode = 'BLANK') {
   editorInitializeMode.value = initializeMode
   if (application?.id) {
     try {
@@ -408,10 +441,21 @@ async function openApplicationEditor(application, initializeMode = 'TEMPLATE_SIN
   applicationEditorVisible.value = true
 }
 
+function handleNewApplicationModeSelect(mode) {
+  openApplicationEditor(null, mode)
+}
+
 async function handleApplicationSaved(result) {
   await Promise.all([loadSuites(), loadApplications()])
-  if (result?.created && !result.initializationWarning && result.application?.applicationCode)
-    openApplication(result.application, false, result.initializeMode)
+  if (result?.created && !result.initializationWarning && result.application?.applicationCode) {
+    const location = {
+      name: 'BusinessApplicationRuntime',
+      params: { applicationCode: result.application.applicationCode },
+      query: { edit: '1', fresh: '1' },
+    }
+    const target = router.resolve(location)
+    window.open(target.href, '_blank', 'noopener,noreferrer')
+  }
 }
 
 function openApplication(application, newTab = true, initializeMode = null) {
@@ -645,8 +689,8 @@ function trimToUndefined(value) {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  padding: 14px;
-  background: var(--body-color, #f5f6f8);
+  padding: 0;
+  background: var(--n-color, #fff);
   color: var(--n-text-color, #111827);
 }
 
@@ -656,8 +700,8 @@ function trimToUndefined(value) {
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid var(--n-border-color, #e5e7eb);
-  border-radius: 10px;
+  border: 0;
+  border-radius: 0;
   background: var(--n-color, #fff);
 }
 
@@ -665,8 +709,12 @@ function trimToUndefined(value) {
   --suite-panel-bg: var(--n-color, var(--bg-primary, #fff));
   --suite-panel-head: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
   --suite-panel-border: var(--n-border-color, var(--border-light, #e5e6eb));
-  --suite-item-hover: var(--n-color-hover, var(--bg-hover, #f2f3f5));
-  --suite-item-active: color-mix(in srgb, var(--n-primary-color, var(--primary-color, #165dff)) 8%, var(--suite-panel-bg));
+  --suite-item-hover: color-mix(in srgb, var(--suite-accent) 4%, var(--suite-panel-bg));
+  --suite-item-active: color-mix(
+    in srgb,
+    var(--n-primary-color, var(--primary-color, #165dff)) 6%,
+    var(--suite-panel-bg)
+  );
   --suite-accent: var(--n-primary-color, var(--primary-color, #165dff));
   --suite-accent-strong: var(--n-primary-color-hover, var(--primary-color-hover, #0e42d2));
   --suite-muted: var(--n-text-color-3, var(--text-tertiary, #86909c));
@@ -683,8 +731,8 @@ function trimToUndefined(value) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 66px;
-  padding: 13px 14px 13px 18px;
+  min-height: 60px;
+  padding: 12px 14px 12px 18px;
   border-bottom: 1px solid var(--suite-panel-border);
   background: var(--suite-panel-head);
 }
@@ -697,7 +745,8 @@ function trimToUndefined(value) {
 
 .suite-nav-head strong {
   color: var(--n-text-color, var(--text-primary, #1d2129));
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .suite-nav-head span,
@@ -714,7 +763,7 @@ function trimToUndefined(value) {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 10px 8px 16px;
+  padding: 8px 8px 16px;
   scrollbar-color: color-mix(in srgb, var(--suite-accent) 42%, transparent) var(--suite-panel-head);
   scrollbar-gutter: stable;
   scrollbar-width: thin;
@@ -743,21 +792,22 @@ function trimToUndefined(value) {
 .suite-row {
   position: relative;
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) 26px;
+  grid-template-columns: 18px minmax(0, 1fr) 24px;
   align-items: center;
   padding-left: var(--suite-indent);
 }
 
 .suite-item {
+  position: relative;
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  min-height: 48px;
-  padding: 6px 8px;
+  min-height: 38px;
+  padding: 4px 7px;
   border: 0;
-  border-radius: 7px;
+  border-radius: 4px;
   background: transparent;
   color: inherit;
   text-align: left;
@@ -765,7 +815,7 @@ function trimToUndefined(value) {
 }
 
 .all-suite {
-  margin-bottom: 5px;
+  margin-bottom: 8px;
 }
 
 .suite-item:hover,
@@ -776,35 +826,32 @@ function trimToUndefined(value) {
 .suite-item.active {
   color: var(--suite-accent-strong);
   background: var(--suite-item-active);
-  box-shadow: inset 3px 0 0 var(--suite-accent);
 }
 
 .suite-icon {
   display: inline-flex;
-  flex: 0 0 30px;
+  flex: 0 0 20px;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  border: 1px solid color-mix(in srgb, var(--suite-accent) 22%, var(--suite-panel-border));
-  border-radius: 7px;
-  color: var(--suite-accent);
-  background: color-mix(in srgb, var(--suite-accent) 7%, var(--suite-panel-bg));
-  font-size: 12px;
-  font-weight: 700;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 4px;
+  color: color-mix(in srgb, var(--suite-accent) 76%, var(--suite-muted));
+  background: transparent;
+  font-size: 11px;
+  font-weight: 650;
 }
 
 .suite-icon.all {
-  border-color: color-mix(in srgb, var(--suite-accent) 28%, var(--suite-panel-border));
   color: var(--suite-accent-strong);
-  background: color-mix(in srgb, var(--suite-accent) 11%, var(--suite-panel-bg));
 }
 
 .suite-copy {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .suite-copy strong,
@@ -815,8 +862,12 @@ function trimToUndefined(value) {
 }
 
 .suite-copy strong {
-  font-size: 13px;
-  font-weight: 550;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.suite-item.active .suite-copy strong {
+  font-weight: 650;
 }
 
 .suite-copy small {
@@ -828,8 +879,8 @@ function trimToUndefined(value) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 28px;
+  width: 18px;
+  height: 24px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -838,7 +889,7 @@ function trimToUndefined(value) {
 }
 
 .suite-toggle-placeholder {
-  width: 20px;
+  width: 18px;
 }
 
 .suite-more {
@@ -863,17 +914,17 @@ function trimToUndefined(value) {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: var(--n-color-embedded, #f7f8fa);
+  background: var(--n-color, #fff);
 }
 
 .application-panel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 0;
-  margin: 14px;
+  margin: 0;
   overflow: hidden;
-  border: 1px solid var(--n-border-color, #e5e7eb);
-  border-radius: 9px;
+  border: 0;
+  border-radius: 0;
   background: var(--n-color, #fff);
 }
 
@@ -902,6 +953,16 @@ function trimToUndefined(value) {
   gap: 12px;
 }
 
+.new-application-button-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.new-application-button-label :deep(.n-icon) {
+  font-size: 13px;
+}
+
 .result-summary {
   flex: 0 0 auto;
   color: var(--n-text-color-3, #6b7280);
@@ -926,7 +987,8 @@ function trimToUndefined(value) {
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-gutter: stable;
-  scrollbar-color: color-mix(in srgb, var(--n-primary-color, var(--primary-color, #165dff)) 45%, transparent) var(--n-color-embedded, #f2f3f5);
+  scrollbar-color: color-mix(in srgb, var(--n-primary-color, var(--primary-color, #165dff)) 45%, transparent)
+    var(--n-color-embedded, #f2f3f5);
   scrollbar-width: thin;
   overscroll-behavior: contain;
 }
@@ -1028,7 +1090,7 @@ function trimToUndefined(value) {
 
   .application-panel {
     min-height: 600px;
-    margin: 8px;
+    margin: 0;
   }
 }
 </style>
