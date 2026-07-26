@@ -79,7 +79,7 @@
 
 - [x] Step 1: 运行 Auth Starter 现有测试套件，记录基线。
 - [x] Step 2: 编写 DTO 与 Captcha Service P0 测试，确认 Red → Green。
-- [ ] Step 3: 编写 Message Sender 和手机号校验 P1 测试，确认 Red → Green。
+- [x] Step 3: 编写 Message Sender 和手机号校验 P1 测试，确认 Red → Green。
 - [ ] Step 4: 运行 Auth + System 聚合测试与 Admin package。
 - [ ] Step 5: 运行前端 build、敏感日志扫描和 `git diff --check`。
 
@@ -95,6 +95,7 @@
 | 时间 | 变更范围 | 必跑项 | 实际命令 | 结果 | 跳过/警告 |
 |------|----------|--------|----------|------|-----------|
 | 2026-07-26 | Task 1-4 | Auth/System 测试、Admin package、UI build、静态扫描 | 已完成实施前 Auth 基线，其余见 `tasks.md` | 进行中 | 真实短信 E2E 依赖外部配置 |
+| 2026-07-26 15:50 CST | Task 3 | System 目标测试与模块完整测试 | `mvn -Penable-tests -pl forge-framework/forge-plugin-parent/forge-plugin-system test` | 通过，4 条测试均 0 失败/错误/跳过 | Reactor `-am` Red 命令被既有 datascope Surefire 配置截断；真实短信 E2E 跳过 |
 
 ## 6. 执行证据
 

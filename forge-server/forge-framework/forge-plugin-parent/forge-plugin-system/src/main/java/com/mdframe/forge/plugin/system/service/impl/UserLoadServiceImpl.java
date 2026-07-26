@@ -132,8 +132,7 @@ public class UserLoadServiceImpl implements IUserLoadService {
 
     @Override
     public boolean validatePhoneCode(String phone, String code) {
-        String cacheKey = "phone_code:" + phone;
-        return captchaService.validateAndDelete(cacheKey, code);
+        return captchaService.validateAndDeleteSmsCaptcha(phone, code);
     }
 
     /**

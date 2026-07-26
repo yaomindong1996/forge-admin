@@ -143,7 +143,7 @@ Redis 键协议调整：手机号登录停止读取 `captcha:phone_code:<phone>`
 | Proposal | 完成 | `spec.md`、`tasks.md`、`test-spec.md`、`execution-log.md` | HARD-GATE 已确认，进入 apply |
 | Task 1 | 完成 | `CaptchaProperties`、响应 DTO、`SmsCaptchaSender`、序列化测试 | Red 2 条失败；Green 3 条通过，Auth Reactor 编译通过 |
 | Task 2 | 完成 | `CaptchaServiceImpl`、`ICaptchaService`、核心行为测试 | 10 条验证码服务测试通过；Auth Starter 共 20 条通过；敏感日志扫描通过 |
-| Task 3 | 待执行 | — | 真实短信适配与缓存键统一 |
+| Task 3 | 完成 | `MessageSmsCaptchaSender`、`UserLoadServiceImpl`、System 插件测试 | 真实消息通道适配与手机号短信验证码一次性校验统一；System 4 条测试通过 |
 | Task 4 | 待执行 | — | 前端清理、配置与聚合验证 |
 
 ## 12. 审查结论

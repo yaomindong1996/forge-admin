@@ -51,3 +51,15 @@
 - 异常日志：保留原始堆栈位置和异常类型，但以固定安全消息替换可能携带验证码/手机号的第三方异常消息。
 - 静态检查：`git diff --check` 返回 0。
 - 服务：未启动任何服务；新增 PID：无。
+
+## 2026-07-26 15:50 CST Task 3 真实短信通道与统一校验
+
+- 变更范围：在 System 插件增加 `MessageSmsCaptchaSender`，通过 `MessageClient` 向 SMS 通道发送单手机号验证码；手机号登录统一调用 `validateAndDeleteSmsCaptcha`，复用 `captcha:sms:<phone>` 一次性校验协议。
+- Red 命令：`mvn -Penable-tests -pl forge-framework/forge-plugin-parent/forge-plugin-system -am test -Dtest=MessageSmsCaptchaSenderTest,UserLoadServiceImplCaptchaTest -Dsurefire.failIfNoSpecifiedTests=false`。
+- Red 结果：Reactor 在进入 System 模块前被既有 `forge-starter-datascope` Surefire 配置截断，错误为 `groups/excludedGroups require TestNG, JUnit48+ or JUnit 5`；未将该上游问题误记为目标用例预期失败，也未越界修改 datascope。
+- 依赖准备：`mvn -pl forge-framework/forge-plugin-parent/forge-plugin-system -am install -DskipTests` 执行成功，25 个 Reactor 模块全部 `BUILD SUCCESS`。
+- 目标测试：从 `forge-server` Reactor 根目录执行 `mvn -Penable-tests -pl forge-framework/forge-plugin-parent/forge-plugin-system test -Dtest=MessageSmsCaptchaSenderTest,UserLoadServiceImplCaptchaTest`，结果 `BUILD SUCCESS`，4 条通过，0 失败、0 错误、0 跳过。
+- System 完整测试：`mvn -Penable-tests -pl forge-framework/forge-plugin-parent/forge-plugin-system test`，结果 `BUILD SUCCESS`，当前模块全部 4 条测试通过，主代码和测试代码编译成功。
+- 安全检查：异常路径日志只记录 `SensitiveDataUtil.maskPhone(phone)`、异常类型和固定消息 `SMS_CHANNEL_OPERATION_FAILED` 的安全化堆栈，不输出验证码、完整手机号或供应商原始异常消息；`git diff --check` 返回 0。
+- 跳过项：未调用真实短信供应商，本地没有可提交的供应商凭据；适配协议由 `MessageClient` Stub 覆盖，真实通道 E2E 留给用户侧配置环境验收。
+- 服务：未启动任何后端、前端、数据库或 Redis；新增 PID：无。

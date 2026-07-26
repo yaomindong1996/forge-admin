@@ -202,7 +202,7 @@ git commit -m "[framework-captcha-security-hardening] 加固验证码生命周�
 - Create: `forge-server/forge-framework/forge-plugin-parent/forge-plugin-system/src/test/java/com/mdframe/forge/plugin/system/auth/MessageSmsCaptchaSenderTest.java`
 - Create: `forge-server/forge-framework/forge-plugin-parent/forge-plugin-system/src/test/java/com/mdframe/forge/plugin/system/service/impl/UserLoadServiceImplCaptchaTest.java`
 
-- [ ] **Step 1: 编写真实通道适配和缓存键 Red 测试**
+- [x] **Step 1: 编写真实通道适配和缓存键 Red 测试**
 
 ```java
 @Test
@@ -230,7 +230,7 @@ void shouldUseSmsCaptchaContractForPhoneLogin() {
 }
 ```
 
-- [ ] **Step 2: 运行 System 插件测试并确认 Red**
+- [x] **Step 2: 运行 System 插件测试并确认 Red**
 
 ```bash
 cd forge-server
@@ -242,7 +242,7 @@ mvn -Penable-tests \
 
 预期：发送适配器不存在、手机号校验仍调用通用验证码接口，测试失败。
 
-- [ ] **Step 3: 实现 MessageClient 适配器与键统一**
+- [x] **Step 3: 实现 MessageClient 适配器与键统一**
 
 先在 `forge-plugin-system/pom.xml` 增加测试依赖：
 
@@ -290,7 +290,7 @@ public boolean validatePhoneCode(String phone, String code) {
 }
 ```
 
-- [ ] **Step 4: 运行 System 插件完整测试与编译**
+- [x] **Step 4: 运行 System 插件完整测试与编译**
 
 ```bash
 cd forge-server
@@ -301,7 +301,7 @@ mvn -Penable-tests \
 
 预期：Reactor `BUILD SUCCESS`，适配和缓存键测试通过。
 
-- [ ] **Step 5: 更新文档并提交**
+- [x] **Step 5: 更新文档并提交**
 
 ```bash
 git add code-copilot/changes/framework-captcha-security-hardening \
