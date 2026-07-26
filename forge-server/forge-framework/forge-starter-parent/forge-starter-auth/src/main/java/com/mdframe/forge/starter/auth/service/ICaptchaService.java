@@ -86,7 +86,7 @@ public interface ICaptchaService {
     /**
      * 生成图形验证码
      *
-     * @return 验证码结果，包含key、code（开发环境）和base64图片
+     * @return 验证码结果，仅在 dev/local Profile 显式开启开发回显时包含 code
      */
     CaptchaResult generateGraphicCaptcha();
 
@@ -95,7 +95,7 @@ public interface ICaptchaService {
      *
      * @param length   验证码长度
      * @param duration 过期时间
-     * @return 验证码结果，包含key、code（开发环境）和base64图片
+     * @return 验证码结果，仅在 dev/local Profile 显式开启开发回显时包含 code
      */
     CaptchaResult generateGraphicCaptcha(int length, Duration duration);
 

@@ -103,7 +103,7 @@ git commit -m "[framework-captcha-security-hardening] 固化验证码响应安�
 - Modify: `forge-server/forge-framework/forge-starter-parent/forge-starter-auth/src/main/java/com/mdframe/forge/starter/auth/service/ICaptchaService.java`
 - Create: `forge-server/forge-framework/forge-starter-parent/forge-starter-auth/src/test/java/com/mdframe/forge/starter/auth/service/impl/CaptchaServiceImplTest.java`
 
-- [ ] **Step 1: 编写核心行为 Red 测试**
+- [x] **Step 1: 编写核心行为 Red 测试**
 
 测试至少包含：默认图形验证码无 `code`；`dev + devEchoCode=true` 回显；`prod + devEchoCode=true` 仍不回显；无 Sender 时短信失败且不保留验证码；Sender 失败时删除验证码；Sender 成功时缓存并默认不回显；开发模拟时不调用 Sender；短信校验成功后删除。
 
@@ -138,7 +138,7 @@ private CaptchaServiceImpl service(boolean echoEnabled, String profile,
 }
 ```
 
-- [ ] **Step 2: 运行测试并确认 Red**
+- [x] **Step 2: 运行测试并确认 Red**
 
 ```bash
 cd forge-server
@@ -150,7 +150,7 @@ mvn -Penable-tests \
 
 预期：现有模拟发送、无 Profile 门禁和无 Sender 行为导致测试失败。
 
-- [ ] **Step 3: 实现失败关闭与双门禁**
+- [x] **Step 3: 实现失败关闭与双门禁**
 
 ```java
 private boolean isDevelopmentEchoEnabled() {
@@ -163,7 +163,7 @@ private boolean isDevelopmentEchoEnabled() {
 
 日志规则：只记录 key、布尔结果、脱敏手机号和发送状态；移除验证码、输入答案、缓存答案、滑块目标坐标和移动坐标。
 
-- [ ] **Step 4: 运行 Auth Starter 完整测试**
+- [x] **Step 4: 运行 Auth Starter 完整测试**
 
 ```bash
 cd forge-server
@@ -174,7 +174,7 @@ mvn -Penable-tests \
 
 预期：Reactor `BUILD SUCCESS`，新增测试全部通过。
 
-- [ ] **Step 5: 静态扫描敏感日志并提交**
+- [x] **Step 5: 静态扫描敏感日志并提交**
 
 ```bash
 rg -n 'code=|cached=|expectedX|验证码.*\{\}|console\.warn.*验证码' \

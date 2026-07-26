@@ -4,12 +4,18 @@ import cn.hutool.captcha.CaptchaUtil;
 import cn.hutool.captcha.LineCaptcha;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import com.mdframe.forge.starter.auth.config.CaptchaProperties;
+import com.mdframe.forge.starter.auth.domain.CaptchaResult;
 import com.mdframe.forge.starter.auth.domain.SliderCaptchaResult;
 import com.mdframe.forge.starter.auth.domain.SmsCaptchaResult;
 import com.mdframe.forge.starter.auth.service.ICaptchaService;
+import com.mdframe.forge.starter.auth.sms.SmsCaptchaSender;
 import com.mdframe.forge.starter.cache.service.ICacheService;
+import com.mdframe.forge.starter.core.util.SensitiveDataUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
@@ -19,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -31,6 +38,9 @@ import java.util.concurrent.ThreadLocalRandom;
 public class CaptchaServiceImpl implements ICaptchaService {
 
     private final ICacheService cacheService;
+    private final CaptchaProperties captchaProperties;
+    private final Environment environment;
+    private final Optional<SmsCaptchaSender> smsCaptchaSender;
 
     /**
      * 验证码缓存key前缀
@@ -128,7 +138,7 @@ public class CaptchaServiceImpl implements ICaptchaService {
         String cacheKey = CAPTCHA_KEY_PREFIX + key;
         cacheService.set(cacheKey, codeStr, duration);
         
-        log.debug("生成验证码: key={}, code={}", key, codeStr);
+        log.debug("生成验证码: key={}", key);
         return key;
     }
 
@@ -155,7 +165,7 @@ public class CaptchaServiceImpl implements ICaptchaService {
         
         // 忽略大小写比较
         boolean match = code.equalsIgnoreCase(cacheCode);
-        log.debug("验证码校验: key={}, input={}, cached={}, result={}", key, code, cacheCode, match);
+        log.debug("验证码校验: key={}, result={}", key, match);
         return match;
     }
 
@@ -182,7 +192,7 @@ public class CaptchaServiceImpl implements ICaptchaService {
      * 生成图形验证码
      * @return 验证码结果，包含key、code（开发环境）和base64图片
      */
-    public com.mdframe.forge.starter.auth.domain.CaptchaResult generateGraphicCaptcha() {
+    public CaptchaResult generateGraphicCaptcha() {
         return generateGraphicCaptcha(DEFAULT_LENGTH, DEFAULT_DURATION);
     }
 
@@ -192,7 +202,7 @@ public class CaptchaServiceImpl implements ICaptchaService {
      * @param duration 过期时间
      * @return 验证码结果，包含key、code（开发环境）和base64图片
      */
-    public com.mdframe.forge.starter.auth.domain.CaptchaResult generateGraphicCaptcha(int length, Duration duration) {
+    public CaptchaResult generateGraphicCaptcha(int length, Duration duration) {
         // 先生成验证码字符串
         StringBuilder code = new StringBuilder();
         for (int i = 0; i < length; i++) {
@@ -223,12 +233,12 @@ public class CaptchaServiceImpl implements ICaptchaService {
         String cacheKey = CAPTCHA_KEY_PREFIX + key;
         cacheService.set(cacheKey, actualCode, duration);
         
-        log.debug("生成图形验证码: key={}, code={}", key, actualCode);
+        log.debug("生成图形验证码: key={}", key);
         
         // 构建返回结果
-        return com.mdframe.forge.starter.auth.domain.CaptchaResult.builder()
+        return CaptchaResult.builder()
                 .codeKey(key)
-                .code(actualCode) // 开发环境返回验证码文本
+                .code(isDevelopmentEchoEnabled() ? actualCode : null)
                 .image(imageBase64)
                 .expiresIn(duration.getSeconds())
                 .build();
@@ -274,7 +284,7 @@ public class CaptchaServiceImpl implements ICaptchaService {
             String cacheKey = SLIDER_CAPTCHA_KEY_PREFIX + key;
             cacheService.set(cacheKey, String.valueOf(x), duration);
 
-            log.debug("生成滑块验证码: key={}, x={}, y={}, bgWidth={}", key, x, y, SLIDER_BG_WIDTH);
+            log.debug("生成滑块验证码: key={}", key);
 
             // 7. 构建返回结果
             return SliderCaptchaResult.builder()
@@ -314,11 +324,10 @@ public class CaptchaServiceImpl implements ICaptchaService {
             int expectedX = Integer.parseInt(correctX);
             // 允许一定的误差范围
             boolean match = Math.abs(moveX - expectedX) <= SLIDER_TOLERANCE;
-            log.debug("滑块验证码校验: key={}, moveX={}, expectedX={}, result={}",
-                    key, moveX, expectedX, match);
+            log.debug("滑块验证码校验: key={}, result={}", key, match);
             return match;
         } catch (NumberFormatException e) {
-            log.error("滑块验证码解析失败: key={}, value={}", key, correctX);
+            log.warn("滑块验证码缓存格式无效: key={}", key);
             return false;
         }
     }
@@ -505,68 +514,42 @@ public class CaptchaServiceImpl implements ICaptchaService {
                     .build();
         }
 
+        String code = generateSmsCode();
+        String key = UUID.randomUUID().toString().replace("-", "");
+        String cacheKey = SMS_CAPTCHA_KEY_PREFIX + phone;
+        boolean developmentEcho = isDevelopmentEchoEnabled();
+
         try {
-            // 生成6位数字验证码
-            StringBuilder code = new StringBuilder();
-            for (int i = 0; i < SMS_CODE_LENGTH; i++) {
-                code.append(RandomUtil.randomInt(10));
-            }
-            String codeStr = code.toString();
-
-            // 生成唯一key
-            String key = UUID.randomUUID().toString().replace("-", "");
-
-            // 存储验证码到缓存
-            String cacheKey = SMS_CAPTCHA_KEY_PREFIX + phone;
-            cacheService.set(cacheKey, codeStr, duration);
-
-            // 记录发送时间，用于控制发送间隔
-            cacheService.set(intervalKey, String.valueOf(System.currentTimeMillis()), Duration.ofSeconds(SMS_SEND_INTERVAL));
-
-            log.info("发送短信验证码: phone={}, code={}, key={}", phone, codeStr, key);
-
-            // TODO: 调用第三方短信服务发送短信
-            // 这里先模拟发送成功
-            boolean sendSuccess = mockSendSms(phone, codeStr);
-
-            if (sendSuccess) {
-                return SmsCaptchaResult.builder()
-                        .codeKey(key)
-                        .phone(phone)
-                        .status("success")
-                        .message("验证码发送成功")
-                        .code(codeStr) // 开发环境返回验证码，生产环境应去掉
-                        .expiresIn(duration.getSeconds())
-                        .interval(SMS_SEND_INTERVAL)
-                        .captchaType("sms")
-                        .build();
-            } else {
-                return SmsCaptchaResult.builder()
-                        .phone(phone)
-                        .status("fail")
-                        .message("验证码发送失败，请稍后重试")
-                        .interval(SMS_SEND_INTERVAL)
-                        .build();
+            cacheService.set(cacheKey, code, duration);
+            boolean sendSuccess = developmentEcho || smsCaptchaSender
+                    .map(sender -> sender.sendVerificationCode(phone, code, duration))
+                    .orElse(false);
+            if (!sendSuccess) {
+                rollbackSmsCaptcha(cacheKey, phone);
+                log.warn("短信验证码发送失败: phone={}", SensitiveDataUtil.maskPhone(phone));
+                return smsFailure(phone);
             }
 
-        } catch (Exception e) {
-            log.error("发送短信验证码失败: phone={}", phone, e);
+            cacheService.set(intervalKey, String.valueOf(System.currentTimeMillis()),
+                    Duration.ofSeconds(SMS_SEND_INTERVAL));
+            log.info("短信验证码发送成功: phone={}, mode={}", SensitiveDataUtil.maskPhone(phone),
+                    developmentEcho ? "development" : "provider");
             return SmsCaptchaResult.builder()
+                    .codeKey(key)
                     .phone(phone)
-                    .status("fail")
-                    .message("验证码发送失败，请稍后重试")
+                    .status("success")
+                    .message("验证码发送成功")
+                    .code(developmentEcho ? code : null)
+                    .expiresIn(duration.getSeconds())
                     .interval(SMS_SEND_INTERVAL)
+                    .captchaType("sms")
                     .build();
+        } catch (Exception e) {
+            rollbackSmsCaptcha(cacheKey, phone);
+            log.error("短信验证码发送异常: phone={}, errorType={}",
+                    SensitiveDataUtil.maskPhone(phone), e.getClass().getSimpleName(), sanitizedException(e));
+            return smsFailure(phone);
         }
-    }
-
-    /**
-     * 模拟发送短信（后续对接第三方短信服务）
-     */
-    private boolean mockSendSms(String phone, String code) {
-        // 模拟发送成功
-        log.info("【模拟短信发送】手机号: {}, 验证码: {}", phone, code);
-        return true;
     }
 
     @Override
@@ -579,13 +562,12 @@ public class CaptchaServiceImpl implements ICaptchaService {
         String cacheCode = cacheService.get(cacheKey);
 
         if (cacheCode == null) {
-            log.warn("短信验证码不存在或已过期: phone={}", phone);
+            log.warn("短信验证码不存在或已过期: phone={}", SensitiveDataUtil.maskPhone(phone));
             return false;
         }
 
         boolean match = code.equals(cacheCode);
-        log.debug("短信验证码校验: phone={}, input={}, cached={}, result={}",
-                phone, code, cacheCode, match);
+        log.debug("短信验证码校验: phone={}, result={}", SensitiveDataUtil.maskPhone(phone), match);
         return match;
     }
 
@@ -597,5 +579,42 @@ public class CaptchaServiceImpl implements ICaptchaService {
             cacheService.delete(cacheKey);
         }
         return valid;
+    }
+
+    private boolean isDevelopmentEchoEnabled() {
+        return captchaProperties.isDevEchoCode()
+                && environment.acceptsProfiles(Profiles.of("dev", "local"));
+    }
+
+    private String generateSmsCode() {
+        StringBuilder code = new StringBuilder(SMS_CODE_LENGTH);
+        for (int i = 0; i < SMS_CODE_LENGTH; i++) {
+            code.append(RandomUtil.randomInt(10));
+        }
+        return code.toString();
+    }
+
+    private void rollbackSmsCaptcha(String cacheKey, String phone) {
+        try {
+            cacheService.delete(cacheKey);
+        } catch (RuntimeException rollbackException) {
+            log.error("短信验证码缓存回滚失败: phone={}, errorType={}",
+                    SensitiveDataUtil.maskPhone(phone),
+                    rollbackException.getClass().getSimpleName(), sanitizedException(rollbackException));
+        }
+    }
+
+    private RuntimeException sanitizedException(Exception exception) {
+        RuntimeException sanitized = new RuntimeException("SMS_CAPTCHA_OPERATION_FAILED");
+        sanitized.setStackTrace(exception.getStackTrace());
+        return sanitized;
+    }
+
+    private SmsCaptchaResult smsFailure(String phone) {
+        return SmsCaptchaResult.builder()
+                .phone(phone)
+                .status("fail")
+                .message("验证码发送失败，请稍后重试")
+                .build();
     }
 }

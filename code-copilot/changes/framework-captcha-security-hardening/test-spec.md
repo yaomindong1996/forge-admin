@@ -78,7 +78,7 @@
 ## 3. 执行计划
 
 - [x] Step 1: 运行 Auth Starter 现有测试套件，记录基线。
-- [ ] Step 2: 编写 DTO 与 Captcha Service P0 测试，确认 Red → Green。（DTO 序列化已完成，Service 测试随 Task 2 执行）
+- [x] Step 2: 编写 DTO 与 Captcha Service P0 测试，确认 Red → Green。
 - [ ] Step 3: 编写 Message Sender 和手机号校验 P1 测试，确认 Red → Green。
 - [ ] Step 4: 运行 Auth + System 聚合测试与 Admin package。
 - [ ] Step 5: 运行前端 build、敏感日志扫描和 `git diff --check`。

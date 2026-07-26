@@ -38,3 +38,16 @@
 - 静态检查：`git diff --check` 返回 0。
 - 警告：仍只有基线中已记录的 Lombok Builder 默认值警告，本任务未引入新警告。
 - 服务：未启动任何服务；新增 PID：无。
+
+## 2026-07-26 15:43 CST Task 2 验证码生命周期与日志
+
+- 变更范围：增加 Profile + 显式开关双门禁；短信真实发送失败关闭；验证码缓存失败回滚；发送成功后才创建 60 秒间隔键；移除答案、输入/缓存值、滑块坐标和完整手机号日志。
+- Red 命令：`mvn -Penable-tests -pl forge-framework/forge-starter-parent/forge-starter-auth -am test -Dtest=CaptchaServiceImplTest -Dsurefire.failIfNoSpecifiedTests=false`。
+- Red 结果：`testCompile` 按预期失败，现有 `CaptchaServiceImpl` 只有单参数构造器，尚无配置、Profile 和 Sender 边界。
+- 目标 Green：`CaptchaServiceImplTest` 10 条通过，覆盖默认/dev/prod 回显、Sender 缺失/失败/异常/成功、缓存回滚、开发模拟和短信一次性校验。
+- 全量命令：`mvn -Penable-tests -pl forge-framework/forge-starter-parent/forge-starter-auth -am test`；结果 `BUILD SUCCESS`，Auth Starter 20 条通过，0 失败、0 错误、0 跳过。
+- 上游结果：Outbound 48 条、Flow Client 11 条通过，均 0 失败、0 错误、0 跳过。
+- 日志检查：对 Auth Starter 生产 Java 扫描 `codeStr/cacheCode/correctX/moveX/expectedX/code` 的日志参数，结果无匹配；全部 6 处手机号日志均显式调用 `SensitiveDataUtil.maskPhone`。
+- 异常日志：保留原始堆栈位置和异常类型，但以固定安全消息替换可能携带验证码/手机号的第三方异常消息。
+- 静态检查：`git diff --check` 返回 0。
+- 服务：未启动任何服务；新增 PID：无。
