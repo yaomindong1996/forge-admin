@@ -664,11 +664,6 @@ async function refreshCaptcha() {
 
       // 清空验证码输入框
       loginInfo.value.code = ''
-
-      // 开发环境在控制台提示验证码
-      if (import.meta.env.DEV && res.data.code) {
-        console.warn('【开发提示】验证码:', res.data.code)
-      }
     }
   }
   catch (error) {
@@ -778,11 +773,6 @@ async function sendSmsCode() {
     if (res.code === 200 && res.data) {
       if (res.data.status === 'success') {
         $message.success('验证码发送成功')
-
-        // 开发环境在控制台提示验证码
-        if (import.meta.env.DEV && res.data.code) {
-          console.warn('【开发提示】短信验证码:', res.data.code)
-        }
 
         // 开始倒计时
         smsCountdown.value = res.data.interval || 60

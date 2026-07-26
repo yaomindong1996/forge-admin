@@ -1,5 +1,5 @@
 # 单测 Spec — 框架验证码安全加固
-> status: apply
+> status: done
 > created: 2026-07-26
 
 ## 0. 测试原则
@@ -13,9 +13,9 @@
 
 | 项目 | 值 |
 |------|-----|
-| JUnit 版本 | JUnit Jupiter 5，由 Spring Boot 3.2 BOM 管理 |
+| JUnit 版本 | JUnit Jupiter 5，由当前 Spring Boot 3.5.13 BOM 管理 |
 | Mock 框架 | Mockito + AssertJ |
-| 已有测试数量 | Auth Starter 当前 2 个测试类；执行时记录实际用例数 |
+| 测试数量 | Auth Starter 实施前 2 个测试类/7 条，阶段末 4 个测试类/20 条 |
 | 已有测试风格 | 直接构造被测对象、Mockito mock、AssertJ 断言，不启动 Spring Context |
 
 ## 2. 覆盖范围
@@ -80,8 +80,8 @@
 - [x] Step 1: 运行 Auth Starter 现有测试套件，记录基线。
 - [x] Step 2: 编写 DTO 与 Captcha Service P0 测试，确认 Red → Green。
 - [x] Step 3: 编写 Message Sender 和手机号校验 P1 测试，确认 Red → Green。
-- [ ] Step 4: 运行 Auth + System 聚合测试与 Admin package。
-- [ ] Step 5: 运行前端 build、敏感日志扫描和 `git diff --check`。
+- [x] Step 4: 运行 Auth + System 聚合测试与 Admin package。
+- [x] Step 5: 运行前端 build、敏感日志扫描和 `git diff --check`。
 
 ## 4. 历史验证基线
 
@@ -94,8 +94,9 @@
 
 | 时间 | 变更范围 | 必跑项 | 实际命令 | 结果 | 跳过/警告 |
 |------|----------|--------|----------|------|-----------|
-| 2026-07-26 | Task 1-4 | Auth/System 测试、Admin package、UI build、静态扫描 | 已完成实施前 Auth 基线，其余见 `tasks.md` | 进行中 | 真实短信 E2E 依赖外部配置 |
+| 2026-07-26 | Task 1-4 | Auth/System 测试、Admin package、UI build、静态扫描 | 完整命令和证据见 `execution-log.md` | 完成，相关模块测试、聚合 package、UI build 和静态扫描已执行 | 真实短信 E2E 依赖外部配置；聚合 test 受既有 datascope 配置阻断 |
 | 2026-07-26 15:50 CST | Task 3 | System 目标测试与模块完整测试 | `mvn -Penable-tests -pl forge-framework/forge-plugin-parent/forge-plugin-system test` | 通过，4 条测试均 0 失败/错误/跳过 | Reactor `-am` Red 命令被既有 datascope Surefire 配置截断；真实短信 E2E 跳过 |
+| 2026-07-26 15:56 CST | Task 4 | Admin 配置、登录页、阶段收尾 | Auth + System Reactor test、Admin package、Node 20.19.0 UI build、YAML 解析、精确敏感扫描、diff check | 相关模块测试、43 模块 package、8725 模块 UI build 和静态检查通过 | Reactor test 被既有 datascope 配置阻断；真实短信 E2E 跳过；既有 Vite 警告不阻断 |
 
 ## 6. 执行证据
 

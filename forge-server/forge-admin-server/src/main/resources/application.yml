@@ -132,6 +132,9 @@ sa-token:
 sms:
   config-type: interface
 forge:
+  captcha:
+    # 仅 dev/local Profile 可生效；生产即使误配为 true 也不回显
+    dev-echo-code: ${FORGE_CAPTCHA_DEV_ECHO_CODE:false}
   flow:
     job:
       remote:

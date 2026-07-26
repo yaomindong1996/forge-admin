@@ -1,6 +1,6 @@
 # 框架验证码安全加固执行记录
 
-> status: in_progress
+> status: complete
 > baseline-created: 2026-07-26
 
 ## 2026-07-26 Proposal
@@ -63,3 +63,17 @@
 - 安全检查：异常路径日志只记录 `SensitiveDataUtil.maskPhone(phone)`、异常类型和固定消息 `SMS_CHANNEL_OPERATION_FAILED` 的安全化堆栈，不输出验证码、完整手机号或供应商原始异常消息；`git diff --check` 返回 0。
 - 跳过项：未调用真实短信供应商，本地没有可提交的供应商凭据；适配协议由 `MessageClient` Stub 覆盖，真实通道 E2E 留给用户侧配置环境验收。
 - 服务：未启动任何后端、前端、数据库或 Redis；新增 PID：无。
+
+## 2026-07-26 15:56 CST Task 4 阶段收尾与两阶段审查
+
+- 变更范围：Admin 显式映射 `FORGE_CAPTCHA_DEV_ECHO_CODE` 且默认 `false`；登录页删除图形和短信验证码答案的控制台输出；业务提示、图片、`codeKey` 和倒计时逻辑保持不变。
+- 聚合测试命令：`mvn -Penable-tests -pl forge-framework/forge-starter-parent/forge-starter-auth,forge-framework/forge-plugin-parent/forge-plugin-system -am test`。Auth 20 条、Outbound 48 条、Flow Client 11 条及 Excel/File 相关上游测试通过；随后在第 20/25 个模块 `forge-starter-datascope` 因既有 `groups/excludedGroups require TestNG, JUnit48+ or JUnit 5` 失败，System 在该命令中被跳过。System 本阶段已有独立 4 条完整测试通过证据，未修改无关 datascope。
+- Admin 聚合命令：`mvn -pl forge-admin-server -am package -DskipTests`，结果 `BUILD SUCCESS`，43 个 Reactor 模块全部打包成功，包含 Auth、Message、System 和 Admin。
+- 前端命令：Node `v20.19.0` 下执行 `NODE_OPTIONS=--max-old-space-size=8192 pnpm build`，结果成功，8725 个模块完成转换，耗时 1 分 44 秒。
+- 前端警告：保留既有 `UserSelectModal` 组件命名冲突、动态/静态 import 混用、CSS `//` 注释和分块提示；本次只删除登录页控制台副作用，警告与本轮差异无关且不阻断构建。
+- 配置校验：使用 Ruby YAML 解析 `forge-admin-server/target/classes/application.yml`，确认 `forge.captcha.dev-echo-code` 为 `${FORGE_CAPTCHA_DEV_ECHO_CODE:false}`；Ruby 同时提示 `/opt/homebrew/opt` 目录权限警告，不影响解析结果。
+- 安全扫描：初版宽泛规则命中验证码 key、已脱敏手机号日志和 `expectedX` 局部变量，未将其误判为泄露；改用 `rg --pcre2` 精确扫描 `res.data.code`（排除 `codeKey`）、验证码 `console.warn` 以及日志中的 `codeStr/cacheCode/correctX/moveX/expectedX`，结果无匹配。
+- 静态检查：`git diff --check` 返回 0；打包产物目录未进入版本控制差异。
+- 阶段一 Spec Compliance：PASS，9 个功能点全部有代码和测试/静态证据。
+- 阶段二 Code Quality：PASS_WITH_COMMENTS，未发现阻塞问题；保留项为真实短信供应商 E2E 未执行，以及全 Reactor 测试受既有 datascope 测试引擎配置阻断。
+- 服务：未启动任何后端、前端、数据库、Redis 或浏览器进程；新增 PID：无，无需清理服务。

@@ -1,5 +1,5 @@
 # 框架验证码安全加固
-> status: apply
+> status: review
 > created: 2026-07-26
 > complexity: 🟡中等
 
@@ -61,15 +61,15 @@
 
 ## 3. 功能点
 
-- [ ] 增加验证码开发回显策略：仅 `dev`/`local` 且显式开关为真时生效。
-- [ ] `CaptchaResult.code` 与 `SmsCaptchaResult.code` 为 `null` 时不参与 JSON 序列化。
-- [ ] 清理所有验证码答案、输入答案、缓存答案、滑块目标位置和完整手机号日志。
-- [ ] 定义 `SmsCaptchaSender` SPI，由认证服务负责生成、缓存和校验验证码，由组合层负责真实发送。
-- [ ] 在 `forge-plugin-system` 中增加 `MessageClient` 适配器，复用现有 SMS4J 通道。
-- [ ] 短信通道发送失败或不可用时删除本轮验证码缓存并返回失败，不设置发送间隔。
-- [ ] 开发模拟模式下不调用真实短信通道，返回验证码供本地联调。
-- [ ] 统一手机号验证码登录的缓存键和一次性消费语义。
-- [ ] 删除管理端登录页的验证码控制台输出。
+- [x] 增加验证码开发回显策略：仅 `dev`/`local` 且显式开关为真时生效。
+- [x] `CaptchaResult.code` 与 `SmsCaptchaResult.code` 为 `null` 时不参与 JSON 序列化。
+- [x] 清理所有验证码答案、输入答案、缓存答案、滑块目标位置和完整手机号日志。
+- [x] 定义 `SmsCaptchaSender` SPI，由认证服务负责生成、缓存和校验验证码，由组合层负责真实发送。
+- [x] 在 `forge-plugin-system` 中增加 `MessageClient` 适配器，复用现有 SMS4J 通道。
+- [x] 短信通道发送失败或不可用时删除本轮验证码缓存并返回失败，不设置发送间隔。
+- [x] 开发模拟模式下不调用真实短信通道，返回验证码供本地联调。
+- [x] 统一手机号验证码登录的缓存键和一次性消费语义。
+- [x] 删除管理端登录页的验证码控制台输出。
 
 ## 4. 业务规则
 
@@ -144,11 +144,14 @@ Redis 键协议调整：手机号登录停止读取 `captcha:phone_code:<phone>`
 | Task 1 | 完成 | `CaptchaProperties`、响应 DTO、`SmsCaptchaSender`、序列化测试 | Red 2 条失败；Green 3 条通过，Auth Reactor 编译通过 |
 | Task 2 | 完成 | `CaptchaServiceImpl`、`ICaptchaService`、核心行为测试 | 10 条验证码服务测试通过；Auth Starter 共 20 条通过；敏感日志扫描通过 |
 | Task 3 | 完成 | `MessageSmsCaptchaSender`、`UserLoadServiceImpl`、System 插件测试 | 真实消息通道适配与手机号短信验证码一次性校验统一；System 4 条测试通过 |
-| Task 4 | 待执行 | — | 前端清理、配置与聚合验证 |
+| Task 4 | 完成 | Admin `application.yml`、登录页、本变更四份 SDD 文档 | 环境变量默认关闭；前端不再读取验证码答案；Admin 43 模块 package 和 UI build 通过 |
 
 ## 12. 审查结论
 
-待 `/apply` 完成后执行 Spec 合规审查和代码质量审查。
+- **阶段一 Spec Compliance：PASS**。9 个功能点全部完成；默认/开发/生产回显、发送成功/失败/异常、缓存回滚、一次性消费、MessageClient 请求协议和手机号登录校验均有对应测试或静态证据。
+- **阶段二 Code Quality：PASS_WITH_COMMENTS**。未发现阻塞性正确性、安全性、性能或可维护性问题；验证码答案、缓存答案、滑块位置和完整手机号未进入本次链路日志，异常消息已安全化。
+- **验证结论**：Auth Starter 20 条、System 插件 4 条测试通过；Admin 43 个 Reactor 模块 package 成功；Node `20.19.0` 前端 8725 个模块生产构建成功；打包后 YAML 配置解析和精确敏感日志扫描通过。
+- **保留项**：Auth + System `-am test` 在进入 System 前被既有 datascope Surefire/JUnit 引擎配置阻断；System 已隔离验证。未配置真实短信供应商凭据，真实发送 E2E 按 Test Spec 跳过，不把 Stub 结果当作供应商验收。
 
 ## 13. 确认记录（HARD-GATE）
 

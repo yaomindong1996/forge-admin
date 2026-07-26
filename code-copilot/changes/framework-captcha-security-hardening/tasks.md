@@ -2,7 +2,7 @@
 
 > **For agentic workers:** 本计划按仓库 `code-copilot` SDD 工作流内联执行；每个 Task 均先 Red、再 Green、验证后提交。用户确认 HARD-GATE 前不得修改生产代码。
 
-> status: in_progress
+> status: complete
 > created: 2026-07-26
 
 **Goal:** 消除验证码响应与日志泄露，接入真实短信通道并修复手机号验证码缓存键不一致。
@@ -324,7 +324,7 @@ git commit -m "[framework-captcha-security-hardening] 接入短信通道并统�
 - Modify: `code-copilot/changes/framework-captcha-security-hardening/test-spec.md`
 - Modify: `code-copilot/changes/framework-captcha-security-hardening/execution-log.md`
 
-- [ ] **Step 1: 显式映射开发回显环境变量**
+- [x] **Step 1: 显式映射开发回显环境变量**
 
 ```yaml
 forge:
@@ -333,11 +333,11 @@ forge:
     dev-echo-code: ${FORGE_CAPTCHA_DEV_ECHO_CODE:false}
 ```
 
-- [ ] **Step 2: 删除前端验证码控制台输出**
+- [x] **Step 2: 删除前端验证码控制台输出**
 
 删除 `refreshCaptcha` 和 `sendSmsCode` 中读取 `res.data.code` 并 `console.warn` 的代码，保留图片、`codeKey`、状态提示和倒计时逻辑。
 
-- [ ] **Step 3: 执行后端聚合验证**
+- [x] **Step 3: 执行后端聚合验证**
 
 ```bash
 cd forge-server
@@ -349,7 +349,7 @@ mvn -pl forge-admin-server -am package -DskipTests
 
 预期：两条命令均 `BUILD SUCCESS`。
 
-- [ ] **Step 4: 执行前端和静态安全验证**
+- [x] **Step 4: 执行前端和静态安全验证**
 
 ```bash
 cd forge-admin-ui
@@ -369,7 +369,7 @@ git diff --check
 
 预期：前端构建成功；敏感日志扫描无匹配；`git diff --check` 返回 0。
 
-- [ ] **Step 5: 回填执行证据、更新状态并提交**
+- [x] **Step 5: 回填执行证据、更新状态并提交**
 
 将命令、测试数量、跳过的真实短信 E2E、服务 PID 写入 `execution-log.md`；将 Spec 状态更新为 `review`。
 
