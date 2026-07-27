@@ -31,4 +31,7 @@ public interface AiCrudConfigMapper extends BaseMapper<AiCrudConfig> {
 
     List<AiCrudConfig> selectPublishedLowcodeConfigs(@Param("tenantId") Long tenantId);
 
+    List<AiCrudConfig> selectEncryptConfigCandidates(@Param("tenantId") Long tenantId,
+                                                     @Param("configKeys") List<String> configKeys);
+
 }

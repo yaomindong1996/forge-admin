@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.system.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.system.entity.SysOnlineUser;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -13,6 +14,17 @@ import java.util.List;
  */
 @Mapper
 public interface SysOnlineUserMapper extends BaseMapper<SysOnlineUser> {
+
+    Page<SysOnlineUser> selectOnlineUsersPage(Page<SysOnlineUser> page,
+                                              @Param("username") String username);
+
+    List<SysOnlineUser> selectOnlineUsers(@Param("username") String username);
+
+    SysOnlineUser selectActiveByTokenValue(@Param("tokenValue") String tokenValue);
+
+    List<String> selectActiveTokenValuesByUserId(@Param("userId") Long userId);
+
+    List<Long> selectActiveSessionIdsByUserId(@Param("userId") Long userId);
 
     /**
      * 批量更新状态为离线

@@ -82,4 +82,14 @@ forge:
       - /auth/**
       - /report/mock/**
   crypto:
-    secretKey: 8r0fV9G3kLcNz7p2xQaA1w==
+    bootstrap:
+      enabled: ${FORGE_CRYPTO_BOOTSTRAP_ENABLED:true}
+      file: ${FORGE_CRYPTO_BOOTSTRAP_FILE:}
+    secret-key: ${FORGE_CRYPTO_SECRET_KEY:}
+    persistence:
+      enabled: ${FORGE_CRYPTO_PERSISTENCE_ENABLED:true}
+      write-versioned: ${FORGE_CRYPTO_PERSISTENCE_WRITE_VERSIONED:false}
+      legacy-read-enabled: ${FORGE_CRYPTO_PERSISTENCE_LEGACY_READ_ENABLED:true}
+      legacy-key: ${FORGE_CRYPTO_PERSISTENCE_LEGACY_KEY:${FORGE_CRYPTO_SECRET_KEY:}}
+      active-key-id: ${FORGE_CRYPTO_PERSISTENCE_ACTIVE_KEY_ID:}
+      active-key: ${FORGE_CRYPTO_PERSISTENCE_ACTIVE_KEY:}

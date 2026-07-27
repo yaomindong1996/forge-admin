@@ -94,9 +94,13 @@
                 {{ selectedCategoryNode.categoryCode }}
               </div>
             </div>
-            <NTag size="small" :type="selectedCategoryNode.status === 1 ? 'success' : 'default'" :bordered="false">
-              {{ selectedCategoryNode.status === 1 ? '启用' : '停用' }}
-            </NTag>
+            <DictTag
+              :options="statusOptions"
+              :value="selectedCategoryNode.status"
+              size="small"
+              :bordered="false"
+              force-tag
+            />
           </div>
           <p class="category-detail-desc">
             {{ selectedCategoryNode.description || '当前分类暂无补充说明。' }}
@@ -1561,8 +1565,9 @@ import { AiCrudPage } from '@/components/ai-form'
 import DatasetParamSchemaEditor from '@/components/data/DatasetParamSchemaEditor.vue'
 import DictTag from '@/components/DictTag.vue'
 import SqlEditor from '@/components/SqlEditor.vue'
-import { useDict } from '@/composables/useDict'
+import { getDictData, useDict } from '@/composables/useDict'
 import { request } from '@/utils'
+import { normalizeDictOptionValue, toNumberDictOptions } from '@/utils/dict-options'
 
 defineOptions({ name: 'DataDataset' })
 
@@ -1573,6 +1578,13 @@ const { dict } = useDict(
   'data_dataset_access_mode',
   'data_acl_subject_type',
   'data_acl_access_level',
+  'data_result_encoding',
+  'data_row_scope_attribute',
+  'data_row_scope_logic',
+  'data_field_data_type',
+  'data_mask_rule',
+  'data_date_format',
+  'data_unit',
   'data_field_role',
   'data_field_sensitive_level',
 )
@@ -1655,14 +1667,11 @@ const datasetStats = reactive({
 
 const datasetTypeOptions = computed(() => dict.value.data_dataset_type || [])
 
-const statusOptions = computed(() => dict.value.sys_enable_disable || [])
+const statusOptions = computed(() => toNumberDictOptions(dict.value.sys_enable_disable))
 
-const resultEncodingOptions = [
-  { label: 'UTF-8', value: 'UTF-8' },
-  { label: 'GBK', value: 'GBK' },
-]
+const resultEncodingOptions = computed(() => dict.value.data_result_encoding || [])
 
-const publishStatusOptions = computed(() => dict.value.data_dataset_publish_status || [])
+const publishStatusOptions = computed(() => toNumberDictOptions(dict.value.data_dataset_publish_status))
 
 const datasetImpactLimit = 10
 const datasetImpactVisibleLimit = 6
@@ -1673,53 +1682,24 @@ const aclSubjectTypeOptions = computed(() => dict.value.data_acl_subject_type ||
 
 const accessLevelOptions = computed(() => dict.value.data_acl_access_level || [])
 
-const rowScopeAttributeOptions = [
-  { label: '租户 ID', value: 'tenantColumn', caption: '匹配当前登录租户' },
-  { label: '组织 ID', value: 'orgColumn', caption: '匹配用户所属组织' },
-  { label: '用户 ID', value: 'userColumn', caption: '匹配当前登录用户' },
-  { label: '行政区划', value: 'regionColumn', caption: '匹配地市 / 区县编码' },
-]
+const rowScopeAttributeOptions = computed(() => (dict.value.data_row_scope_attribute || []).map(item => ({
+  ...item,
+  caption: item.remark,
+})))
 
-const rowScopeLogicOptions = [
-  { label: 'AND', value: 'AND' },
-  { label: 'OR', value: 'OR' },
-]
+const rowScopeLogicOptions = computed(() => dict.value.data_row_scope_logic || [])
 
-const dataTypeOptions = [
-  { label: '文本 STRING', value: 'STRING' },
-  { label: '数值 NUMBER', value: 'NUMBER' },
-  { label: '日期 DATE', value: 'DATE' },
-  { label: '日期时间 DATETIME', value: 'DATETIME' },
-  { label: '布尔 BOOLEAN', value: 'BOOLEAN' },
-]
+const dataTypeOptions = computed(() => dict.value.data_field_data_type || [])
 
 const fieldRoleOptions = computed(() => dict.value.data_field_role || [])
 
 const sensitiveLevelOptions = computed(() => dict.value.data_field_sensitive_level || [])
 
-const maskRuleOptions = [
-  { label: '默认：保留前2后2', value: '__DEFAULT__' },
-  { label: '手机号：隐藏中间4位', value: '(?<=\\d{3})\\d{4}(?=\\d{4})' },
-  { label: '身份证：隐藏出生日期', value: '(?<=\\d{6})\\d{8}(?=\\d{4})' },
-  { label: '银行卡：保留前4后4', value: '(?<=\\d{4})\\d+(?=\\d{4})' },
-]
+const maskRuleOptions = computed(() => dict.value.data_mask_rule || [])
 
-const dateFormatOptions = [
-  { label: 'yyyy-MM-dd', value: 'yyyy-MM-dd' },
-  { label: 'yyyy-MM-dd HH:mm:ss', value: 'yyyy-MM-dd HH:mm:ss' },
-  { label: 'yyyy/MM/dd', value: 'yyyy/MM/dd' },
-  { label: 'yyyy年MM月dd日', value: 'yyyy年MM月dd日' },
-]
+const dateFormatOptions = computed(() => dict.value.data_date_format || [])
 
-const dataUnitOptions = [
-  { label: '元', value: '元' },
-  { label: '万元', value: '万元' },
-  { label: '%', value: '%' },
-  { label: '人', value: '人' },
-  { label: '次', value: '次' },
-  { label: '件', value: '件' },
-  { label: '天', value: '天' },
-]
+const dataUnitOptions = computed(() => dict.value.data_unit || [])
 
 const supportedParamOperators = ['=', '!=', '>', '>=', '<', '<=', 'LIKE']
 
@@ -1864,11 +1844,13 @@ const tableColumns = computed(() => [
     render: row => h('div', { class: 'asset-name-card' }, [
       h('div', { class: 'asset-name-row' }, [
         h('div', { class: 'asset-name' }, row.datasetName),
-        h(NTag, {
+        h(DictTag, {
+          options: datasetTypeOptions.value,
+          value: row.datasetType,
           size: 'small',
           bordered: false,
-          type: row.datasetType === 'TABLE' ? 'info' : 'warning',
-        }, { default: () => row.datasetType === 'TABLE' ? '单表' : 'SQL' }),
+          forceTag: true,
+        }),
       ]),
       h('div', { class: 'asset-code' }, row.datasetCode),
       h('div', { class: 'asset-desc' }, row.description || '暂无描述'),
@@ -1967,7 +1949,7 @@ const fieldColumns = computed(() => [
     title: '标准类型',
     key: 'dataType',
     width: 160,
-    render: row => renderFieldSelect(row, 'dataType', dataTypeOptions, { placeholder: '标准类型' }),
+    render: row => renderFieldSelect(row, 'dataType', dataTypeOptions.value, { placeholder: '标准类型' }),
   },
   {
     title: '字段角色',
@@ -2005,7 +1987,7 @@ const fieldColumns = computed(() => [
       if (!['DATE', 'DATETIME'].includes(row.dataType)) {
         return h('span', { class: 'field-muted-text' }, '非日期字段')
       }
-      return renderFieldSelect(row, 'dateFormat', dateFormatOptions, {
+      return renderFieldSelect(row, 'dateFormat', dateFormatOptions.value, {
         placeholder: '选择或输入格式',
         clearable: true,
         filterable: true,
@@ -2017,7 +1999,7 @@ const fieldColumns = computed(() => [
     title: '计量单位',
     key: 'dataUnit',
     width: 150,
-    render: row => renderFieldSelect(row, 'dataUnit', dataUnitOptions, {
+    render: row => renderFieldSelect(row, 'dataUnit', dataUnitOptions.value, {
       placeholder: '单位',
       clearable: true,
       filterable: true,
@@ -2171,12 +2153,12 @@ async function scrollToStepSection(step) {
 
 function getPublishStatusLabel(status) {
   const item = dict.value.data_dataset_publish_status?.find(d => d.value === String(status))
-  return item?.label || '未发布'
+  return item?.label || String(status ?? '-')
 }
 
 function getAccessModeLabel(accessMode) {
-  const item = dict.value.data_dataset_access_mode?.find(d => d.value === accessMode)
-  return item?.label || '公开'
+  const item = dict.value.data_dataset_access_mode?.find(d => d.value === String(accessMode))
+  return item?.label || String(accessMode ?? '-')
 }
 
 function getDatasetCreatorLabel(formData) {
@@ -2210,8 +2192,13 @@ function getDatasetSourceGuide(formData) {
 }
 
 function getDatasetTypeLabel(datasetType) {
-  const item = dict.value.data_dataset_type?.find(d => d.value === datasetType)
-  return item?.label || '单表数据集'
+  const item = dict.value.data_dataset_type?.find(d => d.value === String(datasetType))
+  return item?.label || String(datasetType ?? '-')
+}
+
+function getEnableStatusLabel(status) {
+  const item = dict.value.sys_enable_disable?.find(d => d.value === String(status))
+  return item?.label || String(status ?? '-')
 }
 
 function getDatasetSourceSubject(formData) {
@@ -2331,14 +2318,14 @@ function extractSqlParamNames(sqlText) {
 function buildCategoryTreeNodes(tree) {
   return tree.map(item => ({
     key: item.id,
-    label: item.status === 1 ? item.categoryName : `${item.categoryName} · 停用`,
+    label: item.status === 1 ? item.categoryName : `${item.categoryName} · ${getEnableStatusLabel(item.status)}`,
     children: item.children?.length ? buildCategoryTreeNodes(item.children) : undefined,
   }))
 }
 
 function buildCategorySelectOptions(tree) {
   return tree.map(item => ({
-    label: item.status === 1 ? item.categoryName : `${item.categoryName}（停用）`,
+    label: item.status === 1 ? item.categoryName : `${item.categoryName}（${getEnableStatusLabel(item.status)}）`,
     value: item.id,
     key: item.id,
     children: item.children?.length ? buildCategorySelectOptions(item.children) : undefined,
@@ -2494,6 +2481,7 @@ function prepareDatasetFormData(sourceData = {}, options = {}) {
 }
 
 async function beforeRenderForm(formData) {
+  await ensureRowScopeDictOptions()
   const nextFormData = prepareDatasetFormData(formData || {}, {
     applyScopeDefault: !formData,
   })
@@ -2513,7 +2501,20 @@ async function beforeRenderForm(formData) {
   return nextFormData
 }
 
+async function ensureRowScopeDictOptions() {
+  if (rowScopeAttributeOptions.value.length > 0 && rowScopeLogicOptions.value.length > 0)
+    return
+
+  const [attributeOptions, logicOptions] = await Promise.all([
+    getDictData('data_row_scope_attribute'),
+    getDictData('data_row_scope_logic'),
+  ])
+  dict.value.data_row_scope_attribute = attributeOptions
+  dict.value.data_row_scope_logic = logicOptions
+}
+
 async function beforeRenderDetail(detailData) {
+  await ensureRowScopeDictOptions()
   const nextFormData = prepareDatasetFormData(detailData || {})
   currentEditingDataset.value = nextFormData
   const connectionId = nextFormData.connectionId
@@ -2872,7 +2873,7 @@ function createRowScopeRule(attribute = null, field = null, logic = 'AND') {
 }
 
 function buildRowScopeRuleItems(rowScope) {
-  return rowScopeAttributeOptions
+  return rowScopeAttributeOptions.value
     .filter(option => rowScope?.[option.value])
     .map((option, index) => createRowScopeRule(option.value, rowScope[option.value], index === 0 ? 'AND' : 'AND'))
 }
@@ -2881,7 +2882,7 @@ function normalizeRowScopeRule(rule) {
   if (!rule || typeof rule !== 'object') {
     return null
   }
-  const attribute = rowScopeAttributeOptions.some(option => option.value === rule.attribute) ? rule.attribute : null
+  const attribute = normalizeDictOptionValue(rowScopeAttributeOptions.value, trimToNull(rule.attribute), null)
   return {
     __key: rule.__key || `${Date.now()}-${Math.random()}`,
     attribute,
@@ -2891,7 +2892,7 @@ function normalizeRowScopeRule(rule) {
 }
 
 function normalizeRowScopeLogic(logic) {
-  return rowScopeLogicOptions.some(option => option.value === logic) ? logic : 'AND'
+  return normalizeDictOptionValue(rowScopeLogicOptions.value, trimToNull(logic), 'AND')
 }
 
 function normalizeAclSubjectType(subjectType) {
@@ -3112,8 +3113,8 @@ function handleRowScopeEnabledChange(checked, formData, updateValue) {
 function addRowScopeRule(formData, updateValue) {
   const rowScope = ensureRowScope(formData)
   const usedAttributes = new Set(rowScope.ruleItems.map(rule => rule.attribute).filter(Boolean))
-  const nextAttribute = rowScopeAttributeOptions.find(option => !usedAttributes.has(option.value))?.value || null
-  if (!nextAttribute && rowScope.ruleItems.length >= rowScopeAttributeOptions.length) {
+  const nextAttribute = rowScopeAttributeOptions.value.find(option => !usedAttributes.has(option.value))?.value || null
+  if (!nextAttribute && rowScope.ruleItems.length >= rowScopeAttributeOptions.value.length) {
     window.$message?.warning('可配置的用户属性已全部添加')
     return
   }
@@ -3169,7 +3170,7 @@ function getRowScopeAttributeOptions(formData, currentRule) {
       .map(rule => rule.attribute)
       .filter(Boolean),
   )
-  return rowScopeAttributeOptions.map(option => ({
+  return rowScopeAttributeOptions.value.map(option => ({
     ...option,
     disabled: usedAttributes.has(option.value),
   }))
@@ -3185,7 +3186,7 @@ function getRowScopeConditionPreview(formData) {
     return '保存后将按角色数据范围动态拼接过滤条件。'
   }
   return rules.map((rule, index) => {
-    const attributeLabel = rowScopeAttributeOptions.find(option => option.value === rule.attribute)?.label || '用户属性'
+    const attributeLabel = rowScopeAttributeOptions.value.find(option => option.value === rule.attribute)?.label || '用户属性'
     const expression = `${attributeLabel} = ${rule.field}`
     if (index === rules.length - 1) {
       return expression
@@ -3195,7 +3196,7 @@ function getRowScopeConditionPreview(formData) {
 }
 
 function getRowScopeRuleLabel(rule) {
-  const attributeLabel = rowScopeAttributeOptions.find(option => option.value === rule.attribute)?.label || '用户属性'
+  const attributeLabel = rowScopeAttributeOptions.value.find(option => option.value === rule.attribute)?.label || '用户属性'
   return `${attributeLabel} = ${rule.field}`
 }
 
@@ -3205,7 +3206,7 @@ function syncRowScopeColumnsFromRules(rowScope) {
   rowScope.userColumn = null
   rowScope.regionColumn = null
   for (const rule of rowScope.ruleItems || []) {
-    if (rowScopeAttributeOptions.some(option => option.value === rule.attribute) && trimToNull(rule.field)) {
+    if (rowScopeAttributeOptions.value.some(option => option.value === rule.attribute) && trimToNull(rule.field)) {
       rowScope[rule.attribute] = trimToNull(rule.field)
     }
   }
@@ -3257,6 +3258,11 @@ function normalizeSubmitRowScope(formData) {
     }
   }
 
+  if (rowScopeAttributeOptions.value.length === 0 || rowScopeLogicOptions.value.length === 0) {
+    window.$message?.error('数据行权限字典未加载，无法安全保存当前配置')
+    return null
+  }
+
   const rules = rowScope.ruleItems || []
   if (rules.length === 0) {
     window.$message?.error('启用数据行权限后，至少需要添加一条权限规则')
@@ -3275,7 +3281,7 @@ function normalizeSubmitRowScope(formData) {
       window.$message?.error(`第${index + 1}行用户属性不能为空`)
       return null
     }
-    if (!rowScopeAttributeOptions.some(option => option.value === rule.attribute)) {
+    if (!rowScopeAttributeOptions.value.some(option => option.value === rule.attribute)) {
       window.$message?.error(`第${index + 1}行用户属性无效`)
       return null
     }
@@ -3438,13 +3444,13 @@ function renderMaskRuleSelect(row) {
     if (!row.maskRule) {
       return '默认：保留前2后2'
     }
-    const option = maskRuleOptions.find(item => item.value === row.maskRule)
+    const option = maskRuleOptions.value.find(item => item.value === row.maskRule)
     return option?.label || row.maskRule
   }
 
   return h(NSelect, {
     value: row.maskRule || '__DEFAULT__',
-    options: maskRuleOptions,
+    options: maskRuleOptions.value,
     size: 'small',
     filterable: true,
     tag: true,

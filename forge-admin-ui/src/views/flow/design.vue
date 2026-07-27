@@ -742,7 +742,9 @@ import { DingFlowDesigner } from '@/components/flow-designer'
 import FlowPropertyPanelShell from '@/components/flow/FlowPropertyPanelShell.vue'
 import FlowFormCreateDesigner from '@/components/form-create/FlowFormCreateDesigner.vue'
 import FlowFormCreateRenderer from '@/components/form-create/FlowFormCreateRenderer.vue'
+import { useDict } from '@/composables/useDict'
 import { useTabStore } from '@/store'
+import { toNumberDictOptions } from '@/utils/dict-options'
 import BusinessFlowFormAssetSelect from '@/views/app-center/components/designer/BusinessFlowFormAssetSelect.vue'
 import { buildFlowCategoryTreeOptions, resolveFlowCategoryValue } from './utils/categoryOptions'
 import { buildLocalFormFieldCatalog } from './utils/form-field-catalog'
@@ -779,6 +781,7 @@ const route = useRoute()
 const router = useRouter()
 const tabStore = useTabStore()
 const message = window.$message
+const { dict } = useDict('flow_designer_type', 'flow_process_form_type', 'flow_auto_approval_mode', 'flow_model_status')
 
 const FlowModeler = defineAsyncComponent(() => import('@/components/bpmn/FlowModeler.vue'))
 
@@ -874,42 +877,15 @@ const categoryTreeOptions = ref([])
 const modelerInstance = ref(null)
 const dockedElement = ref(null)
 
-const designerTypeOptions = [
-  { label: '审批流程', value: 'approval' },
-  { label: '业务流程', value: 'business' },
-]
-
-const formTypeOptions = [
-  { label: '动态表单（应用表单）', value: 'dynamic' },
-  { label: '外置表单', value: 'external' },
-  { label: '业务应用表单', value: 'business' },
-  { label: '无表单', value: 'none' },
-]
-
-const businessManagedFormTypeOptions = [
-  { label: '业务应用表单', value: 'business' },
-  { label: '动态表单（应用表单）', value: 'dynamic' },
-  { label: '外置表单', value: 'external' },
-  { label: '无表单', value: 'none' },
-]
-
-const autoApprovalModeOptions = [
-  {
-    label: '仅首个节点需审批，后续审批节点自动同意',
-    value: 'firstOnly',
-    desc: '同一审批人完成一次审批后，后续再次轮到该审批人时系统自动同意。',
-  },
-  {
-    label: '仅连续审批时自动同意',
-    value: 'consecutive',
-    desc: '只有相邻审批节点仍是同一审批人时，后续连续节点自动同意。',
-  },
-  {
-    label: '每个节点都需要审批',
-    value: 'none',
-    desc: '不触发重复审批自动同意，所有审批节点都需要人工处理。',
-  },
-]
+const designerTypeOptions = computed(() => dict.value.flow_designer_type || [])
+const formTypeOptions = computed(() => dict.value.flow_process_form_type || [])
+const businessManagedFormTypeOptions = computed(() => [...formTypeOptions.value]
+  .sort((a, b) => Number(b.value === 'business') - Number(a.value === 'business')))
+const autoApprovalModeOptions = computed(() => (dict.value.flow_auto_approval_mode || []).map(item => ({
+  ...item,
+  desc: item.remark,
+})))
+const modelStatusOptions = computed(() => toNumberDictOptions(dict.value.flow_model_status))
 
 const aiExamples = [
   { label: '请假审批', text: '生成一个请假审批流程：3天以内直属上级审批，超过3天先直属上级再HR审批。' },
@@ -929,12 +905,10 @@ const currentAiStageIndex = computed(() => {
 })
 
 const statusTag = computed(() => {
-  const statusMap = {
-    0: { type: 'warning', label: '设计中' },
-    1: { type: 'success', label: '已部署' },
-    2: { type: 'default', label: '已禁用' },
-  }
-  return statusMap[modelInfo.status] || { type: 'default', label: '未知' }
+  const option = modelStatusOptions.value.find(item => item.value === Number(modelInfo.status))
+  return option
+    ? { type: option.listClass || 'default', label: option.label }
+    : { type: 'default', label: modelInfo.status ?? '未知' }
 })
 
 const isReadonly = computed(() => modelInfo.status === 1)
@@ -965,7 +939,7 @@ const isApprovalDesigner = computed(() => designerType.value === 'approval')
 const isBusinessDesigner = computed(() => designerType.value === 'business')
 const designerRenderKey = computed(() => `${modelInfo.id || 'new'}:${designerType.value}`)
 const designerTypeLabel = computed(() => {
-  return designerTypeOptions.find(item => item.value === designerType.value)?.label || '审批流程'
+  return designerTypeOptions.value.find(item => item.value === designerType.value)?.label || designerType.value
 })
 const businessPanelTitle = computed(() => getElementTitle(dockedElement.value))
 const businessPanelIcon = computed(() => getElementIcon(dockedElement.value))
@@ -1072,7 +1046,7 @@ const formConfigStatus = computed(() => {
 })
 
 const autoApprovalModeLabel = computed(() => {
-  return autoApprovalModeOptions.find(item => item.value === processConfig.value.autoApprovalMode)?.label || '每个节点都需要审批'
+  return autoApprovalModeOptions.value.find(item => item.value === processConfig.value.autoApprovalMode)?.label || processConfig.value.autoApprovalMode
 })
 
 const isAiPanelActive = computed(() => workspaceMode.value === 'settings' && rightActiveTab.value === 'ai')

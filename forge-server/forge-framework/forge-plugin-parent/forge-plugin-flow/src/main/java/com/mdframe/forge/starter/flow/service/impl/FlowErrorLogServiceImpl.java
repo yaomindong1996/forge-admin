@@ -3,7 +3,10 @@ package com.mdframe.forge.starter.flow.service.impl;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.flow.entity.FlowErrorLog;
+import com.mdframe.forge.starter.flow.mapper.FlowBusinessMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowErrorLogMapper;
 import com.mdframe.forge.starter.flow.service.FlowErrorLogService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 流程运行错误日志服务实现
@@ -34,6 +38,7 @@ public class FlowErrorLogServiceImpl extends ServiceImpl<FlowErrorLogMapper, Flo
 
     private final RuntimeService runtimeService;
     private final ManagementService managementService;
+    private final FlowBusinessMapper flowBusinessMapper;
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
@@ -60,6 +65,9 @@ public class FlowErrorLogServiceImpl extends ServiceImpl<FlowErrorLogMapper, Flo
         if (errorLog.getRetryCount() == null) {
             errorLog.setRetryCount(0);
         }
+        if (errorLog.getTenantId() == null) {
+            errorLog.setTenantId(SessionHelper.getTenantId());
+        }
         LocalDateTime now = LocalDateTime.now();
         if (errorLog.getCreateTime() == null) {
             errorLog.setCreateTime(now);
@@ -70,18 +78,31 @@ public class FlowErrorLogServiceImpl extends ServiceImpl<FlowErrorLogMapper, Flo
 
     @Override
     public IPage<FlowErrorLog> pageErrors(Page<FlowErrorLog> page, String processInstanceId, String activityId, Integer status) {
-        return baseMapper.selectErrorLogPage(page, processInstanceId, activityId, status);
+        return baseMapper.selectErrorLogPage(page, requireCurrentTenantId(), processInstanceId, activityId, status);
     }
 
     @Override
     public List<FlowErrorLog> listRecentByProcessInstanceId(String processInstanceId) {
-        return baseMapper.selectRecentByProcessInstanceId(processInstanceId);
+        return baseMapper.selectRecentByProcessInstanceId(requireCurrentTenantId(), processInstanceId);
     }
 
     @Override
     public Long countUnresolvedByProcessInstanceId(String processInstanceId) {
-        Long count = baseMapper.countUnresolvedByProcessInstanceId(processInstanceId);
+        Long count = baseMapper.countUnresolvedByProcessInstanceId(requireCurrentTenantId(), processInstanceId);
         return count == null ? 0L : count;
+    }
+
+    @Override
+    public Map<String, Object> getStatistics() {
+        return baseMapper.selectStatistics(requireCurrentTenantId());
+    }
+
+    @Override
+    public FlowErrorLog getCurrentTenantError(String logId) {
+        if (logId == null || logId.isEmpty()) {
+            throw new BusinessException(400, "错误日志ID不能为空");
+        }
+        return baseMapper.selectByIdAndTenantId(logId, requireCurrentTenantId());
     }
 
     @Override
@@ -91,7 +112,11 @@ public class FlowErrorLogServiceImpl extends ServiceImpl<FlowErrorLogMapper, Flo
             throw new RuntimeException("流程实例ID不能为空");
         }
 
-        FlowErrorLog errorLog = findRetryLog(processInstanceId, activityId, logId);
+        Long tenantId = requireCurrentTenantId();
+        if (flowBusinessMapper.selectByProcessInstanceIdAndTenantIdForUpdate(processInstanceId, tenantId) == null) {
+            throw new BusinessException(404, "流程实例不存在或不属于当前租户");
+        }
+        FlowErrorLog errorLog = findRetryLog(processInstanceId, activityId, logId, tenantId);
         String retryActivityId = activityId;
         if ((retryActivityId == null || retryActivityId.isEmpty()) && errorLog != null) {
             retryActivityId = errorLog.getActivityId();
@@ -102,33 +127,56 @@ public class FlowErrorLogServiceImpl extends ServiceImpl<FlowErrorLogMapper, Flo
             if (!retried) {
                 retryActiveActivity(processInstanceId, retryActivityId);
             }
-            markRetrySuccess(errorLog, userId, reason);
+            markRetrySuccess(errorLog, tenantId, userId, reason);
             log.info("流程节点重试成功：processInstanceId={}, activityId={}, logId={}, userId={}",
                     processInstanceId, retryActivityId, logId, userId);
         } catch (Exception e) {
-            markRetryFailed(errorLog, userId, e.getMessage());
+            markRetryFailed(errorLog, tenantId, userId, e.getMessage());
             FlowErrorLog retryError = new FlowErrorLog();
+            retryError.setTenantId(tenantId);
             retryError.setProcessInstanceId(processInstanceId);
             retryError.setActivityId(retryActivityId);
             retryError.setErrorStage("NODE_RETRY");
             retryError.setErrorMessage("流程节点重试失败：" + e.getMessage());
             recordError(retryError, e);
-            throw new RuntimeException("流程节点重试失败：" + e.getMessage(), e);
+            throw new BusinessException(500, "流程节点重试失败，请稍后重试", e);
         }
     }
 
-    private FlowErrorLog findRetryLog(String processInstanceId, String activityId, String logId) {
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void resolveError(String logId, String userId) {
+        Long tenantId = requireCurrentTenantId();
+        FlowErrorLog errorSnapshot = baseMapper.selectByIdAndTenantId(logId, tenantId);
+        if (errorSnapshot == null) {
+            throw new BusinessException(404, "错误日志不存在或不属于当前租户");
+        }
+        if (errorSnapshot.getProcessInstanceId() != null && !errorSnapshot.getProcessInstanceId().isEmpty()
+                && flowBusinessMapper.selectByProcessInstanceIdAndTenantIdForUpdate(
+                errorSnapshot.getProcessInstanceId(), tenantId) == null) {
+            throw new BusinessException(404, "流程实例不存在或不属于当前租户");
+        }
+        FlowErrorLog errorLog = baseMapper.selectByIdAndTenantIdForUpdate(logId, tenantId);
+        if (errorLog == null) {
+            throw new BusinessException(404, "错误日志不存在或不属于当前租户");
+        }
+        if (baseMapper.resolveByIdAndTenantId(logId, tenantId, userId, "管理员手动解决") != 1) {
+            throw new BusinessException(409, "错误日志状态已变更，请刷新后重试");
+        }
+    }
+
+    private FlowErrorLog findRetryLog(String processInstanceId, String activityId, String logId, Long tenantId) {
         if (logId != null && !logId.isEmpty()) {
-            FlowErrorLog errorLog = getById(logId);
+            FlowErrorLog errorLog = baseMapper.selectByIdAndTenantIdForUpdate(logId, tenantId);
             if (errorLog == null) {
-                throw new RuntimeException("错误日志不存在：" + logId);
+                throw new BusinessException(404, "错误日志不存在或不属于当前租户");
             }
             if (!processInstanceId.equals(errorLog.getProcessInstanceId())) {
-                throw new RuntimeException("错误日志不属于当前流程实例");
+                throw new BusinessException(400, "错误日志不属于当前流程实例");
             }
             return errorLog;
         }
-        return baseMapper.selectLatestUnresolved(processInstanceId, activityId);
+        return baseMapper.selectLatestUnresolved(tenantId, processInstanceId, activityId);
     }
 
     private boolean retryFlowableJob(String processInstanceId, String activityId, FlowErrorLog errorLog) {
@@ -197,30 +245,20 @@ public class FlowErrorLogServiceImpl extends ServiceImpl<FlowErrorLogMapper, Flo
                 .changeState();
     }
 
-    private void markRetrySuccess(FlowErrorLog errorLog, String userId, String reason) {
+    private void markRetrySuccess(FlowErrorLog errorLog, Long tenantId, String userId, String reason) {
         if (errorLog == null) {
             return;
         }
-        errorLog.setStatus(1);
-        errorLog.setRetryCount(errorLog.getRetryCount() == null ? 1 : errorLog.getRetryCount() + 1);
-        errorLog.setLastRetryUserId(userId);
-        errorLog.setLastRetryTime(LocalDateTime.now());
-        errorLog.setRetryMessage(truncate(reason, MAX_TEXT_LENGTH));
-        errorLog.setUpdateTime(LocalDateTime.now());
-        updateById(errorLog);
+        baseMapper.updateRetryState(errorLog.getId(), tenantId, 1, userId,
+                truncate(reason, MAX_TEXT_LENGTH));
     }
 
-    private void markRetryFailed(FlowErrorLog errorLog, String userId, String message) {
+    private void markRetryFailed(FlowErrorLog errorLog, Long tenantId, String userId, String message) {
         if (errorLog == null) {
             return;
         }
-        errorLog.setStatus(3);
-        errorLog.setRetryCount(errorLog.getRetryCount() == null ? 1 : errorLog.getRetryCount() + 1);
-        errorLog.setLastRetryUserId(userId);
-        errorLog.setLastRetryTime(LocalDateTime.now());
-        errorLog.setRetryMessage(truncate(message, MAX_TEXT_LENGTH));
-        errorLog.setUpdateTime(LocalDateTime.now());
-        updateById(errorLog);
+        baseMapper.updateRetryState(errorLog.getId(), tenantId, 3, userId,
+                truncate(message, MAX_TEXT_LENGTH));
     }
 
     private String getStackTrace(Throwable throwable) {
@@ -234,5 +272,13 @@ public class FlowErrorLogServiceImpl extends ServiceImpl<FlowErrorLogMapper, Flo
             return text;
         }
         return text.substring(0, maxLength);
+    }
+
+    private Long requireCurrentTenantId() {
+        Long tenantId = SessionHelper.getTenantId();
+        if (tenantId == null || tenantId <= 0) {
+            throw new BusinessException(403, "无法确定当前租户，禁止访问流程错误日志");
+        }
+        return tenantId;
     }
 }

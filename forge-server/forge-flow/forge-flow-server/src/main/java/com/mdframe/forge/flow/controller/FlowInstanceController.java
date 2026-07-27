@@ -1,9 +1,7 @@
 package com.mdframe.forge.flow.controller;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.starter.auth.config.FlowDelegationSessionVerifier;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
@@ -12,8 +10,8 @@ import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.flow.entity.FlowBusiness;
-import com.mdframe.forge.starter.flow.mapper.FlowBusinessMapper;
 import com.mdframe.forge.starter.flow.service.FlowInstanceService;
+import com.mdframe.forge.starter.flow.service.FlowMonitorService;
 import com.mdframe.forge.starter.flow.service.FlowOrgIntegrationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +35,7 @@ import java.util.UUID;
 public class FlowInstanceController {
 
     private final FlowInstanceService flowInstanceService;
-    private final FlowBusinessMapper flowBusinessMapper;
+    private final FlowMonitorService flowMonitorService;
     private final FlowOrgIntegrationService flowOrgIntegrationService;
     private final FlowDelegationSessionVerifier flowDelegationSessionVerifier;
 
@@ -246,21 +244,8 @@ public class FlowInstanceController {
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String applyUserId) {
         
-        Page<FlowBusiness> page = new Page<>(pageNum, pageSize);
-        LambdaQueryWrapper<FlowBusiness> wrapper = new LambdaQueryWrapper<>();
-        
-        wrapper.eq(processDefKey != null && !processDefKey.isEmpty(),
-                FlowBusiness::getProcessDefKey, processDefKey)
-               .eq(status != null && !status.isEmpty(),
-                FlowBusiness::getStatus, status)
-               .like(title != null && !title.isEmpty(),
-                FlowBusiness::getTitle, title)
-               .eq(applyUserId != null && !applyUserId.isEmpty(),
-                FlowBusiness::getApplyUserId, applyUserId)
-               .orderByDesc(FlowBusiness::getCreateTime);
-        
-        IPage<FlowBusiness> result = flowBusinessMapper.selectPage(page, wrapper);
-        return RespInfo.success(result);
+        return RespInfo.success(flowMonitorService.getBusinessPage(
+                pageNum, pageSize, processDefKey, status, title, applyUserId));
     }
 
     /**
@@ -268,9 +253,6 @@ public class FlowInstanceController {
      */
     @GetMapping("/detail/{processInstanceId}")
     public RespInfo<FlowBusiness> getByProcessInstanceId(@PathVariable String processInstanceId) {
-        LambdaQueryWrapper<FlowBusiness> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FlowBusiness::getProcessInstanceId, processInstanceId);
-        FlowBusiness business = flowBusinessMapper.selectOne(wrapper);
-        return RespInfo.success(business);
+        return RespInfo.success(flowMonitorService.getBusinessByProcessInstanceId(processInstanceId));
     }
 }

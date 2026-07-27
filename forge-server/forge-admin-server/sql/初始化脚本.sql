@@ -1035,7 +1035,8 @@ CREATE TABLE `sys_client`
     `client_code`            varchar(50)  NOT NULL COMMENT '客户端编码',
     `client_name`            varchar(100) NOT NULL COMMENT '客户端名称',
     `app_id`                 varchar(64)  NOT NULL COMMENT '应用ID',
-    `app_secret`             varchar(128) NOT NULL COMMENT '应用密钥（加密存储）',
+    `app_secret`             varchar(128) DEFAULT NULL COMMENT '应用密钥摘要，仅client_secret客户端使用',
+    `client_auth_method`     varchar(32)  NOT NULL DEFAULT 'client_secret' COMMENT '客户端认证方式：none/client_secret',
     `token_timeout`          bigint       DEFAULT '7200' COMMENT 'Token有效期（秒）',
     `token_activity_timeout` bigint       DEFAULT '-1' COMMENT 'Token活跃超时（秒）',
     `token_prefix`           varchar(20)  DEFAULT 'Bearer' COMMENT 'Token前缀',
@@ -1049,6 +1050,7 @@ CREATE TABLE `sys_client`
     `max_user_count`         bigint       DEFAULT '-1' COMMENT '最大用户数（-1不限）',
     `max_online_count`       bigint       DEFAULT '-1' COMMENT '最大在线数（-1不限）',
     `auth_types`             varchar(255) DEFAULT 'password' COMMENT '支持的认证方式（逗号分隔）',
+    `captcha_type`           varchar(32)  DEFAULT NULL COMMENT '验证码类型：graphical图形，slider滑块，sms短信；为空继承全局配置',
     `status`                 tinyint      DEFAULT '1' COMMENT '状态（0-禁用 1-启用）',
     `description`            varchar(500) DEFAULT NULL COMMENT '客户端描述',
     `tenant_id`              bigint       DEFAULT NULL COMMENT '租户ID',
@@ -1061,7 +1063,7 @@ CREATE TABLE `sys_client`
     UNIQUE KEY `uk_client_code` (`client_code`),
     UNIQUE KEY `uk_app_id` (`app_id`),
     KEY                      `idx_tenant_id` (`tenant_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='客户端管理表';
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='客户端管理表';
 
 
 -- forge_admin_new.sys_config definition
@@ -38439,7 +38441,7 @@ INSERT INTO ai_report_data_connection (id, tenant_id, connection_code, connectio
                                        status, description, create_by, create_time, create_dept, update_by, update_time)
 VALUES (1, 1, 'ForgeAdmin', '管理端', 'MYSQL', 'com.mysql.cj.jdbc.Driver',
         'jdbc:mysql://120.48.96.178:3306/forge_admin_new?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=true&serverTimezone=GMT%2B8&autoReconnect=true&rewriteBatchedStatements=true&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true',
-        'rdsroot', 'I6Jk7f8fxsWyzn4kxY1DBg==', NULL, 'SELECT 1', NULL, 1, NULL, '1', '2026-05-12 10:23:12', NULL, '1',
+        'rdsroot', NULL, NULL, 'SELECT 1', NULL, 1, NULL, '1', '2026-05-12 10:23:12', NULL, '1',
         '2026-05-12 10:42:31');
 INSERT INTO ai_report_data_dataset (id, tenant_id, dataset_code, dataset_name, connection_id, category_id, dataset_type,
                                     table_name, sql_text, param_schema_json, default_order_json, max_rows,
@@ -39069,18 +39071,21 @@ VALUES (1882, '399d4dc6-e1f4-45a9-a197-0d1b7380fb0e', 1, 'admin', '超级管理�
        (1886, '51d3fcac-cb58-42e9-ab00-b6cbc831f187', 1, 'admin', '超级管理员', '研发部', '127.0.0.1', '本地', 'MSEdge',
         'Windows 10 or Windows Server 2016', '2026-05-18 08:22:37', '2026-05-18 08:22:37', '2026-06-17 08:22:37', 1,
         NULL, NULL, 1, '2026-05-18 08:22:37', '2026-05-18 08:22:37');
-INSERT INTO sys_client (id, client_code, client_name, app_id, app_secret, token_timeout, token_activity_timeout,
+INSERT INTO sys_client (id, client_code, client_name, app_id, app_secret, client_auth_method, token_timeout, token_activity_timeout,
                         token_prefix, token_name, concurrent_login, share_token, enable_ip_limit, ip_whitelist,
-                        enable_encrypt, encrypt_algorithm, max_user_count, max_online_count, auth_types, status,
+                        enable_encrypt, encrypt_algorithm, max_user_count, max_online_count, auth_types, captcha_type, status,
                         description, tenant_id, create_time, create_by, update_time, update_by, create_dept)
-VALUES (6, 'pc', 'PC端', 'pc', 'forage_pc123', 2592000, 7200, 'Bearer', 'Authorization', 1, 0, 0, NULL, 0, 'AES', -1,
-        -1, 'password,password_captcha', 1, NULL, 1, '2026-04-08 09:37:10', 1, '2026-04-30 16:17:48', 1, 2),
-       (8, 'forge_report', '报表系统', 'forge_report', 'forage_pc123', 2592000, 7200, 'Bearer', 'Authorization', 0, 0,
-        0, NULL, 0, 'AES', -1, -1, 'password,password_captcha', 1, NULL, 1, '2026-04-08 09:37:10', 1,
+VALUES (6, 'pc', 'PC端', 'pc', NULL, 'none', 2592000, 7200, 'Bearer', 'Authorization', 1, 0, 0, NULL, 0, 'AES', -1,
+        -1, 'password,password_captcha', '', 1, NULL, 1, '2026-04-08 09:37:10', 1, '2026-04-30 16:17:48', 1, 2),
+       (8, 'forge_report', '报表系统', 'forge_report', NULL, 'none', 2592000, 7200, 'Bearer', 'Authorization', 0, 0,
+        0, NULL, 0, 'AES', -1, -1, 'password,password_captcha', 'graphical', 1, NULL, 1, '2026-04-08 09:37:10', 1,
         '2026-04-08 10:20:58', 1, 2),
-       (9, 'app', 'APP端', 'forge_app', 'forge_app123', 7200, -1, 'Bearer', 'Authorization', 0, 0, 0, NULL, 0, 'AES',
-        -1, -1, 'password,password_captcha,phone_captcha', 1, NULL, 1, '2026-04-29 14:44:57', 1, '2026-04-29 14:44:57',
-        1, 2);
+       (9, 'app', 'APP端', 'forge_app', NULL, 'none', 7200, -1, 'Bearer', 'Authorization', 0, 0, 0, NULL, 0, 'AES',
+        -1, -1, 'password,password_captcha,phone_captcha', 'graphical', 1, NULL, 1, '2026-04-29 14:44:57', 1,
+        '2026-04-29 14:44:57', 1, 2),
+       (10, 'h5', 'H5端', 'forge_h5', NULL, 'none', 7200, -1, 'Bearer', 'Authorization', 0, 0, 0, NULL, 0, 'AES',
+        -1, -1, 'password,password_captcha', 'graphical', 1, 'H5模板客户端', 1, '2026-06-06 21:05:01', 1,
+        '2026-06-06 21:17:17', 1, 2);
 INSERT INTO sys_config (config_id, tenant_id, config_name, config_key, config_value, config_type, config_desc, sort,
                         create_by, create_time, update_by, update_time, create_dept)
 VALUES (1, 1, '用户初始密码', 'sys.user.initPassword', '', 'N', '已因安全加固停用，新增/重置用户必须首次登录修改密码', 1, NULL,
@@ -39096,13 +39101,13 @@ VALUES (2, 'login', '登录配置', 'lock',
         '{"enable":true,"content":"name_phone","opacity":0.3,"fontSize":16,"fontColor":"#cccccc","rotate":-20,"gapX":100,"gapY":100,"offsetX":0,"offsetY":0,"showTimestamp":false,"timestampFormat":"yyyy-MM-dd HH:mm:ss","zindex":1000}',
         4, 1, '水印相关配置', '2026-02-25 18:07:35', '2026-03-02 15:05:11'),
        (5, 'crypto', '加解密配置', 'eye',
-        '{"enabled":true,"algorithm":"SM4","secretKey":null,"enableDynamicKey":true,"rsaPublicKey":null,"rsaPrivateKey":null,"sessionKeyExpire":7200,"enableApiCrypto":true,"enableFieldCrypto":true,"enableReplayProtection":true,"replayTimeWindow":300,"replayIncludePaths":[],"replayExcludePaths":["/auth/captcha","/crypto/public-key","/ws/**","/api/flow/instance/**","/api/file/**","/system/demo/**","/auth/loginConfig"],"excludePaths":[],"enableDesensitize":true}',
+        '{"enabled":true,"algorithm":"SM4","enableDynamicKey":true,"sessionKeyExpire":7200,"enableApiCrypto":true,"enableFieldCrypto":true,"enableReplayProtection":true,"replayTimeWindow":300,"replayIncludePaths":[],"replayExcludePaths":["/auth/captcha","/crypto/public-key","/ws/**","/api/flow/instance/**","/api/file/**","/system/demo/**","/auth/loginConfig"],"excludePaths":[],"enableDesensitize":true}',
         4, 1, '加解密配置', '2026-02-25 18:07:35', '2026-05-16 16:53:05'),
        (6, 'auth', '认证配置', 'eye',
-        '{"enableApiPermission":true,"apiPermissionExcludePaths":["/auth/**"],"enableLoginLock":true,"maxLoginAttempts":4,"lockDuration":30,"failRecordExpire":15,"sameAccountLoginStrategy":"allow_concurrent","enableOnlineUserManagement":true,"enableClientValidation":true}',
+        '{"enableApiPermission":true,"apiPermissionExcludePaths":["/auth/**"],"enableLoginLock":true,"maxLoginAttempts":4,"lockDuration":30,"failRecordExpire":15,"sameAccountLoginStrategy":"allow_concurrent","enableOnlineUserManagement":true,"enableClientValidation":true,"enableLegacyClientSecretRead":true}',
         4, 1, '认证配置', '2026-02-25 18:07:35', '2026-04-30 15:26:59'),
        (7, 'log', '日志配置', 'eye',
-        '{"enableOperationLog":true,"enableLoginLog":true,"requestParamsMaxLength":2000,"responseResultMaxLength":2000,"excludePaths":["/auth/captcha","/actuator/**","/swagger-ui/**","/v3/api-docs/**"],"printOperationLog":true,"printLoginLog":true,"threadPoolCoreSize":2,"threadPoolMaxSize":5,"threadPoolQueueCapacity":500}',
+        '{"enableOperationLog":true,"enableLoginLog":true,"requestParamsMaxLength":2000,"responseResultMaxLength":2000,"excludePaths":["/auth/captcha","/auth/login","/auth/register","/auth/changePassword","/auth/resetPassword","/auth/online/kickout","/auth/online/batchKickout","/actuator/**","/swagger-ui/**","/v3/api-docs/**"],"printOperationLog":true,"printLoginLog":true,"threadPoolCoreSize":2,"threadPoolMaxSize":5,"threadPoolQueueCapacity":500}',
         4, 1, '日志配置', '2026-02-25 18:07:35', '2026-02-26 12:57:22'),
        (8, 'security', '安全配置', 'eye',
         '{"saToken":{"timeout":2592000,"activityTimeout":-1,"isConcurrent":true,"isShare":false,"isReadBody":true,"isReadHeader":true,"isReadCookie":false,"tokenPrefix":"Bearer","tokenName":"Authorization"},"passwordPolicy":{"minLength":8,"requireUppercase":true,"requireLowercase":true,"requireNumbers":true,"requireSpecialChars":false,"expireDays":90,"historyCount":5}}',

@@ -31,12 +31,12 @@ public class SystemSaTokenListener implements SaTokenListener {
     
     @Override
     public void doLogin(String loginType, Object loginId, String tokenValue, SaLoginModel loginModel) {
-        log.info("用户登录成功 - loginType: {}, loginId: {}, tokenValue: {}", loginType, loginId, tokenValue);
+        log.info("用户登录成功 - loginType: {}, loginId: {}", loginType, loginId);
     }
     
     @Override
     public void doLogout(String loginType, Object loginId, String tokenValue) {
-        log.info("用户登出 - loginType: {}, loginId: {}, tokenValue: {}", loginType, loginId, tokenValue);
+        log.info("用户登出 - loginType: {}, loginId: {}", loginType, loginId);
         
         try {
             // 移除在线用户记录
@@ -48,7 +48,7 @@ public class SystemSaTokenListener implements SaTokenListener {
     
     @Override
     public void doKickout(String loginType, Object loginId, String tokenValue) {
-        log.info("用户被踢下线 - loginType: {}, loginId: {}, tokenValue: {}", loginType, loginId, tokenValue);
+        log.info("用户被踢下线 - loginType: {}, loginId: {}", loginType, loginId);
         
         try {
             // 通知用户被踢下线
@@ -62,7 +62,7 @@ public class SystemSaTokenListener implements SaTokenListener {
     
     @Override
     public void doReplaced(String loginType, Object loginId, String tokenValue) {
-        log.info("用户被顶下线 - loginType: {}, loginId: {}, tokenValue: {}", loginType, loginId, tokenValue);
+        log.info("用户被顶下线 - loginType: {}, loginId: {}", loginType, loginId);
         
         try {
             // 通知用户被顶下线
@@ -122,7 +122,7 @@ public class SystemSaTokenListener implements SaTokenListener {
     
     @Override
     public void doRenewTimeout(String tokenValue, Object loginId, long timeout) {
-        log.debug("Token续期 - tokenValue: {}, loginId: {}, timeout: {}", tokenValue, loginId, timeout);
+        log.debug("Token续期 - loginId: {}, timeout: {}", loginId, timeout);
         
         try {
             // 更新最后活动时间

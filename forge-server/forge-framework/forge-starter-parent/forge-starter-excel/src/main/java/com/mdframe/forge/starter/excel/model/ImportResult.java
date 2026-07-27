@@ -1,5 +1,6 @@
 package com.mdframe.forge.starter.excel.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +11,8 @@ import java.util.stream.Collectors;
  */
 @Data
 public class ImportResult<T> {
+
+    public static final String PUBLIC_FAILURE_MESSAGE = "导入失败，请检查文件内容或联系管理员";
     
     /**
      * 是否成功
@@ -44,6 +47,7 @@ public class ImportResult<T> {
     /**
      * 错误报告文件路径（如果有）
      */
+    @JsonIgnore
     private String errorReportPath;
     
     /**

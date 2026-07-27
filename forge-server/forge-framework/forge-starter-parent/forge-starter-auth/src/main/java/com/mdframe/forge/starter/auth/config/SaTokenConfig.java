@@ -72,7 +72,6 @@ public class SaTokenConfig implements WebMvcConfigurer {
                     // 排除健康检查
                     .notMatch("/actuator/**", "/health")
                     .notMatch("/ws/**")
-                    .notMatch(authProperties.getApiPermissionExcludePaths())
                     // 执行登录校验
                     .check(r -> StpUtil.checkLogin());
         })).addPathPatterns("/**").order(1);  // 优先级1，先执行登录校验

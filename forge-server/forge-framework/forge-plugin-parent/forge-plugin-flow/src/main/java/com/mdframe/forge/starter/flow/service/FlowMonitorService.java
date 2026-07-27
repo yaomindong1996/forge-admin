@@ -1,5 +1,9 @@
 package com.mdframe.forge.starter.flow.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.mdframe.forge.starter.flow.entity.FlowBusiness;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -145,4 +149,48 @@ public interface FlowMonitorService {
      * @return 版本列表
      */
     List<Map<String, Object>> getProcessDefinitionVersions(String processDefinitionKey);
+
+    IPage<FlowBusiness> getBusinessPage(int pageNum,
+                                        int pageSize,
+                                        String processDefKey,
+                                        String status,
+                                        String title,
+                                        String applyUserId);
+
+    FlowBusiness getBusinessByProcessInstanceId(String processInstanceId);
+
+    Map<String, Object> getAdminStatistics();
+
+    Map<String, Object> getAdminProcessInstances(int pageNum,
+                                                 int pageSize,
+                                                 String processName,
+                                                 String initiator,
+                                                 String status,
+                                                 String modelKey,
+                                                 LocalDateTime startTime,
+                                                 LocalDateTime endTime);
+
+    Map<String, Object> getAdminProcessInstanceDetail(String processInstanceId);
+
+    Map<String, Object> getTaskTrend();
+
+    List<Map<String, Object>> getProcessDistribution();
+
+    void assertCurrentTenantProcessInstance(String processInstanceId);
+
+    void assertCurrentTenantTask(String taskId);
+
+    void suspendProcessInstance(String processInstanceId);
+
+    void activateProcessInstance(String processInstanceId);
+
+    Map<String, Object> deleteProcessInstanceData(String processInstanceId, String reason);
+
+    Map<String, Object> cleanupProcessInstances(String processName,
+                                                String initiator,
+                                                String status,
+                                                String modelKey,
+                                                LocalDateTime startTime,
+                                                LocalDateTime endTime,
+                                                String reason);
 }

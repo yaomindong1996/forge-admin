@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.GenTemplateMapper">
+
+    <resultMap id="GenTemplateResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.GenTemplate">
+        <id property="templateId" column="template_id"/>
+        <result property="templateName" column="template_name"/>
+        <result property="templateCode" column="template_code"/>
+        <result property="templateType" column="template_type"/>
+        <result property="templateEngine" column="template_engine"/>
+        <result property="templateContent" column="template_content"/>
+        <result property="fileSuffix" column="file_suffix"/>
+        <result property="filePath" column="file_path"/>
+        <result property="isSystem" column="is_system"/>
+        <result property="isEnabled" column="is_enabled"/>
+        <result property="sort" column="sort"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="GenTemplateColumns">
+        template_id, template_name, template_code, template_type, template_engine,
+        template_content, file_suffix, file_path, is_system, is_enabled, sort,
+        remark, create_time, update_time
+    </sql>
+
+    <select id="selectTemplatePage" resultMap="GenTemplateResultMap">
+        SELECT <include refid="GenTemplateColumns"/>
+        FROM gen_template
+        <where>
+            <if test="templateName != null and templateName != ''">
+                template_name LIKE CONCAT('%', #{templateName}, '%')
+            </if>
+            <if test="templateType != null and templateType != ''">
+                AND template_type = #{templateType}
+            </if>
+            <if test="templateEngine != null and templateEngine != ''">
+                AND template_engine = #{templateEngine}
+            </if>
+        </where>
+        ORDER BY sort ASC, create_time DESC
+    </select>
+
+    <select id="selectEnabledTemplates" resultMap="GenTemplateResultMap">
+        SELECT <include refid="GenTemplateColumns"/>
+        FROM gen_template
+        WHERE is_enabled = 1
+        <if test="templateEngine != null and templateEngine != ''">
+            AND template_engine = #{templateEngine}
+        </if>
+        ORDER BY sort ASC
+    </select>
+
+</mapper>

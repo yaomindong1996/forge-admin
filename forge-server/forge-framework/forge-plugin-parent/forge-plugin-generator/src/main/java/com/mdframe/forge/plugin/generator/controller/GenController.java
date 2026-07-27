@@ -1,6 +1,5 @@
 package com.mdframe.forge.plugin.generator.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.generator.domain.entity.GenTable;
 import com.mdframe.forge.plugin.generator.domain.entity.GenTableColumn;
@@ -62,12 +61,7 @@ public class GenController {
     @GetMapping("/list")
     @OperationLog(module = "代码生成", type = OperationType.QUERY, desc = "分页查询生成表列表")
     public RespInfo<Page<GenTable>> list(PageQuery pageQuery, String tableName, String tableComment) {
-        LambdaQueryWrapper<GenTable> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(StringUtils.isNotBlank(tableName), GenTable::getTableName, tableName)
-                .like(StringUtils.isNotBlank(tableComment), GenTable::getTableComment, tableComment)
-                .orderByDesc(GenTable::getCreateTime);
-        Page<GenTable> page = genTableService.page(pageQuery.toPage(), wrapper);
-        return RespInfo.success(page);
+        return RespInfo.success(genTableService.selectGenTablePage(pageQuery, tableName, tableComment));
     }
 
     /**
@@ -97,7 +91,7 @@ public class GenController {
     public RespInfo<Void> importTableFromDatasource(
             @PathVariable Long datasourceId,
             @RequestBody List<String> tableNames) {
-        ((com.mdframe.forge.plugin.generator.service.impl.GenTableServiceImpl) genTableService).importGenTable(datasourceId, tableNames);
+        genTableService.importGenTable(datasourceId, tableNames);
         return RespInfo.success();
     }
 

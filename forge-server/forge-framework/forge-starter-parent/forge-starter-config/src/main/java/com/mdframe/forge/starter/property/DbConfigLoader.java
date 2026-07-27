@@ -1,6 +1,7 @@
 package com.mdframe.forge.starter.property;
 
 import com.mdframe.forge.starter.config.converter.ConfigConverter;
+import com.mdframe.forge.starter.core.util.CryptoDeploymentSecretPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -100,7 +101,12 @@ public final class DbConfigLoader {
 
     private static void putIfPresent(Map<String, String> result, Object keyObj, Object valueObj) {
         if (keyObj != null && valueObj != null) {
-            result.put(keyObj.toString(), valueObj.toString());
+            String key = keyObj.toString();
+            if (CryptoDeploymentSecretPolicy.isDeploymentSecretPropertyKey(key)) {
+                log.warn("已忽略数据库中的部署级 crypto 密钥配置: {}", key);
+                return;
+            }
+            result.put(key, valueObj.toString());
         }
     }
 

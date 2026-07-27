@@ -1,6 +1,6 @@
 package com.mdframe.forge.plugin.generator.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.generator.domain.entity.GenTable;
 import com.mdframe.forge.plugin.generator.domain.entity.GenTableColumn;
@@ -11,6 +11,7 @@ import com.mdframe.forge.plugin.generator.mapper.GenTemplateMapper;
 import com.mdframe.forge.plugin.generator.service.IGenTemplateService;
 import com.mdframe.forge.plugin.generator.util.GenUtils;
 import com.mdframe.forge.plugin.generator.util.VelocityUtils;
+import com.mdframe.forge.starter.core.domain.PageQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.velocity.VelocityContext;
@@ -41,13 +42,20 @@ public class GenTemplateServiceImpl extends ServiceImpl<GenTemplateMapper, GenTe
     );
 
     @Override
+    public Page<GenTemplate> selectTemplatePage(PageQuery pageQuery, String templateName,
+                                                 String templateType, String templateEngine) {
+        return genTemplateMapper.selectTemplatePage(
+                pageQuery.toPage(), templateName, templateType, templateEngine);
+    }
+
+    @Override
+    public List<GenTemplate> selectEnabledTemplates(String templateEngine) {
+        return genTemplateMapper.selectEnabledTemplates(templateEngine);
+    }
+
+    @Override
     public List<GenTemplate> listByEngine(String engine) {
-        return genTemplateMapper.selectList(
-                new LambdaQueryWrapper<GenTemplate>()
-                        .eq(GenTemplate::getTemplateEngine, engine)
-                        .eq(GenTemplate::getIsEnabled, 1)
-                        .orderByAsc(GenTemplate::getSort)
-        );
+        return genTemplateMapper.selectEnabledTemplates(engine);
     }
 
     @Override
@@ -65,11 +73,7 @@ public class GenTemplateServiceImpl extends ServiceImpl<GenTemplateMapper, GenTe
         }
 
         // 查询列信息
-        List<GenTableColumn> columns = genTableColumnMapper.selectList(
-                new LambdaQueryWrapper<GenTableColumn>()
-                        .eq(GenTableColumn::getTableId, tableId)
-                        .orderByAsc(GenTableColumn::getSort)
-        );
+        List<GenTableColumn> columns = genTableColumnMapper.selectByTableId(tableId);
         table.setColumns(columns);
         table.setPkColumn(GenUtils.getPkColumn(columns));
 

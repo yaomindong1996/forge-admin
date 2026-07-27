@@ -6,7 +6,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 加密模块配置属性
@@ -97,4 +99,48 @@ public class CryptoProperties {
      * 是否启用字段脱敏
      */
     private Boolean enableDesensitize = true;
+
+    /**
+     * 持久化密文密钥配置。只服务数据库持久化密文，不改变浏览器会话密钥协议。
+     */
+    private PersistenceProperties persistence = new PersistenceProperties();
+
+    @Data
+    public static class PersistenceProperties {
+
+        /**
+         * 是否启用持久化密文服务
+         */
+        private Boolean enabled = true;
+
+        /**
+         * 是否写入 FPC1 版本化密文。首次兼容发布默认 false。
+         */
+        private Boolean writeVersioned = false;
+
+        /**
+         * 是否允许读取旧无版本密文
+         */
+        private Boolean legacyReadEnabled = true;
+
+        /**
+         * 新写入使用的活动 keyId
+         */
+        private String activeKeyId;
+
+        /**
+         * 新写入使用的活动密钥，Base64 编码
+         */
+        private String activeKey;
+
+        /**
+         * 旧无版本密文兼容密钥，Base64 编码
+         */
+        private String legacyKey;
+
+        /**
+         * 历史解密密钥，key 为 keyId，value 为 Base64 编码密钥
+         */
+        private Map<String, String> keys = new LinkedHashMap<>();
+    }
 }

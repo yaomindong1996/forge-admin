@@ -1,7 +1,7 @@
 package com.mdframe.forge.plugin.generator.service.impl;
 
 import cn.hutool.core.io.IoUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.generator.config.GeneratorConfig;
 import com.mdframe.forge.plugin.generator.domain.entity.GenDatasource;
@@ -13,6 +13,7 @@ import com.mdframe.forge.plugin.generator.service.IGenDatasourceService;
 import com.mdframe.forge.plugin.generator.service.IGenTableService;
 import com.mdframe.forge.plugin.generator.util.GenUtils;
 import com.mdframe.forge.plugin.generator.util.VelocityUtils;
+import com.mdframe.forge.starter.core.domain.PageQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.velocity.VelocityContext;
@@ -45,6 +46,11 @@ public class GenTableServiceImpl extends ServiceImpl<GenTableMapper, GenTable> i
     }
 
     @Override
+    public Page<GenTable> selectGenTablePage(PageQuery pageQuery, String tableName, String tableComment) {
+        return genTableMapper.selectGenTablePage(pageQuery.toPage(), tableName, tableComment);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void importGenTable(List<String> tableNames) {
         importGenTable(null, tableNames);
@@ -54,6 +60,7 @@ public class GenTableServiceImpl extends ServiceImpl<GenTableMapper, GenTable> i
      * 导入表结构（支持指定数据源）
      */
     @Transactional(rollbackFor = Exception.class)
+    @Override
     public void importGenTable(Long datasourceId, List<String> tableNames) {
         // 如果未指定数据源，使用默认数据源
         if (datasourceId == null) {
@@ -87,17 +94,10 @@ public class GenTableServiceImpl extends ServiceImpl<GenTableMapper, GenTable> i
             GenUtils.initTable(genTable, generatorConfig);
 
             // 如果存在先删除
-            GenTable existTable = genTableMapper.selectOne(
-                new LambdaQueryWrapper<GenTable>()
-                    .eq(GenTable::getDatasourceId, datasourceId)
-                    .eq(GenTable::getTableName, tableName)
-            );
+            GenTable existTable = genTableMapper.selectByDatasourceAndTableName(datasourceId, tableName);
             if (existTable != null) {
                 genTableMapper.deleteById(existTable.getTableId());
-                genTableColumnMapper.delete(
-                    new LambdaQueryWrapper<GenTableColumn>()
-                        .eq(GenTableColumn::getTableId, existTable.getTableId())
-                );
+                genTableColumnMapper.deleteByTableId(existTable.getTableId());
             }
 
             genTableMapper.insert(genTable);
@@ -236,11 +236,8 @@ public class GenTableServiceImpl extends ServiceImpl<GenTableMapper, GenTable> i
         genTableMapper.deleteBatchIds(Arrays.asList(tableIds));
         
         // 删除列配置
-        for (Long tableId : tableIds) {
-            genTableColumnMapper.delete(
-                new LambdaQueryWrapper<GenTableColumn>()
-                    .eq(GenTableColumn::getTableId, tableId)
-            );
+        if (tableIds.length > 0) {
+            genTableColumnMapper.deleteByTableIds(Arrays.asList(tableIds));
         }
     }
 
@@ -248,21 +245,14 @@ public class GenTableServiceImpl extends ServiceImpl<GenTableMapper, GenTable> i
      * 根据表名获取表信息（含列信息）
      */
     private GenTable getGenTableByName(String tableName) {
-        GenTable genTable = genTableMapper.selectOne(
-            new LambdaQueryWrapper<GenTable>()
-                .eq(GenTable::getTableName, tableName)
-        );
+        GenTable genTable = genTableMapper.selectByTableName(tableName);
         
         if (genTable == null) {
             throw new RuntimeException("表配置不存在: " + tableName);
         }
         
         // 查询列信息
-        List<GenTableColumn> columns = genTableColumnMapper.selectList(
-            new LambdaQueryWrapper<GenTableColumn>()
-                .eq(GenTableColumn::getTableId, genTable.getTableId())
-                .orderByAsc(GenTableColumn::getSort)
-        );
+        List<GenTableColumn> columns = genTableColumnMapper.selectByTableId(genTable.getTableId());
         
         genTable.setColumns(columns);
         genTable.setPkColumn(GenUtils.getPkColumn(columns));

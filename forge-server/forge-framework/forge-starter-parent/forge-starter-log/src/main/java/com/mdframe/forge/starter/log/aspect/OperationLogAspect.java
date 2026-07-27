@@ -36,6 +36,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 /**
@@ -60,6 +61,14 @@ public class OperationLogAspect {
     private static final String PAGE_PATH_HEADER = "X-Page-Path";
     private static final String PAGE_TITLE_HEADER = "X-Page-Title";
     private static final String DECRYPTED_REQUEST_BODY_OMITTED = "[DECRYPTED_REQUEST_BODY_OMITTED]";
+    private static final Set<String> SENSITIVE_CREDENTIAL_PATH_SUFFIXES = Set.of(
+            "/auth/login",
+            "/auth/register",
+            "/auth/changePassword",
+            "/auth/resetPassword",
+            "/auth/online/kickout",
+            "/auth/online/batchKickout"
+    );
 
     /**
      * 定义切点：拦截所有标注@OperationLog的方法
@@ -544,6 +553,10 @@ public class OperationLogAspect {
      * 判断是否在排除路径中
      */
     private boolean isExcludePath(String requestUrl) {
+        String normalizedUrl = requestUrl.replaceAll(";[^/]*", "").replaceAll("/+$", "");
+        if (SENSITIVE_CREDENTIAL_PATH_SUFFIXES.stream().anyMatch(normalizedUrl::endsWith)) {
+            return true;
+        }
         String[] excludePaths = logProperties.getExcludePaths();
         if (excludePaths == null || excludePaths.length == 0) {
             return false;

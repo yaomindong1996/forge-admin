@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mdframe.forge.plugin.system.entity.SysRole;
 import com.mdframe.forge.plugin.system.entity.SysUser;
 import com.mdframe.forge.plugin.system.service.ISysUserService;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.flow.entity.FlowBusiness;
@@ -520,6 +521,7 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
         if (processInstanceId == null || targetActivityId == null) {
             throw new RuntimeException("流程实例ID和目标节点ID不能为空");
         }
+        lockCurrentTenantProcessInstance(processInstanceId);
 
         try {
             // 使用Flowable的RuntimeService进行节点跳转
@@ -551,12 +553,13 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
             throw new RuntimeException("任务ID和新处理人ID不能为空");
         }
 
-        try {
-            Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
-            if (task == null) {
-                throw new RuntimeException("任务不存在：" + taskId);
-            }
+        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        if (task == null || task.getProcessInstanceId() == null) {
+            throw new BusinessException(404, "任务不存在或不属于当前租户");
+        }
+        lockCurrentTenantProcessInstance(task.getProcessInstanceId());
 
+        try {
             String owner = task.getAssignee() != null ? task.getAssignee() : userId;
             if (owner != null && !owner.isEmpty()) {
                 taskService.setOwner(taskId, owner);
@@ -600,6 +603,8 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
         if (processInstanceId == null) {
             throw new RuntimeException("流程实例ID不能为空");
         }
+        Long tenantId = requireCurrentTenantId();
+        FlowBusiness business = lockCurrentTenantProcessInstance(processInstanceId, tenantId);
 
         try {
             // 检查流程实例是否存在于运行时表
@@ -621,16 +626,9 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
             // 删除流程实例
             runtimeService.deleteProcessInstance(processInstanceId, reason);
 
-            // 更新业务状态
-            LambdaQueryWrapper<FlowBusiness> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(FlowBusiness::getProcessInstanceId, processInstanceId);
-            FlowBusiness business = flowBusinessMapper.selectOne(wrapper);
-
-            if (business != null) {
-                business.setStatus("terminated");
-                business.setEndTime(LocalDateTime.now());
-                flowBusinessMapper.updateById(business);
-            }
+            business.setStatus("terminated");
+            business.setEndTime(LocalDateTime.now());
+            flowBusinessMapper.updateById(business);
 
             log.info("流程终止成功：processInstanceId={}", processInstanceId);
         } catch (Exception e) {
@@ -655,5 +653,29 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
                 .filter(execution -> execution.getActivityId() != null)
                 .map(org.flowable.engine.runtime.Execution::getActivityId)
                 .collect(Collectors.toList());
+    }
+
+    private FlowBusiness lockCurrentTenantProcessInstance(String processInstanceId) {
+        return lockCurrentTenantProcessInstance(processInstanceId, requireCurrentTenantId());
+    }
+
+    private FlowBusiness lockCurrentTenantProcessInstance(String processInstanceId, Long tenantId) {
+        FlowBusiness business = flowBusinessMapper.selectByProcessInstanceIdAndTenantIdForUpdate(
+                processInstanceId, tenantId);
+        if (business == null) {
+            throw new BusinessException(404, "流程实例不存在或不属于当前租户");
+        }
+        return business;
+    }
+
+    private Long requireCurrentTenantId() {
+        Long tenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null) {
+            tenantId = SessionHelper.getTenantId();
+        }
+        if (tenantId == null || tenantId <= 0) {
+            throw new BusinessException(403, "无法确定当前租户，禁止管理流程实例");
+        }
+        return tenantId;
     }
 }

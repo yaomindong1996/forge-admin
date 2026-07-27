@@ -1,7 +1,9 @@
 package com.mdframe.forge.plugin.generator.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.mdframe.forge.plugin.generator.domain.entity.GenTemplate;
+import com.mdframe.forge.starter.core.domain.PageQuery;
 
 import java.util.List;
 
@@ -9,6 +11,17 @@ import java.util.List;
  * 代码生成模板配置Service接口
  */
 public interface IGenTemplateService extends IService<GenTemplate> {
+
+    /**
+     * 分页查询模板配置
+     */
+    Page<GenTemplate> selectTemplatePage(PageQuery pageQuery, String templateName,
+                                         String templateType, String templateEngine);
+
+    /**
+     * 查询启用的模板配置
+     */
+    List<GenTemplate> selectEnabledTemplates(String templateEngine);
 
     /**
      * 根据模板引擎查询可用模板列表

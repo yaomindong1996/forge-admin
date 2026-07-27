@@ -332,9 +332,13 @@
                 <small>{{ getResourceTypeText(activeResource.resourceType) }}</small>
               </div>
             </div>
-            <NTag :type="activeResource.visible === 1 ? 'success' : 'default'" size="small" :bordered="false">
-              {{ activeResource.visible === 1 ? '显示' : '隐藏' }}
-            </NTag>
+            <DictTag
+              :options="visibleOptions"
+              :value="activeResource.visible"
+              size="small"
+              :bordered="false"
+              force-tag
+            />
           </div>
 
           <div class="detail-actions">
@@ -573,32 +577,38 @@ import {
   NCheckbox,
   NDropdown,
   NInputNumber,
-  NTag,
   NTooltip,
 } from 'naive-ui'
 import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import api from '@/api'
 import { AiForm } from '@/components/ai-form'
+import DictTag from '@/components/DictTag.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
 import IconSelector from '@/components/IconSelector.vue'
 import ImageUpload from '@/components/image-upload/index.vue'
 import { useDict } from '@/composables'
 import { usePermissionStore, useUserStore } from '@/store'
 import { request } from '@/utils'
+import { toNumberDictOptions } from '@/utils/dict-options'
 import { getMenuRouteOptions } from '@/utils/menu-route-options'
 
 defineOptions({ name: 'SystemMenu' })
 
-const { dict } = useDict('sys_resource_type', 'sys_show_hide', 'sys_req_method', 'sys_link_open_target', 'sys_user_type')
+const { dict } = useDict(
+  'sys_resource_type',
+  'sys_show_hide',
+  'sys_req_method',
+  'sys_link_open_target',
+  'sys_user_type',
+  'sys_yes_no',
+)
 
-const resourceTypeOptions = computed(() => dict.value.sys_resource_type || [])
-const visibleOptions = computed(() => dict.value.sys_show_hide || [])
+const resourceTypeOptions = computed(() => toNumberDictOptions(dict.value.sys_resource_type))
+const visibleOptions = computed(() => toNumberDictOptions(dict.value.sys_show_hide))
 const apiMethodOptions = computed(() => dict.value.sys_req_method || [])
 const openTargetOptions = computed(() => dict.value.sys_link_open_target || [])
-const minUserTypeOptions = computed(() => (dict.value.sys_user_type || []).map(item => ({
-  ...item,
-  value: Number(item.value),
-})))
+const minUserTypeOptions = computed(() => toNumberDictOptions(dict.value.sys_user_type))
+const yesNoOptions = computed(() => toNumberDictOptions(dict.value.sys_yes_no))
 
 const permissionStore = usePermissionStore()
 const userStore = useUserStore()
@@ -651,27 +661,8 @@ const clientCodeOptions = computed(() => {
   }))
 })
 
-const resourceTypeFilterOptions = computed(() => {
-  const options = resourceTypeOptions.value?.length
-    ? resourceTypeOptions.value
-    : [
-        { label: '目录', value: 1 },
-        { label: '菜单', value: 2 },
-        { label: '按钮', value: 3 },
-        { label: 'API', value: 4 },
-      ]
-  return options.map(item => ({ label: item.label, value: Number(item.value) }))
-})
-
-const visibleFilterOptions = computed(() => {
-  const options = visibleOptions.value?.length
-    ? visibleOptions.value
-    : [
-        { label: '显示', value: 1 },
-        { label: '隐藏', value: 0 },
-      ]
-  return options.map(item => ({ label: item.label, value: Number(item.value) }))
-})
+const resourceTypeFilterOptions = computed(() => resourceTypeOptions.value)
+const visibleFilterOptions = computed(() => visibleOptions.value)
 
 const flatResources = computed(() => flattenResourceTree(allResources.value))
 
@@ -768,10 +759,10 @@ const batchMigrateParentOptions = computed(() => [
 ])
 
 const typeStyleMap = {
-  1: { text: '目录', icon: 'i-material-symbols:folder-outline', color: '#4C6EF5', bg: '#EDF2FF', fontWeight: '600' },
-  2: { text: '菜单', icon: 'i-material-symbols:menu', color: '#40C057', bg: '#EBFBEE', fontWeight: '500' },
-  3: { text: '按钮', icon: 'i-material-symbols:smart-button', color: '#FD7E14', bg: '#FFF4E6', fontWeight: '400' },
-  4: { text: 'API', icon: 'i-material-symbols:api', color: '#FA5252', bg: '#FFF5F5', fontWeight: '400' },
+  1: { icon: 'i-material-symbols:folder-outline', color: '#4C6EF5', bg: '#EDF2FF', fontWeight: '600' },
+  2: { icon: 'i-material-symbols:menu', color: '#40C057', bg: '#EBFBEE', fontWeight: '500' },
+  3: { icon: 'i-material-symbols:smart-button', color: '#FD7E14', bg: '#FFF4E6', fontWeight: '400' },
+  4: { icon: 'i-material-symbols:api', color: '#FA5252', bg: '#FFF5F5', fontWeight: '400' },
 }
 
 watch(currentClientCode, async () => {
@@ -995,7 +986,7 @@ function handleNavigationSelect(keys) {
 }
 
 function renderNavigationLabel({ option }) {
-  const typeConfig = typeStyleMap[option.resourceType] || { text: '全部', icon: 'i-material-symbols:account-tree' }
+  const typeConfig = typeStyleMap[option.resourceType] || { icon: 'i-material-symbols:account-tree' }
   return h('div', { class: ['nav-tree-label', `type-${option.resourceType || 0}`] }, [
     h('span', { class: 'nav-tree-icon-shell' }, [
       h('i', { class: typeConfig.icon }),
@@ -1034,7 +1025,7 @@ function getDisplayLevel(row) {
 }
 
 function getResourceTypeConfig(type) {
-  return typeStyleMap[Number(type)] || { text: '未知', icon: 'i-material-symbols:radio-button-unchecked', color: '#adb5bd' }
+  return typeStyleMap[Number(type)] || { icon: 'i-material-symbols:radio-button-unchecked', color: '#adb5bd' }
 }
 
 function getRenderableIcon(row) {
@@ -1098,7 +1089,7 @@ function getSecondaryRouteText(row) {
 }
 
 function getResourceTypeText(type) {
-  return typeStyleMap[Number(type)]?.text || '未知'
+  return resourceTypeOptions.value.find(option => option.value === Number(type))?.label || '未知'
 }
 
 function getClientDisplayName(clientCode) {
@@ -1771,12 +1762,7 @@ const editSchema = computed(() => [
       },
     ],
     props: {
-      options: [
-        { label: '目录', value: 1 },
-        { label: '菜单', value: 2 },
-        { label: '按钮', value: 3 },
-        { label: 'API', value: 4 },
-      ],
+      options: resourceTypeOptions.value,
     },
   },
   {
@@ -1865,7 +1851,7 @@ const editSchema = computed(() => [
     type: 'radio',
     span: 1,
     defaultValue: 0,
-    props: { options: [{ label: '否', value: 0 }, { label: '是', value: 1 }] },
+    props: { options: yesNoOptions.value },
     vIf: currentFormData => currentFormData.resourceType === 2,
   },
   {
@@ -1908,7 +1894,7 @@ const editSchema = computed(() => [
     type: 'radio',
     span: 1,
     defaultValue: 0,
-    props: { options: [{ label: '否', value: 0 }, { label: '是', value: 1 }] },
+    props: { options: yesNoOptions.value },
     vIf: currentFormData => currentFormData.resourceType === 2,
   },
   {
@@ -1917,7 +1903,7 @@ const editSchema = computed(() => [
     type: 'radio',
     span: 1,
     defaultValue: 0,
-    props: { options: [{ label: '否', value: 0 }, { label: '是', value: 1 }] },
+    props: { options: yesNoOptions.value },
     vIf: currentFormData => currentFormData.resourceType === 1 || currentFormData.resourceType === 2,
   },
   {
@@ -1966,7 +1952,7 @@ const editSchema = computed(() => [
     type: 'radio',
     span: 1,
     defaultValue: 1,
-    props: { options: [{ label: '显示', value: 1 }, { label: '隐藏', value: 0 }] },
+    props: { options: visibleOptions.value },
   },
   {
     field: 'menuStatus',
@@ -1974,7 +1960,7 @@ const editSchema = computed(() => [
     type: 'radio',
     span: 1,
     defaultValue: 1,
-    props: { options: [{ label: '显示', value: 1 }, { label: '隐藏', value: 0 }] },
+    props: { options: visibleOptions.value },
     vIf: currentFormData => currentFormData.resourceType === 1 || currentFormData.resourceType === 2,
   },
   {

@@ -41,6 +41,11 @@ public interface ISysTenantService extends IService<SysTenant> {
     SysTenant selectUserTenantConfig(Long tenantId);
 
     /**
+     * 查询登录页可公开展示的启用租户。
+     */
+    SysTenant selectEnabledTenantForLogin(Long tenantId);
+
+    /**
      * 查询当前用户可访问租户
      */
     List<SysUserTenantVO> selectCurrentUserTenants();

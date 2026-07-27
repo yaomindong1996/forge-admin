@@ -7,7 +7,7 @@
       }"
       :search-schema="searchSchema"
       :columns="tableColumns"
-      row-key="tokenValue"
+      row-key="sessionId"
       :hide-add="true"
       :hide-selection="true"
       :hide-batch-delete="true"
@@ -82,8 +82,8 @@
             会话信息
           </h4>
           <div class="detail-row">
-            <span class="label">Token值：</span>
-            <span class="value code">{{ currentUser.tokenValue || '-' }}</span>
+            <span class="label">会话编号：</span>
+            <span class="value code">{{ currentUser.sessionId || '-' }}</span>
           </div>
           <div class="detail-row">
             <span class="label">状态：</span>
@@ -240,9 +240,8 @@ function handleKickout(row) {
     async onPositiveClick() {
       try {
         const res = await request.post('/auth/online/kickout', null, {
-          params: { tokenValue: row.tokenValue },
+          params: { sessionId: row.sessionId },
         })
-        console.log('强制下线结果:', res)
         if (res.code === 200) {
           window.$message?.success('已强制下线')
           crudRef.value?.refresh()

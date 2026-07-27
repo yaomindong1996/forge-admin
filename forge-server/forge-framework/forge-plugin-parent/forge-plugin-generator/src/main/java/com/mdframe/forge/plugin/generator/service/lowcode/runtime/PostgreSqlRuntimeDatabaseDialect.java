@@ -54,7 +54,14 @@ public class PostgreSqlRuntimeDatabaseDialect implements RuntimeDatabaseDialect 
     @Override
     public String listColumnMetadataSql() {
         return """
-            SELECT column_name, data_type AS column_type, is_nullable, column_default, '' AS extra,
+            SELECT column_name,
+                   CASE
+                       WHEN data_type IN ('character varying', 'character')
+                            AND character_maximum_length IS NOT NULL
+                           THEN data_type || '(' || character_maximum_length || ')'
+                       ELSE data_type
+                   END AS column_type,
+                   is_nullable, column_default, '' AS extra,
                    COALESCE(col_description((quote_ident(table_schema) || '.' || quote_ident(table_name))::regclass::oid, ordinal_position), '') AS column_comment,
                    '' AS generation_expression
             FROM information_schema.columns

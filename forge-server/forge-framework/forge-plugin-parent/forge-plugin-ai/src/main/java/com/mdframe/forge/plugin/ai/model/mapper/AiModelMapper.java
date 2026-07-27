@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.ai.model.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.ai.model.domain.AiModel;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -12,6 +13,26 @@ import java.util.List;
  */
 @Mapper
 public interface AiModelMapper extends BaseMapper<AiModel> {
+
+    Page<AiModel> selectModelPage(Page<AiModel> page,
+                                  @Param("providerId") Long providerId,
+                                  @Param("modelType") String modelType,
+                                  @Param("modelName") String modelName);
+
+    List<AiModel> selectEnabledModels(@Param("providerId") Long providerId);
+
+    List<AiModel> selectAllByProviderId(@Param("providerId") Long providerId);
+
+    AiModel selectByIdForUpdate(@Param("id") Long id);
+
+    long countByProviderId(@Param("providerId") Long providerId);
+
+    long countByProviderAndModelId(@Param("providerId") Long providerId,
+                                   @Param("modelId") String modelId,
+                                   @Param("excludeId") Long excludeId);
+
+    int clearDefaultByProviderId(@Param("providerId") Long providerId,
+                                 @Param("excludeId") Long excludeId);
 
     /**
      * 查询供应商启用且标记为默认的模型标识。

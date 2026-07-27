@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.system.mapper.SysClientMapper">
+
+    <resultMap id="ClientResultMap" type="com.mdframe.forge.plugin.system.entity.SysClient">
+        <id column="id" property="id"/>
+        <result column="client_code" property="clientCode"/>
+        <result column="client_name" property="clientName"/>
+        <result column="app_id" property="appId"/>
+        <result column="app_secret" property="appSecret"/>
+        <result column="client_auth_method" property="clientAuthMethod"/>
+        <result column="token_timeout" property="tokenTimeout"/>
+        <result column="token_activity_timeout" property="tokenActivityTimeout"/>
+        <result column="token_prefix" property="tokenPrefix"/>
+        <result column="token_name" property="tokenName"/>
+        <result column="concurrent_login" property="concurrentLogin"/>
+        <result column="share_token" property="shareToken"/>
+        <result column="enable_ip_limit" property="enableIpLimit"/>
+        <result column="ip_whitelist" property="ipWhitelist"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result column="enable_encrypt" property="enableEncrypt"/>
+        <result column="encrypt_algorithm" property="encryptAlgorithm"/>
+        <result column="max_user_count" property="maxUserCount"/>
+        <result column="max_online_count" property="maxOnlineCount"/>
+        <result column="auth_types" property="authTypes"/>
+        <result column="captcha_type" property="captchaType"/>
+        <result column="status" property="status"/>
+        <result column="description" property="description"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="ClientColumns">
+        id,
+        client_code,
+        client_name,
+        app_id,
+        app_secret,
+        client_auth_method,
+        token_timeout,
+        token_activity_timeout,
+        token_prefix,
+        token_name,
+        concurrent_login,
+        share_token,
+        enable_ip_limit,
+        ip_whitelist,
+        enable_encrypt,
+        encrypt_algorithm,
+        max_user_count,
+        max_online_count,
+        auth_types,
+        captcha_type,
+        status,
+        description,
+        tenant_id,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <select id="selectClientPage" resultMap="ClientResultMap">
+        SELECT <include refid="ClientColumns" />
+        FROM sys_client
+        <where>
+            <if test="clientCode != null and clientCode != ''">
+                AND client_code LIKE CONCAT('%', #{clientCode}, '%')
+            </if>
+            <if test="clientName != null and clientName != ''">
+                AND client_name LIKE CONCAT('%', #{clientName}, '%')
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectEnabledClients" resultMap="ClientResultMap">
+        SELECT <include refid="ClientColumns" />
+        FROM sys_client
+        WHERE status = 1
+        <if test="tenantId != null">
+            AND tenant_id = #{tenantId}
+        </if>
+        ORDER BY id ASC
+    </select>
+
+    <select id="selectByClientCode" resultMap="ClientResultMap">
+        SELECT <include refid="ClientColumns" />
+        FROM sys_client
+        WHERE client_code = #{clientCode}
+        LIMIT 1
+    </select>
+
+    <select id="selectByAppId" resultMap="ClientResultMap">
+        SELECT <include refid="ClientColumns" />
+        FROM sys_client
+        WHERE app_id = #{appId}
+        LIMIT 1
+    </select>
+
+    <update id="updateClientIfUnchanged">
+        UPDATE sys_client
+        <set>
+            <if test="client.clientCode != null">client_code = #{client.clientCode},</if>
+            <if test="client.clientName != null">client_name = #{client.clientName},</if>
+            <if test="client.appId != null">app_id = #{client.appId},</if>
+            client_auth_method = #{client.clientAuthMethod},
+            <if test="secretChanged">app_secret = #{appSecret},</if>
+            <if test="client.tokenTimeout != null">token_timeout = #{client.tokenTimeout},</if>
+            <if test="client.tokenActivityTimeout != null">
+                token_activity_timeout = #{client.tokenActivityTimeout},
+            </if>
+            <if test="client.tokenPrefix != null">token_prefix = #{client.tokenPrefix},</if>
+            <if test="client.tokenName != null">token_name = #{client.tokenName},</if>
+            <if test="client.concurrentLogin != null">concurrent_login = #{client.concurrentLogin},</if>
+            <if test="client.shareToken != null">share_token = #{client.shareToken},</if>
+            <if test="client.enableIpLimit != null">enable_ip_limit = #{client.enableIpLimit},</if>
+            <if test="client.ipWhitelist != null">
+                ip_whitelist = #{client.ipWhitelist,typeHandler=com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler},
+            </if>
+            <if test="client.enableEncrypt != null">enable_encrypt = #{client.enableEncrypt},</if>
+            <if test="client.encryptAlgorithm != null">encrypt_algorithm = #{client.encryptAlgorithm},</if>
+            <if test="client.maxUserCount != null">max_user_count = #{client.maxUserCount},</if>
+            <if test="client.maxOnlineCount != null">max_online_count = #{client.maxOnlineCount},</if>
+            <if test="client.authTypes != null">auth_types = #{client.authTypes},</if>
+            <if test="client.captchaType != null">captcha_type = #{client.captchaType},</if>
+            <if test="client.status != null">status = #{client.status},</if>
+            <if test="client.description != null">description = #{client.description},</if>
+            <if test="client.tenantId != null">tenant_id = #{client.tenantId},</if>
+            update_time = CURRENT_TIMESTAMP
+        </set>
+        WHERE id = #{client.id}
+        <choose>
+            <when test="expectedAuthMethod == null">
+                AND client_auth_method IS NULL
+            </when>
+            <otherwise>
+                AND client_auth_method = #{expectedAuthMethod}
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="expectedSecret == null">
+                AND app_secret IS NULL
+            </when>
+            <otherwise>
+                AND app_secret = #{expectedSecret}
+            </otherwise>
+        </choose>
+    </update>
+
+    <update id="updateAppSecretIfUnchanged">
+        UPDATE sys_client
+        SET app_secret = #{appSecret},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND client_auth_method = #{expectedAuthMethod}
+        <choose>
+            <when test="expectedSecret == null">
+                AND app_secret IS NULL
+            </when>
+            <otherwise>
+                AND app_secret = #{expectedSecret}
+            </otherwise>
+        </choose>
+    </update>
+
+    <select id="countLegacyPlaintextSecrets" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_client
+        WHERE client_auth_method = 'client_secret'
+          AND app_secret IS NOT NULL
+          AND app_secret NOT LIKE '{bcrypt}%'
+    </select>
+
+</mapper>

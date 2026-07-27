@@ -175,7 +175,6 @@ async function handleCallback() {
       tenantId,
       userClient,
       appId: import.meta.env.VITE_APP_ID || 'forge_pc_001',
-      appSecret: import.meta.env.VITE_APP_SECRET || undefined,
     }
 
     const loginRes = await api.login(loginParams)

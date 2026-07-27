@@ -69,11 +69,18 @@ public interface ISysOnlineUserService extends IService<SysOnlineUser> {
     void kickoutUser(String tokenValue);
 
     /**
+     * 根据受租户隔离的在线记录强制会话下线
+     *
+     * @param sessionId 在线会话记录ID
+     */
+    void kickoutSession(Long sessionId);
+
+    /**
      * 批量强制用户下线
      *
-     * @param tokenValues Token值列表
+     * @param sessionIds 在线会话记录ID列表
      */
-    void batchKickoutUser(List<String> tokenValues);
+    void batchKickoutSessions(List<Long> sessionIds);
 
     /**
      * 封禁用户(禁止登录指定时长)
@@ -122,6 +129,14 @@ public interface ISysOnlineUserService extends IService<SysOnlineUser> {
      * @return Token列表
      */
     List<String> getUserTokens(Long userId);
+
+    /**
+     * 获取用户受租户隔离的在线会话记录ID
+     *
+     * @param userId 用户ID
+     * @return 在线会话记录ID列表
+     */
+    List<Long> getUserSessionIds(Long userId);
 
     /**
      * 踢出用户的所有会话(用于同一账号互踢)

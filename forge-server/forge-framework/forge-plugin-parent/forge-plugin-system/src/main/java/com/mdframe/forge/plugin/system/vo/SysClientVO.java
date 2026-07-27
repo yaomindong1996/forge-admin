@@ -11,6 +11,8 @@ public class SysClientVO {
     private String clientName;
     private String appId;
     private String appSecretMasked;
+    private String clientAuthMethod;
+    private Boolean hasAppSecret;
     
     private Long tokenTimeout;
     private Long tokenActivityTimeout;

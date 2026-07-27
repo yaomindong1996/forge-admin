@@ -400,24 +400,25 @@ function clampPercent(value) {
 }
 
 async function loadUserStats() {
-  try {
-    const [onlineRes, userRes] = await Promise.all([
-      request.get('/auth/online/page', { params: { pageNum: 1, pageSize: 1 } }),
-      request.get('/system/user/page', { params: { pageNum: 1, pageSize: 1 } }),
-    ])
-
-    onlineCount.value = onlineRes.data?.total || 0
-    totalUserCount.value = userRes.data?.total || 0
-
-    const today = new Date().toISOString().split('T')[0]
-    const loginRes = await request.get('/system/loginLog/page', {
+  const today = new Date().toISOString().split('T')[0]
+  const [onlineResult, userResult, loginResult] = await Promise.allSettled([
+    request.get('/auth/online/page', {
+      params: { pageNum: 1, pageSize: 1 },
+      needTip: false,
+    }),
+    request.get('/system/user/page', {
+      params: { pageNum: 1, pageSize: 1 },
+      needTip: false,
+    }),
+    request.get('/system/loginLog/page', {
       params: { pageNum: 1, pageSize: 1, startTime: today, endTime: today },
-    })
-    todayLoginCount.value = loginRes.data?.total || 0
-  }
-  catch {
-    console.error('加载用户统计失败')
-  }
+      needTip: false,
+    }),
+  ])
+
+  onlineCount.value = onlineResult.status === 'fulfilled' ? onlineResult.value.data?.total || 0 : 0
+  totalUserCount.value = userResult.status === 'fulfilled' ? userResult.value.data?.total || 0 : 0
+  todayLoginCount.value = loginResult.status === 'fulfilled' ? loginResult.value.data?.total || 0 : 0
 }
 
 async function loadFlowData() {

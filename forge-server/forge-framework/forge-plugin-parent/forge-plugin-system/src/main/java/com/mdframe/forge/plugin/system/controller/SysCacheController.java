@@ -7,6 +7,7 @@ import com.mdframe.forge.plugin.system.dto.CacheInfoDTO;
 import com.mdframe.forge.starter.cache.service.ICacheService;
 import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.domain.RespInfo;
+import com.mdframe.forge.starter.core.util.PageParamResolver;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.log.OperationLog;
@@ -57,8 +58,10 @@ public class SysCacheController {
     @OperationLog(module = "缓存管理", type = OperationType.QUERY, desc = "分页查询缓存列表")
     public RespInfo<Page<CacheInfoDTO>> page(
             @RequestParam(required = false, defaultValue = "*") String pattern,
-            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize) {
+        int currentPage = PageParamResolver.resolve(page, pageNum);
         
         // 如果pattern为空或null，使用*匹配所有
         if (StrUtil.isBlank(pattern)) {
@@ -70,7 +73,7 @@ public class SysCacheController {
                 .filter(key -> !isSensitiveCacheKey(key))
                 .toList();
         long total = allKeys.size();
-        int start = Math.max(0, (page - 1) * pageSize);
+        int start = Math.max(0, (currentPage - 1) * pageSize);
         int end = Math.min(start + pageSize, allKeys.size());
         List<String> keys = start >= allKeys.size() ? List.of() : allKeys.subList(start, end);
         
@@ -105,7 +108,7 @@ public class SysCacheController {
         }
         
         // 构建分页结果
-        Page<CacheInfoDTO> pageResult = new Page<>(page, pageSize, total);
+        Page<CacheInfoDTO> pageResult = new Page<>(currentPage, pageSize, total);
         pageResult.setRecords(records);
         
         return RespInfo.success(pageResult);

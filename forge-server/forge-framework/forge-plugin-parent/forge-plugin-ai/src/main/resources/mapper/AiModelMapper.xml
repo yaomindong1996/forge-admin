@@ -11,6 +11,74 @@
         create_dept, update_by, update_time, remark, del_flag
     </sql>
 
+    <select id="selectModelPage" resultType="com.mdframe.forge.plugin.ai.model.domain.AiModel">
+        SELECT <include refid="modelColumns" />
+        FROM ai_model
+        WHERE del_flag = '0'
+        <if test="providerId != null">
+            AND provider_id = #{providerId}
+        </if>
+        <if test="modelType != null and modelType != ''">
+            AND model_type = #{modelType}
+        </if>
+        <if test="modelName != null and modelName != ''">
+            AND model_name LIKE CONCAT('%', #{modelName}, '%')
+        </if>
+        ORDER BY sort_order ASC, create_time DESC
+    </select>
+
+    <select id="selectEnabledModels" resultType="com.mdframe.forge.plugin.ai.model.domain.AiModel">
+        SELECT <include refid="modelColumns" />
+        FROM ai_model
+        WHERE status = '0' AND del_flag = '0'
+        <if test="providerId != null">
+            AND provider_id = #{providerId}
+        </if>
+        ORDER BY sort_order ASC
+    </select>
+
+    <select id="selectAllByProviderId" resultType="com.mdframe.forge.plugin.ai.model.domain.AiModel">
+        SELECT <include refid="modelColumns" />
+        FROM ai_model
+        WHERE provider_id = #{providerId} AND del_flag = '0'
+        ORDER BY sort_order ASC
+    </select>
+
+    <select id="selectByIdForUpdate" resultType="com.mdframe.forge.plugin.ai.model.domain.AiModel">
+        SELECT <include refid="modelColumns" />
+        FROM ai_model
+        WHERE id = #{id} AND del_flag = '0'
+        FOR UPDATE
+    </select>
+
+    <select id="countByProviderId" resultType="long">
+        SELECT COUNT(1)
+        FROM ai_model
+        WHERE provider_id = #{providerId} AND del_flag = '0'
+    </select>
+
+    <select id="countByProviderAndModelId" resultType="long">
+        SELECT COUNT(1)
+        FROM ai_model
+        WHERE provider_id = #{providerId}
+          AND model_id = #{modelId}
+          AND del_flag = '0'
+        <if test="excludeId != null">
+          AND id != #{excludeId}
+        </if>
+    </select>
+
+    <update id="clearDefaultByProviderId">
+        UPDATE ai_model
+        SET is_default = '0', update_time = CURRENT_TIMESTAMP
+        WHERE provider_id = #{providerId}
+          AND is_default = '1'
+          AND del_flag = '0'
+        <if test="excludeId != null">
+          AND id != #{excludeId}
+        </if>
+    </update>
+
     <select id="selectEnabledDefaultModelId" resultType="java.lang.String">
         SELECT model_id
         FROM ai_model

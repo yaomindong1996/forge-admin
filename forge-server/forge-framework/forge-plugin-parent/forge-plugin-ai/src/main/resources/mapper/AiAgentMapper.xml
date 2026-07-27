@@ -1,10 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mdframe.forge.plugin.ai.agent.mapper.AiAgentMapper">
+  <sql id="agentColumns">
+    id, tenant_id, agent_name, agent_code, description, system_prompt, provider_id, model_name,
+    model_selection_mode, route_policy_id, temperature, max_tokens, extra_config, status,
+    create_by, create_time, create_dept, update_by, update_time, del_flag
+  </sql>
+
   <select id="selectEnabledByCode" resultType="com.mdframe.forge.plugin.ai.agent.domain.AiAgent">
-    SELECT id, tenant_id, agent_name, agent_code, description, system_prompt, provider_id, model_name,
-           model_selection_mode, route_policy_id, temperature, max_tokens, extra_config, status,
-           create_by, create_time, create_dept, update_by, update_time, del_flag
+    SELECT <include refid="agentColumns" />
     FROM ai_agent WHERE agent_code = #{agentCode} AND status = '0' AND del_flag = '0' LIMIT 1
+  </select>
+
+  <select id="selectAgentPage" resultType="com.mdframe.forge.plugin.ai.agent.domain.AiAgent">
+    SELECT <include refid="agentColumns" />
+    FROM ai_agent
+    WHERE del_flag = '0'
+    <if test="keyword != null and keyword != ''">
+      AND (agent_name LIKE CONCAT('%', #{keyword}, '%')
+        OR agent_code LIKE CONCAT('%', #{keyword}, '%')
+        OR description LIKE CONCAT('%', #{keyword}, '%'))
+    </if>
+    <if test="status != null and status != ''">
+      AND status = #{status}
+    </if>
+    ORDER BY create_time DESC
+  </select>
+
+  <select id="selectEnabledAgents" resultType="com.mdframe.forge.plugin.ai.agent.domain.AiAgent">
+    SELECT <include refid="agentColumns" />
+    FROM ai_agent
+    WHERE status = '0' AND del_flag = '0'
   </select>
 </mapper>

@@ -1,7 +1,8 @@
 package com.mdframe.forge.plugin.data.support;
 
 import com.mdframe.forge.plugin.data.entity.DataConnection;
-import com.mdframe.forge.starter.crypto.crypto.EncryptorFactory;
+import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.starter.crypto.persistence.PersistentCryptoService;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class JdbcDataSourceProvider {
 
-    private final EncryptorFactory encryptorFactory;
+    private final PersistentCryptoService persistentCryptoService;
 
     private final Map<Long, HikariDataSource> dataSourceCache = new ConcurrentHashMap<>();
 
@@ -33,7 +34,7 @@ public class JdbcDataSourceProvider {
     }
 
     private HikariDataSource createDataSource(DataConnection connection) {
-        String decryptedPassword = decryptPassword(connection.getPasswordCipher());
+        String decryptedPassword = decryptPassword(connection);
         HikariConfig config = buildHikariConfig(connection, decryptedPassword);
         config.setPoolName("data-conn-" + connection.getId());
         return new HikariDataSource(config);
@@ -76,19 +77,20 @@ public class JdbcDataSourceProvider {
         dataSourceCache.clear();
     }
 
-    private String decryptPassword(String cipherText) {
+    private String decryptPassword(DataConnection connection) {
+        String cipherText = connection.getPasswordCipher();
         if (cipherText == null || cipherText.isEmpty()) {
             log.warn("Password cipher is empty");
             return cipherText;
         }
         try {
-            String decrypted = encryptorFactory.getDefaultEncryptor().decrypt(cipherText);
+            String decrypted = persistentCryptoService.decrypt(cipherText, null);
             log.debug("Password decrypted successfully");
             return decrypted;
         } catch (Exception e) {
-            log.warn("Failed to decrypt password (cipher length={}), using raw value. Error: {}", 
-                    cipherText.length(), e.getMessage());
-            return cipherText;
+            log.error("数据连接密码解密失败，connectionId={}, dbType={}, exceptionType={}",
+                    connection.getId(), connection.getDbType(), e.getClass().getSimpleName());
+            throw new BusinessException("数据连接密码解密失败，请检查持久化密钥配置", e);
         }
     }
 }

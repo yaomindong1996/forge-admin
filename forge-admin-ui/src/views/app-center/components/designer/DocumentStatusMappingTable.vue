@@ -47,7 +47,7 @@
         <n-select
           v-model:value="row.tagType"
           :disabled="disabled"
-          :options="tagOptions"
+          :options="DICT_TAG_TYPE_OPTIONS"
           size="small"
           @update:value="emitRows"
         />
@@ -62,6 +62,7 @@
 <script setup>
 import { useMessage } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
+import { DICT_TAG_TYPE_OPTIONS, DICT_TAG_TYPES } from '@/constants/dict-options'
 
 const props = defineProps({
   rows: {
@@ -93,14 +94,6 @@ const props = defineProps({
 const emit = defineEmits(['update:rows'])
 const message = useMessage()
 const localRows = ref(normalizeRows(props.rows))
-
-const tagOptions = [
-  { label: '默认', value: 'default' },
-  { label: '信息', value: 'info' },
-  { label: '成功', value: 'success' },
-  { label: '警告', value: 'warning' },
-  { label: '错误', value: 'error' },
-]
 
 const statusSelectOptions = computed(() => {
   const options = [...props.statusValueOptions]
@@ -218,23 +211,23 @@ function normalizeRows(rows = []) {
 
 function defaultRows() {
   return [
-    row('DRAFT', '草稿', 'DRAFT', '草稿', 'default', true, true, true),
-    row('SUBMITTED', '已提交', 'SUBMITTED', '已提交', 'info', false, false, false),
-    row('IN_PROCESS', '流程中', 'IN_PROCESS', '流程中', 'warning', false, false, false),
-    row('APPROVED', '已通过', 'APPROVED', '已通过', 'success', false, false, false),
-    row('REJECTED', '已驳回', 'REJECTED', '已驳回', 'error', true, false, true),
-    row('CANCELED', '已撤回', 'CANCELED', '已撤回', 'default', true, false, true),
-    row('CLOSED', '已关闭', 'CLOSED', '已关闭', 'default', false, false, false),
+    createStatusRow('DRAFT', '草稿', 'DRAFT', '草稿', 'default', true, true, true),
+    createStatusRow('SUBMITTED', '已提交', 'SUBMITTED', '已提交', 'info', false, false, false),
+    createStatusRow('IN_PROCESS', '流程中', 'IN_PROCESS', '流程中', 'warning', false, false, false),
+    createStatusRow('APPROVED', '已通过', 'APPROVED', '已通过', 'success', false, false, false),
+    createStatusRow('REJECTED', '已驳回', 'REJECTED', '已驳回', 'error', true, false, true),
+    createStatusRow('CANCELED', '已撤回', 'CANCELED', '已撤回', 'default', true, false, true),
+    createStatusRow('CLOSED', '已关闭', 'CLOSED', '已关闭', 'default', false, false, false),
   ]
 }
 
-function row(standardStatus, standardLabel, statusValue, displayName, tagType, allowEdit, allowDelete, allowStartFlow) {
+function createStatusRow(standardStatus, standardLabel, statusValue, displayName, tagType, allowEdit, allowDelete, allowStartFlow) {
   return { standardStatus, standardLabel, statusValue, displayName, tagType, allowEdit, allowDelete, allowStartFlow }
 }
 
 function normalizeTagType(value) {
   const text = String(value || '').toLowerCase()
-  return ['default', 'info', 'success', 'warning', 'error'].includes(text) ? text : 'default'
+  return DICT_TAG_TYPES.includes(text) ? text : 'default'
 }
 </script>
 

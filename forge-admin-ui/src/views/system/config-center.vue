@@ -93,9 +93,13 @@
             <div class="tab-header">
               <i class="i-material-symbols:watermark tab-icon" />
               <span>水印配置</span>
-              <span class="tab-status" :class="[configForms.watermark.enable ? 'active' : 'inactive']">
-                {{ configForms.watermark.enable ? '启用' : '禁用' }}
-              </span>
+              <DictTag
+                :options="enableDisableOptions"
+                :value="configForms.watermark.enable ? 1 : 0"
+                size="small"
+                :bordered="false"
+                force-tag
+              />
             </div>
           </template>
           <div class="config-section">
@@ -358,9 +362,13 @@
             <div class="tab-header">
               <i class="i-material-symbols:lock tab-icon" />
               <span>加解密配置</span>
-              <span class="tab-status" :class="[configForms.crypto.enabled ? 'active' : 'inactive']">
-                {{ configForms.crypto.enabled ? '启用' : '禁用' }}
-              </span>
+              <DictTag
+                :options="enableDisableOptions"
+                :value="configForms.crypto.enabled ? 1 : 0"
+                size="small"
+                :bordered="false"
+                force-tag
+              />
             </div>
           </template>
           <div class="config-section">
@@ -393,14 +401,7 @@
                     <i class="i-material-symbols:functions-outline" />
                     加密算法
                   </div>
-                  <n-select v-model:value="configForms.crypto.algorithm" :options="[{ label: 'SM4', value: 'SM4' }, { label: 'AES', value: 'AES' }]" class="config-select" />
-                </div>
-                <div class="config-item full-width">
-                  <div class="config-label">
-                    <i class="i-material-symbols:key-outline" />
-                    对称加密密钥
-                  </div>
-                  <n-input v-model:value="configForms.crypto.secretKey" type="password" show-password-on="click" placeholder="Base64编码" class="config-input-full" />
+                  <n-select v-model:value="configForms.crypto.algorithm" :options="cryptoAlgorithmOptions" class="config-select" />
                 </div>
                 <div class="config-item">
                   <div class="config-label">
@@ -415,30 +416,6 @@
                     会话密钥过期(秒)
                   </div>
                   <n-input-number v-model:value="configForms.crypto.sessionKeyExpire" :min="60" :max="86400" class="config-input" />
-                </div>
-              </div>
-            </div>
-
-            <!-- RSA 密钥 -->
-            <div class="config-group">
-              <div class="group-title">
-                <i class="i-material-symbols:vpn-key-outline" />
-                RSA 密钥配置
-              </div>
-              <div class="config-grid">
-                <div class="config-item full-width">
-                  <div class="config-label">
-                    <i class="i-material-symbols:public-outline" />
-                    RSA公钥
-                  </div>
-                  <n-input v-model:value="configForms.crypto.rsaPublicKey" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" placeholder="Base64编码" class="config-input-full" />
-                </div>
-                <div class="config-item full-width">
-                  <div class="config-label">
-                    <i class="i-material-symbols:private-outline" />
-                    RSA私钥
-                  </div>
-                  <n-input v-model:value="configForms.crypto.rsaPrivateKey" type="textarea" :autosize="{ minRows: 3, maxRows: 6 }" placeholder="Base64编码" class="config-input-full" />
                 </div>
               </div>
             </div>
@@ -580,7 +557,7 @@
                   <i class="i-material-symbols:person-outline" />
                   同账号登录策略
                 </div>
-                <n-select v-model:value="configForms.auth.sameAccountLoginStrategy" :options="[{ label: '允许并发登录', value: 'allow_concurrent' }, { label: '新登录踢出旧登录', value: 'replace_old' }, { label: '拒绝新登录', value: 'reject_new' }]" class="config-select-full" />
+                <n-select v-model:value="configForms.auth.sameAccountLoginStrategy" :options="sameAccountLoginStrategyOptions" class="config-select-full" />
               </div>
               <div class="config-item">
                 <div class="config-label">
@@ -732,7 +709,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import {
   getAuthConfig,
   getConfigByGroup,
@@ -751,11 +728,17 @@ import {
   updateWatermarkConfig,
 } from '@/api/config'
 import { DictSelect } from '@/components'
+import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 import { applyRuntimeCryptoConfig } from '@/utils/crypto/crypto-config'
 import { initKeyExchange } from '@/utils/crypto/key-exchange'
 import { request } from '@/utils/http'
 
 const activeTab = ref('login')
+const { dict } = useDict('sys_crypto_algorithm', 'sys_same_account_login_strategy', 'sys_enable_disable')
+const cryptoAlgorithmOptions = computed(() => dict.value.sys_crypto_algorithm || [])
+const sameAccountLoginStrategyOptions = computed(() => dict.value.sys_same_account_login_strategy || [])
+const enableDisableOptions = computed(() => dict.value.sys_enable_disable || [])
 const saveAllLoading = ref(false)
 
 const saving = reactive({
@@ -811,10 +794,7 @@ const configForms = ref({
   crypto: {
     enabled: false,
     algorithm: 'SM4',
-    secretKey: '',
     enableDynamicKey: true,
-    rsaPublicKey: '',
-    rsaPrivateKey: '',
     sessionKeyExpire: 7200,
     enableApiCrypto: true,
     enableFieldCrypto: true,

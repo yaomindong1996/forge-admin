@@ -254,4 +254,22 @@
         ORDER BY update_time DESC, id DESC
     </select>
 
+    <select id="selectEncryptConfigCandidates" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM ai_crud_config
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
+          AND mode = 'CONFIG'
+          AND encrypt_config IS NOT NULL
+          AND encrypt_config != ''
+        <if test="configKeys != null and configKeys.size > 0">
+          AND config_key IN
+          <foreach collection="configKeys" item="configKey" open="(" separator="," close=")">
+            #{configKey}
+          </foreach>
+        </if>
+        ORDER BY config_key ASC, id ASC
+    </select>
+
 </mapper>

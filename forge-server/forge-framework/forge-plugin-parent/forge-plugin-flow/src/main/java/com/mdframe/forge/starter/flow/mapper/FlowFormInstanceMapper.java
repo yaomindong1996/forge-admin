@@ -20,5 +20,9 @@ public interface FlowFormInstanceMapper extends BaseMapper<FlowFormInstance> {
                               @Param("status") String status);
 
     int updateStatusByProcessInstanceId(@Param("processInstanceId") String processInstanceId,
-                                        @Param("status") String status);
+                                        @Param("status") String status,
+                                        @Param("tenantId") Long tenantId);
+
+    int deleteByProcessInstanceIdLogically(@Param("processInstanceId") String processInstanceId,
+                                           @Param("tenantId") Long tenantId);
 }

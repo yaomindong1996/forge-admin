@@ -19,6 +19,7 @@ import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.log.OperationLog;
 import com.mdframe.forge.starter.core.domain.OperationType;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.core.util.SensitiveDataUtil;
@@ -28,6 +29,7 @@ import com.mdframe.forge.starter.excel.model.ImportResult;
 import com.mdframe.forge.starter.excel.service.ExcelImportService;
 import com.mdframe.forge.starter.log.context.OperationAuditContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -47,6 +49,7 @@ import java.util.function.Supplier;
 @RestController
 @RequestMapping("/system/user")
 @RequiredArgsConstructor
+@Slf4j
 @ApiDecrypt
 @ApiEncrypt
 @ApiPermissionIgnore
@@ -557,10 +560,11 @@ public class SysUserController {
                     userService.insertUser(dto);
                     result.getSuccessData().add(row);
                 } catch (Exception e) {
+                    log.error("导入用户第{}行写入失败", row.getRowNum(), e);
                     ImportErrorRecord error = new ImportErrorRecord();
                     error.setRowNum(row.getRowNum());
                     error.setErrorType("写入失败");
-                    error.setErrorMessage(e.getMessage());
+                    error.setErrorMessage("用户数据写入失败");
                     error.setSuggestion("请检查用户名是否重复或字段格式是否正确");
                     result.addError(error);
                 }
@@ -570,8 +574,9 @@ public class SysUserController {
             result.buildSummary();
             result.setSuccess(result.getErrors().isEmpty());
         } catch (Exception e) {
+            log.error("用户导入失败", e);
             result.setSuccess(false);
-            result.setSummary("导入失败：" + e.getMessage());
+            result.setSummary(ImportResult.PUBLIC_FAILURE_MESSAGE);
         }
         return RespInfo.success(result);
     }
@@ -603,16 +608,16 @@ public class SysUserController {
         }
         // 校验必填字段
         if (dto.getUsername() == null || dto.getUsername().isBlank()) {
-            throw new RuntimeException("用户名不能为空");
+            throw new BusinessException("用户名不能为空");
         }
         if (dto.getRealName() == null || dto.getRealName().isBlank()) {
-            throw new RuntimeException("真实姓名不能为空");
+            throw new BusinessException("真实姓名不能为空");
         }
         if (dto.getPhone() == null || dto.getPhone().isBlank()) {
-            throw new RuntimeException("手机号不能为空");
+            throw new BusinessException("手机号不能为空");
         }
         if (dto.getPassword() == null || dto.getPassword().isBlank()) {
-            throw new RuntimeException("密码不能为空");
+            throw new BusinessException("密码不能为空");
         }
         return dto;
     }

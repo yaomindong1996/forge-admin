@@ -20,4 +20,13 @@ public interface DataConnectionMapper extends BaseMapper<DataConnection> {
     DataConnection selectConnectionByCode(@Param("connectionCode") String connectionCode, @Param("tenantId") Long tenantId);
 
     int selectDatasetCountByConnectionId(@Param("connectionId") Long connectionId, @Param("tenantId") Long tenantId);
+
+    List<DataConnection> selectCryptoMigrationBatch(@Param("tenantId") Long tenantId,
+                                                    @Param("afterId") Long afterId,
+                                                    @Param("batchSize") Integer batchSize);
+
+    int updatePasswordCipherIfMatch(@Param("tenantId") Long tenantId,
+                                    @Param("id") Long id,
+                                    @Param("oldCipher") String oldCipher,
+                                    @Param("newCipher") String newCipher);
 }

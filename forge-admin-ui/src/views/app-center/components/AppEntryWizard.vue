@@ -203,7 +203,6 @@
             </n-collapse>
           </n-form>
         </section>
-
       </div>
 
       <template #footer>
@@ -255,6 +254,7 @@ import { useMessage } from 'naive-ui'
 import { computed, defineAsyncComponent, reactive, ref, watch } from 'vue'
 import { businessObjectDesigner, businessObjectList, createBusinessApp, updateBusinessApp } from '@/api/business-app'
 import IconSelector from '@/components/IconSelector.vue'
+import { useDict } from '@/composables/useDict'
 import { normalizeMultiFormDesignerSchema } from './designer/form-first/formDesignerSchema'
 
 const props = defineProps({
@@ -291,6 +291,12 @@ const props = defineProps({
 const emit = defineEmits(['update:show', 'saved'])
 const AppEditorDrawer = defineAsyncComponent(() => import('./AppEditorDrawer.vue'))
 const message = useMessage()
+const { dict } = useDict(
+  'ai_business_app_entry_mode',
+  'ai_business_app_mobile_scene',
+  'ai_business_app_visible_scope',
+  'ai_business_app_platform_type',
+)
 
 const SCENE_TEMPLATES = {
   DATA_MANAGE: {
@@ -442,14 +448,6 @@ const selectedSuiteName = computed(() => {
   return suite?.suiteName || form.suiteCode || '-'
 })
 const selectedObjectName = computed(() => selectedObject.value?.label || form.objectCode || (isRuntimeScene.value ? '-' : '未关联'))
-const runtimeAutoSummary = computed(() => {
-  const formOption = runtimeFormOptions.value.find(item => item.value === form.targetFormKey)
-  const formLabel = formOption?.label || '默认表单'
-  const target = form.runtimeOpenMode === 'CREATE_FORM'
-    ? `直接打开${formLabel}`
-    : `打开${pageLabel(form.targetPageKey)}，使用${formLabel}`
-  return form.configKey ? `${target}；业务页面配置已自动关联` : `${target}；业务单元发布后自动关联页面配置`
-})
 const suiteOptions = computed(() => props.suites.map(item => ({
   label: item.suiteName || item.suiteCode,
   value: item.suiteCode,
@@ -480,29 +478,20 @@ const runtimeFormOptions = computed(() => {
       value: item.formKey,
     }))
 })
+const runtimeAutoSummary = computed(() => {
+  const formOption = runtimeFormOptions.value.find(item => item.value === form.targetFormKey)
+  const formLabel = formOption?.label || '默认表单'
+  const target = form.runtimeOpenMode === 'CREATE_FORM'
+    ? `直接打开${formLabel}`
+    : `打开${pageLabel(form.targetPageKey)}，使用${formLabel}`
+  return form.configKey ? `${target}；业务页面配置已自动关联` : `${target}；业务单元发布后自动关联页面配置`
+})
 
-const externalModeOptions = [
-  { label: '内嵌页面', value: 'IFRAME' },
-  { label: '新窗口打开', value: 'EXTERNAL' },
-]
-const mobileSceneOptions = [
-  { label: 'H5 入口', value: 'h5' },
-  { label: '移动待办', value: 'todo' },
-  { label: '移动流程待办', value: 'approval' },
-  { label: '移动业务', value: 'business' },
-]
-const visibleScopeOptions = [
-  { label: '全部用户', value: 'all' },
-  { label: '指定角色', value: 'role' },
-  { label: '指定部门', value: 'dept' },
-  { label: '负责人范围', value: 'owner' },
-]
-const platformTypeOptions = [
-  { label: '标准接口', value: 'api' },
-  { label: 'Webhook', value: 'webhook' },
-  { label: '企微 / 飞书 / 钉钉', value: 'collaboration' },
-  { label: '外部系统', value: 'external' },
-]
+const externalModeOptions = computed(() => (dict.value.ai_business_app_entry_mode || [])
+  .filter(item => ['IFRAME', 'EXTERNAL'].includes(item.value)))
+const mobileSceneOptions = computed(() => dict.value.ai_business_app_mobile_scene || [])
+const visibleScopeOptions = computed(() => dict.value.ai_business_app_visible_scope || [])
+const platformTypeOptions = computed(() => dict.value.ai_business_app_platform_type || [])
 
 watch(() => props.show, (visible) => {
   if (visible)

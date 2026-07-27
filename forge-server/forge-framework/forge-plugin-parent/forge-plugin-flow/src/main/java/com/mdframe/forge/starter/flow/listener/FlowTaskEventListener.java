@@ -498,7 +498,8 @@ public class FlowTaskEventListener implements FlowableEventListener {
                         business.setDuration(duration);
                     }
                     flowBusinessMapper.updateById(business);
-                    updateFormInstanceStatus(processInstanceId, rejected ? "REJECTED" : "APPROVED");
+                    updateFormInstanceStatus(
+                            processInstanceId, rejected ? "REJECTED" : "APPROVED", business.getTenantId());
                     log.info("更新流程业务状态为{}：processInstanceId={}",
                             rejected ? "已驳回" : "已通过", processInstanceId);
 
@@ -704,7 +705,7 @@ public class FlowTaskEventListener implements FlowableEventListener {
                         business.setDuration(duration);
                     }
                     flowBusinessMapper.updateById(business);
-                    updateFormInstanceStatus(processInstanceId, "CANCELED");
+                    updateFormInstanceStatus(processInstanceId, "CANCELED", business.getTenantId());
                     log.info("更新流程业务状态为已取消：processInstanceId={}", processInstanceId);
 
                     // 发布事件
@@ -871,12 +872,13 @@ public class FlowTaskEventListener implements FlowableEventListener {
         }
     }
 
-    private void updateFormInstanceStatus(String processInstanceId, String status) {
-        if (flowFormInstanceMapper == null || processInstanceId == null || processInstanceId.isBlank()) {
+    private void updateFormInstanceStatus(String processInstanceId, String status, Long tenantId) {
+        if (flowFormInstanceMapper == null || processInstanceId == null || processInstanceId.isBlank()
+                || tenantId == null || tenantId <= 0) {
             return;
         }
         try {
-            flowFormInstanceMapper.updateStatusByProcessInstanceId(processInstanceId, status);
+            flowFormInstanceMapper.updateStatusByProcessInstanceId(processInstanceId, status, tenantId);
         } catch (Exception e) {
             log.warn("更新流程表单实例状态失败: processInstanceId={}, status={}", processInstanceId, status, e);
         }

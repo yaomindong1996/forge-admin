@@ -4,6 +4,7 @@
 
     <resultMap id="BaseResultMap" type="com.mdframe.forge.starter.flow.entity.FlowErrorLog">
         <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
         <result column="process_instance_id" property="processInstanceId"/>
         <result column="process_def_id" property="processDefId"/>
         <result column="process_def_key" property="processDefKey"/>
@@ -28,7 +29,7 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id, process_instance_id, process_def_id, process_def_key, business_key,
+        id, tenant_id, process_instance_id, process_def_id, process_def_key, business_key,
         task_id, task_name, activity_id, activity_name, error_stage, error_type,
         error_message, stack_trace, job_id, job_retries, status, retry_count,
         last_retry_user_id, last_retry_time, retry_message, create_time, update_time
@@ -37,7 +38,7 @@
     <select id="selectErrorLogPage" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sys_flow_error_log
-        WHERE 1 = 1
+        WHERE tenant_id = #{tenantId}
         <if test="processInstanceId != null and processInstanceId != ''">
             AND process_instance_id = #{processInstanceId}
         </if>
@@ -53,7 +54,8 @@
     <select id="selectRecentByProcessInstanceId" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sys_flow_error_log
-        WHERE process_instance_id = #{processInstanceId}
+        WHERE tenant_id = #{tenantId}
+          AND process_instance_id = #{processInstanceId}
         ORDER BY create_time DESC, id DESC
         LIMIT 50
     </select>
@@ -61,7 +63,8 @@
     <select id="selectLatestUnresolved" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List"/>
         FROM sys_flow_error_log
-        WHERE process_instance_id = #{processInstanceId}
+        WHERE tenant_id = #{tenantId}
+          AND process_instance_id = #{processInstanceId}
           AND status IN (0, 3)
         <if test="activityId != null and activityId != ''">
           AND activity_id = #{activityId}
@@ -73,7 +76,63 @@
     <select id="countUnresolvedByProcessInstanceId" resultType="java.lang.Long">
         SELECT COUNT(1)
         FROM sys_flow_error_log
-        WHERE process_instance_id = #{processInstanceId}
+        WHERE tenant_id = #{tenantId}
+          AND process_instance_id = #{processInstanceId}
           AND status IN (0, 3)
     </select>
+
+    <select id="selectStatistics" resultType="java.util.LinkedHashMap">
+        SELECT COUNT(1) AS total,
+               COALESCE(SUM(status = 0), 0) AS unresolved,
+               COALESCE(SUM(status = 1), 0) AS retried,
+               COALESCE(SUM(status = 3), 0) AS retryFailed
+        FROM sys_flow_error_log
+        WHERE tenant_id = #{tenantId}
+    </select>
+
+    <select id="selectByIdAndTenantId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_flow_error_log
+        WHERE id = #{logId}
+          AND tenant_id = #{tenantId}
+        LIMIT 1
+    </select>
+
+    <select id="selectByIdAndTenantIdForUpdate" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_flow_error_log
+        WHERE id = #{logId}
+          AND tenant_id = #{tenantId}
+        LIMIT 1
+        FOR UPDATE
+    </select>
+
+    <update id="resolveByIdAndTenantId">
+        UPDATE sys_flow_error_log
+        SET status = 2,
+            last_retry_user_id = #{userId},
+            last_retry_time = NOW(),
+            retry_message = #{message},
+            update_time = NOW()
+        WHERE id = #{logId}
+          AND tenant_id = #{tenantId}
+    </update>
+
+    <update id="updateRetryState">
+        UPDATE sys_flow_error_log
+        SET status = #{status},
+            retry_count = COALESCE(retry_count, 0) + 1,
+            last_retry_user_id = #{userId},
+            last_retry_time = NOW(),
+            retry_message = #{message},
+            update_time = NOW()
+        WHERE id = #{logId}
+          AND tenant_id = #{tenantId}
+    </update>
+
+    <delete id="deleteByProcessInstanceIdPhysically">
+        DELETE FROM sys_flow_error_log
+        WHERE process_instance_id = #{processInstanceId}
+          AND tenant_id = #{tenantId}
+    </delete>
 </mapper>

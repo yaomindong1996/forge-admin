@@ -1,11 +1,12 @@
 package com.mdframe.forge.flow.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
-import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import com.mdframe.forge.starter.core.domain.RespInfo;
+import com.mdframe.forge.starter.core.util.PageParamResolver;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.flow.entity.FlowErrorLog;
@@ -26,7 +27,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 @ApiDecrypt
 @ApiEncrypt
-@IgnoreTenant
 public class FlowErrorLogController {
 
     private final FlowErrorLogService flowErrorLogService;
@@ -34,9 +34,11 @@ public class FlowErrorLogController {
     /**
      * 分页查询错误日志
      */
+    @SaCheckPermission("flow:monitor:view")
     @GetMapping("/error-logs")
     public RespInfo<Map<String, Object>> getErrorLogs(
-            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
             @RequestParam(required = false) String processInstanceId,
             @RequestParam(required = false) String activityId,
@@ -44,7 +46,8 @@ public class FlowErrorLogController {
 
         Map<String, Object> result = new HashMap<>();
         try {
-            Page<FlowErrorLog> pageParam = new Page<>(page, pageSize);
+            int currentPage = PageParamResolver.resolve(page, pageNum);
+            Page<FlowErrorLog> pageParam = new Page<>(currentPage, pageSize);
             IPage<FlowErrorLog> pageResult = flowErrorLogService.pageErrors(
                     pageParam, processInstanceId, activityId, status);
 
@@ -61,9 +64,10 @@ public class FlowErrorLogController {
     /**
      * 获取错误日志详情
      */
+    @SaCheckPermission("flow:monitor:view")
     @GetMapping("/error-logs/{logId}")
     public RespInfo<FlowErrorLog> getErrorLogDetail(@PathVariable String logId) {
-        FlowErrorLog errorLog = flowErrorLogService.getById(logId);
+        FlowErrorLog errorLog = flowErrorLogService.getCurrentTenantError(logId);
         if (errorLog == null) {
             return RespInfo.error("错误日志不存在");
         }
@@ -73,29 +77,12 @@ public class FlowErrorLogController {
     /**
      * 获取错误日志统计
      */
+    @SaCheckPermission("flow:monitor:view")
     @GetMapping("/error-logs/statistics")
     public RespInfo<Map<String, Object>> getErrorLogStatistics() {
         Map<String, Object> statistics = new HashMap<>();
         try {
-            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<FlowErrorLog> wrapper =
-                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-
-            long total = flowErrorLogService.count();
-            statistics.put("total", total);
-
-            wrapper.eq(FlowErrorLog::getStatus, 0);
-            long unresolved = flowErrorLogService.count(wrapper);
-            statistics.put("unresolved", unresolved);
-
-            wrapper.clear();
-            wrapper.eq(FlowErrorLog::getStatus, 1);
-            long retried = flowErrorLogService.count(wrapper);
-            statistics.put("retried", retried);
-
-            wrapper.clear();
-            wrapper.eq(FlowErrorLog::getStatus, 3);
-            long retryFailed = flowErrorLogService.count(wrapper);
-            statistics.put("retryFailed", retryFailed);
+            statistics.putAll(flowErrorLogService.getStatistics());
         } catch (Exception e) {
             log.error("获取错误日志统计失败", e);
             statistics.put("total", 0);
@@ -109,6 +96,7 @@ public class FlowErrorLogController {
     /**
      * 重试失败节点
      */
+    @SaCheckPermission("flow:monitor:manage")
     @PostMapping("/error-logs/{logId}/retry")
     public RespInfo<Void> retryNode(
             @PathVariable String logId,
@@ -134,20 +122,12 @@ public class FlowErrorLogController {
     /**
      * 解决错误日志（标记为已解决）
      */
+    @SaCheckPermission("flow:monitor:manage")
     @PutMapping("/error-logs/{logId}/resolve")
     public RespInfo<Void> resolveError(@PathVariable String logId) {
         LoginUser loginUser = SessionHelper.getLoginUser();
-        FlowErrorLog errorLog = flowErrorLogService.getById(logId);
-        if (errorLog == null) {
-            return RespInfo.error("错误日志不存在");
-        }
-
-        errorLog.setStatus(2);
-        errorLog.setLastRetryUserId(loginUser != null ? String.valueOf(loginUser.getUserId()) : null);
-        errorLog.setLastRetryTime(java.time.LocalDateTime.now());
-        errorLog.setRetryMessage("管理员手动解决");
-        errorLog.setUpdateTime(java.time.LocalDateTime.now());
-        flowErrorLogService.updateById(errorLog);
+        String userId = loginUser != null ? String.valueOf(loginUser.getUserId()) : null;
+        flowErrorLogService.resolveError(logId, userId);
 
         return RespInfo.success("已标记为已解决", null);
     }

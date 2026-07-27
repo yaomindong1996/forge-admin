@@ -1,7 +1,6 @@
 package com.mdframe.forge.plugin.ai.model.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.ai.constant.AiConstants;
 import com.mdframe.forge.plugin.ai.model.domain.AiModel;
@@ -27,6 +26,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -85,6 +85,16 @@ public class AiModelService extends ServiceImpl<AiModelMapper, AiModel> {
         }).toList();
     }
 
+    public Page<AiModel> selectModelPage(Integer pageNum, Integer pageSize, Long providerId,
+                                         String modelType, String modelName) {
+        return baseMapper.selectModelPage(
+                new Page<>(pageNum, pageSize), providerId, modelType, modelName);
+    }
+
+    public List<AiModel> listEnabledModels(Long providerId) {
+        return baseMapper.selectEnabledModels(providerId);
+    }
+
     public Map<Long, Set<String>> selectEnabledCapabilityCodes(Collection<Long> modelIds) {
         if (modelIds == null || modelIds.isEmpty()) return Collections.emptyMap();
         return capabilityMapper.selectEnabledByModelIds(modelIds).stream().collect(Collectors.groupingBy(
@@ -97,19 +107,15 @@ public class AiModelService extends ServiceImpl<AiModelMapper, AiModel> {
     @Transactional(rollbackFor = Exception.class)
     public void addModel(AiModel model) {
         // 校验同一供应商下 modelId 唯一
-        long count = count(new LambdaQueryWrapper<AiModel>()
-                .eq(AiModel::getProviderId, model.getProviderId())
-                .eq(AiModel::getModelId, model.getModelId()));
+        long count = baseMapper.countByProviderAndModelId(
+                model.getProviderId(), model.getModelId(), null);
         if (count > 0) {
             throw new BusinessException("同一供应商下模型标识已存在: " + model.getModelId());
         }
 
         // 如果设为默认模型，先清除该供应商下其他默认
         if (AiConstants.IS_DEFAULT_YES.equals(model.getIsDefault())) {
-            update(new LambdaUpdateWrapper<AiModel>()
-                    .set(AiModel::getIsDefault, AiConstants.IS_DEFAULT_NO)
-                    .eq(AiModel::getProviderId, model.getProviderId())
-                    .eq(AiModel::getIsDefault, AiConstants.IS_DEFAULT_YES));
+            baseMapper.clearDefaultByProviderId(model.getProviderId(), null);
         }
 
         save(model);
@@ -126,22 +132,21 @@ public class AiModelService extends ServiceImpl<AiModelMapper, AiModel> {
             throw new BusinessException("模型不存在: " + model.getId());
         }
 
-        // 如果修改了 modelId，校验同一供应商下唯一
-        if (model.getModelId() != null && !model.getModelId().equals(existing.getModelId())) {
-            long count = count(new LambdaQueryWrapper<AiModel>()
-                    .eq(AiModel::getProviderId, existing.getProviderId())
-                    .eq(AiModel::getModelId, model.getModelId()));
+        Long targetProviderId = model.getProviderId() != null
+                ? model.getProviderId() : existing.getProviderId();
+        String targetModelId = model.getModelId() != null ? model.getModelId() : existing.getModelId();
+        if (!Objects.equals(targetProviderId, existing.getProviderId())
+                || !Objects.equals(targetModelId, existing.getModelId())) {
+            long count = baseMapper.countByProviderAndModelId(
+                    targetProviderId, targetModelId, model.getId());
             if (count > 0) {
-                throw new BusinessException("同一供应商下模型标识已存在: " + model.getModelId());
+                throw new BusinessException("同一供应商下模型标识已存在: " + targetModelId);
             }
         }
 
         // 如果设为默认模型，先清除该供应商下其他默认
         if (AiConstants.IS_DEFAULT_YES.equals(model.getIsDefault())) {
-            update(new LambdaUpdateWrapper<AiModel>()
-                    .set(AiModel::getIsDefault, AiConstants.IS_DEFAULT_NO)
-                    .eq(AiModel::getProviderId, existing.getProviderId())
-                    .eq(AiModel::getIsDefault, AiConstants.IS_DEFAULT_YES));
+            baseMapper.clearDefaultByProviderId(targetProviderId, model.getId());
         }
 
         updateById(model);
@@ -166,27 +171,32 @@ public class AiModelService extends ServiceImpl<AiModelMapper, AiModel> {
      * 按供应商查询模型列表
      */
     public List<AiModel> listByProviderId(Long providerId) {
-        return list(new LambdaQueryWrapper<AiModel>()
-                .eq(AiModel::getProviderId, providerId)
-                .eq(AiModel::getStatus, AiConstants.STATUS_NORMAL)
-                .orderByAsc(AiModel::getSortOrder));
+        return baseMapper.selectEnabledModels(providerId);
     }
 
     /**
      * 查询供应商下所有模型（含停用），用于双写同步
      */
     public List<AiModel> listAllByProviderId(Long providerId) {
-        return list(new LambdaQueryWrapper<AiModel>()
-                .eq(AiModel::getProviderId, providerId)
-                .orderByAsc(AiModel::getSortOrder));
+        return baseMapper.selectAllByProviderId(providerId);
+    }
+
+    public AiModel getByIdForUpdate(Long id) {
+        if (id == null) {
+            throw new BusinessException("模型ID不能为空");
+        }
+        AiModel model = baseMapper.selectByIdForUpdate(id);
+        if (model == null) {
+            throw new BusinessException("模型不存在: " + id);
+        }
+        return model;
     }
 
     /**
      * 统计供应商下的模型数量
      */
     public long countByProviderId(Long providerId) {
-        return count(new LambdaQueryWrapper<AiModel>()
-                .eq(AiModel::getProviderId, providerId));
+        return baseMapper.countByProviderId(providerId);
     }
 
     /**

@@ -67,9 +67,16 @@ public class AuthProperties {
     private Boolean enableOnlineUserManagement = true;
 
     /**
-     * 是否启用客户端验证
-     * 启用后，登录时需要验证AppId和AppSecret
-     * 默认不启用
+     * 客户端验证兼容配置。
+     *
+     * @deprecated 客户端身份验证属于强制安全边界，关闭此配置也不会跳过验证。
      */
+    @Deprecated
     private Boolean enableClientValidation = true;
+
+    /**
+     * 是否允许读取历史明文客户端密钥。
+     * 完成存量盘点和机会式升级后应关闭。
+     */
+    private Boolean enableLegacyClientSecretRead = true;
 }

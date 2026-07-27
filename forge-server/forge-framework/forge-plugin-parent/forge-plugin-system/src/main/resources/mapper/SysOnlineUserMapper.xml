@@ -2,6 +2,85 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mdframe.forge.plugin.system.mapper.SysOnlineUserMapper">
 
+    <resultMap id="OnlineUserSummaryResultMap"
+               type="com.mdframe.forge.plugin.system.entity.SysOnlineUser">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="username" property="username"/>
+        <result column="real_name" property="realName"/>
+        <result column="dept_name" property="deptName"/>
+        <result column="ip_address" property="ipAddress"/>
+        <result column="login_location" property="loginLocation"/>
+        <result column="browser" property="browser"/>
+        <result column="os" property="os"/>
+        <result column="login_time" property="loginTime"/>
+        <result column="last_activity_time" property="lastActivityTime"/>
+        <result column="expire_time" property="expireTime"/>
+        <result column="status" property="status"/>
+        <result column="logout_time" property="logoutTime"/>
+        <result column="logout_type" property="logoutType"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <resultMap id="OnlineUserInternalResultMap" extends="OnlineUserSummaryResultMap"
+               type="com.mdframe.forge.plugin.system.entity.SysOnlineUser">
+        <result column="token_value" property="tokenValue"/>
+    </resultMap>
+
+    <sql id="OnlineUserSummaryColumns">
+        id, user_id, username, real_name, dept_name, ip_address, login_location,
+        browser, os, login_time, last_activity_time, expire_time, status,
+        logout_time, logout_type, tenant_id, create_time, update_time
+    </sql>
+
+    <select id="selectOnlineUsersPage" resultMap="OnlineUserSummaryResultMap">
+        SELECT <include refid="OnlineUserSummaryColumns"/>
+        FROM sys_auth_online_user
+        WHERE status = 1
+        <if test="username != null and username != ''">
+            AND (username LIKE CONCAT('%', #{username}, '%')
+                 OR real_name LIKE CONCAT('%', #{username}, '%'))
+        </if>
+        ORDER BY login_time DESC
+    </select>
+
+    <select id="selectOnlineUsers" resultMap="OnlineUserSummaryResultMap">
+        SELECT <include refid="OnlineUserSummaryColumns"/>
+        FROM sys_auth_online_user
+        WHERE status = 1
+        <if test="username != null and username != ''">
+            AND (username LIKE CONCAT('%', #{username}, '%')
+                 OR real_name LIKE CONCAT('%', #{username}, '%'))
+        </if>
+        ORDER BY login_time DESC
+    </select>
+
+    <select id="selectActiveByTokenValue" resultMap="OnlineUserInternalResultMap">
+        SELECT token_value, <include refid="OnlineUserSummaryColumns"/>
+        FROM sys_auth_online_user
+        WHERE token_value = #{tokenValue}
+          AND status = 1
+        LIMIT 1
+    </select>
+
+    <select id="selectActiveTokenValuesByUserId" resultType="java.lang.String">
+        SELECT token_value
+        FROM sys_auth_online_user
+        WHERE user_id = #{userId}
+          AND status = 1
+        ORDER BY id ASC
+    </select>
+
+    <select id="selectActiveSessionIdsByUserId" resultType="java.lang.Long">
+        SELECT id
+        FROM sys_auth_online_user
+        WHERE user_id = #{userId}
+          AND status = 1
+        ORDER BY id ASC
+    </select>
+
     <!-- 批量更新状态为离线 -->
     <update id="batchUpdateOffline">
         UPDATE sys_auth_online_user

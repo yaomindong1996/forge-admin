@@ -33,6 +33,16 @@
             end_time = NOW(),
             update_time = NOW()
         WHERE process_instance_id = #{processInstanceId}
+          AND tenant_id = #{tenantId}
+          AND deleted = 0
+    </update>
+
+    <update id="deleteByProcessInstanceIdLogically">
+        UPDATE sys_flow_form_instance
+        SET deleted = 1,
+            update_time = NOW()
+        WHERE process_instance_id = #{processInstanceId}
+          AND tenant_id = #{tenantId}
           AND deleted = 0
     </update>
 </mapper>

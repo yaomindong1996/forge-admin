@@ -17,6 +17,8 @@ import com.mdframe.forge.starter.crypto.keyexchange.KeyExchangeController;
 import com.mdframe.forge.starter.crypto.keyexchange.KeyExchangeService;
 import com.mdframe.forge.starter.crypto.keyexchange.RsaKeyPairHolder;
 import com.mdframe.forge.starter.crypto.keyexchange.SessionKeyStore;
+import com.mdframe.forge.starter.crypto.persistence.PersistentCryptoService;
+import com.mdframe.forge.starter.crypto.persistence.VersionedPersistentCryptoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -32,6 +34,12 @@ import org.springframework.util.StringUtils;
 @AutoConfiguration
 public class CryptoAutoConfiguration {
 
+    @Bean
+    public CryptoConfigurationValidator cryptoConfigurationValidator(CryptoProperties properties) {
+        CryptoConfigurationValidator validator = new CryptoConfigurationValidator();
+        validator.validate(properties);
+        return validator;
+    }
     
     @Bean
     public KeyExchangeController keyExchangeController(KeyExchangeService keyExchangeService,
@@ -107,6 +115,12 @@ public class CryptoAutoConfiguration {
         factory.register(aesEncryptor);
         log.info("加密器工厂初始化完成, 已注册算法: SM4, AES");
         return factory;
+    }
+
+    @Bean
+    public PersistentCryptoService persistentCryptoService(CryptoProperties properties,
+                                                           EncryptorFactory encryptorFactory) {
+        return new VersionedPersistentCryptoService(properties, encryptorFactory);
     }
 
     @Bean

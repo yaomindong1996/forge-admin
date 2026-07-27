@@ -14,9 +14,7 @@ import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.exception.BusinessException;
-import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.core.annotation.log.OperationLog;
-import com.mdframe.forge.starter.crypto.crypto.EncryptorFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -40,7 +38,6 @@ public class DataConnectionController {
     private final DataConnectionService connectionService;
     private final JdbcDataSourceProvider dataSourceProvider;
     private final DbDialectFactory dialectFactory;
-    private final EncryptorFactory encryptorFactory;
 
     @GetMapping("/page")
     public RespInfo<IPage<DataConnection>> page(
@@ -74,8 +71,7 @@ public class DataConnectionController {
     @OperationLog(module = "数据资产", desc = "新增数据连接：{{#dto.connectionName}}")
     public RespInfo<Void> add(@Validated @RequestBody DataConnectionSaveDTO dto) {
         validateConnection(dto);
-        DataConnection entity = convertToEntity(dto);
-        connectionService.save(entity);
+        connectionService.saveConnection(dto);
         return RespInfo.success();
     }
 
@@ -86,15 +82,7 @@ public class DataConnectionController {
             throw new BusinessException("数据连接ID不能为空");
         }
         validateConnection(dto);
-        DataConnection entity = convertToEntity(dto);
-        DataConnection existing = connectionService.getById(dto.getId());
-        if (existing == null) {
-            throw new BusinessException("数据连接不存在或已删除");
-        }
-        if (dto.getPassword() == null || dto.getPassword().isEmpty()) {
-            entity.setPasswordCipher(existing.getPasswordCipher());
-        }
-        connectionService.updateById(entity);
+        connectionService.updateConnection(dto);
         dataSourceProvider.closeDataSource(dto.getId());
         return RespInfo.success();
     }
@@ -187,27 +175,6 @@ public class DataConnectionController {
         if (dto.getId() == null && (dto.getPassword() == null || dto.getPassword().isEmpty())) {
             throw new BusinessException("密码不能为空");
         }
-    }
-
-    private DataConnection convertToEntity(DataConnectionSaveDTO dto) {
-        DataConnection entity = new DataConnection();
-        entity.setId(dto.getId());
-        entity.setTenantId(SessionHelper.getTenantId());
-        entity.setConnectionCode(dto.getConnectionCode());
-        entity.setConnectionName(dto.getConnectionName());
-        entity.setDbType(dto.getDbType());
-        entity.setDriverClassName(dto.getDriverClassName());
-        entity.setJdbcUrl(dto.getJdbcUrl());
-        entity.setUsername(dto.getUsername());
-        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
-            entity.setPasswordCipher(encryptorFactory.getDefaultEncryptor().encrypt(dto.getPassword()));
-        }
-        entity.setSchemaName(dto.getSchemaName());
-        entity.setTestSql(dto.getTestSql() != null ? dto.getTestSql() : "SELECT 1");
-        entity.setPoolConfigJson(dto.getPoolConfigJson());
-        entity.setStatus(dto.getStatus() != null ? dto.getStatus() : 1);
-        entity.setDescription(dto.getDescription());
-        return entity;
     }
 
     private DataConnectionDetailVO convertToDetailVO(DataConnection connection) {

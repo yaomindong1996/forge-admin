@@ -223,12 +223,13 @@
 <script setup>
 import { SaveOutline } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { businessObjectDesigner, businessObjectList, createBusinessApp, updateBusinessApp } from '@/api/business-app'
 import IconSelector from '@/components/IconSelector.vue'
 import CrudDefaultParamsEditor from '@/components/lowcode-builder/page/CrudDefaultParamsEditor.vue'
 import MenuParentSelect from '@/components/lowcode-builder/shared/MenuParentSelect.vue'
 import { useDict } from '@/composables/useDict'
+import { normalizeDictOptionValue } from '@/utils/dict-options'
 import { normalizeMultiFormDesignerSchema } from './designer/form-first/formDesignerSchema'
 
 const props = defineProps({
@@ -254,8 +255,18 @@ const objectOptions = ref([])
 const selectedObjectDesigner = ref(null)
 const objectDesignerLoading = ref(false)
 const runtimeOpenModeTouched = ref(false)
+const hydratingForm = ref(false)
 let objectDesignerRequestSeq = 0
-const { dict } = useDict('ai_business_app_entry_mode', 'ai_business_app_mode')
+const { dict } = useDict(
+  'ai_business_app_entry_mode',
+  'ai_business_app_mode',
+  'ai_business_app_mount_target',
+  'ai_business_app_entry_type',
+  'ai_business_app_mobile_scene',
+  'ai_business_app_visible_scope',
+  'ai_business_app_platform_type',
+  'ai_business_app_runtime_open_mode',
+)
 
 const form = reactive(defaultForm())
 
@@ -269,23 +280,10 @@ const rules = {
   appMode: { required: true, message: '请选择使用模式', trigger: 'change' },
 }
 
-const mountTargetOptions = [
-  {
-    label: '管理端菜单',
-    value: 'ADMIN',
-    description: '在 PC 管理端生成一个入口菜单。',
-  },
-  {
-    label: '移动应用',
-    value: 'MOBILE',
-    description: '登记 H5 或移动端业务入口。',
-  },
-  {
-    label: '外部接口',
-    value: 'API',
-    description: '登记 API、Webhook 或外部系统调用资源。',
-  },
-]
+const mountTargetOptions = computed(() => (dict.value.ai_business_app_mount_target || []).map(item => ({
+  ...item,
+  description: item.remark,
+})))
 const entryModeMeta = {
   RUNTIME: {
     title: '业务页面',
@@ -324,14 +322,7 @@ const entryModeMeta = {
     urlPlaceholder: '例如：api://crm.customer.webhook',
   },
 }
-const entryTypeOptions = [
-  { label: '对象列表入口', value: 'OBJECT_LIST' },
-  { label: '新增表单入口', value: 'CREATE_FORM' },
-  { label: '详情页入口', value: 'DETAIL_PAGE' },
-  { label: '审批/待办入口', value: 'APPROVAL_TODO' },
-  { label: '报表/看板入口', value: 'REPORT_DASHBOARD' },
-  { label: '外链/API 入口', value: 'EXTERNAL_OR_API' },
-]
+const entryTypeOptions = computed(() => dict.value.ai_business_app_entry_type || [])
 const entryParamSections = [
   {
     key: 'publicQuery',
@@ -358,38 +349,14 @@ const showSecurityFields = computed(() => ['IFRAME', 'EXTERNAL', 'H5'].includes(
 const isDynamicRenderMode = computed(() => normalizeAppMode(form.appMode) === 'DYNAMIC_RENDER')
 const isCodeDownloadMode = computed(() => showConfigKey.value && normalizeAppMode(form.appMode) === 'CODE_DOWNLOAD')
 const entryModeOptions = computed(() => {
-  const dictMap = new Map((dict.value.ai_business_app_entry_mode || []).map(item => [item.value, item]))
-  return allowedEntryModesForTarget(form.mountTarget).map((value) => {
-    const meta = entryModeMeta[value]
-    const item = dictMap.get(value)
-    return {
-      label: meta?.title || item?.label || value,
-      value,
-    }
-  })
+  const allowedModes = new Set(allowedEntryModesForTarget(form.mountTarget))
+  return (dict.value.ai_business_app_entry_mode || [])
+    .filter(item => allowedModes.has(item.value))
 })
-const appModeMeta = {
-  DYNAMIC_RENDER: {
-    label: '在线运行',
-    description: '在线搭建并由平台托管运行，适合需要快速发布和持续调整的业务页面。',
-  },
-  CODE_DOWNLOAD: {
-    label: '下载代码',
-    description: '生成完整功能代码包，导入本地工程后进行二次开发。',
-  },
-}
-const appModeOptions = computed(() => {
-  const dictMap = new Map((dict.value.ai_business_app_mode || []).map(item => [item.value, item]))
-  return ['DYNAMIC_RENDER', 'CODE_DOWNLOAD'].map((value) => {
-    const item = dictMap.get(value)
-    const meta = appModeMeta[value]
-    return {
-      label: item?.label || meta.label,
-      value,
-      description: item?.remark || meta.description,
-    }
-  })
-})
+const appModeOptions = computed(() => (dict.value.ai_business_app_mode || []).map(item => ({
+  ...item,
+  description: item.remark,
+})))
 const entryModeExplain = computed(() => entryModeMeta[form.entryMode] || entryModeMeta.ROUTE)
 const entryUrlLabel = computed(() => entryModeExplain.value.urlLabel)
 const entryUrlPlaceholder = computed(() => entryModeExplain.value.urlPlaceholder)
@@ -444,41 +411,13 @@ const objectPlaceholder = computed(() => {
     return '可选，用于标识接口服务的业务单元'
   return '可选，关联后按业务单元归集'
 })
-const mobileSceneOptions = [
-  { label: 'H5 入口', value: 'h5' },
-  { label: '移动待办', value: 'todo' },
-  { label: '移动流程待办', value: 'approval' },
-  { label: '移动业务', value: 'business' },
-]
-const visibleScopeOptions = [
-  { label: '全部用户', value: 'all' },
-  { label: '指定角色', value: 'role' },
-  { label: '指定部门', value: 'dept' },
-  { label: '负责人范围', value: 'owner' },
-]
-const platformTypeOptions = [
-  { label: '标准接口', value: 'api' },
-  { label: 'Webhook', value: 'webhook' },
-  { label: '企微 / 飞书 / 钉钉', value: 'collaboration' },
-  { label: '外部系统', value: 'external' },
-]
-const runtimeOpenModeOptions = computed(() => [
-  {
-    label: '列表管理',
-    value: 'LIST',
-    description: '显示列表和操作列，适合需要查看、编辑和执行自定义操作的对象。',
-  },
-  {
-    label: '单据填报',
-    value: 'CREATE_FORM',
-    description: '只显示新增表单，不显示列表和行操作，适合一次性申请、登记、上报。',
-  },
-  {
-    label: '详情查看',
-    value: 'DETAIL',
-    description: '用于带记录 ID 的详情入口，未带记录时回到列表。',
-  },
-])
+const mobileSceneOptions = computed(() => dict.value.ai_business_app_mobile_scene || [])
+const visibleScopeOptions = computed(() => dict.value.ai_business_app_visible_scope || [])
+const platformTypeOptions = computed(() => dict.value.ai_business_app_platform_type || [])
+const runtimeOpenModeOptions = computed(() => (dict.value.ai_business_app_runtime_open_mode || []).map(item => ({
+  ...item,
+  description: item.remark,
+})))
 const runtimeModeTip = computed(() => {
   if (form.runtimeOpenMode === 'CREATE_FORM')
     return '单据填报入口没有列表上下文，因此不会显示列表操作列和行操作按钮；需要自定义操作时请选择“列表管理”。'
@@ -490,6 +429,7 @@ const runtimeModeTip = computed(() => {
 watch(() => props.show, (visible) => {
   if (!visible)
     return
+  hydratingForm.value = true
   runtimeOpenModeTouched.value = false
   Object.assign(form, defaultForm(), props.app || {})
   hydrateOptions()
@@ -498,9 +438,14 @@ watch(() => props.show, (visible) => {
   normalizeEntryModeForMount()
   form.appType = resolveAppType()
   loadObjects()
+  nextTick(() => {
+    hydratingForm.value = false
+  })
 })
 
 watch(() => form.mountTarget, () => {
+  if (hydratingForm.value)
+    return
   normalizeEntryModeForMount()
   form.appType = resolveAppType()
   if (isIntegrationApp.value && form.entryUrl === '/app-center/integration')
@@ -508,6 +453,8 @@ watch(() => form.mountTarget, () => {
 })
 
 watch(() => form.entryMode, () => {
+  if (hydratingForm.value)
+    return
   form.appType = resolveAppType()
   if (form.entryMode === 'RUNTIME' && !runtimeOpenModeTouched.value)
     form.runtimeOpenMode = inferRuntimeOpenMode()
@@ -867,9 +814,9 @@ function allowedEntryModesForTarget(target) {
 }
 
 function normalizeEntryModeForMount() {
-  const allowedModes = allowedEntryModesForTarget(form.mountTarget)
-  if (!allowedModes.includes(form.entryMode))
-    form.entryMode = allowedModes[0]
+  const availableModes = entryModeOptions.value.map(item => item.value)
+  if (availableModes.length && !availableModes.includes(form.entryMode))
+    form.entryMode = availableModes[0]
 }
 
 function deriveMountTarget() {
@@ -919,7 +866,7 @@ function normalizeRuntimeOpenMode(value) {
 
 function normalizeEntryType(value) {
   const type = String(value || '').toUpperCase()
-  return entryTypeOptions.some(item => item.value === type) ? type : inferEntryType()
+  return normalizeDictOptionValue(entryTypeOptions.value, type, inferEntryType())
 }
 
 function entryTypeFromRuntimeMode(value) {

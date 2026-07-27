@@ -18,7 +18,7 @@
       add-button-text="新增模板"
     >
       <!-- 自定义模板内容编辑 -->
-      <template #edit-templateContent="{ formData }">
+      <template #edit-templateContent>
         <div class="template-editor">
           <div ref="templateEditorRef" class="editor-container" />
         </div>
@@ -70,10 +70,12 @@
 import { java } from '@codemirror/lang-java'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { basicSetup, EditorView } from 'codemirror'
-import { NTag } from 'naive-ui'
 import { computed, h, nextTick, onUnmounted, ref, watch } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
+import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 import { request } from '@/utils'
+import { toNumberDictOptions } from '@/utils/dict-options'
 
 defineOptions({ name: 'GeneratorTemplate' })
 
@@ -85,32 +87,18 @@ const previewLoading = ref(false)
 const previewTableId = ref(null)
 const currentTemplateId = ref(null)
 const tableOptions = ref([])
+const { dict } = useDict('gen_template_type', 'gen_template_engine', 'sys_enable_disable', 'sys_yes_no')
 
 let templateEditorView = null
 let previewEditorView = null
 
-// 模板类型选项
-const templateTypeOptions = [
-  { label: 'Entity实体', value: 'ENTITY' },
-  { label: 'Mapper接口', value: 'MAPPER' },
-  { label: 'Mapper XML', value: 'MAPPER_XML' },
-  { label: 'Service接口', value: 'SERVICE' },
-  { label: 'Service实现', value: 'SERVICE_IMPL' },
-  { label: 'Controller', value: 'CONTROLLER' },
-  { label: 'DTO', value: 'DTO' },
-  { label: 'VO', value: 'VO' },
-  { label: 'Query查询', value: 'QUERY' },
-  { label: 'SQL脚本', value: 'SQL' },
-]
-
-// 模板引擎选项
-const templateEngineOptions = [
-  { label: 'Velocity', value: 'VELOCITY' },
-  { label: 'Freemarker', value: 'FREEMARKER' },
-]
+const templateTypeOptions = computed(() => dict.value.gen_template_type || [])
+const templateEngineOptions = computed(() => dict.value.gen_template_engine || [])
+const enableDisableOptions = computed(() => toNumberDictOptions(dict.value.sys_enable_disable))
+const yesNoOptions = computed(() => toNumberDictOptions(dict.value.sys_yes_no))
 
 // 搜索表单配置
-const searchSchema = [
+const searchSchema = computed(() => [
   {
     field: 'templateName',
     label: '模板名称',
@@ -125,11 +113,11 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择模板类型',
-      options: templateTypeOptions,
+      options: templateTypeOptions.value,
       clearable: true,
     },
   },
-]
+])
 
 // 表格列配置
 const tableColumns = computed(() => [
@@ -147,15 +135,13 @@ const tableColumns = computed(() => [
     prop: 'templateType',
     label: '模板类型',
     width: 100,
-    render: (row) => {
-      const option = templateTypeOptions.find(opt => opt.value === row.templateType)
-      return option ? option.label : row.templateType
-    },
+    render: row => h(DictTag, { options: templateTypeOptions.value, value: row.templateType, size: 'small' }),
   },
   {
     prop: 'templateEngine',
     label: '模板引擎',
     width: 100,
+    render: row => h(DictTag, { options: templateEngineOptions.value, value: row.templateEngine, size: 'small' }),
   },
   {
     prop: 'fileSuffix',
@@ -166,23 +152,13 @@ const tableColumns = computed(() => [
     prop: 'isSystem',
     label: '系统内置',
     width: 90,
-    render: (row) => {
-      return h(NTag, {
-        type: row.isSystem === 1 ? 'warning' : 'default',
-        size: 'small',
-      }, { default: () => row.isSystem === 1 ? '是' : '否' })
-    },
+    render: row => h(DictTag, { options: yesNoOptions.value, value: row.isSystem, size: 'small' }),
   },
   {
     prop: 'isEnabled',
     label: '状态',
     width: 80,
-    render: (row) => {
-      return h(NTag, {
-        type: row.isEnabled === 1 ? 'success' : 'error',
-        size: 'small',
-      }, { default: () => row.isEnabled === 1 ? '启用' : '禁用' })
-    },
+    render: row => h(DictTag, { options: enableDisableOptions.value, value: row.isEnabled, size: 'small' }),
   },
   {
     prop: 'action',
@@ -199,7 +175,7 @@ const tableColumns = computed(() => [
 ])
 
 // 编辑表单配置
-const editSchema = [
+const editSchema = computed(() => [
   {
     field: 'templateName',
     label: '模板名称',
@@ -225,7 +201,7 @@ const editSchema = [
     rules: [{ required: true, message: '请选择模板类型', trigger: 'change' }],
     props: {
       placeholder: '请选择模板类型',
-      options: templateTypeOptions,
+      options: templateTypeOptions.value,
     },
   },
   {
@@ -236,7 +212,7 @@ const editSchema = [
     rules: [{ required: true, message: '请选择模板引擎', trigger: 'change' }],
     props: {
       placeholder: '请选择模板引擎',
-      options: templateEngineOptions,
+      options: templateEngineOptions.value,
     },
   },
   {
@@ -253,7 +229,7 @@ const editSchema = [
     label: '生成路径',
     type: 'input',
     props: {
-      placeholder: '如：src/main/java/${package}',
+      placeholder: `如：src/main/java/\${package}`,
     },
   },
   {
@@ -262,10 +238,7 @@ const editSchema = [
     type: 'radio',
     defaultValue: 1,
     props: {
-      options: [
-        { label: '启用', value: 1 },
-        { label: '禁用', value: 0 },
-      ],
+      options: enableDisableOptions.value,
     },
   },
   {
@@ -295,7 +268,7 @@ const editSchema = [
       rows: 2,
     },
   },
-]
+])
 
 // 监听编辑弹窗打开
 watch(() => crudRef.value?.editModalVisible, async (val) => {
@@ -396,7 +369,7 @@ function handleDelete(row) {
           crudRef.value?.refresh()
         }
       }
-      catch (error) {
+      catch {
         window.$message.error('删除失败')
       }
     },

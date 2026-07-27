@@ -21,4 +21,16 @@ public interface AiProviderMapper extends BaseMapper<AiProvider> {
     AiProvider selectDefaultProvider();
 
     List<AiProvider> selectEnabledDefaultProviders();
+
+    Long selectIdForUpdate(@Param("id") Long id);
+
+    List<Long> selectIdsForDefaultSwitch(@Param("tenantId") Long tenantId);
+
+    int clearDefaultProviders(@Param("tenantId") Long tenantId);
+
+    int markDefaultProvider(@Param("tenantId") Long tenantId, @Param("id") Long id);
+
+    int updateModelSummary(@Param("id") Long id,
+                           @Param("models") String models,
+                           @Param("defaultModel") String defaultModel);
 }

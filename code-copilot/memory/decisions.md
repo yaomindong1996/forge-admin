@@ -391,3 +391,21 @@ DB 到 Quartz 的同步不是普通最终写入。同一 Quartz Key 必须先取
 Forge 不再通过可见 `logic_delete_active` 生成列、函数索引或部分索引表达“仅未删除记录唯一”。只有业务键要求未删除记录唯一且删除后允许同值重建时，才使用普通唯一索引 `(tenant_id, 业务键..., del_flag)`；没有业务唯一键或要求跨历史永久唯一的表不机械附加删除标记。
 
 数值主键表使用 `BIGINT/Long del_flag`：`0` 表示有效，删除后由 `@TableLogic(value = "0", delval = "主键数据库列名")` 或自定义 Mapper 写入当前行主键。禁止固定写 `1`，否则同一业务键只能保留一条删除历史。字符串主键表使用同类型字段和专用原子删除 Mapper，禁止调用 MyBatis-Plus 通用字符串逻辑删除方法。
+
+## 42. 持久化密钥轮换采用双读、单写切换和全租户归零门禁
+
+**记录日期**: 2026-07-26
+
+Forge 的 API 传输根密钥与数据库持久化 keyring 分离。持久化密文使用 `FPC1:<algorithm>:<keyId>:<payload>`，活动 keyId 只负责新写，历史 keyring 只负责读取；旧无版本密文仅在显式兼容开关和 legacy key 可用时读取。
+
+轮换顺序固定为：全节点部署新旧双读版本且继续写旧格式，注入活动 keyring，确认全节点一致后切换版本化单写，逐租户 dry-run，受控执行迁移，再次盘点所有数据连接和非空低代码加密配置。只有 `LEGACY/HISTORICAL/UNKNOWN/UNKNOWN_KEY/BLOCKED/FAILED/CONFLICT` 全部归零，才允许关闭 legacy read 并移除旧钥。
+
+一旦产生 `FPC1` 密文，禁止回滚到不识别该协议的版本。生产迁移、观察窗口、归零证据和旧钥退役属于部署门禁，不能由代码测试通过自动替代。
+
+## 43. 新安装密钥使用启动前自动引导和外部稳定文件
+
+**记录日期**: 2026-07-27
+
+当传输根密钥未显式配置时，Starter Crypto 通过 `EnvironmentPostProcessor` 在 Spring 配置绑定前自动引导。优先级固定为“非空环境/JVM 配置 > 已有外部密钥文件 > 首次原子生成”。自动生成的传输根密钥和持久化活动密钥必须独立，后续启动只复用文件，禁止每次启动重生成。
+
+本地默认文件为 `~/.forge/secrets/crypto.properties`；Docker Compose 使用 `crypto_secrets` 命名卷保存 `/var/lib/forge/secrets/crypto.properties`。POSIX 目录权限为 `0700`，密钥/锁文件为 `0600`；文件损坏或无法持久化时启动失败，不静默换钥。已有历史密文的 legacy key 无法从密文推导，仍必须由既有 Secret Manager 或部署配置提供。

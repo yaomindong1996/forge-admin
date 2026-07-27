@@ -1,18 +1,16 @@
 package com.mdframe.forge.plugin.system.controller;
 
 
-import cn.dev33.satoken.annotation.SaIgnore;
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mdframe.forge.plugin.system.constant.OnlineUserPermissions;
 import com.mdframe.forge.plugin.system.entity.SysOnlineUser;
 import com.mdframe.forge.plugin.system.service.ISysOnlineUserService;
+import com.mdframe.forge.plugin.system.vo.SysOnlineUserVO;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
-import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
-import com.mdframe.forge.starter.websocket.domain.WebSocketMessage;
-import com.mdframe.forge.starter.websocket.enums.MessageType;
-import com.mdframe.forge.starter.websocket.service.IMessagePushService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,24 +27,6 @@ import java.util.List;
 public class SysOnlineUserController {
 
     private final ISysOnlineUserService onlineUserService;
-    
-    
-    private final IMessagePushService messagePushService;
-    
-    @IgnoreTenant
-    @GetMapping("/test")
-    @SaIgnore
-    public void banUser() {
-        WebSocketMessage message = WebSocketMessage.builder()
-                .type(MessageType.AUTH_BANNED.getCode())
-                .title("账号封禁通知")
-                .message("您的账号已被封禁,封禁时长: " + 1)
-                .level("error")
-                .requireConfirm(true)
-                .timestamp(System.currentTimeMillis())
-                .build();
-        messagePushService.pushToTopic("auth",message);
-    }
 
     /**
      * 分页获取在线用户列表
@@ -57,13 +37,14 @@ public class SysOnlineUserController {
      * @return 在线用户分页数据
      */
     @GetMapping("/page")
-    public RespInfo<IPage<SysOnlineUser>> getOnlineUsersPage(
+    @SaCheckPermission(OnlineUserPermissions.QUERY)
+    public RespInfo<IPage<SysOnlineUserVO>> getOnlineUsersPage(
             @RequestParam(defaultValue = "1") Long pageNum,
             @RequestParam(defaultValue = "10") Long pageSize,
             @RequestParam(required = false) String username) {
         Page<SysOnlineUser> page = new Page<>(pageNum, pageSize);
         IPage<SysOnlineUser> result = onlineUserService.getOnlineUsersPage(page, username);
-        return RespInfo.success(result);
+        return RespInfo.success(result.convert(SysOnlineUserVO::from));
     }
 
     /**
@@ -73,32 +54,35 @@ public class SysOnlineUserController {
      * @return 在线用户列表
      */
     @GetMapping("/list")
-    public RespInfo<List<SysOnlineUser>> getOnlineUsers(@RequestParam(required = false) String username) {
+    @SaCheckPermission(OnlineUserPermissions.QUERY)
+    public RespInfo<List<SysOnlineUserVO>> getOnlineUsers(@RequestParam(required = false) String username) {
         List<SysOnlineUser> sysOnlineUsers = onlineUserService.getOnlineUsers(username);
-        return RespInfo.success(sysOnlineUsers);
+        return RespInfo.success(sysOnlineUsers.stream().map(SysOnlineUserVO::from).toList());
     }
 
     /**
      * 强制用户下线
      *
-     * @param tokenValue Token值
+     * @param sessionId 在线会话记录ID
      * @return 操作结果
      */
     @PostMapping("/kickout")
-    public RespInfo<Void> kickoutUser(@RequestParam String tokenValue) {
-        onlineUserService.kickoutUser(tokenValue);
+    @SaCheckPermission(OnlineUserPermissions.KICKOUT)
+    public RespInfo<Void> kickoutUser(@RequestParam Long sessionId) {
+        onlineUserService.kickoutSession(sessionId);
         return RespInfo.success();
     }
 
     /**
      * 批量强制用户下线
      *
-     * @param tokenValues Token值列表
+     * @param sessionIds 在线会话记录ID列表
      * @return 操作结果
      */
     @PostMapping("/batchKickout")
-    public RespInfo<Void> batchKickoutUser(@RequestBody List<String> tokenValues) {
-        onlineUserService.batchKickoutUser(tokenValues);
+    @SaCheckPermission(OnlineUserPermissions.BATCH_KICKOUT)
+    public RespInfo<Void> batchKickoutUser(@RequestBody List<Long> sessionIds) {
+        onlineUserService.batchKickoutSessions(sessionIds);
         return RespInfo.success();
     }
 
@@ -111,6 +95,7 @@ public class SysOnlineUserController {
      * @return 操作结果
      */
     @PostMapping("/ban")
+    @SaCheckPermission(OnlineUserPermissions.BAN)
     public RespInfo<Void> banUser(@RequestParam Long userId,
                                    @RequestParam long banSeconds,
                                    @RequestParam(required = false) String reason) {
@@ -125,20 +110,21 @@ public class SysOnlineUserController {
      * @return 操作结果
      */
     @PostMapping("/unban")
+    @SaCheckPermission(OnlineUserPermissions.UNBAN)
     public RespInfo<Void> unbanUser(@RequestParam Long userId) {
         onlineUserService.unbanUser(userId);
         return RespInfo.success();
     }
 
     /**
-     * 获取用户的所有在线Token
+     * 获取用户的所有在线会话记录ID
      *
      * @param userId 用户ID
-     * @return Token列表
+     * @return 在线会话记录ID列表
      */
     @GetMapping("/userTokens")
-    public RespInfo<List<String>> getUserTokens(@RequestParam Long userId) {
-        List<String> tokens = onlineUserService.getUserTokens(userId);
-        return RespInfo.success(tokens);
+    @SaCheckPermission(OnlineUserPermissions.QUERY)
+    public RespInfo<List<Long>> getUserSessionIds(@RequestParam Long userId) {
+        return RespInfo.success(onlineUserService.getUserSessionIds(userId));
     }
 }

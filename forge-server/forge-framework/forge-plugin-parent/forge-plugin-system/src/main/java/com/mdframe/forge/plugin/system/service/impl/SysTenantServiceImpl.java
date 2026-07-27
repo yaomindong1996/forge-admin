@@ -87,6 +87,14 @@ public class SysTenantServiceImpl extends ServiceImpl<SysTenantMapper, SysTenant
     }
 
     @Override
+    public SysTenant selectEnabledTenantForLogin(Long tenantId) {
+        if (tenantId == null) {
+            return null;
+        }
+        return TenantContextHolder.executeIgnore(() -> tenantMapper.selectEnabledTenantById(tenantId));
+    }
+
+    @Override
     public List<SysUserTenantVO> selectCurrentUserTenants() {
         LoginUser loginUser = requireLoginUser();
         if (loginUser.isAdmin()) {

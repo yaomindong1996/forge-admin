@@ -1,9 +1,7 @@
 package com.mdframe.forge.plugin.ai.provider.controller;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mdframe.forge.plugin.ai.coordination.AiModelProviderManager;
 import com.mdframe.forge.plugin.ai.constant.AiConstants;
 import com.mdframe.forge.plugin.ai.model.domain.AiModel;
 import com.mdframe.forge.plugin.ai.model.service.AiModelService;
@@ -16,9 +14,7 @@ import com.mdframe.forge.plugin.ai.provider.vo.AiProviderVO;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.domain.RespInfo;
-import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
@@ -26,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Slf4j
 @RestController
 @RequestMapping("/ai/provider")
 @RequiredArgsConstructor
@@ -34,7 +29,7 @@ public class AiProviderController {
 
     private final AiProviderService providerService;
     private final AiModelService modelService;
-    private final ObjectMapper objectMapper;
+    private final AiModelProviderManager modelProviderManager;
 
     /**
      * 内置供应商预设模板列表（纯代码查表，不查数据库）
@@ -128,9 +123,7 @@ public class AiProviderController {
     @ApiDecrypt
     @ApiEncrypt
     public RespInfo<Void> update(@RequestBody AiProviderSaveDTO request) {
-        providerService.updateProvider(request);
-        // 双写同步：更新供应商后重新聚合 models
-        syncModelsToProvider(request.getId());
+        modelProviderManager.updateProvider(request);
         return RespInfo.success();
     }
 
@@ -141,11 +134,7 @@ public class AiProviderController {
     @ApiDecrypt
     @ApiEncrypt
     public RespInfo<Void> delete(@PathVariable Long id) {
-        long modelCount = modelService.countByProviderId(id);
-        if (modelCount > 0) {
-            throw new BusinessException("该供应商下存在 " + modelCount + " 个关联模型，请先删除关联模型");
-        }
-        providerService.deleteProvider(id);
+        modelProviderManager.deleteProvider(id);
         return RespInfo.success();
     }
 
@@ -166,7 +155,7 @@ public class AiProviderController {
     @ApiDecrypt
     @ApiEncrypt
     public RespInfo<Void> setDefault(@PathVariable Long id) {
-        providerService.setDefault(id);
+        modelProviderManager.setDefaultProvider(id);
         return RespInfo.success();
     }
 
@@ -186,30 +175,6 @@ public class AiProviderController {
                 .findFirst()
                 .orElse(provider.getDefaultModel());
         provider.setDefaultModel(defaultModel);
-    }
-
-    /**
-     * 双写同步：将 ai_model 表数据聚合回写至 ai_provider.models 和 ai_provider.default_model
-     */
-    private void syncModelsToProvider(Long providerId) {
-        List<String> modelIdList = modelService.getModelIdListByProviderId(providerId);
-        String defaultModel = modelService.getDefaultModelId(providerId);
-
-        String modelsJson;
-        try {
-            modelsJson = objectMapper.writeValueAsString(modelIdList);
-        } catch (JsonProcessingException e) {
-            log.error("[AI模型同步] JSON序列化失败, providerId={}", providerId, e);
-            modelsJson = "[]";
-        }
-
-        providerService.update(new LambdaUpdateWrapper<AiProvider>()
-                .set(AiProvider::getModels, modelsJson)
-                .set(AiProvider::getDefaultModel, defaultModel)
-                .eq(AiProvider::getId, providerId));
-
-        log.info("[AI模型同步] 已同步, providerId={}, modelCount={}, defaultModel={}",
-                providerId, modelIdList.size(), defaultModel);
     }
 
     private String toJsonArray(List<String> list) {

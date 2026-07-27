@@ -1,6 +1,5 @@
 package com.mdframe.forge.plugin.ai.provider.service;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.ai.constant.AiConstants;
@@ -26,6 +25,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import com.mdframe.forge.plugin.ai.health.AiModelHealthRegistry;
 import org.springframework.util.StringUtils;
@@ -79,6 +79,7 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
         }
         AiProvider provider = new AiProvider();
         applySaveRequest(provider, request);
+        provider.setIsDefault(AiConstants.IS_DEFAULT_NO);
         provider.setAdapterCode(resolveCreateAdapterCode(request.getAdapterCode()));
         provider.setApiKey(requireSecret(request.getApiKey()));
         normalizeProviderConnection(provider);
@@ -184,20 +185,31 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
         log.info("[AI供应商] 删除供应商, tenantId={}, providerId={}", provider.getTenantId(), id);
     }
 
-    /**
-     * 设为默认供应商（先清除其他默认，再设当前）。
-     *
-     * @param id 供应商 ID
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public void setDefault(Long id) {
-        update(new LambdaUpdateWrapper<AiProvider>()
-                .set(AiProvider::getIsDefault, AiConstants.IS_DEFAULT_NO)
-                .eq(AiProvider::getIsDefault, AiConstants.IS_DEFAULT_YES));
-        update(new LambdaUpdateWrapper<AiProvider>()
-                .set(AiProvider::getIsDefault, AiConstants.IS_DEFAULT_YES)
-                .eq(AiProvider::getId, id));
-        log.info("[AI供应商] 设为默认供应商, id={}", id);
+    @Transactional(propagation = Propagation.MANDATORY)
+    public List<Long> lockAllForDefaultSwitch(Long tenantId) {
+        List<Long> providerIds = baseMapper.selectIdsForDefaultSwitch(tenantId);
+        return providerIds == null ? List.of() : providerIds;
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void switchDefaultProvider(Long tenantId, Long id) {
+        baseMapper.clearDefaultProviders(tenantId);
+        if (baseMapper.markDefaultProvider(tenantId, id) <= 0) {
+            throw new BusinessException("设置默认 AI 供应商失败");
+        }
+        log.info("[AI供应商] 设为默认供应商, tenantId={}, id={}", tenantId, id);
+    }
+
+    public void updateModelSummary(Long providerId, String models, String defaultModel) {
+        if (providerId == null || baseMapper.updateModelSummary(providerId, models, defaultModel) <= 0) {
+            throw new BusinessException("AI供应商模型摘要同步失败");
+        }
+    }
+
+    public void lockForModelSummary(Long providerId) {
+        if (providerId == null || baseMapper.selectIdForUpdate(providerId) == null) {
+            throw new BusinessException("AI供应商不存在");
+        }
     }
 
     private void applySaveRequest(AiProvider provider, AiProviderSaveDTO request) {
@@ -207,7 +219,6 @@ public class AiProviderService extends ServiceImpl<AiProviderMapper, AiProvider>
         setIfPresent(request.getBaseUrl(), provider::setBaseUrl);
         setIfPresent(request.getModels(), provider::setModels);
         setIfPresent(request.getDefaultModel(), provider::setDefaultModel);
-        setIfPresent(request.getIsDefault(), provider::setIsDefault);
         setIfPresent(request.getStatus(), provider::setStatus);
         setIfPresent(request.getRemark(), provider::setRemark);
     }

@@ -1,15 +1,13 @@
 package com.mdframe.forge.plugin.system.controller;
 
 import cn.dev33.satoken.annotation.SaIgnore;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mdframe.forge.plugin.system.entity.SysTenant;
-import com.mdframe.forge.plugin.system.mapper.SysTenantMapper;
+import com.mdframe.forge.plugin.system.service.ISysTenantService;
 import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import com.mdframe.forge.starter.file.core.FileManager;
 import com.mdframe.forge.starter.file.model.FileMetadata;
 import com.mdframe.forge.starter.file.storage.FileStorage;
-import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -43,7 +41,7 @@ public class LoginTenantAssetController {
     private static final Pattern SAFE_FILE_ID_PATTERN = Pattern.compile("^[A-Za-z0-9_-]{8,128}$");
     private static final Set<String> SAFE_IMAGE_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "webp", "ico");
 
-    private final SysTenantMapper tenantMapper;
+    private final ISysTenantService tenantService;
     private final FileManager fileManager;
 
     /**
@@ -88,11 +86,7 @@ public class LoginTenantAssetController {
         if (tenantId == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "租户不存在");
         }
-        SysTenant tenant = TenantContextHolder.executeIgnore(() ->
-                tenantMapper.selectOne(new LambdaQueryWrapper<SysTenant>()
-                        .eq(SysTenant::getId, tenantId)
-                        .eq(SysTenant::getTenantStatus, 1)
-                        .last("LIMIT 1")));
+        SysTenant tenant = tenantService.selectEnabledTenantForLogin(tenantId);
         if (tenant == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "租户不存在");
         }

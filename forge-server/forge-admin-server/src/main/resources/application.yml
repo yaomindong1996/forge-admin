@@ -132,6 +132,9 @@ sa-token:
 sms:
   config-type: interface
 forge:
+  auth:
+    # 存量机密客户端全部升级为 BCrypt 后关闭。
+    enable-legacy-client-secret-read: ${FORGE_AUTH_LEGACY_CLIENT_SECRET_READ_ENABLED:true}
   captcha:
     # 仅 dev/local Profile 可生效；生产即使误配为 true 也不回显
     dev-echo-code: ${FORGE_CAPTCHA_DEV_ECHO_CODE:false}
@@ -173,7 +176,18 @@ forge:
       authorization-code-ttl: ${FORGE_CAPABILITY_AUTH_CODE_TTL:2m}
       allowed-origins: ${FORGE_CAPABILITY_MCP_ALLOWED_ORIGINS:}
   crypto:
-    secretKey: 8r0fV9G3kLcNz7p2xQaA1w==
+    bootstrap:
+      enabled: ${FORGE_CRYPTO_BOOTSTRAP_ENABLED:true}
+      # /你的持久化目录/crypto.properties 默认保存到 ~/.forge/secrets/crypto.properties中
+      file: ${FORGE_CRYPTO_BOOTSTRAP_FILE:}
+    secret-key: ${FORGE_CRYPTO_SECRET_KEY:}
+    persistence:
+      enabled: ${FORGE_CRYPTO_PERSISTENCE_ENABLED:true}
+      write-versioned: ${FORGE_CRYPTO_PERSISTENCE_WRITE_VERSIONED:false}
+      legacy-read-enabled: ${FORGE_CRYPTO_PERSISTENCE_LEGACY_READ_ENABLED:true}
+      legacy-key: ${FORGE_CRYPTO_PERSISTENCE_LEGACY_KEY:${FORGE_CRYPTO_SECRET_KEY:}}
+      active-key-id: ${FORGE_CRYPTO_PERSISTENCE_ACTIVE_KEY_ID:}
+      active-key: ${FORGE_CRYPTO_PERSISTENCE_ACTIVE_KEY:}
   api-config:
     enabled: false
   business:

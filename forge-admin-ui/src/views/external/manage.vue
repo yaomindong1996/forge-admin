@@ -128,16 +128,12 @@
       <div class="debug-panel">
         <div class="debug-title">
           {{ debugApi?.apiName || '-' }}
-          <NTag size="small" :type="debugApi?.apiMethod === 'GET' ? 'success' : 'info'">
-            {{ debugApi?.apiMethod || '-' }}
-          </NTag>
+          <DictTag :options="methodOptions" :value="debugApi?.apiMethod" size="small" force-tag />
         </div>
         <n-input v-model:value="debugParamsText" type="textarea" :rows="8" placeholder="请输入 JSON 调试参数，例如：{&quot;userId&quot;:&quot;1001&quot;}" />
         <div v-if="debugResult" class="debug-result">
           <NSpace align="center">
-            <NTag :type="debugResult.success ? 'success' : 'error'">
-              {{ debugResult.success ? '成功' : '失败' }}
-            </NTag>
+            <DictTag :options="callStatusOptions" :value="debugResult.success ? 1 : 0" force-tag />
             <span>HTTP: {{ debugResult.httpStatusCode ?? '-' }}</span>
             <span>耗时: {{ debugResult.durationMs ?? '-' }}ms</span>
           </NSpace>
@@ -282,11 +278,13 @@ import { computed, h, nextTick, onMounted, ref } from 'vue'
 import { clearExternalApiLogs, debugExternalApi, getExternalApiById, getExternalApiLogSummary, updateExternalApiDocument } from '@/api/external/api'
 import { getExternalSystemList } from '@/api/external/system'
 import { AiCrudPage } from '@/components/ai-form'
+import DictTag from '@/components/DictTag.vue'
 import FileUpload from '@/components/file-upload/index.vue'
 import { useDict } from '@/composables/useDict'
 import { managedFetch } from '@/composables/useGlobalLoading'
 import { useAuthStore } from '@/store'
 import { generateUUID, getFileDownloadUrl } from '@/utils'
+import { toBooleanDictOptions, toNumberDictOptions } from '@/utils/dict-options'
 
 defineOptions({ name: 'ExternalManage' })
 
@@ -320,7 +318,17 @@ const docApi = ref(null)
 const docFiles = ref([])
 const docSaving = ref(false)
 const EXTERNAL_AUTH_ADAPTER_DICT = 'external_auth_adapter'
-const { dict } = useDict(EXTERNAL_AUTH_ADAPTER_DICT)
+const { dict, getLabel } = useDict(
+  EXTERNAL_AUTH_ADAPTER_DICT,
+  'external_auth_type',
+  'external_api_key_position',
+  'external_request_content_type',
+  'external_call_status',
+  'external_call_type',
+  'sys_enable_disable',
+  'sys_req_method',
+  'sys_yes_no',
+)
 
 const isApiStandalone = computed(() => props.initialView === 'api')
 const apiDrawerWidth = computed(() => window.innerWidth < 768 ? '100vw' : 'min(1120px, 92vw)')
@@ -354,45 +362,14 @@ const logApiConfig = {
   delete: 'delete@/external/api/log/:id',
 }
 
-const authTypeOptions = [
-  { label: '无认证', value: 'none' },
-  { label: 'Basic', value: 'basic' },
-  { label: 'Token', value: 'token' },
-  { label: '当前用户Token透传', value: 'current_token' },
-  { label: 'OAuth2', value: 'oauth2' },
-  { label: 'API Key', value: 'api_key' },
-  { label: '自定义认证', value: 'custom' },
-]
-
-const apiKeyPositionOptions = [
-  { label: 'Header', value: 'header' },
-  { label: 'Query', value: 'query' },
-  { label: 'Body', value: 'body' },
-]
-
-const statusOptions = [
-  { label: '启用', value: 1 },
-  { label: '停用', value: 0 },
-]
-
-const methodOptions = [
-  { label: 'GET', value: 'GET' },
-  { label: 'POST', value: 'POST' },
-  { label: 'PUT', value: 'PUT' },
-  { label: 'DELETE', value: 'DELETE' },
-  { label: 'PATCH', value: 'PATCH' },
-]
-
-const contentTypeOptions = [
-  { label: 'application/json', value: 'application/json' },
-  { label: 'application/x-www-form-urlencoded', value: 'application/x-www-form-urlencoded' },
-  { label: 'text/plain', value: 'text/plain' },
-]
-
-const booleanOptions = [
-  { label: '是', value: true },
-  { label: '否', value: false },
-]
+const authTypeOptions = computed(() => dict.value.external_auth_type || [])
+const apiKeyPositionOptions = computed(() => dict.value.external_api_key_position || [])
+const statusOptions = computed(() => toNumberDictOptions(dict.value.sys_enable_disable))
+const methodOptions = computed(() => (dict.value.sys_req_method || []).filter(item => item.value !== 'ALL'))
+const contentTypeOptions = computed(() => dict.value.external_request_content_type || [])
+const booleanOptions = computed(() => toBooleanDictOptions(dict.value.sys_yes_no))
+const callStatusOptions = computed(() => toNumberDictOptions(dict.value.external_call_status))
+const callTypeOptions = computed(() => toBooleanDictOptions(dict.value.external_call_type))
 
 const systemCountText = computed(() => systemCount.value ? `${systemCount.value} 个系统` : '暂无系统')
 const systemStats = computed(() => {
@@ -405,18 +382,18 @@ const systemStats = computed(() => {
   }
 })
 
-const systemSearchSchema = [
+const systemSearchSchema = computed(() => [
   { field: 'systemName', label: '系统名称', type: 'input', props: { placeholder: '搜索系统名称' } },
   { field: 'systemCode', label: '系统编码', type: 'input', props: { placeholder: '搜索系统编码' } },
-  { field: 'systemStatus', label: '状态', type: 'select', props: { placeholder: '全部状态', options: [{ label: '全部', value: null }, ...statusOptions] } },
-]
+  { field: 'systemStatus', label: '状态', type: 'select', props: { placeholder: '全部状态', options: statusOptions.value } },
+])
 
-const apiSearchSchema = [
+const apiSearchSchema = computed(() => [
   { field: 'apiName', label: '接口名称', type: 'input', props: { placeholder: '搜索接口名称' } },
   { field: 'apiCode', label: '接口编码', type: 'input', props: { placeholder: '搜索接口编码' } },
-  { field: 'apiMethod', label: '请求方法', type: 'select', props: { placeholder: '全部方法', options: [{ label: '全部', value: null }, ...methodOptions] } },
-  { field: 'apiStatus', label: '状态', type: 'select', props: { placeholder: '全部状态', options: [{ label: '全部', value: null }, ...statusOptions] } },
-]
+  { field: 'apiMethod', label: '请求方法', type: 'select', props: { placeholder: '全部方法', options: methodOptions.value } },
+  { field: 'apiStatus', label: '状态', type: 'select', props: { placeholder: '全部状态', options: statusOptions.value } },
+])
 
 const systemTableColumns = computed(() => [
   {
@@ -438,10 +415,7 @@ const systemTableColumns = computed(() => [
     prop: 'authType',
     label: '认证',
     width: 120,
-    render: (row) => {
-      const option = authTypeOptions.find(item => item.value === row.authType)
-      return h(NTag, { size: 'small', type: row.authType === 'none' ? 'default' : 'info' }, { default: () => option?.label || row.authType || '-' })
-    },
+    render: row => h(DictTag, { options: authTypeOptions.value, value: row.authType, size: 'small' }),
   },
   {
     prop: 'apiCount',
@@ -540,10 +514,10 @@ const apiTableColumns = computed(() => [
   },
 ])
 
-const logSearchSchema = [
-  { field: 'callStatus', label: '调用状态', type: 'select', props: { placeholder: '全部状态', options: [{ label: '全部', value: null }, { label: '成功', value: 1 }, { label: '失败', value: 0 }] } },
-  { field: 'debugFlag', label: '调用类型', type: 'select', props: { placeholder: '全部类型', options: [{ label: '全部', value: null }, { label: '调试', value: true }, { label: '正式调用', value: false }] } },
-]
+const logSearchSchema = computed(() => [
+  { field: 'callStatus', label: '调用状态', type: 'select', props: { placeholder: '全部状态', options: callStatusOptions.value } },
+  { field: 'debugFlag', label: '调用类型', type: 'select', props: { placeholder: '全部类型', options: callTypeOptions.value } },
+])
 
 const logTableColumns = computed(() => [
   { prop: 'apiName', label: '接口名称', width: 180 },
@@ -553,7 +527,7 @@ const logTableColumns = computed(() => [
     prop: 'callStatus',
     label: '状态',
     width: 80,
-    render: row => h(NTag, { size: 'small', type: row.callStatus === 1 ? 'success' : 'error' }, { default: () => row.callStatus === 1 ? '成功' : '失败' }),
+    render: row => h(DictTag, { options: callStatusOptions.value, value: row.callStatus, size: 'small' }),
   },
   { prop: 'httpStatusCode', label: 'HTTP', width: 80, align: 'right' },
   { prop: 'durationMs', label: '耗时', width: 100, align: 'right', render: row => renderDurationTag(row.durationMs) },
@@ -561,7 +535,7 @@ const logTableColumns = computed(() => [
     prop: 'debugFlag',
     label: '类型',
     width: 90,
-    render: row => h(NTag, { size: 'small', type: row.debugFlag ? 'warning' : 'default' }, { default: () => row.debugFlag ? '调试' : '调用' }),
+    render: row => h(DictTag, { options: callTypeOptions.value, value: row.debugFlag, size: 'small' }),
   },
   { prop: 'createTime', label: '调用时间', width: 170 },
   { prop: 'errorMessage', label: '错误信息', width: 220, render: row => renderTextWithTooltip(row.errorMessage || '-', 'error-cell') },
@@ -578,26 +552,26 @@ const logTableColumns = computed(() => [
   },
 ])
 
-const logDetailSchema = [
+const logDetailSchema = computed(() => [
   { field: 'apiName', label: '接口名称', type: 'text' },
-  { field: 'callStatus', label: '调用状态', type: 'text', formatter: value => value === 1 ? '成功' : '失败' },
+  { field: 'callStatus', label: '调用状态', type: 'text', formatter: value => getLabel('external_call_status', value) },
   { field: 'requestUrl', label: '请求地址', type: 'text', span: 2 },
   { field: 'requestBody', label: '请求参数', type: 'textarea', span: 2, props: { rows: 5, readonly: true } },
   { field: 'responseBody', label: '响应内容', type: 'textarea', span: 2, props: { rows: 8, readonly: true } },
   { field: 'errorMessage', label: '错误信息', type: 'textarea', span: 2, props: { rows: 3, readonly: true } },
-]
+])
 
 const systemEditSchema = computed(() => [
   { field: '__system_base', type: 'divider', label: '基础信息', span: 2, props: { titlePlacement: 'left' } },
   { field: 'systemName', label: '系统名称', type: 'input', required: true, props: { placeholder: '如：统一用户中心' } },
   { field: 'systemCode', label: '系统编码', type: 'input', required: true, props: { placeholder: '如：user_center' } },
   { field: 'baseUrl', label: '基础URL', type: 'input', required: true, span: 2, props: { placeholder: '如：https://api.example.com，接口路径会基于该地址拼接' } },
-  { field: 'trustedInternal', label: '可信内部系统', type: 'radio', defaultValue: false, props: { options: booleanOptions } },
+  { field: 'trustedInternal', label: '可信内部系统', type: 'radio', defaultValue: false, props: { options: booleanOptions.value } },
   { field: 'systemDesc', label: '系统描述', type: 'textarea', span: 2, props: { placeholder: '说明系统用途、负责人或调用范围', rows: 2 } },
 
   { field: '__system_auth', type: 'divider', label: '认证配置', span: 2, props: { titlePlacement: 'left' } },
-  { field: 'authType', label: '认证类型', type: 'select', required: true, props: { options: authTypeOptions } },
-  { field: 'systemStatus', label: '状态', type: 'radio', defaultValue: 1, props: { options: statusOptions } },
+  { field: 'authType', label: '认证类型', type: 'select', required: true, props: { options: authTypeOptions.value } },
+  { field: 'systemStatus', label: '状态', type: 'radio', defaultValue: 1, props: { options: statusOptions.value } },
   { field: 'basicUsername', label: 'Basic用户名', type: 'input', vIf: form => form.authType === 'basic', props: { placeholder: 'Basic Auth username' } },
   { field: 'basicPassword', label: 'Basic密码', type: 'input', vIf: form => form.authType === 'basic', props: { type: 'password', showPasswordOn: 'click', placeholder: 'Basic Auth password' } },
   { field: 'tokenHeaderName', label: 'Token Header', type: 'input', vIf: form => form.authType === 'token', props: { placeholder: '默认 Authorization' } },
@@ -611,7 +585,7 @@ const systemEditSchema = computed(() => [
   { field: 'oauth2GrantType', label: '授权类型', type: 'input', vIf: form => form.authType === 'oauth2', props: { placeholder: '默认 client_credentials' } },
   { field: 'oauth2Scope', label: 'Scope', type: 'input', vIf: form => form.authType === 'oauth2', props: { placeholder: '可选' } },
   { field: 'apiKeyName', label: 'API Key名称', type: 'input', vIf: form => form.authType === 'api_key', props: { placeholder: '如：X-API-Key' } },
-  { field: 'apiKeyPosition', label: 'API Key位置', type: 'select', vIf: form => form.authType === 'api_key', props: { options: apiKeyPositionOptions } },
+  { field: 'apiKeyPosition', label: 'API Key位置', type: 'select', vIf: form => form.authType === 'api_key', props: { options: apiKeyPositionOptions.value } },
   { field: 'apiKeyValue', label: 'API Key值', type: 'textarea', span: 2, vIf: form => form.authType === 'api_key', props: { rows: 3, placeholder: '请输入 API Key' } },
   {
     field: 'customAuthAdapter',
@@ -638,12 +612,12 @@ const systemEditSchema = computed(() => [
   { field: 'connectTimeout', label: '连接超时(ms)', type: 'inputNumber', defaultValue: 5000, props: { min: 0, step: 1000 } },
   { field: 'readTimeout', label: '读取超时(ms)', type: 'inputNumber', defaultValue: 10000, props: { min: 0, step: 1000 } },
   { field: 'writeTimeout', label: '写入超时(ms)', type: 'inputNumber', defaultValue: 10000, props: { min: 0, step: 1000 } },
-  { field: 'sslVerifyEnabled', label: '验证SSL证书', type: 'radio', defaultValue: true, props: { options: booleanOptions } },
-  { field: 'retryEnabled', label: '启用重试', type: 'radio', defaultValue: true, props: { options: booleanOptions } },
-  { field: 'requestLoggingEnabled', label: '记录请求日志', type: 'radio', defaultValue: true, props: { options: booleanOptions } },
+  { field: 'sslVerifyEnabled', label: '验证SSL证书', type: 'radio', defaultValue: true, props: { options: booleanOptions.value } },
+  { field: 'retryEnabled', label: '启用重试', type: 'radio', defaultValue: true, props: { options: booleanOptions.value } },
+  { field: 'requestLoggingEnabled', label: '记录请求日志', type: 'radio', defaultValue: true, props: { options: booleanOptions.value } },
   { field: 'retryMaxAttempts', label: '最大重试次数', type: 'inputNumber', defaultValue: 3, vIf: form => form.retryEnabled === true, props: { min: 1, step: 1 } },
   { field: 'retryBackoffInterval', label: '重试间隔(ms)', type: 'inputNumber', defaultValue: 1000, vIf: form => form.retryEnabled === true, props: { min: 0, step: 500 } },
-  { field: 'proxyEnabled', label: '启用代理', type: 'radio', defaultValue: false, props: { options: booleanOptions } },
+  { field: 'proxyEnabled', label: '启用代理', type: 'radio', defaultValue: false, props: { options: booleanOptions.value } },
   { field: 'proxyHost', label: '代理主机', type: 'input', vIf: form => form.proxyEnabled === true, props: { placeholder: '代理服务器地址' } },
   { field: 'proxyPort', label: '代理端口', type: 'inputNumber', vIf: form => form.proxyEnabled === true, props: { min: 1, max: 65535 } },
   { field: 'proxyUsername', label: '代理用户名', type: 'input', vIf: form => form.proxyEnabled === true },
@@ -668,16 +642,16 @@ const apiEditSchema = computed(() => [
     vIf: () => !selectedSystem.value || isApiStandalone.value,
     props: { options: systemOptions.value, placeholder: '请选择外部系统' },
   },
-  { field: 'apiStatus', label: '状态', type: 'radio', defaultValue: 1, props: { options: statusOptions } },
+  { field: 'apiStatus', label: '状态', type: 'radio', defaultValue: 1, props: { options: statusOptions.value } },
   { field: 'apiName', label: '接口名称', type: 'input', required: true, props: { placeholder: '如：查询用户列表' } },
   { field: 'apiCode', label: '接口编码', type: 'input', required: true, props: { placeholder: '如：query_users' } },
-  { field: 'apiMethod', label: '请求方法', type: 'select', required: true, props: { options: methodOptions } },
+  { field: 'apiMethod', label: '请求方法', type: 'select', required: true, props: { options: methodOptions.value } },
   { field: 'apiPath', label: '接口路径', type: 'input', required: true, props: { placeholder: '如：/api/v1/users' } },
   { field: 'apiDesc', label: '接口描述', type: 'textarea', span: 2, props: { placeholder: '说明接口用途和调用场景', rows: 2 } },
 
   { field: '__api_request', type: 'divider', label: '请求配置', span: 2, props: { titlePlacement: 'left' } },
-  { field: 'requestContentType', label: '请求Content-Type', type: 'select', defaultValue: 'application/json', props: { options: contentTypeOptions } },
-  { field: 'responseContentType', label: '响应Content-Type', type: 'select', defaultValue: 'application/json', props: { options: contentTypeOptions } },
+  { field: 'requestContentType', label: '请求Content-Type', type: 'select', defaultValue: 'application/json', props: { options: contentTypeOptions.value } },
+  { field: 'responseContentType', label: '响应Content-Type', type: 'select', defaultValue: 'application/json', props: { options: contentTypeOptions.value } },
   { field: 'requestHeaders', label: '额外请求头', type: 'textarea', span: 2, props: { rows: 3, placeholder: 'JSON 格式，如：{\"X-App\":\"forge\"}' } },
   { field: 'requestParams', label: '固定请求参数', type: 'textarea', span: 2, props: { rows: 3, placeholder: 'JSON 格式，如：{\"pageSize\":20}' } },
   { field: 'requestBodyTemplate', label: '请求体模板', type: 'textarea', span: 2, vIf: form => ['POST', 'PUT', 'PATCH'].includes(form.apiMethod), props: { rows: 4, placeholder: 'JSON 请求体模板，可使用变量占位' } },
@@ -685,8 +659,8 @@ const apiEditSchema = computed(() => [
   { field: '__api_response', type: 'divider', label: '响应提取与转换', span: 2, props: { titlePlacement: 'left' } },
   { field: 'responseDataPath', label: '数据路径', type: 'input', props: { placeholder: '如：data.records 或 $.data.records' } },
   { field: 'responseTotalPath', label: '总数路径', type: 'input', props: { placeholder: '如：data.total 或 $.data.total，用于分页接口' } },
-  { field: 'paramMappingEnabled', label: '启用参数映射', type: 'radio', defaultValue: false, props: { options: booleanOptions } },
-  { field: 'responseTransformEnabled', label: '启用响应转换', type: 'radio', defaultValue: false, props: { options: booleanOptions } },
+  { field: 'paramMappingEnabled', label: '启用参数映射', type: 'radio', defaultValue: false, props: { options: booleanOptions.value } },
+  { field: 'responseTransformEnabled', label: '启用响应转换', type: 'radio', defaultValue: false, props: { options: booleanOptions.value } },
   { field: 'paramMappings', label: '参数映射规则', type: 'textarea', span: 2, vIf: form => form.paramMappingEnabled === true, props: { rows: 4, placeholder: 'JSON 格式，如：{\"pageNum\":\"page\",\"keyword\":{\"target\":\"q\",\"defaultValue\":\"\"}}' } },
   { field: 'responseTransformScript', label: '响应转换脚本', type: 'textarea', span: 2, vIf: form => form.responseTransformEnabled === true, props: { rows: 5, placeholder: 'JavaScript 转换脚本' } },
   { field: 'errorCodePath', label: '错误码路径', type: 'input', props: { placeholder: '如：code 或 $.code' } },
@@ -695,34 +669,26 @@ const apiEditSchema = computed(() => [
   { field: 'sortOrder', label: '排序', type: 'inputNumber', defaultValue: 0, props: { min: 0, step: 1 } },
 
   { field: '__api_guard', type: 'divider', label: '限流、缓存与权限', span: 2, props: { titlePlacement: 'left' } },
-  { field: 'rateLimitEnabled', label: '启用限流', type: 'radio', defaultValue: false, props: { options: booleanOptions } },
+  { field: 'rateLimitEnabled', label: '启用限流', type: 'radio', defaultValue: false, props: { options: booleanOptions.value } },
   { field: 'rateLimitQps', label: '限流QPS', type: 'inputNumber', defaultValue: 10, vIf: form => form.rateLimitEnabled === true, props: { min: 1, step: 1 } },
-  { field: 'cacheEnabled', label: '启用缓存', type: 'radio', defaultValue: false, props: { options: booleanOptions } },
+  { field: 'cacheEnabled', label: '启用缓存', type: 'radio', defaultValue: false, props: { options: booleanOptions.value } },
   { field: 'cacheTtl', label: '缓存时长(秒)', type: 'inputNumber', defaultValue: 300, vIf: form => form.cacheEnabled === true, props: { min: 1, step: 60 } },
   { field: 'cacheKeyTemplate', label: '缓存Key模板', type: 'input', span: 2, vIf: form => form.cacheEnabled === true, props: { placeholder: '如：external:user:{userId}' } },
-  { field: 'permissionCheckEnabled', label: '启用权限校验', type: 'radio', defaultValue: true, props: { options: booleanOptions } },
+  { field: 'permissionCheckEnabled', label: '启用权限校验', type: 'radio', defaultValue: true, props: { options: booleanOptions.value } },
   { field: 'requiredPermission', label: '所需权限标识', type: 'input', vIf: form => form.permissionCheckEnabled === true, props: { placeholder: '如：external:user:list' } },
   { field: 'remark', label: '备注', type: 'textarea', span: 2, props: { rows: 2, placeholder: '补充说明' } },
 ])
 
 function renderStatusTag(status) {
-  const enabled = status === 1
-  return h(NTag, { type: enabled ? 'success' : 'error', size: 'small' }, { default: () => enabled ? '启用' : '停用' })
+  return h(DictTag, { options: statusOptions.value, value: status, size: 'small' })
 }
 
 function renderMethodTag(method) {
-  const typeMap = {
-    GET: 'success',
-    POST: 'info',
-    PUT: 'warning',
-    DELETE: 'error',
-    PATCH: 'default',
-  }
-  return h(NTag, { type: typeMap[method || ''] || 'default', size: 'small' }, { default: () => method || '-' })
+  return h(DictTag, { options: methodOptions.value, value: method, size: 'small' })
 }
 
 function renderBooleanTag(value) {
-  return h(NTag, { size: 'small', type: value === false ? 'default' : 'success' }, { default: () => value === false ? '关闭' : '开启' })
+  return h(DictTag, { options: booleanOptions.value, value, size: 'small' })
 }
 
 function renderDocTag(row) {

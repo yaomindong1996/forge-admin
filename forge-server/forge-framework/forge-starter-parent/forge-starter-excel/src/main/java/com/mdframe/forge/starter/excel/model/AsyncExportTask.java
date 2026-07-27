@@ -1,5 +1,6 @@
 package com.mdframe.forge.starter.excel.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 import java.time.LocalDateTime;
 
@@ -8,6 +9,8 @@ import java.time.LocalDateTime;
  */
 @Data
 public class AsyncExportTask {
+
+    public static final String PUBLIC_FAILURE_MESSAGE = "导出失败，请稍后重试或联系管理员";
     
     /**
      * 任务 ID
@@ -32,6 +35,7 @@ public class AsyncExportTask {
     /**
      * 文件路径（完成后填充）
      */
+    @JsonIgnore
     private String filePath;
     
     /**

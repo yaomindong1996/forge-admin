@@ -5,10 +5,8 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.useragent.UserAgent;
 import cn.hutool.http.useragent.UserAgentUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.system.entity.SysOnlineUser;
@@ -16,6 +14,7 @@ import com.mdframe.forge.plugin.system.entity.SysUser;
 import com.mdframe.forge.plugin.system.mapper.SysOnlineUserMapper;
 import com.mdframe.forge.plugin.system.mapper.SysUserMapper;
 import com.mdframe.forge.plugin.system.service.ISysOnlineUserService;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import com.mdframe.forge.starter.websocket.domain.WebSocketMessage;
@@ -86,10 +85,10 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
             // 保存到数据库
             sysOnlineUserMapper.insert(sysOnlineUser);
 
-            log.info("添加在线用户成功: userId={}, username={}, token={}",
-                    sysUser.getId(), sysUser.getUsername(), tokenValue);
+            log.info("添加在线用户成功: userId={}, username={}",
+                    sysUser.getId(), sysUser.getUsername());
         } catch (Exception e) {
-            log.error("添加在线用户失败: tokenValue={}, loginId={}", tokenValue, loginId, e);
+            log.error("添加在线用户失败: loginId={}", loginId, e);
         }
     }
 
@@ -114,7 +113,7 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
             Object loginUserObj = tokenSession == null ? null : tokenSession.get("loginUser");
             return loginUserObj instanceof LoginUser ? (LoginUser) loginUserObj : null;
         } catch (Exception e) {
-            log.debug("读取token session中的loginUser失败: tokenValue={}", tokenValue, e);
+            log.debug("读取token session中的loginUser失败", e);
             return null;
         }
     }
@@ -152,9 +151,9 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
 
             sysOnlineUserMapper.delete(updateWrapper);
             
-            log.info("移除在线用户成功: token={}", tokenValue);
+            log.info("移除在线用户成功");
         } catch (Exception e) {
-            log.error("移除在线用户失败: tokenValue={}", tokenValue, e);
+            log.error("移除在线用户失败", e);
         }
     }
 
@@ -167,29 +166,14 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
 
             sysOnlineUserMapper.update(null, updateWrapper);
         } catch (Exception e) {
-            log.error("更新最后活动时间失败: tokenValue={}", tokenValue, e);
+            log.error("更新最后活动时间失败", e);
         }
     }
 
     @Override
     public IPage<SysOnlineUser> getOnlineUsersPage(Page<SysOnlineUser> page, String username) {
         try {
-            LambdaQueryChainWrapper<SysOnlineUser> queryWrapper = new LambdaQueryChainWrapper<SysOnlineUser>(this.sysOnlineUserMapper);
-            queryWrapper.eq(SysOnlineUser::getStatus, 1); // 只查询在线用户
-            
-            // 如果指定了用户名,进行模糊查询
-            if (StrUtil.isNotBlank(username)) {
-                queryWrapper.and(wrapper -> wrapper
-                        .like(SysOnlineUser::getUsername, username)
-                        .or()
-                        .like(SysOnlineUser::getRealName, username)
-                );
-            }
-            
-            // 按登录时间降序排序
-            queryWrapper.orderByDesc(SysOnlineUser::getLoginTime);
-            
-            IPage<SysOnlineUser> result = queryWrapper.page(page);
+            IPage<SysOnlineUser> result = sysOnlineUserMapper.selectOnlineUsersPage(page, username);
             
             // 检查是否被封禁
             for (SysOnlineUser user : result.getRecords()) {
@@ -206,22 +190,7 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
     @Override
     public List<SysOnlineUser> getOnlineUsers(String username) {
         try {
-            LambdaQueryWrapper<SysOnlineUser> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(SysOnlineUser::getStatus, 1); // 只查询在线用户
-            
-            // 如果指定了用户名,进行模糊查询
-            if (StrUtil.isNotBlank(username)) {
-                queryWrapper.and(wrapper -> wrapper
-                        .like(SysOnlineUser::getUsername, username)
-                        .or()
-                        .like(SysOnlineUser::getRealName, username)
-                );
-            }
-            
-            // 按登录时间降序排序
-            queryWrapper.orderByDesc(SysOnlineUser::getLoginTime);
-            
-            List<SysOnlineUser> sysOnlineUsers = sysOnlineUserMapper.selectList(queryWrapper);
+            List<SysOnlineUser> sysOnlineUsers = sysOnlineUserMapper.selectOnlineUsers(username);
             
             // 检查是否被封禁
             for (SysOnlineUser user : sysOnlineUsers) {
@@ -237,18 +206,17 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
 
     @Override
     public SysOnlineUser getOnlineUser(String tokenValue) {
-        LambdaQueryWrapper<SysOnlineUser> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(SysOnlineUser::getTokenValue, tokenValue)
-                .eq(SysOnlineUser::getStatus, 1);
-        return sysOnlineUserMapper.selectOne(queryWrapper);
+        return sysOnlineUserMapper.selectActiveByTokenValue(tokenValue);
     }
 
     @Override
     public void kickoutUser(String tokenValue) {
+        Long userId = null;
         try {
             // 先通知前端
             SysOnlineUser sysOnlineUser = getOnlineUser(tokenValue);
             if (sysOnlineUser != null) {
+                userId = sysOnlineUser.getUserId();
                 notifyUserKickout(tokenValue, sysOnlineUser.getUserId());
                 
                 // 更新数据库状态
@@ -263,26 +231,40 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
             
             // 踢下线
             StpUtil.kickoutByTokenValue(tokenValue);
-            log.info("强制用户下线成功: token={}", tokenValue);
+            log.info("强制用户下线成功: userId={}", userId);
         } catch (Exception e) {
-            log.error("强制用户下线失败: tokenValue={}", tokenValue, e);
+            log.error("强制用户下线失败: userId={}", userId, e);
             throw new RuntimeException("强制下线失败", e);
         }
     }
 
     @Override
-    public void batchKickoutUser(List<String> tokenValues) {
-        for (String tokenValue : tokenValues) {
+    public void kickoutSession(Long sessionId) {
+        SysOnlineUser onlineUser = requireActiveSession(sessionId);
+        kickoutUser(onlineUser.getTokenValue());
+    }
+
+    @Override
+    public void batchKickoutSessions(List<Long> sessionIds) {
+        if (sessionIds == null || sessionIds.isEmpty()) {
+            return;
+        }
+        List<SysOnlineUser> onlineUsers = sessionIds.stream()
+                .distinct()
+                .map(this::requireActiveSession)
+                .toList();
+        for (SysOnlineUser onlineUser : onlineUsers) {
             try {
-                kickoutUser(tokenValue);
+                kickoutUser(onlineUser.getTokenValue());
             } catch (Exception e) {
-                log.error("批量强制下线失败: tokenValue={}", tokenValue, e);
+                log.error("批量强制下线失败: sessionId={}", onlineUser.getId(), e);
             }
         }
     }
 
     @Override
     public void banUser(Long userId, long banSeconds, String reason) {
+        requireTenantUser(userId);
         try {
             // 封禁用户
             StpUtil.disable(userId, banSeconds);
@@ -302,6 +284,7 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
 
     @Override
     public void unbanUser(Long userId) {
+        requireTenantUser(userId);
         try {
             StpUtil.untieDisable(userId);
             log.info("解封用户成功: userId={}", userId);
@@ -316,7 +299,6 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
         try {
             Map<String, Object> data = new HashMap<>();
             data.put("userId", loginId);
-            data.put("tokenValue", tokenValue);
 
             WebSocketMessage message = WebSocketMessage.builder()
                     .type(MessageType.AUTH_KICKOUT.getCode())
@@ -330,7 +312,7 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
             
             // 使用通用Topic广播,由前端根据userId过滤
             messagePushService.pushToTopic("auth", message);
-            log.info("通知用户被踢下线: loginId={}, token={}", loginId, tokenValue);
+            log.info("通知用户被踢下线: loginId={}", loginId);
         } catch (Exception e) {
             log.error("通知用户被踢下线失败: loginId={}", loginId, e);
         }
@@ -351,7 +333,6 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
             // 推送通知
             Map<String, Object> data = new HashMap<>();
             data.put("userId", loginId);
-            data.put("tokenValue", tokenValue);
             
             WebSocketMessage message = WebSocketMessage.builder()
                     .type(MessageType.AUTH_REPLACED.getCode())
@@ -365,7 +346,7 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
             
             // 使用通用Topic广播,由前端根据userId过滤
             messagePushService.pushToTopic("auth", message);
-            log.info("通知用户被顶下线: loginId={}, token={}", loginId, tokenValue);
+            log.info("通知用户被顶下线: loginId={}", loginId);
         } catch (Exception e) {
             log.error("通知用户被顶下线失败: loginId={}", loginId, e);
         }
@@ -404,15 +385,13 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
 
     @Override
     public List<String> getUserTokens(Long userId) {
-        LambdaQueryWrapper<SysOnlineUser> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(SysOnlineUser::getUserId, userId)
-                .eq(SysOnlineUser::getStatus, 1)
-                .select(SysOnlineUser::getTokenValue);
-        
-        List<SysOnlineUser> list = sysOnlineUserMapper.selectList(queryWrapper);
-        return list.stream()
-                .map(SysOnlineUser::getTokenValue)
-                .toList();
+        return sysOnlineUserMapper.selectActiveTokenValuesByUserId(userId);
+    }
+
+    @Override
+    public List<Long> getUserSessionIds(Long userId) {
+        requireTenantUser(userId);
+        return sysOnlineUserMapper.selectActiveSessionIdsByUserId(userId);
     }
 
     @Override
@@ -423,11 +402,11 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
                 try {
                     kickoutUser(token);
                 } catch (Exception e) {
-                    log.error("踢出会话失败: userId={}, token={}", userId, token, e);
+                    log.error("踢出会话失败: userId={}", userId, e);
                 }
             }
         }
-}
+    }
     
     @Override
     public List<SysOnlineUser> getOnlineUsersByClient(String clientType) {
@@ -441,15 +420,13 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
                 
                 if (loginUser != null && loginUser.getUserClient() != null
                     && loginUser.getUserClient().equals(clientType)) {
-                    SysOnlineUser onlineUser = this.lambdaQuery()
-                        .eq(SysOnlineUser::getTokenValue, token)
-                        .one();
+                    SysOnlineUser onlineUser = sysOnlineUserMapper.selectActiveByTokenValue(token);
                     if (onlineUser != null) {
                         result.add(onlineUser);
                     }
                 }
             } catch (Exception e) {
-                log.warn("获取token session失败: {}", token, e);
+                log.warn("获取token session失败", e);
             }
         }
         
@@ -458,6 +435,7 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
     
     @Override
     public void kickoutByClient(Long userId, String clientType) {
+        requireTenantUser(userId);
         StpUtil.kickout(userId, clientType);
         log.info("踢出用户客户端会话: userId={}, client={}", userId, clientType);
     }
@@ -472,6 +450,23 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
         result.put("wechat", (long) getOnlineUsersByClient("wechat").size());
         
         return result;
+    }
+
+    private SysOnlineUser requireActiveSession(Long sessionId) {
+        if (sessionId == null) {
+            throw new BusinessException("在线会话不存在或无权操作");
+        }
+        SysOnlineUser onlineUser = sysOnlineUserMapper.selectById(sessionId);
+        if (onlineUser == null || !Integer.valueOf(1).equals(onlineUser.getStatus())) {
+            throw new BusinessException("在线会话不存在或无权操作");
+        }
+        return onlineUser;
+    }
+
+    private void requireTenantUser(Long userId) {
+        if (userId == null || sysUserMapper.selectById(userId) == null) {
+            throw new BusinessException("用户不存在或无权操作");
+        }
     }
 
     /**

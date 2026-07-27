@@ -1,12 +1,10 @@
 package com.mdframe.forge.plugin.system.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.system.entity.SysLoginLog;
-import com.mdframe.forge.plugin.system.mapper.SysLoginLogMapper;
+import com.mdframe.forge.plugin.system.service.ISysLoginLogService;
 import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.domain.RespInfo;
-import cn.hutool.core.util.StrUtil;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @ApiEncrypt
 public class SysLoginLogController {
 
-    private final SysLoginLogMapper loginLogMapper;
+    private final ISysLoginLogService loginLogService;
 
     /**
      * 分页查询登录日志
@@ -33,42 +31,8 @@ public class SysLoginLogController {
             SysLoginLog query,
             @RequestParam(required = false) String startTime,
             @RequestParam(required = false) String endTime) {
-        LambdaQueryWrapper<SysLoginLog> wrapper = new LambdaQueryWrapper<>();
-        
-        if (query != null) {
-            // 用户名模糊查询
-            wrapper.like(StrUtil.isNotBlank(query.getUsername()),
-                        SysLoginLog::getUsername, query.getUsername());
-            
-            // 登录类型
-            wrapper.eq(StrUtil.isNotBlank(query.getLoginType()),
-                      SysLoginLog::getLoginType, query.getLoginType());
-            
-            // 登录状态
-            wrapper.eq(query.getLoginStatus() != null,
-                      SysLoginLog::getLoginStatus, query.getLoginStatus());
-            
-            // 登录IP模糊查询
-            wrapper.like(StrUtil.isNotBlank(query.getLoginIp()),
-                        SysLoginLog::getLoginIp, query.getLoginIp());
-            
-            // 浏览器
-            wrapper.like(StrUtil.isNotBlank(query.getBrowser()),
-                        SysLoginLog::getBrowser, query.getBrowser());
-            
-            // 操作系统
-            wrapper.like(StrUtil.isNotBlank(query.getOs()),
-                        SysLoginLog::getOs, query.getOs());
-        }
-        
-        // 时间范围查询
-        wrapper.ge(StrUtil.isNotBlank(startTime), SysLoginLog::getLoginTime, startTime);
-        wrapper.le(StrUtil.isNotBlank(endTime), SysLoginLog::getLoginTime, endTime);
-        
-        // 按登录时间倒序排列
-        wrapper.orderByDesc(SysLoginLog::getLoginTime);
-        
-        Page<SysLoginLog> page = loginLogMapper.selectPage(pageQuery.toPage(), wrapper);
+        Page<SysLoginLog> page = loginLogService.selectLoginLogPage(
+                pageQuery.toPage(), query, startTime, endTime);
         return RespInfo.success(page);
     }
 
@@ -77,7 +41,7 @@ public class SysLoginLogController {
      */
     @GetMapping("/{id}")
     public RespInfo<SysLoginLog> detail(@PathVariable Long id) {
-        SysLoginLog log = loginLogMapper.selectById(id);
+        SysLoginLog log = loginLogService.getById(id);
         return RespInfo.success(log);
     }
 }

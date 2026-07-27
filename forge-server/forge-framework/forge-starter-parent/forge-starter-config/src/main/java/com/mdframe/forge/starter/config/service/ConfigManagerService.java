@@ -61,8 +61,8 @@ public class ConfigManagerService {
     /**
      * 获取加解密配置
      */
-    public CryptoProperties getCryptoConfig() {
-        return getConfigByGroup(CryptoProperties.class, "crypto");
+    public CryptoManageConfig getCryptoConfig() {
+        return CryptoManageConfig.from(getConfigByGroup(CryptoProperties.class, "crypto"));
     }
 
     /**
@@ -110,7 +110,10 @@ public class ConfigManagerService {
     /**
      * 保存加解密配置
      */
-    public boolean saveCryptoConfig(CryptoProperties config) {
+    public boolean saveCryptoConfig(CryptoManageConfig config) {
+        if (config != null && config.hasDeploymentSecretFields()) {
+            throw new IllegalArgumentException("加解密配置不允许通过配置中心写入部署级密钥字段");
+        }
         boolean saved = saveConfigByGroup(config, "crypto");
         return saved && configSyncService.syncConfigGroup("crypto");
     }

@@ -1,7 +1,7 @@
 package com.mdframe.forge.plugin.generator.service.impl;
 
 import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.generator.constant.GenDatasourceRuntime;
 import com.mdframe.forge.plugin.generator.domain.entity.GenDatasource;
@@ -15,6 +15,7 @@ import com.mdframe.forge.plugin.generator.service.lowcode.runtime.RuntimeDatabas
 import com.mdframe.forge.plugin.generator.util.DynamicDataSourceUtil;
 import com.mdframe.forge.plugin.generator.util.GenDatasourcePasswordCodec;
 import com.mdframe.forge.plugin.generator.util.GenUtils;
+import com.mdframe.forge.starter.core.domain.PageQuery;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -37,6 +38,17 @@ public class GenDatasourceServiceImpl extends ServiceImpl<GenDatasourceMapper, G
     private final GenDatasourceMapper genDatasourceMapper;
     private final RuntimeDatabaseDialectFactory dialectFactory;
     private final LowcodeRuntimeDataSourceResolver runtimeDataSourceResolver;
+
+    @Override
+    public Page<GenDatasource> selectDatasourcePage(PageQuery pageQuery, String datasourceName, String usageScope) {
+        return genDatasourceMapper.selectDatasourcePage(
+                pageQuery.toPage(), datasourceName, normalizeUsageScopeFilter(usageScope));
+    }
+
+    @Override
+    public List<GenDatasource> selectEnabledDatasources(String usageScope) {
+        return genDatasourceMapper.selectEnabledDatasources(normalizeUsageScopeFilter(usageScope));
+    }
 
     @Override
     public boolean save(GenDatasource entity) {
@@ -138,12 +150,12 @@ public class GenDatasourceServiceImpl extends ServiceImpl<GenDatasourceMapper, G
 
     @Override
     public GenDatasource getDefaultDatasource() {
-        return genDatasourceMapper.selectOne(
-            new LambdaQueryWrapper<GenDatasource>()
-                .eq(GenDatasource::getIsDefault, 1)
-                .eq(GenDatasource::getIsEnabled, 1)
-                .last("LIMIT 1")
-        );
+        return genDatasourceMapper.selectDefaultDatasource();
+    }
+
+    private String normalizeUsageScopeFilter(String usageScope) {
+        String normalized = GenDatasourceRuntime.normalizeUsageScopeFilter(usageScope);
+        return StrUtil.isBlank(normalized) ? null : normalized;
     }
 
     private void applyRuntimeDefaults(GenDatasource entity, GenDatasource existing) {

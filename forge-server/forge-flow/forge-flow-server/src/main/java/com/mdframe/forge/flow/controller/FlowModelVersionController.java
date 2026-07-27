@@ -6,6 +6,7 @@ import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import com.mdframe.forge.starter.core.domain.RespInfo;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.flow.dto.VersionCompareDTO;
 import com.mdframe.forge.starter.flow.dto.VersionRevertDTO;
 import com.mdframe.forge.starter.flow.dto.VersionTagUpdateDTO;
@@ -74,7 +75,7 @@ public class FlowModelVersionController {
     public ResponseEntity<byte[]> downloadVersion(@PathVariable String versionId) {
         VersionDetailVO version = flowModelVersionService.getVersionDetail(versionId);
         if (version.getBpmnXml() == null || version.getBpmnXml().isBlank()) {
-            throw new RuntimeException("该版本没有 BPMN XML，无法下载");
+            throw new BusinessException("该版本没有 BPMN XML，无法下载");
         }
 
         String filename = (version.getVersionName() == null || version.getVersionName().isBlank())

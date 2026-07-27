@@ -3,6 +3,7 @@ package com.mdframe.forge.plugin.generator.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mdframe.forge.plugin.generator.domain.entity.AiCrudConfig;
 import com.mdframe.forge.plugin.generator.service.businessapp.CodeRuleService;
+import com.mdframe.forge.plugin.generator.service.crypto.LowcodeEncryptConfigParser;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -21,13 +22,15 @@ class DynamicCrudServiceAutoGenerationTest {
 
     private final FakeDynamicCrudRepository repository = new FakeDynamicCrudRepository();
     private final FakeCodeRuleService codeRuleService = new FakeCodeRuleService();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final DynamicCrudService service = new DynamicCrudService(
             repository,
             null,
-            new ObjectMapper(),
+            objectMapper,
             null,
             null,
             null,
+            new LowcodeEncryptConfigParser(objectMapper),
             null,
             null,
             codeRuleService,

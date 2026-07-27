@@ -13,13 +13,18 @@
 </template>
 
 <script setup>
-import { NTag } from 'naive-ui'
-import { h } from 'vue'
+import { computed, h } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
+import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
+import { toNumberDictOptions } from '@/utils/dict-options'
 
 defineOptions({ name: 'MessageBizType' })
 
 const crudRef = ref(null)
+const { dict } = useDict('sys_enable_disable', 'sys_link_open_target')
+const statusOptions = computed(() => toNumberDictOptions(dict.value.sys_enable_disable))
+const jumpTargetOptions = computed(() => dict.value.sys_link_open_target || [])
 
 const apiConfig = {
   list: 'get@/api/message/bizType/page',
@@ -29,7 +34,7 @@ const apiConfig = {
   delete: 'delete@/api/message/bizType/:id',
 }
 
-const searchSchema = [
+const searchSchema = computed(() => [
   {
     field: 'bizType',
     label: '业务类型编码',
@@ -53,15 +58,12 @@ const searchSchema = [
     props: {
       placeholder: '请选择状态',
       clearable: true,
-      options: [
-        { label: '启用', value: 1 },
-        { label: '禁用', value: 0 },
-      ],
+      options: statusOptions.value,
     },
   },
-]
+])
 
-const tableColumns = [
+const tableColumns = computed(() => [
   {
     prop: 'bizType',
     label: '业务类型编码',
@@ -81,11 +83,7 @@ const tableColumns = [
     prop: 'jumpTarget',
     label: '跳转方式',
     width: 100,
-    render: (row) => {
-      return h(NTag, { size: 'small' }, {
-        default: () => row.jumpTarget === '_blank' ? '新窗口' : '当前页',
-      })
-    },
+    render: row => h(DictTag, { options: jumpTargetOptions.value, value: row.jumpTarget, forceTag: true }),
   },
   {
     prop: 'icon',
@@ -101,12 +99,7 @@ const tableColumns = [
     prop: 'enabled',
     label: '状态',
     width: 80,
-    render: (row) => {
-      return h(NTag, {
-        type: row.enabled === 1 ? 'success' : 'error',
-        size: 'small',
-      }, { default: () => row.enabled === 1 ? '启用' : '禁用' })
-    },
+    render: row => h(DictTag, { options: statusOptions.value, value: row.enabled, forceTag: true }),
   },
   {
     prop: 'remark',
@@ -114,9 +107,9 @@ const tableColumns = [
     width: 150,
     ellipsis: { tooltip: true },
   },
-]
+])
 
-const editSchema = [
+const editSchema = computed(() => [
   {
     field: 'bizType',
     label: '业务类型编码',
@@ -140,7 +133,7 @@ const editSchema = [
     label: '跳转URL模板',
     type: 'input',
     props: {
-      placeholder: '支持变量：${bizKey}、${messageId}，如：/order/detail?id=${bizKey}',
+      placeholder: `支持变量：\${bizKey}、\${messageId}，如：/order/detail?id=\${bizKey}`,
     },
   },
   {
@@ -149,10 +142,7 @@ const editSchema = [
     type: 'select',
     defaultValue: '_self',
     props: {
-      options: [
-        { label: '当前页', value: '_self' },
-        { label: '新窗口', value: '_blank' },
-      ],
+      options: jumpTargetOptions.value,
     },
   },
   {
@@ -192,7 +182,7 @@ const editSchema = [
       rows: 3,
     },
   },
-]
+])
 </script>
 
 <style scoped>

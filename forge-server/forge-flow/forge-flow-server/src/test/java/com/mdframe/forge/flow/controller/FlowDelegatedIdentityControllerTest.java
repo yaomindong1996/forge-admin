@@ -4,8 +4,8 @@ import com.mdframe.forge.starter.auth.config.FlowDelegationSessionVerifier;
 import com.mdframe.forge.starter.core.context.ExecutionIdentity;
 import com.mdframe.forge.starter.core.context.ExecutionIdentityContextHolder;
 import com.mdframe.forge.starter.core.session.LoginUser;
-import com.mdframe.forge.starter.flow.mapper.FlowBusinessMapper;
 import com.mdframe.forge.starter.flow.service.FlowInstanceService;
+import com.mdframe.forge.starter.flow.service.FlowMonitorService;
 import com.mdframe.forge.starter.flow.service.FlowOrgIntegrationService;
 import com.mdframe.forge.starter.flow.service.FlowOverdueReminderService;
 import com.mdframe.forge.starter.flow.service.FlowTaskService;
@@ -41,7 +41,7 @@ class FlowDelegatedIdentityControllerTest {
                 .thenReturn("process-1");
         FlowDelegationSessionVerifier delegationVerifier = mock(FlowDelegationSessionVerifier.class);
         FlowInstanceController controller = new FlowInstanceController(
-                flowInstanceService, mock(FlowBusinessMapper.class), mock(FlowOrgIntegrationService.class),
+                flowInstanceService, mock(FlowMonitorService.class), mock(FlowOrgIntegrationService.class),
                 delegationVerifier);
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("businessKey", "order:1001");

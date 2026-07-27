@@ -14,4 +14,6 @@ public interface DataDatasetService extends IService<DataDataset> {
     List<DataDataset> listByConnectionId(Long connectionId);
 
     DataDataset getByCode(String datasetCode);
+
+    void updatePublishStatus(Long id, Integer publishStatus);
 }

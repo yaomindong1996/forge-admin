@@ -15,4 +15,7 @@ public interface FlowCcMapper extends BaseMapper<FlowCc> {
      * 统计工作台未读抄送数。
      */
     Long countWorkspaceUnread(@Param("userId") String userId);
+
+    int deleteByProcessInstanceIdPhysically(@Param("processInstanceId") String processInstanceId,
+                                            @Param("tenantId") Long tenantId);
 }

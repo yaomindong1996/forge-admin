@@ -326,6 +326,8 @@ import {
   updateBusinessTrigger,
   updateBusinessTriggerStatus,
 } from '@/api/business-app'
+import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 import TriggerActionConfigPanel from './components/TriggerActionConfigPanel.vue'
 import TriggerConditionBuilder from './components/TriggerConditionBuilder.vue'
 
@@ -351,6 +353,14 @@ const props = defineProps({
 const router = useRouter()
 const route = useRoute()
 const message = useMessage()
+const { dict } = useDict(
+  'ai_business_trigger_receiver_rule',
+  'ai_business_trigger_type',
+  'ai_business_trigger_event_type',
+  'ai_business_trigger_action_type',
+  'ai_business_trigger_execute_status',
+  'sys_enable_disable',
+)
 const triggers = ref([])
 const loading = ref(false)
 const submitting = ref(false)
@@ -418,35 +428,12 @@ const formRules = {
   actionType: { required: true, message: '请选择动作类型' },
 }
 
-const receiverRuleOptions = [
-  { label: '记录创建人', value: 'CREATOR' },
-  { label: '记录负责人', value: 'OWNER' },
-  { label: '指定用户', value: 'USERS' },
-  { label: '全部用户', value: 'ALL' },
-]
-
-const triggerTypeOptions = [
-  { label: '事件触发', value: 'EVENT' },
-  { label: '定时触发', value: 'SCHEDULE' },
-]
-const eventTypeOptions = [
-  { label: '记录创建', value: 'RECORD_CREATED' },
-  { label: '记录更新', value: 'RECORD_UPDATED' },
-  { label: '记录删除', value: 'RECORD_DELETED' },
-  { label: '状态变更', value: 'STATUS_CHANGED' },
-  { label: '字段变更', value: 'FIELD_CHANGED' },
-  { label: '流程通过', value: 'FLOW_APPROVED' },
-  { label: '流程驳回', value: 'FLOW_REJECTED' },
-  { label: '到期提醒', value: 'SCHEDULED_DUE' },
-]
-const actionTypeOptions = [
-  { label: '执行对象动作', value: 'BUSINESS_ACTION' },
-  { label: '发起主流程', value: 'START_FLOW' },
-  { label: '发送消息', value: 'SEND_MESSAGE' },
-  { label: '创建记录', value: 'CREATE_RECORD' },
-  { label: '更新字段', value: 'UPDATE_FIELD' },
-  { label: 'Webhook', value: 'WEBHOOK' },
-]
+const receiverRuleOptions = computed(() => dict.value.ai_business_trigger_receiver_rule || [])
+const triggerTypeOptions = computed(() => dict.value.ai_business_trigger_type || [])
+const eventTypeOptions = computed(() => dict.value.ai_business_trigger_event_type || [])
+const actionTypeOptions = computed(() => dict.value.ai_business_trigger_action_type || [])
+const executeStatusOptions = computed(() => dict.value.ai_business_trigger_execute_status || [])
+const statusOptions = computed(() => dict.value.sys_enable_disable || [])
 
 const columns = [
   {
@@ -468,26 +455,30 @@ const columns = [
     title: '触发方式',
     key: 'triggerType',
     width: 110,
-    render: row => h(NTag, {
-      size: 'small',
-      type: isScheduleRow(row) ? 'warning' : 'info',
-      bordered: false,
-    }, { default: () => isScheduleRow(row) ? '定时触发' : '事件触发' }),
+    render: row => h(DictTag, { options: triggerTypeOptions.value, value: normalizeTriggerType(row.triggerType), size: 'small', bordered: false }),
   },
-  { title: '事件', key: 'eventType', width: 140, render: row => eventTypeLabel(row.eventType) },
-  { title: '动作', key: 'actionType', width: 120, render: row => actionTypeLabel(row.actionType) },
+  { title: '事件', key: 'eventType', width: 140, render: row => h(DictTag, { options: eventTypeOptions.value, value: row.eventType, size: 'small', bordered: false }) },
+  { title: '动作', key: 'actionType', width: 120, render: row => h(DictTag, { options: actionTypeOptions.value, value: row.actionType, size: 'small', bordered: false }) },
   { title: '执行次数', key: 'executeCount', width: 90, render: row => row.executeCount || 0 },
   {
     title: '状态',
     key: 'status',
     width: 110,
-    render: row => h(NSwitch, {
-      'value': row.status === 1,
-      'size': 'small',
-      'onUpdate:value': () => toggleStatus(row),
-    }, {
-      checked: () => '启用',
-      unchecked: () => '禁用',
+    render: row => h(NSpace, { align: 'center', size: 8 }, {
+      default: () => [
+        h(NSwitch, {
+          'value': row.status === 1,
+          'size': 'small',
+          'onUpdate:value': () => toggleStatus(row),
+        }),
+        h(DictTag, {
+          options: statusOptions.value,
+          value: row.status,
+          size: 'small',
+          bordered: false,
+          forceTag: true,
+        }),
+      ],
     }),
   },
   {
@@ -509,17 +500,13 @@ const columns = [
 ]
 
 const logColumns = [
-  { title: '事件', key: 'eventType', width: 110, render: row => eventTypeLabel(row.eventType) },
+  { title: '事件', key: 'eventType', width: 110, render: row => h(DictTag, { options: eventTypeOptions.value, value: row.eventType, size: 'small', bordered: false }) },
   { title: '记录ID', key: 'recordId', width: 100 },
   {
     title: '状态',
     key: 'executeStatus',
     width: 90,
-    render: row => h(NTag, {
-      size: 'small',
-      type: row.executeStatus === 'SUCCESS' ? 'success' : row.executeStatus === 'FAILED' ? 'error' : 'warning',
-      bordered: false,
-    }, { default: () => executeStatusLabel(row.executeStatus) }),
+    render: row => h(DictTag, { options: executeStatusOptions.value, value: row.executeStatus, size: 'small', bordered: false }),
   },
   { title: '耗时(ms)', key: 'durationMs', width: 80 },
   { title: '错误', key: 'errorMessage', ellipsis: { tooltip: true } },
@@ -714,23 +701,6 @@ function handleLogPageSizeChange(size) {
   logPagination.value.pageSize = size
   logPagination.value.pageNum = 1
   loadLogs()
-}
-
-function eventTypeLabel(type) {
-  return eventTypeOptions.find(o => o.value === type)?.label || type
-}
-
-function actionTypeLabel(type) {
-  return actionTypeOptions.find(o => o.value === type)?.label || type
-}
-
-function executeStatusLabel(status) {
-  const map = {
-    SUCCESS: '成功',
-    FAILED: '失败',
-    TODO: '待执行',
-  }
-  return map[status] || status || '-'
 }
 
 function isScheduleRow(row) {

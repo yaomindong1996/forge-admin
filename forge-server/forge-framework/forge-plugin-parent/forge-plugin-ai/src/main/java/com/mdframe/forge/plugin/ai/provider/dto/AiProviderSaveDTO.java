@@ -26,6 +26,9 @@ public class AiProviderSaveDTO {
 
     private String defaultModel;
 
+    /**
+     * 仅用于兼容既有请求，默认供应商只能通过专用切换接口修改。
+     */
     private String isDefault;
 
     private String status;

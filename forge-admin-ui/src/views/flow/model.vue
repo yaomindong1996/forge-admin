@@ -415,7 +415,7 @@ import { buildFlowCategoryTreeOptions, resolveFlowCategoryLabel, resolveFlowCate
 
 const router = useRouter()
 
-const { dict, getLabel } = useDict('flow_model_status', 'flow_process_form_type')
+const { dict, getLabel } = useDict('flow_model_status', 'flow_process_form_type', 'flow_designer_type')
 
 const FlowDesignAsyncLoader = {
   name: 'FlowDesignAsyncLoader',
@@ -478,22 +478,22 @@ const VersionHistory = defineAsyncComponent({
 })
 
 const statusOptions = computed(() => toNumberOptions(dict.value.flow_model_status))
-const formTypeOptions = computed(() => appendBusinessFormTypeOption(dict.value.flow_process_form_type || []))
+const formTypeOptions = computed(() => dict.value.flow_process_form_type || [])
 const categoryTreeOptions = ref([])
-const designerTypeOptions = [
-  {
-    label: '审批流程',
-    value: 'approval',
+const designerTypePresentation = {
+  approval: {
     icon: 'i-material-symbols:approval-delegation-outline',
     desc: '适合人员审批、条件分支、抄送和表单权限配置。',
   },
-  {
-    label: '业务流程',
-    value: 'business',
+  business: {
     icon: 'i-material-symbols:account-tree-outline',
     desc: '适合完整 BPMN 工作流、服务任务、事件和复杂业务编排。',
   },
-]
+}
+const designerTypeOptions = computed(() => (dict.value.flow_designer_type || []).map(item => ({
+  ...item,
+  ...designerTypePresentation[item.value],
+})))
 
 function statusClass(status) {
   const cls = { 0: 'designing', 1: 'deployed', 2: 'suspended', 3: 'disabled' }
@@ -547,26 +547,12 @@ function normalizeDesignerType(value) {
 }
 
 function designerTypeLabel(value) {
-  return designerTypeOptions.find(item => item.value === normalizeDesignerType(value))?.label || '审批流程'
+  const normalizedValue = normalizeDesignerType(value)
+  return designerTypeOptions.value.find(item => item.value === normalizedValue)?.label || normalizedValue
 }
 
 function designerTypeClass(value) {
   return normalizeDesignerType(value) === 'business' ? 'business' : 'approval'
-}
-
-function appendBusinessFormTypeOption(options = []) {
-  const result = Array.isArray(options)
-    ? options.map(item => item?.value === 'dynamic'
-        ? { ...item, label: '动态表单（应用表单）' }
-        : item)
-    : []
-  if (!result.some(item => item?.value === 'business')) {
-    result.push({
-      label: '业务应用表单',
-      value: 'business',
-    })
-  }
-  return result
 }
 
 function getCategoryDisplayName(row) {

@@ -1,8 +1,6 @@
 package com.mdframe.forge.plugin.generator.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.mdframe.forge.plugin.generator.constant.GenDatasourceRuntime;
 import com.mdframe.forge.plugin.generator.domain.entity.GenDatasource;
 import com.mdframe.forge.plugin.generator.domain.entity.GenTable;
 import com.mdframe.forge.plugin.generator.domain.entity.GenTableColumn;
@@ -41,13 +39,7 @@ public class GenDatasourceController {
     @GetMapping("/list")
     @OperationLog(module = "数据源管理", type = OperationType.QUERY, desc = "分页查询数据源列表")
     public RespInfo<Page<GenDatasource>> list(PageQuery pageQuery, String datasourceName, String usageScope) {
-        LambdaQueryWrapper<GenDatasource> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(StringUtils.isNotBlank(datasourceName), GenDatasource::getDatasourceName, datasourceName)
-                .orderByAsc(GenDatasource::getSort)
-                .orderByDesc(GenDatasource::getCreateTime);
-        applyUsageScopeFilter(wrapper, usageScope);
-        Page<GenDatasource> page = genDatasourceService.page(pageQuery.toPage(), wrapper);
-        return RespInfo.success(page);
+        return RespInfo.success(genDatasourceService.selectDatasourcePage(pageQuery, datasourceName, usageScope));
     }
 
     /**
@@ -55,23 +47,7 @@ public class GenDatasourceController {
      */
     @GetMapping("/enabled")
     public RespInfo<List<GenDatasource>> enabledList(@RequestParam(required = false) String usageScope) {
-        LambdaQueryWrapper<GenDatasource> wrapper = new LambdaQueryWrapper<GenDatasource>()
-            .eq(GenDatasource::getIsEnabled, 1)
-            .orderByAsc(GenDatasource::getSort)
-            .orderByDesc(GenDatasource::getCreateTime);
-        applyUsageScopeFilter(wrapper, usageScope);
-        List<GenDatasource> list = genDatasourceService.list(wrapper);
-        return RespInfo.success(list);
-    }
-
-    private void applyUsageScopeFilter(LambdaQueryWrapper<GenDatasource> wrapper, String usageScope) {
-        String scope = GenDatasourceRuntime.normalizeUsageScopeFilter(usageScope);
-        if (StringUtils.isBlank(scope)) {
-            return;
-        }
-        wrapper.and(item -> item.eq(GenDatasource::getUsageScope, scope)
-            .or()
-            .eq(GenDatasource::getUsageScope, GenDatasourceRuntime.USAGE_BOTH));
+        return RespInfo.success(genDatasourceService.selectEnabledDatasources(usageScope));
     }
 
     /**

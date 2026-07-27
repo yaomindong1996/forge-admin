@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -24,6 +26,8 @@ import java.util.stream.Collectors;
 @Repository
 @RequiredArgsConstructor
 public class LowcodeDdlRepository {
+
+    private static final Pattern TYPE_LENGTH_PATTERN = Pattern.compile("\\((\\d+)");
 
     private final RuntimeJdbcTemplateProvider jdbcTemplateProvider;
     private final RuntimeDatabaseDialectFactory dialectFactory;
@@ -101,6 +105,31 @@ public class LowcodeDdlRepository {
 
     public boolean hasSinglePrimaryKey(LowcodeRuntimeDataSourceContext context, String tableName) {
         return listPrimaryKeys(context, tableName).size() == 1;
+    }
+
+    /**
+     * 返回字符列容量；-1 表示 text/clob 等可变大字段，0 表示非字符或无法安全判断。
+     */
+    public int characterCapacity(ColumnMetadata column) {
+        if (column == null || column.columnType() == null) {
+            return 0;
+        }
+        String type = column.columnType().toLowerCase(Locale.ROOT).trim();
+        if (type.contains("text") || type.contains("clob")) {
+            return -1;
+        }
+        if (!(type.contains("char") || type.contains("varchar") || type.contains("string"))) {
+            return 0;
+        }
+        Matcher matcher = TYPE_LENGTH_PATTERN.matcher(type);
+        if (!matcher.find()) {
+            return -1;
+        }
+        try {
+            return Integer.parseInt(matcher.group(1));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     public List<PrimaryKeyMetadata> listPrimaryKeys(LowcodeRuntimeDataSourceContext context, String tableName) {

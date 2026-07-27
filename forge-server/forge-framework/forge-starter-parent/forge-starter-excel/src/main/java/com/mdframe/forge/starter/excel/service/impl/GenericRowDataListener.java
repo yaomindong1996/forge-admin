@@ -145,7 +145,8 @@ public class GenericRowDataListener extends AnalysisEventListener<Map<Integer, O
     @Override
     public void onException(Exception exception, AnalysisContext context) {
         ImportErrorRecord error = new ImportErrorRecord();
-        int rowNum = context.readRowHolder() != null ? context.readRowHolder().getRowIndex() + 1 : rowCount + 1;
+        int rowNum = context != null && context.readRowHolder() != null
+                ? context.readRowHolder().getRowIndex() + 1 : rowCount + 1;
         error.setRowNum(rowNum);
 
         if (exception instanceof ExcelDataConvertException convertEx) {
@@ -155,11 +156,12 @@ public class GenericRowDataListener extends AnalysisEventListener<Map<Integer, O
             error.setSuggestion("请检查单元格数据类型");
         } else {
             error.setErrorType("解析错误");
-            error.setErrorMessage(exception.getMessage());
+            error.setErrorMessage("文件内容解析失败");
+            error.setSuggestion("请检查文件格式或下载最新模板后重试");
         }
 
         result.addError(error);
-        log.warn("第{}行解析失败：{}", error.getRowNum(), exception.getMessage());
+        log.warn("第{}行解析失败", error.getRowNum(), exception);
     }
 
     public int getRowCount() {

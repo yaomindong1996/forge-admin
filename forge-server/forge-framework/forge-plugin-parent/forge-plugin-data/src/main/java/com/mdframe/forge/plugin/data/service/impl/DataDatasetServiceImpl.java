@@ -9,6 +9,7 @@ import com.mdframe.forge.plugin.data.mapper.DataDatasetMapper;
 import com.mdframe.forge.plugin.data.service.DataDatasetAccessService;
 import com.mdframe.forge.plugin.data.service.DataDatasetService;
 import com.mdframe.forge.plugin.data.support.DataDatasetAccessQuery;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -44,5 +45,13 @@ public class DataDatasetServiceImpl extends ServiceImpl<DataDatasetMapper, DataD
     public DataDataset getByCode(String datasetCode) {
         Long tenantId = SessionHelper.getTenantId();
         return datasetMapper.selectDatasetByCode(datasetCode, tenantId);
+    }
+
+    @Override
+    public void updatePublishStatus(Long id, Integer publishStatus) {
+        Long tenantId = SessionHelper.getTenantId();
+        if (datasetMapper.updatePublishStatus(id, tenantId, publishStatus) <= 0) {
+            throw new BusinessException("数据集发布状态更新失败");
+        }
     }
 }

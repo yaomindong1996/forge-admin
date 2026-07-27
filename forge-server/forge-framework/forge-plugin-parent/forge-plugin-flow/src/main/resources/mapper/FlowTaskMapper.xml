@@ -177,4 +177,10 @@
           AND t.status IN (0, 1)
     </select>
 
+    <delete id="deleteByProcessInstanceIdPhysically">
+        DELETE FROM sys_flow_task
+        WHERE process_instance_id = #{processInstanceId}
+          AND tenant_id = #{tenantId}
+    </delete>
+
 </mapper>

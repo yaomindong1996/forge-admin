@@ -3,6 +3,7 @@ package com.mdframe.forge.starter.config.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.starter.config.entity.SysConfigGroup;
+import com.mdframe.forge.starter.config.security.CryptoConfigSanitizer;
 import com.mdframe.forge.starter.config.service.ISysConfigGroupService;
 import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
@@ -32,6 +33,7 @@ import java.util.List;
 public class SysConfigGroupController {
 
     private final ISysConfigGroupService sysConfigGroupService;
+    private final CryptoConfigSanitizer cryptoConfigSanitizer;
 
     @ModelAttribute
     public void assertPlatformAdmin() {
@@ -45,6 +47,7 @@ public class SysConfigGroupController {
     public RespInfo<IPage<SysConfigGroup>> page(PageQuery pageQuery, SysConfigGroup sysConfigGroup) {
         Page<SysConfigGroup> page = new Page<>(pageQuery.getPageNum(), pageQuery.getPageSize());
         IPage<SysConfigGroup> result = sysConfigGroupService.page(page, null);
+        result.getRecords().forEach(cryptoConfigSanitizer::sanitize);
         return RespInfo.success(result);
     }
 
@@ -54,6 +57,7 @@ public class SysConfigGroupController {
     @GetMapping("/list")
     public RespInfo<List<SysConfigGroup>> list(SysConfigGroup sysConfigGroup) {
         List<SysConfigGroup> list = sysConfigGroupService.list();
+        list.forEach(cryptoConfigSanitizer::sanitize);
         return RespInfo.success(list);
     }
 
@@ -63,6 +67,7 @@ public class SysConfigGroupController {
     @GetMapping("/{id}")
     public RespInfo<SysConfigGroup> getInfo(@PathVariable Long id) {
         SysConfigGroup sysConfigGroup = sysConfigGroupService.getById(id);
+        cryptoConfigSanitizer.sanitize(sysConfigGroup);
         return RespInfo.success(sysConfigGroup);
     }
 
@@ -75,6 +80,10 @@ public class SysConfigGroupController {
         SysConfigGroup existing = sysConfigGroupService.selectByGroupCode(sysConfigGroup.getGroupCode());
         if (existing != null) {
             return RespInfo.error("分组编码已存在：" + sysConfigGroup.getGroupCode());
+        }
+        if (cryptoConfigSanitizer.containsDeploymentSecretValue(
+                sysConfigGroup.getGroupCode(), sysConfigGroup.getConfigValue())) {
+            return RespInfo.error("加解密配置不允许写入部署级密钥字段");
         }
         sysConfigGroupService.save(sysConfigGroup);
         return RespInfo.success();
@@ -89,6 +98,13 @@ public class SysConfigGroupController {
         SysConfigGroup existing = sysConfigGroupService.selectByGroupCode(sysConfigGroup.getGroupCode());
         if (existing != null && !existing.getId().equals(sysConfigGroup.getId())) {
             return RespInfo.error("分组编码已存在：" + sysConfigGroup.getGroupCode());
+        }
+        SysConfigGroup current = sysConfigGroupService.getById(sysConfigGroup.getId());
+        if (cryptoConfigSanitizer.containsDeploymentSecretValue(
+                sysConfigGroup.getGroupCode(), sysConfigGroup.getConfigValue())
+                || cryptoConfigSanitizer.containsDeploymentSecretValue(
+                current == null ? null : current.getGroupCode(), sysConfigGroup.getConfigValue())) {
+            return RespInfo.error("加解密配置不允许写入部署级密钥字段");
         }
         sysConfigGroupService.updateById(sysConfigGroup);
         return RespInfo.success();
@@ -122,6 +138,7 @@ public class SysConfigGroupController {
     @GetMapping("/byCode/{groupCode}")
     public RespInfo<SysConfigGroup> getByGroupCode(@PathVariable String groupCode) {
         SysConfigGroup sysConfigGroup = sysConfigGroupService.selectByGroupCode(groupCode);
+        cryptoConfigSanitizer.sanitize(sysConfigGroup);
         return RespInfo.success(sysConfigGroup);
     }
 
@@ -131,6 +148,7 @@ public class SysConfigGroupController {
     @GetMapping("/enabled")
     public RespInfo<List<SysConfigGroup>> getEnabledGroups() {
         List<SysConfigGroup> list = sysConfigGroupService.selectEnabledGroups();
+        list.forEach(cryptoConfigSanitizer::sanitize);
         return RespInfo.success(list);
     }
 }

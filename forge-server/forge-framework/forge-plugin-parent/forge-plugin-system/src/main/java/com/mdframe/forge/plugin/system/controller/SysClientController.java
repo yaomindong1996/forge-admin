@@ -1,6 +1,5 @@
 package com.mdframe.forge.plugin.system.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.system.dto.SysClientDTO;
 import com.mdframe.forge.plugin.system.entity.SysClient;
@@ -8,6 +7,7 @@ import com.mdframe.forge.plugin.system.entity.SysOnlineUser;
 import com.mdframe.forge.plugin.system.service.IClientService;
 import com.mdframe.forge.plugin.system.service.ISysOnlineUserService;
 import com.mdframe.forge.plugin.system.vo.SysClientVO;
+import com.mdframe.forge.plugin.system.vo.SysOnlineUserVO;
 import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
@@ -39,22 +39,8 @@ public class SysClientController {
         @RequestParam(required = false) Integer status
     ) {
         assertPlatformAdmin();
-        Page<SysClient> page = new Page<>(pageNum, pageSize);
-        
-        LambdaQueryWrapper<SysClient> wrapper = new LambdaQueryWrapper<>();
-        if (clientCode != null && !clientCode.isEmpty()) {
-            wrapper.like(SysClient::getClientCode, clientCode);
-        }
-        if (clientName != null && !clientName.isEmpty()) {
-            wrapper.like(SysClient::getClientName, clientName);
-        }
-        if (status != null) {
-            wrapper.eq(SysClient::getStatus, status);
-        }
-        
-        wrapper.orderByDesc(SysClient::getCreateTime);
-        
-        Page<SysClient> result = clientService.page(page, wrapper);
+        Page<SysClient> result = clientService.selectClientPage(
+                pageNum, pageSize, clientCode, clientName, status);
         
         Page<SysClientVO> voPage = new Page<>();
         voPage.setRecords(result.getRecords().stream().map(this::convertToVO).toList());
@@ -78,47 +64,31 @@ public class SysClientController {
     @PostMapping
     public RespInfo<Boolean> create(@RequestBody SysClientDTO dto) {
         assertPlatformAdmin();
-        SysClient client = new SysClient();
-        BeanUtils.copyProperties(dto, client);
-        boolean success = clientService.save(client);
-        return RespInfo.success(success);
+        return RespInfo.success(clientService.createClient(dto));
     }
     
     @PutMapping
     public RespInfo<Boolean> update(@RequestBody SysClientDTO dto) {
         assertPlatformAdmin();
-        SysClient client = new SysClient();
-        BeanUtils.copyProperties(dto, client);
-        boolean success = clientService.updateById(client);
-        
-        if (success && client.getClientCode() != null) {
-            clientService.reloadClientConfigCache(client.getClientCode());
-        }
-        
-        return RespInfo.success(success);
+        return RespInfo.success(clientService.updateClient(dto));
     }
     
     @DeleteMapping("/{id}")
     public RespInfo<Boolean> delete(@PathVariable Long id) {
         assertPlatformAdmin();
-        boolean success = clientService.removeById(id);
-        return RespInfo.success(success);
+        return RespInfo.success(clientService.deleteClient(id));
     }
     
     @GetMapping("/online/{clientCode}")
-    public RespInfo<List<SysOnlineUser>> getOnlineUsers(@PathVariable String clientCode) {
+    public RespInfo<List<SysOnlineUserVO>> getOnlineUsers(@PathVariable String clientCode) {
         assertPlatformAdmin();
         List<SysOnlineUser> onlineUsers = onlineUserService.getOnlineUsersByClient(clientCode);
-        return RespInfo.success(onlineUsers);
+        return RespInfo.success(onlineUsers.stream().map(SysOnlineUserVO::from).toList());
     }
     
     @GetMapping("/list")
     public RespInfo<List<SysClientVO>> list() {
-        LambdaQueryWrapper<SysClient> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SysClient::getStatus, 1);
-        wrapper.orderByAsc(SysClient::getId);
-        
-        List<SysClient> clients = clientService.list(wrapper);
+        List<SysClient> clients = clientService.listEnabledClients();
         List<SysClientVO> voList = clients.stream().map(this::convertToOptionVO).toList();
         
         return RespInfo.success(voList);
@@ -159,7 +129,9 @@ public class SysClientController {
     private SysClientVO convertToVO(SysClient client) {
         SysClientVO vo = new SysClientVO();
         BeanUtils.copyProperties(client, vo);
-        vo.setAppSecretMasked(clientService.getMaskedAppSecret(client.getId()));
+        boolean hasAppSecret = client.getAppSecret() != null && !client.getAppSecret().isBlank();
+        vo.setAppSecretMasked(hasAppSecret ? "****" : "");
+        vo.setHasAppSecret(hasAppSecret);
         return vo;
     }
 

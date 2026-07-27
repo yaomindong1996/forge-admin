@@ -39,6 +39,12 @@ public class LogProperties {
      */
     private String[] excludePaths = new String[]{
             "/auth/captcha",
+            "/auth/login",
+            "/auth/register",
+            "/auth/changePassword",
+            "/auth/resetPassword",
+            "/auth/online/kickout",
+            "/auth/online/batchKickout",
             "/actuator/**",
             "/swagger-ui/**",
             "/v3/api-docs/**"

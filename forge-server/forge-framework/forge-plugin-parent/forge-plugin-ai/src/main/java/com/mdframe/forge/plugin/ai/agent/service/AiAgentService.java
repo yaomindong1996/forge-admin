@@ -1,6 +1,6 @@
 package com.mdframe.forge.plugin.ai.agent.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.plugin.ai.agent.domain.AiAgent;
 import com.mdframe.forge.plugin.ai.agent.mapper.AiAgentMapper;
@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class AiAgentService extends ServiceImpl<AiAgentMapper, AiAgent> {
@@ -24,6 +26,18 @@ public class AiAgentService extends ServiceImpl<AiAgentMapper, AiAgent> {
      */
     public AiAgent getByCode(String agentCode) {
         return baseMapper.selectEnabledByCode(agentCode);
+    }
+
+    public Page<AiAgent> selectAgentPage(Integer pageNum, Integer pageSize,
+                                         String keyword, String status) {
+        String normalizedStatus = StringUtils.hasText(status) && !"all".equals(status) ? status : null;
+        String normalizedKeyword = StringUtils.hasText(keyword) ? keyword.trim() : null;
+        return baseMapper.selectAgentPage(
+                new Page<>(pageNum, pageSize), normalizedKeyword, normalizedStatus);
+    }
+
+    public List<AiAgent> listEnabledAgents() {
+        return baseMapper.selectEnabledAgents();
     }
 
     @Transactional(rollbackFor = Exception.class)

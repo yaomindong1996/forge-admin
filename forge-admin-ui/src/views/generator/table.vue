@@ -4,7 +4,7 @@
       ref="crudRef"
       :api-config="{
         list: 'get@/generator/list',
-        detail: 'get@/generator/{id}',
+        detail: 'get@/generator/:id',
         update: 'post@/generator/edit',
         delete: 'post@/generator/remove',
       }"
@@ -71,6 +71,8 @@
 import { NModal } from 'naive-ui'
 import { computed, defineAsyncComponent, h, onMounted, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
+import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 import { request } from '@/utils'
 import DesignerAsyncLoader from '@/views/app-center/components/designer/DesignerAsyncLoader.vue'
 
@@ -117,18 +119,10 @@ const showAiSchemaModal = ref(false)
 const currentTableId = ref(null)
 const currentTableName = ref('')
 const menuParentOptions = ref([{ label: '顶级资源', value: 0, key: 0 }])
+const { dict } = useDict('gen_generation_type', 'gen_template_engine')
 
-// 生成方式选项
-const genTypeOptions = [
-  { label: '下载代码包', value: 'DOWNLOAD' },
-  { label: '生成到项目', value: 'PROJECT' },
-]
-
-// 模板引擎选项
-const templateEngineOptions = [
-  { label: 'Velocity', value: 'VELOCITY' },
-  { label: 'Freemarker', value: 'FREEMARKER' },
-]
+const genTypeOptions = computed(() => dict.value.gen_generation_type || [])
+const templateEngineOptions = computed(() => dict.value.gen_template_engine || [])
 
 // 搜索表单配置
 const searchSchema = [
@@ -183,10 +177,7 @@ const tableColumns = computed(() => [
     prop: 'genType',
     label: '生成方式',
     width: 100,
-    render: (row) => {
-      const option = genTypeOptions.find(opt => opt.value === row.genType)
-      return option ? option.label : row.genType
-    },
+    render: row => h(DictTag, { options: genTypeOptions.value, value: row.genType, size: 'small' }),
   },
   {
     prop: 'action',
@@ -204,7 +195,7 @@ const tableColumns = computed(() => [
 ])
 
 // 编辑表单配置
-const editSchema = [
+const editSchema = computed(() => [
   {
     type: 'divider',
     label: '基础信息',
@@ -295,7 +286,7 @@ const editSchema = [
     defaultValue: 'DOWNLOAD',
     props: {
       placeholder: '请选择生成方式',
-      options: genTypeOptions,
+      options: genTypeOptions.value,
     },
   },
   {
@@ -305,7 +296,7 @@ const editSchema = [
     defaultValue: 'VELOCITY',
     props: {
       placeholder: '请选择模板引擎',
-      options: templateEngineOptions,
+      options: templateEngineOptions.value,
     },
   },
   {
@@ -343,7 +334,7 @@ const editSchema = [
       rows: 2,
     },
   },
-]
+])
 
 onMounted(loadMenuParentOptions)
 

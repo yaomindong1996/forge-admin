@@ -52,6 +52,25 @@
         LIMIT 1
     </select>
 
+    <select id="selectByProcessInstanceIdAndTenantId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM sys_flow_business
+        WHERE process_instance_id = #{processInstanceId}
+          AND tenant_id = #{tenantId}
+        LIMIT 1
+    </select>
+
+    <select id="selectByProcessInstanceIdAndTenantIdForUpdate" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM sys_flow_business
+        WHERE process_instance_id = #{processInstanceId}
+          AND tenant_id = #{tenantId}
+        LIMIT 1
+        FOR UPDATE
+    </select>
+
     <select id="selectByBusinessKey" resultMap="BaseResultMap">
         SELECT
         <include refid="Base_Columns"/>
@@ -69,4 +88,172 @@
           AND business_key = #{businessKey}
         LIMIT 1
     </select>
+
+    <select id="selectBusinessPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM sys_flow_business
+        <where>
+            <if test="processDefKey != null and processDefKey != ''">
+                AND process_def_key = #{processDefKey}
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="title != null and title != ''">
+                AND title LIKE CONCAT('%', #{title}, '%')
+            </if>
+            <if test="applyUserId != null and applyUserId != ''">
+                AND apply_user_id = #{applyUserId}
+            </if>
+        </where>
+        ORDER BY create_time DESC, id DESC
+    </select>
+
+    <sql id="Monitor_Filter">
+        <where>
+            tenant_id = #{tenantId}
+            <if test="processName != null and processName != ''">
+                AND title LIKE CONCAT('%', #{processName}, '%')
+            </if>
+            <if test="initiator != null and initiator != ''">
+                AND apply_user_name LIKE CONCAT('%', #{initiator}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="modelKey != null and modelKey != ''">
+                AND process_def_key = #{modelKey}
+            </if>
+            <if test="startTime != null">
+                AND create_time &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND create_time &lt;= #{endTime}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectMonitorBusinessPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM sys_flow_business
+        <include refid="Monitor_Filter"/>
+        ORDER BY create_time DESC, id DESC
+    </select>
+
+    <select id="selectBusinessesForCleanup" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Columns"/>
+        FROM sys_flow_business
+        <where>
+            tenant_id = #{tenantId}
+            <if test="processName != null and processName != ''">
+                AND title LIKE CONCAT('%', #{processName}, '%')
+            </if>
+            <if test="initiator != null and initiator != ''">
+                AND apply_user_name LIKE CONCAT('%', #{initiator}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="modelKey != null and modelKey != ''">
+                AND process_def_key = #{modelKey}
+            </if>
+            <if test="startTime != null">
+                AND create_time &gt;= #{startTime}
+            </if>
+            <if test="endTime != null">
+                AND create_time &lt;= #{endTime}
+            </if>
+        </where>
+        ORDER BY create_time DESC, id DESC
+    </select>
+
+    <select id="selectDailyTrend" resultType="com.mdframe.forge.starter.flow.vo.FlowMonitorDailyStatVO">
+        SELECT DATE(stat_time) AS stat_date,
+               SUM(created_count) AS created_count,
+               SUM(completed_count) AS completed_count
+        FROM (
+            SELECT create_time AS stat_time, 1 AS created_count, 0 AS completed_count
+            FROM sys_flow_business
+            WHERE tenant_id = #{tenantId}
+              AND create_time &gt;= #{startTime}
+              AND create_time &lt; #{endTime}
+            UNION ALL
+            SELECT end_time AS stat_time, 0 AS created_count, 1 AS completed_count
+            FROM sys_flow_business
+            WHERE tenant_id = #{tenantId}
+              AND end_time &gt;= #{startTime}
+              AND end_time &lt; #{endTime}
+        ) daily_stat
+        GROUP BY DATE(stat_time)
+        ORDER BY stat_date ASC
+    </select>
+
+    <select id="selectProcessDistribution" resultType="java.util.LinkedHashMap">
+        SELECT COALESCE(
+                   (
+                       SELECT title_source.title
+                       FROM sys_flow_business title_source
+                       WHERE title_source.process_def_key = business.process_def_key
+                         AND title_source.tenant_id = #{tenantId}
+                         AND title_source.title IS NOT NULL
+                         AND title_source.title != ''
+                       ORDER BY title_source.id ASC
+                       LIMIT 1
+                   ),
+                   business.process_def_key
+               ) AS name,
+               COUNT(1) AS value
+        FROM sys_flow_business business
+        WHERE business.tenant_id = #{tenantId}
+          AND business.process_def_key IS NOT NULL
+          AND business.process_def_key != ''
+        GROUP BY business.process_def_key
+        ORDER BY value DESC, business.process_def_key ASC
+        LIMIT 10
+    </select>
+
+    <select id="selectMonitorStatistics" resultType="java.util.LinkedHashMap">
+        SELECT COALESCE(SUM(CASE WHEN business.status IN ('running', 'active') THEN 1 ELSE 0 END), 0)
+                   AS runningInstances,
+               (
+                   SELECT COUNT(1)
+                   FROM sys_flow_task task
+                   WHERE task.tenant_id = #{tenantId}
+                     AND task.status IN (0, 1)
+               ) AS pendingTasks,
+               COALESCE(SUM(CASE
+                   WHEN business.end_time IS NOT NULL AND business.end_time &gt;= #{startOfDay} THEN 1
+                   ELSE 0
+               END), 0) AS todayCompleted,
+               0 AS timeoutTasks
+        FROM sys_flow_business business
+        WHERE business.tenant_id = #{tenantId}
+    </select>
+
+    <update id="updateStatusByProcessInstanceId">
+        UPDATE sys_flow_business
+        SET status = #{status},
+            update_time = NOW()
+        WHERE process_instance_id = #{processInstanceId}
+          AND tenant_id = #{tenantId}
+    </update>
+
+    <delete id="deleteByProcessInstanceIdPhysically">
+        DELETE FROM sys_flow_business
+        WHERE process_instance_id = #{processInstanceId}
+          AND tenant_id = #{tenantId}
+    </delete>
+
+    <delete id="deleteBusinessRecordsWithoutProcessInstance">
+        DELETE FROM sys_flow_business
+        WHERE (process_instance_id IS NULL OR process_instance_id = '')
+          AND tenant_id = #{tenantId}
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
 </mapper>

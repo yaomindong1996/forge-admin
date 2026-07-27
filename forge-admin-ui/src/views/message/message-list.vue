@@ -41,15 +41,8 @@
           <div class="message-detail">
             <div class="detail-meta">
               <n-space>
-                <NTag :type="getMessageTypeColor(currentMessage?.type)" size="small">
-                  {{ getMessageTypeText(currentMessage?.type) }}
-                </NTag>
-                <NTag v-if="currentMessage?.readFlag === 0" type="error" size="small">
-                  未读
-                </NTag>
-                <NTag v-else type="success" size="small">
-                  已读
-                </NTag>
+                <DictTag dict-type="sys_message_type" :value="currentMessage?.type" force-tag />
+                <DictTag dict-type="sys_message_read_status" :value="currentMessage?.readFlag" force-tag />
               </n-space>
               <div class="text-12 mt-8 text-gray-500">
                 {{ currentMessage?.createTime }}
@@ -77,12 +70,14 @@
 </template>
 
 <script setup>
-import { NTag } from 'naive-ui'
 import { computed, h, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import messageApi from '@/api/message'
 import { AiCrudPage } from '@/components/ai-form'
+import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 import { request } from '@/utils'
+import { toNumberDictOptions } from '@/utils/dict-options'
 
 defineOptions({ name: 'MessageList' })
 
@@ -92,12 +87,15 @@ const showDetail = ref(false)
 const currentMessage = ref(null)
 const selectedRowKeys = ref([])
 const bizTypeOptions = ref([])
+const { dict } = useDict('sys_message_type', 'sys_message_read_status')
+const messageTypeOptions = computed(() => dict.value.sys_message_type || [])
+const readStatusOptions = computed(() => toNumberDictOptions(dict.value.sys_message_read_status))
 
 const apiConfig = {
   list: 'get@/api/message/page',
 }
 
-const searchSchema = [
+const searchSchema = computed(() => [
   {
     field: 'type',
     label: '消息类型',
@@ -105,12 +103,7 @@ const searchSchema = [
     props: {
       placeholder: '请选择消息类型',
       clearable: true,
-      options: [
-        { label: '系统消息', value: 'SYSTEM' },
-        { label: '短信', value: 'SMS' },
-        { label: '邮件', value: 'EMAIL' },
-        { label: '自定义', value: 'CUSTOM' },
-      ],
+      options: messageTypeOptions.value,
     },
   },
   {
@@ -120,10 +113,7 @@ const searchSchema = [
     props: {
       placeholder: '请选择阅读状态',
       clearable: true,
-      options: [
-        { label: '未读', value: 0 },
-        { label: '已读', value: 1 },
-      ],
+      options: readStatusOptions.value,
     },
   },
   {
@@ -134,7 +124,7 @@ const searchSchema = [
       placeholder: '搜索标题或内容',
     },
   },
-]
+])
 
 const tableColumns = computed(() => [
   {
@@ -160,23 +150,13 @@ const tableColumns = computed(() => [
     prop: 'type',
     label: '消息类型',
     width: 100,
-    render: (row) => {
-      return h(NTag, {
-        type: getMessageTypeColor(row.type),
-        size: 'small',
-      }, { default: () => getMessageTypeText(row.type) })
-    },
+    render: row => h(DictTag, { options: messageTypeOptions.value, value: row.type, forceTag: true }),
   },
   {
     prop: 'readFlag',
     label: '状态',
     width: 80,
-    render: (row) => {
-      return h(NTag, {
-        type: row.readFlag === 0 ? 'error' : 'success',
-        size: 'small',
-      }, { default: () => row.readFlag === 0 ? '未读' : '已读' })
-    },
+    render: row => h(DictTag, { options: readStatusOptions.value, value: row.readFlag, forceTag: true }),
   },
   {
     prop: 'createTime',
@@ -262,26 +242,6 @@ async function handleMarkAllRead() {
       }
     },
   })
-}
-
-function getMessageTypeText(type) {
-  const map = {
-    SYSTEM: '系统消息',
-    SMS: '短信',
-    EMAIL: '邮件',
-    CUSTOM: '自定义',
-  }
-  return map[type] || type
-}
-
-function getMessageTypeColor(type) {
-  const map = {
-    SYSTEM: 'info',
-    SMS: 'warning',
-    EMAIL: 'success',
-    CUSTOM: 'default',
-  }
-  return map[type] || 'default'
 }
 
 async function loadBizTypes() {

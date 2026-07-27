@@ -43,7 +43,10 @@
 import { NButton, NTag } from 'naive-ui'
 import { computed, h, ref } from 'vue'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
+import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 import { request } from '@/utils'
+import { toBooleanDictOptions, toNumberDictOptions } from '@/utils/dict-options'
 
 defineOptions({ name: 'SystemClient' })
 
@@ -51,44 +54,21 @@ const message = window.$message
 const crudRef = ref()
 const onlineModalVisible = ref(false)
 const onlineUsers = ref([])
-
-// 状态选项
-const statusOptions = [
-  { label: '启用', value: 1 },
-  { label: '禁用', value: 0 },
-]
-
-// 是否选项（并发登录、共享Token）
-const booleanOptions = [
-  { label: '是', value: true },
-  { label: '否', value: false },
-]
-
-// 认证方式选项
-const authTypeOptions = [
-  { label: '用户名密码', value: 'password' },
-  { label: '用户名密码+验证码', value: 'password_captcha' },
-  { label: '手机验证码', value: 'phone_captcha' },
-  { label: '微信登录', value: 'wechat' },
-  { label: '邮箱验证码', value: 'email_captcha' },
-]
-
-// 验证码类型选项
-const captchaTypeOptions = [
-  { label: '继承全局配置', value: '' },
-  { label: '图形验证码', value: 'graphical' },
-  { label: '滑块验证码', value: 'slider' },
-  { label: '短信验证码', value: 'sms' },
-]
-
-const captchaTypeMap = {
-  graphical: { label: '图形验证码', type: 'success' },
-  slider: { label: '滑块验证码', type: 'info' },
-  sms: { label: '短信验证码', type: 'warning' },
-}
+const { dict, getLabel } = useDict(
+  'sys_client_auth_method',
+  'sys_enable_disable',
+  'sys_yes_no',
+  'sys_client_login_auth_type',
+  'sys_client_captcha_type',
+)
+const clientAuthMethodOptions = computed(() => dict.value.sys_client_auth_method || [])
+const statusOptions = computed(() => toNumberDictOptions(dict.value.sys_enable_disable))
+const booleanOptions = computed(() => toBooleanDictOptions(dict.value.sys_yes_no))
+const authTypeOptions = computed(() => dict.value.sys_client_login_auth_type || [])
+const captchaTypeOptions = computed(() => dict.value.sys_client_captcha_type || [])
 
 // 搜索配置
-const searchSchema = [
+const searchSchema = computed(() => [
   {
     field: 'clientCode',
     label: '客户端编码',
@@ -111,13 +91,10 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择状态',
-      options: [
-        { label: '全部', value: null },
-        ...statusOptions,
-      ],
+      options: statusOptions.value,
     },
   },
-]
+])
 
 // 表格列配置
 const tableColumns = computed(() => [
@@ -160,14 +137,7 @@ const tableColumns = computed(() => [
     prop: 'concurrentLogin',
     label: '并发登录',
     width: 100,
-    render: (row) => {
-      return h(NTag, {
-        type: row.concurrentLogin ? 'success' : 'warning',
-        size: 'small',
-      }, {
-        default: () => row.concurrentLogin ? '允许' : '不允许',
-      })
-    },
+    render: row => h(DictTag, { options: booleanOptions.value, value: row.concurrentLogin, forceTag: true }),
   },
   {
     prop: 'authTypes',
@@ -176,7 +146,7 @@ const tableColumns = computed(() => [
     render: (row) => {
       const types = row.authTypes?.split(',') || []
       return types.map(type =>
-        h(NTag, { type: 'info', size: 'small', style: 'margin: 2px' }, { default: () => type }),
+        h(NTag, { type: 'info', size: 'small', style: 'margin: 2px' }, { default: () => getLabel('sys_client_login_auth_type', type) }),
       )
     },
   },
@@ -184,28 +154,13 @@ const tableColumns = computed(() => [
     prop: 'captchaType',
     label: '验证码覆盖',
     width: 120,
-    render: (row) => {
-      const config = captchaTypeMap[row.captchaType]
-      return h(NTag, {
-        type: config?.type || 'default',
-        size: 'small',
-      }, {
-        default: () => config?.label || '继承全局',
-      })
-    },
+    render: row => h(DictTag, { options: captchaTypeOptions.value, value: row.captchaType || '', forceTag: true }),
   },
   {
     prop: 'status',
     label: '状态',
     width: 80,
-    render: (row) => {
-      return h(NTag, {
-        type: row.status === 1 ? 'success' : 'error',
-        size: 'small',
-      }, {
-        default: () => row.status === 1 ? '启用' : '禁用',
-      })
-    },
+    render: row => h(DictTag, { options: statusOptions.value, value: row.status, forceTag: true }),
   },
   {
     prop: 'description',
@@ -226,7 +181,7 @@ const tableColumns = computed(() => [
 ])
 
 // 编辑表单配置
-const editSchema = [
+const editSchema = computed(() => [
   {
     type: 'divider',
     label: '基础信息',
@@ -263,13 +218,24 @@ const editSchema = [
     },
   },
   {
+    field: 'clientAuthMethod',
+    label: '客户端认证方式',
+    type: 'radio',
+    defaultValue: 'client_secret',
+    rules: [{ required: true, message: '请选择客户端认证方式', trigger: 'change' }],
+    props: {
+      options: clientAuthMethodOptions.value,
+    },
+  },
+  {
     field: 'appSecret',
     label: 'AppSecret',
     type: 'input',
     props: {
       type: 'password',
-      placeholder: '应用密钥',
+      placeholder: '新增时必填；编辑留空表示不轮换',
     },
+    vIf: formData => formData.clientAuthMethod === 'client_secret',
   },
   {
     type: 'divider',
@@ -306,7 +272,7 @@ const editSchema = [
     type: 'radio',
     defaultValue: false,
     props: {
-      options: booleanOptions,
+      options: booleanOptions.value,
     },
   },
   {
@@ -315,7 +281,7 @@ const editSchema = [
     type: 'radio',
     defaultValue: false,
     props: {
-      options: booleanOptions,
+      options: booleanOptions.value,
     },
   },
   {
@@ -324,7 +290,7 @@ const editSchema = [
     type: 'select',
     props: {
       placeholder: '请选择支持的认证方式',
-      options: authTypeOptions,
+      options: authTypeOptions.value,
       multiple: true,
     },
   },
@@ -335,7 +301,7 @@ const editSchema = [
     defaultValue: '',
     props: {
       placeholder: '为空时继承全局登录配置',
-      options: captchaTypeOptions,
+      options: captchaTypeOptions.value,
     },
   },
   {
@@ -352,7 +318,7 @@ const editSchema = [
     type: 'radio',
     defaultValue: 1,
     props: {
-      options: statusOptions,
+      options: statusOptions.value,
     },
   },
   {
@@ -365,7 +331,7 @@ const editSchema = [
       rows: 3,
     },
   },
-]
+])
 
 // 在线用户表格列
 const onlineTableColumns = [

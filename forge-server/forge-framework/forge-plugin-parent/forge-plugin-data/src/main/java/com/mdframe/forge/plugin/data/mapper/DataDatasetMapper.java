@@ -25,4 +25,7 @@ public interface DataDatasetMapper extends BaseMapper<DataDataset> {
     DataDataset selectDatasetByCode(@Param("datasetCode") String datasetCode, @Param("tenantId") Long tenantId);
 
     int selectDatasetCountByCategoryId(@Param("categoryId") Long categoryId, @Param("tenantId") Long tenantId);
+
+    int updatePublishStatus(@Param("id") Long id, @Param("tenantId") Long tenantId,
+        @Param("publishStatus") Integer publishStatus);
 }

@@ -5,6 +5,7 @@ import com.mdframe.forge.starter.excel.model.GenericRowData;
 import com.mdframe.forge.starter.excel.model.ImportResult;
 import com.mdframe.forge.starter.excel.service.AsyncExportService;
 import com.mdframe.forge.starter.excel.service.ExcelImportService;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -50,7 +51,7 @@ public class ExcelEnhancedController {
             log.info("下载导入模板：configKey={}", configKey);
         } catch (Exception e) {
             log.error("下载模板失败", e);
-            throw new RuntimeException("下载模板失败：" + e.getMessage(), e);
+            throw new BusinessException("下载导入模板失败", e);
         }
     }
 
@@ -75,7 +76,7 @@ public class ExcelEnhancedController {
             log.error("导入失败", e);
             ImportResult<?> errorResult = new ImportResult<>();
             errorResult.setSuccess(false);
-            errorResult.setSummary("导入失败：" + e.getMessage());
+            errorResult.setSummary(ImportResult.PUBLIC_FAILURE_MESSAGE);
             return ResponseEntity.badRequest().body(errorResult);
         }
     }
@@ -98,7 +99,7 @@ public class ExcelEnhancedController {
             log.info("下载错误报告：taskId={}", taskId);
         } catch (Exception e) {
             log.error("下载错误报告失败", e);
-            throw new RuntimeException("下载错误报告失败：" + e.getMessage(), e);
+            throw new BusinessException("下载导入错误报告失败", e);
         }
     }
 
@@ -128,7 +129,7 @@ public class ExcelEnhancedController {
             log.error("提交异步导出任务失败", e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
-            errorResponse.put("message", "提交任务失败：" + e.getMessage());
+            errorResponse.put("message", "提交导出任务失败，请稍后重试");
             return ResponseEntity.badRequest().body(errorResponse);
         }
     }
@@ -144,7 +145,7 @@ public class ExcelEnhancedController {
             return ResponseEntity.notFound().build();
         }
         
-        return ResponseEntity.ok(task);
+        return ResponseEntity.ok(toPublicTask(task));
     }
 
     /**
@@ -168,7 +169,7 @@ public class ExcelEnhancedController {
             log.info("下载异步导出文件：taskId={}", taskId);
         } catch (Exception e) {
             log.error("下载导出文件失败", e);
-            throw new RuntimeException("下载文件失败：" + e.getMessage(), e);
+            throw new BusinessException("下载导出文件失败", e);
         }
     }
 
@@ -197,10 +198,27 @@ public class ExcelEnhancedController {
         response.put("finishTime", task.getFinishTime());
         
         if (task.getStatus() == 2) {
-            response.put("errorMessage", task.getErrorMessage());
+            response.put("errorMessage", AsyncExportTask.PUBLIC_FAILURE_MESSAGE);
         }
         
         return ResponseEntity.ok(response);
+    }
+
+    private AsyncExportTask toPublicTask(AsyncExportTask source) {
+        AsyncExportTask target = new AsyncExportTask();
+        target.setTaskId(source.getTaskId());
+        target.setConfigKey(source.getConfigKey());
+        target.setFileName(source.getFileName());
+        target.setStatus(source.getStatus());
+        target.setFileSize(source.getFileSize());
+        target.setDataCount(source.getDataCount());
+        target.setErrorMessage(Integer.valueOf(2).equals(source.getStatus())
+                ? AsyncExportTask.PUBLIC_FAILURE_MESSAGE : null);
+        target.setCreateBy(source.getCreateBy());
+        target.setCreateTime(source.getCreateTime());
+        target.setFinishTime(source.getFinishTime());
+        target.setExpireTime(source.getExpireTime());
+        return target;
     }
     
     private String getStatusText(Integer status) {

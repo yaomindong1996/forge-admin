@@ -3,7 +3,6 @@ package com.mdframe.forge.starter.config.controller;
 import com.mdframe.forge.starter.config.config.*;
 import com.mdframe.forge.starter.config.service.ConfigManagerService;
 import com.mdframe.forge.starter.core.context.AuthProperties;
-import com.mdframe.forge.starter.core.context.CryptoProperties;
 import com.mdframe.forge.starter.core.context.LogProperties;
 import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
@@ -110,7 +109,7 @@ public class ConfigManageController {
      * 获取加解密配置
      */
     @GetMapping("/crypto")
-    public RespInfo<CryptoProperties> getCryptoConfig() {
+    public RespInfo<CryptoManageConfig> getCryptoConfig() {
         assertPlatformAdmin();
         return RespInfo.success(configManagerService.getCryptoConfig());
     }
@@ -119,7 +118,7 @@ public class ConfigManageController {
      * 更新加解密配置
      */
     @PutMapping("/crypto")
-    public RespInfo<Void> updateCryptoConfig(@RequestBody CryptoProperties config) {
+    public RespInfo<Void> updateCryptoConfig(@RequestBody CryptoManageConfig config) {
         assertPlatformAdmin();
         return configManagerService.saveCryptoConfig(config)
                 ? RespInfo.success()

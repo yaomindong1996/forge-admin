@@ -11,6 +11,8 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface SysTenantMapper extends BaseMapper<SysTenant> {
 
+    SysTenant selectEnabledTenantById(@Param("tenantId") Long tenantId);
+
     /**
      * 查询租户下直接归属用户数量。
      */

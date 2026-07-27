@@ -857,7 +857,6 @@ async function handleLogin() {
       encrypted: true, // 标记密码已加密
       userClient,
       appId: import.meta.env.VITE_APP_ID || 'forge_pc_001', // 客户端AppId
-      appSecret: import.meta.env.VITE_APP_SECRET || undefined, // 客户端密钥（可选）
     }
 
     const res = await api.login(params)

@@ -23,6 +23,7 @@ import com.mdframe.forge.plugin.generator.service.formula.StoredFormulaRuntime;
 import com.mdframe.forge.plugin.generator.service.formula.VirtualFormulaRuntime;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessDocumentConfigService;
 import com.mdframe.forge.plugin.generator.service.businessapp.CodeRuleService;
+import com.mdframe.forge.plugin.generator.service.crypto.LowcodeEncryptConfigParser;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.LowcodeRuntimeDataSourceContext;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.LowcodeRuntimeDataSourceContextHolder;
 import com.mdframe.forge.plugin.generator.service.lowcode.runtime.LowcodeRuntimeDataSourceResolver;
@@ -30,11 +31,10 @@ import com.mdframe.forge.plugin.generator.util.DynamicQueryGenerator;
 import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.SessionHelper;
-import com.mdframe.forge.starter.crypto.crypto.Encryptor;
-import com.mdframe.forge.starter.crypto.crypto.EncryptorFactory;
 import com.mdframe.forge.starter.crypto.desensitize.strategy.DesensitizeStrategy;
 import com.mdframe.forge.starter.crypto.desensitize.strategy.DesensitizeStrategyFactory;
 import com.mdframe.forge.starter.crypto.desensitize.strategy.DesensitizeType;
+import com.mdframe.forge.starter.crypto.persistence.PersistentCryptoService;
 import com.mdframe.forge.starter.datascope.context.DataScopeContext;
 import com.mdframe.forge.starter.trans.spi.DictValueProvider;
 import lombok.RequiredArgsConstructor;
@@ -129,7 +129,8 @@ public class DynamicCrudService {
     private final ObjectMapper objectMapper;
     private final DictValueProvider dictValueProvider;
     private final DesensitizeStrategyFactory desensitizeStrategyFactory;
-    private final EncryptorFactory encryptorFactory;
+    private final PersistentCryptoService persistentCryptoService;
+    private final LowcodeEncryptConfigParser encryptConfigParser;
     private final DynamicDataScopeService dynamicDataScopeService;
     private final BusinessDocumentConfigService documentConfigService;
     private final CodeRuleService codeRuleService;
@@ -3458,46 +3459,24 @@ public class DynamicCrudService {
             return;
         }
         try {
-            JsonNode configNode = objectMapper.readTree(encryptConfigJson);
-            if (!configNode.isObject()) return;
-
-            for (Map.Entry<String, JsonNode> entry : configNode.properties()) {
-                String fieldName = entry.getKey(); // camelCase字段名
-                JsonNode ruleNode = entry.getValue();
-
-                // 转换为snake_case（数据库列名）
-                String snakeFieldName = DynamicQueryGenerator.camelToSnake(fieldName);
-
-                if (!data.containsKey(snakeFieldName) || data.get(snakeFieldName) == null) {
+            for (LowcodeEncryptConfigParser.FieldRule rule : encryptConfigParser.parse(encryptConfigJson)) {
+                String dataKey = resolveWriteEncryptKey(data, rule);
+                if (dataKey == null || data.get(dataKey) == null) {
                     continue;
                 }
-
-                // 获取加密算法配置
-                String algorithm = ruleNode.has("algorithm") ? ruleNode.get("algorithm").asText() : "";
-                if (StringUtils.isBlank(algorithm)) {
-                    continue;
-                }
-
-                // 获取加密器
-                Encryptor encryptor = encryptorFactory.getEncryptor(algorithm);
-                if (encryptor == null) {
-                    log.warn("[DynamicCrudService] 未找到加密器, algorithm={}", algorithm);
-                    continue;
-                }
-
-                // 加密字段值
-                Object value = data.get(snakeFieldName);
+                Object value = data.get(dataKey);
                 if (value instanceof String) {
                     String plainText = (String) value;
                     if (StringUtils.isNotBlank(plainText)) {
-                        String encryptedValue = encryptor.encrypt(plainText);
-                        data.put(snakeFieldName, encryptedValue);
-                        log.debug("[DynamicCrudService] 加密字段: {}, algorithm: {}", fieldName, algorithm);
+                        String encryptedValue = persistentCryptoService.encrypt(plainText, rule.algorithm());
+                        data.put(dataKey, encryptedValue);
+                        log.debug("[DynamicCrudService] 加密字段: {}, algorithm: {}", rule.fieldName(), rule.algorithm());
                     }
                 }
             }
         } catch (Exception e) {
-            log.warn("[DynamicCrudService] 加密处理失败", e);
+            log.warn("[DynamicCrudService] 加密处理失败, exceptionType={}", e.getClass().getSimpleName());
+            throw new BusinessException("低代码加密字段处理失败，请检查持久化密钥配置", e);
         }
     }
 
@@ -3515,50 +3494,50 @@ public class DynamicCrudService {
             return;
         }
         try {
-            JsonNode configNode = objectMapper.readTree(encryptConfigJson);
-            if (!configNode.isObject()) return;
-
+            List<LowcodeEncryptConfigParser.FieldRule> rules = encryptConfigParser.parse(encryptConfigJson);
             for (Map<String, Object> row : rows) {
-                for (Map.Entry<String, JsonNode> entry : configNode.properties()) {
-                    String fieldName = entry.getKey(); // camelCase字段名
-                    JsonNode ruleNode = entry.getValue();
-
-                    if (!row.containsKey(fieldName) || row.get(fieldName) == null) {
+                for (LowcodeEncryptConfigParser.FieldRule rule : rules) {
+                    String dataKey = resolveReadEncryptKey(row, rule);
+                    if (dataKey == null || row.get(dataKey) == null) {
                         continue;
                     }
-
-                    // 获取加密算法配置
-                    String algorithm = ruleNode.has("algorithm") ? ruleNode.get("algorithm").asText() : "";
-                    if (StringUtils.isBlank(algorithm)) {
-                        continue;
-                    }
-
-                    // 获取加密器
-                    Encryptor encryptor = encryptorFactory.getEncryptor(algorithm);
-                    if (encryptor == null) {
-                        log.warn("[DynamicCrudService] 未找到加密器, algorithm={}", algorithm);
-                        continue;
-                    }
-
-                    // 解密字段值
-                    Object value = row.get(fieldName);
+                    Object value = row.get(dataKey);
                     if (value instanceof String) {
                         String cipherText = (String) value;
                         if (StringUtils.isNotBlank(cipherText)) {
-                            try {
-                                String decryptedValue = encryptor.decrypt(cipherText);
-                                row.put(fieldName, decryptedValue);
-                                log.debug("[DynamicCrudService] 解密字段: {}, algorithm: {}", fieldName, algorithm);
-                            } catch (Exception decryptException) {
-                                log.warn("[DynamicCrudService] 解密字段失败: {}, 可能是明文数据", fieldName);
-                            }
+                            String decryptedValue = persistentCryptoService.decrypt(cipherText, rule.algorithm());
+                            row.put(dataKey, decryptedValue);
+                            log.debug("[DynamicCrudService] 解密字段: {}, algorithm: {}", rule.fieldName(), rule.algorithm());
                         }
                     }
                 }
             }
         } catch (Exception e) {
-            log.warn("[DynamicCrudService] 解密处理失败", e);
+            log.warn("[DynamicCrudService] 解密处理失败, exceptionType={}", e.getClass().getSimpleName());
+            throw new BusinessException("低代码加密字段读取失败，请检查持久化密钥配置", e);
         }
+    }
+
+    private String resolveWriteEncryptKey(Map<String, Object> data, LowcodeEncryptConfigParser.FieldRule rule) {
+        if (data.containsKey(rule.columnName())) {
+            return rule.columnName();
+        }
+        if (data.containsKey(rule.fieldName())) {
+            return rule.fieldName();
+        }
+        String snakeFieldName = DynamicQueryGenerator.camelToSnake(rule.fieldName());
+        return data.containsKey(snakeFieldName) ? snakeFieldName : null;
+    }
+
+    private String resolveReadEncryptKey(Map<String, Object> row, LowcodeEncryptConfigParser.FieldRule rule) {
+        if (row.containsKey(rule.fieldName())) {
+            return rule.fieldName();
+        }
+        if (row.containsKey(rule.columnName())) {
+            return rule.columnName();
+        }
+        String camelColumnName = DynamicQueryGenerator.snakeToCamel(rule.columnName());
+        return row.containsKey(camelColumnName) ? camelColumnName : null;
     }
 
     // ==================== 脱敏处理 ====================

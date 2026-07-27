@@ -146,7 +146,7 @@ public class ExcelImportServiceImpl implements ExcelImportService {
         } catch (Exception e) {
             log.error("导入失败", e);
             result.setSuccess(false);
-            result.setSummary("导入失败：" + e.getMessage());
+            result.setSummary(ImportResult.PUBLIC_FAILURE_MESSAGE);
         }
         
         return result;
@@ -249,15 +249,17 @@ public class ExcelImportServiceImpl implements ExcelImportService {
                     try {
                         setProperty(instance, entry.getKey(), entry.getValue());
                     } catch (Exception ex) {
+                        log.warn("导入第{}行字段映射失败：field={}", row.getRowNum(), entry.getKey(), ex);
                         hasError = true;
-                        result.addError(buildPojoFieldError(row.getRowNum(), config, entry.getValue(), ex.getMessage()));
+                        result.addError(buildPojoFieldError(row.getRowNum(), config, entry.getValue()));
                     }
                 }
                 if (!hasError) {
                     result.getSuccessData().add(instance);
                 }
             } catch (Exception e) {
-                result.addError(buildPojoError(row.getRowNum(), e.getMessage()));
+                log.warn("导入第{}行对象映射失败", row.getRowNum(), e);
+                result.addError(buildPojoError(row.getRowNum()));
             }
         }
     }
@@ -271,25 +273,24 @@ public class ExcelImportServiceImpl implements ExcelImportService {
         }
     }
 
-    private ImportErrorRecord buildPojoError(Integer rowNum, String errorMessage) {
+    private ImportErrorRecord buildPojoError(Integer rowNum) {
         ImportErrorRecord error = new ImportErrorRecord();
         error.setRowNum(rowNum);
         error.setErrorType("对象映射错误");
-        error.setErrorMessage(errorMessage);
+        error.setErrorMessage("数据无法映射到目标对象");
         error.setSuggestion("请检查导入字段与目标对象字段类型是否一致");
         return error;
     }
 
     private ImportErrorRecord buildPojoFieldError(Integer rowNum,
                                                   ExcelColumnConfig config,
-                                                  Object rawValue,
-                                                  String errorMessage) {
+                                                  Object rawValue) {
         ImportErrorRecord error = new ImportErrorRecord();
         error.setRowNum(rowNum);
         error.setColumnName(config != null ? config.getColumnName() : null);
         error.setRawValue(rawValue != null ? String.valueOf(rawValue) : null);
         error.setErrorType("对象映射错误");
-        error.setErrorMessage(errorMessage);
+        error.setErrorMessage("字段值与目标类型不匹配");
         error.setSuggestion("请检查导入字段与目标对象字段类型是否一致");
         return error;
     }

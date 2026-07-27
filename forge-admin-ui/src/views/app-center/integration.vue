@@ -90,11 +90,13 @@ import {
   deleteBusinessApp,
   updateBusinessAppStatus,
 } from '@/api/business-app'
+import { useDict } from '@/composables/useDict'
 import AppCard from './components/AppCard.vue'
 import AppEditorDrawer from './components/AppEditorDrawer.vue'
 
 const router = useRouter()
 const message = useMessage()
+const { dict } = useDict('ai_business_app_platform_type')
 const suites = ref([])
 const apps = ref([])
 const loading = ref(false)
@@ -108,18 +110,18 @@ const pagination = ref({
 })
 
 const enabledCount = computed(() => apps.value.filter(item => item.status === 1).length)
-const summaryCards = computed(() => [
-  { name: '标准接口', count: countByPlatform('api'), icon: LinkOutline },
-  { name: 'Webhook', count: countByPlatform('webhook'), icon: CloudUploadOutline },
-  { name: '协同平台', count: countByPlatform('collaboration'), icon: PaperPlaneOutline },
-  { name: '外部系统', count: countByPlatform('external'), icon: GitNetworkOutline },
-])
-const platformOptions = [
-  { label: '标准接口', value: 'api' },
-  { label: 'Webhook', value: 'webhook' },
-  { label: '企微/飞书/钉钉', value: 'collaboration' },
-  { label: '外部系统', value: 'external' },
-]
+const platformIconMap = {
+  api: LinkOutline,
+  webhook: CloudUploadOutline,
+  collaboration: PaperPlaneOutline,
+  external: GitNetworkOutline,
+}
+const platformOptions = computed(() => dict.value.ai_business_app_platform_type || [])
+const summaryCards = computed(() => platformOptions.value.map(item => ({
+  name: item.label,
+  count: countByPlatform(item.value),
+  icon: platformIconMap[item.value] || LinkOutline,
+})))
 
 onMounted(loadAll)
 

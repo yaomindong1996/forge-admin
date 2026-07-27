@@ -22,43 +22,34 @@
 </template>
 
 <script setup>
-import { NTag } from 'naive-ui'
 import { computed, h, ref } from 'vue'
 import { AiCrudPage } from '@/components/ai-form'
+import DictTag from '@/components/DictTag.vue'
+import { useDict } from '@/composables/useDict'
 import { request } from '@/utils'
+import { mapDictOptionValues, toNumberDictOptions } from '@/utils/dict-options'
 
 defineOptions({ name: 'GeneratorDatasource' })
 
 const crudRef = ref(null)
+const { dict } = useDict(
+  'data_db_type',
+  'gen_datasource_usage_scope',
+  'gen_datasource_risk_level',
+  'sys_enable_disable',
+  'sys_yes_no',
+)
 
-// 数据库类型选项
-const dbTypeOptions = [
-  { label: 'MySQL', value: 'MySQL' },
-  { label: 'Oracle', value: 'Oracle' },
-  { label: 'PostgreSQL', value: 'PostgreSQL' },
-  { label: 'SQLServer', value: 'SQLServer' },
-]
-
-const usageScopeOptions = [
-  { label: '低代码运行', value: 'LOWCODE_RUNTIME' },
-  { label: '租户业务', value: 'TENANT_BUSINESS' },
-  { label: '开发导入', value: 'DEVELOPER_IMPORT' },
-  { label: '通用', value: 'BOTH' },
-]
-
-const riskLevelOptions = [
-  { label: '低', value: 'LOW' },
-  { label: '中', value: 'MEDIUM' },
-  { label: '高', value: 'HIGH' },
-]
-
-const usageScopeLabelMap = Object.fromEntries(usageScopeOptions.map(item => [item.value, item.label]))
-const riskLevelLabelMap = Object.fromEntries(riskLevelOptions.map(item => [item.value, item.label]))
-const riskLevelTagMap = {
-  LOW: 'success',
-  MEDIUM: 'warning',
-  HIGH: 'error',
-}
+const dbTypeOptions = computed(() => mapDictOptionValues(dict.value.data_db_type, {
+  MYSQL: 'MySQL',
+  ORACLE: 'Oracle',
+  POSTGRESQL: 'PostgreSQL',
+  SQLSERVER: 'SQLServer',
+}))
+const usageScopeOptions = computed(() => dict.value.gen_datasource_usage_scope || [])
+const riskLevelOptions = computed(() => dict.value.gen_datasource_risk_level || [])
+const enableDisableOptions = computed(() => toNumberDictOptions(dict.value.sys_enable_disable))
+const yesNoOptions = computed(() => toNumberDictOptions(dict.value.sys_yes_no))
 
 // 驱动类映射
 const driverClassMap = {
@@ -76,7 +67,7 @@ const testQueryMap = {
 }
 
 // 搜索表单配置
-const searchSchema = [
+const searchSchema = computed(() => [
   {
     field: 'datasourceName',
     label: '数据源名称',
@@ -91,10 +82,10 @@ const searchSchema = [
     type: 'select',
     props: {
       placeholder: '请选择用途',
-      options: usageScopeOptions,
+      options: usageScopeOptions.value,
     },
   },
-]
+])
 
 // 表格列配置
 const tableColumns = computed(() => [
@@ -112,14 +103,13 @@ const tableColumns = computed(() => [
     prop: 'dbType',
     label: '数据库类型',
     width: 100,
+    render: row => h(DictTag, { options: dbTypeOptions.value, value: row.dbType, size: 'small' }),
   },
   {
     prop: 'usageScope',
     label: '用途',
     width: 110,
-    render: row => h(NTag, { size: 'small', type: 'info' }, {
-      default: () => usageScopeLabelMap[row.usageScope] || row.usageScope || '-',
-    }),
+    render: row => h(DictTag, { options: usageScopeOptions.value, value: row.usageScope, size: 'small' }),
   },
   {
     prop: 'url',
@@ -136,59 +126,37 @@ const tableColumns = computed(() => [
     prop: 'isDefault',
     label: '默认',
     width: 80,
-    render: (row) => {
-      return h(NTag, {
-        type: row.isDefault === 1 ? 'success' : 'default',
-        size: 'small',
-      }, { default: () => row.isDefault === 1 ? '是' : '否' })
-    },
+    render: row => h(DictTag, { options: yesNoOptions.value, value: row.isDefault, size: 'small' }),
   },
   {
     prop: 'readonly',
     label: '只读',
     width: 80,
-    render: row => h(NTag, {
-      type: row.readonly === 1 ? 'warning' : 'success',
-      size: 'small',
-    }, { default: () => row.readonly === 1 ? '是' : '否' }),
+    render: row => h(DictTag, { options: yesNoOptions.value, value: row.readonly, size: 'small' }),
   },
   {
     prop: 'allowRuntimeWrite',
     label: '写入',
     width: 80,
-    render: row => h(NTag, {
-      type: row.allowRuntimeWrite === 1 ? 'success' : 'default',
-      size: 'small',
-    }, { default: () => row.allowRuntimeWrite === 1 ? '允许' : '禁止' }),
+    render: row => h(DictTag, { options: yesNoOptions.value, value: row.allowRuntimeWrite, size: 'small' }),
   },
   {
     prop: 'allowRuntimeDdl',
     label: 'DDL',
     width: 80,
-    render: row => h(NTag, {
-      type: row.allowRuntimeDdl === 1 ? 'warning' : 'default',
-      size: 'small',
-    }, { default: () => row.allowRuntimeDdl === 1 ? '允许' : '禁止' }),
+    render: row => h(DictTag, { options: yesNoOptions.value, value: row.allowRuntimeDdl, size: 'small' }),
   },
   {
     prop: 'riskLevel',
     label: '风险',
     width: 80,
-    render: row => h(NTag, {
-      type: riskLevelTagMap[row.riskLevel] || 'default',
-      size: 'small',
-    }, { default: () => riskLevelLabelMap[row.riskLevel] || row.riskLevel || '-' }),
+    render: row => h(DictTag, { options: riskLevelOptions.value, value: row.riskLevel, size: 'small' }),
   },
   {
     prop: 'isEnabled',
     label: '状态',
     width: 80,
-    render: (row) => {
-      return h(NTag, {
-        type: row.isEnabled === 1 ? 'success' : 'error',
-        size: 'small',
-      }, { default: () => row.isEnabled === 1 ? '启用' : '禁用' })
-    },
+    render: row => h(DictTag, { options: enableDisableOptions.value, value: row.isEnabled, size: 'small' }),
   },
   {
     prop: 'action',
@@ -204,7 +172,7 @@ const tableColumns = computed(() => [
 ])
 
 // 编辑表单配置
-const editSchema = [
+const editSchema = computed(() => [
   {
     field: 'datasourceName',
     label: '数据源名称',
@@ -231,7 +199,7 @@ const editSchema = [
     rules: [{ required: true, message: '请选择数据库类型', trigger: 'change' }],
     props: {
       placeholder: '请选择数据库类型',
-      options: dbTypeOptions,
+      options: dbTypeOptions.value,
       onUpdateValue: (value, formData) => {
         // 自动填充驱动类名
         if (driverClassMap[value]) {
@@ -304,7 +272,7 @@ const editSchema = [
     rules: [{ required: true, message: '请选择用途范围', trigger: 'change' }],
     props: {
       placeholder: '请选择用途范围',
-      options: usageScopeOptions,
+      options: usageScopeOptions.value,
     },
   },
   {
@@ -314,7 +282,7 @@ const editSchema = [
     defaultValue: 'LOW',
     props: {
       placeholder: '请选择风险等级',
-      options: riskLevelOptions,
+      options: riskLevelOptions.value,
       onUpdateValue: (value, formData) => {
         if (value === 'HIGH' && !formData.datasourceId) {
           formData.readonly = 1
@@ -330,10 +298,7 @@ const editSchema = [
     type: 'radio',
     defaultValue: 0,
     props: {
-      options: [
-        { label: '开启', value: 1 },
-        { label: '关闭', value: 0 },
-      ],
+      options: yesNoOptions.value,
       onUpdateValue: (value, formData) => {
         if (value === 1) {
           formData.allowRuntimeWrite = 0
@@ -348,10 +313,7 @@ const editSchema = [
     type: 'radio',
     defaultValue: 1,
     props: {
-      options: [
-        { label: '允许', value: 1 },
-        { label: '禁止', value: 0 },
-      ],
+      options: yesNoOptions.value,
     },
   },
   {
@@ -360,10 +322,7 @@ const editSchema = [
     type: 'radio',
     defaultValue: 0,
     props: {
-      options: [
-        { label: '允许', value: 1 },
-        { label: '禁止', value: 0 },
-      ],
+      options: yesNoOptions.value,
     },
   },
   {
@@ -381,10 +340,7 @@ const editSchema = [
     type: 'radio',
     defaultValue: 0,
     props: {
-      options: [
-        { label: '是', value: 1 },
-        { label: '否', value: 0 },
-      ],
+      options: yesNoOptions.value,
     },
   },
   {
@@ -393,10 +349,7 @@ const editSchema = [
     type: 'radio',
     defaultValue: 1,
     props: {
-      options: [
-        { label: '启用', value: 1 },
-        { label: '禁用', value: 0 },
-      ],
+      options: enableDisableOptions.value,
     },
   },
   {
@@ -419,7 +372,7 @@ const editSchema = [
       rows: 3,
     },
   },
-]
+])
 
 // 表单提交前处理
 function beforeSubmit(formData) {

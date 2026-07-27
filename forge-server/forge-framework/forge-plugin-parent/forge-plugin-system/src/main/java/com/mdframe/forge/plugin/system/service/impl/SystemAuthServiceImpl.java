@@ -50,6 +50,7 @@ public class SystemAuthServiceImpl implements IAuthService {
 
     private static final String DEFAULT_USER_CLIENT = "pc";
     private static final String SSO_TICKET_CACHE_KEY = "auth:sso:ticket:";
+    private static final String CLIENT_AUTHENTICATION_FAILED = "客户端认证失败";
     private static final long SSO_TICKET_EXPIRE_SECONDS = 60L;
 
     private final SysUserMapper userMapper;
@@ -154,7 +155,7 @@ public class SystemAuthServiceImpl implements IAuthService {
             throw new RuntimeException("目标客户端不能为空");
         }
 
-        SysClient targetClient = loadEnabledClient(request.getTargetClient());
+        SysClient targetClient = validateSsoTargetClient(request.getTargetClient());
         String redirectPath = normalizeRedirectPath(request.getRedirectPath());
         String ticket = IdUtil.fastSimpleUUID();
 
@@ -199,7 +200,7 @@ public class SystemAuthServiceImpl implements IAuthService {
 
         validateSsoSourceSession(payload);
 
-        SysClient targetClient = loadEnabledClient(payload.getTargetClient());
+        SysClient targetClient = validateSsoTargetClient(payload.getTargetClient());
         LoginUser loginUser = rebuildSsoLoginUser(payload);
 
         log.info("开始SSO票据交换: userId={}, sourceClient={}, targetClient={}, redirectPath={}",
@@ -208,35 +209,32 @@ public class SystemAuthServiceImpl implements IAuthService {
         return issueTokenForUser(loginUser, targetClient, payload.getTargetClient());
     }
 
-    private SysClient validateAndLoadClient(String userClient, String appId, String appSecret) {
+    SysClient validateAndLoadClient(String userClient, String appId, String appSecret) {
         SysClient client = loadEnabledClient(userClient);
-        
-        // 验证AppId和AppSecret（可选）
-        if (authProperties.getEnableClientValidation()) {
-            // 验证AppId
-            if (StrUtil.isBlank(appId)) {
-                throw new RuntimeException("客户端AppId不能为空");
-            }
-            
-            if (!client.getAppId().equals(appId)) {
-                log.warn("客户端AppId不匹配: expected={}, actual={}, client={}",
-                    client.getAppId(), appId, userClient);
-                throw new RuntimeException("客户端AppId不匹配");
-            }
-            
-            // 验证AppSecret
-            if (StrUtil.isBlank(appSecret)) {
-                throw new RuntimeException("客户端AppSecret不能为空");
-            }
-            
-            if (!client.getAppSecret().equals(appSecret)) {
-                log.warn("客户端AppSecret不匹配: client={}, appId={}", userClient, appId);
-                throw new RuntimeException("客户端AppSecret不匹配");
-            }
-            
-            log.info("客户端验证通过: client={}, appId={}", userClient, appId);
+
+        boolean requiresSecret = requiresClientSecret(client, userClient);
+
+        if (StrUtil.isBlank(appId)) {
+            throw new RuntimeException(CLIENT_AUTHENTICATION_FAILED);
         }
-        
+
+        if (!Objects.equals(client.getAppId(), appId)) {
+            log.warn("客户端AppId不匹配: client={}", userClient);
+            throw new RuntimeException(CLIENT_AUTHENTICATION_FAILED);
+        }
+
+        if (requiresSecret) {
+            if (StrUtil.isBlank(appSecret)) {
+                throw new RuntimeException(CLIENT_AUTHENTICATION_FAILED);
+            }
+
+            if (!clientService.validateAppSecret(client, appSecret)) {
+                log.warn("客户端AppSecret不匹配: client={}", userClient);
+                throw new RuntimeException(CLIENT_AUTHENTICATION_FAILED);
+            }
+        }
+
+        log.info("客户端验证通过: client={}", userClient);
         return client;
     }
 
@@ -244,12 +242,32 @@ public class SystemAuthServiceImpl implements IAuthService {
         String clientCode = StrUtil.blankToDefault(userClient, DEFAULT_USER_CLIENT);
         SysClient client = clientService.getByCode(clientCode);
         if (client == null) {
-            throw new RuntimeException("客户端不存在: " + clientCode);
+            log.warn("客户端不存在或不可用: client={}", clientCode);
+            throw new RuntimeException(CLIENT_AUTHENTICATION_FAILED);
         }
         if (client.getStatus() == null || client.getStatus() == 0) {
-            throw new RuntimeException("客户端已禁用: " + clientCode);
+            log.warn("客户端不存在或不可用: client={}", clientCode);
+            throw new RuntimeException(CLIENT_AUTHENTICATION_FAILED);
         }
         return client;
+    }
+
+    SysClient validateSsoTargetClient(String clientCode) {
+        SysClient client = loadEnabledClient(clientCode);
+        if (requiresClientSecret(client, clientCode)) {
+            log.warn("SSO目标客户端不允许使用机密认证方式: client={}", clientCode);
+            throw new RuntimeException("目标客户端不支持SSO");
+        }
+        return client;
+    }
+
+    private boolean requiresClientSecret(SysClient client, String clientCode) {
+        try {
+            return clientService.requiresAppSecret(client);
+        } catch (IllegalArgumentException exception) {
+            log.error("客户端认证方式配置无效: client={}", clientCode);
+            throw new RuntimeException(CLIENT_AUTHENTICATION_FAILED);
+        }
     }
     
     private void applyClientTokenConfig(SysClient client) {
@@ -704,7 +722,7 @@ public class SystemAuthServiceImpl implements IAuthService {
             }
             return resolvedClientEquals(loginUser.getUserClient(), userClient);
         } catch (Exception e) {
-            log.warn("过滤客户端会话失败: token={}, client={}", token, userClient, e);
+            log.warn("过滤客户端会话失败: client={}", userClient, e);
             return false;
         }
     }

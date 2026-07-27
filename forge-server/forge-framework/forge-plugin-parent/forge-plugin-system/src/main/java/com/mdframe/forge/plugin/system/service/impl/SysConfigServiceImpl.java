@@ -10,6 +10,8 @@ import com.mdframe.forge.plugin.system.entity.SysConfig;
 import com.mdframe.forge.plugin.system.mapper.SysConfigMapper;
 import com.mdframe.forge.plugin.system.service.ISysConfigService;
 import com.mdframe.forge.starter.core.domain.PageQuery;
+import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.starter.core.util.CryptoDeploymentSecretPolicy;
 import com.mdframe.forge.starter.core.util.SensitiveDataUtil;
 import com.mdframe.forge.starter.trans.annotation.DictTranslate;
 import lombok.RequiredArgsConstructor;
@@ -74,6 +76,7 @@ public class SysConfigServiceImpl extends ServiceImpl<SysConfigMapper, SysConfig
 
     @Override
     public boolean insertConfig(SysConfigDTO dto) {
+        rejectDeploymentCryptoSecret(dto == null ? null : dto.getConfigKey(), null);
         SysConfig config = new SysConfig();
         BeanUtil.copyProperties(dto, config);
         return configMapper.insert(config) > 0;
@@ -81,9 +84,12 @@ public class SysConfigServiceImpl extends ServiceImpl<SysConfigMapper, SysConfig
 
     @Override
     public boolean updateConfig(SysConfigDTO dto) {
+        SysConfig existing = dto == null || dto.getConfigId() == null ? null : configMapper.selectById(dto.getConfigId());
+        rejectDeploymentCryptoSecret(dto == null ? null : dto.getConfigKey(),
+                existing == null ? null : existing.getConfigKey());
         SysConfig config = new SysConfig();
         BeanUtil.copyProperties(dto, config);
-        preserveMaskedSensitiveValue(dto, config);
+        preserveMaskedSensitiveValue(dto, config, existing);
         return configMapper.updateById(config) > 0;
     }
 
@@ -97,11 +103,17 @@ public class SysConfigServiceImpl extends ServiceImpl<SysConfigMapper, SysConfig
         return configMapper.deleteBatchIds(Arrays.asList(configIds)) > 0;
     }
 
-    private void preserveMaskedSensitiveValue(SysConfigDTO dto, SysConfig config) {
+    private void rejectDeploymentCryptoSecret(String requestedKey, String existingKey) {
+        if (CryptoDeploymentSecretPolicy.isDeploymentSecretPropertyKey(requestedKey)
+                || CryptoDeploymentSecretPolicy.isDeploymentSecretPropertyKey(existingKey)) {
+            throw new BusinessException("部署级加密密钥只能通过环境变量或外部配置注入，禁止写入系统参数");
+        }
+    }
+
+    private void preserveMaskedSensitiveValue(SysConfigDTO dto, SysConfig config, SysConfig existing) {
         if (dto == null || config == null || !SensitiveDataUtil.isMaskedValue(dto.getConfigValue())) {
             return;
         }
-        SysConfig existing = dto.getConfigId() == null ? null : configMapper.selectById(dto.getConfigId());
         String configKey = StringUtils.defaultIfBlank(dto.getConfigKey(), existing == null ? null : existing.getConfigKey());
         if (existing != null && SensitiveDataUtil.isSensitiveKey(configKey)) {
             config.setConfigValue(existing.getConfigValue());

@@ -1,6 +1,5 @@
 package com.mdframe.forge.plugin.generator.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.generator.domain.entity.GenTemplate;
 import com.mdframe.forge.plugin.generator.service.IGenTemplateService;
@@ -11,7 +10,6 @@ import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.annotation.log.OperationLog;
 import com.mdframe.forge.starter.core.domain.OperationType;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,14 +33,8 @@ public class GenTemplateController {
     @GetMapping("/list")
     @OperationLog(module = "模板管理", type = OperationType.QUERY, desc = "分页查询模板列表")
     public RespInfo<Page<GenTemplate>> list(PageQuery pageQuery, String templateName, String templateType, String templateEngine) {
-        LambdaQueryWrapper<GenTemplate> wrapper = new LambdaQueryWrapper<>();
-        wrapper.like(StringUtils.isNotBlank(templateName), GenTemplate::getTemplateName, templateName)
-                .eq(StringUtils.isNotBlank(templateType), GenTemplate::getTemplateType, templateType)
-                .eq(StringUtils.isNotBlank(templateEngine), GenTemplate::getTemplateEngine, templateEngine)
-                .orderByAsc(GenTemplate::getSort)
-                .orderByDesc(GenTemplate::getCreateTime);
-        Page<GenTemplate> page = genTemplateService.page(pageQuery.toPage(), wrapper);
-        return RespInfo.success(page);
+        return RespInfo.success(genTemplateService.selectTemplatePage(
+                pageQuery, templateName, templateType, templateEngine));
     }
 
     /**
@@ -50,12 +42,7 @@ public class GenTemplateController {
      */
     @GetMapping("/enabled")
     public RespInfo<List<GenTemplate>> enabledList(String templateEngine) {
-        LambdaQueryWrapper<GenTemplate> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(GenTemplate::getIsEnabled, 1)
-                .eq(StringUtils.isNotBlank(templateEngine), GenTemplate::getTemplateEngine, templateEngine)
-                .orderByAsc(GenTemplate::getSort);
-        List<GenTemplate> list = genTemplateService.list(wrapper);
-        return RespInfo.success(list);
+        return RespInfo.success(genTemplateService.selectEnabledTemplates(templateEngine));
     }
 
     /**

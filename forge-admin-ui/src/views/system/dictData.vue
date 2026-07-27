@@ -60,6 +60,7 @@ import { computed, h, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { AiCrudPage } from '@/components/ai-form'
 import SystemTableCell from '@/components/common/SystemTableCell.vue'
+import { DICT_TAG_TYPE_OPTIONS } from '@/constants/dict-options'
 import { request } from '@/utils'
 
 defineOptions({ name: 'DictData', title: '字典数据' })
@@ -98,15 +99,6 @@ const statusOptions = [
 const isDefaultOptions = [
   { label: '是', value: 'Y' },
   { label: '否', value: 'N' },
-]
-
-// 标签类型选项
-const tagTypeOptions = [
-  { label: '默认', value: 'default' },
-  { label: '成功', value: 'success' },
-  { label: '信息', value: 'info' },
-  { label: '警告', value: 'warning' },
-  { label: '错误', value: 'error' },
 ]
 
 const isTreeMode = computed(() => viewMode.value === 'tree')
@@ -370,7 +362,7 @@ const editSchema = computed(() => [
     defaultValue: 'default',
     props: {
       placeholder: '请选择标签类型',
-      options: tagTypeOptions,
+      options: DICT_TAG_TYPE_OPTIONS,
     },
   },
   {

@@ -2,7 +2,6 @@ package com.mdframe.forge.plugin.system.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.mdframe.forge.starter.core.domain.BaseEntity;
-import com.mdframe.forge.starter.crypto.handler.EncryptTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -19,9 +18,10 @@ public class SysClient extends BaseEntity {
     private String clientCode;
     private String clientName;
     private String appId;
-    
-    //@TableField(typeHandler = EncryptTypeHandler.class)
+
     private String appSecret;
+
+    private String clientAuthMethod;
     
     private Long tokenTimeout;
     private Long tokenActivityTimeout;

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.message.mapper.SysMessageBizTypeMapper">
+
+    <resultMap id="SysMessageBizTypeResultMap" type="com.mdframe.forge.plugin.message.domain.entity.SysMessageBizType">
+        <id property="id" column="id"/>
+        <result property="tenantId" column="tenant_id"/>
+        <result property="bizType" column="biz_type"/>
+        <result property="bizName" column="biz_name"/>
+        <result property="jumpUrl" column="jump_url"/>
+        <result property="jumpTarget" column="jump_target"/>
+        <result property="icon" column="icon"/>
+        <result property="sort" column="sort"/>
+        <result property="enabled" column="enabled"/>
+        <result property="remark" column="remark"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="createDept" column="create_dept"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="delFlag" column="del_flag"/>
+    </resultMap>
+
+    <sql id="SysMessageBizTypeColumns">
+        id, tenant_id, biz_type, biz_name, jump_url, jump_target, icon, sort,
+        enabled, remark, create_by, create_time, create_dept, update_by,
+        update_time, del_flag
+    </sql>
+
+    <select id="selectBizTypePage" resultMap="SysMessageBizTypeResultMap">
+        SELECT <include refid="SysMessageBizTypeColumns"/>
+        FROM sys_message_biz_type
+        WHERE del_flag = 0
+        <if test="bizType != null">
+            AND biz_type LIKE CONCAT('%', #{bizType}, '%')
+        </if>
+        <if test="bizName != null">
+            AND biz_name LIKE CONCAT('%', #{bizName}, '%')
+        </if>
+        <if test="enabled != null">
+            AND enabled = #{enabled}
+        </if>
+        ORDER BY sort ASC
+    </select>
+
+    <select id="selectEnabledBizTypes" resultMap="SysMessageBizTypeResultMap">
+        SELECT <include refid="SysMessageBizTypeColumns"/>
+        FROM sys_message_biz_type
+        WHERE enabled = 1
+          AND del_flag = 0
+        ORDER BY sort ASC
+    </select>
+
+</mapper>

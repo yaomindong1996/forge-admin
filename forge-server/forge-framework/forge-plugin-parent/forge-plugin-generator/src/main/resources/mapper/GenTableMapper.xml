@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.GenTableMapper">
+
+    <resultMap id="GenTableResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.GenTable">
+        <id property="tableId" column="table_id"/>
+        <result property="datasourceId" column="datasource_id"/>
+        <result property="tableName" column="table_name"/>
+        <result property="tableComment" column="table_comment"/>
+        <result property="className" column="class_name"/>
+        <result property="businessName" column="business_name"/>
+        <result property="functionName" column="function_name"/>
+        <result property="moduleName" column="module_name"/>
+        <result property="packageName" column="package_name"/>
+        <result property="author" column="author"/>
+        <result property="genType" column="gen_type"/>
+        <result property="genPath" column="gen_path"/>
+        <result property="templateEngine" column="template_engine"/>
+        <result property="options" column="options"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="updateBy" column="update_by"/>
+    </resultMap>
+
+    <sql id="GenTableColumns">
+        table_id, datasource_id, table_name, table_comment, class_name,
+        business_name, function_name, module_name, package_name, author,
+        gen_type, gen_path, template_engine, options, remark,
+        create_time, update_time, create_by, update_by
+    </sql>
+
+    <select id="selectDbTableList" resultMap="GenTableResultMap">
+        SELECT table_name, table_comment, create_time, update_time
+        FROM information_schema.tables
+        WHERE table_schema = (SELECT DATABASE())
+          AND table_name NOT LIKE 'qrtz_%'
+          AND table_name NOT LIKE 'gen_%'
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectDbTableByName" resultMap="GenTableResultMap">
+        SELECT table_name, table_comment, create_time, update_time
+        FROM information_schema.tables
+        WHERE table_schema = (SELECT DATABASE())
+          AND table_name = #{tableName}
+    </select>
+
+    <select id="selectGenTablePage" resultMap="GenTableResultMap">
+        SELECT <include refid="GenTableColumns"/>
+        FROM gen_table
+        <where>
+            <if test="tableName != null and tableName != ''">
+                table_name LIKE CONCAT('%', #{tableName}, '%')
+            </if>
+            <if test="tableComment != null and tableComment != ''">
+                AND table_comment LIKE CONCAT('%', #{tableComment}, '%')
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectByDatasourceAndTableName" resultMap="GenTableResultMap">
+        SELECT <include refid="GenTableColumns"/>
+        FROM gen_table
+        WHERE datasource_id = #{datasourceId}
+          AND table_name = #{tableName}
+        LIMIT 1
+    </select>
+
+    <select id="selectByTableName" resultMap="GenTableResultMap">
+        SELECT <include refid="GenTableColumns"/>
+        FROM gen_table
+        WHERE table_name = #{tableName}
+        LIMIT 1
+    </select>
+
+</mapper>

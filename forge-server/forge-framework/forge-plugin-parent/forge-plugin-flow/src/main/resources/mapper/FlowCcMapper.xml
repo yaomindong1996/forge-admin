@@ -10,4 +10,10 @@
           AND c.is_read = 0
     </select>
 
+    <delete id="deleteByProcessInstanceIdPhysically">
+        DELETE FROM sys_flow_cc
+        WHERE process_instance_id = #{processInstanceId}
+          AND tenant_id = #{tenantId}
+    </delete>
+
 </mapper>

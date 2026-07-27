@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 流程运行错误日志 Mapper
@@ -16,14 +17,40 @@ import java.util.List;
 public interface FlowErrorLogMapper extends BaseMapper<FlowErrorLog> {
 
     IPage<FlowErrorLog> selectErrorLogPage(Page<FlowErrorLog> page,
+                                           @Param("tenantId") Long tenantId,
                                            @Param("processInstanceId") String processInstanceId,
                                            @Param("activityId") String activityId,
                                            @Param("status") Integer status);
 
-    List<FlowErrorLog> selectRecentByProcessInstanceId(@Param("processInstanceId") String processInstanceId);
+    List<FlowErrorLog> selectRecentByProcessInstanceId(@Param("tenantId") Long tenantId,
+                                                       @Param("processInstanceId") String processInstanceId);
 
-    FlowErrorLog selectLatestUnresolved(@Param("processInstanceId") String processInstanceId,
+    FlowErrorLog selectLatestUnresolved(@Param("tenantId") Long tenantId,
+                                        @Param("processInstanceId") String processInstanceId,
                                         @Param("activityId") String activityId);
 
-    Long countUnresolvedByProcessInstanceId(@Param("processInstanceId") String processInstanceId);
+    Long countUnresolvedByProcessInstanceId(@Param("tenantId") Long tenantId,
+                                            @Param("processInstanceId") String processInstanceId);
+
+    Map<String, Object> selectStatistics(@Param("tenantId") Long tenantId);
+
+    FlowErrorLog selectByIdAndTenantId(@Param("logId") String logId,
+                                       @Param("tenantId") Long tenantId);
+
+    FlowErrorLog selectByIdAndTenantIdForUpdate(@Param("logId") String logId,
+                                                @Param("tenantId") Long tenantId);
+
+    int resolveByIdAndTenantId(@Param("logId") String logId,
+                               @Param("tenantId") Long tenantId,
+                               @Param("userId") String userId,
+                               @Param("message") String message);
+
+    int updateRetryState(@Param("logId") String logId,
+                         @Param("tenantId") Long tenantId,
+                         @Param("status") Integer status,
+                         @Param("userId") String userId,
+                         @Param("message") String message);
+
+    int deleteByProcessInstanceIdPhysically(@Param("processInstanceId") String processInstanceId,
+                                            @Param("tenantId") Long tenantId);
 }

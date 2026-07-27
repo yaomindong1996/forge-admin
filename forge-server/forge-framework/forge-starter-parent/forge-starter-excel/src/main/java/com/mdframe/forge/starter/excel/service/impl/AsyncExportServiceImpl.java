@@ -102,7 +102,7 @@ public class AsyncExportServiceImpl implements AsyncExportService {
         } catch (Exception e) {
             log.error("异步导出失败：taskId={}", taskId, e);
             task.setStatus(2); // 失败
-            task.setErrorMessage(e.getMessage());
+            task.setErrorMessage(AsyncExportTask.PUBLIC_FAILURE_MESSAGE);
             task.setFinishTime(LocalDateTime.now());
         }
     }

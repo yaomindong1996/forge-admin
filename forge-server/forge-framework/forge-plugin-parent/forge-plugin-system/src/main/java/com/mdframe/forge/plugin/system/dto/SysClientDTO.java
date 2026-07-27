@@ -10,6 +10,7 @@ public class SysClientDTO {
     private String clientName;
     private String appId;
     private String appSecret;
+    private String clientAuthMethod;
     
     private Long tokenTimeout;
     private Long tokenActivityTimeout;

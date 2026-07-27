@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.generator.mapper.GenDatasourceMapper">
+
+    <resultMap id="GenDatasourceResultMap" type="com.mdframe.forge.plugin.generator.domain.entity.GenDatasource">
+        <id property="datasourceId" column="datasource_id"/>
+        <result property="datasourceName" column="datasource_name"/>
+        <result property="datasourceCode" column="datasource_code"/>
+        <result property="dbType" column="db_type"/>
+        <result property="driverClassName" column="driver_class_name"/>
+        <result property="url" column="url"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="isDefault" column="is_default"/>
+        <result property="usageScope" column="usage_scope"/>
+        <result property="allowRuntimeWrite" column="allow_runtime_write"/>
+        <result property="allowRuntimeDdl" column="allow_runtime_ddl"/>
+        <result property="readonly" column="readonly"/>
+        <result property="riskLevel" column="risk_level"/>
+        <result property="isEnabled" column="is_enabled"/>
+        <result property="testQuery" column="test_query"/>
+        <result property="sort" column="sort"/>
+        <result property="remark" column="remark"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="createBy" column="create_by"/>
+        <result property="updateBy" column="update_by"/>
+    </resultMap>
+
+    <sql id="GenDatasourceColumns">
+        datasource_id, datasource_name, datasource_code, db_type, driver_class_name,
+        url, username, password, is_default, usage_scope, allow_runtime_write,
+        allow_runtime_ddl, readonly, risk_level, is_enabled, test_query, sort,
+        remark, create_time, update_time, create_by, update_by
+    </sql>
+
+    <sql id="UsageScopeFilter">
+        <if test="usageScope != null and usageScope != ''">
+            AND (usage_scope = #{usageScope} OR usage_scope = 'BOTH')
+        </if>
+    </sql>
+
+    <select id="selectDatasourcePage" resultMap="GenDatasourceResultMap">
+        SELECT <include refid="GenDatasourceColumns"/>
+        FROM gen_datasource
+        <where>
+            <if test="datasourceName != null and datasourceName != ''">
+                datasource_name LIKE CONCAT('%', #{datasourceName}, '%')
+            </if>
+            <include refid="UsageScopeFilter"/>
+        </where>
+        ORDER BY sort ASC, create_time DESC
+    </select>
+
+    <select id="selectEnabledDatasources" resultMap="GenDatasourceResultMap">
+        SELECT <include refid="GenDatasourceColumns"/>
+        FROM gen_datasource
+        WHERE is_enabled = 1
+        <include refid="UsageScopeFilter"/>
+        ORDER BY sort ASC, create_time DESC
+    </select>
+
+    <select id="selectDefaultDatasource" resultMap="GenDatasourceResultMap">
+        SELECT <include refid="GenDatasourceColumns"/>
+        FROM gen_datasource
+        WHERE is_default = 1
+          AND is_enabled = 1
+        LIMIT 1
+    </select>
+
+</mapper>

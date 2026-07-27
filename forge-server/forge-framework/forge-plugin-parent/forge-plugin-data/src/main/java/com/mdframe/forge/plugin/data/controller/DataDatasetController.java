@@ -177,7 +177,7 @@ public class DataDatasetController {
             fieldService.saveBatchFields(id, extractFieldsFromDataset(dataset, connection));
         }
 
-        updatePublishStatus(id, DatasetPublishStatusEnum.PUBLISHED.getCode());
+        datasetService.updatePublishStatus(id, DatasetPublishStatusEnum.PUBLISHED.getCode());
         return RespInfo.success();
     }
 
@@ -189,7 +189,7 @@ public class DataDatasetController {
         if (!DatasetPublishStatusEnum.isPublished(dataset.getPublishStatus())) {
             throw new BusinessException("只有已发布的数据集才能下架");
         }
-        updatePublishStatus(id, DatasetPublishStatusEnum.OFFLINE.getCode());
+        datasetService.updatePublishStatus(id, DatasetPublishStatusEnum.OFFLINE.getCode());
         return RespInfo.success();
     }
 
@@ -345,16 +345,6 @@ public class DataDatasetController {
     private void requireManageAccessIfPrivate(DataDataset dataset) {
         if (DataDatasetAccessModeEnum.isPrivate(dataset.getAccessMode())) {
             datasetAccessService.requireAccess(dataset, DataDatasetAccessLevelEnum.MANAGE);
-        }
-    }
-
-    private void updatePublishStatus(Long id, Integer publishStatus) {
-        boolean updated = datasetService.lambdaUpdate()
-            .eq(DataDataset::getId, id)
-            .set(DataDataset::getPublishStatus, publishStatus)
-            .update();
-        if (!updated) {
-            throw new BusinessException("数据集发布状态更新失败");
         }
     }
 

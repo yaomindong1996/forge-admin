@@ -35,12 +35,8 @@ public class MessageBizTypeController {
             @RequestParam(required = false) String bizType,
             @RequestParam(required = false) String bizName,
             @RequestParam(required = false) Integer enabled) {
-        return RespInfo.success(messageBizTypeService.lambdaQuery()
-            .like(bizType != null, SysMessageBizType::getBizType, bizType)
-            .like(bizName != null, SysMessageBizType::getBizName, bizName)
-            .eq(enabled != null, SysMessageBizType::getEnabled, enabled)
-            .orderByAsc(SysMessageBizType::getSort)
-            .page(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(pageNum, pageSize)));
+        return RespInfo.success(messageBizTypeService.selectBizTypePage(
+            pageNum, pageSize, bizType, bizName, enabled));
     }
     
     /**

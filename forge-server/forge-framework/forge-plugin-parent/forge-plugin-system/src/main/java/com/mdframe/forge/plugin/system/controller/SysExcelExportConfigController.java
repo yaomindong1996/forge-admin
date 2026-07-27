@@ -7,6 +7,7 @@ import com.mdframe.forge.plugin.system.service.ISysExcelExportConfigService;
 import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.domain.RespInfo;
+import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.session.SessionHelper;
@@ -114,7 +115,7 @@ public class SysExcelExportConfigController {
     public void testExport(@PathVariable Long id, HttpServletResponse response) {
         SysExcelExportConfig config = exportConfigService.getById(id);
         if (config == null) {
-            throw new RuntimeException("配置不存在");
+            throw new BusinessException("配置不存在");
         }
         
         // 使用空参数进行测试导出

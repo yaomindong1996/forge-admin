@@ -70,4 +70,7 @@ public interface FlowTaskMapper extends BaseMapper<FlowTask> {
      * 统计我发起且仍在流转中的流程数。
      */
     Long countWorkspaceStartedRunning(@Param("userId") String userId);
+
+    int deleteByProcessInstanceIdPhysically(@Param("processInstanceId") String processInstanceId,
+                                            @Param("tenantId") Long tenantId);
 }

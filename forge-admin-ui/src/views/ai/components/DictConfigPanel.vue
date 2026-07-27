@@ -69,7 +69,7 @@
               <n-select
                 v-model:value="opt.listClass"
                 size="small"
-                :options="tagTypeOptions"
+                :options="DICT_TAG_TYPE_OPTIONS"
                 placeholder="颜色"
                 style="width: 90px"
               />
@@ -90,6 +90,7 @@
 <script setup>
 import { CloseOutline, InformationCircleOutline } from '@vicons/ionicons5'
 import { ref, watch } from 'vue'
+import { DICT_TAG_TYPE_OPTIONS } from '@/constants/dict-options'
 import { request } from '@/utils'
 
 const props = defineProps({
@@ -104,14 +105,6 @@ const emit = defineEmits(['update:value'])
 const saving = ref(false)
 const existingDictTypes = ref(new Set()) // 缓存已存在的字典类型
 const lastEmitted = ref('') // 防止循环emit
-
-const tagTypeOptions = [
-  { label: '默认', value: 'default' },
-  { label: '成功(绿)', value: 'success' },
-  { label: '信息(蓝)', value: 'info' },
-  { label: '警告(橙)', value: 'warning' },
-  { label: '错误(红)', value: 'error' },
-]
 
 // 从各 schema 中提取 dictType
 function extractDictTypes(schemas) {

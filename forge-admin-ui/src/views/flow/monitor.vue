@@ -100,7 +100,7 @@
     <n-card class="mt-4" title="流程实例监控">
       <template #header-extra>
         <NSpace>
-          <NButton type="error" secondary :loading="cleanupLoading" :disabled="isDeletingProcess" @click="handleCleanupCurrentFilter">
+          <NButton v-if="canCleanup" type="error" secondary :loading="cleanupLoading" :disabled="isDeletingProcess" @click="handleCleanupCurrentFilter">
             <template #icon>
               <i class="i-mdi:delete-sweep" />
             </template>
@@ -196,10 +196,10 @@
       </n-descriptions>
       <template #footer>
         <NSpace>
-          <NButton v-if="currentErrorLog && (currentErrorLog.status === 0 || currentErrorLog.status === 3)" type="primary" @click="handleRetryError">
+          <NButton v-if="canManage && currentErrorLog && (currentErrorLog.status === 0 || currentErrorLog.status === 3)" type="primary" @click="handleRetryError">
             重试节点
           </NButton>
-          <NButton v-if="currentErrorLog && currentErrorLog.status === 0" type="warning" @click="handleResolveError">
+          <NButton v-if="canManage && currentErrorLog && currentErrorLog.status === 0" type="warning" @click="handleResolveError">
             标记已解决
           </NButton>
         </NSpace>
@@ -314,13 +314,13 @@
 
         <template #footer>
           <NSpace>
-            <NButton v-if="currentInstance.status === 'running'" type="warning" @click="handleSuspend">
+            <NButton v-if="canManage && currentInstance.status === 'running'" type="warning" @click="handleSuspend">
               挂起流程
             </NButton>
-            <NButton v-if="currentInstance.status === 'suspended'" type="primary" @click="handleActivate">
+            <NButton v-if="canManage && currentInstance.status === 'suspended'" type="primary" @click="handleActivate">
               激活流程
             </NButton>
-            <NButton v-if="currentInstance.status === 'running'" type="error" @click="handleTerminate">
+            <NButton v-if="canManage && currentInstance.status === 'running'" type="error" @click="handleTerminate">
               终止流程
             </NButton>
           </NSpace>
@@ -442,13 +442,18 @@ import UserSelectModal from '@/components/common/UserSelectModal.vue'
 import DictTag from '@/components/DictTag.vue'
 import DingFlowViewer from '@/components/flow-designer/viewer/DingFlowViewer.vue'
 import { useDict } from '@/composables/useDict'
+import { useUserStore } from '@/store'
 import { request } from '@/utils'
 
 defineOptions({ name: 'FlowMonitor' })
 
 const route = useRoute()
+const userStore = useUserStore()
 const message = window.$message
 const { dict } = useDict('flow_instance_status', 'flow_error_log_status')
+const routePermissionCodes = computed(() => (route.meta?.btns || []).map(item => item.code))
+const canManage = computed(() => hasPermission('flow:monitor:manage'))
+const canCleanup = computed(() => hasPermission('flow:monitor:cleanup'))
 
 // 统计数据
 const statistics = reactive({
@@ -539,16 +544,18 @@ const columns = [
         { label: '变量', key: 'variables' },
         { label: '错误日志', key: 'errors' },
       ]
-      if (row.status === 'running') {
+      if (canManage.value && row.status === 'running') {
         options.push({ type: 'divider', key: 'd1' })
         options.push({ label: '管理', key: 'admin' })
       }
-      options.push({ type: 'divider', key: 'd2' })
-      options.push({
-        label: () => h('span', { style: { color: '#d03050' } }, '删除流程数据'),
-        key: 'delete',
-        disabled: isDeletingProcess.value,
-      })
+      if (canCleanup.value) {
+        options.push({ type: 'divider', key: 'd2' })
+        options.push({
+          label: () => h('span', { style: { color: '#d03050' } }, '删除流程数据'),
+          key: 'delete',
+          disabled: isDeletingProcess.value,
+        })
+      }
       return h('div', { class: 'monitor-row-actions' }, [
         h('button', {
           type: 'button',
@@ -706,8 +713,8 @@ const errorColumns = [
       return h(NSpace, null, {
         default: () => [
           h(NButton, { text: true, type: 'primary', onClick: () => showErrorDetail(row) }, { default: () => '详情' }),
-          (row.status === 0 || row.status === 3) && h(NButton, { text: true, type: 'info', onClick: () => showRetryDialog(row) }, { default: () => '重试' }),
-          row.status === 0 && h(NButton, { text: true, type: 'warning', onClick: () => handleResolveErrorLog(row) }, { default: () => '解决' }),
+          canManage.value && (row.status === 0 || row.status === 3) && h(NButton, { text: true, type: 'info', onClick: () => showRetryDialog(row) }, { default: () => '重试' }),
+          canManage.value && row.status === 0 && h(NButton, { text: true, type: 'warning', onClick: () => handleResolveErrorLog(row) }, { default: () => '解决' }),
         ].filter(Boolean),
       })
     },
@@ -719,6 +726,13 @@ function toNumberOptions(options = []) {
     ...item,
     value: Number(item.value),
   }))
+}
+
+function hasPermission(code) {
+  if (routePermissionCodes.value.length)
+    return routePermissionCodes.value.includes(code)
+  const permissions = userStore.getDataPermission || []
+  return permissions.includes('**') || permissions.includes('*:*:*') || permissions.includes(code)
 }
 
 function getErrorStageText(stage) {

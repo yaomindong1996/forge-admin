@@ -84,10 +84,7 @@ public class ConfigConverter {
 
         putIfNotNull(configMap, "forge.crypto.enabled", rootNode, "enabled");
         putIfNotNull(configMap, "forge.crypto.algorithm", rootNode, "algorithm");
-        putIfNotNull(configMap, "forge.crypto.secret-key", rootNode, "secretKey");
         putIfNotNull(configMap, "forge.crypto.enable-dynamic-key", rootNode, "enableDynamicKey");
-        putIfNotNull(configMap, "forge.crypto.rsa-public-key", rootNode, "rsaPublicKey");
-        putIfNotNull(configMap, "forge.crypto.rsa-private-key", rootNode, "rsaPrivateKey");
         putIfNotNull(configMap, "forge.crypto.session-key-expire", rootNode, "sessionKeyExpire");
         putIfNotNull(configMap, "forge.crypto.enable-api-crypto", rootNode, "enableApiCrypto");
         putIfNotNull(configMap, "forge.crypto.enable-field-crypto", rootNode, "enableFieldCrypto");
@@ -105,6 +102,17 @@ public class ConfigConverter {
                 sb.append(excludePathsNode.get(i).asText());
             }
             configMap.put("forge.crypto.exclude-paths", sb.toString());
+        }
+        JsonNode replayIncludePathsNode = rootNode.get("replayIncludePaths");
+        if (replayIncludePathsNode != null && replayIncludePathsNode.isArray()) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < replayIncludePathsNode.size(); i++) {
+                if (i > 0) {
+                    sb.append(",");
+                }
+                sb.append(replayIncludePathsNode.get(i).asText());
+            }
+            configMap.put("forge.crypto.replay-include-paths", sb.toString());
         }
         JsonNode replayExcludePathsNode = rootNode.get("replayExcludePaths");
         if (replayExcludePathsNode != null && replayExcludePathsNode.isArray()) {
