@@ -7,9 +7,37 @@
           <p>维护字段业务定义、数据库映射和全局约束</p>
           <code v-if="developerMode">{{ form.fieldCode || '保存后自动生成字段编码和列名' }}</code>
         </div>
-        <n-tag v-if="field.systemField" size="small" :bordered="false">
-          系统字段
-        </n-tag>
+        <div class="property-head-actions">
+          <n-tag v-if="field.systemField" size="small" :bordered="false">
+            系统字段
+          </n-tag>
+          <div v-else class="property-head-buttons">
+            <n-button
+              secondary
+              circle
+              size="small"
+              title="还原字段修改"
+              :disabled="!changed || saving"
+              @click="resetForm"
+            >
+              <template #icon>
+                <n-icon><ArrowUndoOutline /></n-icon>
+              </template>
+            </n-button>
+            <n-button
+              type="primary"
+              size="small"
+              :loading="saving"
+              :disabled="!changed || saving"
+              @click="$emit('save', payload)"
+            >
+              <template #icon>
+                <n-icon><SaveOutline /></n-icon>
+              </template>
+              保存字段
+            </n-button>
+          </div>
+        </div>
       </div>
 
       <div class="property-body" :class="{ 'formula-only-body': formulaOnly }">
@@ -426,17 +454,7 @@
               </n-grid>
             </n-form>
           </n-tab-pane>
-
         </n-tabs>
-      </div>
-
-      <div v-if="!formulaOnly" class="property-footer">
-        <n-button secondary :disabled="!changed" @click="resetForm">
-          还原
-        </n-button>
-        <n-button type="primary" :loading="saving" :disabled="saving" @click="$emit('save', payload)">
-          保存字段
-        </n-button>
       </div>
     </template>
 
@@ -553,6 +571,7 @@
 </template>
 
 <script setup>
+import { ArrowUndoOutline, SaveOutline } from '@vicons/ionicons5'
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { businessObjectDesigner, businessObjectList } from '@/api/business-app'
 import { previewFormula, validateFormula } from '@/api/formula'
@@ -2302,7 +2321,7 @@ defineExpose({
 <style scoped>
 .property-panel {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   width: 100%;
   min-height: 0;
   min-width: 0;
@@ -2328,6 +2347,18 @@ defineExpose({
   border-bottom: 1px solid var(--border-default, #e5e6eb);
   background: var(--n-color, var(--bg-primary, #fff));
   padding: 16px;
+}
+
+.property-head > div:first-child {
+  min-width: 0;
+}
+
+.property-head-actions,
+.property-head-buttons {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
 }
 
 .property-head h3 {
@@ -2614,15 +2645,6 @@ defineExpose({
 
 .relation-advanced-collapse {
   margin-top: 4px;
-}
-
-.property-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  border-top: 1px solid var(--border-default, #e5e6eb);
-  background: var(--n-color, var(--bg-primary, #fff));
-  padding: 12px 16px;
 }
 
 .formula-setting-card {

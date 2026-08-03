@@ -3143,7 +3143,14 @@ public class BusinessFlowService {
         String configKey = startContext.configKey();
         Map<String, Object> recordData = dynamicCrudService.selectById(configKey, dto.getRecordId());
         if (recordData == null) {
-            throw new BusinessException("记录不存在或无权限访问");
+            log.warn("[低代码流程启动] 业务记录查询为空: tenantId={}, objectCode={}, configKey={}, recordId={}, "
+                            + "starterUserId={}, activeOrgId={}, checkPermission={}, stableBusinessKey={}",
+                    tenantId, objectCode, configKey, dto.getRecordId(),
+                    starterUserId != null ? starterUserId : resolveUserId(),
+                    resolveActiveOrgId(), checkPermission, stableBusinessKey);
+            throw new BusinessException(
+                    404,
+                    "记录不存在或无权限访问，请使用当前委托用户可见的已保存业务记录 ID");
         }
 
         String businessKey = buildBusinessKey(objectCode, dto.getRecordId());
@@ -5183,6 +5190,14 @@ public class BusinessFlowService {
     private Long resolveUserId() {
         try {
             return SessionHelper.getUserId();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Long resolveActiveOrgId() {
+        try {
+            return SessionHelper.getActiveOrgId();
         } catch (Exception e) {
             return null;
         }

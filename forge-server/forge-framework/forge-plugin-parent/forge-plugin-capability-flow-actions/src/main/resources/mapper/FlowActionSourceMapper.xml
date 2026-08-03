@@ -9,10 +9,19 @@
                o.object_code,
                o.object_name,
                o.config_key,
+               c.id AS runtime_config_id,
+               c.runtime_datasource_id,
+               c.runtime_datasource_code,
+               c.runtime_datasource_snapshot,
                v.publish_version AS published_object_version,
+               v.model_snapshot,
                b.id AS binding_id,
                b.binding_key,
-               b.binding_config
+               b.binding_config,
+               d.status_field,
+               d.starter_field,
+               d.owner_field,
+               d.status_mapping
         FROM ai_business_object o
         INNER JOIN ai_business_binding b
           ON b.tenant_id = o.tenant_id
@@ -28,6 +37,15 @@
          AND v.object_code = o.object_code
          AND v.publish_version = o.last_publish_version
          AND v.publish_status = 'PUBLISHED'
+        LEFT JOIN ai_crud_config c
+          ON c.tenant_id = o.tenant_id
+         AND c.config_key = o.config_key
+         AND c.del_flag = 0
+        LEFT JOIN ai_business_document_config d
+          ON d.tenant_id = o.tenant_id
+         AND d.object_id = o.id
+         AND d.object_code = o.object_code
+         AND d.document_enabled = 1
         WHERE o.tenant_id = #{tenantId}
           AND o.suite_code = #{suiteCode}
           AND o.object_code = #{objectCode}

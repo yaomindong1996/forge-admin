@@ -210,6 +210,24 @@ class CapabilityInvokeOrchestratorTest {
     }
 
     @Test
+    void shouldMapUnavailableBusinessRecordToResourceNotFound() {
+        SecureActionDescriptor descriptor = descriptor("FLOW_ACTION", "READ_ONLY", "LOW");
+        stubGranted(descriptor, "SERVICE");
+        doThrow(new BusinessException(
+                404,
+                "记录不存在或无权限访问，请使用当前委托用户可见的已保存业务记录 ID"))
+                .when(executionAdapter).validate(eq(descriptor), any());
+
+        OpenGatewayResponse response = orchestrator.invoke(
+                fullAccessIdentity(), CAPABILITY_CODE, null,
+                Map.of("recordId", "121212", "arguments", Map.of()), REQUEST_ID);
+
+        assertEquals("RESOURCE_NOT_FOUND", response.code());
+        assertEquals(404, response.status());
+        assertTrue(response.message().contains("已保存业务记录 ID"));
+    }
+
+    @Test
     void shouldSkipIdempotencyForReadOnlyAndSucceed() {
         stubGranted(descriptor("FLOW_ACTION", "READ_ONLY", "LOW"), "SERVICE");
         when(executionAdapter.execute(any(), any(), eq(REQUEST_ID)))

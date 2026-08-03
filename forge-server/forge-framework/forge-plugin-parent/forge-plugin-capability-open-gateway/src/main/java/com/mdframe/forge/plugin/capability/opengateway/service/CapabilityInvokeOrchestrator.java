@@ -39,6 +39,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 能力开放网关九步编排：scope → 授权目录 → 主体类型 → 权限 → 限流 →
@@ -69,10 +70,16 @@ public class CapabilityInvokeOrchestrator {
         CapabilitySecurityPrincipal principal = identity.principal();
         OpenGatewayCapability capability = null;
         AtomicBoolean executionCompleted = new AtomicBoolean(false);
+        AtomicReference<String> stage = new AtomicReference<>("CONTEXT_INIT");
+        log.info("[能力开放网关编排] 调用开始: requestId={}, capabilityCode={}, clientId={}, clientCode={}, actorType={}, actorUserId={}, tenantId={}, activeOrgId={}",
+                requestId, capabilityCode, principal.clientId(), principal.clientCode(),
+                principal.actorType(), principal.actorUserId(), principal.tenantId(), principal.activeOrgId());
         try (AutoCloseable ignored = contextBridge.open(identity, requestId)) {
+            stage.set("SCOPE_AUTHORIZATION");
             requireInvokeScope(principal, capabilityCode);
             OpenGatewayCatalogRow row;
             try {
+                stage.set("GRANT_RESOLUTION");
                 row = catalogMapper.selectGrantedCapability(
                         principal.tenantId(), principal.clientId(), capabilityCode);
             }
@@ -80,12 +87,19 @@ public class CapabilityInvokeOrchestrator {
                 throw new OpenGatewayException(
                         "INTERNAL_ERROR", 503, "能力授权服务暂时不可用", exception);
             }
+            stage.set("CAPABILITY_RESOLUTION");
             capability = resolver.resolve(row);
+            stage.set("ACTOR_AUTHORIZATION");
             requireActorTypeAllowed(capability.requiredActorType(), principal.actorType());
             SecureActionDescriptor descriptor = capability.descriptor();
-            requirePermissions(identity.loginUser(), capability);
+            stage.set("RBAC_AUTHORIZATION");
+            requirePermissions(identity.loginUser(), capability, principal, requestId);
+            log.info("[能力开放网关授权] 授权通过: requestId={}, capabilityCode={}, version={}, clientId={}, actorType={}, actorUserId={}, tenantId={}, activeOrgId={}",
+                    requestId, descriptor.capabilityCode(), descriptor.version(), principal.clientId(),
+                    principal.actorType(), principal.actorUserId(), principal.tenantId(), principal.activeOrgId());
 
             boolean write = !"READ_ONLY".equals(descriptor.behavior());
+            stage.set("RATE_LIMIT");
             rateLimitManager.acquire("capability:" + principal.clientId(),
                     write ? "write" : "read",
                     RateLimitPolicy.perMinute(write
@@ -94,8 +108,9 @@ public class CapabilityInvokeOrchestrator {
 
             if (!write) {
                 return doExecute(capability, principal, payload,
-                        idempotencyKey, requestId, startedAt, executionCompleted);
+                        idempotencyKey, requestId, startedAt, executionCompleted, stage);
             }
+            stage.set("IDEMPOTENCY");
             if (StringUtils.isBlank(idempotencyKey)) {
                 throw new OpenGatewayException("SCHEMA_INVALID", 400, "missing_idempotency_key");
             }
@@ -109,15 +124,18 @@ public class CapabilityInvokeOrchestrator {
                             principal, descriptor.capabilityId(), keyHash, requestId, response));
             IdempotencyResult<OpenGatewayResponse> result = idempotencyManager.execute(command,
                     () -> doExecute(executableCapability, principal, payload,
-                            idempotencyKey, requestId, startedAt, executionCompleted));
+                            idempotencyKey, requestId, startedAt, executionCompleted, stage));
             if (result.idempotentHit()) {
+                log.info("[能力开放网关幂等] 命中历史结果: requestId={}, capabilityCode={}, version={}, clientId={}, tenantId={}, durationMs={}",
+                        requestId, descriptor.capabilityCode(), descriptor.version(),
+                        principal.clientId(), principal.tenantId(), elapsed(startedAt));
                 return result.value().asIdempotentHit(requestId);
             }
             return result.value();
         }
         catch (Exception exception) {
-            return failure(exception, capability, principal,
-                    requestId, startedAt, executionCompleted.get());
+            return failure(exception, capability, principal, capabilityCode,
+                    requestId, startedAt, executionCompleted.get(), stage.get());
         }
     }
 
@@ -128,28 +146,51 @@ public class CapabilityInvokeOrchestrator {
             String idempotencyKey,
             String requestId,
             long startedAt,
-            AtomicBoolean executionCompleted) {
+            AtomicBoolean executionCompleted,
+            AtomicReference<String> stage) {
         SecureActionDescriptor descriptor = capability.descriptor();
+        stage.set("INPUT_PREPARATION");
         Map<String, Object> targetInput = new LinkedHashMap<>(
                 capability.adapter().prepareInput(descriptor, payload));
         JsonNode inputNode = objectMapper.valueToTree(targetInput);
+        stage.set("INPUT_SCHEMA_VALIDATION");
         schemaValidator.validateInstance(descriptor.inputSchema(), inputNode);
+        log.info("[能力开放网关校验] Schema 通过: requestId={}, capabilityCode={}, version={}, clientId={}, tenantId={}",
+                requestId, descriptor.capabilityCode(), descriptor.version(),
+                principal.clientId(), principal.tenantId());
         if (StringUtils.isNotBlank(idempotencyKey)) {
             targetInput.put("idempotencyKey", idempotencyKey);
         }
+        stage.set("POLICY_VALIDATION");
         capability.adapter().validate(descriptor, targetInput);
+        stage.set("AUDIT_RESERVATION");
         audit(descriptor, principal, requestId, CapabilityResultStatus.ERROR,
                 "EXECUTION_PENDING", null, null, elapsed(startedAt));
+        log.info("[能力开放网关执行] 开始执行: requestId={}, capabilityCode={}, version={}, clientId={}, actorType={}, actorUserId={}, tenantId={}, activeOrgId={}",
+                requestId, descriptor.capabilityCode(), descriptor.version(), principal.clientId(),
+                principal.actorType(), principal.actorUserId(), principal.tenantId(), principal.activeOrgId());
+        stage.set("ADAPTER_EXECUTION");
         Map<String, Object> data = new LinkedHashMap<>(
                 capability.adapter().execute(descriptor, targetInput, requestId));
         data.putIfAbsent("idempotentHit", false);
+        if (Boolean.TRUE.equals(data.get("idempotentHit"))) {
+            log.info("[能力开放网关幂等] 执行适配器复用历史结果: requestId={}, capabilityCode={}, version={}, clientId={}, tenantId={}",
+                    requestId, descriptor.capabilityCode(), descriptor.version(),
+                    principal.clientId(), principal.tenantId());
+        }
+        stage.set("OUTPUT_SCHEMA_VALIDATION");
         schemaValidator.validateInstance(descriptor.outputSchema(), objectMapper.valueToTree(data));
         executionCompleted.set(true);
         String executeStatus = text(data.get("executeStatus"));
         String resultCode = "PENDING_APPROVAL".equals(executeStatus)
                 ? "PENDING_APPROVAL" : "SUCCESS";
+        stage.set("AUDIT_FINALIZATION");
         audit(descriptor, principal, requestId, CapabilityResultStatus.SUCCESS,
                 resultCode, null, null, elapsed(startedAt));
+        log.info("[能力开放网关执行] 执行成功: requestId={}, capabilityCode={}, version={}, clientId={}, actorType={}, actorUserId={}, tenantId={}, resultCode={}, durationMs={}",
+                requestId, descriptor.capabilityCode(), descriptor.version(), principal.clientId(),
+                principal.actorType(), principal.actorUserId(), principal.tenantId(),
+                resultCode, elapsed(startedAt));
         return OpenGatewayResponse.success(data, requestId);
     }
 
@@ -172,11 +213,20 @@ public class CapabilityInvokeOrchestrator {
                 "ACTOR_TYPE_NOT_ALLOWED", 403, "该能力不允许当前调用主体类型调用");
     }
 
-    private void requirePermissions(LoginUser loginUser, OpenGatewayCapability capability) {
+    private void requirePermissions(
+            LoginUser loginUser,
+            OpenGatewayCapability capability,
+            CapabilitySecurityPrincipal principal,
+            String requestId) {
         SecureActionDescriptor descriptor = capability.descriptor();
         String platformPermission = capability.adapter().platformPermission(descriptor);
-        if (!hasPermission(loginUser, platformPermission)
-                || !hasPermission(loginUser, descriptor.permission())) {
+        boolean platformAllowed = hasPermission(loginUser, platformPermission);
+        boolean businessAllowed = hasPermission(loginUser, descriptor.permission());
+        if (!platformAllowed || !businessAllowed) {
+            log.warn("[能力开放网关授权] 权限不足: requestId={}, capabilityCode={}, version={}, clientId={}, actorUserId={}, tenantId={}, platformPermission={}, platformAllowed={}, businessPermission={}, businessAllowed={}",
+                    requestId, descriptor.capabilityCode(), descriptor.version(), principal.clientId(),
+                    principal.actorUserId(), principal.tenantId(), platformPermission, platformAllowed,
+                    descriptor.permission(), businessAllowed);
             throw new OpenGatewayException("FORBIDDEN", 403, "当前调用方无权执行该能力");
         }
     }
@@ -238,9 +288,11 @@ public class CapabilityInvokeOrchestrator {
             Exception exception,
             OpenGatewayCapability capability,
             CapabilitySecurityPrincipal principal,
+            String requestedCapabilityCode,
             String requestId,
             long startedAt,
-            boolean executionCompleted) {
+            boolean executionCompleted,
+            String failureStage) {
         ErrorMapping mapping = map(exception);
         if (capability != null && !executionCompleted && !isAuditUnavailable(exception)) {
             try {
@@ -251,20 +303,42 @@ public class CapabilityInvokeOrchestrator {
                 mapping = new ErrorMapping("INTERNAL_ERROR", 503, "能力审计服务暂时不可用");
             }
         }
+        SecureActionDescriptor descriptor = capability == null ? null : capability.descriptor();
+        String version = descriptor == null ? null : descriptor.version();
+        String resolvedCapabilityCode = descriptor == null
+                ? requestedCapabilityCode : descriptor.capabilityCode();
+        String path = schemaPath(exception);
         if (mapping.httpStatus() >= 500) {
-            log.warn("[能力开放网关] 调用失败, requestId={}, errorCode={}, exceptionType={}",
-                    requestId, mapping.errorCode(), exception.getClass().getSimpleName());
+            log.warn("[能力开放网关失败] 调用失败: requestId={}, capabilityCode={}, version={}, clientId={}, clientCode={}, actorType={}, actorUserId={}, tenantId={}, activeOrgId={}, failureStage={}, resultCode={}, httpStatus={}, schemaPath={}, durationMs={}, exceptionType={}",
+                    requestId, resolvedCapabilityCode, version, principal.clientId(), principal.clientCode(),
+                    principal.actorType(), principal.actorUserId(), principal.tenantId(), principal.activeOrgId(),
+                    failureStage, mapping.errorCode(), mapping.httpStatus(), path, elapsed(startedAt),
+                    exception.getClass().getSimpleName(), exception);
+        }
+        else {
+            log.warn("[能力开放网关失败] 调用拒绝: requestId={}, capabilityCode={}, version={}, clientId={}, clientCode={}, actorType={}, actorUserId={}, tenantId={}, activeOrgId={}, failureStage={}, resultCode={}, httpStatus={}, schemaPath={}, durationMs={}, exceptionType={}",
+                    requestId, resolvedCapabilityCode, version, principal.clientId(), principal.clientCode(),
+                    principal.actorType(), principal.actorUserId(), principal.tenantId(), principal.activeOrgId(),
+                    failureStage, mapping.errorCode(), mapping.httpStatus(), path, elapsed(startedAt),
+                    exception.getClass().getSimpleName());
+        }
+        Map<String, Object> diagnostics = new LinkedHashMap<>();
+        diagnostics.put("failureStage", failureStage);
+        if (StringUtils.isNotBlank(path)) {
+            diagnostics.put("schemaPath", path);
         }
         return OpenGatewayResponse.error(
-                mapping.errorCode(), mapping.message(), requestId, mapping.httpStatus());
+                mapping.errorCode(), mapping.message(), requestId,
+                mapping.httpStatus(), diagnostics);
     }
 
     private ErrorMapping map(Exception exception) {
         if (exception instanceof OpenGatewayException gateway) {
             return new ErrorMapping(gateway.getErrorCode(), gateway.getHttpStatus(), gateway.getMessage());
         }
-        if (exception instanceof CapabilitySchemaValidationException) {
-            return new ErrorMapping("SCHEMA_INVALID", 400, "调用参数不符合能力输入契约");
+        if (exception instanceof CapabilitySchemaValidationException validation) {
+            return new ErrorMapping("SCHEMA_INVALID", 400,
+                    "调用参数不符合能力输入契约：" + validation.getMessage());
         }
         if (exception instanceof SecureActionUnavailableException) {
             return new ErrorMapping("INTERNAL_ERROR", 503, "能力执行依赖服务暂时不可用");
@@ -276,6 +350,9 @@ public class CapabilityInvokeOrchestrator {
             }
             if (Integer.valueOf(403).equals(code)) {
                 return new ErrorMapping("FORBIDDEN", 403, business.getMessage());
+            }
+            if (Integer.valueOf(404).equals(code)) {
+                return new ErrorMapping("RESOURCE_NOT_FOUND", 404, business.getMessage());
             }
             if (Integer.valueOf(409).equals(code)) {
                 return new ErrorMapping("CONFLICT", 409, business.getMessage());
@@ -310,7 +387,8 @@ public class CapabilityInvokeOrchestrator {
         }
         catch (RuntimeException exception) {
             log.warn("[能力开放网关审计] 记录失败, requestId={}, capabilityCode={}, exceptionType={}",
-                    requestId, descriptor.capabilityCode(), exception.getClass().getSimpleName());
+                    requestId, descriptor.capabilityCode(),
+                    exception.getClass().getSimpleName(), exception);
             throw new SecureActionUnavailableException("AUDIT_UNAVAILABLE", exception);
         }
     }

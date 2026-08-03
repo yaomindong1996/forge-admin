@@ -13,7 +13,7 @@
       :hide-batch-delete="true"
     >
       <template #toolbar-start>
-        <n-button v-if="registerTypes.length" type="primary" @click="registerVisible = true">
+        <n-button v-if="registerTypes.length" type="primary" @click="openRegister">
           <template #icon>
             <i class="i-material-symbols:add-circle-outline-rounded" />
           </template>
@@ -25,12 +25,14 @@
     <CapabilityRegisterModal
       v-model:show="registerVisible"
       :allowed-types="registerTypes"
-      @success="crudRef?.refresh()"
+      :capability="upgradeCapability"
+      @success="handleRegisterSuccess"
     />
 
     <CapabilityCallGuideModal
       v-model:show="callGuideVisible"
       :capability="callGuideCapability"
+      :can-update-grant="hasPermission('ai:capability:grant:add')"
     />
 
     <!-- 能力详情弹窗 -->
@@ -183,6 +185,7 @@ function hasPermission(permission) {
 
 const crudRef = ref(null)
 const registerVisible = ref(false)
+const upgradeCapability = ref(null)
 const callGuideVisible = ref(false)
 const callGuideCapability = ref(null)
 const detailVisible = ref(false)
@@ -293,10 +296,17 @@ const tableColumns = computed(() => [
   {
     prop: 'action',
     label: '操作',
-    width: 250,
+    width: 340,
     fixed: 'right',
     actions: [
       { label: '调用与测试', key: 'call-guide', type: 'primary', onClick: handleCallGuide },
+      {
+        label: '发布新版本',
+        key: 'publish-version',
+        type: 'success',
+        onClick: handlePublishVersion,
+        visible: row => !!row.currentVersion && registerTypes.value.includes(row.sourceType),
+      },
       { label: '详情', key: 'detail', onClick: handleViewDetail },
       {
         label: '停用',
@@ -315,6 +325,20 @@ const tableColumns = computed(() => [
     ],
   },
 ])
+
+function openRegister() {
+  upgradeCapability.value = null
+  registerVisible.value = true
+}
+
+function handlePublishVersion(row) {
+  upgradeCapability.value = { ...row }
+  registerVisible.value = true
+}
+
+function handleRegisterSuccess() {
+  crudRef.value?.refresh()
+}
 
 function handleCallGuide(row) {
   callGuideCapability.value = { ...row }

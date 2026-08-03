@@ -23,6 +23,10 @@
         </dependency>
         <dependency>
             <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-datascope</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-starter-web</artifactId>
         </dependency>
         <dependency>

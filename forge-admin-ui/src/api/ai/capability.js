@@ -10,12 +10,20 @@ export function getCapabilityById(id) {
   return request.post('/ai/capability/getById', null, { params: { id } })
 }
 
+export function getCapabilityVersionDraft(id) {
+  return request.get(`/ai/capability/${id}/version-draft`)
+}
+
 export function publishCapability(data) {
   return postEncrypt('/ai/capability/publish', data)
 }
 
 export function publishBusinessActionCapability(data) {
   return postEncrypt('/ai/capability/business-action/publish', data)
+}
+
+export function getBusinessActionRegistrationSource(params) {
+  return request.get('/ai/capability/business-action/registration-source', { params })
 }
 
 export function publishFlowActionCapability(data) {
@@ -126,6 +134,14 @@ export function getCapabilityGrantOptions() {
 
 export function addCapabilityGrant(data) {
   return postEncrypt('/ai/capability/grant/add', data)
+}
+
+export function updateCapabilityGrant(id, data) {
+  return postEncrypt(`/ai/capability/grant/update/${id}`, data)
+}
+
+export function useCurrentCapabilityGrantVersion(id) {
+  return request.post(`/ai/capability/grant/use-current-version/${id}`)
 }
 
 export function revokeCapabilityGrant(id) {

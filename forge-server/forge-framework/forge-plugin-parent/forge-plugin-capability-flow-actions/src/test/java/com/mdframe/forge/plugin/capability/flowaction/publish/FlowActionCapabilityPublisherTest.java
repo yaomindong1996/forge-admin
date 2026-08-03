@@ -5,9 +5,15 @@ import com.mdframe.forge.plugin.capability.controlplane.dto.CapabilityPublishDTO
 import com.mdframe.forge.plugin.capability.controlplane.service.CapabilityCatalogService;
 import com.mdframe.forge.plugin.capability.flowaction.source.FlowActionSourceRow;
 import com.mdframe.forge.plugin.capability.flowaction.source.FlowActionSourceService;
+import com.mdframe.forge.plugin.capability.schema.CapabilitySchemaValidator;
+import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeFieldSchema;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -42,8 +48,13 @@ class FlowActionCapabilityPublisherTest {
         assertThat(command.sourceKey()).isEqualTo("purchase/order/START");
         assertThat(command.policySnapshot().path("bindingId").asLong()).isEqualTo(71L);
         assertThat(command.policySnapshot().path("flowModelKey").asText()).isEqualTo("order_approval");
+        assertThat(command.inputSchema().path("properties").path("recordId")
+                .has("pattern")).isFalse();
+        assertThat(command.inputSchema().path("properties").path("recordId")
+                .path("description").asText()).contains("已保存业务记录", "十进制正整数");
         assertThat(command.inputSchema().path("properties").path("arguments")
                 .path("additionalProperties").asBoolean()).isFalse();
+        new CapabilitySchemaValidator().validateDefinition(command.inputSchema());
     }
 
     @Test
@@ -68,6 +79,34 @@ class FlowActionCapabilityPublisherTest {
                 .hasMessageContaining("平台托管");
     }
 
+    @Test
+    void shouldPublishSubmissionSchemaUsingOnlyCapabilitySupportedKeywords() {
+        var source = source("order_config");
+        Map<String, LowcodeFieldSchema> fields = submissionFields();
+        when(sourceService.requirePublished(1L, "purchase", "order")).thenReturn(source);
+        when(sourceService.requireSubmissionFields(source)).thenReturn(fields);
+        when(catalogService.publishFlowAction(eq(1L), any())).thenReturn(10L);
+        FlowActionCapabilityPublishDTO dto = dto("SUBMIT");
+        dto.setAllowedFields(fields.keySet());
+        dto.setRequiredFields(Set.of("leaveDate"));
+
+        publisher.publish(1L, dto);
+
+        ArgumentCaptor<CapabilityPublishDTO> captor = ArgumentCaptor.forClass(CapabilityPublishDTO.class);
+        verify(catalogService).publishFlowAction(eq(1L), captor.capture());
+        var schema = captor.getValue().inputSchema();
+        new CapabilitySchemaValidator().validateDefinition(schema);
+        var properties = schema.path("properties").path("data").path("properties");
+        assertThat(properties.path("leaveDate").has("format")).isFalse();
+        assertThat(properties.path("leaveDate").path("description").asText())
+                .contains("格式=yyyy-MM-dd");
+        assertThat(properties.path("amount").has("multipleOf")).isFalse();
+        assertThat(properties.path("tags").path("items").path("type").asText())
+                .isEqualTo("string");
+        assertThat(properties.path("reason").has("default")).isFalse();
+        assertThat(properties.path("reason").has("example")).isFalse();
+    }
+
     private FlowActionCapabilityPublishDTO dto(String operation) {
         FlowActionCapabilityPublishDTO dto = new FlowActionCapabilityPublishDTO();
         dto.setCapabilityCode("purchase.order.flow." + operation.toLowerCase());
@@ -85,9 +124,38 @@ class FlowActionCapabilityPublisherTest {
         row.setObjectCode("order");
         row.setObjectName("采购单");
         row.setConfigKey(configKey);
+        if (configKey != null) {
+            row.setRuntimeConfigId(12L);
+        }
         row.setPublishedObjectVersion(3);
         row.setBindingId(71L);
         row.setBindingKey("order_approval");
         return new FlowActionSourceService.ResolvedFlowActionSource(row, "order_approval");
+    }
+
+    private Map<String, LowcodeFieldSchema> submissionFields() {
+        Map<String, LowcodeFieldSchema> fields = new LinkedHashMap<>();
+        fields.put("leaveDate", field("leaveDate", "date", null, null));
+        fields.put("amount", field("amount", "decimal", null, 2));
+        fields.put("tags", field("tags", "array", null, null));
+        LowcodeFieldSchema reason = field("reason", "varchar", 200, null);
+        reason.setDefaultValue("个人原因");
+        fields.put("reason", reason);
+        return fields;
+    }
+
+    private LowcodeFieldSchema field(
+            String name,
+            String dataType,
+            Integer length,
+            Integer precision) {
+        LowcodeFieldSchema field = new LowcodeFieldSchema();
+        field.setField(name);
+        field.setLabel(name);
+        field.setDataType(dataType);
+        field.setLength(length);
+        field.setPrecision(precision);
+        field.setRequired("leaveDate".equals(name));
+        return field;
     }
 }

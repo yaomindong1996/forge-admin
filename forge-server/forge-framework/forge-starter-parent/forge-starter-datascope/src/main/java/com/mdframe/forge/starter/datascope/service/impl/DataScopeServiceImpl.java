@@ -3,6 +3,7 @@ package com.mdframe.forge.starter.datascope.service.impl;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.dynamic.datasource.toolkit.DynamicDataSourceContextHolder;
+import com.mdframe.forge.starter.core.context.ExecutionIdentityContextHolder;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.datascope.config.DataScopeProperties;
@@ -78,10 +79,15 @@ public class DataScopeServiceImpl implements IDataScopeService {
 
     @Override
     public DataScopeContext getCurrentUserDataScope() {
-        if (!StpUtil.isLogin()) {
-            return null;
+        LoginUser loginUser = ExecutionIdentityContextHolder.current()
+                .map(identity -> identity.loginUser())
+                .orElse(null);
+        if (loginUser == null) {
+            if (!StpUtil.isLogin()) {
+                return null;
+            }
+            loginUser = SessionHelper.getLoginUser();
         }
-        LoginUser loginUser = SessionHelper.getLoginUser();
         if (loginUser == null) {
             return null;
         }

@@ -5,6 +5,8 @@ import com.mdframe.forge.plugin.capability.controlplane.audit.CapabilityActorTyp
 import com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityInvocationLog;
 import com.mdframe.forge.plugin.capability.controlplane.mapper.AiCapabilityInvocationLogMapper;
 import com.mdframe.forge.plugin.capability.model.CapabilityResultStatus;
+import com.mdframe.forge.starter.datascope.context.DataScopeContextHolder;
+import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -141,5 +143,36 @@ class CapabilityInvocationAuditServiceTest {
 
         assertThatCode(() -> service.recordOrUpdate(1L, event)).doesNotThrowAnyException();
         verify(mapper, times(2)).updateResultByRequestIdentity(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void shouldEstablishAndRestoreTrustedTenantContextForFailureAudit() {
+        AiCapabilityInvocationLogMapper mapper = mock(AiCapabilityInvocationLogMapper.class);
+        CapabilityInvocationAuditService service = new CapabilityInvocationAuditService(mapper);
+        CapabilityInvocationAuditEvent event = new CapabilityInvocationAuditEvent(
+                "request-failure", 1L, "client_a", 2L, "flow.order.start", "1.0.0",
+                CapabilityActorType.USER, 8L, null, 4L,
+                CapabilityResultStatus.ERROR, "FAILED", "FORBIDDEN", null, null, 10L);
+        TenantContextHolder.setTenantId(99L);
+        TenantContextHolder.setIgnore(true);
+        DataScopeContextHolder.skipDataScope();
+        when(mapper.updateResultByRequestIdentity(org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(invocation -> {
+                    assertThat(TenantContextHolder.getTenantId()).isEqualTo(1L);
+                    assertThat(TenantContextHolder.isIgnore()).isFalse();
+                    assertThat(DataScopeContextHolder.isSkip()).isTrue();
+                    return 1;
+                });
+
+        try {
+            service.recordOrUpdate(1L, event);
+
+            assertThat(TenantContextHolder.getTenantId()).isEqualTo(99L);
+            assertThat(TenantContextHolder.isIgnore()).isTrue();
+            assertThat(DataScopeContextHolder.isSkip()).isTrue();
+        } finally {
+            TenantContextHolder.clear();
+            DataScopeContextHolder.clearSkip();
+        }
     }
 }

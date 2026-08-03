@@ -3,6 +3,7 @@ package com.mdframe.forge.plugin.capability.controlplane.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mdframe.forge.plugin.capability.controlplane.domain.AiCapability;
 import com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityClient;
 import com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityGrant;
@@ -26,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -133,10 +135,36 @@ public class CapabilityCallGuideService {
         AiCapabilityVersion version = resolvedVersion == null ? null
                 : versionMapper.selectVersion(tenantId, capability.getId(), resolvedVersion);
         boolean versionAvailable = version != null && "PUBLISHED".equals(version.getStatus());
+        String currentVersion = capability.getCurrentVersion();
+        AiCapabilityVersion currentPublishedVersion = Objects.equals(resolvedVersion, currentVersion)
+                ? version
+                : versionMapper.selectVersion(tenantId, capability.getId(), currentVersion);
+        boolean currentVersionAvailable = currentPublishedVersion != null
+                && "PUBLISHED".equals(currentPublishedVersion.getStatus());
+        boolean versionUpgradeAvailable = grantAvailable
+                && grant.getId() != null
+                && currentVersionAvailable
+                && !Objects.equals(resolvedVersion, currentVersion);
+        String versionMessage;
+        if (!versionAvailable) {
+            versionMessage = "授权版本不存在、版本策略不匹配或版本未发布";
+        }
+        else if (versionUpgradeAvailable) {
+            versionMessage = "客户端实际调用 v" + resolvedVersion
+                    + "，能力当前版本为 v" + currentVersion;
+        }
+        else {
+            versionMessage = "客户端实际调用版本为 v" + resolvedVersion;
+        }
         add(checks, "VERSION", "授权版本", versionAvailable, true,
-                versionAvailable
-                        ? "调用版本为 " + resolvedVersion
-                        : "授权版本不存在、版本策略不匹配或版本未发布");
+                versionMessage);
+
+        addFlowBindingCheck(
+                checks, capability, version, currentPublishedVersion,
+                resolvedVersion, currentVersion);
+        String actionCode = actionCode(version);
+        addSubmissionGrantCheck(checks, version, actionCode, grant);
+        List<String> requestNotes = requestNotes(version, actionCode);
 
         ExecutionAvailability execution = executionAvailability(version);
         add(checks, "EXECUTOR", "执行能力", execution.available(), true,
@@ -156,8 +184,10 @@ public class CapabilityCallGuideService {
         String invokeUrl = baseUrl + "/openapi/v1/capabilities/"
                 + capability.getCapabilityCode() + "/invoke";
         JsonNode requestExample = versionAvailable
-                ? documentService.requestExample(tenantId, capabilityId)
+                ? documentService.requestExample(tenantId, capabilityId, resolvedVersion)
                 : objectMapper.createObjectNode();
+        requestExample = prepareRequestExample(
+                version, actionCode, grantAvailable ? grant.getFieldPolicy() : null, requestExample);
         boolean tokenExchangeRequired = requiresTokenExchange(capability, client);
         boolean userAssertionEnabled = tokenExchangeRequired
                 && Integer.valueOf(1).equals(client.getUserAssertionEnabled())
@@ -181,15 +211,187 @@ public class CapabilityCallGuideService {
                 : null;
         return new CapabilityCallGuideVO(
                 capability.getId(), capability.getCapabilityCode(), capability.getCapabilityName(),
-                resolvedVersion, client.getId(), client.getClientCode(), client.getClientName(),
-                ready, capability.getBehavior(), capability.getRequiredActorType(),
+                resolvedVersion, currentVersion,
+                grantAvailable ? grant.getId() : null,
+                grantAvailable ? grant.getVersionStrategy() : null,
+                grantAvailable ? grant.getFixedVersion() : null,
+                versionUpgradeAvailable,
+                client.getId(), client.getClientCode(), client.getClientName(),
+                ready, capability.getBehavior(),
+                version == null ? capability.getSourceType() : version.getSourceType(),
+                actionCode, capability.getRequiredActorType(),
                 tokenExchangeRequired, availableAuthModes, openapiResource,
-                invokeUrl, baseUrl + "/oauth2/token", requestExample, runtimePermissions,
+                invokeUrl, baseUrl + "/oauth2/token", requestExample,
+                requestNotes, runtimePermissions,
                 List.copyOf(checks), oauthExample, hmacExample,
                 oauthJavaExample, hmacJavaExample, userAssertionEnabled,
                 client.getUserAssertionKeyId(), client.getClientCode(), identityIssuer,
                 USER_ASSERTION_TOKEN_TYPE, userAssertionMaxTtlSeconds,
                 userAssertionJavaExample);
+    }
+
+    private String actionCode(AiCapabilityVersion version) {
+        if (version == null) {
+            return null;
+        }
+        String operation = StringUtils.trimToNull(
+                readPolicy(version.getPolicySnapshot()).path("operation").asText());
+        if (operation != null) {
+            return operation;
+        }
+        String[] source = StringUtils.defaultString(version.getSourceKey()).split("/", -1);
+        return source.length == 3 ? StringUtils.trimToNull(source[2]) : null;
+    }
+
+    private List<String> requestNotes(AiCapabilityVersion version, String actionCode) {
+        if (version == null) {
+            return List.of();
+        }
+        LinkedHashSet<String> notes = new LinkedHashSet<>();
+        JsonNode documented = readPolicy(version.getPolicySnapshot())
+                .path("documentation").path("requestNotes");
+        if (documented.isArray()) {
+            documented.forEach(item -> {
+                String note = item.isTextual() ? StringUtils.trimToNull(item.asText()) : null;
+                if (note != null) {
+                    notes.add(note);
+                }
+            });
+        }
+        if ("FLOW_ACTION".equals(version.getSourceType())) {
+            if ("SUBMIT".equals(actionCode)) {
+                notes.add("SUBMIT 直接创建业务申请并启动主流程，请按 data 字段说明提交申请内容，不需要也不能传 recordId。");
+                notes.add("申请人、归属人、租户、组织、单据初始状态和流程发起人均从本次 Token 的可信委托用户生成。");
+                notes.add("流程启动失败时必须复用原 Idempotency-Key 重试，平台会复用已经创建的申请记录。");
+                return List.copyOf(notes);
+            }
+            String[] source = StringUtils.defaultString(version.getSourceKey()).split("/", -1);
+            String objectCode = source.length == 3 ? source[1] : "当前业务对象";
+            notes.add("recordId 必须填写业务对象「" + objectCode
+                    + "」中已经保存的真实记录主键，不能填写任意测试数字。");
+            notes.add("记录必须在本次 Token 对应的实际委托用户数据权限范围内；平台不会泄露记录究竟不存在还是不可见。");
+            if ("START".equals(actionCode)) {
+                notes.add("START 只为已有业务记录发起流程，不会创建业务记录；请先在业务页面保存记录，再复制记录 ID 调用。");
+            }
+            else {
+                notes.add("APPROVE/REJECT 还必须填写属于该记录、该流程且由当前委托用户可办理的真实 taskId。");
+            }
+        }
+        return List.copyOf(notes);
+    }
+
+    private JsonNode prepareRequestExample(
+            AiCapabilityVersion version,
+            String actionCode,
+            String grantFieldPolicy,
+            JsonNode requestExample) {
+        if (version == null || !(requestExample instanceof ObjectNode root)) {
+            return requestExample;
+        }
+        Set<String> grantedFields = readTextSet(
+                readPolicy(grantFieldPolicy).path("allowedFields"));
+        if ("BUSINESS_ACTION".equals(version.getSourceType())) {
+            retainExampleFields(root.path("arguments"), grantedFields);
+            return root;
+        }
+        if (!"FLOW_ACTION".equals(version.getSourceType())) {
+            return root;
+        }
+        if ("SUBMIT".equals(actionCode)) {
+            retainExampleFields(root.path("data"), grantedFields);
+            return root;
+        }
+        root.put("recordId", "<REAL_RECORD_ID>");
+        if (!"START".equals(actionCode) && root.path("arguments") instanceof ObjectNode arguments) {
+            arguments.put("taskId", "<REAL_TASK_ID>");
+        }
+        return root;
+    }
+
+    private void retainExampleFields(JsonNode node, Set<String> allowedFields) {
+        if (!(node instanceof ObjectNode object) || allowedFields.isEmpty()) {
+            return;
+        }
+        List<String> fields = new ArrayList<>();
+        object.fieldNames().forEachRemaining(fields::add);
+        fields.stream()
+                .filter(field -> !allowedFields.contains(field))
+                .forEach(object::remove);
+    }
+
+    private void addFlowBindingCheck(
+            List<CapabilityCallGuideCheckVO> checks,
+            AiCapability capability,
+            AiCapabilityVersion resolvedVersion,
+            AiCapabilityVersion currentVersion,
+            String resolvedVersionNumber,
+            String currentVersionNumber) {
+        if (!"FLOW_ACTION".equals(capability.getSourceType())) {
+            return;
+        }
+        if (resolvedVersion == null || !"PUBLISHED".equals(resolvedVersion.getStatus())) {
+            add(checks, "FLOW_BINDING", "流程绑定", false, true,
+                    "授权版本可用后才能核对流程绑定快照");
+            return;
+        }
+        if (Objects.equals(resolvedVersionNumber, currentVersionNumber)) {
+            add(checks, "FLOW_BINDING", "流程绑定", true, true,
+                    "实际调用版本与能力当前版本的流程绑定一致");
+            return;
+        }
+        if (currentVersion == null || !"PUBLISHED".equals(currentVersion.getStatus())) {
+            add(checks, "FLOW_BINDING", "流程绑定", false, true,
+                    "能力当前版本不存在或未发布，无法核对流程绑定快照");
+            return;
+        }
+        JsonNode resolvedPolicy = readPolicy(resolvedVersion.getPolicySnapshot());
+        JsonNode currentPolicy = readPolicy(currentVersion.getPolicySnapshot());
+        if (sameFlowBindingSnapshot(resolvedPolicy, currentPolicy)) {
+            add(checks, "FLOW_BINDING", "流程绑定", true, true,
+                    "客户端使用旧版本 v" + resolvedVersionNumber
+                            + "，但流程绑定快照仍与当前版本一致");
+            return;
+        }
+        add(checks, "FLOW_BINDING", "流程绑定", false, true,
+                "客户端授权仍使用 v" + resolvedVersionNumber
+                        + "，能力当前 v" + currentVersionNumber
+                        + " 已更新流程绑定；继续测试会返回 FLOW_BINDING_MISMATCH，请先切换到当前版本");
+    }
+
+    private boolean sameFlowBindingSnapshot(JsonNode left, JsonNode right) {
+        return sameRequiredPolicyValue(left, right, "bindingId")
+                && sameRequiredPolicyValue(left, right, "flowModelKey")
+                && sameRequiredPolicyValue(left, right, "publishedObjectVersion");
+    }
+
+    private boolean sameRequiredPolicyValue(JsonNode left, JsonNode right, String field) {
+        String leftValue = StringUtils.trimToNull(left.path(field).asText());
+        String rightValue = StringUtils.trimToNull(right.path(field).asText());
+        return leftValue != null && leftValue.equals(rightValue);
+    }
+
+    private void addSubmissionGrantCheck(
+            List<CapabilityCallGuideCheckVO> checks,
+            AiCapabilityVersion version,
+            String actionCode,
+            AiCapabilityGrant grant) {
+        if (version == null || !"FLOW_ACTION".equals(version.getSourceType())
+                || !"SUBMIT".equals(actionCode)) {
+            return;
+        }
+        Set<String> versionFields = readTextSet(readPolicy(version.getPolicySnapshot())
+                .path("allowedFields"));
+        Set<String> requiredFields = readTextSet(readPolicy(version.getPolicySnapshot())
+                .path("requiredFields"));
+        Set<String> grantFields = grant == null
+                ? Set.of() : readTextSet(readPolicy(grant.getFieldPolicy()).path("allowedFields"));
+        boolean valid = !versionFields.isEmpty()
+                && !grantFields.isEmpty()
+                && versionFields.containsAll(grantFields)
+                && grantFields.containsAll(requiredFields);
+        add(checks, "FIELD_POLICY", "申请字段授权", valid, true,
+                valid ? "客户端申请字段白名单已按能力版本收窄"
+                        : "客户端申请字段授权缺失或超出能力版本，请重新配置授权");
     }
 
     public List<CapabilityClientVO> clients(Long tenantId) {
@@ -728,6 +930,19 @@ public class CapabilityCallGuideService {
         catch (JsonProcessingException exception) {
             return objectMapper.createObjectNode();
         }
+    }
+
+    private Set<String> readTextSet(JsonNode values) {
+        Set<String> result = new LinkedHashSet<>();
+        if (values != null && values.isArray()) {
+            values.forEach(item -> {
+                String value = item.isTextual() ? StringUtils.trimToNull(item.asText()) : null;
+                if (value != null) {
+                    result.add(value);
+                }
+            });
+        }
+        return result;
     }
 
     private Set<String> authModes(String value) {

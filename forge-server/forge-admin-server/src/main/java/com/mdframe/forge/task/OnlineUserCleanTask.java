@@ -1,6 +1,7 @@
 package com.mdframe.forge.task;
 
 import com.mdframe.forge.plugin.system.mapper.SysOnlineUserMapper;
+import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,7 +28,8 @@ public class OnlineUserCleanTask {
     public void cleanExpiredUsers() {
         try {
             LocalDateTime now = LocalDateTime.now();
-            int count = onlineUserMapper.cleanExpiredUsers(now);
+            int count = TenantContextHolder.executeIgnore(
+                    () -> onlineUserMapper.cleanExpiredUsers(now));
             
             if (count > 0) {
                 log.info("清理过期在线用户成功,清理数量: {}", count);

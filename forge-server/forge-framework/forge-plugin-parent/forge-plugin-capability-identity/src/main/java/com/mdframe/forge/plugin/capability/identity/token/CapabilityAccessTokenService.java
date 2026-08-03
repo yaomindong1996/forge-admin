@@ -8,8 +8,9 @@ import com.mdframe.forge.plugin.capability.identity.config.CapabilityIdentityPro
 import com.mdframe.forge.plugin.capability.identity.domain.AiCapabilityAccessToken;
 import com.mdframe.forge.plugin.capability.identity.mapper.AiCapabilityAccessTokenMapper;
 import com.mdframe.forge.plugin.capability.identity.security.AuthenticatedCapabilityIdentity;
-import com.mdframe.forge.plugin.capability.identity.security.CapabilitySecurityPrincipal;
 import com.mdframe.forge.plugin.capability.identity.security.CapabilityIdentityInfrastructureException;
+import com.mdframe.forge.plugin.capability.identity.security.CapabilitySecurityPrincipal;
+import com.mdframe.forge.plugin.capability.identity.security.CapabilityTenantContext;
 import com.mdframe.forge.plugin.system.service.IUserLoadService;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.LoginUser;
@@ -39,6 +40,11 @@ public class CapabilityAccessTokenService {
     @Transactional(rollbackFor = Exception.class)
     public CapabilityTokenResponse issue(CapabilityTokenIssueCommand command) {
         validateIssueCommand(command);
+        return CapabilityTenantContext.execute(
+                command.tenantId(), () -> issueWithinTenant(command));
+    }
+
+    private CapabilityTokenResponse issueWithinTenant(CapabilityTokenIssueCommand command) {
         LocalDateTime issuedAt = LocalDateTime.now(clock);
         AiCapabilityAccessToken identityProbe = identityProbe(command);
         AiCapabilityClient currentClient = clientMapper.selectTenantById(
@@ -82,11 +88,13 @@ public class CapabilityAccessTokenService {
         String keyId = tokenCodec.extractKeyId(rawToken);
         AiCapabilityAccessToken token = keyId == null
                 ? null
-                : tokenMapper.selectActiveByTokenKeyId(keyId);
+                : CapabilityTenantContext.executeCredentialLookup(
+                        () -> tokenMapper.selectActiveByTokenKeyId(keyId));
         boolean tokenMatches = tokenCodec.matches(
                 rawToken, token == null ? DUMMY_HASH : token.getTokenHash());
         LocalDateTime now = LocalDateTime.now(clock);
         if (token == null || !tokenMatches || !"ACTIVE".equals(token.getStatus())
+                || token.getTenantId() == null || token.getTenantId() <= 0
                 || token.getExpiresAt() == null || !token.getExpiresAt().isAfter(now)
                 || !properties.supportsResource(expectedAudience)
                 || !expectedAudience.equals(token.getAudience())) {
@@ -98,6 +106,15 @@ public class CapabilityAccessTokenService {
             throw new BusinessException(403, "insufficient_scope");
         }
 
+        return CapabilityTenantContext.execute(
+                token.getTenantId(),
+                () -> authenticateWithinTenant(token, now, scopes));
+    }
+
+    private AuthenticatedCapabilityIdentity authenticateWithinTenant(
+            AiCapabilityAccessToken token,
+            LocalDateTime now,
+            Set<String> scopes) {
         AiCapabilityClient client = clientMapper.selectTenantById(token.getTenantId(), token.getClientId());
         if (!isCurrentClient(client, token, now)) {
             throw unauthorized();
@@ -130,12 +147,19 @@ public class CapabilityAccessTokenService {
         String keyId = tokenCodec.extractKeyId(rawToken);
         AiCapabilityAccessToken token = keyId == null
                 ? null
-                : tokenMapper.selectActiveByTokenKeyId(keyId);
+                : CapabilityTenantContext.executeCredentialLookup(
+                        () -> tokenMapper.selectActiveByTokenKeyId(keyId));
         boolean matches = tokenCodec.matches(rawToken, token == null ? DUMMY_HASH : token.getTokenHash());
-        if (token == null || !matches || !token.getClientId().equals(authenticatedClientId)) {
+        if (token == null || token.getTenantId() == null || token.getTenantId() <= 0
+                || !matches || !Objects.equals(token.getClientId(), authenticatedClientId)) {
             return;
         }
-        tokenMapper.revoke(token.getTenantId(), token.getId(), LocalDateTime.now(clock));
+        CapabilityTenantContext.execute(
+                token.getTenantId(),
+                () -> {
+                    tokenMapper.revoke(
+                            token.getTenantId(), token.getId(), LocalDateTime.now(clock));
+                });
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -147,19 +171,25 @@ public class CapabilityAccessTokenService {
         String keyId = tokenCodec.extractKeyId(rawToken);
         AiCapabilityAccessToken token = keyId == null
                 ? null
-                : tokenMapper.selectActiveByTokenKeyId(keyId);
+                : CapabilityTenantContext.executeCredentialLookup(
+                        () -> tokenMapper.selectActiveByTokenKeyId(keyId));
         boolean matches = tokenCodec.matches(
                 rawToken, token == null ? DUMMY_HASH : token.getTokenHash());
         if (token == null || !matches) {
             return;
         }
         if (!CapabilityActorType.USER.name().equals(token.getActorType())
-                || !token.getActorUserId().equals(currentUserId)
-                || !token.getTenantId().equals(currentTenantId)
-                || !token.getClientId().equals(expectedClientId)) {
+                || !Objects.equals(token.getActorUserId(), currentUserId)
+                || !Objects.equals(token.getTenantId(), currentTenantId)
+                || !Objects.equals(token.getClientId(), expectedClientId)) {
             throw new BusinessException(403, "无权撤销该 MCP 用户委托令牌");
         }
-        tokenMapper.revoke(token.getTenantId(), token.getId(), LocalDateTime.now(clock));
+        CapabilityTenantContext.execute(
+                currentTenantId,
+                () -> {
+                    tokenMapper.revoke(
+                            token.getTenantId(), token.getId(), LocalDateTime.now(clock));
+                });
     }
 
     private LoginUser loadCurrentUser(AiCapabilityAccessToken token, CapabilityActorType actorType) {

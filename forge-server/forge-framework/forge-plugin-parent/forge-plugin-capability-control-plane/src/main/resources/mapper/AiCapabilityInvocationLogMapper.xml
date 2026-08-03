@@ -42,7 +42,9 @@
           AND capability_code = #{log.capabilityCode}
           AND actor_type = #{log.actorType}
           AND actor_user_id = #{log.actorUserId}
-          AND service_user_id &lt;=&gt; #{log.serviceUserId}
+          <!-- 租户拦截器的 JSqlParser 无法解析 MySQL NULL 安全等号运算符，使用标准等价写法。 -->
+          AND (service_user_id = #{log.serviceUserId}
+               OR (service_user_id IS NULL AND #{log.serviceUserId} IS NULL))
           AND active_org_id = #{log.activeOrgId}
           AND del_flag = 0
     </update>

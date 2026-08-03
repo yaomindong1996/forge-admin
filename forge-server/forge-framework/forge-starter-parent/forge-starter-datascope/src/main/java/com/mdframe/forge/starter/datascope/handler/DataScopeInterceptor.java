@@ -32,8 +32,10 @@ import org.apache.ibatis.session.RowBounds;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 /**
  * 数据权限拦截器 基于 MyBatis Plus InnerInterceptor 实现
@@ -43,13 +45,24 @@ public class DataScopeInterceptor implements InnerInterceptor {
 
     private static final String DATA_SCOPE_MAPPER_PACKAGE = "com.mdframe.forge.starter.datascope.mapper.";
 
-    private final IDataScopeService dataScopeService;
+    private final Supplier<IDataScopeService> dataScopeServiceSupplier;
     private final DataScopeProperties properties;
     private final Set<String> warnedUnconfiguredMappers = ConcurrentHashMap.newKeySet();
 
     public DataScopeInterceptor(IDataScopeService dataScopeService, DataScopeProperties properties) {
-        this.dataScopeService = dataScopeService;
-        this.properties = properties;
+        this(() -> dataScopeService, properties);
+    }
+
+    /**
+     * 延迟获取数据权限服务，避免 MyBatis-Plus 创建拦截器时提前实例化 Mapper，
+     * 形成 Interceptor -> Service -> Mapper -> SqlSessionFactory 的启动循环依赖。
+     */
+    public DataScopeInterceptor(
+            Supplier<IDataScopeService> dataScopeServiceSupplier,
+            DataScopeProperties properties) {
+        this.dataScopeServiceSupplier = Objects.requireNonNull(
+                dataScopeServiceSupplier, "dataScopeServiceSupplier 不能为空");
+        this.properties = Objects.requireNonNull(properties, "properties 不能为空");
     }
 
     @Override
@@ -78,6 +91,7 @@ public class DataScopeInterceptor implements InnerInterceptor {
         }
         
         // 4. 查询该方法的数据权限配置
+        IDataScopeService dataScopeService = dataScopeService();
         SysDataScopeConfig config = dataScopeService.getDataScopeConfig(actualMapperId);
         if (config == null) {
             handleUnconfiguredMapper(actualMapperId);
@@ -237,7 +251,7 @@ public class DataScopeInterceptor implements InnerInterceptor {
             
             case ORG_AND_CHILD:
                 // 本组织及子组织数据权限
-                Set<Long> allOrgIds = dataScopeService.getOrgAndChildIds(context.getOrgIds());
+                Set<Long> allOrgIds = dataScopeService().getOrgAndChildIds(context.getOrgIds());
                 if (allOrgIds != null && !allOrgIds.isEmpty()) {
                     return buildColumnCondition(tableAlias, orgIdColumn, context, scopeType, new ArrayList<>(allOrgIds), null);
                 }
@@ -401,7 +415,7 @@ public class DataScopeInterceptor implements InnerInterceptor {
 
         // 替换 #{regionCodes}，供业务数据源场景避免在业务库 SQL 中引用 sys_region_code。
         if (context.getRegionCode() != null) {
-            Set<String> regionCodes = dataScopeService.getRegionAndChildCodes(context.getRegionCode());
+            Set<String> regionCodes = dataScopeService().getRegionAndChildCodes(context.getRegionCode());
             result = result.replace("#{regionCodes}", quoteSqlStrings(regionCodes));
         } else {
             result = result.replace("#{regionCodes}", "NULL");
@@ -508,7 +522,7 @@ public class DataScopeInterceptor implements InnerInterceptor {
      * 构建本级和下级行政区划条件。区划编码已由数据权限服务从平台库快照解析，业务 SQL 不再引用 sys_region_code。
      */
     private Expression buildRegionWithChildCondition(String fullColumnName, String regionCode) {
-        Set<String> regionCodes = dataScopeService.getRegionAndChildCodes(regionCode);
+        Set<String> regionCodes = dataScopeService().getRegionAndChildCodes(regionCode);
         if (regionCodes == null || regionCodes.isEmpty() || regionCodes.size() == 1) {
             return buildStringEqualsCondition(fullColumnName, regionCode);
         }
@@ -580,5 +594,13 @@ public class DataScopeInterceptor implements InnerInterceptor {
                 .filter(StrUtil::isNotBlank)
                 .map(value -> "'" + value.replace("'", "''") + "'")
                 .collect(java.util.stream.Collectors.joining(","));
+    }
+
+    private IDataScopeService dataScopeService() {
+        IDataScopeService service = dataScopeServiceSupplier.get();
+        if (service == null) {
+            throw new IllegalStateException("数据权限服务尚未就绪");
+        }
+        return service;
     }
 }

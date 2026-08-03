@@ -22,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 @RequiredArgsConstructor
@@ -40,6 +41,16 @@ public class FlowActionExecutionLogService {
             Map<String, Object> input,
             String requestId,
             Supplier<Map<String, Object>> action) {
+        return executeWithAttempt(
+                descriptor, identity, input, requestId, ignored -> action.get());
+    }
+
+    public Map<String, Object> executeWithAttempt(
+            SecureActionDescriptor descriptor,
+            ExecutionIdentity identity,
+            Map<String, Object> input,
+            String requestId,
+            Function<ExecutionAttempt, Map<String, Object>> action) {
         long startedAt = System.nanoTime();
         String operation = descriptor.actionCode();
         String idempotencyKey = String.valueOf(input.get("idempotencyKey"));
@@ -83,8 +94,19 @@ public class FlowActionExecutionLogService {
         AiCapabilityFlowActionLog activeReservation = reservation;
         Map<String, Object> result;
         try {
-            result = new TransactionTemplate(transactionManager).execute(status -> {
-                Map<String, Object> actionResult = Map.copyOf(action.get());
+            TransactionTemplate actionTransaction = new TransactionTemplate(transactionManager);
+            if ("SUBMIT".equals(operation)) {
+                /*
+                 * SUBMIT 会在 REQUIRES_NEW 事务中创建业务记录并提交 recordId 检查点。
+                 * MySQL REPEATABLE_READ 下，外层事务若先读取过能力元数据，会继续使用旧快照，
+                 * 随后的流程启动将看不到刚提交的记录并误报 RESOURCE_NOT_FOUND。
+                 * READ_COMMITTED 保证外层后续读取能看到检查点事务已经提交的业务记录。
+                 */
+                actionTransaction.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
+            }
+            result = actionTransaction.execute(status -> {
+                Map<String, Object> actionResult = Map.copyOf(
+                        action.apply(new ExecutionAttempt(activeReservation)));
                 activeReservation.setExecuteStatus("SUCCESS");
                 activeReservation.setResultCode("SUCCESS");
                 activeReservation.setResultSnapshot(writeJson(actionResult));
@@ -100,11 +122,11 @@ public class FlowActionExecutionLogService {
         }
         catch (RuntimeException exception) {
             markFailed(activeReservation, "FLOW_EXECUTION_FAILED", startedAt);
-            throw new BusinessException("流程动作执行失败，请稍后重试");
+            throw new BusinessException(503, "流程动作执行失败，请稍后重试", exception);
         }
         if (result == null) {
             markFailed(activeReservation, "FLOW_EXECUTION_FAILED", startedAt);
-            throw new BusinessException("流程动作执行失败，请稍后重试");
+            throw new BusinessException(503, "流程动作执行失败，请稍后重试");
         }
         return result;
     }
@@ -211,7 +233,7 @@ public class FlowActionExecutionLogService {
         log.setCapabilityVersion(descriptor.version());
         log.setOperation(operation);
         log.setObjectCode(descriptor.objectCode());
-        log.setRecordId(String.valueOf(input.get("recordId")));
+        log.setRecordId(initialRecordId(input));
         log.setTaskRef(taskRef(input));
         log.setIdempotencyKey(idempotencyKey);
         log.setRequestDigest(digest);
@@ -261,6 +283,7 @@ public class FlowActionExecutionLogService {
         digest.put("operation", descriptor.actionCode());
         digest.put("recordId", input.get("recordId"));
         digest.put("arguments", input.get("arguments"));
+        digest.put("data", input.get("data"));
         try {
             byte[] canonical = objectMapper.writeValueAsBytes(canonicalize(digest));
             return "sha256:" + java.util.HexFormat.of().formatHex(
@@ -300,6 +323,18 @@ public class FlowActionExecutionLogService {
         }
     }
 
+    private String initialRecordId(Map<String, Object> input) {
+        Object value = input.get("recordId");
+        String recordId = value == null ? null : StringUtils.trimToNull(String.valueOf(value));
+        return recordId == null ? "PENDING" : recordId;
+    }
+
+    private boolean unresolvedRecordId(String value) {
+        return StringUtils.isBlank(value)
+                || "PENDING".equals(value)
+                || "null".equalsIgnoreCase(value);
+    }
+
     private String stableErrorCode(RuntimeException exception) {
         String message = StringUtils.trimToNull(exception.getMessage());
         if (message != null && message.matches("^[A-Z][A-Z0-9_]{0,63}$")) {
@@ -325,5 +360,45 @@ public class FlowActionExecutionLogService {
         TransactionTemplate template = new TransactionTemplate(transactionManager);
         template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         return template;
+    }
+
+    public final class ExecutionAttempt {
+
+        private final AiCapabilityFlowActionLog reservation;
+
+        private ExecutionAttempt(AiCapabilityFlowActionLog reservation) {
+            this.reservation = reservation;
+        }
+
+        /**
+         * 在同一个 REQUIRES_NEW 事务中创建业务记录并保存 recordId 检查点。
+         * 检查点已存在时直接复用，保证流程启动失败后的重试不会重复建单。
+         */
+        public String resolveOrCreateRecord(Supplier<String> creator) {
+            if (!unresolvedRecordId(reservation.getRecordId())) {
+                return reservation.getRecordId();
+            }
+            try {
+                String recordId = requiresNewTransaction().execute(status -> {
+                    String created = StringUtils.trimToNull(creator.get());
+                    if (created == null || !created.matches("^[1-9]\\d*$")) {
+                        throw new BusinessException("业务申请未返回有效记录主键");
+                    }
+                    reservation.setRecordId(created);
+                    updateRequired(reservation);
+                    return created;
+                });
+                if (recordId == null) {
+                    throw new BusinessException("业务申请未返回有效记录主键");
+                }
+                return recordId;
+            }
+            catch (SecureActionUnavailableException | BusinessException exception) {
+                throw exception;
+            }
+            catch (RuntimeException exception) {
+                throw exception;
+            }
+        }
     }
 }

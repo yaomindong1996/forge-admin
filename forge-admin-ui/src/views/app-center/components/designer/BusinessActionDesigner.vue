@@ -25,9 +25,16 @@
       </div>
     </div>
 
-    <n-alert v-if="approvalEntryActions.length" type="info" :bordered="false" class="approval-entry-note">
-      已识别到 {{ approvalEntryActions.length }} 个发起审批入口。这类入口由“单据流程”和列表按钮维护，本页不展示底层流程启动参数。
-    </n-alert>
+    <div v-if="approvalEntryActions.length || pageInteractionActions.length" class="context-notices">
+      <n-alert v-if="approvalEntryActions.length" type="info" :bordered="false" class="approval-entry-note">
+        已识别到 {{ approvalEntryActions.length }} 个发起审批入口。这类入口由“单据流程”和列表按钮维护，本页不展示底层流程启动参数。
+      </n-alert>
+
+      <n-alert v-if="pageInteractionActions.length" type="info" :bordered="false" class="approval-entry-note">
+        已隐藏 {{ pageInteractionActions.length }} 个页面操作（{{ pageInteractionActionNames }}）。它们只负责打开新增/编辑页面或执行前端交互，
+        不是服务端自动化步骤，也不能直接作为开放能力执行；页面上的原有按钮不会受影响。
+      </n-alert>
+    </div>
 
     <n-empty v-if="!automationActions.length" description="当前还没有业务自动化动作" class="empty-state" />
 
@@ -272,7 +279,13 @@ const actionList = computed(() => Array.isArray(props.actions) ? props.actions :
 const approvalEntryActions = computed(() => actionList.value.filter(action => containsInternalStartFlow(action)))
 const automationActions = computed(() => actionList.value
   .map((action, originalIndex) => ({ action, originalIndex }))
-  .filter(item => !containsInternalStartFlow(item.action)))
+  .filter(item => isAutomationAction(item.action)))
+const pageInteractionActions = computed(() => actionList.value
+  .filter(action => !containsInternalStartFlow(action) && !isAutomationAction(action)))
+const pageInteractionActionNames = computed(() => pageInteractionActions.value
+  .slice(0, 4)
+  .map(action => action.actionName || action.actionCode || '未命名操作')
+  .join('、') + (pageInteractionActions.value.length > 4 ? '等' : ''))
 const selectedAction = computed(() => actionList.value[selectedActionIndex.value] || automationActions.value[0]?.action || null)
 const rootSteps = computed(() => flattenRootSteps(selectedAction.value?.actionConfig || {}))
 const actionRelations = computed(() => buildActionRelations(props.modelSchema, props.relations))
@@ -528,7 +541,30 @@ function emitActions(actions) {
 }
 
 function containsInternalStartFlow(action = {}) {
-  return flattenAllSteps(action.actionConfig || {}).some(step => isInternalStepType(step.raw, INTERNAL_STEP.START_FLOW))
+  return normalizeActionType(action) === INTERNAL_STEP.START_FLOW
+    || flattenAllSteps(action.actionConfig || {}).some(step => isInternalStepType(step.raw, INTERNAL_STEP.START_FLOW))
+}
+
+function isAutomationAction(action = {}) {
+  if (containsInternalStartFlow(action))
+    return false
+  const type = normalizeActionType(action)
+  return type === 'COMMAND'
+    || type === 'TRIGGER'
+    || hasConfiguredSteps(action.actionConfig)
+}
+
+function hasConfiguredSteps(actionConfig = {}) {
+  return (Array.isArray(actionConfig?.steps) && actionConfig.steps.length > 0)
+    || (Array.isArray(actionConfig?.stepList) && actionConfig.stepList.length > 0)
+}
+
+function normalizeActionType(action = {}) {
+  return String(action.actionType || '')
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .replace(/-/g, '_')
+    .trim()
+    .toUpperCase()
 }
 
 function flattenRootSteps(actionConfig = {}) {
@@ -1126,6 +1162,11 @@ function stringifyJson(value) {
 
 .approval-entry-note {
   font-size: 12px;
+}
+
+.context-notices {
+  display: grid;
+  gap: 8px;
 }
 
 .relation-warning {

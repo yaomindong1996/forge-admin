@@ -283,7 +283,11 @@ public class SystemAuthServiceImpl implements IAuthService {
 
     private LoginResult issueTokenForUser(LoginUser loginUser, SysClient client, String userClient) {
         String resolvedClient = StrUtil.blankToDefault(userClient, DEFAULT_USER_CLIENT);
-        handleSameAccountLogin(loginUser.getUserId(), client, resolvedClient);
+        if (loginUser.getTenantId() == null) {
+            throw new IllegalStateException("登录用户缺少租户信息");
+        }
+        executeWithRequiredTenant(loginUser.getTenantId(),
+                () -> handleSameAccountLogin(loginUser.getUserId(), client, resolvedClient));
         applyClientTokenConfig(client);
 
         loginUser.setLoginTime(System.currentTimeMillis());
@@ -737,6 +741,20 @@ public class SystemAuthServiceImpl implements IAuthService {
             return;
         }
         tokenValues.forEach(onlineUserService::kickoutUser);
+    }
+
+    private void executeWithRequiredTenant(Long tenantId, Runnable action) {
+        Boolean previousIgnore = TenantContextHolder.getIgnoreValue();
+        try {
+            TenantContextHolder.setIgnore(false);
+            TenantContextHolder.executeWithTenant(tenantId, action);
+        } finally {
+            if (previousIgnore == null) {
+                TenantContextHolder.clearIgnore();
+            } else {
+                TenantContextHolder.setIgnore(previousIgnore);
+            }
+        }
     }
 
     @Override

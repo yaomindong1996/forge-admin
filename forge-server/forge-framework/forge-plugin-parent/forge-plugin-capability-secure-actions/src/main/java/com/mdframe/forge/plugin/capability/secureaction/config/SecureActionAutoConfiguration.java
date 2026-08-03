@@ -5,6 +5,7 @@ import com.mdframe.forge.plugin.capability.controlplane.service.CapabilityCatalo
 import com.mdframe.forge.plugin.capability.secureaction.publish.BusinessActionCapabilityPublisher;
 import com.mdframe.forge.plugin.capability.secureaction.publish.SecureActionPublishedModelPolicy;
 import com.mdframe.forge.plugin.capability.secureaction.publish.SecureActionStepValidator;
+import com.mdframe.forge.plugin.capability.secureaction.source.BusinessActionSourceService;
 import com.mdframe.forge.plugin.capability.secureaction.catalog.SecureActionCatalogMapper;
 import com.mdframe.forge.plugin.capability.secureaction.catalog.SecureActionCatalogService;
 import com.mdframe.forge.plugin.capability.secureaction.mcp.SecureActionMcpHandler;
@@ -70,6 +71,14 @@ public class SecureActionAutoConfiguration {
             ObjectMapper objectMapper) {
         return new BusinessActionCapabilityPublisher(
                 actionService, catalogService, stepValidator, publishedModelPolicy, objectMapper);
+    }
+
+    @Bean
+    public BusinessActionSourceService businessActionSourceService(
+            BusinessObjectActionService actionService,
+            SecureActionStepValidator stepValidator,
+            SecureActionPublishedModelPolicy publishedModelPolicy) {
+        return new BusinessActionSourceService(actionService, stepValidator, publishedModelPolicy);
     }
 
     /**

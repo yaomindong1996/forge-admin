@@ -11,6 +11,7 @@ import com.mdframe.forge.plugin.capability.controlplane.mapper.AiCapabilityMappe
 import com.mdframe.forge.plugin.capability.controlplane.mapper.AiCapabilityVersionMapper;
 import com.mdframe.forge.plugin.capability.controlplane.mapper.model.CapabilityGrantOptionRow;
 import com.mdframe.forge.plugin.capability.controlplane.vo.CapabilityGrantCapabilityVO;
+import com.mdframe.forge.plugin.capability.controlplane.vo.CapabilityVersionDraftVO;
 import com.mdframe.forge.plugin.capability.naming.CapabilityToolNameMapper;
 import com.mdframe.forge.plugin.capability.schema.CapabilitySchemaValidator;
 import com.mdframe.forge.starter.core.domain.PageQuery;
@@ -19,7 +20,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigInteger;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.StreamSupport;
 
@@ -58,6 +61,26 @@ public class CapabilityCatalogService {
 
     public AiCapability getByCode(Long tenantId, String capabilityCode) {
         return capabilityMapper.selectByCode(requireTenant(tenantId), capabilityCode);
+    }
+
+    public CapabilityVersionDraftVO versionDraft(Long tenantId, Long id) {
+        Long safeTenantId = requireTenant(tenantId);
+        AiCapability capability = getById(safeTenantId, id);
+        String currentVersion = capability.getCurrentVersion();
+        if (currentVersion == null || currentVersion.isBlank()) {
+            throw new BusinessException("能力没有可升级的当前版本");
+        }
+        AiCapabilityVersion version = versionMapper.selectVersion(
+                safeTenantId, capability.getId(), currentVersion);
+        if (version == null || !"PUBLISHED".equals(version.getStatus())) {
+            throw new BusinessException("当前能力版本不存在或未发布，无法创建新版本");
+        }
+        return new CapabilityVersionDraftVO(
+                capability.getId(), capability.getCapabilityCode(), version.getSourceType(),
+                version.getSourceKey(), version.getSourceVersion(), currentVersion,
+                nextPatchVersion(currentVersion), capability.getDescription(),
+                readRequiredJson(version.getInputSchema(), "当前能力入参契约损坏，无法创建新版本"),
+                readOptionalObject(version.getPolicySnapshot()));
     }
 
     public List<CapabilityGrantCapabilityVO> listGrantOptions(Long tenantId) {
@@ -134,29 +157,39 @@ public class CapabilityCatalogService {
         if (toolOwner != null && (capability == null || !toolOwner.getId().equals(capability.getId()))) {
             throw new BusinessException("协议工具名已被其它能力占用");
         }
-        if (capability == null) {
+        boolean newCapability = capability == null;
+        if (newCapability) {
             capability = new AiCapability();
             capability.setTenantId(safeTenantId);
             capability.setCapabilityCode(dto.capabilityCode());
             capability.setProtocolToolName(dto.protocolToolName());
             capability.setDelFlag(0L);
         }
-        applyMetadata(capability, dto, checksum);
-        capability.setRequiredActorType(requiredActorType);
-        if (capability.getId() == null) {
-            capabilityMapper.insert(capability);
+        else {
+            assertStableCapabilityIdentity(capability, dto);
         }
 
-        AiCapabilityVersion existingVersion = versionMapper.selectVersion(
+        AiCapabilityVersion existingVersion = newCapability ? null : versionMapper.selectVersion(
                 safeTenantId, capability.getId(), dto.version());
         assertImmutableVersion(existingVersion, dto, checksum, requiredActorType);
+        if (!newCapability && existingVersion == null) {
+            assertVersionIncreases(capability.getCurrentVersion(), dto.version());
+        }
+
+        applyMetadata(capability, dto, checksum);
+        capability.setRequiredActorType(requiredActorType);
+        if (newCapability) {
+            capabilityMapper.insert(capability);
+        }
         if (existingVersion == null) {
             AiCapabilityVersion version = buildVersion(
                     safeTenantId, capability.getId(), dto, checksum, inputSchema, outputSchema);
             version.setRequiredActorType(requiredActorType);
             versionMapper.insert(version);
         }
-        capabilityMapper.updateById(capability);
+        if (!newCapability) {
+            capabilityMapper.updateById(capability);
+        }
         return capability.getId();
     }
 
@@ -241,6 +274,7 @@ public class CapabilityCatalogService {
                 row.getCurrentVersion(), row.getSourceType(), row.getBehavior(),
                 row.getRiskLevel(), row.getRequiredActorType(), row.getPublishStatus(),
                 row.getEnabled(), textValues(policy.path("allowedFields")),
+                textValues(policy.path("requiredFields")),
                 textValues(policy.path("allowedOperations")));
     }
 
@@ -319,6 +353,67 @@ public class CapabilityCatalogService {
                 || !dto.visibility().equals(existingVersion.getVisibility())) {
             throw new BusinessException("已发布能力版本不可修改，请创建新版本");
         }
+    }
+
+    private void assertStableCapabilityIdentity(AiCapability capability, CapabilityPublishDTO dto) {
+        if (!Objects.equals(capability.getSourceType(), dto.sourceType())
+                || !Objects.equals(capability.getSourceKey(), dto.sourceKey())) {
+            throw new BusinessException("已注册能力来源不可修改，请注册新的能力编码");
+        }
+    }
+
+    private void assertVersionIncreases(String currentVersion, String requestedVersion) {
+        if (currentVersion == null || currentVersion.isBlank()) {
+            return;
+        }
+        if (compareSemanticVersions(requestedVersion, currentVersion) <= 0) {
+            throw new BusinessException("新版本必须高于当前版本 " + currentVersion
+                    + "，建议使用 " + nextPatchVersion(currentVersion));
+        }
+    }
+
+    private int compareSemanticVersions(String left, String right) {
+        String[] leftParts = left.split("\\.");
+        String[] rightParts = right.split("\\.");
+        for (int index = 0; index < 3; index++) {
+            int compared = new BigInteger(leftParts[index]).compareTo(new BigInteger(rightParts[index]));
+            if (compared != 0) {
+                return compared;
+            }
+        }
+        return 0;
+    }
+
+    private String nextPatchVersion(String version) {
+        if (version == null || !version.matches("^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$")) {
+            throw new BusinessException("当前能力版本格式无效，无法生成下一版本");
+        }
+        String[] parts = version.split("\\.");
+        return parts[0] + "." + parts[1] + "."
+                + new BigInteger(parts[2]).add(BigInteger.ONE);
+    }
+
+    private JsonNode readRequiredJson(String json, String message) {
+        if (json == null || json.isBlank()) {
+            throw new BusinessException(message);
+        }
+        try {
+            return objectMapper.readTree(json);
+        }
+        catch (JsonProcessingException exception) {
+            throw new BusinessException(message);
+        }
+    }
+
+    private JsonNode readOptionalObject(String json) {
+        if (json == null || json.isBlank()) {
+            return objectMapper.createObjectNode();
+        }
+        JsonNode value = readRequiredJson(json, "当前能力策略快照损坏，无法创建新版本");
+        if (!value.isObject()) {
+            throw new BusinessException("当前能力策略快照损坏，无法创建新版本");
+        }
+        return value;
     }
 
     private Long requireTenant(Long tenantId) {

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mdframe.forge.plugin.capability.flowaction.source.FlowActionSourceService;
+import com.mdframe.forge.plugin.capability.flowaction.source.FlowActionSourceService.ResolvedFlowActionSource;
 import com.mdframe.forge.plugin.capability.secureaction.catalog.SecureActionDescriptor;
 import com.mdframe.forge.plugin.capability.secureaction.spi.GovernedCapabilitySnapshot;
 import com.mdframe.forge.plugin.capability.secureaction.spi.GovernedOpenGatewayAdapter;
@@ -30,11 +31,13 @@ public class FlowActionExecutionAdapter implements GovernedOpenGatewayAdapter {
 
     public static final String PLATFORM_PERMISSION = "ai:capability:flow-action:invoke";
 
-    private static final Set<String> PAYLOAD_FIELDS = Set.of("recordId", "arguments");
+    private static final Set<String> RECORD_PAYLOAD_FIELDS = Set.of("recordId", "arguments");
+    private static final Set<String> SUBMIT_PAYLOAD_FIELDS = Set.of("data");
 
     private final FlowActionSourceService sourceService;
     private final BusinessFlowService flowService;
     private final FlowActionExecutionLogService executionLogService;
+    private final FlowApplicationSubmissionService submissionService;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -62,13 +65,29 @@ public class FlowActionExecutionAdapter implements GovernedOpenGatewayAdapter {
                 || !source[2].equals(snapshot.policySnapshot().path("operation").asText())) {
             throw conflict();
         }
+        Set<String> allowedFields = Set.of();
+        Set<String> requiredFields = Set.of();
+        if ("SUBMIT".equals(source[2])) {
+            Set<String> effectiveFields = fields(snapshot.policySnapshot().path("allowedFields"));
+            effectiveFields.retainAll(fields(grantPolicy.path("allowedFields")));
+            Set<String> versionRequiredFields = fields(
+                    snapshot.policySnapshot().path("requiredFields"));
+            if (effectiveFields.isEmpty()
+                    || !effectiveFields.containsAll(versionRequiredFields)) {
+                throw conflict();
+            }
+            allowedFields = Set.copyOf(effectiveFields);
+            requiredFields = Set.copyOf(versionRequiredFields);
+        }
         return new SecureActionDescriptor(
                 snapshot.capabilityId(), snapshot.capabilityCode(), snapshot.capabilityName(),
                 snapshot.description(), snapshot.version(), snapshot.sourceType(), snapshot.sourceKey(),
                 snapshot.sourceVersion(), snapshot.behavior(), snapshot.riskLevel(),
                 source[0], source[1], source[2], publishedVersion,
-                snapshot.policySnapshot().path("permission").asText(), Set.of(), Set.of(),
-                snapshot.policySnapshot(), withoutBodyIdempotency(snapshot.inputSchema()),
+                snapshot.policySnapshot().path("permission").asText(),
+                Set.copyOf(allowedFields), Set.copyOf(requiredFields),
+                snapshot.policySnapshot(), effectiveInputSchema(
+                        snapshot.inputSchema(), source[2], allowedFields, requiredFields),
                 snapshot.outputSchema());
     }
 
@@ -82,7 +101,19 @@ public class FlowActionExecutionAdapter implements GovernedOpenGatewayAdapter {
             SecureActionDescriptor descriptor,
             Map<String, Object> payload) {
         Map<String, Object> request = payload == null ? Map.of() : payload;
-        if (!PAYLOAD_FIELDS.containsAll(request.keySet())) {
+        if ("SUBMIT".equals(descriptor.actionCode())) {
+            if (!SUBMIT_PAYLOAD_FIELDS.containsAll(request.keySet())) {
+                throw new BusinessException("SUBMIT payload 只允许 data 顶层字段");
+            }
+            Map<String, Object> data = mapValue(request.get("data"), "data");
+            if (!descriptor.allowedFields().containsAll(data.keySet())) {
+                throw new BusinessException("data 包含当前客户端授权未开放的业务字段");
+            }
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("data", data);
+            return result;
+        }
+        if (!RECORD_PAYLOAD_FIELDS.containsAll(request.keySet())) {
             throw new BusinessException("payload 包含未允许的顶层字段");
         }
         Map<String, Object> result = new LinkedHashMap<>();
@@ -104,9 +135,13 @@ public class FlowActionExecutionAdapter implements GovernedOpenGatewayAdapter {
     @Override
     public void validate(SecureActionDescriptor descriptor, Map<String, Object> input) {
         ExecutionIdentity identity = requireIdentity();
-        requireSource(identity, descriptor);
-        Long recordId = requireRecordId(input);
+        ResolvedFlowActionSource source = requireSource(identity, descriptor);
         String operation = descriptor.actionCode();
+        if ("SUBMIT".equals(operation)) {
+            requireSubmissionPolicy(descriptor, source, input);
+            return;
+        }
+        Long recordId = requireRecordId(input);
         if ("START".equals(operation)) {
             requireEmptyArguments(input);
             return;
@@ -136,28 +171,59 @@ public class FlowActionExecutionAdapter implements GovernedOpenGatewayAdapter {
             String requestId) {
         ExecutionIdentity identity = requireIdentity();
         boolean replayOrRecovery = executionLogService.isRecoverableRequest(descriptor, identity, input);
-        return executionLogService.execute(descriptor, identity, input, requestId, () -> {
+        return executionLogService.executeWithAttempt(descriptor, identity, input, requestId, attempt -> {
             if (!replayOrRecovery) {
                 validate(descriptor, input);
             }
-            BusinessFlowRuntimeVO runtime = "START".equals(descriptor.actionCode())
-                    ? start(descriptor, input)
-                    : complete(descriptor, identity, input, replayOrRecovery);
+            BusinessFlowRuntimeVO runtime;
+            if ("SUBMIT".equals(descriptor.actionCode())) {
+                ResolvedFlowActionSource source = requireSource(identity, descriptor);
+                requireSubmissionPolicy(descriptor, source, input);
+                String recordId = attempt.resolveOrCreateRecord(() -> submissionService.create(
+                        source.row(), identity, data(input)));
+                runtime = start(descriptor, parseRecordId(recordId));
+            }
+            else if ("START".equals(descriptor.actionCode())) {
+                runtime = start(descriptor, requireRecordId(input));
+            }
+            else {
+                runtime = complete(descriptor, identity, input, replayOrRecovery);
+            }
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("executeStatus", "SUCCESS");
-            result.put("message", StringUtils.defaultIfBlank(runtime.getMessage(), "流程动作执行成功"));
+            result.put("message", StringUtils.defaultIfBlank(runtime.getMessage(),
+                    "SUBMIT".equals(descriptor.actionCode()) ? "申请已提交" : "流程动作执行成功"));
             result.put("correlationId", requestId);
             result.put("idempotentHit", false);
+            if ("SUBMIT".equals(descriptor.actionCode())) {
+                appendSubmissionResult(result, runtime);
+            }
             return result;
         });
     }
 
-    private BusinessFlowRuntimeVO start(SecureActionDescriptor descriptor, Map<String, Object> input) {
+    private BusinessFlowRuntimeVO start(SecureActionDescriptor descriptor, Long recordId) {
         BusinessFlowStartDTO command = new BusinessFlowStartDTO();
         command.setObjectCode(descriptor.objectCode());
-        command.setRecordId(requireRecordId(input));
+        command.setRecordId(recordId);
         command.setVariables(new LinkedHashMap<>());
         return flowService.startDocumentFlowForCapability(command);
+    }
+
+    private void appendSubmissionResult(
+            Map<String, Object> result,
+            BusinessFlowRuntimeVO runtime) {
+        if (runtime == null || runtime.getRecordId() == null
+                || StringUtils.isAnyBlank(runtime.getBusinessKey(), runtime.getProcessInstanceId(),
+                        runtime.getFlowModelKey(), runtime.getFlowStatus())) {
+            throw new BusinessException(503,
+                    "流程已发起但返回信息不完整，请使用原 Idempotency-Key 重试");
+        }
+        result.put("recordId", String.valueOf(runtime.getRecordId()));
+        result.put("businessKey", runtime.getBusinessKey());
+        result.put("processInstanceId", runtime.getProcessInstanceId());
+        result.put("flowModelKey", runtime.getFlowModelKey());
+        result.put("flowStatus", runtime.getFlowStatus());
     }
 
     private BusinessFlowRuntimeVO complete(SecureActionDescriptor descriptor,
@@ -199,7 +265,9 @@ public class FlowActionExecutionAdapter implements GovernedOpenGatewayAdapter {
         }
     }
 
-    private void requireSource(ExecutionIdentity identity, SecureActionDescriptor descriptor) {
+    private ResolvedFlowActionSource requireSource(
+            ExecutionIdentity identity,
+            SecureActionDescriptor descriptor) {
         long bindingId = descriptor.policySnapshot().path("bindingId").asLong(0L);
         String flowModelKey = descriptor.policySnapshot().path("flowModelKey").asText();
         if (bindingId <= 0 || StringUtils.isBlank(flowModelKey)
@@ -207,9 +275,26 @@ public class FlowActionExecutionAdapter implements GovernedOpenGatewayAdapter {
                         descriptor.policySnapshot().path("operation").asText())) {
             throw new BusinessException(409, "POLICY_MISMATCH");
         }
-        sourceService.requireMatching(
+        return sourceService.requireMatching(
                 identity.loginUser().getTenantId(), descriptor.suiteCode(), descriptor.objectCode(),
                 descriptor.publishedObjectVersion(), bindingId, flowModelKey);
+    }
+
+    private void requireSubmissionPolicy(
+            SecureActionDescriptor descriptor,
+            ResolvedFlowActionSource source,
+            Map<String, Object> input) {
+        Map<String, ?> publishedFields = sourceService.requireSubmissionFields(source);
+        if (descriptor.allowedFields().isEmpty()
+                || !publishedFields.keySet().containsAll(descriptor.allowedFields())
+                || !descriptor.allowedFields().containsAll(descriptor.requiredFields())) {
+            throw new BusinessException(409, "POLICY_MISMATCH");
+        }
+        Map<String, Object> data = data(input);
+        if (!descriptor.allowedFields().containsAll(data.keySet())
+                || !data.keySet().containsAll(descriptor.requiredFields())) {
+            throw new BusinessException("申请数据不符合能力版本字段白名单或必填规则");
+        }
     }
 
     private ExecutionIdentity requireIdentity() {
@@ -226,6 +311,10 @@ public class FlowActionExecutionAdapter implements GovernedOpenGatewayAdapter {
 
     private Long requireRecordId(Map<String, Object> input) {
         String value = requireText(input.get("recordId"), "recordId");
+        return parseRecordId(value);
+    }
+
+    private Long parseRecordId(String value) {
         try {
             long recordId = Long.parseLong(value);
             if (recordId <= 0) {
@@ -250,8 +339,16 @@ public class FlowActionExecutionAdapter implements GovernedOpenGatewayAdapter {
     }
 
     private Map<String, Object> argumentsValue(Object value) {
+        return mapValue(value, "arguments");
+    }
+
+    private Map<String, Object> data(Map<String, Object> input) {
+        return mapValue(input.get("data"), "data");
+    }
+
+    private Map<String, Object> mapValue(Object value, String field) {
         if (!(value instanceof Map<?, ?> raw)) {
-            throw new BusinessException("arguments 必须是对象");
+            throw new BusinessException(field + " 必须是对象");
         }
         Map<String, Object> result = new LinkedHashMap<>();
         raw.forEach((key, item) -> result.put(String.valueOf(key), item));
@@ -299,6 +396,36 @@ public class FlowActionExecutionAdapter implements GovernedOpenGatewayAdapter {
             });
             root.set("required", filtered);
         }
+        return root;
+    }
+
+    private JsonNode effectiveInputSchema(
+            JsonNode sourceSchema,
+            String operation,
+            Set<String> allowedFields,
+            Set<String> requiredFields) {
+        JsonNode copy = withoutBodyIdempotency(sourceSchema);
+        if (!"SUBMIT".equals(operation)) {
+            return copy;
+        }
+        if (!(copy instanceof ObjectNode root)
+                || !(root.path("properties") instanceof ObjectNode rootProperties)
+                || !(rootProperties.path("data") instanceof ObjectNode data)
+                || !(data.path("properties") instanceof ObjectNode dataProperties)) {
+            throw conflict();
+        }
+        Set<String> schemaFields = new LinkedHashSet<>();
+        dataProperties.fieldNames().forEachRemaining(schemaFields::add);
+        if (!schemaFields.containsAll(allowedFields)) {
+            throw conflict();
+        }
+        schemaFields.stream()
+                .filter(field -> !allowedFields.contains(field))
+                .forEach(dataProperties::remove);
+        ArrayNode required = objectMapper.createArrayNode();
+        requiredFields.forEach(required::add);
+        data.set("required", required);
+        data.put("additionalProperties", false);
         return root;
     }
 

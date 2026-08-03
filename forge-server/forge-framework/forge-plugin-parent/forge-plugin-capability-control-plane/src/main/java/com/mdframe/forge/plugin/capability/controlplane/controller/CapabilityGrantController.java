@@ -4,6 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityGrant;
 import com.mdframe.forge.plugin.capability.controlplane.dto.CapabilityGrantCreateDTO;
+import com.mdframe.forge.plugin.capability.controlplane.dto.CapabilityGrantUpdateDTO;
 import com.mdframe.forge.plugin.capability.controlplane.service.CapabilityCatalogService;
 import com.mdframe.forge.plugin.capability.controlplane.service.CapabilityClientService;
 import com.mdframe.forge.plugin.capability.controlplane.service.CapabilityGrantService;
@@ -61,6 +62,28 @@ public class CapabilityGrantController {
     @ApiDecrypt
     public RespInfo<Long> add(@Valid @RequestBody CapabilityGrantCreateDTO dto) {
         return RespInfo.success(grantService.grant(SessionHelper.getTenantId(), dto));
+    }
+
+    @PostMapping("/update/{id}")
+    @SaCheckPermission("ai:capability:grant:add")
+    @OperationLog(module = "AI中枢授权", type = OperationType.UPDATE, desc = "修改能力授权")
+    @ApiDecrypt
+    public RespInfo<Void> update(
+            @PathVariable Long id,
+            @Valid @RequestBody CapabilityGrantUpdateDTO dto) {
+        grantService.update(SessionHelper.getTenantId(), id, dto);
+        return RespInfo.success();
+    }
+
+    @PostMapping("/use-current-version/{id}")
+    @SaCheckPermission("ai:capability:grant:add")
+    @OperationLog(
+            module = "AI中枢授权",
+            type = OperationType.UPDATE,
+            desc = "切换授权到能力当前版本")
+    public RespInfo<Void> useCurrentVersion(@PathVariable Long id) {
+        grantService.useCurrentVersion(SessionHelper.getTenantId(), id);
+        return RespInfo.success();
     }
 
     @PostMapping("/revoke/{id}")

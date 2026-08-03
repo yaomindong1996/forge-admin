@@ -155,8 +155,8 @@ forge:
       # 仅发布固定 search/describe/invoke 元工具；业务动作仍需 USER 委托、grant、字段白名单与 elicitation
       enabled: ${FORGE_CAPABILITY_SECURE_ACTIONS_ENABLED:${FORGE_CAPABILITY_OPEN_GATEWAY_ENABLED:${FORGE_MCP_ENABLED:false}}}
     flow-actions:
-      # 复用固定元工具，首批仅开放已发布 FLOW 绑定的 START/APPROVE/REJECT
-      enabled: ${FORGE_CAPABILITY_FLOW_ACTIONS_ENABLED:${FORGE_CAPABILITY_OPEN_GATEWAY_ENABLED:${FORGE_MCP_ENABLED:false}}}
+      # 开放已发布业务对象的 SUBMIT/START/APPROVE/REJECT 受控流程能力
+      enabled: ${FORGE_CAPABILITY_FLOW_ACTIONS_ENABLED:${FORGE_CAPABILITY_OPEN_GATEWAY_ENABLED:${FORGE_MCP_ENABLED:true}}}
     high-risk:
       # HIGH 动作默认关闭；启用前必须通过环境变量提供版本化 256-bit KEK
       enabled: ${FORGE_CAPABILITY_HIGH_RISK_ENABLED:false}

@@ -155,7 +155,7 @@ public class DynamicCrudService {
         String tableName = config.getTableName();
         
         // 2. 获取字段映射
-        Map<String, String> columnMapping = repository.getColumnMapping(tableName);
+        Map<String, String> columnMapping = buildRuntimeColumnMapping(config, tableName);
         
         // 3. 解析搜索配置
         Set<String> allowedSearchFields = buildAllowedSearchFields(config);
@@ -242,7 +242,7 @@ public class DynamicCrudService {
             throw new BusinessException("定时触发到期字段不在运行配置字段范围内: " + dueField);
         }
 
-        Map<String, String> columnMapping = repository.getColumnMapping(config.getTableName());
+        Map<String, String> columnMapping = buildRuntimeColumnMapping(config, config.getTableName());
         Map<String, Object> searchParams = new LinkedHashMap<>();
         searchParams.put(dueField, List.of(windowStart, windowEnd));
         Map<String, String> searchTypeMap = new LinkedHashMap<>();
@@ -377,7 +377,7 @@ public class DynamicCrudService {
         try (LowcodeRuntimeDataSourceContextHolder.Scope ignored = useRuntimeContext(config)) {
         LowcodeTreeConfig treeConfig = resolveTreeConfig(config);
         String tableName = StringUtils.defaultIfBlank(treeConfig.getSourceTableName(), config.getTableName());
-        Map<String, String> columnMapping = repository.getColumnMapping(tableName);
+        Map<String, String> columnMapping = buildRuntimeColumnMapping(config, tableName);
         String keyColumn = columnMapping.getOrDefault(treeConfig.getKeyField(),
                 DynamicQueryGenerator.camelToSnake(treeConfig.getKeyField()));
         String parentColumn = columnMapping.getOrDefault(treeConfig.getParentField(),
@@ -441,7 +441,7 @@ public class DynamicCrudService {
         AiCrudConfig config = getConfig(configKey);
         try (LowcodeRuntimeDataSourceContextHolder.Scope ignored = useRuntimeContext(config)) {
         String tableName = config.getTableName();
-        Map<String, String> columnMapping = repository.getColumnMapping(tableName);
+        Map<String, String> columnMapping = buildRuntimeColumnMapping(config, tableName);
         Set<String> allowedFields = buildAllowedCustomFields(config);
 
         RuntimeJoinContext joinContext = buildRuntimeJoinContext(config);
@@ -605,7 +605,7 @@ public class DynamicCrudService {
         String tableName = config.getTableName();
         
         // 获取字段映射
-        Map<String, String> columnMapping = repository.getColumnMapping(tableName);
+        Map<String, String> columnMapping = buildRuntimeColumnMapping(config, tableName);
         
         // 获取允许写入的字段。editSchema 是运行态表单白名单，modelSchema 兜底承接保存设计器后新增但尚未重建 editSchema 的字段。
         Set<String> allowedFields = buildAllowedWriteFields(config, tableName);
@@ -729,7 +729,7 @@ public class DynamicCrudService {
         Object id = idValue;
         
         // 获取字段映射
-        Map<String, String> columnMapping = repository.getColumnMapping(tableName);
+        Map<String, String> columnMapping = buildRuntimeColumnMapping(config, tableName);
         
         // 获取允许写入的字段。editSchema 是运行态表单白名单，modelSchema 兜底承接保存设计器后新增但尚未重建 editSchema 的字段。
         Set<String> allowedFields = buildAllowedWriteFields(config, tableName);
@@ -800,7 +800,7 @@ public class DynamicCrudService {
         try (LowcodeRuntimeDataSourceContextHolder.Scope ignored = useRuntimeContext(config)) {
         String tableName = config.getTableName();
         LowcodePrimaryKeyStrategy primaryKey = currentPrimaryKey();
-        Map<String, String> columnMapping = repository.getColumnMapping(tableName);
+        Map<String, String> columnMapping = buildRuntimeColumnMapping(config, tableName);
         Set<String> tableColumns = repository.getTableColumns(tableName);
         DynamicCrudRepository.SqlCondition dataScopeCondition = buildDataScopeCondition(config, tableName, null);
         Map<String, Object> beforeRecord = applyStoredFormulasForUpdate(config, tableName, id, data, dataScopeCondition);
@@ -814,7 +814,7 @@ public class DynamicCrudService {
             String columnName = columnMapping.getOrDefault(key, DynamicQueryGenerator.camelToSnake(key));
             repository.validateIdentifier(columnName);
             if (!tableColumns.contains(columnName)) {
-                throw new BusinessException("字段不存在: " + key);
+                throw missingRuntimeColumn(config, tableName, key, columnName);
             }
             if (isImmutableWriteField(columnName) || isPrimaryKeyAlias(key, columnName, primaryKey)) {
                 continue;
@@ -912,7 +912,7 @@ public class DynamicCrudService {
         if (childNode == null || !childNode.isObject()) {
             return relation;
         }
-        Map<String, String> mainColumnMapping = repository.getColumnMapping(config.getTableName());
+        Map<String, String> mainColumnMapping = buildRuntimeColumnMapping(config, config.getTableName());
         Map<String, String> childColumnMapping = repository.getColumnMapping(relation.tableName());
         String childField = firstText(childNode, "sourceField", "childField", "foreignKey", "foreignKeyField");
         String mainField = firstText(childNode, "targetField", "parentField", "mainField", "parentKey");
@@ -1741,7 +1741,7 @@ public class DynamicCrudService {
     }
 
     private Map<String, Object> filterInternalWriteData(AiCrudConfig config, String tableName, Map<String, Object> data) {
-        Map<String, String> columnMapping = repository.getColumnMapping(tableName);
+        Map<String, String> columnMapping = buildRuntimeColumnMapping(config, tableName);
         Set<String> tableColumns = repository.getTableColumns(tableName);
         Set<String> allowedFields = collectInternalWriteFields(config, tableName);
         Map<String, Object> filteredData = new LinkedHashMap<>();
@@ -1756,7 +1756,7 @@ public class DynamicCrudService {
             String columnName = columnMapping.getOrDefault(key, DynamicQueryGenerator.camelToSnake(key));
             repository.validateIdentifier(columnName);
             if (!tableColumns.contains(columnName)) {
-                throw new BusinessException("字段不存在: " + key);
+                throw missingRuntimeColumn(config, tableName, key, columnName);
             }
             if (isImmutableWriteField(columnName)) {
                 continue;
@@ -1764,6 +1764,60 @@ public class DynamicCrudService {
             filteredData.put(columnName, entry.getValue());
         }
         return filteredData;
+    }
+
+    /**
+     * 构建运行态字段到真实数据库列的映射。
+     *
+     * <p>低代码字段编码是稳定的业务 API 契约，数据库列名则可能由设计器自动生成，
+     * 两者不能假定相同。例如业务字段 {@code dpe} 可以持久化到 {@code field_input4}。
+     * 数据库元数据只能提供 camelCase/snake_case 映射，因此这里必须叠加已发布模型中的
+     * {@link LowcodeFieldSchema#getColumnName()} 显式映射。</p>
+     */
+    private Map<String, String> buildRuntimeColumnMapping(AiCrudConfig config, String tableName) {
+        Map<String, String> result = new LinkedHashMap<>(repository.getColumnMapping(tableName));
+        if (config == null || !StringUtils.equals(tableName, config.getTableName())) {
+            return result;
+        }
+        LowcodeModelSchema modelSchema = parseModelSchema(config);
+        if (modelSchema == null || modelSchema.getFields() == null) {
+            return result;
+        }
+        for (LowcodeFieldSchema field : modelSchema.getFields()) {
+            if (field == null) {
+                continue;
+            }
+            String columnName = StringUtils.trimToNull(StringUtils.defaultIfBlank(
+                    field.getColumnName(), DynamicQueryGenerator.camelToSnake(field.getField())));
+            if (columnName == null) {
+                continue;
+            }
+            String normalizedColumn = columnName.toLowerCase(Locale.ROOT);
+            putRuntimeColumnAlias(result, field.getField(), normalizedColumn);
+            putRuntimeColumnAlias(result, field.getColumnName(), normalizedColumn);
+        }
+        return result;
+    }
+
+    private void putRuntimeColumnAlias(Map<String, String> mapping, String alias, String columnName) {
+        if (StringUtils.isBlank(alias) || StringUtils.isBlank(columnName)) {
+            return;
+        }
+        mapping.put(alias, columnName);
+        mapping.put(DynamicQueryGenerator.snakeToCamel(alias), columnName);
+        mapping.put(DynamicQueryGenerator.camelToSnake(alias), columnName);
+    }
+
+    private BusinessException missingRuntimeColumn(
+            AiCrudConfig config,
+            String tableName,
+            String fieldName,
+            String columnName) {
+        String configKey = config == null ? null : config.getConfigKey();
+        return new BusinessException("业务字段 " + fieldName + " 映射的数据库列 " + columnName
+                + " 不存在（运行配置: " + StringUtils.defaultIfBlank(configKey, "未知")
+                + "，数据表: " + StringUtils.defaultIfBlank(tableName, "未知")
+                + "），请先同步低代码数据表结构后重新发布能力");
     }
 
     private Set<String> collectInternalWriteFields(AiCrudConfig config, String tableName) {
@@ -1991,7 +2045,7 @@ public class DynamicCrudService {
         if (editFields.isEmpty()) {
             return;
         }
-        Map<String, String> columnMapping = repository.getColumnMapping(tableName);
+        Map<String, String> columnMapping = buildRuntimeColumnMapping(config, tableName);
         for (Map<String, Object> editField : editFields) {
             String fieldName = text(editField.get("field"));
             if (StringUtils.isBlank(fieldName) || fieldMap.containsKey(fieldName)) {
@@ -2532,7 +2586,7 @@ public class DynamicCrudService {
         if (config == null || StringUtils.isBlank(config.getTableName()) || StringUtils.isBlank(documentNoField)) {
             return aliases;
         }
-        Map<String, String> columnMapping = repository.getColumnMapping(config.getTableName());
+        Map<String, String> columnMapping = buildRuntimeColumnMapping(config, config.getTableName());
         addDocumentNoAliasIfWritable(aliases, documentNoField, columnMapping);
         if (StringUtils.isNotBlank(config.getModelSchema())) {
             LowcodeModelSchema modelSchema = readModelSchema(config);
@@ -2681,7 +2735,7 @@ public class DynamicCrudService {
         List<RuntimeChildRelation> childRelations = new ArrayList<>();
         List<DynamicCrudRepository.JoinSpec> joins = new ArrayList<>();
         List<LowcodeRelationSchema> primaryRelations = mergeRelations(modelSchema.getRelations(), primaryRef.getRelations());
-        Map<String, String> primaryColumnMapping = repository.getColumnMapping(config.getTableName());
+        Map<String, String> primaryColumnMapping = buildRuntimeColumnMapping(config, config.getTableName());
         int aliasIndex = 1;
         for (LowcodePageModelRef ref : pageSchema.getModelRefs()) {
             if (ref == null || Boolean.TRUE.equals(ref.getPrimary()) || StringUtils.isBlank(ref.getModelCode())) {
@@ -3167,10 +3221,45 @@ public class DynamicCrudService {
     }
 
     private void applyReadPipeline(List<Map<String, Object>> rows, AiCrudConfig config) {
+        applyRuntimeFieldAliases(rows, config);
         applyDecrypt(rows, config.getEncryptConfig());
         applyVirtualFormulas(config, rows);
         applyDictTranslation(rows, buildEffectiveTransConfig(config));
         applyDesensitize(rows, config.getDesensitizeConfig());
+    }
+
+    /**
+     * 将数据库列值补充为稳定的低代码业务字段编码，确保写入和读取使用同一套字段契约。
+     * 保留原数据库列键用于兼容已有页面，不覆盖查询结果中已经显式返回的业务字段。
+     */
+    private void applyRuntimeFieldAliases(List<Map<String, Object>> rows, AiCrudConfig config) {
+        if (rows == null || rows.isEmpty() || config == null) {
+            return;
+        }
+        LowcodeModelSchema modelSchema = parseModelSchema(config);
+        if (modelSchema == null || modelSchema.getFields() == null) {
+            return;
+        }
+        for (Map<String, Object> row : rows) {
+            if (row == null) {
+                continue;
+            }
+            for (LowcodeFieldSchema field : modelSchema.getFields()) {
+                String fieldName = field == null ? null : StringUtils.trimToNull(field.getField());
+                String columnName = field == null ? null : StringUtils.trimToNull(field.getColumnName());
+                if (fieldName == null || columnName == null || row.containsKey(fieldName)) {
+                    continue;
+                }
+                if (row.containsKey(columnName)) {
+                    row.put(fieldName, row.get(columnName));
+                    continue;
+                }
+                String camelColumnName = DynamicQueryGenerator.snakeToCamel(columnName);
+                if (row.containsKey(camelColumnName)) {
+                    row.put(fieldName, row.get(camelColumnName));
+                }
+            }
+        }
     }
 
     private LowcodeTreeConfig resolveTreeConfig(AiCrudConfig config) {
@@ -3581,21 +3670,21 @@ public class DynamicCrudService {
         if (data == null || data.isEmpty() || config == null || StringUtils.isBlank(config.getDesensitizeConfig())) {
             return;
         }
-        Set<String> sensitiveColumns = resolveDesensitizedColumns(config.getDesensitizeConfig(), tableName);
+        Set<String> sensitiveColumns = resolveDesensitizedColumns(config, tableName);
         if (sensitiveColumns.isEmpty()) {
             return;
         }
         data.entrySet().removeIf(entry -> sensitiveColumns.contains(entry.getKey()) && isMaskedValue(entry.getValue()));
     }
 
-    private Set<String> resolveDesensitizedColumns(String desensitizeConfigJson, String tableName) {
+    private Set<String> resolveDesensitizedColumns(AiCrudConfig config, String tableName) {
         Set<String> columns = new HashSet<>();
         try {
-            JsonNode configNode = objectMapper.readTree(desensitizeConfigJson);
+            JsonNode configNode = objectMapper.readTree(config.getDesensitizeConfig());
             if (!configNode.isObject()) {
                 return columns;
             }
-            Map<String, String> columnMapping = repository.getColumnMapping(tableName);
+            Map<String, String> columnMapping = buildRuntimeColumnMapping(config, tableName);
             for (String fieldName : iterableFieldNames(configNode)) {
                 String columnName = columnMapping.getOrDefault(fieldName, DynamicQueryGenerator.camelToSnake(fieldName));
                 columns.add(columnName);
@@ -4273,7 +4362,7 @@ public class DynamicCrudService {
     private ExportQueryContext buildExportQueryContext(String configKey, DynamicCrudQuery query) {
         AiCrudConfig config = getConfig(configKey);
         String tableName = config.getTableName();
-        Map<String, String> columnMapping = repository.getColumnMapping(tableName);
+        Map<String, String> columnMapping = buildRuntimeColumnMapping(config, tableName);
         Set<String> allowedSearchFields = buildAllowedSearchFields(config);
         Map<String, String> searchTypeMap = buildEffectiveSearchTypeMap(config, query, allowedSearchFields);
         Map<String, Object> searchParams = query != null ? query.getSearchParams() : null;

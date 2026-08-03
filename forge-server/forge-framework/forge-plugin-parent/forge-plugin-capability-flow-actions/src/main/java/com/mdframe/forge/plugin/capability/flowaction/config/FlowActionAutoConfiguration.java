@@ -1,17 +1,20 @@
 package com.mdframe.forge.plugin.capability.flowaction.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mdframe.forge.flow.client.FlowClient;
 import com.mdframe.forge.plugin.capability.controlplane.service.CapabilityCatalogService;
 import com.mdframe.forge.plugin.capability.flowaction.mapper.FlowActionExecutionLogMapper;
 import com.mdframe.forge.plugin.capability.flowaction.mapper.FlowActionSourceMapper;
 import com.mdframe.forge.plugin.capability.flowaction.mapper.FlowProcessSystemServiceMapper;
 import com.mdframe.forge.plugin.capability.flowaction.publish.FlowActionCapabilityPublisher;
+import com.mdframe.forge.plugin.capability.flowaction.service.FlowApplicationSubmissionService;
 import com.mdframe.forge.plugin.capability.flowaction.service.FlowActionExecutionAdapter;
 import com.mdframe.forge.plugin.capability.flowaction.service.FlowActionExecutionLogService;
 import com.mdframe.forge.plugin.capability.flowaction.source.FlowActionSourceService;
 import com.mdframe.forge.plugin.capability.flowaction.system.FlowProcessStartSystemService;
-import com.mdframe.forge.flow.client.FlowClient;
+import com.mdframe.forge.plugin.generator.service.DynamicCrudService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessFlowService;
+import com.mdframe.forge.plugin.generator.service.lowcode.runtime.LowcodeRuntimeDataSourceResolver;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -64,13 +67,23 @@ public class FlowActionAutoConfiguration {
         }
 
         @Bean
+        FlowApplicationSubmissionService flowApplicationSubmissionService(
+                DynamicCrudService dynamicCrudService,
+                LowcodeRuntimeDataSourceResolver runtimeDataSourceResolver,
+                ObjectMapper objectMapper) {
+            return new FlowApplicationSubmissionService(
+                    dynamicCrudService, runtimeDataSourceResolver, objectMapper);
+        }
+
+        @Bean
         FlowActionExecutionAdapter flowActionExecutionAdapter(
                 FlowActionSourceService sourceService,
                 BusinessFlowService flowService,
                 FlowActionExecutionLogService executionLogService,
+                FlowApplicationSubmissionService submissionService,
                 ObjectMapper objectMapper) {
             return new FlowActionExecutionAdapter(
-                    sourceService, flowService, executionLogService, objectMapper);
+                    sourceService, flowService, executionLogService, submissionService, objectMapper);
         }
     }
 }

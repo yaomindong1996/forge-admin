@@ -72,9 +72,10 @@ class CapabilityOpenApiDocumentServiceTest {
         assertThat(operation.path("security").toString()).doesNotContain("hmacSignature");
         assertThat(operation.path("parameters").get(0).path("required").asBoolean()).isTrue();
         JsonNode responseCodes = json.at("/components/schemas/CapabilityResponse/properties/code/enum");
-        assertThat(responseCodes).hasSize(9);
+        assertThat(responseCodes).hasSize(10);
         assertThat(responseCodes.toString())
-                .contains("SUCCESS", "UNAUTHORIZED", "FORBIDDEN", "SCHEMA_INVALID", "CONFLICT");
+                .contains("SUCCESS", "UNAUTHORIZED", "FORBIDDEN", "RESOURCE_NOT_FOUND",
+                        "SCHEMA_INVALID", "CONFLICT");
         assertThat(json.path("x-forge-required-actor-type").asText()).isEqualTo("USER");
     }
 

@@ -148,6 +148,44 @@ class CapabilityCallGuideServiceTest {
                 .contains("尚无开放网关执行适配器");
     }
 
+    @Test
+    void shouldBlockPinnedOldFlowBindingAndExposeCurrentVersionUpgrade() {
+        AiCapability capability = capability("USER", "1.0.1");
+        capability.setSourceType("FLOW_ACTION");
+        capability.setBehavior("FLOW");
+        AiCapabilityClient client = client("USER_DELEGATION", "OAUTH");
+        AiCapabilityGrant grant = grant("PINNED", "1.0.0");
+        AiCapabilityVersion grantedVersion = flowVersion(100L, "invoice_flow", 10);
+        AiCapabilityVersion currentVersion = flowVersion(101L, "invoice_flow", 11);
+
+        when(catalogService.getById(TENANT_ID, CAPABILITY_ID)).thenReturn(capability);
+        when(clientService.requireClient(TENANT_ID, CLIENT_ID)).thenReturn(client);
+        when(grantMapper.selectActiveGrant(TENANT_ID, CLIENT_ID, CAPABILITY_ID))
+                .thenReturn(grant);
+        when(versionMapper.selectVersion(TENANT_ID, CAPABILITY_ID, "1.0.0"))
+                .thenReturn(grantedVersion);
+        when(versionMapper.selectVersion(TENANT_ID, CAPABILITY_ID, "1.0.1"))
+                .thenReturn(currentVersion);
+        when(documentService.requestExample(TENANT_ID, CAPABILITY_ID, "1.0.0"))
+                .thenReturn(objectMapper.createObjectNode());
+
+        CapabilityCallGuideVO guide = service(true, true)
+                .guide(TENANT_ID, CAPABILITY_ID, CLIENT_ID);
+
+        assertThat(guide.ready()).isFalse();
+        assertThat(guide.version()).isEqualTo("1.0.0");
+        assertThat(guide.currentVersion()).isEqualTo("1.0.1");
+        assertThat(guide.versionUpgradeAvailable()).isTrue();
+        assertThat(guide.sourceType()).isEqualTo("FLOW_ACTION");
+        assertThat(guide.actionCode()).isEqualTo("START");
+        assertThat(guide.requestExample().path("recordId").asText())
+                .isEqualTo("<REAL_RECORD_ID>");
+        assertThat(guide.requestNotes()).anyMatch(note -> note.contains("已经保存的真实记录主键"));
+        assertThat(check(guide, "FLOW_BINDING").message())
+                .contains("FLOW_BINDING_MISMATCH")
+                .contains("切换到当前版本");
+    }
+
     private CapabilityCallGuideService service(boolean gatewayEnabled, boolean identityEnabled) {
         return new CapabilityCallGuideService(
                 catalogService, clientService, grantMapper, versionMapper,
@@ -167,7 +205,7 @@ class CapabilityCallGuideServiceTest {
                 .thenReturn(grant);
         when(versionMapper.selectVersion(TENANT_ID, CAPABILITY_ID, "1.0.0"))
                 .thenReturn(version);
-        when(documentService.requestExample(TENANT_ID, CAPABILITY_ID))
+        when(documentService.requestExample(TENANT_ID, CAPABILITY_ID, "1.0.0"))
                 .thenReturn(objectMapper.valueToTree(Map.of(
                         "businessKey", "ERP-20260802-001", "variables", Map.of())));
     }
@@ -200,10 +238,28 @@ class CapabilityCallGuideServiceTest {
 
     private AiCapabilityGrant grant(String strategy, String fixedVersion) {
         AiCapabilityGrant grant = new AiCapabilityGrant();
+        grant.setId(30L);
         grant.setVersionStrategy(strategy);
         grant.setFixedVersion(fixedVersion);
         grant.setStatus("ENABLED");
         return grant;
+    }
+
+    private AiCapabilityVersion flowVersion(
+            Long bindingId,
+            String flowModelKey,
+            int publishedObjectVersion) {
+        AiCapabilityVersion version = new AiCapabilityVersion();
+        version.setSourceType("FLOW_ACTION");
+        version.setBehavior("FLOW");
+        version.setStatus("PUBLISHED");
+        version.setPolicySnapshot("""
+                {"bindingId":%d,"flowModelKey":"%s","publishedObjectVersion":%d,
+                 "operation":"START",
+                 "platformPermission":"ai:capability:flow-action:invoke",
+                 "permission":"ai:businessFlow:start"}
+                """.formatted(bindingId, flowModelKey, publishedObjectVersion));
+        return version;
     }
 
     private AiCapabilityVersion version() {

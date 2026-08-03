@@ -22,7 +22,7 @@
     <!-- 新增授权弹窗 -->
     <n-modal
       v-model:show="addVisible"
-      title="新增能力授权"
+      :title="grantModalTitle"
       preset="card"
       style="width: 600px"
     >
@@ -72,7 +72,7 @@
             placeholder="请选择客户端"
             :options="clientSelectOptions"
             :loading="optionsLoading"
-            :disabled="optionsLoading || clientSelectOptions.length === 0"
+            :disabled="editingGrantId !== null || optionsLoading || clientSelectOptions.length === 0"
             filterable
           >
             <template #empty>
@@ -86,7 +86,7 @@
             placeholder="请选择能力（HIGH 风险能力不可授权）"
             :options="capabilitySelectOptions"
             :loading="optionsLoading"
-            :disabled="optionsLoading || !versionStrategyOptions.length || capabilitySelectOptions.length === 0"
+            :disabled="editingGrantId !== null || optionsLoading || !versionStrategyOptions.length || capabilitySelectOptions.length === 0"
             filterable
             @update:value="handleCapabilityChange"
           >
@@ -102,12 +102,25 @@
             :options="versionStrategyOptions"
           />
         </n-form-item>
-        <n-form-item label="固定版本" path="fixedVersion">
-          <n-input
-            v-model:value="addForm.fixedVersion"
-            placeholder="如 1.0.0（授权时锚定的能力版本）"
-          />
+        <n-form-item :label="addForm.versionStrategy === 'FOLLOW_MAJOR' ? '基准版本' : '固定版本'" path="fixedVersion">
+          <div class="version-field">
+            <n-input
+              v-model:value="addForm.fixedVersion"
+              placeholder="如 1.0.0（授权时锚定的能力版本）"
+            />
+            <n-button
+              v-if="selectedCapability?.currentVersion"
+              secondary
+              type="primary"
+              @click="useCurrentCapabilityVersion"
+            >
+              使用当前 v{{ selectedCapability.currentVersion }}
+            </n-button>
+          </div>
         </n-form-item>
+        <n-alert v-if="addForm.versionStrategy === 'FOLLOW_MAJOR'" type="info" class="policy-alert">
+          跟随主版本会在基准版本所在主版本内自动使用最新版本，例如 1.0.0 自动跟随 1.x，不会跨到 2.x。
+        </n-alert>
         <n-form-item
           v-if="selectedCapability?.sourceType === 'BUSINESS_ACTION'"
           label="允许字段"
@@ -122,21 +135,33 @@
             clearable
           />
         </n-form-item>
-        <n-form-item
-          v-else-if="selectedCapability?.sourceType === 'FLOW_ACTION'"
-          label="允许操作"
-          path="allowedOperations"
-        >
-          <n-select
-            v-model:value="addForm.allowedOperations"
-            :options="grantOperationOptions"
-            :loading="dictLoading"
-            :disabled="!flowOperationDictionaryReady"
-            placeholder="请选择客户端可以执行的流程操作"
-            multiple
-            clearable
-          />
-        </n-form-item>
+        <template v-else-if="selectedCapability?.sourceType === 'FLOW_ACTION'">
+          <n-form-item label="允许操作" path="allowedOperations">
+            <n-select
+              v-model:value="addForm.allowedOperations"
+              :options="grantOperationOptions"
+              :loading="dictLoading"
+              :disabled="!flowOperationDictionaryReady"
+              placeholder="请选择客户端可以执行的流程操作"
+              multiple
+              clearable
+            />
+          </n-form-item>
+          <n-form-item
+            v-if="selectedCapability.allowedFields?.length"
+            label="允许申请字段"
+            path="allowedFields"
+          >
+            <n-select
+              v-model:value="addForm.allowedFields"
+              :options="grantFieldOptions"
+              placeholder="可按客户端进一步收窄申请字段，必填字段不能移除"
+              multiple
+              filterable
+              clearable
+            />
+          </n-form-item>
+        </template>
         <n-alert v-else-if="selectedCapability?.sourceType === 'SYSTEM_SERVICE'" type="info" class="policy-alert">
           系统服务的入参、流程模型和变量白名单已经固化在发布版本中，授权时不能再次放宽。
         </n-alert>
@@ -171,7 +196,7 @@
             :disabled="optionsLoading || dictLoading || !!optionsError || !versionStrategyOptions.length || !clientSelectOptions.length || !availableCapabilityCount || !flowOperationDictionaryReady"
             @click="handleAddSubmit"
           >
-            授权
+            {{ editingGrantId === null ? '授权' : '保存修改' }}
           </n-button>
         </n-space>
       </template>
@@ -185,6 +210,7 @@ import {
   addCapabilityGrant,
   getCapabilityGrantOptions,
   revokeCapabilityGrant,
+  updateCapabilityGrant,
 } from '@/api/ai/capability'
 import { AiCrudPage } from '@/components/ai-form'
 import DictTag from '@/components/DictTag.vue'
@@ -216,6 +242,7 @@ function hasPermission(permission) {
 }
 
 const canAdd = computed(() => hasPermission('ai:capability:grant:add'))
+const canEdit = computed(() => canAdd.value)
 const canRevoke = computed(() => hasPermission('ai:capability:grant:revoke'))
 
 const crudRef = ref(null)
@@ -290,6 +317,7 @@ onMounted(loadSelectOptions)
 // ===== 新增授权 =====
 const addVisible = ref(false)
 const addLoading = ref(false)
+const editingGrantId = ref(null)
 const addFormRef = ref(null)
 const addForm = reactive({
   clientId: null,
@@ -304,8 +332,18 @@ const addForm = reactive({
 const selectedCapability = computed(() => capabilityList.value
   .find(item => item.id === addForm.capabilityId))
 
+const grantModalTitle = computed(() => editingGrantId.value === null
+  ? '新增能力授权'
+  : '修改能力授权')
+
 const grantFieldOptions = computed(() => (selectedCapability.value?.allowedFields || [])
-  .map(field => ({ label: field, value: field })))
+  .map(field => ({
+    label: selectedCapability.value?.requiredFields?.includes(field)
+      ? `${field}（必填）`
+      : field,
+    value: field,
+    disabled: selectedCapability.value?.requiredFields?.includes(field),
+  })))
 
 const grantOperationOptions = computed(() => (selectedCapability.value?.allowedOperations || [])
   .map(operation => ({
@@ -337,7 +375,7 @@ const addRules = {
   fixedVersion: { required: true, message: '请输入固定版本', trigger: 'blur' },
   allowedFields: {
     trigger: 'change',
-    validator: () => selectedCapability.value?.sourceType !== 'BUSINESS_ACTION'
+    validator: () => !requiresGrantFieldPolicy()
       || addForm.allowedFields.length > 0
       ? true
       : new Error('请至少选择一个允许字段'),
@@ -363,6 +401,12 @@ function selectedIdRule(message) {
   }
 }
 
+function requiresGrantFieldPolicy() {
+  const capability = selectedCapability.value
+  return capability?.sourceType === 'BUSINESS_ACTION'
+    || (capability?.sourceType === 'FLOW_ACTION' && capability.allowedFields?.length > 0)
+}
+
 function isPositiveId(value) {
   if (typeof value === 'number')
     return Number.isInteger(value) && value > 0
@@ -381,7 +425,17 @@ watch(flowOperationDictionaryReady, (ready, wasReady) => {
   addForm.allowedOperations = [...(selectedCapability.value.allowedOperations || [])]
 })
 
+watch(() => addForm.allowedFields, (fields) => {
+  if (selectedCapability.value?.sourceType !== 'FLOW_ACTION')
+    return
+  const requiredFields = selectedCapability.value.requiredFields || []
+  const next = [...new Set([...fields, ...requiredFields])]
+  if (next.length !== fields.length || next.some((field, index) => field !== fields[index]))
+    addForm.allowedFields = next
+}, { deep: true })
+
 async function openAddModal() {
+  editingGrantId.value = null
   Object.assign(addForm, {
     clientId: null,
     capabilityId: null,
@@ -393,6 +447,22 @@ async function openAddModal() {
   })
   addVisible.value = true
   await refreshGrantOptions()
+}
+
+async function openEditModal(row) {
+  editingGrantId.value = row.id
+  addVisible.value = true
+  await refreshGrantOptions()
+  const fieldPolicy = parseFieldPolicy(row.fieldPolicy)
+  Object.assign(addForm, {
+    clientId: row.clientId,
+    capabilityId: row.capabilityId,
+    versionStrategy: row.versionStrategy,
+    fixedVersion: row.fixedVersion || '',
+    allowedFields: Array.isArray(fieldPolicy.allowedFields) ? [...fieldPolicy.allowedFields] : [],
+    allowedOperations: Array.isArray(fieldPolicy.allowedOperations) ? [...fieldPolicy.allowedOperations] : [],
+    expiresAt: parseDateTimeValue(row.expiresAt),
+  })
 }
 
 function resolveDefaultVersionStrategy() {
@@ -409,6 +479,31 @@ function handleCapabilityChange(capabilityId) {
   addForm.allowedOperations = operationsTranslated ? [...operations] : []
 }
 
+function useCurrentCapabilityVersion() {
+  addForm.fixedVersion = selectedCapability.value?.currentVersion || addForm.fixedVersion
+}
+
+function parseFieldPolicy(value) {
+  if (value && typeof value === 'object')
+    return value
+  if (typeof value !== 'string' || !value.trim())
+    return {}
+  try {
+    const parsed = JSON.parse(value)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  }
+  catch {
+    return {}
+  }
+}
+
+function parseDateTimeValue(value) {
+  if (!value)
+    return null
+  const timestamp = new Date(String(value).replace(' ', 'T')).getTime()
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
 function getCapabilityUnavailableReason(capability) {
   if (capability.riskLevel === 'HIGH')
     return 'HIGH 风险不可授权'
@@ -417,7 +512,10 @@ function getCapabilityUnavailableReason(capability) {
   if (capability.sourceType === 'BUSINESS_ACTION' && capability.behavior === 'ACTION')
     return capability.allowedFields?.length ? '' : '缺少字段白名单'
   if (capability.sourceType === 'FLOW_ACTION' && capability.behavior === 'FLOW')
-    return capability.allowedOperations?.length ? '' : '缺少操作白名单'
+    return capability.allowedOperations?.length
+      && (!capability.allowedOperations.includes('SUBMIT') || capability.allowedFields?.length)
+      ? ''
+      : '缺少操作或申请字段白名单'
   if (capability.sourceType === 'SYSTEM_SERVICE' && capability.behavior === 'ACTION')
     return ''
   return '当前类型不可授权'
@@ -427,7 +525,12 @@ function buildFieldPolicy() {
   if (selectedCapability.value?.sourceType === 'BUSINESS_ACTION')
     return { allowedFields: addForm.allowedFields }
   if (selectedCapability.value?.sourceType === 'FLOW_ACTION')
-    return { allowedOperations: addForm.allowedOperations }
+    return {
+      allowedOperations: addForm.allowedOperations,
+      ...(selectedCapability.value.allowedFields?.length
+        ? { allowedFields: addForm.allowedFields }
+        : {}),
+    }
   return null
 }
 
@@ -447,16 +550,21 @@ async function handleAddSubmit() {
   }
   addLoading.value = true
   try {
-    const res = await addCapabilityGrant({
-      clientId: addForm.clientId,
-      capabilityId: addForm.capabilityId,
+    const payload = {
       versionStrategy: addForm.versionStrategy,
       fixedVersion: addForm.fixedVersion,
       fieldPolicy: buildFieldPolicy(),
       expiresAt: addForm.expiresAt ? formatDateTime(addForm.expiresAt) : null,
-    })
+    }
+    const res = editingGrantId.value === null
+      ? await addCapabilityGrant({
+          clientId: addForm.clientId,
+          capabilityId: addForm.capabilityId,
+          ...payload,
+        })
+      : await updateCapabilityGrant(editingGrantId.value, payload)
     if (res.code === 200) {
-      window.$message.success('授权成功')
+      window.$message.success(editingGrantId.value === null ? '授权成功' : '授权已更新')
       addVisible.value = false
       crudRef.value?.refresh()
     }
@@ -586,9 +694,16 @@ const tableColumns = computed(() => [
   {
     prop: 'action',
     label: '操作',
-    width: 100,
+    width: 160,
     fixed: 'right',
     actions: [
+      {
+        label: '修改',
+        key: 'edit',
+        type: 'primary',
+        onClick: openEditModal,
+        visible: row => canEdit.value && row.status === 'ENABLED',
+      },
       {
         label: '撤销',
         key: 'revoke',
@@ -608,6 +723,12 @@ const tableColumns = computed(() => [
 
 .w-full {
   width: 100%;
+}
+
+.version-field {
+  display: flex;
+  width: 100%;
+  gap: 8px;
 }
 
 .option-alert {

@@ -80,8 +80,30 @@ public class BusinessObjectActionService {
             String objectCode,
             String actionCode,
             Integer publishVersion) {
-        String normalizedObjectCode = StringUtils.trimToNull(objectCode);
         String normalizedActionCode = normalizeActionCode(actionCode);
+        ResolvedPublishedBusinessActions resolved = resolvePublishedActions(
+                suiteCode, objectCode, publishVersion);
+        BusinessObjectActionVO action = resolved.actions().stream()
+                .filter(item -> normalizedActionCode.equalsIgnoreCase(item.getActionCode()))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("发布版本中不存在业务动作: " + normalizedActionCode));
+        if (Integer.valueOf(0).equals(action.getStatus())) {
+            throw new BusinessException("发布版本中的业务动作已停用: " + action.getActionName());
+        }
+        return new ResolvedPublishedBusinessAction(resolved.object(), action, resolved.version());
+    }
+
+    /**
+     * 读取业务对象不可变发布快照中的全部动作。
+     *
+     * <p>能力注册页和单动作解析必须共用同一份发布快照，避免页面展示草稿动作、
+     * 真实发布时却从另一份版本取数。</p>
+     */
+    public ResolvedPublishedBusinessActions resolvePublishedActions(
+            String suiteCode,
+            String objectCode,
+            Integer publishVersion) {
+        String normalizedObjectCode = StringUtils.trimToNull(objectCode);
         if (StringUtils.isBlank(normalizedObjectCode)) {
             throw new BusinessException("业务对象编码不能为空");
         }
@@ -97,14 +119,8 @@ public class BusinessObjectActionService {
         if (version == null || StringUtils.isBlank(version.getDesignerOptionsSnapshot())) {
             throw new BusinessException("业务对象缺少可执行的发布快照: " + normalizedObjectCode);
         }
-        BusinessObjectActionVO action = readActions(version.getDesignerOptionsSnapshot()).stream()
-                .filter(item -> normalizedActionCode.equalsIgnoreCase(item.getActionCode()))
-                .findFirst()
-                .orElseThrow(() -> new BusinessException("发布版本中不存在业务动作: " + normalizedActionCode));
-        if (Integer.valueOf(0).equals(action.getStatus())) {
-            throw new BusinessException("发布版本中的业务动作已停用: " + action.getActionName());
-        }
-        return new ResolvedPublishedBusinessAction(object, action, version);
+        return new ResolvedPublishedBusinessActions(
+                object, readActions(version.getDesignerOptionsSnapshot()), version);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -404,6 +420,12 @@ public class BusinessObjectActionService {
     public record ResolvedPublishedBusinessAction(
             AiBusinessObject object,
             BusinessObjectActionVO action,
+            AiBusinessObjectDesignVersion version) {
+    }
+
+    public record ResolvedPublishedBusinessActions(
+            AiBusinessObject object,
+            List<BusinessObjectActionVO> actions,
             AiBusinessObjectDesignVersion version) {
     }
 }

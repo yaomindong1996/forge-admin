@@ -8,10 +8,13 @@ import com.mdframe.forge.plugin.capability.controlplane.domain.AiCapabilityInvoc
 import com.mdframe.forge.plugin.capability.controlplane.mapper.AiCapabilityInvocationLogMapper;
 import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.starter.datascope.context.DataScopeContextHolder;
+import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 @Service
@@ -32,22 +35,26 @@ public class CapabilityInvocationAuditService {
 
     public void record(Long tenantId, CapabilityInvocationAuditEvent event) {
         AiCapabilityInvocationLog log = buildLog(tenantId, event);
-        logMapper.insertIdempotent(log);
+        executeInTrustedTenant(tenantId, () -> logMapper.insertIdempotent(log));
     }
 
     public void recordOrUpdate(Long tenantId, CapabilityInvocationAuditEvent event) {
         AiCapabilityInvocationLog log = buildLog(tenantId, event);
-        if (logMapper.updateResultByRequestIdentity(log) > 0) {
-            return;
-        }
-        if (logMapper.insertIdempotent(log) > 0) {
-            return;
-        }
-        AiCapabilityInvocationLog existing = logMapper.selectByRequestId(tenantId, event.requestId());
-        if (!sameIdentity(existing, log)) {
-            throw new BusinessException("能力调用审计请求身份冲突");
-        }
-        logMapper.updateResultByRequestIdentity(log);
+        executeInTrustedTenant(tenantId, () -> {
+            if (logMapper.updateResultByRequestIdentity(log) > 0) {
+                return null;
+            }
+            if (logMapper.insertIdempotent(log) > 0) {
+                return null;
+            }
+            AiCapabilityInvocationLog existing = logMapper.selectByRequestId(
+                    tenantId, event.requestId());
+            if (!sameIdentity(existing, log)) {
+                throw new BusinessException("能力调用审计请求身份冲突");
+            }
+            logMapper.updateResultByRequestIdentity(log);
+            return null;
+        });
     }
 
     private boolean sameIdentity(
@@ -151,8 +158,9 @@ public class CapabilityInvocationAuditService {
             Long clientId,
             String capabilityCode,
             String resultCode) {
-        return logMapper.selectPage(
-                pageQuery.toPage(), requireTenant(tenantId), clientId, capabilityCode, resultCode);
+        Long trustedTenantId = requireTenant(tenantId);
+        return executeInTrustedTenant(trustedTenantId, () -> logMapper.selectPage(
+                pageQuery.toPage(), trustedTenantId, clientId, capabilityCode, resultCode));
     }
 
     private Long requireTenant(Long tenantId) {
@@ -160,5 +168,37 @@ public class CapabilityInvocationAuditService {
             throw new BusinessException("未获取到有效租户上下文");
         }
         return tenantId;
+    }
+
+    /**
+     * 审计存储以调用方传入并已校验的 tenantId 作为唯一租户来源，不依赖 Web 登录态或
+     * 上层线程是否仍保留租户上下文。审计 Mapper 已显式携带租户和完整身份条件，因此
+     * 跳过面向业务数据的用户 DataScope，但始终保持租户拦截开启。
+     */
+    private <T> T executeInTrustedTenant(Long tenantId, Supplier<T> action) {
+        Long trustedTenantId = requireTenant(tenantId);
+        Objects.requireNonNull(action, "审计操作不能为空");
+        Long previousTenantId = TenantContextHolder.getTenantId();
+        Boolean previousIgnore = TenantContextHolder.getIgnoreValue();
+        boolean previousDataScopeSkip = DataScopeContextHolder.isSkip();
+        try {
+            TenantContextHolder.setTenantId(trustedTenantId);
+            TenantContextHolder.setIgnore(false);
+            DataScopeContextHolder.skipDataScope();
+            return action.get();
+        } finally {
+            TenantContextHolder.clear();
+            if (previousTenantId != null) {
+                TenantContextHolder.setTenantId(previousTenantId);
+            }
+            if (previousIgnore != null) {
+                TenantContextHolder.setIgnore(previousIgnore);
+            }
+            if (previousDataScopeSkip) {
+                DataScopeContextHolder.skipDataScope();
+            } else {
+                DataScopeContextHolder.clearSkip();
+            }
+        }
     }
 }

@@ -8,14 +8,15 @@ import com.mdframe.forge.plugin.capability.identity.config.CapabilityIdentityPro
 import com.mdframe.forge.plugin.capability.identity.security.AuthenticatedCapabilityIdentity;
 import com.mdframe.forge.plugin.capability.identity.security.CapabilityIdentityInfrastructureException;
 import com.mdframe.forge.plugin.capability.identity.security.CapabilitySecurityPrincipal;
+import com.mdframe.forge.plugin.capability.identity.security.CapabilityTenantContext;
 import com.mdframe.forge.plugin.capability.identity.token.CapabilityAccessTokenService;
 import com.mdframe.forge.plugin.capability.opengateway.exception.OpenGatewayException;
 import com.mdframe.forge.plugin.capability.spi.ScopeBasedCapabilityAuthorizationPolicy;
+import com.mdframe.forge.plugin.system.service.IUserLoadService;
 import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.crypto.persistence.PersistentCryptoService;
 import com.mdframe.forge.starter.openapi.security.replay.OpenApiReplayGuard;
-import com.mdframe.forge.plugin.system.service.IUserLoadService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -87,7 +88,8 @@ public class OpenGatewayAuthenticator {
         catch (CapabilityIdentityInfrastructureException exception) {
             throw new OpenGatewayException("INTERNAL_ERROR", 503, "开放网关身份服务暂不可用", exception);
         }
-        AiCapabilityClient client = clientMapper.selectCredentialById(identity.principal().clientId());
+        AiCapabilityClient client = CapabilityTenantContext.executeCredentialLookup(
+                () -> clientMapper.selectCredentialById(identity.principal().clientId()));
         if (client == null || !hasAuthMode(client.getAuthModes(), AUTH_MODE_OAUTH)) {
             throw unauthorized("该客户端未启用 OAuth 调用模式");
         }
@@ -118,7 +120,8 @@ public class OpenGatewayAuthenticator {
         catch (NumberFormatException exception) {
             throw unauthorized("签名 AppId 格式非法");
         }
-        AiCapabilityClient client = clientMapper.selectCredentialById(clientId);
+        AiCapabilityClient client = CapabilityTenantContext.executeCredentialLookup(
+                () -> clientMapper.selectCredentialById(clientId));
         LocalDateTime now = LocalDateTime.now();
         if (client == null
                 || !"ENABLED".equals(client.getStatus())
@@ -133,7 +136,8 @@ public class OpenGatewayAuthenticator {
         }
         verifySignature(request, body, appId, timestamp, nonce, signature, client);
 
-        LoginUser loginUser = loadServiceUser(client);
+        LoginUser loginUser = CapabilityTenantContext.execute(
+                client.getTenantId(), () -> loadServiceUser(client));
         CapabilitySecurityPrincipal principal = new CapabilitySecurityPrincipal(
                 client.getId(), client.getClientCode(), CapabilityActorType.SERVICE,
                 client.getServiceUserId(), client.getServiceUserId(), client.getTenantId(),

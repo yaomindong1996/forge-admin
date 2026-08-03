@@ -35,6 +35,7 @@ public class CapabilityOpenApiDocumentService {
             Map.entry("REPLAY_REJECTED", "签名时间戳、Nonce 或防重放校验失败"),
             Map.entry("FORBIDDEN", "客户端未授权、scope 不足或调用用户权限不足"),
             Map.entry("ACTOR_TYPE_NOT_ALLOWED", "SERVICE/USER 调用主体与能力要求不匹配"),
+            Map.entry("RESOURCE_NOT_FOUND", "业务记录不存在或不在当前委托用户的数据权限范围内"),
             Map.entry("RATE_LIMITED", "客户端调用频率超过平台限制"),
             Map.entry("SCHEMA_INVALID", "Header 或请求体不符合当前发布版本契约"),
             Map.entry("CONFLICT", "发布来源、授权策略或运行时业务快照已变化"),
@@ -98,6 +99,21 @@ public class CapabilityOpenApiDocumentService {
 
     public JsonNode requestExample(Long tenantId, Long capabilityId) {
         return example(requirePublished(tenantId, capabilityId).inputSchema());
+    }
+
+    public JsonNode requestExample(Long tenantId, Long capabilityId, String version) {
+        if (tenantId == null || tenantId <= 0 || capabilityId == null || capabilityId <= 0
+                || StringUtils.isBlank(version)) {
+            throw new BusinessException("能力请求示例参数无效");
+        }
+        AiCapabilityVersion capabilityVersion = versionMapper.selectVersion(
+                tenantId, capabilityId, version);
+        if (capabilityVersion == null || !"PUBLISHED".equals(capabilityVersion.getStatus())) {
+            throw new BusinessException("能力授权版本不存在或未发布");
+        }
+        JsonNode inputSchema = sanitizeRequestSchema(
+                readObject(capabilityVersion.getInputSchema(), "输入"));
+        return example(inputSchema);
     }
 
     private DocumentContext requirePublished(Long tenantId, Long capabilityId) {
@@ -189,6 +205,7 @@ public class CapabilityOpenApiDocumentService {
         response(responses, "400", "请求参数无效");
         response(responses, "401", "认证失败或签名重放");
         response(responses, "403", "未授权或主体类型不匹配");
+        response(responses, "404", "业务资源不存在或当前调用用户不可见");
         response(responses, "409", "能力来源、授权或业务快照冲突");
         response(responses, "429", "调用频率超限");
         response(responses, "500", "能力执行失败");
@@ -468,12 +485,23 @@ public class CapabilityOpenApiDocumentService {
     }
 
     private String exampleText(JsonNode schema) {
+        String format = schema.path("format").asText();
+        if ("date".equals(format)) {
+            return "2026-09-01";
+        }
+        if ("date-time".equals(format)) {
+            return "2026-09-01T09:00:00+08:00";
+        }
         String description = schema.path("description").asText().toLowerCase(Locale.ROOT);
         if (description.contains("business") || description.contains("业务")) {
             return "biz-20260801-001";
         }
         if (description.contains("title") || description.contains("标题")) {
             return "示例流程标题";
+        }
+        if (description.contains("reason") || description.contains("原因")
+                || description.contains("说明")) {
+            return "个人原因";
         }
         return "string";
     }
@@ -490,6 +518,7 @@ public class CapabilityOpenApiDocumentService {
         addConstraint(values, "maxLength", schema);
         addConstraint(values, "minimum", schema);
         addConstraint(values, "maximum", schema);
+        addConstraint(values, "multipleOf", schema);
         addConstraint(values, "pattern", schema);
         if (schema.path("enum").isArray()) {
             List<String> options = new ArrayList<>();

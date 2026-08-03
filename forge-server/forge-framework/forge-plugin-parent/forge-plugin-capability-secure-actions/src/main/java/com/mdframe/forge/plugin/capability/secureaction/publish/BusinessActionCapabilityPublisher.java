@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mdframe.forge.plugin.capability.controlplane.dto.CapabilityPublishDTO;
 import com.mdframe.forge.plugin.capability.controlplane.service.CapabilityCatalogService;
 import com.mdframe.forge.plugin.capability.schema.CapabilitySchemaValidator;
+import com.mdframe.forge.plugin.capability.secureaction.schema.LowcodeCapabilitySchemaTypeResolver;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeFieldSchema;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessObjectActionService;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectActionVO;
@@ -114,7 +115,7 @@ public class BusinessActionCapabilityPublisher {
         for (String name : allowed) {
             LowcodeFieldSchema field = fields.get(name);
             ObjectNode property = argumentProperties.putObject(name);
-            property.put("type", jsonType(field.getDataType()));
+            property.put("type", LowcodeCapabilitySchemaTypeResolver.resolve(field));
             property.put("description", StringUtils.defaultIfBlank(field.getLabel(), name));
         }
         arguments.set("required", toArray(required));
@@ -149,20 +150,6 @@ public class BusinessActionCapabilityPublisher {
         ArrayNode array = objectMapper.createArrayNode();
         values.stream().sorted().forEach(array::add);
         return array;
-    }
-
-    private String jsonType(String dataType) {
-        String normalized = StringUtils.defaultString(dataType).toLowerCase();
-        if (Set.of("int", "integer", "long", "bigint").contains(normalized)) {
-            return "integer";
-        }
-        if (Set.of("decimal", "double", "float", "number", "money").contains(normalized)) {
-            return "number";
-        }
-        if (Set.of("boolean", "bool", "tinyint(1)").contains(normalized)) {
-            return "boolean";
-        }
-        return "string";
     }
 
     private void validateSourceSegment(String value, String label) {

@@ -18,7 +18,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -38,8 +38,9 @@ class FlowActionExecutionAdapterTest {
     private final FlowActionSourceService sourceService = mock(FlowActionSourceService.class);
     private final BusinessFlowService flowService = mock(BusinessFlowService.class);
     private final FlowActionExecutionLogService logService = mock(FlowActionExecutionLogService.class);
+    private final FlowApplicationSubmissionService submissionService = mock(FlowApplicationSubmissionService.class);
     private final FlowActionExecutionAdapter adapter = new FlowActionExecutionAdapter(
-            sourceService, flowService, logService, objectMapper);
+            sourceService, flowService, logService, submissionService, objectMapper);
 
     @AfterEach
     void clearIdentity() {
@@ -55,9 +56,10 @@ class FlowActionExecutionAdapterTest {
         when(logService.requestDigest(eq(descriptor), anyMap())).thenReturn("sha256:digest");
         doAnswer(invocation -> {
             @SuppressWarnings("unchecked")
-            Supplier<Map<String, Object>> action = invocation.getArgument(4);
-            return action.get();
-        }).when(logService).execute(eq(descriptor), any(), anyMap(), eq("req-1"), any());
+            Function<FlowActionExecutionLogService.ExecutionAttempt, Map<String, Object>> action
+                    = invocation.getArgument(4);
+            return action.apply(null);
+        }).when(logService).executeWithAttempt(eq(descriptor), any(), anyMap(), eq("req-1"), any());
 
         try (var ignored = ExecutionIdentityContextHolder.open(identity())) {
             Map<String, Object> result = adapter.execute(descriptor, input("task-1", "同意"), "req-1");
@@ -80,9 +82,10 @@ class FlowActionExecutionAdapterTest {
         when(flowService.startDocumentFlowForCapability(any())).thenReturn(runtime("流程已发起"));
         doAnswer(invocation -> {
             @SuppressWarnings("unchecked")
-            Supplier<Map<String, Object>> action = invocation.getArgument(4);
-            return action.get();
-        }).when(logService).execute(eq(descriptor), any(), anyMap(), eq("req-1"), any());
+            Function<FlowActionExecutionLogService.ExecutionAttempt, Map<String, Object>> action
+                    = invocation.getArgument(4);
+            return action.apply(null);
+        }).when(logService).executeWithAttempt(eq(descriptor), any(), anyMap(), eq("req-1"), any());
 
         try (var ignored = ExecutionIdentityContextHolder.open(identity())) {
             Map<String, Object> result = adapter.execute(descriptor, Map.of(
@@ -108,9 +111,10 @@ class FlowActionExecutionAdapterTest {
         when(flowService.recoverCapabilityTaskAction(any())).thenReturn(runtime("已恢复"));
         doAnswer(invocation -> {
             @SuppressWarnings("unchecked")
-            Supplier<Map<String, Object>> action = invocation.getArgument(4);
-            return action.get();
-        }).when(logService).execute(eq(descriptor), any(), eq(input), eq("req-retry"), any());
+            Function<FlowActionExecutionLogService.ExecutionAttempt, Map<String, Object>> action
+                    = invocation.getArgument(4);
+            return action.apply(null);
+        }).when(logService).executeWithAttempt(eq(descriptor), any(), eq(input), eq("req-retry"), any());
 
         try (var ignored = ExecutionIdentityContextHolder.open(identity())) {
             Map<String, Object> result = adapter.execute(descriptor, input, "req-retry");
@@ -127,7 +131,7 @@ class FlowActionExecutionAdapterTest {
         SecureActionDescriptor descriptor = descriptor("APPROVE");
         Map<String, Object> input = input("task-1", "同意");
         when(logService.isRecoverableRequest(eq(descriptor), any(), eq(input))).thenReturn(true);
-        when(logService.execute(eq(descriptor), any(), eq(input), eq("req-retry"), any()))
+        when(logService.executeWithAttempt(eq(descriptor), any(), eq(input), eq("req-retry"), any()))
                 .thenReturn(Map.of("executeStatus", "SUCCESS", "message", "已同意",
                         "correlationId", "req-1", "idempotentHit", true));
 

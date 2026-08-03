@@ -25,6 +25,22 @@
       Secret、签名密钥和用户断言私钥只在本弹窗内存中使用，关闭或切换客户端后立即清空；下载内容会自动脱敏。
     </n-alert>
 
+    <n-alert
+      v-if="guide?.requestNotes?.length"
+      type="info"
+      :show-icon="true"
+      class="request-note-alert"
+    >
+      <template #header>
+        填写请求前先确认
+      </template>
+      <ul class="request-note-list">
+        <li v-for="note in guide.requestNotes" :key="note">
+          {{ note }}
+        </li>
+      </ul>
+    </n-alert>
+
     <div class="test-form-grid">
       <div class="test-field">
         <span class="field-label">认证方式</span>
@@ -286,12 +302,35 @@ function validateTestInput() {
     const payload = JSON.parse(requestBody.value)
     if (!payload || Array.isArray(payload) || typeof payload !== 'object')
       throw new Error('请求 Body 必须是 JSON 对象')
+    if (props.guide?.sourceType === 'FLOW_ACTION')
+      validateFlowActionPayload(payload)
   }
   catch (error) {
     window.$message.error(error?.message || '请求 Body 不是合法 JSON')
     return false
   }
   return true
+}
+
+function validateFlowActionPayload(payload) {
+  if (props.guide?.actionCode === 'SUBMIT') {
+    const data = payload.data
+    if (!data || Array.isArray(data) || typeof data !== 'object')
+      throw new Error('SUBMIT 的 data 必须是包含申请字段的 JSON 对象')
+    if ('recordId' in payload)
+      throw new Error('SUBMIT 会自动创建业务记录，请不要传 recordId')
+    return
+  }
+  if (typeof payload.recordId !== 'string' || !/^[1-9]\d{0,18}$/.test(payload.recordId.trim())) {
+    throw new Error('recordId 必须替换为已经保存、且当前委托用户可见的真实记录 ID')
+  }
+  if (props.guide?.actionCode === 'START') {
+    const argumentsValue = payload.arguments
+    if (!argumentsValue || Array.isArray(argumentsValue) || typeof argumentsValue !== 'object')
+      throw new Error('arguments 必须是 JSON 对象')
+    if (Object.keys(argumentsValue).length)
+      throw new Error('START 的 arguments 必须保持为空对象 {}')
+  }
 }
 
 async function executeTest() {
@@ -314,7 +353,7 @@ async function executeTest() {
     if (testReport.value.success)
       window.$message.success('能力调用成功，可以下载完整测试报文')
     else
-      window.$message.error('能力调用失败，请查看返回报文和 requestId')
+      window.$message.error(testReport.value.error || '能力调用失败，请查看返回报文和 requestId')
   }
   catch (error) {
     testReport.value = {
@@ -401,7 +440,7 @@ async function executeOAuth() {
   const success = invocation.response.status >= 200 && invocation.response.status < 300
   return {
     success,
-    error: success ? null : `能力调用失败，HTTP ${invocation.response.status}`,
+    error: success ? null : gatewayErrorMessage(invocation),
     tokenExchange,
     invocation,
   }
@@ -472,7 +511,7 @@ async function executeHmac() {
   const success = invocation.response.status >= 200 && invocation.response.status < 300
   return {
     success,
-    error: success ? null : `能力调用失败，HTTP ${invocation.response.status}`,
+    error: success ? null : gatewayErrorMessage(invocation),
     tokenExchange: null,
     invocation,
   }
@@ -519,6 +558,16 @@ function exchangeReport(request, response, body, durationMs) {
     },
     durationMs,
   }
+}
+
+function gatewayErrorMessage(invocation) {
+  const status = invocation?.response?.status
+  const body = invocation?.response?.body
+  const code = body && typeof body === 'object' ? body.code : null
+  const message = body && typeof body === 'object' ? body.message : null
+  if (message)
+    return `${message}${code ? `（${code}）` : ''}`
+  return `能力调用失败，HTTP ${status || '-'}`
 }
 
 function redactTokenForm(params) {
@@ -685,6 +734,12 @@ function downloadIntegrationExample() {
       `- 用户断言 Audience：\`${guide.userAssertionAudience}\``,
       `- Subject Token Type：\`${guide.userAssertionSubjectTokenType}\``,
     ] : []),
+    ...(guide.requestNotes?.length ? [
+      '',
+      '## 请求前提',
+      '',
+      ...guide.requestNotes.map(note => `- ${note}`),
+    ] : []),
     '',
     '## 请求 Body',
     '',
@@ -771,6 +826,16 @@ function formatDate(date) {
 
 .security-alert {
   margin-bottom: 16px;
+}
+
+.request-note-alert {
+  margin-bottom: 16px;
+}
+
+.request-note-list {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.8;
 }
 
 .test-form-grid {

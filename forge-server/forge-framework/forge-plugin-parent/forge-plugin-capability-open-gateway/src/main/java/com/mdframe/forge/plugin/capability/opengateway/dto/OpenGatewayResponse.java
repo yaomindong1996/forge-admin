@@ -27,8 +27,17 @@ public record OpenGatewayResponse(
 
     public static OpenGatewayResponse error(
             String errorCode, String message, String requestId, int httpStatus) {
+        return error(errorCode, message, requestId, httpStatus, Map.of());
+    }
+
+    public static OpenGatewayResponse error(
+            String errorCode,
+            String message,
+            String requestId,
+            int httpStatus,
+            Map<String, Object> data) {
         return new OpenGatewayResponse(errorCode, message, requestId,
-                System.currentTimeMillis(), Map.of(), httpStatus);
+                System.currentTimeMillis(), data == null ? Map.of() : data, httpStatus);
     }
 
     /**

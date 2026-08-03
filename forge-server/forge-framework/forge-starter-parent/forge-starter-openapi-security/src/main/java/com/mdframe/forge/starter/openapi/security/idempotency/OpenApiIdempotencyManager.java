@@ -59,49 +59,68 @@ public class OpenApiIdempotencyManager {
         }
         String keyHash = hash(idempotencyKey);
         String lockKey = keyPrefix + ":idempotency:" + command.scopeKey() + ":" + keyHash;
-        RLock lock = null;
+        RLock lock = acquireLock(command.scopeKey(), lockKey);
         try {
-            RedissonClient client = redissonClientProvider.getIfAvailable();
-            if (client == null) {
-                throw serviceUnavailable();
-            }
-            lock = client.getLock(lockKey);
-            boolean acquired = lock.tryLock(lockWaitMillis, lockLeaseMillis, TimeUnit.MILLISECONDS);
-            if (!acquired) {
-                throw new BusinessException(409, "相同幂等键的请求正在处理中");
-            }
             return executeLocked(command, action, keyHash);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw serviceUnavailable();
-        } catch (BusinessException exception) {
-            throw exception;
-        } catch (RuntimeException exception) {
-            log.error("开放API幂等保护不可用: scopeKey={}, exceptionType={}",
-                    command.scopeKey(), exception.getClass().getSimpleName());
-            throw serviceUnavailable();
         } finally {
             unlock(lock, command.scopeKey());
         }
     }
 
+    private RLock acquireLock(String scopeKey, String lockKey) {
+        try {
+            RedissonClient client = redissonClientProvider.getIfAvailable();
+            if (client == null) {
+                log.error("[开放API幂等] 基础设施不可用: scopeKey={}, phase=REDIS_CLIENT, reason=RedissonClientMissing",
+                        scopeKey);
+                throw serviceUnavailable(null);
+            }
+            RLock lock = client.getLock(lockKey);
+            boolean acquired = lock.tryLock(lockWaitMillis, lockLeaseMillis, TimeUnit.MILLISECONDS);
+            if (!acquired) {
+                throw new BusinessException(409, "相同幂等键的请求正在处理中");
+            }
+            return lock;
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw infrastructureUnavailable(scopeKey, "LOCK_ACQUIRE", exception);
+        } catch (BusinessException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw infrastructureUnavailable(scopeKey, "LOCK_ACQUIRE", exception);
+        }
+    }
+
     private <T> IdempotencyResult<T> executeLocked(
             IdempotencyCommand<T> command, Supplier<T> action, String keyHash) {
-        T existing = command.snapshotLoader().apply(keyHash);
+        T existing = loadSnapshot(command, keyHash, "SNAPSHOT_LOAD");
         if (existing != null) {
             return IdempotencyResult.hit(existing);
         }
+
+        // action 内的 Schema、授权和业务异常必须原样向上传递，不能误报为幂等基础设施故障。
         T fresh = action.get();
         try {
             command.snapshotWriter().accept(keyHash, fresh);
         } catch (DuplicateKeyException exception) {
-            T concurrent = command.snapshotLoader().apply(keyHash);
+            T concurrent = loadSnapshot(command, keyHash, "DUPLICATE_SNAPSHOT_LOAD");
             if (concurrent != null) {
                 return IdempotencyResult.hit(concurrent);
             }
             throw new BusinessException(409, "幂等记录写入冲突");
+        } catch (RuntimeException exception) {
+            throw infrastructureUnavailable(command.scopeKey(), "SNAPSHOT_WRITE", exception);
         }
         return IdempotencyResult.fresh(fresh);
+    }
+
+    private <T> T loadSnapshot(
+            IdempotencyCommand<T> command, String keyHash, String phase) {
+        try {
+            return command.snapshotLoader().apply(keyHash);
+        } catch (RuntimeException exception) {
+            throw infrastructureUnavailable(command.scopeKey(), phase, exception);
+        }
     }
 
     private String hash(String value) {
@@ -124,11 +143,18 @@ public class OpenApiIdempotencyManager {
             }
         } catch (RuntimeException exception) {
             log.warn("释放开放API幂等锁失败: scopeKey={}, exceptionType={}",
-                    scopeKey, exception.getClass().getSimpleName());
+                    scopeKey, exception.getClass().getSimpleName(), exception);
         }
     }
 
-    private BusinessException serviceUnavailable() {
-        return new BusinessException(503, "开放API幂等服务暂不可用");
+    private BusinessException infrastructureUnavailable(
+            String scopeKey, String phase, Throwable exception) {
+        log.error("[开放API幂等] 基础设施异常: scopeKey={}, phase={}, exceptionType={}",
+                scopeKey, phase, exception.getClass().getSimpleName(), exception);
+        return serviceUnavailable(exception);
+    }
+
+    private BusinessException serviceUnavailable(Throwable cause) {
+        return new BusinessException(503, "开放API幂等服务暂不可用", cause);
     }
 }

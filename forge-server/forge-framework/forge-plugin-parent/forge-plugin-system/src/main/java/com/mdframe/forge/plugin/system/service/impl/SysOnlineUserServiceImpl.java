@@ -82,8 +82,7 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
                     .tenantId(resolveTenantId(loginUser, sysUser))
                     .build();
 
-            // 保存到数据库
-            sysOnlineUserMapper.insert(sysOnlineUser);
+            persistOnlineUser(sysOnlineUser);
 
             log.info("添加在线用户成功: userId={}, username={}",
                     sysUser.getId(), sysUser.getUsername());
@@ -142,16 +141,17 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
     @Override
     public void removeOnlineUser(String tokenValue) {
         try {
-            // 更新为离线状态
             LambdaUpdateWrapper<SysOnlineUser> updateWrapper = new LambdaUpdateWrapper<>();
             updateWrapper.eq(SysOnlineUser::getTokenValue, tokenValue)
+                    .eq(SysOnlineUser::getStatus, 1)
                     .set(SysOnlineUser::getStatus, 0) // 离线
                     .set(SysOnlineUser::getLogoutTime, LocalDateTime.now())
                     .set(SysOnlineUser::getLogoutType, 1); // 主动登出
 
-            sysOnlineUserMapper.delete(updateWrapper);
-            
-            log.info("移除在线用户成功");
+            if (executeWithTokenTenant(tokenValue,
+                    () -> sysOnlineUserMapper.update(null, updateWrapper))) {
+                log.info("移除在线用户成功");
+            }
         } catch (Exception e) {
             log.error("移除在线用户失败", e);
         }
@@ -164,7 +164,8 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
             updateWrapper.eq(SysOnlineUser::getTokenValue, tokenValue)
                     .set(SysOnlineUser::getLastActivityTime, LocalDateTime.now());
 
-            sysOnlineUserMapper.update(null, updateWrapper);
+            executeWithTokenTenant(tokenValue,
+                    () -> sysOnlineUserMapper.update(null, updateWrapper));
         } catch (Exception e) {
             log.error("更新最后活动时间失败", e);
         }
@@ -326,8 +327,11 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
                     .set(SysOnlineUser::getStatus, 0)
                     .set(SysOnlineUser::getLogoutTime, LocalDateTime.now())
                     .set(SysOnlineUser::getLogoutType, 3); // 被顶下线
-            
-            sysOnlineUserMapper.update(null, updateWrapper);
+
+            if (!executeWithTokenTenant(tokenValue,
+                    () -> sysOnlineUserMapper.update(null, updateWrapper))) {
+                return;
+            }
             
             // 推送通知
             Map<String, Object> data = new HashMap<>();
@@ -463,6 +467,54 @@ public class SysOnlineUserServiceImpl extends ServiceImpl<SysOnlineUserMapper,Sy
     private void requireTenantUser(Long userId) {
         if (userId == null || sysUserMapper.selectById(userId) == null) {
             throw new BusinessException("用户不存在或无权操作");
+        }
+    }
+
+    void persistOnlineUser(SysOnlineUser onlineUser) {
+        Long tenantId = onlineUser == null ? null : onlineUser.getTenantId();
+        if (tenantId == null) {
+            throw new IllegalStateException("在线用户记录缺少租户信息");
+        }
+        executeInTenant(tenantId, () -> sysOnlineUserMapper.insert(onlineUser));
+    }
+
+    private boolean executeWithTokenTenant(String tokenValue, Runnable action) {
+        if (StrUtil.isBlank(tokenValue)) {
+            log.warn("在线用户Token为空，跳过租户表操作");
+            return false;
+        }
+
+        LoginUser loginUser = resolveLoginUser(tokenValue);
+        Long tenantId = loginUser == null ? null : loginUser.getTenantId();
+        if (tenantId == null && TenantContextHolder.getTenantId() != null
+                && !TenantContextHolder.isIgnore()) {
+            tenantId = TenantContextHolder.getTenantId();
+        }
+        if (tenantId == null) {
+            SysOnlineUser onlineUser = TenantContextHolder.executeIgnore(
+                    () -> sysOnlineUserMapper.selectActiveByTokenValue(tokenValue));
+            tenantId = onlineUser == null ? null : onlineUser.getTenantId();
+        }
+        if (tenantId == null) {
+            log.warn("无法确定在线用户Token所属租户，跳过租户表操作");
+            return false;
+        }
+
+        executeInTenant(tenantId, action);
+        return true;
+    }
+
+    private void executeInTenant(Long tenantId, Runnable action) {
+        Boolean previousIgnore = TenantContextHolder.getIgnoreValue();
+        try {
+            TenantContextHolder.setIgnore(false);
+            TenantContextHolder.executeWithTenant(tenantId, action);
+        } finally {
+            if (previousIgnore == null) {
+                TenantContextHolder.clearIgnore();
+            } else {
+                TenantContextHolder.setIgnore(previousIgnore);
+            }
         }
     }
 

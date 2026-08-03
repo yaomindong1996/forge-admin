@@ -4,6 +4,7 @@
     :designer="designer"
     :loading="loading"
     :dirty="dirty"
+    :confirm-dirty-switch="!fieldDraftDirty"
     :saving="saving"
     :publishing="publishing"
     :publish-disabled="publishDisabled"
@@ -93,7 +94,7 @@
       :developer-mode="developerMode"
       :table-mapping="tableMapping"
       @updated="handleFieldsUpdated"
-      @dirty-change="handleDirtyChange"
+      @dirty-change="handleFieldDirtyChange"
       @add-to-form="handleAddFieldToForm"
     />
 
@@ -328,6 +329,7 @@ const saving = ref(false)
 const publishing = ref(false)
 const dirty = ref(false)
 const designerDraftDirty = ref(false)
+const fieldDraftDirty = ref(false)
 const ready = ref(false)
 const activePanel = ref(resolveInitialPanel())
 const formDetailTab = ref(resolveInitialDetailTab())
@@ -670,7 +672,9 @@ async function handleSave() {
   await waitForSaveLoadingPaint()
   try {
     if (activePanel.value === 'fields') {
-      await fieldManagerRef.value?.saveSelectedField?.()
+      const saved = await fieldManagerRef.value?.saveSelectedField?.()
+      if (saved === true)
+        fieldDraftDirty.value = false
       return
     }
     if (isCodeAppDesigner.value && activePanel.value === 'form') {
@@ -758,9 +762,30 @@ async function handlePanelSwitch(panel) {
   const nextPanel = normalizePanel(panel)
   if (!nextPanel || nextPanel === activePanel.value)
     return
+  if (!await saveFieldDraftBeforePanelSwitch())
+    return
   await syncActiveFormDraft()
   await syncActiveListDraft()
   activePanel.value = nextPanel
+}
+
+async function saveFieldDraftBeforePanelSwitch() {
+  if (activePanel.value !== 'fields' || !fieldDraftDirty.value)
+    return true
+  if (saving.value)
+    return false
+  saving.value = true
+  await waitForSaveLoadingPaint()
+  try {
+    const saved = await fieldManagerRef.value?.saveSelectedField?.()
+    if (saved !== true)
+      return false
+    fieldDraftDirty.value = false
+    return true
+  }
+  finally {
+    saving.value = false
+  }
 }
 
 async function syncActiveFormDraft() {
@@ -1178,6 +1203,18 @@ function handleDirtyChange(value) {
     designerDraftDirty.value = true
   if (value && ['list', 'relations', 'actions'].includes(activePanel.value))
     designerDraftDirty.value = true
+}
+
+function handleFieldDirtyChange(value) {
+  if (!ready.value)
+    return
+  fieldDraftDirty.value = !!value
+  if (value) {
+    dirty.value = true
+    return
+  }
+  if (!designerDraftDirty.value)
+    dirty.value = false
 }
 
 function handleModelSchemaUpdated(modelSchema) {

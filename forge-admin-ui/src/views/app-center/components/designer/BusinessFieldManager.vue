@@ -480,6 +480,8 @@ async function saveField(payload, targetFieldCode = selectedFieldCode.value) {
     return false
   }
   const normalizedPayload = normalizeFieldPayload(payload)
+  const typeContractChanged = ['fieldType', 'dataType', 'componentType']
+    .some(key => String(targetField?.[key] || '') !== String(normalizedPayload[key] || ''))
   saving.value = true
   try {
     const res = await updateBusinessObjectField(props.objectId, fieldCode, normalizedPayload)
@@ -488,7 +490,9 @@ async function saveField(payload, targetFieldCode = selectedFieldCode.value) {
       selectedFieldCode.value = savedField.fieldCode
     propertyPanelRef.value?.resetForm?.()
     emit('dirtyChange', false)
-    message.success('字段已保存')
+    message.success(typeContractChanged
+      ? '字段类型已保存；请在发布检查中同步数据表并重新发布业务单元，再发布能力新版本'
+      : '字段已保存')
     await reloadFields({
       persisted: true,
       reloadDesigner: true,
@@ -502,20 +506,21 @@ async function saveField(payload, targetFieldCode = selectedFieldCode.value) {
 }
 
 async function saveSelectedField() {
-  if (propertyVisible.value && propertyPanelRef.value) {
-    const targetFieldCode = selectedFieldCode.value || propertyPanelRef.value.getPayload?.()?.fieldCode
-    return saveField(propertyPanelRef.value.getPayload?.() || {}, targetFieldCode)
-  }
   if (!selectedField.value) {
     message.info('当前没有需要保存的字段属性')
     return true
   }
-  if (!propertyVisible.value) {
+  if (compactLayout.value && !propertyVisible.value) {
     openPropertyPanel(selectedField.value.fieldCode)
     message.info('字段属性面板已打开，修改后再保存')
     return false
   }
-  return saveField(propertyPanelRef.value?.getPayload?.() || {})
+  if (!propertyPanelRef.value) {
+    message.warning('字段属性尚未加载完成，请稍后重试')
+    return false
+  }
+  const targetFieldCode = selectedFieldCode.value || propertyPanelRef.value.getPayload?.()?.fieldCode
+  return saveField(propertyPanelRef.value.getPayload?.() || {}, targetFieldCode)
 }
 
 function confirmDeleteField(field) {

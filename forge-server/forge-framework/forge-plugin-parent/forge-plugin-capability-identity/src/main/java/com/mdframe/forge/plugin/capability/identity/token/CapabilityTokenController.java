@@ -15,6 +15,7 @@ import com.mdframe.forge.plugin.capability.identity.external.ResolvedExternalIde
 import com.mdframe.forge.plugin.capability.identity.oauth.DelegationAuthorizationCode;
 import com.mdframe.forge.plugin.capability.identity.oauth.DelegationAuthorizationCodeStore;
 import com.mdframe.forge.plugin.capability.identity.oauth.OAuthRequestValidator;
+import com.mdframe.forge.plugin.capability.identity.security.CapabilityTenantContext;
 import com.mdframe.forge.plugin.mcp.security.ForgeMcpAuthenticationFilter;
 import com.mdframe.forge.starter.core.annotation.log.OperationLog;
 import com.mdframe.forge.starter.core.domain.OperationType;
@@ -23,12 +24,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -105,8 +106,10 @@ public class CapabilityTokenController {
                 authenticateConfidentialClient(client, credentials.clientSecret());
                 Set<String> scopes = requestValidator.validateExternalTokenExchange(
                         client, resource, scope);
-                response = exchangeExternalIdentity(
-                        client, subjectToken, subjectTokenType, resource, scopes);
+                response = CapabilityTenantContext.execute(
+                        client.getTenantId(),
+                        () -> exchangeExternalIdentity(
+                                client, subjectToken, subjectTokenType, resource, scopes));
             } else {
                 throw oauthError("unsupported_grant_type");
             }
@@ -226,7 +229,8 @@ public class CapabilityTokenController {
         }
         CapabilityClientPrincipal principal;
         try {
-            principal = clientService.authenticate(clientSecret);
+            principal = CapabilityTenantContext.executeCredentialLookup(
+                    () -> clientService.authenticate(clientSecret));
         } catch (BusinessException exception) {
             throw oauthError("invalid_client");
         }
@@ -243,10 +247,12 @@ public class CapabilityTokenController {
         } catch (NumberFormatException exception) {
             throw oauthError("invalid_client");
         }
-        AiCapabilityClient client = clientMapper.selectCredentialById(id);
+        AiCapabilityClient client = CapabilityTenantContext.executeCredentialLookup(
+                () -> clientMapper.selectCredentialById(id));
         if (client == null
                 || !"ENABLED".equals(client.getStatus())
-                || !Integer.valueOf(1).equals(client.getOauthEnabled())) {
+                || !Integer.valueOf(1).equals(client.getOauthEnabled())
+                || client.getTenantId() == null || client.getTenantId() <= 0) {
             throw oauthError("invalid_client");
         }
         return client;
@@ -422,6 +428,9 @@ public class CapabilityTokenController {
     }
 
     private String safeGrantType(String grantType) {
+        if (TOKEN_EXCHANGE_GRANT_TYPE.equals(grantType)) {
+            return "token_exchange";
+        }
         return grantType != null && grantType.matches("^[a-z_]{1,64}$") ? grantType : "unknown";
     }
 

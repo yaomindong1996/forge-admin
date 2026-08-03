@@ -94,6 +94,18 @@ class OnlineUserSecurityContractTest {
                 .doesNotContain("const [onlineRes, userRes] = await Promise.all([");
     }
 
+    @Test
+    void loginShouldEstablishTenantContextBeforeReadingPreviousOnlineSessions() throws IOException {
+        String authService = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/plugin/system/service/impl/SystemAuthServiceImpl.java"));
+
+        assertThat(authService)
+                .contains("executeWithRequiredTenant(loginUser.getTenantId()",
+                        "handleSameAccountLogin(loginUser.getUserId(), client, resolvedClient)")
+                .contains("TenantContextHolder.setIgnore(false)",
+                        "TenantContextHolder.executeWithTenant(tenantId, action)");
+    }
+
     private String xmlStatement(String mapper, String statementId) {
         return xmlElement(mapper, statementId, "select");
     }

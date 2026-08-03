@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 统一能力开放网关入口。Sa-Token 白名单放行后，认证/授权全部由
@@ -55,19 +56,47 @@ public class CapabilityOpenGatewayController {
             @RequestBody(required = false) byte[] body) {
         String requestId = UUID.randomUUID().toString();
         byte[] rawBody = body == null ? new byte[0] : body;
+        long startedAt = System.nanoTime();
+        String authMode = authenticationMode(request);
+        AtomicReference<String> stage = new AtomicReference<>("AUTHENTICATION");
+        log.info("[能力开放网关入口] 收到请求: requestId={}, capabilityCode={}, authMode={}, bodyBytes={}, idempotencyKeyPresent={}",
+                requestId, capabilityCode, authMode, rawBody.length, idempotencyKey != null && !idempotencyKey.isBlank());
         try {
             AuthenticatedCapabilityIdentity identity = authenticator.authenticate(request, rawBody);
+            log.info("[能力开放网关认证] 认证成功: requestId={}, capabilityCode={}, authMode={}, clientId={}, clientCode={}, actorType={}, actorUserId={}, tenantId={}, activeOrgId={}",
+                    requestId, capabilityCode, authMode,
+                    identity.principal().clientId(), identity.principal().clientCode(),
+                    identity.principal().actorType(), identity.principal().actorUserId(),
+                    identity.principal().tenantId(), identity.principal().activeOrgId());
+            stage.set("PAYLOAD_PARSING");
             Map<String, Object> payload = parsePayload(rawBody);
-            return respond(orchestrator.invoke(
-                    identity, capabilityCode, idempotencyKey, payload, requestId));
+            stage.set("ORCHESTRATION");
+            OpenGatewayResponse response = orchestrator.invoke(
+                    identity, capabilityCode, idempotencyKey, payload, requestId);
+            log.info("[能力开放网关入口] 请求完成: requestId={}, capabilityCode={}, clientId={}, resultCode={}, httpStatus={}, durationMs={}",
+                    requestId, capabilityCode, identity.principal().clientId(), response.code(),
+                    response.status(), elapsed(startedAt));
+            return respond(response);
         }
         catch (OpenGatewayException exception) {
+            if (exception.getHttpStatus() >= 500) {
+                log.warn("[能力开放网关入口] 请求失败: requestId={}, capabilityCode={}, authMode={}, failureStage={}, resultCode={}, httpStatus={}, durationMs={}, exceptionType={}",
+                        requestId, capabilityCode, authMode, stage.get(), exception.getErrorCode(), exception.getHttpStatus(),
+                        elapsed(startedAt), exception.getClass().getSimpleName(), exception);
+            }
+            else {
+                log.warn("[能力开放网关入口] 请求拒绝: requestId={}, capabilityCode={}, authMode={}, failureStage={}, resultCode={}, httpStatus={}, durationMs={}, exceptionType={}",
+                        requestId, capabilityCode, authMode, stage.get(), exception.getErrorCode(), exception.getHttpStatus(),
+                        elapsed(startedAt), exception.getClass().getSimpleName());
+            }
             return respond(OpenGatewayResponse.error(exception.getErrorCode(),
                     exception.getMessage(), requestId, exception.getHttpStatus()));
         }
         catch (RuntimeException exception) {
             // 兜底：网关契约不允许异常外溢到全局处理器（RespInfo 格式）
-            log.warn("开放网关入口未预期异常: requestId={}", requestId, exception);
+            log.warn("[能力开放网关入口] 未预期异常: requestId={}, capabilityCode={}, authMode={}, failureStage={}, resultCode=INTERNAL_ERROR, httpStatus=500, durationMs={}, exceptionType={}",
+                    requestId, capabilityCode, authMode, stage.get(), elapsed(startedAt),
+                    exception.getClass().getSimpleName(), exception);
             return respond(OpenGatewayResponse.error(
                     "INTERNAL_ERROR", "能力执行失败，请稍后重试", requestId, 500));
         }
@@ -89,5 +118,20 @@ public class CapabilityOpenGatewayController {
 
     private ResponseEntity<OpenGatewayResponse> respond(OpenGatewayResponse response) {
         return ResponseEntity.status(response.status()).body(response);
+    }
+
+    private String authenticationMode(HttpServletRequest request) {
+        String authorization = request.getHeader("Authorization");
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            return "OAUTH";
+        }
+        if (request.getHeader(OpenGatewayAuthenticator.HEADER_APP_ID) != null) {
+            return "SIGNATURE";
+        }
+        return "UNKNOWN";
+    }
+
+    private long elapsed(long startedAt) {
+        return Math.max(0L, (System.nanoTime() - startedAt) / 1_000_000L);
     }
 }

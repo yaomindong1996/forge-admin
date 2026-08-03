@@ -14,5 +14,6 @@ public record CapabilityGrantCapabilityVO(
         String publishStatus,
         Integer enabled,
         List<String> allowedFields,
+        List<String> requiredFields,
         List<String> allowedOperations) {
 }

@@ -9,6 +9,7 @@ import com.mdframe.forge.plugin.capability.controlplane.service.CapabilityOpenAp
 import com.mdframe.forge.plugin.capability.controlplane.service.CapabilityCallGuideService;
 import com.mdframe.forge.plugin.capability.controlplane.vo.CapabilityCallGuideVO;
 import com.mdframe.forge.plugin.capability.controlplane.vo.CapabilityClientVO;
+import com.mdframe.forge.plugin.capability.controlplane.vo.CapabilityVersionDraftVO;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.log.OperationLog;
 import com.mdframe.forge.starter.core.domain.OperationType;
@@ -57,6 +58,13 @@ public class CapabilityCatalogController {
     @OperationLog(module = "AI中枢能力", type = OperationType.QUERY, desc = "查询能力详情")
     public RespInfo<AiCapability> getById(@RequestParam Long id) {
         return RespInfo.success(catalogService.getById(SessionHelper.getTenantId(), id));
+    }
+
+    @GetMapping("/{id}/version-draft")
+    @SaCheckPermission("ai:capability:query")
+    @OperationLog(module = "AI中枢能力", type = OperationType.QUERY, desc = "查询能力新版本草稿")
+    public RespInfo<CapabilityVersionDraftVO> versionDraft(@PathVariable Long id) {
+        return RespInfo.success(catalogService.versionDraft(SessionHelper.getTenantId(), id));
     }
 
     @GetMapping("/{id}/openapi")

@@ -188,6 +188,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  confirmDirtySwitch: {
+    type: Boolean,
+    default: true,
+  },
   saving: {
     type: Boolean,
     default: false,
@@ -293,7 +297,7 @@ function handlePanelClick(key) {
     return
   if (key === props.activePanel)
     return
-  if (!props.dirty) {
+  if (!props.dirty || !props.confirmDirtySwitch) {
     emit('update:activePanel', key)
     return
   }

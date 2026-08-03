@@ -2,7 +2,7 @@
   <n-modal
     :show="show"
     preset="card"
-    title="注册开放能力"
+    :title="modalTitle"
     class="capability-register-modal"
     :mask-closable="false"
     @update:show="emit('update:show', $event)"
@@ -14,8 +14,12 @@
       label-placement="left"
       label-width="112px"
     >
+      <n-alert v-if="isUpgrade" type="info" class="form-alert">
+        当前版本为 {{ capability.currentVersion }}。新版本会重新读取当前绑定生成快照，旧版本保持不变。
+      </n-alert>
+
       <n-form-item label="能力类型">
-        <n-radio-group v-model:value="form.sourceType" @update:value="handleSourceTypeChange">
+        <n-radio-group v-model:value="form.sourceType" :disabled="isUpgrade" @update:value="handleSourceTypeChange">
           <n-radio-button v-if="allowedTypes.includes('BUSINESS_ACTION')" value="BUSINESS_ACTION">
             业务动作
           </n-radio-button>
@@ -37,6 +41,7 @@
           v-model:value="form.objectId"
           :options="objectOptions"
           :loading="objectLoading"
+          :disabled="isUpgrade"
           placeholder="请选择已发布业务对象"
           filterable
           @update:value="handleObjectChange"
@@ -57,6 +62,33 @@
       >
         已匹配主流程 {{ flowSource.flowModelKey }}，发布对象版本 v{{ flowSource.publishedObjectVersion }}。
       </n-alert>
+      <n-alert
+        v-if="form.sourceType === 'FLOW_ACTION' && flowSource && !flowSource.submissionSupported"
+        type="warning"
+        class="form-alert"
+      >
+        “提交业务申请”不可用：{{ flowSource.submissionUnavailableReason || '当前对象暂不支持由平台自动创建申请记录' }}
+      </n-alert>
+      <n-alert
+        v-if="form.sourceType === 'FLOW_ACTION' && flowSubmitOptionMissing"
+        type="warning"
+        class="form-alert"
+      >
+        <div class="dict-refresh-notice">
+          <span>
+            当前没有加载到“提交业务申请”流程动作。{{ flowOperationDictError || '可能仍在使用页面打开时缓存的旧字典。' }}
+          </span>
+          <n-button
+            text
+            type="warning"
+            size="small"
+            :loading="dictLoading"
+            @click="reloadFlowOperationOptions(true)"
+          >
+            重新加载流程动作
+          </n-button>
+        </div>
+      </n-alert>
 
       <template v-if="form.sourceType === 'BUSINESS_ACTION'">
         <n-form-item label="业务动作" path="actionCode">
@@ -64,8 +96,8 @@
             v-model:value="form.actionCode"
             :options="actionOptions"
             :loading="detailLoading"
-            :disabled="!form.objectId"
-            placeholder="请选择已启用业务动作"
+            :disabled="isUpgrade || !form.objectId"
+            placeholder="请选择可开放的业务动作"
             filterable
             @update:value="handleActionChange"
           >
@@ -74,6 +106,45 @@
             </template>
           </n-select>
         </n-form-item>
+        <n-alert
+          v-if="businessActionNotice"
+          :type="businessActionNotice.type"
+          class="form-alert"
+        >
+          <div class="action-diagnostic">
+            <strong>{{ businessActionNotice.title }}</strong>
+            <span>{{ businessActionNotice.summary }}</span>
+            <ul v-if="businessActionNotice.items.length">
+              <li v-for="item in businessActionNotice.items" :key="item.actionCode">
+                {{ item.unavailableReason }}
+              </li>
+            </ul>
+            <span v-if="businessActionNotice.remaining > 0">
+              还有 {{ businessActionNotice.remaining }} 个不可发布动作，可在业务对象设计器中查看并修正。
+            </span>
+            <div class="action-diagnostic-actions">
+              <n-button
+                v-if="recommendFlowSubmission"
+                text
+                type="primary"
+                size="small"
+                @click="switchToFlowSubmission"
+              >
+                改为“提交业务申请”
+              </n-button>
+              <n-button text type="warning" size="small" @click="openBusinessActionDesigner">
+                打开业务对象设计器
+              </n-button>
+            </div>
+          </div>
+        </n-alert>
+        <n-alert
+          v-else-if="businessActionSource"
+          type="success"
+          class="form-alert"
+        >
+          已按业务对象发布版本 v{{ businessActionSource.publishedObjectVersion }} 校验执行步骤，当前动作均可发布。
+        </n-alert>
         <n-form-item label="允许字段" path="allowedFields">
           <n-select
             v-model:value="form.allowedFields"
@@ -109,7 +180,7 @@
             v-model:value="form.operation"
             :options="flowOperationOptions"
             :loading="dictLoading"
-            :disabled="!form.objectId || detailLoading || !flowSource"
+            :disabled="isUpgrade || !form.objectId || detailLoading || !flowSource"
             placeholder="请选择流程动作"
             @update:value="handleOperationChange"
           >
@@ -118,8 +189,44 @@
             </template>
           </n-select>
         </n-form-item>
-        <n-alert type="info" class="form-alert">
-          流程动作只能通过用户委托 Token 调用，办理人和组织从可信登录身份解析。
+        <template v-if="form.operation === 'SUBMIT'">
+          <n-alert type="info" class="form-alert">
+            外围系统只提交申请数据，Forge 会使用 Token 对应的真实用户创建业务记录并立即发起主流程，不需要先准备 recordId。
+          </n-alert>
+          <n-form-item label="允许输入字段" path="allowedFields">
+            <n-select
+              v-model:value="form.allowedFields"
+              :options="flowSubmissionFieldOptions"
+              :disabled="!flowSource?.submissionSupported"
+              placeholder="选择外围系统可以填写的申请字段"
+              multiple
+              filterable
+              clearable
+            >
+              <template #empty>
+                <n-empty size="small" description="当前发布模型没有可开放的申请字段" />
+              </template>
+            </n-select>
+            <template #feedback>
+              字段类型、长度、字典和业务说明会自动写入接口文档；系统字段、用户、租户、单据状态和流程字段不会开放。
+            </template>
+          </n-form-item>
+          <n-form-item label="必填字段">
+            <n-select
+              v-model:value="form.requiredFields"
+              :options="flowRequiredFieldOptions"
+              :disabled="form.allowedFields.length === 0"
+              placeholder="业务模型必填项已自动锁定，可增加接口级必填项"
+              multiple
+              filterable
+              clearable
+            />
+          </n-form-item>
+        </template>
+        <n-alert v-else type="info" class="form-alert">
+          {{ form.operation === 'START'
+            ? 'START 只适用于 Forge 中已经保存的业务记录，调用时必须传真实 recordId。'
+            : '流程办理只能通过用户委托 Token 调用，办理人和组织从可信登录身份解析。' }}
         </n-alert>
       </template>
 
@@ -129,6 +236,7 @@
             v-model:value="form.systemServiceCode"
             :options="systemServiceOptions"
             :loading="systemSourceLoading"
+            :disabled="isUpgrade"
             placeholder="请选择平台已注册的系统服务"
             filterable
             @update:value="handleSystemServiceChange"
@@ -151,7 +259,7 @@
           <n-select
             v-model:value="form.systemModelId"
             :options="systemModelOptions"
-            :disabled="!selectedSystemService"
+            :disabled="isUpgrade || !selectedSystemService"
             placeholder="请选择已发布且启用的流程模型"
             filterable
             @update:value="updateGeneratedCode"
@@ -217,10 +325,14 @@
           placeholder="如 business.order.create"
           maxlength="128"
           show-count
+          :disabled="isUpgrade"
         />
       </n-form-item>
       <n-form-item label="能力版本" path="version">
         <n-input v-model:value="form.version" placeholder="如 1.0.0" />
+        <template v-if="isUpgrade" #feedback>
+          必须高于当前版本 {{ capability.currentVersion }}，已为你建议下一补丁版本。
+        </template>
       </n-form-item>
       <n-form-item label="能力描述">
         <n-input
@@ -245,7 +357,7 @@
           :disabled="submitDisabled"
           @click="handleSubmit"
         >
-          注册并发布
+          {{ submitText }}
         </n-button>
       </n-space>
     </template>
@@ -254,7 +366,10 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import {
+  getBusinessActionRegistrationSource,
+  getCapabilityVersionDraft,
   getFlowActionRegistrationSource,
   getSystemServiceRegistrationSources,
   publishBusinessActionCapability,
@@ -262,8 +377,6 @@ import {
   publishSystemServiceCapability,
 } from '@/api/ai/capability'
 import {
-  businessObjectActions,
-  businessObjectFields,
   businessObjectList,
 } from '@/api/business-app'
 import { useDict } from '@/composables'
@@ -277,11 +390,21 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  capability: {
+    type: Object,
+    default: null,
+  },
 })
 
 const emit = defineEmits(['update:show', 'success'])
+const router = useRouter()
 
-const { dict, loading: dictLoading } = useDict(
+const {
+  dict,
+  loading: dictLoading,
+  errors: dictErrors,
+  reload: reloadCapabilityDicts,
+} = useDict(
   'ai_capability_flow_operation',
   'ai_capability_actor_type',
   'ai_capability_risk_level',
@@ -291,9 +414,11 @@ const objectLoading = ref(false)
 const detailLoading = ref(false)
 const systemSourceLoading = ref(false)
 const submitting = ref(false)
+const draftLoading = ref(false)
 const sourceError = ref('')
 const flowSourceError = ref('')
 const flowSource = ref(null)
+const businessActionSource = ref(null)
 const objects = ref([])
 const actions = ref([])
 const fields = ref([])
@@ -321,8 +446,35 @@ const form = reactive({
 const flowOperationOptions = computed(() => (dict.value.ai_capability_flow_operation || [])
   .map(option => ({
     ...option,
-    disabled: option.value === 'START' && flowSource.value && !flowSource.value.startSupported,
+    disabled: (option.value === 'START' && flowSource.value && !flowSource.value.startSupported)
+      || (option.value === 'SUBMIT' && flowSource.value && !flowSource.value.submissionSupported),
   })))
+
+const flowOperationDictLoaded = computed(() => Object.prototype.hasOwnProperty.call(
+  dict.value,
+  'ai_capability_flow_operation',
+))
+
+const flowOperationDictError = computed(() => dictErrors.value.ai_capability_flow_operation || '')
+
+const flowSubmitOptionMissing = computed(() => !isUpgrade.value
+  && !dictLoading.value
+  && (flowOperationDictLoaded.value || !!flowOperationDictError.value)
+  && !flowOperationOptions.value.some(option => option.value === 'SUBMIT'))
+
+const flowSubmissionFieldOptions = computed(() => (flowSource.value?.submissionFields || [])
+  .map(field => ({
+    label: `${field.label || field.field}（${field.field} · ${field.dataType || 'string'}${field.required ? ' · 必填' : ''}）`,
+    value: field.field,
+    disabled: field.required,
+  })))
+
+const flowRequiredSourceFields = computed(() => (flowSource.value?.submissionFields || [])
+  .filter(field => field.required)
+  .map(field => field.field))
+
+const flowRequiredFieldOptions = computed(() => flowSubmissionFieldOptions.value
+  .filter(item => form.allowedFields.includes(item.value)))
 
 const selectedSystemService = computed(() => systemServices.value
   .find(item => item.serviceCode === form.systemServiceCode))
@@ -354,12 +506,19 @@ const systemVariableTypeOptions = computed(() => (selectedSystemService.value?.o
     value: type,
   })))
 
+const isUpgrade = computed(() => !!props.capability?.id)
+const modalTitle = computed(() => isUpgrade.value ? '发布能力新版本' : '注册开放能力')
+const submitText = computed(() => isUpgrade.value ? '发布新版本' : '注册并发布')
+
 const submitDisabled = computed(() => {
+  if (draftLoading.value || !!sourceError.value)
+    return true
   if (form.sourceType === 'FLOW_ACTION')
     return !flowSource.value || detailLoading.value
+      || (form.operation === 'SUBMIT' && !flowSource.value.submissionSupported)
   if (form.sourceType === 'SYSTEM_SERVICE')
     return systemSourceLoading.value || !selectedSystemService.value || !form.systemModelId
-  return false
+  return detailLoading.value || !selectedBusinessAction.value?.publishable
 })
 
 const rules = {
@@ -371,9 +530,17 @@ const rules = {
   },
   actionCode: {
     trigger: 'change',
-    validator: () => form.sourceType !== 'BUSINESS_ACTION' || form.actionCode
-      ? true
-      : new Error('请选择业务动作'),
+    validator: () => {
+      if (form.sourceType !== 'BUSINESS_ACTION')
+        return true
+      if (!form.actionCode)
+        return new Error('请选择业务动作')
+      if (!selectedBusinessAction.value?.publishable) {
+        return new Error(selectedBusinessAction.value?.unavailableReason
+          || '该业务动作的执行步骤不符合开放平台安全规则')
+      }
+      return true
+    },
   },
   operation: {
     trigger: 'change',
@@ -386,12 +553,17 @@ const rules = {
         return new Error('请选择流程动作')
       if (form.operation === 'START' && !flowSource.value.startSupported)
         return new Error('该对象不是平台托管运行对象，不能注册发起流程能力')
+      if (form.operation === 'SUBMIT' && !flowSource.value.submissionSupported)
+        return new Error(flowSource.value.submissionUnavailableReason
+          || '该对象暂不能注册提交业务申请能力')
       return true
     },
   },
   allowedFields: {
     trigger: 'change',
-    validator: () => form.sourceType !== 'BUSINESS_ACTION' || form.allowedFields.length > 0
+    validator: () => (form.sourceType !== 'BUSINESS_ACTION'
+      && !(form.sourceType === 'FLOW_ACTION' && form.operation === 'SUBMIT'))
+      || form.allowedFields.length > 0
       ? true
       : new Error('请至少选择一个允许字段'),
   },
@@ -431,20 +603,81 @@ function isPositiveId(value) {
   return typeof value === 'string' && /^[1-9]\d*$/.test(value)
 }
 
+function actionAvailabilitySuffix(action) {
+  if (action.publishable)
+    return ''
+  if (action.status === 0)
+    return ' · 已停用'
+  if (String(action.actionType || '').toUpperCase() === 'OPEN_PAGE')
+    return ' · 页面操作，不能直接开放'
+  if (['START_FLOW', 'START_APPROVAL'].includes(String(action.actionType || '').toUpperCase()))
+    return ' · 请使用流程动作'
+  if (!Array.isArray(action.stepTypes) || action.stepTypes.length === 0)
+    return ' · 未配置执行步骤'
+  return ` · 步骤暂不支持（${action.stepTypes.join(' / ')}）`
+}
+
 const objectOptions = computed(() => objects.value.map(item => ({
   label: `${item.objectName || item.objectCode}（${item.objectCode}）`,
   value: item.id,
 })))
 
-const actionOptions = computed(() => actions.value
-  .filter(item => item.status !== 0)
-  .map(item => ({
-    label: `${item.actionName || item.actionCode}（${item.actionCode}）`,
-    value: item.actionCode,
-  })))
+const selectedBusinessAction = computed(() => actions.value
+  .find(item => item.actionCode === form.actionCode))
+
+const actionOptions = computed(() => actions.value.map(item => ({
+  label: `${item.actionName || item.actionCode}（${item.actionCode}）${actionAvailabilitySuffix(item)}`,
+  value: item.actionCode,
+  disabled: !item.publishable,
+})))
+
+const recommendFlowSubmission = computed(() => !isUpgrade.value
+  && props.allowedTypes.includes('FLOW_ACTION')
+  && actions.value.some(item => isCreatePageAction(item)))
+
+const businessActionNotice = computed(() => {
+  if (!businessActionSource.value)
+    return null
+  const unavailable = actions.value.filter(item => !item.publishable)
+  const availableCount = actions.value.length - unavailable.length
+  if (actions.value.length === 0) {
+    return {
+      type: 'error',
+      title: '当前发布版本没有业务动作',
+      summary: '请先在业务对象设计器中新增自动化动作、配置执行步骤，然后重新发布业务对象。',
+      items: [],
+      remaining: 0,
+    }
+  }
+  if (unavailable.length === 0)
+    return null
+  const containsCreatePageAction = unavailable.some(item => isCreatePageAction(item))
+  return {
+    type: availableCount > 0 ? 'warning' : 'error',
+    title: availableCount > 0
+      ? `${unavailable.length} 个动作已从可发布候选中禁用`
+      : '当前发布版本没有可开放的业务动作',
+    summary: availableCount > 0
+      ? `仍有 ${availableCount} 个动作可选；禁用项会保留在下拉列表中并标明原因。`
+      : containsCreatePageAction
+        ? '你看到的“新增”只是打开新增表单的页面按钮，不会在服务端创建记录。申请类对象请改用“提交业务申请”，一次完成创建记录和发起流程。'
+        : '业务动作必须包含开放平台支持的执行步骤，启用状态不代表它已经可执行。',
+    items: unavailable.slice(0, 3),
+    remaining: Math.max(unavailable.length - 3, 0),
+  }
+})
+
+function isCreatePageAction(action = {}) {
+  if (String(action.actionType || '').toUpperCase() !== 'OPEN_PAGE')
+    return false
+  const code = String(action.actionCode || '').trim().toLowerCase()
+  const name = String(action.actionName || '').trim()
+  return ['add', 'create', 'new', 'insert'].includes(code)
+    || ['新增', '创建', '新建'].some(keyword => name.includes(keyword))
+}
 
 const fieldOptions = computed(() => fields.value
-  .filter(item => !item.systemField && !item.readonly && item.fieldStatus !== 'DISABLED')
+  .filter(item => String(item.fieldStatus || '').toUpperCase() !== 'DISABLED')
   .map(item => ({
     label: `${item.fieldName || item.fieldCode}（${item.fieldCode}）`,
     value: item.fieldCode,
@@ -464,24 +697,47 @@ function resolveDictLabel(dictType, value) {
 watch(() => props.show, async (visible) => {
   if (!visible)
     return
+  await reloadFlowOperationOptions(false)
   resetForm()
-  if (form.sourceType === 'SYSTEM_SERVICE')
+  if (isUpgrade.value) {
+    await initializeUpgrade()
+  }
+  else if (form.sourceType === 'SYSTEM_SERVICE')
     await loadSystemServices()
   else
     await loadObjects()
-})
+}, { immediate: true })
 
 watch(flowOperationOptions, (options) => {
   if (form.sourceType !== 'FLOW_ACTION' || form.operation || options.length === 0)
     return
-  const defaultOption = options.find(item => item.isDefault === 'Y') || options[0]
+  const defaultOption = preferredFlowOperation(options)
   form.operation = defaultOption.value
   updateGeneratedCode()
 }, { immediate: true })
 
 watch(() => form.allowedFields, (allowedFields) => {
-  form.requiredFields = form.requiredFields.filter(field => allowedFields.includes(field))
+  if (form.sourceType === 'FLOW_ACTION' && form.operation === 'SUBMIT') {
+    const required = flowRequiredSourceFields.value
+    const nextAllowed = [...new Set([...allowedFields, ...required])]
+    const nextRequired = [...new Set([
+      ...form.requiredFields.filter(field => form.allowedFields.includes(field)),
+      ...required,
+    ])]
+    if (!sameStringArray(form.allowedFields, nextAllowed))
+      form.allowedFields = nextAllowed
+    if (!sameStringArray(form.requiredFields, nextRequired))
+      form.requiredFields = nextRequired
+    return
+  }
+  const nextRequired = form.requiredFields.filter(field => allowedFields.includes(field))
+  if (!sameStringArray(form.requiredFields, nextRequired))
+    form.requiredFields = nextRequired
 }, { deep: true })
+
+function sameStringArray(left, right) {
+  return left.length === right.length && left.every((item, index) => item === right[index])
+}
 
 function resetForm() {
   const sourceType = props.allowedTypes.includes('BUSINESS_ACTION')
@@ -508,13 +764,142 @@ function resetForm() {
   sourceError.value = ''
   flowSourceError.value = ''
   flowSource.value = null
+  businessActionSource.value = null
   systemServices.value = []
   lastGeneratedCode.value = ''
 }
 
+async function initializeUpgrade() {
+  draftLoading.value = true
+  sourceError.value = ''
+  try {
+    const res = await getCapabilityVersionDraft(props.capability.id)
+    const draft = res.data
+    if (!draft || !props.allowedTypes.includes(draft.sourceType)) {
+      throw new Error('当前账号没有发布该类型能力新版本的权限')
+    }
+    Object.assign(form, {
+      sourceType: draft.sourceType,
+      capabilityCode: draft.capabilityCode,
+      version: draft.suggestedVersion,
+      description: draft.description || '',
+    })
+    if (draft.sourceType === 'SYSTEM_SERVICE') {
+      await initializeSystemServiceUpgrade(draft)
+    }
+    else {
+      await initializeObjectCapabilityUpgrade(draft)
+    }
+  }
+  catch (error) {
+    sourceError.value = error?.message || '能力新版本草稿加载失败'
+  }
+  finally {
+    draftLoading.value = false
+  }
+}
+
+async function initializeObjectCapabilityUpgrade(draft) {
+  await loadObjects()
+  const [suiteCode, objectCode, sourceAction] = String(draft.sourceKey || '').split('/')
+  if (!suiteCode || !objectCode || !sourceAction)
+    throw new Error('当前能力来源标识不完整，无法自动创建新版本')
+  const object = objects.value.find((item) => {
+    const itemSuiteCode = item.suiteCode || 'default'
+    return itemSuiteCode === suiteCode && item.objectCode === objectCode
+  })
+  if (!object)
+    throw new Error(`原业务对象 ${suiteCode}/${objectCode} 已不存在或尚未发布`)
+
+  form.objectId = object.id
+  if (draft.sourceType === 'FLOW_ACTION') {
+    const operation = draft.policySnapshot?.operation || sourceAction
+    if (operation !== sourceAction)
+      throw new Error('当前能力流程动作快照不一致，无法自动创建新版本')
+    form.operation = operation
+  }
+  await handleObjectChange(object.id)
+  if (draft.sourceType === 'BUSINESS_ACTION') {
+    const sourceOption = actionOptions.value.find(item => item.value === sourceAction)
+    if (!sourceOption)
+      throw new Error(`原业务动作 ${sourceAction} 已停用或不存在，无法创建新版本`)
+    if (sourceOption.disabled) {
+      const sourceActionDefinition = actions.value.find(item => item.actionCode === sourceAction)
+      throw new Error(sourceActionDefinition?.unavailableReason
+        || `原业务动作 ${sourceAction} 的执行步骤已不符合开放平台安全规则`)
+    }
+    form.actionCode = sourceAction
+    const allowedFields = Array.isArray(draft.policySnapshot?.allowedFields)
+      ? draft.policySnapshot.allowedFields
+      : []
+    const requiredFields = Array.isArray(draft.policySnapshot?.requiredFields)
+      ? draft.policySnapshot.requiredFields
+      : []
+    const availableFields = new Set(fieldOptions.value.map(item => item.value))
+    form.allowedFields = allowedFields.filter(field => availableFields.has(field))
+    form.requiredFields = requiredFields.filter(field => form.allowedFields.includes(field))
+  }
+  else {
+    if (!flowSource.value)
+      throw new Error(flowSourceError.value || '当前业务对象未匹配到可发布的主流程')
+    if (form.operation !== sourceAction)
+      throw new Error(`原流程动作 ${sourceAction} 当前不可用，无法创建新版本`)
+    if (form.operation === 'SUBMIT') {
+      const availableFields = new Set(flowSubmissionFieldOptions.value.map(item => item.value))
+      const allowedFields = Array.isArray(draft.policySnapshot?.allowedFields)
+        ? draft.policySnapshot.allowedFields.filter(field => availableFields.has(field))
+        : []
+      const requiredFields = Array.isArray(draft.policySnapshot?.requiredFields)
+        ? draft.policySnapshot.requiredFields.filter(field => availableFields.has(field))
+        : []
+      form.allowedFields = [...new Set([...allowedFields, ...flowRequiredSourceFields.value])]
+      form.requiredFields = [...new Set([...requiredFields, ...flowRequiredSourceFields.value])]
+    }
+  }
+}
+
+async function initializeSystemServiceUpgrade(draft) {
+  await loadSystemServices()
+  const service = systemServices.value.find(item => item.serviceCode === draft.sourceKey)
+  if (!service)
+    throw new Error(`原系统服务 ${draft.sourceKey} 当前未注册，无法创建新版本`)
+  form.systemServiceCode = service.serviceCode
+  const modelId = draft.policySnapshot?.modelId || null
+  const modelOption = systemModelOptions.value.find(item => String(item.value) === String(modelId))
+  if (!modelOption)
+    throw new Error('原流程模型已停用或未发布，无法创建新版本')
+  form.systemModelId = modelOption.value
+
+  const variableSchemas = draft.inputSchema?.properties?.variables?.properties || {}
+  const allowedVariables = Array.isArray(draft.policySnapshot?.allowedVariables)
+    ? draft.policySnapshot.allowedVariables
+    : Object.keys(variableSchemas)
+  const requiredVariables = new Set(Array.isArray(draft.policySnapshot?.requiredVariables)
+    ? draft.policySnapshot.requiredVariables
+    : [])
+  form.systemVariables = allowedVariables.map((name) => {
+    variableKeySequence += 1
+    const schema = variableSchemas[name] || {}
+    return {
+      key: `variable-${variableKeySequence}`,
+      name,
+      type: schema.type || 'string',
+      description: schema.description || '',
+      required: requiredVariables.has(name),
+    }
+  })
+}
+
 function resolveDefaultOperation() {
   const options = flowOperationOptions.value
-  return (options.find(item => item.isDefault === 'Y') || options[0])?.value || null
+  return preferredFlowOperation(options)?.value || null
+}
+
+function preferredFlowOperation(options) {
+  return options.find(item => item.value === 'SUBMIT' && !item.disabled)
+    || options.find(item => item.isDefault === 'Y' && !item.disabled)
+    || options.find(item => !item.disabled)
+    || options[0]
 }
 
 async function loadObjects() {
@@ -568,6 +953,7 @@ async function handleSourceTypeChange() {
   form.systemVariables = []
   actions.value = []
   fields.value = []
+  businessActionSource.value = null
   flowSourceError.value = ''
   flowSource.value = null
   updateGeneratedCode(true)
@@ -586,6 +972,7 @@ async function handleObjectChange(objectId) {
   form.requiredFields = []
   actions.value = []
   fields.value = []
+  businessActionSource.value = null
   flowSourceError.value = ''
   flowSource.value = null
   updateGeneratedCode()
@@ -596,12 +983,18 @@ async function handleObjectChange(objectId) {
   sourceError.value = ''
   try {
     if (form.sourceType === 'BUSINESS_ACTION') {
-      const [actionRes, fieldRes] = await Promise.all([
-        businessObjectActions(selected.id),
-        businessObjectFields(selected.id),
-      ])
-      actions.value = actionRes.data || []
-      fields.value = fieldRes.data || []
+      const res = await getBusinessActionRegistrationSource({
+        suiteCode: selected.suiteCode,
+        objectCode: selected.objectCode,
+      })
+      businessActionSource.value = res.data || null
+      actions.value = businessActionSource.value?.actions || []
+      fields.value = businessActionSource.value?.writableFields || []
+      const publishableActions = actions.value.filter(item => item.publishable)
+      if (publishableActions.length === 1) {
+        form.actionCode = publishableActions[0].actionCode
+        updateGeneratedCode()
+      }
     }
     else {
       const res = await getFlowActionRegistrationSource({
@@ -612,7 +1005,8 @@ async function handleObjectChange(objectId) {
       const selectedOperation = flowOperationOptions.value
         .find(option => option.value === form.operation && !option.disabled)
       if (!selectedOperation)
-        form.operation = flowOperationOptions.value.find(option => !option.disabled)?.value || null
+        form.operation = preferredFlowOperation(flowOperationOptions.value)?.value || null
+      applyFlowSubmissionDefaults()
       updateGeneratedCode()
     }
   }
@@ -635,8 +1029,57 @@ function handleActionChange() {
   updateGeneratedCode()
 }
 
-function handleOperationChange() {
+function openBusinessActionDesigner() {
+  if (!form.objectCode)
+    return
+  const target = router.resolve({
+    name: 'BusinessObjectDesigner',
+    params: { objectCode: form.objectCode },
+    query: {
+      panel: 'actions',
+      ...(form.suiteCode ? { suiteCode: form.suiteCode } : {}),
+    },
+  })
+  window.open(target.href, '_blank', 'noopener,noreferrer')
+}
+
+async function switchToFlowSubmission() {
+  const objectId = form.objectId
+  await reloadFlowOperationOptions(false)
+  form.sourceType = 'FLOW_ACTION'
+  await handleSourceTypeChange()
+  form.operation = 'SUBMIT'
+  form.objectId = objectId
+  await handleObjectChange(objectId)
+}
+
+async function reloadFlowOperationOptions(selectSubmit = true) {
+  await reloadCapabilityDicts('ai_capability_flow_operation')
+  const submitOption = flowOperationOptions.value
+    .find(option => option.value === 'SUBMIT' && !option.disabled)
+  if (!selectSubmit || isUpgrade.value || form.sourceType !== 'FLOW_ACTION' || !submitOption)
+    return
+  form.operation = submitOption.value
+  applyFlowSubmissionDefaults()
   updateGeneratedCode()
+}
+
+function handleOperationChange() {
+  applyFlowSubmissionDefaults()
+  updateGeneratedCode()
+}
+
+function applyFlowSubmissionDefaults() {
+  if (form.operation !== 'SUBMIT') {
+    if (form.sourceType === 'FLOW_ACTION') {
+      form.allowedFields = []
+      form.requiredFields = []
+    }
+    return
+  }
+  const available = (flowSource.value?.submissionFields || []).map(field => field.field)
+  form.allowedFields = [...available]
+  form.requiredFields = [...flowRequiredSourceFields.value]
 }
 
 function handleSystemServiceChange() {
@@ -677,6 +1120,8 @@ function variableTypeLabel(type) {
 }
 
 function updateGeneratedCode(force = false) {
+  if (isUpgrade.value)
+    return
   if (form.sourceType === 'SYSTEM_SERVICE') {
     const model = selectedSystemService.value?.options?.models
       ?.find(item => item.modelId === form.systemModelId)
@@ -693,7 +1138,7 @@ function updateGeneratedCode(force = false) {
   }
   const actionSegment = form.sourceType === 'BUSINESS_ACTION' ? form.actionCode : form.operation
   const parts = [
-    form.sourceType === 'BUSINESS_ACTION' ? 'business' : 'flow',
+    form.sourceType === 'BUSINESS_ACTION' || form.operation === 'SUBMIT' ? 'business' : 'flow',
     form.suiteCode,
     form.objectCode,
     actionSegment,
@@ -747,6 +1192,8 @@ async function handleSubmit() {
       res = await publishFlowActionCapability({
         ...common,
         operation: form.operation,
+        allowedFields: form.operation === 'SUBMIT' ? form.allowedFields : [],
+        requiredFields: form.operation === 'SUBMIT' ? form.requiredFields : [],
       })
     }
     else {
@@ -767,9 +1214,14 @@ async function handleSubmit() {
       })
     }
     if (res.code === 200) {
-      window.$message.success('能力已注册并发布')
+      window.$message.success(isUpgrade.value
+        ? `能力新版本 ${form.version} 已发布`
+        : '能力已注册并发布')
+      if (isUpgrade.value) {
+        window.$message.warning('固定版本授权不会自动切换，请到授权管理修改版本，或改用“跟随主版本”策略')
+      }
       emit('update:show', false)
-      emit('success', res.data)
+      emit('success', { id: res.data, version: form.version, upgrade: isUpgrade.value })
     }
   }
   finally {
@@ -809,6 +1261,34 @@ function validateSystemVariables() {
   flex-direction: column;
   gap: 4px;
   line-height: 1.55;
+}
+
+.action-diagnostic {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.55;
+}
+
+.action-diagnostic ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.action-diagnostic-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dict-refresh-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .variable-editor {

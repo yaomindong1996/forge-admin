@@ -59,11 +59,41 @@
       <n-spin v-else-if="guideLoading" class="guide-loading" description="正在核对网关、客户端和授权状态…" />
 
       <template v-else-if="guide">
+        <n-alert
+          v-if="guide.versionUpgradeAvailable"
+          type="warning"
+          :show-icon="true"
+          class="version-alert"
+        >
+          <template #header>
+            这个客户端仍在使用旧能力版本
+          </template>
+          <div class="version-alert-content">
+            <span>
+              能力当前是 v{{ guide.currentVersion }}，但客户端授权按“{{ grantVersionStrategyLabel }}”
+              实际调用 v{{ guide.version || guide.grantFixedVersion || '-' }}。
+              发布新版本不会自动修改已有授权。
+            </span>
+            <n-button
+              v-if="canUpdateGrant && guide.grantId"
+              type="warning"
+              secondary
+              :loading="versionSwitching"
+              @click="confirmUseCurrentVersion"
+            >
+              切换到当前 v{{ guide.currentVersion }}
+            </n-button>
+            <span v-else class="version-permission-tip">
+              请让具有能力授权维护权限的管理员切换授权版本。
+            </span>
+          </div>
+        </n-alert>
+
         <section class="guide-section">
           <div class="section-heading">
             <div>
               <h3>调用地址与身份</h3>
-              <p>以下内容由当前发布版本和所选客户端实时生成。</p>
+              <p>以下内容由所选客户端的实际授权版本实时生成。</p>
             </div>
           </div>
           <div class="endpoint-grid">
@@ -95,8 +125,16 @@
               </div>
             </div>
             <div class="endpoint-item">
-              <span class="endpoint-label">能力版本</span>
-              <strong>{{ guide.version || '授权版本尚未解析' }}</strong>
+              <span class="endpoint-label">实际调用版本</span>
+              <strong>{{ guide.version ? `v${guide.version}` : '授权版本尚未解析' }}</strong>
+            </div>
+            <div class="endpoint-item">
+              <span class="endpoint-label">当前能力版本</span>
+              <strong>{{ guide.currentVersion ? `v${guide.currentVersion}` : '-' }}</strong>
+            </div>
+            <div class="endpoint-item">
+              <span class="endpoint-label">客户端授权策略</span>
+              <strong>{{ grantVersionStrategyLabel }}</strong>
             </div>
             <div class="endpoint-item">
               <span class="endpoint-label">客户端</span>
@@ -263,6 +301,7 @@ import {
   downloadCapabilityOpenApi,
   getCapabilityCallGuide,
   getCapabilityCallGuideClients,
+  useCurrentCapabilityGrantVersion,
 } from '@/api/ai/capability'
 import CapabilityOnlineTestPanel from './CapabilityOnlineTestPanel.vue'
 
@@ -274,6 +313,10 @@ const props = defineProps({
   capability: {
     type: Object,
     default: null,
+  },
+  canUpdateGrant: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -289,6 +332,7 @@ const guideLoading = ref(false)
 const activeExample = ref('BODY')
 const markdownDownloading = ref(false)
 const openApiDownloading = ref(false)
+const versionSwitching = ref(false)
 
 const clientOptions = computed(() => clients.value.map((client) => {
   const status = client.status === 'ENABLED' ? '启用' : client.status || '未知状态'
@@ -308,6 +352,17 @@ const actorTypeLabel = computed(() => ({
 const authModeLabel = computed(() => {
   const modes = guide.value?.availableAuthModes || []
   return modes.length ? modes.join(' / ') : '无匹配认证方式'
+})
+
+const grantVersionStrategyLabel = computed(() => {
+  const fixedVersion = guide.value?.grantFixedVersion
+    ? ` v${guide.value.grantFixedVersion}`
+    : ''
+  if (guide.value?.grantVersionStrategy === 'PINNED')
+    return `固定版本${fixedVersion}`
+  if (guide.value?.grantVersionStrategy === 'FOLLOW_MAJOR')
+    return `跟随主版本（基准${fixedVersion || '未设置'}）`
+  return guide.value?.grantVersionStrategy || '尚未授权'
 })
 
 const requestBodyText = computed(() => JSON.stringify(guide.value?.requestExample || {}, null, 2))
@@ -384,6 +439,35 @@ async function loadGuide(clientId) {
   }
   finally {
     guideLoading.value = false
+  }
+}
+
+function confirmUseCurrentVersion() {
+  if (!guide.value?.grantId || !guide.value?.currentVersion || versionSwitching.value)
+    return
+  window.$dialog.warning({
+    title: '切换客户端授权版本',
+    content: `确定把该客户端的授权基准切换到 v${guide.value.currentVersion} 吗？平台会保留原授权策略、允许操作和有效期，并重新校验新版契约。`,
+    positiveText: '确认切换',
+    negativeText: '取消',
+    onPositiveClick: useCurrentVersion,
+  })
+}
+
+async function useCurrentVersion() {
+  versionSwitching.value = true
+  try {
+    const res = await useCurrentCapabilityGrantVersion(guide.value.grantId)
+    if (res.code !== 200)
+      return
+    window.$message.success(`客户端授权已切换到 v${guide.value.currentVersion}`)
+    await loadGuide(selectedClientId.value)
+  }
+  catch (error) {
+    window.$message.error(error?.message || '授权版本切换失败')
+  }
+  finally {
+    versionSwitching.value = false
   }
 }
 
@@ -504,6 +588,27 @@ function responseFilename(response) {
 <style scoped>
 .guide-body {
   min-height: 420px;
+}
+
+.version-alert {
+  margin-top: 16px;
+}
+
+.version-alert-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.version-alert-content > span:first-child {
+  line-height: 1.7;
+}
+
+.version-permission-tip {
+  flex: none;
+  color: var(--text-tertiary);
+  font-size: 12px;
 }
 
 .modal-heading {
@@ -751,6 +856,15 @@ function responseFilename(response) {
 }
 
 @media (max-width: 760px) {
+  .version-alert-content {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .version-permission-tip {
+    flex: initial;
+  }
+
   .client-bar {
     align-items: stretch;
     flex-wrap: wrap;
