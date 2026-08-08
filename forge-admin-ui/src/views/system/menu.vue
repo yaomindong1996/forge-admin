@@ -591,6 +591,11 @@ import { usePermissionStore, useUserStore } from '@/store'
 import { request } from '@/utils'
 import { toNumberDictOptions } from '@/utils/dict-options'
 import { getMenuRouteOptions } from '@/utils/menu-route-options'
+import {
+  flattenResourceTree,
+  resolveFreshResourceRow,
+  resolveResourceContextRows,
+} from './menu-interaction-utils'
 
 defineOptions({ name: 'SystemMenu' })
 
@@ -850,6 +855,7 @@ function normalizeListResponse(res) {
 }
 
 function keepSelectionAvailable() {
+  selectedRow.value = resolveFreshResourceRow(flatResources.value, selectedRow.value)
   if (!selectedResourceId.value)
     return
   const exists = flatResources.value.some(item => item.id === selectedResourceId.value)
@@ -895,20 +901,6 @@ function clearCheckedResources() {
 
 function handleClientTabChange(clientCode) {
   currentClientCode.value = clientCode
-}
-
-function flattenResourceTree(list = []) {
-  const result = []
-  const walk = (items, parent = null, level = 0) => {
-    items.forEach((item) => {
-      const normalized = { ...item, parent, level }
-      result.push(normalized)
-      if (item.children?.length)
-        walk(item.children, normalized, level + 1)
-    })
-  }
-  walk(Array.isArray(list) ? list : [])
-  return result
 }
 
 function buildNavigationTree(list = [], keyword = '') {
@@ -996,9 +988,7 @@ function renderNavigationLabel({ option }) {
 }
 
 function getContextRows(options = {}) {
-  const includeDescendants = !!options.includeDescendants
-  const contextRows = currentNode.value?.children || allResources.value
-  return includeDescendants ? flattenResourceTree(contextRows) : contextRows
+  return resolveResourceContextRows(allResources.value, currentNode.value, options)
 }
 
 function matchesResourceFilter(row) {
