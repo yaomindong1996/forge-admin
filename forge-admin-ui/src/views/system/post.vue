@@ -764,8 +764,11 @@ function handleDelete(row) {
 
 .org-tree-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   padding: 6px;
 }
 

@@ -25,7 +25,7 @@
 
 ## Task 2: 统一选择控件高度和组织树滚动
 
-- [ ] **目标**：同尺寸输入控件与按钮高度一致，三处系统管理组织树可滚动到底部。
+- [x] **目标**：同尺寸输入控件与按钮高度一致，三处系统管理组织树可滚动到底部。
 - **涉及文件**：
   - `forge-admin-ui/src/styles/theme.css` — 按钮高度使用组件 `--n-height`。
   - `forge-admin-ui/src/views/system/org.vue` — 统一组织树 flex 滚动约束。
