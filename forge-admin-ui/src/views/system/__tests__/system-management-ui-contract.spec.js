@@ -15,13 +15,13 @@ describe('system management control sizing', () => {
   it('uses the Naive UI component height for every button size', () => {
     const source = readSource('../../../styles/theme.css')
 
-    for (const selector of [
-      '.n-button',
-      '.n-button--small-type',
-      '.n-button--tiny-type',
-      '.n-button--large-type',
+    for (const [selector, fallback] of [
+      ['.n-button', '34px'],
+      ['.n-button--small-type', '28px'],
+      ['.n-button--tiny-type', '22px'],
+      ['.n-button--large-type', '40px'],
     ]) {
-      expect(readCssBlock(source, selector)).toMatch(/height:\s*var\(--n-height\)\s*!important;/)
+      expect(readCssBlock(source, selector)).toContain(`height: var(--n-height, ${fallback}) !important;`)
     }
   })
 })
