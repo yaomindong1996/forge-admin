@@ -1,5 +1,5 @@
 # 任务拆分 — 系统管理页面交互一致性修复
-> status: apply
+> status: complete
 > created: 2026-08-08
 > 拆分顺序：回归契约 → 菜单状态修复 → 共享样式与页面滚动 → 增量验证
 
@@ -35,7 +35,7 @@
 - **关键样式**：
   ```css
   .n-button {
-    height: var(--n-height) !important;
+    height: var(--n-height, 34px) !important;
   }
 
   .org-tree-content {
@@ -49,7 +49,7 @@
 
 ## Task 3: 增量验证与文档回填
 
-- [ ] **目标**：完成前端定向验证、生产构建和可用范围内的浏览器检查，并记录证据。
+- [x] **目标**：完成前端定向验证、生产构建和可用范围内的浏览器检查，并记录证据。
 - **涉及文件**：
   - `code-copilot/changes/system-management-ui-interaction-fixes/spec.md`
   - `code-copilot/changes/system-management-ui-interaction-fixes/tasks.md`
@@ -67,3 +67,4 @@
   git diff --check
   ```
 - **验收**：实际命令、结果、警告、浏览器覆盖范围和服务清理情况全部写入 `execution-log.md`。
+- **结果**：13/13 定向测试、目标 ESLint、生产构建和补丁格式检查通过；浏览器确认 large 输入/按钮均为 `40px`、独立挂载 small 按钮均为 `28px`。后端 `8580` 未启动，未执行真实菜单删除 E2E。

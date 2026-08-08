@@ -1,5 +1,5 @@
 # 执行日志 — 系统管理页面交互一致性修复
-> status: apply
+> status: complete
 > created: 2026-08-08
 
 ## 1. 基线
@@ -27,13 +27,20 @@
 | 2026-08-08 | 回归测试 Red | `pnpm exec vitest run src/views/system/__tests__/menu-interaction-utils.spec.js src/views/system/__tests__/system-management-ui-contract.spec.js` | expected failed | 菜单工具尚不存在；按钮尺寸与三页滚动契约 4/4 失败 |
 | 2026-08-08 | 菜单状态与 UI 契约 Green | 同上 | passed，2 files / 13 tests | 菜单逻辑 9 项、样式契约 4 项 |
 | 2026-08-08 | 目标前端文件 | `pnpm exec eslint <本轮 7 个 Vue/JS/测试文件>` | passed | 无输出 |
+| 2026-08-08 | 前端生产构建 | `pnpm build` | passed，8879 modules，built in 1m | 既有组件命名冲突、CSS `//` 注释及动态/静态导入警告；无本轮新增构建错误 |
+| 2026-08-08 | 补丁完整性 | `git diff --check` | passed | 无输出 |
+| 2026-08-08 | 前端开发服务 | Vite 启动于 `127.0.0.1:3000` | passed | 保留 PID `26346` 供用户验收 |
+| 2026-08-08 | 浏览器控件几何 | Playwright 隔离脚本读取 large 输入/按钮和 Teleport 挂载 small 按钮边界 | passed | large 输入/按钮均为 `40px`；补充兜底后两个 small 按钮均为 `28px` |
+| 2026-08-08 | 浏览器业务链路 | 访问 `http://127.0.0.1:3000/login?redirect=/home` | partial | `8580` 后端未运行，后端请求返回 500；未执行菜单删除与登录后组织树滚动真实 E2E |
 
-## 4. 未执行项
+## 4. 未执行项与限制
 
-- 代码实现、定向测试、前端构建和浏览器验证待执行。
+- 本地 `8580` 后端未启动，无法登录并使用真实资源树数据执行“删除子资源后立即删除父资源”的端到端操作。
+- 同一限制下，未在登录后的组织、用户、岗位页面手动拖动滚动条；滚动约束由三页静态契约测试和生产构建验证。
+- 本变更不涉及后端和数据库，未启动 MySQL、Redis、Admin 或 Flow 服务，也未执行后端测试。
 
 ## 5. 服务清理
 
-- 本轮启动服务：无。
+- 本轮启动服务：前端 Vite，`http://127.0.0.1:3000/`，PID `26346`。
 - 本轮停止服务：无。
-- 遗留 PID：无。
+- 遗留 PID：`26346`，按用户验收需要主动保留；未遗留其他本轮服务。

@@ -1,5 +1,5 @@
 # 单测 Spec — 系统管理页面交互一致性修复
-> status: apply
+> status: complete
 > created: 2026-08-08
 
 ## 0. 测试原则
@@ -33,7 +33,7 @@
 
 ### P1 — UI 样式契约
 
-- `theme.css` 的默认、小号、微型和大号按钮高度均使用 `var(--n-height)`。
+- `theme.css` 的默认、小号、微型和大号按钮高度均使用 `var(--n-height, fallback)`，兜底值分别与 Naive UI 的 `34/28/22/40px` 尺寸一致。
 - `org.vue`、`user.vue`、`post.vue` 的 `.org-tree-content` 同时包含 `min-height: 0`、`overflow-y: auto`、`overscroll-behavior: contain` 和 `scrollbar-gutter: stable`。
 
 ### P2 — 集成与视觉
@@ -47,8 +47,8 @@
 - [x] Step 1: 执行新增 Vitest，确认菜单回归测试在实现前失败。
 - [x] Step 2: 实现菜单修复并确认定向 Vitest 通过。
 - [x] Step 3: 实现共享尺寸和三页滚动样式，执行样式契约测试。
-- [ ] Step 4: 执行目标 ESLint、生产构建和 `git diff --check`。
-- [ ] Step 5: 启动前端开发服务并执行可用范围内的浏览器检查。
+- [x] Step 4: 执行目标 ESLint、生产构建和 `git diff --check`。
+- [x] Step 5: 启动前端开发服务并执行可用范围内的浏览器检查。
 
 ## 4. 历史验证基线
 
@@ -62,10 +62,14 @@
 |------|----------|--------|----------|------|-----------|
 | 2026-08-08 | 菜单交互与 UI 样式契约 Red | Vitest | `pnpm exec vitest run src/views/system/__tests__/menu-interaction-utils.spec.js src/views/system/__tests__/system-management-ui-contract.spec.js` | failed，菜单工具无法导入；样式契约 4/4 失败 | 预期 Red 基线 |
 | 2026-08-08 | 菜单交互与 UI 样式契约 Green | Vitest | 同上 | passed，2 files / 13 tests | 无 |
+| 2026-08-08 | 本轮目标文件 | ESLint | `pnpm exec eslint <本轮 7 个 Vue/JS/测试文件>` | passed | 无输出 |
+| 2026-08-08 | 前端生产构建 | Vite | `pnpm build` | passed，8879 modules，built in 1m | 既有组件命名冲突、CSS `//` 注释及动态/静态导入警告 |
+| 2026-08-08 | 补丁完整性 | Git | `git diff --check` | passed | 无输出 |
+| 2026-08-08 | 控件几何 | Playwright | 隔离脚本访问 `http://127.0.0.1:3000` 并读取控件边界 | passed，large 输入/按钮 `40px`，独立挂载 small 按钮 `28px` | `8580` 未启动，未执行登录后菜单和组织树真实 E2E |
 
 ## 6. 执行证据
 
 - `execution-log.md`：同目录增量记录。
 - 关键接口：接口协议无变更；真实资源树数据验证视本地后端可用性执行。
 - 关键数据库检查：无数据库变更，不执行。
-- 服务启动与停止：只管理本轮启动的前端开发服务。
+- 服务启动与停止：前端 Vite 服务保留在 `http://127.0.0.1:3000/`，PID `26346`，供验收使用。
