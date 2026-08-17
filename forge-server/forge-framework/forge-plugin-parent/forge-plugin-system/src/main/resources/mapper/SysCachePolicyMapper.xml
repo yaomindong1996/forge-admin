@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.system.mapper.SysCachePolicyMapper">
+
+    <sql id="CachePolicyColumns">
+        id,
+        tenant_id,
+        application_code,
+        cache_name,
+        enabled,
+        cache_mode,
+        local_ttl_seconds,
+        redis_ttl_seconds,
+        local_max_size,
+        cache_null,
+        null_ttl_seconds,
+        policy_version,
+        del_flag,
+        create_by,
+        create_time,
+        create_dept,
+        update_by,
+        update_time
+    </sql>
+
+    <select id="selectActivePolicies" resultType="com.mdframe.forge.plugin.system.entity.SysCachePolicy">
+        SELECT <include refid="CachePolicyColumns" />
+        FROM sys_cache_policy
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
+        ORDER BY application_code ASC, cache_name ASC
+    </select>
+
+    <select id="selectByIdentity" resultType="com.mdframe.forge.plugin.system.entity.SysCachePolicy">
+        SELECT <include refid="CachePolicyColumns" />
+        FROM sys_cache_policy
+        WHERE tenant_id = #{tenantId}
+          AND application_code = #{applicationCode}
+          AND cache_name = #{cacheName}
+          AND del_flag = 0
+        LIMIT 1
+    </select>
+
+    <update id="updateWithVersion">
+        UPDATE sys_cache_policy
+        SET enabled = #{policy.enabled},
+            cache_mode = #{policy.cacheMode},
+            local_ttl_seconds = #{policy.localTtlSeconds},
+            redis_ttl_seconds = #{policy.redisTtlSeconds},
+            local_max_size = #{policy.localMaxSize},
+            cache_null = #{policy.cacheNull},
+            null_ttl_seconds = #{policy.nullTtlSeconds},
+            policy_version = #{policy.policyVersion},
+            update_by = #{policy.updateBy},
+            update_time = #{policy.updateTime}
+        WHERE id = #{policy.id}
+          AND tenant_id = #{policy.tenantId}
+          AND policy_version = #{expectedVersion}
+          AND del_flag = 0
+    </update>
+
+    <update id="logicalDeleteWithVersion">
+        UPDATE sys_cache_policy
+        SET del_flag = id,
+            policy_version = policy_version + 1,
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        WHERE tenant_id = #{tenantId}
+          AND application_code = #{applicationCode}
+          AND cache_name = #{cacheName}
+          AND policy_version = #{expectedVersion}
+          AND del_flag = 0
+    </update>
+
+</mapper>

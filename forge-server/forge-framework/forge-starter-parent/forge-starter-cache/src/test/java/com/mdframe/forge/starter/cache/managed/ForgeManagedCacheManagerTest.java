@@ -9,6 +9,7 @@ import com.mdframe.forge.starter.cache.managed.properties.ManagedCacheProperties
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -67,6 +68,29 @@ class ForgeManagedCacheManagerTest {
                 301, 300, 100, true, 10, 1L);
 
         assertThrows(IllegalArgumentException.class, () -> manager.applyOverride(override));
+    }
+
+    @Test
+    void shouldFallBackToCodeDefaultsWhenRuntimeOverrideBecomesInvalid() throws Exception {
+        ForgeManagedCacheManager manager = manager();
+        CacheDefinition definition = definition(CacheMode.LOCAL, List.of(CacheMode.LOCAL));
+        manager.register(definition);
+        CachePolicyOverride invalid = new CachePolicyOverride(
+                "forge-admin", "test:cache", true, CacheMode.MULTI,
+                30, 300, 100, true, 10, 1L);
+        overrides(manager).put(invalid.identity(), invalid);
+
+        manager.put(definition, "key", "value");
+
+        assertTrue(manager.get(definition, "key").hit());
+        assertEquals(CacheMode.LOCAL, manager.listCaches().get(0).policy().cacheMode());
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, CachePolicyOverride> overrides(ForgeManagedCacheManager manager) throws Exception {
+        var field = ForgeManagedCacheManager.class.getDeclaredField("overrides");
+        field.setAccessible(true);
+        return (Map<String, CachePolicyOverride>) field.get(manager);
     }
 
     private ForgeManagedCacheManager manager() {

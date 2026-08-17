@@ -5,11 +5,18 @@ import com.mdframe.forge.plugin.system.entity.SysDictData;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * 字典数据Mapper接口
  */
 @Mapper
 public interface SysDictDataMapper extends BaseMapper<SysDictData> {
+
+    /**
+     * 按类型查询有效字典项。
+     */
+    List<SysDictData> selectEnabledByType(@Param("dictType") String dictType);
 
     /**
      * 统计同一字典类型下相同键值的有效字典项数量

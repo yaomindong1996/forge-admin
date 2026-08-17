@@ -28,6 +28,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -76,13 +77,13 @@ public class ForgeManagedCacheManager {
     }
 
     public CacheLookup get(CacheDefinition definition, String key) {
-        register(definition);
-        EffectiveCachePolicy policy = effectivePolicy(definition);
-        if (!policy.enabled()) {
-            return CacheLookup.miss();
-        }
         CacheCounters cacheCounters = counters(definition.identity());
         try {
+            register(definition);
+            EffectiveCachePolicy policy = effectivePolicy(definition);
+            if (!policy.enabled()) {
+                return CacheLookup.miss();
+            }
             CacheLookup lookup = handle(definition, policy).get(key);
             if (lookup.hit()) {
                 cacheCounters.hits.increment();
@@ -98,20 +99,20 @@ public class ForgeManagedCacheManager {
     }
 
     public void put(CacheDefinition definition, String key, Object value) {
-        register(definition);
-        EffectiveCachePolicy policy = effectivePolicy(definition);
-        if (!policy.enabled() || value == null && !policy.cacheNull()) {
-            return;
-        }
-        long localTtl = value == null ? policy.nullTtlSeconds() : policy.localTtlSeconds();
-        long storageTtl = policy.cacheMode() == CacheMode.LOCAL
-                ? localTtl
-                : value == null ? policy.nullTtlSeconds() : policy.redisTtlSeconds();
-        ManagedCacheValue cacheValue = new ManagedCacheValue(
-                value,
-                value == null,
-                TimeUnit.SECONDS.toNanos(localTtl));
         try {
+            register(definition);
+            EffectiveCachePolicy policy = effectivePolicy(definition);
+            if (!policy.enabled() || value == null && !policy.cacheNull()) {
+                return;
+            }
+            long localTtl = value == null ? policy.nullTtlSeconds() : policy.localTtlSeconds();
+            long storageTtl = policy.cacheMode() == CacheMode.LOCAL
+                    ? localTtl
+                    : value == null ? policy.nullTtlSeconds() : policy.redisTtlSeconds();
+            ManagedCacheValue cacheValue = new ManagedCacheValue(
+                    value,
+                    value == null,
+                    TimeUnit.SECONDS.toNanos(localTtl));
             handle(definition, policy).put(key, cacheValue, storageTtl);
             counters(definition.identity()).puts.increment();
         } catch (RuntimeException exception) {
@@ -120,8 +121,8 @@ public class ForgeManagedCacheManager {
     }
 
     public void evict(CacheDefinition definition, String key) {
-        register(definition);
         try {
+            register(definition);
             handle(definition, effectivePolicy(definition)).evict(key);
             counters(definition.identity()).evictions.increment();
         } catch (RuntimeException exception) {
@@ -148,11 +149,7 @@ public class ForgeManagedCacheManager {
     }
 
     public void applyOverride(CachePolicyOverride override) {
-        CacheDefinition definition = findDefinition(override.applicationCode(), override.cacheName());
-        if (definition == null) {
-            throw new IllegalArgumentException("缓存定义不存在: " + override.identity());
-        }
-        validatePolicy(definition, EffectiveCachePolicy.from(definition, override));
+        validateOverride(override);
         clearWithoutPublish(override.applicationCode(), override.cacheName());
         overrides.put(override.identity(), override);
         if (redissonClient != null) {
@@ -169,6 +166,20 @@ public class ForgeManagedCacheManager {
                 override));
     }
 
+    /**
+     * 在持久化管理端覆盖前校验代码定义和允许运行边界。
+     */
+    public void validateOverride(CachePolicyOverride override) {
+        if (override == null) {
+            throw new IllegalArgumentException("缓存策略不能为空");
+        }
+        CacheDefinition definition = findDefinition(override.applicationCode(), override.cacheName());
+        if (definition == null) {
+            throw new IllegalArgumentException("缓存定义不存在: " + override.identity());
+        }
+        validatePolicy(definition, EffectiveCachePolicy.from(definition, override));
+    }
+
     public void removeOverride(String applicationCode, String cacheName) {
         String identity = identity(applicationCode, cacheName);
         clearWithoutPublish(applicationCode, cacheName);
@@ -181,6 +192,16 @@ public class ForgeManagedCacheManager {
             }
         }
         publish(new CacheControlMessage(CacheControlAction.RESET, applicationCode, cacheName, null));
+    }
+
+    /**
+     * 删除权威策略快照中已不存在的运行时覆盖，用于应用启动时校准 Redis 控制面。
+     */
+    public void removeOverridesNotIn(Set<String> retainedIdentities) {
+        Set<String> retained = retainedIdentities == null ? Set.of() : Set.copyOf(retainedIdentities);
+        new ArrayList<>(overrides.values()).stream()
+                .filter(override -> !retained.contains(override.identity()))
+                .forEach(override -> removeOverride(override.applicationCode(), override.cacheName()));
     }
 
     public CacheDefinition findDefinition(String applicationCode, String cacheName) {
@@ -246,27 +267,31 @@ public class ForgeManagedCacheManager {
             RMapCache<String, ManagedCacheValue> cache = redissonClient.getMapCache(cacheName);
             return new RedisCacheHandle(cache);
         }
-        long localTtl = policy.cacheNull()
-                ? Math.min(policy.localTtlSeconds(), policy.nullTtlSeconds())
-                : policy.localTtlSeconds();
         LocalCachedMapCacheOptions<String, ManagedCacheValue> options =
                 LocalCachedMapCacheOptions.<String, ManagedCacheValue>defaults()
                         .cacheProvider(LocalCachedMapCacheOptions.CacheProvider.CAFFEINE)
                         .cacheSize(policy.localMaxSize())
-                        .timeToLive(localTtl, TimeUnit.SECONDS)
                         .syncStrategy(LocalCachedMapCacheOptions.SyncStrategy.INVALIDATE)
                         .reconnectionStrategy(LocalCachedMapCacheOptions.ReconnectionStrategy.CLEAR)
                         .storeMode(LocalCachedMapCacheOptions.StoreMode.LOCALCACHE_REDIS);
         RLocalCachedMapCache<String, ManagedCacheValue> cache =
                 redissonClient.getLocalCachedMapCache(cacheName, options);
-        return new MultiLevelCacheHandle(cache);
+        return new MultiLevelCacheHandle(cache, policy.localMaxSize());
     }
 
     private EffectiveCachePolicy effectivePolicy(CacheDefinition definition) {
         refreshPolicySnapshotIfDue();
-        EffectiveCachePolicy policy = EffectiveCachePolicy.from(definition, overrides.get(definition.identity()));
-        validatePolicy(definition, policy);
-        return policy;
+        CachePolicyOverride override = overrides.get(definition.identity());
+        EffectiveCachePolicy policy = EffectiveCachePolicy.from(definition, override);
+        try {
+            validatePolicy(definition, policy);
+            return policy;
+        } catch (IllegalArgumentException exception) {
+            recordFailure(definition.identity(), "应用缓存策略", exception);
+            overrides.remove(definition.identity(), override);
+            closeHandle(definition.identity());
+            return EffectiveCachePolicy.from(definition, null);
+        }
     }
 
     private void refreshPolicySnapshotIfDue() {

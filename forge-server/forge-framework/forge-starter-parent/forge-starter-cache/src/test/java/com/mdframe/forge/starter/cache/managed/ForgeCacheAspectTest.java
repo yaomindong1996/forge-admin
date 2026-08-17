@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ForgeCacheAspectTest {
 
@@ -52,6 +53,51 @@ class ForgeCacheAspectTest {
         assertEquals(2, target.loadCount);
     }
 
+    @Test
+    void shouldProceedWhenKeyExpressionCannotBeEvaluated() {
+        ManagedCacheProperties properties = new ManagedCacheProperties();
+        properties.setApplicationCode("forge-admin");
+        ForgeCacheAspect aspect = new ForgeCacheAspect(
+                new ForgeManagedCacheManager(null, properties),
+                new CacheDefinitionResolver(properties),
+                new ForgeCacheKeyResolver(
+                        new com.fasterxml.jackson.databind.ObjectMapper(),
+                        () -> new CacheIdentity(null, null, null)),
+                new CacheTransactionExecutor(),
+                properties);
+
+        InvalidKeyService target = new InvalidKeyService();
+        AspectJProxyFactory factory = new AspectJProxyFactory(target);
+        factory.addAspect(aspect);
+        InvalidKeyService proxy = factory.getProxy();
+
+        assertEquals("value-1", proxy.load("a"));
+        assertEquals("value-2", proxy.load("a"));
+        assertEquals(2, target.loadCount);
+    }
+
+    @Test
+    void shouldInvokeBusinessMethodOnlyOnceWhenRequiredIdentityIsMissing() {
+        ManagedCacheProperties properties = new ManagedCacheProperties();
+        properties.setApplicationCode("forge-admin");
+        ForgeCacheAspect aspect = new ForgeCacheAspect(
+                new ForgeManagedCacheManager(null, properties),
+                new CacheDefinitionResolver(properties),
+                new ForgeCacheKeyResolver(
+                        new com.fasterxml.jackson.databind.ObjectMapper(),
+                        () -> new CacheIdentity(null, null, null)),
+                new CacheTransactionExecutor(),
+                properties);
+
+        MissingIdentityService target = new MissingIdentityService();
+        AspectJProxyFactory factory = new AspectJProxyFactory(target);
+        factory.addAspect(aspect);
+        MissingIdentityService proxy = factory.getProxy();
+
+        assertThrows(IllegalStateException.class, () -> proxy.load("a"));
+        assertEquals(1, target.loadCount);
+    }
+
     @ForgeCacheConfig(
             name = "sample:cache",
             mode = CacheMode.LOCAL,
@@ -77,6 +123,34 @@ class ForgeCacheAspectTest {
 
         @ForgeCacheEvict(cacheName = "sample:cache", key = "#key")
         public void evict(String key) {
+        }
+    }
+
+    @ForgeCacheConfig(
+            name = "invalid:key-cache",
+            mode = CacheMode.LOCAL,
+            allowedModes = CacheMode.LOCAL,
+            scope = CacheScope.GLOBAL)
+    static class InvalidKeyService {
+
+        private int loadCount;
+
+        @ForgeCacheable(cacheName = "invalid:key-cache", key = "#missing.value")
+        public String load(String key) {
+            loadCount++;
+            return "value-" + loadCount;
+        }
+    }
+
+    @ForgeCacheConfig(name = "missing:identity-cache", mode = CacheMode.LOCAL, scope = CacheScope.TENANT)
+    static class MissingIdentityService {
+
+        private int loadCount;
+
+        @ForgeCacheable(cacheName = "missing:identity-cache", key = "#key")
+        public String load(String key) {
+            loadCount++;
+            throw new IllegalStateException("business failure");
         }
     }
 }

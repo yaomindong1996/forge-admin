@@ -10,6 +10,7 @@ import com.mdframe.forge.starter.cache.managed.model.CacheDefinition;
 import com.mdframe.forge.starter.cache.managed.model.CacheLookup;
 import com.mdframe.forge.starter.cache.managed.properties.ManagedCacheProperties;
 import com.mdframe.forge.starter.cache.managed.transaction.CacheTransactionExecutor;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -23,6 +24,7 @@ import java.util.Optional;
 
 @Aspect
 @Order(Ordered.LOWEST_PRECEDENCE - 100)
+@Slf4j
 public class ForgeCacheAspect {
 
     private final ForgeManagedCacheManager cacheManager;
@@ -48,19 +50,33 @@ public class ForgeCacheAspect {
         if (!properties.isAnnotationEnabled()) {
             return joinPoint.proceed();
         }
-        Invocation invocation = invocation(joinPoint, annotation.cacheName());
-        Optional<String> key = keyResolver.resolve(
-                invocation.method(), joinPoint.getTarget(), joinPoint.getArgs(), annotation.key(),
-                invocation.definition().scope(), null);
+        Invocation invocation;
+        Optional<String> key;
+        try {
+            invocation = invocation(joinPoint, annotation.cacheName());
+            key = keyResolver.resolve(
+                    invocation.method(), joinPoint.getTarget(), joinPoint.getArgs(), annotation.key(),
+                    invocation.definition().scope(), null);
+        } catch (RuntimeException exception) {
+            log.warn("准备受管缓存读取失败，已穿透: cache={}", annotation.cacheName(), exception);
+            return joinPoint.proceed();
+        }
         if (key.isEmpty()) {
             return joinPoint.proceed();
         }
-        CacheLookup lookup = cacheManager.get(invocation.definition(), key.get());
+        CacheLookup lookup;
+        try {
+            lookup = cacheManager.get(invocation.definition(), key.get());
+        } catch (RuntimeException exception) {
+            log.warn("读取受管缓存失败，已穿透: cache={}", annotation.cacheName(), exception);
+            lookup = CacheLookup.miss();
+        }
         if (lookup.hit()) {
             return lookup.value();
         }
         Object result = joinPoint.proceed();
-        transactionExecutor.afterCommit(() -> cacheManager.put(invocation.definition(), key.get(), result));
+        afterCommit(annotation.cacheName(), "写入", () ->
+                cacheManager.put(invocation.definition(), key.get(), result));
         return result;
     }
 
@@ -70,12 +86,16 @@ public class ForgeCacheAspect {
         if (!properties.isAnnotationEnabled()) {
             return result;
         }
-        Invocation invocation = invocation(joinPoint, annotation.cacheName());
-        Optional<String> key = keyResolver.resolve(
-                invocation.method(), joinPoint.getTarget(), joinPoint.getArgs(), annotation.key(),
-                invocation.definition().scope(), result);
-        key.ifPresent(cacheKey -> transactionExecutor.afterCommit(
-                () -> cacheManager.put(invocation.definition(), cacheKey, result)));
+        try {
+            Invocation invocation = invocation(joinPoint, annotation.cacheName());
+            Optional<String> key = keyResolver.resolve(
+                    invocation.method(), joinPoint.getTarget(), joinPoint.getArgs(), annotation.key(),
+                    invocation.definition().scope(), result);
+            key.ifPresent(cacheKey -> afterCommit(annotation.cacheName(), "写入", () ->
+                    cacheManager.put(invocation.definition(), cacheKey, result)));
+        } catch (RuntimeException exception) {
+            log.warn("准备受管缓存写入失败，业务结果保持不变: cache={}", annotation.cacheName(), exception);
+        }
         return result;
     }
 
@@ -85,17 +105,35 @@ public class ForgeCacheAspect {
         if (!properties.isAnnotationEnabled()) {
             return result;
         }
-        Invocation invocation = invocation(joinPoint, annotation.cacheName());
-        if (annotation.allEntries()) {
-            transactionExecutor.afterCommit(() -> cacheManager.clear(invocation.definition()));
-            return result;
+        try {
+            Invocation invocation = invocation(joinPoint, annotation.cacheName());
+            if (annotation.allEntries()) {
+                afterCommit(annotation.cacheName(), "清空", () -> cacheManager.clear(invocation.definition()));
+                return result;
+            }
+            Optional<String> key = keyResolver.resolve(
+                    invocation.method(), joinPoint.getTarget(), joinPoint.getArgs(), annotation.key(),
+                    invocation.definition().scope(), result);
+            key.ifPresent(cacheKey -> afterCommit(annotation.cacheName(), "删除", () ->
+                    cacheManager.evict(invocation.definition(), cacheKey)));
+        } catch (RuntimeException exception) {
+            log.warn("准备受管缓存失效失败，业务结果保持不变: cache={}", annotation.cacheName(), exception);
         }
-        Optional<String> key = keyResolver.resolve(
-                invocation.method(), joinPoint.getTarget(), joinPoint.getArgs(), annotation.key(),
-                invocation.definition().scope(), result);
-        key.ifPresent(cacheKey -> transactionExecutor.afterCommit(
-                () -> cacheManager.evict(invocation.definition(), cacheKey)));
         return result;
+    }
+
+    private void afterCommit(String cacheName, String operation, Runnable action) {
+        try {
+            transactionExecutor.afterCommit(() -> {
+                try {
+                    action.run();
+                } catch (RuntimeException exception) {
+                    log.warn("受管缓存{}失败，业务结果保持不变: cache={}", operation, cacheName, exception);
+                }
+            });
+        } catch (RuntimeException exception) {
+            log.warn("注册受管缓存提交后{}失败，业务结果保持不变: cache={}", operation, cacheName, exception);
+        }
     }
 
     private Invocation invocation(ProceedingJoinPoint joinPoint, String cacheName) {

@@ -1,326 +1,337 @@
 <template>
-  <div class="cache-management-page">
-    <!-- 监控指标卡片 -->
-    <div class="metrics-section">
-      <div class="metrics-grid">
-        <!-- 内存使用 -->
-        <div class="metric-card">
-          <div class="metric-icon memory">
-            <i class="i-mdi:memory" />
-          </div>
-          <div class="metric-content">
-            <div class="metric-label">
-              内存使用
-            </div>
-            <div class="metric-value">
-              {{ cacheMetrics.memory.usedMemoryHuman || '-' }}
-            </div>
-            <div class="metric-sub">
-              峰值: {{ cacheMetrics.memory.usedMemoryRssHuman || '-' }}
-            </div>
-          </div>
-        </div>
-
-        <!-- QPS -->
-        <div class="metric-card">
-          <div class="metric-icon qps">
-            <i class="i-mdi:chart-line" />
-          </div>
-          <div class="metric-content">
-            <div class="metric-label">
-              QPS
-            </div>
-            <div class="metric-value">
-              {{ cacheMetrics.stats.instantaneousOpsPerSec || '0' }}
-            </div>
-            <div class="metric-sub">
-              次/秒
-            </div>
-          </div>
-        </div>
-
-        <!-- 连接数 -->
-        <div class="metric-card">
-          <div class="metric-icon connections">
-            <i class="i-mdi:connection" />
-          </div>
-          <div class="metric-content">
-            <div class="metric-label">
-              总连接数
-            </div>
-            <div class="metric-value">
-              {{ formatNumber(cacheMetrics.stats.totalConnectionsReceived) }}
-            </div>
-            <div class="metric-sub">
-              已处理命令: {{ formatNumber(cacheMetrics.stats.totalCommandsProcessed) }}
-            </div>
-          </div>
-        </div>
-
-        <!-- 命中率 -->
-        <div class="metric-card">
-          <div class="metric-icon hitrate">
-            <i class="i-mdi:target" />
-          </div>
-          <div class="metric-content">
-            <div class="metric-label">
-              命中率
-            </div>
-            <div class="metric-value">
-              {{ cacheMetrics.stats.hitRate || '0%' }}
-            </div>
-            <div class="metric-sub">
-              命中: {{ formatNumber(cacheMetrics.stats.keyspaceHits) }} / 未命中: {{ formatNumber(cacheMetrics.stats.keyspaceMisses) }}
-            </div>
-          </div>
-        </div>
-
-        <!-- 过期Key -->
-        <div class="metric-card">
-          <div class="metric-icon expired">
-            <i class="i-mdi:clock-remove-outline" />
-          </div>
-          <div class="metric-content">
-            <div class="metric-label">
-              过期Key
-            </div>
-            <div class="metric-value">
-              {{ formatNumber(cacheMetrics.stats.expiredKeys) }}
-            </div>
-            <div class="metric-sub">
-              驱逐: {{ formatNumber(cacheMetrics.stats.evictedKeys) }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Redis版本 -->
-        <div class="metric-card">
-          <div class="metric-icon version">
-            <i class="i-mdi:information-outline" />
-          </div>
-          <div class="metric-content">
-            <div class="metric-label">
-              Redis版本
-            </div>
-            <div class="metric-value">
-              {{ cacheMetrics.server.redisVersion || '-' }}
-            </div>
-            <div class="metric-sub">
-              运行时间: {{ formatUptime(cacheMetrics.server.uptimeInSeconds) }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="cache-container">
-      <!-- 左侧Key树 -->
-      <div class="left-panel" :style="{ width: `${leftPanelWidth}px` }">
-        <div class="panel-header">
-          <n-input
-            v-model:value="searchPattern"
-            placeholder="搜索Key (支持通配符*)"
-            clearable
-            @keyup.enter="loadKeys"
-          >
-            <template #prefix>
-              <i class="i-mdi:magnify" />
-            </template>
-          </n-input>
-          <div class="header-actions">
-            <n-button size="small" class="mr-2" @click="loadKeys">
-              <template #icon>
-                <i class="i-mdi:refresh" />
-              </template>
-              刷新
-            </n-button>
-            <n-button type="error" size="small" @click="handleClearAll">
-              <template #icon>
-                <i class="i-mdi:delete-sweep" />
-              </template>
-              清空
-            </n-button>
-          </div>
-        </div>
-
-        <div class="panel-body">
-          <n-spin :show="treeLoading" class="tree-spin-wrapper">
-            <div class="tree-wrapper">
-              <n-tree
-                block-line
-                :data="treeData"
-                :pattern="treePattern"
-                :show-irrelevant-nodes="false"
-                :selected-keys="selectedTreeKeys"
-                selectable
-                :render-label="renderTreeLabel"
-                :render-prefix="renderTreePrefix"
-                @update:selected-keys="handleTreeSelect"
-              />
-              <n-empty v-if="!treeLoading && treeData.length === 0" description="暂无数据" class="mt-8" />
-            </div>
-          </n-spin>
-        </div>
-
-        <div class="panel-footer">
-          <n-text depth="3" style="font-size: 12px">
-            <template v-if="totalKeys > 200">
-              显示 200 个 / 共 {{ totalKeys }} 个Key
-            </template>
-            <template v-else>
-              共 {{ totalKeys }} 个Key
-            </template>
-          </n-text>
-        </div>
-      </div>
-
-      <!-- 拖拽分隔条 -->
-      <div
-        class="resize-handle"
-        @mousedown="startResize"
-      >
-        <div class="resize-line" />
-      </div>
-
-      <!-- 右侧详情 -->
-      <div class="right-panel">
-        <div v-if="!currentKey" class="empty-state">
-          <i class="i-mdi:database-outline empty-icon" />
-          <div class="empty-text">
-            请选择左侧的Key查看详情
-          </div>
-        </div>
-
-        <div v-else class="detail-container">
-          <!-- 头部 -->
-          <div class="detail-header">
-            <div class="header-info">
-              <div class="key-name">
-                <i class="i-mdi:key-variant" />
-                <span>{{ currentKey }}</span>
+  <NTabs v-model:value="activeView" type="line" animated class="cache-view-tabs">
+    <NTabPane name="managed" tab="受管缓存">
+      <ManagedCachePolicies />
+    </NTabPane>
+    <NTabPane name="redis" tab="Redis 诊断">
+      <div class="cache-management-page">
+        <!-- 监控指标卡片 -->
+        <div class="metrics-section">
+          <div class="metrics-grid">
+            <!-- 内存使用 -->
+            <div class="metric-card">
+              <div class="metric-icon memory">
+                <i class="i-mdi:memory" />
               </div>
-              <div class="key-meta">
-                <NTag :type="getTypeTag(currentCache?.type).type" size="small" class="mr-2">
-                  {{ currentCache?.type }}
-                </NTag>
-                <NTag type="info" size="small">
+              <div class="metric-content">
+                <div class="metric-label">
+                  内存使用
+                </div>
+                <div class="metric-value">
+                  {{ cacheMetrics.memory.usedMemoryHuman || '-' }}
+                </div>
+                <div class="metric-sub">
+                  峰值: {{ cacheMetrics.memory.usedMemoryRssHuman || '-' }}
+                </div>
+              </div>
+            </div>
+
+            <!-- QPS -->
+            <div class="metric-card">
+              <div class="metric-icon qps">
+                <i class="i-mdi:chart-line" />
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">
+                  QPS
+                </div>
+                <div class="metric-value">
+                  {{ cacheMetrics.stats.instantaneousOpsPerSec || '0' }}
+                </div>
+                <div class="metric-sub">
+                  次/秒
+                </div>
+              </div>
+            </div>
+
+            <!-- 连接数 -->
+            <div class="metric-card">
+              <div class="metric-icon connections">
+                <i class="i-mdi:connection" />
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">
+                  总连接数
+                </div>
+                <div class="metric-value">
+                  {{ formatNumber(cacheMetrics.stats.totalConnectionsReceived) }}
+                </div>
+                <div class="metric-sub">
+                  已处理命令: {{ formatNumber(cacheMetrics.stats.totalCommandsProcessed) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- 命中率 -->
+            <div class="metric-card">
+              <div class="metric-icon hitrate">
+                <i class="i-mdi:target" />
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">
+                  命中率
+                </div>
+                <div class="metric-value">
+                  {{ cacheMetrics.stats.hitRate || '0%' }}
+                </div>
+                <div class="metric-sub">
+                  命中: {{ formatNumber(cacheMetrics.stats.keyspaceHits) }} / 未命中: {{ formatNumber(cacheMetrics.stats.keyspaceMisses) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- 过期Key -->
+            <div class="metric-card">
+              <div class="metric-icon expired">
+                <i class="i-mdi:clock-remove-outline" />
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">
+                  过期Key
+                </div>
+                <div class="metric-value">
+                  {{ formatNumber(cacheMetrics.stats.expiredKeys) }}
+                </div>
+                <div class="metric-sub">
+                  驱逐: {{ formatNumber(cacheMetrics.stats.evictedKeys) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Redis版本 -->
+            <div class="metric-card">
+              <div class="metric-icon version">
+                <i class="i-mdi:information-outline" />
+              </div>
+              <div class="metric-content">
+                <div class="metric-label">
+                  Redis版本
+                </div>
+                <div class="metric-value">
+                  {{ cacheMetrics.server.redisVersion || '-' }}
+                </div>
+                <div class="metric-sub">
+                  运行时间: {{ formatUptime(cacheMetrics.server.uptimeInSeconds) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cache-container">
+          <!-- 左侧Key树 -->
+          <div class="left-panel" :style="{ width: `${leftPanelWidth}px` }">
+            <div class="panel-header">
+              <n-input
+                v-model:value="searchPattern"
+                placeholder="搜索Key (支持通配符*)"
+                clearable
+                @keyup.enter="loadKeys"
+              >
+                <template #prefix>
+                  <i class="i-mdi:magnify" />
+                </template>
+              </n-input>
+              <div class="header-actions">
+                <n-button size="small" class="mr-2" @click="loadKeys">
                   <template #icon>
-                    <i class="i-mdi:clock-outline" />
+                    <i class="i-mdi:refresh" />
                   </template>
-                  {{ currentCache?.ttlDesc }}
-                </NTag>
+                  刷新
+                </n-button>
+                <n-button type="error" size="small" @click="handleClearAll">
+                  <template #icon>
+                    <i class="i-mdi:delete-sweep" />
+                  </template>
+                  清空
+                </n-button>
               </div>
             </div>
-            <div class="header-actions">
-              <n-button size="small" class="mr-2" @click="refreshCurrentKey">
-                <template #icon>
-                  <i class="i-mdi:refresh" />
+
+            <div class="panel-body">
+              <n-spin :show="treeLoading" class="tree-spin-wrapper">
+                <div class="tree-wrapper">
+                  <n-tree
+                    block-line
+                    :data="treeData"
+                    :pattern="treePattern"
+                    :show-irrelevant-nodes="false"
+                    :selected-keys="selectedTreeKeys"
+                    selectable
+                    :render-label="renderTreeLabel"
+                    :render-prefix="renderTreePrefix"
+                    @update:selected-keys="handleTreeSelect"
+                  />
+                  <n-empty v-if="!treeLoading && treeData.length === 0" description="暂无数据" class="mt-8" />
+                </div>
+              </n-spin>
+            </div>
+
+            <div class="panel-footer">
+              <n-text depth="3" style="font-size: 12px">
+                <template v-if="totalKeys > 200">
+                  显示 200 个 / 共 {{ totalKeys }} 个Key
                 </template>
-              </n-button>
-              <n-button type="error" size="small" @click="handleDeleteCurrent">
-                <template #icon>
-                  <i class="i-mdi:delete" />
+                <template v-else>
+                  共 {{ totalKeys }} 个Key
                 </template>
-                删除
-              </n-button>
+              </n-text>
             </div>
           </div>
 
-          <!-- 内容区 -->
-          <div class="detail-body">
-            <n-spin :show="detailLoading">
-              <div v-if="currentCache" class="cache-content">
-                <!-- String类型 -->
-                <div v-if="currentCache.type === 'STRING'" class="value-display">
-                  <div class="content-toolbar">
-                    <n-text strong>
-                      Value:
-                    </n-text>
-                    <n-button
-                      v-if="isJsonString(currentCache.value)"
-                      text
-                      size="tiny"
-                      @click="jsonFormatted = !jsonFormatted"
-                    >
-                      {{ jsonFormatted ? '原始格式' : 'JSON格式' }}
-                    </n-button>
-                  </div>
-                  <pre v-if="isJsonString(currentCache.value) && jsonFormatted" class="json-content">{{ formatJson(currentCache.value) }}</pre>
-                  <pre v-else class="text-content">{{ currentCache.value }}</pre>
-                </div>
+          <!-- 拖拽分隔条 -->
+          <div
+            class="resize-handle"
+            @mousedown="startResize"
+          >
+            <div class="resize-line" />
+          </div>
 
-                <!-- Hash类型 -->
-                <div v-else-if="currentCache.type === 'HASH'" class="value-display">
-                  <div class="content-toolbar">
-                    <n-text strong>
-                      Hash Fields ({{ Object.keys(currentCache.value || {}).length }}):
-                    </n-text>
-                  </div>
-                  <n-data-table
-                    :columns="hashColumns"
-                    :data="formatHashData(currentCache.value)"
-                    :pagination="false"
-                    max-height="calc(100vh - 320px)"
-                    size="small"
-                    striped
-                  />
-                </div>
+          <!-- 右侧详情 -->
+          <div class="right-panel">
+            <div v-if="!currentKey" class="empty-state">
+              <i class="i-mdi:database-outline empty-icon" />
+              <div class="empty-text">
+                请选择左侧的Key查看详情
+              </div>
+            </div>
 
-                <!-- Set类型 -->
-                <div v-else-if="currentCache.type === 'SET'" class="value-display">
-                  <div class="content-toolbar">
-                    <n-text strong>
-                      Set Members ({{ (currentCache.value || []).length }}):
-                    </n-text>
+            <div v-else class="detail-container">
+              <!-- 头部 -->
+              <div class="detail-header">
+                <div class="header-info">
+                  <div class="key-name">
+                    <i class="i-mdi:key-variant" />
+                    <span>{{ currentKey }}</span>
                   </div>
-                  <div class="set-list">
-                    <div v-for="(item, index) in currentCache.value" :key="index" class="set-item">
-                      {{ formatValue(item) }}
+                  <div class="key-meta">
+                    <NTag :type="getTypeTag(currentCache?.type).type" size="small" class="mr-2">
+                      {{ currentCache?.type }}
+                    </NTag>
+                    <NTag type="info" size="small">
+                      <template #icon>
+                        <i class="i-mdi:clock-outline" />
+                      </template>
+                      {{ currentCache?.ttlDesc }}
+                    </NTag>
+                  </div>
+                </div>
+                <div class="header-actions">
+                  <n-button size="small" class="mr-2" @click="refreshCurrentKey">
+                    <template #icon>
+                      <i class="i-mdi:refresh" />
+                    </template>
+                  </n-button>
+                  <n-button type="error" size="small" @click="handleDeleteCurrent">
+                    <template #icon>
+                      <i class="i-mdi:delete" />
+                    </template>
+                    删除
+                  </n-button>
+                </div>
+              </div>
+
+              <!-- 内容区 -->
+              <div class="detail-body">
+                <n-spin :show="detailLoading">
+                  <div v-if="currentCache" class="cache-content">
+                    <!-- String类型 -->
+                    <div v-if="currentCache.type === 'STRING'" class="value-display">
+                      <div class="content-toolbar">
+                        <n-text strong>
+                          Value:
+                        </n-text>
+                        <n-button
+                          v-if="isJsonString(currentCache.value)"
+                          text
+                          size="tiny"
+                          @click="jsonFormatted = !jsonFormatted"
+                        >
+                          {{ jsonFormatted ? '原始格式' : 'JSON格式' }}
+                        </n-button>
+                      </div>
+                      <pre v-if="isJsonString(currentCache.value) && jsonFormatted" class="json-content">{{ formatJson(currentCache.value) }}</pre>
+                      <pre v-else class="text-content">{{ currentCache.value }}</pre>
+                    </div>
+
+                    <!-- Hash类型 -->
+                    <div v-else-if="currentCache.type === 'HASH'" class="value-display">
+                      <div class="content-toolbar">
+                        <n-text strong>
+                          Hash Fields ({{ Object.keys(currentCache.value || {}).length }}):
+                        </n-text>
+                      </div>
+                      <n-data-table
+                        :columns="hashColumns"
+                        :data="formatHashData(currentCache.value)"
+                        :pagination="false"
+                        max-height="calc(100vh - 320px)"
+                        size="small"
+                        striped
+                      />
+                    </div>
+
+                    <!-- Set类型 -->
+                    <div v-else-if="currentCache.type === 'SET'" class="value-display">
+                      <div class="content-toolbar">
+                        <n-text strong>
+                          Set Members ({{ (currentCache.value || []).length }}):
+                        </n-text>
+                      </div>
+                      <div class="set-list">
+                        <div v-for="(item, index) in currentCache.value" :key="index" class="set-item">
+                          {{ formatValue(item) }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- List类型 -->
+                    <div v-else-if="currentCache.type === 'LIST'" class="value-display">
+                      <div class="content-toolbar">
+                        <n-text strong>
+                          List Elements ({{ (currentCache.value || []).length }}):
+                        </n-text>
+                      </div>
+                      <n-data-table
+                        :columns="listColumns"
+                        :data="formatListData(currentCache.value)"
+                        :pagination="false"
+                        max-height="calc(100vh - 320px)"
+                        size="small"
+                        striped
+                      />
+                    </div>
+
+                    <!-- 其他类型 -->
+                    <div v-else class="value-display">
+                      <div class="content-toolbar">
+                        <n-text strong>
+                          Value:
+                        </n-text>
+                      </div>
+                      <pre class="text-content">{{ JSON.stringify(currentCache.value, null, 2) }}</pre>
                     </div>
                   </div>
-                </div>
-
-                <!-- List类型 -->
-                <div v-else-if="currentCache.type === 'LIST'" class="value-display">
-                  <div class="content-toolbar">
-                    <n-text strong>
-                      List Elements ({{ (currentCache.value || []).length }}):
-                    </n-text>
-                  </div>
-                  <n-data-table
-                    :columns="listColumns"
-                    :data="formatListData(currentCache.value)"
-                    :pagination="false"
-                    max-height="calc(100vh - 320px)"
-                    size="small"
-                    striped
-                  />
-                </div>
-
-                <!-- 其他类型 -->
-                <div v-else class="value-display">
-                  <div class="content-toolbar">
-                    <n-text strong>
-                      Value:
-                    </n-text>
-                  </div>
-                  <pre class="text-content">{{ JSON.stringify(currentCache.value, null, 2) }}</pre>
-                </div>
+                </n-spin>
               </div>
-            </n-spin>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </NTabPane>
+  </NTabs>
 </template>
 
 <script setup>
 import { NIcon, NTag } from 'naive-ui'
-import { h, onBeforeUnmount, onMounted, ref } from 'vue'
+import { h, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { request } from '@/utils'
+import ManagedCachePolicies from './cache/ManagedCachePolicies.vue'
 
 defineOptions({ name: 'CacheManagement' })
+
+const activeView = ref('managed')
+let metricsTimer = null
 
 // 左侧面板宽度
 const leftPanelWidth = ref(320)
@@ -361,20 +372,29 @@ const listColumns = [
 
 // 生命周期
 onMounted(() => {
-  loadKeys()
-  loadMetrics()
   // 添加全局事件监听
   document.addEventListener('mousemove', handleMouseMove)
   document.addEventListener('mouseup', handleMouseUp)
+})
 
-  // 定时刷新监控指标（每30秒）
-  setInterval(loadMetrics, 30000)
+watch(activeView, (view) => {
+  if (metricsTimer) {
+    clearInterval(metricsTimer)
+    metricsTimer = null
+  }
+  if (view === 'redis') {
+    loadKeys()
+    loadMetrics()
+    metricsTimer = setInterval(loadMetrics, 30000)
+  }
 })
 
 onBeforeUnmount(() => {
   // 移除全局事件监听
   document.removeEventListener('mousemove', handleMouseMove)
   document.removeEventListener('mouseup', handleMouseUp)
+  if (metricsTimer)
+    clearInterval(metricsTimer)
 })
 
 // 加载监控指标
@@ -425,7 +445,7 @@ function formatUptime(seconds) {
 }
 
 // 拖拽调整宽度
-function startResize(e) {
+function startResize() {
   isResizing.value = true
   document.body.style.cursor = 'col-resize'
   document.body.style.userSelect = 'none'
@@ -473,7 +493,7 @@ async function loadKeys() {
       }
     }
   }
-  catch (error) {
+  catch {
     window.$message.error('加载Keys失败')
   }
   finally {
@@ -484,8 +504,6 @@ async function loadKeys() {
 // 构建树形结构
 function buildTree(keys) {
   const tree = []
-  const map = new Map()
-
   // 主分隔符优先级: 冒号(:)优先级最高
   const primarySeparator = ':'
 
@@ -598,7 +616,7 @@ async function loadKeyDetail(key) {
       currentCache.value = res.data
     }
   }
-  catch (error) {
+  catch {
     window.$message.error('获取缓存详情失败')
   }
   finally {
@@ -637,7 +655,7 @@ function handleDeleteCurrent() {
           await loadKeys()
         }
       }
-      catch (error) {
+      catch {
         window.$message.error('删除失败')
       }
     },
@@ -664,7 +682,7 @@ function handleClearAll() {
           await loadKeys()
         }
       }
-      catch (error) {
+      catch {
         window.$message.error('清空失败')
       }
     },
@@ -691,7 +709,7 @@ function isJsonString(str) {
     const obj = JSON.parse(str)
     return typeof obj === 'object' && obj !== null
   }
-  catch (e) {
+  catch {
     return false
   }
 }
@@ -702,7 +720,7 @@ function formatJson(str) {
     const obj = JSON.parse(str)
     return JSON.stringify(obj, null, 2)
   }
-  catch (e) {
+  catch {
     return str
   }
 }
@@ -739,6 +757,17 @@ function formatValue(value) {
 </script>
 
 <style scoped>
+.cache-view-tabs {
+  height: 100%;
+  padding: 0 16px;
+  background: #fff;
+}
+
+.cache-view-tabs :deep(.n-tabs-pane-wrapper),
+.cache-view-tabs :deep(.n-tab-pane) {
+  height: 100%;
+}
+
 .cache-management-page {
   height: 100%;
   width: 100%;

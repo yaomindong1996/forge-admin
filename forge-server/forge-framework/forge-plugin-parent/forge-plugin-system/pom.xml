@@ -28,6 +28,11 @@
             <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-starter-auth</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-starter-cache</artifactId>
+        </dependency>
         
         <dependency>
             <groupId>com.mdframe.forge</groupId>

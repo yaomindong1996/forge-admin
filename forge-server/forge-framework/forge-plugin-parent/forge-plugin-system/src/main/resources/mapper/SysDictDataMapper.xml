@@ -2,6 +2,32 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mdframe.forge.plugin.system.mapper.SysDictDataMapper">
 
+    <select id="selectEnabledByType" resultType="com.mdframe.forge.plugin.system.entity.SysDictData">
+        SELECT
+            dict_code,
+            tenant_id,
+            dict_sort,
+            dict_label,
+            dict_value,
+            dict_type,
+            css_class,
+            list_class,
+            is_default,
+            dict_status,
+            remark,
+            create_by,
+            create_time,
+            create_dept,
+            update_by,
+            update_time,
+            del_flag
+        FROM sys_dict_data
+        WHERE dict_type = #{dictType}
+          AND dict_status = 1
+          AND del_flag = 0
+        ORDER BY dict_sort ASC
+    </select>
+
     <select id="countByDictTypeAndValue" resultType="int">
         SELECT COUNT(1)
         FROM sys_dict_data
