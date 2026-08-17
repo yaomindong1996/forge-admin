@@ -73,6 +73,7 @@ Forge 已有 `forge-starter-cache`，底层同时依赖 Redisson 与 Caffeine，
 - `@ForgeCachePut` 始终执行业务方法，成功后按事务边界写入返回值。
 - `@ForgeCacheEvict` 成功后按事务边界删除指定 key 或整个命名缓存。
 - 同一应用和缓存名只能有一个兼容定义；冲突定义失败关闭并记录明确错误。
+- 类上已经声明一个或多个 `@ForgeCacheConfig` 时，方法注解引用的缓存名必须精确匹配；拼写错误不得降级为隐式全局定义。
 - Spring 代理自调用不触发注解，文档和测试必须明确该边界。
 
 ### 3.3 键与租户安全
@@ -91,6 +92,9 @@ Forge 已有 `forge-starter-cache`，底层同时依赖 Redisson 与 Caffeine，
 - 读取、写入、删除、注册或策略通知失败时记录受控日志和失败计数，业务调用继续执行。
 - 管理端停用、恢复默认或改变关键策略时清理当前缓存，避免重新启用后读取旧值。
 - Redis TTL 必须大于 0；MULTI 模式本地 TTL 必须小于等于 Redis TTL。
+- 数据、定义、策略和控制事件必须使用显式类型化 codec，并复用应用 `ObjectMapper` 模块；不得依赖全局 codec 推断 final record 类型。
+- 缓存定义只在本地首次注册时通过 Redis `putIfAbsent` 发布；运行与隔离字段不兼容时拒绝使用且不得覆盖远端定义，描述和声明来源不影响兼容性。
+- 本地策略覆盖以不可变 Map 快照原子发布，刷新期间不得暴露临时空状态。
 
 ## 4. 数据模型
 
@@ -137,6 +141,7 @@ Forge 已有 `forge-starter-cache`，底层同时依赖 Redisson 与 Caffeine，
 7. `sys_cache_policy` 有完整审计字段、显式 `@TableLogic` 和 active-only 唯一索引。
 8. 字典查询移除手写两级缓存，修改后提交成功才失效。
 9. starter 定向测试、system 定向测试、Admin 聚合编译、Flyway 静态检查、前端构建均通过或记录真实环境阻断。
+10. 四类 Redis envelope 通过真实 codec 往返；缓存名拼写错误、定义重复/冲突和策略快照替换均有回归测试。
 
 ## 8. 风险与回滚
 
@@ -155,6 +160,7 @@ Forge 已有 `forge-starter-cache`，底层同时依赖 Redisson 与 Caffeine，
 - [x] 管理端实现。
 - [x] 字典迁移。
 - [x] 增量验证与审查。
+- [x] Review 发现的 codec、定义解析/注册和策略快照问题已修复并完成增量验证。
 - [ ] 真实 MySQL/Redis/Admin、双实例失效同步和普通管理员 403 E2E 由用户执行。
 
-代码实现阶段已完成。自动化验证覆盖 starter、系统控制面、字典迁移、Mapper/Flyway 静态合同、Admin 聚合编译和前端测试/构建；真实环境 E2E 不在本轮自动执行范围内，不能据此宣称运行态验收通过。
+代码实现和 Review 修复阶段已完成，下一步应重新执行 `/review managed-annotation-cache`。自动化验证覆盖 starter、系统控制面、字典迁移、Mapper/Flyway 静态合同、Admin 聚合编译和前端测试/构建；真实环境 E2E 不在本轮自动执行范围内，不能据此宣称运行态验收通过。

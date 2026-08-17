@@ -52,3 +52,11 @@
 - [x] 回填 `execution-log.md`、`tasks.md` 和 `spec.md`，记录警告与跳过项。
 - [x] 将确认后的可复用架构决策写入 `code-copilot/memory/decisions.md`。
 - [ ] 由用户在真实 MySQL/Redis/Admin 环境执行 Flyway、双实例失效同步和权限 E2E。
+
+## Task 8：Review 增量修复
+
+- [x] 为缓存值、定义、策略和控制消息配置显式类型化 Redis codec，并补充真实序列化往返测试。
+- [x] 类上存在缓存声明时拒绝未匹配的缓存名，避免拼写错误降级为隐式 TENANT/REDIS 缓存。
+- [x] 定义只在本地首次注册时原子写入 Redis，并拒绝远端不兼容定义。
+- [x] 将策略覆盖改为不可变快照原子替换，消除刷新过程中的空窗口。
+- [x] 执行本轮增量测试、聚合编译和静态检查并回填执行日志。

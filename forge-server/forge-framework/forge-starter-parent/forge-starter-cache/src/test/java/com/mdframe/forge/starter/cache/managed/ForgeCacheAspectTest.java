@@ -98,6 +98,29 @@ class ForgeCacheAspectTest {
         assertEquals(1, target.loadCount);
     }
 
+    @Test
+    void shouldBypassCacheWhenDeclaredCacheNameIsMisspelled() {
+        ManagedCacheProperties properties = new ManagedCacheProperties();
+        properties.setApplicationCode("forge-admin");
+        ForgeCacheAspect aspect = new ForgeCacheAspect(
+                new ForgeManagedCacheManager(null, properties),
+                new CacheDefinitionResolver(properties),
+                new ForgeCacheKeyResolver(
+                        new com.fasterxml.jackson.databind.ObjectMapper(),
+                        () -> new CacheIdentity(null, null, null)),
+                new CacheTransactionExecutor(),
+                properties);
+
+        MisspelledCacheService target = new MisspelledCacheService();
+        AspectJProxyFactory factory = new AspectJProxyFactory(target);
+        factory.addAspect(aspect);
+        MisspelledCacheService proxy = factory.getProxy();
+
+        assertEquals("value-1", proxy.load("a"));
+        assertEquals("value-2", proxy.load("a"));
+        assertEquals(2, target.loadCount);
+    }
+
     @ForgeCacheConfig(
             name = "sample:cache",
             mode = CacheMode.LOCAL,
@@ -151,6 +174,22 @@ class ForgeCacheAspectTest {
         public String load(String key) {
             loadCount++;
             throw new IllegalStateException("business failure");
+        }
+    }
+
+    @ForgeCacheConfig(
+            name = "declared:cache",
+            mode = CacheMode.LOCAL,
+            allowedModes = CacheMode.LOCAL,
+            scope = CacheScope.GLOBAL)
+    static class MisspelledCacheService {
+
+        private int loadCount;
+
+        @ForgeCacheable(cacheName = "declared:typo", key = "#key")
+        public String load(String key) {
+            loadCount++;
+            return "value-" + loadCount;
         }
     }
 }

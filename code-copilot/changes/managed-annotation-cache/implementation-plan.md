@@ -118,3 +118,19 @@
 - [ ] Mark only actually completed tasks and spec acceptance items.
 - [ ] Record the accepted “custom AOP + Redisson/Caffeine + DB override” architecture decision.
 - [ ] Commit documentation only with message `[managed-annotation-cache] 完成验证与决策沉淀`.
+
+### Task 8: Fix review findings in the managed cache runtime
+
+**Files:**
+- Modify: `forge-server/forge-framework/forge-starter-parent/forge-starter-cache/src/main/java/com/mdframe/forge/starter/cache/managed/ForgeManagedCacheManager.java`
+- Modify: `forge-server/forge-framework/forge-starter-parent/forge-starter-cache/src/main/java/com/mdframe/forge/starter/cache/managed/definition/CacheDefinitionResolver.java`
+- Modify: `forge-server/forge-framework/forge-starter-parent/forge-starter-cache/src/test/java/com/mdframe/forge/starter/cache/managed/ForgeManagedCacheManagerTest.java`
+- Modify: `forge-server/forge-framework/forge-starter-parent/forge-starter-cache/src/test/java/com/mdframe/forge/starter/cache/managed/ForgeCacheAspectTest.java`
+- Create: focused typed-codec round-trip test under `.../src/test/java/com/mdframe/forge/starter/cache/managed/`
+- Modify: `code-copilot/changes/managed-annotation-cache/{tasks.md,test-spec.md,execution-log.md}`
+
+- [x] Use explicit `TypedJsonJacksonCodec` instances for managed values, definitions, policies and control events; prove every record can round-trip with the configured Jackson modules.
+- [x] Reject an unmatched cache name when the target class declares one or more `@ForgeCacheConfig` annotations; retain the global fallback only for classes without declarations.
+- [x] Register each local definition once, publish it with Redis `putIfAbsent`, and reject incompatible remote definitions while ignoring `source` in the compatibility comparison.
+- [x] Replace the mutable policy override map with atomically published immutable snapshots and consistently apply copy-on-write updates for local control events.
+- [x] Run the incremental starter/system/aggregate verification commands and append exact results to `execution-log.md`.

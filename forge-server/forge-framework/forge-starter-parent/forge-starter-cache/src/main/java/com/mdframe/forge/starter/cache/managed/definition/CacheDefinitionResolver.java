@@ -20,10 +20,14 @@ public class CacheDefinitionResolver {
 
     public CacheDefinition resolve(Class<?> targetClass, String cacheName) {
         Class<?> userClass = ClassUtils.getUserClass(targetClass);
-        for (ForgeCacheConfig config : userClass.getAnnotationsByType(ForgeCacheConfig.class)) {
+        ForgeCacheConfig[] configurations = userClass.getAnnotationsByType(ForgeCacheConfig.class);
+        for (ForgeCacheConfig config : configurations) {
             if (config.name().equals(cacheName)) {
                 return from(config, userClass);
             }
+        }
+        if (configurations.length > 0) {
+            throw new IllegalArgumentException("缓存名称未在类级配置中声明: " + cacheName);
         }
         return new CacheDefinition(
                 properties.getApplicationCode(),

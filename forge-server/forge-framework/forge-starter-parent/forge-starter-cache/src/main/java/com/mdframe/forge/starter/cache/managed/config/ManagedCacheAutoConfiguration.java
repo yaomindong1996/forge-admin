@@ -61,11 +61,12 @@ public class ManagedCacheAutoConfiguration {
     @ConditionalOnMissingBean
     public ForgeManagedCacheManager forgeManagedCacheManager(ObjectProvider<RedissonClient> redissonProvider,
                                                              ManagedCacheProperties properties,
-                                                             Environment environment) {
+                                                             Environment environment,
+                                                             ObjectMapper objectMapper) {
         if (!StringUtils.hasText(properties.getApplicationCode())) {
             properties.setApplicationCode(environment.getProperty("spring.application.name", "forge"));
         }
-        return new ForgeManagedCacheManager(redissonProvider.getIfAvailable(), properties);
+        return new ForgeManagedCacheManager(redissonProvider.getIfAvailable(), properties, objectMapper);
     }
 
     @Bean

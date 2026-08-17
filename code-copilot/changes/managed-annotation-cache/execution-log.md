@@ -59,3 +59,28 @@ NODE_OPTIONS=--max-old-space-size=8192 pnpm build
 - 浏览器验证：Vite 已在 `http://127.0.0.1:5173/` 启动（PID `95006`）并保留供人工查看。因 Admin `8580` 未启动，访问 `/system/cache` 被登录流程拦截并显示服务不可用，未将该结果计为受管缓存页面交互通过。
 - 跳过项：按用户既有分工，本轮未启动真实 MySQL/Redis/Admin，未执行 Flyway 实跑、策略接口登录调用、双 Admin 实例失效同步、普通管理员 403 和数据库结果检查。这些运行态 E2E 由用户执行。
 - 环境清理：未启动或修改数据库、Redis、Admin；前端 Vite 服务按交付需要继续运行，其余无本轮遗留服务。
+
+## 2026-08-17 Review 增量修复与验证
+
+- 修复范围：为数据 Map、定义 Map、策略 Map 和控制 Topic 增加显式 `TypedJsonJacksonCodec`；缓存业务值使用类型信息保留具体类型，并复用自动配置中的 `ObjectMapper` 模块。
+- 定义安全：类级存在 `@ForgeCacheConfig` 时，未匹配名称直接拒绝并由 AOP 穿透；首次本地注册在 identity 临界区内执行 Redis `putIfAbsent`，兼容性只比较运行与隔离字段，远端冲突不覆盖。
+- 策略并发：覆盖状态改为 `AtomicReference<Map<...>>`，刷新使用不可变快照 `getAndSet`，控制事件使用 copy-on-write 更新。
+- 红测证据：新增测试首次执行在测试编译阶段失败，原因为 `ManagedCacheCodecs` 尚不存在；实现后转绿。
+- starter 增量测试：
+
+```bash
+cd forge-server
+JAVA_HOME=/opt/homebrew/opt/openjdk@17 PATH=/opt/homebrew/opt/openjdk@17/bin:$PATH \
+mvn -Penable-tests -pl forge-framework/forge-starter-parent/forge-starter-cache \
+  -Dtest=ForgeManagedCacheManagerTest,ForgeCacheKeyResolverTest,ForgeCacheAspectTest,CacheTransactionExecutorTest,MultiLevelCacheHandleTest,ManagedCacheCodecTest,CacheDefinitionResolverTest \
+  -Dsurefire.failIfNoSpecifiedTests=false test
+```
+
+  结果：7 个测试类、25 个测试，0 failures/errors/skipped。新增覆盖真实 codec ByteBuf 往返、具体业务类型与 `LocalDateTime`、拼写错误旁路、定义一次注册/共享/冲突以及不可变策略快照替换。
+- system 回归测试：复用本日志上一节命令，3 个测试类、15 个测试，0 failures/errors/skipped。
+- Admin 聚合编译：复用本日志上一节命令，45 个模块 `BUILD SUCCESS`，耗时 25.900 秒。
+- 静态检查：`git diff --check -- code-copilot/changes/managed-annotation-cache forge-server/forge-framework/forge-starter-parent/forge-starter-cache` 无输出。
+- 预期警告：非法策略、非法 SpEL、拼写错误缓存名和无 Redis 清理场景会输出异常栈，用于验证失败开放或安全旁路合同，不计为测试失败。
+- 前端：本轮无前端代码差异，复用此前 Vitest 5/5、目标 ESLint 和生产构建成功基线。
+- 跳过项：本轮未启动真实 MySQL/Redis/Admin，未执行真实 Redis codec 读写、双实例事件同步和管理接口 E2E；codec 已通过 Redisson 真实 encoder/decoder 往返覆盖。
+- 环境清理：本轮未启动任何新服务，无需额外清理。

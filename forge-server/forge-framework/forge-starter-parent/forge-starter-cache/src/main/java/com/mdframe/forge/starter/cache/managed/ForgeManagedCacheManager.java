@@ -1,5 +1,7 @@
 package com.mdframe.forge.starter.cache.managed;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mdframe.forge.starter.cache.managed.codec.ManagedCacheCodecs;
 import com.mdframe.forge.starter.cache.managed.enums.CacheMode;
 import com.mdframe.forge.starter.cache.managed.model.CacheControlAction;
 import com.mdframe.forge.starter.cache.managed.model.CacheControlMessage;
@@ -21,6 +23,7 @@ import org.redisson.api.RMap;
 import org.redisson.api.RMapCache;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.Codec;
 import org.springframework.lang.Nullable;
 
 import java.util.ArrayList;
@@ -33,6 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
@@ -47,33 +51,43 @@ public class ForgeManagedCacheManager {
 
     private final RedissonClient redissonClient;
     private final ManagedCacheProperties properties;
+    private final Codec valueCodec;
+    private final Codec definitionCodec;
+    private final Codec policyCodec;
+    private final Codec controlMessageCodec;
     private final ConcurrentMap<String, CacheDefinition> definitions = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, CachePolicyOverride> overrides = new ConcurrentHashMap<>();
+    private final AtomicReference<Map<String, CachePolicyOverride>> overrides =
+            new AtomicReference<>(Map.of());
     private final ConcurrentMap<String, ManagedCacheHandle> handles = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, CacheCounters> counters = new ConcurrentHashMap<>();
     private final AtomicLong nextPolicyRefreshNanos = new AtomicLong();
 
     public ForgeManagedCacheManager(@Nullable RedissonClient redissonClient, ManagedCacheProperties properties) {
+        this(redissonClient, properties, new ObjectMapper().findAndRegisterModules());
+    }
+
+    public ForgeManagedCacheManager(@Nullable RedissonClient redissonClient,
+                                    ManagedCacheProperties properties,
+                                    ObjectMapper objectMapper) {
         this.redissonClient = redissonClient;
         this.properties = properties;
+        this.valueCodec = ManagedCacheCodecs.values(objectMapper);
+        this.definitionCodec = ManagedCacheCodecs.definitions(objectMapper);
+        this.policyCodec = ManagedCacheCodecs.policies(objectMapper);
+        this.controlMessageCodec = ManagedCacheCodecs.controlMessages(objectMapper);
         initializeControlPlane();
     }
 
     public void register(CacheDefinition definition) {
         validateDefinition(definition);
         definitions.compute(definition.identity(), (identity, existing) -> {
-            if (existing != null && !existing.equals(definition)) {
-                throw new IllegalStateException("缓存定义冲突: " + identity);
+            if (existing != null) {
+                requireCompatibleDefinition(existing, definition);
+                return existing;
             }
+            registerRemoteDefinition(definition);
             return definition;
         });
-        if (redissonClient != null) {
-            try {
-                definitionMap().fastPut(definition.identity(), definition);
-            } catch (RuntimeException exception) {
-                recordFailure(definition.identity(), "注册缓存定义", exception);
-            }
-        }
     }
 
     public CacheLookup get(CacheDefinition definition, String key) {
@@ -151,7 +165,7 @@ public class ForgeManagedCacheManager {
     public void applyOverride(CachePolicyOverride override) {
         validateOverride(override);
         clearWithoutPublish(override.applicationCode(), override.cacheName());
-        overrides.put(override.identity(), override);
+        putOverride(override);
         if (redissonClient != null) {
             try {
                 policyMap().fastPut(override.identity(), override);
@@ -183,7 +197,7 @@ public class ForgeManagedCacheManager {
     public void removeOverride(String applicationCode, String cacheName) {
         String identity = identity(applicationCode, cacheName);
         clearWithoutPublish(applicationCode, cacheName);
-        overrides.remove(identity);
+        removeOverrideFromSnapshot(identity, null);
         if (redissonClient != null) {
             try {
                 policyMap().fastRemove(identity);
@@ -199,7 +213,7 @@ public class ForgeManagedCacheManager {
      */
     public void removeOverridesNotIn(Set<String> retainedIdentities) {
         Set<String> retained = retainedIdentities == null ? Set.of() : Set.copyOf(retainedIdentities);
-        new ArrayList<>(overrides.values()).stream()
+        new ArrayList<>(overrides.get().values()).stream()
                 .filter(override -> !retained.contains(override.identity()))
                 .forEach(override -> removeOverride(override.applicationCode(), override.cacheName()));
     }
@@ -227,7 +241,7 @@ public class ForgeManagedCacheManager {
         if (redissonClient != null) {
             try {
                 merged.putAll(definitionMap().readAllMap());
-                overrides.putAll(policyMap().readAllMap());
+                replaceOverrides(policyMap().readAllMap());
             } catch (RuntimeException exception) {
                 log.warn("读取受管缓存控制面失败，返回当前实例快照", exception);
             }
@@ -239,7 +253,7 @@ public class ForgeManagedCacheManager {
             result.add(new ManagedCacheView(
                     definition,
                     effectivePolicy(definition),
-                    overrides.containsKey(definition.identity()),
+                    overrides.get().containsKey(definition.identity()),
                     snapshot.hits.sum(),
                     snapshot.misses.sum(),
                     snapshot.puts.sum(),
@@ -264,7 +278,7 @@ public class ForgeManagedCacheManager {
         String cacheName = properties.getNamespace() + ":data:"
                 + definition.applicationCode() + ":" + definition.cacheName();
         if (policy.cacheMode() == CacheMode.REDIS) {
-            RMapCache<String, ManagedCacheValue> cache = redissonClient.getMapCache(cacheName);
+            RMapCache<String, ManagedCacheValue> cache = redissonClient.getMapCache(cacheName, valueCodec);
             return new RedisCacheHandle(cache);
         }
         LocalCachedMapCacheOptions<String, ManagedCacheValue> options =
@@ -275,20 +289,20 @@ public class ForgeManagedCacheManager {
                         .reconnectionStrategy(LocalCachedMapCacheOptions.ReconnectionStrategy.CLEAR)
                         .storeMode(LocalCachedMapCacheOptions.StoreMode.LOCALCACHE_REDIS);
         RLocalCachedMapCache<String, ManagedCacheValue> cache =
-                redissonClient.getLocalCachedMapCache(cacheName, options);
+                redissonClient.getLocalCachedMapCache(cacheName, valueCodec, options);
         return new MultiLevelCacheHandle(cache, policy.localMaxSize());
     }
 
     private EffectiveCachePolicy effectivePolicy(CacheDefinition definition) {
         refreshPolicySnapshotIfDue();
-        CachePolicyOverride override = overrides.get(definition.identity());
+        CachePolicyOverride override = overrides.get().get(definition.identity());
         EffectiveCachePolicy policy = EffectiveCachePolicy.from(definition, override);
         try {
             validatePolicy(definition, policy);
             return policy;
         } catch (IllegalArgumentException exception) {
             recordFailure(definition.identity(), "应用缓存策略", exception);
-            overrides.remove(definition.identity(), override);
+            removeOverrideFromSnapshot(definition.identity(), override);
             closeHandle(definition.identity());
             return EffectiveCachePolicy.from(definition, null);
         }
@@ -306,19 +320,7 @@ public class ForgeManagedCacheManager {
         }
         try {
             Map<String, CachePolicyOverride> remote = policyMap().readAllMap();
-            Map<String, CachePolicyOverride> previous = new HashMap<>(overrides);
-            overrides.clear();
-            overrides.putAll(remote);
-            previous.forEach((identity, policy) -> {
-                if (!policy.equals(remote.get(identity))) {
-                    closeHandle(identity);
-                }
-            });
-            remote.forEach((identity, policy) -> {
-                if (!policy.equals(previous.get(identity))) {
-                    closeHandle(identity);
-                }
-            });
+            replaceOverrides(remote);
         } catch (RuntimeException exception) {
             log.warn("校准受管缓存策略快照失败，继续使用当前本地快照", exception);
         }
@@ -388,7 +390,7 @@ public class ForgeManagedCacheManager {
             return;
         }
         try {
-            overrides.putAll(policyMap().readAllMap());
+            overrides.set(Map.copyOf(policyMap().readAllMap()));
             controlTopic().addListener(CacheControlMessage.class, (channel, message) -> onControlMessage(message));
         } catch (RuntimeException exception) {
             log.warn("初始化受管缓存控制面失败，运行时将使用代码默认策略", exception);
@@ -402,9 +404,9 @@ public class ForgeManagedCacheManager {
         clearWithoutPublish(message.applicationCode(), message.cacheName());
         String identity = identity(message.applicationCode(), message.cacheName());
         if (message.action() == CacheControlAction.APPLY && message.policy() != null) {
-            overrides.put(identity, message.policy());
+            putOverride(message.policy());
         } else if (message.action() == CacheControlAction.RESET) {
-            overrides.remove(identity);
+            removeOverrideFromSnapshot(identity, null);
         }
     }
 
@@ -420,15 +422,85 @@ public class ForgeManagedCacheManager {
     }
 
     private RMap<String, CacheDefinition> definitionMap() {
-        return redissonClient.getMap(properties.getNamespace() + DEFINITION_SUFFIX);
+        return redissonClient.getMap(properties.getNamespace() + DEFINITION_SUFFIX, definitionCodec);
     }
 
     private RMap<String, CachePolicyOverride> policyMap() {
-        return redissonClient.getMap(properties.getNamespace() + POLICY_SUFFIX);
+        return redissonClient.getMap(properties.getNamespace() + POLICY_SUFFIX, policyCodec);
     }
 
     private RTopic controlTopic() {
-        return redissonClient.getTopic(properties.getNamespace() + TOPIC_SUFFIX);
+        return redissonClient.getTopic(properties.getNamespace() + TOPIC_SUFFIX, controlMessageCodec);
+    }
+
+    private void putOverride(CachePolicyOverride override) {
+        overrides.updateAndGet(current -> {
+            Map<String, CachePolicyOverride> updated = new HashMap<>(current);
+            updated.put(override.identity(), override);
+            return Map.copyOf(updated);
+        });
+    }
+
+    private void removeOverrideFromSnapshot(String identity, @Nullable CachePolicyOverride expected) {
+        overrides.updateAndGet(current -> {
+            CachePolicyOverride existing = current.get(identity);
+            if (existing == null || expected != null && !expected.equals(existing)) {
+                return current;
+            }
+            Map<String, CachePolicyOverride> updated = new HashMap<>(current);
+            updated.remove(identity);
+            return Map.copyOf(updated);
+        });
+    }
+
+    private void replaceOverrides(Map<String, CachePolicyOverride> replacement) {
+        Map<String, CachePolicyOverride> updated = Map.copyOf(replacement);
+        Map<String, CachePolicyOverride> current = overrides.getAndSet(updated);
+        current.forEach((identity, policy) -> {
+            if (!policy.equals(updated.get(identity))) {
+                closeHandle(identity);
+            }
+        });
+        updated.forEach((identity, policy) -> {
+            if (!policy.equals(current.get(identity))) {
+                closeHandle(identity);
+            }
+        });
+    }
+
+    private void requireCompatibleDefinition(CacheDefinition existing, CacheDefinition candidate) {
+        if (!compatibleDefinition(existing, candidate)) {
+            throw new IllegalStateException("缓存定义冲突: " + candidate.identity());
+        }
+    }
+
+    private void registerRemoteDefinition(CacheDefinition definition) {
+        if (redissonClient == null) {
+            return;
+        }
+        CacheDefinition remote;
+        try {
+            remote = definitionMap().putIfAbsent(definition.identity(), definition);
+        } catch (RuntimeException exception) {
+            recordFailure(definition.identity(), "注册缓存定义", exception);
+            return;
+        }
+        if (remote != null && !compatibleDefinition(remote, definition)) {
+            throw new IllegalStateException("远端缓存定义冲突: " + definition.identity());
+        }
+    }
+
+    private boolean compatibleDefinition(CacheDefinition first, CacheDefinition second) {
+        return first.applicationCode().equals(second.applicationCode())
+                && first.cacheName().equals(second.cacheName())
+                && first.defaultMode() == second.defaultMode()
+                && Set.copyOf(first.allowedModes()).equals(Set.copyOf(second.allowedModes()))
+                && first.scope() == second.scope()
+                && first.localTtlSeconds() == second.localTtlSeconds()
+                && first.redisTtlSeconds() == second.redisTtlSeconds()
+                && first.localMaxSize() == second.localMaxSize()
+                && first.cacheNull() == second.cacheNull()
+                && first.nullTtlSeconds() == second.nullTtlSeconds();
     }
 
     private String identity(String applicationCode, String cacheName) {

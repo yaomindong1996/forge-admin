@@ -94,3 +94,13 @@ NODE_OPTIONS=--max-old-space-size=8192 pnpm build
 - 前端目标 ESLint 和生产构建通过。
 - `SysCachePolicyMapper.xml`、`SysDictDataMapper.xml` 解析通过；新 Flyway 无 placeholder，`V1.0.120` 版本唯一。
 - 未执行真实 MySQL/Redis/Admin、双实例通知和普通管理员 403 E2E。
+
+## 7. Review 修复增量测试
+
+- codec：使用 `TypedJsonJacksonCodec` 的真实 encoder/decoder 往返验证 `ManagedCacheValue`、`CacheDefinition`、`CachePolicyOverride` 和 `CacheControlMessage`，覆盖 `LocalDateTime` 业务值。
+- 定义解析：目标类声明缓存配置但注解缓存名拼写错误时必须旁路，连续调用不得产生缓存命中；未声明配置的类仍允许使用全局默认定义。
+- 定义注册：同一定义重复使用只执行一次 Redis `putIfAbsent`；远端定义的 `source` 不同但运行字段相同视为兼容，任一运行或安全字段不同则拒绝注册且不得覆盖远端值。
+- 策略刷新：使用不可变 Map 快照一次替换；刷新和控制事件不得暴露临时空快照，策略变化时关闭旧句柄。
+- 回归：复用第 2 节 starter/system 定向测试和第 3 节 Admin 聚合编译；前端未改动时复用已通过的前端基线并在执行日志中说明。
+
+增量结果：starter 7 个测试类、25 个测试全部通过；system 3 个测试类、15 个测试全部通过；Admin 聚合编译 45 个模块通过；差异空白检查通过。前端无代码差异，复用第 6 节已通过的前端基线。
