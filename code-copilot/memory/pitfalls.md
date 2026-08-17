@@ -4120,3 +4120,11 @@ Naive UI 的 `--n-height` 可保证同尺寸输入和按钮对齐，但 Teleport
 应用发布会连带发布业务对象，业务对象发布又会同步其运行入口。如果同步已有入口时重新写入默认 `appType`、`entryMode`、`entryUrl`、名称、图标、状态和 `options`，会抹掉应用工作台中人工配置的 `mountTarget=MOBILE`、移动菜单和 `clientCode=h5`，表现为重新发布后移动端入口退回管理端。
 
 处理原则：低代码发布自动创建入口时可以写入标准管理端默认值；入口已经存在时，发布链路只补齐 `suiteCode`、`objectCode`、`configKey` 等对象运行绑定。入口的挂载端、菜单、打开方式、名称、图标、状态、排序和扩展配置由应用工作台维护，发布过程不得覆盖。
+
+## 178. Generator 新增强制适配器时必须检查所有聚合服务
+
+**发现日期**：2026-08-16
+
+`forge-app-server` 和独立 `forge-flow-server` 都会扫描 generator 插件。若 generator Service 新增构造器强制依赖，而只在 Admin 服务实现适配器，App 和 Flow 会在启动期同时报缺少 Bean；只验证 Admin 编译或启动发现不了这个问题。
+
+处理原则：新增 generator 跨模块适配器时，必须检查 Admin、App、Flow 三个聚合服务。真实管理能力由 Admin 实现；App/Flow 只需完成运行态装配时，应提供服务内失败关闭桥接，误调用时明确拒绝，不能用空结果或无操作保存伪装成功。典型接口包括 `MenuRegisterAdapter`、`AiClientAdapter` 和 `ApplicationPermissionAdapter`。

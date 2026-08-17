@@ -101,3 +101,13 @@ forge-framework/forge-plugin-parent/forge-plugin-system,forge-admin-server \
   无法建立新登录态进入真实权限页面。
 - 因此未把角色切换、保存回显、重新发布后授权保持等真实浏览器交互标记为通过。
 - 本轮未启动新的长期运行服务，也没有需要清理的本轮服务进程。
+
+## 2026-08-16 App/Flow 权限适配器装配修复
+
+- 问题：`BusinessApplicationPermissionService` 强制依赖 `ApplicationPermissionAdapter`，但只有
+  Admin 服务提供真实实现，App 和独立 Flow 服务启动时报缺少 Bean。
+- 处理：分别增加 App/Flow 服务内的失败关闭桥接实现；真实角色、资源和数据范围管理仍只由
+  Admin 服务执行，非 Admin 服务误调用时明确拒绝。
+- 静态检查：确认直接加载 generator 的三个 Spring Boot 聚合服务均有唯一适配器实现，
+  `git diff --check` 无异常。
+- 按用户要求未执行测试、Maven 构建、服务启动或浏览器验证。

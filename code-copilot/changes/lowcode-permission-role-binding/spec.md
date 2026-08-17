@@ -32,6 +32,8 @@
 - 对象级数据范围覆盖唯一落库到 `sys_role_module_data_scope`，模块编码统一为
   `ai:business:{objectCode}`。
 - 应用发布只创建、更新和停用资源目录，不新增、删除或重建角色绑定。
+- 应用权限管理只由 Admin 服务提供真实系统适配器；App 和 Flow 服务加载 generator
+  运行能力时提供失败关闭桥接实现，不执行角色、资源或数据范围读写。
 - 应用访问入口复用既有 `ai:businessApp:open:{appCode}` 菜单权限；未同步管理端菜单的入口展示为待同步状态。
 - 正式运行页对应用内系统菜单页面按页面权限码
   `ai:business:application:{applicationCode}:page:{pageId}` 过滤。
