@@ -21,7 +21,7 @@
 cd forge-server
 JAVA_HOME=/opt/homebrew/opt/openjdk@17 PATH=/opt/homebrew/opt/openjdk@17/bin:$PATH \
 mvn -Penable-tests -pl forge-framework/forge-starter-parent/forge-starter-cache \
-  -Dtest=ForgeManagedCacheManagerTest,ForgeCacheKeyResolverTest,ForgeCacheAspectTest,CacheTransactionExecutorTest \
+  -Dtest=ForgeManagedCacheManagerTest,ForgeCacheKeyResolverTest,ForgeCacheAspectTest,CacheTransactionExecutorTest,MultiLevelCacheHandleTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
@@ -38,7 +38,7 @@ mvn -Penable-tests -pl forge-framework/forge-starter-parent/forge-starter-cache 
 cd forge-server
 JAVA_HOME=/opt/homebrew/opt/openjdk@17 PATH=/opt/homebrew/opt/openjdk@17/bin:$PATH \
 mvn -Penable-tests -pl forge-framework/forge-plugin-parent/forge-plugin-system \
-  -Dtest=SysManagedCachePolicyServiceTest,SysCachePolicyMapperContractTest \
+  -Dtest=SysManagedCachePolicyServiceTest,SysCachePolicyMapperContractTest,SysDictDataServiceImplTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
@@ -84,3 +84,13 @@ NODE_OPTIONS=--max-old-space-size=8192 pnpm build
 - Flyway 静态检查、重复版本检查、XML 解析和差异空白检查无新增错误。
 - 前端目标 ESLint 与生产构建成功。
 - 所有跳过项、环境告警和服务清理情况已写入 `execution-log.md`。
+
+## 6. 最终验证结果
+
+- starter：5 个测试类、15 个测试，0 failures/errors/skipped。
+- system：3 个测试类、15 个测试，0 failures/errors/skipped。
+- 前端策略纯函数：1 个测试文件、5 个测试通过。
+- Admin 聚合编译：45 个模块 `BUILD SUCCESS`。
+- 前端目标 ESLint 和生产构建通过。
+- `SysCachePolicyMapper.xml`、`SysDictDataMapper.xml` 解析通过；新 Flyway 无 placeholder，`V1.0.120` 版本唯一。
+- 未执行真实 MySQL/Redis/Admin、双实例通知和普通管理员 403 E2E。

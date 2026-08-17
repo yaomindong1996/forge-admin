@@ -150,8 +150,11 @@ Forge 已有 `forge-starter-cache`，底层同时依赖 Redisson 与 Caffeine，
 
 - [x] 代码现状与架构分析完成。
 - [x] Spec、任务和测试基线建立。
-- [ ] starter 运行时实现。
-- [ ] 控制面、Flyway 与 API 实现。
-- [ ] 管理端实现。
-- [ ] 字典迁移。
-- [ ] 增量验证与审查。
+- [x] starter 运行时实现。
+- [x] 控制面、Flyway 与 API 实现。
+- [x] 管理端实现。
+- [x] 字典迁移。
+- [x] 增量验证与审查。
+- [ ] 真实 MySQL/Redis/Admin、双实例失效同步和普通管理员 403 E2E 由用户执行。
+
+代码实现阶段已完成。自动化验证覆盖 starter、系统控制面、字典迁移、Mapper/Flyway 静态合同、Admin 聚合编译和前端测试/构建；真实环境 E2E 不在本轮自动执行范围内，不能据此宣称运行态验收通过。
