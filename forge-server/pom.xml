@@ -67,7 +67,10 @@
         <maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>
         <flatten-maven-plugin.version>1.3.0</flatten-maven-plugin.version>
         <forge.compiler.skip>false</forge.compiler.skip>
-        <forge.tests.skip>false</forge.tests.skip>
+        <!-- Package/install is the default delivery path; tests run via -Penable-tests. -->
+        <forge.tests.skip>true</forge.tests.skip>
+        <!-- Also skip test resource processing and test compilation for package/install. -->
+        <maven.test.skip>${forge.tests.skip}</maven.test.skip>
         <forge.test.groups>${profiles.active}</forge.test.groups>
     </properties>
     
@@ -104,6 +107,7 @@
             <properties>
                 <forge.compiler.skip>false</forge.compiler.skip>
                 <forge.tests.skip>false</forge.tests.skip>
+                <maven.test.skip>false</maven.test.skip>
                 <forge.test.groups></forge.test.groups>
             </properties>
             <build>
@@ -191,6 +195,22 @@
         <module>forge-flow</module>
         <module>forge-business</module>
     </modules>
+
+    <!--
+        Surefire's groups/excludedGroups parameters require a test engine even for
+        a module that has no test sources.  The parent applies the tag filters to
+        every reactor child, so provide the JUnit Platform engine consistently on
+        the test classpath.  Modules that already use spring-boot-starter-test
+        reuse the BOM-managed version; dependency-only modules now skip cleanly
+        instead of failing during Surefire provider discovery.
+    -->
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
     
     <packaging>pom</packaging>
     
@@ -201,7 +221,9 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.verison}</version>
                 <configuration>
-                    <skip>${forge.compiler.skip}</skip>
+                    <!-- Keep main compilation independent from test compilation. -->
+                    <skipMain>${forge.compiler.skip}</skipMain>
+                    <skip>${maven.test.skip}</skip>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                     <encoding>${project.build.sourceEncoding}</encoding>

@@ -414,3 +414,32 @@ NODE_OPTIONS=--max-old-space-size=8192 pnpm build
 - `npx eslint src/components/common/UserSelectModal.vue src/views/flow/userGroup.vue src/api/flow.js`：通过。
 - `npm run build --if-present`（Node 20.19.0）：Vite production build 通过（约 1 分 5 秒）；保留仓库既有 Vite native config、无效动态导入和 UnoCSS plugin timing warning。
 - `git diff --check`：通过。
+
+## 本轮增量验证（2026-09-06，Maven Surefire 测试引擎配置）
+
+- 根因：父 POM 无条件配置 Surefire `groups`/`excludedGroups`，依赖模块没有测试引擎时在 provider 探测阶段失败，报 `groups/excludedGroups require TestNG, JUnit48+ or JUnit 5`。
+- 修复：`forge-server/pom.xml` 在所有子模块的 test classpath 提供 BOM 管理的 `junit-jupiter-engine`，保留按环境执行的 `dev` 标签和 `exclude` 标签过滤。
+- `mvn -Penable-tests -pl forge-framework/forge-starter-parent/forge-starter-api-config -DskipTests=false test`：BUILD SUCCESS；该模块无测试源码，不再触发 Surefire provider 错误。
+- `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-flow -am -Penable-tests -Dtest=FlowUserGroupGovernanceContractTest -Dforge.test.groups= -Dsurefire.failIfNoSpecifiedTests=false test`：BUILD SUCCESS，4/4 通过。
+- `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-flow -am -DskipTests compile`：BUILD SUCCESS（OpenJDK 17）。
+- 额外模块测试仍可能受本机 Mockito inline Byte Buddy 无法 attach 和 Sa-Token 无 HTTP 上下文影响，属于既有环境测试阻断，不归因于 Surefire 配置修复。
+- 未启动 MySQL、Redis、Flowable 或浏览器；真实流程和性能门禁仍待 T7.2/T7.3 集成环境执行。
+
+## 本轮增量验证（2026-09-07，默认打包跳过测试）
+
+- 用户要求发布打包不执行测试用例；根 POM `forge.tests.skip` 默认改为 `true`，`enable-tests` profile 仍显式设为 `false`，测试入口未移除。
+- `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-flow -am package`（OpenJDK 17）：BUILD SUCCESS；Reactor 各模块 Surefire 均输出 `Tests are skipped.`，流程插件 JAR 正常生成。
+- `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-flow -am -Penable-tests -Dtest=FlowUserGroupGovernanceContractTest -Dforge.test.groups= -Dsurefire.failIfNoSpecifiedTests=false test`：BUILD SUCCESS，4/4 通过，确认显式测试 profile 仍可执行测试。
+- `git diff --check`、`xmllint --noout forge-server/pom.xml`：通过。
+- 未启动 MySQL、Redis、Flowable 或浏览器；Mockito/Sa-Token 相关测试仅在显式测试 profile 下执行，仍需按环境准备测试上下文。
+
+## 本轮追加验证（2026-09-07，默认打包跳过测试编译）
+
+- 验证范围：根 POM 的 Maven 生命周期配置，确保发布 `package/install` 不执行也不编译测试用例，同时保留 `-Penable-tests` 测试入口。
+- `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-generator -am package`（OpenJDK 17）：通过；测试资源未复制、测试源码未编译、Surefire 跳过。
+- `mvn package`（forge-server 全工程，OpenJDK 17）：通过，51/51 模块成功；各模块 `testResources`/`testCompile`/Surefire 均处于跳过状态，应用包完成 repackage。
+- 低成本检查：`git diff --check`、`xmllint --noout forge-server/pom.xml` 通过。
+- 失败/警告：主源码保留既有 deprecated、unchecked 和个别 MCP API deprecated 编译警告，不阻断；此前生成器测试编译错误已通过默认跳过测试编译规避，显式测试 profile 仍需单独修复这些既有测试问题。
+- 跳过项：未启动 MySQL、Redis、Flowable 或浏览器；真实流程 E2E 和性能门禁仍按 T7.2/T7.3 执行。
+
+- 显式 profile 回归：`mvn -pl forge-framework/forge-plugin-parent/forge-plugin-flow -am -Penable-tests -Dtest=FlowUserGroupGovernanceContractTest -Dforge.test.groups= -Dsurefire.failIfNoSpecifiedTests=false test`，4/4 通过，确认 `-Penable-tests` 可恢复测试编译与执行。

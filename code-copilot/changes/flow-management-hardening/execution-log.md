@@ -651,3 +651,33 @@
 - `npx eslint src/components/common/UserSelectModal.vue src/views/flow/userGroup.vue src/api/flow.js`：通过。
 - `npm run build --if-present`（Node 20.19.0）：Vite production build 通过（约 1 分 5 秒）；保留仓库既有 Vite native config、无效动态导入和 UnoCSS plugin timing warning。
 - `git diff --check`：通过。
+
+## 2026-09-06 — 修复 Maven Surefire 无测试引擎模块初始化失败
+
+- 根因：根 POM 的 Surefire `groups`/`excludedGroups` 对所有 reactor 模块生效；没有 JUnit/TestNG 引擎的依赖模块在测试阶段初始化即失败。
+- 修复：根 POM 统一继承 BOM 管理的 `org.junit.jupiter:junit-jupiter-engine`（test scope），保留现有 `dev`/`exclude` 标签过滤语义；依赖-only 模块可安全跳过。
+- `mvn -Penable-tests -pl forge-framework/forge-starter-parent/forge-starter-api-config -DskipTests=false test`：BUILD SUCCESS，验证无测试源码模块不再报 provider 错误。
+- `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-flow -am -Penable-tests -Dtest=FlowUserGroupGovernanceContractTest -Dforge.test.groups= -Dsurefire.failIfNoSpecifiedTests=false test`：BUILD SUCCESS，4/4 通过。
+- `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-flow -am -DskipTests compile`：BUILD SUCCESS（OpenJDK 17）；仅保留既有 deprecated/unchecked 警告。
+- 额外尝试的 `forge-starter-file`/`forge-starter-idempotent` 测试受本机 Mockito inline Byte Buddy agent attach、Sa-Token 上下文限制失败，未归因于本修复。
+- 未启动 MySQL、Redis、Flowable 或浏览器；无本轮服务 PID 需要清理。
+
+## 本轮追加验证（2026-09-07，默认打包跳过测试编译）
+
+- 首次全工程 `mvn package` 虽跳过 Surefire，但仍因父编译器配置覆盖了 `maven.test.skip` 而编译测试源码；`forge-plugin-generator` 既有测试存在编码和构造器不匹配错误。
+- 修复根 POM 编译器配置：主源码使用 `skipMain=${forge.compiler.skip}`，测试源码使用 `skip=${maven.test.skip}`；默认 `maven.test.skip` 跟随 `forge.tests.skip=true`，`enable-tests` profile 显式恢复为 `false`。
+- `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-generator -am package`（OpenJDK 17）：BUILD SUCCESS；测试资源未复制、测试源码未编译、Surefire 输出 `Tests are skipped.`。
+- `mvn package`（forge-server 全工程，OpenJDK 17）：BUILD SUCCESS，51/51 模块成功，所有测试阶段均跳过且应用 JAR 正常 repackage。
+- `git diff --check`、`xmllint --noout forge-server/pom.xml`：通过。
+- 显式测试入口保持可用；本轮未启动 MySQL、Redis、Flowable 或浏览器，未改变既有测试失败和集成门禁结论。
+
+- 回归显式测试入口：`mvn -pl forge-framework/forge-plugin-parent/forge-plugin-flow -am -Penable-tests -Dtest=FlowUserGroupGovernanceContractTest -Dforge.test.groups= -Dsurefire.failIfNoSpecifiedTests=false test`，4/4 通过；日志确认测试源码在该 profile 下正常编译并执行。
+
+## 2026-09-07 — 默认打包跳过测试用例
+
+- 用户反馈 `FileManagerTest` 因缺少 Sa-Token 请求上下文导致打包失败，要求打包阶段不执行测试。
+- 根 POM `forge.tests.skip` 默认值改为 `true`；`enable-tests` profile 继续覆盖为 `false`，因此默认 `package/install` 跳过 Surefire 测试，显式 `-Penable-tests` 仍可执行测试。
+- `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-flow -am package`（OpenJDK 17）：BUILD SUCCESS；各模块输出 `Tests are skipped.`，流程插件 JAR 生成成功。
+- `mvn -pl forge-framework/forge-plugin-parent/forge-plugin-flow -am -Penable-tests -Dtest=FlowUserGroupGovernanceContractTest -Dforge.test.groups= -Dsurefire.failIfNoSpecifiedTests=false test`：BUILD SUCCESS，4/4 通过。
+- `git diff --check`、`xmllint --noout forge-server/pom.xml`：通过。
+- 未启动 MySQL、Redis、Flowable 或浏览器；无本轮服务 PID 需要清理。
