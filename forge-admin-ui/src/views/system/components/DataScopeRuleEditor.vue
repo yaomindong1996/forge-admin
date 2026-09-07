@@ -1,18 +1,19 @@
 <template>
   <div class="scope-rule-editor">
     <p class="scope-rule-intro">
-      打开后，这个列表会按当前登录人自动过滤。至少开启「本人」或「本组织」。
+      配置此页面支持哪些限制方式，具体能看哪些数据由角色授权决定。至少配置本人或组织范围。
     </p>
 
     <section class="scope-rule">
       <div class="scope-rule__head">
-        <NSwitch :value="userEnabled" size="small" @update:value="toggleUser" />
+        <NSwitch :value="userEnabled" size="small" aria-label="支持按本人限制" @update:value="toggleUser" />
         <div class="scope-rule__copy">
-          <strong>只能看自己的数据</strong>
-          <span>按创建人、负责人等字段匹配当前用户</span>
+          <strong>按本人限制</strong>
+          <span>角色选择「仅本人」时，按创建人、负责人等字段匹配当前用户</span>
         </div>
       </div>
-      <div v-if="userEnabled" class="scope-rule__body">
+      <details v-if="userEnabled" class="scope-rule__body">
+        <summary>字段设置 <code>{{ simpleColumn(formData.userIdColumn) || '自定义 SQL' }}</code></summary>
         <label class="scope-field">
           <span>对应字段</span>
           <NInput
@@ -33,26 +34,27 @@
             @update:value="value => setField('userIdColumn', value)"
           />
         </label>
-        <NButton text type="primary" size="tiny" @click="toggleSql('user')">
+        <button type="button" class="scope-mode-button" @click="toggleSql('user')">
           {{ userSql ? '改用字段名' : '使用自定义 SQL' }}
-        </NButton>
+        </button>
         <div v-if="userSql" class="scope-tokens">
           <button v-for="token in commonTokens" :key="token" type="button" class="scope-token" @click="appendToken('userIdColumn', token)">
             {{ token }}
           </button>
         </div>
-      </div>
+      </details>
     </section>
 
     <section class="scope-rule">
       <div class="scope-rule__head">
-        <NSwitch :value="orgEnabled" size="small" @update:value="toggleOrg" />
+        <NSwitch :value="orgEnabled" size="small" aria-label="支持按组织限制" @update:value="toggleOrg" />
         <div class="scope-rule__copy">
-          <strong>只能看本组织的数据</strong>
+          <strong>按组织限制</strong>
           <span>角色选「本组织 / 本组织及下级」时按这个字段过滤</span>
         </div>
       </div>
-      <div v-if="orgEnabled" class="scope-rule__body">
+      <details v-if="orgEnabled" class="scope-rule__body">
+        <summary>字段设置 <code>{{ simpleColumn(formData.orgIdColumn) || '自定义 SQL' }}</code></summary>
         <label class="scope-field">
           <span>对应字段</span>
           <NInput
@@ -73,26 +75,27 @@
             @update:value="value => setField('orgIdColumn', value)"
           />
         </label>
-        <NButton text type="primary" size="tiny" @click="toggleSql('org')">
+        <button type="button" class="scope-mode-button" @click="toggleSql('org')">
           {{ orgSql ? '改用字段名' : '使用自定义 SQL' }}
-        </NButton>
+        </button>
         <div v-if="orgSql" class="scope-tokens">
           <button v-for="token in commonTokens" :key="token" type="button" class="scope-token" @click="appendToken('orgIdColumn', token)">
             {{ token }}
           </button>
         </div>
-      </div>
+      </details>
     </section>
 
     <section class="scope-rule">
       <div class="scope-rule__head">
-        <NSwitch :value="regionEnabled" size="small" @update:value="toggleRegion" />
+        <NSwitch :value="regionEnabled" size="small" aria-label="支持按行政区划限制" @update:value="toggleRegion" />
         <div class="scope-rule__copy">
           <strong>按行政区划过滤</strong>
           <span>角色选「本区划」时使用</span>
         </div>
       </div>
-      <div v-if="regionEnabled" class="scope-rule__body">
+      <details v-if="regionEnabled" class="scope-rule__body">
+        <summary>字段设置 <code>{{ simpleColumn(formData.regionCodeColumn) || '自定义 SQL' }}</code></summary>
         <label class="scope-field">
           <span>对应字段</span>
           <NInput
@@ -113,26 +116,27 @@
             @update:value="value => setField('regionCodeColumn', value)"
           />
         </label>
-        <NButton text type="primary" size="tiny" @click="toggleSql('region')">
+        <button type="button" class="scope-mode-button" @click="toggleSql('region')">
           {{ regionSql ? '改用字段名' : '使用自定义 SQL' }}
-        </NButton>
+        </button>
         <div v-if="regionSql" class="scope-tokens">
           <button v-for="token in regionTokens" :key="token" type="button" class="scope-token" @click="appendToken('regionCodeColumn', token)">
             {{ token }}
           </button>
         </div>
-      </div>
+      </details>
     </section>
 
     <section class="scope-rule">
       <div class="scope-rule__head">
-        <NSwitch :value="tenantEnabled" size="small" @update:value="toggleTenant" />
+        <NSwitch :value="tenantEnabled" size="small" aria-label="支持按租户限制" @update:value="toggleTenant" />
         <div class="scope-rule__copy">
           <strong>按租户隔离</strong>
           <span>多租户列表建议保持开启，字段一般是 tenant_id</span>
         </div>
       </div>
-      <div v-if="tenantEnabled" class="scope-rule__body">
+      <details v-if="tenantEnabled" class="scope-rule__body">
+        <summary>字段设置 <code>{{ simpleColumn(formData.tenantIdColumn) || 'tenant_id' }}</code></summary>
         <label class="scope-field">
           <span>对应字段</span>
           <NSelect
@@ -144,7 +148,7 @@
             @update:value="value => setField('tenantIdColumn', value)"
           />
         </label>
-      </div>
+      </details>
     </section>
 
     <section class="scope-rule">
@@ -152,6 +156,7 @@
         <NSwitch
           :value="flowEnabled"
           size="small"
+          aria-label="经手单据可见"
           @update:value="toggleFlow"
         />
         <div class="scope-rule__copy">
@@ -182,7 +187,7 @@
 </template>
 
 <script setup>
-import { NButton, NInput, NSelect, NSwitch } from 'naive-ui'
+import { NInput, NSelect, NSwitch } from 'naive-ui'
 import { computed } from 'vue'
 
 const props = defineProps({
@@ -335,6 +340,36 @@ function appendToken(field, token) {
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--border-light);
+}
+
+.scope-rule__body summary {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.scope-rule__body summary code {
+  margin-left: 6px;
+  font-size: 11px;
+}
+
+.scope-rule__body[open] summary {
+  margin-bottom: 10px;
+}
+
+.scope-mode-button {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary-color);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.scope-mode-button:hover {
+  text-decoration: underline;
 }
 
 .scope-field {

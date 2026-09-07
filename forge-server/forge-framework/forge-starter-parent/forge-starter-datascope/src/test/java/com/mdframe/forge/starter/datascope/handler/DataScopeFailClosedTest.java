@@ -24,6 +24,18 @@ import static org.mockito.Mockito.when;
 class DataScopeFailClosedTest {
 
     @Test
+    void shouldAllowExplicitlyDisabledRuleEvenInStrictPolicy() {
+        IDataScopeService service = mock(IDataScopeService.class);
+        SysDataScopeConfig config = new SysDataScopeConfig();
+        config.setEnabled(0);
+        when(service.getDataScopeConfig("com.example.UserMapper.selectPage")).thenReturn(config);
+        DataScopeProperties properties = new DataScopeProperties();
+        properties.setUnconfiguredPolicy(DataScopeProperties.UnconfiguredPolicy.DENY);
+        QueryFixture fixture = queryFixture("com.example.UserMapper.selectPage");
+        assertDoesNotThrow(() -> fixture.invoke(new DataScopeInterceptor(service, properties)));
+    }
+
+    @Test
     void shouldDenyUnconfiguredMapperInStrictPolicy() {
         IDataScopeService service = mock(IDataScopeService.class);
         DataScopeProperties properties = new DataScopeProperties();

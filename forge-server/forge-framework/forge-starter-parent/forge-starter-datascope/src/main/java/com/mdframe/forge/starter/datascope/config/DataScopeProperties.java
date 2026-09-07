@@ -40,6 +40,9 @@ public class DataScopeProperties {
      */
     private Boolean failClosedOnError = true;
 
+    /** 同一平台的 Admin/Flow/多副本使用相同主题；共用 Redis 的独立环境应配置不同主题。 */
+    private String cacheRefreshTopic = "forge:datascope:metadata:refresh";
+
     public enum UnconfiguredPolicy {
         WARN,
         DENY
