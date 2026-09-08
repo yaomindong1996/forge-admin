@@ -33,7 +33,7 @@ public class ApiRateLimitManager {
             @Value("${forge.api-config.rate-limit.enabled:true}") boolean enabled,
             @Value("${forge.api-config.rate-limit.permits-per-minute:120}") int permitsPerMinute,
             @Value("${forge.api-config.rate-limit.key-prefix:forge:api:rate}") String keyPrefix,
-            @Value("${forge.api-config.rate-limit.mode:observe}") String mode) {
+            @Value("${forge.api-config.rate-limit.mode:enforce}") String mode) {
         this(redissonClientProvider, enabled, permitsPerMinute, keyPrefix, "enforce".equalsIgnoreCase(mode));
     }
 

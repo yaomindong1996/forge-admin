@@ -660,4 +660,27 @@ export default {
         ...params,
       },
     }),
+
+  // ========== 常用审批意见 ==========
+
+  listUsableCommentPhrases: (params, config = {}) =>
+    request.get('/api/flow/comment-phrases/usable', { ...config, params }),
+
+  listMyCommentPhrases: (config = {}) =>
+    request.get('/api/flow/comment-phrases/mine', config),
+
+  getCommentPhrasePage: params =>
+    request.get('/api/flow/comment-phrases/page', { params }),
+
+  getCommentPhrase: id =>
+    request.get(`/api/flow/comment-phrases/${id}`),
+
+  createCommentPhrase: data =>
+    request.post('/api/flow/comment-phrases', data),
+
+  updateCommentPhrase: data =>
+    request.put('/api/flow/comment-phrases', data),
+
+  deleteCommentPhrase: id =>
+    request.delete(`/api/flow/comment-phrases/${id}`),
 }

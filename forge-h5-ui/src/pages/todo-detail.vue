@@ -87,6 +87,27 @@
             <view v-if="!readonlyMode" class="comment-row">
               <text class="form-label">审批意见<text v-if="requireComment" class="required-mark"> *</text></text>
               <textarea v-model="comment" class="form-textarea comment" maxlength="500" placeholder="请输入审批意见" />
+              <view v-if="commentPhrases.length" class="comment-presets">
+                <button
+                  v-for="phrase in commentPhrases"
+                  :key="phrase.id"
+                  class="comment-preset"
+                  :class="{ active: comment === phrase.content }"
+                  @click="comment = phrase.content"
+                >
+                  {{ phrase.content }}
+                </button>
+              </view>
+              <view class="comment-preset-actions">
+                <button
+                  v-if="canSaveCommentPhrase"
+                  class="comment-preset-link"
+                  :disabled="phraseSaving"
+                  @click="saveCommentPhrase"
+                >
+                  {{ phraseSaving ? '保存中' : '存为常用' }}
+                </button>
+              </view>
             </view>
             <view v-if="!readonlyMode && requireSignature" class="comment-row signature-row">
               <text class="form-label">手写签名<text class="required-mark"> *</text></text>
@@ -254,6 +275,8 @@ const detailTabs = ['业务内容', '审批记录', '流程进度']
 const pageMode = ref('todo')
 const approvalPointChecks = ref({})
 const comment = ref('')
+const commentPhrases = ref([])
+const phraseSaving = ref(false)
 const signature = ref('')
 const approvalSignatureRef = ref(null)
 const mainData = reactive({})
@@ -280,6 +303,10 @@ const delegateSignatureRef = ref(null)
 const userId = computed(() => String(authStore.userInfo?.id || authStore.userInfo?.userId || authStore.userInfo?.user_id || ''))
 const taskPolicySource = computed(() => formInfo.value || businessContext.value || {})
 const requireComment = computed(() => taskPolicySource.value?.requireComment !== false)
+const canSaveCommentPhrase = computed(() => {
+  const value = String(comment.value || '').trim()
+  return Boolean(value) && value.length <= 200 && !commentPhrases.value.some(item => item.content === value)
+})
 const responsibilityDescription = computed(() => formInfo.value?.responsibilityDescription || '')
 const approvalPoints = computed(() => Array.isArray(formInfo.value?.approvalPoints) ? formInfo.value.approvalPoints : [])
 const isCandidateTask = computed(() => Number(task.value?.status) === 0 && !task.value?.assignee)
@@ -357,8 +384,39 @@ const blockedReason = computed(() => {
 onLoad(async (options = {}) => {
   taskId.value = String(options.taskId || '')
   pageMode.value = options.mode === 'readonly' ? 'readonly' : 'todo'
-  await refresh()
+  await Promise.all([refresh(), loadCommentPhrases()])
 })
+
+async function loadCommentPhrases() {
+  try {
+    const res = await api.listUsableCommentPhrases()
+    commentPhrases.value = Array.isArray(res?.data) ? res.data.filter(item => item?.id && item?.content) : []
+  }
+  catch (error) {
+    commentPhrases.value = []
+    console.warn('加载常用审批意见失败:', error)
+  }
+}
+
+async function saveCommentPhrase() {
+  const value = String(comment.value || '').trim()
+  if (!value) {
+    toast('请输入审批意见', { type: 'warning' })
+    return
+  }
+  phraseSaving.value = true
+  try {
+    await api.createCommentPhrase({ content: value, scene: 'ALL', ownerType: 1 })
+    toast('已保存为常用意见', { type: 'success' })
+    await loadCommentPhrases()
+  }
+  catch (error) {
+    toast(error?.message || '保存常用意见失败', { type: 'error' })
+  }
+  finally {
+    phraseSaving.value = false
+  }
+}
 
 async function refresh() {
   if (!taskId.value) return
@@ -819,6 +877,14 @@ function goBack() { uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/
 .form-input { height: 78rpx; }
 .form-textarea { min-height: 148rpx; line-height: 1.5; }
 .form-textarea.comment { margin-top: 4rpx; }
+.comment-presets { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 12rpx; }
+.comment-preset { max-width: 100%; height: 52rpx; padding: 0 16rpx; border: 1rpx solid var(--border-color); border-radius: 8rpx; color: #475569; font-size: 22rpx; line-height: 50rpx; background: #fff; }
+.comment-preset::after,
+.comment-preset-link::after { border: 0; }
+.comment-preset.active { border-color: var(--primary-color); color: var(--primary-color); }
+.comment-preset-actions { display: flex; justify-content: flex-end; }
+.comment-preset-link { padding: 0; border: 0; color: var(--primary-color); font-size: 22rpx; line-height: 40rpx; background: transparent; }
+.comment-preset-link[disabled] { opacity: .55; }
 .return-target-list { display: flex; flex-direction: column; gap: 12rpx; margin-top: 8rpx; }
 .return-target-item { width: 100%; min-height: 72rpx; padding: 16rpx 18rpx; border: 1rpx solid var(--border-color); border-radius: 10rpx; color: var(--text-strong); font-size: 26rpx; text-align: left; background: #fff; }
 .return-target-item.active { border-color: var(--primary-color); color: var(--primary-color); background: #eff6ff; }

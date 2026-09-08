@@ -70,6 +70,32 @@ class LocalFileStorageTest {
                 new ByteArrayInputStream("bad".getBytes()), "report.txt", "text/plain", "linked", "1"));
     }
 
+    @Test
+    void shouldRejectIncompleteMultipartUpload() {
+        LocalFileStorage storage = createStorage();
+        String uploadId = storage.initMultipartUpload("report.txt", "reports", "1");
+        storage.uploadPart(uploadId, 1, new ByteArrayInputStream("part".getBytes()));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> storage.completeMultipartUpload(uploadId, java.util.List.of("etag-1", "etag-2")));
+    }
+
+    @Test
+    void shouldCleanExpiredMultipartUpload() throws Exception {
+        LocalFileStorage storage = createStorage();
+        ReflectionTestUtils.setField(storage, "multipartContextTtlMillis", 1_000L);
+        String uploadId = storage.initMultipartUpload("report.txt", "reports", "1");
+        Path tempDir = tempDirectory.resolve("multipart").resolve(uploadId);
+        assertTrue(Files.isDirectory(tempDir));
+        Thread.sleep(1_100L);
+
+        storage.cleanupExpiredMultipartUploads();
+
+        assertTrue(Files.notExists(tempDir));
+        assertThrows(RuntimeException.class,
+                () -> storage.uploadPart(uploadId, 1, new ByteArrayInputStream("part".getBytes())));
+    }
+
     private LocalFileStorage createStorage() {
         return createStorage(tempDirectory);
     }

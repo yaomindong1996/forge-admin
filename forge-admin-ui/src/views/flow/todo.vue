@@ -146,30 +146,16 @@
             <i class="i-material-symbols:close" />
           </button>
         </div>
-        <n-input
+        <FlowCommentPhraseInput
           ref="quickActionInputRef"
-          v-model:value="quickActionForm.comment"
-          type="textarea"
+          v-model="quickActionForm.comment"
+          :scene="quickActionIsApprove ? 'APPROVE' : 'REJECT'"
           :rows="3"
           :maxlength="200"
-          show-count
+          :disabled="quickActionLoading"
           :placeholder="quickActionIsApprove ? '审批意见，可直接提交' : '驳回原因'"
-          @keydown.ctrl.enter.prevent="submitQuickAction"
-          @keydown.meta.enter.prevent="submitQuickAction"
+          @submit="submitQuickAction"
         />
-        <div class="quick-action-presets" role="group" :aria-label="quickActionIsApprove ? '常用同意意见' : '常用驳回原因'">
-          <button
-            v-for="preset in quickActionCommentPresets"
-            :key="preset"
-            type="button"
-            class="quick-action-preset"
-            :class="{ active: quickActionForm.comment === preset }"
-            :disabled="quickActionLoading"
-            @click="applyQuickActionPreset(preset)"
-          >
-            {{ preset }}
-          </button>
-        </div>
         <p v-if="quickActionTargets.length > 1" class="quick-action-tip">
           需填表或签名的任务会跳过
         </p>
@@ -441,13 +427,12 @@
 
             <n-form class="approve-comment-form" :model="approveForm" label-placement="left" :label-width="72">
               <n-form-item label="审批意见" :required="requireComment" :show-feedback="false">
-                <n-input
-                  v-model:value="approveForm.comment"
-                  type="textarea"
-                  size="small"
+                <FlowCommentPhraseInput
+                  v-model="approveForm.comment"
                   :rows="2"
-                  :placeholder="requireComment ? '请输入审批意见' : '审批意见（可选）'"
                   :maxlength="200"
+                  :disabled="isApprovalBusy"
+                  :placeholder="requireComment ? '请输入审批意见' : '审批意见（可选）'"
                 />
               </n-form-item>
               <n-form-item v-if="requireSignature" label="审批签名" required>
@@ -598,6 +583,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 import UserSelectModal from '@/components/common/UserSelectModal.vue'
 import DingFlowViewer from '@/components/flow-designer/viewer/DingFlowViewer.vue'
 import FlowApprovalChecklist from '@/components/flow/FlowApprovalChecklist.vue'
+import FlowCommentPhraseInput from '@/components/flow/FlowCommentPhraseInput.vue'
 import FlowTaskBusinessSummary from '@/components/flow/FlowTaskBusinessSummary.vue'
 import FlowTaskCardList from '@/components/flow/FlowTaskCardList.vue'
 import FlowTaskDetailShell from '@/components/flow/FlowTaskDetailShell.vue'
@@ -766,9 +752,6 @@ const quickActionInputRef = ref(null)
 const quickActionIsApprove = computed(() => quickActionType.value === 'approve')
 const quickActionTitle = computed(() => quickActionIsApprove.value ? '同意' : '驳回')
 const quickActionTitleId = 'flow-todo-quick-action-title'
-const quickActionCommentPresets = computed(() => quickActionIsApprove.value
-  ? ['同意', '已阅', '情况属实']
-  : ['驳回', '请补充材料', '请修改后重提'])
 const quickActionSubject = computed(() => {
   if (quickActionTargets.value.length === 1)
     return getRowDisplayTitle(quickActionTargets.value[0])
@@ -1490,11 +1473,6 @@ function resolveQuickActionTargets(targets = []) {
     .filter(Boolean)
 }
 
-function applyQuickActionPreset(preset) {
-  quickActionForm.comment = preset
-  nextTick(() => quickActionInputRef.value?.focus?.())
-}
-
 function openQuickAction(action, targets) {
   const resolvedTargets = resolveQuickActionTargets(targets)
   if (resolvedTargets.length === 0) {
@@ -2039,45 +2017,6 @@ watch(
 .quick-action-close:disabled {
   cursor: not-allowed;
   opacity: 0.5;
-}
-
-.quick-action-presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.quick-action-preset {
-  height: 22px;
-  padding: 0 8px;
-  border: 1px solid var(--border-light, #e2e8f0);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-secondary, #475569);
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 20px;
-}
-
-.quick-action-preset:hover:not(:disabled) {
-  border-color: var(--border-dark, #cbd5e1);
-  background: var(--bg-secondary, #f8fafc);
-}
-
-.quick-action-preset.active {
-  border-color: var(--primary-color, #2080f0);
-  color: var(--primary-color, #2080f0);
-}
-
-.quick-action-panel[data-action='reject'] .quick-action-preset.active {
-  border-color: var(--error-color, #d03050);
-  color: var(--error-color, #d03050);
-}
-
-.quick-action-preset:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
 }
 
 .quick-action-tip {

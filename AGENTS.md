@@ -6,7 +6,7 @@
 ## 1. 项目概述
 
 **Forge Admin** — 基于 Vue3 + Spring Boot 3 的企业级中后台管理框架，微内核插件化架构。
-- **后端**: Java 17 + Spring Boot 3.2 + MyBatis-Plus 3.5 + Sa-Token 1.38 + Flowable 7.0
+- **后端**: Java 17 + Spring Boot 3.5.13 + MyBatis-Plus 3.5 + Sa-Token 1.38 + Flowable 7.0
 - **前端**: Vue 3.5 + Naive UI 2.42 + Vite 7 + Pinia 3 + UnoCSS 66
 - **数据库**: MySQL 8.0+ / Redis 6.0+
 - **构建**: Maven (后端) + pnpm (前端)
@@ -53,13 +53,13 @@ code-copilot/                   # AI 辅助编码规则 & 变更管理
 
 ```bash
 # 构建全项目（跳过测试加速）
-cd forge && mvn clean install -DskipTests
+cd forge-server && mvn clean install -DskipTests
 
 # 启动 admin 服务（默认 localhost:8580）
-cd forge/forge-admin-server && mvn spring-boot:run
+cd forge-server/forge-admin-server && mvn spring-boot:run
 
 # 启动 flow 服务（默认 localhost:8581）
-cd forge/forge-flow && mvn spring-boot:run
+cd forge-server/forge-flow/forge-flow-server && mvn spring-boot:run
 
 # 指定环境
 mvn spring-boot:run -Dspring-boot.run.profiles=dev
@@ -89,8 +89,8 @@ pnpm lint:fix
 
 | 文件 | 用途 |
 |------|------|
-| `forge/forge-admin-server/src/main/resources/application-dev.yml` | 后端本地配置（数据库/Redis） |
-| `forge/forge-admin-server/src/main/resources/application-dev.example.yml` | 后端配置模板（可提交） |
+| `forge-server/forge-admin-server/src/main/resources/application-dev.yml` | 后端本地配置（数据库/Redis） |
+| `forge-server/forge-admin-server/src/main/resources/application-dev.example.yml` | 后端配置模板（可提交） |
 | `forge-admin-ui/.env.local` | 前端本地环境变量 |
 | `forge-admin-ui/.env.example` | 前端环境变量模板（可提交） |
 
@@ -470,11 +470,11 @@ ORDER BY installed_rank DESC;
 ```bash
 # 1. 数据库
 mysql -u root -p -e "CREATE DATABASE forge DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;"
-mysql -u root -p forge < forge/forge-admin-server/src/main/resources/sql/forge.sql
+mysql -u root -p forge < forge-server/db/migration/V1.0.0__baseline.sql
 
 # 2. 后端配置
-cp forge/forge-admin-server/src/main/resources/application-dev.example.yml \
-   forge/forge-admin-server/src/main/resources/application-dev.yml
+cp forge-server/forge-admin-server/src/main/resources/application-dev.example.yml \
+   forge-server/forge-admin-server/src/main/resources/application-dev.yml
 # 编辑 application-dev.yml，填入数据库/Redis 连接信息
 
 # 3. 前端配置
@@ -483,7 +483,7 @@ cp .env.example .env.local
 # 编辑 .env.local（可选，默认代理到 localhost:8580）
 
 # 4. 启动
-cd forge/forge-admin-server && mvn spring-boot:run       # 后端 :8580
+cd forge-server/forge-admin-server && mvn spring-boot:run       # 后端 :8580
 cd forge-admin-ui && pnpm install && pnpm dev             # 前端 :5173
 ```
 
@@ -492,13 +492,13 @@ cd forge-admin-ui && pnpm install && pnpm dev             # 前端 :5173
 ```bash
 # === 后端 ===
 # 改代码
-vim forge/forge-framework/forge-plugin-system/src/main/java/.../XxxController.java
+vim forge-server/forge-framework/forge-plugin-system/src/main/java/.../XxxController.java
 
 # 构建（确认编译通过）
-cd forge && mvn clean install -DskipTests
+cd forge-server && mvn clean install -DskipTests
 
 # 重启服务
-cd forge/forge-admin-server && mvn spring-boot:run
+cd forge-server/forge-admin-server && mvn spring-boot:run
 
 # 验证
 curl -s http://localhost:8580/xxx/page?pageNum=1&pageSize=10
@@ -553,7 +553,7 @@ curl -s -X DELETE http://localhost:8580/system/user/123 \
 
 | 日志 | 路径 |
 |------|------|
-| 应用日志 | `forge/forge-admin-server/logs/` |
+| 应用日志 | `forge-server/forge-admin-server/logs/` |
 | 前端开发日志 | 终端 `pnpm dev` 输出 |
 | SQL 日志 | 配置 `spring.datasource.dynamic.datasource.master.log: true`（开发环境） |
 
@@ -565,10 +565,10 @@ curl -s -X DELETE http://localhost:8580/system/user/123 \
 
 | 检查项 | 后端命令 | 前端命令 |
 |--------|---------|---------|
-| 编译 | `cd forge && mvn clean compile` | `cd forge-admin-ui && pnpm build` |
+| 编译 | `cd forge-server && mvn clean compile` | `cd forge-admin-ui && pnpm build` |
 | Lint | — | `pnpm lint:fix` |
-| 测试 | `cd forge && mvn test` | — |
-| 全量构建 | `cd forge && mvn clean install` | `cd forge-admin-ui && pnpm build` |
+| 测试 | `cd forge-server && mvn test` | — |
+| 全量构建 | `cd forge-server && mvn clean install` | `cd forge-admin-ui && pnpm build` |
 | 跳过测试构建 | `mvn clean install -DskipTests` | — |
 
 ---

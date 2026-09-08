@@ -27,7 +27,7 @@ class ApiRateLimitManagerTest {
         ApiRateLimitManager manager = new ApiRateLimitManager(provider(client), true, 120, "forge:api:rate");
         assertThatThrownBy(() -> manager.acquire("ip-127.0.0.1", "GET:/auth/login"))
                 .isInstanceOf(BusinessException.class).extracting("code").isEqualTo(429);
-        verify(limiter).trySetRate(eq(org.redisson.api.RateType.OVERALL), eq(120), any());
+        verify(limiter).trySetRate(eq(org.redisson.api.RateType.OVERALL), eq(120L), any());
     }
 
     @Test

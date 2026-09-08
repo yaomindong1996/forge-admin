@@ -1,143 +1,100 @@
 <template>
-  <div class="connection-studio">
-    <section class="connection-panel">
-      <div class="panel-toolbar">
-        <h3>数据连接</h3>
-        <div class="toolbar-actions">
-          <n-input
-            v-model:value="queryForm.connectionName"
-            clearable
-            placeholder="搜索连接名称"
-            @keydown.enter="applySearch"
+  <div class="data-connection-page">
+    <AiCrudPage
+      ref="crudRef"
+      :api-config="{
+        list: 'get@/data/connection/page',
+        detail: 'get@/data/connection/:id',
+        add: 'post@/data/connection',
+        update: 'put@/data/connection',
+        delete: 'delete@/data/connection/:id',
+      }"
+      :search-schema="searchSchema"
+      :columns="tableColumns"
+      :edit-schema="editSchema"
+      :before-render-form="beforeRenderForm"
+      :before-render-detail="beforeRenderDetail"
+      :before-submit="beforeSubmit"
+      row-key="id"
+      :scroll-x="1100"
+      :edit-grid-cols="2"
+      edit-label-placement="left"
+      edit-label-align="left"
+      edit-label-width="92px"
+      edit-form-class="data-connection-edit-form"
+      modal-width="960px"
+      add-button-text="新增连接"
+      :load-detail-on-edit="true"
+      :hide-selection="true"
+      :hide-batch-delete="true"
+      :search-grid-cols="3"
+      :search-max-visible-fields="3"
+      :search-y-gap="8"
+      search-label-width="72px"
+      @modal-close="handleModalClose"
+    >
+      <template #form-dbType="{ formData }">
+        <n-select
+          :value="formData.dbType"
+          :options="dbTypeOptions"
+          placeholder="请选择数据库类型"
+          @update:value="value => handleDbTypeChange(formData, value)"
+        />
+      </template>
+
+      <template #form-host="{ formData }">
+        <n-input
+          :value="formData.host"
+          placeholder="例如 127.0.0.1"
+          @update:value="value => updateAccessField(formData, 'host', value)"
+        />
+      </template>
+
+      <template #form-port="{ formData }">
+        <n-input
+          :value="formData.port"
+          placeholder="例如 3306"
+          @update:value="value => updateAccessField(formData, 'port', value)"
+        />
+      </template>
+
+      <template #form-database="{ formData }">
+        <n-input
+          :value="formData.database"
+          placeholder="库名 / Schema"
+          @update:value="value => updateAccessField(formData, 'database', value)"
+        />
+      </template>
+
+      <template #form-connectionPreview="{ formData }">
+        <p class="connection-inline-tip">
+          将连到 {{ formData.jdbcUrl || '待生成连接地址' }}
+        </p>
+      </template>
+
+      <template #form-jdbcUrl="{ formData }">
+        <n-input
+          :value="formData.jdbcUrl"
+          placeholder="自动根据上面的地址生成"
+          @update:value="value => updateJdbcUrl(formData, value)"
+        />
+      </template>
+
+      <template #form-connectionProbe="{ formData }">
+        <div class="connection-probe-bar">
+          <n-button
+            size="small"
+            :loading="connectionProbeLoading"
+            @click="handleProbeConnection(formData)"
           >
-            <template #prefix>
-              <i class="i-material-symbols:search-rounded" />
-            </template>
-          </n-input>
-          <n-select
-            v-model:value="queryForm.dbType"
-            clearable
-            placeholder="数据库类型"
-            :options="dbTypeOptions"
-          />
-          <n-select
-            v-model:value="queryForm.status"
-            clearable
-            placeholder="状态"
-            :options="statusOptions"
-          />
-          <n-button type="primary" @click="applySearch">
-            搜索
+            测试能否连上
           </n-button>
-          <n-button @click="handleReset">
-            重置
-          </n-button>
-          <n-button type="primary" secondary @click="handleOpenAddConnection">
-            新增连接
-          </n-button>
+          <span class="connection-inline-tip">
+            {{ currentEditingConnection?.id && !formData.password ? '未填密码时测已保存的连接。' : '先测通再保存。' }}
+          </span>
         </div>
-      </div>
-
-      <AiCrudPage
-        ref="crudRef"
-        class="connection-crud"
-        :api-config="{
-          list: 'get@/data/connection/page',
-          detail: 'get@/data/connection/:id',
-          add: 'post@/data/connection',
-          update: 'put@/data/connection',
-          delete: 'delete@/data/connection/:id',
-        }"
-        :show-search="false"
-        :hide-toolbar="true"
-        :columns="tableColumns"
-        :edit-schema="editSchema"
-        :before-render-form="beforeRenderForm"
-        :before-render-detail="beforeRenderDetail"
-        :before-submit="beforeSubmit"
-        row-key="id"
-        :bordered="false"
-        :striped="false"
-        :scroll-x="1420"
-        :edit-grid-cols="12"
-        edit-label-placement="top"
-        edit-form-class="data-connection-edit-form"
-        modal-width="min(1120px, calc(100vw - 32px))"
-        add-button-text="新增数据连接"
-        @modal-close="handleModalClose"
-      >
-        <template #form-connectionOverview="{ formData }">
-          <div class="connection-guide-grid">
-            <div class="connection-guide-card">
-              <div class="guide-label">
-                连接标识
-              </div>
-              <div class="guide-value">
-                {{ formData.connectionName || '待命名连接' }}
-              </div>
-              <div class="guide-note">
-                {{ formData.connectionCode || '建议使用业务域_环境 的编码方式' }}
-              </div>
-            </div>
-            <div class="connection-guide-card">
-              <div class="guide-label">
-                数据库类型
-              </div>
-              <div class="guide-value">
-                {{ getDbTypeLabel(formData.dbType) }}
-              </div>
-              <div class="guide-note">
-                {{ getDriverShortName(formData.driverClassName) || '驱动将随数据库类型自动填充' }}
-              </div>
-            </div>
-            <div class="connection-guide-card">
-              <div class="guide-label">
-                访问入口
-              </div>
-              <div class="guide-value">
-                {{ getJdbcEndpoint(formData.jdbcUrl) || '待配置 JDBC 地址' }}
-              </div>
-              <div class="guide-note">
-                {{ getJdbcDatabaseName(formData.jdbcUrl) || formData.schemaName || '可补充 schema 便于表探查' }}
-              </div>
-            </div>
-            <div class="connection-guide-card">
-              <div class="guide-label">
-                当前状态
-              </div>
-              <div class="guide-value">
-                {{ getStatusLabel(formData.status ?? 1) }}
-              </div>
-              <div class="guide-note">
-                启用状态下才允许数据集继续引用该连接
-              </div>
-            </div>
-          </div>
-        </template>
-
-        <template #form-passwordHint>
-          <div class="connection-inline-tip">
-            编辑已有连接时，密码留空会沿用原密码；若要校验当前草稿连接，请填写密码后执行“即时测试”。
-          </div>
-        </template>
-
-        <template #form-connectionProbe="{ formData }">
-          <div class="connection-probe-bar">
-            <n-button
-              type="primary"
-              secondary
-              :loading="connectionProbeLoading"
-              @click="handleProbeConnection(formData)"
-            >
-              即时测试连接
-            </n-button>
-            <NText depth="3">
-              {{ currentEditingConnection?.id && !formData.password ? '未填写密码时，将校验已保存连接。' : '草稿测试不会保存数据。' }}
-            </NText>
-          </div>
-        </template>
-      </AiCrudPage>
-    </section>
+      </template>
+    </AiCrudPage>
 
     <n-modal
       v-model:show="tableModalVisible"
@@ -147,26 +104,16 @@
       :segmented="{ content: 'soft' }"
     >
       <div class="modal-toolbar">
-        <div class="modal-toolbar-info">
-          <div class="modal-toolbar-title">
-            表清单
-          </div>
-          <div class="modal-toolbar-desc">
-            快速检视当前连接下可用的数据表与注释信息
-          </div>
-        </div>
-        <n-space>
-          <n-input
-            v-model:value="tableKeyword"
-            clearable
-            placeholder="按表名或注释搜索"
-            style="width: 260px"
-            @keyup.enter="loadConnectionTables"
-          />
-          <n-button type="primary" :loading="tableLoading" @click="loadConnectionTables">
-            查询
-          </n-button>
-        </n-space>
+        <n-input
+          v-model:value="tableKeyword"
+          clearable
+          placeholder="按表名或注释搜索"
+          style="width: 260px"
+          @keyup.enter="loadConnectionTables"
+        />
+        <n-button type="primary" :loading="tableLoading" @click="loadConnectionTables">
+          查询
+        </n-button>
       </div>
       <n-data-table
         :columns="connectionTableColumns"
@@ -198,8 +145,8 @@
 </template>
 
 <script setup>
-import { NTag, NText } from 'naive-ui'
-import { computed, h, reactive, ref } from 'vue'
+import { NTag } from 'naive-ui'
+import { computed, h, ref } from 'vue'
 import {
   deleteDataConnection,
   getDataConnectionFields,
@@ -208,8 +155,19 @@ import {
   testDataConnectionTemp,
 } from '@/api/data/connection'
 import { AiCrudPage } from '@/components/ai-form'
+import SystemTableCell from '@/components/common/SystemTableCell.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables/useDict'
+import { toNumberDictOptions } from '@/utils/dict-options'
+import {
+  applyDbTypeDefaults,
+  DRIVER_CLASS_MAP,
+  getJdbcEndpoint,
+  hydrateConnectionForm,
+  suggestConnectionCode,
+  syncAccessToJdbcUrl,
+  syncJdbcUrlToAccess,
+} from './connection-form'
 
 defineOptions({ name: 'DataConnection' })
 
@@ -228,8 +186,10 @@ const fieldModalVisible = ref(false)
 const fieldModalTitle = ref('字段列表')
 const fieldLoading = ref(false)
 const fieldRows = ref([])
-// 列表行级"测试连接"loading 跟踪，用 Set 保证多行并发独立
 const testingConnectionIds = ref(new Set())
+
+const dbTypeOptions = computed(() => dict.value.data_db_type || [])
+const statusOptions = computed(() => toNumberDictOptions(dict.value.sys_enable_disable))
 
 function setRowTesting(id, loading) {
   const next = new Set(testingConnectionIds.value)
@@ -240,63 +200,77 @@ function setRowTesting(id, loading) {
   testingConnectionIds.value = next
 }
 
-const queryForm = reactive({
-  connectionName: '',
-  dbType: null,
-  status: null,
-})
-
-const dbTypeOptions = computed(() => dict.value.data_db_type || [])
-
-const driverClassMap = {
-  MYSQL: 'com.mysql.cj.jdbc.Driver',
-  ORACLE: 'oracle.jdbc.OracleDriver',
-  POSTGRESQL: 'org.postgresql.Driver',
-  SQLSERVER: 'com.microsoft.sqlserver.jdbc.SQLServerDriver',
-}
-
-const statusOptions = computed(() => dict.value.sys_enable_disable || [])
+const searchSchema = computed(() => [
+  {
+    field: 'connectionName',
+    label: '连接名称',
+    type: 'input',
+    props: {
+      placeholder: '请输入连接名称',
+      clearable: true,
+    },
+  },
+  {
+    field: 'dbType',
+    label: '数据库',
+    type: 'select',
+    props: {
+      placeholder: '请选择数据库类型',
+      options: dbTypeOptions.value,
+      clearable: true,
+    },
+  },
+  {
+    field: 'status',
+    label: '状态',
+    type: 'select',
+    props: {
+      placeholder: '请选择状态',
+      options: statusOptions.value,
+      clearable: true,
+    },
+  },
+])
 
 const tableColumns = computed(() => {
-  // 显式订阅 testing 集合，使行的"测试连接"按钮可动态切换 label/disabled
   const testingIds = testingConnectionIds.value
   return [
     {
       prop: 'connectionName',
-      label: '连接资产',
-      width: 300,
-      render: row => h('div', { class: 'connection-name-card' }, [
-        h('div', { class: 'connection-name-row' }, [
-          h('div', { class: 'connection-name' }, row.connectionName),
-          h(NTag, {
-            size: 'small',
-            bordered: false,
-            type: getDbTypeTagType(row.dbType),
-          }, { default: () => getDbTypeLabel(row.dbType) }),
-        ]),
-        h('div', { class: 'connection-code' }, row.connectionCode),
-        h('div', { class: 'connection-desc' }, row.description || '暂无描述'),
-      ]),
+      label: '连接',
+      minWidth: 220,
+      render: row => h(SystemTableCell, {
+        title: row.connectionName || '-',
+        subtitle: row.connectionCode && row.connectionCode !== row.connectionName
+          ? row.connectionCode
+          : (row.connectionCode ? '' : '未设置编码'),
+        interactive: true,
+        tooltip: `编辑连接：${row.connectionName || row.connectionCode || '-'}`,
+        onActivate: () => handleEdit(row),
+      }),
     },
     {
-      prop: 'driverClassName',
-      label: '驱动与模式',
-      width: 250,
-      render: row => h('div', { class: 'connection-meta-card' }, [
-        h('div', { class: 'connection-meta-primary' }, getDriverShortName(row.driverClassName) || '未设置驱动'),
-        h('div', { class: 'connection-meta-secondary' }, row.driverClassName || '待自动填充'),
-        h('div', { class: 'connection-meta-tertiary' }, row.schemaName || '未指定 schema'),
-      ]),
+      prop: 'dbType',
+      label: '数据库',
+      width: 110,
+      render: row => h(DictTag, {
+        dictType: 'data_db_type',
+        value: row.dbType,
+        size: 'small',
+      }),
     },
     {
       prop: 'jdbcUrl',
-      label: '访问入口',
-      width: 320,
-      render: row => h('div', { class: 'connection-endpoint-card' }, [
-        h('div', { class: 'connection-endpoint-primary' }, getJdbcEndpoint(row.jdbcUrl) || '待配置地址'),
-        h('div', { class: 'connection-endpoint-secondary' }, getJdbcDatabaseName(row.jdbcUrl) || row.jdbcUrl || '-'),
-        h('div', { class: 'connection-endpoint-tertiary' }, `账号：${row.username || '-'}`),
-      ]),
+      label: '地址',
+      minWidth: 240,
+      ellipsis: { tooltip: true },
+      render: row => getJdbcEndpoint(row.jdbcUrl) || row.jdbcUrl || '-',
+    },
+    {
+      prop: 'username',
+      label: '账号',
+      width: 120,
+      ellipsis: { tooltip: true },
     },
     {
       prop: 'status',
@@ -316,9 +290,9 @@ const tableColumns = computed(() => {
     {
       prop: 'action',
       label: '操作',
-      width: 260,
+      width: 168,
       fixed: 'right',
-      maxActionButtons: 4,
+      maxActionButtons: 2,
       actions: [
         { label: '编辑', key: 'edit', type: 'primary', onClick: handleEdit },
         {
@@ -326,7 +300,6 @@ const tableColumns = computed(() => {
           key: 'test',
           type: 'info',
           onClick: handleTest,
-          // 行级 loading：disabled 函数禁用重复点击，配合 $message 反馈
           disabled: row => testingIds.has(row?.id),
           disabledReason: '正在测试，请稍候…',
         },
@@ -342,7 +315,7 @@ const connectionTableColumns = [
     title: '数据表',
     key: 'tableName',
     width: 300,
-    render: row => h('div', { class: 'table-name-card' }, [
+    render: row => h('div', { class: 'table-name-cell' }, [
       h('div', { class: 'table-name' }, row.tableName),
       h('div', { class: 'table-comment' }, row.tableComment || '暂无注释'),
     ]),
@@ -396,215 +369,200 @@ const fieldColumns = [
 
 const editSchema = computed(() => [
   {
-    field: 'connectionOverview',
-    label: '',
-    type: 'slot',
-    slotName: 'connectionOverview',
-    span: 12,
-    showFeedback: false,
-  },
-  {
-    field: '__sectionIdentity',
-    label: '连接标识',
     type: 'divider',
-    span: 12,
-    showFeedback: false,
-    props: { class: 'connection-form-divider' },
-  },
-  {
-    field: 'connectionCode',
-    label: '连接编码',
-    type: 'input',
-    span: 3,
-    rules: [{ required: true, message: '请输入连接编码', trigger: 'blur' }],
-    props: { placeholder: '请输入连接编码' },
+    label: '基础信息',
+    span: 2,
+    props: { titlePlacement: 'left' },
   },
   {
     field: 'connectionName',
     label: '连接名称',
     type: 'input',
-    span: 4,
-    rules: [{ required: true, message: '请输入连接名称', trigger: 'blur' }],
-    props: { placeholder: '请输入连接名称' },
-  },
-  {
-    field: 'dbType',
-    label: '数据库类型',
-    type: 'select',
-    span: 3,
-    defaultValue: 'MYSQL',
-    rules: [{ required: true, message: '请选择数据库类型', trigger: 'change' }],
+    rules: [{ required: true, message: '请填写连接名称', trigger: 'blur' }],
     props: {
-      placeholder: '请选择数据库类型',
-      options: dbTypeOptions,
-      onUpdateValue: (value, formData) => {
-        if (driverClassMap[value]) {
-          formData.driverClassName = driverClassMap[value]
-        }
-      },
+      placeholder: '例如：采购业务库',
     },
   },
   {
+    field: 'connectionCode',
+    label: '连接编码',
+    type: 'input',
+    rules: [{ required: true, message: '请填写连接编码', trigger: 'blur' }],
+    description: '数据集引用这个编码。不填会按名称生成。',
+    props: { placeholder: '例如：erp_prod' },
+    editDisabled: true,
+  },
+  {
     field: 'status',
-    label: '状态',
-    type: 'radio',
-    span: 2,
+    label: '启用',
+    type: 'switch',
     defaultValue: 1,
-    props: { options: statusOptions },
+    checkedValue: 1,
+    uncheckedValue: 0,
   },
   {
-    field: '__sectionAccess',
-    label: '访问配置',
     type: 'divider',
-    span: 12,
+    label: '连接信息',
+    span: 2,
+    props: { titlePlacement: 'left' },
+  },
+  {
+    field: 'dbType',
+    label: '数据库',
+    type: 'slot',
+    slotName: 'dbType',
+    rules: [{ required: true, message: '请选择数据库类型', trigger: 'change' }],
+  },
+  {
+    field: 'host',
+    label: '主机',
+    type: 'slot',
+    slotName: 'host',
+    rules: [{ required: true, message: '请填写主机地址', trigger: 'blur' }],
+  },
+  {
+    field: 'port',
+    label: '端口',
+    type: 'slot',
+    slotName: 'port',
+  },
+  {
+    field: 'database',
+    label: '库名',
+    type: 'slot',
+    slotName: 'database',
+  },
+  {
+    field: 'connectionPreview',
+    type: 'slot',
+    slotName: 'connectionPreview',
+    span: 2,
     showFeedback: false,
-    props: { class: 'connection-form-divider' },
-  },
-  {
-    field: 'jdbcUrl',
-    label: 'JDBC连接地址',
-    type: 'input',
-    span: 12,
-    rules: [{ required: true, message: '请输入JDBC连接地址', trigger: 'blur' }],
-    props: { placeholder: 'jdbc:mysql://localhost:3306/database' },
-  },
-  {
-    field: 'driverClassName',
-    label: '驱动类名',
-    type: 'input',
-    span: 5,
-    defaultValue: 'com.mysql.cj.jdbc.Driver',
-    rules: [{ required: true, message: '请输入驱动类名', trigger: 'blur' }],
-    props: { placeholder: '请输入驱动类名' },
-  },
-  {
-    field: 'schemaName',
-    label: '模式名',
-    type: 'input',
-    span: 3,
-    props: { placeholder: '数据库名/模式名' },
+    showLabel: false,
   },
   {
     field: 'username',
-    label: '用户名',
+    label: '账号',
     type: 'input',
-    span: 2,
-    rules: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-    props: { placeholder: '请输入用户名' },
+    rules: [{ required: true, message: '请填写数据库账号', trigger: 'blur' }],
+    props: { placeholder: '数据库登录名' },
   },
   {
     field: 'password',
     label: '密码',
     type: 'input',
-    span: 2,
-    props: { type: 'password', placeholder: '编辑时留空则不修改', showPasswordOn: 'click' },
-  },
-  {
-    field: 'passwordHint',
-    label: '',
-    type: 'slot',
-    slotName: 'passwordHint',
-    span: 12,
-    showFeedback: false,
-  },
-  {
-    field: '__sectionVerify',
-    label: '验证与观测',
-    type: 'divider',
-    span: 12,
-    showFeedback: false,
-    props: { class: 'connection-form-divider' },
-  },
-  {
-    field: 'testSql',
-    label: '测试SQL',
-    type: 'input',
-    span: 12,
-    defaultValue: 'SELECT 1',
-    props: { placeholder: '请输入测试SQL，如 SELECT 1' },
+    rules: [
+      {
+        required: true,
+        trigger: 'blur',
+        validator: (_rule, value, _callback, source) => {
+          if (source?.id && !value)
+            return true
+          return !!value
+        },
+        message: '请填写密码',
+      },
+    ],
+    description: currentEditingConnection.value?.id ? '改已有连接时密码留空表示不改。' : undefined,
+    props: {
+      type: 'password',
+      placeholder: currentEditingConnection.value?.id ? '留空表示不改' : '数据库密码',
+      showPasswordOn: 'click',
+    },
   },
   {
     field: 'connectionProbe',
-    label: '',
     type: 'slot',
     slotName: 'connectionProbe',
-    span: 12,
+    span: 2,
     showFeedback: false,
+    showLabel: false,
   },
   {
-    field: '__sectionGovernance',
-    label: '治理信息',
     type: 'divider',
-    span: 12,
-    showFeedback: false,
-    props: { class: 'connection-form-divider' },
+    label: '高级',
+    span: 2,
+    props: { titlePlacement: 'left' },
+  },
+  {
+    field: 'jdbcUrl',
+    label: '连接串',
+    type: 'slot',
+    slotName: 'jdbcUrl',
+    span: 2,
+    description: '一般不用改。有特殊参数时直接改这里。',
+  },
+  {
+    field: 'schemaName',
+    label: 'Schema',
+    type: 'input',
+    props: { placeholder: '多数情况可留空' },
+  },
+  {
+    field: 'testSql',
+    label: '测试语句',
+    type: 'input',
+    defaultValue: 'SELECT 1',
+    props: { placeholder: 'SELECT 1' },
   },
   {
     field: 'description',
-    label: '描述',
+    label: '说明',
     type: 'textarea',
-    span: 12,
-    props: { placeholder: '请输入描述', rows: 4 },
+    span: 2,
+    props: { placeholder: '这台库给谁用，可选', rows: 2 },
   },
 ])
 
-function buildSearchParams() {
-  return {
-    connectionName: queryForm.connectionName?.trim() || undefined,
-    dbType: queryForm.dbType || undefined,
-    status: queryForm.status ?? undefined,
-  }
-}
-
-function applySearch() {
-  crudRef.value?.search(buildSearchParams())
-}
-
-function handleReset() {
-  queryForm.connectionName = ''
-  queryForm.dbType = null
-  queryForm.status = null
-  crudRef.value?.search({})
-}
-
-function handleOpenAddConnection() {
-  currentEditingConnection.value = null
-  crudRef.value?.showAdd()
-}
-
 function beforeRenderForm(formData) {
   currentEditingConnection.value = null
-  return {
-    dbType: 'MYSQL',
-    driverClassName: driverClassMap.MYSQL,
-    status: 1,
-    testSql: 'SELECT 1',
+  return hydrateConnectionForm({
     ...(formData || {}),
-  }
+    password: '',
+  })
 }
 
 function beforeRenderDetail(detailData) {
   currentEditingConnection.value = detailData ? { ...detailData } : null
-  return {
+  return hydrateConnectionForm({
     ...(detailData || {}),
     password: '',
-  }
+  })
 }
 
 function beforeSubmit(formData) {
-  if (!formData.password) {
-    delete formData.password
-  }
+  const payload = { ...formData }
+  if (!String(payload.connectionCode || '').trim())
+    payload.connectionCode = suggestConnectionCode(payload.connectionName)
+  if (!payload.driverClassName)
+    payload.driverClassName = DRIVER_CLASS_MAP[String(payload.dbType || 'MYSQL').toUpperCase()]
+  if (payload.host)
+    syncAccessToJdbcUrl(payload)
+  else if (!String(payload.jdbcUrl || '').trim())
+    syncAccessToJdbcUrl(payload)
+  if (!payload.password)
+    delete payload.password
+  delete payload.host
+  delete payload.port
+  delete payload.database
+  delete payload.jdbcExtra
+  delete payload.connectionPreview
+  delete payload.connectionProbe
+  return payload
+}
 
-  delete formData.connectionOverview
-  delete formData.passwordHint
-  delete formData.connectionProbe
-  delete formData.__sectionIdentity
-  delete formData.__sectionAccess
-  delete formData.__sectionVerify
-  delete formData.__sectionGovernance
+function handleDbTypeChange(formData, value) {
+  applyDbTypeDefaults(formData, value)
+}
 
-  return formData
+function updateAccessField(formData, field, value) {
+  formData[field] = value
+  syncAccessToJdbcUrl(formData)
+}
+
+function updateJdbcUrl(formData, value) {
+  formData.jdbcUrl = value
+  syncJdbcUrlToAccess(formData)
 }
 
 function handleModalClose() {
@@ -639,11 +597,10 @@ function handleDelete(row) {
 }
 
 async function handleTest(row) {
-  if (!row?.id || testingConnectionIds.value.has(row.id)) {
+  if (!row?.id || testingConnectionIds.value.has(row.id))
     return
-  }
+
   setRowTesting(row.id, true)
-  // 项目封装的 $message.loading 不返回实例，需用 key 触发自身销毁机制
   const msgKey = `testConn:${row.id}`
   const label = row.connectionName || row.id
   window.$message?.loading?.(`正在测试连接「${label}」...`, { key: msgKey })
@@ -664,22 +621,23 @@ async function handleTest(row) {
   }
   finally {
     setRowTesting(row.id, false)
-    // 先销毁 loading，再弹一条全新 success/error，避免复用消息被旧定时器立即销毁
     window.$message?.destroy?.(msgKey, 0)
     setTimeout(() => {
-      if (succeeded) {
+      if (succeeded)
         window.$message?.success?.(resultMsg, { duration: 3000 })
-      }
-      else {
+      else
         window.$message?.error?.(resultMsg, { duration: 4000 })
-      }
     }, 50)
   }
 }
 
 async function handleProbeConnection(formData) {
-  if (!formData.dbType || !formData.driverClassName || !formData.jdbcUrl || !formData.username) {
-    window.$message?.warning('请先完善数据库类型、驱动、地址和用户名')
+  if (!formData.driverClassName)
+    formData.driverClassName = DRIVER_CLASS_MAP[String(formData.dbType || 'MYSQL').toUpperCase()]
+  if (!formData.jdbcUrl && formData.host)
+    syncAccessToJdbcUrl(formData)
+  if (!formData.dbType || !formData.jdbcUrl || !formData.username) {
+    window.$message?.warning('请先填数据库类型、地址和账号')
     return
   }
 
@@ -704,12 +662,10 @@ async function handleProbeConnection(formData) {
       })
     }
 
-    if (res.code === 200 && res.data) {
+    if (res.code === 200 && res.data)
       window.$message?.success('连接测试通过')
-    }
-    else {
+    else
       window.$message?.error(res.msg || '连接测试失败')
-    }
   }
   catch (error) {
     window.$message?.error(error?.message || '连接测试失败')
@@ -728,19 +684,16 @@ async function handleViewTables(row) {
 }
 
 async function loadConnectionTables() {
-  if (!currentConnection.value?.id) {
+  if (!currentConnection.value?.id)
     return
-  }
 
   tableLoading.value = true
   try {
     const res = await getDataConnectionTables(currentConnection.value.id, tableKeyword.value || undefined)
-    if (res.code === 200) {
+    if (res.code === 200)
       connectionTables.value = res.data || []
-    }
-    else {
+    else
       window.$message.error(res.msg || '加载数据表失败')
-    }
   }
   catch {
     window.$message.error('加载数据表失败')
@@ -751,9 +704,8 @@ async function loadConnectionTables() {
 }
 
 async function handleViewFields(row) {
-  if (!currentConnection.value?.id) {
+  if (!currentConnection.value?.id)
     return
-  }
 
   fieldModalTitle.value = `字段列表 - ${row.tableName}`
   fieldModalVisible.value = true
@@ -762,12 +714,10 @@ async function handleViewFields(row) {
 
   try {
     const res = await getDataConnectionFields(currentConnection.value.id, row.tableName)
-    if (res.code === 200) {
+    if (res.code === 200)
       fieldRows.value = res.data || []
-    }
-    else {
+    else
       window.$message.error(res.msg || '加载字段失败')
-    }
   }
   catch {
     window.$message.error('加载字段失败')
@@ -776,347 +726,57 @@ async function handleViewFields(row) {
     fieldLoading.value = false
   }
 }
-
-function getDbTypeLabel(dbType) {
-  const item = dict.value.data_db_type?.find(d => d.value === dbType)
-  return item?.label || dbType || '未设置'
-}
-
-function getDbTypeTagType(dbType) {
-  const item = dict.value.data_db_type?.find(d => d.value === dbType)
-  return item?.listClass || 'default'
-}
-
-function getStatusLabel(status) {
-  const item = dict.value.sys_enable_disable?.find(d => d.value === String(status))
-  return item?.label || (status === 1 ? '启用' : '禁用')
-}
-
-function getDriverShortName(driverClassName) {
-  if (!driverClassName) {
-    return ''
-  }
-  const parts = driverClassName.split('.')
-  return parts[parts.length - 1] || driverClassName
-}
-
-function getJdbcEndpoint(jdbcUrl) {
-  if (!jdbcUrl) {
-    return ''
-  }
-  const match = jdbcUrl.match(/\/\/([^/?;]+)/)
-  return match?.[1] || jdbcUrl
-}
-
-function getJdbcDatabaseName(jdbcUrl) {
-  if (!jdbcUrl) {
-    return ''
-  }
-  const slashMatch = jdbcUrl.match(/\/\/[^/]+\/([^?;]+)/)
-  if (slashMatch?.[1]) {
-    return slashMatch[1]
-  }
-  const serviceMatch = jdbcUrl.match(/@([^:/]+):\d+[:/]([^?;]+)/)
-  return serviceMatch?.[2] || ''
-}
 </script>
 
 <style scoped>
-.connection-studio {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+.data-connection-page {
   height: 100%;
-  min-height: 0;
-  padding: 10px;
-  background: #f8fafc;
-  box-sizing: border-box;
-  overflow: hidden;
 }
 
-.connection-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  border-radius: 12px;
-  background: #fff;
-}
-
-/* AiCrudPage 依赖父级 flex 链提供高度，否则 flex-height 表格体会塌陷为 0 */
-.connection-panel :deep(.ai-crud-page) {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
-.connection-panel {
-  padding: 10px;
-}
-
-.panel-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-
-.panel-toolbar h3 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.toolbar-actions {
-  display: grid;
-  grid-template-columns: minmax(180px, 1.1fr) 130px 110px auto auto auto;
-  gap: 6px;
-  min-width: min(100%, 800px);
-}
-
-.connection-name-card,
-.connection-meta-card,
-.connection-endpoint-card {
-  display: grid;
-  gap: 6px;
-}
-
-.connection-name-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.connection-name {
-  color: #0f172a;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.connection-code {
-  color: #94a3b8;
-  font-size: 12px;
-  font-weight: 500;
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-}
-
-.connection-desc,
-.connection-meta-secondary,
-.connection-meta-tertiary,
-.connection-endpoint-secondary,
-.connection-endpoint-tertiary {
-  color: #94a3b8;
-  font-size: 12px;
-}
-
-.connection-meta-primary,
-.connection-endpoint-primary {
-  color: #0f172a;
-  font-size: 13px;
-  font-weight: 600;
+.data-connection-page :deep(.ai-crud-page) {
+  height: 100%;
 }
 
 .modal-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-.modal-toolbar-title {
-  color: #0f172a;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.modal-toolbar-desc {
-  margin-top: 4px;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.table-name-card {
+.table-name-cell {
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .table-name {
-  color: #0f172a;
+  color: var(--text-primary, #0f172a);
   font-size: 13px;
-  font-weight: 700;
+  line-height: 20px;
 }
 
 .table-comment {
-  color: #64748b;
+  color: var(--text-tertiary, #94a3b8);
   font-size: 12px;
-}
-
-:deep(.connection-crud .ai-crud-main) {
-  background: transparent;
-}
-
-:deep(.connection-crud .ai-crud-table) {
-  overflow: hidden;
-  border: 1px solid #e8ecf1;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 4px 16px rgb(15 23 42 / 3%);
-}
-
-:deep(.connection-crud .n-data-table-th) {
-  padding: 9px 12px;
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  background: #f8fafc;
-  border-bottom: 1px solid #e8ecf1;
-}
-
-:deep(.connection-crud .n-data-table-tr:nth-child(even) td) {
-  background: rgb(248 250 252 / 50%);
-}
-
-:deep(.connection-crud .n-data-table-tr:hover td) {
-  background: rgb(241 245 249 / 80%);
-}
-
-:global(.data-connection-edit-form) {
-  padding: 4px 2px 0;
-}
-
-:global(.data-connection-edit-form .connection-guide-grid) {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-
-:global(.data-connection-edit-form .connection-guide-card) {
-  padding: 10px 12px;
-  border: 1px solid #dbe8f5;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #fbfdff 0%, #f6faff 100%);
-}
-
-:global(.data-connection-edit-form .guide-label) {
-  color: #64748b;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-:global(.data-connection-edit-form .guide-value) {
-  margin-top: 6px;
-  color: #0f172a;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.4;
-}
-
-:global(.data-connection-edit-form .guide-note) {
-  margin-top: 4px;
-  color: #64748b;
-  font-size: 11px;
-  line-height: 1.6;
+  line-height: 16px;
 }
 
 :global(.data-connection-edit-form .connection-inline-tip) {
-  padding: 10px 12px;
-  color: #475569;
+  margin: 0;
+  color: var(--text-tertiary, #64748b);
   font-size: 12px;
-  line-height: 1.7;
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
-  border-radius: 10px;
+  line-height: 18px;
+  word-break: break-all;
 }
 
 :global(.data-connection-edit-form .connection-probe-bar) {
   display: flex;
+  gap: 8px;
   align-items: center;
-  gap: 10px;
-  min-height: 34px;
-  padding: 2px 0 4px;
-}
-
-:global(.data-connection-edit-form .n-form-item) {
-  margin-bottom: 6px;
-  padding: 10px;
-  border: 1px solid #e8edf5;
-  border-radius: 8px;
-  background: #fff;
-  transition:
-    border-color 0.18s ease,
-    box-shadow 0.18s ease;
-}
-
-:global(.data-connection-edit-form .n-form-item:hover) {
-  border-color: #cbd8ea;
-  box-shadow: 0 2px 8px rgb(15 23 42 / 4%);
 }
 
 :global(.data-connection-edit-form .n-form-item-blank) {
   width: 100%;
-}
-
-:global(.data-connection-edit-form .n-form-item-label) {
-  min-height: 18px;
-  margin-bottom: 5px;
-  color: #475569;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.3;
-}
-
-:global(.data-connection-edit-form .connection-form-divider) {
-  margin: 8px 0 6px;
-  color: #64748b;
-}
-
-:global(.data-connection-edit-form .connection-form-divider::before),
-:global(.data-connection-edit-form .connection-form-divider::after) {
-  border-top-color: #dbe3ef;
-}
-
-:global(.data-connection-edit-form .connection-form-divider .n-divider__title) {
-  color: #1e293b;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-:global(.data-connection-edit-form .n-input),
-:global(.data-connection-edit-form .n-select) {
-  width: 100%;
-}
-
-@media (max-width: 1400px) {
-  .toolbar-actions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    min-width: 100%;
-  }
-}
-
-@media (max-width: 960px) {
-  .connection-studio {
-    padding: 12px;
-  }
-
-  :global(.data-connection-edit-form .connection-guide-grid),
-  .toolbar-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .panel-toolbar,
-  .modal-toolbar,
-  :global(.data-connection-edit-form .connection-probe-bar) {
-    flex-direction: column;
-    align-items: stretch;
-  }
 }
 </style>

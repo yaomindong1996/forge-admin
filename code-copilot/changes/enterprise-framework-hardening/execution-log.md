@@ -145,3 +145,21 @@
 - 修正：普通 API 限流器放置在 `forge-starter-auth`，与认证拦截器同一可部署模块，避免单模块测试或旧本地构件缺少新增 API 配置类。
 - 命令：`mvn -pl forge-framework/forge-starter-parent/forge-starter-auth -am package -DskipTests -Dforge.compiler.skip=false -Dforge.tests.skip=true`（JDK 17）。结果：通过，认证 starter 及依赖成功打包。
 - 命令：`git diff --check`。结果：通过。
+
+
+## 2026-09-07（第七轮：用户指定 4/5/6/7/9）
+
+- 分片上传：`LocalFileStorage` 增加未完成上下文上限（默认 100）、活动 TTL（默认 30 分钟）、定时清理（默认 60 秒），限制分片编号并在合并前校验分片连续完整。
+- 普通 API 限流：默认模式从 `observe` 调整为 `enforce`；显式 `observe` 仍可用于灰度，Admin 配置补充默认限流参数。
+- 前端用户信息：补充 `getTransitionEparchyCode` 空值安全转换，并复制 OA/UAC staff 对象避免直接改写源数据；新增 2 个 Vitest 用例。
+- 文件测试契约：修正 `getAccessUrl` 反射签名；`FileManagerTest` 使用 `ExecutionIdentityContextHolder` 建立测试身份。
+- 文档同步：修正 `AGENTS.md`、`code-copilot/rules/project-context.md`、`README.md` 的后端路径、Spring Boot 3.5.13 和模块数量说明。
+
+### 验证
+
+- 命令：`mvn -Penable-tests -pl forge-framework/forge-starter-parent/forge-starter-file,forge-framework/forge-starter-parent/forge-starter-auth -am -Dtest=LocalFileStorageTest,FileManagerTest,FileControllerPermissionContractTest,ApiRateLimitManagerTest -Dsurefire.failIfNoSpecifiedTests=false test`（JDK 17）。
+  - 结果：通过，文件模块 16 个目标测试全部通过，限流模块另有 2 个目标测试通过。保留既有 Lombok Builder、过时 API 和未检查操作警告。
+- 命令：`./node_modules/.bin/vitest run src/store/modules/__tests__/user.spec.js`（Node 20.19.0）。
+  - 结果：通过，1 个测试文件、2 个用例全部通过。
+- 命令：`git diff --check`。
+  - 结果：通过。

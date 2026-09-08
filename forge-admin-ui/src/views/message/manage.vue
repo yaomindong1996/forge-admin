@@ -78,18 +78,18 @@
             :options="typeOptions"
           />
         </n-form-item>
-        <n-form-item label="业务类型" path="bizType">
+        <n-form-item label="通知业务" path="bizType">
           <n-select
             v-model:value="sendForm.bizType"
-            placeholder="选择业务类型（可选）"
+            placeholder="选在「业务配置」里登记的通知，点开消息会跳到对应单据"
             :options="bizTypeOptions"
             clearable
           />
         </n-form-item>
-        <n-form-item v-if="sendForm.bizType" label="业务主键" path="bizKey">
+        <n-form-item v-if="sendForm.bizType" label="业务编号" path="bizKey">
           <n-input
             v-model:value="sendForm.bizKey"
-            placeholder="请输入业务主键（如：订单ID、流程实例ID）"
+            placeholder="填那张单或那条待办的编号，例如 PO20260001"
           />
         </n-form-item>
       </n-form>

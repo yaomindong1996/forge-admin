@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.starter.flow.mapper.FlowCommentPhraseMapper">
+
+    <resultMap id="PhraseResultMap" type="com.mdframe.forge.starter.flow.entity.FlowCommentPhrase">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="owner_type" property="ownerType"/>
+        <result column="user_id" property="userId"/>
+        <result column="scene" property="scene"/>
+        <result column="content" property="content"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="status" property="status"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="del_flag" property="delFlag"/>
+    </resultMap>
+
+    <sql id="PhraseColumns">
+        p.id, p.tenant_id, p.owner_type, p.user_id, p.scene, p.content, p.sort_order, p.status,
+        p.create_by, p.create_time, p.create_dept, p.update_by, p.update_time, p.del_flag
+    </sql>
+
+    <sql id="PhraseVoColumns">
+        p.id, p.owner_type, p.user_id, p.scene, p.content, p.sort_order, p.status,
+        p.create_time, p.update_time
+    </sql>
+
+    <select id="selectPageByOwner" resultType="com.mdframe.forge.starter.flow.vo.FlowCommentPhraseVO">
+        SELECT <include refid="PhraseVoColumns"/>
+        FROM sys_flow_comment_phrase p
+        <where>
+            p.tenant_id = #{tenantId}
+            AND p.del_flag = 0
+            AND p.owner_type = #{ownerType}
+            AND p.user_id = #{userId}
+            <if test="keyword != null and keyword != ''">
+                AND p.content LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+            <if test="scene != null and scene != ''">
+                AND p.scene = #{scene}
+            </if>
+            <if test="status != null">
+                AND p.status = #{status}
+            </if>
+        </where>
+        ORDER BY p.sort_order ASC, p.id ASC
+    </select>
+
+    <select id="selectUsable" resultType="com.mdframe.forge.starter.flow.vo.FlowCommentPhraseVO">
+        SELECT <include refid="PhraseVoColumns"/>
+        FROM sys_flow_comment_phrase p
+        WHERE p.tenant_id = #{tenantId}
+          AND p.del_flag = 0
+          AND p.status = 1
+          AND (
+                (p.owner_type = 0 AND p.user_id = 0)
+             OR (p.owner_type = 1 AND p.user_id = #{userId})
+          )
+          <if test="scene != null and scene != ''">
+              AND (p.scene = #{scene} OR p.scene = 'ALL')
+          </if>
+        ORDER BY p.owner_type DESC, p.sort_order ASC, p.id ASC
+        LIMIT 50
+    </select>
+
+    <select id="selectMine" resultType="com.mdframe.forge.starter.flow.vo.FlowCommentPhraseVO">
+        SELECT <include refid="PhraseVoColumns"/>
+        FROM sys_flow_comment_phrase p
+        WHERE p.tenant_id = #{tenantId}
+          AND p.del_flag = 0
+          AND p.owner_type = 1
+          AND p.user_id = #{userId}
+        ORDER BY p.sort_order ASC, p.id ASC
+        LIMIT 50
+    </select>
+
+    <select id="selectVoByIdAndTenant" resultType="com.mdframe.forge.starter.flow.vo.FlowCommentPhraseVO">
+        SELECT <include refid="PhraseVoColumns"/>
+        FROM sys_flow_comment_phrase p
+        WHERE p.id = #{id}
+          AND p.tenant_id = #{tenantId}
+          AND p.del_flag = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectByIdAndTenant" resultMap="PhraseResultMap">
+        SELECT <include refid="PhraseColumns"/>
+        FROM sys_flow_comment_phrase p
+        WHERE p.id = #{id}
+          AND p.tenant_id = #{tenantId}
+          AND p.del_flag = 0
+        LIMIT 1
+    </select>
+
+    <select id="countByContent" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_flow_comment_phrase
+        WHERE tenant_id = #{tenantId}
+          AND owner_type = #{ownerType}
+          AND user_id = #{userId}
+          AND scene = #{scene}
+          AND content = #{content}
+          AND del_flag = 0
+          <if test="excludeId != null">
+              AND id != #{excludeId}
+          </if>
+    </select>
+
+    <select id="countByOwner" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_flow_comment_phrase
+        WHERE tenant_id = #{tenantId}
+          AND owner_type = #{ownerType}
+          AND user_id = #{userId}
+          AND del_flag = 0
+    </select>
+
+    <update id="updateByIdAndTenant">
+        UPDATE sys_flow_comment_phrase
+        SET content = #{phrase.content},
+            scene = #{phrase.scene},
+            sort_order = #{phrase.sortOrder},
+            status = #{phrase.status},
+            update_by = #{phrase.updateBy},
+            update_time = #{phrase.updateTime}
+        WHERE id = #{phrase.id}
+          AND tenant_id = #{tenantId}
+          AND del_flag = 0
+    </update>
+
+    <update id="logicallyDeleteByIdAndTenant">
+        UPDATE sys_flow_comment_phrase
+        SET del_flag = id,
+            update_by = #{operatorId},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+          AND del_flag = 0
+    </update>
+</mapper>

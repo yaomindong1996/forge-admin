@@ -91,3 +91,8 @@ forge:
   flow:
     timeout:
       time-zone: Asia/Shanghai
+  # 本地开发打开定时任务开放 API 凭证页。生产默认关闭，且禁止把真实 pepper 写进可提交文件。
+  job:
+    open-api:
+      enabled: true
+      token-pepper: ${FORGE_JOB_OPEN_API_TOKEN_PEPPER:forge-dev-job-open-api-token-pepper-32}

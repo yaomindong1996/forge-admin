@@ -52,3 +52,12 @@ rg -n '!Ymd199606|forge123456|yml199606|StrictHostKeyChecking=no|max-http-post-s
 - 命令：`mvn -f forge-framework/forge-starter-parent/forge-starter-auth/pom.xml clean test -Penable-tests -Dforge.compiler.skip=false -Dforge.tests.skip=false -DfailIfNoTests=false`（JDK 17），实际执行 33 项，5 项通过，28 项因本机 Mockito inline Byte Buddy 无法 self-attach 失败；新增验证码与限流测试也受同一环境限制。
 - 由于聚合测试在 `forge-starter-core` 上使用 `-Penable-tests` 时缺少可识别 JUnit 引擎，未将该失败归因于本轮代码；目标模块 package 验证已通过。
 - 出站客户端：验证每场景并发舱壁、熔断阈值/恢复窗口，以及策略拒绝不计入失败；本轮先完成编译级验证，真实并发与超时场景需在后续隔离环境执行。
+
+
+## 本轮增量验证（2026-09-07）
+
+- 分片上传：验证未完成上下文数量上限、TTL 定时清理、过期上传拒绝、分片编号范围和缺片合并拒绝。
+- 普通 API 限流：默认 `enforce` 时 Redis 无许可返回 429、Redis 不可用返回 503；显式 `observe` 仍可作为灰度配置。
+- 文件模块测试契约：补齐 `getAccessUrl` 的响应参数签名，并在测试中建立可信执行身份，验证权限业务异常。
+- 前端用户信息：区划转换函数空值/对象/字符串用例。
+- 文档同步：后端根目录为 `forge-server`，Spring Boot 版本为 3.5.13，模块数量以 reactor 为准。

@@ -229,6 +229,15 @@ forge:
       active-key: ${FORGE_CRYPTO_PERSISTENCE_ACTIVE_KEY:}
   api-config:
     enabled: false
+    rate-limit:
+      enabled: true
+      permits-per-minute: 120
+      mode: enforce
+  file:
+    multipart:
+      max-contexts: 100
+      ttl-millis: 1800000
+      cleanup-interval-millis: 60000
   business:
     datasource:
       enabled: true

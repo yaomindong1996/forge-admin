@@ -1,6 +1,9 @@
 package com.mdframe.forge.starter.file.core;
 
 import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.starter.core.context.ExecutionIdentity;
+import com.mdframe.forge.starter.core.context.ExecutionIdentityContextHolder;
+import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.file.model.FileMetadata;
 import com.mdframe.forge.starter.file.model.StorageConfig;
 import com.mdframe.forge.starter.file.spi.FileMetadataPersistence;
@@ -9,6 +12,8 @@ import com.mdframe.forge.starter.file.storage.FileStorage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
@@ -27,6 +32,24 @@ import static org.mockito.Mockito.when;
 @DisplayName("FileManager upload policy")
 @Tag("dev")
 class FileManagerTest {
+
+    private ExecutionIdentityContextHolder.Scope identityScope;
+
+    @BeforeEach
+    void openIdentity() {
+        LoginUser user = new LoginUser();
+        user.setUserId(1L);
+        user.setTenantId(1L);
+        identityScope = ExecutionIdentityContextHolder.open(
+                new ExecutionIdentity(user, "USER", 1L, null, 1L, "test", "test-token", java.util.Set.of()));
+    }
+
+    @AfterEach
+    void closeIdentity() {
+        if (identityScope != null) {
+            identityScope.close();
+        }
+    }
 
     @Test
     @DisplayName("rejects upload when storage allowed types are blank")
