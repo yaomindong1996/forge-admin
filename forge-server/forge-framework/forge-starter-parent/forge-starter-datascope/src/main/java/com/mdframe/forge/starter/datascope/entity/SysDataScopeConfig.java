@@ -94,6 +94,23 @@ public class SysDataScopeConfig extends BaseEntity {
     private String userTableAlias;
 
     /**
+     * 流程经手人可查看单据（0-否，1-是）。
+     * 开启后查询会额外看到自己发起、审批、被抄送的单据；改删仍走原数据范围。
+     */
+    private Integer flowRelatedVisible;
+
+    /**
+     * 流程 businessKey 前缀，对应 sys_flow_record_participant.business_type。
+     * 例如 leave、sample_purchase_order；低代码可留空，回退 resource_code 的 ai:business: 后缀。
+     */
+    private String flowBusinessType;
+
+    /**
+     * 业务表主键列，对应 businessKey 冒号后的记录 ID，默认 id。
+     */
+    private String recordIdColumn;
+
+    /**
      * 是否启用（0-禁用，1-启用）
      */
     private Integer enabled;

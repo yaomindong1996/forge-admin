@@ -197,6 +197,9 @@ public class FlowCcNodeDelegate implements JavaDelegate {
             List<String> userIds = isNumeric(group)
                     ? flowOrgIntegrationService.getUserIdsByRoleId(group)
                     : flowOrgIntegrationService.getUserIdsByRoleCode(group);
+            if (userIds == null || userIds.isEmpty()) {
+                userIds = flowOrgIntegrationService.getUserIdsByGroupCode(group);
+            }
             if ((userIds == null || userIds.isEmpty()) && isNumeric(group)) {
                 userIds = flowOrgIntegrationService.getUserIdsByDeptId(group);
             }

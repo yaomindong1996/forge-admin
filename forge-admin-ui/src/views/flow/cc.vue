@@ -1,5 +1,13 @@
 <template>
   <div class="flow-page">
+    <n-alert v-if="loadError" type="error" class="mb-3" :show-icon="true">
+      抄送列表加载失败，请重试。
+      <template #action>
+        <NButton text type="primary" @click="loadData">
+          重试
+        </NButton>
+      </template>
+    </n-alert>
     <!-- 数据标签页 -->
     <div class="tabs-container">
       <n-tabs v-model:value="activeTab" type="line" @update:value="handleTabChange">
@@ -65,7 +73,7 @@
       </template>
       <template #status="{ row }">
         <span class="task-status-pill" :class="row.isRead === 1 ? 'read' : 'unread'">
-          {{ getLabel('flow_read_status', row.isRead) }}
+          {{ row.status === 1 ? getCcStatusLabel('flow_cc_status', row.status) : getLabel('flow_read_status', row.isRead) }}
         </span>
       </template>
       <template #title="{ row }">
@@ -89,6 +97,12 @@
           <span class="task-row-action-separator" />
           <button type="button" class="task-row-link-action" aria-label="标记已读" @click="handleMarkRead(row.id)">
             已读
+          </button>
+        </template>
+        <template v-if="activeTab === 'sent' && row.status !== 1">
+          <span class="task-row-action-separator" />
+          <button type="button" class="task-row-link-action text-error" aria-label="撤回抄送" @click.stop="handleRevoke(row)">
+            撤回
           </button>
         </template>
         <span class="task-row-action-separator" />
@@ -207,7 +221,9 @@ import { getRowDisplayTitle } from './utils/processDisplay'
 
 const userStore = useUserStore()
 const { dict, getLabel } = useDict('flow_read_status')
+const { getLabel: getCcStatusLabel } = useDict('flow_cc_status')
 const loading = ref(false)
+const loadError = ref(false)
 const dataSource = ref([])
 const activeTab = ref('received')
 const selectedRowKeys = ref([])
@@ -248,6 +264,7 @@ function toNumberOptions(options = []) {
 
 async function loadData() {
   loading.value = true
+  loadError.value = false
   try {
     const params = { pageNum: pagination.page, pageSize: pagination.pageSize, userId: userStore.userId, title: queryParams.title || undefined }
     let res
@@ -262,12 +279,28 @@ async function loadData() {
     if (res.code === 200 && res.data) {
       dataSource.value = res.data.records || []
       pagination.itemCount = res.data.total || 0
-      if (activeTab.value === 'received')
-        unreadCc.value = dataSource.value.filter(r => r.isRead === 0).length
+      await refreshUnreadCount()
+    }
+    else {
+      loadError.value = true
     }
   }
-  catch (error) { console.error('加载抄送列表失败:', error) }
+  catch (error) {
+    console.error('加载抄送列表失败:', error)
+    loadError.value = true
+  }
   finally { loading.value = false }
+}
+
+async function refreshUnreadCount() {
+  try {
+    const res = await flowApi.getUnreadCcCount(userStore.userId)
+    if (res.code === 200)
+      unreadCc.value = Number(res.data?.count ?? res.data?.unreadCount ?? 0)
+  }
+  catch (error) {
+    console.error('加载未读抄送数量失败:', error)
+  }
 }
 
 function handleSearch() {
@@ -352,10 +385,39 @@ async function handleBatchMarkRead() {
       selectedRowKeys.value = []
       loadData()
     }
+    else {
+      window.$message.error(res.message || '操作失败')
+    }
   }
-  catch {
+  catch (error) {
+    console.error('批量标记抄送已读失败:', error)
     window.$message.error('操作失败')
   }
+}
+
+function handleRevoke(row) {
+  window.$dialog.warning({
+    title: '撤回抄送',
+    content: '撤回后接收人将无法继续查看该抄送，是否继续？',
+    positiveText: '撤回',
+    negativeText: '取消',
+    onPositiveClick: async () => {
+      try {
+        const res = await flowApi.revokeCc(row.id, '')
+        if (res.code === 200) {
+          window.$message.success('抄送已撤回')
+          loadData()
+        }
+        else {
+          window.$message.error(res.message || '撤回失败')
+        }
+      }
+      catch (error) {
+        console.error('撤回抄送失败:', error)
+        window.$message.error('撤回失败')
+      }
+    },
+  })
 }
 
 function handleMarkAllRead() {
@@ -366,15 +428,17 @@ function handleMarkAllRead() {
     negativeText: '取消',
     onPositiveClick: async () => {
       try {
-        const unreadItems = dataSource.value.filter(item => item.isRead === 0)
-        const ids = unreadItems.map(item => item.id)
-        if (ids.length > 0) {
-          await flowApi.batchMarkCcRead(ids)
-          window.$message.success('已全部标记已读')
-          loadData()
+        const res = await flowApi.markAllCcRead()
+        if (res.code === 200) {
+          window.$message.success(`已全部标记已读${res.data ? `（${res.data}条）` : ''}`)
+          await loadData()
+        }
+        else {
+          window.$message.error(res.message || '操作失败')
         }
       }
-      catch {
+      catch (error) {
+        console.error('全部标记抄送已读失败:', error)
         window.$message.error('操作失败')
       }
     },

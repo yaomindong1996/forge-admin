@@ -132,6 +132,14 @@
               </n-form-item-gi>
             </n-grid>
           </n-form>
+
+          <label class="related-visible-row">
+            <n-switch v-model:value="draft.flowRelatedVisible" size="small" aria-label="流程经手人可查看单据" />
+            <span class="related-visible-copy">
+              <strong>流程经手人可查看单据</strong>
+              <small>角色按个人或部门看数时，额外可见自己发起、审批过、被抄送的单据。只能查看，不能修改或删除。待办仍在流程工作台处理。</small>
+            </span>
+          </label>
         </section>
 
         <n-alert v-if="validationMessage" type="error" :bordered="false">
@@ -201,6 +209,7 @@ function createDraft() {
     userField: adapter.userField || null,
     orgField: adapter.orgField || null,
     regionField: adapter.regionField || null,
+    flowRelatedVisible: adapter.flowRelatedVisible !== false,
   }
 }
 
@@ -232,6 +241,7 @@ function submit() {
     userField: draft.value.userField || null,
     orgField: draft.value.orgField || null,
     regionField: draft.value.regionField || null,
+    flowRelatedVisible: isFollowSystem.value ? draft.value.flowRelatedVisible !== false : null,
   })
 }
 </script>
@@ -443,6 +453,34 @@ function submit() {
   border-radius: 11px;
   padding: 15px 16px 4px;
   background: rgb(148 163 184 / 5%);
+}
+
+.related-visible-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 14px 0 12px;
+  cursor: pointer;
+}
+
+.related-visible-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.related-visible-copy strong {
+  color: var(--text-color-1);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.related-visible-copy small {
+  color: var(--text-color-3);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .modal-actions {

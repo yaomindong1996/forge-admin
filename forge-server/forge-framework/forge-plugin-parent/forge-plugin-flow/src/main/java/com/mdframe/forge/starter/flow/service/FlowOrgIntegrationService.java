@@ -2,6 +2,8 @@ package com.mdframe.forge.starter.flow.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.Collections;
 
 /**
  * 流程组织架构集成服务接口
@@ -17,6 +19,24 @@ public interface FlowOrgIntegrationService {
      * @return 用户信息Map，包含id, name, deptId, postId等
      */
     Map<String, Object> getUserInfo(String userId);
+
+    /**
+     * 批量读取流程用户详情。实现必须沿用当前租户、启用状态和逻辑删除边界。
+     * 默认实现保留兼容性，具体实现应覆盖为单次 SQL 查询。
+     */
+    default Map<String, Map<String, Object>> getUserInfoBatch(List<String> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Map<String, Map<String, Object>> result = new LinkedHashMap<>();
+        userIds.stream().filter(id -> id != null && !id.isBlank()).distinct().forEach(id -> {
+            Map<String, Object> info = getUserInfo(id);
+            if (info != null && !info.isEmpty()) {
+                result.put(id, info);
+            }
+        });
+        return result;
+    }
 
     /** 校验用户存在、启用且属于指定租户。 */
     boolean isUserAvailableForTenant(String userId, Long tenantId);
@@ -65,12 +85,24 @@ public interface FlowOrgIntegrationService {
      */
     List<String> getUserIdsByRoleCode(String roleCode);
 
+    /** 根据流程用户组编码获取租户内当前有效用户。 */
+    List<String> getUserIdsByGroupCode(String groupCode);
+
+    /** 获取用户所属的流程用户组编码。 */
+    List<String> getUserGroupCodes(String userId);
+
     /**
      * 根据角色ID获取用户ID列表
      * @param roleId 角色ID
      * @return 用户ID列表
      */
     List<String> getUserIdsByRoleId(String roleId);
+
+    /** 根据行政区划编码获取租户内有效用户。 */
+    List<String> getUserIdsByRegionCode(String regionCode);
+
+    /** 根据部门和角色编码获取租户内有效用户。 */
+    List<String> getUserIdsByDeptAndRoleCode(String deptId, String roleCode);
 
     /**
      * 根据部门ID获取部门下所有用户ID列表

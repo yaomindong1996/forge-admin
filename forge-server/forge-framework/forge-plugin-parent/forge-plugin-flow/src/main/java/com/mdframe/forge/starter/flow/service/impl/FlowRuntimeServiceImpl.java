@@ -79,7 +79,9 @@ public class FlowRuntimeServiceImpl implements FlowRuntimeService {
 
     @Override
     public FlowFormInstanceVO getInstanceByProcessInstanceId(String processInstanceId) {
-        FlowFormInstance instance = formInstanceMapper.selectByProcessInstanceId(processInstanceId);
+        Long tenantId = requireTenantIdForRead();
+        FlowFormInstance instance = formInstanceMapper.selectByProcessInstanceIdAndTenantId(
+                processInstanceId, tenantId);
         FlowFormInstanceVO vo = new FlowFormInstanceVO();
         vo.setInstance(instance);
         if (instance != null && StringUtils.hasText(instance.getProcessInstanceId())) {
@@ -368,6 +370,14 @@ public class FlowRuntimeServiceImpl implements FlowRuntimeService {
         } catch (Exception e) {
             return 1L;
         }
+    }
+
+    private Long requireTenantIdForRead() {
+        Long tenantId = SessionHelper.getTenantId();
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalStateException("FLOW_TENANT_REQUIRED");
+        }
+        return tenantId;
     }
 
     private String toJson(Map<String, Object> value) {

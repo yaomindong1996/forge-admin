@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户Mapper接口
@@ -68,4 +69,34 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
                                 @Param("avatar") String avatar,
                                 @Param("email") String email,
                                 @Param("phone") String phone);
+
+    /** 流程运行时按租户读取已启用用户及其主组织/岗位摘要。 */
+    Map<String, Object> selectFlowUserInfo(@Param("tenantId") Long tenantId,
+                                           @Param("userId") Long userId);
+
+    /** 流程图和历史详情批量读取用户及主组织/岗位摘要。 */
+    List<Map<String, Object>> selectFlowUserInfoBatch(@Param("tenantId") Long tenantId,
+                                                      @Param("userIds") List<Long> userIds);
+
+    /** 流程选人列表使用单次 SQL 返回组织摘要，避免逐用户回查组织。 */
+    List<Map<String, Object>> selectFlowUsers(@Param("tenantId") Long tenantId,
+                                              @Param("keyword") String keyword,
+                                              @Param("orgId") Long orgId);
+
+    List<Long> selectFlowUserIdsByOrg(@Param("tenantId") Long tenantId,
+                                      @Param("orgId") Long orgId);
+
+    List<Long> selectFlowUserIdsByPost(@Param("tenantId") Long tenantId,
+                                       @Param("postId") Long postId);
+
+    List<Long> selectFlowUserIdsByOrgAndPost(@Param("tenantId") Long tenantId,
+                                             @Param("orgId") Long orgId,
+                                             @Param("postId") Long postId);
+
+    List<Long> selectFlowUserIdsByRegion(@Param("tenantId") Long tenantId,
+                                         @Param("regionCode") String regionCode);
+
+    /** 校验流程用户组成员是否均为当前租户内启用用户。 */
+    List<Long> selectFlowAvailableUserIds(@Param("tenantId") Long tenantId,
+                                          @Param("userIds") List<Long> userIds);
 }

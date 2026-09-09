@@ -9,10 +9,15 @@ import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.flow.entity.FlowBusiness;
 import com.mdframe.forge.starter.flow.entity.FlowModel;
 import com.mdframe.forge.starter.flow.dto.FlowStartConfig;
+import com.mdframe.forge.starter.flow.dto.FlowModelSortDTO;
+import com.mdframe.forge.starter.flow.dto.FlowModelSortItemDTO;
+import com.mdframe.forge.starter.flow.vo.FlowModelStatisticsVO;
+import com.mdframe.forge.starter.flow.vo.FlowModelVersionSummaryVO;
 import com.mdframe.forge.starter.flow.enums.FlowModelStatus;
 import com.mdframe.forge.starter.flow.mapper.FlowBusinessMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowModelMapper;
 import com.mdframe.forge.starter.flow.service.FlowModelService;
+import com.mdframe.forge.starter.flow.service.FlowOrgIntegrationService;
 import com.mdframe.forge.starter.flow.event.FlowModelPublishEvent;
 import com.mdframe.forge.starter.flow.helper.BpmnXmlUtils;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +52,7 @@ import java.util.stream.Collectors;
 public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel> implements FlowModelService {
 
     private static final String MODEL_KEY_PATTERN = "^[A-Za-z][A-Za-z0-9_-]{1,63}$";
+    private static final int MAX_MODEL_VERSIONS = 100;
 
     @Autowired(required = false)
     private RepositoryService repositoryService;
@@ -66,13 +72,21 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
+    /**
+     * 组织解析仅用于发布/发起前预检，不改变 BPMN 运行时的候选人计算。
+     * 采用字段注入保持与可选流程插件装配方式兼容。
+     */
+    @Autowired(required = false)
+    private FlowOrgIntegrationService flowOrgIntegrationService;
+
     @Override
     public IPage<FlowModel> pageFlowModel(Page<FlowModel> page, String modelName, String category, Integer status) {
         String currentUsername = SessionHelper.getUsername();
-        if (currentUsername == null || currentUsername.isEmpty()) {
+        Long tenantId = SessionHelper.getTenantId();
+        if (currentUsername == null || currentUsername.isEmpty() || tenantId == null || tenantId <= 0) {
             return new Page<>(page.getCurrent(), page.getSize());
         }
-        return this.getBaseMapper().selectModelPage(page, modelName, category, status, currentUsername);
+        return this.getBaseMapper().selectModelPage(page, modelName, category, status, currentUsername, tenantId);
     }
 
     @Override
@@ -86,29 +100,31 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
     }
 
     @Override
-    public Map<String, Object> getStatusStatistics(String modelName, String category) {
+    public FlowModelStatisticsVO getStatusStatistics(String modelName, String category) {
         String currentUsername = SessionHelper.getUsername();
-        if (currentUsername == null || currentUsername.isEmpty()) {
+        Long tenantId = SessionHelper.getTenantId();
+        if (currentUsername == null || currentUsername.isEmpty() || tenantId == null || tenantId <= 0) {
             return emptyStatusStatistics();
         }
 
-        Map<String, Object> raw = this.getBaseMapper().selectStatusStatistics(modelName, category, currentUsername);
-        Map<String, Object> result = new HashMap<>();
-        result.put("total", readCount(raw, "total"));
-        result.put("designing", readCount(raw, "designing"));
-        result.put("deployed", readCount(raw, "deployed"));
-        result.put("suspended", readCount(raw, "suspended"));
-        result.put("disabled", readCount(raw, "disabled"));
+        Map<String, Object> raw = this.getBaseMapper().selectStatusStatistics(
+                modelName, category, currentUsername, tenantId);
+        FlowModelStatisticsVO result = new FlowModelStatisticsVO();
+        result.setTotal(readCount(raw, "total"));
+        result.setDesigning(readCount(raw, "designing"));
+        result.setDeployed(readCount(raw, "deployed"));
+        result.setSuspended(readCount(raw, "suspended"));
+        result.setDisabled(readCount(raw, "disabled"));
         return result;
     }
 
-    private Map<String, Object> emptyStatusStatistics() {
-        Map<String, Object> result = new HashMap<>();
-        result.put("total", 0L);
-        result.put("designing", 0L);
-        result.put("deployed", 0L);
-        result.put("suspended", 0L);
-        result.put("disabled", 0L);
+    private FlowModelStatisticsVO emptyStatusStatistics() {
+        FlowModelStatisticsVO result = new FlowModelStatisticsVO();
+        result.setTotal(0L);
+        result.setDesigning(0L);
+        result.setDeployed(0L);
+        result.setSuspended(0L);
+        result.setDisabled(0L);
         return result;
     }
 
@@ -136,6 +152,8 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
     @Override
     @Transactional(rollbackFor = Exception.class)
     public FlowModel createModel(FlowModel flowModel) {
+        Long tenantId = requireTenantId();
+        flowModel.setTenantId(tenantId);
         flowModel.setDesignerType(normalizeDesignerType(flowModel.getDesignerType()));
         // 新建流程统一使用 Redis 事件通知；管理端不再暴露通知方式选择。
         flowModel.setNotifyType("redis");
@@ -170,10 +188,15 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
     @Override
     @Transactional(rollbackFor = Exception.class)
     public FlowModel updateModel(FlowModel flowModel) {
-        FlowModel existing = getById(flowModel.getId());
+        Long tenantId = requireTenantId();
+        FlowModel existing = getModelByIdAndTenant(flowModel.getId(), tenantId);
         if (existing == null) {
             throw new RuntimeException("流程模型不存在");
         }
+        if (flowModel.getTenantId() != null && !tenantId.equals(flowModel.getTenantId())) {
+            throw new RuntimeException("无权修改其他租户流程模型");
+        }
+        flowModel.setTenantId(tenantId);
         if (flowModel.getDesignerType() == null || flowModel.getDesignerType().isBlank()) {
             flowModel.setDesignerType(normalizeDesignerType(existing.getDesignerType()));
         } else {
@@ -231,7 +254,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteModel(String id) {
-        FlowModel model = getById(id);
+        FlowModel model = getModelByIdAndTenant(id, requireTenantId());
         if (model != null) {
             validateNoProcessData(model);
 
@@ -259,7 +282,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String deployModel(String id, String changeDescription) {
-        FlowModel model = getById(id);
+        FlowModel model = getModelByIdAndTenant(id, requireTenantId());
         if (model == null) {
             throw new RuntimeException("流程模型不存在");
         }
@@ -289,6 +312,8 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
         }
 
         validateSequenceFlowRefs(bpmnXml);
+        validateBpmnStructure(bpmnXml);
+        validateExecutableNodesAndGatewayConditions(bpmnXml);
 
         try {
             if (repositoryService == null) {
@@ -442,7 +467,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void suspendModel(String id) {
-        FlowModel model = getById(id);
+        FlowModel model = getModelByIdAndTenant(id, requireTenantId());
         if (model == null) {
             throw new RuntimeException("流程模型不存在");
         }
@@ -464,7 +489,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void activateModel(String id) {
-        FlowModel model = getById(id);
+        FlowModel model = getModelByIdAndTenant(id, requireTenantId());
         if (model == null) {
             throw new RuntimeException("流程模型不存在");
         }
@@ -486,7 +511,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void disableModel(String id) {
-        FlowModel model = getById(id);
+        FlowModel model = getModelByIdAndTenant(id, requireTenantId());
         if (model != null) {
             model.setStatus(FlowModelStatus.DISABLED.getCode());
             updateById(model);
@@ -497,7 +522,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void enableModel(String id) {
-        FlowModel model = getById(id);
+        FlowModel model = getModelByIdAndTenant(id, requireTenantId());
         if (model != null) {
             model.setStatus(FlowModelStatus.DESIGNING.getCode());
             updateById(model);
@@ -507,7 +532,8 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
 
     @Override
     public FlowModel getModelDetail(String id) {
-        return getById(id);
+        Long tenantId = SessionHelper.getTenantId();
+        return tenantId == null || tenantId <= 0 ? null : getModelByIdAndTenant(id, tenantId);
     }
 
     @Override
@@ -534,11 +560,79 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
                 .convertToBpmnModel(new BytesStreamSource(
                         model.getBpmnXml().getBytes(java.nio.charset.StandardCharsets.UTF_8)), false, true);
         config.setInitiatorSelectNodes(InitiatorSelectedApproverSupport.discover(bpmnModel));
+        config.setNextNodes(InitiatorSelectedApproverSupport.discoverNextNodes(bpmnModel));
+        List<String> diagnostics = new ArrayList<>(
+                InitiatorSelectedApproverSupport.preflightNextApprovers(bpmnModel));
+        appendCandidateGroupDiagnostics(config.getNextNodes(), diagnostics);
+        config.setDiagnostics(diagnostics);
+        config.setPreflightPassed(diagnostics.isEmpty());
         return config;
     }
 
+    /**
+     * 对静态 candidateGroups 做启动前可解析性检查。表达式形式的候选组依赖
+     * 业务变量，留给运行时解析，避免把动态配置误报为不存在。
+     */
+    private void appendCandidateGroupDiagnostics(List<FlowStartConfig.ApproverNode> nodes,
+                                                 List<String> diagnostics) {
+        if (flowOrgIntegrationService == null || nodes == null || nodes.isEmpty()) {
+            return;
+        }
+        Set<String> reported = new HashSet<>();
+        for (FlowStartConfig.ApproverNode node : nodes) {
+            String groups = node == null ? null : node.getCandidateGroups();
+            if (!hasText(groups)) {
+                continue;
+            }
+            for (String raw : groups.split("[,;，；]")) {
+                String group = raw == null ? "" : raw.trim();
+                if (group.isEmpty() || group.contains("${") || group.contains("#{")) {
+                    continue;
+                }
+                try {
+                    if (resolveCandidateGroupUsers(group).isEmpty()) {
+                        String nodeName = node.getNodeName();
+                        String label = hasText(nodeName) ? nodeName : node.getNodeKey();
+                        String message = "审批节点「" + (hasText(label) ? label : "未命名")
+                                + "」候选组「" + group + "」当前未解析到启用成员";
+                        if (reported.add(message)) {
+                            diagnostics.add(message);
+                        }
+                    }
+                } catch (RuntimeException exception) {
+                    String nodeName = node.getNodeName();
+                    String label = hasText(nodeName) ? nodeName : node.getNodeKey();
+                    String message = "审批节点「" + (hasText(label) ? label : "未命名")
+                            + "」候选组「" + group + "」解析失败，请检查组织配置";
+                    if (reported.add(message)) {
+                        diagnostics.add(message);
+                    }
+                }
+            }
+        }
+    }
+
+    private List<String> resolveCandidateGroupUsers(String group) {
+        List<String> users = flowOrgIntegrationService.getUserIdsByRoleCode(group);
+        if (users != null && !users.isEmpty()) {
+            return users;
+        }
+        if (group.chars().allMatch(Character::isDigit)) {
+            users = flowOrgIntegrationService.getUserIdsByRoleId(group);
+            if (users != null && !users.isEmpty()) {
+                return users;
+            }
+            users = flowOrgIntegrationService.getUserIdsByDeptId(group);
+            if (users != null && !users.isEmpty()) {
+                return users;
+            }
+        }
+        users = flowOrgIntegrationService.getUserIdsByGroupCode(group);
+        return users == null ? List.of() : users;
+    }
+
     @Override
-    public List<Map<String, Object>> getModelVersions(String modelKey) {
+    public List<FlowModelVersionSummaryVO> getModelVersions(String modelKey) {
         // 查询Flowable中的历史版本
         if (repositoryService == null) {
             return Collections.emptyList();
@@ -548,16 +642,16 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
                 .processDefinitionKey(modelKey)
                 .orderByProcessDefinitionVersion()
                 .desc()
-                .list();
+                .listPage(0, MAX_MODEL_VERSIONS);
         
         return definitions.stream().map(pd -> {
-            Map<String, Object> version = new HashMap<>();
-            version.put("id", pd.getId());
-            version.put("key", pd.getKey());
-            version.put("name", pd.getName());
-            version.put("version", pd.getVersion());
-            version.put("deploymentId", pd.getDeploymentId());
-            version.put("suspended", pd.isSuspended());
+            FlowModelVersionSummaryVO version = new FlowModelVersionSummaryVO();
+            version.setId(pd.getId());
+            version.setKey(pd.getKey());
+            version.setName(pd.getName());
+            version.setVersion(pd.getVersion());
+            version.setDeploymentId(pd.getDeploymentId());
+            version.setSuspended(pd.isSuspended());
             // 从Deployment获取部署时间
             try {
                 if (pd.getDeploymentId() != null) {
@@ -565,7 +659,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
                             .deploymentId(pd.getDeploymentId())
                             .singleResult();
                     if (deployment != null) {
-                        version.put("deploymentTime", deployment.getDeploymentTime());
+                        version.setDeploymentTime(deployment.getDeploymentTime());
                     }
                 }
             } catch (Exception e) {
@@ -605,6 +699,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
         model.setDelFlag(0);
         model.setCreateTime(LocalDateTime.now());
         model.setUpdateTime(LocalDateTime.now());
+        model.setTenantId(requireTenantId());
         model.setCreateBy(SessionHelper.getLoginUser().getUsername());
         save(model);
         log.info("导入流程模型成功：{}", model.getModelKey());
@@ -613,7 +708,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
 
     @Override
     public String exportModel(String id) {
-        FlowModel model = getById(id);
+        FlowModel model = getModelByIdAndTenant(id, requireTenantId());
         if (model == null) {
             throw new RuntimeException("流程模型不存在");
         }
@@ -623,7 +718,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
     @Override
     @Transactional(rollbackFor = Exception.class)
     public FlowModel copyModel(String id, String newName) {
-        FlowModel source = getById(id);
+        FlowModel source = getModelByIdAndTenant(id, requireTenantId());
         if (source == null) {
             throw new RuntimeException("源模型不存在");
         }
@@ -649,6 +744,7 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
         newModel.setStatus(FlowModelStatus.DESIGNING.getCode());
         newModel.setVersion(1);
         newModel.setDelFlag(0);
+        newModel.setTenantId(source.getTenantId());
         newModel.setCreateTime(LocalDateTime.now());
         newModel.setCreateBy(SessionHelper.getLoginUser().getUsername());
         newModel.setUpdateTime(LocalDateTime.now());
@@ -665,6 +761,60 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
             return false;
         }
         return getBaseMapper().countByModelKeyAndTenantId(modelKey.trim(), tenantId, excludeId) > 0;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void sortModels(FlowModelSortDTO request) {
+        Long tenantId = requireTenantId();
+        if (request == null || request.getItems() == null || request.getItems().isEmpty()) {
+            throw new BusinessException(400, "排序项不能为空");
+        }
+        if (request.getItems().size() > 200) {
+            throw new BusinessException(400, "单次最多调整200个流程模型");
+        }
+        LinkedHashMap<String, Integer> requested = new LinkedHashMap<>();
+        for (FlowModelSortItemDTO item : request.getItems()) {
+            if (item == null || item.getModelId() == null || item.getModelId().isBlank()) {
+                throw new BusinessException(400, "模型ID不能为空");
+            }
+            if (item.getSortOrder() == null || item.getSortOrder() < 0 || item.getSortOrder() > 1_000_000) {
+                throw new BusinessException(400, "排序值必须在0到1000000之间");
+            }
+            String modelId = item.getModelId().trim();
+            if (requested.putIfAbsent(modelId, item.getSortOrder()) != null) {
+                throw new BusinessException(400, "排序项中存在重复模型");
+            }
+        }
+        List<FlowModel> locked = getBaseMapper().selectByIdsForUpdate(new ArrayList<>(requested.keySet()), tenantId);
+        if (locked.size() != requested.size()) {
+            throw new BusinessException(404, "排序列表包含不存在或无权访问的流程模型");
+        }
+        String operator = SessionHelper.getUsername();
+        if (operator == null || operator.isBlank()) {
+            throw new BusinessException(403, "无法确定当前操作人");
+        }
+        for (Map.Entry<String, Integer> entry : requested.entrySet()) {
+            if (getBaseMapper().updateSortOrder(entry.getKey(), tenantId, entry.getValue(), operator) != 1) {
+                throw new BusinessException(409, "流程模型排序已被其他请求修改，请刷新后重试");
+            }
+        }
+        log.info("批量调整流程模型排序: tenantId={}, count={}", tenantId, requested.size());
+    }
+
+    private Long requireTenantId() {
+        Long tenantId = SessionHelper.getTenantId();
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalStateException("缺少可信租户上下文");
+        }
+        return tenantId;
+    }
+
+    private FlowModel getModelByIdAndTenant(String id, Long tenantId) {
+        if (id == null || id.isBlank() || tenantId == null || tenantId <= 0) {
+            return null;
+        }
+        return getBaseMapper().selectByIdAndTenant(id.trim(), tenantId);
     }
 
     /**
@@ -766,6 +916,156 @@ public class FlowModelServiceImpl extends ServiceImpl<FlowModelMapper, FlowModel
                         flowId, missing));
             }
         }
+    }
+
+    /**
+     * 部署前校验最小可执行结构，避免模型在设计器中可保存、但启动时才发现没有入口/出口或悬空连线。
+     * 这里不强制 userTask 必须写死 assignee：Forge 支持节点配置、表达式和运行时组织解析。
+     */
+    private void validateBpmnStructure(String bpmnXml) {
+        if (countMatches(bpmnXml, "<(?:bpmn:)?startEvent\\b") == 0) {
+            throw new RuntimeException("流程模型缺少开始节点，请至少配置一个开始节点。");
+        }
+        if (countMatches(bpmnXml, "<(?:bpmn:)?endEvent\\b") == 0) {
+            throw new RuntimeException("流程模型缺少结束节点，请至少配置一个结束节点。");
+        }
+
+        Set<String> nodeIds = new HashSet<>();
+        java.util.regex.Matcher nodeMatcher = java.util.regex.Pattern.compile(
+                "<(?:bpmn:)?(?:startEvent|endEvent|userTask|serviceTask|scriptTask|exclusiveGateway|parallelGateway|inclusiveGateway|callActivity|subProcess)\\b([^>]*)>",
+                java.util.regex.Pattern.CASE_INSENSITIVE).matcher(bpmnXml);
+        java.util.regex.Pattern idPattern = java.util.regex.Pattern.compile("\\bid=\"([^\"]+)\"");
+        while (nodeMatcher.find()) {
+            java.util.regex.Matcher idMatcher = idPattern.matcher(nodeMatcher.group(1));
+            if (idMatcher.find()) {
+                nodeIds.add(idMatcher.group(1));
+            }
+        }
+
+        java.util.regex.Matcher flowMatcher = java.util.regex.Pattern.compile(
+                "<(?:bpmn:)?sequenceFlow\\b([^>]*)/?>", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(bpmnXml);
+        while (flowMatcher.find()) {
+            String attrs = flowMatcher.group(1);
+            String source = attributeValue(attrs, "sourceRef");
+            String target = attributeValue(attrs, "targetRef");
+            if (source == null || target == null || !nodeIds.contains(source) || !nodeIds.contains(target)) {
+                throw new RuntimeException("流程模型存在悬空连线，请检查 sourceRef 和 targetRef 是否指向有效节点。");
+            }
+        }
+    }
+
+    /**
+     * Reject BPMN elements that the Forge runtime does not execute and catch
+     * empty approval/gateway configuration while the model is still editable.
+     */
+    private void validateExecutableNodesAndGatewayConditions(String bpmnXml) {
+        java.util.regex.Pattern nodePattern = java.util.regex.Pattern.compile(
+                "<(?:bpmn:)?(scriptTask|callActivity|subProcess|serviceTask|userTask)\\b([^>]*)>",
+                java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Matcher nodeMatcher = nodePattern.matcher(bpmnXml);
+        while (nodeMatcher.find()) {
+            String type = nodeMatcher.group(1).toLowerCase(Locale.ROOT);
+            String attrs = nodeMatcher.group(2);
+            String id = attributeValue(attrs, "id");
+            String name = attributeValue(attrs, "name");
+            String label = (name == null || name.isBlank()) ? id : name;
+            if ("scriptTask".equalsIgnoreCase(type)
+                    || "callActivity".equalsIgnoreCase(type)
+                    || "subProcess".equalsIgnoreCase(type)) {
+                throw new RuntimeException(String.format(
+                        "节点 [%s] 使用了暂不支持的执行类型 [%s]，请改用用户任务或受支持的抄送节点。",
+                        label == null ? "未命名" : label, type));
+            }
+            if ("serviceTask".equalsIgnoreCase(type)
+                    && !"cc".equalsIgnoreCase(attributeValue(attrs, "type"))) {
+                throw new RuntimeException(String.format(
+                        "节点 [%s] 的 serviceTask 未声明受支持的 flowable:type=cc，无法保证运行时执行委托。",
+                        label == null ? "未命名" : label));
+            }
+            if ("serviceTask".equalsIgnoreCase(type)
+                    && containsUnsupportedExecutionAttribute(attrs)) {
+                throw new RuntimeException(String.format(
+                        "节点 [%s] 包含未注册的执行委托属性，禁止通过 raw XML 绕过执行白名单。",
+                        label == null ? "未命名" : label));
+            }
+            if ("userTask".equalsIgnoreCase(type)) {
+                boolean hasAssignee = hasText(attributeValue(attrs, "assignee"));
+                boolean hasCandidateUsers = hasText(attributeValue(attrs, "candidateUsers"));
+                boolean hasCandidateGroups = hasText(attributeValue(attrs, "candidateGroups"));
+                if (!hasAssignee && !hasCandidateUsers && !hasCandidateGroups) {
+                    throw new RuntimeException(String.format(
+                            "审批节点 [%s] 未配置处理人、候选用户或候选组，请先完成审批人配置。",
+                            label == null ? "未命名" : label));
+                }
+            }
+        }
+
+        java.util.regex.Pattern gatewayPattern = java.util.regex.Pattern.compile(
+                "<(?:bpmn:)?(exclusiveGateway|inclusiveGateway)\\b([^>]*)>([\\s\\S]*?)</(?:bpmn:)?\\1>",
+                java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Pattern flowPattern = java.util.regex.Pattern.compile(
+                "<(?:bpmn:)?sequenceFlow\\b([^>]*)>([\\s\\S]*?)</(?:bpmn:)?sequenceFlow>|"
+                        + "<(?:bpmn:)?sequenceFlow\\b([^>]*)/>",
+                java.util.regex.Pattern.CASE_INSENSITIVE);
+        java.util.regex.Matcher gatewayMatcher = gatewayPattern.matcher(bpmnXml);
+        while (gatewayMatcher.find()) {
+            String gatewayAttrs = gatewayMatcher.group(2);
+            String gatewayId = attributeValue(gatewayAttrs, "id");
+            if (gatewayId == null) {
+                continue;
+            }
+            String defaultFlow = attributeValue(gatewayAttrs, "default");
+            int outgoingCount = 0;
+            java.util.regex.Matcher flowMatcher = flowPattern.matcher(bpmnXml);
+            while (flowMatcher.find()) {
+                String flowAttrs = flowMatcher.group(1) != null ? flowMatcher.group(1) : flowMatcher.group(3);
+                if (!gatewayId.equals(attributeValue(flowAttrs, "sourceRef"))) {
+                    continue;
+                }
+                outgoingCount++;
+                String flowId = attributeValue(flowAttrs, "id");
+                boolean hasCondition = flowMatcher.group(2) != null
+                        && flowMatcher.group(2).toLowerCase(Locale.ROOT).contains("conditionexpression");
+                if (!hasCondition && !Objects.equals(defaultFlow, flowId)) {
+                    throw new RuntimeException(String.format(
+                            "网关 [%s] 的分支连线 [%s] 缺少条件表达式或默认分支。",
+                            gatewayId, flowId == null ? "未命名" : flowId));
+                }
+            }
+            if (outgoingCount > 1 && defaultFlow == null) {
+                log.debug("网关 [{}] 未声明 default，但所有出口均已配置条件表达式", gatewayId);
+            }
+        }
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private boolean containsUnsupportedExecutionAttribute(String attributes) {
+        String normalized = attributes == null ? "" : attributes.toLowerCase(Locale.ROOT);
+        return normalized.contains("flowable:class=")
+                || normalized.contains("flowable:delegateexpression=")
+                || normalized.contains("flowable:expression=")
+                || normalized.contains("activiti:class=")
+                || normalized.contains("activiti:delegateexpression=")
+                || normalized.contains("activiti:expression=");
+    }
+
+    private int countMatches(String value, String regex) {
+        int count = 0;
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(regex,
+                java.util.regex.Pattern.CASE_INSENSITIVE).matcher(value);
+        while (matcher.find()) {
+            count++;
+        }
+        return count;
+    }
+
+    private String attributeValue(String attributes, String name) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(
+                "\\b" + name + "=\"([^\"]*)\"").matcher(attributes);
+        return matcher.find() ? matcher.group(1) : null;
     }
 
     private void validateNoProcessData(FlowModel model) {

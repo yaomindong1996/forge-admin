@@ -9,15 +9,19 @@ import com.mdframe.forge.flow.dto.FlowTaskDelegateDTO;
 import com.mdframe.forge.flow.dto.FlowTaskRejectDTO;
 import com.mdframe.forge.flow.dto.FlowTaskWithdrawDTO;
 import com.mdframe.forge.flow.dto.FlowTaskReassignDTO;
+import com.mdframe.forge.flow.dto.FlowTaskSignDTO;
 import com.mdframe.forge.starter.core.annotation.api.ApiPermissionIgnore;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.flow.dto.ProcessDiagramInfo;
 import com.mdframe.forge.starter.flow.dto.TaskFormInfo;
 import com.mdframe.forge.starter.flow.entity.FlowTask;
+import com.mdframe.forge.starter.flow.vo.FlowHistoryPageVO;
+import com.mdframe.forge.starter.flow.vo.FlowTaskSignRelationVO;
 import com.mdframe.forge.starter.flow.service.FlowOverdueReminderService;
 import com.mdframe.forge.starter.flow.service.FlowTaskService;
 import lombok.RequiredArgsConstructor;
@@ -201,9 +205,47 @@ public class FlowTaskController {
         }
 
         String userId = FlowSessionIdentity.requireUserId(dto.getUserId());
+        Long tenantId = resolveTrustedTenant(null);
         flowTaskService.delegate(dto.getTaskId(), userId, dto.getTargetUserId(),
-                optionalText(dto.getComment()), optionalText(dto.getSignature()));
+                optionalText(dto.getComment()), optionalText(dto.getSignature()), tenantId,
+                optionalText(dto.getIdempotencyKey()), optionalText(dto.getRequestDigest()));
         return RespInfo.success("转办成功", null);
+    }
+
+    /** 动态加签：增加当前任务的候选办理人。 */
+    @PostMapping("/add-sign")
+    public RespInfo<Void> addSign(@RequestBody FlowTaskSignDTO dto) {
+        if (isBlankId(dto.getTaskId()) || isBlankId(dto.getTargetUserId())) {
+            return RespInfo.error("任务ID和目标用户不能为空");
+        }
+        String userId = FlowSessionIdentity.requireUserId(dto.getUserId());
+        Long tenantId = resolveTrustedTenant(null);
+        flowTaskService.addSign(dto.getTaskId(), userId, dto.getTargetUserId(), optionalText(dto.getComment()),
+                optionalText(dto.getSignMode()), tenantId, optionalText(dto.getIdempotencyKey()),
+                optionalText(dto.getRequestDigest()));
+        return RespInfo.success("加签成功", null);
+    }
+
+    /** 动态减签：移除当前任务的候选办理人。 */
+    @PostMapping("/reduce-sign")
+    public RespInfo<Void> reduceSign(@RequestBody FlowTaskSignDTO dto) {
+        if (isBlankId(dto.getTaskId()) || isBlankId(dto.getTargetUserId())) {
+            return RespInfo.error("任务ID和目标用户不能为空");
+        }
+        String userId = FlowSessionIdentity.requireUserId(dto.getUserId());
+        Long tenantId = resolveTrustedTenant(null);
+        flowTaskService.reduceSign(dto.getTaskId(), userId, dto.getTargetUserId(), optionalText(dto.getComment()),
+                optionalText(dto.getSignMode()), tenantId, optionalText(dto.getIdempotencyKey()),
+                optionalText(dto.getRequestDigest()));
+        return RespInfo.success("减签成功", null);
+    }
+
+    /** 查询当前任务的动态加签关系及撤销状态。 */
+    @GetMapping("/{taskId}/sign-relations")
+    public RespInfo<List<FlowTaskSignRelationVO>> signRelations(
+            @PathVariable String taskId,
+            @RequestParam(required = false) String userId) {
+        return RespInfo.success(flowTaskService.getSignRelations(taskId, FlowSessionIdentity.requireUserId(userId)));
     }
 
     /**
@@ -318,6 +360,7 @@ public class FlowTaskController {
      * 催办
      */
     @PostMapping("/remind")
+    @SaCheckPermission("flow:task:remind")
     public RespInfo<Void> remind(@RequestParam String taskId) {
         flowTaskService.remind(taskId);
         return RespInfo.success("催办成功", null);
@@ -327,6 +370,7 @@ public class FlowTaskController {
      * 手动触发逾期提醒扫描。
      */
     @PostMapping("/overdue-reminder/scan")
+    @SaCheckPermission("flow:task:remind")
     public RespInfo<Void> scanOverdueReminders() {
         flowOverdueReminderService.scanAndSendOverdueReminders();
         return RespInfo.success("逾期提醒扫描已触发", null);
@@ -341,6 +385,16 @@ public class FlowTaskController {
     public RespInfo<List<Map<String, Object>>> getProcessHistory(@PathVariable String processInstanceId) {
         List<Map<String, Object>> history = flowTaskService.getProcessHistory(processInstanceId);
         return RespInfo.success(history);
+    }
+
+    /** 分页获取类型化审批时间轴，旧 history 接口继续保留兼容。 */
+    @GetMapping("/history/{processInstanceId}/page")
+    @ApiPermissionIgnore
+    public RespInfo<FlowHistoryPageVO> getProcessHistoryPage(
+            @PathVariable String processInstanceId,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "20") Integer pageSize) {
+        return RespInfo.success(flowTaskService.getProcessHistoryPage(processInstanceId, pageNum, pageSize));
     }
 
     /**

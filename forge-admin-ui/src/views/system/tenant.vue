@@ -24,6 +24,7 @@
       :hide-batch-delete="!userStore.isAdmin"
       :hide-selection="!userStore.isAdmin"
       :before-submit="handleBeforeSubmit"
+      :before-delete="handleBeforeDelete"
       :before-render-detail="handleBeforeRenderDetail"
       @submit-success="handleSubmitSuccess"
     >
@@ -209,6 +210,7 @@ import { resolveTenantPublicAssetUrl, setDocumentFavicon } from '@/utils/tenant-
 
 defineOptions({ name: 'SystemTenant' })
 
+const DEFAULT_TENANT_ID = 1
 const NORMAL_DISABLE_DICT = 'sys_normal_disable'
 const USER_TYPE_DICT = 'sys_user_type'
 const USER_STATUS_DICT = 'sys_user_status'
@@ -575,7 +577,15 @@ const tableColumns = computed(() => [
     actions: [
       { label: '用户', key: 'users', onClick: handleViewUsers },
       { label: '编辑', key: 'edit', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete, visible: () => userStore.isAdmin },
+      {
+        label: '删除',
+        key: 'delete',
+        type: 'error',
+        onClick: handleDelete,
+        visible: () => userStore.isAdmin,
+        disabled: isDefaultTenant,
+        disabledReason: '默认租户不能删除',
+      },
     ],
   },
 ])
@@ -1053,8 +1063,24 @@ function handleEdit(row) {
   crudRef.value?.showEdit(row)
 }
 
+function isDefaultTenant(row) {
+  return Number(row?.id) === DEFAULT_TENANT_ID
+}
+
+function handleBeforeDelete(rows = []) {
+  if (rows.some(isDefaultTenant)) {
+    window.$message.warning('默认租户不能删除')
+    return false
+  }
+  return true
+}
+
 // 删除
 function handleDelete(row) {
+  if (isDefaultTenant(row)) {
+    window.$message.warning('默认租户不能删除')
+    return
+  }
   window.$dialog.warning({
     title: '确认删除',
     content: `确定要删除租户"${row.tenantName}"吗？删除后将无法恢复！`,

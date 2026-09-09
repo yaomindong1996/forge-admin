@@ -416,11 +416,14 @@ const orgEditSchema = computed(() => [
     span: 2,
   },
   {
-    field: 'leaderName',
+    field: 'leaderId',
     label: '负责人',
-    type: 'input',
+    type: 'userSelect',
+    labelField: 'leaderName',
+    clearable: true,
     props: {
-      placeholder: '请输入负责人姓名',
+      placeholder: '请从用户列表选择负责人',
+      title: '选择组织负责人',
     },
   },
   {
@@ -657,14 +660,16 @@ const userTableColumns = computed(() => [
   {
     prop: 'actions',
     label: '操作',
-    width: 136,
+    width: 168,
     fixed: 'right',
     actions: [
       {
-        label: '设负责人',
+        label: row => isCurrentOrgLeader(row) ? '当前负责人' : '设负责人',
         key: 'setLeader',
         type: 'primary',
         visible: () => Boolean(selectedOrgNode.value && !isShowAllOrganizations.value),
+        disabled: row => isCurrentOrgLeader(row),
+        disabledReason: '该用户已是当前组织负责人',
         onClick: row => handleSetOrgLeader(row),
       },
       {
@@ -705,6 +710,10 @@ function normalizeSingleNumber(value, fallback = null) {
 
 function isSameKey(left, right) {
   return String(left) === String(right)
+}
+
+function isCurrentOrgLeader(row = {}) {
+  return Boolean(selectedOrgNode.value?.leaderId && isSameKey(selectedOrgNode.value.leaderId, row.id))
 }
 
 function resolveOptionLabel(options = [], value) {
@@ -1301,8 +1310,16 @@ async function handleSetOrgLeader(row) {
     })
     if (res.code === 200) {
       window.$message.success('负责人设置成功')
+      if (selectedOrgNode.value) {
+        selectedOrgNode.value = {
+          ...selectedOrgNode.value,
+          leaderId: row.id,
+          leaderName,
+        }
+      }
       await loadParentOrgOptions()
       await loadLeftOrgTree()
+      refreshUserList()
     }
   }
   catch (error) {

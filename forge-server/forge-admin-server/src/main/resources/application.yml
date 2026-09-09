@@ -1,5 +1,11 @@
 # 开发环境配置
 server:
+  max-http-request-header-size: ${FORGE_MAX_HTTP_REQUEST_HEADER_SIZE:16KB}
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
   # 服务器的HTTP端口，默认为8080
   port: 8580
   servlet:
@@ -8,7 +14,7 @@ server:
   # undertow 配置
   undertow:
     # HTTP post内容的最大大小。当值为-1时，默认值为大小是无限的
-    max-http-post-size: -1
+    max-http-post-size: ${FORGE_MAX_HTTP_POST_SIZE:20MB}
     # 以下的配置会影响buffer,这些buffer会用于服务器连接的IO操作,有点类似netty的池化内存管理
     # 每块buffer的空间大小,越小的空间被利用越充分
     buffer-size: 512
@@ -73,8 +79,8 @@ spring:
   ai:
     chat:
       observations:
-        log-prompt: true      # Spring AI 内部也记录 prompt
-        log-completion: true  # Spring AI 内部也记录 completion
+        log-prompt: false     # 生产环境禁止记录 prompt
+        log-completion: false # 生产环境禁止记录 completion
     mcp:
       server:
         # 默认关闭；开启后只接受 Identity 模块签发的短期 fdu_ Bearer Token
@@ -117,6 +123,13 @@ mybatis-plus:
       idType: ASSIGN_ID
 # Sa-Token 配置
 sa-token:
+  # 默认使用短期访问令牌；生产可通过环境变量按租户/部署窗口调整，禁止无限期会话。
+  timeout: ${FORGE_AUTH_TOKEN_TIMEOUT:1800}
+  active-timeout: ${FORGE_AUTH_ACTIVE_TIMEOUT:7200}
+  is-concurrent: ${FORGE_AUTH_ALLOW_CONCURRENT:true}
+  is-share: false
+  is-read-header: true
+  is-read-cookie: false
   # 使用Redis存储Session
   alone-redis:
     # Redis数据库索引（默认为0）
@@ -138,7 +151,11 @@ forge:
   captcha:
     # 仅 dev/local Profile 可生效；生产即使误配为 true 也不回显
     dev-echo-code: ${FORGE_CAPTCHA_DEV_ECHO_CODE:false}
+    # 生产必须注入稳定的 HMAC 挑战密钥，禁止写入仓库
+    challenge-secret: ${FORGE_CAPTCHA_CHALLENGE_SECRET:}
   flow:
+    timeout:
+      time-zone: ${FORGE_FLOW_TIMEOUT_TIME_ZONE:Asia/Shanghai}
     job:
       remote:
         enabled: ${FORGE_FLOW_JOB_REMOTE_ENABLED:false}
@@ -212,16 +229,38 @@ forge:
       active-key: ${FORGE_CRYPTO_PERSISTENCE_ACTIVE_KEY:}
   api-config:
     enabled: false
+    rate-limit:
+      enabled: true
+      permits-per-minute: 120
+      mode: enforce
+  file:
+    multipart:
+      max-contexts: 100
+      ttl-millis: 1800000
+      cleanup-interval-millis: 60000
   business:
     datasource:
       enabled: true
       tenant-routing-enabled-default: true
 
 management:
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,metrics
   endpoint:
     health:
       show-details: never
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState

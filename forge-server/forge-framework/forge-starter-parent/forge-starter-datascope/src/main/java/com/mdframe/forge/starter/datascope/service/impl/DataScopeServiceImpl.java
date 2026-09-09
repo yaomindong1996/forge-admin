@@ -11,6 +11,7 @@ import com.mdframe.forge.starter.datascope.context.DataScopeContext;
 import com.mdframe.forge.starter.datascope.entity.SysDataScopeConfig;
 import com.mdframe.forge.starter.datascope.entity.SysRoleDataScope;
 import com.mdframe.forge.starter.datascope.entity.SysRoleModuleDataScope;
+import com.mdframe.forge.starter.datascope.event.DataScopeCacheRefreshedEvent;
 import com.mdframe.forge.starter.datascope.enums.DataScopeType;
 import com.mdframe.forge.starter.datascope.mapper.DataScopeOrgMapper;
 import com.mdframe.forge.starter.datascope.mapper.DataScopeRegionMapper;
@@ -27,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -59,22 +61,19 @@ public class DataScopeServiceImpl implements IDataScopeService {
     private final SysRoleModuleDataScopeMapper roleModuleDataScopeMapper;
     private final DataScopeRegionMapper regionMapper;
     private final DataScopeProperties properties;
+    private final ApplicationEventPublisher eventPublisher;
 
     private final Object metadataRefreshMonitor = new Object();
 
     private volatile boolean metadataLoaded = false;
-    private volatile Map<String, SysDataScopeConfig> tenantConfigByMapper = Collections.emptyMap();
-    private volatile Map<String, SysDataScopeConfig> defaultConfigByMapper = Collections.emptyMap();
-    private volatile Map<Long, Integer> roleDataScopeByRoleId = Collections.emptyMap();
-    private volatile Map<Long, Set<Long>> customOrgIdsByRoleId = Collections.emptyMap();
-    private volatile Map<Long, Map<String, Integer>> roleModuleDataScopesByRoleId = Collections.emptyMap();
-    private volatile Map<Long, Set<Long>> orgAndChildIdsByOrgId = Collections.emptyMap();
-    private volatile Map<String, Set<String>> regionAndChildCodesByCode = Collections.emptyMap();
+    // 刷新后一次替换完整快照，避免并发查询读到只更新了一半的规则和角色映射。
+    private volatile MetadataSnapshot metadataSnapshot = new MetadataSnapshot(
+            Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of());
 
     @EventListener(ApplicationReadyEvent.class)
     public void warmUpDataScopeMetadata() {
         try {
-            refreshDataScopeCache();
+            reloadLocalDataScopeCache();
         } catch (Exception e) {
             metadataLoaded = false;
             log.error("数据权限平台元数据预热失败，后续首次使用时将重试", e);
@@ -173,12 +172,12 @@ public class DataScopeServiceImpl implements IDataScopeService {
             return null;
         }
         if (StrUtil.isNotBlank(moduleCode)) {
-            Map<String, Integer> moduleScopes = roleModuleDataScopesByRoleId.get(roleId);
+            Map<String, Integer> moduleScopes = metadataSnapshot.roleModuleDataScopesByRoleId().get(roleId);
             if (moduleScopes != null && moduleScopes.containsKey(moduleCode)) {
                 return moduleScopes.get(moduleCode);
             }
         }
-        return roleDataScopeByRoleId.get(roleId);
+        return metadataSnapshot.roleDataScopeByRoleId().get(roleId);
     }
 
     @Override
@@ -188,14 +187,15 @@ public class DataScopeServiceImpl implements IDataScopeService {
         }
         ensureMetadataLoaded();
 
+        MetadataSnapshot snapshot = metadataSnapshot;
         Long tenantId = resolveCurrentTenantId();
         if (tenantId != null) {
-            SysDataScopeConfig tenantConfig = tenantConfigByMapper.get(buildConfigKey(tenantId, mapperId));
+            SysDataScopeConfig tenantConfig = snapshot.tenantConfigByMapper().get(buildConfigKey(tenantId, mapperId));
             if (tenantConfig != null) {
                 return tenantConfig;
             }
         }
-        return defaultConfigByMapper.get(mapperId);
+        return snapshot.defaultConfigByMapper().get(mapperId);
     }
 
     @Override
@@ -210,7 +210,7 @@ public class DataScopeServiceImpl implements IDataScopeService {
             if (orgId == null) {
                 continue;
             }
-            Set<Long> cached = orgAndChildIdsByOrgId.get(orgId);
+            Set<Long> cached = metadataSnapshot.orgAndChildIdsByOrgId().get(orgId);
             if (cached != null && !cached.isEmpty()) {
                 allOrgIds.addAll(cached);
             } else {
@@ -227,7 +227,7 @@ public class DataScopeServiceImpl implements IDataScopeService {
         }
         ensureMetadataLoaded();
 
-        Set<String> cached = regionAndChildCodesByCode.get(regionCode);
+        Set<String> cached = metadataSnapshot.regionAndChildCodesByCode().get(regionCode);
         if (cached != null && !cached.isEmpty()) {
             return cached;
         }
@@ -236,19 +236,25 @@ public class DataScopeServiceImpl implements IDataScopeService {
 
     @Override
     public void refreshDataScopeCache() {
+        reloadLocalDataScopeCache();
+        eventPublisher.publishEvent(new DataScopeCacheRefreshedEvent());
+    }
+
+    /** 启动、远端通知和首次查询只加载本地快照，不再次广播。 */
+    public void reloadLocalDataScopeCache() {
         synchronized (metadataRefreshMonitor) {
-            MetadataSnapshot snapshot = executeOnMetadataDatasource(this::loadMetadataSnapshot);
-            tenantConfigByMapper = snapshot.tenantConfigByMapper();
-            defaultConfigByMapper = snapshot.defaultConfigByMapper();
-            roleDataScopeByRoleId = snapshot.roleDataScopeByRoleId();
-            customOrgIdsByRoleId = snapshot.customOrgIdsByRoleId();
-            roleModuleDataScopesByRoleId = snapshot.roleModuleDataScopesByRoleId();
-            orgAndChildIdsByOrgId = snapshot.orgAndChildIdsByOrgId();
-            regionAndChildCodesByCode = snapshot.regionAndChildCodesByCode();
+            MetadataSnapshot snapshot;
+            try {
+                snapshot = executeOnMetadataDatasource(this::loadMetadataSnapshot);
+            } catch (RuntimeException exception) {
+                metadataLoaded = false;
+                throw exception;
+            }
+            metadataSnapshot = snapshot;
             metadataLoaded = true;
             log.info("数据权限平台元数据缓存已刷新: configs={}, roles={}, customRoles={}, moduleOverrides={}, orgs={}, regions={}",
-                    tenantConfigByMapper.size(), roleDataScopeByRoleId.size(), customOrgIdsByRoleId.size(),
-                    roleModuleDataScopesByRoleId.size(), orgAndChildIdsByOrgId.size(), regionAndChildCodesByCode.size());
+                    snapshot.tenantConfigByMapper().size(), snapshot.roleDataScopeByRoleId().size(), snapshot.customOrgIdsByRoleId().size(),
+                    snapshot.roleModuleDataScopesByRoleId().size(), snapshot.orgAndChildIdsByOrgId().size(), snapshot.regionAndChildCodesByCode().size());
         }
     }
 
@@ -259,11 +265,11 @@ public class DataScopeServiceImpl implements IDataScopeService {
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             throw new IllegalStateException("数据权限平台元数据缓存未初始化，不能在业务事务中加载");
         }
-        refreshDataScopeCache();
+        reloadLocalDataScopeCache();
     }
 
     private MetadataSnapshot loadMetadataSnapshot() {
-        List<SysDataScopeConfig> configs = dataScopeConfigMapper.selectEnabledConfigs();
+        List<SysDataScopeConfig> configs = dataScopeConfigMapper.selectRuntimeConfigs();
         List<DataScopeRoleInfo> roles = roleMapper.selectActiveRoleDataScopes();
         List<SysRoleDataScope> roleDataScopes = roleDataScopeMapper.selectAllRoleDataScopes();
         List<SysRoleModuleDataScope> roleModuleDataScopes = roleModuleDataScopeMapper.selectAllRoleModuleDataScopes();
@@ -391,7 +397,7 @@ public class DataScopeServiceImpl implements IDataScopeService {
     private Set<Long> collectCustomOrgIds(List<Long> roleIds) {
         Set<Long> result = new LinkedHashSet<>();
         for (Long roleId : roleIds) {
-            Set<Long> orgIds = customOrgIdsByRoleId.get(roleId);
+            Set<Long> orgIds = metadataSnapshot.customOrgIdsByRoleId().get(roleId);
             if (orgIds != null) {
                 result.addAll(orgIds);
             }

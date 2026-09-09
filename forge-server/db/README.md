@@ -23,12 +23,12 @@ java -version
   ---
 2. 复制后端本地配置
 
-cp forge/forge-admin-server/src/main/resources/application-dev.example.yml \
-forge/forge-admin-server/src/main/resources/application-dev.yml
+cp forge-server/forge-admin-server/src/main/resources/application-dev.example.yml \
+forge-server/forge-admin-server/src/main/resources/application-dev.yml
 
 然后编辑：
 
-forge/forge-admin-server/src/main/resources/application-dev.yml
+forge-server/forge-admin-server/src/main/resources/application-dev.yml
 
 把 MySQL、Redis 配置改成你的本地环境，例如：
 
@@ -46,7 +46,7 @@ password: your_password
 
 在项目根目录执行：
 
-bash forge/scripts/db/init-db.sh \
+bash forge-server/scripts/db/init-db.sh \
 --host 127.0.0.1 \
 --port 3306 \
 --database forge_admin \
@@ -56,14 +56,15 @@ bash forge/scripts/db/init-db.sh \
 这个命令会依次执行：
 
 1. 创建数据库 forge_admin
-2. 执行 forge/forge-admin-server/sql/初始化脚本.sql
-3. 执行 forge/db/migration/*.sql
-4. 执行 forge/db/seed/required/*.sql
+2. 执行 forge-server/db/全量初始化SQL.sql
+3. 执行 forge-server/db/seed/required/*.sql
+
+表结构增量变更由主后台服务启动时的 Flyway 执行 `forge-server/db/migration`。
 
   ---
 4. 如果需要导入演示数据
 
-bash forge/scripts/db/init-db.sh \
+bash forge-server/scripts/db/init-db.sh \
 --host 127.0.0.1 \
 --port 3306 \
 --database forge_admin \
@@ -73,12 +74,12 @@ bash forge/scripts/db/init-db.sh \
 
 会额外执行：
 
-forge/db/seed/demo/*.sql
+forge-server/db/seed/demo/*.sql
 
   ---
 5. 如果需要导入可选模块数据
 
-bash forge/scripts/db/init-db.sh \
+bash forge-server/scripts/db/init-db.sh \
 --host 127.0.0.1 \
 --port 3306 \
 --database forge_admin \
@@ -88,12 +89,12 @@ bash forge/scripts/db/init-db.sh \
 
 会额外执行：
 
-forge/db/seed/optional/*.sql
+forge-server/db/seed/optional/*.sql
 
   ---
 6. 同时导入 demo 和 optional
 
-bash forge/scripts/db/init-db.sh \
+bash forge-server/scripts/db/init-db.sh \
 --host 127.0.0.1 \
 --port 3306 \
 --database forge_admin \
@@ -107,7 +108,7 @@ bash forge/scripts/db/init-db.sh \
 
 1. 启动后端
 
-cd forge/forge-admin-server
+cd forge-server/forge-admin-server
 mvn spring-boot:run
 
 默认地址：
@@ -128,36 +129,27 @@ admin / 123456
   ---
 三、启用 Flyway 自动迁移
 
-默认情况下，Flyway 是关闭的，避免误连数据库后自动改库。
+默认情况下，主后台服务启动时会执行 Flyway，扫描 `forge-server/db/migration/*.sql`。单独启动 `forge-report-server` 不会执行这些迁移。
 
-如果你想让后端启动时自动执行：
+如果需要临时关闭：
 
-forge/db/migration/*.sql
+export FORGE_FLYWAY_ENABLED=false
 
-可以设置环境变量：
+启动后端：
 
-export FORGE_FLYWAY_ENABLED=true
-
-然后启动后端：
-
-cd forge/forge-admin-server
+cd forge-server/forge-admin-server
 mvn spring-boot:run
-
-也可以临时执行：
-
-cd forge/forge-admin-server
-FORGE_FLYWAY_ENABLED=true mvn spring-boot:run
 
 默认迁移目录是：
 
-forge/db/migration
+forge-server/db/migration
 
 配置在：
 
 spring:
 flyway:
-enabled: ${FORGE_FLYWAY_ENABLED:false}
-locations: ${FORGE_FLYWAY_LOCATIONS:filesystem:./db/migration}
+enabled: ${FORGE_FLYWAY_ENABLED:true}
+locations: ${FORGE_FLYWAY_LOCATIONS:filesystem:./db/migration,filesystem:../db/migration,filesystem:forge-server/db/migration}
 baseline-on-migrate: true
 baseline-version: 1.0.0
 table: forge_schema_history
@@ -169,7 +161,7 @@ table: forge_schema_history
 
 比如你要给 data_business 表加字段，就新增文件：
 
-forge/db/migration/V1.0.1__alter_data_business_add_ai_fields.sql
+forge-server/db/migration/V1.0.1__alter_data_business_add_ai_fields.sql
 
 内容示例：
 
@@ -203,13 +195,13 @@ V1.0.3__create_dashboard_template.sql
 
 放到：
 
-forge/db/seed/required/
+forge-server/db/seed/required/
 
 例如：
 
-forge/db/seed/required/R__sys_resource.sql
-forge/db/seed/required/R__sys_dict.sql
-forge/db/seed/required/R__sys_config.sql
+forge-server/db/seed/required/R__sys_resource.sql
+forge-server/db/seed/required/R__sys_dict.sql
+forge-server/db/seed/required/R__sys_config.sql
 
 适合放：
 
@@ -225,13 +217,13 @@ AI 模板
 
 放到：
 
-forge/db/seed/demo/
+forge-server/db/seed/demo/
 
 例如：
 
-forge/db/seed/demo/D__demo_data_business.sql
-forge/db/seed/demo/D__demo_dashboard_project.sql
-forge/db/seed/demo/D__demo_dataset.sql
+forge-server/db/seed/demo/D__demo_data_business.sql
+forge-server/db/seed/demo/D__demo_dashboard_project.sql
+forge-server/db/seed/demo/D__demo_dataset.sql
 
 适合放：
 
@@ -247,12 +239,12 @@ forge/db/seed/demo/D__demo_dataset.sql
 
 放到：
 
-forge/db/seed/optional/
+forge-server/db/seed/optional/
 
 例如：
 
-forge/db/seed/optional/O__workflow_demo.sql
-forge/db/seed/optional/O__message_template.sql
+forge-server/db/seed/optional/O__workflow_demo.sql
+forge-server/db/seed/optional/O__message_template.sql
 
 默认不会导入，只有执行 --with-optional 才会导入。
 
@@ -261,7 +253,7 @@ forge/db/seed/optional/O__message_template.sql
 
 1. 先 dry-run 检查
 
-bash forge/scripts/db/export-community-db.sh --dry-run
+bash forge-server/scripts/db/export-community-db.sh --dry-run
 
 这个命令会检查：
 
@@ -275,19 +267,19 @@ bash forge/scripts/db/export-community-db.sh --dry-run
   ---
 2. 确认无误后正式导出
 
-bash forge/scripts/db/export-community-db.sh
+bash forge-server/scripts/db/export-community-db.sh
 
 导出结果在：
 
-forge/db/community-export/
+forge-server/db/community-export/
 
 里面会生成：
 
-forge/db/community-export/migration/
-forge/db/community-export/seed/
-forge/db/community-export/schema-summary.json
-forge/db/community-export/seed-summary.json
-forge/db/community-export/summary.md
+forge-server/db/community-export/migration/
+forge-server/db/community-export/seed/
+forge-server/db/community-export/schema-summary.json
+forge-server/db/community-export/seed-summary.json
+forge-server/db/community-export/summary.md
 
 这个目录已经加入 .gitignore，默认不会提交。
 
@@ -296,7 +288,7 @@ forge/db/community-export/summary.md
 
 配置文件：
 
-forge/scripts/db/community-db.config.json
+forge-server/scripts/db/community-db.config.json
 
 里面有三类关键配置。
 
@@ -351,18 +343,18 @@ forge/scripts/db/community-db.config.json
 
 查看初始化脚本帮助
 
-bash forge/scripts/db/init-db.sh --help
+bash forge-server/scripts/db/init-db.sh --help
 
 初始化数据库
 
-bash forge/scripts/db/init-db.sh \
+bash forge-server/scripts/db/init-db.sh \
 --database forge_admin \
 --user root \
 --password your_password
 
 初始化数据库并导入 demo
 
-bash forge/scripts/db/init-db.sh \
+bash forge-server/scripts/db/init-db.sh \
 --database forge_admin \
 --user root \
 --password your_password \
@@ -370,19 +362,19 @@ bash forge/scripts/db/init-db.sh \
 
 社区导出 dry-run
 
-bash forge/scripts/db/export-community-db.sh --dry-run
+bash forge-server/scripts/db/export-community-db.sh --dry-run
 
 正式导出社区数据库脚本
 
-bash forge/scripts/db/export-community-db.sh
+bash forge-server/scripts/db/export-community-db.sh
 
 单独检查敏感数据
 
-node forge/scripts/db/check-sensitive-data.js forge/db/community-export
+node forge-server/scripts/db/check-sensitive-data.js forge-server/db/community-export
 
 编译后端
 
-cd forge
+cd forge-server
 mvn -pl forge-admin-server -am -DskipTests compile
 
   ---
@@ -391,19 +383,19 @@ mvn -pl forge-admin-server -am -DskipTests compile
 以后每次改数据库，按这个流程：
 
 1. 表结构变化？
-   新增 forge/db/migration/Vx.y.z__xxx.sql
+   新增 forge-server/db/migration/Vx.y.z__xxx.sql
 
 2. 系统必须数据变化？
-   修改 forge/db/seed/required/R__xxx.sql
+   修改 forge-server/db/seed/required/R__xxx.sql
 
 3. 演示数据变化？
-   修改 forge/db/seed/demo/D__xxx.sql
+   修改 forge-server/db/seed/demo/D__xxx.sql
 
 4. 本地验证初始化：
-   bash forge/scripts/db/init-db.sh --database forge_admin --user root --password your_password
+   bash forge-server/scripts/db/init-db.sh --database forge_admin --user root --password your_password
 
 5. 社区同步前检查：
-   bash forge/scripts/db/export-community-db.sh --dry-run
+   bash forge-server/scripts/db/export-community-db.sh --dry-run
 
 6. 正式生成社区导出结果：
-   bash forge/scripts/db/export-community-db.sh
+   bash forge-server/scripts/db/export-community-db.sh

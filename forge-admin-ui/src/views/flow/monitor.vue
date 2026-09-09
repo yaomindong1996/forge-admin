@@ -1,5 +1,13 @@
 <template>
   <div class="flow-monitor-page">
+    <n-alert v-if="statistics.degraded" type="warning" class="mb-3" :show-icon="true">
+      流程监控统计暂时不可用，请稍后重试。
+      <template #action>
+        <NButton text type="primary" @click="loadStatistics">
+          重试
+        </NButton>
+      </template>
+    </n-alert>
     <!-- 统计卡片 -->
     <n-grid :cols="4" :x-gap="16" :y-gap="16" class="stat-cards">
       <n-gi>
@@ -34,7 +42,7 @@
         <n-card
           size="small"
           class="timeout-card"
-          :class="{ 'timeout-active': searchForm.status === 'timeout' }"
+          :class="{ 'timeout-active': searchForm.overdue === true }"
           hoverable
           style="cursor: pointer"
           @click="filterByTimeout"
@@ -114,6 +122,15 @@
           </NButton>
         </NSpace>
       </template>
+
+      <n-alert v-if="dataError" type="error" class="mb-3" :show-icon="true">
+        流程实例列表加载失败，请重试。
+        <template #action>
+          <NButton text type="primary" @click="loadData">
+            重试
+          </NButton>
+        </template>
+      </n-alert>
 
       <n-data-table
         :columns="columns"
@@ -317,6 +334,42 @@
 
         <section class="approval-detail-section">
           <div class="approval-section-header">
+            <i class="i-material-symbols:account-tree" />
+            审批任务上下文
+          </div>
+          <n-alert v-if="adminTaskContextError" type="error" class="mb-2" :show-icon="true">
+            审批任务加载失败，请重试。
+            <template #action>
+              <NButton text type="primary" @click="loadAdminInstanceTasks">
+                重试
+              </NButton>
+            </template>
+          </n-alert>
+          <n-data-table
+            :columns="adminTaskColumns"
+            :data="adminTaskContext"
+            :loading="adminTaskContextLoading"
+            :pagination="adminTaskPagination"
+            :remote="true"
+            :row-key="row => row.id || row.taskId"
+            :bordered="false"
+            size="small"
+            @update:page="handleAdminTaskPageChange"
+            @update:page-size="handleAdminTaskPageSizeChange"
+          />
+          <div v-if="adminTaskTree.length" class="approval-task-tree mt-3">
+            <div class="approval-tree-title">
+              任务节点关系
+            </div>
+            <n-tree :data="adminTaskTree" block-line selectable :default-expand-all="true" />
+            <n-alert v-if="adminTaskTreeTruncated" type="warning" class="mt-2" :show-icon="true">
+              流程任务超过 500 条，关系树仅展示前 500 条，分页列表仍可继续查询。
+            </n-alert>
+          </div>
+        </section>
+
+        <section class="approval-detail-section">
+          <div class="approval-section-header">
             <i class="i-material-symbols:fact-check" />
             表单内容
           </div>
@@ -358,10 +411,10 @@
         流程已挂起。可以激活或终止；回退和转派需要先激活。
       </n-alert>
       <NSpace class="monitor-admin-status-actions">
-        <NButton v-if="canMutateCurrent" type="warning" @click="handleSuspend">
+        <NButton v-if="canMutateCurrent" type="warning" :loading="isAdminMutating('suspend')" :disabled="isAdminMutationBusy" @click="handleSuspend">
           挂起流程
         </NButton>
-        <NButton v-if="isSuspendedCurrent" type="primary" @click="handleActivate">
+        <NButton v-if="isSuspendedCurrent" type="primary" :loading="isAdminMutating('activate')" :disabled="isAdminMutationBusy" @click="handleActivate">
           激活流程
         </NButton>
       </NSpace>
@@ -382,7 +435,7 @@
               placeholder="请输入终止原因"
               :rows="2"
             />
-            <NButton type="error" :disabled="!terminateReason.trim()" @click="confirmTerminate">
+            <NButton type="error" :loading="isAdminMutating('terminate')" :disabled="!terminateReason.trim() || isAdminMutationBusy" @click="confirmTerminate">
               确认终止
             </NButton>
           </NSpace>
@@ -407,7 +460,7 @@
               :rows="2"
               :disabled="!canMutateCurrent"
             />
-            <NButton type="warning" :disabled="!canMutateCurrent || !rollbackTargetActivity" @click="confirmRollback">
+            <NButton type="warning" :loading="isAdminMutating('rollback')" :disabled="!canMutateCurrent || !rollbackTargetActivity || isAdminMutationBusy" @click="confirmRollback">
               确认回退
             </NButton>
           </NSpace>
@@ -443,7 +496,7 @@
               :rows="2"
               :disabled="!canMutateCurrent"
             />
-            <NButton type="primary" :disabled="!canMutateCurrent || !reassignUserId" @click="confirmReassign">
+            <NButton type="primary" :loading="isAdminMutating('reassign')" :disabled="!canMutateCurrent || !reassignUserId || isAdminMutationBusy" @click="confirmReassign">
               确认转派
             </NButton>
           </NSpace>
@@ -467,6 +520,7 @@ import { NButton, NDropdown, NSpace, NTag } from 'naive-ui'
 import { computed, h, nextTick, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 
+import flowApi from '@/api/flow'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import UserSelectModal from '@/components/common/UserSelectModal.vue'
 import DictTag from '@/components/DictTag.vue'
@@ -500,6 +554,7 @@ const statistics = reactive({
   pendingTasks: 0,
   todayCompleted: 0,
   timeoutTasks: 0,
+  degraded: false,
 })
 
 // 搜索表单
@@ -509,6 +564,7 @@ const searchForm = reactive({
   status: null,
   dateRange: null,
   modelKey: null,
+  overdue: false,
 })
 
 // 状态选项
@@ -517,6 +573,7 @@ const statusOptions = computed(() => dict.value.flow_instance_status || [])
 // 表格数据
 const tableData = ref([])
 const loading = ref(false)
+const dataError = ref(false)
 const cleanupLoading = ref(false)
 const deletingProcessId = ref(null)
 const isDeletingProcess = computed(() => cleanupLoading.value || Boolean(deletingProcessId.value))
@@ -652,6 +709,24 @@ const variablesModalVisible = ref(false)
 const variablesLoading = ref(false)
 const processVariables = ref({})
 const adminActionsModalVisible = ref(false)
+const adminMutation = ref(null)
+const isAdminMutationBusy = computed(() => Boolean(adminMutation.value))
+
+function isAdminMutating(action) {
+  return adminMutation.value === action
+}
+
+function beginAdminMutation(action) {
+  if (adminMutation.value)
+    return false
+  adminMutation.value = action
+  return true
+}
+
+function endAdminMutation(action) {
+  if (adminMutation.value === action)
+    adminMutation.value = null
+}
 
 const terminateReason = ref('')
 const rollbackTargetActivity = ref(null)
@@ -664,6 +739,26 @@ const activitiesLoading = ref(false)
 const currentTaskId = ref(null)
 const currentTaskOptions = ref([])
 const userSelectModalVisible = ref(false)
+
+const adminTaskContext = ref([])
+const adminTaskTree = ref([])
+const adminTaskTreeTruncated = ref(false)
+const adminTaskContextLoading = ref(false)
+const adminTaskContextError = ref(false)
+const adminTaskPagination = reactive({
+  page: 1,
+  pageSize: 5,
+  itemCount: 0,
+  showSizePicker: true,
+  pageSizes: [5, 10, 20],
+})
+const adminTaskColumns = [
+  { title: '任务节点', key: 'taskName', minWidth: 150, ellipsis: { tooltip: true } },
+  { title: '处理人', key: 'assigneeName', width: 100, render: row => row.assigneeName || row.assignee || '待签收' },
+  { title: '状态', key: 'status', width: 80, render: row => row.completeTime ? '已完成' : '处理中' },
+  { title: '创建时间', key: 'createTime', width: 150 },
+  { title: '完成时间', key: 'completeTime', width: 150, render: row => row.completeTime || '-' },
+]
 
 // 图表引用
 const taskChartRef = ref(null)
@@ -889,19 +984,25 @@ function showRetryDialog(row) {
 }
 
 async function handleResolveErrorLog(row) {
+  const mutation = `resolve-error:${row.id}`
+  if (!beginAdminMutation(mutation))
+    return
   try {
     const res = await request.put(`/api/flow/monitor/error-logs/${row.id}/resolve`)
     if (res.code === 200) {
       message.success('已标记为已解决')
-      loadInstanceErrorLogs()
+      await loadInstanceErrorLogs()
     }
     else {
-      message.error(res.msg || '操作失败')
+      showMutationResponseError(res, '标记错误日志失败')
     }
   }
   catch (error) {
     console.error('解决错误日志失败', error)
-    message.error('操作失败')
+    showMutationError(error, '标记错误日志失败')
+  }
+  finally {
+    endAdminMutation(mutation)
   }
 }
 
@@ -920,6 +1021,8 @@ async function confirmRetry() {
     return
   }
 
+  if (!beginAdminMutation('retry-error'))
+    return
   retrying.value = true
   try {
     const res = await request.post(`/api/flow/monitor/error-logs/${errorLog.id}/retry`, {
@@ -931,41 +1034,47 @@ async function confirmRetry() {
       message.success('节点重试成功')
       retryModalVisible.value = false
       errorDetailVisible.value = false
-      loadInstanceErrorLogs()
-      loadData()
+      await Promise.all([loadInstanceErrorLogs(), loadData()])
     }
     else {
-      message.error(res.msg || '重试失败')
+      showMutationResponseError(res, '重试失败')
     }
   }
   catch (error) {
     console.error('重试节点失败', error)
-    message.error(error.response?.data?.msg || '重试失败')
+    showMutationError(error, '重试失败')
   }
   finally {
     retrying.value = false
+    endAdminMutation('retry-error')
   }
 }
 
 // 加载统计数据
 async function loadStatistics() {
+  statistics.degraded = false
   try {
     const res = await request.get('/api/flow/monitor/statistics')
     if (res.code === 200) {
       Object.assign(statistics, res.data)
     }
+    else {
+      statistics.degraded = true
+    }
   }
   catch (error) {
     console.error('加载统计数据失败', error)
+    statistics.degraded = true
   }
 }
 
 // 加载表格数据
 async function loadData() {
   loading.value = true
+  dataError.value = false
   try {
     const params = {
-      page: pagination.page,
+      pageNum: pagination.page,
       pageSize: pagination.pageSize,
       ...buildSearchParams(),
     }
@@ -973,10 +1082,15 @@ async function loadData() {
     if (res.code === 200) {
       tableData.value = res.data.list || []
       pagination.itemCount = res.data.total || 0
+      dataError.value = res.data.degraded === true
+    }
+    else {
+      dataError.value = true
     }
   }
   catch (error) {
     console.error('加载数据失败', error)
+    dataError.value = true
   }
   finally {
     loading.value = false
@@ -989,6 +1103,7 @@ function buildSearchParams() {
     initiator: searchForm.initiator,
     status: searchForm.status,
     modelKey: searchForm.modelKey,
+    overdue: searchForm.overdue || undefined,
   }
   if (Array.isArray(searchForm.dateRange) && searchForm.dateRange.length === 2) {
     params.startTime = searchForm.dateRange[0]
@@ -1039,6 +1154,7 @@ function handleReset() {
     status: null,
     dateRange: null,
     modelKey: null,
+    overdue: false,
   })
   handleSearch()
 }
@@ -1049,12 +1165,32 @@ function hasCleanupFilter() {
     || searchForm.initiator
     || searchForm.status
     || searchForm.modelKey
+    || searchForm.overdue
     || (Array.isArray(searchForm.dateRange) && searchForm.dateRange.length === 2),
   )
 }
 
 function getErrorMessage(error, fallback) {
   return error?.message || error?.response?.data?.message || error?.error?.message || fallback
+}
+
+function getRequestId(error) {
+  return error?.response?.headers?.['x-request-id']
+    || error?.response?.headers?.['X-Request-Id']
+    || error?.requestId
+    || error?.response?.data?.requestId
+}
+
+function showMutationError(error, fallback) {
+  const requestId = getRequestId(error)
+  const suffix = requestId ? `（请求编号：${requestId}）` : ''
+  message.error(`${getErrorMessage(error, fallback)}${suffix}`)
+}
+
+function showMutationResponseError(response, fallback) {
+  const requestId = response?.requestId || response?.data?.requestId
+  const suffix = requestId ? `（请求编号：${requestId}）` : ''
+  message.error(`${response?.message || response?.msg || fallback}${suffix}`)
 }
 
 function refreshMonitorData() {
@@ -1107,7 +1243,7 @@ function handleCleanupCurrentFilter() {
       }
       catch (error) {
         console.error('批量删除流程数据失败', error)
-        message.error(getErrorMessage(error, '删除流程数据失败'))
+        showMutationError(error, '删除流程数据失败')
       }
       finally {
         cleanupLoading.value = false
@@ -1153,7 +1289,7 @@ function handleDeleteInstance(row) {
       }
       catch (error) {
         console.error('删除流程数据失败', error)
-        message.error(getErrorMessage(error, '删除流程数据失败'))
+        showMutationError(error, '删除流程数据失败')
       }
       finally {
         deletingProcessId.value = null
@@ -1234,18 +1370,70 @@ async function loadAdminActionContext(processInstanceId) {
 async function showDetail(row) {
   currentInstance.value = row
   approvalHistory.value = []
+  adminTaskContext.value = []
+  adminTaskTree.value = []
+  adminTaskTreeTruncated.value = false
+  adminTaskContextError.value = false
+  adminTaskPagination.page = 1
   detailDrawerVisible.value = true
 
   if (!row.id)
     return
+  await Promise.all([loadApprovalHistory(row.id), loadAdminInstanceTasks()])
+}
+
+async function loadApprovalHistory(processInstanceId = currentInstance.value?.id) {
+  if (!processInstanceId)
+    return
   try {
-    const res = await request.get(`/api/flow/task/history/${row.id}`)
+    const res = await request.get(`/api/flow/task/history/${processInstanceId}`)
     if (res.code === 200)
       approvalHistory.value = res.data || []
   }
   catch (error) {
     console.error('加载审批历史失败', error)
   }
+}
+
+async function loadAdminInstanceTasks() {
+  const processInstanceId = currentInstance.value?.id
+  if (!processInstanceId)
+    return
+  adminTaskContextLoading.value = true
+  adminTaskContextError.value = false
+  try {
+    const res = await flowApi.getMonitorInstanceTasks(processInstanceId, {
+      pageNum: adminTaskPagination.page,
+      pageSize: adminTaskPagination.pageSize,
+    })
+    if (res.code === 200) {
+      adminTaskContext.value = res.data?.list || []
+      adminTaskPagination.itemCount = res.data?.total || 0
+      adminTaskTree.value = res.data?.taskTree || []
+      adminTaskTreeTruncated.value = res.data?.taskTreeTruncated === true
+    }
+    else {
+      adminTaskContextError.value = true
+    }
+  }
+  catch (error) {
+    console.error('加载审批任务上下文失败', error)
+    adminTaskContextError.value = true
+  }
+  finally {
+    adminTaskContextLoading.value = false
+  }
+}
+
+function handleAdminTaskPageChange(page) {
+  adminTaskPagination.page = page
+  loadAdminInstanceTasks()
+}
+
+function handleAdminTaskPageSizeChange(pageSize) {
+  adminTaskPagination.pageSize = pageSize
+  adminTaskPagination.page = 1
+  loadAdminInstanceTasks()
 }
 
 async function showAdminActions(row) {
@@ -1303,21 +1491,25 @@ async function handleSuspend() {
     return
   }
 
+  if (!beginAdminMutation('suspend'))
+    return
   try {
     const res = await request.post(`/api/flow/monitor/suspend/${currentInstance.value.id}`)
     if (res.code === 200) {
       message.success('流程已挂起')
       currentInstance.value = { ...currentInstance.value, status: 'suspended' }
-      loadData()
-      loadStatistics()
+      await Promise.all([loadData(), loadStatistics(), loadAdminActionContext(currentInstance.value.id)])
     }
     else {
-      message.error(res.msg || '挂起流程失败')
+      showMutationResponseError(res, '挂起流程失败')
     }
   }
   catch (error) {
     console.error('挂起流程失败:', error)
-    message.error(error.response?.data?.msg || '操作失败')
+    showMutationError(error, '挂起流程失败')
+  }
+  finally {
+    endAdminMutation('suspend')
   }
 }
 
@@ -1334,22 +1526,26 @@ async function handleActivate() {
     return
   }
 
+  if (!beginAdminMutation('activate'))
+    return
   try {
     const res = await request.post(`/api/flow/monitor/activate/${currentInstance.value.id}`)
     if (res.code === 200) {
       message.success('流程已激活')
       currentInstance.value = { ...currentInstance.value, status: 'running' }
       await loadAdminActionContext(currentInstance.value.id)
-      loadData()
-      loadStatistics()
+      await Promise.all([loadData(), loadStatistics()])
     }
     else {
-      message.error(res.msg || '激活流程失败')
+      showMutationResponseError(res, '激活流程失败')
     }
   }
   catch (error) {
     console.error('激活流程失败:', error)
-    message.error(error.response?.data?.msg || '操作失败')
+    showMutationError(error, '激活流程失败')
+  }
+  finally {
+    endAdminMutation('activate')
   }
 }
 
@@ -1450,6 +1646,8 @@ async function confirmTerminate() {
     return
   }
 
+  if (!beginAdminMutation('terminate'))
+    return
   try {
     const res = await request.post(`/api/flow/monitor/terminate/${currentInstance.value.id}`, {
       reason: terminateReason.value,
@@ -1458,16 +1656,18 @@ async function confirmTerminate() {
       message.success('流程已终止')
       adminActionsModalVisible.value = false
       detailDrawerVisible.value = false
-      loadData()
-      loadStatistics()
+      await Promise.all([loadData(), loadStatistics()])
     }
     else {
-      message.error(res.msg || '终止流程失败')
+      showMutationResponseError(res, '终止流程失败')
     }
   }
   catch (error) {
     console.error('终止流程失败:', error)
-    message.error(error.response?.data?.msg || '终止流程失败')
+    showMutationError(error, '终止流程失败')
+  }
+  finally {
+    endAdminMutation('terminate')
   }
 }
 
@@ -1485,6 +1685,8 @@ async function confirmRollback() {
     return
   }
 
+  if (!beginAdminMutation('rollback'))
+    return
   try {
     const res = await request.post(`/api/flow/monitor/rollback/${currentInstance.value.id}`, {
       targetActivityId: rollbackTargetActivity.value,
@@ -1493,16 +1695,18 @@ async function confirmRollback() {
     if (res.code === 200) {
       message.success('流程已回退')
       adminActionsModalVisible.value = false
-      loadData()
-      loadStatistics()
+      await Promise.all([loadData(), loadStatistics(), loadAdminActionContext(currentInstance.value.id)])
     }
     else {
-      message.error(res.msg || '回退流程失败')
+      showMutationResponseError(res, '回退流程失败')
     }
   }
   catch (error) {
     console.error('回退流程失败', error)
-    message.error('回退流程失败')
+    showMutationError(error, '回退流程失败')
+  }
+  finally {
+    endAdminMutation('rollback')
   }
 }
 
@@ -1524,6 +1728,8 @@ async function confirmReassign() {
     return
   }
 
+  if (!beginAdminMutation('reassign'))
+    return
   try {
     const res = await request.post(`/api/flow/monitor/reassign/${currentTaskId.value}`, {
       newAssignee: String(reassignUserId.value),
@@ -1532,25 +1738,28 @@ async function confirmReassign() {
     if (res.code === 200) {
       message.success('任务已转派')
       adminActionsModalVisible.value = false
-      loadData()
+      await Promise.all([loadData(), loadAdminActionContext(currentInstance.value.id)])
     }
     else {
-      message.error(res.msg || '转派任务失败')
+      showMutationResponseError(res, '转派任务失败')
     }
   }
   catch (error) {
     console.error('转派任务失败', error)
-    message.error('转派任务失败')
+    showMutationError(error, '转派任务失败')
+  }
+  finally {
+    endAdminMutation('reassign')
   }
 }
 
 // 超时任务快捷筛选：点击卡片直接过滤列表
 function filterByTimeout() {
-  if (searchForm.status === 'timeout') {
-    searchForm.status = null
+  if (searchForm.overdue) {
+    searchForm.overdue = false
   }
   else {
-    searchForm.status = 'timeout'
+    searchForm.overdue = true
   }
   pagination.page = 1
   loadData()

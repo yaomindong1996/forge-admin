@@ -9,11 +9,9 @@ import com.mdframe.forge.starter.flow.entity.FlowConditionRule;
 import com.mdframe.forge.starter.flow.mapper.FlowConditionItemMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowConditionRuleMapper;
 import com.mdframe.forge.starter.flow.service.FlowConditionRuleService;
+import com.mdframe.forge.starter.flow.service.support.FlowSafeExpressionEvaluator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +32,6 @@ public class FlowConditionRuleServiceImpl extends ServiceImpl<FlowConditionRuleM
 
     private final FlowConditionItemMapper conditionItemMapper;
     private final ObjectMapper objectMapper;
-    private final ExpressionParser expressionParser = new SpelExpressionParser();
 
     @Override
     public List<FlowConditionRule> getByModelId(String modelId) {
@@ -320,14 +317,10 @@ public class FlowConditionRuleServiceImpl extends ServiceImpl<FlowConditionRuleM
      */
     private boolean evaluateExpression(String expression, Map<String, Object> variables) {
         try {
-            StandardEvaluationContext context = new StandardEvaluationContext();
-            variables.forEach(context::setVariable);
-            
-            Boolean result = expressionParser.parseExpression(expression)
-                    .getValue(context, Boolean.class);
+            Boolean result = FlowSafeExpressionEvaluator.evaluateBoolean(expression, variables);
             return Boolean.TRUE.equals(result);
         } catch (Exception e) {
-            log.error("评估条件表达式失败: {}", expression, e);
+            log.warn("评估条件表达式失败，表达式已拒绝或求值异常", e);
             return false;
         }
     }

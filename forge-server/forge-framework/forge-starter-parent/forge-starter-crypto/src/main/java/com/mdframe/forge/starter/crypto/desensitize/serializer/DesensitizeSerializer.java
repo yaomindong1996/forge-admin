@@ -51,8 +51,8 @@ public class DesensitizeSerializer extends JsonSerializer<String> implements Con
             String desensitizedValue = doDesensitize(value);
             gen.writeString(desensitizedValue);
         } catch (Exception e) {
-            log.error("字段脱敏失败", e);
-            gen.writeString(value);
+            log.error("字段脱敏失败: type={}", annotation.type(), e);
+            gen.writeString("***");
         }
     }
 
@@ -67,12 +67,11 @@ public class DesensitizeSerializer extends JsonSerializer<String> implements Con
             return customDesensitize(value);
         }
 
-        if (strategyFactory != null && strategyFactory.hasStrategy(type)) {
-            DesensitizeStrategy strategy = strategyFactory.getStrategy(type);
-            return strategy.desensitize(value);
+        if (strategyFactory == null || !strategyFactory.hasStrategy(type)) {
+            throw new IllegalStateException("脱敏策略未注册: " + type);
         }
-
-        return value;
+        DesensitizeStrategy strategy = strategyFactory.getStrategy(type);
+        return strategy.desensitize(value);
     }
 
     private String customDesensitize(String value) {

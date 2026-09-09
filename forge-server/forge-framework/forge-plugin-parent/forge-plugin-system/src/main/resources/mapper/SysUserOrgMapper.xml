@@ -15,4 +15,46 @@
         ORDER BY uo.is_main DESC, uo.id ASC
     </select>
 
+    <select id="selectFlowMainOrgByUser" resultType="com.mdframe.forge.plugin.system.entity.SysUserOrg">
+        SELECT uo.id, uo.tenant_id, uo.user_id, uo.org_id, uo.is_main, uo.create_time
+        FROM sys_user_org uo
+        INNER JOIN sys_org o
+            ON o.id = uo.org_id
+           AND o.tenant_id = uo.tenant_id
+           AND o.org_status = 1
+           AND o.del_flag = 0
+        WHERE uo.tenant_id = #{tenantId}
+          AND uo.user_id = #{userId}
+          AND uo.is_main = 1
+        ORDER BY uo.id ASC
+        LIMIT 1
+    </select>
+
+    <select id="selectFlowAnyOrgByUser" resultType="com.mdframe.forge.plugin.system.entity.SysUserOrg">
+        SELECT uo.id, uo.tenant_id, uo.user_id, uo.org_id, uo.is_main, uo.create_time
+        FROM sys_user_org uo
+        INNER JOIN sys_org o
+            ON o.id = uo.org_id
+           AND o.tenant_id = uo.tenant_id
+           AND o.org_status = 1
+           AND o.del_flag = 0
+        WHERE uo.tenant_id = #{tenantId}
+          AND uo.user_id = #{userId}
+        ORDER BY uo.is_main DESC, uo.id ASC
+        LIMIT 1
+    </select>
+
+    <select id="countFlowUserOrg" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM sys_user_org uo
+        INNER JOIN sys_org o
+            ON o.id = uo.org_id
+           AND o.tenant_id = uo.tenant_id
+           AND o.org_status = 1
+           AND o.del_flag = 0
+        WHERE uo.tenant_id = #{tenantId}
+          AND uo.user_id = #{userId}
+          AND uo.org_id = #{orgId}
+    </select>
+
 </mapper>

@@ -32,6 +32,9 @@ public interface FlowSpelTemplateService extends IService<FlowSpelTemplate> {
      */
     List<FlowSpelTemplate> getEnabledList();
 
+    /** 按当前租户读取模板详情。 */
+    FlowSpelTemplate getByIdForCurrentTenant(Long id);
+
     /**
      * 创建模板
      *

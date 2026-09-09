@@ -1,7 +1,6 @@
 package com.mdframe.forge.starter.flow.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -12,6 +11,7 @@ import com.mdframe.forge.starter.flow.dto.FlowApprovalPointDTO;
 import com.mdframe.forge.starter.flow.dto.FlowApprovalPointResultDTO;
 import com.mdframe.forge.starter.flow.dto.ProcessDiagramInfo;
 import com.mdframe.forge.starter.flow.dto.ProcessNodeInfo;
+import com.mdframe.forge.starter.flow.dto.ProcessSequenceFlowInfo;
 import com.mdframe.forge.starter.flow.dto.TaskFormInfo;
 import com.mdframe.forge.starter.flow.helper.FlowNodePolicyParser;
 import com.mdframe.forge.starter.flow.entity.FlowBusiness;
@@ -24,15 +24,23 @@ import com.mdframe.forge.starter.flow.entity.FlowTask;
 import com.mdframe.forge.starter.flow.enums.FlowBusinessStatus;
 import com.mdframe.forge.starter.flow.enums.FlowDiagramStatus;
 import com.mdframe.forge.starter.flow.enums.FlowTaskStatus;
+import com.mdframe.forge.starter.flow.enums.FlowTaskSignMode;
 import com.mdframe.forge.starter.flow.mapper.FlowBusinessMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowFormInstanceMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowTaskMapper;
+import com.mdframe.forge.starter.flow.mapper.FlowTaskCandidateMapper;
+import com.mdframe.forge.starter.flow.entity.FlowTaskCandidate;
+import com.mdframe.forge.starter.flow.enums.FlowTaskCandidateStatus;
 import com.mdframe.forge.starter.flow.service.FlowErrorLogService;
 import com.mdframe.forge.starter.flow.service.FlowFormService;
 import com.mdframe.forge.starter.flow.service.FlowModelService;
 import com.mdframe.forge.starter.flow.service.FlowNodeConfigService;
 import com.mdframe.forge.starter.flow.service.FlowOrgIntegrationService;
 import com.mdframe.forge.starter.flow.service.FlowTaskService;
+import com.mdframe.forge.starter.flow.security.FlowAccessGuard;
+import com.mdframe.forge.starter.flow.vo.FlowHistoryItemVO;
+import com.mdframe.forge.starter.flow.vo.FlowHistoryPageVO;
+import com.mdframe.forge.starter.flow.vo.FlowTaskSignRelationVO;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.bpmn.model.BpmnModel;
@@ -40,8 +48,10 @@ import org.flowable.bpmn.model.FlowElement;
 import org.flowable.bpmn.model.FlowNode;
 import org.flowable.bpmn.model.GraphicInfo;
 import org.flowable.bpmn.model.UserTask;
+import org.flowable.bpmn.model.MultiInstanceLoopCharacteristics;
 import org.flowable.bpmn.model.ExtensionElement;
 import org.flowable.bpmn.model.Process;
+import org.flowable.bpmn.model.SequenceFlow;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.ProcessEngineConfiguration;
 import org.flowable.engine.RepositoryService;
@@ -52,6 +62,7 @@ import org.flowable.engine.history.HistoricActivityInstance;
 import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstance;
+import org.flowable.engine.runtime.Execution;
 import org.flowable.image.ProcessDiagramGenerator;
 import org.flowable.task.api.DelegationState;
 import org.flowable.task.api.Task;
@@ -75,6 +86,8 @@ import java.util.stream.Collectors;
 @Service
 public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> implements FlowTaskService {
 
+    private static final int MAX_DYNAMIC_SIGNERS = 50;
+
     private static final String FLOWABLE_NS = "http://flowable.org/bpmn";
     private static final String ACTION_APPROVE = "approve";
     private static final String ACTION_REJECT = "reject";
@@ -87,6 +100,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     private static final String AUTO_APPROVAL_NONE = "none";
     private static final String FORM_TYPE_BUSINESS = "business";
     private static final String RETURN_SOURCE_ACTIVITY_ID = "FLOW_RETURN_SOURCE_ACTIVITY_ID";
+    private static final int MAX_DETAIL_HISTORY_ITEMS = 1000;
     private static final String RETURN_TARGET_ACTIVITY_ID = "FLOW_RETURN_TARGET_ACTIVITY_ID";
     private static final String RETURN_TO_START_PENDING = "FLOW_RETURN_TO_START_PENDING";
     private static final String DIRECT_SEND_VARIABLE = "directSend";
@@ -137,6 +151,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
      */
     @Autowired
     private FlowBusinessMapper flowBusinessMapper;
+
+    @Autowired
+    private FlowAccessGuard flowAccessGuard;
     
     @Autowired
     private FlowErrorLogService flowErrorLogService;
@@ -149,6 +166,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
 
     @Autowired(required = false)
     private FlowBusinessListDisplayAdapter flowBusinessListDisplayAdapter;
+
+    @Autowired(required = false)
+    private FlowTaskCandidateMapper flowTaskCandidateMapper;
 
     @Override
     public IPage<FlowTask> todoTasks(Page<FlowTask> page, String userId, String title, String category, Integer status) {
@@ -250,6 +270,20 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void claimTask(String taskId, String userId) {
+        if (isBlank(taskId) || isBlank(userId)) {
+            throw new IllegalArgumentException("FLOW_TASK_CLAIM_CONTEXT_INVALID");
+        }
+        Long tenantId = SessionHelper.getTenantId();
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalStateException("FLOW_TASK_TENANT_REQUIRED");
+        }
+        FlowTask localTask = baseMapper.selectByTaskIdForUpdateAndTenant(taskId, tenantId);
+        Task runtimeTask = taskService.createTaskQuery().taskId(taskId).singleResult();
+        if (localTask == null || runtimeTask == null || !tenantId.equals(localTask.getTenantId())
+                || !FlowTaskStatus.PENDING.matches(localTask.getStatus())
+                || !isClaimCandidate(localTask, runtimeTask, userId.trim())) {
+            throw new IllegalStateException("FLOW_TASK_CLAIM_NOT_ALLOWED");
+        }
         taskService.claim(taskId, userId);
         
         FlowTask task = new FlowTask();
@@ -258,8 +292,37 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         task.setStatus(FlowTaskStatus.CLAIMED.getCode());
         task.setClaimTime(LocalDateTime.now());
         
-        lambdaUpdate().eq(FlowTask::getTaskId, taskId).update(task);
+        updateTaskByTenant(taskId, task);
         log.info("签收任务：taskId={}, userId={}", taskId, userId);
+    }
+
+    private boolean isClaimCandidate(FlowTask localTask, Task runtimeTask, String userId) {
+        if (containsCsv(localTask.getCandidateUsers(), userId)) {
+            return true;
+        }
+        if (taskService.createTaskQuery().taskId(runtimeTask.getId()).taskCandidateUser(userId).singleResult() != null) {
+            return true;
+        }
+        Set<String> groups = new HashSet<>();
+        if (SessionHelper.getRoleIds() != null) {
+            SessionHelper.getRoleIds().forEach(id -> groups.add(String.valueOf(id)));
+        }
+        if (SessionHelper.getRoleKeys() != null) {
+            groups.addAll(SessionHelper.getRoleKeys());
+        }
+        if (SessionHelper.getOrgIds() != null) {
+            SessionHelper.getOrgIds().forEach(id -> groups.add(String.valueOf(id)));
+        }
+        for (String group : splitIds(localTask.getCandidateGroups())) {
+            if (groups.contains(group)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsCsv(String csv, String value) {
+        return splitIds(csv).contains(value);
     }
 
     @Override
@@ -395,7 +458,10 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     private FlowTask authorizeTaskAction(String taskId, String userId, Long tenantId,
                                          String actionType, String idempotencyKey,
                                          String requestDigest, FlowTaskStatus completedStatus) {
-        FlowTask storedTask = baseMapper.selectByTaskIdForUpdate(taskId);
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalStateException("FLOW_TASK_TENANT_REQUIRED");
+        }
+        FlowTask storedTask = baseMapper.selectByTaskIdForUpdateAndTenant(taskId, tenantId);
         if (FlowTaskActionAuthorization.authorize(
                 storedTask, userId, tenantId, actionType,
                 idempotencyKey, requestDigest, completedStatus)) {
@@ -411,14 +477,40 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     }
 
     private void updateTaskActionResultRequired(String taskId, FlowTask flowTask) {
-        if (!lambdaUpdate().eq(FlowTask::getTaskId, taskId).update(flowTask)) {
+        if (!updateTaskByTenant(taskId, flowTask)) {
             throw new IllegalStateException("FLOW_TASK_STATE_UPDATE_FAILED");
         }
+    }
+
+    private boolean updateTaskByTenant(String taskId, FlowTask task) {
+        Long tenantId = requireTenantId();
+        return baseMapper.updateByTaskIdAndTenant(taskId, tenantId, task) > 0;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delegate(String taskId, String userId, String targetUserId, String comment, String signature) {
+        delegate(taskId, userId, targetUserId, comment, signature,
+                SessionHelper.getTenantId(), null, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void delegate(String taskId, String userId, String targetUserId, String comment, String signature,
+                         Long tenantId, String idempotencyKey, String requestDigest) {
+        if (isBlank(targetUserId)) {
+            throw new RuntimeException("新处理人不能为空");
+        }
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalStateException("FLOW_TASK_TENANT_REQUIRED");
+        }
+        assertTaskMutationActor(taskId, userId, false);
+        validateReassignTarget(targetUserId.trim());
+        FlowTask storedTask = authorizeTaskAction(taskId, userId, tenantId, "DELEGATE",
+                idempotencyKey, requestDigest, FlowTaskStatus.CLAIMED);
+        if (storedTask == null) {
+            return;
+        }
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
         if (task == null) {
             throw new RuntimeException("任务不存在或已处理");
@@ -432,15 +524,20 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
             if (owner != null && !owner.isEmpty()) {
                 taskService.setOwner(taskId, owner);
             }
-            taskService.setAssignee(taskId, targetUserId);
+            taskService.setAssignee(taskId, targetUserId.trim());
 
             FlowTask flowTask = new FlowTask();
-            flowTask.setStatus(FlowTaskStatus.PENDING.getCode());
+            // Flowable 已经设置了 assignee，镜像状态必须是已签收；写成待办会导致
+            // 目标用户再次签收失败但列表仍显示“待办”的状态不一致。
+            flowTask.setStatus(FlowTaskStatus.CLAIMED.getCode());
             flowTask.setComment(comment);
             flowTask.setSignature(signature);
-            flowTask.setAssignee(targetUserId);
+            flowTask.setAssignee(targetUserId.trim());
             flowTask.setOwner(owner);
-            lambdaUpdate().eq(FlowTask::getTaskId, taskId).update(flowTask);
+            flowTask.setActionIdempotencyKey(idempotencyKey);
+            flowTask.setActionRequestDigest(requestDigest);
+            flowTask.setActionType(idempotencyKey == null ? null : "DELEGATE");
+            updateTaskActionResultRequired(taskId, flowTask);
 
             log.info("转办任务：taskId={}, from={}, to={}", taskId, userId, targetUserId);
         } catch (Exception e) {
@@ -502,7 +599,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
             flowTask.setComment(comment);
             flowTask.setSignature(signature);
             flowTask.setCompleteTime(LocalDateTime.now());
-            lambdaUpdate().eq(FlowTask::getTaskId, taskId).update(flowTask);
+            updateTaskByTenant(taskId, flowTask);
 
             log.info("退回任务：taskId={}, userId={}, targetActivityId={}", taskId, userId, targetActivityId);
         } catch (Exception e) {
@@ -522,7 +619,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         if (tenantId == null || tenantId <= 0) {
             throw new RuntimeException("FLOW_TASK_TENANT_REQUIRED");
         }
-        FlowTask localTask = baseMapper.selectByTaskIdForUpdate(taskId);
+        FlowTask localTask = baseMapper.selectByTaskIdForUpdateAndTenant(taskId, tenantId);
         if (localTask == null || !tenantId.equals(localTask.getTenantId())) {
             throw new RuntimeException("FLOW_TASK_TENANT_MISMATCH");
         }
@@ -551,9 +648,9 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         FlowTask flowTask = new FlowTask();
         flowTask.setAssignee(targetUserId.trim());
         flowTask.setOwner(owner);
-        flowTask.setStatus(FlowTaskStatus.PENDING.getCode());
+        flowTask.setStatus(FlowTaskStatus.CLAIMED.getCode());
         flowTask.setComment(reason);
-        if (!lambdaUpdate().eq(FlowTask::getTaskId, taskId).update(flowTask)) {
+        if (!updateTaskByTenant(taskId, flowTask)) {
             throw new IllegalStateException("改派任务状态同步失败");
         }
         log.info("流程任务改派：taskId={}, from={}, to={}", taskId, userId, targetUserId);
@@ -562,6 +659,8 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void terminateTask(String taskId, String userId, String comment, String signature) {
+        assertTaskMutationActor(taskId, userId, true);
+        Long tenantId = requireTenantId();
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
         if (task == null) {
             throw new RuntimeException("任务不存在或已处理");
@@ -569,11 +668,24 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         validateTaskAction(task, ACTION_TERMINATE, comment, signature);
 
         try {
+            List<String> activeTaskIds = taskService.createTaskQuery()
+                    .processInstanceId(task.getProcessInstanceId())
+                    .list()
+                    .stream()
+                    .map(Task::getId)
+                    .filter(Objects::nonNull)
+                    .toList();
             String reason = comment != null && !comment.isBlank() ? comment : "审批人终结流程";
             taskService.addComment(taskId, task.getProcessInstanceId(), "终结流程：" + reason);
             runtimeService.deleteProcessInstance(task.getProcessInstanceId(), reason);
 
-            FlowBusiness business = flowBusinessMapper.selectByProcessInstanceId(task.getProcessInstanceId());
+            if (!activeTaskIds.isEmpty()) {
+                baseMapper.updateProcessTaskStatusByTaskIds(activeTaskIds, tenantId,
+                        FlowTaskStatus.TERMINATED.getCode(), LocalDateTime.now());
+            }
+
+            FlowBusiness business = flowBusinessMapper.selectByProcessInstanceIdAndTenantIdForUpdate(
+                    task.getProcessInstanceId(), tenantId);
             if (business != null) {
                 business.setStatus(FlowBusinessStatus.TERMINATED.getCode());
                 business.setEndTime(LocalDateTime.now());
@@ -586,7 +698,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
             flowTask.setComment(comment);
             flowTask.setSignature(signature);
             flowTask.setCompleteTime(LocalDateTime.now());
-            lambdaUpdate().eq(FlowTask::getTaskId, taskId).update(flowTask);
+            updateTaskByTenant(taskId, flowTask);
 
             log.info("审批人终结流程：taskId={}, processInstanceId={}, userId={}",
                     taskId, task.getProcessInstanceId(), userId);
@@ -797,7 +909,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         flowTask.setStatus(FlowTaskStatus.APPROVED.getCode());
         flowTask.setComment(comment);
         flowTask.setCompleteTime(LocalDateTime.now());
-        lambdaUpdate().eq(FlowTask::getTaskId, task.getId()).update(flowTask);
+        updateTaskByTenant(task.getId(), flowTask);
 
         log.info("重复审批自动同意：taskId={}, processInstanceId={}, assignee={}, mode={}",
                 task.getId(), task.getProcessInstanceId(), task.getAssignee(), mode);
@@ -811,15 +923,305 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public void addSign(String taskId, String userId, String targetUserId, String reason) {
+        addSign(taskId, userId, targetUserId, reason, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void addSign(String taskId, String userId, String targetUserId, String reason, String signMode) {
+        mutateCandidateSign(taskId, userId, targetUserId, reason, signMode,
+                SessionHelper.getTenantId(), null, null, true);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void addSign(String taskId, String userId, String targetUserId, String reason, String signMode,
+                        Long tenantId, String idempotencyKey, String requestDigest) {
+        mutateCandidateSign(taskId, userId, targetUserId, reason, signMode,
+                tenantId, idempotencyKey, requestDigest, true);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void reduceSign(String taskId, String userId, String targetUserId, String reason) {
+        reduceSign(taskId, userId, targetUserId, reason, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void reduceSign(String taskId, String userId, String targetUserId, String reason, String signMode) {
+        mutateCandidateSign(taskId, userId, targetUserId, reason, signMode,
+                SessionHelper.getTenantId(), null, null, false);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void reduceSign(String taskId, String userId, String targetUserId, String reason, String signMode,
+                           Long tenantId, String idempotencyKey, String requestDigest) {
+        mutateCandidateSign(taskId, userId, targetUserId, reason, signMode,
+                tenantId, idempotencyKey, requestDigest, false);
+    }
+
+    private void mutateCandidateSign(String taskId, String userId, String targetUserId,
+                                     String reason, String signMode, Long tenantId,
+                                     String idempotencyKey, String requestDigest, boolean add) {
+        if (isBlank(targetUserId)) {
+            throw new RuntimeException("目标用户不能为空");
+        }
+        String normalizedSignMode = FlowTaskSignMode.fromCode(signMode).getCode();
+        if (!FlowTaskSignMode.PARALLEL.getCode().equals(normalizedSignMode)) {
+            throw new IllegalStateException("FLOW_TASK_SIGN_MODE_UNSUPPORTED");
+        }
+        assertTaskMutationActor(taskId, userId, false);
+        validateReassignTarget(targetUserId.trim());
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalStateException("FLOW_TASK_TENANT_REQUIRED");
+        }
+        if ((idempotencyKey == null) != (requestDigest == null)) {
+            throw new IllegalStateException("FLOW_TASK_IDEMPOTENCY_INVALID");
+        }
+        if (idempotencyKey != null && flowTaskCandidateMapper == null) {
+            throw new IllegalStateException("FLOW_TASK_IDEMPOTENCY_UNAVAILABLE");
+        }
+        FlowTask localTask = baseMapper.selectByTaskIdAndTenant(taskId, tenantId);
+        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        if (task == null || localTask == null) {
+            throw new RuntimeException("任务不存在或已处理");
+        }
+        localTask = baseMapper.selectByTaskIdForUpdateAndTenant(taskId, tenantId);
+        if (localTask == null || !tenantId.equals(localTask.getTenantId())) {
+            throw new RuntimeException("任务不存在或已处理");
+        }
+        if (Objects.equals(String.valueOf(userId), targetUserId.trim())
+                || Objects.equals(String.valueOf(localTask.getAssignee()), targetUserId.trim())) {
+            throw new RuntimeException("不能将当前任务办理人再次加入加签名单");
+        }
+        if (flowTaskCandidateMapper != null && add
+                && flowTaskCandidateMapper.countActiveByTaskAndValue(
+                tenantId, taskId, FlowTaskCandidate.TYPE_USER, targetUserId.trim()) > 0) {
+            throw new RuntimeException("目标用户已经在加签名单中");
+        }
+
+        if (idempotencyKey != null) {
+            FlowTaskCandidate previous = flowTaskCandidateMapper.selectByIdempotency(
+                    tenantId, taskId, FlowTaskCandidate.TYPE_USER, idempotencyKey);
+            if (previous != null) {
+                if (!Objects.equals(requestDigest, previous.getRequestDigest())
+                        || !Objects.equals(targetUserId.trim(), previous.getCandidateValue())
+                        || !Objects.equals(add, FlowTaskCandidateStatus.ACTIVE.matches(previous.getStatus()))) {
+                    throw new IllegalStateException("FLOW_TASK_IDEMPOTENCY_CONFLICT");
+                }
+                return;
+            }
+        }
+
+        if (isMultiInstanceTask(task)) {
+            mutateFlowableMultiInstanceSign(task, localTask, userId, targetUserId.trim(), reason,
+                    normalizedSignMode, idempotencyKey, requestDigest, add);
+            return;
+        }
+
+        LinkedHashSet<String> candidates = new LinkedHashSet<>(splitIds(localTask.getCandidateUsers()));
+        boolean changed;
+        if (add) {
+            if (candidates.size() >= MAX_DYNAMIC_SIGNERS) {
+                throw new RuntimeException("单个任务最多允许加签 " + MAX_DYNAMIC_SIGNERS + " 人");
+            }
+            changed = candidates.add(targetUserId.trim());
+            if (changed) {
+                taskService.addCandidateUser(taskId, targetUserId.trim());
+                syncCandidateRelation(localTask, targetUserId.trim(), userId, reason, normalizedSignMode,
+                        idempotencyKey, requestDigest, true, null, null);
+            }
+        } else {
+            changed = candidates.remove(targetUserId.trim());
+            if (changed) {
+                taskService.deleteCandidateUser(taskId, targetUserId.trim());
+                syncCandidateRelation(localTask, targetUserId.trim(), userId, reason, normalizedSignMode,
+                        idempotencyKey, requestDigest, false, null, null);
+            }
+        }
+        if (!changed) {
+            throw new RuntimeException(add ? "目标用户已经在加签名单中" : "目标用户不在加签名单中");
+        }
+
+        FlowTask update = new FlowTask();
+        update.setCandidateUsers(String.join(",", candidates));
+        update.setComment(reason);
+        if (!updateTaskByTenant(taskId, update)) {
+            throw new IllegalStateException("加签状态同步失败");
+        }
+        String action = add ? "加签" : "减签";
+        taskService.addComment(taskId, task.getProcessInstanceId(), action,
+                isBlank(reason) ? action : reason.trim());
+        log.info("流程任务{}：taskId={}, actor={}, target={}", action, taskId, userId, targetUserId);
+    }
+
+    /**
+     * 对已经由 BPMN 配置为多实例的用户任务，使用 Flowable 原生多实例执行 API 创建/删除子执行。
+     * 普通用户任务继续使用候选关系兼容路径，避免把一个普通任务伪装成流程子任务。
+     */
+    private void mutateFlowableMultiInstanceSign(Task task, FlowTask parentTask, String operatorId,
+                                                  String targetUserId, String reason, String signMode,
+                                                  String idempotencyKey, String requestDigest, boolean add) {
+        UserTask userTask = resolveMultiInstanceUserTask(task);
+        if (flowTaskCandidateMapper == null || userTask == null || userTask.getLoopCharacteristics() == null) {
+            throw new IllegalStateException("FLOW_TASK_SIGN_MULTI_INSTANCE_UNAVAILABLE");
+        }
+        MultiInstanceLoopCharacteristics loop = userTask.getLoopCharacteristics();
+        if (add) {
+            String elementVariable = loop.getElementVariable();
+            if (isBlank(elementVariable)) {
+                elementVariable = "assignee";
+            }
+            Map<String, Object> variables = new HashMap<>();
+            variables.put(elementVariable, targetUserId);
+            Execution execution = runtimeService.addMultiInstanceExecution(
+                    userTask.getId(), task.getProcessInstanceId(), variables);
+            if (execution == null || isBlank(execution.getId())) {
+                throw new IllegalStateException("FLOW_TASK_SIGN_CHILD_EXECUTION_CREATE_FAILED");
+            }
+            Task childTask = taskService.createTaskQuery().executionId(execution.getId()).singleResult();
+            if (childTask == null && !loop.isSequential()) {
+                throw new IllegalStateException("FLOW_TASK_SIGN_CHILD_TASK_CREATE_FAILED");
+            }
+            if (childTask != null && !Objects.equals(targetUserId, childTask.getAssignee())) {
+                taskService.setAssignee(childTask.getId(), targetUserId);
+            }
+            syncCandidateRelation(parentTask, targetUserId, operatorId, reason, signMode,
+                    idempotencyKey, requestDigest, true,
+                    childTask == null ? null : childTask.getId(), execution.getId());
+            taskService.addComment(task.getId(), task.getProcessInstanceId(), "加签",
+                    isBlank(reason) ? "加签" : reason.trim());
+            return;
+        }
+
+        FlowTaskCandidate relation = flowTaskCandidateMapper.selectActiveDynamicSignRelation(
+                parentTask.getTenantId(), parentTask.getTaskId(), targetUserId);
+        if (relation == null || isBlank(relation.getChildExecutionId())) {
+            throw new RuntimeException("目标用户不存在可撤销的多实例加签");
+        }
+        runtimeService.deleteMultiInstanceExecution(relation.getChildExecutionId(), false);
+        syncCandidateRelation(parentTask, targetUserId, operatorId, reason, signMode,
+                idempotencyKey, requestDigest, false,
+                relation.getChildTaskId(), relation.getChildExecutionId());
+        taskService.addComment(task.getId(), task.getProcessInstanceId(), "减签",
+                isBlank(reason) ? "减签" : reason.trim());
+    }
+
+    private boolean isMultiInstanceTask(Task task) {
+        return resolveMultiInstanceUserTask(task) != null;
+    }
+
+    private UserTask resolveMultiInstanceUserTask(Task task) {
+        if (task == null || isBlank(task.getProcessDefinitionId())
+                || isBlank(task.getTaskDefinitionKey()) || repositoryService == null) {
+            return null;
+        }
+        try {
+            BpmnModel model = repositoryService.getBpmnModel(task.getProcessDefinitionId());
+            if (model == null) {
+                return null;
+            }
+            FlowElement element = model.getFlowElement(task.getTaskDefinitionKey());
+            if (element instanceof UserTask userTask && userTask.hasMultiInstanceLoopCharacteristics()) {
+                return userTask;
+            }
+        } catch (Exception e) {
+            log.warn("解析多实例任务配置失败: taskId={}, error={}", task.getId(), e.getMessage());
+        }
+        return null;
+    }
+
+    private void syncCandidateRelation(FlowTask task, String candidateUserId, String operatorId,
+                                       String reason, String signMode, String idempotencyKey,
+                                       String requestDigest, boolean active,
+                                       String childTaskId, String childExecutionId) {
+        if (flowTaskCandidateMapper == null || task == null || task.getTenantId() == null
+                || task.getTaskId() == null || isBlank(candidateUserId)) {
+            return;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        if (active) {
+            FlowTaskCandidate relation = new FlowTaskCandidate();
+            relation.setTenantId(task.getTenantId());
+            relation.setTaskId(task.getTaskId());
+            relation.setParentTaskId(task.getTaskId());
+            relation.setChildTaskId(childTaskId);
+            relation.setChildExecutionId(childExecutionId);
+            relation.setProcessInstanceId(task.getProcessInstanceId());
+            relation.setCandidateType(FlowTaskCandidate.TYPE_USER);
+            relation.setCandidateValue(candidateUserId);
+            relation.setSource(FlowTaskCandidate.SOURCE_DYNAMIC_SIGN);
+            relation.setSignMode(signMode);
+            relation.setOperatorId(operatorId);
+            relation.setReason(reason);
+            relation.setIdempotencyKey(idempotencyKey);
+            relation.setRequestDigest(requestDigest);
+            relation.setStatus(FlowTaskCandidateStatus.ACTIVE.getCode());
+            relation.setCreateTime(now);
+            relation.setUpdateTime(now);
+            flowTaskCandidateMapper.insertIgnore(relation);
+        } else {
+            flowTaskCandidateMapper.deactivateWithAudit(task.getTenantId(), task.getTaskId(),
+                    FlowTaskCandidate.TYPE_USER, candidateUserId, operatorId, reason,
+                    idempotencyKey, requestDigest, now);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FlowTaskSignRelationVO> getSignRelations(String taskId, String userId) {
+        if (isBlank(taskId) || isBlank(userId)) {
+            throw new IllegalArgumentException("FLOW_TASK_SIGN_RELATION_REQUIRED");
+        }
+        Long tenantId = SessionHelper.getTenantId();
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalStateException("FLOW_TASK_TENANT_REQUIRED");
+        }
+        FlowTask task = flowAccessGuard.requireTaskVisible(taskId);
+        if (!tenantId.equals(task.getTenantId())) {
+            throw new RuntimeException("FLOW_RESOURCE_NOT_FOUND");
+        }
+        if (flowTaskCandidateMapper == null) {
+            return List.of();
+        }
+        return flowTaskCandidateMapper.selectDynamicSignRelations(tenantId, task.getTaskId());
+    }
+
+    private List<String> splitIds(String value) {
+        if (isBlank(value)) {
+            return List.of();
+        }
+        return Arrays.stream(value.split(","))
+                .map(String::trim)
+                .filter(item -> !item.isEmpty())
+                .toList();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void withdraw(String processInstanceId, String userId) {
         try {
             assertSubmitterWithdrawAllowed(processInstanceId, userId);
+            List<String> activeTaskIds = taskService.createTaskQuery()
+                    .processInstanceId(processInstanceId)
+                    .list()
+                    .stream()
+                    .map(Task::getId)
+                    .filter(Objects::nonNull)
+                    .toList();
             runtimeService.deleteProcessInstance(processInstanceId, "用户撤回");
 
-            FlowTask flowTask = new FlowTask();
-            flowTask.setStatus(FlowTaskStatus.WITHDRAWN.getCode());
-            flowTask.setCompleteTime(LocalDateTime.now());
-            lambdaUpdate().eq(FlowTask::getProcessInstanceId, processInstanceId).update(flowTask);
+            Long tenantId = SessionHelper.getTenantId();
+            if (tenantId == null || tenantId <= 0) {
+                throw new IllegalStateException("FLOW_TASK_TENANT_REQUIRED");
+            }
+            if (!activeTaskIds.isEmpty()) {
+                baseMapper.updateProcessTaskStatusByTaskIds(activeTaskIds, tenantId,
+                        FlowTaskStatus.WITHDRAWN.getCode(), LocalDateTime.now());
+            }
 
             log.info("撤回流程：processInstanceId={}, userId={}", processInstanceId, userId);
         } catch (Exception e) {
@@ -853,7 +1255,10 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         if (isBlank(userId)) {
             return false;
         }
-        FlowBusiness business = flowBusinessMapper.selectByProcessInstanceId(processInstanceId);
+        Long tenantId = SessionHelper.getTenantId();
+        FlowBusiness business = tenantId == null
+                ? null
+                : flowBusinessMapper.selectByProcessInstanceIdAndTenantId(processInstanceId, tenantId);
         if (business != null && !isBlank(business.getApplyUserId())) {
             return Objects.equals(String.valueOf(business.getApplyUserId()), String.valueOf(userId));
         }
@@ -861,14 +1266,14 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         if (initiator != null && !isBlank(String.valueOf(initiator))) {
             return Objects.equals(String.valueOf(initiator), String.valueOf(userId));
         }
-        log.warn("撤回申请未找到提交人信息，按历史兼容逻辑放行：processInstanceId={}, userId={}",
+        log.warn("撤回申请未找到可信提交人信息，拒绝操作：processInstanceId={}, userId={}",
                 processInstanceId, userId);
-        return true;
+        return false;
     }
 
     @Override
     public FlowTask getTaskDetail(String taskId) {
-        FlowTask task = getBaseMapper().selectByIdOrTaskId(taskId);
+        FlowTask task = flowAccessGuard.requireTaskVisible(taskId);
         if (task != null) {
             task.setProcessDefKey(resolveProcessDefinitionKey(
                     firstNonBlank(task.getProcessDefId(), task.getProcessDefKey()),
@@ -880,6 +1285,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     @Override
     public byte[] getProcessDiagram(String processInstanceId) {
         try {
+            flowAccessGuard.requireProcessVisible(processInstanceId);
             // 1. 获取流程实例
             HistoricProcessInstance historicProcessInstance = historyService.createHistoricProcessInstanceQuery()
                     .processInstanceId(processInstanceId)
@@ -917,7 +1323,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
                     .finished()
                     .orderByHistoricActivityInstanceStartTime()
                     .asc()
-                    .list();
+                    .listPage(0, MAX_DETAIL_HISTORY_ITEMS);
             
             // 已完成的节点ID列表
             List<String> completedActivityIds = historicActivityInstances.stream()
@@ -1182,6 +1588,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     @Override
     public ProcessDiagramInfo getProcessDiagramInfo(String processInstanceId, boolean includeImage) {
         try {
+            flowAccessGuard.requireProcessVisible(processInstanceId);
             log.info("开始获取流程图详情，processInstanceId: {}", processInstanceId);
             
             // 1. 获取流程实例
@@ -1261,6 +1668,11 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
             List<ProcessNodeInfo> nodes = buildNodeInfoList(bpmnModel, processInstanceId);
             diagramInfo.setNodes(nodes);
             log.info("节点数量: {}", nodes != null ? nodes.size() : 0);
+
+            SequenceFlowStatus sequenceFlowStatus = buildSequenceFlowInfoList(bpmnModel, processInstanceId);
+            diagramInfo.setSequenceFlows(sequenceFlowStatus.flows());
+            diagramInfo.setSequenceFlowStatusAvailable(sequenceFlowStatus.available());
+            diagramInfo.setSequenceFlowStatusMessage(sequenceFlowStatus.message());
             
             // 打印节点详情
             if (nodes != null && !nodes.isEmpty()) {
@@ -1277,6 +1689,48 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
             log.error("获取流程图详情失败：processInstanceId={}", processInstanceId, e);
             return null;
         }
+    }
+
+    /**
+     * 从 Flowable 历史活动中批量计算连线执行状态。只有历史级别记录过
+     * sequenceFlow 活动时才宣称状态可靠，避免把“没有记录”误报为所有连线未执行。
+     */
+    private SequenceFlowStatus buildSequenceFlowInfoList(BpmnModel bpmnModel, String processInstanceId) {
+        if (bpmnModel == null || bpmnModel.getProcesses() == null || bpmnModel.getProcesses().isEmpty()) {
+            return new SequenceFlowStatus(List.of(), false, "BPMN 模型缺失，无法计算连线状态");
+        }
+        Process process = bpmnModel.getProcesses().get(0);
+        List<SequenceFlow> definitions = process.findFlowElementsOfType(SequenceFlow.class);
+        if (definitions == null || definitions.isEmpty()) {
+            return new SequenceFlowStatus(List.of(), true, null);
+        }
+        List<HistoricActivityInstance> activities = historyService.createHistoricActivityInstanceQuery()
+                .processInstanceId(processInstanceId)
+                .listPage(0, MAX_DETAIL_HISTORY_ITEMS);
+        Set<String> executedFlowIds = activities == null ? Set.of() : activities.stream()
+                .filter(activity -> activity != null && activity.getEndTime() != null)
+                .filter(activity -> "sequenceFlow".equalsIgnoreCase(activity.getActivityType()))
+                .map(HistoricActivityInstance::getActivityId)
+                .filter(id -> id != null && !id.isBlank())
+                .collect(Collectors.toSet());
+        if (executedFlowIds.isEmpty()) {
+            return new SequenceFlowStatus(List.of(), false,
+                    "当前 Flowable 历史级别未记录 sequenceFlow 活动，连线状态不可用");
+        }
+        List<ProcessSequenceFlowInfo> result = definitions.stream().map(flow -> {
+            ProcessSequenceFlowInfo item = new ProcessSequenceFlowInfo();
+            item.setFlowId(flow.getId());
+            item.setSourceRef(flow.getSourceRef());
+            item.setTargetRef(flow.getTargetRef());
+            item.setStatus(executedFlowIds.contains(flow.getId())
+                    ? FlowDiagramStatus.COMPLETED.getCode() : FlowDiagramStatus.PENDING.getCode());
+            return item;
+        }).toList();
+        return new SequenceFlowStatus(result, true, null);
+    }
+
+    private record SequenceFlowStatus(List<ProcessSequenceFlowInfo> flows,
+                                      boolean available, String message) {
     }
     
     /**
@@ -1295,7 +1749,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         Map<String, HistoricActivityInstance> completedActivityMap = new HashMap<>();
         List<HistoricActivityInstance> historicActivities = historyService.createHistoricActivityInstanceQuery()
                 .processInstanceId(processInstanceId)
-                .list();
+                .listPage(0, MAX_DETAIL_HISTORY_ITEMS);
         
         for (HistoricActivityInstance activity : historicActivities) {
             if (activity.getEndTime() != null) {
@@ -1321,7 +1775,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         Map<String, HistoricTaskInstance> taskMap = new HashMap<>();
         List<HistoricTaskInstance> historicTasks = historyService.createHistoricTaskInstanceQuery()
                 .processInstanceId(processInstanceId)
-                .list();
+                .listPage(0, MAX_DETAIL_HISTORY_ITEMS);
         for (HistoricTaskInstance task : historicTasks) {
             if (!taskMap.containsKey(task.getTaskDefinitionKey()) ||
                 taskMap.get(task.getTaskDefinitionKey()).getCreateTime().before(task.getCreateTime())) {
@@ -1336,6 +1790,34 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
                 .list();
         for (Task task : currentTasks) {
             currentTaskMap.put(task.getTaskDefinitionKey(), task);
+        }
+
+        // 同一流程图内的处理人和候选人可能跨多个节点重复出现，复用一次批量查询结果，
+        // 避免按节点、按用户触发组织服务 N+1 回查。
+        Map<String, Map<String, Object>> userInfoCache = new HashMap<>();
+        if (flowOrgIntegrationService != null) {
+            Set<String> userIdsToLoad = new LinkedHashSet<>();
+            currentTaskMap.values().forEach(task -> {
+                if (task.getAssignee() != null && !task.getAssignee().isBlank()) {
+                    userIdsToLoad.add(task.getAssignee());
+                }
+                taskService.getIdentityLinksForTask(task.getId()).stream()
+                        .filter(link -> link.getUserId() != null && "candidate".equals(link.getType()))
+                        .map(org.flowable.identitylink.api.IdentityLink::getUserId)
+                        .forEach(userIdsToLoad::add);
+            });
+            historicTasks.stream()
+                    .map(HistoricTaskInstance::getAssignee)
+                    .filter(id -> id != null && !id.isBlank())
+                    .forEach(userIdsToLoad::add);
+            if (!userIdsToLoad.isEmpty()) {
+                Map<String, Map<String, Object>> loaded =
+                        flowOrgIntegrationService.getUserInfoBatch(new ArrayList<>(userIdsToLoad));
+                if (loaded != null) {
+                    userInfoCache.putAll(loaded);
+                }
+                userIdsToLoad.forEach(id -> userInfoCache.putIfAbsent(id, Collections.emptyMap()));
+            }
         }
         
         // 遍历所有节点
@@ -1379,7 +1861,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
                         List<String> assigneeIds = Collections.singletonList(currentTask.getAssignee());
                         nodeInfo.setAssigneeIds(assigneeIds);
                         // 获取用户详情
-                        fillUserInfo(nodeInfo, assigneeIds);
+                        fillUserInfo(nodeInfo, assigneeIds, userInfoCache);
                     }
                     // 获取候选人信息
                     if (currentTask.getAssignee() == null) {
@@ -1393,7 +1875,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
                                 .collect(Collectors.toList());
                             if (!candidateUsers.isEmpty()) {
                                 nodeInfo.setCandidateUserIds(candidateUsers);
-                                fillUserInfo(nodeInfo, candidateUsers);
+                                fillUserInfo(nodeInfo, candidateUsers, userInfoCache);
                             }
                         }
                     }
@@ -1405,7 +1887,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
                             List<String> assigneeIds = Collections.singletonList(historicTask.getAssignee());
                             nodeInfo.setAssigneeIds(assigneeIds);
                             // 获取用户详情
-                            fillUserInfo(nodeInfo, assigneeIds);
+                            fillUserInfo(nodeInfo, assigneeIds, userInfoCache);
                         }
                         nodeInfo.setStartTime(historicTask.getCreateTime());
                         nodeInfo.setEndTime(historicTask.getEndTime());
@@ -1425,18 +1907,31 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     /**
      * 填充用户信息（姓名、组织）
      */
-    private void fillUserInfo(ProcessNodeInfo nodeInfo, List<String> userIds) {
+    private void fillUserInfo(ProcessNodeInfo nodeInfo, List<String> userIds,
+                              Map<String, Map<String, Object>> userInfoCache) {
         if (flowOrgIntegrationService == null || userIds == null || userIds.isEmpty()) {
             return;
         }
-        
+
+        List<String> missingIds = userIds.stream()
+                .filter(id -> id != null && !id.isBlank() && !userInfoCache.containsKey(id))
+                .distinct()
+                .toList();
+        if (!missingIds.isEmpty()) {
+            Map<String, Map<String, Object>> loaded = flowOrgIntegrationService.getUserInfoBatch(missingIds);
+            if (loaded != null) {
+                userInfoCache.putAll(loaded);
+            }
+            missingIds.forEach(id -> userInfoCache.putIfAbsent(id, Collections.emptyMap()));
+        }
+
         List<String> names = new ArrayList<>();
         List<String> orgs = new ArrayList<>();
         List<Map<String, Object>> details = new ArrayList<>();
-        
+
         for (String userId : userIds) {
             try {
-                Map<String, Object> userInfo = flowOrgIntegrationService.getUserInfo(userId);
+                Map<String, Object> userInfo = userInfoCache.get(userId);
                 if (userInfo != null) {
                     // 获取用户名
                     String name = (String) userInfo.get("name");
@@ -1483,6 +1978,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
 
     @Override
     public void remind(String taskId) {
+        flowAccessGuard.requireTaskVisible(taskId);
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
         if (task == null) {
             log.warn("催办失败：任务不存在，taskId={}", taskId);
@@ -1892,7 +2388,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         if (tenantId == null || tenantId <= 0) {
             throw new RuntimeException("FLOW_TASK_TENANT_REQUIRED");
         }
-        FlowTask localTask = baseMapper.selectByTaskIdForUpdate(taskId);
+        FlowTask localTask = baseMapper.selectByTaskIdForUpdateAndTenant(taskId, tenantId);
         Task flowableTask = taskService.createTaskQuery().taskId(taskId).singleResult();
         if (localTask == null || (localTask.getTenantId() != null
                 && !tenantId.equals(localTask.getTenantId()))
@@ -1906,14 +2402,58 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         }
     }
 
+    /**
+     * 委派和任务终结属于高影响写操作，不能只依赖 Flowable taskId 存在性。
+     * 先验证租户/业务归属，再验证操作者是当前处理人、拥有者或流程发起人。
+     */
+    private void assertTaskMutationActor(String taskId, String userId, boolean allowInitiator) {
+        if (isBlank(userId)) {
+            throw new RuntimeException("FLOW_TASK_ACTOR_REQUIRED");
+        }
+        assertTaskTenantForAction(taskId);
+        Long tenantId = SessionHelper.getTenantId();
+        FlowTask localTask = baseMapper.selectByTaskIdForUpdateAndTenant(taskId, tenantId);
+        boolean participant = Objects.equals(userId, localTask.getAssignee())
+                || Objects.equals(userId, localTask.getOwner())
+                || (allowInitiator && Objects.equals(userId, localTask.getStartUserId()));
+        if (!participant) {
+            throw new RuntimeException("FLOW_TASK_ACTOR_MISMATCH");
+        }
+    }
+
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private Long requireTenantId() {
+        Long tenantId = SessionHelper.getTenantId();
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalStateException("FLOW_TASK_TENANT_REQUIRED");
+        }
+        return tenantId;
     }
 
     /**
      * 详情/审批历史仍需兼容历史业务数据中的账号或姓名；列表页已由 Mapper SQL 直接关联用户，
      * 不会走这里的逐条组织服务查询。
      */
+    private String resolveUserDisplayName(String userId, String fallback,
+                                          Map<String, Map<String, Object>> userInfoCache) {
+        if (!isBlank(userId) && userInfoCache != null && userInfoCache.containsKey(userId.trim())) {
+            Map<String, Object> userInfo = userInfoCache.get(userId.trim());
+            if (userInfo != null) {
+                String name = firstNonBlank(
+                        textValue(userInfo.get("realName")),
+                        textValue(userInfo.get("name")),
+                        textValue(userInfo.get("nickname")));
+                if (!isBlank(name)) {
+                    return name;
+                }
+            }
+        }
+        return isBlank(fallback) ? userId : fallback.trim();
+    }
+
     private String resolveUserDisplayName(String userId, String fallback) {
         if (!isBlank(userId) && flowOrgIntegrationService != null) {
             try {
@@ -1936,6 +2476,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
 
     @Override
     public TaskFormInfo getTaskFormInfo(String taskId) {
+        FlowTask visibleTask = flowAccessGuard.requireTaskVisible(taskId);
         // 1. 获取任务信息
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
         if (task == null) {
@@ -1957,7 +2498,12 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         formInfo.setVariables(variables);
 
         // 4. 获取业务信息
-        FlowBusiness business = flowBusinessMapper.selectByProcessInstanceId(task.getProcessInstanceId());
+        Long taskTenantId = visibleTask != null && visibleTask.getTenantId() != null
+                ? visibleTask.getTenantId() : SessionHelper.getTenantId();
+        FlowBusiness business = taskTenantId == null
+                ? null
+                : flowBusinessMapper.selectByProcessInstanceIdAndTenantId(
+                        task.getProcessInstanceId(), taskTenantId);
         if (business != null) {
             formInfo.setBusinessKey(business.getBusinessKey());
             formInfo.setTitle(business.getTitle());
@@ -1972,7 +2518,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         FlowModel flowModel = !isBlank(processDefKey) ? flowModelService.getModelByKey(processDefKey) : null;
         FlowNode flowNode = resolveFormFlowNode(task.getProcessDefinitionId(), task.getTaskDefinitionKey());
         applyFormConfiguration(formInfo, flowModel, flowNode);
-        hydrateFormInstanceSnapshotIfNecessary(formInfo, task.getProcessInstanceId());
+        hydrateFormInstanceSnapshotIfNecessary(formInfo, task.getProcessInstanceId(), taskTenantId);
 
         // 6. 获取节点办理配置（BPMN扩展属性 + 节点配置表，配置表优先）
         TaskApprovalPolicy policy = getTaskApprovalPolicy(task, flowModel, flowNode);
@@ -2049,15 +2595,21 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     public TaskFormInfo getProcessFormInfo(String processInstanceId, String businessKey, String processDefKey,
                                            String taskId, String taskDefKey) {
         if (!isBlank(taskId)) {
+            flowAccessGuard.requireTaskVisible(taskId);
+        } else if (!isBlank(processInstanceId)) {
+            flowAccessGuard.requireProcessVisible(processInstanceId);
+        }
+        if (!isBlank(taskId)) {
             Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
             if (task != null) {
                 return getTaskFormInfo(taskId);
             }
         }
 
+        Long tenantId = requireTenantId();
         FlowTask sourceTask = null;
         if (!isBlank(taskId)) {
-            sourceTask = getBaseMapper().selectByIdOrTaskId(taskId);
+            sourceTask = getBaseMapper().selectByIdOrTaskIdAndTenant(taskId, tenantId);
         }
 
         FlowBusiness business = resolveFlowBusiness(processInstanceId, businessKey);
@@ -2103,7 +2655,7 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         }
         formInfo.setVariables(variables);
         applyFormConfiguration(formInfo, processDefinitionId, effectiveProcessDefKey, effectiveTaskDefKey);
-        hydrateFormInstanceSnapshotIfNecessary(formInfo, effectiveProcessInstanceId);
+        hydrateFormInstanceSnapshotIfNecessary(formInfo, effectiveProcessInstanceId, tenantId);
         formInfo.setAllowApprove(false);
         formInfo.setAllowReject(false);
         formInfo.setAllowDelegate(false);
@@ -2137,12 +2689,13 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     }
 
     private FlowBusiness resolveFlowBusiness(String processInstanceId, String businessKey) {
+        Long tenantId = requireTenantId();
         FlowBusiness business = null;
         if (!isBlank(processInstanceId)) {
-            business = flowBusinessMapper.selectByProcessInstanceId(processInstanceId);
+            business = flowBusinessMapper.selectByProcessInstanceIdAndTenantId(processInstanceId, tenantId);
         }
         if (business == null && !isBlank(businessKey)) {
-            business = flowBusinessMapper.selectByBusinessKey(businessKey);
+            business = flowBusinessMapper.selectByBusinessKeyAndTenantId(tenantId, businessKey);
         }
         return business;
     }
@@ -2608,6 +3161,11 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
     }
 
     private void hydrateFormInstanceSnapshotIfNecessary(TaskFormInfo formInfo, String processInstanceId) {
+        hydrateFormInstanceSnapshotIfNecessary(formInfo, processInstanceId, requireTenantId());
+    }
+
+    private void hydrateFormInstanceSnapshotIfNecessary(TaskFormInfo formInfo, String processInstanceId,
+                                                       Long tenantId) {
         if (formInfo == null || FORM_TYPE_BUSINESS.equalsIgnoreCase(formInfo.getFormType())) {
             return;
         }
@@ -2616,15 +3174,17 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
                 && isBlank(formInfo.getFormJson())) {
             return;
         }
-        hydrateFormInstanceSnapshot(formInfo, processInstanceId);
+        hydrateFormInstanceSnapshot(formInfo, processInstanceId, tenantId);
     }
 
-    private void hydrateFormInstanceSnapshot(TaskFormInfo formInfo, String processInstanceId) {
-        if (flowFormInstanceMapper == null || processInstanceId == null || processInstanceId.isEmpty()) {
+    private void hydrateFormInstanceSnapshot(TaskFormInfo formInfo, String processInstanceId, Long tenantId) {
+        if (flowFormInstanceMapper == null || processInstanceId == null || processInstanceId.isEmpty()
+                || tenantId == null || tenantId <= 0) {
             return;
         }
         try {
-            FlowFormInstance instance = flowFormInstanceMapper.selectByProcessInstanceId(processInstanceId);
+            FlowFormInstance instance = flowFormInstanceMapper.selectByProcessInstanceIdAndTenantId(
+                    processInstanceId, tenantId);
             if (instance == null) {
                 return;
             }
@@ -2683,52 +3243,95 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
      */
     @Override
     public List<Map<String, Object>> getProcessHistory(String processInstanceId) {
-        // 1. 查询该流程实例的所有任务（按创建时间排序）
-        LambdaQueryWrapper<FlowTask> wrapper = new LambdaQueryWrapper<FlowTask>()
-                .eq(FlowTask::getProcessInstanceId, processInstanceId)
-                .orderByAsc(FlowTask::getCreateTime);
-        List<FlowTask> tasks = list(wrapper);
-
-        // 2. 获取业务信息（用于展示发起节点）
-        FlowBusiness business = flowBusinessMapper.selectByProcessInstanceId(processInstanceId);
-
+        FlowHistoryPageVO page = getProcessHistoryPage(processInstanceId, 1, MAX_DETAIL_HISTORY_ITEMS);
         List<Map<String, Object>> result = new ArrayList<>();
-
-        // 3. 加入“发起”节点
-        if (business != null) {
-            Map<String, Object> startNode = new HashMap<>();
-            startNode.put("taskName", "发起流程");
-            startNode.put("assigneeName", resolveUserDisplayName(
-                    business.getApplyUserId(), business.getApplyUserName()));
-            startNode.put("assigneeId", business.getApplyUserId());
-            startNode.put("action", "start");
-            startNode.put("comment", "");
-            startNode.put("createTime", business.getApplyTime() != null
-                    ? business.getApplyTime().toString() : business.getCreateTime() != null
-                    ? business.getCreateTime().toString() : null);
-            startNode.put("completeTime", startNode.get("createTime"));
-            result.add(startNode);
-        }
-
-        // 4. 加入每个任务节点
-        for (FlowTask task : tasks) {
-            // 待办且未完成的节点也要展示（表示当前处理中）
-            Map<String, Object> node = new HashMap<>();
-            node.put("taskId", task.getTaskId());
-            node.put("taskName", task.getTaskName());
-            // 安全处理：assignee 可能为空
-            String assigneeName = resolveUserDisplayName(task.getAssignee(), task.getAssigneeName());
-            node.put("assigneeName", assigneeName);
-            node.put("assigneeId", task.getAssignee());
-            node.put("action", FlowTaskStatus.historyActionOf(task.getStatus()));
-            node.put("comment", task.getComment() != null ? task.getComment() : "");
-            node.put("signature", task.getSignature());
-            node.put("approvalPointResults", readApprovalPointResults(task.getTaskId()));
-            node.put("createTime", task.getCreateTime() != null ? task.getCreateTime().toString() : null);
-            node.put("completeTime", task.getCompleteTime() != null ? task.getCompleteTime().toString() : null);
+        for (FlowHistoryItemVO item : page.getRecords()) {
+            Map<String, Object> node = new LinkedHashMap<>();
+            node.put("taskId", item.getTaskId());
+            node.put("taskName", item.getTaskName());
+            node.put("assigneeName", item.getAssigneeName());
+            node.put("assigneeId", item.getAssigneeId());
+            node.put("action", item.getAction());
+            node.put("comment", item.getComment());
+            node.put("signature", item.getSignature());
+            node.put("approvalPointResults", item.getApprovalPointResults());
+            node.put("createTime", item.getCreateTime());
+            node.put("completeTime", item.getCompleteTime());
             result.add(node);
         }
+        return result;
+    }
 
+    @Override
+    public FlowHistoryPageVO getProcessHistoryPage(String processInstanceId, Integer pageNum, Integer pageSize) {
+        FlowBusiness business = flowAccessGuard.requireProcessVisible(processInstanceId);
+        Long tenantId = flowAccessGuard.requireTenant();
+        long safePageNum = pageNum == null || pageNum < 1 ? 1 : pageNum;
+        long safePageSize = pageSize == null || pageSize < 1 ? 20 : Math.min(pageSize, MAX_DETAIL_HISTORY_ITEMS);
+        IPage<FlowTask> taskPage = baseMapper.selectHistoryTasks(
+                new Page<>(safePageNum, safePageSize), processInstanceId, tenantId);
+        List<FlowTask> tasks = taskPage.getRecords();
+
+        // 一次批量读取审批人，避免长流程历史逐任务回查组织服务。
+        Map<String, Map<String, Object>> userInfoCache = new HashMap<>();
+        Set<String> userIds = new LinkedHashSet<>();
+        if (business != null && !isBlank(business.getApplyUserId())) {
+            userIds.add(business.getApplyUserId());
+        }
+        tasks.stream()
+                .map(FlowTask::getAssignee)
+                .filter(id -> !isBlank(id))
+                .forEach(userIds::add);
+        if (flowOrgIntegrationService != null && !userIds.isEmpty()) {
+            Map<String, Map<String, Object>> loaded =
+                    flowOrgIntegrationService.getUserInfoBatch(new ArrayList<>(userIds));
+            if (loaded != null) {
+                userInfoCache.putAll(loaded);
+            }
+            userIds.forEach(id -> userInfoCache.putIfAbsent(id, Collections.emptyMap()));
+        }
+
+        List<FlowHistoryItemVO> records = new ArrayList<>();
+        if (business != null && safePageNum == 1) {
+            FlowHistoryItemVO startNode = new FlowHistoryItemVO();
+            startNode.setTaskName("发起流程");
+            startNode.setAssigneeName(resolveUserDisplayName(
+                    business.getApplyUserId(), business.getApplyUserName(), userInfoCache));
+            startNode.setAssigneeId(business.getApplyUserId());
+            startNode.setAction("start");
+            startNode.setComment("");
+            String startTime = business.getApplyTime() != null
+                    ? business.getApplyTime().toString() : business.getCreateTime() != null
+                    ? business.getCreateTime().toString() : null;
+            startNode.setCreateTime(startTime);
+            startNode.setCompleteTime(startTime);
+            records.add(startNode);
+        }
+
+        // 加入每个任务节点
+        for (FlowTask task : tasks) {
+            FlowHistoryItemVO node = new FlowHistoryItemVO();
+            node.setTaskId(task.getTaskId());
+            node.setTaskName(task.getTaskName());
+            String assigneeName = resolveUserDisplayName(task.getAssignee(), task.getAssigneeName(), userInfoCache);
+            node.setAssigneeName(assigneeName);
+            node.setAssigneeId(task.getAssignee());
+            node.setAction(FlowTaskStatus.historyActionOf(task.getStatus()));
+            node.setComment(task.getComment() != null ? task.getComment() : "");
+            node.setSignature(task.getSignature());
+            node.setApprovalPointResults(readApprovalPointResults(task.getTaskId()));
+            node.setCreateTime(task.getCreateTime() != null ? task.getCreateTime().toString() : null);
+            node.setCompleteTime(task.getCompleteTime() != null ? task.getCompleteTime().toString() : null);
+            records.add(node);
+        }
+
+        FlowHistoryPageVO result = new FlowHistoryPageVO();
+        result.setPageNum(safePageNum);
+        result.setPageSize(safePageSize);
+        result.setTotal(taskPage.getTotal() + (business == null ? 0 : 1));
+        // 发起节点只在第一页额外展示，不参与任务表分页游标，避免最后一页被错误标记为还有数据。
+        result.setHasMore(taskPage.getCurrent() * taskPage.getSize() < taskPage.getTotal());
+        result.setRecords(records);
         return result;
     }
 

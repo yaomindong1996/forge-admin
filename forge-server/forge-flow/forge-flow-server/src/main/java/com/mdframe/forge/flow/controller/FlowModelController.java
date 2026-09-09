@@ -8,10 +8,15 @@ import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.flow.entity.FlowModel;
 import com.mdframe.forge.starter.flow.dto.FlowStartConfig;
+import com.mdframe.forge.starter.flow.dto.FlowModelSortDTO;
 import com.mdframe.forge.starter.flow.service.FlowModelService;
+import com.mdframe.forge.starter.flow.vo.FlowModelStatisticsVO;
+import com.mdframe.forge.starter.flow.vo.FlowModelVersionSummaryVO;
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.validation.Valid;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -41,7 +46,9 @@ public class FlowModelController {
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Integer status) {
         
-        Page<FlowModel> page = new Page<>(pageNum, pageSize);
+        int safePageNum = pageNum == null || pageNum < 1 ? 1 : pageNum;
+        int safePageSize = pageSize == null || pageSize < 1 ? 10 : Math.min(pageSize, 100);
+        Page<FlowModel> page = new Page<>(safePageNum, safePageSize);
         IPage<FlowModel> result = flowModelService.pageFlowModel(page, modelName, category, status);
         return RespInfo.success(result);
     }
@@ -60,10 +67,10 @@ public class FlowModelController {
      * 获取流程模型状态统计
      */
     @GetMapping("/statistics")
-    public RespInfo<Map<String, Object>> statistics(
+    public RespInfo<FlowModelStatisticsVO> statistics(
             @RequestParam(required = false) String modelName,
             @RequestParam(required = false) String category) {
-        Map<String, Object> statistics = flowModelService.getStatusStatistics(modelName, category);
+        FlowModelStatisticsVO statistics = flowModelService.getStatusStatistics(modelName, category);
         return RespInfo.success(statistics);
     }
 
@@ -166,8 +173,8 @@ public class FlowModelController {
      * 获取模型版本历史
      */
     @GetMapping("/{modelKey}/versions")
-    public RespInfo<List<Map<String, Object>>> getVersions(@PathVariable String modelKey) {
-        List<Map<String, Object>> versions = flowModelService.getModelVersions(modelKey);
+    public RespInfo<List<FlowModelVersionSummaryVO>> getVersions(@PathVariable String modelKey) {
+        List<FlowModelVersionSummaryVO> versions = flowModelService.getModelVersions(modelKey);
         return RespInfo.success(versions);
     }
 
@@ -228,5 +235,13 @@ public class FlowModelController {
             @RequestParam(required = false) Integer status) {
         List<FlowModel> models = flowModelService.getEnabledModels(category);
         return RespInfo.success(models);
+    }
+
+    /** 批量调整当前租户流程模型目录排序。 */
+    @PostMapping("/sort")
+    @SaCheckPermission("flow:model:sort")
+    public RespInfo<Void> sort(@Valid @RequestBody FlowModelSortDTO request) {
+        flowModelService.sortModels(request);
+        return RespInfo.success("排序保存成功", null);
     }
 }

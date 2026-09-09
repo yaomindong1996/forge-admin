@@ -48,6 +48,7 @@
             AND u.tenant_id = v.tenant_id
             AND u.del_flag = 0
         WHERE v.model_id = #{modelId}
+          AND v.tenant_id = #{tenantId}
           AND v.del_flag = 0
         ORDER BY v.version DESC
     </select>
@@ -56,6 +57,7 @@
         SELECT MAX(version)
         FROM sys_flow_model_version
         WHERE model_id = #{modelId}
+          AND tenant_id = #{tenantId}
           AND del_flag = 0
     </select>
 
@@ -81,6 +83,7 @@
             AND u.tenant_id = v.tenant_id
             AND u.del_flag = 0
         WHERE v.id = #{versionId}
+          AND v.tenant_id = #{tenantId}
           AND v.del_flag = 0
     </select>
 
@@ -89,7 +92,35 @@
         FROM sys_flow_model_version
         WHERE model_id = #{modelId}
           AND version = #{version}
+          AND tenant_id = #{tenantId}
           AND del_flag = 0
         LIMIT 1
+    </select>
+
+    <update id="updateVersionTagByIdAndTenant">
+        UPDATE sys_flow_model_version
+        SET version_tag = #{versionTag}
+        WHERE id = #{versionId}
+          AND tenant_id = #{tenantId}
+          AND del_flag = 0
+    </update>
+
+    <update id="logicalDeleteByIdAndTenant">
+        UPDATE sys_flow_model_version
+        SET del_flag = 1
+        WHERE id = #{versionId}
+          AND tenant_id = #{tenantId}
+          AND del_flag = 0
+    </update>
+
+    <select id="selectCleanupCandidates" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_flow_model_version
+        WHERE model_id = #{modelId}
+          AND tenant_id = #{tenantId}
+          AND del_flag = 0
+        ORDER BY version DESC, create_time DESC, id DESC
+        LIMIT 500
+        FOR UPDATE
     </select>
 </mapper>

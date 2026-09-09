@@ -447,6 +447,15 @@ export const aiCrudPageProps = {
   },
 
   /**
+   * 是否隐藏编辑表单左侧的分组导航（分组≥3时默认显示）
+   * @type {boolean}
+   */
+  hideFormSectionNav: {
+    type: Boolean,
+    default: false,
+  },
+
+  /**
    * 多页签录入工作区配置。
    * @type {object}
    */

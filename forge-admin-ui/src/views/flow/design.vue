@@ -945,8 +945,8 @@ import FlowFormCreateRenderer from '@/components/form-create/FlowFormCreateRende
 import { useDict } from '@/composables/useDict'
 import { useTabStore } from '@/store'
 import { toNumberDictOptions } from '@/utils/dict-options'
-import { sanitizeHtml } from '@/utils/sanitize-html'
 import { loadFlowBusinessFormFieldCatalog } from '@/utils/flow-form-loader'
+import { sanitizeHtml } from '@/utils/sanitize-html'
 import BusinessFlowFormAssetSelect from '@/views/app-center/components/designer/BusinessFlowFormAssetSelect.vue'
 import { buildFlowCategoryTreeOptions, resolveFlowCategoryValue } from './utils/categoryOptions'
 import { buildLocalFormFieldCatalog } from './utils/form-field-catalog'
@@ -3516,7 +3516,9 @@ function handleDiagramImportEnd() {
   diagramLoadingCount.value = Math.max(0, diagramLoadingCount.value - 1)
 }
 
-async function handleSaveDraft() {
+async function handleSaveDraft(allowDuringDeploy = false) {
+  if (saving.value || (deploying.value && !allowDuringDeploy))
+    return false
   try {
     saving.value = true
 
@@ -3618,6 +3620,8 @@ function validateBusinessGlobalFormBeforeSave() {
 }
 
 async function handleDeploy() {
+  if (deploying.value || saving.value)
+    return
   try {
     deploying.value = true
 
@@ -3627,7 +3631,7 @@ async function handleDeploy() {
       return
     }
 
-    const saved = await handleSaveDraft()
+    const saved = await handleSaveDraft(true)
     if (!saved)
       return
 

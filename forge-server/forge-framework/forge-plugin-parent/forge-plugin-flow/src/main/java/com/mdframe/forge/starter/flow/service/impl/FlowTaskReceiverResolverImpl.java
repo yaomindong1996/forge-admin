@@ -126,6 +126,10 @@ public class FlowTaskReceiverResolverImpl implements FlowTaskReceiverResolver {
             if (roleUsers != null && !roleUsers.isEmpty()) {
                 return roleUsers;
             }
+            List<String> customGroupUsers = flowOrgIntegrationService.getUserIdsByGroupCode(group);
+            if (customGroupUsers != null && !customGroupUsers.isEmpty()) {
+                return customGroupUsers;
+            }
             if (isNumeric(group)) {
                 List<String> deptUsers = flowOrgIntegrationService.getUserIdsByDeptId(group);
                 if (deptUsers != null) {

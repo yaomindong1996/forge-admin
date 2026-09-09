@@ -79,4 +79,10 @@ public class FlowOverdueReminderRecord extends TenantEntity {
      * 失败原因。
      */
     private String errorMessage;
+
+    /** 本次提醒发送失败后的重试次数。 */
+    private Integer retryCount;
+
+    /** 下次允许重试的时间，避免失败后每轮扫描立即重发。 */
+    private LocalDateTime nextRetryTime;
 }

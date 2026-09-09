@@ -55,6 +55,29 @@
         r.create_dept, r.create_by, r.create_time, r.update_by, r.update_time, r.del_flag
     </sql>
 
+    <select id="selectActiveFlowRoleByKey" resultMap="RoleResultMap">
+        SELECT <include refid="RoleColumnList"/>
+        FROM sys_role r
+        LEFT JOIN sys_tenant t ON t.id = r.tenant_id AND t.del_flag = 0
+        WHERE r.tenant_id = #{tenantId}
+          AND r.role_key = #{roleKey}
+          AND r.role_status = 1
+          AND r.del_flag = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectActiveFlowRoles" resultMap="RoleResultMap">
+        SELECT <include refid="RoleColumnList" />
+        FROM sys_role r
+        INNER JOIN sys_tenant t
+            ON t.id = r.tenant_id
+           AND t.del_flag = 0
+        WHERE r.tenant_id = #{tenantId}
+          AND r.role_status = 1
+          AND r.del_flag = 0
+        ORDER BY r.sort ASC, r.id ASC
+    </select>
+
     <sql id="RoleQueryCondition">
         AND r.del_flag = 0
         <if test="query.tenantId != null">

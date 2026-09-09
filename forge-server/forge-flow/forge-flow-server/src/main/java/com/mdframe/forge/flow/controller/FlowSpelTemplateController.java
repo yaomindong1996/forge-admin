@@ -1,12 +1,15 @@
 package com.mdframe.forge.flow.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mdframe.forge.flow.dto.FlowSpelTemplateCreateDTO;
+import com.mdframe.forge.flow.dto.FlowSpelTemplateUpdateDTO;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiEncrypt;
 import com.mdframe.forge.starter.core.annotation.tenant.IgnoreTenant;
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.flow.entity.FlowSpelTemplate;
 import com.mdframe.forge.starter.flow.service.FlowSpelTemplateService;
+import com.mdframe.forge.starter.flow.vo.FlowSpelTemplatePageVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,7 +36,7 @@ public class FlowSpelTemplateController {
      * 分页查询模板
      */
     @GetMapping("/page")
-    public RespInfo getPage(
+    public RespInfo<FlowSpelTemplatePageVO> getPage(
             @RequestParam(required = false) String templateName,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Integer status,
@@ -42,11 +45,12 @@ public class FlowSpelTemplateController {
 
         Page<FlowSpelTemplate> pageResult = spelTemplateService.getPage(templateName, category, status, pageNum, pageSize);
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("records", pageResult.getRecords());
-        result.put("total", pageResult.getTotal());
-        result.put("page", pageResult.getCurrent());
-        result.put("pageSize", pageResult.getSize());
+        FlowSpelTemplatePageVO result = new FlowSpelTemplatePageVO();
+        result.setRecords(pageResult.getRecords());
+        result.setTotal(pageResult.getTotal());
+        result.setPage(pageResult.getCurrent());
+        result.setPageNum(pageResult.getCurrent());
+        result.setPageSize(pageResult.getSize());
 
         return RespInfo.success(result);
     }
@@ -65,14 +69,24 @@ public class FlowSpelTemplateController {
      */
     @GetMapping("/{id}")
     public RespInfo getById(@PathVariable Long id) {
-        return RespInfo.success(spelTemplateService.getById(id));
+        return RespInfo.success(spelTemplateService.getByIdForCurrentTenant(id));
     }
 
     /**
      * 创建模板
      */
     @PostMapping
-    public RespInfo create(@RequestBody FlowSpelTemplate template) {
+    public RespInfo create(@RequestBody FlowSpelTemplateCreateDTO request) {
+        FlowSpelTemplate template = new FlowSpelTemplate();
+        template.setTemplateName(request.getTemplateName());
+        template.setTemplateCode(request.getTemplateCode());
+        template.setExpression(request.getExpression());
+        template.setDescription(request.getDescription());
+        template.setCategory(request.getCategory());
+        template.setExampleParams(request.getExampleParams());
+        template.setStatus(request.getStatus());
+        template.setSort(request.getSort());
+        template.setRemark(request.getRemark());
         spelTemplateService.createTemplate(template);
         return RespInfo.success();
     }
@@ -81,7 +95,17 @@ public class FlowSpelTemplateController {
      * 更新模板
      */
     @PutMapping
-    public RespInfo update(@RequestBody FlowSpelTemplate template) {
+    public RespInfo update(@RequestBody FlowSpelTemplateUpdateDTO request) {
+        FlowSpelTemplate template = new FlowSpelTemplate();
+        template.setId(request.getId());
+        template.setTemplateName(request.getTemplateName());
+        template.setExpression(request.getExpression());
+        template.setDescription(request.getDescription());
+        template.setCategory(request.getCategory());
+        template.setExampleParams(request.getExampleParams());
+        template.setStatus(request.getStatus());
+        template.setSort(request.getSort());
+        template.setRemark(request.getRemark());
         spelTemplateService.updateTemplate(template);
         return RespInfo.success();
     }

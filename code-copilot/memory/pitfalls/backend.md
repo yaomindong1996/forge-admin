@@ -1,6 +1,6 @@
 # 踩坑：后端框架 / Spring / Maven
 
-> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 32 条。
+> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 33 条。
 
 ## Redisson 接口存在不代表社区版可以运行
 
@@ -538,3 +538,22 @@ OR column LIKE CONCAT('%,', #{userId}, ',%')
 
 **影响范围**:
 所有使用 MyBatis-Plus 分页且 SQL 含深层嵌套条件、函数或子查询的列表接口。
+
+## Maven 父 POM 的 Surefire 分组过滤必须确保测试引擎存在
+
+**发现日期**：2026-09-06
+
+**问题描述**：
+父 POM 对所有 reactor 模块配置 Surefire `groups` 或 `excludedGroups` 时，依赖-only 模块即使没有测试源码，也会在 provider 探测阶段报 `groups/excludedGroups require TestNG, JUnit48+ or JUnit 5`。
+
+**根本原因**：
+Surefire 的分组参数需要从测试 classpath 选择 JUnit 4、JUnit 5 或 TestNG provider；模块没有对应引擎时无法初始化，`skipTests` 或 `failIfNoTests` 不能绕过 provider 探测。
+
+**解决方案**：
+若仓库需要保留统一的 JUnit 5 标签过滤，在根 POM 以 test scope 继承 `junit-jupiter-engine`，并由 Spring Boot BOM 管理版本。定向测试使用 `-Dsurefire.failIfNoSpecifiedTests=false`，不要把无效的 `-DfailIfNoTests=false` 当作同一配置。
+
+## Maven 编译器通用 skip 会覆盖 maven.test.skip
+
+当根 POM 在 `maven-compiler-plugin` 的共享 `<configuration>` 中写入 `<skip>${forge.compiler.skip}</skip>` 时，`testCompile` 也会继承该值，导致即使设置 `maven.test.skip=true`，测试源码仍被编译并可能阻断发布打包。
+
+发布构建需要主源码和测试源码分别配置：主编译使用 `skipMain=${forge.compiler.skip}`，测试编译使用 `skip=${maven.test.skip}`；默认将 `maven.test.skip` 设为 `true`，测试 profile 再显式设为 `false`。这样 `package/install` 不复制测试资源、不编译测试、不运行 Surefire，同时保留显式测试入口。

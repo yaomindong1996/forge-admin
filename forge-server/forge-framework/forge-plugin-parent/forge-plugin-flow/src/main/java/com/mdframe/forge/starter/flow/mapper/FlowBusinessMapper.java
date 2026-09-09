@@ -43,6 +43,7 @@ public interface FlowBusinessMapper extends BaseMapper<FlowBusiness> {
                                                 @Param("businessKey") String businessKey);
 
     IPage<FlowBusiness> selectBusinessPage(Page<FlowBusiness> page,
+                                           @Param("tenantId") Long tenantId,
                                            @Param("processDefKey") String processDefKey,
                                            @Param("status") String status,
                                            @Param("title") String title,
@@ -55,7 +56,8 @@ public interface FlowBusinessMapper extends BaseMapper<FlowBusiness> {
                                                   @Param("status") String status,
                                                   @Param("modelKey") String modelKey,
                                                   @Param("startTime") LocalDateTime startTime,
-                                                  @Param("endTime") LocalDateTime endTime);
+                                                  @Param("endTime") LocalDateTime endTime,
+                                                  @Param("overdue") Boolean overdue);
 
     List<FlowBusiness> selectBusinessesForCleanup(@Param("tenantId") Long tenantId,
                                                   @Param("processName") String processName,
@@ -73,6 +75,13 @@ public interface FlowBusinessMapper extends BaseMapper<FlowBusiness> {
 
     Map<String, Object> selectMonitorStatistics(@Param("tenantId") Long tenantId,
                                                 @Param("startOfDay") LocalDateTime startOfDay);
+
+    /**
+     * Returns process statistics as a database aggregate instead of loading
+     * every historical instance into the JVM.
+     */
+    Map<String, Object> selectProcessInstanceStats(@Param("tenantId") Long tenantId,
+                                                   @Param("processDefinitionKey") String processDefinitionKey);
 
     int updateStatusByProcessInstanceId(@Param("processInstanceId") String processInstanceId,
                                         @Param("status") String status,

@@ -18,7 +18,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.stereotype.Service;
+import jakarta.servlet.http.HttpServletRequest;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -26,10 +29,17 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.time.Duration;
+import java.time.Instant;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * 验证码服务实现
@@ -49,6 +59,18 @@ public class CaptchaServiceImpl implements ICaptchaService {
      * 验证码缓存key前缀
      */
     private static final String CAPTCHA_KEY_PREFIX = "captcha:";
+
+    /**
+     * 滑块验证码一次性消费标记前缀。
+     */
+    private static final String SLIDER_CONSUMED_KEY_PREFIX = "captcha:slider:consumed:";
+
+    /** 挑战缓存协议版本，便于未来平滑升级。 */
+    private static final String SLIDER_CHALLENGE_VERSION = "v2";
+    private static final Duration MAX_SLIDER_CHALLENGE_DURATION = Duration.ofMinutes(5);
+
+    /** 开发测试环境的进程内临时密钥，生产环境不会使用。 */
+    private static final String DEV_CHALLENGE_SECRET = createDevelopmentSecret();
 
     /**
      * 默认验证码长度
@@ -257,6 +279,7 @@ public class CaptchaServiceImpl implements ICaptchaService {
     @Override
     public SliderCaptchaResult generateSliderCaptcha(Duration duration) {
         try {
+            Duration challengeDuration = normalizeSliderDuration(duration);
             // 1. 生成随机位置（滑块缺口位置）
             // 确保滑块不会出现在边缘，留有一定边距
             // x 的范围应该考虑滑块宽度和轨道宽度
@@ -285,7 +308,12 @@ public class CaptchaServiceImpl implements ICaptchaService {
             // 6. 存储正确答案到缓存（存储x坐标）
             // 注意：这里的x是相对于背景图的绝对位置
             String cacheKey = SLIDER_CAPTCHA_KEY_PREFIX + key;
-            cacheService.set(cacheKey, String.valueOf(x), duration);
+            String binding = requestBinding();
+            long expiresAt = Instant.now().plus(challengeDuration).toEpochMilli();
+            String signature = signChallenge(key, x, binding, expiresAt);
+            cacheService.set(cacheKey,
+                    SLIDER_CHALLENGE_VERSION + "." + x + "." + binding + "." + expiresAt + "." + signature,
+                    challengeDuration);
 
             log.debug("生成滑块验证码: key={}", key);
 
@@ -299,7 +327,7 @@ public class CaptchaServiceImpl implements ICaptchaService {
                     .backgroundWidth(SLIDER_BG_WIDTH)
                     .backgroundHeight(SLIDER_BG_HEIGHT)
                     .notchY(y)  // 返回Y坐标，前端需要知道滑块在哪个高度
-                    .expiresIn(duration.getSeconds())
+                    .expiresIn(challengeDuration.getSeconds())
                     .captchaType("slider")
                     .build();
 
@@ -311,7 +339,7 @@ public class CaptchaServiceImpl implements ICaptchaService {
 
     @Override
     public boolean validateSliderCaptcha(String key, Integer moveX) {
-        if (StrUtil.isBlank(key) || moveX == null) {
+        if (StrUtil.isBlank(key) || moveX == null || moveX < 0 || moveX > SLIDER_TRACK_WIDTH) {
             return false;
         }
 
@@ -324,7 +352,29 @@ public class CaptchaServiceImpl implements ICaptchaService {
         }
 
         try {
-            int expectedX = Integer.parseInt(correctX);
+            String[] challenge = correctX.split("\\.", -1);
+            if (challenge.length != 5 || !SLIDER_CHALLENGE_VERSION.equals(challenge[0])) {
+                log.warn("滑块验证码缓存协议无效: key={}", key);
+                return false;
+            }
+            int expectedX = Integer.parseInt(challenge[1]);
+            String binding = challenge[2];
+            long expiresAt = Long.parseLong(challenge[3]);
+            String signature = challenge[4];
+            if (expiresAt <= System.currentTimeMillis()) {
+                log.warn("滑块验证码已过期: key={}", key);
+                return false;
+            }
+            if (!MessageDigest.isEqual(signature.getBytes(StandardCharsets.US_ASCII),
+                    signChallenge(key, expectedX, binding, expiresAt).getBytes(StandardCharsets.US_ASCII))) {
+                log.warn("滑块验证码挑战签名无效: key={}", key);
+                return false;
+            }
+            if (!MessageDigest.isEqual(binding.getBytes(StandardCharsets.US_ASCII),
+                    requestBinding().getBytes(StandardCharsets.US_ASCII))) {
+                log.warn("滑块验证码请求绑定不匹配: key={}", key);
+                return false;
+            }
             // 允许一定的误差范围
             boolean match = Math.abs(moveX - expectedX) <= SLIDER_TOLERANCE;
             log.debug("滑块验证码校验: key={}, result={}", key, match);
@@ -337,12 +387,104 @@ public class CaptchaServiceImpl implements ICaptchaService {
 
     @Override
     public boolean validateAndDeleteSliderCaptcha(String key, Integer moveX) {
-        boolean valid = validateSliderCaptcha(key, moveX);
-        if (valid) {
-            String cacheKey = SLIDER_CAPTCHA_KEY_PREFIX + key;
+        if (StrUtil.isBlank(key) || moveX == null || moveX < 0 || moveX > SLIDER_TRACK_WIDTH) {
+            return false;
+        }
+        String cacheKey = SLIDER_CAPTCHA_KEY_PREFIX + key;
+        if (cacheService.get(cacheKey) == null) {
+            return false;
+        }
+        String consumedKey = SLIDER_CONSUMED_KEY_PREFIX + key;
+        boolean firstConsumer = cacheService.setIfAbsent(consumedKey, Boolean.TRUE, 5, TimeUnit.MINUTES);
+        if (!firstConsumer) {
+            return false;
+        }
+        try {
+            // 无论答案正确与否都消费挑战，避免错误答案被无限重试。
+            return validateSliderCaptcha(key, moveX);
+        } finally {
             cacheService.delete(cacheKey);
         }
-        return valid;
+    }
+
+    /**
+     * 返回当前请求的稳定绑定摘要。只使用容器解析出的远端地址和 User-Agent，
+     * 不信任客户端可任意伪造的 X-Forwarded-For。
+     */
+    private String requestBinding() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes == null) {
+            return sha256("no-request");
+        }
+        HttpServletRequest request = attributes.getRequest();
+        String remoteAddress = request.getRemoteAddr();
+        String userAgent = request.getHeader("User-Agent");
+        String sessionId = request.getRequestedSessionId();
+        return sha256(String.join("|",
+                remoteAddress == null ? "" : remoteAddress,
+                userAgent == null ? "" : userAgent,
+                sessionId == null ? "" : sessionId));
+    }
+
+    private String signChallenge(String key, int expectedX, String binding, long expiresAt) {
+        String secret = captchaProperties.getChallengeSecret();
+        if (StrUtil.isBlank(secret)) {
+            if (!isDevelopmentOnlyProfile()) {
+                throw new IllegalStateException("CAPTCHA_CHALLENGE_SECRET_REQUIRED");
+            }
+            secret = DEV_CHALLENGE_SECRET;
+        } else if (secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("CAPTCHA_CHALLENGE_SECRET_TOO_SHORT");
+        }
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            byte[] digest = mac.doFinal((key + "|" + expectedX + "|" + binding + "|" + expiresAt)
+                    .getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
+        } catch (Exception exception) {
+            throw new IllegalStateException("CAPTCHA_CHALLENGE_SIGN_FAILED", exception);
+        }
+    }
+
+    private boolean isDevelopmentOnlyProfile() {
+        String[] activeProfiles = environment.getActiveProfiles();
+        boolean development = false;
+        for (String profile : activeProfiles) {
+            if ("prod".equalsIgnoreCase(profile) || "production".equalsIgnoreCase(profile)
+                    || "stage".equalsIgnoreCase(profile) || "staging".equalsIgnoreCase(profile)) {
+                return false;
+            }
+            if ("dev".equalsIgnoreCase(profile) || "local".equalsIgnoreCase(profile)
+                    || "test".equalsIgnoreCase(profile)) {
+                development = true;
+            }
+        }
+        return development;
+    }
+
+    private static String sha256(String value) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
+        } catch (Exception exception) {
+            throw new IllegalStateException("CAPTCHA_BINDING_HASH_FAILED", exception);
+        }
+    }
+
+    private static String createDevelopmentSecret() {
+        byte[] secret = new byte[32];
+        new SecureRandom().nextBytes(secret);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(secret);
+    }
+
+    private Duration normalizeSliderDuration(Duration duration) {
+        if (duration == null || duration.isZero() || duration.isNegative()) {
+            throw new IllegalArgumentException("滑块验证码有效期必须大于0");
+        }
+        return duration.compareTo(MAX_SLIDER_CHALLENGE_DURATION) > 0
+                ? MAX_SLIDER_CHALLENGE_DURATION : duration;
     }
 
     /**

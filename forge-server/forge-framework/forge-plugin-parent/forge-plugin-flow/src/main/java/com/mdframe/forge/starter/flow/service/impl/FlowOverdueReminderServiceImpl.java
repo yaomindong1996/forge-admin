@@ -8,6 +8,7 @@ import com.mdframe.forge.plugin.message.service.MessageService;
 import com.mdframe.forge.starter.flow.dto.FlowOverdueReminderConfig;
 import com.mdframe.forge.starter.flow.entity.FlowOverdueReminderRecord;
 import com.mdframe.forge.starter.flow.entity.FlowTask;
+import com.mdframe.forge.starter.flow.enums.FlowTaskStatus;
 import com.mdframe.forge.starter.flow.mapper.FlowOverdueReminderRecordMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowTaskMapper;
 import com.mdframe.forge.starter.flow.service.FlowOverdueReminderService;
@@ -42,6 +43,8 @@ public class FlowOverdueReminderServiceImpl implements FlowOverdueReminderServic
     private static final String SEND_SCOPE_USERS = "USERS";
     private static final String JUMP_URL_PREFIX = "/flow/todo?taskId=";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final int MAX_RETRY_COUNT = 5;
+    private static final int RETRY_BASE_MINUTES = 5;
 
     private final FlowTaskMapper flowTaskMapper;
     private final FlowOverdueReminderRecordMapper reminderRecordMapper;
@@ -106,6 +109,10 @@ public class FlowOverdueReminderServiceImpl implements FlowOverdueReminderServic
             return;
         }
         Long tenantId = resolveTenantId(task);
+        if (tenantId == null || tenantId <= 0) {
+            log.warn("流程任务逾期提醒缺少可信租户，跳过发送: taskId={}", task.getTaskId());
+            return;
+        }
         executeWithTenant(tenantId, () -> {
             FlowOverdueReminderConfig config = configResolver.resolve(task);
             if (!shouldSend(task, config)) {
@@ -122,6 +129,9 @@ public class FlowOverdueReminderServiceImpl implements FlowOverdueReminderServic
         }
 
         Long tenantId = resolveTenantId(task);
+        if (tenantId == null || tenantId <= 0) {
+            return;
+        }
         String reminderKey = nextReminderKey(tenantId, task, config);
         if (reminderKey == null) {
             return;
@@ -148,6 +158,10 @@ public class FlowOverdueReminderServiceImpl implements FlowOverdueReminderServic
         if (task == null || task.getDueDate() == null || task.getTaskId() == null) {
             return false;
         }
+        // 完成、撤回、终结后的重试事件必须停止，避免已结束任务继续发提醒。
+        if (task.getStatus() != null && !FlowTaskStatus.isActionable(task.getStatus())) {
+            return false;
+        }
         if (config == null || !config.isEnabled()) {
             return false;
         }
@@ -168,6 +182,13 @@ public class FlowOverdueReminderServiceImpl implements FlowOverdueReminderServic
             }
             FlowOverdueReminderRecord latest = reminderRecordMapper.selectLatestByTaskId(tenantId, task.getTaskId());
             if (latest != null && latest.getCreateTime() != null) {
+                if (Integer.valueOf(2).equals(latest.getSendStatus())) {
+                    if (latest.getNextRetryTime() != null
+                            && latest.getNextRetryTime().isAfter(LocalDateTime.now())) {
+                        return null;
+                    }
+                    return task.getTaskId() + ":" + (sentBatches + 1);
+                }
                 int interval = Math.max(30, config.getIntervalMinutes() == null ? 30 : config.getIntervalMinutes());
                 LocalDateTime baseTime = latest.getSendTime() != null ? latest.getSendTime() : latest.getCreateTime();
                 if (baseTime.plusMinutes(interval).isAfter(LocalDateTime.now())) {
@@ -196,6 +217,7 @@ public class FlowOverdueReminderServiceImpl implements FlowOverdueReminderServic
         record.setTemplateCode(config.getTemplateCode());
         record.setReceiverUserIds(joinReceiverIds(receiverIds));
         record.setSendStatus(0);
+        record.setRetryCount(0);
         return record;
     }
 
@@ -204,7 +226,18 @@ public class FlowOverdueReminderServiceImpl implements FlowOverdueReminderServic
             reminderRecordMapper.insert(record);
             return true;
         } catch (DuplicateKeyException e) {
-            log.debug("流程任务逾期提醒记录已存在，跳过重复发送: reminderKey={}, channel={}",
+            FlowOverdueReminderRecord existing = reminderRecordMapper.selectByUniqueKey(
+                    record.getTenantId(), record.getReminderKey(), record.getChannel());
+            int claimed = reminderRecordMapper.claimRetry(record.getTenantId(), record.getReminderKey(),
+                    record.getChannel(), LocalDateTime.now());
+            if (claimed > 0 && existing != null) {
+                record.setId(existing.getId());
+                record.setRetryCount((existing.getRetryCount() == null ? 0 : existing.getRetryCount()) + 1);
+                log.debug("流程任务逾期提醒失败记录进入重试: reminderKey={}, channel={}",
+                        record.getReminderKey(), record.getChannel());
+                return true;
+            }
+            log.debug("流程任务逾期提醒记录已存在且当前不可重试: reminderKey={}, channel={}",
                     record.getReminderKey(), record.getChannel());
             return false;
         }
@@ -259,6 +292,13 @@ public class FlowOverdueReminderServiceImpl implements FlowOverdueReminderServic
     private void markFailed(FlowOverdueReminderRecord record, String errorMessage) {
         record.setSendStatus(2);
         record.setSendTime(LocalDateTime.now());
+        int retryCount = record.getRetryCount() == null ? 0 : record.getRetryCount();
+        if (retryCount < MAX_RETRY_COUNT) {
+            long backoffMinutes = RETRY_BASE_MINUTES * (1L << Math.min(retryCount, 4));
+            record.setNextRetryTime(LocalDateTime.now().plusMinutes(backoffMinutes));
+        } else {
+            record.setNextRetryTime(null);
+        }
         record.setErrorMessage(truncate(errorMessage, 1000));
         reminderRecordMapper.updateById(record);
     }
@@ -274,7 +314,7 @@ public class FlowOverdueReminderServiceImpl implements FlowOverdueReminderServic
     }
 
     private Long resolveTenantId(FlowTask task) {
-        return task.getTenantId() == null ? 1L : task.getTenantId();
+        return task == null ? null : task.getTenantId();
     }
 
     private List<String> normalizeChannels(List<String> channels) {

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.starter.flow.mapper.FlowRecordParticipantMapper">
+
+    <insert id="insertIgnore">
+        INSERT IGNORE INTO sys_flow_record_participant (
+            tenant_id, business_type, business_id, user_id, relation_type, process_instance_id, create_time
+        ) VALUES (
+            #{tenantId}, #{businessType}, #{businessId}, #{userId}, #{relationType},
+            #{processInstanceId}, #{createTime}
+        )
+    </insert>
+
+    <select id="selectBusinessIds" resultType="java.lang.String">
+        SELECT business_id
+        FROM sys_flow_record_participant
+        WHERE tenant_id = #{tenantId}
+          AND user_id = #{userId}
+          AND business_type = #{businessType}
+    </select>
+
+    <select id="selectRelations" resultType="com.mdframe.forge.starter.flow.entity.FlowRecordParticipant">
+        SELECT business_id, relation_type
+        FROM sys_flow_record_participant
+        WHERE tenant_id = #{tenantId}
+          AND user_id = #{userId}
+          AND business_type = #{businessType}
+          AND business_id IN
+        <foreach collection="businessIds" item="businessId" open="(" separator="," close=")">
+            #{businessId}
+        </foreach>
+    </select>
+</mapper>

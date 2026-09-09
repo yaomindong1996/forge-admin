@@ -9,6 +9,7 @@ import com.mdframe.forge.starter.flow.dto.FormFieldCatalogItemDTO;
 import com.mdframe.forge.starter.flow.entity.FlowForm;
 import com.mdframe.forge.starter.flow.entity.FlowFormVersion;
 import com.mdframe.forge.starter.flow.service.FlowFormService;
+import com.mdframe.forge.starter.flow.vo.FlowFormPageVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +36,7 @@ public class FlowFormController {
      * 获取表单定义分页列表
      */
     @GetMapping("/page")
-    public RespInfo getPage(
+    public RespInfo<FlowFormPageVO> getPage(
             @RequestParam(required = false) String formName,
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) Integer page,
@@ -45,12 +46,12 @@ public class FlowFormController {
         Integer currentPage = page != null ? page : pageNum;
         Page<FlowForm> pageResult = flowFormService.getPage(formName, status, currentPage, pageSize);
         
-        Map<String, Object> result = new HashMap<>();
-        result.put("records", pageResult.getRecords());
-        result.put("total", pageResult.getTotal());
-        result.put("page", pageResult.getCurrent());
-        result.put("pageNum", pageResult.getCurrent());
-        result.put("pageSize", pageResult.getSize());
+        FlowFormPageVO result = new FlowFormPageVO();
+        result.setRecords(pageResult.getRecords());
+        result.setTotal(pageResult.getTotal());
+        result.setPage(pageResult.getCurrent());
+        result.setPageNum(pageResult.getCurrent());
+        result.setPageSize(pageResult.getSize());
         
         return RespInfo.success(result);
     }

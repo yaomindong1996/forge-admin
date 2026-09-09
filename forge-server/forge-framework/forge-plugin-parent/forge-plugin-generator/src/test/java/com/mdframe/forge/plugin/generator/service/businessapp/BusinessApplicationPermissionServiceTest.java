@@ -175,7 +175,9 @@ class BusinessApplicationPermissionServiceTest {
         assertEquals("createDept", modelSchema.getPolicies().getOrgField());
         assertEquals("create_dept", modelSchema.getPolicies().getOrgColumn());
         assertEquals("region_code", modelSchema.getPolicies().getRegionColumn());
+        assertEquals(Boolean.TRUE, modelSchema.getPolicies().getFlowRelatedVisible());
         assertTrue(result.isDataScopeReady());
+        assertTrue(result.getDataScopeAdapter().getFlowRelatedVisible());
         verify(designerService).saveDraft(context, BusinessObjectDesignStatus.CHANGED.getCode());
     }
 

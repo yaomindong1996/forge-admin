@@ -10,11 +10,31 @@
         LIMIT 1
     </select>
 
+    <select id="selectByProcessInstanceIdAndTenantId" resultType="com.mdframe.forge.starter.flow.entity.FlowFormInstance">
+        SELECT i.*
+        FROM sys_flow_form_instance i
+        WHERE i.deleted = 0
+          AND i.process_instance_id = #{processInstanceId}
+          AND i.tenant_id = #{tenantId}
+        ORDER BY i.id DESC
+        LIMIT 1
+    </select>
+
     <select id="selectByBusinessKey" resultType="com.mdframe.forge.starter.flow.entity.FlowFormInstance">
         SELECT i.*
         FROM sys_flow_form_instance i
         WHERE i.deleted = 0
           AND i.business_key = #{businessKey}
+        LIMIT 1
+    </select>
+
+    <select id="selectByBusinessKeyAndTenantId" resultType="com.mdframe.forge.starter.flow.entity.FlowFormInstance">
+        SELECT i.*
+        FROM sys_flow_form_instance i
+        WHERE i.deleted = 0
+          AND i.business_key = #{businessKey}
+          AND i.tenant_id = #{tenantId}
+        ORDER BY i.id DESC
         LIMIT 1
     </select>
 

@@ -16,6 +16,9 @@ class FlowModelMapperSqlContractTest {
 
         assertTenantBoundary(statement(xml, "selectByModelKeyAndTenantId"));
         assertTenantBoundary(statement(xml, "countByModelKeyAndTenantId"));
+        assertTenantBoundary(statement(xml, "selectModelPage"));
+        assertTenantBoundary(statement(xml, "selectStatusStatistics"));
+        assertTenantBoundary(statement(xml, "selectByIdAndTenant"));
     }
 
     private static void assertTenantBoundary(String statement) {

@@ -969,10 +969,11 @@ async function submitResetPassword() {
 }
 
 // 滑块验证成功回调
-function onSlideSuccess() {
+function onSlideSuccess(result) {
   sliderSuccess.value = true
   sliderFail.value = false
-  loginInfo.value.code = 'verified'
+  const moveX = Number(result?.left)
+  loginInfo.value.code = Number.isFinite(moveX) ? String(Math.round(moveX)) : ''
   // 延迟关闭浮层再登录，让用户看到成功动画
   setTimeout(() => {
     closeSliderModal()

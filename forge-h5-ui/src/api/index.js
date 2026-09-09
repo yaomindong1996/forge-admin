@@ -145,6 +145,19 @@ export default {
     encrypt: true,
     needTip: false,
   }),
+  listUsableCommentPhrases: (params = {}) => request({
+    url: '/api/flow/comment-phrases/usable',
+    method: 'get',
+    params,
+    encrypt: true,
+    needTip: false,
+  }),
+  createCommentPhrase: data => request({
+    url: '/api/flow/comment-phrases',
+    method: 'post',
+    data,
+    encrypt: true,
+  }),
   getUserPage: (params = {}) => request({
     url: '/system/user/page',
     method: 'get',

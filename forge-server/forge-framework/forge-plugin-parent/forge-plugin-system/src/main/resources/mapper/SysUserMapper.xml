@@ -95,6 +95,219 @@
         ) AS post_name
     </sql>
 
+    <select id="selectFlowUserInfo" resultType="java.util.HashMap">
+        SELECT CAST(u.id AS CHAR) AS id,
+               u.username,
+               u.real_name AS realName,
+               u.user_status AS userStatus,
+               u.avatar,
+               u.email,
+               u.phone,
+               CAST(uo.org_id AS CHAR) AS deptId,
+               o.org_name AS deptName,
+               CAST(up.post_id AS CHAR) AS postId
+        FROM sys_user u
+        INNER JOIN sys_user_tenant sut
+                ON sut.user_id = u.id
+               AND sut.tenant_id = #{tenantId}
+               AND sut.status = 1
+        LEFT JOIN sys_user_org uo
+               ON uo.user_id = u.id
+              AND uo.tenant_id = #{tenantId}
+              AND uo.is_main = 1
+        LEFT JOIN sys_org o
+               ON o.id = uo.org_id
+              AND o.tenant_id = #{tenantId}
+              AND o.del_flag = 0
+        LEFT JOIN sys_user_post up
+               ON up.user_id = u.id
+              AND up.tenant_id = #{tenantId}
+              AND up.is_main = 1
+        LEFT JOIN sys_post p
+               ON p.id = up.post_id
+              AND p.tenant_id = #{tenantId}
+              AND p.del_flag = 0
+        WHERE u.id = #{userId}
+          AND u.tenant_id = #{tenantId}
+          AND u.user_status = 1
+          AND u.del_flag = 0
+          AND (o.id IS NULL OR o.org_status = 1)
+          AND (p.id IS NULL OR p.post_status = 1)
+        ORDER BY uo.id ASC, up.id ASC
+        LIMIT 1
+    </select>
+
+    <select id="selectFlowUserInfoBatch" resultType="java.util.HashMap">
+        SELECT CAST(u.id AS CHAR) AS id,
+               u.username,
+               u.real_name AS realName,
+               u.user_status AS userStatus,
+               u.avatar,
+               u.email,
+               u.phone,
+               CAST(uo.org_id AS CHAR) AS deptId,
+               o.org_name AS deptName,
+               CAST(up.post_id AS CHAR) AS postId
+        FROM sys_user u
+        INNER JOIN sys_user_tenant sut
+                ON sut.user_id = u.id
+               AND sut.tenant_id = #{tenantId}
+               AND sut.status = 1
+        LEFT JOIN sys_user_org uo
+               ON uo.user_id = u.id
+              AND uo.tenant_id = #{tenantId}
+              AND uo.is_main = 1
+        LEFT JOIN sys_org o
+               ON o.id = uo.org_id
+              AND o.tenant_id = #{tenantId}
+              AND o.del_flag = 0
+        LEFT JOIN sys_user_post up
+               ON up.user_id = u.id
+              AND up.tenant_id = #{tenantId}
+              AND up.is_main = 1
+        LEFT JOIN sys_post p
+               ON p.id = up.post_id
+              AND p.tenant_id = #{tenantId}
+              AND p.del_flag = 0
+        WHERE u.tenant_id = #{tenantId}
+          AND u.user_status = 1
+          AND u.del_flag = 0
+          AND (o.id IS NULL OR o.org_status = 1)
+          AND (p.id IS NULL OR p.post_status = 1)
+          <choose>
+            <when test="userIds != null and userIds.size() > 0">
+              AND u.id IN
+              <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+                  #{userId}
+              </foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+          </choose>
+        ORDER BY uo.id ASC, up.id ASC
+    </select>
+
+    <select id="selectFlowUsers" resultType="java.util.HashMap">
+        SELECT CAST(u.id AS CHAR) AS id,
+               u.username,
+               u.real_name AS name,
+               u.avatar,
+               CAST(uo.org_id AS CHAR) AS deptId,
+               o.org_name AS deptName
+        FROM sys_user u
+        INNER JOIN sys_user_tenant sut
+                ON sut.user_id = u.id
+               AND sut.tenant_id = #{tenantId}
+               AND sut.status = 1
+        LEFT JOIN sys_user_org uo
+               ON uo.user_id = u.id
+              AND uo.tenant_id = #{tenantId}
+              AND uo.is_main = 1
+        LEFT JOIN sys_org o
+               ON o.id = uo.org_id
+              AND o.tenant_id = #{tenantId}
+              AND o.del_flag = 0
+              AND o.org_status = 1
+        WHERE u.tenant_id = #{tenantId}
+          AND u.user_status = 1
+          AND u.del_flag = 0
+        <if test="keyword != null and keyword != ''">
+          AND (u.username LIKE CONCAT('%', #{keyword}, '%')
+               OR u.real_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="orgId != null">
+          AND EXISTS (
+              SELECT 1 FROM sys_user_org filter_uo
+              INNER JOIN sys_org filter_o ON filter_o.id = filter_uo.org_id
+                  AND filter_o.tenant_id = filter_uo.tenant_id
+                  AND filter_o.del_flag = 0
+                  AND filter_o.org_status = 1
+              WHERE filter_uo.user_id = u.id
+                AND filter_uo.tenant_id = #{tenantId}
+                AND filter_uo.org_id = #{orgId}
+          )
+        </if>
+        ORDER BY u.real_name ASC, u.id ASC
+        LIMIT 200
+    </select>
+
+    <select id="selectFlowUserIdsByOrg" resultType="java.lang.Long">
+        SELECT DISTINCT u.id
+        FROM sys_user u
+        INNER JOIN sys_user_tenant sut ON sut.user_id = u.id
+            AND sut.tenant_id = #{tenantId} AND sut.status = 1
+        INNER JOIN sys_user_org uo ON uo.user_id = u.id
+            AND uo.tenant_id = #{tenantId} AND uo.org_id = #{orgId}
+        INNER JOIN sys_org o ON o.id = uo.org_id
+            AND o.tenant_id = #{tenantId} AND o.org_status = 1 AND o.del_flag = 0
+        WHERE u.tenant_id = #{tenantId} AND u.user_status = 1 AND u.del_flag = 0
+    </select>
+
+    <select id="selectFlowUserIdsByPost" resultType="java.lang.Long">
+        SELECT DISTINCT u.id
+        FROM sys_user u
+        INNER JOIN sys_user_tenant sut ON sut.user_id = u.id
+            AND sut.tenant_id = #{tenantId} AND sut.status = 1
+        INNER JOIN sys_user_post up ON up.user_id = u.id
+            AND up.tenant_id = #{tenantId} AND up.post_id = #{postId}
+        INNER JOIN sys_post p ON p.id = up.post_id
+            AND p.tenant_id = #{tenantId} AND p.post_status = 1 AND p.del_flag = 0
+        WHERE u.tenant_id = #{tenantId} AND u.user_status = 1 AND u.del_flag = 0
+    </select>
+
+    <select id="selectFlowUserIdsByOrgAndPost" resultType="java.lang.Long">
+        SELECT DISTINCT u.id
+        FROM sys_user u
+        INNER JOIN sys_user_tenant sut ON sut.user_id = u.id
+            AND sut.tenant_id = #{tenantId} AND sut.status = 1
+        INNER JOIN sys_user_org uo ON uo.user_id = u.id
+            AND uo.tenant_id = #{tenantId} AND uo.org_id = #{orgId}
+        INNER JOIN sys_user_post up ON up.user_id = u.id
+            AND up.tenant_id = #{tenantId} AND up.post_id = #{postId}
+        INNER JOIN sys_org o ON o.id = uo.org_id
+            AND o.tenant_id = #{tenantId} AND o.org_status = 1 AND o.del_flag = 0
+        INNER JOIN sys_post p ON p.id = up.post_id
+            AND p.tenant_id = #{tenantId} AND p.post_status = 1 AND p.del_flag = 0
+        WHERE u.tenant_id = #{tenantId} AND u.user_status = 1 AND u.del_flag = 0
+    </select>
+
+    <select id="selectFlowUserIdsByRegion" resultType="java.lang.Long">
+        SELECT u.id
+        FROM sys_user u
+        INNER JOIN sys_user_tenant sut
+            ON sut.user_id = u.id
+           AND sut.tenant_id = u.tenant_id
+           AND sut.status = 1
+        WHERE u.tenant_id = #{tenantId}
+          AND u.region_code = #{regionCode}
+          AND u.user_status = 1
+          AND u.del_flag = 0
+        ORDER BY u.id ASC
+        LIMIT 200
+    </select>
+
+    <select id="selectFlowAvailableUserIds" resultType="java.lang.Long">
+        SELECT DISTINCT u.id
+        FROM sys_user u
+        INNER JOIN sys_user_tenant sut
+                ON sut.user_id = u.id
+               AND sut.tenant_id = #{tenantId}
+               AND sut.status = 1
+        WHERE u.tenant_id = #{tenantId}
+          AND u.user_status = 1
+          AND u.del_flag = 0
+        <choose>
+            <when test="userIds != null and userIds.size() > 0">
+                AND u.id IN
+                <foreach collection="userIds" item="userId" open="(" separator="," close=")">
+                    #{userId}
+                </foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY u.id ASC
+        LIMIT 200
+    </select>
+
     <!-- 通用查询条件 -->
     <sql id="queryCondition">
         AND u.del_flag = 0

@@ -11,12 +11,19 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * 角色Mapper接口
  */
 @Mapper
 public interface SysRoleMapper extends BaseMapper<SysRole> {
+
+    SysRole selectActiveFlowRoleByKey(@Param("tenantId") Long tenantId,
+                                      @Param("roleKey") String roleKey);
+
+    /** 流程选人角色列表使用的租户限定有效角色。 */
+    List<SysRole> selectActiveFlowRoles(@Param("tenantId") Long tenantId);
 
     /**
      * 分页查询角色列表

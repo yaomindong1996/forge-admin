@@ -75,6 +75,17 @@ export function debugExternalApi(id: number, params: Record<string, any>) {
   return request.post(`/external/proxy/debug/${id}`, params)
 }
 
+/**
+ * 调用已登记的外部接口。请求始终先到 Forge 代理，外部系统凭据不会暴露给浏览器。
+ */
+export function callExternalApi<T = unknown>(id: number, params: Record<string, unknown> = {}, method = 'GET') {
+  const normalizedMethod = String(method || 'GET').toUpperCase()
+  if (['GET', 'HEAD'].includes(normalizedMethod)) {
+    return request.get<T>(`/external/proxy/${id}`, { params })
+  }
+  return request.post<T>(`/external/proxy/${id}`, params)
+}
+
 export function clearExternalApiLogs(params: { systemId?: number, apiId?: number, callStatus?: number, debugFlag?: boolean }) {
   return request.delete('/external/api/log/clear', { params })
 }

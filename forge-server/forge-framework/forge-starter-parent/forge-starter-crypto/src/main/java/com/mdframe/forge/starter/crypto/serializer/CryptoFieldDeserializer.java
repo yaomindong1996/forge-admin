@@ -54,8 +54,8 @@ public class CryptoFieldDeserializer extends JsonDeserializer<String> implements
             Encryptor encryptor = encryptorFactory.getEncryptor(annotation.algorithm());
             return encryptor.decrypt(value);
         } catch (Exception e) {
-            log.error("字段解密失败", e);
-            return value;
+            log.error("字段解密失败: algorithm={}", annotation.algorithm(), e);
+            throw new IOException("字段解密失败，拒绝继续处理密文", e);
         }
     }
 

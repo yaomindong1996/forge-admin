@@ -46,6 +46,9 @@ const spelTemplate = useField('spelTemplate', '')
 const roleOptions = ref([])
 const roleLoading = ref(false)
 const roleLoaded = ref(false)
+const flowGroupOptions = ref([])
+const flowGroupLoading = ref(false)
+const flowGroupLoaded = ref(false)
 const spelTemplateOptions = ref([])
 const spelLoading = ref(false)
 const spelLoaded = ref(false)
@@ -83,8 +86,9 @@ const mergedRoleOptions = computed(() => {
     value,
     roleName: candidateGroupNames.value[index] || value,
     roleKey: value,
+    kind: 'current',
   }))
-  return mergeOptions(roleOptions.value, currentOptions)
+  return mergeOptions([...flowGroupOptions.value, ...roleOptions.value], currentOptions)
 })
 const mergedSpelTemplateOptions = computed(() => {
   const currentCode = spelTemplate.value
@@ -207,9 +211,9 @@ function handleSpelTemplateChange(value, selectedOption) {
 }
 
 async function ensureRoleOptionsLoaded() {
-  if (roleLoaded.value || roleLoading.value)
+  if ((roleLoaded.value && flowGroupLoaded.value) || roleLoading.value || flowGroupLoading.value)
     return
-  await loadRoleOptions()
+  await Promise.all([loadRoleOptions(), loadFlowGroupOptions()])
 }
 
 async function loadRoleOptions(keyword = '') {
@@ -232,6 +236,37 @@ async function loadRoleOptions(keyword = '') {
   finally {
     roleLoading.value = false
   }
+}
+
+async function loadFlowGroupOptions(keyword = '') {
+  flowGroupLoading.value = true
+  try {
+    const res = await request.get('/api/flow/org/groups/page', {
+      params: {
+        pageNum: 1,
+        pageSize: 50,
+        status: 1,
+        keyword: keyword || undefined,
+      },
+    })
+    const records = resolveRecords(res.data)
+    flowGroupOptions.value = records.map(normalizeFlowGroupOption).filter(Boolean)
+    flowGroupLoaded.value = true
+  }
+  catch (error) {
+    // 用户组属于可选治理能力；接口未部署或无权限时仍保留角色候选配置。
+    console.warn('加载流程用户组失败，继续使用角色候选组', error)
+  }
+  finally {
+    flowGroupLoading.value = false
+  }
+}
+
+async function handleCandidateGroupSearch(keyword) {
+  await Promise.all([
+    loadRoleOptions(keyword),
+    loadFlowGroupOptions(keyword),
+  ])
 }
 
 async function ensureSpelTemplatesLoaded() {
@@ -266,6 +301,21 @@ function normalizeRoleOption(role) {
     value: String(value),
     roleName: label,
     roleKey: String(value),
+    kind: 'role',
+  }
+}
+
+function normalizeFlowGroupOption(group) {
+  const value = group?.groupCode
+  if (!isFilledValue(value))
+    return null
+  const groupName = String(group.groupName || value)
+  return {
+    label: `用户组 · ${groupName}`,
+    value: String(value),
+    roleName: groupName,
+    roleKey: String(value),
+    kind: 'flow-group',
   }
 }
 
@@ -415,21 +465,24 @@ function isFilledValue(value) {
     </template>
 
     <template v-else-if="taskType === 'candidateGroups'">
-      <n-form-item label="候选角色" label-placement="top" required :show-feedback="false">
+      <n-form-item label="候选角色或用户组" label-placement="top" required :show-feedback="false">
         <n-select
           :value="candidateGroups"
           :options="mergedRoleOptions"
-          :loading="roleLoading"
+          :loading="roleLoading || flowGroupLoading"
           :disabled="readonly"
-          placeholder="请选择角色"
+          placeholder="请选择角色或流程用户组"
           multiple
           clearable
           filterable
           remote
           @focus="ensureRoleOptionsLoaded"
-          @search="loadRoleOptions"
+          @search="handleCandidateGroupSearch"
           @update:value="handleCandidateGroupsChange"
         />
+        <n-text depth="3" class="candidate-group-hint">
+          角色使用系统角色编码；流程用户组使用“流程用户组”页面维护的用户组编码。
+        </n-text>
       </n-form-item>
     </template>
   </div>
@@ -499,5 +552,12 @@ function isFilledValue(value) {
   height: 14px;
   flex: none;
   font-size: 14px;
+}
+
+.candidate-group-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
 }
 </style>

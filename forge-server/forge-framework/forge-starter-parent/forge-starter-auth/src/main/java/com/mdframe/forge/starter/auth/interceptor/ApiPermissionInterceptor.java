@@ -67,13 +67,13 @@ public class ApiPermissionInterceptor implements HandlerInterceptor {
             enforcePasswordChange(request);
         }
 
-        // 4. 检查是否启用API权限校验
+        ApiConfigInfo apiConfig = apiConfigManager.getApiConfig(request.getRequestURI(), request.getMethod());
+
+        // 检查是否启用API权限校验。
         if (authProperties.getEnableApiPermission() == null || !authProperties.getEnableApiPermission()) {
             log.debug("API权限校验已禁用");
             return true;
         }
-
-        ApiConfigInfo apiConfig = apiConfigManager.getApiConfig(request.getRequestURI(), request.getMethod());
         if (apiConfig != null && !apiConfig.getNeedAuth()) {
             log.debug("匿名访问接口: {}", request.getRequestURI());
             return true;

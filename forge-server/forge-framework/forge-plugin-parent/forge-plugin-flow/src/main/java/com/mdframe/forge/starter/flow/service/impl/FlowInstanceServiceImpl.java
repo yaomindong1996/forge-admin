@@ -9,6 +9,7 @@ import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.flow.entity.FlowBusiness;
 import com.mdframe.forge.starter.flow.entity.FlowErrorLog;
+import com.mdframe.forge.starter.flow.entity.FlowRecordParticipant;
 import com.mdframe.forge.starter.flow.entity.FlowModel;
 import com.mdframe.forge.starter.flow.entity.FlowTask;
 import com.mdframe.forge.starter.flow.enums.FlowBusinessStatus;
@@ -19,9 +20,12 @@ import com.mdframe.forge.starter.flow.service.FlowErrorLogService;
 import com.mdframe.forge.starter.flow.service.FlowInstanceService;
 import com.mdframe.forge.starter.flow.service.FlowModelService;
 import com.mdframe.forge.starter.flow.service.FlowOrgIntegrationService;
+import com.mdframe.forge.starter.flow.service.FlowRecordParticipantService;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.bpmn.model.BpmnModel;
+import org.flowable.bpmn.model.FlowElement;
+import org.flowable.bpmn.model.FlowNode;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.ProcessEngine;
 import org.flowable.engine.RuntimeService;
@@ -87,6 +91,9 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
 
     @Autowired(required = false)
     private FlowModelService flowModelService;
+
+    @Autowired(required = false)
+    private FlowRecordParticipantService flowRecordParticipantService;
 
     private final Map<String, ReentrantLock> localFlowStartLocks = new ConcurrentHashMap<>();
 
@@ -299,6 +306,9 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
 
         log.info("启动流程成功：businessKey={}, processInstanceId={}",
                 businessKey, processInstance.getId());
+        if (flowRecordParticipantService != null) {
+            flowRecordParticipantService.record(business, userId, FlowRecordParticipant.INITIATOR);
+        }
 
         return processInstance.getId();
         } finally {
@@ -576,12 +586,30 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
             throw new RuntimeException("流程实例ID和目标节点ID不能为空");
         }
         lockCurrentTenantProcessInstance(processInstanceId);
+        ProcessInstance processInstance = runtimeService.createProcessInstanceQuery()
+                .processInstanceId(processInstanceId).singleResult();
+        if (processInstance == null) {
+            throw new BusinessException(404, "流程实例不存在或已结束，无法回退");
+        }
+        List<String> currentActivityIds = getCurrentActivityIds(processInstanceId);
+        if (currentActivityIds.isEmpty()) {
+            throw new BusinessException(409, "流程当前没有可回退的活动节点");
+        }
+        BpmnModel bpmnModel = processEngine.getRepositoryService()
+                .getBpmnModel(processInstance.getProcessDefinitionId());
+        FlowElement target = bpmnModel == null ? null : bpmnModel.getFlowElement(targetActivityId);
+        if (!(target instanceof FlowNode)) {
+            throw new BusinessException(400, "回退目标节点不存在或不是流程节点");
+        }
+        if (currentActivityIds.contains(targetActivityId)) {
+            throw new BusinessException(400, "回退目标不能是当前活动节点");
+        }
 
         try {
             // 使用Flowable的RuntimeService进行节点跳转
             runtimeService.createChangeActivityStateBuilder()
                     .processInstanceId(processInstanceId)
-                    .moveActivityIdsToSingleActivityId(getCurrentActivityIds(processInstanceId), targetActivityId)
+                    .moveActivityIdsToSingleActivityId(currentActivityIds, targetActivityId)
                     .changeState();
 
             log.info("流程节点回退成功：processInstanceId={}, targetActivityId={}", processInstanceId, targetActivityId);
@@ -632,11 +660,12 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
                 taskService.addComment(taskId, task.getProcessInstanceId(), "转派", reason);
             }
 
-            FlowTask flowTask = flowTaskMapper.selectByTaskId(taskId);
+            FlowTask flowTask = flowTaskMapper.selectByTaskIdAndTenant(taskId, tenantId);
             if (flowTask != null) {
                 flowTask.setAssignee(newAssignee);
                 flowTask.setOwner(owner);
-                flowTask.setStatus(FlowTaskStatus.PENDING.getCode());
+                // 管理员转派通过 setAssignee 直接指定办理人，任务镜像应保持已签收状态。
+                flowTask.setStatus(FlowTaskStatus.CLAIMED.getCode());
                 flowTask.setComment(reason);
                 flowTaskMapper.updateById(flowTask);
             }
@@ -682,8 +711,20 @@ public class FlowInstanceServiceImpl implements FlowInstanceService {
                 runtimeService.activateProcessInstanceById(processInstanceId);
             }
 
+            List<String> activeTaskIds = taskService.createTaskQuery()
+                    .processInstanceId(processInstanceId)
+                    .list()
+                    .stream()
+                    .map(Task::getId)
+                    .filter(java.util.Objects::nonNull)
+                    .toList();
             // 删除流程实例
             runtimeService.deleteProcessInstance(processInstanceId, reason);
+
+            if (!activeTaskIds.isEmpty()) {
+                flowTaskMapper.updateProcessTaskStatusByTaskIds(activeTaskIds, tenantId,
+                        FlowTaskStatus.TERMINATED.getCode(), LocalDateTime.now());
+            }
 
             business.setStatus(FlowBusinessStatus.TERMINATED.getCode());
             business.setEndTime(LocalDateTime.now());

@@ -82,6 +82,7 @@
           :show-feedback="editShowFeedback"
           :enable-collapse="editEnableCollapse"
           :max-visible-fields="editMaxVisibleFields"
+          :hide-section-nav="hideFormSectionNav"
           :show-actions="false"
           :context="formContext"
           :form-assets="formAssets"
@@ -367,6 +368,7 @@
                   :show-feedback="editShowFeedback"
                   :enable-collapse="editEnableCollapse"
                   :max-visible-fields="editMaxVisibleFields"
+                  :hide-section-nav="hideFormSectionNav"
                   :show-actions="false"
                   :context="formContext"
                   :form-assets="formAssets"
@@ -424,6 +426,7 @@
                 :show-feedback="editShowFeedback"
                 :enable-collapse="editEnableCollapse"
                 :max-visible-fields="editMaxVisibleFields"
+                :hide-section-nav="hideFormSectionNav"
                 :show-actions="false"
                 :context="formContext"
                 :form-assets="formAssets"
@@ -501,9 +504,10 @@
     <n-modal
       v-if="!formOnly && !usesInlineFormWorkspace && (resolvedFormOpenMode === 'modal' || isDetailMode)"
       v-model:show="modalVisible"
+      class="ai-crud-form-modal"
       :title="modalTitle"
       preset="card"
-      :style="{ width: activeModalWidth }"
+      :style="{ width: activeModalWidth, maxHeight: 'calc(100vh - 24px)' }"
       :segmented="{ content: 'soft', footer: 'soft' }"
       :closable="true"
       :mask-closable="false"
@@ -534,6 +538,7 @@
             :show-feedback="editShowFeedback"
             :enable-collapse="editEnableCollapse"
             :max-visible-fields="editMaxVisibleFields"
+            :hide-section-nav="hideFormSectionNav"
             :show-actions="false"
             :context="formContext"
             :form-assets="formAssets"
@@ -591,6 +596,7 @@
           :show-feedback="editShowFeedback"
           :enable-collapse="editEnableCollapse"
           :max-visible-fields="editMaxVisibleFields"
+          :hide-section-nav="hideFormSectionNav"
           :show-actions="false"
           :context="formContext"
           :form-assets="formAssets"
@@ -691,6 +697,7 @@
           :show-feedback="editShowFeedback"
           :enable-collapse="editEnableCollapse"
           :max-visible-fields="editMaxVisibleFields"
+          :hide-section-nav="hideFormSectionNav"
           :show-actions="false"
           :context="formContext"
           :form-assets="formAssets"
@@ -1408,14 +1415,44 @@ function sameAction(left, right) {
 }
 
 function isActionDisabled(action, row) {
+  if (isFlowRelatedReadOnly(action, row))
+    return true
   if (typeof action.disabled === 'function')
     return !!action.disabled(row)
   return !!action.disabled
 }
 
+function isFlowRelatedReadOnly(action, row) {
+  if (row?._dataScopeAccess !== 'RELATED')
+    return false
+  const key = String(action.key || action.label || '').toLowerCase()
+  return ['edit', 'delete', 'remove', '编辑', '删除'].includes(key)
+}
+
+function renderFlowRelationTags(row) {
+  const tags = []
+  if (row?._dataScopeAccess === 'OWN')
+    tags.push({ label: '我的', type: 'info' })
+  else if (Array.isArray(row?._flowRelations) && row._flowRelations.includes('INITIATOR'))
+    tags.push({ label: '我发起', type: 'info' })
+  if (Array.isArray(row?._flowRelations) && row._flowRelations.includes('ASSIGNEE'))
+    tags.push({ label: '我审批', type: 'success' })
+  if (Array.isArray(row?._flowRelations) && row._flowRelations.includes('CC'))
+    tags.push({ label: '抄送', type: 'warning' })
+  if (!tags.length)
+    return h('span', { style: { color: '#94a3b8' } }, '-')
+  return h('div', { class: 'flow-relation-tags' }, tags.map(tag => h(NTag, {
+    size: 'small',
+    bordered: false,
+    type: tag.type,
+  }, { default: () => tag.label })))
+}
+
 function actionDisabledReason(action, row) {
   if (isActionLoading(action, row))
     return resolveActionTextValue(action.loadingReason, row) || '操作执行中，请稍候'
+  if (isFlowRelatedReadOnly(action, row))
+    return '流程经手可见仅支持查看，不能修改或删除'
   if (typeof action.disabledReason === 'function')
     return action.disabledReason(row)
   return action.disabledReason || '当前状态不可执行'
@@ -2713,6 +2750,15 @@ const tableColumns = computed(() => {
     return isActionColumnConfig(col)
   }
 
+  if ((dataSource.value || []).some(row => Array.isArray(row?._flowRelations) ? row._flowRelations.length : row?._dataScopeAccess === 'RELATED')) {
+    cols.push({
+      prop: '_flowRelations',
+      label: '与我相关',
+      width: 128,
+      render: row => renderFlowRelationTags(row),
+    })
+  }
+
   activeSourceColumns.value.forEach((col) => {
     if (isActionCol(col) && col.actions) {
       const actionCol = { ...col }
@@ -3921,8 +3967,10 @@ function isParentHeightContentDriven(el) {
 
 function measurePageHeight() {
   const el = crudRootRef.value
-  // formOnly 是文档流布局；显式传了 maxHeight 时表格自带确定高度，都无需接管
-  if (!el || props.formOnly || props.maxHeight !== undefined)
+  // formOnly 是文档流布局。显式 maxHeight 只约束表格，页签/内嵌表单仍需要页面高度接管，否则会被 overflow:hidden 裁掉且无法滚动。
+  if (!el || props.formOnly)
+    return
+  if (props.maxHeight !== undefined && !showInlineFormWorkspacePane.value)
     return
   // 隐藏状态（如未激活的 n-tab-pane）测不到真实位置，等可见后由 ResizeObserver 再触发
   if (!el.offsetParent)
@@ -3958,6 +4006,11 @@ function scheduleMeasurePageHeight() {
     measurePageHeight()
   })
 }
+
+watch(showInlineFormWorkspacePane, () => {
+  heightProbeDone = false
+  scheduleMeasurePageHeight()
+})
 
 onMounted(() => {
   nextTick(scheduleMeasurePageHeight)
@@ -4936,6 +4989,10 @@ function isPlainRecord(value) {
  * 编辑
  */
 async function handleEdit(row) {
+  if (row?._dataScopeAccess === 'RELATED') {
+    window.$message?.warning('流程经手可见仅支持查看，不能修改或删除')
+    return
+  }
   if (activateReusableInlineFormTab('edit', row)) {
     emit('edit', row)
     emit('modal-open', { status: 'edit', row })
@@ -5124,6 +5181,10 @@ async function loadDetail(row) {
  * 删除
  */
 async function handleDelete(row) {
+  if (row?._dataScopeAccess === 'RELATED') {
+    window.$message?.warning('流程经手可见仅支持查看，不能修改或删除')
+    return
+  }
   const rows = [row]
   const key = resolveRowKeyValue(row)
   if (!isUsableKeyValue(key)) {
@@ -6324,9 +6385,10 @@ watch(() => stableSerialize(props.publicQuery || {}), () => {
 }
 
 .ai-crud-inline-workspace.is-tab-workspace {
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   min-height: 0;
   max-height: none;
+  overflow: hidden;
   border-top: 0;
   border-radius: 0 0 var(--radius-md) var(--radius-md);
   box-shadow: none;
@@ -6659,5 +6721,25 @@ watch(() => stableSerialize(props.publicQuery || {}), () => {
   :deep(.n-pagination .n-pagination-item__button) {
     padding: 0 4px;
   }
+}
+</style>
+
+<style>
+.ai-crud-form-modal.n-card {
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-crud-form-modal .n-card-content,
+.ai-crud-form-modal .n-card__content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.ai-crud-form-modal .n-card-footer,
+.ai-crud-form-modal .n-card__footer {
+  flex: 0 0 auto;
 }
 </style>

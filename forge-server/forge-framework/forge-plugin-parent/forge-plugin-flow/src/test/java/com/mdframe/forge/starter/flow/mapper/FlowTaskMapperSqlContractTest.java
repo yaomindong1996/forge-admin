@@ -50,6 +50,48 @@ class FlowTaskMapperSqlContractTest {
                 "todo department candidate filtering must bind the current user");
     }
 
+    @Test
+    void participantLookupMustNotTreatGroupIdsAsUserIds() throws IOException {
+        String statement = statement(resource(), "countProcessParticipant");
+        assertTrue(statement.contains("FIND_IN_SET(#{userId}, candidate_users)"));
+        assertFalse(statement.contains("FIND_IN_SET(#{userId}, candidate_groups)"),
+                "candidate group identifiers require group membership resolution and must not be compared to user ids");
+    }
+
+    @Test
+    void monitorTaskSummaryMustBeTenantScopedAndBatchable() throws IOException {
+        String statement = statement(resource(), "selectActiveTaskSummaries");
+        assertTrue(statement.contains("tenant_id = #{tenantId}"));
+        assertTrue(statement.contains("process_instance_id IN"));
+        assertTrue(statement.contains("<foreach"));
+        assertTrue(statement.contains("status IN (0, 1)"));
+    }
+
+    @Test
+    void taskMutationLockMustBindTenantInsideForUpdateQuery() throws IOException {
+        String xml = resource();
+        String statement = statement(xml, "selectByTaskIdForUpdateAndTenant");
+        assertTrue(statement.contains("t.task_id = #{taskId}"));
+        assertTrue(statement.contains("t.tenant_id = #{tenantId}"));
+        assertTrue(statement.contains("FOR UPDATE"));
+    }
+
+    @Test
+    void taskMutationUpdatesMustBindTenantInsideUpdatePredicate() throws IOException {
+        String statement = updateStatement(resource(), "updateByTaskIdAndTenant");
+        assertTrue(statement.contains("WHERE task_id = #{taskId}"));
+        assertTrue(statement.contains("AND tenant_id = #{tenantId}"));
+        assertTrue(statement.contains("#{task.status}"));
+    }
+
+    @Test
+    void historyQueryMustBeTenantScopedAndStableForPagination() throws IOException {
+        String statement = statement(resource(), "selectHistoryTasks");
+        assertTrue(statement.contains("t.process_instance_id = #{processInstanceId}"));
+        assertTrue(statement.contains("t.tenant_id = #{tenantId}"));
+        assertTrue(statement.contains("ORDER BY t.create_time ASC, t.id ASC"));
+    }
+
     private String resource() throws IOException {
         try (InputStream input = getClass().getClassLoader().getResourceAsStream(RESOURCE)) {
             if (input == null) {
@@ -64,6 +106,15 @@ class FlowTaskMapperSqlContractTest {
         int start = xml.indexOf(startToken);
         assertTrue(start >= 0, () -> "Missing mapper statement: " + id);
         int end = xml.indexOf("</select>", start);
+        assertTrue(end > start, () -> "Unclosed mapper statement: " + id);
+        return xml.substring(start, end);
+    }
+
+    private String updateStatement(String xml, String id) {
+        String startToken = "<update id=\"" + id + "\"";
+        int start = xml.indexOf(startToken);
+        assertTrue(start >= 0, () -> "Missing mapper statement: " + id);
+        int end = xml.indexOf("</update>", start);
         assertTrue(end > start, () -> "Unclosed mapper statement: " + id);
         return xml.substring(start, end);
     }

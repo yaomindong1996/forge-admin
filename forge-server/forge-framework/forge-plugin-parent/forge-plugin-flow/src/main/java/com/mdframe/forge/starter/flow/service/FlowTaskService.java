@@ -6,6 +6,8 @@ import com.mdframe.forge.starter.flow.dto.FlowApprovalPointResultDTO;
 import com.mdframe.forge.starter.flow.dto.ProcessDiagramInfo;
 import com.mdframe.forge.starter.flow.dto.TaskFormInfo;
 import com.mdframe.forge.starter.flow.entity.FlowTask;
+import com.mdframe.forge.starter.flow.vo.FlowHistoryPageVO;
+import com.mdframe.forge.starter.flow.vo.FlowTaskSignRelationVO;
 
 import java.util.List;
 import java.util.Map;
@@ -114,6 +116,15 @@ public interface FlowTaskService {
     void delegate(String taskId, String userId, String targetUserId, String comment, String signature);
 
     /**
+     * 带可信租户与远程幂等凭证的转办入口。
+     */
+    default void delegate(String taskId, String userId, String targetUserId, String comment,
+                          String signature, Long tenantId, String idempotencyKey,
+                          String requestDigest) {
+        delegate(taskId, userId, targetUserId, comment, signature);
+    }
+
+    /**
      * 退回上一审批节点
      */
     void returnTask(String taskId, String userId, String comment, String signature);
@@ -138,6 +149,39 @@ public interface FlowTaskService {
      * 委派
      */
     void delegateTask(String taskId, String userId, String delegateUserId, String comment);
+
+    /** 动态加签：将目标用户加入当前任务的候选办理人集合。 */
+    void addSign(String taskId, String userId, String targetUserId, String reason);
+
+    /** 带关系模式的动态加签；模式写入关系审计并保留 Flowable 候选任务兼容语义。 */
+    default void addSign(String taskId, String userId, String targetUserId, String reason, String signMode) {
+        addSign(taskId, userId, targetUserId, reason);
+    }
+
+    /** 带幂等凭证的动态加签入口。 */
+    default void addSign(String taskId, String userId, String targetUserId, String reason,
+                         String signMode, Long tenantId, String idempotencyKey,
+                         String requestDigest) {
+        addSign(taskId, userId, targetUserId, reason, signMode);
+    }
+
+    /** 动态减签：从当前任务的候选办理人集合移除目标用户。 */
+    void reduceSign(String taskId, String userId, String targetUserId, String reason);
+
+    /** 带关系模式的动态减签；模式用于关系审计。 */
+    default void reduceSign(String taskId, String userId, String targetUserId, String reason, String signMode) {
+        reduceSign(taskId, userId, targetUserId, reason);
+    }
+
+    /** 带幂等凭证的动态减签入口。 */
+    default void reduceSign(String taskId, String userId, String targetUserId, String reason,
+                            String signMode, Long tenantId, String idempotencyKey,
+                            String requestDigest) {
+        reduceSign(taskId, userId, targetUserId, reason, signMode);
+    }
+
+    /** 查询当前任务的动态加签关系，结果按关系创建时间排序并限制返回量。 */
+    List<FlowTaskSignRelationVO> getSignRelations(String taskId, String userId);
 
     /**
      * 撤回流程
@@ -187,6 +231,9 @@ public interface FlowTaskService {
      * @return 审批历史列表
      */
     List<Map<String, Object>> getProcessHistory(String processInstanceId);
+
+    /** 分页获取类型化流程审批时间轴。 */
+    FlowHistoryPageVO getProcessHistoryPage(String processInstanceId, Integer pageNum, Integer pageSize);
 
     /**
      * 获取任务表单信息

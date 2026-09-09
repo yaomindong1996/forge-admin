@@ -4,6 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.mdframe.forge.flow.dto.FlowInstanceStartDTO;
 import com.mdframe.forge.flow.dto.FlowInstanceTerminateDTO;
+import com.mdframe.forge.flow.dto.FlowVariablesUpdateDTO;
 import com.mdframe.forge.flow.identity.FlowSessionIdentity;
 import com.mdframe.forge.starter.auth.config.FlowDelegationSessionVerifier;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
@@ -200,9 +201,9 @@ public class FlowInstanceController {
     @PutMapping("/variables/{businessKey}")
     public RespInfo<Void> updateVariables(
             @PathVariable String businessKey,
-            @RequestBody Map<String, Object> variables) {
+            @RequestBody FlowVariablesUpdateDTO request) {
         
-        flowInstanceService.updateProcessVariables(businessKey, variables);
+        flowInstanceService.updateProcessVariables(businessKey, request.getVariables());
         
         return RespInfo.success("更新成功", null);
     }

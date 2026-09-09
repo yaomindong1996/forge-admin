@@ -1,5 +1,11 @@
 # 开发环境配置
 server:
+  max-http-request-header-size: ${FORGE_MAX_HTTP_REQUEST_HEADER_SIZE:16KB}
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
   # 服务器的HTTP端口，默认为8080
   port: 8583
   servlet:
@@ -8,7 +14,7 @@ server:
   # undertow 配置
   undertow:
     # HTTP post内容的最大大小。当值为-1时，默认值为大小是无限的
-    max-http-post-size: -1
+    max-http-post-size: ${FORGE_MAX_HTTP_POST_SIZE:20MB}
     # 以下的配置会影响buffer,这些buffer会用于服务器连接的IO操作,有点类似netty的池化内存管理
     # 每块buffer的空间大小,越小的空间被利用越充分
     buffer-size: 512
@@ -84,6 +90,12 @@ mybatis-plus:
       idType: ASSIGN_ID
 # Sa-Token 配置
 sa-token:
+  timeout: ${FORGE_AUTH_TOKEN_TIMEOUT:1800}
+  active-timeout: ${FORGE_AUTH_ACTIVE_TIMEOUT:7200}
+  is-concurrent: ${FORGE_AUTH_ALLOW_CONCURRENT:true}
+  is-share: false
+  is-read-header: true
+  is-read-cookie: false
   # 使用Redis存储Session
   alone-redis:
     # Redis数据库索引（默认为0）
@@ -100,10 +112,26 @@ sms:
   config-type: interface
 
 management:
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,metrics
   endpoint:
     health:
       show-details: never
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState
+forge:
+  captcha:
+    challenge-secret: ${FORGE_CAPTCHA_CHALLENGE_SECRET:}

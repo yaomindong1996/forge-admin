@@ -44,8 +44,10 @@ public class ApiConfigRefreshListener {
                     break;
 
                 case MODULE:
-                    // 刷新指定模块的配置（暂未实现）
-                    log.warn("MODULE类型的刷新暂未实现");
+                    if (event.getReason() == null || event.getReason().isBlank()) {
+                        throw new IllegalArgumentException("MODULE刷新事件缺少模块编码");
+                    }
+                    apiConfigManager.refreshApiConfigByModule(event.getReason());
                     break;
 
                 default:

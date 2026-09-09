@@ -3,6 +3,7 @@ package com.mdframe.forge.plugin.system.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.starter.core.domain.PageQuery;
 import com.mdframe.forge.starter.datascope.entity.SysDataScopeConfig;
+import com.mdframe.forge.plugin.system.dto.DataScopeConfigStatusDTO;
 import java.util.List;
 
 /**
@@ -34,6 +35,8 @@ public interface ISysDataScopeConfigService {
      * 修改数据权限配置
      */
     boolean updateConfig(SysDataScopeConfig config);
+
+    void updateConfigStatus(DataScopeConfigStatusDTO dto);
 
     /**
      * 删除数据权限配置

@@ -1,6 +1,7 @@
 package com.mdframe.forge.starter.flow.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.mdframe.forge.starter.flow.enums.FlowCcStatus;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -121,4 +122,15 @@ public class FlowCc {
      * 是否已读（0-未读/1-已读）
      */
     private Integer isRead;
+
+    /** 抄送关系状态，撤回后接收人不可再查看。 */
+    private Integer status;
+
+    private String revokeBy;
+    private LocalDateTime revokeTime;
+    private String revokeReason;
+
+    public boolean isActive() {
+        return FlowCcStatus.ACTIVE.matches(status);
+    }
 }

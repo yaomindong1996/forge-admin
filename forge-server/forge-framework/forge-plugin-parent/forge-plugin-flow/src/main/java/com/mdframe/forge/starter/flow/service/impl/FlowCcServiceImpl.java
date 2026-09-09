@@ -7,9 +7,19 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.flow.client.spi.FlowBusinessListDisplayAdapter;
 import com.mdframe.forge.flow.client.spi.FlowBusinessListDisplayItem;
+import com.mdframe.forge.starter.flow.entity.FlowBusiness;
 import com.mdframe.forge.starter.flow.entity.FlowCc;
+import com.mdframe.forge.starter.flow.entity.FlowRecordParticipant;
+import com.mdframe.forge.starter.flow.entity.FlowTask;
+import com.mdframe.forge.starter.flow.enums.FlowCcStatus;
+import com.mdframe.forge.starter.flow.mapper.FlowBusinessMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowCcMapper;
+import com.mdframe.forge.starter.flow.mapper.FlowTaskMapper;
 import com.mdframe.forge.starter.flow.service.FlowCcService;
+import com.mdframe.forge.starter.flow.service.FlowOrgIntegrationService;
+import com.mdframe.forge.starter.flow.service.FlowRecordParticipantService;
+import com.mdframe.forge.starter.core.session.SessionHelper;
+import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,21 +39,55 @@ public class FlowCcServiceImpl extends ServiceImpl<FlowCcMapper, FlowCc> impleme
     @Autowired(required = false)
     private FlowBusinessListDisplayAdapter flowBusinessListDisplayAdapter;
 
+    @Autowired(required = false)
+    private FlowRecordParticipantService flowRecordParticipantService;
+
+    @Autowired(required = false)
+    private FlowBusinessMapper flowBusinessMapper;
+
+    @Autowired(required = false)
+    private FlowTaskMapper flowTaskMapper;
+
+    @Autowired(required = false)
+    private FlowOrgIntegrationService flowOrgIntegrationService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void sendCc(String processInstanceId, String processDefKey, String taskId,
                        String title, String content, String businessKey,
                        List<String> ccUserIds, List<String> ccUserNames,
                        String sendUserId, String sendUserName) {
-        
-        if (ccUserIds == null || ccUserIds.isEmpty()) {
-            return;
+        validateSendContext(processInstanceId, processDefKey, taskId, businessKey,
+                ccUserIds, sendUserId, false);
+        persistCc(processInstanceId, processDefKey, taskId, title, content, businessKey,
+                ccUserIds, ccUserNames, sendUserId, sendUserName);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void sendCcByCurrentUser(String processInstanceId, String processDefKey, String taskId,
+                                    String title, String content, String businessKey,
+                                    List<String> ccUserIds, List<String> ccUserNames,
+                                    String sendUserId, String sendUserName) {
+        String currentUserId = requireUserId();
+        if (sendUserId == null || !currentUserId.equals(sendUserId.trim())) {
+            throw new IllegalArgumentException("FLOW_CC_SENDER_MISMATCH");
         }
-        
+        validateSendContext(processInstanceId, processDefKey, taskId, businessKey,
+                ccUserIds, currentUserId, true);
+        persistCc(processInstanceId, processDefKey, taskId, title, content, businessKey,
+                ccUserIds, ccUserNames, currentUserId, sendUserName);
+    }
+
+    private void persistCc(String processInstanceId, String processDefKey, String taskId,
+                           String title, String content, String businessKey,
+                           List<String> ccUserIds, List<String> ccUserNames,
+                           String sendUserId, String sendUserName) {
         LocalDateTime now = LocalDateTime.now();
         
         for (int i = 0; i < ccUserIds.size(); i++) {
             FlowCc cc = new FlowCc();
+            cc.setTenantId(requireTenant());
             cc.setProcessInstanceId(processInstanceId);
             cc.setProcessDefKey(processDefKey);
             cc.setTaskId(taskId);
@@ -56,28 +100,118 @@ public class FlowCcServiceImpl extends ServiceImpl<FlowCcMapper, FlowCc> impleme
             cc.setSendUserName(sendUserName);
             cc.setCcTime(now);
             cc.setIsRead(0);
+            cc.setStatus(FlowCcStatus.ACTIVE.getCode());
             
             save(cc);
+            recordCcParticipant(processInstanceId, businessKey, ccUserIds.get(i));
         }
         
         log.info("发送抄送：processInstanceId={}, ccUserIds={}", processInstanceId, ccUserIds);
     }
 
-    @Override
-    public IPage<FlowCc> myCc(Page<FlowCc> page, String userId, Integer isRead) {
-        LambdaQueryWrapper<FlowCc> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FlowCc::getCcUserId, userId)
-                .eq(isRead != null, FlowCc::getIsRead, isRead)
-                .orderByDesc(FlowCc::getCcTime);
-        return enrichCcPage(page(page, wrapper));
+    /**
+     * 校验人工/流程回调抄送的流程归属。流程回调可能没有 HTTP 会话，故不在这里强制当前会话用户。
+     */
+    private void validateSendContext(String processInstanceId, String processDefKey, String taskId,
+                                     String businessKey, List<String> ccUserIds,
+                                     String senderId, boolean requireCurrentUser) {
+        Long tenantId = requireTenant();
+        if (processInstanceId == null || processInstanceId.isBlank()
+                || senderId == null || senderId.isBlank()
+                || ccUserIds == null || ccUserIds.isEmpty() || ccUserIds.size() > 100) {
+            throw new IllegalArgumentException("FLOW_CC_CONTEXT_INVALID");
+        }
+        if (requireCurrentUser && !senderId.trim().equals(requireUserId())) {
+            throw new IllegalArgumentException("FLOW_CC_SENDER_MISMATCH");
+        }
+        if (flowBusinessMapper == null || flowTaskMapper == null) {
+            throw new IllegalStateException("FLOW_CC_AUTHORIZATION_UNAVAILABLE");
+        }
+        FlowBusiness business = flowBusinessMapper.selectByProcessInstanceIdAndTenantId(
+                processInstanceId.trim(), tenantId);
+        // 流程启动阶段 TASK_CREATED 可能早于 process_instance_id 回写，使用已校验的业务键兜底。
+        if (business == null && !requireCurrentUser && businessKey != null && !businessKey.isBlank()) {
+            business = flowBusinessMapper.selectByBusinessKeyAndTenantId(tenantId, businessKey.trim());
+        }
+        if (business == null
+                || (businessKey != null && !businessKey.isBlank()
+                    && !businessKey.equals(business.getBusinessKey()))
+                || (processDefKey != null && !processDefKey.isBlank()
+                    && !processDefKey.equals(business.getProcessDefKey()))) {
+            throw new IllegalArgumentException("FLOW_RESOURCE_NOT_FOUND");
+        }
+
+        boolean starter = senderId.trim().equals(String.valueOf(business.getApplyUserId()));
+        boolean participant = flowTaskMapper.countProcessParticipant(
+                processInstanceId.trim(), senderId.trim(), tenantId) > 0;
+        if (taskId != null && !taskId.isBlank()) {
+            FlowTask task = flowTaskMapper.selectByIdOrTaskIdAndTenant(taskId.trim(), tenantId);
+            // serviceTask 抄送节点使用 BPMN activityId，不一定有 sys_flow_task 快照；
+            // 内部回调可退回到已验证的流程发起人/历史参与人，人工接口必须命中真实任务。
+            boolean serviceTaskCallback = task == null && !requireCurrentUser && (starter || participant);
+            if (!serviceTaskCallback && (task == null || !processInstanceId.trim().equals(task.getProcessInstanceId())
+                    || !isTaskParticipant(task, senderId.trim()))) {
+                throw new IllegalArgumentException("FLOW_RESOURCE_NOT_FOUND");
+            }
+        } else if (!starter && !participant) {
+            throw new IllegalArgumentException("FLOW_CC_SENDER_NOT_PARTICIPANT");
+        }
+
+        for (String ccUserId : ccUserIds) {
+            if (ccUserId == null || ccUserId.isBlank()
+                    || flowOrgIntegrationService == null
+                    || !flowOrgIntegrationService.isUserAvailableForTenant(ccUserId.trim(), tenantId)) {
+                throw new IllegalArgumentException("FLOW_CC_TARGET_INVALID");
+            }
+        }
+    }
+
+    private boolean isTaskParticipant(FlowTask task, String userId) {
+        return userId.equals(String.valueOf(task.getAssignee()))
+                || userId.equals(String.valueOf(task.getOwner()))
+                || userId.equals(String.valueOf(task.getStartUserId()))
+                || containsCsv(task.getCandidateUsers(), userId);
+    }
+
+    private boolean containsCsv(String csv, String value) {
+        if (csv == null || csv.isBlank()) {
+            return false;
+        }
+        for (String item : csv.split(",")) {
+            if (value.equals(item.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void recordCcParticipant(String processInstanceId, String businessKey, String ccUserId) {
+        if (flowRecordParticipantService == null) {
+            return;
+        }
+        FlowBusiness business = null;
+        Long tenantId = SessionHelper.getTenantId();
+        if (flowBusinessMapper != null && processInstanceId != null && tenantId != null && tenantId > 0) {
+            business = flowBusinessMapper.selectByProcessInstanceIdAndTenantId(processInstanceId, tenantId);
+        }
+        if (business != null) {
+            flowRecordParticipantService.record(business, ccUserId, FlowRecordParticipant.CC);
+            return;
+        }
+        flowRecordParticipantService.record(null, null, businessKey, processInstanceId,
+                ccUserId, FlowRecordParticipant.CC);
     }
 
     @Override
-    public IPage<FlowCc> sentCc(Page<FlowCc> page, String userId) {
-        LambdaQueryWrapper<FlowCc> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FlowCc::getSendUserId, userId)
-                .orderByDesc(FlowCc::getCcTime);
-        return enrichCcPage(page(page, wrapper));
+    public IPage<FlowCc> myCc(Page<FlowCc> page, String userId, Integer isRead, String title) {
+        return enrichCcPage(baseMapper.selectMyPage(
+                page, userId, requireTenant(), isRead, normalizeSearchText(title)));
+    }
+
+    @Override
+    public IPage<FlowCc> sentCc(Page<FlowCc> page, String userId, String title) {
+        return enrichCcPage(baseMapper.selectSentPage(
+                page, userId, requireTenant(), normalizeSearchText(title)));
     }
 
     private IPage<FlowCc> enrichCcPage(IPage<FlowCc> page) {
@@ -146,11 +280,17 @@ public class FlowCcServiceImpl extends ServiceImpl<FlowCcMapper, FlowCc> impleme
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void markRead(String id) {
+        String userId = requireUserId();
         LambdaUpdateWrapper<FlowCc> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(FlowCc::getId, id)
+                .eq(FlowCc::getTenantId, requireTenant())
+                .eq(FlowCc::getCcUserId, userId)
+                .eq(FlowCc::getStatus, FlowCcStatus.ACTIVE.getCode())
                 .set(FlowCc::getIsRead, 1)
                 .set(FlowCc::getReadTime, LocalDateTime.now());
-        update(wrapper);
+        if (!update(wrapper)) {
+            throw new IllegalArgumentException("FLOW_CC_NOT_VISIBLE");
+        }
         log.info("标记抄送已读：{}", id);
     }
 
@@ -163,6 +303,9 @@ public class FlowCcServiceImpl extends ServiceImpl<FlowCcMapper, FlowCc> impleme
         
         LambdaUpdateWrapper<FlowCc> wrapper = new LambdaUpdateWrapper<>();
         wrapper.in(FlowCc::getId, ids)
+                .eq(FlowCc::getTenantId, requireTenant())
+                .eq(FlowCc::getCcUserId, requireUserId())
+                .eq(FlowCc::getStatus, FlowCcStatus.ACTIVE.getCode())
                 .set(FlowCc::getIsRead, 1)
                 .set(FlowCc::getReadTime, LocalDateTime.now());
         update(wrapper);
@@ -170,10 +313,75 @@ public class FlowCcServiceImpl extends ServiceImpl<FlowCcMapper, FlowCc> impleme
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int markAllRead() {
+        int updated = baseMapper.markAllRead(requireUserId(), requireTenant(), LocalDateTime.now());
+        log.info("全部标记抄送已读：{}条", updated);
+        return updated;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void revoke(String id, String reason) {
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("FLOW_CC_ID_REQUIRED");
+        }
+        String senderId = requireUserId();
+        int updated = baseMapper.revokeBySender(id.trim(), requireTenant(), senderId,
+                reason == null ? null : reason.trim(), LocalDateTime.now(), FlowCcStatus.REVOKED.getCode());
+        if (updated == 0) {
+            throw new IllegalArgumentException("FLOW_CC_REVOKE_NOT_ALLOWED");
+        }
+        log.info("撤回流程抄送: id={}, senderId={}", id, senderId);
+    }
+
+    @Override
     public long countUnread(String userId) {
-        LambdaQueryWrapper<FlowCc> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(FlowCc::getCcUserId, userId)
-                .eq(FlowCc::getIsRead, 0);
-        return count(wrapper);
+        Long count = baseMapper.countWorkspaceUnread(userId, requireTenant());
+        return count == null ? 0L : count;
+    }
+
+    @Override
+    public FlowCc getVisibleById(String id, String userId) {
+        if (id == null || id.isBlank() || userId == null || userId.isBlank()) {
+            return null;
+        }
+        return getOne(new LambdaQueryWrapper<FlowCc>()
+                .eq(FlowCc::getId, id)
+                .eq(FlowCc::getTenantId, requireTenant())
+                .and(w -> w.eq(FlowCc::getSendUserId, userId)
+                        .or(x -> x.eq(FlowCc::getCcUserId, userId)
+                                .eq(FlowCc::getStatus, FlowCcStatus.ACTIVE.getCode()))));
+    }
+
+    private Long requireTenant() {
+        Long tenantId = SessionHelper.getTenantId();
+        if (tenantId == null) {
+            tenantId = TenantContextHolder.getTenantId();
+        }
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalStateException("FLOW_TENANT_REQUIRED");
+        }
+        return tenantId;
+    }
+
+    private String requireUserId() {
+        Long userId = SessionHelper.getUserId();
+        if (userId == null) {
+            throw new IllegalStateException("FLOW_USER_REQUIRED");
+        }
+        return String.valueOf(userId);
+    }
+
+    /** 限制搜索词长度，避免超长模糊查询放大数据库压力。 */
+    private String normalizeSearchText(String title) {
+        if (title == null) {
+            return null;
+        }
+        String normalized = title.trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        return normalized.length() > 100 ? normalized.substring(0, 100) : normalized;
     }
 }

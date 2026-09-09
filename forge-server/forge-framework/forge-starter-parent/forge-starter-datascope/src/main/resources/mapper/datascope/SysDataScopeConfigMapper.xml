@@ -16,6 +16,9 @@
         <result property="regionCodeColumn" column="region_code_column"/>
         <result property="userRegionColumn" column="user_region_column"/>
         <result property="userTableAlias" column="user_table_alias"/>
+        <result property="flowRelatedVisible" column="flow_related_visible"/>
+        <result property="flowBusinessType" column="flow_business_type"/>
+        <result property="recordIdColumn" column="record_id_column"/>
         <result property="enabled" column="enabled"/>
         <result property="remark" column="remark"/>
         <result property="createBy" column="create_by"/>
@@ -26,7 +29,41 @@
         <result property="delFlag" column="del_flag"/>
     </resultMap>
 
-    <select id="selectEnabledConfigs" resultMap="SysDataScopeConfigResultMap">
+    <sql id="configFilter">
+        WHERE del_flag = 0
+        <if test="query != null">
+            <if test="query.resourceCode != null and query.resourceCode != ''">
+                AND resource_code = #{query.resourceCode}
+            </if>
+            <if test="query.resourceName != null and query.resourceName != ''">
+                AND resource_name LIKE CONCAT('%', #{query.resourceName}, '%')
+            </if>
+            <if test="query.mapperMethod != null and query.mapperMethod != ''">
+                AND mapper_method LIKE CONCAT('%', #{query.mapperMethod}, '%')
+            </if>
+            <if test="query.enabled != null">AND enabled = #{query.enabled}</if>
+        </if>
+    </sql>
+
+    <select id="selectConfigPage" resultMap="SysDataScopeConfigResultMap">
+        SELECT * FROM sys_data_scope_config
+        <include refid="configFilter"/>
+        ORDER BY create_time DESC, id DESC
+    </select>
+
+    <select id="selectConfigList" resultMap="SysDataScopeConfigResultMap">
+        SELECT * FROM sys_data_scope_config
+        <include refid="configFilter"/>
+        ORDER BY create_time DESC, id DESC
+    </select>
+
+    <update id="updateConfigStatus">
+        UPDATE sys_data_scope_config
+        SET enabled = #{enabled}, update_by = #{updateBy}, update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND del_flag = 0 AND enabled = #{expectedEnabled}
+    </update>
+
+    <select id="selectRuntimeConfigs" resultMap="SysDataScopeConfigResultMap">
         SELECT
             id,
             tenant_id,
@@ -40,6 +77,9 @@
             region_code_column,
             user_region_column,
             user_table_alias,
+            flow_related_visible,
+            flow_business_type,
+            record_id_column,
             enabled,
             remark,
             create_by,
@@ -49,8 +89,7 @@
             update_time,
             del_flag
         FROM sys_data_scope_config
-        WHERE enabled = 1
-          AND del_flag = 0
+        WHERE del_flag = 0
     </select>
 
     <select id="selectEnabledModuleConfigs" resultMap="SysDataScopeConfigResultMap">
@@ -67,6 +106,9 @@
             region_code_column,
             user_region_column,
             user_table_alias,
+            flow_related_visible,
+            flow_business_type,
+            record_id_column,
             enabled,
             remark,
             create_by,

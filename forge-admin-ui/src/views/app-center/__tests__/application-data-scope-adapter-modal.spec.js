@@ -54,6 +54,11 @@ function mountModal() {
           emits: ['click'],
           template: '<button type="button" @click="$emit(\'click\')"><slot /></button>',
         },
+        NSwitch: {
+          props: ['value'],
+          emits: ['update:value'],
+          template: '<button type="button" class="n-switch" @click="$emit(\'update:value\', !value)">{{ value }}</button>',
+        },
       },
     },
   })
@@ -81,6 +86,7 @@ describe('application data scope adapter modal', () => {
       userField: 'createBy',
       orgField: 'createDept',
       regionField: null,
+      flowRelatedVisible: true,
     })
     expect(wrapper.text()).toContain('2 个应用共用')
   })

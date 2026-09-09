@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mdframe.forge.starter.flow.dto.VersionCompareDTO;
 import com.mdframe.forge.starter.flow.dto.VersionRevertDTO;
+import com.mdframe.forge.starter.flow.dto.VersionCleanupDTO;
 import com.mdframe.forge.starter.flow.entity.FlowModel;
 import com.mdframe.forge.starter.flow.enums.FlowModelStatus;
 import com.mdframe.forge.starter.flow.entity.FlowModelVersion;
@@ -12,9 +13,11 @@ import com.mdframe.forge.starter.flow.helper.BpmnXmlUtils;
 import com.mdframe.forge.starter.flow.mapper.FlowModelMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowModelVersionMapper;
 import com.mdframe.forge.starter.flow.service.FlowModelVersionService;
+import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.flow.vo.VersionCompareVO;
 import com.mdframe.forge.starter.flow.vo.VersionDetailVO;
 import com.mdframe.forge.starter.flow.vo.VersionRevertVO;
+import com.mdframe.forge.starter.flow.vo.VersionCleanupVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.engine.RepositoryService;
@@ -36,6 +39,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -53,12 +58,12 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
 
     @Override
     public IPage<FlowModelVersion> pageVersionList(Page<FlowModelVersion> page, String modelId) {
-        return baseMapper.pageByVersion(page, modelId);
+        return baseMapper.pageByVersion(page, modelId, requireTenantId());
     }
 
     @Override
     public VersionDetailVO getVersionDetail(String versionId) {
-        FlowModelVersion version = baseMapper.getVersionDetail(versionId);
+        FlowModelVersion version = baseMapper.getVersionDetail(versionId, requireTenantId());
         if (version == null) {
             throw new RuntimeException("版本不存在");
         }
@@ -82,8 +87,9 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
 
     @Override
     public VersionCompareVO compareVersions(VersionCompareDTO dto) {
-        FlowModelVersion version1 = baseMapper.getVersionByModelAndVersion(dto.getModelId(), dto.getVersion1());
-        FlowModelVersion version2 = baseMapper.getVersionByModelAndVersion(dto.getModelId(), dto.getVersion2());
+        Long tenantId = requireTenantId();
+        FlowModelVersion version1 = baseMapper.getVersionByModelAndVersion(dto.getModelId(), dto.getVersion1(), tenantId);
+        FlowModelVersion version2 = baseMapper.getVersionByModelAndVersion(dto.getModelId(), dto.getVersion2(), tenantId);
 
         if (version1 == null || version2 == null) {
             throw new RuntimeException("版本不存在");
@@ -166,7 +172,8 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
     @Override
     @Transactional(rollbackFor = Exception.class)
     public VersionRevertVO revertVersion(VersionRevertDTO dto) {
-        FlowModelVersion targetVersion = baseMapper.getVersionByModelAndVersion(dto.getModelId(), dto.getTargetVersion());
+        Long tenantId = requireTenantId();
+        FlowModelVersion targetVersion = baseMapper.getVersionByModelAndVersion(dto.getModelId(), dto.getTargetVersion(), tenantId);
 
         if (targetVersion == null) {
             throw new RuntimeException("目标版本不存在");
@@ -175,9 +182,12 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
             throw new RuntimeException("目标版本没有 BPMN XML，无法回退");
         }
 
-        FlowModel model = flowModelMapper.selectById(dto.getModelId());
+        FlowModel model = flowModelMapper.selectByIdAndTenant(dto.getModelId(), tenantId);
         if (model == null) {
             throw new RuntimeException("模型不存在");
+        }
+        if (!tenantId.equals(targetVersion.getTenantId())) {
+            throw new RuntimeException("无权操作其他租户的模型版本");
         }
         if (repositoryService == null) {
             throw new RuntimeException("Flowable未初始化");
@@ -228,7 +238,7 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
         newVersionRecord.setProcessDefinitionId(newProcessDefinitionId);
         newVersionRecord.setPublishBy(model.getLastUpdateBy());
         newVersionRecord.setPublishTime(LocalDateTime.now());
-        newVersionRecord.setTenantId(1L);
+        newVersionRecord.setTenantId(tenantId);
         newVersionRecord.setCreateTime(LocalDateTime.now());
         newVersionRecord.setDelFlag(0);
 
@@ -259,7 +269,8 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateVersionTag(String versionId, String versionTag) {
-        FlowModelVersion version = getById(versionId);
+        Long tenantId = requireTenantId();
+        FlowModelVersion version = baseMapper.getVersionDetail(versionId, tenantId);
         if (version == null) {
             throw new RuntimeException("版本不存在");
         }
@@ -268,15 +279,17 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
             throw new RuntimeException("已发布版本不可修改标记");
         }
 
-        version.setVersionTag(versionTag);
-        updateById(version);
+        if (baseMapper.updateVersionTagByIdAndTenant(versionId, tenantId, versionTag) != 1) {
+            throw new RuntimeException("版本标记更新失败或已被其他请求处理");
+        }
         log.info("版本标记更新成功：versionId={}, versionTag={}", versionId, versionTag);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteVersion(String versionId) {
-        FlowModelVersion version = getById(versionId);
+        Long tenantId = requireTenantId();
+        FlowModelVersion version = baseMapper.getVersionDetail(versionId, tenantId);
         if (version == null) {
             throw new RuntimeException("版本不存在");
         }
@@ -285,14 +298,30 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
             throw new RuntimeException("已发布版本和已废弃版本不可删除");
         }
 
-        removeById(versionId);
+        if (repositoryService != null && version.getProcessDefinitionId() != null) {
+            if (runtimeService == null) {
+                throw new RuntimeException("运行时服务未初始化，无法确认版本引用");
+            }
+            long running = runtimeService.createProcessInstanceQuery()
+                    .processDefinitionId(version.getProcessDefinitionId()).count();
+            if (running > 0) {
+                throw new RuntimeException("该版本仍有运行中的流程实例，禁止删除");
+            }
+        }
+        if (baseMapper.logicalDeleteByIdAndTenant(versionId, tenantId) != 1) {
+            throw new RuntimeException("版本删除失败或已被其他请求处理");
+        }
         log.info("版本删除成功：versionId={}", versionId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void insertVersionOnPublish(FlowModel model, String changeDescription) {
-        Integer maxVersion = baseMapper.getMaxVersion(model.getId());
+        Long tenantId = requireTenantId();
+        if (model.getTenantId() != null && !tenantId.equals(model.getTenantId())) {
+            throw new RuntimeException("无权为其他租户的模型创建版本");
+        }
+        Integer maxVersion = baseMapper.getMaxVersion(model.getId(), tenantId);
         Integer currentVersion = maxVersion != null ? maxVersion + 1 : 1;
 
         FlowModelVersion versionRecord = new FlowModelVersion();
@@ -308,12 +337,88 @@ public class FlowModelVersionServiceImpl extends ServiceImpl<FlowModelVersionMap
         versionRecord.setProcessDefinitionId(model.getProcessDefinitionId());
         versionRecord.setPublishBy(model.getLastUpdateBy());
         versionRecord.setPublishTime(LocalDateTime.now());
-        versionRecord.setTenantId(1L);
+        versionRecord.setTenantId(tenantId);
         versionRecord.setCreateTime(LocalDateTime.now());
         versionRecord.setDelFlag(0);
 
         save(versionRecord);
         log.info("发布时插入版本历史记录：modelId={}, version={}", model.getId(), currentVersion);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public VersionCleanupVO cleanupVersions(VersionCleanupDTO dto) {
+        Long tenantId = requireTenantId();
+        if (dto == null || dto.getModelId() == null || dto.getModelId().isBlank()) {
+            throw new IllegalArgumentException("模型ID不能为空");
+        }
+        int retainLatest = dto.getRetainLatest() == null ? 10 : dto.getRetainLatest();
+        if (retainLatest < 1 || retainLatest > 100) {
+            throw new IllegalArgumentException("保留版本数必须在1到100之间");
+        }
+        FlowModel model = flowModelMapper.selectByIdAndTenant(dto.getModelId(), tenantId);
+        if (model == null) {
+            throw new IllegalArgumentException("模型不存在");
+        }
+        List<FlowModelVersion> candidates = baseMapper.selectCleanupCandidates(dto.getModelId(), tenantId);
+        VersionCleanupVO result = new VersionCleanupVO();
+        result.setModelId(dto.getModelId());
+        result.setRetainLatest(retainLatest);
+        result.setScanned(candidates == null ? 0 : candidates.size());
+        int deleted = 0;
+        int protectedCount = 0;
+        int runningCount = 0;
+        int currentCount = 0;
+        if (candidates != null) {
+            for (int index = 0; index < candidates.size(); index++) {
+                FlowModelVersion version = candidates.get(index);
+                if (index < retainLatest) {
+                    continue;
+                }
+                if ("release".equals(version.getVersionTag())
+                        || "deprecated".equals(version.getVersionTag())) {
+                    protectedCount++;
+                    continue;
+                }
+                if (Objects.equals(model.getVersion(), version.getVersion())
+                        || Objects.equals(model.getProcessDefinitionId(), version.getProcessDefinitionId())) {
+                    currentCount++;
+                    continue;
+                }
+                if (isReferencedByRunningInstance(version)) {
+                    runningCount++;
+                    continue;
+                }
+                if (baseMapper.logicalDeleteByIdAndTenant(version.getId(), tenantId) == 1) {
+                    deleted++;
+                }
+            }
+        }
+        result.setDeleted(deleted);
+        result.setSkippedProtected(protectedCount);
+        result.setSkippedRunning(runningCount);
+        result.setSkippedCurrent(currentCount);
+        log.info("清理流程模型历史版本: tenantId={}, modelId={}, retainLatest={}, scanned={}, deleted={}, skippedRunning={}",
+                tenantId, dto.getModelId(), retainLatest, result.getScanned(), deleted, runningCount);
+        return result;
+    }
+
+    private boolean isReferencedByRunningInstance(FlowModelVersion version) {
+        if (runtimeService == null || version == null || version.getProcessDefinitionId() == null
+                || version.getProcessDefinitionId().isBlank()) {
+            return false;
+        }
+        return runtimeService.createProcessInstanceQuery()
+                .processDefinitionId(version.getProcessDefinitionId())
+                .count() > 0;
+    }
+
+    private Long requireTenantId() {
+        Long tenantId = SessionHelper.getTenantId();
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalStateException("缺少可信租户上下文");
+        }
+        return tenantId;
     }
 
     private String extractProcessKey(String bpmnXml) {

@@ -97,3 +97,6 @@ forge/db/community-export/
 *docs-dist
 !/docs/vendor/
 /trip/
+/output/
+/docs/
+/var/

@@ -1,5 +1,13 @@
 <template>
   <div class="flow-page">
+    <n-alert v-if="loadError" type="error" class="mb-3" :show-icon="true">
+      发起流程加载失败，请重试。
+      <template #action>
+        <NButton text type="primary" @click="loadData">
+          重试
+        </NButton>
+      </template>
+    </n-alert>
     <!-- 任务列表 -->
     <FlowTaskCardList
       v-model:search-value="queryParams.title"
@@ -11,7 +19,7 @@
       row-key="id"
       search-placeholder="搜索流程名称或编号..."
       empty-text="暂无发起的流程"
-      status-title="流程状态"
+      status-title="当前节点状态"
       node-title="当前任务"
       user-title="处理人"
       @search="handleSearch"
@@ -22,7 +30,7 @@
     >
       <template #filters>
         <NTreeSelect v-model:value="queryParams.category" placeholder="流程分类" clearable class="category-select" :options="categoryTreeOptions" :default-expand-all="true" @update:value="handleSearch" />
-        <n-select v-model:value="queryParams.status" placeholder="流程状态" clearable class="category-select" :options="statusOptions" @update:value="handleSearch" />
+        <n-select v-model:value="queryParams.status" placeholder="当前节点状态" clearable class="category-select" :options="statusOptions" @update:value="handleSearch" />
         <NButton secondary @click="handleReset">
           重置
         </NButton>
@@ -87,7 +95,7 @@
               <span class="approval-value">{{ getTaskDisplayName(currentTask, '已结束') }}</span>
             </div>
             <div class="approval-field">
-              <span class="approval-label">流程状态</span>
+              <span class="approval-label">当前节点状态</span>
               <span class="approval-value">{{ getStatusText(currentTask.status) }}</span>
             </div>
             <div class="approval-field">
@@ -120,7 +128,38 @@
             <NButton type="primary" secondary :disabled="withdrawLoading" @click="openReassignModal">
               选择新审批人
             </NButton>
+            <NButton type="warning" secondary :disabled="signLoading" @click="openSignModal('add')">
+              动态加签
+            </NButton>
+            <NButton tertiary :disabled="signLoading" @click="openSignModal('reduce')">
+              动态减签
+            </NButton>
           </div>
+        </section>
+
+        <section v-if="signRelations.length" class="approval-detail-section">
+          <div class="approval-section-header">
+            <i class="i-lucide:git-branch" />
+            动态加签记录
+          </div>
+          <n-list bordered>
+            <n-list-item v-for="relation in signRelations" :key="relation.id || `${relation.targetUserId}-${relation.createTime}`">
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <div class="font-medium">
+                    {{ relation.targetUserId || '-' }}
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    {{ getLabel('flow_task_sign_mode', relation.signMode) || relation.signMode || '-' }}
+                    · {{ relation.reason || '未填写原因' }}
+                  </div>
+                </div>
+                <n-tag size="small" :type="relation.status === 1 ? 'success' : 'default'">
+                  {{ getLabel('flow_task_sign_relation_status', relation.status === 1 ? 'ACTIVE' : 'REVOKED') || (relation.status === 1 ? '有效' : '已撤回') }}
+                </n-tag>
+              </div>
+            </n-list-item>
+          </n-list>
         </section>
 
         <section class="approval-detail-section">
@@ -182,6 +221,48 @@
         </n-space>
       </template>
     </n-modal>
+
+    <n-modal v-model:show="signVisible" preset="card" title="动态加签/减签" style="width: 480px" :mask-closable="false">
+      <n-form label-placement="top">
+        <n-form-item label="操作" required>
+          <n-radio-group v-model:value="signAction">
+            <n-radio-button value="add">
+              加签
+            </n-radio-button>
+            <n-radio-button value="reduce">
+              减签
+            </n-radio-button>
+          </n-radio-group>
+        </n-form-item>
+        <n-form-item label="加签模式" required>
+          <n-select v-model:value="signMode" :options="signModeOptions" />
+          <n-alert type="info" :show-icon="false" class="mt-2" :bordered="false">
+            当前仅支持并行加签；前加签、后加签待流程编排能力完成后开放。
+          </n-alert>
+        </n-form-item>
+        <n-form-item label="目标用户" required>
+          <UserSelectPicker
+            v-model="signUserId"
+            v-model:label-value="signUserName"
+            title="选择目标用户"
+            placeholder="请选择目标用户"
+          />
+        </n-form-item>
+        <n-form-item label="操作原因">
+          <n-input v-model:value="signReason" type="textarea" :rows="3" :maxlength="200" show-count placeholder="请输入操作原因" />
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <n-space justify="end">
+          <NButton :disabled="signLoading" @click="signVisible = false">
+            取消
+          </NButton>
+          <NButton type="primary" :loading="signLoading" @click="submitSign">
+            确认{{ signAction === 'add' ? '加签' : '减签' }}
+          </NButton>
+        </n-space>
+      </template>
+    </n-modal>
   </div>
 </template>
 
@@ -197,12 +278,14 @@ import FlowTaskCardList from '@/components/flow/FlowTaskCardList.vue'
 import FlowTaskDetailShell from '@/components/flow/FlowTaskDetailShell.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
+import { createFlowActionCredentials } from '@/utils/flow-action-idempotency'
 import { buildFlowCategoryTreeOptions, resolveFlowCategoryLabel } from './utils/categoryOptions'
 import { getRowDisplayTitle, getTaskDisplayName } from './utils/processDisplay'
 
 const userStore = useUserStore()
-const { dict, getLabel } = useDict('flow_started_status')
+const { dict, getLabel } = useDict('flow_started_status', 'flow_task_sign_mode', 'flow_task_sign_relation_status')
 const loading = ref(false)
+const loadError = ref(false)
 const dataSource = ref([])
 const pagination = reactive({
   page: 1,
@@ -239,11 +322,23 @@ const reassignLoading = ref(false)
 const reassignUserId = ref(null)
 const reassignUserName = ref('')
 const reassignReason = ref('')
+const signVisible = ref(false)
+const signLoading = ref(false)
+const signAction = ref('add')
+const signUserId = ref(null)
+const signUserName = ref('')
+const signReason = ref('')
+const signMode = ref('PARALLEL')
+const signRelations = ref([])
 
-const statusOptions = computed(() => toNumberOptions(dict.value.flow_started_status).filter(item => [0, 1, 2, 3, 6].includes(item.value)))
+const statusOptions = computed(() => toNumberOptions(dict.value.flow_started_status))
+const signModeOptions = computed(() => (dict.value.flow_task_sign_mode || []).map(item => ({
+  ...item,
+  disabled: String(item.value).toUpperCase() !== 'PARALLEL',
+})))
 
 function getStatusTagClass(status) {
-  const cls = { 0: 'warning', 1: 'info', 2: 'success', 3: 'error', 4: 'warning', 5: 'info', 6: 'default' }
+  const cls = { 0: 'warning', 1: 'info', 2: 'success', 3: 'error', 4: 'warning', 5: 'default', 6: 'default', 7: 'warning', 8: 'error' }
   return cls[status] || 'default'
 }
 
@@ -254,8 +349,10 @@ function getStatusIcon(status) {
     2: 'i-material-symbols:check-circle',
     3: 'i-material-symbols:cancel',
     4: 'i-material-symbols:keyboard-return',
-    5: 'i-material-symbols:person-add',
+    5: 'i-material-symbols:cancel',
     6: 'i-material-symbols:task-alt',
+    7: 'i-material-symbols:keyboard-return',
+    8: 'i-material-symbols:stop-circle',
   }
   return icons[status] || 'i-material-symbols:send'
 }
@@ -278,6 +375,7 @@ function toNumberOptions(options = []) {
 async function openDrawer(row) {
   currentTask.value = row
   approvalHistory.value = []
+  signRelations.value = []
   withdrawComment.value = ''
   showDrawer.value = true
   if (row.processInstanceId) {
@@ -288,6 +386,16 @@ async function openDrawer(row) {
     }
     catch {
       console.error('加载审批历史失败')
+    }
+  }
+  if (row.taskId) {
+    try {
+      const relationRes = await flowApi.getSignRelations(row.taskId, { userId: String(userStore.userId) })
+      if (relationRes.code === 200)
+        signRelations.value = relationRes.data || []
+    }
+    catch {
+      signRelations.value = []
     }
   }
 }
@@ -316,6 +424,51 @@ function openReassignModal() {
   reassignUserName.value = ''
   reassignReason.value = ''
   reassignVisible.value = true
+}
+
+function openSignModal(action) {
+  signAction.value = action
+  signUserId.value = null
+  signUserName.value = ''
+  signReason.value = ''
+  signMode.value = 'PARALLEL'
+  signVisible.value = true
+}
+
+async function submitSign() {
+  if (!signUserId.value) {
+    window.$message.warning('请选择目标用户')
+    return
+  }
+  signLoading.value = true
+  try {
+    const action = signAction.value === 'add' ? flowApi.addSign : flowApi.reduceSign
+    const payload = {
+      taskId: currentTask.value.taskId,
+      userId: String(userStore.userId),
+      targetUserId: String(signUserId.value),
+      comment: signReason.value || undefined,
+      signMode: signMode.value,
+    }
+    const credentials = await createFlowActionCredentials(`sign_${signAction.value}`, currentTask.value.taskId, payload)
+    const res = await action({ ...payload, ...credentials })
+    if (res.code !== 200) {
+      window.$message.error(res.message || '操作失败')
+      return
+    }
+    window.$message.success(signAction.value === 'add' ? '加签成功' : '减签成功')
+    signVisible.value = false
+    const relationRes = await flowApi.getSignRelations(currentTask.value.taskId, { userId: String(userStore.userId) })
+    if (relationRes.code === 200)
+      signRelations.value = relationRes.data || []
+    loadData()
+  }
+  catch (error) {
+    window.$message.error(error?.message || '操作失败')
+  }
+  finally {
+    signLoading.value = false
+  }
 }
 
 async function submitReassign() {
@@ -350,6 +503,7 @@ async function submitReassign() {
 
 async function loadData() {
   loading.value = true
+  loadError.value = false
   try {
     const res = await flowApi.getStartedTasks({
       pageNum: pagination.page,
@@ -364,9 +518,13 @@ async function loadData() {
       pagination.itemCount = res.data.total || 0
       pendingCount.value = dataSource.value.filter(r => [0, 1].includes(r.status)).length
     }
+    else {
+      loadError.value = true
+    }
   }
   catch {
     console.error('加载发起的流程失败')
+    loadError.value = true
   }
   finally {
     loading.value = false

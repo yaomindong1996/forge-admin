@@ -12,11 +12,11 @@ import com.mdframe.forge.starter.flow.mapper.FlowNodeConfigMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowNodeOperationMapper;
 import com.mdframe.forge.starter.flow.service.FlowNodeConfigService;
 import com.mdframe.forge.starter.flow.service.FlowOrgIntegrationService;
+import com.mdframe.forge.starter.flow.service.support.FlowSafeExpressionEvaluator;
+import com.mdframe.forge.starter.core.session.SessionHelper;
+import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.expression.ExpressionParser;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,26 +36,38 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
     private final FlowApprovalLevelMapper approvalLevelMapper;
     private final FlowNodeOperationMapper nodeOperationMapper;
     private final ObjectMapper objectMapper;
-    private final ExpressionParser expressionParser = new SpelExpressionParser();
     private final FlowOrgIntegrationService orgIntegrationService;
 
     @Override
     public List<FlowNodeConfig> getByModelId(String modelId) {
-        return list(new LambdaQueryWrapper<FlowNodeConfig>()
-                .eq(FlowNodeConfig::getModelId, modelId)
-                .orderByAsc(FlowNodeConfig::getCreateTime));
+        Long tenantId = currentTenantId();
+        if (tenantId == null || tenantId <= 0 || modelId == null || modelId.isBlank()) {
+            return Collections.emptyList();
+        }
+        return baseMapper.selectByModelRef(modelId.trim(), tenantId);
     }
 
     @Override
     public FlowNodeConfig getByModelAndNode(String modelId, String nodeId) {
-        return getOne(new LambdaQueryWrapper<FlowNodeConfig>()
-                .eq(FlowNodeConfig::getModelId, modelId)
-                .eq(FlowNodeConfig::getNodeId, nodeId));
+        Long tenantId = currentTenantId();
+        if (tenantId == null || tenantId <= 0 || modelId == null || modelId.isBlank()
+                || nodeId == null || nodeId.isBlank()) {
+            return null;
+        }
+        return baseMapper.selectByModelKeyAndNode(modelId.trim(), nodeId.trim(), tenantId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean saveNodeConfig(FlowNodeConfig nodeConfig, List<FlowApprovalLevel> levels) {
+        Long tenantId = currentTenantId();
+        if (tenantId == null || tenantId <= 0 || nodeConfig == null) {
+            return false;
+        }
+        if (nodeConfig.getTenantId() != null && !tenantId.equals(nodeConfig.getTenantId())) {
+            return false;
+        }
+        nodeConfig.setTenantId(tenantId);
         // 保存节点配置
         boolean result = save(nodeConfig);
         
@@ -72,6 +84,16 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
 
     @Override
     public boolean updateNodeConfig(FlowNodeConfig nodeConfig) {
+        Long tenantId = currentTenantId();
+        if (tenantId == null || tenantId <= 0 || nodeConfig == null || nodeConfig.getId() == null
+                || (nodeConfig.getTenantId() != null && !tenantId.equals(nodeConfig.getTenantId()))) {
+            return false;
+        }
+        FlowNodeConfig existing = baseMapper.selectByIdAndTenant(nodeConfig.getId(), tenantId);
+        if (existing == null) {
+            return false;
+        }
+        nodeConfig.setTenantId(tenantId);
         return updateById(nodeConfig);
     }
 
@@ -81,12 +103,30 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
         if (nodeConfigs == null || nodeConfigs.isEmpty()) {
             return true;
         }
+        Long tenantId = currentTenantId();
+        if (tenantId == null || tenantId <= 0) {
+            return false;
+        }
+        for (FlowNodeConfig nodeConfig : nodeConfigs) {
+            if (nodeConfig == null || (nodeConfig.getTenantId() != null
+                    && !tenantId.equals(nodeConfig.getTenantId()))) {
+                return false;
+            }
+            nodeConfig.setTenantId(tenantId);
+        }
         return saveBatch(nodeConfigs);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteNodeConfig(String id) {
+        Long tenantId = currentTenantId();
+        if (tenantId == null || tenantId <= 0 || id == null || id.isBlank()) {
+            return false;
+        }
+        if (baseMapper.selectByIdAndTenant(id.trim(), tenantId) == null) {
+            return false;
+        }
         // 删除层级配置
         approvalLevelMapper.delete(new LambdaQueryWrapper<FlowApprovalLevel>()
                 .eq(FlowApprovalLevel::getNodeConfigId, id));
@@ -96,12 +136,16 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
                 .eq(FlowNodeOperation::getNodeConfigId, id));
         
         // 字符串主键表必须把当前主键写入 del_flag，不能使用 MP 默认固定删除值。
-        return baseMapper.logicDeleteById(id) > 0;
+        return baseMapper.logicDeleteById(id, tenantId) > 0;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteByModelId(String modelId) {
+        Long tenantId = currentTenantId();
+        if (tenantId == null || tenantId <= 0 || modelId == null || modelId.isBlank()) {
+            return false;
+        }
         // 获取该模型下所有节点配置
         List<FlowNodeConfig> configs = getByModelId(modelId);
         if (configs == null || configs.isEmpty()) {
@@ -117,11 +161,14 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
         }
         
         // 每一行写入自身主键作为删除墓碑。
-        return baseMapper.logicDeleteByModelId(modelId) > 0;
+        return baseMapper.logicDeleteByModelId(modelId.trim(), tenantId) > 0;
     }
 
     @Override
     public List<FlowApprovalLevel> getApprovalLevels(String nodeConfigId) {
+        if (!isOwnedByCurrentTenant(nodeConfigId)) {
+            return Collections.emptyList();
+        }
         return approvalLevelMapper.selectList(new LambdaQueryWrapper<FlowApprovalLevel>()
                 .eq(FlowApprovalLevel::getNodeConfigId, nodeConfigId)
                 .orderByAsc(FlowApprovalLevel::getLevelIndex));
@@ -130,6 +177,9 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean saveApprovalLevels(String nodeConfigId, List<FlowApprovalLevel> levels) {
+        if (!isOwnedByCurrentTenant(nodeConfigId)) {
+            return false;
+        }
         // 先删除旧的层级配置
         approvalLevelMapper.delete(new LambdaQueryWrapper<FlowApprovalLevel>()
                 .eq(FlowApprovalLevel::getNodeConfigId, nodeConfigId));
@@ -148,7 +198,7 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
 
     @Override
     public List<String> calculateApprovers(String nodeConfigId, Map<String, Object> variables) {
-        FlowNodeConfig nodeConfig = getById(nodeConfigId);
+        FlowNodeConfig nodeConfig = getOwnedNodeConfig(nodeConfigId);
         if (nodeConfig == null) {
             return Collections.emptyList();
         }
@@ -183,13 +233,11 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
         FlowApprovalLevel nextLevel = levels.get(currentLevel);
         if (nextLevel.getConditionExpr() != null && !nextLevel.getConditionExpr().isEmpty()) {
             try {
-                StandardEvaluationContext context = new StandardEvaluationContext();
-                variables.forEach(context::setVariable);
-                Boolean result = expressionParser.parseExpression(nextLevel.getConditionExpr())
-                        .getValue(context, Boolean.class);
+                Boolean result = FlowSafeExpressionEvaluator.evaluateBoolean(
+                        nextLevel.getConditionExpr(), variables);
                 return Boolean.TRUE.equals(result);
             } catch (Exception e) {
-                log.error("评估层级条件失败: {}", nextLevel.getConditionExpr(), e);
+                log.warn("评估层级条件失败，表达式已拒绝或求值异常", e);
                 return false;
             }
         }
@@ -209,6 +257,9 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
 
     @Override
     public List<FlowNodeOperation> getNodeOperations(String nodeConfigId) {
+        if (!isOwnedByCurrentTenant(nodeConfigId)) {
+            return Collections.emptyList();
+        }
         return nodeOperationMapper.selectList(new LambdaQueryWrapper<FlowNodeOperation>()
                 .eq(FlowNodeOperation::getNodeConfigId, nodeConfigId)
                 .orderByAsc(FlowNodeOperation::getSortOrder));
@@ -217,6 +268,9 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean saveNodeOperations(String nodeConfigId, List<FlowNodeOperation> operations) {
+        if (!isOwnedByCurrentTenant(nodeConfigId)) {
+            return false;
+        }
         // 先删除旧的操作权限配置
         nodeOperationMapper.delete(new LambdaQueryWrapper<FlowNodeOperation>()
                 .eq(FlowNodeOperation::getNodeConfigId, nodeConfigId));
@@ -238,7 +292,7 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
 
     @Override
     public Long getTimeoutMillis(String nodeConfigId) {
-        FlowNodeConfig nodeConfig = getById(nodeConfigId);
+        FlowNodeConfig nodeConfig = getOwnedNodeConfig(nodeConfigId);
         if (nodeConfig == null) {
             return null;
         }
@@ -252,6 +306,26 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
         }
         
         return millis > 0 ? millis : null;
+    }
+
+    private boolean isOwnedByCurrentTenant(String nodeConfigId) {
+        return getOwnedNodeConfig(nodeConfigId) != null;
+    }
+
+    private FlowNodeConfig getOwnedNodeConfig(String nodeConfigId) {
+        Long tenantId = currentTenantId();
+        if (tenantId == null || tenantId <= 0 || nodeConfigId == null || nodeConfigId.isBlank()) {
+            return null;
+        }
+        return baseMapper.selectByIdAndTenant(nodeConfigId.trim(), tenantId);
+    }
+
+    private Long currentTenantId() {
+        Long contextTenantId = TenantContextHolder.getTenantId();
+        if (contextTenantId != null && contextTenantId > 0) {
+            return contextTenantId;
+        }
+        return SessionHelper.getTenantId();
     }
 
     /**
@@ -297,8 +371,8 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
         String assigneeType = nodeConfig.getAssigneeType();
         String assigneeValue = nodeConfig.getAssigneeValue();
         
-        log.info("[审批人计算] 开始计算: nodeConfigId={}, nodeDefKey={}, assigneeType={}, assigneeValue={}",
-                nodeConfig.getId(), nodeConfig.getFormKey(), assigneeType, assigneeValue);
+        log.debug("[审批人计算] 开始计算: nodeConfigId={}, nodeDefKey={}, assigneeType={}",
+                nodeConfig.getId(), nodeConfig.getFormKey(), assigneeType);
         
         if (assigneeType == null) {
             log.warn("[审批人计算] assigneeType为空，使用默认空列表");
@@ -309,38 +383,39 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
         switch (assigneeType) {
             case "user":
                 result = parseUserIds(assigneeValue);
-                log.info("[审批人计算] 指定用户: userIds={}", result);
+                log.debug("[审批人计算] 指定用户完成: count={}", result.size());
                 return result;
             case "role":
                 result = getUserIdsByRole(assigneeValue);
-                log.info("[审批人计算] 按角色查询: roleKey={}, userIds={}", assigneeValue, result);
+                log.debug("[审批人计算] 按角色查询完成: count={}", result.size());
                 return result;
             case "dept":
                 result = getUserIdsByDept(assigneeValue);
-                log.info("[审批人计算] 按部门查询: deptId={}, userIds={}", assigneeValue, result);
+                log.debug("[审批人计算] 按部门查询完成: count={}", result.size());
                 return result;
             case "post":
                 result = getUserIdsByPost(assigneeValue);
-                log.info("[审批人计算] 按岗位查询: postCode={}, userIds={}", assigneeValue, result);
+                log.debug("[审批人计算] 按岗位查询完成: count={}", result.size());
                 return result;
             case "leader":
                 result = getLeaderUserIds(variables);
-                log.info("[审批人计算] 按上级查询: userIds={}", result);
+                log.debug("[审批人计算] 按上级查询完成: count={}", result.size());
                 return result;
             case "deptManager":
                 result = getDeptManagerUserIds(variables);
-                log.info("[审批人计算] 按部门负责人查询: userIds={}", result);
+                log.debug("[审批人计算] 按部门负责人查询完成: count={}", result.size());
                 return result;
             case "initiator":
                 result = getInitiatorUserIds(variables);
-                log.info("[审批人计算] 按发起人查询: userIds={}", result);
+                log.debug("[审批人计算] 按发起人查询完成: count={}", result.size());
                 return result;
             case "expr":
-                log.info("[审批人计算] 按表达式计算: expression={}", nodeConfig.getAssigneeExpr());
+                log.debug("[审批人计算] 按表达式计算: expressionLength={}",
+                        nodeConfig.getAssigneeExpr() == null ? 0 : nodeConfig.getAssigneeExpr().length());
                 return evaluateExpression(nodeConfig.getAssigneeExpr(), variables);
             case "deptUser":
                 result = getUserIdsByDept(assigneeValue);
-                log.info("[审批人计算] 按部门用户查询: deptId={}, userIds={}", assigneeValue, result);
+                log.debug("[审批人计算] 按部门用户查询完成: count={}", result.size());
                 return result;
             default:
                 log.warn("[审批人计算] 未知的assigneeType: {}, 无法计算审批人", assigneeType);
@@ -365,7 +440,7 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
         try {
             return objectMapper.readValue(jsonValue, new TypeReference<List<String>>() {});
         } catch (Exception e) {
-            log.error("解析用户ID失败: {}", jsonValue, e);
+            log.error("解析用户ID失败: error={}", e.getMessage(), e);
             return Collections.emptyList();
         }
     }
@@ -490,20 +565,17 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
             return Collections.emptyList();
         }
         
-        log.info("[审批人表达式] 开始执行: expression={}, variables={}", expression, variables);
+        log.debug("[审批人表达式] 开始执行: expressionLength={}, variableCount={}",
+                expression.length(), variables == null ? 0 : variables.size());
         
         try {
-            StandardEvaluationContext context = new StandardEvaluationContext();
-            variables.forEach(context::setVariable);
+            Object result = FlowSafeExpressionEvaluator.evaluate(expression, variables);
             
-            Object result = expressionParser.parseExpression(expression)
-                    .getValue(context);
-            
-            log.info("[审批人表达式] 执行结果: expression={}, result={}, resultType={}",
-                    expression, result, result != null ? result.getClass().getSimpleName() : "null");
+            log.debug("[审批人表达式] 执行结果: resultType={}",
+                    result != null ? result.getClass().getSimpleName() : "null");
             
             if (result == null) {
-                log.warn("[审批人表达式] 表达式返回null，未匹配到审批人: expression={}, 请检查变量是否存在或表达式是否正确", expression);
+                log.warn("[审批人表达式] 表达式返回null，未匹配到审批人，请检查变量或表达式配置");
                 return Collections.emptyList();
             }
             
@@ -511,23 +583,22 @@ public class FlowNodeConfigServiceImpl extends ServiceImpl<FlowNodeConfigMapper,
                 List<String> userIds = ((List<?>) result).stream()
                         .map(Object::toString)
                         .collect(Collectors.toList());
-                log.info("[审批人表达式] 返回用户列表: expression={}, userIds={}, count={}", expression, userIds, userIds.size());
+                log.debug("[审批人表达式] 返回用户列表: count={}", userIds.size());
                 return userIds;
             } else if (result instanceof String) {
                 String userId = (String) result;
                 if (userId.isEmpty()) {
-                    log.warn("[审批人表达式] 表达式返回空字符串: expression={}", expression);
+                    log.warn("[审批人表达式] 表达式返回空字符串");
                     return Collections.emptyList();
                 }
-                log.info("[审批人表达式] 返回单个用户: expression={}, userId={}", expression, userId);
+                log.debug("[审批人表达式] 返回单个用户");
                 return Collections.singletonList(userId);
             }
             
-            log.warn("[审批人表达式] 表达式返回非预期类型: expression={}, resultType={}", expression, result.getClass().getName());
+            log.warn("[审批人表达式] 表达式返回非预期类型: resultType={}", result.getClass().getName());
             return Collections.emptyList();
         } catch (Exception e) {
-            log.error("[审批人表达式] 执行失败: expression={}, variables={}, error={}",
-                    expression, variables, e.getMessage(), e);
+            log.warn("[审批人表达式] 执行失败，表达式已拒绝或求值异常", e);
             return Collections.emptyList();
         }
     }

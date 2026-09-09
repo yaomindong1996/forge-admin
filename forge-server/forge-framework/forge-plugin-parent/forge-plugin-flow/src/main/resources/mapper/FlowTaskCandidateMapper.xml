@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.starter.flow.mapper.FlowTaskCandidateMapper">
+
+    <insert id="insertIgnore" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_flow_task_candidate
+        (tenant_id, task_id, parent_task_id, child_task_id, child_execution_id, process_instance_id, candidate_type, candidate_value,
+         source, sign_mode, operator_id, reason, idempotency_key, request_digest,
+         status, create_time, update_time)
+        VALUES
+        (#{tenantId}, #{taskId}, #{parentTaskId}, #{childTaskId}, #{childExecutionId}, #{processInstanceId}, #{candidateType}, #{candidateValue},
+         #{source}, #{signMode}, #{operatorId}, #{reason}, #{idempotencyKey}, #{requestDigest},
+         #{status}, COALESCE(#{createTime}, NOW()), COALESCE(#{updateTime}, NOW()))
+        ON DUPLICATE KEY UPDATE
+            status = VALUES(status),
+            source = VALUES(source),
+            parent_task_id = VALUES(parent_task_id),
+            child_task_id = VALUES(child_task_id),
+            child_execution_id = VALUES(child_execution_id),
+            sign_mode = VALUES(sign_mode),
+            operator_id = VALUES(operator_id),
+            reason = VALUES(reason),
+            idempotency_key = VALUES(idempotency_key),
+            request_digest = VALUES(request_digest),
+            update_time = VALUES(update_time)
+    </insert>
+
+    <update id="activate">
+        UPDATE sys_flow_task_candidate
+        SET status = 1, source = #{source}, update_time = #{updateTime}
+        WHERE tenant_id = #{tenantId}
+          AND task_id = #{taskId}
+          AND candidate_type = #{candidateType}
+          AND candidate_value = #{candidateValue}
+    </update>
+
+    <update id="deactivate">
+        UPDATE sys_flow_task_candidate
+        SET status = 0, update_time = #{updateTime}
+        WHERE tenant_id = #{tenantId}
+          AND task_id = #{taskId}
+          AND candidate_type = #{candidateType}
+          AND candidate_value = #{candidateValue}
+          AND status = 1
+    </update>
+
+    <update id="deactivateWithAudit">
+        UPDATE sys_flow_task_candidate
+        SET status = 0,
+            operator_id = #{operatorId},
+            reason = #{reason},
+            idempotency_key = COALESCE(#{idempotencyKey}, idempotency_key),
+            request_digest = COALESCE(#{requestDigest}, request_digest),
+            update_time = #{updateTime}
+        WHERE tenant_id = #{tenantId}
+          AND task_id = #{taskId}
+          AND candidate_type = #{candidateType}
+          AND candidate_value = #{candidateValue}
+          AND status = 1
+    </update>
+
+    <select id="selectByIdempotency" resultType="com.mdframe.forge.starter.flow.entity.FlowTaskCandidate">
+        SELECT id,
+               tenant_id AS tenantId,
+               task_id AS taskId,
+               parent_task_id AS parentTaskId,
+               child_task_id AS childTaskId,
+               child_execution_id AS childExecutionId,
+               process_instance_id AS processInstanceId,
+               candidate_type AS candidateType,
+               candidate_value AS candidateValue,
+               source,
+               sign_mode AS signMode,
+               operator_id AS operatorId,
+               reason,
+               idempotency_key AS idempotencyKey,
+               request_digest AS requestDigest,
+               status,
+               create_time AS createTime,
+               update_time AS updateTime
+        FROM sys_flow_task_candidate
+        WHERE tenant_id = #{tenantId}
+          AND task_id = #{taskId}
+          AND candidate_type = #{candidateType}
+          AND idempotency_key = #{idempotencyKey}
+        LIMIT 1
+    </select>
+
+    <select id="countActiveByTaskAndValue" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_flow_task_candidate
+        WHERE tenant_id = #{tenantId}
+          AND task_id = #{taskId}
+          AND candidate_type = #{candidateType}
+          AND candidate_value = #{candidateValue}
+          AND status = 1
+    </select>
+
+    <select id="selectDynamicSignRelations" resultType="com.mdframe.forge.starter.flow.vo.FlowTaskSignRelationVO">
+        SELECT id,
+               task_id AS taskId,
+               parent_task_id AS parentTaskId,
+               child_task_id AS childTaskId,
+               process_instance_id AS processInstanceId,
+               candidate_value AS targetUserId,
+               sign_mode AS signMode,
+               source,
+               status,
+               operator_id AS operatorId,
+               reason,
+               create_time AS createTime,
+               update_time AS updateTime
+        FROM sys_flow_task_candidate
+        WHERE tenant_id = #{tenantId}
+          AND parent_task_id = #{parentTaskId}
+          AND candidate_type = 'USER'
+          AND source = 'DYNAMIC_SIGN'
+        ORDER BY create_time ASC, id ASC
+        LIMIT 50
+    </select>
+
+    <select id="selectActiveDynamicSignRelation" resultType="com.mdframe.forge.starter.flow.entity.FlowTaskCandidate">
+        SELECT id,
+               tenant_id AS tenantId,
+               task_id AS taskId,
+               parent_task_id AS parentTaskId,
+               child_task_id AS childTaskId,
+               child_execution_id AS childExecutionId,
+               process_instance_id AS processInstanceId,
+               candidate_type AS candidateType,
+               candidate_value AS candidateValue,
+               source,
+               sign_mode AS signMode,
+               operator_id AS operatorId,
+               reason,
+               idempotency_key AS idempotencyKey,
+               request_digest AS requestDigest,
+               status,
+               create_time AS createTime,
+               update_time AS updateTime
+        FROM sys_flow_task_candidate
+        WHERE tenant_id = #{tenantId}
+          AND parent_task_id = #{parentTaskId}
+          AND candidate_type = 'USER'
+          AND source = 'DYNAMIC_SIGN'
+          AND candidate_value = #{candidateValue}
+          AND status = 1
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+</mapper>

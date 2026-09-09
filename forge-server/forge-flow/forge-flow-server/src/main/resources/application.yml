@@ -1,9 +1,15 @@
 server:
+  max-http-request-header-size: ${FORGE_MAX_HTTP_REQUEST_HEADER_SIZE:16KB}
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
   port: 8081
   servlet:
     context-path: /
   undertow:
-    max-http-post-size: -1
+    max-http-post-size: ${FORGE_MAX_HTTP_POST_SIZE:20MB}
     buffer-size: 512
     direct-buffers: true
     threads:
@@ -53,6 +59,12 @@ mybatis-plus:
       idType: ASSIGN_ID
 
 sa-token:
+  timeout: ${FORGE_AUTH_TOKEN_TIMEOUT:1800}
+  active-timeout: ${FORGE_AUTH_ACTIVE_TIMEOUT:7200}
+  is-concurrent: ${FORGE_AUTH_ALLOW_CONCURRENT:true}
+  is-share: false
+  is-read-header: true
+  is-read-cookie: false
   alone-redis:
     database: 0
     host: ${spring.data.redis.host}
@@ -67,6 +79,8 @@ forge:
     column: tenant_id
     auto-detect-tenant-column: true
   flow:
+    timeout:
+      time-zone: ${FORGE_FLOW_TIMEOUT_TIME_ZONE:Asia/Shanghai}
     job:
       technical-identity:
         tenant-id: ${FORGE_FLOW_JOB_TENANT_ID:}
@@ -78,6 +92,28 @@ forge:
       enabled: true
       scan-interval-ms: 300000
       batch-size: 200
+
+management:
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState
 
 # 流程事件回调配置
 flow:

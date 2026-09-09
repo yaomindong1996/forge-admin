@@ -41,7 +41,7 @@ spring.data:
     # 数据库索引
     database: 0
     # redis 密码必须配置
-    password: 'your_redis_password'
+    password: ${FORGE_REDIS_PASSWORD:}
     # 连接超时时间
     timeout: 10s
     # 是否开启ssl
@@ -52,7 +52,7 @@ spring.data:
         singleServerConfig:
           address: "redis://localhost:6379"
           database: 0
-          password: forge123456
+          password: ${FORGE_REDIS_PASSWORD:}
           connectTimeout: 10000
           timeout: 3000
           retryAttempts: 3
@@ -86,3 +86,13 @@ config:
     username: ${spring.datasource.dynamic.datasource.master.username}
     password: ${spring.datasource.dynamic.datasource.master.password}
     driverClassName: ${spring.datasource.dynamic.datasource.master.driverClassName}
+
+forge:
+  flow:
+    timeout:
+      time-zone: Asia/Shanghai
+  # 本地开发打开定时任务开放 API 凭证页。生产默认关闭，且禁止把真实 pepper 写进可提交文件。
+  job:
+    open-api:
+      enabled: true
+      token-pepper: ${FORGE_JOB_OPEN_API_TOKEN_PEPPER:forge-dev-job-open-api-token-pepper-32}

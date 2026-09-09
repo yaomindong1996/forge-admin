@@ -51,9 +51,7 @@ public class UsernamePasswordCaptchaAuthStrategy extends AbstractAuthStrategy {
                 throw new RuntimeException("验证码不能为空");
             }
         } else if ("slider".equals(captchaType)) {
-            // 滑块验证码：前端已验证，后端只需检查是否已验证标记
-            // 为了安全，可以添加一个临时的token验证
-            if (StrUtil.isBlank(request.getCode())) {
+            if (StrUtil.isBlank(request.getCode()) || StrUtil.isBlank(request.getCodeKey())) {
                 throw new RuntimeException("请完成滑块验证");
             }
         } else {
@@ -101,9 +99,12 @@ public class UsernamePasswordCaptchaAuthStrategy extends AbstractAuthStrategy {
 
         switch (captchaType) {
             case "slider":
-                // 滑块验证码：前端组件已验证，后端只需检查验证标记
-                // "verified" 表示前端验证通过
-                return "verified".equals(request.getCode());
+                try {
+                    return captchaService.validateAndDeleteSliderCaptcha(
+                            request.getCodeKey(), Integer.valueOf(request.getCode()));
+                } catch (NumberFormatException exception) {
+                    return false;
+                }
             case "sms":
                 // 短信验证码：使用手机号验证
                 return captchaService.validateAndDeleteSmsCaptcha(request.getPhone(), request.getCode());

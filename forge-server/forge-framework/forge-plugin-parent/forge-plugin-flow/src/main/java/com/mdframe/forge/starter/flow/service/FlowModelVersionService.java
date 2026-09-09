@@ -10,6 +10,8 @@ import com.mdframe.forge.starter.flow.entity.FlowModelVersion;
 import com.mdframe.forge.starter.flow.vo.VersionCompareVO;
 import com.mdframe.forge.starter.flow.vo.VersionDetailVO;
 import com.mdframe.forge.starter.flow.vo.VersionRevertVO;
+import com.mdframe.forge.starter.flow.vo.VersionCleanupVO;
+import com.mdframe.forge.starter.flow.dto.VersionCleanupDTO;
 
 public interface FlowModelVersionService extends IService<FlowModelVersion> {
 
@@ -26,4 +28,7 @@ public interface FlowModelVersionService extends IService<FlowModelVersion> {
     void deleteVersion(String versionId);
 
     void insertVersionOnPublish(FlowModel model, String changeDescription);
+
+    /** 清理历史版本并返回被保护/仍运行引用的版本数量。 */
+    VersionCleanupVO cleanupVersions(VersionCleanupDTO dto);
 }

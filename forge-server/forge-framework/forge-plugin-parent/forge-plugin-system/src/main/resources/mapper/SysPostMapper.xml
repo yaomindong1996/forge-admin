@@ -66,4 +66,24 @@
         ORDER BY p.sort ASC, p.create_time DESC
     </select>
 
+    <select id="selectFlowPosts" resultType="com.mdframe.forge.plugin.system.entity.SysPost">
+        SELECT
+            p.id, p.tenant_id, p.post_code, p.org_id, o.org_name, p.post_name,
+            p.post_status, p.post_type, p.sort, p.remark,
+            p.create_by, p.create_time, p.create_dept, p.update_by, p.update_time, p.del_flag
+        FROM sys_post p
+        LEFT JOIN sys_org o
+            ON o.id = p.org_id
+           AND o.tenant_id = p.tenant_id
+           AND o.org_status = 1
+           AND o.del_flag = 0
+        WHERE p.tenant_id = #{tenantId}
+          AND p.post_status = 1
+          AND p.del_flag = 0
+        <if test="orgId != null">
+          AND p.org_id = #{orgId}
+        </if>
+        ORDER BY p.sort ASC, p.id ASC
+    </select>
+
 </mapper>

@@ -17,6 +17,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.slf4j.MDC;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -29,7 +30,11 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -43,13 +48,48 @@ public class OkHttpSecureOutboundClient implements SecureOutboundClient {
     private static final Set<String> CREDENTIAL_HEADERS = Set.of(
             "authorization", "cookie", "cookie2", "proxy-authorization");
     private static final int BUFFER_SIZE = 8192;
+    private static final String REQUEST_ID_HEADER = "X-Request-Id";
+    private static final Pattern SAFE_REQUEST_ID = Pattern.compile("[A-Za-z0-9._:-]{1,64}");
 
     private final OutboundPolicyService policyService;
     private final OutboundProperties properties;
+    private final Map<String, Semaphore> bulkheads = new ConcurrentHashMap<>();
+    private final Map<String, CircuitState> circuits = new ConcurrentHashMap<>();
 
     @Override
     public OutboundResponse execute(OutboundRequest request) {
         RequestState state = validateRequest(request);
+        String scene = state.scene();
+        Semaphore bulkhead = bulkheads.computeIfAbsent(scene,
+                ignored -> new Semaphore(Math.max(1, properties.getBulkheadMaxConcurrent())));
+        if (properties.isBulkheadEnabled() && !bulkhead.tryAcquire()) {
+            throw new OutboundSecurityException("出站并发隔离已达到上限");
+        }
+        CircuitState circuit = circuits.computeIfAbsent(scene, ignored -> new CircuitState());
+        if (properties.isCircuitBreakerEnabled() && !circuit.allowRequest()) {
+            if (properties.isBulkheadEnabled()) {
+                bulkhead.release();
+            }
+            throw new OutboundSecurityException("出站服务熔断中，请稍后重试");
+        }
+        try {
+            OutboundResponse response = executeWithRedirects(state);
+            circuit.recordSuccess();
+            return response;
+        } catch (OutboundSecurityException exception) {
+            if (isCircuitFailure(exception)) {
+                circuit.recordFailure(properties.getCircuitBreakerFailureThreshold(),
+                        properties.getCircuitBreakerOpenDuration());
+            }
+            throw exception;
+        } finally {
+            if (properties.isBulkheadEnabled()) {
+                bulkhead.release();
+            }
+        }
+    }
+
+    private OutboundResponse executeWithRedirects(RequestState state) {
         long deadlineNanos = System.nanoTime() + state.callTimeout().toNanos();
         int redirects = 0;
 
@@ -76,6 +116,34 @@ public class OkHttpSecureOutboundClient implements SecureOutboundClient {
             }
             state = redirectState(state, target.getUri(), location, response.getStatusCode());
             redirects++;
+        }
+    }
+
+    private boolean isCircuitFailure(OutboundSecurityException exception) {
+        String message = exception.getMessage();
+        return "出站请求超时".equals(message) || "出站请求失败".equals(message);
+    }
+
+    private static final class CircuitState {
+        private final AtomicInteger consecutiveFailures = new AtomicInteger();
+        private volatile long openedUntilMillis;
+
+        private boolean allowRequest() {
+            return openedUntilMillis <= System.currentTimeMillis();
+        }
+
+        private void recordSuccess() {
+            consecutiveFailures.set(0);
+            openedUntilMillis = 0;
+        }
+
+        private void recordFailure(int threshold, Duration openDuration) {
+            int failures = consecutiveFailures.incrementAndGet();
+            if (failures >= Math.max(1, threshold)) {
+                Duration duration = openDuration == null ? Duration.ofSeconds(30) : openDuration;
+                openedUntilMillis = System.currentTimeMillis()
+                        + Math.max(1, duration.toMillis());
+            }
         }
     }
 
@@ -151,6 +219,12 @@ public class OkHttpSecureOutboundClient implements SecureOutboundClient {
     private Request buildRequest(RequestState state, URI uri) {
         Request.Builder builder = new Request.Builder().url(uri.toString());
         state.headers().forEach(builder::header);
+        if (state.headers().keySet().stream().noneMatch(name -> REQUEST_ID_HEADER.equalsIgnoreCase(name))) {
+            String requestId = MDC.get("requestId");
+            if (requestId != null && SAFE_REQUEST_ID.matcher(requestId).matches()) {
+                builder.header(REQUEST_ID_HEADER, requestId);
+            }
+        }
         byte[] body = state.body();
         RequestBody requestBody = null;
         if (body.length > 0 || requiresRequestBody(state.method())) {

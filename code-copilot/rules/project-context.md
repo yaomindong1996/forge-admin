@@ -7,7 +7,7 @@ alwaysApply: true
 ## 1. 应用概况
 - **应用名**: Forge Admin
 - **简介**: 基于Vue3 + Spring Boot的企业级中后台管理框架，微内核插件化架构
-- **技术栈**: Java 17 / Spring Boot 3.2.9 / Vue 3.5 / Naive UI 2.42 / Vite 7
+- **技术栈**: Java 17 / Spring Boot 3.5.13 / Vue 3.5 / Naive UI 2.42 / Vite 7
 - **构建工具**: Maven (后端) + pnpm (前端)
 - **数据库**: MySQL 8.0+ / Redis 6.0+
 - **版本**: 1.0.0
@@ -17,7 +17,7 @@ alwaysApply: true
 ### 2.1 后端技术栈
 | 技术/框架 | 版本 | 用途 |
 |----------|------|------|
-| Spring Boot | 3.2.9 | 基础框架 |
+| Spring Boot | 3.5.13 | 基础框架 |
 | MyBatis-Plus | 3.5.7 | ORM框架 |
 | Sa-Token | 1.38.0 | 认证授权 |
 | Redisson | 3.34.1 | 分布式锁 |
@@ -249,13 +249,13 @@ Utils (utils/)           # 工具函数
 ### 6.1 后端命令
 ```bash
 # 编译整个项目
-cd forge && mvn clean install
+cd forge-server && mvn clean install
 
 # 运行admin服务
-cd forge/forge-admin && mvn spring-boot:run
+cd forge-server/forge-admin-server && mvn spring-boot:run
 
 # 运行flow服务
-cd forge/forge-flow && mvn spring-boot:run
+cd forge-server/forge-flow/forge-flow-server && mvn spring-boot:run
 
 # 跳过测试编译
 mvn clean install -DskipTests
@@ -289,7 +289,7 @@ CREATE DATABASE forge DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
 -- 导入初始数据
 USE forge;
-SOURCE /path/to/forge-admin/src/main/resources/sql/forge.sql;
+SOURCE /path/to/forge-server/db/migration/V1.0.0__baseline.sql;
 ```
 
 ## 7. 开发环境配置
@@ -365,7 +365,7 @@ VITE_FLOW_PROXY_TARGET=http://localhost:8581
 
 ## 9. 项目统计
 
-- **后端模块数量**: 33个Maven模块
+- **后端模块数量**: 以 `forge-server/pom.xml` 的 Maven reactor 模块为准（当前约 45 个）
 - **插件数量**: 5个业务插件
 - **启动器数量**: 20个技术启动器
 - **前端组件数量**: 20+公共组件
@@ -399,15 +399,15 @@ CREATE DATABASE forge DEFAULT CHARACTER SET utf8mb4;
 
 # 2. 导入SQL脚本
 USE forge;
-SOURCE forge/forge-admin/src/main/resources/sql/forge.sql;
+SOURCE forge-server/db/migration/V1.0.0__baseline.sql;
 
 # 3. 配置数据库连接
-cp forge/forge-admin/src/main/resources/application-dev.example.yml \
-   forge/forge-admin/src/main/resources/application-dev.yml
+cp forge-server/forge-admin-server/src/main/resources/application-dev.example.yml \
+   forge-server/forge-admin-server/src/main/resources/application-dev.yml
 # 编辑application-dev.yml，配置数据库和Redis
 
 # 4. 启动服务
-cd forge/forge-admin
+cd forge-server/forge-admin-server
 mvn spring-boot:run
 
 # 访问 http://localhost:8580

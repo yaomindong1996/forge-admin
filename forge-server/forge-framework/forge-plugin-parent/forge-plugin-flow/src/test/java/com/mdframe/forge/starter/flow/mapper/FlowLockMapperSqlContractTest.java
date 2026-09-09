@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FlowLockMapperSqlContractTest {
 
     private static final Map<String, String> LOCK_STATEMENTS = Map.of(
-            "mapper/FlowTaskMapper.xml", "selectByTaskIdForUpdate",
+            "mapper/FlowTaskMapper.xml", "selectByTaskIdForUpdateAndTenant",
             "mapper/FlowErrorLogMapper.xml", "selectByIdAndTenantIdForUpdate",
             "mapper/FlowFillBatchItemMapper.xml", "selectByIdForUpdate",
             "mapper/FlowBusinessMapper.xml", "selectByProcessInstanceIdAndTenantIdForUpdate"

@@ -267,6 +267,7 @@ export function normalizeLowcodePolicies(model = {}) {
     orgColumn: orgRef.column,
     regionField: regionRef.field,
     regionColumn: regionRef.column,
+    flowRelatedVisible: source.flowRelatedVisible === false ? false : source.flowRelatedVisible == null ? null : true,
     auditEnabled: true,
     primaryKeyStrategy: 'AUTO_INCREMENT',
     primaryKeyField: 'id',

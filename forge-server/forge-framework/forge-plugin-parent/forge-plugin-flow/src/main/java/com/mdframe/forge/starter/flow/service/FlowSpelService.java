@@ -1,15 +1,5 @@
 package com.mdframe.forge.starter.flow.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.mdframe.forge.plugin.system.entity.SysOrg;
-import com.mdframe.forge.plugin.system.entity.SysRole;
-import com.mdframe.forge.plugin.system.entity.SysUser;
-import com.mdframe.forge.plugin.system.mapper.SysUserOrgRoleMapper;
-import com.mdframe.forge.plugin.system.service.ISysOrgService;
-import com.mdframe.forge.plugin.system.service.ISysRoleService;
-import com.mdframe.forge.plugin.system.service.ISysUserService;
-import com.mdframe.forge.starter.core.session.SessionHelper;
-import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.engine.delegate.DelegateExecution;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,17 +25,7 @@ import java.util.stream.Collectors;
 @Service("flowSpelService")
 public class FlowSpelService {
 
-    @Autowired(required = false)
-    private ISysUserService sysUserService;
-
-    @Autowired(required = false)
-    private ISysRoleService sysRoleService;
-
-    @Autowired(required = false)
-    private ISysOrgService sysOrgService;
-
-    @Autowired(required = false)
-    private SysUserOrgRoleMapper sysUserOrgRoleMapper;
+    private static final int MAX_RESULT_USERS = 200;
 
     @Autowired(required = false)
     private FlowOrgIntegrationService flowOrgIntegrationService;
@@ -57,25 +37,16 @@ public class FlowSpelService {
      * @return 部门负责人的用户ID，如果未找到返回 null
      */
     public String findDeptManager(Object deptId) {
-        log.info("SPEL: 查找部门负责人, deptId={}", deptId);
+        log.debug("SPEL: 查找部门负责人");
 
-        if (deptId == null || sysOrgService == null) {
+        if (deptId == null || flowOrgIntegrationService == null) {
             log.warn("SPEL: 部门ID为空或组织服务未注入，无法查找负责人");
             return null;
         }
 
         try {
-            Long orgId = Long.parseLong(deptId.toString());
-            SysOrg org = sysOrgService.selectOrgById(orgId);
-
-            if (org != null && org.getLeaderId() != null) {
-                String managerId = String.valueOf(org.getLeaderId());
-                log.info("SPEL: 部门负责人查询结果: {}", managerId);
-                return managerId;
-            }
-
-            log.warn("SPEL: 未找到部门负责人, deptId={}", deptId);
-            return null;
+            List<String> managerIds = flowOrgIntegrationService.getDeptManagerByDeptId(deptId.toString());
+            return managerIds.isEmpty() ? null : managerIds.get(0);
         } catch (Exception e) {
             log.error("SPEL: 查找部门负责人失败", e);
             return null;
@@ -89,38 +60,46 @@ public class FlowSpelService {
      * @return 用户ID列表，多个用户用逗号分隔（用于会签）
      */
     public String findUsersByRole(Object roleKey) {
-        log.info("SPEL: 查找角色用户, roleKey={}", roleKey);
+        log.debug("SPEL: 查找角色用户");
 
-        if (roleKey == null || sysRoleService == null || sysUserOrgRoleMapper == null) {
+        if (roleKey == null || flowOrgIntegrationService == null) {
             log.warn("SPEL: 角色标识为空或服务未注入，无法查找用户");
             return null;
         }
 
         try {
-            // 根据roleKey查找角色
-            LambdaQueryWrapper<SysRole> roleWrapper = new LambdaQueryWrapper<>();
-            roleWrapper.eq(SysRole::getRoleKey, roleKey.toString());
-            SysRole role = sysRoleService.getOne(roleWrapper);
-
-            if (role == null) {
-                log.warn("SPEL: 未找到角色, roleKey={}", roleKey);
+            List<String> userIds = flowOrgIntegrationService.getUserIdsByRoleCode(roleKey.toString());
+            if (userIds == null || userIds.isEmpty()) {
+                log.warn("SPEL: 角色下没有有效用户");
                 return null;
             }
-
-            List<Long> userIds = selectUserIdsByRole(role.getId(), resolveActiveOrgId());
-            if (userIds.isEmpty()) {
-                log.warn("SPEL: 角色下没有用户, roleKey={}", roleKey);
-                return null;
-            }
-
-            String result = userIds.stream()
-                    .map(String::valueOf)
-                    .collect(Collectors.joining(","));
-
-            log.info("SPEL: 角色用户查询结果: {}", result);
-            return result;
+            return userIds.stream().limit(MAX_RESULT_USERS).collect(Collectors.joining(","));
         } catch (Exception e) {
             log.error("SPEL: 查找角色用户失败", e);
+            return null;
+        }
+    }
+
+    /**
+     * 根据流程用户组编码查找用户，供 candidateUsers 或会签表达式使用。
+     * 禁用用户组和禁用成员由组织集成服务在租户边界内过滤。
+     */
+    public String findUsersByGroup(Object groupCode) {
+        log.debug("SPEL: 查找流程用户组用户");
+
+        if (groupCode == null || flowOrgIntegrationService == null) {
+            log.warn("SPEL: 用户组编码为空或组织服务未注入，无法查找用户");
+            return null;
+        }
+        try {
+            List<String> userIds = flowOrgIntegrationService.getUserIdsByGroupCode(groupCode.toString());
+            if (userIds == null || userIds.isEmpty()) {
+                log.warn("SPEL: 用户组没有有效成员");
+                return null;
+            }
+            return userIds.stream().limit(MAX_RESULT_USERS).collect(Collectors.joining(","));
+        } catch (Exception e) {
+            log.error("SPEL: 查找流程用户组用户失败", e);
             return null;
         }
     }
@@ -132,29 +111,23 @@ public class FlowSpelService {
      * @return 区域负责人的用户ID
      */
     public String findRegionManager(Object regionCode) {
-        log.info("SPEL: 查找区域负责人, regionCode={}", regionCode);
+        log.debug("SPEL: 查找区域负责人");
 
-        if (regionCode == null || sysUserService == null) {
+        if (regionCode == null || flowOrgIntegrationService == null) {
             log.warn("SPEL: 区划代码为空或用户服务未注入，无法查找负责人");
             return null;
         }
 
         try {
-            // 根据区划代码查找用户（假设用户表有regionCode字段，且该区域有负责人标识）
-            LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(SysUser::getRegionCode, regionCode.toString());
-            wrapper.eq(SysUser::getUserStatus, 1); // 只查询正常状态的用户
-            List<SysUser> users = sysUserService.list(wrapper);
+            List<String> users = flowOrgIntegrationService.getUserIdsByRegionCode(regionCode.toString());
 
             if (users.isEmpty()) {
-                log.warn("SPEL: 未找到区域负责人, regionCode={}", regionCode);
+                log.warn("SPEL: 未找到区域负责人");
                 return null;
             }
 
             // 返回第一个用户作为区域负责人
-            String managerId = String.valueOf(users.get(0).getId());
-            log.info("SPEL: 区域负责人查询结果: {}", managerId);
-            return managerId;
+            return users.get(0);
         } catch (Exception e) {
             log.error("SPEL: 查找区域负责人失败", e);
             return null;
@@ -168,7 +141,7 @@ public class FlowSpelService {
      * @return 直属上级的用户ID
      */
     public String findUserLeader(Object userId) {
-        log.info("SPEL: 查找用户上级, userId={}", userId);
+        log.debug("SPEL: 查找用户上级");
 
         if (userId == null || flowOrgIntegrationService == null) {
             log.warn("SPEL: 用户ID为空或组织集成服务未注入，无法查找上级");
@@ -185,7 +158,6 @@ public class FlowSpelService {
                 leaderId = leaderIds.isEmpty() ? null : leaderIds.get(0);
             }
 
-            log.info("SPEL: 用户上级查询结果: {}", leaderId);
             return leaderId;
         } catch (Exception e) {
             log.error("SPEL: 查找用户上级失败", e);
@@ -201,46 +173,21 @@ public class FlowSpelService {
      * @return 用户ID列表，多个用户用逗号分隔
      */
     public String findUsersByDeptAndRole(Object deptId, Object roleKey) {
-        log.info("SPEL: 查找部门角色用户, deptId={}, roleKey={}", deptId, roleKey);
+        log.debug("SPEL: 查找部门角色用户");
 
-        if (deptId == null || roleKey == null || sysRoleService == null || sysUserOrgRoleMapper == null || sysUserService == null) {
+        if (deptId == null || roleKey == null || flowOrgIntegrationService == null) {
             log.warn("SPEL: 部门ID或角色标识为空或服务未注入，无法查找用户");
             return null;
         }
 
         try {
-            // 根据roleKey查找角色
-            LambdaQueryWrapper<SysRole> roleWrapper = new LambdaQueryWrapper<>();
-            roleWrapper.eq(SysRole::getRoleKey, roleKey.toString());
-            SysRole role = sysRoleService.getOne(roleWrapper);
-
-            if (role == null) {
-                log.warn("SPEL: 未找到角色, roleKey={}", roleKey);
+            List<String> filteredUserIds = flowOrgIntegrationService.getUserIdsByDeptAndRoleCode(
+                    deptId.toString(), roleKey.toString());
+            if (filteredUserIds == null || filteredUserIds.isEmpty()) {
+                log.warn("SPEL: 部门角色下没有有效用户");
                 return null;
             }
-
-            Long orgId = Long.parseLong(deptId.toString());
-            List<Long> userIds = selectUserIdsByRole(role.getId(), orgId);
-            if (userIds.isEmpty()) {
-                log.warn("SPEL: 角色下没有用户, roleKey={}", roleKey);
-                return null;
-            }
-
-            // 从用户服务中筛选出属于指定部门的用户
-            // 注意：这里假设通过FlowOrgIntegrationService或直接查询用户组织关系
-            List<String> filteredUserIds = new ArrayList<>();
-            for (Long userId : userIds) {
-                filteredUserIds.add(String.valueOf(userId));
-            }
-
-            if (filteredUserIds.isEmpty()) {
-                log.warn("SPEL: 部门角色下没有用户, deptId={}, roleKey={}", deptId, roleKey);
-                return null;
-            }
-
-            String result = String.join(",", filteredUserIds);
-            log.info("SPEL: 部门角色用户查询结果: {}", result);
-            return result;
+            return filteredUserIds.stream().limit(MAX_RESULT_USERS).collect(Collectors.joining(","));
         } catch (Exception e) {
             log.error("SPEL: 查找部门角色用户失败", e);
             return null;
@@ -256,7 +203,7 @@ public class FlowSpelService {
      * @return 审批人用户ID
      */
     public String findApproverByBusinessRule(DelegateExecution execution, String businessType) {
-        log.info("SPEL: 根据业务规则查找审批人, businessType={}", businessType);
+        log.debug("SPEL: 根据业务规则查找审批人");
 
         if (execution == null || businessType == null) {
             log.warn("SPEL: 执行上下文或业务类型为空");
@@ -265,7 +212,7 @@ public class FlowSpelService {
 
         try {
             Map<String, Object> variables = execution.getVariables();
-            log.info("SPEL: 流程变量: {}", variables);
+            log.debug("SPEL: 已读取流程变量用于业务规则判断, variableCount={}", variables.size());
 
             // 根据业务类型实现不同的审批规则
             if ("order".equals(businessType)) {
@@ -308,7 +255,7 @@ public class FlowSpelService {
                 }
             }
 
-            log.warn("SPEL: 未匹配到业务规则, businessType={}", businessType);
+            log.warn("SPEL: 未匹配到业务规则");
             return null;
         } catch (Exception e) {
             log.error("SPEL: 根据业务规则查找审批人失败", e);
@@ -330,7 +277,7 @@ public class FlowSpelService {
 
         try {
             Object initiator = execution.getVariable("initiator");
-            log.info("SPEL: 流程发起人: {}", initiator);
+            log.debug("SPEL: 已读取流程发起人变量");
             return initiator != null ? initiator.toString() : null;
         } catch (Exception e) {
             log.error("SPEL: 获取流程发起人失败", e);
@@ -362,8 +309,7 @@ public class FlowSpelService {
      * @return 选择的审批人
      */
     public String conditionalAssignee(boolean condition, String trueValue, String falseValue) {
-        log.info("SPEL: 条件选择审批人, condition={}, trueValue={}, falseValue={}",
-                 condition, trueValue, falseValue);
+        log.debug("SPEL: 条件选择审批人, condition={}", condition);
         return condition ? trueValue : falseValue;
     }
 
@@ -392,27 +338,7 @@ public class FlowSpelService {
         }
 
         String result = String.join(",", allAssignees);
-        log.info("SPEL: 合并审批人列表: {}", result);
         return result;
     }
 
-    private List<Long> selectUserIdsByRole(Long roleId, Long orgId) {
-        Long tenantId = resolveTenantId();
-        if (tenantId == null || orgId == null || roleId == null) {
-            return List.of();
-        }
-        return sysUserOrgRoleMapper.selectUserIdsByRoleIds(tenantId, orgId, List.of(roleId));
-    }
-
-    private Long resolveTenantId() {
-        Long tenantId = TenantContextHolder.getTenantId();
-        if (tenantId == null) {
-            tenantId = SessionHelper.getTenantId();
-        }
-        return tenantId;
-    }
-
-    private Long resolveActiveOrgId() {
-        return SessionHelper.getActiveOrgId();
-    }
 }

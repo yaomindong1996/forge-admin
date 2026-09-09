@@ -5,6 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.mdframe.forge.starter.flow.entity.FlowModel;
 import com.mdframe.forge.starter.flow.dto.FlowStartConfig;
+import com.mdframe.forge.starter.flow.dto.FlowModelSortDTO;
+import com.mdframe.forge.starter.flow.vo.FlowModelStatisticsVO;
+import com.mdframe.forge.starter.flow.vo.FlowModelVersionSummaryVO;
 
 import java.util.List;
 import java.util.Map;
@@ -27,7 +30,7 @@ public interface FlowModelService extends IService<FlowModel> {
     /**
      * 获取流程模型状态统计
      */
-    Map<String, Object> getStatusStatistics(String modelName, String category);
+    FlowModelStatisticsVO getStatusStatistics(String modelName, String category);
 
     /**
      * 创建流程模型
@@ -87,7 +90,7 @@ public interface FlowModelService extends IService<FlowModel> {
     /**
      * 获取模型版本历史
      */
-    List<Map<String, Object>> getModelVersions(String modelKey);
+    List<FlowModelVersionSummaryVO> getModelVersions(String modelKey);
 
     /**
      * 导入BPMN模型
@@ -108,4 +111,7 @@ public interface FlowModelService extends IService<FlowModel> {
      * 检查模型Key是否存在
      */
     boolean checkModelKeyExists(String modelKey, String excludeId);
+
+    /** 批量调整当前租户模型目录排序。 */
+    void sortModels(FlowModelSortDTO request);
 }

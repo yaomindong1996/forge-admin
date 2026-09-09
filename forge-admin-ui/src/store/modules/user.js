@@ -1,9 +1,18 @@
 import { defineStore } from 'pinia'
 
+/** 将 OA 返回的区划字段统一为前端使用的编码字符串。 */
+export function getTransitionEparchyCode(value) {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'object') {
+    return String(value.eparchyCode ?? value.code ?? value.value ?? '').trim()
+  }
+  return String(value).trim()
+}
+
 function getStaffInfo(user) {
   let staffInfo = {}
   if (user.oaStaffInfo && Object.keys(user.oaStaffInfo).length !== 0 && user.oaStaffInfo.staffNo) {
-    staffInfo = user.oaStaffInfo
+    staffInfo = { ...user.oaStaffInfo }
     staffInfo.eparchyCode = getTransitionEparchyCode(user.oaStaffInfo.eparchy)
     staffInfo.staffId = user.oaStaffInfo.staffNoOld
     staffInfo.roleId = user.staffInfo && user.staffInfo.roleId || ''
@@ -12,7 +21,7 @@ function getStaffInfo(user) {
   }
   else {
     if (user.uacStaffInfo && Object.keys(user.uacStaffInfo).length !== 0 && user.uacStaffInfo.staffNo) {
-      staffInfo = user.uacStaffInfo
+      staffInfo = { ...user.uacStaffInfo }
       staffInfo.eparchyCode = user.uacStaffInfo.eparchyCode || user.staffInfo && user.staffInfo.eparchyCode || user.userInfo && user.userInfo.eparchyCode
       staffInfo.roleId = user.uacStaffInfo.roleId || user.staffInfo && user.staffInfo.roleId || ''
       staffInfo.staffId = user.uacStaffInfo.staffNo || user.staffInfo && user.staffInfo.staffId

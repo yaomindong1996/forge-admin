@@ -33,6 +33,79 @@
           AND status = 1
           AND deleted = 0
         ORDER BY sort ASC, id ASC
+        LIMIT 200
     </select>
+
+    <select id="selectTenantPage" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_flow_spel_template
+        <where>
+            tenant_id = #{tenantId}
+            AND deleted = 0
+            <if test="templateName != null and templateName != ''">
+                AND template_name LIKE CONCAT('%', #{templateName}, '%')
+            </if>
+            <if test="category != null and category != ''">
+                AND category = #{category}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <select id="selectByIdAndTenant" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_flow_spel_template
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+          AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="countByCodeAndTenant" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_flow_spel_template
+        WHERE tenant_id = #{tenantId}
+          AND template_code = #{templateCode}
+          AND deleted = 0
+          <if test="excludeId != null">
+            AND id != #{excludeId}
+          </if>
+    </select>
+
+    <update id="updateByIdAndTenant">
+        UPDATE sys_flow_spel_template
+        SET template_name = #{template.templateName},
+            expression = #{template.expression},
+            description = #{template.description},
+            category = #{template.category},
+            example_params = #{template.exampleParams},
+            status = #{template.status},
+            sort = #{template.sort},
+            remark = #{template.remark},
+            update_by = #{template.updateBy},
+            update_time = #{template.updateTime}
+        WHERE id = #{template.id}
+          AND tenant_id = #{tenantId}
+          AND deleted = 0
+    </update>
+
+    <update id="updateStatusByIdAndTenant">
+        UPDATE sys_flow_spel_template
+        SET status = #{status}
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+          AND deleted = 0
+    </update>
+
+    <update id="logicallyDeleteByIdAndTenant">
+        UPDATE sys_flow_spel_template
+        SET deleted = 1
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+          AND deleted = 0
+    </update>
 
 </mapper>

@@ -20,6 +20,15 @@
           </div>
         </div>
 
+        <n-alert
+          v-if="diagramInfo.sequenceFlowStatusAvailable === false"
+          type="warning"
+          :bordered="false"
+          class="sequence-flow-degraded"
+        >
+          {{ diagramInfo.sequenceFlowStatusMessage || '当前历史数据无法可靠判断连线执行状态' }}
+        </n-alert>
+
         <!-- BPMN 流程图容器 -->
         <div ref="containerRef" class="diagram-container">
           <div v-if="diagramInfo.bpmnXml && !renderFailed" ref="canvasRef" class="bpmn-canvas" />
@@ -224,7 +233,7 @@ async function fetchDiagramInfo() {
       // 等待 DOM 更新后渲染 BPMN
       await nextTick()
       if (res.data.bpmnXml) {
-        await renderBpmn(res.data.bpmnXml, res.data.nodes)
+        await renderBpmn(res.data.bpmnXml, res.data.nodes, res.data.sequenceFlows)
       }
     }
   }
@@ -236,7 +245,7 @@ async function fetchDiagramInfo() {
   }
 }
 
-async function renderBpmn(bpmnXml, nodes) {
+async function renderBpmn(bpmnXml, nodes, sequenceFlows) {
   if (!canvasRef.value)
     return
 
@@ -273,10 +282,25 @@ async function renderBpmn(bpmnXml, nodes) {
       })
     }
 
+    const sequenceFlowStatusMap = new Map()
+    if (sequenceFlows) {
+      sequenceFlows.forEach((flow) => {
+        sequenceFlowStatusMap.set(flow.flowId, flow.status)
+      })
+    }
+
     // 遍历所有元素，添加样式
     elementRegistry.forEach((element) => {
       const nodeId = element.id
       const nodeInfo = nodeStatusMap.get(nodeId)
+
+      if (element.type === 'bpmn:SequenceFlow') {
+        const flowStatus = sequenceFlowStatusMap.get(nodeId)
+        if (flowStatus) {
+          canvas.addMarker(nodeId, `flow-${flowStatus}`)
+        }
+        return
+      }
 
       if (nodeInfo) {
         // 添加状态样式
@@ -516,6 +540,11 @@ onUnmounted(() => {
   height: 320px;
 }
 
+.sequence-flow-degraded {
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
 .diagram-image {
   display: block;
   width: 100%;
@@ -569,6 +598,16 @@ onUnmounted(() => {
   fill: #fafafa !important;
   stroke: #d0d0d0 !important;
   stroke-width: 2px;
+}
+
+:deep(.flow-completed .djs-visual > path) {
+  stroke: #18a058 !important;
+  stroke-width: 2.5px !important;
+}
+
+:deep(.flow-pending .djs-visual > path) {
+  stroke: #d0d0d0 !important;
+  stroke-dasharray: 5 3 !important;
 }
 
 /* 处理人标记样式 */

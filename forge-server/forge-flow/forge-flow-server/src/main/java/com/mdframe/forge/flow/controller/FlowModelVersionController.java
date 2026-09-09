@@ -1,5 +1,6 @@
 package com.mdframe.forge.flow.controller;
 
+import cn.dev33.satoken.annotation.SaCheckPermission;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mdframe.forge.starter.core.annotation.crypto.ApiDecrypt;
@@ -10,11 +11,13 @@ import com.mdframe.forge.starter.core.exception.BusinessException;
 import com.mdframe.forge.starter.flow.dto.VersionCompareDTO;
 import com.mdframe.forge.starter.flow.dto.VersionRevertDTO;
 import com.mdframe.forge.starter.flow.dto.VersionTagUpdateDTO;
+import com.mdframe.forge.starter.flow.dto.VersionCleanupDTO;
 import com.mdframe.forge.starter.flow.entity.FlowModelVersion;
 import com.mdframe.forge.starter.flow.service.FlowModelVersionService;
 import com.mdframe.forge.starter.flow.vo.VersionCompareVO;
 import com.mdframe.forge.starter.flow.vo.VersionDetailVO;
 import com.mdframe.forge.starter.flow.vo.VersionRevertVO;
+import com.mdframe.forge.starter.flow.vo.VersionCleanupVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -39,7 +42,9 @@ public class FlowModelVersionController {
             @RequestParam String modelId,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "20") Integer pageSize) {
-        Page<FlowModelVersion> page = new Page<>(pageNum, pageSize);
+        int safePageNum = pageNum == null || pageNum < 1 ? 1 : pageNum;
+        int safePageSize = pageSize == null || pageSize < 1 ? 20 : Math.min(pageSize, 100);
+        Page<FlowModelVersion> page = new Page<>(safePageNum, safePageSize);
         return RespInfo.success(flowModelVersionService.pageVersionList(page, modelId));
     }
 
@@ -69,6 +74,12 @@ public class FlowModelVersionController {
     public RespInfo<Void> deleteVersion(@PathVariable String versionId) {
         flowModelVersionService.deleteVersion(versionId);
         return RespInfo.success();
+    }
+
+    @PostMapping("/cleanup")
+    @SaCheckPermission("flow:model:version:cleanup")
+    public RespInfo<VersionCleanupVO> cleanupVersions(@RequestBody VersionCleanupDTO dto) {
+        return RespInfo.success(flowModelVersionService.cleanupVersions(dto));
     }
 
     @GetMapping("/download/{versionId}")

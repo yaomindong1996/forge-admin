@@ -19,7 +19,4 @@ public class FlowTaskApproveDTO extends FlowTaskActionDTO {
 
     private Long tenantId;
 
-    private String idempotencyKey;
-
-    private String requestDigest;
 }

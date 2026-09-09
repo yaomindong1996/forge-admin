@@ -5,6 +5,7 @@ import com.mdframe.forge.starter.flow.entity.FlowOverdueReminderRecord;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -18,6 +19,15 @@ public interface FlowOverdueReminderRecordMapper extends BaseMapper<FlowOverdueR
 
     Integer countDistinctReminderKeysByTaskId(@Param("tenantId") Long tenantId,
                                               @Param("taskId") String taskId);
+
+    FlowOverdueReminderRecord selectByUniqueKey(@Param("tenantId") Long tenantId,
+                                                @Param("reminderKey") String reminderKey,
+                                                @Param("channel") String channel);
+
+    int claimRetry(@Param("tenantId") Long tenantId,
+                   @Param("reminderKey") String reminderKey,
+                   @Param("channel") String channel,
+                   @Param("now") LocalDateTime now);
 
     List<FlowOverdueReminderRecord> selectByTaskId(@Param("taskId") String taskId);
 }

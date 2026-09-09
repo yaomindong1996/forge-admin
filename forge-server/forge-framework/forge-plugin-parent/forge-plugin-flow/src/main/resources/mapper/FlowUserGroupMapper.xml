@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.starter.flow.mapper.FlowUserGroupMapper">
+
+    <resultMap id="GroupResultMap" type="com.mdframe.forge.starter.flow.entity.FlowUserGroup">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="group_code" property="groupCode"/>
+        <result column="group_name" property="groupName"/>
+        <result column="status" property="status"/>
+        <result column="remark" property="remark"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="del_flag" property="delFlag"/>
+    </resultMap>
+
+    <sql id="GroupColumns">
+        g.id, g.tenant_id, g.group_code, g.group_name, g.status, g.remark,
+        g.create_by, g.create_time, g.create_dept, g.update_by, g.update_time, g.del_flag
+    </sql>
+
+    <select id="selectPageByTenant" resultType="com.mdframe.forge.starter.flow.vo.FlowUserGroupVO">
+        SELECT g.id,
+               g.group_code,
+               g.group_name,
+               g.status,
+               g.remark,
+               g.create_time,
+               g.update_time,
+               (SELECT COUNT(1)
+                  FROM sys_flow_user_group_member m
+                 WHERE m.group_id = g.id
+                   AND m.tenant_id = g.tenant_id
+                   AND m.status = 1
+                   AND m.del_flag = 0) AS member_count
+        FROM sys_flow_user_group g
+        <where>
+            g.tenant_id = #{tenantId}
+            AND g.del_flag = 0
+            <if test="keyword != null and keyword != ''">
+                AND (g.group_code LIKE CONCAT('%', #{keyword}, '%')
+                     OR g.group_name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="groupCode != null and groupCode != ''">
+                AND g.group_code LIKE CONCAT('%', #{groupCode}, '%')
+            </if>
+            <if test="groupName != null and groupName != ''">
+                AND g.group_name LIKE CONCAT('%', #{groupName}, '%')
+            </if>
+            <if test="status != null">
+                AND g.status = #{status}
+            </if>
+        </where>
+        ORDER BY g.create_time DESC, g.id DESC
+    </select>
+
+    <select id="selectVoByIdAndTenant" resultType="com.mdframe.forge.starter.flow.vo.FlowUserGroupVO">
+        SELECT g.id,
+               g.group_code,
+               g.group_name,
+               g.status,
+               g.remark,
+               g.create_time,
+               g.update_time,
+               (SELECT COUNT(1)
+                  FROM sys_flow_user_group_member m
+                 WHERE m.group_id = g.id
+                   AND m.tenant_id = g.tenant_id
+                   AND m.status = 1
+                   AND m.del_flag = 0) AS member_count
+        FROM sys_flow_user_group g
+        WHERE g.id = #{id}
+          AND g.tenant_id = #{tenantId}
+          AND g.del_flag = 0
+        LIMIT 1
+    </select>
+
+    <select id="selectByIdAndTenant" resultMap="GroupResultMap">
+        SELECT <include refid="GroupColumns"/>
+        FROM sys_flow_user_group g
+        WHERE g.id = #{id}
+          AND g.tenant_id = #{tenantId}
+          AND g.del_flag = 0
+        LIMIT 1
+    </select>
+
+    <select id="countByCodeAndTenant" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_flow_user_group
+        WHERE tenant_id = #{tenantId}
+          AND group_code = #{groupCode}
+          AND del_flag = 0
+          <if test="excludeId != null">
+            AND id != #{excludeId}
+          </if>
+    </select>
+
+    <update id="updateByIdAndTenant">
+        UPDATE sys_flow_user_group
+        SET group_name = #{group.groupName},
+            status = #{group.status},
+            remark = #{group.remark},
+            update_by = #{group.updateBy},
+            update_time = #{group.updateTime}
+        WHERE id = #{group.id}
+          AND tenant_id = #{tenantId}
+          AND del_flag = 0
+    </update>
+
+    <update id="logicallyDeleteByIdAndTenant">
+        UPDATE sys_flow_user_group
+        SET del_flag = id,
+            update_by = #{operatorId},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+          AND del_flag = 0
+    </update>
+
+    <update id="logicallyDeleteMembersByGroupId">
+        UPDATE sys_flow_user_group_member
+        SET del_flag = id,
+            update_time = CURRENT_TIMESTAMP
+        WHERE group_id = #{groupId}
+          AND tenant_id = #{tenantId}
+          AND del_flag = 0
+    </update>
+
+    <select id="countActiveGroup" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_flow_user_group
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+          AND status = 1
+          AND del_flag = 0
+    </select>
+
+    <select id="countGroup" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_flow_user_group
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+          AND del_flag = 0
+    </select>
+
+    <insert id="insertMember">
+        INSERT INTO sys_flow_user_group_member
+            (tenant_id, group_id, user_id, status, create_by, create_time, create_dept,
+             update_by, update_time, del_flag)
+        VALUES (#{tenantId}, #{groupId}, #{userId}, 1, #{operatorId}, CURRENT_TIMESTAMP,
+                #{createDept}, #{operatorId}, CURRENT_TIMESTAMP, 0)
+        ON DUPLICATE KEY UPDATE
+            status = 1,
+            del_flag = 0,
+            update_by = #{operatorId},
+            update_time = CURRENT_TIMESTAMP
+    </insert>
+
+    <update id="logicallyDeleteMember">
+        UPDATE sys_flow_user_group_member
+        SET status = 0,
+            del_flag = id,
+            update_by = #{operatorId},
+            update_time = CURRENT_TIMESTAMP
+        WHERE group_id = #{groupId}
+          AND user_id = #{userId}
+          AND tenant_id = #{tenantId}
+          AND del_flag = 0
+    </update>
+
+    <select id="selectMembers" resultType="com.mdframe.forge.starter.flow.vo.FlowUserGroupMemberVO">
+        SELECT m.user_id,
+               u.username,
+               u.real_name,
+               m.status,
+               m.create_time
+        FROM sys_flow_user_group_member m
+        INNER JOIN sys_flow_user_group g
+                ON g.id = m.group_id
+               AND g.tenant_id = m.tenant_id
+               AND g.del_flag = 0
+        INNER JOIN sys_user u
+                ON u.id = m.user_id
+               AND u.tenant_id = m.tenant_id
+               AND u.del_flag = 0
+        WHERE m.group_id = #{groupId}
+          AND m.tenant_id = #{tenantId}
+          AND m.status = 1
+          AND m.del_flag = 0
+        ORDER BY u.real_name ASC, u.id ASC
+        LIMIT 200
+    </select>
+
+    <select id="selectActiveUserIdsByCode" resultType="java.lang.Long">
+        SELECT DISTINCT m.user_id
+        FROM sys_flow_user_group g
+        INNER JOIN sys_flow_user_group_member m
+                ON m.group_id = g.id
+               AND m.tenant_id = g.tenant_id
+               AND m.status = 1
+               AND m.del_flag = 0
+        INNER JOIN sys_user u
+                ON u.id = m.user_id
+               AND u.tenant_id = m.tenant_id
+               AND u.user_status = 1
+               AND u.del_flag = 0
+        WHERE g.tenant_id = #{tenantId}
+          AND g.group_code = #{groupCode}
+          AND g.status = 1
+          AND g.del_flag = 0
+        ORDER BY m.user_id ASC
+        LIMIT 200
+    </select>
+
+    <select id="selectActiveCodesByUserId" resultType="java.lang.String">
+        SELECT g.group_code
+        FROM sys_flow_user_group g
+        INNER JOIN sys_flow_user_group_member m
+                ON m.group_id = g.id
+               AND m.tenant_id = g.tenant_id
+               AND m.user_id = #{userId}
+               AND m.status = 1
+               AND m.del_flag = 0
+        WHERE g.tenant_id = #{tenantId}
+          AND g.status = 1
+          AND g.del_flag = 0
+        ORDER BY g.id ASC
+        LIMIT 200
+    </select>
+</mapper>

@@ -82,6 +82,7 @@ public class ApiConfigRefreshEvent extends ApplicationEvent {
         return reason;
     }
 
+
     /**
      * 刷新类型枚举
      */

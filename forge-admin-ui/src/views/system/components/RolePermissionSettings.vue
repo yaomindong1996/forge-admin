@@ -358,6 +358,9 @@
                     <span>{{ option.label }}</span>
                   </button>
                 </div>
+                <p v-if="showsFlowRelatedHint(page.dataScopeModule)" class="flow-related-hint">
+                  此对象已开启流程经手可见：除上面范围外，还能看到自己发起、审批、被抄送的单据（只读）。待办仍在流程工作台处理。
+                </p>
 
                 <div v-else class="scope-unavailable is-warning">
                   <span>{{ page.dataScopeUnavailableText || '当前页面未接入数据权限配置' }}</span>
@@ -1186,6 +1189,13 @@ function isScopeSelected(module, value) {
   return module.dataScope != null && Number(module.dataScope) === Number(value)
 }
 
+function showsFlowRelatedHint(module) {
+  if (!module?.flowRelatedVisible)
+    return false
+  const scope = module.dataScope ?? props.dataScopeSettings.defaultDataScope
+  return ![1, 2].includes(Number(scope))
+}
+
 function dataScopeOptionText(value) {
   return props.dataScopeOptions.find(option => Number(option.value) === Number(value))?.label || '未设置'
 }
@@ -1847,6 +1857,14 @@ function updateModuleScope(moduleCode, value) {
 .data-scope-panel {
   border-right: 1px solid #f1f5f9;
   background: rgba(250, 250, 250, 0.58);
+}
+
+.flow-related-hint {
+  margin: 10px 0 0;
+  color: var(--text-tertiary, #64748b);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 .section-heading {

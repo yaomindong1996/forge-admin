@@ -798,7 +798,6 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             }
             validateSupportedDataScope(dataScope);
             validateDataScopeAllowedForCurrentUser(dataScope);
-            validateDataScopeAllowedForBoundUsers(role, dataScope);
             result.put(moduleCode, dataScope);
         }
         return result;
@@ -1022,7 +1021,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
                 throw new RuntimeException("租户管理员只能给普通用户分配角色");
             }
         }
-        validateDataScopeAllowedForUsers(resolveMostPermissiveRoleDataScope(role), normalizedUserIds, tenantId);
+        validateDataScopeAllowedForUsers(role.getDataScope(), normalizedUserIds, tenantId);
     }
 
     private List<SysDataScopeConfig> listEnabledDataScopeConfigs(Long tenantId) {
@@ -1118,20 +1117,9 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             }
             validateSupportedDataScope(dataScope);
             validateDataScopeAllowedForCurrentUser(dataScope);
-            validateDataScopeAllowedForBoundUsers(role, dataScope);
             result.put(moduleCode, dataScope);
         }
         return result;
-    }
-
-    private Integer resolveMostPermissiveRoleDataScope(SysRole role) {
-        Integer defaultDataScope = role.getDataScope() != null
-                ? role.getDataScope()
-                : DataScopeType.SELF.getCode();
-        return listRoleModuleDataScopes(role).stream()
-                .map(SysRoleModuleDataScope::getDataScope)
-                .filter(Objects::nonNull)
-                .reduce(defaultDataScope, Math::min);
     }
 
     private void validateSupportedDataScope(Integer dataScope) {

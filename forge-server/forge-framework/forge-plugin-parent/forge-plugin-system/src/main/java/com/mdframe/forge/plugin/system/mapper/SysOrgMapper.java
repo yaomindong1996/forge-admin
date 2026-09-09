@@ -33,6 +33,13 @@ public interface SysOrgMapper extends BaseMapper<SysOrg> {
     List<Long> selectOrgAndChildrenIds(@Param("orgId") Long orgId);
 
     /**
+     * 按租户查询组织及其所有子组织，供流程等跨模块解析使用。
+     * 复杂层级查询必须在 Mapper XML 中完成，并显式绑定租户。
+     */
+    List<Long> selectOrgAndChildrenIdsByTenant(@Param("orgId") Long orgId,
+                                               @Param("tenantId") Long tenantId);
+
+    /**
      * 查询直接子组织数量。
      */
     Long countChildOrgs(@Param("orgId") Long orgId);
@@ -50,6 +57,12 @@ public interface SysOrgMapper extends BaseMapper<SysOrg> {
      * 按组织ID集合查询当前租户内启用组织。
      */
     List<SysOrg> selectEnabledOrgsByIds(@Param("tenantId") Long tenantId, @Param("orgIds") List<Long> orgIds);
+
+    /** 流程运行时按租户读取单个启用组织，避免通过 Service 回查跨租户数据。 */
+    SysOrg selectFlowOrgById(@Param("tenantId") Long tenantId, @Param("orgId") Long orgId);
+
+    /** 流程选人组织树使用的租户限定有效组织列表。 */
+    List<SysOrg> selectFlowOrgList(@Param("tenantId") Long tenantId);
 
     /**
      * 协同目录同步：仅更新同步拥有的组织字段（名称/父级/层级/排序），不触碰负责人等手工资产

@@ -136,6 +136,9 @@ public class BusinessApplicationPermissionService {
                     policies::setOrgField, policies::setOrgColumn);
             applyOptionalField(modelSchema, request.getRegionField(), "区划字段",
                     policies::setRegionField, policies::setRegionColumn);
+            policies.setFlowRelatedVisible(!Boolean.FALSE.equals(request.getFlowRelatedVisible()));
+        } else {
+            policies.setFlowRelatedVisible(null);
         }
         modelSchema.setPolicies(lowcodePolicyService.normalizePolicies(modelSchema, policies));
         context.setModelSchema(modelSchema);
@@ -325,6 +328,8 @@ public class BusinessApplicationPermissionService {
         adapter.setUserField(policies.getUserField());
         adapter.setOrgField(policies.getOrgField());
         adapter.setRegionField(policies.getRegionField());
+        adapter.setFlowRelatedVisible(lowcodePolicyService.isFollowSystem(policies)
+                && lowcodePolicyService.isFlowRelatedVisible(policies));
         if (modelSchema.getFields() != null) {
             modelSchema.getFields().stream()
                     .filter(java.util.Objects::nonNull)

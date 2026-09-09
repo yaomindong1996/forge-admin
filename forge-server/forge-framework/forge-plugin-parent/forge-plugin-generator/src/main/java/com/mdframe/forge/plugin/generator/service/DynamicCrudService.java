@@ -806,7 +806,7 @@ public class DynamicCrudService {
         }
 
         // 公式字段需要基于完整旧值上下文计算，确保部分更新不会把公式算空。
-        DynamicCrudRepository.SqlCondition dataScopeCondition = buildDataScopeCondition(config, tableName, null);
+        DynamicCrudRepository.SqlCondition dataScopeCondition = buildWriteDataScopeCondition(config, tableName, null);
         Map<String, Object> beforeRecord = applyStoredFormulasForUpdate(config, tableName, id, data, dataScopeCondition);
         
         // 过滤并转换字段名
@@ -880,7 +880,7 @@ public class DynamicCrudService {
         LowcodePrimaryKeyStrategy primaryKey = currentPrimaryKey();
         Map<String, String> columnMapping = buildRuntimeColumnMapping(config, tableName);
         Set<String> tableColumns = repository.getTableColumns(tableName);
-        DynamicCrudRepository.SqlCondition dataScopeCondition = buildDataScopeCondition(config, tableName, null);
+        DynamicCrudRepository.SqlCondition dataScopeCondition = buildWriteDataScopeCondition(config, tableName, null);
         Map<String, Object> beforeRecord = applyStoredFormulasForUpdate(config, tableName, id, data, dataScopeCondition);
 
         Map<String, Object> filteredData = new LinkedHashMap<>();
@@ -931,7 +931,7 @@ public class DynamicCrudService {
         try (LowcodeRuntimeDataSourceContextHolder.Scope ignored = useRuntimeContext(config)) {
         String tableName = config.getTableName();
         LowcodePrimaryKeyStrategy primaryKey = currentPrimaryKey();
-        DynamicCrudRepository.SqlCondition dataScopeCondition = buildDataScopeCondition(config, tableName, null);
+        DynamicCrudRepository.SqlCondition dataScopeCondition = buildWriteDataScopeCondition(config, tableName, null);
         Map<String, Object> beforeRecord = applyStoredFormulasForUpdate(config, tableName, id, fields, dataScopeCondition);
         Map<String, Object> filteredData = filterInternalWriteData(config, tableName, fields);
         if (filteredData.isEmpty()) {
@@ -968,7 +968,7 @@ public class DynamicCrudService {
         try (LowcodeRuntimeDataSourceContextHolder.Scope ignored = useRuntimeContext(config)) {
             String tableName = config.getTableName();
             LowcodePrimaryKeyStrategy primaryKey = currentPrimaryKey();
-            DynamicCrudRepository.SqlCondition dataScope = buildDataScopeCondition(config, tableName, null);
+            DynamicCrudRepository.SqlCondition dataScope = buildWriteDataScopeCondition(config, tableName, null);
             Map<String, Object> beforeRecord = applyStoredFormulasForUpdate(
                     config, tableName, id, fields, dataScope);
             Map<String, Object> filteredData = filterCommandWriteData(config, tableName, fields);
@@ -1015,7 +1015,7 @@ public class DynamicCrudService {
             Map<String, BigDecimal> mappedDeltas = mapCommandDecimalFields(config, tableName, deltas);
             Map<String, BigDecimal> mappedMinimums = mapCommandDecimalFields(config, tableName, minimums);
             Map<String, BigDecimal> mappedMaximums = mapCommandDecimalFields(config, tableName, maximums);
-            DynamicCrudRepository.SqlCondition dataScope = buildDataScopeCondition(config, tableName, null);
+            DynamicCrudRepository.SqlCondition dataScope = buildWriteDataScopeCondition(config, tableName, null);
             DynamicCrudRepository.SqlCondition expected = buildCommandExpectedCondition(
                     config, tableName, expectedFields);
             Map<String, Object> before = repository.selectById(
@@ -1059,7 +1059,7 @@ public class DynamicCrudService {
         AiCrudConfig config = getConfig(configKey);
         assertRuntimeWritable(config);
         try (LowcodeRuntimeDataSourceContextHolder.Scope ignored = useRuntimeContext(config)) {
-            DynamicCrudRepository.SqlCondition dataScope = buildDataScopeCondition(config, config.getTableName(), null);
+            DynamicCrudRepository.SqlCondition dataScope = buildWriteDataScopeCondition(config, config.getTableName(), null);
             DynamicCrudRepository.SqlCondition expected = buildCommandExpectedCondition(
                     config, config.getTableName(), expectedFields);
             DynamicCrudRepository.SqlCondition numeric = buildCommandNumericCondition(
@@ -1354,7 +1354,7 @@ public class DynamicCrudService {
                                         Map<String, Object> data,
                                         Set<String> allowedFields,
                                         RuntimeJoinContext joinContext) {
-        DynamicCrudRepository.SqlCondition dataScopeCondition = buildDataScopeCondition(config, config.getTableName(), null);
+        DynamicCrudRepository.SqlCondition dataScopeCondition = buildWriteDataScopeCondition(config, config.getTableName(), null);
         Map<String, Object> authorizedMainRecord = repository.selectById(config.getTableName(), id, dataScopeCondition);
         if (authorizedMainRecord == null) {
             throw new BusinessException("无权限更新该数据或数据不存在");
@@ -1807,7 +1807,7 @@ public class DynamicCrudService {
                                   Map<String, Object> data,
                                   Set<String> allowedFields,
                                   RuntimeJoinContext joinContext) {
-        DynamicCrudRepository.SqlCondition dataScopeCondition = buildDataScopeCondition(config, config.getTableName(), null);
+        DynamicCrudRepository.SqlCondition dataScopeCondition = buildWriteDataScopeCondition(config, config.getTableName(), null);
         Map<String, Object> authorizedMainRecord = repository.selectById(config.getTableName(), id, dataScopeCondition);
         if (authorizedMainRecord == null) {
             throw new BusinessException("无权限更新该数据或数据不存在");
@@ -3042,7 +3042,7 @@ public class DynamicCrudService {
         try (LowcodeRuntimeDataSourceContextHolder.Scope ignored = useRuntimeContext(config)) {
         String tableName = config.getTableName();
         LowcodePrimaryKeyStrategy primaryKey = currentPrimaryKey();
-        DynamicCrudRepository.SqlCondition dataScopeCondition = buildDataScopeCondition(config, tableName, null);
+        DynamicCrudRepository.SqlCondition dataScopeCondition = buildWriteDataScopeCondition(config, tableName, null);
         Map<String, Object> beforeRecord = repository.selectById(
                 tableName, primaryKeyColumn(primaryKey), id, dataScopeCondition);
         if (beforeRecord == null) {
@@ -3618,6 +3618,7 @@ public class DynamicCrudService {
         applyVirtualFormulas(config, rows);
         applyDictTranslation(rows, buildEffectiveTransConfig(config));
         applyDesensitize(rows, config.getDesensitizeConfig());
+        dynamicDataScopeService.enrichRows(config, rows);
     }
 
     /**
@@ -5005,6 +5006,10 @@ public class DynamicCrudService {
 
     private DynamicCrudRepository.SqlCondition buildDataScopeCondition(AiCrudConfig config, String tableName, String tableAlias) {
         return dynamicDataScopeService.buildCondition(config, tableName, tableAlias);
+    }
+
+    private DynamicCrudRepository.SqlCondition buildWriteDataScopeCondition(AiCrudConfig config, String tableName, String tableAlias) {
+        return dynamicDataScopeService.buildWriteCondition(config, tableName, tableAlias);
     }
 
     private DynamicCrudRepository.SqlCondition buildDataScopeCondition(AiCrudConfig config,

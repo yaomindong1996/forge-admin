@@ -215,7 +215,7 @@ Forge Admin 的代码生成能力面向真实后台研发流程：可以通过 A
 | 技术 | 用途 |
 |------|------|
 | Java 17 | 后端运行环境 |
-| Spring Boot 3.2 | 应用开发框架 |
+| Spring Boot 3.5.13 | 应用开发框架 |
 | MyBatis-Plus 3.5 | ORM 与分页能力 |
 | Sa-Token 1.38 | 登录认证、权限校验、Token 管理 |
 | Flowable 7.0 | 工作流建模与执行 |
@@ -241,19 +241,24 @@ Forge Admin 的代码生成能力面向真实后台研发流程：可以通过 A
 ## 📁 项目结构
 
 ```text
-forge/
+forge-server/                    # 后端根目录
 ├── forge-admin-server/          # 主应用入口，聚合后台管理能力
 ├── forge-report-server/         # AI 大屏报表服务
-├── forge-app-server/            # App 接口服务
+├── forge-app-server/            # App / H5 接口服务
 ├── forge-flow/                  # 独立流程服务与流程客户端
+│   ├── forge-flow-server/
+│   └── forge-flow-client/
 ├── forge-business/              # 业务模块
-└── forge-framework/
-    ├── forge-dependencies/      # 统一依赖版本管理
-    ├── forge-plugin-parent/     # system / generator / job / message / flow / ai 等业务插件
-    └── forge-starter-parent/    # auth / cache / orm / tenant / crypto / excel / file 等技术 Starter
+├── forge-framework/
+│   ├── forge-dependencies/      # 统一依赖版本管理
+│   ├── forge-plugin-parent/     # system / generator / job / message / flow / ai 等业务插件
+│   └── forge-starter-parent/    # auth / cache / orm / tenant / crypto / excel / file 等技术 Starter
+├── db/                          # Flyway 迁移、seed、全量初始化 SQL
+└── scripts/                     # 数据库初始化与社区导出脚本
 
 forge-admin-ui/                  # 后台管理系统前端
 forge-report-ui/                 # AI 数据可视化大屏前端
+forge-h5-ui/                     # 移动端 H5
 forge-docs/                      # VitePress 文档站
 code-copilot/                    # AI 编程规则与变更管理
 ```
@@ -291,13 +296,13 @@ npx --yes \
 
 ### 2. 初始化数据库
 
-推荐使用统一初始化脚本，它会按顺序执行历史初始化 SQL、`forge/db/migration` 迁移脚本、`forge/db/seed/required` 必需初始化数据，并可按需导入 demo/optional 数据。
+推荐使用统一初始化脚本，它会按顺序执行 `forge-server/db/全量初始化SQL.sql` 和 `forge-server/db/seed/required` 必需初始化数据，并可按需导入 demo/optional 数据。表结构增量变更由主后台服务启动时的 Flyway 执行 `forge-server/db/migration`。
 
 ```bash
-bash forge/scripts/db/init-db.sh \
+bash forge-server/scripts/db/init-db.sh \
   --host 127.0.0.1 \
   --port 3306 \
-  --database forge \
+  --database forge_admin \
   --user root \
   --password your_password
 ```
@@ -305,8 +310,8 @@ bash forge/scripts/db/init-db.sh \
 如需导入演示数据：
 
 ```bash
-bash forge/scripts/db/init-db.sh \
-  --database forge \
+bash forge-server/scripts/db/init-db.sh \
+  --database forge_admin \
   --user root \
   --password your_password \
   --with-demo
@@ -314,13 +319,13 @@ bash forge/scripts/db/init-db.sh \
 
 数据库变更规范：
 
-- 表结构、字段、索引、系统资源等正式变更统一新增到 `forge/db/migration/`。
+- 表结构、字段、索引、系统资源等正式变更统一新增到 `forge-server/db/migration/`。
 - Flyway 版本脚本命名为 `V<版本号>__<lower_snake_case_description>.sql`，例如 `V1.0.2__add_dashboard_version_table.sql`。
 - `V1.0.0__baseline.sql` 是历史基线，新脚本版本必须大于 `1.0.0`，且版本号单调递增。
 - 已写入 `forge_schema_history` 的脚本禁止修改；需要修正时新增下一个版本脚本。
-- 系统必需基础数据放入 `forge/db/seed/required/R__*.sql`。
-- 演示数据放入 `forge/db/seed/demo/D__*.sql`，默认不导入。
-- 可选模块数据放入 `forge/db/seed/optional/O__*.sql`。
+- 系统必需基础数据放入 `forge-server/db/seed/required/R__*.sql`。
+- 演示数据放入 `forge-server/db/seed/demo/D__*.sql`，默认不导入。
+- 可选模块数据放入 `forge-server/db/seed/optional/O__*.sql`。
 - SQL 必须幂等或有防重复保护：`CREATE TABLE IF NOT EXISTS`、`INSERT ... SELECT ... WHERE NOT EXISTS`、新增列/索引前查 `information_schema`。
 - `INSERT` 必须显式列名；业务内置数据 `tenant_id` 使用 `1`，禁止写 `0`。
 - 权限资源类脚本（如 `sys_resource`、`sys_role_resource`）必须做 `NOT EXISTS` 防重复。
@@ -329,8 +334,8 @@ bash forge/scripts/db/init-db.sh \
 
 Flyway 启动说明：
 
-- 主后台服务 `forge-admin-server` 启动时执行 `forge/db/migration`；单独启动 `forge-report-server` 不会执行这些迁移。
-- 默认扫描位置兼容不同启动目录：`filesystem:./db/migration,filesystem:../db/migration,filesystem:forge/db/migration`。
+- 主后台服务 `forge-admin-server` 启动时执行 `forge-server/db/migration`；单独启动 `forge-report-server` 不会执行这些迁移。
+- 默认扫描位置兼容不同启动目录：`filesystem:./db/migration,filesystem:../db/migration,filesystem:forge-server/db/migration`。
 - 如果设置了 `FORGE_FLYWAY_LOCATIONS` 或 `FORGE_FLYWAY_ENABLED`，环境变量会覆盖默认配置；迁移未执行时先检查这两个变量。
 - 可通过以下 SQL 查看执行状态：
 
@@ -344,12 +349,20 @@ ORDER BY installed_rank DESC;
 
 ```bash
 # 后台管理服务
-cp forge/forge-admin-server/src/main/resources/application-dev.example.yml \
-   forge/forge-admin-server/src/main/resources/application-dev.yml
+cp forge-server/forge-admin-server/src/main/resources/application-dev.example.yml \
+   forge-server/forge-admin-server/src/main/resources/application-dev.yml
 
 # 独立流程服务
-cp forge/forge-flow/forge-flow-server/src/main/resources/application-dev.example.yml \
-   forge/forge-flow/forge-flow-server/src/main/resources/application-dev.yml
+cp forge-server/forge-flow/forge-flow-server/src/main/resources/application-dev.example.yml \
+   forge-server/forge-flow/forge-flow-server/src/main/resources/application-dev.yml
+
+# App / H5 接口服务（可选）
+cp forge-server/forge-app-server/src/main/resources/application-dev.example.yml \
+   forge-server/forge-app-server/src/main/resources/application-dev.yml
+
+# AI 大屏报表服务（可选）
+cp forge-server/forge-report-server/src/main/resources/application-dev.example.yml \
+   forge-server/forge-report-server/src/main/resources/application-dev.yml
 ```
 
 然后按本地环境修改 MySQL、Redis、文件存储、AI 供应商等配置。`application-dev.yml` 属于本地配置，敏感信息不要提交到仓库；新增通用配置时，请同步更新 `application-dev.example.yml` 并使用占位符。
@@ -358,7 +371,7 @@ cp forge/forge-flow/forge-flow-server/src/main/resources/application-dev.example
 
 ```bash
 # 主后台服务，默认 http://localhost:8580
-cd forge/forge-admin-server
+cd forge-server/forge-admin-server
 mvn spring-boot:run
 ```
 
@@ -366,11 +379,15 @@ mvn spring-boot:run
 
 ```bash
 # AI 大屏报表服务，默认 http://localhost:8581
-cd forge/forge-report-server
+cd forge-server/forge-report-server
 mvn spring-boot:run
 
 # 独立流程服务，默认 http://localhost:8081
-cd forge/forge-flow/forge-flow-server
+cd forge-server/forge-flow/forge-flow-server
+mvn spring-boot:run
+
+# App / H5 接口服务，默认 http://localhost:8583（移动端 H5 需要）
+cd forge-server/forge-app-server
 mvn spring-boot:run
 ```
 
@@ -390,23 +407,30 @@ pnpm install
 pnpm dev
 ```
 
-默认登录账号：`admin` / `123456`
+```bash
+# 移动端 H5，默认 http://localhost:3009（需先启动 forge-app-server）
+cd forge-h5-ui
+pnpm install
+pnpm dev:h5
+```
+
+默认登录账号：`admin` / `123456` ｜ H5 体验账号：`h5_admin` / `123456`
 
 ### 6. 社区数据库同步
 
 需要同步开源社区数据库脚本时，先执行 dry-run 查看本次导出范围：
 
 ```bash
-bash forge/scripts/db/export-community-db.sh --dry-run
+bash forge-server/scripts/db/export-community-db.sh --dry-run
 ```
 
 确认无误后执行导出：
 
 ```bash
-bash forge/scripts/db/export-community-db.sh
+bash forge-server/scripts/db/export-community-db.sh
 ```
 
-导出结果位于 `forge/db/community-export/`，流程会校验 migration 命名、复制 seed 脚本、扫描敏感字段并生成摘要。白名单、黑名单和敏感字段规则维护在 `forge/scripts/db/community-db.config.json`。
+导出结果位于 `forge-server/db/community-export/`，流程会校验 migration 命名、复制 seed 脚本、扫描敏感字段并生成摘要。白名单、黑名单和敏感字段规则维护在 `forge-server/scripts/db/community-db.config.json`。
 
 ### 7. 构建生产包
 
@@ -420,7 +444,7 @@ cd forge-report-ui
 pnpm build
 
 # 后端全量构建
-cd forge
+cd forge-server
 mvn clean install -DskipTests
 ```
 
@@ -582,7 +606,7 @@ A: 立即更换相关密码或密钥，然后从仓库历史和当前索引中�
 
 ### 后端核心框架
 
-- **Spring Boot 3.2** - 核心框架支撑，简化企业级应用开发
+- **Spring Boot 3.5.13** - 核心框架支撑，简化企业级应用开发
 - **MyBatis-Plus 3.5** - ORM 框架增强，高效数据持久化
 - **Sa-Token 1.38** - 轻量级权限认证，JWT 会话管理
 - **Flowable 7.0** - BPMN 工作流引擎，业务流程自动化

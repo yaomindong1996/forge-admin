@@ -67,8 +67,11 @@ public class FileController {
     @GetMapping("/url/{fileId}")
     public RespInfo<String> getAccessUrl(
             @PathVariable String fileId,
-            @RequestParam(value = "expires", required = false, defaultValue = "3600") Integer expires) {
+            @RequestParam(value = "expires", required = false, defaultValue = "3600") Integer expires,
+            HttpServletResponse response) {
         
+        response.setHeader("Cache-Control", "private, no-store");
+        response.setHeader("Pragma", "no-cache");
         String url = fileManager.getAccessUrl(fileId, expires);
         return RespInfo.success(url);
     }

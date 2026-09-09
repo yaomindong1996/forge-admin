@@ -47,37 +47,35 @@ Forge Admin is a modern enterprise-grade admin system designed to serve as a fou
 ### Backend Modules
 
 ```
-forge/
-├── forge-admin/                 # Main application module
-├── forge-framework/            # Framework core
-│   ├── forge-plugin-parent/    # Plugin parent module
+forge-server/                    # Backend root
+├── forge-admin-server/          # Main admin application
+├── forge-report-server/         # AI dashboard service
+├── forge-app-server/            # App / H5 API service
+├── forge-flow/                  # Standalone Flowable service and client
+│   ├── forge-flow-server/
+│   └── forge-flow-client/
+├── forge-business/              # Business modules
+├── forge-framework/             # Framework core
+│   ├── forge-plugin-parent/     # Plugin parent module
 │   │   ├── forge-plugin-system/     # System management plugin
 │   │   ├── forge-plugin-generator/  # Code generation plugin
 │   │   ├── forge-plugin-job/        # Job scheduling plugin
 │   │   └── forge-plugin-message/    # Message plugin
-│   └── forge-starter-parent/   # Starter parent module
+│   └── forge-starter-parent/    # Starter parent module
 │       ├── forge-starter-auth/      # Authentication & authorization
 │       ├── forge-starter-cache/     # Cache management
 │       ├── forge-starter-config/    # Configuration center
 │       └── forge-starter-api-config/# API configuration
+├── db/                          # Flyway migrations, seed data, full init SQL
+└── scripts/                     # Database init and community export scripts
 ```
 
 ### Frontend Project
 
 ```
-forge-admin-ui/
-├── src/
-│   ├── api/            # API interfaces
-│   ├── assets/         # Static resources
-│   ├── components/     # Common components
-│   ├── composables/    # Composition API
-│   ├── layouts/       # Layout components
-│   ├── router/        # Routing configuration
-│   ├── store/         # State management
-│   ├── styles/        # Global styles
-│   ├── utils/         # Utility functions
-│   └── views/         # Page views
-└── ...
+forge-admin-ui/                  # Admin console frontend
+forge-report-ui/                 # AI dashboard frontend
+forge-h5-ui/                     # Mobile H5
 ```
 
 ## Quick Start
@@ -99,33 +97,52 @@ git clone https://gitee.com/ForgeLab/forge-admin.git
 cd forge-admin
 ```
 
-2. Import the database
+2. Initialize the database
 
-Execute `forge/forge-admin/sql/sys.sql` to create the base database tables.
+From the repository root, run the unified init script. It executes `forge-server/db/全量初始化SQL.sql` and `forge-server/db/seed/required`. Incremental schema changes are applied by Flyway from `forge-server/db/migration` when `forge-admin-server` starts.
 
-3. Modify configuration
-
-Edit `forge/forge-admin/src/main/resources/application.yml`
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/forge_admin?useUnicode=true&characterEncoding=utf8
-    username: root
-    password: your_password
-  redis:
-    host: localhost
-    port: 6379
+```bash
+bash forge-server/scripts/db/init-db.sh \
+  --host 127.0.0.1 \
+  --port 3306 \
+  --database forge_admin \
+  --user root \
+  --password your_password
 ```
+
+3. Prepare local configuration
+
+```bash
+cp forge-server/forge-admin-server/src/main/resources/application-dev.example.yml \
+   forge-server/forge-admin-server/src/main/resources/application-dev.yml
+```
+
+Then edit MySQL, Redis, and other local settings in `application-dev.yml`. Do not commit this file.
 
 4. Start the service
 
 ```bash
-cd forge/forge-admin
+cd forge-server/forge-admin-server
 mvn spring-boot:run
 ```
 
-The service will run by default at `http://localhost:8080`
+The admin service runs at `http://localhost:8580` by default.
+
+Optional services:
+
+```bash
+# AI dashboard service: http://localhost:8581
+cd forge-server/forge-report-server
+mvn spring-boot:run
+
+# Flow service: http://localhost:8081
+cd forge-server/forge-flow/forge-flow-server
+mvn spring-boot:run
+
+# App / H5 API service: http://localhost:8583
+cd forge-server/forge-app-server
+mvn spring-boot:run
+```
 
 ### Frontend Deployment
 
@@ -146,6 +163,27 @@ pnpm dev
 
 ```bash
 pnpm build
+```
+
+Optional frontends:
+
+```bash
+# AI dashboard UI: http://localhost:3021/forge-report
+cd forge-report-ui
+pnpm install
+pnpm dev
+
+# Mobile H5: http://localhost:3009 (requires forge-app-server)
+cd forge-h5-ui
+pnpm install
+pnpm dev:h5
+```
+
+Production backend build:
+
+```bash
+cd forge-server
+mvn clean install -DskipTests
 ```
 
 ## Functional Modules

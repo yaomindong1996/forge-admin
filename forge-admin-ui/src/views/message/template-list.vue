@@ -1,160 +1,338 @@
 <template>
-  <AiCrudPage
-    ref="crudRef"
-    api="/api/message/template"
-    :api-config="{
-      list: 'get@/api/message/template/page',
-      detail: 'get@/api/message/template/:id',
-      add: 'post@/api/message/template',
-      update: 'put@/api/message/template',
-      delete: 'delete@/api/message/template/:id',
-    }"
-    :search-schema="searchSchema"
-    :columns="tableColumns"
-    :edit-schema="editSchema"
-    row-key="id"
-    add-button-text="新增模板"
-    modal-width="1080px"
-    edit-label-placement="left"
-    edit-label-align="left"
-    :edit-label-width="92"
-    :edit-grid-cols="2"
-    :load-detail-on-edit="true"
-    :before-submit="handleBeforeSubmit"
-  >
-    <template #form-templateDesigner="{ formData }">
-      <div class="template-designer">
-        <aside class="template-variable-panel">
-          <div class="variable-panel-head">
+  <div class="template-page">
+    <MasterDetailWorkspace :aside-width="280">
+      <template #aside>
+        <div class="tpl-aside">
+          <div class="tpl-aside-head">
             <div>
-              <div class="variable-panel-title">
-                变量
-              </div>
-              <div class="variable-panel-count">
-                {{ getVariablePanelSummary(formData) }}
-              </div>
+              <strong>消息模板</strong>
+              <p>写好标题和正文，发消息时套用</p>
             </div>
-            <n-input
-              v-model:value="variableKeyword"
-              size="small"
-              clearable
-              placeholder="搜索或输入变量名"
-            />
+            <NButton type="primary" size="small" @click="startCreate">
+              新增
+            </NButton>
+          </div>
+          <n-input
+            v-model:value="keyword"
+            size="small"
+            clearable
+            placeholder="搜索名称或编码"
+          />
+          <n-spin :show="listLoading" class="tpl-aside-list-spin">
+            <n-scrollbar class="tpl-aside-scroll">
+              <button
+                v-for="item in filteredList"
+                :key="item.id"
+                type="button"
+                class="tpl-item"
+                :class="{ active: String(item.id) === String(form.id) }"
+                @click="selectItem(item)"
+              >
+                <span class="tpl-item-name">{{ item.templateName || '未命名' }}</span>
+                <span class="tpl-item-meta">
+                  {{ item.templateCode || '-' }}
+                  <em :class="item.enabled === 1 ? 'is-on' : 'is-off'">{{ item.enabled === 1 ? '启用' : '停用' }}</em>
+                </span>
+              </button>
+              <n-empty v-if="!listLoading && !filteredList.length" size="small" description="还没有模板，先新增一个" />
+            </n-scrollbar>
+          </n-spin>
+        </div>
+      </template>
+
+      <div class="tpl-main">
+        <template v-if="editing">
+          <div class="tpl-main-head">
+            <div>
+              <strong>{{ form.id ? (form.templateName || '未命名') : '新增消息模板' }}</strong>
+              <p>{{ form.id ? '改完保存即生效。发消息时填模板编码，正文会按这里生成。' : '先起名字和编码，再写标题、正文和样式。' }}</p>
+            </div>
+            <div class="tpl-main-actions">
+              <n-switch :value="form.enabled === 1" @update:value="checked => form.enabled = checked ? 1 : 0">
+                <template #checked>
+                  启用
+                </template>
+                <template #unchecked>
+                  停用
+                </template>
+              </n-switch>
+              <NButton v-if="form.id" size="small" quaternary type="error" :loading="saving" @click="confirmRemove">
+                删除
+              </NButton>
+              <NButton type="primary" size="small" :loading="saving" @click="saveItem">
+                保存
+              </NButton>
+            </div>
           </div>
 
-          <div class="template-target-switch">
-            <button
-              type="button"
-              :class="{ active: activeTemplateField === 'titleTemplate' }"
-              @click="setActiveTemplateField('titleTemplate')"
-            >
-              标题
-            </button>
-            <button
-              type="button"
-              :class="{ active: activeTemplateField === 'contentTemplate' }"
-              @click="setActiveTemplateField('contentTemplate')"
-            >
-              内容
-            </button>
-          </div>
+          <n-tabs v-model:value="activeTab" type="line" size="small" class="tpl-tabs">
+            <n-tab-pane name="content" tab="怎么写" display-directive="show">
+              <n-scrollbar class="tpl-pane-scroll">
+                <div class="tpl-content">
+                  <n-form
+                    ref="formRef"
+                    :model="form"
+                    :rules="formRules"
+                    label-placement="left"
+                    label-width="84"
+                    class="tpl-form"
+                  >
+                    <n-form-item label="模板名称" path="templateName">
+                      <n-input v-model:value="form.templateName" maxlength="100" placeholder="例如：采购审批待办" />
+                    </n-form-item>
+                    <n-form-item label="模板编码" path="templateCode">
+                      <n-input
+                        :value="form.templateCode"
+                        :disabled="Boolean(form.id)"
+                        maxlength="50"
+                        placeholder="例如：PURCHASE_TODO"
+                        @update:value="onTemplateCodeInput"
+                      />
+                      <p class="field-hint">
+                        发给系统和开发用。保存后不要改。
+                      </p>
+                    </n-form-item>
+                    <n-form-item label="用在哪">
+                      <div class="field-row">
+                        <n-select v-model:value="form.type" :options="messageTypeOptions" placeholder="消息类型" />
+                        <n-select v-model:value="form.defaultChannel" :options="channelOptions" placeholder="发送渠道" />
+                      </div>
+                      <p class="field-hint">
+                        {{ styleGuide }}
+                      </p>
+                    </n-form-item>
+                  </n-form>
 
-          <n-scrollbar class="variable-scrollbar">
-            <button
-              v-for="item in getVisibleTemplateVariables(formData)"
-              :key="item.key"
-              type="button"
-              class="variable-row"
-              :class="{ used: item.used, custom: item.source === 'current' }"
-              @click="insertTemplateVariable(formData, item.key)"
-            >
-              <span class="variable-name">{{ item.label }}</span>
-              <span class="variable-code">{{ formatPlaceholder(item.key) }}</span>
-            </button>
-            <button
-              v-if="canInsertCustomVariable(formData)"
-              type="button"
-              class="variable-row custom"
-              @click="addCustomVariable(formData)"
-            >
-              <span class="variable-name">添加自定义变量</span>
-              <span class="variable-code">{{ formatPlaceholder(normalizeVariableKey(variableKeyword)) }}</span>
-            </button>
-            <div v-if="getVisibleTemplateVariables(formData).length === 0 && !canInsertCustomVariable(formData)" class="variable-empty">
-              无匹配变量
-            </div>
-          </n-scrollbar>
-        </aside>
+                  <div class="template-designer">
+                    <aside class="template-variable-panel">
+                      <div class="variable-panel-head">
+                        <div>
+                          <div class="variable-panel-title">
+                            可填内容
+                          </div>
+                          <div class="variable-panel-count">
+                            点一下插到{{ activeTemplateField === 'titleTemplate' ? '标题' : '正文' }}光标处
+                          </div>
+                        </div>
+                        <n-input
+                          v-model:value="variableKeyword"
+                          size="small"
+                          clearable
+                          placeholder="搜索或输入变量名"
+                        />
+                      </div>
+                      <div class="template-target-switch">
+                        <button
+                          type="button"
+                          :class="{ active: activeTemplateField === 'titleTemplate' }"
+                          @click="setActiveTemplateField('titleTemplate')"
+                        >
+                          标题
+                        </button>
+                        <button
+                          type="button"
+                          :class="{ active: activeTemplateField === 'contentTemplate' }"
+                          @click="setActiveTemplateField('contentTemplate')"
+                        >
+                          正文
+                        </button>
+                      </div>
+                      <n-scrollbar class="variable-scrollbar">
+                        <button
+                          v-for="item in visibleVariables"
+                          :key="item.key"
+                          type="button"
+                          class="variable-row"
+                          :class="{ used: item.used, custom: item.source === 'current' }"
+                          @click="insertTemplateVariable(item.key)"
+                        >
+                          <span class="variable-name">{{ item.label }}</span>
+                          <span class="variable-code">{{ formatPlaceholder(item.key) }}</span>
+                        </button>
+                        <button
+                          v-if="canInsertCustomVariable"
+                          type="button"
+                          class="variable-row custom"
+                          @click="addCustomVariable"
+                        >
+                          <span class="variable-name">添加自定义变量</span>
+                          <span class="variable-code">{{ formatPlaceholder(normalizeVariableKey(variableKeyword)) }}</span>
+                        </button>
+                        <div v-if="visibleVariables.length === 0 && !canInsertCustomVariable" class="variable-empty">
+                          无匹配变量
+                        </div>
+                      </n-scrollbar>
+                    </aside>
 
-        <section class="template-editor-panel">
-          <div class="template-field-block">
-            <div class="template-field-head">
-              <span>标题模板</span>
-              <span>{{ countTemplateVariables(formData.titleTemplate) }} 个变量</span>
-            </div>
-            <n-input
-              :value="formData.titleTemplate"
-              type="textarea"
-              :rows="2"
-              placeholder="请输入标题模板"
-              @focus="rememberTemplateCursor('titleTemplate', $event)"
-              @click="rememberTemplateCursor('titleTemplate', $event)"
-              @keyup="rememberTemplateCursor('titleTemplate', $event)"
-              @update:value="setTemplateField(formData, 'titleTemplate', $event)"
-            />
-          </div>
+                    <section class="template-editor-panel">
+                      <div class="template-field-block">
+                        <div class="template-field-head">
+                          <span>标题</span>
+                          <span>标题只显示文字，不要放样式</span>
+                        </div>
+                        <n-input
+                          :value="form.titleTemplate"
+                          type="textarea"
+                          :rows="2"
+                          placeholder="例如：您有新的采购审批"
+                          @focus="rememberTemplateCursor('titleTemplate', $event)"
+                          @click="rememberTemplateCursor('titleTemplate', $event)"
+                          @keyup="rememberTemplateCursor('titleTemplate', $event)"
+                          @update:value="setTemplateField('titleTemplate', $event)"
+                        />
+                      </div>
 
-          <div class="template-field-block">
-            <div class="template-field-head">
-              <span>内容模板</span>
-              <span>{{ countTemplateVariables(formData.contentTemplate) }} 个变量</span>
-            </div>
-            <n-input
-              :value="formData.contentTemplate"
-              type="textarea"
-              :rows="7"
-              placeholder="请输入内容模板"
-              @focus="rememberTemplateCursor('contentTemplate', $event)"
-              @click="rememberTemplateCursor('contentTemplate', $event)"
-              @keyup="rememberTemplateCursor('contentTemplate', $event)"
-              @update:value="setTemplateField(formData, 'contentTemplate', $event)"
-            />
-          </div>
+                      <div class="template-field-block">
+                        <div class="template-field-head">
+                          <span>正文</span>
+                          <span>{{ styleMode === 'plain' ? '纯文字' : '可点选样式' }}</span>
+                        </div>
+                        <div v-if="styleSnippets.length" class="style-toolbar">
+                          <button
+                            v-for="snippet in styleSnippets"
+                            :key="snippet.key"
+                            type="button"
+                            class="style-chip"
+                            :title="snippet.hint"
+                            @click="insertStyleSnippet(snippet)"
+                          >
+                            {{ snippet.label }}
+                          </button>
+                        </div>
+                        <n-input
+                          :value="form.contentTemplate"
+                          type="textarea"
+                          :rows="8"
+                          :placeholder="contentPlaceholder"
+                          @focus="rememberTemplateCursor('contentTemplate', $event)"
+                          @click="rememberTemplateCursor('contentTemplate', $event)"
+                          @keyup="rememberTemplateCursor('contentTemplate', $event)"
+                          @update:value="setTemplateField('contentTemplate', $event)"
+                        />
+                      </div>
 
-          <div class="template-preview">
-            <div class="template-preview-head">
-              预览
-            </div>
-            <div class="template-preview-title">
-              {{ renderTemplatePreview(formData.titleTemplate) || '标题预览' }}
-            </div>
-            <div class="template-preview-content" v-html="renderTemplatePreviewHtml(formData.contentTemplate) || '内容预览'" />
-          </div>
-        </section>
+                      <div class="template-preview" :data-mode="styleMode">
+                        <div class="template-preview-head">
+                          {{ previewTitle }}
+                        </div>
+                        <div class="template-preview-title">
+                          {{ renderTemplatePreview(form.titleTemplate) || '标题预览' }}
+                        </div>
+                        <div
+                          class="template-preview-content"
+                          v-html="previewHtml || '正文预览'"
+                        />
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              </n-scrollbar>
+            </n-tab-pane>
+
+            <n-tab-pane name="usage" tab="怎么用" display-directive="show">
+              <n-scrollbar class="tpl-pane-scroll">
+                <div class="usage-panel">
+                  <section>
+                    <h3>配好之后怎么用</h3>
+                    <ol>
+                      <li>发消息时填模板编码 <code>{{ form.templateCode || '模板编码' }}</code>，不必再手写标题和正文。</li>
+                      <li>把上面点过的变量放到发送参数里，例如任务标题、流程名称。</li>
+                      <li>到「消息管理」试发一条，选这个编码，看收到的内容和跳转是否对。</li>
+                      <li>流程待办/结果/抄送可在流程设计器里绑定对应卡片模板。</li>
+                    </ol>
+                    <NButton size="small" secondary @click="goTrySend">
+                      去消息管理试发一条
+                    </NButton>
+                  </section>
+
+                  <section>
+                    <h3>样式怎么配</h3>
+                    <p class="usage-lead">
+                      {{ styleGuide }}
+                    </p>
+                    <ul v-if="styleMode === 'card'" class="style-legend">
+                      <li><span class="legend gray">次要说明</span>灰色小字，放卡片抬头</li>
+                      <li><span class="legend normal">正文</span>普通信息行，可夹变量</li>
+                      <li><span class="legend highlight">强调</span>行动号召，例如“点击查看”</li>
+                    </ul>
+                  </section>
+
+                  <section>
+                    <h3>给开发同事</h3>
+                    <p class="usage-lead">
+                      发送时带上模板编码和变量。正文样式已经写在模板里，代码里不用再拼 HTML。
+                    </p>
+                    <div class="code-block">
+                      <div class="code-head">
+                        <span>Java</span>
+                        <NButton size="tiny" quaternary @click="copyText(javaExample, 'Java 示例已复制')">
+                          复制
+                        </NButton>
+                      </div>
+                      <pre><code>{{ javaExample }}</code></pre>
+                    </div>
+                    <div class="code-block">
+                      <div class="code-head">
+                        <span>接口</span>
+                        <NButton size="tiny" quaternary @click="copyText(httpExample, '接口示例已复制')">
+                          复制
+                        </NButton>
+                      </div>
+                      <pre><code>{{ httpExample }}</code></pre>
+                    </div>
+                  </section>
+                </div>
+              </n-scrollbar>
+            </n-tab-pane>
+          </n-tabs>
+        </template>
+
+        <div v-else class="tpl-empty">
+          <p>从左侧选一个模板，或新增一个。</p>
+          <p>模板管的是「发出去长什么样」。点开去哪张单，在业务配置里登记。</p>
+        </div>
       </div>
-    </template>
-  </AiCrudPage>
+    </MasterDetailWorkspace>
+  </div>
 </template>
 
 <script setup>
-import { computed, h, ref } from 'vue'
-import { AiCrudPage } from '@/components/ai-form'
-import DictTag from '@/components/DictTag.vue'
+import { NButton } from 'naive-ui'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import messageApi from '@/api/message'
+import MasterDetailWorkspace from '@/components/common/MasterDetailWorkspace.vue'
 import { useDict } from '@/composables/useDict'
+import { copy } from '@/utils/clipboard'
+import {
+  buildHttpTemplateExample,
+  buildJavaTemplateExample,
+  extractTemplateVariables,
+  formatPlaceholder,
+  getStyleGuide,
+  getStyleSnippets,
+  hasUnsupportedAtVariables,
+  insertAtCursor,
+  normalizeTemplateCode,
+  renderPreviewHtml,
+  renderTemplatePreview,
+  resolveContentStyleMode,
+  SYSTEM_BUILT_IN_VARIABLES,
+  TEMPLATE_VARIABLE_CATALOG,
+} from './template-style'
 
 defineOptions({ name: 'MessageTemplate' })
 
-const MESSAGE_TYPE_DICT = 'sys_message_type'
-const MESSAGE_CHANNEL_DICT = 'sys_message_channel'
-const ENABLE_DISABLE_DICT = 'sys_enable_disable'
-
-const crudRef = ref(null)
-
-const { dict } = useDict(MESSAGE_TYPE_DICT, MESSAGE_CHANNEL_DICT, ENABLE_DISABLE_DICT)
-
-const messageTypeOptions = computed(() => dict.value[MESSAGE_TYPE_DICT] || [])
-const channelOptions = computed(() => dict.value[MESSAGE_CHANNEL_DICT] || [])
-const enabledOptions = computed(() => toNumberOptions(dict.value[ENABLE_DISABLE_DICT]))
+const router = useRouter()
+const { dict } = useDict('sys_message_type', 'sys_message_channel')
+const list = ref([])
+const listLoading = ref(false)
+const saving = ref(false)
+const keyword = ref('')
+const editing = ref(false)
+const activeTab = ref('content')
+const formRef = ref(null)
+const form = reactive(createEmptyForm())
 const activeTemplateField = ref('contentTemplate')
 const variableKeyword = ref('')
 const templateCursorMap = ref({
@@ -162,371 +340,116 @@ const templateCursorMap = ref({
   contentTemplate: null,
 })
 
-const SYSTEM_BUILT_IN_VARIABLES = [
-  { key: 'Title', label: '标题' },
-  { key: 'CreatorUserName', label: '创建人' },
-  { key: 'SendTime', label: '发送时间' },
-  { key: 'userName', label: '接收人' },
-  { key: 'content', label: '通知内容' },
-  { key: 'taskName', label: '任务名称' },
-  { key: 'taskTitle', label: '任务标题' },
-  { key: 'deadline', label: '截止时间' },
-  { key: 'flowName', label: '流程名称' },
-  { key: 'processName', label: '流程名称' },
-  { key: 'approver', label: '审批人' },
-  { key: 'approveTime', label: '审批时间' },
-  { key: 'code', label: '验证码' },
-  { key: 'expireMinutes', label: '有效分钟' },
-  { key: 'dueDate', label: '到期时间' },
-  { key: 'overdueMinutes', label: '逾期分钟' },
-  { key: 'jumpUrl', label: '跳转地址' },
-]
-
-const TEMPLATE_VARIABLE_CATALOG = {
-  SYSTEM_NOTICE: [
-    { key: 'userName', label: '接收人' },
-    { key: 'content', label: '通知内容' },
-  ],
-  TASK_ASSIGN: [
-    { key: 'userName', label: '接收人' },
-    { key: 'taskName', label: '任务名称' },
-    { key: 'deadline', label: '截止时间' },
-  ],
-  SMS_VERIFY_CODE: [
-    { key: 'code', label: '验证码' },
-    { key: 'expireMinutes', label: '有效分钟' },
-  ],
-  APPROVAL_PASS: [
-    { key: 'userName', label: '接收人' },
-    { key: 'flowName', label: '流程名称' },
-    { key: 'approver', label: '审批人' },
-    { key: 'approveTime', label: '审批时间' },
-  ],
-  FLOW_TASK_OVERDUE: [
-    { key: 'taskId', label: '任务ID' },
-    { key: 'taskName', label: '任务名称' },
-    { key: 'taskTitle', label: '任务标题' },
-    { key: 'processName', label: '流程名称' },
-    { key: 'processInstanceId', label: '流程实例' },
-    { key: 'startUserName', label: '发起人' },
-    { key: 'dueDate', label: '截止时间' },
-    { key: 'overdueMinutes', label: '逾期分钟' },
-    { key: 'jumpUrl', label: '跳转地址' },
-  ],
-}
-
-const TEMPLATE_SAMPLE_VALUES = {
-  userName: '张三',
-  content: '消息内容',
-  Title: '系统通知',
-  CreatorUserName: '管理员',
-  SendTime: '2026-07-10 09:30',
-  taskName: '合同审批',
-  taskTitle: '合同审批',
-  taskId: 'task_1024',
-  deadline: '2026-07-10 18:00',
-  flowName: '采购审批',
-  processName: '采购审批',
-  processInstanceId: 'proc_20260710',
-  startUserName: '王五',
-  approver: '李四',
-  approveTime: '2026-07-10 10:20',
-  code: '839201',
-  expireMinutes: '5',
-  dueDate: '2026-07-10 18:00:00',
-  overdueMinutes: '35',
-  jumpUrl: '/flow/todo?taskId=task_1024',
-}
-
-// 搜索表单配置
-const searchSchema = computed(() => [
-  {
-    field: 'type',
-    label: '消息类型',
-    type: 'select',
-    props: {
-      placeholder: '请选择消息类型',
-      options: messageTypeOptions.value,
-    },
-  },
-  {
-    field: 'keyword',
-    label: '关键词',
-    type: 'input',
-    props: {
-      placeholder: '请输入模板编码或名称',
-    },
-  },
-])
-
-// 表格列配置
-const tableColumns = computed(() => [
-  {
-    prop: 'templateCode',
-    label: '模板编码',
-    width: 150,
-  },
-  {
-    prop: 'templateName',
-    label: '模板名称',
-    width: 150,
-  },
-  {
-    prop: 'type',
-    label: '消息类型',
-    width: 100,
-    render: (row) => {
-      return h(DictTag, { dictType: MESSAGE_TYPE_DICT, value: row.type, size: 'small' })
-    },
-  },
-  {
-    prop: 'titleTemplate',
-    label: '标题模板',
-    width: 200,
-  },
-  {
-    prop: 'defaultChannel',
-    label: '默认渠道',
-    width: 100,
-    render: (row) => {
-      return h(DictTag, { dictType: MESSAGE_CHANNEL_DICT, value: row.defaultChannel, size: 'small' })
-    },
-  },
-  {
-    prop: 'enabled',
-    label: '状态',
-    width: 80,
-    render: (row) => {
-      return h(DictTag, { dictType: ENABLE_DISABLE_DICT, value: row.enabled, size: 'small' })
-    },
-  },
-  {
-    prop: 'createTime',
-    label: '创建时间',
-    width: 180,
-  },
-  {
-    prop: 'action',
-    label: '操作',
-    width: 120,
-    fixed: 'right',
-    actions: [
-      { label: '编辑', key: 'edit', onClick: handleEdit },
-      { label: '删除', key: 'delete', type: 'error', onClick: handleDelete },
-    ],
-  },
-])
-
-// 编辑表单配置
-const editSchema = computed(() => [
-  {
-    type: 'divider',
-    label: '基础信息',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
-  },
-  {
-    field: 'templateCode',
-    label: '模板编码',
-    type: 'input',
-    rules: [{ required: true, message: '请输入模板编码', trigger: 'blur' }],
-    props: {
-      placeholder: '请输入模板编码，全局唯一',
-    },
-    editDisabled: true,
-  },
-  {
-    field: 'templateName',
-    label: '模板名称',
-    type: 'input',
-    rules: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
-    props: {
-      placeholder: '请输入模板名称',
-    },
-  },
-  {
-    field: 'type',
-    label: '消息类型',
-    type: 'select',
-    defaultValue: 'SYSTEM',
-    rules: [{ required: true, message: '请选择消息类型', trigger: 'change' }],
-    props: {
-      options: messageTypeOptions.value,
-    },
-  },
-  {
-    field: 'defaultChannel',
-    label: '默认渠道',
-    type: 'select',
-    defaultValue: 'WEB',
-    props: {
-      options: channelOptions.value,
-    },
-  },
-  {
-    type: 'divider',
-    label: '模板内容',
-    props: {
-      titlePlacement: 'left',
-    },
-    span: 2,
-  },
-  {
-    field: 'templateDesigner',
-    label: '',
-    type: 'slot',
-    span: 2,
-    showLabel: false,
-    showFeedback: false,
-  },
-  {
-    field: 'enabled',
-    label: '是否启用',
-    type: 'radio',
-    defaultValue: 1,
-    props: {
-      options: enabledOptions.value,
-    },
-  },
-  {
-    field: 'remark',
-    label: '备注说明',
-    type: 'textarea',
-    span: 2,
-    props: {
-      placeholder: '请输入备注说明',
-      rows: 3,
-    },
-  },
-])
-
-function toNumberOptions(options = []) {
-  return options.map(item => ({
-    ...item,
-    value: Number(item.value),
-  }))
-}
-
-function handleBeforeSubmit(data = {}) {
-  const submitData = {
-    ...data,
-    titleTemplate: String(data.titleTemplate || '').trim(),
-    contentTemplate: String(data.contentTemplate || '').trim(),
-  }
-  delete submitData.templateDesigner
-
-  if (!submitData.contentTemplate) {
-    window.$message?.warning('请输入内容模板')
-    return false
-  }
-  if (hasUnsupportedAtVariables(submitData.titleTemplate, submitData.contentTemplate)) {
-    window.$message?.warning(['请使用 ', '$', '{变量}', ' 或 {变量}，@变量 后端不会替换'].join(''))
-    return false
-  }
-  return submitData
-}
-
-function resolveTemplateVariables(formData = {}) {
-  const usedKeys = new Set(extractTemplateVariables(formData.titleTemplate, formData.contentTemplate))
-  const catalogVariables = getTemplateCatalogVariables(formData.templateCode)
-  const variableMap = new Map()
-
-  SYSTEM_BUILT_IN_VARIABLES.forEach((item) => {
-    variableMap.set(item.key, {
-      ...item,
-      used: usedKeys.has(item.key),
-      source: 'system',
-    })
-  })
-
-  catalogVariables.forEach((item) => {
-    variableMap.set(item.key, {
-      ...item,
-      used: usedKeys.has(item.key),
-      source: 'backend',
-    })
-  })
-
-  usedKeys.forEach((key) => {
-    if (!variableMap.has(key)) {
-      variableMap.set(key, {
-        key,
-        label: key,
-        used: true,
-        source: 'current',
-      })
-    }
-  })
-
-  return Array.from(variableMap.values())
-}
-
-function getVisibleTemplateVariables(formData = {}) {
-  const keyword = String(variableKeyword.value || '').trim().toLowerCase()
-  const variables = resolveTemplateVariables(formData)
-  if (!keyword)
+const messageTypeOptions = computed(() => dict.value.sys_message_type || [])
+const channelOptions = computed(() => dict.value.sys_message_channel || [])
+const filteredList = computed(() => {
+  const query = keyword.value.trim().toLowerCase()
+  if (!query)
+    return list.value
+  return list.value.filter(item => `${item.templateName || ''} ${item.templateCode || ''}`.toLowerCase().includes(query))
+})
+const styleMode = computed(() => resolveContentStyleMode({
+  channel: form.defaultChannel,
+  templateCode: form.templateCode,
+}))
+const styleSnippets = computed(() => getStyleSnippets(styleMode.value))
+const styleGuide = computed(() => getStyleGuide(styleMode.value))
+const previewTitle = computed(() => {
+  if (styleMode.value === 'card')
+    return '卡片预览（企业微信/站内信）'
+  if (styleMode.value === 'markdown')
+    return '卡片预览（钉钉）'
+  if (styleMode.value === 'plain')
+    return '短信预览'
+  return '正文预览'
+})
+const contentPlaceholder = computed(() => {
+  if (styleMode.value === 'card')
+    return '点上方「次要说明 / 正文 / 强调」插入一行，再改文字或插入变量'
+  if (styleMode.value === 'markdown')
+    return '可用 ### 标题、- 列表。点上方按钮插入'
+  if (styleMode.value === 'plain')
+    return `只写文字，例如：您的验证码是 ${formatPlaceholder('code')}`
+  return '可写简单 HTML，或点样式按钮插入'
+})
+const previewHtml = computed(() => renderPreviewHtml(form.contentTemplate, styleMode.value))
+const usedVariables = computed(() => extractTemplateVariables(form.titleTemplate, form.contentTemplate))
+const visibleVariables = computed(() => {
+  const query = String(variableKeyword.value || '').trim().toLowerCase()
+  const variables = resolveTemplateVariables()
+  if (!query)
     return variables
+  return variables.filter(item => item.key.toLowerCase().includes(query) || item.label.toLowerCase().includes(query))
+})
+const canInsertCustomVariable = computed(() => {
+  const key = normalizeVariableKey(variableKeyword.value)
+  if (!/^[a-z_]\w*$/i.test(key))
+    return false
+  return !resolveTemplateVariables().some(item => item.key === key)
+})
+const javaExample = computed(() => buildJavaTemplateExample({
+  templateCode: form.templateCode,
+  variables: usedVariables.value,
+}))
+const httpExample = computed(() => buildHttpTemplateExample({
+  templateCode: form.templateCode,
+  variables: usedVariables.value,
+}))
+const formRules = {
+  templateName: { required: true, message: '请填写模板名称', trigger: 'blur' },
+  templateCode: { required: true, message: '请填写模板编码', trigger: 'blur' },
+}
 
-  return variables.filter((item) => {
-    return item.key.toLowerCase().includes(keyword) || item.label.toLowerCase().includes(keyword)
+function createEmptyForm() {
+  return {
+    id: null,
+    templateName: '',
+    templateCode: '',
+    type: 'SYSTEM',
+    defaultChannel: 'WEB',
+    titleTemplate: '',
+    contentTemplate: '',
+    enabled: 1,
+    remark: '',
+  }
+}
+
+function applyForm(source = {}) {
+  Object.assign(form, createEmptyForm(), source)
+}
+
+function onTemplateCodeInput(value) {
+  form.templateCode = normalizeTemplateCode(value)
+}
+
+function resolveTemplateVariables() {
+  const usedKeys = new Set(usedVariables.value)
+  const catalog = TEMPLATE_VARIABLE_CATALOG[form.templateCode] || []
+  const variableMap = new Map()
+  SYSTEM_BUILT_IN_VARIABLES.forEach((item) => {
+    variableMap.set(item.key, { ...item, used: usedKeys.has(item.key), source: 'system' })
   })
-}
-
-function getVariablePanelSummary(formData = {}) {
-  const variables = resolveTemplateVariables(formData)
-  const customCount = variables.filter(item => item.source === 'current').length
-  return customCount > 0
-    ? `系统 ${SYSTEM_BUILT_IN_VARIABLES.length} / 自定义 ${customCount}`
-    : `系统变量 ${SYSTEM_BUILT_IN_VARIABLES.length} 个`
-}
-
-function getTemplateCatalogVariables(templateCode) {
-  const code = String(templateCode || '').trim()
-  return TEMPLATE_VARIABLE_CATALOG[code] || []
-}
-
-function extractTemplateVariables(...contents) {
-  const result = []
-  const pattern = /\$\{([a-z_]\w*)\}|\{([a-z_]\w*)\}/gi
-  contents.forEach((content) => {
-    String(content || '').replace(pattern, (_match, dollarKey, braceKey) => {
-      const key = dollarKey || braceKey
-      if (key && !result.includes(key))
-        result.push(key)
-      return _match
-    })
+  catalog.forEach((item) => {
+    variableMap.set(item.key, { ...item, used: usedKeys.has(item.key), source: 'backend' })
   })
-  return result
-}
-
-function countTemplateVariables(content) {
-  return extractTemplateVariables(content).length
+  usedKeys.forEach((key) => {
+    if (!variableMap.has(key))
+      variableMap.set(key, { key, label: key, used: true, source: 'current' })
+  })
+  return Array.from(variableMap.values())
 }
 
 function normalizeVariableKey(value) {
   return String(value || '').trim().replace(/^\$\{|\}$/g, '').replace(/^@/, '')
 }
 
-function canInsertCustomVariable(formData = {}) {
-  const key = normalizeVariableKey(variableKeyword.value)
-  if (!/^[a-z_]\w*$/i.test(key))
-    return false
-  return !resolveTemplateVariables(formData).some(item => item.key === key)
-}
-
-function formatPlaceholder(key) {
-  return key ? `\${${key}}` : ''
-}
-
 function setActiveTemplateField(field) {
   activeTemplateField.value = field
 }
 
-function setTemplateField(formData, field, value) {
+function setTemplateField(field, value) {
   setActiveTemplateField(field)
-  formData[field] = value
+  form[field] = value
 }
 
 function rememberTemplateCursor(field, event) {
@@ -540,106 +463,334 @@ function rememberTemplateCursor(field, event) {
   }
 }
 
-function insertTemplateVariable(formData, key) {
+function insertIntoActiveField(snippet) {
   const field = activeTemplateField.value || 'contentTemplate'
-  const placeholder = formatPlaceholder(key)
-  const current = String(formData[field] || '')
-  const cursor = templateCursorMap.value[field]
-  const insertIndex = typeof cursor === 'number' ? cursor : current.length
-
-  formData[field] = `${current.slice(0, insertIndex)}${placeholder}${current.slice(insertIndex)}`
+  const result = insertAtCursor(form[field], snippet, templateCursorMap.value[field])
+  form[field] = result.value
   templateCursorMap.value = {
     ...templateCursorMap.value,
-    [field]: insertIndex + placeholder.length,
+    [field]: result.cursor,
   }
 }
 
-function addCustomVariable(formData) {
-  insertTemplateVariable(formData, normalizeVariableKey(variableKeyword.value))
+function insertTemplateVariable(key) {
+  insertIntoActiveField(formatPlaceholder(key))
+}
+
+function addCustomVariable() {
+  insertTemplateVariable(normalizeVariableKey(variableKeyword.value))
   variableKeyword.value = ''
 }
 
-function renderTemplatePreview(content) {
-  return String(content || '').replace(/\$\{([a-z_]\w*)\}|\{([a-z_]\w*)\}/gi, (_match, dollarKey, braceKey) => {
-    const key = dollarKey || braceKey
-    return TEMPLATE_SAMPLE_VALUES[key] || `${key}示例`
+function insertStyleSnippet(snippet) {
+  activeTemplateField.value = 'contentTemplate'
+  insertIntoActiveField(snippet.insert)
+}
+
+async function loadList(keepSelection = true) {
+  listLoading.value = true
+  try {
+    const res = await messageApi.getTemplatePage({
+      pageNum: 1,
+      pageSize: 200,
+    })
+    list.value = res?.data?.records || []
+    if (keepSelection && form.id) {
+      const current = list.value.find(item => String(item.id) === String(form.id))
+      if (current)
+        applyForm(current)
+    }
+  }
+  catch (error) {
+    list.value = []
+    window.$message?.error(error?.message || '加载消息模板失败')
+  }
+  finally {
+    listLoading.value = false
+  }
+}
+
+function startCreate() {
+  editing.value = true
+  activeTab.value = 'content'
+  applyForm()
+}
+
+function selectItem(item) {
+  editing.value = true
+  activeTab.value = 'content'
+  applyForm(item)
+}
+
+async function saveItem() {
+  try {
+    await formRef.value?.validate()
+  }
+  catch {
+    activeTab.value = 'content'
+    return
+  }
+  if (!String(form.contentTemplate || '').trim()) {
+    window.$message?.warning('请填写正文')
+    activeTab.value = 'content'
+    return
+  }
+  if (hasUnsupportedAtVariables(form.titleTemplate, form.contentTemplate)) {
+    window.$message?.warning(`请使用 ${formatPlaceholder('变量')}，@变量 发出去不会被替换`)
+    return
+  }
+  saving.value = true
+  try {
+    const payload = {
+      id: form.id,
+      templateName: form.templateName.trim(),
+      templateCode: normalizeTemplateCode(form.templateCode),
+      type: form.type || 'SYSTEM',
+      defaultChannel: form.defaultChannel || 'WEB',
+      titleTemplate: String(form.titleTemplate || '').trim(),
+      contentTemplate: String(form.contentTemplate || '').trim(),
+      enabled: form.enabled === 1 ? 1 : 0,
+      remark: form.remark?.trim() || '',
+    }
+    if (payload.id)
+      await messageApi.updateTemplate(payload)
+    else
+      await messageApi.createTemplate(payload)
+    window.$message?.success('已保存。发消息时填这个模板编码即可。')
+    await loadList(false)
+    const saved = list.value.find(item => item.templateCode === payload.templateCode)
+    if (saved) {
+      applyForm(saved)
+      editing.value = true
+    }
+    activeTab.value = 'usage'
+  }
+  catch (error) {
+    window.$message?.error(error?.message || '保存失败')
+  }
+  finally {
+    saving.value = false
+  }
+}
+
+function confirmRemove() {
+  window.$dialog?.warning({
+    title: '删除这个模板？',
+    content: '已经发出的消息还在，之后按这个编码发送将找不到模板。',
+    positiveText: '删除',
+    negativeText: '取消',
+    onPositiveClick: removeItem,
   })
 }
 
-/**
- * 清理预览 HTML，移除可执行/危险标签与事件，避免 v-html 引入 XSS。
- * 保留 div/span/class/style 等卡片常用标签，仅拦截 script/iframe 等与 on* 事件、javascript: 协议。
- */
-function sanitizePreviewHtml(html) {
-  return String(html || '')
-    .replace(/<\s*(script|iframe|object|embed|link|meta|style)\b[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
-    .replace(/<\s*(script|iframe|object|embed|link|meta|style)\b[^>]*>/gi, '')
-    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    .replace(/(href|src)\s*=\s*("\s*javascript:[^"]*"|'\s*javascript:[^']*')/gi, '$1="#"')
+async function removeItem() {
+  if (!form.id)
+    return
+  saving.value = true
+  try {
+    await messageApi.deleteTemplate(form.id)
+    window.$message?.success('已删除')
+    applyForm()
+    editing.value = false
+    await loadList(false)
+  }
+  catch (error) {
+    window.$message?.error(error?.message || '删除失败')
+  }
+  finally {
+    saving.value = false
+  }
 }
 
-function renderTemplatePreviewHtml(content) {
-  return sanitizePreviewHtml(renderTemplatePreview(content))
+function goTrySend() {
+  router.push('/message/manage')
 }
 
-function hasUnsupportedAtVariables(...contents) {
-  return contents.some(content => /@[a-z_]\w*/i.test(String(content || '')))
+function copyText(text, successMsg) {
+  copy(text, successMsg)
 }
 
-// 编辑
-function handleEdit(row) {
-  crudRef.value?.handleEdit(row)
-}
-
-// 删除
-function handleDelete(row) {
-  crudRef.value?.handleDelete(row)
-}
+onMounted(async () => {
+  await loadList(false)
+  if (list.value[0])
+    selectItem(list.value[0])
+})
 </script>
 
 <style scoped>
-:deep(.n-form-item-label) {
-  font-weight: 500;
+.template-page {
+  height: 100%;
+  min-height: 0;
 }
 
-:deep(.n-modal .n-card__content) {
-  padding-top: 18px;
+.tpl-aside,
+.tpl-main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.tpl-aside {
+  gap: 8px;
+  padding: 10px;
+}
+
+.tpl-aside-head,
+.tpl-main-head {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.tpl-aside-head strong,
+.tpl-main-head strong {
+  display: block;
+  color: var(--text-primary, #0f172a);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.tpl-aside-head p,
+.tpl-main-head p,
+.field-hint,
+.usage-lead {
+  margin: 2px 0 0;
+  color: var(--text-tertiary, #64748b);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.tpl-aside-list-spin,
+.tpl-aside-scroll,
+.tpl-tabs,
+.tpl-pane-scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+.tpl-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tpl-item:hover {
+  background: var(--bg-secondary, #f8fafc);
+}
+
+.tpl-item.active {
+  border-color: var(--border-light, #e2e8f0);
+  background: color-mix(in srgb, var(--primary-color, #2080f0) 8%, white);
+}
+
+.tpl-item-name {
+  color: var(--text-primary, #0f172a);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.tpl-item-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--text-tertiary, #94a3b8);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.tpl-item-meta em {
+  font-style: normal;
+}
+
+.tpl-item-meta em.is-on {
+  color: var(--success-color, #18a058);
+}
+
+.tpl-main-head {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-light, #eef2f6);
+}
+
+.tpl-main-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  align-items: center;
+}
+
+.tpl-tabs {
+  padding: 0 16px 12px;
+}
+
+.tpl-tabs :deep(.n-tabs-pane-wrapper),
+.tpl-tabs :deep(.n-tab-pane) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tpl-content {
+  padding: 12px 4px 24px;
+}
+
+.tpl-form {
+  max-width: 760px;
+  margin-bottom: 12px;
+}
+
+.tpl-form :deep(.n-form-item-blank) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: 100%;
 }
 
 .template-designer {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 12px;
   width: 100%;
 }
 
-.template-variable-panel,
-.template-editor-panel {
-  min-width: 0;
-}
-
 .template-variable-panel {
-  border: 1px solid var(--n-border-color);
-  border-radius: 8px;
-  background: #fafafa;
-  padding: 12px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 4px;
+  background: var(--bg-secondary, #f8fafc);
 }
 
 .variable-panel-head {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .variable-panel-title {
-  color: #1f2937;
-  font-size: 14px;
+  color: var(--text-primary, #0f172a);
+  font-size: 13px;
   font-weight: 600;
-  line-height: 20px;
 }
 
 .variable-panel-count {
-  margin-top: 2px;
-  color: #6b7280;
+  color: var(--text-tertiary, #64748b);
   font-size: 12px;
   line-height: 18px;
 }
@@ -648,57 +799,50 @@ function handleDelete(row) {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 4px;
-  margin: 12px 0;
+  margin: 10px 0;
   padding: 3px;
-  border-radius: 6px;
+  border-radius: 4px;
   background: #eef1f5;
 }
 
 .template-target-switch button {
-  height: 28px;
+  height: 26px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 3px;
   background: transparent;
-  color: #4b5563;
+  color: var(--text-secondary, #475569);
   cursor: pointer;
   font-size: 12px;
 }
 
 .template-target-switch button.active {
   background: #fff;
-  color: #1769e0;
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
+  color: var(--primary-color, #2080f0);
 }
 
 .variable-scrollbar {
-  max-height: 318px;
+  max-height: 360px;
 }
 
 .variable-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
   gap: 8px;
+  align-items: center;
   width: 100%;
-  min-height: 34px;
-  margin-bottom: 6px;
-  padding: 7px 8px;
+  min-height: 32px;
+  margin-bottom: 4px;
+  padding: 6px 8px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 4px;
   background: #fff;
-  color: #374151;
   cursor: pointer;
   text-align: left;
-  transition:
-    border-color 0.18s ease,
-    background-color 0.18s ease;
 }
 
 .variable-row:hover,
 .variable-row.used {
-  border-color: #9cc5ff;
-  background: #f4f8ff;
+  border-color: var(--border-light, #cbd5e1);
 }
 
 .variable-row.custom {
@@ -708,31 +852,26 @@ function handleDelete(row) {
 .variable-name {
   overflow: hidden;
   font-size: 13px;
-  line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .variable-code {
-  color: #6b7280;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  color: var(--text-tertiary, #64748b);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
-  line-height: 18px;
 }
 
 .variable-empty {
-  padding: 28px 0;
-  color: #9ca3af;
-  font-size: 13px;
+  padding: 24px 0;
+  color: var(--text-tertiary, #94a3b8);
+  font-size: 12px;
   text-align: center;
 }
 
 .template-editor-panel {
   display: grid;
-  gap: 12px;
-}
-
-.template-field-block {
+  gap: 10px;
   min-width: 0;
 }
 
@@ -741,52 +880,73 @@ function handleDelete(row) {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 6px;
-  color: #1f2937;
+  color: var(--text-primary, #0f172a);
   font-size: 13px;
   font-weight: 600;
 }
 
 .template-field-head span:last-child {
-  color: #8a93a3;
+  color: var(--text-tertiary, #94a3b8);
   font-size: 12px;
   font-weight: 400;
 }
 
-.template-preview {
-  border: 1px solid var(--n-border-color);
-  border-radius: 8px;
+.style-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.style-chip {
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 4px;
   background: #fff;
+  color: var(--text-secondary, #475569);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.style-chip:hover {
+  border-color: var(--primary-color, #2080f0);
+  color: var(--primary-color, #2080f0);
+}
+
+.template-preview {
   padding: 12px;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 4px;
+  background: #fff;
+}
+
+.template-preview[data-mode='card'] {
+  max-width: 420px;
 }
 
 .template-preview-head {
   margin-bottom: 8px;
-  color: #1f2937;
-  font-size: 13px;
-  font-weight: 600;
+  color: var(--text-tertiary, #64748b);
+  font-size: 12px;
 }
 
 .template-preview-title {
-  overflow: hidden;
   margin-bottom: 8px;
-  color: #111827;
+  color: var(--text-primary, #0f172a);
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .template-preview-content {
-  min-height: 44px;
+  min-height: 48px;
   color: #4b5563;
   font-size: 13px;
   line-height: 20px;
-  white-space: pre-wrap;
   word-break: break-word;
 }
 
-/* 企业卡片（textcard）常用样式类，v-html 注入内容为非 scoped，需用 :deep 穿透 */
 .template-preview-content :deep(div) {
   margin: 2px 0;
 }
@@ -808,13 +968,114 @@ function handleDelete(row) {
   text-decoration: none;
 }
 
-@media (max-width: 900px) {
-  .template-designer {
-    grid-template-columns: 1fr;
-  }
+.usage-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 760px;
+  padding: 12px 4px 24px;
+}
 
-  .variable-scrollbar {
-    max-height: 220px;
+.usage-panel h3 {
+  margin: 0 0 8px;
+  color: var(--text-primary, #0f172a);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.usage-panel ol,
+.usage-panel ul {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  color: var(--text-secondary, #475569);
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.style-legend {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  padding-left: 0;
+}
+
+.style-legend li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-secondary, #475569);
+}
+
+.legend {
+  display: inline-flex;
+  min-width: 64px;
+  justify-content: center;
+  padding: 0 6px;
+  border-radius: 3px;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.legend.gray {
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+.legend.normal {
+  background: #f8fafc;
+  color: #4b5563;
+}
+
+.legend.highlight {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.code-block {
+  overflow: hidden;
+  margin-top: 8px;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 4px;
+  background: var(--bg-secondary, #f8fafc);
+}
+
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-light, #eef2f6);
+  color: var(--text-tertiary, #64748b);
+  font-size: 12px;
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  color: var(--text-secondary, #334155);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: pre-wrap;
+}
+
+.tpl-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+  padding: 24px;
+  color: var(--text-tertiary, #64748b);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+@media (max-width: 960px) {
+  .template-designer,
+  .field-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -151,14 +151,12 @@
           </n-alert>
 
           <n-form-item label="审批意见" path="comment" class="approval-comment">
-            <n-input
-              v-model:value="taskForm.comment"
+            <FlowCommentPhraseInput
+              v-model="taskForm.comment"
               :disabled="taskFormDisabled"
-              type="textarea"
               :rows="3"
+              :maxlength="500"
               :placeholder="requireComment ? '请输入审批意见' : '请输入审批意见（可选）'"
-              maxlength="500"
-              show-count
             />
           </n-form-item>
 
@@ -409,6 +407,7 @@ import {
 import UserSelectPicker from '@/components/common/UserSelectPicker.vue'
 import DictTag from '@/components/DictTag.vue'
 import FileUpload from '@/components/file-upload/index.vue'
+import FlowCommentPhraseInput from '@/components/flow/FlowCommentPhraseInput.vue'
 import { useBusinessTaskFormContext } from '@/composables/useBusinessTaskFormContext'
 import { useCodeAppMetadata } from '@/composables/useCodeAppMetadata'
 import { useDict } from '@/composables/useDict'

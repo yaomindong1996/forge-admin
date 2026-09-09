@@ -17,19 +17,25 @@ import java.util.Map;
 @Mapper
 public interface FlowModelMapper extends BaseMapper<FlowModel> {
 
+    /** 按主键和租户读取未删除模型，供 @IgnoreTenant 控制器使用。 */
+    FlowModel selectByIdAndTenant(@Param("id") String id,
+                                  @Param("tenantId") Long tenantId);
+
     /**
      * 分页查询流程模型（支持父级分类查询子级数据）
      */
     IPage<FlowModel> selectModelPage(Page<FlowModel> page, @Param("modelName") String modelName,
                                       @Param("category") String category, @Param("status") Integer status,
-                                      @Param("createBy") String createBy);
+                                      @Param("createBy") String createBy,
+                                      @Param("tenantId") Long tenantId);
 
     /**
      * 按状态统计流程模型数量
      */
     Map<String, Object> selectStatusStatistics(@Param("modelName") String modelName,
                                                @Param("category") String category,
-                                               @Param("createBy") String createBy);
+                                               @Param("createBy") String createBy,
+                                               @Param("tenantId") Long tenantId);
 
     /** 按租户和流程定义 Key 查询未删除模型。 */
     FlowModel selectByModelKeyAndTenantId(@Param("modelKey") String modelKey,
@@ -45,6 +51,16 @@ public interface FlowModelMapper extends BaseMapper<FlowModel> {
      */
     List<FlowModel> selectEnabledModels(@Param("tenantId") Long tenantId,
                                         @Param("category") String category);
+
+    /** 锁定当前租户内待排序模型，防止并发排序覆盖其他请求。 */
+    List<FlowModel> selectByIdsForUpdate(@Param("ids") List<String> ids,
+                                         @Param("tenantId") Long tenantId);
+
+    /** 租户限定更新单个模型排序值。 */
+    int updateSortOrder(@Param("id") String id,
+                        @Param("tenantId") Long tenantId,
+                        @Param("sortOrder") Integer sortOrder,
+                        @Param("lastUpdateBy") String lastUpdateBy);
 
     JobFlowBindingSnapshot selectPublishedJobBinding(
             @Param("tenantId") Long tenantId,

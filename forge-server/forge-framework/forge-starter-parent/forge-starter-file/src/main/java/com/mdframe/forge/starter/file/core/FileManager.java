@@ -1,6 +1,7 @@
 package com.mdframe.forge.starter.file.core;
 
 import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.file.model.FileMetadata;
 import com.mdframe.forge.starter.file.model.StorageConfig;
 import com.mdframe.forge.starter.file.spi.FileMetadataPersistence;
@@ -189,6 +190,7 @@ public class FileManager {
         if (isPrivate != null) {
             metadata.setIsPrivate(isPrivate);
         }
+        applyUploader(metadata);
         if (metadataPersistence != null) {
             metadataPersistence.save(metadata);
         }
@@ -207,6 +209,7 @@ public class FileManager {
             if (existing != null
                     && java.util.Objects.equals(existing.getBusinessType(), businessType)
                     && java.util.Objects.equals(existing.getBusinessId(), businessId)) {
+                assertReadPermission(existing.getFileId(), existing);
                 log.info("文件秒传: md5={}, businessType={}", md5, businessType);
                 return existing;
             }
@@ -223,6 +226,7 @@ public class FileManager {
         if (isPrivate != null) {
             metadata.setIsPrivate(isPrivate);
         }
+        applyUploader(metadata);
 
         // 持久化元数据
         if (metadataPersistence != null) {
@@ -244,6 +248,7 @@ public class FileManager {
         if (metadata == null) {
             throw new RuntimeException("文件不存在: " + fileId);
         }
+        assertReadPermission(fileId, metadata);
         
         FileStorage storage = getStorage(metadata.getStorageType());
         if (storage == null) {
@@ -256,6 +261,10 @@ public class FileManager {
             response.setContentType(metadata.getMimeType());
             response.setHeader("Content-Disposition",
                 "attachment;filename=" + java.net.URLEncoder.encode(metadata.getOriginalName(), StandardCharsets.UTF_8));
+            if (Boolean.TRUE.equals(metadata.getIsPrivate())) {
+                response.setHeader("Cache-Control", "private, no-store");
+                response.setHeader("Pragma", "no-cache");
+            }
             
             inputStream.transferTo(outputStream);
             
@@ -280,6 +289,7 @@ public class FileManager {
         if (metadata == null) {
             throw new RuntimeException("文件不存在: " + fileId);
         }
+        assertReadPermission(fileId, metadata);
         
         FileStorage storage = getStorage(metadata.getStorageType());
         if (storage == null) {
@@ -301,6 +311,7 @@ public class FileManager {
         if (metadata == null) {
             return null;
         }
+        assertReadPermission(fileId, metadata);
         
         FileStorage storage = getStorage(metadata.getStorageType());
         if (storage == null) {
@@ -323,7 +334,11 @@ public class FileManager {
         if (metadataPersistence == null) {
             return null;
         }
-        return metadataPersistence.getById(fileId);
+        FileMetadata metadata = metadataPersistence.getById(fileId);
+        if (metadata != null) {
+            assertReadPermission(fileId, metadata);
+        }
+        return metadata;
     }
     
     /**
@@ -384,12 +399,31 @@ public class FileManager {
         }
         
         FileMetadata metadata = storage.completeMultipartUpload(uploadId, partETags);
+        applyUploader(metadata);
         
         if (metadataPersistence != null) {
             metadataPersistence.save(metadata);
         }
         
         return metadata;
+    }
+
+    private void applyUploader(FileMetadata metadata) {
+        if (metadata != null && metadata.getUploaderId() == null) {
+            metadata.setUploaderId(SessionHelper.getUserId());
+        }
+    }
+
+    private void assertReadPermission(String fileId, FileMetadata metadata) {
+        if (metadata.getExpireTime() != null && metadata.getExpireTime().isBefore(java.time.LocalDateTime.now())) {
+            throw new BusinessException(410, "文件已过期");
+        }
+        if (metadataPersistence == null || !Boolean.TRUE.equals(metadata.getIsPrivate())) {
+            return;
+        }
+        if (!metadataPersistence.checkPermission(fileId, SessionHelper.getUserId())) {
+            throw new BusinessException(403, "无权读取该文件");
+        }
     }
 
     /**

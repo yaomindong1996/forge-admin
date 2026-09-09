@@ -7,6 +7,7 @@ import com.mdframe.forge.starter.core.domain.RespInfo;
 import com.mdframe.forge.starter.flow.entity.FlowApprovalLevel;
 import com.mdframe.forge.starter.flow.entity.FlowNodeConfig;
 import com.mdframe.forge.starter.flow.entity.FlowNodeOperation;
+import com.mdframe.forge.starter.flow.dto.FlowApproverCalculationDTO;
 import com.mdframe.forge.starter.flow.service.FlowNodeConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -122,8 +123,9 @@ public class FlowNodeConfigController {
     @PostMapping("/calculateApprovers")
     public RespInfo<List<String>> calculateApprovers(
             @RequestParam String nodeConfigId,
-            @RequestBody Map<String, Object> variables) {
-        return RespInfo.success(flowNodeConfigService.calculateApprovers(nodeConfigId, variables));
+            @RequestBody FlowApproverCalculationDTO request) {
+        return RespInfo.success(flowNodeConfigService.calculateApprovers(nodeConfigId,
+                request == null ? Map.of() : request.resolveVariables()));
     }
 
     /**
@@ -133,8 +135,9 @@ public class FlowNodeConfigController {
     public RespInfo<List<String>> calculateLevelApprovers(
             @RequestParam String nodeConfigId,
             @RequestParam Integer levelIndex,
-            @RequestBody Map<String, Object> variables) {
-        return RespInfo.success(flowNodeConfigService.calculateLevelApprovers(nodeConfigId, levelIndex, variables));
+            @RequestBody FlowApproverCalculationDTO request) {
+        return RespInfo.success(flowNodeConfigService.calculateLevelApprovers(nodeConfigId, levelIndex,
+                request == null ? Map.of() : request.resolveVariables()));
     }
 
     /**

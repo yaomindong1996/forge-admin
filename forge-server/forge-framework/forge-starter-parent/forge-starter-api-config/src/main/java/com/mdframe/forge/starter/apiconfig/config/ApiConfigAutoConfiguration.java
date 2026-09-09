@@ -26,6 +26,7 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 @RequiredArgsConstructor
 public class ApiConfigAutoConfiguration {
 
+
     /**
      * 配置API配置扫描器
      */

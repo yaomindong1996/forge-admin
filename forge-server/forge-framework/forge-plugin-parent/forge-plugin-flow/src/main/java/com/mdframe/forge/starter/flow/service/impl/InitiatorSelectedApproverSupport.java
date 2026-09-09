@@ -2,7 +2,11 @@ package com.mdframe.forge.starter.flow.service.impl;
 
 import com.mdframe.forge.starter.flow.dto.FlowStartConfig;
 import org.flowable.bpmn.model.BpmnModel;
+import org.flowable.bpmn.model.FlowElement;
+import org.flowable.bpmn.model.FlowNode;
 import org.flowable.bpmn.model.MultiInstanceLoopCharacteristics;
+import org.flowable.bpmn.model.SequenceFlow;
+import org.flowable.bpmn.model.StartEvent;
 import org.flowable.bpmn.model.UserTask;
 
 import java.util.ArrayList;
@@ -41,6 +45,91 @@ final class InitiatorSelectedApproverSupport {
             result.add(node);
         }
         return result;
+    }
+
+    static List<FlowStartConfig.ApproverNode> discoverNextNodes(BpmnModel bpmnModel) {
+        List<FlowStartConfig.ApproverNode> result = new ArrayList<>();
+        if (bpmnModel == null || bpmnModel.getMainProcess() == null) {
+            return result;
+        }
+        Map<String, FlowElement> elements = new LinkedHashMap<>();
+        for (FlowElement element : bpmnModel.getMainProcess().getFlowElements()) {
+            elements.put(element.getId(), element);
+        }
+        for (StartEvent start : bpmnModel.getMainProcess().findFlowElementsOfType(StartEvent.class)) {
+            discoverNext(start, elements, result, new java.util.HashSet<>());
+        }
+        return result;
+    }
+
+    static List<String> preflightNextApprovers(BpmnModel bpmnModel) {
+        List<String> diagnostics = new ArrayList<>();
+        for (FlowStartConfig.ApproverNode node : discoverNextNodes(bpmnModel)) {
+            boolean configured = hasText(node.getAssignee())
+                    || hasText(node.getCandidateUsers())
+                    || hasText(node.getCandidateGroups());
+            if (!configured && !isInitiatorSelected(bpmnModel, node.getNodeKey())) {
+                String name = hasText(node.getNodeName()) ? node.getNodeName() : node.getNodeKey();
+                diagnostics.add("审批节点「" + name + "」未配置处理人、候选用户或候选组");
+            }
+        }
+        return diagnostics;
+    }
+
+    private static void discoverNext(FlowNode node, Map<String, FlowElement> elements,
+                                     List<FlowStartConfig.ApproverNode> result, java.util.Set<String> visited) {
+        if (node == null || !visited.add(node.getId())) {
+            return;
+        }
+        for (SequenceFlow flow : node.getOutgoingFlows()) {
+            FlowElement target = elements.get(flow.getTargetRef());
+            if (!(target instanceof FlowNode targetNode)) {
+                continue;
+            }
+            if (target instanceof UserTask task) {
+                FlowStartConfig.ApproverNode preview = new FlowStartConfig.ApproverNode();
+                preview.setNodeKey(task.getId());
+                preview.setNodeName(task.getName());
+                preview.setMultiple(task.getLoopCharacteristics() != null);
+                preview.setAssignee(task.getAssignee());
+                preview.setCandidateUsers(attribute(task, "candidateUsers"));
+                preview.setCandidateGroups(attribute(task, "candidateGroups"));
+                if (result.stream().noneMatch(item -> task.getId().equals(item.getNodeKey()))) {
+                    result.add(preview);
+                }
+                continue;
+            }
+            discoverNext(targetNode, elements, result, visited);
+        }
+    }
+
+    private static String attribute(UserTask task, String name) {
+        if ("candidateUsers".equals(name) && task.getCandidateUsers() != null
+                && !task.getCandidateUsers().isEmpty()) {
+            return String.join(",", task.getCandidateUsers());
+        }
+        if ("candidateGroups".equals(name) && task.getCandidateGroups() != null
+                && !task.getCandidateGroups().isEmpty()) {
+            return String.join(",", task.getCandidateGroups());
+        }
+        String value = task.getAttributeValue(FLOWABLE_NS, name);
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static boolean isInitiatorSelected(BpmnModel bpmnModel, String nodeKey) {
+        if (bpmnModel == null || bpmnModel.getMainProcess() == null || nodeKey == null) {
+            return false;
+        }
+        for (UserTask task : bpmnModel.getMainProcess().findFlowElementsOfType(UserTask.class)) {
+            if (nodeKey.equals(resolveNodeKey(task))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     static void validateAndNormalize(BpmnModel bpmnModel, Map<String, Object> variables) {

@@ -32,6 +32,7 @@ public class ApiConfigProperties {
      */
     private String[] scanPackages = new String[0];
 
+
     /**
      * 缓存配置
      */

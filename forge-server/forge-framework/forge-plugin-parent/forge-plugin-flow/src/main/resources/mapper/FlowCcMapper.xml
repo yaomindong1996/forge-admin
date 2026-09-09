@@ -2,12 +2,74 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mdframe.forge.starter.flow.mapper.FlowCcMapper">
 
+    <!--
+        抄送列表查询显式绑定租户和参与人。标题搜索同时覆盖标题、摘要、流程定义和业务键，
+        与前端“流程名称或编号”搜索保持一致；排序补充主键保证分页结果稳定。
+    -->
+    <select id="selectMyPage" resultType="com.mdframe.forge.starter.flow.entity.FlowCc">
+        SELECT c.*
+        FROM sys_flow_cc c
+        WHERE c.tenant_id = #{tenantId}
+          AND c.cc_user_id = #{userId}
+          AND c.status = 0
+        <if test="isRead != null">
+          AND c.is_read = #{isRead}
+        </if>
+        <if test="title != null and title != ''">
+          AND (
+              c.title LIKE CONCAT('%', #{title}, '%')
+              OR c.content LIKE CONCAT('%', #{title}, '%')
+              OR c.process_def_key LIKE CONCAT('%', #{title}, '%')
+              OR c.business_key LIKE CONCAT('%', #{title}, '%')
+          )
+        </if>
+        ORDER BY c.cc_time DESC, c.id DESC
+    </select>
+
+    <select id="selectSentPage" resultType="com.mdframe.forge.starter.flow.entity.FlowCc">
+        SELECT c.*
+        FROM sys_flow_cc c
+        WHERE c.tenant_id = #{tenantId}
+          AND c.send_user_id = #{userId}
+        <if test="title != null and title != ''">
+          AND (
+              c.title LIKE CONCAT('%', #{title}, '%')
+              OR c.content LIKE CONCAT('%', #{title}, '%')
+              OR c.process_def_key LIKE CONCAT('%', #{title}, '%')
+              OR c.business_key LIKE CONCAT('%', #{title}, '%')
+          )
+        </if>
+        ORDER BY c.cc_time DESC, c.id DESC
+    </select>
+
     <!-- 工作台未读抄送数。 -->
     <select id="countWorkspaceUnread" resultType="java.lang.Long">
         SELECT COUNT(1)
         FROM sys_flow_cc c
         WHERE c.cc_user_id = #{userId}
+          AND c.tenant_id = #{tenantId}
           AND c.is_read = 0
+          AND c.status = 0
+    </select>
+
+    <!-- 接收人一键已读，仅更新当前租户下仍有效且未读的关系。 -->
+    <update id="markAllRead">
+        UPDATE sys_flow_cc
+        SET is_read = 1,
+            read_time = #{readTime},
+            update_time = #{readTime}
+        WHERE tenant_id = #{tenantId}
+          AND cc_user_id = #{userId}
+          AND is_read = 0
+          AND status = 0
+    </update>
+
+    <select id="countVisibleByProcess" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_flow_cc c
+        WHERE c.process_instance_id = #{processInstanceId}
+          AND c.tenant_id = #{tenantId}
+          AND (c.send_user_id = #{userId} OR (c.cc_user_id = #{userId} AND c.status = 0))
     </select>
 
     <delete id="deleteByProcessInstanceIdPhysically">
@@ -15,5 +77,15 @@
         WHERE process_instance_id = #{processInstanceId}
           AND tenant_id = #{tenantId}
     </delete>
+
+    <update id="revokeBySender">
+        UPDATE sys_flow_cc
+        SET status = #{status}, revoke_by = #{senderId}, revoke_time = #{revokeTime},
+            revoke_reason = #{reason}, update_time = #{revokeTime}
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+          AND send_user_id = #{senderId}
+          AND status = 0
+    </update>
 
 </mapper>

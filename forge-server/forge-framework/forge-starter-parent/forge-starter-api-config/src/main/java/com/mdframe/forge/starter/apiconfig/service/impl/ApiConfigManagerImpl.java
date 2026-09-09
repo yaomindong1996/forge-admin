@@ -53,7 +53,7 @@ public class ApiConfigManagerImpl implements IApiConfigManager {
     /**
      * 所有启用的配置列表缓存（用于Ant路径匹配）
      */
-    private List<ApiConfigInfo> allEnabledConfigsCache;
+    private volatile List<ApiConfigInfo> allEnabledConfigsCache = List.of();
     
     private static final AntPathMatcher matcher = new AntPathMatcher();
     
@@ -73,12 +73,7 @@ public class ApiConfigManagerImpl implements IApiConfigManager {
                 .expireAfterWrite(configProperties.getCache().getLocal().getExpireMinutes(), TimeUnit.MINUTES)
                 .recordStats()
                 .build();
-        List<SysApiConfig> configs = apiConfigMapper.selectAllEnabled();
-        if (CollUtil.isNotEmpty(configs) && CollUtil.isEmpty(allEnabledConfigsCache)) {
-            allEnabledConfigsCache = configs.stream()
-                    .map(ApiConfigInfo::fromEntity)
-                    .collect(Collectors.toList());
-        }
+        reloadEnabledConfigIndex();
         log.info("API配置管理器初始化完成，L1缓存最大容量={}, 过期时间={}分钟",
                 configProperties.getCache().getLocal().getMaxSize(),
                 configProperties.getCache().getLocal().getExpireMinutes());
@@ -198,6 +193,7 @@ public class ApiConfigManagerImpl implements IApiConfigManager {
         localCache.invalidate(cacheKey);
         // 清除L2缓存
         deleteFromRedis(cacheKey);
+        reloadEnabledConfigIndex();
         log.info("刷新API配置缓存: {}", cacheKey);
     }
 
@@ -211,6 +207,7 @@ public class ApiConfigManagerImpl implements IApiConfigManager {
             localCache.invalidate(cacheKey);
             // 清除L2缓存
             deleteFromRedis(cacheKey);
+            reloadEnabledConfigIndex();
             log.info("刷新API配置缓存: id={}, {} {}", configId, cacheKey);
         }
     }
@@ -221,15 +218,22 @@ public class ApiConfigManagerImpl implements IApiConfigManager {
         localCache.invalidateAll();
         // 清除L2缓存
         clearAllFromRedis();
+        reloadEnabledConfigIndex();
         log.info("刷新所有API配置缓存");
     }
 
     @Override
     public void refreshApiConfigByModule(String moduleCode) {
+        if (moduleCode == null || moduleCode.isBlank()) {
+            throw new IllegalArgumentException("模块编码不能为空");
+        }
         List<SysApiConfig> configs = apiConfigMapper.selectByModuleCode(moduleCode);
         for (SysApiConfig config : configs) {
-            refreshApiConfig(config.getUrlPath(), config.getReqMethod());
+            String cacheKey = buildCacheKey(config.getUrlPath(), config.getReqMethod());
+            localCache.invalidate(cacheKey);
+            deleteFromRedis(cacheKey);
         }
+        reloadEnabledConfigIndex();
         log.info("刷新模块[{}]的API配置缓存，共{}条", moduleCode, configs.size());
     }
 
@@ -279,11 +283,7 @@ public class ApiConfigManagerImpl implements IApiConfigManager {
             // 写入L1缓存
             localCache.put(cacheKey, config);
         }
-        if (CollUtil.isEmpty(allEnabledConfigsCache)) {
-            allEnabledConfigsCache = configs.stream()
-                    .map(ApiConfigInfo::fromEntity)
-                    .collect(Collectors.toList());
-        }
+        reloadEnabledConfigIndex(configs);
 
         long elapsed = System.currentTimeMillis() - startTime;
         log.info("API配置缓存预热完成，共{}条配置，耗时{}ms", configs.size(), elapsed);
@@ -293,7 +293,22 @@ public class ApiConfigManagerImpl implements IApiConfigManager {
     public void clearAllCache() {
         localCache.invalidateAll();
         clearAllFromRedis();
+        reloadEnabledConfigIndex();
         log.info("清空所有API配置缓存");
+    }
+
+    /**
+     * 重载路径匹配索引，避免配置变更后继续使用旧快照。
+     */
+    private void reloadEnabledConfigIndex() {
+        reloadEnabledConfigIndex(apiConfigMapper.selectAllEnabled());
+    }
+
+    private void reloadEnabledConfigIndex(List<SysApiConfig> configs) {
+        List<ApiConfigInfo> snapshot = configs == null ? List.of() : configs.stream()
+                .map(ApiConfigInfo::fromEntity)
+                .collect(Collectors.toUnmodifiableList());
+        allEnabledConfigsCache = snapshot;
     }
 
     @Override

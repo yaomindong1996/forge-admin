@@ -348,6 +348,12 @@ CHOKIDAR_USEPOLLING=true pnpm --dir forge-admin-ui exec vite --host 127.0.0.1 --
 
 Naive UI 的 `--n-height` 可保证同尺寸输入和按钮对齐，但 Teleport 或独立挂载的组件不一定继承该变量，直接写 `height: var(--n-height)` 会让高度声明失效。共享样式应使用与组件主题一致的 fallback，例如 default/small/tiny/large 分别使用 `var(--n-height, 34px)`、`28px`、`22px`、`40px`，并用实际浏览器几何验证弹层内控件。
 
+## Naive Dialog 取消回调不能意外返回 false
+
+**发现日期**：2026-09-07
+
+数据权限开关确认框点击取消后仍留在屏幕上。根因是 `const release = () => confirming.value = false` 隐式返回了 `false`，Naive Dialog 将该返回值解释为阻止关闭。改用块函数 `() => { confirming.value = false }`，只更新状态、不返回 false；浏览器验证取消后遮罩消失，单测同时检查回调返回值与不发送保存请求。
+
 ## 182. Vue 客户端组件模板不能直接承载运行时 style 标签
 
 

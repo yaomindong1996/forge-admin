@@ -21,6 +21,7 @@
     <component
       :is="formComponent"
       v-else-if="formComponent"
+      :key="formComponentKey"
       :task-id="taskId"
       :business-key="businessKey"
       :process-instance-id="processInstanceId"
@@ -51,7 +52,7 @@
 </template>
 
 <script setup>
-import { ref, shallowRef, watch } from 'vue'
+import { markRaw, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
 /**
  * 流程业务表单路由组件（全自动模式）
@@ -97,6 +98,9 @@ const emit = defineEmits(['submit', 'cancel'])
 const loading = ref(false)
 const loadError = ref(null)
 const formComponent = shallowRef(null)
+const formComponentKey = ref(null)
+let loadSequence = 0
+let disposed = false
 
 // ============================================================
 // 利用 Vite import.meta.glob 自动扫描 @/views 下所有 .vue 文件
@@ -143,8 +147,13 @@ function resolveLoader(formUrl) {
  * 根据 formUrl 自动查找并加载对应业务组件
  */
 async function loadFormComponent() {
+  const sequence = ++loadSequence
+
   if (!props.formUrl) {
+    loading.value = false
+    loadError.value = null
     formComponent.value = null
+    formComponentKey.value = null
     return
   }
 
@@ -152,7 +161,9 @@ async function loadFormComponent() {
 
   if (!loader) {
     console.warn(`[FlowBusinessForm] 未找到对应组件：${props.formUrl}，请确认 formUrl 与组件路径一致`)
+    loading.value = false
     formComponent.value = null
+    formComponentKey.value = null
     loadError.value = null
     return
   }
@@ -160,18 +171,54 @@ async function loadFormComponent() {
   loading.value = true
   loadError.value = null
   formComponent.value = null
+  formComponentKey.value = null
 
   try {
     const mod = await loader()
-    formComponent.value = mod.default || mod
+    if (disposed || sequence !== loadSequence) {
+      return
+    }
+
+    const component = mod?.default || mod
+    if (!isRenderableComponent(component)) {
+      throw new TypeError('业务表单模块没有导出有效的 Vue 组件')
+    }
+
+    formComponent.value = markRaw(component)
+    formComponentKey.value = `${normalizeFormUrl(props.formUrl)}:${sequence}`
   }
   catch (e) {
+    if (disposed || sequence !== loadSequence) {
+      return
+    }
+
     console.error('[FlowBusinessForm] 加载业务表单失败:', e)
+    formComponent.value = null
+    formComponentKey.value = null
     loadError.value = `无法加载表单组件：${props.formUrl}`
   }
   finally {
-    loading.value = false
+    if (!disposed && sequence === loadSequence) {
+      loading.value = false
+    }
   }
+}
+
+function normalizeFormUrl(formUrl) {
+  return String(formUrl || '').split('?')[0].trim().toLowerCase()
+}
+
+function isRenderableComponent(component) {
+  if (typeof component === 'function') {
+    return true
+  }
+
+  if (!component || typeof component !== 'object') {
+    return false
+  }
+
+  return ['render', 'setup', 'template', '__name', '__file']
+    .some(key => Object.prototype.hasOwnProperty.call(component, key))
 }
 
 function handleFormSubmit(data) {
@@ -180,6 +227,11 @@ function handleFormSubmit(data) {
 
 // 监听 formUrl 变化重新加载
 watch(() => props.formUrl, loadFormComponent, { immediate: true })
+
+onBeforeUnmount(() => {
+  disposed = true
+  loadSequence += 1
+})
 </script>
 
 <style scoped>

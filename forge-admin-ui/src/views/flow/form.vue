@@ -208,6 +208,7 @@ const showModal = ref(false)
 const modalTitle = ref('新增表单')
 const formRef = ref(null)
 const submitLoading = ref(false)
+const mutationLocks = reactive(new Set())
 const formData = reactive({
   id: null,
   formName: '',
@@ -285,6 +286,7 @@ const columns = [
     render: (row) => {
       return h(NSwitch, {
         value: row.status === 1,
+        disabled: isMutationLocked('status', row),
         onUpdateValue: value => handleStatusChange(row, value),
       })
     },
@@ -331,7 +333,8 @@ const columns = [
             size: 'small',
             type: 'success',
             text: true,
-            disabled: !row.formSchema,
+            disabled: !row.formSchema || isMutationLocked('publish', row),
+            loading: isMutationLocked('publish', row),
             onClick: () => handlePublish(row),
           }, { default: () => '发布' }),
           h(NButton, {
@@ -344,6 +347,8 @@ const columns = [
             size: 'small',
             type: 'info',
             text: true,
+            disabled: isMutationLocked('copy', row),
+            loading: isMutationLocked('copy', row),
             onClick: () => handleCopy(row),
           }, { default: () => '复制' }),
           h(NPopconfirm, {
@@ -353,6 +358,8 @@ const columns = [
               size: 'small',
               type: 'error',
               text: true,
+              disabled: isMutationLocked('delete', row),
+              loading: isMutationLocked('delete', row),
             }, { default: () => '删除' }),
             default: () => '确定要删除此表单吗？',
           }),
@@ -367,6 +374,26 @@ function toNumberOptions(options = []) {
     ...item,
     value: Number(item.value),
   }))
+}
+
+function mutationKey(action, row) {
+  return `${action}:${row?.id || 'new'}`
+}
+
+function tryLockMutation(action, row) {
+  const key = mutationKey(action, row)
+  if (mutationLocks.has(key))
+    return false
+  mutationLocks.add(key)
+  return true
+}
+
+function unlockMutation(action, row) {
+  mutationLocks.delete(mutationKey(action, row))
+}
+
+function isMutationLocked(action, row) {
+  return mutationLocks.has(mutationKey(action, row))
 }
 
 // 加载数据
@@ -492,6 +519,9 @@ async function handleDesign(row) {
 
 // 保存表单Schema
 async function handleSaveSchema(schema) {
+  const lockRow = { id: currentFormId.value }
+  if (!tryLockMutation('schema', lockRow))
+    return
   try {
     await api.updateForm({
       id: currentFormId.value,
@@ -504,6 +534,9 @@ async function handleSaveSchema(schema) {
   catch (error) {
     message.error('保存失败')
     console.error(error)
+  }
+  finally {
+    unlockMutation('schema', lockRow)
   }
 }
 
@@ -527,6 +560,8 @@ async function handlePreview(row) {
 
 // 发布表单版本
 async function handlePublish(row) {
+  if (!tryLockMutation('publish', row))
+    return
   try {
     await api.publishForm(row.id)
     message.success('表单版本已发布')
@@ -536,10 +571,15 @@ async function handlePublish(row) {
     message.error('发布失败，请确认表单已完成设计')
     console.error(error)
   }
+  finally {
+    unlockMutation('publish', row)
+  }
 }
 
 // 复制表单
 async function handleCopy(row) {
+  if (!tryLockMutation('copy', row))
+    return
   try {
     await api.copyForm(row.id, `${row.formName}_副本`)
     message.success('复制成功')
@@ -549,10 +589,15 @@ async function handleCopy(row) {
     message.error('复制失败')
     console.error(error)
   }
+  finally {
+    unlockMutation('copy', row)
+  }
 }
 
 // 删除表单
 async function handleDelete(row) {
+  if (!tryLockMutation('delete', row))
+    return
   try {
     await api.deleteForm(row.id)
     message.success('删除成功')
@@ -562,10 +607,15 @@ async function handleDelete(row) {
     message.error('删除失败')
     console.error(error)
   }
+  finally {
+    unlockMutation('delete', row)
+  }
 }
 
 // 状态切换
 async function handleStatusChange(row, value) {
+  if (!tryLockMutation('status', row))
+    return
   try {
     if (value) {
       await api.enableForm(row.id)
@@ -579,6 +629,9 @@ async function handleStatusChange(row, value) {
   catch (error) {
     message.error('状态更新失败')
     console.error(error)
+  }
+  finally {
+    unlockMutation('status', row)
   }
 }
 

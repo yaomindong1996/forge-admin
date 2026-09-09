@@ -145,6 +145,9 @@ public class FlowModel {
     
     
     private Integer importanceLevel;
+
+    /** 模型目录排序值，数值越小越靠前。 */
+    private Integer sortOrder;
     
     /**
      * 发布时间

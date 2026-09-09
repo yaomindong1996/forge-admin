@@ -71,7 +71,7 @@
         <n-button @click="handleClose">
           取消
         </n-button>
-        <n-button type="primary" :disabled="checkedKeys.length === 0" @click="handleConfirm">
+        <n-button type="primary" :disabled="!allowEmpty && checkedKeys.length === 0" @click="handleConfirm">
           确定
         </n-button>
       </n-space>
@@ -100,6 +100,14 @@ const props = defineProps({
   selectedUsers: {
     type: Array,
     default: () => [],
+  },
+  userStatus: {
+    type: [String, Number],
+    default: null,
+  },
+  allowEmpty: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -233,6 +241,7 @@ async function loadUserList() {
         pageSize: pagination.pageSize,
         keyword: searchForm.keyword || undefined,
         orgId: searchForm.deptId || undefined,
+        userStatus: props.userStatus ?? undefined,
       },
     })
     if (res.code === 200 && res.data) {

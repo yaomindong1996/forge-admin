@@ -115,6 +115,7 @@ describe('application permission utilities', () => {
         moduleName: '订单',
         dataScope: 3,
         effectiveDataScope: 3,
+        flowRelatedVisible: true,
       }],
     })
 

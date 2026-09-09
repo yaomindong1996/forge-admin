@@ -4,6 +4,7 @@ import cn.dev33.satoken.interceptor.SaInterceptor;
 import cn.dev33.satoken.router.SaRouter;
 import cn.dev33.satoken.stp.StpUtil;
 import com.mdframe.forge.starter.auth.interceptor.ApiPermissionInterceptor;
+import com.mdframe.forge.starter.auth.interceptor.ApiRateLimitInterceptor;
 import com.mdframe.forge.starter.core.context.AuthProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +21,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class SaTokenConfig implements WebMvcConfigurer {
 
     private final ApiPermissionInterceptor apiPermissionInterceptor;
+
+    private final ApiRateLimitInterceptor apiRateLimitInterceptor;
     
     private final AuthProperties authProperties;
 
@@ -28,6 +31,11 @@ public class SaTokenConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // 普通 API 限流独立于权限开关和注解豁免，使用数据库配置的模板路径匹配。
+        registry.addInterceptor(apiRateLimitInterceptor)
+                .addPathPatterns("/**")
+                .order(2);
+
         // 1. 注册 Sa-Token 登录校验拦截器
         registry.addInterceptor(new SaInterceptor(handle -> {
             // 根据路由进行规则校验
@@ -97,6 +105,6 @@ public class SaTokenConfig implements WebMvcConfigurer {
                 // 排除健康检查
                 .excludePathPatterns("/actuator/health", "/health")
                 .excludePathPatterns(authProperties.getApiPermissionExcludePaths())
-                .order(2);  // 优先级2，在登录校验之后执行
+                .order(3);  // 优先级3，在登录校验和限流之后执行
     }
 }

@@ -30,6 +30,16 @@ public class FlowTaskActionDTO {
     private Boolean directSend;
 
     /**
+     * 客户端动作幂等键。与 requestDigest 成对传入，网络重试时保持不变。
+     */
+    private String idempotencyKey;
+
+    /**
+     * 规范化请求摘要，用于防止同一幂等键复用不同载荷。
+     */
+    private String requestDigest;
+
+    /**
      * 审批要点勾选结果。
      */
     private List<FlowApprovalPointResultDTO> approvalPointResults;

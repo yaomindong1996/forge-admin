@@ -83,13 +83,12 @@
 
       <n-form :model="approveData" label-placement="top" size="medium">
         <n-form-item label="审批意见" :required="requireComment">
-          <n-input
-            v-model:value="approveData.comment"
-            type="textarea"
+          <FlowCommentPhraseInput
+            v-model="approveData.comment"
             :rows="3"
-            :placeholder="requireComment ? '请输入审批意见' : '请输入审批意见（可选）'"
             :maxlength="500"
-            show-count
+            :disabled="isSubmitting"
+            :placeholder="requireComment ? '请输入审批意见' : '请输入审批意见（可选）'"
           />
         </n-form-item>
 
@@ -176,6 +175,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import leaveApi from '@/api/leave'
+import FlowCommentPhraseInput from '@/components/flow/FlowCommentPhraseInput.vue'
 import SignaturePad from '@/components/flow/SignaturePad.vue'
 
 const props = defineProps({

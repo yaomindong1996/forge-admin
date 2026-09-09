@@ -75,4 +75,13 @@ public class ProcessDiagramInfo {
      * 节点信息列表
      */
     private List<ProcessNodeInfo> nodes;
+
+    /** 流程连线执行状态；Flowable 未记录 sequenceFlow 历史时为空列表。 */
+    private List<ProcessSequenceFlowInfo> sequenceFlows;
+
+    /** 是否能从当前历史级别可靠计算连线执行状态。 */
+    private Boolean sequenceFlowStatusAvailable;
+
+    /** 连线状态不可用时的可读原因。 */
+    private String sequenceFlowStatusMessage;
 }

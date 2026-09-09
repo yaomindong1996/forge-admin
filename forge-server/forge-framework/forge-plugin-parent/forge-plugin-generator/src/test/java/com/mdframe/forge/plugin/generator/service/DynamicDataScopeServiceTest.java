@@ -11,7 +11,11 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -21,11 +25,14 @@ import static org.mockito.Mockito.when;
 class DynamicDataScopeServiceTest {
 
     private final IDataScopeService dataScopeService = mock(IDataScopeService.class);
+    private final DynamicCrudRepository repository = mock(DynamicCrudRepository.class);
+    private final FlowRelatedRecordQuery relatedRecordQuery = mock(FlowRelatedRecordQuery.class);
     private final DynamicDataScopeService service = new DynamicDataScopeService(
             dataScopeService,
-            mock(DynamicCrudRepository.class),
+            repository,
             new ObjectMapper(),
-            new LowcodePolicyService());
+            new LowcodePolicyService(),
+            relatedRecordQuery);
 
     @Test
     @DisplayName("FOLLOW_SYSTEM resolves the role override with the business object module code")
@@ -49,6 +56,37 @@ class DynamicDataScopeServiceTest {
 
         verify(dataScopeService).getCurrentUserDataScope();
         verify(dataScopeService, never()).getCurrentUserDataScope("ai:business:ORDER");
+        verify(relatedRecordQuery, never()).listBusinessIds(any(), any(), anyString());
+    }
+
+    @Test
+    @DisplayName("SELF read scope ORs flow related record ids")
+    void selfReadIncludesRelatedRecords() {
+        AiCrudConfig config = config("ORDER");
+        when(dataScopeService.getCurrentUserDataScope("ai:business:ORDER")).thenReturn(selfScope());
+        when(repository.getTableColumns("biz_order")).thenReturn(Set.of("id", "create_by", "create_dept"));
+        when(relatedRecordQuery.listBusinessIds(1L, 9L, "ORDER")).thenReturn(List.of("88"));
+
+        DynamicCrudRepository.SqlCondition condition = service.buildCondition(config, "biz_order", "o");
+
+        assertTrue(condition.sql().contains("o.create_by = :__dsUserId"));
+        assertTrue(condition.sql().contains("OR"));
+        assertTrue(condition.sql().contains("o.id IN (:__dsRelatedIds)"));
+        verify(relatedRecordQuery).listBusinessIds(1L, 9L, "ORDER");
+    }
+
+    @Test
+    @DisplayName("SELF write scope does not OR flow related record ids")
+    void selfWriteExcludesRelatedRecords() {
+        AiCrudConfig config = config("ORDER");
+        when(dataScopeService.getCurrentUserDataScope("ai:business:ORDER")).thenReturn(selfScope());
+        when(repository.getTableColumns("biz_order")).thenReturn(Set.of("id", "create_by", "create_dept"));
+
+        DynamicCrudRepository.SqlCondition condition = service.buildWriteCondition(config, "biz_order", "o");
+
+        assertTrue(condition.sql().contains("o.create_by = :__dsUserId"));
+        assertFalse(condition.sql().contains("OR"));
+        verify(relatedRecordQuery, never()).listBusinessIds(any(), any(), anyString());
     }
 
     private AiCrudConfig config(String objectCode) {
@@ -62,6 +100,11 @@ class DynamicDataScopeServiceTest {
 
     private DataScopeContext allScope() {
         return new DataScopeContext(9L, List.of(2L), 2L, List.of(7L), 1,
+                Set.of(), 1L, null, null, null);
+    }
+
+    private DataScopeContext selfScope() {
+        return new DataScopeContext(9L, List.of(2L), 2L, List.of(7L), 5,
                 Set.of(), 1L, null, null, null);
     }
 }

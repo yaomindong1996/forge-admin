@@ -17,6 +17,8 @@
         <result column="send_status" property="sendStatus"/>
         <result column="send_time" property="sendTime"/>
         <result column="error_message" property="errorMessage"/>
+        <result column="retry_count" property="retryCount"/>
+        <result column="next_retry_time" property="nextRetryTime"/>
         <result column="create_by" property="createBy"/>
         <result column="create_time" property="createTime"/>
         <result column="create_dept" property="createDept"/>
@@ -28,7 +30,7 @@
         id, tenant_id, task_id, process_instance_id, process_def_key, task_def_key,
         reminder_key, channel, template_code, receiver_user_ids, message_id,
         send_status, send_time, error_message, create_by, create_time, create_dept,
-        update_by, update_time
+        update_by, update_time, retry_count, next_retry_time
     </sql>
 
     <select id="selectLatestByTaskId" resultMap="BaseResultMap">
@@ -45,7 +47,31 @@
         FROM sys_flow_overdue_reminder_record
         WHERE tenant_id = #{tenantId}
           AND task_id = #{taskId}
+          AND send_status = 1
     </select>
+
+    <select id="selectByUniqueKey" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM sys_flow_overdue_reminder_record
+        WHERE tenant_id = #{tenantId}
+          AND reminder_key = #{reminderKey}
+          AND channel = #{channel}
+        LIMIT 1
+    </select>
+
+    <update id="claimRetry">
+        UPDATE sys_flow_overdue_reminder_record
+        SET send_status = 0,
+            retry_count = COALESCE(retry_count, 0) + 1,
+            next_retry_time = NULL,
+            update_time = CURRENT_TIMESTAMP
+        WHERE tenant_id = #{tenantId}
+          AND reminder_key = #{reminderKey}
+          AND channel = #{channel}
+          AND send_status = 2
+          AND COALESCE(retry_count, 0) &lt; 5
+          AND (next_retry_time IS NULL OR next_retry_time &lt;= #{now})
+    </update>
 
     <select id="selectByTaskId" resultMap="BaseResultMap">
         SELECT <include refid="Base_Column_List"/>

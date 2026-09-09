@@ -2,17 +2,16 @@ package com.mdframe.forge.starter.core.exception;
 
 import com.mdframe.forge.starter.core.domain.RespInfo;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -94,9 +93,11 @@ public class GlobalExceptionHandler {
      * 处理业务异常
      */
     @ExceptionHandler(BusinessException.class)
-    public RespInfo<?> handleBusinessException(BusinessException e, HttpServletRequest request) {
+    public RespInfo<?> handleBusinessException(BusinessException e, HttpServletRequest request,
+                                               HttpServletResponse response) {
+        setHttpStatus(response, e.getCode());
         if (containsSensitiveDatabaseDetail(e)) {
-            return handleDatabaseError(e, request, "业务异常包装数据库异常");
+            return handleDatabaseError(e, request, response, "业务异常包装数据库异常");
         }
         log.warn("业务异常: URI={}, Code={}, Message={}", request.getRequestURI(), e.getCode(), e.getMessage());
         if (e.getData() != null) {
@@ -109,11 +110,13 @@ public class GlobalExceptionHandler {
      * 处理参数校验异常 (@Validated @Valid)
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public RespInfo<?> handleMethodArgumentNotValidException(MethodArgumentNotValidException e, HttpServletRequest request) {
+    public RespInfo<?> handleMethodArgumentNotValidException(MethodArgumentNotValidException e, HttpServletRequest request,
+                                                             HttpServletResponse response) {
         String errorMsg = e.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining("; "));
         log.warn("参数校验异常: URI={}, Message={}", request.getRequestURI(), errorMsg);
+        setHttpStatus(response, 400);
         return RespInfo.error(400, errorMsg);
     }
 
@@ -121,11 +124,12 @@ public class GlobalExceptionHandler {
      * 处理参数绑定异常
      */
     @ExceptionHandler(BindException.class)
-    public RespInfo<?> handleBindException(BindException e, HttpServletRequest request) {
+    public RespInfo<?> handleBindException(BindException e, HttpServletRequest request, HttpServletResponse response) {
         String errorMsg = e.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining("; "));
         log.warn("参数绑定异常: URI={}, Message={}", request.getRequestURI(), errorMsg);
+        setHttpStatus(response, 400);
         return RespInfo.error(400, errorMsg);
     }
 
@@ -133,11 +137,13 @@ public class GlobalExceptionHandler {
      * 处理约束违反异常
      */
     @ExceptionHandler(ConstraintViolationException.class)
-    public RespInfo<?> handleConstraintViolationException(ConstraintViolationException e, HttpServletRequest request) {
+    public RespInfo<?> handleConstraintViolationException(ConstraintViolationException e, HttpServletRequest request,
+                                                          HttpServletResponse response) {
         String errorMsg = e.getConstraintViolations().stream()
                 .map(ConstraintViolation::getMessage)
                 .collect(Collectors.joining("; "));
         log.warn("约束违反异常: URI={}, Message={}", request.getRequestURI(), errorMsg);
+        setHttpStatus(response, 400);
         return RespInfo.error(400, errorMsg);
     }
 
@@ -145,9 +151,12 @@ public class GlobalExceptionHandler {
      * 处理缺少请求参数异常
      */
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public RespInfo<?> handleMissingServletRequestParameterException(MissingServletRequestParameterException e, HttpServletRequest request) {
+    public RespInfo<?> handleMissingServletRequestParameterException(MissingServletRequestParameterException e,
+                                                                      HttpServletRequest request,
+                                                                      HttpServletResponse response) {
         String errorMsg = String.format("缺少必需参数: %s", e.getParameterName());
         log.warn("缺少请求参数异常: URI={}, Message={}", request.getRequestURI(), errorMsg);
+        setHttpStatus(response, 400);
         return RespInfo.error(400, errorMsg);
     }
 
@@ -155,9 +164,12 @@ public class GlobalExceptionHandler {
      * 处理参数类型不匹配异常
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public RespInfo<?> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e, HttpServletRequest request) {
+    public RespInfo<?> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e,
+                                                                  HttpServletRequest request,
+                                                                  HttpServletResponse response) {
         String errorMsg = String.format("参数类型不匹配: %s", e.getName());
         log.warn("参数类型不匹配异常: URI={}, Message={}", request.getRequestURI(), errorMsg);
+        setHttpStatus(response, 400);
         return RespInfo.error(400, errorMsg);
     }
 
@@ -165,9 +177,12 @@ public class GlobalExceptionHandler {
      * 处理请求方法不支持异常
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public RespInfo<?> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
+    public RespInfo<?> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e,
+                                                                     HttpServletRequest request,
+                                                                     HttpServletResponse response) {
         String errorMsg = String.format("不支持的请求方法: %s", e.getMethod());
         log.warn("请求方法不支持异常: URI={}, Message={}", request.getRequestURI(), errorMsg);
+        setHttpStatus(response, 405);
         return RespInfo.error(405, errorMsg);
     }
 
@@ -175,9 +190,10 @@ public class GlobalExceptionHandler {
      * 处理404异常
      */
     @ExceptionHandler(NoHandlerFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public RespInfo<?> handleNoHandlerFoundException(NoHandlerFoundException e, HttpServletRequest request) {
+    public RespInfo<?> handleNoHandlerFoundException(NoHandlerFoundException e, HttpServletRequest request,
+                                                     HttpServletResponse response) {
         log.warn("404异常: URI={}, Message={}", request.getRequestURI(), e.getMessage());
+        setHttpStatus(response, 404);
         return RespInfo.error(404, "请求的资源不存在");
     }
 
@@ -185,9 +201,10 @@ public class GlobalExceptionHandler {
      * 处理访问拒绝异常
      */
     @ExceptionHandler(AccessDeniedException.class)
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    public RespInfo<?> handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request) {
+    public RespInfo<?> handleAccessDeniedException(AccessDeniedException e, HttpServletRequest request,
+                                                   HttpServletResponse response) {
         log.warn("访问拒绝异常: URI={}, Message={}", request.getRequestURI(), e.getMessage());
+        setHttpStatus(response, 403);
         return RespInfo.error(403, "没有权限访问该资源");
     }
 
@@ -195,17 +212,21 @@ public class GlobalExceptionHandler {
      * 处理文件上传大小超限异常
      */
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public RespInfo<?> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e, HttpServletRequest request) {
+    public RespInfo<?> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e, HttpServletRequest request,
+                                                            HttpServletResponse response) {
         log.warn("文件上传大小超限: URI={}, Message={}", request.getRequestURI(), e.getMessage());
-        return RespInfo.error(400, "上传文件大小超出限制");
+        setHttpStatus(response, 413);
+        return RespInfo.error(413, "上传文件大小超出限制");
     }
 
     /**
      * 处理空指针异常
      */
     @ExceptionHandler(NullPointerException.class)
-    public RespInfo<?> handleNullPointerException(NullPointerException e, HttpServletRequest request) {
+    public RespInfo<?> handleNullPointerException(NullPointerException e, HttpServletRequest request,
+                                                  HttpServletResponse response) {
         log.error("空指针异常: URI={}", request.getRequestURI(), e);
+        setHttpStatus(response, 500);
         return RespInfo.error(500, SYSTEM_ERROR_MESSAGE);
     }
 
@@ -213,11 +234,13 @@ public class GlobalExceptionHandler {
      * 处理非法参数异常
      */
     @ExceptionHandler(IllegalArgumentException.class)
-    public RespInfo<?> handleIllegalArgumentException(IllegalArgumentException e, HttpServletRequest request) {
+    public RespInfo<?> handleIllegalArgumentException(IllegalArgumentException e, HttpServletRequest request,
+                                                      HttpServletResponse response) {
         if (containsSensitiveDatabaseDetail(e)) {
-            return handleDatabaseError(e, request, "非法参数包装数据库异常");
+            return handleDatabaseError(e, request, response, "非法参数包装数据库异常");
         }
         log.warn("非法参数异常: URI={}, Message={}", request.getRequestURI(), e.getMessage());
+        setHttpStatus(response, 400);
         return RespInfo.error(400, e.getMessage() != null ? e.getMessage() : "参数错误");
     }
 
@@ -225,27 +248,31 @@ public class GlobalExceptionHandler {
      * 处理数据库异常
      */
     @ExceptionHandler(SQLException.class)
-    public RespInfo<?> handleSQLException(SQLException e, HttpServletRequest request) {
-        return handleDatabaseError(e, request, "数据库异常");
+    public RespInfo<?> handleSQLException(SQLException e, HttpServletRequest request,
+                                          HttpServletResponse response) {
+        return handleDatabaseError(e, request, response, "数据库异常");
     }
 
     /**
      * 处理运行时异常
      */
     @ExceptionHandler(RuntimeException.class)
-    public RespInfo<?> handleRuntimeException(RuntimeException e, HttpServletRequest request) {
+    public RespInfo<?> handleRuntimeException(RuntimeException e, HttpServletRequest request,
+                                              HttpServletResponse response) {
         if (containsSensitiveDatabaseDetail(e)) {
-            return handleDatabaseError(e, request, "系统运行时数据库异常");
+            return handleDatabaseError(e, request, response, "系统运行时数据库异常");
         }
         BusinessException businessCause = findCause(e, BusinessException.class);
         if (businessCause != null) {
             log.warn("运行时异常包装业务异常: URI={}, Code={}, Message={}", request.getRequestURI(), businessCause.getCode(), businessCause.getMessage(), e);
+            setHttpStatus(response, businessCause.getCode());
             if (businessCause.getData() != null) {
                 return RespInfo.build(businessCause.getCode(), sanitizeClientMessage(businessCause.getMessage()), businessCause.getData());
             }
             return RespInfo.error(businessCause.getCode(), sanitizeClientMessage(businessCause.getMessage()));
         }
         log.error("系统运行时错误: URI={}", request.getRequestURI(), e);
+        setHttpStatus(response, 500);
         return RespInfo.error(500, buildRuntimeClientMessage(e));
     }
 
@@ -253,17 +280,32 @@ public class GlobalExceptionHandler {
      * 处理未知异常
      */
     @ExceptionHandler(Exception.class)
-    public RespInfo<?> handleException(Exception e, HttpServletRequest request) {
+    public RespInfo<?> handleException(Exception e, HttpServletRequest request,
+                                       HttpServletResponse response) {
         if (containsSensitiveDatabaseDetail(e)) {
-            return handleDatabaseError(e, request, "未知数据库异常");
+            return handleDatabaseError(e, request, response, "未知数据库异常");
         }
         log.error("未知异常: URI={}", request.getRequestURI(), e);
+        setHttpStatus(response, 500);
         return RespInfo.error(500, SYSTEM_ERROR_MESSAGE);
     }
 
-    private RespInfo<?> handleDatabaseError(Throwable e, HttpServletRequest request, String logMessage) {
+    private RespInfo<?> handleDatabaseError(Throwable e, HttpServletRequest request,
+                                            HttpServletResponse response, String logMessage) {
         log.error("{}: URI={}", logMessage, request.getRequestURI(), e);
+        setHttpStatus(response, 500);
         return RespInfo.error(500, DATABASE_ERROR_MESSAGE);
+    }
+
+    private void setHttpStatus(HttpServletResponse response, Integer code) {
+        if (response == null || code == null) {
+            return;
+        }
+        int status = code >= 400 && code <= 599 ? code : 500;
+        response.setStatus(status);
+        if (status == 429 && !response.containsHeader("Retry-After")) {
+            response.setHeader("Retry-After", "60");
+        }
     }
 
     private boolean containsSensitiveDatabaseDetail(Throwable throwable) {

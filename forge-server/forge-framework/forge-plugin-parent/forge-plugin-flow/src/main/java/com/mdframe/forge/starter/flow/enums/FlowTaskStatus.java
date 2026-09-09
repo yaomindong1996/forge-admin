@@ -17,7 +17,7 @@ public enum FlowTaskStatus {
     APPROVED(2, "已通过", "approve"),
     REJECTED(3, "已驳回", "reject"),
     DELEGATED(4, "已转办", "delegate"),
-    CANCELED(5, "已取消", "delegate"),
+    CANCELED(5, "已取消", "cancel"),
     WITHDRAWN(6, "已撤回", "withdraw"),
     RETURNED(7, "已退回", "return"),
     TERMINATED(8, "已终结", "terminate");

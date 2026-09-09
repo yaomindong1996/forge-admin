@@ -8,6 +8,8 @@ import com.mdframe.forge.starter.file.storage.FileStorage;
 import com.mdframe.forge.starter.file.spi.FileMetadataPersistence;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,6 +41,12 @@ public class LocalFileStorage implements FileStorage {
     private StorageConfig config;
     private String basePath;
     private Path baseDirectory;
+
+    @Value("${forge.file.multipart.max-contexts:100}")
+    private int maxMultipartContexts = 100;
+
+    @Value("${forge.file.multipart.ttl-millis:1800000}")
+    private long multipartContextTtlMillis = 1_800_000L;
     
     @Autowired(required = false)
     private FileMetadataPersistence metadataPersistence;
@@ -136,6 +145,7 @@ public class LocalFileStorage implements FileStorage {
         context.setBusinessId(businessId);
         context.setRelativePath(relativePath);
         context.setTempDir(resolveInsideBase(Paths.get(MULTIPART_DIR, uploadId).toString()).toString());
+        context.setLastActivityAt(System.currentTimeMillis());
         
         // 创建临时目录
         try {
@@ -144,7 +154,14 @@ public class LocalFileStorage implements FileStorage {
             throw new RuntimeException("创建分片上传临时目录失败", e);
         }
         
-        multipartUploads.put(uploadId, context);
+        synchronized (multipartUploads) {
+            cleanupExpiredMultipartUploads();
+            if (multipartUploads.size() >= Math.max(1, maxMultipartContexts)) {
+                FileUtil.del(context.getTempDir());
+                throw new IllegalStateException("未完成分片上传数量已达上限，请稍后重试");
+            }
+            multipartUploads.put(uploadId, context);
+        }
         log.info("初始化分片上传: uploadId={}, fileName={}", uploadId, fileName);
         
         return uploadId;
@@ -156,6 +173,13 @@ public class LocalFileStorage implements FileStorage {
         if (context == null) {
             throw new RuntimeException("无效的上传ID: " + uploadId);
         }
+        if (partNumber < 1 || partNumber > 10_000) {
+            throw new IllegalArgumentException("分片编号必须在 1 到 10000 之间");
+        }
+        if (isExpired(context)) {
+            removeMultipartUpload(uploadId, context);
+            throw new RuntimeException("分片上传已过期，请重新初始化");
+        }
         
         try {
             // 保存分片文件
@@ -165,6 +189,7 @@ public class LocalFileStorage implements FileStorage {
             Files.copy(inputStream, partFile, StandardCopyOption.REPLACE_EXISTING);
             
             context.getParts().put(partNumber, partFileName);
+            context.setLastActivityAt(System.currentTimeMillis());
             
             log.debug("上传分片成功: uploadId={}, partNumber={}", uploadId, partNumber);
             return partFileName;
@@ -179,6 +204,20 @@ public class LocalFileStorage implements FileStorage {
         if (context == null) {
             throw new RuntimeException("无效的上传ID: " + uploadId);
         }
+        if (isExpired(context)) {
+            removeMultipartUpload(uploadId, context);
+            throw new RuntimeException("分片上传已过期，请重新初始化");
+        }
+        List<Integer> partNumbers = new ArrayList<>(context.getParts().keySet());
+        int expectedParts = partETags == null || partETags.isEmpty()
+                ? partNumbers.stream().mapToInt(Integer::intValue).max().orElse(0)
+                : partETags.size();
+        if (expectedParts == 0 || expectedParts > 10_000 || partNumbers.size() != expectedParts
+                || partNumbers.stream().anyMatch(partNumber -> partNumber < 1 || partNumber > expectedParts)
+                || java.util.stream.IntStream.rangeClosed(1, expectedParts)
+                .anyMatch(partNumber -> !context.getParts().containsKey(partNumber))) {
+            throw new IllegalArgumentException("分片不完整，无法合并");
+        }
         
         try {
             // 生成最终文件路径
@@ -190,7 +229,7 @@ public class LocalFileStorage implements FileStorage {
             
             // 合并分片
             try (FileOutputStream fos = new FileOutputStream(targetFile.toFile())) {
-                for (int i = 1; i <= context.getParts().size(); i++) {
+                for (int i = 1; i <= expectedParts; i++) {
                     String partFileName = context.getParts().get(i);
                     Path partFile = resolveInsideBase(baseDirectory.relativize(Paths.get(context.getTempDir()))
                             .resolve(partFileName).toString());
@@ -229,6 +268,29 @@ public class LocalFileStorage implements FileStorage {
                     .build();
         } catch (IOException e) {
             throw new RuntimeException("合并分片失败", e);
+        }
+    }
+
+    /** 定期清理未完成且超过 TTL 的上传，避免内存和临时目录无限增长。 */
+    @Scheduled(fixedDelayString = "${forge.file.multipart.cleanup-interval-millis:60000}")
+    public void cleanupExpiredMultipartUploads() {
+        long now = System.currentTimeMillis();
+        multipartUploads.forEach((uploadId, context) -> {
+            if (now - context.getLastActivityAt() > Math.max(1_000L, multipartContextTtlMillis)) {
+                removeMultipartUpload(uploadId, context);
+            }
+        });
+    }
+
+    private boolean isExpired(MultipartUploadContext context) {
+        return System.currentTimeMillis() - context.getLastActivityAt()
+                > Math.max(1_000L, multipartContextTtlMillis);
+    }
+
+    private void removeMultipartUpload(String uploadId, MultipartUploadContext context) {
+        if (multipartUploads.remove(uploadId, context)) {
+            FileUtil.del(context.getTempDir());
+            log.info("清理过期分片上传: uploadId={}", uploadId);
         }
     }
     
@@ -431,6 +493,7 @@ public class LocalFileStorage implements FileStorage {
         private String businessId;
         private String relativePath;
         private String tempDir;
+        private long lastActivityAt;
         private final Map<Integer, String> parts = new ConcurrentHashMap<>();
         
         public String getUploadId() {
@@ -479,6 +542,14 @@ public class LocalFileStorage implements FileStorage {
         
         public void setTempDir(String tempDir) {
             this.tempDir = tempDir;
+        }
+
+        public long getLastActivityAt() {
+            return lastActivityAt;
+        }
+
+        public void setLastActivityAt(long lastActivityAt) {
+            this.lastActivityAt = lastActivityAt;
         }
         
         public Map<Integer, String> getParts() {

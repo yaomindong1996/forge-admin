@@ -1,6 +1,7 @@
 package com.mdframe.forge.starter.flow.service.impl;
 
 import com.mdframe.forge.starter.flow.service.FlowNodeConfigService;
+import com.mdframe.forge.starter.flow.mapper.FlowTaskMapper;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
@@ -28,7 +29,8 @@ class FlowTimeoutServiceImplTest {
                 taskService,
                 mock(RuntimeService.class),
                 mock(HistoryService.class),
-                mock(FlowNodeConfigService.class));
+                mock(FlowNodeConfigService.class),
+                mock(FlowTaskMapper.class));
 
         assertThat(service.sendTimeoutNotification("task-1", "system")).isFalse();
         assertThat(service.handleTimeoutTask("task-1", "notify")).isFalse();

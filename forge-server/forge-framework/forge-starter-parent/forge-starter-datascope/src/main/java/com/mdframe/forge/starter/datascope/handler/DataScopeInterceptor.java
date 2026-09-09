@@ -37,6 +37,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 /**
  * 数据权限拦截器 基于 MyBatis Plus InnerInterceptor 实现
@@ -45,6 +46,9 @@ import java.util.function.Supplier;
 public class DataScopeInterceptor implements InnerInterceptor {
 
     private static final String DATA_SCOPE_MAPPER_PACKAGE = "com.mdframe.forge.starter.datascope.mapper.";
+    private static final String LOWCODE_MODULE_PREFIX = "ai:business:";
+    private static final Pattern SAFE_IDENTIFIER = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]{0,63}$");
+    private static final Pattern SAFE_BUSINESS_TYPE = Pattern.compile("^[A-Za-z][A-Za-z0-9_\\-]{0,127}$");
 
     private final Supplier<IDataScopeService> dataScopeServiceSupplier;
     private final DataScopeProperties properties;
@@ -237,53 +241,123 @@ public class DataScopeInterceptor implements InnerInterceptor {
         String orgIdColumn = config.getOrgIdColumn();
         String tenantIdColumn = config.getTenantIdColumn();
 
-        switch (scopeType) {
-            case SELF:
-                // 本人数据权限
-                return buildColumnCondition(tableAlias, userIdColumn, context, scopeType, null, null);
-            
-            case ORG:
-                // 本组织数据权限
+        Expression condition = switch (scopeType) {
+            case SELF -> buildColumnCondition(tableAlias, userIdColumn, context, scopeType, null, null);
+            case ORG -> {
                 if (context.getOrgIds() != null && !context.getOrgIds().isEmpty()) {
-                    return buildColumnCondition(tableAlias, orgIdColumn, context, scopeType, context.getOrgIds(), null);
+                    yield buildColumnCondition(tableAlias, orgIdColumn, context, scopeType, context.getOrgIds(), null);
                 }
                 log.warn("数据权限拦截器：用户无组织，ORG 数据权限强制无数据: userId={}", context.getUserId());
-                return buildAlwaysFalse();
-            
-            case ORG_AND_CHILD:
-                // 本组织及子组织数据权限
+                yield buildAlwaysFalse();
+            }
+            case ORG_AND_CHILD -> {
                 Set<Long> allOrgIds = dataScopeService().getOrgAndChildIds(context.getOrgIds());
                 if (allOrgIds != null && !allOrgIds.isEmpty()) {
-                    return buildColumnCondition(tableAlias, orgIdColumn, context, scopeType, new ArrayList<>(allOrgIds), null);
+                    yield buildColumnCondition(tableAlias, orgIdColumn, context, scopeType, new ArrayList<>(allOrgIds), null);
                 }
                 log.warn("数据权限拦截器：用户无组织或无下级组织，ORG_AND_CHILD 数据权限强制无数据: userId={}", context.getUserId());
-                return buildAlwaysFalse();
-            
-            case CUSTOM:
-                // 自定义数据权限
+                yield buildAlwaysFalse();
+            }
+            case CUSTOM -> {
                 if (context.getCustomOrgIds() != null && !context.getCustomOrgIds().isEmpty()) {
-                    return buildColumnCondition(tableAlias, orgIdColumn, context, scopeType, null, context.getCustomOrgIds());
+                    yield buildColumnCondition(tableAlias, orgIdColumn, context, scopeType, null, context.getCustomOrgIds());
                 }
                 log.warn("数据权限拦截器：用户自定义组织范围为空，CUSTOM 数据权限强制无数据: userId={}", context.getUserId());
-                return buildAlwaysFalse();
-            
-            case TENANT_ALL:
-                // 租户全部数据权限
+                yield buildAlwaysFalse();
+            }
+            case TENANT_ALL -> {
                 if (tenantIdColumn != null && !tenantIdColumn.isEmpty()) {
-                    return buildColumnCondition(tableAlias, tenantIdColumn, context, scopeType, null, null);
+                    yield buildColumnCondition(tableAlias, tenantIdColumn, context, scopeType, null, null);
                 }
                 log.warn("数据权限拦截器：TENANT_ALL 未配置租户字段，强制无数据: mapper={}", config.getMapperMethod());
-                return buildAlwaysFalse();
+                yield buildAlwaysFalse();
+            }
+            case REGION -> buildRegionCondition(config, context);
+            default -> null;
+        };
+        return applyFlowRelatedVisibility(condition, config, context, scopeType);
+    }
 
-            case REGION:
-                // 本行政区划数据权限
-                return buildRegionCondition(config, context);
-            
-            default:
-                break;
+    private Expression applyFlowRelatedVisibility(Expression baseCondition,
+                                                  SysDataScopeConfig config,
+                                                  DataScopeContext context,
+                                                  DataScopeType scopeType) {
+        if (scopeType == DataScopeType.ALL || scopeType == DataScopeType.TENANT_ALL) {
+            return baseCondition;
         }
-        
-        return null;
+        Expression related = buildFlowRelatedCondition(config, context);
+        if (related == null) {
+            return baseCondition;
+        }
+        if (baseCondition == null || isAlwaysFalse(baseCondition)) {
+            return related;
+        }
+        return new OrExpression(wrapWithParentheses(baseCondition), wrapWithParentheses(related));
+    }
+
+    private Expression buildFlowRelatedCondition(SysDataScopeConfig config, DataScopeContext context) {
+        if (!EnableStatus.ENABLED.matches(config.getFlowRelatedVisible())) {
+            return null;
+        }
+        if (context.getUserId() == null || context.getTenantId() == null) {
+            return null;
+        }
+        String businessType = resolveFlowBusinessType(config);
+        if (!SAFE_BUSINESS_TYPE.matcher(businessType).matches()) {
+            log.warn("数据权限拦截器：流程经手可见已开启但业务类型无效 mapper={}, type={}",
+                    config.getMapperMethod(), businessType);
+            return null;
+        }
+        String recordColumn = resolveRecordIdColumn(config);
+        if (!SAFE_IDENTIFIER.matcher(recordColumn).matches()) {
+            log.warn("数据权限拦截器：流程经手可见主键列非法 mapper={}, column={}",
+                    config.getMapperMethod(), recordColumn);
+            return null;
+        }
+        String tableAlias = config.getTableAlias();
+        if (StrUtil.isNotBlank(tableAlias) && !SAFE_IDENTIFIER.matcher(tableAlias).matches()) {
+            log.warn("数据权限拦截器：流程经手可见表别名非法 mapper={}, alias={}",
+                    config.getMapperMethod(), tableAlias);
+            return null;
+        }
+        String qualifiedPk = StrUtil.isNotBlank(tableAlias) ? tableAlias + "." + recordColumn : recordColumn;
+        String sql = "EXISTS (SELECT 1 FROM sys_flow_record_participant p WHERE p.tenant_id = "
+                + context.getTenantId()
+                + " AND p.user_id = '" + escapeSqlLiteral(String.valueOf(context.getUserId()))
+                + "' AND p.business_type = '" + escapeSqlLiteral(businessType)
+                + "' AND p.business_id = CAST(" + qualifiedPk + " AS CHAR))";
+        try {
+            return CCJSqlParserUtil.parseCondExpression(sql);
+        } catch (Exception e) {
+            log.warn("数据权限拦截器：解析流程经手条件失败 mapper={}", config.getMapperMethod(), e);
+            return null;
+        }
+    }
+
+    private String resolveFlowBusinessType(SysDataScopeConfig config) {
+        String configured = StrUtil.trimToNull(config.getFlowBusinessType());
+        if (configured != null) {
+            return configured;
+        }
+        String resourceCode = StrUtil.trimToNull(config.getResourceCode());
+        if (resourceCode != null && resourceCode.startsWith(LOWCODE_MODULE_PREFIX)
+                && resourceCode.length() > LOWCODE_MODULE_PREFIX.length()) {
+            return resourceCode.substring(LOWCODE_MODULE_PREFIX.length());
+        }
+        return "";
+    }
+
+    private String resolveRecordIdColumn(SysDataScopeConfig config) {
+        String column = StrUtil.trimToNull(config.getRecordIdColumn());
+        return column == null ? "id" : column;
+    }
+
+    private boolean isAlwaysFalse(Expression expression) {
+        return expression != null && "1 = 0".equals(expression.toString());
+    }
+
+    private String escapeSqlLiteral(String value) {
+        return value == null ? "" : value.replace("'", "''");
     }
     
     /**

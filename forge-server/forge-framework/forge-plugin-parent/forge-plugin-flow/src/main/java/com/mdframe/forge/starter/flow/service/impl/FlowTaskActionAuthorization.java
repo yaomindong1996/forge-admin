@@ -29,11 +29,16 @@ final class FlowTaskActionAuthorization {
         if (!tenantId.equals(task.getTenantId())) {
             throw new IllegalStateException("FLOW_TASK_TENANT_MISMATCH");
         }
+        if (isIdempotentReplay(task, actionType, idempotencyKey, requestDigest, completedStatus)) {
+            // 转办后 assignee 已经切换为目标用户，原操作者通过 owner 重试同一请求时
+            // 仍应命中幂等结果；普通审批任务不会设置 owner，因此不扩大正常操作范围。
+            if (!userId.equals(task.getAssignee()) && !userId.equals(task.getOwner())) {
+                throw new IllegalStateException("FLOW_TASK_ASSIGNEE_MISMATCH");
+            }
+            return true;
+        }
         if (!userId.equals(task.getAssignee())) {
             throw new IllegalStateException("FLOW_TASK_ASSIGNEE_MISMATCH");
-        }
-        if (isIdempotentReplay(task, actionType, idempotencyKey, requestDigest, completedStatus)) {
-            return true;
         }
         boolean governedAction = idempotencyKey != null || requestDigest != null;
         boolean actionableStatus = governedAction

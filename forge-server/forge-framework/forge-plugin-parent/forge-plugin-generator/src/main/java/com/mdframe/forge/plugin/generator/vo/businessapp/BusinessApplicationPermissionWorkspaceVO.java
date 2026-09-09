@@ -109,6 +109,8 @@ public class BusinessApplicationPermissionWorkspaceVO implements Serializable {
 
         private String regionField;
 
+        private Boolean flowRelatedVisible;
+
         private List<FieldOption> fields = new ArrayList<>();
     }
 

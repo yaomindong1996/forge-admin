@@ -18,4 +18,9 @@ public class CaptchaProperties {
      * 同时短信走本地模拟发送。其他 Profile 即使误配置为 true 也不会生效
      */
     private boolean devEchoCode = false;
+
+    /**
+     * 滑块验证码挑战签名密钥。生产环境必须通过 Secret 注入，禁止写入配置文件。
+     */
+    private String challengeSecret = "";
 }

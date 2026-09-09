@@ -4,6 +4,8 @@ import com.mdframe.forge.starter.flow.dto.FlowOverdueReminderConfig;
 import com.mdframe.forge.starter.flow.entity.FlowNodeConfig;
 import com.mdframe.forge.starter.flow.entity.FlowTask;
 import com.mdframe.forge.starter.flow.mapper.FlowNodeConfigMapper;
+import com.mdframe.forge.starter.core.session.SessionHelper;
+import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.bpmn.model.BpmnModel;
@@ -110,7 +112,7 @@ public class FlowOverdueReminderConfigResolver {
             return;
         }
         FlowNodeConfig nodeConfig = flowNodeConfigMapper.selectByModelKeyAndNode(
-                task.getProcessDefKey(), task.getTaskDefKey());
+                task.getProcessDefKey(), task.getTaskDefKey(), currentTenantId());
         if (nodeConfig == null) {
             return;
         }
@@ -132,6 +134,14 @@ public class FlowOverdueReminderConfigResolver {
         if (nodeConfig.getOverdueReminderMaxTimes() != null) {
             config.setMaxTimes(nodeConfig.getOverdueReminderMaxTimes());
         }
+    }
+
+    private Long currentTenantId() {
+        Long contextTenantId = TenantContextHolder.getTenantId();
+        if (contextTenantId != null && contextTenantId > 0) {
+            return contextTenantId;
+        }
+        return SessionHelper.getTenantId();
     }
 
     private String readString(FlowNode flowNode, String name) {

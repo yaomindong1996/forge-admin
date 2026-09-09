@@ -34,6 +34,10 @@ public interface SysUserOrgRoleMapper extends BaseMapper<SysUserOrgRole> {
                                       @Param("orgId") Long orgId,
                                       @Param("roleIds") List<Long> roleIds);
 
+    /** 流程候选组解析：跨当前活动组织读取租户内有效角色成员。 */
+    List<Long> selectUserIdsByRoleIdsAcrossOrg(@Param("tenantId") Long tenantId,
+                                               @Param("roleIds") List<Long> roleIds);
+
     /**
      * 查询用户组织角色名称摘要。
      */

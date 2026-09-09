@@ -152,6 +152,7 @@ export function buildApplicationDataScopeSettings(workspace = {}, grant = {}) {
           moduleName: object.objectName || object.objectCode || object.moduleCode,
           dataScope,
           effectiveDataScope: dataScope ?? normalized.defaultDataScope,
+          flowRelatedVisible: object.dataScopeAdapter?.flowRelatedVisible !== false,
         }
       }),
   }

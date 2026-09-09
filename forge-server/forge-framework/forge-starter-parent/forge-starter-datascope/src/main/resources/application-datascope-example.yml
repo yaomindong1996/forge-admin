@@ -7,3 +7,6 @@ forge:
     print-sql: true
     # 是否启用API接口
     enable-api: true
+    # 同一平台的 Admin/Flow 和所有副本使用相同主题；共享 Redis 的不同环境使用不同主题。
+    # 刷新为异步通知，重新订阅时自动补载；没有 RedissonClient 时仅刷新本实例。
+    cache-refresh-topic: forge:datascope:metadata:refresh

@@ -19,6 +19,9 @@ export default {
   deleteVersion: versionId =>
     request.delete(`/api/flow/model/version/${versionId}`),
 
+  cleanupVersions: (modelId, retainLatest = 10) =>
+    request.post('/api/flow/model/version/cleanup', { modelId, retainLatest }),
+
   downloadVersion: versionId =>
     request.get(`/api/flow/model/version/download/${versionId}`, { responseType: 'blob' }),
 }

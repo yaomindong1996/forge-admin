@@ -1,5 +1,13 @@
 <template>
   <div class="flow-page">
+    <n-alert v-if="loadError" type="error" class="mb-3" :show-icon="true">
+      待办任务加载失败，请重试。
+      <template #action>
+        <NButton text type="primary" @click="loadData">
+          重试
+        </NButton>
+      </template>
+    </n-alert>
     <!-- 任务列表 -->
     <FlowTaskCardList
       v-model:selected-keys="selectedTaskKeys"
@@ -138,33 +146,22 @@
             <i class="i-material-symbols:close" />
           </button>
         </div>
-        <n-input
+        <FlowCommentPhraseInput
           ref="quickActionInputRef"
-          v-model:value="quickActionForm.comment"
-          type="textarea"
+          v-model="quickActionForm.comment"
+          :scene="quickActionIsApprove ? 'APPROVE' : 'REJECT'"
           :rows="3"
           :maxlength="200"
-          show-count
+          :disabled="quickActionLoading"
           :placeholder="quickActionIsApprove ? '审批意见，可直接提交' : '驳回原因'"
-          @keydown.ctrl.enter.prevent="submitQuickAction"
-          @keydown.meta.enter.prevent="submitQuickAction"
+          @submit="submitQuickAction"
         />
-        <div class="quick-action-presets" role="group" :aria-label="quickActionIsApprove ? '常用同意意见' : '常用驳回原因'">
-          <button
-            v-for="preset in quickActionCommentPresets"
-            :key="preset"
-            type="button"
-            class="quick-action-preset"
-            :class="{ active: quickActionForm.comment === preset }"
-            :disabled="quickActionLoading"
-            @click="applyQuickActionPreset(preset)"
-          >
-            {{ preset }}
-          </button>
-        </div>
         <p v-if="quickActionTargets.length > 1" class="quick-action-tip">
           需填表或签名的任务会跳过
         </p>
+        <n-alert v-if="quickActionFailedTargets.length" type="warning" :show-icon="true" class="quick-action-result">
+          {{ quickActionFailedTargets.length }} 条任务未处理，可修改意见后重试。
+        </n-alert>
         <div class="quick-action-actions">
           <NButton size="small" :disabled="quickActionLoading" @click="quickActionVisible = false">
             取消
@@ -176,7 +173,7 @@
             :disabled="quickActionLoading"
             @click="submitQuickAction"
           >
-            {{ quickActionTitle }}
+            {{ quickActionFailedTargets.length ? '重试未处理任务' : quickActionTitle }}
           </NButton>
         </div>
       </div>
@@ -430,13 +427,12 @@
 
             <n-form class="approve-comment-form" :model="approveForm" label-placement="left" :label-width="72">
               <n-form-item label="审批意见" :required="requireComment" :show-feedback="false">
-                <n-input
-                  v-model:value="approveForm.comment"
-                  type="textarea"
-                  size="small"
+                <FlowCommentPhraseInput
+                  v-model="approveForm.comment"
                   :rows="2"
-                  :placeholder="requireComment ? '请输入审批意见' : '审批意见（可选）'"
                   :maxlength="200"
+                  :disabled="isApprovalBusy"
+                  :placeholder="requireComment ? '请输入审批意见' : '审批意见（可选）'"
                 />
               </n-form-item>
               <n-form-item v-if="requireSignature" label="审批签名" required>
@@ -587,6 +583,7 @@ import UserAvatar from '@/components/common/UserAvatar.vue'
 import UserSelectModal from '@/components/common/UserSelectModal.vue'
 import DingFlowViewer from '@/components/flow-designer/viewer/DingFlowViewer.vue'
 import FlowApprovalChecklist from '@/components/flow/FlowApprovalChecklist.vue'
+import FlowCommentPhraseInput from '@/components/flow/FlowCommentPhraseInput.vue'
 import FlowTaskBusinessSummary from '@/components/flow/FlowTaskBusinessSummary.vue'
 import FlowTaskCardList from '@/components/flow/FlowTaskCardList.vue'
 import FlowTaskDetailShell from '@/components/flow/FlowTaskDetailShell.vue'
@@ -595,6 +592,7 @@ import ChildTableEditor from '@/components/page-templates/ChildTableEditor.vue'
 import { useDict } from '@/composables/useDict'
 import { useUserStore } from '@/store'
 import { normalizeFieldPermissions, pickFirstNonEmptyFieldPermissions } from '@/utils/field-permissions'
+import { createFlowActionCredentials } from '@/utils/flow-action-idempotency'
 import { buildFlowCategoryTreeOptions, resolveFlowCategoryLabel } from './utils/categoryOptions'
 import { FLOW_PRIORITY_LABEL_FALLBACK, getFlowPriorityClass, isUrgentFlowPriority, resolveFlowPriorityLevel, shouldShowFlowPriority } from './utils/priority'
 import { getBusinessFormDisplayTitle, getRowDisplayTitle, getTaskDisplayName, getTaskHandlerName } from './utils/processDisplay'
@@ -604,6 +602,7 @@ const route = useRoute()
 const router = useRouter()
 const { dict, getLabel } = useDict('flow_todo_status', 'flow_priority')
 const loading = ref(false)
+const loadError = ref(false)
 const dataSource = ref([])
 const pagination = reactive({
   page: 1,
@@ -747,14 +746,12 @@ const quickActionVisible = ref(false)
 const quickActionLoading = ref(false)
 const quickActionType = ref('approve')
 const quickActionTargets = ref([])
+const quickActionFailedTargets = ref([])
 const quickActionForm = reactive({ comment: '' })
 const quickActionInputRef = ref(null)
 const quickActionIsApprove = computed(() => quickActionType.value === 'approve')
 const quickActionTitle = computed(() => quickActionIsApprove.value ? '同意' : '驳回')
 const quickActionTitleId = 'flow-todo-quick-action-title'
-const quickActionCommentPresets = computed(() => quickActionIsApprove.value
-  ? ['同意', '已阅', '情况属实']
-  : ['驳回', '请补充材料', '请修改后重提'])
 const quickActionSubject = computed(() => {
   if (quickActionTargets.value.length === 1)
     return getRowDisplayTitle(quickActionTargets.value[0])
@@ -1150,11 +1147,13 @@ async function persistBusinessTaskFormBeforeAction(action) {
   await saveBusinessTaskFormFields({ validate: true, silent: true })
 }
 
-function buildBusinessTaskActionPayload(action, comment, signature, variables = {}) {
+async function buildBusinessTaskActionPayload(action, comment, signature, variables = {}) {
   const context = businessFormContext.value || {}
+  const taskId = context.taskId || taskFormInfo.value?.taskId || currentTask.value?.taskId || currentTask.value?.id
+  const credentials = await createFlowActionCredentials(action, taskId, { comment, signature, variables })
   return compactParams({
     action,
-    taskId: context.taskId || taskFormInfo.value?.taskId || currentTask.value?.taskId || currentTask.value?.id,
+    taskId,
     businessKey: resolveTaskIdentityBusinessKey(context, taskFormInfo.value, currentTask.value),
     processInstanceId: context.processInstanceId || taskFormInfo.value?.processInstanceId || currentTask.value?.processInstanceId,
     processDefKey: context.processDefKey || taskFormInfo.value?.processDefKey || currentTask.value?.processDefKey || currentTask.value?.processDefinitionKey,
@@ -1169,22 +1168,26 @@ function buildBusinessTaskActionPayload(action, comment, signature, variables = 
     targetActivityId: action === 'return' ? selectedReturnTarget.value : undefined,
     data: { ...businessFormData.value },
     approvalPointResults: buildApprovalPointResults(),
+    ...credentials,
   })
 }
 
 async function submitTaskAction(action, comment, signature, variables = {}) {
   if (isConfiguredBusinessTaskForm(businessFormContext.value)) {
-    return completeBusinessTaskAction(buildBusinessTaskActionPayload(action, comment, signature, variables))
+    return completeBusinessTaskAction(await buildBusinessTaskActionPayload(action, comment, signature, variables))
   }
   const api = resolveActionApi(action)
+  const taskId = currentTask.value.taskId || currentTask.value.id
+  const credentials = await createFlowActionCredentials(action, taskId, { comment, signature, variables })
   return api({
-    taskId: currentTask.value.taskId || currentTask.value.id,
+    taskId,
     userId: userStore.userId,
     comment,
     signature,
     variables: buildActionVariables(action, variables),
     targetActivityId: action === 'return' ? selectedReturnTarget.value : undefined,
     approvalPointResults: buildApprovalPointResults(),
+    ...credentials,
   })
 }
 
@@ -1470,11 +1473,6 @@ function resolveQuickActionTargets(targets = []) {
     .filter(Boolean)
 }
 
-function applyQuickActionPreset(preset) {
-  quickActionForm.comment = preset
-  nextTick(() => quickActionInputRef.value?.focus?.())
-}
-
 function openQuickAction(action, targets) {
   const resolvedTargets = resolveQuickActionTargets(targets)
   if (resolvedTargets.length === 0) {
@@ -1483,6 +1481,7 @@ function openQuickAction(action, targets) {
   }
   quickActionType.value = action
   quickActionTargets.value = resolvedTargets
+  quickActionFailedTargets.value = []
   quickActionForm.comment = action === 'approve' ? '同意' : '驳回'
   quickActionVisible.value = true
   nextTick(() => quickActionInputRef.value?.focus?.())
@@ -1554,12 +1553,14 @@ async function executeQuickAction(action, row, comment) {
         userId: userStore.userId,
         comment,
         variables: formInfo.variables || undefined,
+        ...(await createFlowActionCredentials(action, taskId, { comment, variables: formInfo.variables || undefined })),
       }))
     : await (action === 'approve' ? flowApi.approveTask : flowApi.rejectTask)({
         taskId,
         userId: userStore.userId,
         comment,
         variables: formInfo.variables || undefined,
+        ...(await createFlowActionCredentials(action, taskId, { comment, variables: formInfo.variables || undefined })),
       })
   if (res.code !== 200)
     throw new Error(res.message || '操作失败')
@@ -1576,6 +1577,7 @@ async function submitQuickAction() {
   const action = quickActionType.value
   const targets = [...quickActionTargets.value]
   const errors = []
+  const failedTargets = []
   let successCount = 0
 
   try {
@@ -1587,17 +1589,19 @@ async function submitQuickAction() {
       catch (error) {
         const taskName = getTaskDisplayName(row, row.title || row.taskId || row.id || '未知任务')
         errors.push(`${taskName}：${error?.message || '操作失败'}`)
+        failedTargets.push(row)
       }
     }
 
     if (successCount > 0) {
       window.$message.success(`${getActionSuccessText(action)} ${successCount} 条`)
       selectedTaskKeys.value = []
-      quickActionVisible.value = false
       await loadData()
     }
 
     if (errors.length > 0) {
+      quickActionFailedTargets.value = failedTargets
+      quickActionTargets.value = failedTargets
       const content = errors.slice(0, 6).join('\n')
       if (window.$dialog?.warning) {
         window.$dialog.warning({
@@ -1609,6 +1613,10 @@ async function submitQuickAction() {
       else {
         window.$message.warning(errors[0])
       }
+    }
+    else {
+      quickActionFailedTargets.value = []
+      quickActionVisible.value = false
     }
   }
   finally {
@@ -1650,12 +1658,18 @@ async function submitDelegate() {
   try {
     const signature = await resolveSignature(delegateSignatureRef.value, delegateForm.signature)
     delegateForm.signature = signature
+    const taskId = currentTask.value.taskId
     const res = await flowApi.delegateTask({
-      taskId: currentTask.value.taskId,
+      taskId,
       userId: String(userStore.userId),
       targetUserId: String(delegateTargetUser.value.id),
       comment: delegateForm.comment,
       signature,
+      ...(await createFlowActionCredentials('delegate', taskId, {
+        targetUserId: String(delegateTargetUser.value.id),
+        comment: delegateForm.comment,
+        signature,
+      })),
     })
     if (res.code === 200) {
       window.$message.success('转办成功')
@@ -1709,6 +1723,7 @@ function isClaimingTask(row) {
 
 async function loadData() {
   loading.value = true
+  loadError.value = false
   try {
     const res = await flowApi.getTodoTasks({
       pageNum: pagination.page,
@@ -1723,9 +1738,13 @@ async function loadData() {
       pagination.itemCount = res.data.total || 0
       urgentCount.value = dataSource.value.filter(r => isUrgentFlowPriority(r.priority)).length
     }
+    else {
+      loadError.value = true
+    }
   }
   catch {
     console.error('加载待办任务失败')
+    loadError.value = true
   }
   finally {
     loading.value = false
@@ -1998,45 +2017,6 @@ watch(
 .quick-action-close:disabled {
   cursor: not-allowed;
   opacity: 0.5;
-}
-
-.quick-action-presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.quick-action-preset {
-  height: 22px;
-  padding: 0 8px;
-  border: 1px solid var(--border-light, #e2e8f0);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-secondary, #475569);
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 20px;
-}
-
-.quick-action-preset:hover:not(:disabled) {
-  border-color: var(--border-dark, #cbd5e1);
-  background: var(--bg-secondary, #f8fafc);
-}
-
-.quick-action-preset.active {
-  border-color: var(--primary-color, #2080f0);
-  color: var(--primary-color, #2080f0);
-}
-
-.quick-action-panel[data-action='reject'] .quick-action-preset.active {
-  border-color: var(--error-color, #d03050);
-  color: var(--error-color, #d03050);
-}
-
-.quick-action-preset:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
 }
 
 .quick-action-tip {

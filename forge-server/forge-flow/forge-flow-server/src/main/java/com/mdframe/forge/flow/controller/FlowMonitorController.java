@@ -14,6 +14,14 @@ import com.mdframe.forge.starter.core.session.LoginUser;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.flow.service.FlowInstanceService;
 import com.mdframe.forge.starter.flow.service.FlowMonitorService;
+import com.mdframe.forge.starter.flow.vo.FlowMonitorStatisticsVO;
+import com.mdframe.forge.starter.flow.vo.FlowMonitorProcessInstanceDetailVO;
+import com.mdframe.forge.starter.flow.vo.FlowMonitorProcessInstancePageVO;
+import com.mdframe.forge.starter.flow.vo.FlowMonitorTaskPageVO;
+import com.mdframe.forge.starter.flow.vo.FlowMonitorActivityVO;
+import com.mdframe.forge.starter.flow.vo.FlowMonitorCurrentTaskVO;
+import com.mdframe.forge.starter.flow.vo.FlowMonitorTaskTrendVO;
+import com.mdframe.forge.starter.flow.vo.FlowProcessDistributionVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.engine.HistoryService;
@@ -50,7 +58,7 @@ public class FlowMonitorController {
      */
     @SaCheckPermission("flow:monitor:view")
     @GetMapping("/statistics")
-    public RespInfo<Map<String, Object>> getStatistics() {
+    public RespInfo<FlowMonitorStatisticsVO> getStatistics() {
         return RespInfo.success(flowMonitorService.getAdminStatistics());
     }
 
@@ -66,7 +74,7 @@ public class FlowMonitorController {
     */
     @SaCheckPermission("flow:monitor:view")
     @GetMapping("/instances")
-    public RespInfo<Map<String, Object>> getInstances(
+    public RespInfo<FlowMonitorProcessInstancePageVO> getInstances(
             @RequestParam(required = false) Integer page,
             @RequestParam(defaultValue = "1") Integer pageNum,
             @RequestParam(defaultValue = "10") Integer pageSize,
@@ -75,11 +83,12 @@ public class FlowMonitorController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String modelKey,
             @RequestParam(required = false) Long startTime,
-            @RequestParam(required = false) Long endTime) {
+            @RequestParam(required = false) Long endTime,
+            @RequestParam(required = false) Boolean overdue) {
         int currentPage = PageParamResolver.resolve(page, pageNum);
         return RespInfo.success(flowMonitorService.getAdminProcessInstances(
                 currentPage, pageSize, processName, initiator, status, modelKey,
-                toLocalDateTime(startTime), toLocalDateTime(endTime)));
+                toLocalDateTime(startTime), toLocalDateTime(endTime), overdue));
     }
 
     /**
@@ -87,8 +96,21 @@ public class FlowMonitorController {
      */
     @SaCheckPermission("flow:monitor:view")
     @GetMapping("/instance/{processInstanceId}")
-    public RespInfo<Map<String, Object>> getInstanceDetail(@PathVariable String processInstanceId) {
+    public RespInfo<FlowMonitorProcessInstanceDetailVO> getInstanceDetail(@PathVariable String processInstanceId) {
         return RespInfo.success(flowMonitorService.getAdminProcessInstanceDetail(processInstanceId));
+    }
+
+    /**
+     * 查询流程实例下的全部任务，供管理员查看完整审批上下文。
+     */
+    @SaCheckPermission("flow:monitor:view")
+    @GetMapping("/instance/{processInstanceId}/tasks")
+    public RespInfo<FlowMonitorTaskPageVO> getInstanceTasks(
+            @PathVariable String processInstanceId,
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "20") Integer pageSize) {
+        return RespInfo.success(flowMonitorService.getAdminProcessInstanceTasks(
+                processInstanceId, pageNum == null ? 1 : pageNum, pageSize == null ? 20 : pageSize));
     }
 
     /**
@@ -96,7 +118,7 @@ public class FlowMonitorController {
      */
     @SaCheckPermission("flow:monitor:view")
     @GetMapping("/taskTrend")
-    public RespInfo<Map<String, Object>> getTaskTrend() {
+    public RespInfo<FlowMonitorTaskTrendVO> getTaskTrend() {
         return RespInfo.success(flowMonitorService.getTaskTrend());
     }
 
@@ -105,7 +127,7 @@ public class FlowMonitorController {
      */
     @SaCheckPermission("flow:monitor:view")
     @GetMapping("/processDistribution")
-    public RespInfo<List<Map<String, Object>>> getProcessDistribution() {
+    public RespInfo<List<FlowProcessDistributionVO>> getProcessDistribution() {
         return RespInfo.success(flowMonitorService.getProcessDistribution());
     }
 
@@ -279,10 +301,10 @@ public class FlowMonitorController {
      */
     @SaCheckPermission("flow:monitor:view")
     @GetMapping("/activities/{processInstanceId}")
-    public RespInfo<List<Map<String, Object>>> getProcessActivities(@PathVariable String processInstanceId) {
+    public RespInfo<List<FlowMonitorActivityVO>> getProcessActivities(@PathVariable String processInstanceId) {
         flowMonitorService.assertCurrentTenantProcessInstance(processInstanceId);
         try {
-            List<Map<String, Object>> activities = new ArrayList<>();
+            List<FlowMonitorActivityVO> activities = new ArrayList<>();
 
             // 查询历史活动实例
             List<org.flowable.engine.history.HistoricActivityInstance> historicActivities =
@@ -295,14 +317,14 @@ public class FlowMonitorController {
             for (org.flowable.engine.history.HistoricActivityInstance activity : historicActivities) {
                 // 只返回用户任务节点
                 if ("userTask".equals(activity.getActivityType())) {
-                    Map<String, Object> activityMap = new HashMap<>();
-                    activityMap.put("activityId", activity.getActivityId());
-                    activityMap.put("activityName", activity.getActivityName());
-                    activityMap.put("activityType", activity.getActivityType());
-                    activityMap.put("assignee", activity.getAssignee());
-                    activityMap.put("startTime", activity.getStartTime());
-                    activityMap.put("endTime", activity.getEndTime());
-                    activities.add(activityMap);
+                    FlowMonitorActivityVO activityVo = new FlowMonitorActivityVO();
+                    activityVo.setActivityId(activity.getActivityId());
+                    activityVo.setActivityName(activity.getActivityName());
+                    activityVo.setActivityType(activity.getActivityType());
+                    activityVo.setAssignee(activity.getAssignee());
+                    activityVo.setStartTime(activity.getStartTime());
+                    activityVo.setEndTime(activity.getEndTime());
+                    activities.add(activityVo);
                 }
             }
 
@@ -318,10 +340,10 @@ public class FlowMonitorController {
      */
     @SaCheckPermission("flow:monitor:view")
     @GetMapping("/current-tasks/{processInstanceId}")
-    public RespInfo<List<Map<String, Object>>> getCurrentTasks(@PathVariable String processInstanceId) {
+    public RespInfo<List<FlowMonitorCurrentTaskVO>> getCurrentTasks(@PathVariable String processInstanceId) {
         flowMonitorService.assertCurrentTenantProcessInstance(processInstanceId);
         try {
-            List<Map<String, Object>> tasks = new ArrayList<>();
+            List<FlowMonitorCurrentTaskVO> tasks = new ArrayList<>();
 
             // 查询当前活动任务
             List<Task> activeTasks = taskService.createTaskQuery()
@@ -330,12 +352,12 @@ public class FlowMonitorController {
                     .list();
 
             for (Task task : activeTasks) {
-                Map<String, Object> taskMap = new HashMap<>();
-                taskMap.put("id", task.getId());
-                taskMap.put("name", task.getName());
-                taskMap.put("assignee", task.getAssignee());
-                taskMap.put("createTime", task.getCreateTime());
-                tasks.add(taskMap);
+                FlowMonitorCurrentTaskVO taskVo = new FlowMonitorCurrentTaskVO();
+                taskVo.setId(task.getId());
+                taskVo.setName(task.getName());
+                taskVo.setAssignee(task.getAssignee());
+                taskVo.setCreateTime(task.getCreateTime());
+                tasks.add(taskVo);
             }
 
             return RespInfo.success(tasks);

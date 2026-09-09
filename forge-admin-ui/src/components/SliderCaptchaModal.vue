@@ -113,11 +113,11 @@ watch(visible, (val) => {
 })
 
 // 验证成功
-function onSuccess() {
+function onSuccess(result) {
   status.value = 'success'
   // 延迟关闭，让用户看到成功状态
   setTimeout(() => {
-    emit('success')
+    emit('success', result)
     handleClose()
   }, 800)
 }

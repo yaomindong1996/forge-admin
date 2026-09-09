@@ -12,10 +12,34 @@
         WHERE t.task_id = #{taskId}
     </select>
 
+    <select id="selectByTaskIdAndTenant" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
+        SELECT t.*, m.category AS category, c.category_name AS category_name,
+               m.model_name AS process_name,
+               COALESCE(NULLIF(m.model_name, ''), t.process_def_key) AS process_definition_name
+        FROM sys_flow_task t
+        LEFT JOIN sys_flow_model m
+               ON t.process_def_key = m.model_key
+              AND m.tenant_id = #{tenantId}
+        LEFT JOIN sys_flow_category c
+               ON c.id = m.category
+              AND c.tenant_id = #{tenantId}
+        WHERE t.task_id = #{taskId}
+          AND t.tenant_id = #{tenantId}
+        LIMIT 1
+    </select>
+
     <select id="selectByTaskIdForUpdate" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
         SELECT t.*
         FROM sys_flow_task t
         WHERE t.task_id = #{taskId}
+        FOR UPDATE
+    </select>
+
+    <select id="selectByTaskIdForUpdateAndTenant" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
+        SELECT t.*
+        FROM sys_flow_task t
+        WHERE t.task_id = #{taskId}
+          AND t.tenant_id = #{tenantId}
         FOR UPDATE
     </select>
 
@@ -29,6 +53,179 @@
         WHERE t.task_id = #{taskId} OR t.id = #{taskId}
         ORDER BY CASE WHEN t.task_id = #{taskId} THEN 0 ELSE 1 END
         LIMIT 1
+    </select>
+
+    <select id="selectByIdOrTaskIdAndTenant" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
+        SELECT t.*, m.category AS category, c.category_name AS category_name,
+               m.model_name AS process_name,
+               COALESCE(NULLIF(m.model_name, ''), t.process_def_key) AS process_definition_name
+        FROM sys_flow_task t
+        LEFT JOIN sys_flow_model m ON t.process_def_key = m.model_key AND m.tenant_id = #{tenantId}
+        LEFT JOIN sys_flow_category c ON c.id = m.category AND c.tenant_id = #{tenantId}
+        WHERE (t.task_id = #{taskId} OR CAST(t.id AS CHAR) = #{taskId})
+          AND t.tenant_id = #{tenantId}
+        ORDER BY CASE WHEN t.task_id = #{taskId} THEN 0 ELSE 1 END
+        LIMIT 1
+    </select>
+
+    <update id="updateByTaskIdAndTenant">
+        UPDATE sys_flow_task
+        <set>
+            <if test="task.taskName != null">task_name = #{task.taskName},</if>
+            <if test="task.taskDefKey != null">task_def_key = #{task.taskDefKey},</if>
+            <if test="task.taskDefId != null">task_def_id = #{task.taskDefId},</if>
+            <if test="task.processInstanceId != null">process_instance_id = #{task.processInstanceId},</if>
+            <if test="task.processDefId != null">process_def_id = #{task.processDefId},</if>
+            <if test="task.processDefKey != null">process_def_key = #{task.processDefKey},</if>
+            <if test="task.businessKey != null">business_key = #{task.businessKey},</if>
+            <if test="task.businessType != null">business_type = #{task.businessType},</if>
+            <if test="task.title != null">title = #{task.title},</if>
+            <if test="task.assignee != null">assignee = #{task.assignee},</if>
+            <if test="task.assigneeName != null">assignee_name = #{task.assigneeName},</if>
+            <if test="task.candidateUsers != null">candidate_users = #{task.candidateUsers},</if>
+            <if test="task.candidateGroups != null">candidate_groups = #{task.candidateGroups},</if>
+            <if test="task.owner != null">owner = #{task.owner},</if>
+            <if test="task.dueDate != null">due_date = #{task.dueDate},</if>
+            <if test="task.priority != null">priority = #{task.priority},</if>
+            <if test="task.status != null">status = #{task.status},</if>
+            <if test="task.comment != null">comment = #{task.comment},</if>
+            <if test="task.signature != null">signature = #{task.signature},</if>
+            <if test="task.attachmentUrls != null">attachment_urls = #{task.attachmentUrls},</if>
+            <if test="task.startUserId != null">start_user_id = #{task.startUserId},</if>
+            <if test="task.startUserName != null">start_user_name = #{task.startUserName},</if>
+            <if test="task.startDeptId != null">start_dept_id = #{task.startDeptId},</if>
+            <if test="task.startDeptName != null">start_dept_name = #{task.startDeptName},</if>
+            <if test="task.claimTime != null">claim_time = #{task.claimTime},</if>
+            <if test="task.completeTime != null">complete_time = #{task.completeTime},</if>
+            <if test="task.actionIdempotencyKey != null">action_idempotency_key = #{task.actionIdempotencyKey},</if>
+            <if test="task.actionRequestDigest != null">action_request_digest = #{task.actionRequestDigest},</if>
+            <if test="task.actionType != null">action_type = #{task.actionType},</if>
+        </set>
+        WHERE task_id = #{taskId}
+          AND tenant_id = #{tenantId}
+    </update>
+
+    <select id="countProcessParticipant" resultType="int">
+        SELECT COUNT(1)
+        FROM sys_flow_task t
+        WHERE t.process_instance_id = #{processInstanceId}
+          AND t.tenant_id = #{tenantId}
+          AND (t.assignee = #{userId} OR t.owner = #{userId} OR t.start_user_id = #{userId}
+               OR EXISTS (
+                   SELECT 1
+                   FROM sys_flow_task_candidate tc
+                   WHERE tc.tenant_id = t.tenant_id
+                     AND tc.task_id = t.task_id
+                     AND tc.candidate_type = 'USER'
+                     AND tc.candidate_value = #{userId}
+                     AND tc.status = 1
+               )
+               OR FIND_IN_SET(#{userId}, candidate_users) &gt; 0)
+    </select>
+
+    <select id="selectActiveTaskSummaries" resultType="java.util.HashMap">
+        SELECT process_instance_id AS processInstanceId,
+               task_id AS taskId,
+               task_name AS taskName,
+               assignee
+        FROM sys_flow_task
+        WHERE tenant_id = #{tenantId}
+          AND status IN (0, 1)
+          <if test="processInstanceIds != null and processInstanceIds.size() > 0">
+            AND process_instance_id IN
+            <foreach collection="processInstanceIds" item="processInstanceId" open="(" separator="," close=")">
+                #{processInstanceId}
+            </foreach>
+          </if>
+          <if test="processInstanceIds == null or processInstanceIds.size() == 0">
+            AND 1 = 0
+          </if>
+        ORDER BY process_instance_id, create_time ASC, id ASC
+    </select>
+
+    <select id="selectHistoryTasks" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
+        SELECT t.*
+        FROM sys_flow_task t
+        WHERE t.process_instance_id = #{processInstanceId}
+          AND t.tenant_id = #{tenantId}
+        ORDER BY t.create_time ASC, t.id ASC
+    </select>
+
+    <select id="selectTimeoutCandidates" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
+        SELECT t.id,
+               t.tenant_id,
+               t.task_id,
+               t.process_instance_id,
+               t.process_def_id,
+               t.process_def_key,
+               t.task_def_key,
+               t.due_date,
+               t.status,
+               t.create_time
+        FROM sys_flow_task t
+        WHERE t.due_date IS NOT NULL
+          AND t.due_date &lt;= #{now}
+          AND t.status IN (0, 1)
+          <if test="cursorDueDate != null">
+            AND (
+                t.due_date &gt; #{cursorDueDate}
+                OR (t.due_date = #{cursorDueDate} AND t.id &gt; #{cursorId})
+            )
+          </if>
+        ORDER BY t.due_date ASC, t.id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectDueDateBackfillCandidates" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
+        SELECT t.id,
+               t.tenant_id,
+               t.task_id,
+               t.process_instance_id,
+               t.process_def_id,
+               t.process_def_key,
+               t.task_def_key,
+               t.create_time,
+               t.status
+        FROM sys_flow_task t
+        WHERE t.due_date IS NULL
+          AND t.create_time IS NOT NULL
+          AND t.create_time &lt;= #{now}
+          AND t.status IN (0, 1)
+          <if test="cursorCreateTime != null">
+            AND (
+                t.create_time &gt; #{cursorCreateTime}
+                OR (t.create_time = #{cursorCreateTime} AND t.id &gt; #{cursorId})
+            )
+          </if>
+        ORDER BY t.create_time ASC, t.id ASC
+        LIMIT #{limit}
+    </select>
+
+    <update id="updateDueDateByTaskIdAndTenant">
+        UPDATE sys_flow_task
+        SET due_date = #{dueDate}
+        WHERE task_id = #{taskId}
+          AND tenant_id = #{tenantId}
+          AND due_date IS NULL
+    </update>
+
+    <select id="selectAdminTasksByProcessInstance" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
+        SELECT <include refid="TaskListColumns" />
+        FROM sys_flow_task t
+        <include refid="TaskListUserJoins" />
+        WHERE t.process_instance_id = #{processInstanceId}
+          AND t.tenant_id = #{tenantId}
+        ORDER BY t.create_time ASC, t.id ASC
+    </select>
+
+    <select id="selectAdminTaskTreeByProcessInstance" resultType="com.mdframe.forge.starter.flow.entity.FlowTask">
+        SELECT <include refid="TaskListColumns" />
+        FROM sys_flow_task t
+        <include refid="TaskListUserJoins" />
+        WHERE t.process_instance_id = #{processInstanceId}
+          AND t.tenant_id = #{tenantId}
+        ORDER BY t.create_time ASC, t.id ASC
+        LIMIT #{limit}
     </select>
 
     <!-- 列表字段。用户姓名在 SQL 中一次关联，避免服务层按任务逐条反查组织、岗位和用户。 -->
@@ -116,12 +313,23 @@
         AND (
             t.assignee = #{userId}
             OR (
-                t.candidate_users IS NOT NULL
-                AND t.candidate_users != ''
-                AND FIND_IN_SET(
-                    REPLACE(REPLACE(REPLACE(REPLACE(#{userId}, ';', ','), '；', ','), '，', ','), ' ', ''),
-                    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_users, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
-                ) > 0
+                EXISTS (
+                    SELECT 1
+                    FROM sys_flow_task_candidate tc
+                    WHERE tc.tenant_id = t.tenant_id
+                      AND tc.task_id = t.task_id
+                      AND tc.candidate_type = 'USER'
+                      AND tc.candidate_value = #{userId}
+                      AND tc.status = 1
+                )
+                OR (
+                    t.candidate_users IS NOT NULL
+                    AND t.candidate_users != ''
+                    AND FIND_IN_SET(
+                        REPLACE(REPLACE(REPLACE(REPLACE(#{userId}, ';', ','), '；', ','), '，', ','), ' ', ''),
+                        REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_users, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
+                    ) > 0
+                )
             )
             OR (
                 t.candidate_groups IS NOT NULL
@@ -290,12 +498,23 @@
             AND (
                 <if test="userId != null and userId != ''">
                 (
-                    t.candidate_users IS NOT NULL
-                    AND t.candidate_users != ''
-                    AND FIND_IN_SET(
-                        REPLACE(REPLACE(REPLACE(REPLACE(#{userId}, ';', ','), '；', ','), '，', ','), ' ', ''),
-                        REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_users, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
-                    ) &gt; 0
+                    EXISTS (
+                        SELECT 1
+                        FROM sys_flow_task_candidate tc
+                        WHERE tc.tenant_id = t.tenant_id
+                          AND tc.task_id = t.task_id
+                          AND tc.candidate_type = 'USER'
+                          AND tc.candidate_value = #{userId}
+                          AND tc.status = 1
+                    )
+                    OR (
+                        t.candidate_users IS NOT NULL
+                        AND t.candidate_users != ''
+                        AND FIND_IN_SET(
+                            REPLACE(REPLACE(REPLACE(REPLACE(#{userId}, ';', ','), '；', ','), '，', ','), ' ', ''),
+                            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_users, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
+                        ) &gt; 0
+                    )
                 )
                 </if>
                 <if test="userId != null and userId != '' and groupId != null and groupId != ''">
@@ -303,12 +522,23 @@
                 </if>
                 <if test="groupId != null and groupId != ''">
                 (
-                    t.candidate_groups IS NOT NULL
-                    AND t.candidate_groups != ''
-                    AND FIND_IN_SET(
-                        REPLACE(REPLACE(REPLACE(REPLACE(#{groupId}, ';', ','), '；', ','), '，', ','), ' ', ''),
-                        REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
-                    ) &gt; 0
+                    EXISTS (
+                        SELECT 1
+                        FROM sys_flow_task_candidate tc
+                        WHERE tc.tenant_id = t.tenant_id
+                          AND tc.task_id = t.task_id
+                          AND tc.candidate_type = 'GROUP'
+                          AND tc.candidate_value = #{groupId}
+                          AND tc.status = 1
+                    )
+                    OR (
+                        t.candidate_groups IS NOT NULL
+                        AND t.candidate_groups != ''
+                        AND FIND_IN_SET(
+                            REPLACE(REPLACE(REPLACE(REPLACE(#{groupId}, ';', ','), '；', ','), '，', ','), ' ', ''),
+                            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(t.candidate_groups, ';', ','), '；', ','), '，', ','), '、', ','), ' ', '')
+                        ) &gt; 0
+                    )
                 )
                 </if>
                 <if test="(userId == null or userId == '') and (groupId == null or groupId == '')">
@@ -333,6 +563,15 @@
           AND t.due_date &lt;= #{now}
           AND t.status IN (0, 1)
         ORDER BY t.due_date ASC, t.create_time ASC
+    </select>
+
+    <select id="countOverduePending" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM sys_flow_task t
+        WHERE t.tenant_id = #{tenantId}
+          AND t.due_date IS NOT NULL
+          AND t.due_date &lt;= #{now}
+          AND t.status IN (0, 1)
     </select>
 
     <!-- 工作台待办数，条件与 selectTodoTasks 保持一致。 -->
@@ -362,6 +601,24 @@
           AND t.start_user_id = #{userId}
           AND t.status IN (0, 1)
     </select>
+
+    <update id="updateProcessTaskStatusByTaskIds">
+        UPDATE sys_flow_task
+        SET status = #{status},
+            complete_time = COALESCE(complete_time, #{completeTime})
+        WHERE
+        <choose>
+            <when test="taskIds != null and taskIds.size() > 0">
+                task_id IN
+                <foreach collection="taskIds" item="taskId" open="(" separator="," close=")">
+                    #{taskId}
+                </foreach>
+            </when>
+            <otherwise>1 = 0</otherwise>
+        </choose>
+          AND tenant_id = #{tenantId}
+          AND status IN (0, 1, 5)
+    </update>
 
     <delete id="deleteByProcessInstanceIdPhysically">
         DELETE FROM sys_flow_task

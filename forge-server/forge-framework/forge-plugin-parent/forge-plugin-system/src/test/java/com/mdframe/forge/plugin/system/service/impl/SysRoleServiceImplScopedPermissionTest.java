@@ -3,11 +3,13 @@ package com.mdframe.forge.plugin.system.service.impl;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import com.mdframe.forge.plugin.system.dto.RoleDataScopeSettingsDTO;
 import com.mdframe.forge.plugin.system.dto.RoleModuleDataScopeDTO;
 import com.mdframe.forge.plugin.system.dto.ScopedRolePermissionDTO;
 import com.mdframe.forge.plugin.system.entity.SysResource;
 import com.mdframe.forge.plugin.system.entity.SysRole;
 import com.mdframe.forge.plugin.system.entity.SysRoleResource;
+import com.mdframe.forge.starter.datascope.entity.SysDataScopeConfig;
 import com.mdframe.forge.plugin.system.mapper.SysOrgMapper;
 import com.mdframe.forge.plugin.system.mapper.SysResourceMapper;
 import com.mdframe.forge.plugin.system.mapper.SysRoleMapper;
@@ -39,6 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -102,6 +105,70 @@ class SysRoleServiceImplScopedPermissionTest {
             assertThat(scope.getDataScope()).isEqualTo(3);
         });
         verify(dependencies.dataScopeService).refreshDataScopeCache();
+    }
+
+    @Test
+    void scopedSaveShouldAllowModuleAllWhenRoleDefaultIsPersonal() {
+        Dependencies dependencies = new Dependencies();
+        SysRoleServiceImpl service = dependencies.service();
+        when(dependencies.roleMapper.selectById(ROLE_ID)).thenReturn(role());
+        when(dependencies.roleMapper.countRoleUsersExceedingDataScope(1, ROLE_ID, TENANT_ID)).thenReturn(3L);
+        when(dependencies.resourceService.listByIds(anyCollection())).thenAnswer(invocation ->
+                resources(invocation.getArgument(0)));
+        when(dependencies.roleResourceMapper.selectResourceIdsByRole(TENANT_ID, ROLE_ID))
+                .thenReturn(List.of(100L));
+
+        ScopedRolePermissionDTO settings = settings(Set.of(100L), Set.of(100L));
+        settings.setScopeModuleCodes(Set.of("ai:business:INSPECTION"));
+        RoleModuleDataScopeDTO moduleScope = new RoleModuleDataScopeDTO();
+        moduleScope.setModuleCode("ai:business:INSPECTION");
+        moduleScope.setDataScope(1);
+        settings.setModuleScopes(List.of(moduleScope));
+
+        try (MockedStatic<SessionHelper> session = mockStatic(SessionHelper.class)) {
+            session.when(SessionHelper::getLoginUser).thenReturn(admin());
+            assertThat(service.saveScopedRolePermissions(ROLE_ID, settings)).isTrue();
+        }
+
+        verify(dependencies.roleMapper, never()).countRoleUsersExceedingDataScope(any(), any(), any());
+        ArgumentCaptor<List<SysRoleModuleDataScope>> scopeCaptor = ArgumentCaptor.forClass(List.class);
+        verify(dependencies.roleModuleDataScopeMapper).insertBatch(scopeCaptor.capture());
+        assertThat(scopeCaptor.getValue()).singleElement().satisfies(scope -> {
+            assertThat(scope.getModuleCode()).isEqualTo("ai:business:INSPECTION");
+            assertThat(scope.getDataScope()).isEqualTo(1);
+        });
+    }
+
+    @Test
+    void dataScopeSaveShouldAllowModuleAllWhenRoleDefaultIsPersonal() {
+        Dependencies dependencies = new Dependencies();
+        SysRoleServiceImpl service = dependencies.service();
+        when(dependencies.roleMapper.selectById(ROLE_ID)).thenReturn(role());
+        when(dependencies.roleMapper.countRoleUsersExceedingDataScope(5, ROLE_ID, TENANT_ID)).thenReturn(0L);
+        when(dependencies.roleMapper.countRoleUsersExceedingDataScope(1, ROLE_ID, TENANT_ID)).thenReturn(3L);
+        when(dependencies.roleMapper.updateById(any(SysRole.class))).thenReturn(1);
+        SysDataScopeConfig config = new SysDataScopeConfig();
+        config.setResourceCode("ai:business:INSPECTION");
+        when(dependencies.dataScopeConfigMapper.selectEnabledModuleConfigs(TENANT_ID)).thenReturn(List.of(config));
+
+        RoleDataScopeSettingsDTO settings = new RoleDataScopeSettingsDTO();
+        settings.setDefaultDataScope(5);
+        RoleModuleDataScopeDTO moduleScope = new RoleModuleDataScopeDTO();
+        moduleScope.setModuleCode("ai:business:INSPECTION");
+        moduleScope.setDataScope(1);
+        settings.setModuleScopes(List.of(moduleScope));
+
+        try (MockedStatic<SessionHelper> session = mockStatic(SessionHelper.class)) {
+            session.when(SessionHelper::getLoginUser).thenReturn(admin());
+            assertThat(service.saveRoleDataScopeSettings(ROLE_ID, settings)).isTrue();
+        }
+
+        verify(dependencies.roleMapper).countRoleUsersExceedingDataScope(5, ROLE_ID, TENANT_ID);
+        verify(dependencies.roleMapper, never()).countRoleUsersExceedingDataScope(eq(1), any(), any());
+        ArgumentCaptor<SysRoleModuleDataScope> scopeCaptor = ArgumentCaptor.forClass(SysRoleModuleDataScope.class);
+        verify(dependencies.roleModuleDataScopeMapper).insert(scopeCaptor.capture());
+        assertThat(scopeCaptor.getValue().getModuleCode()).isEqualTo("ai:business:INSPECTION");
+        assertThat(scopeCaptor.getValue().getDataScope()).isEqualTo(1);
     }
 
     @Test

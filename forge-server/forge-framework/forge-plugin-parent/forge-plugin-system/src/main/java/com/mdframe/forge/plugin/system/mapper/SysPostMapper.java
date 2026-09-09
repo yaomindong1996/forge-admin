@@ -25,4 +25,8 @@ public interface SysPostMapper extends BaseMapper<SysPost> {
      * 查询岗位列表（带所属组织名称）
      */
     List<SysPost> selectPostList(@Param("query") SysPostQuery query);
+
+    /** 流程选人岗位列表使用的租户限定有效岗位。 */
+    List<SysPost> selectFlowPosts(@Param("tenantId") Long tenantId,
+                                  @Param("orgId") Long orgId);
 }

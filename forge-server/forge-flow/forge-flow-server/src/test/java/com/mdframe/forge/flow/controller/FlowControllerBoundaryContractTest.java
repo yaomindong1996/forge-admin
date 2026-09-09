@@ -53,6 +53,12 @@ class FlowControllerBoundaryContractTest {
                 "id=\"selectDailyTrend\"",
                 "id=\"selectProcessDistribution\"",
                 "id=\"updateStatusByProcessInstanceId\"");
+        int businessPageStart = xml.indexOf("<select id=\"selectBusinessPage\"");
+        int businessPageEnd = xml.indexOf("</select>", businessPageStart);
+        assertThat(businessPageStart).isGreaterThanOrEqualTo(0);
+        assertThat(businessPageEnd).isGreaterThan(businessPageStart);
+        assertThat(xml.substring(businessPageStart, businessPageEnd))
+                .contains("tenant_id = #{tenantId}");
     }
 
     @Test
@@ -101,6 +107,140 @@ class FlowControllerBoundaryContractTest {
                 "'flow:monitor:manage:api:write'",
                 "'flow:monitor:manage:api:update'",
                 "'PUT', '/api/flow/monitor/error-logs/*/resolve'");
+    }
+
+    @Test
+    void monitorStatisticsShouldUseTypedResponseContract() throws IOException {
+        String controller = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/flow/controller/FlowMonitorController.java"));
+        String service = Files.readString(Path.of(
+                "../../forge-framework/forge-plugin-parent/forge-plugin-flow/src/main/java/"
+                        + "com/mdframe/forge/starter/flow/service/FlowMonitorService.java"));
+        assertThat(controller)
+                .contains("RespInfo<FlowMonitorStatisticsVO> getStatistics()")
+                .doesNotContain("RespInfo<Map<String, Object>> getStatistics()");
+        assertThat(service)
+                .contains("FlowMonitorStatisticsVO getAdminStatistics()")
+                .doesNotContain("Map<String, Object> getAdminStatistics()");
+    }
+
+    @Test
+    void monitorInstanceResponsesShouldUseTypedVoContracts() throws IOException {
+        String controller = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/flow/controller/FlowMonitorController.java"));
+        String service = Files.readString(Path.of(
+                "../../forge-framework/forge-plugin-parent/forge-plugin-flow/src/main/java/"
+                        + "com/mdframe/forge/starter/flow/service/FlowMonitorService.java"));
+        assertThat(controller)
+                .contains("RespInfo<FlowMonitorProcessInstancePageVO> getInstances(",
+                        "RespInfo<FlowMonitorProcessInstanceDetailVO> getInstanceDetail(",
+                        "RespInfo<FlowMonitorTaskPageVO> getInstanceTasks(")
+                .doesNotContain("RespInfo<Map<String, Object>> getInstances(",
+                        "RespInfo<Map<String, Object>> getInstanceDetail(",
+                        "RespInfo<Map<String, Object>> getInstanceTasks(");
+        assertThat(service)
+                .contains("FlowMonitorProcessInstancePageVO getAdminProcessInstances(",
+                        "FlowMonitorProcessInstanceDetailVO getAdminProcessInstanceDetail(",
+                        "FlowMonitorTaskPageVO getAdminProcessInstanceTasks(")
+                .doesNotContain("Map<String, Object> getAdminProcessInstances(",
+                        "Map<String, Object> getAdminProcessInstanceDetail(",
+                        "Map<String, Object> getAdminProcessInstanceTasks(");
+    }
+
+    @Test
+    void monitorActivityAndCurrentTaskResponsesShouldUseTypedVoContracts() throws IOException {
+        String controller = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/flow/controller/FlowMonitorController.java"));
+        assertThat(controller)
+                .contains("RespInfo<List<FlowMonitorActivityVO>> getProcessActivities(",
+                        "RespInfo<List<FlowMonitorCurrentTaskVO>> getCurrentTasks(")
+                .doesNotContain("RespInfo<List<Map<String, Object>>> getProcessActivities(",
+                        "RespInfo<List<Map<String, Object>>> getCurrentTasks(");
+    }
+
+    @Test
+    void ccUnreadCountShouldUseTypedVoContract() throws IOException {
+        String controller = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/flow/controller/FlowCcController.java"));
+        assertThat(controller)
+                .contains("RespInfo<FlowCcUnreadCountVO> countUnread(")
+                .doesNotContain("RespInfo<Map<String, Object>> countUnread(");
+    }
+
+    @Test
+    void ccReadAllShouldBeASeparateTenantScopedAction() throws IOException {
+        String controller = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/flow/controller/FlowCcController.java"));
+        String service = Files.readString(Path.of(
+                "../../forge-framework/forge-plugin-parent/forge-plugin-flow/src/main/java/"
+                        + "com/mdframe/forge/starter/flow/service/FlowCcService.java"));
+        String mapper = mapperXml("FlowCcMapper.xml");
+        assertThat(controller).contains("@PostMapping(\"/read/all\")", "flowCcService.markAllRead()");
+        assertThat(service).contains("int markAllRead();");
+        assertThat(mapper).contains("id=\"markAllRead\"", "tenant_id = #{tenantId}",
+                "cc_user_id = #{userId}", "status = 0");
+    }
+
+    @Test
+    void modelStatisticsShouldUseTypedVoContract() throws IOException {
+        String controller = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/flow/controller/FlowModelController.java"));
+        String service = Files.readString(Path.of(
+                "../../forge-framework/forge-plugin-parent/forge-plugin-flow/src/main/java/"
+                        + "com/mdframe/forge/starter/flow/service/FlowModelService.java"));
+        assertThat(controller)
+                .contains("RespInfo<FlowModelStatisticsVO> statistics(")
+                .doesNotContain("RespInfo<Map<String, Object>> statistics(");
+        assertThat(service)
+                .contains("FlowModelStatisticsVO getStatusStatistics(")
+                .doesNotContain("Map<String, Object> getStatusStatistics(");
+    }
+
+    @Test
+    void modelVersionSummariesShouldUseTypedVoContract() throws IOException {
+        String controller = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/flow/controller/FlowModelController.java"));
+        String service = Files.readString(Path.of(
+                "../../forge-framework/forge-plugin-parent/forge-plugin-flow/src/main/java/"
+                        + "com/mdframe/forge/starter/flow/service/FlowModelService.java"));
+        assertThat(controller)
+                .contains("RespInfo<List<FlowModelVersionSummaryVO>> getVersions(")
+                .doesNotContain("RespInfo<List<Map<String, Object>>> getVersions(");
+        assertThat(service)
+                .contains("List<FlowModelVersionSummaryVO> getModelVersions(")
+                .doesNotContain("List<Map<String, Object>> getModelVersions(");
+    }
+
+    @Test
+    void operationalPagingResponsesShouldUseTypedVoContracts() throws IOException {
+        String errorController = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/flow/controller/FlowErrorLogController.java"));
+        String formController = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/flow/controller/FlowFormController.java"));
+        String spelController = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/flow/controller/FlowSpelTemplateController.java"));
+        assertThat(errorController).contains("RespInfo<FlowErrorLogPageVO> getErrorLogs(")
+                .doesNotContain("RespInfo<Map<String, Object>> getErrorLogs(");
+        assertThat(formController).contains("RespInfo<FlowFormPageVO> getPage(")
+                .doesNotContain("public RespInfo getPage(");
+        assertThat(spelController).contains("RespInfo<FlowSpelTemplatePageVO> getPage(")
+                .doesNotContain("public RespInfo getPage(");
+    }
+
+    @Test
+    void monitorTrendDistributionAndErrorStatisticsShouldUseTypedVoContracts() throws IOException {
+        String monitor = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/flow/controller/FlowMonitorController.java"));
+        String error = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/flow/controller/FlowErrorLogController.java"));
+        assertThat(monitor)
+                .contains("RespInfo<FlowMonitorTaskTrendVO> getTaskTrend(",
+                        "RespInfo<List<FlowProcessDistributionVO>> getProcessDistribution(")
+                .doesNotContain("RespInfo<Map<String, Object>> getTaskTrend(",
+                        "RespInfo<List<Map<String, Object>>> getProcessDistribution(");
+        assertThat(error)
+                .contains("RespInfo<FlowErrorLogStatisticsVO> getErrorLogStatistics(")
+                .doesNotContain("RespInfo<Map<String, Object>> getErrorLogStatistics(");
     }
 
     @Test
@@ -284,6 +424,18 @@ class FlowControllerBoundaryContractTest {
         assertThat(mapperXml("FlowBusinessMapper.xml"))
                 .contains("SELECT title_source.title", "ORDER BY title_source.id ASC", "LIMIT 1")
                 .doesNotContain("MAX(NULLIF(title, ''))");
+    }
+
+    @Test
+    void processVariableUpdateMustWrapDynamicMapInTypedDto() throws IOException {
+        String controller = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/flow/controller/FlowInstanceController.java"));
+        String dto = Files.readString(Path.of(
+                "src/main/java/com/mdframe/forge/flow/dto/FlowVariablesUpdateDTO.java"));
+        assertThat(controller)
+                .contains("@RequestBody FlowVariablesUpdateDTO request", "request.getVariables()")
+                .doesNotContain("@RequestBody Map<String, Object> variables");
+        assertThat(dto).contains("private Map<String, Object> variables");
     }
 
     private void assertPhysicalDelete(String mapperFile) throws IOException {

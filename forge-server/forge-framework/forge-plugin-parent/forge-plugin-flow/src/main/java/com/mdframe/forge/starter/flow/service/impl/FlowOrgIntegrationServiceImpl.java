@@ -6,6 +6,7 @@ import com.mdframe.forge.plugin.system.mapper.*;
 import com.mdframe.forge.plugin.system.service.*;
 import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.flow.service.FlowOrgIntegrationService;
+import com.mdframe.forge.starter.flow.service.FlowUserGroupService;
 import com.mdframe.forge.starter.core.enums.EnableStatus;
 import com.mdframe.forge.starter.tenant.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService {
 
+    private static final int MAX_FLOW_CANDIDATES = 200;
+
     private final ISysUserService sysUserService;
     private final ISysOrgService sysOrgService;
     private final ISysRoleService sysRoleService;
@@ -34,8 +37,14 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
     
     // 直接使用Mapper操作关联表
     private final SysUserOrgRoleMapper sysUserOrgRoleMapper;
+    private final SysUserOrgMapper sysUserOrgMapper;
     private final SysUserPostMapper sysUserPostMapper;
+    private final SysPostMapper sysPostMapper;
     private final SysUserTenantMapper sysUserTenantMapper;
+    private final SysUserMapper sysUserMapper;
+    private final SysOrgMapper sysOrgMapper;
+    private final SysRoleMapper sysRoleMapper;
+    private final FlowUserGroupService flowUserGroupService;
 
     @Override
     public Map<String, Object> getUserInfo(String userId) {
@@ -43,37 +52,70 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
         if (userId == null || userId.isEmpty()) {
             return Collections.emptyMap();
         }
+
+        Long tenantId = resolveTenantId();
+        if (tenantId == null || tenantId <= 0) {
+            log.warn("获取用户信息时缺少可信租户上下文: userId={}", userId);
+            return Collections.emptyMap();
+        }
         
         try {
             Long id = Long.parseLong(userId);
-            SysUser user = sysUserService.getById(id);
-            if (user == null) {
+            Map<String, Object> row = TenantContextHolder.executeWithTenant(tenantId,
+                    () -> sysUserMapper.selectFlowUserInfo(tenantId, id));
+            if (row == null || row.isEmpty()) {
                 return Collections.emptyMap();
             }
             
             Map<String, Object> userInfo = new HashMap<>();
-            userInfo.put("id", String.valueOf(user.getId()));
-            userInfo.put("username", user.getUsername());
-            userInfo.put("realName", user.getRealName());
-            userInfo.put("name", user.getRealName());
-            userInfo.put("userStatus", user.getUserStatus());
-            userInfo.put("avatar", user.getAvatar());
-            userInfo.put("email", user.getEmail());
-            userInfo.put("phone", user.getPhone());
-            
-            // 获取用户主组织
-            String deptId = getUserDeptId(userId);
-            userInfo.put("deptId", deptId);
-            
-            // 获取用户主岗位
-            String postId = getUserMainPostId(userId);
-            userInfo.put("postId", postId);
-            
+            userInfo.putAll(row);
+            userInfo.put("realName", firstNonBlank(textValue(row.get("realName")), textValue(row.get("name"))));
+            userInfo.put("name", firstNonBlank(textValue(row.get("realName")), textValue(row.get("name"))));
             return userInfo;
         } catch (NumberFormatException e) {
             log.warn("无效的用户ID格式: {}", userId);
             return Collections.emptyMap();
         }
+    }
+
+    @Override
+    public Map<String, Map<String, Object>> getUserInfoBatch(List<String> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        Long tenantId = resolveTenantId();
+        if (tenantId == null || tenantId <= 0) {
+            log.warn("批量获取流程用户信息时缺少可信租户上下文");
+            return Collections.emptyMap();
+        }
+        List<Long> ids = userIds.stream()
+                .filter(id -> id != null && !id.isBlank())
+                .map(String::trim)
+                .distinct()
+                .map(this::parsePositiveId)
+                .filter(Objects::nonNull)
+                .limit(MAX_FLOW_CANDIDATES)
+                .toList();
+        if (ids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Map<String, Object>> rows = TenantContextHolder.executeWithTenant(
+                tenantId, () -> sysUserMapper.selectFlowUserInfoBatch(tenantId, ids));
+        Map<String, Map<String, Object>> result = new LinkedHashMap<>();
+        if (rows == null) {
+            return result;
+        }
+        for (Map<String, Object> row : rows) {
+            if (row == null || row.isEmpty() || row.get("id") == null) {
+                continue;
+            }
+            Map<String, Object> normalized = new HashMap<>(row);
+            String name = firstNonBlank(textValue(row.get("realName")), textValue(row.get("name")));
+            normalized.put("realName", name);
+            normalized.put("name", name);
+            result.put(String.valueOf(row.get("id")), normalized);
+        }
+        return result;
     }
 
     @Override
@@ -200,7 +242,9 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
         
         try {
             Long id = Long.parseLong(deptId);
-            SysOrg org = sysOrgService.getById(id);
+            Long tenantId = requireTenantId();
+            SysOrg org = TenantContextHolder.executeWithTenant(
+                    tenantId, () -> sysOrgMapper.selectFlowOrgById(tenantId, id));
             if (org == null || org.getLeaderId() == null) {
                 return Collections.emptyList();
             }
@@ -220,11 +264,7 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
             return Collections.emptyList();
         }
         
-        // 1. 根据角色编码查找角色
-        SysRole role = sysRoleService.lambdaQuery()
-                .eq(SysRole::getRoleKey, roleCode)
-                .eq(SysRole::getRoleStatus, 1)
-                .one();
+        SysRole role = sysRoleMapper.selectActiveFlowRoleByKey(requireTenantId(), roleCode.trim());
         
         if (role == null) {
             log.debug("未找到角色: roleCode={}", roleCode);
@@ -243,26 +283,60 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
         }
         
         try {
-            Long rid = Long.parseLong(roleId);
-            
-            List<Long> userIds = selectUserIdsByCurrentOrgRole(rid);
+            Long tenantId = requireTenantId();
+            Long rid = Long.parseLong(roleId.trim());
+            List<Long> userIds = sysUserOrgRoleMapper.selectUserIdsByRoleIdsAcrossOrg(tenantId, List.of(rid));
             if (userIds.isEmpty()) {
                 return Collections.emptyList();
             }
-            
-            // 过滤有效用户
-            List<SysUser> users = sysUserService.lambdaQuery()
-                    .in(SysUser::getId, userIds)
-                    .eq(SysUser::getUserStatus, 1)
-                    .list();
-            
-            return users.stream()
-                    .map(u -> String.valueOf(u.getId()))
-                    .collect(Collectors.toList());
+            return userIds.stream().map(String::valueOf).distinct().collect(Collectors.toList());
         } catch (NumberFormatException e) {
             log.warn("无效的角色ID格式: {}", roleId);
             return Collections.emptyList();
         }
+    }
+
+    @Override
+    public List<String> getUserIdsByGroupCode(String groupCode) {
+        if (groupCode == null || groupCode.isBlank()) {
+            return Collections.emptyList();
+        }
+        return flowUserGroupService.resolveUserIdsByCode(groupCode.trim());
+    }
+
+    @Override
+    public List<String> getUserGroupCodes(String userId) {
+        Long uid = parsePositiveId(userId);
+        if (uid == null) {
+            return Collections.emptyList();
+        }
+        return flowUserGroupService.resolveGroupCodesByUserId(uid);
+    }
+
+    @Override
+    public List<String> getUserIdsByRegionCode(String regionCode) {
+        if (regionCode == null || regionCode.isBlank()) {
+            return Collections.emptyList();
+        }
+        Long tenantId = requireTenantId();
+        return TenantContextHolder.executeWithTenant(tenantId,
+                () -> sysUserMapper.selectFlowUserIdsByRegion(tenantId, regionCode.trim()))
+                .stream().map(String::valueOf).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> getUserIdsByDeptAndRoleCode(String deptId, String roleCode) {
+        Long orgId = parsePositiveId(deptId);
+        if (orgId == null || roleCode == null || roleCode.isBlank()) {
+            return Collections.emptyList();
+        }
+        Long tenantId = requireTenantId();
+        SysRole role = sysRoleMapper.selectActiveFlowRoleByKey(tenantId, roleCode.trim());
+        if (role == null) {
+            return Collections.emptyList();
+        }
+        List<Long> userIds = sysUserOrgRoleMapper.selectUserIdsByRoleIds(tenantId, orgId, List.of(role.getId()));
+        return userIds.stream().limit(MAX_FLOW_CANDIDATES).map(String::valueOf).collect(Collectors.toList());
     }
 
     @Override
@@ -271,34 +345,11 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
         if (deptId == null || deptId.isEmpty()) {
             return Collections.emptyList();
         }
-        
         try {
-            Long oid = Long.parseLong(deptId);
-            
-            // 查询用户组织关联表
-            List<SysUserOrg> userOrgs = sysUserOrgService.lambdaQuery()
-                    .eq(SysUserOrg::getOrgId, oid)
-                    .list();
-            
-            if (userOrgs.isEmpty()) {
-                return Collections.emptyList();
-            }
-            
-            // 获取用户ID列表
-            List<Long> userIds = userOrgs.stream()
-                    .map(SysUserOrg::getUserId)
-                    .distinct()
-                    .collect(Collectors.toList());
-            
-            // 过滤有效用户
-            List<SysUser> users = sysUserService.lambdaQuery()
-                    .in(SysUser::getId, userIds)
-                    .eq(SysUser::getUserStatus, 1)
-                    .list();
-            
-            return users.stream()
-                    .map(u -> String.valueOf(u.getId()))
-                    .collect(Collectors.toList());
+            Long tenantId = requireTenantId();
+            Long oid = Long.parseLong(deptId.trim());
+            return sysUserMapper.selectFlowUserIdsByOrg(tenantId, oid).stream()
+                    .map(String::valueOf).distinct().collect(Collectors.toList());
         } catch (NumberFormatException e) {
             log.warn("无效的部门ID格式: {}", deptId);
             return Collections.emptyList();
@@ -313,32 +364,11 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
         }
         
         try {
-            Long oid = Long.parseLong(deptId);
-            Long pid = Long.parseLong(postId);
-            
-            // 1. 获取部门下的用户
-            List<String> deptUserIds = getUserIdsByDeptId(deptId);
-            if (deptUserIds.isEmpty()) {
-                return Collections.emptyList();
-            }
-            
-            // 2. 获取岗位下的用户
-            LambdaQueryWrapper<SysUserPost> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(SysUserPost::getPostId, pid);
-            List<SysUserPost> userPosts = sysUserPostMapper.selectList(wrapper);
-            
-            if (userPosts.isEmpty()) {
-                return Collections.emptyList();
-            }
-            
-            Set<String> postUserIds = userPosts.stream()
-                    .map(up -> String.valueOf(up.getUserId()))
-                    .collect(Collectors.toSet());
-            
-            // 3. 取交集
-            return deptUserIds.stream()
-                    .filter(postUserIds::contains)
-                    .collect(Collectors.toList());
+            Long tenantId = requireTenantId();
+            Long oid = Long.parseLong(deptId.trim());
+            Long pid = Long.parseLong(postId.trim());
+            return sysUserMapper.selectFlowUserIdsByOrgAndPost(tenantId, oid, pid).stream()
+                    .map(String::valueOf).distinct().collect(Collectors.toList());
         } catch (NumberFormatException e) {
             log.warn("无效的部门ID或岗位ID格式: deptId={}, postId={}", deptId, postId);
             return Collections.emptyList();
@@ -353,32 +383,10 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
         }
         
         try {
-            Long pid = Long.parseLong(postId);
-            
-            // 查询用户岗位关联表
-            LambdaQueryWrapper<SysUserPost> wrapper = new LambdaQueryWrapper<>();
-            wrapper.eq(SysUserPost::getPostId, pid);
-            List<SysUserPost> userPosts = sysUserPostMapper.selectList(wrapper);
-            
-            if (userPosts.isEmpty()) {
-                return Collections.emptyList();
-            }
-            
-            // 获取用户ID列表
-            List<Long> userIds = userPosts.stream()
-                    .map(SysUserPost::getUserId)
-                    .distinct()
-                    .collect(Collectors.toList());
-            
-            // 过滤有效用户
-            List<SysUser> users = sysUserService.lambdaQuery()
-                    .in(SysUser::getId, userIds)
-                    .eq(SysUser::getUserStatus, 1)
-                    .list();
-            
-            return users.stream()
-                    .map(u -> String.valueOf(u.getId()))
-                    .collect(Collectors.toList());
+            Long tenantId = requireTenantId();
+            Long pid = Long.parseLong(postId.trim());
+            return sysUserMapper.selectFlowUserIdsByPost(tenantId, pid).stream()
+                    .map(String::valueOf).distinct().collect(Collectors.toList());
         } catch (NumberFormatException e) {
             log.warn("无效的岗位ID格式: {}", postId);
             return Collections.emptyList();
@@ -393,20 +401,16 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
         }
         
         try {
+            Long tenantId = requireTenantId();
             Long uid = Long.parseLong(userId);
-            
-            // 查询用户主组织
-            SysUserOrg userOrg = sysUserOrgService.lambdaQuery()
-                    .eq(SysUserOrg::getUserId, uid)
-                    .eq(SysUserOrg::getIsMain, 1)
-                    .one();
-            
+
+            // 查询用户主组织；主组织缺失时回退到任一有效组织，所有条件在 XML 中显式绑定租户。
+            SysUserOrg userOrg = TenantContextHolder.executeWithTenant(
+                    tenantId, () -> sysUserOrgMapper.selectFlowMainOrgByUser(tenantId, uid));
+
             if (userOrg == null) {
-                // 如果没有主组织，取第一个组织
-                userOrg = sysUserOrgService.lambdaQuery()
-                        .eq(SysUserOrg::getUserId, uid)
-                        .last("LIMIT 1")
-                        .one();
+                userOrg = TenantContextHolder.executeWithTenant(
+                        tenantId, () -> sysUserOrgMapper.selectFlowAnyOrgByUser(tenantId, uid));
             }
             
             return userOrg != null ? String.valueOf(userOrg.getOrgId()) : null;
@@ -426,7 +430,9 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
         
         try {
             Long oid = Long.parseLong(deptId);
-            SysOrg org = sysOrgService.getById(oid);
+            Long tenantId = requireTenantId();
+            SysOrg org = TenantContextHolder.executeWithTenant(
+                    tenantId, () -> sysOrgMapper.selectFlowOrgById(tenantId, oid));
             return org != null ? org.getOrgName() : null;
         } catch (NumberFormatException e) {
             log.warn("无效的部门ID格式: {}", deptId);
@@ -443,7 +449,9 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
         
         try {
             Long oid = Long.parseLong(deptId);
-            SysOrg org = sysOrgService.getById(oid);
+            Long tenantId = requireTenantId();
+            SysOrg org = TenantContextHolder.executeWithTenant(
+                    tenantId, () -> sysOrgMapper.selectFlowOrgById(tenantId, oid));
             if (org == null || org.getParentId() == null || org.getParentId() == 0L) {
                 return null;
             }
@@ -463,34 +471,15 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
         
         try {
             Long oid = Long.parseLong(deptId);
-            
+            Long tenantId = requireTenantId();
             if (recursive) {
-                // 递归获取所有子部门
-                SysOrg org = sysOrgService.getById(oid);
-                if (org == null) {
-                    return Collections.emptyList();
-                }
-                
-                // 使用ancestors字段查询所有子部门
-                List<SysOrg> childOrgs = sysOrgService.lambdaQuery()
-                        .likeRight(SysOrg::getAncestors, org.getAncestors() + "," + oid)
-                        .eq(SysOrg::getOrgStatus, 1)
-                        .list();
-                
-                return childOrgs.stream()
-                        .map(o -> String.valueOf(o.getId()))
-                        .collect(Collectors.toList());
-            } else {
-                // 只获取直接子部门
-                List<SysOrg> childOrgs = sysOrgService.lambdaQuery()
-                        .eq(SysOrg::getParentId, oid)
-                        .eq(SysOrg::getOrgStatus, 1)
-                        .list();
-                
-                return childOrgs.stream()
-                        .map(o -> String.valueOf(o.getId()))
+                return sysOrgMapper.selectOrgAndChildrenIdsByTenant(oid, tenantId).stream()
+                        .map(String::valueOf)
                         .collect(Collectors.toList());
             }
+            return sysOrgMapper.selectOrgChildrenByParentId(oid, tenantId).stream()
+                    .map(node -> String.valueOf(node.getId()))
+                    .collect(Collectors.toList());
         } catch (NumberFormatException e) {
             log.warn("无效的部门ID格式: {}", deptId);
             return Collections.emptyList();
@@ -566,13 +555,12 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
         try {
             Long uid = Long.parseLong(userId);
             Long oid = Long.parseLong(deptId);
+
+            Long tenantId = requireTenantId();
+            Long count = TenantContextHolder.executeWithTenant(
+                    tenantId, () -> sysUserOrgMapper.countFlowUserOrg(tenantId, uid, oid));
             
-            long count = sysUserOrgService.lambdaQuery()
-                    .eq(SysUserOrg::getUserId, uid)
-                    .eq(SysUserOrg::getOrgId, oid)
-                    .count();
-            
-            return count > 0;
+            return count != null && count > 0;
         } catch (NumberFormatException e) {
             log.warn("无效的用户ID或部门ID格式: userId={}, deptId={}", userId, deptId);
             return false;
@@ -582,68 +570,22 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
     @Override
     public List<Map<String, Object>> getUserList(String keyword, String deptId) {
         log.debug("获取用户列表: keyword={}, deptId={}", keyword, deptId);
-        
-        LambdaQueryWrapper<SysUser> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SysUser::getUserStatus, 1);
-        
-        // 关键字搜索
-        if (keyword != null && !keyword.isEmpty()) {
-            wrapper.and(w -> w
-                    .like(SysUser::getUsername, keyword)
-                    .or()
-                    .like(SysUser::getRealName, keyword)
-            );
+        Long tenantId = requireTenantId();
+        Long orgId = parsePositiveId(deptId);
+        if (deptId != null && !deptId.isBlank() && orgId == null) {
+            return Collections.emptyList();
         }
-        
-        List<SysUser> users;
-        
-        // 部门过滤
-        if (deptId != null && !deptId.isEmpty()) {
-            try {
-                Long oid = Long.parseLong(deptId);
-                List<SysUserOrg> userOrgs = sysUserOrgService.lambdaQuery()
-                        .eq(SysUserOrg::getOrgId, oid)
-                        .list();
-                
-                if (userOrgs.isEmpty()) {
-                    return Collections.emptyList();
-                }
-                
-                List<Long> userIds = userOrgs.stream()
-                        .map(SysUserOrg::getUserId)
-                        .collect(Collectors.toList());
-                
-                wrapper.in(SysUser::getId, userIds);
-            } catch (NumberFormatException e) {
-                log.warn("无效的部门ID格式: {}", deptId);
-            }
-        }
-        
-        users = sysUserService.list(wrapper);
-        
-        return users.stream()
-                .map(user -> {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("id", String.valueOf(user.getId()));
-                    map.put("username", user.getUsername());
-                    map.put("name", user.getRealName());
-                    map.put("avatar", user.getAvatar());
-                    map.put("deptId", getUserDeptId(String.valueOf(user.getId())));
-                    map.put("deptName", getUserDeptName(String.valueOf(user.getId())));
-                    return map;
-                })
-                .collect(Collectors.toList());
+        return TenantContextHolder.executeWithTenant(tenantId,
+                () -> sysUserMapper.selectFlowUsers(tenantId, trimToNull(keyword), orgId));
     }
 
     @Override
     public List<Map<String, Object>> getDeptTree() {
         log.debug("获取部门树");
-        
-        // 获取所有有效组织
-        List<SysOrg> orgs = sysOrgService.lambdaQuery()
-                .eq(SysOrg::getOrgStatus, 1)
-                .orderByAsc(SysOrg::getSort)
-                .list();
+
+        Long tenantId = requireTenantId();
+        List<SysOrg> orgs = TenantContextHolder.executeWithTenant(
+                tenantId, () -> sysOrgMapper.selectFlowOrgList(tenantId));
         
         // 构建树形结构
         return buildOrgTree(orgs, 0L);
@@ -681,11 +623,10 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
     @Override
     public List<Map<String, Object>> getRoleList() {
         log.debug("获取角色列表");
-        
-        List<SysRole> roles = sysRoleService.lambdaQuery()
-                .eq(SysRole::getRoleStatus, 1)
-                .orderByAsc(SysRole::getSort)
-                .list();
+
+        Long tenantId = requireTenantId();
+        List<SysRole> roles = TenantContextHolder.executeWithTenant(
+                tenantId, () -> sysRoleMapper.selectActiveFlowRoles(tenantId));
         
         return roles.stream()
                 .map(role -> {
@@ -702,22 +643,19 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
     @Override
     public List<Map<String, Object>> getPostList(String deptId) {
         log.debug("获取岗位列表: deptId={}", deptId);
-        
-        LambdaQueryWrapper<SysPost> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(SysPost::getPostStatus, 1);
-        
+        Long tenantId = requireTenantId();
+        Long orgId = null;
         if (deptId != null && !deptId.isEmpty()) {
-            try {
-                Long oid = Long.parseLong(deptId);
-                wrapper.eq(SysPost::getOrgId, oid);
-            } catch (NumberFormatException e) {
+            orgId = parsePositiveId(deptId);
+            if (orgId == null) {
                 log.warn("无效的部门ID格式: {}", deptId);
+                return Collections.emptyList();
             }
         }
-        
-        wrapper.orderByAsc(SysPost::getSort);
-        
-        List<SysPost> posts = sysPostService.list(wrapper);
+
+        Long queryOrgId = orgId;
+        List<SysPost> posts = TenantContextHolder.executeWithTenant(
+                tenantId, () -> sysPostMapper.selectFlowPosts(tenantId, queryOrgId));
         
         return posts.stream()
                 .map(post -> {
@@ -756,6 +694,42 @@ public class FlowOrgIntegrationServiceImpl implements FlowOrgIntegrationService 
             tenantId = SessionHelper.getTenantId();
         }
         return tenantId;
+    }
+
+    private Long requireTenantId() {
+        Long tenantId = resolveTenantId();
+        if (tenantId == null || tenantId <= 0) {
+            throw new IllegalStateException("FLOW_ORG_TENANT_REQUIRED");
+        }
+        return tenantId;
+    }
+
+    private Long parsePositiveId(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            long id = Long.parseLong(value.trim());
+            return id > 0 ? id : null;
+        } catch (NumberFormatException exception) {
+            log.warn("流程组织查询收到非法ID参数");
+            return null;
+        }
+    }
+
+    private String trimToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private String textValue(Object value) {
+        return value == null ? null : String.valueOf(value);
+    }
+
+    private String firstNonBlank(String first, String second) {
+        return first != null && !first.isBlank() ? first : second;
     }
 
     private Long resolveActiveOrgId() {

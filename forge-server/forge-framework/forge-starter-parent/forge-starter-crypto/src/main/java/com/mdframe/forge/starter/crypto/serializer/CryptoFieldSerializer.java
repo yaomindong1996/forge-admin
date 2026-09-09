@@ -56,8 +56,8 @@ public class CryptoFieldSerializer extends JsonSerializer<String> implements Con
             String encryptedValue = encryptor.encrypt(value);
             gen.writeString(encryptedValue);
         } catch (Exception e) {
-            log.error("字段加密失败", e);
-            gen.writeString(value);
+            log.error("字段加密失败: algorithm={}", annotation.algorithm(), e);
+            throw new IOException("字段加密失败，拒绝输出原文", e);
         }
     }
 

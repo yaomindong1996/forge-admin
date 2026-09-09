@@ -220,6 +220,13 @@
                   <n-form-item label="区划字段">
                     <n-select v-model:value="localModel.policies.regionField" clearable :options="fieldOptions" @update:value="handlePolicyFieldChange('region', $event)" />
                   </n-form-item>
+                  <n-form-item label="流程经手人可查看单据">
+                    <n-switch
+                      :value="localModel.policies.flowRelatedVisible !== false"
+                      @update:value="localModel.policies.flowRelatedVisible = $event"
+                    />
+                    <p class="policy-hint">角色按个人或部门看数时，额外可见自己发起、审批过、被抄送的单据，仅可查看。</p>
+                  </n-form-item>
                 </template>
                 <n-form-item label="主键策略">
                   <n-input :value="`${localModel.policies.primaryKeyField || 'id'} / ${localModel.policies.primaryKeyStrategy || 'AUTO_INCREMENT'}`" disabled />
@@ -772,6 +779,13 @@ async function validateModel() {
   grid-template-columns: minmax(0, 1fr) 300px;
   gap: 12px;
   min-height: calc(100vh - 226px);
+}
+
+.policy-hint {
+  margin: 6px 0 0;
+  color: var(--text-tertiary, #64748b);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .model-designer.fields-active {

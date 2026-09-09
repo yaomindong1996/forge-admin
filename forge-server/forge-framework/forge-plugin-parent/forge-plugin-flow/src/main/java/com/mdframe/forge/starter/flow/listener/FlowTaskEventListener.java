@@ -11,8 +11,15 @@ import com.mdframe.forge.starter.flow.event.FlowTaskNotifyEvent;
 import com.mdframe.forge.starter.flow.mapper.FlowBusinessMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowFormInstanceMapper;
 import com.mdframe.forge.starter.flow.mapper.FlowTaskMapper;
+import com.mdframe.forge.starter.flow.mapper.FlowTaskCandidateMapper;
+import com.mdframe.forge.starter.flow.entity.FlowTaskCandidate;
+import com.mdframe.forge.starter.flow.enums.FlowTaskCandidateStatus;
+import com.mdframe.forge.starter.flow.entity.FlowRecordParticipant;
 import com.mdframe.forge.starter.flow.service.FlowErrorLogService;
 import com.mdframe.forge.starter.flow.service.FlowOrgIntegrationService;
+import com.mdframe.forge.starter.flow.service.FlowRecordParticipantService;
+import com.mdframe.forge.starter.flow.service.FlowNodeConfigService;
+import com.mdframe.forge.starter.flow.entity.FlowNodeConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.flowable.common.engine.api.delegate.event.FlowableEngineEvent;
 import org.flowable.common.engine.api.delegate.event.FlowableEntityEvent;
@@ -29,11 +36,14 @@ import org.flowable.engine.impl.persistence.entity.ExecutionEntity;
 import org.flowable.variable.api.history.HistoricVariableInstance;
 import org.flowable.task.service.impl.persistence.entity.TaskEntity;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,9 +62,16 @@ public class FlowTaskEventListener implements FlowableEventListener {
 
     private static final String PHYSICAL_CLEANUP_REASON_KEYWORD = "删除流程数据";
 
+    @Value("${forge.flow.timeout.time-zone:Asia/Shanghai}")
+    private String timeoutTimeZone;
+
     @Autowired
     @Lazy
     private FlowTaskMapper flowTaskMapper;
+
+    @Autowired(required = false)
+    @Lazy
+    private FlowTaskCandidateMapper flowTaskCandidateMapper;
 
     @Autowired
     @Lazy
@@ -87,6 +104,14 @@ public class FlowTaskEventListener implements FlowableEventListener {
     @Autowired(required = false)
     @Lazy
     private FlowFormInstanceMapper flowFormInstanceMapper;
+
+    @Autowired(required = false)
+    @Lazy
+    private FlowRecordParticipantService flowRecordParticipantService;
+
+    @Autowired(required = false)
+    @Lazy
+    private FlowNodeConfigService flowNodeConfigService;
 
     @Override
     public void onEvent(FlowableEvent event) {
@@ -136,6 +161,8 @@ public class FlowTaskEventListener implements FlowableEventListener {
                 log.debug("任务已存在，跳过创建：taskId={}", task.getId());
                 return;
             }
+
+            applyConfiguredDueDate(task);
             
             // 创建任务记录
             FlowTask flowTask = buildFlowTask(task);
@@ -213,6 +240,7 @@ public class FlowTaskEventListener implements FlowableEventListener {
             }
             
             flowTaskMapper.insert(flowTask);
+            syncCandidateRelations(flowTask);
             log.info("创建待办任务成功：taskId={}, title={}, assignee={}, candidateUsers={}, candidateGroups={}",
                     task.getId(), flowTask.getTitle(), flowTask.getAssignee(), flowTask.getCandidateUsers(), flowTask.getCandidateGroups());
             // 事务提交后异步推送站内信/企微卡片等（按模型通知配置），不阻塞审批主链路
@@ -311,6 +339,7 @@ public class FlowTaskEventListener implements FlowableEventListener {
                 msg.setVariables(readTaskVariables(task));
                 fillTenantId(msg, completedBusiness);
                 publishEvent(msg, flowTask.getProcessDefKey());
+                recordAssignee(completedBusiness, task, flowTask);
             }
             
         } catch (Exception e) {
@@ -675,7 +704,7 @@ public class FlowTaskEventListener implements FlowableEventListener {
         if (task.getDueDate() != null) {
             flowTask.setDueDate(LocalDateTime.ofInstant(
                     task.getDueDate().toInstant(),
-                    java.time.ZoneId.systemDefault()));
+                    resolveTimeoutZone()));
         }
         
         flowTask.setPriority(task.getPriority());
@@ -708,6 +737,79 @@ public class FlowTaskEventListener implements FlowableEventListener {
         }
         
         return flowTask;
+    }
+
+    /** 将 Flowable 候选身份同步到规范化关系表，逗号字段继续保留兼容读取。 */
+    private void syncCandidateRelations(FlowTask flowTask) {
+        if (flowTaskCandidateMapper == null || flowTask == null
+                || flowTask.getTenantId() == null || flowTask.getTaskId() == null) {
+            return;
+        }
+        syncCandidateValues(flowTask, flowTask.getCandidateUsers(), FlowTaskCandidate.TYPE_USER);
+        syncCandidateValues(flowTask, flowTask.getCandidateGroups(), FlowTaskCandidate.TYPE_GROUP);
+    }
+
+    private void syncCandidateValues(FlowTask flowTask, String values, String candidateType) {
+        if (values == null || values.isBlank()) {
+            return;
+        }
+        for (String raw : values.split("[,;，；、]")) {
+            String value = raw == null ? null : raw.trim();
+            if (value == null || value.isEmpty()) {
+                continue;
+            }
+            FlowTaskCandidate candidate = new FlowTaskCandidate();
+            candidate.setTenantId(flowTask.getTenantId());
+            candidate.setTaskId(flowTask.getTaskId());
+            candidate.setProcessInstanceId(flowTask.getProcessInstanceId());
+            candidate.setCandidateType(candidateType);
+            candidate.setCandidateValue(value);
+            candidate.setSource(FlowTaskCandidate.SOURCE_FLOWABLE);
+            candidate.setStatus(FlowTaskCandidateStatus.ACTIVE.getCode());
+            candidate.setCreateTime(flowTask.getCreateTime());
+            candidate.setUpdateTime(LocalDateTime.now());
+            try {
+                flowTaskCandidateMapper.insertIgnore(candidate);
+            } catch (Exception e) {
+                log.warn("同步流程任务候选关系失败，不阻断任务创建：taskId={}, type={}",
+                        flowTask.getTaskId(), candidateType, e);
+            }
+        }
+    }
+
+    private ZoneId resolveTimeoutZone() {
+        try {
+            return ZoneId.of(timeoutTimeZone);
+        } catch (Exception e) {
+            log.warn("流程超时配置时区非法，回退 Asia/Shanghai: {}", timeoutTimeZone);
+            return ZoneId.of("Asia/Shanghai");
+        }
+    }
+
+    /** 将节点超时配置落到 Flowable 原生 dueDate，供扫描器按索引筛选。 */
+    private void applyConfiguredDueDate(TaskEntity task) {
+        if (flowNodeConfigService == null || task.getProcessDefinitionId() == null
+                || task.getTaskDefinitionKey() == null) {
+            return;
+        }
+        try {
+            String processDefinitionKey = task.getProcessDefinitionId().split(":")[0];
+            FlowNodeConfig config = flowNodeConfigService.getByModelAndNode(
+                    processDefinitionKey, task.getTaskDefinitionKey());
+            if (config == null) {
+                return;
+            }
+            Long timeoutMillis = flowNodeConfigService.getTimeoutMillis(config.getId());
+            if (timeoutMillis == null || timeoutMillis <= 0) {
+                return;
+            }
+            Date createTime = task.getCreateTime() == null ? new Date() : task.getCreateTime();
+            Date dueDate = new Date(createTime.getTime() + timeoutMillis);
+            task.setDueDate(dueDate);
+            taskService.setDueDate(task.getId(), dueDate);
+        } catch (Exception e) {
+            log.warn("写入任务截止时间失败，保留超时扫描兜底: taskId={}", task.getId(), e);
+        }
     }
 
     private void updateFormInstanceStatus(String processInstanceId, String status, Long tenantId) {
@@ -863,6 +965,16 @@ public class FlowTaskEventListener implements FlowableEventListener {
         if (message != null && business != null && business.getTenantId() != null) {
             message.setTenantId(String.valueOf(business.getTenantId()));
         }
+    }
+
+    private void recordAssignee(FlowBusiness business, TaskEntity task, FlowTask flowTask) {
+        if (flowRecordParticipantService == null || business == null) {
+            return;
+        }
+        String userId = task != null && task.getAssignee() != null && !task.getAssignee().isBlank()
+                ? task.getAssignee()
+                : (flowTask == null ? null : flowTask.getAssignee());
+        flowRecordParticipantService.record(business, userId, FlowRecordParticipant.ASSIGNEE);
     }
 
     /**

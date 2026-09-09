@@ -4,17 +4,22 @@ import com.mdframe.forge.starter.auth.config.CaptchaProperties;
 import com.mdframe.forge.starter.auth.domain.CaptchaResult;
 import com.mdframe.forge.starter.auth.domain.EmailCaptchaResult;
 import com.mdframe.forge.starter.auth.domain.SmsCaptchaResult;
+import com.mdframe.forge.starter.auth.domain.SliderCaptchaResult;
 import com.mdframe.forge.starter.auth.email.EmailCaptchaSender;
 import com.mdframe.forge.starter.auth.sms.SmsCaptchaSender;
 import com.mdframe.forge.starter.cache.service.ICacheService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.Duration;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -165,6 +170,95 @@ class CaptchaServiceImplTest {
     }
 
     @Test
+    void shouldBindSignedSliderChallengeToRequest() {
+        ICacheService cacheService = mock(ICacheService.class);
+        CaptchaServiceImpl captchaService = service(cacheService, false, "test", Optional.empty());
+        MockHttpServletRequest request = request("10.0.0.1", "forge-test", null);
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
+        try {
+            SliderCaptchaResult result = captchaService.generateSliderCaptcha(DURATION);
+            ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
+            verify(cacheService).set(eq("captcha:slider:" + result.getCodeKey()), payloadCaptor.capture(), eq(DURATION));
+            String payload = String.valueOf(payloadCaptor.getValue());
+            when(cacheService.get("captcha:slider:" + result.getCodeKey())).thenReturn(payload);
+
+            assertThat(captchaService.validateSliderCaptcha(result.getCodeKey(), extractExpectedX(payload))).isTrue();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void shouldRejectSliderChallengeFromDifferentRequestBinding() {
+        ICacheService cacheService = mock(ICacheService.class);
+        CaptchaServiceImpl captchaService = service(cacheService, false, "test", Optional.empty());
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(
+                request("10.0.0.1", "forge-test", null)));
+
+        try {
+            SliderCaptchaResult result = captchaService.generateSliderCaptcha(DURATION);
+            ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
+            verify(cacheService).set(eq("captcha:slider:" + result.getCodeKey()), payloadCaptor.capture(), eq(DURATION));
+            when(cacheService.get("captcha:slider:" + result.getCodeKey()))
+                    .thenReturn(String.valueOf(payloadCaptor.getValue()));
+
+            RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(
+                    request("10.0.0.2", "forge-test", null)));
+            assertThat(captchaService.validateSliderCaptcha(result.getCodeKey(), extractExpectedX(payloadCaptor.getValue().toString())))
+                    .isFalse();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void shouldRejectTamperedSliderChallengeSignature() {
+        ICacheService cacheService = mock(ICacheService.class);
+        CaptchaServiceImpl captchaService = service(cacheService, false, "test", Optional.empty());
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(
+                request("10.0.0.1", "forge-test", null)));
+
+        try {
+            SliderCaptchaResult result = captchaService.generateSliderCaptcha(DURATION);
+            ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
+            verify(cacheService).set(eq("captcha:slider:" + result.getCodeKey()), payloadCaptor.capture(), eq(DURATION));
+            String[] parts = payloadCaptor.getValue().toString().split("\\.", -1);
+            parts[4] = "tampered";
+            when(cacheService.get("captcha:slider:" + result.getCodeKey()))
+                    .thenReturn(String.join(".", parts));
+
+            assertThat(captchaService.validateSliderCaptcha(result.getCodeKey(), Integer.parseInt(parts[1]))).isFalse();
+        } finally {
+            RequestContextHolder.resetRequestAttributes();
+        }
+    }
+
+    @Test
+    void shouldRequireExplicitSecretOutsideDevelopmentProfiles() {
+        ICacheService cacheService = mock(ICacheService.class);
+        CaptchaServiceImpl captchaService = service(cacheService, false, "prod", Optional.empty());
+
+        assertThatThrownBy(() -> captchaService.generateSliderCaptcha(DURATION))
+                .isInstanceOf(RuntimeException.class)
+                .hasRootCauseMessage("CAPTCHA_CHALLENGE_SECRET_REQUIRED");
+    }
+
+    @Test
+    void shouldRejectShortExplicitChallengeSecret() {
+        ICacheService cacheService = mock(ICacheService.class);
+        CaptchaProperties properties = new CaptchaProperties();
+        properties.setChallengeSecret("too-short");
+        MockEnvironment environment = new MockEnvironment().withProperty("spring.profiles.active", "dev");
+        CaptchaServiceImpl captchaService = new CaptchaServiceImpl(cacheService, properties, environment,
+                Optional.empty(), Optional.empty());
+
+        assertThatThrownBy(() -> captchaService.generateSliderCaptcha(DURATION))
+                .isInstanceOf(RuntimeException.class)
+                .hasRootCauseMessage("CAPTCHA_CHALLENGE_SECRET_TOO_SHORT");
+    }
+
+    @Test
     void shouldFailClosedWhenEmailSenderIsUnavailable() {
         ICacheService cacheService = mock(ICacheService.class);
 
@@ -212,5 +306,19 @@ class CaptchaServiceImplTest {
             environment.setActiveProfiles(profile);
         }
         return new CaptchaServiceImpl(cacheService, properties, environment, sender, emailSender);
+    }
+
+    private MockHttpServletRequest request(String remoteAddress, String userAgent, String sessionId) {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRemoteAddr(remoteAddress);
+        request.addHeader("User-Agent", userAgent);
+        if (sessionId != null) {
+            request.setRequestedSessionId(sessionId);
+        }
+        return request;
+    }
+
+    private int extractExpectedX(String payload) {
+        return Integer.parseInt(payload.split("\\.", -1)[1]);
     }
 }

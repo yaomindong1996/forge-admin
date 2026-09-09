@@ -93,6 +93,7 @@
         <include refid="Base_Columns"/>
         FROM sys_flow_business
         <where>
+            tenant_id = #{tenantId}
             <if test="processDefKey != null and processDefKey != ''">
                 AND process_def_key = #{processDefKey}
             </if>
@@ -129,6 +130,16 @@
             </if>
             <if test="endTime != null">
                 AND create_time &lt;= #{endTime}
+            </if>
+            <if test="overdue == true">
+                AND EXISTS (
+                    SELECT 1 FROM sys_flow_task overdue_task
+                    WHERE overdue_task.process_instance_id = sys_flow_business.process_instance_id
+                      AND overdue_task.tenant_id = #{tenantId}
+                      AND overdue_task.due_date IS NOT NULL
+                      AND overdue_task.due_date &lt;= NOW()
+                      AND overdue_task.status IN (0, 1)
+                )
             </if>
         </where>
     </sql>
@@ -227,9 +238,31 @@
                    WHEN business.end_time IS NOT NULL AND business.end_time &gt;= #{startOfDay} THEN 1
                    ELSE 0
                END), 0) AS todayCompleted,
-               0 AS timeoutTasks
+               (
+                   SELECT COUNT(1)
+                   FROM sys_flow_task overdue_task
+                   WHERE overdue_task.tenant_id = #{tenantId}
+                     AND overdue_task.due_date IS NOT NULL
+                     AND overdue_task.due_date &lt;= NOW()
+                     AND overdue_task.status IN (0, 1)
+                     AND (overdue_task.del_flag = 0 OR overdue_task.del_flag IS NULL)
+               ) AS timeoutTasks
         FROM sys_flow_business business
         WHERE business.tenant_id = #{tenantId}
+    </select>
+
+    <select id="selectProcessInstanceStats" resultType="java.util.LinkedHashMap">
+        SELECT
+            COALESCE(SUM(CASE WHEN status IN ('running', 'active') THEN 1 ELSE 0 END), 0)
+                AS runningCount,
+            COALESCE(SUM(CASE WHEN end_time IS NOT NULL THEN 1 ELSE 0 END), 0)
+                AS completedCount,
+            COALESCE(AVG(CASE WHEN end_time IS NOT NULL AND duration IS NOT NULL
+                              THEN duration END), 0)
+                AS avgDuration
+        FROM sys_flow_business
+        WHERE tenant_id = #{tenantId}
+          AND process_def_key = #{processDefinitionKey}
     </select>
 
     <update id="updateStatusByProcessInstanceId">

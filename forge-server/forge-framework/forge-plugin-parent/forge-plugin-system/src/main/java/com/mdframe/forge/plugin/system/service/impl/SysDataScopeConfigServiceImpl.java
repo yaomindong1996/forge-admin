@@ -1,17 +1,21 @@
 package com.mdframe.forge.plugin.system.service.impl;
 
-import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.mdframe.forge.plugin.system.dto.DataScopeConfigStatusDTO;
 import com.mdframe.forge.plugin.system.service.ISysDataScopeConfigService;
 import com.mdframe.forge.starter.core.domain.PageQuery;
+import com.mdframe.forge.starter.core.enums.EnableStatus;
+import com.mdframe.forge.starter.core.exception.BusinessException;
+import com.mdframe.forge.starter.core.session.SessionHelper;
 import com.mdframe.forge.starter.datascope.mapper.SysDataScopeConfigMapper;
 import com.mdframe.forge.starter.datascope.service.IDataScopeService;
 import com.mdframe.forge.starter.datascope.entity.SysDataScopeConfig;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Arrays;
 import java.util.List;
@@ -21,6 +25,7 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SysDataScopeConfigServiceImpl implements ISysDataScopeConfigService {
 
     private final SysDataScopeConfigMapper dataScopeConfigMapper;
@@ -28,14 +33,12 @@ public class SysDataScopeConfigServiceImpl implements ISysDataScopeConfigService
 
     @Override
     public Page<SysDataScopeConfig> selectConfigPage(PageQuery pageQuery, SysDataScopeConfig query) {
-        LambdaQueryWrapper<SysDataScopeConfig> wrapper = buildQueryWrapper(query);
-        return dataScopeConfigMapper.selectPage(pageQuery.toPage(), wrapper);
+        return dataScopeConfigMapper.selectConfigPage(pageQuery.toPage(), query);
     }
 
     @Override
     public List<SysDataScopeConfig> selectConfigList(SysDataScopeConfig query) {
-        LambdaQueryWrapper<SysDataScopeConfig> wrapper = buildQueryWrapper(query);
-        return dataScopeConfigMapper.selectList(wrapper);
+        return dataScopeConfigMapper.selectConfigList(query);
     }
 
     @Override
@@ -46,10 +49,12 @@ public class SysDataScopeConfigServiceImpl implements ISysDataScopeConfigService
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean insertConfig(SysDataScopeConfig config) {
+        config.setId(null);
+        config.setEnabled(EnableStatus.ENABLED.getCode());
         int result = dataScopeConfigMapper.insert(config);
         if (result > 0) {
             // 刷新数据权限配置缓存
-            dataScopeService.refreshDataScopeCache();
+            refreshAfterCommit();
         }
         return result > 0;
     }
@@ -57,10 +62,14 @@ public class SysDataScopeConfigServiceImpl implements ISysDataScopeConfigService
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateConfig(SysDataScopeConfig config) {
+        if (config.getId() == null) {
+            throw new BusinessException("规则 ID 不能为空");
+        }
+        config.setEnabled(null);
         int result = dataScopeConfigMapper.updateById(config);
         if (result > 0) {
             // 刷新数据权限配置缓存
-            dataScopeService.refreshDataScopeCache();
+            refreshAfterCommit();
         }
         return result > 0;
     }
@@ -71,7 +80,7 @@ public class SysDataScopeConfigServiceImpl implements ISysDataScopeConfigService
         int result = dataScopeConfigMapper.deleteById(id);
         if (result > 0) {
             // 刷新数据权限配置缓存
-            dataScopeService.refreshDataScopeCache();
+            refreshAfterCommit();
         }
         return result > 0;
     }
@@ -82,35 +91,55 @@ public class SysDataScopeConfigServiceImpl implements ISysDataScopeConfigService
         int result = dataScopeConfigMapper.deleteBatchIds(Arrays.asList(ids));
         if (result > 0) {
             // 刷新数据权限配置缓存
-            dataScopeService.refreshDataScopeCache();
+            refreshAfterCommit();
         }
         return result > 0;
     }
 
-    /**
-     * 构建查询条件
-     */
-    private LambdaQueryWrapper<SysDataScopeConfig> buildQueryWrapper(SysDataScopeConfig query) {
-        LambdaQueryWrapper<SysDataScopeConfig> wrapper = new LambdaQueryWrapper<>();
-        
-        if (query != null) {
-            // 资源编码
-            wrapper.eq(StringUtils.isNotBlank(query.getResourceCode()), 
-                SysDataScopeConfig::getResourceCode, query.getResourceCode());
-            // 资源名称
-            wrapper.like(StringUtils.isNotBlank(query.getResourceName()), 
-                SysDataScopeConfig::getResourceName, query.getResourceName());
-            // Mapper方法
-            wrapper.like(StringUtils.isNotBlank(query.getMapperMethod()), 
-                SysDataScopeConfig::getMapperMethod, query.getMapperMethod());
-            // 是否启用
-            wrapper.eq(query.getEnabled() != null, 
-                SysDataScopeConfig::getEnabled, query.getEnabled());
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateConfigStatus(DataScopeConfigStatusDTO dto) {
+        EnableStatus target = requireStatus(dto.getEnabled());
+        EnableStatus expected = requireStatus(dto.getExpectedEnabled());
+        if (dto.getId() == null || target == expected) {
+            throw new BusinessException("请选择有效的规则状态变更");
         }
-        
-        // 按创建时间倒序
-        wrapper.orderByDesc(SysDataScopeConfig::getCreateTime);
-        
-        return wrapper;
+        int changed = dataScopeConfigMapper.updateConfigStatus(dto.getId(), target.getCode(),
+                expected.getCode(), SessionHelper.getUserId());
+        if (changed == 0) {
+            throw new BusinessException("规则已被修改或删除，请刷新列表后重试");
+        }
+        refreshAfterCommit();
+    }
+
+    private EnableStatus requireStatus(Integer value) {
+        for (EnableStatus status : EnableStatus.values()) {
+            if (status.matches(value)) {
+                return status;
+            }
+        }
+        throw new BusinessException("不支持的规则状态");
+    }
+
+    private void refreshAfterCommit() {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            refreshCommittedConfig();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                refreshCommittedConfig();
+            }
+        });
+    }
+
+    private void refreshCommittedConfig() {
+        try {
+            dataScopeService.refreshDataScopeCache();
+        } catch (Exception exception) {
+            log.error("配置已保存，但数据权限刷新失败", exception);
+            throw new BusinessException("配置已保存，但数据权限刷新失败，请点击「刷新数据权限」重试", exception);
+        }
     }
 }

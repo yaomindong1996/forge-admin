@@ -177,6 +177,16 @@
           AND (id = #{orgId} OR FIND_IN_SET(#{orgId}, ancestors) > 0)
     </select>
 
+    <select id="selectOrgAndChildrenIdsByTenant" resultType="java.lang.Long">
+        SELECT id
+        FROM sys_org
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = 0
+          AND org_status = 1
+          AND (id = #{orgId} OR FIND_IN_SET(#{orgId}, ancestors) > 0)
+        ORDER BY sort ASC, id ASC
+    </select>
+
     <select id="countChildOrgs" resultType="java.lang.Long">
         SELECT COUNT(1)
         FROM sys_org
@@ -200,6 +210,24 @@
           <foreach collection="orgIds" item="orgId" open="(" separator="," close=")">
               #{orgId}
           </foreach>
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <select id="selectFlowOrgById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM sys_org
+        WHERE id = #{orgId}
+          AND tenant_id = #{tenantId}
+          AND org_status = 1
+          AND del_flag = 0
+    </select>
+
+    <select id="selectFlowOrgList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM sys_org
+        WHERE tenant_id = #{tenantId}
+          AND org_status = 1
+          AND del_flag = 0
         ORDER BY sort ASC, id ASC
     </select>
 

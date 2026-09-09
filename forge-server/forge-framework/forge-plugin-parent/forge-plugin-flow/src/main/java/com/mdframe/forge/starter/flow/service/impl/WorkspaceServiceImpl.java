@@ -31,7 +31,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         Long tenantId = SessionHelper.getTenantId();
         summary.setDoneWeekCount(defaultZero(flowTaskMapper.countWorkspaceDoneSince(userId, startOfWeek(), tenantId)));
         summary.setStartedRunningCount(defaultZero(flowTaskMapper.countWorkspaceStartedRunning(userId, tenantId)));
-        summary.setCcUnreadCount(defaultZero(flowCcMapper.countWorkspaceUnread(userId)));
+        summary.setCcUnreadCount(defaultZero(flowCcMapper.countWorkspaceUnread(userId, tenantId)));
         return summary;
     }
 

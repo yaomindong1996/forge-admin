@@ -32,20 +32,36 @@ public class DynamicDataScopeService {
     private static final String DS_TENANT_ID = "__dsTenantId";
     private static final String DS_ORG_IDS = "__dsOrgIds";
     private static final String DS_REGION_CODE = "__dsRegionCode";
+    private static final String DS_RELATED_IDS = "__dsRelatedIds";
 
     private final IDataScopeService dataScopeService;
     private final DynamicCrudRepository repository;
     private final ObjectMapper objectMapper;
     private final LowcodePolicyService policyService;
+    private final FlowRelatedRecordQuery relatedRecordQuery;
 
     public DynamicCrudRepository.SqlCondition buildCondition(AiCrudConfig config, String tableName, String tableAlias) {
-        return buildCondition(config, tableName, tableAlias, null);
+        return buildCondition(config, tableName, tableAlias, null, true);
     }
 
     public DynamicCrudRepository.SqlCondition buildCondition(AiCrudConfig config,
                                                              String tableName,
                                                              String tableAlias,
                                                              DataScopeContext explicitContext) {
+        return buildCondition(config, tableName, tableAlias, explicitContext, true);
+    }
+
+    public DynamicCrudRepository.SqlCondition buildWriteCondition(AiCrudConfig config,
+                                                                  String tableName,
+                                                                  String tableAlias) {
+        return buildCondition(config, tableName, tableAlias, null, false);
+    }
+
+    public DynamicCrudRepository.SqlCondition buildCondition(AiCrudConfig config,
+                                                             String tableName,
+                                                             String tableAlias,
+                                                             DataScopeContext explicitContext,
+                                                             boolean includeRelatedRecords) {
         LowcodeModelSchema modelSchema = readModelSchema(config);
         if (modelSchema == null) {
             logSkip(config, tableName, "非低代码配置或缺少模型协议");
@@ -82,8 +98,163 @@ public class DynamicDataScopeService {
             case REGION -> buildRegionCondition(tableName, tableAlias, policies, context);
             default -> null;
         };
+        if (includeRelatedRecords && scopeType != DataScopeType.TENANT_ALL) {
+            condition = appendRelatedRecords(config, tableName, tableAlias, policies, context, condition);
+        }
         logApplied(config, tableName, tableAlias, scopeType, policies, context, condition);
         return condition;
+    }
+
+    public void enrichRows(AiCrudConfig config, List<Map<String, Object>> rows) {
+        if (rows == null || rows.isEmpty() || relatedRecordQuery == null) {
+            return;
+        }
+        LowcodeModelSchema modelSchema = readModelSchema(config);
+        if (modelSchema == null) {
+            return;
+        }
+        LowcodePolicySchema policies = policyService.normalizeModelSchema(modelSchema);
+        if (!policyService.isFollowSystem(policies) || !policyService.isFlowRelatedVisible(policies)) {
+            return;
+        }
+        String objectCode = config == null ? null : StringUtils.trimToNull(config.getObjectCode());
+        if (objectCode == null) {
+            return;
+        }
+        DataScopeContext context;
+        try {
+            context = resolveContext(config);
+        } catch (Exception ignored) {
+            return;
+        }
+        DataScopeType scopeType = DataScopeType.getByRoleDataScope(
+                context.getMinDataScope(),
+                context.getCustomOrgIds() != null && !context.getCustomOrgIds().isEmpty());
+        List<String> businessIds = rows.stream()
+                .map(row -> row == null ? null : row.get("id"))
+                .filter(java.util.Objects::nonNull)
+                .map(String::valueOf)
+                .distinct()
+                .toList();
+        if (businessIds.isEmpty()) {
+            return;
+        }
+        Map<String, List<String>> relations = relatedRecordQuery.listRelationTypes(
+                context.getTenantId(), context.getUserId(), objectCode, businessIds);
+        String userField = StringUtils.defaultIfBlank(policies.getUserField(), "createBy");
+        for (Map<String, Object> row : rows) {
+            if (row == null || row.get("id") == null) {
+                continue;
+            }
+            String businessId = String.valueOf(row.get("id"));
+            List<String> types = relations.getOrDefault(businessId, List.of());
+            Object owner = firstPresent(row, userField, policies.getUserColumn());
+            boolean own = owner != null && String.valueOf(context.getUserId()).equals(String.valueOf(owner));
+            boolean inBaseScope = matchesBaseScope(scopeType, policies, context, row, own);
+            row.put("_flowRelations", types);
+            row.put("_dataScopeAccess", inBaseScope ? "OWN" : "RELATED");
+        }
+    }
+
+    private boolean matchesBaseScope(DataScopeType scopeType,
+                                     LowcodePolicySchema policies,
+                                     DataScopeContext context,
+                                     Map<String, Object> row,
+                                     boolean own) {
+        if (scopeType == null || scopeType == DataScopeType.ALL || scopeType == DataScopeType.TENANT_ALL) {
+            return true;
+        }
+        if (scopeType == DataScopeType.SELF) {
+            return own;
+        }
+        if (scopeType == DataScopeType.ORG || scopeType == DataScopeType.ORG_AND_CHILD || scopeType == DataScopeType.CUSTOM) {
+            Object orgValue = firstPresent(row, policies.getOrgField(), policies.getOrgColumn());
+            if (orgValue == null) {
+                return own;
+            }
+            Long orgId = parseLong(orgValue);
+            if (orgId == null) {
+                return own;
+            }
+            if (scopeType == DataScopeType.CUSTOM) {
+                return context.getCustomOrgIds() != null && context.getCustomOrgIds().contains(orgId);
+            }
+            if (context.getOrgIds() != null && context.getOrgIds().contains(orgId)) {
+                return true;
+            }
+            if (scopeType == DataScopeType.ORG_AND_CHILD) {
+                Set<Long> childIds = dataScopeService.getOrgAndChildIds(context.getOrgIds());
+                return childIds != null && childIds.contains(orgId);
+            }
+            return false;
+        }
+        return own;
+    }
+
+    private Object firstPresent(Map<String, Object> row, String field, String column) {
+        if (row == null) {
+            return null;
+        }
+        if (StringUtils.isNotBlank(field) && row.get(field) != null) {
+            return row.get(field);
+        }
+        if (StringUtils.isNotBlank(column) && row.get(column) != null) {
+            return row.get(column);
+        }
+        return null;
+    }
+
+    private Long parseLong(Object value) {
+        try {
+            return Long.valueOf(String.valueOf(value));
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private DynamicCrudRepository.SqlCondition appendRelatedRecords(AiCrudConfig config,
+                                                                    String tableName,
+                                                                    String tableAlias,
+                                                                    LowcodePolicySchema policies,
+                                                                    DataScopeContext context,
+                                                                    DynamicCrudRepository.SqlCondition base) {
+        if (relatedRecordQuery == null || !policyService.isFlowRelatedVisible(policies) || context.getUserId() == null) {
+            return base;
+        }
+        String objectCode = config == null ? null : StringUtils.trimToNull(config.getObjectCode());
+        if (objectCode == null) {
+            return base;
+        }
+        List<String> relatedIds;
+        try {
+            relatedIds = relatedRecordQuery.listBusinessIds(context.getTenantId(), context.getUserId(), objectCode);
+        } catch (Exception e) {
+            log.warn("[DynamicDataScope] 读取流程经手索引失败 configKey={}, objectCode={}",
+                    config.getConfigKey(), objectCode, e);
+            return base;
+        }
+        if (relatedIds == null || relatedIds.isEmpty()) {
+            return base;
+        }
+        String pkColumn = StringUtils.defaultIfBlank(policies.getPrimaryKeyField(), "id");
+        if ("id".equals(pkColumn) || "id".equalsIgnoreCase(pkColumn)) {
+            pkColumn = "id";
+        }
+        try {
+            repository.validateIdentifier(pkColumn);
+        } catch (Exception e) {
+            return base;
+        }
+        Map<String, Object> params = new LinkedHashMap<>();
+        if (base != null && base.params() != null) {
+            params.putAll(base.params());
+        }
+        params.put(DS_RELATED_IDS, relatedIds);
+        String relatedSql = qualify(tableAlias, pkColumn) + " IN (:" + DS_RELATED_IDS + ")";
+        if (base == null || StringUtils.isBlank(base.sql()) || "1 = 0".equals(base.sql())) {
+            return new DynamicCrudRepository.SqlCondition(relatedSql, params);
+        }
+        return new DynamicCrudRepository.SqlCondition("(" + base.sql() + " OR " + relatedSql + ")", params);
     }
 
     private DynamicCrudRepository.SqlCondition buildSelfCondition(String tableName,

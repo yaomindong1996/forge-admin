@@ -2,6 +2,12 @@ package com.mdframe.forge.starter.flow.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.mdframe.forge.starter.flow.entity.FlowBusiness;
+import com.mdframe.forge.starter.flow.vo.FlowMonitorProcessInstanceDetailVO;
+import com.mdframe.forge.starter.flow.vo.FlowMonitorProcessInstancePageVO;
+import com.mdframe.forge.starter.flow.vo.FlowMonitorStatisticsVO;
+import com.mdframe.forge.starter.flow.vo.FlowMonitorTaskPageVO;
+import com.mdframe.forge.starter.flow.vo.FlowMonitorTaskTrendVO;
+import com.mdframe.forge.starter.flow.vo.FlowProcessDistributionVO;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -159,22 +165,25 @@ public interface FlowMonitorService {
 
     FlowBusiness getBusinessByProcessInstanceId(String processInstanceId);
 
-    Map<String, Object> getAdminStatistics();
+    FlowMonitorStatisticsVO getAdminStatistics();
 
-    Map<String, Object> getAdminProcessInstances(int pageNum,
-                                                 int pageSize,
-                                                 String processName,
-                                                 String initiator,
-                                                 String status,
-                                                 String modelKey,
-                                                 LocalDateTime startTime,
-                                                 LocalDateTime endTime);
+    FlowMonitorProcessInstancePageVO getAdminProcessInstances(int pageNum,
+                                                              int pageSize,
+                                                              String processName,
+                                                              String initiator,
+                                                              String status,
+                                                              String modelKey,
+                                                              LocalDateTime startTime,
+                                                              LocalDateTime endTime,
+                                                              Boolean overdue);
 
-    Map<String, Object> getAdminProcessInstanceDetail(String processInstanceId);
+    FlowMonitorProcessInstanceDetailVO getAdminProcessInstanceDetail(String processInstanceId);
 
-    Map<String, Object> getTaskTrend();
+    FlowMonitorTaskPageVO getAdminProcessInstanceTasks(String processInstanceId, int pageNum, int pageSize);
 
-    List<Map<String, Object>> getProcessDistribution();
+    FlowMonitorTaskTrendVO getTaskTrend();
+
+    List<FlowProcessDistributionVO> getProcessDistribution();
 
     void assertCurrentTenantProcessInstance(String processInstanceId);
 

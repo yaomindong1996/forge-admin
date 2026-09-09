@@ -31,6 +31,14 @@ public interface FlowCcService extends IService<FlowCc> {
                 String sendUserId, String sendUserName);
 
     /**
+     * 人工发送抄送。与流程回调发送分开，必须校验当前会话身份和流程参与关系。
+     */
+    void sendCcByCurrentUser(String processInstanceId, String processDefKey, String taskId,
+                             String title, String content, String businessKey,
+                             List<String> ccUserIds, List<String> ccUserNames,
+                             String sendUserId, String sendUserName);
+
+    /**
      * 我的抄送（抄送给我的）
      *
      * @param page   分页参数
@@ -38,7 +46,7 @@ public interface FlowCcService extends IService<FlowCc> {
      * @param isRead 是否已读（可选）
      * @return 抄送列表
      */
-    IPage<FlowCc> myCc(Page<FlowCc> page, String userId, Integer isRead);
+    IPage<FlowCc> myCc(Page<FlowCc> page, String userId, Integer isRead, String title);
 
     /**
      * 我发送的抄送
@@ -47,7 +55,7 @@ public interface FlowCcService extends IService<FlowCc> {
      * @param userId 用户ID
      * @return 抄送列表
      */
-    IPage<FlowCc> sentCc(Page<FlowCc> page, String userId);
+    IPage<FlowCc> sentCc(Page<FlowCc> page, String userId, String title);
 
     /**
      * 标记已读
@@ -56,12 +64,20 @@ public interface FlowCcService extends IService<FlowCc> {
      */
     void markRead(String id);
 
+    FlowCc getVisibleById(String id, String userId);
+
     /**
      * 批量标记已读
      *
      * @param ids 抄送ID列表
      */
     void batchMarkRead(List<String> ids);
+
+    /** 将当前接收人的全部有效未读抄送标记为已读。 */
+    int markAllRead();
+
+    /** 发送人撤回一条仍有效的临时抄送关系。 */
+    void revoke(String id, String reason);
 
     /**
      * 获取未读数量

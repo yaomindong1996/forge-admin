@@ -70,6 +70,17 @@
             </template>
             新增模型
           </n-button>
+          <n-button
+            v-if="dataSource.length"
+            :type="sortMode ? 'primary' : 'default'"
+            :loading="sortSaving"
+            @click="sortMode ? saveModelOrder() : (sortMode = true)"
+          >
+            {{ sortMode ? '保存排序' : '调整排序' }}
+          </n-button>
+          <n-button v-if="sortMode" quaternary :disabled="sortSaving" @click="cancelModelOrder">
+            取消
+          </n-button>
         </div>
       </div>
     </div>
@@ -83,6 +94,11 @@
               v-for="item in dataSource"
               :key="item.id"
               class="model-card"
+              :class="{ 'model-card-sortable': sortMode }"
+              :draggable="sortMode"
+              @dragstart="handleDragStart(item)"
+              @dragover.prevent
+              @drop="handleDrop(item)"
             >
               <div class="card-header">
                 <div class="card-title-block">
@@ -93,6 +109,9 @@
                     <div class="card-title-main">
                       <div class="card-title">
                         {{ item.modelName }}
+                      </div>
+                      <div v-if="sortMode" class="card-sort-hint">
+                        拖动调整顺序
                       </div>
                       <div class="card-key">
                         {{ item.modelKey }}
@@ -146,6 +165,7 @@
                       v-if="item.status === 0"
                       type="button"
                       class="card-action-link"
+                      :disabled="isModelActionLocked(item, 'deploy')"
                       @click.stop="handleDeploy(item)"
                     >
                       发布
@@ -163,6 +183,7 @@
                   <n-dropdown
                     trigger="click"
                     :options="getActionOptions(item)"
+                    :disabled="isModelActionBusy(item)"
                     @select="key => handleActionSelect(key, item)"
                   >
                     <button type="button" class="card-more-action" aria-label="更多操作" @click.stop>
@@ -203,6 +224,7 @@
           :item-count="pagination.itemCount"
           :page-sizes="[12, 24, 48]"
           show-size-picker
+          :disabled="sortMode || sortSaving"
           @update:page="fetchData"
           @update:page-size="handlePageSizeChange"
         />
@@ -319,6 +341,17 @@
           <n-alert v-if="startTestAlert" :type="startTestAlert.type" :show-icon="false" class="start-test-alert">
             {{ startTestAlert.text }}
           </n-alert>
+          <n-alert
+            v-if="startTestPreflightDiagnostics.length"
+            type="warning"
+            :show-icon="true"
+            class="start-test-alert"
+          >
+            <div>启动前审批人预检发现配置问题：</div>
+            <div v-for="diagnostic in startTestPreflightDiagnostics" :key="diagnostic">
+              {{ diagnostic }}
+            </div>
+          </n-alert>
 
           <div v-if="startTestBusinessFormLoading" class="start-test-form-loading">
             <n-spin size="small" />
@@ -351,8 +384,12 @@
               : '当前模型没有可渲染的动态表单，将以空变量发起测试流程'"
           />
           <div v-if="startTestApproverNodes.length" class="start-test-approver-section">
-            <div class="start-test-approver-title">发起人自选审批人</div>
-            <div class="start-test-approver-tip">请为流程设计中标记为“发起人自选”的节点选择审批人。</div>
+            <div class="start-test-approver-title">
+              发起人自选审批人
+            </div>
+            <div class="start-test-approver-tip">
+              请为流程设计中标记为“发起人自选”的节点选择审批人。
+            </div>
             <n-form label-placement="top">
               <n-form-item
                 v-for="node in startTestApproverNodes"
@@ -565,24 +602,55 @@ function isCodeAppBinding(binding) {
   return ['true', '1', 'yes', 'y'].includes(String(value || '').trim().toLowerCase())
 }
 
+const modelActionLocks = ref(new Set())
+
+function modelActionKey(row, action) {
+  return `${String(row?.id || row?.modelKey || '')}:${action}`
+}
+
+function isModelActionLocked(row, action) {
+  return modelActionLocks.value.has(modelActionKey(row, action))
+}
+
+function isModelActionBusy(row) {
+  const modelId = String(row?.id || row?.modelKey || '')
+  return [...modelActionLocks.value].some(key => key.startsWith(`${modelId}:`))
+}
+
+function lockModelAction(row, action) {
+  const key = modelActionKey(row, action)
+  if (modelActionLocks.value.has(key))
+    return null
+  modelActionLocks.value = new Set(modelActionLocks.value).add(key)
+  return key
+}
+
+function unlockModelAction(key) {
+  if (!key)
+    return
+  const next = new Set(modelActionLocks.value)
+  next.delete(key)
+  modelActionLocks.value = next
+}
+
 function getActionOptions(row) {
   const renderIcon = (icon) => {
     return () => h(NIcon, null, { default: () => h(icon) })
   }
   const opts = [
-    { label: '编辑信息', key: 'edit', icon: renderIcon(CreateOutline) },
-    { label: '版本历史', key: 'versionHistory', icon: renderIcon(TimeOutline) },
-    { label: '复制模型', key: 'copy', icon: renderIcon(CopyOutline) },
+    { label: '编辑信息', key: 'edit', icon: renderIcon(CreateOutline), disabled: isModelActionBusy(row) },
+    { label: '版本历史', key: 'versionHistory', icon: renderIcon(TimeOutline), disabled: isModelActionBusy(row) },
+    { label: '复制模型', key: 'copy', icon: renderIcon(CopyOutline), disabled: isModelActionLocked(row, 'copy') },
   ]
   if (row.status === 1) {
-    opts.splice(1, 0, { label: '发起测试', key: 'startTest', icon: renderIcon(PlayCircleOutline) })
-    opts.push({ label: '挂起', key: 'suspend', icon: renderIcon(PauseCircleOutline) })
+    opts.splice(1, 0, { label: '发起测试', key: 'startTest', icon: renderIcon(PlayCircleOutline), disabled: isModelActionBusy(row) })
+    opts.push({ label: '挂起', key: 'suspend', icon: renderIcon(PauseCircleOutline), disabled: isModelActionLocked(row, 'suspend') })
   }
   if (row.status === 2) {
-    opts.push({ label: '激活', key: 'activate', icon: renderIcon(PlayCircleOutline) })
+    opts.push({ label: '激活', key: 'activate', icon: renderIcon(PlayCircleOutline), disabled: isModelActionLocked(row, 'activate') })
   }
   opts.push({ type: 'divider', key: 'd1' })
-  opts.push({ label: '删除', key: 'delete', icon: renderIcon(TrashOutline), props: { style: 'color: #d03050' } })
+  opts.push({ label: '删除', key: 'delete', icon: renderIcon(TrashOutline), disabled: isModelActionLocked(row, 'delete'), props: { style: 'color: #d03050' } })
   return opts
 }
 
@@ -595,6 +663,9 @@ const queryParams = reactive({ modelName: '', category: null, status: null })
 const activeStatsStatus = computed(() => queryParams.status ?? 'all')
 const dataSource = ref([])
 const loading = ref(false)
+const sortMode = ref(false)
+const sortSaving = ref(false)
+const draggingModelId = ref('')
 const pagination = reactive({ page: 1, pageSize: 12, itemCount: 0 })
 const showVersionHistory = ref(false)
 const currentModelId = ref('')
@@ -618,6 +689,7 @@ const startTestBusinessFormLayout = reactive({
 const startTestApproverNodes = ref([])
 const startTestApproverSelections = ref({})
 const startTestApproverLabels = ref({})
+const startTestPreflightDiagnostics = ref([])
 const currentStartModel = ref(null)
 const startTestTitle = computed(() => `发起测试 - ${currentStartModel.value?.modelName || '流程模型'}`)
 const startTestAlert = computed(() => {
@@ -657,6 +729,8 @@ async function fetchCategories() {
 }
 
 async function fetchData() {
+  if (sortMode.value)
+    return
   loading.value = true
   try {
     await Promise.all([
@@ -709,25 +783,86 @@ function toCount(value) {
 }
 
 function handlePageSizeChange(v) {
+  if (sortMode.value)
+    return
   pagination.pageSize = v
   pagination.page = 1
   fetchData()
 }
 
 function handleSearch() {
+  if (sortMode.value)
+    return
   pagination.page = 1
   fetchData()
 }
 
 function handleStatusSelect() {
+  if (sortMode.value)
+    return
   pagination.page = 1
   fetchData()
 }
 
 function handleReset() {
+  if (sortMode.value)
+    return
   Object.assign(queryParams, { modelName: '', category: null, status: null })
   pagination.page = 1
   fetchData()
+}
+
+function handleDragStart(row) {
+  if (!sortMode.value)
+    return
+  draggingModelId.value = String(row?.id || '')
+}
+
+function handleDrop(target) {
+  if (!sortMode.value || !draggingModelId.value || String(target?.id || '') === draggingModelId.value)
+    return
+  const fromIndex = dataSource.value.findIndex(item => String(item.id) === draggingModelId.value)
+  const toIndex = dataSource.value.findIndex(item => String(item.id) === String(target?.id || ''))
+  if (fromIndex < 0 || toIndex < 0)
+    return
+  const next = [...dataSource.value]
+  const [moved] = next.splice(fromIndex, 1)
+  next.splice(toIndex, 0, moved)
+  dataSource.value = next
+  draggingModelId.value = ''
+}
+
+function cancelModelOrder() {
+  sortMode.value = false
+  draggingModelId.value = ''
+  fetchModelPage()
+}
+
+async function saveModelOrder() {
+  if (sortSaving.value || !dataSource.value.length)
+    return
+  sortSaving.value = true
+  try {
+    const baseOrder = (pagination.page - 1) * pagination.pageSize
+    const res = await flowApi.sortModels({
+      items: dataSource.value.map((item, index) => ({
+        modelId: String(item.id),
+        sortOrder: baseOrder + index,
+      })),
+    })
+    if (res.code !== 200)
+      throw new Error(res.message || '排序保存失败')
+    window.$message?.success('模型排序已保存')
+    sortMode.value = false
+    draggingModelId.value = ''
+    await fetchData()
+  }
+  catch (error) {
+    window.$message?.error(error?.message || '排序保存失败，请刷新后重试')
+  }
+  finally {
+    sortSaving.value = false
+  }
 }
 
 function handleFilter(status) {
@@ -929,6 +1064,9 @@ async function handleStartTest(row) {
     window.$message?.warning('请先部署流程模型后再发起测试')
     return
   }
+  const lockKey = lockModelAction(row, 'startTest')
+  if (!lockKey)
+    return
   currentStartModel.value = row
   startTestFormData.value = {}
   startTestFormSchema.value = []
@@ -939,6 +1077,7 @@ async function handleStartTest(row) {
   startTestApproverNodes.value = []
   startTestApproverSelections.value = {}
   startTestApproverLabels.value = {}
+  startTestPreflightDiagnostics.value = []
   showStartTestModal.value = true
   try {
     const res = await flowApi.getModelDetail(row.id)
@@ -956,11 +1095,17 @@ async function handleStartTest(row) {
       startTestApproverNodes.value = Array.isArray(startConfig.data?.initiatorSelectNodes)
         ? startConfig.data.initiatorSelectNodes
         : []
+      startTestPreflightDiagnostics.value = Array.isArray(startConfig.data?.diagnostics)
+        ? startConfig.data.diagnostics
+        : []
     }
   }
   catch (error) {
     console.error('加载流程模型表单失败:', error)
     window.$message?.warning('加载流程模型表单失败，将以空变量发起')
+  }
+  finally {
+    unlockModelAction(lockKey)
   }
 }
 
@@ -1353,74 +1498,127 @@ function handleViewStarted() {
 }
 
 async function handleDeploy(row) {
+  const lockKey = lockModelAction(row, 'deploy')
+  if (!lockKey)
+    return
   window.$dialog?.info({
     title: '确认部署',
     content: `确定要部署「${row.modelName}」吗？部署后流程将可以发起。`,
     positiveText: '确定',
     negativeText: '取消',
     onPositiveClick: async () => {
-      const res = await flowApi.deployModel(row.id)
-      if (res.code === 200) {
-        window.$message?.success('部署成功')
-        fetchData()
+      try {
+        const res = await flowApi.deployModel(row.id)
+        if (res.code === 200) {
+          window.$message?.success('部署成功')
+          await fetchData()
+        }
+        else {
+          window.$message?.error(res.message || '部署失败')
+        }
       }
-      else {
-        window.$message?.error(res.message || '部署失败')
+      catch (error) {
+        window.$message?.error(error?.message || error?.response?.data?.message || '部署失败')
+      }
+      finally {
+        unlockModelAction(lockKey)
       }
     },
+    onNegativeClick: () => unlockModelAction(lockKey),
+    onClose: () => unlockModelAction(lockKey),
   })
 }
 
 async function handleCopy(row) {
+  const lockKey = lockModelAction(row, 'copy')
+  if (!lockKey)
+    return
   window.$dialog?.info({
     title: '复制模型',
     content: `确定要复制「${row.modelName}」吗？`,
     positiveText: '确定',
     negativeText: '取消',
     onPositiveClick: async () => {
-      const res = await flowApi.copyModel(row.id, `${row.modelName} - 副本`)
-      if (res.code === 200) {
-        window.$message?.success('复制成功')
-        fetchData()
+      try {
+        const res = await flowApi.copyModel(row.id, `${row.modelName} - 副本`)
+        if (res.code === 200) {
+          window.$message?.success('复制成功')
+          await fetchData()
+        }
+        else {
+          window.$message?.error(res.message || '复制失败')
+        }
       }
-      else {
-        window.$message?.error(res.message || '复制失败')
+      catch (error) {
+        window.$message?.error(error?.message || error?.response?.data?.message || '复制失败')
+      }
+      finally {
+        unlockModelAction(lockKey)
       }
     },
+    onNegativeClick: () => unlockModelAction(lockKey),
+    onClose: () => unlockModelAction(lockKey),
   })
 }
 
 async function handleSuspend(row) {
+  const lockKey = lockModelAction(row, 'suspend')
+  if (!lockKey)
+    return
   window.$dialog?.warning({
     title: '确认挂起',
     content: `挂起后，「${row.modelName}」相关的进行中流程实例将暂停，确定继续？`,
     positiveText: '确定',
     negativeText: '取消',
     onPositiveClick: async () => {
-      const res = await flowApi.suspendModel(row.id)
-      if (res.code === 200) {
-        window.$message?.success('已挂起')
-        fetchData()
+      try {
+        const res = await flowApi.suspendModel(row.id)
+        if (res.code === 200) {
+          window.$message?.success('已挂起')
+          await fetchData()
+        }
+        else {
+          window.$message?.error(res.message || '挂起失败')
+        }
       }
-      else {
-        window.$message?.error(res.message || '挂起失败')
+      catch (error) {
+        window.$message?.error(error?.message || error?.response?.data?.message || '挂起失败')
+      }
+      finally {
+        unlockModelAction(lockKey)
       }
     },
+    onNegativeClick: () => unlockModelAction(lockKey),
+    onClose: () => unlockModelAction(lockKey),
   })
 }
 
 async function handleActivate(row) {
-  const res = await flowApi.activateModel(row.id)
-  if (res.code === 200) {
-    window.$message?.success('已激活')
-    fetchData()
+  const lockKey = lockModelAction(row, 'activate')
+  if (!lockKey)
+    return
+  try {
+    const res = await flowApi.activateModel(row.id)
+    if (res.code === 200) {
+      window.$message?.success('已激活')
+      await fetchData()
+    }
+    else {
+      window.$message?.error(res.message || '激活失败')
+    }
   }
-  else {
-    window.$message?.error(res.message || '激活失败')
+  catch (error) {
+    window.$message?.error(error?.message || error?.response?.data?.message || '激活失败')
+  }
+  finally {
+    unlockModelAction(lockKey)
   }
 }
 
 async function handleDelete(row) {
+  const lockKey = lockModelAction(row, 'delete')
+  if (!lockKey)
+    return
   window.$dialog?.error({
     title: '确认删除',
     content: `删除「${row.modelName}」前会校验该模型下是否存在流程实例或历史数据；如存在数据，系统会拒绝删除。删除后不可恢复，确定继续？`,
@@ -1440,7 +1638,12 @@ async function handleDelete(row) {
       catch (error) {
         window.$message?.error(error?.message || error?.response?.data?.message || '删除失败')
       }
+      finally {
+        unlockModelAction(lockKey)
+      }
     },
+    onNegativeClick: () => unlockModelAction(lockKey),
+    onClose: () => unlockModelAction(lockKey),
   })
 }
 
@@ -1613,6 +1816,15 @@ onMounted(() => {
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
+.model-card-sortable {
+  cursor: grab;
+  border-style: dashed;
+}
+
+.model-card-sortable:active {
+  cursor: grabbing;
+}
+
 .card-header {
   display: flex;
   align-items: flex-start;
@@ -1708,6 +1920,12 @@ onMounted(() => {
   text-overflow: ellipsis;
   line-height: 20px;
   letter-spacing: 0;
+}
+
+.card-sort-hint {
+  margin-top: 2px;
+  color: #2563eb;
+  font-size: 11px;
 }
 
 .card-key {

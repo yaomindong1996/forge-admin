@@ -24,4 +24,16 @@ public class OutboundProperties {
     private boolean redirectsEnabled = false;
 
     private int maxRedirects = 3;
+
+    /** 每个业务场景允许的最大并发出站请求数。 */
+    private int bulkheadMaxConcurrent = 32;
+
+    private boolean bulkheadEnabled = true;
+
+    /** 连续失败达到阈值后暂时打开熔断。 */
+    private boolean circuitBreakerEnabled = true;
+
+    private int circuitBreakerFailureThreshold = 5;
+
+    private Duration circuitBreakerOpenDuration = Duration.ofSeconds(30);
 }

@@ -79,7 +79,7 @@ export const manualRoutes = [
     name: 'MessageTemplate',
     path: '/message/template',
     component: () => import('@/views/message/template-list.vue'),
-    meta: { title: '消息模板管理' },
+    meta: { title: '消息模板' },
   },
   // 消息管理
   {
@@ -88,12 +88,12 @@ export const manualRoutes = [
     component: () => import('@/views/message/manage.vue'),
     meta: { title: '消息管理' },
   },
-  // 消息业务类型管理
+  // 消息业务配置：登记一类通知点开去哪
   {
     name: 'MessageBizType',
     path: '/message/biz-type',
     component: () => import('@/views/message/biz-type.vue'),
-    meta: { title: '消息业务类型管理' },
+    meta: { title: '业务配置' },
   },
   // 个人中心
   {

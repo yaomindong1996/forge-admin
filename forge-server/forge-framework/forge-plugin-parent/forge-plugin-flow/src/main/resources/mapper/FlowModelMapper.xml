@@ -2,6 +2,15 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mdframe.forge.starter.flow.mapper.FlowModelMapper">
 
+    <select id="selectByIdAndTenant" resultType="com.mdframe.forge.starter.flow.entity.FlowModel">
+        SELECT m.*
+        FROM sys_flow_model m
+        WHERE m.id = #{id}
+          AND m.tenant_id = #{tenantId}
+          AND m.del_flag = 0
+        LIMIT 1
+    </select>
+
     <resultMap id="JobFlowBindingResultMap" type="com.mdframe.forge.starter.job.flow.JobFlowBindingSnapshot">
         <constructor>
             <arg column="model_key" javaType="java.lang.String"/>
@@ -17,7 +26,8 @@
         FROM sys_flow_model m
         LEFT JOIN sys_flow_category c ON c.id = m.category
         <where>
-            m.del_flag = '0'
+            m.del_flag = 0
+            AND m.tenant_id = #{tenantId}
             <if test="modelName != null and modelName != ''">
                 AND (
                     m.model_name LIKE CONCAT('%', #{modelName}, '%')
@@ -43,7 +53,7 @@
                 AND m.create_by = #{createBy}
             </if>
         </where>
-        ORDER BY m.create_time DESC
+        ORDER BY m.sort_order ASC, m.create_time DESC, m.id ASC
     </select>
 
     <!-- 流程模型状态统计（与分页查询保持同一筛选范围，不按状态过滤） -->
@@ -56,7 +66,8 @@
             COALESCE(SUM(CASE WHEN m.status = 3 THEN 1 ELSE 0 END), 0) AS disabled
         FROM sys_flow_model m
         <where>
-            m.del_flag = '0'
+            m.del_flag = 0
+            AND m.tenant_id = #{tenantId}
             <if test="modelName != null and modelName != ''">
                 AND (
                     m.model_name LIKE CONCAT('%', #{modelName}, '%')
@@ -126,6 +137,7 @@
                m.notify_config,
                m.status,
                m.importance_level,
+               m.sort_order,
                m.deploy_time,
                m.last_update_by,
                m.create_by,
@@ -139,8 +151,30 @@
         <if test="category != null and category != ''">
             AND m.category = #{category}
         </if>
-        ORDER BY m.create_time DESC, m.id ASC
+        ORDER BY m.sort_order ASC, m.create_time DESC, m.id ASC
     </select>
+
+    <select id="selectByIdsForUpdate" resultType="com.mdframe.forge.starter.flow.entity.FlowModel">
+        SELECT m.*
+        FROM sys_flow_model m
+        WHERE m.tenant_id = #{tenantId}
+          AND m.del_flag = 0
+          AND m.id IN
+          <foreach collection="ids" item="id" open="(" separator="," close=")">
+              #{id}
+          </foreach>
+        FOR UPDATE
+    </select>
+
+    <update id="updateSortOrder">
+        UPDATE sys_flow_model
+        SET sort_order = #{sortOrder},
+            last_update_by = #{lastUpdateBy},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND tenant_id = #{tenantId}
+          AND del_flag = 0
+    </update>
 
     <select id="selectPublishedJobBinding" resultMap="JobFlowBindingResultMap">
         SELECT m.model_key,

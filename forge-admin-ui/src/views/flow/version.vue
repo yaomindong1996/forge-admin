@@ -21,6 +21,12 @@
           </template>
           版本对比
         </NButton>
+        <NButton size="small" type="warning" secondary :loading="cleanupLoading" @click="showCleanup = true">
+          <template #icon>
+            <i class="i-material-symbols:cleaning-services-outline" />
+          </template>
+          清理历史
+        </NButton>
       </NSpace>
     </div>
 
@@ -179,6 +185,43 @@
       </template>
     </NModal>
 
+    <NModal
+      v-model:show="showCleanup"
+      preset="card"
+      title="清理历史版本"
+      style="width: 480px"
+      :mask-closable="false"
+    >
+      <NAlert type="warning" class="mb-16">
+        仅清理当前租户中超过保留数量的历史版本。已发布、已废弃、当前版本和仍被运行中实例引用的版本会自动跳过。
+      </NAlert>
+      <NForm label-placement="top">
+        <NFormItem label="保留最近版本数">
+          <NInputNumber
+            v-model:value="cleanupForm.retainLatest"
+            :min="1"
+            :max="100"
+            :precision="0"
+            style="width: 100%"
+          />
+        </NFormItem>
+      </NForm>
+      <NAlert v-if="cleanupResult" type="info" class="mt-12">
+        扫描 {{ cleanupResult.scanned || 0 }} 个版本，清理 {{ cleanupResult.deleted || 0 }} 个；
+        跳过保护 {{ cleanupResult.skippedProtected || 0 }} 个、运行中引用 {{ cleanupResult.skippedRunning || 0 }} 个。
+      </NAlert>
+      <template #footer>
+        <NSpace justify="end">
+          <NButton @click="showCleanup = false">
+            取消
+          </NButton>
+          <NButton type="warning" :loading="cleanupLoading" @click="submitCleanup">
+            开始清理
+          </NButton>
+        </NSpace>
+      </template>
+    </NModal>
+
     <VersionCompare
       v-if="showCompare"
       :model-id="modelId"
@@ -220,9 +263,11 @@ const loading = ref(false)
 const detailLoading = ref(false)
 const revertLoading = ref(false)
 const tagLoading = ref(false)
+const cleanupLoading = ref(false)
 const showDetail = ref(false)
 const showRevert = ref(false)
 const showTag = ref(false)
+const showCleanup = ref(false)
 const showCompare = ref(false)
 const versionList = ref([])
 const versionDetail = ref(null)
@@ -239,6 +284,10 @@ const revertForm = reactive({
 const tagForm = reactive({
   versionTag: 'test',
 })
+const cleanupForm = reactive({
+  retainLatest: 10,
+})
+const cleanupResult = ref(null)
 const revertRules = {
   changeDescription: [
     { required: true, message: '请输入变更说明', trigger: 'blur' },
@@ -464,6 +513,26 @@ async function submitTag() {
   }
   finally {
     tagLoading.value = false
+  }
+}
+
+async function submitCleanup() {
+  if (cleanupLoading.value)
+    return
+  cleanupLoading.value = true
+  cleanupResult.value = null
+  try {
+    const res = await versionApi.cleanupVersions(String(props.modelId), cleanupForm.retainLatest)
+    cleanupResult.value = res.data || null
+    window.$message?.success(`历史版本清理完成，已清理 ${cleanupResult.value?.deleted || 0} 个版本`)
+    await loadVersionList()
+    emit('refresh')
+  }
+  catch (error) {
+    console.error('清理历史版本失败', error)
+  }
+  finally {
+    cleanupLoading.value = false
   }
 }
 

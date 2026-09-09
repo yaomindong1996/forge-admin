@@ -1,5 +1,13 @@
 <template>
   <div class="flow-page">
+    <n-alert v-if="loadError" type="error" class="mb-3" :show-icon="true">
+      已办任务加载失败，请重试。
+      <template #action>
+        <NButton text type="primary" @click="loadData">
+          重试
+        </NButton>
+      </template>
+    </n-alert>
     <!-- 任务列表 -->
     <FlowTaskCardList
       v-model:search-value="queryParams.title"
@@ -167,6 +175,7 @@ import { getRowDisplayTitle, getTaskDisplayName, getTaskHandlerName } from './ut
 const userStore = useUserStore()
 const { dict, getLabel } = useDict('flow_done_status')
 const loading = ref(false)
+const loadError = ref(false)
 const dataSource = ref([])
 const pagination = reactive({
   page: 1,
@@ -244,6 +253,7 @@ async function openDrawer(row) {
 
 async function loadData() {
   loading.value = true
+  loadError.value = false
   try {
     const res = await flowApi.getDoneTasks({
       pageNum: pagination.page,
@@ -257,9 +267,13 @@ async function loadData() {
       dataSource.value = res.data.records || []
       pagination.itemCount = res.data.total || 0
     }
+    else {
+      loadError.value = true
+    }
   }
   catch (e) {
     console.error('加载已办任务失败:', e)
+    loadError.value = true
   }
   finally {
     loading.value = false

@@ -87,6 +87,10 @@ public class LowcodePolicyService {
         return policies != null && DATA_SCOPE_FOLLOW_SYSTEM.equals(normalizeDataScope(policies.getDataScope()));
     }
 
+    public boolean isFlowRelatedVisible(LowcodePolicySchema policies) {
+        return policies != null && !Boolean.FALSE.equals(policies.getFlowRelatedVisible());
+    }
+
     public String normalizeDataScope(String dataScope) {
         String normalized = StringUtils.defaultIfBlank(dataScope, DATA_SCOPE_TENANT)
                 .trim()

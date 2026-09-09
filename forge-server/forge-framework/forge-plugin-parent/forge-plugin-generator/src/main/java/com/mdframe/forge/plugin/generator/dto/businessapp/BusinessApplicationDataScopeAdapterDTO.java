@@ -21,4 +21,9 @@ public class BusinessApplicationDataScopeAdapterDTO implements Serializable {
     private String orgField;
 
     private String regionField;
+
+    /**
+     * 流程经手人可查看单据。null 视为开启。
+     */
+    private Boolean flowRelatedVisible;
 }

@@ -18,4 +18,15 @@ public interface SysUserOrgMapper extends BaseMapper<SysUserOrg> {
      */
     List<Long> selectOrgIdsByUserTenant(@Param("tenantId") Long tenantId, @Param("userId") Long userId);
 
+    /** 流程运行时读取用户主组织，显式绑定租户和有效组织。 */
+    SysUserOrg selectFlowMainOrgByUser(@Param("tenantId") Long tenantId, @Param("userId") Long userId);
+
+    /** 流程运行时读取用户任一有效组织，显式绑定租户和有效组织。 */
+    SysUserOrg selectFlowAnyOrgByUser(@Param("tenantId") Long tenantId, @Param("userId") Long userId);
+
+    /** 流程运行时判断用户是否属于租户内有效组织。 */
+    Long countFlowUserOrg(@Param("tenantId") Long tenantId,
+                          @Param("userId") Long userId,
+                          @Param("orgId") Long orgId);
+
 }

@@ -64,6 +64,14 @@ export default {
   reassignTask: data =>
     request.post('/api/flow/task/reassign', data),
 
+  /** 动态加签/减签 */
+  addSign: data =>
+    request.post('/api/flow/task/add-sign', data),
+  reduceSign: data =>
+    request.post('/api/flow/task/reduce-sign', data),
+  getSignRelations: (taskId, params = {}) =>
+    request.get(`/api/flow/task/${taskId}/sign-relations`, { params }),
+
   /**
    * 终结流程
    */
@@ -100,6 +108,10 @@ export default {
   getProcessHistory: processInstanceId =>
     request.get(`/api/flow/task/history/${processInstanceId}`),
 
+  /** 分页获取类型化流程审批时间轴 */
+  getProcessHistoryPage: (processInstanceId, params = {}) =>
+    request.get(`/api/flow/task/history/${processInstanceId}/page`, { params }),
+
   /**
    * 获取任务表单信息（表单类型、formUrl、流程变量等）
    */
@@ -111,6 +123,10 @@ export default {
    */
   getProcessFormInfo: params =>
     request.get('/api/flow/task/form', { params }),
+
+  /** 管理员查询流程实例下的完整任务审批上下文 */
+  getMonitorInstanceTasks: (processInstanceId, params = {}) =>
+    request.get(`/api/flow/monitor/instance/${processInstanceId}/tasks`, { params }),
 
   /**
    * 催办任务
@@ -185,6 +201,10 @@ export default {
    */
   updateModel: data =>
     request.put('/api/flow/model', data),
+
+  /** 批量调整流程模型目录排序 */
+  sortModels: data =>
+    request.post('/api/flow/model/sort', data),
 
   /**
    * 获取流程通知矩阵当前可用的消息渠道
@@ -356,6 +376,14 @@ export default {
    */
   batchMarkCcRead: ids =>
     request.post('/api/flow/cc/read/batch', ids),
+
+  /** 将当前接收人的全部有效未读抄送标记为已读 */
+  markAllCcRead: () =>
+    request.post('/api/flow/cc/read/all'),
+
+  /** 撤回我发送的临时抄送 */
+  revokeCc: (id, reason) =>
+    request.post(`/api/flow/cc/revoke/${id}`, { reason }),
 
   /**
    * 获取未读抄送数量
@@ -596,4 +624,63 @@ export default {
 
   getFillBatchItems: id =>
     request.get(`/api/flow/fill-batch/${id}/items`),
+
+  // ========== 流程用户组 ==========
+
+  getUserGroupPage: params =>
+    request.get('/api/flow/org/groups/page', { params }),
+
+  getUserGroup: id =>
+    request.get(`/api/flow/org/groups/${id}`),
+
+  createUserGroup: data =>
+    request.post('/api/flow/org/groups', data),
+
+  updateUserGroup: data =>
+    request.put('/api/flow/org/groups', data),
+
+  deleteUserGroup: id =>
+    request.delete(`/api/flow/org/groups/${id}`),
+
+  getUserGroupMembers: id =>
+    request.get(`/api/flow/org/groups/${id}/members`),
+
+  addUserGroupMembers: (id, data) =>
+    request.post(`/api/flow/org/groups/${id}/members`, data),
+
+  removeUserGroupMembers: (id, data) =>
+    request.delete(`/api/flow/org/groups/${id}/members`, { data }),
+
+  getFlowOrgUsers: params =>
+    request.get('/system/user/page', {
+      params: {
+        pageNum: 1,
+        pageSize: 100,
+        userStatus: 1,
+        ...params,
+      },
+    }),
+
+  // ========== 常用审批意见 ==========
+
+  listUsableCommentPhrases: (params, config = {}) =>
+    request.get('/api/flow/comment-phrases/usable', { ...config, params }),
+
+  listMyCommentPhrases: (config = {}) =>
+    request.get('/api/flow/comment-phrases/mine', config),
+
+  getCommentPhrasePage: params =>
+    request.get('/api/flow/comment-phrases/page', { params }),
+
+  getCommentPhrase: id =>
+    request.get(`/api/flow/comment-phrases/${id}`),
+
+  createCommentPhrase: data =>
+    request.post('/api/flow/comment-phrases', data),
+
+  updateCommentPhrase: data =>
+    request.put('/api/flow/comment-phrases', data),
+
+  deleteCommentPhrase: id =>
+    request.delete(`/api/flow/comment-phrases/${id}`),
 }
