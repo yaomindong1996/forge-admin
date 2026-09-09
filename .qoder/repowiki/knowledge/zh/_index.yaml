@@ -1,0 +1,889 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: zh-CN
+branch: main
+nodes_managed: true
+exported_at: "2026-09-05T13:52:12Z"
+modules:
+    "":
+        dir_name: Forge Admin 企业级中后台框架根工程
+        title: Forge Admin 企业级中后台框架根工程
+        scope:
+            - README.md
+            - README.en.md
+            - package.json
+            - pnpm-lock.yaml
+            - .gitignore
+            - .dockerignore
+            - .pull_request_template.md
+            - AGENTS.md
+            - CHANGELOG.md
+            - CLAUDE.md
+            - CONTRIBUTING.md
+            - FORGE_PRODUCTIZATION_PLAN.md
+            - LICENSE
+            - NGINX_CONFIG.md
+            - remove_nul.ps1
+        source_files: []
+        children:
+            - agents_skills
+            - code_copilot_agents
+            - docker_deploy
+            - docs_and_specs
+            - forge_admin_ui
+            - forge_h5_ui
+            - forge_report_ui
+            - forge_server
+        depends_on: []
+        related_to: []
+    agents_skills:
+        dir_name: Forge Agent Skills（工作流开发、代码生成与网页抓取）
+        title: Forge Agent Skills（工作流开发、代码生成与网页抓取）
+        scope:
+            - .agents/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    code_copilot_agents:
+        dir_name: Forge 项目 AI 协作 Agent 工作区
+        title: Forge 项目 AI 协作 Agent 工作区
+        scope:
+            - code-copilot/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    docker_deploy:
+        dir_name: Forge Admin Docker 一键部署编排
+        title: Forge Admin Docker 一键部署编排
+        scope:
+            - docker/
+            - docker-forge-admin/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_admin_ui
+            - path: forge_server/admin_server
+            - path: forge_server/database_schema
+            - path: forge_server/flow_service
+    docs_and_specs:
+        dir_name: Forge Admin 项目文档与规格库
+        title: Forge Admin 项目文档与规格库
+        scope:
+            - docs/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_admin_ui:
+        dir_name: Forge Admin 管理后台前端应用
+        title: Forge Admin 管理后台前端应用
+        scope:
+            - forge-admin-ui/
+        source_files: []
+        children:
+            - forge_admin_ui/ai_features
+            - forge_admin_ui/api_clients
+            - forge_admin_ui/app_center
+            - forge_admin_ui/auth_and_pages
+            - forge_admin_ui/core_infrastructure
+            - forge_admin_ui/data_management
+            - forge_admin_ui/flow_management
+            - forge_admin_ui/lowcode_builder
+            - forge_admin_ui/shared_ui
+            - forge_admin_ui/system_admin
+        depends_on: []
+        related_to:
+            - path: docker_deploy
+            - path: forge_server/admin_server
+    forge_admin_ui/ai_features:
+        dir_name: AI 能力管理前端模块（表单_模态框_视图与API）
+        title: AI 能力管理前端模块（表单/模态框/视图与API）
+        scope:
+            - forge-admin-ui/src/views/ai/
+            - forge-admin-ui/src/components/ai-form/
+            - forge-admin-ui/src/components/ai-modal/
+            - forge-admin-ui/src/api/ai/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/ai_plugin
+    forge_admin_ui/api_clients:
+        dir_name: API 客户端与通用工具集
+        title: API 客户端与通用工具集
+        scope:
+            - forge-admin-ui/src/api/
+            - forge-admin-ui/src/utils/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_admin_ui/app_center:
+        dir_name: 应用中心与业务工作台
+        title: 应用中心与业务工作台
+        scope:
+            - forge-admin-ui/src/views/app-center/
+            - forge-admin-ui/src/components/business-top-nav/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/generator_plugin
+    forge_admin_ui/auth_and_pages:
+        dir_name: 登录认证与核心页面视图
+        title: 登录认证与核心页面视图
+        scope:
+            - forge-admin-ui/src/views/login/
+            - forge-admin-ui/src/views/home/
+            - forge-admin-ui/src/views/error-page/
+            - forge-admin-ui/src/views/external/
+            - forge-admin-ui/src/views/base/
+            - forge-admin-ui/src/views/business/
+            - forge-admin-ui/src/views/iframe/
+            - forge-admin-ui/src/App.vue
+            - forge-admin-ui/src/main.js
+            - forge-admin-ui/src/settings.js
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_admin_ui/core_infrastructure:
+        dir_name: 路由、状态与全局基础设施
+        title: 路由、状态与全局基础设施
+        scope:
+            - forge-admin-ui/src/router/
+            - forge-admin-ui/src/store/
+            - forge-admin-ui/src/stores/
+            - forge-admin-ui/src/composables/
+            - forge-admin-ui/src/config/
+            - forge-admin-ui/src/constants/
+            - forge-admin-ui/src/plugins/
+            - forge-admin-ui/src/copy/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_admin_ui/data_management:
+        dir_name: 数据资产管理前端模块（数据集_连接_维度_业务定义）
+        title: 数据资产管理前端模块（数据集/连接/维度/业务定义）
+        scope:
+            - forge-admin-ui/src/views/data/
+            - forge-admin-ui/src/components/data/
+            - forge-admin-ui/src/api/data/
+            - forge-admin-ui/src/api/business/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/data_plugin
+    forge_admin_ui/flow_management:
+        dir_name: 流程与表单设计器（BPMN_业务流_表单）
+        title: 流程与表单设计器（BPMN/业务流/表单）
+        scope:
+            - forge-admin-ui/src/views/flow/
+            - forge-admin-ui/src/components/bpmn/
+            - forge-admin-ui/src/components/business-process-designer/
+            - forge-admin-ui/src/components/flow/
+            - forge-admin-ui/src/components/flow-designer/
+            - forge-admin-ui/src/components/form-create/
+            - forge-admin-ui/src/components/form-designer/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/flow_service
+    forge_admin_ui/lowcode_builder:
+        dir_name: 低代码页面构建器与扩展沙箱
+        title: 低代码页面构建器与扩展沙箱
+        scope:
+            - forge-admin-ui/src/components/lowcode-builder/
+            - forge-admin-ui/src/components/lowcode-extension/
+            - forge-admin-ui/src/components/lowcode-runtime/
+            - forge-admin-ui/src/components/page-templates/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/generator_plugin
+    forge_admin_ui/shared_ui:
+        dir_name: 共享 UI 基础组件与布局系统
+        title: 共享 UI 基础组件与布局系统
+        scope:
+            - forge-admin-ui/src/components/common/
+            - forge-admin-ui/src/layouts/
+            - forge-admin-ui/src/assets/
+            - forge-admin-ui/src/styles/
+            - forge-admin-ui/src/directives/
+            - forge-admin-ui/src/catalog/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_admin_ui/system_admin:
+        dir_name: 系统管理与业务工作台视图集
+        title: 系统管理与业务工作台视图集
+        scope:
+            - forge-admin-ui/src/views/system/
+            - forge-admin-ui/src/views/message/
+            - forge-admin-ui/src/views/generator/
+            - forge-admin-ui/src/views/nexus/
+            - forge-admin-ui/src/views/report/
+            - forge-admin-ui/src/views/employee/
+            - forge-admin-ui/src/views/leave/
+            - forge-admin-ui/src/views/workspace/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/message_plugin
+            - path: forge_server/framework_plugins/plugin_parent/system_plugin
+    forge_h5_ui:
+        dir_name: Forge H5 移动端前端应用
+        title: Forge H5 移动端前端应用
+        scope:
+            - forge-h5-ui/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/app_server
+    forge_report_ui:
+        dir_name: Forge 报表可视化编辑器前端
+        title: Forge 报表可视化编辑器前端
+        scope:
+            - forge-report-ui/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/report_server
+    forge_server:
+        dir_name: Forge Server 多服务聚合工程
+        title: Forge Server 多服务聚合工程
+        scope:
+            - forge-server/
+        source_files: []
+        children:
+            - forge_server/admin_server
+            - forge_server/app_server
+            - forge_server/business_core
+            - forge_server/database_schema
+            - forge_server/flow_service
+            - forge_server/framework_plugins
+            - forge_server/report_server
+            - forge_server/scripts
+        depends_on: []
+        related_to: []
+    forge_server/admin_server:
+        dir_name: Forge 管理后台服务（Admin Server）
+        title: Forge 管理后台服务（Admin Server）
+        scope:
+            - forge-server/forge-admin-server/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: docker_deploy
+            - path: forge_admin_ui
+            - path: forge_server/framework_plugins/plugin_parent/capability_framework
+    forge_server/app_server:
+        dir_name: Forge 应用运行态服务（App Server）
+        title: Forge 应用运行态服务（App Server）
+        scope:
+            - forge-server/forge-app-server/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_h5_ui
+            - path: forge_server/framework_plugins/plugin_parent/collaboration_plugin
+            - path: forge_server/framework_plugins/plugin_parent/message_plugin
+    forge_server/business_core:
+        dir_name: 业务核心模块（采购单审批示例与动态数据源演示）
+        title: 业务核心模块（采购单审批示例与动态数据源演示）
+        scope:
+            - forge-server/forge-business/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/flow_service
+            - path: forge_server/framework_plugins/plugin_parent/generator_plugin
+    forge_server/database_schema:
+        dir_name: Forge 数据库版本迁移与种子数据
+        title: Forge 数据库版本迁移与种子数据
+        scope:
+            - forge-server/db/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: docker_deploy
+            - path: forge_server/scripts
+    forge_server/flow_service:
+        dir_name: Forge Flow 流程服务（客户端与服务端）
+        title: Forge Flow 流程服务（客户端与服务端）
+        scope:
+            - forge-server/forge-flow/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: docker_deploy
+            - path: forge_admin_ui/flow_management
+            - path: forge_server/business_core
+            - path: forge_server/framework_plugins/plugin_parent/flow_plugin
+    forge_server/framework_plugins:
+        dir_name: Forge 框架核心（Starter + Plugin 双父工程）
+        title: Forge 框架核心（Starter + Plugin 双父工程）
+        scope:
+            - forge-server/forge-framework/
+        source_files: []
+        children:
+            - forge_server/framework_plugins/plugin_parent
+            - forge_server/framework_plugins/starter_parent
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/plugin_parent:
+        dir_name: Forge 框架插件聚合父工程（forge-plugin-parent）
+        title: Forge 框架插件聚合父工程（forge-plugin-parent）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/
+        source_files: []
+        children:
+            - forge_server/framework_plugins/plugin_parent/ai_plugin
+            - forge_server/framework_plugins/plugin_parent/capability_framework
+            - forge_server/framework_plugins/plugin_parent/collaboration_plugin
+            - forge_server/framework_plugins/plugin_parent/data_plugin
+            - forge_server/framework_plugins/plugin_parent/external_plugin
+            - forge_server/framework_plugins/plugin_parent/flow_plugin
+            - forge_server/framework_plugins/plugin_parent/generator_plugin
+            - forge_server/framework_plugins/plugin_parent/job_plugin
+            - forge_server/framework_plugins/plugin_parent/mcp_plugin
+            - forge_server/framework_plugins/plugin_parent/message_plugin
+            - forge_server/framework_plugins/plugin_parent/system_plugin
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/plugin_parent/ai_plugin:
+        dir_name: AI 能力插件聚合模块（forge-plugin-ai）
+        title: AI 能力插件聚合模块（forge-plugin-ai）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/
+        source_files: []
+        children:
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/agent
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/agenttool_dashboard_skill
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/chat_session
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/client_context_prompt_skill
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/invocation_health
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/multimodal
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/resources_and_constants
+        depends_on: []
+        related_to:
+            - path: forge_admin_ui/ai_features
+    forge_server/framework_plugins/plugin_parent/ai_plugin/agent:
+        dir_name: AI 智能体 Agent 插件模块
+        title: AI 智能体 Agent 插件模块
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/agent/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/test/java/com/mdframe/forge/plugin/ai/agent/
+        source_files: []
+        children:
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/agent/agent_core
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/agent/react_engine
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/plugin_parent/ai_plugin/agent/agent_core:
+        dir_name: AI 智能体管理核心模块
+        title: AI 智能体管理核心模块
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/agent/controller/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/agent/domain/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/agent/service/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/agent/mapper/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/plugin_parent/ai_plugin/agent/react_engine:
+        dir_name: Agent ReAct 推理引擎
+        title: Agent ReAct 推理引擎
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/agent/engine/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/ai_plugin/chat_session
+    forge_server/framework_plugins/plugin_parent/ai_plugin/agenttool_dashboard_skill:
+        dir_name: AI Agent工具、仪表盘生成记录与技能包管理
+        title: AI Agent工具、仪表盘生成记录与技能包管理
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/agenttool/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/dashboard/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/skill/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/plugin_parent/ai_plugin/chat_session:
+        dir_name: AI 对话与会话管理模块
+        title: AI 对话与会话管理模块
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/chat/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/session/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/admin/controller/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/ai_plugin/agent/react_engine
+    forge_server/framework_plugins/plugin_parent/ai_plugin/client_context_prompt_skill:
+        dir_name: AI 客户端调用与上下文_提示词模板管理
+        title: AI 客户端调用与上下文/提示词模板管理
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/client/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/context/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/prompt/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/plugin_parent/ai_plugin/invocation_health:
+        dir_name: AI模型调用治理与健康状态管理
+        title: AI模型调用治理与健康状态管理
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/invocation/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/health/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/coordination/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag:
+        dir_name: AI 知识库与 RAG 检索模块
+        title: AI 知识库与 RAG 检索模块
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/rag/
+        source_files: []
+        children:
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/knowledge_api_layer
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/knowledge_parsing_chunking
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/knowledge_storage_service
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/rag_search_pipeline
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/knowledge_api_layer:
+        dir_name: AI 知识库 API 层（Controller_Mapper_枚举）
+        title: AI 知识库 API 层（Controller/Mapper/枚举）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/controller/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/mapper/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/enums/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/ai_plugin/resources_and_constants
+    forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/knowledge_parsing_chunking:
+        dir_name: 文档解析与分块策略（Parser & Chunker）
+        title: 文档解析与分块策略（Parser & Chunker）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/parser/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/chunker/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/rag_search_pipeline
+    forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/knowledge_storage_service:
+        dir_name: AI 知识库向量存储与检索服务
+        title: AI 知识库向量存储与检索服务
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/service/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/vectorstore/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/domain/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/rag_search_pipeline
+    forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/rag_search_pipeline:
+        dir_name: RAG 检索管道与控制器
+        title: RAG 检索管道与控制器
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/rag/search/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/rag/controller/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/knowledge_parsing_chunking
+            - path: forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/knowledge_storage_service
+    forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing:
+        dir_name: AI 模型供应商与路由编排层
+        title: AI 模型供应商与路由编排层
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/model/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/provider/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/routing/
+        source_files: []
+        children:
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing/model_adapter
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing/provider_adapter
+            - forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing/routing_policy
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing/model_adapter:
+        dir_name: AI 模型适配与路由注册中心
+        title: AI 模型适配与路由注册中心
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/model/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing/routing_policy
+    forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing/provider_adapter:
+        dir_name: AI 供应商模型适配器与路由
+        title: AI 供应商模型适配器与路由
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/provider/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing/routing_policy
+    forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing/routing_policy:
+        dir_name: AI 模型路由策略与候选选择
+        title: AI 模型路由策略与候选选择
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/routing/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing/model_adapter
+            - path: forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing/provider_adapter
+    forge_server/framework_plugins/plugin_parent/ai_plugin/multimodal:
+        dir_name: AI 多模态能力（图片生成_语音识别_语音合成）
+        title: AI 多模态能力（图片生成/语音识别/语音合成）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/multimodal/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/plugin_parent/ai_plugin/resources_and_constants:
+        dir_name: AI 插件数据资源与常量定义
+        title: AI 插件数据资源与常量定义
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/resources/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/constant/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/knowledge_api_layer
+    forge_server/framework_plugins/plugin_parent/capability_framework:
+        dir_name: Forge 能力框架插件聚合（Capability Framework Parent）
+        title: Forge 能力框架插件聚合（Capability Framework Parent）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/
+        source_files: []
+        children:
+            - forge_server/framework_plugins/plugin_parent/capability_framework/capability_actions
+            - forge_server/framework_plugins/plugin_parent/capability_framework/capability_core
+            - forge_server/framework_plugins/plugin_parent/capability_framework/capability_high_risk_approval
+            - forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform
+        depends_on: []
+        related_to:
+            - path: forge_server/admin_server
+    forge_server/framework_plugins/plugin_parent/capability_framework/capability_actions:
+        dir_name: 能力动作发布与执行适配层（流程动作_受控业务动作_系统服务）
+        title: 能力动作发布与执行适配层（流程动作/受控业务动作/系统服务）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-actions/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform/opengateway
+    forge_server/framework_plugins/plugin_parent/capability_framework/capability_core:
+        dir_name: 能力框架核心（Capability Core）
+        title: 能力框架核心（Capability Core）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-core/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/plugin_parent/capability_framework/capability_high_risk_approval:
+        dir_name: 高风险业务动作人工审批能力插件
+        title: 高风险业务动作人工审批能力插件
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-high-risk-approval/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/flow_plugin
+    forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform:
+        dir_name: 能力平台（Capability Platform）
+        title: 能力平台（Capability Platform）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-platform/
+        source_files: []
+        children:
+            - forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform/controlplane
+            - forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform/identity
+            - forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform/opengateway
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform/controlplane:
+        dir_name: 能力控制面（Capability Control Plane）
+        title: 能力控制面（Capability Control Plane）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-platform/src/main/java/com/mdframe/forge/plugin/capability/controlplane/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-platform/src/test/java/com/mdframe/forge/plugin/capability/controlplane/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform/identity
+            - path: forge_server/framework_plugins/plugin_parent/mcp_plugin
+    forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform/identity:
+        dir_name: 能力平台身份认证与授权框架
+        title: 能力平台身份认证与授权框架
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-platform/src/main/java/com/mdframe/forge/plugin/capability/identity/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-platform/src/test/java/com/mdframe/forge/plugin/capability/identity/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform/controlplane
+    forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform/opengateway:
+        dir_name: 能力开放网关（OpenAPI Gateway）
+        title: 能力开放网关（OpenAPI Gateway）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-platform/src/main/java/com/mdframe/forge/plugin/capability/opengateway/
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-platform/src/test/java/com/mdframe/forge/plugin/capability/opengateway/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/capability_framework/capability_actions
+    forge_server/framework_plugins/plugin_parent/collaboration_plugin:
+        dir_name: 企业协同插件（连接管理_目录同步_消息与回调）
+        title: 企业协同插件（连接管理/目录同步/消息与回调）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-collaboration/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/app_server
+    forge_server/framework_plugins/plugin_parent/data_plugin:
+        dir_name: 数据资产管理与查询执行插件
+        title: 数据资产管理与查询执行插件
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-data/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_admin_ui/data_management
+    forge_server/framework_plugins/plugin_parent/external_plugin:
+        dir_name: 外部系统连接器与API代理插件
+        title: 外部系统连接器与API代理插件
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-external/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/plugin_parent/flow_plugin:
+        dir_name: Flowable 流程引擎插件（forge-plugin-flow）
+        title: Flowable 流程引擎插件（forge-plugin-flow）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-flow/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/flow_service
+            - path: forge_server/framework_plugins/plugin_parent/capability_framework/capability_high_risk_approval
+    forge_server/framework_plugins/plugin_parent/generator_plugin:
+        dir_name: 低代码代码生成与业务应用引擎插件
+        title: 低代码代码生成与业务应用引擎插件
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-generator/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_admin_ui/app_center
+            - path: forge_admin_ui/lowcode_builder
+            - path: forge_server/business_core
+    forge_server/framework_plugins/plugin_parent/job_plugin:
+        dir_name: 定时任务调度插件（Job Plugin）
+        title: 定时任务调度插件（Job Plugin）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-job/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/plugin_parent/mcp_plugin:
+        dir_name: Forge MCP Streamable HTTP 适配插件
+        title: Forge MCP Streamable HTTP 适配插件
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-mcp/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform/controlplane
+    forge_server/framework_plugins/plugin_parent/message_plugin:
+        dir_name: 消息插件（站内信_短信_邮件_推送统一发送与阅读管理）
+        title: 消息插件（站内信/短信/邮件/推送统一发送与阅读管理）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-message/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_admin_ui/system_admin
+            - path: forge_server/app_server
+    forge_server/framework_plugins/plugin_parent/system_plugin:
+        dir_name: 系统管理插件（用户、租户、权限与认证策略）
+        title: 系统管理插件（用户、租户、权限与认证策略）
+        scope:
+            - forge-server/forge-framework/forge-plugin-parent/forge-plugin-system/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_admin_ui/system_admin
+    forge_server/framework_plugins/starter_parent:
+        dir_name: Forge Starter 父聚合工程
+        title: Forge Starter 父聚合工程
+        scope:
+            - forge-server/forge-framework/forge-starter-parent/
+        source_files: []
+        children:
+            - forge_server/framework_plugins/starter_parent/async_communications
+            - forge_server/framework_plugins/starter_parent/business_utilities
+            - forge_server/framework_plugins/starter_parent/core_and_web
+            - forge_server/framework_plugins/starter_parent/data_access
+            - forge_server/framework_plugins/starter_parent/external_integrations
+            - forge_server/framework_plugins/starter_parent/identity_security
+            - forge_server/framework_plugins/starter_parent/io_logging_utils
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/starter_parent/async_communications:
+        dir_name: 异步通信 Starter（定时任务、消息通道与 WebSocket）
+        title: 异步通信 Starter（定时任务、消息通道与 WebSocket）
+        scope:
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-job/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-message/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-websocket/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/starter_parent/business_utilities:
+        dir_name: 业务通用 Starter 组件集（配置中心_数据权限_多租户_幂等）
+        title: 业务通用 Starter 组件集（配置中心/数据权限/多租户/幂等）
+        scope:
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-config/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-datascope/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-tenant/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-idempotent/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/starter_parent/core_and_web:
+        dir_name: Forge Starter 核心与 Web 基础能力
+        title: Forge Starter 核心与 Web 基础能力
+        scope:
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-core/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-web/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/starter_parent/data_access:
+        dir_name: 数据访问基础能力 Starter（缓存_ORM_ID_字典翻译）
+        title: 数据访问基础能力 Starter（缓存/ORM/ID/字典翻译）
+        scope:
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-cache/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-orm/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-id/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-trans/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/starter_parent/external_integrations:
+        dir_name: 外部集成 Starter（三方登录_企业协同 SPI_受控出站）
+        title: 外部集成 Starter（三方登录/企业协同 SPI/受控出站）
+        scope:
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-social/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-collaboration/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-outbound/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/starter_parent/identity_security:
+        dir_name: 认证、加密与开放API安全 Starter
+        title: 认证、加密与开放API安全 Starter
+        scope:
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-auth/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-crypto/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-openapi-security/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/framework_plugins/starter_parent/io_logging_utils:
+        dir_name: Forge Starter 通用能力组件集（文件存储 _ Excel _ 操作日志 _ API配置）
+        title: Forge Starter 通用能力组件集（文件存储 / Excel / 操作日志 / API配置）
+        scope:
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-file/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-excel/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-log/
+            - forge-server/forge-framework/forge-starter-parent/forge-starter-api-config/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to: []
+    forge_server/report_server:
+        dir_name: Forge 报表大屏后端服务
+        title: Forge 报表大屏后端服务
+        scope:
+            - forge-server/forge-report-server/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_report_ui
+    forge_server/scripts:
+        dir_name: Forge Server 数据库运维脚本集
+        title: Forge Server 数据库运维脚本集
+        scope:
+            - forge-server/scripts/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: forge_server/database_schema

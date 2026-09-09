@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/capability_framework
+title: Forge 能力框架插件聚合（Capability Framework Parent）
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/admin_server

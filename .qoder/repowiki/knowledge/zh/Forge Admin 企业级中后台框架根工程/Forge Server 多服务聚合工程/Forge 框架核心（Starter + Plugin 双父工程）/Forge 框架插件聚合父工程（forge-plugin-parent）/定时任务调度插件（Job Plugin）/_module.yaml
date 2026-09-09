@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/job_plugin
+title: 定时任务调度插件（Job Plugin）
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-job/
+source_files: []
+depends_on: []
+related_to: []

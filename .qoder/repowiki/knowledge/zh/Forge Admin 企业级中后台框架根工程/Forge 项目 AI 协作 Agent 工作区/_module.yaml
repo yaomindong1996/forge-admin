@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: code_copilot_agents
+title: Forge 项目 AI 协作 Agent 工作区
+scope:
+    - code-copilot/
+source_files: []
+depends_on: []
+related_to: []

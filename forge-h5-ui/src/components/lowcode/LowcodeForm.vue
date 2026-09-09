@@ -1,5 +1,20 @@
 <template>
-  <view class="lowcode-form" :class="{ 'lowcode-form--inline-grid': layout === 'inline_grid' }">
+  <!-- Layout mode: delegate to LowcodeLayoutNodes when the schema has layout containers -->
+  <LowcodeLayoutNodes
+    v-if="hasLayoutNodes"
+    ref="layoutRef"
+    :nodes="nodes"
+    :data="data"
+    :dict-options="dictOptions"
+    :readonly="readonly"
+    :context="context"
+    :field-linkages="fieldLinkages"
+    @update:data="(v) => emit('update:data', v)"
+    @field-event="(payload) => emit('field-event', payload)"
+  />
+
+  <!-- Flat mode: original field-only rendering -->
+  <view v-else class="lowcode-form" :class="{ 'lowcode-form--inline-grid': layout === 'inline_grid' }">
     <LowcodeField
       v-for="field in renderedFields"
       :key="field.field"
@@ -18,12 +33,15 @@
 </template>
 
 <script setup>
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import LowcodeField from './LowcodeField.vue'
-import { applyFieldLinkageChange, filterFieldOptionsByLinkage, resolveFieldControl, resolveFieldLinkageContext } from '@/utils/lowcode-runtime'
+import LowcodeLayoutNodes from './LowcodeLayoutNodes.vue'
+import { applyFieldLinkageChange, filterFieldOptionsByLinkage, hasDesignerLayoutNodes, resolveFieldControl, resolveFieldLinkageContext } from '@/utils/lowcode-runtime'
 
 const props = defineProps({
   fields: { type: Array, default: () => [] },
+  /** Renderable node tree from normalizeDesignerComponents; enables layout mode when contains layout nodes. */
+  nodes: { type: Array, default: () => [] },
   data: { type: Object, default: () => ({}) },
   dictOptions: { type: Object, default: () => ({}) },
   currentChildren: { type: Object, default: () => ({}) },
@@ -35,6 +53,8 @@ const props = defineProps({
 
 const emit = defineEmits(['update:data', 'field-event'])
 const errors = reactive({})
+const layoutRef = ref(null)
+const hasLayoutNodes = computed(() => hasDesignerLayoutNodes(props.nodes))
 const renderedFields = computed(() => props.fields.map(field => ({
   ...field,
   props: {
@@ -78,6 +98,9 @@ function updateField(field, value) {
 }
 
 function validate() {
+  // Delegate to layout tree when in layout mode
+  if (hasLayoutNodes.value && layoutRef.value)
+    return layoutRef.value.validate()
   Object.keys(errors).forEach(key => delete errors[key])
   for (const field of props.fields) {
     const control = resolveFieldControl(field, { record: props.data, formData: props.data, row: props.data })

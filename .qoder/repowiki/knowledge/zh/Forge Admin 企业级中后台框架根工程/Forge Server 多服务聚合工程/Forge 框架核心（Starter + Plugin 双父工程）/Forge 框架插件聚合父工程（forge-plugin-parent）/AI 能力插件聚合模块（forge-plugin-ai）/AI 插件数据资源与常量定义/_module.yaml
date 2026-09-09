@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/ai_plugin/resources_and_constants
+title: AI 插件数据资源与常量定义
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/resources/
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/constant/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/knowledge_api_layer

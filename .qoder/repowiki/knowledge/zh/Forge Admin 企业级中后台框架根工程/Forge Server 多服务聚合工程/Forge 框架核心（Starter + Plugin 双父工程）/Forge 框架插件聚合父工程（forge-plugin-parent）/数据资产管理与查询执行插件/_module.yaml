@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/data_plugin
+title: 数据资产管理与查询执行插件
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-data/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_admin_ui/data_management

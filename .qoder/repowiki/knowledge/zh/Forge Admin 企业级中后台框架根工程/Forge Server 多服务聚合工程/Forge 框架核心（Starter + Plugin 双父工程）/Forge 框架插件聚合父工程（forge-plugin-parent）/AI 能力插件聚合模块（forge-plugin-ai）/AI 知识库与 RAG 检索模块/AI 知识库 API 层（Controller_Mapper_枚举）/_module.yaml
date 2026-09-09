@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/knowledge_api_layer
+title: AI 知识库 API 层（Controller/Mapper/枚举）
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/controller/
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/mapper/
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/enums/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/framework_plugins/plugin_parent/ai_plugin/resources_and_constants

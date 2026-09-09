@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: forge_admin_ui/ai_features
+title: AI 能力管理前端模块（表单/模态框/视图与API）
+scope:
+    - forge-admin-ui/src/views/ai/
+    - forge-admin-ui/src/components/ai-form/
+    - forge-admin-ui/src/components/ai-modal/
+    - forge-admin-ui/src/api/ai/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/framework_plugins/plugin_parent/ai_plugin

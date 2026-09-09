@@ -352,8 +352,8 @@
               <section v-if="needsDict" class="cascade-config">
                 <div class="cascade-config-head">
                   <div>
-                    <strong>选项过滤</strong>
-                    <span>根据上级字段值过滤当前选项。</span>
+                    <strong>级联选项</strong>
+                    <span>本字段选项跟随上级字段的值变化，如：先选部门，再按部门加载人员。</span>
                   </div>
                   <n-switch
                     :value="form.basicProps.cascade.enabled"
@@ -363,30 +363,36 @@
                   />
                 </div>
                 <div v-if="form.basicProps.cascade.enabled" class="cascade-grid">
-                  <n-form-item label="上级字段">
+                  <n-form-item label="① 上级字段">
                     <n-select
                       v-model:value="form.basicProps.cascade.sourceField"
                       :options="cascadeSourceFieldOptions"
                       :disabled="field.systemField"
                       filterable
                       clearable
-                      placeholder="选择上级字典或关联字段"
+                      placeholder="选谁变化时刷新本字段，如：部门"
                     />
                   </n-form-item>
-                  <n-form-item label="匹配方式">
+                  <n-form-item label="② 联动方式">
                     <n-select
                       v-model:value="form.basicProps.cascade.mode"
                       :options="cascadeModeOptions"
                       :disabled="field.systemField"
                     />
                   </n-form-item>
-                  <n-form-item v-if="form.basicProps.cascade.mode === 'remoteParam'" label="请求参数名">
+                  <n-form-item v-if="form.basicProps.cascade.mode === 'remoteParam'" label="③ 参数名">
                     <n-input
                       v-model:value="form.basicProps.cascade.paramName"
                       :disabled="field.systemField"
-                      placeholder="例如：orgId / parentId"
+                      placeholder="接口接收上级值的参数，如 deptId"
                     />
                   </n-form-item>
+                  <div v-if="form.basicProps.cascade.mode === 'remoteParam'" class="cascade-remote-hint">
+                    选了上级后，会以该参数名携带上级值请求选项接口并刷新选项；接口地址在表单设计器 → 该字段 → 级联选项中填写。
+                  </div>
+                  <div v-else-if="form.basicProps.cascade.mode === 'parentDictCode'" class="cascade-remote-hint">
+                    从本字段已有选项中按父级编码筛选，需选项数据（字典/静态选项）包含父级编码。
+                  </div>
                 </div>
               </section>
 
@@ -727,9 +733,9 @@ const encryptOptions = [
   { label: 'SM4', value: 'SM4' },
 ]
 const cascadeModeOptions = [
-  { label: '字典父子(parent_dict_code)', value: 'parentDictCode' },
-  { label: '关联字典(linked_dict_type/value)', value: 'linkedDict' },
-  { label: '远程参数过滤', value: 'remoteParam' },
+  { label: '接口加载 —— 选了上级后按参数请求接口', value: 'remoteParam' },
+  { label: '本地过滤 —— 已有选项按父级编码筛选', value: 'parentDictCode' },
+  { label: '字典行级联 —— 按关联字典值筛选', value: 'linkedDict' },
 ]
 
 const payload = computed(() => normalizePayload(form))

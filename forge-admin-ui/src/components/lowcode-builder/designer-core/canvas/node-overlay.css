@@ -1,0 +1,208 @@
+/**
+ * DesignerNodeOverlay — 统一画布节点操作条样式
+ * @description 表单设计器和列表设计器共用：统一的按钮风格、颜色体系、hover/选中态。
+ *   颜色遵循 DESIGN.md：主题色 #2563eb、hover 浅蓝 #93c5fd、操作按钮克制不花哨。
+ *   布局：拖拽把手居中顶部、更多菜单右上角、快捷操作组右侧（留空间给菜单）。
+ */
+
+/* ─── 操作条容器 ─────────────────────────────────────────── */
+.designer-node-overlay {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  left: 6px;
+  z-index: 5;
+  height: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+/* 显式可见（JS 控制）或父级 hover/selected 驱动 */
+.designer-node-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ─── 通用按钮基础 ───────────────────────────────────────── */
+.overlay-icon-action,
+.overlay-menu-trigger,
+.overlay-drag-handle {
+  display: grid;
+  place-items: center;
+  height: 24px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.overlay-icon-action {
+  width: 26px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.overlay-icon-action:hover {
+  border-color: #e2e8f0;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.overlay-icon-action.danger:hover {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.overlay-icon-action:disabled {
+  opacity: 0.36;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ─── 快捷操作组（右侧按钮群，为菜单触发器留空间）───────── */
+.overlay-quick-actions {
+  position: absolute;
+  top: 0;
+  right: 30px;
+  display: flex;
+  gap: 2px;
+}
+
+/* column 模式：无菜单/拖拽把手，操作组贴右 */
+.designer-node-overlay.mode-column .overlay-quick-actions {
+  right: 0;
+}
+
+/* ─── 更多菜单触发器（右上角）────────────────────────────── */
+.overlay-menu-trigger {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 26px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.overlay-menu-trigger:hover {
+  border-color: #e2e8f0;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+/* ─── 拖拽把手（居中顶部）───────────────────────────────── */
+.overlay-drag-handle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 26px;
+  transform: translateX(-50%);
+  cursor: grab;
+  user-select: none;
+}
+
+.overlay-drag-handle:hover {
+  border-color: #e2e8f0;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.overlay-drag-handle:active {
+  cursor: grabbing;
+}
+
+.overlay-drag-handle-svg {
+  width: 1em;
+  height: 1em;
+  transform: rotate(90deg);
+}
+
+/* ─── 必填开关 ───────────────────────────────────────────── */
+.overlay-required-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  cursor: pointer;
+  line-height: 22px;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    border-color 120ms ease;
+}
+
+.overlay-required-switch:hover {
+  border-color: #e2e8f0;
+  background: #f1f5f9;
+}
+
+.overlay-required-switch.active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.overlay-switch-track {
+  position: relative;
+  width: 22px;
+  height: 12px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  transition: background 160ms ease;
+}
+
+.overlay-required-switch.active .overlay-switch-track {
+  background: #2563eb;
+}
+
+.overlay-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+  transition: transform 160ms ease;
+}
+
+.overlay-required-switch.active .overlay-switch-thumb {
+  transform: translateX(10px);
+}
+
+/* ─── 窄容器响应式 ──────────────────────────────────────── */
+@container (max-width: 360px) {
+  .overlay-drag-handle {
+    left: 0;
+    transform: none;
+  }
+
+  .overlay-quick-actions {
+    right: 30px;
+  }
+}
+
+@container (max-width: 280px) {
+  .overlay-required-switch > span:first-child {
+    display: none;
+  }
+}
+
+/* ─── 额外操作插槽 ───────────────────────────────────────── */
+.overlay-extra-actions {
+  display: contents;
+}

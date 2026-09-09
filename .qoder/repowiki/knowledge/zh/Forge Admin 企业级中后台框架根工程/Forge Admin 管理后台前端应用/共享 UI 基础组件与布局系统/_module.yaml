@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: forge_admin_ui/shared_ui
+title: 共享 UI 基础组件与布局系统
+scope:
+    - forge-admin-ui/src/components/common/
+    - forge-admin-ui/src/layouts/
+    - forge-admin-ui/src/assets/
+    - forge-admin-ui/src/styles/
+    - forge-admin-ui/src/directives/
+    - forge-admin-ui/src/catalog/
+source_files: []
+depends_on: []
+related_to: []

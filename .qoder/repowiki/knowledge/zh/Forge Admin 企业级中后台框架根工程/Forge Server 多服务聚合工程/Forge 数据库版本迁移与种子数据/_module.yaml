@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: forge_server/database_schema
+title: Forge 数据库版本迁移与种子数据
+scope:
+    - forge-server/db/
+source_files: []
+depends_on: []
+related_to:
+    - path: docker_deploy
+    - path: forge_server/scripts

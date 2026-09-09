@@ -27,8 +27,9 @@
         :item-context="itemContext"
         :grid-cols="resolveRowColumns(node)"
         :x-gap="resolveGap(node.props?.gutter, xGap)"
-        :y-gap="yGap"
+        :y-gap="resolveGap(node.props?.rowGap, yGap)"
         :show-feedback="showFeedback"
+        :keep-empty-layout-nodes="keepEmptyLayoutNodes"
         @field-change="(...args) => emit('fieldChange', ...args)"
         @node-action="(...args) => emit('nodeAction', ...args)"
       >
@@ -46,6 +47,7 @@
         :x-gap="xGap"
         :y-gap="yGap"
         :show-feedback="showFeedback"
+        :keep-empty-layout-nodes="keepEmptyLayoutNodes"
         @field-change="(...args) => emit('fieldChange', ...args)"
         @node-action="(...args) => emit('nodeAction', ...args)"
       >
@@ -62,7 +64,11 @@
         :style="resolveLayoutStyle(node)"
         :class="resolveLayoutClass(node, 'af-layout-card')"
       >
+        <div v-if="!hasVisibleChildren(node)" class="af-layout-empty-placeholder">
+          暂无内容
+        </div>
         <AiFormLayoutNodes
+          v-else
           :nodes="node.children || []"
           :form-value="formValue"
           :item-context="itemContext"
@@ -70,6 +76,7 @@
           :x-gap="xGap"
           :y-gap="yGap"
           :show-feedback="showFeedback"
+          :keep-empty-layout-nodes="keepEmptyLayoutNodes"
           @field-change="(...args) => emit('fieldChange', ...args)"
           @node-action="(...args) => emit('nodeAction', ...args)"
         >
@@ -82,7 +89,15 @@
       <n-tabs
         v-else-if="isTabsNode(node)"
         :type="resolveTabsType(node.props?.type)"
+        :size="node.props?.size || 'medium'"
         :placement="resolveTabsPlacement(node.props?.placement || node.props?.tabPosition)"
+        :trigger="node.props?.trigger || 'click'"
+        :animated="node.props?.animated !== false"
+        :closable="!!node.props?.closable"
+        :addable="!!node.props?.addable"
+        :justify-content="node.props?.justifyContent"
+        :tabs-padding="node.props?.tabsPadding"
+        :default-value="resolveFirstPaneKey(node, 'tabPane')"
         :style="resolveLayoutStyle(node)"
         :class="resolveLayoutClass(node, 'af-layout-tabs')"
       >
@@ -93,7 +108,11 @@
           :tab="pane.label || pane.props?.label || '标签页'"
           :disabled="!!pane.props?.disabled"
         >
+          <div v-if="!hasVisibleChildren(pane)" class="af-layout-empty-placeholder">
+            暂无内容
+          </div>
           <AiFormLayoutNodes
+            v-else
             :nodes="pane.children || []"
             :form-value="formValue"
             :item-context="itemContext"
@@ -101,6 +120,7 @@
             :x-gap="xGap"
             :y-gap="yGap"
             :show-feedback="showFeedback"
+            :keep-empty-layout-nodes="keepEmptyLayoutNodes"
             @field-change="(...args) => emit('fieldChange', ...args)"
             @node-action="(...args) => emit('nodeAction', ...args)"
           >
@@ -114,6 +134,7 @@
       <n-collapse
         v-else-if="isCollapseNode(node)"
         :accordion="!!node.props?.accordion"
+        :default-expanded-names="resolveCollapseDefaultNames(node)"
         :style="resolveLayoutStyle(node)"
         :class="resolveLayoutClass(node, 'af-layout-collapse')"
       >
@@ -124,7 +145,11 @@
           :title="item.label || item.props?.title || '分组'"
           :disabled="!!item.props?.disabled"
         >
+          <div v-if="!hasVisibleChildren(item)" class="af-layout-empty-placeholder">
+            暂无内容
+          </div>
           <AiFormLayoutNodes
+            v-else
             :nodes="item.children || []"
             :form-value="formValue"
             :item-context="itemContext"
@@ -132,6 +157,7 @@
             :x-gap="xGap"
             :y-gap="yGap"
             :show-feedback="showFeedback"
+            :keep-empty-layout-nodes="keepEmptyLayoutNodes"
             @field-change="(...args) => emit('fieldChange', ...args)"
             @node-action="(...args) => emit('nodeAction', ...args)"
           >
@@ -175,9 +201,13 @@
           :dashed="!!node.props?.dashed"
           :round="!!node.props?.round"
           :block="!!node.props?.block"
+          :loading="!!node.props?.loading"
           :disabled="resolveNodeDisabled(node)"
           @click="handleButtonClick(node)"
         >
+          <template v-if="node.props?.icon" #icon>
+            <IconRenderer :icon="node.props.icon" :size="16" />
+          </template>
           {{ node.props?.text || node.label || '按钮' }}
         </n-button>
       </div>
@@ -195,6 +225,7 @@
           :x-gap="0"
           :y-gap="0"
           :show-feedback="showFeedback"
+          :keep-empty-layout-nodes="keepEmptyLayoutNodes"
           @field-change="(...args) => emit('fieldChange', ...args)"
           @node-action="(...args) => emit('nodeAction', ...args)"
         >
@@ -217,6 +248,7 @@
           :x-gap="xGap"
           :y-gap="yGap"
           :show-feedback="showFeedback"
+          :keep-empty-layout-nodes="keepEmptyLayoutNodes"
           @field-change="(...args) => emit('fieldChange', ...args)"
           @node-action="(...args) => emit('nodeAction', ...args)"
         >
@@ -250,6 +282,7 @@
         :x-gap="xGap"
         :y-gap="yGap"
         :show-feedback="showFeedback"
+        :keep-empty-layout-nodes="keepEmptyLayoutNodes"
         @field-change="(...args) => emit('fieldChange', ...args)"
         @node-action="(...args) => emit('nodeAction', ...args)"
       >
@@ -259,6 +292,15 @@
       </AiFormLayoutNodes>
     </n-gi>
 
+    <!-- 设计器预览：空容器（刚拖入的栅格列/卡片/标签页等）渲染可见占位，避免预览一片空白 -->
+    <n-gi
+      v-if="keepEmptyLayoutNodes && !visibleNodes.length"
+      :span="gridCols"
+      class="af-empty-layout-placeholder"
+    >
+      空容器
+    </n-gi>
+
     <slot name="gridAppend" />
   </n-grid>
 </template>
@@ -266,6 +308,7 @@
 <script setup>
 import { computed, defineAsyncComponent, useSlots } from 'vue'
 import { useRoute } from 'vue-router'
+import IconRenderer from '@/components/IconRenderer.vue'
 import { isPageWidgetComponentKey } from '@/components/lowcode-builder/shared/page-widget-schema'
 import PageWidgetRenderer from '@/components/lowcode-builder/shared/PageWidgetRenderer.vue'
 import { applyRuntimeControl, resolveRuntimeControl } from '@/components/lowcode-builder/shared/runtime-rules'
@@ -306,6 +349,11 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  // 设计器预览模式：空布局容器渲染可见占位（与 AiForm.keepEmptyLayoutNodes 配套）
+  keepEmptyLayoutNodes: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['fieldChange', 'nodeAction'])
@@ -337,6 +385,9 @@ function buildNodeRuleContext(extra = {}) {
 }
 
 function isFieldNode(node = {}) {
+  // widget 虚拟组件（nodeType: 'widget'）由 AiFormItem 内部的 PageWidgetRenderer 渲染
+  if (node.nodeType === 'widget')
+    return true
   return (!node.nodeType && !isKnownLayoutNode(node)) || node.nodeType === 'field'
 }
 
@@ -349,14 +400,21 @@ function resolveNodeSpan(node = {}) {
     return Math.max(1, Math.min(cols, Number.isFinite(raw) && raw > 0 ? raw : cols))
   if (!Number.isFinite(raw) || raw <= 0)
     return 1
-  // 设计器常按 24 栅格写入 span=24/整行。运行列数更少时按一格平铺，避免每个字段独占一行。
-  if (isFieldNode(node) && cols > 1 && (raw >= 24 || raw >= cols))
-    return 1
+  // span 语义 = 相对父容器列数（与设计器画布 ForgeFormCanvasNode 的 min(parentCols, span) 一致）：
+  // n-grid(cols=N) + n-gi(span=S<=N) 与 CSS grid repeat(N,1fr) + grid-column:span S 完全同义。
+  // 历史上这里曾有「span>=24 或 span>=cols 时强制归 1」的补丁，导致设计态整行(span=24)预览变 1/24、
+  // 半行(span>=cols)预览变一格，设计/预览严重不一致，已按统一语义移除。
   return Math.max(1, Math.min(cols, raw))
 }
 
 function resolveNodeKey(node = {}) {
-  return node.key || node.field || node.id || `${node.nodeType || node.type || 'node'}_${node.label || ''}`
+  // key 唯一性优先级：显式 key > 组件 id > field。
+  // 设计器复制组件（duplicateDesignerComponent→rewriteComponentIds）只重写 id、保留
+  // fieldBinding.fieldCode，运行态 node.field 与原件相同；若 field 优先会产生重复 key，
+  // 导致预览 diff 时丢节点/崩溃（isSameVNodeType null、patchElement 设置 __vnode 于 null el）。
+  // 设计器 schema 的组件 id 由 normalizeFormDesignerSchema 保证唯一；无 id 的手写 schema
+  // 仍回退 field，与历史行为一致。
+  return node.key || node.id || node.field || `${node.nodeType || node.type || 'node'}_${node.label || ''}`
 }
 
 function resolveGap(value, fallback) {
@@ -370,7 +428,7 @@ function resolveRowColumns(node = {}) {
 }
 
 function resolveTabsType(value) {
-  return value === 'card' ? 'card' : 'line'
+  return ['card', 'segment'].includes(value) ? value : 'line'
 }
 
 function resolveTabsPlacement(value) {
@@ -388,6 +446,21 @@ function resolvePaneChildren(node = {}, paneType) {
     props: {},
     children,
   }]
+}
+
+function resolveFirstPaneKey(node = {}, paneType) {
+  const panes = resolvePaneChildren(node, paneType)
+  return panes.length ? resolveNodeKey(panes[0]) : undefined
+}
+
+function resolveCollapseDefaultNames(node = {}) {
+  const panes = resolvePaneChildren(node, 'collapseItem')
+  return panes.map(pane => resolveNodeKey(pane))
+}
+
+function hasVisibleChildren(node = {}) {
+  const children = Array.isArray(node.children) ? node.children : []
+  return children.some(child => child && typeof child === 'object')
 }
 
 function resolveNodeType(node = {}) {
@@ -633,6 +706,17 @@ function isLegacyGroupTitleNode(node = {}) {
   min-width: 0;
 }
 
+.af-empty-layout-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  font-size: 12px;
+  color: #94a3b8;
+  border: 1px dashed #cbd5e1;
+  border-radius: 3px;
+}
+
 .af-layout-card,
 .af-layout-tabs,
 .af-layout-collapse {
@@ -641,6 +725,19 @@ function isLegacyGroupTitleNode(node = {}) {
 
 .af-layout-card :deep(.n-card__content) {
   padding-top: 12px;
+}
+
+.af-layout-empty-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 12px;
+  color: #a1a1aa;
+  font-size: 12px;
+  border: 1px dashed #d4d4d8;
+  border-radius: 4px;
+  background: #fafafa;
 }
 
 .af-layout-button {
@@ -685,7 +782,7 @@ function isLegacyGroupTitleNode(node = {}) {
   min-height: 56px;
   padding: 12px;
   border-right: 1px solid #e2e8f0;
-  //border-bottom: 1px solid #e2e8f0;
+  /* border-bottom: 1px solid #e2e8f0; */
 }
 
 .af-layout-table-cell.is-borderless {

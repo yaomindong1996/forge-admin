@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/ai_plugin/client_context_prompt_skill
+title: AI 客户端调用与上下文/提示词模板管理
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/client/
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/context/
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/prompt/
+source_files: []
+depends_on: []
+related_to: []

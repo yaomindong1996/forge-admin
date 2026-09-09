@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/starter_parent/data_access
+title: 数据访问基础能力 Starter（缓存/ORM/ID/字典翻译）
+scope:
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-cache/
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-orm/
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-id/
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-trans/
+source_files: []
+depends_on: []
+related_to: []

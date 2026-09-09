@@ -282,122 +282,23 @@
       </n-radio-group>
     </div>
     <div class="designer-preview-runtime">
-      <template v-for="section in previewSections" :key="section.id">
-        <AiForm
-          v-if="section.kind === 'form'"
-          class="designer-preview-runtime-form"
-          :schema="section.schema"
-          :value="section.value"
-          :label-placement="previewLayout.labelPlacement || 'left'"
-          :label-width="previewLayout.labelWidth ?? 'auto'"
-          :label-align="previewLayout.labelAlign || 'right'"
-          :size="previewLayout.size || 'medium'"
-          :grid-cols="previewLayout.gridCols || previewLayout.gridColumns || 1"
-          :x-gap="previewLayout.xGap || previewLayout.columnGap || 12"
-          :y-gap="previewLayout.yGap || previewLayout.rowGap || 0"
-          :show-actions="false"
-          :show-feedback="previewLayout.showFeedback !== false"
-          :context="previewRuntimeContext"
-          :form-assets="formAssets"
-        />
-        <n-card
-          v-else-if="section.componentKey === 'card'"
-          class="designer-preview-runtime-card"
-          :title="section.component.label || section.component.props?.title"
-          size="small"
-          embedded
-        >
-          <AiForm
-            v-if="section.childSchema.length"
-            :schema="section.childSchema"
-            :value="section.childValue"
-            :label-placement="previewLayout.labelPlacement || 'left'"
-            :label-width="previewLayout.labelWidth ?? 'auto'"
-            :label-align="previewLayout.labelAlign || 'right'"
-            :size="previewLayout.size || 'medium'"
-            :grid-cols="previewLayout.gridCols || previewLayout.gridColumns || 1"
-            :show-actions="false"
-            :form-assets="formAssets"
-            :context="previewRuntimeContext"
-          />
-        </n-card>
-        <n-tabs
-          v-else-if="section.componentKey === 'tabs'"
-          class="designer-preview-runtime-tabs"
-          type="line"
-          animated
-        >
-          <n-tab-pane
-            v-for="tab in getRuntimeTabs(section.component)"
-            :key="tab.key"
-            :name="tab.key"
-            :tab="tab.label"
-          >
-            <AiForm
-              v-if="tab.schema.length"
-              :schema="tab.schema"
-              :value="tab.value"
-              :label-placement="previewLayout.labelPlacement || 'left'"
-              :label-width="previewLayout.labelWidth ?? 'auto'"
-              :label-align="previewLayout.labelAlign || 'right'"
-              :size="previewLayout.size || 'medium'"
-              :grid-cols="previewLayout.gridCols || previewLayout.gridColumns || 1"
-              :show-actions="false"
-              :form-assets="formAssets"
-              :context="previewRuntimeContext"
-            />
-          </n-tab-pane>
-        </n-tabs>
-        <n-collapse
-          v-else-if="section.componentKey === 'collapse'"
-          class="designer-preview-runtime-collapse"
-        >
-          <n-collapse-item
-            v-for="panel in getRuntimeCollapsePanels(section.component)"
-            :key="panel.key"
-            :name="panel.key"
-            :title="panel.label"
-          >
-            <AiForm
-              v-if="panel.schema.length"
-              :schema="panel.schema"
-              :value="panel.value"
-              :label-placement="previewLayout.labelPlacement || 'left'"
-              :label-width="previewLayout.labelWidth ?? 'auto'"
-              :label-align="previewLayout.labelAlign || 'right'"
-              :size="previewLayout.size || 'medium'"
-              :grid-cols="previewLayout.gridCols || previewLayout.gridColumns || 1"
-              :show-actions="false"
-              :form-assets="formAssets"
-              :context="previewRuntimeContext"
-            />
-          </n-collapse-item>
-        </n-collapse>
-        <component
-          :is="RuntimeAiFormGroupTitle"
-          v-else-if="isGroupTitleRuntimeComponent(section.componentKey)"
-          class="designer-preview-runtime-section-title"
-          v-bind="buildGroupTitleRuntimeProps(section.component)"
-        />
-        <component
-          :is="RuntimeAiFormSectionTitle"
-          v-else-if="isFormDividerRuntimeComponent(section.componentKey)"
-          v-bind="buildSectionTitleRuntimeProps(section.component)"
-        />
-        <n-divider v-else-if="section.componentKey === 'divider'">
-          {{ section.component.label || section.component.props?.title }}
-        </n-divider>
-        <component
-          :is="RuntimeAiCrudPage"
-          v-else-if="isCrudRuntimeComponent(section.componentKey)"
-          class="designer-preview-runtime-crud"
-          v-bind="buildCrudRuntimeProps(section.component)"
-        />
-        <div v-else class="designer-preview-runtime-placeholder">
-          <span>{{ section.component.label || section.componentKey }}</span>
-          <small>该区块暂未接入运行态组件</small>
-        </div>
-      </template>
+      <AiForm
+        class="designer-preview-runtime-form"
+        :schema="previewSchema"
+        :value="previewValue"
+        :label-placement="previewLayout.labelPlacement || 'left'"
+        :label-width="previewLayout.labelWidth ?? 'auto'"
+        :label-align="previewLayout.labelAlign || 'right'"
+        :size="previewLayout.size || 'medium'"
+        :grid-cols="previewGridCols"
+        :x-gap="previewLayout.xGap || previewLayout.columnGap || 12"
+        :y-gap="previewLayout.yGap || previewLayout.rowGap || 0"
+        :show-actions="false"
+        :show-feedback="previewLayout.showFeedback !== false"
+        :context="previewRuntimeContext"
+        :form-assets="formAssets"
+        :keep-empty-layout-nodes="true"
+      />
     </div>
   </n-modal>
 
@@ -478,6 +379,7 @@ import AiForm from '@/components/ai-form/AiForm.vue'
 import AiFormGroupTitle from '@/components/ai-form/AiFormGroupTitle.vue'
 import AiFormSectionTitle from '@/components/ai-form/AiFormSectionTitle.vue'
 import { normalizeRecordSelectorConfig as normalizeRuntimeRecordSelectorConfig } from '@/components/ai-form/record-selector-utils'
+import { isPageWidgetComponentKey } from '@/components/lowcode-builder/shared/page-widget-schema'
 import { buildLegacyLinkageSchema } from '../form-first/field-linkage-config'
 import { repairFormDesignerFieldRefs } from '../form-first/fieldReferenceUtils'
 import { extractForgeSchemaFieldRefs } from '../form-first/forgeToFormCreate'
@@ -591,6 +493,7 @@ const baseDesignerMoreOptions = [
   { label: '按字段生成', key: 'resetFromFields' },
   { label: '清理失效字段', key: 'repairRefs' },
   { label: '底部操作栏', key: 'configureBottomBar' },
+  { label: '打印表单', key: 'printDesign' },
 ]
 
 const normalizedSchema = computed(() => normalizeFormDesignerSchema(props.modelValue || createDefaultFormDesignerSchema({
@@ -599,7 +502,14 @@ const normalizedSchema = computed(() => normalizeFormDesignerSchema(props.modelV
   fields: props.fields,
 })))
 const previewLayout = computed(() => normalizedSchema.value.layout || {})
-const previewSections = computed(() => buildRuntimePreviewSections(normalizedSchema.value, previewMode.value))
+// 预览列数与设计器画布（ForgeFormCanvasNode.rootColumns）完全同源：默认 2 列、clamp 1-24，
+// 避免「设计默认 2 列 / 预览兕底 1 列」导致设计/预览不一致
+const previewGridCols = computed(() => {
+  const raw = Number(previewLayout.value.gridCols || previewLayout.value.gridColumns) || 2
+  return Math.max(1, Math.min(24, raw))
+})
+const previewSchema = computed(() => buildRuntimeFormSchema(normalizedSchema.value, previewMode.value))
+const previewValue = computed(() => buildRuntimeFormValue(normalizedSchema.value, previewMode.value))
 const usedFieldSet = computed(() => new Set(extractForgeSchemaFieldRefs(normalizedSchema.value || {})))
 const formAssets = computed(() => Array.isArray(normalizedSchema.value.settings?.formAssets) ? normalizedSchema.value.settings.formAssets : [])
 const designerMoreOptions = computed(() => [
@@ -786,10 +696,22 @@ function handleDesignerMoreSelect(key = '') {
     resetFromFields()
     return
   }
+  if (key === 'printDesign') {
+    openPrintPreview()
+    return
+  }
   if (key === 'repairRefs')
     repairRefs()
   else
     emit('moreSelect', key)
+}
+
+/** 打开预览并触发浏览器打印，像 Word 一样输出当前表单设计稿 */
+function openPrintPreview() {
+  previewDialogVisible.value = true
+  nextTick(() => {
+    setTimeout(() => window.print(), 400)
+  })
 }
 
 function confirmClearCanvas() {
@@ -1005,9 +927,7 @@ const renameDialogVisible = ref(false)
 const renameFormName = ref('')
 const previewDialogVisible = ref(false)
 
-const RuntimeAiCrudPage = AiCrudPage
-const RuntimeAiFormGroupTitle = AiFormGroupTitle
-const RuntimeAiFormSectionTitle = AiFormSectionTitle
+// Runtime component aliases removed — preview now delegates to AiForm + AiFormLayoutNodes
 
 const componentTypeAlias = {
   text: 'input',
@@ -1277,7 +1197,39 @@ function resolveRuntimeNodeType(componentKey = '') {
 
 function buildRuntimeFormSchema(schema, mode = 'create') {
   const components = Array.isArray(schema) ? schema : schema?.components || []
-  return components.map(component => normalizeRuntimeComponent(component, mode)).filter(Boolean)
+  return components.map(component => preparePreviewNode(component)).filter(Boolean)
+}
+
+/**
+ * 预览专用：为 AiForm + AiFormLayoutNodes 补齐 nodeType，不做运行时属性注入。
+ * 避免 normalizeRuntimeComponent 添加的 hidden/visibility/disabled/readonly/required/rules
+ * 干扰 AiForm 内部的 filterVisibleNodes 和 applyRuntimeControl 逻辑。
+ */
+function preparePreviewNode(component) {
+  if (!component || typeof component !== 'object')
+    return null
+  const componentKey = component.componentKey || component.type || 'input'
+  const nodeType = resolveRuntimeNodeType(componentKey)
+  const children = Array.isArray(component.children)
+    ? component.children.map(child => preparePreviewNode(child)).filter(Boolean)
+    : []
+  const isWidget = isPageWidgetComponentKey(componentKey)
+  const result = {
+    ...component,
+    componentKey,
+    children,
+    ...(isWidget ? { fieldBinding: { ...(component.fieldBinding || {}), mode: component.fieldBinding?.mode || 'virtual' } } : {}),
+  }
+  if (nodeType) {
+    result.nodeType = nodeType
+    if (nodeType !== 'field') {
+      delete result.field
+      delete result.prop
+      delete result.path
+      delete result.name
+    }
+  }
+  return result
 }
 
 function getDefaultRuntimeValue(component, mode = 'create') {
@@ -1348,34 +1300,6 @@ function buildRuntimeFormValue(schema, mode = 'create') {
   }, {})
 }
 
-const runtimeBlockComponentKeys = new Set([
-  'crud',
-  'crudBlock',
-  'AiCrudPage',
-  'aiCrudPage',
-  'card',
-  'tabs',
-  'collapse',
-  'divider',
-  'elDivider',
-  'sectionTitle',
-  'title',
-  'fcTitle',
-  'groupTitle',
-  'formSectionTitle',
-  'FormSectionTitle',
-  'groupHeader',
-  'GroupHeader',
-  'titleBlock',
-  'section',
-  'AiFormSectionTitle',
-  'aiFormSectionTitle',
-])
-
-function isRuntimeBlockComponent(component) {
-  return runtimeBlockComponentKeys.has(component?.componentKey || component?.type)
-}
-
 function isCrudRuntimeComponent(componentKey) {
   return ['crud', 'crudBlock', 'AiCrudPage', 'aiCrudPage'].includes(componentKey)
 }
@@ -1404,160 +1328,9 @@ function isFormDividerRuntimeComponent(componentKey) {
   ].includes(componentKey)
 }
 
-function buildGroupTitleRuntimeProps(component) {
-  return {
-    ...(component?.props || {}),
-    title: component?.props?.title || component?.label || '分组标题',
-    label: component?.label || component?.props?.title || '分组标题',
-  }
-}
-
-function buildSectionTitleRuntimeProps(component) {
-  return {
-    ...(component?.props || {}),
-    title: component?.props?.title || component?.label || '表单分隔线',
-    label: component?.label || component?.props?.title || '表单分隔线',
-  }
-}
-
-function createRuntimeFormSection(components, index, mode = 'create') {
-  const schema = buildRuntimeFormSchema(components, mode)
-  return {
-    id: `form-${index}`,
-    kind: 'form',
-    schema,
-    value: buildRuntimeFormValue(components, mode),
-  }
-}
-
-function createRuntimeBlockSection(component, index, mode = 'create') {
-  const componentKey = component?.componentKey || component?.type
-  const childSchema = buildRuntimeFormSchema(component?.children || [], mode)
-  return {
-    id: component?.id || `${componentKey}-${index}`,
-    kind: 'block',
-    componentKey,
-    component,
-    childSchema,
-    childValue: buildRuntimeFormValue(component?.children || [], mode),
-  }
-}
-
-function buildRuntimePreviewSections(schema, mode = 'create') {
-  const normalized = normalizeFormDesignerSchema(schema || {})
-  const sections = []
-  let formBuffer = []
-
-  ;(normalized.components || []).forEach((component, index) => {
-    if (isRuntimeBlockComponent(component)) {
-      if (formBuffer.length) {
-        sections.push(createRuntimeFormSection(formBuffer, sections.length, mode))
-        formBuffer = []
-      }
-      sections.push(createRuntimeBlockSection(component, index, mode))
-      return
-    }
-    formBuffer.push(component)
-  })
-
-  if (formBuffer.length) {
-    sections.push(createRuntimeFormSection(formBuffer, sections.length, mode))
-  }
-
-  return sections
-}
-
-function normalizeRuntimeContainerItems(component, fallbackLabel) {
-  const items = component?.props?.items || component?.props?.tabs || component?.props?.panels || component?.children || []
-  if (!Array.isArray(items) || !items.length) {
-    return [{
-      key: `${component?.id || fallbackLabel}-default`,
-      label: component?.label || component?.props?.title || fallbackLabel,
-      children: component?.children || [],
-    }]
-  }
-
-  return items.map((item, index) => ({
-    key: item.key || item.name || item.value || `${component?.id || fallbackLabel}-${index}`,
-    label: item.label || item.title || item.name || `${fallbackLabel}${index + 1}`,
-    children: item.children || item.components || [],
-  }))
-}
-
-function getRuntimeTabs(component) {
-  return normalizeRuntimeContainerItems(component, '标签').map(tab => ({
-    ...tab,
-    schema: buildRuntimeFormSchema(tab.children, previewMode.value),
-    value: buildRuntimeFormValue(tab.children, previewMode.value),
-  }))
-}
-
-function getRuntimeCollapsePanels(component) {
-  return normalizeRuntimeContainerItems(component, '面板').map(panel => ({
-    ...panel,
-    schema: buildRuntimeFormSchema(panel.children, previewMode.value),
-    value: buildRuntimeFormValue(panel.children, previewMode.value),
-  }))
-}
-
-function getCrudSearchComponents(component) {
-  return (component?.children || []).filter((child) => {
-    const key = child?.componentKey || child?.type
-    return key !== 'table' && key !== 'tableGrid'
-  })
-}
-
-function getCrudTableComponent(component) {
-  return (component?.children || []).find((child) => {
-    const key = child?.componentKey || child?.type
-    return key === 'table'
-  })
-}
-
-function getCrudColumns(component) {
-  const propsColumns = component?.props?.columns || component?.props?.schema
-  if (Array.isArray(propsColumns) && propsColumns.length)
-    return propsColumns
-
-  const table = getCrudTableComponent(component)
-  const tableColumns = table?.props?.columns
-  if (Array.isArray(tableColumns) && tableColumns.length)
-    return tableColumns
-
-  const tableChildren = table?.children || []
-  return tableChildren
-    .flatMap(cell => cell?.children || [])
-    .map(child => normalizeRuntimeComponent(child))
-    .filter(Boolean)
-}
-
-function buildCrudRuntimeProps(component) {
-  const searchComponents = getCrudSearchComponents(component)
-  const columns = getCrudColumns(component)
-  const runtimeColumns = columns.length
-    ? columns
-    : [{
-        title: '暂无列配置',
-        key: '__empty',
-        field: '__empty',
-        prop: '__empty',
-        component: 'input',
-        type: 'input',
-      }]
-  const crudOptions = component?.props?.crudOptions || {}
-
-  return {
-    ...crudOptions,
-    ...(component?.props || {}),
-    title: component?.props?.title || component?.label,
-    apiConfig: component?.props?.apiConfig || component?.props?.api || {},
-    rowKey: component?.props?.rowKey || 'id',
-    schema: runtimeColumns,
-    columns: runtimeColumns,
-    formAssets: formAssets.value,
-    searchSchema: component?.props?.searchSchema || component?.props?.querySchema || buildRuntimeFormSchema(searchComponents, previewMode.value),
-  }
-}
+// ─── Preview section-split helpers removed ───
+// Preview now passes the full normalized schema to AiForm + AiFormLayoutNodes,
+// which handles tabs / card / collapse / divider / crud natively.
 
 if (typeof window !== 'undefined') {
   window.addEventListener('forge-form-designer:preview-current-form', () => {
@@ -2471,5 +2244,79 @@ onBeforeUnmount(() => {
 
 .designer-preview-runtime-fallback small {
   color: #64748b;
+}
+</style>
+
+<!-- 全局打印样式：仅打印表单/列表设计预览内容 -->
+<style>
+@media print {
+  /* 隐藏页面所有常规元素 */
+  body > *:not(.n-modal-container),
+  .n-modal-container .n-card-header,
+  .n-modal-container .n-card__close,
+  .n-modal-container .designer-preview-toolbar,
+  .forge-form-designer > aside,
+  .forge-form-designer > main,
+  .business-list-designer > .list-designer-head,
+  .business-list-designer > .list-page-switch,
+  .business-list-designer > .list-designer-body > .list-designer-left,
+  .business-list-designer > .list-designer-body > .list-designer-right,
+  .n-modal-overlay,
+  .n-modal-mask {
+    display: none !important;
+  }
+
+  body,
+  html {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+  }
+
+  /* 让模态框铺满打印页 */
+  .n-modal-container,
+  .n-modal-body-wrapper,
+  .n-modal-body {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+  }
+
+  .n-card {
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .n-card__content {
+    padding: 0 !important;
+  }
+
+  /* 打印预览内容铺满 */
+  .designer-preview-runtime,
+  .list-preview-modal .n-card__content {
+    padding: 12mm !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* 避免组件在分页处断裂 */
+  .ai-form-section,
+  .n-form-item,
+  .n-card,
+  .n-data-table,
+  .n-collapse-item {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
 }
 </style>

@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: forge_server
+title: Forge Server 多服务聚合工程
+scope:
+    - forge-server/
+source_files: []
+depends_on: []
+related_to: []

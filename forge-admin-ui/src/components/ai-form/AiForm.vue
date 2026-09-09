@@ -46,6 +46,7 @@
           :x-gap="xGap"
           :y-gap="yGap"
           :show-feedback="showFeedback"
+          :keep-empty-layout-nodes="keepEmptyLayoutNodes"
           @field-change="handleFieldChange"
           @node-action="handleNodeAction"
         >
@@ -149,6 +150,7 @@ import { ChevronDownOutline, ChevronUpOutline } from '@vicons/ionicons5'
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, useSlots, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { executeLowcodeQuerySource } from '@/api/lowcode-query-source'
+import { isPageWidgetComponentKey } from '@/components/lowcode-builder/shared/page-widget-schema'
 import { resolveRuntimeControl } from '@/components/lowcode-builder/shared/runtime-rules'
 import { scan as scanCollaborationCode } from '@/utils/collaboration-runtime'
 import { createFieldPermissionMap } from '@/utils/field-permissions'
@@ -269,6 +271,12 @@ const props = defineProps({
   fieldEventLoadToken: {
     type: [String, Number],
     default: '',
+  },
+  // 设计器预览模式：保留空布局容器（刚拖入、尚未放置字段的栅格/卡片/标签页等），
+  // 默认 false 维持运行态语义——发布后的表单里空容器不渲染。
+  keepEmptyLayoutNodes: {
+    type: Boolean,
+    default: false,
   },
 })
 
@@ -732,6 +740,7 @@ function normalizeDesignerComponentForRuntime(component = {}) {
   const children = Array.isArray(component.children)
     ? component.children.map(normalizeDesignerComponentForRuntime).filter(Boolean)
     : []
+  const isWidget = isPageWidgetComponentKey(componentKey)
   const base = {
     ...component,
     ...(component.props || {}),
@@ -752,6 +761,7 @@ function normalizeDesignerComponentForRuntime(component = {}) {
       disabled: Boolean(component.visibility?.readonly || component.props?.disabled),
     },
     children,
+    ...(isWidget ? { fieldBinding: { ...(component.fieldBinding || {}), mode: component.fieldBinding?.mode || 'virtual' } } : {}),
   }
   if (nodeType) {
     base.nodeType = nodeType
@@ -1009,7 +1019,7 @@ function filterVisibleNodes(nodes = []) {
         return null
       if (isRuntimeLayoutNode(node)) {
         const children = filterVisibleNodes(node.children || [])
-        if (!children.length && !isStandaloneRuntimeLayoutNode(node))
+        if (!children.length && !isStandaloneRuntimeLayoutNode(node) && !props.keepEmptyLayoutNodes)
           return null
         return {
           ...node,
@@ -1040,6 +1050,9 @@ function flattenFieldNodes(nodes = []) {
 }
 
 function isRuntimeLayoutNode(node = {}) {
+  // widget 虚拟组件是叶子节点，交给 AiFormItem → PageWidgetRenderer 渲染，不算布局节点
+  if (node.nodeType === 'widget')
+    return false
   return node.nodeType && node.nodeType !== 'field'
 }
 
@@ -1132,7 +1145,13 @@ function isGroupTitleNode(node = {}) {
 }
 
 function isStandaloneRuntimeLayoutNode(node = {}) {
-  return isDividerNode(node) || isGroupTitleNode(node) || isActionRuntimeNode(node)
+  return isDividerNode(node) || isGroupTitleNode(node) || isActionRuntimeNode(node) || isContainerLayoutNode(node)
+}
+
+function isContainerLayoutNode(node = {}) {
+  const type = node.type || node.nodeType || node.componentKey || ''
+  return ['row', 'fcRow', 'col', 'card', 'elCard', 'tabs', 'elTabs', 'collapse', 'elCollapse']
+    .includes(type)
 }
 
 function isActionRuntimeNode(node = {}) {

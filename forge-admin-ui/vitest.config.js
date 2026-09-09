@@ -1,6 +1,7 @@
 import path from 'node:path'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vitest/config'
+import { pluginIcons } from './build/plugin-isme/icons.js'
 
 /**
  * Vitest 独立配置。
@@ -12,7 +13,7 @@ import { defineConfig } from 'vitest/config'
  * jsdom 环境提供 DOMParser、document、EventTarget、KeyboardEvent 等浏览器 API。
  */
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue(), pluginIcons()],
   resolve: {
     alias: {
       '@': path.resolve(process.cwd(), 'src'),

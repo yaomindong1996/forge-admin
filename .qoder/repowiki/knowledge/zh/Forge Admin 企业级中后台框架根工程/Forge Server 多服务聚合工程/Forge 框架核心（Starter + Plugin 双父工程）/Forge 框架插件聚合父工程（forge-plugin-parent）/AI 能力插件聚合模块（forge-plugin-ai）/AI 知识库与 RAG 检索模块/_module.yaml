@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag
+title: AI 知识库与 RAG 检索模块
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/rag/
+source_files: []
+depends_on: []
+related_to: []

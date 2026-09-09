@@ -1,0 +1,91 @@
+/**
+ * DesignerGridRenderer — 统一栅格渲染样式
+ * @description 表单设计器和列表设计器共用：统一的 CSS Grid 布局、格子边框、拖放态。
+ *   颜色遵循 DESIGN.md：主题色 #2563eb、border 虚线 rgba(148,163,184,0.42)。
+ */
+
+/* ─── 栅格容器 ─────────────────────────────────────────────── */
+.designer-grid-renderer {
+  display: grid;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  min-height: 100%;
+}
+
+/* ─── 栅格格子 ─────────────────────────────────────────────── */
+.designer-grid-cell {
+  position: relative;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 6px;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease;
+}
+
+.designer-grid-cell.has-border {
+  border: 1px dashed rgba(148, 163, 184, 0.42);
+}
+
+/* 格子内部 hover / drop-active 高亮 */
+.designer-grid-cell:hover {
+  background-color: rgba(37, 99, 235, 0.04);
+}
+
+/* drop-active 状态（由各设计器通过 :class 或父级 class 驱动） */
+.designer-grid-cell.is-drop-active {
+  background-color: rgba(37, 99, 235, 0.06);
+}
+
+.designer-grid-cell.is-drop-active::after {
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  content: '';
+  border: 2px solid rgba(37, 99, 235, 0.72);
+  border-radius: 7px;
+  background: rgba(37, 99, 235, 0.06);
+}
+
+/* ─── 格子内容区 ───────────────────────────────────────────── */
+.designer-grid-cell-body {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ─── 空格子占位 ───────────────────────────────────────────── */
+.designer-grid-cell-empty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 48px;
+  border: 1px dashed rgba(148, 163, 184, 0.28);
+  border-radius: 4px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+/* ─── 容器空态 ─────────────────────────────────────────────── */
+.designer-grid-empty {
+  grid-column: 1 / -1;
+  display: grid;
+  place-items: center;
+  min-height: 80px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+/* ─── 预览模式（非设计器）────────────────────────────────── */
+.designer-grid-renderer.is-preview .designer-grid-cell {
+  border-color: transparent;
+  padding: 0;
+}
+
+.designer-grid-renderer.is-preview .designer-grid-cell-empty {
+  display: none;
+}

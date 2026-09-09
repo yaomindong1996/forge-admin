@@ -10,7 +10,14 @@
       @keydown.enter.self.prevent="emit('enter', application)"
     >
       <header class="application-card-head">
-        <span class="application-icon">
+        <span
+          class="application-icon"
+          :class="{
+            'is-draft': isDraftApplication(application) && !application.lastPublishVersion,
+            'is-changed': isUnpublishedApplication(application),
+            'is-published': application.lastPublishVersion && !isUnpublishedApplication(application),
+          }"
+        >
           <IconRenderer v-if="application.icon" :icon="application.icon" :size="16" />
           <i v-else class="i-lucide:layout-dashboard" />
         </span>
@@ -31,43 +38,31 @@
         </span>
       </header>
 
-      <div class="application-tags">
+      <div class="application-meta-row">
         <span class="application-badge" :title="application.suiteCode">
-          {{ application.suiteName || application.suiteCode || '未关联业务域' }}
+          {{ application.suiteName || application.suiteCode || '未分组' }}
         </span>
-        <span class="application-badge">{{ application.pageCount || 0 }} 个页面</span>
-      </div>
-
-      <div class="application-body">
-        <div
-          class="application-binding"
-          :class="{ empty: !application.lastPublishVersion, warning: isUnpublishedApplication(application) }"
+        <span class="application-badge">{{ application.pageCount || 0 }} 页</span>
+        <span
+          class="application-version"
+          :class="{ warning: isUnpublishedApplication(application), empty: !application.lastPublishVersion }"
         >
           <i class="i-lucide:git-branch" />
-          <span v-if="isUnpublishedApplication(application)" class="problem-text">
-            有变更未发布
-          </span>
-          <span v-else-if="application.lastPublishVersion">
-            已发布 {{ publishVersionText(application) }}
-          </span>
+          <span v-if="isUnpublishedApplication(application)" class="problem-text">有变更未发布</span>
+          <span v-else-if="application.lastPublishVersion">已发布 v{{ application.lastPublishVersion }}</span>
           <span v-else>尚未发布</span>
-        </div>
-        <p class="application-description">
-          {{ application.description || '尚未补充应用说明' }}
-        </p>
+        </span>
       </div>
 
+      <p v-if="application.description" class="application-description">
+        {{ application.description }}
+      </p>
+
       <footer class="application-card-foot">
-        <div class="application-meta">
-          <span>
-            <i class="i-lucide:calendar" />
-            {{ formatDate(application.updateTime) }}
-          </span>
-          <span>
-            <i class="i-lucide:git-commit" />
-            {{ publishVersionText(application) }}
-          </span>
-        </div>
+        <span class="application-date">
+          <i class="i-lucide:calendar" />
+          {{ formatDate(application.updateTime) }}
+        </span>
 
         <div class="application-actions" @click.stop>
           <button type="button" class="application-action-link" @click="emit('enter', application)">
@@ -141,10 +136,6 @@ function isUnpublishedApplication(application) {
   return Boolean(application?.lastPublishVersion) && ['DRAFT', 'READY', 'CHANGED'].includes(status)
 }
 
-function publishVersionText(application) {
-  return application?.lastPublishVersion ? `v${application.lastPublishVersion}` : '未发布'
-}
-
 function handleAction(key, application) {
   if (key === 'enter')
     emit('enter', application)
@@ -183,23 +174,23 @@ function formatDate(value) {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
   align-content: start;
-  gap: 10px;
+  gap: 14px;
   min-width: 0;
   min-height: 100%;
-  padding: 10px;
+  padding: 14px;
 }
 
 .application-card {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 158px;
+  min-height: 132px;
   overflow: hidden;
-  border: 1px solid var(--n-border-color, var(--border-light, #e5e7eb));
-  border-radius: 2px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
   outline: none;
   color: var(--n-text-color, var(--text-primary, #1d2129));
-  background: var(--n-color, var(--bg-primary, #fff));
+  background: #fff;
   cursor: pointer;
   transition:
     border-color 0.16s ease,
@@ -208,45 +199,61 @@ function formatDate(value) {
 }
 
 .application-card:hover,
-.application-card:focus-visible {
-  border-color: color-mix(in srgb, var(--primary-color, #165dff) 32%, var(--border-default, #c9cdd4));
-  box-shadow: 0 7px 18px rgb(15 23 42 / 7%);
+.application-card:focus-visible,
+.application-card:focus-within {
+  border-color: var(--n-primary-color, var(--primary-color, #165dff));
+  box-shadow: 0 2px 6px rgb(22 93 255 / 10%);
   transform: translateY(-1px);
 }
 
 .application-card-head {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) auto;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
   align-items: start;
   gap: 10px;
   min-width: 0;
-  padding: 14px 14px 9px;
+  padding: 14px 14px 10px;
 }
 
 .application-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid color-mix(in srgb, var(--primary-color, #165dff) 18%, var(--border-light, #e5e7eb));
-  border-radius: 2px;
-  color: var(--primary-color, #165dff);
-  background: color-mix(in srgb, var(--primary-color, #165dff) 7%, var(--bg-primary, #fff));
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 4px;
+  color: #5f6b7a;
+  background: #f4f6f8;
   font-size: 16px;
+}
+
+.application-icon.is-draft {
+  color: #b45309;
+  background: #fff7e6;
+}
+
+.application-icon.is-changed {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.application-icon.is-published {
+  color: #15803d;
+  background: #edf9f0;
 }
 
 .application-copy {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
-  padding-top: 1px;
+  padding-top: 2px;
 }
 
 .application-copy strong,
 .application-copy code,
 .application-description,
-.application-meta span {
+.application-date {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -269,7 +276,7 @@ function formatDate(value) {
 .application-card-head :deep(.n-tag) {
   max-width: 84px;
   height: 20px;
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
 .application-design-status.is-draft :deep(.n-tag) {
@@ -277,23 +284,24 @@ function formatDate(value) {
   background-color: color-mix(in srgb, var(--warning-color, #ff7d00) 14%, transparent);
 }
 
-.application-tags {
+.application-meta-row {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
   min-width: 0;
-  padding: 0 14px 9px;
+  padding: 0 14px 8px;
 }
 
 .application-badge {
   display: inline-flex;
   align-items: center;
-  max-width: 100%;
+  max-width: 120px;
   height: 20px;
   min-width: 0;
   overflow: hidden;
-  border-radius: 2px;
-  background: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
+  border-radius: 4px;
+  background: var(--n-color-embedded, var(--bg-secondary, #f2f3f5));
   color: var(--n-text-color-2, var(--text-secondary, #4e5969));
   font-size: 11px;
   line-height: 20px;
@@ -302,62 +310,52 @@ function formatDate(value) {
   white-space: nowrap;
 }
 
-.application-body {
-  display: grid;
-  gap: 7px;
-  min-width: 0;
-  padding: 0 14px 10px;
-}
-
-.application-binding {
-  display: flex;
+.application-version {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
-  height: 28px;
-  overflow: hidden;
-  border: 1px solid var(--n-border-color, var(--border-light, #eef0f4));
-  border-radius: 2px;
-  background: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
   color: var(--n-text-color-3, var(--text-tertiary, #6b7280));
-  font-size: 12px;
-  line-height: 1;
-  padding: 0 8px;
+  font-size: 11px;
+  margin-left: auto;
 }
 
-.application-binding i {
+.application-version i {
   flex: 0 0 auto;
-  color: var(--n-text-color-3, var(--text-tertiary, #9ca3af));
-  font-size: 14px;
-}
-
-.application-binding.empty {
+  font-size: 12px;
   color: var(--n-text-color-3, var(--text-tertiary, #9ca3af));
 }
 
-.application-binding.warning {
-  border-color: color-mix(in srgb, var(--warning-color, #ff7d00) 20%, var(--border-light, #eef0f4));
-  background: color-mix(in srgb, var(--warning-color, #ff7d00) 6%, var(--bg-secondary, #f7f8fa));
-}
-
-.application-binding span {
-  min-width: 0;
+.application-version span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.application-description {
-  margin: 0;
-  color: var(--n-text-color-3, var(--text-tertiary, #6b7280));
-  font-size: 12px;
-  line-height: 17px;
+.application-version.empty {
+  color: var(--n-text-color-3, var(--text-tertiary, #9ca3af));
 }
 
-.application-meta {
-  display: flex;
+.application-version.warning {
+  color: var(--warning-color, #d46b08);
+}
+
+.application-description {
+  display: -webkit-box;
+  margin: 0;
+  padding: 0 14px 8px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--n-text-color-3, var(--text-tertiary, #6b7280));
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.application-date {
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 4px;
   min-width: 0;
   color: var(--n-text-color-3, var(--text-tertiary, #86909c));
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -365,29 +363,37 @@ function formatDate(value) {
   font-variant-numeric: tabular-nums;
 }
 
-.application-meta span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-}
-
-.application-meta i {
+.application-date i {
   flex: 0 0 auto;
   color: var(--n-text-color-3, var(--text-tertiary, #9ca3af));
   font-size: 12px;
 }
 
 .application-card-foot {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   margin-top: auto;
   min-width: 0;
-  border-top: 1px solid var(--n-border-color, var(--border-light, #eef0f4));
-  background: var(--n-color-embedded, var(--bg-secondary, #f7f8fa));
+  border-top: 1px solid var(--n-primary-color, var(--primary-color, #165dff));
+  background: var(--n-primary-color, var(--primary-color, #165dff));
   padding: 8px 14px;
+}
+
+.application-card:hover .application-card-foot,
+.application-card:focus-visible .application-card-foot,
+.application-card:focus-within .application-card-foot {
+  display: flex;
+}
+
+.application-card:hover .application-date,
+.application-card:focus-visible .application-date,
+.application-card:focus-within .application-date,
+.application-card:hover .application-date i,
+.application-card:focus-visible .application-date i,
+.application-card:focus-within .application-date i {
+  color: rgb(255 255 255 / 86%);
 }
 
 .application-actions {
@@ -419,7 +425,7 @@ function formatDate(value) {
 
 .application-action-link {
   height: 20px;
-  color: var(--primary-color, #165dff);
+  color: #fff;
   font-size: 12px;
   font-weight: 500;
   line-height: 20px;
@@ -430,36 +436,63 @@ function formatDate(value) {
 .application-more-action:hover,
 .application-action-link:focus-visible,
 .application-more-action:focus-visible {
-  color: var(--primary-color-hover, #4080ff);
+  color: rgb(255 255 255 / 76%);
 }
 
 .application-action-separator {
   width: 1px;
   height: 12px;
-  background: var(--n-border-color, var(--border-default, #d9dde5));
+  background: rgb(255 255 255 / 32%);
 }
 
 .application-more-action {
   width: 18px;
   height: 20px;
-  color: var(--n-text-color-3, var(--text-tertiary, #86909c));
+  color: #fff;
   font-size: 14px;
   padding: 0;
 }
 
 :global(.dark) .application-icon {
-  border-color: color-mix(in srgb, var(--primary-color, #4080ff) 28%, #303540);
-  background: color-mix(in srgb, var(--primary-color, #4080ff) 12%, var(--n-color, #18181c));
+  color: #aab2bf;
+  background: #2a2d34;
+}
+
+:global(.dark) .application-icon.is-draft {
+  color: #f0b45e;
+  background: #3b3020;
+}
+
+:global(.dark) .application-icon.is-changed {
+  color: #7aa7ff;
+  background: #213251;
+}
+
+:global(.dark) .application-icon.is-published {
+  color: #76cb91;
+  background: #203a2a;
+}
+
+:global(.dark) .application-card {
+  background: #1e1e22;
+  border-color: #303540;
+}
+
+:global(.dark) .application-card:hover,
+:global(.dark) .application-card:focus-visible,
+:global(.dark) .application-card:focus-within {
+  border-color: var(--n-primary-color, var(--primary-color, #4080ff));
+  box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
 }
 
 @media (max-width: 620px) {
   .application-card-grid {
     grid-template-columns: minmax(0, 1fr);
-    padding: 8px;
+    padding: 10px;
   }
 
   .application-card {
-    min-height: 154px;
+    min-height: 136px;
   }
 }
 </style>

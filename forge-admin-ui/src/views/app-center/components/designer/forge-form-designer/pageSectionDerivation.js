@@ -41,7 +41,14 @@ export function derivePageSectionsFromLayout(components = [], legacySections = [
       }, legacyList))
       return false
     }
-    collectFieldCodes([component]).forEach(fieldCode => looseFieldCodes.push(fieldCode))
+    // 散落字段只收集自身，子树交给 descend 递归：collectFieldCodes([component]) 会递归收集整棵子树，
+    // 再叠加 return true 的 descend 会把布局容器（row 等）内的字段重复收集两次，
+    // 与 normalizePageSections 的 uniqueStrings 去重后结果永不相等，导致设计器 schema 同步死循环。
+    if (isFieldComponent(component)) {
+      const fieldCode = String(component.fieldBinding?.fieldCode || '').trim()
+      if (fieldCode)
+        looseFieldCodes.push(fieldCode)
+    }
     return true
   })
 

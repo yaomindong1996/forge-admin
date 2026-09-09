@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/starter_parent/io_logging_utils
+title: Forge Starter 通用能力组件集（文件存储 / Excel / 操作日志 / API配置）
+scope:
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-file/
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-excel/
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-log/
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-api-config/
+source_files: []
+depends_on: []
+related_to: []

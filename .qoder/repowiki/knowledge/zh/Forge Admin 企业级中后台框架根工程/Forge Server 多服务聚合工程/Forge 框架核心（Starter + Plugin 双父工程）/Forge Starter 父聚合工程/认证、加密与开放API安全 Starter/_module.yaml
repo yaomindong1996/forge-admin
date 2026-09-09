@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/starter_parent/identity_security
+title: 认证、加密与开放API安全 Starter
+scope:
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-auth/
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-crypto/
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-openapi-security/
+source_files: []
+depends_on: []
+related_to: []

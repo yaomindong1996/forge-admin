@@ -191,6 +191,11 @@ public class LowcodeRuntimeConfigBuilder {
                 text(crudBlockProps.get("editSize")))));
         options.put("editShowFeedback", booleanWithDefault(firstPresent(editProps.get("showFeedback"),
                 crudBlockProps.get("editShowFeedback")), true));
+        options.put("editEnableCollapse", booleanWithDefault(editProps.get("enableCollapse"), false));
+        Integer editMaxVisibleFields = integerValue(editProps.get("maxVisibleFields"));
+        if (editMaxVisibleFields != null && editMaxVisibleFields > 0) {
+            options.put("editMaxVisibleFields", editMaxVisibleFields);
+        }
         copyOption(editProps, options, "editFormClass");
         copyOption(editProps, options, "editFormStyle");
         options.put("editXGap", intValue(editProps.get("columnGap"), 16));
@@ -225,6 +230,8 @@ public class LowcodeRuntimeConfigBuilder {
             copyOption(tableProps, options, "bordered");
             copyOption(tableProps, options, "striped");
             copyOption(tableProps, options, "drawerPlacement");
+            // 表单设计器布局里配置的抽屉方向优先于列表/表格区设置
+            copyOption(editProps, options, "drawerPlacement");
             copyOption(tableProps, options, "tabWorkspace");
             options.put("tableRowGap", intValue(tableProps.get("rowGap"), 8));
         }

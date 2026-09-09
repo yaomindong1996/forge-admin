@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: forge_admin_ui/api_clients
+title: API 客户端与通用工具集
+scope:
+    - forge-admin-ui/src/api/
+    - forge-admin-ui/src/utils/
+source_files: []
+depends_on: []
+related_to: []

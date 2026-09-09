@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: forge_server/admin_server
+title: Forge 管理后台服务（Admin Server）
+scope:
+    - forge-server/forge-admin-server/
+source_files: []
+depends_on: []
+related_to:
+    - path: docker_deploy
+    - path: forge_admin_ui
+    - path: forge_server/framework_plugins/plugin_parent/capability_framework

@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/ai_plugin/multimodal
+title: AI 多模态能力（图片生成/语音识别/语音合成）
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/multimodal/
+source_files: []
+depends_on: []
+related_to: []

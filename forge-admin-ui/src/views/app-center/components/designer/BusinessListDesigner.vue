@@ -294,6 +294,7 @@ import {
   GridOutline,
   LayersOutline,
   ListOutline,
+  PrintOutline,
   RefreshOutline,
   SparklesOutline,
   TrashOutline,
@@ -438,6 +439,11 @@ const listMoreOptions = computed(() => [
     label: '新增空白页面',
     key: 'addPage',
     icon: renderMenuIcon(AddOutline),
+  },
+  {
+    label: '打印列表',
+    key: 'printDesign',
+    icon: renderMenuIcon(PrintOutline),
   },
   {
     type: 'divider',
@@ -726,8 +732,18 @@ function handleListMoreSelect(key = '') {
     addDesignerPage()
     return
   }
+  if (key === 'printDesign') {
+    openPrintPreview()
+    return
+  }
   if (key === 'resetListSchema')
     resetListSchema()
+}
+
+/** 打开预览并触发浏览器打印，像 Word 一样输出当前列表设计稿 */
+function openPrintPreview() {
+  listPreviewVisible.value = true
+  setTimeout(() => window.print(), 400)
 }
 
 function handlePageActionSelect(key = '') {

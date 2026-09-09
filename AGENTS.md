@@ -461,6 +461,24 @@ FROM forge_schema_history
 ORDER BY installed_rank DESC;
 ```
 
+### 5.14 前端状态管理与单文件规模约束（Pinia 强制）
+
+> 本节为全局硬性约束，适用于所有 AI 生成的与修改的前端代码，违反即打回。
+
+#### Pinia 强制使用
+
+- **能用 Pinia 的场景必须用 Pinia**：凡涉及跨组件、跨面板、跨层级的共享状态或通信（设计器 schema、选中 ID、面板 UI 状态、多组件联动的业务状态等），必须沉淀到 Pinia store（`src/stores/` 下按领域建子目录，如 `stores/designer/`）。
+- **禁止纯 props/emit 层层透传**：同一个状态经 props + emit 转手超过 2 层即视为违规，必须改用 store；子组件直接读写 store，父组件不再充当数据中转站。
+- 存量巨型组件改造时遵循渐进式模式：入口组件接收 props 后 `syncFromProps` 同步进 store 并 watch store 变化对外 emit（兼容存量父组件），内部面板子组件全部改为读写 store，逐步消灭中间 props 链。
+- store 命名与文件：`useXxxStore` 对应 `stores/<domain>/xxxStore.js`；一个 store 聚焦一个领域（如 `formDesignerStore`、`listDesignerStore`），禁止一个“大杂烩 store”包揽全项目。
+
+#### 组件拆分与逻辑拆分强制
+
+- **复杂页面必须拆分**：Vue SFC 超过 **800 行**（模板 + script + style 合计）必须拆分；超过 **2000 行**禁止提交，必须先重构。
+- 拆分方式：右侧/左侧属性面板按分区拆成独立子组件（如一个 collapse-item / 一个 tab-pane 一个文件）；可复用逻辑抽 composables（`useXxx.js`）；纯函数工具下沉到模块级 `utils.js`。
+- 拆分后目录约定：同域组件放同目录子文件夹（如 `forge-form-designer/panels/FooPanel.vue`），禁止把拆出文件散落在无关目录。
+- 禁止在一个 SFC 里同时堆积：多种组件类型的属性配置、多个业务域的状态、超长内联模板。发现即拆。
+
 ---
 
 ## 6. 本地开发及验证流程

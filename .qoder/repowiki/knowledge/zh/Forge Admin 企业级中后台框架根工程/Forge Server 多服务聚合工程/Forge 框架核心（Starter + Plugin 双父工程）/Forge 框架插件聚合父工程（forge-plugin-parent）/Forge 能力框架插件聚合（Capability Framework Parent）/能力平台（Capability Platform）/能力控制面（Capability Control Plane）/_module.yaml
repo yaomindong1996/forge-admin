@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform/controlplane
+title: 能力控制面（Capability Control Plane）
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-platform/src/main/java/com/mdframe/forge/plugin/capability/controlplane/
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-platform/src/test/java/com/mdframe/forge/plugin/capability/controlplane/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform/identity
+    - path: forge_server/framework_plugins/plugin_parent/mcp_plugin

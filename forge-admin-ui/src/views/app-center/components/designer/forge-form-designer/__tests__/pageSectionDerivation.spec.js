@@ -177,4 +177,41 @@ describe('derivePageSectionsFromLayout', () => {
     expect(sections).toHaveLength(1)
     expect(sections[0]).toMatchObject({ sectionId: 'card_1', fields: ['remark'] })
   })
+
+  it('collects fields inside grid rows exactly once (regression: derive/normalize convergence)', () => {
+    // 回归：栅格行内的字段曾经被双重收集（visitor 递归子树 + descend 再递归），
+    // 派生结果与 normalizePageSections 的 uniqueStrings 去重版永不相等，
+    // 导致 updateSchema 的 isSameDesignerSchema 永远 false → 表单设计器 schema 同步死循环。
+    const sections = derivePageSectionsFromLayout([
+      fieldComponent('f_top', 'fieldColor'),
+      {
+        id: 'row_1',
+        componentKey: 'row',
+        children: [
+          fieldComponent('f_in_row_1', 'fieldSlider'),
+          fieldComponent('f_in_row_2', 'fieldNumber'),
+        ],
+      },
+    ])
+
+    expect(sections).toHaveLength(1)
+    expect(sections[0]).toMatchObject({ sectionId: 'section_default', fields: ['fieldColor', 'fieldSlider', 'fieldNumber'] })
+    // 嵌套在栅格行里的 card 字段应归入 card 分区，不再泄漏到默认分区
+    const nested = derivePageSectionsFromLayout([
+      {
+        id: 'row_2',
+        componentKey: 'row',
+        children: [
+          {
+            id: 'card_in_row',
+            componentKey: 'card',
+            props: { header: '行内分组' },
+            children: [fieldComponent('f_card', 'remark')],
+          },
+        ],
+      },
+    ])
+    expect(nested).toHaveLength(1)
+    expect(nested[0]).toMatchObject({ sectionId: 'card_in_row', fields: ['remark'] })
+  })
 })

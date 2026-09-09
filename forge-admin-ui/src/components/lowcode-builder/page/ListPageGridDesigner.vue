@@ -23,9 +23,7 @@
             拖拽组件到画布，右侧可调整样式
           </div>
           <div class="palette-stats">
-            <span>共 {{ paletteStats.total }} 个</span>
-            <span v-if="paletteStats.filtered !== paletteStats.total">匹配 {{ paletteStats.filtered }} 个</span>
-            <span>{{ groupedBlocks.length }} 组</span>
+            <span>共 {{ unifiedPaletteTotal }} 个</span>
           </div>
         </div>
         <n-button
@@ -53,43 +51,18 @@
         </template>
       </n-input>
       <div class="palette-groups">
-        <section v-for="group in groupedBlocks" :key="group.key" class="palette-group">
-          <div class="group-title">
-            <span>{{ group.title }}</span>
-            <em>{{ group.items.length }}</em>
-          </div>
-          <div class="palette-list">
-            <button
-              v-for="item in group.items"
-              :key="item.blockType"
-              class="palette-item"
-              :class="{
-                'is-disabled': isBlockDisabled(item),
-                'is-existing': resolveBlockDisabledReason(item) === '已在画布中',
-                'is-unavailable': resolveBlockDisabledReason(item) === '当前布局不可用',
-              }"
-              type="button"
-              :draggable="!isBlockDisabled(item)"
-              :aria-disabled="isBlockDisabled(item)"
-              :title="resolveBlockDisabledReason(item) || item.desc"
-              @dragstart="handlePaletteDragStart($event, item)"
-              @dragend="resetCanvasDragState"
-              @click="handlePaletteClick(item)"
-            >
-              <span class="item-icon">
-                <n-icon><component :is="resolvePaletteItemIcon(item)" /></n-icon>
-              </span>
-              <span class="item-main">
-                <span class="item-title">{{ item.title }}</span>
-                <span class="item-desc">{{ item.desc }}</span>
-              </span>
-              <span v-if="resolveBlockDisabledReason(item)" class="item-lock-reason">
-                {{ resolveBlockDisabledReason(item) }}
-              </span>
-            </button>
-          </div>
-        </section>
-        <div v-if="!groupedBlocks.length" class="palette-empty">
+        <!-- 统一组件物料面板（designer-core）：与表单设计器同一注册表、同一合集、同一分组、同一交互 -->
+        <!-- B2 修正：画布不支持的组件直接隐藏（与表单侧策略统一，消除"由表单区块承载"等开发术语文案） -->
+        <UnifiedComponentPalette
+          scope="ALL"
+          :keyword="paletteKeyword"
+          :item-filter="listPaletteItemFilter"
+          :item-disabled-reason="unifiedPaletteDisabledReason"
+          @item-drag-start="handleUnifiedPaletteDragStart"
+          @item-click="handleUnifiedPaletteClick"
+          @total-change="unifiedPaletteTotal = $event"
+        />
+        <div v-if="!unifiedPaletteTotal" class="palette-empty">
           没有匹配的区块
         </div>
       </div>
@@ -183,44 +156,16 @@
               :style="resolveBlockStyle(block)"
               @click.stop="handleBlockClick(block.id)"
             >
-              <div v-if="!readonly" class="block-node-overlay">
-                <span
-                  class="block-drag-handle"
-                  title="拖动区块"
-                  @pointerdown.stop="startMove(block, $event)"
-                  @click.stop
-                >
-                  <svg
-                    width="1em"
-                    height="1em"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M8.25 6.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm0 7.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm1.75 5.5a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0ZM14.753 6.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5ZM16.5 12a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0Zm-1.747 9a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                </span>
-                <n-dropdown
-                  trigger="click"
-                  placement="bottom-end"
-                  :options="resolveBlockMoreOptions(block)"
-                  @select="key => handleBlockMoreSelect(key, block)"
-                >
-                  <button
-                    type="button"
-                    class="block-menu-trigger"
-                    title="更多操作"
-                    @click.stop
-                    @mousedown.stop
-                  >
-                    <n-icon><EllipsisHorizontalOutline /></n-icon>
-                  </button>
-                </n-dropdown>
-              </div>
+              <DesignerNodeOverlay
+                v-if="!readonly"
+                mode="block"
+                :show-menu="true"
+                :show-drag-handle="true"
+                drag-title="拖动区块"
+                :menu-options="resolveBlockMoreOptions(block)"
+                @menu-select="key => handleBlockMoreSelect(key, block)"
+                @drag-start="startMove(block, $event)"
+              />
               <GridBlockRenderer
                 :block="block"
                 :fields="fields"
@@ -246,18 +191,22 @@
                 @tree-panel-collapse-change="handleTreePanelCollapseChange"
                 @crud-preview-state-change="handleCrudPreviewStateChange"
               />
-              <template v-if="!readonly">
-                <button
-                  v-for="anchor in resizeAnchors"
-                  :key="anchor"
-                  type="button"
-                  class="resize-anchor"
-                  :class="`anchor-${anchor}`"
-                  title="调整区块大小"
-                  @pointerdown.stop="startResize(block, $event, anchor)"
-                />
-              </template>
             </div>
+
+            <!-- 顶层区块 resize 锚点渲染在画布层：不受 grid-item 内容裁剪影响，
+                 “填充容器”贴画布边缘时锚点仍完整可见（选中态由 v-if 控制） -->
+            <template v-if="!readonly && selectedResizeBlock">
+              <button
+                v-for="anchor in resizeAnchors"
+                :key="anchor"
+                type="button"
+                class="resize-anchor canvas-resize-anchor"
+                :class="`anchor-${anchor}`"
+                title="调整区块大小"
+                :style="resolveCanvasAnchorStyle(anchor)"
+                @pointerdown.stop="startResize(selectedResizeBlock, $event, anchor)"
+              />
+            </template>
           </div>
         </div>
         <div v-if="!readonly" class="canvas-viewport-dock">
@@ -485,88 +434,13 @@
 
               <template v-if="selectedBlock.blockType === 'grid-layout'">
                 <n-divider>栅格配置</n-divider>
-                <n-form-item label="栅格结构">
-                  <div class="grid-config-grid three">
-                    <label class="grid-config-field">
-                      <span>总列数</span>
-                      <n-input-number
-                        :value="selectedBlock.props?.columns || 24"
-                        :min="1"
-                        :max="24"
-                        size="small"
-                        placeholder="24"
-                        @update:value="updateGridLayoutStructure({ columns: $event || 24 })"
-                      />
-                    </label>
-                    <label class="grid-config-field">
-                      <span>列间距</span>
-                      <n-input-number
-                        :value="selectedBlock.props?.gutter ?? selectedBlock.props?.gap ?? 16"
-                        :min="0"
-                        size="small"
-                        placeholder="16"
-                        @update:value="patchBlockProps(selectedBlock.id, { gutter: $event ?? 0 })"
-                      />
-                    </label>
-                    <label class="grid-config-field">
-                      <span>组件行距</span>
-                      <n-input-number
-                        :value="selectedBlock.props?.rowGap ?? 0"
-                        :min="0"
-                        size="small"
-                        placeholder="0"
-                        @update:value="patchBlockProps(selectedBlock.id, { rowGap: $event ?? 0 })"
-                      />
-                    </label>
-                  </div>
-                </n-form-item>
-                <n-form-item label="格子样式">
-                  <div class="grid-config-grid four">
-                    <label class="grid-config-field">
-                      <span>最小高度</span>
-                      <n-input-number
-                        :value="selectedBlock.props?.cellMinHeight || 120"
-                        :min="24"
-                        size="small"
-                        placeholder="120"
-                        @update:value="patchBlockProps(selectedBlock.id, { cellMinHeight: $event || 24 })"
-                      />
-                    </label>
-                    <label class="grid-config-field">
-                      <span>垂直位置</span>
-                      <n-select
-                        :value="selectedBlock.props?.alignItems || 'stretch'"
-                        :options="gridVerticalAlignOptions"
-                        size="small"
-                        @update:value="patchBlockProps(selectedBlock.id, { alignItems: $event })"
-                      />
-                    </label>
-                    <label class="grid-config-field">
-                      <span>水平位置</span>
-                      <n-select
-                        :value="selectedBlock.props?.justifyItems || 'stretch'"
-                        :options="gridHorizontalAlignOptions"
-                        size="small"
-                        @update:value="patchBlockProps(selectedBlock.id, { justifyItems: $event })"
-                      />
-                    </label>
-                    <label class="grid-config-switch">
-                      <span>显示格子边框</span>
-                      <n-switch
-                        :value="selectedBlock.props?.showCellBorder !== false"
-                        @update:value="patchBlockProps(selectedBlock.id, { showCellBorder: $event })"
-                      />
-                    </label>
-                  </div>
-                </n-form-item>
-                <n-form-item label="格子背景">
-                  <n-color-picker
-                    :value="selectedBlock.props?.cellBackground || 'transparent'"
-                    :show-alpha="true"
-                    size="small"
-                    @update:value="patchBlockProps(selectedBlock.id, { cellBackground: $event || 'transparent' })"
-                  />
-                </n-form-item>
+                <!-- 统一栅格属性面板（spec 驱动）：与表单设计器共用同一份 grid spec 渲染。
+                     列表画布消费全部属性（columns/gutter/rowGap/对齐/格子样式/背景），格子内容编辑走下方手写区 -->
+                <SpecPropertyPanel
+                  :block-type="selectedBlock.blockType"
+                  :model-props="selectedBlock.props || {}"
+                  @update:prop="handleSpecPropUpdate"
+                />
                 <n-form-item label="格子内容">
                   <div class="container-child-editor">
                     <div
@@ -616,6 +490,22 @@
                       + 添加格子
                     </n-button>
                   </div>
+                </n-form-item>
+              </template>
+
+              <!-- 统一组件属性（designer-core spec 驱动）：常用属性平铺已收敛，
+                   改用「更多属性」按钮 + 抽屉（与表单侧 ForgePropertyPanel 一致），避免组件属性面板撑满右侧栏 -->
+              <template v-if="specPanelPropertyCount">
+                <n-divider>组件属性</n-divider>
+                <n-form-item :show-label="false">
+                  <n-button size="small" dashed block @click="specDrawerVisible = true">
+                    <template #icon>
+                      <n-icon :size="14">
+                        <SettingsOutline />
+                      </n-icon>
+                    </template>
+                    更多属性
+                  </n-button>
                 </n-form-item>
               </template>
             </div>
@@ -917,8 +807,11 @@
             </div>
 
             <div v-show="propertyPanelTab === 'interaction'" class="property-tab-content">
-              <div class="property-search-anchor" data-property-search="交互 事件 生命周期 回调 点击 加载完成 提交成功 行点击 跳转 刷新 过滤 接口请求 自定义脚本 参数 目标页面 目标表单" />
-              <n-divider>事件配置</n-divider>
+              <div class="property-search-anchor" data-property-search="交互 事件 联动动作 条件规则 显示与状态规则 显示 隐藏 只读 禁用 必填 生命周期 回调 点击 加载完成 提交成功 行点击 跳转 刷新 过滤 接口请求 自定义脚本 参数 目标页面 目标表单" />
+              <n-divider>联动动作</n-divider>
+              <p class="section-hint">
+                配置“什么时候触发 → 做什么”的自动化动作，例如点击按钮后跳转页面、行点击后打开详情表单。
+              </p>
               <div class="event-editor">
                 <div v-if="!selectedBlockEvents.length" class="copy-empty-state">
                   <span class="copy-empty-icon">+</span>
@@ -1069,9 +962,12 @@
                 </n-button>
               </div>
 
-              <n-divider>运行规则</n-divider>
+              <n-divider>显示与状态规则</n-divider>
+              <p class="section-hint">
+                按条件控制组件的显示 / 隐藏 / 只读 / 禁用，例如金额大于 1 万时才显示审批按钮。
+              </p>
               <RuntimeRulesEditor
-                title="区块运行规则"
+                title="条件规则"
                 :rules="selectedBlock.props?.runtimeRules || []"
                 :field-options="runtimeRuleFieldOptions"
                 @update:rules="patchBlockProps(selectedBlock.id, { runtimeRules: $event })"
@@ -3009,46 +2905,9 @@
               </template>
 
               <template v-if="selectedBlock.blockType === 'tabs'">
+                <!-- tabs 外观属性（type/placement/size/trigger/animated/closable/addable 等）统一由下方
+                     「组件属性」SpecPropertyPanel 渲染（designer-core spec 唯一属性源），此处只保留页签管理 -->
                 <n-divider>标签页</n-divider>
-                <n-form-item label="样式">
-                  <n-select
-                    :value="selectedBlock.props?.type || 'line'"
-                    :options="tabsTypeOptions"
-                    @update:value="patchBlockProps(selectedBlock.id, { type: $event || 'line' })"
-                  />
-                </n-form-item>
-                <n-form-item label="位置">
-                  <n-select
-                    :value="selectedBlock.props?.placement || 'top'"
-                    :options="tabsPlacementOptions"
-                    @update:value="patchBlockProps(selectedBlock.id, { placement: $event || 'top' })"
-                  />
-                </n-form-item>
-                <n-form-item label="切换方式">
-                  <n-select
-                    :value="selectedBlock.props?.trigger || 'click'"
-                    :options="tabsTriggerOptions"
-                    @update:value="patchBlockProps(selectedBlock.id, { trigger: $event || 'click' })"
-                  />
-                </n-form-item>
-                <div class="tabs-switch-list">
-                  <label>
-                    <span>切换动画</span>
-                    <n-switch
-                      size="small"
-                      :value="selectedBlock.props?.animated !== false"
-                      @update:value="patchBlockProps(selectedBlock.id, { animated: $event })"
-                    />
-                  </label>
-                  <label>
-                    <span>可关闭</span>
-                    <n-switch
-                      size="small"
-                      :value="!!selectedBlock.props?.closable"
-                      @update:value="patchBlockProps(selectedBlock.id, { closable: $event })"
-                    />
-                  </label>
-                </div>
                 <div class="tab-manager">
                   <div class="tab-manager-head">
                     <span>页签管理</span>
@@ -3789,374 +3648,33 @@
       </div>
     </aside>
 
-    <n-drawer v-model:show="fieldDrawerOpen" :width="680" placement="right">
-      <n-drawer-content :title="`配置${selectedFieldDrawerTitle} · ${selectedBlockMeta?.title || ''}`" closable>
-        <div v-if="selectedBlock" class="field-config">
-          <div class="field-config-section">
-            <div class="section-title">
-              已选{{ selectedFieldDrawerTitle }} ({{ selectedFieldRefs.length || 0 }})
-            </div>
-            <draggable
-              :model-value="selectedFieldsList"
-              item-key="field"
-              handle=".f-handle"
-              :animation="160"
-              class="selected-list"
-              @update:model-value="handleSelectedReorder"
-            >
-              <template #item="{ element }">
-                <div
-                  class="selected-row"
-                  :class="{
-                    search: selectedBlockZoneKey === 'search',
-                    table: selectedBlockZoneKey !== 'search',
-                    active: activeDrawerField?.field === element.field,
-                  }"
-                  @click="selectDrawerField(element.field)"
-                >
-                  <span class="f-handle">☰</span>
-                  <span class="f-name">
-                    {{ element.label || element.field }}
-                    <small v-if="element.sourceLabel || element.modelName">{{ element.sourceLabel || element.modelName }}</small>
-                  </span>
-                  <span class="f-code">{{ element.field }}</span>
-                  <button type="button" class="f-remove" title="移除字段" @click.stop="toggleField(element.field, false)">
-                    ×
-                  </button>
-                  <div v-if="selectedBlockZoneKey === 'search'" class="field-setting-row search-setting-row">
-                    <n-select
-                      :value="resolveFieldSetting(element.field).queryType || element.queryType || 'like'"
-                      size="tiny"
-                      :options="queryTypeOptions"
-                      placeholder="查询方式"
-                      @update:value="updateFieldSetting(element.field, { queryType: $event })"
-                    />
-                    <n-select
-                      :value="resolveFieldSetting(element.field).componentType || resolveDefaultSearchComponentType(element)"
-                      size="tiny"
-                      :options="searchComponentOptions"
-                      placeholder="查询组件"
-                      @update:value="updateFieldSetting(element.field, { componentType: $event })"
-                    />
-                    <n-select
-                      :value="resolveFieldSetting(element.field).queryField || element.field"
-                      size="tiny"
-                      :options="queryFieldOptions"
-                      filterable
-                      placeholder="映射字段"
-                      @update:value="updateFieldSetting(element.field, { queryField: $event })"
-                    />
-                    <n-select
-                      :value="resolveFieldSetting(element.field).align || 'left'"
-                      size="tiny"
-                      :options="alignOptions"
-                      placeholder="对齐"
-                      @update:value="updateFieldSetting(element.field, { align: $event || 'left' })"
-                    />
-                  </div>
-                  <div v-if="selectedBlockZoneKey !== 'search' && ['data-table', 'AiCrudPage', 'AiTable', 'AiForm', 'detail-info'].includes(selectedBlock.blockType)" class="field-setting-row table-setting-row">
-                    <n-select
-                      :value="resolveFieldSetting(element.field).renderType || resolveDefaultTableRenderType(element)"
-                      size="tiny"
-                      :options="tableRenderOptions"
-                      placeholder="渲染方式"
-                      @update:value="updateFieldSetting(element.field, { renderType: $event })"
-                    />
-                    <n-select
-                      :value="resolveFieldSetting(element.field).align || 'left'"
-                      size="tiny"
-                      :options="alignOptions"
-                      placeholder="对齐"
-                      @update:value="updateFieldSetting(element.field, { align: $event || 'left' })"
-                    />
-                    <n-select
-                      v-if="isNameRenderType(resolveFieldSetting(element.field).renderType || resolveDefaultTableRenderType(element))"
-                      :value="resolveFieldSetting(element.field).targetField || `${element.field}Name`"
-                      size="tiny"
-                      :options="renderTargetFieldOptions(element)"
-                      filterable
-                      tag
-                      placeholder="名称字段"
-                      @update:value="updateFieldSetting(element.field, { targetField: $event })"
-                    />
-                  </div>
-                  <div v-if="selectedBlockZoneKey !== 'search' && ['data-table', 'AiCrudPage', 'AiTable'].includes(selectedBlock.blockType)" class="field-setting-row column-link-row">
-                    <label class="field-setting-control">
-                      <span>文字颜色</span>
-                      <n-color-picker
-                        :value="resolveFieldSetting(element.field).textColor || ''"
-                        size="small"
-                        :show-alpha="true"
-                        placeholder="文字颜色"
-                        @update:value="updateFieldSetting(element.field, { textColor: $event || '' })"
-                      />
-                    </label>
-                    <label class="field-setting-control">
-                      <span>点击动作</span>
-                      <n-select
-                        :value="resolveFieldSetting(element.field).clickAction || 'none'"
-                        size="tiny"
-                        :options="columnClickActionOptions"
-                        placeholder="点击动作"
-                        @update:value="updateFieldSetting(element.field, { clickAction: $event || 'none' })"
-                      />
-                    </label>
-                    <label v-if="resolveFieldSetting(element.field).clickAction === 'navigate'" class="field-setting-control">
-                      <span>目标页面</span>
-                      <n-select
-                        :value="resolveFieldSetting(element.field).targetPageKey || ''"
-                        size="tiny"
-                        :options="pageTargetOptions"
-                        filterable
-                        placeholder="目标页面"
-                        @update:value="updateFieldSetting(element.field, { targetPageKey: $event || '' })"
-                      />
-                    </label>
-                    <label v-if="resolveFieldSetting(element.field).clickAction === 'navigate' && formTargetOptions.length" class="field-setting-control">
-                      <span>目标表单</span>
-                      <n-select
-                        :value="resolveFieldSetting(element.field).targetFormKey || ''"
-                        size="tiny"
-                        :options="formTargetOptions"
-                        clearable
-                        filterable
-                        placeholder="默认表单"
-                        @update:value="updateFieldSetting(element.field, { targetFormKey: $event || '' })"
-                      />
-                    </label>
-                    <label v-if="resolveFieldSetting(element.field).clickAction === 'navigate'" class="field-setting-control">
-                      <span>参数名</span>
-                      <n-input
-                        :value="resolveFieldSetting(element.field).targetParamName || 'id'"
-                        size="tiny"
-                        placeholder="参数名"
-                        @update:value="updateFieldSetting(element.field, { targetParamName: normalizeParamName($event) || 'id' })"
-                      />
-                    </label>
-                    <label v-if="resolveFieldSetting(element.field).clickAction === 'navigate'" class="field-setting-control">
-                      <span>取值字段</span>
-                      <n-select
-                        :value="resolveFieldSetting(element.field).targetParamField || 'id'"
-                        size="tiny"
-                        :options="queryFieldOptions"
-                        filterable
-                        placeholder="取值字段"
-                        @update:value="updateFieldSetting(element.field, { targetParamField: $event || 'id' })"
-                      />
-                    </label>
-                    <div v-if="resolveFieldSetting(element.field).clickAction === 'navigate'" class="field-help">
-                      点击当前列后跳到目标页面，默认传参：id = 当前行 id。参数名是目标页面接收的名字，取值字段是从当前行取哪个字段。
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </draggable>
-            <div v-if="!selectedFieldRefs.length" class="empty">
-              当前没有选择字段
-            </div>
-            <div v-if="activeDrawerField" class="field-detail-card">
-              <div class="field-detail-head">
-                <div class="field-detail-title">
-                  <strong>{{ activeDrawerField.label || activeDrawerField.field }}</strong>
-                  <span>{{ activeDrawerField.sourceField || activeDrawerField.field }}</span>
-                </div>
-                <div class="field-role-switches">
-                  <label>
-                    <span>查询</span>
-                    <n-switch
-                      size="small"
-                      :value="resolveFieldRoleEnabled(activeDrawerField.field, 'search')"
-                      :disabled="selectedBlock.blockType !== 'AiCrudPage'"
-                      @update:value="updateFieldRole(activeDrawerField.field, 'search', $event)"
-                    />
-                  </label>
-                  <label>
-                    <span>表格列</span>
-                    <n-switch
-                      size="small"
-                      :value="resolveFieldRoleEnabled(activeDrawerField.field, 'table')"
-                      @update:value="updateFieldRole(activeDrawerField.field, 'table', $event)"
-                    />
-                  </label>
-                  <label>
-                    <span>编辑</span>
-                    <n-switch
-                      size="small"
-                      :value="resolveFieldRoleEnabled(activeDrawerField.field, 'edit')"
-                      @update:value="updateFieldRole(activeDrawerField.field, 'edit', $event)"
-                    />
-                  </label>
-                  <label v-if="selectedBlock.blockType === 'AiCrudPage'">
-                    <span>导入</span>
-                    <n-switch
-                      size="small"
-                      :value="resolveFieldRoleEnabled(activeDrawerField.field, 'import')"
-                      @update:value="updateFieldRole(activeDrawerField.field, 'import', $event)"
-                    />
-                  </label>
-                  <label v-if="selectedBlock.blockType === 'AiCrudPage'">
-                    <span>导出</span>
-                    <n-switch
-                      size="small"
-                      :value="resolveFieldRoleEnabled(activeDrawerField.field, 'export')"
-                      @update:value="updateFieldRole(activeDrawerField.field, 'export', $event)"
-                    />
-                  </label>
-                </div>
-              </div>
-              <div class="field-detail-grid">
-                <label class="field-detail-control">
-                  <span>列标题</span>
-                  <n-input
-                    :value="activeDrawerFieldSetting.title || activeDrawerField.label || activeDrawerField.field"
-                    size="small"
-                    @update:value="updateFieldSetting(activeDrawerField.field, { title: $event || '' })"
-                  />
-                </label>
-                <label class="field-detail-control">
-                  <span>列宽</span>
-                  <n-input
-                    :value="activeDrawerFieldSetting.width || ''"
-                    size="small"
-                    placeholder="auto / px"
-                    @update:value="updateFieldSetting(activeDrawerField.field, { width: $event || '' })"
-                  />
-                </label>
-                <label class="field-detail-control">
-                  <span>对齐</span>
-                  <n-select
-                    :value="activeDrawerFieldSetting.align || 'left'"
-                    size="small"
-                    :options="alignOptions"
-                    @update:value="updateFieldSetting(activeDrawerField.field, { align: $event || 'left' })"
-                  />
-                </label>
-                <label class="field-detail-control">
-                  <span>固定</span>
-                  <n-select
-                    :value="activeDrawerFieldSetting.fixed || ''"
-                    size="small"
-                    :options="fixedColumnOptions"
-                    @update:value="updateFieldSetting(activeDrawerField.field, { fixed: $event || '' })"
-                  />
-                </label>
-              </div>
-              <div class="field-detail-footer">
-                <div class="field-detail-toggles">
-                  <label>
-                    <span>省略</span>
-                    <n-switch
-                      size="small"
-                      :value="activeDrawerFieldSetting.ellipsis !== false"
-                      @update:value="updateFieldSetting(activeDrawerField.field, { ellipsis: $event })"
-                    />
-                  </label>
-                  <label>
-                    <span>排序</span>
-                    <n-switch
-                      size="small"
-                      :value="!!activeDrawerFieldSetting.sortable"
-                      @update:value="updateFieldSetting(activeDrawerField.field, { sortable: $event })"
-                    />
-                  </label>
-                </div>
-                <n-button size="tiny" secondary @click="fieldAdvancedOpen = !fieldAdvancedOpen">
-                  {{ fieldAdvancedOpen ? '收起配置' : '更多字段配置' }}
-                </n-button>
-              </div>
-              <div v-if="fieldAdvancedOpen" class="field-advanced-panel">
-                <template v-if="selectedBlockZoneKey === 'search'">
-                  <label class="field-detail-control">
-                    <span>查询方式</span>
-                    <n-select
-                      :value="activeDrawerFieldSetting.queryType || activeDrawerField.queryType || 'like'"
-                      size="small"
-                      :options="queryTypeOptions"
-                      @update:value="updateFieldSetting(activeDrawerField.field, { queryType: $event })"
-                    />
-                  </label>
-                  <label class="field-detail-control">
-                    <span>查询组件</span>
-                    <n-select
-                      :value="activeDrawerFieldSetting.componentType || resolveDefaultSearchComponentType(activeDrawerField)"
-                      size="small"
-                      :options="searchComponentOptions"
-                      @update:value="updateFieldSetting(activeDrawerField.field, { componentType: $event })"
-                    />
-                  </label>
-                  <label class="field-detail-control">
-                    <span>映射字段</span>
-                    <n-select
-                      :value="activeDrawerFieldSetting.queryField || activeDrawerField.field"
-                      size="small"
-                      :options="queryFieldOptions"
-                      filterable
-                      @update:value="updateFieldSetting(activeDrawerField.field, { queryField: $event })"
-                    />
-                  </label>
-                </template>
-                <template v-else>
-                  <label class="field-detail-control">
-                    <span>渲染方式</span>
-                    <n-select
-                      :value="activeDrawerFieldSetting.renderType || resolveDefaultTableRenderType(activeDrawerField)"
-                      size="small"
-                      :options="tableRenderOptions"
-                      @update:value="updateFieldSetting(activeDrawerField.field, { renderType: $event })"
-                    />
-                  </label>
-                  <label v-if="isNameRenderType(activeDrawerFieldSetting.renderType || resolveDefaultTableRenderType(activeDrawerField))" class="field-detail-control">
-                    <span>名称字段</span>
-                    <n-select
-                      :value="activeDrawerFieldSetting.targetField || `${activeDrawerField.field}Name`"
-                      size="small"
-                      :options="renderTargetFieldOptions(activeDrawerField)"
-                      filterable
-                      tag
-                      @update:value="updateFieldSetting(activeDrawerField.field, { targetField: $event })"
-                    />
-                  </label>
-                  <label class="field-detail-control">
-                    <span>点击动作</span>
-                    <n-select
-                      :value="activeDrawerFieldSetting.clickAction || 'none'"
-                      size="small"
-                      :options="columnClickActionOptions"
-                      @update:value="updateFieldSetting(activeDrawerField.field, { clickAction: $event || 'none' })"
-                    />
-                  </label>
-                  <label class="field-detail-control">
-                    <span>文字颜色</span>
-                    <n-color-picker
-                      :value="activeDrawerFieldSetting.textColor || ''"
-                      size="small"
-                      :show-alpha="true"
-                      @update:value="updateFieldSetting(activeDrawerField.field, { textColor: $event || '' })"
-                    />
-                  </label>
-                </template>
-              </div>
-            </div>
-          </div>
-          <div class="field-config-section">
-            <div class="section-title">
-              可选字段
-            </div>
-            <div class="available-list">
-              <button
-                v-for="field in availableFields"
-                :key="field.field"
-                type="button"
-                class="available-item"
-                @click="toggleField(field.field, true)"
-              >
-                <span>{{ field.label || field.field }}</span>
-                <small v-if="field.sourceLabel || field.modelName">{{ field.sourceLabel || field.modelName }}</small>
-              </button>
-              <span v-if="!availableFields.length" class="empty">所有字段已选择</span>
-            </div>
-          </div>
-        </div>
+    <FieldConfigDrawer
+      v-model:show="fieldDrawerOpen"
+      :mode="fieldDrawerMode"
+      :fields="props.fields"
+      :initial-field="fieldDrawerInitialField"
+      :block-meta-title="selectedBlockMeta?.title || ''"
+      :page-target-options="pageTargetOptions"
+      :form-target-options="formTargetOptions"
+      @patch-props="handleFieldDrawerPatchProps"
+      @patch-block="handleFieldDrawerPatchBlock"
+    />
+
+    <!-- 组件属性抽屉（与表单设计器 ForgePropertyPanel 同款）：spec 驱动，常用属性平铺 + 高级属性折叠 + 搜索 -->
+    <n-drawer
+      v-model:show="specDrawerVisible"
+      :width="440"
+      placement="right"
+      :trap-focus="false"
+      :block-scroll="false"
+    >
+      <n-drawer-content :title="`${selectedBlock?.label || selectedBlock?.blockType || '组件'} 组件属性`" closable>
+        <SpecPropertyPanel
+          :block-type="selectedBlock.blockType"
+          :model-props="selectedBlock.props || {}"
+          :exclude-keys="specPanelExcludeKeys"
+          @update:prop="handleSpecPropUpdate"
+        />
       </n-drawer-content>
     </n-drawer>
 
@@ -4623,51 +4141,65 @@
 <script setup>
 import {
   AddOutline,
-  AlbumsOutline,
-  AlertCircleOutline,
-  AnalyticsOutline,
   BrowsersOutline,
-  CalendarOutline,
   ChevronBackOutline,
   ChevronForwardOutline,
   CodeSlashOutline,
   ColorPaletteOutline,
   ContractOutline,
   DesktopOutline,
-  DocumentTextOutline,
   EllipsisHorizontalOutline,
   ExpandOutline,
   EyeOutline,
   FlashOutline,
-  GridOutline,
-  ListOutline,
-  MenuOutline,
-  NavigateOutline,
   PhonePortraitOutline,
-  PricetagOutline,
-  QrCodeOutline,
-  ReaderOutline,
   RemoveOutline,
   ReorderThreeOutline,
   ResizeOutline,
   SearchOutline,
   SettingsOutline,
-  StatsChartOutline,
   SwapHorizontalOutline,
   TabletLandscapeOutline,
-  TerminalOutline,
-  TextOutline,
-  TimerOutline,
-  ToggleOutline,
 } from '@vicons/ionicons5'
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import { enabledApiConfigs } from '@/api/business-app'
+import { DesignerNodeOverlay, getComponentSpec, isPaletteUnionSpec, LIST_BLOCK_TYPE_OVERRIDES, toListPageBlockCatalog } from '@/components/lowcode-builder/designer-core'
+import SpecPropertyPanel from '@/components/lowcode-builder/designer-core/panel/SpecPropertyPanel.vue'
+import UnifiedComponentPalette from '@/components/lowcode-builder/designer-core/panel/UnifiedComponentPalette.vue'
 import { pageWidgetComponentKeys } from '@/components/lowcode-builder/shared/page-widget-schema'
 import RuntimeRulesEditor from '@/components/lowcode-builder/shared/RuntimeRulesEditor.vue'
+import { useListDesignerStore } from '@/store'
 import { request } from '@/utils/http'
+import {
+  BitableAdminIcon,
+  BitableAttachmentIcon,
+  BitableButtonIcon,
+  BitableCalendarIcon,
+  BitableDragIcon,
+  BitableInfoIcon,
+  BitableInvisibleIcon,
+  BitableLookupIcon,
+  BitableMailIcon,
+  BitableMemberIcon,
+  BitableNumberIcon,
+  BitablePhoneIcon,
+  BitableSelectIcon,
+  BitableStyleIcon,
+  BitableTodoIcon,
+  BitableVisibleIcon,
+} from './bitableIcons'
+import {
+  collectBlocksInTree,
+  findBlockInTree,
+  mapBlockSiblingsInTree,
+  mapBlocksInTree,
+  removeBlockFromTree,
+} from './blockTree'
 import CrudDefaultParamsEditor from './CrudDefaultParamsEditor.vue'
 import CrudHookRulesEditor from './CrudHookRulesEditor.vue'
+import FieldConfigDrawer from './FieldConfigDrawer.vue'
+import { alignOptions, normalizeParamName, resolveSelectedFieldRefs } from './fieldDrawerConfig'
 import GridBlockRenderer from './GridBlockRenderer.vue'
 import {
   buildGridSyncModelSchema,
@@ -4746,83 +4278,16 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'update:customActions'])
 
+// 画布布局 / 选中区块 / 属性面板 tab 等通信状态统一走 Pinia（listDesigner store）；
+// 组件保留 props/emit 桥接：props -> store 同步，store 变更 -> emit 对外广播
+const designerStore = useListDesignerStore()
+
 const rowHeight = 32
 const gap = 8
 const previewMinWidth = 360
 const TREE_PANEL_COLLAPSED_WIDTH = 44
 
-function createBitableSvgIcon(name, children = []) {
-  return {
-    name,
-    render() {
-      return h(
-        'svg',
-        {
-          width: '1em',
-          height: '1em',
-          viewBox: '0 0 24 24',
-          fill: 'none',
-          xmlns: 'http://www.w3.org/2000/svg',
-        },
-        children.map((child, index) => h(child.tag || 'path', { key: index, ...child })),
-      )
-    },
-  }
-}
-
-const BitableDragIcon = createBitableSvgIcon('BitableDragIcon', [
-  { d: 'M8.25 6.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm0 7.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm1.75 5.5a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0ZM14.753 6.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5ZM16.5 12a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0Zm-1.747 9a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Z', fill: 'currentColor' },
-])
-const BitableStyleIcon = createBitableSvgIcon('BitableStyleIcon', [
-  { d: 'M8.437 4.898 5.447 13h6.063L8.437 4.898Zm6.025 15.881L12.269 15h-7.56l-2.131 5.78a1 1 0 1 1-1.873-.703L7.02 2.982c.491-1.31 2.344-1.31 2.835 0l6.48 17.095a1 1 0 1 1-1.872.702ZM15.056 5a1 1 0 1 0 0 2H23a1 1 0 1 0 0-2h-7.944Zm1.055 7a1 1 0 0 1 1-1H23a1 1 0 1 1 0 2h-5.89a1 1 0 0 1-1-1Zm3.056 5a1 1 0 1 0 0 2H23a1 1 0 1 0 0-2h-3.833Z', fill: 'currentColor' },
-])
-const BitableSelectIcon = createBitableSvgIcon('BitableSelectIcon', [
-  { d: 'M7.755 11.658a1 1 0 0 1 1.416-1.415L12 13.07l2.828-2.829a1 1 0 0 1 1.416 1.416c-1.181 1.189-2.356 2.386-3.553 3.56a.987.987 0 0 1-1.383 0c-1.196-1.175-2.371-2.371-3.553-3.56Z', fill: 'currentColor' },
-  { d: 'M12 23C5.925 23 1 18.075 1 12S5.925 1 12 1s11 4.925 11 11-4.925 11-11 11Zm0-2a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z', fill: 'currentColor' },
-])
-const BitableTodoIcon = createBitableSvgIcon('BitableTodoIcon', [
-  { d: 'M17.207 10.207a1 1 0 0 0-1.414-1.414L11 13.586l-2.293-2.293a1 1 0 0 0-1.414 1.414l3 3a1 1 0 0 0 1.414 0l5.5-5.5Z', fill: 'currentColor' },
-  { d: 'M2 4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4Zm2 0v16h16V4H4Z', fill: 'currentColor' },
-])
-const BitableNumberIcon = createBitableSvgIcon('BitableNumberIcon', [
-  { d: 'M8.774 2.14a1 1 0 0 1 .85 1.129L9.242 6h6.98l.423-3.01a1 1 0 1 1 1.98.279L18.242 6H22a1 1 0 1 1 0 2h-4.04l-.984 7H20a1 1 0 1 1 0 2h-3.305l-.575 4.093a1 1 0 1 1-1.98-.278L14.674 17h-6.98l-.575 4.093a1 1 0 1 1-1.98-.278L5.674 17H2a1 1 0 1 1 0-2h3.956l.984-7H4a1 1 0 1 1 0-2h3.221l.423-3.01a1 1 0 0 1 1.13-.85ZM14.956 15l.984-7H8.96l-.984 7h6.98Z', fill: 'currentColor' },
-])
-const BitableCalendarIcon = createBitableSvgIcon('BitableCalendarIcon', [
-  { d: 'M7 2a1 1 0 0 1 1 1h8a1 1 0 1 1 2 0h2a2 2 0 0 1 2 2v15a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h2a1 1 0 0 1 1-1Zm9 3H8a1 1 0 0 1-2 0H4v15h16V5h-2a1 1 0 1 1-2 0ZM9 15a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1Zm1.5-5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1Zm3 5a1 1 0 0 0-1-1h-1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1Zm1.5 0a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-1Zm3-5a1 1 0 0 0-1-1h-1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1Z', fill: 'currentColor' },
-])
-const BitablePhoneIcon = createBitableSvgIcon('BitablePhoneIcon', [
-  { d: 'M12.858 1.6c.678 0 1.337.02 1.973.06l.628.049c.21.018.42.04.624.063l.607.078c4.183.599 6.993 2.3 7.16 5.396.108 2.033-.837 3.395-2.435 3.936a4.554 4.554 0 0 1-.706.175c.353.989.618 2.512.792 3.342.134.636.228 1.45.287 2.449l.034.693.022.748.008.394a3 3 0 0 1-2.777 3.039l-.223.008H5.142l-.223-.008a3 3 0 0 1-2.777-3.039l.008-.394.023-.748.033-.693c.059-.999.154-1.813.287-2.449.174-.83.436-2.354.789-3.343a4.535 4.535 0 0 1-.7-.174C.984 10.642.04 9.28.15 7.246c.162-3.02 2.84-4.714 6.855-5.35l.304-.046.606-.078.31-.034.315-.03.628-.047a30.04 30.04 0 0 1 1.301-.054l2.39-.007Zm3.109 6.648-.056-.314H8.087l-.008.055c-.243 1.49-.967 2.568-2.174 3.123a2.94 2.94 0 0 1-.457.162l.18-.458c-.566 1.398-.957 3.24-1.178 4.293-.111.533-.195 1.255-.247 2.16l-.019.35-.026.67-.016.725a1 1 0 0 0 .874 1.007l.118.009H18.86c.56-.009 1-.463.992-1.016l-.016-.725-.026-.67c-.051-1.072-.14-1.91-.266-2.51-.197-.938-.531-2.628-1.001-3.839a2.728 2.728 0 0 1-.45-.158c-1.136-.522-1.844-1.508-2.126-2.864Zm-1.108 7.396a1 1 0 0 1 .117 1.993l-.117.007H9.142a1 1 0 0 1-.117-1.993l.117-.007h5.717ZM12.858 3.6l-2.05.002c-5.044.056-8.536 1.391-8.662 3.752-.06 1.127.321 1.678 1.078 1.934.624.211 1.498.166 1.846.007.625-.287.985-.9 1.08-1.99A1.5 1.5 0 0 1 7.507 5.94l.136-.006h8.71a1.5 1.5 0 0 1 1.494 1.371c.094 1.09.455 1.703 1.08 1.99.347.16 1.222.204 1.846-.007.757-.256 1.139-.807 1.078-1.934-.127-2.36-3.618-3.696-8.663-3.752l-.331-.002Z', fill: 'currentColor' },
-])
-const BitableMailIcon = createBitableSvgIcon('BitableMailIcon', [
-  { d: 'M5.558 10.214a1 1 0 0 1 .925-1.77l5.481 2.861 5.481-2.862a1 1 0 0 1 .925 1.772l-5.887 3.074a.995.995 0 0 1-.52.112.994.994 0 0 1-.518-.112l-5.887-3.075Z', fill: 'currentColor' },
-  { d: 'M21.009 3C22.113 3 23 3.895 23 5v14c0 1.105-.888 2-1.992 2H2.99A1.993 1.993 0 0 1 1 19V5c0-1.104.888-2 1.992-2H21.01ZM21 5H3v14h18V5Z', fill: 'currentColor' },
-])
-const BitableAttachmentIcon = createBitableSvgIcon('BitableAttachmentIcon', [
-  { d: 'M12.304 7.315a1 1 0 0 1 1.414 1.414L8.13 14.317a1.485 1.485 0 0 0 0 2.1l.01.011a1.5 1.5 0 0 0 2.117-.005l7.43-7.43a3.5 3.5 0 0 0 0-4.95l-.036-.037a3.5 3.5 0 0 0-4.95 0l-7.778 7.777a5.521 5.521 0 0 0 7.808 7.809l7.07-7.07a1 1 0 0 1 1.415 1.414l-7.07 7.07A7.521 7.521 0 0 1 3.509 10.37l7.778-7.778a5.5 5.5 0 0 1 7.778 0l.037.037a5.5 5.5 0 0 1 0 7.778l-7.43 7.43a3.5 3.5 0 0 1-4.939.012l-.006-.006-.012-.012a3.485 3.485 0 0 1 0-4.928l5.589-5.588Z', fill: 'currentColor' },
-])
-const BitableMemberIcon = createBitableSvgIcon('BitableMemberIcon', [
-  { d: 'M15 6.5a3 3 0 1 0-6 0 3 3 0 0 0 6 0Zm2 0a5 5 0 1 1-10 0 5 5 0 0 1 10 0ZM4 19v2h16v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4Zm-2 0a6 6 0 0 1 6-6h8a6 6 0 0 1 6 6v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-2Z', fill: 'currentColor' },
-])
-const BitableLookupIcon = createBitableSvgIcon('BitableLookupIcon', [
-  { d: 'M20 4H4v16h7v2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v6h-2V4Z', fill: 'currentColor' },
-  { d: 'M7 6.5a1 1 0 0 0 0 2h8a1 1 0 1 0 0-2H7Zm-1 5a1 1 0 0 1 1-1h3.5a1 1 0 1 1 0 2H7a1 1 0 0 1-1-1Zm1 3a1 1 0 1 0 0 2h2.5a1 1 0 1 0 0-2H7Zm13.939 4.58a5 5 0 1 0-1.522 1.298l1.698 1.953a1 1 0 0 0 1.51-1.312l-1.686-1.939ZM17 19a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z', fill: 'currentColor' },
-])
-const BitableButtonIcon = createBitableSvgIcon('BitableButtonIcon', [
-  { d: 'M21 6.133H3V16.8h9.662l1.214 3.2H3c-1.105 0-2-.955-2-2.133V6.133C1 4.955 1.895 4 3 4h18c1.105 0 2 .955 2 2.133v7.786l-2-.91V6.132Z', fill: 'currentColor' },
-  { d: 'M23.172 18.16a1 1 0 0 0 .182-1.883l-8.366-3.808a1 1 0 0 0-1.35 1.265l3.26 8.595a1 1 0 0 0 1.89-.06l1.018-3.307 3.366-.802Z', fill: 'currentColor' },
-])
-const BitableVisibleIcon = createBitableSvgIcon('BitableVisibleIcon', [
-  { d: 'M11.985 18.5c3.238 0 6.236-2.06 9.015-6.513C18.292 7.55 15.3 5.5 11.985 5.5 8.67 5.5 5.689 7.549 3 11.987c2.76 4.454 5.748 6.513 8.985 6.513ZM1.502 12.89a1.782 1.782 0 0 1 .023-1.838C4.428 6.017 7.915 3.5 11.984 3.5c4.086 0 7.594 2.538 10.523 7.614l.028.048c.296.519.294 1.16-.01 1.675-3.006 5.108-6.52 7.663-10.541 7.663-4.007 0-7.501-2.537-10.482-7.61ZM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z', fill: 'currentColor' },
-])
-const BitableInvisibleIcon = createBitableSvgIcon('BitableInvisibleIcon', [
-  { d: 'M2.032 8.172a1 1 0 0 1 1.388.267C5.263 11.159 8.637 13 12 13c3.364 0 6.737-1.841 8.58-4.561a1 1 0 0 1 1.656 1.122 11.928 11.928 0 0 1-2.002 2.259l2.009 2.008a1 1 0 1 1-1.415 1.415l-2.12-2.122a1.003 1.003 0 0 1-.085-.096c-.745.472-1.54.87-2.368 1.181l.712 2.658a1 1 0 1 1-1.932.517l-.702-2.62A11.64 11.64 0 0 1 12 15c-.71 0-1.42-.068-2.118-.197l-.691 2.578a1 1 0 1 1-1.932-.517l.692-2.582a13.01 13.01 0 0 1-2.607-1.278c-.03.04-.064.08-.101.117L3.12 15.243a1 1 0 1 1-1.414-1.415l2.032-2.032a11.919 11.919 0 0 1-1.974-2.235 1 1 0 0 1 .267-1.389Z', fill: 'currentColor' },
-])
-const BitableInfoIcon = createBitableSvgIcon('BitableInfoIcon', [
-  { d: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0 2C5.925 23 1 18.075 1 12S5.925 1 12 1s11 4.925 11 11-4.925 11-11 11Zm-1-7.5v-4a1 1 0 1 1 0-2h1.004c.55 0 .998.445.998.996.003 1.668-.002 3.336-.002 5.004h.5a1 1 0 1 1 0 2h-3a1 1 0 1 1 0-2h.5Zm1-7a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z', fill: 'currentColor' },
-])
-const BitableAdminIcon = createBitableSvgIcon('BitableAdminIcon', [
-  { d: 'M18.874 7a4.002 4.002 0 0 1-7.748 0H3a1 1 0 0 1 0-2h8.126a4.002 4.002 0 0 1 7.748 0H21a1 1 0 1 1 0 2h-2.126ZM15 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm-2.126 11a4.002 4.002 0 0 1-7.748 0H3a1 1 0 1 1 0-2h2.126a4.002 4.002 0 0 1 7.748 0H21a1 1 0 1 1 0 2h-8.126ZM9 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z', fill: 'currentColor' },
-])
+// Bitable 风格 SVG 图标组已下沉 ./bitableIcons.js（复杂页面拆分规范：纯数据/图标与页面逻辑分离）
 const canvasWidthOptions = [
   { label: '390 移动', value: 390 },
   { label: '768 窄屏', value: 768 },
@@ -4931,12 +4396,6 @@ const gridVerticalAlignOptions = [
   { label: '靠上', value: 'start' },
   { label: '垂直居中', value: 'center' },
   { label: '靠下', value: 'end' },
-]
-const gridHorizontalAlignOptions = [
-  { label: '水平填满', value: 'stretch' },
-  { label: '靠左', value: 'start' },
-  { label: '水平居中', value: 'center' },
-  { label: '靠右', value: 'end' },
 ]
 const directionOptions = [
   { label: '横向', value: 'row' },
@@ -5119,22 +4578,6 @@ const componentSizeOptions = [
   { label: '中', value: 'medium' },
   { label: '大', value: 'large' },
 ]
-const tabsTypeOptions = [
-  { label: '线型', value: 'line' },
-  { label: '条型', value: 'bar' },
-  { label: '卡片', value: 'card' },
-  { label: '分段', value: 'segment' },
-]
-const tabsPlacementOptions = [
-  { label: '上方', value: 'top' },
-  { label: '下方', value: 'bottom' },
-  { label: '左侧', value: 'left' },
-  { label: '右侧', value: 'right' },
-]
-const tabsTriggerOptions = [
-  { label: '点击', value: 'click' },
-  { label: '悬停', value: 'hover' },
-]
 const tableDensityOptions = [
   { label: '紧凑', value: 'small' },
   { label: '默认', value: 'medium' },
@@ -5182,38 +4625,6 @@ const tagTypeOptions = [
   { label: '警告', value: 'warning' },
   { label: '危险', value: 'error' },
 ]
-const queryTypeOptions = [
-  { label: '等于', value: 'eq' },
-  { label: '包含', value: 'like' },
-  { label: '大于等于', value: 'ge' },
-  { label: '小于等于', value: 'le' },
-  { label: '区间', value: 'between' },
-  { label: '多值', value: 'in' },
-]
-const searchComponentOptions = [
-  { label: '自动', value: '' },
-  { label: '输入框', value: 'input' },
-  { label: '数字输入', value: 'number' },
-  { label: '下拉选择', value: 'select' },
-  { label: '字典选择', value: 'dictSelect' },
-  { label: '组织树', value: 'orgTreeSelect' },
-  { label: '用户选择', value: 'userSelect' },
-  { label: '区划树', value: 'regionTreeSelect' },
-  { label: '树形选择', value: 'treeSelect' },
-  { label: '日期', value: 'date' },
-  { label: '日期时间', value: 'datetime' },
-  { label: '时间', value: 'time' },
-]
-const tableRenderOptions = [
-  { label: '默认', value: '' },
-  { label: '链接文本', value: 'link' },
-  { label: '字典标签', value: 'dictTag' },
-  { label: '组织名称', value: 'orgName' },
-  { label: '用户名称', value: 'userName' },
-  { label: '区划名称', value: 'regionName' },
-  { label: '文件名称', value: 'fileUpload' },
-  { label: '图片预览', value: 'imageUpload' },
-]
 const treeLoadModeOptions = [
   { label: '全量加载', value: 'full' },
   { label: '懒加载', value: 'lazy' },
@@ -5221,20 +4632,6 @@ const treeLoadModeOptions = [
 const sortOrderOptions = [
   { label: '降序', value: 'desc' },
   { label: '升序', value: 'asc' },
-]
-const alignOptions = [
-  { label: '左对齐', value: 'left' },
-  { label: '居中', value: 'center' },
-  { label: '右对齐', value: 'right' },
-]
-const fixedColumnOptions = [
-  { label: '不固定', value: '' },
-  { label: '左侧固定', value: 'left' },
-  { label: '右侧固定', value: 'right' },
-]
-const columnClickActionOptions = [
-  { label: '无', value: 'none' },
-  { label: '跳转页面', value: 'navigate' },
 ]
 const shadowOptions = [
   { label: '无阴影', value: 'none' },
@@ -5271,12 +4668,17 @@ const CANVAS_AUTO_SCROLL_MAX_STEP = 20
 
 const canvasRef = ref(null)
 const canvasScrollRef = ref(null)
-const selectedBlockId = ref(null)
+const selectedBlockId = computed({
+  get: () => designerStore.selectedBlockId,
+  set: (blockId) => {
+    designerStore.selectedBlockId = blockId
+  },
+})
 const fieldDrawerOpen = ref(false)
+const specDrawerVisible = ref(false)
 const fieldDrawerMode = ref('table')
-const activeDrawerFieldName = ref('')
+const fieldDrawerInitialField = ref('')
 const expandDescriptionFieldPanelOpen = ref(false)
-const fieldAdvancedOpen = ref(false)
 const customActionModalOpen = ref(false)
 const sourceModalOpen = ref(false)
 const sourceModalTab = ref('layout')
@@ -5284,7 +4686,7 @@ const layoutSourceDraft = ref('')
 const blockSourceDraft = ref('')
 const sourceError = ref('')
 const activeActionIndex = ref(0)
-const propertyPanelTab = ref('props')
+const propertyPanelTab = computed(() => designerStore.propertyPanelTab)
 const propertyPanelRef = ref(null)
 const paletteKeyword = ref('')
 const propertyKeyword = ref('')
@@ -5448,7 +4850,6 @@ const dragOverCell = ref(null)
 const dragOverPoint = ref(null)
 const dragBlockedBlockId = ref('')
 const activeDropCell = ref(null)
-const deferLayoutEmit = ref(false)
 const movingBlockId = ref('')
 const movingPreviewBlock = ref(null)
 const movingPixelOffset = ref({ x: 0, y: 0 })
@@ -5456,14 +4857,18 @@ const nestedMovingBlockId = ref('')
 const canvasViewportWidth = ref(0)
 const canvasZoom = ref(1)
 let suppressNextBlockClick = false
-let hasDeferredLayoutEmit = false
 let canvasResizeObserver = null
 
-const localLayout = ref(normalizeDesignerLayout(syncGridLayoutWithModel(
+// localLayout 直连 Pinia store：拆分出的子面板改 store.layout，此处 watch 自动 emit
+const localLayout = computed({
+  get: () => designerStore.layout,
+  set: value => designerStore.applyLayout(value),
+})
+localLayout.value = normalizeDesignerLayout(syncGridLayoutWithModel(
   props.modelValue || createDefaultListGridLayout(props.modelSchema, { layoutType: props.layoutType }),
   buildGridSyncModelSchema(props.modelSchema, props.fields),
   { layoutType: props.layoutType },
-)))
+))
 
 const blocks = computed(() => localLayout.value.items || [])
 watch(() => props.activeBlockId, (blockId) => {
@@ -5532,7 +4937,91 @@ const collapsedTreeFrames = computed(() => {
     .sort((a, b) => a.rect.x - b.rect.x)
 })
 
-const selectedBlock = computed(() => findBlockInTree(blocks.value, selectedBlockId.value) || null)
+const selectedBlock = computed(() => designerStore.selectedBlock)
+
+// ─── 统一组件属性面板（designer-core spec 驱动，P2）──────────
+// 手写模板分支已覆盖的属性 key：spec 面板跳过，仅渲染增量属性，避免重复入口
+const SPEC_PANEL_EXCLUDED_PROPS = {
+  'AiCrudPage': ['addButtonText', 'api', 'createApi', 'deleteApi', 'detailApi', 'enableTreeAddChild', 'exportApi', 'exportButtonText', 'exportFileName', 'importApi', 'listApi', 'listDataField', 'listMethod', 'listTotalField', 'maxHeight', 'previewRecordId', 'renderMode', 'rowKey', 'scrollX', 'searchGridCols', 'searchLabelWidth', 'searchMaxVisibleFields', 'searchYGap', 'tableSize', 'updateApi'],
+  'AiForm': ['cancelText', 'resetText', 'submitText', 'xGap', 'yGap'],
+  'AiTable': ['gridCols', 'labelAlign', 'labelPlacement', 'labelWidth', 'maxHeight', 'maxVisibleFields', 'renderMode', 'rowKey', 'scrollX', 'size'],
+  // action-button：手写区已有 文案/类型/尺寸/点击动作；secondary/dashed/block/loading/disabled
+  // 等由 SpecPropertyPanel 提供（此前 spec 缺这些 key，排除项形同虚设、属性无编辑入口）
+  'action-button': ['text', 'type', 'size'],
+  'announcement': ['bordered', 'content', 'showIcon', 'type'],
+  'avatar': ['description', 'name', 'size', 'src', 'value'],
+  'back-button': ['action', 'targetFormKey', 'targetPageKey', 'text', 'type'],
+  'barcode': ['barHeight', 'barWidth', 'fontSize', 'format', 'margin', 'showText'],
+  'box-layout': ['alignItems', 'direction', 'gap', 'justifyContent'],
+  'card': ['content', 'title'],
+  'code': ['itemsText'],
+  'countdown': ['active', 'duration', 'precision'],
+  'custom-html': ['content', 'title'],
+  'descriptions': [],
+  'detail-info': ['bordered', 'columnCount', 'contextPath', 'dataPath', 'dataSourceType', 'detailApi', 'detailMethod', 'labelPlacement', 'paramsText'],
+  'divider': ['orientation', 'title'],
+  'empty-state': ['actionText', 'description', 'title'],
+  'html-tag': ['attributesText', 'htmlContent', 'renderMode', 'semanticRole', 'tagName', 'textContent'],
+  'info-panel': ['content', 'title', 'type'],
+  'markdown': ['content', 'height', 'previewMode'],
+  'menu': ['mode', 'optionsText', 'value'],
+  'number-animation': ['color', 'duration', 'from', 'to'],
+  'page-title': ['content', 'size', 'statusText', 'statusType'],
+  'pagination': ['itemCount', 'page', 'pageSize', 'simple'],
+  'paragraph': ['content'],
+  'qrcode': ['background', 'cornerColor', 'cornersDotType', 'cornersSquareType', 'dotsType', 'errorCorrectionLevel', 'margin', 'showText', 'size'],
+  'rich-text': ['content', 'editorMode', 'fontSize', 'lineHeight', 'minHeight', 'toolbarMode'],
+  'search-form': ['collapsible', 'defaultSortField', 'defaultSortOrder', 'rowGap', 'title'],
+  'section-divider': ['title'],
+  'signature-pad': ['height', 'required', 'strokeWidth', 'title'],
+  'space': ['direction', 'lineVisible', 'size'],
+  'split': ['defaultSize', 'direction', 'max', 'min', 'pane1Content', 'pane2Content'],
+  'statistic': ['color', 'prefix', 'suffix', 'title', 'trend', 'value'],
+  'step-form': ['current', 'direction', 'title'],
+  'steps': ['current'],
+  // tabs 属性全部由 SpecPropertyPanel 渲染（手写区只保留页签管理），spec 是唯一属性源
+  'tabs': [],
+  'text-title': ['align', 'color', 'level', 'subtitle', 'text', 'weight'],
+  'timeline': ['title'],
+  'toolbar': ['actions'],
+  'transfer': ['dataSourceType', 'filterable', 'sourceTitle', 'targetTitle', 'title'],
+  'tree-panel': ['filterField', 'keyField', 'labelField', 'loadMode', 'parentField', 'targetField', 'treeTitle'],
+  'video-player': ['poster'],
+  'vue-component': ['componentName', 'previewMode', 'propsJson', 'scriptCode', 'styleCode', 'templateCode'],
+  'watermark': ['content', 'cross', 'fontColor', 'fontSize', 'fontStyle', 'fontWeight', 'globalRotate', 'height', 'image', 'imageHeight', 'imageWidth', 'lineHeight', 'rotate', 'textAlign', 'width', 'xGap', 'xOffset', 'yGap', 'yOffset'],
+}
+
+const specPanelExcludeKeys = computed(() => {
+  const blockType = selectedBlock.value?.blockType
+  // 栅格属性已内联渲染在「栅格配置」区（与表单设计器共用 SpecPropertyPanel），
+  // 底部增量面板动态排除全部 spec key，避免重复入口；后续 grid spec 新增属性自动同步
+  if (blockType === 'grid-layout') {
+    const properties = getComponentSpec(blockType)?.propsSchema?.properties
+    return properties ? Object.keys(properties) : []
+  }
+  return SPEC_PANEL_EXCLUDED_PROPS[blockType] || []
+})
+
+const specPanelPropertyCount = computed(() => {
+  const spec = getComponentSpec(selectedBlock.value?.blockType || '')
+  const properties = spec?.propsSchema?.properties
+  if (!properties)
+    return 0
+  const exclude = new Set(specPanelExcludeKeys.value)
+  return Object.keys(properties).filter(key => !exclude.has(key)).length
+})
+
+function handleSpecPropUpdate({ key, value }) {
+  if (!selectedBlock.value?.id || !key)
+    return
+  // 栅格总列数变化需同步收敛各格子 span（updateGridLayoutStructure 内置 clamp + cells 归一化）
+  if (selectedBlock.value.blockType === 'grid-layout' && key === 'columns') {
+    updateGridLayoutStructure({ columns: value })
+    return
+  }
+  patchBlockProps(selectedBlock.value.id, { [key]: value })
+}
+
 const selectedAiCrudFormModalProps = computed(() => {
   if (selectedBlock.value?.blockType !== 'AiCrudPage')
     return {}
@@ -5704,14 +5193,24 @@ const rowFieldOptions = computed(() => props.fields
     value: field.field,
   })))
 const runtimeRuleFieldOptions = computed(() => rowFieldOptions.value)
-const childBlockTypeOptions = computed(() => listPageBlockCatalog
-  .filter(item => !item.unique)
-  .filter(item => !['card', 'tabs', 'grid-layout', 'box-layout'].includes(item.blockType))
-  .filter(item => !item.onlyFor || item.onlyFor.includes(props.layoutType))
-  .map(item => ({
-    label: `${item.title}（${item.blockType}）`,
-    value: item.blockType,
-  })))
+const NESTED_CONTAINER_BLOCK_TYPES = ['card', 'tabs', 'grid-layout', 'box-layout']
+
+/** 容器嵌套保护：画布 > 容器 > 容器，最多两层（嵌套容器内不可再放入容器） */
+function isTopLevelBlockId(id = '') {
+  return (blocks.value || []).some(block => block?.id === id)
+}
+
+const childBlockTypeOptions = computed(() => {
+  const allowContainer = isTopLevelBlockId(selectedBlock.value?.id)
+  return listPageBlockCatalog
+    .filter(item => !item.unique)
+    .filter(item => allowContainer || !NESTED_CONTAINER_BLOCK_TYPES.includes(item.blockType))
+    .filter(item => !item.onlyFor || item.onlyFor.includes(props.layoutType))
+    .map(item => ({
+      label: `${item.title}（${item.blockType}）`,
+      value: item.blockType,
+    }))
+})
 const tabPaneOptions = computed(() => (selectedBlock.value?.props?.tabs || []).map(tab => ({
   label: tab.title || tab.key,
   value: tab.key,
@@ -5766,141 +5265,83 @@ const treeFieldOptions = computed(() => resolveTreeFieldOptions(
   selectedBlock.value?.props?.sourceModelCode || '',
 ))
 
-const groupedBlocks = computed(() => {
-  const keyword = paletteKeyword.value.trim().toLowerCase()
-  const groups = [
-    { key: 'page', title: '页面组件', items: [] },
-    { key: 'data', title: '数据区块', items: [] },
-    { key: 'action', title: '动作区块', items: [] },
-    { key: 'navigation', title: '导航组件', items: [] },
-    { key: 'layout', title: '布局组件', items: [] },
-    { key: 'content', title: '文本内容', items: [] },
-    { key: 'media', title: '媒体展示', items: [] },
-    { key: 'advanced', title: '高级嵌入', items: [] },
-    { key: 'extra', title: '辅助区块', items: [] },
-  ]
-  for (const item of listPageBlockCatalog) {
-    if (keyword) {
-      const text = `${item.title || ''} ${item.desc || ''} ${item.blockType || ''} ${item.componentKey || ''}`.toLowerCase()
-      if (!text.includes(keyword))
-        continue
-    }
-    const target = groups.find(g => g.key === item.group) || groups[2]
-    target.items.push(item)
-  }
-  return groups.filter(group => group.items.length)
-})
+// ─── 统一组件物料面板（designer-core，P2）──────────────────
+// 列表画布支持能力判定基准：spec.type 映射为存量 blockType 后存在于列表区块目录（bridge 红线测试保证 59 项一致）
+const unifiedPaletteBlockTypes = new Set(toListPageBlockCatalog().map(item => item.blockType))
+const unifiedPaletteTotal = ref(0)
 
-function resolvePaletteItemIcon(item = {}) {
-  const iconMap = {
-    'search-form': SearchOutline,
-    'toolbar': FlashOutline,
-    'back-button': ChevronBackOutline,
-    'page-title': DocumentTextOutline,
-    'grid-layout': ResizeOutline,
-    'detail-info': ReaderOutline,
-    'AiCrudPage': DesktopOutline,
-    'AiTable': GridOutline,
-    'AiForm': DocumentTextOutline,
-    'data-table': ListOutline,
-    'tree-panel': ContractOutline,
-    'stats-strip': AnalyticsOutline,
-    'info-panel': AlertCircleOutline,
-    'custom-html': CodeSlashOutline,
-    'action-button': FlashOutline,
-    'button-group': ToggleOutline,
-    'tag-list': PricetagOutline,
-    'steps': ReorderThreeOutline,
-    'timeline': TimerOutline,
-    'empty-state': RemoveOutline,
-    'card': AlbumsOutline,
-    'tabs': BrowsersOutline,
-    'divider': RemoveOutline,
-    'spacer': ResizeOutline,
-    'rich-text': DocumentTextOutline,
-    'transfer': SwapHorizontalOutline,
-    'watermark': TextOutline,
-    'vue-component': BrowsersOutline,
-    'html-tag': CodeSlashOutline,
-    'markdown': ReorderThreeOutline,
-    'barcode': StatsChartOutline,
-    'qrcode': QrCodeOutline,
-    'calendar': CalendarOutline,
-    'code': CodeSlashOutline,
-    'countdown': TimerOutline,
-    'descriptions': ReaderOutline,
-    'announcement': AlertCircleOutline,
-    'list': ListOutline,
-    'log': TerminalOutline,
-    'number-animation': AnalyticsOutline,
-    'breadcrumb': NavigateOutline,
-    'menu': MenuOutline,
-    'pagination': ReorderThreeOutline,
-    'split': ResizeOutline,
-    'signature-pad': TextOutline,
-    'step-form': ExpandOutline,
-    'text-title': DesktopOutline,
-    'paragraph': DocumentTextOutline,
-    'statistic': StatsChartOutline,
-    'link': FlashOutline,
-    'text-tip': AlertCircleOutline,
-    'audio-player': PhonePortraitOutline,
-    'video-player': TabletLandscapeOutline,
-    'avatar': PhonePortraitOutline,
-    'iframe': BrowsersOutline,
-    'page': DesktopOutline,
-    'data': GridOutline,
-    'action': FlashOutline,
-    'navigation': ChevronForwardOutline,
-    'layout': ResizeOutline,
-    'content': CodeSlashOutline,
-    'media': PhonePortraitOutline,
-    'advanced': BrowsersOutline,
-    'extra': ExpandOutline,
-  }
-  return iconMap[item.blockType] || iconMap[item.group] || DesktopOutline
+function resolveUnifiedBlockType(spec = {}) {
+  return LIST_BLOCK_TYPE_OVERRIDES[spec.type] || spec.type
 }
 
-const paletteStats = computed(() => {
-  const total = listPageBlockCatalog.length
-  const filtered = groupedBlocks.value.reduce((sum, group) => sum + group.items.length, 0)
-  return {
-    total,
-    filtered,
+/**
+ * B2 修正：画布不支持的组件直接隐藏（与表单侧 ForgeFieldShelf 策略统一，用户验收反馈：禁用态+开发术语同显太乱）。
+ * 字段组件由表单/查询区块承载、列表画布暂无渲染分支的类型、旧 zone 画布专属操作组件 —— 统一不展示。
+ * 注册表仍是唯一事实源，两侧加/改组件只改 spec。
+ */
+function listPaletteItemFilter(spec) {
+  // 基础过滤：排除包装节点
+  if (!isPaletteUnionSpec(spec))
+    return false
+  // 字段组件在列表画布由表单区块/查询区块承载，不直接拖入 → 隐藏
+  if (spec.category === 'field')
+    return false
+  const blockType = resolveUnifiedBlockType(spec)
+  if (!unifiedPaletteBlockTypes.has(blockType)) {
+    // 列表画布渲染器暂无分支 / 旧 zone 画布专属 / 表单画布专属 → 隐藏
+    return false
   }
-})
+  return true
+}
 
-const fieldMap = computed(() => new Map(props.fields.map(f => [f.field, f])))
-const queryFieldOptions = computed(() => {
-  const options = props.fields
-    .filter(field => !field.systemField || field.field === 'id')
-    .map(field => ({
-      label: field.label ? `${field.label}（${field.sourceField || field.field}）` : (field.sourceField || field.field),
-      value: field.field,
-    }))
-  if (!options.some(item => item.value === 'id'))
-    options.unshift({ label: 'ID（id）', value: 'id' })
-  return options
-})
-const selectedBlockZoneKey = computed(() => {
-  if (fieldDrawerMode.value === 'search')
-    return 'search'
-  return selectedBlock.value?.blockType === 'search-form' ? 'search' : 'table'
-})
-const selectedFieldDrawerTitle = computed(() => selectedBlockZoneKey.value === 'search' ? '查询条件' : '字段')
-const selectedFieldRefs = computed(() => resolveSelectedFieldRefs())
-const selectedFieldsList = computed(() => selectedFieldRefs.value
-  .map(ref => fieldMap.value.get(ref))
-  .filter(Boolean))
-const availableFields = computed(() => {
-  const set = new Set(selectedFieldRefs.value)
-  return props.fields.filter(f => isPageFieldVisible(f, selectedBlockZoneKey.value) && !set.has(f.field))
-})
+/**
+ * 列表画布临时禁用原因：只保留用户可理解、可操作的原因（唯一性约束 / 布局限制）。
+ * 不再出现"由表单区块承载"/"待流式画布支持"等开发术语。
+ */
+function unifiedPaletteDisabledReason(spec) {
+  const blockType = resolveUnifiedBlockType(spec)
+  if (spec.meta?.unique && findExistingBlockByType(blockType))
+    return '已在画布中'
+  if (spec.meta?.onlyFor && !spec.meta.onlyFor.includes(props.layoutType))
+    return '当前布局不可用'
+  return ''
+}
+
+function handleUnifiedPaletteDragStart({ spec, event }) {
+  if (props.readonly) {
+    event.preventDefault()
+    return
+  }
+  const blockType = resolveUnifiedBlockType(spec)
+  draggedBlockType.value = blockType
+  event.dataTransfer.effectAllowed = 'copy'
+  event.dataTransfer.setData('application/x-list-block', blockType)
+}
+
+function handleUnifiedPaletteClick(spec) {
+  if (props.readonly)
+    return
+  const blockType = resolveUnifiedBlockType(spec)
+  if (spec.meta?.unique) {
+    const existingBlock = findExistingBlockByType(blockType)
+    if (existingBlock) {
+      selectBlock(existingBlock.id)
+      scrollBlockIntoView(existingBlock)
+      return
+    }
+  }
+  if (spec.meta?.onlyFor && !spec.meta.onlyFor.includes(props.layoutType)) {
+    window.$message?.info('当前布局不可用')
+    return
+  }
+  appendBlock(blockType)
+}
+
 const crudTablePanelFields = computed(() => {
   if (selectedBlock.value?.blockType !== 'AiCrudPage')
     return []
   const tableFields = props.fields.filter(field => isPageFieldVisible(field, 'table') && field?.field)
-  const refIndex = new Map(resolveSelectedFieldRefs(selectedBlock.value, 'table').map((ref, index) => [ref, index]))
+  const refIndex = new Map(resolveSelectedFieldRefs(selectedBlock.value, 'table', props.fields).map((ref, index) => [ref, index]))
   return [...tableFields].sort((left, right) => {
     const leftIndex = refIndex.has(left.field) ? refIndex.get(left.field) : Number.MAX_SAFE_INTEGER
     const rightIndex = refIndex.has(right.field) ? refIndex.get(right.field) : Number.MAX_SAFE_INTEGER
@@ -5908,21 +5349,6 @@ const crudTablePanelFields = computed(() => {
       return leftIndex - rightIndex
     return tableFields.indexOf(left) - tableFields.indexOf(right)
   })
-})
-const activeDrawerField = computed(() => {
-  if (!selectedFieldsList.value.length)
-    return null
-  return selectedFieldsList.value.find(field => field.field === activeDrawerFieldName.value) || selectedFieldsList.value[0]
-})
-const activeDrawerFieldSetting = computed(() => activeDrawerField.value ? resolveFieldSetting(activeDrawerField.value.field) : {})
-
-watch(selectedFieldRefs, (refs) => {
-  if (!refs.length) {
-    activeDrawerFieldName.value = ''
-    return
-  }
-  if (!refs.includes(activeDrawerFieldName.value))
-    activeDrawerFieldName.value = refs[0]
 })
 
 watch(
@@ -5994,8 +5420,8 @@ watch(
 watch(
   localLayout,
   (value) => {
-    if (deferLayoutEmit.value) {
-      hasDeferredLayoutEmit = true
+    if (designerStore.deferLayoutEmit) {
+      designerStore.markDeferredLayoutEmit()
       return
     }
     emitLayoutChange(value)
@@ -6083,7 +5509,7 @@ function resolveBlockStyle(block) {
   const style = {
     left: `${rect.x}px`,
     top: `${rect.y}px`,
-    minWidth: resolveAbsoluteCssSize(componentStyle.minWidth),
+    minWidth: clampMaxCssSize(resolveAbsoluteCssSize(componentStyle.minWidth), Math.max(0, canvasGridWidth.value - rect.x)),
     maxWidth: resolveAbsoluteCssSize(componentStyle.maxWidth),
     minHeight: resolveAbsoluteCssSize(componentStyle.minHeight),
     maxHeight: resolveAbsoluteCssSize(componentStyle.maxHeight),
@@ -6104,6 +5530,48 @@ function resolveBlockStyle(block) {
   if (movingBlockId.value === block.id) {
     style.transform = `translate3d(${movingPixelOffset.value.x}px, ${movingPixelOffset.value.y}px, 0) scale(0.995)`
   }
+  return style
+}
+
+/** 选中且可 resize 的顶层区块（锚点渲染在画布层的数据源） */
+const selectedResizeBlock = computed(() => {
+  if (props.readonly || !selectedBlockId.value)
+    return null
+  return blocks.value.find(block => block.id === selectedBlockId.value) || null
+})
+
+/**
+ * 画布层锚点定位：按选中块 rect 计算画布坐标系位置（canvas-grid 自带 scale，
+ * 子元素用未缩放像素即可跟随缩放）。高度“填充容器”时视觉高度拉伸到画布底，
+ * 底部锚点需用拉伸后的高度定位。
+ */
+function resolveCanvasAnchorStyle(anchor) {
+  const block = selectedResizeBlock.value
+  if (!block)
+    return null
+  const rect = resolveRuntimeBlockFrame(block, resolveBlockFrame(block))
+  const half = 5
+  const isFullHeight = resolveBlockHeightMode(block) === 'full'
+  const visualHeight = isFullHeight
+    ? Math.max(rect.height, canvasGridHeight.value - rect.y)
+    : rect.height
+  let left
+  let top
+  if (anchor.endsWith('left'))
+    left = rect.x - half
+  else if (anchor.endsWith('right'))
+    left = rect.x + rect.width - half
+  else
+    left = rect.x + rect.width / 2 - half
+  if (anchor.startsWith('top'))
+    top = rect.y - half
+  else if (anchor.startsWith('bottom'))
+    top = rect.y + visualHeight - half
+  else
+    top = rect.y + visualHeight / 2 - half
+  const style = { left: `${left}px`, top: `${top}px` }
+  if (movingBlockId.value === block.id)
+    style.transform = `translate3d(${movingPixelOffset.value.x}px, ${movingPixelOffset.value.y}px, 0)`
   return style
 }
 
@@ -6146,11 +5614,16 @@ function resolveBlockFrame(block = {}) {
   const fallbackY = Number(block.gridY || 0) * (rowHeight + gap)
   const fallbackWidth = gridWidthToPixels(block.gridW || 1)
   const fallbackHeight = gridHeightToPixels(block.gridH || 1)
-  const x = resolveCssNumber(componentStyle.x ?? componentStyle.left, fallbackX)
+  let x = resolveCssNumber(componentStyle.x ?? componentStyle.left, fallbackX)
   const y = resolveCssNumber(componentStyle.y ?? componentStyle.top, fallbackY)
   const widthMode = resolveBlockWidthMode(block)
-  const width = Math.max(24, resolveFrameWidth(componentStyle.width, widthMode, x, fallbackWidth))
+  let width = Math.max(24, resolveFrameWidth(componentStyle.width, widthMode, x, fallbackWidth))
   const height = Math.max(24, resolveCssNumber(componentStyle.height, fallbackHeight))
+  // 组件不允许超出画布：存量数据、属性面板输入过大宽度/偏移时统一兜底（嵌套子块走独立样式不受影响）
+  const canvasWidth = canvasGridWidth.value
+  x = Math.max(0, Math.min(x, Math.max(0, canvasWidth - 24)))
+  if (x + width > canvasWidth)
+    width = Math.max(24, canvasWidth - x)
   return { x, y, width, height }
 }
 
@@ -6174,7 +5647,9 @@ function resolveFrameWidth(value, mode, x = 0, fallback = 320) {
   if (mode === 'full')
     return Math.max(24, canvasGridWidth.value - x)
   if (mode === 'auto')
-    return Math.max(240, Math.min(520, fallback || 320))
+    // 默认宽度 = 组件当前栅格宽度（限在画布内）：不再武断 clamp 240~520，
+    // 避免从满宽/固定宽度切到“默认宽度”时组件宽度骤变
+    return Math.max(24, Math.min(fallback || 320, Math.max(24, canvasGridWidth.value - x)))
   return resolveCssNumber(value, fallback)
 }
 
@@ -6219,6 +5694,16 @@ function resolveAbsoluteCssSize(value) {
   if (!text)
     return undefined
   return /^\d+(?:\.\d+)?$/.test(text) ? `${text}px` : text
+}
+
+/** minWidth 不允许超过画布剩余宽度，避免 min 宺透值把组件顶出画布右边界 */
+function clampMaxCssSize(cssValue, maxValue) {
+  if (!cssValue || maxValue <= 0)
+    return undefined
+  const num = Number.parseFloat(cssValue)
+  if (!Number.isFinite(num))
+    return cssValue
+  return num > maxValue ? `${Math.round(maxValue)}px` : cssValue
 }
 
 function toNumberOrNull(value) {
@@ -6291,7 +5776,7 @@ function updateSelectedBlockBorderColor(value) {
 function selectBlock(blockId) {
   if (props.readonly)
     return
-  selectedBlockId.value = blockId
+  designerStore.selectBlock(blockId)
   propertyCollapsed.value = false
 }
 
@@ -6328,7 +5813,7 @@ function handleRuntimeTreeSelect(payload = {}) {
 function clearSelection() {
   if (props.readonly)
     return
-  selectedBlockId.value = null
+  designerStore.clearSelection()
 }
 
 function isFieldConfigurableBlock(blockType) {
@@ -6813,18 +6298,6 @@ function updateAiFormFlags(values = []) {
   })
 }
 
-function isBlockDisabled(item) {
-  return !!resolveBlockDisabledReason(item)
-}
-
-function resolveBlockDisabledReason(item = {}) {
-  if (item.unique && findExistingBlockByType(item.blockType))
-    return '已在画布中'
-  if (item.onlyFor && !item.onlyFor.includes(props.layoutType))
-    return '当前布局不可用'
-  return ''
-}
-
 function findExistingBlockByType(blockType) {
   return blocks.value.find(block => blockContainsType(block, blockType))
 }
@@ -6841,20 +6314,6 @@ function blockContainsType(block = {}, blockType = '') {
   return false
 }
 
-function handlePaletteDragStart(event, item) {
-  if (props.readonly) {
-    event.preventDefault()
-    return
-  }
-  if (isBlockDisabled(item)) {
-    event.preventDefault()
-    return
-  }
-  draggedBlockType.value = item.blockType
-  event.dataTransfer.effectAllowed = 'copy'
-  event.dataTransfer.setData('application/x-list-block', item.blockType)
-}
-
 function handleNestedBlockDragStart(payload = {}) {
   const block = payload.block || {}
   if (!block.id)
@@ -6863,23 +6322,6 @@ function handleNestedBlockDragStart(payload = {}) {
   draggedExistingBlockId.value = block.id
   draggedBlockType.value = block.blockType || ''
   canvasDragActive.value = true
-}
-
-function handlePaletteClick(item) {
-  if (props.readonly)
-    return
-  const existingBlock = item.unique ? findExistingBlockByType(item.blockType) : null
-  if (existingBlock) {
-    selectBlock(existingBlock.id)
-    scrollBlockIntoView(existingBlock)
-    return
-  }
-  const disabledReason = resolveBlockDisabledReason(item)
-  if (disabledReason) {
-    window.$message?.info(disabledReason)
-    return
-  }
-  appendBlock(item.blockType)
 }
 
 function scrollBlockIntoView(block) {
@@ -7235,6 +6677,9 @@ function appendContainerChild(containerId, blockType, cellKey = '', tabKey = '')
   const container = findBlockInTree(blocks.value, containerId)
   if (!container || !blockType)
     return
+  // 嵌套深度保护：容器内不可再放入容器（画布 > 容器 > 容器 封顶）
+  if (NESTED_CONTAINER_BLOCK_TYPES.includes(blockType) && !isTopLevelBlockId(containerId))
+    return
   if (container.blockType === 'tabs') {
     appendTabChild(blockType, containerId, tabKey)
     selectBlock(containerId)
@@ -7358,6 +6803,9 @@ function patchGridLayoutCells(containerId, updater) {
 function appendGridCellChild(containerId, cellKey, blockType) {
   const container = findBlockInTree(blocks.value, containerId)
   if (!container || container.blockType !== 'grid-layout' || !blockType)
+    return null
+  // 嵌套深度保护：容器内不可再放入容器（画布 > 容器 > 容器 封顶）
+  if (NESTED_CONTAINER_BLOCK_TYPES.includes(blockType) && !isTopLevelBlockId(containerId))
     return null
   const child = createContainerChildBlock(blockType)
   if (!child)
@@ -7659,148 +7107,6 @@ function pixelToPoint(clientX, clientY) {
   }
 }
 
-function findBlockInTree(list = [], id = '') {
-  if (!id)
-    return null
-  for (const block of list || []) {
-    if (block?.id === id)
-      return block
-    const nested = findBlockInTree(resolveNestedBlocks(block), id)
-    if (nested)
-      return nested
-  }
-  return null
-}
-
-function collectBlocksInTree(block = {}) {
-  if (!block?.id)
-    return []
-  return [block, ...resolveNestedBlocks(block).flatMap(child => collectBlocksInTree(child))]
-}
-
-function resolveNestedBlocks(block = {}) {
-  const children = Array.isArray(block.children) ? block.children : []
-  const tabChildren = (block.props?.tabs || []).flatMap(tab => Array.isArray(tab.children) ? tab.children : [])
-  const cellChildren = (block.props?.cells || []).flatMap(cell => Array.isArray(cell.children) ? cell.children : [])
-  return [...children, ...tabChildren, ...cellChildren]
-}
-
-function mapBlocksInTree(list = [], mapper) {
-  return (list || []).map(block => mapBlockInTree(block, mapper))
-}
-
-function mapBlockSiblingsInTree(list = [], mapper) {
-  const mappedList = mapper(list || [])
-  return mappedList.map((block) => {
-    let next = block
-    if (Array.isArray(next.children) && next.children.length) {
-      next = {
-        ...next,
-        children: mapBlockSiblingsInTree(next.children, mapper),
-      }
-    }
-    if (Array.isArray(next.props?.tabs) && next.props.tabs.length) {
-      next = {
-        ...next,
-        props: {
-          ...(next.props || {}),
-          tabs: next.props.tabs.map(tab => ({
-            ...tab,
-            children: mapBlockSiblingsInTree(tab.children || [], mapper),
-          })),
-        },
-      }
-    }
-    if (Array.isArray(next.props?.cells) && next.props.cells.length) {
-      next = {
-        ...next,
-        props: {
-          ...(next.props || {}),
-          cells: next.props.cells.map(cell => ({
-            ...cell,
-            children: mapBlockSiblingsInTree(cell.children || [], mapper),
-          })),
-        },
-      }
-    }
-    return next
-  })
-}
-
-function mapBlockInTree(block = {}, mapper) {
-  let next = block
-  if (Array.isArray(next.children) && next.children.length) {
-    next = {
-      ...next,
-      children: mapBlocksInTree(next.children, mapper),
-    }
-  }
-  if (Array.isArray(next.props?.tabs) && next.props.tabs.length) {
-    next = {
-      ...next,
-      props: {
-        ...(next.props || {}),
-        tabs: next.props.tabs.map(tab => ({
-          ...tab,
-          children: mapBlocksInTree(tab.children || [], mapper),
-        })),
-      },
-    }
-  }
-  if (Array.isArray(next.props?.cells) && next.props.cells.length) {
-    next = {
-      ...next,
-      props: {
-        ...(next.props || {}),
-        cells: next.props.cells.map(cell => ({
-          ...cell,
-          children: mapBlocksInTree(cell.children || [], mapper),
-        })),
-      },
-    }
-  }
-  return mapper(next)
-}
-
-function removeBlockFromTree(list = [], id = '') {
-  return (list || [])
-    .filter(block => block?.id !== id)
-    .map((block) => {
-      let next = block
-      if (Array.isArray(next.children) && next.children.length) {
-        next = {
-          ...next,
-          children: removeBlockFromTree(next.children, id),
-        }
-      }
-      if (Array.isArray(next.props?.tabs) && next.props.tabs.length) {
-        next = {
-          ...next,
-          props: {
-            ...(next.props || {}),
-            tabs: next.props.tabs.map(tab => ({
-              ...tab,
-              children: removeBlockFromTree(tab.children || [], id),
-            })),
-          },
-        }
-      }
-      if (Array.isArray(next.props?.cells) && next.props.cells.length) {
-        next = {
-          ...next,
-          props: {
-            ...(next.props || {}),
-            cells: next.props.cells.map(cell => ({
-              ...cell,
-              children: removeBlockFromTree(cell.children || [], id),
-            })),
-          },
-        }
-      }
-      return next
-    })
-}
-
 function patchBlock(id, patch) {
   localLayout.value = {
     ...localLayout.value,
@@ -7838,7 +7144,33 @@ function applyCanvasPreviewMode(value = 'desktop') {
 }
 
 function updateCanvasZoom(value) {
-  canvasZoom.value = clamp(Number(value) || 1, 0.5, 1.25)
+  const next = clamp(Number(value) || 1, 0.5, 1.25)
+  const scrollEl = canvasScrollRef.value
+  const canvasEl = canvasRef.value
+  // 无滚动容器 / readonly（无滚动条）/ 实际无变化：直接赋值
+  if (!scrollEl || !canvasEl || props.readonly || Math.abs(next - canvasZoom.value) < 0.001) {
+    canvasZoom.value = next
+    return
+  }
+  const oldZoom = canvasZoom.value
+  // 记录缩放前：视口中心对应的画布点（未缩放坐标）
+  const scrollRect = scrollEl.getBoundingClientRect()
+  const canvasRect = canvasEl.getBoundingClientRect()
+  const viewCenterX = scrollRect.left + scrollRect.width / 2
+  const viewCenterY = scrollRect.top + scrollRect.height / 2
+  const anchorX = (viewCenterX - canvasRect.left) / oldZoom
+  const anchorY = (viewCenterY - canvasRect.top) / oldZoom
+  canvasZoom.value = next
+  nextTick(() => {
+    // DOM 已更新：canvasScaleStyle / canvasZoomStageStyle 已生效
+    const newCanvasRect = canvasEl.getBoundingClientRect()
+    // 同一画布点的新视口位置
+    const newX = newCanvasRect.left + anchorX * next
+    const newY = newCanvasRect.top + anchorY * next
+    // 补偿滚动：让该画布点回到视口中心
+    scrollEl.scrollLeft += newX - viewCenterX
+    scrollEl.scrollTop += newY - viewCenterY
+  })
 }
 
 function handleCanvasWheel(event) {
@@ -8031,10 +7363,12 @@ function setBlockWidthMode(id, mode = 'full') {
     : current.width
   const nextFrame = {
     ...current,
+    // 切“默认宽度”保持当前视觉宽度（栅格宽度随后由 frameToGridPatch 同步），
+    // 仅“填充容器”按语义扩展到画布右缘，避免模式切换时宽度跳变
     width: widthMode === 'full'
       ? Math.max(24, canvasGridWidth.value - current.x)
       : widthMode === 'auto'
-        ? Math.max(240, Math.min(520, current.width))
+        ? Math.min(current.width, Math.max(24, canvasGridWidth.value - current.x))
         : fixedRuntimeWidth,
   }
   const gridPatch = frameToGridPatch(nextFrame)
@@ -8129,6 +7463,11 @@ function addBlockEvent() {
     params: [],
   })
   patchBlockProps(selectedBlock.value.id, { events: list })
+  nextTick(() => {
+    const rows = document.querySelectorAll('.event-row')
+    const last = rows[rows.length - 1]
+    last?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  })
 }
 
 function resolvePrimaryClickEvent(block = selectedBlock.value) {
@@ -8558,8 +7897,7 @@ function startMove(block, event) {
   movingBlockId.value = block.id
   movingPreviewBlock.value = { ...block }
   movingPixelOffset.value = { x: 0, y: 0 }
-  deferLayoutEmit.value = true
-  hasDeferredLayoutEmit = false
+  designerStore.beginDeferLayoutEmit()
   moveCtx = {
     blockId: block.id,
     startX: event.clientX,
@@ -8777,8 +8115,7 @@ function startResize(block, event, anchor = 'bottom-right') {
     return
   event.preventDefault()
   const rect = resolveBlockFrame(block)
-  deferLayoutEmit.value = true
-  hasDeferredLayoutEmit = false
+  designerStore.beginDeferLayoutEmit()
   resizeCtx = {
     blockId: block.id,
     anchor,
@@ -8894,13 +8231,8 @@ function endNestedResize() {
 }
 
 function flushDeferredLayoutEmit() {
-  if (!deferLayoutEmit.value)
-    return
-  deferLayoutEmit.value = false
-  if (hasDeferredLayoutEmit) {
-    hasDeferredLayoutEmit = false
+  if (designerStore.takeDeferredLayoutEmit())
     emitLayoutChange()
-  }
 }
 
 function updateCanvasViewportWidth() {
@@ -8929,63 +8261,37 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', updateCanvasViewportWidth)
 })
 
-// Field config drawer
+// Field config drawer（抽屉本体已拆分至 FieldConfigDrawer.vue：选中态走 listDesigner store，写入走 patch 事件回传）
 function openFieldDrawer(mode = 'table') {
   fieldDrawerMode.value = mode === 'search' ? 'search' : 'table'
-  activeDrawerFieldName.value = resolveSelectedFieldRefs(selectedBlock.value, mode === 'search' ? 'search' : 'table')?.[0] || ''
-  fieldAdvancedOpen.value = false
+  fieldDrawerInitialField.value = ''
   fieldDrawerOpen.value = true
 }
 
 function openInlineFieldDrawer(fieldName = '', mode = 'table') {
   fieldDrawerMode.value = mode === 'search' ? 'search' : 'table'
-  activeDrawerFieldName.value = fieldName || resolveSelectedFieldRefs(selectedBlock.value, fieldDrawerMode.value)?.[0] || ''
-  fieldAdvancedOpen.value = false
+  fieldDrawerInitialField.value = fieldName
   fieldDrawerOpen.value = true
 }
 
-function selectDrawerField(fieldName = '') {
-  activeDrawerFieldName.value = fieldName
-  fieldAdvancedOpen.value = false
+function handleFieldDrawerPatchProps({ blockId, patch } = {}) {
+  if (!blockId)
+    return
+  patchBlockProps(blockId, patch)
 }
 
-function resolveSelectedFieldRefs(block = selectedBlock.value, zoneKey = selectedBlockZoneKey.value) {
-  if (!block)
-    return []
-  if (zoneKey === 'search' && block.blockType === 'AiCrudPage') {
-    const refs = Array.isArray(block.props?.searchFieldRefs)
-      ? block.props.searchFieldRefs
-      : block.fieldRefs || []
-    const fieldSet = new Set(props.fields.filter(field => isPageFieldVisible(field, 'search')).map(field => field.field))
-    return refs.filter(ref => fieldSet.has(ref))
-  }
-  return Array.isArray(block.fieldRefs) ? block.fieldRefs : []
+function handleFieldDrawerPatchBlock({ blockId, patch } = {}) {
+  if (!blockId)
+    return
+  patchBlock(blockId, patch)
 }
-
 function resolveBlockFieldCount(block = selectedBlock.value, zoneKey = 'table') {
   if (block?.blockType === 'AiCrudPage' && zoneKey === 'table') {
-    const refs = new Set(resolveSelectedFieldRefs(block, 'table'))
+    const refs = new Set(resolveSelectedFieldRefs(block, 'table', props.fields))
     return props.fields.filter(field => refs.has(field.field) && isCrudTableFieldVisible(field.field, block)).length
   }
-  return resolveSelectedFieldRefs(block, zoneKey).length
+  return resolveSelectedFieldRefs(block, zoneKey, props.fields).length
 }
-
-function toggleField(fieldName, add) {
-  if (!selectedBlock.value)
-    return
-  const current = selectedFieldRefs.value || []
-  const next = add
-    ? [...current, fieldName]
-    : current.filter(f => f !== fieldName)
-  updateSelectedFieldRefs(Array.from(new Set(next)))
-}
-
-function handleSelectedReorder(rows) {
-  if (!selectedBlock.value)
-    return
-  updateSelectedFieldRefs(rows.map(r => r.field))
-}
-
 function handleCrudTableFieldReorder(rows = []) {
   if (!selectedBlock.value?.id)
     return
@@ -9026,14 +8332,14 @@ function resolveCrudTablePanelFieldRefs(rows = crudTablePanelFields.value) {
 function isCrudTableFieldVisible(fieldName = '', block = selectedBlock.value) {
   if (!fieldName || !block)
     return false
-  const refs = resolveSelectedFieldRefs(block, 'table')
+  const refs = resolveSelectedFieldRefs(block, 'table', props.fields)
   const setting = block.props?.fieldSettings?.[fieldName] || {}
   return refs.includes(fieldName) && setting.visible !== false
 }
 
 function buildCrudTableVisibilitySettings(nextRefs = [], overrides = {}) {
   const block = selectedBlock.value || {}
-  const previousRefs = new Set(resolveSelectedFieldRefs(block, 'table'))
+  const previousRefs = new Set(resolveSelectedFieldRefs(block, 'table', props.fields))
   const currentSettings = block.props?.fieldSettings || {}
   const nextSettings = { ...currentSettings }
   nextRefs.forEach((fieldName) => {
@@ -9077,131 +8383,12 @@ function resolveCrudFieldIconComponent(field = {}) {
   return BitableStyleIcon
 }
 
-function updateSelectedFieldRefs(fieldRefs = []) {
-  if (!selectedBlock.value)
-    return
-  if (selectedBlockZoneKey.value === 'search' && selectedBlock.value.blockType === 'AiCrudPage') {
-    patchBlockProps(selectedBlock.value.id, { searchFieldRefs: fieldRefs })
-    return
-  }
-  patchBlock(selectedBlock.value.id, { fieldRefs })
-}
-
-function resolveFieldRoleEnabled(fieldName, role) {
-  if (!fieldName)
-    return false
-  if (role === 'search')
-    return resolveSelectedFieldRefs(selectedBlock.value, 'search').includes(fieldName)
-  if (role === 'table')
-    return resolveSelectedFieldRefs(selectedBlock.value, 'table').includes(fieldName)
-  if (role === 'import')
-    return resolveCrudFieldQuickValue(selectedBlock.value, fieldName, 'importable', true)
-  if (role === 'export')
-    return resolveCrudFieldQuickValue(selectedBlock.value, fieldName, 'exportable', true)
-  return resolveFieldSetting(fieldName).editVisible !== false
-}
-
-function updateFieldRole(fieldName, role, enabled) {
-  if (!selectedBlock.value || !fieldName)
-    return
-  if (role === 'import' || role === 'export') {
-    updateCrudFieldQuickSetting(fieldName, role === 'import' ? 'importable' : 'exportable', enabled)
-    return
-  }
-  if (role === 'search' || role === 'table') {
-    const current = resolveSelectedFieldRefs(selectedBlock.value, role)
-    const next = enabled
-      ? Array.from(new Set([...current, fieldName]))
-      : current.filter(ref => ref !== fieldName)
-    if (role === 'search' && selectedBlock.value.blockType === 'AiCrudPage') {
-      patchBlockProps(selectedBlock.value.id, { searchFieldRefs: next })
-      return
-    }
-    if (role === 'table')
-      patchBlock(selectedBlock.value.id, { fieldRefs: next })
-    return
-  }
-  updateFieldSetting(fieldName, { editVisible: enabled })
-}
-
-function resolveFieldSetting(fieldName) {
-  if (selectedBlockZoneKey.value === 'search' && selectedBlock.value?.blockType === 'AiCrudPage')
-    return selectedBlock.value?.props?.searchFieldSettings?.[fieldName] || {}
-  return selectedBlock.value?.props?.fieldSettings?.[fieldName] || {}
-}
-
-function resolveDefaultSearchComponentType(field = {}) {
-  const componentType = field.componentType || field.dataType || 'input'
-  if (field.dictType)
-    return 'dictSelect'
-  if (['int', 'bigint', 'decimal', 'double', 'float'].includes(field.dataType))
-    return 'number'
-  return componentType === 'inputNumber' ? 'number' : componentType
-}
-
-function resolveDefaultTableRenderType(field = {}) {
-  const componentType = field.componentType || ''
-  if (field.dictType)
-    return 'dictTag'
-  if (componentType === 'orgTreeSelect')
-    return 'orgName'
-  if (componentType === 'userSelect')
-    return 'userName'
-  if (componentType === 'regionTreeSelect')
-    return 'regionName'
-  if (componentType === 'fileUpload' || componentType === 'imageUpload')
-    return componentType
-  return ''
-}
-
-function isNameRenderType(renderType) {
-  return ['orgName', 'userName', 'regionName', 'fileUpload', 'imageUpload'].includes(renderType)
-}
-
-function renderTargetFieldOptions(field = {}) {
-  const options = queryFieldOptions.value.map(item => ({ ...item }))
-  const defaultTarget = `${field.field}Name`
-  if (!options.some(item => item.value === defaultTarget)) {
-    options.unshift({
-      label: `${defaultTarget}（默认翻译字段）`,
-      value: defaultTarget,
-    })
-  }
-  return options
-}
-
-function updateFieldSetting(fieldName, settingPatch) {
-  if (!selectedBlock.value)
-    return
-  if (selectedBlockZoneKey.value === 'search' && selectedBlock.value.blockType === 'AiCrudPage') {
-    patchBlockProps(selectedBlock.value.id, {
-      searchFieldSettings: {
-        ...(selectedBlock.value.props?.searchFieldSettings || {}),
-        [fieldName]: {
-          ...(selectedBlock.value.props?.searchFieldSettings?.[fieldName] || {}),
-          ...settingPatch,
-        },
-      },
-    })
-    return
-  }
-  patchBlockProps(selectedBlock.value.id, {
-    fieldSettings: {
-      ...(selectedBlock.value.props?.fieldSettings || {}),
-      [fieldName]: {
-        ...(selectedBlock.value.props?.fieldSettings?.[fieldName] || {}),
-        ...settingPatch,
-      },
-    },
-  })
-}
-
 function applySelectedTableGlobalAlign(value) {
   if (!selectedBlock.value || !['data-table', 'AiCrudPage', 'AiTable'].includes(selectedBlock.value.blockType))
     return
   const align = ['left', 'center', 'right'].includes(value) ? value : 'left'
   const nextSettings = { ...(selectedBlock.value.props?.fieldSettings || {}) }
-  const tableRefs = resolveSelectedFieldRefs(selectedBlock.value, 'table')
+  const tableRefs = resolveSelectedFieldRefs(selectedBlock.value, 'table', props.fields)
   const fieldRefs = tableRefs.length
     ? tableRefs
     : props.fields.filter(field => isPageFieldVisible(field, 'table')).map(field => field.field)
@@ -10024,12 +9211,6 @@ function normalizeActionKey(value) {
     .replace(/^[^a-z]+/, '')
 }
 
-function normalizeParamName(value) {
-  return String(value || '')
-    .trim()
-    .replace(/[^\w.-]/g, '')
-}
-
 function actionPathPlaceholder(action = {}) {
   const actionType = resolveActionBehaviorValue(action.actionType)
   if (actionType === 'external')
@@ -10158,7 +9339,7 @@ function centerCanvasViewport() {
 }
 
 function selectPropertyPanelTab(tab) {
-  propertyPanelTab.value = tab
+  designerStore.setPropertyTab(tab)
 }
 function resolveCrudFieldKey(field = {}) {
   return String(field.field || field.fieldCode || field.code || field.prop || field.key || field.id || '').trim()
@@ -10166,52 +9347,6 @@ function resolveCrudFieldKey(field = {}) {
 
 function resolveCrudFieldLabel(field = {}) {
   return field.label || field.fieldName || field.name || field.title || resolveCrudFieldKey(field)
-}
-
-function resolveCrudFieldQuickValue(block = {}, fieldKey = '', settingKey = '', fallback = false) {
-  const setting = block.props?.fieldSettings?.[fieldKey] || {}
-  if (Object.prototype.hasOwnProperty.call(setting, settingKey))
-    return setting[settingKey] === true
-  if (settingKey === 'searchable' && Object.prototype.hasOwnProperty.call(setting, 'showInSearch'))
-    return setting.showInSearch === true
-  return fallback === true
-}
-
-function updateCrudFieldQuickSetting(fieldKey = '', settingKey = '', value = false) {
-  if (!selectedBlock.value?.id || !fieldKey || !settingKey)
-    return
-  const blockProps = selectedBlock.value.props || {}
-  const fieldSettings = { ...(blockProps.fieldSettings || {}) }
-  const previous = { ...(fieldSettings[fieldKey] || {}) }
-  fieldSettings[fieldKey] = {
-    ...previous,
-    field: fieldKey,
-    [settingKey]: value === true,
-  }
-  if (settingKey === 'searchable')
-    fieldSettings[fieldKey].showInSearch = value === true
-
-  patchBlockProps(selectedBlock.value.id, {
-    fieldSettings,
-    ...buildCrudFieldListPatch(blockProps, fieldKey, settingKey, value === true),
-  })
-}
-
-function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = '', enabled = false) {
-  const propName = {
-    searchable: 'searchFields',
-    importable: 'importFields',
-    exportable: 'exportFields',
-  }[settingKey]
-  if (!propName)
-    return {}
-  const currentList = Array.isArray(blockProps[propName]) ? blockProps[propName] : []
-  const nextSet = new Set(currentList.map(item => String(item || '').trim()).filter(Boolean))
-  if (enabled)
-    nextSet.add(fieldKey)
-  else
-    nextSet.delete(fieldKey)
-  return { [propName]: Array.from(nextSet) }
 }
 </script>
 
@@ -10566,12 +9701,14 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
 
 .canvas-zoom-stage {
   position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  min-width: 100%;
+  display: block;
+  min-width: 0;
   box-sizing: content-box;
   padding: 64px 1px 28px;
+  /* 画布小于视口时 margin auto 居中（美观），大于时安全回退左上对齐
+     （不用 flex 居中 + origin 0 0，否则放大时视觉内容溢出 stage 右侧被裁，
+     缩小时画布向左上角收缩 = "往左缩放"）。视觉居中由视口中心缩放补偿实现 */
+  margin: 0 auto;
 }
 
 .canvas-toolbar {
@@ -10767,6 +9904,8 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
     0 18px 42px rgba(15, 23, 42, 0.12),
     inset 0 0 0 1px rgba(255, 255, 255, 0.72);
   will-change: transform;
+  /* 不能在此裁剪：选中锚点（-5px 越界）需要溢出画布边缘显示，
+     内容裁剪职责由 .grid-item 自身的 overflow 承接 */
 }
 
 .list-grid-designer.readonly .canvas-panel {
@@ -10827,6 +9966,9 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
 .grid-item {
   position: absolute;
   cursor: default;
+  /* 组件内容不溢出组件框（承接原 canvas-grid 的裁剪职责，
+     组件框本身被 resolveBlockFrame 兑底在画布内，内容即不会溢出画布） */
+  overflow: hidden;
   transition:
     opacity 120ms ease,
     transform 120ms ease,
@@ -10836,7 +9978,7 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
 .grid-item::after {
   content: '';
   position: absolute;
-  inset: -2px;
+  inset: 0;
   z-index: 24;
   border: 1px solid transparent;
   border-radius: 2px;
@@ -10878,74 +10020,16 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
   user-select: none;
 }
 
-.block-node-overlay {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  left: 6px;
-  z-index: 28;
-  height: 24px;
-  opacity: 0.58;
-  /* Keep the transparent tool strip from covering interactive block content such as tab headers. */
-  pointer-events: none;
-  transition: opacity 160ms ease;
-}
-
-.block-node-overlay .block-drag-handle,
-.block-node-overlay .block-menu-trigger {
+/* 统一操作条：由父级 hover/selected 驱动可见性 */
+.grid-item:hover .designer-node-overlay,
+.grid-item.selected .designer-node-overlay {
+  opacity: 1;
   pointer-events: auto;
 }
 
-.grid-item:hover .block-node-overlay,
-.grid-item.selected .block-node-overlay {
-  opacity: 1;
-}
-
-.block-drag-handle,
-.block-menu-trigger {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 24px;
-  border: 1px solid #bfdbfe;
-  border-radius: 5px;
-  background: #eff6ff;
-  color: #1d4ed8;
-  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.14);
-}
-
-.block-drag-handle {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  cursor: grab;
-}
-
-.block-drag-handle svg {
-  width: 15px;
-  height: 15px;
-  transform: rotate(90deg);
-}
-
-.block-menu-trigger {
-  position: absolute;
-  top: 0;
-  right: 0;
-  padding: 0;
-  background: #1d4ed8;
-  color: #fff;
-  cursor: pointer;
-}
-
-.block-drag-handle:hover,
-.block-menu-trigger:hover {
-  background: #2563eb;
-  color: #fff;
-}
-
-.block-drag-handle:active {
-  cursor: grabbing;
+/* 列表侧 grid-item::after z-index=24，overlay 需高于它 */
+.grid-item .designer-node-overlay {
+  z-index: 28;
 }
 
 .drop-preview {
@@ -10993,12 +10077,14 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
     0 12px 24px rgba(37, 99, 235, 0.16);
 }
 
+/* 画布层 resize 锚点：仅选中时 v-for 渲染，定位由 resolveCanvasAnchorStyle
+   以 inline style 提供（画布坐标系，自动跟随缩放）；类名仅控制方向光标 */
 .resize-anchor {
   position: absolute;
   z-index: 31;
-  display: none;
   width: 10px;
   height: 10px;
+  padding: 0;
   border: 2px solid #fff;
   border-radius: 999px;
   background: #1d4ed8;
@@ -11012,59 +10098,35 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
   border-radius: 999px;
 }
 
-.grid-item.selected .resize-anchor {
-  display: block;
-}
-
 .anchor-top-left {
-  top: -7px;
-  left: -7px;
   cursor: nwse-resize;
 }
 
 .anchor-top {
-  top: -7px;
-  left: 50%;
-  transform: translateX(-50%);
   cursor: ns-resize;
 }
 
 .anchor-top-right {
-  top: -7px;
-  right: -7px;
   cursor: nesw-resize;
 }
 
 .anchor-right {
-  top: 50%;
-  right: -7px;
-  transform: translateY(-50%);
   cursor: ew-resize;
 }
 
 .anchor-bottom-right {
-  right: -7px;
-  bottom: -7px;
   cursor: nwse-resize;
 }
 
 .anchor-bottom {
-  bottom: -7px;
-  left: 50%;
-  transform: translateX(-50%);
   cursor: ns-resize;
 }
 
 .anchor-bottom-left {
-  bottom: -7px;
-  left: -7px;
   cursor: nesw-resize;
 }
 
 .anchor-left {
-  top: 50%;
-  left: -7px;
-  transform: translateY(-50%);
   cursor: ew-resize;
 }
 
@@ -11181,7 +10243,7 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
   border: 0;
   border-radius: 0;
   background: #fafafa;
-  padding: 8px;
+  padding: 6px;
   overflow: auto;
 }
 
@@ -11198,8 +10260,8 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 12px;
-  padding: 12px;
+  margin-bottom: 8px;
+  padding: 10px;
   border: 1px solid rgba(228, 228, 231, 0.72);
   border-radius: 8px;
   background: #fff;
@@ -11220,13 +10282,13 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
 
 .property-body {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .property-tab-content {
   display: grid;
   gap: 10px;
-  padding: 8px;
+  padding: 10px;
   overflow: hidden;
   border: 1px solid rgba(228, 228, 231, 0.72);
   border-radius: 8px;
@@ -11245,25 +10307,28 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
 
 .property-tab-content :deep(.n-divider) {
   justify-content: flex-start;
-  margin: 0 -8px 2px;
-  padding: 8px;
-  border-top: 1px solid #f4f4f5;
+  margin: 4px 0 8px;
+  padding: 0;
+  border-top: 0;
   color: #3f3f46;
   font-size: 12px;
   font-weight: 650;
 }
 
 .property-tab-content :deep(.n-divider .n-divider__title) {
-  padding: 0;
+  padding: 0 8px 0 0;
 }
 
-.property-tab-content :deep(.n-divider::before),
-.property-tab-content :deep(.n-divider::after) {
+.property-tab-content :deep(.n-divider::before) {
   display: none;
 }
 
+.property-tab-content :deep(.n-divider::after) {
+  background: #e4e4e7;
+}
+
 .property-body :deep(.n-form-item) {
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -11280,7 +10345,7 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
   height: auto;
   padding-left: 0;
   padding-top: 0;
-  padding-bottom: 5px;
+  padding-bottom: 3px;
   color: #52525b;
   font-size: 11px;
   font-weight: 600;
@@ -11332,19 +10397,53 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
 .event-editor,
 .container-child-editor {
   display: grid;
-  gap: 8px;
+  gap: 10px;
+}
+
+/* 分区引导说明：帮用户理解“联动动作 / 规则”这类概念型配置的用途 */
+.section-hint {
+  margin: -2px 0 2px;
+  color: #8f959e;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .copy-empty-state {
   display: grid;
   justify-items: center;
-  gap: 5px;
-  padding: 18px 14px;
+  gap: 6px;
+  padding: 20px 14px;
   border: 1px dashed #d4d4d8;
   border-radius: 8px;
   background: #fafafa;
   color: #71717a;
   text-align: center;
+}
+
+.copy-empty-state .copy-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f4f4f5;
+  color: #a1a1aa;
+  font-size: 18px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.copy-empty-state strong {
+  color: #52525b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.copy-empty-state small {
+  color: #a1a1aa;
+  font-size: 11px;
+  line-height: 16px;
 }
 
 .copy-empty-icon {
@@ -11421,6 +10520,18 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  animation: eventRowEnter 220ms ease-out;
+}
+
+@keyframes eventRowEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .event-row-head,
@@ -11445,7 +10556,7 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
 
 .event-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -11468,49 +10579,6 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
 .event-param-row :deep(.n-input) {
   min-width: 0;
   width: 100%;
-}
-
-.grid-config-grid {
-  display: grid;
-  gap: 8px;
-  width: 100%;
-}
-
-.grid-config-grid.three {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.grid-config-grid.four {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.grid-config-field,
-.grid-config-switch {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  padding: 8px 9px;
-  border: 1px solid #e4e4e7;
-  border-radius: 6px;
-  background: #fafafa;
-}
-
-.grid-config-field > span,
-.grid-config-switch > span {
-  color: #52525b;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.grid-config-switch {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-}
-
-.grid-config-switch > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .grid-cell-editor {
@@ -11994,8 +11062,8 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
 }
 
 .advanced-config-collapse :deep(.n-collapse-item__header) {
-  min-height: 35px;
-  padding: 0 12px;
+  min-height: 30px;
+  padding: 0 10px;
   border-bottom: 1px solid transparent;
   background: #fff;
 }
@@ -12018,12 +11086,12 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
 }
 
 .advanced-config-collapse :deep(.n-collapse-item__content-inner) {
-  padding: 2px 10px 10px;
+  padding: 2px 8px 8px;
   background: #fff;
 }
 
 .advanced-config-collapse :deep(.n-form-item) {
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .advanced-config-collapse :deep(.n-form-item:last-child) {
@@ -12032,7 +11100,7 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
 
 .advanced-config-collapse :deep(.n-form-item-label) {
   min-height: 16px;
-  padding-bottom: 5px;
+  padding-bottom: 3px;
   color: #52525b;
   font-size: 11px;
   font-weight: 600;
@@ -12873,21 +11941,6 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
   align-items: center;
 }
 
-.tabs-switch-list {
-  display: grid;
-  gap: 8px;
-  margin: -2px 0 12px;
-}
-
-.tabs-switch-list label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: #475569;
-  font-size: 13px;
-}
-
 .tab-manager {
   display: grid;
   gap: 8px;
@@ -12921,222 +11974,6 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
   justify-content: flex-end;
   gap: 6px;
 }
-
-/* Field drawer */
-.field-config {
-  display: grid;
-  gap: 14px;
-  min-width: 0;
-}
-
-.field-config-section .section-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  font-weight: 700;
-  color: #334155;
-  margin-bottom: 8px;
-}
-
-.selected-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  max-height: 146px;
-  overflow: auto;
-  padding-right: 4px;
-}
-
-.selected-row {
-  display: inline-grid;
-  grid-template-columns: 12px minmax(0, auto) auto;
-  align-items: center;
-  gap: 5px;
-  min-width: 0;
-  max-width: 210px;
-  padding: 5px 5px 5px 8px;
-  border: 1px solid #e4e4e7;
-  border-radius: 6px;
-  background: #fff;
-  color: #3f3f46;
-  font-size: 11px;
-  cursor: pointer;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    background-color 160ms ease;
-}
-
-.selected-row.search,
-.selected-row.table {
-  grid-template-columns: 12px minmax(0, auto) auto;
-}
-
-.selected-row:hover {
-  border-color: #a5b4fc;
-}
-
-.selected-row.active {
-  border-color: #6366f1;
-  background: #eef2ff;
-  color: #4338ca;
-  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.18);
-}
-
-.field-setting-row {
-  display: none;
-  grid-column: 1 / -1;
-  gap: 8px;
-  min-width: 0;
-  margin-left: 26px;
-  padding-top: 8px;
-  border-top: 1px dashed #e2e8f0;
-}
-
-.search-setting-row {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.table-setting-row {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.column-link-row {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.field-detail-card {
-  position: relative;
-  display: grid;
-  gap: 12px;
-  margin-top: 12px;
-  padding: 12px;
-  border: 1px solid rgba(228, 228, 231, 0.8);
-  border-radius: 8px;
-  background: rgba(250, 250, 250, 0.82);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-}
-
-.field-detail-card::before {
-  content: '';
-  position: absolute;
-  top: -6px;
-  left: 18px;
-  width: 10px;
-  height: 10px;
-  transform: rotate(45deg);
-  border-top: 1px solid rgba(228, 228, 231, 0.8);
-  border-left: 1px solid rgba(228, 228, 231, 0.8);
-  background: rgba(250, 250, 250, 0.82);
-}
-
-.field-detail-head {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 10px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(228, 228, 231, 0.72);
-}
-
-.field-detail-title {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  min-width: 0;
-}
-
-.field-detail-title strong {
-  min-width: 0;
-  overflow: hidden;
-  color: #18181b;
-  font-size: 13px;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.field-detail-title span {
-  min-width: 0;
-  overflow: hidden;
-  color: #a1a1aa;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.field-role-switches,
-.field-detail-toggles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-}
-
-.field-role-switches label,
-.field-detail-toggles label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #52525b;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.field-detail-grid {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 12px;
-}
-
-.field-detail-control {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-}
-
-.field-detail-control > span {
-  color: #52525b;
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.field-detail-footer {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(228, 228, 231, 0.72);
-}
-
-.field-advanced-panel {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 12px;
-  padding-top: 10px;
-  border-top: 1px dashed rgba(212, 212, 216, 0.9);
-}
-
-.field-help {
-  grid-column: 1 / -1;
-  padding: 7px 9px;
-  border: 1px dashed #d4d4d8;
-  border-radius: 6px;
-  background: #fff;
-  color: #71717a;
-  font-size: 11px;
-  line-height: 1.55;
-}
-
 .preview-config-panel {
   width: 100%;
   display: grid;
@@ -13391,120 +12228,6 @@ function buildCrudFieldListPatch(blockProps = {}, fieldKey = '', settingKey = ''
   font-size: 11px;
   font-weight: 400;
   line-height: 16px;
-}
-
-.field-setting-control {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.field-setting-control > span {
-  color: #475569;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 16px;
-}
-
-.field-setting-control :deep(.n-select),
-.field-setting-control :deep(.n-input),
-.field-setting-control :deep(.n-color-picker) {
-  width: 100%;
-  min-width: 0;
-}
-
-.field-setting-row :deep(.n-select),
-.field-setting-row :deep(.n-input),
-.field-setting-row :deep(.n-input-number),
-.field-setting-row :deep(.n-color-picker) {
-  width: 100%;
-  min-width: 0;
-}
-
-.f-handle {
-  color: #d4d4d8;
-  font-size: 11px;
-  line-height: 1;
-  cursor: grab;
-}
-
-.f-name {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  color: inherit;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.f-name small {
-  display: none;
-}
-
-.available-item small {
-  color: #64748b;
-  font-size: 11px;
-  font-weight: 400;
-}
-
-.f-code {
-  display: none;
-}
-
-.f-remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: #d4d4d8;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  opacity: 0;
-  transition:
-    opacity 160ms ease,
-    color 160ms ease,
-    background-color 160ms ease;
-}
-
-.selected-row:hover .f-remove {
-  opacity: 1;
-}
-
-.f-remove:hover {
-  background: #fef2f2;
-  color: #ef4444;
-}
-
-.available-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  max-height: 240px;
-  overflow: auto;
-  padding-right: 4px;
-}
-
-.available-item {
-  display: inline-grid;
-  gap: 2px;
-  padding: 4px 10px;
-  border: 1px dashed #cbd5e1;
-  border-radius: 6px;
-  background: #f8fafc;
-  color: #2563eb;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.available-item:hover {
-  border-color: #2563eb;
-  background: #eff6ff;
 }
 
 .list-source-modal {

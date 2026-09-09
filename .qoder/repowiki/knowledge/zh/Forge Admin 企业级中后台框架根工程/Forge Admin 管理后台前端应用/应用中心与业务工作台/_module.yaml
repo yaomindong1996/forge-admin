@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: forge_admin_ui/app_center
+title: 应用中心与业务工作台
+scope:
+    - forge-admin-ui/src/views/app-center/
+    - forge-admin-ui/src/components/business-top-nav/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/framework_plugins/plugin_parent/generator_plugin

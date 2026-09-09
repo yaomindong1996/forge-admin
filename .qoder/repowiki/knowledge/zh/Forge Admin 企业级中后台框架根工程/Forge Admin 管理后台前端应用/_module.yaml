@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: forge_admin_ui
+title: Forge Admin 管理后台前端应用
+scope:
+    - forge-admin-ui/
+source_files: []
+depends_on: []
+related_to:
+    - path: docker_deploy
+    - path: forge_server/admin_server

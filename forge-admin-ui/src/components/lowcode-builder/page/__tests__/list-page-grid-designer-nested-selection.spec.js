@@ -1,4 +1,5 @@
 import { shallowMount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { describe, expect, it } from 'vitest'
 import { nextTick } from 'vue'
 import ListPageGridDesigner from '../ListPageGridDesigner.vue'
@@ -57,6 +58,9 @@ describe('list page grid designer nested selection', () => {
         fields: [],
         panelOnly: true,
         activeBlockId: 'info_child',
+      },
+      global: {
+        plugins: [createPinia()],
       },
     })
 

@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: forge_server/business_core
+title: 业务核心模块（采购单审批示例与动态数据源演示）
+scope:
+    - forge-server/forge-business/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/flow_service
+    - path: forge_server/framework_plugins/plugin_parent/generator_plugin

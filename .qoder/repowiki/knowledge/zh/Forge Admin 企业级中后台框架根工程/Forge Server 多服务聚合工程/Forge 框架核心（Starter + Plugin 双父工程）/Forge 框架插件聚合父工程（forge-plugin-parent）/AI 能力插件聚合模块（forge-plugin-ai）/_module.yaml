@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/ai_plugin
+title: AI 能力插件聚合模块（forge-plugin-ai）
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_admin_ui/ai_features

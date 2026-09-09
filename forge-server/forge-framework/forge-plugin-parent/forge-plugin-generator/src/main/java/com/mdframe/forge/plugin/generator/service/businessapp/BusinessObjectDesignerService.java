@@ -2698,6 +2698,7 @@ public class BusinessObjectDesignerService implements BusinessObjectDesignContex
         props.put("inlineFeedback", readBoolean(mapValue(formSchema.getLayout()).get("inlineFeedback"), false));
         putIfPresent(props, "editFormStyle", mapValue(formSchema.getLayout()).get("formStyle"));
         putIfNotBlank(props, "editFormClass", text(mapValue(formSchema.getLayout()).get("formClass")));
+        applyFormLayoutOpenModeAndModalProps(props, mapValue(formSchema.getLayout()));
         props.put("rowGap", rowGap);
         props.put("columnGap", columnGap);
         props.put("formLayout", buildRuntimeFormLayout(formSchema.getComponents(), modelFields, gridColumns));
@@ -3364,6 +3365,45 @@ public class BusinessObjectDesignerService implements BusinessObjectDesignContex
             return "medium";
         }
         return Set.of("small", "large").contains(size) ? size : "medium";
+    }
+
+    private String normalizeFormOpenMode(String value) {
+        String mode = StringUtils.defaultString(value).trim();
+        if ("tabWorkspace".equalsIgnoreCase(mode)) {
+            return "tabWorkspace";
+        }
+        String normalized = mode.toLowerCase(Locale.ROOT);
+        return Set.of("modal", "drawer", "flat").contains(normalized) ? normalized : "modal";
+    }
+
+    private String normalizeDrawerPlacement(Object value, Object fallback) {
+        String placement = StringUtils.defaultString(text(value)).trim().toLowerCase(Locale.ROOT);
+        if (Set.of("left", "right", "top", "bottom").contains(placement)) {
+            return placement;
+        }
+        String fallbackPlacement = StringUtils.defaultString(text(fallback)).trim().toLowerCase(Locale.ROOT);
+        return Set.of("left", "right", "top", "bottom").contains(fallbackPlacement) ? fallbackPlacement : "right";
+    }
+
+    /**
+     * 表单设计器布局中的打开方式/弹窗宽度/抽屉方向/折叠配置同步到编辑区 props。
+     *
+     * <p>与前端 buildFormDesignerEditZone 的同步语义保持一致：打开方式总是写入，
+     * 宽度类配置仅在表单设计器显式提供时覆盖，避免默认值清空列表设计器的自定义设置。</p>
+     */
+    private void applyFormLayoutOpenModeAndModalProps(Map<String, Object> props, Map<String, Object> layout) {
+        String formOpenMode = normalizeFormOpenMode(StringUtils.firstNonBlank(
+                text(layout.get("formOpenMode")), text(layout.get("modalType"))));
+        props.put("formOpenMode", formOpenMode);
+        props.put("modalType", "modal".equals(formOpenMode) || "drawer".equals(formOpenMode) ? formOpenMode : "modal");
+        putIfNotBlank(props, "modalWidth", StringUtils.trimToNull(text(layout.get("modalWidth"))));
+        putIfNotBlank(props, "detailModalWidth", StringUtils.trimToNull(text(layout.get("detailModalWidth"))));
+        props.put("drawerPlacement", normalizeDrawerPlacement(layout.get("drawerPlacement"), props.get("drawerPlacement")));
+        props.put("enableCollapse", readBoolean(layout.get("enableCollapse"), false));
+        int maxVisibleFields = integerValue(layout.get("maxVisibleFields"), 0);
+        if (maxVisibleFields > 0) {
+            props.put("maxVisibleFields", maxVisibleFields);
+        }
     }
 
     private String normalizeFixed(String value) {

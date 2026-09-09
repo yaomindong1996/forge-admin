@@ -115,6 +115,7 @@
             <LowcodeForm
               :ref="instance => setRuntimeFormRef(zone, instance)"
               :fields="runtimeZoneMainFields(zone)"
+              :nodes="runtimeZoneNodes(zone)"
               :data="mainData"
               :dict-options="dictOptions"
               :readonly="mode === 'detail'"
@@ -227,6 +228,7 @@
           <LowcodeForm
             ref="mainFormRef"
             :fields="mainFields"
+            :nodes="mainNodes"
             :data="mainData"
             :dict-options="dictOptions"
             :readonly="mode === 'detail'"
@@ -318,6 +320,7 @@ import {
   hasActionPermission,
   normalizeActions,
   normalizeChildrenConfig,
+  normalizeDesignerComponents,
   normalizeDictOptions,
   normalizeMainFields,
   normalizeField,
@@ -380,6 +383,7 @@ const runtimePageZones = computed(() => hasComposedRuntimePageSchema(config.valu
   : [])
 const hasComposedPageZones = computed(() => runtimePageZones.value.length > 0)
 const mainFields = computed(() => normalizeMainFields(config.value, formDesignerSchema.value))
+const mainNodes = computed(() => normalizeDesignerComponents(config.value, formDesignerSchema.value))
 const searchFields = computed(() => (Array.isArray(config.value.searchSchema) ? config.value.searchSchema : []).map(normalizeField).filter(field => field.field))
 const visibleColumns = computed(() => (Array.isArray(config.value.columnsSchema) ? config.value.columnsSchema : []).filter(column => column?.prop || column?.field))
 const hasPageSections = computed(() => Array.isArray(formDesignerSchema.value?.pageSections) && formDesignerSchema.value.pageSections.length > 0)
@@ -540,6 +544,10 @@ function runtimeZoneFormSchema(zone = {}) {
 
 function runtimeZoneMainFields(zone = {}) {
   return normalizeMainFields(config.value, runtimeZoneFormSchema(zone))
+}
+
+function runtimeZoneNodes(zone = {}) {
+  return normalizeDesignerComponents(config.value, runtimeZoneFormSchema(zone))
 }
 
 function runtimeZoneHasSections(zone = {}) {

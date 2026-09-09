@@ -107,28 +107,37 @@ export function applyRuntimeCryptoConfig(config) {
   return normalized
 }
 
+// 模块级请求缓存：main.js、登录页、拦截器都会调用，避免同一会话重复请求 /crypto/config；
+// 加载失败不缓存，下次调用可以重试
+let runtimeConfigPromise = null
+
 export async function loadRuntimeCryptoConfig(fetchImpl = globalThis.fetch) {
   if (typeof fetchImpl !== 'function')
     return null
 
-  const prefix = String(import.meta.env.VITE_REQUEST_PREFIX || '').replace(/\/+$/, '')
-  try {
-    const response = await fetchImpl(`${prefix}/crypto/config`, {
-      cache: 'no-store',
-      credentials: 'same-origin',
-      headers: { Accept: 'application/json' },
+  if (!runtimeConfigPromise) {
+    runtimeConfigPromise = fetchRuntimeCryptoConfig(fetchImpl).catch((error) => {
+      runtimeConfigPromise = null
+      console.warn('[Crypto] 加解密运行配置加载失败，保持安全默认开启:', error)
+      return null
     })
-    if (!response?.ok)
-      throw new Error(`HTTP ${response?.status || 'unknown'}`)
-    const payload = await response.json()
-    if (payload?.code !== 200 || !payload?.data)
-      throw new Error(payload?.message || payload?.msg || '运行配置响应无效')
-    return applyRuntimeCryptoConfig(payload.data)
   }
-  catch (error) {
-    console.warn('[Crypto] 加解密运行配置加载失败，保持安全默认开启:', error)
-    return null
-  }
+  return runtimeConfigPromise
+}
+
+async function fetchRuntimeCryptoConfig(fetchImpl = globalThis.fetch) {
+  const prefix = String(import.meta.env.VITE_REQUEST_PREFIX || '').replace(/\/$/, '')
+  const response = await fetchImpl(`${prefix}/crypto/config`, {
+    cache: 'no-store',
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+  })
+  if (!response?.ok)
+    throw new Error(`HTTP ${response?.status || 'unknown'}`)
+  const payload = await response.json()
+  if (payload?.code !== 200 || !payload?.data)
+    throw new Error(payload?.message || payload?.msg || '运行配置响应无效')
+  return applyRuntimeCryptoConfig(payload.data)
 }
 
 /**

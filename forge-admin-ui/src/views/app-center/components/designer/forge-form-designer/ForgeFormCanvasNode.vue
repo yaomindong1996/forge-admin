@@ -25,89 +25,32 @@
       @click.stop="selectNode"
       @focus="selectNode"
     >
-      <div v-if="!isStructuralSlot" class="node-overlay">
-        <div class="quick-actions">
-          <button
-            v-if="isField"
-            type="button"
-            class="quick-switch"
-            :class="{ active: component.validation?.required }"
-            role="switch"
-            :aria-checked="Boolean(component.validation?.required)"
-            title="必填"
-            @click.stop="toggleRequired"
-            @pointerdown.stop
-          >
-            <span>必填</span>
-            <span class="switch-track">
-              <span class="switch-thumb" />
-            </span>
-          </button>
-          <button
-            type="button"
-            class="icon-action"
-            title="复制"
-            @click.stop="duplicateNode"
-            @pointerdown.stop
-          >
-            <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" data-icon="CopyOutlined">
-              <path d="M9 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v12a1 1 0 1 1-2 0V4h-9a1 1 0 0 1-1-1Z" fill="currentColor" />
-              <path d="M5 6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5Zm0 2h10v12H5V8Z" fill="currentColor" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="icon-action danger"
-            :disabled="fieldStructureLocked"
-            :title="fieldStructureLocked ? '字段已有业务数据，不能删除' : '删除'"
-            @click.stop="removeNode"
-            @pointerdown.stop
-          >
-            <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" data-icon="DeleteTrashOutlined">
-              <path d="M8 4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2h5a1 1 0 1 1 0 2h-1v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6H3a1 1 0 0 1 0-2h5ZM6 6v14h12V6H6Zm4 3a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0v-6a1 1 0 0 1 1-1Zm4 0a1 1 0 0 1 1 1v6a1 1 0 1 1-2 0v-6a1 1 0 0 1 1-1Z" fill="currentColor" />
-            </svg>
-          </button>
-        </div>
-        <n-dropdown
-          trigger="click"
-          placement="bottom"
-          :options="nodeMenuOptions"
-          @select="handleNodeMenuSelect"
-        >
-          <button
-            type="button"
-            class="menu-trigger"
-            title="更多操作"
-            @click.stop
-            @pointerdown.stop
-          >
-            <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" data-icon="MoreVerticalOutlined">
-              <path d="M12 5.5A1.75 1.75 0 1 1 12 2a1.75 1.75 0 0 1 0 3.5Zm0 8.225a1.75 1.75 0 1 1 0-3.5 1.75 1.75 0 0 1 0 3.5ZM12 22a1.75 1.75 0 1 1 0-3.5 1.75 1.75 0 0 1 0 3.5Z" fill="currentColor" />
-            </svg>
-          </button>
-        </n-dropdown>
-        <span
-          class="drag-handle"
-          title="拖动排序"
-          @pointerdown.stop="startPointerDrag"
-          @click.stop
-        >
-          <svg
-            width="1em"
-            height="1em"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            data-icon="DragOutlined"
-            class="drag-handle-svg"
-          >
-            <path
-              d="M8.25 6.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm0 7.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm1.75 5.5a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0ZM14.753 6.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5ZM16.5 12a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0Zm-1.747 9a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Z"
-              fill="currentColor"
-            />
-          </svg>
-        </span>
-      </div>
+      <!-- 统一操作条：表单字段 / 栅格格子 -->
+      <DesignerNodeOverlay
+        v-if="!isStructuralSlot"
+        mode="overlay"
+        :show-required-switch="isField"
+        :required="Boolean(component.validation?.required)"
+        :show-menu="true"
+        :menu-options="nodeMenuOptions"
+        @toggle-required="toggleRequired"
+        @duplicate="duplicateNode"
+        @delete="removeNode"
+        @drag-start="startPointerDrag"
+        @menu-select="handleNodeMenuSelect"
+      />
+      <DesignerNodeOverlay
+        v-else-if="isGridColumn"
+        mode="column"
+        :show-delete="true"
+        :delete-disabled="columnRemovalLocked"
+        :delete-title="columnDeleteTitle"
+        :show-duplicate="false"
+        :show-required-switch="false"
+        :show-drag-handle="false"
+        :show-menu="false"
+        @delete="removeGridColumn"
+      />
       <div v-if="isSelected" class="node-resize-handles" @click.stop>
         <span
           v-for="direction in resizeDirections"
@@ -166,6 +109,9 @@
           :loading="!!component.props?.loading"
           :disabled="!!component.props?.disabled"
         >
+          <template v-if="component.props?.icon" #icon>
+            <IconRenderer :icon="component.props.icon" :size="16" />
+          </template>
           {{ component.props?.text || component.label || '按钮' }}
         </n-button>
       </div>
@@ -361,10 +307,48 @@
         :props-data="component.props || {}"
         @update:props-data="handlePageWidgetPropsUpdate"
       />
+      <!-- 栅格行：使用统一 DesignerGridRenderer -->
+      <div
+        v-else-if="isGridRow"
+        class="layout-children grid-row-container"
+        :class="{ active: activeInside }"
+        @dragenter.prevent.stop="handleInsideDragOver"
+        @dragover.prevent.stop="handleInsideDragOver"
+        @drop.stop="handleInsideDrop"
+      >
+        <div v-if="!component.children?.length" class="empty-child-zone" :class="{ active: activeInside }">
+          拖入栅格列
+        </div>
+        <DesignerGridRenderer
+          :columns="resolveRowColumns(component)"
+          :gutter="resolveGap(component.props?.gutter, 12)"
+          :row-gap="resolveGap(component.props?.rowGap, 8)"
+          :show-cell-border="component.props?.showCellBorder !== false"
+          :cell-background="component.props?.cellBackground"
+          :cells="gridRowCells"
+        >
+          <template #cell="{ cell }">
+            <ForgeFormCanvasNode
+              :component="cell._component"
+              :fields="fields"
+              :schema="schema"
+              :selected-id="selectedId"
+              :depth="depth + 1"
+              :parent-id="component.id"
+              :index="cell._index"
+              @select="$emit('select', $event)"
+              @update:schema="$emit('update:schema', $event)"
+              @configure="$emit('configure', $event)"
+              @drop-before="event => handleChildDrop(cell._index, event)"
+              @drop-after="event => handleChildDrop(cell._index + 1, event)"
+            />
+          </template>
+        </DesignerGridRenderer>
+      </div>
       <div
         v-else
         class="layout-children"
-        :class="{ 'grid-layout-children': isGridRow, 'table-layout-children': isTableLayout, 'active': activeInside }"
+        :class="{ 'table-layout-children': isTableLayout, 'active': activeInside }"
         :style="childrenGridStyle"
         @dragenter.prevent.stop="handleInsideDragOver"
         @dragover.prevent.stop="handleInsideDragOver"
@@ -406,6 +390,8 @@ import AiFormGroupTitle from '@/components/ai-form/AiFormGroupTitle.vue'
 import AiFormItem from '@/components/ai-form/AiFormItem.vue'
 import AiFormSectionTitle from '@/components/ai-form/AiFormSectionTitle.vue'
 import { normalizeRecordSelectorConfig as normalizePreviewRecordSelectorConfig } from '@/components/ai-form/record-selector-utils'
+import IconRenderer from '@/components/IconRenderer.vue'
+import { DesignerGridRenderer, DesignerNodeOverlay } from '@/components/lowcode-builder/designer-core'
 import { isPageWidgetComponentKey } from '@/components/lowcode-builder/shared/page-widget-schema'
 import PageWidgetRenderer from '@/components/lowcode-builder/shared/PageWidgetRenderer.vue'
 import {
@@ -417,6 +403,7 @@ import {
   isFieldComponent,
   isLayoutComponent,
   moveDesignerComponent,
+  normalizeFormDesignerSchema,
   removeDesignerComponent,
   updateDesignerComponent,
 } from '../form-first/formDesignerSchema'
@@ -427,6 +414,7 @@ import {
   designerDragPreviewComponent,
   designerDragSourceId,
   designerDropKey,
+  resolveDragPreviewFitScale,
   setDesignerDragSource,
   setDesignerDropError,
   setDesignerDropKey,
@@ -477,9 +465,16 @@ const DRAG_TEMPLATE_MIME = 'application/x-forge-form-template'
 const FORGE_DRAG_TYPES = [DRAG_COMPONENT_MIME, DRAG_FIELD_MIME, DRAG_LAYOUT_MIME, DRAG_TEMPLATE_MIME]
 const MAX_FORM_GRID_COLUMNS = 24
 const resizeDirections = ['n', 'e', 's', 'w', 'ne', 'nw', 'se', 'sw']
+// 拖拽跟随影子状态：影子宽度除全局上限外，还会按悬停目标（如栅格格子）宽度
+// 动态等比钳制，避免宽组件拖入窄格子时影子视觉超出栅格
 let activeDragImage = null
 let activeDragImageOffset = { x: 0, y: 0 }
 let activeDragImageScale = 1
+let activeDragImageScaleY = 1
+let activeDragImageFitScale = 1
+let activeDragImageBaseWidth = 0
+let activeDragImageBaseHeight = 0
+let activeDragImageGrabRatio = { x: 0.5, y: 0.5 }
 let activePointerDropTarget = null
 let activePointerHandle = null
 let activePointerId = null
@@ -498,7 +493,6 @@ let resizeObserver = null
 
 const isSelected = computed(() => props.selectedId === props.component.id)
 const isField = computed(() => isFieldComponent(props.component))
-const fieldStructureLocked = computed(() => isField.value && props.component.fieldBinding?.locked === true)
 const isLayout = computed(() => isLayoutComponent(props.component))
 const isTitle = computed(() => ['title', 'fcTitle'].includes(props.component.componentKey))
 const isSubTableComponent = computed(() => props.component.componentKey === 'subTable')
@@ -509,6 +503,23 @@ const subTableDisplayModeLabel = computed(() => {
 const isButton = computed(() => ['button', 'elButton'].includes(props.component.componentKey))
 const isCrudBlock = computed(() => ['AiCrudPage', 'crudBlock'].includes(props.component.componentKey))
 const isGridRow = computed(() => ['row', 'fcRow'].includes(props.component.componentKey))
+const isGridColumn = computed(() => props.component.componentKey === 'col')
+// 栅格至少保留一个格子，否则行失去栅格语义
+const columnRemovalLocked = computed(() => {
+  if (!isGridColumn.value)
+    return true
+  const parent = props.parentId ? getDesignerComponent(props.schema, props.parentId) : null
+  if (!parent || !['row', 'fcRow'].includes(parent.componentKey))
+    return true
+  return (parent.children || []).filter(child => child?.componentKey === 'col').length <= 1
+})
+// 删除格子的按钮提示：带内容时明确告知内部组件会一并删除（字段资产仍可从左侧重新拖入）
+const columnDeleteTitle = computed(() => {
+  if (columnRemovalLocked.value)
+    return '至少保留一个格子'
+  const childCount = (props.component.children || []).length
+  return childCount > 0 ? `删除该格子（内部 ${childCount} 个组件一并删除，字段可从左侧重新拖入）` : '删除该格子'
+})
 const isTableLayout = computed(() => ['table', 'fcTable'].includes(props.component.componentKey))
 const isCardLayout = computed(() => ['card', 'elCard'].includes(props.component.componentKey))
 const isTabsLayout = computed(() => ['tabs', 'elTabs'].includes(props.component.componentKey))
@@ -606,7 +617,7 @@ const nodeMenuOptions = computed(() => [
   },
   { label: '移入', key: 'move-into', disabled: true },
   { type: 'divider', key: 'divider' },
-  { label: fieldStructureLocked.value ? '已有数据，不能删除' : '删除', key: 'delete', disabled: fieldStructureLocked.value },
+  { label: '删除', key: 'delete' },
 ])
 const childrenGridStyle = computed(() => {
   if (!isGridRow.value && !isTableLayout.value)
@@ -617,6 +628,19 @@ const childrenGridStyle = computed(() => {
     columnGap: `${resolveGap(props.component.props?.gutter, 12)}px`,
     rowGap: `${resolveGap(props.component.props?.rowGap, 8)}px`,
   }
+})
+
+/** 将栅格行子节点（col）归一化为 DesignerGridRenderer cells 格式 */
+const gridRowCells = computed(() => {
+  if (!isGridRow.value)
+    return []
+  return (props.component.children || []).map((child, index) => ({
+    key: child.id,
+    span: Number(child.props?.span || child.layout?.span || 1),
+    children: child.children || [],
+    _component: child,
+    _index: index,
+  }))
 })
 const previewField = computed(() => {
   const componentKey = props.component.componentKey || 'input'
@@ -1307,40 +1331,42 @@ function resolveDropPosition(ratio) {
 function updatePointerDropPreview(event) {
   const hoveredElement = document.elementFromPoint(event.clientX, event.clientY)
   if (!hoveredElement) {
-    clearPointerDropPreview()
+    clearPointerDropPreview(event)
     return
   }
 
-  if (hoveredElement.closest?.('.root-drop-zone')) {
+  const rootZone = hoveredElement.closest?.('.root-drop-zone')
+  if (rootZone) {
     activeDropPosition.value = 'before'
     activePointerDropTarget = { parentId: '', index: 0 }
     setDesignerDropKey('root:before')
+    syncDragImageFitScale(rootZone.getBoundingClientRect?.()?.width || 0, event)
     return
   }
 
   const targetWrap = hoveredElement.closest?.('[data-forge-node-id]')
   if (!targetWrap) {
-    clearPointerDropPreview()
+    clearPointerDropPreview(event)
     return
   }
 
   const targetId = targetWrap.dataset.forgeNodeId || ''
   if (!targetId || targetId === props.component.id) {
     showInvalidDrop('不能拖入组件自身')
-    clearPointerDropPreview()
+    clearPointerDropPreview(event)
     return
   }
 
   if (isDescendantNodeWrap(targetWrap)) {
     showInvalidDrop('不能拖入自己的子组件')
-    clearPointerDropPreview()
+    clearPointerDropPreview(event)
     return
   }
 
   const targetNode = targetWrap.querySelector?.('.canvas-node')
   const rect = targetNode?.getBoundingClientRect?.()
   if (!rect) {
-    clearPointerDropPreview()
+    clearPointerDropPreview(event)
     return
   }
 
@@ -1355,6 +1381,8 @@ function updatePointerDropPreview(event) {
       index: slotTarget.index,
     }
     setDesignerDropKey(slotTarget.dropKey)
+    // 放入容器槽位（如栅格格子）：影子贴合槽位容器宽度，避免视觉超出栅格
+    syncDragImageFitScale(findNodeWrapRect(slotTarget.parentId)?.width || rect.width, event)
     return
   }
   if (canPointerDropInside(targetComponent, ratio)) {
@@ -1362,6 +1390,7 @@ function updatePointerDropPreview(event) {
     activeDropPosition.value = 'inside'
     activePointerDropTarget = { parentId: targetId, index: targetComponent?.children?.length || 0 }
     setDesignerDropKey(`${targetId}:inside`)
+    syncDragImageFitScale(rect.width, event)
     return
   }
 
@@ -1374,11 +1403,13 @@ function updatePointerDropPreview(event) {
     activeDropPosition.value = 'inside'
     activePointerDropTarget = rowColumnTarget
     setDesignerDropKey(`${rowColumnTarget.parentId}:inside`)
+    // 悬停在栅格行上：影子贴合将落入的格子宽度
+    syncDragImageFitScale(findNodeWrapRect(rowColumnTarget.parentId)?.width || rect.width, event)
     return
   }
   if (!canAcceptDesignerChild(parentComponent, props.component)) {
     showInvalidDrop(resolveInvalidPointerDropMessage(parentComponent))
-    clearPointerDropPreview()
+    clearPointerDropPreview(event)
     return
   }
 
@@ -1390,11 +1421,15 @@ function updatePointerDropPreview(event) {
   }
   clearDesignerDropError()
   setDesignerDropKey(`${targetId}:${position}`)
+  // 与悬停目标同级插入：影子贴合目标宽度；目标在栅格内时即贴合格子内容宽度
+  syncDragImageFitScale(rect.width, event)
 }
 
-function clearPointerDropPreview() {
+function clearPointerDropPreview(event = null) {
   activePointerDropTarget = null
   clearDropPreview()
+  // 清除放置预览时影子不再贴合任何目标，恢复为仅受全局上限约束
+  syncDragImageFitScale(0, event)
 }
 
 function isDescendantNodeWrap(targetWrap) {
@@ -1472,6 +1507,13 @@ function mountPointerDragImage(event) {
   const scaleX = layoutWidth > 0 ? rect.width / layoutWidth : 1
   const scaleY = layoutHeight > 0 ? rect.height / layoutHeight : scaleX
   activeDragImageScale = Math.max(0.1, Math.min(2, Number.isFinite(scaleX) ? scaleX : 1))
+  activeDragImageScaleY = Math.max(0.1, Math.min(2, Number.isFinite(scaleY) ? scaleY : activeDragImageScale))
+  activeDragImageBaseWidth = Math.max(1, rect.width || layoutWidth)
+  activeDragImageBaseHeight = Math.max(1, rect.height || layoutHeight)
+  activeDragImageGrabRatio = {
+    x: rect.width > 0 ? clampDragRatio((event.clientX - rect.left) / rect.width) : 0.5,
+    y: rect.height > 0 ? clampDragRatio((event.clientY - rect.top) / rect.height) : 0.5,
+  }
   const clone = nodeRef.value.cloneNode(true)
   clone.classList.add('drag-follow-clone')
   Object.assign(clone.style, {
@@ -1485,16 +1527,41 @@ function mountPointerDragImage(event) {
     background: props.component.props?.__designerStyle?.backgroundColor || '#fff',
     pointerEvents: 'none',
     transition: 'none',
-    transform: `scale(${activeDragImageScale}, ${Math.max(0.1, Math.min(2, Number.isFinite(scaleY) ? scaleY : activeDragImageScale))})`,
     willChange: 'left, top, transform',
   })
   document.body.appendChild(clone)
   activeDragImage = clone
+  // 初始仅应用全局宽度上限；拖动过程中由 updatePointerDropPreview 按悬停目标
+  // （栅格格子等）宽度动态收紧，影子视觉宽度始终贴合放置区域
+  applyDragImageFitScale(resolveDragPreviewFitScale(activeDragImageBaseWidth), event)
+}
+
+/**
+ * 按缩放系数重设拖拽影子的 transform 与指针偏移：
+ * - transform-origin 为 0 0，visual 尺寸 = base 尺寸 × fit；
+ * - 偏移按初始抓取比例换算并重新 clamp，保证影子缩放后仍贴合指针抓取点。
+ */
+function applyDragImageFitScale(fitScale, event) {
+  if (!activeDragImage)
+    return
+  activeDragImageFitScale = Math.max(0.1, Math.min(1, Number.isFinite(fitScale) ? fitScale : 1))
+  const visualWidth = activeDragImageBaseWidth * activeDragImageFitScale
+  const visualHeight = activeDragImageBaseHeight * activeDragImageFitScale
+  activeDragImage.style.transform = `scale(${activeDragImageScale * activeDragImageFitScale}, ${activeDragImageScaleY * activeDragImageFitScale})`
   activeDragImageOffset = {
-    x: clampDragOffset(event.clientX - rect.left, rect.width, 20),
-    y: clampDragOffset(event.clientY - rect.top, rect.height, 18),
+    x: clampDragOffset(activeDragImageGrabRatio.x * visualWidth, visualWidth, 20),
+    y: clampDragOffset(activeDragImageGrabRatio.y * visualHeight, visualHeight, 18),
   }
-  updateDragImagePosition(event)
+  if (event)
+    updateDragImagePosition(event)
+}
+
+/**
+ * 按悬停放置目标宽度同步拖拽影子缩放：
+ * targetWidth 无效（如 0）时仅应用全局宽度上限，否则影子视觉宽度不超过目标宽度。
+ */
+function syncDragImageFitScale(targetWidth = 0, event = null) {
+  applyDragImageFitScale(resolveDragPreviewFitScale(activeDragImageBaseWidth, targetWidth), event)
 }
 
 function removeDragImage() {
@@ -1502,6 +1569,11 @@ function removeDragImage() {
   activeDragImage = null
   activeDragImageOffset = { x: 0, y: 0 }
   activeDragImageScale = 1
+  activeDragImageScaleY = 1
+  activeDragImageFitScale = 1
+  activeDragImageBaseWidth = 0
+  activeDragImageBaseHeight = 0
+  activeDragImageGrabRatio = { x: 0.5, y: 0.5 }
 }
 
 function updateDragImagePosition(event) {
@@ -1521,6 +1593,12 @@ function clampDragOffset(value, size, minOffset) {
   if (size <= minOffset * 2)
     return Math.max(0, size / 2)
   return Math.min(Math.max(value, minOffset), size - minOffset)
+}
+
+function clampDragRatio(value) {
+  if (!Number.isFinite(value))
+    return 0.5
+  return Math.min(1, Math.max(0, value))
 }
 
 function resolveRowColumns(component = {}) {
@@ -1615,9 +1693,40 @@ function duplicateNode() {
 }
 
 function removeNode() {
-  if (fieldStructureLocked.value)
-    return
+  // locked 只限制改组件/存储类型（属性面板），从画布删除组件不删字段资产，字段架子可重新拖入
   emit('update:schema', removeDesignerComponent(props.schema, props.component.id))
+}
+
+/**
+ * 删除栅格格子：连同格子内的组件一起从画布删除（字段资产仍保留在左侧字段架子，
+ * 可重新拖入）。与属性面板「格子数量」调减是刻意分离的两种语义——后者是布局重排，
+ * 多余格子的组件并入最后一格；画布删除按钮是明确删除动作，不应把内容“搬家”。
+ */
+function removeGridColumn() {
+  if (columnRemovalLocked.value)
+    return
+  const schema = normalizeFormDesignerSchema(props.schema)
+  // 必须在同一份 normalize 后的 schema 上定位父节点：getDesignerComponent 内部会二次
+  // clone，返回的是副本引用，对它修改不会体现在 emit 的 schema 上
+  const parent = findComponentById(schema.components, props.parentId)
+  if (!parent || !['row', 'fcRow'].includes(parent.componentKey))
+    return
+  const indexInParent = (parent.children || []).findIndex(child => child.id === props.component.id)
+  if (indexInParent === -1)
+    return
+  parent.children.splice(indexInParent, 1)
+  emit('update:schema', normalizeFormDesignerSchema(schema))
+}
+
+function findComponentById(components = [], componentId = '') {
+  for (const component of Array.isArray(components) ? components : []) {
+    if (component?.id === componentId)
+      return component
+    const found = findComponentById(component?.children || [], componentId)
+    if (found)
+      return found
+  }
+  return null
 }
 
 function toggleRequired() {
@@ -1979,6 +2088,9 @@ function buildFormDividerProps(component) {
   container-type: inline-size;
   position: relative;
   min-width: 0;
+  /* 固定宽度的组件（__designerStyle.width）拖入更窄的容器（如栅格格子）时，
+     视觉宽度不超过所在格位，避免组件横向溢出栅格 */
+  max-width: 100%;
   border: 1px solid transparent;
   border-radius: var(--forge-node-radius, 6px);
   background: transparent;
@@ -2026,7 +2138,7 @@ function buildFormDividerProps(component) {
   transition: none !important;
 }
 
-:global(.drag-follow-clone .node-overlay) {
+:global(.drag-follow-clone .designer-node-overlay) {
   display: none;
 }
 
@@ -2048,6 +2160,13 @@ function buildFormDividerProps(component) {
   background: transparent;
   padding: 0;
   box-shadow: none;
+}
+
+/* 栅格格子：顶部预留 30px 自身操作条。此前格子操作浮层（全宽、top 6px）与列内
+   组件的快捷操作按钮在格子顶部重叠并拦截指针，导致「组件删除按钮点不到/靠近即消失」；
+   预留条让格子删除按钮与组件操作按钮物理隔离，互不遮挡 */
+.canvas-node.node-col {
+  padding-top: 30px;
 }
 
 .canvas-node.node-row > .layout-children,
@@ -2082,6 +2201,14 @@ function buildFormDividerProps(component) {
   border-color: transparent;
   background: transparent;
   box-shadow: none;
+}
+
+/* 栅格格子 hover：恢复可视化边框，让「格子本身可交互」可感知。
+   必须置于上方 structural-slot 透明规则之后，否则同优先级下会被覆盖（此前的
+   hover 高亮正是被该旧规则整体压掉，格子 hover 无任何视觉反馈） */
+.canvas-node.node-col:hover {
+  border-color: #93c5fd;
+  background: rgba(147, 197, 253, 0.08);
 }
 
 .canvas-node.structural-slot .layout-children {
@@ -2136,7 +2263,9 @@ function buildFormDividerProps(component) {
     0 10px 22px rgba(37, 99, 235, 0.1);
 }
 
-.canvas-node.structural-slot.selected {
+/* 栅格格子选中态排除在外：保留 .canvas-node.layout.selected 的蓝色 !important 边框，
+   让用户能明确看到「格子被选中」；其余 structural slot 维持透明 */
+.canvas-node.structural-slot:not(.node-col).selected {
   border-color: transparent !important;
   background: transparent;
   box-shadow: none;
@@ -2242,176 +2371,11 @@ function buildFormDividerProps(component) {
   cursor: nesw-resize;
 }
 
-.node-overlay {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  left: 6px;
-  z-index: 5;
-  height: 24px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 160ms ease;
-}
-
-.canvas-node:hover .node-overlay,
-.canvas-node.selected .node-overlay {
+/* 统一操作条可见性：由父级 hover/selected 驱动（样式由 designer-core node-overlay.css 提供） */
+.canvas-node:hover .designer-node-overlay,
+.canvas-node.selected .designer-node-overlay {
   opacity: 1;
   pointer-events: auto;
-}
-
-.drag-handle,
-.menu-trigger,
-.icon-action,
-.quick-switch {
-  display: grid;
-  place-items: center;
-  height: 24px;
-  border: 0;
-  border-radius: 5px;
-  background: transparent;
-  color: #64748b;
-  font-size: 15px;
-}
-
-.quick-actions {
-  position: absolute;
-  top: 0;
-  right: 30px;
-  display: flex;
-  gap: 2px;
-}
-
-.icon-action {
-  width: 26px;
-  padding: 0;
-  border: 1px solid transparent;
-  color: #475569;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.quick-switch {
-  display: inline-flex;
-  width: auto;
-  gap: 5px;
-  padding: 0 6px;
-  border: 1px solid transparent;
-  color: #475569;
-  cursor: pointer;
-  font-size: 12px;
-  line-height: 22px;
-}
-
-.quick-switch .switch-track {
-  position: relative;
-  width: 22px;
-  height: 12px;
-  border-radius: 999px;
-  background: #cbd5e1;
-  transition: background 160ms ease;
-}
-
-.quick-switch .switch-thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
-  transition: transform 160ms ease;
-}
-
-.quick-switch.active {
-  color: #2563eb;
-  font-weight: 600;
-}
-
-.quick-switch.active .switch-track {
-  background: #2563eb;
-}
-
-.quick-switch.active .switch-thumb {
-  transform: translateX(10px);
-}
-
-.icon-action.danger {
-  color: #dc2626;
-}
-
-.quick-switch:hover,
-.icon-action:hover {
-  border-color: #dbeafe;
-  background: #eff6ff;
-  color: #2563eb;
-}
-
-.drag-handle,
-.menu-trigger {
-  width: 26px;
-}
-
-.menu-trigger {
-  position: absolute;
-  top: 0;
-  right: 0;
-  padding: 0;
-  cursor: pointer;
-}
-
-.drag-handle {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  cursor: grab;
-}
-
-.drag-handle-svg {
-  transform: rotate(90deg);
-}
-
-@container (max-width: 360px) {
-  .drag-handle {
-    left: 0;
-    transform: none;
-  }
-
-  .quick-actions {
-    right: 30px;
-  }
-}
-
-@container (max-width: 280px) {
-  .quick-switch > span:first-child {
-    display: none;
-  }
-
-  .quick-switch {
-    padding: 0 5px;
-  }
-}
-
-.canvas-node:hover .drag-handle,
-.canvas-node:hover .menu-trigger,
-.canvas-node:hover .quick-switch,
-.canvas-node:hover .icon-action,
-.menu-trigger:hover,
-.drag-handle:hover {
-  background: #eff6ff;
-  color: #2563eb;
-}
-
-.icon-action.danger:hover {
-  border-color: #fecaca;
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
-.canvas-node:active .drag-handle {
-  cursor: grabbing;
 }
 
 .crud-preview {
@@ -2523,6 +2487,16 @@ function buildFormDividerProps(component) {
   border-color: #60a5fa;
   background: #eff6ff;
   box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.12);
+}
+
+/* 栅格行容器：覆盖 .layout-children 的 grid 布局，由 DesignerGridRenderer 接管 */
+.grid-row-container {
+  display: block;
+  gap: 0;
+}
+
+.grid-row-container > .designer-grid-renderer {
+  min-height: 80px;
 }
 
 .grid-layout-children {

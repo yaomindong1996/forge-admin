@@ -85,6 +85,13 @@ const props = defineProps({
   configurable: { type: Boolean, default: false },
   designPreview: { type: Boolean, default: false },
   fillHost: { type: Boolean, default: false },
+  /**
+   * 外部注入的表单字段解析函数。
+   * 当 PortalPageRenderer 渲染包含表单设计器 Schema 的区块时，
+   * 该函数负责从表单资产中提取字段（含 widget 虚拟组件），
+   * 并与后端 CRUD fieldCatalog 合并后作为 GridBlockRenderer 的 fields。
+   */
+  formFieldsResolver: { type: Function, default: null },
 })
 
 const runtimeCrudPropsByKey = ref({})
@@ -373,6 +380,16 @@ function isDataSourceConfigured(block) {
 
 function resolveBlockFields(block) {
   const runtimeFields = resolveRuntimeCrudProps(block)?.fieldCatalog
+  // 通过外部注入的 formFieldsResolver 合并表单设计器字段（含 widget 虚拟组件）
+  if (props.formFieldsResolver) {
+    const formFields = props.formFieldsResolver(block)
+    if (Array.isArray(formFields) && formFields.length) {
+      if (Array.isArray(runtimeFields) && runtimeFields.length) {
+        return mergePortalFieldCatalogs(formFields, runtimeFields)
+      }
+      return formFields
+    }
+  }
   if (Array.isArray(runtimeFields) && runtimeFields.length)
     return runtimeFields
   if (Array.isArray(block.fields))
@@ -380,6 +397,40 @@ function resolveBlockFields(block) {
   if (Array.isArray(block.props?.fields))
     return block.props.fields
   return []
+}
+
+/**
+ * 合并表单设计器字段和运行时 CRUD 字段。
+ * 优先保留表单设计器侧的 widget / 虚拟组件信息，
+ * 运行时字段覆盖同 fieldCode 的数据字段元信息。
+ */
+function mergePortalFieldCatalogs(formFields = [], runtimeFields = []) {
+  const runtimeByField = new Map(
+    (Array.isArray(runtimeFields) ? runtimeFields : [])
+      .filter(f => f?.field || f?.fieldCode)
+      .map(f => [String(f.field || f.fieldCode).trim(), f]),
+  )
+  const merged = []
+  const used = new Set()
+  for (const field of formFields) {
+    const code = String(field.field || field.fieldCode || '').trim()
+    if (!code)
+      continue
+    const runtimeMatch = runtimeByField.get(code)
+    // widget 虚拟节点保持原样，数据字段合并运行时元信息
+    if (field.nodeType === 'widget') {
+      merged.push(field)
+    }
+    else {
+      merged.push({ ...field, ...(runtimeMatch || {}) })
+    }
+    used.add(code)
+  }
+  runtimeByField.forEach((field, code) => {
+    if (!used.has(code))
+      merged.push(field)
+  })
+  return merged
 }
 
 function resolveBlockShellStyle(block, index) {
@@ -522,7 +573,8 @@ function readLength(value) {
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .portal-page-block.is-fill {

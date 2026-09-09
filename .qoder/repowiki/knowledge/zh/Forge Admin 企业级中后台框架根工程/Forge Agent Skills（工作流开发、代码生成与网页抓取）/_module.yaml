@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: agents_skills
+title: Forge Agent Skills（工作流开发、代码生成与网页抓取）
+scope:
+    - .agents/
+source_files: []
+depends_on: []
+related_to: []

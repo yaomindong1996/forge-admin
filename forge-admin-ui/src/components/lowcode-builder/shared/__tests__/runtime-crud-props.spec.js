@@ -273,4 +273,87 @@ describe('runtime CRUD design preview props', () => {
       { key: 'startProcess:submit_approval:form', position: 'form' },
     ])
   })
+
+  it('prefers the form designer layout over flattened runtime options', () => {
+    const props = buildRuntimeCrudProps({
+      options: {
+        formOpenMode: 'modal',
+        modalWidth: '800px',
+        editGridCols: 1,
+        editLabelWidth: 'auto',
+        editLabelPlacement: 'left',
+        editSize: 'medium',
+        editXGap: 12,
+        editYGap: 8,
+        formDesignerSchema: {
+          formKey: 'order_default_form',
+          layout: {
+            formOpenMode: 'drawer',
+            modalWidth: '1200px',
+            drawerPlacement: 'left',
+            gridColumns: 2,
+            labelWidth: 220,
+            labelPlacement: 'left',
+            labelAlign: 'left',
+            size: 'small',
+            enableCollapse: true,
+            showFeedback: false,
+            columnGap: 16,
+            rowGap: 16,
+          },
+        },
+      },
+    })
+
+    expect(props.formOpenMode).toBe('drawer')
+    expect(props.modalType).toBe('drawer')
+    expect(props.modalWidth).toBe('1200px')
+    expect(props.detailModalWidth).toBe('min(1080px, 92vw)')
+    expect(props.drawerPlacement).toBe('left')
+    expect(props.editGridCols).toBe(2)
+    expect(props.editLabelWidth).toBe(220)
+    expect(props.editLabelPlacement).toBe('left')
+    expect(props.editLabelAlign).toBe('left')
+    expect(props.editSize).toBe('small')
+    expect(props.editEnableCollapse).toBe(true)
+    expect(props.editShowFeedback).toBe(false)
+    expect(props.editXGap).toBe(16)
+    expect(props.editYGap).toBe(16)
+  })
+
+  it('resolves the designer layout from the default form of a multi-form schema', () => {
+    const props = buildRuntimeCrudProps({
+      options: {
+        formDesignerSchema: {
+          defaultFormKey: 'order_edit_form',
+          forms: [
+            { formKey: 'order_create_form', schema: { layout: { modalWidth: '600px' } } },
+            { formKey: 'order_edit_form', schema: { layout: { modalWidth: '960px', formOpenMode: 'drawer' } } },
+          ],
+        },
+      },
+    })
+
+    expect(props.modalWidth).toBe('960px')
+    expect(props.formOpenMode).toBe('drawer')
+  })
+
+  it('falls back to flattened runtime options when no designer schema exists', () => {
+    const props = buildRuntimeCrudProps({
+      options: {
+        formOpenMode: 'drawer',
+        modalWidth: '720px',
+        editGridCols: 3,
+        editSize: 'small',
+        editEnableCollapse: true,
+      },
+    })
+
+    expect(props.formOpenMode).toBe('drawer')
+    expect(props.modalWidth).toBe('720px')
+    expect(props.editGridCols).toBe(3)
+    expect(props.editSize).toBe('small')
+    expect(props.editEnableCollapse).toBe(true)
+    expect(props.detailModalWidth).toBe('min(1080px, 92vw)')
+  })
 })

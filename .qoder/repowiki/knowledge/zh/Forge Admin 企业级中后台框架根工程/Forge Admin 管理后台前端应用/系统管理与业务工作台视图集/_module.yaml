@@ -1,0 +1,17 @@
+schema_version: 1
+module_path: forge_admin_ui/system_admin
+title: 系统管理与业务工作台视图集
+scope:
+    - forge-admin-ui/src/views/system/
+    - forge-admin-ui/src/views/message/
+    - forge-admin-ui/src/views/generator/
+    - forge-admin-ui/src/views/nexus/
+    - forge-admin-ui/src/views/report/
+    - forge-admin-ui/src/views/employee/
+    - forge-admin-ui/src/views/leave/
+    - forge-admin-ui/src/views/workspace/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/framework_plugins/plugin_parent/message_plugin
+    - path: forge_server/framework_plugins/plugin_parent/system_plugin

@@ -494,6 +494,82 @@ export function normalizeDesignerField(component = {}) {
   }
 }
 
+// ── Layout node helpers (tabs / card / collapse) ──
+
+const LAYOUT_NODE_TYPES = new Set([
+  'row', 'fcRow', 'col',
+  'card', 'elCard',
+  'tabs', 'elTabs',
+  'collapse', 'elCollapse',
+])
+
+function resolveNodeType(component = {}) {
+  return component.nodeType || component.type || component.componentKey || ''
+}
+
+export function isDesignerLayoutNode(component = {}) {
+  return LAYOUT_NODE_TYPES.has(resolveNodeType(component))
+}
+
+export function hasDesignerLayoutNodes(components = []) {
+  return Array.isArray(components) && components.some(isDesignerLayoutNode)
+}
+
+function normalizePaneChild(component, index, fieldByCode) {
+  const label = component.label || component.props?.label || component.props?.title || `分组 ${index + 1}`
+  return {
+    key: component.id || component.key || `pane_${index}`,
+    nodeType: resolveNodeType(component),
+    label,
+    props: { ...(component.props || {}) },
+    children: normalizeDesignerNodeTree(component.children || [], fieldByCode),
+  }
+}
+
+function normalizeDesignerNodeTree(components, fieldByCode) {
+  if (!Array.isArray(components)) return []
+  return components.map((comp, index) => {
+    if (isDesignerLayoutNode(comp)) {
+      const isTabs = ['tabs', 'elTabs'].includes(resolveNodeType(comp))
+      const isCollapse = ['collapse', 'elCollapse'].includes(resolveNodeType(comp))
+      const children = Array.isArray(comp.children)
+        ? (isTabs || isCollapse)
+            ? comp.children.map((child, i) => normalizePaneChild(child, i, fieldByCode))
+            : normalizeDesignerNodeTree(comp.children, fieldByCode)
+        : []
+      return {
+        key: comp.id || comp.key || `layout_${resolveNodeType(comp)}_${index}`,
+        nodeType: resolveNodeType(comp),
+        label: comp.label || '',
+        props: { ...(comp.props || {}) },
+        children,
+      }
+    }
+    // Field or pane-wrapper treated as field
+    const normalized = normalizeDesignerField(comp)
+    if (normalized) {
+      const stored = fieldByCode.get(normalized.field)
+      return stored ? mergeField(stored, normalized) : normalized
+    }
+    return null
+  }).filter(Boolean)
+}
+
+/**
+ * Build a renderable node tree from designer components, merging stored
+ * field data (editSchema) into leaf field nodes.  Layout nodes (tabs/card/
+ * collapse) are preserved; non-field non-layout nodes become field leaves.
+ */
+export function normalizeDesignerComponents(config = {}, formDesignerSchema) {
+  const schema = formDesignerSchema || config.options?.formDesignerSchema
+  const components = Array.isArray(schema?.components) ? schema.components : []
+  if (!components.length) return []
+  const stored = Array.isArray(config.editSchema) ? config.editSchema : []
+  const storedFields = stored.map(normalizeField).filter(f => f?.field)
+  const fieldByCode = new Map(storedFields.map(f => [f.field, f]))
+  return normalizeDesignerNodeTree(components, fieldByCode)
+}
+
 export function normalizeField(field = {}) {
   const type = String(field.type || field.componentType || 'input')
   return {

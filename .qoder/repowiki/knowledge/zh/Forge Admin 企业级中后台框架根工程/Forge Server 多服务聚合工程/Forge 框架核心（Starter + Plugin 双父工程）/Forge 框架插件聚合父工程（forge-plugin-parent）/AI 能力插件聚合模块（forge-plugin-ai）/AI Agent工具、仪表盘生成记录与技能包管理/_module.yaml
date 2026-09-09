@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/ai_plugin/agenttool_dashboard_skill
+title: AI Agent工具、仪表盘生成记录与技能包管理
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/agenttool/
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/dashboard/
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/skill/
+source_files: []
+depends_on: []
+related_to: []

@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/starter_parent
+title: Forge Starter 父聚合工程
+scope:
+    - forge-server/forge-framework/forge-starter-parent/
+source_files: []
+depends_on: []
+related_to: []

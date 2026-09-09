@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/starter_parent/business_utilities
+title: 业务通用 Starter 组件集（配置中心/数据权限/多租户/幂等）
+scope:
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-config/
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-datascope/
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-tenant/
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-idempotent/
+source_files: []
+depends_on: []
+related_to: []

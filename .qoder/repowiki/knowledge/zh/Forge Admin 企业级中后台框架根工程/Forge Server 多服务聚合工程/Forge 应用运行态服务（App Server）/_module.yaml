@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: forge_server/app_server
+title: Forge 应用运行态服务（App Server）
+scope:
+    - forge-server/forge-app-server/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_h5_ui
+    - path: forge_server/framework_plugins/plugin_parent/collaboration_plugin
+    - path: forge_server/framework_plugins/plugin_parent/message_plugin

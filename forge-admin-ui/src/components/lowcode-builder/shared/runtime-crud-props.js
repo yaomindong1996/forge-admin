@@ -6,7 +6,10 @@
  */
 export function buildRuntimeCrudProps(config = {}, { designPreview = false } = {}) {
   const options = config.options || {}
-  const formOpenMode = resolveFormOpenMode(options, config)
+  // 表单设计器保存的 layout 是表单项配置的单一事实来源，优先于运行配置的平铺键
+  const fdsSource = options.formDesignerSchema || config.formDesignerSchema
+  const designerLayout = resolveDesignerFormLayout(fdsSource)
+  const formOpenMode = resolveFormOpenMode(options, config, designerLayout)
   const configKey = String(config.configKey || '').trim()
   const apiConfig = normalizeApiConfig(config.apiConfig, configKey, designPreview)
   return {
@@ -24,19 +27,23 @@ export function buildRuntimeCrudProps(config = {}, { designPreview = false } = {
     rowKey: config.rowKey || 'id',
     formOpenMode,
     tabWorkspace: options.tabWorkspace || config.tabWorkspace || {},
-    modalType: resolveModalType(formOpenMode, options, config),
-    modalWidth: options.modalWidth || config.modalWidth || '800px',
-    editGridCols: options.editGridCols || config.editGridCols || 1,
-    editLabelWidth: options.editLabelWidth || config.editLabelWidth || 'auto',
-    editLabelPlacement: options.editLabelPlacement || config.editLabelPlacement || 'left',
-    editLabelAlign: options.editLabelAlign || config.editLabelAlign || 'right',
-    editSize: options.editSize || config.editSize || 'medium',
-    editShowFeedback: options.editShowFeedback ?? config.editShowFeedback ?? true,
-    editFormClass: options.editFormClass || config.editFormClass || '',
-    editFormStyle: options.editFormStyle || config.editFormStyle,
+    modalType: resolveModalType(formOpenMode, options, config, designerLayout),
+    modalWidth: designerLayout.modalWidth || options.modalWidth || config.modalWidth || '800px',
+    detailModalWidth: designerLayout.detailModalWidth || options.detailModalWidth || config.detailModalWidth || 'min(1080px, 92vw)',
+    drawerPlacement: designerLayout.drawerPlacement || options.drawerPlacement || config.drawerPlacement || 'right',
+    editGridCols: designerLayout.gridColumns || options.editGridCols || config.editGridCols || 1,
+    editLabelWidth: designerLayout.labelWidth || options.editLabelWidth || config.editLabelWidth || 'auto',
+    editLabelPlacement: designerLayout.labelPlacement || options.editLabelPlacement || config.editLabelPlacement || 'left',
+    editLabelAlign: designerLayout.labelAlign || options.editLabelAlign || config.editLabelAlign || 'right',
+    editSize: designerLayout.size || options.editSize || config.editSize || 'medium',
+    editEnableCollapse: designerLayout.enableCollapse ?? options.editEnableCollapse ?? config.editEnableCollapse ?? false,
+    editMaxVisibleFields: numberOption(designerLayout.maxVisibleFields ?? options.editMaxVisibleFields ?? config.editMaxVisibleFields, 6),
+    editShowFeedback: designerLayout.showFeedback ?? options.editShowFeedback ?? config.editShowFeedback ?? true,
+    editFormClass: designerLayout.formClass || options.editFormClass || config.editFormClass || '',
+    editFormStyle: designerLayout.formStyle || options.editFormStyle || config.editFormStyle,
     formAssets: options.formAssets || config.formAssets || [],
-    editXGap: numberOption(options.editXGap ?? config.editXGap, 12),
-    editYGap: numberOption(options.editYGap ?? config.editYGap, 8),
+    editXGap: numberOption(designerLayout.columnGap ?? options.editXGap ?? config.editXGap, 12),
+    editYGap: numberOption(designerLayout.rowGap ?? options.editYGap ?? config.editYGap, 8),
     tableRowGap: normalizeTableRowGap(options.tableRowGap ?? config.tableRowGap, 8),
     loadDetailOnEdit: options.loadDetailOnEdit ?? config.loadDetailOnEdit ?? true,
     searchGridCols: options.searchGridCols || config.searchGridCols || 4,
@@ -311,16 +318,32 @@ function normalizeColumns(columns, transConfig = {}) {
   })
 }
 
-function resolveFormOpenMode(options = {}, config = {}) {
-  const value = String(options.formOpenMode || config.formOpenMode || options.modalType || config.modalType || 'modal').trim()
+function resolveFormOpenMode(options = {}, config = {}, designerLayout = {}) {
+  const value = String(designerLayout.formOpenMode || designerLayout.modalType
+    || options.formOpenMode || config.formOpenMode || options.modalType || config.modalType || 'modal').trim()
   return value.toLowerCase() === 'tabworkspace' ? 'tabWorkspace' : (['modal', 'drawer', 'flat'].includes(value.toLowerCase()) ? value.toLowerCase() : 'modal')
 }
 
-function resolveModalType(formOpenMode, options = {}, config = {}) {
+function resolveModalType(formOpenMode, options = {}, config = {}, designerLayout = {}) {
   if (['modal', 'drawer'].includes(formOpenMode))
     return formOpenMode
-  const modalType = String(options.modalType || config.modalType || '').trim().toLowerCase()
+  const modalType = String(designerLayout.modalType || options.modalType || config.modalType || '').trim().toLowerCase()
   return ['modal', 'drawer'].includes(modalType) ? modalType : 'modal'
+}
+
+/** 提取表单设计器保存的 layout（兼容单表单与多表单结构）。 */
+export function resolveDesignerFormLayout(formDesignerSchema) {
+  if (!formDesignerSchema || typeof formDesignerSchema !== 'object')
+    return {}
+  if (Array.isArray(formDesignerSchema.forms) && formDesignerSchema.forms.length) {
+    const defaultFormKey = formDesignerSchema.defaultFormKey
+      || formDesignerSchema.settings?.defaultFormKey
+    const form = formDesignerSchema.forms.find(item => item?.formKey === defaultFormKey)
+      || formDesignerSchema.forms[0]
+    const layout = (form?.schema || form)?.layout || {}
+    return layout
+  }
+  return formDesignerSchema.layout || {}
 }
 
 function numberOption(value, fallback) {

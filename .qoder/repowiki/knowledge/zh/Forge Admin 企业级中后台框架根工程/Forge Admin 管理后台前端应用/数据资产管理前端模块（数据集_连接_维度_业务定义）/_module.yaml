@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: forge_admin_ui/data_management
+title: 数据资产管理前端模块（数据集/连接/维度/业务定义）
+scope:
+    - forge-admin-ui/src/views/data/
+    - forge-admin-ui/src/components/data/
+    - forge-admin-ui/src/api/data/
+    - forge-admin-ui/src/api/business/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/framework_plugins/plugin_parent/data_plugin

@@ -1,5 +1,5 @@
 <template>
-  <div class="designer-shell" :class="{ embedded, 'compact-embedded': compactEmbedded, 'nav-hidden': !showDesignerNavigation }">
+  <div class="designer-shell" :class="{ embedded, 'compact-embedded': compactEmbedded, 'nav-hidden': !showDesignerNavigation, 'has-back-bar': showEmbeddedBackBar }">
     <header v-if="!embedded" class="designer-topbar">
       <div class="topbar-left">
         <n-button quaternary circle @click="$emit('back')">
@@ -78,6 +78,20 @@
         </button>
       </div>
     </header>
+
+    <!-- 嵌入模式返回栏：当活动面板不在导航白名单时显示 -->
+    <div v-if="showEmbeddedBackBar" class="embedded-back-bar">
+      <button
+        type="button"
+        class="embedded-back-button"
+        @click="$emit('update:activePanel', embeddedBackTarget)"
+      >
+        <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" fill="currentColor" />
+        </svg>
+        返回{{ filteredNavItems.find(i => i.key === embeddedBackTarget)?.label || '' }}
+      </button>
+    </div>
 
     <div class="designer-workbench" :class="{ 'nav-collapsed': navCollapsed }">
       <aside v-if="showDesignerNavigation" class="designer-nav" :class="{ collapsed: navCollapsed }">
@@ -269,6 +283,13 @@ const activeNavigationKey = computed(() => props.navPanels?.length
   ? props.activePanel
   : resolveStandaloneObjectDesignerSection(props.activePanel))
 const showDesignerNavigation = computed(() => !props.embedded || filteredNavItems.value.length > 1)
+/** 嵌入模式下，当前活动面板不在导航白名单内（例如从“查看数据结构”切入 fields），需要显示返回栏 */
+const showEmbeddedBackBar = computed(() => {
+  if (!props.embedded || !props.navPanels?.length)
+    return false
+  return !props.navPanels.includes(props.activePanel)
+})
+const embeddedBackTarget = computed(() => props.navPanels?.[0] || 'list')
 const moreOptions = computed(() => {
   if (props.navPanels?.length) {
     return [
@@ -392,6 +413,10 @@ function handleTopbarActionsClick(event) {
   height: 100%;
 }
 
+.designer-shell.embedded.has-back-bar {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
 .designer-shell.embedded.nav-hidden .designer-workbench {
   grid-template-columns: minmax(0, 1fr);
 }
@@ -414,6 +439,35 @@ function handleTopbarActionsClick(event) {
 
 .designer-shell.embedded.compact-embedded .panel-frame {
   overflow: visible;
+}
+
+.embedded-back-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-bottom: 1px solid #e5e6eb;
+  background: #f7f8fa;
+}
+
+.embedded-back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  border: 1px solid #d9dce1;
+  border-radius: 6px;
+  background: #fff;
+  color: #1d2129;
+  font-size: 13px;
+  line-height: 20px;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.embedded-back-button:hover {
+  border-color: #818cf8;
+  color: #3153d8;
 }
 
 .designer-main-content {

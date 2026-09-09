@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: forge_report_ui
+title: Forge 报表可视化编辑器前端
+scope:
+    - forge-report-ui/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/report_server

@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: docker_deploy
+title: Forge Admin Docker 一键部署编排
+scope:
+    - docker/
+    - docker-forge-admin/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_admin_ui
+    - path: forge_server/admin_server
+    - path: forge_server/database_schema
+    - path: forge_server/flow_service

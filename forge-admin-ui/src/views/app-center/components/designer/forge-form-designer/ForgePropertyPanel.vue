@@ -2,6 +2,17 @@
   <div class="forge-property-panel">
     <div class="edit-panel-header">
       <div class="edit-panel-title">
+        <button
+          v-if="selectedComponent"
+          type="button"
+          class="panel-back-button"
+          title="返回表单属性"
+          @click="designerStore.selectComponent('')"
+        >
+          <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" fill="currentColor" />
+          </svg>
+        </button>
         <strong>{{ selectedComponent ? selectedLabel : '表单属性' }}</strong>
         <span>{{ panelDescription }}</span>
       </div>
@@ -27,7 +38,7 @@
       </div>
     </div>
 
-    <template v-if="selectedComponent">
+    <template v-if="selectedComponent && !isSubTable">
       <n-tabs v-model:value="propertyActiveTab" type="line" size="medium" animated class="property-tabs">
         <n-tab-pane name="basic">
           <template #tab>
@@ -51,7 +62,7 @@
                       filterable
                       @update:value="handleSwitchComponentType"
                     />
-                    <span v-if="fieldStructureLocked" class="property-help">该字段已有业务数据，不能修改组件或存储类型。</span>
+                    <span v-if="fieldStructureLocked" class="property-help">该字段已有业务数据，不能修改组件或存储类型；画布中删除该组件不影响已有数据，字段仍可从左侧字段列表重新拖入。</span>
                   </n-form-item>
                   <n-form-item v-if="isField" label="绑定字段">
                     <n-input
@@ -134,9 +145,36 @@
                               :value="selectedComponent.props?.dataBinding?.paramsText || '{}'"
                               type="textarea"
                               :rows="3"
-                              placeholder="{ &quot;id&quot;: &quot;{{ id }}&quot; }，可引用当前表单/详情数据"
+                              placeholder="固定参数 JSON，如 {&quot;type&quot;:&quot;user&quot;}；引用表单字段值写 ${字段名}，如 {&quot;deptId&quot;:&quot;${deptId}&quot;}"
                               @update:value="updatePageWidgetDataBinding({ paramsText: $event || '{}' })"
                             />
+                          </div>
+                          <div v-if="selectedComponent.props?.dataBinding?.sourceType === 'remote'" class="data-source-row">
+                            <span>引用字段</span>
+                            <div class="param-ref-editor">
+                              <n-input
+                                :value="widgetParamRefName"
+                                size="small"
+                                clearable
+                                placeholder="参数名，如 deptId"
+                                @update:value="widgetParamRefName = $event || ''"
+                              />
+                              <n-select
+                                :value="widgetParamRefField"
+                                :options="optionLinkageSourceFieldOptions"
+                                size="small"
+                                filterable
+                                clearable
+                                placeholder="选字段，值变化后自动重新查询"
+                                @update:value="widgetParamRefField = $event || ''"
+                              />
+                              <n-button size="small" :disabled="!widgetParamRefName || !widgetParamRefField" @click="addWidgetParamRef">
+                                写入
+                              </n-button>
+                            </div>
+                            <div class="property-help">
+                              把所选字段的当前值作为参数传给接口，字段值变化后组件自动重新查询（任意组件间级联，不限于下拉）。
+                            </div>
                           </div>
                         </template>
                         <div v-if="selectedComponent.props?.dataBinding?.sourceType !== 'static'" class="property-help">
@@ -545,26 +583,14 @@
               <n-collapse-item v-if="isRowLayout || isColumnLayout" title="栅格快捷配置" name="gridQuick">
                 <section class="panel-item grid-quick-config">
                   <template v-if="isRowLayout">
-                    <n-form-item label="栅格总列数">
-                      <div class="slider-control">
-                        <n-slider
-                          :value="rowTotalColumns"
-                          :min="1"
-                          :max="maxFormGridColumns"
-                          :step="1"
-                          :marks="gridColumnMarks"
-                          @update:value="updateRowTotalColumns"
-                        />
-                        <n-input-number
-                          :value="rowTotalColumns"
-                          :min="1"
-                          :max="maxFormGridColumns"
-                          :show-button="false"
-                          size="small"
-                          @update:value="updateRowTotalColumns($event || 1)"
-                        />
-                      </div>
-                    </n-form-item>
+                    <!-- 统一栅格属性面板（spec 驱动）：与列表设计器共用同一份 grid spec 渲染。
+                         表单画布（AiFormLayoutNodes / n-grid）仅消费 columns/gutter/rowGap，列表画布专属属性已排除 -->
+                    <SpecPropertyPanel
+                      :block-type="selectedComponent.componentKey"
+                      :model-props="selectedComponent.props || {}"
+                      :exclude-keys="GRID_LIST_ONLY_PROPS"
+                      @update:prop="handleGridPropUpdate"
+                    />
                     <n-form-item label="格子数量">
                       <n-input-number
                         :value="rowColumnCount"
@@ -573,15 +599,7 @@
                         size="small"
                         @update:value="updateRowCellCount($event || 1)"
                       />
-                    </n-form-item>
-                    <n-form-item label="列间距">
-                      <n-input-number
-                        :value="selectedComponent.props?.gutter ?? 16"
-                        :min="0"
-                        :max="40"
-                        size="small"
-                        @update:value="updateComponent({ props: { gutter: $event ?? 16 } })"
-                      />
+                      <span class="property-help">调减数量时，多余格子的组件会并入最后一个格子；画布上的格子删除按钮则连同内部组件一起删除。</span>
                     </n-form-item>
                     <div class="grid-column-span-editor">
                       <div
@@ -628,205 +646,12 @@
 
               <n-collapse-item v-if="isField" title="字段组件" name="field">
                 <section class="panel-item">
-                  <n-form-item label="占位提示">
-                    <n-input
-                      :value="selectedComponent.props?.placeholder"
-                      clearable
-                      placeholder="请输入"
-                      @update:value="updateComponent({ props: { placeholder: $event } })"
-                    />
-                  </n-form-item>
-                  <n-form-item label="默认值">
-                    <n-select
-                      v-if="defaultValueSelectEnabled"
-                      :value="selectedDefaultValueForSelect"
-                      :options="defaultValueSelectOptions"
-                      :multiple="defaultValueSelectMultiple"
-                      :loading="defaultValueOptionsLoading"
-                      filterable
-                      clearable
-                      placeholder="请选择默认值"
-                      @update:value="updateDefaultValue"
-                    />
-                    <n-input
-                      v-else
-                      :value="selectedComponent.props?.defaultValue"
-                      clearable
-                      placeholder="请输入"
-                      @update:value="updateDefaultValue"
-                    />
-                  </n-form-item>
-                  <n-form-item v-if="supportsFieldMaxLength" label="最大长度">
-                    <div class="option-editor-row two-columns">
-                      <n-input-number
-                        :value="selectedFieldMaxLength"
-                        :min="1"
-                        :max="2048"
-                        :show-button="false"
-                        clearable
-                        placeholder="最大长度"
-                        @update:value="updateFieldMaxLength"
-                      />
-                      <n-switch
-                        :value="selectedComponent.props?.showCount === true"
-                        size="small"
-                        @update:value="updateComponent({ props: { showCount: $event } })"
-                      >
-                        <template #checked>
-                          计数
-                        </template>
-                        <template #unchecked>
-                          计数
-                        </template>
-                      </n-switch>
-                    </div>
-                  </n-form-item>
-                  <n-form-item v-if="selectedComponent.componentKey === 'barcodeScanner'" label="扫码输入设置">
-                    <div class="field-constraint-config">
-                      <div class="switch-line compact">
-                        <span>允许手工输入</span>
-                        <n-switch
-                          size="small"
-                          :value="selectedComponent.props?.allowManualInput !== false"
-                          @update:value="updateComponent({ props: { allowManualInput: $event } })"
-                        />
-                      </div>
-                      <n-input-number
-                        :value="selectedComponent.props?.timeoutMs || 30000"
-                        :min="1000"
-                        :max="60000"
-                        :step="1000"
-                        :show-button="false"
-                        placeholder="扫码超时（毫秒）"
-                        @update:value="updateComponent({ props: { timeoutMs: $event || 30000 } })"
-                      />
-                      <n-select
-                        :value="selectedComponent.props?.formats || []"
-                        :options="barcodeFormatOptions"
-                        multiple
-                        clearable
-                        filterable
-                        placeholder="限定码制（不选表示全部）"
-                        @update:value="updateComponent({ props: { formats: $event || [] } })"
-                      />
-                    </div>
-                  </n-form-item>
-                  <n-form-item label="字段约束">
-                    <div class="field-constraint-config">
-                      <n-select
-                        :value="selectedComponent.validation?.preset || ''"
-                        :options="commonValidationOptions"
-                        clearable
-                        placeholder="常用校验：手机号、邮箱、身份证等"
-                        @update:value="updateValidationPreset"
-                      />
-                      <n-input
-                        :value="selectedComponent.validation?.pattern || ''"
-                        clearable
-                        placeholder="正则表达式会随常用校验自动填入"
-                        @update:value="updateComponent({ validation: { pattern: $event || undefined } })"
-                      />
-                    </div>
-                  </n-form-item>
-                  <n-form-item label="自动编号">
-                    <div class="auto-code-config">
-                      <div class="switch-line compact">
-                        <span>新增时自动生成</span>
-                        <n-switch
-                          size="small"
-                          :value="selectedGenerationEnabled"
-                          @update:value="handleGenerationEnabled"
-                        />
-                      </div>
-                      <template v-if="selectedGenerationEnabled">
-                        <n-select
-                          :value="selectedGenerationRuleCode"
-                          :options="codeRuleOptions"
-                          :loading="codeRuleLoading"
-                          clearable
-                          filterable
-                          placeholder="选择编码规则"
-                          @update:value="updateGenerationRule"
-                        />
-                        <div class="option-editor-row two-columns">
-                          <n-select
-                            :value="selectedGenerationConfig.fillPolicy || 'EMPTY_ONLY'"
-                            :options="generationFillPolicyOptions"
-                            @update:value="updateGenerationConfig({ fillPolicy: $event || 'EMPTY_ONLY' })"
-                          />
-                          <n-select
-                            :value="selectedGenerationConfig.trigger || 'ON_CREATE'"
-                            :options="generationTriggerOptions"
-                            @update:value="updateGenerationConfig({ trigger: $event || 'ON_CREATE' })"
-                          />
-                        </div>
-                        <div class="switch-line compact">
-                          <span>表单填写隐藏</span>
-                          <n-switch
-                            size="small"
-                            :value="!!selectedComponent.visibility?.hidden"
-                            @update:value="updateComponentHidden"
-                          />
-                        </div>
-                        <div class="switch-line compact">
-                          <span>运行态只读</span>
-                          <n-switch
-                            size="small"
-                            :value="selectedGenerationConfig.readonly !== false"
-                            @update:value="updateGenerationReadonly"
-                          />
-                        </div>
-                        <div v-if="selectedGenerationRule" class="auto-code-rule-summary">
-                          <span>{{ selectedGenerationRule.ruleName }}</span>
-                          <code>{{ selectedGenerationRule.template }}</code>
-                          <small>{{ selectedGenerationRule.category || 'COMMON' }} · 结构化规则</small>
-                        </div>
-                        <div class="auto-code-preview-row">
-                          <n-button
-                            size="small"
-                            secondary
-                            :disabled="!selectedGenerationRuleCode"
-                            :loading="codeRulePreviewing"
-                            @click="previewSelectedGenerationRule"
-                          >
-                            预览编号
-                          </n-button>
-                          <strong :class="{ invalid: codeRulePreview?.valid === false }">
-                            {{ codeRulePreview?.previewCode || '选择规则后可预览' }}
-                          </strong>
-                        </div>
-                        <div v-if="codeRulePreview?.errors?.length" class="auto-code-issue error">
-                          {{ codeRulePreview.errors[0].message }}
-                        </div>
-                        <div v-else-if="codeRulePreview?.warnings?.length" class="auto-code-issue warning">
-                          {{ codeRulePreview.warnings[0].message }}
-                        </div>
-                      </template>
-                    </div>
-                  </n-form-item>
-                  <n-form-item label="公式配置">
-                    <div class="formula-config-entry">
-                      <div>
-                        <strong>{{ selectedFormulaConfig?.type ? `${selectedFormulaConfig.type} 公式` : '未启用公式' }}</strong>
-                        <span>{{ selectedFormulaSummary }}</span>
-                      </div>
-                      <n-button size="small" secondary @click="openFieldFormulaPanel">
-                        配置公式
-                      </n-button>
-                    </div>
-                  </n-form-item>
-                  <n-form-item label="组件尺寸">
-                    <n-select
-                      :value="selectedComponent.props?.size || ''"
-                      :options="componentSizeOptions"
-                      @update:value="updateComponent({ props: { size: $event || undefined } })"
-                    />
-                  </n-form-item>
                   <n-form-item v-if="isOptionField && selectedComponent.componentKey !== 'transfer'" label="选项来源">
                     <div class="page-widget-config-stack">
                       <n-select
                         :value="selectedOptionSourceType"
                         :options="optionSourceTypeOptions"
+                        :consistent-menu-width="false"
                         @update:value="updateOptionSourceType"
                       />
                       <template v-if="selectedOptionSourceType === 'CURRENT_CHILDREN'">
@@ -857,16 +682,33 @@
                         </div>
                       </template>
                       <template v-else-if="selectedOptionSourceType === 'REMOTE'">
+                        <!-- 级联接口模式下接口地址由「级联选项」统一接管，避免两处输入框编辑同一个值 -->
+                        <div v-if="optionLinkageApiManaged" class="option-linkage-hint">
+                          选项接口由下方「级联选项」统一配置：{{ optionLinkageApi || '尚未填写' }}
+                        </div>
                         <n-input
+                          v-else
                           :value="selectedComponent.props?.optionSource?.api || ''"
-                          placeholder="例如 get@/api/options"
+                          placeholder="接口地址，例如 get@/api/options"
                           @update:value="updatePageWidgetOptionSource({ api: $event || '' })"
                         />
                         <div class="option-editor-row two-columns">
+                          <n-select
+                            :value="selectedComponent.props?.optionSource?.method || 'get'"
+                            :options="requestMethodOptions"
+                            @update:value="updatePageWidgetOptionSource({ method: $event || 'get' })"
+                          />
                           <n-input
                             :value="selectedComponent.props?.optionSource?.recordsField || 'records'"
                             placeholder="列表路径"
                             @update:value="updatePageWidgetOptionSource({ recordsField: $event || 'records' })"
+                          />
+                        </div>
+                        <div class="option-editor-row two-columns">
+                          <n-input
+                            :value="selectedComponent.props?.optionSource?.labelField || 'label'"
+                            placeholder="显示字段"
+                            @update:value="updatePageWidgetOptionSource({ labelField: $event || 'label' })"
                           />
                           <n-input
                             :value="selectedComponent.props?.optionSource?.valueField || 'value'"
@@ -875,11 +717,216 @@
                           />
                         </div>
                         <n-input
-                          :value="selectedComponent.props?.optionSource?.labelField || 'label'"
-                          placeholder="显示字段"
-                          @update:value="updatePageWidgetOptionSource({ labelField: $event || 'label' })"
+                          :value="selectedComponent.props?.optionSource?.paramsText || '{}'"
+                          placeholder="固定参数 JSON，如 {&quot;type&quot;:&quot;user&quot;}；高级用法可用 ${字段名} 引用表单值"
+                          @update:value="updatePageWidgetOptionSource({ paramsText: $event || '{}' })"
                         />
                       </template>
+                    </div>
+                  </n-form-item>
+                  <!-- 级联选项：下拉级联一站式步骤式配置（运行时消费 props.cascade + optionSource）。
+                       场景：选了部门后，人员下拉按部门参数重新加载；按①②③顺序配置即可生效 -->
+                  <n-form-item v-if="isOptionField && selectedComponent.componentKey !== 'transfer'">
+                    <template #label>
+                      <span class="option-list-label option-linkage-label">
+                        <span>级联选项</span>
+                        <n-tooltip trigger="hover">
+                          <template #trigger>
+                            <span class="help-icon">?</span>
+                          </template>
+                          本字段选项跟随另一个字段的值变化。例如：先选省份，市列表只显示该省的城市。
+                        </n-tooltip>
+                        <n-switch
+                          size="small"
+                          :value="optionLinkageConfig.enabled"
+                          @update:value="toggleOptionLinkage"
+                        />
+                      </span>
+                    </template>
+                    <div v-if="optionLinkageConfig.enabled" class="option-linkage-steps">
+                      <div class="option-linkage-step">
+                        <span class="option-linkage-step-label">① 上级字段</span>
+                        <n-select
+                          :value="optionLinkageConfig.sourceField"
+                          :options="optionLinkageSourceFieldOptions"
+                          :consistent-menu-width="false"
+                          filterable
+                          clearable
+                          placeholder="选谁变化时刷新本字段，如：部门"
+                          @update:value="updateOptionLinkageSourceField"
+                        />
+                        <span class="option-linkage-step-hint">不限下拉：输入框、日期、数字等任意组件的值变化都会触发联动</span>
+                      </div>
+                      <div class="option-linkage-step">
+                        <span class="option-linkage-step-label">② 联动方式</span>
+                        <div class="option-linkage-modes">
+                          <button
+                            type="button"
+                            class="option-linkage-mode"
+                            :class="{ active: optionLinkageConfig.mode === 'remoteParam' }"
+                            @click="updateOptionLinkageMode('remoteParam')"
+                          >
+                            <strong>接口加载</strong>
+                            <span>选了上级后按参数请求接口刷新选项（省市区、按部门选人等常用）</span>
+                          </button>
+                          <button
+                            type="button"
+                            class="option-linkage-mode"
+                            :class="{ active: optionLinkageConfig.mode === 'parentDictCode' }"
+                            @click="updateOptionLinkageMode('parentDictCode')"
+                          >
+                            <strong>本地过滤</strong>
+                            <span>从已配置的选项里按上级值筛选（选项数据需含父级编码）</span>
+                          </button>
+                        </div>
+                      </div>
+                      <template v-if="optionLinkageConfig.mode === 'remoteParam'">
+                        <div class="option-linkage-step">
+                          <span class="option-linkage-step-label">③ 选项接口</span>
+                          <n-input
+                            :value="optionLinkageApi"
+                            placeholder="方法@地址，如 get@/api/system/user/list"
+                            @update:value="updateOptionLinkageApi"
+                          />
+                        </div>
+                        <div class="option-linkage-step">
+                          <span class="option-linkage-step-label">④ 参数名</span>
+                          <n-input
+                            :value="optionLinkageConfig.paramName"
+                            placeholder="接口接收上级值的参数，如 deptId"
+                            @update:value="updateOptionLinkage({ paramName: $event || '' })"
+                          />
+                        </div>
+                        <div class="option-linkage-step">
+                          <span class="option-linkage-step-label">⑤ 上级为空时</span>
+                          <n-select
+                            :value="optionLinkageConfig.emptyStrategy"
+                            :options="optionLinkageEmptyStrategyOptions"
+                            :consistent-menu-width="false"
+                            @update:value="updateOptionLinkage({ emptyStrategy: $event || 'empty' })"
+                          />
+                        </div>
+                      </template>
+                      <div v-else class="option-linkage-hint">
+                        按上级字段值过滤本字段已有选项（静态选项或字典数据需包含父级编码）。
+                      </div>
+                      <div
+                        v-if="optionLinkageSummary"
+                        class="option-linkage-summary"
+                        :class="{ 'is-warning': !optionLinkageConfig.sourceField || (optionLinkageConfig.mode === 'remoteParam' && !optionLinkageApi) }"
+                      >
+                        {{ optionLinkageSummary }}
+                      </div>
+                      <div class="switch-line compact">
+                        <span>上级变化时清空本字段已选值</span>
+                        <n-switch
+                          size="small"
+                          :value="optionLinkageConfig.clearOnParentChange"
+                          @update:value="updateOptionLinkage({ clearOnParentChange: $event })"
+                        />
+                      </div>
+                    </div>
+                    <div v-else class="option-linkage-hint">
+                      未开启：选项固定不变。需要“先选 A、B 的选项跟着变”时开启。
+                    </div>
+                  </n-form-item>
+                  <!-- 选项列表：紧跟选项来源（仅静态来源时手动维护，不再放独立折叠项 — 用户反馈"太分散"）
+                       宜搭式单行编辑：名称输入框占满行宽（值默认跟随名称），行尾仅保留禁用/删除图标，
+                       避免 4 控件挤一行导致输入框被压到几十像素看不见 -->
+                  <n-form-item
+                    v-if="isManualOptionField && selectedOptionSourceType === 'STATIC'"
+                  >
+                    <template #label>
+                      <span class="option-list-label">
+                        <span>选项列表</span>
+                        <n-checkbox
+                          size="small"
+                          :checked="showOptionValues"
+                          @update:checked="showOptionValues = $event"
+                        >
+                          自定义值
+                        </n-checkbox>
+                      </span>
+                    </template>
+                    <div class="option-list">
+                      <div
+                        v-for="(option, optionIndex) in selectedOptions"
+                        :key="`option-${optionIndex}`"
+                        class="option-row"
+                        :class="{ 'is-disabled': !!option.disabled }"
+                      >
+                        <span class="option-row-index">{{ optionIndex + 1 }}</span>
+                        <n-input
+                          class="option-row-label-input"
+                          :value="option.label"
+                          size="small"
+                          placeholder="选项名称"
+                          @update:value="updateOptionLabel(optionIndex, $event)"
+                        />
+                        <n-input
+                          v-if="showOptionValues"
+                          class="option-row-value-input"
+                          :value="String(option.value ?? '')"
+                          size="small"
+                          placeholder="值"
+                          @update:value="updateOption(optionIndex, { value: $event })"
+                        />
+                        <div class="option-row-actions">
+                          <button
+                            type="button"
+                            class="option-row-action option-row-action--ban"
+                            :class="{ active: !!option.disabled }"
+                            :title="option.disabled ? '取消禁用' : '禁用选项'"
+                            @click="toggleOptionDisabled(optionIndex)"
+                          >
+                            <n-icon :size="13">
+                              <BanOutline />
+                            </n-icon>
+                          </button>
+                          <button
+                            type="button"
+                            class="option-row-action option-row-action--remove"
+                            title="删除选项"
+                            @click="removeOption(optionIndex)"
+                          >
+                            <n-icon :size="14">
+                              <CloseOutline />
+                            </n-icon>
+                          </button>
+                        </div>
+                        <template v-if="selectedComponent.componentKey === 'checkbox'">
+                          <div class="option-row-extra">
+                            <n-switch
+                              size="small"
+                              :value="!!option.indeterminate"
+                              @update:value="updateOption(optionIndex, { indeterminate: $event })"
+                            />
+                            <span>半选</span>
+                            <n-switch
+                              size="small"
+                              :value="option.focusable !== false"
+                              @update:value="updateOption(optionIndex, { focusable: $event })"
+                            />
+                            <span>可聚焦</span>
+                          </div>
+                          <n-input
+                            class="option-row-props-input"
+                            :value="stringifyJsonProp(option.props)"
+                            type="textarea"
+                            :autosize="{ minRows: 1, maxRows: 3 }"
+                            placeholder="Checkbox props JSON，例如 {&quot;checkedValue&quot;:true}"
+                            @update:value="updateOptionJsonProps(optionIndex, $event)"
+                          />
+                        </template>
+                      </div>
+                      <!-- 新增按钮必须在 .option-list 内部：.n-form-item-blank 是 display:flex(row)，
+                           按钮与列表并列会被横向挤到选项区右侧 -->
+                      <n-button class="option-add-button" size="small" secondary block @click="addOption">
+                        <template #icon>
+                          <span class="option-add-icon">+</span>
+                        </template>
+                        新增选项
+                      </n-button>
                     </div>
                   </n-form-item>
                   <template v-if="selectedComponent.componentKey === 'transfer'">
@@ -988,19 +1035,208 @@
                       />
                     </n-form-item>
                   </template>
-                  <n-form-item v-if="activePropGroups.length" label="组件属性">
-                    <n-button class="more-config-button" secondary block @click="componentPropsVisible = true">
+                  <!-- 通用属性后置：选项类核心配置（选项来源/字典/引用对象/transfer 数据源）置顶后，
+                       占位提示/默认值等通用项紧随其后（主次分明，参考钉钉宜搭属性面板分区） -->
+                  <n-form-item label="占位提示">
+                    <n-input
+                      :value="selectedComponent.props?.placeholder"
+                      clearable
+                      placeholder="请输入"
+                      @update:value="updateComponent({ props: { placeholder: $event } })"
+                    />
+                  </n-form-item>
+                  <n-form-item label="默认值">
+                    <n-select
+                      v-if="defaultValueSelectEnabled"
+                      :value="selectedDefaultValueForSelect"
+                      :options="defaultValueSelectOptions"
+                      :multiple="defaultValueSelectMultiple"
+                      :loading="defaultValueOptionsLoading"
+                      filterable
+                      clearable
+                      placeholder="请选择默认值"
+                      @update:value="updateDefaultValue"
+                    />
+                    <n-input
+                      v-else
+                      :value="selectedComponent.props?.defaultValue"
+                      clearable
+                      placeholder="请输入"
+                      @update:value="updateDefaultValue"
+                    />
+                  </n-form-item>
+                  <n-form-item v-if="supportsFieldMaxLength" label="最大长度">
+                    <div class="option-editor-row two-columns">
+                      <n-input-number
+                        :value="selectedFieldMaxLength"
+                        :min="1"
+                        :max="2048"
+                        :show-button="false"
+                        clearable
+                        placeholder="最大长度"
+                        @update:value="updateFieldMaxLength"
+                      />
+                      <n-switch
+                        :value="selectedComponent.props?.showCount === true"
+                        size="small"
+                        @update:value="updateComponent({ props: { showCount: $event } })"
+                      >
+                        <template #checked>
+                          计数
+                        </template>
+                        <template #unchecked>
+                          计数
+                        </template>
+                      </n-switch>
+                    </div>
+                  </n-form-item>
+                  <n-form-item v-if="selectedComponent.componentKey === 'barcodeScanner'" label="扫码输入设置">
+                    <div class="field-constraint-config">
+                      <div class="switch-line compact">
+                        <span>允许手工输入</span>
+                        <n-switch
+                          size="small"
+                          :value="selectedComponent.props?.allowManualInput !== false"
+                          @update:value="updateComponent({ props: { allowManualInput: $event } })"
+                        />
+                      </div>
+                      <n-input-number
+                        :value="selectedComponent.props?.timeoutMs || 30000"
+                        :min="1000"
+                        :max="60000"
+                        :step="1000"
+                        :show-button="false"
+                        placeholder="扫码超时（毫秒）"
+                        @update:value="updateComponent({ props: { timeoutMs: $event || 30000 } })"
+                      />
+                      <n-select
+                        :value="selectedComponent.props?.formats || []"
+                        :options="barcodeFormatOptions"
+                        multiple
+                        clearable
+                        filterable
+                        placeholder="限定码制（不选表示全部）"
+                        @update:value="updateComponent({ props: { formats: $event || [] } })"
+                      />
+                    </div>
+                  </n-form-item>
+                  <n-form-item label="输入校验">
+                    <div class="field-constraint-config">
+                      <n-select
+                        :value="selectedComponent.validation?.preset || ''"
+                        :options="commonValidationOptions"
+                        clearable
+                        placeholder="选择常用校验：手机号、邮箱、身份证等"
+                        @update:value="updateValidationPreset"
+                      />
+                      <n-input
+                        :value="selectedComponent.validation?.pattern || ''"
+                        clearable
+                        placeholder="自定义正则表达式（选填），例如 ^1[3-9]\d{9}$"
+                        @update:value="updateComponent({ validation: { pattern: $event || undefined } })"
+                      />
+                    </div>
+                  </n-form-item>
+                  <n-form-item label="自动编号">
+                    <div class="auto-code-config">
+                      <div class="switch-line compact">
+                        <span>新增时自动生成</span>
+                        <n-switch
+                          size="small"
+                          :value="selectedGenerationEnabled"
+                          @update:value="handleGenerationEnabled"
+                        />
+                      </div>
+                      <template v-if="selectedGenerationEnabled">
+                        <n-select
+                          :value="selectedGenerationRuleCode"
+                          :options="codeRuleOptions"
+                          :loading="codeRuleLoading"
+                          clearable
+                          filterable
+                          placeholder="选择编码规则"
+                          @update:value="updateGenerationRule"
+                        />
+                        <div class="option-editor-row two-columns">
+                          <n-select
+                            :value="selectedGenerationConfig.fillPolicy || 'EMPTY_ONLY'"
+                            :options="generationFillPolicyOptions"
+                            @update:value="updateGenerationConfig({ fillPolicy: $event || 'EMPTY_ONLY' })"
+                          />
+                          <n-select
+                            :value="selectedGenerationConfig.trigger || 'ON_CREATE'"
+                            :options="generationTriggerOptions"
+                            @update:value="updateGenerationConfig({ trigger: $event || 'ON_CREATE' })"
+                          />
+                        </div>
+                        <div class="switch-line compact">
+                          <span>表单填写隐藏</span>
+                          <n-switch
+                            size="small"
+                            :value="!!selectedComponent.visibility?.hidden"
+                            @update:value="updateComponentHidden"
+                          />
+                        </div>
+                        <div class="switch-line compact">
+                          <span>运行态只读</span>
+                          <n-switch
+                            size="small"
+                            :value="selectedGenerationConfig.readonly !== false"
+                            @update:value="updateGenerationReadonly"
+                          />
+                        </div>
+                        <div v-if="selectedGenerationRule" class="auto-code-rule-summary">
+                          <span>{{ selectedGenerationRule.ruleName }}</span>
+                          <code>{{ selectedGenerationRule.template }}</code>
+                          <small>{{ selectedGenerationRule.category || 'COMMON' }} · 结构化规则</small>
+                        </div>
+                        <div class="auto-code-preview-row">
+                          <n-button
+                            size="small"
+                            secondary
+                            :disabled="!selectedGenerationRuleCode"
+                            :loading="codeRulePreviewing"
+                            @click="previewSelectedGenerationRule"
+                          >
+                            预览编号
+                          </n-button>
+                          <strong :class="{ invalid: codeRulePreview?.valid === false }">
+                            {{ codeRulePreview?.previewCode || '选择规则后可预览' }}
+                          </strong>
+                        </div>
+                        <div v-if="codeRulePreview?.errors?.length" class="auto-code-issue error">
+                          {{ codeRulePreview.errors[0].message }}
+                        </div>
+                        <div v-else-if="codeRulePreview?.warnings?.length" class="auto-code-issue warning">
+                          {{ codeRulePreview.warnings[0].message }}
+                        </div>
+                      </template>
+                    </div>
+                  </n-form-item>
+                  <n-form-item label="自动计算">
+                    <div class="formula-config-entry">
+                      <div>
+                        <strong>{{ selectedFormulaConfig?.type ? `${selectedFormulaConfig.type} 公式` : '未启用公式' }}</strong>
+                        <span>{{ selectedFormulaSummary || '按公式自动计算本字段值，例如：合计 = 单价 × 数量' }}</span>
+                      </div>
+                      <n-button size="small" secondary @click="openFieldFormulaPanel">
+                        配置公式
+                      </n-button>
+                    </div>
+                  </n-form-item>
+                  <n-form-item label="组件尺寸">
+                    <n-select
+                      :value="selectedComponent.props?.size || ''"
+                      :options="componentSizeOptions"
+                      @update:value="updateComponent({ props: { size: $event || undefined } })"
+                    />
+                  </n-form-item>
+                  <n-form-item v-if="hasSpecPanelProps" label="组件属性">
+                    <n-button size="small" dashed block @click="componentPropsVisible = true">
                       <template #icon>
-                        <span class="button-icon">
-                          <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M4 7h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                            <path d="M17 7h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                            <path d="M4 17h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                            <path d="M11 17h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                            <circle cx="15" cy="7" r="2" stroke="currentColor" stroke-width="2" />
-                            <circle cx="9" cy="17" r="2" stroke="currentColor" stroke-width="2" />
-                          </svg>
-                        </span>
+                        <n-icon :size="14">
+                          <SettingsOutline />
+                        </n-icon>
                       </template>
                       更多属性
                     </n-button>
@@ -1050,19 +1286,12 @@
                       @update:value="updateComponent({ props: { size: $event || 'medium' } })"
                     />
                   </n-form-item>
-                  <n-form-item v-if="activePropGroups.length" label="组件属性">
-                    <n-button class="more-config-button" secondary block @click="componentPropsVisible = true">
+                  <n-form-item v-if="hasSpecPanelProps" label="组件属性">
+                    <n-button size="small" dashed block @click="componentPropsVisible = true">
                       <template #icon>
-                        <span class="button-icon">
-                          <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                            <path d="M4 7h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                            <path d="M17 7h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                            <path d="M4 17h3" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                            <path d="M11 17h9" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                            <circle cx="15" cy="7" r="2" stroke="currentColor" stroke-width="2" />
-                            <circle cx="9" cy="17" r="2" stroke="currentColor" stroke-width="2" />
-                          </svg>
-                        </span>
+                        <n-icon :size="14">
+                          <SettingsOutline />
+                        </n-icon>
                       </template>
                       更多属性
                     </n-button>
@@ -1085,64 +1314,6 @@
                       />
                     </label>
                   </div>
-                </section>
-              </n-collapse-item>
-
-              <n-collapse-item v-if="isManualOptionField" title="选项配置" name="options">
-                <section class="panel-item">
-                  <div class="option-list">
-                    <div v-for="(option, optionIndex) in selectedOptions" :key="`option-${optionIndex}`" class="option-editor-row">
-                      <n-input
-                        :value="option.label"
-                        size="small"
-                        placeholder="选项名"
-                        @update:value="updateOption(optionIndex, { label: $event })"
-                      />
-                      <n-input
-                        :value="String(option.value ?? '')"
-                        size="small"
-                        placeholder="值"
-                        @update:value="updateOption(optionIndex, { value: $event })"
-                      />
-                      <n-switch
-                        size="small"
-                        :value="!!option.disabled"
-                        title="禁用"
-                        @update:value="updateOption(optionIndex, { disabled: $event })"
-                      />
-                      <n-button size="tiny" quaternary type="error" @click="removeOption(optionIndex)">
-                        删除
-                      </n-button>
-                      <template v-if="selectedComponent.componentKey === 'checkbox'">
-                        <n-switch
-                          size="small"
-                          :value="!!option.indeterminate"
-                          title="半选"
-                          @update:value="updateOption(optionIndex, { indeterminate: $event })"
-                        />
-                        <n-switch
-                          size="small"
-                          :value="option.focusable !== false"
-                          title="可聚焦"
-                          @update:value="updateOption(optionIndex, { focusable: $event })"
-                        />
-                        <n-input
-                          class="option-props-input"
-                          :value="stringifyJsonProp(option.props)"
-                          type="textarea"
-                          :autosize="{ minRows: 1, maxRows: 3 }"
-                          placeholder="Checkbox props JSON，例如 {&quot;checkedValue&quot;:true}"
-                          @update:value="updateOptionJsonProps(optionIndex, $event)"
-                        />
-                      </template>
-                    </div>
-                  </div>
-                  <n-button class="option-add-button" size="small" secondary block @click="addOption">
-                    <template #icon>
-                      <span class="option-add-icon">+</span>
-                    </template>
-                    新增选项
-                  </n-button>
                 </section>
               </n-collapse-item>
 
@@ -1364,37 +1535,18 @@
 
               <n-collapse-item v-if="isTabsLayout" title="标签页" name="tabs">
                 <section class="panel-item">
-                  <n-form-item label="样式">
-                    <n-select
-                      :value="selectedComponent.props?.type || 'line'"
-                      :options="tabsTypeOptions"
-                      @update:value="updateComponent({ props: { type: $event || 'line' } })"
-                    />
+                  <!-- tabs 外观属性统一由「更多属性」抽屉的 SpecPropertyPanel 配置（spec 唯一属性源），
+                       折叠项只保留页签管理，与列表设计器口径一致 -->
+                  <n-form-item v-if="hasSpecPanelProps" label="组件属性">
+                    <n-button size="small" dashed block @click="componentPropsVisible = true">
+                      <template #icon>
+                        <n-icon :size="14">
+                          <SettingsOutline />
+                        </n-icon>
+                      </template>
+                      更多属性
+                    </n-button>
                   </n-form-item>
-                  <n-form-item label="位置">
-                    <n-select
-                      :value="selectedComponent.props?.placement || 'top'"
-                      :options="tabsPlacementOptions"
-                      @update:value="updateComponent({ props: { placement: $event || 'top' } })"
-                    />
-                  </n-form-item>
-                  <n-form-item label="切换方式">
-                    <n-select
-                      :value="selectedComponent.props?.trigger || 'click'"
-                      :options="tabsTriggerOptions"
-                      @update:value="updateComponent({ props: { trigger: $event || 'click' } })"
-                    />
-                  </n-form-item>
-                  <div class="switch-list">
-                    <label>
-                      <span>切换动画</span>
-                      <n-switch size="small" :value="selectedComponent.props?.animated !== false" @update:value="updateComponent({ props: { animated: $event } })" />
-                    </label>
-                    <label>
-                      <span>可关闭</span>
-                      <n-switch size="small" :value="!!selectedComponent.props?.closable" @update:value="updateComponent({ props: { closable: $event } })" />
-                    </label>
-                  </div>
                   <div class="layout-child-manager">
                     <div class="panel-title-row">
                       <div class="panel-item-title">
@@ -1801,7 +1953,7 @@
                 <div class="panel-item-title">
                   接口与数据源
                 </div>
-                <n-button class="more-config-button" size="tiny" type="primary" @click="advancedConfigVisible = true">
+                <n-button size="tiny" type="primary" @click="advancedConfigVisible = true">
                   更多配置
                 </n-button>
               </div>
@@ -2195,62 +2347,19 @@
 
             <section v-if="isTabsLayout" class="panel-item">
               <div class="panel-item-title">
-                Tabs 属性
+                页签管理
               </div>
-              <n-form-item label="type">
-                <n-select
-                  :value="selectedComponent.props?.type || 'line'"
-                  :options="tabsTypeOptions"
-                  @update:value="updateComponent({ props: { type: $event || 'line' } })"
-                />
+              <!-- tabs 外观属性统一由「更多属性」抽屉的 SpecPropertyPanel 配置（spec 唯一属性源） -->
+              <n-form-item v-if="hasSpecPanelProps" label="组件属性">
+                <n-button size="small" dashed block @click="componentPropsVisible = true">
+                  <template #icon>
+                    <n-icon :size="14">
+                      <SettingsOutline />
+                    </n-icon>
+                  </template>
+                  更多属性
+                </n-button>
               </n-form-item>
-              <n-form-item label="placement">
-                <n-select
-                  :value="selectedComponent.props?.placement || 'top'"
-                  :options="tabsPlacementOptions"
-                  @update:value="updateComponent({ props: { placement: $event || 'top' } })"
-                />
-              </n-form-item>
-              <n-form-item label="trigger">
-                <n-select
-                  :value="selectedComponent.props?.trigger || 'click'"
-                  :options="tabsTriggerOptions"
-                  @update:value="updateComponent({ props: { trigger: $event || 'click' } })"
-                />
-              </n-form-item>
-              <n-form-item label="size">
-                <n-select
-                  :value="selectedComponent.props?.size || 'medium'"
-                  :options="componentSizeOptions.filter(item => item.value)"
-                  @update:value="updateComponent({ props: { size: $event || 'medium' } })"
-                />
-              </n-form-item>
-              <div class="switch-list">
-                <label>
-                  <span>animated</span>
-                  <n-switch
-                    size="small"
-                    :value="selectedComponent.props?.animated !== false"
-                    @update:value="updateComponent({ props: { animated: $event } })"
-                  />
-                </label>
-                <label>
-                  <span>closable</span>
-                  <n-switch
-                    size="small"
-                    :value="!!selectedComponent.props?.closable"
-                    @update:value="updateComponent({ props: { closable: $event } })"
-                  />
-                </label>
-                <label>
-                  <span>addable</span>
-                  <n-switch
-                    size="small"
-                    :value="!!selectedComponent.props?.addable"
-                    @update:value="updateComponent({ props: { addable: $event } })"
-                  />
-                </label>
-              </div>
               <div class="layout-child-manager">
                 <div class="panel-title-row">
                   <div class="panel-item-title">
@@ -2293,34 +2402,6 @@
               </div>
             </section>
 
-            <section v-if="isSubTableLayout" class="panel-item">
-              <div class="panel-item-title">
-                关联子表
-              </div>
-              <n-form-item label="标题">
-                <n-input
-                  :value="selectedComponent.props?.header || ''"
-                  placeholder="关联子表"
-                  @update:value="updateComponent({ props: { header: $event || '关联子表' } })"
-                />
-              </n-form-item>
-              <n-form-item label="关联关系">
-                <n-select
-                  :value="selectedComponent.props?.relationKey || ''"
-                  :options="subTableRelationOptions"
-                  filterable
-                  placeholder="选择对象关系"
-                  @update:value="updateSubTableRelation"
-                />
-              </n-form-item>
-              <n-form-item label="展示方式">
-                <n-select
-                  :value="selectedComponent.props?.displayMode || 'inline_grid'"
-                  :options="subTableDisplayModeOptions"
-                  @update:value="updateComponent({ props: { displayMode: $event || 'inline_grid' } })"
-                />
-              </n-form-item>
-            </section>
             <section v-if="isCollapseLayout" class="panel-item">
               <div class="panel-item-title">
                 Collapse 属性
@@ -2476,8 +2557,37 @@
           </template>
           <n-form label-placement="top" :show-feedback="false" class="property-form">
             <section class="panel-item">
+              <div class="panel-item-title">
+                显示与编辑状态
+              </div>
+              <div class="switch-list">
+                <label>
+                  <span>隐藏组件</span>
+                  <n-switch
+                    size="small"
+                    :value="!!selectedComponent.visibility?.hidden"
+                    @update:value="updateComponentHidden"
+                  />
+                </label>
+                <label v-if="isField">
+                  <span>只读</span>
+                  <n-switch
+                    size="small"
+                    :value="!!selectedComponent.visibility?.readonly"
+                    @update:value="updateComponent({ visibility: { readonly: $event } })"
+                  />
+                </label>
+                <label v-if="isField || isButtonComponent">
+                  <span>禁用</span>
+                  <n-switch
+                    size="small"
+                    :value="!!selectedComponent.props?.disabled"
+                    @update:value="updateComponent({ props: { disabled: $event } })"
+                  />
+                </label>
+              </div>
               <RuntimeRulesEditor
-                title="组件运行规则"
+                title="条件规则"
                 :rules="selectedComponent.props?.runtimeRules || []"
                 :field-options="runtimeRuleFieldOptions"
                 @update:rules="updateComponent({ props: { runtimeRules: $event } })"
@@ -2486,7 +2596,7 @@
 
             <section v-if="isField && selectedDrivenRuntimeRules.length" class="panel-item driven-runtime-rules-panel">
               <div class="panel-item-title">
-                当前字段影响
+                其他字段引用了它
               </div>
               <div class="driven-runtime-rule-list">
                 <article v-for="item in selectedDrivenRuntimeRules" :key="item.key" class="driven-runtime-rule-card">
@@ -2502,13 +2612,8 @@
             </section>
 
             <section class="panel-item">
-              <div class="panel-title-row">
-                <div class="panel-item-title">
-                  事件规则
-                </div>
-                <n-button size="tiny" type="primary" secondary @click="addInteractionRule">
-                  新增规则
-                </n-button>
+              <div class="panel-item-title">
+                联动动作
               </div>
               <div class="interaction-presets">
                 <button
@@ -2717,50 +2822,11 @@
                 </details>
               </div>
               <div v-else class="empty-config-box">
-                暂无事件规则
+                暂无联动动作
               </div>
-            </section>
-
-            <section class="panel-item">
-              <div class="panel-item-title">
-                状态联动
-              </div>
-              <div class="linkage-action-list">
-                <button type="button" class="linkage-action-row" @click="configureLinkageRule('showHide')">
-                  <span>显示/隐藏规则</span>
-                  <strong>配置</strong>
-                </button>
-                <button type="button" class="linkage-action-row" @click="configureLinkageRule('enableDisable')">
-                  <span>禁用/只读规则</span>
-                  <strong>配置</strong>
-                </button>
-              </div>
-              <div class="switch-list">
-                <label>
-                  <span>隐藏组件</span>
-                  <n-switch
-                    size="small"
-                    :value="!!selectedComponent.visibility?.hidden"
-                    @update:value="updateComponentHidden"
-                  />
-                </label>
-                <label v-if="isField">
-                  <span>只读</span>
-                  <n-switch
-                    size="small"
-                    :value="!!selectedComponent.visibility?.readonly"
-                    @update:value="updateComponent({ visibility: { readonly: $event } })"
-                  />
-                </label>
-                <label v-if="isField || isButtonComponent">
-                  <span>禁用</span>
-                  <n-switch
-                    size="small"
-                    :value="!!selectedComponent.props?.disabled"
-                    @update:value="updateComponent({ props: { disabled: $event } })"
-                  />
-                </label>
-              </div>
+              <n-button size="small" dashed block @click="addInteractionRule">
+                + 新增规则
+              </n-button>
             </section>
           </n-form>
         </n-tab-pane>
@@ -3273,69 +3339,51 @@
 
       <n-drawer
         v-model:show="componentPropsVisible"
-        :width="380"
+        :width="440"
         placement="right"
         :trap-focus="false"
         :block-scroll="false"
       >
-        <n-drawer-content :title="`${selectedLabel} 更多属性`" closable>
-          <n-form label-placement="top" :show-feedback="false" class="property-form drawer-property-form">
-            <section v-for="propGroup in activePropGroups" :key="propGroup.title" class="panel-item">
-              <div class="panel-item-title">
-                {{ propGroup.title }}
-              </div>
-              <n-form-item v-for="item in propGroup.fields" :key="item.key" :label="item.label || item.key">
-                <n-switch
-                  v-if="item.type === 'boolean'"
-                  size="small"
-                  :value="resolvePropValue(item)"
-                  @update:value="updateSelectedProp(item, $event)"
-                />
-                <n-input-number
-                  v-else-if="item.type === 'number'"
-                  :value="resolvePropValue(item)"
-                  clearable
-                  :min="item.min"
-                  :max="item.max"
-                  :step="item.step || 1"
-                  @update:value="updateSelectedProp(item, $event)"
-                />
-                <n-select
-                  v-else-if="item.type === 'select'"
-                  :value="resolvePropValue(item)"
-                  clearable
-                  :options="item.options"
-                  @update:value="updateSelectedProp(item, $event)"
-                />
-                <n-select
-                  v-else-if="item.type === 'multiSelect'"
-                  multiple
-                  clearable
-                  :value="resolvePropValue(item) || []"
-                  :options="item.options"
-                  @update:value="updateSelectedProp(item, $event?.length ? $event : undefined)"
-                />
-                <n-input
-                  v-else-if="item.type === 'json'"
-                  :value="stringifyJsonProp(resolvePropValue(item))"
-                  type="textarea"
-                  :autosize="{ minRows: 3, maxRows: 8 }"
-                  placeholder="JSON"
-                  @update:value="updateJsonProp(item, $event)"
-                />
-                <n-input
-                  v-else
-                  :value="resolvePropValue(item)"
-                  clearable
-                  :placeholder="item.placeholder"
-                  @update:value="updateSelectedProp(item, $event || undefined)"
-                />
-              </n-form-item>
-            </section>
-          </n-form>
+        <n-drawer-content :title="`${selectedLabel} 组件属性`" closable>
+          <!-- 统一属性面板引擎：常用属性平铺 + 高级属性折叠 + 搜索过滤 -->
+          <SpecPropertyPanel
+            :block-type="selectedComponent.componentKey"
+            :model-props="selectedComponent.props || {}"
+            :exclude-keys="specPanelExcludedProps"
+            @update:prop="handleSpecPropUpdate"
+          />
         </n-drawer-content>
       </n-drawer>
     </template>
+
+    <!-- 子表组件选中时：内联编辑器，替代空的通用属性 Tab -->
+    <div v-else-if="isSubTable" class="subtable-inline-editor">
+      <div class="subtable-inline-hint">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;margin-top:2px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" fill="currentColor"/></svg>
+        <div>
+          <strong>子表关联工作流</strong>
+          <p>子表标识需对应「关系与级联」中的 ER 图关系。先建关系，再绑定子表。完整配置在「表单属性 → 主子表配置」中管理。</p>
+        </div>
+      </div>
+      <n-form label-placement="top" :show-feedback="false" class="property-form" style="padding: 0 10px 10px;">
+        <n-form-item label="子表标题">
+          <n-input :value="selectedComponent.props?.header || ''" size="small" placeholder="子表标题"
+            @update:value="designerStore.updateComponent(selectedComponent.id, { props: { header: $event || '关联子表' } })" />
+        </n-form-item>
+        <n-form-item label="子表标识（relationKey）">
+          <n-input :value="selectedComponent.props?.relationKey || ''" size="small" clearable placeholder="对应 ER 图中的关系标识，如 order_item"
+            @update:value="designerStore.updateComponent(selectedComponent.id, { props: { relationKey: String($event || '').trim() } })" />
+        </n-form-item>
+        <n-form-item label="展示方式">
+          <n-select :value="selectedComponent.props?.displayMode || 'inline_grid'" size="small"
+            :options="[{ label: '行内表格', value: 'inline_grid' }, { label: '卡片列表', value: 'card_list' }, { label: '底部抽屉', value: 'bottom_sheet' }]"
+            @update:value="designerStore.updateComponent(selectedComponent.id, { props: { displayMode: $event || 'inline_grid' } })" />
+        </n-form-item>
+      </n-form>
+      <div class="subtable-inline-nav-hint">
+        返回「表单属性」可管理所有子表（添加/删除/关系选择）
+      </div>
+    </div>
 
     <n-tabs v-else v-model:value="formPropertyActiveTab" type="line" size="medium" animated class="property-tabs form-property-tabs">
       <n-tab-pane name="basic">
@@ -3347,253 +3395,16 @@
         </template>
         <n-form label-placement="top" :show-feedback="false" class="property-form">
           <n-collapse v-model:expanded-names="formBasicExpandedNames" class="form-property-collapse">
-            <n-collapse-item title="表单资产" name="assets">
-              <section class="panel-item form-asset-panel">
-                <div class="panel-title-row">
-                  <div>
-                    <div class="panel-item-title">
-                      表单资产
-                    </div>
-                    <p class="panel-item-desc">
-                      一个业务对象可以维护多个表单，弹窗、详情和流程可以引用不同表单。
-                    </p>
-                  </div>
-                  <div class="form-asset-actions">
-                    <button type="button" class="form-asset-icon-button" title="复制当前表单" @click="duplicateCurrentFormAsset">
-                      <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M9 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v12a1 1 0 1 1-2 0V4h-9a1 1 0 0 1-1-1Z" fill="currentColor" />
-                        <path d="M5 6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5Zm0 2h10v12H5V8Z" fill="currentColor" />
-                      </svg>
-                    </button>
-                    <button type="button" class="form-asset-icon-button" title="新建空白表单" @click="createBlankFormAsset">
-                      <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M11 4a1 1 0 1 1 2 0v7h7a1 1 0 1 1 0 2h-7v7a1 1 0 1 1-2 0v-7H4a1 1 0 1 1 0-2h7V4Z" fill="currentColor" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-                <div :key="schema.formKey" class="current-form-banner">
-                  <span>当前编辑</span>
-                  <strong>{{ schema.formName || '主表单' }}</strong>
-                </div>
-                <div class="form-asset-tabs">
-                  <button type="button" class="form-asset-tab active" @click="showFormSettings">
-                    <em>1</em>
-                    <span>{{ schema.formName || '主表单' }}</span>
-                    <strong>当前</strong>
-                  </button>
-                  <button
-                    v-for="(asset, assetIndex) in formAssets"
-                    :key="asset.formKey"
-                    type="button"
-                    class="form-asset-tab"
-                    @click="switchFormAsset(asset.formKey)"
-                  >
-                    <em>{{ assetIndex + 2 }}</em>
-                    <span>{{ asset.formName || `表单 ${assetIndex + 2}` }}</span>
-                  </button>
-                </div>
-                <div class="form-asset-edit-grid">
-                  <n-form-item label="当前表单名称">
-                    <n-input
-                      :value="schema.formName || ''"
-                      placeholder="请输入表单名称"
-                      @update:value="updateCurrentFormMeta({ formName: $event || '业务表单' })"
-                    />
-                  </n-form-item>
-                  <n-form-item label="当前表单编码">
-                    <n-input
-                      :value="schema.formKey || ''"
-                      placeholder="form_key"
-                      @update:value="updateCurrentFormMeta({ formKey: $event || schema.formKey })"
-                    />
-                  </n-form-item>
-                  <n-form-item label="当前表单用途">
-                    <n-select
-                      :value="schema.usage || ['create', 'edit']"
-                      :options="formUsageOptions"
-                      multiple
-                      clearable
-                      placeholder="选择用途"
-                      @update:value="updateCurrentFormMeta({ usage: $event })"
-                    />
-                  </n-form-item>
-                  <n-form-item label="默认表单">
-                    <span v-if="defaultFormKey === schema.formKey" class="form-default-badge">
-                      默认表单
-                    </span>
-                    <n-button
-                      v-else
-                      size="small"
-                      secondary
-                      @click="setDefaultFormKey(schema.formKey)"
-                    >
-                      设为默认
-                    </n-button>
-                  </n-form-item>
-                </div>
-                <div v-if="formAssets.length" class="form-asset-list">
-                  <div class="form-asset-list-title">
-                    其他表单维护
-                  </div>
-                  <div v-for="asset in formAssets" :key="asset.formKey" class="form-asset-card">
-                    <div class="form-asset-main">
-                      <n-input
-                        :value="asset.formName"
-                        size="small"
-                        placeholder="表单名称"
-                        @update:value="updateFormAssetMeta(asset.formKey, { formName: $event || '未命名表单' })"
-                      />
-                      <n-select
-                        :value="asset.usage || ['create', 'edit']"
-                        :options="formUsageOptions"
-                        multiple
-                        clearable
-                        size="small"
-                        placeholder="用途"
-                        @update:value="updateFormAssetMeta(asset.formKey, { usage: $event })"
-                      />
-                    </div>
-                    <n-button size="tiny" quaternary :type="defaultFormKey === asset.formKey ? 'primary' : 'default'" @click="setDefaultFormKey(asset.formKey)">
-                      {{ defaultFormKey === asset.formKey ? '默认' : '设默认' }}
-                    </n-button>
-                    <n-button size="tiny" quaternary type="error" @click="removeFormAsset(asset.formKey)">
-                      删除
-                    </n-button>
-                  </div>
-                </div>
-              </section>
+            <n-collapse-item title="多表单管理" name="assets">
+              <FormAssetsPanel />
+            </n-collapse-item>
+
+            <n-collapse-item title="主子表配置" name="subTables">
+              <FormSubTablePanel />
             </n-collapse-item>
 
             <n-collapse-item title="表单项配置" name="layout">
-              <section class="panel-item form-item-config">
-                <div class="compact-config-row">
-                  <label>编辑打开方式</label>
-                  <n-select
-                    :value="schema.layout?.formOpenMode || schema.layout?.modalType || 'modal'"
-                    :options="formOpenModeOptions"
-                    size="small"
-                    @update:value="updateFormOpenModeLayout"
-                  />
-                </div>
-                <div class="compact-config-row">
-                  <label>弹窗宽度</label>
-                  <n-input
-                    :value="schema.layout?.modalWidth || '800px'"
-                    placeholder="800px / 60vw"
-                    size="small"
-                    @update:value="updateFormModalWidth"
-                  />
-                </div>
-                <div class="compact-config-row">
-                  <label>抽屉方向</label>
-                  <n-select
-                    :value="schema.layout?.drawerPlacement || 'right'"
-                    :options="drawerPlacementOptions"
-                    size="small"
-                    @update:value="updateFormLayout({ drawerPlacement: $event || 'right' })"
-                  />
-                </div>
-                <div class="form-columns-control">
-                  <div class="form-columns-head">
-                    <label>表单列数</label>
-                    <n-input-number
-                      :value="normalizedFormGridColumns"
-                      :min="1"
-                      :max="maxFormGridColumns"
-                      :show-button="false"
-                      size="tiny"
-                      @update:value="updateFormLayout({ gridColumns: $event || 1, gridCols: $event || 1 })"
-                    />
-                  </div>
-                  <div class="slider-control">
-                    <n-slider
-                      :value="normalizedFormGridColumns"
-                      :min="1"
-                      :max="maxFormGridColumns"
-                      :step="1"
-                      :marks="gridColumnMarks"
-                      @update:value="updateFormLayout({ gridColumns: $event, gridCols: $event })"
-                    />
-                  </div>
-                </div>
-                <div class="compact-config-row">
-                  <label>表单大小</label>
-                  <div class="segmented-mini three form-config-segment">
-                    <button
-                      type="button"
-                      :class="{ active: (schema.layout?.size || 'medium') === 'small' }"
-                      @click="updateFormLayout({ size: 'small' })"
-                    >
-                      小
-                    </button>
-                    <button
-                      type="button"
-                      :class="{ active: (schema.layout?.size || 'medium') === 'medium' }"
-                      @click="updateFormLayout({ size: 'medium' })"
-                    >
-                      中
-                    </button>
-                    <button
-                      type="button"
-                      :class="{ active: (schema.layout?.size || 'medium') === 'large' }"
-                      @click="updateFormLayout({ size: 'large' })"
-                    >
-                      大
-                    </button>
-                  </div>
-                </div>
-                <div class="compact-config-row">
-                  <label>标签位置</label>
-                  <div class="segmented-mini form-config-segment">
-                    <button
-                      type="button"
-                      :class="{ active: (schema.layout?.labelPlacement || 'left') === 'left' }"
-                      @click="updateFormLayout({ labelPlacement: 'left' })"
-                    >
-                      左侧
-                    </button>
-                    <button
-                      type="button"
-                      :class="{ active: (schema.layout?.labelPlacement || 'left') === 'top' }"
-                      @click="updateFormLayout({ labelPlacement: 'top' })"
-                    >
-                      顶部
-                    </button>
-                  </div>
-                </div>
-                <div class="compact-config-row">
-                  <label>标签对齐</label>
-                  <div class="segmented-mini form-config-segment">
-                    <button
-                      type="button"
-                      :class="{ active: (schema.layout?.labelAlign || 'right') === 'left' }"
-                      @click="updateFormLayout({ labelAlign: 'left' })"
-                    >
-                      左对齐
-                    </button>
-                    <button
-                      type="button"
-                      :class="{ active: (schema.layout?.labelAlign || 'right') === 'right' }"
-                      @click="updateFormLayout({ labelAlign: 'right' })"
-                    >
-                      右对齐
-                    </button>
-                  </div>
-                </div>
-                <div class="compact-config-row">
-                  <label>标签宽度</label>
-                  <div class="label-width-control">
-                    <n-input
-                      :value="String(schema.layout?.labelWidth ?? 'auto')"
-                      placeholder="auto / 100"
-                      size="small"
-                      @update:value="updateFormLayout({ labelWidth: normalizeLabelWidthInput($event) })"
-                    />
-                    <em>px</em>
-                  </div>
-                </div>
-              </section>
+              <FormLayoutPanel />
             </n-collapse-item>
 
             <n-collapse-item title="表单权限控制" name="permissions">
@@ -3717,78 +3528,8 @@
               </section>
             </n-collapse-item>
 
-            <n-collapse-item title="表单事件与生命周期（高级）" name="events">
-              <section class="panel-item form-lifecycle-panel">
-                <FieldEventRulesEditor
-                  :model-value="formFieldEventRows"
-                  :field-options="formFieldOptions"
-                  @update:model-value="updateFormFieldEvents"
-                />
-                <n-divider title-placement="left">
-                  高级生命周期
-                </n-divider>
-                <div v-for="(eventItem, idx) in formEventRows" :key="eventItem.id || idx" class="lifecycle-event-card">
-                  <button type="button" class="event-delete-icon" title="删除事件" @click="removeFormEvent(idx)">
-                    ×
-                  </button>
-                  <div class="compact-field event-type-field">
-                    <label>事件类型 / 默认值</label>
-                    <n-select
-                      :value="eventItem.hook || 'beforeLoad'"
-                      :options="formEventHookOptions"
-                      placeholder="触发时机"
-                      size="small"
-                      @update:value="updateFormEvent(idx, { hook: $event || 'beforeLoad' })"
-                    />
-                  </div>
-                  <div class="compact-field">
-                    <label>脚本名 / 接口地址 / 动作编码</label>
-                    <n-input
-                      :value="eventItem.handler || ''"
-                      clearable
-                      placeholder="例如: /api/v1/customer/init"
-                      size="small"
-                      @update:value="updateFormEvent(idx, { handler: $event || '' })"
-                    />
-                  </div>
-                  <div class="compact-field">
-                    <label>结果回填</label>
-                    <n-input
-                      :value="eventItem.resultMapping || ''"
-                      clearable
-                      placeholder="如: data.name->name,total->total"
-                      size="small"
-                      @update:value="updateFormEvent(idx, { resultMapping: $event || '' })"
-                    />
-                  </div>
-                </div>
-                <n-button size="small" dashed block type="primary" @click="addFormEvent">
-                  + 添加表单事件
-                </n-button>
-              </section>
-            </n-collapse-item>
-
-            <n-collapse-item title="校验规则" name="spacing">
+            <n-collapse-item title="校验反馈" name="validation">
               <section class="panel-item">
-                <div class="panel-item-title">
-                  校验规则
-                </div>
-                <n-form-item label="行间距">
-                  <n-input-number
-                    :value="schema.layout?.rowGap || 16"
-                    :min="0"
-                    :max="48"
-                    @update:value="updateFormLayout({ rowGap: $event || 16, yGap: $event || 16 })"
-                  />
-                </n-form-item>
-                <n-form-item label="列间距">
-                  <n-input-number
-                    :value="schema.layout?.columnGap || 16"
-                    :min="0"
-                    :max="48"
-                    @update:value="updateFormLayout({ columnGap: $event || 16, xGap: $event || 16 })"
-                  />
-                </n-form-item>
                 <div class="switch-list">
                   <label>
                     <span>显示校验反馈</span>
@@ -3814,23 +3555,7 @@
                       @update:value="updateFormLayout({ inlineFeedback: $event })"
                     />
                   </label>
-                  <label>
-                    <span>启用折叠</span>
-                    <n-switch
-                      size="small"
-                      :value="!!schema.layout?.enableCollapse"
-                      @update:value="updateFormLayout({ enableCollapse: $event })"
-                    />
-                  </label>
                 </div>
-                <n-form-item label="最大显示字段数">
-                  <n-input-number
-                    :value="schema.layout?.maxVisibleFields || 6"
-                    :min="1"
-                    :max="50"
-                    @update:value="updateFormLayout({ maxVisibleFields: $event || 6 })"
-                  />
-                </n-form-item>
               </section>
             </n-collapse-item>
 
@@ -3906,11 +3631,14 @@
         <template #tab>
           <span class="property-tab-label">
             <n-icon><FlashOutline /></n-icon>
-            事件
-            <i v-if="formFieldEventRows.length" class="property-tab-configured-dot" title="已有事件配置" />
+            自动化
+            <i v-if="formFieldEventRows.length || formFieldLinkageRows.length || formEventRows.length" class="property-tab-configured-dot" title="已有自动化配置" />
           </span>
         </template>
         <div class="form-event-primary-panel">
+          <p class="form-automation-intro">
+            表单的自动行为都在这里配置，按场景分为三类：字段自动查询、字段联动、表单打开或提交时执行动作。
+          </p>
           <FieldEventRulesEditor
             :model-value="formFieldEventRows"
             :field-options="formFieldOptions"
@@ -3922,6 +3650,156 @@
             :relations="relations"
             @update:model-value="updateFormFieldLinkages"
           />
+
+          <section class="form-lifecycle-panel">
+            <div class="form-lifecycle-panel__head">
+              <div>
+                <strong>打开或提交时自动执行</strong>
+                <p>表单打开前后、提交前后自动执行动作，例如调接口取数并回填、填入默认值。</p>
+              </div>
+              <n-button size="tiny" type="primary" secondary @click="addFormEvent">
+                添加动作
+              </n-button>
+            </div>
+
+            <div v-if="formEventRows.length" class="form-lifecycle-list">
+              <div v-for="(eventItem, idx) in formEventRows" :key="eventItem.id || idx" class="lifecycle-event-card">
+                <div class="lifecycle-event-card__head">
+                  <strong>{{ formEventSummaryLabel(eventItem) }}</strong>
+                  <button type="button" class="event-delete-icon" title="删除动作" @click="removeFormEvent(idx)">
+                    ×
+                  </button>
+                </div>
+
+                <div class="compact-field">
+                  <label>什么时候执行</label>
+                  <n-select
+                    :value="eventItem.hook || 'beforeLoad'"
+                    :options="formEventHookOptions"
+                    placeholder="选择时机"
+                    size="small"
+                    @update:value="updateFormEvent(idx, { hook: $event || 'beforeLoad' })"
+                  />
+                </div>
+
+                <div class="compact-field">
+                  <label>做什么</label>
+                  <n-select
+                    :value="eventItem.action || 'customScript'"
+                    :options="formEventActionOptions"
+                    size="small"
+                    @update:value="handleFormEventActionChange(idx, $event)"
+                  />
+                </div>
+
+                <!-- customScript：内置动作下拉 -->
+                <div v-if="(eventItem.action || 'customScript') === 'customScript'" class="compact-field">
+                  <label>选择内置动作</label>
+                  <n-select
+                    :value="eventItem.handler || ''"
+                    :options="formScriptOptions"
+                    placeholder="选择一个动作"
+                    size="small"
+                    clearable
+                    @update:value="updateFormEvent(idx, { handler: $event || '' })"
+                  />
+                </div>
+
+                <!-- setFieldValue：字段下拉 + 值输入 -->
+                <template v-else-if="eventItem.action === 'setFieldValue'">
+                  <div class="compact-field-set-grid">
+                    <div class="compact-field">
+                      <label>目标字段</label>
+                      <n-select
+                        :value="parseSetFieldValueHandler(eventItem.handler).field"
+                        :options="formFieldOptions"
+                        filterable
+                        placeholder="选择字段"
+                        size="small"
+                        @update:value="updateFormEvent(idx, { handler: composeSetFieldValueHandler($event || '', parseSetFieldValueHandler(eventItem.handler).value) })"
+                      />
+                    </div>
+                    <div class="compact-field">
+                      <label>要填的值</label>
+                      <n-input
+                        :value="parseSetFieldValueHandler(eventItem.handler).value"
+                        placeholder="例如 APPROVED"
+                        size="small"
+                        @update:value="updateFormEvent(idx, { handler: composeSetFieldValueHandler(parseSetFieldValueHandler(eventItem.handler).field, $event) })"
+                      />
+                    </div>
+                  </div>
+                </template>
+
+                <!-- request：请求方式 + 接口地址 + 结果回填 -->
+                <template v-else-if="eventItem.action === 'request'">
+                  <div class="compact-field-set-grid">
+                    <div class="compact-field">
+                      <label>请求方式</label>
+                      <n-select
+                        :value="parseRequestHandler(eventItem.handler).method"
+                        :options="requestMethodOptions"
+                        size="small"
+                        @update:value="updateFormEvent(idx, { handler: composeRequestHandler($event, parseRequestHandler(eventItem.handler).url) })"
+                      />
+                    </div>
+                    <div class="compact-field">
+                      <label>接口地址</label>
+                      <n-input
+                        :value="parseRequestHandler(eventItem.handler).url"
+                        clearable
+                        placeholder="例如 /api/v1/customer/init"
+                        size="small"
+                        @update:value="updateFormEvent(idx, { handler: composeRequestHandler(parseRequestHandler(eventItem.handler).method, $event) })"
+                      />
+                    </div>
+                  </div>
+                  <div class="compact-field">
+                    <label>接口返回后，回填到哪些表单字段</label>
+                    <div
+                      v-if="parseResultMappingRows(eventItem.resultMapping).length"
+                      class="result-mapping-head"
+                    >
+                      <span>接口返回字段</span>
+                      <span />
+                      <span>填入表单字段</span>
+                    </div>
+                    <div class="result-mapping-list">
+                      <div
+                        v-for="(row, rowIdx) in parseResultMappingRows(eventItem.resultMapping)"
+                        :key="rowIdx"
+                        class="result-mapping-row"
+                      >
+                        <n-input
+                          :value="row.from"
+                          placeholder="例如 data.name"
+                          size="small"
+                          @update:value="updateResultMappingRow(idx, rowIdx, { from: $event || '' })"
+                        />
+                        <span class="result-mapping-arrow">→</span>
+                        <n-select
+                          :value="row.to || null"
+                          :options="formFieldOptions"
+                          filterable
+                          placeholder="选择要填入的表单字段"
+                          size="small"
+                          @update:value="updateResultMappingRow(idx, rowIdx, { to: $event || '' })"
+                        />
+                        <button type="button" class="result-mapping-remove" title="删除这条" @click="removeResultMappingRow(idx, rowIdx)">
+                          ×
+                        </button>
+                      </div>
+                      <n-button size="tiny" dashed block @click="addResultMappingRow(idx)">
+                        + 添加一条回填
+                      </n-button>
+                    </div>
+                    <small class="result-mapping-hint">示例：接口返回 {"data":{"name":"张三"}}，左边填 data.name，右边选要填入的表单字段；不需要回填可以不加。</small>
+                  </div>
+                </template>
+              </div>
+            </div>
+            <n-empty v-else size="small" description="还没有自动执行动作" />
+          </section>
         </div>
       </n-tab-pane>
 
@@ -4349,6 +4227,8 @@
 
 <script setup>
 import {
+  BanOutline,
+  CloseOutline,
   CodeSlashOutline,
   ColorPaletteOutline,
   EyeOffOutline,
@@ -4360,21 +4240,27 @@ import {
   SettingsOutline,
   ToggleOutline,
 } from '@vicons/ionicons5'
-import { computed, h, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, h, nextTick, onActivated, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import { businessObjectDesigner, businessObjectList, codeRuleList, previewCodeRule } from '@/api/business-app'
+import { getComponentSpec } from '@/components/lowcode-builder/designer-core'
+import SpecPropertyPanel from '@/components/lowcode-builder/designer-core/panel/SpecPropertyPanel.vue'
 import DictTypeSelect from '@/components/lowcode-builder/shared/DictTypeSelect.vue'
 import { pageWidgetComponentKeys } from '@/components/lowcode-builder/shared/page-widget-schema'
 import RuntimeRulesEditor from '@/components/lowcode-builder/shared/RuntimeRulesEditor.vue'
 import { getDictData } from '@/composables/useDict'
+import { useFormDesignerStore } from '@/store'
 import { COMMON_VALIDATION_PRESETS, getValidationPreset } from '@/utils/validation-presets'
 import BusinessFieldPropertyPanel from '../BusinessFieldPropertyPanel.vue'
 import { FIELD_COMPONENT_DEFAULTS as componentFieldDefaults } from '../form-first/fieldComponentCatalog'
-import { appendDesignerLayoutChild, cloneValue, findDesignerComponentPath, getDesignerComponent, isFieldComponent, isLayoutComponent, normalizeFormDesignerSchema, updateDesignerComponent, updateDesignerLayout } from '../form-first/formDesignerSchema'
+import { appendDesignerLayoutChild, cloneValue, findDesignerComponentPath, getDesignerComponent, isFieldComponent, isLayoutComponent, normalizeFormDesignerSchema, updateDesignerComponent } from '../form-first/formDesignerSchema'
 import { camelToSnake } from '../form-first/namingUtils'
 import FieldEventRulesEditor from './FieldEventRulesEditor.vue'
 import FieldLinkageRulesEditor from './FieldLinkageRulesEditor.vue'
-import { normalizeRelationOption } from './pageSectionEditorUtils'
+import { GRID_COLUMN_MARKS as gridColumnMarks, MAX_FORM_GRID_COLUMNS, normalizeGridCount } from './formLayoutConfig'
+import FormAssetsPanel from './panels/FormAssetsPanel.vue'
+import FormLayoutPanel from './panels/FormLayoutPanel.vue'
+import FormSubTablePanel from './panels/FormSubTablePanel.vue'
 import { buildDefaultPlaceholder, buildFieldAssetPlaceholderPatch, shouldSyncPlaceholder } from './placeholder-utils'
 
 const props = defineProps({
@@ -4405,6 +4291,47 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:schema', 'update:selectedId', 'close', 'fieldAssetUpdated'])
+
+// ---------- Pinia 桥接（AGENTS.md 5.14）----------
+// 面板子组件（panels/*）统一读写 useFormDesignerStore，不再 props/emit 透传；
+// 本组件作为入口保留 props/emit 接口，兼容存量父组件（ForgeFormDesigner / BusinessFormDesigner / application-runtime）。
+const designerStore = useFormDesignerStore()
+
+watch(
+  () => [props.schema, props.selectedId, props.fields, props.relations, props.objectCode],
+  () => {
+    designerStore.syncFromProps({
+      schema: props.schema,
+      selectedId: props.selectedId,
+      fields: props.fields,
+      relations: props.relations,
+      objectCode: props.objectCode,
+    })
+  },
+  { immediate: true },
+)
+
+// KeepAlive 缓存页切回时 props 未必变化，但 store 可能已被其它设计器实例覆盖，需强制重新同步
+onActivated(() => {
+  designerStore.syncFromProps({
+    schema: props.schema,
+    selectedId: props.selectedId,
+    fields: props.fields,
+    relations: props.relations,
+    objectCode: props.objectCode,
+  })
+})
+
+// store 变化向外广播（同引用跳过，避免与 props → store 同步形成回环）
+watch(() => designerStore.schema, (next) => {
+  if (next !== props.schema)
+    emit('update:schema', next)
+})
+
+watch(() => designerStore.selectedId, (next) => {
+  if (next !== props.selectedId)
+    emit('update:selectedId', next)
+})
 
 function createBitableSvgIcon(name, children = []) {
   return {
@@ -4459,13 +4386,20 @@ const fieldFormulaPanelVisible = ref(false)
 const crudDescriptionFieldPanelOpen = ref(false)
 const editingCrudFieldId = ref('')
 const propertyActiveTab = ref('basic')
-const formPropertyActiveTab = ref(props.initialFormTab === 'events' ? 'events' : 'basic')
-const basicExpandedNames = ['identity', 'gridQuick', 'field', 'validation']
+// 表单级属性 tab 收敛到 store（panels/* 子面板需要切换它），父组件以 computed 包装保持 v-model 兼容
+const formPropertyActiveTab = computed({
+  get: () => designerStore.formPropertyTab,
+  set: tab => designerStore.setFormPropertyTab(tab),
+})
+// 默认只展开核心配置（标识 + 字段组件），栅格/校验等低频项收起 —— 主次分明，避免一屏全是展开的卡片
+const basicExpandedNames = ['identity', 'field']
+/** 是否显示"值"编辑列（宜搭式默认隐藏：值跟随选项名，需要值≠名称时勾选"自定义值"） */
+const showOptionValues = ref(false)
 const selectedBasicExpandedNames = ref([...basicExpandedNames])
-const formBasicExpandedNames = ref(['assets', 'layout', 'permissions', 'offline', 'events'])
+const formBasicExpandedNames = ref(['layout', 'permissions', 'offline'])
 const formStyleExpandedNames = ref(['position', 'layout', 'typography', 'appearance'])
-const allSelectedBasicExpandNames = ['identity', 'gridQuick', 'field', 'button', 'options', 'crud-field', 'temporal', 'assist', 'validation']
-const allFormBasicExpandNames = ['assets', 'layout', 'permissions', 'offline', 'events', 'spacing', 'actions']
+const allSelectedBasicExpandNames = ['identity', 'gridQuick', 'field', 'button', 'crud-field', 'temporal', 'assist', 'validation']
+const allFormBasicExpandNames = ['assets', 'subTables', 'layout', 'permissions', 'offline', 'validation', 'actions']
 const allFormStyleExpandNames = ['position', 'spacing', 'typography', 'appearance', 'custom-style']
 const commonValidationOptions = COMMON_VALIDATION_PRESETS.map(item => ({
   label: item.label,
@@ -4491,23 +4425,11 @@ const isField = computed(() => selectedComponent.value ? isFieldComponent(select
 const fieldStructureLocked = computed(() => isField.value && selectedComponent.value?.fieldBinding?.locked === true)
 const isLayout = computed(() => selectedComponent.value ? isLayoutComponent(selectedComponent.value) : false)
 const isCrudBlock = computed(() => ['AiCrudPage', 'crudBlock'].includes(selectedComponent.value?.componentKey))
+const isSubTable = computed(() => selectedComponent.value?.componentKey === 'subTable')
 const isRowLayout = computed(() => ['row', 'fcRow'].includes(selectedComponent.value?.componentKey))
 const isColumnLayout = computed(() => selectedComponent.value?.componentKey === 'col')
 const isCardLayout = computed(() => ['card', 'elCard'].includes(selectedComponent.value?.componentKey))
-const isSubTableLayout = computed(() => selectedComponent.value?.componentKey === 'subTable')
-const subTableRelationOptions = computed(() => props.relations
-  .map(normalizeRelationOption)
-  .filter(Boolean))
-const subTableDisplayModeOptions = [
-  { label: '行内表格', value: 'inline_grid' },
-  { label: '卡片列表', value: 'card_list' },
-  { label: '底部抽屉', value: 'bottom_sheet' },
-]
-function updateSubTableRelation(relationKey) {
-  const matched = subTableRelationOptions.value.find(option => option.value === relationKey)
-  const header = matched ? matched.label.replace(/（[^（）]+）$/, '') : selectedComponent.value?.props?.header || '关联子表'
-  updateComponent({ props: { relationKey: relationKey || '', header } })
-}
+// 主子表配置已拆分至 panels/FormSubTablePanel.vue（读写 Pinia store，不依赖对象关系前置校验）
 const isTabsLayout = computed(() => ['tabs', 'elTabs'].includes(selectedComponent.value?.componentKey))
 const isCollapseLayout = computed(() => ['collapse', 'elCollapse'].includes(selectedComponent.value?.componentKey))
 const isButtonComponent = computed(() => ['button', 'elButton'].includes(selectedComponent.value?.componentKey))
@@ -4519,8 +4441,7 @@ const crudApiConfig = computed(() => selectedComponent.value?.props?.apiConfig |
 const crudOptions = computed(() => selectedComponent.value?.props?.crudOptions || {})
 const selectedDesignerStyle = computed(() => selectedComponent.value?.props?.__designerStyle || {})
 const formStyle = computed(() => props.schema.layout?.formStyle || {})
-const formAssets = computed(() => Array.isArray(props.schema.settings?.formAssets) ? props.schema.settings.formAssets : [])
-const defaultFormKey = computed(() => props.schema.defaultFormKey || props.schema.settings?.defaultFormKey || props.schema.formKey)
+const formAssets = computed(() => designerStore.formAssets)
 const formGovernanceSettings = computed(() => props.schema.settings?.governance || {})
 const formPermissionConfig = computed(() => formGovernanceSettings.value.permission || {})
 const formFieldRuleRows = computed(() => Array.isArray(formGovernanceSettings.value.fieldRules) ? formGovernanceSettings.value.fieldRules : [])
@@ -4632,21 +4553,21 @@ const formulaPanelFields = computed(() => {
   })
   return matched ? merged : [current, ...merged]
 })
-const formUsageOptions = [
-  { label: '新增', value: 'create' },
-  { label: '编辑', value: 'edit' },
-  { label: '详情', value: 'detail' },
-  { label: '填报', value: 'submit' },
-  { label: '审批', value: 'approve' },
-  { label: '移动端', value: 'mobile' },
-]
 const formEventHookOptions = [
-  { label: '加载前', value: 'beforeLoad' },
-  { label: '加载后', value: 'afterLoad' },
+  { label: '表单打开前', value: 'beforeLoad' },
+  { label: '表单打开后', value: 'afterLoad' },
   { label: '提交前', value: 'beforeSubmit' },
   { label: '提交后', value: 'afterSubmit' },
-  { label: '字段变化', value: 'fieldChange' },
-  { label: '按钮动作', value: 'buttonAction' },
+]
+const formEventActionOptions = [
+  { label: '调用接口', value: 'request' },
+  { label: '填入字段值', value: 'setFieldValue' },
+  { label: '执行内置动作', value: 'customScript' },
+]
+// 运行时白名单脚本（crud-page.vue runWhitelistedFormScript），新增脚本需同步两端
+const formScriptOptions = [
+  { label: '填入当前日期', value: 'fillCurrentDate' },
+  { label: '填入当前时间', value: 'fillCurrentTime' },
 ]
 const formAssetOptions = computed(() => [
   { label: `${props.schema.formName || '主表单'}（当前表单）`, value: 'current' },
@@ -4691,7 +4612,7 @@ const formAppearanceBorderPreview = computed(() => {
     return '#e4e4e7'
   return hexInputToColor(formAppearanceBorderHex.value, '#e4e4e7')
 })
-const maxFormGridColumns = 24
+const maxFormGridColumns = MAX_FORM_GRID_COLUMNS
 const normalizedFormGridColumns = computed(() => normalizeGridCount(props.schema.layout?.gridColumns || 2))
 const isDatePickerField = computed(() => ['date', 'datetime', 'daterange', 'datetimerange', 'month', 'year', 'quarter'].includes(selectedComponent.value?.componentKey))
 const isTimePickerField = computed(() => ['time', 'timerange'].includes(selectedComponent.value?.componentKey))
@@ -4715,6 +4636,10 @@ watch(() => props.selectedId, () => {
   selectedBasicExpandedNames.value = isTabsLayout.value
     ? [...basicExpandedNames, 'tabs']
     : [...basicExpandedNames]
+  // 存量选项里已有"值 ≠ 名称"时自动展开自定义值列，否则保持单列（值跟随名称）
+  const options = selectedComponent.value?.props?.options || []
+  showOptionValues.value = options.some(option =>
+    String(option?.value ?? '') !== '' && String(option.value) !== String(option?.label ?? ''))
 }, { immediate: true })
 
 watch(() => props.objectCode, () => {
@@ -4727,15 +4652,9 @@ watch(() => props.objectCode, () => {
 watch(() => props.initialFormTab, (tab) => {
   if (!selectedComponent.value)
     formPropertyActiveTab.value = tab === 'events' ? 'events' : 'basic'
-})
+}, { immediate: true })
 
-const gridColumnOptions = Array.from({ length: maxFormGridColumns }).map((_, index) => index + 1)
-const gridColumnMarks = gridColumnOptions.reduce((marks, item) => {
-  if (![1, 6, 12, 18, 24].includes(item))
-    return marks
-  marks[item] = `${item}`
-  return marks
-}, {})
+// 栅格列数选项/刻度与归一化函数已下沉 formLayoutConfig.js；表单项配置面板已拆分至 panels/FormLayoutPanel.vue
 const componentSizeOptions = [
   { label: '默认', value: '' },
   { label: '小', value: 'small' },
@@ -4762,8 +4681,8 @@ const widgetDataSourceOptions = [
 ]
 const optionSourceTypeOptions = [
   { label: '静态选项', value: 'STATIC' },
-  { label: '当前子表明细', value: 'CURRENT_CHILDREN' },
-  { label: '受管远程选项', value: 'REMOTE' },
+  { label: '子表明细', value: 'CURRENT_CHILDREN' },
+  { label: '远程接口', value: 'REMOTE' },
 ]
 const dataBindablePageWidgetKeys = [
   'rich-text',
@@ -4843,19 +4762,19 @@ const buttonTypeOptions = [
 const propertySearchIndex = [
   { keys: ['标识', '名称', '绑定字段', 'field', '字段编码'], label: '基础配置 / 标识', selectedTab: 'basic', selectedExpand: ['identity'], formTab: 'basic', formExpand: ['assets'] },
   { keys: ['字段', '字段组件', '占位', 'placeholder', '默认', '默认值', '字典', 'dict', '组件属性', '标签', '标题', '公式', 'formula', '计算'], label: '基础配置 / 字段组件', selectedTab: 'basic', selectedExpand: ['field'] },
-  { keys: ['选项', 'option', '新增选项', '静态选项', '标签', '值'], label: '基础配置 / 选项配置', selectedTab: 'basic', selectedExpand: ['options'] },
+  { keys: ['选项', 'option', '新增选项', '静态选项', '选项来源', '选项列表', '远程接口', '标签', '值'], label: '基础配置 / 字段组件（选项来源）', selectedTab: 'basic', selectedExpand: ['field'] },
   { keys: ['按钮', 'button', '块级', '禁用', '类型', '文案', '动作'], label: '基础配置 / 按钮组件', selectedTab: 'basic', selectedExpand: ['button'] },
   { keys: ['说明', '说明文本', '角标', '辅助', 'badge'], label: '基础配置 / 辅助展示', selectedTab: 'basic', selectedExpand: ['assist'] },
   { keys: ['日期', '时间', '格式', 'datetime', 'date', '范围', '年月日'], label: '基础配置 / 日期时间组件', selectedTab: 'basic', selectedExpand: ['temporal'] },
   { keys: ['crud字段', '查询字段', '搜索字段', '表格列字段', '编辑字段', '列标题', '列宽', '对齐', '固定', '省略', '排序'], label: '基础配置 / CRUD 字段配置', selectedTab: 'basic', selectedExpand: ['crud-field'] },
   { keys: ['crud', '查询', '搜索', '表格', '列表', '分页', '接口', 'api', '数据源', '基础路径', '行主键', '渲染模式', '表格尺寸', '编辑表单'], label: 'CRUD 配置', selectedTab: 'crud' },
   { keys: ['布局', '跨度', '栅格', '列数', '宽度', 'labelWidth', '标签宽度', '标签位置', '标签对齐', '打开方式'], label: '布局', selectedTab: 'basic', selectedExpand: ['gridQuick'], formTab: 'basic', formExpand: ['layout'] },
-  { keys: ['校验', '唯一', '唯一校验', '不能重复', '必填', '只读', '隐藏', '状态', 'unique', 'required', 'readonly'], label: '可见性与校验', selectedTab: 'basic', selectedExpand: ['validation'], formTab: 'basic', formExpand: ['spacing'] },
-  { keys: ['事件', '交互', '联动', '弹窗事件', 'openModal', '生命周期', '加载', '提交', '字段变化'], label: '交互 / 事件规则', selectedTab: 'interaction', formTab: 'events' },
+  { keys: ['校验', '唯一', '唯一校验', '不能重复', '必填', '只读', '隐藏', '状态', 'unique', 'required', 'readonly'], label: '可见性与校验', selectedTab: 'basic', selectedExpand: ['validation'], formTab: 'basic', formExpand: ['validation'] },
+  { keys: ['事件', '交互', '联动', '弹窗事件', 'openModal', '生命周期', '加载', '提交', '字段变化', '自动执行', '回填', '接口结果'], label: '自动化 / 事件与联动', selectedTab: 'interaction', formTab: 'events' },
   { keys: ['样式', '颜色', '背景', '边框', '圆角', '阴影', '间距', 'padding', 'margin'], label: '样式配置', selectedTab: 'style', formTab: 'style', formExpand: ['appearance', 'spacing'] },
   { keys: ['表单资产', '多表单', '表单名称', '表单编码'], label: '表单属性 / 表单资产', formTab: 'basic', formExpand: ['assets'] },
   { keys: ['弹窗', '抽屉', 'modal', 'drawer', '打开方式'], label: '表单属性 / AiForm 布局', formTab: 'basic', formExpand: ['layout'] },
-  { keys: ['反馈', '折叠', '最大显示字段', '行间距', '列间距', '表单列数'], label: '表单属性 / 间距与反馈', formTab: 'basic', formExpand: ['spacing', 'layout'] },
+  { keys: ['反馈', '折叠', '最大显示字段', '行间距', '列间距', '表单列数'], label: '表单属性 / 间距与反馈', formTab: 'basic', formExpand: ['layout', 'validation'] },
   { keys: ['操作', '提交', '重置', '取消', '提交文案'], label: '表单属性 / 操作按钮', formTab: 'basic', formExpand: ['actions'] },
   { keys: ['位置', '尺寸', '最大宽度', '最小高度', '左', '上', 'x', 'y', '坐标', '填充', '适应内容'], label: '样式 / 位置与尺寸', selectedTab: 'style', formTab: 'style', selectedExpand: ['position'], formExpand: ['position'] },
   { keys: ['排版', '文字', '字号', '行高', '文字颜色', 'font', 'lineHeight'], label: '样式 / 文字排版', selectedTab: 'style', formTab: 'style', selectedExpand: ['typography'], formExpand: ['typography'] },
@@ -4868,22 +4787,6 @@ const cardSizeOptions = [
   { label: '中 medium', value: 'medium' },
   { label: '大 large', value: 'large' },
   { label: '巨大 huge', value: 'huge' },
-]
-const tabsTypeOptions = [
-  { label: 'line', value: 'line' },
-  { label: 'bar', value: 'bar' },
-  { label: 'card', value: 'card' },
-  { label: 'segment', value: 'segment' },
-]
-const tabsPlacementOptions = [
-  { label: 'top', value: 'top' },
-  { label: 'bottom', value: 'bottom' },
-  { label: 'left', value: 'left' },
-  { label: 'right', value: 'right' },
-]
-const tabsTriggerOptions = [
-  { label: 'click', value: 'click' },
-  { label: 'hover', value: 'hover' },
 ]
 const collapseArrowPlacementOptions = [
   { label: 'left', value: 'left' },
@@ -4920,10 +4823,6 @@ const pickerActionOptions = [
   { label: 'now', value: 'now' },
   { label: 'confirm', value: 'confirm' },
 ]
-const booleanValueOptions = [
-  { label: 'true', value: true },
-  { label: 'false', value: false },
-]
 const tableAlignOptions = [
   { label: '左对齐', value: 'left' },
   { label: '居中', value: 'center' },
@@ -4950,16 +4849,6 @@ const actionOptions = [
   { label: '控制启用或禁用', value: 'enableDisable' },
   { label: '打开弹窗表单', value: 'openModal' },
   { label: '请求后端接口', value: 'apiRequest' },
-]
-const formOpenModeOptions = [
-  { label: '弹窗', value: 'modal' },
-  { label: '抽屉', value: 'drawer' },
-  { label: '平铺', value: 'flat' },
-  { label: '多页签', value: 'tabWorkspace' },
-]
-const drawerPlacementOptions = [
-  { label: '右侧', value: 'right' },
-  { label: '左侧', value: 'left' },
 ]
 const expandTriggerOptions = [
   { label: '图标', value: 'icon' },
@@ -4993,126 +4882,13 @@ const modalContentModeOptions = [
   { label: '选择画布组件', value: 'component' },
   { label: '空白弹窗，后续配置', value: 'empty' },
 ]
+// 注：「下拉联动」已收敛到字段组件区的「级联选项」卡片（产出运行时消费的 props.cascade），
+// 不再在交互规则里生成无运行时消费的 __events 配置
 const interactionPresets = [
-  { key: 'cascade', title: '下拉联动', description: '当前字段变化后，更新另一个下拉的选项。' },
   { key: 'openModal', title: '打开弹窗', description: '按钮点击后打开表单弹窗或业务弹窗。' },
   { key: 'showHide', title: '显示隐藏', description: '根据当前值控制另一个字段是否显示。' },
   { key: 'apiRequest', title: '调用接口', description: '点击按钮或值变化后提交接口请求。' },
 ]
-const propChineseLabels = {
-  size: '组件尺寸',
-  clearable: '可清空',
-  disabled: '禁用',
-  text: '按钮文字',
-  secondary: '次要按钮',
-  tertiary: '三级按钮',
-  quaternary: '四级按钮',
-  dashed: '虚线按钮',
-  loading: '加载中',
-  block: '块级按钮',
-  placeholder: '占位提示',
-  status: '校验状态',
-  maxlength: '最大长度',
-  showCount: '显示字数',
-  round: '圆角',
-  readonly: '只读',
-  inputProps: '原生输入属性',
-  rows: '行数',
-  autosize: '自适应高度',
-  min: '最小值',
-  max: '最大值',
-  step: '步长',
-  precision: '精度',
-  showButton: '显示加减按钮',
-  multiple: '多选',
-  filterable: '可搜索',
-  remote: '远程搜索',
-  maxTagCount: '最多显示标签数',
-  placement: '弹出位置',
-  fallbackOption: '保留回填选项',
-  dictType: '字典类型',
-  name: '表单控件名称',
-  defaultValue: '默认值',
-  value: '受控值',
-  checkedValue: '选中值',
-  uncheckedValue: '未选中值',
-  checkedText: '选中文案',
-  uncheckedText: '未选中文案',
-  rubberBand: '橡皮筋动效',
-  range: '范围选择',
-  vertical: '垂直显示',
-  tooltip: '显示提示',
-  marks: '刻度标记',
-  count: '数量',
-  allowHalf: '允许半选',
-  showAlpha: '显示透明度',
-  modes: '颜色模式',
-  swatches: '预设色',
-  actions: '底部动作',
-  cascade: '级联勾选',
-  checkStrategy: '勾选策略',
-  showPath: '显示路径',
-  checkable: '显示复选框',
-  bordered: '显示边框',
-  embedded: '嵌入模式',
-  segmented: '分段线',
-  hoverable: '悬浮阴影',
-  contentScrollable: '内容可滚动',
-  role: 'ARIA 角色',
-  headerStyle: '头部样式',
-  contentStyle: '内容样式',
-  footerStyle: '底部样式',
-  type: '类型',
-  trigger: '触发方式',
-  animated: '动画',
-  closable: '可关闭',
-  addable: '可新增',
-  justifyContent: '对齐分布',
-  tabsPadding: '标签栏内边距',
-  paneStyle: '面板样式',
-  tabStyle: '标签样式',
-  accordion: '手风琴模式',
-  arrowPlacement: '箭头位置',
-  displayDirective: '渲染策略',
-  triggerAreas: '可触发区域',
-  defaultExpandedNames: '默认展开项',
-  expandedNames: '受控展开项',
-  format: '显示格式',
-  valueFormat: '值格式',
-  inputReadonly: '输入框只读',
-  closeOnSelect: '选择后关闭',
-  updateValueOnClose: '关闭时更新值',
-  defaultTime: '默认时间',
-  separator: '分隔符',
-  startPlaceholder: '开始占位',
-  endPlaceholder: '结束占位',
-  firstDayOfWeek: '每周起始日',
-  showIcon: '显示图标',
-  hours: '小时选项',
-  minutes: '分钟选项',
-  seconds: '秒选项',
-}
-const groupChineseLabels = {
-  'NInput Props': '输入框属性',
-  'NInput Textarea Props': '多行文本属性',
-  'NInputNumber Props': '数字输入属性',
-  'NSelect Props': '下拉选择属性',
-  'DictSelect / NSelect Props': '字典下拉属性',
-  'RadioGroup Props': '单选组属性',
-  'CheckboxGroup Props': '多选组属性',
-  'NSwitch Props': '开关属性',
-  'NSlider Props': '滑块属性',
-  'NRate Props': '评分属性',
-  'NColorPicker Props': '颜色选择属性',
-  'NCascader Props': '级联选择属性',
-  'NTreeSelect Props': '树形选择属性',
-  'Card Props': '卡片属性',
-  'Tabs Props': '标签页属性',
-  'Collapse Props': '折叠面板属性',
-  'DatePicker Props': '日期选择属性',
-  'TimePicker Props': '时间选择属性',
-  'Button Props': '按钮属性',
-}
 const colorSwatches = ['#ffffff', '#f8fafc', '#eff6ff', '#ecfdf5', '#fffbeb', '#fef2f2', '#dbe3ee', '#94a3b8', '#2563eb', '#16a34a', '#f59e0b', '#dc2626', 'rgba(255, 255, 255, 0)']
 const shadowOptions = [
   { label: '无', value: '' },
@@ -5174,13 +4950,99 @@ const selectedCrudFieldConfig = computed(() => isFieldInsideCrud.value ? selecte
 const isOptionField = computed(() => ['select', 'radio', 'radioButton', 'checkbox', 'transfer', 'cascader', 'treeSelect'].includes(selectedComponent.value?.componentKey || ''))
 const selectedOptionSourceType = computed(() => {
   const source = selectedComponent.value?.props?.optionSource || {}
-  if (['CURRENT_CHILDREN', 'current_children', 'currentChildren'].includes(String(source.type || '')))
+  const type = String(source.type || '')
+  if (['CURRENT_CHILDREN', 'current_children', 'currentChildren'].includes(type))
     return 'CURRENT_CHILDREN'
+  // 优先按 type 字段判断：切换到 REMOTE 时 api 初始为空字符串，
+  // 若依赖 api 非空判断，computed 会立刻回落 STATIC，表现为"点了没反应"
+  if (type === 'REMOTE' || type === 'remote')
+    return 'REMOTE'
   if (source.api || source.url)
     return 'REMOTE'
   return 'STATIC'
 })
 const isManualOptionField = computed(() => isOptionField.value && !selectedComponent.value?.props?.dictType && selectedComponent.value?.props?.dataSourceType !== 'remote')
+
+// ─── 级联选项（下拉级联）：一站式产出运行时 AiFormItem 消费的 props.cascade ─────
+const optionLinkageEmptyStrategyOptions = [
+  { label: '不加载选项（等选了上级再加载）', value: 'empty' },
+  { label: '显示全部选项', value: 'all' },
+]
+const optionLinkageConfig = computed(() => {
+  const raw = selectedComponent.value?.props?.cascade || {}
+  return {
+    enabled: raw.enabled === true,
+    sourceField: raw.sourceField || '',
+    mode: raw.mode === 'remoteParam' ? 'remoteParam' : 'parentDictCode',
+    paramName: raw.paramName || '',
+    emptyStrategy: raw.emptyStrategy || 'empty',
+    clearOnParentChange: raw.clearOnParentChange !== false,
+  }
+})
+const optionLinkageSourceFieldOptions = computed(() => collectRuntimeRuleFieldOptions(props.schema?.components || [])
+  .filter(option => option.value !== selectedFieldCode.value))
+const optionLinkageApi = computed(() => String(selectedComponent.value?.props?.optionSource?.api || ''))
+// 接口加载模式下选项来源的 api 输入框由级联卡片接管，避免两处输入框编辑同一个值
+const optionLinkageApiManaged = computed(() => optionLinkageConfig.value.enabled && optionLinkageConfig.value.mode === 'remoteParam')
+const optionLinkageSummary = computed(() => {
+  const config = optionLinkageConfig.value
+  if (!config.sourceField)
+    return '先选择①上级字段，级联才会生效'
+  const sourceLabel = resolveOptionLinkageFieldLabel(config.sourceField)
+  if (config.mode === 'remoteParam') {
+    if (!optionLinkageApi.value)
+      return `选了【${sourceLabel}】后自动请求接口刷新选项 —— 请在③中填写选项接口`
+    const param = config.paramName ? `?${config.paramName}=所选值` : ''
+    return `选了【${sourceLabel}】后自动请求 ${optionLinkageApi.value}${param} 并刷新选项`
+  }
+  return `选了【${sourceLabel}】后，只显示与所选值匹配的选项`
+})
+function resolveOptionLinkageFieldLabel(fieldCode) {
+  const matched = optionLinkageSourceFieldOptions.value.find(option => option.value === fieldCode)
+  return matched ? matched.label.replace(/（[^）]*）$/, '') : fieldCode
+}
+function buildOptionLinkageDefaults() {
+  return { enabled: false, sourceField: '', mode: 'remoteParam', paramName: '', emptyStrategy: 'empty', clearOnParentChange: true }
+}
+function toggleOptionLinkage(enabled) {
+  updateOptionLinkage({ enabled })
+}
+function updateOptionLinkage(patch = {}) {
+  const current = selectedComponent.value?.props?.cascade || {}
+  updateComponent({ props: { cascade: { ...buildOptionLinkageDefaults(), ...current, ...patch } } })
+}
+function updateOptionLinkageSourceField(field) {
+  const patch = { sourceField: field || '' }
+  // 参数名默认跟随上级字段名（多数接口参数名与字段同名），用户已填过则不覆盖
+  if (field && !optionLinkageConfig.value.paramName)
+    patch.paramName = field
+  updateOptionLinkage(patch)
+}
+function updateOptionLinkageMode(mode = 'remoteParam') {
+  const nextMode = mode === 'remoteParam' ? 'remoteParam' : 'parentDictCode'
+  const currentCascade = selectedComponent.value?.props?.cascade || {}
+  const nextCascade = { ...buildOptionLinkageDefaults(), ...currentCascade, mode: nextMode }
+  // 接口加载依赖远程选项来源：与 cascade 合并为同一次写入。
+  // 若分两次 emit，第二次会基于尚未回传的旧 props.schema 操作，丢掉第一次的 cascade.mode
+  if (nextMode === 'remoteParam' && selectedOptionSourceType.value !== 'REMOTE') {
+    updateComponent({
+      props: {
+        cascade: nextCascade,
+        optionSource: {
+          ...(selectedComponent.value?.props?.optionSource || {}),
+          type: 'REMOTE',
+          api: optionLinkageApi.value,
+        },
+      },
+    })
+    return
+  }
+  updateComponent({ props: { cascade: nextCascade } })
+}
+function updateOptionLinkageApi(api = '') {
+  // 联动接口直接落到选项来源，运行时按此接口动态加载选项
+  updatePageWidgetOptionSource({ type: 'REMOTE', api: api || '' })
+}
 const defaultValueSelectMultiple = computed(() => ['checkbox'].includes(selectedComponent.value?.componentKey || ''))
 const defaultValueSelectEnabled = computed(() => {
   const key = selectedComponent.value?.componentKey || ''
@@ -5222,7 +5084,59 @@ const selectedGenerationRule = computed(() => {
   const ruleCode = selectedGenerationRuleCode.value
   return codeRules.value.find(rule => rule.ruleCode === ruleCode) || null
 })
-const activePropGroups = computed(() => buildNaivePropGroups(selectedComponent.value?.componentKey || ''))
+/** 列表画布（GridBlockRenderer）专属的栅格属性：表单画布（AiFormLayoutNodes / n-grid）不消费，表单侧统一属性面板排除 */
+const GRID_LIST_ONLY_PROPS = ['cellMinHeight', 'alignItems', 'justifyItems', 'showCellBorder', 'cellBackground']
+
+/** SpecPropertyPanel 排除的属性：已由主面板或表单专用逻辑管理，避免重复编辑入口 */
+const specPanelExcludedProps = computed(() => {
+  const key = selectedComponent.value?.componentKey || ''
+  if (key === 'button')
+    // 按钮文字/类型/尺寸/块级/禁用已在"按钮组件"折叠项配置；
+    // secondary/dashed/round/loading 等由"更多属性"抽屉的 spec 面板补齐
+    return ['text', 'type', 'size', 'block', 'disabled']
+  if (key === 'dictSelect')
+    return ['dictType'] // 字典类型由表单侧字典联动逻辑管理
+  // 字段组件：占位提示/组件尺寸/可清空/显示反馈已在主面板"字段组件"折叠项配置；
+  // 选项类组件的选项由"选项来源"统一管理 —— 抽屉只保留主面板没有的属性，避免重复入口
+  if (isField.value) {
+    const excluded = ['placeholder', 'size', 'clearable', 'showFeedback']
+    if (isOptionField.value)
+      excluded.push('options')
+    return excluded
+  }
+  // 栅格：columns/gutter/rowGap 已在"栅格快捷配置"内联配置，列表画布专属属性表单不消费
+  if (isRowLayout.value)
+    return ['columns', 'gutter', 'rowGap', ...GRID_LIST_ONLY_PROPS]
+  return []
+})
+
+/** 当前组件是否有可配置的 spec 属性（驱动"更多属性"按钮显隐） */
+const hasSpecPanelProps = computed(() => {
+  const spec = getComponentSpec(selectedComponent.value?.componentKey || '')
+  const properties = spec?.propsSchema?.properties
+  if (!properties)
+    return false
+  const exclude = new Set(specPanelExcludedProps.value)
+  return Object.keys(properties).some(key => !exclude.has(key))
+})
+
+/** SpecPropertyPanel 属性更新：写回选中组件 props */
+function handleSpecPropUpdate({ key, value }) {
+  if (!key)
+    return
+  updateComponent({ props: { [key]: value === '' ? undefined : value } })
+}
+
+/** 栅格内联属性更新：总列数变化走 updateRowTotalColumns 联动收敛各列 span，其余直接写回 props */
+function handleGridPropUpdate({ key, value }) {
+  if (!key)
+    return
+  if (key === 'columns') {
+    updateRowTotalColumns(value)
+    return
+  }
+  updateComponent({ props: { [key]: value === '' ? undefined : value } })
+}
 const runtimeRuleFieldOptions = computed(() => collectRuntimeRuleFieldOptions(props.schema?.components || []))
 const isDictLikeField = computed(() => {
   const key = selectedComponent.value?.componentKey || ''
@@ -5570,6 +5484,30 @@ function updatePageWidgetDataBinding(patch = {}) {
   })
 }
 
+const widgetParamRefName = ref('')
+const widgetParamRefField = ref('')
+
+// 把「参数名 = 某字段的当前值」合并进请求参数 JSON：值写 ${字段} 占位，运行时取表单当前值并随值变化自动重查
+function addWidgetParamRef() {
+  const paramName = String(widgetParamRefName.value || '').trim()
+  const fieldName = String(widgetParamRefField.value || '').trim()
+  if (!paramName || !fieldName)
+    return
+  let current = {}
+  try {
+    const parsed = JSON.parse(selectedComponent.value?.props?.dataBinding?.paramsText || '{}')
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
+      current = parsed
+  }
+  catch {
+    current = {}
+  }
+  current[paramName] = `\${${fieldName}}`
+  updatePageWidgetDataBinding({ paramsText: JSON.stringify(current, null, 2) })
+  widgetParamRefName.value = ''
+  widgetParamRefField.value = ''
+}
+
 function resolveBooleanKeys(source = {}, keys = []) {
   return keys.filter(key => source?.[key] === true)
 }
@@ -5895,42 +5833,6 @@ function expandAllSearchableSections() {
   formStyleExpandedNames.value = mergeExpandNames(formStyleExpandedNames.value, allFormStyleExpandNames)
 }
 
-function showFormSettings() {
-  emit('update:selectedId', '')
-  formPropertyActiveTab.value = 'basic'
-  sourceError.value = ''
-}
-
-function updateCurrentFormMeta(patch = {}) {
-  const nextFormKey = patch.formKey || props.schema.formKey
-  const nextDefaultFormKey = patch.formKey && defaultFormKey.value === props.schema.formKey
-    ? nextFormKey
-    : defaultFormKey.value
-  emit('update:schema', {
-    ...props.schema,
-    ...patch,
-    usage: patch.usage ? resolveFormUsage(patch.usage) : props.schema.usage,
-    defaultFormKey: nextDefaultFormKey,
-    settings: {
-      ...(props.schema.settings || {}),
-      defaultFormKey: nextDefaultFormKey,
-    },
-  })
-}
-
-function setDefaultFormKey(formKey = '') {
-  if (!formKey)
-    return
-  emit('update:schema', {
-    ...props.schema,
-    defaultFormKey: formKey,
-    settings: {
-      ...(props.schema.settings || {}),
-      defaultFormKey: formKey,
-    },
-  })
-}
-
 function updateFormGovernance(patch = {}) {
   emit('update:schema', {
     ...props.schema,
@@ -6000,8 +5902,8 @@ function addFormEvent() {
       ...formEventRows.value,
       {
         id: `event_${Date.now()}`,
-        hook: 'beforeLoad',
-        action: 'customScript',
+        hook: 'afterLoad',
+        action: 'request',
         handler: '',
         resultMapping: '',
       },
@@ -6013,6 +5915,79 @@ function updateFormEvent(index, patch = {}) {
   const list = [...formEventRows.value]
   list[index] = { ...(list[index] || {}), ...patch }
   updateFormGovernance({ events: list })
+}
+
+// 切换动作类型时重置 handler/resultMapping：不同动作的 handler 语义不同（脚本名 / 字段=值 / 接口地址）
+function handleFormEventActionChange(index, action = 'customScript') {
+  updateFormEvent(index, { action: action || 'customScript', handler: '', resultMapping: '' })
+}
+
+// request 的 handler 存储为 "method@url"（兼容存量纯 URL，视为 GET），UI 上拆成请求方式 + 接口地址两个控件
+function parseRequestHandler(handler = '') {
+  const text = String(handler || '').trim()
+  if (!text.includes('@'))
+    return { method: 'get', url: text }
+  const [method = 'get', ...urlParts] = text.split('@')
+  return { method: String(method || 'get').toLowerCase(), url: urlParts.join('@').trim() }
+}
+
+function composeRequestHandler(method = 'get', url = '') {
+  const address = String(url || '').trim()
+  if (!address)
+    return ''
+  return `${String(method || 'get').toLowerCase()}@${address}`
+}
+
+function formEventSummaryLabel(eventItem = {}) {
+  const hookLabel = formEventHookOptions.find(option => option.value === eventItem.hook)?.label || '未选时机'
+  const actionLabel = formEventActionOptions.find(option => option.value === eventItem.action)?.label || '未选动作'
+  return `${hookLabel} · ${actionLabel}`
+}
+
+// setFieldValue 的 handler 格式为 "field=value"，UI 上拆成字段下拉 + 值输入两个控件
+function parseSetFieldValueHandler(handler = '') {
+  const [field = '', ...valueParts] = String(handler || '').split('=')
+  return { field: field.trim(), value: valueParts.join('=') }
+}
+
+function composeSetFieldValueHandler(field = '', value = '') {
+  const fieldName = String(field || '').trim()
+  if (!fieldName)
+    return ''
+  return `${fieldName}=${String(value ?? '')}`
+}
+
+// resultMapping 存储 "from->to,from2->to2" 字符串，UI 上拆成一行行的可视化映射（运行时会跳过未填完整的行）
+function parseResultMappingRows(resultMapping = '') {
+  return String(resultMapping || '').split(',').map(item => item.trim()).filter(Boolean).map((item) => {
+    const [from = '', ...toParts] = item.split('->')
+    return { from: from.trim(), to: toParts.join('->').trim() }
+  })
+}
+
+function composeResultMappingRows(rows = []) {
+  return rows
+    .map(row => ({ from: String(row.from || '').trim(), to: String(row.to || '').trim() }))
+    .map(row => `${row.from}->${row.to}`)
+    .join(',')
+}
+
+function updateResultMappingRow(index, rowIndex, patch = {}) {
+  const rows = parseResultMappingRows(formEventRows.value[index]?.resultMapping)
+  rows[rowIndex] = { ...(rows[rowIndex] || {}), ...patch }
+  updateFormEvent(index, { resultMapping: composeResultMappingRows(rows) })
+}
+
+function addResultMappingRow(index) {
+  const rows = parseResultMappingRows(formEventRows.value[index]?.resultMapping)
+  rows.push({ from: '', to: '' })
+  updateFormEvent(index, { resultMapping: composeResultMappingRows(rows) })
+}
+
+function removeResultMappingRow(index, rowIndex) {
+  const rows = parseResultMappingRows(formEventRows.value[index]?.resultMapping)
+  rows.splice(rowIndex, 1)
+  updateFormEvent(index, { resultMapping: composeResultMappingRows(rows) })
 }
 
 function removeFormEvent(index) {
@@ -6029,160 +6004,7 @@ function updateFormFieldLinkages(fieldLinkages = []) {
   updateFormGovernance({ fieldLinkages: Array.isArray(fieldLinkages) ? fieldLinkages : [] })
 }
 
-function updateFormAssetMeta(formKey = '', patch = {}) {
-  const nextPatch = {
-    ...patch,
-    ...(Object.prototype.hasOwnProperty.call(patch, 'usage')
-      ? { usage: resolveFormUsage(patch.usage) }
-      : {}),
-  }
-  emit('update:schema', {
-    ...props.schema,
-    settings: {
-      ...(props.schema.settings || {}),
-      formAssets: formAssets.value.map((asset) => {
-        if (asset.formKey !== formKey)
-          return asset
-        return {
-          ...asset,
-          ...nextPatch,
-          schema: asset.schema
-            ? {
-                ...asset.schema,
-                ...nextPatch,
-              }
-            : asset.schema,
-        }
-      }),
-    },
-  })
-}
-
-function duplicateCurrentFormAsset() {
-  const nextAssetKey = `${props.schema.formKey || 'form'}_dialog_${Date.now()}`
-  const usage = resolveFormUsage(props.schema.usage)
-  const assetSchema = cloneValue(props.schema)
-  assetSchema.formKey = nextAssetKey
-  assetSchema.formName = `${props.schema.formName || '表单'}弹窗`
-  assetSchema.usage = usage
-  assetSchema.settings = {
-    ...(assetSchema.settings || {}),
-    formAssets: [],
-  }
-  emit('update:schema', {
-    ...props.schema,
-    settings: {
-      ...(props.schema.settings || {}),
-      formAssets: [
-        {
-          formKey: nextAssetKey,
-          formName: assetSchema.formName,
-          usage,
-          schema: assetSchema,
-        },
-        ...formAssets.value,
-      ],
-    },
-  })
-}
-
-function createBlankFormAsset() {
-  const nextAssetIndex = formAssets.value.length + 2
-  const nextAssetKey = `${props.schema.formKey || 'form'}_form_${Date.now()}`
-  const usage = ['create', 'edit']
-  const assetSchema = {
-    ...cloneValue(props.schema),
-    formKey: nextAssetKey,
-    formName: `表单 ${nextAssetIndex}`,
-    usage,
-    components: [],
-    settings: {
-      ...(props.schema.settings || {}),
-      formAssets: [],
-    },
-  }
-  emit('update:schema', {
-    ...props.schema,
-    settings: {
-      ...(props.schema.settings || {}),
-      formAssets: [
-        {
-          formKey: nextAssetKey,
-          formName: assetSchema.formName,
-          usage,
-          schema: assetSchema,
-        },
-        ...formAssets.value,
-      ],
-    },
-  })
-}
-
-function switchFormAsset(formKey = '') {
-  const asset = formAssets.value.find(item => item.formKey === formKey)
-  if (!asset?.schema)
-    return
-  const nextDefaultFormKey = defaultFormKey.value || props.schema.formKey
-  const currentUsage = resolveFormUsage(props.schema.usage)
-  const assetUsage = resolveFormUsage(asset.usage || asset.schema.usage)
-  const currentAsset = {
-    formKey: props.schema.formKey,
-    formName: props.schema.formName,
-    usage: currentUsage,
-    schema: {
-      ...cloneValue(props.schema),
-      usage: currentUsage,
-      settings: {
-        ...(props.schema.settings || {}),
-        formAssets: [],
-      },
-    },
-  }
-  const nextAssets = formAssets.value
-    .filter(item => item.formKey !== formKey && item.formKey !== currentAsset.formKey)
-    .concat(currentAsset)
-  emit('update:selectedId', '')
-  const nextSchema = normalizeFormDesignerSchema({
-    ...cloneValue(asset.schema),
-    usage: assetUsage,
-    defaultFormKey: nextDefaultFormKey,
-    settings: {
-      ...(asset.schema.settings || {}),
-      formAssets: nextAssets,
-      defaultFormKey: nextDefaultFormKey,
-    },
-  })
-  emit('update:schema', {
-    ...nextSchema,
-    usage: assetUsage,
-    defaultFormKey: nextDefaultFormKey,
-    settings: {
-      ...(nextSchema.settings || {}),
-      defaultFormKey: nextDefaultFormKey,
-    },
-  })
-}
-
-function removeFormAsset(formKey = '') {
-  const nextDefaultFormKey = defaultFormKey.value === formKey ? props.schema.formKey : defaultFormKey.value
-  emit('update:schema', {
-    ...props.schema,
-    defaultFormKey: nextDefaultFormKey,
-    settings: {
-      ...(props.schema.settings || {}),
-      defaultFormKey: nextDefaultFormKey,
-      formAssets: formAssets.value.filter(item => item.formKey !== formKey),
-    },
-  })
-}
-
-function resolveFormUsage(value) {
-  const usage = Array.isArray(value)
-    ? value.map(item => String(item || '').trim()).filter(Boolean)
-    : []
-  return usage.length ? Array.from(new Set(usage)) : ['create', 'edit']
-}
-
+// 多表单管理已拆分至 panels/FormAssetsPanel.vue（读写 Pinia store）
 function collectBoundFieldOptions(components = [], result = []) {
   ;(Array.isArray(components) ? components : []).forEach((component) => {
     const field = component?.fieldBinding?.fieldCode || component?.field || component?.props?.field
@@ -6347,6 +6169,11 @@ function addInteractionRule() {
     condition: '',
   })
   updateComponent({ props: { __events: nextRules } })
+  nextTick(() => {
+    const cards = document.querySelectorAll('.interaction-rule-card')
+    const last = cards[cards.length - 1]
+    last?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  })
 }
 
 function addInteractionPreset(key = '') {
@@ -6359,11 +6186,6 @@ function addInteractionPreset(key = '') {
     whenValue: '',
   }
   const map = {
-    cascade: {
-      trigger: 'change',
-      action: 'setOptions',
-      api: 'get@/api/options?parent=:value',
-    },
     openModal: {
       trigger: 'click',
       action: 'openModal',
@@ -6391,11 +6213,6 @@ function addInteractionPreset(key = '') {
     ...(map[key] || {}),
   })
   updateComponent({ props: { __events: nextRules } })
-}
-
-function configureLinkageRule(action = 'showHide') {
-  addInteractionPreset(action)
-  propertyActiveTab.value = 'interaction'
 }
 
 function updateInteractionRule(index, patch = {}) {
@@ -7057,25 +6874,7 @@ function parseJsonObjectProp(value) {
   }
 }
 
-function normalizeFormOpenModePatch(value) {
-  const formOpenMode = value === 'tabWorkspace' ? 'tabWorkspace' : (['modal', 'drawer', 'flat'].includes(value) ? value : 'modal')
-  return {
-    formOpenMode,
-    modalType: ['modal', 'drawer'].includes(formOpenMode) ? formOpenMode : 'modal',
-  }
-}
-
-function updateFormOpenModeLayout(value) {
-  updateFormLayout(normalizeFormOpenModePatch(value))
-}
-
-function updateFormModalWidth(value) {
-  const width = value || '800px'
-  updateFormLayout({
-    modalWidth: width,
-    detailModalWidth: width,
-  })
-}
+// 编辑打开方式/弹窗宽度/抽屉方向逻辑已随 panels/FormLayoutPanel.vue 迁出；updateFormLayout 统一走 store
 
 function updateCrudFieldRole(componentId, role, value) {
   if (!componentId)
@@ -7138,6 +6937,18 @@ function updateOption(index, patch = {}) {
   updateComponent({ props: { options: nextOptions } })
 }
 
+/** 选项名输入：值未被单独改过时自动跟随名称，避免窄面板内同时维护两个字段 */
+function updateOptionLabel(index, label = '') {
+  const option = selectedOptions.value?.[index] || {}
+  const valueFollowsLabel = String(option.value ?? '') === '' || String(option.value) === String(option.label ?? '')
+  updateOption(index, valueFollowsLabel ? { label, value: label } : { label })
+}
+
+/** 行尾图标切换选项禁用（替代原行内开关，减少一行控件数） */
+function toggleOptionDisabled(index) {
+  updateOption(index, { disabled: !selectedOptions.value?.[index]?.disabled })
+}
+
 function updateOptionJsonProps(index, value = '') {
   try {
     updateOption(index, { props: value?.trim() ? JSON.parse(value) : undefined })
@@ -7150,7 +6961,9 @@ function updateOptionJsonProps(index, value = '') {
 function addOption() {
   const nextOptions = cloneValue(selectedOptions.value || [])
   const nextIndex = nextOptions.length + 1
-  nextOptions.push({ label: `选项${nextIndex}`, value: `${nextIndex}` })
+  // 值跟随名称（宜搭式）：新选项 value = label，需要不同值时勾选"自定义值"单独修改
+  const label = `选项${nextIndex}`
+  nextOptions.push({ label, value: label })
   updateComponent({ props: { options: nextOptions } })
 }
 
@@ -7158,48 +6971,6 @@ function removeOption(index) {
   const nextOptions = cloneValue(selectedOptions.value || [])
   nextOptions.splice(index, 1)
   updateComponent({ props: { options: nextOptions } })
-}
-
-function updateSelectedProp(item = {}, value) {
-  if (!item.key)
-    return
-  if (item.key === 'dictType') {
-    updateDictType(value)
-    return
-  }
-  updateComponent({
-    props: {
-      [item.key]: normalizePropValue(item, value),
-    },
-  })
-}
-
-function updateJsonProp(item = {}, value = '') {
-  if (!item.key)
-    return
-  try {
-    updateSelectedProp(item, value?.trim() ? JSON.parse(value) : undefined)
-  }
-  catch {
-    updateComponent({
-      props: {
-        [item.key]: value,
-      },
-    })
-  }
-}
-
-function resolvePropValue(item = {}) {
-  const value = selectedComponent.value?.props?.[item.key]
-  return value === undefined ? item.defaultValue : value
-}
-
-function normalizePropValue(item = {}, value) {
-  if (value === '' || value === null)
-    return undefined
-  if (item.type === 'number')
-    return value === undefined ? undefined : Number(value)
-  return value
 }
 
 function stringifyJsonProp(value) {
@@ -7246,7 +7017,7 @@ function resolveCrudFieldRoles(component = {}, index = 0) {
 }
 
 function updateFormLayout(patch = {}) {
-  emit('update:schema', updateDesignerLayout(props.schema, patch))
+  designerStore.updateLayout(patch)
 }
 
 function updateRowTotalColumns(value) {
@@ -7265,7 +7036,7 @@ function updateRowTotalColumns(value) {
     props: {
       ...(row.props || {}),
       columns,
-      gutter: row.props?.gutter ?? 16,
+      gutter: row.props?.gutter ?? 12,
     },
     children,
   })
@@ -7316,8 +7087,10 @@ function updateRowCellCount(value) {
   updateComponent({
     label: `${count} 列栅格`,
     props: {
+      // 展开原 props：列数调整是布局重排，rowGap/gutter 等其它栅格配置必须原样保留
+      ...(row.props || {}),
       columns: totalColumns,
-      gutter: row.props?.gutter ?? 16,
+      gutter: row.props?.gutter ?? 12,
     },
     children: nextColumns,
   })
@@ -7358,18 +7131,7 @@ function createColumn(rowId, index, span = 6) {
   }
 }
 
-function normalizeGridCount(value) {
-  const number = Number(value)
-  return Math.max(1, Math.min(maxFormGridColumns, Number.isFinite(number) ? number : 2))
-}
-
-function normalizeLabelWidthInput(value) {
-  const text = String(value ?? '').trim()
-  if (!text || text === 'auto')
-    return 'auto'
-  const number = Number(text)
-  return Number.isFinite(number) ? number : text
-}
+// normalizeGridCount / normalizeLabelWidthInput 已下沉 formLayoutConfig.js
 
 function normalizeApiBase(value) {
   const text = String(value || '').trim().replace(/\/+/g, '/')
@@ -7403,321 +7165,6 @@ function hasAncestorComponent(schema = {}, componentId = '', componentKeys = [])
     children = component.children || []
   }
   return false
-}
-
-function buildNaivePropGroups(componentKey = '') {
-  const key = componentKey || ''
-  const commonInputProps = [
-    prop('size', 'size', 'select', componentSizeOptions.filter(item => item.value)),
-    prop('clearable', 'clearable', 'boolean', null, true),
-    prop('disabled', 'disabled', 'boolean', null, false),
-    prop('placeholder', 'placeholder'),
-    prop('status', 'status', 'select', [
-      { label: 'default', value: '' },
-      { label: 'success', value: 'success' },
-      { label: 'warning', value: 'warning' },
-      { label: 'error', value: 'error' },
-    ]),
-  ]
-  const maps = {
-    input: [
-      group('NInput Props', [
-        ...commonInputProps,
-        prop('maxlength', 'maxlength', 'number', null, undefined, { min: 0 }),
-        prop('showCount', 'show-count', 'boolean', null, false),
-        prop('round', 'round', 'boolean', null, false),
-        prop('readonly', 'readonly', 'boolean', null, false),
-        prop('inputProps', 'input-props', 'json'),
-      ]),
-    ],
-    textarea: [
-      group('NInput Textarea Props', [
-        ...commonInputProps,
-        prop('rows', 'rows', 'number', null, 3, { min: 1, max: 20 }),
-        prop('autosize', 'autosize', 'json'),
-        prop('maxlength', 'maxlength', 'number', null, undefined, { min: 0 }),
-        prop('showCount', 'show-count', 'boolean', null, false),
-        prop('readonly', 'readonly', 'boolean', null, false),
-      ]),
-    ],
-    number: [
-      group('NInputNumber Props', [
-        prop('size', 'size', 'select', componentSizeOptions.filter(item => item.value)),
-        prop('min', 'min', 'number'),
-        prop('max', 'max', 'number'),
-        prop('step', 'step', 'number', null, 1),
-        prop('precision', 'precision', 'number', null, undefined, { min: 0 }),
-        prop('showButton', 'show-button', 'boolean', null, true),
-        prop('clearable', 'clearable', 'boolean', null, true),
-        prop('disabled', 'disabled', 'boolean', null, false),
-        prop('placeholder', 'placeholder'),
-      ]),
-    ],
-    money: [
-      group('NInputNumber Props', [
-        prop('size', 'size', 'select', componentSizeOptions.filter(item => item.value)),
-        prop('min', 'min', 'number'),
-        prop('max', 'max', 'number'),
-        prop('step', 'step', 'number', null, 0.01),
-        prop('precision', 'precision', 'number', null, 2, { min: 0 }),
-        prop('showButton', 'show-button', 'boolean', null, true),
-        prop('clearable', 'clearable', 'boolean', null, true),
-        prop('placeholder', 'placeholder'),
-      ]),
-    ],
-    select: [
-      group('NSelect Props', [
-        prop('size', 'size', 'select', componentSizeOptions.filter(item => item.value)),
-        prop('multiple', 'multiple', 'boolean', null, false),
-        prop('clearable', 'clearable', 'boolean', null, true),
-        prop('filterable', 'filterable', 'boolean', null, true),
-        prop('disabled', 'disabled', 'boolean', null, false),
-        prop('remote', 'remote', 'boolean', null, false),
-        prop('loading', 'loading', 'boolean', null, false),
-        prop('maxTagCount', 'max-tag-count', 'number', null, undefined, { min: 1 }),
-        prop('placement', 'placement', 'select', pickerPlacementOptions),
-        prop('fallbackOption', 'fallback-option', 'boolean', null, true),
-      ]),
-    ],
-    dictSelect: [
-      group('DictSelect / NSelect Props', [
-        prop('dictType', 'dict-type'),
-        prop('size', 'size', 'select', componentSizeOptions.filter(item => item.value)),
-        prop('multiple', 'multiple', 'boolean', null, false),
-        prop('clearable', 'clearable', 'boolean', null, true),
-        prop('filterable', 'filterable', 'boolean', null, true),
-        prop('disabled', 'disabled', 'boolean', null, false),
-      ]),
-    ],
-    radio: [
-      group('RadioGroup Props', [
-        prop('name', 'name'),
-        prop('defaultValue', 'default-value'),
-        prop('size', 'size', 'select', componentSizeOptions.filter(item => item.value)),
-        prop('disabled', 'disabled', 'boolean', null, false),
-      ]),
-    ],
-    radioButton: [
-      group('RadioGroup Props', [
-        prop('name', 'name'),
-        prop('defaultValue', 'default-value'),
-        prop('size', 'size', 'select', componentSizeOptions.filter(item => item.value)),
-        prop('disabled', 'disabled', 'boolean', null, false),
-      ]),
-    ],
-    checkbox: [
-      group('CheckboxGroup Props', [
-        prop('disabled', 'disabled', 'boolean', null, false),
-        prop('defaultValue', 'default-value', 'json'),
-        prop('value', 'value（受控，高级）', 'json'),
-        prop('min', 'min', 'number', null, undefined, { min: 0 }),
-        prop('max', 'max', 'number', null, undefined, { min: 0 }),
-      ]),
-    ],
-    switch: [
-      group('NSwitch Props', [
-        prop('size', 'size', 'select', componentSizeOptions.filter(item => item.value)),
-        prop('disabled', 'disabled', 'boolean', null, false),
-        prop('round', 'round', 'boolean', null, true),
-        prop('rubberBand', 'rubber-band', 'boolean', null, true),
-        prop('checkedValue', 'checked-value', 'select', booleanValueOptions, true),
-        prop('uncheckedValue', 'unchecked-value', 'select', booleanValueOptions, false),
-        prop('checkedText', 'checked 文案'),
-        prop('uncheckedText', 'unchecked 文案'),
-      ]),
-    ],
-    slider: [
-      group('NSlider Props', [
-        prop('min', 'min', 'number', null, 0),
-        prop('max', 'max', 'number', null, 100),
-        prop('step', 'step', 'number', null, 1),
-        prop('range', 'range', 'boolean', null, false),
-        prop('vertical', 'vertical', 'boolean', null, false),
-        prop('tooltip', 'tooltip', 'boolean', null, true),
-        prop('marks', 'marks', 'json'),
-      ]),
-    ],
-    rate: [
-      group('NRate Props', [
-        prop('count', 'count', 'number', null, 5, { min: 1, max: 10 }),
-        prop('allowHalf', 'allow-half', 'boolean', null, false),
-        prop('readonly', 'readonly', 'boolean', null, false),
-        prop('clearable', 'clearable', 'boolean', null, false),
-        prop('size', 'size', 'select', componentSizeOptions.filter(item => item.value)),
-      ]),
-    ],
-    color: [
-      group('NColorPicker Props', [
-        prop('showAlpha', 'show-alpha', 'boolean', null, true),
-        prop('modes', 'modes', 'multiSelect', [
-          { label: 'hex', value: 'hex' },
-          { label: 'rgb', value: 'rgb' },
-          { label: 'hsl', value: 'hsl' },
-          { label: 'hsv', value: 'hsv' },
-        ]),
-        prop('swatches', 'swatches', 'json'),
-        prop('actions', 'actions', 'multiSelect', pickerActionOptions),
-        prop('placement', 'placement', 'select', pickerPlacementOptions),
-      ]),
-    ],
-    cascader: [
-      group('NCascader Props', [
-        prop('multiple', 'multiple', 'boolean', null, false),
-        prop('cascade', 'cascade', 'boolean', null, true),
-        prop('checkStrategy', 'check-strategy', 'select', [
-          { label: 'all', value: 'all' },
-          { label: 'parent', value: 'parent' },
-          { label: 'child', value: 'child' },
-        ]),
-        prop('showPath', 'show-path', 'boolean', null, true),
-        prop('filterable', 'filterable', 'boolean', null, false),
-        prop('clearable', 'clearable', 'boolean', null, true),
-        prop('placement', 'placement', 'select', pickerPlacementOptions),
-      ]),
-    ],
-    treeSelect: [
-      group('NTreeSelect Props', [
-        prop('multiple', 'multiple', 'boolean', null, false),
-        prop('cascade', 'cascade', 'boolean', null, true),
-        prop('checkable', 'checkable', 'boolean', null, false),
-        prop('filterable', 'filterable', 'boolean', null, false),
-        prop('clearable', 'clearable', 'boolean', null, true),
-        prop('showPath', 'show-path', 'boolean', null, true),
-        prop('maxTagCount', 'max-tag-count', 'number', null, undefined, { min: 1 }),
-      ]),
-    ],
-    card: [
-      group('Card Props', [
-        prop('size', 'size', 'select', cardSizeOptions, 'small'),
-        prop('bordered', 'bordered', 'boolean', null, true),
-        prop('embedded', 'embedded', 'boolean', null, false),
-        prop('segmented', 'segmented', 'boolean', null, false),
-        prop('hoverable', 'hoverable', 'boolean', null, false),
-        prop('contentScrollable', 'content-scrollable', 'boolean', null, false),
-        prop('role', 'role'),
-        prop('headerStyle', 'header-style', 'json'),
-        prop('contentStyle', 'content-style', 'json'),
-        prop('footerStyle', 'footer-style', 'json'),
-      ]),
-    ],
-    tabs: [
-      group('Tabs Props', [
-        prop('type', 'type', 'select', tabsTypeOptions, 'line'),
-        prop('size', 'size', 'select', componentSizeOptions.filter(item => item.value), 'medium'),
-        prop('placement', 'placement', 'select', tabsPlacementOptions, 'top'),
-        prop('trigger', 'trigger', 'select', tabsTriggerOptions, 'click'),
-        prop('animated', 'animated', 'boolean', null, true),
-        prop('closable', 'closable', 'boolean', null, false),
-        prop('addable', 'addable', 'boolean', null, false),
-        prop('justifyContent', 'justify-content', 'select', [
-          { label: 'start', value: 'start' },
-          { label: 'center', value: 'center' },
-          { label: 'end', value: 'end' },
-          { label: 'space-between', value: 'space-between' },
-          { label: 'space-around', value: 'space-around' },
-          { label: 'space-evenly', value: 'space-evenly' },
-        ]),
-        prop('tabsPadding', 'tabs-padding', 'number', null, 0, { min: 0 }),
-        prop('paneStyle', 'pane-style', 'json'),
-        prop('tabStyle', 'tab-style', 'json'),
-      ]),
-    ],
-    collapse: [
-      group('Collapse Props', [
-        prop('accordion', 'accordion', 'boolean', null, false),
-        prop('arrowPlacement', 'arrow-placement', 'select', collapseArrowPlacementOptions, 'left'),
-        prop('displayDirective', 'display-directive', 'select', collapseDisplayDirectiveOptions, 'if'),
-        prop('triggerAreas', 'trigger-areas', 'multiSelect', collapseTriggerAreaOptions, ['main', 'arrow']),
-        prop('defaultExpandedNames', 'default-expanded-names', 'json'),
-        prop('expandedNames', 'expanded-names（受控，高级）', 'json'),
-      ]),
-    ],
-    button: [
-      group('Button Props', [
-        prop('text', 'text'),
-        prop('type', 'type', 'select', buttonTypeOptions, 'primary'),
-        prop('size', 'size', 'select', componentSizeOptions.filter(item => item.value), 'medium'),
-        prop('secondary', 'secondary', 'boolean', null, false),
-        prop('tertiary', 'tertiary', 'boolean', null, false),
-        prop('quaternary', 'quaternary', 'boolean', null, false),
-        prop('dashed', 'dashed', 'boolean', null, false),
-        prop('round', 'round', 'boolean', null, false),
-        prop('block', 'block', 'boolean', null, false),
-        prop('loading', 'loading', 'boolean', null, false),
-        prop('disabled', 'disabled', 'boolean', null, false),
-      ]),
-    ],
-  }
-  if (isDateLikeComponent(key))
-    return [group('DatePicker Props', datePickerPropFields())]
-  if (isTimeLikeComponent(key))
-    return [group('TimePicker Props', timePickerPropFields())]
-  return maps[key] || []
-}
-
-function datePickerPropFields() {
-  return [
-    prop('type', 'type', 'select', datePickerTypeOptions),
-    prop('size', 'size', 'select', componentSizeOptions.filter(item => item.value)),
-    prop('format', 'format'),
-    prop('valueFormat', 'value-format'),
-    prop('placement', 'placement', 'select', pickerPlacementOptions, 'bottom-start'),
-    prop('actions', 'actions', 'multiSelect', pickerActionOptions),
-    prop('bordered', 'bordered', 'boolean', null, true),
-    prop('clearable', 'clearable', 'boolean', null, true),
-    prop('inputReadonly', 'input-readonly', 'boolean', null, false),
-    prop('closeOnSelect', 'close-on-select', 'boolean', null, false),
-    prop('updateValueOnClose', 'update-value-on-close', 'boolean', null, false),
-    prop('defaultTime', 'default-time', 'json'),
-    prop('separator', 'separator'),
-    prop('startPlaceholder', 'start-placeholder'),
-    prop('endPlaceholder', 'end-placeholder'),
-    prop('firstDayOfWeek', 'first-day-of-week', 'number', null, undefined, { min: 0, max: 6 }),
-  ]
-}
-
-function timePickerPropFields() {
-  return [
-    prop('size', 'size', 'select', componentSizeOptions.filter(item => item.value)),
-    prop('format', 'format'),
-    prop('valueFormat', 'value-format'),
-    prop('placement', 'placement', 'select', pickerPlacementOptions, 'bottom-start'),
-    prop('actions', 'actions', 'multiSelect', pickerActionOptions),
-    prop('bordered', 'bordered', 'boolean', null, true),
-    prop('clearable', 'clearable', 'boolean', null, true),
-    prop('inputReadonly', 'input-readonly', 'boolean', null, false),
-    prop('showIcon', 'show-icon', 'boolean', null, true),
-    prop('hours', 'hours', 'json'),
-    prop('minutes', 'minutes', 'json'),
-    prop('seconds', 'seconds', 'json'),
-  ]
-}
-
-function isDateLikeComponent(key = '') {
-  return ['date', 'datetime', 'daterange', 'datetimerange', 'month', 'year', 'quarter'].includes(key)
-}
-
-function isTimeLikeComponent(key = '') {
-  return ['time', 'timerange'].includes(key)
-}
-
-function group(title, fields = []) {
-  const zh = groupChineseLabels[title]
-  return { title: zh ? `${zh} ${title}` : title, fields }
-}
-
-function prop(key, label, type = 'text', options = null, defaultValue = undefined, extra = {}) {
-  return { key, label: formatPropLabel(key, label), type, options, defaultValue, ...extra }
-}
-
-function formatPropLabel(key = '', label = '') {
-  const zh = propChineseLabels[key] || propChineseLabels[label] || ''
-  const propName = label || key
-  if (!zh)
-    return propName
-  if (propName.includes('（'))
-    return `${zh}（${propName}）`
-  return `${zh}（${propName}）`
 }
 
 function resolvePxNumber(value, fallback = 0) {
@@ -7840,12 +7287,14 @@ onBeforeUnmount(() => {
 }
 
 .edit-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
 }
 
 .edit-panel-title strong,
 .edit-panel-title span {
-  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -7888,6 +7337,69 @@ onBeforeUnmount(() => {
   border-color: #c7d2fe;
   background: #f4f6ff;
   color: #3153d8;
+}
+
+.panel-back-button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 4px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #52525b;
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.panel-back-button:hover {
+  background: #f0f1f5;
+  color: #3153d8;
+}
+
+.subtable-inline-editor {
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.subtable-inline-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  margin: 8px 10px;
+  border-radius: 8px;
+  background: #f0f5ff;
+  border: 1px solid #d6e4ff;
+  color: #1d39c4;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.subtable-inline-hint strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.subtable-inline-hint p {
+  margin: 0;
+  color: #434343;
+}
+
+.subtable-inline-nav-hint {
+  padding: 6px 12px;
+  margin: 0 10px 10px;
+  border-radius: 6px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  color: #389e0d;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .property-search-box {
@@ -8014,30 +7526,74 @@ onBeforeUnmount(() => {
 .property-form {
   min-height: 0;
   overflow: auto;
-  padding: 8px 8px 42px;
+  padding: 6px 6px 42px;
   background: #fafafa;
 }
 
 .form-event-primary-panel {
+  display: grid;
+  gap: 14px;
+  align-content: start;
   min-height: 100%;
   padding: 10px 8px 42px;
   background: #fafafa;
 }
 
+.form-lifecycle-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.form-lifecycle-panel__head strong {
+  color: #3f3f46;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.form-lifecycle-panel__head p {
+  margin: 3px 0 0;
+  color: #71717a;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.form-lifecycle-list {
+  display: grid;
+  gap: 8px;
+}
+
+.result-mapping-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr) 18px;
+  gap: 6px;
+  padding: 0 1px;
+  color: #a1a1aa;
+  font-size: 11px;
+}
+
+.form-automation-intro {
+  margin: 0 0 10px;
+  color: #71717a;
+  font-size: 11px;
+  line-height: 16px;
+}
+
 .property-form :deep(.n-collapse),
 .property-form > .panel-item {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .panel-item {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .form-property-collapse,
 .config-collapse {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .form-property-collapse :deep(.n-collapse-item),
@@ -8056,8 +7612,8 @@ onBeforeUnmount(() => {
 
 .form-property-collapse :deep(.n-collapse-item__header),
 .config-collapse :deep(.n-collapse-item__header) {
-  min-height: 35px;
-  padding: 0 12px;
+  min-height: 30px;
+  padding: 0 10px;
   border-bottom: 0;
 }
 
@@ -8070,7 +7626,7 @@ onBeforeUnmount(() => {
 
 .form-property-collapse :deep(.n-collapse-item__content-inner),
 .config-collapse :deep(.n-collapse-item__content-inner) {
-  padding: 2px 10px 10px;
+  padding: 2px 8px 8px;
 }
 
 .form-property-collapse :deep(.n-collapse-item__content-inner > .panel-item),
@@ -8090,7 +7646,7 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(228, 228, 231, 0.72);
   border-radius: 8px;
   background: #fff;
-  padding: 10px;
+  padding: 8px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
@@ -8098,47 +7654,8 @@ onBeforeUnmount(() => {
   border: 1px solid rgba(228, 228, 231, 0.72);
   border-radius: 8px;
   background: #fff;
-  padding: 12px;
+  padding: 10px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-}
-
-.more-config-button {
-  --n-color: #fff !important;
-  --n-color-hover: #f4f4f5 !important;
-  --n-color-pressed: #e4e4e7 !important;
-  --n-color-focus: #fff !important;
-  --n-border: 1px solid #e4e4e7 !important;
-  --n-border-hover: 1px solid #c7d2fe !important;
-  --n-border-pressed: 1px solid #a5b4fc !important;
-  --n-border-focus: 1px solid #c7d2fe !important;
-  --n-text-color: #4f46e5 !important;
-  --n-text-color-hover: #4338ca !important;
-  --n-text-color-pressed: #3730a3 !important;
-  --n-text-color-focus: #4f46e5 !important;
-  height: 28px;
-  justify-content: center;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  font-weight: 600;
-}
-
-.more-config-button :deep(.n-button__content) {
-  justify-content: center;
-  width: 100%;
-}
-
-.button-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  background: #2563eb;
-  color: #fff;
-  font-size: 13px;
-}
-
-.more-config-button:hover .button-icon {
-  background: #1d4ed8;
 }
 
 .form-api-panel {
@@ -8254,7 +7771,7 @@ onBeforeUnmount(() => {
   --n-text-color: #15803d !important;
   --n-text-color-hover: #166534 !important;
   --n-text-color-pressed: #14532d !important;
-  height: 34px;
+  height: 28px;
   font-weight: 700;
 }
 
@@ -8280,11 +7797,11 @@ onBeforeUnmount(() => {
 .field-constraint-config {
   display: grid;
   width: 100%;
-  gap: 8px;
+  gap: 6px;
   border: 1px solid #dbeafe;
   border-radius: 7px;
   background: #f8fbff;
-  padding: 10px;
+  padding: 8px;
 }
 
 .switch-line.compact {
@@ -8292,7 +7809,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 6px 8px;
   border: 1px solid #e4e4e7;
   border-radius: 7px;
   background: #fafafa;
@@ -8304,7 +7821,7 @@ onBeforeUnmount(() => {
 .auto-code-config {
   display: grid;
   width: 100%;
-  gap: 8px;
+  gap: 6px;
 }
 
 .formula-config-entry {
@@ -8316,7 +7833,7 @@ onBeforeUnmount(() => {
   border: 1px solid #e4e4e7;
   border-radius: 7px;
   background: #fafafa;
-  padding: 9px 10px;
+  padding: 7px 8px;
 }
 
 .formula-config-entry > div {
@@ -8402,12 +7919,6 @@ onBeforeUnmount(() => {
 
 .auto-code-issue.warning {
   color: #b45309;
-}
-
-.linkage-action-list {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 10px;
 }
 
 .appearance-control {
@@ -8560,45 +8071,6 @@ onBeforeUnmount(() => {
   color: #6366f1;
 }
 
-.linkage-action-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-  cursor: pointer;
-  border: 1px solid #e4e4e7;
-  border-radius: 6px;
-  background: #fafafa;
-  padding: 7px 9px;
-  color: #3f3f46;
-  font-size: 11px;
-  font-weight: 600;
-  text-align: left;
-  transition:
-    border-color 160ms ease,
-    background-color 160ms ease,
-    color 160ms ease;
-}
-
-.linkage-action-row:hover {
-  border-color: #c7d2fe;
-  background: #fff;
-  color: #4f46e5;
-}
-
-.linkage-action-row strong {
-  color: #4f46e5;
-  font-size: 10px;
-  font-weight: 600;
-  opacity: 0;
-  transition: opacity 160ms ease;
-}
-
-.linkage-action-row:hover strong {
-  opacity: 1;
-}
-
 .panel-item-title {
   display: flex;
   align-items: center;
@@ -8639,7 +8111,7 @@ onBeforeUnmount(() => {
 }
 
 .panel-item :deep(.n-form-item) {
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -8659,7 +8131,7 @@ onBeforeUnmount(() => {
   min-height: 18px;
   height: auto;
   padding-top: 0;
-  padding-bottom: 5px;
+  padding-bottom: 3px;
   padding-left: 0;
   color: #52525b;
   font-size: 11px;
@@ -9053,6 +8525,10 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
+.compact-config-row--switch > :last-child {
+  justify-self: end;
+}
+
 .compact-config-row > label,
 .form-columns-head > label,
 .compact-field > label {
@@ -9283,247 +8759,6 @@ onBeforeUnmount(() => {
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
-.form-asset-panel {
-  background: #fff;
-}
-
-.form-asset-list {
-  display: grid;
-  gap: 6px;
-}
-
-.form-asset-list-title {
-  color: #71717a;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 16px;
-}
-
-.form-default-badge {
-  display: inline-flex;
-  align-items: center;
-  height: 26px;
-  border: 1px solid #bbf7d0;
-  border-radius: 6px;
-  background: #f0fdf4;
-  color: #16a34a;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 0 8px;
-}
-
-.form-asset-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.form-asset-icon-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: #a1a1aa;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 0;
-  transition:
-    background-color 160ms ease,
-    color 160ms ease;
-}
-
-.form-asset-icon-button:hover {
-  background: #eef2ff;
-  color: #4f46e5;
-}
-
-.form-asset-tabs {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 10px;
-  overflow-x: auto;
-  padding-bottom: 3px;
-}
-
-.form-asset-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 168px;
-  flex: 0 0 auto;
-  height: 32px;
-  cursor: pointer;
-  border: 1px solid #e5e7eb;
-  border-radius: 7px;
-  background: #fff;
-  color: #475569;
-  padding: 0 9px;
-}
-
-.form-asset-tab:hover {
-  border-color: #bfdbfe;
-  background: #f8fafc;
-}
-
-.form-asset-tab.active {
-  border-color: #2563eb;
-  background: #eff6ff;
-  color: #1d4ed8;
-}
-
-.form-asset-tab em {
-  display: inline-grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: #e2e8f0;
-  color: #475569;
-  font-style: normal;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.form-asset-tab.active em {
-  background: #2563eb;
-  color: #fff;
-}
-
-.form-asset-tab span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.form-asset-tab strong {
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: #dbeafe;
-  color: #1d4ed8;
-  font-size: 10px;
-  line-height: 16px;
-  padding: 0 5px;
-}
-
-.current-form-banner {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 10px;
-  border: 1px solid #bfdbfe;
-  border-radius: 8px;
-  background: #eff6ff;
-  color: #1d4ed8;
-  padding: 9px 10px;
-  animation: current-form-pulse 420ms ease;
-}
-
-.current-form-banner span {
-  border-radius: 999px;
-  background: #2563eb;
-  color: #fff;
-  font-size: 11px;
-  line-height: 18px;
-  padding: 0 7px;
-}
-
-.current-form-banner strong {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-}
-
-.form-asset-edit-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.form-asset-edit-grid :deep(.n-form-item) {
-  margin-bottom: 0;
-}
-
-.form-asset-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  border: 1px solid #e5e7eb;
-  border-radius: 7px;
-  background: #fff;
-  color: #1f2329;
-  padding: 9px 10px;
-  text-align: left;
-}
-
-button.form-asset-card,
-.form-asset-main {
-  cursor: pointer;
-}
-
-.form-asset-card.active {
-  border-color: #93c5fd;
-  background: #eff6ff;
-}
-
-.form-asset-main {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: center;
-  gap: 6px;
-}
-
-.form-asset-card strong,
-.form-asset-card span,
-.form-asset-main strong,
-.form-asset-main span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.form-asset-card strong,
-.form-asset-main strong {
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.form-asset-card span,
-.form-asset-main span {
-  margin-top: 2px;
-  color: #8f959e;
-  font-size: 11px;
-  line-height: 16px;
-}
-
-@keyframes current-form-pulse {
-  0% {
-    transform: translateY(-2px);
-    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.24);
-  }
-  100% {
-    transform: translateY(0);
-    box-shadow: 0 0 0 8px rgba(37, 99, 235, 0);
-  }
-}
-
 .layout-child-manager {
   display: grid;
   gap: 8px;
@@ -9539,6 +8774,18 @@ button.form-asset-card,
   background: #fff;
   padding: 10px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  animation: interactionRuleEnter 220ms ease-out;
+}
+
+@keyframes interactionRuleEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .layout-child-card {
@@ -9929,21 +9176,228 @@ button.form-asset-card,
   text-align: center;
 }
 
+/* 选项列表（宜搭式）：每行 = 序号 + 名称输入框（占满）+ 禁用/删除图标；
+   width:100% 保证在 .n-form-item-blank(flex row) 中占满整行 */
 .option-list {
   display: grid;
+  gap: 4px;
+  width: 100%;
+}
+
+.option-list-label {
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
+}
+
+.option-linkage-label {
+  width: 100%;
+}
+
+.option-linkage-hint {
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #71717a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.option-linkage-hint.is-warning {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+/* 级联选项步骤式卡片：① 上级字段 → ② 联动方式（场景卡片）→ ③④⑤ 接口参数 */
+.option-linkage-steps {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.option-linkage-step {
+  display: grid;
+  gap: 6px;
+}
+
+.option-linkage-step-label {
+  color: #52525b;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.option-linkage-step-hint {
+  color: #a1a1aa;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.option-linkage-modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.option-linkage-mode {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.option-linkage-mode:hover {
+  border-color: #a5b4fc;
+}
+
+.option-linkage-mode.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.option-linkage-mode strong {
+  color: #1f2329;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.option-linkage-mode.active strong {
+  color: #1d4ed8;
+}
+
+.option-linkage-mode span {
+  color: #71717a;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.option-linkage-summary {
+  border: 1px solid #dbeafe;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1e40af;
+  font-size: 12px;
+  line-height: 1.55;
+  padding: 7px 10px;
+}
+
+.option-linkage-summary.is-warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.option-list-label :deep(.n-checkbox .n-checkbox__label) {
+  padding-left: 4px;
+  color: #71717a;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.option-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #ececf1;
+  border-radius: 6px;
+  background: #fff;
+  padding: 4px;
+  transition: border-color 160ms ease;
+}
+
+.option-row:hover {
+  border-color: #c7d2fe;
+}
+
+.option-row-index {
+  flex: 0 0 auto;
+  min-width: 14px;
+  color: #a1a1aa;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.option-row .n-input {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.option-row .option-row-label-input {
+  flex: 1.15 1 0;
+}
+
+.option-row-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+}
+
+.option-row-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #a1a1aa;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.option-row-action--remove:hover {
+  background: #fee2e2;
+  color: #d03050;
+}
+
+.option-row-action--ban:hover,
+.option-row-action--ban.active {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.option-row.is-disabled .option-row-index {
+  color: #d4a72c;
+}
+
+.option-row.is-disabled .n-input {
+  opacity: 0.55;
+}
+
+.option-row-extra {
+  display: inline-flex;
+  flex: 1 1 100%;
+  align-items: center;
+  gap: 4px;
+  color: #71717a;
+  font-size: 11px;
+}
+
+.option-row-props-input {
+  flex: 1 1 100%;
 }
 
 .option-editor-row {
   display: grid;
-  grid-template-columns: minmax(72px, 1fr) minmax(64px, 0.8fr) 42px 44px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr) auto auto;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   border: 1px solid #eff0f1;
   border-radius: 6px;
   background: #fff;
-  padding: 7px;
+  padding: 5px;
 }
 
 .option-editor-row.two-columns {
@@ -9960,7 +9414,7 @@ button.form-asset-card,
 
 .page-widget-config-stack {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -9986,6 +9440,14 @@ button.form-asset-card,
   gap: 8px;
   align-items: center;
   min-width: 0;
+}
+
+.param-ref-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
 }
 
 .data-source-row > span {
@@ -10195,15 +9657,20 @@ button.form-asset-card,
   gap: 6px;
 }
 
-.lifecycle-event-card {
-  position: relative;
-  padding-right: 34px;
+.lifecycle-event-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lifecycle-event-card__head > strong {
+  color: #3f3f46;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .event-delete-icon {
-  position: absolute;
-  top: 8px;
-  right: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -10216,15 +9683,9 @@ button.form-asset-card,
   color: #a1a1aa;
   font-size: 15px;
   line-height: 1;
-  opacity: 0;
   transition:
-    opacity 160ms ease,
     background-color 160ms ease,
     color 160ms ease;
-}
-
-.lifecycle-event-card:hover .event-delete-icon {
-  opacity: 1;
 }
 
 .event-delete-icon:hover {
@@ -10232,8 +9693,65 @@ button.form-asset-card,
   color: #ef4444;
 }
 
-.event-type-field {
-  padding-right: 2px;
+.compact-field-set-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.result-mapping-list {
+  display: grid;
+  gap: 6px;
+}
+
+.result-mapping-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr) 18px;
+  gap: 6px;
+  padding: 0 1px;
+  color: #a1a1aa;
+  font-size: 11px;
+}
+
+.result-mapping-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 16px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 6px;
+}
+
+.result-mapping-arrow {
+  color: #a1a1aa;
+  font-size: 12px;
+  text-align: center;
+}
+
+.result-mapping-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #a1a1aa;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.result-mapping-remove:hover {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.result-mapping-hint {
+  display: block;
+  margin-top: 5px;
+  color: #71717a;
+  font-size: 11px;
+  line-height: 16px;
 }
 
 .switch-list + :deep(.n-form-item) {

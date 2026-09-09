@@ -1,0 +1,12 @@
+schema_version: 1
+module_path: forge_admin_ui/lowcode_builder
+title: 低代码页面构建器与扩展沙箱
+scope:
+    - forge-admin-ui/src/components/lowcode-builder/
+    - forge-admin-ui/src/components/lowcode-extension/
+    - forge-admin-ui/src/components/lowcode-runtime/
+    - forge-admin-ui/src/components/page-templates/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/framework_plugins/plugin_parent/generator_plugin

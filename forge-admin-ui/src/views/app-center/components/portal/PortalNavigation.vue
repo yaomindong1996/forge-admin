@@ -15,14 +15,16 @@
       :item="navItem"
       :current-page-id="currentPageId"
       :collapsed="collapsed && navigationStyle !== 'top'"
+      :collapsed-group-ids="collapsedGroupIds"
       :navigation-style="navigationStyle"
       @select="emit('select', $event)"
+      @toggle-group="toggleGroup"
     />
   </nav>
 </template>
 
 <script setup>
-import { computed, defineComponent, h } from 'vue'
+import { computed, defineComponent, h, ref } from 'vue'
 import IconRenderer from '@/components/IconRenderer.vue'
 import TopMenuBar from '@/layouts/components/TopMenuBar.vue'
 
@@ -34,8 +36,21 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['select'])
+const collapsedGroupIds = ref(new Set())
 const tree = computed(() => buildTree(props.nodes))
 const topMenuItems = computed(() => tree.value.map(toSystemMenuItem))
+
+function toggleGroup(groupId) {
+  const nextCollapsedGroupIds = new Set(collapsedGroupIds.value)
+  const normalizedGroupId = String(groupId)
+
+  if (nextCollapsedGroupIds.has(normalizedGroupId))
+    nextCollapsedGroupIds.delete(normalizedGroupId)
+  else
+    nextCollapsedGroupIds.add(normalizedGroupId)
+
+  collapsedGroupIds.value = nextCollapsedGroupIds
+}
 
 function toSystemMenuItem(item) {
   const children = (item.children || []).map(toSystemMenuItem)
@@ -60,18 +75,20 @@ const PortalNavigationEntry = defineComponent({
     item: { type: Object, required: true },
     currentPageId: { type: String, default: '' },
     collapsed: Boolean,
+    collapsedGroupIds: { type: Set, default: () => new Set() },
     navigationStyle: { type: String, default: 'side' },
   },
-  emits: ['select'],
+  emits: ['select', 'toggleGroup'],
   setup(itemProps, { emit: itemEmit }) {
     return () => {
       const item = itemProps.item
       if (item.type === 'group') {
         const active = isNavigationItemActive(item, itemProps.currentPageId)
+        const groupExpanded = itemProps.navigationStyle === 'top' || !itemProps.collapsedGroupIds.has(String(item.id))
         const titleContent = [
           item.icon ? h(IconRenderer, { icon: item.icon, size: 16 }) : null,
           (!itemProps.collapsed || itemProps.navigationStyle === 'top') ? h('span', item.title) : null,
-          itemProps.navigationStyle === 'top'
+          itemProps.navigationStyle === 'top' || !itemProps.collapsed
             ? h('span', { 'class': 'portal-nav-group-caret', 'aria-hidden': 'true' }, [h('i', { class: 'i-material-symbols:keyboard-arrow-down-rounded' })])
             : null,
         ]
@@ -81,17 +98,27 @@ const PortalNavigationEntry = defineComponent({
               'class': ['portal-nav-group-title', { active }],
               'aria-haspopup': 'menu',
             }, titleContent)
-          : h('div', { class: ['portal-nav-group-title', { active }] }, titleContent)
-        return h('section', { class: ['portal-nav-group', { 'has-children': item.children?.length, 'is-active': active }] }, [
+          : h('button', {
+              'type': 'button',
+              'class': ['portal-nav-group-title', { active, collapsed: !groupExpanded }],
+              'aria-expanded': String(groupExpanded),
+              'title': itemProps.collapsed ? item.title : undefined,
+              'onClick': () => itemEmit('toggleGroup', item.id),
+            }, titleContent)
+        return h('section', { class: ['portal-nav-group', { 'has-children': item.children?.length, 'is-active': active, 'is-group-collapsed': !groupExpanded }] }, [
           title,
-          h('div', { class: 'portal-nav-group-items', role: itemProps.navigationStyle === 'top' ? 'menu' : undefined }, (item.children || []).map(child => h(PortalNavigationEntry, {
-            key: child.id,
-            item: child,
-            currentPageId: itemProps.currentPageId,
-            collapsed: itemProps.collapsed,
-            navigationStyle: itemProps.navigationStyle,
-            onSelect: value => itemEmit('select', value),
-          }))),
+          groupExpanded
+            ? h('div', { class: 'portal-nav-group-items', role: itemProps.navigationStyle === 'top' ? 'menu' : undefined }, (item.children || []).map(child => h(PortalNavigationEntry, {
+                key: child.id,
+                item: child,
+                currentPageId: itemProps.currentPageId,
+                collapsed: itemProps.collapsed,
+                collapsedGroupIds: itemProps.collapsedGroupIds,
+                navigationStyle: itemProps.navigationStyle,
+                onSelect: value => itemEmit('select', value),
+                onToggleGroup: value => itemEmit('toggleGroup', value),
+              })))
+            : null,
         ])
       }
 
@@ -176,8 +203,8 @@ function normalizeNavigationNode(node) {
 .portal-navigation.is-collapsed {
   width: 232px;
   flex-direction: column;
-  gap: 4px;
-  padding: 14px 10px;
+  gap: 2px;
+  padding: 12px 10px;
 }
 
 .portal-navigation.collapsed {
@@ -199,26 +226,112 @@ function normalizeNavigationNode(node) {
 .is-side .portal-nav-group,
 .is-collapsed .portal-nav-group {
   display: block;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
-.portal-nav-group-title {
+.is-side > .portal-nav-group:first-child,
+.is-collapsed > .portal-nav-group:first-child {
+  margin-top: 0;
+}
+
+:deep(.portal-nav-group-title) {
   display: flex;
   height: 30px;
   align-items: center;
   gap: 8px;
-  padding: 0 10px;
+  padding: 0 8px;
+  border-radius: 5px;
   color: var(--portal-text-muted, #8f959e);
   font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.is-side :deep(.portal-nav-group-title),
+.is-collapsed :deep(.portal-nav-group-title) {
+  display: flex;
+  width: 100%;
+  height: 32px;
+  align-items: center;
+  padding: 0 10px;
+  border: 0;
+  background: color-mix(in srgb, var(--portal-text-muted, #8f959e) 7%, transparent);
+  color: var(--portal-text, #4e5969);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.is-side :deep(.portal-nav-group-title:hover),
+.is-collapsed :deep(.portal-nav-group-title:hover) {
+  background: color-mix(in srgb, var(--portal-primary, #3370ff) 7%, transparent);
+  color: var(--portal-primary, #3370ff);
+}
+
+.is-side :deep(.portal-nav-group-title:focus-visible),
+.is-collapsed :deep(.portal-nav-group-title:focus-visible) {
+  outline: 2px solid color-mix(in srgb, var(--portal-primary, #3370ff) 54%, transparent);
+  outline-offset: 2px;
+}
+
+.is-side .portal-nav-group.is-active > :deep(.portal-nav-group-title),
+.is-collapsed .portal-nav-group.is-active > :deep(.portal-nav-group-title) {
+  background: color-mix(in srgb, var(--portal-primary, #3370ff) 9%, transparent);
+  color: var(--portal-primary, #3370ff);
   font-weight: 600;
 }
 
-.portal-nav-group-items {
+:deep(.portal-nav-group-items) {
   display: grid;
   gap: 2px;
-  margin-left: 10px;
-  padding-left: 10px;
-  border-left: 2px solid color-mix(in srgb, var(--portal-primary, #3370ff) 18%, transparent);
+  margin: 4px 0 4px 18px;
+  padding-left: 12px;
+  border-left: 1px solid color-mix(in srgb, var(--portal-text-muted, #8f959e) 30%, transparent);
+}
+
+.is-side .portal-nav-group.is-active > :deep(.portal-nav-group-items),
+.is-collapsed .portal-nav-group.is-active > :deep(.portal-nav-group-items) {
+  border-left-color: color-mix(in srgb, var(--portal-primary, #3370ff) 46%, transparent);
+}
+
+.is-side :deep(.portal-nav-group-items > .portal-nav-item),
+.is-collapsed :deep(.portal-nav-group-items > .portal-nav-item) {
+  position: relative;
+}
+
+.is-side :deep(.portal-nav-group-items > .portal-nav-item)::before,
+.is-collapsed :deep(.portal-nav-group-items > .portal-nav-item)::before {
+  position: absolute;
+  top: 50%;
+  left: -13px;
+  width: 9px;
+  border-top: 1px solid color-mix(in srgb, var(--portal-text-muted, #8f959e) 30%, transparent);
+  content: '';
+}
+
+.is-side :deep(.portal-nav-group-items > .portal-nav-item.active)::before,
+.is-collapsed :deep(.portal-nav-group-items > .portal-nav-item.active)::before {
+  border-top-color: color-mix(in srgb, var(--portal-primary, #3370ff) 46%, transparent);
+}
+
+.portal-navigation.collapsed :deep(.portal-nav-group-title) {
+  justify-content: center;
+  padding: 0;
+}
+
+.portal-navigation.collapsed :deep(.portal-nav-group-items) {
+  margin: 2px 0;
+  padding-left: 0;
+  border-left: 0;
+}
+
+.portal-navigation.collapsed :deep(.portal-nav-group-items > .portal-nav-item)::before {
+  display: none;
 }
 
 .is-top .portal-nav-group {
@@ -227,7 +340,7 @@ function normalizeNavigationNode(node) {
   margin-top: 0;
 }
 
-.is-top .portal-nav-group-title {
+.is-top :deep(.portal-nav-group-title) {
   position: relative;
   display: inline-flex;
   width: auto;
@@ -246,7 +359,7 @@ function normalizeNavigationNode(node) {
   cursor: pointer;
 }
 
-.is-top .portal-nav-group-items {
+.is-top :deep(.portal-nav-group-items) {
   position: absolute;
   z-index: 40;
   top: calc(100% + 4px);
@@ -262,20 +375,20 @@ function normalizeNavigationNode(node) {
   box-shadow: 0 10px 28px rgb(31 35 41 / 14%);
 }
 
-.is-top .portal-nav-group:hover > .portal-nav-group-items,
-.is-top .portal-nav-group:focus-within > .portal-nav-group-items {
+.is-top .portal-nav-group:hover > :deep(.portal-nav-group-items),
+.is-top .portal-nav-group:focus-within > :deep(.portal-nav-group-items) {
   display: grid;
   gap: 2px;
 }
 
-.is-top .portal-nav-group-title:hover,
-.is-top .portal-nav-group-title.active,
-.is-top .portal-nav-group.is-active > .portal-nav-group-title {
+.is-top :deep(.portal-nav-group-title:hover),
+.is-top :deep(.portal-nav-group-title.active),
+.is-top .portal-nav-group.is-active > :deep(.portal-nav-group-title) {
   color: var(--portal-primary, #3370ff);
 }
 
-.is-top .portal-nav-group-title.active::after,
-.is-top .portal-nav-group.is-active > .portal-nav-group-title::after {
+.is-top :deep(.portal-nav-group-title.active)::after,
+.is-top .portal-nav-group.is-active > :deep(.portal-nav-group-title)::after {
   position: absolute;
   right: 12px;
   bottom: 2px;
@@ -286,11 +399,11 @@ function normalizeNavigationNode(node) {
   content: '';
 }
 
-.is-top .portal-nav-group-items > .portal-nav-group {
+.is-top :deep(.portal-nav-group-items > .portal-nav-group) {
   width: 100%;
 }
 
-.is-top .portal-nav-group-items > .portal-nav-group > .portal-nav-group-title {
+.is-top :deep(.portal-nav-group-items > .portal-nav-group > .portal-nav-group-title) {
   display: flex;
   width: 100%;
   min-height: 36px;
@@ -303,21 +416,21 @@ function normalizeNavigationNode(node) {
   text-align: left;
 }
 
-.is-top .portal-nav-group-items > .portal-nav-group > .portal-nav-group-title::after {
+.is-top :deep(.portal-nav-group-items > .portal-nav-group > .portal-nav-group-title)::after {
   display: none;
 }
 
-.is-top .portal-nav-group-items > .portal-nav-group > .portal-nav-group-title:hover,
-.is-top .portal-nav-group-items > .portal-nav-group > .portal-nav-group-title.active {
+.is-top :deep(.portal-nav-group-items > .portal-nav-group > .portal-nav-group-title:hover),
+.is-top :deep(.portal-nav-group-items > .portal-nav-group > .portal-nav-group-title.active) {
   background: color-mix(in srgb, var(--portal-primary, #3370ff) 10%, transparent);
 }
 
-.is-top .portal-nav-group-items > .portal-nav-group > .portal-nav-group-items {
+.is-top :deep(.portal-nav-group-items > .portal-nav-group > .portal-nav-group-items) {
   top: -7px;
   left: calc(100% + 6px);
 }
 
-.portal-nav-group-caret {
+:deep(.portal-nav-group-caret) {
   display: inline-flex;
   width: 16px;
   height: 16px;
@@ -329,26 +442,39 @@ function normalizeNavigationNode(node) {
   transition: transform 0.16s ease;
 }
 
-.is-top .portal-nav-group:hover > .portal-nav-group-title .portal-nav-group-caret,
-.is-top .portal-nav-group:focus-within > .portal-nav-group-title .portal-nav-group-caret {
+.is-side :deep(.portal-nav-group-title .portal-nav-group-caret),
+.is-collapsed :deep(.portal-nav-group-title .portal-nav-group-caret) {
+  margin-left: auto;
+}
+
+.is-side .portal-nav-group.is-group-collapsed > :deep(.portal-nav-group-title .portal-nav-group-caret),
+.is-collapsed .portal-nav-group.is-group-collapsed > :deep(.portal-nav-group-title .portal-nav-group-caret) {
+  transform: rotate(-90deg);
+}
+
+.is-top .portal-nav-group:hover > :deep(.portal-nav-group-title .portal-nav-group-caret),
+.is-top .portal-nav-group:focus-within > :deep(.portal-nav-group-title .portal-nav-group-caret) {
   transform: rotate(180deg);
 }
 
 :deep(.portal-nav-item) {
   display: flex;
-  height: 38px;
+  height: 36px;
   min-width: 0;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 5px;
   background: transparent;
   color: var(--portal-text-muted, #4e5969);
   font: inherit;
-  padding: 0 12px;
+  padding: 0 10px;
   text-align: left;
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
 }
 
 .is-top :deep(.portal-nav-item) {
@@ -356,7 +482,7 @@ function normalizeNavigationNode(node) {
   padding: 0 10px;
 }
 
-.is-top .portal-nav-group-items :deep(.portal-nav-item) {
+.is-top :deep(.portal-nav-group-items .portal-nav-item) {
   width: 100%;
   height: 36px;
   padding: 0 11px;
@@ -370,14 +496,19 @@ function normalizeNavigationNode(node) {
 }
 
 :deep(.portal-nav-item:hover) {
-  background: color-mix(in srgb, var(--portal-primary, #3370ff) 7%, transparent);
+  background: color-mix(in srgb, var(--portal-primary, #3370ff) 6%, transparent);
   color: var(--portal-primary, #3370ff);
 }
 
+:deep(.portal-nav-item:focus-visible) {
+  outline: 2px solid color-mix(in srgb, var(--portal-primary, #3370ff) 54%, transparent);
+  outline-offset: 2px;
+}
+
 :deep(.portal-nav-item.active) {
-  background: color-mix(in srgb, var(--portal-primary, #3370ff) 12%, transparent);
+  background: color-mix(in srgb, var(--portal-primary, #3370ff) 10%, transparent);
   color: var(--portal-primary, #3370ff);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .is-top :deep(.portal-nav-item.active) {
@@ -396,11 +527,11 @@ function normalizeNavigationNode(node) {
   content: '';
 }
 
-.is-top .portal-nav-group-items :deep(.portal-nav-item.active) {
+.is-top :deep(.portal-nav-group-items .portal-nav-item.active) {
   background: color-mix(in srgb, var(--portal-primary, #3370ff) 10%, transparent);
 }
 
-.is-top .portal-nav-group-items :deep(.portal-nav-item.active::after) {
+.is-top :deep(.portal-nav-group-items .portal-nav-item.active)::after {
   display: none;
 }
 
@@ -423,8 +554,8 @@ function normalizeNavigationNode(node) {
     margin-top: 0;
   }
 
-  .portal-navigation.is-side .portal-nav-group-title,
-  .portal-navigation.is-collapsed .portal-nav-group-title {
+  .portal-navigation.is-side :deep(.portal-nav-group-title),
+  .portal-navigation.is-collapsed :deep(.portal-nav-group-title) {
     height: 34px;
     flex: 0 0 auto;
     padding: 0 8px;
@@ -432,8 +563,8 @@ function normalizeNavigationNode(node) {
     background: color-mix(in srgb, var(--portal-primary, #3370ff) 7%, transparent);
   }
 
-  .portal-navigation.is-side .portal-nav-group-items,
-  .portal-navigation.is-collapsed .portal-nav-group-items {
+  .portal-navigation.is-side :deep(.portal-nav-group-items),
+  .portal-navigation.is-collapsed :deep(.portal-nav-group-items) {
     display: flex;
     margin-left: 0;
     padding-left: 0;

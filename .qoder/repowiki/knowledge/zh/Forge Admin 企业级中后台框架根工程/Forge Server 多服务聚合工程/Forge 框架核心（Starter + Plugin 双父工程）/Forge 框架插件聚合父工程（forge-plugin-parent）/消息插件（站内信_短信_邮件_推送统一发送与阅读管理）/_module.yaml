@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/message_plugin
+title: 消息插件（站内信/短信/邮件/推送统一发送与阅读管理）
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-message/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_admin_ui/system_admin
+    - path: forge_server/app_server

@@ -1,233 +1,17 @@
-export const pageWidgetComponentKeys = [
-  'rich-text',
-  'transfer',
-  'watermark',
-  'vue-component',
-  'html-tag',
-  'markdown',
-  'barcode',
-  'qrcode',
-  'calendar',
-  'code',
-  'countdown',
-  'descriptions',
-  'announcement',
-  'list',
-  'log',
-  'number-animation',
-  'breadcrumb',
-  'menu',
-  'pagination',
-  'split',
-]
+/**
+ * @fileoverview 页面挂件 Schema — 运行时函数与桥接数据
+ * @description pageWidgetCatalog 和 pageWidgetComponentKeys 由 designer-core 桥接生成，
+ *   其余运行时函数（createPageWidgetDefaultProps、createWidgetDataBinding 等）保留本地。
+ */
+import { toPageWidgetCatalog, toPageWidgetComponentKeys } from '@/components/lowcode-builder/designer-core'
+
+export const pageWidgetComponentKeys = toPageWidgetComponentKeys()
 
 export function isPageWidgetComponentKey(componentKey = '') {
   return pageWidgetComponentKeys.includes(componentKey)
 }
 
-export const pageWidgetCatalog = [
-  {
-    blockType: 'rich-text',
-    componentKey: 'rich-text',
-    group: 'content',
-    title: '富文本框',
-    label: '富文本框',
-    desc: '带工具栏的富文本编辑器',
-    defaultW: 8,
-    defaultH: 6,
-  },
-  {
-    blockType: 'transfer',
-    componentKey: 'transfer',
-    group: 'data',
-    title: '穿梭框',
-    label: '穿梭框',
-    desc: '支持静态选项和远程接口选项',
-    defaultW: 8,
-    defaultH: 6,
-  },
-  {
-    blockType: 'watermark',
-    componentKey: 'watermark',
-    group: 'extra',
-    title: '水印',
-    label: '水印',
-    desc: '区域水印背景',
-    defaultW: 6,
-    defaultH: 4,
-  },
-  {
-    blockType: 'vue-component',
-    componentKey: 'vue-component',
-    group: 'advanced',
-    title: 'Vue 组件',
-    label: 'Vue 组件',
-    desc: '配置模板、脚本、样式和 props',
-    defaultW: 8,
-    defaultH: 6,
-  },
-  {
-    blockType: 'html-tag',
-    componentKey: 'html-tag',
-    group: 'content',
-    title: 'HTML 标签',
-    label: 'HTML 标签',
-    desc: '配置标签、属性和安全 HTML',
-    defaultW: 6,
-    defaultH: 5,
-  },
-  {
-    blockType: 'markdown',
-    componentKey: 'markdown',
-    group: 'content',
-    title: 'Markdown',
-    label: 'Markdown',
-    desc: 'Markdown 源码与预览',
-    defaultW: 8,
-    defaultH: 6,
-  },
-  {
-    blockType: 'barcode',
-    componentKey: 'barcode',
-    group: 'media',
-    title: '条形码',
-    label: '条形码',
-    desc: '条形码 (jsbarcode)',
-    defaultW: 4,
-    defaultH: 3,
-  },
-  {
-    blockType: 'qrcode',
-    componentKey: 'qrcode',
-    group: 'media',
-    title: '二维码',
-    label: '二维码',
-    desc: 'qrcode-vue3 二维码',
-    defaultW: 4,
-    defaultH: 4,
-  },
-  {
-    blockType: 'calendar',
-    componentKey: 'calendar',
-    group: 'data',
-    title: '日历',
-    label: '日历',
-    desc: 'Naive UI 日历',
-    defaultW: 8,
-    defaultH: 8,
-  },
-  {
-    blockType: 'code',
-    componentKey: 'code',
-    group: 'content',
-    title: '代码',
-    label: '代码',
-    desc: 'Naive UI 代码块',
-    defaultW: 8,
-    defaultH: 5,
-  },
-  {
-    blockType: 'countdown',
-    componentKey: 'countdown',
-    group: 'data',
-    title: '倒计时',
-    label: '倒计时',
-    desc: 'Naive UI 倒计时',
-    defaultW: 4,
-    defaultH: 3,
-  },
-  {
-    blockType: 'descriptions',
-    componentKey: 'descriptions',
-    group: 'data',
-    title: '描述',
-    label: '描述',
-    desc: 'Naive UI 描述信息',
-    defaultW: 8,
-    defaultH: 4,
-  },
-  {
-    blockType: 'announcement',
-    componentKey: 'announcement',
-    group: 'content',
-    title: '公示',
-    label: '公示',
-    desc: 'Naive UI 信息公示栏',
-    defaultW: 6,
-    defaultH: 3,
-  },
-  {
-    blockType: 'list',
-    componentKey: 'list',
-    group: 'data',
-    title: '列表',
-    label: '列表',
-    desc: 'Naive UI 列表',
-    defaultW: 7,
-    defaultH: 5,
-  },
-  {
-    blockType: 'log',
-    componentKey: 'log',
-    group: 'data',
-    title: '日志',
-    label: '日志',
-    desc: 'Naive UI 日志',
-    defaultW: 8,
-    defaultH: 5,
-  },
-  {
-    blockType: 'number-animation',
-    componentKey: 'number-animation',
-    group: 'data',
-    title: '数值动画',
-    label: '数值动画',
-    desc: 'Naive UI 数值动画',
-    defaultW: 4,
-    defaultH: 3,
-  },
-  {
-    blockType: 'breadcrumb',
-    componentKey: 'breadcrumb',
-    group: 'navigation',
-    title: '面包屑',
-    label: '面包屑',
-    desc: 'Naive UI 面包屑',
-    defaultW: 6,
-    defaultH: 2,
-  },
-  {
-    blockType: 'menu',
-    componentKey: 'menu',
-    group: 'navigation',
-    title: '菜单',
-    label: '菜单',
-    desc: 'Naive UI 菜单',
-    defaultW: 5,
-    defaultH: 6,
-  },
-  {
-    blockType: 'pagination',
-    componentKey: 'pagination',
-    group: 'navigation',
-    title: '分页',
-    label: '分页',
-    desc: 'Naive UI 分页',
-    defaultW: 6,
-    defaultH: 2,
-  },
-  {
-    blockType: 'split',
-    componentKey: 'split',
-    group: 'layout',
-    title: '面板分隔',
-    label: '面板分隔',
-    desc: 'Naive UI Split 面板分隔',
-    defaultW: 8,
-    defaultH: 5,
-    container: true,
-  },
-]
+export const pageWidgetCatalog = toPageWidgetCatalog()
 
 export function resolvePageWidgetMeta(componentKey = '') {
   return pageWidgetCatalog.find(item => item.componentKey === componentKey || item.blockType === componentKey) || null
@@ -504,6 +288,54 @@ export function createPageWidgetDefaultProps(componentKey = '') {
       pane2Content: '这里放置列表、详情或主要业务内容。',
     }
   }
+  if (componentKey === 'audio-player') {
+    return {
+      title: '音频播放器',
+      src: '',
+      controls: true,
+      autoplay: false,
+      loop: false,
+      muted: false,
+      width: '100%',
+      dataBinding: createWidgetDataBinding('value', { valueField: 'src', titleField: 'title' }),
+    }
+  }
+  if (componentKey === 'video-player') {
+    return {
+      title: '视频播放器',
+      src: '',
+      controls: true,
+      autoplay: false,
+      loop: false,
+      muted: false,
+      poster: '',
+      width: '100%',
+      height: 'auto',
+      dataBinding: createWidgetDataBinding('value', { valueField: 'src', titleField: 'title' }),
+    }
+  }
+  if (componentKey === 'avatar') {
+    return {
+      title: '头像',
+      src: '',
+      text: '',
+      size: 48,
+      round: true,
+      backgroundColor: '#ccc',
+      dataBinding: createWidgetDataBinding('value', { valueField: 'src' }),
+    }
+  }
+  if (componentKey === 'iframe') {
+    return {
+      title: '内嵌框架',
+      src: '',
+      width: '100%',
+      height: '300px',
+      border: 'none',
+      sandbox: '',
+      dataBinding: createWidgetDataBinding('value', { valueField: 'src', titleField: 'title' }),
+    }
+  }
   return {}
 }
 
@@ -576,9 +408,51 @@ export function safeHtml(value = '') {
     .replace(/javascript:/gi, '')
 }
 
+// 模板占位符统一支持三种写法：{{ 字段 }}、${字段}、$form.字段（与 AiFormItem 的动态参数语法保持一致）
+const TEMPLATE_REF_PATTERN = /\{\{\s*([\w.$-]+)\s*\}\}|\$\{\s*([\w.$-]+)\s*\}|\$form\.([\w.$-]+)/g
+
+function readTemplatePathValue(data = {}, path = '') {
+  return String(path || '')
+    .split('.')
+    .filter(Boolean)
+    .reduce((value, key) => value?.[key], data)
+}
+
 export function interpolateTemplate(template = '', data = {}) {
-  return String(template || '').replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key) => {
-    const value = String(key).split('.').reduce((next, part) => next?.[part], data)
+  return String(template || '').replace(TEMPLATE_REF_PATTERN, (matched, mustacheKey, dollarKey, formKey) => {
+    const key = mustacheKey || dollarKey || formKey
+    if (!key)
+      return matched
+    const value = readTemplatePathValue(data, key)
     return value === undefined || value === null ? '' : String(value)
   })
+}
+
+// 提取模板里引用的字段路径集合，用于“引用字段的值变化时才重新请求”的精准联动判断
+export function extractTemplateRefs(...texts) {
+  const refs = new Set()
+  texts.forEach((text) => {
+    const source = String(text || '')
+    for (const matched of source.matchAll(TEMPLATE_REF_PATTERN)) {
+      const key = matched[1] || matched[2] || matched[3]
+      if (key)
+        refs.add(key)
+    }
+  })
+  return Array.from(refs)
+}
+
+// 把模板引用的字段当前值拼接成签名：任一被引用字段的值变化，签名才会变化
+export function buildTemplateRefSignature(data = {}, ...texts) {
+  const refs = extractTemplateRefs(...texts)
+  if (!refs.length)
+    return ''
+  return refs.map((path) => {
+    const value = readTemplatePathValue(data, path)
+    if (value === undefined || value === null)
+      return `${path}=`
+    if (typeof value === 'object')
+      return `${path}=${JSON.stringify(value)}`
+    return `${path}=${String(value)}`
+  }).join('&')
 }

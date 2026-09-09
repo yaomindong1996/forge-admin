@@ -355,6 +355,83 @@
         </div>
       </div>
     </template>
+
+    <!-- 音频播放器 -->
+    <template v-else-if="componentKey === 'audio-player'">
+      <div class="naive-widget-shell audio-player-widget">
+        <div v-if="propsData.title" class="widget-title">
+          {{ propsData.title }}
+        </div>
+        <audio
+          class="audio-player-element"
+          :src="propsData.src || ''"
+          :controls="propsData.controls !== false"
+          :autoplay="propsData.autoplay === true"
+          :loop="propsData.loop === true"
+          :muted="propsData.muted === true"
+          :style="{ width: propsData.width || '100%' }"
+        />
+        <div v-if="!propsData.src" class="widget-placeholder">
+          未设置音频地址
+        </div>
+      </div>
+    </template>
+
+    <!-- 视频播放器 -->
+    <template v-else-if="componentKey === 'video-player'">
+      <div class="naive-widget-shell video-player-widget">
+        <div v-if="propsData.title" class="widget-title">
+          {{ propsData.title }}
+        </div>
+        <video
+          class="video-player-element"
+          :src="propsData.src || ''"
+          :controls="propsData.controls !== false"
+          :autoplay="propsData.autoplay === true"
+          :loop="propsData.loop === true"
+          :muted="propsData.muted === true"
+          :poster="propsData.poster || undefined"
+          :style="{ width: propsData.width || '100%', height: propsData.height || 'auto' }"
+        />
+        <div v-if="!propsData.src" class="widget-placeholder">
+          未设置视频地址
+        </div>
+      </div>
+    </template>
+
+    <!-- 头像 -->
+    <template v-else-if="componentKey === 'avatar'">
+      <div class="naive-widget-shell avatar-widget">
+        <n-avatar
+          :size="Number(propsData.size || 48)"
+          :round="propsData.round !== false"
+          :src="propsData.src || undefined"
+          :style="{ backgroundColor: propsData.backgroundColor || '#ccc' }"
+        >
+          {{ propsData.text || '' }}
+        </n-avatar>
+      </div>
+    </template>
+
+    <!-- 内嵌框架 -->
+    <template v-else-if="componentKey === 'iframe'">
+      <div class="naive-widget-shell iframe-widget">
+        <div v-if="propsData.title" class="widget-title">
+          {{ propsData.title }}
+        </div>
+        <iframe
+          v-if="propsData.src"
+          class="iframe-element"
+          :src="propsData.src"
+          :style="{ width: propsData.width || '100%', height: propsData.height || '300px', border: propsData.border || 'none' }"
+          :sandbox="propsData.sandbox || undefined"
+          :title="propsData.title || 'iframe'"
+        />
+        <div v-else class="widget-placeholder">
+          未设置 iframe 地址
+        </div>
+      </div>
+    </template>
     <div v-if="bindingLoading" class="widget-binding-state">
       数据加载中...
     </div>
@@ -367,7 +444,7 @@
 <script setup>
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { request } from '@/utils'
-import { interpolateTemplate, safeHtml, safeJsonParseObject } from './page-widget-schema'
+import { buildTemplateRefSignature, interpolateTemplate, safeHtml, safeJsonParseObject } from './page-widget-schema'
 
 const props = defineProps({
   componentKey: { type: String, required: true },
@@ -519,6 +596,13 @@ const descriptionItems = computed(() => normalizeDescriptionItems(boundData.valu
 const listItems = computed(() => normalizeListItems(boundData.value) || safeJsonParseArray(props.propsData.itemsText, []))
 const breadcrumbItems = computed(() => normalizeBreadcrumbItems(boundData.value) || safeJsonParseArray(props.propsData.itemsText, []))
 const menuOptions = computed(() => normalizeMenuOptions(boundData.value) || safeJsonParseArray(props.propsData.optionsText, []))
+// 只跟踪接口地址/参数里实际引用的字段值：被引用字段变化才重新请求，
+// 避免表单里任意其它字段每次输入都触发本组件重复请求（也是任意组件间级联联动的触发机制）
+const transferRefSignature = computed(() => buildTemplateRefSignature(
+  props.dataContext || {},
+  props.propsData.optionSource?.api,
+  props.propsData.optionSource?.paramsText,
+))
 watch(
   () => [
     props.componentKey,
@@ -530,6 +614,7 @@ watch(
     props.propsData.optionSource?.labelField,
     props.propsData.optionSource?.valueField,
     props.propsData.optionSource?.disabledField,
+    transferRefSignature.value,
   ],
   () => {
     if (props.componentKey !== 'transfer' || props.propsData.dataSourceType !== 'remote') {
@@ -541,6 +626,11 @@ watch(
   },
   { immediate: true },
 )
+const bindingRefSignature = computed(() => buildTemplateRefSignature(
+  props.dataContext || {},
+  props.propsData.dataBinding?.api,
+  props.propsData.dataBinding?.paramsText,
+))
 watch(
   () => [
     props.componentKey,
@@ -551,7 +641,7 @@ watch(
     props.propsData.dataBinding?.paramsText,
     props.propsData.dataBinding?.dataPath,
     props.propsData.dataBinding?.contextPath,
-    props.dataContext,
+    bindingRefSignature.value,
   ],
   () => {
     if (props.propsData.dataBinding?.enabled !== true || props.propsData.dataBinding?.sourceType !== 'remote') {
@@ -1345,5 +1435,34 @@ function sanitizeCss(value = '') {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ── 媒体挂件 ──────────────────────────── */
+.widget-placeholder {
+  padding: 12px 16px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 12px;
+  text-align: center;
+}
+
+.audio-player-element,
+.video-player-element {
+  display: block;
+  max-width: 100%;
+  border-radius: 6px;
+}
+
+.avatar-widget {
+  align-content: center;
+  justify-items: center;
+}
+
+.iframe-element {
+  display: block;
+  width: 100%;
+  border: none;
+  border-radius: 6px;
 }
 </style>

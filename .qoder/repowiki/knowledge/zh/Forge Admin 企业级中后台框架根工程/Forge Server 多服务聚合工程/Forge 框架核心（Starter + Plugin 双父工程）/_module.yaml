@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: forge_server/framework_plugins
+title: Forge 框架核心（Starter + Plugin 双父工程）
+scope:
+    - forge-server/forge-framework/
+source_files: []
+depends_on: []
+related_to: []

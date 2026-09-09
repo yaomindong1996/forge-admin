@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/capability_framework/capability_actions
+title: 能力动作发布与执行适配层（流程动作/受控业务动作/系统服务）
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-actions/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform/opengateway

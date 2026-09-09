@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/capability_framework/capability_platform
+title: 能力平台（Capability Platform）
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-platform/
+source_files: []
+depends_on: []
+related_to: []

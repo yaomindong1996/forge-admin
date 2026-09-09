@@ -312,6 +312,24 @@ export const aiCrudPageProps = {
   },
 
   /**
+   * 编辑表单字段过多时是否折叠展示
+   * @type {boolean}
+   */
+  editEnableCollapse: {
+    type: Boolean,
+    default: false,
+  },
+
+  /**
+   * 编辑表单折叠时默认显示的字段数
+   * @type {number}
+   */
+  editMaxVisibleFields: {
+    type: Number,
+    default: 6,
+  },
+
+  /**
    * 编辑表单自定义 class
    * @type {string | object | Array}
    */

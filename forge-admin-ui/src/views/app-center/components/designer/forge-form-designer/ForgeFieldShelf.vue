@@ -6,9 +6,7 @@
         <p>拖入画布或点击添加。</p>
         <div class="shelf-stats">
           <template v-if="activeShelfTab === 'components'">
-            <span>共 {{ allComponentTotal }} 个</span>
-            <span v-if="keyword && componentTotal !== allComponentTotal">匹配 {{ componentTotal }} 个</span>
-            <span>{{ componentGroupTotal }} 组</span>
+            <span>共 {{ unifiedShelfTotal }} 个</span>
           </template>
           <template v-else>
             <span>共 {{ props.fields.length }} 个</span>
@@ -34,7 +32,7 @@
 
     <div class="shelf-mode-tabs">
       <button type="button" :class="{ active: activeShelfTab === 'components' }" @click="activeShelfTab = 'components'">
-        组件库 {{ componentTotal }}
+        组件库 {{ unifiedShelfTotal }}
       </button>
       <button type="button" :class="{ active: activeShelfTab === 'fields' }" @click="activeShelfTab = 'fields'">
         字段资产 {{ props.fields.length }}
@@ -42,49 +40,16 @@
     </div>
 
     <div v-if="activeShelfTab === 'components'" class="component-palette">
-      <div v-for="group in visibleTemplateGroups" :key="group.title" class="palette-section">
-        <h4>
-          <span>{{ group.title }}</span>
-          <em>{{ group.items.length }}</em>
-        </h4>
-        <div class="palette-grid">
-          <button
-            v-for="item in group.items"
-            :key="item.componentKey"
-            type="button"
-            class="palette-item"
-            :class="{ dragging: draggingKey === `template:${item.componentKey}` }"
-            draggable="true"
-            @dragstart="handleTemplateDragStart($event, item)"
-            @dragend="finishDragging"
-          >
-            <n-icon><component :is="item.icon" /></n-icon>
-            <span>{{ item.label }}</span>
-          </button>
-        </div>
-      </div>
-      <div v-if="visibleLayoutItems.length" class="palette-section">
-        <h4>
-          <span>布局与业务区块</span>
-          <em>{{ visibleLayoutItems.length }}</em>
-        </h4>
-        <div class="palette-grid">
-          <button
-            v-for="item in visibleLayoutItems"
-            :key="item.componentKey"
-            type="button"
-            class="palette-item"
-            :class="{ dragging: draggingKey === `layout:${item.componentKey}` }"
-            draggable="true"
-            @dragstart="handleLayoutDragStart($event, item)"
-            @dragend="finishDragging"
-          >
-            <n-icon><component :is="item.icon" /></n-icon>
-            <span>{{ item.label }}</span>
-          </button>
-        </div>
-      </div>
-      <n-empty v-if="!componentTotal" size="small" description="没有匹配组件" />
+      <!-- 统一组件物料面板（designer-core）：与列表设计器同一注册表、同一分组、同一交互（空态由面板内部渲染） -->
+      <!-- B2 修正：画布不支持的组件直接隐藏（用户验收反馈：禁用态同显太乱）；注册表仍是唯一事实源，两侧加/改组件只改 spec -->
+      <UnifiedComponentPalette
+        scope="F"
+        :keyword="keyword"
+        :item-filter="formShelfItemFilter"
+        @item-drag-start="handleUnifiedShelfDragStart"
+        @item-drag-end="finishDragging"
+        @total-change="unifiedShelfTotal = $event"
+      />
     </div>
 
     <div v-else class="field-asset-panel">
@@ -142,51 +107,11 @@
 </template>
 
 <script setup>
-import {
-  AlbumsOutline,
-  AlertCircleOutline,
-  AnalyticsOutline,
-  BrowsersOutline,
-  BusinessOutline,
-  CalculatorOutline,
-  CalendarOutline,
-  CashOutline,
-  CheckboxOutline,
-  ChevronDownCircleOutline,
-  CloudOutline,
-  CloudUploadOutline,
-  CodeSlashOutline,
-  ColorPaletteOutline,
-  DocumentTextOutline,
-  GridOutline,
-  HomeOutline,
-  ImageOutline,
-  KeypadOutline,
-  ListOutline,
-  LocationOutline,
-  MenuOutline,
-  NavigateOutline,
-  OptionsOutline,
-  PersonOutline,
-  PricetagOutline,
-  QrCodeOutline,
-  ReaderOutline,
-  ReorderThreeOutline,
-  ResizeOutline,
-  SearchOutline,
-  StarOutline,
-  StatsChartOutline,
-  SwapHorizontalOutline,
-  TerminalOutline,
-  TextOutline,
-  TimeOutline,
-  TimerOutline,
-  ToggleOutline,
-} from '@vicons/ionicons5'
+import { SearchOutline } from '@vicons/ionicons5'
 import { computed, ref } from 'vue'
+import { FORM_COMPONENT_KEY_OVERRIDES, toFieldPaletteGroups, toPageWidgetCatalog } from '@/components/lowcode-builder/designer-core'
+import UnifiedComponentPalette from '@/components/lowcode-builder/designer-core/panel/UnifiedComponentPalette.vue'
 import { isReadonlySystemField } from '@/components/lowcode-builder/page/page-schema'
-import { pageWidgetCatalog } from '@/components/lowcode-builder/shared/page-widget-schema'
-import { FIELD_COMPONENT_PALETTE_GROUPS } from '../form-first/fieldComponentCatalog'
 import { clearDesignerDragPreview, clearDesignerDragSource, clearDesignerDropKey, setDesignerDragPreview } from './designerDragState'
 
 const props = defineProps({
@@ -210,100 +135,72 @@ const keyword = ref('')
 const activeShelfTab = ref('components')
 const activeTab = ref('unused')
 const draggingKey = ref('')
-const fieldComponentIcons = {
-  barcodeScanner: StatsChartOutline,
-  cascader: ChevronDownCircleOutline,
-  checkbox: CheckboxOutline,
-  color: ColorPaletteOutline,
-  customSelect: CloudOutline,
-  date: CalendarOutline,
-  datetimerange: TimeOutline,
-  datetime: TimeOutline,
-  daterange: CalendarOutline,
-  dictSelect: PricetagOutline,
-  fileUpload: CloudUploadOutline,
-  imageUpload: ImageOutline,
-  input: TextOutline,
-  money: CashOutline,
-  month: CalendarOutline,
-  number: CalculatorOutline,
-  objectReference: BrowsersOutline,
-  orgTreeSelect: BusinessOutline,
-  radio: CheckboxOutline,
-  radioButton: CheckboxOutline,
-  rate: StarOutline,
-  recordSelector: SearchOutline,
-  regionTreeSelect: LocationOutline,
-  select: ListOutline,
-  slider: OptionsOutline,
-  switch: ToggleOutline,
-  text: TextOutline,
-  textarea: DocumentTextOutline,
-  timerange: TimerOutline,
-  transfer: SwapHorizontalOutline,
-  treeSelect: GridOutline,
-  userSelect: PersonOutline,
-  year: CalendarOutline,
+
+// ─── 统一组件物料面板（designer-core，P2）──────────────
+// 与列表设计器同一注册表、同一分组、同一交互；键名映射走 FORM_COMPONENT_KEY_OVERRIDES
+const unifiedShelfTotal = ref(0)
+
+/** 表单画布（createForgeLayoutComponent / isPageWidgetComponentKey）支持的布局与业务键名（映射后） */
+const FORM_CANVAS_LAYOUT_KEYS = new Set([
+  'row',
+  'table',
+  'card',
+  'tabs',
+  'collapse',
+  'button',
+  'title',
+  'AiFormSectionTitle',
+  'AiCrudPage',
+  'subTable',
+])
+/** 字段模板类型（拖拽走 template 链路，生成字段绑定组件） */
+const FORM_FIELD_TEMPLATE_TYPES = new Set(
+  toFieldPaletteGroups().flatMap(group => group.items.map(item => item.componentKey)),
+)
+/** 画布挂件键名（isPageWidgetComponentKey 消费；transfer 以字段模板形态单独处理） */
+const FORM_CANVAS_WIDGET_KEYS = new Set(
+  toPageWidgetCatalog()
+    .filter(item => item.componentKey !== 'transfer')
+    .map(item => item.componentKey),
+)
+
+function resolveFormComponentKey(spec = {}) {
+  return FORM_COMPONENT_KEY_OVERRIDES[spec.type] || spec.type
 }
-const fieldTemplateGroups = FIELD_COMPONENT_PALETTE_GROUPS.map(group => ({
-  ...group,
-  items: group.items.map(item => ({
-    ...item,
-    icon: fieldComponentIcons[item.componentKey] || HomeOutline,
-  })),
-}))
-const widgetLayoutItems = pageWidgetCatalog
-  .filter(item => item.componentKey !== 'transfer')
-  .map(item => ({
-    componentKey: item.componentKey,
-    label: item.label || item.title,
-    icon: resolveWidgetIcon(item.componentKey),
-  }))
-const layoutItems = [
-  { componentKey: 'row', label: '栅格布局', icon: GridOutline },
-  { componentKey: 'table', label: '表格布局', icon: KeypadOutline },
-  { componentKey: 'AiCrudPage', label: 'CRUD区块', icon: ListOutline },
-  { componentKey: 'subTable', label: '关联子表', icon: ListOutline },
-  { componentKey: 'button', label: '按钮', icon: ToggleOutline },
-  { componentKey: 'title', label: '分组标题', icon: ReorderThreeOutline },
-  { componentKey: 'AiFormSectionTitle', label: '表单分隔线', icon: ReorderThreeOutline },
-  { componentKey: 'card', label: '卡片分组', icon: AlbumsOutline },
-  { componentKey: 'tabs', label: '标签页', icon: BrowsersOutline },
-  { componentKey: 'collapse', label: '折叠面板', icon: ChevronDownCircleOutline },
-  ...widgetLayoutItems,
-]
+
+/**
+ * 画布支持白名单过滤：不支持的组件直接隐藏（B2 修正，用户验收反馈禁用态同显太乱）。
+ * 字段模板（field 类别）与 transfer 双重身份走 template 链路；其余按映射后的画布键名判定。
+ */
+function formShelfItemFilter(spec) {
+  if (spec.group === '包装节点')
+    return false
+  // 导航组件（面包屑、菜单、分页）不适用于表单画布，仅在页面设计器中提供
+  if (spec.group === '导航')
+    return false
+  if (spec.category === 'field' || spec.type === 'transfer')
+    return true
+  // 主子表不再依赖「数据模型-对象关系」前置配置，无关系时也可直接拖入/配置（产品决策：直接可添加）
+  if (FORM_CANVAS_WIDGET_KEYS.has(spec.type))
+    return true
+  return FORM_CANVAS_LAYOUT_KEYS.has(resolveFormComponentKey(spec))
+}
+
+function handleUnifiedShelfDragStart({ spec, event }) {
+  const componentKey = resolveFormComponentKey(spec)
+  // 字段模板（含 transfer 双重身份）走 template 链路生成字段绑定组件；其余走 layout 链路
+  const isFieldTemplate = FORM_FIELD_TEMPLATE_TYPES.has(componentKey) || spec.type === 'transfer'
+  draggingKey.value = `${isFieldTemplate ? 'template' : 'layout'}:${componentKey}`
+  event.dataTransfer.effectAllowed = 'copy'
+  const payload = { componentKey, label: spec.label }
+  event.dataTransfer.setData(
+    isFieldTemplate ? 'application/x-forge-form-template' : 'application/x-forge-form-layout',
+    JSON.stringify(payload),
+  )
+  setDesignerDragPreview({ componentKey, label: spec.label })
+}
 
 const normalizedKeyword = computed(() => keyword.value.trim().toLowerCase())
-const visibleTemplateGroups = computed(() => {
-  const text = normalizedKeyword.value
-  if (!text)
-    return fieldTemplateGroups
-  return fieldTemplateGroups
-    .map(group => ({
-      ...group,
-      items: group.items.filter(item => [item.label, item.componentKey].some(value => String(value || '').toLowerCase().includes(text))),
-    }))
-    .filter(group => group.items.length)
-})
-const visibleLayoutItems = computed(() => {
-  const text = normalizedKeyword.value
-  // 关联子表依赖对象关系上下文，无关系时不提供入口，避免出现无效配置。
-  const baseItems = props.relations.length
-    ? layoutItems
-    : layoutItems.filter(item => item.componentKey !== 'subTable')
-  if (!text)
-    return baseItems
-  return baseItems.filter(item => [item.label, item.componentKey].some(value => String(value || '').toLowerCase().includes(text)))
-})
-const componentTotal = computed(() => {
-  return visibleTemplateGroups.value.reduce((total, group) => total + group.items.length, 0) + visibleLayoutItems.value.length
-})
-const allComponentTotal = computed(() => {
-  return fieldTemplateGroups.reduce((total, group) => total + group.items.length, 0) + layoutItems.length
-})
-const componentGroupTotal = computed(() => {
-  return visibleTemplateGroups.value.length + (visibleLayoutItems.value.length ? 1 : 0)
-})
 const filteredFields = computed(() => {
   const text = normalizedKeyword.value
   if (!text)
@@ -333,31 +230,6 @@ function isLocked(field = {}) {
   return isReadonlySystemField(field)
 }
 
-function resolveWidgetIcon(componentKey = '') {
-  const iconMap = {
-    'rich-text': DocumentTextOutline,
-    'watermark': TextOutline,
-    'vue-component': BrowsersOutline,
-    'html-tag': CodeSlashOutline,
-    'markdown': ReorderThreeOutline,
-    'barcode': StatsChartOutline,
-    'qrcode': QrCodeOutline,
-    'calendar': CalendarOutline,
-    'code': CodeSlashOutline,
-    'countdown': TimerOutline,
-    'descriptions': ReaderOutline,
-    'announcement': AlertCircleOutline,
-    'list': ListOutline,
-    'log': TerminalOutline,
-    'number-animation': AnalyticsOutline,
-    'breadcrumb': NavigateOutline,
-    'menu': MenuOutline,
-    'pagination': ReorderThreeOutline,
-    'split': ResizeOutline,
-  }
-  return iconMap[componentKey] || HomeOutline
-}
-
 function handleFieldDragStart(event, field) {
   if (isUsed(field) || isLocked(field)) {
     event.preventDefault()
@@ -369,26 +241,6 @@ function handleFieldDragStart(event, field) {
   setDesignerDragPreview({
     componentKey: field.componentType || field.componentKey || field.type || 'input',
     label: field.label || field.fieldName || field.field || '字段',
-  })
-}
-
-function handleLayoutDragStart(event, item) {
-  draggingKey.value = `layout:${item.componentKey}`
-  event.dataTransfer.effectAllowed = 'copy'
-  event.dataTransfer.setData('application/x-forge-form-layout', JSON.stringify(item))
-  setDesignerDragPreview({
-    componentKey: item.componentKey,
-    label: item.label,
-  })
-}
-
-function handleTemplateDragStart(event, item) {
-  draggingKey.value = `template:${item.componentKey}`
-  event.dataTransfer.effectAllowed = 'copy'
-  event.dataTransfer.setData('application/x-forge-form-template', JSON.stringify(item))
-  setDesignerDragPreview({
-    componentKey: item.componentKey,
-    label: item.label,
   })
 }
 
@@ -511,49 +363,12 @@ function finishDragging() {
 
 .component-palette {
   min-height: 0;
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
   padding: 2px 0 0;
   background: #fcfcfc;
 }
 
-.palette-section + .palette-section {
-  margin-top: 12px;
-}
-
-.palette-section h4 {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 2px 0 8px;
-  color: #52525b;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.palette-section h4 span {
-  min-width: 0;
-}
-
-.palette-section h4::before {
-  content: '';
-  position: relative;
-  z-index: 1;
-  flex: 0 0 auto;
-  width: 6px;
-  height: 6px;
-  margin-left: 3px;
-  border-radius: 999px;
-  background: #4266f7;
-  outline: 3px solid #e8edff;
-}
-
-.palette-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.palette-item,
 .field-item {
   cursor: grab;
   border: 1px solid #e4e4e7;
@@ -565,58 +380,20 @@ function finishDragging() {
     transform 180ms ease;
 }
 
-.palette-item:hover,
 .field-item:hover:not(:disabled) {
   border-color: #c7d2fe;
   background: #f8faff;
   box-shadow: 0 8px 18px rgba(49, 83, 216, 0.08);
 }
 
-.palette-item.dragging,
 .field-item.dragging {
   opacity: 0.48;
   border-color: #60a5fa;
   background: #dbeafe;
 }
 
-.palette-item:active,
 .field-item:active {
   cursor: grabbing;
-}
-
-.palette-item {
-  min-height: 48px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-radius: 7px;
-  padding: 7px 8px;
-  color: #3f3f46;
-  font-size: 12px;
-  font-weight: 600;
-  text-align: left;
-  overflow: hidden;
-}
-
-.palette-item :deep(.n-icon) {
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: #f4f4f5;
-  color: #64748b;
-  font-size: 16px;
-  flex: 0 0 auto;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-
-.palette-item:hover :deep(.n-icon) {
-  background: #eff6ff;
-  color: #2563eb;
 }
 
 .field-asset-panel {
@@ -733,7 +510,6 @@ function finishDragging() {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .palette-item,
   .field-item {
     transition: none;
   }

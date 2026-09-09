@@ -192,7 +192,7 @@
           @update:value="handleUpdate"
           v-on="getComponentEvents(field)"
         >
-          <n-space>
+          <n-space :vertical="field.props?.direction === 'vertical'">
             <n-radio
               v-for="option in currentOptions"
               :key="option.value"
@@ -213,14 +213,16 @@
           @update:value="handleUpdate"
           v-on="getComponentEvents(field)"
         >
-          <n-radio-button
-            v-for="option in currentOptions"
-            :key="option.value"
-            :value="option.value"
-            :disabled="option.disabled"
-          >
-            {{ option.label }}
-          </n-radio-button>
+          <n-space :vertical="field.props?.direction === 'vertical'">
+            <n-radio-button
+              v-for="option in currentOptions"
+              :key="option.value"
+              :value="option.value"
+              :disabled="option.disabled"
+            >
+              {{ option.label }}
+            </n-radio-button>
+          </n-space>
         </n-radio-group>
 
         <!-- 多选框 -->
@@ -495,12 +497,12 @@
         <!-- 滑块 -->
         <n-slider
           v-else-if="field.type === 'slider'"
-          :value="value"
+          :value="resolveSliderValue(value, field)"
           :disabled="disabledHandler(field)"
           :min="field.min || 0"
           :max="field.max || 100"
           :step="field.step || 1"
-          :marks="field.marks"
+          :marks="field.marks || undefined"
           :tooltip="field.tooltip !== false"
           v-bind="field.props"
           @update:value="handleUpdate"
@@ -1053,7 +1055,10 @@ const isRuntimePageWidgetField = computed(() => {
   if (!runtimePageWidgetKey.value)
     return false
   const bindingMode = props.field?.fieldBinding?.mode
-  return bindingMode === 'virtual' || props.field?.virtual === true || props.field?.isVirtual === true
+  // 显式 virtual 绑定 或 未配置 fieldBinding 的挂件组件（预览模式兜底）
+  if (bindingMode === 'virtual' || props.field?.virtual === true || props.field?.isVirtual === true)
+    return true
+  return !props.field?.fieldBinding && !props.field?.field
 })
 const runtimePageWidgetProps = computed(() => {
   const field = props.field || {}
@@ -1062,7 +1067,7 @@ const runtimePageWidgetProps = computed(() => {
   const next = {
     ...fieldProps,
   }
-  if (field.label && !next.title && ['rich-text', 'markdown', 'barcode', 'qrcode', 'transfer'].includes(widgetKey))
+  if (field.label && !next.title && ['rich-text', 'markdown', 'barcode', 'qrcode', 'transfer', 'audio-player', 'video-player', 'iframe'].includes(widgetKey))
     next.title = field.label
   if (isFilledValue(props.value)) {
     if (widgetKey === 'rich-text' || widgetKey === 'markdown')
@@ -1071,6 +1076,8 @@ const runtimePageWidgetProps = computed(() => {
       next.value = Array.isArray(props.value) ? props.value : String(props.value).split(',').map(item => item.trim()).filter(Boolean)
     else if (widgetKey === 'barcode' || widgetKey === 'qrcode')
       next.value = props.value
+    else if (widgetKey === 'audio-player' || widgetKey === 'video-player' || widgetKey === 'iframe' || widgetKey === 'avatar')
+      next.src = props.value
   }
   return next
 })
@@ -1746,6 +1753,20 @@ function getNestedValue(source, path) {
 
 function resolveOptionValue(rawValue) {
   return normalizeOptionValue(rawValue, currentOptions.value, props.field?.multiple)
+}
+
+/**
+ * n-slider range 模式要求 value 为二元数组；值为 null 时组件内部 (range ? value : [value]).map 会崩溃，
+ * 归一化兜底：range 模式非法值回退 [min, max]
+ */
+function resolveSliderValue(rawValue, field = {}) {
+  const isRange = field.range === true || field.props?.range === true
+  if (isRange) {
+    if (Array.isArray(rawValue) && rawValue.length === 2)
+      return rawValue
+    return [Number(field.min ?? field.props?.min ?? 0), Number(field.max ?? field.props?.max ?? 100)]
+  }
+  return rawValue
 }
 
 function normalizeOptionValue(rawValue, options = [], multiple = false) {

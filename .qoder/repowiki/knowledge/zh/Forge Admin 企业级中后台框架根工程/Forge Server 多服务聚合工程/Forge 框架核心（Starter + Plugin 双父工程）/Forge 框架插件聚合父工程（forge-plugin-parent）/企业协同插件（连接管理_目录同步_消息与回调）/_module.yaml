@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/collaboration_plugin
+title: 企业协同插件（连接管理/目录同步/消息与回调）
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-collaboration/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/app_server

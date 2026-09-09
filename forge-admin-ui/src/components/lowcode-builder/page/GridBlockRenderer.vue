@@ -3,6 +3,7 @@
     <template v-if="isDataFieldBlock && runtimeCrudLoading">
       <div class="runtime-crud-loading">
         <n-spin size="small" />
+        <span>正在加载数据…</span>
       </div>
     </template>
 
@@ -200,132 +201,136 @@
       </div>
     </template>
 
-    <!-- 栅格布局 -->
+    <!-- 栅格布局（统一栅格渲染器） -->
     <template v-else-if="block.blockType === 'grid-layout'">
-      <div
+      <DesignerGridRenderer
+        :columns="Math.max(1, Number(block.props?.columns || 24))"
+        :gutter="Math.max(0, Number(block.props?.gutter ?? block.props?.gap ?? 16))"
+        :row-gap="Math.max(0, Number(block.props?.rowGap ?? 0))"
+        :cell-min-height="Number(block.props?.cellMinHeight || 120)"
+        :align-items="block.props?.alignItems || 'stretch'"
+        :justify-items="block.props?.justifyItems || 'stretch'"
+        :show-cell-border="block.props?.showCellBorder !== false"
+        :cell-background="block.props?.cellBackground"
+        :cells="gridLayoutCells"
         class="layout-grid-preview"
         :class="{ 'is-nested-moving': !!nestedMovingBlockId }"
-        :style="gridLayoutStyle"
       >
-        <div
-          v-for="cell in gridLayoutCells"
-          :key="cell.key"
-          class="layout-grid-cell"
-          :class="{
-            'bordered': block.props?.showCellBorder !== false,
-            'is-drop-active': isActiveDropCell(cell),
-          }"
-          :style="gridCellStyle(cell)"
-          :data-grid-cell-key="cell.key"
-          :data-grid-container-id="block.id"
-        >
-          <div v-if="hasGridCellChildren(cell)" class="layout-grid-cell-body">
-            <div
-              v-for="child in cell.children"
-              :key="child.id"
-              class="layout-grid-cell-child"
-              :class="{
-                'selected': child.id === selectedBlockId,
-                'is-moving-source': child.id === nestedMovingBlockId,
-              }"
-              :style="nestedChildShellStyle(child)"
-              :data-grid-child-id="child.id"
-              @click.stop="emit('childBlockSelect', child.id)"
-            >
-              <div v-if="!readonly" class="nested-block-node-overlay">
-                <span
-                  class="nested-block-drag-handle"
-                  title="拖动组件"
-                  @click.stop
-                  @pointerdown.stop.prevent="emit('childBlockMoveStart', { block: child, event: $event })"
-                >
-                  <svg
-                    width="1em"
-                    height="1em"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                  >
-                    <path
-                      d="M8.25 6.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm0 7.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm1.75 5.5a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0ZM14.753 6.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5ZM16.5 12a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0Zm-1.747 9a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                </span>
-                <n-dropdown
-                  trigger="click"
-                  placement="bottom-end"
-                  :options="nestedBlockMenuOptions"
-                  @select="key => emit('childBlockMenuSelect', { key, block: child })"
-                >
-                  <button
-                    type="button"
-                    class="nested-block-menu-trigger"
-                    title="更多操作"
+        <template #cell="{ cell }">
+          <div
+            class="designer-grid-cell-inner"
+            :class="{ 'is-drop-active': isActiveDropCell(cell) }"
+            :data-grid-cell-key="cell.key"
+            :data-grid-container-id="block.id"
+          >
+            <div v-if="hasGridCellChildren(cell)" class="layout-grid-cell-body">
+              <div
+                v-for="child in cell.children"
+                :key="child.id"
+                class="layout-grid-cell-child"
+                :class="{
+                  'selected': child.id === selectedBlockId,
+                  'is-moving-source': child.id === nestedMovingBlockId,
+                }"
+                :style="nestedChildShellStyle(child)"
+                :data-grid-child-id="child.id"
+                @click.stop="emit('childBlockSelect', child.id)"
+              >
+                <div v-if="!readonly" class="nested-block-node-overlay">
+                  <span
+                    class="nested-block-drag-handle"
+                    title="拖动组件"
                     @click.stop
-                    @mousedown.stop
+                    @pointerdown.stop.prevent="emit('childBlockMoveStart', { block: child, event: $event })"
                   >
-                    <svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <circle cx="256" cy="256" r="32" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" />
-                      <circle cx="416" cy="256" r="32" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" />
-                      <circle cx="96" cy="256" r="32" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" />
+                    <svg
+                      width="1em"
+                      height="1em"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M8.25 6.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm0 7.25a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Zm1.75 5.5a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0ZM14.753 6.5a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5ZM16.5 12a1.75 1.75 0 1 1-3.5 0 1.75 1.75 0 0 1 3.5 0Zm-1.747 9a1.75 1.75 0 1 0 0-3.5 1.75 1.75 0 0 0 0 3.5Z"
+                        fill="currentColor"
+                      />
                     </svg>
-                  </button>
-                </n-dropdown>
-              </div>
-              <GridBlockRenderer
-                :block="child"
-                :fields="resolveNestedBlockFields(child)"
-                :selected="false"
-                :selected-block-id="selectedBlockId"
-                :readonly="readonly"
-                :runtime-crud-props="resolveNestedBlockRuntimeCrudProps(child)"
-                :runtime-crud-loading="resolveNestedBlockRuntimeCrudLoading(child)"
-                :show-data-source-guide="showDataSourceGuide"
-                :data-source-configured="resolveNestedBlockDataSourceConfigured(child)"
-                :runtime-interactive="runtimeInteractive"
-                :runtime-extension-hooks="runtimeExtensionHooks"
-                :runtime-record="runtimeRecord"
-                :active-drop-cell="activeDropCell"
-                :nested-moving-block-id="nestedMovingBlockId"
-                :catalog-drag-block-type="catalogDragBlockType"
-                :block-fields-resolver="blockFieldsResolver"
-                :runtime-crud-props-resolver="runtimeCrudPropsResolver"
-                :runtime-crud-loading-resolver="runtimeCrudLoadingResolver"
-                :data-source-configured-resolver="dataSourceConfiguredResolver"
-                @child-block-select="emit('childBlockSelect', $event)"
-                @child-block-menu-select="emit('childBlockMenuSelect', $event)"
-                @block-props-update="emit('blockPropsUpdate', $event)"
-                @tabs-active-change="emit('tabsActiveChange', $event)"
-                @tab-drop="emit('tabDrop', $event)"
-                @child-block-drag-start="emit('childBlockDragStart', $event)"
-                @child-block-move-start="emit('childBlockMoveStart', $event)"
-                @child-block-drag-end="emit('childBlockDragEnd')"
-                @child-block-resize-start="emit('childBlockResizeStart', $event)"
-                @request-data-source="emit('requestDataSource', $event)"
-              />
-              <template v-if="!readonly && child.id === selectedBlockId">
-                <button
-                  v-for="anchor in resizeAnchors"
-                  :key="anchor"
-                  type="button"
-                  class="nested-resize-anchor"
-                  :class="`anchor-${anchor}`"
-                  title="调整组件大小"
-                  @pointerdown.stop="emit('childBlockResizeStart', { block: child, event: $event, anchor })"
+                  </span>
+                  <n-dropdown
+                    trigger="click"
+                    placement="bottom-end"
+                    :options="nestedBlockMenuOptions"
+                    @select="key => emit('childBlockMenuSelect', { key, block: child })"
+                  >
+                    <button
+                      type="button"
+                      class="nested-block-menu-trigger"
+                      title="更多操作"
+                      @click.stop
+                      @mousedown.stop
+                    >
+                      <svg width="1em" height="1em" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="256" cy="256" r="32" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" />
+                        <circle cx="416" cy="256" r="32" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" />
+                        <circle cx="96" cy="256" r="32" fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" />
+                      </svg>
+                    </button>
+                  </n-dropdown>
+                </div>
+                <GridBlockRenderer
+                  :block="child"
+                  :fields="resolveNestedBlockFields(child)"
+                  :selected="false"
+                  :selected-block-id="selectedBlockId"
+                  :readonly="readonly"
+                  :runtime-crud-props="resolveNestedBlockRuntimeCrudProps(child)"
+                  :runtime-crud-loading="resolveNestedBlockRuntimeCrudLoading(child)"
+                  :show-data-source-guide="showDataSourceGuide"
+                  :data-source-configured="resolveNestedBlockDataSourceConfigured(child)"
+                  :runtime-interactive="runtimeInteractive"
+                  :runtime-extension-hooks="runtimeExtensionHooks"
+                  :runtime-record="runtimeRecord"
+                  :active-drop-cell="activeDropCell"
+                  :nested-moving-block-id="nestedMovingBlockId"
+                  :catalog-drag-block-type="catalogDragBlockType"
+                  :block-fields-resolver="blockFieldsResolver"
+                  :runtime-crud-props-resolver="runtimeCrudPropsResolver"
+                  :runtime-crud-loading-resolver="runtimeCrudLoadingResolver"
+                  :data-source-configured-resolver="dataSourceConfiguredResolver"
+                  @child-block-select="emit('childBlockSelect', $event)"
+                  @child-block-menu-select="emit('childBlockMenuSelect', $event)"
+                  @block-props-update="emit('blockPropsUpdate', $event)"
+                  @tabs-active-change="emit('tabsActiveChange', $event)"
+                  @tab-drop="emit('tabDrop', $event)"
+                  @child-block-drag-start="emit('childBlockDragStart', $event)"
+                  @child-block-move-start="emit('childBlockMoveStart', $event)"
+                  @child-block-drag-end="emit('childBlockDragEnd')"
+                  @child-block-resize-start="emit('childBlockResizeStart', $event)"
+                  @request-data-source="emit('requestDataSource', $event)"
                 />
-              </template>
+                <template v-if="!readonly && child.id === selectedBlockId">
+                  <button
+                    v-for="anchor in resizeAnchors"
+                    :key="anchor"
+                    type="button"
+                    class="nested-resize-anchor"
+                    :class="`anchor-${anchor}`"
+                    title="调整组件大小"
+                    @pointerdown.stop="emit('childBlockResizeStart', { block: child, event: $event, anchor })"
+                  />
+                </template>
+              </div>
+            </div>
+            <div v-if="shouldShowGridCellDropPreview(cell)" class="layout-grid-cell-drop-preview">
+              释放到此格
+            </div>
+            <div v-else-if="shouldShowGridCellEmpty(cell)" class="layout-grid-cell-empty">
+              拖入组件
             </div>
           </div>
-          <div v-if="shouldShowGridCellDropPreview(cell)" class="layout-grid-cell-drop-preview">
-            释放到此格
-          </div>
-          <div v-else-if="shouldShowGridCellEmpty(cell)" class="layout-grid-cell-empty">
-            拖入组件
-          </div>
-        </div>
-      </div>
+        </template>
+      </DesignerGridRenderer>
     </template>
 
     <!-- 系统 AiCrudPage 组件 -->
@@ -333,6 +338,7 @@
       <div class="system-component-preview ai-crud-preview">
         <div v-if="runtimeCrudLoading" class="runtime-crud-loading">
           <n-spin size="small" />
+          <span>正在加载数据…</span>
         </div>
         <AiCrudPage
           v-else-if="effectiveRuntimeCrudProps"
@@ -364,13 +370,15 @@
           :edit-label-align="block.props?.editLabelAlign || 'right'"
           :edit-size="block.props?.editSize || 'medium'"
           :edit-show-feedback="block.props?.editShowFeedback !== false"
+          :edit-enable-collapse="block.props?.editEnableCollapse === true"
+          :edit-max-visible-fields="block.props?.editMaxVisibleFields || 6"
           :edit-x-gap="block.props?.editXGap ?? 16"
           :edit-y-gap="block.props?.editYGap ?? 8"
           :modal-width="block.props?.modalWidth || '800px'"
           :detail-modal-width="block.props?.detailModalWidth || 'min(1080px, 92vw)'"
-          :form-open-mode="resolveEffectiveFormOpenMode(block.props || {}, {})"
+          :form-open-mode="resolveEffectiveFormOpenMode(block.props || {}, props.runtimeCrudProps || {})"
           :tab-workspace="block.props?.tabWorkspace || {}"
-          :modal-type="resolveEffectiveModalType(block.props || {}, {})"
+          :modal-type="resolveEffectiveModalType(block.props || {}, props.runtimeCrudProps || {})"
           :drawer-placement="block.props?.drawerPlacement || 'right'"
           :hide-modal-footer="block.props?.hideModalFooter === true"
           :hide-default-detail-content="block.props?.hideDefaultDetailContent === true"
@@ -613,12 +621,19 @@
         <n-button
           :type="block.props?.type === 'default' ? undefined : block.props?.type"
           :secondary="!!block.props?.secondary"
+          :tertiary="!!block.props?.tertiary"
+          :quaternary="!!block.props?.quaternary"
+          :dashed="!!block.props?.dashed"
+          :round="!!block.props?.round"
           :block="!!block.props?.block"
           :disabled="!!block.props?.disabled"
           :loading="!!block.props?.loading"
           :size="block.props?.size || 'small'"
           @click.stop="handleActionButtonClick"
         >
+          <template v-if="block.props?.icon" #icon>
+            <IconRenderer :icon="block.props.icon" :size="14" />
+          </template>
           {{ block.props?.text || '操作' }}
         </n-button>
       </div>
@@ -1008,7 +1023,17 @@
 
     <!-- 卡片容器 -->
     <template v-else-if="block.blockType === 'card'">
-      <div class="layout-card">
+      <div
+        class="layout-card"
+        :class="{
+          'layout-card--small': block.props?.size === 'small',
+          'layout-card--large': block.props?.size === 'large',
+          'layout-card--huge': block.props?.size === 'huge',
+          'layout-card--borderless': block.props?.bordered === false,
+          'layout-card--embedded': block.props?.embedded,
+          'layout-card--hoverable': block.props?.hoverable,
+        }"
+      >
         <div v-if="block.props?.title" class="layout-card-title">
           {{ block.props.title }}
         </div>
@@ -1061,11 +1086,13 @@
     <template v-else-if="block.blockType === 'tabs'">
       <n-tabs
         :type="block.props?.type || 'line'"
-        size="small"
+        :size="block.props?.size || 'medium'"
         :placement="block.props?.placement || 'top'"
         :trigger="block.props?.trigger || 'click'"
         :animated="block.props?.animated !== false"
         :closable="!!block.props?.closable"
+        :addable="!!block.props?.addable"
+        :justify-content="block.props?.justifyContent"
         :value="resolveActiveTabKey(block)"
         class="layout-tabs"
         @update:value="value => handleTabsValueChange(block, value)"
@@ -1197,11 +1224,14 @@ import AiCrudPage from '@/components/ai-form/AiCrudPage.vue'
 import AiForm from '@/components/ai-form/AiForm.vue'
 import AiTable from '@/components/ai-form/AiTable.vue'
 import SignaturePad from '@/components/flow/SignaturePad.vue'
+import IconRenderer from '@/components/IconRenderer.vue'
+import { DesignerGridRenderer } from '@/components/lowcode-builder/designer-core'
 import FieldValueRenderer from '@/components/lowcode-builder/shared/FieldValueRenderer.vue'
 import InlineRichText from '@/components/lowcode-builder/shared/InlineRichText.vue'
-import { pageWidgetComponentKeys } from '@/components/lowcode-builder/shared/page-widget-schema'
+import { isPageWidgetComponentKey, pageWidgetComponentKeys } from '@/components/lowcode-builder/shared/page-widget-schema'
 import PageWidgetRenderer from '@/components/lowcode-builder/shared/PageWidgetRenderer.vue'
 import { appendDesignPreviewToApiValue, applyTableColumnLayout, buildCrudSearchTypeRequestParams, filterCrudItemsByFieldRefs, includeManagedRuntimeFieldRefs, isDesignPreviewCrudProps, normalizeTableRowGap, resolveCrudPreviewReloadKey, resolveCrudSearchFieldCatalog, resolveCurrentConfigPlaceholder, resolveRuntimeBlockApi } from '@/components/lowcode-builder/shared/runtime-crud-props'
+import { hydrateRuntimeFormLayout } from '@/components/lowcode-builder/shared/runtime-form-layout'
 import { matchSimpleExpression, resolveRuntimeControl } from '@/components/lowcode-builder/shared/runtime-rules'
 import { useUserStore } from '@/store'
 import { postEncrypt, request } from '@/utils'
@@ -1476,21 +1506,6 @@ const gridLayoutCells = computed(() => {
     }
   })
 })
-const gridLayoutStyle = computed(() => ({
-  gridTemplateColumns: `repeat(${Math.max(1, Number(props.block.props?.columns || 24))}, minmax(0, 1fr))`,
-  gap: `${Math.max(0, Number(props.block.props?.rowGap ?? 0))}px ${Math.max(0, Number(props.block.props?.gutter ?? props.block.props?.gap ?? 16))}px`,
-  alignItems: props.block.props?.alignItems || 'stretch',
-  justifyItems: props.block.props?.justifyItems || 'stretch',
-  height: 'auto',
-  minHeight: '100%',
-}))
-function gridCellStyle(cell = {}) {
-  return {
-    gridColumn: `span ${clampGridSpan(cell.span, 6)}`,
-    minHeight: `${Math.max(24, Number(cell.minHeight || props.block.props?.cellMinHeight || 120))}px`,
-    backgroundColor: props.block.props?.cellBackground || 'transparent',
-  }
-}
 function resolveGridCellPreviewMinHeight(children = []) {
   if (!children.length)
     return Math.max(24, Number(props.block.props?.cellMinHeight || 120))
@@ -1674,6 +1689,15 @@ const blockStyle = computed(() => {
     resolvedStyle.maxWidth = '100%'
     resolvedStyle.overflow = 'hidden'
   }
+  // 设计态：背景透明的区块给一个可辨识的占位底色+虚线轮廓，避免拖入后"看不见"（运行/预览态不影响）
+  if (!props.readonly) {
+    const bg = String(resolvedStyle.backgroundColor || 'transparent').trim().toLowerCase()
+    if (!bg || bg === 'transparent' || bg === 'rgba(0, 0, 0, 0)' || bg === 'rgba(0,0,0,0)') {
+      resolvedStyle.backgroundColor = 'rgba(255, 255, 255, 0.66)'
+      resolvedStyle.outline = '1px dashed rgba(148, 163, 184, 0.45)'
+      resolvedStyle.outlineOffset = '-1px'
+    }
+  }
   return resolvedStyle
 })
 
@@ -1739,7 +1763,12 @@ const aiFormSchema = computed(() => {
   const formFields = configuredFieldRefs.value.length
     ? visibleResolvedFields.value
     : visibleResolvedFields.value.filter(isDefaultAiFormField)
-  return formFields.map(field => toAiFormField(field, 'form'))
+  // widget 虚拟组件不在 block.fieldRefs 中，需要从 props.fields 额外注入
+  const existingKeys = new Set(formFields.map(f => f.field || f.fieldCode || f.id))
+  const widgetFields = (props.fields || []).filter(
+    f => f.nodeType === 'widget' && !existingKeys.has(f.field || f.fieldCode || f.id),
+  )
+  return [...formFields, ...widgetFields].map(field => toAiFormField(field, 'form'))
 })
 const aiFormCreateApi = computed(() => {
   const configuredApi = props.block.props?.createApi || props.runtimeCrudProps?.apiConfig?.create || ''
@@ -1837,9 +1866,12 @@ const effectiveRuntimeCrudProps = computed(() => {
           props.runtimeCrudProps.searchSchema?.length ? props.runtimeCrudProps.searchSchema : aiSearchSchema.value,
           configuredFieldRefs.value,
         ),
-    editSchema: filterCrudItemsByFieldRefs(
-      props.runtimeCrudProps.editSchema?.length ? props.runtimeCrudProps.editSchema : aiFormSchema.value,
-      configuredFieldRefs.value,
+    editSchema: hydrateRuntimeFormLayout(
+      filterCrudItemsByFieldRefs(
+        props.runtimeCrudProps.editSchema?.length ? props.runtimeCrudProps.editSchema : aiFormSchema.value,
+        configuredFieldRefs.value,
+      ),
+      props.runtimeCrudProps.options?.editFormLayout,
     ),
     apiConfig: {
       ...(props.runtimeCrudProps.apiConfig || {}),
@@ -1852,21 +1884,23 @@ const effectiveRuntimeCrudProps = computed(() => {
     searchEnableCollapse: blockProps.searchEnableCollapse ?? props.runtimeCrudProps.searchEnableCollapse,
     searchMaxVisibleFields: blockProps.searchMaxVisibleFields || props.runtimeCrudProps.searchMaxVisibleFields,
     searchYGap: blockProps.searchYGap ?? props.runtimeCrudProps.searchYGap,
-    editGridCols: blockProps.editGridCols || props.runtimeCrudProps.editGridCols,
-    editLabelWidth: blockProps.editLabelWidth || props.runtimeCrudProps.editLabelWidth,
-    editLabelPlacement: blockProps.editLabelPlacement || props.runtimeCrudProps.editLabelPlacement,
-    editLabelAlign: blockProps.editLabelAlign || props.runtimeCrudProps.editLabelAlign,
-    editSize: blockProps.editSize || props.runtimeCrudProps.editSize,
-    editShowFeedback: blockProps.editShowFeedback ?? props.runtimeCrudProps.editShowFeedback,
-    editXGap: blockProps.editXGap ?? props.runtimeCrudProps.editXGap,
-    editYGap: blockProps.editYGap ?? props.runtimeCrudProps.editYGap,
-    tableRowGap: normalizeTableRowGap(blockProps.rowGap ?? props.runtimeCrudProps.tableRowGap, 8),
-    modalWidth: blockProps.modalWidth || props.runtimeCrudProps.modalWidth,
-    detailModalWidth: blockProps.detailModalWidth || props.runtimeCrudProps.detailModalWidth,
+    // 表单设计器 layout 是表单项配置的单一事实来源，优先于页面区块旧值；
+    // 仅在区块有显式覆盖且设计器未配置时才回落 blockProps
+    editGridCols: props.runtimeCrudProps.editGridCols || blockProps.editGridCols,
+    editLabelWidth: props.runtimeCrudProps.editLabelWidth || blockProps.editLabelWidth,
+    editLabelPlacement: props.runtimeCrudProps.editLabelPlacement || blockProps.editLabelPlacement,
+    editLabelAlign: props.runtimeCrudProps.editLabelAlign || blockProps.editLabelAlign,
+    editSize: props.runtimeCrudProps.editSize || blockProps.editSize,
+    editShowFeedback: props.runtimeCrudProps.editShowFeedback ?? blockProps.editShowFeedback,
+    editXGap: props.runtimeCrudProps.editXGap ?? blockProps.editXGap,
+    editYGap: props.runtimeCrudProps.editYGap ?? blockProps.editYGap,
+    tableRowGap: normalizeTableRowGap(props.runtimeCrudProps.tableRowGap ?? blockProps.rowGap, 8),
+    modalWidth: props.runtimeCrudProps.modalWidth || blockProps.modalWidth,
+    detailModalWidth: props.runtimeCrudProps.detailModalWidth || blockProps.detailModalWidth,
     formOpenMode: resolveEffectiveFormOpenMode(blockProps, props.runtimeCrudProps),
-    tabWorkspace: blockProps.tabWorkspace || props.runtimeCrudProps.tabWorkspace,
+    tabWorkspace: props.runtimeCrudProps.tabWorkspace?.maxTabs ? props.runtimeCrudProps.tabWorkspace : (blockProps.tabWorkspace || props.runtimeCrudProps.tabWorkspace),
     modalType: resolveEffectiveModalType(blockProps, props.runtimeCrudProps),
-    drawerPlacement: blockProps.drawerPlacement || props.runtimeCrudProps.drawerPlacement,
+    drawerPlacement: props.runtimeCrudProps.drawerPlacement || blockProps.drawerPlacement,
     hideModalFooter: blockProps.hideModalFooter ?? props.runtimeCrudProps.hideModalFooter,
     hideDefaultDetailContent: blockProps.hideDefaultDetailContent ?? props.runtimeCrudProps.hideDefaultDetailContent,
     hideToolbar: blockProps.hideToolbar ?? props.runtimeCrudProps.hideToolbar,
@@ -1924,11 +1958,12 @@ function extensionRuntimeApi() {
 function resolveEffectiveFormOpenMode(blockProps = {}, runtimeProps = {}) {
   const blockMode = normalizeFormOpenMode(blockProps.formOpenMode)
   const runtimeMode = normalizeFormOpenMode(runtimeProps.formOpenMode)
-  if (runtimeMode && runtimeMode !== 'modal')
+  // 表单设计器 layout 是单一事实来源：runtimeMode 有值时直接生效，仅在未配置时才看区块覆盖
+  if (runtimeMode)
     return runtimeMode
-  if (blockMode && blockMode !== 'modal')
+  if (blockMode)
     return blockMode
-  return runtimeMode || blockMode || normalizeModalType(runtimeProps.modalType) || normalizeModalType(blockProps.modalType) || 'modal'
+  return normalizeModalType(runtimeProps.modalType) || normalizeModalType(blockProps.modalType) || 'modal'
 }
 
 function resolveEffectiveModalType(blockProps = {}, runtimeProps = {}) {
@@ -2265,6 +2300,22 @@ function isDefaultAiFormField(field = {}) {
 
 function toAiFormField(field, mode = 'form') {
   const queryType = field.queryType || field.searchType || 'eq'
+  const rawType = field.componentType || field.type || field.dataType || ''
+  // 页面挂件组件：保留 componentKey 和 widget 属性，走 PageWidgetRenderer 渲染
+  if (field.nodeType === 'widget' || (rawType && isPageWidgetComponentKey(rawType))) {
+    return {
+      field: field.field || field.fieldCode || field.id,
+      label: field.label || field.fieldName || field.field,
+      componentKey: rawType || field.componentKey,
+      type: rawType || field.componentKey,
+      nodeType: 'widget',
+      span: field.span || 1,
+      props: field.props || {},
+      fieldBinding: field.fieldBinding || { mode: 'virtual' },
+      showLabel: field.showLabel ?? false,
+      showFeedback: field.showFeedback ?? false,
+    }
+  }
   return {
     field: field.field,
     label: field.label || field.field,
@@ -2300,6 +2351,9 @@ function resolveNestedBlockDataSourceConfigured(block = {}) {
 
 function resolveAiFieldType(field) {
   const type = field.componentType || field.type || field.dataType || 'input'
+  // 页面挂件类型直接透传（qrcode、barcode、rich-text、markdown 等）
+  if (isPageWidgetComponentKey(type))
+    return type
   const queryType = String(field.queryType || field.searchType || '').toLowerCase()
   if (queryType === 'between') {
     if (['date', 'daterange'].includes(type))
@@ -2555,8 +2609,12 @@ function normalizeDetailInfoParams(value = '{}') {
   }
 }
 
+// 与 PageWidgetRenderer.interpolateTemplate 保持同一套占位符语法：{{ 字段 }}、${字段}、$form.字段
 function interpolateText(value = '', data = {}) {
-  return String(value || '').replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, key) => {
+  return String(value || '').replace(/\{\{\s*([\w.$-]+)\s*\}\}|\$\{\s*([\w.$-]+)\s*\}|\$form\.([\w.$-]+)/g, (matched, mustacheKey, dollarKey, formKey) => {
+    const key = mustacheKey || dollarKey || formKey
+    if (!key)
+      return matched
     const result = getNestedRecordValue(data, key)
     return result === undefined || result === null ? '' : String(result)
   })
@@ -3549,6 +3607,20 @@ watch(
   min-height: 100%;
 }
 
+/* 统一栅格渲染器内容包装：铺满格子、透传 drop-active 状态 */
+.designer-grid-cell-inner {
+  position: relative;
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  min-height: 100%;
+}
+
+.designer-grid-cell-inner.is-drop-active {
+  border-radius: 6px;
+  background: rgba(37, 99, 235, 0.06);
+}
+
 .layout-grid-cell {
   position: relative;
   min-width: 0;
@@ -3860,10 +3932,21 @@ watch(
 }
 
 .runtime-crud-loading {
-  min-height: 180px;
+  min-height: 120px;
   display: grid;
   flex: 1;
   place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: 1px dashed #e5e7eb;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.runtime-crud-loading > span {
+  color: #71717a;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .ai-crud-preview :deep(.ai-crud-page) {
@@ -4460,6 +4543,48 @@ watch(
   align-content: start;
   gap: 8px;
   height: 100%;
+  padding: 12px;
+  border: 1px solid var(--n-border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--n-color, #fff);
+  transition:
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+/* 尺寸变体 */
+.layout-card--small {
+  padding: 8px;
+  gap: 6px;
+}
+
+.layout-card--large {
+  padding: 16px;
+  gap: 10px;
+}
+
+.layout-card--huge {
+  padding: 20px;
+  gap: 12px;
+}
+
+/* 无边框 */
+.layout-card--borderless {
+  border-color: transparent;
+}
+
+/* 嵌入模式：去除边框和阴影，与父背景融合 */
+.layout-card--embedded {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+/* 悬停效果 */
+.layout-card--hoverable:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
 }
 
 .layout-card-title {

@@ -1,5 +1,7 @@
 export * from './app'
 export * from './auth'
+export * from './designer/formDesigner'
+export * from './designer/listDesigner'
 export * from './permission'
 export * from './router'
 export * from './tab'

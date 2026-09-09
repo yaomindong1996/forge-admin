@@ -15,18 +15,48 @@
       </n-tabs>
     </header>
 
-    <section v-if="activeView === 'MY_APPS'" class="app-center-layout">
+    <section
+      v-if="activeView === 'MY_APPS'"
+      class="app-center-layout"
+      :class="{ 'is-suite-nav-collapsed': suiteNavCollapsed }"
+    >
       <aside class="suite-nav">
         <div class="suite-nav-head">
-          <div>
-            <strong>业务域</strong>
-            <span>{{ suites.length }} 个目录</span>
+          <div class="suite-nav-heading">
+            <strong>应用分组</strong>
           </div>
-          <n-button quaternary circle size="small" aria-label="新建业务域" @click="openSuiteEditor(null)">
-            <template #icon>
-              <NIcon><AddOutline /></NIcon>
-            </template>
-          </n-button>
+          <div class="suite-nav-actions">
+            <n-button
+              v-if="!suiteNavCollapsed"
+              quaternary
+              circle
+              size="small"
+              class="suite-create"
+              aria-label="新建分组"
+              title="新建分组"
+              @click="openSuiteEditor(null)"
+            >
+              <template #icon>
+                <NIcon><AddOutline /></NIcon>
+              </template>
+            </n-button>
+            <n-button
+              quaternary
+              circle
+              size="small"
+              class="suite-collapse"
+              :aria-label="suiteNavCollapsed ? '展开应用分组' : '收起应用分组'"
+              :title="suiteNavCollapsed ? '展开应用分组' : '收起应用分组'"
+              @click="suiteNavCollapsed = !suiteNavCollapsed"
+            >
+              <template #icon>
+                <NIcon>
+                  <ChevronForwardOutline v-if="suiteNavCollapsed" />
+                  <ChevronBackOutline v-else />
+                </NIcon>
+              </template>
+            </n-button>
+          </div>
         </div>
 
         <div class="suite-list" :class="{ refreshing: loadingSuites }">
@@ -34,6 +64,7 @@
             type="button"
             class="suite-item all-suite"
             :class="{ active: !suiteCode }"
+            title="全部应用"
             @click="selectSuite(null)"
           >
             <span class="suite-icon all">
@@ -57,7 +88,7 @@
               v-if="row.hasChildren"
               type="button"
               class="suite-toggle"
-              :aria-label="isSuiteExpanded(row.suite) ? '收起子业务域' : '展开子业务域'"
+              :aria-label="isSuiteExpanded(row.suite) ? '收起子分组' : '展开子分组'"
               @click="toggleSuiteExpanded(row.suite)"
             >
               <NIcon>
@@ -71,6 +102,7 @@
               type="button"
               class="suite-item"
               :class="{ active: suiteCode === row.suite.suiteCode }"
+              :title="row.suite.suiteName || row.suite.suiteCode"
               @click="selectSuite(row.suite)"
             >
               <span class="suite-icon">
@@ -88,17 +120,13 @@
               :options="suiteActionOptions(row.suite)"
               @select="key => handleSuiteAction(key, row.suite)"
             >
-              <n-button quaternary circle size="tiny" class="suite-more" aria-label="业务域操作">
+              <n-button quaternary circle size="tiny" class="suite-more" aria-label="分组操作">
                 <template #icon>
                   <NIcon><EllipsisVertical /></NIcon>
                 </template>
               </n-button>
             </n-dropdown>
           </div>
-        </div>
-
-        <div class="suite-nav-foot">
-          <span>对象和访问入口已移入应用上下文</span>
         </div>
       </aside>
 
@@ -140,21 +168,34 @@
 
           <div class="application-table-region">
             <div
-              v-if="applications.length"
+              v-if="groupedApplications.length"
               class="table-scroll"
               tabindex="0"
               aria-label="业务应用卡片列表，可纵向滚动"
             >
-              <ApplicationTable
-                :applications="applications"
-                @enter="openApplication"
-                @run="openApplicationPortal"
-                @edit="openApplicationSettings"
-                @code="openApplicationCode"
-                @publish="openApplicationPublish"
-                @toggle="toggleApplication"
-                @delete="removeApplication"
-              />
+              <n-collapse
+                :default-expanded-names="['today', 'thisWeek', 'earlier']"
+                arrow-placement="left"
+                class="application-group-collapse"
+              >
+                <n-collapse-item
+                  v-for="group in groupedApplications"
+                  :key="group.key"
+                  :name="group.key"
+                  :title="`${group.label}（${group.count}）`"
+                >
+                  <ApplicationTable
+                    :applications="group.items"
+                    @enter="openApplication"
+                    @run="openApplicationPortal"
+                    @edit="openApplicationSettings"
+                    @code="openApplicationCode"
+                    @publish="openApplicationPublish"
+                    @toggle="toggleApplication"
+                    @delete="removeApplication"
+                  />
+                </n-collapse-item>
+              </n-collapse>
             </div>
 
             <n-empty
@@ -238,6 +279,7 @@
 import {
   AddOutline,
   AppsOutline,
+  ChevronBackOutline,
   ChevronDownOutline,
   ChevronForwardOutline,
   EllipsisVertical,
@@ -284,6 +326,7 @@ const applications = ref([])
 const loadingSuites = ref(false)
 const loadingApplications = ref(false)
 const collapsedSuiteIds = ref(new Set())
+const suiteNavCollapsed = ref(false)
 const createWizardVisible = ref(false)
 const createWizardMode = ref('BLANK')
 const createWizardTemplateKey = ref('')
@@ -308,6 +351,32 @@ const allApplicationTotal = computed(() => suites.value.reduce(
   (sum, suite) => sum + Number(suite.applicationCount || 0),
   0,
 ))
+
+const groupedApplications = computed(() => {
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const weekStart = new Date(todayStart)
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+  const groups = { today: [], thisWeek: [], earlier: [] }
+  for (const app of applications.value) {
+    const t = new Date(String(app.updateTime || '').replace(' ', 'T'))
+    if (Number.isNaN(t.getTime())) {
+      groups.earlier.push(app)
+      continue
+    }
+    if (t >= todayStart)
+      groups.today.push(app)
+    else if (t >= weekStart)
+      groups.thisWeek.push(app)
+    else
+      groups.earlier.push(app)
+  }
+  return [
+    { key: 'today', label: '今天', count: groups.today.length, items: groups.today },
+    { key: 'thisWeek', label: '本周', count: groups.thisWeek.length, items: groups.thisWeek },
+    { key: 'earlier', label: '更早', count: groups.earlier.length, items: groups.earlier },
+  ].filter(g => g.items.length > 0)
+})
 const suiteById = computed(() => {
   const result = new Map()
   suites.value.forEach((suite) => {
@@ -649,11 +718,11 @@ function removeApplication(application) {
 
 function suiteActionOptions(suite) {
   return [
-    { label: '新增子业务域', key: 'create-child' },
-    { label: '编辑业务域', key: 'edit' },
-    { label: Number(suite.status) === 1 ? '停用业务域' : '启用业务域', key: 'toggle' },
+    { label: '新增子分组', key: 'create-child' },
+    { label: '编辑分组', key: 'edit' },
+    { label: Number(suite.status) === 1 ? '停用分组' : '启用分组', key: 'toggle' },
     { type: 'divider', key: 'divider' },
-    { label: '删除业务域', key: 'delete' },
+    { label: '删除分组', key: 'delete' },
   ]
 }
 
@@ -684,12 +753,12 @@ function toggleSuite(suite) {
   const nextStatus = Number(suite.status) === 1 ? 0 : 1
   const action = nextStatus === 1 ? '启用' : '停用'
   confirmAction({
-    title: `${action}业务域`,
-    content: `确定${action}“${suite.suiteName || suite.suiteCode}”吗？现有应用和入口数据不会被删除。`,
+    title: `${action}分组`,
+    content: `确定${action}"${suite.suiteName || suite.suiteCode}"吗？现有应用和入口数据不会被删除。`,
     positiveText: action,
     async onConfirm() {
       await updateBusinessSuiteStatus(suite.id, nextStatus)
-      message.success(`业务域已${action}`)
+      message.success(`分组已${action}`)
       await loadSuites()
     },
   })
@@ -704,16 +773,16 @@ function removeSuite(suite) {
     orphanObjectCount > 0 ? `${orphanObjectCount} 个未被应用使用的业务对象配置` : null,
   ].filter(Boolean).join('、')
   confirmAction({
-    title: '删除业务域',
+    title: '删除分组',
     content: cleanupOrphanResources
-      ? `确定删除“${suite.suiteName || suite.suiteCode}”吗？将同时清理该业务域内的${cleanupTargets}；访问入口菜单将停用，对应业务数据表和历史版本不会被物理删除。`
-      : `确定删除“${suite.suiteName || suite.suiteCode}”吗？存在子业务域或业务应用时仍会阻止删除。`,
+      ? `确定删除"${suite.suiteName || suite.suiteCode}"吗？将同时清理该分组内的${cleanupTargets}；访问入口菜单将停用，对应业务数据表和历史版本不会被物理删除。`
+      : `确定删除"${suite.suiteName || suite.suiteCode}"吗？存在子分组或业务应用时仍会阻止删除。`,
     positiveText: cleanupOrphanResources ? '删除并清理' : '删除',
     async onConfirm() {
       await deleteBusinessSuite(suite.id, cleanupOrphanResources)
       if (suiteCode.value === suite.suiteCode)
         suiteCode.value = null
-      message.success('业务域已删除')
+      message.success('分组已删除')
       pageNum.value = 1
       syncRouteQuery()
       await Promise.all([loadSuites(), loadApplications()])
@@ -910,13 +979,17 @@ function trimToUndefined(value) {
 
 .app-center-layout {
   display: grid;
-  grid-template-columns: 284px minmax(0, 1fr);
+  grid-template-columns: 236px minmax(0, 1fr);
   height: auto;
   min-height: 0;
   overflow: hidden;
   border: 0;
   border-radius: 0;
   background: var(--n-color, #fff);
+}
+
+.app-center-layout.is-suite-nav-collapsed {
+  grid-template-columns: 52px minmax(0, 1fr);
 }
 
 .suite-nav {
@@ -933,7 +1006,7 @@ function trimToUndefined(value) {
   --suite-accent-strong: var(--n-primary-color-hover, var(--primary-color-hover, #0e42d2));
   --suite-muted: var(--n-text-color-3, var(--text-tertiary, #86909c));
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -946,27 +1019,27 @@ function trimToUndefined(value) {
   align-items: center;
   justify-content: space-between;
   min-height: 60px;
-  padding: 12px 14px 12px 18px;
+  padding: 12px 12px 12px 16px;
   border-bottom: 1px solid var(--suite-panel-border);
   background: var(--suite-panel-head);
 }
 
-.suite-nav-head > div {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.suite-nav-heading {
+  min-width: 0;
 }
 
 .suite-nav-head strong {
   color: var(--n-text-color, var(--text-primary, #1d2129));
   font-size: 13px;
   font-weight: 650;
+  white-space: nowrap;
 }
 
-.suite-nav-head span,
-.suite-nav-foot {
-  color: var(--suite-muted);
-  font-size: 11px;
+.suite-nav-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
 }
 
 .suite-nav-head :deep(.n-button) {
@@ -1021,25 +1094,30 @@ function trimToUndefined(value) {
   min-height: 38px;
   padding: 4px 7px;
   border: 0;
-  border-radius: 4px;
+  border-radius: 6px;
   background: transparent;
   color: inherit;
   text-align: left;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
 .all-suite {
   margin-bottom: 8px;
 }
 
-.suite-item:hover,
-.suite-item.active {
-  background: var(--suite-item-hover);
+.suite-item:hover {
+  background: #f2f3f5;
 }
 
 .suite-item.active {
   color: var(--suite-accent-strong);
-  background: var(--suite-item-active);
+  background: #edf2ff;
+  font-weight: 500;
+}
+
+.suite-item.active .suite-copy strong {
+  font-weight: 650;
 }
 
 .suite-icon {
@@ -1080,10 +1158,6 @@ function trimToUndefined(value) {
   font-weight: 500;
 }
 
-.suite-item.active .suite-copy strong {
-  font-weight: 650;
-}
-
 .suite-copy small {
   color: var(--suite-muted);
   font-size: 10px;
@@ -1113,13 +1187,6 @@ function trimToUndefined(value) {
 .suite-row:hover .suite-more,
 .suite-more:focus-visible {
   opacity: 1;
-}
-
-.suite-nav-foot {
-  padding: 12px 16px;
-  border-top: 1px solid var(--suite-panel-border);
-  background: var(--suite-panel-head);
-  line-height: 1.5;
 }
 
 .application-workspace {
@@ -1154,6 +1221,7 @@ function trimToUndefined(value) {
 .panel-toolbar {
   flex-wrap: wrap;
   border-bottom: 1px solid var(--n-border-color, #e5e7eb);
+  background: #fff;
 }
 
 .toolbar-left {
@@ -1204,6 +1272,7 @@ function trimToUndefined(value) {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  padding-top: 8px;
 }
 
 .table-scroll {
@@ -1215,8 +1284,8 @@ function trimToUndefined(value) {
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-gutter: stable;
-  scrollbar-color: color-mix(in srgb, var(--n-primary-color, var(--primary-color, #165dff)) 45%, transparent)
-    var(--n-color-embedded, #f2f3f5);
+  //scrollbar-color: color-mix(in srgb, var(--n-primary-color, var(--primary-color, #165dff)) 45%, transparent)
+  //  var(--n-color-embedded, #f2f3f5);
   scrollbar-width: thin;
   overscroll-behavior: contain;
 }
@@ -1251,11 +1320,74 @@ function trimToUndefined(value) {
   backdrop-filter: blur(1px);
 }
 
+.application-group-collapse {
+  --n-border-color: transparent !important;
+  --n-divider-color: transparent !important;
+}
+
+.application-group-collapse :deep(.n-collapse-item__header) {
+  padding: 12px 16px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--n-text-color, #1d2129);
+  letter-spacing: 0;
+}
+
+.application-group-collapse :deep(.n-collapse-item__header-main) {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.application-group-collapse :deep(.n-collapse-item__content-inner) {
+  padding: 0 !important;
+}
+
+.application-group-collapse :deep(.n-collapse-item) {
+  border-bottom: 0 !important;
+}
+
+.app-center-layout.is-suite-nav-collapsed .suite-nav-head {
+  justify-content: center;
+  padding-inline: 6px;
+}
+
+.app-center-layout.is-suite-nav-collapsed .suite-nav-heading,
+.app-center-layout.is-suite-nav-collapsed .suite-create,
+.app-center-layout.is-suite-nav-collapsed .suite-copy,
+.app-center-layout.is-suite-nav-collapsed .suite-toggle,
+.app-center-layout.is-suite-nav-collapsed .suite-toggle-placeholder,
+.app-center-layout.is-suite-nav-collapsed .suite-more {
+  display: none;
+}
+
+.app-center-layout.is-suite-nav-collapsed .suite-list {
+  padding: 8px 6px 16px;
+}
+
+.app-center-layout.is-suite-nav-collapsed .suite-row {
+  display: block;
+  padding-left: 0;
+}
+
+.app-center-layout.is-suite-nav-collapsed .suite-item {
+  justify-content: center;
+  padding-inline: 4px;
+}
+
+.app-center-layout.is-suite-nav-collapsed .suite-icon {
+  flex-basis: 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--suite-panel-head);
+}
+
 .panel-pagination {
   flex-wrap: wrap;
   justify-content: flex-end;
   min-height: 56px;
   border-top: 1px solid var(--n-border-color, #e5e7eb);
+  background: #fff;
 }
 
 .pagination-controls {

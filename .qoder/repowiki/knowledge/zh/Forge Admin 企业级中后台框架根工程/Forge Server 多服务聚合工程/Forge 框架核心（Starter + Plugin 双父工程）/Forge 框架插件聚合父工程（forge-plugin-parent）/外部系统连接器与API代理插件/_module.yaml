@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/external_plugin
+title: 外部系统连接器与API代理插件
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-external/
+source_files: []
+depends_on: []
+related_to: []

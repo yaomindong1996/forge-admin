@@ -679,12 +679,14 @@ function isRuntimeTextField(field = {}) {
 function buildRuntimeFormProfile(cfg = {}, requestedFormKey = '') {
   const baseEditSchema = Array.isArray(cfg?.editSchema) ? cfg.editSchema : []
   const formDesignerSchema = cfg?.options?.formDesignerSchema || cfg?.formDesignerSchema
-  if (!formDesignerSchema)
-    return { editSchema: baseEditSchema, editFormLayout: cfg?.options?.editFormLayout, formAssets: cfg?.options?.formAssets || cfg?.formAssets || [], governance: {} }
+  if (!formDesignerSchema) {
+    return { editSchema: baseEditSchema, editFormLayout: cfg?.options?.editFormLayout, formAssets: cfg?.options?.formAssets || cfg?.formAssets || [], governance: {}, designerLayout: {} }
+  }
   const multiSchema = normalizeMultiFormDesignerSchema(formDesignerSchema)
   const selectedForm = resolveRuntimeForm(multiSchema, requestedFormKey)
-  if (!selectedForm?.schema)
-    return { editSchema: baseEditSchema, editFormLayout: cfg?.options?.editFormLayout, formAssets: [], governance: {} }
+  if (!selectedForm?.schema) {
+    return { editSchema: baseEditSchema, editFormLayout: cfg?.options?.editFormLayout, formAssets: [], governance: {}, designerLayout: {} }
+  }
   const governance = normalizeFormGovernance(selectedForm.schema.settings?.governance || selectedForm.schema.governance)
   const baseFieldMap = new Map(baseEditSchema.map(field => [field.field, field]))
   const components = flattenDesignerComponents(selectedForm.schema.components || [])
@@ -696,6 +698,7 @@ function buildRuntimeFormProfile(cfg = {}, requestedFormKey = '') {
     editFormLayout: buildRuntimeFormLayoutFromDesignerComponents(selectedForm.schema.components || []),
     formAssets: buildRuntimeFormAssets(multiSchema, selectedForm.formKey),
     governance,
+    designerLayout: selectedForm.schema.layout || {},
   }
 }
 
@@ -993,7 +996,9 @@ function resolvePageSchemaEditFormStyle(pageSchema = {}) {
 }
 
 function resolveRuntimeModalWidth(options = {}, cfg = {}, formProfile = {}) {
-  const explicitWidth = normalizeRuntimeWidth(options.modalWidth || cfg.modalWidth)
+  // 表单设计器布局里的弹窗宽度优先（后端旧版本未把 layout 平铺到 editZone.props 时仍能生效）
+  const explicitWidth = normalizeRuntimeWidth(
+    formProfile.designerLayout?.modalWidth || options.modalWidth || cfg.modalWidth)
   if (explicitWidth)
     return explicitWidth
   const formStyle = options.editFormStyle
@@ -1012,7 +1017,9 @@ const crudProps = computed(() => {
     return {}
   const cfg = renderConfig.value
   const options = cfg.options || {}
-  const formOpenMode = resolveRuntimeFormOpenMode(options, cfg)
+  // 表单设计器保存的 layout 是表单项配置的单一事实来源，优先于运行配置的平铺键
+  const designerLayout = activeRuntimeFormProfile.value.designerLayout || {}
+  const formOpenMode = resolveRuntimeFormOpenMode(options, cfg, designerLayout)
   const treeTable = isTreeTableRuntime(cfg, runtimeEffectiveLayoutType.value)
   const treeConfig = options.treeConfig || {}
   const gridCrudProps = runtimeAiCrudBlockProps.value || {}
@@ -1068,22 +1075,26 @@ const crudProps = computed(() => {
     rowKey: cfg.rowKey || 'id',
     formOpenMode,
     tabWorkspace: options.tabWorkspace || cfg.tabWorkspace || {},
-    modalType: resolveRuntimeModalType(formOpenMode, options, cfg),
+    modalType: resolveRuntimeModalType(formOpenMode, options, cfg, designerLayout),
     modalWidth: resolveRuntimeModalWidth(options, cfg, activeRuntimeFormProfile.value),
-    editGridCols: options.editGridCols || cfg.editGridCols || 1,
-    editLabelWidth: options.editLabelWidth || cfg.editLabelWidth || 'auto',
-    editLabelPlacement: options.editLabelPlacement || cfg.editLabelPlacement || 'left',
-    editLabelAlign: options.editLabelAlign || cfg.editLabelAlign || 'right',
-    editSize: options.editSize || cfg.editSize || 'medium',
-    editShowFeedback: options.editShowFeedback ?? cfg.editShowFeedback ?? true,
-    editFormClass: options.editFormClass || cfg.editFormClass || '',
-    editFormStyle: options.editFormStyle || cfg.editFormStyle,
+    detailModalWidth: designerLayout.detailModalWidth || options.detailModalWidth || cfg.detailModalWidth || 'min(1080px, 92vw)',
+    drawerPlacement: designerLayout.drawerPlacement || options.drawerPlacement || cfg.drawerPlacement || 'right',
+    editGridCols: designerLayout.gridColumns || options.editGridCols || cfg.editGridCols || 1,
+    editLabelWidth: designerLayout.labelWidth || options.editLabelWidth || cfg.editLabelWidth || 'auto',
+    editLabelPlacement: designerLayout.labelPlacement || options.editLabelPlacement || cfg.editLabelPlacement || 'left',
+    editLabelAlign: designerLayout.labelAlign || options.editLabelAlign || cfg.editLabelAlign || 'right',
+    editSize: designerLayout.size || options.editSize || cfg.editSize || 'medium',
+    editEnableCollapse: designerLayout.enableCollapse ?? options.editEnableCollapse ?? cfg.editEnableCollapse ?? false,
+    editMaxVisibleFields: normalizeNumberOption(designerLayout.maxVisibleFields ?? options.editMaxVisibleFields ?? cfg.editMaxVisibleFields, 6),
+    editShowFeedback: designerLayout.showFeedback ?? options.editShowFeedback ?? cfg.editShowFeedback ?? true,
+    editFormClass: designerLayout.formClass || options.editFormClass || cfg.editFormClass || '',
+    editFormStyle: designerLayout.formStyle || options.editFormStyle || cfg.editFormStyle,
     formAssets: activeRuntimeFormProfile.value.formAssets || options.formAssets || cfg.formAssets || [],
     fieldEvents: activeRuntimeFormProfile.value.governance?.fieldEvents || [],
     offlineDraft: buildOfflineDraftConfig(cfg, options, activeRuntimeFormProfile.value),
     formRuntimeContext: buildFormRuntimeContext(),
-    editXGap: normalizeNumberOption(options.editXGap ?? cfg.editXGap, 12),
-    editYGap: normalizeNumberOption(options.editYGap ?? cfg.editYGap, 8),
+    editXGap: normalizeNumberOption(designerLayout.columnGap ?? options.editXGap ?? cfg.editXGap, 12),
+    editYGap: normalizeNumberOption(designerLayout.rowGap ?? options.editYGap ?? cfg.editYGap, 8),
     loadDetailOnEdit: options.loadDetailOnEdit ?? cfg.loadDetailOnEdit ?? true,
     searchGridCols: options.searchGridCols || cfg.searchGridCols || 4,
     hideAdd: !!options.hideAdd,
@@ -1149,8 +1160,9 @@ function buildOfflineDraftConfig(cfg = {}, options = {}, formProfile = {}) {
   }
 }
 
-function resolveRuntimeFormOpenMode(options = {}, cfg = {}) {
-  const value = options.formOpenMode || cfg.formOpenMode || options.modalType || cfg.modalType || 'modal'
+function resolveRuntimeFormOpenMode(options = {}, cfg = {}, designerLayout = {}) {
+  const value = designerLayout.formOpenMode || designerLayout.modalType
+    || options.formOpenMode || cfg.formOpenMode || options.modalType || cfg.modalType || 'modal'
   const mode = String(value || '').trim()
   if (mode === 'tabWorkspace' || mode.toLowerCase() === 'tabworkspace')
     return 'tabWorkspace'
@@ -1173,10 +1185,10 @@ function buildFormRuntimeContext() {
   }
 }
 
-function resolveRuntimeModalType(formOpenMode, options = {}, cfg = {}) {
+function resolveRuntimeModalType(formOpenMode, options = {}, cfg = {}, designerLayout = {}) {
   if (['modal', 'drawer'].includes(formOpenMode))
     return formOpenMode
-  const modalType = String(options.modalType || cfg.modalType || '').trim().toLowerCase()
+  const modalType = String(designerLayout.modalType || options.modalType || cfg.modalType || '').trim().toLowerCase()
   return ['modal', 'drawer'].includes(modalType) ? modalType : 'modal'
 }
 

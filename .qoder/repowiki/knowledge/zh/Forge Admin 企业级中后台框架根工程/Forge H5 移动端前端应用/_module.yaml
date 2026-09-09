@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: forge_h5_ui
+title: Forge H5 移动端前端应用
+scope:
+    - forge-h5-ui/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/app_server

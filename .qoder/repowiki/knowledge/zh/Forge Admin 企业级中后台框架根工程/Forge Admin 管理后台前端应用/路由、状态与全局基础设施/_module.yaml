@@ -1,0 +1,15 @@
+schema_version: 1
+module_path: forge_admin_ui/core_infrastructure
+title: 路由、状态与全局基础设施
+scope:
+    - forge-admin-ui/src/router/
+    - forge-admin-ui/src/store/
+    - forge-admin-ui/src/stores/
+    - forge-admin-ui/src/composables/
+    - forge-admin-ui/src/config/
+    - forge-admin-ui/src/constants/
+    - forge-admin-ui/src/plugins/
+    - forge-admin-ui/src/copy/
+source_files: []
+depends_on: []
+related_to: []

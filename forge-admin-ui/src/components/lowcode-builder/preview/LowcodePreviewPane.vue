@@ -225,6 +225,7 @@ import AiCrudPage from '@/components/ai-form/AiCrudPage.vue'
 import { isImageFileName, resolveFileRenderItems } from '@/components/ai-form/file-render-utils'
 import AuthImage from '@/components/common/AuthImage.vue'
 import DictTag from '@/components/DictTag.vue'
+import { resolveDesignerFormLayout } from '../shared/runtime-crud-props'
 import {
   buildPageDesignModelSchema,
   isPageFieldVisible,
@@ -551,7 +552,10 @@ function buildRuntimeCrudProps(cfg) {
   if (!cfg)
     return {}
   const options = cfg.options || {}
-  const formOpenMode = resolveRuntimeFormOpenMode(options, cfg)
+  // 表单设计器保存的 layout 是表单项配置的单一事实来源，优先于运行配置的平铺键
+  const formDesignerSchemaSource = options.formDesignerSchema || cfg.formDesignerSchema
+  const designerLayout = resolveDesignerFormLayout(formDesignerSchemaSource)
+  const formOpenMode = resolveRuntimeFormOpenMode(options, cfg, designerLayout)
   const fieldMetaMap = buildRuntimeFieldMetaMap(cfg.modelSchema)
   return {
     searchSchema: transformFields(cfg.searchSchema),
@@ -565,19 +569,23 @@ function buildRuntimeCrudProps(cfg) {
     rowKey: cfg.rowKey || 'id',
     formOpenMode,
     tabWorkspace: options.tabWorkspace || cfg.tabWorkspace || {},
-    modalType: resolveRuntimeModalType(formOpenMode, options, cfg),
-    modalWidth: options.modalWidth || cfg.modalWidth || '800px',
-    editGridCols: options.editGridCols || cfg.editGridCols || 1,
-    editLabelWidth: options.editLabelWidth || cfg.editLabelWidth || 'auto',
-    editLabelPlacement: options.editLabelPlacement || cfg.editLabelPlacement || 'left',
-    editLabelAlign: options.editLabelAlign || cfg.editLabelAlign || 'right',
-    editSize: options.editSize || cfg.editSize || 'medium',
-    editShowFeedback: options.editShowFeedback ?? cfg.editShowFeedback ?? true,
-    editFormClass: options.editFormClass || cfg.editFormClass || '',
-    editFormStyle: options.editFormStyle || cfg.editFormStyle,
-    formAssets: options.formAssets || cfg.formAssets || [],
-    editXGap: normalizeNumberOption(options.editXGap ?? cfg.editXGap, 16),
-    editYGap: normalizeNumberOption(options.editYGap ?? cfg.editYGap, 16),
+    modalType: resolveRuntimeModalType(formOpenMode, options, cfg, designerLayout),
+    modalWidth: designerLayout.modalWidth || options.modalWidth || cfg.modalWidth || '800px',
+    detailModalWidth: designerLayout.detailModalWidth || options.detailModalWidth || cfg.detailModalWidth || 'min(1080px, 92vw)',
+    drawerPlacement: designerLayout.drawerPlacement || options.drawerPlacement || cfg.drawerPlacement || 'right',
+    editGridCols: designerLayout.gridColumns || options.editGridCols || cfg.editGridCols || 1,
+    editLabelWidth: designerLayout.labelWidth || options.editLabelWidth || cfg.editLabelWidth || 'auto',
+    editLabelPlacement: designerLayout.labelPlacement || options.editLabelPlacement || cfg.editLabelPlacement || 'left',
+    editLabelAlign: designerLayout.labelAlign || options.editLabelAlign || cfg.editLabelAlign || 'right',
+    editSize: designerLayout.size || options.editSize || cfg.editSize || 'medium',
+    editEnableCollapse: designerLayout.enableCollapse ?? options.editEnableCollapse ?? cfg.editEnableCollapse ?? false,
+    editMaxVisibleFields: normalizeNumberOption(designerLayout.maxVisibleFields ?? options.editMaxVisibleFields ?? cfg.editMaxVisibleFields, 6),
+    editShowFeedback: designerLayout.showFeedback ?? options.editShowFeedback ?? cfg.editShowFeedback ?? true,
+    editFormClass: designerLayout.formClass || options.editFormClass || cfg.editFormClass || '',
+    editFormStyle: designerLayout.formStyle || options.editFormStyle || cfg.editFormStyle,
+    formAssets: designerLayout.formAssets || options.formAssets || cfg.formAssets || [],
+    editXGap: normalizeNumberOption(designerLayout.columnGap ?? options.editXGap ?? cfg.editXGap, 12),
+    editYGap: normalizeNumberOption(designerLayout.rowGap ?? options.editYGap ?? cfg.editYGap, 8),
     loadDetailOnEdit: options.loadDetailOnEdit ?? cfg.loadDetailOnEdit ?? true,
     searchGridCols: options.searchGridCols || cfg.searchGridCols || 4,
     hideBatchDelete: !!options.hideBatchDelete,
@@ -594,8 +602,9 @@ function buildRuntimeCrudProps(cfg) {
   }
 }
 
-function resolveRuntimeFormOpenMode(options = {}, cfg = {}) {
-  const value = options.formOpenMode || cfg.formOpenMode || options.modalType || cfg.modalType || 'modal'
+function resolveRuntimeFormOpenMode(options = {}, cfg = {}, designerLayout = {}) {
+  const value = designerLayout.formOpenMode || designerLayout.modalType
+    || options.formOpenMode || cfg.formOpenMode || options.modalType || cfg.modalType || 'modal'
   const mode = String(value || '').trim()
   if (mode === 'tabWorkspace' || mode.toLowerCase() === 'tabworkspace')
     return 'tabWorkspace'
@@ -603,10 +612,10 @@ function resolveRuntimeFormOpenMode(options = {}, cfg = {}) {
   return ['modal', 'drawer', 'flat'].includes(normalized) ? normalized : 'modal'
 }
 
-function resolveRuntimeModalType(formOpenMode, options = {}, cfg = {}) {
+function resolveRuntimeModalType(formOpenMode, options = {}, cfg = {}, designerLayout = {}) {
   if (['modal', 'drawer'].includes(formOpenMode))
     return formOpenMode
-  const modalType = String(options.modalType || cfg.modalType || '').trim().toLowerCase()
+  const modalType = String(designerLayout.modalType || options.modalType || cfg.modalType || '').trim().toLowerCase()
   return ['modal', 'drawer'].includes(modalType) ? modalType : 'modal'
 }
 

@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/knowledge_storage_service
+title: AI 知识库向量存储与检索服务
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/service/
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/vectorstore/
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/knowledge/domain/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/rag_search_pipeline

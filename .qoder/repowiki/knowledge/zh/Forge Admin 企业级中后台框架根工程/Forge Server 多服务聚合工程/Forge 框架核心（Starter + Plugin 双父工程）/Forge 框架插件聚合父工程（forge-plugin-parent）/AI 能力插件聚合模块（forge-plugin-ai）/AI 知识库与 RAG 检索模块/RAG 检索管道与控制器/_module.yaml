@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/rag_search_pipeline
+title: RAG 检索管道与控制器
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/rag/search/
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/rag/controller/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/knowledge_parsing_chunking
+    - path: forge_server/framework_plugins/plugin_parent/ai_plugin/knowledge_rag/knowledge_storage_service

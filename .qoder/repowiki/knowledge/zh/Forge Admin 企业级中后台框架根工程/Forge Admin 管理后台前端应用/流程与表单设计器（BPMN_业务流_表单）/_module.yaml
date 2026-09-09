@@ -1,0 +1,15 @@
+schema_version: 1
+module_path: forge_admin_ui/flow_management
+title: 流程与表单设计器（BPMN/业务流/表单）
+scope:
+    - forge-admin-ui/src/views/flow/
+    - forge-admin-ui/src/components/bpmn/
+    - forge-admin-ui/src/components/business-process-designer/
+    - forge-admin-ui/src/components/flow/
+    - forge-admin-ui/src/components/flow-designer/
+    - forge-admin-ui/src/components/form-create/
+    - forge-admin-ui/src/components/form-designer/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/flow_service

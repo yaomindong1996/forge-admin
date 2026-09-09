@@ -1,0 +1,22 @@
+schema_version: 1
+module_path: ""
+title: Forge Admin 企业级中后台框架根工程
+scope:
+    - README.md
+    - README.en.md
+    - package.json
+    - pnpm-lock.yaml
+    - .gitignore
+    - .dockerignore
+    - .pull_request_template.md
+    - AGENTS.md
+    - CHANGELOG.md
+    - CLAUDE.md
+    - CONTRIBUTING.md
+    - FORGE_PRODUCTIZATION_PLAN.md
+    - LICENSE
+    - NGINX_CONFIG.md
+    - remove_nul.ps1
+source_files: []
+depends_on: []
+related_to: []

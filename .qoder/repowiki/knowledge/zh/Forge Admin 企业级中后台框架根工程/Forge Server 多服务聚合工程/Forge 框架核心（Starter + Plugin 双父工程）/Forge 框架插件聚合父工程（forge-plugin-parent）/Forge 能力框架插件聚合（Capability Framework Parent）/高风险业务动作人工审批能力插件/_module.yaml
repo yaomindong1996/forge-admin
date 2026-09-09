@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/capability_framework/capability_high_risk_approval
+title: 高风险业务动作人工审批能力插件
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-capability-parent/forge-plugin-capability-high-risk-approval/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/framework_plugins/plugin_parent/flow_plugin

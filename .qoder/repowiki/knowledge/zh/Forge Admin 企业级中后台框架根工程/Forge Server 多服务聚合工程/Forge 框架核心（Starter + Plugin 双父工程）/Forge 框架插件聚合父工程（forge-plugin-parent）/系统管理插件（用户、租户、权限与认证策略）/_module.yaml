@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/system_plugin
+title: 系统管理插件（用户、租户、权限与认证策略）
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-system/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_admin_ui/system_admin

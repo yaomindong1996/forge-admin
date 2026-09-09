@@ -86,6 +86,23 @@ alwaysApply: true
 - 按钮顺序安排：最常用的操作放前面（会被内联显示），低频操作放后面（收入"更多"）
 - 操作列宽度需根据按钮数量合理设置：2个内联按钮约 150-180px
 
+### 7.4 Pinia 状态管理（强制）
+
+> 与 AGENTS.md 5.14 同源，此为编码层落地细则，适用于所有 AI 生成/修改的前端代码。
+
+- **能用 Pinia 的场景必须用 Pinia**：跨组件、跨面板、跨层级的共享状态与通信（设计器 schema、选中 ID、面板 UI 状态、多组件联动状态等）必须沉淀到 Pinia store；项目已引入 Pinia 3，禁止因为"嫌麻烦"继续用 props/emit 层层透传。
+- **透传超过 2 层即违规**：同一个状态经 props + emit 转手超过 2 层必须改 store，子组件直接读写 store，父组件不再充当数据中转站。
+- **存量巨型组件渐进式改造模式**：入口组件接收 props 后 `syncFromProps` 同步进 store，同时 watch store 变化对外 emit 兼容存量父组件；拆出的内部面板子组件全部读写 store，不再接收中间 props。
+- **store 文件组织**：`src/stores/<domain>/xxxStore.js`，导出 `useXxxStore`；一个 store 聚焦一个领域（如 `stores/designer/formDesignerStore.js`），禁止大杂烩全量 store。
+- store 内用组合式 API（`defineStore('xxx', () => { ... })`）写法，与项目 `<script setup>` 风格一致。
+
+### 7.5 组件拆分与单文件规模（强制）
+
+- **Vue SFC 超过 800 行（模板+script+style 合计）必须拆分；超过 2000 行禁止提交**，必须先重构再提交。
+- 拆分优先级：属性面板按分区拆（一个 collapse-item / tab-pane 一个子组件文件）→ 可复用逻辑抽 composable（`useXxx.js`）→ 纯函数下沉模块级 `utils.js`。
+- 拆出的子组件与父组件同域放置：如 `forge-form-designer/panels/FooPanel.vue`，禁止散落在无关目录。
+- 新增功能禁止继续往巨型 SFC 里追加模板/逻辑；发现所在文件已超限时，先拆分再实现。
+
 ## 8. 后端架构规范
 ### 8.1 循环依赖
 - Service 之间**禁止相互注入**导致循环依赖

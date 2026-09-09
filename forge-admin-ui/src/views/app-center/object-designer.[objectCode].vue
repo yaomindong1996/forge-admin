@@ -358,7 +358,7 @@ function defineDesignerAsyncComponent(loader) {
   return defineAsyncComponent({
     loader,
     loadingComponent: DesignerAsyncLoader,
-    delay: 80,
+    delay: 200,
     timeout: 60000,
   })
 }

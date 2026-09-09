@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing/routing_policy
+title: AI 模型路由策略与候选选择
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-ai/src/main/java/com/mdframe/forge/plugin/ai/routing/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing/model_adapter
+    - path: forge_server/framework_plugins/plugin_parent/ai_plugin/model_provider_routing/provider_adapter

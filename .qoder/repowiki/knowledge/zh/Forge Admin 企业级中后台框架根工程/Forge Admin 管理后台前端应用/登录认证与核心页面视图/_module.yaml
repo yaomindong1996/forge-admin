@@ -1,0 +1,17 @@
+schema_version: 1
+module_path: forge_admin_ui/auth_and_pages
+title: 登录认证与核心页面视图
+scope:
+    - forge-admin-ui/src/views/login/
+    - forge-admin-ui/src/views/home/
+    - forge-admin-ui/src/views/error-page/
+    - forge-admin-ui/src/views/external/
+    - forge-admin-ui/src/views/base/
+    - forge-admin-ui/src/views/business/
+    - forge-admin-ui/src/views/iframe/
+    - forge-admin-ui/src/App.vue
+    - forge-admin-ui/src/main.js
+    - forge-admin-ui/src/settings.js
+source_files: []
+depends_on: []
+related_to: []

@@ -1,0 +1,11 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/plugin_parent/generator_plugin
+title: 低代码代码生成与业务应用引擎插件
+scope:
+    - forge-server/forge-framework/forge-plugin-parent/forge-plugin-generator/
+source_files: []
+depends_on: []
+related_to:
+    - path: forge_admin_ui/app_center
+    - path: forge_admin_ui/lowcode_builder
+    - path: forge_server/business_core

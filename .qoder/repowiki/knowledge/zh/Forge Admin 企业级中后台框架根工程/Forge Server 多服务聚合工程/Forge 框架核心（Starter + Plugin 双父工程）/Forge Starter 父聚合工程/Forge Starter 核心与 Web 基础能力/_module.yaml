@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: forge_server/framework_plugins/starter_parent/core_and_web
+title: Forge Starter 核心与 Web 基础能力
+scope:
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-core/
+    - forge-server/forge-framework/forge-starter-parent/forge-starter-web/
+source_files: []
+depends_on: []
+related_to: []
