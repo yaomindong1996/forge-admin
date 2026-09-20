@@ -1,14 +1,15 @@
 <template>
   <view class="lowcode-layout">
     <template v-for="node in visibleNodes" :key="nodeKey(node)">
-      <!-- Card / Row / Col wrapper -->
+      <!-- Card container -->
       <CardSection
-        v-if="isCardLikeNode(node)"
+        v-if="isCardNode(node)"
         :title="node.label || node.props?.header || ''"
         :collapsible="isCollapsibleCard(node)"
         :collapsed-by-default="node.props?.collapsedByDefault === true"
       >
         <LowcodeLayoutNodes
+          :ref="instance => setChildLayoutRef(nodeKey(node), instance)"
           :nodes="node.children || []"
           :data="data"
           :dict-options="dictOptions"
@@ -17,8 +18,25 @@
           :field-linkages="fieldLinkages"
           @update:data="(...args) => emit('update:data', ...args)"
           @field-event="(...args) => emit('field-event', ...args)"
+          @action="(...args) => emit('action', ...args)"
         />
       </CardSection>
+
+      <!-- Mobile containers: desktop grids/tables collapse into a readable stack. -->
+      <view v-else-if="isContainerNode(node)" :class="containerClass(node)">
+        <LowcodeLayoutNodes
+          :ref="instance => setChildLayoutRef(nodeKey(node), instance)"
+          :nodes="node.children || []"
+          :data="data"
+          :dict-options="dictOptions"
+          :readonly="readonly"
+          :context="context"
+          :field-linkages="fieldLinkages"
+          @update:data="(...args) => emit('update:data', ...args)"
+          @field-event="(...args) => emit('field-event', ...args)"
+          @action="(...args) => emit('action', ...args)"
+        />
+      </view>
 
       <!-- Tabs -->
       <view v-else-if="isTabsNode(node)" class="lowcode-layout-tabs">
@@ -29,6 +47,7 @@
             :index="pIndex"
           >
             <LowcodeLayoutNodes
+              :ref="instance => setChildLayoutRef(`${nodeKey(node)}:${nodeKey(pane)}`, instance)"
               :nodes="pane.children || []"
               :data="data"
               :dict-options="dictOptions"
@@ -37,6 +56,7 @@
               :field-linkages="fieldLinkages"
               @update:data="(...args) => emit('update:data', ...args)"
               @field-event="(...args) => emit('field-event', ...args)"
+              @action="(...args) => emit('action', ...args)"
             />
           </AiTab>
         </AiTabs>
@@ -52,6 +72,7 @@
           :collapsed-by-default="node.props?.accordion !== true && item.props?.collapsedByDefault === true"
         >
           <LowcodeLayoutNodes
+            :ref="instance => setChildLayoutRef(`${nodeKey(node)}:${nodeKey(item)}`, instance)"
             :nodes="item.children || []"
             :data="data"
             :dict-options="dictOptions"
@@ -60,6 +81,7 @@
             :field-linkages="fieldLinkages"
             @update:data="(...args) => emit('update:data', ...args)"
             @field-event="(...args) => emit('field-event', ...args)"
+            @action="(...args) => emit('action', ...args)"
           />
         </CardSection>
       </view>
@@ -67,15 +89,27 @@
       <!-- Leaf field -->
       <LowcodeField
         v-else-if="isFieldNode(node)"
+        :ref="instance => setFieldRef(node.field, instance)"
         :field="enrichField(node)"
         :model-value="data[node.field]"
         :options="fieldOptions(node)"
         :readonly="readonly"
+        :form-data="data"
+        :context="context"
         :error="errors[node.field]"
         @update:model-value="updateField(node, $event)"
         @blur="emit('field-event', { trigger: 'BLUR', field: node, data })"
         @change="emit('field-event', { trigger: 'CHANGE', field: node, data })"
         @scan="emit('field-event', { trigger: 'SCAN_COMPLETE', field: node, data, scan: $event })"
+        @selection="applySelection(node, $event)"
+      />
+
+      <LowcodeStaticNode
+        v-else
+        :node="node"
+        :data="data"
+        :readonly="readonly"
+        @action="action => emit('action', action)"
       />
     </template>
   </view>
@@ -87,6 +121,8 @@ import AiTab from '@/components/AiTab.vue'
 import AiTabs from '@/components/AiTabs.vue'
 import CardSection from './CardSection.vue'
 import LowcodeField from './LowcodeField.vue'
+import LowcodeStaticNode from './LowcodeStaticNode.vue'
+import { normalizeMobileComponentType } from './mobile-component-registry'
 import {
   applyFieldLinkageChange,
   filterFieldOptionsByLinkage,
@@ -105,18 +141,28 @@ const props = defineProps({
   fieldLinkages: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['update:data', 'field-event'])
+const emit = defineEmits(['update:data', 'field-event', 'action'])
 const errors = reactive({})
 const tabStates = reactive({})
+const fieldRefs = new Map()
+const childLayoutRefs = new Map()
 
 // ── Node type helpers ──
 
 function resolveType(node = {}) {
-  return node.nodeType || node.type || node.componentKey || ''
+  return normalizeMobileComponentType(node.nodeType || node.type || node.componentKey || '')
 }
 
-function isCardLikeNode(node) {
-  return ['card', 'elCard', 'row', 'fcRow', 'col'].includes(resolveType(node))
+function isCardNode(node) {
+  return resolveType(node) === 'card'
+}
+
+function isContainerNode(node) {
+  return ['grid', 'col', 'table', 'tableCell', 'box', 'space'].includes(resolveType(node))
+}
+
+function containerClass(node) {
+  return ['lowcode-layout-container', `is-${resolveType(node)}`]
 }
 
 function isCollapsibleCard(node) {
@@ -124,11 +170,11 @@ function isCollapsibleCard(node) {
 }
 
 function isTabsNode(node) {
-  return ['tabs', 'elTabs'].includes(resolveType(node))
+  return resolveType(node) === 'tabs'
 }
 
 function isCollapseNode(node) {
-  return ['collapse', 'elCollapse'].includes(resolveType(node))
+  return resolveType(node) === 'collapse'
 }
 
 function isFieldNode(node) {
@@ -141,7 +187,7 @@ function nodeKey(node) {
 
 function paneChildren(node) {
   const children = Array.isArray(node.children) ? node.children : []
-  const panes = children.filter(c => c?.nodeType === 'tabPane' || c?.nodeType === 'collapseItem')
+  const panes = children.filter(c => ['tabPane', 'collapseItem'].includes(resolveType(c)))
   if (panes.length) return panes
   return [{ key: `${nodeKey(node)}_pane`, label: node.label, props: {}, children }]
 }
@@ -188,7 +234,7 @@ function enrichField(node) {
 }
 
 function fieldOptions(node) {
-  if (node.type === 'dictSelect' || node.type === 'pillSelect') {
+  if (node.dictType || node.props?.dictType) {
     const options = props.dictOptions[node.dictType || node.props?.dictType] || []
     return filterFieldOptionsByLinkage(options, node.props?.linkageContext)
   }
@@ -207,6 +253,24 @@ function updateField(node, value) {
   applyFieldLinkageChange(props.fieldLinkages, node.field, props.data)
   delete errors[node.field]
   emit('update:data', props.data)
+}
+
+function applySelection(node, payload = {}) {
+  const patch = payload.patch && typeof payload.patch === 'object' ? payload.patch : {}
+  Object.assign(props.data, patch)
+  applyFieldLinkageChange(props.fieldLinkages, node.field, props.data)
+  emit('update:data', props.data)
+  emit('field-event', { trigger: 'SELECT', field: node, data: props.data, selection: payload })
+}
+
+function setFieldRef(field, instance) {
+  if (instance) fieldRefs.set(field, instance)
+  else fieldRefs.delete(field)
+}
+
+function setChildLayoutRef(key, instance) {
+  if (instance) childLayoutRefs.set(key, instance)
+  else childLayoutRefs.delete(key)
 }
 
 // ── Validation ──
@@ -230,7 +294,14 @@ function collectFieldErrors(nodes, fieldErrors) {
 function validate() {
   Object.keys(errors).forEach(key => delete errors[key])
   collectFieldErrors(props.nodes, errors)
-  return Object.keys(errors).length === 0
+  let valid = Object.keys(errors).length === 0
+  for (const instance of fieldRefs.values()) {
+    if (instance?.validate?.() === false) valid = false
+  }
+  for (const instance of childLayoutRefs.values()) {
+    if (instance?.validate?.() === false) valid = false
+  }
+  return valid
 }
 
 defineExpose({ validate })
@@ -238,6 +309,10 @@ defineExpose({ validate })
 
 <style lang="scss" scoped>
 .lowcode-layout { display: flex; flex-direction: column; }
+.lowcode-layout-container { min-width: 0; }
+.lowcode-layout-container.is-grid, .lowcode-layout-container.is-table, .lowcode-layout-container.is-box { margin-bottom: 18rpx; }
+.lowcode-layout-container.is-table { padding: 14rpx; border: 1rpx solid var(--forge-color-border, #e2e8f0); border-radius: 12rpx; }
+.lowcode-layout-container.is-space > :deep(.lowcode-layout) { gap: 16rpx; }
 .lowcode-layout-tabs { margin-bottom: 24rpx; }
 .lowcode-layout-collapse { margin-bottom: 24rpx; }
 </style>

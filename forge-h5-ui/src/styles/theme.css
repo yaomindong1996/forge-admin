@@ -1,18 +1,61 @@
 /**
  * 主题样式变量
  */
-:root {
-  --primary-color: #1677ff;
-  --primary-strong: #0958d9;
-  --accent-color: #1677ff;
-  --page-bg: #f5f6f8;
-  --surface-color: #ffffff;
-  --surface-muted: #f7f8fa;
-  --text-color: #1f2329;
-  --text-strong: #1f2329;
-  --text-muted: #86909c;
-  --border-color: #e5e6eb;
-  --radius-control: 12rpx;
-  --radius-card: 16rpx;
-  --shadow-soft: 0 8rpx 20rpx rgba(31, 35, 41, 0.04);
+:root,
+page {
+  /* Forge semantic tokens: business pages consume these names. */
+  --forge-color-primary: #2563eb;
+  --forge-color-primary-strong: #1d4ed8;
+  --forge-color-primary-soft: #eff6ff;
+  --forge-color-success: #16a34a;
+  --forge-color-warning: #d97706;
+  --forge-color-danger: #dc2626;
+  --forge-color-info: #475569;
+  --forge-page-bg: #f5f7fa;
+  --forge-surface: #ffffff;
+  --forge-surface-muted: #f8fafc;
+  --forge-text-primary: #172033;
+  --forge-text-secondary: #475569;
+  --forge-text-tertiary: #94a3b8;
+  --forge-border: #e2e8f0;
+  --forge-border-light: #edf1f6;
+  --forge-radius-control: 12rpx;
+  --forge-radius-card: 16rpx;
+  --forge-space-page: 24rpx;
+  --forge-space-section: 20rpx;
+  --forge-control-height: 80rpx;
+  --forge-shadow-soft: 0 8rpx 24rpx rgba(15, 23, 42, 0.05);
+
+  /* Existing Ai* aliases remain stable during the incremental migration. */
+  --primary-color: var(--forge-color-primary);
+  --primary-strong: var(--forge-color-primary-strong);
+  --accent-color: var(--forge-color-primary);
+  --page-bg: var(--forge-page-bg);
+  --surface-color: var(--forge-surface);
+  --surface-muted: var(--forge-surface-muted);
+  --text-color: var(--forge-text-primary);
+  --text-strong: var(--forge-text-primary);
+  --text-muted: var(--forge-text-tertiary);
+  --border-color: var(--forge-border);
+  --radius-control: var(--forge-radius-control);
+  --radius-card: var(--forge-radius-card);
+  --shadow-soft: var(--forge-shadow-soft);
+
+  /* Wot Design Uni consumes the same Forge design tokens. */
+  --wot-color-theme: var(--forge-color-primary);
+  --wot-color-success: var(--forge-color-success);
+  --wot-color-warning: var(--forge-color-warning);
+  --wot-color-danger: var(--forge-color-danger);
+  --wot-color-info: var(--forge-color-info);
+  --wot-color-title: var(--forge-text-primary);
+  --wot-color-content: var(--forge-text-secondary);
+  --wot-color-secondary: var(--forge-text-secondary);
+  --wot-color-aid: var(--forge-text-tertiary);
+  --wot-color-border: var(--forge-border);
+  --wot-color-border-light: var(--forge-border-light);
+  --wot-color-bg: var(--forge-page-bg);
+  --wot-button-small-radius: 6px;
+  --wot-button-medium-radius: 6px;
+  --wot-button-large-radius: 8px;
+  --wot-cell-group-insert-radius: 8px;
 }

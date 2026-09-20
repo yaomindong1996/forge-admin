@@ -1,3 +1,5 @@
+import { normalizeMobileComponentType, resolveMobileComponent } from '../components/lowcode/mobile-component-registry.js'
+
 const DANGEROUS_KEYS = new Set([
   'url', 'uri', 'headers', 'header', 'authorization', 'credential', 'credentials',
   'secret', 'token', 'sql', 'script', 'handler',
@@ -53,7 +55,11 @@ export function resolveRuntimeFormDesignerSchema(config = {}, mode = 'edit') {
 
 export function hasComposedRuntimePageSchema(config = {}) {
   const pageSchema = normalizeRuntimePageSchema(config.pageSchema)
-  return pageSchema.zones.some(zone => Boolean(zone.zoneTypeExplicit || zone.zoneIdExplicit))
+  return pageSchema.zones.some(zone => Boolean(
+    zone.zoneTypeExplicit
+    || zone.zoneIdExplicit
+    || (Array.isArray(zone.props?.canvas?.items) && zone.props.canvas.items.length),
+  ))
 }
 
 export function parseRuntimeConfig(data = {}) {
@@ -89,6 +95,33 @@ export function parseRuntimeConfig(data = {}) {
   }
 }
 
+export function resolveMobilePageChrome(config = {}, routeQuery = {}, fallback = {}) {
+  const pageSchema = normalizeRuntimePageSchema(config.pageSchema)
+  const options = config.options && typeof config.options === 'object' ? config.options : {}
+  const chrome = {
+    ...objectValue(options.mobile),
+    ...objectValue(options.mobilePage),
+    ...objectValue(options.pageChrome),
+    ...objectValue(pageSchema.settings?.mobile),
+    ...objectValue(pageSchema.mobile),
+  }
+  return {
+    title: firstText(routeQuery.title, chrome.title, chrome.pageTitle, config.appName, config.objectName, fallback.title, '低代码应用'),
+    subtitle: firstText(routeQuery.subtitle, chrome.subtitle, fallback.subtitle, '移动端运行页'),
+    showNav: firstBoolean(routeQuery.showNav, routeQuery.showNavigation, chrome.showNav, chrome.showNavigation, true),
+    showBack: firstBoolean(routeQuery.showBack, chrome.showBack, true),
+    safeBottom: firstBoolean(routeQuery.safeBottom, chrome.safeBottom, chrome.safeAreaBottom, true),
+    padded: firstBoolean(routeQuery.padded, chrome.padded, chrome.contentPadded, true),
+    backUrl: normalizeInternalPageUrl(routeQuery.backUrl || chrome.backUrl || ''),
+  }
+}
+
+export function normalizeInternalPageUrl(value = '') {
+  const url = String(value || '').trim()
+  if (!url.startsWith('/pages/') || url.startsWith('//') || url.includes('://')) return ''
+  return url
+}
+
 export function normalizeMainFields(config = {}, formDesignerSchema) {
   const stored = Array.isArray(config.editSchema) ? config.editSchema : []
   const schema = formDesignerSchema || config.options?.formDesignerSchema
@@ -104,6 +137,28 @@ export function normalizeMainFields(config = {}, formDesignerSchema) {
 function hasRuntimeZones(value) {
   const pageSchema = parseJson(value, {})
   return Array.isArray(pageSchema?.zones) && pageSchema.zones.length > 0
+}
+
+function objectValue(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+}
+
+function firstText(...values) {
+  for (const value of values) {
+    const text = String(value ?? '').trim()
+    if (text) return text
+  }
+  return ''
+}
+
+function firstBoolean(...values) {
+  for (const value of values) {
+    if (typeof value === 'boolean') return value
+    const text = String(value ?? '').trim().toLowerCase()
+    if (['true', '1', 'yes'].includes(text)) return true
+    if (['false', '0', 'no'].includes(text)) return false
+  }
+  return false
 }
 
 function normalizeRuntimeZone(zone = {}, index = 0) {
@@ -148,7 +203,14 @@ function isRuntimeZoneVisible(zone = {}, mode = '') {
   const visibleModes = Array.isArray(zone.visibleInModes)
     ? zone.visibleInModes
     : Array.isArray(zone.props?.visibleInModes) ? zone.props.visibleInModes : []
-  return !visibleModes.length || visibleModes.map(String).includes(String(mode))
+  if (visibleModes.length)
+    return visibleModes.map(String).includes(String(mode))
+  const zoneKey = String(zone.zoneKey || '').toLowerCase()
+  const runtimeMode = String(mode || '').toLowerCase()
+  if (['search', 'table'].includes(zoneKey)) return runtimeMode === 'list'
+  if (zoneKey === 'edit') return ['create', 'edit'].includes(runtimeMode)
+  if (zoneKey === 'detail') return runtimeMode === 'detail'
+  return true
 }
 
 function matchesLegacyFormZone(zone = {}, mode = '') {
@@ -440,6 +502,7 @@ export function syncChildRowAliases(child = {}, childData = {}, rows = resolveCh
 
 export function resolveChildTitle(child = {}) {
   const label = [
+    child.title,
     child.tabTitle,
     child.relationName,
     child.modelName,
@@ -480,9 +543,10 @@ export function normalizeDesignerField(component = {}) {
   const validation = component.validation || {}
   const visibility = component.visibility || {}
   return {
+    ...component,
     field,
     label: component.label || field,
-    type: component.componentKey || component.type || 'input',
+    type: resolveDesignerFieldType(component),
     props: { ...(component.props || {}) },
     required: validation.required === true,
     requiredMessage: validation.requiredMessage,
@@ -494,6 +558,16 @@ export function normalizeDesignerField(component = {}) {
   }
 }
 
+function resolveDesignerFieldType(component = {}) {
+  const sourceType = component.componentKey || component.type || 'input'
+  const normalizedType = normalizeMobileComponentType(sourceType)
+  if (normalizedType === 'date') {
+    const dateType = normalizeMobileComponentType(component.props?.type || '')
+    if (['date', 'datetime', 'daterange', 'datetimerange', 'month', 'year'].includes(dateType)) return dateType
+  }
+  return normalizedType
+}
+
 // ── Layout node helpers (tabs / card / collapse) ──
 
 const LAYOUT_NODE_TYPES = new Set([
@@ -501,6 +575,9 @@ const LAYOUT_NODE_TYPES = new Set([
   'card', 'elCard',
   'tabs', 'elTabs',
   'collapse', 'elCollapse',
+  'grid', 'table', 'tableCell', 'tabPane', 'collapseItem',
+  'box', 'divider', 'spacer', 'space', 'groupTitle', 'formSectionTitle',
+  'grid-layout', 'box-layout', 'section-divider',
 ])
 
 function resolveNodeType(component = {}) {
@@ -508,7 +585,8 @@ function resolveNodeType(component = {}) {
 }
 
 export function isDesignerLayoutNode(component = {}) {
-  return LAYOUT_NODE_TYPES.has(resolveNodeType(component))
+  const type = resolveNodeType(component)
+  return LAYOUT_NODE_TYPES.has(type) || resolveMobileComponent(type).kind === 'layout'
 }
 
 export function hasDesignerLayoutNodes(components = []) {
@@ -551,7 +629,16 @@ function normalizeDesignerNodeTree(components, fieldByCode) {
       const stored = fieldByCode.get(normalized.field)
       return stored ? mergeField(stored, normalized) : normalized
     }
-    return null
+    const descriptor = resolveMobileComponent(resolveNodeType(comp))
+    return {
+      ...comp,
+      key: comp.id || comp.key || `${descriptor.type}_${index}`,
+      nodeType: descriptor.type,
+      type: descriptor.type,
+      label: comp.label || comp.props?.title || '',
+      props: { ...(comp.props || {}) },
+      children: normalizeDesignerNodeTree(comp.children || [], fieldByCode),
+    }
   }).filter(Boolean)
 }
 
@@ -571,7 +658,7 @@ export function normalizeDesignerComponents(config = {}, formDesignerSchema) {
 }
 
 export function normalizeField(field = {}) {
-  const type = String(field.type || field.componentType || 'input')
+  const type = normalizeMobileComponentType(field.type || field.componentType || 'input')
   return {
     ...field,
     field: String(field.field || field.sourceField || '').trim(),
@@ -581,6 +668,70 @@ export function normalizeField(field = {}) {
     runtimeRules: field.runtimeRules || field.props?.runtimeRules || [],
     required: field.required === true,
     readonly: field.readonly === true,
+  }
+}
+
+export function resolveRuntimeZoneCanvasFieldRefs(zone = {}) {
+  const direct = Array.isArray(zone.fieldRefs) ? zone.fieldRefs : []
+  const items = Array.isArray(zone.props?.canvas?.items) ? zone.props.canvas.items : []
+  const canvasRefs = items.flatMap(item => [
+    item?.fieldRef,
+    ...(Array.isArray(item?.fieldRefs) ? item.fieldRefs : []),
+    ...(Array.isArray(item?.props?.fieldRefs) ? item.props.fieldRefs : []),
+  ]).filter(Boolean)
+  return Array.from(new Set([...direct, ...canvasRefs].map(String)))
+}
+
+export function normalizeRuntimeZoneCanvasNodes(config = {}, zone = {}) {
+  const items = Array.isArray(zone.props?.canvas?.items) ? zone.props.canvas.items : []
+  if (!items.length) return []
+  const fields = normalizeMainFields(config)
+  const fieldByCode = new Map(fields.map(field => [String(field.field), field]))
+  const zoneKey = String(zone.zoneKey || zone.zoneType || '').toLowerCase()
+  return [...items]
+    .sort((left, right) => Number(left?.y || 0) - Number(right?.y || 0) || Number(left?.x || 0) - Number(right?.x || 0))
+    .map((item, index) => normalizeRuntimeCanvasItem(item, index, fieldByCode, zoneKey))
+    .filter(Boolean)
+}
+
+function normalizeRuntimeCanvasItem(item = {}, index, fieldByCode, zoneKey) {
+  const fieldCode = String(item.fieldRef || '').trim()
+  const storedField = fieldByCode.get(fieldCode)
+  if (fieldCode && storedField) {
+    const componentType = item.componentKey === 'detail-field'
+      ? storedField.type
+      : normalizeMobileComponentType(item.componentKey || storedField.type)
+    return {
+      ...storedField,
+      key: item.id || fieldCode,
+      label: item.label || storedField.label,
+      type: componentType,
+      readonly: zoneKey === 'detail' || storedField.readonly === true,
+      props: { ...(storedField.props || {}), ...(item.props || {}) },
+    }
+  }
+  const descriptor = resolveMobileComponent(item.componentKey || item.blockType || item.type)
+  const fieldRefs = Array.from(new Set([
+    ...(Array.isArray(item.fieldRefs) ? item.fieldRefs : []),
+    ...(Array.isArray(item.props?.fieldRefs) ? item.props.fieldRefs : []),
+  ].map(String)))
+  const referencedFields = fieldRefs.map(field => fieldByCode.get(field)).filter(Boolean)
+  return {
+    ...item,
+    key: item.id || `${descriptor.type}_${index}`,
+    nodeType: descriptor.type,
+    type: descriptor.type,
+    label: item.label || item.props?.title || '',
+    props: { ...(item.props || {}), fieldRefs },
+    children: referencedFields.length
+      ? referencedFields.map(field => ({
+          ...field,
+          key: `${item.id || descriptor.type}:${field.field}`,
+          readonly: zoneKey === 'detail' || field.readonly === true,
+        }))
+      : (Array.isArray(item.children)
+          ? item.children.map((child, childIndex) => normalizeRuntimeCanvasItem(child, childIndex, fieldByCode, zoneKey)).filter(Boolean)
+          : []),
   }
 }
 

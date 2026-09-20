@@ -36,8 +36,9 @@
 
 ## 分类目录
 
-### [前端 / 构建 / 路由](pitfalls/frontend.md)（24）
+### [前端 / 构建 / 路由](pitfalls/frontend.md)（25）
 
+- uni-app 微信小程序不能直接复用 H5 Teleport 和动态 component 递归
 - Vitest 结构测试读取源码时 new URL 不能内联字面量路径
 - pnpm 在 forge-admin-ui 执行脚本必须加 --ignore-workspace
 - SPA fallback 不能吞掉缺失的哈希静态资源

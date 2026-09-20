@@ -164,6 +164,18 @@ export default {
     params,
     needTip: false,
   }),
+  getOrgTree: (params = {}) => request({
+    url: '/system/org/tree',
+    method: 'get',
+    params,
+    needTip: false,
+  }),
+  getRegionTree: (params = {}) => request({
+    url: '/system/region/treeAll',
+    method: 'get',
+    params,
+    needTip: false,
+  }),
   getBusinessTaskFormContext: (params = {}) => request({
     url: '/ai/business/flow/task-form-context',
     method: 'get',
@@ -298,6 +310,21 @@ export default {
     method: 'post',
     data,
     encrypt: true,
+    needTip: false,
+  }),
+  queryBusinessRecordSelector: (data, params = {}) => request({
+    url: '/ai/business/selector/query',
+    method: 'post',
+    params,
+    data,
+    encrypt: true,
+    needTip: false,
+  }),
+  executeLowcodeOptionRequest: ({ method = 'get', url, params = {} }) => request({
+    url,
+    method,
+    params: method === 'get' ? params : undefined,
+    data: method === 'post' ? params : undefined,
     needTip: false,
   }),
   executeBusinessAction: data => request({

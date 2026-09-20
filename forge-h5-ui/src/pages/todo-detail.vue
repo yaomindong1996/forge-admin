@@ -16,16 +16,7 @@
         <AiListSkeleton :rows="4" compact />
       </view>
       <template v-else-if="task">
-        <view class="task-summary">
-          <text class="task-title">{{ taskTitle(task) }}</text>
-          <text class="task-node">{{ task.taskName || task.name || '审批节点' }}</text>
-          <view class="task-facts">
-            <view class="task-fact"><text>申请人</text><text>{{ task.startUserName || task.createByName || '-' }}</text></view>
-            <view class="task-fact"><text>发起部门</text><text>{{ task.startDeptName || '-' }}</text></view>
-            <view class="task-fact"><text>流程分类</text><text>{{ task.categoryName || task.category || '-' }}</text></view>
-            <view class="task-fact"><text>提交时间</text><text>{{ task.createTime || task.startTime || '-' }}</text></view>
-          </view>
-        </view>
+        <TodoTaskSummary :task="task" />
 
         <AiTabs v-model="activeTabIndex" :tabs="detailTabs" class="detail-tabs">
           <AiTab :index="0">
@@ -60,6 +51,8 @@
               :current-flow-node-key="currentFlowNodeKey"
               @set-main-form-ref="setMainFormRef"
               @set-child-form-ref="setChildFormRef"
+              @add-child-row="addBusinessChildRow"
+              @remove-child-row="removeBusinessChildRow"
             />
             <view v-else-if="formSchemaUnavailable" class="form-schema-notice">
               <text>该流程未返回可展示的业务字段配置，已隐藏内部字段和技术标识。</text>
@@ -116,35 +109,10 @@
           </view>
           </AiTab>
           <AiTab :index="1">
-        <view class="history-panel">
-          <AiListSkeleton v-if="historyLoading" :rows="4" compact />
-          <view v-else-if="history.length" class="timeline">
-            <view v-for="item in history" :key="historyKey(item)" class="timeline-item">
-              <view class="timeline-dot" />
-              <view class="timeline-copy">
-                <text class="timeline-title">{{ item.activityName || item.taskName || item.name || '流程节点' }}</text>
-                <text class="timeline-meta">{{ item.assigneeName || item.userName || item.operatorName || '-' }} · {{ item.endTime || item.createTime || item.startTime || '-' }}</text>
-                <text v-if="item.comment" class="timeline-comment">{{ item.comment }}</text>
-              </view>
-            </view>
-          </view>
-          <view v-else class="page-hint">暂无审批记录</view>
-        </view>
+            <TodoFlowTrace mode="history" :loading="historyLoading" :items="history" />
           </AiTab>
           <AiTab :index="2">
-            <view class="history-panel process-panel">
-              <AiListSkeleton v-if="diagramLoading" :rows="4" compact />
-              <view v-else-if="processNodes.length" class="process-nodes">
-                <view v-for="node in processNodes" :key="node.nodeId || node.id" class="process-node" :class="`is-${node.status || 'pending'}`">
-                  <view class="process-node__mark" />
-                  <view class="process-node__copy">
-                    <text>{{ node.nodeName || node.name || '流程节点' }}</text>
-                    <text>{{ node.assigneeNames?.join('、') || node.assigneeName || node.comment || node.statusText || node.status || '等待处理' }}</text>
-                  </view>
-                </view>
-              </view>
-              <view v-else class="page-hint">暂无可展示的流程节点</view>
-            </view>
+            <TodoFlowTrace mode="process" :loading="diagramLoading" :items="processNodes" />
           </AiTab>
         </AiTabs>
       </template>
@@ -242,20 +210,26 @@ import AiSignaturePad from '@/components/AiSignaturePad.vue'
 import AiTab from '@/components/AiTab.vue'
 import AiTabs from '@/components/AiTabs.vue'
 import PageSectionRenderer from '@/components/lowcode/PageSectionRenderer.vue'
+import TodoFlowTrace from '@/components/flow/TodoFlowTrace.vue'
+import TodoTaskSummary from '@/components/flow/TodoTaskSummary.vue'
+import { useBusinessTaskFormState } from '@/composables/lowcode/useBusinessTaskFormState'
 import api from '@/api'
 import { useAuthStore } from '@/store'
 import { showConfirmDialog } from '@/utils/dialog'
+import { createFlowActionCredentials } from '@/utils/flow-action-idempotency'
+import { compactObject as compact, parseNestedJson as parseJson, resolveApiErrorMessage as resolveErrorMessage } from '@/utils/flow-page'
 import { toast } from '@/utils/notify'
 import { normalizeDictOptions } from '@/utils/lowcode-runtime'
 import {
   adaptBusinessTaskFields,
   adaptChildrenConfig,
+  buildBusinessTaskFormData,
   buildDefaultPageSections,
   extractPageSections,
   extractMainData,
-  extractChildData,
   collectDictTypes,
   buildFlowInteraction,
+  hasWritableBusinessTaskForm,
 } from '@/utils/business-task-form-adapter'
 
 const authStore = useAuthStore()
@@ -343,15 +317,18 @@ const businessProviderUnavailable = computed(() => {
 const mainFields = computed(() => {
   const context = businessContext.value
   if (Array.isArray(context?.fields) && context.fields.length)
-    return adaptBusinessTaskFields(context.fields)
+    return adaptBusinessTaskFields(context.fields, context.fieldPermissions)
   if (businessSchemaFallback.value.length)
-    return adaptBusinessTaskFields(businessSchemaFallback.value)
+    return adaptBusinessTaskFields(businessSchemaFallback.value, context?.fieldPermissions)
   return adaptBusinessTaskFields(resolveTaskFormFields(formInfo.value))
 })
+const allChildren = computed(() => adaptChildrenConfig(
+  businessContext.value?.childrenConfig || [],
+  businessContext.value?.fieldPermissions || [],
+))
 const pageSections = computed(() =>
-  extractPageSections(businessContext.value) || buildDefaultPageSections(mainFields.value),
+  buildDefaultPageSections(mainFields.value, allChildren.value, extractPageSections(businessContext.value)),
 )
-const allChildren = computed(() => adaptChildrenConfig(businessContext.value?.childrenConfig || []))
 const flowInteraction = computed(() => buildFlowInteraction(businessContext.value))
 const currentFlowNodeKey = computed(() => String(businessContext.value?.taskDefKey || ''))
 const runtimeContext = computed(() => ({
@@ -359,15 +336,18 @@ const runtimeContext = computed(() => ({
   user: authStore.userInfo || {},
   currentUser: authStore.userInfo || {},
 }))
-const hasLowcodeForm = computed(() => mainFields.value.length > 0)
+const hasLowcodeForm = computed(() => mainFields.value.length > 0 || allChildren.value.length > 0)
 const formMode = computed(() => {
   if (readonlyMode.value || businessProviderUnavailable.value || businessSchemaFallback.value.length > 0)
     return 'detail'
-  return mainFields.value.some(field => !field.readonly) ? 'edit' : 'detail'
+  return hasWritableBusinessTaskForm(mainFields.value, allChildren.value) ? 'edit' : 'detail'
 })
 const businessFormHasWritableFields = computed(() =>
-  mainFields.value.some(field => !field.readonly) && formMode.value === 'edit',
+  hasWritableBusinessTaskForm(mainFields.value, allChildren.value) && formMode.value === 'edit',
 )
+const {
+  applyBusinessContext, replaceMainData, resetBusinessData, addBusinessChildRow, removeBusinessChildRow,
+} = useBusinessTaskFormState({ mainData, childData, formInfo, seedApprovalPointChecks, getMode: () => formMode.value })
 const formSchemaUnavailable = computed(() =>
   !hasLowcodeForm.value && Boolean(
     Object.keys(extractMainData(businessContext.value?.recordData) || formInfo.value?.variables || {}).length,
@@ -428,6 +408,7 @@ async function refresh() {
   businessContext.value = null
   history.value = []
   diagramInfo.value = null
+  resetBusinessData()
   try {
     task.value = readCachedTask(taskId.value)
     try {
@@ -452,7 +433,7 @@ async function refresh() {
         : await api.getFlowTaskForm(currentTaskId)
       formInfo.value = formResult?.data || null
       seedApprovalPointChecks(formInfo.value)
-      seedMainData(formInfo.value?.variables)
+      replaceMainData(formInfo.value?.variables)
     }
     if (historyResult.status === 'fulfilled') history.value = Array.isArray(historyResult.value?.data) ? historyResult.value.data : []
     if (diagramResult.status === 'fulfilled') diagramInfo.value = diagramResult.value?.data || null
@@ -475,8 +456,7 @@ async function loadReadonlyBusinessContext(overrides = {}) {
   try {
     const res = await api.getBusinessTaskReadonlyContext(query)
     businessContext.value = res?.data || null
-    seedMainData(extractMainData(businessContext.value?.recordData))
-    seedChildData(extractChildData(businessContext.value?.recordData))
+    applyBusinessContext(businessContext.value)
     await loadDictOptions()
     return businessContext.value
   }
@@ -492,8 +472,7 @@ async function loadBusinessContext(overrides = {}) {
   try {
     const res = await api.getBusinessTaskFormContext(query)
     businessContext.value = res?.data || null
-    seedMainData(extractMainData(businessContext.value?.recordData))
-    seedChildData(extractChildData(businessContext.value?.recordData))
+    applyBusinessContext(businessContext.value)
     await loadDictOptions()
     return businessContext.value
   }
@@ -537,20 +516,6 @@ function toggleApprovalPoint(point) {
     ...approvalPointChecks.value,
     [point.id]: !approvalPointChecks.value[point.id],
   }
-}
-
-function seedMainData(source = {}) {
-  if (!source || typeof source !== 'object') return
-  Object.entries(source).forEach(([key, value]) => {
-    if (mainData[key] === undefined) mainData[key] = value == null ? '' : value
-  })
-}
-
-function seedChildData(source = {}) {
-  if (!source || typeof source !== 'object' || Array.isArray(source)) return
-  Object.entries(source).forEach(([key, value]) => {
-    if (Array.isArray(value)) childData[key] = value
-  })
 }
 
 async function loadDictOptions() {
@@ -691,12 +656,12 @@ async function submitAction(action) {
   actionLoading.value = true
   pendingAction.value = action
   try {
-    await saveBusinessFieldsIfNeeded(action)
     const resolvedSignature = await resolveSignature(actionSignature, signatureRef)
     if (action === 'delegate') delegateSignature.value = resolvedSignature
     else signature.value = resolvedSignature
     const payload = buildActionPayload(action, actionComment, resolvedSignature)
-    if (isConfiguredBusinessTaskForm(businessContext.value) && ['approve', 'reject'].includes(action)) {
+    Object.assign(payload, await createFlowActionCredentials(action, payload.taskId, buildIdempotencyDigestPayload(payload)))
+    if (isConfiguredBusinessTaskForm(businessContext.value) && ['approve', 'reject', 'return'].includes(action)) {
       await api.completeBusinessTaskAction(payload)
     }
     else if (action === 'approve') await api.approveFlowTask(payload)
@@ -734,8 +699,12 @@ function buildActionPayload(action, actionComment = comment.value.trim(), action
     userId: userId.value,
     comment: actionComment.trim(),
     signature: actionSignature || undefined,
+    targetActivityId: action === 'return' ? selectedReturnTarget.value || undefined : undefined,
     targetUserId: action === 'delegate' ? String(delegateUser.value?.id || '') : undefined,
     variables: { ...(info.variables || {}), ...mainData },
+    data: isConfiguredBusinessTaskForm(businessContext.value) && businessFormHasWritableFields.value
+      ? buildCurrentBusinessFormData()
+      : undefined,
     approvalPointResults: approvalPoints.value.map(point => ({
       id: point.id,
       content: point.content,
@@ -746,13 +715,19 @@ function buildActionPayload(action, actionComment = comment.value.trim(), action
   return base
 }
 
-async function saveBusinessFieldsIfNeeded(action) {
-  if (!['approve', 'reject', 'return'].includes(action) || !isConfiguredBusinessTaskForm(businessContext.value) || !businessFormHasWritableFields.value) return null
-  const payload = buildActionPayload(action)
-  const res = await api.saveBusinessTaskFormContext({ ...payload, data: { ...mainData } })
-  businessContext.value = res?.data || businessContext.value
-  seedMainData(extractMainData(businessContext.value?.recordData))
-  return businessContext.value
+function buildIdempotencyDigestPayload(payload) {
+  const { action, taskId, comment, signature, variables, data, targetActivityId, targetUserId, approvalPointResults } = payload
+  return { action, taskId, comment, signature, variables, data, targetActivityId, targetUserId, approvalPointResults }
+}
+
+function buildCurrentBusinessFormData() {
+  return buildBusinessTaskFormData({
+    formType: businessContext.value?.formType,
+    fields: mainFields.value,
+    children: allChildren.value,
+    mainData,
+    childData,
+  })
 }
 
 async function saveBusinessFields() {
@@ -760,9 +735,9 @@ async function saveBusinessFields() {
   formSaving.value = true
   try {
     const payload = buildActionPayload('approve')
-    const res = await api.saveBusinessTaskFormContext({ ...payload, data: { ...mainData } })
+    const res = await api.saveBusinessTaskFormContext({ ...payload, data: buildCurrentBusinessFormData() })
     businessContext.value = res?.data || businessContext.value
-    seedMainData(extractMainData(businessContext.value?.recordData))
+    applyBusinessContext(businessContext.value)
     toast('修改已暂存', { type: 'success' })
   }
   catch (error) {
@@ -784,15 +759,6 @@ function validateRequiredFields() {
   return true
 }
 
-function parseJson(value) {
-  if (!value || typeof value === 'object') return value || []
-  try {
-    const parsed = JSON.parse(value)
-    return typeof parsed === 'string' ? parseJson(parsed) : parsed
-  }
-  catch { return [] }
-}
-
 function resolveTaskFormFields(info = {}) {
   const candidates = [
     parseJson(info?.formJson),
@@ -806,18 +772,6 @@ function resolveTaskFormFields(info = {}) {
   return candidates.find(candidate => adaptBusinessTaskFields(candidate).length) || []
 }
 
-function compact(source) {
-  return Object.fromEntries(Object.entries(source).filter(([, value]) => value !== undefined && value !== null && value !== ''))
-}
-
-function resolveErrorMessage(error, fallback) {
-  const message = error?.data?.message
-    || error?.response?.data?.message
-    || error?.error?.data?.message
-    || error?.message
-    || error?.msg
-  return message && String(message).trim() ? String(message) : fallback
-}
 function hasSignature(value, signatureRef) {
   if (!taskPolicySource.value?.requireSignature) return true
   if (String(value || '').trim()) return true
@@ -830,132 +784,8 @@ async function resolveSignature(value, signatureRef) {
   if (String(value || '').trim() && !signatureRef?.hasSignature?.()) return value
   return signatureRef?.upload ? signatureRef.upload() : value || ''
 }
-function taskTitle(value = {}) { return value.title || value.businessTitle || value.processName || value.processDefinitionName || value.taskName || '审批任务' }
-function historyKey(item) { return item.id || item.taskId || `${item.activityName || item.taskName}-${item.startTime || item.createTime}` }
 function readCachedTask(id) { try { return uni.getStorageSync(`flow-task:${id}`) || null } catch { return null } }
 function goBack() { uni.navigateBack({ fail: () => uni.switchTab({ url: '/pages/todo' }) }) }
 </script>
 
-<style lang="scss" scoped>
-.todo-detail-page { display: flex; height: 100vh; flex-direction: column; background: var(--page-bg); }
-.detail-nav { display: flex; height: calc(88rpx + env(safe-area-inset-top)); align-items: flex-end; gap: 18rpx; padding: 0 24rpx 14rpx; background: var(--page-bg); box-sizing: border-box; }
-.nav-back, .nav-more { display: flex; width: 56rpx; height: 56rpx; align-items: center; justify-content: center; margin: 0; padding: 0; border: 0; border-radius: 10rpx; background: transparent; }
-.nav-back::after, .nav-more::after { border: 0; }
-.nav-title { flex: 1; color: var(--text-strong); font-size: 32rpx; font-weight: 600; text-align: center; }
-.detail-scroll { height: 0; flex: 1; }
-.detail-skeleton { display: flex; flex-direction: column; gap: 20rpx; padding: 24rpx; }
-.task-summary, .content-panel, .history-panel { margin: 24rpx; padding: 28rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
-.task-title, .task-node, .task-fact text, .form-label, .form-readonly, .timeline-title, .timeline-meta, .timeline-comment, .blocked-title, .blocked-copy, .user-name, .user-meta, .business-child-head text, .business-child-field text { display: block; }
-.task-title { color: var(--text-strong); font-size: 34rpx; font-weight: 600; line-height: 1.4; }
-.task-node { margin-top: 12rpx; color: var(--primary-color); font-size: 25rpx; }
-.task-facts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18rpx 24rpx; margin-top: 24rpx; }
-.task-fact { min-width: 0; }
-.task-fact text:first-child { color: #94a3b8; font-size: 21rpx; }
-.task-fact text:last-child { overflow: hidden; margin-top: 5rpx; color: #4e5969; font-size: 23rpx; text-overflow: ellipsis; white-space: nowrap; }
-.detail-tabs { margin: 0 24rpx; }
-.detail-tabs :deep(.ai-tabs-content) { min-width: 0; }
-.form-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24rpx; color: var(--text-strong); font-size: 28rpx; font-weight: 650; }
-.form-provider-notice { margin-bottom: 22rpx; padding: 16rpx 18rpx; border: 1rpx solid #fde7b2; border-radius: 10rpx; color: #8a5a00; font-size: 22rpx; line-height: 1.55; background: #fffbeb; }
-.form-provider-notice text { display: block; }
-.form-schema-notice { padding: 32rpx 18rpx; border: 1rpx dashed #d7dee8; border-radius: 10rpx; color: #64748b; font-size: 24rpx; line-height: 1.6; text-align: center; background: #fafcff; }
-.form-schema-notice text { display: block; }
-.save-form-button { height: 54rpx; margin: 0; padding: 0 16rpx; border: 1rpx solid #bfdbfe; border-radius: 8rpx; color: var(--primary-color); font-size: 22rpx; line-height: 52rpx; background: #f8fbff; }
-.save-form-button::after { border: 0; }
-.save-form-button[disabled] { opacity: .55; }
-.field-list { display: flex; flex-direction: column; gap: 26rpx; }
-.form-row, .comment-row { display: flex; flex-direction: column; gap: 14rpx; }
-.approval-duty-panel { display: flex; flex-direction: column; gap: 20rpx; margin-bottom: 16rpx; }
-.duty-block { display: flex; flex-direction: column; gap: 10rpx; padding: 18rpx; border: 1px solid #eadfc9; border-radius: 12rpx; background: #fffaf0; }
-.duty-copy { color: #475569; font-size: 26rpx; line-height: 1.6; white-space: pre-wrap; }
-.approval-point-row { display: flex; align-items: flex-start; gap: 12rpx; }
-.approval-point-check { color: #1677ff; font-size: 30rpx; line-height: 1.2; }
-.approval-point-copy { flex: 1; color: #334155; font-size: 26rpx; line-height: 1.5; }
-.approval-point-tag { color: #b42318; font-size: 22rpx; }
-.form-label { color: #4e5969; font-size: 25rpx; }
-.required-mark { color: #f53f3f; }
-.form-input, .form-textarea { width: 100%; padding: 18rpx; border: 1rpx solid var(--border-color); border-radius: 8rpx; color: var(--text-strong); font-size: 27rpx; background: #fff; box-sizing: border-box; }
-.form-input { height: 78rpx; }
-.form-textarea { min-height: 148rpx; line-height: 1.5; }
-.form-textarea.comment { margin-top: 4rpx; }
-.comment-presets { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 12rpx; }
-.comment-preset { max-width: 100%; height: 52rpx; padding: 0 16rpx; border: 1rpx solid var(--border-color); border-radius: 8rpx; color: #475569; font-size: 22rpx; line-height: 50rpx; background: #fff; }
-.comment-preset::after,
-.comment-preset-link::after { border: 0; }
-.comment-preset.active { border-color: var(--primary-color); color: var(--primary-color); }
-.comment-preset-actions { display: flex; justify-content: flex-end; }
-.comment-preset-link { padding: 0; border: 0; color: var(--primary-color); font-size: 22rpx; line-height: 40rpx; background: transparent; }
-.comment-preset-link[disabled] { opacity: .55; }
-.return-target-list { display: flex; flex-direction: column; gap: 12rpx; margin-top: 8rpx; }
-.return-target-item { width: 100%; min-height: 72rpx; padding: 16rpx 18rpx; border: 1rpx solid var(--border-color); border-radius: 10rpx; color: var(--text-strong); font-size: 26rpx; text-align: left; background: #fff; }
-.return-target-item.active { border-color: var(--primary-color); color: var(--primary-color); background: #eff6ff; }
-.form-select { width: 100%; }
-.form-radio-group { padding: 2rpx 0; }
-.form-date-picker, .form-file-value { display: flex; min-height: 78rpx; align-items: center; justify-content: space-between; gap: 16rpx; padding: 0 18rpx; border: 1rpx solid var(--border-color); border-radius: 8rpx; color: var(--text-strong); font-size: 27rpx; background: #fff; box-sizing: border-box; }
-.form-date-picker.is-placeholder { color: #94a3b8; }
-.form-file-value { justify-content: flex-start; color: #4e5969; }
-.form-file-value text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.form-readonly { min-height: 42rpx; padding: 16rpx 0; color: #4e5969; font-size: 27rpx; }
-.business-children { display: flex; flex-direction: column; gap: 18rpx; margin-top: 30rpx; padding-top: 24rpx; border-top: 1rpx solid #edf0f3; }
-.business-child-card { overflow: hidden; border: 1rpx solid #e8edf3; border-radius: 14rpx; }
-.business-child-head { display: flex; align-items: center; justify-content: space-between; padding: 16rpx 18rpx; color: var(--text-strong); font-size: 25rpx; font-weight: 650; background: #f8fafc; }
-.business-child-head text:last-child { color: #94a3b8; font-size: 21rpx; font-weight: 400; }
-.business-child-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18rpx; padding: 18rpx; border-top: 1rpx solid #edf0f3; }
-.business-child-field { min-width: 0; }
-.business-child-field text:first-child { color: #94a3b8; font-size: 20rpx; }
-.business-child-field text:last-child { overflow: hidden; margin-top: 5rpx; color: #4e5969; font-size: 22rpx; text-overflow: ellipsis; white-space: nowrap; }
-.blocked-panel { display: flex; flex-direction: column; align-items: flex-start; gap: 14rpx; margin: 24rpx; padding: 32rpx; border: 1rpx solid #b7d7ff; border-radius: var(--radius-card); background: #f0f7ff; }
-.blocked-title { color: var(--text-strong); font-size: 29rpx; font-weight: 600; }
-.blocked-copy { color: #4e5969; font-size: 25rpx; line-height: 1.6; }
-.page-hint { padding: 80rpx 32rpx; color: var(--text-muted); font-size: 26rpx; text-align: center; }
-.timeline { padding: 4rpx 0; }
-.timeline-item { position: relative; display: flex; gap: 20rpx; padding-bottom: 28rpx; }
-.timeline-item:not(:last-child)::before { content: ''; position: absolute; top: 20rpx; bottom: 0; left: 8rpx; width: 2rpx; background: #e5e6eb; }
-.timeline-dot { position: relative; z-index: 1; width: 18rpx; height: 18rpx; margin-top: 8rpx; border-radius: 50%; background: var(--primary-color); }
-.timeline-copy { min-width: 0; flex: 1; }
-.timeline-title { color: var(--text-strong); font-size: 27rpx; font-weight: 600; }
-.timeline-meta { margin-top: 8rpx; color: var(--text-muted); font-size: 23rpx; line-height: 1.5; }
-.timeline-comment { margin-top: 12rpx; color: #4e5969; font-size: 24rpx; line-height: 1.5; }
-.process-nodes { display: flex; flex-direction: column; gap: 0; }
-.process-node { position: relative; display: flex; gap: 16rpx; padding: 0 0 24rpx; }
-.process-node:not(:last-child)::after { position: absolute; top: 20rpx; bottom: 0; left: 8rpx; width: 2rpx; background: #e5e7eb; content: ''; }
-.process-node__mark { position: relative; z-index: 1; width: 18rpx; height: 18rpx; margin-top: 6rpx; border: 4rpx solid #cbd5e1; border-radius: 50%; background: #fff; box-sizing: border-box; }
-.process-node.is-running .process-node__mark { border-color: #2563eb; background: #2563eb; box-shadow: 0 0 0 6rpx #dbeafe; }
-.process-node.is-completed .process-node__mark { border-color: #16a34a; background: #16a34a; }
-.process-node__copy { min-width: 0; flex: 1; }
-.process-node__copy text { display: block; }
-.process-node__copy text:first-child { color: var(--text-strong); font-size: 26rpx; font-weight: 650; }
-.process-node__copy text:last-child { overflow: hidden; margin-top: 6rpx; color: #64748b; font-size: 22rpx; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
-.action-bar { display: flex; align-items: center; gap: 12rpx; padding: 12rpx 24rpx calc(12rpx + env(safe-area-inset-bottom)); border-top: 1rpx solid var(--border-color); background: #fff; }
-.action-bar :deep(.ai-button) { flex: 1; padding: 0 18rpx; }
-.action-bar :deep(.ai-button--block) { width: 100%; }
-.action-bar :deep(.more-action) { flex: 0 0 144rpx; padding: 0 12rpx; }
-.more-list, .user-list { display: flex; flex-direction: column; gap: 12rpx; }
-.more-row { display: flex; width: 100%; min-height: 104rpx; align-items: center; gap: 16rpx; margin: 0; padding: 14rpx 6rpx; border: 0; border-bottom: 1rpx solid #edf0f3; color: var(--text-strong); font-size: 28rpx; text-align: left; background: #fff; box-sizing: border-box; }
-.more-row__icon { display: flex; width: 54rpx; height: 54rpx; flex: 0 0 54rpx; align-items: center; justify-content: center; border-radius: 12rpx; background: #eff6ff; }
-.more-row__copy { min-width: 0; flex: 1; }
-.more-row__copy text { display: block; }
-.more-row__copy text:first-child { color: var(--text-strong); font-size: 27rpx; font-weight: 650; }
-.more-row__copy text:last-child { overflow: hidden; margin-top: 5rpx; color: #94a3b8; font-size: 21rpx; text-overflow: ellipsis; white-space: nowrap; }
-.more-row.danger .more-row__icon { background: #fff7ed; }
-.more-row.danger .more-row__copy text:first-child { color: #c2410c; }
-.delegate-search { margin-bottom: 16rpx; }
-.delegate-comment, .delegate-signature { display: flex; flex-direction: column; gap: 12rpx; margin-top: 18rpx; }
-.delegate-choice { display: flex; align-items: center; gap: 14rpx; margin-bottom: 16rpx; padding: 14rpx 16rpx; border: 1rpx solid #bfdbfe; border-radius: 12rpx; background: #f8fbff; }
-.delegate-choice__avatar, .user-avatar { display: flex; align-items: center; justify-content: center; border-radius: 50%; color: #1d4ed8; font-weight: 700; background: #dbeafe; }
-.delegate-choice__avatar { width: 52rpx; height: 52rpx; flex: 0 0 52rpx; font-size: 24rpx; }
-.delegate-choice__copy { min-width: 0; flex: 1; }
-.delegate-choice__copy text { display: block; }
-.delegate-choice__copy text:first-child { color: #64748b; font-size: 20rpx; }
-.delegate-choice__copy text:last-child { overflow: hidden; margin-top: 3rpx; color: var(--text-strong); font-size: 26rpx; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
-.user-row { display: flex; width: 100%; min-height: 88rpx; align-items: center; gap: 14rpx; margin: 0; padding: 14rpx 8rpx; border: 1rpx solid #edf0f3; border-radius: 12rpx; color: var(--text-strong); font-size: 28rpx; text-align: left; background: #fff; box-sizing: border-box; }
-.user-avatar { width: 50rpx; height: 50rpx; flex: 0 0 50rpx; font-size: 23rpx; }
-.user-copy { min-width: 0; flex: 1; }
-.user-check { display: flex; width: 32rpx; height: 32rpx; flex: 0 0 32rpx; align-items: center; justify-content: center; border: 1rpx solid #cbd5e1; border-radius: 50%; box-sizing: border-box; }
-.user-check.active { border-color: #2563eb; background: #2563eb; }
-.more-row::after, .user-row::after { border: 0; }
-.user-row.active { border-color: #93c5fd; background: #f8fbff; }
-.user-name { color: var(--text-strong); font-size: 27rpx; }
-.user-meta { margin-top: 6rpx; color: var(--text-muted); font-size: 22rpx; }
-.load-more-users { height: 60rpx; margin: 4rpx 0 0; border: 1rpx solid #e2e8f0; border-radius: 10rpx; color: #2563eb; font-size: 23rpx; background: #f8fbff; }
-.load-more-users::after { border: 0; }
-</style>
+<style lang="scss" scoped src="./styles/todo-detail.scss"></style>

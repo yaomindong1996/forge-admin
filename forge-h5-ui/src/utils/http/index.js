@@ -1,10 +1,18 @@
 import axios from 'axios'
 import { setupInterceptors } from './interceptors'
+import { createUniRequestAdapter, resolvePlatformRequestBaseURL } from './uni-adapter'
 
 export function createAxios(options = {}) {
+  let platformBaseURL = ''
+  let adapter
+  // #ifndef H5
+  platformBaseURL = import.meta.env.VITE_MP_API_BASE_URL || ''
+  adapter = createUniRequestAdapter()
+  // #endif
   const defaultOptions = {
-    baseURL: import.meta.env.VITE_REQUEST_PREFIX,
+    baseURL: resolvePlatformRequestBaseURL(import.meta.env.VITE_REQUEST_PREFIX, platformBaseURL),
     timeout: 12000,
+    ...(adapter ? { adapter } : {}),
   }
   const service = axios.create({
     ...defaultOptions,

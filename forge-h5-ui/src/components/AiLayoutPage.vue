@@ -1,5 +1,5 @@
 <template>
-  <AiPageShell :grid="grid" :safe-bottom="false">
+  <AiPageShell :grid="grid" :safe-bottom="safeBottom">
     <view class="ai-layout-page" :class="{ 'ai-layout-page--fixed': fixed }">
       <view v-if="showNav" class="ai-layout-page__nav" :class="{ 'ai-layout-page__nav--glass': navGlass }">
         <slot name="nav">
@@ -84,6 +84,10 @@ const props = defineProps({
   grid: {
     type: Boolean,
     default: true
+  },
+  safeBottom: {
+    type: Boolean,
+    default: false
   }
 })
 

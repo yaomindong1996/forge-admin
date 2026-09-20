@@ -26,7 +26,7 @@
         :collapsed-by-default="section.collapsedByDefault === true"
       >
         <view class="section-child-head">
-          <text class="section-child-count">{{ childRows(section).length }} 条</text>
+          <text class="section-child-count">{{ visibleChildRows(section).length }} 条</text>
           <view class="section-child-head__tools">
             <AiButton
               v-for="action in visibleChildToolbarActions(section)"
@@ -48,19 +48,19 @@
             </AiButton>
           </view>
         </view>
-        <view v-if="childRows(section).length" class="section-child-list">
+        <view v-if="visibleChildRows(section).length" class="section-child-list">
           <view
-            v-for="(row, rowIndex) in childRows(section)"
+            v-for="(row, rowIndex) in visibleChildRows(section)"
             :key="childRowKey(section, row, rowIndex)"
             class="section-child-row"
           >
             <view class="section-child-row__head">
               <text class="section-child-row__title">第 {{ rowIndex + 1 }} 条</text>
               <AiButton
-                v-if="canRemoveChild(section)"
+                v-if="canRemoveChild(section, row)"
                 size="sm"
                 variant="danger"
-                @click="removeChild(section, rowIndex)"
+                @click="removeChild(section, row)"
               >
                 删除
               </AiButton>
@@ -71,7 +71,7 @@
               :data="row"
               :dict-options="dictOptions"
               :current-children="childData"
-              :readonly="isChildReadonly(section)"
+              :readonly="isChildReadonly(section, row)"
               :context="runtimeContext"
               :field-linkages="fieldLinkages"
               layout="inline_grid"
@@ -101,7 +101,7 @@
         :collapsed-by-default="section.collapsedByDefault === true"
       >
         <view class="section-child-head">
-          <text class="section-child-count">{{ childRows(section).length }} 条</text>
+          <text class="section-child-count">{{ visibleChildRows(section).length }} 条</text>
           <view class="section-child-head__tools">
             <AiButton
               v-for="action in visibleChildToolbarActions(section)"
@@ -123,19 +123,19 @@
             </AiButton>
           </view>
         </view>
-        <view v-if="childRows(section).length" class="section-card-list">
+        <view v-if="visibleChildRows(section).length" class="section-card-list">
           <view
-            v-for="(row, rowIndex) in childRows(section)"
+            v-for="(row, rowIndex) in visibleChildRows(section)"
             :key="childRowKey(section, row, rowIndex)"
             class="section-card-row"
           >
             <view class="section-child-row__head">
               <text class="section-child-row__title">第 {{ rowIndex + 1 }} 条</text>
               <AiButton
-                v-if="canRemoveChild(section)"
+                v-if="canRemoveChild(section, row)"
                 size="sm"
                 variant="danger"
-                @click="removeChild(section, rowIndex)"
+                @click="removeChild(section, row)"
               >
                 删除
               </AiButton>
@@ -146,7 +146,7 @@
               :data="row"
               :dict-options="dictOptions"
               :current-children="childData"
-              :readonly="isChildReadonly(section)"
+              :readonly="isChildReadonly(section, row)"
               :context="runtimeContext"
               :field-linkages="fieldLinkages"
               @field-event="payload => childFieldEvent(section, row, payload)"
@@ -175,7 +175,7 @@
         :collapsed-by-default="section.collapsedByDefault === true"
       >
         <view v-if="visibleChildToolbarActions(section).length" class="section-child-head">
-          <text class="section-child-count">{{ childRows(section).length }} 条</text>
+          <text class="section-child-count">{{ visibleChildRows(section).length }} 条</text>
           <view class="section-child-head__tools">
             <AiButton
               v-for="action in visibleChildToolbarActions(section)"
@@ -192,7 +192,7 @@
         <button class="section-sheet-trigger" hover-class="section-sheet-trigger--pressed" @click="openSheet(section)">
           <view class="section-sheet-trigger__copy">
             <text class="section-sheet-trigger__label">查看{{ section.title || '明细' }}</text>
-            <text class="section-sheet-trigger__count">{{ childRows(section).length }} 条记录</text>
+            <text class="section-sheet-trigger__count">{{ visibleChildRows(section).length }} 条记录</text>
           </view>
           <AiIcon name="chevron-right" color="#2563eb" size="sm" />
         </button>
@@ -290,7 +290,7 @@ const visibleBottomActions = computed(() => resolveBottomBarActions(props.bottom
 const activeSheetSection = computed(() => visibleSections.value
   .find(section => String(section.sectionId) === activeSheetSectionId.value) || null)
 const activeSheetChild = computed(() => childConfig(activeSheetSection.value))
-const activeSheetRows = computed(() => activeSheetSection.value ? childRows(activeSheetSection.value) : [])
+const activeSheetRows = computed(() => activeSheetSection.value ? visibleChildRows(activeSheetSection.value) : [])
 
 watch(visibleSections, () => {
   if (activeSheetSectionId.value && !activeSheetSection.value)
@@ -310,6 +310,10 @@ function childRows(section) {
   return child ? resolveChildRows(child, props.childData) : []
 }
 
+function visibleChildRows(section) {
+  return childRows(section).filter(row => !isDeletedRow(row))
+}
+
 function isChildSection(section, displayMode) {
   return section.sectionType === 'child_table'
     && String(section.displayMode || 'card_list') === displayMode
@@ -318,16 +322,22 @@ function isChildSection(section, displayMode) {
 
 function canAddChild(section) {
   const child = childConfig(section)
-  return props.mode !== 'detail' && child?.readonly !== true && child?.inlineCreateEnabled !== false
+  if (props.mode === 'detail' || child?.readonly === true || child?.inlineCreateEnabled === false) return false
+  return child?.approvalPermissionControlled === true ? child?.allowCreate === true : true
 }
 
-function canRemoveChild(section) {
+function canRemoveChild(section, row) {
   const child = childConfig(section)
-  return props.mode !== 'detail' && child?.readonly !== true && child?.inlineEditEnabled !== false
+  if (props.mode === 'detail' || child?.readonly === true || child?.inlineEditEnabled === false) return false
+  if (child?.approvalPermissionControlled !== true) return true
+  return hasPersistedRowId(row) ? child?.allowDelete === true : child?.allowCreate === true
 }
 
-function isChildReadonly(section) {
-  return props.mode === 'detail' || childConfig(section)?.readonly === true || sectionReadonly(section)
+function isChildReadonly(section, row) {
+  const child = childConfig(section)
+  if (props.mode === 'detail' || child?.readonly === true || sectionReadonly(section)) return true
+  if (child?.approvalPermissionControlled !== true) return false
+  return hasPersistedRowId(row) ? child?.allowUpdate !== true : child?.allowCreate !== true
 }
 
 function sectionReadonly(section) {
@@ -360,8 +370,9 @@ function childFieldEvent(section, row, payload) {
   emit('child-field-event', { child: childConfig(section), row, payload })
 }
 
-function removeChild(section, index) {
-  emit('remove-child-row', { child: childConfig(section), index })
+function removeChild(section, row) {
+  const index = childRows(section).indexOf(row)
+  if (index >= 0) emit('remove-child-row', { child: childConfig(section), index })
 }
 
 function openSheet(section) {
@@ -390,6 +401,17 @@ function buttonVariant(variant) {
 
 function actionKey(action, index) {
   return `${action.type}:${action.actionCode || action.label || index}`
+}
+
+function hasPersistedRowId(row = {}) {
+  const id = row.id ?? row.ID
+  return id !== undefined && id !== null && String(id).trim() !== ''
+}
+
+function isDeletedRow(row = {}) {
+  const value = row._deleted ?? row.__deleted
+  if (typeof value === 'boolean') return value
+  return ['true', '1', 'yes', 'y'].includes(String(value || '').trim().toLowerCase())
 }
 </script>
 

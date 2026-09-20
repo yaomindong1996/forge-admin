@@ -1,7 +1,7 @@
 <template>
   <!-- Layout mode: delegate to LowcodeLayoutNodes when the schema has layout containers -->
   <LowcodeLayoutNodes
-    v-if="hasLayoutNodes"
+    v-if="hasRenderableNodes"
     ref="layoutRef"
     :nodes="nodes"
     :data="data"
@@ -11,6 +11,7 @@
     :field-linkages="fieldLinkages"
     @update:data="(v) => emit('update:data', v)"
     @field-event="(payload) => emit('field-event', payload)"
+    @action="(action) => emit('action', action)"
   />
 
   <!-- Flat mode: original field-only rendering -->
@@ -18,16 +19,20 @@
     <LowcodeField
       v-for="field in renderedFields"
       :key="field.field"
+      :ref="instance => setFieldRef(field.field, instance)"
       class="lowcode-form__field"
       :field="field"
       :model-value="data[field.field]"
       :options="fieldOptions(field)"
       :readonly="readonly"
+      :form-data="data"
+      :context="context"
       :error="errors[field.field]"
       @update:model-value="updateField(field, $event)"
       @blur="emit('field-event', { trigger: 'BLUR', field, data })"
       @change="emit('field-event', { trigger: 'CHANGE', field, data })"
       @scan="emit('field-event', { trigger: 'SCAN_COMPLETE', field, data, scan: $event })"
+      @selection="applySelection(field, $event)"
     />
   </view>
 </template>
@@ -36,7 +41,7 @@
 import { computed, reactive, ref } from 'vue'
 import LowcodeField from './LowcodeField.vue'
 import LowcodeLayoutNodes from './LowcodeLayoutNodes.vue'
-import { applyFieldLinkageChange, filterFieldOptionsByLinkage, hasDesignerLayoutNodes, resolveFieldControl, resolveFieldLinkageContext } from '@/utils/lowcode-runtime'
+import { applyFieldLinkageChange, filterFieldOptionsByLinkage, resolveFieldControl, resolveFieldLinkageContext } from '@/utils/lowcode-runtime'
 
 const props = defineProps({
   fields: { type: Array, default: () => [] },
@@ -51,10 +56,11 @@ const props = defineProps({
   fieldLinkages: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['update:data', 'field-event'])
+const emit = defineEmits(['update:data', 'field-event', 'action'])
 const errors = reactive({})
 const layoutRef = ref(null)
-const hasLayoutNodes = computed(() => hasDesignerLayoutNodes(props.nodes))
+const fieldRefs = new Map()
+const hasRenderableNodes = computed(() => Array.isArray(props.nodes) && props.nodes.length > 0)
 const renderedFields = computed(() => props.fields.map(field => ({
   ...field,
   props: {
@@ -71,7 +77,7 @@ const renderedFields = computed(() => props.fields.map(field => ({
 })).filter(field => field.__runtimeControl.visible))
 
 function fieldOptions(field) {
-  if (field.type === 'dictSelect' || field.type === 'pillSelect') {
+  if (field.dictType || field.props?.dictType) {
     const options = props.dictOptions[field.dictType || field.props?.dictType] || []
     return filterFieldOptionsByLinkage(options, field.props?.linkageContext)
   }
@@ -97,20 +103,38 @@ function updateField(field, value) {
   emit('update:data', props.data)
 }
 
+function applySelection(field, payload = {}) {
+  const patch = payload.patch && typeof payload.patch === 'object' ? payload.patch : {}
+  Object.assign(props.data, patch)
+  applyFieldLinkageChange(props.fieldLinkages, field.field, props.data)
+  emit('update:data', props.data)
+  emit('field-event', { trigger: 'SELECT', field, data: props.data, selection: payload })
+}
+
+function setFieldRef(field, instance) {
+  if (instance) fieldRefs.set(field, instance)
+  else fieldRefs.delete(field)
+}
+
 function validate() {
   // Delegate to layout tree when in layout mode
-  if (hasLayoutNodes.value && layoutRef.value)
+  if (hasRenderableNodes.value && layoutRef.value)
     return layoutRef.value.validate()
   Object.keys(errors).forEach(key => delete errors[key])
+  let valid = true
   for (const field of props.fields) {
     const control = resolveFieldControl(field, { record: props.data, formData: props.data, row: props.data })
     if (!control.visible || !control.required || props.readonly || control.readonly) continue
     const value = props.data[field.field]
     if (value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length)) {
       errors[field.field] = field.requiredMessage || `请输入${field.label}`
+      valid = false
     }
   }
-  return Object.keys(errors).length === 0
+  for (const instance of fieldRefs.values()) {
+    if (instance?.validate?.() === false) valid = false
+  }
+  return valid && Object.keys(errors).length === 0
 }
 
 defineExpose({ validate })

@@ -1,99 +1,165 @@
 <template>
-  <view class="ai-signature-pad">
-    <canvas
-      ref="canvasRef"
-      class="ai-signature-pad__canvas"
-      :style="{ height: `${height}rpx` }"
-      @touchstart.stop.prevent="startStroke"
-      @touchmove.stop.prevent="moveStroke"
-      @touchend.stop.prevent="endStroke"
-    />
-    <text v-if="!hasInk && !modelValue" class="ai-signature-pad__placeholder">请在此区域手写签名</text>
-    <button class="ai-signature-pad__clear" :disabled="!hasSignature()" @click="clear">清空</button>
+  <view class="ai-signature-pad" :class="{ 'is-disabled': disabled }">
+    <wd-signature
+      ref="signatureRef"
+      :height="`${height}rpx`"
+      :disabled="disabled"
+      :disable-scroll="true"
+      :enable-history="true"
+      pen-color="#1f2937"
+      background-color="#ffffff"
+      @signing="handleSigning"
+      @clear="handleClear"
+      @confirm="handleConfirm"
+    >
+      <template #footer="{ clear: clearCanvas, confirm, revoke, restore, canUndo, canRedo }">
+        <view v-if="!disabled" class="ai-signature-pad__actions">
+          <wd-button size="small" plain :disabled="!canUndo || uploading" @click="revoke">撤销</wd-button>
+          <wd-button size="small" plain :disabled="!canRedo || uploading" @click="restore">恢复</wd-button>
+          <wd-button size="small" plain :disabled="!hasSignature() || uploading" @click="clearCanvas">清空</wd-button>
+          <wd-button size="small" :loading="uploading" :disabled="!hasInk" @click="confirm">保存签名</wd-button>
+        </view>
+      </template>
+    </wd-signature>
+    <text v-if="modelValue && !hasInk" class="ai-signature-pad__saved">签名已保存，重新签写将覆盖原签名</text>
   </view>
 </template>
 
 <script setup>
-import { nextTick, onMounted, ref } from 'vue'
+import { ref } from 'vue'
 import { useAuthStore } from '@/store'
+import { toast } from '@/utils/notify'
+import { uploadRuntimeFile } from '@/utils/runtime-file-upload'
 
-const props = defineProps({ modelValue: { type: String, default: '' }, height: { type: Number, default: 260 } })
-const emit = defineEmits(['update:modelValue'])
+const props = defineProps({
+  modelValue: { type: String, default: '' },
+  height: { type: Number, default: 260 },
+  disabled: { type: Boolean, default: false },
+})
+const emit = defineEmits(['update:modelValue', 'success', 'error'])
 const authStore = useAuthStore()
-const canvasRef = ref(null)
+const signatureRef = ref(null)
 const hasInk = ref(false)
-let context
-let drawing = false
-let lastPoint
+const uploading = ref(false)
+let pendingConfirmation = null
+let pendingTimer = null
 
-onMounted(() => nextTick(() => {
-  context = canvasRef.value?.getContext?.('2d')
-  if (!context) return
-  context.lineWidth = 3
-  context.lineCap = 'round'
-  context.lineJoin = 'round'
-  context.strokeStyle = '#1f2937'
-}))
+function handleSigning() {
+  if (!hasInk.value) {
+    hasInk.value = true
+    if (props.modelValue) emit('update:modelValue', '')
+  }
+}
 
-function point(event) {
-  const touch = event.touches?.[0] || event.changedTouches?.[0]
-  const rect = canvasRef.value?.getBoundingClientRect?.()
-  if (!touch || !rect) return null
-  return { x: touch.clientX - rect.left, y: touch.clientY - rect.top }
-}
-function startStroke(event) {
-  lastPoint = point(event)
-  drawing = Boolean(lastPoint)
-  if (!drawing || !context) return
-  hasInk.value = true
-  if (props.modelValue) emit('update:modelValue', '')
-  context.beginPath()
-  context.arc(lastPoint.x, lastPoint.y, 1.5, 0, Math.PI * 2)
-  context.fill()
-}
-function moveStroke(event) {
-  if (!drawing || !context) return
-  const current = point(event)
-  if (!current || !lastPoint) return
-  context.beginPath()
-  context.moveTo(lastPoint.x, lastPoint.y)
-  context.lineTo(current.x, current.y)
-  context.stroke()
-  lastPoint = current
-}
-function endStroke() { drawing = false; lastPoint = null }
-function clear() {
-  const rect = canvasRef.value?.getBoundingClientRect?.()
-  if (context && rect) context.clearRect(0, 0, rect.width, rect.height)
+function handleClear() {
   hasInk.value = false
   emit('update:modelValue', '')
 }
-function hasSignature() { return Boolean(props.modelValue) || hasInk.value }
-async function upload() {
-  if (props.modelValue && !hasInk.value) return props.modelValue
-  if (!hasInk.value) throw new Error('请完成手写签名')
-  const dataUrl = canvasRef.value?.toDataURL?.('image/png')
-  if (!dataUrl) throw new Error('签名画布未初始化')
-  const blob = await (await fetch(dataUrl)).blob()
-  const formData = new FormData()
-  formData.append('file', blob, `signature-${Date.now()}.png`)
-  formData.append('businessType', 'flow_signature')
-  formData.append('isPrivate', 'true')
-  const response = await fetch(`${import.meta.env.VITE_REQUEST_PREFIX || ''}/api/file/upload`, { method: 'POST', headers: { Authorization: `${authStore.tokenType || 'Bearer'} ${authStore.accessToken}` }, body: formData })
-  const result = await response.json()
-  const fileId = result?.data?.fileId || result?.data?.id
-  if (!response.ok || !(result?.code === 200 || result?.respCode === '0000') || !fileId) throw new Error(result?.message || '签名图片保存失败')
-  emit('update:modelValue', String(fileId))
-  hasInk.value = false
-  return String(fileId)
+
+async function handleConfirm(result) {
+  if (!result?.success || !result?.tempFilePath) {
+    const error = new Error('签名图片生成失败')
+    rejectPending(error)
+    emit('error', error)
+    toast(error.message, { type: 'error' })
+    return
+  }
+  if (uploading.value) return
+
+  uploading.value = true
+  try {
+    const uploaded = await uploadRuntimeFile({
+      filePath: result.tempFilePath,
+      fileName: `signature-${Date.now()}.png`,
+      businessType: 'flow_signature',
+      isPrivate: true,
+      authStore,
+    })
+    emit('update:modelValue', uploaded.id)
+    emit('success', uploaded.data)
+    hasInk.value = false
+    resolvePending(uploaded.id)
+  }
+  catch (error) {
+    emit('error', error)
+    rejectPending(error)
+    toast(error?.message || '签名图片保存失败', { type: 'error' })
+  }
+  finally {
+    uploading.value = false
+  }
 }
+
+function clear() {
+  if (signatureRef.value?.clear) signatureRef.value.clear()
+  else handleClear()
+}
+
+function hasSignature() {
+  return Boolean(props.modelValue) || hasInk.value
+}
+
+function upload() {
+  if (props.modelValue && !hasInk.value) return Promise.resolve(props.modelValue)
+  if (!hasInk.value) return Promise.reject(new Error('请完成手写签名'))
+  if (pendingConfirmation) return pendingConfirmation.promise
+
+  let resolvePromise
+  let rejectPromise
+  const promise = new Promise((resolve, reject) => {
+    resolvePromise = resolve
+    rejectPromise = reject
+  })
+  pendingConfirmation = { promise, resolve: resolvePromise, reject: rejectPromise }
+  pendingTimer = setTimeout(() => rejectPending(new Error('签名图片生成超时，请重试')), 10000)
+  signatureRef.value?.confirm?.()
+  return promise
+}
+
+function resolvePending(fileId) {
+  if (!pendingConfirmation) return
+  clearPendingTimer()
+  pendingConfirmation.resolve(fileId)
+  pendingConfirmation = null
+}
+
+function rejectPending(error) {
+  if (!pendingConfirmation) return
+  clearPendingTimer()
+  pendingConfirmation.reject(error)
+  pendingConfirmation = null
+}
+
+function clearPendingTimer() {
+  if (pendingTimer) clearTimeout(pendingTimer)
+  pendingTimer = null
+}
+
 defineExpose({ hasSignature, upload, clear })
 </script>
 
 <style lang="scss" scoped>
-.ai-signature-pad { position: relative; overflow: hidden; border: 1rpx dashed #9fc5fb; border-radius: 12rpx; background: #fbfdff; }
-.ai-signature-pad__canvas { display: block; width: 100%; touch-action: none; }
-.ai-signature-pad__placeholder { position: absolute; top: 50%; left: 50%; color: #94a3b8; font-size: 23rpx; transform: translate(-50%, -50%); pointer-events: none; }
-.ai-signature-pad__clear { position: absolute; top: 12rpx; right: 12rpx; height: 46rpx; margin: 0; padding: 0 12rpx; border: 0; border-radius: 8rpx; color: #64748b; font-size: 21rpx; background: #eef4fb; }
-.ai-signature-pad__clear::after { border: 0; }
+.ai-signature-pad {
+  overflow: hidden;
+  border: 1rpx solid var(--border-color, #dbe3ec);
+  border-radius: 12rpx;
+  background: #ffffff;
+}
+
+.ai-signature-pad.is-disabled { opacity: .72; }
+
+.ai-signature-pad__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12rpx;
+  padding: 14rpx 16rpx 16rpx;
+}
+
+.ai-signature-pad__saved {
+  display: block;
+  padding: 0 16rpx 16rpx;
+  color: var(--text-secondary, #64748b);
+  font-size: 22rpx;
+}
 </style>

@@ -71,7 +71,9 @@ export const loadingService = {
 // v-loading指令
 const loadingDirective = {
   mounted(el, binding) {
-    const computedStyle = window?.getComputedStyle?.(el)
+    if (typeof window === 'undefined' || typeof document === 'undefined') return
+
+    const computedStyle = window.getComputedStyle?.(el)
     if (!computedStyle || computedStyle.position === 'static') {
       el.style.position = 'relative'
     }
@@ -79,11 +81,13 @@ const loadingDirective = {
     const mask = document.createElement('div')
     mask.className = 'v-loading-mask'
     mask.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;z-index:999;display:none;background:rgba(255,255,255,0.58);backdrop-filter:blur(8px);align-items:center;justify-content:center;border-radius:inherit;'
-    mask.innerHTML = '<div class="v-loading-card"><div class="v-loading-dots"><span></span><span></span><span></span></div><div class="v-loading-text">加载中...</div></div>'
+    mask.innerHTML = '<div class="v-loading-card"><div class="v-loading-dots"><i class="v-loading-dot v-loading-dot--1"></i><i class="v-loading-dot v-loading-dot--2"></i><i class="v-loading-dot v-loading-dot--3"></i></div><div class="v-loading-text">加载中...</div></div>'
     el.appendChild(mask)
     el._loadingMask = mask
   },
   updated(el, binding) {
+    if (typeof document === 'undefined') return
+
     if (binding.value && el._loadingMask) {
       el._loadingMask.style.display = 'flex'
     } else if (el._loadingMask) {
@@ -91,6 +95,8 @@ const loadingDirective = {
     }
   },
   unmounted(el) {
+    if (typeof document === 'undefined') return
+
     if (el._loadingMask && el._loadingMask.parentNode) {
       el._loadingMask.parentNode.removeChild(el._loadingMask)
     }

@@ -1,11 +1,11 @@
 <template>
   <view class="ai-empty">
-    <image class="ai-empty__image" :src="emptyImage" mode="aspectFit" />
-    <text class="ai-empty__title">{{ title }}</text>
-    <text v-if="description" class="ai-empty__desc">{{ description }}</text>
-    <view v-if="$slots.default" class="ai-empty__action">
-      <slot />
-    </view>
+    <wd-status-tip :image="emptyImage" :image-size="130" :tip="title">
+      <template #bottom>
+        <text v-if="description" class="ai-empty__desc">{{ description }}</text>
+        <view v-if="$slots.default" class="ai-empty__action"><slot /></view>
+      </template>
+    </wd-status-tip>
   </view>
 </template>
 
@@ -13,57 +13,15 @@
 import emptyImage from '@/static/images/no-data.png'
 
 defineProps({
-  title: {
-    type: String,
-    default: '暂无数据'
-  },
-  description: {
-    type: String,
-    default: ''
-  },
-  icon: {
-    type: String,
-    default: 'inbox'
-  },
+  title: { type: String, default: '暂无数据' },
+  description: { type: String, default: '' },
+  icon: { type: String, default: 'inbox' },
 })
 </script>
 
 <style lang="scss" scoped>
-.ai-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 420rpx;
-  padding: 36rpx 32rpx;
-  box-sizing: border-box;
-  text-align: center;
-}
-
-.ai-empty__image {
-  width: 260rpx;
-  height: 260rpx;
-}
-
-.ai-empty__title {
-  display: block;
-  margin-top: 8rpx;
-  color: var(--text-strong);
-  font-size: 28rpx;
-  font-weight: 700;
-}
-
-.ai-empty__desc {
-  display: block;
-  max-width: 520rpx;
-  margin-top: 8rpx;
-  color: var(--text-muted);
-  font-size: 23rpx;
-  font-weight: 500;
-  line-height: 1.45;
-}
-
-.ai-empty__action {
-  margin-top: 18rpx;
-}
+.ai-empty { display: flex; min-height: 420rpx; align-items: center; justify-content: center; padding: 36rpx 32rpx; box-sizing: border-box; text-align: center; }
+.ai-empty__desc { display: block; max-width: 520rpx; margin-top: 8rpx; color: var(--forge-color-text-muted, #94a3b8); font-size: 23rpx; line-height: 1.45; }
+.ai-empty__action { margin-top: 18rpx; }
+:deep(.wd-status-tip__text) { color: var(--forge-color-text-strong, #0f172a); font-size: 28rpx; font-weight: 700; }
 </style>

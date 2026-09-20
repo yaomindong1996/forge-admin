@@ -3,28 +3,43 @@
  * 将 BusinessTaskFormContextVO 的返回数据转换为 PageSectionRenderer / LowcodeForm 所需的格式
  */
 
-import { parseJson } from '@/utils/lowcode-runtime'
+import { parseJson, resolveChildRows, resolveChildTitle } from './lowcode-runtime.js'
+import { normalizeMobileComponentType, resolveMobileComponent } from '../components/lowcode/mobile-component-registry.js'
 
 /**
  * 将后端 context.fields 转换为 LowcodeForm 所需的 mainFields 格式
  * @param {Array} rawFields - 后端返回的 fields 数组
  * @returns {Array} mainFields - LowcodeForm 格式的字段数组
  */
-export function adaptBusinessTaskFields(rawFields = []) {
+export function adaptBusinessTaskFields(rawFields = [], fieldPermissions = [], options = {}) {
+  const permissionMap = createPermissionMap(fieldPermissions, options.includeChildPermissions === true)
   return (Array.isArray(rawFields) ? rawFields : [])
     .map(item => {
       const field = String(item?.field || item?.fieldCode || '').trim()
       if (!field) return null
+      const permission = permissionMap.get(normalizePermissionField(field))
+      const readable = permission
+        ? resolvePermissionFlag(permission, 'readable', 'visible', true)
+        : resolvePermissionFlag(item, 'readable', 'visible', true)
+      if (!readable) return null
       const dictType = String(item?.dictType || item?.props?.dictType || '').trim() || undefined
-      const rawType = String(item?.type || item?.componentType || item?.componentKey || 'input').toLowerCase()
+      const rawType = String(item?.type || item?.componentType || item?.componentKey || 'input')
       const type = resolveFieldType(rawType, dictType, item)
-      const writable = item?.writable === true
+      const writable = permission
+        ? resolvePermissionFlag(permission, 'writable', 'editable', false)
+        : resolvePermissionFlag(item, 'writable', 'editable', false) && item?.readonly !== true
       const readonly = !writable || item?.readonly === true
+      const itemPermissions = normalizeItemPermissions(permission || item)
       const props = {
         ...(item?.props || {}),
+        ...(item?.optionSource !== undefined ? { optionSource: item.optionSource } : {}),
+        ...(item?.recordSelector !== undefined ? { recordSelector: item.recordSelector } : {}),
+        ...(item?.selectorConfig !== undefined ? { selectorConfig: item.selectorConfig } : {}),
+        ...(item?.querySource !== undefined ? { querySource: item.querySource } : {}),
         dictType: dictType || undefined,
         readonly,
         disabled: !writable,
+        itemPermissions,
       }
       return {
         field,
@@ -32,13 +47,27 @@ export function adaptBusinessTaskFields(rawFields = []) {
         label: item?.label || item?.fieldName || field,
         type,
         props,
-        required: item?.required === true && writable,
+        required: writable && (typeof permission?.required === 'boolean' ? permission.required : item?.required === true),
         readonly,
         hidden: item?.hidden === true,
-        formVisible: item?.readable !== false,
+        formVisible: readable,
         defaultValue: item?.defaultValue ?? item?.props?.defaultValue,
         runtimeRules: item?.runtimeRules || item?.props?.runtimeRules || [],
         options: normalizeFieldOptions(item?.options || item?.props?.options),
+        ...((item?.multiple === true || item?.props?.multiple === true) ? { multiple: true } : {}),
+        ...((item?.labelField || item?.props?.labelField) ? { labelField: item?.labelField || item?.props?.labelField } : {}),
+        ...((item?.valueField || item?.props?.valueField) ? { valueField: item?.valueField || item?.props?.valueField } : {}),
+        ...((item?.labelValueField || item?.props?.labelValueField) ? { labelValueField: item?.labelValueField || item?.props?.labelValueField } : {}),
+        ...((item?.fieldMappings || item?.props?.fieldMappings) ? { fieldMappings: item?.fieldMappings || item?.props?.fieldMappings } : {}),
+        itemSchema: adaptBusinessTaskFields(
+          item?.itemSchema || item?.props?.itemSchema || [],
+          itemPermissions,
+          { includeChildPermissions: true },
+        ),
+        itemPermissions,
+        arrayConfig: { ...(item?.arrayConfig || item?.props?.arrayConfig || {}) },
+        businessType: item?.businessType || item?.props?.businessType,
+        limit: item?.limit ?? item?.props?.limit,
       }
     })
     .filter(Boolean)
@@ -48,26 +77,63 @@ export function adaptBusinessTaskFields(rawFields = []) {
  * 根据后端原始类型、dictType 推断 LowcodeField 支持的类型
  */
 function resolveFieldType(rawType, dictType, item) {
-  const normalizedType = String(rawType || '').replace(/[-_]/g, '')
+  const canonicalType = normalizeMobileComponentType(rawType)
+  const descriptor = resolveMobileComponent(canonicalType)
+  const normalizedType = String(rawType || '').replace(/[\s_-]/g, '').toLowerCase()
   if (dictType) {
-    if (String(item?.props?.displayMode || '').toLowerCase() === 'pill' || rawType.includes('pill')) {
+    if (String(item?.props?.displayMode || '').toLowerCase() === 'pill' || normalizedType.includes('pill')) {
       return 'pillSelect'
     }
     return 'dictSelect'
   }
-  if (rawType.includes('textarea')) return 'textarea'
-  if (rawType.includes('number') || rawType.includes('integer') || rawType.includes('money')) return 'number'
+  if (descriptor.kind === 'field') return canonicalType
+  if (canonicalType === 'signature-pad') return canonicalType
+  if (normalizedType.includes('textarea')) return 'textarea'
+  if (normalizedType.includes('number') || normalizedType.includes('integer') || normalizedType.includes('money')) return 'number'
   if (normalizedType.includes('datetimerange')) return 'datetimerange'
   if (normalizedType.includes('daterange')) return 'daterange'
   if (normalizedType.includes('timerange')) return 'timerange'
   if (normalizedType === 'range' || normalizedType.includes('numberrange')) return 'numberrange'
-  if (rawType.includes('select') || rawType.includes('picker') || rawType.includes('radio')) return 'select'
-  if (rawType.includes('datetime')) return 'datetime'
-  if (rawType === 'date' || rawType.includes('date-picker')) return 'date'
-  if (rawType.includes('switch') || rawType.includes('boolean')) return 'switch'
-  if (rawType.includes('barcode') || rawType.includes('scan')) return 'barcodeScanner'
-  if (rawType.includes('file') || rawType.includes('upload')) return 'input'
-  return 'input'
+  if (normalizedType.includes('imag') && normalizedType.includes('upload')) return 'imageUpload'
+  if (normalizedType.includes('file') || normalizedType.includes('upload') || normalizedType.includes('attachment')) return 'fileUpload'
+  if (normalizedType.includes('checkbox')) return 'checkbox'
+  if (normalizedType.includes('radio')) return 'radio'
+  if (normalizedType.includes('select') || normalizedType.includes('picker')) return 'select'
+  if (normalizedType.includes('datetime')) return 'datetime'
+  if (normalizedType === 'date' || normalizedType.includes('datepicker')) return 'date'
+  if (normalizedType.includes('switch') || normalizedType.includes('boolean')) return 'switch'
+  if (normalizedType.includes('barcode') || normalizedType.includes('scan')) return 'barcodeScanner'
+  return canonicalType || normalizedType || 'unknown'
+}
+
+function createPermissionMap(permissions = [], includeChildPermissions = false) {
+  return new Map(normalizePermissionList(permissions)
+    .filter(item => item && (includeChildPermissions || String(item.scope || '').toLowerCase() !== 'child'))
+    .map(item => [normalizePermissionField(item.field || item.fieldCode), item])
+    .filter(([field]) => field))
+}
+
+function normalizePermissionList(value) {
+  const parsed = parseJson(value, value)
+  if (Array.isArray(parsed)) return parsed
+  if (!parsed || typeof parsed !== 'object') return []
+  const candidates = parsed.fields || parsed.fieldPermissions || parsed.permissions || []
+  return Array.isArray(candidates) ? candidates : []
+}
+
+function resolvePermissionFlag(source, primary, legacy, fallback) {
+  if (typeof source?.[primary] === 'boolean') return source[primary]
+  if (typeof source?.[legacy] === 'boolean') return source[legacy]
+  return fallback
+}
+
+function normalizePermissionField(field = '') {
+  return String(field || '').replace(/[_-]/g, '').toLowerCase()
+}
+
+function normalizeItemPermissions(source = {}) {
+  const candidates = source.itemPermissions || source.fields || source.children || source.props?.itemPermissions || []
+  return normalizePermissionList(candidates)
 }
 
 function normalizeFieldOptions(raw) {
@@ -87,17 +153,36 @@ function normalizeFieldOptions(raw) {
  * @param {Array} fields - mainFields 数组
  * @returns {Array} pageSections
  */
-export function buildDefaultPageSections(fields = []) {
-  if (!fields.length) return []
-  return [{
-    sectionId: 'main',
-    sectionType: 'card',
-    title: '',
-    fields: fields.map(f => f.field),
-    fieldOverrides: {},
-    collapsible: false,
-    collapsedByDefault: false,
-  }]
+export function buildDefaultPageSections(fields = [], children = [], configuredSections = null) {
+  const sections = Array.isArray(configuredSections) && configuredSections.length
+    ? configuredSections.map(section => ({ ...section }))
+    : []
+  if (!sections.length && fields.length) {
+    sections.push({
+      sectionId: 'main',
+      sectionType: 'card',
+      title: '',
+      fields: fields.map(f => f.field),
+      fieldOverrides: {},
+      collapsible: false,
+      collapsedByDefault: false,
+    })
+  }
+  const configuredRelations = new Set(sections.map(section => String(section?.relationKey || '')).filter(Boolean))
+  ;(Array.isArray(children) ? children : []).forEach((child, index) => {
+    if (!child?.relationKey) return
+    if (configuredRelations.has(String(child.relationKey))) return
+    sections.push({
+      sectionId: `child:${child.relationKey || index}`,
+      sectionType: 'child_table',
+      title: resolveChildTitle(child),
+      relationKey: child.relationKey,
+      displayMode: 'card_list',
+      collapsible: false,
+      collapsedByDefault: false,
+    })
+  })
+  return sections
 }
 
 /**
@@ -128,22 +213,108 @@ export function extractPageSections(context = {}) {
  * @param {Array} rawChildren - 后端返回的 childrenConfig
  * @returns {Array} children - 标准化的子表配置
  */
-export function adaptChildrenConfig(rawChildren = []) {
+export function adaptChildrenConfig(rawChildren = [], fieldPermissions = []) {
+  const allPermissions = normalizePermissionList(fieldPermissions)
   return (Array.isArray(rawChildren) ? rawChildren : [])
     .map((child, index) => {
       const key = String(child?.key || child?.relationKey || child?.modelCode || `children_${index}`)
       const modelCode = String(child?.modelCode || child?.tableName || key)
       const relationKey = String(child?.relationKey || child?.key || child?.modelCode || key)
+      const childPermissions = [
+        ...normalizePermissionList(child?.fieldPermissions || child?.permissions || []),
+        ...allPermissions.filter(permission => matchesChildPermission(permission, { key, modelCode, relationKey })),
+      ]
       return {
         ...child,
         key,
         modelCode,
         relationKey,
-        fields: adaptBusinessTaskFields(child?.fields || []),
+        approvalPermissionControlled: true,
+        saveMode: child?.saveMode || 'merge',
+        fields: adaptBusinessTaskFields(child?.fields || [], childPermissions, { includeChildPermissions: true }),
         rowActions: Array.isArray(child?.rowActions) ? child.rowActions : [],
         toolbarActions: Array.isArray(child?.toolbarActions) ? child.toolbarActions : [],
       }
     })
+}
+
+export function hasWritableBusinessTaskForm(fields = [], children = []) {
+  if ((Array.isArray(fields) ? fields : []).some(isWritableTaskField)) return true
+  return (Array.isArray(children) ? children : []).some((child) => {
+    const writableFields = Array.isArray(child?.fields) && child.fields.some(isWritableTaskField)
+    return child?.allowCreate === true || child?.allowDelete === true || (child?.allowUpdate === true && writableFields)
+  })
+}
+
+export function buildBusinessTaskFormData({ formType, fields = [], children = [], mainData = {}, childData = {} } = {}) {
+  const main = pickWritableTaskFields(mainData, fields)
+  if (String(formType || '').toLowerCase() !== 'business-object') return main
+
+  const childPayload = {}
+  ;(Array.isArray(children) ? children : []).forEach((child) => {
+    const key = String(child?.modelCode || child?.relationKey || child?.key || '').trim()
+    if (!key) return
+    const writableFields = new Set((Array.isArray(child?.fields) ? child.fields : [])
+      .filter(isWritableTaskField)
+      .map(field => String(field.field || field.fieldCode || '').trim())
+      .filter(Boolean))
+    const rows = resolveChildRows(child, childData)
+      .map(row => buildTaskChildRow(row, writableFields, child))
+      .filter(Boolean)
+    if (rows.length || child?.allowCreate === true || child?.allowUpdate === true || child?.allowDelete === true)
+      childPayload[key] = rows
+  })
+  return {
+    main,
+    ...(Object.keys(childPayload).length ? { children: childPayload } : {}),
+  }
+}
+
+function pickWritableTaskFields(source = {}, fields = []) {
+  return (Array.isArray(fields) ? fields : []).reduce((result, field) => {
+    const key = String(field?.field || field?.fieldCode || '').trim()
+    if (key && isWritableTaskField(field) && Object.prototype.hasOwnProperty.call(source, key))
+      result[key] = source[key]
+    return result
+  }, {})
+}
+
+function buildTaskChildRow(row = {}, writableFields, child = {}) {
+  const id = row?.id ?? row?.ID
+  const persisted = id !== undefined && id !== null && String(id).trim() !== ''
+  const deleted = isDeletedTaskRow(row)
+  if (deleted) {
+    if (!persisted || child?.allowDelete !== true) return null
+    return { id: String(id), _deleted: true }
+  }
+  if (persisted && child?.allowUpdate !== true) return null
+  if (!persisted && child?.allowCreate !== true) return null
+  const result = {}
+  if (persisted) result.id = String(id)
+  Object.entries(row || {}).forEach(([key, value]) => {
+    if (writableFields.has(key)) result[key] = value
+  })
+  return result
+}
+
+function isWritableTaskField(field = {}) {
+  if (field?.readonly === true || field?.disabled === true || field?.props?.readonly === true || field?.props?.disabled === true)
+    return false
+  if (typeof field?.writable === 'boolean') return field.writable
+  return field?.readonly === false
+}
+
+function isDeletedTaskRow(row = {}) {
+  const value = row?._deleted ?? row?.__deleted
+  if (typeof value === 'boolean') return value
+  return ['true', '1', 'yes', 'y'].includes(String(value || '').trim().toLowerCase())
+}
+
+function matchesChildPermission(permission = {}, child = {}) {
+  if (String(permission.scope || '').toLowerCase() !== 'child') return false
+  const permissionKey = String(permission.relationKey || permission.childKey || permission.modelCode || '').trim()
+  if (!permissionKey) return true
+  return [child.key, child.modelCode, child.relationKey].map(String).includes(permissionKey)
 }
 
 /**
@@ -200,7 +371,7 @@ export function collectDictTypes(fields = [], children = []) {
  * @returns {Object} flowInteraction
  */
 export function buildFlowInteraction(context = {}) {
-  const permissions = Array.isArray(context.fieldPermissions) ? context.fieldPermissions : []
+  const permissions = normalizePermissionList(context.fieldPermissions)
   return {
     approvalActions: [],
     timeline: { enabled: false, title: '审批记录' },
@@ -220,9 +391,9 @@ export function buildFlowInteraction(context = {}) {
  * @returns {Object} { sections, mainFields, mainData, children, childData, flowInteraction, dictTypes }
  */
 export function adaptBusinessTaskFormContext(context = {}, mode = 'edit') {
-  const mainFields = adaptBusinessTaskFields(context.fields || context.formRef?.fields || [])
-  const children = adaptChildrenConfig(context.childrenConfig || [])
-  const sections = extractPageSections(context) || buildDefaultPageSections(mainFields)
+  const mainFields = adaptBusinessTaskFields(context.fields || context.formRef?.fields || [], context.fieldPermissions || [])
+  const children = adaptChildrenConfig(context.childrenConfig || [], context.fieldPermissions || [])
+  const sections = buildDefaultPageSections(mainFields, children, extractPageSections(context))
   const mainData = extractMainData(context.recordData)
   const childData = extractChildData(context.recordData)
   const flowInteraction = buildFlowInteraction(context)

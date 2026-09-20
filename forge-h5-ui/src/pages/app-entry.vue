@@ -22,7 +22,7 @@ const title = ref('应用功能')
 
 onLoad((query = {}) => {
   title.value = String(query.title || '应用功能')
-  const configKey = String(query.configKey || '').trim()
+  const configKey = String(query.configKey || query.runtimeConfigKey || query.pageConfigKey || '').trim()
   const path = String(query.path || '').trim()
   if (configKey || /(?:crud-page|crud)\//.test(path)) {
     const params = Object.entries({
@@ -30,13 +30,17 @@ onLoad((query = {}) => {
       title: title.value,
       ...(query.mode ? { mode: query.mode } : {}),
       ...(query.recordId ? { recordId: query.recordId } : {}),
+      ...(query.applicationId ? { applicationId: query.applicationId } : {}),
+      ...(query.appId ? { appId: query.appId } : {}),
+      ...(query.pageId ? { pageId: query.pageId } : {}),
+      ...(query.pageCode ? { pageCode: query.pageCode } : {}),
     }).map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join('&')
     uni.redirectTo({ url: `/pages/lowcode-runtime?${params}` })
   }
 })
 
 function resolveConfigKey(path) {
-  return String(path || '').match(/(?:crud-page|crud)\/([^/?]+)/)?.[1] || ''
+  return decodeURIComponent(String(path || '').match(/(?:crud-page|crud|lowcode)\/([^/?]+)/)?.[1] || '')
 }
 
 function goHome() {

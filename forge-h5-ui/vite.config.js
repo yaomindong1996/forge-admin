@@ -42,11 +42,15 @@ export default defineConfig(({ mode }) => {
     define: {
       global: 'window',
     },
+    optimizeDeps: {
+      // Wot Design Uni publishes source Vue/TS. Excluding it avoids H5 dev
+      // pre-bundling a second reactive runtime and keeps locale/theme state shared.
+      exclude: ['wot-design-uni'],
+    },
     css: {
       preprocessorOptions: {
         scss: {
           additionalData: `@import "@/styles/variables.scss";`,
-          silenceDeprecations: ['legacy-js-api', 'color-functions', 'import'],
         },
       },
     },

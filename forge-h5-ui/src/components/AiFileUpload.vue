@@ -19,6 +19,7 @@ import { computed, ref } from 'vue'
 import AiIcon from '@/components/AiIcon.vue'
 import { useAuthStore } from '@/store'
 import { toast } from '@/utils/notify'
+import { uploadRuntimeFile } from '@/utils/runtime-file-upload'
 
 const props = defineProps({
   modelValue: { type: [String, Array], default: '' },
@@ -36,9 +37,9 @@ async function chooseFile() {
   if (uploading.value || fileItems.value.length >= props.maxCount) return
   try {
     const picked = await pickFile()
-    if (!picked?.file) return
+    if (!picked?.file && !picked?.filePath) return
     uploading.value = true
-    const uploaded = await uploadFile(picked.file, picked.name)
+    const uploaded = await uploadFile(picked)
     const next = [...fileItems.value, uploaded]
     emitValue(next)
     emit('success', uploaded)
@@ -67,7 +68,7 @@ function pickFile() {
       type: 'file',
       success: (res) => {
         const item = res.tempFiles?.[0]
-        resolve(item ? { file: item, name: item.name || item.path?.split('/').pop() } : null)
+        resolve(item ? { filePath: item.path || item.tempFilePath, name: item.name || item.path?.split('/').pop() } : null)
       },
       fail: () => resolve(null),
     })
@@ -75,22 +76,16 @@ function pickFile() {
   })
 }
 
-async function uploadFile(file, name) {
-  const formData = new FormData()
-  formData.append('file', file, name || file.name || `attachment-${Date.now()}`)
-  formData.append('businessType', props.businessType)
-  formData.append('isPrivate', 'true')
-  const response = await fetch(`${import.meta.env.VITE_REQUEST_PREFIX || ''}/api/file/upload`, {
-    method: 'POST',
-    headers: { Authorization: `${authStore.tokenType || 'Bearer'} ${authStore.accessToken}` },
-    body: formData,
+async function uploadFile(picked) {
+  const uploaded = await uploadRuntimeFile({
+    file: picked.file,
+    filePath: picked.filePath,
+    fileName: picked.name || picked.file?.name || `attachment-${Date.now()}`,
+    businessType: props.businessType,
+    isPrivate: true,
+    authStore,
   })
-  const result = await response.json()
-  if (!response.ok || !(result?.code === 200 || result?.respCode === '0000')) throw new Error(result?.message || result?.msg || '附件上传失败')
-  const data = result?.data || {}
-  const id = data.fileId || data.id || data.filePath
-  if (!id) throw new Error('附件服务未返回文件标识')
-  return { id: String(id), name: data.originalName || data.fileName || name || String(id) }
+  return { id: uploaded.id, name: uploaded.name }
 }
 
 function removeFile(id) { emitValue(fileItems.value.filter(item => item.id !== id)) }

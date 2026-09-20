@@ -75,7 +75,7 @@ input {
   gap: 8px;
 }
 
-.v-loading-dots span {
+.v-loading-dot {
   display: block;
   width: 8px;
   height: 8px;
@@ -84,11 +84,11 @@ input {
   animation: vLoadingDot 0.8s ease-in-out infinite;
 }
 
-.v-loading-dots span:nth-child(2) {
+.v-loading-dot--2 {
   animation-delay: 0.15s;
 }
 
-.v-loading-dots span:nth-child(3) {
+.v-loading-dot--3 {
   animation-delay: 0.3s;
 }
 
