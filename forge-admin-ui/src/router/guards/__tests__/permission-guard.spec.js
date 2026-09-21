@@ -9,6 +9,24 @@ describe('permission guard route access', () => {
     )).toBe(true)
   })
 
+  it('allows published application portals without waiting for admin menus', () => {
+    expect(canAccessRoute(
+      { path: '/app/BuySale' },
+      { accessRoutes: [] },
+    )).toBe(true)
+    expect(canAccessRoute(
+      { path: '/app/hr-apply/extra' },
+      { accessRoutes: [] },
+    )).toBe(true)
+  })
+
+  it('continues to reject app-center management routes that are not in the user menu', () => {
+    expect(canAccessRoute(
+      { path: '/app-center' },
+      { accessRoutes: [] },
+    )).toBe(false)
+  })
+
   it('continues to reject management routes that are not in the user menu', () => {
     expect(canAccessRoute(
       { path: '/message/manage' },

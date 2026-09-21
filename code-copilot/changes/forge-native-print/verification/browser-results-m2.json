@@ -1,0 +1,88 @@
+{
+  "phase": "M2",
+  "workspace": "/Users/mini32g/Desktop/project/forge-admin",
+  "date": "2026-09-18/19",
+  "url": "http://127.0.0.1:4318/?designer",
+  "data": "synthetic only",
+  "method": "Actual browser UI interactions and DOM observations; screenshots inspected in tool record",
+  "checks": {
+    "drag": {
+      "zoom": 0.8,
+      "pixelDelta": [
+        60,
+        24
+      ],
+      "positionMm": [
+        19.844,
+        7.938
+      ],
+      "undoEntries": 1,
+      "undoRestores": true
+    },
+    "resize": {
+      "zoom": 0.5,
+      "pixelDelta": [
+        19,
+        19
+      ],
+      "fromMm": [
+        25,
+        25
+      ],
+      "toMm": [
+        35.054,
+        30
+      ],
+      "boundsClamped": true,
+      "undoRestores": true
+    },
+    "marquee": [
+      "barcode",
+      "qrcode",
+      "synthetic-image"
+    ],
+    "keyboardGroupMovementMm": 1,
+    "fieldDrop": {
+      "source": "FIELD",
+      "path": "main.total",
+      "clampedPositionMm": [
+        145,
+        20
+      ]
+    },
+    "copyPasteButtons": "new ID and 3 mm offset verified",
+    "localDraft": "save, reload and explicit restore verified",
+    "unsavedGuard": "new -> cancel preserves document",
+    "invalidField": "preview disabled and table location selected",
+    "protocolRoundTrip": {
+      "dirty": false,
+      "historyUnchanged": true
+    },
+    "preview": {
+      "pages": 4,
+      "rows": 100,
+      "readyImages": 3
+    },
+    "theme": [
+      "light",
+      "dark"
+    ],
+    "widthsPx": [
+      1280,
+      960
+    ],
+    "sectionReorder": "codes/caption/items/notes, undo restores",
+    "headerRows": "added and undone"
+  },
+  "limitations": [
+    "Clipboard keyboard paste simulation blocked by browser tool virtual clipboard; copy/paste buttons tested",
+    "No physical printing/PDF export",
+    "No real backend, database or workflow integration"
+  ],
+  "cleanup": {
+    "vitePid": 45377,
+    "viteExit": 130,
+    "tabClosed": true,
+    "viewportReset": true
+  }
+}

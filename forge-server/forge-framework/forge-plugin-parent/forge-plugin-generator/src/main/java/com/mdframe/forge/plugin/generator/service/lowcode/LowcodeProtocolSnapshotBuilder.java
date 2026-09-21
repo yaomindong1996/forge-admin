@@ -28,6 +28,7 @@ public class LowcodeProtocolSnapshotBuilder {
     private static final String COVERAGE_VERSION = "forge-lowcode-static-coverage-v2";
 
     private final ObjectMapper objectMapper;
+    private final com.mdframe.forge.plugin.generator.service.printing.PrintCodegenContributor printCodegenContributor;
 
     public ProtocolArtifacts build(AiCrudConfig config) {
         if (config == null || StringUtils.isBlank(config.getConfigKey())) {
@@ -57,6 +58,7 @@ public class LowcodeProtocolSnapshotBuilder {
         replaceJson(frontendConfig, "transConfig", config.getTransConfig(), JsonShape.OBJECT, false);
         frontendConfig.put("rowKey", StringUtils.defaultIfBlank(config.getPrimaryKeyField(), "id"));
         frontendConfig.put("runtimeContract", RUNTIME_CONTRACT);
+        frontendConfig.put("printing", printCodegenContributor.contribute(config));
 
         Map<String, Object> protocol = new LinkedHashMap<>();
         protocol.put("protocolVersion", PROTOCOL_VERSION);
@@ -116,6 +118,12 @@ public class LowcodeProtocolSnapshotBuilder {
         addCoverage(capabilities, "/backend/businessExtension", "USER_OWNED_EXTENSION_CHAIN", "AVAILABLE");
 
         List<Map<String, Object>> requiresExtension = detectExtensionRequirements(frontendConfig);
+        if (frontendConfig.get("printing") instanceof Map<?, ?> printing
+                && printing.get("applications") instanceof List<?> applications && !applications.isEmpty()) {
+            addCoverage(capabilities, "/printing", "SHARED_PRINT_RUNTIME", "PINNED_PROTOCOL_EXPORTED");
+            requiresExtension.add(extensionRequirement("/printing/runtime/dataProviderStatus",
+                    "独立部署需导入固定打印资产并实现 PrintDataProvider 的记录、字段、文件权限；不能将模板 JSON 当成数据授权"));
+        }
 
         Map<String, Object> report = new LinkedHashMap<>();
         report.put("coverageVersion", COVERAGE_VERSION);

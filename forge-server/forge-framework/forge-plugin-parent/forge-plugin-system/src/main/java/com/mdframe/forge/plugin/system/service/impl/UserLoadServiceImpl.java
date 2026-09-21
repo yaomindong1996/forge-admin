@@ -367,6 +367,8 @@ public class UserLoadServiceImpl implements IUserLoadService {
     private void loadUserPermissions(LoginUser loginUser) {
         if (loginUser.isAdmin()) {
             Set<String> permissions = new HashSet<>();
+            // Sa-Token 按冒号分段匹配：*:*:* 盖不住 print:execute 这类两段权限码。
+            permissions.add("*");
             permissions.add("*:*:*");
             loginUser.setPermissions(permissions);
             log.debug("超级管理员拥有所有权限: userId={}", loginUser.getUserId());

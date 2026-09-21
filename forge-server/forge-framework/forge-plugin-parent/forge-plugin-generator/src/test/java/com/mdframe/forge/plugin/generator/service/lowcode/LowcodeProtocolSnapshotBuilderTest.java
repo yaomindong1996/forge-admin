@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class LowcodeProtocolSnapshotBuilderTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final LowcodeProtocolSnapshotBuilder builder = new LowcodeProtocolSnapshotBuilder(objectMapper);
+    private final LowcodeProtocolSnapshotBuilder builder = new LowcodeProtocolSnapshotBuilder(objectMapper, org.mockito.Mockito.mock(com.mdframe.forge.plugin.generator.service.printing.PrintCodegenContributor.class));
 
     @Test
     @DisplayName("未来新增的嵌套协议字段无需模板白名单即可原样保留")

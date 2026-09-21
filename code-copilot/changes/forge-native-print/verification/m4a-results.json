@@ -1,0 +1,40 @@
+{
+  "stage": "M4a",
+  "branch": "forge-native-print",
+  "status": "implemented-pending-e2e",
+  "date": "2026-09-19",
+  "backend": {
+    "printTests": 106,
+    "generatorTests": 30,
+    "identityIncrementalTests": 1,
+    "identityIncludedInPrintTotal": true,
+    "adminModules": 46,
+    "adminPackage": "PASS"
+  },
+  "frontend": {
+    "tests": 77,
+    "files": 12,
+    "routeRecheckTests": 8,
+    "eslint": "PASS after regex style fix",
+    "build": "PASS"
+  },
+  "migration": {
+    "file": "V1.0.174__support_print_workspace_page_identity.sql",
+    "staticChecks": "PASS",
+    "mysqlExecuted": false
+  },
+  "transactionEvidence": [
+    "application row lock blocks concurrent commit",
+    "invalid template preserves previous published pointer",
+    "failure after insert and pointer update rolls back both",
+    "retained snapshot query filters tenant/application/deleted versions",
+    "rollback retains pinned template version"
+  ],
+  "deferred": [
+    "published lowcode metadata and real Provider",
+    "candidate printing manifest generation",
+    "workspace/actions/export integration",
+    "real MySQL and business E2E"
+  ],
+  "push": false
+}

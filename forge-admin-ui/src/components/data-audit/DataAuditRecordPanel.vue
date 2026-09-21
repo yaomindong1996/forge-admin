@@ -1,74 +1,105 @@
 <template>
   <div class="data-audit-record-panel">
-    <n-alert v-if="!available" type="info" :bordered="false">
+    <n-alert v-if="!available" type="info" :bordered="false" class="panel-alert">
       当前记录尚无可查看的变更历史。
     </n-alert>
     <template v-else>
-      <n-alert v-if="!enabled && historyAvailable" type="warning" :bordered="false" class="collection-notice">
+      <n-alert
+        v-if="!enabled && historyAvailable"
+        type="warning"
+        :bordered="false"
+        class="panel-alert"
+      >
         当前对象已停用新的变更采集，下面仍保留停用前的历史记录。
       </n-alert>
+
       <div class="panel-toolbar">
-        <n-select
-          v-model:value="selectedFieldCode"
-          clearable
-          filterable
-          size="small"
-          :loading="fieldOptionsLoading"
-          :options="fieldOptions"
-          placeholder="选择变更字段"
-          style="width: 200px"
-        />
-        <n-date-picker
-          v-model:value="timeRange"
-          type="datetimerange"
-          clearable
-          size="small"
-          style="width: min(320px, 100%)"
-        />
+        <div class="toolbar-filters">
+          <n-select
+            v-model:value="selectedFieldCode"
+            clearable
+            filterable
+            size="small"
+            :loading="fieldOptionsLoading"
+            :options="fieldOptions"
+            placeholder="筛选变更字段"
+            class="toolbar-field"
+          />
+          <n-date-picker
+            v-model:value="timeRange"
+            type="datetimerange"
+            clearable
+            size="small"
+            class="toolbar-time"
+          />
+        </div>
         <n-button size="small" type="primary" @click="reload">
           查询
         </n-button>
       </div>
+
       <n-spin :show="store.loading">
         <n-empty
           v-if="!store.loading && !store.events.length"
           :description="emptyDescription"
+          size="small"
+          class="panel-empty"
         />
-        <n-timeline v-else class="audit-timeline">
-          <n-timeline-item
+
+        <div v-else class="audit-feed">
+          <article
             v-for="event in store.events"
             :key="event.id"
-            :type="eventTimelineType(event)"
-            :time="event.occurredAt"
+            class="audit-event"
+            :class="{ 'is-expanded': isExpanded(event.id) }"
           >
-            <div class="timeline-event-card">
-              <div class="event-summary">
-                <div class="event-main">
-                  <strong>{{ event.actorName || event.actorId || '系统操作' }}</strong>
-                  <DictTag :options="eventTypeOptions" :value="event.eventType" size="small" />
-                  <DictTag :options="sourceOptions" :value="event.sourceType" size="small" />
-                </div>
-                <div class="event-meta">
-                  <span>第 {{ event.revision }} 次记录</span>
-                  <span>{{ eventChangeSummary(event) }}</span>
-                </div>
-              </div>
-              <p v-if="event.changeReason" class="event-reason">
-                变更原因：{{ event.changeReason }}
-              </p>
-              <DataAuditEventDiff
-                class="timeline-event-diff"
-                :fields="store.fieldsByEvent[String(event.id)] || []"
-                :loading="isFieldLoading(event.id)"
-                :empty-text="fieldEmptyText(event.id)"
-                :event-type="event.eventType"
-                :expanded="isExpanded(event.id)"
-                @toggle="toggleEvent(event)"
-                @reveal="field => handleReveal(event, field)"
-              />
+            <div class="event-time-col">
+              <span class="event-date">{{ splitOccurredAt(event.occurredAt).date }}</span>
+              <span class="event-clock">{{ splitOccurredAt(event.occurredAt).time }}</span>
             </div>
-          </n-timeline-item>
-        </n-timeline>
+
+            <div class="event-body">
+              <header class="event-header">
+                <div class="event-actor">
+                  <span class="actor-avatar" aria-hidden="true">
+                    {{ actorInitial(event.actorName || event.actorId) }}
+                  </span>
+                  <div class="actor-copy">
+                    <div class="actor-line">
+                      <strong>{{ event.actorName || event.actorId || '系统操作' }}</strong>
+                      <DictTag :options="eventTypeOptions" :value="event.eventType" size="small" />
+                      <DictTag :options="sourceOptions" :value="event.sourceType" size="small" />
+                    </div>
+                    <div class="event-meta">
+                      <span>第 {{ event.revision ?? '—' }} 次记录</span>
+                      <span class="meta-sep">·</span>
+                      <span>{{ eventChangeSummary(event) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </header>
+
+              <p v-if="event.changeReason" class="event-reason">
+                <span>变更原因</span>
+                {{ event.changeReason }}
+              </p>
+
+              <div class="event-diff-wrap">
+                <DataAuditEventDiff
+                  :fields="previewFields(event)"
+                  :loading="isFieldLoading(event.id)"
+                  :empty-text="fieldEmptyText(event.id)"
+                  :event-type="event.eventType"
+                  :expanded="isExpanded(event.id)"
+                  :preview-limit="compactPreviewLimit"
+                  @toggle="toggleEvent(event)"
+                  @reveal="field => handleReveal(event, field)"
+                />
+              </div>
+            </div>
+          </article>
+        </div>
+
         <div v-if="store.events.length" class="panel-pager">
           <span>共 {{ store.total }} 次变更</span>
           <n-pagination
@@ -94,7 +125,11 @@ import { dataAuditObjectFieldOptions } from '@/api/data-audit'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables'
 import { useDataAuditStore } from '@/stores/data-audit/dataAuditStore'
-import { auditFieldSummary } from './data-audit-display'
+import {
+  actorInitial,
+  auditFieldSummary,
+  DEFAULT_AUDIT_DIFF_LIMIT,
+} from './data-audit-display'
 import { promptAuditReason } from './data-audit-submit'
 import DataAuditEventDiff from './DataAuditEventDiff.vue'
 
@@ -119,6 +154,7 @@ const fieldLoadingIds = ref([])
 const fieldLoadErrorIds = ref([])
 const expandedEventIds = ref([])
 const eventPageSize = ref(10)
+const compactPreviewLimit = DEFAULT_AUDIT_DIFF_LIMIT
 
 const available = computed(() => props.enabled || props.historyAvailable)
 const emptyDescription = computed(() => {
@@ -169,6 +205,14 @@ function formatTime(value) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
+function splitOccurredAt(value) {
+  const text = String(value || '').trim()
+  if (!text)
+    return { date: '—', time: '' }
+  const [date, time = ''] = text.split(/\s+/)
+  return { date, time }
+}
+
 function isExpanded(eventId) {
   return expandedEventIds.value.includes(String(eventId))
 }
@@ -177,17 +221,13 @@ function isFieldLoading(eventId) {
   return fieldLoadingIds.value.includes(String(eventId))
 }
 
-function eventTimelineType(event) {
-  if (event.eventType === 'DELETE')
-    return 'error'
-  if (event.eventType === 'CREATE')
-    return 'success'
-  return 'info'
-}
-
 function eventChangeSummary(event) {
   const fields = store.fieldsByEvent[String(event.id)] || []
   return auditFieldSummary(fields, event.visibleFieldCount ?? event.changedFieldCount)
+}
+
+function previewFields(event) {
+  return store.fieldsByEvent[String(event.id)] || []
 }
 
 function fieldEmptyText(eventId) {
@@ -280,69 +320,179 @@ watch(
 
 <style scoped>
 .data-audit-record-panel {
-  min-height: 220px;
-  padding-top: 8px;
+  min-height: 240px;
+  padding-top: 4px;
 }
 
-.collection-notice {
+.panel-alert {
   margin-bottom: 10px;
 }
 
 .panel-toolbar {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  margin-bottom: 10px;
-}
-
-.audit-timeline {
-  padding: 8px 4px 0;
-}
-
-.audit-timeline :deep(.n-timeline-item-content__time) {
-  font-variant-numeric: tabular-nums;
-}
-
-.timeline-event-card {
+  margin-bottom: 12px;
   padding: 10px 12px;
   border: 1px solid var(--border-light, #e5e7eb);
   border-radius: 6px;
-  background: var(--bg-primary, #fff);
+  background: var(--gray-50, #f8fafc);
 }
 
-.event-summary,
-.event-main,
+.toolbar-filters {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.toolbar-field {
+  width: 200px;
+  max-width: 100%;
+}
+
+.toolbar-time {
+  width: min(320px, 100%);
+}
+
+.panel-empty {
+  padding: 28px 0;
+}
+
+.audit-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.audit-event {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.audit-event.is-expanded {
+  border-color: color-mix(in srgb, var(--primary-color, #165dff) 28%, var(--border-light, #e5e7eb));
+  background: color-mix(in srgb, var(--primary-color, #165dff) 3%, #fff);
+}
+
+.event-time-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 2px;
+}
+
+.event-date {
+  color: var(--text-primary, #111827);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.event-clock {
+  color: var(--text-tertiary, #64748b);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.event-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.event-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.event-actor {
+  display: flex;
+  min-width: 0;
+  gap: 10px;
+}
+
+.actor-avatar {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: var(--gray-100, #f1f5f9);
+  color: var(--text-secondary, #475569);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.actor-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.actor-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.actor-line strong {
+  color: var(--text-primary, #111827);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .event-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-}
-
-.event-summary {
-  justify-content: space-between;
-  gap: 8px 16px;
-  font-size: 13px;
-}
-
-.event-main,
-.event-meta {
-  gap: 8px 10px;
-}
-
-.event-meta span {
+  gap: 4px 6px;
   color: var(--text-tertiary, #64748b);
-}
-
-.event-reason {
-  margin: 8px 0 0;
-  padding-top: 8px;
-  border-top: 1px dashed var(--border-light, #e5e7eb);
-  color: var(--text-secondary, #475569);
   font-size: 12px;
 }
 
-.timeline-event-diff {
-  margin-top: 10px;
+.meta-sep {
+  opacity: 0.55;
+}
+
+.event-reason {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--gray-50, #f8fafc);
+  border: 1px solid var(--border-light, #e5e7eb);
+  color: var(--text-secondary, #475569);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.event-reason span {
+  margin-right: 6px;
+  color: var(--text-tertiary, #64748b);
+}
+
+.event-diff-wrap {
+  min-width: 0;
 }
 
 .panel-pager {
@@ -353,5 +503,23 @@ watch(
   margin-top: 12px;
   color: var(--text-tertiary, #64748b);
   font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .audit-event {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .event-time-col {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .toolbar-field,
+  .toolbar-time {
+    width: 100%;
+  }
 }
 </style>

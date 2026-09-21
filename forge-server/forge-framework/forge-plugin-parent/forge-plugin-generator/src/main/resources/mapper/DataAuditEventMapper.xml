@@ -80,7 +80,12 @@
                 FROM ai_data_audit_field f
                 WHERE f.tenant_id = e.tenant_id
                   AND f.event_id = e.id
-                  AND f.field_code = #{query.fieldCode}
+                  AND (
+                      f.field_code = #{query.fieldCode}
+                      OR f.column_name = #{query.fieldCode}
+                      OR LOWER(REPLACE(f.field_code, '_', '')) = LOWER(REPLACE(#{query.fieldCode}, '_', ''))
+                      OR LOWER(REPLACE(IFNULL(f.column_name, ''), '_', '')) = LOWER(REPLACE(#{query.fieldCode}, '_', ''))
+                  )
             )
         </if>
         <if test="query != null and query.fieldKeyword != null and query.fieldKeyword != ''">

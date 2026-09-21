@@ -28,13 +28,13 @@ export function groupAuditFields(fields = [], expanded = false, limit = DEFAULT_
   return [
     {
       key: 'main',
-      label: '主表字段变化',
+      label: '主表字段',
       total: mainFields.length,
       fields: displayed.filter(isMainAuditField),
     },
     {
       key: 'related',
-      label: '子表变化',
+      label: '子表字段',
       total: relatedFields.length,
       fields: displayed.filter(field => !isMainAuditField(field)),
     },
@@ -58,4 +58,51 @@ export function auditDiffHeadings(eventType) {
   if (eventType === 'DELETE')
     return { before: '删除前值', after: '删除后' }
   return { before: '修改前', after: '修改后' }
+}
+
+const TECHNICAL_CODE_PATTERN = /^[\w-]+$/
+
+export function isTechnicalAuditCode(value) {
+  const text = String(value || '').trim()
+  if (!text || /[\u4E00-\u9FFF]/.test(text))
+    return false
+  return TECHNICAL_CODE_PATTERN.test(text)
+}
+
+export function auditFieldTitle(field = {}) {
+  const label = String(field.fieldLabel || '').trim()
+  if (label && !isTechnicalAuditCode(label) && label !== field.fieldCode && label !== field.relationKey)
+    return label
+  if (field.fieldType === 'CHILD_SUMMARY' || field.fieldCode === '__childRows')
+    return '子表行变更'
+  return '未命名字段'
+}
+
+/**
+ * Normalize a field value view into a display model for audit UI.
+ * @returns {{ text: string, kind: 'value'|'empty'|'null'|'absent'|'omitted'|'masked' }} Display text and semantic kind.
+ */
+export function resolveAuditValueView(view) {
+  if (!view)
+    return { text: '—', kind: 'empty' }
+  if (view.omitted || view.state === 'OMITTED')
+    return { text: '仅记录变更', kind: 'omitted' }
+  if (view.protectedValue && view.state === 'VALUE')
+    return { text: view.display || '已脱敏', kind: 'masked' }
+  if (view.state === 'ABSENT')
+    return { text: '不存在', kind: 'absent' }
+  if (view.state === 'NULL')
+    return { text: '空值', kind: 'null' }
+  if (view.display)
+    return { text: String(view.display), kind: 'value' }
+  if (view.value === undefined || view.value === null)
+    return { text: '—', kind: 'empty' }
+  return { text: String(view.value), kind: 'value' }
+}
+
+export function actorInitial(name = '') {
+  const text = String(name || '').trim()
+  if (!text)
+    return '系'
+  return text.slice(0, 1).toUpperCase()
 }

@@ -8,6 +8,58 @@ export function preferredExtensionObjectId(objects = []) {
   return primary.length === 1 ? objectId(primary[0]) : null
 }
 
+/**
+ * 从当前设计页解析增强预填上下文：页面编码、绑定对象、可匹配入口。
+ */
+export function resolveExtensionPageContext(pageId, { pages = [], entries = [], objects = [] } = {}) {
+  const id = String(pageId || '').trim()
+  if (!id)
+    return null
+
+  const page = (Array.isArray(pages) ? pages : []).find(item => String(item?.id || '') === id) || null
+  const objectRef = page?.objectRef || null
+  let resolvedObjectId = objectId(objectRef)
+  if (!resolvedObjectId && objectRef?.objectCode) {
+    const matchedObject = (Array.isArray(objects) ? objects : []).find(item => item?.objectCode === objectRef.objectCode)
+    resolvedObjectId = objectId(matchedObject)
+  }
+
+  const matchedEntry = (Array.isArray(entries) ? entries : []).find((item) => {
+    const entryPageIds = [
+      item?.pageId,
+      item?.targetPageId,
+      item?.entryPageId,
+    ].map(value => String(value || '').trim()).filter(Boolean)
+    if (entryPageIds.includes(id))
+      return true
+    if (resolvedObjectId && String(item?.objectId ?? '') === resolvedObjectId)
+      return true
+    if (objectRef?.objectCode && item?.objectCode === objectRef.objectCode)
+      return true
+    return false
+  }) || null
+
+  return {
+    scopeKey: id,
+    pageTitle: page?.title || page?.name || id,
+    objectId: resolvedObjectId,
+    entryId: matchedEntry?.id == null ? null : String(matchedEntry.id),
+  }
+}
+
+export function extensionMatchesPage(item = {}, pageId, context = null) {
+  const id = String(pageId || '').trim()
+  if (!id)
+    return false
+  if (String(item.scopeKey || '') === id || String(item.pageId || '') === id)
+    return true
+  if (context?.objectId && String(item.objectId || '') === String(context.objectId))
+    return true
+  if (context?.entryId && String(item.entryId || '') === String(context.entryId))
+    return true
+  return false
+}
+
 export function extensionPageOptions(pages = [], currentValue = '') {
   const source = Array.isArray(pages) ? pages : []
   const pageMap = new Map(source.map(item => [String(item?.id || ''), item]))

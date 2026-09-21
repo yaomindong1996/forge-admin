@@ -98,6 +98,7 @@ import ApplicationWorkspaceNav from './application-workspace/ApplicationWorkspac
 import { buildEntryOpenUrl } from './components/app-entry-targets'
 import { normalizeInAppBuilder } from './in-app-builder/in-app-builder-schema'
 
+const ApplicationPrintPanel = defineAsyncComponent(() => import('./application-workspace/ApplicationPrintPanel.vue'))
 const ApplicationObjectsPanel = defineAsyncComponent(() => import('./application-workspace/ApplicationObjectsPanel.vue'))
 const ApplicationEntriesPanel = defineAsyncComponent(() => import('./application-workspace/ApplicationEntriesPanel.vue'))
 const ApplicationExtensionsPanel = defineAsyncComponent(() => import('./application-workspace/ApplicationExtensionsPanel.vue'))
@@ -122,6 +123,7 @@ const validSections = new Set([
   'enhancements',
   'permissions',
   'releases',
+  'printing',
 ])
 
 // 这些配置能力已收敛进应用设计器：控制台导航隐藏，但旧 URL 仍可打开并落地引导卡。
@@ -143,12 +145,13 @@ const activeSection = computed(() => {
   return validSections.has(section) ? section : 'overview'
 })
 
-const visibleSections = computed(() => (workspace.value?.sections || [])
-  .filter(section => !designerOwnedSectionMeta[section.sectionKey]))
+const visibleSections = computed(() => [...(workspace.value?.sections || [])
+  .filter(section => !designerOwnedSectionMeta[section.sectionKey] && section.sectionKey !== 'printing'), { sectionKey: 'printing', sectionName: '打印模板' }])
 
 const designerOwnedGuide = computed(() => designerOwnedSectionMeta[activeSection.value] || null)
 
 const panelComponents = {
+  printing: ApplicationPrintPanel,
   overview: ApplicationOverviewPanel,
   objects: ApplicationObjectsPanel,
   entries: ApplicationEntriesPanel,
@@ -160,6 +163,9 @@ const panelComponents = {
 const activePanelComponent = computed(() => panelComponents[activeSection.value] || ApplicationOverviewPanel)
 
 const activePanelProps = computed(() => {
+  if (activeSection.value === 'printing') {
+    return { application: application.value, applicationObjects: workspace.value?.objects || [] }
+  }
   if (activeSection.value === 'overview') {
     return {
       application: application.value,

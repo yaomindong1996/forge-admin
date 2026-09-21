@@ -2,8 +2,8 @@
   <div v-if="blockRuntimeVisible" class="grid-block" :class="[`block-${block.blockType}`, { selected, 'is-form-only': crudPagePresentation.formOnly }]" :style="blockStyle" :data-block-id="block.id">
     <template v-if="isDataFieldBlock && runtimeCrudLoading">
       <div class="runtime-crud-loading">
-        <n-spin size="small" />
-        <span>正在加载数据…</span>
+        <n-skeleton height="32px" :sharp="false" />
+        <n-skeleton text :repeat="5" />
       </div>
     </template>
 
@@ -337,8 +337,8 @@
     <template v-else-if="block.blockType === 'AiCrudPage'">
       <div class="system-component-preview ai-crud-preview">
         <div v-if="runtimeCrudLoading" class="runtime-crud-loading">
-          <n-spin size="small" />
-          <span>正在加载数据…</span>
+          <n-skeleton height="32px" :sharp="false" />
+          <n-skeleton text :repeat="5" />
         </div>
         <AiCrudPage
           v-else-if="effectiveRuntimeCrudProps"
@@ -3777,18 +3777,12 @@ watch(
   min-height: 120px;
   display: grid;
   flex: 1;
-  place-items: center;
-  align-content: center;
-  gap: 8px;
+  align-content: start;
+  gap: 10px;
+  padding: 12px;
   border: 1px dashed #e5e7eb;
   border-radius: 6px;
   background: #fafafa;
-}
-
-.runtime-crud-loading > span {
-  color: #71717a;
-  font-size: 12px;
-  line-height: 18px;
 }
 
 .ai-crud-preview :deep(.ai-crud-page) {

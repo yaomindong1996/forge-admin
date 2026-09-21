@@ -20,6 +20,8 @@ class DataAuditMapperContractTest {
         assertTrue(where.contains("collection=\"objectIds\""));
         assertTrue(where.contains("e.record_label LIKE CONCAT('%', #{query.recordKeyword}, '%')"));
         assertTrue(where.contains("e.record_id LIKE CONCAT('%', #{query.recordKeyword}, '%')"));
+        assertTrue(where.contains("f.field_code = #{query.fieldCode}"));
+        assertTrue(where.contains("f.column_name = #{query.fieldCode}"));
         assertTrue(where.contains("f.field_label LIKE CONCAT('%', #{query.fieldKeyword}, '%')"));
         assertTrue(where.contains("f.field_code LIKE CONCAT('%', #{query.fieldKeyword}, '%')"));
         assertTrue(query.contains("ORDER BY e.occurred_at DESC, e.id DESC"));

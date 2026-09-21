@@ -136,6 +136,10 @@
             <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-plugin-data</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-plugin-print</artifactId>
+        </dependency>
         
         <dependency>
             <groupId>org.flywaydb</groupId>

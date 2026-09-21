@@ -1,8 +1,9 @@
 <template>
   <div class="application-portal" :lang="portalLanguage" :class="[`navigation-${navigationStyle}`, { 'is-collapsed': navigationCollapsed, 'is-h5': isMobileDisplay }]" :style="portalStyle">
-    <n-spin :show="loading" class="portal-loading-host">
+    <ApplicationPortalSkeleton v-if="loading" />
+    <template v-else>
       <PortalEmptyState
-        v-if="!loading && loadState"
+        v-if="loadState"
         :type="loadState"
         :description="loadError"
       />
@@ -132,7 +133,7 @@
           aria-hidden="true"
         />
       </template>
-    </n-spin>
+    </template>
     <PortalAiAssistant
       v-if="application"
       v-model:show="assistantVisible"
@@ -153,6 +154,7 @@ import IconRenderer from '@/components/IconRenderer.vue'
 import MessageNotification from '@/layouts/components/MessageNotification.vue'
 import UserAvatar from '@/layouts/components/UserAvatar.vue'
 import { useUserStore } from '@/store'
+import ApplicationPortalSkeleton from './components/portal/ApplicationPortalSkeleton.vue'
 import PageManagementSystemView from './components/portal/PageManagementSystemView.vue'
 import {
   buildPortalWatermarkStyle,
@@ -171,7 +173,7 @@ import { resolvePageManagementSystemPage } from './in-app-builder/page-managemen
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
-const loading = ref(false)
+const loading = ref(true)
 const application = ref(null)
 const builder = ref(null)
 const loadState = ref('')
@@ -259,8 +261,10 @@ watch(currentPageId, (pageId) => {
 })
 
 async function loadPortal(identifier) {
-  if (!identifier)
+  if (!identifier) {
+    loading.value = false
     return
+  }
   loading.value = true
   loadState.value = ''
   loadError.value = ''
@@ -333,16 +337,6 @@ function resolveErrorMessage(error) {
   overflow: hidden;
   background: var(--portal-surface-muted);
   color: var(--portal-text);
-}
-
-.portal-loading-host {
-  height: 100vh;
-  min-height: 100vh;
-}
-
-.portal-loading-host > :deep(.n-spin-content) {
-  height: 100vh;
-  min-height: 100vh;
 }
 
 .portal-header {
@@ -546,8 +540,6 @@ function resolveErrorMessage(error) {
 
 @media print {
   .application-portal,
-  .portal-loading-host,
-  .portal-loading-host > :deep(.n-spin-content),
   .portal-shell {
     height: auto;
     min-height: 0;

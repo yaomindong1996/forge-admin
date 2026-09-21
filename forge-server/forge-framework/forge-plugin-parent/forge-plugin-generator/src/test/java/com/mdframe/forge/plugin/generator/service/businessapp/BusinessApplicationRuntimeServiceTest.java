@@ -302,7 +302,7 @@ class BusinessApplicationRuntimeServiceTest {
     private BusinessApplicationRuntimeService service(BusinessApplicationVO application,
                                                       AiBusinessApplicationVersion version) {
         BusinessApplicationSnapshotService snapshotService = new BusinessApplicationSnapshotService(
-                objectMapper, null, null, null, null, null, null, null, null);
+                objectMapper, null, null, null, null, null, null, null, null, null);
         return new BusinessApplicationRuntimeService(
                 new StubApplicationService(application),
                 new StubVersionService(version),
@@ -415,7 +415,7 @@ class BusinessApplicationRuntimeServiceTest {
         private final AiBusinessApplicationVersion version;
 
         StubVersionService(AiBusinessApplicationVersion version) {
-            super(null, null, null);
+            super(null, null, null, null);
             this.version = version;
         }
 

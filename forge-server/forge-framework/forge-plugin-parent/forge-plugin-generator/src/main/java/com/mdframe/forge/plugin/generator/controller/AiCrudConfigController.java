@@ -36,6 +36,7 @@ public class AiCrudConfigController {
     private final BusinessObjectService businessObjectService;
     private final BusinessObjectDesignerService businessObjectDesignerService;
     private final BusinessApplicationRuntimeConfigOverlayService runtimeConfigOverlayService;
+    private final com.mdframe.forge.plugin.generator.service.printing.PrintRuntimeActionProjectionService printActionProjectionService;
 
     @GetMapping("/page")
     @SaCheckPermission("ai:crud-config:list")
@@ -62,7 +63,8 @@ public class AiCrudConfigController {
             @PathVariable String configKey,
             @RequestParam(defaultValue = "false") boolean designPreview,
             @RequestParam(required = false) Long appId,
-            @RequestParam(required = false) Long applicationId) {
+            @RequestParam(required = false) Long applicationId,
+            @RequestParam(required = false) String pageId) {
         if (designPreview) {
             crudConfigService.assertDesignPreviewPermission();
             var businessObject = businessObjectService.findByConfigKey(configKey);
@@ -71,8 +73,9 @@ public class AiCrudConfigController {
             }
         }
         AiCrudConfigRenderVO renderConfig = crudConfigService.getRenderConfig(configKey, designPreview);
-        return RespInfo.success(runtimeConfigOverlayService.overlay(
-                configKey, appId, applicationId, renderConfig, designPreview));
+        runtimeConfigOverlayService.overlay(configKey, appId, applicationId, renderConfig, designPreview);
+        return RespInfo.success(printActionProjectionService.overlay(
+                configKey, applicationId, pageId, renderConfig, designPreview));
     }
 
     @PostMapping

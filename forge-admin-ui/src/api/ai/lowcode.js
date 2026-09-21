@@ -22,9 +22,13 @@ export function crudConfigRender(configKey, designPreview = false, requestOption
     : { appId: requestOptions }
   const appId = options.appId
   const applicationId = options.applicationId
+  const pageId = options.pageId
   delete options.appId
   delete options.applicationId
+  delete options.pageId
   const params = { ...(options.params || {}) }
+  if (typeof pageId === 'string' && pageId.trim())
+    params.pageId = pageId
   if (designPreview)
     params.designPreview = true
   if (appId !== null && appId !== undefined && String(appId).trim())

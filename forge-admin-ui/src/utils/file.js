@@ -243,12 +243,26 @@ export async function resolveFileAccessUrl(fileData, expires = FILE_URL_CACHE_EX
   return accessUrl
 }
 
+const renderableBlobUrlCache = new Map()
+
+function renderableCacheKey(fileData) {
+  if (!fileData)
+    return ''
+  if (typeof fileData === 'object')
+    return String(fileData.fileId || fileData.filePath || fileData.accessUrl || '')
+  return String(fileData)
+}
+
 /**
  * 解析成可直接渲染的文件地址
  * - 外部直链、data/blob 直接返回
  * - 内部文件接口会先拉 blob 再返回 blob URL
  */
 export async function resolveRenderableFileUrl(fileData, expires = FILE_URL_CACHE_EXPIRE, forceRefresh = false) {
+  const cacheKey = renderableCacheKey(fileData)
+  if (!forceRefresh && cacheKey && renderableBlobUrlCache.has(cacheKey))
+    return renderableBlobUrlCache.get(cacheKey)
+
   const url = await resolveFileAccessUrl(fileData, expires, forceRefresh)
   if (!url)
     return ''
@@ -264,15 +278,22 @@ export async function resolveRenderableFileUrl(fileData, expires = FILE_URL_CACH
   const response = await managedFetch(url, {
     headers: getAuthHeaders(),
   }, {
-    globalLoadingType: 'download',
-    globalLoadingText: '文件下载处理中，请稍候...',
+    // Preview/thumbnail loads should stay silent; explicit downloadFile() still shows loading.
+    skipGlobalLoading: true,
   })
   if (!response.ok) {
     throw new Error('文件加载失败')
   }
 
   const blob = await response.blob()
-  return URL.createObjectURL(blob)
+  const blobUrl = URL.createObjectURL(blob)
+  if (cacheKey) {
+    const previous = renderableBlobUrlCache.get(cacheKey)
+    if (previous && previous !== blobUrl)
+      URL.revokeObjectURL(previous)
+    renderableBlobUrlCache.set(cacheKey, blobUrl)
+  }
+  return blobUrl
 }
 
 function triggerDownloadLink(url, filename) {

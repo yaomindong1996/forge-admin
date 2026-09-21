@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.print.mapper.PrintExecutionMapper">
+    <resultMap id="Row" type="com.mdframe.forge.plugin.print.entity.PrintExecution">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="application_id" property="applicationId"/>
+        <result column="application_version_id" property="applicationVersionId"/>
+        <result column="template_id" property="templateId"/>
+        <result column="template_version_id" property="templateVersionId"/>
+        <result column="source_key" property="sourceKey"/>
+        <result column="object_code" property="objectCode"/>
+        <result column="record_id" property="recordId"/>
+        <result column="scene" property="scene"/>
+        <result column="task_id" property="taskId"/>
+        <result column="process_instance_id" property="processInstanceId"/>
+        <result column="process_run_id" property="processRunId"/>
+        <result column="actor" property="actor"/>
+        <result column="data_mode" property="dataMode"/>
+        <result column="generated_at" property="generatedAt"/>
+        <result column="result" property="result"/>
+        <result column="error_code" property="errorCode"/>
+        <result column="page_count" property="pageCount"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+    <sql id="Columns">id, tenant_id, application_id, application_version_id, template_id, template_version_id, source_key, object_code, record_id, scene, task_id, process_instance_id, process_run_id, actor, data_mode, generated_at, result, error_code, page_count, del_flag, create_by, create_time, create_dept, update_by, update_time</sql>
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_print_execution (tenant_id, application_id, application_version_id, template_id, template_version_id, source_key, object_code, record_id, scene, task_id, process_instance_id, process_run_id, actor, data_mode, generated_at, result, error_code, page_count, del_flag, create_by, create_time, create_dept, update_by, update_time)
+        VALUES (#{tenantId}, #{applicationId}, #{applicationVersionId}, #{templateId}, #{templateVersionId}, #{sourceKey}, #{objectCode}, #{recordId}, #{scene}, #{taskId}, #{processInstanceId}, #{processRunId}, #{actor}, #{dataMode}, #{generatedAt}, #{result}, #{errorCode}, #{pageCount}, #{delFlag}, #{createBy}, #{createTime}, #{createDept}, #{updateBy}, #{updateTime})
+    </insert>
+    <select id="selectOwned" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_execution
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND actor = #{actor} AND del_flag = 0
+    </select>
+    <!-- 服务还需校验事件 DTO；数据库不接受 PREPARED 回退或物理成功事件。 -->
+    <update id="recordEvent">
+        UPDATE sys_print_execution SET result = #{result}, page_count = #{pageCount}, error_code = #{errorCode},
+            update_by = #{actor}, update_time = NOW()
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND actor = #{actor} AND del_flag = 0
+          AND result = 'PREPARED' AND #{result} IN ('DIALOG_OPENED', 'PDF_DOWNLOADED', 'FAILED')
+          AND (#{pageCount} IS NULL OR #{pageCount} BETWEEN 1 AND 50)
+          AND (#{result} NOT IN ('DIALOG_OPENED', 'PDF_DOWNLOADED') OR (#{pageCount} IS NOT NULL AND #{errorCode} IS NULL))
+    </update>
+</mapper>

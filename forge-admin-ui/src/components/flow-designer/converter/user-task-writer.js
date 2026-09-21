@@ -137,6 +137,12 @@ export function writeUserTaskConfig(config) {
   const formRef = stringifyFormRef(cfg.formRef)
   if (formRef)
     attrs.push(`flowable:formRef="${escapeXmlAttr(formRef)}"`)
+  if (String(cfg.printTemplatePolicy || 'INHERIT').toUpperCase() === 'RESTRICT') {
+    attrs.push('flowable:printTemplatePolicy="RESTRICT"')
+    const printTemplateIds = normalizePrintTemplateIds(cfg.printTemplateIds)
+    if (printTemplateIds.length)
+      attrs.push(`flowable:printTemplateIds="${escapeXmlAttr(printTemplateIds.join(','))}"`)
+  }
   if ((Array.isArray(cfg.formFieldPermissions) && cfg.formFieldPermissions.length)
     || (cfg.formFieldPermissions && typeof cfg.formFieldPermissions === 'object')
     || (Array.isArray(cfg.formChildPermissions) && cfg.formChildPermissions.length)
@@ -291,6 +297,11 @@ function normalizePositiveInt(value, fallback) {
 function normalizeOptionalText(value) {
   const text = String(value == null ? '' : value).trim()
   return text || ''
+}
+
+function normalizePrintTemplateIds(value) {
+  const source = Array.isArray(value) ? value : String(value || '').split(',')
+  return [...new Set(source.map(item => String(item).trim()).filter(item => /^[1-9]\d*$/.test(item)))]
 }
 
 function sanitizeVariableName(value) {

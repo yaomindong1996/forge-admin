@@ -130,6 +130,28 @@
         ORDER BY ao.application_id ASC
     </select>
 
+    <select id="selectPublishedApplicationIdsByObjectIdentity" resultType="java.lang.Long">
+        SELECT DISTINCT ao.application_id
+        FROM ai_business_application_object ao
+        INNER JOIN ai_business_application a
+          ON a.tenant_id = ao.tenant_id
+         AND a.id = ao.application_id
+         AND a.del_flag = '0'
+         AND a.status = 1
+         AND a.last_publish_version IS NOT NULL
+        INNER JOIN ai_business_object o
+          ON o.tenant_id = ao.tenant_id
+         AND o.id = ao.object_id
+         AND o.del_flag = '0'
+        WHERE ao.tenant_id = #{tenantId}
+          AND ao.del_flag = '0'
+          AND o.object_code = #{objectCode}
+        <if test="configKey != null and configKey != ''">
+          AND o.config_key = #{configKey}
+        </if>
+        ORDER BY ao.application_id ASC
+    </select>
+
     <update id="logicDeleteByApplicationId">
         UPDATE ai_business_application_object
         SET del_flag = id,

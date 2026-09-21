@@ -21,7 +21,7 @@ class BusinessApplicationPhaseFiveSecurityTest {
     @DisplayName("snapshot recursively removes sensitive keys before hashing")
     void snapshotRemovesSensitiveKeys() {
         BusinessApplicationSnapshotService service = new BusinessApplicationSnapshotService(
-                new ObjectMapper(), null, null, null, null, null, null, null, null);
+                new ObjectMapper(), null, null, null, null, null, null, null, null, null);
 
         BusinessApplicationSnapshotService.SnapshotBundle bundle = service.bundle(Map.of(
                 "application", Map.of("name", "demo", "clientSecret", "must-not-persist"),
@@ -48,7 +48,7 @@ class BusinessApplicationPhaseFiveSecurityTest {
     @DisplayName("application snapshot stores structured immutable process versions")
     void snapshotStoresPublishedProcessVersions() {
         BusinessApplicationSnapshotService service = new BusinessApplicationSnapshotService(
-                new ObjectMapper(), null, null, null, null, null, null, null, null);
+                new ObjectMapper(), null, null, null, null, null, null, null, null, null);
         BusinessProcessSnapshot process = new BusinessProcessSnapshot(
                 "1900000000000001001",
                 "2900000000000001001",
@@ -75,7 +75,7 @@ class BusinessApplicationPhaseFiveSecurityTest {
     @SuppressWarnings("unchecked")
     void publishedSnapshotMarksSelectedObjectsPublished() {
         BusinessApplicationSnapshotService service = new BusinessApplicationSnapshotService(
-                new ObjectMapper(), null, null, null, null, null, null, null, null);
+                new ObjectMapper(), null, null, null, null, null, null, null, null, null);
         String candidate = """
                 {
                   "application":{"designStatus":"CHANGED"},

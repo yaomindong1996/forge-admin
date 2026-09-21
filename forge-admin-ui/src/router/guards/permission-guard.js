@@ -54,12 +54,18 @@ function isSameRoutePath(routePath, targetPath) {
   return new RegExp(`^${pattern}$`).test(normalizedTargetPath)
 }
 
+export function isApplicationPortalPath(path) {
+  const targetPath = normalizeRoutePath(path)
+  return targetPath === '/app' || (targetPath.startsWith('/app/') && !targetPath.startsWith('/app-center'))
+}
+
 export function canAccessRoute(to, permissionStore) {
   const targetPath = normalizeRoutePath(to.path)
   if (!targetPath)
     return true
   if (WHITE_LIST.includes(targetPath)
     || AUTH_ROUTE_ALLOWLIST.has(targetPath)
+    || isApplicationPortalPath(targetPath)
     || AUTH_ROUTE_PREFIX_ALLOWLIST.some(prefix => targetPath === prefix || targetPath.startsWith(`${prefix}/`))) {
     return true
   }
@@ -83,6 +89,21 @@ function buildUnauthorizedRouteTarget(from) {
 
 function shouldForcePasswordChange(userStore, to) {
   return userStore.forcePasswordChange && normalizeRoutePath(to.path) !== PASSWORD_CHANGE_ROUTE
+}
+
+function prefetchPortalAdminSession(permissionStore) {
+  return getPermissions()
+    .then((permissions) => {
+      permissionStore.setPermissions(permissions)
+      return api.getMenu(1)
+    })
+    .then((res) => {
+      if (res.code === 200 && res.data)
+        permissionStore.setMenuData(res.data)
+    })
+    .catch((error) => {
+      console.error('运行页后台会话预取失败:', error)
+    })
 }
 
 export function createPermissionGuard(router) {
@@ -144,6 +165,7 @@ export function createPermissionGuard(router) {
 
       const userStore = useUserStore()
       const permissionStore = usePermissionStore()
+      const deferAdminMenu = isApplicationPortalPath(to.path)
 
       // 【关键修复】确保在请求任何加密接口前完成密钥交换
       await initKeyExchange(request)
@@ -179,13 +201,14 @@ export function createPermissionGuard(router) {
           }
           permissionStore.setPermissions(permissions)
 
-          // 获取并设置菜单数据
-          const res = await api.getMenu(1)
-          if (res.code === 200 && res.data) {
-            permissionStore.setMenuData(res.data)
-          }
-          else {
-            console.error('菜单数据获取失败或格式不正确:', res)
+          if (!deferAdminMenu) {
+            const res = await api.getMenu(1)
+            if (res.code === 200 && res.data) {
+              permissionStore.setMenuData(res.data)
+            }
+            else {
+              console.error('菜单数据获取失败或格式不正确:', res)
+            }
           }
 
           // 在成功获取用户信息和权限后初始化 WebSocket 客户端
@@ -211,8 +234,8 @@ export function createPermissionGuard(router) {
         return
       }
 
-      // 用户信息已存在，但菜单数据可能为空，需要重新获取用户信息和菜单数据
-      if (!permissionStore.menuDataLoaded) {
+      // 已登录进发布运行页时不要卡住等后台菜单；菜单不参与门户导航。
+      if (!permissionStore.menuDataLoaded && !deferAdminMenu) {
         try {
           const tenantStore = useTenantStore()
           // 重新获取用户信息和权限
@@ -261,6 +284,9 @@ export function createPermissionGuard(router) {
         next(buildUnauthorizedRouteTarget(from))
         return
       }
+
+      if (deferAdminMenu && !permissionStore.menuDataLoaded)
+        void prefetchPortalAdminSession(permissionStore)
 
       // unplugin-vue-router 自动处理路由，直接放行
       appStore.setRouteGuardCompleted(true)

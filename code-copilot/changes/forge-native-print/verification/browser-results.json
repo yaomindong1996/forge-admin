@@ -1,0 +1,73 @@
+{
+  "date": "2026-09-18",
+  "browser": "Chromium 153.0.0.0, macOS, Codex in-app browser",
+  "source": "Actual browser DOM reports observed through CUA",
+  "preview": [
+    {
+      "rows": 0,
+      "pages": 1,
+      "images": 3,
+      "cells": 7,
+      "errors": []
+    },
+    {
+      "rows": 10,
+      "pages": 1,
+      "images": 3,
+      "cells": 36,
+      "errors": []
+    },
+    {
+      "rows": 100,
+      "pages": 4,
+      "images": 3,
+      "cells": 318,
+      "errors": []
+    },
+    {
+      "rows": 500,
+      "pages": 17,
+      "images": 3,
+      "cells": 1566,
+      "errors": []
+    }
+  ],
+  "isolatedPrintDocument": [
+    {
+      "pages": 4,
+      "rows": 100,
+      "overflow": 0,
+      "images": 3,
+      "framesAfterCleanup": 0
+    },
+    {
+      "pages": 17,
+      "rows": 500,
+      "overflow": 0,
+      "images": 3,
+      "framesAfterCleanup": 0
+    }
+  ],
+  "expectedFailures": [
+    {
+      "code": "FONT_UNAVAILABLE",
+      "path": "fonts"
+    },
+    {
+      "code": "RESOURCE_FAILED",
+      "path": "synthetic-image"
+    },
+    {
+      "code": "ELEMENT_TOO_TALL",
+      "path": "items:items-0"
+    }
+  ],
+  "clientPrintEvent": {
+    "result": "DIALOG_OPENED",
+    "pageCount": 1
+  },
+  "physicalPrintVerified": false,
+  "savedPdfVerified": false,
+  "workspace": "/Users/mini32g/Desktop/project/lawhub",
+  "note": "Source-workspace evidence only. Target Forge verification is recorded separately."
+}

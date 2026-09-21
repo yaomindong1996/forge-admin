@@ -163,7 +163,13 @@ public class SessionHelper {
             return true;
         }
         Set<String> permissions = getPermissions();
-        return permissions != null && permissions.contains(permission);
+        if (permissions == null || permissions.isEmpty()) {
+            return false;
+        }
+        if (permissions.contains(permission) || permissions.contains("*") || permissions.contains("*:*:*")) {
+            return true;
+        }
+        return false;
     }
 
     /**

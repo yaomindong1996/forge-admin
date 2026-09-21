@@ -195,6 +195,7 @@ public class DataAuditFilterOptionService {
                 DataAuditFilterOptionsVO.FieldOption option = new DataAuditFilterOptionsVO.FieldOption();
                 option.setFieldCode(field.getField());
                 option.setFieldLabel(StringUtils.defaultIfBlank(field.getLabel(), field.getField()));
+                option.setColumnName(field.getColumnName());
                 result.add(option);
             }
             return result;

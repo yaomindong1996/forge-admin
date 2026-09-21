@@ -17,8 +17,15 @@
         </div>
         <router-view v-else v-slot="{ Component, route: curRoute }">
           <component :is="LayoutComponent" :key="curRoute.meta?.layout || appStore.layout">
-            <!--        <transition name="fade-slide" mode="out-in" appear> -->
-            <SystemPageLayout v-if="isSystemRoute">
+            <Suspense v-if="curRoute.meta?.layout === 'app-portal'">
+              <template #default>
+                <component :is="Component" v-if="!tabStore.reloading" :key="resolveRouteViewKey(curRoute)" />
+              </template>
+              <template #fallback>
+                <ApplicationPortalSkeleton />
+              </template>
+            </Suspense>
+            <SystemPageLayout v-else-if="isSystemRoute">
               <KeepAlive :include="keepAliveNames">
                 <component :is="Component" v-if="!tabStore.reloading" :key="resolveRouteViewKey(curRoute)" />
               </KeepAlive>
@@ -26,7 +33,6 @@
             <KeepAlive v-else :include="keepAliveNames">
               <component :is="Component" v-if="!tabStore.reloading" :key="resolveRouteViewKey(curRoute)" />
             </KeepAlive>
-            <!--        </transition> -->
           </component>
 
           <LayoutSetting v-if="showLayoutSetting" class="fixed right-12 top-1/2 z-999" />
@@ -51,9 +57,11 @@ import GlobalLoadingOverlay from '@/components/common/GlobalLoadingOverlay.vue'
 import SystemPageLayout from '@/components/common/SystemPageLayout.vue'
 import NoticeDetailModal from '@/components/notice/NoticeDetailModal.vue'
 import { useWatermark } from '@/composables/useWatermark'
+import { isApplicationPortalPath } from '@/router/guards/permission-guard'
 import { useAppStore, usePermissionStore, useTabStore, useUserStore } from '@/store'
 import { initResponsiveFont } from '@/utils/responsive-font'
-
+import ApplicationPortalSkeleton from '@/views/app-center/components/portal/ApplicationPortalSkeleton.vue'
+import AppPortalLayout from './layouts/app-portal/index.vue'
 import { defaultLayout, layoutSettingVisible, normalizeLayout } from './settings'
 
 // 使用 shallowRef 确保 Layout 引用稳定
@@ -77,7 +85,9 @@ function getLayout(name) {
   if (layouts.has(layoutName)) {
     return layouts.get(layoutName)
   }
-  const layout = markRaw(defineAsyncComponent(layoutModules[`./layouts/${layoutName}/index.vue`]))
+  const layout = layoutName === 'app-portal'
+    ? markRaw(AppPortalLayout)
+    : markRaw(defineAsyncComponent(layoutModules[`./layouts/${layoutName}/index.vue`]))
   layouts.set(layoutName, layout)
   return layout
 }
@@ -104,6 +114,11 @@ watch(() => route.meta?.layout || appStore.layout, (layoutName) => {
 // 1. 用户已登录但路由守卫未完成
 // 2. 菜单数据未加载完成
 const showLoading = computed(() => {
+  // 发布运行页自己画骨架，不要先盖一层“正在加载...”再白屏。
+  if (isApplicationPortalPath(route.path)) {
+    return false
+  }
+
   // 路由守卫完成后不再阻塞页面渲染，避免菜单接口异常时永久 loading。
   if (appStore.routeGuardCompleted) {
     return false

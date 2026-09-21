@@ -37,6 +37,7 @@ import {
   GridOutline,
   KeyOutline,
   LayersOutline,
+  PrintOutline,
 } from '@vicons/ionicons5'
 
 defineProps({
@@ -53,6 +54,7 @@ defineProps({
 const emit = defineEmits(['select'])
 
 const iconMap = {
+  printing: PrintOutline,
   overview: GridOutline,
   objects: LayersOutline,
   entries: DocumentsOutline,
@@ -63,6 +65,7 @@ const iconMap = {
 }
 
 const sectionDescription = {
+  printing: '表单模板与打印绑定',
   overview: '状态与待办',
   objects: '字段、表单、列表和规则',
   entries: '菜单、访问方式与权限',

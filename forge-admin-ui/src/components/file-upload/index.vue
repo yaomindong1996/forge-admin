@@ -75,7 +75,7 @@
         </div>
 
         <div v-if="file.status === 'finished'" class="file-actions">
-          <NIcon size="18" title="下载" @click="handleDownload(file)">
+          <NIcon v-if="showDownload" size="18" title="下载" @click="handleDownload(file)">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
           </NIcon>
           <NIcon v-if="!disabled" size="18" class="file-action-danger" title="删除" @click="handleRemoveFile(file)">
@@ -177,6 +177,11 @@ const props = defineProps({
   },
   // 是否显示提示
   showTip: {
+    type: Boolean,
+    default: true,
+  },
+  // 是否显示下载按钮（图片预览场景可关闭，避免误触触发下载）
+  showDownload: {
     type: Boolean,
     default: true,
   },
@@ -575,6 +580,8 @@ function handleRemoveFile(file) {
 // 点击文件列表时，使用带认证头的请求下载，避免直接打开 URL 丢失 token
 function handlePreview(file, { event } = {}) {
   event?.preventDefault()
+  if (!props.showDownload)
+    return false
   handleDownload(file)
 }
 
@@ -643,6 +650,8 @@ function emitValue() {
   else {
     // 返回逗号分隔的字符串（优先使用 fileId）
     const result = finishedFiles.map(file => file.fileId || file.filePath || file.originalUrl).filter(Boolean).join(',')
+    if (result === String(props.modelValue || ''))
+      return
     emit('update:modelValue', result)
   }
 }

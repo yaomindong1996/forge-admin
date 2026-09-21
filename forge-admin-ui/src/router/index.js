@@ -24,6 +24,25 @@ export function redirectLegacyDataScopeAdapter(to) {
 
 // 手动定义的路由（登录页、SSO、带参数的路由等）
 export const manualRoutes = [
+  // 打印设计与运行页独立全屏；数据接口仍分别核验设计权或记录读取权。
+  {
+    name: 'PrintTemplates',
+    path: '/print',
+    component: () => import('@/views/print/index.vue'),
+    meta: { title: '打印模板', skipTab: true, preserveOnQuery: true },
+  },
+  {
+    name: 'PrintDesigner',
+    path: '/print/designer',
+    component: () => import('@/views/print/designer.vue'),
+    meta: { title: '打印模板设计', layout: 'empty', skipTab: true, preserveOnQuery: true },
+  },
+  {
+    name: 'PrintPreview',
+    path: '/print/preview',
+    component: () => import('@/views/print/preview.vue'),
+    meta: { title: '单据打印', layout: 'empty', skipTab: true, preserveOnQuery: true },
+  },
   // 白名单页面
   {
     name: 'Login',

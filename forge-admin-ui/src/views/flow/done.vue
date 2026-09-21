@@ -77,6 +77,9 @@
       record-title="审批记录"
       fullscreen
     >
+      <template #toolbar>
+        <FlowPrintAction :row="currentTask" scene="FLOW_DONE" />
+      </template>
       <template v-if="currentTask">
         <section class="approval-detail-section">
           <div class="approval-section-header">
@@ -162,6 +165,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import flowApi from '@/api/flow'
 import UserAvatar from '@/components/common/UserAvatar.vue'
 import DingFlowViewer from '@/components/flow-designer/viewer/DingFlowViewer.vue'
+import FlowPrintAction from '@/components/flow/FlowPrintAction.vue'
 import FlowReadonlyFormPanel from '@/components/flow/FlowReadonlyFormPanel.vue'
 import FlowTaskBusinessSummary from '@/components/flow/FlowTaskBusinessSummary.vue'
 import FlowTaskCardList from '@/components/flow/FlowTaskCardList.vue'

@@ -411,6 +411,7 @@ public class SysResourceServiceImpl extends ServiceImpl<SysResourceMapper, SysRe
 
         if (loginUser.isAdmin()) {
             List<String> allPermissions = new ArrayList<>();
+            allPermissions.add("*");
             allPermissions.add("*:*:*");
             return allPermissions;
         }

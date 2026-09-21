@@ -102,8 +102,10 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
 import DictTag from '@/components/DictTag.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
+import { buildApplicationPrintLocation } from './application-print-entry'
 
 defineProps({
   applications: {
@@ -113,6 +115,7 @@ defineProps({
 })
 
 const emit = defineEmits(['enter', 'run', 'edit', 'code', 'publish', 'toggle', 'delete'])
+const router = useRouter()
 
 function actionOptions(application) {
   const isDraft = isDraftApplication(application)
@@ -120,6 +123,7 @@ function actionOptions(application) {
     { label: isDraft ? '运行应用' : '发布应用', key: isDraft ? 'run' : 'publish' },
     { label: '预览与下载代码', key: 'code' },
     { label: '应用设置', key: 'edit' },
+    { label: '打印模板', key: 'print' },
     { label: Number(application.status) === 1 ? '停用应用' : '启用应用', key: 'toggle' },
     { type: 'divider', key: 'divider' },
     { label: '删除应用', key: 'delete' },
@@ -137,20 +141,34 @@ function isUnpublishedApplication(application) {
 }
 
 function handleAction(key, application) {
-  if (key === 'enter')
+  if (key === 'enter') {
     emit('enter', application)
-  else if (key === 'run')
+  }
+  else if (key === 'run') {
     emit('run', application)
-  else if (key === 'publish')
+  }
+  else if (key === 'publish') {
     emit('publish', application)
-  else if (key === 'code')
+  }
+  else if (key === 'code') {
     emit('code', application)
-  else if (key === 'edit')
+  }
+  else if (key === 'edit') {
     emit('edit', application)
-  else if (key === 'toggle')
+  }
+  else if (key === 'print') {
+    const location = buildApplicationPrintLocation(application)
+    if (!location)
+      return
+    const target = router.resolve(location)
+    window.open(target.href, '_blank', 'noopener,noreferrer')
+  }
+  else if (key === 'toggle') {
     emit('toggle', application)
-  else if (key === 'delete')
+  }
+  else if (key === 'delete') {
     emit('delete', application)
+  }
 }
 
 function formatDate(value) {
@@ -181,6 +199,7 @@ function formatDate(value) {
 }
 
 .application-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -194,8 +213,7 @@ function formatDate(value) {
   cursor: pointer;
   transition:
     border-color 0.16s ease,
-    box-shadow 0.16s ease,
-    transform 0.16s ease;
+    box-shadow 0.16s ease;
 }
 
 .application-card:hover,
@@ -203,7 +221,6 @@ function formatDate(value) {
 .application-card:focus-within {
   border-color: var(--n-primary-color, var(--primary-color, #165dff));
   box-shadow: 0 2px 6px rgb(22 93 255 / 10%);
-  transform: translateY(-1px);
 }
 
 .application-card-head {
@@ -370,21 +387,31 @@ function formatDate(value) {
 }
 
 .application-card-foot {
-  display: none;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: auto;
+  min-height: 36px;
   min-width: 0;
   border-top: 1px solid var(--n-primary-color, var(--primary-color, #165dff));
   background: var(--n-primary-color, var(--primary-color, #165dff));
   padding: 8px 14px;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
 }
 
 .application-card:hover .application-card-foot,
 .application-card:focus-visible .application-card-foot,
 .application-card:focus-within .application-card-foot {
-  display: flex;
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
 }
 
 .application-card:hover .application-date,

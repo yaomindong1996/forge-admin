@@ -1,0 +1,145 @@
+{
+  "phase": "M4c",
+  "status": "implemented-pending-e2e",
+  "repository": "/Users/mini32g/Desktop/project/forge-admin",
+  "branch": "forge-native-print",
+  "backend": {
+    "classes": 37,
+    "distinctPassed": 201,
+    "failures": 0,
+    "skipped": 0,
+    "adminModules": 46,
+    "adminBuild": "passed",
+    "seconds": 22.243
+  },
+  "frontend": {
+    "files": 16,
+    "passed": 89,
+    "eslint": "passed",
+    "productionBuild": "passed",
+    "productionBuildSeconds": 36.45,
+    "verificationBuild": "passed"
+  },
+  "browser": {
+    "environment": "synthetic HTTP, production print components, CUA in-app browser",
+    "checks": [
+      "page/form selection",
+      "create auto source and full-screen designer",
+      "light and dark themes",
+      "list/detail shared preview",
+      "template-view permission empty state",
+      "390px horizontal table scroll reaches more actions"
+    ],
+    "consoleErrors": 0,
+    "narrow": {
+      "viewport": 390,
+      "document": 390,
+      "tableViewport": 342,
+      "tableContent": 620,
+      "scrollLeft": 255
+    },
+    "requests": [
+      {
+        "action": "/create",
+        "dto": {
+          "applicationId": "2",
+          "objectCode": "purchase",
+          "sourceType": "LOWCODE",
+          "pageId": "page_archive",
+          "formKey": null,
+          "templateName": "合成归档打印"
+        }
+      },
+      {
+        "action": "/available",
+        "args": [
+          {
+            "source": {
+              "applicationId": "2",
+              "objectCode": "purchase",
+              "sourceType": "LOWCODE",
+              "pageId": "page_purchase",
+              "formKey": null
+            },
+            "recordId": "合成/&?=9007199254740993",
+            "scene": "LIST",
+            "taskId": null,
+            "processInstanceId": null,
+            "processRunId": null
+          }
+        ]
+      },
+      {
+        "action": "/prepare",
+        "args": [
+          {
+            "source": {
+              "applicationId": "2",
+              "objectCode": "purchase",
+              "sourceType": "LOWCODE",
+              "pageId": "page_purchase",
+              "formKey": null
+            },
+            "recordId": "合成/&?=9007199254740993",
+            "scene": "LIST",
+            "taskId": null,
+            "processInstanceId": null,
+            "processRunId": null
+          },
+          "1"
+        ]
+      },
+      {
+        "action": "/available",
+        "args": [
+          {
+            "source": {
+              "applicationId": "2",
+              "objectCode": "purchase",
+              "sourceType": "LOWCODE",
+              "pageId": "page_purchase",
+              "formKey": null
+            },
+            "recordId": "合成/&?=9007199254740993",
+            "scene": "DETAIL",
+            "taskId": null,
+            "processInstanceId": null,
+            "processRunId": null
+          }
+        ]
+      },
+      {
+        "action": "/prepare",
+        "args": [
+          {
+            "source": {
+              "applicationId": "2",
+              "objectCode": "purchase",
+              "sourceType": "LOWCODE",
+              "pageId": "page_purchase",
+              "formKey": null
+            },
+            "recordId": "合成/&?=9007199254740993",
+            "scene": "DETAIL",
+            "taskId": null,
+            "processInstanceId": null,
+            "processRunId": null
+          },
+          "1"
+        ]
+      }
+    ],
+    "serverPid": 92114,
+    "serverStopped": true,
+    "viewportRestored": true,
+    "tabClosed": true
+  },
+  "limits": [
+    "MySQL JSON query and repeatable-read concurrency not executed",
+    "No Admin/Flow/Redis/database startup or Flyway",
+    "No real encrypted API or portal E2E",
+    "No PDF or physical printer verification",
+    "Standalone generated printing requires asset import and authorized PrintDataProvider"
+  ],
+  "push": false
+}

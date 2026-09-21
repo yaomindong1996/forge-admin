@@ -266,7 +266,7 @@ public abstract class AbstractFormulaRuntime {
         return val != null ? val.toString() : fallback;
     }
 
-    private Map<String, Object> buildExecutionContext(FormulaRuntimeContext context) {
+    protected final Map<String, Object> buildExecutionContext(FormulaRuntimeContext context) {
         Map<String, Object> ctx = new LinkedHashMap<>();
         if (context != null) {
             ctx.put("__formulaRuntimeContext__", context);

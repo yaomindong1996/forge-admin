@@ -1,4 +1,5 @@
 const USER_LABEL_FIELDS = ['actorIdName', 'actorName', 'realName', 'nickname']
+const UI_ONLY_FIELDS = ['applicationId', 'pageId', 'timeRange', ...USER_LABEL_FIELDS]
 
 export function normalizeDataAuditFilterOptions(payload = {}) {
   return (Array.isArray(payload?.applications) ? payload.applications : []).map(application => ({
@@ -12,6 +13,7 @@ export function normalizeDataAuditFilterOptions(payload = {}) {
       fields: (Array.isArray(page.fields) ? page.fields : []).map(field => ({
         fieldCode: String(field.fieldCode || ''),
         fieldLabel: field.fieldLabel || '未命名字段',
+        columnName: field.columnName ? String(field.columnName) : '',
       })).filter(field => field.fieldCode),
     })).filter(page => page.pageId && page.objectId),
   })).filter(application => application.applicationId && application.pages.length)
@@ -33,6 +35,18 @@ export function findDataAuditPage(applications = [], applicationId, pageId) {
     .find(item => item.pageId === String(pageId || '')) || null
 }
 
+export function resolveDataAuditObjectId(
+  applications = [],
+  applicationId,
+  pageId,
+  fallbackObjectId = '',
+) {
+  const page = findDataAuditPage(applications, applicationId, pageId)
+  if (page?.objectId)
+    return String(page.objectId)
+  return fallbackObjectId ? String(fallbackObjectId) : ''
+}
+
 export function buildDataAuditPageOptions(applications = [], applicationId) {
   return findDataAuditPages(applications, applicationId).map(page => ({
     label: page.pageName,
@@ -48,24 +62,40 @@ export function buildDataAuditFieldOptions(applications = [], applicationId, pag
   }))
 }
 
+function isFilledSearchValue(value) {
+  if (Array.isArray(value))
+    return value.length > 0
+  return value !== null && value !== undefined && value !== ''
+}
+
 export function buildDataAuditSearchParams(
   params = {},
   applications = [],
   formatDateTime = value => value,
+  selectedObjectId = '',
 ) {
-  const result = { ...params, accessMode: 'AUDIT' }
-  USER_LABEL_FIELDS.forEach(field => delete result[field])
-  const page = findDataAuditPage(applications, params.applicationId, params.pageId)
-  if (page)
-    result.objectId = page.objectId
+  const result = { accessMode: 'AUDIT' }
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (UI_ONLY_FIELDS.includes(key) || !isFilledSearchValue(value))
+      return
+    result[key] = value
+  })
+
+  const objectId = resolveDataAuditObjectId(
+    applications,
+    params.applicationId,
+    params.pageId,
+    selectedObjectId || params.objectId,
+  )
+  if (objectId)
+    result.objectId = objectId
   else
     delete result.fieldCode
+
   if (Array.isArray(params.timeRange) && params.timeRange.length === 2) {
     result.startTime = formatDateTime(params.timeRange[0])
     result.endTime = formatDateTime(params.timeRange[1])
   }
-  delete result.applicationId
-  delete result.pageId
-  delete result.timeRange
+
   return result
 }

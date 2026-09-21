@@ -1,0 +1,36 @@
+{
+  "repository": "forge-admin",
+  "stage": "M3b",
+  "date": "2026-09-19",
+  "url": "http://127.0.0.1:4318/persistence.html",
+  "mode": "synthetic HTTP only; actual Vue pages and Pinia stores; frozen prepare fixture produced by MockMvc + Spring transactions + H2",
+  "passed": [
+    "模板列表、字典回显、表单来源自动绑定、新建并进入设计器",
+    "HTTP 409 保留模板名称和未保存状态，禁止直接发布",
+    "只修改名称也触发离开确认，继续编辑保留修改",
+    "保存后服务端修订号递增，发布与版本列表可用",
+    "载入历史版本通过现有可撤销画布操作，不直接修改发布历史",
+    "场景绑定显示默认状态，当前模板启用状态由字典回显",
+    "2.5 秒延迟保存期间的新名称不被回包覆盖，发布按钮保持禁用，再次保存后变为已保存",
+    "真实后端合成 prepare 响应成功显示 1 页、SYN-001、主子表与金额 1.00、服务端生成时刻",
+    "仅运行权限下重新读取已保存数据成功，不要求模板管理权限",
+    "缺少适配器时提示 503，不保留旧打印页或打印按钮",
+    "离开运行页面后 hasRuntimeData=false",
+    "宋体未安装时明确阻止打印；正向样例使用本地可用 Arial",
+    "亮暗主题目测，打印纸张与应用界面主题分离"
+  ],
+  "notExecuted": [
+    "real Admin/Flow API and encryption interceptors",
+    "MySQL/Flyway",
+    "lowcode/Flowable end-to-end",
+    "PDF export or physical printing"
+  ],
+  "cleanup": {
+    "browserTab": "closed",
+    "verificationServer": "SIGINT exit 130; port 4318 no listener",
+    "viewport": "unchanged"
+  },
+  "transientIssues": [
+    "验证字典 mock 最初缺少 getDictData 导出，补齐缓存接口并刷新后解决；不是生产模块故障"
+  ]
+}

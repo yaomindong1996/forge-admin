@@ -61,6 +61,8 @@ describe('application runtime route loading', () => {
 
     expect(runtimeSource).toContain(':runtime-crud-loading="isPageBlockRuntimeCrudLoading(block)"')
     expect(rendererSource).toContain('<div v-if="runtimeCrudLoading" class="runtime-crud-loading">')
+    expect(rendererSource).toContain('<n-skeleton height="32px" :sharp="false" />')
+    expect(rendererSource).not.toContain('<n-spin size="small" />')
     expect(rendererSource).toContain('v-else-if="effectiveRuntimeCrudProps"')
   })
 

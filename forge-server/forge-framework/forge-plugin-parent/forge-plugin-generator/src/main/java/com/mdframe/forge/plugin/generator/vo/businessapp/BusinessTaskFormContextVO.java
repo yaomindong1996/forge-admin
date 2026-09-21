@@ -33,6 +33,9 @@ public class BusinessTaskFormContextVO {
 
     private String processInstanceId;
 
+    /** 低代码业务流程的不可变运行版本身份；历史代码流程可以为空。 */
+    private Long processRunId;
+
     private String processDefKey;
 
     private String taskDefKey;

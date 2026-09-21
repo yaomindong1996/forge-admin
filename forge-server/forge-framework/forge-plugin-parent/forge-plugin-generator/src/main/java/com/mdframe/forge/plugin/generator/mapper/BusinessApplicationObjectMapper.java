@@ -31,6 +31,11 @@ public interface BusinessApplicationObjectMapper extends BaseMapper<AiBusinessAp
     List<Long> selectApplicationIdsByObjectIds(@Param("tenantId") Long tenantId,
                                                @Param("objectIds") List<Long> objectIds);
 
+    List<Long> selectPublishedApplicationIdsByObjectIdentity(
+            @Param("tenantId") Long tenantId,
+            @Param("objectCode") String objectCode,
+            @Param("configKey") String configKey);
+
     int logicDeleteByApplicationId(@Param("tenantId") Long tenantId,
                                    @Param("applicationId") Long applicationId);
 

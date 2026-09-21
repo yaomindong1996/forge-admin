@@ -174,11 +174,33 @@
         LIMIT 1
     </select>
 
+    <select id="selectByProcessInstanceId" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM ai_business_process_run
+        WHERE tenant_id = #{tenantId}
+          AND flow_process_instance_id = #{processInstanceId}
+        ORDER BY create_time DESC, id DESC
+        LIMIT 1
+    </select>
+
     <select id="selectLatestByBusinessKey" resultMap="BaseResultMap">
         SELECT <include refid="Base_Columns"/>
         FROM ai_business_process_run
         WHERE tenant_id = #{tenantId}
           AND business_key = #{businessKey}
+          AND flow_process_instance_id IS NOT NULL
+          AND flow_process_instance_id != ''
+        ORDER BY create_time DESC, id DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectLatestBySubject" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM ai_business_process_run
+        WHERE tenant_id = #{tenantId}
+          AND application_id = #{applicationId}
+          AND subject_object_code = #{objectCode}
+          AND subject_record_id = #{recordId}
           AND flow_process_instance_id IS NOT NULL
           AND flow_process_instance_id != ''
         ORDER BY create_time DESC, id DESC

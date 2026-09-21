@@ -25,7 +25,12 @@
         WHERE tenant_id = #{tenantId}
           AND event_id = #{eventId}
         <if test="query != null and query.fieldCode != null and query.fieldCode != ''">
-            AND field_code = #{query.fieldCode}
+            AND (
+                field_code = #{query.fieldCode}
+                OR column_name = #{query.fieldCode}
+                OR LOWER(REPLACE(field_code, '_', '')) = LOWER(REPLACE(#{query.fieldCode}, '_', ''))
+                OR LOWER(REPLACE(IFNULL(column_name, ''), '_', '')) = LOWER(REPLACE(#{query.fieldCode}, '_', ''))
+            )
         </if>
         <if test="query != null and query.relationKey != null">
             AND relation_key = #{query.relationKey}

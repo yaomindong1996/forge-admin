@@ -7,6 +7,7 @@ const STUBS = {
   'n-tabs': { template: '<div class="n-tabs"><slot /></div>' },
   'n-tab-pane': { template: '<section class="n-tab-pane"><slot /></section>' },
   'n-tag': { template: '<span class="n-tag"><slot /></span>' },
+  'n-form-item': { template: '<label><slot /></label>' },
   'n-empty': { template: '<div class="n-empty" />' },
   'n-button': {
     emits: ['click'],

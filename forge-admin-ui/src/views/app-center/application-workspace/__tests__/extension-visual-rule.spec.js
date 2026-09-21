@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   extensionFieldOptions,
   extensionFieldValueKind,
+  extensionMatchesPage,
   extensionPageOptions,
   preferredExtensionObjectId,
+  resolveExtensionPageContext,
   validateExtensionVisualRule,
 } from '../extension-visual-rule'
 
@@ -19,6 +21,28 @@ describe('extension visual rule usability', () => {
     expect(preferredExtensionObjectId([{ objectId: 9 }])).toBe('9')
     expect(preferredExtensionObjectId([{ objectId: 9 }, { objectId: 10, objectRole: 'PRIMARY' }])).toBe('10')
     expect(preferredExtensionObjectId([{ objectId: 9 }, { objectId: 10 }])).toBeNull()
+  })
+
+  it('resolves page context for extension defaults and page filters', () => {
+    const pages = [
+      { id: 'page_leave', title: '请假申请', type: 'page', objectRef: { objectCode: 'leave_form', objectId: 88 } },
+    ]
+    const entries = [
+      { id: 'entry-1', objectCode: 'leave_form', objectId: 88, pageId: 'page_leave' },
+    ]
+    const objects = [
+      { objectId: 88, objectCode: 'leave_form', objectName: '请假' },
+    ]
+
+    expect(resolveExtensionPageContext('page_leave', { pages, entries, objects })).toEqual({
+      scopeKey: 'page_leave',
+      pageTitle: '请假申请',
+      objectId: '88',
+      entryId: 'entry-1',
+    })
+    expect(extensionMatchesPage({ scopeKey: 'page_leave' }, 'page_leave')).toBe(true)
+    expect(extensionMatchesPage({ objectId: 88 }, 'page_leave', { objectId: '88' })).toBe(true)
+    expect(extensionMatchesPage({ objectId: 99 }, 'page_leave', { objectId: '88' })).toBe(false)
   })
 
   it('keeps invalid legacy values visible and filters non-writable targets', () => {

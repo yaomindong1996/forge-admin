@@ -48,6 +48,8 @@ export const DEFAULT_CONFIGS = Object.freeze({
     formUrl: '',
     viewKey: 'default',
     formRef: {},
+    printTemplatePolicy: 'INHERIT',
+    printTemplateIds: [],
     multiInstanceType: 'none',
     multiInstanceCollection: '',
     multiInstanceElementVariable: 'assignee',

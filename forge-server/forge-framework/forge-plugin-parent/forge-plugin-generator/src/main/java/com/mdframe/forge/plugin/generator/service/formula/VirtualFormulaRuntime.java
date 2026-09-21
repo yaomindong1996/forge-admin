@@ -82,6 +82,33 @@ public class VirtualFormulaRuntime extends AbstractFormulaRuntime {
         return records;
     }
 
+    /** 打印使用的严格读取：不记录业务输入/输出，任一公式失败时不返回部分计算结果。 */
+    public void calculateForPrint(List<Map<String, Object>> records, LowcodeModelSchema modelSchema,
+                                  FormulaRuntimeContext context) {
+        if (records == null || records.isEmpty()) {
+            return;
+        }
+        var formulas = extractFormulas(modelSchema);
+        if (formulas.isEmpty()) {
+            return;
+        }
+        var working = copyRecords(records);
+        if (crossObjectResolver != null && crossObjectResolver.hasCrossObject(formulas)) {
+            crossObjectResolver.prefetch(formulas, working, context);
+        }
+        for (var row : working) {
+            var inputs = new LinkedHashMap<>(row);
+            inputs.putAll(buildExecutionContext(context));
+            var result = executionEngine.execute(formulas, inputs, FormulaTraceOptions.disabled());
+            if (!result.isSuccess() || !result.getErrors().isEmpty()) {
+                throw new com.mdframe.forge.starter.core.exception.BusinessException(
+                        "打印公式计算失败，字段：" + String.join(",", result.getErrors().keySet()));
+            }
+            row.putAll(result.getResults());
+        }
+        copyFormulaValues(working, records, formulas.keySet());
+    }
+
     private List<Map<String, Object>> copyRecords(List<Map<String, Object>> records) {
         List<Map<String, Object>> copies = new ArrayList<>(records.size());
         for (Map<String, Object> record : records) {

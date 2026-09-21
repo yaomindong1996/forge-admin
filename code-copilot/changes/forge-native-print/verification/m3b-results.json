@@ -1,0 +1,157 @@
+{
+  "stage": "M3b",
+  "repository": "forge-admin",
+  "branch": "codex/forge-native-print",
+  "date": "2026-09-19",
+  "status": "implemented-pending-e2e",
+  "tests": {
+    "total": 104,
+    "passed": 104,
+    "suites": [
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintBindingServiceTest",
+        "tests": "4",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintDocumentAccessTest",
+        "tests": "4",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintExecutionServiceTest",
+        "tests": "2",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintIdentityTest",
+        "tests": "1",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintMapperContractTest",
+        "tests": "1",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintPersistenceTest",
+        "tests": "5",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintPrepareAuthorizationTest",
+        "tests": "7",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintProtocolCompatibilityTest",
+        "tests": "29",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintProtocolSmokeTest",
+        "tests": "1",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintProtocolValidatorTest",
+        "tests": "33",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintProviderRegistryTest",
+        "tests": "2",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintResourceContractTest",
+        "tests": "2",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintTemplateControllerTest",
+        "tests": "2",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintTemplateDtoTest",
+        "tests": "1",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintTemplateServiceTest",
+        "tests": "6",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintTemplateVersionServiceTest",
+        "tests": "4",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      }
+    ]
+  },
+  "frontend": {
+    "tests": 71,
+    "passed": 71,
+    "files": 12,
+    "apiContractFinalRerun": {
+      "passed": 2
+    },
+    "lint": "PASS (changed files only)",
+    "build": "SUCCESS",
+    "duration": "40.68s"
+  },
+  "backendBuild": {
+    "result": "SUCCESS",
+    "modules": 46,
+    "command": "mvn -s /private/tmp/forge-print-maven-settings.xml -B -ntp -pl forge-admin-server -am package -DskipTests"
+  },
+  "browserEvidence": "browser-results-m3b.json",
+  "staticChecks": [
+    "Mapper XML parses",
+    "Flyway versions unique",
+    "V173 guarded and does not grant roles",
+    "git diff --check",
+    "new Vue SFCs <= 800 lines"
+  ],
+  "notExecuted": [
+    "real Admin/Flow API and encryption interceptors",
+    "MySQL/Flyway",
+    "lowcode/Flowable end-to-end",
+    "PDF export or physical printing"
+  ],
+  "nextStage": "M4: real application authorization SPI, lowcode Provider, application snapshot contribution and runtime actions",
+  "push": false
+}

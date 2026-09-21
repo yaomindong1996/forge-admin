@@ -467,6 +467,22 @@ public class FlowClient {
     }
 
     /**
+     * 获取经过流程参与人可见性校验的审批时间轴。
+     *
+     * <p>打印适配器使用类型化分页接口，避免把前端已加载的历史记录当作授权数据。
+     */
+    public FlowResult<Map<String, Object>> getProcessHistoryPage(String processInstanceId,
+                                                                 int pageNum,
+                                                                 int pageSize) {
+        String url = UriComponentsBuilder.fromHttpUrl(
+                        flowServiceUrl + "/api/flow/task/history/" + processInstanceId + "/page")
+                .queryParam("pageNum", pageNum)
+                .queryParam("pageSize", pageSize)
+                .toUriString();
+        return get(url, new TypeReference<FlowResult<Map<String, Object>>>() {});
+    }
+
+    /**
      * 获取流程图（PNG 字节数组）
      *
      * @param processInstanceId 流程实例 ID

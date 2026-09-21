@@ -1,0 +1,519 @@
+[
+  {
+    "name": "完整合成单据",
+    "patches": [],
+    "backendValid": true,
+    "frontendValid": true
+  },
+  {
+    "name": "元素变换与扩展样式",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/rotationDeg",
+        "value": 90
+      },
+      {
+        "pointer": "/body/0/elements/0/flipX",
+        "value": true
+      },
+      {
+        "pointer": "/body/0/elements/0/locked",
+        "value": true
+      },
+      {
+        "pointer": "/body/0/elements/0/style/borderStyle",
+        "value": "dashed"
+      },
+      {
+        "pointer": "/body/0/elements/0/style/borderRadiusMm",
+        "value": 2
+      },
+      {
+        "pointer": "/body/0/elements/0/style/objectFit",
+        "value": "cover"
+      },
+      {
+        "pointer": "/body/0/elements/0/style/opacity",
+        "value": 0.5
+      }
+    ],
+    "backendValid": true,
+    "frontendValid": true
+  },
+  {
+    "name": "椭圆元素",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/type",
+        "value": "ELLIPSE"
+      }
+    ],
+    "backendValid": true,
+    "frontendValid": true
+  },
+  {
+    "name": "旋转角度越界",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/rotationDeg",
+        "value": 181
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "锁定状态类型错误",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/locked",
+        "value": "true"
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "图片填充方式错误",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/style/objectFit",
+        "value": "none"
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "元素透明度越界",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/style/opacity",
+        "value": 1.5
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "常量0",
+    "patches": [
+      {
+        "pointer": "/header/elements/0/binding/value",
+        "value": 0
+      }
+    ],
+    "backendValid": true,
+    "frontendValid": true
+  },
+  {
+    "name": "常量false",
+    "patches": [
+      {
+        "pointer": "/header/elements/0/binding/value",
+        "value": false
+      }
+    ],
+    "backendValid": true,
+    "frontendValid": true
+  },
+  {
+    "name": "常量null",
+    "patches": [
+      {
+        "pointer": "/header/elements/0/binding/value",
+        "value": null
+      }
+    ],
+    "backendValid": true,
+    "frontendValid": true
+  },
+  {
+    "name": "横向纸张",
+    "patches": [
+      {
+        "pointer": "/paper/orientation",
+        "value": "LANDSCAPE"
+      }
+    ],
+    "backendValid": true,
+    "frontendValid": true
+  },
+  {
+    "name": "禁止后续协议",
+    "patches": [
+      {
+        "pointer": "/schemaVersion",
+        "value": 2
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "禁止字符串数字",
+    "patches": [
+      {
+        "pointer": "/paper/widthMm",
+        "value": "210"
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "空白正文",
+    "patches": [
+      {
+        "pointer": "/body",
+        "value": []
+      }
+    ],
+    "backendValid": true,
+    "frontendValid": true
+  },
+  {
+    "name": "未知属性",
+    "patches": [
+      {
+        "pointer": "/html",
+        "value": "<script>alert(1)</script>"
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "原型键",
+    "patches": [
+      {
+        "pointer": "/__proto__",
+        "value": {}
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "原型路径",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/binding/path",
+        "value": "main.constructor.value"
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "重复ID",
+    "patches": [
+      {
+        "pointer": "/resources/0/id",
+        "value": "title"
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "外部资源",
+    "patches": [
+      {
+        "pointer": "/resources/0/fileId",
+        "value": "https://example.com/a.png"
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "字符串布尔",
+    "patches": [
+      {
+        "pointer": "/header/repeat",
+        "value": "true"
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "边距吃掉正文",
+    "patches": [
+      {
+        "pointer": "/paper/marginMm/left",
+        "value": 210
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "零元素宽度",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/widthMm",
+        "value": 0
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "元素越界",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/xMm",
+        "value": 100
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "空样式",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/style",
+        "value": null
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "危险字体",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/style/fontFamily",
+        "value": "url(example)"
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "不支持的颜色",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/style/color",
+        "value": "red"
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "空明细列",
+    "patches": [
+      {
+        "pointer": "/body/2/columns",
+        "value": []
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "列宽超出",
+    "patches": [
+      {
+        "pointer": "/body/2/columns/0/widthMm",
+        "value": 190
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "表头跨度不足",
+    "patches": [
+      {
+        "pointer": "/body/2/headerRows/0/cells/0/span",
+        "value": 1
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "分数精度",
+    "patches": [
+      {
+        "pointer": "/body/2/columns/1/format/scale",
+        "value": 1.5
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "非法页码上下文",
+    "patches": [
+      {
+        "pointer": "/body/1/binding",
+        "value": {
+          "source": "SYSTEM",
+          "path": "system.totalPages"
+        }
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "固定文本页码",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/binding",
+        "value": {
+          "source": "SYSTEM",
+          "path": "system.totalPages"
+        }
+      }
+    ],
+    "backendValid": true,
+    "frontendValid": true
+  },
+  {
+    "name": "绑定冲突",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/binding/value",
+        "value": false
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "文本转义而非执行",
+    "patches": [
+      {
+        "pointer": "/header/elements/0/binding/value",
+        "value": "<script>alert(1)</script>"
+      }
+    ],
+    "backendValid": true,
+    "frontendValid": true
+  },
+  {
+    "name": "未使用的非法格式",
+    "patches": [
+      {
+        "pointer": "/body/0/format",
+        "value": {
+          "type": "SCRIPT"
+        }
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": true
+  },
+  {
+    "name": "原生空白表格",
+    "patches": [
+      { "pointer": "/body/0/elements/0/type", "value": "STATIC_TABLE" },
+      { "pointer": "/body/0/elements/0/table", "value": {
+        "columns": [{ "id": "static_col_a", "widthMm": 50 }, { "id": "static_col_b", "widthMm": 50 }],
+        "rows": [{ "id": "static_row_a", "heightMm": 10 }],
+        "cells": [
+          { "id": "static_cell_a", "row": 0, "column": 0, "rowSpan": 1, "colSpan": 1, "binding": { "source": "CONSTANT", "value": "甲" } },
+          { "id": "static_cell_b", "row": 0, "column": 1, "rowSpan": 1, "colSpan": 1, "binding": { "source": "FIELD", "path": "main.number" } }
+        ]
+      } }
+    ],
+    "backendValid": true,
+    "frontendValid": true
+  },
+  {
+    "name": "空白表格单元格重叠",
+    "patches": [
+      { "pointer": "/body/0/elements/0/type", "value": "STATIC_TABLE" },
+      { "pointer": "/body/0/elements/0/table", "value": {
+        "columns": [{ "id": "static_col_a", "widthMm": 50 }, { "id": "static_col_b", "widthMm": 50 }],
+        "rows": [{ "id": "static_row_a", "heightMm": 10 }],
+        "cells": [
+          { "id": "static_cell_a", "row": 0, "column": 0, "rowSpan": 1, "colSpan": 1, "binding": { "source": "CONSTANT", "value": "甲" } },
+          { "id": "static_cell_b", "row": 0, "column": 0, "rowSpan": 1, "colSpan": 1, "binding": { "source": "CONSTANT", "value": "乙" } }
+        ]
+      } }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "内容区块之间手动分页",
+    "patches": [
+      { "pointer": "/body", "value": [
+        { "id": "before_break", "kind": "FIXED", "heightMm": 20, "elements": [] },
+        { "id": "manual_break", "kind": "PAGE_BREAK" },
+        { "id": "after_break", "kind": "FIXED", "heightMm": 20, "elements": [] }
+      ] }
+    ],
+    "backendValid": true,
+    "frontendValid": true
+  },
+  {
+    "name": "首位分页符",
+    "patches": [
+      { "pointer": "/body", "value": [
+        { "id": "leading_break", "kind": "PAGE_BREAK" },
+        { "id": "after_break", "kind": "FIXED", "heightMm": 20, "elements": [] }
+      ] }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "表达式与金额大写",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/binding",
+        "value": { "source": "EXPRESSION", "expression": "MONEY(main.qty * main.price)" }
+      },
+      {
+        "pointer": "/body/0/elements/0/format",
+        "value": { "type": "MONEY_UPPER" }
+      },
+      {
+        "pointer": "/body/0/elements/0/style/textFit",
+        "value": "CLIP"
+      }
+    ],
+    "backendValid": true,
+    "frontendValid": true
+  },
+  {
+    "name": "拒绝可执行表达式",
+    "patches": [
+      {
+        "pointer": "/body/0/elements/0/binding",
+        "value": { "source": "EXPRESSION", "expression": "eval(main.qty)" }
+      }
+    ],
+    "backendValid": false,
+    "frontendValid": false
+  },
+  {
+    "name": "连续纸拼版水印与套打",
+    "patches": [
+      { "pointer": "/paper/kind", "value": "CONTINUOUS" },
+      {
+        "pointer": "/paper/tiling",
+        "value": { "enabled": true, "columns": 2, "rows": 4, "gapXMm": 2, "gapYMm": 2, "sheetWidthMm": 210, "sheetHeightMm": 297, "repeatToFill": true }
+      },
+      {
+        "pointer": "/paper/designBackground",
+        "value": { "fileId": "overlay_1", "opacity": 0.4, "rotationDeg": 0, "print": false }
+      },
+      {
+        "pointer": "/watermark",
+        "value": { "text": "内部资料", "opacity": 0.08, "rotateDeg": -24, "gapXMm": 64, "gapYMm": 42, "fontSizePt": 14, "color": "#94a3b8" }
+      }
+    ],
+    "backendValid": true,
+    "frontendValid": true
+  }
+]

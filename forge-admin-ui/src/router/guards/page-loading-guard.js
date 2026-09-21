@@ -1,6 +1,10 @@
 import { finishGlobalLoading, startGlobalLoading } from '@/composables/useGlobalLoading'
 import { useAppStore } from '@/store'
 
+function isAppPortalRoute(route) {
+  return route?.meta?.layout === 'app-portal'
+}
+
 export function createPageLoadingGuard(router) {
   let routeLoadingToken = null
 
@@ -24,30 +28,38 @@ export function createPageLoadingGuard(router) {
     routeLoadingToken = null
   }
 
-  router.beforeEach(() => {
+  function finishRouteChrome() {
+    finishRouteLoading()
+    $loadingBar.finish()
+    const appStore = useAppStore()
+    if (!appStore.routeGuardCompleted)
+      appStore.setRouteGuardCompleted(true)
+  }
+
+  router.beforeEach((to) => {
+    if (isAppPortalRoute(to)) {
+      finishRouteChrome()
+      return
+    }
     startRouteLoading()
     $loadingBar.start()
   })
 
-  router.afterEach(() => {
+  router.afterEach((to) => {
+    if (isAppPortalRoute(to)) {
+      finishRouteChrome()
+      return
+    }
     setTimeout(() => {
-      finishRouteLoading()
-      $loadingBar.finish()
-      // 确保路由守卫完成状态被设置
-      const appStore = useAppStore()
-      if (!appStore.routeGuardCompleted) {
-        appStore.setRouteGuardCompleted(true)
-      }
+      finishRouteChrome()
     }, 200)
   })
 
   router.onError(() => {
     finishRouteLoading()
     $loadingBar.error()
-    // 发生错误时也要确保路由守卫完成状态被设置
     const appStore = useAppStore()
-    if (!appStore.routeGuardCompleted) {
+    if (!appStore.routeGuardCompleted)
       appStore.setRouteGuardCompleted(true)
-    }
   })
 }

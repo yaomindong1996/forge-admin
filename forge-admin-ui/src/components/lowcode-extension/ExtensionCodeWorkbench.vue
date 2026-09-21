@@ -166,6 +166,14 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  applicationName: {
+    type: String,
+    default: '',
+  },
+  pageName: {
+    type: String,
+    default: '',
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'example-applied'])
@@ -175,19 +183,32 @@ const activeTab = ref('examples')
 const expanded = ref(false)
 let editorView = null
 
-const modeTitle = computed(() => props.mode === 'css' ? '作用域 CSS' : '页面 JS 沙箱')
+const modeTitle = computed(() => props.mode === 'css' ? '页面样式' : '页面脚本')
 const hookGuide = computed(() => getExtensionHookGuide(props.hookCode))
 const examples = computed(() => getExtensionCodeExamples(props.mode, props.hookCode))
 const capabilities = computed(() => props.mode === 'css' ? CSS_CAPABILITIES : JS_CAPABILITIES)
 const boundaries = computed(() => props.mode === 'css' ? CSS_BOUNDARIES : JS_BOUNDARIES)
 const characterCount = computed(() => String(props.modelValue || '').length)
 const scopeDescription = computed(() => {
-  const application = props.applicationCode || '当前应用'
-  const page = props.pageCode || '当前页面'
+  const application = humanizeScopePart(props.applicationName, props.applicationCode, '当前应用')
+  const page = humanizeScopePart(props.pageName, props.pageCode, '当前页面')
   if (props.mode === 'javascript')
-    return [application, page, '白名单字段与授权动作'].join(' / ')
-  return [application, page, '页面根节点内'].join(' / ')
+    return `作用于「${application}」·「${page}」的表单字段和页面动作`
+  return `仅改变「${application}」·「${page}」里的样式，不影响其他页面`
 })
+
+function humanizeScopePart(displayName, rawCode, fallback) {
+  const name = String(displayName || '').trim()
+  if (name)
+    return name
+  const code = String(rawCode || '').trim()
+  if (!code || code === 'default')
+    return fallback
+  // 原始技术编码（如 cgou_app_xxx / page_page_xxx）不直接展示给业务用户
+  if (/^(?:cgou_|page_|app_)/i.test(code) || (code.includes('_') && /^[a-z]\w{2,}$/i.test(code)))
+    return fallback
+  return code
+}
 
 const editorTheme = EditorView.theme({
   '&': {

@@ -935,7 +935,7 @@
       </section>
 
       <!-- 增强面板 -->
-      <section v-else-if="runtimeViewMode === 'enhance'" class="runtime-inline-panel">
+      <section v-else-if="runtimeViewMode === 'enhance'" class="runtime-inline-panel runtime-enhance-panel">
         <ApplicationExtensionsPanel
           embedded
           :application="application"
@@ -943,6 +943,7 @@
           :initial-objects="objects"
           :initial-entries="workspaceEntries"
           :initial-pages="builder?.nodes || []"
+          :context-page-id="enhanceContextPageId"
           @changed="handleExtensionsChanged"
           @open-designer="openEmbeddedObjectActions"
         />
@@ -1280,6 +1281,15 @@ const editing = ref(route.query.edit === '1')
 const runtimeViewMode = ref(resolveRuntimeView(route.query.view)) // 'pages' | 'process' | 'enhance' | 'settings'
 const exitEditingVisible = ref(false)
 const selectedNodeId = ref('')
+const enhanceContextPageId = computed(() => {
+  const fromQuery = String(route.query.pageId || '').trim()
+  if (fromQuery && !isPageManagementSystemPageId(fromQuery))
+    return fromQuery
+  const selected = String(selectedNodeId.value || '').trim()
+  if (selected && !isPageManagementSystemPageId(selected))
+    return selected
+  return ''
+})
 const newNodePopoverVisible = ref(false)
 const selectedPageTemplateKey = ref('blank')
 const iconPickerVisible = ref(false)

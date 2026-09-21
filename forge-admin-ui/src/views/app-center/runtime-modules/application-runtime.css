@@ -265,6 +265,19 @@
   padding: 8px;
   background: var(--bg-secondary, #f5f7fa);
 }
+.runtime-inline-panel.runtime-enhance-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  padding: 8px 10px;
+  background: var(--bg-secondary, #f5f7fa);
+}
+.runtime-inline-panel.runtime-enhance-panel :deep(.extensions-panel) {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
 .runtime-body {
   display: grid;
   grid-template-columns: 232px minmax(0, 1fr);

@@ -1,0 +1,26 @@
+{
+  "phase": "M5b",
+  "date": "2026-09-19",
+  "branch": "forge-native-print",
+  "status": "implemented-pending-e2e",
+  "checks": {
+    "frontendTests": { "files": 7, "tests": 40, "failures": 0 },
+    "frontendLint": "passed",
+    "frontendBuild": { "modules": 9363, "result": "passed" },
+    "backendAggregate": { "modules": 33, "tests": 22, "failures": 0, "errors": 0, "skipped": 0 },
+    "mapperXml": "passed",
+    "sfcLines": {
+      "todo.vue": 1944,
+      "started.vue": 568,
+      "FlowTaskDetailShell.vue": 225,
+      "done.vue": 606
+    },
+    "diffCheck": "passed"
+  },
+  "notRun": [
+    "Admin/Flow service startup",
+    "MySQL/Redis/Flyway",
+    "real todo/done/started workflow E2E",
+    "PDF or physical printing"
+  ]
+}

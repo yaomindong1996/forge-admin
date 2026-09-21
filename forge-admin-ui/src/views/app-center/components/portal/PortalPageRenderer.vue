@@ -70,8 +70,8 @@ import {
   selectScopedCssExtensions,
 } from '@/components/lowcode-extension/runtime/application-extension-runtime'
 import RuntimeScopedStyles from '@/components/lowcode-extension/runtime/RuntimeScopedStyles'
-import PortalEmptyState from './PortalEmptyState.vue'
 import { isRuntimeAutoHeightBlock, shouldUseContentSizedFlow } from './portal-page-runtime-layout'
+import PortalEmptyState from './PortalEmptyState.vue'
 
 const props = defineProps({
   node: { type: Object, default: null },
@@ -229,6 +229,7 @@ async function loadRuntimeCrudProps(configKey, objectRef, key) {
         needTip: false,
         appId: runtimeEntryId,
         applicationId: props.applicationId,
+        pageId: props.pageId || String(props.node?.id || ''),
       })).data
     }
     catch (error) {
@@ -239,6 +240,7 @@ async function loadRuntimeCrudProps(configKey, objectRef, key) {
         needTip: false,
         appId: runtimeEntryId,
         applicationId: props.applicationId,
+        pageId: props.pageId || String(props.node?.id || ''),
       })).data
     }
     if (!config || typeof config !== 'object')

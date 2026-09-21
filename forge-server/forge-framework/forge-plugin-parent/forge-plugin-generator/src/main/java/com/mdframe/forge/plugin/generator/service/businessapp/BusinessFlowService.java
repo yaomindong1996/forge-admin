@@ -13,6 +13,7 @@ import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessBinding;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessDocumentConfig;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessFlowInstanceLink;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessObject;
+import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessProcessRun;
 import com.mdframe.forge.plugin.generator.domain.entity.AiCrudConfig;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessFlowWithdrawDTO;
 import com.mdframe.forge.plugin.generator.enums.BusinessDocumentFlowStatus;
@@ -27,8 +28,10 @@ import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessTaskFormContex
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessTaskFormSaveDTO;
 import com.mdframe.forge.plugin.generator.mapper.AiCrudConfigMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessBindingMapper;
+import com.mdframe.forge.plugin.generator.mapper.BusinessApplicationObjectMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessFlowInstanceLinkMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessObjectMapper;
+import com.mdframe.forge.plugin.generator.mapper.BusinessProcessRunMapper;
 import com.mdframe.forge.plugin.generator.service.DynamicCrudService;
 import com.mdframe.forge.plugin.generator.service.businessprocess.BusinessProcessApprovalResultEvent;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessBindingSummaryVO;
@@ -102,6 +105,16 @@ public class BusinessFlowService {
      */
     @Autowired(required = false)
     private BusinessApplicationService businessApplicationService;
+
+    /**
+     * 业务流程运行和应用归属用于向前端返回服务端确认的打印身份。
+     * 使用字段注入保持已有扩展和单元测试的构造器兼容性。
+     */
+    @Autowired(required = false)
+    private BusinessProcessRunMapper businessProcessRunMapper;
+
+    @Autowired(required = false)
+    private BusinessApplicationObjectMapper businessApplicationObjectMapper;
 
     private final BusinessBindingMapper bindingMapper;
     private final BusinessFlowInstanceLinkMapper flowInstanceLinkMapper;
@@ -715,7 +728,8 @@ public class BusinessFlowService {
         Map<String, Object> taskFormInfo = loadTaskFormInfo(effectiveQuery.getTaskId());
         validateTaskAccess(effectiveQuery, false, taskFormInfo);
         TaskFormRuntimeContext runtime = resolveTaskFormRuntimeContext(effectiveQuery, false, taskFormInfo);
-        return buildTaskFormContext(effectiveQuery, runtime, taskFormInfo);
+        return attachPrintRuntimeIdentity(
+                buildTaskFormContext(effectiveQuery, runtime, taskFormInfo), effectiveQuery);
     }
 
     /**
@@ -729,7 +743,8 @@ public class BusinessFlowService {
         Map<String, Object> taskFormInfo = loadTaskFormInfo(effectiveQuery.getTaskId());
         validateTaskAccess(effectiveQuery, true, taskFormInfo);
         TaskFormRuntimeContext runtime = resolveTaskFormRuntimeContext(effectiveQuery, true, taskFormInfo);
-        return buildTaskFormContext(effectiveQuery, runtime, taskFormInfo);
+        return attachPrintRuntimeIdentity(
+                buildTaskFormContext(effectiveQuery, runtime, taskFormInfo), effectiveQuery);
     }
 
     /**
@@ -738,7 +753,8 @@ public class BusinessFlowService {
     public BusinessTaskFormContextVO getTaskFormReadonlyContext(BusinessTaskFormContextQueryDTO query) {
         BusinessTaskFormContextQueryDTO effectiveQuery = query == null ? new BusinessTaskFormContextQueryDTO() : query;
         TaskFormRuntimeContext runtime = resolveTaskFormRuntimeContext(effectiveQuery, false);
-        BusinessTaskFormContextVO context = buildTaskFormContext(effectiveQuery, runtime);
+        BusinessTaskFormContextVO context = attachPrintRuntimeIdentity(
+                buildTaskFormContext(effectiveQuery, runtime), effectiveQuery);
         makeBusinessTaskFormReadonly(context);
         return context;
     }
@@ -771,9 +787,61 @@ public class BusinessFlowService {
         JSONObject nodeForm = resolveTaskNodeForm(runtime, query, taskFormInfo);
         TaskFormSaveResult saveResult = persistTaskFormData(dto, query, runtime, nodeForm);
         if (saveResult.context() != null) {
-            return saveResult.context();
+            return attachPrintRuntimeIdentity(saveResult.context(), query);
         }
-        return buildTaskFormContext(query, saveResult.runtime(), taskFormInfo);
+        return attachPrintRuntimeIdentity(
+                buildTaskFormContext(query, saveResult.runtime(), taskFormInfo), query);
+    }
+
+    private BusinessTaskFormContextVO attachPrintRuntimeIdentity(
+            BusinessTaskFormContextVO context,
+            BusinessTaskFormContextQueryDTO query) {
+        if (context == null) {
+            return null;
+        }
+        if (query != null) {
+            if (StringUtils.isBlank(context.getProcessInstanceId())) {
+                context.setProcessInstanceId(StringUtils.trimToNull(query.getProcessInstanceId()));
+            }
+            if (StringUtils.isBlank(context.getObjectCode())) {
+                context.setObjectCode(StringUtils.trimToNull(query.getObjectCode()));
+            }
+            if (StringUtils.isBlank(context.getConfigKey())) {
+                context.setConfigKey(StringUtils.trimToNull(query.getConfigKey()));
+            }
+        }
+
+        Long tenantId = resolveTenantId();
+        String processInstanceId = StringUtils.trimToNull(context.getProcessInstanceId());
+        AiBusinessProcessRun run = businessProcessRunMapper == null || processInstanceId == null
+                ? null
+                : businessProcessRunMapper.selectByProcessInstanceId(tenantId, processInstanceId);
+        if (run != null) {
+            context.setProcessRunId(run.getId());
+            if (run.getApplicationId() != null) {
+                String runApplicationId = String.valueOf(run.getApplicationId());
+                if (StringUtils.isNotBlank(context.getApplicationId())
+                        && !StringUtils.equals(context.getApplicationId(), runApplicationId)) {
+                    context.getWarnings().add("流程运行应用身份与表单页面不一致，打印将使用流程运行版本");
+                }
+                context.setApplicationId(runApplicationId);
+            }
+        }
+
+        String objectCode = StringUtils.trimToNull(context.getObjectCode());
+        if (StringUtils.isBlank(context.getApplicationId())
+                && objectCode != null
+                && businessApplicationObjectMapper != null) {
+            List<Long> applicationIds = businessApplicationObjectMapper
+                    .selectPublishedApplicationIdsByObjectIdentity(
+                            tenantId, objectCode, StringUtils.trimToNull(context.getConfigKey()));
+            if (applicationIds != null && applicationIds.size() == 1) {
+                context.setApplicationId(String.valueOf(applicationIds.get(0)));
+            } else if (applicationIds != null && applicationIds.size() > 1) {
+                context.getWarnings().add("业务对象归属多个已发布应用，无法确定流程打印模板范围");
+            }
+        }
+        return context;
     }
 
     private TaskFormSaveResult persistTaskFormData(BusinessTaskFormSaveDTO dto,

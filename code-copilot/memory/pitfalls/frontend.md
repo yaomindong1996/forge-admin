@@ -1,6 +1,6 @@
 # 踩坑：前端 / 构建 / 路由
 
-> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 25 条。
+> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 40 条。
 
 ## uni-app 微信小程序不能直接复用 H5 Teleport 和动态 component 递归
 
@@ -466,3 +466,143 @@ Naive UI 的 `--n-height` 可保证同尺寸输入和按钮对齐，但 Teleport
 
 **影响范围**：
 所有使用 AiCrudPage 且启用工具栏批量删除的页面（apiConfig、dataScopeConfig 已同步修正为 removeBatch）。
+
+## 打印客户端 PDF 不能用 html2canvas 重排 flex 表格
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+预览「PDF」先把纸张再挂到隐藏 iframe，再用 html2canvas 栅格化。html2canvas 自己重做布局，不认表格单元格的 flex 行高和垂直居中，导出来的 PDF 和预览差一截。同时 `createPattern` 会撞上 0 尺寸画布（细线渐变、空页眉页脚）。
+
+**解决方案**:
+导出截取预览里已经排好的 `[data-print-page]`（`html-to-image` 走浏览器排版），缩放 `transform` 在截图时关掉。打印仍走 `window.print()`，不要把 PDF 事件写成 `DIALOG_OPENED`。单元格文字包在 `span` 里，避免匿名 flex 子节点。
+
+## 打印表头不透明底会盖住表格外框上/左边
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+表格外框曾用容器 `inset box-shadow` 画上/左边，右/下边画在单元格上。表头默认 `#f1f5f9` 不透明，会把容器内侧阴影盖住，设计器和打印都缺顶边、左边。贴边 `0.15mm` 的 `border-top/left` 还容易被祖先 `overflow: hidden` 在亚像素处裁没。
+
+**解决方案**:
+首行补 `border-top`、首列补 `border-left`，右/下边仍画在每个格子上，四面都用同一条 CSS `border`（同宽同色）。底色用 `background-clip: padding-box`，避免填进边框把线吃细。不要上/左用渐变、右/下用 border，打印时粗细会对不齐。
+
+## 打印表格选中格不能用 !important 盖住表头底色
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+空白表格选中态用 `.static-cell.selected { background-color: ... !important }` 盖住单元格真实底色；明细表 hover/selected 也用 class 改 `background-color`。用户在「样式」里改了表头颜色，一点格子就看不见，误以为色板坏了。另外旧面板把表头色写进 `style` 或 `column.style`，格子只认 `headerStyle`，所以有的色板改了没效果。
+
+**解决方案**:
+表头/表体颜色只写 `headerStyle` / `style`（「样式」页分开两组）。选中反馈用选择框 overlay，不要 `!important` 覆盖底色。空白表格插入不要默认「表头」灰行；「设为表头」改 `headerStyle`，不要给格子写死灰底。
+
+## 打印示例图不能用 SVG data URL
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+设计器示例上下文把 IMAGE 字段（含 `flow.history.signature`）写成 `data:image/svg+xml,...`。打印资源协议只接受 fileId 或 `data:image/(png|jpeg|webp);base64,...`。打开预览时第一条签名就报「打印图片或签名加载失败（flow.history[0].signature）」。真实签名下载若 `Content-Type` 是 `application/octet-stream`，同样会被类型白名单拒绝。
+
+**解决方案**:
+示例图必须是协议允许的 PNG data URL。加载文件时按文件头识别 PNG/JPEG/WEBP，不要只看 HTTP MIME。空签名跳过，不要当成失败。
+
+## 空白表格表头背景会被格子默认白底盖住
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+「样式 → 表头背景」写的是 `headerStyle.backgroundColor`。第一行格子若带默认 `#ffffff` / `#f1f5f9`（旧「表头」行或工具栏色板），`cell.style` 后合并，表头背景看不见，表头文字色仍正常。
+
+**解决方案**:
+`staticTableCellLook` 对第一行默认白/灰底让位给 `headerStyle`。属性面板改表头/表体时用 `patchStaticTableBand`，同时删掉对应行格子上的同名覆盖。字号用预设下拉，不要 `NInputNumber`。
+
+## 打印字体栈不能只校验第一个名字
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+`requireLocalFont` 只对 `fontFamily.split(',')[0]` 做 `FontFace local()`。设计器「华文黑体」写成 `STHeiti, sans-serif`，新版 macOS 没有 STHeiti，预览报「打印字体未安装：STHeiti」，看起来像改完字体就保存/预览失败。微软雅黑在 Mac 上同样会中招。
+
+**解决方案**:
+按整串字体栈检查，任一具名字体能加载即通过；栈里有 `sans-serif`/`serif` 等 generic 时不要因为第一个名字缺失而拦截。设计器选项写成跨 Windows/macOS 的回退栈。
+
+## 表格选中框八向锚点会挡住外沿改行高列宽
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+空白表格内部格线能拖出行高列宽，四条外边不行。选中框的 n/s/e/w 锚点叠在表格外沿上把命中抢走；行列手柄又只做了 `slice(0, -1)`，最后一行/列本来就没有手柄。快捷面板也按整张表算位置，不跟着选中单元格走。
+
+**解决方案**:
+表格元素不要再画 overlay 缩放锚点。四边补上首末行列手柄（左边/上边拖时同步改 `xMm`/`yMm`）。选中单元格时快捷面板用格子的纸面包围盒。
+
+## 打印取色器会写出协议不认的颜色格式
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+快捷面板「无填充」写入 `transparent`，Naive `NColorPicker` 还会给出 `#rrggbbaa` / `rgba()`。格子 `style.backgroundColor` 原校验只认 `#rgb`/`#rrggbb`，保存报「颜色须使用十六进制格式」。
+
+**解决方案**:
+写入和 `serialize` 时用 `toPrintColor` 收成 `#rrggbb` 或 `transparent`。前后端校验同时接受这两种以及取色器的 8 位 hex / rgb。命名色如 `red` 仍拒绝。
+
+## 空白表格图片缩放点会被行列拖条盖住
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+格子 `z-index: 1`，行列拖条 `z-index: 6` 且后渲染。单元格图片右下角 8px 缩放点永远点不中，看起来像坏了。
+
+**解决方案**:
+选中的图片格提高到拖条之上并允许溢出；手柄挂在图片框右下角，热区约 14px。
+
+## 打印横竖线不能用 SVG viewBox 描边
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+横线默认高 0.5mm、竖线宽 0.5mm。SVG `viewBox="0 0 100 100"` 里画 `<line>`，描边几乎看不见，改背景色、边框色、实线/虚线/点线都像没生效。
+
+**解决方案**:
+横竖线改成 CSS `border-top` / `border-left`，粗细用 `borderWidthMm`，样式直接用 `solid`/`dashed`/`dotted`。改颜色时同步 `borderColor` 和 `backgroundColor`，改粗细时同步细轴宽高。
+
+## 打印毫米字段不要用 NInputNumber
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+边框 mm、宽高 mm 等用 `NInputNumber` 时仍能输入汉字，选完像没改。
+
+**解决方案**:
+带 mm 的字段改成 `NSelect` + `printMmOptions` 预设，不要可输入的数字框。
+
+## 打印预览新标签不能 router.back
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+单据打印从列表 `window.open` 新标签打开。新标签没有历史，左上角返回调用 `router.back()` 什么也不发生。
+
+**解决方案**:
+有 Vue Router `history.state.back` 才后退；否则 `window.close()`，关不掉再 `replace` 到来源应用或流程页。
+
+## 应用中心卡片不要 hover 才展开操作栏
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+应用卡片 footer 默认 `display:none`，hover 再显示操作，还带 `translateY(-1px)`。卡片高宽一变，网格会跟着晃。
+
+**解决方案**:
+操作栏用绝对定位叠在卡片底部，默认 `opacity:0`，hover / 聚焦才显示。不要用 `display:none` 或位移改尺寸。
+
+## 发布运行页不要卡住等后台菜单再叠多层 loading
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+新开 `/app/:slug` 时 permission-guard 要等 `getMenu`，App.vue 先盖「正在加载...」，守卫放行后 layout/门户 chunk 未到是白屏，门户 `n-spin` 再转一圈，CRUD 再转一圈。顶部 `$loadingBar` 还会卡住。
+
+**解决方案**:
+`/app/`（不含 `/app-center`）不要阻塞等后台菜单；`app-portal` 跳过全局进度条和全屏 overlay；layout 同步加载；门户和 CRUD 用同一套骨架，不要连续两个 `n-spin`。

@@ -71,4 +71,21 @@
           AND del_flag = '0'
     </select>
 
+    <select id="lockRetainedSnapshots" resultMap="BaseResultMap">
+        SELECT id, tenant_id, application_id, version_no, snapshot_json
+        FROM ai_business_application_version
+        WHERE tenant_id = #{tenantId} AND application_id = #{applicationId} AND del_flag = '0'
+        ORDER BY id
+        FOR UPDATE
+    </select>
+    <select id="selectPublishedPrintSources" resultMap="BaseResultMap">
+        SELECT v.*
+        FROM ai_business_application_version v
+        JOIN ai_business_application a ON a.id = v.application_id AND a.tenant_id = v.tenant_id
+        WHERE v.tenant_id = #{tenantId} AND v.del_flag = '0' AND a.del_flag = '0'
+          AND v.version_no = a.last_publish_version
+          AND JSON_CONTAINS(JSON_EXTRACT(v.snapshot_json, '$.objects'), JSON_OBJECT('configKey', #{configKey}))
+        <if test="applicationId != null">AND a.id = #{applicationId}</if>
+        ORDER BY a.id
+    </select>
 </mapper>

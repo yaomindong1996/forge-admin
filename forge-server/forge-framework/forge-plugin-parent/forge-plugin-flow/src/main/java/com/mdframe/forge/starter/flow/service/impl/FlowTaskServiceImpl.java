@@ -2124,6 +2124,10 @@ public class FlowTaskServiceImpl extends ServiceImpl<FlowTaskMapper, FlowTask> i
         formInfo.setApprovalPoints(approvalPoints);
         formInfo.setApprovalPoint(isBlank(approvalPoint) ? null : approvalPoint);
         formInfo.setResponsibilityDescription(FlowNodePolicyParser.resolveResponsibilityDescription(flowNode));
+        formInfo.setPrintTemplatePolicy(flowNode == null
+                ? null : flowNode.getAttributeValue(FLOWABLE_NS, "printTemplatePolicy"));
+        formInfo.setPrintTemplateIds(flowNode == null
+                ? null : flowNode.getAttributeValue(FLOWABLE_NS, "printTemplateIds"));
     }
 
     private void validateApprovalPoints(Task task, List<FlowApprovalPointResultDTO> approvalPointResults) {

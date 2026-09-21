@@ -76,6 +76,8 @@ export function parseUserTaskConfig(taskElement) {
     formUrl: '',
     viewKey: 'default',
     formRef: {},
+    printTemplatePolicy: 'INHERIT',
+    printTemplateIds: [],
     multiInstanceType: 'none',
     initiatorSelectNodeKey: '',
     completionCondition: 'all',
@@ -264,6 +266,10 @@ function applyForm(el, config) {
   config.formUrl = getFlowableAttr(el, 'formUrl') || ''
   config.viewKey = getFlowableAttr(el, 'viewKey') || 'default'
   config.formRef = parseJsonObject(getFlowableAttr(el, 'formRef'))
+  config.printTemplatePolicy = String(getFlowableAttr(el, 'printTemplatePolicy') || 'INHERIT').trim().toUpperCase() === 'RESTRICT'
+    ? 'RESTRICT'
+    : 'INHERIT'
+  config.printTemplateIds = splitCsv(getFlowableAttr(el, 'printTemplateIds')).filter(value => /^[1-9]\d*$/.test(value))
   if (config.formUrl)
     config.formType = 'external'
   else if (config.formKey || config.formJson)

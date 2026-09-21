@@ -1,503 +1,603 @@
 <template>
-  <n-drawer
-    :show="show"
-    :width="drawerWidth"
-    placement="right"
-    @update:show="value => emit('update:show', value)"
-    @after-leave="handleAfterLeave"
-  >
-    <n-drawer-content :title="isEdit ? `编辑增强 · ${form.extensionName}` : '新建增强'" closable>
-      <n-alert v-if="isEdit" type="info" :show-icon="false" class="lock-alert">
-        编辑锁有效至 {{ form.lockExpireTime || '稍后' }}。保存内容会追加新版本；当前运行版本不会被覆盖。
-      </n-alert>
-
-      <section v-if="!isEdit" class="extension-type-guide">
-        <div class="type-guide-heading">
-          <strong>先选择你要实现的效果</strong>
-          <span>选择后再配置作用对象、触发时机和具体内容。</span>
+  <div v-if="show" class="extension-editor-workspace">
+    <header class="workspace-header">
+      <div class="workspace-header__identity">
+        <n-button quaternary circle aria-label="返回增强列表" @click="closeWorkspace">
+          <template #icon>
+            <i class="i-material-symbols:arrow-back-rounded" />
+          </template>
+        </n-button>
+        <div>
+          <div class="workspace-header__eyebrow">
+            增强配置
+          </div>
+          <h2>{{ isEdit ? (form.extensionName || '编辑增强') : '新建增强' }}</h2>
+          <p>{{ isEdit ? `编辑锁有效至 ${form.lockExpireTime || '稍后'}；保存追加新版本，不覆盖运行中版本。` : '选择能力后配置作用范围与内容，测试通过后再启用。' }}</p>
         </div>
-        <div class="type-guide-grid">
-          <button
-            v-for="item in extensionTypeChoices"
-            :key="item.value"
-            type="button"
-            class="type-guide-card"
-            :class="{ active: form.extensionType === item.value }"
-            @click="form.extensionType = item.value"
-          >
-            <strong>{{ item.title }}</strong>
-            <span>{{ item.description }}</span>
-            <small>{{ item.scene }}</small>
-          </button>
+      </div>
+      <div class="workspace-header__meta">
+        <n-tag v-if="form.status" size="small" :bordered="false" :type="statusTone">
+          {{ statusLabel }}
+        </n-tag>
+        <span class="workspace-version-hint">{{ isEdit ? `草稿 v${extension?.draftVersion || '-'}` : '保存后生成 v1 草稿' }}</span>
+      </div>
+    </header>
+
+    <div class="workspace-body">
+      <div class="workspace-main">
+        <section v-if="!isEdit && showTypeGuide" class="extension-type-guide">
+          <div class="type-guide-heading">
+            <strong>先选择你要实现的效果</strong>
+            <span>选择后再配置作用对象、触发时机和具体内容。</span>
+          </div>
+          <div class="type-guide-grid">
+            <button
+              v-for="item in extensionTypeChoices"
+              :key="item.value"
+              type="button"
+              class="type-guide-card"
+              :class="{ active: form.extensionType === item.value }"
+              @click="selectExtensionType(item.value)"
+            >
+              <strong>{{ item.title }}</strong>
+              <span>{{ item.description }}</span>
+              <small>{{ item.scene }}</small>
+            </button>
+          </div>
+          <n-alert type="info" :show-icon="false" class="sql-boundary-alert">
+            当前不开放任意 SQL 文本增强。数据库逻辑请先使用业务规则或 Java 服务增强。
+          </n-alert>
+        </section>
+
+        <div v-if="!showTypeGuide || isEdit" class="selected-type-bar">
+          <div class="selected-extension-type">
+            <DictTag dict-type="ai_business_extension_type" :value="form.extensionType" :bordered="false" />
+            <span>{{ selectedExtensionType?.description }}</span>
+          </div>
+          <n-button v-if="!isEdit" text type="primary" size="tiny" @click="showTypeGuide = true">
+            更换类型
+          </n-button>
         </div>
-        <n-alert type="info" :show-icon="false" class="sql-boundary-alert">
-          当前不开放任意 SQL 文本增强。数据库逻辑请先使用业务规则或 Java 服务增强；如需 SQL 能力，应单独建设参数化只读查询和受控数据动作。
-        </n-alert>
-      </section>
 
-      <n-form ref="formRef" :model="form" :rules="rules" label-placement="top">
-        <section class="editor-section">
-          <h3>基本信息</h3>
-          <div class="form-grid two-columns">
-            <n-form-item label="扩展名称" path="extensionName">
-              <n-input v-model:value="form.extensionName" placeholder="例如：客户提交校验" />
-            </n-form-item>
-            <n-form-item label="扩展编码" path="extensionCode">
-              <n-input v-model:value="form.extensionCode" :disabled="isEdit" placeholder="validate_customer" />
-            </n-form-item>
-            <n-form-item label="扩展类型" path="extensionType">
-              <div class="selected-extension-type">
-                <DictTag dict-type="ai_business_extension_type" :value="form.extensionType" :bordered="false" />
-                <span>{{ selectedExtensionType?.description }}</span>
-              </div>
-            </n-form-item>
-            <n-form-item label="业务对象" :show-feedback="false">
-              <n-select
-                v-model:value="form.objectId"
-                clearable
-                filterable
-                :options="objectOptions"
-                placeholder="选择规则使用的业务对象"
-              />
-              <template #feedback>
-                单一对象或唯一主对象会自动带出；应用级提示、样式仍可不选对象。
-              </template>
-            </n-form-item>
-            <n-form-item label="页面入口">
-              <n-select
-                v-model:value="form.entryId"
-                clearable
-                filterable
-                :options="entryOptions"
-                placeholder="可进一步限定到入口"
-              />
-            </n-form-item>
-            <n-form-item label="失败策略" path="failurePolicy">
-              <DictSelect
-                v-model:value="form.failurePolicy"
-                dict-type="ai_business_extension_failure_policy"
-                :clearable="false"
-              />
-            </n-form-item>
-            <n-form-item label="风险级别" path="riskLevel">
-              <DictSelect
-                v-model:value="form.riskLevel"
-                dict-type="ai_business_extension_risk_level"
-                :clearable="false"
-              />
-            </n-form-item>
-          </div>
-        </section>
-
-        <section class="editor-section hook-editor-section">
-          <n-form-item path="hookCode">
-            <ExtensionHookMatrix
-              v-model="form.hookCode"
-              :allowed-hooks="allowedHooksForType"
-            />
-          </n-form-item>
-        </section>
-
-        <section v-if="form.extensionType === 'VISUAL_RULE'" class="editor-section">
-          <div class="section-heading">
-            <div>
-              <h3>可视化条件与动作</h3>
-              <p>不写脚本，通过字段条件触发受限动作。</p>
-            </div>
-            <n-radio-group v-model:value="visualRule.match" size="small">
-              <n-radio-button value="ALL">
-                满足全部
-              </n-radio-button>
-              <n-radio-button value="ANY">
-                满足任一
-              </n-radio-button>
-            </n-radio-group>
-          </div>
-
-          <n-alert
-            v-if="clientContextCatalogLoading"
-            type="info"
-            :bordered="false"
-            class="rule-catalog-alert"
-          >
-            正在读取业务字段，请稍候…
-          </n-alert>
-          <n-alert
-            v-else-if="clientContextCatalogError"
-            type="error"
-            :bordered="false"
-            class="rule-catalog-alert"
-          >
-            {{ clientContextCatalogError }}
-            <n-button text type="primary" size="tiny" @click="loadClientContextCatalog(form.objectId)">
-              重新加载
-            </n-button>
-          </n-alert>
-          <n-alert
-            v-else-if="!form.objectId"
-            type="warning"
-            :bordered="false"
-            class="rule-catalog-alert"
-          >
-            请先选择业务对象，条件字段和设置字段会自动从对象中带出。
-          </n-alert>
-          <n-alert
-            v-else-if="!clientFieldCatalog.length"
-            type="warning"
-            :bordered="false"
-            class="rule-catalog-alert"
-          >
-            当前对象还没有可用字段，请先在“数据”中完成字段设计。
-          </n-alert>
-
-          <div class="rule-block">
-            <div class="rule-block-title">
-              <strong>条件</strong>
-              <n-button size="tiny" secondary @click="addCondition">
-                添加条件
-              </n-button>
-            </div>
-            <div v-if="!visualRule.conditions.length" class="inline-empty">
-              没有条件时始终执行动作
-            </div>
-            <div v-for="(condition, index) in visualRule.conditions" :key="`condition-${index}`" class="rule-row condition-row">
-              <n-select
-                v-model:value="condition.field"
-                filterable
-                :loading="clientContextCatalogLoading"
-                :options="visualRuleFieldOptions(condition.field)"
-                placeholder="选择条件字段"
-                @update:value="condition.value = ''"
-              />
-              <DictSelect
-                v-model:value="condition.operator"
-                dict-type="ai_business_extension_rule_operator"
-                :clearable="false"
-              />
-              <DictSelect
-                v-if="conditionValueKind(condition) === 'DICT' && operatorNeedsValue(condition.operator)"
-                v-model:value="condition.value"
-                :dict-type="conditionField(condition)?.dictType"
-                clearable
-              />
-              <n-select
-                v-else-if="conditionValueKind(condition) === 'BOOLEAN' && operatorNeedsValue(condition.operator)"
-                v-model:value="condition.value"
-                :options="booleanRuleOptions"
-                clearable
-                placeholder="选择是或否"
-              />
-              <n-input-number
-                v-else-if="conditionValueKind(condition) === 'NUMBER' && operatorNeedsValue(condition.operator)"
-                v-model:value="condition.value"
-                clearable
-                placeholder="输入比较值"
-              />
-              <n-date-picker
-                v-else-if="['DATE', 'DATETIME'].includes(conditionValueKind(condition)) && operatorNeedsValue(condition.operator)"
-                v-model:formatted-value="condition.value"
-                :type="conditionValueKind(condition) === 'DATETIME' ? 'datetime' : 'date'"
-                :value-format="conditionValueKind(condition) === 'DATETIME' ? 'yyyy-MM-dd HH:mm:ss' : 'yyyy-MM-dd'"
-                clearable
-              />
-              <n-input
-                v-else
-                v-model:value="condition.value"
-                :disabled="!operatorNeedsValue(condition.operator)"
-                :placeholder="operatorNeedsValue(condition.operator) ? '输入比较值' : '无需填写比较值'"
-              />
-              <n-button quaternary type="error" @click="visualRule.conditions.splice(index, 1)">
-                移除
-              </n-button>
-            </div>
-          </div>
-
-          <div class="rule-block">
-            <div class="rule-block-title">
-              <strong>动作</strong>
-              <n-button size="tiny" secondary @click="addAction">
-                添加动作
-              </n-button>
-            </div>
-            <div v-if="!visualRule.actions.length" class="inline-empty error">
-              至少需要一个动作
-            </div>
-            <div v-for="(action, index) in visualRule.actions" :key="`action-${index}`" class="rule-row action-row">
-              <DictSelect
-                v-model:value="action.actionType"
-                dict-type="ai_business_extension_rule_action"
-                :clearable="false"
-              />
-              <n-select
-                v-if="action.actionType === 'SET_FIELD'"
-                v-model:value="action.field"
-                filterable
-                :loading="clientContextCatalogLoading"
-                :options="visualRuleWritableFieldOptions(action.field)"
-                placeholder="选择要设置的字段"
-                @update:value="action.value = ''"
-              />
-              <DictSelect
-                v-if="action.actionType === 'SET_FIELD' && actionValueKind(action) === 'DICT'"
-                v-model:value="action.value"
-                :dict-type="actionField(action)?.dictType"
-                clearable
-              />
-              <n-select
-                v-else-if="action.actionType === 'SET_FIELD' && actionValueKind(action) === 'BOOLEAN'"
-                v-model:value="action.value"
-                :options="booleanRuleOptions"
-                clearable
-                placeholder="选择是或否"
-              />
-              <n-input-number
-                v-else-if="action.actionType === 'SET_FIELD' && actionValueKind(action) === 'NUMBER'"
-                v-model:value="action.value"
-                clearable
-                placeholder="输入设置值"
-              />
-              <n-date-picker
-                v-else-if="action.actionType === 'SET_FIELD' && ['DATE', 'DATETIME'].includes(actionValueKind(action))"
-                v-model:formatted-value="action.value"
-                :type="actionValueKind(action) === 'DATETIME' ? 'datetime' : 'date'"
-                :value-format="actionValueKind(action) === 'DATETIME' ? 'yyyy-MM-dd HH:mm:ss' : 'yyyy-MM-dd'"
-                clearable
-              />
-              <n-input
-                v-else-if="action.actionType === 'SET_FIELD'"
-                v-model:value="action.value"
-                placeholder="输入设置值"
-              />
-              <n-input
-                v-else-if="action.actionType === 'SHOW_MESSAGE'"
-                v-model:value="action.message"
-                placeholder="提示内容"
-              />
-              <n-select
-                v-else
-                v-model:value="action.actionCode"
-                filterable
-                :options="visualRuleActionOptions(action.actionCode)"
-                placeholder="选择页面动作"
-              />
-              <n-button quaternary type="error" @click="visualRule.actions.splice(index, 1)">
-                移除
-              </n-button>
-            </div>
-          </div>
-        </section>
-
-        <section v-else-if="form.extensionType === 'CLIENT_JS'" class="editor-section developer-section">
-          <h3>客户端脚本</h3>
-          <ExtensionCodeWorkbench
-            v-model="form.content"
-            mode="javascript"
-            :hook-code="form.hookCode"
-            :application-code="application?.applicationCode"
-            :page-code="selectedEntryLabel"
-            @example-applied="applyCodeExampleContext"
-          />
-          <div class="test-context-section">
-            <div class="test-context-heading">
+        <n-form
+          v-show="isEdit || !showTypeGuide"
+          ref="formRef"
+          :model="form"
+          :rules="rules"
+          label-placement="top"
+          class="editor-form"
+        >
+          <section class="editor-stage">
+            <header class="editor-stage__header">
+              <i>1</i>
               <div>
-                <strong>准备一条测试数据</strong>
-                <span>字段和页面动作会从脚本自动识别，你只需要确认测试值。</span>
+                <strong>身份与范围</strong>
+                <span>这条增强叫什么、作用在哪个对象或入口</span>
               </div>
-              <n-button
-                size="tiny"
-                secondary
-                :loading="clientContextCatalogLoading"
-                @click="syncClientContextFromScript(false)"
-              >
-                重新识别脚本
-              </n-button>
-            </div>
-
-            <div class="test-scene-summary">
-              <div>
-                <span class="test-scene-kicker">当前模拟</span>
-                <strong>{{ clientContextScene.title }}</strong>
-                <p>{{ clientContextScene.description }}</p>
-              </div>
-              <n-tag size="small" :bordered="false">
-                {{ selectedEntryLabel }}
-              </n-tag>
-            </div>
-
-            <div class="test-data-block">
-              <div class="test-data-toolbar">
-                <div>
-                  <strong>业务字段值</strong>
-                  <span>{{ clientDetectedSummary }}</span>
-                </div>
-                <div class="test-data-actions">
-                  <n-button size="tiny" quaternary @click="applyClientValuePreset('SAMPLE')">
-                    填充示例值
-                  </n-button>
-                  <n-button size="tiny" quaternary @click="applyClientValuePreset('EMPTY')">
-                    模拟空值
-                  </n-button>
-                  <n-button size="tiny" secondary @click="addClientTestField()">
-                    添加字段
-                  </n-button>
-                </div>
-              </div>
-
-              <div class="record-id-row">
-                <span>测试记录 ID</span>
-                <n-input
-                  v-model:value="clientRecordId"
-                  size="small"
-                  placeholder="例如：1"
-                />
-                <small>用于模拟当前表单或列表行，不会查询数据库。</small>
-              </div>
-
-              <div v-if="clientTestFields.length" class="test-field-table">
-                <div class="test-field-row test-field-head">
-                  <span>业务字段</span>
-                  <span>值类型</span>
-                  <span>本次测试值</span>
-                  <span />
-                </div>
-                <div
-                  v-for="(field, index) in clientTestFields"
-                  :key="field.key"
-                  class="test-field-row"
-                >
-                  <n-select
-                    v-model:value="field.fieldCode"
-                    filterable
-                    tag
-                    :options="clientFieldOptions"
-                    placeholder="选择字段或输入字段编码"
-                    @update:value="value => handleClientTestFieldChange(field, value)"
-                  />
-                  <n-select
-                    v-model:value="field.valueType"
-                    :options="clientValueTypeOptions"
-                    :clearable="false"
-                    @update:value="value => handleClientValueTypeChange(field, value)"
-                  />
-                  <n-select
-                    v-if="field.valueType === 'BOOLEAN'"
-                    v-model:value="field.value"
-                    :options="clientBooleanOptions"
-                    :clearable="false"
-                  />
-                  <span v-else-if="field.valueType === 'NULL'" class="null-value-placeholder">
-                    空值 null
-                  </span>
-                  <n-input
-                    v-else
-                    v-model:value="field.value"
-                    :placeholder="clientValuePlaceholder(field.valueType)"
-                  />
-                  <n-button quaternary type="error" @click="clientTestFields.splice(index, 1)">
-                    移除
-                  </n-button>
-                </div>
-              </div>
-              <div v-else class="test-fields-empty">
-                当前脚本没有读取或修改业务字段，可以直接测试；如需补充数据，请点击“添加字段”。
-              </div>
-
-              <n-form-item
-                v-if="clientAllowedActions.length"
-                label="允许脚本触发的页面动作"
-                class="test-actions-field"
-              >
+            </header>
+            <div class="editor-stage__body form-grid two-columns">
+              <n-form-item label="增强名称" path="extensionName">
+                <n-input v-model:value="form.extensionName" placeholder="例如：客户提交校验" />
+              </n-form-item>
+              <n-form-item label="增强编码" path="extensionCode">
+                <n-input v-model:value="form.extensionCode" :disabled="isEdit" placeholder="validate_customer" />
+              </n-form-item>
+              <n-form-item label="业务对象">
                 <n-select
-                  v-model:value="clientAllowedActions"
-                  multiple
+                  v-model:value="form.objectId"
+                  clearable
                   filterable
-                  tag
-                  :options="clientActionOptions"
-                  placeholder="脚本未调用页面动作时无需选择"
+                  :options="objectOptions"
+                  placeholder="可不选，表示应用级"
                 />
-                <template #feedback>
-                  已从 triggerAction 自动识别；只有这里列出的动作会在测试中放行。
-                </template>
+              </n-form-item>
+              <n-form-item label="页面入口">
+                <n-select
+                  v-model:value="form.entryId"
+                  clearable
+                  filterable
+                  :options="entryOptions"
+                  placeholder="可进一步限定到入口"
+                />
               </n-form-item>
             </div>
+          </section>
 
-            <details class="test-context-advanced">
-              <summary>查看沙箱实际接收的内容（高级）</summary>
-              <pre>{{ clientContextPreview }}</pre>
-            </details>
-          </div>
-          <ExtensionSandboxHost ref="sandboxRef" />
-        </section>
-
-        <section v-else-if="form.extensionType === 'SCOPED_CSS'" class="editor-section developer-section">
-          <div class="section-heading">
-            <div>
-              <h3>作用域样式</h3>
-              <p>所有选择器会自动限制在当前应用和页面根节点。</p>
+          <section class="editor-stage">
+            <header class="editor-stage__header">
+              <i>2</i>
+              <div>
+                <strong>触发时机</strong>
+                <span>同一条增强只绑定一个触发点</span>
+              </div>
+            </header>
+            <div class="editor-stage__body hook-editor-section">
+              <n-form-item path="hookCode" :show-label="false">
+                <ExtensionHookMatrix
+                  v-model="form.hookCode"
+                  compact
+                  :allowed-hooks="allowedHooksForType"
+                />
+              </n-form-item>
             </div>
-            <n-form-item label="作用页面" class="page-code-field">
-              <n-select
-                v-model:value="form.scopeKey"
-                clearable
-                filterable
-                :options="scopedCssPageOptions"
-                placeholder="全部页面"
-              />
-            </n-form-item>
-          </div>
-          <ExtensionCodeWorkbench
-            v-model="form.content"
-            mode="css"
-            :hook-code="form.hookCode"
-            :application-code="application?.applicationCode"
-            :page-code="form.scopeKey || 'default'"
-          />
-          <n-alert v-if="cssError" type="error" :show-icon="false" class="code-feedback">
-            {{ cssError }}
-          </n-alert>
-          <ScopedCssPreview
-            v-else-if="cssResult"
-            class="code-feedback"
-            :css="cssResult.css"
-            :scope-selector="cssResult.scopeSelector"
-            :application-code="application?.applicationCode"
-            :page-code="form.scopeKey || 'default'"
-          />
+          </section>
+
+          <section class="editor-stage editor-stage--content">
+            <header class="editor-stage__header">
+              <i>3</i>
+              <div>
+                <strong>增强内容</strong>
+                <span>{{ contentStageHint }}</span>
+              </div>
+              <n-radio-group
+                v-if="form.extensionType === 'VISUAL_RULE'"
+                v-model:value="visualRule.match"
+                size="small"
+              >
+                <n-radio-button value="ALL">
+                  满足全部
+                </n-radio-button>
+                <n-radio-button value="ANY">
+                  满足任一
+                </n-radio-button>
+              </n-radio-group>
+            </header>
+            <div class="editor-stage__body">
+              <template v-if="form.extensionType === 'VISUAL_RULE'">
+                <n-alert
+                  v-if="clientContextCatalogLoading"
+                  type="info"
+                  :bordered="false"
+                  class="rule-catalog-alert"
+                >
+                  正在读取业务字段，请稍候…
+                </n-alert>
+                <n-alert
+                  v-else-if="clientContextCatalogError"
+                  type="error"
+                  :bordered="false"
+                  class="rule-catalog-alert"
+                >
+                  {{ clientContextCatalogError }}
+                  <n-button text type="primary" size="tiny" @click="loadClientContextCatalog(form.objectId)">
+                    重新加载
+                  </n-button>
+                </n-alert>
+                <n-alert
+                  v-else-if="!form.objectId"
+                  type="warning"
+                  :bordered="false"
+                  class="rule-catalog-alert"
+                >
+                  请先在「身份与范围」选择业务对象，条件字段会自动带出。
+                </n-alert>
+                <n-alert
+                  v-else-if="!clientFieldCatalog.length"
+                  type="warning"
+                  :bordered="false"
+                  class="rule-catalog-alert"
+                >
+                  当前对象还没有可用字段，请先在“数据”中完成字段设计。
+                </n-alert>
+
+                <div class="rule-block">
+                  <div class="rule-block-title">
+                    <strong>条件</strong>
+                    <n-button size="tiny" secondary @click="addCondition">
+                      添加条件
+                    </n-button>
+                  </div>
+                  <div v-if="!visualRule.conditions.length" class="inline-empty">
+                    没有条件时始终执行动作
+                  </div>
+                  <div v-for="(condition, index) in visualRule.conditions" :key="`condition-${index}`" class="rule-row condition-row">
+                    <n-select
+                      v-model:value="condition.field"
+                      filterable
+                      :loading="clientContextCatalogLoading"
+                      :options="visualRuleFieldOptions(condition.field)"
+                      placeholder="选择条件字段"
+                      @update:value="condition.value = ''"
+                    />
+                    <DictSelect
+                      v-model:value="condition.operator"
+                      dict-type="ai_business_extension_rule_operator"
+                      :clearable="false"
+                    />
+                    <DictSelect
+                      v-if="conditionValueKind(condition) === 'DICT' && operatorNeedsValue(condition.operator)"
+                      v-model:value="condition.value"
+                      :dict-type="conditionField(condition)?.dictType"
+                      clearable
+                    />
+                    <n-select
+                      v-else-if="conditionValueKind(condition) === 'BOOLEAN' && operatorNeedsValue(condition.operator)"
+                      v-model:value="condition.value"
+                      :options="booleanRuleOptions"
+                      clearable
+                      placeholder="选择是或否"
+                    />
+                    <n-input-number
+                      v-else-if="conditionValueKind(condition) === 'NUMBER' && operatorNeedsValue(condition.operator)"
+                      v-model:value="condition.value"
+                      clearable
+                      placeholder="输入比较值"
+                    />
+                    <n-date-picker
+                      v-else-if="['DATE', 'DATETIME'].includes(conditionValueKind(condition)) && operatorNeedsValue(condition.operator)"
+                      v-model:formatted-value="condition.value"
+                      :type="conditionValueKind(condition) === 'DATETIME' ? 'datetime' : 'date'"
+                      :value-format="conditionValueKind(condition) === 'DATETIME' ? 'yyyy-MM-dd HH:mm:ss' : 'yyyy-MM-dd'"
+                      clearable
+                    />
+                    <n-input
+                      v-else
+                      v-model:value="condition.value"
+                      :disabled="!operatorNeedsValue(condition.operator)"
+                      :placeholder="operatorNeedsValue(condition.operator) ? '输入比较值' : '无需填写比较值'"
+                    />
+                    <n-button quaternary type="error" @click="visualRule.conditions.splice(index, 1)">
+                      移除
+                    </n-button>
+                  </div>
+                </div>
+
+                <div class="rule-block">
+                  <div class="rule-block-title">
+                    <strong>动作</strong>
+                    <n-button size="tiny" secondary @click="addAction">
+                      添加动作
+                    </n-button>
+                  </div>
+                  <div v-if="!visualRule.actions.length" class="inline-empty error">
+                    至少需要一个动作
+                  </div>
+                  <div v-for="(action, index) in visualRule.actions" :key="`action-${index}`" class="rule-row action-row">
+                    <DictSelect
+                      v-model:value="action.actionType"
+                      dict-type="ai_business_extension_rule_action"
+                      :clearable="false"
+                    />
+                    <n-select
+                      v-if="action.actionType === 'SET_FIELD'"
+                      v-model:value="action.field"
+                      filterable
+                      :loading="clientContextCatalogLoading"
+                      :options="visualRuleWritableFieldOptions(action.field)"
+                      placeholder="选择要设置的字段"
+                      @update:value="action.value = ''"
+                    />
+                    <DictSelect
+                      v-if="action.actionType === 'SET_FIELD' && actionValueKind(action) === 'DICT'"
+                      v-model:value="action.value"
+                      :dict-type="actionField(action)?.dictType"
+                      clearable
+                    />
+                    <n-select
+                      v-else-if="action.actionType === 'SET_FIELD' && actionValueKind(action) === 'BOOLEAN'"
+                      v-model:value="action.value"
+                      :options="booleanRuleOptions"
+                      clearable
+                      placeholder="选择是或否"
+                    />
+                    <n-input-number
+                      v-else-if="action.actionType === 'SET_FIELD' && actionValueKind(action) === 'NUMBER'"
+                      v-model:value="action.value"
+                      clearable
+                      placeholder="输入设置值"
+                    />
+                    <n-date-picker
+                      v-else-if="action.actionType === 'SET_FIELD' && ['DATE', 'DATETIME'].includes(actionValueKind(action))"
+                      v-model:formatted-value="action.value"
+                      :type="actionValueKind(action) === 'DATETIME' ? 'datetime' : 'date'"
+                      :value-format="actionValueKind(action) === 'DATETIME' ? 'yyyy-MM-dd HH:mm:ss' : 'yyyy-MM-dd'"
+                      clearable
+                    />
+                    <n-input
+                      v-else-if="action.actionType === 'SET_FIELD'"
+                      v-model:value="action.value"
+                      placeholder="输入设置值"
+                    />
+                    <n-input
+                      v-else-if="action.actionType === 'SHOW_MESSAGE'"
+                      v-model:value="action.message"
+                      placeholder="提示内容"
+                    />
+                    <n-select
+                      v-else
+                      v-model:value="action.actionCode"
+                      filterable
+                      :options="visualRuleActionOptions(action.actionCode)"
+                      placeholder="选择页面动作"
+                    />
+                    <n-button quaternary type="error" @click="visualRule.actions.splice(index, 1)">
+                      移除
+                    </n-button>
+                  </div>
+                </div>
+              </template>
+
+              <template v-else-if="form.extensionType === 'CLIENT_JS'">
+                <ExtensionCodeWorkbench
+                  v-model="form.content"
+                  mode="javascript"
+                  :hook-code="form.hookCode"
+                  :application-code="application?.applicationCode"
+                  :application-name="application?.applicationName"
+                  :page-code="selectedEntryLabel"
+                  :page-name="selectedEntryLabel"
+                  @example-applied="applyCodeExampleContext"
+                />
+                <div class="test-context-section">
+                  <div class="test-context-heading">
+                    <div>
+                      <strong>准备一条测试数据</strong>
+                      <span>字段和页面动作会从脚本自动识别，你只需要确认测试值。</span>
+                    </div>
+                    <n-button
+                      size="tiny"
+                      secondary
+                      :loading="clientContextCatalogLoading"
+                      @click="syncClientContextFromScript(false)"
+                    >
+                      重新识别脚本
+                    </n-button>
+                  </div>
+
+                  <div class="test-scene-summary">
+                    <div>
+                      <span class="test-scene-kicker">当前模拟</span>
+                      <strong>{{ clientContextScene.title }}</strong>
+                      <p>{{ clientContextScene.description }}</p>
+                    </div>
+                    <n-tag size="small" :bordered="false">
+                      {{ selectedEntryLabel }}
+                    </n-tag>
+                  </div>
+
+                  <div class="test-data-block">
+                    <div class="test-data-toolbar">
+                      <div>
+                        <strong>业务字段值</strong>
+                        <span>{{ clientDetectedSummary }}</span>
+                      </div>
+                      <div class="test-data-actions">
+                        <n-button size="tiny" quaternary @click="applyClientValuePreset('SAMPLE')">
+                          填充示例值
+                        </n-button>
+                        <n-button size="tiny" quaternary @click="applyClientValuePreset('EMPTY')">
+                          模拟空值
+                        </n-button>
+                        <n-button size="tiny" secondary @click="addClientTestField()">
+                          添加字段
+                        </n-button>
+                      </div>
+                    </div>
+
+                    <div class="record-id-row">
+                      <span>测试记录 ID</span>
+                      <n-input
+                        v-model:value="clientRecordId"
+                        size="small"
+                        placeholder="例如：1"
+                      />
+                      <small>用于模拟当前表单或列表行，不会查询数据库。</small>
+                    </div>
+
+                    <div v-if="clientTestFields.length" class="test-field-table">
+                      <div class="test-field-row test-field-head">
+                        <span>业务字段</span>
+                        <span>值类型</span>
+                        <span>本次测试值</span>
+                        <span />
+                      </div>
+                      <div
+                        v-for="(field, index) in clientTestFields"
+                        :key="field.key"
+                        class="test-field-row"
+                      >
+                        <n-select
+                          v-model:value="field.fieldCode"
+                          filterable
+                          tag
+                          :options="clientFieldOptions"
+                          placeholder="选择字段或输入字段编码"
+                          @update:value="value => handleClientTestFieldChange(field, value)"
+                        />
+                        <n-select
+                          v-model:value="field.valueType"
+                          :options="clientValueTypeOptions"
+                          :clearable="false"
+                          @update:value="value => handleClientValueTypeChange(field, value)"
+                        />
+                        <n-select
+                          v-if="field.valueType === 'BOOLEAN'"
+                          v-model:value="field.value"
+                          :options="clientBooleanOptions"
+                          :clearable="false"
+                        />
+                        <span v-else-if="field.valueType === 'NULL'" class="null-value-placeholder">
+                          空值 null
+                        </span>
+                        <n-input
+                          v-else
+                          v-model:value="field.value"
+                          :placeholder="clientValuePlaceholder(field.valueType)"
+                        />
+                        <n-button quaternary type="error" @click="clientTestFields.splice(index, 1)">
+                          移除
+                        </n-button>
+                      </div>
+                    </div>
+                    <div v-else class="test-fields-empty">
+                      当前脚本没有读取或修改业务字段，可以直接测试；如需补充数据，请点击“添加字段”。
+                    </div>
+
+                    <n-form-item
+                      v-if="clientAllowedActions.length"
+                      label="允许脚本触发的页面动作"
+                      class="test-actions-field"
+                    >
+                      <n-select
+                        v-model:value="clientAllowedActions"
+                        multiple
+                        filterable
+                        tag
+                        :options="clientActionOptions"
+                        placeholder="脚本未调用页面动作时无需选择"
+                      />
+                      <template #feedback>
+                        已从 triggerAction 自动识别；只有这里列出的动作会在测试中放行。
+                      </template>
+                    </n-form-item>
+                  </div>
+
+                  <details class="test-context-advanced">
+                    <summary>查看沙箱实际接收的内容（高级）</summary>
+                    <pre>{{ clientContextPreview }}</pre>
+                  </details>
+                </div>
+                <ExtensionSandboxHost ref="sandboxRef" />
+              </template>
+
+              <template v-else-if="form.extensionType === 'SCOPED_CSS'">
+                <div class="content-toolbar">
+                  <n-form-item label="作用页面" class="page-code-field" :show-feedback="false">
+                    <n-select
+                      v-model:value="form.scopeKey"
+                      clearable
+                      filterable
+                      :options="scopedCssPageOptions"
+                      placeholder="全部页面"
+                    />
+                  </n-form-item>
+                </div>
+                <ExtensionCodeWorkbench
+                  v-model="form.content"
+                  mode="css"
+                  :hook-code="form.hookCode"
+                  :application-code="application?.applicationCode"
+                  :application-name="application?.applicationName"
+                  :page-code="form.scopeKey || 'default'"
+                  :page-name="scopedCssPageLabel"
+                />
+                <n-alert v-if="cssError" type="error" :show-icon="false" class="code-feedback">
+                  {{ cssError }}
+                </n-alert>
+                <ScopedCssPreview
+                  v-else-if="cssResult"
+                  class="code-feedback"
+                  :css="cssResult.css"
+                  :scope-selector="cssResult.scopeSelector"
+                  :application-code="application?.applicationCode"
+                  :application-name="application?.applicationName"
+                  :page-code="form.scopeKey || 'default'"
+                  :page-name="scopedCssPageLabel"
+                />
+              </template>
+
+              <template v-else-if="form.extensionType === 'SERVER_BINDING'">
+                <p class="security-note">
+                  选择已注册的 Java 处理器；不在线编译，也不填写 Bean 或 Class 名。
+                </p>
+                <n-alert v-if="!handlerOptions.length" type="warning" :show-icon="false" class="handler-empty-alert">
+                  暂无已注册的 Java 增强处理器。请先在后端实现并注册 LowcodeExtensionHandler，然后重启服务。
+                </n-alert>
+                <n-form-item label="注册处理器" path="handlerCode">
+                  <n-select
+                    v-model:value="handlerCode"
+                    filterable
+                    :options="handlerOptions"
+                    placeholder="请选择管理员已注册处理器"
+                  />
+                </n-form-item>
+                <div v-if="selectedHandler" class="handler-contract">
+                  <span>允许触发点：{{ selectedHandler.allowedHooks?.length || 0 }} 个</span>
+                  <span>输入字段：{{ Object.keys(selectedHandler.inputSchema || {}).join('、') || '无' }}</span>
+                  <span>超时：{{ selectedHandler.timeoutMs }}ms</span>
+                  <span>风险：{{ riskLevelLabel(selectedHandler.riskLevel) }}</span>
+                  <span>所需权限：{{ selectedHandler.requiredPermission || '无额外权限' }}</span>
+                </div>
+                <n-form-item label="测试输入 JSON">
+                  <n-input v-model:value="serverTestInput" type="textarea" :autosize="{ minRows: 6, maxRows: 12 }" />
+                </n-form-item>
+              </template>
+            </div>
+          </section>
+
+          <section class="editor-stage editor-stage--governance">
+            <button type="button" class="editor-stage__header is-toggle" @click="governanceOpen = !governanceOpen">
+              <i>4</i>
+              <div>
+                <strong>治理与版本</strong>
+                <span>失败策略、风险级别和变更说明</span>
+              </div>
+              <em>{{ governanceOpen ? '收起' : '展开' }}</em>
+            </button>
+            <div v-show="governanceOpen" class="editor-stage__body form-grid two-columns">
+              <n-form-item label="失败策略" path="failurePolicy">
+                <DictSelect
+                  v-model:value="form.failurePolicy"
+                  dict-type="ai_business_extension_failure_policy"
+                  :clearable="false"
+                />
+              </n-form-item>
+              <n-form-item label="风险级别" path="riskLevel">
+                <DictSelect
+                  v-model:value="form.riskLevel"
+                  dict-type="ai_business_extension_risk_level"
+                  :clearable="false"
+                />
+              </n-form-item>
+              <n-form-item label="本次变更说明" class="form-grid__wide">
+                <n-input v-model:value="form.changeSummary" placeholder="说明这次调整的原因和影响" />
+              </n-form-item>
+              <n-form-item label="备注" class="form-grid__wide">
+                <n-input v-model:value="form.remark" type="textarea" :autosize="{ minRows: 2, maxRows: 4 }" />
+              </n-form-item>
+            </div>
+          </section>
+        </n-form>
+      </div>
+
+      <aside class="workspace-aside">
+        <section class="config-summary">
+          <h3>配置进度</h3>
+          <ol class="stage-progress">
+            <li :class="{ done: Boolean(form.extensionName && form.extensionCode) }">
+              <span>身份</span>
+              <small>{{ form.extensionName || '未命名' }}</small>
+            </li>
+            <li :class="{ done: Boolean(form.hookCode) }">
+              <span>时机</span>
+              <small>{{ hookSummaryLabel }}</small>
+            </li>
+            <li :class="{ done: contentStageReady }">
+              <span>内容</span>
+              <small>{{ selectedExtensionType?.title || '未选择' }}</small>
+            </li>
+            <li :class="{ done: Boolean(form.failurePolicy && form.riskLevel) }">
+              <span>治理</span>
+              <small>{{ governanceOpen ? '已展开' : '可稍后填写' }}</small>
+            </li>
+          </ol>
+          <dl>
+            <div>
+              <dt>对象</dt>
+              <dd>{{ objectSummaryLabel }}</dd>
+            </div>
+            <div>
+              <dt>范围</dt>
+              <dd>{{ scopeSummaryLabel }}</dd>
+            </div>
+          </dl>
         </section>
 
-        <section v-else-if="form.extensionType === 'SERVER_BINDING'" class="editor-section developer-section">
-          <h3>Java 服务增强</h3>
-          <p class="security-note">
-            Java 开发人员实现 <code>LowcodeExtensionHandler</code> 并随服务部署后，会自动注册到这里。设计人员只选择能力，不在线编译 Java，也不填写 Bean 或 Class 名。
-          </p>
-          <n-alert v-if="!handlerOptions.length" type="warning" :show-icon="false" class="handler-empty-alert">
-            暂无已注册的 Java 增强处理器。请先在后端实现并注册 LowcodeExtensionHandler，然后重启服务。
-          </n-alert>
-          <n-form-item label="注册处理器" path="handlerCode">
-            <n-select
-              v-model:value="handlerCode"
-              filterable
-              :options="handlerOptions"
-              placeholder="请选择管理员已注册处理器"
-            />
-          </n-form-item>
-          <div v-if="selectedHandler" class="handler-contract">
-            <span>允许触发点：{{ selectedHandler.allowedHooks?.length || 0 }} 个，上方矩阵已限制可选范围</span>
-            <span>输入字段：{{ Object.keys(selectedHandler.inputSchema || {}).join('、') || '无' }}</span>
-            <span>超时：{{ selectedHandler.timeoutMs }}ms</span>
-            <span>风险：{{ riskLevelLabel(selectedHandler.riskLevel) }}</span>
-            <span>所需权限：{{ selectedHandler.requiredPermission || '无额外权限' }}</span>
-          </div>
-          <n-form-item label="测试输入 JSON">
-            <n-input v-model:value="serverTestInput" type="textarea" :autosize="{ minRows: 6, maxRows: 12 }" />
-          </n-form-item>
-        </section>
-
-        <section class="editor-section test-console-section">
+        <section class="test-console-section">
           <div class="test-console-heading">
             <div>
-              <h3>扩展测试</h3>
-              <p>测试会依次保存当前草稿、执行安全校验和受限运行，不会直接启用扩展。</p>
+              <h3>增强测试</h3>
+              <p>保存草稿后校验并受限运行；不会直接启用。</p>
             </div>
             <span>{{ testStage === 'IDLE' ? '等待测试' : testSummary }}</span>
           </div>
@@ -526,47 +626,35 @@
             :show-icon="false"
             class="test-result-alert"
           >
-            当前草稿已通过校验和受限测试。只有启用当前版本后，提交表单时才会执行这条增强。
+            草稿已通过测试。启用后预览刷新即可执行；正式环境需重新发布。
           </n-alert>
         </section>
+      </aside>
+    </div>
 
-        <section class="editor-section">
-          <h3>版本说明</h3>
-          <n-form-item label="本次变更说明">
-            <n-input v-model:value="form.changeSummary" placeholder="说明这次调整的原因和影响" />
-          </n-form-item>
-          <n-form-item label="备注">
-            <n-input v-model:value="form.remark" type="textarea" :autosize="{ minRows: 2, maxRows: 4 }" />
-          </n-form-item>
-        </section>
-      </n-form>
-
-      <template #footer>
-        <div class="drawer-footer">
-          <span>{{ isEdit ? `草稿 v${extension?.draftVersion || '-'}` : '保存后生成 v1 草稿' }}</span>
-          <n-space>
-            <n-button @click="emit('update:show', false)">
-              取消
-            </n-button>
-            <n-button :loading="saving" secondary @click="saveCurrent">
-              保存草稿
-            </n-button>
-            <n-button :loading="testing" type="primary" @click="saveAndTest">
-              保存并测试
-            </n-button>
-            <n-button
-              v-if="testStage === 'PASSED' && form.status !== 'ENABLED'"
-              :loading="enabling"
-              type="success"
-              @click="enableCurrentVersion"
-            >
-              启用当前版本
-            </n-button>
-          </n-space>
-        </div>
-      </template>
-    </n-drawer-content>
-  </n-drawer>
+    <footer class="workspace-footer">
+      <span>{{ isEdit ? `草稿 v${extension?.draftVersion || '-'}` : '保存后生成 v1 草稿' }}</span>
+      <n-space>
+        <n-button @click="closeWorkspace">
+          返回列表
+        </n-button>
+        <n-button :loading="saving" secondary @click="saveCurrent">
+          保存草稿
+        </n-button>
+        <n-button :loading="testing" type="primary" @click="saveAndTest">
+          保存并测试
+        </n-button>
+        <n-button
+          v-if="testStage === 'PASSED' && form.status !== 'ENABLED'"
+          :loading="enabling"
+          type="success"
+          @click="enableCurrentVersion"
+        >
+          启用当前版本
+        </n-button>
+      </n-space>
+    </footer>
+  </div>
 </template>
 
 <script setup>
@@ -611,6 +699,10 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  createDefaults: {
+    type: Object,
+    default: null,
+  },
   objects: {
     type: Array,
     default: () => [],
@@ -637,6 +729,8 @@ const sandboxRef = ref(null)
 const saving = ref(false)
 const testing = ref(false)
 const enabling = ref(false)
+const showTypeGuide = ref(true)
+const governanceOpen = ref(false)
 const handlerCode = ref(null)
 const serverTestInput = ref('{}')
 const clientRecordId = ref('1')
@@ -724,6 +818,24 @@ const clientHookScenes = {
 }
 
 const isEdit = computed(() => Boolean(form.id))
+const statusLabel = computed(() => {
+  if (form.status === 'ENABLED')
+    return '运行中'
+  if (form.status === 'DISABLED')
+    return '已停用'
+  if (form.status === 'TESTED' || testStage.value === 'PASSED')
+    return '已测草稿'
+  return '草稿'
+})
+const statusTone = computed(() => {
+  if (form.status === 'ENABLED')
+    return 'success'
+  if (form.status === 'DISABLED')
+    return 'warning'
+  if (form.status === 'TESTED' || testStage.value === 'PASSED')
+    return 'info'
+  return 'default'
+})
 const objectOptions = computed(() => props.objects.map(item => ({
   label: `${item.objectName || item.objectCode} · ${item.objectCode}`,
   value: String(item.objectId ?? item.id),
@@ -733,15 +845,61 @@ const entryOptions = computed(() => props.entries.map(item => ({
   value: item.id,
 })))
 const scopedCssPageOptions = computed(() => extensionPageOptions(props.pages, form.scopeKey))
+const scopedCssPageLabel = computed(() => {
+  if (!form.scopeKey || form.scopeKey === 'default')
+    return '全部页面'
+  const page = props.pages.find(item => String(item.id) === String(form.scopeKey))
+  return page?.title || page?.name || '当前页面'
+})
 const handlerOptions = computed(() => props.handlers.map(item => ({
   label: `${item.handlerName} · ${item.handlerCode}`,
   value: item.handlerCode,
 })))
 const selectedHandler = computed(() => props.handlers.find(item => item.handlerCode === handlerCode.value))
 const selectedExtensionType = computed(() => extensionTypeChoices.find(item => item.value === form.extensionType))
-const drawerWidth = computed(() => ['CLIENT_JS', 'SCOPED_CSS'].includes(form.extensionType)
-  ? 'min(1120px, 96vw)'
-  : 'min(760px, 96vw)')
+const contentStageHint = computed(() => ({
+  VISUAL_RULE: '用条件和动作完成校验、赋值与提示',
+  CLIENT_JS: '在沙箱中编写页面脚本',
+  SCOPED_CSS: '编写限定在页面内的样式',
+  SERVER_BINDING: '绑定已注册的 Java 处理器',
+}[form.extensionType] || '选择类型后在此配置具体内容'))
+const contentStageReady = computed(() => {
+  if (form.extensionType === 'VISUAL_RULE')
+    return visualRule.actions.length > 0
+  if (form.extensionType === 'SERVER_BINDING')
+    return Boolean(handlerCode.value)
+  return Boolean(String(form.content || '').trim())
+})
+const hookSummaryLabel = computed(() => ({
+  PAGE_INIT: '页面打开',
+  FORM_CHANGE: '字段变更',
+  BEFORE_SUBMIT: '提交前',
+  AFTER_SUBMIT: '提交后',
+  ROW_ACTION: '行操作',
+  BEFORE_CREATE: '新增前',
+  AFTER_CREATE: '新增后',
+  BEFORE_UPDATE: '修改前',
+  AFTER_UPDATE: '修改后',
+  BEFORE_DELETE: '删除前',
+  AFTER_DELETE: '删除后',
+}[form.hookCode] || form.hookCode || '未选择'))
+const objectSummaryLabel = computed(() => {
+  const object = props.objects.find(item => String(item.objectId ?? item.id) === String(form.objectId || ''))
+  return object?.objectName || object?.objectCode || (form.objectId ? String(form.objectId) : '整个应用')
+})
+const scopeSummaryLabel = computed(() => {
+  if (form.extensionType === 'SCOPED_CSS' && form.scopeKey) {
+    const page = props.pages.find(item => String(item.id) === String(form.scopeKey))
+    return page?.title || form.scopeKey
+  }
+  if (form.entryId) {
+    const entry = props.entries.find(item => String(item.id) === String(form.entryId))
+    return entry ? entryDisplayName(entry) : '指定入口'
+  }
+  if (form.objectId)
+    return '业务对象'
+  return '整个应用'
+})
 const selectedEntryLabel = computed(() => {
   const entry = props.entries.find(item => item.id === form.entryId)
   return entry ? entryDisplayName(entry) : '当前页面'
@@ -841,14 +999,14 @@ const cssError = computed(() => {
 })
 
 const rules = {
-  extensionName: { required: true, message: '请输入扩展名称', trigger: ['blur', 'input'] },
+  extensionName: { required: true, message: '请输入增强名称', trigger: ['blur', 'input'] },
   extensionCode: {
     required: true,
     pattern: /^[a-z]\w{1,63}$/i,
     message: '字母开头，仅含字母、数字和下划线，2-64字符',
     trigger: ['blur', 'input'],
   },
-  extensionType: { required: true, message: '请选择扩展类型', trigger: 'change' },
+  extensionType: { required: true, message: '请选择增强类型', trigger: 'change' },
   hookCode: { required: true, message: '请选择执行钩子', trigger: 'change' },
   failurePolicy: { required: true, message: '请选择失败策略', trigger: 'change' },
   riskLevel: { required: true, message: '请选择风险级别', trigger: 'change' },
@@ -856,12 +1014,13 @@ const rules = {
 
 watch(() => props.show, async (visible) => {
   if (!visible) {
-    // 抽屉关闭后让尚未完成的字段/动作目录请求失效，避免过渡期间回写已关闭编辑器。
     clientContextCatalogRequestId += 1
     clearRenewTimer()
     return
   }
   hydrateForm()
+  showTypeGuide.value = !isEdit.value && !props.createDefaults?.extensionType
+  governanceOpen.value = Boolean(props.extension?.changeSummary || props.extension?.remark)
   if (!form.objectId)
     form.objectId = preferredExtensionObjectId(props.objects)
   await loadClientContextCatalog(form.objectId || resolveClientContextObjectId())
@@ -926,6 +1085,11 @@ watch(visualRule, () => {
 
 onBeforeUnmount(clearRenewTimer)
 
+function selectExtensionType(type) {
+  form.extensionType = type
+  showTypeGuide.value = false
+}
+
 function defaultForm() {
   return {
     id: null,
@@ -954,10 +1118,17 @@ function defaultForm() {
 
 function hydrateForm() {
   resetTestStatus()
-  Object.assign(form, defaultForm(), props.extension || {}, {
+  const defaults = (!props.extension && props.createDefaults && typeof props.createDefaults === 'object')
+    ? { ...props.createDefaults }
+    : {}
+  Object.assign(form, defaultForm(), defaults, props.extension || {}, {
     applicationId: props.application?.id,
-    objectId: props.extension?.objectId == null ? null : String(props.extension.objectId),
-    entryId: props.extension?.entryId == null ? null : String(props.extension.entryId),
+    objectId: props.extension
+      ? (props.extension.objectId == null ? null : String(props.extension.objectId))
+      : (defaults.objectId == null ? null : String(defaults.objectId)),
+    entryId: props.extension
+      ? (props.extension.entryId == null ? null : String(props.extension.entryId))
+      : (defaults.entryId == null ? null : String(defaults.entryId)),
   })
   handlerCode.value = null
   serverTestInput.value = '{}'
@@ -1331,7 +1502,7 @@ async function saveCurrent(showSuccess = true) {
       form.lockExpireTime = lockResponse.data?.expireTime || ''
       startRenewTimer()
       if (showSuccess)
-        message.success('扩展 v1 草稿已创建')
+        message.success('增强 v1 草稿已创建')
     }
     else {
       await updateBusinessExtension({
@@ -1344,7 +1515,7 @@ async function saveCurrent(showSuccess = true) {
         lockToken: form.lockToken,
       })
       if (showSuccess)
-        message.success('已追加新的扩展草稿版本')
+        message.success('已追加新的增强草稿版本')
     }
     form.status = 'DRAFT'
     emit('saved')
@@ -1387,10 +1558,10 @@ async function saveAndTest() {
     if (form.extensionType === 'SERVER_BINDING')
       testPayload.input = parseJson(serverTestInput.value, '服务端测试输入')
 
-    beginTestStage('SERVER', '正在由后端确认测试结果和扩展版本状态')
+    beginTestStage('SERVER', '正在由后端确认测试结果和增强版本状态')
     const testResponse = await testBusinessExtension(id, testPayload)
     if (!testResponse.data?.passed) {
-      const summary = testResponse.data?.summary || '扩展测试未通过'
+      const summary = testResponse.data?.summary || '增强测试未通过'
       failTestStage('SERVER', summary)
       message.warning(summary)
       return
@@ -1399,11 +1570,11 @@ async function saveAndTest() {
     testStage.value = 'PASSED'
     testSummary.value = '当前草稿测试通过'
     form.status = 'TESTED'
-    message.success('扩展测试通过，请点击“启用当前版本”使规则生效')
+    message.success('增强测试通过，请点击“启用当前版本”使规则生效')
     emit('saved')
   }
   catch (error) {
-    const summary = error instanceof Error ? error.message : '扩展测试执行失败'
+    const summary = error instanceof Error ? error.message : '增强测试执行失败'
     failTestStage(testStage.value, summary)
     message.error(summary)
   }
@@ -1596,7 +1767,7 @@ function startRenewTimer() {
     }
     catch {
       clearRenewTimer()
-      message.warning('扩展编辑锁已失效，请关闭后重新打开')
+      message.warning('增强编辑锁已失效，请关闭后重新打开')
     }
   }, 4 * 60 * 1000)
 }
@@ -1608,6 +1779,11 @@ function clearRenewTimer() {
   }
 }
 
+function closeWorkspace() {
+  emit('update:show', false)
+  handleAfterLeave()
+}
+
 function handleAfterLeave() {
   clientContextCatalogRequestId += 1
   clientContextCatalogLoading.value = false
@@ -1617,8 +1793,106 @@ function handleAfterLeave() {
 </script>
 
 <style scoped>
-.lock-alert {
-  margin-bottom: 14px;
+.extension-editor-workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+}
+
+.workspace-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-light, #e5e6eb);
+}
+
+.workspace-header__identity {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.workspace-header__eyebrow {
+  color: var(--text-tertiary, #86909c);
+  font-size: 11px;
+}
+
+.workspace-header__identity h2 {
+  margin: 2px 0 0;
+  color: var(--text-primary, #1d2129);
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.workspace-header__identity p {
+  margin: 4px 0 0;
+  color: var(--text-tertiary, #86909c);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.workspace-header__meta {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.workspace-version-hint {
+  color: var(--text-tertiary, #86909c);
+  font-size: 12px;
+}
+
+.workspace-body {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+  gap: 0;
+}
+
+.workspace-main {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 18px 20px;
+  scrollbar-gutter: stable;
+  border-right: 1px solid var(--border-light, #e5e6eb);
+}
+
+.workspace-aside {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: auto;
+  padding: 14px;
+  background: var(--bg-secondary, #f7f8fa);
+  scrollbar-gutter: stable;
+}
+
+.workspace-footer {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-light, #e5e6eb);
+  background: var(--bg-primary, #fff);
+}
+
+.workspace-footer > span {
+  color: var(--text-tertiary, #86909c);
+  font-size: 12px;
 }
 
 .extension-type-guide {
@@ -1626,9 +1900,184 @@ function handleAfterLeave() {
   gap: 12px;
   margin-bottom: 18px;
   padding: 14px;
-  border: 1px solid var(--border-default, #c9cdd4);
-  border-radius: 7px;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 6px;
   background: var(--bg-secondary, #f7f8fa);
+}
+
+.selected-type-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 6px;
+  background: var(--bg-secondary, #f7f8fa);
+}
+
+.editor-form {
+  display: grid;
+  gap: 10px;
+}
+
+.editor-stage {
+  overflow: hidden;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+}
+
+.editor-stage__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--border-light, #e5e6eb);
+  color: inherit;
+  background: var(--bg-secondary, #f7f8fa);
+  text-align: left;
+}
+
+.editor-stage__header.is-toggle {
+  cursor: pointer;
+}
+
+.editor-stage__header i {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--primary-color, #165dff);
+  background: color-mix(in srgb, var(--primary-color, #165dff) 10%, var(--bg-primary, #fff));
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+}
+
+.editor-stage__header strong {
+  display: block;
+  color: var(--text-primary, #1d2129);
+  font-size: 13px;
+}
+
+.editor-stage__header span {
+  color: var(--text-tertiary, #86909c);
+  font-size: 11px;
+}
+
+.editor-stage__header em {
+  margin-left: auto;
+  color: var(--primary-color, #165dff);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.editor-stage__header > .n-radio-group {
+  margin-left: auto;
+}
+
+.editor-stage__body {
+  padding: 12px;
+}
+
+.editor-stage--content .editor-stage__body {
+  display: grid;
+  gap: 12px;
+}
+
+.content-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.content-toolbar .page-code-field {
+  margin: 0;
+  min-width: 220px;
+}
+
+.form-grid__wide {
+  grid-column: 1 / -1;
+}
+
+.config-summary {
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light, #e5e6eb);
+}
+
+.config-summary h3 {
+  margin: 0 0 8px;
+  color: var(--text-primary, #1d2129);
+  font-size: 13px;
+}
+
+.stage-progress {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.stage-progress li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 8px;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 5px;
+  background: var(--bg-primary, #fff);
+}
+
+.stage-progress li.done {
+  border-color: color-mix(in srgb, var(--primary-color, #165dff) 28%, var(--border-light, #e5e6eb));
+}
+
+.stage-progress li span {
+  color: var(--text-tertiary, #86909c);
+  font-size: 11px;
+}
+
+.stage-progress li small {
+  overflow: hidden;
+  color: var(--text-secondary, #4e5969);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-summary dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.config-summary dl > div {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.config-summary dt {
+  color: var(--text-tertiary, #86909c);
+  font-size: 11px;
+}
+
+.config-summary dd {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text-secondary, #4e5969);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .type-guide-heading {
@@ -1673,7 +2122,7 @@ function handleAfterLeave() {
 }
 
 .type-guide-card.active {
-  box-shadow: inset 3px 0 0 var(--primary-color, #165dff);
+  background: color-mix(in srgb, var(--primary-color, #165dff) 6%, var(--bg-primary, #fff));
 }
 
 .type-guide-card strong {
@@ -2020,17 +2469,19 @@ function handleAfterLeave() {
 }
 
 .test-console-section {
-  padding: 12px;
-  border: 1px solid var(--border-light, #e5e6eb);
-  border-radius: 7px;
-  background: var(--bg-secondary, #f7f8fa);
+  display: grid;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .test-console-heading {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 6px;
 }
 
 .test-console-heading h3 {
@@ -2045,14 +2496,14 @@ function handleAfterLeave() {
 }
 
 .test-console-heading > span {
-  max-width: 360px;
-  text-align: right;
+  max-width: none;
+  text-align: left;
 }
 
 .test-step-list {
   display: grid;
   margin-top: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: 1fr;
   gap: 7px;
 }
 
@@ -2127,24 +2578,33 @@ function handleAfterLeave() {
   font-size: 12px;
 }
 
-.drawer-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  gap: 16px;
-}
+@media (max-width: 900px) {
+  .workspace-header {
+    flex-direction: column;
+  }
 
-.drawer-footer > span {
-  color: var(--text-tertiary, #86909c);
-  font-size: 12px;
-}
+  .workspace-header__meta {
+    justify-content: flex-start;
+  }
 
-@media (max-width: 760px) {
+  .workspace-body {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-main {
+    border-right: 0;
+    border-bottom: 1px solid var(--border-light, #e5e6eb);
+  }
+
+  .workspace-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .type-guide-grid,
   .two-columns,
   .condition-row,
   .action-row,
-  .test-step-list,
   .test-field-row,
   .record-id-row {
     grid-template-columns: 1fr;

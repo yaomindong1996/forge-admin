@@ -8,7 +8,7 @@
             :key="item.key"
             type="button"
             :class="{ active: activeSection === item.key }"
-            @click="activeSection = item.key"
+            @click="selectSection(item.key)"
           >
             <n-icon><component :is="item.icon" /></n-icon>
             <span>{{ item.label }}</span>
@@ -24,8 +24,9 @@
             :application="application"
           />
           <AppSettingsGlobalization v-else-if="activeSection === 'globalization'" v-model="settingsModel" />
+          <ApplicationPrintSettings v-else-if="activeSection === 'printing'" :application="application" />
           <AppSettingsAdvanced v-else v-model="settingsModel" />
-          <div class="settings-panel-actions">
+          <div v-if="activeSection !== 'printing'" class="settings-panel-actions">
             <n-button type="primary" :loading="saving" @click="saveSettings">
               保存设置
             </n-button>
@@ -51,16 +52,20 @@ import {
   LockClosedOutline,
   MenuOutline,
   OptionsOutline,
+  PrintOutline,
 } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   businessApplicationDetailByCode,
   checkBusinessApplicationSlugAvailable,
   saveBusinessApplicationPortalConfig,
   updateBusinessApplication,
 } from '@/api/business-application'
+import { resolveApplicationSettingsSection } from './application-print-entry'
 import { normalizePortalConfig, parseJsonObject } from './portal/portal-config'
+import ApplicationPrintSettings from './settings/ApplicationPrintSettings.vue'
 import AppSettingsAccess from './settings/AppSettingsAccess.vue'
 import AppSettingsAdvanced from './settings/AppSettingsAdvanced.vue'
 import AppSettingsBasic from './settings/AppSettingsBasic.vue'
@@ -75,11 +80,13 @@ const props = defineProps({
 const emit = defineEmits(['saved'])
 
 const message = useMessage()
+const route = useRoute()
+const router = useRouter()
 
 const loading = ref(false)
 const saving = ref(false)
 const loadError = ref('')
-const activeSection = ref('basic')
+const activeSection = ref(resolveApplicationSettingsSection(route.query.settingsSection))
 const settingsModel = ref({})
 const applicationOptions = ref({})
 const accessRef = ref(null)
@@ -90,12 +97,27 @@ const sections = [
   { key: 'navigation', label: '导航设置', icon: MenuOutline },
   { key: 'permission', label: '应用权限', icon: LockClosedOutline },
   { key: 'globalization', label: '全球化', icon: EarthOutline },
+  { key: 'printing', label: '打印模板', icon: PrintOutline },
   { key: 'advanced', label: '高级设置', icon: OptionsOutline },
 ]
 
 const settingsLoaded = computed(() => !!props.application && !!settingsModel.value.applicationName)
 
 const applicationPages = computed(() => applicationOptions.value?.inAppBuilder?.nodes || [])
+
+function selectSection(section) {
+  const next = resolveApplicationSettingsSection(section)
+  activeSection.value = next
+  const settingsSection = next === 'printing' ? 'printing' : undefined
+  if (route.query.settingsSection === settingsSection)
+    return
+  router.replace({
+    query: {
+      ...route.query,
+      settingsSection,
+    },
+  })
+}
 
 async function loadSettings() {
   const code = props.application?.applicationCode
@@ -184,6 +206,9 @@ watch(() => props.application?.applicationCode, (code) => {
   if (code)
     loadSettings()
 }, { immediate: true })
+watch(() => route.query.settingsSection, (section) => {
+  activeSection.value = resolveApplicationSettingsSection(section)
+})
 </script>
 
 <style scoped>

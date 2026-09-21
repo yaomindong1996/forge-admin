@@ -30,6 +30,7 @@ import ListenerConfig from './ListenerConfig.vue'
 import MultiInstanceConfig from './MultiInstanceConfig.vue'
 import OverdueReminderConfig from './OverdueReminderConfig.vue'
 import PermissionConfig from './PermissionConfig.vue'
+import PrintTemplatePolicyConfig from './PrintTemplatePolicyConfig.vue'
 
 const props = defineProps({
   node: { type: Object, required: true },
@@ -356,6 +357,17 @@ function buildFormRefFromAsset(asset, formMode) {
           :readonly="readonly"
           @update:config="patch"
         />
+        <div class="config-section-block">
+          <div class="config-section-title">
+            节点打印策略
+          </div>
+          <PrintTemplatePolicyConfig
+            :config="config"
+            :form-asset="selectedFormAsset"
+            :readonly="readonly"
+            @update:config="patch"
+          />
+        </div>
       </n-tab-pane>
       <n-tab-pane name="permissions" tab="审批权限">
         <div class="config-section-block">

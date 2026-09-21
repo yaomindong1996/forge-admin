@@ -5,6 +5,7 @@ import {
   buildDataAuditPageOptions,
   buildDataAuditSearchParams,
   normalizeDataAuditFilterOptions,
+  resolveDataAuditObjectId,
 } from '../data-audit-search'
 
 const applications = normalizeDataAuditFilterOptions({
@@ -14,7 +15,7 @@ const applications = normalizeDataAuditFilterOptions({
     pages: [{
       pageId: 'purchase-list',
       pageName: '采购申请',
-      objectId: 10,
+      objectId: '2101126754308390913',
       objectName: '采购申请',
       fields: [
         { fieldCode: 'amount', fieldLabel: '采购金额' },
@@ -36,7 +37,7 @@ describe('data change audit search', () => {
       timeRange: [100, 200],
     }, applications, value => `T${value}`)).toEqual({
       accessMode: 'AUDIT',
-      objectId: '10',
+      objectId: '2101126754308390913',
       recordKeyword: '采购-2026',
       fieldCode: 'amount',
       actorId: '8',
@@ -64,6 +65,17 @@ describe('data change audit search', () => {
       fieldCode: 'amount',
     }, applications)).toEqual({
       accessMode: 'AUDIT',
+    })
+  })
+
+  it('keeps snowflake object ids as strings and can reuse the selected object fallback', () => {
+    expect(resolveDataAuditObjectId(applications, '1', 'purchase-list')).toBe('2101126754308390913')
+    expect(buildDataAuditSearchParams({
+      fieldCode: 'fieldNumber',
+    }, applications, value => value, '2101126754308390913')).toEqual({
+      accessMode: 'AUDIT',
+      objectId: '2101126754308390913',
+      fieldCode: 'fieldNumber',
     })
   })
 })

@@ -1,9 +1,9 @@
 <template>
-  <div class="hook-matrix">
+  <div class="hook-matrix" :class="{ compact }">
     <div class="hook-matrix-heading">
       <div>
         <strong>触发时机</strong>
-        <span>选择业务动作及执行前后位置，同一条增强只绑定一个触发点。</span>
+        <span v-if="!compact">选择业务动作及执行前后位置，同一条增强只绑定一个触发点。</span>
       </div>
       <div v-if="selectedHook" class="selected-hook">
         <DictTag v-if="hookDict.length" :options="hookDict" :value="selectedHook" :bordered="false" />
@@ -15,7 +15,7 @@
     <section v-for="group in hookGroups" :key="group.key" class="hook-group">
       <header>
         <strong>{{ group.title }}</strong>
-        <span>{{ group.description }}</span>
+        <span v-if="!compact">{{ group.description }}</span>
       </header>
       <div class="hook-group-rows">
         <div v-for="row in group.rows" :key="row.key" class="hook-row">
@@ -62,12 +62,16 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  compact: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['update:modelValue'])
 const { dict } = useDict('ai_business_extension_hook')
 
-const hookGroups = [
+const hookGroupsSource = [
   {
     key: 'write',
     title: '数据写入',
@@ -161,6 +165,16 @@ const hookFallbackDescriptions = {
 const allowedHookSet = computed(() => props.allowedHooks === null
   ? null
   : new Set(props.allowedHooks || []))
+const hookGroups = computed(() => {
+  if (allowedHookSet.value === null)
+    return hookGroupsSource
+  return hookGroupsSource
+    .map(group => ({
+      ...group,
+      rows: group.rows.filter(row => row.hooks.some(hook => allowedHookSet.value.has(hook.value))),
+    }))
+    .filter(group => group.rows.length)
+})
 const selectedHook = computed(() => props.modelValue || '')
 const hookDict = computed(() => dict.value.ai_business_extension_hook || [])
 const selectedHookDescription = computed(() => hookDescription(selectedHook.value))
@@ -207,6 +221,25 @@ function selectHook(value) {
   display: grid;
   width: 100%;
   gap: 10px;
+}
+
+.hook-matrix.compact {
+  gap: 6px;
+}
+
+.hook-matrix.compact .hook-group header {
+  padding: 6px 10px;
+}
+
+.hook-matrix.compact .hook-row {
+  min-height: 36px;
+  padding: 4px 10px;
+}
+
+.hook-matrix.compact .hook-option {
+  min-width: 72px;
+  min-height: 40px;
+  padding: 4px 8px;
 }
 
 .hook-matrix-heading,

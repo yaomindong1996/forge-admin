@@ -21,6 +21,7 @@
         <module>forge-plugin-message</module>
         <module>forge-plugin-flow</module>
         <module>forge-plugin-collaboration</module>
+        <module>forge-plugin-print</module>
         <module>forge-plugin-generator</module>
         <module>forge-plugin-ai</module>
         <module>forge-plugin-capability-parent</module>

@@ -223,6 +223,16 @@
       record-title="审批记录"
       fullscreen
     >
+      <template #toolbar>
+        <FlowPrintAction
+          :row="currentTask"
+          scene="FLOW_TODO"
+          :task-form-info="taskFormInfo"
+          :business-context="businessFormContext"
+          :dirty="flowPrintHasUnsavedChanges"
+          :disabled="isApprovalBusy"
+        />
+      </template>
       <template v-if="currentTask">
         <section class="approval-detail-section">
           <div class="approval-section-header">
@@ -579,6 +589,7 @@ import UserSelectModal from '@/components/common/UserSelectModal.vue'
 import DingFlowViewer from '@/components/flow-designer/viewer/DingFlowViewer.vue'
 import FlowApprovalChecklist from '@/components/flow/FlowApprovalChecklist.vue'
 import FlowCommentPhraseInput from '@/components/flow/FlowCommentPhraseInput.vue'
+import FlowPrintAction from '@/components/flow/FlowPrintAction.vue'
 import FlowTaskBusinessSummary from '@/components/flow/FlowTaskBusinessSummary.vue'
 import FlowTaskCardList from '@/components/flow/FlowTaskCardList.vue'
 import FlowTaskDetailShell from '@/components/flow/FlowTaskDetailShell.vue'
@@ -639,6 +650,7 @@ const dynamicFormSchema = computed(() => formCreateToAiSchema(taskFormInfo.value
 const businessFormContext = ref(null)
 const businessFormData = ref({})
 const businessChildFormData = ref({})
+const businessFormSavedSnapshot = ref('')
 const businessFormRef = ref(null)
 const businessChildFormRef = ref(null)
 const businessFormLoading = ref(false)
@@ -673,6 +685,13 @@ const businessFormChildrenConfig = computed(() => {
   )
 })
 const businessFormHasWritableFields = computed(() => hasWritableBusinessFormFields(businessFormContext.value))
+const flowPrintHasUnsavedChanges = computed(() => {
+  const businessDirty = Boolean(businessFormSavedSnapshot.value)
+    && businessFormSavedSnapshot.value !== createBusinessFormSnapshot()
+  const dynamicDirty = Boolean(taskFormInfo.value)
+    && JSON.stringify(dynamicFormData.value) !== JSON.stringify(taskFormInfo.value?.variables || {})
+  return businessDirty || dynamicDirty
+})
 const businessCodeFormUrl = computed(() => businessFormContext.value?.formUrl || businessFormContext.value?.formRef?.formUrl || '')
 const businessFormGridCols = computed(() => Math.max(1, Number(businessFormContext.value?.gridCols || 1)))
 const businessFormLabelPlacement = computed(() => ['left', 'top'].includes(businessFormContext.value?.labelPlacement)
@@ -818,8 +837,20 @@ function resetBusinessTaskForm() {
   businessFormContext.value = null
   businessFormData.value = {}
   businessChildFormData.value = {}
+  businessFormSavedSnapshot.value = ''
   businessFormLoading.value = false
   businessFormSaving.value = false
+}
+
+function createBusinessFormSnapshot() {
+  return JSON.stringify({
+    main: businessFormData.value || {},
+    children: businessChildFormData.value || {},
+  })
+}
+
+function rememberBusinessFormSnapshot() {
+  businessFormSavedSnapshot.value = createBusinessFormSnapshot()
 }
 
 function normalizeBusinessRecordData(recordData) {
@@ -979,6 +1010,7 @@ async function loadBusinessTaskFormContext(row, formInfo) {
       applyTaskFormInfo(res.data.taskFormInfo)
     businessFormData.value = normalizeBusinessRecordData(res.data?.recordData)
     businessChildFormData.value = normalizeBusinessChildrenData(res.data?.recordData)
+    rememberBusinessFormSnapshot()
     logBusinessApprovalChildren('todo', res.data?.recordData)
     return businessFormContext.value
   }
@@ -1065,6 +1097,7 @@ async function hydrateBusinessFormFromAssets(formInfo) {
       recordData: formInfo.variables || {},
     }
     businessFormData.value = { ...(formInfo.variables || {}) }
+    rememberBusinessFormSnapshot()
   }
   catch (error) {
     console.error('按表单资产回退渲染失败', error)
@@ -1183,6 +1216,7 @@ async function saveBusinessTaskFormFields(options = {}) {
     businessFormContext.value = res.data || businessFormContext.value
     businessFormData.value = normalizeBusinessRecordData(businessFormContext.value?.recordData || businessFormData.value)
     businessChildFormData.value = normalizeBusinessChildrenData(businessFormContext.value?.recordData)
+    rememberBusinessFormSnapshot()
     if (!silent)
       window.$message.success('修改已暂存')
     return businessFormContext.value
@@ -1918,620 +1952,4 @@ watch(
 )
 </script>
 
-<style scoped>
-:deep(.n-data-table .n-data-table-th),
-:deep(.n-data-table .n-data-table-td) {
-  padding: 6px 8px;
-}
-
-.flow-page {
-  box-sizing: border-box;
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow: hidden;
-  background: var(--bg-secondary);
-}
-
-.page-header {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
-  margin-bottom: 16px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.title-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 18px;
-}
-
-.page-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-}
-
-.quick-stats {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  background: #fef3c7;
-  color: #b45309;
-}
-
-.stat-item.urgent {
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  color: #b91c1c;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.search-input {
-  width: 220px;
-}
-
-.category-select {
-  width: 132px;
-}
-
-.quick-action-panel {
-  width: min(420px, calc(100vw - 32px));
-  padding: 12px;
-  border: 1px solid var(--border-light, #e2e8f0);
-  border-radius: 6px;
-  background: #fff;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-}
-
-.quick-action-panel :deep(.n-input) {
-  --n-padding-left: 10px;
-  --n-padding-right: 10px;
-  --n-padding-vertical: 8px;
-}
-
-.quick-action-panel :deep(textarea.n-input__textarea-el) {
-  min-height: 72px;
-  font-size: 13px;
-  line-height: 20px;
-}
-
-.quick-action-head {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.quick-action-head-text {
-  min-width: 0;
-  flex: 1;
-}
-
-.quick-action-head-text strong {
-  display: block;
-  color: var(--text-primary, #0f172a);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 22px;
-}
-
-.quick-action-panel[data-action='reject'] .quick-action-head-text strong {
-  color: var(--error-color, #d03050);
-}
-
-.quick-action-head-text p {
-  margin: 0;
-  overflow: hidden;
-  color: var(--text-tertiary, #64748b);
-  font-size: 12px;
-  line-height: 18px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.quick-action-close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  margin-top: 1px;
-  padding: 0;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-tertiary, #94a3b8);
-  cursor: pointer;
-}
-
-.quick-action-close:hover:not(:disabled) {
-  background: var(--bg-secondary, #f8fafc);
-  color: var(--text-primary, #0f172a);
-}
-
-.quick-action-close:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.quick-action-tip {
-  margin: 8px 0 0;
-  color: var(--text-tertiary, #94a3b8);
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.quick-action-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.search-btn,
-.reset-btn {
-  display: flex;
-  align-items: center;
-}
-
-.table-container {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px 20px;
-  flex: 1;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
-}
-
-:deep(.task-title-link) {
-  color: #0369a1;
-  cursor: pointer;
-  font-weight: 600;
-}
-:deep(.task-title-link:hover) {
-  text-decoration: underline;
-}
-
-:deep(.table-user) {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-:deep(.user-name-text) {
-  font-weight: 500;
-  color: #0f172a;
-}
-
-:deep(.task-status-pill.todo-status-pending) {
-  background: #fff7ed;
-  color: #c2410c;
-  box-shadow: inset 0 0 0 1px #fed7aa;
-}
-
-:deep(.task-status-pill.todo-status-active) {
-  background: #ecfdf5;
-  color: #047857;
-  box-shadow: inset 0 0 0 1px #bbf7d0;
-}
-
-:deep(.approval-status-mark.todo-status-pending) {
-  background: #f97316;
-}
-
-:deep(.approval-status-mark.todo-status-active) {
-  background: #0f766e;
-}
-
-:deep(.status-tag-mini) {
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-}
-:deep(.status-tag-mini.pending) {
-  background: #fef3c7;
-  color: #b45309;
-}
-:deep(.status-tag-mini.claimed) {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-:deep(.priority-tag-mini) {
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  background: #f1f5f9;
-  color: #64748b;
-}
-:deep(.priority-tag-mini.high) {
-  background: #fef3c7;
-  color: #b45309;
-}
-:deep(.priority-tag-mini.urgent) {
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  color: #b91c1c;
-}
-
-.drawer-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.drawer-title-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-.status-dot.pending {
-  background: #f59e0b;
-}
-.status-dot.claimed {
-  background: #3b82f6;
-}
-
-.drawer-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.drawer-tags {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.status-tag {
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.status-tag.pending {
-  background: #fef3c7;
-  color: #b45309;
-}
-.status-tag.claimed {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.priority-tag {
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.priority-tag.high {
-  background: #fef3c7;
-  color: #b45309;
-}
-.priority-tag.urgent {
-  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-  color: #b91c1c;
-}
-
-.drawer-body {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  max-height: calc(100vh - 178px);
-  overflow-y: auto;
-  padding-bottom: 20px;
-  padding: 18px 20px 20px;
-}
-
-.drawer-tabs {
-  flex: 0 0 auto;
-}
-
-.tab-badge {
-  background: #0369a1;
-  color: #fff;
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 10px;
-  margin-left: 6px;
-}
-
-.info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.info-card {
-  background: #f8fafc;
-  border-radius: 10px;
-  padding: 12px 16px;
-  border: 1px solid #e2e8f0;
-}
-
-.info-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-  margin-bottom: 10px;
-}
-
-.info-items {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.info-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.info-label {
-  font-size: 12px;
-  color: #64748b;
-}
-
-.info-value {
-  font-size: 13px;
-  color: #0f172a;
-  font-weight: 500;
-}
-
-.info-value.highlight {
-  color: #0369a1;
-  font-weight: 600;
-}
-
-.user-item {
-  align-items: flex-start;
-}
-
-.user-display {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.diagram-pane {
-  min-height: 200px;
-}
-
-.approve-section {
-  background: #fff;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  padding: 16px;
-}
-
-.approve-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #0f172a;
-  margin-bottom: 12px;
-}
-
-.form-loading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 20px 0;
-  color: #64748b;
-}
-
-.dynamic-form-section,
-.business-task-form-section {
-  margin-bottom: 16px;
-  padding: 14px;
-  border: 1px solid #d7dde7;
-  border-radius: 8px;
-  background: #f8fafc;
-}
-
-.approval-form-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  color: #172033;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.approval-form-title small {
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.business-form-warnings {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.business-form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.dynamic-form-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.dynamic-form-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #172033;
-}
-
-.dynamic-form-desc {
-  margin-top: 2px;
-  font-size: 12px;
-  color: #667085;
-}
-
-.dynamic-form-key {
-  max-width: 180px;
-  padding: 3px 8px;
-  border: 1px solid #d7dde7;
-  border-radius: 999px;
-  background: #fff;
-  color: #475467;
-  font-size: 12px;
-  line-height: 18px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.approve-comment-form {
-  margin-top: 8px;
-}
-
-.approve-comment-form :deep(.n-form-item) {
-  margin-bottom: 8px;
-}
-
-.approve-comment-form :deep(.n-form-item-label) {
-  height: 28px;
-  padding-top: 4px;
-  font-size: 13px;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-
-.delegate-user-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-}
-
-.delegate-user-display {
-  flex: 1;
-  min-height: 36px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 6px 12px;
-  background: #f8fafc;
-}
-
-.delegate-user-name {
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.delegate-user-id {
-  font-size: 12px;
-  color: #64748b;
-}
-
-.delegate-placeholder {
-  color: #94a3b8;
-  font-size: 13px;
-}
-
-.flow-task-detail-modal {
-  width: min(1120px, calc(100vw - 32px));
-}
-
-@media (max-width: 760px) {
-  .flow-task-detail-modal {
-    width: 100vw;
-    height: 100vh;
-    margin: 0;
-  }
-
-  .drawer-header,
-  .dynamic-form-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .drawer-body {
-    max-height: calc(100vh - 126px);
-    padding: 14px;
-  }
-
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .action-buttons,
-  .delegate-user-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
-</style>
+<style scoped src="./todo.css"></style>

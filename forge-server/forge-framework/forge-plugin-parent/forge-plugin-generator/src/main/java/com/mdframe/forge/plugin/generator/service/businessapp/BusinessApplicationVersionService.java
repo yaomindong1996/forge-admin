@@ -1,6 +1,7 @@
 package com.mdframe.forge.plugin.generator.service.businessapp;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.mdframe.forge.plugin.generator.service.printing.PrintApplicationVersionGuard;
 import com.mdframe.forge.plugin.generator.constant.BusinessApplicationPublishStatus;
 import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApplicationVersion;
 import com.mdframe.forge.plugin.generator.mapper.BusinessApplicationMapper;
@@ -27,6 +28,7 @@ public class BusinessApplicationVersionService
     private final BusinessApplicationService applicationService;
     private final BusinessApplicationMapper applicationMapper;
     private final BusinessApplicationSnapshotService snapshotService;
+    private final PrintApplicationVersionGuard printVersionGuard;
 
     public List<BusinessApplicationVersionVO> list(Long applicationId) {
         return baseMapper.selectVersions(resolveTenantId(), applicationId).stream()
@@ -59,6 +61,8 @@ public class BusinessApplicationVersionService
         if (!BusinessApplicationPublishStatus.versionStatuses().contains(publishStatus)) {
             throw new BusinessException("应用发布版本状态不正确");
         }
+        // 与模板修改/删除共用应用行锁；同一事务内失败不会插入版本或切换发布指针。
+        printVersionGuard.lockAndValidate(applicationId, snapshot.json());
         AiBusinessApplicationVersion existing = baseMapper.selectVersion(resolveTenantId(), applicationId, versionNo);
         if (existing != null) {
             if (!StringUtils.equals(existing.getSnapshotHash(), snapshot.hash())) {

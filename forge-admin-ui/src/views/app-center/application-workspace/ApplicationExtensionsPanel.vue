@@ -1,143 +1,192 @@
 <template>
-  <div class="extensions-panel">
-    <header v-if="!embedded" class="panel-heading">
-      <div>
-        <h2>动作与增强</h2>
-        <p>可视化规则面向业务配置；脚本、样式和服务绑定统一经过校验、测试、版本与审计。</p>
-      </div>
-      <n-space>
-        <n-dropdown
-          v-if="objects.length"
-          :options="objectActionOptions"
-          @select="openObjectActions"
-        >
-          <n-button secondary>
-            对象业务动作
-          </n-button>
-        </n-dropdown>
-        <n-button type="primary" :loading="editorDependencyLoading" @click="openCreate">
-          新建扩展
-        </n-button>
-      </n-space>
-    </header>
-
-    <div v-else class="embedded-actionbar">
-      <n-space>
-        <n-dropdown
-          v-if="objects.length"
-          :options="objectActionOptions"
-          @select="openObjectActions"
-        >
-          <n-button secondary>
-            对象业务动作
-          </n-button>
-        </n-dropdown>
-        <n-button type="primary" :loading="editorDependencyLoading" @click="openCreate">
-          新建扩展
-        </n-button>
-      </n-space>
-    </div>
-
-    <div class="extension-guidance">
-      <strong>增强怎么用</strong>
-      <span>选择作用对象和触发时机，再选择业务规则、页面 JS、页面 CSS 或 Java 服务增强，保存并测试通过后启用。</span>
-    </div>
-
-    <div class="extension-steps">
-      <span><i>1</i>选择对象或入口</span>
-      <span><i>2</i>选择执行钩子</span>
-      <span><i>3</i>配置增强内容</span>
-      <span><i>4</i>测试并启用</span>
-    </div>
-
-    <div class="filter-bar">
-      <n-input
-        v-model:value="filters.keyword"
-        clearable
-        placeholder="搜索扩展名称或编码"
-        @keyup.enter="loadExtensions"
-      />
-      <DictSelect
-        v-model:value="filters.extensionType"
-        dict-type="ai_business_extension_type"
-        placeholder="全部类型"
-      />
-      <DictSelect
-        v-model:value="filters.hookCode"
-        dict-type="ai_business_extension_hook"
-        placeholder="全部钩子"
-      />
-      <DictSelect
-        v-model:value="filters.status"
-        dict-type="ai_business_extension_status"
-        placeholder="全部状态"
-      />
-      <n-button secondary @click="loadExtensions">
-        查询
-      </n-button>
-    </div>
-
-    <n-spin :show="loading">
-      <n-empty
-        v-if="!loading && !extensions.length"
-        class="extensions-empty"
-        description="当前应用还没有受治理扩展"
-      >
-        <template #extra>
-          <n-button type="primary" @click="openCreate">
-            创建第一条可视化规则
-          </n-button>
-        </template>
-      </n-empty>
-
-      <div v-else class="extension-table">
-        <div class="extension-row extension-row-head">
-          <span>扩展</span>
-          <span>类型 / 钩子</span>
-          <span>作用对象</span>
-          <span>状态 / 版本</span>
-          <span>失败策略</span>
-          <span>操作</span>
+  <div class="extensions-panel" :class="{ 'is-editing': editorVisible }">
+    <template v-if="!editorVisible">
+      <header v-if="!embedded" class="panel-heading">
+        <div>
+          <h2>动作与增强</h2>
+          <p>配置业务规则、页面脚本、样式与 Java 服务；保存并测试通过后启用。</p>
         </div>
-        <div v-for="item in extensions" :key="item.id" class="extension-row">
-          <div class="extension-name">
-            <strong>{{ item.extensionName }}</strong>
-            <code>{{ item.extensionCode }}</code>
-          </div>
-          <div class="extension-type">
-            <DictTag dict-type="ai_business_extension_type" :value="item.extensionType" :bordered="false" />
-            <DictTag dict-type="ai_business_extension_hook" :value="item.hookCode" :bordered="false" />
-          </div>
-          <span>{{ item.objectName || item.entryName || scopeLabel(item.scopeType) }}</span>
-          <div class="version-state">
-            <DictTag dict-type="ai_business_extension_status" :value="item.status" :bordered="false" />
-            <small>草稿 v{{ item.draftVersion }}<template v-if="item.enabledVersion"> / 运行 v{{ item.enabledVersion }}</template></small>
-          </div>
-          <div class="failure-state">
-            <DictTag dict-type="ai_business_extension_failure_policy" :value="item.failurePolicy" :bordered="false" />
-            <DictTag dict-type="ai_business_extension_risk_level" :value="item.riskLevel" :bordered="false" />
-          </div>
-          <div class="extension-actions">
-            <a class="cursor-pointer text-primary" @click="openEdit(item)">编辑</a>
-            <a class="cursor-pointer text-info" @click="validateItem(item)">校验</a>
-            <a class="cursor-pointer text-primary" @click="testItem(item)">测试</a>
-            <n-dropdown :options="actionOptions(item)" @select="key => handleMoreAction(key, item)">
-              <a class="cursor-pointer text-info">更多</a>
-            </n-dropdown>
-          </div>
+      </header>
+
+      <div class="list-toolbar">
+        <div class="list-toolbar__filters">
+          <n-input
+            v-if="!showCreateEmpty"
+            v-model:value="filters.keyword"
+            clearable
+            size="small"
+            placeholder="搜索名称或编码"
+          />
+          <DictSelect
+            v-if="!showCreateEmpty"
+            v-model:value="filters.extensionType"
+            dict-type="ai_business_extension_type"
+            placeholder="类型"
+            clearable
+            size="small"
+          />
+          <DictSelect
+            v-if="!showCreateEmpty"
+            v-model:value="filters.hookCode"
+            dict-type="ai_business_extension_hook"
+            placeholder="钩子"
+            clearable
+            size="small"
+          />
+          <DictSelect
+            v-if="!showCreateEmpty"
+            v-model:value="filters.status"
+            dict-type="ai_business_extension_status"
+            placeholder="状态"
+            clearable
+            size="small"
+          />
+          <n-checkbox
+            v-if="contextPageId && !showCreateEmpty"
+            v-model:checked="onlyCurrentPage"
+            size="small"
+          >
+            仅当前页
+          </n-checkbox>
+          <span v-if="embedded && contextPageLabel" class="context-hint">
+            {{ contextPageLabel }}
+          </span>
+        </div>
+        <n-space :size="8">
+          <n-dropdown
+            v-if="objects.length"
+            :options="objectActionOptions"
+            @select="openObjectActions"
+          >
+            <n-button secondary size="small">
+              配置对象动作
+            </n-button>
+          </n-dropdown>
+          <n-button type="primary" size="small" :loading="editorDependencyLoading" @click="openCreate()">
+            新建增强
+          </n-button>
+        </n-space>
+      </div>
+
+      <div v-if="showCreateEmpty" class="extensions-empty">
+        <div class="extensions-empty__copy">
+          <strong>还没有增强</strong>
+          <span>选一种能力开始配置，测试通过后启用；预览刷新可见，正式环境需重新发布。</span>
+        </div>
+        <div class="empty-type-grid">
+          <button
+            v-for="item in createTypeChoices"
+            :key="item.value"
+            type="button"
+            class="empty-type-card"
+            @click="openCreate(item.value)"
+          >
+            <strong>{{ item.title }}</strong>
+            <span>{{ item.description }}</span>
+          </button>
         </div>
       </div>
-    </n-spin>
 
-    <ExtensionEditorDrawer
-      v-model:show="editorVisible"
+      <template v-else>
+        <n-spin :show="loading" class="list-spin">
+          <n-empty
+            v-if="showFilterEmpty"
+            class="extensions-filter-empty"
+            size="small"
+            :description="filterEmptyDescription"
+          >
+            <template #extra>
+              <n-space>
+                <n-button
+                  v-if="onlyCurrentPage && contextPageId && extensions.length"
+                  size="small"
+                  secondary
+                  @click="onlyCurrentPage = false"
+                >
+                  查看全部增强
+                </n-button>
+                <n-button
+                  v-if="hasActiveFilters"
+                  size="small"
+                  secondary
+                  @click="clearFilters"
+                >
+                  清除筛选
+                </n-button>
+                <n-button type="primary" size="small" @click="openCreate()">
+                  新建增强
+                </n-button>
+              </n-space>
+            </template>
+          </n-empty>
+
+          <div v-else class="extension-table">
+            <div class="extension-row extension-row-head">
+              <span>增强 <em v-if="displayedExtensions.length">{{ displayedExtensions.length }}</em></span>
+              <span>类型</span>
+              <span>作用范围</span>
+              <span>状态</span>
+              <span>操作</span>
+            </div>
+            <n-tooltip
+              v-for="item in displayedExtensions"
+              :key="item.id"
+              placement="top"
+              :delay="400"
+            >
+              <template #trigger>
+                <div class="extension-row" @dblclick="openEdit(item)">
+                  <div class="extension-name">
+                    <strong class="extension-title" @click="openEdit(item)">{{ item.extensionName }}</strong>
+                    <code>{{ item.extensionCode }}</code>
+                  </div>
+                  <div class="extension-type">
+                    <DictTag dict-type="ai_business_extension_type" :value="item.extensionType" :bordered="false" />
+                    <small>{{ hookLabel(item.hookCode) }}</small>
+                  </div>
+                  <span class="extension-scope">{{ scopeText(item) }}</span>
+                  <div class="version-state">
+                    <n-tag size="small" :type="lifecycleTone(item)" :bordered="false">
+                      {{ lifecycleLabel(item) }}
+                    </n-tag>
+                    <small>{{ lifecycleHint(item) }}</small>
+                  </div>
+                  <div class="extension-actions" @click.stop>
+                    <a class="cursor-pointer text-primary" @click="openEdit(item)">编辑</a>
+                    <a
+                      v-if="item.status !== 'ENABLED'"
+                      class="cursor-pointer text-success"
+                      @click="handleMoreAction('enable', item)"
+                    >启用</a>
+                    <a
+                      v-else
+                      class="cursor-pointer text-warning"
+                      @click="handleMoreAction('disable', item)"
+                    >停用</a>
+                    <n-dropdown :options="actionOptions()" @select="key => handleMoreAction(key, item)">
+                      <a class="cursor-pointer text-info">更多</a>
+                    </n-dropdown>
+                  </div>
+                </div>
+              </template>
+              {{ rowTooltip(item) }}
+            </n-tooltip>
+          </div>
+        </n-spin>
+      </template>
+    </template>
+
+    <ExtensionEditorWorkspace
+      :show="editorVisible"
       :application="application"
       :extension="editingExtension"
+      :create-defaults="createDefaults"
       :objects="objects"
       :entries="entries"
       :pages="pages"
       :handlers="handlers"
       :start-with-test="startWithTest"
+      @update:show="handleEditorShow"
       @saved="handleSaved"
       @closed="handleEditorClosed"
     />
@@ -167,7 +216,11 @@ import {
 } from '@/api/business-extension'
 import DictSelect from '@/components/DictSelect.vue'
 import DictTag from '@/components/DictTag.vue'
-import ExtensionEditorDrawer from './ExtensionEditorDrawer.vue'
+import {
+  extensionMatchesPage,
+  resolveExtensionPageContext,
+} from './extension-visual-rule'
+import ExtensionEditorWorkspace from './ExtensionEditorDrawer.vue'
 import ExtensionVersionDrawer from './ExtensionVersionDrawer.vue'
 
 const props = defineProps({
@@ -191,6 +244,10 @@ const props = defineProps({
     type: Array,
     default: null,
   },
+  contextPageId: {
+    type: String,
+    default: '',
+  },
   embedded: {
     type: Boolean,
     default: false,
@@ -212,9 +269,12 @@ let editorDependencyPromise = null
 let editorDependencyApplicationId = null
 const editorVisible = ref(false)
 const editingExtension = ref(null)
+const createDefaults = ref(null)
 const startWithTest = ref(false)
 const versionVisible = ref(false)
 const versionExtension = ref(null)
+const onlyCurrentPage = ref(Boolean(props.contextPageId))
+let filterReloadTimer = null
 const filters = reactive({
   keyword: '',
   extensionType: null,
@@ -222,10 +282,90 @@ const filters = reactive({
   status: null,
 })
 
+const createTypeChoices = [
+  { value: 'VISUAL_RULE', title: '业务规则', description: '条件校验、赋值与提示，无需写代码' },
+  { value: 'CLIENT_JS', title: '页面 JS', description: '字段联动、提示与受控页面动作' },
+  { value: 'SCOPED_CSS', title: '页面 CSS', description: '限定在指定页面内的样式调整' },
+  { value: 'SERVER_BINDING', title: 'Java 服务', description: '调用已注册的后端业务处理器' },
+]
+
 const objectActionOptions = computed(() => objects.value.map(item => ({
   label: item.objectName || item.objectCode,
   key: String(item.objectId),
 })))
+
+const pageContext = computed(() => resolveExtensionPageContext(props.contextPageId, {
+  pages: pages.value,
+  entries: entries.value,
+  objects: objects.value,
+}))
+
+const contextPageLabel = computed(() => {
+  if (!props.contextPageId)
+    return ''
+  return pageContext.value?.pageTitle || props.contextPageId
+})
+
+const hasActiveFilters = computed(() => Boolean(
+  filters.keyword?.trim()
+  || filters.extensionType
+  || filters.hookCode
+  || filters.status,
+))
+
+const displayedExtensions = computed(() => {
+  let list = extensions.value
+  if (onlyCurrentPage.value && props.contextPageId) {
+    const pageId = String(props.contextPageId)
+    list = list.filter(item => extensionMatchesPage(item, pageId, pageContext.value)
+      || matchesCurrentPage(item, pageId))
+  }
+  return list
+})
+
+const showCreateEmpty = computed(() => !loading.value && !extensions.value.length && !hasActiveFilters.value)
+const showFilterEmpty = computed(() => !loading.value && !displayedExtensions.value.length && !showCreateEmpty.value)
+
+const filterEmptyDescription = computed(() => {
+  if (onlyCurrentPage.value && props.contextPageId && extensions.value.length)
+    return '当前页面还没有增强，可查看应用全部增强或新建一条'
+  if (hasActiveFilters.value)
+    return '没有符合条件的增强'
+  return '当前页面还没有增强'
+})
+
+function clearFilters() {
+  filters.keyword = ''
+  filters.extensionType = null
+  filters.hookCode = null
+  filters.status = null
+}
+
+function rowTooltip(item) {
+  const parts = [
+    `钩子：${hookLabel(item.hookCode)}`,
+    item.failurePolicy ? `失败策略：${failurePolicyLabel(item.failurePolicy)}` : '',
+    item.riskLevel ? `风险：${riskLevelLabel(item.riskLevel)}` : '',
+    lifecycleHint(item),
+  ].filter(Boolean)
+  return parts.join(' · ')
+}
+
+function failurePolicyLabel(value) {
+  return {
+    BLOCK: '阻断',
+    CONTINUE: '继续',
+    IGNORE: '忽略',
+  }[value] || value
+}
+
+function riskLevelLabel(value) {
+  return {
+    LOW: '低',
+    MEDIUM: '中',
+    HIGH: '高',
+  }[value] || value
+}
 
 watch([
   () => props.application?.id,
@@ -257,6 +397,22 @@ watch(() => props.initialPages, (value) => {
     pages.value = [...value]
 }, { immediate: true })
 
+watch(() => props.contextPageId, (pageId) => {
+  onlyCurrentPage.value = Boolean(pageId)
+})
+
+watch(
+  () => [filters.keyword, filters.extensionType, filters.hookCode, filters.status],
+  () => {
+    if (!props.application?.id)
+      return
+    window.clearTimeout(filterReloadTimer)
+    filterReloadTimer = window.setTimeout(() => {
+      loadExtensions()
+    }, 280)
+  },
+)
+
 async function loadExtensions() {
   if (!props.application?.id)
     return
@@ -266,7 +422,10 @@ async function loadExtensions() {
       pageNum: 1,
       pageSize: 200,
       applicationId: props.application.id,
-      ...filters,
+      keyword: filters.keyword?.trim() || undefined,
+      extensionType: filters.extensionType || undefined,
+      hookCode: filters.hookCode || undefined,
+      status: filters.status || undefined,
     })
     extensions.value = response.data?.records || []
   }
@@ -294,10 +453,28 @@ async function loadHandlers() {
   }
 }
 
-async function openCreate() {
+function buildCreateDefaults(extensionType = null) {
+  const defaults = {}
+  if (extensionType)
+    defaults.extensionType = extensionType
+  const context = pageContext.value
+  if (context) {
+    defaults.scopeKey = context.scopeKey
+    if (extensionType === 'SCOPED_CSS')
+      defaults.scopeType = 'PAGE'
+    if (context.objectId)
+      defaults.objectId = context.objectId
+    if (context.entryId)
+      defaults.entryId = context.entryId
+  }
+  return Object.keys(defaults).length ? defaults : null
+}
+
+async function openCreate(extensionType = null) {
   await ensureEditorDependencies()
   startWithTest.value = false
   editingExtension.value = null
+  createDefaults.value = buildCreateDefaults(extensionType)
   editorVisible.value = true
 }
 
@@ -308,6 +485,7 @@ async function openEdit(item, shouldTest = false) {
     ensureEditorDependencies(),
   ])
   startWithTest.value = shouldTest
+  createDefaults.value = null
   editingExtension.value = {
     ...(detailResponse.data || item),
     lockToken: lockResponse.data?.lockToken,
@@ -359,25 +537,10 @@ function openObjectActions(objectId) {
   })
 }
 
-async function validateItem(item) {
-  const response = await validateBusinessExtension(item.id)
-  if (response.data?.passed)
-    message.success('当前草稿校验通过')
-  else
-    message.warning(response.data?.summary || '当前草稿校验未通过')
-  await loadExtensions()
-}
-
-async function testItem(item) {
-  await openEdit(item, true)
-}
-
-function actionOptions(item) {
+function actionOptions() {
   return [
-    {
-      label: item.status === 'ENABLED' ? '停用' : '启用',
-      key: item.status === 'ENABLED' ? 'disable' : 'enable',
-    },
+    { label: '校验草稿', key: 'validate' },
+    { label: '打开并测试', key: 'test' },
     { label: '版本与差异', key: 'versions' },
     { label: '删除', key: 'delete' },
   ]
@@ -389,9 +552,24 @@ async function handleMoreAction(key, item) {
     versionVisible.value = true
     return
   }
+  if (key === 'validate') {
+    const response = await validateBusinessExtension(item.id)
+    if (response.data?.passed)
+      message.success('当前草稿校验通过')
+    else
+      message.warning(response.data?.summary || '当前草稿校验未通过')
+    await loadExtensions()
+    return
+  }
+  if (key === 'test') {
+    await openEdit(item, true)
+    return
+  }
   if (key === 'enable' || key === 'disable') {
     await updateBusinessExtensionStatus(item.id, key === 'enable' ? 'ENABLED' : 'DISABLED')
-    message.success(key === 'enable' ? '扩展已启用' : '扩展已停用')
+    message.success(key === 'enable'
+      ? '增强已启用：工作台预览刷新后生效，正式环境需重新发布'
+      : '增强已停用')
     await handleSaved()
     return
   }
@@ -401,13 +579,13 @@ async function handleMoreAction(key, item) {
 
 function confirmDelete(item) {
   dialog.warning({
-    title: '删除业务扩展',
-    content: `确认删除“${item.extensionName}”及其设计态版本吗？已启用扩展必须先停用。`,
+    title: '删除增强',
+    content: `确认删除“${item.extensionName}”及其设计态版本吗？已启用增强必须先停用。`,
     positiveText: '确认删除',
     negativeText: '取消',
     onPositiveClick: async () => {
       await deleteBusinessExtension(item.id)
-      message.success('扩展已删除')
+      message.success('增强已删除')
       await handleSaved()
     },
   })
@@ -416,6 +594,12 @@ function confirmDelete(item) {
 async function handleSaved() {
   await loadExtensions()
   emit('changed')
+}
+
+function handleEditorShow(visible) {
+  editorVisible.value = visible
+  if (!visible)
+    createDefaults.value = null
 }
 
 async function handleEditorClosed(payload) {
@@ -427,129 +611,259 @@ async function handleEditorClosed(payload) {
     await releaseBusinessExtensionLock(id, lockToken)
   }
   catch {
-    // 锁可能已超时或保存链路已释放，关闭抽屉不阻断用户。
+    // 锁可能已超时或保存链路已释放，关闭不阻断用户。
   }
 }
 
-function scopeLabel(scopeType) {
+function matchesCurrentPage(item, pageId) {
+  const entry = entries.value.find(entryItem => String(entryItem.id) === String(item.entryId || ''))
+  if (!entry)
+    return false
+  return [
+    entry.pageId,
+    entry.targetPageId,
+    entry.entryPageId,
+    entry.appCode,
+  ].some(value => String(value || '') === pageId)
+}
+
+function scopeText(item) {
+  if (item.objectName)
+    return item.objectName
+  if (item.entryName)
+    return item.entryName
+  if (item.scopeKey) {
+    const page = pages.value.find(pageItem => String(pageItem.id) === String(item.scopeKey))
+    return page?.title || item.scopeKey
+  }
   return {
     APPLICATION: '整个应用',
     OBJECT: '业务对象',
     ENTRY: '页面入口',
     PAGE: '指定页面',
     COMPONENT: '指定组件',
-  }[scopeType] || '整个应用'
+  }[item.scopeType] || '整个应用'
+}
+
+function hookLabel(hookCode) {
+  return {
+    PAGE_INIT: '页面打开',
+    FORM_CHANGE: '字段变更',
+    BEFORE_SUBMIT: '提交前',
+    AFTER_SUBMIT: '提交后',
+    ROW_ACTION: '行操作',
+    BEFORE_SAVE: '保存前',
+    AFTER_SAVE: '保存后',
+  }[hookCode] || hookCode || '—'
+}
+
+function lifecycleLabel(item) {
+  if (item.status === 'ENABLED')
+    return '运行中'
+  if (item.status === 'DISABLED')
+    return '已停用'
+  if (item.status === 'TESTED')
+    return '已测草稿'
+  return '草稿'
+}
+
+function lifecycleTone(item) {
+  if (item.status === 'ENABLED')
+    return 'success'
+  if (item.status === 'DISABLED')
+    return 'warning'
+  return 'default'
+}
+
+function lifecycleHint(item) {
+  if (item.status === 'ENABLED')
+    return `运行 v${item.enabledVersion || item.draftVersion} · 正式需发布`
+  if (item.status === 'DISABLED')
+    return `草稿 v${item.draftVersion}`
+  if (item.enabledVersion)
+    return `草稿 v${item.draftVersion} / 曾运行 v${item.enabledVersion}`
+  return `草稿 v${item.draftVersion}`
 }
 </script>
 
 <style scoped>
 .extensions-panel {
-  display: grid;
-  gap: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  height: 100%;
+}
+
+.extensions-panel.is-editing {
+  flex: 1;
 }
 
 .panel-heading {
   display: flex;
-  align-items: flex-start;
+  flex: 0 0 auto;
+  align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding-bottom: 14px;
+  gap: 12px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--border-light, #e5e6eb);
 }
 
 .panel-heading h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: 15px;
 }
 
 .panel-heading p {
-  margin: 5px 0 0;
+  margin: 2px 0 0;
   color: var(--text-tertiary, #86909c);
-}
-
-.embedded-actionbar {
-  display: flex;
-  min-height: 36px;
-  justify-content: flex-end;
-}
-
-.extension-guidance {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 40px;
-  padding: 8px 11px;
-  border-left: 3px solid var(--primary-color, #165dff);
-  color: var(--text-tertiary, #86909c);
-  background: var(--bg-secondary, #f7f8fa);
   font-size: 12px;
 }
 
-.extension-guidance strong {
+.list-toolbar {
+  display: flex;
   flex: 0 0 auto;
-  color: var(--text-secondary, #4e5969);
-}
-
-.extension-steps {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.extension-steps span {
-  display: flex;
   align-items: center;
-  gap: 7px;
-  min-height: 34px;
-  padding: 6px 9px;
-  border: 1px solid var(--border-light, #e5e6eb);
-  border-radius: 6px;
-  color: var(--text-secondary, #4e5969);
-  background: var(--bg-primary, #fff);
-  font-size: 12px;
-}
-
-.extension-steps i {
-  display: inline-grid;
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
-  place-items: center;
-  border-radius: 50%;
-  color: var(--primary-color, #165dff);
-  background: color-mix(in srgb, var(--primary-color, #165dff) 9%, var(--bg-primary, #fff));
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 600;
-}
-
-.filter-bar {
-  display: grid;
-  grid-template-columns: minmax(180px, 1fr) 160px 160px 140px auto;
+  justify-content: space-between;
   gap: 8px;
+  min-height: 32px;
+}
+
+.list-toolbar__filters {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.list-toolbar__filters > .n-input {
+  width: 180px;
+  max-width: 100%;
+}
+
+.list-toolbar__filters > :deep(.n-select) {
+  width: 112px;
+}
+
+.context-hint {
+  overflow: hidden;
+  max-width: 160px;
+  color: var(--text-tertiary, #86909c);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.list-spin {
+  flex: 1;
+  min-height: 0;
+}
+
+.list-spin :deep(.n-spin-container),
+.list-spin :deep(.n-spin-content) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
 }
 
 .extensions-empty {
-  min-height: 250px;
-  padding-top: 60px;
-  border: 1px solid var(--border-default, #c9cdd4);
-  border-radius: 7px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: flex-start;
+  padding: 12px;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+}
+
+.extensions-empty__copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+}
+
+.extensions-empty__copy strong {
+  color: var(--text-primary, #1d2129);
+  font-size: 13px;
+}
+
+.extensions-empty__copy span {
+  color: var(--text-tertiary, #86909c);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.empty-type-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  width: 100%;
+}
+
+.empty-type-card {
+  display: flex;
+  min-height: 58px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  cursor: pointer;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 6px;
+  color: var(--text-secondary, #4e5969);
+  background: var(--bg-secondary, #f7f8fa);
+  text-align: left;
+}
+
+.empty-type-card:hover {
+  border-color: var(--primary-color, #165dff);
+  background: var(--bg-primary, #fff);
+}
+
+.empty-type-card strong {
+  color: var(--text-primary, #1d2129);
+  font-size: 13px;
+}
+
+.empty-type-card span {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.extensions-filter-empty {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
 }
 
 .extension-table {
-  overflow-x: auto;
-  border: 1px solid var(--border-default, #c9cdd4);
-  border-radius: 7px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border-light, #e5e6eb);
+  border-radius: 6px;
+  background: var(--bg-primary, #fff);
+  scrollbar-gutter: stable;
 }
 
 .extension-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.3fr) minmax(170px, 1fr) 130px 150px 130px 180px;
-  gap: 12px;
+  grid-template-columns: minmax(160px, 1.5fr) minmax(100px, 0.7fr) minmax(100px, 0.8fr) minmax(120px, 0.9fr) 120px;
+  gap: 8px;
   align-items: center;
-  min-width: 1020px;
-  min-height: 62px;
-  padding: 8px 12px;
+  min-width: 760px;
+  min-height: 44px;
+  padding: 6px 10px;
   border-bottom: 1px solid var(--border-light, #e5e6eb);
   color: var(--text-secondary, #4e5969);
   font-size: 12px;
@@ -560,49 +874,85 @@ function scopeLabel(scopeType) {
 }
 
 .extension-row-head {
-  min-height: 38px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  min-height: 32px;
   color: var(--text-tertiary, #86909c);
   background: var(--bg-secondary, #f7f8fa);
   font-weight: 600;
 }
 
+.extension-row-head span em {
+  margin-left: 4px;
+  color: var(--text-tertiary, #86909c);
+  font-style: normal;
+  font-weight: 500;
+}
+
+.extension-row:hover {
+  background: color-mix(in srgb, var(--primary-color, #165dff) 4%, var(--bg-primary, #fff));
+}
+
+.extension-row-head:hover {
+  background: var(--bg-secondary, #f7f8fa);
+}
+
 .extension-name,
-.version-state {
+.version-state,
+.extension-type {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 3px;
+  gap: 1px;
 }
 
-.extension-name strong {
+.extension-title {
   overflow: hidden;
   color: var(--text-primary, #1d2129);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: pointer;
+}
+
+.extension-title:hover {
+  color: var(--primary-color, #165dff);
 }
 
 .extension-name code,
-.version-state small {
+.version-state small,
+.extension-type small {
   color: var(--text-tertiary, #86909c);
   font-size: 11px;
 }
 
-.extension-type,
-.failure-state,
+.extension-scope {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .extension-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 @media (max-width: 900px) {
-  .extension-steps {
-    grid-template-columns: 1fr 1fr;
+  .list-toolbar {
+    align-items: stretch;
+    flex-direction: column;
   }
 
-  .filter-bar {
+  .list-toolbar__filters > .n-input,
+  .list-toolbar__filters > :deep(.n-select) {
+    width: calc(50% - 3px);
+    flex: 1 1 calc(50% - 3px);
+  }
+
+  .empty-type-grid {
     grid-template-columns: 1fr 1fr;
   }
 }

@@ -1,11 +1,11 @@
 <template>
   <div class="scoped-css-preview">
     <div class="preview-header">
-      <span>隔离预览</span>
-      <code>{{ scopeSelector }}</code>
+      <span>样式预览</span>
+      <strong>{{ scopeLabel }}</strong>
     </div>
     <iframe
-      title="作用域 CSS 隔离预览"
+      title="页面样式隔离预览"
       sandbox=""
       :srcdoc="previewDocument"
     />
@@ -32,6 +32,22 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  applicationName: {
+    type: String,
+    default: '',
+  },
+  pageName: {
+    type: String,
+    default: '',
+  },
+})
+
+const scopeLabel = computed(() => {
+  const app = String(props.applicationName || '').trim() || '当前应用'
+  const pageName = String(props.pageName || '').trim()
+  const pageCode = String(props.pageCode || '').trim()
+  const page = pageName || (!pageCode || pageCode === 'default' ? '当前页面' : '当前页面')
+  return `仅预览「${app}」·「${page}」内的效果`
 })
 
 const previewDocument = computed(() => {
@@ -79,9 +95,10 @@ function escapeAttribute(value) {
   font-size: 12px;
 }
 
-.preview-header code {
+.preview-header strong {
   overflow: hidden;
-  color: var(--n-text-color-3, #6e7781);
+  color: var(--n-text-color-1, #1f2329);
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

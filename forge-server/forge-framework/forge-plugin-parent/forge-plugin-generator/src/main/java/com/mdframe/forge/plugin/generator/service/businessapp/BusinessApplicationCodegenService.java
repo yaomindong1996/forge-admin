@@ -50,6 +50,7 @@ public class BusinessApplicationCodegenService {
     private final AiCrudConfigService crudConfigService;
     private final AiCrudCodegenService codegenService;
     private final BusinessCodegenConfigAssembler configAssembler;
+    private final com.mdframe.forge.plugin.generator.service.printing.PrintCodegenContributor printCodegenContributor;
 
     public Map<String, Object> getOptions(Long applicationId) {
         AiBusinessApplication application = applicationService.requireEntity(applicationId);
@@ -73,6 +74,7 @@ public class BusinessApplicationCodegenService {
         applicationService.updateById(application);
     }
 
+    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public LowcodeCodePreviewVO previewCode(Long applicationId, LowcodeCodegenRequest request) {
         GeneratedApplicationPackage generated = generateApplicationPackage(applicationId, request);
         LowcodeCodePreviewVO result = new LowcodeCodePreviewVO();
@@ -84,6 +86,7 @@ public class BusinessApplicationCodegenService {
         return result;
     }
 
+    @Transactional(rollbackFor = Exception.class, isolation = org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
     public byte[] downloadCode(Long applicationId, LowcodeCodegenRequest request) {
         return codegenService.toZip(generateApplicationPackage(applicationId, request).files());
     }
@@ -105,6 +108,7 @@ public class BusinessApplicationCodegenService {
         }
 
         JSONObject codegenOptions = buildCodegenOptions(application, readOptions(application.getOptions()), request);
+        codegenOptions.put("printApplicationId", String.valueOf(applicationId));
         Map<String, String> files = new LinkedHashMap<>();
         List<Map<String, Object>> generatedObjects = new ArrayList<>();
         Set<Long> consumedObjectIds = new LinkedHashSet<>();
@@ -131,6 +135,8 @@ public class BusinessApplicationCodegenService {
             consumedObjectIds.add(object.getObjectId());
         }
 
+        files.put("config/application-printing.json", JSON.toJSONString(printCodegenContributor.contributeApplication(
+                applicationId, selectedObjects.stream().map(BusinessApplicationObjectVO::getConfigKey).toList()), JSONWriter.Feature.PrettyFormat));
         files.remove("README.md");
         files.put("config/application-manifest.json", buildApplicationManifest(
                 application, sourceType, selectedObjects, generatedObjects, codegenOptions));
@@ -356,6 +362,7 @@ public class BusinessApplicationCodegenService {
         manifest.put("suiteCode", application.getSuiteCode());
         manifest.put("sourceType", sourceType);
         manifest.put("runtimeContract", LowcodeProtocolSnapshotBuilder.RUNTIME_CONTRACT);
+        manifest.put("printingPath", "config/application-printing.json");
         manifest.put("autoAdaptationStrategy", "SHARED_FRONTEND_STATIC_BACKEND_COMPILER");
         manifest.put("backendMode", "STATIC_MYBATIS_PLUS");
         List<String> deliveryScope = new ArrayList<>();

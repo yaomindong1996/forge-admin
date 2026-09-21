@@ -1,0 +1,45 @@
+{
+  "date": "2026-09-18",
+  "workspace": "/Users/mini32g/Desktop/project/forge-admin",
+  "browser": "Chromium 153.0.0.0, macOS, Codex in-app browser",
+  "source": "Actual target-workspace browser reports observed through CUA",
+  "preview": [
+    {
+      "rows": 100,
+      "pages": 4,
+      "images": 3,
+      "cells": 318,
+      "errors": []
+    },
+    {
+      "rows": 500,
+      "pages": 17,
+      "images": 3,
+      "cells": 1566,
+      "errors": []
+    }
+  ],
+  "isolatedPrintDocument": {
+    "pages": 17,
+    "rows": 500,
+    "overflow": 0,
+    "images": 3,
+    "framesAfterCleanup": 0
+  },
+  "expectedFailures": [
+    {
+      "code": "FONT_UNAVAILABLE",
+      "path": "fonts"
+    },
+    {
+      "code": "RESOURCE_FAILED",
+      "path": "synthetic-image"
+    },
+    {
+      "code": "ELEMENT_TOO_TALL",
+      "path": "items:items-0"
+    }
+  ],
+  "physicalPrintVerified": false,
+  "savedPdfVerified": false
+}

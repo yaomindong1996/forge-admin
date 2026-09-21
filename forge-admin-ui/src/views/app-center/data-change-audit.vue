@@ -37,37 +37,24 @@
       preset="card"
       class="data-audit-detail-modal"
       :style="{ width: 'min(1080px, 94vw)' }"
+      :bordered="false"
+      :segmented="{ content: true, footer: 'soft' }"
     >
-      <div v-if="currentEvent" class="audit-detail">
-        <div class="audit-summary">
-          <div class="summary-item">
-            <span>对象</span>
-            <strong>{{ currentEvent.objectName || currentEvent.objectCode }}</strong>
-            <small>{{ currentEvent.objectCode }}</small>
-          </div>
-          <div class="summary-item">
-            <span>记录</span>
-            <strong>{{ currentEvent.recordLabel || currentEvent.recordId }}</strong>
-            <small>{{ currentEvent.recordId }}</small>
-          </div>
-          <div class="summary-item">
-            <span>操作者</span>
-            <strong>{{ currentEvent.actorName || '-' }}</strong>
-          </div>
-          <div class="summary-item">
-            <span>时间</span>
-            <strong>{{ currentEvent.occurredAt }}</strong>
-          </div>
-        </div>
-        <DataAuditEventDiff
-          :fields="detailFields"
-          :loading="detailLoading"
-          :event-type="currentEvent.eventType"
-          :expanded="detailExpanded"
-          @toggle="detailExpanded = !detailExpanded"
-          @reveal="handleReveal"
-        />
-      </div>
+      <DataAuditEventDetail
+        :event="currentEvent"
+        :fields="detailFields"
+        :loading="detailLoading"
+        :expanded="detailExpanded"
+        @toggle="detailExpanded = !detailExpanded"
+        @reveal="handleReveal"
+      />
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="detailVisible = false">
+            关闭
+          </n-button>
+        </n-space>
+      </template>
     </n-modal>
   </div>
 </template>
@@ -77,7 +64,7 @@ import { computed, h, onMounted, ref } from 'vue'
 import { dataAuditEventDetail, dataAuditFieldPage, dataAuditFilterOptions, dataAuditReveal } from '@/api/data-audit'
 import { AiCrudPage } from '@/components/ai-form'
 import { promptAuditReason } from '@/components/data-audit/data-audit-submit'
-import DataAuditEventDiff from '@/components/data-audit/DataAuditEventDiff.vue'
+import DataAuditEventDetail from '@/components/data-audit/DataAuditEventDetail.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useDict } from '@/composables'
 import { formatDateTime } from '@/utils'
@@ -86,6 +73,7 @@ import {
   buildDataAuditFieldOptions,
   buildDataAuditPageOptions,
   buildDataAuditSearchParams,
+  findDataAuditPage,
   normalizeDataAuditFilterOptions,
 } from './data-audit-search'
 
@@ -109,6 +97,7 @@ const detailExpanded = ref(false)
 const filterApplications = ref([])
 const selectedApplicationId = ref('')
 const selectedPageId = ref('')
+const selectedObjectId = ref('')
 const applicationOptions = computed(() => buildDataAuditApplicationOptions(filterApplications.value))
 const pageOptions = computed(() => buildDataAuditPageOptions(
   filterApplications.value,
@@ -120,17 +109,33 @@ const fieldOptions = computed(() => buildDataAuditFieldOptions(
   selectedPageId.value,
 ))
 
+function syncSelectedObjectId(applicationId = selectedApplicationId.value, pageId = selectedPageId.value) {
+  const page = findDataAuditPage(filterApplications.value, applicationId, pageId)
+  selectedObjectId.value = page?.objectId || ''
+  return selectedObjectId.value
+}
+
 function handleBeforeSearch(params) {
   if (params.applicationId && !params.pageId) {
     window.$message?.warning?.('请选择要查询的应用页面')
     return false
   }
-  return buildDataAuditSearchParams(params, filterApplications.value, formatDateTime)
+  if (params.fieldCode && !params.pageId && !selectedObjectId.value) {
+    window.$message?.warning?.('请先选择应用页面，再按字段筛选')
+    return false
+  }
+  return buildDataAuditSearchParams(
+    params,
+    filterApplications.value,
+    formatDateTime,
+    selectedObjectId.value,
+  )
 }
 
 function handleSearchReset() {
   selectedApplicationId.value = ''
   selectedPageId.value = ''
+  selectedObjectId.value = ''
 }
 
 function handleApplicationChange({ value, formData }) {
@@ -140,11 +145,15 @@ function handleApplicationChange({ value, formData }) {
   selectedPageId.value = String(pageId || '')
   formData.pageId = pageId
   formData.fieldCode = null
+  syncSelectedObjectId(selectedApplicationId.value, selectedPageId.value)
 }
 
 function handlePageChange({ value, formData }) {
-  selectedPageId.value = String(value || '')
-  formData.fieldCode = null
+  const nextPageId = String(value || '')
+  if (nextPageId !== selectedPageId.value)
+    formData.fieldCode = null
+  selectedPageId.value = nextPageId
+  syncSelectedObjectId(selectedApplicationId.value, nextPageId)
 }
 
 const searchSchema = computed(() => [
@@ -152,7 +161,8 @@ const searchSchema = computed(() => [
     field: 'applicationId',
     label: '应用',
     type: 'select',
-    props: { clearable: true, filterable: true, options: applicationOptions.value, placeholder: '选择应用' },
+    props: { clearable: true, filterable: true, placeholder: '选择应用' },
+    options: () => applicationOptions.value,
     onChange: handleApplicationChange,
   },
   {
@@ -160,7 +170,8 @@ const searchSchema = computed(() => [
     label: '页面',
     type: 'select',
     disabled: !selectedApplicationId.value,
-    props: { clearable: true, filterable: true, options: pageOptions.value, placeholder: '先选择应用' },
+    props: { clearable: true, filterable: true, placeholder: '先选择应用' },
+    options: () => pageOptions.value,
     onChange: handlePageChange,
   },
   {
@@ -168,7 +179,8 @@ const searchSchema = computed(() => [
     label: '变更字段',
     type: 'select',
     disabled: !selectedPageId.value,
-    props: { clearable: true, filterable: true, options: fieldOptions.value, placeholder: '选择页面字段' },
+    props: { clearable: true, filterable: true, placeholder: '选择页面字段' },
+    options: () => fieldOptions.value,
   },
   { field: 'recordKeyword', label: '业务记录', type: 'input', props: { clearable: true, placeholder: '记录名称或业务编号' } },
   {
@@ -181,7 +193,8 @@ const searchSchema = computed(() => [
     field: 'eventType',
     label: '事件类型',
     type: 'select',
-    props: { clearable: true, options: eventTypeOptions.value, placeholder: '请选择' },
+    props: { clearable: true, placeholder: '请选择' },
+    options: () => eventTypeOptions.value,
   },
   {
     field: 'timeRange',
@@ -196,7 +209,8 @@ const searchSchema = computed(() => [
     field: 'sourceType',
     label: '变更来源',
     type: 'select',
-    props: { clearable: true, options: sourceOptions.value, placeholder: '选择来源' },
+    props: { clearable: true, placeholder: '选择来源' },
+    options: () => sourceOptions.value,
   },
 ])
 
@@ -335,37 +349,5 @@ onMounted(loadFilterOptions)
 
 .audit-list-panel :deep(.ai-crud-page) {
   height: 100%;
-}
-
-.audit-summary {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px 12px;
-  margin-bottom: 12px;
-}
-
-.audit-summary span {
-  display: block;
-  color: var(--text-tertiary, #64748b);
-  font-size: 12px;
-}
-
-.audit-summary strong {
-  display: block;
-  font-size: 13px;
-}
-
-.audit-summary small {
-  display: block;
-  margin-top: 2px;
-  color: var(--text-tertiary, #64748b);
-  font-size: 11px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-@media (max-width: 768px) {
-  .audit-summary {
-    grid-template-columns: 1fr 1fr;
-  }
 }
 </style>

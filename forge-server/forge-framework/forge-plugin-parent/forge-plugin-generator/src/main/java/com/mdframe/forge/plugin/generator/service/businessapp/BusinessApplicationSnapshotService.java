@@ -60,6 +60,7 @@ public class BusinessApplicationSnapshotService {
     private final BusinessExtensionVersionMapper extensionVersionMapper;
     private final BusinessPermissionService permissionService;
     private final BusinessProcessMapper processMapper;
+    private final com.mdframe.forge.plugin.generator.service.printing.PrintApplicationSnapshotContributor printSnapshots;
 
     public SnapshotBundle prepare(Long applicationId, BusinessApplicationAssetSelectionVO selection) {
         return prepare(applicationId, selection, null, null, null, null);
@@ -136,6 +137,7 @@ public class BusinessApplicationSnapshotService {
         snapshot.put("publishedObjectVersions", new ArrayList<>());
         snapshot.put("publishedProcessVersions", new ArrayList<>());
         snapshot.put("runtimeActions", new ArrayList<>());
+        snapshot.put("printing", printSnapshots.capture(applicationId, snapshot));
         return bundle(snapshot);
     }
 

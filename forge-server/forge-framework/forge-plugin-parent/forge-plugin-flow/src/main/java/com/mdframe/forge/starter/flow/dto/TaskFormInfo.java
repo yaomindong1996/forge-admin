@@ -115,6 +115,16 @@ public class TaskFormInfo {
     private String formFieldPermissions;
 
     /**
+     * 节点打印模板策略：INHERIT-继承应用场景绑定，RESTRICT-限制为 printTemplateIds 子集。
+     */
+    private String printTemplatePolicy;
+
+    /**
+     * 节点允许的打印模板 ID，逗号分隔；只在 RESTRICT 策略下生效。
+     */
+    private String printTemplateIds;
+
+    /**
      * 流程变量（表单数据）
      */
     private Map<String, Object> variables;

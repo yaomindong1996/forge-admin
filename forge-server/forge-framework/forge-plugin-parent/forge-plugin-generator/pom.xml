@@ -93,6 +93,10 @@
             <groupId>com.mdframe.forge</groupId>
             <artifactId>forge-plugin-data</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.mdframe.forge</groupId>
+            <artifactId>forge-plugin-print</artifactId>
+        </dependency>
 
         <!-- 编码规则定义本地缓存 -->
         <dependency>
@@ -154,6 +158,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

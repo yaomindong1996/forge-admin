@@ -554,6 +554,53 @@ public class DynamicCrudService {
         return readRecordByConfig(config, id);
     }
 
+    /** 仅供打印 Provider 使用的固定配置读取；不解析 configKey，也不读取草稿或猜测关联。 */
+    public record PrintRow(Map<String, Object> columns, Map<String, Object> values) { }
+
+    public PrintRow selectPrintById(AiCrudConfig config, Object id) {
+        try (LowcodeRuntimeDataSourceContextHolder.Scope ignored = useRuntimeContext(config)) {
+            var raw = repository.selectById(config.getTableName(), primaryKeyColumn(currentPrimaryKey()), id,
+                    buildDataScopeCondition(config, config.getTableName(), null));
+            if (raw == null) {
+                return null;
+            }
+            var values = DynamicQueryGenerator.convertMapToCamelCase(raw);
+            applyPrintReadPipeline(Collections.singletonList(values), config);
+            return new PrintRow(raw, values);
+        }
+    }
+
+    public List<Map<String, Object>> selectPrintChildren(AiCrudConfig config, String foreignKey, Object parentValue) {
+        if (parentValue == null || String.valueOf(parentValue).isBlank()) {
+            return List.of();
+        }
+        try (LowcodeRuntimeDataSourceContextHolder.Scope ignored = useRuntimeContext(config)) {
+            var rows = repository.selectTreeChildren(config.getTableName(), foreignKey, parentValue,
+                    primaryKeyColumn(currentPrimaryKey()) + " ASC", 501,
+                    buildDataScopeCondition(config, config.getTableName(), null));
+            if (rows.size() > 500) {
+                throw new BusinessException("打印明细超过 500 行，请缩小单据范围");
+            }
+            var values = DynamicQueryGenerator.convertListToCamelCase(rows);
+            applyPrintReadPipeline(values, config);
+            return values;
+        }
+    }
+
+    private void applyPrintReadPipeline(List<Map<String, Object>> rows, AiCrudConfig config) {
+        applyRuntimeFieldAliases(rows, config);
+        applyDecrypt(rows, config.getEncryptConfig());
+        applyMoneyDisplayProjection(rows, config);
+        applyStructuredFieldDisplayProjection(rows, config);
+        var model = parseModelSchema(config);
+        for (var row : rows) {
+            virtualFormulaRuntime.calculateForPrint(List.of(row), model, buildFormulaRuntimeContext(config, row));
+        }
+        applyDictTranslation(rows, buildEffectiveTransConfig(config), true);
+        applyDesensitize(rows, config.getDesensitizeConfig(), true);
+        dynamicDataScopeService.enrichRows(config, rows);
+    }
+
     private Map<String, Object> readRecordByConfig(AiCrudConfig config, Object id) {
         try (LowcodeRuntimeDataSourceContextHolder.Scope ignored = useRuntimeContext(config)) {
         String tableName = config.getTableName();
@@ -4958,12 +5005,21 @@ public class DynamicCrudService {
      * 应用字段脱敏
      */
     private void applyDesensitize(List<Map<String, Object>> rows, String desensitizeConfigJson) {
+        applyDesensitize(rows, desensitizeConfigJson, false);
+    }
+
+    private void applyDesensitize(List<Map<String, Object>> rows, String desensitizeConfigJson, boolean strict) {
         if (StringUtils.isBlank(desensitizeConfigJson) || rows == null || rows.isEmpty()) {
             return;
         }
         try {
             JsonNode configNode = objectMapper.readTree(desensitizeConfigJson);
-            if (!configNode.isObject()) return;
+            if (!configNode.isObject()) {
+                if (strict) {
+                    throw new BusinessException("打印脱敏配置无效");
+                }
+                return;
+            }
 
             for (Map<String, Object> row : rows) {
                 for (Map.Entry<String, JsonNode> entry : configNode.properties()) {
@@ -4974,6 +5030,9 @@ public class DynamicCrudService {
                     String typeStr = ruleNode.has("type") ? ruleNode.get("type").asText("CUSTOM") : "CUSTOM";
                     DesensitizeType type = DesensitizeType.valueOf(typeStr);
                     DesensitizeStrategy strategy = desensitizeStrategyFactory.getStrategy(type);
+                    if (strategy == null && strict) {
+                        throw new BusinessException("打印脱敏策略不可用");
+                    }
                     if (strategy != null) {
                         String originalValue = String.valueOf(row.get(fieldName));
                         row.put(fieldName, strategy.desensitize(originalValue));
@@ -4981,6 +5040,9 @@ public class DynamicCrudService {
                 }
             }
         } catch (Exception e) {
+            if (strict) {
+                throw new BusinessException("打印脱敏处理失败，已终止输出");
+            }
             log.warn("[DynamicCrudService] 脱敏处理失败", e);
         }
     }
@@ -5510,12 +5572,24 @@ public class DynamicCrudService {
      * 应用字典翻译
      */
     private void applyDictTranslation(List<Map<String, Object>> rows, String transConfigJson) {
+        applyDictTranslation(rows, transConfigJson, false);
+    }
+
+    private void applyDictTranslation(List<Map<String, Object>> rows, String transConfigJson, boolean strict) {
+        if (strict && StringUtils.isNotBlank(transConfigJson) && dictValueProvider == null) {
+            throw new BusinessException("打印翻译服务不可用");
+        }
         if (StringUtils.isBlank(transConfigJson) || rows == null || rows.isEmpty() || dictValueProvider == null) {
             return;
         }
         try {
             JsonNode configNode = objectMapper.readTree(transConfigJson);
-            if (!configNode.isObject()) return;
+            if (!configNode.isObject()) {
+                if (strict) {
+                    throw new BusinessException("打印翻译配置无效");
+                }
+                return;
+            }
 
             Map<String, List<String>> orgIdBuckets = new LinkedHashMap<>();
             Map<String, List<String>> userIdBuckets = new LinkedHashMap<>();
@@ -5569,6 +5643,9 @@ public class DynamicCrudService {
             applyBatchTranslation(rows, fileIdBuckets, "fileUpload",
                     (ids) -> dictValueProvider.batchGetFileNames(ids), targetFieldMap);
         } catch (Exception e) {
+            if (strict) {
+                throw new BusinessException("打印字段翻译失败，已终止输出");
+            }
             log.warn("[DynamicCrudService] 翻译处理失败", e);
         }
     }

@@ -619,3 +619,32 @@ Surefire 的分组参数需要从测试 classpath 选择 JUnit 4、JUnit 5 或 T
 
 **影响范围**：
 所有依赖 `sys_user.user_type` 与 `sys_user_tenant.member_type` 一致性的读写路径（角色数据范围校验、成员类型展示、绑定租户、批量授权）；新增编辑入口时必须成对维护两个字段。
+
+## 冷缓存 Maven 并行构建出现依赖锁获取失败
+
+**发现日期**：2026-09-19
+
+打印插件阶段验证中，Maven 3.9.9 使用临时空依赖缓存，Admin reactor 的 `-T 2 package` 报 `Could not acquire lock(s)`，没有 Java 编译诊断；相同依赖/源码用串行 `package` 重试通过。未进一步确认 resolver 内部哪项锁导致失败，不应直接归因为代码或缺失依赖。
+
+遇到同类构建基础设施错误，保留首次日志，确认没有另一构建共用该缓存后去掉 `-T` 重试；测试仍显式启用 `-Penable-tests` 并检查真实 Tests run 计数。不要修改业务源码或跳过校验来掩盖依赖锁错误。
+
+## 打印执行事件新增枚举必须同步 Jackson/DTO/Mapper/字典
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+前端导出 PDF 上报 `PDF_DOWNLOADED` 后，Jackson 反序列化 `PrintExecutionResult` 报 500：枚举当时只有 `PREPARED` / `DIALOG_OPENED` / `FAILED`。改 Java 枚举不够，还要改事件 DTO 校验、Mapper 终态 IN 列表和 `sys_print_execution_result` 字典。已执行的 V1.0.172 不能改，必须新 Flyway。
+
+**解决方案**:
+客户端输出事件与 `DIALOG_OPENED` 同形（要 pageCount、不要 errorCode、`physicalOutputConfirmed=false`）。已落地脚本只追加新版本，例如 `V1.0.180`。Admin 需重启后才会加载新枚举和字典。
+
+## 打印 style 不能用封闭白名单拦展示属性
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+前端已经写入 `style.opacity`，保存仍报「不支持此属性 · body[0].elements[6].style.opacity」。协议 `object()` 按封闭键列表拒绝未知 style 字段。插件改完后如果只 `spring-boot:run` admin-server，还会继续跑旧 jar。
+
+**解决方案**:
+`style` 对象允许安全的基础类型额外键并写入 canonical JSON；继续拒绝 `backgroundImage`/`url()` 等可执行 CSS。Java `Style` record 对未知字段 `ignoreUnknown`，避免模型转换把合法 JSON 打成「模板与协议模型不一致」。改插件后要先安装该模块再重启 Admin。
+

@@ -114,6 +114,7 @@ public class BusinessAppCodegenService {
     private JSONObject buildCodegenOptions(AiBusinessApp app, JSONObject appOptions, LowcodeCodegenRequest request) {
         JSONObject existing = readCodegen(appOptions);
         JSONObject codegen = new JSONObject();
+        if (app.getApplicationId() != null) codegen.put("printApplicationId", String.valueOf(app.getApplicationId()));
         putIfNotBlank(codegen, "sourceType", StringUtils.firstNonBlank(
                 request == null ? null : request.getSourceType(),
                 existing.getString("sourceType"),

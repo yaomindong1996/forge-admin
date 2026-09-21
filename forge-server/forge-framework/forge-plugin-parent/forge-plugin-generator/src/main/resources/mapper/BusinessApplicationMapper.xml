@@ -466,4 +466,10 @@
           AND del_flag = '0'
     </update>
 
+    <select id="lockEntityById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Columns"/>
+        FROM ai_business_application
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = '0'
+        FOR UPDATE
+    </select>
 </mapper>

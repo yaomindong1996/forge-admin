@@ -1,0 +1,43 @@
+{
+  "stage": "M4b",
+  "status": "implemented-pending-e2e",
+  "repository": "/Users/mini32g/Desktop/project/forge-admin",
+  "branch": "forge-native-print",
+  "tests": {
+    "print": 106,
+    "generatorRegression": 79,
+    "incremental": 15,
+    "incrementalNew": 1,
+    "uniqueTotal": 186,
+    "failures": 0
+  },
+  "build": {
+    "target": "forge-admin-server",
+    "reactorModules": 46,
+    "success": true,
+    "seconds": 23.833
+  },
+  "verified": [
+    "pinned template and CRUD versions",
+    "source/page/object permissions",
+    "main and child record scope",
+    "field and child column filtering",
+    "strict decryption/translation/masking/formulas",
+    "money cents and integer precision",
+    "resource authorization",
+    "H2 mapper and Spring transaction rollback"
+  ],
+  "notRun": [
+    "real MySQL and Flyway",
+    "Admin/Flow startup and encrypted HTTP",
+    "browser business printing",
+    "physical printer"
+  ],
+  "nextStage": "M4c: workspace entry, runtime actions, code export",
+  "pushed": false,
+  "logs": {
+    "regression": "/private/tmp/forge-print-m4b-final-tests.log",
+    "incremental": "/private/tmp/forge-print-m4b-last-tests.log",
+    "build": "/private/tmp/forge-print-m4b-admin-build.log"
+  }
+}

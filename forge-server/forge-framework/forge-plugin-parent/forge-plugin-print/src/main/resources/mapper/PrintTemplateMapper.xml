@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.print.mapper.PrintTemplateMapper">
+    <resultMap id="Row" type="com.mdframe.forge.plugin.print.entity.PrintTemplate">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="application_id" property="applicationId"/>
+        <result column="template_code" property="templateCode"/>
+        <result column="template_name" property="templateName"/>
+        <result column="source_type" property="sourceType"/>
+        <result column="source_key" property="sourceKey"/>
+        <result column="page_id" property="pageId"/>
+        <result column="form_key" property="formKey"/>
+        <result column="object_code" property="objectCode"/>
+        <result column="draft_schema" property="draftSchema"/>
+        <result column="draft_revision" property="draftRevision"/>
+        <result column="design_status" property="designStatus"/>
+        <result column="published_version_id" property="publishedVersionId"/>
+        <result column="status" property="status"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+    <sql id="Columns">id, tenant_id, application_id, template_code, template_name, source_type, source_key, page_id, form_key, object_code, draft_schema, draft_revision, design_status, published_version_id, status, del_flag, create_by, create_time, create_dept, update_by, update_time</sql>
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_print_template (tenant_id, application_id, template_code, template_name, source_type, source_key, page_id, form_key, object_code, draft_schema, draft_revision, design_status, published_version_id, status, del_flag, create_by, create_time, create_dept, update_by, update_time)
+        VALUES (#{tenantId}, #{applicationId}, #{templateCode}, #{templateName}, #{sourceType}, #{sourceKey}, #{pageId}, #{formKey}, #{objectCode}, #{draftSchema}, #{draftRevision}, #{designStatus}, #{publishedVersionId}, #{status}, #{delFlag}, #{createBy}, #{createTime}, #{createDept}, #{updateBy}, #{updateTime})
+    </insert>
+    <select id="selectScoped" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_template
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+    </select>
+    <select id="lockScoped" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_template
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0 FOR UPDATE
+    </select>
+    <select id="selectApplication" resultMap="Row">
+        SELECT id, tenant_id, application_id, template_code, template_name, source_type, source_key,
+               page_id, form_key, object_code, draft_revision, design_status, published_version_id,
+               status, create_time, update_time
+        FROM sys_print_template
+        WHERE tenant_id = #{tenantId} AND application_id = #{applicationId} AND del_flag = 0
+        ORDER BY update_time DESC, id DESC LIMIT #{limit} OFFSET #{offset}
+    </select>
+    <select id="countApplication" resultType="long">
+        SELECT COUNT(*) FROM sys_print_template
+        WHERE tenant_id = #{tenantId} AND application_id = #{applicationId} AND del_flag = 0
+    </select>
+    <update id="updateDraft">
+        UPDATE sys_print_template SET template_name = #{row.templateName}, draft_schema = #{row.draftSchema},
+            draft_revision = draft_revision + 1,
+            design_status = CASE WHEN published_version_id IS NULL THEN 'DRAFT' ELSE 'CHANGED' END,
+            update_by = #{row.updateBy}, update_time = NOW()
+        WHERE tenant_id = #{row.tenantId} AND id = #{row.id} AND del_flag = 0
+          AND draft_revision = #{expectedRevision}
+    </update>
+    <update id="publish">
+        UPDATE sys_print_template SET published_version_id = #{versionId}, design_status = 'PUBLISHED',
+            draft_revision = draft_revision + 1, update_by = #{actor}, update_time = NOW()
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0 AND status = 1
+          AND draft_revision = #{expectedRevision}
+          AND EXISTS (SELECT 1 FROM sys_print_template_version v
+              WHERE v.tenant_id = #{tenantId} AND v.template_id = #{id} AND v.id = #{versionId} AND v.del_flag = 0)
+    </update>
+    <update id="changeStatus">
+        UPDATE sys_print_template SET status = #{status}, draft_revision = draft_revision + 1,
+            update_by = #{actor}, update_time = NOW()
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+          AND draft_revision = #{expectedRevision} AND #{status} IN (0, 1)
+    </update>
+    <!-- 调用前还须由应用 Provider 检查已发布快照引用；此条件只保护本插件绑定。 -->
+    <update id="softDelete">
+        UPDATE sys_print_template SET del_flag = id, draft_revision = draft_revision + 1,
+            update_by = #{actor}, update_time = NOW()
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+          AND draft_revision = #{expectedRevision}
+          AND NOT EXISTS (SELECT 1 FROM sys_print_binding b
+              WHERE b.tenant_id = #{tenantId} AND b.template_id = #{id} AND b.del_flag = 0)
+    </update>
+</mapper>

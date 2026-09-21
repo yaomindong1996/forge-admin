@@ -42,5 +42,7 @@ public class DataAuditFilterOptionsVO {
         private String fieldCode;
 
         private String fieldLabel;
+
+        private String columnName;
     }
 }

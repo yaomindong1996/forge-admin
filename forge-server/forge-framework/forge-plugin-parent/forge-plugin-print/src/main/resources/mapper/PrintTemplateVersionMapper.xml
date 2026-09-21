@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.print.mapper.PrintTemplateVersionMapper">
+    <resultMap id="Row" type="com.mdframe.forge.plugin.print.entity.PrintTemplateVersion">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="template_id" property="templateId"/>
+        <result column="version_no" property="versionNo"/>
+        <result column="schema_version" property="schemaVersion"/>
+        <result column="schema_json" property="schemaJson"/>
+        <result column="schema_hash" property="schemaHash"/>
+        <result column="resource_manifest" property="resourceManifest"/>
+        <result column="publish_time" property="publishTime"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+    <sql id="Columns">id, tenant_id, template_id, version_no, schema_version, schema_json, schema_hash, resource_manifest, publish_time, del_flag, create_by, create_time, create_dept, update_by, update_time</sql>
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_print_template_version (tenant_id, template_id, version_no, schema_version, schema_json, schema_hash, resource_manifest, publish_time, del_flag, create_by, create_time, create_dept, update_by, update_time)
+        VALUES (#{tenantId}, #{templateId}, #{versionNo}, #{schemaVersion}, #{schemaJson}, #{schemaHash}, #{resourceManifest}, #{publishTime}, #{delFlag}, #{createBy}, #{createTime}, #{createDept}, #{updateBy}, #{updateTime})
+    </insert>
+    <select id="selectScoped" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_template_version
+        WHERE tenant_id = #{tenantId} AND template_id = #{templateId} AND id = #{id} AND del_flag = 0
+    </select>
+    <select id="selectVersions" resultMap="Row">
+        SELECT id, tenant_id, template_id, version_no, schema_version, schema_hash, publish_time, create_by
+        FROM sys_print_template_version
+        WHERE tenant_id = #{tenantId} AND template_id = #{templateId} AND del_flag = 0
+        ORDER BY version_no DESC
+    </select>
+    <!-- 唯一例外：历史最大号必须包含删除墓碑，以免删除后重用不可变版本号。 -->
+    <select id="selectMaxVersionNo" resultType="int">
+        SELECT COALESCE(MAX(version_no), 0) FROM sys_print_template_version
+        WHERE tenant_id = #{tenantId} AND template_id = #{templateId}
+    </select>
+</mapper>

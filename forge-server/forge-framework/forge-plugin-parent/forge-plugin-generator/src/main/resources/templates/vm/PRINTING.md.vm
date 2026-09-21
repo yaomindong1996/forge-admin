@@ -1,0 +1,13 @@
+# 打印协议接入
+
+应用包的 config/application-printing.json 覆盖全部已选对象，含聚合生成的子对象。
+各 config/*-printing.json 含当前应用发布版本的固定绑定、模板定义及 SHA-256。
+即使导出 CRUD 草稿，打印仍固定到已发布应用；未发布模板不会自动进入运行态。
+应用、模板、版本 ID 均按字符串保留，目标环境导入时应整体映射并重新校验引用与摘要。
+保留相同 Forge 环境时复用 /print/preview 与 /print 运行 API，不传整行数据。
+独立部署需安装 forge-plugin-print，实现 PrintDataProvider 并授权主子表、字段和文件，
+导入版本/绑定和部署 /print/preview 后再开放打印。覆盖报告标记 REQUIRES_EXTENSION。
+下载包不含业务记录、文件内容或访问令牌；图片 fileId 必须经目标环境授权迁移。
+前端复用 @/components/print/runtime/PrintTemplatePicker.vue、printRuntimeStore、api/print.js
+及其 protocol/engine/renderers 依赖（Vue、Pinia、Naive UI、jsbarcode、qrcode-vue3）。
+普通 CRUD 继续使用生成的 MyBatis-Plus Service/Mapper XML；不要改回动态 CRUD 接口。

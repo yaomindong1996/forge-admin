@@ -39,7 +39,8 @@ class BusinessApplicationVersionServiceTest {
             return defaultValue(method);
         });
         BusinessApplicationVersionService service = new BusinessApplicationVersionService(
-                null, applicationMapper, null);
+                null, applicationMapper, null, org.mockito.Mockito.mock(
+                        com.mdframe.forge.plugin.generator.service.printing.PrintApplicationVersionGuard.class));
         setBaseMapper(service, versionMapper);
         BusinessApplicationSnapshotService.SnapshotBundle snapshot
                 = new BusinessApplicationSnapshotService.SnapshotBundle("{}", "same-hash", Map.of());

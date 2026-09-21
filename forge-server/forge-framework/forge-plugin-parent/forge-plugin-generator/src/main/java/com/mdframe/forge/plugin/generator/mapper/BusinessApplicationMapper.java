@@ -49,6 +49,9 @@ public interface BusinessApplicationMapper extends BaseMapper<AiBusinessApplicat
     AiBusinessApplication selectEntityById(@Param("tenantId") Long tenantId,
                                            @Param("id") Long id);
 
+    /** 与应用发布提交/打印修改共享的事务行锁。 */
+    AiBusinessApplication lockEntityById(@Param("tenantId") Long tenantId, @Param("id") Long id);
+
     AiBusinessApplication selectEntityByCode(@Param("tenantId") Long tenantId,
                                              @Param("applicationCode") String applicationCode);
 

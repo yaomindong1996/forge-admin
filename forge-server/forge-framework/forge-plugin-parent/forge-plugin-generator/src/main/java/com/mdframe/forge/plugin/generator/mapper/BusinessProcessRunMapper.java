@@ -30,9 +30,19 @@ public interface BusinessProcessRunMapper extends BaseMapper<AiBusinessProcessRu
             @Param("tenantId") Long tenantId,
             @Param("processInstanceId") String processInstanceId);
 
+    AiBusinessProcessRun selectByProcessInstanceId(@Param("tenantId") Long tenantId,
+                                                    @Param("processInstanceId") String processInstanceId);
+
     AiBusinessProcessRun selectLatestByBusinessKey(
             @Param("tenantId") Long tenantId,
             @Param("businessKey") String businessKey);
+
+    /** 列表/详情打印：按业务单据取最近一次已挂流程实例的运行记录。 */
+    AiBusinessProcessRun selectLatestBySubject(
+            @Param("tenantId") Long tenantId,
+            @Param("applicationId") Long applicationId,
+            @Param("objectCode") String objectCode,
+            @Param("recordId") String recordId);
 
     List<AiBusinessProcessRun> selectActiveByBusinessKeys(
             @Param("tenantId") Long tenantId,

@@ -1,23 +1,23 @@
 const HOOK_GUIDES = {
   PAGE_INIT: {
-    label: '页面初始化',
-    description: '页面根节点准备完成后执行，适合初始化默认值和页面提示。',
+    label: '页面打开时',
+    description: '页面刚打开时执行，适合设置默认值和首次提示。',
   },
   FORM_CHANGE: {
-    label: '字段变化',
-    description: '白名单字段发生变化时执行，适合联动计算、赋值和即时提示。',
+    label: '字段变化时',
+    description: '用户修改表单字段时执行，适合联动计算、自动赋值和即时提示。',
   },
   BEFORE_SUBMIT: {
     label: '提交前',
-    description: '表单进入提交处理前执行，适合业务校验；抛出错误会使本次增强失败。',
+    description: '用户点击提交后、正式保存前执行，适合业务校验；失败会阻断本次提交。',
   },
   AFTER_SUBMIT: {
-    label: '提交后',
-    description: '表单提交成功后执行，适合成功提示和触发已授权的后续动作。',
+    label: '提交成功后',
+    description: '表单保存成功后执行，适合成功提示和后续页面动作。',
   },
   ROW_ACTION: {
-    label: '列表行操作',
-    description: '用户触发受控列表行操作时执行，只能调用已授权动作。',
+    label: '列表行操作时',
+    description: '用户点击列表行上的业务动作时执行。',
   },
 }
 
@@ -224,17 +224,17 @@ export const CSS_CAPABILITIES = [
 ]
 
 export const JS_BOUNDARIES = [
-  { allowed: true, text: '读取和修改当前页面白名单字段' },
-  { allowed: true, text: '显示受控消息并触发已授权页面动作' },
-  { allowed: false, text: '不能访问 DOM、window、Cookie、浏览器存储或网络' },
-  { allowed: false, text: '不能异步执行、加载模块或使用动态代码' },
+  { allowed: true, text: '可以读取和修改当前页面允许的业务字段' },
+  { allowed: true, text: '可以显示提示，并触发已授权的页面动作' },
+  { allowed: false, text: '不能操作页面元素、浏览器窗口、Cookie、本地存储或发网络请求' },
+  { allowed: false, text: '不能异步等待、加载外部模块或动态执行代码' },
 ]
 
 export const CSS_BOUNDARIES = [
-  { allowed: true, text: '只增强当前应用、当前页面根节点内的元素' },
-  { allowed: true, text: '支持普通选择器及受控 media、supports、container、layer' },
-  { allowed: false, text: '不能覆盖 html、body、Forge 导航、侧栏或全局布局' },
-  { allowed: false, text: '不能使用外部 URL、@import、position: fixed 或超高层级' },
+  { allowed: true, text: '只改变当前应用、当前页面里的样式' },
+  { allowed: true, text: '支持常见选择器，以及受控的响应式/容器查询' },
+  { allowed: false, text: '不能改动整站导航、侧栏或全局布局' },
+  { allowed: false, text: '不能引入外部文件，也不能使用固定定位或过高的层级' },
 ]
 
 export function getExtensionCodeExamples(mode, hookCode) {

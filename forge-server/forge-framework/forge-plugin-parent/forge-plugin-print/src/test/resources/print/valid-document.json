@@ -1,0 +1,144 @@
+{
+  "protocol": "forge-print",
+  "schemaVersion": 1,
+  "paper": {
+    "widthMm": 210,
+    "heightMm": 297,
+    "orientation": "PORTRAIT",
+    "marginMm": {
+      "top": 10,
+      "right": 10,
+      "bottom": 10,
+      "left": 10
+    }
+  },
+  "header": {
+    "heightMm": 15,
+    "repeat": true,
+    "elements": [
+      {
+        "id": "title",
+        "type": "TEXT",
+        "xMm": 0,
+        "yMm": 0,
+        "widthMm": 190,
+        "heightMm": 10,
+        "binding": {
+          "source": "CONSTANT",
+          "value": "合成采购单"
+        }
+      }
+    ]
+  },
+  "body": [
+    {
+      "id": "info",
+      "kind": "FIXED",
+      "heightMm": 20,
+      "elements": [
+        {
+          "id": "number",
+          "type": "TEXT",
+          "xMm": 0,
+          "yMm": 0,
+          "widthMm": 100,
+          "heightMm": 10,
+          "binding": {
+            "source": "FIELD",
+            "path": "main.number"
+          },
+          "style": {
+            "fontFamily": "宋体, sans-serif",
+            "fontSizePt": 12,
+            "fontWeight": 700,
+            "color": "#123456"
+          }
+        }
+      ]
+    },
+    {
+      "id": "remarks",
+      "kind": "TEXT",
+      "binding": {
+        "source": "FIELD",
+        "path": "main.remark"
+      }
+    },
+    {
+      "id": "items",
+      "kind": "TABLE",
+      "collectionPath": "children.items",
+      "repeatHeader": true,
+      "columns": [
+        {
+          "id": "name",
+          "field": "name",
+          "title": "名称",
+          "widthMm": 120
+        },
+        {
+          "id": "amount",
+          "field": "amount",
+          "title": "金额",
+          "widthMm": 70,
+          "format": {
+            "type": "MONEY",
+            "scale": 2
+          }
+        }
+      ],
+      "headerRows": [
+        {
+          "cells": [
+            {
+              "text": "合成明细",
+              "span": 2
+            }
+          ]
+        }
+      ],
+      "footer": {
+        "cells": [
+          {
+            "binding": {
+              "source": "CONSTANT",
+              "value": "合计"
+            },
+            "span": 1
+          },
+          {
+            "binding": {
+              "source": "FIELD",
+              "path": "main.total"
+            },
+            "span": 1,
+            "format": {
+              "type": "MONEY"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "footer": {
+    "heightMm": 10,
+    "repeat": true,
+    "elements": [
+      {
+        "id": "page",
+        "type": "PAGE_NUMBER",
+        "xMm": 0,
+        "yMm": 0,
+        "widthMm": 190,
+        "heightMm": 10,
+        "pageNumberFormat": "CURRENT_TOTAL"
+      }
+    ]
+  },
+  "resources": [
+    {
+      "id": "logo",
+      "fileId": "synthetic_file_1"
+    }
+  ]
+}

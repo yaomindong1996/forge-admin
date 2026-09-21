@@ -1,0 +1,100 @@
+{
+  "stage": "M3a",
+  "repository": "forge-admin",
+  "branch": "codex/forge-native-print",
+  "date": "2026-09-19",
+  "tests": {
+    "suites": [
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintMapperContractTest",
+        "tests": "1",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+        "time": "0.03"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintPersistenceTest",
+        "tests": "5",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+        "time": "0.391"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintProtocolCompatibilityTest",
+        "tests": "29",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+        "time": "0.117"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintProtocolSmokeTest",
+        "tests": "1",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+        "time": "0.073"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintProtocolValidatorTest",
+        "tests": "33",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+        "time": "0.193"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintResourceContractTest",
+        "tests": "2",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+        "time": "0.007"
+      },
+      {
+        "name": "com.mdframe.forge.plugin.print.PrintTemplateDtoTest",
+        "tests": "1",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0",
+        "time": "0.155"
+      }
+    ],
+    "total": 72,
+    "passed": 72
+  },
+  "frontendCompatibility": {
+    "cases": 29,
+    "passed": 29,
+    "intentionallyStricterBackend": [
+      "未使用的非法格式"
+    ]
+  },
+  "build": {
+    "command": "mvn -s /private/tmp/forge-print-maven-settings.xml -B -ntp -e -pl forge-admin-server -am package -DskipTests",
+    "reactorModules": 46,
+    "result": "SUCCESS",
+    "duration": "04:01 min"
+  },
+  "staticChecks": [
+    "MyBatis XML/POM parsing",
+    "unique Flyway versions",
+    "no Flyway placeholders",
+    "git diff --check"
+  ],
+  "notExecuted": [
+    "MySQL/Flyway execution",
+    "Admin/Flow runtime startup",
+    "real tenant interceptor integration",
+    "real API/lowcode/workflow E2E",
+    "browser print/PDF/physical printer"
+  ],
+  "remaining": [
+    "M3b T22-T28 services/API/Provider/frontend persistence",
+    "M4 lowcode/application snapshots",
+    "M5 workflow/code-form integration",
+    "M6 final acceptance"
+  ]
+}

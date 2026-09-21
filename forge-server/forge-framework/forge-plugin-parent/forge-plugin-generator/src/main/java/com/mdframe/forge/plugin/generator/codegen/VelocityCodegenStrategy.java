@@ -273,6 +273,10 @@ public class VelocityCodegenStrategy implements CodegenStrategy {
         files.put("config/" + runtimeConfigKey + "-config.json", artifacts.frontendRuntimeConfig());
         files.put("config/" + runtimeConfigKey + "-protocol.json", artifacts.protocolSnapshot());
         files.put("config/" + runtimeConfigKey + "-coverage.json", artifacts.coverageReport());
+        var printing = objectMapper.readTree(artifacts.frontendRuntimeConfig()).path("printing");
+        files.put("config/" + runtimeConfigKey + "-printing.json",
+                objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(printing));
+        renderTo(files, "templates/vm/PRINTING.md.vm", ctx, "PRINTING.md");
         renderTo(files, "templates/vm/README.md.vm", ctx, "README.md");
         String ownershipPath = "config/" + runtimeConfigKey + "-ownership.json";
         files.put(ownershipPath, buildOwnershipManifest(

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.print.mapper.PrintBindingMapper">
+    <resultMap id="Row" type="com.mdframe.forge.plugin.print.entity.PrintBinding">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="application_id" property="applicationId"/>
+        <result column="source_type" property="sourceType"/>
+        <result column="source_key" property="sourceKey"/>
+        <result column="page_id" property="pageId"/>
+        <result column="form_key" property="formKey"/>
+        <result column="object_code" property="objectCode"/>
+        <result column="template_id" property="templateId"/>
+        <result column="scene" property="scene"/>
+        <result column="is_default" property="isDefault"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="status" property="status"/>
+        <result column="binding_revision" property="bindingRevision"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+    <sql id="Columns">id, tenant_id, application_id, source_type, source_key, page_id, form_key, object_code, template_id, scene, is_default, sort_order, status, binding_revision, del_flag, create_by, create_time, create_dept, update_by, update_time</sql>
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_print_binding (tenant_id, application_id, source_type, source_key, page_id, form_key, object_code, template_id, scene, is_default, sort_order, status, binding_revision, del_flag, create_by, create_time, create_dept, update_by, update_time)
+        VALUES (#{tenantId}, #{applicationId}, #{sourceType}, #{sourceKey}, #{pageId}, #{formKey}, #{objectCode}, #{templateId}, #{scene}, #{isDefault}, #{sortOrder}, #{status}, #{bindingRevision}, #{delFlag}, #{createBy}, #{createTime}, #{createDept}, #{updateBy}, #{updateTime})
+    </insert>
+    <select id="selectScoped" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_binding
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+    </select>
+    <select id="selectSource" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_binding
+        WHERE tenant_id = #{tenantId} AND application_id = #{applicationId}
+          AND source_key = #{sourceKey} AND scene = #{scene} AND del_flag = 0
+        ORDER BY is_default DESC, sort_order, id
+    </select>
+    <select id="selectBySource" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_binding
+        WHERE tenant_id = #{tenantId} AND application_id = #{applicationId}
+          AND source_key = #{sourceKey} AND del_flag = 0
+        ORDER BY scene, is_default DESC, sort_order, id
+    </select>
+    <select id="selectApplication" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_binding
+        WHERE tenant_id = #{tenantId} AND application_id = #{applicationId}
+          AND del_flag = 0 AND status = 1
+        ORDER BY template_id, id FOR UPDATE
+    </select>
+    <select id="selectApplicationEnabled" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_binding
+        WHERE tenant_id = #{tenantId} AND application_id = #{applicationId}
+          AND del_flag = 0 AND status = 1
+        ORDER BY is_default DESC, sort_order, id
+    </select>
+    <select id="countTemplateReferences" resultType="long">
+        SELECT COUNT(*) FROM sys_print_binding
+        WHERE tenant_id = #{tenantId} AND template_id = #{templateId} AND del_flag = 0
+    </select>
+    <!-- clear/insert/update 必须在同应用行锁内；不能只锁现有绑定（空集合并发不安全）。 -->
+    <update id="clearDefault">
+        UPDATE sys_print_binding SET is_default = 0, binding_revision = binding_revision + 1,
+            update_by = #{actor}, update_time = NOW()
+        WHERE tenant_id = #{tenantId} AND application_id = #{applicationId}
+          AND source_key = #{sourceKey} AND scene = #{scene} AND del_flag = 0 AND is_default = 1
+    </update>
+    <update id="updateBinding">
+        UPDATE sys_print_binding SET is_default = #{row.isDefault}, sort_order = #{row.sortOrder},
+            status = #{row.status}, binding_revision = binding_revision + 1,
+            update_by = #{row.updateBy}, update_time = NOW()
+        WHERE tenant_id = #{row.tenantId} AND application_id = #{row.applicationId} AND id = #{row.id}
+          AND source_key = #{row.sourceKey} AND scene = #{row.scene} AND template_id = #{row.templateId}
+          AND del_flag = 0 AND binding_revision = #{expectedRevision} AND #{row.status} IN (0, 1)
+    </update>
+    <update id="softDelete">
+        UPDATE sys_print_binding SET del_flag = id, binding_revision = binding_revision + 1,
+            update_by = #{actor}, update_time = NOW()
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0 AND binding_revision = #{expectedRevision}
+    </update>
+</mapper>
