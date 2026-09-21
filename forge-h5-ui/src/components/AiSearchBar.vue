@@ -1,38 +1,32 @@
 <template>
-  <view class="ai-search-bar" :class="{ 'ai-search-bar--focused': focused }">
-    <view class="ai-search-bar__box">
-      <AiIcon name="search" color="#94a3b8" size="sm" />
-      <input
-        class="ai-search-bar__input"
-        :value="modelValue"
-        :placeholder="placeholder"
-        :disabled="disabled"
-        :focus="autoFocus"
-        confirm-type="search"
-        placeholder-class="ai-search-bar__placeholder"
-        @input="handleInput"
-        @confirm="handleSearch"
-        @focus="handleFocus"
-        @blur="handleBlur"
-      />
-      <button
-        v-if="clearable && hasValue && !disabled"
-        class="ai-search-bar__clear"
-        type="button"
-        @click="handleClear"
-      >
-        <text>×</text>
-      </button>
-    </view>
-    <button v-if="showCancel || focused" class="ai-search-bar__cancel" type="button" @click="handleCancel">
-      {{ cancelText }}
-    </button>
+  <view
+    class="ai-search-bar"
+    :class="{ 'ai-search-bar--focused': focused, 'ai-search-bar--not-clearable': !clearable }"
+  >
+    <wd-search
+      class="ai-search-bar__control"
+      :model-value="modelValue"
+      :placeholder="placeholder"
+      :cancel-txt="cancelText"
+      :hide-cancel="!(showCancel || focused)"
+      :disabled="disabled"
+      :focus="autoFocus"
+      placeholder-left
+      light
+      focus-when-clear
+      @update:model-value="handleModelUpdate"
+      @change="handleInput"
+      @search="handleSearch"
+      @clear="handleClear"
+      @cancel="handleCancel"
+      @focus="handleFocus"
+      @blur="handleBlur"
+    />
   </view>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-import AiIcon from './AiIcon.vue'
+import { ref } from 'vue'
 
 const props = defineProps({
   modelValue: {
@@ -67,20 +61,21 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'input', 'search', 'clear', 'cancel', 'focus', 'blur'])
 const focused = ref(false)
-const hasValue = computed(() => String(props.modelValue || '').length > 0)
+
+function handleModelUpdate(value) {
+  emit('update:modelValue', value)
+}
 
 function handleInput(event) {
-  const value = event.detail.value
-  emit('update:modelValue', value)
+  const value = event?.value ?? event?.detail?.value ?? event
   emit('input', value)
 }
 
-function handleSearch() {
-  emit('search', props.modelValue)
+function handleSearch(event) {
+  emit('search', event?.value ?? props.modelValue)
 }
 
 function handleClear() {
-  emit('update:modelValue', '')
   emit('clear')
 }
 
@@ -102,77 +97,52 @@ function handleBlur(event) {
 
 <style lang="scss" scoped>
 .ai-search-bar {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
+  width: 100%;
 }
 
-.ai-search-bar__box {
-  display: flex;
-  min-width: 0;
-  height: 68rpx;
-  flex: 1;
-  align-items: center;
-  gap: 12rpx;
+:deep(.wd-search) {
+  padding: 0;
+  background: transparent;
+}
+
+:deep(.wd-search__block) {
+  min-height: 68rpx;
   padding: 0 18rpx;
-  border: 1rpx solid var(--border-color);
-  border-radius: 12rpx;
-  background: #fdfefe;
-  box-shadow: none;
-  box-sizing: border-box;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-
-.ai-search-bar--focused .ai-search-bar__box {
-  border-color: var(--primary-color);
+  border: 1rpx solid var(--border-color, #e2e8f0);
+  border-radius: var(--radius-control, 12rpx);
   background: #fff;
-  box-shadow: 0 0 0 3rpx rgba(31, 95, 191, 0.1);
+  transition: border-color .18s ease, box-shadow .18s ease;
 }
 
-.ai-search-bar__input {
-  min-width: 0;
+.ai-search-bar--focused :deep(.wd-search__block) {
+  border-color: var(--primary-color, #1f5fbf);
+  box-shadow: 0 0 0 3rpx rgba(31, 95, 191, .1);
+}
+
+:deep(.wd-search__field) {
   height: 66rpx;
-  flex: 1;
+  background: transparent;
+}
+
+:deep(.wd-search__input) {
   color: #334155;
   font-size: 26rpx;
   font-weight: 500;
 }
 
-:deep(.ai-search-bar__placeholder) {
+:deep(.wd-search__placeholder-txt) {
   color: #94a3b8;
+  font-size: 26rpx;
   font-weight: 500;
 }
 
-.ai-search-bar__clear,
-.ai-search-bar__cancel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
-}
-
-.ai-search-bar__clear::after,
-.ai-search-bar__cancel::after {
-  border: 0;
-}
-
-.ai-search-bar__clear {
-  width: 42rpx;
-  height: 42rpx;
-  border-radius: 999rpx;
-  color: #ffffff;
-  font-size: 34rpx;
-  line-height: 1;
-  background: rgba(148, 163, 184, 0.68);
-}
-
-.ai-search-bar__cancel {
-  flex-shrink: 0;
-  height: 64rpx;
-  color: #1f5fbf;
+:deep(.wd-search__cancel) {
+  color: var(--primary-color, #1f5fbf);
   font-size: 25rpx;
   font-weight: 650;
-  background: transparent;
+}
+
+.ai-search-bar--not-clearable :deep(.wd-search__clear) {
+  display: none;
 }
 </style>

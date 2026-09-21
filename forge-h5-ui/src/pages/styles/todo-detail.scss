@@ -34,10 +34,8 @@
 .approval-point-tag { color: #b42318; font-size: 22rpx; }
 .form-label { color: #4e5969; font-size: 25rpx; }
 .required-mark { color: #f53f3f; }
-.form-input, .form-textarea { width: 100%; padding: 18rpx; border: 1rpx solid var(--border-color); border-radius: 8rpx; color: var(--text-strong); font-size: 27rpx; background: #fff; box-sizing: border-box; }
+.form-input { width: 100%; padding: 18rpx; border: 1rpx solid var(--border-color); border-radius: 8rpx; color: var(--text-strong); font-size: 27rpx; background: #fff; box-sizing: border-box; }
 .form-input { height: 78rpx; }
-.form-textarea { min-height: 148rpx; line-height: 1.5; }
-.form-textarea.comment { margin-top: 4rpx; }
 .comment-presets { display: flex; flex-wrap: wrap; gap: 12rpx; margin-top: 12rpx; }
 .comment-preset { max-width: 100%; height: 52rpx; padding: 0 16rpx; border: 1rpx solid var(--border-color); border-radius: 8rpx; color: #475569; font-size: 22rpx; line-height: 50rpx; background: #fff; }
 .comment-preset::after, .comment-preset-link::after { border: 0; }

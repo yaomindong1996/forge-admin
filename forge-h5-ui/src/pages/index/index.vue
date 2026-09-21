@@ -1,5 +1,6 @@
 <template>
   <view class="home-page">
+    <AiFeedbackHost />
     <view class="home-content">
       <view class="home-header">
         <view class="user-block" @click="goMine">
@@ -131,19 +132,12 @@
       title="全部应用"
       description="按模块浏览已授权的移动端菜单"
     >
-      <view class="menu-search-bar">
-        <AiIcon icon="/static/icons/ai-icon/search.svg" color="#64748b" size="sm" />
-        <input
-          v-model="menuSearchKeyword"
-          class="menu-search-input"
-          placeholder="搜索菜单"
-          placeholder-class="menu-search-placeholder"
-          confirm-type="search"
-        />
-        <button v-if="menuSearchKeyword" class="menu-search-clear" @click.stop="clearMenuSearch">
-          <AiIcon icon="/static/icons/ai-icon/x.svg" color="#94a3b8" size="sm" />
-        </button>
-      </view>
+      <AiSearchBar
+        v-model="menuSearchKeyword"
+        class="menu-search-bar"
+        placeholder="搜索菜单"
+        @clear="clearMenuSearch"
+      />
 
       <scroll-view class="menu-browser" scroll-y :show-scrollbar="false">
         <view v-if="filteredMenuGroups.length" class="menu-module-list">
@@ -188,8 +182,10 @@
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AiAuthImage from '@/components/AiAuthImage.vue'
+import AiFeedbackHost from '@/components/feedback/AiFeedbackHost.vue'
 import AiIcon from '@/components/AiIcon.vue'
 import AiPopupSheet from '@/components/AiPopupSheet.vue'
+import AiSearchBar from '@/components/AiSearchBar.vue'
 import AiTabBar from '@/components/AiTabBar.vue'
 import api from '@/api'
 import { useAuthStore } from '@/store'

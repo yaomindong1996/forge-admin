@@ -13,6 +13,9 @@
 6. 移动端 API 与后端 Controller 的低代码、选择器和审批路由契约保持一致，不引入 `/mobile` 或 `/h5` 专用协议。
 7. 审批主子表必须展示全部可读子表，并按节点新增、修改、删除权限构造保存载荷；Long ID 保持字符串。
 8. 流程写操作必须携带成对的 `idempotencyKey` 与 `requestDigest`，相同载荷摘要稳定、不同动作摘要不同。
+9. 所有注册页面必须挂载统一 `AiFeedbackHost`；Toast、Notify、MessageBox、Prompt 和 ActionSheet 由 Wot Design Uni 实现，业务反馈适配器不得包含手写 DOM 或 uni 原生提示 API。
+10. `FLOW_TODO` 消息必须从 `jumpUrl/taskId/task_id/bizKey` 稳定解析任务 ID；未读消息进入办理态，已读消息进入只读态，只有办理成功后才标记来源消息已读，普通消息仍可自动已读。
+11. 待办页 `onShow` 必须重新请求当前作用域；办理完成后的回退使用统一兜底，不得依赖一定存在的上一页。
 
 ## P1 交互与兼容验证
 
@@ -23,6 +26,24 @@
 5. 登录、首页、消息、待办、我的、审批详情和低代码运行页使用同一蓝白黑灰视觉体系，无渐变、装饰光斑、毛玻璃或持续入场动画。
 6. 自定义底部导航为标准白色固定导航，具备图标、文字、选中态和底部安全区，不使用悬浮胶囊布局。
 7. 所有生产页面 Vue SFC 不超过 800 行；页面滚动区与固定顶部/底部操作区边界正确。
+8. 登录页账号、密码、验证码、提交按钮和工作区弹层使用 `Ai*`/Wot 组件；空表单提交能展示 Wot Toast，登录页在 390 × 844 视口下布局完整。
+9. 审批意见、转办说明、低代码多行文本和数字输入使用 `Ai*`/Wot 适配组件；待办、消息和审批详情的视觉密度与底部操作区保持一致。
+
+## 第八轮增量验证：统一反馈与登录页
+
+1. 新增 `feedback-components.test.js`，静态锁定全部注册页面的反馈宿主、Wot 反馈组件集合、适配器禁用 API和登录页组件化结构。
+2. 重新执行既有 38 项运行时测试与新增反馈测试，避免公共反馈宿主影响低代码及审批路径。
+3. 重新执行 `pnpm build:h5` 与 `pnpm build:mp-weixin`，验证 Wot MessageBox/ActionSheet 在两端均可编译。
+4. 使用 H5 开发页和 390 × 844 手机视口检查登录页，并触发一次空表单登录提示验证 Wot Toast 实际显示。
+5. 执行反馈 API 残留扫描、生产页面行数检查和 `git diff --check`。
+
+## 第九轮增量验证：消息与待办处理回路
+
+1. 新增 `message-flow-navigation.test.js`，验证流程任务 ID 的多来源解析、Long ID 字符串语义、待办/只读模式和页面回退链路。
+2. 验证 `FLOW_TODO` 详情打开时不会提前标记已读；普通消息仍按原逻辑自动已读，批量已读排除活动审批待办。
+3. 验证待办页每次 `onShow` 刷新、审批提交后统一回退，并复用既有历史任务详情和只读表单协议。
+4. 检查搜索、多行文本和数字输入均通过 `Ai*`/Wot 适配组件渲染，生产代码无原生 `input/textarea` 和 uni 原生反馈调用残留。
+5. 重新执行定向单测、H5/微信小程序生产构建、390 × 844 组件交互冒烟、页面行数检查和 `git diff --check`。
 
 ## 执行命令
 
@@ -34,6 +55,8 @@ node --test \
   src/components/lowcode/__tests__/mobile-component-registry.test.js \
   src/utils/__tests__/business-task-form-adapter.test.js \
   src/utils/__tests__/flow-action-idempotency.test.js \
+  src/utils/__tests__/feedback-components.test.js \
+  src/utils/__tests__/message-flow-navigation.test.js \
   src/utils/__tests__/lowcode-runtime.test.js \
   src/utils/__tests__/uni-adapter.test.js \
   src/utils/__tests__/mobile-selector-runtime.test.js \

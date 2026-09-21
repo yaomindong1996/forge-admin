@@ -1,5 +1,6 @@
 <template>
   <view class="todo-page">
+    <AiFeedbackHost />
     <view class="todo-content">
       <view class="todo-header">
         <view>
@@ -108,12 +109,15 @@
 import { computed, ref } from 'vue'
 import { onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import AiIcon from '@/components/AiIcon.vue'
+import AiFeedbackHost from '@/components/feedback/AiFeedbackHost.vue'
 import AiListSkeleton from '@/components/AiListSkeleton.vue'
 import AiSearchBar from '@/components/AiSearchBar.vue'
 import AiPopupSheet from '@/components/AiPopupSheet.vue'
 import AiTabBar from '@/components/AiTabBar.vue'
 import api from '@/api'
 import { useAuthStore } from '@/store'
+import { showConfirmDialog } from '@/utils/dialog'
+import { resolveApiErrorMessage } from '@/utils/flow-page'
 import { toast } from '@/utils/notify'
 
 const authStore = useAuthStore()
@@ -149,9 +153,7 @@ const emptyDescription = computed(() => flowServiceUnavailable.value
   : keyword.value ? `没有符合当前条件的${scopeLabel.value}` : `当前没有${scopeLabel.value}`)
 
 onShow(async () => {
-  if (!tasks.value.length) {
-    await loadTasks({ reset: true })
-  }
+  await loadTasks({ reset: true })
   if (categoryOptions.value.length === 1) {
     loadCategories()
   }
@@ -228,18 +230,31 @@ async function claimTask(task) {
     toast('签收成功', { type: 'success' })
     await loadTasks({ reset: true })
   }
-  catch (error) { console.error('签收待办失败:', error) }
+  catch (error) {
+    console.error('签收待办失败:', error)
+    toast(resolveApiErrorMessage(error, '签收待办失败'), { type: 'error' })
+  }
 }
 
 async function withdrawTask(task) {
   const processInstanceId = task.processInstanceId
   if (!processInstanceId) return toast('该流程缺少实例标识，无法撤回', { type: 'warning' })
+  const confirmed = await showConfirmDialog({
+    title: '确认撤回流程',
+    description: '撤回后当前审批任务将结束，请确认业务状态允许撤回。',
+    confirmText: '确认撤回',
+    isDestructive: true,
+  })
+  if (!confirmed) return
   try {
     await api.withdrawFlowProcess({ processInstanceId: String(processInstanceId), userId: String(userId.value) })
     toast('撤回成功', { type: 'success' })
     await loadTasks({ reset: true })
   }
-  catch (error) { console.error('撤回流程失败:', error) }
+  catch (error) {
+    console.error('撤回流程失败:', error)
+    toast(resolveApiErrorMessage(error, '撤回流程失败'), { type: 'error' })
+  }
 }
 
 function openTask(task) {

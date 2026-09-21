@@ -1,5 +1,6 @@
 <template>
   <view class="mine-page">
+    <AiFeedbackHost />
     <view class="mine-content">
       <view class="mine-header">
         <text class="mine-title">账户</text>
@@ -266,6 +267,7 @@
 import { computed, reactive, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AiAuthImage from '@/components/AiAuthImage.vue'
+import AiFeedbackHost from '@/components/feedback/AiFeedbackHost.vue'
 import AiButton from '@/components/AiButton.vue'
 import AiField from '@/components/AiField.vue'
 import AiIcon from '@/components/AiIcon.vue'

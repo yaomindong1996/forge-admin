@@ -1,5 +1,6 @@
 <template>
   <AiLayoutPage :title="title" subtitle="已从全部应用打开">
+    <AiFeedbackHost />
     <view class="app-entry">
       <view class="app-entry__icon">
         <AiIcon icon="/static/icons/ai-icon/layout.svg" color="#1f5fbf" size="lg" />
@@ -15,6 +16,7 @@
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AiButton from '@/components/AiButton.vue'
+import AiFeedbackHost from '@/components/feedback/AiFeedbackHost.vue'
 import AiIcon from '@/components/AiIcon.vue'
 import AiLayoutPage from '@/components/AiLayoutPage.vue'
 

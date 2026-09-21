@@ -8,6 +8,7 @@
     :safe-bottom="pageChrome.safeBottom"
     :padded="pageChrome.padded"
   >
+    <AiFeedbackHost />
     <view v-if="loading" class="runtime-state">
       <AiListSkeleton :rows="4" />
     </view>
@@ -174,6 +175,7 @@ import { computed } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import AiButton from '@/components/AiButton.vue'
+import AiFeedbackHost from '@/components/feedback/AiFeedbackHost.vue'
 import AiLayoutPage from '@/components/AiLayoutPage.vue'
 import AiListSkeleton from '@/components/AiListSkeleton.vue'
 import AiResult from '@/components/AiResult.vue'
@@ -189,6 +191,7 @@ import { useLowcodeFormRegistry } from '@/composables/lowcode/useLowcodeFormRegi
 import { useLowcodeRuntimeData } from '@/composables/lowcode/useLowcodeRuntimeData'
 import api from '@/api'
 import { useAuthStore, useLowcodeRuntimeStore } from '@/store'
+import { showActionSheetDialog, showConfirmDialog, showPromptDialog } from '@/utils/dialog'
 import { toast } from '@/utils/notify'
 import {
   actionInputSchema,
@@ -511,20 +514,14 @@ async function handleToolbarAction(action, child) {
     await runAction(resolved, items[0], targetChild)
     return
   }
-  const labels = items.map(item => {
+  const actions = items.map((item, index) => {
     const titleField = targetChild?.titleField
     const labelVal = titleField && item[titleField]
       ? item[titleField]
       : item.name || item.productName || item[config.value.rowKey || 'id'] || '记录'
-    return String(labelVal)
+    return { name: String(labelVal), value: index }
   })
-  const tapIndex = await new Promise(resolve => {
-    uni.showActionSheet({
-      itemList: labels,
-      success: res => resolve(res.tapIndex),
-      fail: () => resolve(-1),
-    })
-  })
+  const tapIndex = await showActionSheetDialog({ title: '选择操作记录', actions })
   if (tapIndex < 0 || tapIndex >= items.length)
     return
   await runAction(resolved, items[tapIndex], targetChild)
@@ -536,8 +533,18 @@ function resolveActionObjectCode(child) {
     || child?.targetObjectCode
 }
 function handleError(error) { toast(error?.message || '操作失败，请稍后重试', { type: 'error' }) }
-function confirmAction(action) { return new Promise(resolve => uni.showModal({ title: action.label || action.actionName || '确认操作', content: action.confirmText || `确认执行“${action.label || action.actionName || '操作'}”吗？`, success: result => resolve(result.confirm) })) }
-function promptActionInput(input) { return new Promise(resolve => uni.showModal({ title: input.label || input.name, editable: true, placeholderText: input.placeholder || `请输入${input.label || input.name}`, success: result => resolve(result.confirm ? result.content : null) })) }
+function confirmAction(action) {
+  return showConfirmDialog({
+    title: action.label || action.actionName || '确认操作',
+    description: action.confirmText || `确认执行“${action.label || action.actionName || '操作'}”吗？`,
+  })
+}
+function promptActionInput(input) {
+  return showPromptDialog({
+    title: input.label || input.name,
+    placeholder: input.placeholder || `请输入${input.label || input.name}`,
+  })
+}
 function bottomActionKey(action) { return `${action.type}:${action.actionCode || action.label || ''}` }
 </script>
 

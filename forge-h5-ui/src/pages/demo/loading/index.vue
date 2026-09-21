@@ -1,5 +1,6 @@
 <template>
   <AiLayoutPage title="组件演示" subtitle="按需查看 Forge 移动端基础组件">
+    <AiFeedbackHost />
     <template #navRight>
       <AiTag type="primary" round>{{ visibleComponents.length }} 个</AiTag>
     </template>
@@ -253,6 +254,7 @@ import AiButton from '@/components/AiButton.vue'
 import AiCell from '@/components/AiCell.vue'
 import AiCellGroup from '@/components/AiCellGroup.vue'
 import AiEmpty from '@/components/AiEmpty.vue'
+import AiFeedbackHost from '@/components/feedback/AiFeedbackHost.vue'
 import AiField from '@/components/AiField.vue'
 import AiIcon from '@/components/AiIcon.vue'
 import AiLayoutPage from '@/components/AiLayoutPage.vue'

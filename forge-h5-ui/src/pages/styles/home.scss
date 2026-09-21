@@ -100,8 +100,7 @@
 
 .bell-button,
 .attention-refresh,
-.section-link,
-.menu-search-clear {
+.section-link {
   margin: 0;
   padding: 0;
   border: 0;
@@ -112,7 +111,6 @@
 .attention-refresh::after,
 .attention-card::after,
 .section-link::after,
-.menu-search-clear::after,
 .menu-list-card::after {
   border: 0;
 }
@@ -428,35 +426,7 @@
 }
 
 .menu-search-bar {
-  display: flex;
-  height: 68rpx;
-  align-items: center;
-  gap: 10rpx;
   margin-bottom: 16rpx;
-  padding: 0 16rpx;
-  border: 1rpx solid var(--border-color);
-  border-radius: var(--radius-control);
-  background: #fff;
-}
-
-.menu-search-input {
-  min-width: 0;
-  height: 66rpx;
-  flex: 1;
-  color: var(--text-strong);
-  font-size: 24rpx;
-}
-
-.menu-search-placeholder {
-  color: var(--text-muted);
-}
-
-.menu-search-clear {
-  display: flex;
-  width: 42rpx;
-  height: 42rpx;
-  align-items: center;
-  justify-content: center;
 }
 
 .menu-browser {

@@ -1,5 +1,6 @@
 <template>
   <view class="message-page">
+    <AiFeedbackHost />
     <view class="message-content">
       <view class="page-head">
         <button class="back-button" @click="goBack">
@@ -34,9 +35,9 @@
             </button>
           </view>
         </scroll-view>
-        <button v-if="unreadCount > 0" class="mark-read-button" @click="markAllRead">
+        <button v-if="markableUnreadMessages.length" class="mark-read-button" @click="markAllRead">
           <AiIcon name="check" color="#1f5fbf" size="sm" />
-          <text>全部标为已读</text>
+          <text>{{ markAllReadLabel }}</text>
         </button>
       </view>
 
@@ -103,7 +104,7 @@
       <template #footer>
         <view class="detail-actions">
           <AiButton
-            v-if="currentMessage?.readFlag === 0"
+            v-if="currentMessage?.readFlag === 0 && !isApprovalMessage(currentMessage)"
             variant="secondary"
             size="sm"
             @click="markRead(currentMessage)"
@@ -111,11 +112,11 @@
             标记已读
           </AiButton>
           <AiButton
-            v-if="currentMessage?.bizType || currentMessage?.jumpUrl"
+            v-if="hasBusinessAction"
             size="sm"
             @click="openBiz(currentMessage)"
           >
-            查看业务
+            {{ businessActionText }}
           </AiButton>
         </view>
       </template>
@@ -127,6 +128,7 @@
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AiEmpty from '@/components/AiEmpty.vue'
+import AiFeedbackHost from '@/components/feedback/AiFeedbackHost.vue'
 import AiIcon from '@/components/AiIcon.vue'
 import AiListSkeleton from '@/components/AiListSkeleton.vue'
 import AiPopupSheet from '@/components/AiPopupSheet.vue'
@@ -134,6 +136,14 @@ import AiSearchBar from '@/components/AiSearchBar.vue'
 import AiTag from '@/components/AiTag.vue'
 import api from '@/api'
 import { showConfirmDialog } from '@/utils/dialog'
+import {
+  buildFlowTaskDetailUrl,
+  isFlowTaskRoute,
+  isFlowTodoMessage,
+  resolveFlowMessageMode,
+  resolveFlowMessageTaskId,
+  shouldAutoMarkMessageRead,
+} from '@/utils/message-flow-navigation'
 import { toast } from '@/utils/notify'
 
 const loading = ref(false)
@@ -167,6 +177,17 @@ const filteredMessages = computed(() => {
     return true
   })
 })
+const markableUnreadMessages = computed(() => messages.value.filter(item => item.readFlag === 0 && !isApprovalMessage(item)))
+const markAllReadLabel = computed(() => messages.value.some(item => item.readFlag === 0 && isApprovalMessage(item))
+  ? '其他消息全部已读'
+  : '全部标为已读')
+const hasBusinessAction = computed(() => Boolean(
+  currentMessage.value && (isApprovalMessage(currentMessage.value) || currentMessage.value.bizType || currentMessage.value.jumpUrl),
+))
+const businessActionText = computed(() => {
+  if (!isApprovalMessage(currentMessage.value)) return '查看业务'
+  return Number(currentMessage.value?.readFlag) === 0 ? '去处理' : '查看处理结果'
+})
 
 const detailHtml = computed(() => currentMessage.value?.content || '')
 const detailDescription = computed(() => {
@@ -182,10 +203,8 @@ onShow(async () => {
   await refresh()
   if (pendingOpenId.value) {
     const target = messages.value.find(item => String(item.id) === pendingOpenId.value)
-    if (target) {
-      await openDetail(target)
-      pendingOpenId.value = ''
-    }
+    await openDetail(target || { id: pendingOpenId.value })
+    pendingOpenId.value = ''
   }
 })
 
@@ -265,8 +284,8 @@ async function openDetail(item) {
       readFlag: Number((res?.data || item).readFlag ?? item.readFlag ?? 0),
     }
     showDetail.value = true
-    if (item.readFlag === 0) {
-      await markRead(item, { silent: true })
+    if (shouldAutoMarkMessageRead(currentMessage.value)) {
+      await markRead(currentMessage.value, { silent: true })
     }
   }
   catch (error) {
@@ -282,7 +301,11 @@ async function markRead(item, options = {}) {
   try {
     await api.markMessageRead(item.id)
     item.readFlag = 1
-    if (currentMessage.value?.id === item.id) {
+    const listItem = messages.value.find(message => String(message.id) === String(item.id))
+    if (listItem) {
+      listItem.readFlag = 1
+    }
+    if (String(currentMessage.value?.id || '') === String(item.id)) {
       currentMessage.value.readFlag = 1
     }
     unreadCount.value = Math.max(0, unreadCount.value - 1)
@@ -299,21 +322,23 @@ async function markRead(item, options = {}) {
 }
 
 async function markAllRead() {
+  const messageIds = markableUnreadMessages.value.map(item => item.id).filter(Boolean)
+  if (!messageIds.length) return
   const confirmed = await showConfirmDialog({
-    title: '全部已读',
-    description: '确认将所有未读消息标记为已读？',
-    icon: 'warning',
-    confirmText: '全部已读',
+    title: '标记消息已读',
+    description: '普通通知和系统消息将标记为已读；待处理审批保留未读，办理完成后由流程自动更新。',
+    confirmText: '确认标记',
     cancelText: '取消',
   })
   if (!confirmed) {
     return
   }
   try {
-    await api.markAllMessagesRead()
-    messages.value = messages.value.map(item => ({ ...item, readFlag: 1 }))
-    unreadCount.value = 0
-    toast('已全部标记为已读', { type: 'success' })
+    await api.markMessagesReadBatch(messageIds)
+    const idSet = new Set(messageIds.map(String))
+    messages.value = messages.value.map(item => idSet.has(String(item.id)) ? { ...item, readFlag: 1 } : item)
+    unreadCount.value = Math.max(0, unreadCount.value - messageIds.length)
+    toast('普通消息已标记为已读', { type: 'success' })
   }
   catch (error) {
     console.error('全部标记已读失败:', error)
@@ -324,10 +349,10 @@ async function markAllRead() {
 function openBiz(message) {
   const route = resolveBizRoute(message)
   showDetail.value = false
-  if (route && route.startsWith('/pages/todo')) {
-    const taskId = getRouteTaskId(route) || message.taskId || message.task_id
+  if (isApprovalMessage(message) || isFlowTaskRoute(route)) {
+    const taskId = resolveFlowMessageTaskId(message, route)
     if (taskId) {
-      uni.navigateTo({ url: `/pages/todo-detail?taskId=${encodeURIComponent(String(taskId))}` })
+      uni.navigateTo({ url: buildFlowTaskDetailUrl(taskId, resolveFlowMessageMode(message), message?.id) })
     }
     else {
       uni.switchTab({ url: '/pages/todo' })
@@ -341,18 +366,7 @@ function openBiz(message) {
     })
     return
   }
-  if (isApprovalMessage(message)) {
-    const taskId = message.taskId || message.task_id
-    if (taskId) uni.navigateTo({ url: `/pages/todo-detail?taskId=${encodeURIComponent(String(taskId))}` })
-    else uni.switchTab({ url: '/pages/todo' })
-    return
-  }
   toast('该消息暂无移动端业务入口', { type: 'info' })
-}
-
-function getRouteTaskId(route) {
-  const match = String(route || '').match(/[?&]taskId=([^&#]+)/)
-  return match ? decodeURIComponent(match[1]) : ''
 }
 
 function resolveBizRoute(message) {
@@ -373,7 +387,7 @@ function replaceRouteParams(route, message) {
 }
 
 function isApprovalMessage(item) {
-  return item?.bizType === 'FLOW_TODO'
+  return isFlowTodoMessage(item)
 }
 
 function getMessageCategory(item) {

@@ -1,130 +1,110 @@
 <template>
   <view class="login-page">
-    <!-- 企微免登 pending 时全屏 loading，不展示登录表单 -->
-    <view v-if="wecomPending" class="page-shell wecom-loading-shell">
+    <AiFeedbackHost />
+    <view v-if="wecomPending" class="wecom-loading-shell">
       <view class="wecom-loading-content">
         <image class="wecom-loading-logo" :src="assetUrl('/static/logo.png')" mode="aspectFit" />
-        <text class="wecom-loading-text">正在登录...</text>
-        <view class="wecom-loading-dots">
-          <view class="dot dot-1" />
-          <view class="dot dot-2" />
-          <view class="dot dot-3" />
-        </view>
+        <wd-loading type="ring" color="#1f5fbf" :size="28" />
+        <text class="wecom-loading-text">正在验证企业身份</text>
       </view>
     </view>
 
     <view v-else class="page-shell">
-      <view class="brand-bar">
-        <view class="brand-main">
-          <view class="brand-mark">
-            <image class="brand-logo" :src="assetUrl('/static/logo.png')" mode="aspectFit" />
+      <view class="login-masthead">
+        <view class="brand-bar">
+          <view class="brand-main">
+            <view class="brand-mark">
+              <image class="brand-logo" :src="assetUrl('/static/logo.png')" mode="aspectFit" />
+            </view>
+            <view class="brand-copy">
+              <text class="brand-title">Forge 移动工作台</text>
+              <text class="brand-subtitle">企业应用统一入口</text>
+            </view>
           </view>
-          <view class="brand-copy">
-            <text class="brand-title">Forge 移动工作台</text>
-            <text class="brand-subtitle">企业应用统一入口</text>
-          </view>
+          <text class="client-badge">{{ userClient.toUpperCase() }}</text>
         </view>
-        <text class="client-badge">{{ userClient.toUpperCase() }}</text>
+        <view class="masthead-copy">
+          <text class="masthead-kicker">统一身份认证</text>
+          <text class="masthead-title">登录移动工作台</text>
+          <text class="masthead-desc">访问企业应用、审批任务与消息通知</text>
+        </view>
       </view>
 
-      <view class="login-panel">
-        <view class="panel-head">
-          <text class="panel-title">{{ title }}</text>
-          <text class="panel-subtitle">请使用企业账号完成身份验证</text>
-        </view>
-
-        <view class="form-stack">
-          <view class="field">
-            <image class="field-icon" :src="assetUrl('/static/icons/ai-icon/user.svg')" mode="aspectFit" />
-            <input
-              v-model="form.username"
-              class="field-input"
-              placeholder="请输入用户名"
-              placeholder-class="field-placeholder"
-              confirm-type="next"
-            />
+      <view class="login-main">
+        <view class="login-panel">
+          <view class="panel-head">
+            <text class="panel-title">企业账号登录</text>
+            <text class="panel-subtitle">请输入账号信息完成身份验证</text>
           </view>
 
-          <view class="field">
-            <image class="field-icon" :src="assetUrl('/static/icons/ai-icon/lock.svg')" mode="aspectFit" />
-            <input
-              v-model="form.password"
-              class="field-input"
-              :password="!showPassword"
-              placeholder="请输入密码"
-              placeholder-class="field-placeholder"
-              confirm-type="done"
-              @confirm="handleLogin"
-            />
-            <view class="password-toggle" @click.stop="togglePassword">
-              <image
-                class="toggle-icon"
-                :src="assetUrl(showPassword ? '/static/icons/ai-icon/eye-off.svg' : '/static/icons/ai-icon/eye.svg')"
-                mode="aspectFit"
-              />
+          <view class="form-stack">
+            <AiField v-model="form.username" clearable placeholder="请输入用户名">
+              <template #leftIcon><AiIcon name="user" color="#6b7280" size="sm" /></template>
+            </AiField>
+
+            <AiField v-model="form.password" type="password" placeholder="请输入密码" @confirm="handleLogin">
+              <template #leftIcon><AiIcon name="lock" color="#6b7280" size="sm" /></template>
+            </AiField>
+
+            <view class="captcha-row">
+              <AiField v-model="form.code" class="captcha-field" placeholder="请输入验证码" @confirm="handleLogin">
+                <template #leftIcon><AiIcon name="shield" color="#6b7280" size="sm" /></template>
+              </AiField>
+              <button class="captcha-image" :disabled="captcha.loading" @click="loadCaptcha">
+                <image v-if="captcha.image" class="captcha-img" :src="captcha.image" mode="aspectFit" />
+                <view v-else class="captcha-empty">
+                  <wd-loading v-if="captcha.loading" type="ring" color="#1f5fbf" :size="18" />
+                  <text v-else>获取验证码</text>
+                </view>
+              </button>
             </view>
           </view>
 
-          <view class="captcha-row">
-            <view class="field captcha-input-wrap">
-              <image class="field-icon" :src="assetUrl('/static/icons/ai-icon/shield.svg')" mode="aspectFit" />
-              <input
-                v-model="form.code"
-                class="field-input"
-                placeholder="请输入验证码"
-                placeholder-class="field-placeholder"
-                confirm-type="done"
-                @confirm="handleLogin"
-              />
-            </view>
-            <view class="captcha-image" :class="{ 'captcha-refreshing': captcha.loading }" @click="loadCaptcha">
-              <image v-if="captcha.image" class="captcha-img" :src="captcha.image" mode="aspectFit" />
-              <text v-else class="captcha-empty">{{ captcha.loading ? '加载中' : '刷新' }}</text>
-              <view class="captcha-lines" />
-              <view class="captcha-hover">
-                <image class="refresh-icon" :src="assetUrl('/static/icons/ai-icon/refresh-cw.svg')" mode="aspectFit" />
-              </view>
-            </view>
+          <AiButton block size="lg" :loading="loading" @click="handleLogin">登录</AiButton>
+
+          <view class="login-security">
+            <AiIcon name="shield" color="#526071" size="xs" />
+            <text>账号信息通过安全链路传输</text>
           </view>
         </view>
 
-        <button class="login-button" :disabled="loading" @click="handleLogin">
-          <text>{{ loading ? '登录中...' : '登录' }}</text>
-          <text class="button-arrow">→</text>
+        <view class="login-foot">
+          <text>{{ title }} · © 2026 FORGE</text>
+        </view>
+      </view>
+    </view>
+
+    <AiPopupSheet
+      v-model="showWorkspaceModal"
+      title="选择工作区"
+      description="该账号可进入多个工作区，请选择后继续登录"
+      max-height="72vh"
+      body-max-height="calc(72vh - 190rpx - env(safe-area-inset-bottom))"
+      @close="closeWorkspaceModal"
+    >
+      <view class="workspace-modal-list">
+        <button
+          v-for="item in tenantOptions"
+          :key="String(item.tenantId)"
+          class="workspace-option"
+          :class="{ 'is-current': String(item.tenantId) === String(lastUsedTenantId) }"
+          @click="confirmWorkspace(item)"
+        >
+          <text class="workspace-option-name">{{ item.tenantName || item.systemName || item.tenantId }}</text>
+          <text v-if="String(item.tenantId) === String(lastUsedTenantId)" class="workspace-option-tag">上次使用</text>
+          <AiIcon v-else name="chevron-right" color="#8a93a3" size="sm" />
         </button>
-
       </view>
-
-      <view class="login-foot">
-        <text>© 2026 FORGE 移动端</text>
-      </view>
-    </view>
-
-    <view v-if="showWorkspaceModal" class="workspace-modal-overlay" @click="closeWorkspaceModal">
-      <view class="workspace-modal" @click.stop>
-        <text class="workspace-modal-title">选择工作区</text>
-        <text class="workspace-modal-desc">该账号可进入多个工作区，请选择后继续登录</text>
-        <view class="workspace-modal-list">
-          <view
-            v-for="item in tenantOptions"
-            :key="String(item.tenantId)"
-            class="workspace-option"
-            :class="{ 'is-current': String(item.tenantId) === String(lastUsedTenantId) }"
-            @click="confirmWorkspace(item)"
-          >
-            <view class="workspace-option-copy">
-              <text class="workspace-option-name">{{ item.tenantName || item.systemName || item.tenantId }}</text>
-            </view>
-            <text v-if="String(item.tenantId) === String(lastUsedTenantId)" class="workspace-option-tag">上次使用</text>
-          </view>
-        </view>
-        <view class="workspace-modal-cancel" @click="closeWorkspaceModal">取消</view>
-      </view>
-    </view>
+    </AiPopupSheet>
   </view>
 </template>
 
 <script>
+import AiButton from '@/components/AiButton.vue'
+import AiFeedbackHost from '@/components/feedback/AiFeedbackHost.vue'
+import AiField from '@/components/AiField.vue'
+import AiIcon from '@/components/AiIcon.vue'
+import AiPopupSheet from '@/components/AiPopupSheet.vue'
 import { useAuthStore } from '@/store'
 import api from '@/api'
 import { resolveStaticUrl } from '@/utils/assets'
@@ -149,6 +129,7 @@ function extractWorkspaceOptions(error) {
 }
 
 export default {
+  components: { AiButton, AiFeedbackHost, AiField, AiIcon, AiPopupSheet },
   data() {
     return {
       title: import.meta.env.VITE_TITLE || 'Forge 移动端',
@@ -157,7 +138,6 @@ export default {
       redirect: '/pages/index/index',
       loading: false,
       wecomPending: false,
-      showPassword: false,
       captcha: {
         loading: false,
         image: '',
@@ -222,9 +202,6 @@ export default {
   methods: {
     assetUrl(path) {
       return resolveStaticUrl(path)
-    },
-    togglePassword() {
-      this.showPassword = !this.showPassword
     },
     normalizeCaptchaImage(image) {
       if (!image) {

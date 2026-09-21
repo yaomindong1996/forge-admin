@@ -78,6 +78,30 @@
 - 定向测试再次执行，38/38 通过；`pnpm build:h5` 与 `pnpm build:mp-weixin` 均输出 `DONE Build complete`；`git diff --check` 无输出，当前分支仍为 `codex/mobile-lowcode-runtime-refactor`。
 - 微信小程序构建继续报告仓库既有 API/auth 与 storage 手工分包循环提示，不阻断产物生成。
 
+## 第八轮增量：统一反馈组件与登录页组件化
+
+- 新增页面级 `AiFeedbackHost`，统一挂载 Wot Design Uni 的 Toast、Notify、MessageBox、Prompt 和 ActionSheet；`utils/notify`、`utils/dialog` 保留原业务调用 API，不再创建手写 DOM，也不再回退 `uni.showToast/showModal/showActionSheet`。
+- `pages.json` 注册的 9 个页面均已挂载统一反馈宿主；低代码运行页的记录操作面板、动作确认和动作输入改为统一 Wot 反馈适配器。
+- 登录页完成可感知的结构重构：蓝色企业身份区、白色账号面板、`AiField` 账号/密码/验证码、`AiButton` 主操作、Wot Loading 和 `AiPopupSheet` 工作区选择；移除原生输入框与自定义遮罩弹层。
+- 新增 `feedback-components.test.js` 4 项契约测试；与既有运行时测试合并执行后共 42/42 通过（Node `v24.21.0`）。
+- `pnpm build:h5` 与 `pnpm build:mp-weixin` 均输出 `DONE Build complete`；微信小程序仍仅报告仓库既有 API/auth 与 storage 循环分包警告。
+- H5 使用 `390 × 844` 视口实测登录页，页面结构、输入控件、验证码区和主按钮显示完整；点击空表单登录后可见 Wot Toast“请输入用户名、密码和验证码”。
+- 静态扫描未发现 `uni.showModal`、`uni.showActionSheet`、`uni.showToast` 或旧 `forge-dialog/forge-toast/forge-notify` 残留；生产页面最大文件 `todo-detail.vue` 为 793 行，`git diff --check` 通过。
+- 本轮开发预览服务由 exec 会话启动（Node 子进程日志 PID `294`），验证后已通过 Ctrl+C 停止；端口 `3009` 无监听残留。App 服务 `127.0.0.1:8583` 未启动，验证码请求失败不影响前端反馈组件验证。
+- 项目偏好的 Node `v20.19.0` 在当前机器仍未安装，`nvm use v20.19.0` 明确失败；本轮沿用此前构建通过的 Node `v24.21.0`，未将版本切换失败记为通过。
+
+## 第九轮增量：消息与待办处理回路
+
+- 待办页改为每次 `onShow` 都刷新当前作用域，签收、撤回和审批详情返回后不会继续显示旧任务；独立深链办理成功后使用统一回退函数兜底到待办页。
+- 流程消息任务 ID 统一从跳转地址、`taskId`、`task_id`、`FLOW_TODO.bizKey` 解析，并始终转为字符串；首页消息深链即使目标不在当前消息页前 80 条中，也会直接请求详情。
+- 活动 `FLOW_TODO` 打开详情时不再提前标记已读，“全部已读”只批量处理普通消息；从消息进入审批时携带来源消息 ID，只有动作成功后才调用既有单条已读接口，后端 `FlowTaskNotifyListener` 按 `FLOW_TODO + taskId` 的完成事件继续提供最终一致性兜底。已处理流程消息进入只读审批详情，复用既有历史任务、只读业务表单和流程轨迹协议。
+- 审批意见、转办说明、低代码多行文本、数值/金额/数值范围输入改为 `AiTextarea`/`AiField`；`AiSearchBar` 和首页菜单搜索改由 Wot Design Uni `wd-search` 实现。生产页面和组件适配层扫描未发现原生 `input/textarea` 或 `uni.showToast/showModal/showActionSheet` 残留。
+- 新增消息导航与处理回路测试，并扩展统一组件契约测试；Node `v24.21.0` 下定向测试共 48/48 通过。
+- `pnpm build:h5` 与 `pnpm build:mp-weixin` 均输出 `DONE Build complete`；微信小程序仍仅报告仓库既有 API/auth 与 storage 循环分包提示。
+- 390 × 844 H5 视口实际检查组件目录和 Wot 搜索弹层，输入“审批”及清空交互正常，蓝白黑灰布局、边框和焦点态显示完整；为检查临时放开的组件演示访问规则已还原，未形成代码差异。
+- 本地预览期间仅出现 App 服务 `127.0.0.1:8583` 未启动导致的请求失败；预览服务和浏览器标签均已关闭。真实消息、待办和审批数据仍按既有约定由联调环境验收。
+- 生产页面最大文件为 `todo-detail.vue` 799 行，低于 800 行硬限制；`git diff --check` 通过，分支仍为 `codex/mobile-lowcode-runtime-refactor`。
+
 ## 环境差异
 
 仓库记忆推荐 Node `v20.19.0`，但当前机器未安装该版本，因此本次实际使用 Node `v24.21.0`。生产构建和定向测试均已通过；合并前如 CI 固定 Node 20，建议在 CI 再执行同一组命令。

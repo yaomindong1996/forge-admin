@@ -236,6 +236,13 @@ export default {
     encrypt: true,
     needTip: false,
   }),
+  markMessagesReadBatch: ids => request({
+    url: '/api/message/read/batch',
+    method: 'post',
+    data: Array.isArray(ids) ? ids : [],
+    encrypt: true,
+    needTip: false,
+  }),
   markAllMessagesRead: () => request({
     url: '/api/message/read/all',
     method: 'post',

@@ -1,5 +1,6 @@
 <template>
   <view class="todo-detail-page">
+    <AiFeedbackHost />
     <view class="detail-nav">
       <button class="nav-back" @click="goBack">
         <AiIcon icon="/static/icons/ai-icon/arrow-left.svg" color="#1f2329" size="sm" />
@@ -79,7 +80,7 @@
             </view>
             <view v-if="!readonlyMode" class="comment-row">
               <text class="form-label">审批意见<text v-if="requireComment" class="required-mark"> *</text></text>
-              <textarea v-model="comment" class="form-textarea comment" maxlength="500" placeholder="请输入审批意见" />
+              <AiTextarea v-model="comment" maxlength="500" placeholder="请输入审批意见" />
               <view v-if="commentPhrases.length" class="comment-presets">
                 <button
                   v-for="phrase in commentPhrases"
@@ -185,7 +186,7 @@
       </view>
       <view class="delegate-comment">
         <text class="form-label">转办说明<text v-if="requireComment" class="required-mark"> *</text></text>
-        <textarea v-model="delegateComment" class="form-textarea" maxlength="500" placeholder="请说明转办原因" />
+        <AiTextarea v-model="delegateComment" maxlength="500" placeholder="请说明转办原因" />
       </view>
       <view v-if="requireSignature" class="delegate-signature">
         <text class="form-label">手写签名<text class="required-mark"> *</text></text>
@@ -202,6 +203,7 @@
 import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AiButton from '@/components/AiButton.vue'
+import AiFeedbackHost from '@/components/feedback/AiFeedbackHost.vue'
 import AiIcon from '@/components/AiIcon.vue'
 import AiListSkeleton from '@/components/AiListSkeleton.vue'
 import AiPopupSheet from '@/components/AiPopupSheet.vue'
@@ -209,6 +211,7 @@ import AiSearchBar from '@/components/AiSearchBar.vue'
 import AiSignaturePad from '@/components/AiSignaturePad.vue'
 import AiTab from '@/components/AiTab.vue'
 import AiTabs from '@/components/AiTabs.vue'
+import AiTextarea from '@/components/AiTextarea.vue'
 import PageSectionRenderer from '@/components/lowcode/PageSectionRenderer.vue'
 import TodoFlowTrace from '@/components/flow/TodoFlowTrace.vue'
 import TodoTaskSummary from '@/components/flow/TodoTaskSummary.vue'
@@ -234,6 +237,7 @@ import {
 
 const authStore = useAuthStore()
 const taskId = ref('')
+const sourceMessageId = ref('')
 const task = ref(null)
 const formInfo = ref(null)
 const businessContext = ref(null)
@@ -363,6 +367,7 @@ const blockedReason = computed(() => {
 
 onLoad(async (options = {}) => {
   taskId.value = String(options.taskId || '')
+  sourceMessageId.value = String(options.messageId || '')
   pageMode.value = options.mode === 'readonly' ? 'readonly' : 'todo'
   await Promise.all([refresh(), loadCommentPhrases()])
 })
@@ -669,10 +674,13 @@ async function submitAction(action) {
     else if (action === 'return') await api.returnFlowTask({ ...payload, targetActivityId: selectedReturnTarget.value || undefined })
     else if (action === 'terminate') await api.terminateFlowTask(payload)
     else await api.delegateFlowTask(payload)
+    if (sourceMessageId.value) {
+      await api.markMessageRead(sourceMessageId.value).catch(error => console.warn('来源消息将由流程完成事件同步已读:', error))
+    }
     toast(`${labels[action]}成功`, { type: 'success' })
     delegateVisible.value = false
     rejectTargetVisible.value = false
-    setTimeout(() => uni.navigateBack(), 350)
+    setTimeout(goBack, 500)
   }
   catch (error) {
     console.error('提交审批动作失败:', error)

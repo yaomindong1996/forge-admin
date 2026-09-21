@@ -25,23 +25,23 @@
         @change="emit('change', $event)"
       />
       <view v-else-if="isNumberRangeField" class="lowcode-field__range">
-        <input
-          class="lowcode-field__input lowcode-field__range-input"
+        <AiField
+          class="lowcode-field__range-input"
           type="number"
-          :value="rangeValue[0]"
+          :model-value="rangeValue[0]"
           :disabled="disabled"
           :placeholder="field.props?.startPlaceholder || '开始值'"
-          @input="updateRangeValue(0, $event.detail.value)"
+          @update:model-value="updateRangeValue(0, $event)"
           @blur="emit('blur')"
         />
         <text class="lowcode-field__range-separator">至</text>
-        <input
-          class="lowcode-field__input lowcode-field__range-input"
+        <AiField
+          class="lowcode-field__range-input"
           type="number"
-          :value="rangeValue[1]"
+          :model-value="rangeValue[1]"
           :disabled="disabled"
           :placeholder="field.props?.endPlaceholder || '结束值'"
-          @input="updateRangeValue(1, $event.detail.value)"
+          @update:model-value="updateRangeValue(1, $event)"
           @blur="emit('blur')"
         />
       </view>
@@ -65,14 +65,14 @@
           {{ scanning ? '扫描中' : (field.props?.buttonText || '扫码') }}
         </AiButton>
       </view>
-      <textarea
+      <AiTextarea
         v-else-if="descriptor.renderer === 'textarea'"
-        class="lowcode-field__textarea"
-        :value="modelValue"
+        :model-value="modelValue"
         :maxlength="field.props?.maxlength || 2048"
         :disabled="disabled"
         :placeholder="field.props?.placeholder || `请输入${field.label}`"
-        @input="updateValue($event.detail.value)"
+        :show-word-limit="field.props?.showWordLimit !== false"
+        @update:model-value="updateValue"
         @blur="emit('blur')"
       />
       <AiField
@@ -82,20 +82,17 @@
         :placeholder="field.props?.placeholder || `请输入${field.label}`"
         :maxlength="field.props?.maxlength || 2048"
         :clearable="field.props?.clearable !== false"
+        :disabled="disabled"
         @update:model-value="updateValue"
         @blur="emit('blur')"
       />
-      <input
+      <AiField
         v-else-if="descriptor.renderer === 'number' || descriptor.renderer === 'money'"
-        class="lowcode-field__input"
         type="number"
-        :value="modelValue"
-        :min="field.min ?? field.props?.min"
-        :max="field.max ?? field.props?.max"
-        :step="field.step ?? field.props?.step ?? (descriptor.renderer === 'money' ? 0.01 : 1)"
+        :model-value="modelValue"
         :disabled="disabled"
         :placeholder="field.props?.placeholder || `请输入${field.label}`"
-        @input="updateValue($event.detail.value)"
+        @update:model-value="updateValue"
         @blur="emit('blur')"
       />
       <LowcodeEntitySelector
@@ -251,6 +248,7 @@ import AiImageUpload from '@/components/AiImageUpload.vue'
 import AiRadioGroup from '@/components/AiRadioGroup.vue'
 import AiSelect from '@/components/AiSelect.vue'
 import AiSignaturePad from '@/components/AiSignaturePad.vue'
+import AiTextarea from '@/components/AiTextarea.vue'
 import LowcodeArrayField from './LowcodeArrayField.vue'
 import LowcodeEntitySelector from './LowcodeEntitySelector.vue'
 import LowcodeUnsupported from './LowcodeUnsupported.vue'
@@ -404,11 +402,9 @@ defineExpose({ validate })
 .lowcode-field__barcode { display: flex; align-items: center; gap: 12rpx; }
 .lowcode-field__barcode :deep(.ai-field) { flex: 1; min-width: 0; }
 .lowcode-field__scan { flex: 0 0 auto; }
-.lowcode-field__input { width: 100%; height: 76rpx; padding: 0 20rpx; border: 1rpx solid var(--border-color); border-radius: 12rpx; color: #334155; font-size: 27rpx; background: #fff; box-sizing: border-box; }
 .lowcode-field__range { display: flex; align-items: center; gap: 10rpx; }
-.lowcode-field__range-input { min-width: 0; flex: 1; padding: 0 12rpx; }
+.lowcode-field__range-input { min-width: 0; flex: 1; }
 .lowcode-field__range-separator { flex: 0 0 auto; color: #94a3b8; font-size: 24rpx; }
-.lowcode-field__textarea { width: 100%; min-height: 150rpx; padding: 20rpx; border: 1rpx solid var(--border-color); border-radius: 12rpx; color: #334155; font-size: 27rpx; line-height: 1.5; background: #fff; box-sizing: border-box; }
 .lowcode-field__color { display: flex; align-items: center; gap: 12rpx; }
 .lowcode-field__color-preview { width: 64rpx; height: 64rpx; flex: 0 0 auto; border: 1rpx solid var(--forge-color-border, #e2e8f0); border-radius: 12rpx; }
 .lowcode-field__color :deep(.ai-field) { min-width: 0; flex: 1; }
