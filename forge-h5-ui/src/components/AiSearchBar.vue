@@ -126,7 +126,7 @@ function handleBlur(event) {
 .ai-search-bar--focused .ai-search-bar__box {
   border-color: var(--primary-color);
   background: #fff;
-  box-shadow: 0 0 0 3rpx rgba(22, 119, 255, 0.12);
+  box-shadow: 0 0 0 3rpx rgba(31, 95, 191, 0.1);
 }
 
 .ai-search-bar__input {
@@ -170,7 +170,7 @@ function handleBlur(event) {
 .ai-search-bar__cancel {
   flex-shrink: 0;
   height: 64rpx;
-  color: #2563eb;
+  color: #1f5fbf;
   font-size: 25rpx;
   font-weight: 650;
   background: transparent;

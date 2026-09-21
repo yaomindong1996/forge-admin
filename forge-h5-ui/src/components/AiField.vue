@@ -84,7 +84,7 @@ function handleBlur(event) {
 .ai-field__label { padding-left: 4rpx; color: var(--forge-color-text-secondary, #475569); font-size: 26rpx; font-weight: 700; }
 .ai-field__content { display: flex; flex-direction: column; gap: 8rpx; }
 .ai-field__control { min-height: 80rpx; padding: 0 8rpx; border: 1rpx solid var(--forge-color-border, #e2e8f0); border-radius: var(--forge-radius-control, 12rpx); background: #fff; transition: border-color .18s ease, box-shadow .18s ease; }
-.ai-field__control.is-focused { border-color: var(--forge-color-primary, #2563eb); box-shadow: 0 0 0 3rpx rgba(37, 99, 235, .1); }
+.ai-field__control.is-focused { border-color: var(--forge-color-primary, #1f5fbf); box-shadow: 0 0 0 3rpx rgba(31, 95, 191, .1); }
 .ai-field__control.is-error { border-color: var(--forge-color-danger, #dc2626); }
 .ai-field__control.is-disabled { background: var(--forge-color-surface-subtle, #f8fafc); opacity: .72; }
 .ai-field__input { width: 100%; }

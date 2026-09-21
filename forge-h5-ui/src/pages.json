@@ -75,7 +75,7 @@
 	],
 	"tabBar": {
 		"color": "#8A93A3",
-		"selectedColor": "#0891B2",
+		"selectedColor": "#1F5FBF",
 		"backgroundColor": "#FFFFFF",
 		"borderStyle": "white",
 		"list": [
@@ -102,7 +102,7 @@
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
 		"navigationBarTitleText": "Forge H5",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
+		"navigationBarBackgroundColor": "#FFFFFF",
+		"backgroundColor": "#F3F5F8"
 	}
 }

@@ -51,25 +51,23 @@ defineProps({
 <style lang="scss" scoped>
 .ai-section {
   overflow: hidden;
-  padding: 28rpx;
-  border-radius: 36rpx;
+  padding: 24rpx;
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-card);
+  background: #fff;
 }
 
 .ai-section--glass {
-  border: 1rpx solid rgba(255, 255, 255, 0.86);
-  background: rgba(255, 255, 255, 0.66);
-  box-shadow: 0 10rpx 32rpx rgba(15, 23, 42, 0.05);
-  backdrop-filter: blur(24rpx);
+  background: #fff;
 }
 
 .ai-section--solid {
-  border: 1rpx solid rgba(226, 232, 240, 0.8);
   background: #ffffff;
-  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.04);
 }
 
 .ai-section--plain {
   padding: 0;
+  border: 0;
   border-radius: 0;
   background: transparent;
 }
@@ -79,16 +77,15 @@ defineProps({
 }
 
 .ai-section--compact {
-  padding: 22rpx;
-  border-radius: 28rpx;
+  padding: 20rpx;
 }
 
 .ai-section__head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 20rpx;
-  margin-bottom: 24rpx;
+  gap: 16rpx;
+  margin-bottom: 18rpx;
 }
 
 .ai-section__copy {
@@ -104,20 +101,20 @@ defineProps({
 
 .ai-section__title {
   overflow: hidden;
-  color: #1e293b;
-  font-size: 32rpx;
-  font-weight: 950;
-  line-height: 1.18;
+  color: var(--text-strong);
+  font-size: 28rpx;
+  font-weight: 650;
+  line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .ai-section__desc {
   margin-top: 8rpx;
-  color: #64748b;
-  font-size: 24rpx;
-  font-weight: 600;
-  line-height: 1.36;
+  color: var(--text-muted);
+  font-size: 22rpx;
+  font-weight: 400;
+  line-height: 1.45;
 }
 
 .ai-section__extra {

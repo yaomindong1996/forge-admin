@@ -7,7 +7,7 @@
 
 <script setup>
 defineProps({
-  borderRadius: { type: String, default: '8px' },
+  borderRadius: { type: String, default: '6px' },
   border: { type: Boolean, default: true },
   title: { type: String, default: '' },
   padding: { type: String, default: '16px' },
@@ -15,7 +15,7 @@ defineProps({
 </script>
 
 <style lang="scss" scoped>
-.ai-card { overflow: hidden; margin: 0; border: 1rpx solid var(--forge-color-border, #e2e8f0); background: var(--forge-color-surface, #fff); box-shadow: var(--forge-shadow-card, 0 4rpx 16rpx rgba(15, 23, 42, .05)); }
+.ai-card { overflow: hidden; margin: 0; border: 1rpx solid var(--forge-color-border, #dfe4ea); background: var(--forge-color-surface, #fff); box-shadow: none; }
 .ai-card__body { box-sizing: border-box; }
 :deep(.wd-card__content) { padding: 0; }
 :deep(.wd-card__title-content) { border-color: var(--forge-color-border-subtle, #eef2f7); }

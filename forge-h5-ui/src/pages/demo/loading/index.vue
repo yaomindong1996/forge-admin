@@ -10,7 +10,7 @@
           <text class="summary-title">组件库预览</text>
           <text class="summary-desc">外层只保留目录，点击组件后在弹出层查看示例。</text>
         </view>
-        <AiIcon name="layers" color="#2563eb" size="lg" tile />
+        <AiIcon name="layers" color="#1f5fbf" size="lg" tile />
       </view>
 
       <scroll-view class="category-nav" scroll-x :show-scrollbar="false">
@@ -159,7 +159,7 @@
       </view>
 
       <view v-else-if="activeComponent.key === 'layout'" class="layout-preview">
-        <AiSection title="页面与分区" desc="统一背景、玻璃分区、头像、统计和空状态">
+        <AiSection title="页面与分区" desc="统一背景、内容分区、头像、统计和空状态">
           <view class="profile-line">
             <AiAvatar size="lg" shape="square" />
             <view class="profile-copy">
@@ -306,8 +306,8 @@ const componentItems = [
     categoryLabel: '基础',
     desc: '主操作、次操作、危险操作与加载态。',
     icon: 'zap',
-    color: '#2563eb',
-    bg: 'rgba(219, 234, 254, 0.78)',
+    color: '#1f5fbf',
+    bg: '#edf4ff',
     tagType: 'primary',
   },
   {
@@ -317,8 +317,8 @@ const componentItems = [
     categoryLabel: '基础',
     desc: '状态标签、描边标签、圆角标签和关闭交互。',
     icon: 'award',
-    color: '#4f46e5',
-    bg: 'rgba(224, 231, 255, 0.78)',
+    color: '#1f5fbf',
+    bg: '#edf4ff',
     tagType: 'primary',
   },
   {
@@ -328,8 +328,8 @@ const componentItems = [
     categoryLabel: '表单',
     desc: '普通输入、密码输入、错误态和横向表单。',
     icon: 'edit',
-    color: '#0891b2',
-    bg: 'rgba(207, 250, 254, 0.72)',
+    color: '#1f5fbf',
+    bg: '#edf4ff',
     tagType: 'success',
   },
   {
@@ -339,8 +339,8 @@ const componentItems = [
     categoryLabel: '表单',
     desc: '移动端搜索、清空、取消和搜索确认。',
     icon: 'search',
-    color: '#2563eb',
-    bg: 'rgba(219, 234, 254, 0.78)',
+    color: '#1f5fbf',
+    bg: '#edf4ff',
     tagType: 'primary',
   },
   {
@@ -351,7 +351,7 @@ const componentItems = [
     desc: '提交成功、异常、无权限、404、网络错误等状态反馈。',
     icon: 'check-circle',
     color: '#10b981',
-    bg: 'rgba(209, 250, 229, 0.78)',
+    bg: '#edf8f4',
     tagType: 'success',
   },
   {
@@ -362,7 +362,7 @@ const componentItems = [
     desc: '首屏、列表和卡片加载占位，减少空白等待。',
     icon: 'loader',
     color: '#64748b',
-    bg: 'rgba(241, 245, 249, 0.9)',
+    bg: '#f1f3f5',
     tagType: 'default',
   },
   {
@@ -372,8 +372,8 @@ const componentItems = [
     categoryLabel: '列表',
     desc: '下拉刷新、上拉加载、空状态、错误重试和底部状态。',
     icon: 'list',
-    color: '#0891b2',
-    bg: 'rgba(207, 250, 254, 0.72)',
+    color: '#1f5fbf',
+    bg: '#edf4ff',
     tagType: 'success',
   },
   {
@@ -383,8 +383,8 @@ const componentItems = [
     categoryLabel: '列表',
     desc: '适合设置项、个人信息和业务菜单入口。',
     icon: 'list',
-    color: '#7c3aed',
-    bg: 'rgba(237, 233, 254, 0.74)',
+    color: '#1f5fbf',
+    bg: '#edf4ff',
     tagType: 'primary',
   },
   {
@@ -392,10 +392,10 @@ const componentItems = [
     key: 'layout',
     category: 'layout',
     categoryLabel: '布局',
-    desc: '页面背景、玻璃分区、头像和统计信息组合。',
+    desc: '页面背景、内容分区、头像和统计信息组合。',
     icon: 'layers',
-    color: '#2563eb',
-    bg: 'rgba(219, 234, 254, 0.74)',
+    color: '#1f5fbf',
+    bg: '#edf4ff',
     tagType: 'primary',
   },
   {
@@ -406,7 +406,7 @@ const componentItems = [
     desc: '统一 SVG mask 图标颜色、尺寸和底块样式。',
     icon: 'grid',
     color: '#d97706',
-    bg: 'rgba(254, 243, 199, 0.78)',
+    bg: '#fff8eb',
     tagType: 'warning',
   },
   {
@@ -417,7 +417,7 @@ const componentItems = [
     desc: '用于列表、消息、卡包等无数据场景。',
     icon: 'inbox',
     color: '#64748b',
-    bg: 'rgba(241, 245, 249, 0.9)',
+    bg: '#f1f3f5',
     tagType: 'default',
   },
   {
@@ -427,8 +427,8 @@ const componentItems = [
     categoryLabel: '反馈',
     desc: '轻提示、消息提示、Alert 和 Confirm 弹窗。',
     icon: 'bell',
-    color: '#8b5cf6',
-    bg: 'rgba(243, 232, 255, 0.78)',
+    color: '#1f5fbf',
+    bg: '#edf4ff',
     tagType: 'primary',
   },
   {
@@ -439,7 +439,7 @@ const componentItems = [
     desc: '品牌、圆环、圆点和全屏加载状态。',
     icon: 'refresh-cw',
     color: '#059669',
-    bg: 'rgba(209, 250, 229, 0.78)',
+    bg: '#edf8f4',
     tagType: 'success',
   },
   {
@@ -449,8 +449,8 @@ const componentItems = [
     categoryLabel: '方法',
     desc: 'useRequest、usePageLoading 和 route 工具方法。',
     icon: 'code',
-    color: '#4f46e5',
-    bg: 'rgba(224, 231, 255, 0.78)',
+    color: '#1f5fbf',
+    bg: '#edf4ff',
     tagType: 'primary',
   },
 ]
@@ -462,9 +462,9 @@ const statsItems = [
 ]
 
 const iconItems = [
-  { name: 'user', label: '用户', color: '#2563eb' },
-  { name: 'shield', label: '安全', color: '#4f46e5' },
-  { name: 'bell', label: '通知', color: '#8b5cf6' },
+  { name: 'user', label: '用户', color: '#1f5fbf' },
+  { name: 'shield', label: '安全', color: '#1f5fbf' },
+  { name: 'bell', label: '通知', color: '#526071' },
   { name: 'zap', label: '快捷', color: '#d97706' },
 ]
 
@@ -475,9 +475,9 @@ const typeOptions = [
 ]
 
 const demoPullItems = ref([
-  { id: 1, title: '账户通知', desc: '展示普通列表项和菜单入口。', icon: 'bell', color: '#2563eb' },
+  { id: 1, title: '账户通知', desc: '展示普通列表项和菜单入口。', icon: 'bell', color: '#1f5fbf' },
   { id: 2, title: '服务进度', desc: '支持下拉刷新和上拉加载。', icon: 'activity', color: '#10b981' },
-  { id: 3, title: '安全提醒', desc: '内置空状态、错误状态和骨架屏。', icon: 'shield', color: '#4f46e5' },
+  { id: 3, title: '安全提醒', desc: '内置空状态、错误状态和骨架屏。', icon: 'shield', color: '#526071' },
 ])
 
 const pageLoading = usePageLoading('success')
@@ -627,282 +627,4 @@ function showServiceLoading() {
 }
 </script>
 
-<style lang="scss" scoped>
-.demo-page {
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
-}
-
-.category-button::after,
-.component-card::after,
-.segment-button::after {
-  border: 0;
-}
-
-.summary-card {
-  display: flex;
-  align-items: center;
-  gap: 24rpx;
-  padding: 28rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.86);
-  border-radius: 36rpx;
-  background: rgba(255, 255, 255, 0.66);
-  box-shadow: 0 10rpx 32rpx rgba(15, 23, 42, 0.05);
-  backdrop-filter: blur(24rpx);
-}
-
-.summary-main {
-  min-width: 0;
-  flex: 1;
-}
-
-.summary-title,
-.summary-desc,
-.component-title,
-.component-desc,
-.profile-title,
-.profile-desc {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.summary-title {
-  color: #1e293b;
-  font-size: 34rpx;
-  font-weight: 950;
-  line-height: 1.18;
-}
-
-.summary-desc {
-  margin-top: 10rpx;
-  color: #64748b;
-  font-size: 24rpx;
-  font-weight: 600;
-  line-height: 1.45;
-  white-space: normal;
-}
-
-.category-nav {
-  width: 100%;
-  white-space: nowrap;
-}
-
-.category-track {
-  display: inline-flex;
-  gap: 14rpx;
-  min-width: 100%;
-}
-
-.category-button {
-  height: 68rpx;
-  padding: 0 26rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.86);
-  border-radius: 999rpx;
-  color: #475569;
-  font-size: 25rpx;
-  font-weight: 800;
-  line-height: 68rpx;
-  background: rgba(255, 255, 255, 0.62);
-  box-shadow: 0 6rpx 18rpx rgba(15, 23, 42, 0.04);
-  backdrop-filter: blur(18rpx);
-}
-
-.category-button.active {
-  color: #ffffff;
-  border-color: transparent;
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
-  box-shadow: 0 12rpx 28rpx rgba(59, 130, 246, 0.22);
-}
-
-.component-list {
-  display: flex;
-  flex-direction: column;
-  gap: 18rpx;
-}
-
-.component-card {
-  display: flex;
-  width: 100%;
-  min-height: 132rpx;
-  align-items: center;
-  gap: 22rpx;
-  margin: 0;
-  padding: 22rpx 24rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.86);
-  border-radius: 32rpx;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 8rpx 26rpx rgba(15, 23, 42, 0.045);
-  text-align: left;
-  backdrop-filter: blur(22rpx);
-}
-
-.component-card:active {
-  transform: scale(0.99);
-}
-
-.component-icon {
-  display: flex;
-  width: 78rpx;
-  height: 78rpx;
-  flex: 0 0 78rpx;
-  align-items: center;
-  justify-content: center;
-  border-radius: 24rpx;
-}
-
-.component-copy {
-  min-width: 0;
-  flex: 1;
-}
-
-.component-title-row {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.component-title {
-  flex: 1;
-  color: #1e293b;
-  font-size: 30rpx;
-  font-weight: 900;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-
-.component-desc {
-  margin-top: 8rpx;
-  color: #64748b;
-  font-size: 24rpx;
-  font-weight: 600;
-  line-height: 1.36;
-  white-space: normal;
-}
-
-.component-arrow {
-  color: #94a3b8;
-  font-size: 52rpx;
-  font-weight: 300;
-  line-height: 1;
-}
-
-.button-stack,
-.field-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 18rpx;
-}
-
-.tag-cloud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
-}
-
-.icon-mask,
-.field-icon {
-  width: 34rpx;
-  height: 34rpx;
-}
-
-.cell-preview {
-  border-radius: 32rpx;
-  overflow: hidden;
-}
-
-.profile-line {
-  display: flex;
-  align-items: center;
-  gap: 22rpx;
-}
-
-.profile-copy {
-  min-width: 0;
-  flex: 1;
-}
-
-.profile-title {
-  color: #1e293b;
-  font-size: 32rpx;
-  font-weight: 950;
-  white-space: nowrap;
-}
-
-.profile-desc {
-  margin-top: 8rpx;
-  color: #64748b;
-  font-size: 24rpx;
-  font-weight: 650;
-  white-space: normal;
-}
-
-.layout-stats {
-  margin-top: 30rpx;
-  padding-top: 28rpx;
-  border-top: 1rpx solid rgba(203, 213, 225, 0.52);
-}
-
-.icon-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16rpx;
-}
-
-.icon-tile {
-  display: flex;
-  min-height: 132rpx;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.86);
-  border-radius: 28rpx;
-  color: #64748b;
-  font-size: 23rpx;
-  font-weight: 700;
-  background: rgba(255, 255, 255, 0.62);
-  box-shadow: 0 8rpx 24rpx rgba(15, 23, 42, 0.04);
-}
-
-.empty-preview {
-  overflow: hidden;
-  border-radius: 32rpx;
-  background: rgba(255, 255, 255, 0.55);
-}
-
-.loading-preview {
-  min-height: 190rpx;
-  margin-bottom: 22rpx;
-  border-radius: 28rpx;
-  background: rgba(255, 255, 255, 0.58);
-}
-
-.segmented {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12rpx;
-  margin-bottom: 22rpx;
-}
-
-.segment-button {
-  height: 72rpx;
-  padding: 0;
-  border: 1rpx solid rgba(226, 232, 240, 0.86);
-  border-radius: 24rpx;
-  color: #64748b;
-  font-size: 25rpx;
-  font-weight: 800;
-  line-height: 72rpx;
-  background: rgba(255, 255, 255, 0.62);
-}
-
-.segment-button.active {
-  color: #2563eb;
-  border-color: rgba(147, 197, 253, 0.8);
-  background: rgba(219, 234, 254, 0.86);
-}
-</style>
+<style lang="scss" scoped src="../../styles/loading-demo.scss"></style>

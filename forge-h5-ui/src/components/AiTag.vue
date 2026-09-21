@@ -87,14 +87,14 @@ const customStyle = computed(() => {
   box-sizing: border-box;
   max-width: 100%;
   border: 1px solid transparent;
-  border-radius: 16rpx;
-  font-weight: 700;
+  border-radius: 6rpx;
+  font-weight: 600;
   letter-spacing: 0;
   line-height: 1;
   transition: opacity 0.2s ease, transform 0.2s ease;
 
   &--round {
-    border-radius: 999rpx;
+    border-radius: 6rpx;
   }
 
   &--sm {
@@ -118,15 +118,15 @@ const customStyle = computed(() => {
   &--primary {
     &.ai-tag--solid {
       color: #fff;
-      background: #2563eb;
+      background: #1f5fbf;
     }
     &.ai-tag--soft {
-      color: #2563eb;
+      color: #1f5fbf;
       border-color: rgba(191, 219, 254, 0.9);
       background: rgba(219, 234, 254, 0.76);
     }
     &.ai-tag--outline {
-      color: #2563eb;
+      color: #1f5fbf;
       border-color: rgba(147, 197, 253, 0.9);
       background: transparent;
     }

@@ -7,7 +7,7 @@
           <text class="todo-summary">集中处理分配给你的审批事项</text>
         </view>
         <button class="refresh-button" @click="refreshList">
-          <AiIcon icon="/static/icons/ai-icon/refresh-cw.svg" color="#2563eb" size="sm" />
+          <AiIcon icon="/static/icons/ai-icon/refresh-cw.svg" color="#1f5fbf" size="sm" />
         </button>
       </view>
 
@@ -97,7 +97,7 @@
           @click="selectCategory(option.value)"
         >
           <text>{{ option.label }}</text>
-          <AiIcon v-if="String(option.value) === String(categoryFilter)" icon="/static/icons/ai-icon/check.svg" color="#2563eb" size="sm" />
+          <AiIcon v-if="String(option.value) === String(categoryFilter)" icon="/static/icons/ai-icon/check.svg" color="#1f5fbf" size="sm" />
         </button>
       </view>
     </AiPopupSheet>
@@ -282,77 +282,4 @@ function isFlowServiceUnavailableError(error) {
 }
 </script>
 
-<style lang="scss" scoped>
-.todo-page { display: flex; height: 100vh; flex-direction: column; background: var(--page-bg); }
-.todo-header { display: flex; align-items: center; justify-content: space-between; padding: calc(24rpx + env(safe-area-inset-top)) 24rpx 18rpx; background: #fff; }
-.todo-title, .todo-summary, .task-card__title text, .task-card__node text, .task-meta-item text, .task-process, .status-tag, .state-title, .state-copy { display: block; }
-.todo-title { color: var(--text-strong); font-size: 38rpx; font-weight: 650; line-height: 1.2; }
-.todo-summary { margin-top: 6rpx; color: var(--text-muted); font-size: 23rpx; }
-.refresh-button { display: flex; width: 64rpx; height: 64rpx; align-items: center; justify-content: center; margin: 0; padding: 0; border: 1rpx solid var(--border-color); border-radius: 8rpx; background: #fff; }
-.refresh-button::after, .clear-button::after, .filter-button::after, .claim-button::after { border: 0; }
-.todo-tools { padding: 0 24rpx 16rpx; border-bottom: 1rpx solid var(--border-color); background: #fff; }
-.search-box { display: flex; height: 72rpx; align-items: center; gap: 12rpx; padding: 0 18rpx; border: 1rpx solid var(--border-color); border-radius: 8rpx; background: #f7f8fa; }
-.search-input { min-width: 0; height: 68rpx; flex: 1; color: var(--text-strong); font-size: 26rpx; }
-:deep(.search-placeholder) { color: #86909c; }
-.clear-button { width: 40rpx; height: 40rpx; margin: 0; padding: 0; border: 0; color: #86909c; font-size: 34rpx; background: transparent; }
-.filter-scroll { margin-top: 14rpx; white-space: nowrap; }
-.filter-list { display: inline-flex; gap: 12rpx; }
-.filter-button { display: inline-flex; height: 52rpx; align-items: center; gap: 4rpx; margin: 0; padding: 0 18rpx; border: 1rpx solid var(--border-color); border-radius: 6rpx; color: #4e5969; font-size: 23rpx; background: #fff; }
-.filter-button.active { border-color: #b7d7ff; color: var(--primary-color); background: #e8f3ff; }
-.todo-list { height: 0; flex: 1; padding: 0 24rpx 140rpx; box-sizing: border-box; }
-.task-card { padding: 20rpx; border: 1rpx solid var(--border-color); border-radius: 16rpx; background: #fff; }
-.task-card__head, .task-card__footer { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12rpx; }
-.task-card__title { display: flex; min-width: 0; align-items: center; gap: 10rpx; }
-.task-card__title text { overflow: hidden; color: var(--text-strong); font-size: 28rpx; font-weight: 700; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
-.priority-mark { width: 6rpx; height: 30rpx; flex: 0 0 6rpx; border-radius: 4rpx; background: #b7d7ff; }
-.priority-mark.high { background: #ffb74d; }
-.priority-mark.urgent { background: #d8a129; }
-.task-card__node { display: flex; min-width: 0; gap: 14rpx; margin-top: 16rpx; }
-.task-card__meta-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14rpx 20rpx; margin-top: 16rpx; padding-top: 16rpx; border-top: 1rpx solid #f0f1f3; }
-.task-meta-item { min-width: 0; }
-.task-meta-item--wide { grid-column: span 2; }
-.meta-key { flex: 0 0 auto; color: #94a3b8; font-size: 21rpx; }
-.meta-value { overflow: hidden; color: #4e5969; font-size: 22rpx; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
-.task-card__footer { margin-top: 16rpx; }
-.task-process { overflow: hidden; flex: 1; color: #64748b; font-size: 21rpx; text-overflow: ellipsis; white-space: nowrap; }
-.status-tag { padding: 4rpx 8rpx; border-radius: 4rpx; color: #4e5969; font-size: 21rpx; background: #eaebed; }
-.status-tag.pending { color: #ad6800; background: #fff7e8; }
-.claim-button { height: 48rpx; margin: 0; padding: 0 14rpx; border: 1rpx solid #b7d7ff; border-radius: 6rpx; color: var(--primary-color); font-size: 22rpx; background: #fff; }
-.state-box { display: flex; min-height: 420rpx; flex-direction: column; align-items: center; justify-content: center; gap: 16rpx; color: var(--text-muted); font-size: 25rpx; text-align: center; }
-.state-title { color: var(--text-strong); font-size: 29rpx; font-weight: 600; }
-.state-copy { max-width: 480rpx; line-height: 1.5; }
-.list-foot { padding: 28rpx 0; color: var(--text-muted); font-size: 22rpx; text-align: center; }
-
-.todo-page { background: var(--page-bg); }
-.todo-content { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 20rpx; padding: calc(24rpx + env(safe-area-inset-top)) 24rpx 160rpx; box-sizing: border-box; }
-.todo-header { padding: 0; background: transparent; }
-.todo-title { font-size: 38rpx; font-weight: 800; }
-.todo-summary { margin-top: 6rpx; font-size: 23rpx; font-weight: 500; }
-.refresh-button { width: 68rpx; height: 68rpx; border-radius: 16rpx; background: #fff; }
-.todo-tools { padding: 0; border: 0; background: transparent; }
-.work-scope-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8rpx; padding: 6rpx; border: 1rpx solid #e4eaf1; border-radius: 16rpx; background: #f8fafc; }
-.work-scope-tab { height: 56rpx; margin: 0; padding: 0 6rpx; border: 0; border-radius: 11rpx; color: #64748b; font-size: 23rpx; font-weight: 600; line-height: 56rpx; background: transparent; }
-.work-scope-tab::after { border: 0; }
-.work-scope-tab.active { color: #1d4ed8; background: #fff; box-shadow: 0 1rpx 4rpx rgba(15, 23, 42, .08); }
-.filter-scroll { margin-top: 14rpx; }
-.filter-list { gap: 12rpx; padding-right: 24rpx; }
-.filter-button { height: 64rpx; padding: 0 20rpx; border-radius: 16rpx; font-size: 24rpx; background: #fff; }
-.category-trigger { display: inline-flex; align-items: center; gap: 8rpx; }
-.filter-button.active { border-color: #2563eb; color: #fff; background: #2563eb; }
-.todo-list { min-height: 0; height: 0; padding: 0; }
-.task-card { margin-bottom: 12rpx; padding: 20rpx; }
-.task-card__title { gap: 10rpx; }
-.task-card__title text { font-size: 27rpx; font-weight: 700; }
-.priority-mark { height: 28rpx; }
-.task-card__node { margin-top: 14rpx; }
-.task-card__meta-grid { margin-top: 14rpx; padding-top: 14rpx; }
-.meta-key { font-size: 20rpx; }
-.meta-value { font-size: 21rpx; }
-.status-tag { padding: 4rpx 8rpx; font-size: 20rpx; }
-.status-tag.done { color: #15803d; background: #f0fdf4; }
-.claim-button { height: 44rpx; border-radius: 8rpx; font-size: 21rpx; }
-.category-picker-list { display: flex; flex-direction: column; gap: 10rpx; }
-.category-picker-row { display: flex; width: 100%; min-height: 78rpx; align-items: center; justify-content: space-between; margin: 0; padding: 0 18rpx; border: 1rpx solid #edf0f3; border-radius: 12rpx; color: #475569; font-size: 27rpx; text-align: left; background: #fff; box-sizing: border-box; }
-.category-picker-row::after { border: 0; }
-.category-picker-row.active { border-color: #bfdbfe; color: var(--primary-color); font-weight: 650; background: #eff6ff; }
-</style>
+<style lang="scss" scoped src="./styles/todo.scss"></style>

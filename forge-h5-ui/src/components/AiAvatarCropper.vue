@@ -394,9 +394,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   color: #ffffff;
-  background:
-    radial-gradient(circle at 18% 6%, rgba(37, 99, 235, 0.2), transparent 28%),
-    linear-gradient(180deg, #020617, #0f172a);
+  background: #111827;
 }
 
 .cropper-topbar {
@@ -429,8 +427,9 @@ onUnmounted(() => {
 .topbar-button {
   width: 68rpx;
   height: 68rpx;
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.1);
+  border: 1rpx solid rgba(255, 255, 255, 0.18);
+  border-radius: 8rpx;
+  background: #1f2937;
 }
 
 .topbar-title {
@@ -448,14 +447,14 @@ onUnmounted(() => {
 
 .topbar-main {
   font-size: 32rpx;
-  font-weight: 950;
+  font-weight: 650;
 }
 
 .topbar-sub {
   margin-top: 6rpx;
   color: rgba(226, 232, 240, 0.72);
   font-size: 22rpx;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .topbar-text {
@@ -464,9 +463,9 @@ onUnmounted(() => {
 }
 
 .topbar-text text {
-  color: #93c5fd;
+  color: #8ab7f2;
   font-size: 25rpx;
-  font-weight: 850;
+  font-weight: 600;
 }
 
 .cropper-stage {
@@ -500,11 +499,8 @@ onUnmounted(() => {
 }
 
 .cropper-frame {
-  border: 4rpx solid rgba(255, 255, 255, 0.94);
-  box-shadow:
-    0 0 0 1rpx rgba(37, 99, 235, 0.52),
-    0 0 0 9999px rgba(2, 6, 23, 0.66),
-    0 18rpx 70rpx rgba(0, 0, 0, 0.34);
+  border: 3rpx solid rgba(255, 255, 255, 0.94);
+  box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.7);
 }
 
 .cropper-frame--circle,
@@ -532,8 +528,7 @@ onUnmounted(() => {
 .cropper-panel {
   padding: 22rpx 28rpx calc(28rpx + env(safe-area-inset-bottom));
   border-top: 1rpx solid rgba(255, 255, 255, 0.1);
-  background: rgba(2, 6, 23, 0.84);
-  backdrop-filter: blur(24rpx);
+  background: #111827;
 }
 
 .shape-tabs {
@@ -551,19 +546,19 @@ onUnmounted(() => {
   margin: 0;
   padding: 0;
   border: 1rpx solid rgba(255, 255, 255, 0.12);
-  border-radius: 22rpx;
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8rpx;
+  background: #1f2937;
 }
 
 .shape-tab.active {
-  border-color: rgba(96, 165, 250, 0.6);
-  background: linear-gradient(135deg, #2563eb, #0f766e);
+  border-color: #5f91d4;
+  background: #1f5fbf;
 }
 
 .shape-tab text {
   color: #e2e8f0;
   font-size: 24rpx;
-  font-weight: 850;
+  font-weight: 550;
 }
 
 .zoom-control {
@@ -585,20 +580,20 @@ onUnmounted(() => {
   height: 86rpx;
   margin: 0;
   padding: 0;
-  border-radius: 26rpx;
+  border-radius: 8rpx;
   font-size: 28rpx;
-  font-weight: 900;
+  font-weight: 600;
   line-height: 86rpx;
 }
 
 .action-button--ghost {
   color: #e2e8f0;
   border: 1rpx solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
+  background: #1f2937;
 }
 
 .action-button--primary {
-  color: #0f172a;
-  background: #ffffff;
+  color: #ffffff;
+  background: #1f5fbf;
 }
 </style>

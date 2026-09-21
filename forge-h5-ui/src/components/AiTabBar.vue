@@ -9,7 +9,8 @@
         @click="handleTabClick(tab)"
       >
         <view v-if="currentKey === tab.key" class="ai-tabbar__active" />
-        <view class="ai-tabbar__icon" :style="iconMask(tab.icon, currentKey === tab.key ? '#2563eb' : '#94a3b8')" />
+        <view class="ai-tabbar__icon" :style="iconMask(tab.icon, currentKey === tab.key ? '#1f5fbf' : '#8a93a3')" />
+        <text class="ai-tabbar__label">{{ tab.label }}</text>
       </button>
     </view>
   </view>
@@ -97,29 +98,22 @@ function handleTabClick(tab) {
 .ai-tabbar-host {
   position: fixed;
   right: 0;
-  bottom: calc(28rpx + env(safe-area-inset-bottom));
+  bottom: 0;
   left: 0;
   z-index: 80;
   display: flex;
-  justify-content: center;
-  padding: 20rpx 48rpx 0;
+  justify-content: stretch;
+  padding: 0;
   pointer-events: none;
-  animation: tabbarEnter 0.42s ease both;
 }
 
 .ai-tabbar {
-  position: relative;
   display: flex;
-  width: 560rpx;
-  max-width: 78vw;
-  padding: 12rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.9);
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow:
-    0 24rpx 54rpx rgba(15, 23, 42, 0.1),
-    inset 0 0 0 1rpx rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(30rpx);
+  width: 100%;
+  min-height: calc(104rpx + env(safe-area-inset-bottom));
+  padding: 8rpx 24rpx env(safe-area-inset-bottom);
+  border-top: 1rpx solid var(--border-color);
+  background: #fff;
   pointer-events: auto;
 }
 
@@ -127,16 +121,16 @@ function handleTabClick(tab) {
   position: relative;
   display: flex;
   flex: 1;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 80rpx;
+  min-height: 88rpx;
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 999rpx;
   background: transparent;
   line-height: 1;
-  transition: transform 0.24s ease;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
 .ai-tabbar__item::after {
@@ -144,55 +138,38 @@ function handleTabClick(tab) {
 }
 
 .ai-tabbar__item:active {
-  transform: scale(0.96);
+  background: var(--surface-muted);
 }
 
 .ai-tabbar__active {
   position: absolute;
-  inset: 0;
-  border: 1rpx solid rgba(226, 232, 240, 0.72);
-  border-radius: 999rpx;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow:
-    0 8rpx 24rpx rgba(15, 23, 42, 0.06),
-    inset 0 1rpx 0 rgba(255, 255, 255, 0.9);
-  animation: activeTabIn 0.28s ease both;
+  top: -9rpx;
+  left: 50%;
+  width: 44rpx;
+  height: 4rpx;
+  background: var(--primary-color);
+  transform: translateX(-50%);
 }
 
 .ai-tabbar__icon {
   position: relative;
   z-index: 1;
-  width: 44rpx;
-  height: 44rpx;
-  transition: background-color 0.24s ease;
+  width: 38rpx;
+  height: 38rpx;
+  transition: background-color 0.15s ease;
 }
 
-.ai-tabbar__item.is-active .ai-tabbar__icon {
-  transform: none;
+.ai-tabbar__label {
+  position: relative;
+  z-index: 1;
+  margin-top: 8rpx;
+  color: var(--text-muted);
+  font-size: 20rpx;
+  font-weight: 500;
 }
 
-@keyframes tabbarEnter {
-  from {
-    opacity: 0;
-    transform: translateY(44rpx);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.ai-tabbar__item.is-active .ai-tabbar__label {
+  color: var(--primary-color);
+  font-weight: 650;
 }
-
-@keyframes activeTabIn {
-  from {
-    opacity: 0;
-    transform: scale(0.92);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 </style>

@@ -1,0 +1,385 @@
+.login-page {
+  min-height: 100vh;
+  background: var(--page-bg);
+}
+
+.page-shell {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  flex-direction: column;
+  padding: calc(24rpx + env(safe-area-inset-top)) 28rpx calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.brand-bar,
+.brand-main,
+.field,
+.captcha-row,
+.login-button,
+.workspace-option {
+  display: flex;
+  align-items: center;
+}
+
+.brand-bar {
+  width: 100%;
+  max-width: 680rpx;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin: 0 auto 28rpx;
+}
+
+.brand-main {
+  min-width: 0;
+  gap: 14rpx;
+}
+
+.brand-mark {
+  display: flex;
+  width: 54rpx;
+  height: 54rpx;
+  flex: 0 0 54rpx;
+  align-items: center;
+  justify-content: center;
+  border: 1rpx solid var(--border-color);
+  border-radius: 8rpx;
+  background: #fff;
+}
+
+.brand-logo {
+  width: 38rpx;
+  height: 38rpx;
+}
+
+.brand-copy,
+.panel-head,
+.workspace-option-copy {
+  min-width: 0;
+}
+
+.brand-title,
+.brand-subtitle,
+.panel-title,
+.panel-subtitle,
+.login-foot text,
+.workspace-modal-title,
+.workspace-modal-desc,
+.workspace-option-name {
+  display: block;
+}
+
+.brand-title {
+  color: var(--text-strong);
+  font-size: 25rpx;
+  font-weight: 650;
+}
+
+.brand-subtitle {
+  margin-top: 3rpx;
+  color: var(--text-muted);
+  font-size: 19rpx;
+}
+
+.client-badge {
+  padding: 5rpx 10rpx;
+  border: 1rpx solid var(--border-color);
+  border-radius: 4rpx;
+  color: var(--text-secondary);
+  font-size: 17rpx;
+  font-weight: 600;
+  background: #fff;
+}
+
+.login-panel {
+  width: 100%;
+  max-width: 680rpx;
+  margin: auto;
+  padding: 32rpx 28rpx;
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-card);
+  background: #fff;
+}
+
+.panel-head {
+  padding-bottom: 24rpx;
+  border-bottom: 1rpx solid var(--border-light);
+}
+
+.panel-title {
+  color: var(--text-strong);
+  font-size: 32rpx;
+  font-weight: 650;
+}
+
+.panel-subtitle {
+  margin-top: 7rpx;
+  color: var(--text-muted);
+  font-size: 22rpx;
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  margin-top: 26rpx;
+}
+
+.field {
+  min-height: 78rpx;
+  gap: 14rpx;
+  padding: 0 18rpx;
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-control);
+  background: #fff;
+  transition: border-color 0.15s ease;
+}
+
+.field:focus-within {
+  border-color: var(--primary-color);
+}
+
+.field-icon,
+.toggle-icon,
+.refresh-icon {
+  width: 32rpx;
+  height: 32rpx;
+  opacity: 0.72;
+}
+
+.field-input {
+  min-width: 0;
+  height: 76rpx;
+  flex: 1;
+  color: var(--text-strong);
+  font-size: 26rpx;
+}
+
+.field-placeholder {
+  color: var(--text-muted);
+}
+
+.password-toggle {
+  display: flex;
+  width: 48rpx;
+  height: 48rpx;
+  align-items: center;
+  justify-content: center;
+}
+
+.captcha-row {
+  gap: 12rpx;
+}
+
+.captcha-input-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
+.captcha-image {
+  position: relative;
+  display: flex;
+  width: 210rpx;
+  height: 78rpx;
+  flex: 0 0 210rpx;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.captcha-img {
+  width: 100%;
+  height: 100%;
+}
+
+.captcha-empty {
+  color: var(--text-secondary);
+  font-size: 22rpx;
+}
+
+.captcha-lines,
+.captcha-hover {
+  display: none;
+}
+
+.login-button {
+  width: 100%;
+  height: 80rpx;
+  justify-content: center;
+  gap: 10rpx;
+  margin: 24rpx 0 0;
+  padding: 0 20rpx;
+  border: 1rpx solid var(--primary-color);
+  border-radius: var(--radius-control);
+  color: #fff;
+  font-size: 27rpx;
+  font-weight: 650;
+  background: var(--primary-color);
+}
+
+.login-button::after {
+  border: 0;
+}
+
+.login-button[disabled] {
+  opacity: 0.58;
+}
+
+.button-arrow {
+  font-size: 28rpx;
+}
+
+.login-foot {
+  margin-top: 28rpx;
+  color: var(--text-muted);
+  font-size: 18rpx;
+  text-align: center;
+}
+
+.wecom-loading-shell {
+  align-items: center;
+  justify-content: center;
+}
+
+.wecom-loading-content {
+  display: flex;
+  width: 100%;
+  max-width: 520rpx;
+  flex-direction: column;
+  align-items: center;
+  gap: 18rpx;
+  padding: 44rpx;
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-card);
+  background: #fff;
+}
+
+.wecom-loading-logo {
+  width: 76rpx;
+  height: 76rpx;
+}
+
+.wecom-loading-text {
+  color: var(--text-secondary);
+  font-size: 24rpx;
+}
+
+.wecom-loading-dots {
+  display: flex;
+  gap: 8rpx;
+}
+
+.dot {
+  width: 8rpx;
+  height: 8rpx;
+  border-radius: 50%;
+  background: var(--primary-color);
+  animation: loginDot 0.9s ease-in-out infinite alternate;
+}
+
+.dot-2 { animation-delay: 0.15s; }
+.dot-3 { animation-delay: 0.3s; }
+
+.workspace-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 24rpx;
+  background: rgba(17, 24, 39, 0.48);
+}
+
+.workspace-modal {
+  width: 100%;
+  max-width: 680rpx;
+  padding: 26rpx 24rpx calc(24rpx + env(safe-area-inset-bottom));
+  border-radius: 16rpx 16rpx 0 0;
+  background: #fff;
+}
+
+.workspace-modal-title {
+  color: var(--text-strong);
+  font-size: 29rpx;
+  font-weight: 650;
+}
+
+.workspace-modal-desc {
+  margin-top: 6rpx;
+  color: var(--text-muted);
+  font-size: 21rpx;
+  line-height: 1.5;
+}
+
+.workspace-modal-list {
+  display: flex;
+  max-height: 52vh;
+  flex-direction: column;
+  gap: 10rpx;
+  margin-top: 20rpx;
+  overflow: auto;
+}
+
+.workspace-option {
+  min-height: 76rpx;
+  justify-content: space-between;
+  gap: 14rpx;
+  padding: 14rpx 16rpx;
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-control);
+  background: #fff;
+}
+
+.workspace-option.is-current {
+  border-color: #a9c6ec;
+  background: var(--primary-soft);
+}
+
+.workspace-option-copy {
+  flex: 1;
+}
+
+.workspace-option-name {
+  overflow: hidden;
+  color: var(--text-strong);
+  font-size: 24rpx;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-option-tag {
+  color: var(--primary-color);
+  font-size: 19rpx;
+}
+
+.workspace-modal-cancel {
+  margin-top: 16rpx;
+  padding: 18rpx;
+  border-top: 1rpx solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 24rpx;
+  text-align: center;
+}
+
+@keyframes loginDot {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+@media (min-width: 768px) {
+  .page-shell {
+    justify-content: center;
+  }
+
+  .brand-bar {
+    margin-bottom: 20rpx;
+  }
+
+  .login-panel {
+    margin: 0 auto;
+  }
+}

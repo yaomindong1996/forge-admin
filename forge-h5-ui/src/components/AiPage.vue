@@ -148,6 +148,7 @@ defineExpose({
     position: fixed;
     bottom: 0;
     width: 100%;
+    border-top: 1px solid var(--forge-border, #dfe4ea);
     background: #fff;
     box-sizing: border-box;
     padding: 16px;
@@ -155,7 +156,6 @@ defineExpose({
     justify-content: space-around;
     align-items: center;
     height: 58px;
-    box-shadow: 0px -2px 4px 0px rgba(155, 155, 155, 0.5);
     z-index: 10;
   }
 }

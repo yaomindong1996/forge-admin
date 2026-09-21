@@ -20,10 +20,10 @@ defineProps({
 
 <style lang="scss" scoped>
 .ai-list-skeleton { display: flex; flex-direction: column; gap: 10rpx; }
-.ai-list-skeleton__row { display: flex; min-height: 96rpx; align-items: center; gap: 14rpx; padding: 18rpx; border: 1rpx solid var(--border-color); border-radius: 16rpx; background: #fff; box-sizing: border-box; }
+.ai-list-skeleton__row { display: flex; min-height: 96rpx; align-items: center; gap: 14rpx; padding: 18rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; box-sizing: border-box; }
 .ai-list-skeleton--compact .ai-list-skeleton__row { min-height: 78rpx; padding: 14rpx; }
 .ai-list-skeleton__leading, .ai-list-skeleton__line, .ai-list-skeleton__end { background: #edf0f4; animation: skeletonPulse 1.1s ease-in-out infinite alternate; }
-.ai-list-skeleton__leading { width: 54rpx; height: 54rpx; flex: 0 0 54rpx; border-radius: 15rpx; }
+.ai-list-skeleton__leading { width: 54rpx; height: 54rpx; flex: 0 0 54rpx; border-radius: 8rpx; }
 .ai-list-skeleton__content { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 12rpx; }
 .ai-list-skeleton__line { height: 18rpx; border-radius: 8rpx; }
 .ai-list-skeleton__line--title { width: 70%; }

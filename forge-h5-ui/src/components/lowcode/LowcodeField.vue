@@ -147,7 +147,7 @@
         v-else-if="descriptor.renderer === 'switch'"
         :model-value="switchValue"
         :disabled="disabled"
-        active-color="var(--forge-color-primary, #2563eb)"
+        active-color="var(--forge-color-primary, #1f5fbf)"
         @update:model-value="updateValue"
         @change="emit('change', $event?.value ?? $event)"
       />
@@ -191,7 +191,7 @@
         <view class="lowcode-field__color-preview" :style="{ backgroundColor: validColorValue }" />
         <AiField
           :model-value="modelValue"
-          placeholder="#2563eb"
+          placeholder="#1f5fbf"
           :maxlength="32"
           @update:model-value="updateValue"
           @blur="emit('blur')"

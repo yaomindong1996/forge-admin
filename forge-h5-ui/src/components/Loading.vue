@@ -120,7 +120,7 @@ const rootStyle = computed(() => {
 }
 
 .loading-overlay--blur {
-  backdrop-filter: blur(12rpx);
+  backdrop-filter: none;
 }
 
 .forge-loading--light .loading-overlay {
@@ -140,12 +140,9 @@ const rootStyle = computed(() => {
   align-items: center;
   justify-content: center;
   padding: 48rpx 64rpx;
-  border: 1rpx solid rgba(255, 255, 255, 0.9);
-  border-radius: 48rpx;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 20rpx 60rpx rgba(59, 130, 246, 0.14);
-  backdrop-filter: blur(24rpx);
-  animation: loadingEnter 0.24s ease both;
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-card);
+  background: #fff;
 }
 
 .forge-loading--inline .loading-card {
@@ -164,8 +161,8 @@ const rootStyle = computed(() => {
 }
 
 .forge-loading--dark .loading-card {
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 20rpx 60rpx rgba(15, 23, 42, 0.08);
+  background: #fff;
+  box-shadow: none;
 }
 
 .loading-content {
@@ -174,7 +171,7 @@ const rootStyle = computed(() => {
   align-items: center;
   justify-content: center;
   gap: 24rpx;
-  color: #2563eb;
+  color: #1f5fbf;
 }
 
 .loading-content--light {
@@ -247,7 +244,7 @@ const rootStyle = computed(() => {
   background: currentColor;
   opacity: 0.24;
   filter: blur(18rpx);
-  animation: brandPulse 1.5s ease-in-out infinite;
+  display: none;
 }
 
 .loading-hexagon {
@@ -256,7 +253,7 @@ const rootStyle = computed(() => {
   height: 60rpx;
   background: currentColor;
   clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
-  animation: spinnerRotate 4s linear infinite;
+  animation: none;
 }
 
 .loading-hexagon::after {
@@ -277,7 +274,7 @@ const rootStyle = computed(() => {
   line-height: 1.35;
   text-align: center;
   letter-spacing: 0;
-  animation: textEnter 0.22s ease both;
+  animation: none;
 }
 
 .forge-loading--sm .loading-card {

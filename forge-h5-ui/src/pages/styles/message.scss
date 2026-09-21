@@ -1,0 +1,257 @@
+.message-page {
+  min-height: 100vh;
+  background: var(--page-bg);
+}
+
+.message-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  padding: calc(20rpx + env(safe-area-inset-top)) 24rpx 40rpx;
+}
+
+.page-head,
+.message-meta,
+.message-title-row,
+.detail-tags,
+.detail-actions {
+  display: flex;
+  align-items: center;
+}
+
+.page-head {
+  min-height: 88rpx;
+  gap: 14rpx;
+  padding: 14rpx 16rpx;
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-card);
+  background: #fff;
+}
+
+.back-button,
+.refresh-button {
+  display: flex;
+  width: 58rpx;
+  height: 58rpx;
+  flex: 0 0 58rpx;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-control);
+  background: #fff;
+}
+
+.back-button::after,
+.refresh-button::after,
+.filter-tab::after,
+.mark-read-button::after {
+  border: 0;
+}
+
+.title-block,
+.message-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.page-title,
+.page-subtitle,
+.message-title,
+.message-desc,
+.message-time,
+.detail-empty {
+  display: block;
+}
+
+.page-title {
+  overflow: hidden;
+  color: var(--text-strong);
+  font-size: 29rpx;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-subtitle {
+  overflow: hidden;
+  margin-top: 4rpx;
+  color: var(--text-muted);
+  font-size: 20rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+  padding: 18rpx;
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-card);
+  background: #fff;
+}
+
+.tab-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+
+.tab-row {
+  display: inline-flex;
+  gap: 8rpx;
+  padding-right: 18rpx;
+}
+
+.filter-tab {
+  min-width: 108rpx;
+  height: 58rpx;
+  margin: 0;
+  padding: 0 18rpx;
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  font-size: 22rpx;
+  background: #fff;
+}
+
+.filter-tab.active {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: var(--primary-soft);
+}
+
+.mark-read-button {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 7rpx;
+  margin: 0;
+  padding: 0;
+  color: var(--primary-color);
+  font-size: 22rpx;
+  font-weight: 600;
+  background: transparent;
+}
+
+.message-list {
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-card);
+  background: #fff;
+}
+
+.message-card {
+  position: relative;
+  display: flex;
+  gap: 14rpx;
+  min-height: 112rpx;
+  padding: 18rpx;
+  border-bottom: 1rpx solid var(--border-light);
+  background: #fff;
+}
+
+.message-card:last-child {
+  border-bottom: 0;
+}
+
+.message-card.unread {
+  background: #f8fbff;
+}
+
+.message-card:active {
+  background: var(--surface-muted);
+}
+
+.message-icon {
+  display: flex;
+  width: 56rpx;
+  height: 56rpx;
+  flex: 0 0 56rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7rpx;
+  background: var(--surface-muted);
+}
+
+.tone-blue { background: var(--primary-soft); }
+.tone-emerald { background: #eef8f4; }
+.tone-slate { background: var(--surface-muted); }
+
+.message-meta {
+  justify-content: space-between;
+  gap: 14rpx;
+}
+
+.message-time {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font-size: 19rpx;
+}
+
+.message-title-row {
+  gap: 8rpx;
+  margin-top: 7rpx;
+}
+
+.message-title {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--text-strong);
+  font-size: 25rpx;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unread-dot {
+  width: 12rpx;
+  height: 12rpx;
+  flex: 0 0 12rpx;
+  border-radius: 50%;
+  background: var(--primary-color);
+}
+
+.message-desc {
+  overflow: hidden;
+  margin-top: 5rpx;
+  color: var(--text-secondary);
+  font-size: 21rpx;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.detail-tags,
+.detail-actions {
+  gap: 10rpx;
+}
+
+.detail-html {
+  color: var(--text-secondary);
+  font-size: 25rpx;
+  line-height: 1.7;
+}
+
+.detail-empty {
+  color: var(--text-muted);
+  font-size: 23rpx;
+}
+
+.detail-actions {
+  justify-content: flex-end;
+}
+
+.message-list :deep(.ai-empty) {
+  min-height: 360rpx;
+}

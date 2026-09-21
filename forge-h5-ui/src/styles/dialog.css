@@ -12,30 +12,23 @@
 .forge-dialog__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(15, 23, 42, 0.2);
+  background: rgba(22, 27, 34, 0.48);
   opacity: 0;
-  backdrop-filter: blur(4px);
-  transition: opacity 0.18s ease;
+  transition: opacity 0.16s ease;
 }
 
 .forge-dialog__panel {
   position: relative;
   width: min(340px, calc(100vw - 32px));
   overflow: hidden;
-  padding: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 32px;
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow:
-    0 20px 60px rgba(15, 23, 42, 0.12),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  padding: 22px;
+  border: 1px solid #dfe4ea;
+  border-radius: 8px;
+  background: #ffffff;
   opacity: 0;
   pointer-events: auto;
-  transform: translateY(10px) scale(0.95);
-  transition:
-    opacity 0.18s ease,
-    transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
-  backdrop-filter: blur(28px);
+  transform: translateY(8px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
 }
 
 .forge-dialog.is-open {
@@ -48,61 +41,47 @@
 }
 
 .forge-dialog.is-open .forge-dialog__panel {
-  transform: translateY(0) scale(1);
+  transform: translateY(0);
 }
 
-.forge-dialog.is-leaving .forge-dialog__backdrop {
+.forge-dialog.is-leaving .forge-dialog__backdrop,
+.forge-dialog.is-leaving .forge-dialog__panel {
   opacity: 0;
 }
 
 .forge-dialog.is-leaving .forge-dialog__panel {
-  opacity: 0;
-  transform: translateY(10px) scale(0.95);
+  transform: translateY(8px);
 }
 
 .forge-dialog__glow {
-  position: absolute;
-  top: -64px;
-  right: -64px;
-  width: 128px;
-  height: 128px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.42);
-  filter: blur(20px);
-  pointer-events: none;
+  display: none;
 }
 
 .forge-dialog__close {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 36px;
-  height: 36px;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
   padding: 0;
-  border: 1px solid rgba(203, 213, 225, 0.72);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
-  transition:
-    background 0.14s ease,
-    border-color 0.14s ease,
-    transform 0.14s ease;
+  border: 1px solid #dfe4ea;
+  border-radius: 4px;
+  background: #f7f8fa;
 }
 
 .forge-dialog__close:active {
-  transform: scale(0.94);
+  background: #edf0f3;
 }
 
 .forge-dialog__close::before,
 .forge-dialog__close::after {
   content: '';
   position: absolute;
-  top: 17px;
-  left: 10px;
-  width: 16px;
+  top: 13px;
+  left: 8px;
+  width: 13px;
   height: 2px;
-  border-radius: 999px;
-  background: #475569;
+  background: #4b5563;
 }
 
 .forge-dialog__close::before {
@@ -119,60 +98,60 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 8px;
+  padding-top: 4px;
   text-align: center;
 }
 
 .forge-dialog__icon {
   display: flex;
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   align-items: center;
   justify-content: center;
-  margin-bottom: 20px;
-  border: 1px solid rgba(191, 219, 254, 0.5);
-  border-radius: 20px;
-  background: rgba(219, 234, 254, 0.5);
+  margin-bottom: 16px;
+  border: 1px solid #cfe0f7;
+  border-radius: 6px;
+  background: #edf4ff;
 }
 
 .forge-dialog__icon-mask {
-  width: 28px;
-  height: 28px;
-  background: #3b82f6;
+  width: 24px;
+  height: 24px;
+  background: #1f5fbf;
 }
 
 .forge-dialog--success .forge-dialog__icon {
-  border-color: rgba(167, 243, 208, 0.55);
-  background: rgba(209, 250, 229, 0.55);
+  border-color: #b8ddcf;
+  background: #edf8f4;
 }
 
 .forge-dialog--success .forge-dialog__icon-mask {
-  background: #10b981;
+  background: #16815d;
 }
 
 .forge-dialog--warning .forge-dialog__icon {
-  border-color: rgba(253, 230, 138, 0.55);
-  background: rgba(254, 243, 199, 0.58);
+  border-color: #ead4ac;
+  background: #fff8eb;
 }
 
 .forge-dialog--warning .forge-dialog__icon-mask {
-  background: #f59e0b;
+  background: #a96800;
 }
 
 .forge-dialog__title {
   max-width: 260px;
-  color: #1e293b;
-  font-size: 19px;
-  font-weight: 800;
-  line-height: 1.25;
+  color: #161b22;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.35;
 }
 
 .forge-dialog__desc {
   max-width: 268px;
   margin-top: 8px;
-  color: #64748b;
+  color: #4b5563;
   font-size: 14px;
-  line-height: 1.62;
+  line-height: 1.6;
   white-space: pre-wrap;
 }
 
@@ -180,9 +159,9 @@
   position: relative;
   z-index: 1;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  margin-top: 32px;
+  margin-top: 26px;
 }
 
 .forge-dialog__actions--single {
@@ -191,44 +170,44 @@
 
 .forge-dialog__button {
   min-width: 0;
-  height: 50px;
+  height: 44px;
   flex: 1;
   padding: 0 16px;
-  border: 0;
-  border-radius: 20px;
-  font-size: 15px;
-  font-weight: 750;
-  line-height: 50px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 42px;
   text-align: center;
-  transition:
-    transform 0.12s ease,
-    background 0.12s ease,
-    box-shadow 0.12s ease;
-}
-
-.forge-dialog__button:active {
-  transform: scale(0.98);
+  transition: background 0.14s ease, border-color 0.14s ease;
 }
 
 .forge-dialog__button--cancel {
-  color: #475569;
-  background: rgba(241, 245, 249, 0.86);
+  border-color: #dfe4ea;
+  color: #4b5563;
+  background: #ffffff;
+}
+
+.forge-dialog__button--cancel:active {
+  background: #f7f8fa;
 }
 
 .forge-dialog__button--confirm {
   color: #ffffff;
-  background: linear-gradient(90deg, #2563eb, #4f46e5);
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.22);
+  background: #1f5fbf;
+}
+
+.forge-dialog__button--confirm:active {
+  background: #174a91;
 }
 
 .forge-dialog__button--danger {
-  background: linear-gradient(90deg, #ef4444, #e11d48);
-  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.2);
+  color: #ffffff;
+  background: #c93636;
 }
 
 .forge-dialog__button--dark {
   width: 100%;
   color: #ffffff;
-  background: #0f172a;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.16);
+  background: #161b22;
 }

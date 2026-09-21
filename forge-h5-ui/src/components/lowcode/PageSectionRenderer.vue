@@ -194,7 +194,7 @@
             <text class="section-sheet-trigger__label">查看{{ section.title || '明细' }}</text>
             <text class="section-sheet-trigger__count">{{ visibleChildRows(section).length }} 条记录</text>
           </view>
-          <AiIcon name="chevron-right" color="#2563eb" size="sm" />
+          <AiIcon name="chevron-right" color="#1f5fbf" size="sm" />
         </button>
       </CardSection>
     </template>
@@ -581,8 +581,7 @@ function isDeletedRow(row = {}) {
   gap: 12rpx;
   padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
   border-top: 1rpx solid #e7edf5;
-  background: rgba(248, 250, 252, 0.97);
-  backdrop-filter: blur(8px);
+  background: #fff;
 }
 
 .section-bottom-bar > * {

@@ -103,17 +103,17 @@ function isDeletedRow(row = {}) {
 </script>
 
 <style lang="scss" scoped>
-.runtime-child-card { margin-bottom: 24rpx; padding: 26rpx; border: 1rpx solid #e7edf5; border-radius: 18rpx; background: #fff; box-shadow: 0 10rpx 28rpx rgba(15, 23, 42, .04); }
+.runtime-child-card { margin-bottom: 16rpx; padding: 22rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
 .runtime-child-card__head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; margin-bottom: 18rpx; }
 .runtime-child-card__head > view { display: flex; align-items: baseline; gap: 12rpx; }
-.runtime-child-card__title { color: var(--text-strong); font-size: 30rpx; font-weight: 850; }
-.runtime-child-card__count { color: #94a3b8; font-size: 22rpx; }
+.runtime-child-card__title { color: var(--text-strong); font-size: 27rpx; font-weight: 650; }
+.runtime-child-card__count { color: var(--text-muted); font-size: 20rpx; }
 .runtime-child-card__tools, .runtime-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12rpx; }
-.runtime-child-list { display: flex; flex-direction: column; gap: 18rpx; }
-.runtime-child-row { padding: 20rpx; border: 1rpx solid #eef2f7; border-radius: 16rpx; background: #fbfdff; }
+.runtime-child-list { display: flex; flex-direction: column; gap: 10rpx; }
+.runtime-child-row { padding: 18rpx; border: 1rpx solid var(--border-light); border-radius: var(--radius-control); background: var(--surface-subtle); }
 .runtime-child-row__head { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; margin-bottom: 14rpx; }
-.runtime-child-row__title { color: #334155; font-size: 24rpx; font-weight: 700; }
+.runtime-child-row__title { color: var(--text-strong); font-size: 22rpx; font-weight: 600; }
 .runtime-child-row__body { padding: 4rpx 0 2rpx; }
 .runtime-actions--child { justify-content: flex-start; margin-top: 16rpx; }
-.runtime-child-empty { padding: 30rpx 0; color: #94a3b8; font-size: 24rpx; text-align: center; }
+.runtime-child-empty { padding: 26rpx 0; color: var(--text-muted); font-size: 22rpx; text-align: center; }
 </style>

@@ -46,35 +46,39 @@ provide('activeIndex', activeIndex)
 <style lang="scss" scoped>
 .ai-tabs {
   &-header {
-    gap: 6rpx;
-    padding: 6rpx;
+    gap: 0;
+    padding: 0;
     display: flex;
     border: 1rpx solid #e5e7eb;
-    border-radius: 16rpx;
-    background: #f5f7fa;
+    border-radius: var(--radius-control);
+    background: #fff;
+    overflow: hidden;
   }
   
   &-tab {
     flex: 1;
     display: flex;
-    height: 62rpx;
+    height: 64rpx;
     align-items: center;
     justify-content: center;
-    border-radius: 11rpx;
+    border-right: 1rpx solid var(--border-color);
+
+    &:last-child {
+      border-right: 0;
+    }
     
     &--active {
-      color: var(--primary-color, #2563eb);
-      background: #fff;
-      box-shadow: 0 1rpx 4rpx rgb(15 23 42 / 8%);
+      color: var(--primary-color);
+      background: var(--primary-soft, #edf4ff);
     }
   }
   
   &-tab-text {
-    color: #64748b;
-    font-size: 25rpx;
+    color: var(--text-secondary);
+    font-size: 23rpx;
     
     .ai-tabs-tab--active & {
-      color: var(--primary-color, #2563eb);
+      color: var(--primary-color);
       font-weight: 650;
     }
   }

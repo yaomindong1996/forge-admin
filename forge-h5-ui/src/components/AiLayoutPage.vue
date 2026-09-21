@@ -4,7 +4,7 @@
       <view v-if="showNav" class="ai-layout-page__nav" :class="{ 'ai-layout-page__nav--glass': navGlass }">
         <slot name="nav">
           <button v-if="showBack" class="ai-layout-page__back" @click="handleBack">
-            <AiIcon name="chevron-left" color="#475569" size="md" />
+            <AiIcon name="chevron-left" color="#4b5563" size="md" />
           </button>
           <view class="ai-layout-page__title-block">
             <text v-if="title" class="ai-layout-page__title">{{ title }}</text>
@@ -127,10 +127,10 @@ function handleBack() {
   position: relative;
   z-index: 3;
   display: flex;
-  min-height: 104rpx;
+  min-height: 92rpx;
   align-items: center;
-  gap: 20rpx;
-  padding: calc(20rpx + env(safe-area-inset-top)) 28rpx 20rpx;
+  gap: 16rpx;
+  padding: calc(14rpx + env(safe-area-inset-top)) 24rpx 14rpx;
   box-sizing: border-box;
 }
 
@@ -141,15 +141,15 @@ function handleBack() {
 
 .ai-layout-page__back {
   display: flex;
-  width: 76rpx;
-  height: 76rpx;
-  flex: 0 0 76rpx;
+  width: 64rpx;
+  height: 64rpx;
+  flex: 0 0 64rpx;
   align-items: center;
   justify-content: center;
   margin: 0;
   padding: 0;
   border: 1rpx solid var(--border-color);
-  border-radius: 10rpx;
+  border-radius: var(--radius-control);
   background: #fff;
   box-shadow: none;
 }
@@ -174,16 +174,16 @@ function handleBack() {
 
 .ai-layout-page__title {
   color: var(--text-strong);
-  font-size: 34rpx;
-  font-weight: 950;
-  line-height: 1.18;
+  font-size: 30rpx;
+  font-weight: 650;
+  line-height: 1.25;
 }
 
 .ai-layout-page__subtitle {
   margin-top: 6rpx;
-  color: #64748b;
-  font-size: 23rpx;
-  font-weight: 650;
+  color: var(--text-muted);
+  font-size: 21rpx;
+  font-weight: 400;
 }
 
 .ai-layout-page__nav-extra {
@@ -210,13 +210,13 @@ function handleBack() {
 }
 
 .ai-layout-page__inner--padded {
-  padding: 28rpx 28rpx 40rpx;
+  padding: 20rpx 24rpx 32rpx;
 }
 
 .ai-layout-page__footer {
   position: relative;
   z-index: 3;
-  padding: 20rpx 28rpx calc(20rpx + env(safe-area-inset-bottom));
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 

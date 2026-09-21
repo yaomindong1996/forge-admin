@@ -4,7 +4,7 @@
     :disabled="disabled"
     :inline="inline"
     :shape="button ? 'button' : 'dot'"
-    checked-color="var(--forge-color-primary, #2563eb)"
+    checked-color="var(--forge-color-primary, #1f5fbf)"
     @change="handleChange"
   >
     <wd-radio

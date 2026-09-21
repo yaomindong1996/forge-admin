@@ -6,10 +6,22 @@ body {
 }
 
 page {
-  background-color: var(--page-bg, #f5f6f8);
-  color: var(--text-color, #1f2329);
+  background-color: var(--page-bg, #f3f5f8);
+  color: var(--text-color, #161b22);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+view,
+scroll-view,
+button,
+input,
+textarea {
+  box-sizing: border-box;
+}
+
+button {
+  font: inherit;
 }
 
 /* 自定义 AiTabBar 接管底部导航，H5 刷新时先隐藏 uni 原生 tabBar，避免首屏闪现。 */
@@ -38,10 +50,9 @@ input {
   }
 }
 
-/* transition fade-slide */
 .fade-slide-leave-active,
 .fade-slide-enter-active {
-  transition: all 0.3s;
+  transition: opacity 0.16s ease, transform 0.16s ease;
 }
 
 .fade-slide-enter-from {
@@ -63,10 +74,10 @@ input {
   gap: 10px;
   padding: 18px 22px;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 6px;
   color: var(--primary-color);
   background: #fff;
-  box-shadow: var(--shadow-soft);
+  box-shadow: none;
 }
 
 .v-loading-dots {

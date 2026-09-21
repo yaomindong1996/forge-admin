@@ -2,13 +2,13 @@
   <view class="ai-file-upload">
     <view v-if="fileItems.length" class="ai-file-upload__list">
       <view v-for="item in fileItems" :key="item.id" class="ai-file-upload__item">
-        <AiIcon icon="/static/icons/ai-icon/file-text.svg" color="#2563eb" size="sm" />
+        <AiIcon icon="/static/icons/ai-icon/file-text.svg" color="#1f5fbf" size="sm" />
         <text class="ai-file-upload__name">{{ item.name }}</text>
         <button v-if="!readonly" class="ai-file-upload__remove" @click="removeFile(item.id)">移除</button>
       </view>
     </view>
     <button v-if="!readonly" class="ai-file-upload__trigger" :disabled="uploading" @click="chooseFile">
-      <AiIcon icon="/static/icons/ai-icon/upload.svg" color="#2563eb" size="sm" />
+      <AiIcon icon="/static/icons/ai-icon/upload.svg" color="#1f5fbf" size="sm" />
       <text>{{ uploading ? '上传中…' : '上传附件' }}</text>
     </button>
   </view>
@@ -104,6 +104,6 @@ function normalizeFiles(value) {
 .ai-file-upload__name { overflow: hidden; flex: 1; color: #475569; font-size: 23rpx; text-overflow: ellipsis; white-space: nowrap; }
 .ai-file-upload__remove { margin: 0; padding: 0; border: 0; color: #64748b; font-size: 22rpx; line-height: 1; background: transparent; }
 .ai-file-upload__remove::after, .ai-file-upload__trigger::after { border: 0; }
-.ai-file-upload__trigger { display: inline-flex; width: fit-content; height: 70rpx; align-items: center; gap: 10rpx; margin: 0; padding: 0 18rpx; border: 1rpx dashed #9fc5fb; border-radius: 10rpx; color: #2563eb; font-size: 24rpx; background: #f8fbff; }
+.ai-file-upload__trigger { display: inline-flex; width: fit-content; height: 70rpx; align-items: center; gap: 10rpx; margin: 0; padding: 0 18rpx; border: 1rpx dashed #9fc5fb; border-radius: 10rpx; color: #1f5fbf; font-size: 24rpx; background: #f8fbff; }
 .ai-file-upload__trigger[disabled] { opacity: .6; }
 </style>

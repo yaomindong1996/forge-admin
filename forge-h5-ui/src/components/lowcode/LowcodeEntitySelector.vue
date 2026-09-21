@@ -308,10 +308,10 @@ function countTreeRows(rows = []) {
 .lowcode-selector__option.is-disabled { opacity: .48; }
 .lowcode-selector__indicator { display: flex; width: 34rpx; height: 34rpx; flex: 0 0 auto; align-items: center; justify-content: center; border: 2rpx solid #cbd5e1; border-radius: 50%; color: #fff; font-size: 23rpx; background: #fff; box-sizing: border-box; }
 .lowcode-selector__indicator.is-multiple { border-radius: 7rpx; }
-.is-selected .lowcode-selector__indicator { border-color: #2563eb; background: #2563eb; }
+.is-selected .lowcode-selector__indicator { border-color: #1f5fbf; background: #1f5fbf; }
 .lowcode-selector__copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3rpx; }
 .lowcode-selector__label { overflow: hidden; font-size: 25rpx; text-overflow: ellipsis; white-space: nowrap; }
 .lowcode-selector__meta { overflow: hidden; color: #94a3b8; font-size: 21rpx; text-overflow: ellipsis; white-space: nowrap; }
-.lowcode-selector__more { width: 100%; margin: 0; border: 0; border-radius: 0; color: #2563eb; font-size: 23rpx; background: #f8fbff; }
+.lowcode-selector__more { width: 100%; margin: 0; border: 0; border-radius: 0; color: #1f5fbf; font-size: 23rpx; background: #f8fbff; }
 .lowcode-selector__footer { display: grid; grid-template-columns: 1fr 1.5fr; gap: 14rpx; }
 </style>

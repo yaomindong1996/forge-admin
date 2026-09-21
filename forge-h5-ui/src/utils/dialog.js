@@ -144,7 +144,7 @@ function showNativeConfirm(options = {}) {
       content: config.description,
       confirmText: config.confirmText,
       cancelText: config.cancelText,
-      confirmColor: config.isDestructive ? '#ef4444' : '#2563eb',
+      confirmColor: config.isDestructive ? '#ef4444' : '#1f5fbf',
       success: res => resolve(!!res.confirm),
       fail: () => resolve(false),
     })

@@ -220,8 +220,9 @@ onUnmounted(() => {
   width: 156rpx;
   height: 156rpx;
   overflow: hidden;
-  border-radius: 40rpx;
-  background: linear-gradient(135deg, #dbeafe, #e0e7ff);
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-card);
+  background: var(--surface-muted);
 }
 
 .ai-image-upload__mask {

@@ -294,7 +294,7 @@ onUnmounted(() => {
 .lowcode-static__sequence { display: flex; flex-direction: column; gap: 4rpx; }
 .lowcode-static__sequence-item { display: flex; min-height: 64rpx; gap: 14rpx; }
 .lowcode-static__sequence-dot { width: 16rpx; height: 16rpx; flex: 0 0 auto; margin-top: 7rpx; border: 4rpx solid #cbd5e1; border-radius: 50%; background: #fff; }
-.lowcode-static__sequence-dot.is-active { border-color: #2563eb; }
+.lowcode-static__sequence-dot.is-active { border-color: #1f5fbf; }
 .lowcode-static__sequence-copy { display: flex; flex-direction: column; color: #334155; font-size: 24rpx; }
 .lowcode-static__list { overflow: hidden; border: 1rpx solid #e2e8f0; border-radius: 12rpx; }
 .lowcode-static__list-row { display: flex; justify-content: space-between; gap: 18rpx; padding: 16rpx 18rpx; border-bottom: 1rpx solid #eef2f7; color: #475569; font-size: 23rpx; }
@@ -303,10 +303,10 @@ onUnmounted(() => {
 .lowcode-static__profile { display: flex; align-items: center; gap: 16rpx; }
 .lowcode-static__avatar { width: 84rpx; height: 84rpx; overflow: hidden; border-radius: 50%; }
 .lowcode-static__video { width: 100%; border-radius: 14rpx; }
-.lowcode-static__audio { display: inline-flex; align-items: center; gap: 10rpx; margin: 0; padding: 14rpx 18rpx; border: 1rpx solid #bfdbfe; border-radius: 12rpx; color: #2563eb; font-size: 23rpx; background: #eff6ff; }
+.lowcode-static__audio { display: inline-flex; align-items: center; gap: 10rpx; margin: 0; padding: 14rpx 18rpx; border: 1rpx solid #bfdbfe; border-radius: 12rpx; color: #1f5fbf; font-size: 23rpx; background: #eff6ff; }
 .lowcode-static__audio::after { border: 0; }
 .lowcode-static__machine-code, .lowcode-static__business { display: flex; align-items: center; gap: 14rpx; padding: 20rpx; border: 1rpx dashed #bfdbfe; border-radius: 12rpx; color: #475569; background: #f8fbff; }
 .lowcode-static__countdown { color: #0f172a; font-size: 42rpx; font-weight: 850; letter-spacing: 3rpx; }
-.lowcode-static__link { margin: 0; padding: 0; border: 0; color: #2563eb; font-size: 24rpx; line-height: 1.4; background: transparent; }
+.lowcode-static__link { margin: 0; padding: 0; border: 0; color: #1f5fbf; font-size: 24rpx; line-height: 1.4; background: transparent; }
 .lowcode-static__link::after { border: 0; }
 </style>

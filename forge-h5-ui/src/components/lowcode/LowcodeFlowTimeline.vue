@@ -28,7 +28,7 @@ function itemKey(item, index) { return item.id || item.taskId || `${item.activit
 .runtime-flow-timeline__empty { color: #94a3b8; font-size: 23rpx; }
 .runtime-flow-timeline__item { position: relative; display: flex; gap: 18rpx; padding-bottom: 22rpx; }
 .runtime-flow-timeline__item:not(:last-child)::before { position: absolute; top: 16rpx; bottom: 0; left: 7rpx; width: 2rpx; background: #e5e7eb; content: ''; }
-.runtime-flow-timeline__dot { position: relative; z-index: 1; width: 16rpx; height: 16rpx; margin-top: 7rpx; border-radius: 50%; background: #2563eb; }
+.runtime-flow-timeline__dot { position: relative; z-index: 1; width: 16rpx; height: 16rpx; margin-top: 7rpx; border-radius: 50%; background: #1f5fbf; }
 .runtime-flow-timeline__copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 6rpx; color: #64748b; font-size: 22rpx; line-height: 1.5; }
 .runtime-flow-timeline__copy text:first-child { color: #334155; font-size: 25rpx; font-weight: 600; }
 </style>

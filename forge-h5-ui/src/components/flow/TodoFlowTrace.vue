@@ -40,20 +40,20 @@ function itemMeta(item) {
 </script>
 
 <style lang="scss" scoped>
-.history-panel { margin: 24rpx; padding: 28rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
-.page-hint { padding: 80rpx 32rpx; color: var(--text-muted); font-size: 26rpx; text-align: center; }
+.history-panel { margin-top: 14rpx; padding: 22rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
+.page-hint { padding: 64rpx 28rpx; color: var(--text-muted); font-size: 23rpx; text-align: center; }
 .timeline, .process-nodes { padding: 4rpx 0; }
-.timeline-item, .process-node { position: relative; display: flex; gap: 20rpx; padding-bottom: 28rpx; }
+.timeline-item, .process-node { position: relative; display: flex; gap: 16rpx; padding-bottom: 24rpx; }
 .timeline-item:not(:last-child)::before, .process-node:not(:last-child)::after { position: absolute; top: 20rpx; bottom: 0; left: 8rpx; width: 2rpx; background: #e5e7eb; content: ''; }
 .timeline-dot { position: relative; z-index: 1; width: 18rpx; height: 18rpx; margin-top: 8rpx; border-radius: 50%; background: var(--primary-color); }
 .timeline-copy, .process-node__copy { min-width: 0; flex: 1; }
 .timeline-title, .timeline-meta, .timeline-comment, .process-node__copy text { display: block; }
-.timeline-title, .process-node__copy text:first-child { color: var(--text-strong); font-size: 27rpx; font-weight: 600; }
-.timeline-meta { margin-top: 8rpx; color: var(--text-muted); font-size: 23rpx; line-height: 1.5; }
-.timeline-comment { margin-top: 12rpx; color: #4e5969; font-size: 24rpx; line-height: 1.5; }
+.timeline-title, .process-node__copy text:first-child { color: var(--text-strong); font-size: 24rpx; font-weight: 600; }
+.timeline-meta { margin-top: 6rpx; color: var(--text-muted); font-size: 21rpx; line-height: 1.5; }
+.timeline-comment { margin-top: 9rpx; color: var(--text-secondary); font-size: 22rpx; line-height: 1.5; }
 .process-node { gap: 16rpx; padding-bottom: 24rpx; }
 .process-node__mark { position: relative; z-index: 1; width: 18rpx; height: 18rpx; margin-top: 6rpx; border: 4rpx solid #cbd5e1; border-radius: 50%; background: #fff; box-sizing: border-box; }
-.process-node.is-running .process-node__mark { border-color: #2563eb; background: #2563eb; box-shadow: 0 0 0 6rpx #dbeafe; }
-.process-node.is-completed .process-node__mark { border-color: #16a34a; background: #16a34a; }
-.process-node__copy text:last-child { overflow: hidden; margin-top: 6rpx; color: #64748b; font-size: 22rpx; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.process-node.is-running .process-node__mark { border-color: var(--primary-color); background: var(--primary-color); }
+.process-node.is-completed .process-node__mark { border-color: var(--forge-color-success); background: var(--forge-color-success); }
+.process-node__copy text:last-child { overflow: hidden; margin-top: 5rpx; color: var(--text-secondary); font-size: 20rpx; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
 </style>

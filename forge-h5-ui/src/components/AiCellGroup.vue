@@ -24,7 +24,7 @@ defineProps({
 .ai-cell-group {
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  gap: 12rpx;
   
   &--compact {
     gap: 10rpx;
@@ -32,10 +32,10 @@ defineProps({
 }
 
 .ai-cell-group__title {
-  margin: 8rpx 0 0 32rpx;
-  font-size: 24rpx;
-  font-weight: 700;
-  color: #94a3b8;
+  margin: 8rpx 0 0 4rpx;
+  color: var(--text-secondary);
+  font-size: 22rpx;
+  font-weight: 650;
   line-height: 1.2;
 }
 
@@ -43,10 +43,8 @@ defineProps({
   position: relative;
   z-index: 1;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.82);
-  border-radius: 36rpx;
-  background: rgba(255, 255, 255, 0.62);
-  box-shadow: 0 8rpx 30rpx rgba(15, 23, 42, 0.03);
-  backdrop-filter: blur(24rpx);
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-card);
+  background: #fff;
 }
 </style>

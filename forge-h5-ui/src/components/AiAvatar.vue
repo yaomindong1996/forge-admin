@@ -40,9 +40,8 @@ watch(() => props.src, () => {
   justify-content: center;
   overflow: hidden;
   box-sizing: border-box;
-  border: 4rpx solid #ffffff;
-  background: linear-gradient(135deg, #dbeafe, #e0e7ff);
-  box-shadow: 0 10rpx 26rpx rgba(15, 23, 42, 0.08);
+  border: 1rpx solid var(--border-color);
+  background: var(--surface-muted);
 }
 
 .ai-avatar--circle {
@@ -50,7 +49,7 @@ watch(() => props.src, () => {
 }
 
 .ai-avatar--square {
-  border-radius: 32rpx;
+  border-radius: var(--radius-control);
 }
 
 .ai-avatar--sm {

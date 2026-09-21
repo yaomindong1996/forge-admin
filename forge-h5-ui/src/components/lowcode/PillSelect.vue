@@ -97,9 +97,9 @@ function isEmpty(value) {
 }
 
 .pill-select__item--active {
-  border-color: #2563eb;
+  border-color: #1f5fbf;
   color: #fff;
-  background: #2563eb;
+  background: #1f5fbf;
 }
 
 .pill-select__item--pressed {

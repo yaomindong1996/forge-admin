@@ -69,7 +69,7 @@ watch(() => props.value, (value) => {
 .mobile-calendar__week text { padding: 8rpx 0 12rpx; color: #94a3b8; font-size: 21rpx; text-align: center; }
 .mobile-calendar__day { position: relative; width: 100%; height: 64rpx; margin: 0; padding: 0; border: 0; border-radius: 12rpx; color: #334155; font-size: 23rpx; line-height: 64rpx; background: transparent; }
 .mobile-calendar__day.is-outside { color: #cbd5e1; }
-.mobile-calendar__day.is-today { color: #2563eb; font-weight: 800; }
-.mobile-calendar__day.is-selected { color: #fff; background: #2563eb; }
+.mobile-calendar__day.is-today { color: #1f5fbf; font-weight: 800; }
+.mobile-calendar__day.is-selected { color: #fff; background: #1f5fbf; }
 .mobile-calendar__day.has-event::before { position: absolute; bottom: 5rpx; left: 50%; width: 6rpx; height: 6rpx; border-radius: 50%; background: #f59e0b; content: ''; transform: translateX(-50%); }
 </style>

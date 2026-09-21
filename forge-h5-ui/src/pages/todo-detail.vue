@@ -151,7 +151,7 @@
     <AiPopupSheet v-model="moreVisible" title="更多操作" description="操作权限以当前审批节点配置为准">
       <view class="more-list">
         <button v-if="canDelegate" class="more-row" @click="openDelegate">
-          <view class="more-row__icon"><AiIcon icon="/static/icons/ai-icon/user-plus.svg" color="#2563eb" size="sm" /></view>
+          <view class="more-row__icon"><AiIcon icon="/static/icons/ai-icon/user-plus.svg" color="#1f5fbf" size="sm" /></view>
           <view class="more-row__copy"><text>转办</text><text>交由其他成员继续处理</text></view>
           <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#94a3b8" size="sm" />
         </button>
@@ -168,7 +168,7 @@
       <view v-if="delegateUser" class="delegate-choice">
         <view class="delegate-choice__avatar">{{ userInitial(delegateUser) }}</view>
         <view class="delegate-choice__copy"><text>已选择</text><text>{{ delegateUserName(delegateUser) }}</text></view>
-        <AiIcon icon="/static/icons/ai-icon/check-circle.svg" color="#2563eb" size="md" />
+        <AiIcon icon="/static/icons/ai-icon/check-circle.svg" color="#1f5fbf" size="md" />
       </view>
       <view class="user-list">
         <AiListSkeleton v-if="usersLoading" :rows="3" compact />
