@@ -7,17 +7,31 @@ import PrintTemplateList from '@/components/print/management/PrintTemplateList.v
 import { useUserStore } from '@/store'
 import { usePrintWorkspaceStore } from '@/stores/print/printWorkspaceStore'
 
-const props = defineProps({ application: { type: Object, required: true }, applicationObjects: { type: Array, default: () => [] } })
+const props = defineProps({
+  application: { type: Object, required: true },
+  applicationObjects: { type: Array, default: () => [] },
+  pageId: { type: String, default: '' },
+})
 const store = usePrintWorkspaceStore()
 const user = useUserStore()
 const canView = computed(() => hasPrintPermission(user, 'print:template:view'))
-watch(() => [props.application, props.applicationObjects], () => store.sync(props.application, props.applicationObjects), { immediate: true, deep: true })
+const lockSource = computed(() => Boolean(String(props.pageId || '').trim()))
+watch(() => [props.application, props.applicationObjects, props.pageId], () => {
+  store.sync(props.application, props.applicationObjects, props.pageId)
+}, { immediate: true, deep: true })
 onBeforeUnmount(() => store.clear())
 </script>
 
 <template>
-  <PrintTemplateList v-if="canView" :application-id="store.applicationId" :source="store.source" :sources="store.sources">
-    <template #source>
+  <PrintTemplateList
+    v-if="canView"
+    :application-id="store.applicationId"
+    :application-code="application.applicationCode"
+    :source="store.source"
+    :sources="store.sources"
+    :lock-source="lockSource"
+  >
+    <template v-if="!lockSource" #source>
       <PrintSourceSelector />
     </template>
   </PrintTemplateList>

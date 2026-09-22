@@ -159,6 +159,7 @@ import AiFormLayoutNodes from './AiFormLayoutNodes.vue'
 import { appendSelectionLabelContextDefaults, buildContextDefaultsPatch } from './data-source-binding-runtime'
 import { createFieldEventRuntime } from './field-event-runtime'
 import { isInputLikeFieldType, isNumberFieldType } from './field-type-utils'
+import { resolveRuntimeDefaultValue } from '@/views/app-center/components/designer/forge-form-designer/field-default-value'
 
 const props = defineProps({
   // 表单配置 schema
@@ -364,8 +365,12 @@ const resolvedFormInitConfig = computed(() => {
 })
 /** 字段静态默认值表：用于判断字段当前值是否仍是组件默认值（可被初始化默认值覆盖） */
 const fieldStaticDefaults = computed(() => allFieldSchema.value.reduce((map, field) => {
-  if (field?.field && field.defaultValue !== undefined && field.defaultValue !== null)
-    map[field.field] = field.defaultValue
+  if (field?.field && field.defaultValue !== undefined && field.defaultValue !== null) {
+    map[field.field] = resolveRuntimeDefaultValue(
+      field.defaultValue,
+      field.type || field.componentType || field.componentKey,
+    )
+  }
   return map
 }, {}))
 const fieldEventStates = reactive({})
@@ -413,16 +418,19 @@ function buildRequiredRule(field) {
   const isNumericType = isNumberFieldType(field.type)
   const isDateType = isDateLikeType(field.type)
   const isSelectionType = isSelectionLikeType(field.type)
+  const isSwitchType = isSwitchLikeType(field.type)
   const rule = {
     key: field.field,
     required: true,
     message: field.requiredMessage || `请${isInputLikeFieldType(field.type) ? '输入' : '选择'}${field.label}`,
-    trigger: field.trigger || (isNumericType || isDateType || isSelectionType ? 'change' : ['blur', 'change']),
+    trigger: field.trigger || (isNumericType || isDateType || isSelectionType || isSwitchType ? 'change' : ['blur', 'change']),
   }
-  // number/date/treeSelect 等类型需要自定义 validator，避免 0、数字 ID、数组等有效值被误判为空
-  if (isNumericType || isDateType || isSelectionType) {
+  // number/date/treeSelect/switch 等需要自定义 validator：
+  // - 0、数字 ID、数组等有效值不能被误判为空
+  // - switch 存 0/1 时不能再用 type:boolean 的默认 required 文案误报「不能为空」
+  if (isNumericType || isDateType || isSelectionType || isSwitchType) {
     rule.validator = (_rule, value) => {
-      if (!hasFormValue(value))
+      if (!hasFormValue(value, field.type))
         return new Error(rule.message)
       return true
     }
@@ -445,6 +453,10 @@ function withRequiredRule(field, fieldRules) {
 
 function isDateLikeType(type) {
   return ['date', 'datetime', 'daterange', 'datetimerange', 'month', 'year', 'time', 'timerange'].includes(type)
+}
+
+function isSwitchLikeType(type) {
+  return String(type || '').toLowerCase() === 'switch'
 }
 
 function isSelectionLikeType(type) {
@@ -476,7 +488,9 @@ function normalizeSelectionType(type) {
   return value
 }
 
-function hasFormValue(value) {
+function hasFormValue(value, fieldType = '') {
+  if (isSwitchLikeType(fieldType))
+    return value !== null && value !== undefined && value !== ''
   if (Array.isArray(value))
     return value.length > 0 && value.every(item => item !== null && item !== undefined && item !== '')
   return value !== null && value !== undefined && value !== ''
@@ -484,15 +498,21 @@ function hasFormValue(value) {
 
 function normalizeFieldRules(field, fieldRules) {
   const rules = Array.isArray(fieldRules) ? fieldRules : [fieldRules]
-  const needsCustomEmptyValidator = isDateLikeType(field.type) || isSelectionLikeType(field.type) || isNumberFieldType(field.type)
+  const needsCustomEmptyValidator = isDateLikeType(field.type)
+    || isSelectionLikeType(field.type)
+    || isNumberFieldType(field.type)
+    || isSwitchLikeType(field.type)
 
   const normalizedRules = rules.map((sourceRule) => {
     const withKeyRule = normalizeRulePattern({ ...(sourceRule || {}), key: sourceRule?.key || field.field })
+    // switch 存 0/1，丢掉 boolean 类型声明，否则 async-validator 类型失败也会复用「不能为空」文案
+    if (isSwitchLikeType(field.type) && String(withKeyRule.type || '').toLowerCase() === 'boolean')
+      delete withKeyRule.type
     if (!needsCustomEmptyValidator || !sourceRule?.required || sourceRule.validator)
       return withKeyRule
     const rule = withKeyRule
     rule.validator = (_rule, value) => {
-      if (!hasFormValue(value))
+      if (!hasFormValue(value, field.type))
         return new Error(rule.message || field.requiredMessage || `请选择${field.label}`)
       return true
     }
@@ -924,7 +944,11 @@ function normalizeDesignerFieldType(componentKey = '') {
 function buildDefaultModalValue(schema = []) {
   const result = {}
   flattenFieldNodes(schema).forEach((field) => {
-    result[field.field] = field.defaultValue ?? field.props?.defaultValue ?? null
+    const raw = field.defaultValue ?? field.props?.defaultValue
+    if (raw === undefined)
+      result[field.field] = null
+    else
+      result[field.field] = resolveRuntimeDefaultValue(raw, field.type || field.componentType || field.componentKey)
   })
   return result
 }
@@ -1058,7 +1082,10 @@ function handleReset() {
   formRef.value?.restoreValidation()
   const resetData = {}
   allFieldSchema.value.forEach((field) => {
-    resetData[field.field] = field.defaultValue ?? null
+    const raw = field.defaultValue
+    resetData[field.field] = raw === undefined || raw === null
+      ? null
+      : resolveRuntimeDefaultValue(raw, field.type || field.componentType || field.componentKey)
   })
   formValue.value = resetData
   emit('update:value', { ...resetData })

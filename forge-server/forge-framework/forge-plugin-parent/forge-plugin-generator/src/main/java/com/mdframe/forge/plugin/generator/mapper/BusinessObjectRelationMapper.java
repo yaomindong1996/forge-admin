@@ -38,4 +38,11 @@ public interface BusinessObjectRelationMapper extends BaseMapper<AiBusinessObjec
                                 @Param("suiteCode") String suiteCode,
                                 @Param("sourceObjectCode") String sourceObjectCode,
                                 @Param("relationIds") List<Long> relationIds);
+
+    /**
+     * 物理删除对象作为源或目标的全部关系（关系表不走逻辑删除）。
+     */
+    void deleteRelationsByObjectCode(@Param("tenantId") Long tenantId,
+                                     @Param("suiteCode") String suiteCode,
+                                     @Param("objectCode") String objectCode);
 }

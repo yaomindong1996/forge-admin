@@ -223,7 +223,9 @@ public class LowcodeDdlService {
         }
         boolean required = shouldUseNotNull(field, expectedType);
         boolean nullableCompatible = !required || "NO".equalsIgnoreCase(metadata == null ? null : metadata.isNullable());
-        Object expectedDefault = required ? field.getDefaultValue() : null;
+        Object expectedDefault = required
+                ? normalizeColumnDefault(field.getDefaultValue(), expectedType)
+                : null;
         boolean defaultCompatible = !required || java.util.Objects.equals(
                 String.valueOf(expectedDefault),
                 metadata == null || metadata.columnDefault() == null ? null : String.valueOf(metadata.columnDefault()));
@@ -730,7 +732,7 @@ public class LowcodeDdlService {
                 field.getColumnName(),
                 sqlType,
                 required,
-                required ? field.getDefaultValue() : null,
+                required ? normalizeColumnDefault(field.getDefaultValue(), dataType) : null,
                 null,
                 StringUtils.defaultIfBlank(field.getLabel(), field.getColumnName()),
                 false
@@ -745,11 +747,55 @@ public class LowcodeDdlService {
                 metadata.columnName(),
                 metadata.columnType(),
                 required,
-                required ? field.getDefaultValue() : metadata.columnDefault(),
+                required
+                        ? normalizeColumnDefault(field.getDefaultValue(), normalizeDataType(field))
+                        : metadata.columnDefault(),
                 metadata.extra(),
                 metadata.columnComment(),
                 false
         );
+    }
+
+    /**
+     * 开关默认值常为 true/false，落库 tinyint 必须是 0/1。
+     */
+    private Object normalizeColumnDefault(Object defaultValue, String dataType) {
+        if (defaultValue == null) {
+            return null;
+        }
+        if (defaultValue instanceof Boolean bool) {
+            return bool ? 1 : 0;
+        }
+        String text = String.valueOf(defaultValue).trim();
+        if (StringUtils.isBlank(text)) {
+            return defaultValue;
+        }
+        if ("true".equalsIgnoreCase(text)) {
+            return 1;
+        }
+        if ("false".equalsIgnoreCase(text)) {
+            return 0;
+        }
+        // 表单预设仅用于运行时填值，不能写入 DDL DEFAULT
+        if (text.startsWith("$forge:")) {
+            return null;
+        }
+        if (Set.of("tinyint", "int", "bigint", "decimal").contains(StringUtils.defaultString(dataType).toLowerCase(Locale.ROOT))
+                && text.matches("-?\\d+(\\.\\d+)?")) {
+            if (text.contains(".")) {
+                return new java.math.BigDecimal(text);
+            }
+            try {
+                long number = Long.parseLong(text);
+                if (number >= Integer.MIN_VALUE && number <= Integer.MAX_VALUE) {
+                    return (int) number;
+                }
+                return number;
+            } catch (NumberFormatException ignored) {
+                return text;
+            }
+        }
+        return defaultValue;
     }
 
     private boolean shouldUseNotNull(LowcodeFieldSchema field, String dataType) {
@@ -757,10 +803,11 @@ public class LowcodeDdlService {
     }
 
     private boolean hasUsableDefaultValue(Object defaultValue, String dataType) {
-        if (defaultValue == null || Set.of("text", "longtext").contains(dataType)) {
+        Object normalized = normalizeColumnDefault(defaultValue, dataType);
+        if (normalized == null || Set.of("text", "longtext").contains(dataType)) {
             return false;
         }
-        if (defaultValue instanceof String text) {
+        if (normalized instanceof String text) {
             return StringUtils.isNotBlank(text);
         }
         return true;

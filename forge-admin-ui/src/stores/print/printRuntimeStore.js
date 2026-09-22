@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
+import { businessApplicationDetail } from '@/api/business-application'
 import * as api from '@/api/print'
+import { applyPrintPageWatermark, readPagePrintWatermark } from '@/components/print/management/pagePrintWatermark'
+import { printSourcePayload } from '@/components/print/management/printRouteContext'
 import { assertPrintDocument } from '@/components/print/protocol/validate'
+import { useUserStore } from '@/store'
 
 const errors = new Set(['PRINT_CANCELLED', 'RESOURCE_FAILED', 'RESOURCE_TIMEOUT', 'FIELD_NOT_ALLOWED', 'INVALID_TEMPLATE', 'FONT_UNAVAILABLE', 'LIMIT_EXCEEDED', 'ELEMENT_TOO_TALL', 'PRINT_UNAVAILABLE', 'PDF_UNAVAILABLE'])
 export const usePrintRuntimeStore = defineStore('printRuntime', {
@@ -22,6 +26,11 @@ export const usePrintRuntimeStore = defineStore('printRuntime', {
     async open(record) {
       this.close()
       this.record = JSON.parse(JSON.stringify(record))
+      if (this.record?.source) {
+        const source = printSourcePayload(this.record.source)
+        if (source)
+          this.record.source = source
+      }
       const generation = this.generation
       this.loading = true
       try {
@@ -60,7 +69,24 @@ export const usePrintRuntimeStore = defineStore('printRuntime', {
           return
         const template = JSON.parse(data.schemaJson)
         assertPrintDocument(template)
-        this.prepared = { ...data, template, context: { ...data.context, system: { generatedAt: data.generatedAt } } }
+        const user = useUserStore()
+        let pageWatermark
+        try {
+          const application = await businessApplicationDetail(this.record.source?.applicationId)
+          if (generation !== this.generation)
+            return
+          pageWatermark = readPagePrintWatermark(application.data, this.record.source?.pageId)
+        }
+        catch {
+          pageWatermark = null
+        }
+        this.prepared = {
+          ...data,
+          template: applyPrintPageWatermark(template, pageWatermark, {
+            userName: user.realName || user.username,
+          }),
+          context: { ...data.context, system: { generatedAt: data.generatedAt } },
+        }
       }
       catch (error) {
         if (generation === this.generation)

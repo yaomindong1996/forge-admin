@@ -49,14 +49,16 @@ public class PrintBindingService {
         identity.validate(dto);
         var actor = identity.require(PrintDesignAction.MANAGE.permission());
         var template = access.open(actor, dto.templateId(), PrintDesignAction.MANAGE, true);
-        if (!template.source().source().equals(dto.source())) {
+        if (!template.source().source().sameAs(dto.source())) {
             throw PrintFailure.denied();
         }
-        var row = dto.id() == null ? null : bindings.selectScoped(actor.tenantId(), dto.id());
+        var row = dto.id() == null
+                ? bindings.selectUnique(actor.tenantId(), dto.source().applicationId(), dto.source().key(), dto.templateId(), dto.scene().getCode())
+                : bindings.selectScoped(actor.tenantId(), dto.id());
         if (dto.id() != null && (row == null || !row.getApplicationId().equals(dto.source().applicationId()) || !row.getSourceKey().equals(dto.source().key()) || !row.getTemplateId().equals(dto.templateId()) || !dto.scene().matches(row.getScene()))) {
             throw PrintFailure.denied();
         }
-        if (row != null && !Objects.equals(row.getBindingRevision(), dto.expectedRevision())) {
+        if (dto.id() != null && !Objects.equals(row.getBindingRevision(), dto.expectedRevision())) {
             throw PrintFailure.conflict();
         }
         boolean makeDefault = dto.isDefault() && EnableStatus.ENABLED.matches(dto.status());
@@ -85,7 +87,8 @@ public class PrintBindingService {
             if (create) {
                 bindings.insert(row);
             } else {
-                access.changed(bindings.updateBinding(row, dto.expectedRevision()));
+                Long revision = dto.id() == null ? row.getBindingRevision() : dto.expectedRevision();
+                access.changed(bindings.updateBinding(row, revision));
             }
         } catch (DuplicateKeyException ex) {
             org.slf4j.LoggerFactory.getLogger(getClass()).debug("打印来源场景已绑定该模板");

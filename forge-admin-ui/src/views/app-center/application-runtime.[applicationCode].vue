@@ -471,7 +471,7 @@
               :application-code="application?.applicationCode || ''"
               :page-id="currentNode?.id || ''"
               :configurable="canEditApplication"
-              :design-preview="canEditApplication"
+              :design-preview="editing || isDraftMode || canEditApplication"
               :form-fields-resolver="resolvePortalFormFields"
               fill-host
             />
@@ -899,6 +899,8 @@
         <PageDesignSettingsPanel
           v-if="currentNode"
           :node="currentNode"
+          :application="application"
+          :objects="objects"
           @update="patchCurrentPageNode"
         />
         <n-empty v-else description="请先选择要设置的页面" />
@@ -990,9 +992,26 @@
           <n-select v-model:value="navigationActionForm.parentId" clearable :options="moveGroupOptions" placeholder="顶级菜单" />
         </n-form-item>
         <template v-if="navigationActionMode === 'delete'">
-          <p class="navigation-action-tip">
-            {{ navigationActionHasChildren ? '该页面组含有子项，请选择子项处理方式。' : '删除后无法恢复，请确认。' }}
-          </p>
+          <n-alert type="error" :bordered="false" class="navigation-action-danger">
+            <div class="navigation-action-tip">
+              <strong>危险操作</strong>
+              <p>{{ navigationDeleteTip }}</p>
+              <ul v-if="navigationDeleteImpact.impactedObjects.length" class="navigation-action-impact">
+                <li v-for="item in navigationDeleteImpact.impactedObjects" :key="String(item.objectId || item.objectCode)">
+                  {{ item.objectName || item.objectCode }}
+                  <template v-if="item.objectCode">
+                    （{{ item.objectCode }}）
+                  </template>
+                  <template v-if="item.tableName">
+                    · 物理表 <code>{{ item.tableName }}</code>
+                  </template>
+                </li>
+              </ul>
+              <p class="navigation-action-tip-secondary">
+                数据库物理表及表内业务数据不会被删除；如需删表请由管理员在数据源侧另行处理。
+              </p>
+            </div>
+          </n-alert>
           <n-form-item v-if="navigationActionHasChildren" label="子项处理">
             <n-radio-group v-model:value="navigationActionForm.deleteStrategy">
               <n-radio value="delete-children">
@@ -1014,7 +1033,7 @@
             取消
           </n-button>
           <n-button :type="navigationActionMode === 'delete' ? 'error' : 'primary'" @click="confirmNavigationAction">
-            确认
+            {{ navigationActionMode === 'delete' ? '确认删除' : '确认' }}
           </n-button>
         </n-space>
       </template>
@@ -1097,11 +1116,10 @@ import { computed, defineAsyncComponent, h, nextTick, onBeforeUnmount, onMounted
 import { useRoute, useRouter } from 'vue-router'
 import draggable from 'vuedraggable'
 import { businessObjectDesigner } from '@/api/business-app'
-import { businessApplicationWorkspaceByCode, designBusinessApplicationPage, initializeBusinessApplicationExcel, previewBusinessApplicationExcel, provisionBusinessApplicationFormData, updateBusinessApplication } from '@/api/business-application'
+import { businessApplicationRuntimeByCode, businessApplicationWorkspaceByCode, designBusinessApplicationPage, initializeBusinessApplicationExcel, previewBusinessApplicationExcel, provisionBusinessApplicationFormData, updateBusinessApplication } from '@/api/business-application'
 import defaultLogo from '@/assets/images/logo.png'
 import AuthImage from '@/components/common/AuthImage.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
-import GridBlockRenderer from '@/components/lowcode-builder/page/GridBlockRenderer.vue'
 import { createGridBlock, DATA_FIELD_BLOCK_TYPES, isDataFieldBlockType, listPageBlockCatalog, resolveListPageBlockMeta } from '@/components/lowcode-builder/page/page-schema'
 import { isPageWidgetComponentKey } from '@/components/lowcode-builder/shared/page-widget-schema'
 import { useTenantStore, useUserStore } from '@/store'
@@ -1118,7 +1136,7 @@ import {
   resolveApplicationDesignerObject,
   resolveObjectDesignerNavigationTarget,
 } from './application-designer-navigation'
-import { createApplicationRuntimeLoadCoordinator, resolveApplicationRuntimeLoadKey } from './application-runtime-load'
+import { createApplicationRuntimeLoadCoordinator, resolveApplicationRuntimeLoadKey, shouldUseApplicationWorkspaceLoad } from './application-runtime-load'
 import {
   createInAppFormAsset,
   createNavigationNode,
@@ -1128,6 +1146,7 @@ import {
   normalizeInAppBuilder,
   isOrphanPageFormObject,
   removeNavigationNode,
+  resolveNavigationDeleteImpact,
   updateInAppFormAsset,
 } from './in-app-builder/in-app-builder-schema'
 import { bindProvisionedFormData, collectFormDataProvisionTargets, mergePageFieldCatalogs } from './in-app-builder/page-form-data-provisioning'
@@ -1150,7 +1169,8 @@ const route = useRoute()
 const router = useRouter()
 const message = useMessage()
 const tenantStore = useTenantStore()
-const formComponentIconModules = import.meta.glob('/src/assets/images/form/*.png', { eager: true, import: 'default' })
+const formComponentIconModules = import.meta.glob('/src/assets/images/form/*.png', { import: 'default' })
+const formComponentIconCache = reactive({})
 const formComponentIconFileByBlockType = {
   'search-form': 'chaxunbiaodan',
   'toolbar': 'caozuogongjulan',
@@ -1268,6 +1288,10 @@ const PageManagementSystemView = defineAsyncComponent({
   ...asyncPanelLoader,
   loader: () => import('@/views/app-center/components/portal/PageManagementSystemView.vue'),
 })
+const GridBlockRenderer = defineAsyncComponent({
+  ...asyncPanelLoader,
+  loader: () => import('@/components/lowcode-builder/page/GridBlockRenderer.vue'),
+})
 
 const application = ref(null)
 const objects = ref([])
@@ -1349,8 +1373,9 @@ const {
 } = useRuntimeCrudConfig({
   application,
   workspaceEntries,
+  pageId: computed(() => String(selectedNodeId.value || route.query.pageId || '').trim()),
   // 草稿/编辑态才允许降级读取对象设计器字段目录做静态预览
-  canLoadDesignerSchema: computed(() => editing.value || isDraftMode.value),
+  canLoadDesignerSchema: computed(() => editing.value || isDraftMode.value || canEditApplication.value),
 })
 const activeFlowContext = ref({})
 const embeddedDesignerRef = ref(null)
@@ -1448,8 +1473,34 @@ const navigationIconValue = computed({
     scheduleNavigationSave()
   },
 })
-const navigationActionTitle = computed(() => ({ rename: '重命名', move: '移动到', delete: '删除页面或页面组' }[navigationActionMode.value] || '页面操作'))
+const navigationActionTitle = computed(() => ({ rename: '重命名', move: '移动到', delete: '危险操作：删除页面或页面组' }[navigationActionMode.value] || '页面操作'))
 const navigationActionHasChildren = computed(() => navigationActionNode.value?.type === 'group' && builder.value?.nodes.some(item => item.parentId === navigationActionNode.value.id))
+const navigationDeleteImpact = computed(() => {
+  if (navigationActionMode.value !== 'delete' || !navigationActionNode.value) {
+    return {
+      removedPageIds: [],
+      impactedObjects: [],
+      danger: false,
+    }
+  }
+  const strategy = navigationActionHasChildren.value
+    ? {
+        type: navigationActionForm.value.deleteStrategy,
+        targetParentId: navigationActionForm.value.targetParentId,
+      }
+    : undefined
+  return resolveNavigationDeleteImpact(builder.value, navigationActionNode.value.id, strategy, objects.value)
+})
+const navigationDeleteTip = computed(() => {
+  if (navigationActionHasChildren.value)
+    return '该页面组含有子项，请选择处理方式。删除后导航与页面设计无法恢复。'
+  const pageCount = navigationDeleteImpact.value.removedPageIds.length
+  const objectCount = navigationDeleteImpact.value.impactedObjects.length
+  if (objectCount > 0) {
+    return `将删除 ${pageCount || 1} 个页面，并清理 ${objectCount} 个关联业务对象配置（多为页面表单托管对象）。删除后无法恢复。`
+  }
+  return '删除后无法恢复。页面设计与导航配置将被移除。'
+})
 const moveGroupOptions = computed(() => groupOptions.value.filter(item => item.value !== navigationActionNodeId.value && !isNavigationGroupDescendant(item.value, navigationActionNodeId.value)))
 const navigationNodes = computed(() => {
   const nodes = builder.value?.nodes || []
@@ -1707,7 +1758,19 @@ function resolveComponentPickerGroup(item = {}) {
 
 function resolveComponentIcon(item = {}) {
   const fileName = formComponentIconFileByBlockType[item.blockType]
-  return fileName ? formComponentIconModules[`/src/assets/images/form/${fileName}.png`] || '' : ''
+  if (!fileName)
+    return ''
+  const path = `/src/assets/images/form/${fileName}.png`
+  if (formComponentIconCache[path])
+    return formComponentIconCache[path]
+  const loader = formComponentIconModules[path]
+  if (!loader)
+    return ''
+  // 组件面板图标按需加载，避免运行页首屏同步打入全部 PNG。
+  void loader().then((url) => {
+    formComponentIconCache[path] = url
+  })
+  return formComponentIconCache[path] || ''
 }
 
 function resolveEmptyGuideIcon(item = {}) {
@@ -1734,12 +1797,18 @@ watch([
   () => route.params.applicationCode,
   () => route.query.edit,
   () => route.query.draft,
+  canEditApplication,
 ], ([, edit]) => {
   editing.value = edit === '1'
-  applicationRuntimeLoadCoordinator.run(resolveApplicationRuntimeLoadKey(route))
+  applicationRuntimeLoadCoordinator.run(resolveApplicationRuntimeLoadKey(route, canEditApplication.value))
 }, { immediate: true })
 watch(() => route.query.designResource, (resourceKey) => {
   selectedDesignerResourceKey.value = String(resourceKey || '')
+})
+watch(() => route.query.designTab, (tab) => {
+  const next = resolvePageDesignTab(tab)
+  if (activePageDesignTab.value !== next)
+    activePageDesignTab.value = next
 })
 watch(() => route.query.view, (view) => {
   // 发布功能已迁移到独立发布页
@@ -1816,12 +1885,14 @@ async function load() {
   historyReady.value = false
   resetRuntimeCrudConfig()
   try {
-    const response = await businessApplicationWorkspaceByCode(code)
-    const workspace = response.data || {}
-    application.value = workspace.application || null
-    objects.value = workspace.objects || []
-    workspaceExtensions.value = workspace.extensions || []
-    workspaceEntries.value = workspace.entries || []
+    const response = shouldUseApplicationWorkspaceLoad(route, canEditApplication.value)
+      ? await businessApplicationWorkspaceByCode(code)
+      : await businessApplicationRuntimeByCode(code)
+    const payload = response.data || {}
+    application.value = payload.application || null
+    objects.value = payload.objects || []
+    workspaceExtensions.value = payload.extensions || []
+    workspaceEntries.value = payload.entries || []
     builder.value = ensurePageTitleComponents(normalizeInAppBuilder(application.value?.options, application.value, objects.value))
     hydratePageCrudApiPlaceholders()
     bindSingleFormToCompatibleBlocks()
@@ -4606,14 +4677,31 @@ function resolveRuntimeView(value) {
 }
 
 // 页面级 Tab（编辑模式）
-const activePageDesignTab = ref('form')
+const PAGE_DESIGN_TABS = new Set(['form', 'list', 'settings', 'publish'])
+
+function resolvePageDesignTab(value) {
+  const normalized = String(Array.isArray(value) ? value[0] : value || '').trim()
+  return PAGE_DESIGN_TABS.has(normalized) ? normalized : 'form'
+}
+
+const activePageDesignTab = ref(resolvePageDesignTab(route.query.designTab))
 
 function switchPageDesignTab(tab) {
-  activePageDesignTab.value = tab
+  const next = resolvePageDesignTab(tab)
+  activePageDesignTab.value = next
   if (formDesignerMode.value)
     formDesignerMode.value = false
-  if (tab === 'form' && selectedNodeId.value)
+  if (next === 'form' && selectedNodeId.value)
     syncActiveFormAssetForPage(selectedNodeId.value)
+  const designTab = next === 'form' ? undefined : next
+  if (route.query.designTab === designTab)
+    return
+  router.replace({
+    query: {
+      ...route.query,
+      designTab,
+    },
+  })
 }
 
 function resolveFormAssetIdForPage(pageId) {
@@ -4709,7 +4797,7 @@ function patchCurrentPageNode(partial = {}) {
   if (!currentNode.value || !builder.value)
     return
   const pageId = currentNode.value.id
-  const settingsFields = ['systemMenuVisible', 'navigationVisible', 'mountTarget', 'menuName', 'menuParentId', 'mobileMenuParentId', 'menuSort']
+  const settingsFields = ['systemMenuVisible', 'navigationVisible', 'mountTarget', 'menuName', 'menuParentId', 'mobileMenuParentId', 'menuSort', 'printWatermark']
   builder.value = {
     ...builder.value,
     nodes: builder.value.nodes.map((item) => {

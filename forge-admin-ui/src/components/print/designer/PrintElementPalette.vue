@@ -8,8 +8,10 @@ import {
   EllipseOutline,
   ImageOutline,
   LayersOutline,
+  LibraryOutline,
   ListOutline,
   QrCodeOutline,
+  ReaderOutline,
   RemoveOutline,
   ReturnDownForwardOutline,
   ShieldCheckmarkOutline,
@@ -37,6 +39,7 @@ const elementIcons = {
   TEXT: TextOutline,
   STATIC_TABLE: PrintTableIcon,
   DATA_TABLE: PrintTableIcon,
+  DESCRIPTIONS: ReaderOutline,
 }
 const flowSections = [
   { type: 'FIXED', label: '自由画布层', icon: LayersOutline, tip: '可自由拖放组件的图层' },
@@ -71,6 +74,10 @@ function addDetail() {
   catch (error) {
     store.error = error?.message || '无法添加明细表格'
   }
+}
+
+function openTemplateLibrary() {
+  window.$message?.info?.('模板库敬请期待')
 }
 </script>
 
@@ -129,6 +136,17 @@ function addDetail() {
     </div>
     <h3>业务组件</h3>
     <div class="palette-list">
+      <button
+        type="button"
+        class="palette-row library-row"
+        title="从模板库快速套用常用版式"
+        aria-label="模板库"
+        @click="openTemplateLibrary"
+      >
+        <NIcon :component="LibraryOutline" :size="14" />
+        <span>模板库</span>
+        <em>敬请期待</em>
+      </button>
       <button
         v-for="item in businessComponents"
         :key="item.key"
@@ -215,5 +233,24 @@ function addDetail() {
 }
 .palette-row:active {
   cursor: grabbing;
+}
+.library-row {
+  cursor: pointer;
+  border-style: dashed;
+  border-color: var(--border-light, #e2e8f0);
+  background: var(--gray-100, #f6f8fb);
+}
+.library-row em {
+  margin-left: auto;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--text-tertiary, #86909c);
+}
+.library-row:hover {
+  border-color: color-mix(in srgb, var(--primary-color) 35%, transparent);
+  color: var(--primary-color);
+}
+.library-row:active {
+  cursor: pointer;
 }
 </style>

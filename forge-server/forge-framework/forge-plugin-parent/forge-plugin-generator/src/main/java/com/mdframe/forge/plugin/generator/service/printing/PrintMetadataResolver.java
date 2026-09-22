@@ -94,13 +94,14 @@ public class PrintMetadataResolver {
             // 子表必须拥有应用版本固定的完整 CRUD 配置，禁止用残缺的 modelRef 拼出脱敏/公式规则。
             List<Model> candidates = new ArrayList<>();
             for (JsonNode candidate : snapshot.path("objects")) {
-                if (candidate == object || !Objects.equals(ref.getTableName(), candidate.path("tableName").asText())) {
+                if (sameSnapshotObject(candidate, object) || !matchesChildRef(ref, candidate)) {
                     continue;
                 }
                 Model child = model(actor, candidate, published);
-                if (Objects.equals(child.config().getTableName(), ref.getTableName())) {
-                    candidates.add(child);
-                }
+                candidates.add(child);
+            }
+            if (candidates.isEmpty()) {
+                continue;
             }
             if (candidates.size() != 1) {
                 throw invalid("children." + ref.getModelCode());
@@ -144,6 +145,25 @@ public class PrintMetadataResolver {
             children.add(new Child(ref.getModelCode(), child, mainColumn, childColumn, readableFields));
         }
         return new Metadata(main, List.copyOf(children));
+    }
+
+    private boolean sameSnapshotObject(JsonNode left, JsonNode right) {
+        return left != null && right != null
+                && Objects.equals(left.path("objectId").asText(), right.path("objectId").asText())
+                && Objects.equals(left.path("objectCode").asText(), right.path("objectCode").asText())
+                && Objects.equals(left.path("configKey").asText(), right.path("configKey").asText())
+                && !left.path("objectCode").asText().isBlank();
+    }
+
+    private boolean matchesChildRef(LowcodePageModelRef ref, JsonNode candidate) {
+        String modelCode = ref.getModelCode();
+        if (modelCode != null && !modelCode.isBlank()
+                && (modelCode.equals(candidate.path("objectCode").asText())
+                || modelCode.equals(candidate.path("configKey").asText()))) {
+            return true;
+        }
+        String table = ref.getTableName();
+        return table != null && !table.isBlank() && table.equals(candidate.path("tableName").asText());
     }
 
     private List<Map<String, Object>> childFields(Model main, LowcodePageModelRef ref) {

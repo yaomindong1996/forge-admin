@@ -69,7 +69,8 @@ public class AiCrudConfigController {
             crudConfigService.assertDesignPreviewPermission();
             var businessObject = businessObjectService.findByConfigKey(configKey);
             if (businessObject != null) {
-                businessObjectDesignerService.prepareRuntimeDraft(businessObject.getId());
+                // GET 渲染不要同步写关系表；子表关系在设计器保存/发布时落库。
+                businessObjectDesignerService.prepareRuntimeDraftForPreview(businessObject.getId());
             }
         }
         AiCrudConfigRenderVO renderConfig = crudConfigService.getRenderConfig(configKey, designPreview);

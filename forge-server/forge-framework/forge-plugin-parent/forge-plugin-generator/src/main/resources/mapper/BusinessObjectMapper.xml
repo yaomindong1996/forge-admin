@@ -356,4 +356,13 @@
         ORDER BY sort_order ASC, id ASC
     </select>
 
+    <update id="logicDeleteModelById">
+        UPDATE ai_lowcode_model
+        SET del_flag = id,
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND id = #{modelId}
+          AND del_flag = 0
+    </update>
+
 </mapper>

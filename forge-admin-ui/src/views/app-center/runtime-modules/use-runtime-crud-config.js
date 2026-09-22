@@ -14,9 +14,10 @@ import { normalizeObjectDesignerFieldCatalog } from '../in-app-builder/page-form
  * @param {object} options
  * @param {object} options.application 当前应用 ref（取 id）
  * @param {object} options.workspaceEntries 工作区入口 ref（解析运行入口 id）
+ * @param {object} options.pageId 当前页面 id（打印场景投影必需）
  * @param {object} options.canLoadDesignerSchema 是否允许走对象设计器降级（编辑/草稿态）
  */
-export function useRuntimeCrudConfig({ application, workspaceEntries, canLoadDesignerSchema }) {
+export function useRuntimeCrudConfig({ application, workspaceEntries, pageId, canLoadDesignerSchema }) {
   const runtimeCrudPropsByObjectId = ref({})
   const runtimeCrudConfigRequests = new Map()
   const runtimeCrudLoadingObjectIds = reactive(new Set())
@@ -33,10 +34,12 @@ export function useRuntimeCrudConfig({ application, workspaceEntries, canLoadDes
   function fetchRuntimeCrudConfig(configKey) {
     if (!runtimeCrudConfigRequests.has(configKey)) {
       const request = (async () => {
+        const scopedPageId = String(typeof pageId === 'object' && pageId?.value != null ? pageId.value : pageId || '').trim()
         const options = {
           needTip: false,
           appId: resolveRuntimeEntryId(configKey),
           applicationId: application.value?.id,
+          ...(scopedPageId ? { pageId: scopedPageId } : {}),
         }
         try {
           const config = (await crudConfigRender(configKey, true, options)).data

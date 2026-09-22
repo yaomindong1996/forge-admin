@@ -5,18 +5,24 @@ import {
 } from '../application-print-entry'
 
 describe('application print entry', () => {
-  it('targets the current runtime settings print section', () => {
-    expect(buildApplicationPrintLocation({ applicationCode: 'cgou_app_1ko3psh' })).toEqual({
+  it('requires a page id so print settings stay on that page', () => {
+    expect(buildApplicationPrintLocation({ applicationCode: 'cgou_app_1ko3psh' })).toBeNull()
+    expect(buildApplicationPrintLocation({ applicationCode: 'cgou_app_1ko3psh' }, 'page_purchase')).toEqual({
       name: 'BusinessApplicationRuntime',
       params: { applicationCode: 'cgou_app_1ko3psh' },
-      query: { view: 'settings', settingsSection: 'printing' },
+      query: {
+        edit: '1',
+        pageId: 'page_purchase',
+        designTab: 'settings',
+        settingsSection: 'printing',
+      },
     })
     expect(buildApplicationPrintLocation({})).toBeNull()
   })
 
-  it('accepts known settings sections and rejects stale query values', () => {
-    expect(resolveApplicationSettingsSection('printing')).toBe('printing')
+  it('accepts known settings sections and rejects stale print query values', () => {
+    expect(resolveApplicationSettingsSection('advanced')).toBe('advanced')
     expect(resolveApplicationSettingsSection(['advanced'])).toBe('advanced')
-    expect(resolveApplicationSettingsSection('legacy-printing')).toBe('basic')
+    expect(resolveApplicationSettingsSection('printing')).toBe('basic')
   })
 })

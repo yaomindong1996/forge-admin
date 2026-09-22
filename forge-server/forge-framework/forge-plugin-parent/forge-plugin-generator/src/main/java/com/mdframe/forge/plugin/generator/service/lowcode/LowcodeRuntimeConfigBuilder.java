@@ -1635,6 +1635,29 @@ public class LowcodeRuntimeConfigBuilder {
             render.put("type", "imageUpload");
             render.put("targetField", targetField);
             item.put("render", render);
+        } else if ("switch".equals(renderType) || "switch".equals(componentType)) {
+            Map<String, Object> render = new LinkedHashMap<>();
+            render.put("type", "switch");
+            Map<String, Object> basicProps = field.getBasicProps() == null ? Map.of() : field.getBasicProps();
+            Object checkedValue = firstPresent(pageSetting.get("checkedValue"), basicProps.get("checkedValue"), 1);
+            Object uncheckedValue = firstPresent(pageSetting.get("uncheckedValue"), basicProps.get("uncheckedValue"), 0);
+            render.put("checkedValue", checkedValue);
+            render.put("uncheckedValue", uncheckedValue);
+            Object checkedText = firstPresent(pageSetting.get("checkedText"), basicProps.get("checkedText"));
+            Object uncheckedText = firstPresent(pageSetting.get("uncheckedText"), basicProps.get("uncheckedText"));
+            if (checkedText != null) {
+                render.put("checkedText", checkedText);
+            }
+            if (uncheckedText != null) {
+                render.put("uncheckedText", uncheckedText);
+            }
+            item.put("render", render);
+            if (!item.containsKey("width") && integerValue(pageSetting.get("width")) == null) {
+                item.put("width", 100);
+            }
+            if (!item.containsKey("align")) {
+                item.put("align", "center");
+            }
         }
         copyTableColumnDesignerSettings(item, pageSetting);
         return item;
@@ -1662,7 +1685,7 @@ public class LowcodeRuntimeConfigBuilder {
             case "orgTreeSelect" -> "orgName";
             case "userSelect" -> "userName";
             case "regionTreeSelect" -> "regionName";
-            case "fileUpload", "imageUpload" -> componentType;
+            case "fileUpload", "imageUpload", "switch" -> componentType;
             default -> "";
         };
     }

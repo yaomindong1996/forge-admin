@@ -52,15 +52,18 @@ class PrintBindingServiceTest extends PrintServiceFixture {
     }
 
     @Test
-    void duplicateBindingRollsBackDefaultClearAndReferencesBlockDeletion() {
+    void duplicateCreateUpdatesExistingBinding() {
         var one = create("one");
         var two = create("two");
         var first = bindings.save(bind(null, null, one.id(), true, 1));
-        bindings.save(bind(null, null, two.id(), false, 1));
-        fails(409, () -> bindings.save(bind(null, null, two.id(), true, 1)));
-        assertThat(bindingMapper.selectScoped(1L, first.id()).getIsDefault()).isTrue();
+        var second = bindings.save(bind(null, null, two.id(), false, 1));
+        var again = bindings.save(bind(null, null, two.id(), true, 1));
+        assertThat(again.id()).isEqualTo(second.id());
+        assertThat(again.isDefault()).isTrue();
+        assertThat(bindingMapper.selectScoped(1L, first.id()).getIsDefault()).isFalse();
         fails(409, () -> service.delete(one.id(), one.draftRevision()));
-        bindings.delete(first.id(), first.bindingRevision());
+        var latestFirst = bindingMapper.selectScoped(1L, first.id());
+        bindings.delete(latestFirst.getId(), latestFirst.getBindingRevision());
         service.delete(one.id(), one.draftRevision());
     }
 

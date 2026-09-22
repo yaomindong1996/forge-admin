@@ -138,4 +138,11 @@
         </if>
     </delete>
 
+    <delete id="deleteRelationsByObjectCode">
+        DELETE FROM ai_business_object_relation
+        WHERE tenant_id = #{tenantId}
+          AND suite_code = #{suiteCode}
+          AND (source_object_code = #{objectCode} OR target_object_code = #{objectCode})
+    </delete>
+
 </mapper>

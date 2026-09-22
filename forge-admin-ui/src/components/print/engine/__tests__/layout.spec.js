@@ -108,4 +108,17 @@ describe('ordered physical pagination', () => {
     const result = layout(doc)
     expect(result.pages[1].fragments.map(fragment => fragment.id)).toEqual(['heading1', 'heading2', 'content'])
   })
+  it('joins watermark text with selected field values', () => {
+    const doc = paper()
+    doc.watermark = { text: '内部资料', expression: 'main.name', fontSizePt: 18, color: '#64748b' }
+    const result = layoutPrintDocument(doc, { system: { generatedAt: '2026-09-18 12:00:00' }, main: { name: '华能材料' } }, {
+      measure,
+      catalog: [{ path: 'main.name', type: 'TEXT' }],
+    })
+    expect(result.watermark).toMatchObject({
+      text: '内部资料 · 华能材料',
+      fontSizePt: 18,
+      color: '#64748b',
+    })
+  })
 })

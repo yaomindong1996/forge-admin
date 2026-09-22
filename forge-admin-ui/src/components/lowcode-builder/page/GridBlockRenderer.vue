@@ -1218,9 +1218,8 @@
 <script setup>
 import { ChevronBackOutline, CubeOutline } from '@vicons/ionicons5'
 import QRCodeVue3 from 'qrcode-vue3'
-import { computed, h, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, h, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import AiCrudPage from '@/components/ai-form/AiCrudPage.vue'
 import AiForm from '@/components/ai-form/AiForm.vue'
 import AiTable from '@/components/ai-form/AiTable.vue'
 import SignaturePad from '@/components/flow/SignaturePad.vue'
@@ -1238,6 +1237,8 @@ import { postEncrypt, request } from '@/utils'
 import { applyCrudHookRules, CRUD_HOOK_RULE_TARGETS, normalizeCrudHookRules } from './crud-hook-rules'
 import { isDataFieldBlockType } from './page-schema'
 import { buildRuntimeCrudBlockProps, resolveEffectiveFormOpenMode, resolveEffectiveModalType } from './runtime-crud-block-props'
+
+const AiCrudPage = defineAsyncComponent(() => import('@/components/ai-form/AiCrudPage.vue'))
 
 const props = defineProps({
   block: {

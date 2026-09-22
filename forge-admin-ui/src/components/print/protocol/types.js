@@ -15,7 +15,7 @@ export const PRINT_LIMITS = Object.freeze({
   inlineImageBytes: 512 * 1024,
   paperSizeMm: 2000,
 })
-export const ELEMENT_TYPES = Object.freeze(['TEXT', 'IMAGE', 'HTML', 'LINE', 'RECTANGLE', 'ELLIPSE', 'BARCODE', 'QRCODE', 'PAGE_NUMBER', 'STATIC_TABLE', 'DATA_TABLE'])
+export const ELEMENT_TYPES = Object.freeze(['TEXT', 'IMAGE', 'HTML', 'LINE', 'RECTANGLE', 'ELLIPSE', 'BARCODE', 'QRCODE', 'PAGE_NUMBER', 'STATIC_TABLE', 'DATA_TABLE', 'DESCRIPTIONS'])
 export const SECTION_KINDS = Object.freeze(['FIXED', 'TEXT', 'TABLE', 'PAGE_BREAK'])
 export const FORMAT_TYPES = Object.freeze(['TEXT', 'MONEY', 'MONEY_UPPER', 'NUMBER', 'DATE', 'BOOLEAN'])
 export const BINDING_SOURCES = Object.freeze(['CONSTANT', 'FIELD', 'SYSTEM', 'EXPRESSION'])

@@ -39,10 +39,10 @@ vi.mock('../../AiTable.vue', () => ({
 }))
 
 const wrappers = []
-const pass = { template: '<div><slot /><slot name="footer" /></div>' }
-const overlay = { props: ['show'], template: '<div v-if="show"><slot /><slot name="footer" /></div>' }
-function mountPage() {
-  const wrapper = mount(AiCrudPage, { props: { lazy: true, rowKey: 'documentKey', columns: [{ key: 'actions', actions: [] }], runtimeActions: actions.filter(action => action.key.startsWith('forgePrint:')), hideAdd: true, hideBatchDelete: true, loadDetailOnEdit: false }, global: { stubs: { NModal: overlay, NDrawer: overlay, NDrawerContent: pass, NIcon: pass, NSpin: pass, NSpace: pass, NButton: { template: '<button><slot /></button>' }, NResult: pass, NSelect: true, NFormItem: pass, NInputNumber: true, NForm: pass, NDataTable: true, NAlert: pass, NTabs: pass, NTabPane: pass } } })
+const pass = { template: '<div><slot name="header-extra" /><slot /><slot name="footer" /></div>' }
+const overlay = { props: ['show'], template: '<div v-if="show"><slot name="header-extra" /><slot /><slot name="footer" /></div>' }
+function mountPage(extra = {}) {
+  const wrapper = mount(AiCrudPage, { props: { lazy: true, rowKey: 'documentKey', columns: [{ key: 'actions', actions: [] }], runtimeActions: actions.filter(action => action.key.startsWith('forgePrint:')), hideAdd: true, hideBatchDelete: true, loadDetailOnEdit: false, ...extra }, global: { stubs: { NModal: overlay, NDrawer: overlay, NDrawerContent: pass, NIcon: pass, NSpin: pass, NSpace: pass, NButton: { template: '<button v-bind="$attrs"><slot name="icon" /><slot /></button>' }, NResult: pass, NSelect: true, NFormItem: pass, NInputNumber: true, NForm: pass, NDataTable: true, NAlert: pass, NTabs: pass, NTabPane: pass } } })
   wrappers.push(wrapper)
   return wrapper
 }
@@ -81,11 +81,38 @@ it('真实详情动作使用 DETAIL 场景且不提交表单', async () => {
   const wrapper = mountPage()
   await wrapper.vm.showDetail(record)
   await flushPromises()
-  const button = wrapper.findAll('button').find(item => item.text() === '打印')
-  expect(button).toBeTruthy()
-  await button.trigger('click')
+  const buttons = wrapper.findAll('button').filter(item => item.attributes('aria-label') === '打印' || item.text() === '打印')
+  expect(buttons.length).toBe(1)
+  await buttons[0].trigger('click')
   await flushPromises()
   assertRoute('DETAIL')
+})
+it('抽屉详情也显示打印', async () => {
+  const wrapper = mountPage({ formOpenMode: 'drawer' })
+  await wrapper.vm.showDetail(record)
+  await flushPromises()
+  const buttons = wrapper.findAll('button').filter(item => item.attributes('aria-label') === '打印' || item.text() === '打印')
+  expect(buttons.length).toBe(1)
+  await buttons[0].trigger('click')
+  await flushPromises()
+  assertRoute('DETAIL')
+})
+it('平铺详情也显示打印', async () => {
+  const wrapper = mountPage({ formOpenMode: 'flat' })
+  await wrapper.vm.showDetail(record)
+  await flushPromises()
+  const buttons = wrapper.findAll('button').filter(item => item.attributes('aria-label') === '打印' || item.text() === '打印')
+  expect(buttons.length).toBe(1)
+  await buttons[0].trigger('click')
+  await flushPromises()
+  assertRoute('DETAIL')
+})
+it('详情打印只出现在顶部不出现在底部', async () => {
+  const wrapper = mountPage({ formOpenMode: 'drawer' })
+  await wrapper.vm.showDetail(record)
+  await flushPromises()
+  const printButtons = wrapper.findAll('button').filter(item => item.attributes('aria-label') === '打印' || item.text() === '打印')
+  expect(printButtons.length).toBe(1)
 })
 it('普通用户没有打印权限时不显示列表动作', async () => {
   user.getDataPermission = []

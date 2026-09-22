@@ -24,9 +24,8 @@
             :application="application"
           />
           <AppSettingsGlobalization v-else-if="activeSection === 'globalization'" v-model="settingsModel" />
-          <ApplicationPrintSettings v-else-if="activeSection === 'printing'" :application="application" />
           <AppSettingsAdvanced v-else v-model="settingsModel" />
-          <div v-if="activeSection !== 'printing'" class="settings-panel-actions">
+          <div class="settings-panel-actions">
             <n-button type="primary" :loading="saving" @click="saveSettings">
               保存设置
             </n-button>
@@ -52,7 +51,6 @@ import {
   LockClosedOutline,
   MenuOutline,
   OptionsOutline,
-  PrintOutline,
 } from '@vicons/ionicons5'
 import { useMessage } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
@@ -65,7 +63,6 @@ import {
 } from '@/api/business-application'
 import { resolveApplicationSettingsSection } from './application-print-entry'
 import { normalizePortalConfig, parseJsonObject } from './portal/portal-config'
-import ApplicationPrintSettings from './settings/ApplicationPrintSettings.vue'
 import AppSettingsAccess from './settings/AppSettingsAccess.vue'
 import AppSettingsAdvanced from './settings/AppSettingsAdvanced.vue'
 import AppSettingsBasic from './settings/AppSettingsBasic.vue'
@@ -97,7 +94,6 @@ const sections = [
   { key: 'navigation', label: '导航设置', icon: MenuOutline },
   { key: 'permission', label: '应用权限', icon: LockClosedOutline },
   { key: 'globalization', label: '全球化', icon: EarthOutline },
-  { key: 'printing', label: '打印模板', icon: PrintOutline },
   { key: 'advanced', label: '高级设置', icon: OptionsOutline },
 ]
 
@@ -108,7 +104,7 @@ const applicationPages = computed(() => applicationOptions.value?.inAppBuilder?.
 function selectSection(section) {
   const next = resolveApplicationSettingsSection(section)
   activeSection.value = next
-  const settingsSection = next === 'printing' ? 'printing' : undefined
+  const settingsSection = next === 'basic' ? undefined : next
   if (route.query.settingsSection === settingsSection)
     return
   router.replace({

@@ -16,7 +16,7 @@ public record PrintTemplateDocument(String protocol, Integer schemaVersion, Pape
     public record DesignBackground(String fileId, Double opacity, Double rotationDeg, Boolean print) {
     }
 
-    public record Watermark(String text, String expression, Double opacity, Double rotateDeg, Double gapXMm, Double gapYMm, Double fontSizePt, String color) {
+    public record Watermark(String text, String expression, Double opacity, Double rotateDeg, Double gapXMm, Double gapYMm, Double fontSizePt, String color, Boolean enabled) {
     }
 
     public record Margins(Double top, Double right, Double bottom, Double left) {

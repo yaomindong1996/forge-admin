@@ -70,6 +70,10 @@ public class PrintRuntimeActionProjectionService {
             projectSnapshot(actions, snapshots.read(version.getSnapshotJson(), applicationId),
                     applicationId, pageId, configKey, allowed, rowKey, actor.tenantId());
         }
+        // 正式运行优先读发布快照；配置人员可在未重新发布前，用当前启用的设计态绑定做验收。
+        if (actions.isEmpty() && SessionHelper.hasPermission("print:template:manage")) {
+            projectLive(actions, actor.tenantId(), applicationId, pageId, configKey, allowed, rowKey);
+        }
         if (actions.isEmpty()) {
             return config;
         }
@@ -166,6 +170,7 @@ public class PrintRuntimeActionProjectionService {
         Map<String, Object> action = new LinkedHashMap<>();
         action.put("key", "forgePrint:" + scene.name());
         action.put("label", "打印");
+        action.put("icon", "print");
         action.put("actionType", "route");
         action.put("routePath", "/print/preview");
         action.put("position", scene == PrintScene.LIST ? "row" : "detail");

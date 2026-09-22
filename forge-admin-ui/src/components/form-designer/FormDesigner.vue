@@ -161,7 +161,15 @@
               <n-input :value="currentItem.props.placeholder" placeholder="请输入占位提示" @update:value="updateProps('placeholder', $event)" />
             </n-form-item>
             <n-form-item label="默认值">
-              <n-input :value="currentItem.defaultValue" placeholder="请输入默认值" @update:value="updateField('defaultValue', $event)" />
+              <FieldDefaultValueEditor
+                :component-key="currentItem.type"
+                :component="currentItem"
+                :model-value="currentItem.defaultValue"
+                :option-select-options="normalizeFormDesignerOptions(currentItem.props?.options)"
+                :option-multiple="currentItem.type === 'checkbox' || currentItem.props?.multiple === true"
+                @update:model-value="updateField('defaultValue', $event)"
+                @update:props="Object.entries($event || {}).forEach(([key, value]) => updateProps(key, value))"
+              />
             </n-form-item>
             <n-form-item label="是否必填">
               <n-switch :value="currentItem.required" @update:value="updateField('required', $event)" />
@@ -313,8 +321,28 @@
 <script setup>
 import { ref, watch } from 'vue'
 import draggable from 'vuedraggable'
+import FieldDefaultValueEditor from '@/views/app-center/components/designer/forge-form-designer/panels/FieldDefaultValueEditor.vue'
 import FormItemRender from './FormItemRender.vue'
 import FormPreview from './FormPreview.vue'
+
+function normalizeFormDesignerOptions(options = []) {
+  return (Array.isArray(options) ? options : [])
+    .map((option) => {
+      if (option == null)
+        return null
+      if (typeof option !== 'object')
+        return { label: String(option), value: option }
+      const value = option.value ?? option.label
+      if (value === undefined || value === null)
+        return null
+      return {
+        label: option.label ?? String(value),
+        value,
+        disabled: option.disabled === true,
+      }
+    })
+    .filter(Boolean)
+}
 
 const props = defineProps({
   modelValue: {

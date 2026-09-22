@@ -6,7 +6,7 @@
         :key="item.key"
         type="button"
         :class="{ active: activeSection === item.key }"
-        @click="activeSection = item.key"
+        @click="selectSection(item.key)"
       >
         <n-icon><component :is="item.icon" /></n-icon>
         <span>{{ item.label }}</span>
@@ -58,6 +58,68 @@
         <n-empty v-else description="当前页面未绑定数据对象，无法启用审计" />
       </section>
 
+      <section v-else-if="activeSection === 'printing'" class="page-design-settings-card is-print">
+        <header>
+          <h2>打印模板</h2>
+          <p>只作用于当前页面。勾选列表或详情后，重新发布应用即可给业务用户使用。</p>
+        </header>
+        <div class="page-print-watermark">
+          <div class="watermark-head">
+            <div>
+              <h3>页面水印</h3>
+              <p>本页模板默认带这组水印。某张模板不想打，到设计器纸张里关掉。</p>
+            </div>
+            <n-switch size="small" :value="printWatermark.enabled" @update:value="patchPrintWatermark({ enabled: $event })" />
+          </div>
+          <div v-if="printWatermark.enabled" class="watermark-body">
+            <n-input
+              size="small"
+              :value="printWatermark.text"
+              maxlength="50"
+              placeholder="自定义文字，例如内部资料"
+              @update:value="patchPrintWatermark({ text: $event })"
+            />
+            <div class="watermark-row">
+              <n-checkbox size="small" :checked="printWatermark.showUsername" @update:checked="patchPrintWatermark({ showUsername: $event })">
+                用户名
+              </n-checkbox>
+              <n-checkbox size="small" :checked="printWatermark.showTime" @update:checked="patchPrintWatermark({ showTime: $event })">
+                当前时间
+              </n-checkbox>
+              <n-color-picker
+                class="watermark-swatch"
+                size="small"
+                :value="printWatermark.color"
+                :show-alpha="false"
+                :modes="['hex']"
+                @update:value="patchWatermarkColor"
+              />
+              <n-select
+                class="watermark-size"
+                size="small"
+                :value="printWatermark.fontSizePt"
+                :options="printFontSizeOptions(printWatermark.fontSizePt)"
+                @update:value="patchPrintWatermark({ fontSizePt: $event })"
+              />
+              <n-select
+                class="watermark-density"
+                size="small"
+                :value="printWatermark.density"
+                :options="watermarkDensityOptions"
+                @update:value="patchPrintWatermark({ density: $event })"
+              />
+            </div>
+          </div>
+        </div>
+        <ApplicationPrintPanel
+          v-if="application"
+          :application="application"
+          :application-objects="objects"
+          :page-id="node.id"
+        />
+        <n-empty v-else description="当前页面还没有可配置打印的应用上下文" />
+      </section>
+
       <section v-else class="page-design-settings-card">
         <header>
           <h2>页面信息</h2>
@@ -87,10 +149,16 @@
 </template>
 
 <script setup>
-import { ColorPaletteOutline, EyeOutline, InformationCircleOutline, ShieldCheckmarkOutline } from '@vicons/ionicons5'
-import { computed, ref } from 'vue'
+import { ColorPaletteOutline, EyeOutline, InformationCircleOutline, PrintOutline, ShieldCheckmarkOutline } from '@vicons/ionicons5'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import DataAuditPolicyPanel from '@/components/data-audit/DataAuditPolicyPanel.vue'
 import IconSelector from '@/components/IconSelector.vue'
+import { DEFAULT_WATERMARK_STYLE, WATERMARK_DENSITY_OPTIONS } from '@/components/print/designer/paperPanelModel'
+import { printFontSizeOptions } from '@/components/print/designer/printFonts'
+import { normalizePrintPageWatermark } from '@/components/print/management/pagePrintWatermark'
+import { toPrintColor } from '@/components/print/protocol/printColor'
+import ApplicationPrintPanel from '../../application-workspace/ApplicationPrintPanel.vue'
 import { inAppPageTypes } from '../../in-app-builder/in-app-builder-schema'
 import { PAGE_SHAPE_TYPES } from '../../in-app-builder/page-shape-design'
 
@@ -99,19 +167,58 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  application: {
+    type: Object,
+    default: null,
+  },
+  objects: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['update'])
+const route = useRoute()
+const router = useRouter()
 
-const activeSection = ref('basic')
+const PAGE_SETTINGS_SECTIONS = new Set(['basic', 'display', 'audit', 'printing', 'info'])
+
+function resolvePageSettingsSection(value) {
+  const normalized = String(Array.isArray(value) ? value[0] : value || '').trim()
+  return PAGE_SETTINGS_SECTIONS.has(normalized) ? normalized : 'basic'
+}
+
+const activeSection = ref(resolvePageSettingsSection(route.query.settingsSection))
 const sections = [
   { key: 'basic', label: '基础信息', icon: ColorPaletteOutline },
   { key: 'display', label: '显示设置', icon: EyeOutline },
   { key: 'audit', label: '数据审计', icon: ShieldCheckmarkOutline },
+  { key: 'printing', label: '打印模板', icon: PrintOutline },
   { key: 'info', label: '页面信息', icon: InformationCircleOutline },
 ]
 
+function selectSection(section) {
+  const next = resolvePageSettingsSection(section)
+  activeSection.value = next
+  const settingsSection = next === 'basic' ? undefined : next
+  if (route.query.settingsSection === settingsSection)
+    return
+  router.replace({
+    query: {
+      ...route.query,
+      settingsSection,
+    },
+  })
+}
+
+watch(() => route.query.settingsSection, (section) => {
+  const next = resolvePageSettingsSection(section)
+  if (activeSection.value !== next)
+    activeSection.value = next
+})
+
 const navigationVisible = computed(() => (props.node.navigationVisible ?? props.node.settings?.navigationVisible) !== false)
+const printWatermark = computed(() => normalizePrintPageWatermark(props.node.printWatermark ?? props.node.settings?.printWatermark))
 
 const pageShapeLabel = computed(() => {
   const value = props.node.pageTemplate || props.node.objectRef?.pageMode || ''
@@ -144,6 +251,17 @@ function mapPageModeToShape(value) {
 
 function patch(partial) {
   emit('update', partial)
+}
+
+function patchPrintWatermark(partial) {
+  patch({ printWatermark: { ...printWatermark.value, ...partial } })
+}
+
+const watermarkDensityOptions = WATERMARK_DENSITY_OPTIONS.map(item => ({ label: item.label, value: item.value }))
+
+function patchWatermarkColor(value) {
+  const color = toPrintColor(value)
+  patchPrintWatermark({ color: color && color !== 'transparent' ? color : DEFAULT_WATERMARK_STYLE.color })
 }
 </script>
 
@@ -199,6 +317,67 @@ function patch(partial) {
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 1px 3px rgb(31 35 41 / 6%);
+}
+
+.page-design-settings-card.is-print {
+  padding: 20px;
+}
+
+.page-design-settings-card.is-print :deep(.print-template-list) {
+  box-shadow: none;
+}
+
+.page-print-watermark {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid #e5e6eb;
+  border-radius: 8px;
+  background: #f7f8fa;
+}
+
+.watermark-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.watermark-head h3 {
+  margin: 0;
+  color: #1d2129;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.watermark-head p,
+.page-print-watermark .watermark-head p {
+  margin: 2px 0 0;
+  color: #86909c;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.watermark-body {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.watermark-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.watermark-swatch {
+  width: 128px;
+}
+
+.watermark-size,
+.watermark-density {
+  width: 112px;
 }
 
 .page-design-settings-card header {

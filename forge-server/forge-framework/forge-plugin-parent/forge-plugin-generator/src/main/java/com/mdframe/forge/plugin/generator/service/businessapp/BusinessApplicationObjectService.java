@@ -48,7 +48,8 @@ public class BusinessApplicationObjectService
 
     /**
      * 页面从表单创建的业务对象跟着页面走。页面已从应用导航删除，且没有其它页面仍引用时，
-     * 解除应用关联，避免流程设计还能选到已删除页面的对象。不删除对象本身和数据表。
+     * 解除应用关联，并软删无人引用的页面托管对象，释放 object_code / model_code 以便同编码重建。
+     * 不删除物理业务数据表（用户可自行 DROP；重建时会按新设计再建表）。
      */
     @Transactional(rollbackFor = Exception.class)
     public void detachOrphanPageFormObjects(Long applicationId) {
@@ -65,6 +66,7 @@ public class BusinessApplicationObjectService
             return;
         }
         List<BusinessApplicationObjectDTO> kept = new ArrayList<>();
+        List<Long> orphanObjectIds = new ArrayList<>();
         boolean changed = false;
         for (BusinessApplicationObjectVO association : current) {
             if (association == null || association.getObjectId() == null) {
@@ -72,6 +74,7 @@ public class BusinessApplicationObjectService
             }
             if (isOrphanPageFormObject(association, pageIds, referencedObjectIds)) {
                 changed = true;
+                orphanObjectIds.add(association.getObjectId());
                 continue;
             }
             BusinessApplicationObjectDTO item = new BusinessApplicationObjectDTO();
@@ -83,6 +86,9 @@ public class BusinessApplicationObjectService
         }
         if (changed) {
             replace(applicationId, kept);
+            for (Long orphanObjectId : orphanObjectIds) {
+                objectService.reclaimUnusedPageFormObjectById(orphanObjectId);
+            }
         }
     }
 

@@ -606,3 +606,23 @@ Naive UI 的 `--n-height` 可保证同尺寸输入和按钮对齐，但 Teleport
 
 **解决方案**:
 `/app/`（不含 `/app-center`）不要阻塞等后台菜单；`app-portal` 跳过全局进度条和全屏 overlay；layout 同步加载；门户和 CRUD 用同一套骨架，不要连续两个 `n-spin`。
+
+## 有编辑权限时页面管理左侧菜单要读草稿不能只读发布快照
+
+**发现日期**: 2026-09-22
+
+**问题描述**:
+新建表单并保存草稿后，打开 `/app-center/application/.../runtime?pageId=...`（无 `edit=1`）左侧菜单看不到新页面。之前不用发布也能看见。根因是页面管理走了 `businessApplicationRuntimeByCode` 已发布快照，未发布页面不在快照里。
+
+**解决方案**:
+`shouldUseApplicationWorkspaceLoad` 在 `edit=1` / `draft=1` 之外，对有应用编辑权限的用户也返回 true，页面管理读 workspace 草稿。正式运行用户仍只读发布快照。页面管理对可编辑用户还需 `design-preview`（或 PortalPageRenderer 在 `configurable` 时优先读草稿），否则刚保存的字段默认值仍来自已发布 CRUD 快照，表现为必须发布应用才生效。
+
+## 打印模板必须跟页面走，设计器不能回到 /print
+
+**发现日期**: 2026-09-21
+
+**问题描述**:
+打印模板挂在应用设置或应用卡片上，一个应用多个页面会串到一起。设计器 `/print/designer?templateId=2` 右上角返回走 `history.back()` 或独立 `/print` 列表，回不到来源页面。详情只有弹窗能打印，平铺详情按钮在页脚被裁掉，抽屉详情之前被误开成弹窗。
+
+**解决方案**:
+模板列表和绑定按 `pageId` 过滤，配置入口只放在当前页面的「页面设置 → 打印模板」。设计器返回优先用来源页 `from`（必须是该页面的 `edit=1` 运行地址），否则回到该页打印设置；不要 `router.back()` 到 `/print`。详情弹窗、抽屉、平铺都要露出打印动作，平铺放在顶部操作区。

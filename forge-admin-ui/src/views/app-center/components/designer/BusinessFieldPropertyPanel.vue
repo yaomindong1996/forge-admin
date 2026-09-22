@@ -137,6 +137,16 @@
                     :disabled="field.systemField"
                   />
                 </n-form-item>
+                <n-form-item v-else-if="['DATE', 'DATETIME'].includes(form.fieldType)" label="默认值">
+                  <FieldDefaultValueEditor
+                    :component-key="form.fieldType === 'DATETIME' ? 'datetime' : 'date'"
+                    :component="{ props: { defaultValue: form.defaultValue } }"
+                    :field-asset="form"
+                    :model-value="form.defaultValue"
+                    :disabled="field.systemField"
+                    @update:model-value="form.defaultValue = $event === undefined ? '' : $event"
+                  />
+                </n-form-item>
                 <n-form-item v-else label="默认值">
                   <n-input v-model:value="form.defaultValue" :disabled="field.systemField" placeholder="可为空" />
                 </n-form-item>
@@ -657,6 +667,7 @@ import FormulaConfigPanel from './formula/FormulaConfigPanel.vue'
 import FormulaDebuggerPanel from './formula/FormulaDebuggerPanel.vue'
 import FormulaDependencyGraph from './formula/FormulaDependencyGraph.vue'
 import FormulaExecutionLogDrawer from './formula/FormulaExecutionLogDrawer.vue'
+import FieldDefaultValueEditor from './forge-form-designer/panels/FieldDefaultValueEditor.vue'
 
 const props = defineProps({
   field: {

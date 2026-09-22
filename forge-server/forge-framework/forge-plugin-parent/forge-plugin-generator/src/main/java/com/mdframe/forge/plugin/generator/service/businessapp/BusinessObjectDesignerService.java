@@ -18,6 +18,7 @@ import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessObjectRelation
 import com.mdframe.forge.plugin.generator.dto.businessapp.FormDesignerSchemaDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.LinkageSchemaDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.ViewSchemaDTO;
+import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeAuditStrategy;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeDomainRef;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeFieldSchema;
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeModelSchema;
@@ -404,10 +405,27 @@ public class BusinessObjectDesignerService implements BusinessObjectDesignContex
 
     @Transactional(rollbackFor = Exception.class)
     public AiCrudConfig prepareRuntimeDraft(Long objectId) {
+        return prepareRuntimeDraft(objectId, true);
+    }
+
+    /**
+     * 设计预览专用：只编译当前草稿运行配置，不在 GET 渲染链路里同步写关系表，
+     * 避免并发预览/保存时对 ai_business_object_relation 抢锁超时。
+     * 子表关系仍由设计器保存和发布链路的 synchronizeFormChildRelations 负责落库。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public AiCrudConfig prepareRuntimeDraftForPreview(Long objectId) {
+        return prepareRuntimeDraft(objectId, false);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public AiCrudConfig prepareRuntimeDraft(Long objectId, boolean persistChildRelations) {
         DesignerContext context = loadContext(objectId);
         String beforeModelSchema = writeJson(context.getModelSchema(), "modelSchema");
         String beforePageSchema = writeJson(context.getPageSchema(), "pageSchema");
-        synchronizeFormChildRelations(context);
+        if (persistChildRelations) {
+            synchronizeFormChildRelations(context);
+        }
         applyRelationsToModel(context);
         compileFormFirstRuntimeSchema(context);
         String preparedModelSchema = writeJson(context.getModelSchema(), "modelSchema");
@@ -607,6 +625,16 @@ public class BusinessObjectDesignerService implements BusinessObjectDesignContex
         objectSchema.setDescription(StringUtils.defaultIfBlank(objectSchema.getDescription(), object.getDescription()));
         target.setObject(objectSchema);
         applyRuntimeDatasourceFromObjectOptions(object, target);
+        if (target.getAuditStrategy() == null) {
+            LowcodeAuditStrategy auditStrategy = new LowcodeAuditStrategy();
+            auditStrategy.setMode("FORGE_COLUMNS");
+            auditStrategy.setCreateByColumn("create_by");
+            auditStrategy.setCreateTimeColumn("create_time");
+            auditStrategy.setCreateDeptColumn("create_dept");
+            auditStrategy.setUpdateByColumn("update_by");
+            auditStrategy.setUpdateTimeColumn("update_time");
+            target.setAuditStrategy(auditStrategy);
+        }
         return schemaNormalizer.normalizeModelFields(target, true);
     }
 
@@ -875,6 +903,11 @@ public class BusinessObjectDesignerService implements BusinessObjectDesignContex
                 modelSchema.getTableName()));
         target.setModelSchema(writeJson(modelSchema, "modelSchema"));
         target.setPageSchema(writeJson(pageSchema, "pageSchema"));
+        // 导入已有表时 audit/tenant/logicDelete 写在 modelSchema 里；必须同步到配置列，
+        // 否则运行时只读到 NULL/旧值，新增无法自动填充 create_by 等审计字段。
+        target.setTenantStrategy(writeJson(modelSchema.getTenantStrategy(), "tenantStrategy"));
+        target.setAuditStrategy(writeJson(modelSchema.getAuditStrategy(), "auditStrategy"));
+        target.setLogicDeleteStrategy(writeJson(modelSchema.getLogicDeleteStrategy(), "logicDeleteStrategy"));
         target.setOptions(mergeFormDesignerSchemaIntoRuntimeOptions(target.getOptions(), pageSchema));
         if (target.getId() == null) {
             crudConfigService.save(target);
@@ -1859,12 +1892,15 @@ public class BusinessObjectDesignerService implements BusinessObjectDesignContex
                 relation.getTargetObjectCode(), relationName, props);
         String configJson = writeJson(config, "relationConfig");
         boolean changed = !StringUtils.equals(relation.getRelationName(), relationName)
-                || !StringUtils.equals(relation.getRelationConfig(), configJson)
+                || !jsonTextEquals(relation.getRelationConfig(), configJson)
                 || !AUTO_SUBTABLE_RELATION_DESC.equals(StringUtils.trimToEmpty(relation.getDescription()));
+        if (!changed) {
+            return false;
+        }
         relation.setRelationName(relationName);
         relation.setRelationConfig(configJson);
         relation.setDescription(AUTO_SUBTABLE_RELATION_DESC);
-        return changed;
+        return true;
     }
 
     private Map<String, Object> buildSubTableRelationConfig(String targetObjectCode, String relationName,
@@ -3016,7 +3052,7 @@ public class BusinessObjectDesignerService implements BusinessObjectDesignContex
             }
             Map<String, Object> props = mapValue(component.get("props"));
             if (props.containsKey("defaultValue")) {
-                field.setDefaultValue(props.get("defaultValue"));
+                field.setDefaultValue(normalizeDesignerDefaultValue(field, props.get("defaultValue")));
             }
             String dictType = text(props.get("dictType"));
             if (StringUtils.isNotBlank(dictType)) {
@@ -3904,6 +3940,35 @@ public class BusinessObjectDesignerService implements BusinessObjectDesignContex
         return new LinkedHashMap<>();
     }
 
+    /**
+     * 表单设计器里的开关默认值可能是 true/false，落到 tinyint 列必须是 0/1。
+     */
+    private Object normalizeDesignerDefaultValue(LowcodeFieldSchema field, Object defaultValue) {
+        if (defaultValue == null || field == null) {
+            return defaultValue;
+        }
+        String dataType = StringUtils.defaultString(field.getDataType()).toLowerCase(Locale.ROOT);
+        String fieldType = StringUtils.defaultString(field.getBusinessFieldType()).toUpperCase(Locale.ROOT);
+        String componentType = StringUtils.defaultString(field.getComponentType()).toLowerCase(Locale.ROOT);
+        boolean switchLike = "tinyint".equals(dataType)
+                || "SWITCH".equals(fieldType)
+                || "switch".equals(componentType);
+        if (!switchLike) {
+            return defaultValue;
+        }
+        if (defaultValue instanceof Boolean bool) {
+            return bool ? 1 : 0;
+        }
+        String text = String.valueOf(defaultValue).trim();
+        if ("true".equalsIgnoreCase(text) || "1".equals(text)) {
+            return 1;
+        }
+        if ("false".equalsIgnoreCase(text) || "0".equals(text)) {
+            return 0;
+        }
+        return defaultValue;
+    }
+
     private List<Map<String, Object>> listOfMap(Object value) {
         if (!(value instanceof List<?> list)) {
             return List.of();
@@ -4002,6 +4067,23 @@ public class BusinessObjectDesignerService implements BusinessObjectDesignContex
             return objectMapper.writeValueAsString(value);
         } catch (Exception e) {
             throw new BusinessException(fieldName + "序列化失败");
+        }
+    }
+
+    /**
+     * 关系配置按语义比较，避免 key 顺序或空白差异导致每次预览都 updateById 抢锁。
+     */
+    private boolean jsonTextEquals(String left, String right) {
+        if (StringUtils.equals(left, right)) {
+            return true;
+        }
+        if (StringUtils.isBlank(left) || StringUtils.isBlank(right)) {
+            return false;
+        }
+        try {
+            return objectMapper.readTree(left).equals(objectMapper.readTree(right));
+        } catch (Exception ignored) {
+            return false;
         }
     }
 

@@ -282,7 +282,7 @@ class BusinessApplicationObjectServiceTest {
         private final Map<Long, AiBusinessObject> objects;
 
         StubObjectService(Map<Long, AiBusinessObject> objects) {
-            super(null, null, null, null);
+            super(null, null, null, null, null);
             this.objects = objects;
         }
 

@@ -50,11 +50,13 @@ function shrinkContinuousGeometry(document, geometry, usedMm) {
 
 function resolveWatermark(document, context) {
   const watermark = document.watermark
-  if (!watermark)
+  if (!watermark || watermark.enabled === false)
     return null
-  const text = watermark.expression
-    ? String(evaluateExpression(watermark.expression, context) ?? '')
-    : String(watermark.text ?? '')
+  const expressionText = watermark.expression
+    ? String(evaluateExpression(watermark.expression, context) ?? '').trim()
+    : ''
+  const staticText = String(watermark.text ?? '').trim()
+  const text = [staticText, expressionText].filter(Boolean).join(' · ')
   if (!text)
     return null
   return {

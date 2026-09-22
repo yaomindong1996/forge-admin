@@ -45,6 +45,47 @@ class PrintProtocolValidatorTest {
         assertThat(validator.validate(reversed.toString()).schemaHash()).isEqualTo(original.schemaHash());
     }
 
+    @Test
+    void acceptsDescriptionsElement() throws Exception {
+        var doc = document();
+        var section = mapper.createObjectNode();
+        section.put("id", "detail");
+        section.put("kind", "FIXED");
+        section.put("heightMm", 30);
+        var element = mapper.createObjectNode();
+        element.put("id", "detail-block");
+        element.put("type", "DESCRIPTIONS");
+        element.put("xMm", 0);
+        element.put("yMm", 0);
+        element.put("widthMm", 190);
+        element.put("heightMm", 24);
+        var descriptions = element.putObject("descriptions");
+        descriptions.put("bordered", true);
+        descriptions.put("column", 2);
+        descriptions.put("labelAlign", "center");
+        descriptions.put("labelPlacement", "left");
+        descriptions.put("labelBackground", "#d9e3f0");
+        descriptions.put("separator", "：");
+        descriptions.put("size", "medium");
+        descriptions.put("title", "详情");
+        descriptions.put("titleFontSizePt", 12);
+        descriptions.put("titleColor", "#111827");
+        descriptions.put("titleAlign", "left");
+        descriptions.put("titleBold", true);
+        var item = descriptions.putArray("items").addObject();
+        item.put("id", "detail-name");
+        item.put("label", "名称");
+        item.put("span", 1);
+        var binding = item.putObject("binding");
+        binding.put("source", "FIELD");
+        binding.put("path", "main.name");
+        section.set("elements", mapper.createArrayNode().add(element));
+        ((com.fasterxml.jackson.databind.node.ArrayNode) doc.get("body")).add(section);
+        var validated = validator.validate(doc.toString());
+        assertThat(validated.canonicalJson()).contains("\"type\":\"DESCRIPTIONS\"").contains("\"labelBackground\":\"#d9e3f0\"");
+        assertThat(validated.document().body()).hasSize(4);
+    }
+
     @ParameterizedTest
     @ValueSource(strings = { "0", "false", "null", "9007199254740993", "0.000000000000000001" })
     void preservesLiteralValuesWithoutCoercion(String literal) throws Exception {
@@ -343,9 +384,10 @@ class PrintProtocolValidatorTest {
         binding.put("expression", "MONEY(main.qty * main.price)");
         ((ObjectNode) doc.at("/body/0/elements/0")).putObject("format").put("type", "MONEY_UPPER");
         ((ObjectNode) doc.get("paper")).put("kind", "CONTINUOUS");
-        doc.putObject("watermark").put("text", "内部资料").put("opacity", 0.08);
+        doc.putObject("watermark").put("text", "内部资料").put("opacity", 0.08).put("enabled", true);
         doc.put("exportFileName", "{template}-{{main.code}}-{timestamp}");
         assertThat(validator.validate(doc.toString()).document().watermark().text()).isEqualTo("内部资料");
+        assertThat(validator.validate(doc.toString()).document().watermark().enabled()).isTrue();
         assertThat(validator.validate(doc.toString()).document().exportFileName()).isEqualTo("{template}-{{main.code}}-{timestamp}");
 
         doc = document();

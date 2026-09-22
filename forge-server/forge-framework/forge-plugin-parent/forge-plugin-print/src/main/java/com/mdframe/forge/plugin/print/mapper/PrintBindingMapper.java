@@ -20,6 +20,11 @@ public interface PrintBindingMapper {
     /** 同一来源下全部场景绑定（管理面板汇总）。 */
     List<PrintBinding> selectBySource(@Param("tenantId") Long tenantId, @Param("applicationId") Long applicationId, @Param("sourceKey") String sourceKey);
 
+    /** 同一来源+模板+场景的有效绑定，用于重复保存时改成更新。 */
+    PrintBinding selectUnique(@Param("tenantId") Long tenantId, @Param("applicationId") Long applicationId,
+                              @Param("sourceKey") String sourceKey, @Param("templateId") Long templateId,
+                              @Param("scene") String scene);
+
     /** 候选发布清单：应用行锁内使用当前读，避免读取外层事务的旧一致性快照。 */
     List<PrintBinding> selectApplication(@Param("tenantId") Long tenantId, @Param("applicationId") Long applicationId);
 

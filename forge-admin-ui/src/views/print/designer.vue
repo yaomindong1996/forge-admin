@@ -2,10 +2,12 @@
 import { NEmpty, NModal, NSpin, useThemeVars } from 'naive-ui'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
+import { businessApplicationDetail } from '@/api/business-application'
 import { loadPrintFile } from '@/api/print'
 import PrintDesigner from '@/components/print/designer/PrintDesigner.vue'
 import PrintBindingPanel from '@/components/print/management/PrintBindingPanel.vue'
 import { hasPrintPermission } from '@/components/print/management/printPermissions'
+import { leavePrintDesigner } from '@/components/print/management/printRouteContext'
 import PrintTemplateVersions from '@/components/print/management/PrintTemplateVersions.vue'
 import PrintPreview from '@/components/print/runtime/PrintPreview.vue'
 import { useUserStore } from '@/store'
@@ -67,8 +69,23 @@ async function restore(id) {
     store.error = error.message || '载入版本失败'
   }
 }
-function goBack() {
-  router.push({ path: '/print', query: store.row ? { applicationId: String(store.row.source.applicationId), ...store.row.source } : {} })
+async function goBack() {
+  let applicationCode = String(route.query.applicationCode || '').trim()
+  if (!applicationCode && store.row?.source?.applicationId) {
+    try {
+      const { data } = await businessApplicationDetail(store.row.source.applicationId)
+      applicationCode = String(data?.applicationCode || '').trim()
+    }
+    catch {
+      applicationCode = ''
+    }
+  }
+  leavePrintDesigner({
+    router,
+    route,
+    source: store.row?.source,
+    applicationCode,
+  })
 }
 </script>
 

@@ -1,6 +1,4 @@
-function newPrintId() {
-  return `p_${globalThis.crypto.randomUUID()}`
-}
+import { newPrintId } from '../id'
 
 function normalizeTableColumnWidths(columns, targetWidthMm) {
   if (!columns?.length || !Number.isFinite(targetWidthMm) || targetWidthMm <= 0)

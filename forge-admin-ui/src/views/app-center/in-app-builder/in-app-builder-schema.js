@@ -1,3 +1,5 @@
+import { normalizePrintPageWatermark } from '@/components/print/management/pagePrintWatermark'
+
 export const IN_APP_BUILDER_SCHEMA_VERSION = 2
 export const HOME_PAGE_ID = 'page_home'
 
@@ -263,6 +265,7 @@ export function createNavigationNode(schema, input = {}) {
     node.pageTemplate = String(input.pageTemplate || input.templateKey || '').trim()
     node.objectRef = normalizeObjectRef(input.objectRef)
     node.entryRef = normalizeEntryRef(input.entryRef)
+    node.printWatermark = normalizePrintPageWatermark(input.printWatermark)
     next.pages[id] = normalizePageLayout(input.layout, node)
     if (!next.homePageId)
       next.homePageId = id
@@ -308,6 +311,81 @@ export function isOrphanPageFormObject(object, schema) {
   if (pageIds.has(sourcePageId))
     return false
   return !collectReferencedObjectIds(schema).has(String(object?.objectId || object?.id || ''))
+}
+
+/**
+ * 删除页面前的影响预览：可能回收页面表单对象配置，但不会物理删表。
+ */
+export function resolveNavigationDeleteImpact(schema, nodeId, strategy, objects = []) {
+  const node = (schema?.nodes || []).find(item => item.id === nodeId)
+  if (!node) {
+    return {
+      removedPageIds: [],
+      impactedObjects: [],
+      danger: false,
+    }
+  }
+
+  const nodes = schema.nodes || []
+  const descendants = collectDescendants(nodes, node.id)
+  let removedIds
+  if (node.type === 'group' && descendants.length && strategy?.type === 'move-children') {
+    removedIds = new Set([node.id])
+  }
+  else {
+    removedIds = new Set([node.id, ...descendants.map(item => item.id)])
+  }
+
+  const removedPageIds = nodes
+    .filter(item => removedIds.has(item.id) && item.type === 'page')
+    .map(item => item.id)
+  const removedPageIdSet = new Set(removedPageIds)
+  const impactedById = new Map()
+
+  for (const object of objects || []) {
+    const options = parseOptions(object?.options)
+    const sourcePageId = String(options.sourcePageId || '').trim()
+    if (options.managedBy !== 'PAGE_FORM' || !sourcePageId || !removedPageIdSet.has(sourcePageId))
+      continue
+    const key = String(object.objectId ?? object.id ?? object.objectCode ?? '')
+    if (!key)
+      continue
+    impactedById.set(key, {
+      objectId: object.objectId ?? object.id,
+      objectCode: object.objectCode || '',
+      objectName: object.objectName || '',
+      tableName: object.tableName || '',
+      reason: 'page-form',
+    })
+  }
+
+  for (const pageId of removedPageIds) {
+    const pageNode = nodes.find(item => item.id === pageId)
+    const ref = pageNode?.objectRef
+    if (!ref?.objectId && !ref?.objectCode)
+      continue
+    const matched = (objects || []).find(item =>
+      (ref.objectId != null && String(item.objectId ?? item.id) === String(ref.objectId))
+      || (ref.objectCode && item.objectCode === ref.objectCode))
+    if (!matched)
+      continue
+    const key = String(matched.objectId ?? matched.id ?? matched.objectCode ?? '')
+    if (!key || impactedById.has(key))
+      continue
+    impactedById.set(key, {
+      objectId: matched.objectId ?? matched.id,
+      objectCode: matched.objectCode || ref.objectCode || '',
+      objectName: matched.objectName || ref.objectName || '',
+      tableName: matched.tableName || '',
+      reason: 'bound',
+    })
+  }
+
+  return {
+    removedPageIds,
+    impactedObjects: [...impactedById.values()],
+    danger: true,
+  }
 }
 
 function collectReferencedObjectIds(schema) {
@@ -457,6 +535,7 @@ function normalizeNodes(nodes) {
             pageTemplate: String(node.pageTemplate || node.templateKey || '').trim(),
             objectRef: normalizeObjectRef(node.objectRef),
             entryRef: normalizeEntryRef(node.entryRef),
+            printWatermark: normalizePrintPageWatermark(node.printWatermark ?? node.settings?.printWatermark),
           }),
     }))
 }

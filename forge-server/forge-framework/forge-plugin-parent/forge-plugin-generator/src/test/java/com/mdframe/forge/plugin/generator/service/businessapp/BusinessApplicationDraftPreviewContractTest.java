@@ -22,7 +22,11 @@ class BusinessApplicationDraftPreviewContractTest {
 
         assertTrue(serviceSource.contains("return buildDraftRenderConfig(config);"));
         assertTrue(serviceSource.contains("!forceDraftCompile && hasStoredRuntimeConfig(config)"));
-        assertTrue(controllerSource.contains("businessObjectDesignerService.prepareRuntimeDraft(businessObject.getId())"));
+        assertTrue(controllerSource.contains("businessObjectDesignerService.prepareRuntimeDraftForPreview(businessObject.getId())"));
+        assertFalse(controllerSource.contains("businessObjectDesignerService.prepareRuntimeDraft(businessObject.getId())"));
+        assertTrue(designerSource.contains("prepareRuntimeDraftForPreview"));
+        assertTrue(designerSource.contains("prepareRuntimeDraft(objectId, false)"));
+        assertTrue(designerSource.contains("if (persistChildRelations)"));
         assertTrue(controllerSource.contains("crudConfigService.getRenderConfig(configKey, designPreview)"));
         assertTrue(designerSource.contains("saveDraft(context, currentStatus, false)"));
         assertTrue(designerSource.contains("if (markApplicationChanged)"));

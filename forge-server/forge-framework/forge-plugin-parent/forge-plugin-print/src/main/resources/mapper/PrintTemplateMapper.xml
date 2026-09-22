@@ -43,11 +43,17 @@
                status, create_time, update_time
         FROM sys_print_template
         WHERE tenant_id = #{tenantId} AND application_id = #{applicationId} AND del_flag = 0
+        <if test="pageId != null and pageId != ''">
+          AND page_id = #{pageId}
+        </if>
         ORDER BY update_time DESC, id DESC LIMIT #{limit} OFFSET #{offset}
     </select>
     <select id="countApplication" resultType="long">
         SELECT COUNT(*) FROM sys_print_template
         WHERE tenant_id = #{tenantId} AND application_id = #{applicationId} AND del_flag = 0
+        <if test="pageId != null and pageId != ''">
+          AND page_id = #{pageId}
+        </if>
     </select>
     <update id="updateDraft">
         UPDATE sys_print_template SET template_name = #{row.templateName}, draft_schema = #{row.draftSchema},

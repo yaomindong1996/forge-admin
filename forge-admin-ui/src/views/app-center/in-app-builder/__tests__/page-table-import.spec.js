@@ -14,10 +14,10 @@ describe('page table import field inference', () => {
       { columnName: 'create_time', columnType: 'datetime' },
       { columnName: 'customer_name', columnComment: '客户名称', columnType: 'varchar(64)', isRequired: 1, javaField: 'customerName' },
       { columnName: 'amount', columnComment: '金额', columnType: 'decimal(18,2)', javaField: 'amount' },
-      { columnName: 'enabled', columnComment: '是否启用', columnType: 'tinyint(1)', javaField: 'enabled' },
+      { columnName: 'enabled', columnComment: '是否启用', columnType: 'tinyint(1)', javaField: 'enabled', columnDefault: '1' },
       { columnName: 'remark', columnComment: '备注', columnType: 'text', javaField: 'remark' },
-      { columnName: 'signed_at', columnComment: '签约时间', columnType: 'datetime', javaField: 'signedAt' },
-      { columnName: 'status', columnComment: '状态', columnType: 'varchar(16)', dictType: 'customer_status', javaField: 'status' },
+      { columnName: 'signed_at', columnComment: '签约时间', columnType: 'datetime', javaField: 'signedAt', columnDefault: 'CURRENT_TIMESTAMP' },
+      { columnName: 'status', columnComment: '状态', columnType: 'varchar(16)', dictType: 'customer_status', javaField: 'status', columnDefault: "'ACTIVE'" },
     ])
 
     expect(fields.map(field => field.fieldCode)).toEqual([
@@ -47,6 +47,7 @@ describe('page table import field inference', () => {
         fieldCode: 'enabled',
         fieldType: 'SWITCH',
         componentType: 'switch',
+        defaultValue: 1,
       }),
       expect.objectContaining({
         fieldCode: 'remark',
@@ -57,12 +58,14 @@ describe('page table import field inference', () => {
         fieldCode: 'signedAt',
         fieldType: 'DATETIME',
         componentType: 'datetime',
+        defaultValue: '$forge:now',
       }),
       expect.objectContaining({
         fieldCode: 'status',
         fieldType: 'DICT',
         componentType: 'dictSelect',
         dictType: 'customer_status',
+        defaultValue: 'ACTIVE',
       }),
     ]))
   })

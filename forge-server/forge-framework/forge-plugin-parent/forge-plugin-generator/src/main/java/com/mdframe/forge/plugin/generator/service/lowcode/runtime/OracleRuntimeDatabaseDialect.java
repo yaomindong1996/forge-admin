@@ -296,7 +296,8 @@ public class OracleRuntimeDatabaseDialect implements RuntimeDatabaseDialect {
                    END AS column_type,
                    CASE WHEN pk.column_name IS NOT NULL THEN 1 ELSE 0 END AS is_pk,
                    CASE WHEN c.identity_column = 'YES' THEN 1 ELSE 0 END AS is_increment,
-                   CASE WHEN c.nullable = 'N' AND pk.column_name IS NULL THEN 1 ELSE 0 END AS is_required
+                   CASE WHEN c.nullable = 'N' AND pk.column_name IS NULL THEN 1 ELSE 0 END AS is_required,
+                   c.data_default AS column_default
             FROM all_tab_columns c
             LEFT JOIN all_col_comments cc
               ON cc.owner = c.owner
@@ -330,16 +331,31 @@ public class OracleRuntimeDatabaseDialect implements RuntimeDatabaseDialect {
         if (column.defaultValue() == null || isLargeText(column.sqlType())) {
             return;
         }
-        String value = String.valueOf(column.defaultValue()).trim();
+        Object normalized = normalizeDefaultValue(column.defaultValue());
+        String value = String.valueOf(normalized).trim();
         if (StringUtils.isBlank(value) || "NULL".equalsIgnoreCase(value)) {
             return;
         }
         definition.append(" DEFAULT ");
-        if (isExpressionDefault(value) || isNumericType(column.sqlType())) {
+        if (isExpressionDefault(value) || isNumericType(column.sqlType()) || normalized instanceof Number) {
             definition.append(value);
         } else {
             definition.append("'").append(escapeSqlComment(value)).append("'");
         }
+    }
+
+    private Object normalizeDefaultValue(Object defaultValue) {
+        if (defaultValue instanceof Boolean bool) {
+            return bool ? 1 : 0;
+        }
+        String text = String.valueOf(defaultValue).trim();
+        if ("true".equalsIgnoreCase(text)) {
+            return 1;
+        }
+        if ("false".equalsIgnoreCase(text)) {
+            return 0;
+        }
+        return defaultValue;
     }
 
     private boolean isNumericType(String sqlType) {

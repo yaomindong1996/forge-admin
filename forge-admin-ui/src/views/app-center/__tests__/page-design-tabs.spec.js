@@ -18,8 +18,17 @@ describe('page design tabs', () => {
     expect(source).toContain('PageDesignSettingsPanel')
     expect(source).toContain('PageDesignPublishPanel')
     expect(source).toContain('v-else-if="!editing && runtimeViewMode === \'pages\'"')
-    expect(source).toContain('applicationId: application.value?.id')
-    expect(source).toContain('let designPreview = true')
+  })
+
+  it('keeps print templates on the current page settings', () => {
+    const runtimeSource = readSource('src/views/app-center/application-runtime.[applicationCode].vue')
+    const settingsSource = readSource('src/views/app-center/components/designer/PageDesignSettingsPanel.vue')
+    expect(runtimeSource).toContain(':application="application"')
+    expect(runtimeSource).toContain(':objects="objects"')
+    expect(settingsSource).toContain('key: \'printing\'')
+    expect(settingsSource).toContain(':page-id="node.id"')
+    expect(settingsSource).toContain('ApplicationPrintPanel')
+    expect(settingsSource).toContain('页面水印')
   })
 
   it('keeps page navigation visibility when normalizing builder schema', () => {

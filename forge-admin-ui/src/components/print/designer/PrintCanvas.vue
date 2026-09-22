@@ -22,6 +22,7 @@ import { estimateDesignerSectionHeight, paginateDesignerBody } from './designerP
 import { designerBindingText, designerTablePreview } from './designerSample'
 import { addDetailTable, addElement, addField, addSection, PRINT_DRAG_TYPE, readDragItem } from './elementCatalog'
 import { cloneDocument } from './history'
+import { composeWatermarkPreview } from './paperPanelModel'
 import PrintCanvasActionBar from './PrintCanvasActionBar.vue'
 import PrintCanvasElement from './PrintCanvasElement.vue'
 import { insertRegisteredPrintComponent } from './printComponentRegistry'
@@ -47,7 +48,8 @@ const overlayUrl = computed(() => {
   return fileId ? getFileUrl(fileId) : ''
 })
 const overlayStyle = computed(() => store.document.paper.designBackground || {})
-const watermarkText = computed(() => store.document.watermark?.text || '')
+const watermarkText = computed(() => composeWatermarkPreview(store.document.watermark || {}, store.catalog))
+const watermarkStyle = computed(() => store.document.watermark || {})
 const sectionNames = { FIXED: '自由画布', TEXT: '流式长文', TABLE: '明细表格' }
 const icon = component => () => h(NIcon, null, { default: () => h(component) })
 const bandPreview = ref(null)
@@ -773,7 +775,15 @@ onBeforeUnmount(() => clearMarquee())
                 transform: overlayStyle.rotationDeg ? `rotate(${overlayStyle.rotationDeg}deg)` : undefined,
               }"
             >
-            <div v-if="watermarkText" class="design-watermark">
+            <div
+              v-if="watermarkText"
+              class="design-watermark"
+              :style="{
+                color: watermarkStyle.color || '#94a3b8',
+                fontSize: `${watermarkStyle.fontSizePt || 14}pt`,
+                opacity: watermarkStyle.opacity ?? 0.12,
+              }"
+            >
               {{ watermarkText }}
             </div>
             <div

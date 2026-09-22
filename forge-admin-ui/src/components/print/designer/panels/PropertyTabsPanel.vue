@@ -3,6 +3,7 @@ import { NTabPane, NTabs } from 'naive-ui'
 import { computed, ref, watch } from 'vue'
 import { usePrintDesignerStore } from '@/stores/print/printDesignerStore'
 import BindingPanel from './BindingPanel.vue'
+import DescriptionsPanel from './DescriptionsPanel.vue'
 import ElementGeometryPanel from './ElementGeometryPanel.vue'
 import ElementOptionsPanel from './ElementOptionsPanel.vue'
 import StaticTablePanel from './StaticTablePanel.vue'
@@ -15,6 +16,7 @@ const tab = ref('basic')
 const hasBinding = computed(() => !!(store.activeElement?.binding || store.activeSurface?.kind === 'TEXT'))
 const isTable = computed(() => store.activeSurface?.kind === 'TABLE' || store.activeElement?.type === 'DATA_TABLE')
 const isStaticTable = computed(() => store.activeElement?.type === 'STATIC_TABLE')
+const isDescriptions = computed(() => store.activeElement?.type === 'DESCRIPTIONS')
 const hasElement = computed(() => !!store.activeElement)
 
 /** Only reset tab when selection identity changes — not on every style patch. */
@@ -32,6 +34,7 @@ watch(
   <NTabs v-model:value="tab" type="line" size="small" class="prop-tabs" justify-content="space-evenly">
     <NTabPane name="basic" tab="基础">
       <StaticTablePanel v-if="isStaticTable" />
+      <DescriptionsPanel v-if="isDescriptions" />
       <TablePanel v-if="isTable" />
       <BindingPanel v-if="hasBinding && !isStaticTable" />
       <ElementGeometryPanel />

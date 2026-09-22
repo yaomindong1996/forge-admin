@@ -106,6 +106,13 @@
 
 仓库记忆推荐 Node `v20.19.0`，但当前机器未安装该版本，因此本次实际使用 Node `v24.21.0`。生产构建和定向测试均已通过；合并前如 CI 固定 Node 20，建议在 CI 再执行同一组命令。
 
+## 第十轮增量：同步 main
+
+- 2026-09-22 将最新 `origin/main@43402b8b` 合并到 `codex/mobile-lowcode-runtime-refactor`；仅 `code-copilot/memory/pitfalls.md` 发生内容冲突，已保留主线与 H5 分支双方条目并更新分类计数。
+- 未解决冲突检查无输出，暂存区 `git diff --cached --check` 通过；同时清理主线变更带入的两处空白格式问题。
+- H5 定向测试 48/48 通过，`pnpm build:h5` 与 `pnpm build:mp-weixin` 均输出 `DONE Build complete`。
+- 微信小程序构建仍仅报告既有 API/auth 与 storage 循环分包提示，不阻断产物生成；本轮未启动任何服务，也未修改数据库。
+
 ## 未执行的真实服务 E2E
 
 没有启动 Admin、App、Flow 服务，也没有写数据库。以下项目需要可用账号、已发布低代码配置、真实待办任务、文件服务及已登记合法域名后由联调环境完成：

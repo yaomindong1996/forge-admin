@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   createApplicationRuntimeLoadCoordinator,
   resolveApplicationRuntimeLoadKey,
+  shouldUseApplicationWorkspaceLoad,
 } from '../application-runtime-load'
 
 describe('application runtime route loading', () => {
@@ -55,6 +56,36 @@ describe('application runtime route loading', () => {
     expect(second).toBe(first)
   })
 
+  it('uses workspace for edit, draft preview, or editors in page management', () => {
+    expect(shouldUseApplicationWorkspaceLoad({ query: {} })).toBe(false)
+    expect(shouldUseApplicationWorkspaceLoad({ query: { pageId: 'page_1' } })).toBe(false)
+    expect(shouldUseApplicationWorkspaceLoad({ query: { pageId: 'page_1' } }, true)).toBe(true)
+    expect(shouldUseApplicationWorkspaceLoad({ query: { edit: '1' } })).toBe(true)
+    expect(shouldUseApplicationWorkspaceLoad({ query: { draft: '1' } })).toBe(true)
+  })
+
+  it('loads workspace for editors in page management; published runtime only for viewers', () => {
+    const runtimeSource = readFileSync(resolve('src/views/app-center/application-runtime.[applicationCode].vue'), 'utf8')
+    expect(runtimeSource).toContain('businessApplicationRuntimeByCode')
+    expect(runtimeSource).toContain('shouldUseApplicationWorkspaceLoad(route, canEditApplication.value)')
+    // 有编辑权限的页面管理也要 designPreview，否则保存的默认值只在发布后才进正式快照
+    expect(runtimeSource).toContain(':design-preview="editing || isDraftMode || canEditApplication"')
+    expect(runtimeSource).toContain("import.meta.glob('/src/assets/images/form/*.png', { import: 'default' })")
+    expect(runtimeSource).not.toContain('eager: true')
+  })
+
+  it('includes editor workspace access in the load key', () => {
+    const withoutEdit = resolveApplicationRuntimeLoadKey({
+      params: { applicationCode: 'hr_apply' },
+      query: { pageId: 'page_1' },
+    }, false)
+    const withEdit = resolveApplicationRuntimeLoadKey({
+      params: { applicationCode: 'hr_apply' },
+      query: { pageId: 'page_1' },
+    }, true)
+    expect(withEdit).not.toBe(withoutEdit)
+  })
+
   it('waits for object runtime config before mounting the CRUD page', () => {
     const runtimeSource = readFileSync(resolve('src/views/app-center/application-runtime.[applicationCode].vue'), 'utf8')
     const rendererSource = readFileSync(resolve('src/components/lowcode-builder/page/GridBlockRenderer.vue'), 'utf8')
@@ -64,6 +95,7 @@ describe('application runtime route loading', () => {
     expect(rendererSource).toContain('<n-skeleton height="32px" :sharp="false" />')
     expect(rendererSource).not.toContain('<n-spin size="small" />')
     expect(rendererSource).toContain('v-else-if="effectiveRuntimeCrudProps"')
+    expect(rendererSource).toContain("defineAsyncComponent(() => import('@/components/ai-form/AiCrudPage.vue'))")
   })
 
   it('keeps nested tab blocks selectable and configurable from the runtime canvas', () => {

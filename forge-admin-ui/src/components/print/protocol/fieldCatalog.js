@@ -24,6 +24,7 @@ export function collectFieldBindings(document) {
       item.footer?.cells?.forEach((cell, j) => binding(cell.binding, `${location}[${i}].footer.cells[${j}]`))
       item.subtotal?.cells?.forEach((cell, j) => binding(cell.binding, `${location}[${i}].subtotal.cells[${j}]`))
     }
+    item.descriptions?.items?.forEach((entry, j) => binding(entry.binding, `${location}[${i}].descriptions.items[${j}].binding`))
   })
   elements(document.header.elements, 'header.elements')
   elements(document.footer.elements, 'footer.elements')

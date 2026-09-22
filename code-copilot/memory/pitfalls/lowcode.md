@@ -1,6 +1,26 @@
 # 踩坑：低代码 / 设计器 / 业务对象
 
-> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 89 条。
+> 从 `code-copilot/memory/pitfalls.md` 按主题拆出。新条目追加到本文件。共 93 条。
+
+## GET render 设计预览写关系表导致 Lock wait timeout
+
+**发现日期**: 2026-09-22
+
+**问题描述**:
+`GET /ai/crud-config/render/{configKey}?designPreview=true` 调用 `prepareRuntimeDraft`，在事务里执行 `ensureChildTableRelations` → `relationMapper.updateById`。并发预览、多区块渲染或与设计器保存重叠时，对 `ai_business_object_relation` 抢锁，抛出 `CannotAcquireLockException: Lock wait timeout exceeded`。
+
+**解决方案**:
+渲染链路改走 `prepareRuntimeDraftForPreview`：只编译草稿 schema，不同步写关系。子表关系仍由设计器保存和发布的 `synchronizeFormChildRelations` 落库。关系配置比较改为 JSON 语义相等，避免 key 顺序差异触发无意义 UPDATE。
+
+## 导入已有表新增不自动填充审计字段
+
+**发现日期**: 2026-09-22
+
+**问题描述**:
+表单设计导入已有表后新增数据，`create_by` / `create_time` / `create_dept` / `update_by` / `update_time` 为空。导入策略要求五列齐全才设 `FORGE_COLUMNS`，否则整段 `NONE`；且 `saveRuntimeDraft` 不把 `modelSchema.auditStrategy` 同步到 `ai_crud_config.audit_strategy`，运行时跳过自动填充。
+
+**解决方案**:
+导入按实际存在的审计列启用策略；草稿保存同步 tenant/audit/logicDelete 策略到配置列；插入时若策略误标 `NONE` 但物理表仍有标准审计列则按列补齐，并写入 `del_flag` 活跃值。
 
 ## 表单页面形态必须传到实际 CRUD 组件
 
@@ -1692,16 +1712,40 @@ Flyway 脚本为新环境写了包含完整字段的 `CREATE TABLE IF NOT EXISTS
 **解决方案**:
 创建数据页时读取 `genDatasourceEnabled('LOWCODE_RUNTIME')`，允许选择运行数据源。引用现有表时再拉表列表和列，推断字段类型并生成表单；保存走 `DB_IMPORT`，不要再自动 CREATE TABLE。
 
-## 新建页面不能只凭页面 ID 复用已有数据表
+## 删除页面后同编码重建业务对象
 
-**发现日期**: 2026-09-19
+**发现日期**: 2026-09-22
 
 **问题描述**:
-新建页面点保存，报「字段“数字”已有数据，不能删除（数据表 cgou_approval_7dm4）」。这张表属于应用里已有的审批对象，不是新页面自己的表。中文页面名经 slugify 后页面 ID 固定退化成 `page_page`、表单资产 ID 退化成 `form`。从导航删除页面后，托管对象和物理表仍在，并记着旧的 `sourcePageId`。再新建页面会重新拿到同一个 ID。保存时 `pageMarkerMatches` 用页面 ID 或表单资产 ID 任一命中就复用旧对象，新画布字段里没有“数字”，字段守卫就按删列拒绝。
+删除应用内页面并手工 DROP 了物理表后，用相同业务对象编码（如 `indicator_group`）再建页面，报「业务对象编码已存在（编码必须在租户内唯一）」。页面删除只会调用 `detachOrphanPageFormObjects` 解除应用关联，**不删** `ai_business_object`；租户级唯一索引 `uk_ai_business_object_code_tenant_active (tenant_id, object_code, del_flag)` 仍被 `del_flag=0` 的残留行占用。
 
 **解决方案**:
-- 托管对象复用必须页面 ID 和表单资产 ID 同时命中，不能只靠其中一项。
-- 新建页面和表单资产 ID 必须带不可复用的随机后缀，删除后再建不能回到 `page_page` / `form`。
+- 删除页面解绑孤儿 PAGE_FORM 对象后，若该对象已无任何应用引用，则软删对象及其独占数据模型，并清理对象关系。
+- 新建对象编码冲突时，若冲突行是无人引用的 PAGE_FORM 孤儿，自动回收后再创建。
+- 物理表仍需用户自行 DROP；重建时会按新设计再同步建表。
+
+## 开关默认值 true/false 会导致发布建表失败
+
+**发现日期**: 2026-09-22
+
+**问题描述**:
+应用发布时 CREATE TABLE 报 `Invalid default value for 'field_switch'`。DDL 写成 ``tinyint NOT NULL DEFAULT 'true'``。表单开关默认值被存成布尔 `true`/`false`，MySQL 方言又把非表达式默认值一律加引号。
+
+**解决方案**:
+- 开关默认值统一归一成 `0`/`1`；方言对 tinyint/boolean 默认值按数值写出，不再加引号。
+- DDL 层：tinyint/数值列把 true/false 规范成 0/1，并输出无引号数字 DEFAULT。
+- 设计器：switch 的 checked/unchecked/默认值始终用 0/1。
+- 保存表单会尝试同步建表；失败时常只记 warning。发布会对未 IN_SYNC 的 PAGE_FORM 对象再同步一次，所以错误常在发布时才暴露。
+
+## 列表开关列不能只显示 0/1，需 switch 渲染 + 行内更新
+
+**发现日期**: 2026-09-22
+
+**问题描述**:
+开关字段在列表里直接显示 `0`/`1`。`LowcodeRuntimeConfigBuilder` 未给 `switch` 生成 `render.type`，`AiCrudPage.resolveColumnRender` 也不认识开关列。
+
+**解决方案**:
+后端默认 `render.type=switch`（含 checked/unchecked 值）；前端列表渲染 `NSwitch`，有 update 接口时行内 PUT 部分字段更新。存量已发布配置可从 `editSchema.type=switch` 推断，仍无样式时需重新发布或走 designPreview 草稿编译。
 
 ## 审计提交回调不能依赖已退出的业务数据源上下文
 

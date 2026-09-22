@@ -17,9 +17,9 @@ public interface PrintTemplateMapper {
 
     PrintTemplate lockScoped(@Param("tenantId") Long tenantId, @Param("id") Long id);
 
-    List<PrintTemplate> selectApplication(@Param("tenantId") Long tenantId, @Param("applicationId") Long applicationId, @Param("offset") long offset, @Param("limit") int limit);
+    List<PrintTemplate> selectApplication(@Param("tenantId") Long tenantId, @Param("applicationId") Long applicationId, @Param("pageId") String pageId, @Param("offset") long offset, @Param("limit") int limit);
 
-    long countApplication(@Param("tenantId") Long tenantId, @Param("applicationId") Long applicationId);
+    long countApplication(@Param("tenantId") Long tenantId, @Param("applicationId") Long applicationId, @Param("pageId") String pageId);
 
     int updateDraft(@Param("row") PrintTemplate row, @Param("expectedRevision") Long expectedRevision);
 

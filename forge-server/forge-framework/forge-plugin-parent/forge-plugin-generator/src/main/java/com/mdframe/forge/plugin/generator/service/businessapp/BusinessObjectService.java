@@ -9,6 +9,7 @@ import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessObjectQueryDTO
 import com.mdframe.forge.plugin.generator.mapper.BusinessAppMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessApplicationObjectMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessObjectMapper;
+import com.mdframe.forge.plugin.generator.mapper.BusinessObjectRelationMapper;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectRuntimeInfoVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessObjectVO;
 import com.mdframe.forge.starter.core.enums.EnableStatus;
@@ -38,6 +39,7 @@ public class BusinessObjectService extends ServiceImpl<BusinessObjectMapper, AiB
     private final BusinessSuiteService suiteService;
     private final BusinessAppMapper businessAppMapper;
     private final BusinessApplicationObjectMapper applicationObjectMapper;
+    private final BusinessObjectRelationMapper relationMapper;
     private final BusinessNamingService businessNamingService;
 
     public Page<BusinessObjectVO> page(Integer pageNum, Integer pageSize, BusinessObjectQueryDTO query) {
@@ -179,7 +181,83 @@ public class BusinessObjectService extends ServiceImpl<BusinessObjectMapper, AiB
         if (applicationObjectMapper.countByObjectId(tenantId, object.getId()) > 0) {
             throw new BusinessException("该业务对象已加入业务应用，不能删除");
         }
+        softDeleteObjectAndExclusiveModel(object);
+    }
+
+    /**
+     * 回收「页面表单托管且已无任何应用引用」的同编码残留对象。
+     * 删除页面后对象默认只从应用解绑、不删元数据，导致同编码重建撞唯一约束；此处按编码清理这类孤儿。
+     *
+     * @return true 表示已清理掉至少一个残留对象
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public boolean reclaimUnusedPageFormObject(String objectCode) {
+        String code = StringUtils.trimToNull(objectCode);
+        if (code == null) {
+            return false;
+        }
+        Long tenantId = resolveTenantId();
+        AiBusinessObject existing = baseMapper.selectFirstByObjectCode(tenantId, code);
+        if (existing == null || !isPageFormManaged(existing.getOptions())) {
+            return false;
+        }
+        if (applicationObjectMapper.countByObjectId(tenantId, existing.getId()) > 0) {
+            return false;
+        }
+        if (baseMapper.countAppsByObject(tenantId, existing.getSuiteCode(), existing.getObjectCode()) > 0) {
+            return false;
+        }
+        relationMapper.deleteRelationsByObjectCode(tenantId, existing.getSuiteCode(), existing.getObjectCode());
+        softDeleteObjectAndExclusiveModel(existing);
+        return true;
+    }
+
+    /**
+     * 按对象 ID 清理页面表单托管孤儿（删除页面后解绑时调用）。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public boolean reclaimUnusedPageFormObjectById(Long objectId) {
+        if (objectId == null) {
+            return false;
+        }
+        Long tenantId = resolveTenantId();
+        AiBusinessObject existing = baseMapper.selectByIdForTenant(tenantId, objectId);
+        if (existing == null || !isPageFormManaged(existing.getOptions())) {
+            return false;
+        }
+        if (applicationObjectMapper.countByObjectId(tenantId, existing.getId()) > 0) {
+            return false;
+        }
+        if (baseMapper.countAppsByObject(tenantId, existing.getSuiteCode(), existing.getObjectCode()) > 0) {
+            return false;
+        }
+        relationMapper.deleteRelationsByObjectCode(tenantId, existing.getSuiteCode(), existing.getObjectCode());
+        softDeleteObjectAndExclusiveModel(existing);
+        return true;
+    }
+
+    private void softDeleteObjectAndExclusiveModel(AiBusinessObject object) {
+        Long modelId = object.getModelId();
         removeById(object.getId());
+        if (modelId == null) {
+            return;
+        }
+        AiBusinessObject stillBound = baseMapper.selectByModelId(resolveTenantId(), modelId);
+        if (stillBound == null) {
+            baseMapper.logicDeleteModelById(resolveTenantId(), modelId);
+        }
+    }
+
+    private boolean isPageFormManaged(String options) {
+        if (StringUtils.isBlank(options)) {
+            return false;
+        }
+        try {
+            com.alibaba.fastjson2.JSONObject marker = com.alibaba.fastjson2.JSON.parseObject(options);
+            return marker != null && "PAGE_FORM".equals(marker.getString("managedBy"));
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     public AiBusinessObject requireEntity(Long id) {
@@ -234,7 +312,12 @@ public class BusinessObjectService extends ServiceImpl<BusinessObjectMapper, AiB
         }
         Long excludeId = create ? null : object.getId();
         if (baseMapper.countActiveByObjectCode(resolveTenantId(), objectCode, excludeId) > 0) {
-            throw new BusinessException("业务对象编码已存在（编码必须在租户内唯一）: " + objectCode);
+            if (create && reclaimUnusedPageFormObject(objectCode)
+                    && baseMapper.countActiveByObjectCode(resolveTenantId(), objectCode, null) == 0) {
+                // 页面删除后残留的托管对象已回收，允许同编码重建
+            } else {
+                throw new BusinessException("业务对象编码已存在（编码必须在租户内唯一）: " + objectCode);
+            }
         }
         object.setTenantId(resolveTenantId());
         object.setSuiteCode(suiteCode);

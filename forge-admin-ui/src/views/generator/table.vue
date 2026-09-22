@@ -419,9 +419,9 @@ function handleEdit(row) {
 // 删除
 function handleDelete(row) {
   window.$dialog.warning({
-    title: '确认删除',
-    content: `确定要删除表配置"${row.tableName}"吗？`,
-    positiveText: '确定',
+    title: '危险操作：删除表配置',
+    content: `确定删除表配置「${row.tableName}」吗？将移除代码生成元数据，删除后无法恢复。此操作不会物理删除数据库中的表及数据。`,
+    positiveText: '确认删除',
     negativeText: '取消',
     onPositiveClick: async () => {
       try {

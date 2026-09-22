@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { applyLineGeometrySideEffects, applyLineStyleSideEffects, clampElementToContent, findSurface, newPrintId, normalizeTableColumnWidths, resizeElement, selectionBounds, snapResize, snapTranslation, translateElements } from '../../components/print/designer/commands'
+import { fitDocumentToPaper } from '../../components/print/designer/paperFit'
 import { nextPrintZoom, PRINT_ZOOM_LEVELS } from '../../components/print/designer/designerView'
 import { cloneDocument, createHistory, recordChange, travelHistory } from '../../components/print/designer/history'
 import { clearStaticTableBandCellStyles, deleteStaticTableColumns, deleteStaticTableRows, insertStaticTableColumns, insertStaticTableRows, mergeStaticTableCells, renewPrintElementIds, splitStaticTableCell, staticTableSize, styleStaticTableRowsAsHeader } from '../../components/print/designer/staticTable'
@@ -121,26 +122,9 @@ export const usePrintDesignerStore = defineStore('printDesigner', {
         this.clampDocumentToPaper(doc)
       })
     },
-    /** Keep free elements / detail tables inside the printable content after paper changes. */
+    /** Keep free layout inside the printable area after paper / margin changes. */
     clampDocumentToPaper(doc) {
-      const contentWidth = paperGeometry(doc).contentWidthMm
-      const visit = (surface) => {
-        if (!surface?.elements)
-          return
-        surface.elements.forEach((element) => {
-          clampElementToContent(doc, element)
-          if (Number.isFinite(surface.heightMm) && element.yMm + element.heightMm > surface.heightMm)
-            surface.heightMm = Number((element.yMm + element.heightMm).toFixed(3))
-        })
-      }
-      visit(doc.header)
-      visit(doc.footer)
-      doc.body.forEach((section) => {
-        if (section.kind === 'FIXED')
-          visit(section)
-        if (section.kind === 'TABLE' && section.columns?.length)
-          normalizeTableColumnWidths(section.columns, contentWidth)
-      })
+      fitDocumentToPaper(doc)
     },
     toggleGrid(value) {
       this.showGrid = value ?? !this.showGrid
@@ -308,6 +292,8 @@ export const usePrintDesignerStore = defineStore('printDesigner', {
         this.selectedIds = [id]
       }
       this.selectedGuideId = ''
+      if (this.selectedIds.length)
+        this.rightPanelOpen = true
       if (additive || !sameSingle) {
         this.tableCellIds = []
         this.tableColumnId = ''

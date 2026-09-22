@@ -75,7 +75,7 @@
         SELECT id, tenant_id, application_id, version_no, snapshot_json
         FROM ai_business_application_version
         WHERE tenant_id = #{tenantId} AND application_id = #{applicationId} AND del_flag = '0'
-        ORDER BY id
+        <!-- JSqlParser 4.9 会把 ORDER BY ... FOR UPDATE 重排成非法 SQL，锁定全表行时不要 ORDER BY。 -->
         FOR UPDATE
     </select>
     <select id="selectPublishedPrintSources" resultMap="BaseResultMap">

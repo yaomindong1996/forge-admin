@@ -103,9 +103,49 @@ class PrintRuntimeActionProjectionServiceTest {
         verifyNoInteractions(templates);
     }
     @Test void stoppedTemplateAndMissingSnapshotNeverFallbackToDraftBindings() {
-        template.setStatus(0); service.overlay("purchase", 2L, "page_purchase", config, false); assertOriginal();
-        version.setSnapshotJson("{}"); service.overlay("purchase", 2L, "page_purchase", config, false); assertOriginal();
+        template.setStatus(0);
+        service.overlay("purchase", 2L, "page_purchase", config, false);
+        assertOriginal();
         verifyNoInteractions(bindings);
+    }
+
+    @Test void projectsPrintForCustomPageGridBlockObjectRef() throws Exception {
+        var customSource = new com.mdframe.forge.plugin.print.spi.PrintSourceRequest(2L,
+                com.mdframe.forge.plugin.print.enums.PrintSourceType.LOWCODE, "page_custom", null, "purchase");
+        var options = JSON.readTree("""
+            {"inAppBuilder":{"nodes":[{"id":"page_custom","type":"page"}],
+              "pages":{"page_custom":{"layout":{"gridLayout":{"items":[
+                {"props":{"objectRef":{"objectId":"3","objectCode":"purchase"}}}
+              ]}}}}}}
+            """);
+        portal.getApplication().setOptions(options.toString());
+        version.setSnapshotJson(PrintApplicationTestData.snapshot(
+                new PrintApplicationSnapshotCodec.Binding(customSource, PrintScene.LIST, 10L, 20L, HASH, true, 0)));
+        template.setSourceKey(customSource.key());
+        service.overlay("purchase", 2L, "page_custom", config, false);
+        var actions = JSON.valueToTree(config.getOptions()).path("runtimeActions");
+        assertThat(actions.size()).isEqualTo(2);
+        assertThat(actions.get(1).path("key").asText()).isEqualTo("forgePrint:LIST");
+    }
+
+    @Test void managersCanPreviewLiveBindingsWhenSnapshotHasNoPrintActions() {
+        version.setSnapshotJson("{}");
+        var row = new PrintBinding();
+        row.setApplicationId(2L);
+        row.setSourceType("LOWCODE");
+        row.setPageId("page_purchase");
+        row.setObjectCode("purchase");
+        row.setSourceKey(SOURCE.key());
+        row.setTemplateId(10L);
+        row.setScene("LIST");
+        row.setStatus(1);
+        when(bindings.selectApplicationEnabled(1L, 2L)).thenReturn(List.of(row));
+        session.when(() -> SessionHelper.hasPermission("print:template:manage")).thenReturn(true);
+        service.overlay("purchase", 2L, "page_purchase", config, false);
+        var actions = JSON.valueToTree(config.getOptions()).path("runtimeActions");
+        assertThat(actions.size()).isEqualTo(2);
+        assertThat(actions.get(1).path("key").asText()).isEqualTo("forgePrint:LIST");
+        verify(bindings).selectApplicationEnabled(1L, 2L);
     }
     @Test void invalidManifestIsNotSilentlyAccepted() {
         version.setSnapshotJson("{\"printing\":null}");

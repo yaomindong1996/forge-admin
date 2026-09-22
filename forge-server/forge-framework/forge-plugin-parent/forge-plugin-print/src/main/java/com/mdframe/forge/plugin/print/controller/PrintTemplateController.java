@@ -27,8 +27,8 @@ public class PrintTemplateController {
     @GetMapping("/page")
     @SaCheckPermission("print:template:view")
     @OperationLog(module = "打印", type = OperationType.QUERY, desc = "查询打印模板", saveRequestParams = false, saveResponseResult = false)
-    public RespInfo<PrintTemplateVO.Page> page(@RequestParam Long applicationId, @RequestParam(defaultValue = "1") int pageNum, @RequestParam(defaultValue = "20") int pageSize) {
-        return RespInfo.success(templates.page(applicationId, pageNum, pageSize));
+    public RespInfo<PrintTemplateVO.Page> page(@RequestParam Long applicationId, @RequestParam(required = false) String pageId, @RequestParam(defaultValue = "1") int pageNum, @RequestParam(defaultValue = "20") int pageSize) {
+        return RespInfo.success(templates.page(applicationId, pageNum, pageSize, pageId));
     }
 
     @GetMapping("/{id}")

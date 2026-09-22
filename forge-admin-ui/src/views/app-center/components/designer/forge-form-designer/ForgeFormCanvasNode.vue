@@ -406,7 +406,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import AiCrudPage from '@/components/ai-form/AiCrudPage.vue'
 import AiFormGroupTitle from '@/components/ai-form/AiFormGroupTitle.vue'
 import AiFormItem from '@/components/ai-form/AiFormItem.vue'
@@ -442,6 +442,7 @@ import {
   setDesignerDropKey,
 } from './designerDragState'
 import { createForgeFieldTemplateComponent, createForgeLayoutComponent } from './designerLayoutFactory'
+import { resolveDesignerCanvasPreviewValue } from './field-default-value'
 
 defineOptions({
   name: 'ForgeFormCanvasNode',
@@ -518,6 +519,22 @@ const isField = computed(() => isFieldComponent(props.component))
 const isLayout = computed(() => isLayoutComponent(props.component))
 const isTitle = computed(() => ['title', 'fcTitle'].includes(props.component.componentKey))
 const isSubTableComponent = computed(() => props.component.componentKey === 'subTable')
+
+watch(
+  () => ({
+    componentKey: props.component?.componentKey,
+    defaultValue: props.component?.props?.defaultValue,
+    checkedValue: props.component?.props?.checkedValue,
+    uncheckedValue: props.component?.props?.uncheckedValue,
+    optionsSignature: JSON.stringify(props.component?.props?.options || null),
+  }),
+  () => {
+    if (!isField.value)
+      return
+    previewValue.value = resolveDesignerCanvasPreviewValue(props.component)
+  },
+  { immediate: true },
+)
 const subTableDisplayModeLabel = computed(() => {
   const labels = { inline_grid: '行内表格', card_list: '卡片列表', bottom_sheet: '底部抽屉' }
   return labels[props.component.props?.displayMode] || '行内表格'
@@ -686,11 +703,17 @@ const previewField = computed(() => {
     labelWidth: props.component.layout?.labelWidth || props.schema.layout?.labelWidth || 100,
     placeholder: rawProps.placeholder || buildPreviewPlaceholder(componentKey, displayLabel.value),
     required: Boolean(props.component.validation?.required),
-    clearable: true,
+    clearable: rawProps.clearable !== false,
     disabled: false,
     readonly: false,
     multiple: rawProps.multiple === true || rawProps.recordSelector?.multiple === true,
     dictType: rawProps.dictType,
+    defaultValue: rawProps.defaultValue,
+    checkedValue: rawProps.checkedValue,
+    uncheckedValue: rawProps.uncheckedValue,
+    checkedText: rawProps.checkedText,
+    uncheckedText: rawProps.uncheckedText,
+    size: rawProps.size || props.schema.layout?.size || 'medium',
     options: resolvePreviewOptions(rawProps, componentKey),
     props: {
       ...rawProps,

@@ -49,6 +49,27 @@ class PrintMetadataResolverTest {
         reject(snapshot());
         verifyNoInteractions(drafts);
     }
+    @Test void unmatchedChildModelRefDoesNotFailTheSource() {
+        var result = resolver.published(ACTOR, SOURCE, resolver.parse(snapshot()
+                .replace("\"objectCode\":\"item\"", "\"objectCode\":\"other\"")
+                .replace("\"configKey\":\"item\"", "\"configKey\":\"other\"")
+                .replace("\"tableName\":\"test_item\"", "\"tableName\":\"unrelated\"")));
+        assertThat(result.main().config().getId()).isEqualTo(13);
+        assertThat(result.children()).isEmpty();
+    }
+
+    @Test void childMatchesByObjectCodeWhenTableNameDiffers() {
+        var main = version(130, 13, "purchase", true);
+        main.setPageSchema(page(true)
+                .replace("\"modelCode\":\"items\"", "\"modelCode\":\"item\"")
+                .replace("\"tableName\":\"test_item\"", "\"tableName\":\"other_table\""));
+        when(versions.selectVersionById(1L, 13L, 130L)).thenReturn(main);
+        var result = resolver.published(ACTOR, SOURCE, resolver.parse(snapshot()
+                .replace("\"tableName\":\"test_item\"", "\"tableName\":\"runtime_item\"")));
+        assertThat(result.children()).hasSize(1);
+        assertThat(result.children().get(0).key()).isEqualTo("item");
+    }
+
     @Test void movedSourceOrMissingChildObjectIsRejected() {
         reject(snapshot().replace("\"objectId\":\"3\",\"objectCode\":\"purchase\",\"configKey\":\"purchase\"}",
                 "\"objectId\":\"4\",\"objectCode\":\"purchase\",\"configKey\":\"purchase\"}"));

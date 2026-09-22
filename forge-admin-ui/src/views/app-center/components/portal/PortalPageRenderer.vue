@@ -58,10 +58,9 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, ref, watch } from 'vue'
 import { crudConfigRender } from '@/api/ai'
 import { executePublishedExtensionHook } from '@/api/business-extension'
-import GridBlockRenderer from '@/components/lowcode-builder/page/GridBlockRenderer.vue'
 import { buildRuntimeCrudProps } from '@/components/lowcode-builder/shared/runtime-crud-props'
 import ExtensionSandboxHost from '@/components/lowcode-extension/js/ExtensionSandboxHost.vue'
 import {
@@ -72,6 +71,8 @@ import {
 import RuntimeScopedStyles from '@/components/lowcode-extension/runtime/RuntimeScopedStyles'
 import { isRuntimeAutoHeightBlock, shouldUseContentSizedFlow } from './portal-page-runtime-layout'
 import PortalEmptyState from './PortalEmptyState.vue'
+
+const GridBlockRenderer = defineAsyncComponent(() => import('@/components/lowcode-builder/page/GridBlockRenderer.vue'))
 
 const props = defineProps({
   node: { type: Object, default: null },
@@ -167,7 +168,7 @@ const pageHeight = computed(() => blocks.value.reduce((bottom, block, index) => 
   return Math.max(bottom, top + height + 28)
 }, 620))
 
-watch(() => [props.node?.id, blocks.value], () => {
+watch(() => [props.node?.id, blocks.value, props.designPreview, props.configurable], () => {
   runtimeCrudPropsByKey.value = {}
   loadingKeys.value = new Set()
   unavailableKeys.value = new Set()
@@ -221,7 +222,9 @@ function preloadRuntimeCrudProps(block) {
 
 async function loadRuntimeCrudProps(configKey, objectRef, key) {
   try {
-    let designPreview = props.designPreview
+    // 页面管理对可编辑用户优先读设计草稿，避免保存默认值后必须发布应用才生效。
+    // 正式门户 configurable=false，仍只走已发布配置。
+    let designPreview = props.designPreview || props.configurable
     const runtimeEntryId = resolveRuntimeEntryId(configKey)
     let config = null
     try {

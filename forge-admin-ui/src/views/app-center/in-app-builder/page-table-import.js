@@ -1,3 +1,5 @@
+import { mapColumnDefaultToFieldDefault } from '@/views/app-center/components/designer/forge-form-designer/field-default-value'
+
 export const PAGE_DATA_SOURCE_CREATE = 'CREATE'
 export const PAGE_DATA_SOURCE_EXISTING_TABLE = 'EXISTING_TABLE'
 export const PAGE_OBJECT_CREATE_BLANK = 'BLANK'
@@ -49,6 +51,10 @@ export function inferFormFieldFromColumn(column = {}, index = 0) {
   const length = resolveImportedLength(column.columnType || column.column_type, dataType)
   const precision = resolveImportedPrecision(column.columnType || column.column_type, dataType)
   const required = Number(column.isRequired ?? column.is_required) === 1
+  const defaultValue = mapColumnDefaultToFieldDefault(
+    column.columnDefault ?? column.column_default,
+    { dataType, componentType, fieldType },
+  )
 
   return {
     fieldName: label,
@@ -59,7 +65,7 @@ export function inferFormFieldFromColumn(column = {}, index = 0) {
     length,
     precision,
     required,
-    defaultValue: null,
+    defaultValue,
     searchable: isImportedSearchField(fieldCode, columnName),
     listVisible: true,
     formVisible: true,

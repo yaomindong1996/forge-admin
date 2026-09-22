@@ -449,10 +449,14 @@ async function toggleObject() {
 function deleteObject() {
   if (!object.value)
     return
+  const tableName = object.value.tableName || object.value.configKey
+  const tableHint = tableName
+    ? `关联物理表「${tableName}」及表内业务数据不会被删除。`
+    : '关联数据库物理表及表内业务数据不会被删除。'
   window.$dialog?.warning({
-    title: '删除业务单元',
-    content: `确定删除“${object.value.objectName || object.value.objectCode}”吗？已关联关系或访问入口的对象会被后端拦截。`,
-    positiveText: '删除',
+    title: '危险操作：删除业务单元',
+    content: `确定删除“${object.value.objectName || object.value.objectCode}”吗？将清理对象元数据与相关配置，删除后无法从应用侧恢复。${tableHint}已关联关系或访问入口的对象会被后端拦截。`,
+    positiveText: '确认删除',
     negativeText: '取消',
     onPositiveClick: async () => {
       await deleteBusinessObject(object.value.id)

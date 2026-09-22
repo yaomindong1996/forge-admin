@@ -19,7 +19,7 @@ import {
   ScaleOutline,
   SwapHorizontalOutline,
 } from '@vicons/ionicons5'
-import { NButton, NDropdown, NIcon, NInput, NSelect } from 'naive-ui'
+import { NButton, NDropdown, NIcon, NInput, NSelect, NTooltip } from 'naive-ui'
 import { computed, h } from 'vue'
 import DictTag from '@/components/DictTag.vue'
 import { usePrintDesignerStore } from '@/stores/print/printDesignerStore'
@@ -86,6 +86,9 @@ const paperSelectOptions = computed(() => {
     return [{ label: `自定义 · ${geometry.value.widthMm} × ${geometry.value.heightMm} mm`, value: 'CUSTOM', disabled: true }, ...paperOptions]
   return paperOptions
 })
+const rotateTip = computed(() => store.document.paper.orientation === 'PORTRAIT'
+  ? `转为横向 · 当前 ${geometry.value.widthMm} × ${geometry.value.heightMm} mm`
+  : `转为纵向 · 当前 ${geometry.value.widthMm} × ${geometry.value.heightMm} mm`)
 const moreOptions = computed(() => {
   const localOptions = props.local
     ? [
@@ -121,9 +124,14 @@ function handleMore(key) {
 <template>
   <header class="designer-toolbar">
     <template v-if="pageMode">
-      <button type="button" class="tool-button" title="返回模板列表" aria-label="返回模板列表" @click="$emit('back')">
-        <NIcon :component="ArrowBackOutline" />
-      </button>
+      <NTooltip placement="bottom">
+        <template #trigger>
+          <button type="button" class="tool-button" aria-label="返回页面打印设置" @click="$emit('back')">
+            <NIcon :component="ArrowBackOutline" :size="18" />
+          </button>
+        </template>
+        返回页面打印设置
+      </NTooltip>
       <NInput
         :value="templateName"
         :input-props="{ 'aria-label': '模板名称' }"
@@ -146,62 +154,122 @@ function handleMore(key) {
     </div>
 
     <div class="command-group panel-commands">
-      <button type="button" class="tool-button" :class="{ active: store.leftPanelOpen }" title="显示或隐藏组件面板" aria-label="显示或隐藏组件面板" @click="store.leftPanelOpen = !store.leftPanelOpen">
-        <NIcon :component="LayersOutline" />
-      </button>
-      <button type="button" class="tool-button" :class="{ active: store.rightPanelOpen }" title="显示或隐藏属性面板" aria-label="显示或隐藏属性面板" @click="store.rightPanelOpen = !store.rightPanelOpen">
-        <NIcon :component="OptionsOutline" />
-      </button>
+      <NTooltip placement="bottom">
+        <template #trigger>
+          <button type="button" class="tool-button" :class="{ active: store.leftPanelOpen }" aria-label="显示或隐藏组件面板" @click="store.leftPanelOpen = !store.leftPanelOpen">
+            <NIcon :component="LayersOutline" :size="18" />
+          </button>
+        </template>
+        显示或隐藏左侧组件面板
+      </NTooltip>
+      <NTooltip placement="bottom">
+        <template #trigger>
+          <button type="button" class="tool-button" :class="{ active: store.rightPanelOpen }" aria-label="显示或隐藏属性面板" @click="store.rightPanelOpen = !store.rightPanelOpen">
+            <NIcon :component="OptionsOutline" :size="18" />
+          </button>
+        </template>
+        显示或隐藏右侧属性面板
+      </NTooltip>
     </div>
 
     <div class="command-group history-commands">
-      <button type="button" class="tool-button" title="撤销" aria-label="撤销" :disabled="!store.canUndo" @click="store.undo()">
-        <NIcon :component="ArrowUndoOutline" />
-      </button>
-      <button type="button" class="tool-button" title="重做" aria-label="重做" :disabled="!store.canRedo" @click="store.redo()">
-        <NIcon :component="ArrowRedoOutline" />
-      </button>
+      <NTooltip placement="bottom">
+        <template #trigger>
+          <button type="button" class="tool-button" aria-label="撤销" :disabled="!store.canUndo" @click="store.undo()">
+            <NIcon :component="ArrowUndoOutline" :size="18" />
+          </button>
+        </template>
+        撤销上一步操作
+      </NTooltip>
+      <NTooltip placement="bottom">
+        <template #trigger>
+          <button type="button" class="tool-button" aria-label="重做" :disabled="!store.canRedo" @click="store.redo()">
+            <NIcon :component="ArrowRedoOutline" :size="18" />
+          </button>
+        </template>
+        重做已撤销的操作
+      </NTooltip>
     </div>
 
     <div class="command-group paper-commands">
       <NSelect :value="paperName" aria-label="纸张规格" :options="paperSelectOptions" size="small" class="paper-select" @update:value="preset" />
-      <button type="button" class="tool-button" :title="`${store.document.paper.orientation === 'PORTRAIT' ? '转为横向' : '转为纵向'} · 当前 ${geometry.widthMm} × ${geometry.heightMm} mm`" :aria-label="store.document.paper.orientation === 'PORTRAIT' ? '转为横向' : '转为纵向'" @click="store.rotatePaper()">
-        <NIcon :component="SwapHorizontalOutline" />
-      </button>
-      <button type="button" class="tool-button" :class="{ active: store.showGrid }" title="显示或隐藏毫米网格" aria-label="显示或隐藏毫米网格" @click="store.toggleGrid()">
-        <NIcon :component="GridOutline" />
-      </button>
-      <button type="button" class="tool-button" :class="{ active: store.miniMapOpen }" title="显示或隐藏概览图" aria-label="显示或隐藏概览图" @click="store.toggleMiniMap()">
-        <NIcon :component="MapOutline" />
-      </button>
+      <NTooltip placement="bottom">
+        <template #trigger>
+          <button type="button" class="tool-button" :aria-label="store.document.paper.orientation === 'PORTRAIT' ? '转为横向' : '转为纵向'" @click="store.rotatePaper()">
+            <NIcon :component="SwapHorizontalOutline" :size="18" />
+          </button>
+        </template>
+        {{ rotateTip }}
+      </NTooltip>
+      <NTooltip placement="bottom">
+        <template #trigger>
+          <button type="button" class="tool-button" :class="{ active: store.showGrid }" aria-label="显示或隐藏毫米网格" @click="store.toggleGrid()">
+            <NIcon :component="GridOutline" :size="18" />
+          </button>
+        </template>
+        显示或隐藏毫米网格
+      </NTooltip>
+      <NTooltip placement="bottom">
+        <template #trigger>
+          <button type="button" class="tool-button" :class="{ active: store.miniMapOpen }" aria-label="显示或隐藏概览图" @click="store.toggleMiniMap()">
+            <NIcon :component="MapOutline" :size="18" />
+          </button>
+        </template>
+        显示或隐藏画布概览图
+      </NTooltip>
     </div>
 
     <div class="command-group zoom-commands">
-      <button type="button" class="tool-button" title="缩小画布" aria-label="缩小画布" :disabled="!store.canZoomOut" @click="store.nudgeZoom(-1)">
-        <NIcon :component="RemoveOutline" />
-      </button>
+      <NTooltip placement="bottom">
+        <template #trigger>
+          <button type="button" class="tool-button" aria-label="缩小画布" :disabled="!store.canZoomOut" @click="store.nudgeZoom(-1)">
+            <NIcon :component="RemoveOutline" :size="18" />
+          </button>
+        </template>
+        缩小画布
+      </NTooltip>
       <NSelect :value="store.zoom" aria-label="画布缩放" :options="zooms" size="small" class="zoom-select" @update:value="store.setZoom" />
-      <button type="button" class="tool-button" title="放大画布" aria-label="放大画布" :disabled="!store.canZoomIn" @click="store.nudgeZoom(1)">
-        <NIcon :component="AddOutline" />
-      </button>
+      <NTooltip placement="bottom">
+        <template #trigger>
+          <button type="button" class="tool-button" aria-label="放大画布" :disabled="!store.canZoomIn" @click="store.nudgeZoom(1)">
+            <NIcon :component="AddOutline" :size="18" />
+          </button>
+        </template>
+        放大画布
+      </NTooltip>
     </div>
 
     <div class="toolbar-spacer" />
     <div class="command-group final-commands">
       <template v-if="pageMode">
-        <button type="button" class="tool-button" title="场景绑定" aria-label="场景绑定" @click="$emit('bindings')">
-          <NIcon :component="LinkOutline" />
-        </button>
-        <button type="button" class="tool-button" title="发布版本" aria-label="发布版本" @click="$emit('versions')">
-          <NIcon :component="GitBranchOutline" />
-        </button>
+        <NTooltip placement="bottom">
+          <template #trigger>
+            <button type="button" class="tool-button" aria-label="场景绑定" @click="$emit('bindings')">
+              <NIcon :component="LinkOutline" :size="18" />
+            </button>
+          </template>
+          配置模板使用场景
+        </NTooltip>
+        <NTooltip placement="bottom">
+          <template #trigger>
+            <button type="button" class="tool-button" aria-label="发布版本" @click="$emit('versions')">
+              <NIcon :component="GitBranchOutline" :size="18" />
+            </button>
+          </template>
+          查看和管理已发布版本
+        </NTooltip>
       </template>
-      <button type="button" class="tool-button" title="预览打印结果" aria-label="预览打印结果" :disabled="!!store.gesture || store.fieldIssues.length > 0" @click="store.previewOpen = true">
-        <NIcon :component="EyeOutline" />
-      </button>
+      <NTooltip placement="bottom">
+        <template #trigger>
+          <button type="button" class="tool-button" aria-label="预览打印结果" :disabled="!!store.gesture || store.fieldIssues.length > 0" @click="store.previewOpen = true">
+            <NIcon :component="EyeOutline" :size="18" />
+          </button>
+        </template>
+        预览打印结果
+      </NTooltip>
       <NDropdown trigger="click" :options="moreOptions" @select="handleMore">
         <button type="button" class="tool-button" title="更多操作" aria-label="更多操作" :disabled="store.saving">
-          <NIcon :component="EllipsisHorizontalOutline" />
+          <NIcon :component="EllipsisHorizontalOutline" :size="18" />
         </button>
       </NDropdown>
       <NButton size="small" type="primary" :loading="store.saving" :disabled="!!store.gesture" class="save-button" @click="$emit('save')">
@@ -233,7 +301,7 @@ function handleMore(key) {
   display: flex;
   align-items: center;
   gap: 4px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 4px 8px;
   overflow-x: auto;
   border-bottom: 1px solid var(--border-light, #ddd);
@@ -284,18 +352,17 @@ function handleMore(key) {
   border-left: 1px solid var(--border-light, #ddd);
 }
 .tool-button {
-  width: 26px;
-  height: 26px;
+  width: 32px;
+  height: 32px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: 5px;
   color: var(--text-primary, #334155);
   background: transparent;
   cursor: pointer;
-  font-size: 15px;
 }
 .tool-button:hover:not(:disabled),
 .tool-button.active {

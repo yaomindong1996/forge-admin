@@ -952,7 +952,12 @@ const switchComp = {
     // 常用 · 选择行为
     checkedText: { group: '选择行为', priority: 'common', type: 'string', title: '开文案' },
     uncheckedText: { group: '选择行为', priority: 'common', type: 'string', title: '关文案' },
-    defaultValue: { group: '选择行为', priority: 'common', type: 'boolean', title: '默认值', default: false },
+    defaultValue: { group: '选择行为', priority: 'common', type: 'select', title: '默认值', options: [
+      { label: '关闭（0）', value: 0 },
+      { label: '开启（1）', value: 1 },
+    ], default: 0 },
+    checkedValue: { group: '选择行为', priority: 'advanced', type: 'number', title: '开启值', default: 1 },
+    uncheckedValue: { group: '选择行为', priority: 'advanced', type: 'number', title: '关闭值', default: 0 },
     // 常用 · 外观
     size: { group: '外观', priority: 'common', type: 'select', title: '尺寸', options: [
       { label: '小', value: 'small' },

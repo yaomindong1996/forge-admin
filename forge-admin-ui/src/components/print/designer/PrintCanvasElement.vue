@@ -80,6 +80,15 @@ const node = computed(() => ({
         }),
       }
     : undefined,
+  descriptions: props.element.type === 'DESCRIPTIONS'
+    ? {
+        ...(props.element.descriptions || {}),
+        items: (props.element.descriptions?.items || []).map(item => ({
+          ...item,
+          text: designerBindingText(item.binding, undefined, props.catalog, props.context),
+        })),
+      }
+    : undefined,
 }))
 const renderer = computed(() => printRenderers[props.element.type])
 const style = computed(() => ({

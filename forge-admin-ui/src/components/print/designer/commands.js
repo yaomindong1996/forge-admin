@@ -22,8 +22,10 @@ export function normalizeTableColumnWidths(columns, targetWidthMm) {
   columns.at(-1).widthMm = Number((columns.at(-1).widthMm + drift).toFixed(2))
 }
 
+import { newPrintId as createPrintElementId } from '../id'
+
 export function newPrintId() {
-  return `p_${globalThis.crypto.randomUUID()}`
+  return createPrintElementId()
 }
 
 export function findSurface(document, id) {

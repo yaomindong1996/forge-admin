@@ -549,7 +549,7 @@ class BusinessApplicationFormDataServiceTest {
         private final List<BusinessObjectVO> candidates;
 
         StubObjectService(Map<Long, AiBusinessObject> objects, List<BusinessObjectVO> candidates) {
-            super(null, null, null, null);
+            super(null, null, null, null, null);
             this.objects = new HashMap<>(objects);
             this.candidates = candidates;
         }

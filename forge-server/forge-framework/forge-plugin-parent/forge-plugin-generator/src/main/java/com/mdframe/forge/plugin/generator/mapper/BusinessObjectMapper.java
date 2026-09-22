@@ -106,4 +106,10 @@ public interface BusinessObjectMapper extends BaseMapper<AiBusinessObject> {
      * 查询已发布且启用的业务对象，供低代码查询源目录使用。
      */
     List<AiBusinessObject> selectPublishedObjects(@Param("tenantId") Long tenantId);
+
+    /**
+     * 软删页面表单托管对象独占的数据模型，释放 model_code 以便同编码重建。
+     */
+    int logicDeleteModelById(@Param("tenantId") Long tenantId,
+                             @Param("modelId") Long modelId);
 }

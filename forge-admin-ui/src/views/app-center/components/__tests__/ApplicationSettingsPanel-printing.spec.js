@@ -24,7 +24,7 @@ function createTestRouter() {
 }
 
 describe('applicationSettingsPanel printing section', () => {
-  it('opens printing from the route query and hides the unrelated save action', async () => {
+  it('keeps print templates out of application settings', async () => {
     api.businessApplicationDetailByCode.mockResolvedValue({
       data: {
         id: '1',
@@ -46,14 +46,12 @@ describe('applicationSettingsPanel printing section', () => {
           NIcon: { template: '<span><slot /></span>' },
           NButton: { template: '<button><slot /></button>' },
           NResult: { template: '<div><slot name="footer" /></div>' },
-          ApplicationPrintSettings: { template: '<div data-testid="print-settings" />' },
         },
       },
     })
     await flushPromises()
 
-    expect(wrapper.get('[data-testid="print-settings"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('打印模板')
-    expect(wrapper.text()).not.toContain('保存设置')
+    expect(wrapper.text()).not.toContain('打印模板')
+    expect(wrapper.text()).toContain('保存设置')
   })
 })

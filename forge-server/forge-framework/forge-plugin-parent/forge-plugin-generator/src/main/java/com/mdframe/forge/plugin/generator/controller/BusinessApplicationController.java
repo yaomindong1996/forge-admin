@@ -346,7 +346,6 @@ public class BusinessApplicationController {
     @SaCheckPermission("ai:businessApplication:list")
     @OperationLog(module = "业务应用", type = OperationType.QUERY, desc = "查询应用业务对象")
     public RespInfo<List<BusinessApplicationObjectVO>> listObjects(@PathVariable Long id) {
-        applicationObjectService.detachOrphanPageFormObjects(id);
         return RespInfo.success(applicationObjectService.list(id));
     }
 
@@ -374,7 +373,9 @@ public class BusinessApplicationController {
     public RespInfo<BusinessApplicationPageDesignVO> designPage(
             @PathVariable Long id,
             @RequestBody BusinessApplicationPageDesignDTO dto) {
-        return RespInfo.success(pageDesignService.save(id, dto));
+        BusinessApplicationPageDesignVO result = pageDesignService.save(id, dto);
+        applicationObjectService.detachOrphanPageFormObjects(id);
+        return RespInfo.success(result);
     }
 
     @PostMapping("/{id}/initialize-template")

@@ -550,10 +550,14 @@ function deleteSuite() {
 }
 
 function deleteObject(object) {
+  const tableName = object.tableName || object.configKey
+  const tableHint = tableName
+    ? `关联物理表「${tableName}」不会被删除。`
+    : '关联数据库物理表不会被删除。'
   window.$dialog?.warning({
-    title: '删除业务单元',
-    content: `确定删除“${object.objectName || object.objectCode}”吗？已关联关系或访问入口的对象会被后端拦截。`,
-    positiveText: '删除',
+    title: '危险操作：删除业务单元',
+    content: `确定删除“${object.objectName || object.objectCode}”吗？将清理对象元数据与相关配置，删除后无法从应用侧恢复。${tableHint}已关联关系或访问入口的对象会被后端拦截。`,
+    positiveText: '确认删除',
     negativeText: '取消',
     onPositiveClick: async () => {
       await deleteBusinessObject(object.id)

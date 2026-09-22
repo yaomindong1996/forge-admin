@@ -20,6 +20,16 @@ export function prepareElements(elements, context, measure, resources) {
       node.text = node.html
       node.heightMm = element.heightMm
     }
+    if (element.type === 'DESCRIPTIONS') {
+      const block = element.descriptions || {}
+      node.descriptions = {
+        ...block,
+        items: (block.items || []).map(item => ({
+          ...item,
+          text: formatValue(resolveBinding(item.binding, context), item.format),
+        })),
+      }
+    }
     if (['IMAGE', 'BARCODE', 'QRCODE'].includes(element.type)) {
       node.src = resources?.images.get(element.id) || ''
       const value = resolveBinding(element.binding, context)

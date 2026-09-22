@@ -44,11 +44,17 @@
           AND source_key = #{sourceKey} AND del_flag = 0
         ORDER BY scene, is_default DESC, sort_order, id
     </select>
+    <select id="selectUnique" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_binding
+        WHERE tenant_id = #{tenantId} AND application_id = #{applicationId}
+          AND source_key = #{sourceKey} AND template_id = #{templateId} AND scene = #{scene} AND del_flag = 0
+    </select>
+    <!-- 候选发布清单：应用行锁内当前读。JSqlParser 4.9 会把 ORDER BY ... FOR UPDATE 重排成非法 SQL，不能带 ORDER BY。 -->
     <select id="selectApplication" resultMap="Row">
         SELECT <include refid="Columns"/> FROM sys_print_binding
         WHERE tenant_id = #{tenantId} AND application_id = #{applicationId}
           AND del_flag = 0 AND status = 1
-        ORDER BY template_id, id FOR UPDATE
+        FOR UPDATE
     </select>
     <select id="selectApplicationEnabled" resultMap="Row">
         SELECT <include refid="Columns"/> FROM sys_print_binding
@@ -60,7 +66,6 @@
         SELECT COUNT(*) FROM sys_print_binding
         WHERE tenant_id = #{tenantId} AND template_id = #{templateId} AND del_flag = 0
     </select>
-    <!-- clear/insert/update 必须在同应用行锁内；不能只锁现有绑定（空集合并发不安全）。 -->
     <update id="clearDefault">
         UPDATE sys_print_binding SET is_default = 0, binding_revision = binding_revision + 1,
             update_by = #{actor}, update_time = NOW()

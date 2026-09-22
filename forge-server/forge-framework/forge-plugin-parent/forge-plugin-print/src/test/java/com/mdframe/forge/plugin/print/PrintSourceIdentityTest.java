@@ -43,6 +43,10 @@ class PrintSourceIdentityTest {
                 MessageDigest.getInstance("SHA-256").digest(legacy.getBytes(StandardCharsets.UTF_8))));
         assertThat(mapper.readValue(mapper.writeValueAsString(source), PrintSourceRequest.class)).isEqualTo(source);
         assertThat(source("page_purchase").key()).isNotEqualTo(source("page_Purchase").key());
+        assertThat(new PrintSourceRequest(2L, PrintSourceType.LOWCODE, "page_purchase", "", "purchase"))
+                .isEqualTo(source("page_purchase"));
+        assertThat(source("page_purchase").sameAs(
+                new PrintSourceRequest(2L, PrintSourceType.LOWCODE, "page_purchase", "  ", "purchase"))).isTrue();
     }
 
     private PrintSourceRequest source(String page) {

@@ -102,10 +102,8 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
 import DictTag from '@/components/DictTag.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
-import { buildApplicationPrintLocation } from './application-print-entry'
 
 defineProps({
   applications: {
@@ -115,7 +113,6 @@ defineProps({
 })
 
 const emit = defineEmits(['enter', 'run', 'edit', 'code', 'publish', 'toggle', 'delete'])
-const router = useRouter()
 
 function actionOptions(application) {
   const isDraft = isDraftApplication(application)
@@ -123,7 +120,6 @@ function actionOptions(application) {
     { label: isDraft ? '运行应用' : '发布应用', key: isDraft ? 'run' : 'publish' },
     { label: '预览与下载代码', key: 'code' },
     { label: '应用设置', key: 'edit' },
-    { label: '打印模板', key: 'print' },
     { label: Number(application.status) === 1 ? '停用应用' : '启用应用', key: 'toggle' },
     { type: 'divider', key: 'divider' },
     { label: '删除应用', key: 'delete' },
@@ -155,13 +151,6 @@ function handleAction(key, application) {
   }
   else if (key === 'edit') {
     emit('edit', application)
-  }
-  else if (key === 'print') {
-    const location = buildApplicationPrintLocation(application)
-    if (!location)
-      return
-    const target = router.resolve(location)
-    window.open(target.href, '_blank', 'noopener,noreferrer')
   }
   else if (key === 'toggle') {
     emit('toggle', application)

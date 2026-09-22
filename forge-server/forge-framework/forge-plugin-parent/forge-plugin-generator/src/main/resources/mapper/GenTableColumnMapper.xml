@@ -8,6 +8,7 @@
         <result property="columnName" column="column_name"/>
         <result property="columnComment" column="column_comment"/>
         <result property="columnType" column="column_type"/>
+        <result property="columnDefault" column="column_default"/>
         <result property="javaType" column="java_type"/>
         <result property="javaField" column="java_field"/>
         <result property="isPk" column="is_pk"/>
@@ -39,6 +40,7 @@
         SELECT column_name,
                column_comment,
                column_type,
+               column_default,
                CASE WHEN column_key = 'PRI' THEN 1 ELSE 0 END AS is_pk,
                CASE WHEN extra = 'auto_increment' THEN 1 ELSE 0 END AS is_increment,
                CASE WHEN is_nullable = 'NO' AND column_key != 'PRI' THEN 1 ELSE 0 END AS is_required

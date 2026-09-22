@@ -46,12 +46,25 @@ export function createApplicationRuntimeLoadCoordinator(loadFn) {
   return { run, invalidate }
 }
 
-export function resolveApplicationRuntimeLoadKey(route = {}) {
+export function resolveApplicationRuntimeLoadKey(route = {}, canEditApplication = false) {
   const params = route.params || {}
   const query = route.query || {}
   return JSON.stringify({
     applicationCode: String(params.applicationCode || ''),
     edit: query.edit === '1',
     draft: query.draft === '1',
+    // 有编辑权限时页面管理也读草稿；key 需区分，避免权限晚到时仍停留在已发布快照
+    workspace: shouldUseApplicationWorkspaceLoad(route, canEditApplication),
   })
+}
+
+/**
+ * 编辑态 / 草稿预览 / 有编辑权限的页面管理：读工作台草稿（含未发布页面）。
+ * 普通运行用户：读已发布快照。
+ */
+export function shouldUseApplicationWorkspaceLoad(route = {}, canEditApplication = false) {
+  const query = route.query || {}
+  if (query.edit === '1' || query.draft === '1')
+    return true
+  return Boolean(canEditApplication)
 }

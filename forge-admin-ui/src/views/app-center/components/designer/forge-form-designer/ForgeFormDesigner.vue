@@ -394,6 +394,7 @@ import BottomBarEditor from './BottomBarEditor.vue'
 import ForgeFieldShelf from './ForgeFieldShelf.vue'
 import ForgeFormCanvas from './ForgeFormCanvas.vue'
 import ForgePropertyPanel from './ForgePropertyPanel.vue'
+import { resolveDesignerCanvasPreviewValue } from './field-default-value'
 import { derivePageSectionsFromLayout } from './pageSectionDerivation'
 import PageSectionEditor from './PageSectionEditor.vue'
 
@@ -1236,22 +1237,7 @@ function preparePreviewNode(component) {
 function getDefaultRuntimeValue(component, mode = 'create') {
   if (mode === 'edit' || mode === 'detail')
     return getMockRuntimeValue(component)
-  if (component?.props && Object.prototype.hasOwnProperty.call(component.props, 'defaultValue')) {
-    return component.props.defaultValue
-  }
-  if (Object.prototype.hasOwnProperty.call(component || {}, 'defaultValue')) {
-    return component.defaultValue
-  }
-  const componentKey = component?.componentKey || component?.type
-  if (['date', 'datetime', 'month', 'year', 'time', 'daterange', 'datetimerange', 'timerange'].includes(componentKey))
-    return null
-  if (componentKey === 'checkbox' || componentKey === 'checkboxGroup')
-    return []
-  if (componentKey === 'switch')
-    return false
-  if (componentKey === 'rate' || componentKey === 'slider' || componentKey === 'number' || componentKey === 'inputNumber')
-    return null
-  return ''
+  return resolveDesignerCanvasPreviewValue(component)
 }
 
 function getMockRuntimeValue(component) {

@@ -265,7 +265,8 @@ public class PostgreSqlRuntimeDatabaseDialect implements RuntimeDatabaseDialect 
                    END AS column_type,
                    CASE WHEN kcu.column_name IS NOT NULL THEN 1 ELSE 0 END AS is_pk,
                    CASE WHEN c.column_default LIKE 'nextval%%' OR c.is_identity = 'YES' THEN 1 ELSE 0 END AS is_increment,
-                   CASE WHEN c.is_nullable = 'NO' AND kcu.column_name IS NULL THEN 1 ELSE 0 END AS is_required
+                   CASE WHEN c.is_nullable = 'NO' AND kcu.column_name IS NULL THEN 1 ELSE 0 END AS is_required,
+                   c.column_default
             FROM information_schema.columns c
             LEFT JOIN information_schema.table_constraints tc
               ON tc.table_schema = c.table_schema
@@ -290,11 +291,26 @@ public class PostgreSqlRuntimeDatabaseDialect implements RuntimeDatabaseDialect 
     }
 
     private String defaultLiteral(DdlColumn column) {
-        String value = Objects.toString(column.defaultValue(), "").trim();
-        if (isExpressionDefault(value) || isNumericType(column.sqlType())) {
+        Object normalized = normalizeDefaultValue(column.defaultValue());
+        String value = Objects.toString(normalized, "").trim();
+        if (isExpressionDefault(value) || isNumericType(column.sqlType()) || normalized instanceof Number) {
             return value;
         }
         return "'" + escapeSqlComment(value) + "'";
+    }
+
+    private Object normalizeDefaultValue(Object defaultValue) {
+        if (defaultValue instanceof Boolean bool) {
+            return bool ? 1 : 0;
+        }
+        String text = Objects.toString(defaultValue, "").trim();
+        if ("true".equalsIgnoreCase(text)) {
+            return 1;
+        }
+        if ("false".equalsIgnoreCase(text)) {
+            return 0;
+        }
+        return defaultValue;
     }
 
     private boolean isNumericType(String sqlType) {

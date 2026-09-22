@@ -1288,23 +1288,16 @@
                     />
                   </n-form-item>
                   <n-form-item label="默认值">
-                    <n-select
-                      v-if="defaultValueSelectEnabled"
-                      :value="selectedDefaultValueForSelect"
-                      :options="defaultValueSelectOptions"
-                      :multiple="defaultValueSelectMultiple"
-                      :loading="defaultValueOptionsLoading"
-                      filterable
-                      clearable
-                      placeholder="请选择默认值"
-                      @update:value="updateDefaultValue"
-                    />
-                    <n-input
-                      v-else
-                      :value="selectedComponent.props?.defaultValue"
-                      clearable
-                      placeholder="请输入"
-                      @update:value="updateDefaultValue"
+                    <FieldDefaultValueEditor
+                      :component-key="selectedComponent.componentKey"
+                      :component="selectedComponent"
+                      :field-asset="selectedFieldAsset"
+                      :model-value="selectedComponent.props?.defaultValue"
+                      :option-select-options="defaultValueSelectOptions"
+                      :option-multiple="defaultValueSelectMultiple"
+                      :option-loading="defaultValueOptionsLoading"
+                      @update:model-value="updateDefaultValue"
+                      @update:props="updateComponent({ props: $event })"
                     />
                   </n-form-item>
                   <n-form-item v-if="supportsFieldMaxLength" label="最大长度">
@@ -4568,6 +4561,7 @@ import FieldEventRulesEditor from './FieldEventRulesEditor.vue'
 import FieldLinkageRulesEditor from './FieldLinkageRulesEditor.vue'
 import { GRID_COLUMN_MARKS as gridColumnMarks, MAX_FORM_GRID_COLUMNS, normalizeGridCount } from './formLayoutConfig'
 import FieldNumberConstraintPanel from './panels/FieldNumberConstraintPanel.vue'
+import FieldDefaultValueEditor from './panels/FieldDefaultValueEditor.vue'
 import FormAssetsPanel from './panels/FormAssetsPanel.vue'
 import FormInitPanel from './panels/FormInitPanel.vue'
 import FormLayoutPanel from './panels/FormLayoutPanel.vue'
@@ -5671,35 +5665,22 @@ const defaultValueSelectMultiple = computed(() => {
     return selectedMultipleEnabled.value
   return false
 })
-const defaultValueSelectEnabled = computed(() => {
-  const key = selectedComponent.value?.componentKey || ''
-  if (!['select', 'dictSelect', 'radio', 'radioButton', 'checkbox'].includes(key))
-    return false
-  return selectedComponent.value?.props?.dataSourceType !== 'remote'
-})
 const selectedDictType = computed(() => String(selectedComponent.value?.props?.dictType || '').trim())
 const defaultValueOptionsLoading = computed(() => {
   const dictType = selectedDictType.value
   return dictType ? dictDefaultOptionsLoading.value[dictType] === true : false
 })
 const defaultValueSelectOptions = computed(() => {
+  const key = selectedComponent.value?.componentKey || ''
+  if (!['select', 'dictSelect', 'radio', 'radioButton', 'checkbox'].includes(key))
+    return []
+  if (selectedComponent.value?.props?.dataSourceType === 'remote')
+    return []
   const staticOptions = normalizeDefaultValueOptions(selectedOptions.value || [])
   if (staticOptions.length)
     return staticOptions
   const dictType = selectedDictType.value
   return dictType ? dictDefaultOptions.value[dictType] || [] : []
-})
-const selectedDefaultValueForSelect = computed(() => {
-  const value = selectedComponent.value?.props?.defaultValue
-  if (!defaultValueSelectMultiple.value)
-    return value ?? null
-  if (Array.isArray(value))
-    return value
-  if (value === undefined || value === null || value === '')
-    return []
-  if (typeof value === 'string')
-    return value.split(',').map(item => item.trim()).filter(Boolean)
-  return [value]
 })
 const selectedGenerationConfig = computed(() => selectedComponent.value?.props?.generation || {})
 const selectedGenerationEnabled = computed(() => selectedGenerationConfig.value.enabled === true)

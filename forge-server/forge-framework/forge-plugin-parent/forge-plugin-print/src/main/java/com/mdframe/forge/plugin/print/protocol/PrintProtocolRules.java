@@ -173,7 +173,7 @@ final class PrintProtocolRules {
                 }
             }
         }
-        if (doc.has("watermark") && object(doc.get("watermark"), "watermark", "text", "expression", "opacity", "rotateDeg", "gapXMm", "gapYMm", "fontSizePt", "color")) {
+        if (doc.has("watermark") && object(doc.get("watermark"), "watermark", "text", "expression", "opacity", "rotateDeg", "gapXMm", "gapYMm", "fontSizePt", "color", "enabled")) {
             JsonNode watermark = doc.get("watermark");
             if (watermark.has("text")) {
                 text(watermark.get("text"), "watermark.text", 100);
@@ -198,6 +198,9 @@ final class PrintProtocolRules {
             }
             if (watermark.has("color") && !PrintValueRules.isPrintColor(watermark.get("color"))) {
                 issue("watermark.color", "INVALID_COLOR", "颜色须使用十六进制格式");
+            }
+            if (watermark.has("enabled")) {
+                bool(watermark.get("enabled"), "watermark.enabled");
             }
         }
         JsonNode margins = paper.get("marginMm");
@@ -265,12 +268,12 @@ final class PrintProtocolRules {
     }
 
     private void element(JsonNode e, String path, double width, double height) {
-        if (!object(e, path, "id", "type", "xMm", "yMm", "widthMm", "heightMm", "binding", "format", "style", "table", "barcodeFormat", "pageNumberFormat", "showCodeText", "rotationDeg", "flipX", "flipY", "locked", "collectionPath", "columns", "headerRows", "repeatHeader", "footer", "subtotal", "emptyText", "headerStyle", "oddRowStyle", "evenRowStyle", "minHeightMm", "cellStyles")) {
+        if (!object(e, path, "id", "type", "xMm", "yMm", "widthMm", "heightMm", "binding", "format", "style", "table", "barcodeFormat", "pageNumberFormat", "showCodeText", "rotationDeg", "flipX", "flipY", "locked", "collectionPath", "columns", "headerRows", "repeatHeader", "footer", "subtotal", "emptyText", "headerStyle", "oddRowStyle", "evenRowStyle", "minHeightMm", "cellStyles", "descriptions")) {
             return;
         }
         elements++;
         identifier(e.get("id"), path + ".id");
-        choice(e.get("type"), path + ".type", "TEXT", "IMAGE", "HTML", "LINE", "RECTANGLE", "ELLIPSE", "BARCODE", "QRCODE", "PAGE_NUMBER", "STATIC_TABLE", "DATA_TABLE");
+        choice(e.get("type"), path + ".type", "TEXT", "IMAGE", "HTML", "LINE", "RECTANGLE", "ELLIPSE", "BARCODE", "QRCODE", "PAGE_NUMBER", "STATIC_TABLE", "DATA_TABLE", "DESCRIPTIONS");
         for (String key : List.of("xMm", "yMm", "widthMm", "heightMm")) {
             number(e.get(key), path + "." + key, (key.equals("widthMm") || key.equals("heightMm")) ? .1 : 0, PAPER_SIZE_MM);
         }
@@ -295,6 +298,9 @@ final class PrintProtocolRules {
         }
         if (type.equals("DATA_TABLE") || List.of("collectionPath", "columns", "headerRows", "repeatHeader", "footer", "subtotal", "emptyText").stream().anyMatch(e::has)) {
             tables.table(e, path, n(e, "widthMm"));
+        }
+        if (type.equals("DESCRIPTIONS") || e.has("descriptions")) {
+            descriptions(e.get("descriptions"), path + ".descriptions");
         }
         if (e.has("rotationDeg")) {
             number(e.get("rotationDeg"), path + ".rotationDeg", -180, 180);
@@ -321,6 +327,75 @@ final class PrintProtocolRules {
             values.cellStyles(e.get("cellStyles"), path + ".cellStyles");
         }
         values.format(e.get("format"), path + ".format");
+    }
+
+    private void descriptions(JsonNode block, String path) {
+        if (!object(block, path, "bordered", "column", "labelAlign", "labelPlacement", "labelBackground", "separator", "size", "title", "titleFontSizePt", "titleColor", "titleAlign", "titleBold", "items")) {
+            return;
+        }
+        if (block.has("bordered")) {
+            bool(block.get("bordered"), path + ".bordered");
+        }
+        int column = 3;
+        if (block.has("column")) {
+            integer(block.get("column"), path + ".column", 1, 4);
+            if (block.get("column").isNumber()) {
+                column = block.get("column").intValue();
+            }
+        }
+        if (block.has("labelAlign")) {
+            choice(block.get("labelAlign"), path + ".labelAlign", "left", "center", "right");
+        }
+        if (block.has("labelPlacement")) {
+            choice(block.get("labelPlacement"), path + ".labelPlacement", "top", "left");
+        }
+        if (block.has("labelBackground") && !PrintValueRules.isPrintColor(block.get("labelBackground"))) {
+            issue(path + ".labelBackground", "INVALID_COLOR", "颜色须使用十六进制格式");
+        }
+        if (block.has("separator")) {
+            text(block.get("separator"), path + ".separator", 8);
+        }
+        if (block.has("size")) {
+            choice(block.get("size"), path + ".size", "small", "medium", "large");
+        }
+        if (block.has("title")) {
+            text(block.get("title"), path + ".title", 80);
+        }
+        if (block.has("titleFontSizePt")) {
+            number(block.get("titleFontSizePt"), path + ".titleFontSizePt", 6, 72);
+        }
+        if (block.has("titleColor") && !PrintValueRules.isPrintColor(block.get("titleColor"))) {
+            issue(path + ".titleColor", "INVALID_COLOR", "颜色须使用十六进制格式");
+        }
+        if (block.has("titleAlign")) {
+            choice(block.get("titleAlign"), path + ".titleAlign", "left", "center", "right");
+        }
+        if (block.has("titleBold")) {
+            bool(block.get("titleBold"), path + ".titleBold");
+        }
+        if (!array(block.get("items"), path + ".items", 40)) {
+            return;
+        }
+        int index = 0;
+        for (JsonNode item : block.get("items")) {
+            String location = path + ".items[" + index + "]";
+            if (object(item, location, "id", "label", "span", "binding")) {
+                identifier(item.get("id"), location + ".id");
+                text(item.get("label"), location + ".label", 40);
+                int span = 1;
+                if (item.has("span")) {
+                    integer(item.get("span"), location + ".span", 1, 4);
+                    if (item.get("span").isNumber()) {
+                        span = item.get("span").intValue();
+                    }
+                }
+                if (span > column) {
+                    issue(location + ".span", "INVALID_SPAN", "跨列不能超过总列数");
+                }
+                values.binding(item.get("binding"), location + ".binding", false, false);
+            }
+            index++;
+        }
     }
 
     private void section(JsonNode s, String path, double width) {

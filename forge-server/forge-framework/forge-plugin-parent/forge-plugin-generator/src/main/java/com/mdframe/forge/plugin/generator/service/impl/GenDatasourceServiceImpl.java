@@ -274,6 +274,11 @@ public class GenDatasourceServiceImpl extends ServiceImpl<GenDatasourceMapper, G
         column.setColumnName(rs.getString("column_name"));
         column.setColumnComment(rs.getString("column_comment"));
         column.setColumnType(rs.getString("column_type"));
+        try {
+            column.setColumnDefault(rs.getString("column_default"));
+        } catch (SQLException ignored) {
+            // 部分方言历史 SQL 未返回 column_default，保持 null
+        }
         column.setIsPk(rs.getInt("is_pk"));
         column.setIsIncrement(rs.getInt("is_increment"));
         column.setIsRequired(rs.getInt("is_required"));

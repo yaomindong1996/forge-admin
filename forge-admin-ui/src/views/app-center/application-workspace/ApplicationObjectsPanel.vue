@@ -285,9 +285,23 @@ async function changeRole(item, role) {
 }
 
 function removeObject(item) {
+  const isPageForm = (() => {
+    try {
+      const options = typeof item.options === 'string' ? JSON.parse(item.options || '{}') : (item.options || {})
+      return options.managedBy === 'PAGE_FORM'
+    }
+    catch {
+      return false
+    }
+  })()
+  const tableHint = item.tableName
+    ? `物理表「${item.tableName}」及表内数据不会删除。`
+    : '数据库物理表及表内数据不会删除。'
   dialog.warning({
-    title: '移除应用对象',
-    content: `仅移除“${item.objectName || item.objectCode}”与当前应用的编排关系，不会删除业务对象或数据库表。`,
+    title: isPageForm ? '危险操作：移除页面表单对象' : '移除应用对象',
+    content: isPageForm
+      ? `将解除“${item.objectName || item.objectCode}”与当前应用的关联；若该对象不再被其它应用引用，其元数据配置会被清理。${tableHint}`
+      : `仅移除“${item.objectName || item.objectCode}”与当前应用的编排关系，不会删除业务对象或数据库表。`,
     positiveText: '确认移除',
     negativeText: '取消',
     onPositiveClick: async () => {

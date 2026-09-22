@@ -31,13 +31,17 @@ public class PrintTemplateService {
 
     private final PrintDocumentAccess documents;
 
-    public PrintTemplateVO.Page page(Long applicationId, int pageNum, int pageSize) {
+    public PrintTemplateVO.Page page(Long applicationId, int pageNum, int pageSize, String pageId) {
         var actor = identity.require(PrintDesignAction.VIEW.permission());
         if (applicationId == null || applicationId < 1 || pageNum < 1 || pageSize < 1 || pageSize > 100) {
             throw PrintFailure.of(400, "PRINT_INVALID_REQUEST", "应用或分页参数无效");
         }
+        if (pageId != null && !pageId.isBlank() && !pageId.matches("[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}")) {
+            throw PrintFailure.of(400, "PRINT_INVALID_REQUEST", "页面标识无效");
+        }
         registry.application().authorize(actor, applicationId, PrintDesignAction.VIEW);
-        return new PrintTemplateVO.Page(templates.selectApplication(actor.tenantId(), applicationId, (long) (pageNum - 1) * pageSize, pageSize).stream().map(row -> PrintTemplateVO.from(row, false)).toList(), templates.countApplication(actor.tenantId(), applicationId), pageNum, pageSize);
+        String scopedPageId = pageId == null || pageId.isBlank() ? null : pageId;
+        return new PrintTemplateVO.Page(templates.selectApplication(actor.tenantId(), applicationId, scopedPageId, (long) (pageNum - 1) * pageSize, pageSize).stream().map(row -> PrintTemplateVO.from(row, false)).toList(), templates.countApplication(actor.tenantId(), applicationId, scopedPageId), pageNum, pageSize);
     }
 
     public PrintTemplateVO detail(Long id) {

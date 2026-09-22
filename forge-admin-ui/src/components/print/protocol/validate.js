@@ -284,8 +284,53 @@ export function validatePrintDocument(document) {
     if (coverage.some(row => row.some(value => value !== 1)))
       issue(path, 'INVALID_COVERAGE', '单元格必须完整覆盖表格且不能重叠')
   }
+  function descriptions(value, path) {
+    if (!object(value, ['bordered', 'column', 'labelAlign', 'labelPlacement', 'labelBackground', 'separator', 'size', 'title', 'titleFontSizePt', 'titleColor', 'titleAlign', 'titleBold', 'items'], path))
+      return
+    if (value.bordered !== undefined)
+      choice(value.bordered, [true, false], `${path}.bordered`)
+    const column = value.column === undefined ? 3 : value.column
+    if (value.column !== undefined && (!Number.isInteger(value.column) || value.column < 1 || value.column > 4))
+      issue(`${path}.column`, 'INVALID_NUMBER', '列数须为 1 至 4')
+    if (value.labelAlign !== undefined)
+      choice(value.labelAlign, ['left', 'center', 'right'], `${path}.labelAlign`)
+    if (value.labelPlacement !== undefined)
+      choice(value.labelPlacement, ['top', 'left'], `${path}.labelPlacement`)
+    if (value.labelBackground !== undefined && !isPrintColor(value.labelBackground))
+      issue(`${path}.labelBackground`, 'INVALID_COLOR', '颜色须使用十六进制格式')
+    if (value.separator !== undefined && (typeof value.separator !== 'string' || value.separator.length > 8))
+      issue(`${path}.separator`, 'INVALID_TEXT', '分隔符过长')
+    if (value.size !== undefined)
+      choice(value.size, ['small', 'medium', 'large'], `${path}.size`)
+    if (value.title !== undefined && (typeof value.title !== 'string' || value.title.length > 80))
+      issue(`${path}.title`, 'INVALID_TEXT', '标题过长')
+    if (value.titleFontSizePt !== undefined)
+      number(value.titleFontSizePt, `${path}.titleFontSizePt`, 6, 72)
+    if (value.titleColor !== undefined && !isPrintColor(value.titleColor))
+      issue(`${path}.titleColor`, 'INVALID_COLOR', '颜色须使用十六进制格式')
+    if (value.titleAlign !== undefined)
+      choice(value.titleAlign, ['left', 'center', 'right'], `${path}.titleAlign`)
+    if (value.titleBold !== undefined)
+      choice(value.titleBold, [true, false], `${path}.titleBold`)
+    if (!array(value.items, `${path}.items`, 40))
+      return
+    value.items.forEach((item, index) => {
+      const location = `${path}.items[${index}]`
+      if (!object(item, ['id', 'label', 'span', 'binding'], location))
+        return
+      identifier(item.id, `${location}.id`)
+      if (typeof item.label !== 'string' || item.label.length > 40)
+        issue(`${location}.label`, 'INVALID_TEXT', '标签过长')
+      const span = item.span === undefined ? 1 : item.span
+      if (item.span !== undefined && (!Number.isInteger(item.span) || item.span < 1 || item.span > 4))
+        issue(`${location}.span`, 'INVALID_NUMBER', '跨列须为 1 至 4')
+      else if (Number.isInteger(span) && Number.isInteger(column) && span > column)
+        issue(`${location}.span`, 'INVALID_SPAN', '跨列不能超过总列数')
+      binding(item.binding, `${location}.binding`)
+    })
+  }
   function element(value, path, width, height) {
-    if (!object(value, ['id', 'type', 'xMm', 'yMm', 'widthMm', 'heightMm', 'binding', 'format', 'style', 'table', 'barcodeFormat', 'pageNumberFormat', 'showCodeText', 'rotationDeg', 'flipX', 'flipY', 'locked', 'collectionPath', 'columns', 'headerRows', 'repeatHeader', 'footer', 'subtotal', 'emptyText', 'headerStyle', 'oddRowStyle', 'evenRowStyle', 'minHeightMm', 'cellStyles'], path)) {
+    if (!object(value, ['id', 'type', 'xMm', 'yMm', 'widthMm', 'heightMm', 'binding', 'format', 'style', 'table', 'barcodeFormat', 'pageNumberFormat', 'showCodeText', 'rotationDeg', 'flipX', 'flipY', 'locked', 'collectionPath', 'columns', 'headerRows', 'repeatHeader', 'footer', 'subtotal', 'emptyText', 'headerStyle', 'oddRowStyle', 'evenRowStyle', 'minHeightMm', 'cellStyles', 'descriptions'], path)) {
       return
     }
     identifier(value.id, `${path}.id`)
@@ -302,6 +347,8 @@ export function validatePrintDocument(document) {
       staticTable(value.table, `${path}.table`, value.widthMm, value.heightMm)
     if (value.type === 'DATA_TABLE')
       table(value, path, value.widthMm)
+    if (value.type === 'DESCRIPTIONS' || value.descriptions !== undefined)
+      descriptions(value.descriptions, `${path}.descriptions`)
     if (value.barcodeFormat !== undefined) {
       choice(value.barcodeFormat, ['CODE128', 'CODE39', 'EAN13', 'EAN8', 'ITF14'], `${path}.barcodeFormat`)
     }
@@ -499,7 +546,7 @@ export function validatePrintDocument(document) {
     }
   }
   if (document.watermark !== undefined) {
-    if (object(document.watermark, ['text', 'expression', 'opacity', 'rotateDeg', 'gapXMm', 'gapYMm', 'fontSizePt', 'color'], 'watermark')) {
+    if (object(document.watermark, ['text', 'expression', 'opacity', 'rotateDeg', 'gapXMm', 'gapYMm', 'fontSizePt', 'color', 'enabled'], 'watermark')) {
       if (document.watermark.text !== undefined && (typeof document.watermark.text !== 'string' || document.watermark.text.length > 100))
         issue('watermark.text', 'INVALID_TEXT', '水印文字须不超过 100 字')
       if (document.watermark.expression !== undefined) {
@@ -522,6 +569,8 @@ export function validatePrintDocument(document) {
         number(document.watermark.fontSizePt, 'watermark.fontSizePt', 6, 72)
       if (document.watermark.color !== undefined && !isPrintColor(document.watermark.color))
         issue('watermark.color', 'INVALID_COLOR', '颜色须使用十六进制格式')
+      if (document.watermark.enabled !== undefined)
+        choice(document.watermark.enabled, [true, false], 'watermark.enabled')
     }
   }
   if (!object(paper.marginMm, ['top', 'right', 'bottom', 'left'], 'paper.marginMm')) {

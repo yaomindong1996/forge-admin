@@ -180,19 +180,31 @@ public class LowcodeModelImportService {
 
     private LowcodeAuditStrategy buildAuditStrategy(List<GenTableColumn> columns) {
         LowcodeAuditStrategy strategy = new LowcodeAuditStrategy();
-        if (hasColumn(columns, "create_by")
-                && hasColumn(columns, "create_time")
-                && hasColumn(columns, "create_dept")
-                && hasColumn(columns, "update_by")
-                && hasColumn(columns, "update_time")) {
-            strategy.setMode("FORGE_COLUMNS");
-            strategy.setCreateByColumn("create_by");
-            strategy.setCreateTimeColumn("create_time");
-            strategy.setCreateDeptColumn("create_dept");
-            strategy.setUpdateByColumn("update_by");
-            strategy.setUpdateTimeColumn("update_time");
-        } else {
+        boolean hasCreateBy = hasColumn(columns, "create_by");
+        boolean hasCreateTime = hasColumn(columns, "create_time");
+        boolean hasCreateDept = hasColumn(columns, "create_dept");
+        boolean hasUpdateBy = hasColumn(columns, "update_by");
+        boolean hasUpdateTime = hasColumn(columns, "update_time");
+        // 导入已有表时按实际列启用审计，不再要求五列齐全；缺列由运行时 putIfColumnExists 跳过。
+        if (!(hasCreateBy || hasCreateTime || hasCreateDept || hasUpdateBy || hasUpdateTime)) {
             strategy.setMode("NONE");
+            return strategy;
+        }
+        strategy.setMode("FORGE_COLUMNS");
+        if (hasCreateBy) {
+            strategy.setCreateByColumn("create_by");
+        }
+        if (hasCreateTime) {
+            strategy.setCreateTimeColumn("create_time");
+        }
+        if (hasCreateDept) {
+            strategy.setCreateDeptColumn("create_dept");
+        }
+        if (hasUpdateBy) {
+            strategy.setUpdateByColumn("update_by");
+        }
+        if (hasUpdateTime) {
+            strategy.setUpdateTimeColumn("update_time");
         }
         return strategy;
     }
@@ -242,7 +254,87 @@ public class LowcodeModelImportService {
         field.setAutoIncrement(column.getIsIncrement() != null && column.getIsIncrement() == 1);
         field.setWidth(defaultWidth(dataType));
         field.setRemark(column.getColumnComment());
+        field.setDefaultValue(mapColumnDefault(
+                column.getColumnDefault(), dataType, field.getComponentType(), field.getBusinessFieldType()));
         return field;
+    }
+
+    /**
+     * 将数据库 COLUMN_DEFAULT 映射为低代码字段默认值。
+     * CURRENT_TIMESTAMP / CURRENT_DATE 映射为前端可解析的动态预设（$forge:now / $forge:today）。
+     */
+    Object mapColumnDefault(String rawDefault, String dataType, String componentType, String businessFieldType) {
+        if (StringUtils.isBlank(rawDefault) || "NULL".equalsIgnoreCase(rawDefault.trim())) {
+            return null;
+        }
+        String text = rawDefault.trim();
+        String lower = text.toLowerCase(Locale.ROOT);
+        if (isCurrentTimestampExpression(lower)) {
+            if ("date".equalsIgnoreCase(componentType) || "date".equalsIgnoreCase(dataType)
+                    || "DATE".equalsIgnoreCase(businessFieldType)) {
+                return "$forge:today";
+            }
+            return "$forge:now";
+        }
+        if (isCurrentDateExpression(lower)) {
+            return "$forge:today";
+        }
+        text = stripSqlDefaultDecorators(text);
+        if (StringUtils.isBlank(text) || "NULL".equalsIgnoreCase(text)) {
+            return null;
+        }
+        String component = StringUtils.defaultString(componentType).toLowerCase(Locale.ROOT);
+        String type = StringUtils.defaultString(dataType).toLowerCase(Locale.ROOT);
+        String bizType = StringUtils.defaultString(businessFieldType).toUpperCase(Locale.ROOT);
+        if ("switch".equals(component) || "SWITCH".equals(bizType) || "tinyint".equals(type)) {
+            if (text.matches("(?i)^(true|b?'?1'?|1)$")) {
+                return 1;
+            }
+            if (text.matches("(?i)^(false|b?'?0'?|0)$")) {
+                return 0;
+            }
+        }
+        if (Set.of("number", "inputnumber", "integer", "money").contains(component)
+                || Set.of("NUMBER", "MONEY").contains(bizType)
+                || Set.of("int", "integer", "bigint", "decimal", "double", "float", "tinyint").contains(type)) {
+            try {
+                if (text.contains(".")) {
+                    return new java.math.BigDecimal(text);
+                }
+                return Long.parseLong(text);
+            } catch (NumberFormatException ignored) {
+                // fall through to string
+            }
+        }
+        return text;
+    }
+
+    private boolean isCurrentTimestampExpression(String lower) {
+        return lower.matches("current_timestamp(\\(\\d*\\))?|now\\(\\)|localtimestamp(\\(\\))?|sysdate|getdate\\(\\)|systimestamp")
+                || lower.contains("current_timestamp");
+    }
+
+    private boolean isCurrentDateExpression(String lower) {
+        return lower.matches("current_date|curdate\\(\\)|today");
+    }
+
+    private String stripSqlDefaultDecorators(String value) {
+        String text = StringUtils.defaultString(value).trim();
+        Matcher castMatcher = Pattern.compile("^'(.*)'::[\\w\\s\\[\\]()]+$", Pattern.CASE_INSENSITIVE).matcher(text);
+        if (castMatcher.matches()) {
+            text = castMatcher.group(1);
+        }
+        Matcher bitMatcher = Pattern.compile("^b'([01])'$", Pattern.CASE_INSENSITIVE).matcher(text);
+        if (bitMatcher.matches()) {
+            return bitMatcher.group(1);
+        }
+        if (text.startsWith("(") && text.endsWith(")") && text.length() > 2) {
+            text = text.substring(1, text.length() - 1).trim();
+        }
+        if ((text.startsWith("'") && text.endsWith("'")) || (text.startsWith("\"") && text.endsWith("\""))) {
+            text = text.substring(1, text.length() - 1);
+        }
+        return text.replace("''", "'");
     }
 
     private boolean isAuditColumn(String columnName) {

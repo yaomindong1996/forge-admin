@@ -263,22 +263,23 @@
           </n-space>
         </n-checkbox-group>
 
-        <!-- 开关 -->
+        <!-- 开关：checked-value 必须在 v-bind 之后，避免 props 里的 boolean 覆盖 0/1 -->
         <n-switch
           v-else-if="field.type === 'switch'"
+          class="ai-form-switch"
           :value="value"
           :disabled="disabledHandler(field)"
-          :checked-value="field.checkedValue ?? true"
-          :unchecked-value="field.uncheckedValue ?? false"
-          v-bind="controlProps"
+          v-bind="switchControlProps"
+          :checked-value="resolveSwitchCheckedValue(field)"
+          :unchecked-value="resolveSwitchUncheckedValue(field)"
           @update:value="handleUpdate"
           v-on="getComponentEvents(field)"
         >
-          <template v-if="field.checkedText" #checked>
-            {{ field.checkedText }}
+          <template v-if="field.checkedText || field.props?.checkedText" #checked>
+            {{ field.checkedText || field.props?.checkedText }}
           </template>
-          <template v-if="field.uncheckedText" #unchecked>
-            {{ field.uncheckedText }}
+          <template v-if="field.uncheckedText || field.props?.uncheckedText" #unchecked>
+            {{ field.uncheckedText || field.props?.uncheckedText }}
           </template>
         </n-switch>
 
@@ -850,6 +851,7 @@ import AiFormSectionTitle from './AiFormSectionTitle.vue'
 import AiRecordSelectorModal from './AiRecordSelectorModal.vue'
 import { resolveControlProps } from './control-props'
 import { isInputLikeFieldType, isNumberFieldType } from './field-type-utils'
+import { resolveSwitchValuePair } from '@/views/app-center/components/designer/forge-form-designer/field-default-value'
 import { applyRecordFieldMappings, extractSelectorRawRecord, normalizeRecordSelectorConfig, resolveSelectorSearchParams } from './record-selector-utils'
 import { resolveSelectionLabelFields as buildSelectionLabelFields, ORG_SELECT_FIELD_TYPES, USER_SELECT_FIELD_TYPES } from './selection-label-fields'
 import { isFieldMultiple, parseSelectionValues, serializeSelectionLabels, serializeSelectionValues } from './selection-multi-value'
@@ -876,6 +878,14 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:value'])
+
+function resolveSwitchCheckedValue(field = {}) {
+  return resolveSwitchValuePair(field).checkedValue
+}
+
+function resolveSwitchUncheckedValue(field = {}) {
+  return resolveSwitchValuePair(field).uncheckedValue
+}
 
 const route = useRoute()
 const { copy } = useClipboard()
@@ -907,6 +917,15 @@ const READONLY_SELECTION_TYPES = new Set([
 ])
 
 const controlProps = computed(() => resolveControlProps(props.field?.props))
+const switchControlProps = computed(() => {
+  const next = { ...controlProps.value }
+  delete next.checkedValue
+  delete next.uncheckedValue
+  delete next.checkedText
+  delete next.uncheckedText
+  delete next.defaultValue
+  return next
+})
 const fieldRuntimeControl = computed(() => resolveRuntimeControl(props.field || {}, {
   ...(props.context || {}),
   record: props.formData || {},
@@ -2637,6 +2656,29 @@ function handleUploadRemove(field, file) {
   width: 100%;
   min-width: 0;
   gap: 6px;
+}
+
+/* 开关控件很窄，避免被拉满整列后看起来离 label 很远 */
+.ai-form-item--switch .ai-form-item-body {
+  width: auto;
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+
+.ai-form-item--switch :deep(.n-form-item-label) {
+  padding-right: 8px;
+}
+
+.ai-form-item--switch :deep(.n-form-item-blank) {
+  flex: 0 0 auto;
+  width: auto !important;
+  display: flex;
+  align-items: center;
+}
+
+.ai-form-switch {
+  flex: 0 0 auto;
 }
 
 .ai-form-item-label {

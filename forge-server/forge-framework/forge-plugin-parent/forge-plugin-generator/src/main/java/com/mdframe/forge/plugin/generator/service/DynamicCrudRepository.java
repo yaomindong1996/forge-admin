@@ -2002,10 +2002,13 @@ public class DynamicCrudRepository {
         if (tenantStrategyEnabled()) {
             putIfColumnExists(data, columns, tenantColumn(), tenantId);
         }
-        if (!auditStrategyEnabled()) {
+        if (logicDeleteEnabled()) {
+            putIfColumnExists(data, columns, logicDeleteColumn(), logicActiveValue());
+        }
+        if (!shouldFillAuditColumns(columns)) {
             return;
         }
-        LowcodeAuditStrategy auditStrategy = auditStrategy();
+        LowcodeAuditStrategy auditStrategy = effectiveAuditStrategy(columns);
         putIfColumnExists(data, columns, auditCreateByColumn(auditStrategy), userId);
         putIfColumnExists(data, columns, auditCreateDeptColumn(auditStrategy), mainOrgId);
         putIfColumnExists(data, columns, auditCreateTimeColumn(auditStrategy), now);
@@ -2014,15 +2017,69 @@ public class DynamicCrudRepository {
     }
 
     private void fillUpdateAuditFields(Map<String, Object> data, Set<String> columns) {
-        if (!auditStrategyEnabled()) {
+        if (!shouldFillAuditColumns(columns)) {
             return;
         }
         Date now = new Date();
         Long userId = auditSessionValue(SessionHelper::getUserId);
-        LowcodeAuditStrategy auditStrategy = auditStrategy();
+        LowcodeAuditStrategy auditStrategy = effectiveAuditStrategy(columns);
 
         putIfColumnExists(data, columns, auditUpdateByColumn(auditStrategy), userId);
         putIfColumnExists(data, columns, auditUpdateTimeColumn(auditStrategy), now);
+    }
+
+    /**
+     * 导入已有表时，若策略误标 NONE 但物理表仍有 Forge 标准审计列，按列存在情况补齐。
+     */
+    private boolean shouldFillAuditColumns(Set<String> columns) {
+        if (auditStrategyEnabled()) {
+            return true;
+        }
+        return hasStandardAuditColumn(columns);
+    }
+
+    private LowcodeAuditStrategy effectiveAuditStrategy(Set<String> columns) {
+        LowcodeAuditStrategy strategy = auditStrategy();
+        if (auditStrategyEnabled()) {
+            return strategy;
+        }
+        LowcodeAuditStrategy fallback = new LowcodeAuditStrategy();
+        fallback.setMode("FORGE_COLUMNS");
+        if (columns == null || columns.isEmpty()) {
+            fallback.setCreateByColumn("create_by");
+            fallback.setCreateTimeColumn("create_time");
+            fallback.setCreateDeptColumn("create_dept");
+            fallback.setUpdateByColumn("update_by");
+            fallback.setUpdateTimeColumn("update_time");
+            return fallback;
+        }
+        if (columns.contains("create_by")) {
+            fallback.setCreateByColumn("create_by");
+        }
+        if (columns.contains("create_time")) {
+            fallback.setCreateTimeColumn("create_time");
+        }
+        if (columns.contains("create_dept")) {
+            fallback.setCreateDeptColumn("create_dept");
+        }
+        if (columns.contains("update_by")) {
+            fallback.setUpdateByColumn("update_by");
+        }
+        if (columns.contains("update_time")) {
+            fallback.setUpdateTimeColumn("update_time");
+        }
+        return fallback;
+    }
+
+    private boolean hasStandardAuditColumn(Set<String> columns) {
+        if (columns == null || columns.isEmpty()) {
+            return false;
+        }
+        return columns.contains("create_by")
+                || columns.contains("create_time")
+                || columns.contains("create_dept")
+                || columns.contains("update_by")
+                || columns.contains("update_time");
     }
 
     private Long auditSessionValue(java.util.function.Supplier<Long> supplier) {
@@ -2124,7 +2181,11 @@ public class DynamicCrudRepository {
     }
 
     private void putIfColumnExists(Map<String, Object> data, Set<String> columns, String column, Object value) {
-        if (value == null || !columns.contains(column)) {
+        if (value == null || StringUtils.isBlank(column)) {
+            return;
+        }
+        // 元数据查询失败时 columns 为空：仍尝试写入策略列，避免导入表审计字段静默丢失。
+        if (columns != null && !columns.isEmpty() && !columns.contains(column)) {
             return;
         }
         if (!data.containsKey(column) || data.get(column) == null) {

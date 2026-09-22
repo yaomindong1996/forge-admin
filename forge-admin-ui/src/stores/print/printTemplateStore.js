@@ -1,5 +1,8 @@
 import { defineStore } from 'pinia'
 import * as api from '@/api/print'
+import { newPrintTemplateCode } from '@/components/print/id'
+import { printSourcePayload } from '@/components/print/management/printRouteContext'
+import { DEFAULT_PRINT_SCENES, syncPrintTemplateScenes } from '@/components/print/management/printSceneBinding'
 import { formatPrintApiError } from '@/components/print/protocol/formatPrintError'
 import { createPrintDocument } from '@/components/print/protocol/types'
 import { assertPrintDocument } from '@/components/print/protocol/validate'
@@ -43,12 +46,15 @@ export const usePrintTemplateStore = defineStore('printTemplates', {
       this.saving = false
       this.panel = null
     },
-    async list(applicationId, pageNum = 1) {
+    async list(applicationId, pageNum = 1, pageId) {
       const generation = ++this.listGeneration
       this.listing = true
       this.error = ''
       try {
-        const { data } = await api.printTemplates({ applicationId, pageNum, pageSize: 20 })
+        const query = { applicationId, pageNum, pageSize: 20 }
+        if (pageId)
+          query.pageId = pageId
+        const { data } = await api.printTemplates(query)
         if (generation !== this.listGeneration)
           return
         this.items = data.records
@@ -94,8 +100,25 @@ export const usePrintTemplateStore = defineStore('printTemplates', {
           this.loading = false
       }
     },
-    async create(source, name) {
-      const { data } = await api.createPrintTemplate({ ...source, templateName: name, templateCode: `print_${crypto.randomUUID().replaceAll('-', '')}`, schemaJson: JSON.stringify(createPrintDocument()) })
+    async create(source, name, scenes = DEFAULT_PRINT_SCENES, schema = createPrintDocument()) {
+      const payload = printSourcePayload(source)
+      if (!payload)
+        throw new Error('打印来源无效')
+      const { data } = await api.createPrintTemplate({ ...payload, templateName: name, templateCode: newPrintTemplateCode(), schemaJson: JSON.stringify(schema) })
+      try {
+        await syncPrintTemplateScenes({
+          source: printSourcePayload(data.source) || payload,
+          templateId: data.id,
+          scenes,
+          bindings: [],
+          save: api.savePrintBinding,
+          remove: api.deletePrintBinding,
+        })
+      }
+      catch (error) {
+        if (window.$message)
+          window.$message.warning(error.message || '模板已创建，但场景绑定失败')
+      }
       return data
     },
     async save(document) {
@@ -169,15 +192,21 @@ export const usePrintTemplateStore = defineStore('printTemplates', {
     async loadBindings() {
       const generation = this.generation
       this.bindings = []
-      const { data } = await api.printBindings({ ...this.row.source })
+      const payload = printSourcePayload(this.row?.source)
+      if (!payload)
+        return
+      const { data } = await api.printBindings(payload)
       if (generation === this.generation)
         this.bindings = data
     },
     async bind(isDefault, status = 1) {
       const row = this.row
       const generation = this.generation
+      const payload = printSourcePayload(row.source)
+      if (!payload)
+        throw new Error('打印来源无效')
       const binding = this.bindings.find(item => String(item.templateId) === String(row.id) && item.scene === this.scene)
-      await api.savePrintBinding({ source: row.source, templateId: row.id, scene: this.scene, id: binding?.id, expectedRevision: binding?.bindingRevision, isDefault, status, sortOrder: binding?.sortOrder ?? 0 })
+      await api.savePrintBinding({ source: payload, templateId: row.id, scene: this.scene, id: binding?.id, expectedRevision: binding?.bindingRevision, isDefault, status, sortOrder: binding?.sortOrder ?? 0 })
       if (generation === this.generation)
         await this.loadBindings()
     },

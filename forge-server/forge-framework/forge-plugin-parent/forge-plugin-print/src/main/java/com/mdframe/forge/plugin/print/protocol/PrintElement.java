@@ -37,7 +37,8 @@ public record PrintElement(
         Style oddRowStyle,
         Style evenRowStyle,
         Double minHeightMm,
-        Map<String, Style> cellStyles
+        Map<String, Style> cellStyles,
+        Descriptions descriptions
 ) {
 
     public record Binding(String source, String path, JsonNode value, String expression) {
@@ -60,5 +61,11 @@ public record PrintElement(
     }
 
     public record StaticCell(String id, Integer row, Integer column, Integer rowSpan, Integer colSpan, Binding binding, Format format, Style style, String contentType, Double imageWidthMm, Double imageHeightMm) {
+    }
+
+    public record Descriptions(Boolean bordered, Integer column, String labelAlign, String labelPlacement, String labelBackground, String separator, String size, String title, Double titleFontSizePt, String titleColor, String titleAlign, Boolean titleBold, List<DescriptionItem> items) {
+    }
+
+    public record DescriptionItem(String id, String label, Integer span, Binding binding) {
     }
 }

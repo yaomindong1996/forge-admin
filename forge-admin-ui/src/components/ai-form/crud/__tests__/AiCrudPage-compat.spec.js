@@ -142,6 +142,14 @@ describe('aiCrudPage 对外兼容基线', () => {
     expect(wrapper.emitted('add')[0]).toEqual([{ defaults, context }])
     expect(wrapper.emitted('modal-open')[0]).toEqual([{ status: 'add', row: null, defaults, context }])
     expect(wrapper.findComponent({ name: 'AiForm' }).props('value')).toMatchObject(defaults)
+    if (mode === 'flat') {
+      const back = wrapper.findAll('button').find(item => item.text().includes('返回列表'))
+      expect(back).toBeTruthy()
+      expect(back.classes()).toContain('inline-form-back-btn')
+      // context.title 与模式文案不同时才展示模式标签，避免「新增 / 新增」重复
+      expect(wrapper.find('.inline-form-panel-title strong').text()).toBe('新建记录')
+      expect(wrapper.find('.inline-form-mode-tag').text()).toBe('新增')
+    }
     const row = { id: '1', name: '编辑值' }
     await wrapper.vm.showEdit(row)
     expect(wrapper.emitted('edit')[0]).toEqual([row])

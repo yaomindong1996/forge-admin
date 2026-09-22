@@ -312,3 +312,44 @@ describe('aiFormItem multi-select storage', () => {
     expect(wrapper.emitted('update:value')).toEqual([['draft']])
   })
 })
+
+describe('aiFormItem switch field', () => {
+  const NSwitchStub = {
+    name: 'NSwitch',
+    props: ['value', 'checkedValue', 'uncheckedValue'],
+    emits: ['update:value'],
+    template: '<button class="n-switch-stub" type="button" />',
+  }
+
+  it('keeps numeric 0/1 pair even when props still carry boolean checked values', () => {
+    const wrapper = mount(AiFormItem, {
+      props: {
+        field: {
+          field: 'fieldSwitch',
+          label: '开关',
+          type: 'switch',
+          props: {
+            checkedValue: true,
+            uncheckedValue: false,
+            defaultValue: 1,
+          },
+        },
+        value: 1,
+      },
+      global: {
+        stubs: {
+          ...naiveStubs,
+          NFormItem: NFormItemStub,
+          NSwitch: NSwitchStub,
+          AiRecordSelectorModal: true,
+        },
+      },
+    })
+
+    const sw = wrapper.findComponent(NSwitchStub)
+    expect(sw.props('checkedValue')).toBe(1)
+    expect(sw.props('uncheckedValue')).toBe(0)
+    expect(sw.props('value')).toBe(1)
+    expect(wrapper.find('.ai-form-item--switch').exists()).toBe(true)
+  })
+})

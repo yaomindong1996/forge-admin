@@ -44,7 +44,7 @@ public class BusinessApplicationWorkspaceService {
 
     private BusinessApplicationWorkspaceVO assembleWorkspace(BusinessApplicationVO application) {
         Long applicationId = application.getId();
-        applicationObjectService.detachOrphanPageFormObjects(applicationId);
+        // 孤儿对象清理只在写路径执行（应用更新 / 对象编排变更），避免 workspace 读接口串行多查。
         List<BusinessApplicationObjectVO> objects = applicationObjectService.list(applicationId);
         List<BusinessAppVO> entries = businessAppService.list(entryQuery(applicationId));
         List<BusinessExtensionVO> extensions = businessExtensionService.listWorkspaceSummaries(applicationId);

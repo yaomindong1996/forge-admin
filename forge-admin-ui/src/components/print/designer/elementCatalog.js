@@ -1,6 +1,7 @@
 import { paperGeometry } from '../protocol/units'
 import { clampElementToContent, findSurface, newPrintId } from './commands'
 import { createDataTableElement, normalizeTableColumnWidths } from './dataTable'
+import { createDescriptionsConfig, descriptionBlockHeightMm } from './descriptions'
 import { defaultFieldFormat } from './designerSample'
 import { createStaticTable, staticTableSize } from './staticTable'
 
@@ -21,6 +22,7 @@ export const elementCatalog = [
   { key: 'qrcode', type: 'QRCODE', label: '二维码' },
   { key: 'page-number', type: 'PAGE_NUMBER', label: '页码' },
   { key: 'static-table', type: 'STATIC_TABLE', label: '空白表格' },
+  { key: 'descriptions', type: 'DESCRIPTIONS', label: '详情' },
 ]
 export const PRINT_DRAG_TYPE = 'application/x-forge-print-item'
 
@@ -114,6 +116,14 @@ export function addElement(store, type, binding, position, preset, preferredSurf
       e.style = type === 'LINE'
         ? { borderWidthMm: 0.5, borderColor: '#000000', backgroundColor: '#000000', borderStyle: 'solid' }
         : { borderWidthMm: 0.5, borderColor: '#000000', borderStyle: 'solid' }
+    }
+    if (type === 'DESCRIPTIONS') {
+      e.descriptions = createDescriptionsConfig(store.catalog)
+      e.widthMm = paperGeometry(doc).contentWidthMm
+      e.xMm = 0
+      e.heightMm = descriptionBlockHeightMm(e.descriptions)
+      if (Number.isFinite(surface.heightMm))
+        surface.heightMm = Math.max(surface.heightMm, Number((e.yMm + e.heightMm).toFixed(3)))
     }
     clampElementToContent(doc, e)
     surface.elements.push(e)

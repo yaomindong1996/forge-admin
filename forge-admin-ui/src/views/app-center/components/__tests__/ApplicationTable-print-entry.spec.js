@@ -1,6 +1,5 @@
 import { mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createMemoryHistory, createRouter } from 'vue-router'
+import { describe, expect, it } from 'vitest'
 import ApplicationTable from '../ApplicationTable.vue'
 
 const DropdownStub = {
@@ -21,30 +20,8 @@ const DropdownStub = {
   `,
 }
 
-function createTestRouter() {
-  return createRouter({
-    history: createMemoryHistory(),
-    routes: [
-      { name: 'AppCenter', path: '/app-center', component: { template: '<div />' } },
-      {
-        name: 'BusinessApplicationRuntime',
-        path: '/app-center/application/:applicationCode/runtime',
-        component: { template: '<div />' },
-      },
-    ],
-  })
-}
-
 describe('applicationTable print entry', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  it('shows the print action in more and opens the current application settings section', async () => {
-    const router = createTestRouter()
-    await router.push('/app-center')
-    await router.isReady()
-    const open = vi.spyOn(window, 'open').mockImplementation(() => null)
+  it('does not put print templates on the application card', () => {
     const wrapper = mount(ApplicationTable, {
       props: {
         applications: [{
@@ -55,7 +32,6 @@ describe('applicationTable print entry', () => {
         }],
       },
       global: {
-        plugins: [router],
         stubs: {
           DictTag: true,
           IconRenderer: true,
@@ -64,13 +40,7 @@ describe('applicationTable print entry', () => {
       },
     })
 
-    expect(wrapper.get('[data-action="print"]').text()).toBe('打印模板')
-    await wrapper.get('[data-action="print"]').trigger('click')
-
-    expect(open).toHaveBeenCalledWith(
-      '/app-center/application/cgou_app_1ko3psh/runtime?view=settings&settingsSection=printing',
-      '_blank',
-      'noopener,noreferrer',
-    )
+    expect(wrapper.find('[data-action="print"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('打印模板')
   })
 })

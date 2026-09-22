@@ -11,6 +11,7 @@ import {
   normalizeInAppBuilder,
   normalizeNodeAccess,
   removeNavigationNode,
+  resolveNavigationDeleteImpact,
   updateInAppFormAsset,
 } from '../in-app-builder-schema'
 import { createPageShapeBuilder } from '../page-shape-design'
@@ -212,6 +213,29 @@ describe('in-app builder schema', () => {
     })
   })
 
+  it('round-trips page print watermark with the page settings snapshot', () => {
+    const schema = normalizeInAppBuilder({
+      inAppBuilder: {
+        nodes: [{
+          id: 'page_print',
+          type: 'page',
+          title: '采购单',
+          printWatermark: { enabled: true, text: '内部资料', showUsername: false, showTime: true, density: 'dense', fontSizePt: 18, color: '#112233' },
+        }],
+      },
+    }, APPLICATION, [])
+    const reloaded = normalizeInAppBuilder(mergeInAppBuilderOptions({}, schema), APPLICATION, [])
+    expect(reloaded.nodes[0].printWatermark).toEqual({
+      enabled: true,
+      text: '内部资料',
+      showUsername: false,
+      showTime: true,
+      density: 'dense',
+      fontSizePt: 18,
+      color: '#112233',
+    })
+  })
+
   it('requires an explicit strategy when deleting a group with child pages', () => {
     const base = createNavigationNode(normalizeInAppBuilder({}, APPLICATION, []), { type: 'page', title: '总览' })
     const withGroup = createNavigationNode(base, { type: 'group', title: '销售管理' })
@@ -358,6 +382,59 @@ describe('in-app builder schema', () => {
       objectId: '3',
       options: JSON.stringify({ managedBy: 'MANUAL' }),
     }, schema)).toBe(false)
+  })
+
+  it('previews delete impact for page-form objects and bound tables', () => {
+    const schema = {
+      nodes: [
+        { id: 'group_root', type: 'group', title: '分组', parentId: null },
+        {
+          id: 'page_kpi',
+          type: 'page',
+          title: 'KPI',
+          parentId: 'group_root',
+          objectRef: { objectId: '10', objectCode: 'kpi' },
+        },
+      ],
+      pages: { page_kpi: {} },
+    }
+    const objects = [
+      {
+        objectId: '10',
+        objectCode: 'kpi',
+        objectName: '指标',
+        tableName: 'biz_kpi',
+        options: JSON.stringify({ managedBy: 'PAGE_FORM', sourcePageId: 'page_kpi' }),
+      },
+    ]
+
+    const pageImpact = resolveNavigationDeleteImpact(schema, 'page_kpi', undefined, objects)
+    expect(pageImpact.removedPageIds).toEqual(['page_kpi'])
+    expect(pageImpact.impactedObjects).toEqual([
+      expect.objectContaining({
+        objectCode: 'kpi',
+        tableName: 'biz_kpi',
+        reason: 'page-form',
+      }),
+    ])
+
+    const moveChildren = resolveNavigationDeleteImpact(
+      schema,
+      'group_root',
+      { type: 'move-children', targetParentId: null },
+      objects,
+    )
+    expect(moveChildren.removedPageIds).toEqual([])
+    expect(moveChildren.impactedObjects).toEqual([])
+
+    const deleteChildren = resolveNavigationDeleteImpact(
+      schema,
+      'group_root',
+      { type: 'delete-children' },
+      objects,
+    )
+    expect(deleteChildren.removedPageIds).toEqual(['page_kpi'])
+    expect(deleteChildren.impactedObjects).toHaveLength(1)
   })
 
   it('normalizes node access control and keeps roles grants across save round trips', () => {

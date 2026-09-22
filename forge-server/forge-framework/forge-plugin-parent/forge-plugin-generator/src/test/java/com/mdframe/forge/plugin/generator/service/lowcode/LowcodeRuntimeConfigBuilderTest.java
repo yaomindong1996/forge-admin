@@ -510,6 +510,51 @@ class LowcodeRuntimeConfigBuilderTest {
         assertEquals(2, amountProps.get("precision"));
     }
 
+    @Test
+    @DisplayName("publishes switch columns with interactive switch render")
+    void publishesSwitchColumnsWithInteractiveSwitchRender() throws Exception {
+        LowcodeFieldSchema enabled = new LowcodeFieldSchema();
+        enabled.setField("enabled");
+        enabled.setColumnName("enabled");
+        enabled.setLabel("启用");
+        enabled.setDataType("tinyint");
+        enabled.setComponentType("switch");
+        enabled.setListVisible(true);
+        enabled.setFormVisible(true);
+        enabled.setBasicProps(Map.of("checkedText", "开", "uncheckedText", "关"));
+
+        LowcodeModelSchema modelSchema = new LowcodeModelSchema();
+        modelSchema.setAppType("SINGLE");
+        modelSchema.setTableMode("EXISTING");
+        modelSchema.setTableName("biz_switch_demo");
+        modelSchema.setBusinessName("开关演示");
+        modelSchema.setFields(List.of(enabled));
+
+        LowcodePageZone tableZone = new LowcodePageZone();
+        tableZone.setZoneKey("table");
+        tableZone.setComponentKey("data-table");
+        tableZone.setFieldRefs(List.of("enabled"));
+        LowcodePageSchema pageSchema = new LowcodePageSchema();
+        pageSchema.setLayoutType("simple-crud");
+        pageSchema.setZones(new ArrayList<>(List.of(tableZone)));
+
+        LowcodeRuntimeConfig runtimeConfig = builder.buildRuntimeConfig("biz_switch_demo", modelSchema, pageSchema);
+        List<Map<String, Object>> columns = objectMapper.readValue(
+                runtimeConfig.getColumnsSchema(), new TypeReference<>() { });
+
+        Map<String, Object> switchColumn = columns.stream()
+                .filter(column -> "enabled".equals(String.valueOf(column.get("key"))))
+                .findFirst()
+                .orElseThrow();
+        Map<?, ?> render = assertInstanceOf(Map.class, switchColumn.get("render"));
+        assertEquals("switch", render.get("type"));
+        assertEquals(1, render.get("checkedValue"));
+        assertEquals(0, render.get("uncheckedValue"));
+        assertEquals("开", render.get("checkedText"));
+        assertEquals("关", render.get("uncheckedText"));
+        assertEquals("center", switchColumn.get("align"));
+    }
+
     private LowcodeModelSchema modelSchema() {
         LowcodeFieldSchema itemName = new LowcodeFieldSchema();
         itemName.setField("itemName");

@@ -12,6 +12,7 @@ import java.util.List;
 /** 只检查当前页面实际引用的对象，不接受应用里任意其它对象。权限由调用方先核验。 */
 @Component
 public class LowcodePrintSourceResolver {
+    private static final List<String> OBJECT_REF_FIELDS = List.of("objectRef", "businessObjectRef", "runtimeObjectRef");
     public JsonNode object(JsonNode snapshot, PrintSourceRequest source) {
         return object(snapshot, source, true);
     }
@@ -63,19 +64,62 @@ public class LowcodePrintSourceResolver {
         if (ref.has("valid") && (!ref.path("valid").isBoolean() || !ref.path("valid").booleanValue())) {
             return false;
         }
-        return object.path("objectId").asText().equals(ref.path("objectId").asText())
-                && object.path("objectCode").asText().equals(ref.path("objectCode").asText())
-                && object.path("configKey").asText().equals(ref.path("configKey").asText())
-                && !object.path("configKey").asText().isBlank();
+        String objectConfigKey = object.path("configKey").asText("");
+        if (objectConfigKey.isBlank()) {
+            return false;
+        }
+        String objectObjectId = textFirst(object, "objectId", "id");
+        String objectObjectCode = object.path("objectCode").asText("");
+        String refObjectId = textFirst(ref, "objectId", "id");
+        String refObjectCode = ref.path("objectCode").asText("");
+        if (!refObjectId.isBlank() && !objectObjectId.isBlank()) {
+            if (!objectObjectId.equals(refObjectId)) {
+                return false;
+            }
+        } else if (!refObjectCode.isBlank() && !objectObjectCode.isBlank()) {
+            if (!objectObjectCode.equals(refObjectCode)) {
+                return false;
+            }
+        } else {
+            return false;
+        }
+        if (!refObjectCode.isBlank() && !objectObjectCode.equals(refObjectCode)) {
+            return false;
+        }
+        String refConfigKey = ref.path("configKey").asText("");
+        if (refConfigKey.isBlank()) {
+            return true;
+        }
+        return objectConfigKey.equals(refConfigKey);
     }
 
     private void collectRefs(JsonNode node, List<JsonNode> refs) {
-        if (node.isObject() && node.path("objectRef").isObject()) {
-            refs.add(node.get("objectRef"));
+        if (node.isObject()) {
+            appendObjectRefs(node, refs);
+            JsonNode props = node.path("props");
+            if (props.isObject()) {
+                appendObjectRefs(props, refs);
+            }
         }
         if (node.isContainerNode()) {
             node.forEach(child -> collectRefs(child, refs));
         }
+    }
+
+    private void appendObjectRefs(JsonNode node, List<JsonNode> refs) {
+        for (String field : OBJECT_REF_FIELDS) {
+            if (node.path(field).isObject()) {
+                refs.add(node.get(field));
+            }
+        }
+    }
+
+    private String textFirst(JsonNode node, String primary, String fallback) {
+        String primaryValue = node.path(primary).asText("");
+        if (!primaryValue.isBlank()) {
+            return primaryValue;
+        }
+        return node.path(fallback).asText("");
     }
 
     private RuntimeException invalid(PrintSourceRequest source) {

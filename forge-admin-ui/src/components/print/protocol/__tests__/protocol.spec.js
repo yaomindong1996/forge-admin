@@ -121,8 +121,10 @@ describe('print document protocol v1', () => {
     doc.paper.kind = 'CONTINUOUS'
     doc.paper.tiling = { enabled: true, columns: 2, rows: 2, gapXMm: 2, gapYMm: 2, sheetWidthMm: 210, sheetHeightMm: 297, repeatToFill: true }
     doc.paper.designBackground = { fileId: 'overlay_1', opacity: 1, rotationDeg: 0, print: false }
-    doc.watermark = { text: '内部资料', opacity: 0.1, rotateDeg: -20 }
+    doc.watermark = { text: '内部资料', opacity: 0.1, rotateDeg: -20, enabled: true }
     doc.exportFileName = '{template}-{{main.name}}-{timestamp}'
+    expect(validatePrintDocument(doc)).toEqual([])
+    doc.watermark = { enabled: false }
     expect(validatePrintDocument(doc)).toEqual([])
     doc.body[0].elements[0].style.opacity = 0.4
     expect(validatePrintDocument(doc)).toEqual([])
@@ -194,6 +196,35 @@ describe('print document protocol v1', () => {
       invalid.body = body
       expect(validatePrintDocument(invalid)).toContainEqual(expect.objectContaining({ code: 'INVALID_PAGE_BREAK' }))
     }
+  })
+
+  it('accepts a detail block and rejects a span wider than its columns', () => {
+    const doc = fixedDocument({
+      id: 'detail',
+      type: 'DESCRIPTIONS',
+      xMm: 0,
+      yMm: 0,
+      widthMm: 190,
+      heightMm: 20,
+      descriptions: {
+        bordered: true,
+        column: 2,
+        labelAlign: 'left',
+        labelPlacement: 'left',
+        separator: '：',
+        size: 'medium',
+        title: '详情',
+        items: [{
+          id: 'name',
+          label: '名称',
+          span: 1,
+          binding: { source: 'FIELD', path: 'main.name' },
+        }],
+      },
+    })
+    expect(assertPrintDocument(JSON.parse(JSON.stringify(doc))).body[0].elements[0].type).toBe('DESCRIPTIONS')
+    doc.body[0].elements[0].descriptions.items[0].span = 3
+    expect(validatePrintDocument(doc).some(issue => issue.code === 'INVALID_SPAN')).toBe(true)
   })
 
   it('rejects prototype keys, cycles, excessive collections and foreign image URLs', () => {

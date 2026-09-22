@@ -8,11 +8,25 @@ import com.mdframe.forge.plugin.print.dto.PrintTemplateCreateDTO;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.util.Objects;
 
 /**
  * 稳定来源身份；展示名称、客户端 sourceKey 和 provider 名不参与授权。
  */
 public record PrintSourceRequest(@NotNull @Positive Long applicationId, @NotNull PrintSourceType sourceType, @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}") String pageId, @Size(max = 128) String formKey, @NotBlank @Pattern(regexp = "[A-Za-z][A-Za-z0-9_]{0,99}") String objectCode) {
+
+    public PrintSourceRequest {
+        pageId = blankToNull(pageId);
+        formKey = blankToNull(formKey);
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+
+    public boolean sameAs(PrintSourceRequest other) {
+        return other != null && Objects.equals(applicationId, other.applicationId()) && Objects.equals(key(), other.key());
+    }
 
     @JsonIgnore
     @AssertTrue(message = "来源身份无效")

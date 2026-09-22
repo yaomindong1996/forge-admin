@@ -2300,10 +2300,28 @@
   }
 }
 .navigation-action-tip {
-  margin: 0 0 14px;
-  color: #4e5969;
+  margin: 0;
+  color: inherit;
   font-size: 13px;
   line-height: 20px;
+}
+.navigation-action-danger {
+  margin-bottom: 14px;
+}
+.navigation-action-tip p {
+  margin: 6px 0 0;
+}
+.navigation-action-tip-secondary {
+  margin-top: 8px !important;
+  color: #c0341d;
+  font-size: 12px;
+}
+.navigation-action-impact {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+.navigation-action-impact code {
+  font-size: 12px;
 }
 .application-form-asset-workbench {
   display: flex;

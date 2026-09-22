@@ -27,7 +27,7 @@ class DynamicCrudPrintReadTest {
     @BeforeEach void setup() {
         var json = new ObjectMapper();
         service = new DynamicCrudService(repository, null, json, dictionaries, masks, crypto,
-                new LowcodeEncryptConfigParser(json), scope, null, null, null, null, formulas, resolver);
+                new LowcodeEncryptConfigParser(json), scope, null, null, null, null, formulas, resolver, null);
         config.setConfigKey("synthetic"); config.setObjectCode("synthetic"); config.setTenantId(1L); config.setTableName("test_record");
         config.setModelSchema("""
             {"fields":[{"field":"amount","columnName":"amount","dataType":"bigint","businessFieldType":"MONEY"},

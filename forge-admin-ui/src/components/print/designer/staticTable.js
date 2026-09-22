@@ -1,5 +1,7 @@
+import { newPrintId } from '../id'
+
 function nestedId() {
-  return `p_${globalThis.crypto.randomUUID()}`
+  return newPrintId()
 }
 
 function blankCell(row, column, createId = nestedId) {

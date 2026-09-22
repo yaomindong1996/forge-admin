@@ -76,7 +76,7 @@ public interface RuntimeDatabaseDialect {
             definition.append(" NOT NULL AUTO_INCREMENT");
         } else {
             definition.append(column.required() ? " NOT NULL" : " NULL");
-            appendDefaultValue(definition, column.defaultValue(), !column.required());
+            appendDefaultValue(definition, column.defaultValue(), !column.required(), column.sqlType());
             appendExtra(definition, column.extra());
         }
         definition.append(" COMMENT '").append(escapeSqlComment(column.comment())).append("'");
@@ -155,6 +155,7 @@ public interface RuntimeDatabaseDialect {
             SELECT column_name,
                    column_comment,
                    column_type,
+                   column_default,
                    (CASE WHEN column_key = 'PRI' THEN 1 ELSE 0 END) AS is_pk,
                    (CASE WHEN extra = 'auto_increment' THEN 1 ELSE 0 END) AS is_increment,
                    (CASE WHEN is_nullable = 'NO' AND column_key != 'PRI' THEN 1 ELSE 0 END) AS is_required
@@ -169,25 +170,72 @@ public interface RuntimeDatabaseDialect {
         return 1;
     }
 
-    private void appendDefaultValue(StringBuilder definition, Object defaultValue, boolean nullable) {
+    private void appendDefaultValue(StringBuilder definition, Object defaultValue, boolean nullable, String sqlType) {
         if (defaultValue == null) {
             if (nullable) {
                 definition.append(" DEFAULT NULL");
             }
             return;
         }
-        String value = String.valueOf(defaultValue);
+        Object normalized = normalizeDefaultValue(defaultValue, sqlType);
+        if (normalized == null) {
+            if (nullable) {
+                definition.append(" DEFAULT NULL");
+            }
+            return;
+        }
+        String value = String.valueOf(normalized).trim();
         if ("NULL".equalsIgnoreCase(value)) {
             if (nullable) {
                 definition.append(" DEFAULT NULL");
             }
             return;
         }
-        if (isExpressionDefault(value)) {
+        if (isExpressionDefault(value) || isUnquotedDefault(normalized, sqlType)) {
             definition.append(" DEFAULT ").append(value);
             return;
         }
         definition.append(" DEFAULT '").append(escapeSqlComment(value)).append("'");
+    }
+
+    /**
+     * 开关/布尔默认值写入 tinyint 时必须是 0/1，不能落成 DEFAULT 'true'。
+     */
+    private Object normalizeDefaultValue(Object defaultValue, String sqlType) {
+        if (defaultValue instanceof Boolean bool) {
+            return bool ? 1 : 0;
+        }
+        String text = String.valueOf(defaultValue).trim();
+        if ("true".equalsIgnoreCase(text)) {
+            return 1;
+        }
+        if ("false".equalsIgnoreCase(text)) {
+            return 0;
+        }
+        if (isNumericSqlType(sqlType) && text.length() >= 2
+                && ((text.startsWith("'") && text.endsWith("'")) || (text.startsWith("\"") && text.endsWith("\"")))) {
+            return text.substring(1, text.length() - 1);
+        }
+        return defaultValue;
+    }
+
+    private boolean isUnquotedDefault(Object defaultValue, String sqlType) {
+        if (defaultValue instanceof Number) {
+            return true;
+        }
+        if (!isNumericSqlType(sqlType)) {
+            return false;
+        }
+        String text = String.valueOf(defaultValue).trim();
+        return text.matches("-?\\d+(\\.\\d+)?");
+    }
+
+    private boolean isNumericSqlType(String sqlType) {
+        String normalized = normalizeSqlType(sqlType);
+        return normalized.equals("int")
+            || normalized.equals("bigint")
+            || normalized.equals("tinyint")
+            || normalized.startsWith("decimal");
     }
 
     private void appendExtra(StringBuilder definition, String extra) {

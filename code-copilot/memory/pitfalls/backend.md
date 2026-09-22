@@ -463,7 +463,7 @@ Mapper XML 里写 `SELECT ... WHERE ... ORDER BY id ASC FOR UPDATE`（MySQL 语�
 - 新增任何含 `FOR UPDATE` 的 Mapper 时，用与项目一致的 `jsqlparser:4.9` 验证序列化结果，而不是源码字面顺序。
 
 **影响范围**:
-- 所有带 `FOR UPDATE` + `ORDER BY` 的 Mapper SQL（本项目唯一受影响的是 `AiProviderMapper.selectIdsForDefaultSwitch`）。
+- 所有带 `FOR UPDATE` + `ORDER BY` 的 Mapper SQL。已确认包括 `AiProviderMapper.selectIdsForDefaultSwitch`、`PrintBindingMapper.selectApplication`、`BusinessApplicationVersionMapper.lockRetainedSnapshots`。删除打印模板会走最后这条锁定查询；JSqlParser 重排后 MySQL 报 `near 'ORDER BY id'`。
 
 ## Pitfall: BaseMapper 子类无 saveBatch 能力
 

@@ -1,4 +1,5 @@
 import PrintBarcode from './PrintBarcode.vue'
+import PrintDescriptions from './PrintDescriptions.vue'
 import PrintHtml from './PrintHtml.vue'
 import PrintImage from './PrintImage.vue'
 import PrintQrcode from './PrintQrcode.vue'
@@ -19,4 +20,5 @@ export const printRenderers = Object.freeze({
   QRCODE: PrintQrcode,
   TABLE: PrintTable,
   STATIC_TABLE: PrintStaticTable,
+  DESCRIPTIONS: PrintDescriptions,
 })

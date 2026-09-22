@@ -4,7 +4,6 @@ const SETTINGS_SECTIONS = new Set([
   'navigation',
   'permission',
   'globalization',
-  'printing',
   'advanced',
 ])
 
@@ -13,15 +12,18 @@ export function resolveApplicationSettingsSection(value) {
   return SETTINGS_SECTIONS.has(normalized) ? normalized : 'basic'
 }
 
-export function buildApplicationPrintLocation(application) {
+export function buildApplicationPrintLocation(application, pageId) {
   const applicationCode = String(application?.applicationCode || '').trim()
-  if (!applicationCode)
+  const scopedPageId = String(pageId || '').trim()
+  if (!applicationCode || !scopedPageId)
     return null
   return {
     name: 'BusinessApplicationRuntime',
     params: { applicationCode },
     query: {
-      view: 'settings',
+      edit: '1',
+      pageId: scopedPageId,
+      designTab: 'settings',
       settingsSection: 'printing',
     },
   }
