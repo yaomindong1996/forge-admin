@@ -9,7 +9,11 @@
       :hover-class="disabled ? 'none' : 'pill-select__item--pressed'"
       @click="select(option)"
     >
-      <text class="pill-select__label">{{ option.label }}</text>
+      <view class="pill-select__indicator"><text v-if="isSelected(option)">✓</text></view>
+      <view class="pill-select__copy">
+        <text class="pill-select__label">{{ option.label }}</text>
+        <text v-if="option.description || option.desc" class="pill-select__desc">{{ option.description || option.desc }}</text>
+      </view>
     </button>
   </view>
 </template>
@@ -62,11 +66,10 @@ function isEmpty(value) {
 
 <style lang="scss" scoped>
 .pill-select {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12rpx;
-  min-height: 72rpx;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16rpx;
+  min-height: 88rpx;
 }
 
 .pill-select--disabled {
@@ -74,22 +77,25 @@ function isEmpty(value) {
 }
 
 .pill-select__item {
-  display: inline-flex;
-  min-width: 128rpx;
-  min-height: 68rpx;
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 160rpx;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  gap: 20rpx;
   margin: 0;
-  padding: 10rpx 26rpx;
-  border: 1rpx solid #d4dce8;
-  border-radius: 999rpx;
-  color: #475569;
-  font-size: 25rpx;
-  font-weight: 700;
+  padding: 24rpx 32rpx;
+  border: 1rpx solid var(--border-color);
+  border-radius: var(--radius-control);
+  color: #4e5969;
+  font-size: 28rpx;
+  font-weight: 400;
   line-height: 1.2;
   background: #fff;
   box-sizing: border-box;
-  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+  text-align: left;
+  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
 }
 
 .pill-select__item::after {
@@ -97,17 +103,45 @@ function isEmpty(value) {
 }
 
 .pill-select__item--active {
-  border-color: #1f5fbf;
-  color: #fff;
-  background: #1f5fbf;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: var(--primary-soft);
 }
 
 .pill-select__item--pressed {
-  transform: scale(0.97);
+  background: var(--surface-muted);
 }
 
+.pill-select__indicator {
+  display: flex;
+  width: 36rpx;
+  height: 36rpx;
+  flex: 0 0 36rpx;
+  align-items: center;
+  justify-content: center;
+  border: 2rpx solid var(--border-color);
+  border-radius: 50%;
+  color: #fff;
+  font-size: 22rpx;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.pill-select__item--active .pill-select__indicator {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+}
+
+.pill-select__copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 8rpx; }
 .pill-select__label {
+  display: block;
   max-width: 100%;
   overflow-wrap: anywhere;
+}
+
+.pill-select__desc { display: block; color: var(--text-muted); font-size: 24rpx; font-weight: 400; line-height: 1.5; }
+
+@media (min-width: 1024px) {
+  .pill-select { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 </style>

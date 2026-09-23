@@ -5,9 +5,13 @@
 
 .mine-content {
   display: flex;
+  width: 100%;
+  max-width: var(--forge-page-max-width);
   flex-direction: column;
-  gap: 16rpx;
-  padding: calc(20rpx + env(safe-area-inset-top)) 24rpx calc(132rpx + env(safe-area-inset-bottom));
+  gap: 32rpx;
+  margin: 0 auto;
+  padding: calc(32rpx + env(safe-area-inset-top)) 32rpx calc(136rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 
 .mine-title,
@@ -30,8 +34,8 @@
 
 .mine-title {
   color: var(--text-strong);
-  font-size: 32rpx;
-  font-weight: 650;
+  font-size: 36rpx;
+  font-weight: 500;
 }
 
 .mine-subtitle {
@@ -105,7 +109,7 @@
 .tenant-row-loading {
   width: 24rpx;
   height: 24rpx;
-  border: 3rpx solid #dbe7f7;
+  border: 3rpx solid #c9cdd4;
   border-right-color: var(--primary-color);
   border-radius: 50%;
   animation: accountSpin 0.8s linear infinite;
@@ -125,7 +129,7 @@
   overflow: hidden;
   color: var(--text-strong);
   font-size: 30rpx;
-  font-weight: 650;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -136,7 +140,7 @@
   gap: 6rpx;
   margin-top: 8rpx;
   padding: 4rpx 8rpx;
-  border: 1rpx solid #dbe7f7;
+  border: 1rpx solid #c9cdd4;
   border-radius: 4rpx;
   color: var(--primary-color);
   font-size: 19rpx;
@@ -208,7 +212,7 @@
 .menu-label {
   color: var(--text-strong);
   font-size: 25rpx;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .menu-desc {
@@ -235,8 +239,8 @@
 }
 
 .avatar-large {
-  width: 150rpx;
-  height: 150rpx;
+  width: 176rpx;
+  height: 176rpx;
   overflow: hidden;
   border: 1rpx solid var(--border-color);
   border-radius: 50%;
@@ -249,7 +253,7 @@
   bottom: 0;
   left: 0;
   display: flex;
-  min-height: 42rpx;
+  min-height: 56rpx;
   align-items: center;
   justify-content: center;
   gap: 6rpx;
@@ -302,7 +306,7 @@
   margin-top: 4rpx;
   color: var(--text-strong);
   font-size: 24rpx;
-  font-weight: 600;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -339,12 +343,12 @@
 }
 
 .tenant-row.active {
-  border-color: #a9c6ec;
+  border-color: #4266f7;
   background: var(--primary-soft);
 }
 
 .setting-row {
-  min-height: 86rpx;
+  min-height: 88rpx;
 }
 
 .setting-row-button {
@@ -371,7 +375,7 @@
   margin-top: 16rpx;
   color: var(--text-strong);
   font-size: 27rpx;
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .support-desc {
@@ -389,4 +393,29 @@
 
 @keyframes accountSpin {
   to { transform: rotate(360deg); }
+}
+
+@media (hover: hover) {
+  .menu-row:hover,
+  .setting-row-button:hover,
+  .tenant-row:hover {
+    background: var(--surface-muted);
+  }
+}
+
+@media (min-width: 1024px) {
+  .mine-content {
+    display: grid;
+    grid-template-areas:
+      "head head"
+      "profile menus";
+    grid-template-columns: var(--forge-aside-width) minmax(0, 1fr);
+    align-items: start;
+    gap: 24px;
+    padding: 24px 24px 112px;
+  }
+
+  .mine-header { grid-area: head; }
+  .profile-card { grid-area: profile; flex-direction: column; align-items: flex-start; }
+  .menu-groups { grid-area: menus; }
 }

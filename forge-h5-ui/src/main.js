@@ -40,7 +40,7 @@ export function createApp() {
 	app.use(uviewPlus, () => ({
 		options: {
 			color: {
-				primary: '#165DFF',
+				primary: '#4266F7',
 			},
 		},
 	}))

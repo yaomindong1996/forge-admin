@@ -33,8 +33,8 @@ const valueText = computed(() => {
 </script>
 
 <style lang="scss" scoped>
-.lowcode-unsupported { padding: 18rpx 20rpx; border: 1rpx dashed #bfdbfe; border-radius: 12rpx; color: #475569; background: #f8fbff; }
+.lowcode-unsupported { padding: 18rpx 20rpx; border: 1rpx dashed #4266f7; border-radius: 12rpx; color: #4e5969; background: #f5f7ff; }
 .lowcode-unsupported.is-blocked { border-color: #fecaca; background: #fff7f7; }
-.lowcode-unsupported__head { display: flex; align-items: center; gap: 8rpx; color: #334155; font-size: 24rpx; font-weight: 700; }
-.lowcode-unsupported__reason, .lowcode-unsupported__value { display: block; margin-top: 8rpx; color: #64748b; font-size: 22rpx; line-height: 1.5; word-break: break-all; }
+.lowcode-unsupported__head { display: flex; align-items: center; gap: 8rpx; color: #1d2129; font-size: 24rpx; font-weight: 500; }
+.lowcode-unsupported__reason, .lowcode-unsupported__value { display: block; margin-top: 8rpx; color: #4e5969; font-size: 22rpx; line-height: 1.5; word-break: break-all; }
 </style>

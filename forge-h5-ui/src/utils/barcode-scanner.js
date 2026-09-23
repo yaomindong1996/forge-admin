@@ -79,7 +79,7 @@ function scanBrowserCamera({ timeoutMs = 30000, signal } = {}) {
     const shell = document.createElement('div')
     Object.assign(shell.style, { position: 'fixed', inset: '0', zIndex: '2147483000', display: 'grid', placeItems: 'center', padding: '18px', background: 'rgba(15,23,42,.8)' })
     const panel = document.createElement('div')
-    Object.assign(panel.style, { width: 'min(460px,100%)', overflow: 'hidden', borderRadius: '18px', background: '#0f172a', color: '#fff' })
+    Object.assign(panel.style, { width: 'min(460px,100%)', overflow: 'hidden', borderRadius: '6px', background: '#1d2129', color: '#fff' })
     const video = document.createElement('video')
     Object.assign(video, { autoplay: true, muted: true, playsInline: true })
     Object.assign(video.style, { display: 'block', width: '100%', minHeight: '260px', background: '#020617', objectFit: 'cover' })
@@ -87,7 +87,7 @@ function scanBrowserCamera({ timeoutMs = 30000, signal } = {}) {
     Object.assign(footer.style, { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px', fontSize: '14px' })
     const hint = document.createElement('span'); hint.textContent = '请将商品条码放入取景框'
     const cancel = document.createElement('button'); cancel.type = 'button'; cancel.textContent = '取消'
-    Object.assign(cancel.style, { padding: '8px 12px', border: '1px solid #64748b', borderRadius: '8px', color: '#fff', background: 'transparent' })
+    Object.assign(cancel.style, { minHeight: '44px', padding: '10px 16px', border: '1px solid #4e5969', borderRadius: '6px', color: '#fff', background: 'transparent' })
     footer.append(hint, cancel); panel.append(video, footer); shell.append(panel); document.body.append(shell)
     let settled = false; let stream; let timer; let raf; let detector
     const cleanup = () => { clearTimeout(timer); cancelAnimationFrame(raf); stream?.getTracks?.().forEach(track => track.stop()); video.srcObject = null; shell.remove(); signal?.removeEventListener?.('abort', abort) }

@@ -51,7 +51,7 @@ defineProps({
 <style lang="scss" scoped>
 .ai-section {
   overflow: hidden;
-  padding: 24rpx;
+  padding: 32rpx;
   border: 1rpx solid var(--border-color);
   border-radius: var(--radius-card);
   background: #fff;
@@ -77,7 +77,7 @@ defineProps({
 }
 
 .ai-section--compact {
-  padding: 20rpx;
+  padding: 24rpx;
 }
 
 .ai-section__head {
@@ -85,7 +85,7 @@ defineProps({
   align-items: flex-start;
   justify-content: space-between;
   gap: 16rpx;
-  margin-bottom: 18rpx;
+  margin-bottom: 32rpx;
 }
 
 .ai-section__copy {
@@ -102,8 +102,8 @@ defineProps({
 .ai-section__title {
   overflow: hidden;
   color: var(--text-strong);
-  font-size: 28rpx;
-  font-weight: 650;
+  font-size: 32rpx;
+  font-weight: 500;
   line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -112,7 +112,7 @@ defineProps({
 .ai-section__desc {
   margin-top: 8rpx;
   color: var(--text-muted);
-  font-size: 22rpx;
+  font-size: 26rpx;
   font-weight: 400;
   line-height: 1.45;
 }

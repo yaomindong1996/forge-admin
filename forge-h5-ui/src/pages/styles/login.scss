@@ -15,10 +15,10 @@
 }
 
 .login-masthead {
-  min-height: 330rpx;
-  padding: calc(24rpx + env(safe-area-inset-top)) 30rpx 72rpx;
+  min-height: 300rpx;
+  padding: calc(24rpx + env(safe-area-inset-top)) 32rpx 48rpx;
   color: #ffffff;
-  background: #174a91;
+  background: var(--primary-color);
   box-sizing: border-box;
 }
 
@@ -80,7 +80,7 @@
 .brand-title {
   color: #ffffff;
   font-size: 26rpx;
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .brand-subtitle {
@@ -90,12 +90,12 @@
 }
 
 .client-badge {
-  padding: 5rpx 10rpx;
+  padding: 6rpx 12rpx;
   border: 1rpx solid rgba(255, 255, 255, 0.42);
   border-radius: 4rpx;
   color: #ffffff;
   font-size: 17rpx;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .masthead-copy {
@@ -105,16 +105,16 @@
 }
 
 .masthead-kicker {
-  color: #cfe0f7;
+  color: rgba(255, 255, 255, 0.76);
   font-size: 20rpx;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .masthead-title {
   margin-top: 8rpx;
   color: #ffffff;
-  font-size: 40rpx;
-  font-weight: 650;
+  font-size: 36rpx;
+  font-weight: 500;
   line-height: 1.25;
 }
 
@@ -132,14 +132,14 @@
   flex: 1;
   flex-direction: column;
   align-self: center;
-  margin-top: -42rpx;
-  padding: 0 28rpx calc(24rpx + env(safe-area-inset-bottom));
+  margin-top: 0;
+  padding: 32rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
 .login-panel {
   width: 100%;
-  padding: 30rpx 28rpx;
+  padding: 32rpx;
   border: 1rpx solid var(--border-color);
   border-radius: var(--radius-card);
   background: #ffffff;
@@ -153,21 +153,21 @@
 
 .panel-title {
   color: var(--text-strong);
-  font-size: 30rpx;
-  font-weight: 650;
+  font-size: 32rpx;
+  font-weight: 500;
 }
 
 .panel-subtitle {
   margin-top: 6rpx;
   color: var(--text-muted);
-  font-size: 21rpx;
+  font-size: 26rpx;
 }
 
 .form-stack {
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
-  margin: 24rpx 0;
+  gap: 32rpx;
+  margin: 32rpx 0;
 }
 
 .captcha-row {
@@ -182,7 +182,7 @@
 .captcha-image {
   display: flex;
   width: 210rpx;
-  height: 80rpx;
+  height: 88rpx;
   flex: 0 0 210rpx;
   align-items: center;
   justify-content: center;
@@ -214,8 +214,8 @@
   justify-content: center;
   gap: 8rpx;
   color: var(--primary-color);
-  font-size: 21rpx;
-  font-weight: 550;
+  font-size: 24rpx;
+  font-weight: 500;
 }
 
 .login-security {
@@ -223,7 +223,7 @@
   gap: 8rpx;
   margin-top: 18rpx;
   color: var(--text-muted);
-  font-size: 19rpx;
+  font-size: 24rpx;
 }
 
 .login-foot {
@@ -276,7 +276,7 @@
 
 .workspace-option {
   width: 100%;
-  min-height: 82rpx;
+  min-height: 88rpx;
   justify-content: space-between;
   gap: 14rpx;
   margin: 0;
@@ -303,7 +303,7 @@
   overflow: hidden;
   color: var(--text-strong);
   font-size: 24rpx;
-  font-weight: 550;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -313,12 +313,66 @@
   font-size: 19rpx;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
+  .page-shell {
+    min-height: 100vh;
+    flex-direction: row;
+    background: #fff;
+  }
+
   .login-masthead {
-    min-height: 360rpx;
+    display: flex;
+    width: 58%;
+    min-height: 100vh;
+    flex-direction: column;
+    padding: 48px max(48px, calc((100vw - 1280px) / 2 + 24px));
+  }
+
+  .brand-bar,
+  .masthead-copy {
+    max-width: 640px;
+    margin-right: 0;
+    margin-left: auto;
+  }
+
+  .masthead-copy {
+    margin-top: auto;
+    margin-bottom: auto;
+    padding-bottom: 64px;
+  }
+
+  .masthead-title {
+    margin-top: 12px;
+    font-size: 34px;
+  }
+
+  .masthead-desc {
+    max-width: 480px;
+    margin-top: 16px;
+    font-size: 15px;
   }
 
   .login-main {
-    max-width: 700rpx;
+    width: 42%;
+    max-width: none;
+    min-height: 100vh;
+    align-self: stretch;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 48px;
+    background: var(--surface-muted);
+  }
+
+  .login-panel {
+    max-width: 440px;
+    padding: 32px;
+  }
+
+  .login-foot {
+    width: 100%;
+    max-width: 440px;
+    margin-top: 20px;
+    padding-top: 0;
   }
 }

@@ -41,8 +41,8 @@ function toggle() {
 
 <style lang="scss" scoped>
 .card-section {
-  margin-bottom: 16rpx;
-  padding: 22rpx;
+  margin-bottom: 32rpx;
+  padding: 32rpx;
   border: 1rpx solid var(--border-color);
   border-radius: var(--radius-card);
   background: #fff;
@@ -50,11 +50,12 @@ function toggle() {
 
 .card-section__head {
   display: flex;
-  min-height: 40rpx;
+  min-height: 88rpx;
   align-items: center;
   justify-content: space-between;
   gap: 18rpx;
-  margin-bottom: 18rpx;
+  margin: -16rpx -12rpx 16rpx;
+  padding: 0 12rpx;
 }
 
 .card-section__head--interactive {
@@ -64,9 +65,9 @@ function toggle() {
 .card-section__title {
   min-width: 0;
   overflow: hidden;
-  color: var(--text-strong, #1e293b);
-  font-size: 27rpx;
-  font-weight: 650;
+  color: var(--text-strong, #1d2129);
+  font-size: 32rpx;
+  font-weight: 500;
   line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -74,9 +75,9 @@ function toggle() {
 
 .card-section__toggle {
   display: flex;
-  width: 48rpx;
-  height: 48rpx;
-  flex: 0 0 48rpx;
+  width: 64rpx;
+  height: 64rpx;
+  flex: 0 0 64rpx;
   align-items: center;
   justify-content: center;
   border-radius: 6rpx;

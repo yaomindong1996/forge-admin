@@ -194,7 +194,7 @@
             <text class="section-sheet-trigger__label">查看{{ section.title || '明细' }}</text>
             <text class="section-sheet-trigger__count">{{ visibleChildRows(section).length }} 条记录</text>
           </view>
-          <AiIcon name="chevron-right" color="#1f5fbf" size="sm" />
+          <AiIcon name="chevron-right" color="#4266f7" size="sm" />
         </button>
       </CardSection>
     </template>
@@ -421,7 +421,7 @@ function isDeletedRow(row = {}) {
 }
 
 .section-runtime--with-bottom-bar {
-  padding-bottom: 140rpx;
+  padding-bottom: 220rpx;
 }
 
 .section-child-head,
@@ -444,9 +444,9 @@ function isDeletedRow(row = {}) {
 }
 
 .section-child-count {
-  color: #64748b;
+  color: #4e5969;
   font-size: 23rpx;
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .section-child-list,
@@ -461,7 +461,7 @@ function isDeletedRow(row = {}) {
 .section-sheet-row {
   min-width: 0;
   padding: 22rpx 0;
-  border-top: 1rpx solid #edf1f6;
+  border-top: 1rpx solid #e5e6eb;
 }
 
 .section-child-row:first-child,
@@ -484,9 +484,9 @@ function isDeletedRow(row = {}) {
 .section-child-row__title,
 .section-sheet-row__title {
   display: block;
-  color: #334155;
+  color: #1d2129;
   font-size: 24rpx;
-  font-weight: 750;
+  font-weight: 500;
 }
 
 .section-row-actions {
@@ -498,7 +498,7 @@ function isDeletedRow(row = {}) {
 
 .section-empty {
   padding: 30rpx 0 12rpx;
-  color: #94a3b8;
+  color: #86909c;
   font-size: 24rpx;
   text-align: center;
 }
@@ -510,7 +510,7 @@ function isDeletedRow(row = {}) {
 .section-sheet-trigger {
   display: flex;
   width: 100%;
-  min-height: 82rpx;
+  min-height: 88rpx;
   align-items: center;
   justify-content: space-between;
   gap: 18rpx;
@@ -540,13 +540,13 @@ function isDeletedRow(row = {}) {
 }
 
 .section-sheet-trigger__label {
-  color: #334155;
+  color: #1d2129;
   font-size: 26rpx;
-  font-weight: 750;
+  font-weight: 500;
 }
 
 .section-sheet-trigger__count {
-  color: #94a3b8;
+  color: #86909c;
   font-size: 22rpx;
 }
 
@@ -558,13 +558,13 @@ function isDeletedRow(row = {}) {
 }
 
 .section-readonly-field__label {
-  color: #94a3b8;
+  color: #86909c;
   font-size: 22rpx;
 }
 
 .section-readonly-field__value {
   min-width: 0;
-  color: #334155;
+  color: #1d2129;
   font-size: 24rpx;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -578,13 +578,30 @@ function isDeletedRow(row = {}) {
   left: 0;
   z-index: 100;
   display: flex;
-  gap: 12rpx;
-  padding: 18rpx 24rpx calc(18rpx + env(safe-area-inset-bottom));
-  border-top: 1rpx solid #e7edf5;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid #e5e6eb;
   background: #fff;
 }
 
 .section-bottom-bar > * {
   flex: 1;
+}
+
+.section-bottom-bar :deep(.ai-button--primary) {
+  order: -1;
+  flex: 1 0 100%;
+}
+
+@media (min-width: 1024px) {
+  .section-runtime--with-bottom-bar { padding-bottom: 112rpx; }
+  .section-bottom-bar {
+    justify-content: flex-end;
+    padding-right: max(24px, calc((100vw - 1280px) / 2 + 24px));
+    padding-left: max(24px, calc((100vw - 1280px) / 2 + 24px));
+  }
+  .section-bottom-bar > *,
+  .section-bottom-bar :deep(.ai-button--primary) { flex: 0 0 auto; order: initial; min-width: 128px; }
 }
 </style>

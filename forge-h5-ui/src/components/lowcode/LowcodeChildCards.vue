@@ -103,17 +103,21 @@ function isDeletedRow(row = {}) {
 </script>
 
 <style lang="scss" scoped>
-.runtime-child-card { margin-bottom: 16rpx; padding: 22rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
+.runtime-child-card { margin-bottom: 32rpx; padding: 32rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
 .runtime-child-card__head { display: flex; align-items: center; justify-content: space-between; gap: 18rpx; margin-bottom: 18rpx; }
 .runtime-child-card__head > view { display: flex; align-items: baseline; gap: 12rpx; }
-.runtime-child-card__title { color: var(--text-strong); font-size: 27rpx; font-weight: 650; }
+.runtime-child-card__title { color: var(--text-strong); font-size: 32rpx; font-weight: 500; }
 .runtime-child-card__count { color: var(--text-muted); font-size: 20rpx; }
 .runtime-child-card__tools, .runtime-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12rpx; }
 .runtime-child-list { display: flex; flex-direction: column; gap: 10rpx; }
 .runtime-child-row { padding: 18rpx; border: 1rpx solid var(--border-light); border-radius: var(--radius-control); background: var(--surface-subtle); }
 .runtime-child-row__head { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; margin-bottom: 14rpx; }
-.runtime-child-row__title { color: var(--text-strong); font-size: 22rpx; font-weight: 600; }
+.runtime-child-row__title { color: var(--text-strong); font-size: 22rpx; font-weight: 500; }
 .runtime-child-row__body { padding: 4rpx 0 2rpx; }
 .runtime-actions--child { justify-content: flex-start; margin-top: 16rpx; }
 .runtime-child-empty { padding: 26rpx 0; color: var(--text-muted); font-size: 22rpx; text-align: center; }
+
+@media (min-width: 1024px) {
+  .runtime-child-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+}
 </style>

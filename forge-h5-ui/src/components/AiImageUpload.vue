@@ -242,7 +242,7 @@ onUnmounted(() => {
   display: block;
   color: #ffffff;
   font-size: 20rpx;
-  font-weight: 850;
+  font-weight: 500;
 }
 
 </style>

@@ -59,23 +59,22 @@ function handleBlur(event) {
 <style lang="scss" scoped>
 .ai-textarea {
   width: 100%;
-  padding: 8rpx 10rpx;
-  border: 1rpx solid var(--forge-color-border, #e2e8f0);
+  padding: 8rpx 12rpx;
+  border: 1rpx solid var(--forge-color-border, #c9cdd4);
   border-radius: var(--forge-radius-control, 12rpx);
   background: #fff;
   box-sizing: border-box;
-  transition: border-color .18s ease, box-shadow .18s ease;
+  transition: border-color .16s ease, background-color .16s ease;
 }
 
 .ai-textarea.is-focused {
-  border-color: var(--forge-color-primary, #1f5fbf);
-  box-shadow: 0 0 0 3rpx rgba(31, 95, 191, .1);
+  border-color: var(--forge-color-primary, #4266f7);
 }
 
-.ai-textarea.is-error { border-color: var(--forge-color-danger, #dc2626); }
-.ai-textarea.is-disabled { background: var(--forge-color-surface-subtle, #f8fafc); opacity: .76; }
+.ai-textarea.is-error { border-color: var(--forge-color-danger, #f53f3f); }
+.ai-textarea.is-disabled { background: var(--forge-color-surface-subtle, #f7f8fa); opacity: .76; }
 .ai-textarea__control { width: 100%; }
-.ai-textarea__error { display: block; padding: 2rpx 12rpx 8rpx; color: var(--forge-color-danger, #dc2626); font-size: 22rpx; }
+.ai-textarea__error { display: block; padding: 2rpx 12rpx 8rpx; color: var(--forge-color-danger, #f53f3f); font-size: 22rpx; }
 
 :deep(.wd-textarea) {
   padding: 10rpx 8rpx;
@@ -84,8 +83,8 @@ function handleBlur(event) {
 
 :deep(.wd-textarea__inner) {
   min-height: 112rpx;
-  color: var(--forge-color-text, #334155);
-  font-size: 27rpx;
-  line-height: 1.55;
+  color: var(--forge-color-text, #1d2129);
+  font-size: 28rpx;
+  line-height: 1.5;
 }
 </style>

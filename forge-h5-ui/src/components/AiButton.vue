@@ -59,18 +59,24 @@ function handleClick(event) {
   min-width: 0;
   margin: 0;
   border-radius: var(--forge-radius-control, 12rpx) !important;
-  font-weight: 700;
+  font-weight: 500;
   box-shadow: none !important;
 }
 
-.ai-button--sm { min-height: 64rpx; }
-.ai-button--md { min-height: 80rpx; }
+.ai-button--sm { min-height: 88rpx; }
+.ai-button--md { min-height: 88rpx; }
 .ai-button--lg { min-height: 96rpx; }
-.ai-button--secondary { color: var(--forge-color-text, #334155) !important; border-color: var(--forge-color-border, #e2e8f0) !important; background: #fff !important; }
-.ai-button--outline { color: var(--forge-color-text, #334155) !important; border-color: var(--forge-color-border-strong, #cbd5e1) !important; background: #fff !important; }
-.ai-button--ghost { color: var(--forge-color-text-secondary, #475569) !important; background: transparent !important; }
-.ai-button--danger { color: var(--forge-color-danger, #dc2626) !important; border-color: #fecaca !important; background: #fff !important; }
+.ai-button--secondary { color: var(--forge-color-text-secondary, #4e5969) !important; border-color: var(--forge-color-border, #c9cdd4) !important; background: #fff !important; }
+.ai-button--outline { color: var(--forge-color-text-secondary, #4e5969) !important; border-color: var(--forge-color-border, #c9cdd4) !important; background: #fff !important; }
+.ai-button--ghost { color: var(--forge-color-primary, #4266f7) !important; background: transparent !important; }
+.ai-button--danger { color: var(--forge-color-danger, #f53f3f) !important; border-color: rgba(245, 63, 63, .38) !important; background: #fff !important; }
 .ai-button__content { display: flex; min-width: 0; align-items: center; justify-content: center; gap: 12rpx; }
 .ai-button__text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ai-button__icon { display: flex; flex: 0 0 auto; align-items: center; justify-content: center; }
+
+@media (hover: hover) {
+  .ai-button--secondary:hover,
+  .ai-button--outline:hover { background: var(--forge-surface-muted, #f7f8fa) !important; }
+  .ai-button--ghost:hover { opacity: .82; }
+}
 </style>

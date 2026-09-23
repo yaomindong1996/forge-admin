@@ -144,15 +144,18 @@ defineExpose({ validate })
 .lowcode-form { display: flex; flex-direction: column; }
 .lowcode-form--inline-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(132rpx, 0.65fr);
-  gap: 14rpx;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32rpx;
   align-items: end;
 }
 .lowcode-form--inline-grid :deep(.lowcode-field) { min-width: 0; margin-bottom: 0; }
 .lowcode-form--inline-grid :deep(.lowcode-field__label) { min-height: 34rpx; font-size: 22rpx; }
 .lowcode-form--inline-grid :deep(.lowcode-field__control) { min-width: 0; }
 .lowcode-form--inline-grid :deep(.lowcode-field__readonly) { padding: 16rpx; font-size: 24rpx; }
-@media (max-width: 360px) {
-  .lowcode-form--inline-grid { grid-template-columns: minmax(0, 1fr) minmax(132rpx, 0.72fr); }
+@media (min-width: 1024px) {
+  .lowcode-form--inline-grid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(132px, 0.65fr);
+    gap: 16px;
+  }
 }
 </style>

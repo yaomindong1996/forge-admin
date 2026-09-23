@@ -142,11 +142,11 @@ defineExpose({ validate })
 <style lang="scss" scoped>
 .lowcode-array { display: flex; flex-direction: column; gap: 14rpx; }
 .lowcode-array__rows { display: flex; flex-direction: column; gap: 16rpx; }
-.lowcode-array__row { padding: 18rpx; border: 1rpx solid var(--forge-color-border, #e2e8f0); border-radius: 14rpx; background: var(--forge-color-surface-subtle, #f8fafc); }
-.lowcode-array__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12rpx; color: #334155; font-size: 24rpx; font-weight: 700; }
-.lowcode-array__remove { margin: 0; padding: 0; border: 0; color: #dc2626; font-size: 22rpx; line-height: 1; background: transparent; }
+.lowcode-array__row { padding: 32rpx; border: 1rpx solid var(--forge-color-border, #c9cdd4); border-radius: var(--radius-card); background: var(--forge-color-surface-subtle, #f7f8fa); }
+.lowcode-array__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24rpx; color: #1d2129; font-size: 28rpx; font-weight: 500; }
+.lowcode-array__remove { min-width: 88rpx; min-height: 88rpx; margin: -22rpx -16rpx -22rpx 0; padding: 0; border: 0; color: #f53f3f; font-size: 24rpx; line-height: 88rpx; background: transparent; }
 .lowcode-array__remove::after { border: 0; }
-.lowcode-array__empty { padding: 28rpx; border: 1rpx dashed #cbd5e1; border-radius: 12rpx; color: #94a3b8; font-size: 23rpx; text-align: center; }
+.lowcode-array__empty { padding: 32rpx; border: 1rpx dashed var(--border-color); border-radius: var(--radius-card); color: #86909c; font-size: 24rpx; text-align: center; }
 .lowcode-array__actions { display: flex; align-items: center; gap: 14rpx; }
-.lowcode-array__limit { color: #94a3b8; font-size: 22rpx; }
+.lowcode-array__limit { color: #86909c; font-size: 22rpx; }
 </style>

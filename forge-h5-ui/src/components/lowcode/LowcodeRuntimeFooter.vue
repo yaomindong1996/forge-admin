@@ -17,6 +17,11 @@ defineEmits(['cancel', 'save', 'edit'])
 </script>
 
 <style lang="scss" scoped>
-.runtime-footer-actions { position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; justify-content: stretch; gap: 12rpx; padding: 18rpx 0 calc(18rpx + env(safe-area-inset-bottom)); background: rgba(248, 250, 252, .95); }
+.runtime-footer-actions { position: sticky; bottom: 0; z-index: 2; display: flex; flex-direction: column-reverse; align-items: stretch; justify-content: stretch; gap: 16rpx; padding: 32rpx 0 calc(32rpx + env(safe-area-inset-bottom)); border-top: 1rpx solid var(--border-light); background: #fff; }
 .runtime-footer-actions > * { flex: 1; }
+
+@media (min-width: 1024px) {
+  .runtime-footer-actions { flex-direction: row; justify-content: flex-end; padding: 16px 0; }
+  .runtime-footer-actions > * { flex: 0 0 auto; min-width: 128px; }
+}
 </style>

@@ -9,7 +9,7 @@
         @click="handleTabClick(tab)"
       >
         <view v-if="currentKey === tab.key" class="ai-tabbar__active" />
-        <view class="ai-tabbar__icon" :style="iconMask(tab.icon, currentKey === tab.key ? '#1f5fbf' : '#8a93a3')" />
+        <view class="ai-tabbar__icon" :style="iconMask(tab.icon, currentKey === tab.key ? '#4266f7' : '#86909c')" />
         <text class="ai-tabbar__label">{{ tab.label }}</text>
       </button>
     </view>
@@ -170,6 +170,6 @@ function handleTabClick(tab) {
 
 .ai-tabbar__item.is-active .ai-tabbar__label {
   color: var(--primary-color);
-  font-weight: 650;
+  font-weight: 500;
 }
 </style>

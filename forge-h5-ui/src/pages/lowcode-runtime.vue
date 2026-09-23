@@ -28,7 +28,8 @@
       @action="runAction" @change-page="changePage"
     />
 
-    <template v-else>
+    <view v-else class="runtime-detail-workspace">
+      <view class="runtime-detail-main">
       <LowcodeFlowTimeline
         v-if="flowInteraction.timeline.enabled && (flowHistoryLoading || flowHistory.length)"
         :title="flowInteraction.timeline.title" :loading="flowHistoryLoading" :items="flowHistory"
@@ -166,7 +167,14 @@
 
         <LowcodeRuntimeFooter :mode="mode" :saving="saving" :can-edit="canEdit" @cancel="goList" @save="save" @edit="openEdit" />
       </template>
-    </template>
+      </view>
+      <AiHelpPanel
+        class="runtime-detail-help"
+        :title="mode === 'detail' ? '查看说明' : '填写说明'"
+        :description="mode === 'detail' ? '当前页面为只读状态。' : '按页面配置完成必填信息后保存。'"
+        :items="runtimeHelpItems"
+      />
+    </view>
   </AiLayoutPage>
 </template>
 
@@ -176,6 +184,7 @@ import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { storeToRefs } from 'pinia'
 import AiButton from '@/components/AiButton.vue'
 import AiFeedbackHost from '@/components/feedback/AiFeedbackHost.vue'
+import AiHelpPanel from '@/components/AiHelpPanel.vue'
 import AiLayoutPage from '@/components/AiLayoutPage.vue'
 import AiListSkeleton from '@/components/AiListSkeleton.vue'
 import AiResult from '@/components/AiResult.vue'
@@ -213,6 +222,9 @@ const {
 } = storeToRefs(runtimeStore)
 const { routeQuery, searchData, mainData, childData, dictOptions } = runtimeStore
 const pageSize = runtimeStore.pageSize
+const runtimeHelpItems = computed(() => mode.value === 'detail'
+  ? ['字段内容来自当前业务记录', '附件、明细和关联信息保持只读展示']
+  : ['带 * 的字段为必填项', '关联选项会根据当前表单内容实时更新', '确认信息无误后再保存提交'])
 const hasComposedBottomBar = computed(() => runtimePageZones.value.some(zone => {
   const schema = runtimeZoneFormSchema(zone)
   const hasBar = Array.isArray(schema?.bottomBar?.actions) && schema.bottomBar.actions.length > 0

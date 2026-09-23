@@ -4,14 +4,14 @@
     <view class="message-content">
       <view class="page-head">
         <button class="back-button" @click="goBack">
-          <AiIcon name="chevron-left" color="#475569" size="md" />
+          <AiIcon name="chevron-left" color="#4e5969" size="md" />
         </button>
         <view class="title-block">
           <text class="page-title">消息中心</text>
           <text class="page-subtitle">通知、审批提醒和系统消息集中处理</text>
         </view>
         <button class="refresh-button" @click="refresh">
-          <AiIcon name="refresh-cw" color="#1f5fbf" size="sm" />
+          <AiIcon name="refresh-cw" color="#4266f7" size="sm" />
         </button>
       </view>
 
@@ -36,7 +36,7 @@
           </view>
         </scroll-view>
         <button v-if="markableUnreadMessages.length" class="mark-read-button" @click="markAllRead">
-          <AiIcon name="check" color="#1f5fbf" size="sm" />
+          <AiIcon name="check" color="#4266f7" size="sm" />
           <text>{{ markAllReadLabel }}</text>
         </button>
       </view>
@@ -422,9 +422,9 @@ function getToneClass(item) {
 
 function getToneColor(item) {
   if (isApprovalMessage(item)) {
-    return '#10b981'
+    return '#16815d'
   }
-  return item?.readFlag === 0 ? '#1f5fbf' : '#64748b'
+  return item?.readFlag === 0 ? '#4266f7' : '#4e5969'
 }
 
 function stripHtml(value) {

@@ -80,33 +80,43 @@ function handleClear() {
 }
 
 .ai-select :deep(.wd-picker__cell) {
-  min-height: 76rpx;
-  padding: 0 20rpx;
-  border: 1rpx solid var(--forge-color-border, #e2e8f0);
+  display: flex;
+  min-height: 88rpx;
+  align-items: center;
+  padding: 0 24rpx;
+  border: 1rpx solid var(--forge-color-border, #c9cdd4);
   border-radius: var(--forge-radius-control, 12rpx);
   background: var(--forge-color-surface, #fff);
   box-sizing: border-box;
 }
 
+.ai-select :deep(.wd-cell__wrapper),
+.ai-select :deep(.wd-picker__value) {
+  display: flex;
+  min-height: 86rpx;
+  align-items: center;
+  line-height: 1.5;
+}
+
 .ai-select--compact :deep(.wd-picker__cell) {
-  min-height: 64rpx;
+  min-height: 88rpx;
   padding: 0 18rpx;
-  border-radius: 14rpx;
+  border-radius: var(--forge-radius-control, 12rpx);
 }
 
 .ai-select-description {
   display: block;
   margin-top: 8rpx;
-  color: #94a3b8;
-  font-size: 21rpx;
+  color: var(--forge-color-text-muted, #86909c);
+  font-size: 26rpx;
 }
 
 .ai-select :deep(.wd-picker__value) {
-  color: var(--forge-color-text, #334155);
-  font-size: 25rpx;
+  color: var(--forge-color-text, #1d2129);
+  font-size: 28rpx;
 }
 
 .ai-select :deep(.wd-picker__placeholder) {
-  color: var(--forge-color-text-placeholder, #94a3b8);
+  color: var(--forge-color-text-muted, #86909c);
 }
 </style>

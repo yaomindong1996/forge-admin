@@ -11,7 +11,7 @@
           <text class="summary-title">组件库预览</text>
           <text class="summary-desc">外层只保留目录，点击组件后在弹出层查看示例。</text>
         </view>
-        <AiIcon name="layers" color="#1f5fbf" size="lg" tile />
+        <AiIcon name="layers" color="#4266f7" size="lg" tile />
       </view>
 
       <scroll-view class="category-nav" scroll-x :show-scrollbar="false">
@@ -75,12 +75,12 @@
       <view v-else-if="activeComponent.key === 'field'" class="field-stack">
         <AiField v-model="form.nickname" label="昵称" clearable placeholder="请输入昵称">
           <template #leftIcon>
-            <view class="icon-mask field-icon" :style="iconMask('/static/icons/ai-icon/user.svg', '#94a3b8')" />
+            <view class="icon-mask field-icon" :style="iconMask('/static/icons/ai-icon/user.svg', '#86909c')" />
           </template>
         </AiField>
         <AiField v-model="form.password" label="密码" type="password" placeholder="请输入密码">
           <template #leftIcon>
-            <view class="icon-mask field-icon" :style="iconMask('/static/icons/ai-icon/lock.svg', '#94a3b8')" />
+            <view class="icon-mask field-icon" :style="iconMask('/static/icons/ai-icon/lock.svg', '#86909c')" />
           </template>
         </AiField>
         <AiField
@@ -308,8 +308,8 @@ const componentItems = [
     categoryLabel: '基础',
     desc: '主操作、次操作、危险操作与加载态。',
     icon: 'zap',
-    color: '#1f5fbf',
-    bg: '#edf4ff',
+    color: '#4266f7',
+    bg: '#f5f7ff',
     tagType: 'primary',
   },
   {
@@ -319,8 +319,8 @@ const componentItems = [
     categoryLabel: '基础',
     desc: '状态标签、描边标签、圆角标签和关闭交互。',
     icon: 'award',
-    color: '#1f5fbf',
-    bg: '#edf4ff',
+    color: '#4266f7',
+    bg: '#f5f7ff',
     tagType: 'primary',
   },
   {
@@ -330,8 +330,8 @@ const componentItems = [
     categoryLabel: '表单',
     desc: '普通输入、密码输入、错误态和横向表单。',
     icon: 'edit',
-    color: '#1f5fbf',
-    bg: '#edf4ff',
+    color: '#4266f7',
+    bg: '#f5f7ff',
     tagType: 'success',
   },
   {
@@ -341,8 +341,8 @@ const componentItems = [
     categoryLabel: '表单',
     desc: '移动端搜索、清空、取消和搜索确认。',
     icon: 'search',
-    color: '#1f5fbf',
-    bg: '#edf4ff',
+    color: '#4266f7',
+    bg: '#f5f7ff',
     tagType: 'primary',
   },
   {
@@ -352,7 +352,7 @@ const componentItems = [
     categoryLabel: '布局',
     desc: '提交成功、异常、无权限、404、网络错误等状态反馈。',
     icon: 'check-circle',
-    color: '#10b981',
+    color: '#16815d',
     bg: '#edf8f4',
     tagType: 'success',
   },
@@ -363,7 +363,7 @@ const componentItems = [
     categoryLabel: '布局',
     desc: '首屏、列表和卡片加载占位，减少空白等待。',
     icon: 'loader',
-    color: '#64748b',
+    color: '#4e5969',
     bg: '#f1f3f5',
     tagType: 'default',
   },
@@ -374,8 +374,8 @@ const componentItems = [
     categoryLabel: '列表',
     desc: '下拉刷新、上拉加载、空状态、错误重试和底部状态。',
     icon: 'list',
-    color: '#1f5fbf',
-    bg: '#edf4ff',
+    color: '#4266f7',
+    bg: '#f5f7ff',
     tagType: 'success',
   },
   {
@@ -385,8 +385,8 @@ const componentItems = [
     categoryLabel: '列表',
     desc: '适合设置项、个人信息和业务菜单入口。',
     icon: 'list',
-    color: '#1f5fbf',
-    bg: '#edf4ff',
+    color: '#4266f7',
+    bg: '#f5f7ff',
     tagType: 'primary',
   },
   {
@@ -396,8 +396,8 @@ const componentItems = [
     categoryLabel: '布局',
     desc: '页面背景、内容分区、头像和统计信息组合。',
     icon: 'layers',
-    color: '#1f5fbf',
-    bg: '#edf4ff',
+    color: '#4266f7',
+    bg: '#f5f7ff',
     tagType: 'primary',
   },
   {
@@ -407,7 +407,7 @@ const componentItems = [
     categoryLabel: '布局',
     desc: '统一 SVG mask 图标颜色、尺寸和底块样式。',
     icon: 'grid',
-    color: '#d97706',
+    color: '#ff7d00',
     bg: '#fff8eb',
     tagType: 'warning',
   },
@@ -418,7 +418,7 @@ const componentItems = [
     categoryLabel: '布局',
     desc: '用于列表、消息、卡包等无数据场景。',
     icon: 'inbox',
-    color: '#64748b',
+    color: '#4e5969',
     bg: '#f1f3f5',
     tagType: 'default',
   },
@@ -429,8 +429,8 @@ const componentItems = [
     categoryLabel: '反馈',
     desc: '轻提示、消息提示、Alert 和 Confirm 弹窗。',
     icon: 'bell',
-    color: '#1f5fbf',
-    bg: '#edf4ff',
+    color: '#4266f7',
+    bg: '#f5f7ff',
     tagType: 'primary',
   },
   {
@@ -440,7 +440,7 @@ const componentItems = [
     categoryLabel: '反馈',
     desc: '品牌、圆环、圆点和全屏加载状态。',
     icon: 'refresh-cw',
-    color: '#059669',
+    color: '#16815d',
     bg: '#edf8f4',
     tagType: 'success',
   },
@@ -451,8 +451,8 @@ const componentItems = [
     categoryLabel: '方法',
     desc: 'useRequest、usePageLoading 和 route 工具方法。',
     icon: 'code',
-    color: '#1f5fbf',
-    bg: '#edf4ff',
+    color: '#4266f7',
+    bg: '#f5f7ff',
     tagType: 'primary',
   },
 ]
@@ -464,10 +464,10 @@ const statsItems = [
 ]
 
 const iconItems = [
-  { name: 'user', label: '用户', color: '#1f5fbf' },
-  { name: 'shield', label: '安全', color: '#1f5fbf' },
-  { name: 'bell', label: '通知', color: '#526071' },
-  { name: 'zap', label: '快捷', color: '#d97706' },
+  { name: 'user', label: '用户', color: '#4266f7' },
+  { name: 'shield', label: '安全', color: '#4266f7' },
+  { name: 'bell', label: '通知', color: '#4e5969' },
+  { name: 'zap', label: '快捷', color: '#ff7d00' },
 ]
 
 const typeOptions = [
@@ -477,9 +477,9 @@ const typeOptions = [
 ]
 
 const demoPullItems = ref([
-  { id: 1, title: '账户通知', desc: '展示普通列表项和菜单入口。', icon: 'bell', color: '#1f5fbf' },
-  { id: 2, title: '服务进度', desc: '支持下拉刷新和上拉加载。', icon: 'activity', color: '#10b981' },
-  { id: 3, title: '安全提醒', desc: '内置空状态、错误状态和骨架屏。', icon: 'shield', color: '#526071' },
+  { id: 1, title: '账户通知', desc: '展示普通列表项和菜单入口。', icon: 'bell', color: '#4266f7' },
+  { id: 2, title: '服务进度', desc: '支持下拉刷新和上拉加载。', icon: 'activity', color: '#16815d' },
+  { id: 3, title: '安全提醒', desc: '内置空状态、错误状态和骨架屏。', icon: 'shield', color: '#4e5969' },
 ])
 
 const pageLoading = usePageLoading('success')
@@ -559,7 +559,7 @@ function loadDemoList() {
         title: `扩展项 ${nextId}`,
         desc: '这是上拉加载追加的列表项。',
         icon: 'plus-circle',
-        color: '#d97706',
+        color: '#ff7d00',
       },
     ]
     demoPullLoading.value = false

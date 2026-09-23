@@ -4,7 +4,7 @@
     :disabled="disabled"
     :inline="inline"
     :shape="button ? 'button' : 'dot'"
-    checked-color="var(--forge-color-primary, #1f5fbf)"
+    checked-color="var(--forge-color-primary, #4266f7)"
     @change="handleChange"
   >
     <wd-radio
@@ -55,6 +55,11 @@ const handleChange = (event) => {
 }
 
 :deep(.wd-radio) {
+  min-height: 88rpx;
   margin: 0;
+}
+
+:deep(.wd-radio.is-button) {
+  border-radius: var(--radius-control);
 }
 </style>

@@ -6,7 +6,7 @@
       :disabled="disabled"
       :disable-scroll="true"
       :enable-history="true"
-      pen-color="#1f2937"
+      pen-color="#1d2129"
       background-color="#ffffff"
       @signing="handleSigning"
       @clear="handleClear"
@@ -141,7 +141,7 @@ defineExpose({ hasSignature, upload, clear })
 <style lang="scss" scoped>
 .ai-signature-pad {
   overflow: hidden;
-  border: 1rpx solid var(--border-color, #dbe3ec);
+  border: 1rpx solid var(--border-color, #c9cdd4);
   border-radius: 12rpx;
   background: #ffffff;
 }
@@ -159,7 +159,7 @@ defineExpose({ hasSignature, upload, clear })
 .ai-signature-pad__saved {
   display: block;
   padding: 0 16rpx 16rpx;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, #4e5969);
   font-size: 22rpx;
 }
 </style>

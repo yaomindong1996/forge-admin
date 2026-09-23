@@ -22,6 +22,6 @@ const itemStyle = computed(() => ({
 </script>
 
 <style lang="scss" scoped>
-.mobile-watermark { display: grid; overflow: hidden; align-content: space-around; gap: 28rpx 16rpx; padding: 24rpx 10rpx; border: 1rpx dashed #e2e8f0; border-radius: 14rpx; background: #fbfdff; }
+.mobile-watermark { display: grid; overflow: hidden; align-content: space-around; gap: 28rpx 16rpx; padding: 32rpx 16rpx; border: 1rpx dashed var(--border-color); border-radius: var(--radius-card); background: var(--surface-muted); }
 .mobile-watermark__item { overflow: hidden; text-align: center; text-overflow: ellipsis; white-space: nowrap; user-select: none; }
 </style>

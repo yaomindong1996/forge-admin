@@ -51,6 +51,20 @@
 2. 复跑 48 项 H5 运行时、审批、消息与统一反馈定向测试，确认主线更新未破坏移动端链路。
 3. 重新执行 H5 与微信小程序生产构建；本轮不重复验证 main 自身已交付的管理端和后端功能。
 
+## 第十一轮增量验证：火山方舟风格全站重构
+
+1. 静态检查全局主色、灰阶、`6px` 圆角、`44px` 触屏高度、系统字体和无默认阴影约束。
+2. 检查登录、首页、消息、待办、账户、审批详情、低代码运行页、独立入口与演示页仍挂载统一反馈宿主并复用 `Ai*` 组件。
+3. 在 `390 × 844` 与 `1440 × 900` 视口验证移动单列、桌面分栏、固定操作区、滚动边界和登录页结构。
+4. 复跑 53 项 H5 运行时/审批/消息/设计规范测试，执行 H5 与微信小程序生产构建及 `git diff --check`。
+
+## 第十二轮增量验证：首页与待办工作台
+
+1. 静态锁定 `AiField`、`AiSearchBar`、`AiSelect` 和 `AiDateTimePicker` 的垂直居中规则及 `44px` 触控高度。
+2. 检查首页只有一个工作概览结构，常用应用与最新提醒层级明确，桌面端主区/侧栏和移动端单列断点保持稳定。
+3. 检查待办列表不再挂载任务中转弹层；待签收任务点击调用既有签收接口后直接导航审批页，其他待办直接导航。
+4. 复跑 56 项 H5 运行时、审批、消息和设计规范测试，执行 H5/微信小程序生产构建、移动视口输入控件验证及 `git diff --check`。
+
 ## 执行命令
 
 ```bash
@@ -63,6 +77,7 @@ node --test \
   src/utils/__tests__/flow-action-idempotency.test.js \
   src/utils/__tests__/feedback-components.test.js \
   src/utils/__tests__/message-flow-navigation.test.js \
+  src/utils/__tests__/console-design-system.test.js \
   src/utils/__tests__/lowcode-runtime.test.js \
   src/utils/__tests__/uni-adapter.test.js \
   src/utils/__tests__/mobile-selector-runtime.test.js \

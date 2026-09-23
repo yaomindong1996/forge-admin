@@ -311,7 +311,7 @@ defineExpose({ validate })
 .lowcode-layout { display: flex; flex-direction: column; }
 .lowcode-layout-container { min-width: 0; }
 .lowcode-layout-container.is-grid, .lowcode-layout-container.is-table, .lowcode-layout-container.is-box { margin-bottom: 18rpx; }
-.lowcode-layout-container.is-table { padding: 14rpx; border: 1rpx solid var(--forge-color-border, #e2e8f0); border-radius: 12rpx; }
+.lowcode-layout-container.is-table { padding: 14rpx; border: 1rpx solid var(--forge-color-border, #c9cdd4); border-radius: 12rpx; }
 .lowcode-layout-container.is-space > :deep(.lowcode-layout) { gap: 16rpx; }
 .lowcode-layout-tabs { margin-bottom: 24rpx; }
 .lowcode-layout-collapse { margin-bottom: 24rpx; }

@@ -5,9 +5,13 @@
 
 .message-content {
   display: flex;
+  width: 100%;
+  max-width: var(--forge-page-max-width);
   flex-direction: column;
-  gap: 16rpx;
-  padding: calc(20rpx + env(safe-area-inset-top)) 24rpx 40rpx;
+  gap: 32rpx;
+  margin: 0 auto;
+  padding: calc(32rpx + env(safe-area-inset-top)) 32rpx 48rpx;
+  box-sizing: border-box;
 }
 
 .page-head,
@@ -31,9 +35,9 @@
 .back-button,
 .refresh-button {
   display: flex;
-  width: 58rpx;
-  height: 58rpx;
-  flex: 0 0 58rpx;
+  width: 88rpx;
+  height: 88rpx;
+  flex: 0 0 88rpx;
   align-items: center;
   justify-content: center;
   margin: 0;
@@ -68,8 +72,8 @@
 .page-title {
   overflow: hidden;
   color: var(--text-strong);
-  font-size: 29rpx;
-  font-weight: 650;
+  font-size: 36rpx;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -106,7 +110,7 @@
 
 .filter-tab {
   min-width: 108rpx;
-  height: 58rpx;
+  min-height: 88rpx;
   margin: 0;
   padding: 0 18rpx;
   border: 1rpx solid var(--border-color);
@@ -129,9 +133,10 @@
   gap: 7rpx;
   margin: 0;
   padding: 0;
+  min-height: 88rpx;
   color: var(--primary-color);
   font-size: 22rpx;
-  font-weight: 600;
+  font-weight: 500;
   background: transparent;
 }
 
@@ -159,7 +164,7 @@
 }
 
 .message-card.unread {
-  background: #f8fbff;
+  background: #f5f7ff;
 }
 
 .message-card:active {
@@ -203,7 +208,7 @@
   overflow: hidden;
   color: var(--text-strong);
   font-size: 25rpx;
-  font-weight: 600;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -254,4 +259,31 @@
 
 .message-list :deep(.ai-empty) {
   min-height: 360rpx;
+}
+
+@media (hover: hover) {
+  .message-card:hover,
+  .filter-tab:hover {
+    background: var(--surface-muted);
+  }
+}
+
+@media (min-width: 1024px) {
+  .message-content {
+    display: grid;
+    height: 100vh;
+    grid-template-areas:
+      "head head"
+      "filters messages";
+    grid-template-columns: var(--forge-aside-width) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 24px;
+    padding: 24px;
+  }
+
+  .page-head { grid-area: head; }
+  .filter-panel { grid-area: filters; align-self: start; }
+  .message-list { grid-area: messages; min-height: 0; overflow-y: auto; }
+  .tab-row { display: flex; flex-direction: column; padding-right: 0; }
+  .filter-tab { width: 100%; justify-content: flex-start; text-align: left; }
 }

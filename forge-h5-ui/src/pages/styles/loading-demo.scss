@@ -1,7 +1,7 @@
 .demo-page {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
+  gap: 32rpx;
 }
 
 .category-button::after,
@@ -14,7 +14,7 @@
   display: flex;
   align-items: center;
   gap: 20rpx;
-  padding: 24rpx;
+  padding: 32rpx;
   border: 1rpx solid var(--border-color);
   border-radius: var(--radius-card);
   background: #ffffff;
@@ -44,8 +44,8 @@
 
 .summary-title {
   color: var(--text-strong);
-  font-size: 30rpx;
-  font-weight: 650;
+  font-size: 32rpx;
+  font-weight: 500;
   line-height: 1.35;
 }
 
@@ -72,14 +72,14 @@
 }
 
 .category-button {
-  height: 64rpx;
+  min-height: 88rpx;
   padding: 0 24rpx;
   border-right: 1rpx solid var(--border-color);
   border-radius: 0;
   color: var(--text-secondary);
   font-size: 24rpx;
   font-weight: 500;
-  line-height: 64rpx;
+  line-height: 88rpx;
   background: #ffffff;
 }
 
@@ -90,7 +90,7 @@
 .category-button.active {
   color: var(--primary-color);
   background: var(--primary-soft);
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .component-list {
@@ -143,7 +143,7 @@
   flex: 1;
   color: var(--text-strong);
   font-size: 27rpx;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.35;
   white-space: nowrap;
 }
@@ -225,7 +225,7 @@
 .demo-list-title {
   color: var(--text-strong);
   font-size: 27rpx;
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -301,14 +301,14 @@
 }
 
 .segment-button {
-  height: 64rpx;
+  min-height: 88rpx;
   padding: 0;
   border-right: 1rpx solid var(--border-color);
   border-radius: 0;
   color: var(--text-secondary);
   font-size: 23rpx;
   font-weight: 500;
-  line-height: 64rpx;
+  line-height: 88rpx;
   background: #ffffff;
 }
 
@@ -319,7 +319,7 @@
 .segment-button.active {
   color: var(--primary-color);
   background: var(--primary-soft);
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .composable-preview {
@@ -335,4 +335,23 @@
 .state-label {
   color: var(--text-secondary);
   font-size: 24rpx;
+}
+
+@media (hover: hover) {
+  .component-card:hover,
+  .category-button:hover,
+  .segment-button:hover {
+    background: var(--surface-muted);
+  }
+}
+
+@media (min-width: 1024px) {
+  .component-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .component-card {
+    border-right: 1rpx solid var(--border-light);
+  }
 }

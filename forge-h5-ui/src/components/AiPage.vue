@@ -50,7 +50,7 @@ const props = defineProps({
   },
   backgroundColor: {
     type: String,
-    default: "#fff",
+    default: "var(--page-bg, #f2f3f5)",
   },
   isNavBar: {
     type: Boolean,
@@ -135,6 +135,7 @@ defineExpose({
 .page-detail {
   height: 100vh;
   overflow: hidden;
+  color: var(--text-color);
 
   .page-detail_top {
     position: fixed;
@@ -148,15 +149,24 @@ defineExpose({
     position: fixed;
     bottom: 0;
     width: 100%;
-    border-top: 1px solid var(--forge-border, #dfe4ea);
+    border-top: 1px solid var(--forge-border, #c9cdd4);
     background: #fff;
     box-sizing: border-box;
     padding: 16px;
     display: flex;
     justify-content: space-around;
     align-items: center;
-    height: 58px;
+    min-height: 64px;
+    height: auto;
     z-index: 10;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-detail_box > :deep(*) {
+    max-width: var(--forge-page-max-width);
+    margin-right: auto;
+    margin-left: auto;
   }
 }
 </style>

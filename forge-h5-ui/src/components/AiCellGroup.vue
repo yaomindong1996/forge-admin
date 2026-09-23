@@ -35,7 +35,7 @@ defineProps({
   margin: 8rpx 0 0 4rpx;
   color: var(--text-secondary);
   font-size: 22rpx;
-  font-weight: 650;
+  font-weight: 500;
   line-height: 1.2;
 }
 

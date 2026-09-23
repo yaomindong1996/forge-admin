@@ -52,18 +52,25 @@ function close() { emit('update:modelValue', false) }
 </script>
 
 <style lang="scss" scoped>
-.ai-popup-sheet__panel { width: 100vw; min-height: 120rpx; padding: 12rpx 24rpx 24rpx; background: #fff; box-sizing: border-box; }
-.ai-popup-sheet__panel.is-round { border-radius: 16rpx 16rpx 0 0; }
-.ai-popup-sheet__handle { width: 56rpx; height: 5rpx; margin: 0 auto 16rpx; border-radius: 4rpx; background: #c7cfd9; }
+.ai-popup-sheet__panel { width: 100vw; min-height: 120rpx; padding: 12rpx 32rpx 32rpx; background: #fff; box-sizing: border-box; }
+.ai-popup-sheet__panel.is-round { border-radius: var(--forge-radius-popup, 12rpx) var(--forge-radius-popup, 12rpx) 0 0; }
+.ai-popup-sheet__handle { width: 56rpx; height: 5rpx; margin: 0 auto 16rpx; border-radius: 4rpx; background: #c9cdd4; }
 .ai-popup-sheet__head { display: flex; align-items: flex-start; gap: 16rpx; margin-bottom: 18rpx; padding-bottom: 18rpx; border-bottom: 1rpx solid var(--border-light); }
 .ai-popup-sheet__title-block { min-width: 0; flex: 1; }
 .ai-popup-sheet__title, .ai-popup-sheet__desc { display: block; }
-.ai-popup-sheet__title { color: var(--text-strong); font-size: 29rpx; font-weight: 650; }
+.ai-popup-sheet__title { color: var(--text-strong); font-size: 32rpx; font-weight: 500; }
 .ai-popup-sheet__desc { margin-top: 5rpx; color: var(--text-muted); font-size: 21rpx; }
-.ai-popup-sheet__close { display: flex; width: 48rpx; height: 48rpx; align-items: center; justify-content: center; margin: 0; padding: 0; border: 1rpx solid var(--border-color); border-radius: 6rpx; color: var(--text-secondary); font-size: 32rpx; background: #fff; }
+.ai-popup-sheet__close { display: flex; width: 88rpx; height: 88rpx; align-items: center; justify-content: center; margin: -18rpx -18rpx 0 0; padding: 0; border: 0; border-radius: var(--radius-control); color: var(--text-secondary); font-size: 32rpx; background: transparent; }
 .ai-popup-sheet__close::after { border: 0; }
 .ai-popup-sheet__body { min-height: 0; }
 .ai-popup-sheet__content { padding-bottom: 8rpx; }
 .ai-popup-sheet__footer { padding-top: 18rpx; border-top: 1rpx solid var(--border-light); }
 :deep(.wd-popup) { background: transparent; }
+
+@media (min-width: 1024px) {
+  .ai-popup-sheet__panel {
+    width: min(720px, 100vw);
+    margin: 0 auto;
+  }
+}
 </style>

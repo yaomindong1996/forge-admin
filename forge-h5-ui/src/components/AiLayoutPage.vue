@@ -4,7 +4,7 @@
       <view v-if="showNav" class="ai-layout-page__nav" :class="{ 'ai-layout-page__nav--glass': navGlass }">
         <slot name="nav">
           <button v-if="showBack" class="ai-layout-page__back" @click="handleBack">
-            <AiIcon name="chevron-left" color="#4b5563" size="md" />
+            <AiIcon name="chevron-left" color="#4E5969" size="md" />
           </button>
           <view class="ai-layout-page__title-block">
             <text v-if="title" class="ai-layout-page__title">{{ title }}</text>
@@ -130,7 +130,7 @@ function handleBack() {
   min-height: 92rpx;
   align-items: center;
   gap: 16rpx;
-  padding: calc(14rpx + env(safe-area-inset-top)) 24rpx 14rpx;
+  padding: calc(14rpx + env(safe-area-inset-top)) 32rpx 14rpx;
   box-sizing: border-box;
 }
 
@@ -141,9 +141,9 @@ function handleBack() {
 
 .ai-layout-page__back {
   display: flex;
-  width: 64rpx;
-  height: 64rpx;
-  flex: 0 0 64rpx;
+  width: 88rpx;
+  height: 88rpx;
+  flex: 0 0 88rpx;
   align-items: center;
   justify-content: center;
   margin: 0;
@@ -174,15 +174,15 @@ function handleBack() {
 
 .ai-layout-page__title {
   color: var(--text-strong);
-  font-size: 30rpx;
-  font-weight: 650;
+  font-size: 36rpx;
+  font-weight: 500;
   line-height: 1.25;
 }
 
 .ai-layout-page__subtitle {
   margin-top: 6rpx;
   color: var(--text-muted);
-  font-size: 21rpx;
+  font-size: 26rpx;
   font-weight: 400;
 }
 
@@ -206,17 +206,20 @@ function handleBack() {
 }
 
 .ai-layout-page__inner {
+  width: 100%;
+  max-width: var(--forge-page-max-width, 1280px);
+  margin: 0 auto;
   box-sizing: border-box;
 }
 
 .ai-layout-page__inner--padded {
-  padding: 20rpx 24rpx 32rpx;
+  padding: 32rpx;
 }
 
 .ai-layout-page__footer {
   position: relative;
   z-index: 3;
-  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  padding: 16rpx 32rpx calc(16rpx + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -224,5 +227,21 @@ function handleBack() {
   border-top: 1rpx solid var(--border-color);
   background: #fff;
   box-shadow: none;
+}
+
+@media (min-width: 1024px) {
+  .ai-layout-page__nav {
+    padding-right: max(24px, calc((100vw - 1280px) / 2 + 24px));
+    padding-left: max(24px, calc((100vw - 1280px) / 2 + 24px));
+  }
+
+  .ai-layout-page__inner--padded {
+    padding: 24px;
+  }
+
+  .ai-layout-page__footer {
+    padding-right: max(24px, calc((100vw - 1280px) / 2 + 24px));
+    padding-left: max(24px, calc((100vw - 1280px) / 2 + 24px));
+  }
 }
 </style>

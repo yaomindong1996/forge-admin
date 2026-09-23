@@ -87,14 +87,14 @@ const customStyle = computed(() => {
   box-sizing: border-box;
   max-width: 100%;
   border: 1px solid transparent;
-  border-radius: 6rpx;
-  font-weight: 600;
+  border-radius: var(--radius-control, 12rpx);
+  font-weight: 500;
   letter-spacing: 0;
   line-height: 1;
   transition: opacity 0.2s ease, transform 0.2s ease;
 
   &--round {
-    border-radius: 6rpx;
+    border-radius: var(--radius-control, 12rpx);
   }
 
   &--sm {
@@ -118,16 +118,16 @@ const customStyle = computed(() => {
   &--primary {
     &.ai-tag--solid {
       color: #fff;
-      background: #1f5fbf;
+      background: var(--primary-color);
     }
     &.ai-tag--soft {
-      color: #1f5fbf;
-      border-color: rgba(191, 219, 254, 0.9);
-      background: rgba(219, 234, 254, 0.76);
+      color: var(--primary-color);
+      border-color: var(--forge-color-primary-border);
+      background: var(--primary-soft);
     }
     &.ai-tag--outline {
-      color: #1f5fbf;
-      border-color: rgba(147, 197, 253, 0.9);
+      color: var(--primary-color);
+      border-color: var(--forge-color-primary-border);
       background: transparent;
     }
   }
@@ -135,15 +135,15 @@ const customStyle = computed(() => {
   &--success {
     &.ai-tag--solid {
       color: #fff;
-      background: #10b981;
+      background: #16815d;
     }
     &.ai-tag--soft {
-      color: #059669;
+      color: #16815d;
       border-color: rgba(167, 243, 208, 0.9);
       background: rgba(209, 250, 229, 0.76);
     }
     &.ai-tag--outline {
-      color: #059669;
+      color: #16815d;
       border-color: rgba(110, 231, 183, 0.9);
       background: transparent;
     }
@@ -152,15 +152,15 @@ const customStyle = computed(() => {
   &--warning {
     &.ai-tag--solid {
       color: #fff;
-      background: #f59e0b;
+      background: #ff7d00;
     }
     &.ai-tag--soft {
-      color: #d97706;
+      color: #ff7d00;
       border-color: rgba(253, 230, 138, 0.9);
       background: rgba(254, 243, 199, 0.82);
     }
     &.ai-tag--outline {
-      color: #d97706;
+      color: #ff7d00;
       border-color: rgba(252, 211, 77, 0.9);
       background: transparent;
     }
@@ -169,15 +169,15 @@ const customStyle = computed(() => {
   &--danger {
     &.ai-tag--solid {
       color: #fff;
-      background: #f43f5e;
+      background: #f53f3f;
     }
     &.ai-tag--soft {
-      color: #e11d48;
+      color: #f53f3f;
       border-color: rgba(254, 205, 211, 0.9);
       background: rgba(255, 228, 230, 0.82);
     }
     &.ai-tag--outline {
-      color: #e11d48;
+      color: #f53f3f;
       border-color: rgba(253, 164, 175, 0.9);
       background: transparent;
     }
@@ -186,15 +186,15 @@ const customStyle = computed(() => {
   &--default {
     &.ai-tag--solid {
       color: #fff;
-      background: #334155;
+      background: #1d2129;
     }
     &.ai-tag--soft {
-      color: #475569;
+      color: #4e5969;
       border-color: rgba(226, 232, 240, 0.9);
       background: rgba(241, 245, 249, 0.82);
     }
     &.ai-tag--outline {
-      color: #64748b;
+      color: #4e5969;
       border-color: rgba(203, 213, 225, 0.9);
       background: transparent;
     }
@@ -222,7 +222,7 @@ const customStyle = computed(() => {
   background: transparent;
   color: currentColor;
   font-size: 26rpx;
-  font-weight: 800;
+  font-weight: 500;
   line-height: 1;
 
   &::after {

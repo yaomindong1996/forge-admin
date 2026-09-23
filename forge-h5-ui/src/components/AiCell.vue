@@ -122,7 +122,7 @@ const handleClick = (event) => {
   width: 60rpx;
   height: 60rpx;
   margin-right: 16rpx;
-  border-radius: 8rpx;
+  border-radius: var(--radius-control);
 }
 
 .ai-cell__icon-image {
@@ -143,7 +143,7 @@ const handleClick = (event) => {
   overflow: hidden;
   color: var(--text-strong);
   font-size: 27rpx;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;

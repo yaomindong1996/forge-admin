@@ -5,7 +5,7 @@
         {{ displayText || effectivePlaceholder }}
       </text>
       <text v-if="displayText && clearable && !effectiveDisabled" class="lowcode-selector__clear" @click.stop="clear">×</text>
-      <wd-icon v-else name="arrow-right" size="16px" color="#94a3b8" />
+      <wd-icon v-else name="arrow-right" size="16px" color="#86909c" />
     </button>
 
     <AiPopupSheet
@@ -292,26 +292,30 @@ function countTreeRows(rows = []) {
 </script>
 
 <style lang="scss" scoped>
-.lowcode-selector__trigger { display: flex; width: 100%; min-height: 76rpx; align-items: center; gap: 12rpx; margin: 0; padding: 14rpx 18rpx; border: 1rpx solid var(--forge-color-border, #e2e8f0); border-radius: 12rpx; color: #334155; text-align: left; background: #fff; box-sizing: border-box; }
+.lowcode-selector__trigger { display: flex; width: 100%; min-height: 88rpx; align-items: center; gap: 12rpx; margin: 0; padding: 14rpx 24rpx; border: 1rpx solid var(--forge-color-border, #c9cdd4); border-radius: var(--radius-control); color: #1d2129; text-align: left; background: #fff; box-sizing: border-box; }
 .lowcode-selector__trigger::after, .lowcode-selector__option::after, .lowcode-selector__more::after { border: 0; }
-.lowcode-selector__trigger[disabled] { background: #f8fafc; opacity: .72; }
+.lowcode-selector__trigger[disabled] { background: #f7f8fa; opacity: .72; }
 .lowcode-selector__value { min-width: 0; overflow: hidden; flex: 1; font-size: 25rpx; text-overflow: ellipsis; white-space: nowrap; }
-.lowcode-selector__value.is-placeholder { color: #94a3b8; }
-.lowcode-selector__clear { display: flex; width: 42rpx; height: 42rpx; align-items: center; justify-content: center; border-radius: 50%; color: #94a3b8; font-size: 32rpx; background: #f1f5f9; }
+.lowcode-selector__value.is-placeholder { color: #86909c; }
+.lowcode-selector__clear { display: flex; width: 42rpx; height: 42rpx; align-items: center; justify-content: center; border-radius: 50%; color: #86909c; font-size: 32rpx; background: #f7f8fa; }
 .lowcode-selector__search { display: flex; align-items: center; gap: 12rpx; margin-bottom: 18rpx; }
 .lowcode-selector__search :deep(.ai-field) { min-width: 0; flex: 1; }
-.lowcode-selector__state { display: flex; min-height: 200rpx; flex-direction: column; align-items: center; justify-content: center; gap: 18rpx; color: #64748b; font-size: 24rpx; }
-.lowcode-selector__state.is-error { color: #dc2626; }
-.lowcode-selector__options { overflow: hidden; border: 1rpx solid #e2e8f0; border-radius: 14rpx; background: #fff; }
-.lowcode-selector__option { display: flex; width: 100%; min-height: 88rpx; align-items: center; gap: 16rpx; margin: 0; padding-top: 14rpx; padding-right: 20rpx; padding-bottom: 14rpx; border: 0; border-bottom: 1rpx solid #eef2f7; border-radius: 0; color: #334155; text-align: left; background: #fff; box-sizing: border-box; }
-.lowcode-selector__option.is-selected { background: #eff6ff; }
+.lowcode-selector__state { display: flex; min-height: 200rpx; flex-direction: column; align-items: center; justify-content: center; gap: 18rpx; color: #4e5969; font-size: 24rpx; }
+.lowcode-selector__state.is-error { color: #f53f3f; }
+.lowcode-selector__options { overflow: hidden; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
+.lowcode-selector__option { display: flex; width: 100%; min-height: 88rpx; align-items: center; gap: 16rpx; margin: 0; padding-top: 14rpx; padding-right: 20rpx; padding-bottom: 14rpx; border: 0; border-bottom: 1rpx solid #e5e6eb; border-radius: 0; color: #1d2129; text-align: left; background: #fff; box-sizing: border-box; }
+.lowcode-selector__option.is-selected { background: #f5f7ff; }
 .lowcode-selector__option.is-disabled { opacity: .48; }
-.lowcode-selector__indicator { display: flex; width: 34rpx; height: 34rpx; flex: 0 0 auto; align-items: center; justify-content: center; border: 2rpx solid #cbd5e1; border-radius: 50%; color: #fff; font-size: 23rpx; background: #fff; box-sizing: border-box; }
+.lowcode-selector__indicator { display: flex; width: 34rpx; height: 34rpx; flex: 0 0 auto; align-items: center; justify-content: center; border: 2rpx solid #c9cdd4; border-radius: 50%; color: #fff; font-size: 23rpx; background: #fff; box-sizing: border-box; }
 .lowcode-selector__indicator.is-multiple { border-radius: 7rpx; }
-.is-selected .lowcode-selector__indicator { border-color: #1f5fbf; background: #1f5fbf; }
+.is-selected .lowcode-selector__indicator { border-color: #4266f7; background: #4266f7; }
 .lowcode-selector__copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3rpx; }
 .lowcode-selector__label { overflow: hidden; font-size: 25rpx; text-overflow: ellipsis; white-space: nowrap; }
-.lowcode-selector__meta { overflow: hidden; color: #94a3b8; font-size: 21rpx; text-overflow: ellipsis; white-space: nowrap; }
-.lowcode-selector__more { width: 100%; margin: 0; border: 0; border-radius: 0; color: #1f5fbf; font-size: 23rpx; background: #f8fbff; }
-.lowcode-selector__footer { display: grid; grid-template-columns: 1fr 1.5fr; gap: 14rpx; }
+.lowcode-selector__meta { overflow: hidden; color: #86909c; font-size: 21rpx; text-overflow: ellipsis; white-space: nowrap; }
+.lowcode-selector__more { width: 100%; margin: 0; border: 0; border-radius: 0; color: #4266f7; font-size: 23rpx; background: #f5f7ff; }
+.lowcode-selector__footer { display: flex; flex-direction: column-reverse; gap: 16rpx; }
+
+@media (min-width: 1024px) {
+  .lowcode-selector__footer { display: grid; grid-template-columns: 1fr 1.5fr; }
+}
 </style>

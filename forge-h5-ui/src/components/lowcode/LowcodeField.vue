@@ -144,7 +144,7 @@
         v-else-if="descriptor.renderer === 'switch'"
         :model-value="switchValue"
         :disabled="disabled"
-        active-color="var(--forge-color-primary, #1f5fbf)"
+        active-color="var(--forge-color-primary, #4266f7)"
         @update:model-value="updateValue"
         @change="emit('change', $event?.value ?? $event)"
       />
@@ -166,7 +166,7 @@
         :disabled="disabled"
         :readonly="readonly"
         :allow-half="field.props?.allowHalf !== false"
-        active-color="#f59e0b"
+        active-color="#ff7d00"
         @update:model-value="updateValue"
         @change="emit('change', $event?.value ?? $event)"
       />
@@ -188,7 +188,7 @@
         <view class="lowcode-field__color-preview" :style="{ backgroundColor: validColorValue }" />
         <AiField
           :model-value="modelValue"
-          placeholder="#1f5fbf"
+          placeholder="#4266f7"
           :maxlength="32"
           @update:model-value="updateValue"
           @blur="emit('blur')"
@@ -286,7 +286,7 @@ const numericValue = computed(() => {
   return Number.isFinite(number) ? number : 0
 })
 const switchValue = computed(() => props.modelValue === true || props.modelValue === 1 || props.modelValue === '1' || props.modelValue === 'true')
-const validColorValue = computed(() => /^#[0-9a-f]{3,8}$/i.test(String(props.modelValue || '')) ? String(props.modelValue) : '#e2e8f0')
+const validColorValue = computed(() => /^#[0-9a-f]{3,8}$/i.test(String(props.modelValue || '')) ? String(props.modelValue) : '#c9cdd4')
 const rangeValue = computed(() => {
   const value = props.modelValue
   if (Array.isArray(value)) return [value[0] ?? '', value[1] ?? '']
@@ -394,21 +394,21 @@ defineExpose({ validate })
 </script>
 
 <style lang="scss" scoped>
-.lowcode-field { margin-bottom: 24rpx; }
-.lowcode-field__label { display: flex; margin-bottom: 10rpx; color: #475569; font-size: 25rpx; font-weight: 700; }
-.lowcode-field__required { margin-left: 6rpx; color: #ef4444; }
-.lowcode-field__control { min-height: 76rpx; }
-.lowcode-field__readonly { min-height: 76rpx; padding: 20rpx; border: 1rpx solid #edf0f3; border-radius: 12rpx; color: #64748b; background: #f8fafc; box-sizing: border-box; line-height: 1.45; word-break: break-all; }
+.lowcode-field { margin-bottom: 32rpx; }
+.lowcode-field__label { display: flex; margin-bottom: 12rpx; color: #4e5969; font-size: 28rpx; font-weight: 400; line-height: 1.5; }
+.lowcode-field__required { margin-left: 6rpx; color: #f53f3f; }
+.lowcode-field__control { min-height: 88rpx; }
+.lowcode-field__readonly { min-height: 88rpx; padding: 20rpx 24rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-control); color: #4e5969; background: #f7f8fa; box-sizing: border-box; line-height: 1.5; word-break: break-all; }
 .lowcode-field__barcode { display: flex; align-items: center; gap: 12rpx; }
 .lowcode-field__barcode :deep(.ai-field) { flex: 1; min-width: 0; }
 .lowcode-field__scan { flex: 0 0 auto; }
 .lowcode-field__range { display: flex; align-items: center; gap: 10rpx; }
 .lowcode-field__range-input { min-width: 0; flex: 1; }
-.lowcode-field__range-separator { flex: 0 0 auto; color: #94a3b8; font-size: 24rpx; }
+.lowcode-field__range-separator { flex: 0 0 auto; color: #86909c; font-size: 24rpx; }
 .lowcode-field__color { display: flex; align-items: center; gap: 12rpx; }
-.lowcode-field__color-preview { width: 64rpx; height: 64rpx; flex: 0 0 auto; border: 1rpx solid var(--forge-color-border, #e2e8f0); border-radius: 12rpx; }
+.lowcode-field__color-preview { width: 88rpx; height: 88rpx; flex: 0 0 auto; border: 1rpx solid var(--forge-color-border, #c9cdd4); border-radius: var(--radius-control); }
 .lowcode-field__color :deep(.ai-field) { min-width: 0; flex: 1; }
-.lowcode-field__error { display: block; margin-top: 8rpx; color: #ef4444; font-size: 22rpx; }
-.lowcode-field__hint { display: block; margin-top: 8rpx; color: #94a3b8; font-size: 22rpx; }
-.lowcode-field__hint.is-error { color: #dc2626; }
+.lowcode-field__error { display: block; margin-top: 8rpx; color: #f53f3f; font-size: 24rpx; }
+.lowcode-field__hint { display: block; margin-top: 8rpx; color: #86909c; font-size: 22rpx; }
+.lowcode-field__hint.is-error { color: #f53f3f; }
 </style>

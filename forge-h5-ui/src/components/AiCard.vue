@@ -15,8 +15,8 @@ defineProps({
 </script>
 
 <style lang="scss" scoped>
-.ai-card { overflow: hidden; margin: 0; border: 1rpx solid var(--forge-color-border, #dfe4ea); background: var(--forge-color-surface, #fff); box-shadow: none; }
+.ai-card { overflow: hidden; margin: 0; border: 1rpx solid var(--forge-color-border, #c9cdd4); background: var(--forge-color-surface, #fff); box-shadow: none; }
 .ai-card__body { box-sizing: border-box; }
 :deep(.wd-card__content) { padding: 0; }
-:deep(.wd-card__title-content) { border-color: var(--forge-color-border-subtle, #eef2f7); }
+:deep(.wd-card__title-content) { border-color: var(--forge-color-border-subtle, #e5e6eb); }
 </style>

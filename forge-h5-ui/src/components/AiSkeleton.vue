@@ -60,7 +60,7 @@ defineProps({
 
 .ai-skeleton--card {
   padding: 24rpx;
-  border: 1rpx solid var(--forge-border, #dfe4ea);
+  border: 1rpx solid var(--forge-border, #c9cdd4);
   border-radius: var(--forge-radius-card, 12rpx);
   background: var(--forge-surface, #ffffff);
   box-sizing: border-box;
@@ -79,7 +79,7 @@ defineProps({
 }
 
 .ai-skeleton__list-row + .ai-skeleton__list-row {
-  border-top: 1rpx solid var(--forge-border-light, #edf0f3);
+  border-top: 1rpx solid var(--forge-border-light, #e5e6eb);
 }
 
 .ai-skeleton__avatar,
@@ -87,7 +87,7 @@ defineProps({
 .ai-skeleton__media {
   overflow: hidden;
   border-radius: 6rpx;
-  background: #edf0f3;
+  background: #e5e6eb;
 }
 
 .ai-skeleton--animated .ai-skeleton__avatar,

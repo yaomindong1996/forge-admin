@@ -13,111 +13,102 @@
           </view>
         </view>
         <button class="bell-button" @click="goMessages">
-          <view class="icon-mask bell-icon" :style="iconMask('/static/icons/ai-icon/bell.svg', '#475569')" />
+          <view class="icon-mask bell-icon" :style="iconMask('/static/icons/ai-icon/bell.svg', '#4e5969')" />
           <view v-if="unreadCount > 0" class="bell-badge">
             <text>{{ unreadCount > 99 ? '99+' : unreadCount }}</text>
           </view>
         </button>
       </view>
 
-      <view class="workbench-panel">
-        <view class="attention-head">
-          <view class="attention-title-wrap">
-            <view class="attention-title-mark" />
-            <text class="attention-title">处理中心</text>
+      <view class="home-dashboard">
+        <view class="workbench-panel">
+          <view class="section-head">
+            <view class="section-heading">
+              <text class="section-title">工作概览</text>
+              <text class="section-subtitle">待处理事项与未读消息</text>
+            </view>
+            <button class="section-action" aria-label="刷新工作概览" @click="refreshWorkspace">
+              <AiIcon icon="/static/icons/ai-icon/refresh-cw.svg" color="#4266f7" size="sm" />
+            </button>
           </view>
-          <button class="attention-refresh" @click="refreshWorkspace">
-            <AiIcon icon="/static/icons/ai-icon/refresh-cw.svg" color="#1f5fbf" size="sm" />
-          </button>
-        </view>
-        <view class="attention-grid">
-          <button class="attention-card" @click="goTodo">
-            <view class="attention-card-top">
-              <view class="attention-icon">
-            <AiIcon icon="/static/icons/ai-icon/check-square.svg" color="#1f5fbf" size="sm" />
+          <view class="overview-list">
+            <button class="overview-item" @click="goTodo">
+              <view class="overview-icon"><AiIcon icon="/static/icons/ai-icon/check-square.svg" color="#4266f7" size="sm" /></view>
+              <view class="overview-copy">
+                <text class="overview-title">待办任务</text>
+                <text class="overview-desc">{{ todoCount > 0 ? '有审批任务等待处理' : '当前没有待处理任务' }}</text>
               </view>
-              <text class="attention-label">待办</text>
-            </view>
-            <view class="attention-count-line">
-              <text class="attention-count">{{ todoCount > 99 ? '99+' : todoCount }}</text>
-              <text class="attention-unit">项</text>
-            </view>
-            <text class="attention-desc">{{ todoCount > 0 ? '等待你处理' : '暂时已清空' }}</text>
-            <view class="attention-link">
-              <text>{{ todoCount > 0 ? '去处理' : '查看待办' }}</text>
-              <AiIcon icon="/static/icons/ai-icon/arrow-right.svg" color="#1f5fbf" size="sm" />
-            </view>
-          </button>
-          <button class="attention-card" @click="goMessages">
-            <view class="attention-card-top">
-              <view class="attention-icon">
-                <AiIcon icon="/static/icons/ai-icon/bell.svg" color="#1f5fbf" size="sm" />
+              <view class="overview-metric"><text>{{ todoCount > 99 ? '99+' : todoCount }}</text><text>项</text></view>
+              <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#86909c" size="sm" />
+            </button>
+            <button class="overview-item" @click="goMessages">
+              <view class="overview-icon"><AiIcon icon="/static/icons/ai-icon/bell.svg" color="#4266f7" size="sm" /></view>
+              <view class="overview-copy">
+                <text class="overview-title">未读消息</text>
+                <text class="overview-desc">{{ unreadCount > 0 ? '有新的业务通知' : '消息已全部查看' }}</text>
               </view>
-              <text class="attention-label">消息</text>
-            </view>
-            <view class="attention-count-line">
-              <text class="attention-count">{{ unreadCount > 99 ? '99+' : unreadCount }}</text>
-              <text class="attention-unit">条</text>
-            </view>
-            <text class="attention-desc">{{ unreadCount > 0 ? '有未读提醒' : '已全部查看' }}</text>
-            <view class="attention-link">
-              <text>{{ unreadCount > 0 ? '查看消息' : '查看全部' }}</text>
-              <AiIcon icon="/static/icons/ai-icon/arrow-right.svg" color="#1f5fbf" size="sm" />
-            </view>
-          </button>
-        </view>
-      </view>
-
-      <view class="shortcut-section">
-        <view class="section-head shortcut-head">
-          <text class="section-title">常用应用</text>
-        </view>
-        <view class="shortcut-grid">
-          <view
-            v-for="item in menuItems"
-            :key="item.key"
-            class="shortcut-item"
-            @click="handleShortcut(item)"
-          >
-            <view class="shortcut-icon">
-              <AiIcon :icon="item.icon" :color="item.color" size="md" />
-            </view>
-            <text class="shortcut-label">{{ item.label }}</text>
+              <view class="overview-metric"><text>{{ unreadCount > 99 ? '99+' : unreadCount }}</text><text>条</text></view>
+              <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#86909c" size="sm" />
+            </button>
           </view>
         </view>
-      </view>
 
-      <view class="feed-section">
-        <view class="section-head">
-          <text class="section-title">最新提醒</text>
-          <button class="section-link" @click="goMessages">
-            <text>查看全部</text>
-            <view class="icon-mask arrow-icon" :style="iconMask('/static/icons/ai-icon/arrow-right.svg', '#1f5fbf')" />
-          </button>
-        </view>
-
-        <view class="message-list">
-          <view
-            v-for="message in messages"
-            :key="message.id"
-            class="message-card"
-            @click="openMessage(message)"
-          >
-            <view class="message-icon" :class="message.bgClass">
-              <view class="icon-mask" :style="iconMask(message.icon, message.color)" />
-              <view v-if="message.unread" class="message-dot" />
-            </view>
-            <view class="message-main">
-              <view class="message-title-row">
-                <text class="message-title">{{ message.title }}</text>
-                <text class="message-time">{{ message.time }}</text>
-              </view>
-              <text class="message-desc">{{ message.desc }}</text>
+        <view class="shortcut-section">
+          <view class="section-head">
+            <view class="section-heading">
+              <text class="section-title">常用应用</text>
+              <text class="section-subtitle">快速进入已授权功能</text>
             </view>
           </view>
-          <view v-if="!messages.length" class="message-empty-card">
-            <AiIcon icon="/static/icons/ai-icon/check-circle.svg" color="#16815d" size="md" />
-            <text>暂无新提醒</text>
+          <view class="shortcut-grid">
+            <button
+              v-for="item in menuItems"
+              :key="item.key"
+              class="shortcut-item"
+              @click="handleShortcut(item)"
+            >
+              <view class="shortcut-icon"><AiIcon :icon="item.icon" :color="item.color" size="md" /></view>
+              <text class="shortcut-label">{{ item.label }}</text>
+            </button>
+          </view>
+        </view>
+
+        <view class="feed-section">
+          <view class="section-head">
+            <view class="section-heading">
+              <text class="section-title">最新提醒</text>
+              <text class="section-subtitle">最近收到的业务消息</text>
+            </view>
+            <button class="section-link" @click="goMessages">
+              <text>全部消息</text>
+              <view class="icon-mask arrow-icon" :style="iconMask('/static/icons/ai-icon/arrow-right.svg', '#4266f7')" />
+            </button>
+          </view>
+
+          <view class="message-list">
+            <button
+              v-for="message in messages"
+              :key="message.id"
+              class="message-card"
+              @click="openMessage(message)"
+            >
+              <view class="message-icon">
+                <view class="icon-mask" :style="iconMask(message.icon, message.color)" />
+                <view v-if="message.unread" class="message-dot" />
+              </view>
+              <view class="message-main">
+                <view class="message-title-row">
+                  <text class="message-title">{{ message.title }}</text>
+                  <text class="message-time">{{ message.time }}</text>
+                </view>
+                <text class="message-desc">{{ message.desc }}</text>
+              </view>
+              <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#86909c" size="sm" />
+            </button>
+            <view v-if="!messages.length" class="message-empty-card">
+              <AiIcon icon="/static/icons/ai-icon/check-circle.svg" color="#16815d" size="md" />
+              <text>暂无新提醒</text>
+            </view>
           </view>
         </view>
       </view>
@@ -159,14 +150,14 @@
                   <text class="menu-list-name">{{ item.label }}</text>
                   <text class="menu-list-desc">打开功能</text>
                 </view>
-                <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#94a3b8" size="sm" />
+                <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#86909c" size="sm" />
               </button>
             </view>
           </view>
         </view>
         <view v-else class="menu-empty">
           <view class="menu-empty-icon">
-            <AiIcon icon="/static/icons/ai-icon/inbox.svg" color="#94a3b8" size="lg" />
+            <AiIcon icon="/static/icons/ai-icon/inbox.svg" color="#86909c" size="lg" />
           </view>
           <text class="menu-empty-title">{{ menuSearchKeyword ? '暂无匹配' : '暂无菜单' }}</text>
           <text class="menu-empty-desc">{{ menuSearchKeyword ? '换个关键词再试试' : '当前还没有可用的应用菜单' }}</text>
@@ -208,28 +199,28 @@ const fallbackMenuItems = [
     key: 'account',
     label: '账户',
     icon: '/static/icons/ai-icon/pocket.svg',
-    color: '#1f5fbf',
+    color: '#4266f7',
     bgClass: 'bg-blue',
   },
   {
     key: 'cards',
     label: '卡包',
     icon: '/static/icons/ai-icon/credit-card.svg',
-    color: '#1f5fbf',
+    color: '#4266f7',
     bgClass: 'bg-indigo',
   },
   {
     key: 'analytics',
     label: '数据',
     icon: '/static/icons/ai-icon/pie-chart.svg',
-    color: '#1f5fbf',
+    color: '#4266f7',
     bgClass: 'bg-purple',
   },
   {
     key: 'service',
     label: '服务',
     icon: '/static/icons/ai-icon/zap.svg',
-    color: '#1f5fbf',
+    color: '#4266f7',
     bgClass: 'bg-amber',
   },
 ]
@@ -238,18 +229,18 @@ const moreMenuItem = {
   key: 'more',
   label: '更多',
   icon: '/static/icons/ai-icon/grid.svg',
-  color: '#1f5fbf',
+  color: '#4266f7',
   bgClass: 'bg-teal',
   isMore: true,
 }
 
 const menuToneList = [
-  { icon: '/static/icons/ai-icon/pocket.svg', color: '#1f5fbf', bgClass: 'bg-blue' },
-  { icon: '/static/icons/ai-icon/credit-card.svg', color: '#1f5fbf', bgClass: 'bg-blue' },
-  { icon: '/static/icons/ai-icon/pie-chart.svg', color: '#1f5fbf', bgClass: 'bg-blue' },
-  { icon: '/static/icons/ai-icon/zap.svg', color: '#1f5fbf', bgClass: 'bg-blue' },
-  { icon: '/static/icons/ai-icon/message-square.svg', color: '#1f5fbf', bgClass: 'bg-blue' },
-  { icon: '/static/icons/ai-icon/briefcase.svg', color: '#1f5fbf', bgClass: 'bg-blue' },
+  { icon: '/static/icons/ai-icon/pocket.svg', color: '#4266f7', bgClass: 'bg-blue' },
+  { icon: '/static/icons/ai-icon/credit-card.svg', color: '#4266f7', bgClass: 'bg-blue' },
+  { icon: '/static/icons/ai-icon/pie-chart.svg', color: '#4266f7', bgClass: 'bg-blue' },
+  { icon: '/static/icons/ai-icon/zap.svg', color: '#4266f7', bgClass: 'bg-blue' },
+  { icon: '/static/icons/ai-icon/message-square.svg', color: '#4266f7', bgClass: 'bg-blue' },
+  { icon: '/static/icons/ai-icon/briefcase.svg', color: '#4266f7', bgClass: 'bg-blue' },
 ]
 
 const menuItems = computed(() => {
@@ -599,7 +590,7 @@ function normalizeHomeMessage(message) {
     desc: stripHtml(message.content || message.description || '-'),
     time: formatMessageTime(message.createTime || message.receiveTime),
     icon: isApproval ? '/static/icons/ai-icon/check-square.svg' : '/static/icons/ai-icon/message-square.svg',
-    color: unread ? '#1f5fbf' : '#64748b',
+    color: unread ? '#4266f7' : '#4e5969',
     bgClass: isApproval ? 'bg-emerald' : unread ? 'bg-blue' : 'bg-slate',
     unread,
     fromBackend: true,

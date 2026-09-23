@@ -3,7 +3,7 @@
     <AiFeedbackHost />
     <view class="detail-nav">
       <button class="nav-back" @click="goBack">
-        <AiIcon icon="/static/icons/ai-icon/arrow-left.svg" color="#1f2329" size="sm" />
+        <AiIcon icon="/static/icons/ai-icon/arrow-left.svg" color="#1d2129" size="sm" />
       </button>
       <text class="nav-title">审批详情</text>
       <button class="nav-more" @click="refresh">
@@ -23,7 +23,7 @@
           <AiTab :index="0">
           <view v-if="formLoading" class="page-hint">正在加载表单…</view>
           <view v-else-if="blockedReason" class="blocked-panel">
-            <AiIcon icon="/static/icons/ai-icon/info.svg" color="#1677ff" size="md" />
+            <AiIcon icon="/static/icons/ai-icon/info.svg" color="#4266f7" size="md" />
             <text class="blocked-title">请在 PC 端处理</text>
             <text class="blocked-copy">{{ blockedReason }}</text>
           </view>
@@ -124,7 +124,7 @@
       <AiButton v-if="isCandidateTask" block size="sm" :loading="claimLoading" @click="claimTask">签收后处理</AiButton>
       <template v-else>
         <AiButton v-if="canDelegate || canTerminate" class="more-action" size="sm" variant="secondary" :disabled="actionLoading" @click="moreVisible = true">
-          <template #leftIcon><AiIcon icon="/static/icons/ai-icon/more-horizontal.svg" color="#475569" size="sm" /></template>
+          <template #leftIcon><AiIcon icon="/static/icons/ai-icon/more-horizontal.svg" color="#4e5969" size="sm" /></template>
           更多
         </AiButton>
         <AiButton v-if="canReject" size="sm" variant="danger" :disabled="Boolean(blockedReason) || actionLoading" @click="canChooseReturnTarget ? openRejectTarget() : submitAction('reject')">驳回</AiButton>
@@ -152,14 +152,14 @@
     <AiPopupSheet v-model="moreVisible" title="更多操作" description="操作权限以当前审批节点配置为准">
       <view class="more-list">
         <button v-if="canDelegate" class="more-row" @click="openDelegate">
-          <view class="more-row__icon"><AiIcon icon="/static/icons/ai-icon/user-plus.svg" color="#1f5fbf" size="sm" /></view>
+          <view class="more-row__icon"><AiIcon icon="/static/icons/ai-icon/user-plus.svg" color="#4266f7" size="sm" /></view>
           <view class="more-row__copy"><text>转办</text><text>交由其他成员继续处理</text></view>
-          <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#94a3b8" size="sm" />
+          <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#86909c" size="sm" />
         </button>
         <button v-if="canTerminate" class="more-row danger" @click="submitAction('terminate')">
-          <view class="more-row__icon"><AiIcon icon="/static/icons/ai-icon/x-circle.svg" color="#c2410c" size="sm" /></view>
+          <view class="more-row__icon"><AiIcon icon="/static/icons/ai-icon/x-circle.svg" color="#f53f3f" size="sm" /></view>
           <view class="more-row__copy"><text>终结流程</text><text>结束当前流程，不可恢复</text></view>
-          <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#94a3b8" size="sm" />
+          <AiIcon icon="/static/icons/ai-icon/chevron-right.svg" color="#86909c" size="sm" />
         </button>
       </view>
     </AiPopupSheet>
@@ -169,7 +169,7 @@
       <view v-if="delegateUser" class="delegate-choice">
         <view class="delegate-choice__avatar">{{ userInitial(delegateUser) }}</view>
         <view class="delegate-choice__copy"><text>已选择</text><text>{{ delegateUserName(delegateUser) }}</text></view>
-        <AiIcon icon="/static/icons/ai-icon/check-circle.svg" color="#1f5fbf" size="md" />
+        <AiIcon icon="/static/icons/ai-icon/check-circle.svg" color="#4266f7" size="md" />
       </view>
       <view class="user-list">
         <AiListSkeleton v-if="usersLoading" :rows="3" compact />

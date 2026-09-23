@@ -1,3 +1,3 @@
 // 默认设置
 export const defaultLayout = 'index'
-export const defaultPrimaryColor = '#1f5fbf'
+export const defaultPrimaryColor = '#4266f7'

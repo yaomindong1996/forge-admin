@@ -278,35 +278,35 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .lowcode-static { margin-bottom: 20rpx; }
-.lowcode-static__back { display: inline-flex; align-items: center; gap: 8rpx; margin: 0; padding: 12rpx 16rpx; border: 1rpx solid #e2e8f0; border-radius: 10rpx; color: #475569; font-size: 23rpx; background: #fff; }
+.lowcode-static__back { display: inline-flex; align-items: center; gap: 8rpx; margin: 0; padding: 12rpx 16rpx; border: 1rpx solid #c9cdd4; border-radius: 10rpx; color: #4e5969; font-size: 23rpx; background: #fff; }
 .lowcode-static__back::after { border: 0; }
-.lowcode-static__title { display: flex; flex-direction: column; gap: 6rpx; color: #0f172a; font-size: 30rpx; font-weight: 800; }
-.lowcode-static__subtitle { display: block; margin-top: 4rpx; color: #94a3b8; font-size: 21rpx; font-weight: 400; }
-.lowcode-static__text { padding: 18rpx 20rpx; border-radius: 12rpx; color: #475569; font-size: 25rpx; line-height: 1.65; background: #f8fafc; white-space: pre-wrap; }
-.lowcode-static__text.is-code { overflow-x: auto; color: #dbeafe; font-family: monospace; background: #0f172a; }
-.lowcode-static__statistic { display: flex; flex-direction: column; padding: 22rpx; border: 1rpx solid #e2e8f0; border-radius: 14rpx; background: #fff; }
-.lowcode-static__statistic-label { color: #64748b; font-size: 22rpx; }
-.lowcode-static__statistic-value { margin-top: 8rpx; color: #0f172a; font-size: 42rpx; font-weight: 850; }
-.lowcode-static__notice { display: flex; align-items: flex-start; gap: 12rpx; padding: 18rpx 20rpx; border: 1rpx solid #bfdbfe; border-radius: 12rpx; color: #1d4ed8; background: #eff6ff; }
+.lowcode-static__title { display: flex; flex-direction: column; gap: 6rpx; color: #1d2129; font-size: 30rpx; font-weight: 500; }
+.lowcode-static__subtitle { display: block; margin-top: 4rpx; color: #86909c; font-size: 21rpx; font-weight: 400; }
+.lowcode-static__text { padding: 18rpx 20rpx; border-radius: 12rpx; color: #4e5969; font-size: 25rpx; line-height: 1.65; background: #f7f8fa; white-space: pre-wrap; }
+.lowcode-static__text.is-code { overflow-x: auto; color: #c9cdd4; font-family: monospace; background: #1d2129; }
+.lowcode-static__statistic { display: flex; flex-direction: column; padding: 32rpx; border: 1rpx solid var(--border-color); border-radius: var(--radius-card); background: #fff; }
+.lowcode-static__statistic-label { color: #4e5969; font-size: 22rpx; }
+.lowcode-static__statistic-value { margin-top: 8rpx; color: #1d2129; font-size: 42rpx; font-weight: 500; }
+.lowcode-static__notice { display: flex; align-items: flex-start; gap: 12rpx; padding: 18rpx 20rpx; border: 1rpx solid #4266f7; border-radius: 12rpx; color: #4266f7; background: #f5f7ff; }
 .lowcode-static__notice-title, .lowcode-static__notice-text { display: block; font-size: 23rpx; line-height: 1.5; }
-.lowcode-static__notice-title { font-weight: 750; }
+.lowcode-static__notice-title { font-weight: 500; }
 .lowcode-static__tags, .lowcode-static__actions { display: flex; flex-wrap: wrap; gap: 12rpx; }
 .lowcode-static__sequence { display: flex; flex-direction: column; gap: 4rpx; }
 .lowcode-static__sequence-item { display: flex; min-height: 64rpx; gap: 14rpx; }
-.lowcode-static__sequence-dot { width: 16rpx; height: 16rpx; flex: 0 0 auto; margin-top: 7rpx; border: 4rpx solid #cbd5e1; border-radius: 50%; background: #fff; }
-.lowcode-static__sequence-dot.is-active { border-color: #1f5fbf; }
-.lowcode-static__sequence-copy { display: flex; flex-direction: column; color: #334155; font-size: 24rpx; }
-.lowcode-static__list { overflow: hidden; border: 1rpx solid #e2e8f0; border-radius: 12rpx; }
-.lowcode-static__list-row { display: flex; justify-content: space-between; gap: 18rpx; padding: 16rpx 18rpx; border-bottom: 1rpx solid #eef2f7; color: #475569; font-size: 23rpx; }
+.lowcode-static__sequence-dot { width: 16rpx; height: 16rpx; flex: 0 0 auto; margin-top: 7rpx; border: 4rpx solid #c9cdd4; border-radius: 50%; background: #fff; }
+.lowcode-static__sequence-dot.is-active { border-color: #4266f7; }
+.lowcode-static__sequence-copy { display: flex; flex-direction: column; color: #1d2129; font-size: 24rpx; }
+.lowcode-static__list { overflow: hidden; border: 1rpx solid #c9cdd4; border-radius: 12rpx; }
+.lowcode-static__list-row { display: flex; justify-content: space-between; gap: 18rpx; padding: 16rpx 18rpx; border-bottom: 1rpx solid #e5e6eb; color: #4e5969; font-size: 23rpx; }
 .lowcode-static__list-row:last-child { border-bottom: 0; }
-.lowcode-static__list-value { color: #0f172a; text-align: right; }
+.lowcode-static__list-value { color: #1d2129; text-align: right; }
 .lowcode-static__profile { display: flex; align-items: center; gap: 16rpx; }
 .lowcode-static__avatar { width: 84rpx; height: 84rpx; overflow: hidden; border-radius: 50%; }
-.lowcode-static__video { width: 100%; border-radius: 14rpx; }
-.lowcode-static__audio { display: inline-flex; align-items: center; gap: 10rpx; margin: 0; padding: 14rpx 18rpx; border: 1rpx solid #bfdbfe; border-radius: 12rpx; color: #1f5fbf; font-size: 23rpx; background: #eff6ff; }
+.lowcode-static__video { width: 100%; border-radius: var(--radius-card); }
+.lowcode-static__audio { display: inline-flex; align-items: center; gap: 10rpx; margin: 0; padding: 14rpx 18rpx; border: 1rpx solid #4266f7; border-radius: 12rpx; color: #4266f7; font-size: 23rpx; background: #f5f7ff; }
 .lowcode-static__audio::after { border: 0; }
-.lowcode-static__machine-code, .lowcode-static__business { display: flex; align-items: center; gap: 14rpx; padding: 20rpx; border: 1rpx dashed #bfdbfe; border-radius: 12rpx; color: #475569; background: #f8fbff; }
-.lowcode-static__countdown { color: #0f172a; font-size: 42rpx; font-weight: 850; letter-spacing: 3rpx; }
-.lowcode-static__link { margin: 0; padding: 0; border: 0; color: #1f5fbf; font-size: 24rpx; line-height: 1.4; background: transparent; }
+.lowcode-static__machine-code, .lowcode-static__business { display: flex; align-items: center; gap: 14rpx; padding: 20rpx; border: 1rpx dashed #4266f7; border-radius: 12rpx; color: #4e5969; background: #f5f7ff; }
+.lowcode-static__countdown { color: #1d2129; font-size: 42rpx; font-weight: 500; letter-spacing: 3rpx; }
+.lowcode-static__link { margin: 0; padding: 0; border: 0; color: #4266f7; font-size: 24rpx; line-height: 1.4; background: transparent; }
 .lowcode-static__link::after { border: 0; }
 </style>

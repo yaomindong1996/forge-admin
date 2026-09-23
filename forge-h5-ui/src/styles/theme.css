@@ -3,28 +3,33 @@
  */
 :root,
 page {
-  --forge-color-primary: #1f5fbf;
-  --forge-color-primary-strong: #174a91;
-  --forge-color-primary-soft: #edf4ff;
+  --forge-color-primary: #4266f7;
+  --forge-color-primary-strong: #3656d4;
+  --forge-color-primary-hover: rgba(66, 102, 247, 0.9);
+  --forge-color-primary-soft: rgba(66, 102, 247, 0.05);
+  --forge-color-primary-border: rgba(66, 102, 247, 0.6);
   --forge-color-success: #16815d;
-  --forge-color-warning: #a96800;
-  --forge-color-danger: #c93636;
-  --forge-color-info: #526071;
-  --forge-page-bg: #f3f5f8;
+  --forge-color-warning: #ff7d00;
+  --forge-color-danger: #f53f3f;
+  --forge-color-info: #4e5969;
+  --forge-page-bg: #f2f3f5;
   --forge-surface: #ffffff;
   --forge-surface-muted: #f7f8fa;
-  --forge-surface-subtle: #fafbfc;
-  --forge-text-primary: #161b22;
-  --forge-text-secondary: #4b5563;
-  --forge-text-tertiary: #8a93a3;
-  --forge-border: #dfe4ea;
-  --forge-border-light: #edf0f3;
-  --forge-border-strong: #c7cfd9;
-  --forge-radius-control: 8rpx;
+  --forge-surface-subtle: #f7f8fa;
+  --forge-text-primary: #1d2129;
+  --forge-text-secondary: #4e5969;
+  --forge-text-tertiary: #86909c;
+  --forge-border: #c9cdd4;
+  --forge-border-light: #e5e6eb;
+  --forge-border-strong: #a9aeb8;
+  --forge-radius-control: 12rpx;
   --forge-radius-card: 12rpx;
-  --forge-space-page: 24rpx;
-  --forge-space-section: 20rpx;
-  --forge-control-height: 76rpx;
+  --forge-radius-popup: 12rpx;
+  --forge-space-page: 32rpx;
+  --forge-space-section: 48rpx;
+  --forge-control-height: 88rpx;
+  --forge-page-max-width: 1280px;
+  --forge-aside-width: 320px;
   --forge-shadow-soft: none;
 
   --forge-color-surface: var(--forge-surface);
@@ -69,8 +74,8 @@ page {
   --wot-color-border: var(--forge-border);
   --wot-color-border-light: var(--forge-border-light);
   --wot-color-bg: var(--forge-page-bg);
-  --wot-button-small-radius: 4px;
-  --wot-button-medium-radius: 4px;
-  --wot-button-large-radius: 4px;
+  --wot-button-small-radius: 6px;
+  --wot-button-medium-radius: 6px;
+  --wot-button-large-radius: 6px;
   --wot-cell-group-insert-radius: 6px;
 }

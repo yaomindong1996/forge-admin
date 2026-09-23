@@ -14,7 +14,7 @@ defineProps({
 <style lang="scss" scoped>
 .ai-title {
   font-size: 16px;
-  font-weight: bold;
+  font-weight: 500;
   color: #333;
 }
 </style>

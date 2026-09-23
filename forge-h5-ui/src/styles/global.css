@@ -3,11 +3,15 @@ body {
   width: 100%;
   height: 100%;
   overflow-x: hidden;
+  color: var(--text-color, #1d2129);
+  background: var(--page-bg, #f2f3f5);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 page {
-  background-color: var(--page-bg, #f3f5f8);
-  color: var(--text-color, #161b22);
+  background-color: var(--page-bg, #f2f3f5);
+  color: var(--text-color, #1d2129);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -22,6 +26,28 @@ textarea {
 
 button {
   font: inherit;
+}
+
+button:not([disabled]) {
+  cursor: pointer;
+}
+
+button[disabled] {
+  cursor: not-allowed;
+}
+
+button,
+input,
+textarea {
+  font-family: inherit;
+}
+
+/* H5 控制台公共工作区：移动端 16px 边距，桌面端限制内容宽度。 */
+.forge-console-container {
+  width: 100%;
+  max-width: var(--forge-page-max-width, 1280px);
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 /* 自定义 AiTabBar 接管底部导航，H5 刷新时先隐藏 uni 原生 tabBar，避免首屏闪现。 */
@@ -106,7 +132,7 @@ input {
 .v-loading-text {
   color: var(--primary-color);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 @keyframes vLoadingDot {

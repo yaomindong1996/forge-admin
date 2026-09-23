@@ -6,7 +6,7 @@
     :max="max"
     :min="min"
     :shape="button ? 'button' : 'square'"
-    checked-color="var(--forge-color-primary, #1f5fbf)"
+    checked-color="var(--forge-color-primary, #4266f7)"
     @change="handleChange"
   >
     <wd-checkbox
@@ -56,6 +56,11 @@ function handleChange(event) {
 }
 
 :deep(.wd-checkbox) {
+  min-height: 88rpx;
   margin: 0;
+}
+
+:deep(.wd-checkbox.is-button) {
+  border-radius: var(--radius-control);
 }
 </style>

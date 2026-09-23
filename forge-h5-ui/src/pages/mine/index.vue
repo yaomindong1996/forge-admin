@@ -33,7 +33,7 @@
         <view class="profile-copy">
           <text class="profile-name">{{ authStore.displayName }}</text>
           <view class="member-badge">
-            <AiIcon icon="/static/icons/ai-icon/shield.svg" color="#1f5fbf" size="sm" />
+            <AiIcon icon="/static/icons/ai-icon/shield.svg" color="#4266f7" size="sm" />
             <text>{{ authStore.roleText }}</text>
           </view>
         </view>
@@ -63,7 +63,7 @@
             <AiIcon
               v-if="!item.danger"
               icon="/static/icons/ai-icon/chevron-right.svg"
-              color="#94a3b8"
+              color="#86909c"
               size="sm"
             />
           </view>
@@ -187,7 +187,7 @@
             @click="handleTenantSwitch(tenant)"
           >
             <view class="tenant-row-icon">
-              <AiIcon icon="/static/icons/ai-icon/layers.svg" :color="isCurrentTenant(tenant) ? '#1f5fbf' : '#64748b'" size="sm" />
+              <AiIcon icon="/static/icons/ai-icon/layers.svg" :color="isCurrentTenant(tenant) ? '#4266f7' : '#4e5969'" size="sm" />
             </view>
             <view class="tenant-row-main">
               <text class="tenant-row-name">{{ tenant.tenantName }}</text>
@@ -197,7 +197,7 @@
             <AiIcon
               v-else-if="isCurrentTenant(tenant)"
               icon="/static/icons/ai-icon/check-circle.svg"
-              color="#1f5fbf"
+              color="#4266f7"
               size="sm"
             />
           </view>
@@ -223,14 +223,14 @@
             <text class="setting-title">消息免打扰</text>
             <text class="setting-desc">开启后保留消息红点，不做本机提醒</text>
           </view>
-          <switch :checked="messageQuietMode" color="#1f5fbf" @change="toggleQuietMode" />
+          <switch :checked="messageQuietMode" color="#4266f7" @change="toggleQuietMode" />
         </view>
         <view class="setting-row setting-row-button" @click="clearLocalCache">
           <view class="setting-copy">
             <text class="setting-title">清理安全会话缓存</text>
             <text class="setting-desc">清理接口加密会话，不退出登录</text>
           </view>
-          <AiIcon icon="/static/icons/ai-icon/trash.svg" color="#ef4444" size="sm" />
+          <AiIcon icon="/static/icons/ai-icon/trash.svg" color="#f53f3f" size="sm" />
         </view>
       </view>
     </AiPopupSheet>
@@ -244,7 +244,7 @@
     >
       <view class="support-card">
         <view class="support-icon">
-          <AiIcon icon="/static/icons/ai-icon/info.svg" color="#1f5fbf" size="lg" />
+          <AiIcon icon="/static/icons/ai-icon/info.svg" color="#4266f7" size="lg" />
         </view>
         <text class="support-title">Forge 移动端</text>
         <text class="support-desc">支持移动端菜单、消息中心、流程待办和账号自助维护。遇到权限或页面打不开时，请先在首页刷新信息。</text>
@@ -345,7 +345,7 @@ const securityItems = computed(() => {
       label: '登录账号',
       value: userInfo.value.username,
       icon: '/static/icons/ai-icon/user.svg',
-      color: '#1f5fbf',
+      color: '#4266f7',
     })
   }
   if (maskedPhone.value) {
@@ -353,7 +353,7 @@ const securityItems = computed(() => {
       label: '绑定手机',
       value: maskedPhone.value,
       icon: '/static/icons/ai-icon/phone.svg',
-      color: '#1f5fbf',
+      color: '#4266f7',
     })
   }
   if (maskedEmail.value) {
@@ -361,7 +361,7 @@ const securityItems = computed(() => {
       label: '绑定邮箱',
       value: maskedEmail.value,
       icon: '/static/icons/ai-icon/mail.svg',
-      color: '#1f5fbf',
+      color: '#4266f7',
     })
   }
   if (authStore.roleText) {
@@ -369,7 +369,7 @@ const securityItems = computed(() => {
       label: '角色',
       value: authStore.roleText,
       icon: '/static/icons/ai-icon/shield.svg',
-      color: '#1f5fbf',
+      color: '#4266f7',
     })
   }
   return items
@@ -383,7 +383,7 @@ const menuGroups = computed(() => [
         icon: '/static/icons/ai-icon/user.svg',
         label: '个人信息',
         desc: '姓名、手机、邮箱和头像',
-        color: '#1f5fbf',
+        color: '#4266f7',
         bgClass: 'bg-blue',
       },
       {
@@ -391,7 +391,7 @@ const menuGroups = computed(() => [
         icon: '/static/icons/ai-icon/key.svg',
         label: '修改密码',
         desc: '更新当前登录密码',
-        color: '#1f5fbf',
+        color: '#4266f7',
         bgClass: 'bg-purple',
       },
       {
@@ -399,7 +399,7 @@ const menuGroups = computed(() => [
         icon: '/static/icons/ai-icon/shield.svg',
         label: '安全中心',
         desc: '账号绑定和角色信息',
-        color: '#1f5fbf',
+        color: '#4266f7',
         bgClass: 'bg-indigo',
       },
       ...(showTenantSwitch.value
@@ -408,7 +408,7 @@ const menuGroups = computed(() => [
             icon: '/static/icons/ai-icon/briefcase.svg',
             label: '切换租户',
             desc: currentTenantName.value,
-            color: '#1f5fbf',
+            color: '#4266f7',
             bgClass: 'bg-blue',
           }]
         : []),
@@ -417,7 +417,7 @@ const menuGroups = computed(() => [
         icon: '/static/icons/ai-icon/bell.svg',
         label: '消息中心',
         desc: '站内消息和流程提醒',
-        color: '#1f5fbf',
+        color: '#4266f7',
         bgClass: 'bg-cyan',
       },
     ],
@@ -429,7 +429,7 @@ const menuGroups = computed(() => [
         icon: '/static/icons/ai-icon/help-circle.svg',
         label: '帮助与支持',
         desc: '移动端能力说明',
-        color: '#1f5fbf',
+        color: '#4266f7',
         bgClass: 'bg-emerald',
       },
       {
@@ -437,7 +437,7 @@ const menuGroups = computed(() => [
         icon: '/static/icons/ai-icon/settings.svg',
         label: '通用设置',
         desc: '消息提醒和本机缓存',
-        color: '#64748b',
+        color: '#4e5969',
         bgClass: 'bg-slate',
       },
       {
@@ -445,7 +445,7 @@ const menuGroups = computed(() => [
         icon: '/static/icons/ai-icon/log-out.svg',
         label: '退出登录',
         desc: '清除当前登录态',
-        color: '#ef4444',
+        color: '#f53f3f',
         bgClass: 'bg-rose',
         danger: true,
       },
