@@ -1039,7 +1039,17 @@ export function applyCrudPageViewPart2(props, emit, deps = {}) {
   __impl.handleRuntimeSubmitSuccess = handleRuntimeSubmitSuccess
 
   return {
-    ...deps,
-    crudProps,
+    ...deps, crudProps, appendDesignPreviewToApiConfig, appendDesignPreviewToApiValue, applyFormEventResultMapping,
+    applyRuntimeFieldMeta, applySetFieldValueEvent, attachRuntimeActions, buildCrudHookHandlers,
+    buildFormGovernanceEventHandlers, buildOfflineDraftConfig, buildRuntimeFieldMetaMap, buildRuntimeTableProps,
+    buildTreeTableProps, collectRuntimeRows, composeRuntimeHookHandlers, extractApiUrl, firstRuntimeText, getByPath,
+    handleRuntimeSubmitSuccess, hasRuntimeFormulaConfig, isTreeTableRuntime, loadConfig, loadRuntimeDetailRecord,
+    loadTreeTableChildren, normalizeConfigKey, normalizeFormGovernanceHook, normalizeNumberOption,
+    normalizeRuntimeBatchMap, normalizeTreeTableNodes, parseApiConfigValue, preloadDicts, prepareRuntimeList,
+    replaceRuntimeApiParams, resolveBaseRuntimeTitle, resolveBusinessObjectCode, resolveDefaultSortParams,
+    resolveRouteConfigKey, resolveRuntimeDetailApi, resolveRuntimeDetailData, resolveRuntimeDetailRecordId,
+    resolveRuntimeFormOpenMode, resolveRuntimeModalType, resolveRuntimeRecordId, resolveRuntimeTitle,
+    resolveTreeLoadMode, runFormGovernanceEvent, runFormGovernanceEvents, runWhitelistedFormScript,
+    scheduleInitialRuntimeAction, syncRuntimeTitle, transformChildrenConfig, waitRuntimeCrudRef,
   }
 }

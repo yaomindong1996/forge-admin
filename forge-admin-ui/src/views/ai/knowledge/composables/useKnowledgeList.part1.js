@@ -23,6 +23,35 @@ import { useDict } from '@/composables/useDict'
 export function applyKnowledgeListPart1() {
   const __impl = {}
   const mut = {}
+
+  const authStore = useAuthStore()
+  const { dict } = useDict('ai_status', 'ai_knowledge_process_status', 'ai_store_instance_category', 'ai_vector_store_type')
+
+  const statusOptions = computed(() => dict.value.ai_status || [])
+  const processStatusOptions = computed(() => dict.value.ai_knowledge_process_status || [])
+  const pageSizes = [10, 20, 50]
+  const modalCardStyle = { maxWidth: '860px', width: 'calc(100vw - 32px)' }
+
+  const kbDrawerWidth = computed(() => {
+    if (typeof window === 'undefined')
+      return 760
+    return Math.min(760, Math.max(400, window.innerWidth - 24))
+  })
+
+  const chunkStrategyOptions = [
+    { label: '长度分块', value: 'length' },
+    { label: '分隔符分块', value: 'delimiter' },
+    { label: '正则分块', value: 'regex' },
+    { label: '智能分块', value: 'smart' },
+    { label: '问答分块', value: 'qa' },
+  ]
+  const chunkStrategyIcons = {
+    length: '⚡',
+    delimiter: '✂',
+    regex: '.*',
+    smart: '🧠',
+    qa: '❓',
+  }
   const dedupStrategyOptions = [
     { label: '不去重', value: 'none' },
     { label: '按名称去重', value: 'name' },

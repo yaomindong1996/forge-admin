@@ -148,6 +148,41 @@ export function initializeBusinessApplicationExcel(id, file, config = {}) {
   })
 }
 
+/** 查询可导出的应用页面（应用配置导出） */
+export function listBusinessApplicationDebugBundlePages(id) {
+  return request.get(`/ai/business/application/${id}/debug-bundle/pages`, ENCRYPTED_REQUEST)
+}
+
+/** 导出应用配置（设计态 JSON，不含业务数据）；pageIds 为空则整应用 */
+export function exportBusinessApplicationDebugBundle(id, pageIds = []) {
+  const params = {}
+  if (Array.isArray(pageIds) && pageIds.length)
+    params.pageIds = pageIds.join(',')
+  return request.get(`/ai/business/application/${id}/debug-bundle/export`, {
+    encrypt: false,
+    responseType: 'blob',
+    rawResponse: true,
+    // 避免拦截器把 application/json 附件当成 RespInfo 解析掉
+    preserveBlob: true,
+    timeout: 120_000,
+    params,
+  })
+}
+
+/** 导入应用配置，重建应用/对象/表结构；autoPublish=true 时导入后尝试发布 */
+export function importBusinessApplicationDebugBundle(file, autoPublish = false) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('autoPublish', autoPublish ? 'true' : 'false')
+  return request({
+    method: 'post',
+    url: '/ai/business/application/debug-bundle/import',
+    data: formData,
+    encrypt: false,
+    timeout: 180_000,
+  })
+}
+
 export function businessApplicationWorkspace(id) {
   return request.get(`/ai/business/application/${id}/workspace`, ENCRYPTED_REQUEST)
 }

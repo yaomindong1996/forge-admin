@@ -33,20 +33,58 @@
         </n-form-item-gi>
       </n-grid>
     </n-form>
+
+    <!-- 应用配置导出：整应用或按页勾选 -->
+    <div class="app-config-export-panel">
+      <div class="app-config-export-copy">
+        <strong>导出应用配置</strong>
+        <p>导出设计态配置（可按页面勾选，并自动带上依赖对象）。不含业务数据，可在应用中心导入。</p>
+      </div>
+      <n-button
+        secondary
+        @click="openExportDialog"
+      >
+        导出应用配置
+      </n-button>
+    </div>
+
+    <ApplicationDebugBundleExportDialog
+      v-model:show="exportDialogVisible"
+      :application-id="resolvedApplicationId"
+      :application-code="resolvedApplicationCode"
+    />
   </section>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { useMessage } from 'naive-ui'
+import ApplicationDebugBundleExportDialog from '../debug-bundle/ApplicationDebugBundleExportDialog.vue'
 
-const props = defineProps({ modelValue: { type: Object, required: true } })
+const props = defineProps({
+  modelValue: { type: Object, required: true },
+  applicationId: { type: [Number, String], default: null },
+  applicationCode: { type: String, default: '' },
+})
 const emit = defineEmits(['update:modelValue'])
+const message = useMessage()
+const exportDialogVisible = ref(false)
 const advanced = computed(() => props.modelValue.advanced || {})
+const resolvedApplicationId = computed(() => props.applicationId ?? props.modelValue?.id ?? null)
+const resolvedApplicationCode = computed(() => props.applicationCode || props.modelValue?.applicationCode || '')
 const cacheOptions = [
   { label: '按发布版本缓存', value: 'version' },
   { label: '每次读取最新快照', value: 'none' },
   { label: '短时缓存（5 分钟）', value: 'short' },
 ]
+
+function openExportDialog() {
+  if (!resolvedApplicationId.value) {
+    message.warning('应用尚未加载完成，请稍后再试')
+    return
+  }
+  exportDialogVisible.value = true
+}
 
 function patch(value) {
   emit('update:modelValue', {
@@ -59,3 +97,32 @@ function normalizePrefix(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9_]/g, '')
 }
 </script>
+
+<style scoped>
+.app-config-export-panel {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--n-divider-color);
+}
+
+.app-config-export-copy {
+  min-width: 0;
+}
+
+.app-config-export-copy strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.app-config-export-copy p {
+  margin: 0;
+  color: var(--n-text-color-3);
+  font-size: 13px;
+  line-height: 1.5;
+}
+</style>

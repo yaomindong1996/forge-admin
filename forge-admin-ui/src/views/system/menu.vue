@@ -221,7 +221,11 @@
                     :font-size="15"
                     custom-style="color: var(--primary-color, #4C6EF5)"
                   />
-                  <i v-else :class="getResourceTypeConfig(row.resourceType).icon" />
+                  <IconRenderer
+                    v-else
+                    :icon="getResourceTypeConfig(row.resourceType).icon"
+                    :font-size="15"
+                  />
                 </span>
 
                 <div class="resource-list-copy">

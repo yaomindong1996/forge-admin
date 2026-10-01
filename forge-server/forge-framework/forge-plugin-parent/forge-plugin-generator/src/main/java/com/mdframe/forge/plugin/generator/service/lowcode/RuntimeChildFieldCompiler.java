@@ -128,12 +128,13 @@ final class RuntimeChildFieldCompiler {
                 || StringUtils.equals(columnName, camelToSnake(childFkField))) {
             return false;
         }
+        // 只读字段必须保留：与子表独立填表一致，由 RuntimeEditFieldCompiler 标 readonly/disabled，
+        // 前端 ChildTableEditor 按只读单元格渲染；过滤掉会导致主子表里整列消失（含公式字段）。
         String status = StringUtils.defaultString(field.getFieldStatus());
         return !Boolean.TRUE.equals(field.getSystemField())
                 && !"DISABLED".equalsIgnoreCase(status) && !"HIDDEN".equalsIgnoreCase(status)
                 && !RuntimeSystemFields.FIELD_NAMES.contains(fieldName)
                 && !RuntimeSystemFields.COLUMN_NAMES.contains(columnName)
-                && !Boolean.TRUE.equals(field.getReadonly())
                 && !Boolean.TRUE.equals(field.getPrimaryKey())
                 && (field.getFormVisible() == null || Boolean.TRUE.equals(field.getFormVisible()));
     }

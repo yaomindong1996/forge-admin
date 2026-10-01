@@ -321,7 +321,6 @@ export function applyMenuPagePart2(deps = {}) {
   __impl.handleComponentPathChange = handleComponentPathChange
 
   return {
-    ...deps,
-    editSchema,
+    ...deps, editSchema, handleComponentPathChange,
   }
 }

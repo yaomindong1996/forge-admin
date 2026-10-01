@@ -25,4 +25,11 @@ export default [
   'i-streamline-plump-color:file-report',
   'i-streamline-plump-color:wallet',
   'i-streamline-plump-color:map-fold',
+  // 菜单管理资源树/列表类型图标（类名在 composable 中动态拼接，需 safelist）
+  'i-material-symbols:folder-outline',
+  'i-material-symbols:menu',
+  'i-material-symbols:smart-button',
+  'i-material-symbols:api',
+  'i-material-symbols:account-tree',
+  'i-material-symbols:radio-button-unchecked',
 ]

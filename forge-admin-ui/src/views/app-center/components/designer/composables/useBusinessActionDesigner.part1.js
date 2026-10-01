@@ -15,6 +15,65 @@ import CallApiStepConfigPanel from '../CallApiStepConfigPanel.vue'
 export function applyBusinessActionDesignerPart1(props, emit) {
   const __impl = {}
   const mut = {}
+
+  // part2 延迟实现：setup 结束后经 __impl 转发，避免拆分后跨 part 裸引用报错
+  function businessFieldLabel(...args) {
+    return __impl.businessFieldLabel(...args)
+  }
+  function cloneValue(...args) {
+    return __impl.cloneValue(...args)
+  }
+  function collectMainFields(...args) {
+    return __impl.collectMainFields(...args)
+  }
+  function ensureActionConfig(...args) {
+    return __impl.ensureActionConfig(...args)
+  }
+  function ensureParams(...args) {
+    return __impl.ensureParams(...args)
+  }
+  function ensureStepConfig(...args) {
+    return __impl.ensureStepConfig(...args)
+  }
+  function getPathValue(...args) {
+    return __impl.getPathValue(...args)
+  }
+  function isInactiveField(...args) {
+    return __impl.isInactiveField(...args)
+  }
+  function mergeSelectedFieldOptions(...args) {
+    return __impl.mergeSelectedFieldOptions(...args)
+  }
+  function normalizeStringList(...args) {
+    return __impl.normalizeStringList(...args)
+  }
+  function parseRelationConfig(...args) {
+    return __impl.parseRelationConfig(...args)
+  }
+  function resolveStep(...args) {
+    return __impl.resolveStep(...args)
+  }
+  function stringValue(...args) {
+    return __impl.stringValue(...args)
+  }
+  function stringifyJson(...args) {
+    return __impl.stringifyJson(...args)
+  }
+  function toPageField(...args) {
+    return __impl.toPageField(...args)
+  }
+  function unwrapExpression(...args) {
+    return __impl.unwrapExpression(...args)
+  }
+  function wrapExpression(...args) {
+    return __impl.wrapExpression(...args)
+  }
+  const INTERNAL_STEP = {
+    FOREACH: 'FOREACH',
+    DOMAIN_ACTION: 'DOMAIN_ACTION',
+    START_FLOW: 'START_FLOW',
+    CALL_API: 'CALL_API',
+  }
   const INTERNAL_ACTION = {
     QUANTITY: 'QUANTITY',
   }
@@ -1182,22 +1241,27 @@ export function applyBusinessActionDesignerPart1(props, emit) {
 
   return {
     props, emit, __impl, mut, actionSceneLabel, addAutomationAction, addCallApiStep, addDetailQuantityFlow,
-    addExpectedFieldMapping, addFieldMapping, addInputSchemaField, addLocalStep, addNumberAdjustment, addQuantityStep, applyActionConfigText, buildActionRelations,
-    buildCollectionPathOptions, buildStepVM, buildTargetConfigOptions, businessFieldLabel, childBusinessSteps, cloneValue, collectCallbackActionMap, collectMainFields,
-    collectSchemaChildren, collectionKeyCandidates, collectionOptionsForStep, containsInternalStartFlow, createLocalStep, createQuantityStep, detailDisplayLabel, emitActions,
-    ensureActionConfig, ensureParams, ensureStepConfig, fieldDisplayLabel, fieldPathOptions, findFieldByCode, flattenAllSteps, flattenRootSteps,
-    getPathValue, hasConfiguredSteps, inputOptionsText, isAutomationAction, isDetailRelation, isInactiveField, isInternalStepType, isQuantityStep,
-    isSameRelation, loadBusinessObjects, loadTargetFields, lowerSnake, mappingSourcePlaceholder, mergeRelationFields, mergeSelectedFieldOptions, normalizeActionRelation,
-    normalizeActionType, normalizeFields, normalizeStringList, parseRelationConfig, patchActionConfig, patchAdjustment, patchExpectedFieldMapping, patchFieldMapping,
-    patchInputSchemaField, patchSelectedAction, patchStep, patchStepConfig, preloadRelationFields, relationByCollectionPath, relationFields, removeAction,
-    removeExpectedFieldMapping, removeFieldMapping, removeInputSchemaField, removeNumberAdjustment, removeStep, resolveActionScene, resolveCollectionPathLabel, resolveExecutionMode,
-    resolvePathDisplayLabel, resolveStep, stepAdjustments, stepExpectedFieldMappings, stepFieldMappings, stepTypeNeedsRecordId, stringValue, stringifyJson,
-    targetFieldOptions, toPageField, unwrapExpression, updateActionScene, updateCallApiStepConfig, updateChildActionRelation, updateExecutionMode, updateFallbackFields,
-    updateInputOptions, updateLocalStepType, updateManualActionPosition, updateStepCollection, updateStepParam, wrapExpression, INTERNAL_STEP, INTERNAL_ACTION,
-    EXECUTION_MODE, LOCAL_STEP_TYPES, selectedActionIndex, actionConfigText, jsonError, businessObjects, targetFieldsMap, targetFieldLoadingMap,
-    sceneOptions, manualActionPositionOptions, successBehaviorOptions, permissionStrategyOptions, executionModeOptions, inputTypeOptions, localStepTypeOptions, localStepMenuOptions,
-    sourceTypeOptions, adjustmentOperatorOptions, quantityOperationOptions, paramLabels, actionList, approvalEntryActions, automationActions, pageInteractionActions,
-    pageInteractionActionNames, selectedAction, rootSteps, resolvedExecutionMode, isLocalTransaction, localStepViews, nonLocalStepCount, inputSchemaRows,
-    callApiRecordFieldOptions, callApiFormFieldOptions, targetConfigOptions, actionRelations, collectionPathOptions, childRelationOptions, selectedManualActionPosition, BusinessQuantityStepCard,
+    addExpectedFieldMapping, addFieldMapping, addInputSchemaField, addLocalStep, addNumberAdjustment, addQuantityStep,
+    applyActionConfigText, buildActionRelations, buildCollectionPathOptions, buildStepVM, buildTargetConfigOptions,
+    childBusinessSteps, collectCallbackActionMap, collectSchemaChildren, collectionKeyCandidates,
+    collectionOptionsForStep, containsInternalStartFlow, createLocalStep, createQuantityStep, emitActions,
+    flattenAllSteps, flattenRootSteps, hasConfiguredSteps, inputOptionsText, isAutomationAction, isDetailRelation,
+    isInternalStepType, isQuantityStep, isSameRelation, loadBusinessObjects, loadTargetFields, lowerSnake,
+    mappingSourcePlaceholder, mergeRelationFields, normalizeActionRelation, normalizeActionType, normalizeFields,
+    patchActionConfig, patchAdjustment, patchExpectedFieldMapping, patchFieldMapping, patchInputSchemaField,
+    patchSelectedAction, patchStep, patchStepConfig, preloadRelationFields, relationByCollectionPath, relationFields,
+    removeAction, removeExpectedFieldMapping, removeFieldMapping, removeInputSchemaField, removeNumberAdjustment,
+    removeStep, resolveActionScene, resolveCollectionPathLabel, resolveExecutionMode, stepAdjustments,
+    stepExpectedFieldMappings, stepFieldMappings, stepTypeNeedsRecordId, targetFieldOptions, updateActionScene,
+    updateCallApiStepConfig, updateChildActionRelation, updateExecutionMode, updateFallbackFields, updateInputOptions,
+    updateLocalStepType, updateManualActionPosition, updateStepCollection, updateStepParam, INTERNAL_STEP, INTERNAL_ACTION,
+    EXECUTION_MODE, LOCAL_STEP_TYPES, selectedActionIndex, actionConfigText, jsonError, businessObjects,
+    targetFieldsMap, targetFieldLoadingMap, sceneOptions, manualActionPositionOptions, successBehaviorOptions,
+    permissionStrategyOptions, executionModeOptions, inputTypeOptions, localStepTypeOptions, localStepMenuOptions,
+    sourceTypeOptions, adjustmentOperatorOptions, quantityOperationOptions, paramLabels, actionList,
+    approvalEntryActions, automationActions, pageInteractionActions, pageInteractionActionNames, selectedAction,
+    rootSteps, resolvedExecutionMode, isLocalTransaction, localStepViews, nonLocalStepCount, inputSchemaRows,
+    callApiRecordFieldOptions, callApiFormFieldOptions, targetConfigOptions, actionRelations, collectionPathOptions,
+    childRelationOptions, selectedManualActionPosition, BusinessQuantityStepCard,
   }
 }

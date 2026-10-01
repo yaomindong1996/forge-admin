@@ -29,6 +29,17 @@ export function applyCrudPageViewPart1(props, emit) {
   const __impl = {}
   const mut = {}
 
+  // part2 延迟实现：setup 结束后经 __impl 转发，避免拆分后跨 part 裸引用报错
+  function applyRuntimeFieldMeta(...args) {
+    return __impl.applyRuntimeFieldMeta(...args)
+  }
+  function firstRuntimeText(...args) {
+    return __impl.firstRuntimeText(...args)
+  }
+  function resolveRouteConfigKey(...args) {
+    return __impl.resolveRouteConfigKey(...args)
+  }
+
   const RUNTIME_ROUTE_PARAM_KEYS = new Set([
     'appId',
     'menuKey',
@@ -1092,22 +1103,24 @@ export function applyCrudPageViewPart1(props, emit) {
   __impl.resolveRuntimeModalWidth = resolveRuntimeModalWidth
 
   return {
-    props, emit, __impl, mut, appendDesignPreviewToApiConfig, appendDesignPreviewToApiValue, applyFormEventResultMapping, applyRuntimeColumnPresentation,
-    applyRuntimeFieldGovernance, applyRuntimeFieldLength, applyRuntimeFieldMeta, applyRuntimeFieldValidation, applyRuntimeFormGovernance, applySetFieldValueEvent, attachRuntimeActions, buildCrudHookHandlers,
-    buildFormGovernanceEventHandlers, buildOfflineDraftConfig, buildRuntimeColumnRoute, buildRuntimeFieldFromDesignerComponent, buildRuntimeFieldMetaMap, buildRuntimeFormAssets, buildRuntimeFormLayoutFromDesignerComponents, buildRuntimeFormLayoutNode,
-    buildRuntimeFormProfile, buildRuntimeRelationSource, buildRuntimeTableProps, buildTreeTableProps, collectRuntimeRows, composeRuntimeHookHandlers, ensureDetailRowAction, extractApiUrl,
-    extractRouteEntryPublicQuery, firstRuntimeText, flattenDesignerComponents, getByPath, handleRuntimeSubmitSuccess, hasRuntimeFormulaConfig, hydrateRuntimeLayoutNode, isActionRuntimeLayoutNode,
-    isBuiltinCreateToolbarAction, isGroupTitleRuntimeLayoutNode, isLegacyGroupTitleRuntimeLayoutNode, isRuntimeObjectReferenceField, isRuntimeRecordSelectorField, isRuntimeTextField, isSectionTitleRuntimeLayoutNode, isStandaloneRuntimeLayoutNode,
-    isSystemRuntimeField, isTreeTableRuntime, loadConfig, loadRuntimeDetailRecord, loadTreeTableChildren, mergeRowActions, normalizeActionIdentity, normalizeActionPosition,
-    normalizeActionType, normalizeConfigKey, normalizeDesignerRuntimeFieldType, normalizeFormGovernance, normalizeFormGovernanceHook, normalizeNumberOption, normalizeRouteParamValue, normalizeRuntimeBatchMap,
-    normalizeRuntimeField, normalizeRuntimePageAction, normalizeRuntimePageActions, normalizeRuntimeWidth, normalizeTreeTableNodes, parseApiConfigValue, parseRouteRecordParam, preloadDicts,
-    prepareRuntimeList, replaceRuntimeApiParams, resolveBaseRuntimeTitle, resolveBusinessObjectCode, resolveDateTimeProps, resolveDefaultSortParams, resolvePageSchemaEditFormStyle, resolveRouteConfigKey,
-    resolveRuntimeButtonType, resolveRuntimeDetailApi, resolveRuntimeDetailData, resolveRuntimeDetailRecordId, resolveRuntimeForm, resolveRuntimeFormOpenMode, resolveRuntimeLayoutNodeType, resolveRuntimeModalType,
-    resolveRuntimeModalWidth, resolveRuntimeRecordId, resolveRuntimeTitle, resolveTreeLoadMode, runFormGovernanceEvent, runFormGovernanceEvents, runWhitelistedFormScript, scheduleInitialRuntimeAction,
-    syncRuntimeTitle, transformChildrenConfig, transformColumns, transformEditFields, transformFields, waitRuntimeCrudRef, route, router,
-    tabStore, loading, configLoaded, errorMsg, renderConfig, dictCache, runtimeCrudRef, lastInitialActionKey,
-    runtimeDetailRecord, runtimeDetailLoading, embeddedRuntime, runtimeOpenMode, formOnlyRuntime, designPreview, currentTemplate, activeRuntimePageKey,
-    activeRuntimeFormKey, runtimePages, activeRuntimePage, activeRuntimeGridLayout, runtimeGridLayout, standardListRuntime, shouldRenderRuntimeGrid, runtimeEffectiveLayoutType,
-    runtimeFields, runtimeColumnSettings, runtimeAiCrudBlockProps, activeRuntimeFormProfile, routeEntryPublicQuery, routeEntryFormDefaultValues, routeEntrySubmitDefaultParams, RUNTIME_ROUTE_PARAM_KEYS,
+    props, emit, __impl, mut, applyRuntimeColumnPresentation, applyRuntimeFieldGovernance, applyRuntimeFieldLength,
+    applyRuntimeFieldValidation, applyRuntimeFormGovernance, buildRuntimeColumnRoute,
+    buildRuntimeFieldFromDesignerComponent, buildRuntimeFormAssets, buildRuntimeFormLayoutFromDesignerComponents,
+    buildRuntimeFormLayoutNode, buildRuntimeFormProfile, buildRuntimeRelationSource, ensureDetailRowAction,
+    extractRouteEntryPublicQuery, flattenDesignerComponents, hydrateRuntimeLayoutNode, isActionRuntimeLayoutNode,
+    isBuiltinCreateToolbarAction, isGroupTitleRuntimeLayoutNode, isLegacyGroupTitleRuntimeLayoutNode,
+    isRuntimeObjectReferenceField, isRuntimeRecordSelectorField, isRuntimeTextField, isSectionTitleRuntimeLayoutNode,
+    isStandaloneRuntimeLayoutNode, isSystemRuntimeField, mergeRowActions, normalizeActionIdentity,
+    normalizeActionPosition, normalizeActionType, normalizeDesignerRuntimeFieldType, normalizeFormGovernance,
+    normalizeRouteParamValue, normalizeRuntimeField, normalizeRuntimePageAction, normalizeRuntimePageActions,
+    normalizeRuntimeWidth, parseRouteRecordParam, resolveDateTimeProps, resolvePageSchemaEditFormStyle,
+    resolveRuntimeButtonType, resolveRuntimeForm, resolveRuntimeLayoutNodeType, resolveRuntimeModalWidth,
+    transformColumns, transformEditFields, transformFields, route, router, tabStore, loading, configLoaded, errorMsg,
+    renderConfig, dictCache, runtimeCrudRef, lastInitialActionKey, runtimeDetailRecord, runtimeDetailLoading,
+    embeddedRuntime, runtimeOpenMode, formOnlyRuntime, designPreview, currentTemplate, activeRuntimePageKey,
+    activeRuntimeFormKey, runtimePages, activeRuntimePage, activeRuntimeGridLayout, runtimeGridLayout,
+    standardListRuntime, shouldRenderRuntimeGrid, runtimeEffectiveLayoutType, runtimeFields, runtimeColumnSettings,
+    runtimeAiCrudBlockProps, activeRuntimeFormProfile, routeEntryPublicQuery, routeEntryFormDefaultValues,
+    routeEntrySubmitDefaultParams, RUNTIME_ROUTE_PARAM_KEYS,
   }
 }

@@ -157,6 +157,9 @@
             </div>
             <div class="toolbar-actions">
               <span class="result-summary">{{ resultRangeText }}</span>
+              <n-button secondary aria-label="导入应用配置" title="导入应用配置" @click="debugBundleImportVisible = true">
+                导入应用配置
+              </n-button>
               <n-button type="primary" aria-label="新建应用" title="新建应用" @click="openApplicationCreate('BLANK')">
                 <template #icon>
                   <NIcon><AddOutline /></NIcon>
@@ -184,13 +187,14 @@
                   :name="group.key"
                   :title="`${group.label}（${group.count}）`"
                 >
-                  <ApplicationTable
+                    <ApplicationTable
                     :applications="group.items"
                     @enter="openApplication"
                     @run="openApplicationPortal"
                     @edit="openApplicationSettings"
                     @code="openApplicationCode"
                     @publish="openApplicationPublish"
+                    @export-config="openApplicationConfigExport"
                     @toggle="toggleApplication"
                     @delete="removeApplication"
                   />
@@ -272,6 +276,17 @@
       scope="APPLICATION"
       :app="codeApplication"
     />
+
+    <ApplicationDebugBundleImportDialog
+      v-model:show="debugBundleImportVisible"
+      @imported="handleDebugBundleImported"
+    />
+
+    <ApplicationDebugBundleExportDialog
+      v-model:show="debugBundleExportVisible"
+      :application-id="exportApplication?.id"
+      :application-code="exportApplication?.applicationCode"
+    />
   </div>
 </template>
 
@@ -307,6 +322,8 @@ import AppMarketPanel from './components/AppMarketPanel.vue'
 const ApplicationEditorDrawer = defineAsyncComponent(() => import('./components/ApplicationEditorDrawer.vue'))
 const AppCodePanel = defineAsyncComponent(() => import('./components/AppCodePanel.vue'))
 const SuiteEditorDrawer = defineAsyncComponent(() => import('./components/SuiteEditorDrawer.vue'))
+const ApplicationDebugBundleImportDialog = defineAsyncComponent(() => import('./components/debug-bundle/ApplicationDebugBundleImportDialog.vue'))
+const ApplicationDebugBundleExportDialog = defineAsyncComponent(() => import('./components/debug-bundle/ApplicationDebugBundleExportDialog.vue'))
 
 const route = useRoute()
 const router = useRouter()
@@ -593,6 +610,29 @@ function syncRouteQuery() {
       pageSize: pageSize.value !== 20 ? pageSize.value : undefined,
     },
   })
+}
+
+const debugBundleImportVisible = ref(false)
+const debugBundleExportVisible = ref(false)
+const exportApplication = ref(null)
+
+function openApplicationConfigExport(application) {
+  if (!application?.id) {
+    message.warning('无法导出：缺少应用 ID')
+    return
+  }
+  exportApplication.value = application
+  debugBundleExportVisible.value = true
+}
+
+function handleDebugBundleImported(result) {
+  void loadApplications()
+  if (result?.applicationCode) {
+    openApplication({
+      applicationCode: result.applicationCode,
+      id: result.applicationId,
+    })
+  }
 }
 
 function openApplicationCreate(mode = 'BLANK', templateKey = '', deliveryMode = 'ONLINE') {

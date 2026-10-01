@@ -409,7 +409,9 @@ final class BusinessObjectRelationProjector {
         item.put("sortable", field.getSortable());
         item.put("primaryKey", field.getPrimaryKey());
         item.put("systemField", field.getSystemField());
-        item.put("readonly", field.getReadonly());
+        // 字段注册表只读 ∨ 表单设计器 visibility.readonly，主子表子列与独立填表一致
+        item.put("readonly", Boolean.TRUE.equals(field.getReadonly())
+                || Boolean.TRUE.equals(designerProps.get("readonly")));
         item.put("fieldStatus", field.getFieldStatus());
         item.put("autoIncrement", field.getAutoIncrement());
         item.put("width", field.getWidth());
@@ -462,6 +464,11 @@ final class BusinessObjectRelationProjector {
                 }
                 if (StringUtils.isNotBlank(text(props.get("dictType")))) {
                     props.putIfAbsent("dictType", text(props.get("dictType")));
+                }
+                // 表单设计器 visibility.readonly 可能尚未回写字段注册表，投影时一并带上
+                Map<String, Object> visibility = mapValue(component.get("visibility"));
+                if (Boolean.TRUE.equals(visibility.get("readonly"))) {
+                    props.put("readonly", true);
                 }
                 byCode.putIfAbsent(fieldCode, props);
             }

@@ -255,6 +255,9 @@ export function applyBusinessActionDesignerPart2(props, emit, deps = {}) {
   __impl.stringifyJson = stringifyJson
 
   return {
-    ...deps,
+    ...deps, businessFieldLabel, cloneValue, collectMainFields, detailDisplayLabel, ensureActionConfig, ensureParams,
+    ensureStepConfig, fieldDisplayLabel, fieldPathOptions, findFieldByCode, getPathValue, isInactiveField,
+    mergeSelectedFieldOptions, normalizeStringList, parseRelationConfig, resolvePathDisplayLabel, resolveStep,
+    stringValue, stringifyJson, toPageField, unwrapExpression, wrapExpression,
   }
 }

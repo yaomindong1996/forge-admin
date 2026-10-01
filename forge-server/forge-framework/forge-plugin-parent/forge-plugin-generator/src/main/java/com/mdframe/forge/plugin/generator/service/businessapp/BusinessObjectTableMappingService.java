@@ -98,6 +98,42 @@ public class BusinessObjectTableMappingService {
     }
 
     @Transactional(rollbackFor = Exception.class)
+    public void syncForDebugBundleImport(Long objectId) {
+        BusinessObjectDesignerService.DesignerContext context = contextProvider.loadContext(objectId);
+        LowcodeModelSchema modelSchema = requireModelSchema(context);
+        assertDatasourceAllowsDdl(modelSchema);
+        LowcodeDdlPreviewVO preview = ddlService.previewCreateTable(modelSchema);
+        if (!Boolean.TRUE.equals(preview.getExecutable())) {
+            throw new BusinessException("当前数据源未允许自动建表，请在数据源设置中开启 DDL");
+        }
+        if (!hasDdl(preview)) {
+            persistSyncResult(context, "IN_SYNC", "调试包导入：数据表结构已是最新版本", 0);
+            return;
+        }
+        if (!Boolean.TRUE.equals(preview.getTableExists())) {
+            try {
+                ddlService.executeCreateTable(modelSchema);
+                persistSyncResult(context, "IN_SYNC", "调试包导入：数据表创建成功",
+                        preview.getDdlStatements() == null ? 0 : preview.getDdlStatements().size());
+            } catch (RuntimeException e) {
+                persistSyncResult(context, "FAILED", safeMessage(e),
+                        preview.getDdlStatements() == null ? 0 : preview.getDdlStatements().size());
+                throw e;
+            }
+            return;
+        }
+        int totalDdl = preview.getDdlStatements() == null ? 0 : preview.getDdlStatements().size();
+        try {
+            int executed = ddlService.executeSafeDdlOnly(modelSchema);
+            persistSyncResult(context, executed >= totalDdl ? "IN_SYNC" : "PARTIAL",
+                    "调试包导入：已同步 " + executed + " 项安全 DDL", executed);
+        } catch (RuntimeException e) {
+            persistSyncFailure(context, e, totalDdl);
+            throw e;
+        }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
     public void syncDatabase(Long objectId, Integer designVersion, boolean confirmOnlineDdl) {
         BusinessObjectDesignerService.DesignerContext context = contextProvider.loadContext(objectId);
         assertDesignVersion(context, designVersion);

@@ -213,6 +213,8 @@ export function applyRolePagePart2(deps = {}) {
   __impl.saveRoleDataScopesIfSupported = saveRoleDataScopesIfSupported
 
   return {
-    ...deps,
+    ...deps, applyRoleDataScopeSettings, createFallbackDataScopeSettings, filterAssignableCheckedKeys,
+    handleAuthClientChange, handleSubmitAuth, loadAuthClientResources, loadClientList, loadRoleDataScopes,
+    loadRoleResources, normalizeRoleDataScopeSettings, saveRoleDataScopesIfSupported,
   }
 }

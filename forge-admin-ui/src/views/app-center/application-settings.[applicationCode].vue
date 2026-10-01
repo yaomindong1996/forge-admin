@@ -57,7 +57,12 @@
             :application="application"
           />
           <AppSettingsGlobalization v-else-if="activeSection === 'globalization'" v-model="settingsModel" />
-          <AppSettingsAdvanced v-else v-model="settingsModel" />
+          <AppSettingsAdvanced
+            v-else
+            v-model="settingsModel"
+            :application-id="application?.id"
+            :application-code="application?.applicationCode"
+          />
         </main>
       </div>
       <n-result v-else-if="!loading" status="error" title="应用设置加载失败" :description="loadError">

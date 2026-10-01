@@ -20,6 +20,7 @@ import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeAiAppGenerateResult
 import com.mdframe.forge.plugin.generator.dto.lowcode.LowcodeCodegenRequest;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessApplicationAiAssistantService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessApplicationAiInitializeService;
+import com.mdframe.forge.plugin.generator.service.businessapp.BusinessApplicationBundleExportService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessApplicationCodegenService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessApplicationFormDataService;
 import com.mdframe.forge.plugin.generator.service.businessapp.BusinessApplicationObjectService;
@@ -46,6 +47,7 @@ import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationPubl
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationPublishRunVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationReadinessVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationRolePermissionVO;
+import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationBundlePageVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationRuntimeVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationTemplateResultVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationVO;
@@ -70,6 +72,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -99,6 +103,7 @@ public class BusinessApplicationController {
     private final BusinessApplicationRollbackService rollbackService;
     private final BusinessApplicationRuntimeService runtimeService;
     private final BusinessApplicationCodegenService codegenService;
+    private final BusinessApplicationBundleExportService bundleExportService;
 
     @GetMapping("/page")
     @SaCheckPermission("ai:businessApplication:list")
@@ -445,6 +450,41 @@ public class BusinessApplicationController {
             @PathVariable Long id,
             @PathVariable Long runId) {
         return RespInfo.success(recoveryService.recover(id, runId));
+    }
+
+    @GetMapping("/{id}/debug-bundle/pages")
+    @SaCheckPermission("ai:businessApplication:edit")
+    @OperationLog(module = "业务应用", type = OperationType.QUERY, desc = "查询应用调试包可导出页面")
+    public RespInfo<List<BusinessApplicationBundlePageVO>> listDebugBundlePages(@PathVariable Long id) {
+        return RespInfo.success(bundleExportService.listExportPages(id));
+    }
+
+    @GetMapping("/{id}/debug-bundle/export")
+    @SaCheckPermission("ai:businessApplication:edit")
+    @OperationLog(module = "业务应用", type = OperationType.QUERY, desc = "导出应用调试包")
+    public void exportDebugBundle(
+            @PathVariable Long id,
+            @RequestParam(required = false) String pageIds,
+            HttpServletResponse response) throws Exception {
+        byte[] bytes = bundleExportService.exportBundleBytes(id, splitPageIds(pageIds));
+        String filename = URLEncoder.encode(bundleExportService.resolveFileName(id), StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        // 使用 octet-stream，避免前端 blob 拦截器按 JSON RespInfo 解析附件
+        response.setContentType("application/octet-stream");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + filename);
+        response.setContentLength(bytes.length);
+        response.getOutputStream().write(bytes);
+        response.getOutputStream().flush();
+    }
+
+    private List<String> splitPageIds(String pageIds) {
+        if (pageIds == null || pageIds.isBlank()) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(pageIds.split(","))
+                .map(String::trim)
+                .filter(item -> !item.isEmpty())
+                .toList();
     }
 
     @PostMapping("/{id}/versions/{versionNo}/rollback")

@@ -28,6 +28,176 @@ export function applyMenuPagePart1() {
   const __impl = {}
   const mut = {}
 
+  const { dict } = useDict(
+    'sys_resource_type',
+    'sys_show_hide',
+    'sys_req_method',
+    'sys_link_open_target',
+    'sys_user_type',
+    'sys_yes_no',
+  )
+
+  const resourceTypeOptions = computed(() => toNumberDictOptions(dict.value.sys_resource_type))
+  const visibleOptions = computed(() => toNumberDictOptions(dict.value.sys_show_hide))
+  const apiMethodOptions = computed(() => dict.value.sys_req_method || [])
+  const openTargetOptions = computed(() => dict.value.sys_link_open_target || [])
+  const minUserTypeOptions = computed(() => toNumberDictOptions(dict.value.sys_user_type))
+  const yesNoOptions = computed(() => toNumberDictOptions(dict.value.sys_yes_no))
+
+  const permissionStore = usePermissionStore()
+  const userStore = useUserStore()
+
+  const currentUserClientCode = computed(() => userStore.userInfo?.userClient || 'pc')
+  const routeOptions = getMenuRouteOptions()
+
+  const pageRef = ref(null)
+  const formRef = ref(null)
+  const clientList = ref([])
+  const currentClientCode = ref(currentUserClientCode.value)
+  const loading = ref(false)
+  const submitLoading = ref(false)
+  const batchActionLoading = ref(false)
+  const allResources = ref([])
+  const selectedResourceId = ref(0)
+  const selectedRow = ref(null)
+  const checkedResourceIds = ref([])
+  const navigationExpandedKeys = ref([0])
+  const treeKeyword = ref('')
+  const resourceKeyword = ref('')
+  const resourceTypeFilter = ref(null)
+  const visibleFilter = ref(null)
+  const parentResourceOptions = ref([{ label: '顶级资源', value: 0, key: 0 }])
+  const pendingParentId = ref(null)
+  const pendingClientCode = ref(null)
+  const drawerVisible = ref(false)
+  const drawerMode = ref('add')
+  const formData = ref({})
+  const batchMigrateVisible = ref(false)
+  const batchMigrateParentId = ref(0)
+  const formIconTab = ref('font')
+  const tableIconSelectorRef = ref(null)
+  const tableIconEditRow = ref(null)
+  const tableIconValue = ref('')
+
+  const publicParams = computed(() => {
+    if (currentClientCode.value)
+      return { clientCode: currentClientCode.value }
+    return {}
+  })
+
+  const drawerTitle = computed(() => drawerMode.value === 'edit' ? '编辑资源' : '新增资源')
+  const drawerWidth = computed(() => Math.min(860, Math.max(640, Math.floor(window.innerWidth * 0.58))))
+
+  const clientCodeOptions = computed(() => {
+    return clientList.value.map(client => ({
+      label: client.clientName,
+      value: client.clientCode,
+    }))
+  })
+
+  const resourceTypeFilterOptions = computed(() => resourceTypeOptions.value)
+  const visibleFilterOptions = computed(() => visibleOptions.value)
+
+  const flatResources = computed(() => flattenResourceTree(allResources.value))
+
+  const navigationSelectedKeys = computed(() => {
+    if (!selectedResourceId.value)
+      return []
+    const exists = flatResources.value.some(item => item.id === selectedResourceId.value)
+    return exists ? [selectedResourceId.value] : []
+  })
+
+  const currentNode = computed(() => {
+    if (!selectedResourceId.value)
+      return null
+    return flatResources.value.find(item => item.id === selectedResourceId.value) || null
+  })
+
+  const activeResource = computed(() => selectedRow.value || currentNode.value)
+
+  const currentContextTitle = computed(() => {
+    if (resourceKeyword.value || resourceTypeFilter.value !== null || visibleFilter.value !== null)
+      return currentNode.value ? `${currentNode.value.resourceName} 下的匹配资源` : '全部匹配资源'
+    return currentNode.value ? `${currentNode.value.resourceName} 下级资源` : '顶级资源'
+  })
+
+  const activeChildSummary = computed(() => {
+    const children = activeResource.value?.children || []
+    return {
+      menu: children.filter(item => Number(item.resourceType) === 1 || Number(item.resourceType) === 2).length,
+      button: children.filter(item => Number(item.resourceType) === 3).length,
+      api: children.filter(item => Number(item.resourceType) === 4).length,
+    }
+  })
+
+  const navigationTreeData = computed(() => {
+    const keyword = treeKeyword.value.trim().toLowerCase()
+    const children = buildNavigationTree(allResources.value, keyword)
+    return [
+      {
+        key: 0,
+        id: 0,
+        label: '全部资源',
+        resourceName: '全部资源',
+        resourceType: 0,
+        children,
+      },
+    ]
+  })
+
+  const displayRows = computed(() => {
+    const hasFilter = !!resourceKeyword.value.trim() || resourceTypeFilter.value !== null || visibleFilter.value !== null
+    const baseRows = getContextRows({ includeDescendants: hasFilter })
+
+    if (!hasFilter)
+      return baseRows
+
+    return baseRows.filter(row => matchesResourceFilter(row))
+  })
+
+  const checkedResourceIdSet = computed(() => new Set(checkedResourceIds.value))
+
+  const checkedResourceRows = computed(() => {
+    const checkedIds = checkedResourceIdSet.value
+    return flatResources.value.filter(row => checkedIds.has(row.id))
+  })
+
+  const allDisplayRowsChecked = computed(() => {
+    return displayRows.value.length > 0 && displayRows.value.every(row => checkedResourceIdSet.value.has(row.id))
+  })
+
+  const displayRowsCheckIndeterminate = computed(() => {
+    if (displayRows.value.length === 0)
+      return false
+    const checkedCount = displayRows.value.filter(row => checkedResourceIdSet.value.has(row.id)).length
+    return checkedCount > 0 && checkedCount < displayRows.value.length
+  })
+
+  const batchMigrateRootRows = computed(() => {
+    const checkedIds = checkedResourceIdSet.value
+    return checkedResourceRows.value.filter(row => !hasCheckedAncestor(row, checkedIds))
+  })
+
+  const batchMigrateDisabledParentIds = computed(() => {
+    const disabledIds = new Set(checkedResourceIds.value)
+    checkedResourceRows.value.forEach((row) => {
+      collectRowDescendantIds(row).forEach(id => disabledIds.add(id))
+    })
+    return disabledIds
+  })
+
+  const batchMigrateParentOptions = computed(() => [
+    { label: '顶级资源', value: 0, key: 0 },
+    ...buildBatchMigrateParentOptions(allResources.value, batchMigrateDisabledParentIds.value),
+  ])
+
+  const typeStyleMap = {
+    1: { icon: 'i-material-symbols:folder-outline', color: '#4C6EF5', bg: '#EDF2FF', fontWeight: '600' },
+    2: { icon: 'i-material-symbols:menu', color: '#40C057', bg: '#EBFBEE', fontWeight: '500' },
+    3: { icon: 'i-material-symbols:smart-button', color: '#FD7E14', bg: '#FFF4E6', fontWeight: '400' },
+    4: { icon: 'i-material-symbols:api', color: '#FA5252', bg: '#FFF5F5', fontWeight: '400' },
+  }
+
   watch(currentClientCode, async () => {
     selectedResourceId.value = 0
     selectedRow.value = null
@@ -236,10 +406,14 @@ export function applyMenuPagePart1() {
   }
 
   function renderNavigationLabel({ option }) {
-    const typeConfig = typeStyleMap[option.resourceType] || { icon: 'i-material-symbols:account-tree' }
-    return h('div', { class: ['nav-tree-label', `type-${option.resourceType || 0}`] }, [
+    const typeConfig = getResourceTypeConfig(option.resourceType)
+    return h('div', { class: ['nav-tree-label', `type-${Number(option.resourceType) || 0}`] }, [
       h('span', { class: 'nav-tree-icon-shell' }, [
-        h('i', { class: typeConfig.icon }),
+        h(IconRenderer, {
+          icon: typeConfig.icon,
+          fontSize: 14,
+          customStyle: 'display:block;line-height:1',
+        }),
       ]),
       h('span', { class: 'nav-tree-name' }, option.label),
     ])
@@ -1023,23 +1197,31 @@ export function applyMenuPagePart1() {
   __impl.renderComponentOptionLabel = renderComponentOptionLabel
 
   return {
-    __impl, mut, autoFillComponentFromRoute, beforeRenderForm, beforeSubmit, buildBatchMigrateParentOptions, buildNavigationTree, clearCheckedResources,
-    collapseNavigationTree, collectRowDescendantIds, copyText, expandNavigationTree, expandResourcePath, focusMigratedParent, getAllNavigationKeys, getAvailableComponentOptions,
-    getAvailableRouteOptions, getBatchDeleteBlockers, getChildResourceCount, getClientDisplayName, getContextRows, getDisplayLevel, getExpandableNavigationKeys, getFontIconValue,
-    getImageIconValue, getMoreActionOptions, getPrimaryRouteText, getRenderableIcon, getResourceSubtitle, getResourceTypeConfig, getResourceTypeText, getSecondaryRouteText,
-    getSsoTargetClientOptions, getUsedRoutePathSet, handleAdd, handleAddRoot, handleBatchDelete, handleBatchMigrateSubmit, handleClientTabChange, handleComponentPathChange,
-    handleDelete, handleDisplayRowsCheckedChange, handleDrawerSubmit, handleEdit, handleFormIconTabChange, handleInlineUpdate, handleMoreAction, handleNavigationExpandedKeys,
-    handleNavigationSelect, handleResourceCheckedChange, handleRoutePathChange, handleSortCommit, handleTableIconSelected, hasCheckedAncestor, isImageIconValue, isValidBatchMigrateParent,
-    keepSelectionAvailable, loadClientList, loadResourceDetail, loadResourceTree, matchesResourceFilter, matchesRouteKeyword, normalizeComponentValue, normalizeListResponse,
-    normalizeRouteInput, openBatchMigrate, openTableIconSelector, reconcileCheckedResourceIds, reconcileNavigationExpandedKeys, refreshSystemMenu, renderComponentOptionLabel, renderNavigationLabel,
-    renderRouteOptionLabel, resetSelectionAfterDelete, resolveDefaultBatchMigrateParentId, selectSavedResource, setupMenuPageLayout, syncParentResourceOptions, resourceTypeOptions, visibleOptions,
-    apiMethodOptions, openTargetOptions, minUserTypeOptions, yesNoOptions, permissionStore, userStore, currentUserClientCode, routeOptions,
-    pageRef, formRef, clientList, currentClientCode, loading, submitLoading, batchActionLoading, allResources,
-    selectedResourceId, selectedRow, checkedResourceIds, navigationExpandedKeys, treeKeyword, resourceKeyword, resourceTypeFilter, visibleFilter,
-    parentResourceOptions, pendingParentId, pendingClientCode, drawerVisible, drawerMode, formData, batchMigrateVisible, batchMigrateParentId,
-    formIconTab, tableIconSelectorRef, tableIconEditRow, tableIconValue, publicParams, drawerTitle, drawerWidth, clientCodeOptions,
-    resourceTypeFilterOptions, visibleFilterOptions, flatResources, navigationSelectedKeys, currentNode, activeResource, currentContextTitle, activeChildSummary,
-    navigationTreeData, displayRows, checkedResourceIdSet, checkedResourceRows, allDisplayRowsChecked, displayRowsCheckIndeterminate, batchMigrateRootRows, batchMigrateDisabledParentIds,
-    batchMigrateParentOptions, typeStyleMap,
+    __impl, mut, autoFillComponentFromRoute, beforeRenderForm, beforeSubmit, buildBatchMigrateParentOptions,
+    buildNavigationTree, clearCheckedResources, collapseNavigationTree, collectRowDescendantIds, copyText,
+    expandNavigationTree, expandResourcePath, focusMigratedParent, getAllNavigationKeys, getAvailableComponentOptions,
+    getAvailableRouteOptions, getBatchDeleteBlockers, getChildResourceCount, getClientDisplayName, getContextRows,
+    getDisplayLevel, getExpandableNavigationKeys, getFontIconValue, getImageIconValue, getMoreActionOptions,
+    getPrimaryRouteText, getRenderableIcon, getResourceSubtitle, getResourceTypeConfig, getResourceTypeText,
+    getSecondaryRouteText, getSsoTargetClientOptions, getUsedRoutePathSet, handleAdd, handleAddRoot, handleBatchDelete,
+    handleBatchMigrateSubmit, handleClientTabChange, handleDelete, handleDisplayRowsCheckedChange, handleDrawerSubmit,
+    handleEdit, handleFormIconTabChange, handleInlineUpdate, handleMoreAction, handleNavigationExpandedKeys,
+    handleNavigationSelect, handleResourceCheckedChange, handleRoutePathChange, handleSortCommit,
+    handleTableIconSelected, hasCheckedAncestor, isImageIconValue, isValidBatchMigrateParent, keepSelectionAvailable,
+    loadClientList, loadResourceDetail, loadResourceTree, matchesResourceFilter, matchesRouteKeyword,
+    normalizeComponentValue, normalizeListResponse, normalizeRouteInput, openBatchMigrate, openTableIconSelector,
+    reconcileCheckedResourceIds, reconcileNavigationExpandedKeys, refreshSystemMenu, renderComponentOptionLabel,
+    renderNavigationLabel, renderRouteOptionLabel, resetSelectionAfterDelete, resolveDefaultBatchMigrateParentId,
+    selectSavedResource, setupMenuPageLayout, syncParentResourceOptions, resourceTypeOptions, visibleOptions,
+    apiMethodOptions, openTargetOptions, minUserTypeOptions, yesNoOptions, permissionStore, userStore,
+    currentUserClientCode, routeOptions, pageRef, formRef, clientList, currentClientCode, loading, submitLoading,
+    batchActionLoading, allResources, selectedResourceId, selectedRow, checkedResourceIds, navigationExpandedKeys,
+    treeKeyword, resourceKeyword, resourceTypeFilter, visibleFilter, parentResourceOptions, pendingParentId,
+    pendingClientCode, drawerVisible, drawerMode, formData, batchMigrateVisible, batchMigrateParentId, formIconTab,
+    tableIconSelectorRef, tableIconEditRow, tableIconValue, publicParams, drawerTitle, drawerWidth, clientCodeOptions,
+    resourceTypeFilterOptions, visibleFilterOptions, flatResources, navigationSelectedKeys, currentNode,
+    activeResource, currentContextTitle, activeChildSummary, navigationTreeData, displayRows, checkedResourceIdSet,
+    checkedResourceRows, allDisplayRowsChecked, displayRowsCheckIndeterminate, batchMigrateRootRows,
+    batchMigrateDisabledParentIds, batchMigrateParentOptions, typeStyleMap,
   }
 }

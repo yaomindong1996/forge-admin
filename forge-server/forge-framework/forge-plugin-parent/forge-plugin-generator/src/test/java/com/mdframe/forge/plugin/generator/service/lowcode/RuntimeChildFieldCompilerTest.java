@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RuntimeChildFieldCompilerTest {
 
@@ -35,6 +36,24 @@ class RuntimeChildFieldCompilerTest {
     }
 
     @Test
+    void explicitPanelKeepsReadonlyFieldAndMarksReadonly() {
+        LowcodePageModelRef ref = childRef();
+        ref.setProps(Map.of("childFieldCodes", List.of("quantity", "locked")));
+        ref.setFields(List.of(
+                source("quantity", Map.of("label", "数量")),
+                source("locked", Map.of("label", "锁定值", "readonly", true)),
+                source("orderId", Map.of())));
+
+        List<Map<String, Object>> fields = RuntimeChildFieldCompiler.compile(
+                ref, List.of(), "orderId", RuntimeEditFieldCompiler::buildEditField);
+
+        assertEquals(List.of("quantity", "locked"), fields.stream().map(item -> item.get("sourceField")).toList());
+        Map<String, Object> locked = fields.get(1);
+        assertEquals(true, locked.get("readonly"));
+        assertEquals(true, locked.get("disabled"));
+    }
+
+    @Test
     void editZoneSelectionSortsByRefAndPreservesCustomRef() {
         LowcodePageModelRef ref = childRef();
         ref.setFields(List.of(
@@ -51,10 +70,11 @@ class RuntimeChildFieldCompilerTest {
     }
 
     @Test
-    void noSelectedChildRefKeepsAllEditableFieldsInSourceOrder() {
+    void noSelectedChildRefKeepsReadonlyBusinessFieldsInSourceOrder() {
         LowcodePageModelRef ref = childRef();
         ref.setFields(List.of(
                 source("material", Map.of()),
+                source("locked", Map.of("readonly", true)),
                 source("quantity", Map.of()),
                 source("orderId", Map.of()),
                 source("hidden", Map.of("formVisible", false))));
@@ -62,7 +82,9 @@ class RuntimeChildFieldCompilerTest {
         List<Map<String, Object>> fields = RuntimeChildFieldCompiler.compile(
                 ref, List.of("mainName"), "orderId", RuntimeChildFieldCompilerTest::render);
 
-        assertEquals(List.of("material", "quantity"), fields.stream().map(item -> item.get("sourceField")).toList());
+        assertEquals(List.of("material", "locked", "quantity"),
+                fields.stream().map(item -> item.get("sourceField")).toList());
+        assertTrue(Boolean.TRUE.equals(fields.get(1).get("readonly")));
     }
 
     private static LowcodePageModelRef childRef() {
@@ -84,6 +106,9 @@ class RuntimeChildFieldCompilerTest {
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("field", field.getField());
         item.put("label", field.getLabel());
+        if (Boolean.TRUE.equals(field.getReadonly())) {
+            item.put("readonly", true);
+        }
         return item;
     }
 }

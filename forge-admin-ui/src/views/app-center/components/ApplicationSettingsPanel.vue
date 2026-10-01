@@ -25,7 +25,12 @@
           />
           <AppSettingsGlobalization v-else-if="activeSection === 'globalization'" v-model="settingsModel" />
           <ApplicationIntegrations v-else-if="activeSection === 'integrations'" :key="application.id" :application="application" />
-          <AppSettingsAdvanced v-else v-model="settingsModel" />
+          <AppSettingsAdvanced
+            v-else
+            v-model="settingsModel"
+            :application-id="application?.id"
+            :application-code="application?.applicationCode"
+          />
           <div v-if="activeSection !== 'integrations'" class="settings-panel-actions">
             <n-button type="primary" :loading="saving" @click="saveSettings">
               保存设置

@@ -17,6 +17,97 @@ export function applyCrudGeneratorPart1() {
   const __impl = {}
   const mut = {}
 
+  const route = useRoute()
+  const router = useRouter()
+
+  const {
+    sessionId,
+    messages,
+    configKey,
+    tableName,
+    generating,
+    activeFile,
+    inputText,
+    sessionList,
+    displayContent,
+
+    layoutType,
+    templateList,
+
+    providerId,
+    modelId,
+    providerOptions,
+    modelOptions,
+    currentStage,
+
+    configSaved,
+    loadTemplateList,
+    loadProviderOptions,
+    loadModelOptions,
+    loadSessionList,
+    startNewSession,
+    loadSession,
+    deleteSession,
+    sendMessage,
+    abortGenerate,
+    saveConfig,
+    loadTableStructure,
+    initWithConfigKey,
+    previewCrudPage,
+    copyCurrentFile,
+    exportAllFiles,
+  } = useCrudGenerator()
+
+  const expandedReasonings = ref({})
+  const messageListRef = ref(null)
+  const sidebarCollapsed = ref(false)
+  const previewCollapsed = ref(false)
+  const activeTabGroup = ref('core')
+  const showModelPanel = ref(false)
+
+  const currentProviderLabel = computed(() => {
+    const item = providerOptions.value.find(p => p.value === providerId.value)
+    return item?.label || '未选择供应商'
+  })
+
+  const currentModelLabel = computed(() => {
+    const item = modelOptions.value.find(m => m.value === modelId.value)
+    if (!item)
+      return '请选择模型'
+    return item.modelCode || item.label
+  })
+
+  watch(providerId, async (val, old) => {
+    if (val && val !== old)
+      await loadModelOptions(val, false)
+  })
+
+  const generateStages = [
+    { key: 'analyzing', label: '分析需求' },
+    { key: 'generating-meta', label: '推断元数据' },
+    { key: 'generating-search', label: '搜索配置' },
+    { key: 'generating-columns', label: '表格列' },
+    { key: 'generating-edit', label: '编辑表单' },
+    { key: 'generating-api', label: '接口配置' },
+    { key: 'generating-sql', label: '建表 SQL' },
+  ]
+
+  const currentStageIndex = computed(() => {
+    return generateStages.findIndex(s => s.key === currentStage.value)
+  })
+
+  const moreActionOptions = computed(() => [
+    { label: '预览页面', key: 'preview', disabled: !configSaved.value },
+    { label: '下载代码', key: 'download', disabled: !configSaved.value },
+  ])
+
+  function handleMoreAction(key) {
+    if (key === 'preview')
+      previewCrudPage()
+    if (key === 'download')
+      handleDownloadCode()
+  }
+
   function switchTabGroup(group) {
     activeTabGroup.value = group
     // 切换分组时自动选中该组第一个tab
@@ -360,5 +451,9 @@ export function applyCrudGeneratorPart1() {
     messageListRef, sidebarCollapsed, previewCollapsed, activeTabGroup, showModelPanel, currentProviderLabel, currentModelLabel, generateStages,
     currentStageIndex, moreActionOptions, examplePrompts, configKeyError, tableNameError, currentFileContent, tableOptions, showImportModal,
     showMenuModal, executingSql,
+    sessionId, messages, configKey, tableName, generating, activeFile, inputText, sessionList, displayContent,
+    layoutType, templateList, providerId, modelId, providerOptions, modelOptions, currentStage, configSaved,
+    loadTemplateList, loadProviderOptions, loadModelOptions, loadSessionList, startNewSession, loadSession, deleteSession,
+    sendMessage, abortGenerate, saveConfig, loadTableStructure, initWithConfigKey, previewCrudPage, copyCurrentFile, exportAllFiles,
   }
 }

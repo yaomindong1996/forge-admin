@@ -23,6 +23,28 @@ import { useDict } from '@/composables/useDict'
 export function applyProviderModelPart1() {
   const __impl = {}
   const mut = {}
+
+  const { dict } = useDict('ai_provider_type', 'ai_provider_adapter_type', 'ai_model_type', 'ai_status', 'ai_is_default', 'ai_model_capability_type')
+
+  const providerTypeOptions = computed(() => dict.value.ai_provider_type || [])
+  const providerAdapterOptions = computed(() => dict.value.ai_provider_adapter_type || [])
+  const modelTypeOptions = computed(() => dict.value.ai_model_type || [])
+  const statusOptions = computed(() => dict.value.ai_status || [])
+  const isDefaultOptions = computed(() => dict.value.ai_is_default || [])
+  const modelCapabilityOptions = computed(() => dict.value.ai_model_capability_type || [])
+
+  const MODEL_TYPE_LABEL = {
+    chat: '对话',
+    vision: '视觉理解',
+    video_understanding: '视频理解',
+    audio_understanding: '音频理解',
+    asr: '语音识别',
+    tts: '语音合成',
+    image_generation: '图像生成',
+    video_generation: '视频生成',
+    embedding: '向量化',
+    rerank: '重排',
+  }
   const MODEL_TYPE_ORDER = ['chat', 'vision', 'video_understanding', 'audio_understanding', 'asr', 'tts', 'image_generation', 'video_generation', 'embedding', 'rerank']
   const MODEL_TYPE_TAG_COLOR = {
     chat: 'success',
@@ -110,6 +132,7 @@ export function applyProviderModelPart1() {
   // 模型行操作 loading：{ id: 'test' | 'edit' | 'delete' }
   const modelRowActionLoading = reactive({})
   __impl.isModelRowActionLoading = (id, type) => modelRowActionLoading[id] === type
+  const isModelRowActionLoading = (id, type) => modelRowActionLoading[id] === type
 
   const uploadPrefix = import.meta.env.VITE_API_BASEURL || '/api'
   const uploadHeaders = computed(() => {

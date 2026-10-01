@@ -15,6 +15,230 @@ export function applyRolePagePart1() {
   const __impl = {}
   const mut = {}
 
+  // part2 延迟实现：setup 结束后经 __impl 转发，避免拆分后跨 part 裸引用报错
+  function createFallbackDataScopeSettings(...args) {
+    return __impl.createFallbackDataScopeSettings(...args)
+  }
+  async function loadAuthClientResources(...args) {
+    return __impl.loadAuthClientResources(...args)
+  }
+  async function loadClientList(...args) {
+    return __impl.loadClientList(...args)
+  }
+  async function loadRoleDataScopes(...args) {
+    return __impl.loadRoleDataScopes(...args)
+  }
+
+  const USER_STATUS_DICT = 'sys_user_status'
+  const ROLE_DATA_SCOPE_DICT = 'sys_role_data_scope'
+  const ROLE_TYPE_DICT = 'sys_role_type'
+  const NORMAL_DISABLE_DICT = 'sys_normal_disable'
+  const YES_NO_DICT = 'sys_yes_no'
+
+  const crudRef = ref(null)
+  const roleUserCrudRef = ref(null)
+  const userStore = useUserStore()
+  const roleList = ref([])
+  const roleListLoading = ref(false)
+  const roleKeyword = ref('')
+  const activeRoleType = ref(null)
+  const ROLE_ORG_SCOPE_GLOBAL = 1
+  const ROLE_ORG_SCOPE_CUSTOM = 2
+
+  const authModalVisible = ref(false)
+  const authLoading = ref(false)
+  const authLoadFailed = ref(false)
+  const authSubmitLoading = ref(false)
+  const resourceTreeData = ref([])
+  const checkedResourceKeys = ref([])
+  const dataScopeLoading = ref(false)
+  const dataScopeLoadFailed = ref(false)
+  const dataScopeSettings = ref({ defaultDataScope: 5, modules: [] })
+  const clientList = ref([])
+  const currentAuthClientCode = ref('pc')
+
+  const currentRole = ref({})
+  const addUserModalVisible = ref(false)
+  const addUserLoading = ref(false)
+  const assignedUserIds = ref([])
+  const roleUserOrgId = ref(null)
+  const roleUserKeyword = ref('')
+  const roleApplicableOrgIds = ref([])
+  const roleOrgTreeData = ref([])
+  const roleUserTotal = ref(0)
+  const roleUserCountMap = ref({})
+  const userSearchParams = ref({
+    userStatus: null,
+  })
+
+  const roleOrgModalVisible = ref(false)
+  const roleOrgLoading = ref(false)
+  const roleOrgSubmitLoading = ref(false)
+  const roleScopeMode = ref('global')
+  const checkedRoleOrgKeys = ref([])
+  const roleOrgExpandedKeys = ref([])
+  const roleOrgTreeExpandAll = ref(true)
+
+  const { dict } = useDict(USER_STATUS_DICT, ROLE_DATA_SCOPE_DICT, ROLE_TYPE_DICT, NORMAL_DISABLE_DICT, YES_NO_DICT)
+
+  const userStatusOptions = computed(() => toNumberOptions(dict.value[USER_STATUS_DICT]))
+  const dataScopeOptions = computed(() => toNumberOptions(dict.value[ROLE_DATA_SCOPE_DICT]))
+  const manageableDataScopeOptions = computed(() => {
+    if (userStore.isAdmin)
+      return dataScopeOptions.value
+    const deniedScopes = Number(userStore.userType) === 2 ? [1, 2] : [1]
+    return dataScopeOptions.value.filter(item => !deniedScopes.includes(Number(item.value)))
+  })
+  const roleTypeOptions = computed(() => toNumberOptions(dict.value[ROLE_TYPE_DICT]))
+  const roleStatusOptions = computed(() => toNumberOptions(dict.value[NORMAL_DISABLE_DICT]))
+  const yesNoOptions = computed(() => toNumberOptions(dict.value[YES_NO_DICT]))
+  const roleTypeTabs = computed(() => {
+    const options = roleTypeOptions.value || []
+    if (options.length > 0)
+      return options.map(item => ({ label: resolveRoleTypeShortLabel(item.label), value: item.value }))
+    return [{ label: '角色', value: null }]
+  })
+  const isCurrentRoleGlobalScope = computed(() =>
+    Number(currentRole.value?.orgScopeType ?? ROLE_ORG_SCOPE_GLOBAL) === ROLE_ORG_SCOPE_GLOBAL,
+  )
+  const roleUserOrgOptions = computed(() => {
+    const scopedOrgIds = new Set(normalizeNumberList(roleApplicableOrgIds.value))
+    return flattenOrgNodes(roleOrgTreeData.value)
+      .filter(item => isCurrentRoleGlobalScope.value || scopedOrgIds.has(normalizeSingleNumber(item.id)))
+      .map(item => ({
+        label: item.orgName,
+        value: normalizeSingleNumber(item.id),
+      }))
+      .filter(item => item.value !== null)
+  })
+  const roleUserOrgTreeOptions = computed(() => {
+    const scopedOrgIds = new Set(normalizeNumberList(roleApplicableOrgIds.value))
+    return buildRoleUserOrgTreeOptions(roleOrgTreeData.value, scopedOrgIds, isCurrentRoleGlobalScope.value)
+  })
+  const allRoleOrgIds = computed(() => flattenOrgNodes(roleOrgTreeData.value)
+    .map(item => normalizeSingleNumber(item.id))
+    .filter(item => item !== null))
+  const currentRoleScopeLabel = computed(() => {
+    if (!currentRole.value?.id)
+      return ''
+    if (isCurrentRoleGlobalScope.value)
+      return '租户全局'
+    if (roleApplicableOrgIds.value.length > 0)
+      return `${roleApplicableOrgIds.value.length} 个组织`
+    return '未设置范围'
+  })
+  const currentRoleScopeTagType = computed(() => {
+    if (isCurrentRoleGlobalScope.value)
+      return 'success'
+    return roleApplicableOrgIds.value.length > 0 ? 'info' : 'warning'
+  })
+  const currentRoleDataScopeLabel = computed(() => {
+    if (!currentRole.value?.id)
+      return ''
+    return resolveRoleDataScopeLabel(currentRole.value)
+  })
+  const canAddUserToCurrentRole = computed(() => {
+    if (!currentRole.value?.id || roleUserOrgOptions.value.length === 0)
+      return false
+    return !!roleUserOrgId.value
+  })
+  const addUserButtonText = computed(() => {
+    if (!currentRole.value?.id)
+      return '添加用户'
+    if (roleUserOrgOptions.value.length === 0)
+      return '无授权组织'
+    return roleUserOrgId.value ? '添加用户' : '先选组织'
+  })
+  const roleUserApiConfig = computed(() => ({
+    list: currentRole.value?.id
+      ? `get@/system/role/${currentRole.value.id}/users`
+      : '',
+    detail: 'post@/system/user/getById',
+  }))
+  const roleUserTableColumns = computed(() => [
+    {
+      prop: 'username',
+      label: '成员信息',
+      minWidth: 190,
+      render: row => h(SystemTableCell, {
+        title: resolveUserDisplayName(row),
+        subtitle: resolveUserAccountLabel(row),
+        interactive: true,
+        avatar: true,
+        tooltip: `查看用户详情：${row.username || '-'}`,
+        onActivate: () => roleUserCrudRef.value?.showDetail?.(row),
+      }),
+    },
+    {
+      prop: 'orgName',
+      label: '所属组织',
+      width: 180,
+      render: row => h('span', { class: 'role-member-plain', title: resolveUserOrgLabel(row) }, resolveUserOrgLabel(row)),
+    },
+    {
+      prop: 'phone',
+      label: '联系方式',
+      width: 180,
+      render: row => h('span', { class: 'role-member-plain role-member-phone', title: row.phone || '' }, row.phone || '未填写手机号'),
+    },
+    {
+      prop: 'userStatus',
+      label: '状态',
+      width: 110,
+      render: row => h('span', {
+        class: ['role-member-status', { 'is-disabled': !isUserEnabled(row) }],
+      }, [
+        h('span', { class: 'role-member-status-dot' }),
+        h('span', { class: 'role-member-status-text' }, resolveUserStatusLabel(row)),
+      ]),
+    },
+    {
+      prop: 'actions',
+      label: '操作',
+      width: 90,
+      fixed: 'right',
+      actions: [
+        {
+          label: '移除',
+          key: 'remove',
+          type: 'primary',
+          onClick: row => handleRemoveUserRole(row),
+        },
+      ],
+    },
+  ])
+
+  function getRoleActionOptions(role = {}) {
+    const options = [
+      {
+        label: '编辑角色',
+        key: 'edit',
+        icon: () => h('i', { class: 'i-material-symbols:edit-outline-rounded' }),
+      },
+      {
+        label: '适用组织',
+        key: 'org-scope',
+        icon: () => h('i', { class: 'i-material-symbols:account-tree-rounded' }),
+      },
+      {
+        label: '权限授权',
+        key: 'auth',
+        icon: () => h('i', { class: 'i-material-symbols:admin-panel-settings-outline-rounded' }),
+      },
+    ]
+    if (role?.id && Number(role.id) !== 1) {
+      options.push(
+        { type: 'divider', key: 'delete-divider' },
+        {
+          label: () => h('span', { class: 'role-action-danger' }, '删除角色'),
+          key: 'delete',
+          icon: () => h('i', { class: 'i-material-symbols:delete-outline-rounded role-action-danger' }),
+        },
+      )
+    }
+    return options
+  }
+
   function getRoleDropdownMenuProps() {
     return {
       class: 'role-action-dropdown-menu',
@@ -946,23 +1170,28 @@ export function applyRolePagePart1() {
   __impl.loadResourceTree = loadResourceTree
 
   return {
-    __impl, mut, applyRoleDataScopeSettings, beforeLoadRoleUserList, beforeSubmit, buildRoleTenantParams, buildRoleUserOrgTreeOptions, createFallbackDataScopeSettings,
-    filterAssignableCheckedKeys, flattenOrgNodes, getAllKeys, getOrgNodeIcon, getOrgNodeTone, getRoleActionOptions, getRoleDropdownMenuProps, handleAddRole,
-    handleAddUser, handleAddUserFromList, handleAuth, handleAuthClientChange, handleConfirmAddUsers, handleDelete, handleEdit, handleRemoveUserRole,
-    handleRoleCardAction, handleRoleMutationSuccess, handleRoleOrgCheckedKeysChange, handleRoleOrgExpandedKeysChange, handleRoleOrgScope, handleRoleScopeModeChange, handleRoleSearch, handleRoleTypeChange,
-    handleRoleUserLoadSuccess, handleRoleUserOrgChange, handleSelectRole, handleSubmitAuth, handleSubmitRoleOrgs, handleUserSearch, handleUserSearchReset, handleViewUsers,
-    isRoleDisabled, isUserEnabled, loadAssignedUserIds, loadAuthClientResources, loadClientList, loadResourceTree, loadRoleApplicableOrgIds, loadRoleDataScopes,
-    loadRoleList, loadRoleOrgTree, loadRoleResources, normalizeNumberList, normalizeRoleDataScopeSettings, normalizeSingleNumber, refreshRoleUsers, resolveOptionLabel,
-    resolveRoleDataScopeLabel, resolveRoleDictValue, resolveRoleMemberCount, resolveRoleStatusLabel, resolveRoleTypeShortLabel, resolveUserAccountLabel, resolveUserDisplayName, resolveUserOrgLabel,
-    resolveUserStatusLabel, saveRoleDataScopesIfSupported, searchRoleUsers, toNumberOptions, toggleRoleOrgExpandAll, USER_STATUS_DICT, ROLE_DATA_SCOPE_DICT, ROLE_TYPE_DICT,
-    NORMAL_DISABLE_DICT, YES_NO_DICT, crudRef, roleUserCrudRef, userStore, roleList, roleListLoading, roleKeyword,
-    activeRoleType, ROLE_ORG_SCOPE_GLOBAL, ROLE_ORG_SCOPE_CUSTOM, authModalVisible, authLoading, authLoadFailed, authSubmitLoading, resourceTreeData,
-    checkedResourceKeys, dataScopeLoading, dataScopeLoadFailed, dataScopeSettings, clientList, currentAuthClientCode, currentRole, addUserModalVisible,
-    addUserLoading, assignedUserIds, roleUserOrgId, roleUserKeyword, roleApplicableOrgIds, roleOrgTreeData, roleUserTotal, roleUserCountMap,
-    userSearchParams, roleOrgModalVisible, roleOrgLoading, roleOrgSubmitLoading, roleScopeMode, checkedRoleOrgKeys, roleOrgExpandedKeys, roleOrgTreeExpandAll,
-    userStatusOptions, dataScopeOptions, manageableDataScopeOptions, roleTypeOptions, roleStatusOptions, yesNoOptions, roleTypeTabs, isCurrentRoleGlobalScope,
-    roleUserOrgOptions, roleUserOrgTreeOptions, allRoleOrgIds, currentRoleScopeLabel, currentRoleScopeTagType, currentRoleDataScopeLabel, canAddUserToCurrentRole, addUserButtonText,
-    roleUserApiConfig, roleUserTableColumns, roleOrgScopeSummary, roleOrgScopeTagType, authClientTabs, currentAuthClientName, searchSchema, tableColumns,
-    editSchema,
+    __impl, mut, beforeLoadRoleUserList, beforeSubmit, buildRoleTenantParams, buildRoleUserOrgTreeOptions,
+    flattenOrgNodes, getAllKeys, getOrgNodeIcon, getOrgNodeTone, getRoleActionOptions, getRoleDropdownMenuProps,
+    handleAddRole, handleAddUser, handleAddUserFromList, handleAuth, handleConfirmAddUsers, handleDelete, handleEdit,
+    handleRemoveUserRole, handleRoleCardAction, handleRoleMutationSuccess, handleRoleOrgCheckedKeysChange,
+    handleRoleOrgExpandedKeysChange, handleRoleOrgScope, handleRoleScopeModeChange, handleRoleSearch,
+    handleRoleTypeChange, handleRoleUserLoadSuccess, handleRoleUserOrgChange, handleSelectRole, handleSubmitRoleOrgs,
+    handleUserSearch, handleUserSearchReset, handleViewUsers, isRoleDisabled, isUserEnabled, loadAssignedUserIds,
+    loadResourceTree, loadRoleApplicableOrgIds, loadRoleList, loadRoleOrgTree, normalizeNumberList,
+    normalizeSingleNumber, refreshRoleUsers, resolveOptionLabel, resolveRoleDataScopeLabel, resolveRoleDictValue,
+    resolveRoleMemberCount, resolveRoleStatusLabel, resolveRoleTypeShortLabel, resolveUserAccountLabel,
+    resolveUserDisplayName, resolveUserOrgLabel, resolveUserStatusLabel, searchRoleUsers, toNumberOptions,
+    toggleRoleOrgExpandAll, USER_STATUS_DICT, ROLE_DATA_SCOPE_DICT, ROLE_TYPE_DICT, NORMAL_DISABLE_DICT, YES_NO_DICT,
+    crudRef, roleUserCrudRef, userStore, roleList, roleListLoading, roleKeyword, activeRoleType, ROLE_ORG_SCOPE_GLOBAL,
+    ROLE_ORG_SCOPE_CUSTOM, authModalVisible, authLoading, authLoadFailed, authSubmitLoading, resourceTreeData,
+    checkedResourceKeys, dataScopeLoading, dataScopeLoadFailed, dataScopeSettings, clientList, currentAuthClientCode,
+    currentRole, addUserModalVisible, addUserLoading, assignedUserIds, roleUserOrgId, roleUserKeyword,
+    roleApplicableOrgIds, roleOrgTreeData, roleUserTotal, roleUserCountMap, userSearchParams, roleOrgModalVisible,
+    roleOrgLoading, roleOrgSubmitLoading, roleScopeMode, checkedRoleOrgKeys, roleOrgExpandedKeys, roleOrgTreeExpandAll,
+    userStatusOptions, dataScopeOptions, manageableDataScopeOptions, roleTypeOptions, roleStatusOptions, yesNoOptions,
+    roleTypeTabs, isCurrentRoleGlobalScope, roleUserOrgOptions, roleUserOrgTreeOptions, allRoleOrgIds,
+    currentRoleScopeLabel, currentRoleScopeTagType, currentRoleDataScopeLabel, canAddUserToCurrentRole,
+    addUserButtonText, roleUserApiConfig, roleUserTableColumns, roleOrgScopeSummary, roleOrgScopeTagType,
+    authClientTabs, currentAuthClientName, searchSchema, tableColumns, editSchema,
   }
 }
