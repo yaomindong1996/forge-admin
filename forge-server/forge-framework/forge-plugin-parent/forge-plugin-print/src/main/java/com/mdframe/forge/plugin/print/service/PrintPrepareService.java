@@ -24,6 +24,8 @@ public class PrintPrepareService {
 
     private final PrintTemplateAccess access;
 
+    private final PrintRuntimeBindingResolver runtimeBindings;
+
     private final PrintTemplateMapper templates;
 
     private final PrintTemplateVersionMapper versions;
@@ -55,7 +57,7 @@ public class PrintPrepareService {
         var context = registry.authorize(identity.require("print:execute"), request);
         identity.validate(context.record());
         documents.catalog(context.catalog());
-        return context;
+        return runtimeBindings.resolve(context);
     }
 
     public List<PrintAvailableTemplateVO> available(PrintAvailableTemplatesDTO dto) {
@@ -67,7 +69,7 @@ public class PrintPrepareService {
             if (template == null || !EnableStatus.ENABLED.matches(template.getStatus())) {
                 continue;
             }
-            if (!Objects.equals(template.getApplicationId(), context.record().source().applicationId()) || !context.record().source().key().equals(template.getSourceKey())) {
+            if (!context.record().source().equals(PrintSourceRequest.from(template))) {
                 throw PrintFailure.denied();
             }
             var version = versions.selectScoped(context.actor().tenantId(), ref.templateId(), ref.templateVersionId());
@@ -79,9 +81,14 @@ public class PrintPrepareService {
                 throw PrintFailure.of(409, "PRINT_VERSION_INVALID", "发布模板完整性校验失败");
             }
             documents.requirements(document, context.catalog());
-            result.add(new PrintAvailableTemplateVO(template.getId(), template.getTemplateName(), version.getId(), version.getVersionNo(), ref.isDefault(), ref.sortOrder()));
+            result.add(new PrintAvailableTemplateVO(
+                    template.getId(), template.getTemplateName(), version.getId(),
+                    version.getVersionNo(), ref.isDefault(), ref.sortOrder()));
         }
-        result.sort(Comparator.comparing(PrintAvailableTemplateVO::isDefault).reversed().thenComparingInt(PrintAvailableTemplateVO::sortOrder).thenComparing(PrintAvailableTemplateVO::id));
+        result.sort(Comparator.comparing(PrintAvailableTemplateVO::isDefault)
+                .reversed()
+                .thenComparingInt(PrintAvailableTemplateVO::sortOrder)
+                .thenComparing(PrintAvailableTemplateVO::id));
         return result;
     }
 
@@ -90,15 +97,19 @@ public class PrintPrepareService {
         identity.validate(dto);
         var context = authorized(dto.record());
         var actor = context.actor();
-        var ref = context.versions().stream().filter(v -> v.templateId().equals(dto.templateId())).findFirst().orElseThrow(PrintFailure::denied);
+        var ref = context.versions().stream()
+                .filter(version -> version.templateId().equals(dto.templateId()))
+                .findFirst()
+                .orElseThrow(PrintFailure::denied);
         var template = templates.lockScoped(actor.tenantId(), ref.templateId());
         if (template == null || !EnableStatus.ENABLED.matches(template.getStatus())) {
             throw PrintFailure.missing();
         }
-        if (!Objects.equals(template.getApplicationId(), dto.record().source().applicationId()) || !dto.record().source().key().equals(template.getSourceKey())) {
+        if (!dto.record().source().equals(PrintSourceRequest.from(template))) {
             throw PrintFailure.denied();
         }
-        PrintTemplateVersion version = versions.selectScoped(actor.tenantId(), ref.templateId(), ref.templateVersionId());
+        PrintTemplateVersion version = versions.selectScoped(
+                actor.tenantId(), ref.templateId(), ref.templateVersionId());
         if (version == null) {
             throw PrintFailure.missing();
         }
@@ -108,12 +119,16 @@ public class PrintPrepareService {
         }
         var requirements = documents.requirements(document, context.catalog());
         var provider = registry.provider(dto.record().source());
-        var selection = new PrintBindingSelection(ref, requirements.fields(), requirements.collections(), requirements.staticFileIds());
+        var selection = new PrintBindingSelection(
+                ref, requirements.fields(), requirements.collections(), requirements.staticFileIds());
         var data = provider.load(context, selection);
         var projected = projector.project(data, requirements, context.catalog());
         provider.validateRuntimeResources(context, projected.fileIds());
         var generatedAt = LocalDateTime.now();
         var executionId = executions.prepared(context, version, generatedAt);
-        return new PrintContextVO(executionId, context.applicationVersionId(), template.getId(), version.getId(), version.getVersionNo(), document.canonicalJson(), projected.data(), context.catalog(), PrintDataMode.CURRENT.getCode(), generatedAt);
+        return new PrintContextVO(
+                executionId, context.applicationVersionId(), template.getId(), version.getId(),
+                version.getVersionNo(), document.canonicalJson(), projected.data(), context.catalog(),
+                PrintDataMode.CURRENT.getCode(), generatedAt);
     }
 }

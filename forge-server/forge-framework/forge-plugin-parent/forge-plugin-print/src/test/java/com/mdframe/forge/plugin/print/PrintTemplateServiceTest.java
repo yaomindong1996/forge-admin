@@ -26,9 +26,11 @@ class PrintTemplateServiceTest extends PrintServiceFixture {
     @Test
     void metadataListOmitsSchemaAndIsScoped() {
         create("one");
-        assertThat(service.page(2L, 1, 20, null).records()).singleElement().satisfies(row -> assertThat(row.schemaJson()).isNull());
-        fails(403, () -> service.page(3L, 1, 20, null));
-        fails(400, () -> service.page(2L, 1, 101, null));
+        assertThat(service.page(2L, null, 1, 20, null).records())
+                .singleElement()
+                .satisfies(row -> assertThat(row.schemaJson()).isNull());
+        fails(403, () -> service.page(3L, null, 1, 20, null));
+        fails(400, () -> service.page(2L, null, 1, 101, null));
     }
 
     @Test

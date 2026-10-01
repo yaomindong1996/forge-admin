@@ -86,4 +86,39 @@ describe('print scene binding', () => {
     expect(next).toEqual(bindings)
     expect(next).not.toBe(bindings)
   })
+
+  it('updates fixed versions even when the selected scenes are unchanged', async () => {
+    const save = vi.fn(async payload => ({
+      data: {
+        ...payload,
+        id: payload.id,
+        bindingRevision: payload.expectedRevision + 1,
+      },
+    }))
+    const remove = vi.fn()
+    const next = await syncPrintTemplateScenes({
+      source: { businessSourceId: '5', sourceCode: 'purchase_order' },
+      templateId: 9,
+      templateVersionId: '202',
+      scenes: ['DETAIL'],
+      bindings: [{
+        id: 11,
+        templateId: 9,
+        templateVersionId: '201',
+        scene: 'DETAIL',
+        status: 1,
+        bindingRevision: 3,
+      }],
+      save,
+      remove,
+    })
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({
+      id: 11,
+      expectedRevision: 3,
+      templateVersionId: '202',
+      scene: 'DETAIL',
+    }))
+    expect(remove).not.toHaveBeenCalled()
+    expect(next[0].templateVersionId).toBe('202')
+  })
 })

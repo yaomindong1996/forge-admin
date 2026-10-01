@@ -15,6 +15,8 @@ it('管理与运行请求启用加密并保持长整型标识，不发送客户�
   expect(request.get).toHaveBeenCalledWith('/print/templates/page', expect.objectContaining({ params: { applicationId: '2', pageNum: 1, pageSize: 20 }, encrypt: true }))
   api.deletePrintTemplate('7', 4)
   expect(request.delete).toHaveBeenCalledWith('/print/templates/7', expect.objectContaining({ params: { expectedRevision: 4 }, encrypt: true }))
+  api.resolvePrintSource('purchase_order')
+  expect(request.get).toHaveBeenCalledWith('/print/sources/resolve/purchase_order', expect.objectContaining({ encrypt: true }))
 })
 it('文件请求使用鉴权 HTTP 客户端及可取消二进制下载', () => {
   const controller = new AbortController()

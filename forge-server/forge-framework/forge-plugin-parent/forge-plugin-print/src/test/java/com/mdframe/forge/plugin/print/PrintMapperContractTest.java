@@ -12,7 +12,8 @@ class PrintMapperContractTest {
 
     static Configuration configuration() throws Exception {
         var config = new Configuration();
-        for (String name : List.of("PrintTemplate", "PrintTemplateVersion", "PrintBinding", "PrintExecution")) {
+        for (String name : List.of("PrintTemplate", "PrintTemplateVersion", "PrintBinding", "PrintExecution",
+                "PrintBusinessSource")) {
             String resource = "mapper/" + name + "Mapper.xml";
             try (var in = PrintMapperContractTest.class.getClassLoader().getResourceAsStream(resource)) {
                 new XMLMapperBuilder(in, config, resource, config.getSqlFragments()).parse();
@@ -37,7 +38,9 @@ class PrintMapperContractTest {
             if (statement.getSqlCommandType() != SqlCommandType.INSERT && !id.endsWith("selectMaxVersionNo")) {
                 assertThat(sql).contains("del_flag = 0");
             }
-            if (id.endsWith("updateDraft") || id.endsWith("publish") || id.endsWith("changeStatus") || id.endsWith("softDelete") || id.endsWith("updateBinding")) {
+            if (id.endsWith("updateDraft") || id.endsWith("publish") || id.endsWith("changeStatus")
+                    || id.endsWith("softDelete") || id.endsWith("updateBinding")
+                    || id.endsWith("updateSource")) {
                 assertThat(bound.getParameterMappings()).anySatisfy(parameter -> assertThat(parameter.getProperty()).isEqualTo("expectedRevision"));
             }
             if (id.contains("PrintTemplateVersionMapper")) {

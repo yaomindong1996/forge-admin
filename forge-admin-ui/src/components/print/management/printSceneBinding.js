@@ -46,21 +46,34 @@ function sceneCode(value) {
  * Sync enabled scenes for a template. Returns the next bindings array (local patch),
  * so callers can skip a full list/bindings reload.
  */
-export async function syncPrintTemplateScenes({ source, templateId, scenes, bindings = [], save, remove }) {
+export async function syncPrintTemplateScenes({
+  source,
+  templateId,
+  templateVersionId,
+  scenes,
+  bindings = [],
+  save,
+  remove,
+}) {
   const wanted = normalizePrintScenes(scenes)
   let next = (Array.isArray(bindings) ? bindings : []).map(item => ({ ...item }))
   const current = next.filter(item => String(item.templateId) === String(templateId))
   const enabled = current.filter(item => Number(item.status) === 1)
-  if (sameScenes(enabled.map(item => item.scene), wanted))
+  const versionChanged = templateVersionId != null && enabled.some(item =>
+    String(item.templateVersionId || '') !== String(templateVersionId))
+  if (sameScenes(enabled.map(item => item.scene), wanted) && !versionChanged)
     return next
 
   for (const scene of wanted) {
     const existing = current.find(item => sceneCode(item.scene) === scene)
-    if (existing && Number(existing.status) === 1)
+    const existingUsesVersion = templateVersionId == null
+      || String(existing?.templateVersionId || '') === String(templateVersionId)
+    if (existing && Number(existing.status) === 1 && existingUsesVersion)
       continue
     const saved = unwrapSavedBinding(await save({
       source,
       templateId,
+      templateVersionId,
       scene,
       id: existing?.id,
       expectedRevision: existing?.bindingRevision,
@@ -75,6 +88,7 @@ export async function syncPrintTemplateScenes({ source, templateId, scenes, bind
         templateId: saved.templateId ?? templateId,
         scene: sceneCode(saved.scene) || scene,
         status: saved.status ?? 1,
+        templateVersionId: saved.templateVersionId ?? templateVersionId ?? existing?.templateVersionId,
         bindingRevision: saved.bindingRevision ?? existing?.bindingRevision,
       }
       const idx = next.findIndex(item =>

@@ -663,3 +663,12 @@ Surefire 的分组参数需要从测试 classpath 选择 JUnit 4、JUnit 5 或 T
 **解决方案**:
 `style` 对象允许安全的基础类型额外键并写入 canonical JSON；继续拒绝 `backgroundImage`/`url()` 等可执行 CSS。Java `Style` record 对未知字段 `ignoreUnknown`，避免模型转换把合法 JSON 打成「模板与协议模型不一致」。改插件后要先安装该模块再重启 Admin。
 
+## Mockito 内联 MockMaker 在受限 JDK 上需要预加载 Byte Buddy Agent
+
+**发现日期**: 2026-09-29
+
+**问题描述**:
+macOS 上使用临时 Microsoft OpenJDK 17 运行 Mockito 5 测试时，内联 MockMaker 可能无法通过外部进程自附加，所有 mock/spy 测试统一报 `Could not self-attach to current VM`。只加 `-Djdk.attach.allowAttachSelf=true` 或 Maven `argLine` 不一定生效。
+
+**解决方案**:
+从当前 Maven 依赖缓存定位匹配版本的 `byte-buddy-agent`，在测试命令的 `JAVA_TOOL_OPTIONS` 中使用 `-javaagent:/绝对路径/byte-buddy-agent-x.y.z.jar`，确保 Maven 和 Surefire fork 都预加载 Instrumentation。必须继续检查实际 `Tests run` 汇总，不能把环境错误当成业务测试失败或跳过测试。

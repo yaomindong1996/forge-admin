@@ -5,12 +5,15 @@
         <id column="id" property="id"/>
         <result column="tenant_id" property="tenantId"/>
         <result column="application_id" property="applicationId"/>
+        <result column="business_source_id" property="businessSourceId"/>
+        <result column="source_code" property="sourceCode"/>
         <result column="source_type" property="sourceType"/>
         <result column="source_key" property="sourceKey"/>
         <result column="page_id" property="pageId"/>
         <result column="form_key" property="formKey"/>
         <result column="object_code" property="objectCode"/>
         <result column="template_id" property="templateId"/>
+        <result column="template_version_id" property="templateVersionId"/>
         <result column="scene" property="scene"/>
         <result column="is_default" property="isDefault"/>
         <result column="sort_order" property="sortOrder"/>
@@ -23,10 +26,10 @@
         <result column="update_by" property="updateBy"/>
         <result column="update_time" property="updateTime"/>
     </resultMap>
-    <sql id="Columns">id, tenant_id, application_id, source_type, source_key, page_id, form_key, object_code, template_id, scene, is_default, sort_order, status, binding_revision, del_flag, create_by, create_time, create_dept, update_by, update_time</sql>
+    <sql id="Columns">id, tenant_id, application_id, business_source_id, source_code, source_type, source_key, page_id, form_key, object_code, template_id, template_version_id, scene, is_default, sort_order, status, binding_revision, del_flag, create_by, create_time, create_dept, update_by, update_time</sql>
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO sys_print_binding (tenant_id, application_id, source_type, source_key, page_id, form_key, object_code, template_id, scene, is_default, sort_order, status, binding_revision, del_flag, create_by, create_time, create_dept, update_by, update_time)
-        VALUES (#{tenantId}, #{applicationId}, #{sourceType}, #{sourceKey}, #{pageId}, #{formKey}, #{objectCode}, #{templateId}, #{scene}, #{isDefault}, #{sortOrder}, #{status}, #{bindingRevision}, #{delFlag}, #{createBy}, #{createTime}, #{createDept}, #{updateBy}, #{updateTime})
+        INSERT INTO sys_print_binding (tenant_id, application_id, business_source_id, source_code, source_type, source_key, page_id, form_key, object_code, template_id, template_version_id, scene, is_default, sort_order, status, binding_revision, del_flag, create_by, create_time, create_dept, update_by, update_time)
+        VALUES (#{tenantId}, #{applicationId}, #{businessSourceId}, #{sourceCode}, #{sourceType}, #{sourceKey}, #{pageId}, #{formKey}, #{objectCode}, #{templateId}, #{templateVersionId}, #{scene}, #{isDefault}, #{sortOrder}, #{status}, #{bindingRevision}, #{delFlag}, #{createBy}, #{createTime}, #{createDept}, #{updateBy}, #{updateTime})
     </insert>
     <select id="selectScoped" resultMap="Row">
         SELECT <include refid="Columns"/> FROM sys_print_binding
@@ -34,20 +37,31 @@
     </select>
     <select id="selectSource" resultMap="Row">
         SELECT <include refid="Columns"/> FROM sys_print_binding
-        WHERE tenant_id = #{tenantId} AND application_id = #{applicationId}
-          AND source_key = #{sourceKey} AND scene = #{scene} AND del_flag = 0
+        WHERE tenant_id = #{tenantId} AND source_key = #{sourceKey} AND scene = #{scene} AND del_flag = 0
+          AND ((#{applicationId} IS NOT NULL AND application_id = #{applicationId})
+            OR (#{businessSourceId} IS NOT NULL AND business_source_id = #{businessSourceId}))
         ORDER BY is_default DESC, sort_order, id
     </select>
     <select id="selectBySource" resultMap="Row">
         SELECT <include refid="Columns"/> FROM sys_print_binding
-        WHERE tenant_id = #{tenantId} AND application_id = #{applicationId}
-          AND source_key = #{sourceKey} AND del_flag = 0
+        WHERE tenant_id = #{tenantId} AND source_key = #{sourceKey} AND del_flag = 0
+          AND ((#{applicationId} IS NOT NULL AND application_id = #{applicationId})
+            OR (#{businessSourceId} IS NOT NULL AND business_source_id = #{businessSourceId}))
         ORDER BY scene, is_default DESC, sort_order, id
     </select>
     <select id="selectUnique" resultMap="Row">
         SELECT <include refid="Columns"/> FROM sys_print_binding
-        WHERE tenant_id = #{tenantId} AND application_id = #{applicationId}
-          AND source_key = #{sourceKey} AND template_id = #{templateId} AND scene = #{scene} AND del_flag = 0
+        WHERE tenant_id = #{tenantId} AND source_key = #{sourceKey}
+          AND template_id = #{templateId} AND scene = #{scene} AND del_flag = 0
+          AND ((#{applicationId} IS NOT NULL AND application_id = #{applicationId})
+            OR (#{businessSourceId} IS NOT NULL AND business_source_id = #{businessSourceId}))
+    </select>
+    <select id="selectStandaloneEnabled" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_binding
+        WHERE tenant_id = #{tenantId} AND business_source_id = #{businessSourceId}
+          AND source_key = #{sourceKey} AND scene = #{scene} AND del_flag = 0 AND status = 1
+          AND template_version_id IS NOT NULL
+        ORDER BY is_default DESC, sort_order, id
     </select>
     <!-- 候选发布清单：应用行锁内当前读。JSqlParser 4.9 会把 ORDER BY ... FOR UPDATE 重排成非法 SQL，不能带 ORDER BY。 -->
     <select id="selectApplication" resultMap="Row">
@@ -69,15 +83,20 @@
     <update id="clearDefault">
         UPDATE sys_print_binding SET is_default = 0, binding_revision = binding_revision + 1,
             update_by = #{actor}, update_time = NOW()
-        WHERE tenant_id = #{tenantId} AND application_id = #{applicationId}
-          AND source_key = #{sourceKey} AND scene = #{scene} AND del_flag = 0 AND is_default = 1
+        WHERE tenant_id = #{tenantId} AND source_key = #{sourceKey}
+          AND scene = #{scene} AND del_flag = 0 AND is_default = 1
+          AND ((#{applicationId} IS NOT NULL AND application_id = #{applicationId})
+            OR (#{businessSourceId} IS NOT NULL AND business_source_id = #{businessSourceId}))
     </update>
     <update id="updateBinding">
         UPDATE sys_print_binding SET is_default = #{row.isDefault}, sort_order = #{row.sortOrder},
-            status = #{row.status}, binding_revision = binding_revision + 1,
+            template_version_id = #{row.templateVersionId}, status = #{row.status},
+            binding_revision = binding_revision + 1,
             update_by = #{row.updateBy}, update_time = NOW()
-        WHERE tenant_id = #{row.tenantId} AND application_id = #{row.applicationId} AND id = #{row.id}
+        WHERE tenant_id = #{row.tenantId} AND id = #{row.id}
           AND source_key = #{row.sourceKey} AND scene = #{row.scene} AND template_id = #{row.templateId}
+          AND ((#{row.applicationId} IS NOT NULL AND application_id = #{row.applicationId})
+            OR (#{row.businessSourceId} IS NOT NULL AND business_source_id = #{row.businessSourceId}))
           AND del_flag = 0 AND binding_revision = #{expectedRevision} AND #{row.status} IN (0, 1)
     </update>
     <update id="softDelete">

@@ -5,6 +5,8 @@
         <id column="id" property="id"/>
         <result column="tenant_id" property="tenantId"/>
         <result column="application_id" property="applicationId"/>
+        <result column="business_source_id" property="businessSourceId"/>
+        <result column="source_code" property="sourceCode"/>
         <result column="template_code" property="templateCode"/>
         <result column="template_name" property="templateName"/>
         <result column="source_type" property="sourceType"/>
@@ -24,10 +26,10 @@
         <result column="update_by" property="updateBy"/>
         <result column="update_time" property="updateTime"/>
     </resultMap>
-    <sql id="Columns">id, tenant_id, application_id, template_code, template_name, source_type, source_key, page_id, form_key, object_code, draft_schema, draft_revision, design_status, published_version_id, status, del_flag, create_by, create_time, create_dept, update_by, update_time</sql>
+    <sql id="Columns">id, tenant_id, application_id, business_source_id, source_code, template_code, template_name, source_type, source_key, page_id, form_key, object_code, draft_schema, draft_revision, design_status, published_version_id, status, del_flag, create_by, create_time, create_dept, update_by, update_time</sql>
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO sys_print_template (tenant_id, application_id, template_code, template_name, source_type, source_key, page_id, form_key, object_code, draft_schema, draft_revision, design_status, published_version_id, status, del_flag, create_by, create_time, create_dept, update_by, update_time)
-        VALUES (#{tenantId}, #{applicationId}, #{templateCode}, #{templateName}, #{sourceType}, #{sourceKey}, #{pageId}, #{formKey}, #{objectCode}, #{draftSchema}, #{draftRevision}, #{designStatus}, #{publishedVersionId}, #{status}, #{delFlag}, #{createBy}, #{createTime}, #{createDept}, #{updateBy}, #{updateTime})
+        INSERT INTO sys_print_template (tenant_id, application_id, business_source_id, source_code, template_code, template_name, source_type, source_key, page_id, form_key, object_code, draft_schema, draft_revision, design_status, published_version_id, status, del_flag, create_by, create_time, create_dept, update_by, update_time)
+        VALUES (#{tenantId}, #{applicationId}, #{businessSourceId}, #{sourceCode}, #{templateCode}, #{templateName}, #{sourceType}, #{sourceKey}, #{pageId}, #{formKey}, #{objectCode}, #{draftSchema}, #{draftRevision}, #{designStatus}, #{publishedVersionId}, #{status}, #{delFlag}, #{createBy}, #{createTime}, #{createDept}, #{updateBy}, #{updateTime})
     </insert>
     <select id="selectScoped" resultMap="Row">
         SELECT <include refid="Columns"/> FROM sys_print_template
@@ -38,7 +40,7 @@
         WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0 FOR UPDATE
     </select>
     <select id="selectApplication" resultMap="Row">
-        SELECT id, tenant_id, application_id, template_code, template_name, source_type, source_key,
+        SELECT id, tenant_id, application_id, business_source_id, source_code, template_code, template_name, source_type, source_key,
                page_id, form_key, object_code, draft_revision, design_status, published_version_id,
                status, create_time, update_time
         FROM sys_print_template
@@ -54,6 +56,18 @@
         <if test="pageId != null and pageId != ''">
           AND page_id = #{pageId}
         </if>
+    </select>
+    <select id="selectBusinessSource" resultMap="Row">
+        SELECT id, tenant_id, application_id, business_source_id, source_code, template_code, template_name,
+               source_type, source_key, page_id, form_key, object_code, draft_revision, design_status,
+               published_version_id, status, create_time, update_time
+        FROM sys_print_template
+        WHERE tenant_id = #{tenantId} AND business_source_id = #{businessSourceId} AND del_flag = 0
+        ORDER BY update_time DESC, id DESC LIMIT #{limit} OFFSET #{offset}
+    </select>
+    <select id="countBusinessSource" resultType="long">
+        SELECT COUNT(*) FROM sys_print_template
+        WHERE tenant_id = #{tenantId} AND business_source_id = #{businessSourceId} AND del_flag = 0
     </select>
     <update id="updateDraft">
         UPDATE sys_print_template SET template_name = #{row.templateName}, draft_schema = #{row.draftSchema},

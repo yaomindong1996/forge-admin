@@ -2,8 +2,21 @@
 const positive = value => /^[1-9]\d*$/.test(String(value || '')) ? String(value) : null
 const text = value => typeof value === 'string' ? value : null
 export function printSourceFromQuery(query) {
-  const applicationId = positive(query.applicationId)
+  const businessSourceId = positive(query.businessSourceId)
+  const sourceCode = text(query.sourceCode)
   const objectCode = text(query.objectCode)
+  if (businessSourceId && sourceCode && objectCode && ['SERVICE', 'DATASET'].includes(query.sourceType)) {
+    return {
+      businessSourceId,
+      sourceCode,
+      objectCode,
+      sourceType: query.sourceType,
+      applicationId: null,
+      pageId: null,
+      formKey: null,
+    }
+  }
+  const applicationId = positive(query.applicationId)
   if (!applicationId || !objectCode || !['LOWCODE', 'CODE'].includes(query.sourceType))
     return null
   const source = { applicationId, objectCode, sourceType: query.sourceType, pageId: null, formKey: null }
@@ -16,7 +29,7 @@ export function printSourceFromQuery(query) {
 /** 发给后端的来源身份：去掉 null，避免 GET 把 formKey=null 传成空串后被当成无权访问。 */
 export function printSourcePayload(source) {
   const normalized = source && typeof source === 'object'
-    ? (source.applicationId && source.objectCode && source.sourceType
+    ? ((source.applicationId || source.businessSourceId) && source.objectCode && source.sourceType
         ? printSourceFromQuery(source)
         : null)
     : null
@@ -80,6 +93,8 @@ export function printPreviewFallbackLocation(record) {
   const applicationId = record?.source?.applicationId
   if (applicationId)
     return { path: `/app-center/app/${applicationId}` }
+  if (record?.source?.businessSourceId)
+    return { path: '/print', query: { businessSourceId: record.source.businessSourceId } }
   return { path: '/app-center' }
 }
 
@@ -95,6 +110,13 @@ export function leavePrintDesigner({
   if (isSafePrintReturnPath(from)) {
     router.replace(from)
     return 'from'
+  }
+  if (source?.businessSourceId) {
+    router.replace({
+      path: '/print',
+      query: { businessSourceId: String(source.businessSourceId) },
+    })
+    return 'source'
   }
   router.replace(printPageSettingsLocation({
     applicationCode: applicationCode || route?.query?.applicationCode,

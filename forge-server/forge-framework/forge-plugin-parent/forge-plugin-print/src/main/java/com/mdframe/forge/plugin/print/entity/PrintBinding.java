@@ -25,6 +25,16 @@ public class PrintBinding extends TenantEntity {
     private Long applicationId;
 
     /**
+     * 独立业务来源 ID；低代码应用来源为空。
+     */
+    private Long businessSourceId;
+
+    /**
+     * 独立业务来源编码。
+     */
+    private String sourceCode;
+
+    /**
      * 来源类型。
      */
     private String sourceType;
@@ -53,6 +63,11 @@ public class PrintBinding extends TenantEntity {
      * 模板 ID。
      */
     private Long templateId;
+
+    /**
+     * 独立来源固定的已发布模板版本；应用来源继续从发布快照解析。
+     */
+    private Long templateVersionId;
 
     /**
      * 使用场景。

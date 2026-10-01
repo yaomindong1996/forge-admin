@@ -45,6 +45,19 @@ class PrintDocumentAccessTest extends PrintServiceFixture {
     }
 
     @Test
+    void jdbcTemporalValuesAreProjectedAsStrings() {
+        var documents = new PrintDocumentAccess(json);
+        var needs = documents.requirements(protocol.validate(schema), adapter.fields);
+        var data = new PrintData(
+                Map.of("number", java.sql.Timestamp.valueOf("2026-09-30 16:45:00"),
+                        "secret", "unused"),
+                Map.of(),
+                Map.of());
+        var projected = new PrintDataProjector(json, documents).project(data, needs, adapter.fields);
+        assertThat(projected.data().main().get("number")).isEqualTo("2026-09-30 16:45:00.0");
+    }
+
+    @Test
     void nestedObjectValuesAndExternalImageReferencesFailClosed() {
         var documents = new PrintDocumentAccess(json);
         var needs = documents.requirements(protocol.validate(schema), adapter.fields);

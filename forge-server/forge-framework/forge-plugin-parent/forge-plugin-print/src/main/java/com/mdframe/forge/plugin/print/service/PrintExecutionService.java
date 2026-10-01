@@ -26,6 +26,9 @@ public class PrintExecutionService {
         var row = PrintAudit.create(new PrintExecution(), context.actor());
         var record = context.record();
         row.setApplicationId(record.source().applicationId());
+        row.setBusinessSourceId(record.source().businessSourceId());
+        row.setSourceCode(record.source().sourceCode());
+        row.setSourceRevision(context.sourceRevision());
         row.setApplicationVersionId(context.applicationVersionId());
         row.setTemplateId(version.getTemplateId());
         row.setTemplateVersionId(version.getId());

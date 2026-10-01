@@ -1,5 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { businessApplicationDetail } from '@/api/business-application'
 import * as api from '@/api/print'
 import { createPrintDocument } from '@/components/print/protocol/types'
 import { usePrintDesignerStore } from '@/stores/print/printDesignerStore'
@@ -7,6 +8,7 @@ import { usePrintRuntimeStore } from '@/stores/print/printRuntimeStore'
 import { usePrintTemplateStore } from '@/stores/print/printTemplateStore'
 
 vi.mock('@/api/print', () => ({ printTemplate: vi.fn(), printCatalog: vi.fn(), updatePrintTemplate: vi.fn(), publishPrintTemplate: vi.fn(), printVersions: vi.fn(), printVersion: vi.fn(), availablePrintTemplates: vi.fn(), preparePrint: vi.fn(), recordPrintEvent: vi.fn(), printTemplates: vi.fn() }))
+vi.mock('@/api/business-application', () => ({ businessApplicationDetail: vi.fn() }))
 const source = { applicationId: '2', sourceType: 'LOWCODE', pageId: '3', objectCode: 'purchase' }
 const record = { source, recordId: 'saved_record', scene: 'DETAIL' }
 const row = (id = '1', revision = 1) => ({ id, source, templateName: '合成模板', draftRevision: revision, schemaJson: JSON.stringify(createPrintDocument()) })
@@ -111,6 +113,25 @@ describe('运行准备隔离', () => {
     expect(api.preparePrint).toHaveBeenCalledWith(record, '8')
     expect(store.loading).toBe(false)
     expect(store.prepared.context.system.generatedAt).toBe('2026-09-19T06:00:00')
+  })
+  it('独立业务来源不再请求低代码应用水印', async () => {
+    const standalone = {
+      source: {
+        businessSourceId: '5',
+        sourceCode: 'purchase_order',
+        sourceType: 'SERVICE',
+        objectCode: 'purchase_order',
+      },
+      recordId: 'PO-5',
+      scene: 'DETAIL',
+      params: {},
+    }
+    api.availablePrintTemplates.mockResolvedValue({ data: [{ id: '8', isDefault: true }] })
+    api.preparePrint.mockResolvedValue({ data: prepared() })
+    const store = usePrintRuntimeStore()
+    await store.open(standalone)
+    expect(businessApplicationDetail).not.toHaveBeenCalled()
+    expect(store.prepared.executionId).toBe('1')
   })
   it('关闭会清空记录数据并忽略迟到的 prepare 响应', async () => {
     const wait = deferred()

@@ -15,10 +15,13 @@ import { usePrintTemplateStore } from '@/stores/print/printTemplateStore'
 
 const props = defineProps({
   applicationId: { type: String, default: null },
+  businessSourceId: { type: String, default: null },
   applicationCode: { type: String, default: '' },
   source: { type: Object, default: null },
   sources: { type: Array, default: () => [] },
   lockSource: Boolean,
+  showBindings: { type: Boolean, default: true },
+  allowCreate: { type: Boolean, default: true },
 })
 const router = useRouter()
 const route = useRoute()
@@ -27,34 +30,41 @@ const user = useUserStore()
 const { dict } = useDict('sys_print_scene')
 const source = computed(() => props.source)
 const appId = computed(() => props.applicationId)
+const standaloneId = computed(() => props.businessSourceId || source.value?.businessSourceId || null)
+const scopeKey = computed(() => standaloneId.value
+  ? `source:${standaloneId.value}`
+  : `app:${appId.value || ''}:${source.value?.pageId || source.value?.formKey || ''}`)
+const hasContext = computed(() => Boolean(standaloneId.value || appId.value))
+const listSource = computed(() => standaloneId.value ? source.value : appId.value)
 const canManage = computed(() => hasPrintPermission(user, 'print:template:manage'))
 const creating = ref(false)
 const busy = ref(false)
 const busyRowId = ref(null)
 const bindings = ref([])
+const bindingGeneration = ref(0)
 const sceneOptions = computed(() => dict.value.sys_print_scene?.length ? dict.value.sys_print_scene : FALLBACK_PRINT_SCENE_OPTIONS)
-watch(appId, (value) => {
+watch(scopeKey, async () => {
   store.listGeneration++
   store.items = []
   store.total = 0
   creating.value = false
   bindings.value = []
-  if (value)
-    store.list(value, 1, source.value?.pageId)
-  loadBindings()
+  if (hasContext.value)
+    await store.list(listSource.value, 1, source.value?.pageId)
+  // 业务打印虽隐藏挂载 UI，仍需加载并补齐 DETAIL 绑定
+  if (props.showBindings || standaloneId.value)
+    await loadBindings()
+  if (standaloneId.value)
+    await ensureStandaloneDetailBindings()
 }, { immediate: true })
 onBeforeUnmount(() => {
   store.listGeneration++
+  bindingGeneration.value++
   store.items = []
   bindings.value = []
 })
-watch(source, () => {
-  creating.value = false
-  if (appId.value)
-    store.list(appId.value, 1, source.value?.pageId)
-  loadBindings()
-})
 async function loadBindings() {
+  const generation = ++bindingGeneration.value
   const payload = printSourcePayload(source.value)
   if (!payload) {
     bindings.value = []
@@ -62,12 +72,51 @@ async function loadBindings() {
   }
   try {
     const { data } = await api.printBindings(payload)
-    bindings.value = data || []
+    if (generation === bindingGeneration.value)
+      bindings.value = data || []
   }
   catch (error) {
-    bindings.value = []
-    store.error = error.message || '无法读取打印场景'
+    if (generation === bindingGeneration.value) {
+      bindings.value = []
+      store.error = error.message || '无法读取打印场景'
+    }
   }
+}
+/** 业务打印固定详情场景：已发布却未绑 DETAIL 的模板自动补上。 */
+async function ensureStandaloneDetailBindings() {
+  if (!standaloneId.value || !canManage.value)
+    return
+  const payload = printSourcePayload(source.value)
+  if (!payload)
+    return
+  const activeScope = scopeKey.value
+  let next = bindings.value
+  let changed = false
+  for (const row of store.items) {
+    if (!row?.publishedVersionId)
+      continue
+    if (scenesOfTemplate(next, row.id).includes('DETAIL'))
+      continue
+    try {
+      next = await syncPrintTemplateScenes({
+        source: payload,
+        templateId: row.id,
+        templateVersionId: row.publishedVersionId,
+        scenes: ['DETAIL'],
+        bindings: next,
+        save: api.savePrintBinding,
+        remove: api.deletePrintBinding,
+      })
+      changed = true
+    }
+    catch (error) {
+      if (scopeKey.value === activeScope)
+        store.error = error.message || '自动绑定详情场景失败'
+      return
+    }
+  }
+  if (changed && scopeKey.value === activeScope)
+    bindings.value = next
 }
 function rowScenes(row) {
   return scenesOfTemplate(bindings.value, row.id)
@@ -92,16 +141,16 @@ function patchTemplateRow(rowId, patch) {
 async function act(action, { refreshList = true } = {}) {
   if (busy.value)
     return
-  const applicationId = appId.value
+  const activeScope = scopeKey.value
   busy.value = true
   store.error = ''
   try {
     await action()
-    if (refreshList && appId.value === applicationId)
-      await store.list(applicationId, store.pageNum, source.value?.pageId)
+    if (refreshList && scopeKey.value === activeScope)
+      await store.list(listSource.value, store.pageNum, source.value?.pageId)
   }
   catch (error) {
-    if (appId.value === applicationId)
+    if (scopeKey.value === activeScope)
       store.error = error.message || '操作失败'
   }
   finally {
@@ -113,21 +162,27 @@ async function copy(row) {
   await act(async () => {
     const copiedScenes = rowScenes(row)
     const { data } = await api.copyPrintTemplate(row.id, { expectedRevision: row.draftRevision, templateCode: newPrintTemplateCode(), templateName: `${row.templateName.slice(0, 95)} 副本` })
-    await syncPrintTemplateScenes({
-      source: printSourcePayload(data.source) || printSourcePayload(source.value),
-      templateId: data.id,
-      scenes: copiedScenes,
-      bindings: [],
-      save: api.savePrintBinding,
-      remove: api.deletePrintBinding,
-    })
+    if (!data.source?.businessSourceId) {
+      await syncPrintTemplateScenes({
+        source: printSourcePayload(data.source) || printSourcePayload(source.value),
+        templateId: data.id,
+        scenes: copiedScenes,
+        bindings: [],
+        save: api.savePrintBinding,
+        remove: api.deletePrintBinding,
+      })
+    }
     design(data)
   })
 }
 async function changeScenes(row, scenes) {
   if (busy.value)
     return
-  const applicationId = appId.value
+  const activeScope = scopeKey.value
+  if (standaloneId.value && !row.publishedVersionId) {
+    store.error = '请先发布模板，再绑定到业务场景'
+    return
+  }
   const previous = bindings.value
   busy.value = true
   busyRowId.value = row.id
@@ -136,16 +191,17 @@ async function changeScenes(row, scenes) {
     const next = await syncPrintTemplateScenes({
       source: printSourcePayload(row.source) || printSourcePayload(source.value),
       templateId: row.id,
+      templateVersionId: standaloneId.value ? row.publishedVersionId : undefined,
       scenes,
       bindings: previous,
       save: api.savePrintBinding,
       remove: api.deletePrintBinding,
     })
-    if (appId.value === applicationId)
+    if (scopeKey.value === activeScope)
       bindings.value = next
   }
   catch (error) {
-    if (appId.value === applicationId) {
+    if (scopeKey.value === activeScope) {
       bindings.value = previous
       store.error = error.message || '更新挂载位置失败'
     }
@@ -158,7 +214,7 @@ async function changeScenes(row, scenes) {
 async function toggleStatus(row) {
   if (busy.value)
     return
-  const applicationId = appId.value
+  const activeScope = scopeKey.value
   const nextStatus = Number(row.status) === 1 ? 0 : 1
   busy.value = true
   busyRowId.value = row.id
@@ -168,7 +224,7 @@ async function toggleStatus(row) {
       expectedRevision: row.draftRevision,
       status: nextStatus,
     })
-    if (appId.value === applicationId && data) {
+    if (scopeKey.value === activeScope && data) {
       patchTemplateRow(row.id, {
         status: data.status ?? nextStatus,
         draftRevision: data.draftRevision ?? row.draftRevision,
@@ -177,7 +233,7 @@ async function toggleStatus(row) {
     }
   }
   catch (error) {
-    if (appId.value === applicationId)
+    if (scopeKey.value === activeScope)
       store.error = error.message || '更新状态失败'
   }
   finally {
@@ -204,7 +260,10 @@ function more(key, row) {
     return toggleStatus(row)
 }
 function sourceLabel(row) {
-  return props.sources.find(item => item.source.pageId === row.source.pageId && item.source.objectCode === row.source.objectCode)?.label || '所属表单'
+  if (row.source?.businessSourceId)
+    return props.sources.find(item => String(item.id) === String(row.source.businessSourceId))?.sourceName || '业务来源'
+  return props.sources.find(item => item.source?.pageId === row.source?.pageId
+    && item.source?.objectCode === row.source?.objectCode)?.label || '所属表单'
 }
 function sceneLabel(value) {
   return sceneOptions.value.find(item => String(item.value) === String(value))?.label || value
@@ -213,9 +272,12 @@ function isEnabled(row) {
   return Number(row.status) === 1
 }
 async function refresh() {
-  if (appId.value)
-    await store.list(appId.value, store.pageNum, source.value?.pageId)
-  await loadBindings()
+  if (hasContext.value)
+    await store.list(listSource.value, store.pageNum, source.value?.pageId)
+  if (props.showBindings || standaloneId.value)
+    await loadBindings()
+  if (standaloneId.value)
+    await ensureStandaloneDetailBindings()
 }
 </script>
 
@@ -223,10 +285,16 @@ async function refresh() {
   <NCard :title="lockSource ? undefined : '打印模板'" size="small" :bordered="false" class="print-template-list">
     <template v-if="!lockSource" #header-extra>
       <NSpace>
-        <NButton :disabled="!appId || busy" @click="refresh">
+        <NButton :disabled="!hasContext || busy" @click="refresh">
+          <template #icon>
+            <i class="i-lucide:refresh-cw" />
+          </template>
           刷新
         </NButton>
-        <NButton v-if="canManage" type="primary" :disabled="!source || busy" @click="creating = true">
+        <NButton v-if="canManage && allowCreate" type="primary" :disabled="!source || busy" @click="creating = true">
+          <template #icon>
+            <i class="i-lucide:file-plus" />
+          </template>
           新建模板
         </NButton>
       </NSpace>
@@ -234,13 +302,19 @@ async function refresh() {
     <NAlert v-if="store.error" type="error" class="print-list-alert">
       {{ store.error }}
     </NAlert>
-    <NEmpty v-if="!appId" description="请从当前页面的打印设置进入" />
+    <NEmpty v-if="!hasContext" description="请选择业务来源" />
     <template v-else>
       <div v-if="lockSource" class="print-list-actions">
-        <NButton :disabled="!appId || busy" @click="refresh">
+        <NButton :disabled="!hasContext || busy" @click="refresh">
+          <template #icon>
+            <i class="i-lucide:refresh-cw" />
+          </template>
           刷新
         </NButton>
-        <NButton v-if="canManage" type="primary" :disabled="!source || busy" @click="creating = true">
+        <NButton v-if="canManage && allowCreate" type="primary" :disabled="!source || busy" @click="creating = true">
+          <template #icon>
+            <i class="i-lucide:file-plus" />
+          </template>
           新建模板
         </NButton>
       </div>
@@ -268,7 +342,7 @@ async function refresh() {
                 <span class="print-card__paper-line" />
                 <span class="print-card__paper-line mid" />
               </span>
-              <i class="i-lucide:printer print-card__preview-icon" />
+              <i class="print-card__preview-icon i-lucide:printer" />
             </button>
             <div class="print-card__header">
               <div class="print-card__title-block">
@@ -292,7 +366,7 @@ async function refresh() {
                 <DictTag dict-type="sys_print_design_status" :value="row.designStatus" />
                 <DictTag dict-type="sys_print_source_type" :value="row.source?.sourceType" />
               </div>
-              <div class="print-card__scenes">
+              <div v-if="showBindings" class="print-card__scenes">
                 <span class="print-card__scenes-label">
                   <i class="i-lucide:map-pin" />
                   挂载位置
@@ -326,6 +400,7 @@ async function refresh() {
               </div>
               <div class="print-card__actions">
                 <button type="button" class="print-card__action" @click="design(row)">
+                  <i :class="canManage ? 'i-lucide:pen-line' : 'i-lucide:eye'" />
                   {{ canManage ? '设计' : '查看' }}
                 </button>
                 <template v-if="canManage">
@@ -341,7 +416,7 @@ async function refresh() {
           </article>
         </div>
       </NSpin>
-      <NPagination v-if="store.total > 20" :page="store.pageNum" :page-size="20" :item-count="store.total" :disabled="store.listing" style="margin-top: 16px" @update:page="page => store.list(appId, page, source?.pageId)" />
+      <NPagination v-if="store.total > 20" :page="store.pageNum" :page-size="20" :item-count="store.total" :disabled="store.listing" style="margin-top: 16px" @update:page="page => store.list(listSource, page, source?.pageId)" />
     </template>
     <NModal :show="!!deleting" preset="dialog" title="删除打印模板" positive-text="删除" negative-text="取消" :loading="busy" @negative-click="deleting = null" @close="deleting = null" @positive-click="async () => { const row = deleting; deleting = null; await act(() => api.deletePrintTemplate(row.id, row.draftRevision)) }">
       存在绑定或发布引用时无法删除。
@@ -409,8 +484,7 @@ async function refresh() {
   padding: 0;
   border: 0;
   border-bottom: 1px solid #eef2f7;
-  background:
-    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  background: #f8fafc;
   cursor: pointer;
 }
 .print-card__paper {
@@ -578,6 +652,12 @@ async function refresh() {
   font-size: 12px;
   line-height: 20px;
   cursor: pointer;
+}
+
+.print-card__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 .print-card__action:hover,
 .print-card__more:hover {

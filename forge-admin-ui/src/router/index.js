@@ -26,12 +26,30 @@ export function redirectLegacyDataScopeAdapter(to) {
 // 手动定义的路由（登录页、SSO、带参数的路由等）
 export const manualRoutes = [
   ...openPlatformRoutes,
-  // 打印设计与运行页独立全屏；数据接口仍分别核验设计权或记录读取权。
+  // 打印中心：旧三菜单路径统一进同一工作台；设计器/预览仍独立全屏。
   {
-    name: 'PrintTemplates',
+    name: 'PrintCenter',
     path: '/print',
     component: () => import('@/views/print/index.vue'),
-    meta: { title: '打印模板', skipTab: true, preserveOnQuery: true },
+    meta: { title: '打印中心', preserveOnQuery: true },
+  },
+  {
+    name: 'PrintSources',
+    path: '/print/sources',
+    component: () => import('@/views/print/index.vue'),
+    meta: { title: '打印中心', preserveOnQuery: true },
+  },
+  {
+    name: 'PrintTemplates',
+    path: '/print/templates',
+    component: () => import('@/views/print/index.vue'),
+    meta: { title: '打印中心', preserveOnQuery: true },
+  },
+  {
+    name: 'PrintBindings',
+    path: '/print/bindings',
+    component: () => import('@/views/print/index.vue'),
+    meta: { title: '打印中心', preserveOnQuery: true },
   },
   {
     name: 'PrintDesigner',

@@ -70,15 +70,18 @@ export const usePrintRuntimeStore = defineStore('printRuntime', {
         const template = JSON.parse(data.schemaJson)
         assertPrintDocument(template)
         const user = useUserStore()
-        let pageWatermark
-        try {
-          const application = await businessApplicationDetail(this.record.source?.applicationId)
-          if (generation !== this.generation)
-            return
-          pageWatermark = readPagePrintWatermark(application.data, this.record.source?.pageId)
-        }
-        catch {
-          pageWatermark = null
+        let pageWatermark = null
+        // 独立打印来源不依赖低代码应用；仅旧应用来源读取页面水印配置。
+        if (this.record.source?.applicationId) {
+          try {
+            const application = await businessApplicationDetail(this.record.source.applicationId)
+            if (generation !== this.generation)
+              return
+            pageWatermark = readPagePrintWatermark(application.data, this.record.source?.pageId)
+          }
+          catch {
+            pageWatermark = null
+          }
         }
         this.prepared = {
           ...data,

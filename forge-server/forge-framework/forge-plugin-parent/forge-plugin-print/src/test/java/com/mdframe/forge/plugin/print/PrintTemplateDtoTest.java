@@ -14,6 +14,9 @@ class PrintTemplateDtoTest {
             var validator = factory.getValidator();
             assertThat(validator.validate(new PrintTemplateCreateDTO(1L, "purchase", "采购单", PrintSourceType.LOWCODE, "2", null, "purchase", "{}"))).isEmpty();
             assertThat(validator.validate(new PrintTemplateCreateDTO(1L, "purchase", "采购单", PrintSourceType.CODE, null, "purchaseForm", "purchase", "{}"))).isEmpty();
+            assertThat(validator.validate(new PrintTemplateCreateDTO(
+                    8L, "purchase_order", null, "purchase", "采购单", PrintSourceType.DATASET,
+                    null, null, "purchase", "{}"))).isEmpty();
             assertThat(validator.validate(new PrintTemplateCreateDTO(1L, "purchase", "采购单", PrintSourceType.CODE, "2", "purchaseForm", "purchase", "{}"))).anySatisfy(error -> assertThat(error.getPropertyPath().toString()).isEqualTo("sourceValid"));
             assertThat(validator.validate(new PrintTemplateCreateDTO(null, "../invalid", " ", null, "bad/page", null, "", ""))).hasSizeGreaterThanOrEqualTo(6);
             assertThat(validator.validate(new PrintTemplateUpdateDTO(0L, "模板", "{}"))).isNotEmpty();

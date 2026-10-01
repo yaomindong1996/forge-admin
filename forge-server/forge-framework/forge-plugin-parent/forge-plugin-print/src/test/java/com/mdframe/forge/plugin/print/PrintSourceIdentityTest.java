@@ -49,6 +49,20 @@ class PrintSourceIdentityTest {
                 new PrintSourceRequest(2L, PrintSourceType.LOWCODE, "page_purchase", "  ", "purchase"))).isTrue();
     }
 
+    @Test
+    void acceptsCanonicalStandaloneIdentityAndSeparatesItsHashFromApplications() {
+        try (var factory = Validation.buildDefaultValidatorFactory()) {
+            var validator = factory.getValidator();
+            var standalone = new PrintSourceRequest(
+                    7L, "purchase_order", null, PrintSourceType.SERVICE, null, null, "purchase");
+            assertThat(validator.validate(standalone)).isEmpty();
+            assertThat(validator.validate(new PrintSourceRequest(
+                    7L, "purchase_order", 2L, PrintSourceType.SERVICE, null, null, "purchase")))
+                    .isNotEmpty();
+            assertThat(standalone.key()).isNotEqualTo(source("page_purchase").key());
+        }
+    }
+
     private PrintSourceRequest source(String page) {
         return new PrintSourceRequest(2L, PrintSourceType.LOWCODE, page, null, "purchase");
     }

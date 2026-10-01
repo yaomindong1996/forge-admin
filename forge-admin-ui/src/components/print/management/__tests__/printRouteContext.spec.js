@@ -16,6 +16,25 @@ describe('打印工作台页面身份', () => {
   it('代码表单身份保持独立', () => {
     expect(printSourceFromQuery({ ...source, sourceType: 'CODE', formKey: 'purchase_form' })).toEqual({ ...source, sourceType: 'CODE', pageId: null, formKey: 'purchase_form' })
   })
+  it('独立业务来源保持长整型标识且不混入应用字段', () => {
+    const standalone = {
+      businessSourceId: '9007199254740995',
+      sourceCode: 'purchase_order',
+      sourceType: 'SERVICE',
+      objectCode: 'purchase_order',
+    }
+    expect(printSourcePayload(standalone)).toEqual(standalone)
+    expect(printSourceFromQuery(standalone)).toEqual({
+      ...standalone,
+      applicationId: null,
+      pageId: null,
+      formKey: null,
+    })
+    expect(printPreviewFallbackLocation({ source: standalone, scene: 'DETAIL' })).toEqual({
+      path: '/print',
+      query: { businessSourceId: standalone.businessSourceId },
+    })
+  })
 })
 
 describe('打印预览返回', () => {
@@ -86,5 +105,23 @@ describe('打印设计器返回', () => {
     })).toBe('fallback')
     expect(router.back).not.toHaveBeenCalled()
     expect(router.replace).toHaveBeenCalledWith(printPageSettingsLocation({ applicationCode: 'BuySale', pageId: 'page_purchase' }))
+  })
+
+  it('独立来源设计完成后回到打印中心当前来源', () => {
+    const router = { replace: vi.fn() }
+    expect(leavePrintDesigner({
+      router,
+      route: { query: {} },
+      source: {
+        businessSourceId: '9007199254740995',
+        sourceCode: 'purchase_order',
+        sourceType: 'SERVICE',
+        objectCode: 'purchase_order',
+      },
+    })).toBe('source')
+    expect(router.replace).toHaveBeenCalledWith({
+      path: '/print',
+      query: { businessSourceId: '9007199254740995' },
+    })
   })
 })

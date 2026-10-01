@@ -17,15 +17,40 @@ public interface PrintTemplateMapper {
 
     PrintTemplate lockScoped(@Param("tenantId") Long tenantId, @Param("id") Long id);
 
-    List<PrintTemplate> selectApplication(@Param("tenantId") Long tenantId, @Param("applicationId") Long applicationId, @Param("pageId") String pageId, @Param("offset") long offset, @Param("limit") int limit);
+    List<PrintTemplate> selectApplication(@Param("tenantId") Long tenantId,
+                                          @Param("applicationId") Long applicationId,
+                                          @Param("pageId") String pageId,
+                                          @Param("offset") long offset,
+                                          @Param("limit") int limit);
 
-    long countApplication(@Param("tenantId") Long tenantId, @Param("applicationId") Long applicationId, @Param("pageId") String pageId);
+    long countApplication(@Param("tenantId") Long tenantId,
+                          @Param("applicationId") Long applicationId,
+                          @Param("pageId") String pageId);
+
+    List<PrintTemplate> selectBusinessSource(@Param("tenantId") Long tenantId,
+                                             @Param("businessSourceId") Long businessSourceId,
+                                             @Param("offset") long offset,
+                                             @Param("limit") int limit);
+
+    long countBusinessSource(@Param("tenantId") Long tenantId,
+                             @Param("businessSourceId") Long businessSourceId);
 
     int updateDraft(@Param("row") PrintTemplate row, @Param("expectedRevision") Long expectedRevision);
 
-    int publish(@Param("tenantId") Long tenantId, @Param("id") Long id, @Param("expectedRevision") Long expectedRevision, @Param("versionId") Long versionId, @Param("actor") Long actor);
+    int publish(@Param("tenantId") Long tenantId,
+                @Param("id") Long id,
+                @Param("expectedRevision") Long expectedRevision,
+                @Param("versionId") Long versionId,
+                @Param("actor") Long actor);
 
-    int changeStatus(@Param("tenantId") Long tenantId, @Param("id") Long id, @Param("expectedRevision") Long expectedRevision, @Param("status") Integer status, @Param("actor") Long actor);
+    int changeStatus(@Param("tenantId") Long tenantId,
+                     @Param("id") Long id,
+                     @Param("expectedRevision") Long expectedRevision,
+                     @Param("status") Integer status,
+                     @Param("actor") Long actor);
 
-    int softDelete(@Param("tenantId") Long tenantId, @Param("id") Long id, @Param("expectedRevision") Long expectedRevision, @Param("actor") Long actor);
+    int softDelete(@Param("tenantId") Long tenantId,
+                   @Param("id") Long id,
+                   @Param("expectedRevision") Long expectedRevision,
+                   @Param("actor") Long actor);
 }

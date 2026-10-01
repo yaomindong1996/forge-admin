@@ -14,6 +14,7 @@ import com.mdframe.forge.plugin.generator.service.printing.PrintApplicationSnaps
 import com.mdframe.forge.plugin.print.enums.PrintDesignAction;
 import com.mdframe.forge.plugin.print.enums.PrintScene;
 import com.mdframe.forge.plugin.print.enums.PrintSourceType;
+import com.mdframe.forge.plugin.print.entity.PrintBusinessSource;
 import com.mdframe.forge.plugin.print.mapper.PrintTemplateVersionMapper;
 import com.mdframe.forge.plugin.print.service.PrintDocumentAccess;
 import com.mdframe.forge.plugin.print.service.PrintFailure;
@@ -22,6 +23,7 @@ import com.mdframe.forge.plugin.print.spi.AuthorizedPrintContext;
 import com.mdframe.forge.plugin.print.spi.AuthorizedPrintSource;
 import com.mdframe.forge.plugin.print.spi.PrintActor;
 import com.mdframe.forge.plugin.print.spi.PrintBindingSelection;
+import com.mdframe.forge.plugin.print.spi.PrintBusinessDataProvider;
 import com.mdframe.forge.plugin.print.spi.PrintData;
 import com.mdframe.forge.plugin.print.spi.PrintDataProvider;
 import com.mdframe.forge.plugin.print.spi.PrintRecordRequest;
@@ -43,7 +45,10 @@ import java.util.Set;
 /** 采购代码业务的打印 Provider；只从应用发布快照和业务 Service 读取数据。 */
 @Component
 @RequiredArgsConstructor
-public class SamplePurchaseOrderPrintDataProvider implements PrintDataProvider {
+public class SamplePurchaseOrderPrintDataProvider
+        implements PrintDataProvider, PrintBusinessDataProvider {
+
+    public static final String BUSINESS_PROVIDER_CODE = "sample-purchase-order";
 
     private final PrintIdentity identity;
     private final PrintApplicationAccessAdapter applicationAccess;
@@ -61,6 +66,59 @@ public class SamplePurchaseOrderPrintDataProvider implements PrintDataProvider {
     @Override
     public PrintSourceType sourceType() {
         return PrintSourceType.CODE;
+    }
+
+    @Override
+    public String code() {
+        return BUSINESS_PROVIDER_CODE;
+    }
+
+    @Override
+    public void authorizeDesignSource(PrintActor actor, PrintBusinessSource source,
+                                      PrintDesignAction action) {
+        requireBusinessSource(actor, source);
+    }
+
+    @Override
+    public PrintFieldCatalogVO catalog(PrintActor actor, PrintBusinessSource source) {
+        requireBusinessSource(actor, source);
+        return buildCatalog(null);
+    }
+
+    @Override
+    public void validateDesignResources(PrintActor actor, PrintBusinessSource source,
+                                        Set<String> fileIds) {
+        requireBusinessSource(actor, source);
+        resources.validate(actor, fileIds);
+    }
+
+    @Override
+    public void authorizeRecord(PrintActor actor, PrintBusinessSource source,
+                                PrintRecordRequest record, Map<String, Object> params) {
+        requireBusinessSource(actor, source);
+        if (!actor.equals(identity.require("print:execute"))
+                || record.scene() != PrintScene.DETAIL || !params.isEmpty()) {
+            throw PrintFailure.denied();
+        }
+        standaloneDetail(record.recordId());
+    }
+
+    @Override
+    public PrintData load(PrintActor actor, PrintBusinessSource source,
+                          PrintRecordRequest record, PrintBindingSelection selection,
+                          Map<String, Object> params) {
+        authorizeRecord(actor, source, record, params);
+        var detail = standaloneDetail(record.recordId());
+        return new PrintData(
+                scalarRecord(SamplePurchaseOrderFlowDefinition.recordData(detail)),
+                Map.of(), Map.of());
+    }
+
+    @Override
+    public void validateRuntimeResources(PrintActor actor, PrintBusinessSource source,
+                                         PrintRecordRequest record, Set<String> fileIds) {
+        requireBusinessSource(actor, source);
+        resources.validate(actor, fileIds);
     }
 
     @Override
@@ -141,7 +199,8 @@ public class SamplePurchaseOrderPrintDataProvider implements PrintDataProvider {
         var version = applicationVersions.selectVersion(actor.tenantId(), request.source().applicationId(),
                 application.getVersionNo());
         if (version == null || expectedVersionId != null && !expectedVersionId.equals(version.getId())) {
-            throw PrintFailure.of(409, "PRINT_APPLICATION_CHANGED", "应用发布版本已变化，请重新打开打印");
+            throw PrintFailure.of(
+                    409, "PRINT_APPLICATION_CHANGED", "应用发布版本已变化，请重新打开打印");
         }
 
         FlowPrintContextResolver.Context flow = isFlowScene(request.scene())
@@ -170,7 +229,8 @@ public class SamplePurchaseOrderPrintDataProvider implements PrintDataProvider {
             var pinned = templateVersions.selectScoped(actor.tenantId(), binding.templateId(),
                     binding.templateVersionId());
             if (pinned == null || !binding.schemaHash().equals(pinned.getSchemaHash())) {
-                throw PrintFailure.of(409, "PRINT_APPLICATION_VERSION_INVALID", "应用引用的打印版本校验失败");
+                throw PrintFailure.of(
+                        409, "PRINT_APPLICATION_VERSION_INVALID", "应用引用的打印版本校验失败");
             }
         }
 
@@ -239,6 +299,36 @@ public class SamplePurchaseOrderPrintDataProvider implements PrintDataProvider {
         } catch (NumberFormatException error) {
             throw PrintFailure.denied();
         }
+    }
+
+    private SamplePurchaseOrderVO standaloneDetail(String recordId) {
+        try {
+            var detail = purchaseOrders.detail(parseRecordId(recordId));
+            if (!Objects.equals(String.valueOf(detail.getId()), recordId)) {
+                throw PrintFailure.denied();
+            }
+            return detail;
+        } catch (RuntimeException error) {
+            throw PrintFailure.denied();
+        }
+    }
+
+    private void requireBusinessSource(PrintActor actor, PrintBusinessSource source) {
+        if (actor == null || source == null
+                || !PrintSourceType.SERVICE.matches(source.getSourceType())) {
+            throw PrintFailure.denied();
+        }
+        if (!BUSINESS_PROVIDER_CODE.equals(source.getProviderCode())
+                || !SamplePurchaseOrderFlowDefinition.BUSINESS_TYPE.equals(source.getObjectCode())) {
+            throw PrintFailure.of(403, "PRINT_ACCESS_DENIED",
+                    "示例采购单打印要求：对接业务填 sample-purchase-order，业务标识填 sample_purchase_order。"
+                            + "当前对接业务=" + nullToDash(source.getProviderCode())
+                            + "，业务标识=" + nullToDash(source.getObjectCode()));
+        }
+    }
+
+    private static String nullToDash(String value) {
+        return value == null || value.isBlank() ? "（空）" : value;
     }
 
     private void requireSource(PrintSourceRequest source) {

@@ -26,6 +26,21 @@ public class PrintExecution extends TenantEntity {
     private Long applicationId;
 
     /**
+     * 独立业务来源 ID。
+     */
+    private Long businessSourceId;
+
+    /**
+     * 独立业务来源编码。
+     */
+    private String sourceCode;
+
+    /**
+     * 实际使用的来源修订号。
+     */
+    private Long sourceRevision;
+
+    /**
      * 应用发布版本。
      */
     private Long applicationVersionId;

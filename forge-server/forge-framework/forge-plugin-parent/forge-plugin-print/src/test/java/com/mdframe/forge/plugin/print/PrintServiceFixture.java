@@ -59,6 +59,8 @@ abstract class PrintServiceFixture {
 
     PrintTemplateAccess access;
 
+    PrintRuntimeBindingResolver runtimeBindings;
+
     PrintTemplateMapper templates;
 
     PrintTemplateVersionMapper versions;
@@ -95,7 +97,15 @@ abstract class PrintServiceFixture {
             }
         }
         jdbc.execute("ALTER TABLE sys_print_template MODIFY page_id VARCHAR(128)");
+        jdbc.execute("ALTER TABLE sys_print_template ADD business_source_id BIGINT");
+        jdbc.execute("ALTER TABLE sys_print_template ADD source_code VARCHAR(80)");
         jdbc.execute("ALTER TABLE sys_print_binding MODIFY page_id VARCHAR(128)");
+        jdbc.execute("ALTER TABLE sys_print_binding ADD business_source_id BIGINT");
+        jdbc.execute("ALTER TABLE sys_print_binding ADD source_code VARCHAR(80)");
+        jdbc.execute("ALTER TABLE sys_print_binding ADD template_version_id BIGINT");
+        jdbc.execute("ALTER TABLE sys_print_execution ADD business_source_id BIGINT");
+        jdbc.execute("ALTER TABLE sys_print_execution ADD source_code VARCHAR(80)");
+        jdbc.execute("ALTER TABLE sys_print_execution ADD source_revision BIGINT");
         jdbc.execute("CREATE TABLE synthetic_application (id BIGINT PRIMARY KEY,tenant_id BIGINT)");
         jdbc.update("INSERT INTO synthetic_application VALUES (2,1)");
         var config = PrintMapperContractTest.configuration();
@@ -118,13 +128,18 @@ abstract class PrintServiceFixture {
         };
         adapter = new Adapter();
         registry = new PrintProviderRegistry(List.of(adapter), List.of(adapter));
-        access = new PrintTemplateAccess(templates, registry, identity);
+        access = new PrintTemplateAccess(templates, mock(PrintBusinessSourceMapper.class), registry, identity);
+        runtimeBindings = mock(PrintRuntimeBindingResolver.class);
+        when(runtimeBindings.resolve(any())).thenAnswer(invocation -> invocation.getArgument(0));
         var documents = new PrintDocumentAccess(json);
         service = transactional(new PrintTemplateService(identity, templates, bindingMapper, access, registry, protocol, documents));
         publication = transactional(new PrintTemplateVersionService(identity, access, templates, versions, protocol, documents, json));
-        bindings = transactional(new PrintBindingService(identity, access, bindingMapper, templates));
+        bindings = transactional(new PrintBindingService(
+                identity, access, bindingMapper, templates, versions));
         events = transactional(new PrintExecutionService(identity, executionMapper));
-        runtime = transactional(new PrintPrepareService(identity, registry, access, templates, versions, protocol, documents, new PrintDataProjector(json, documents), events));
+        runtime = transactional(new PrintPrepareService(
+                identity, registry, access, runtimeBindings, templates, versions, protocol, documents,
+                new PrintDataProjector(json, documents), events));
         try (var input = getClass().getResourceAsStream("/print/valid-document.json")) {
             schema = new String(input.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
         }

@@ -25,6 +25,18 @@ export const printCatalog = dto => request.post('/print/catalog', dto, encrypted
 export const availablePrintTemplates = record => request.post('/print/available-templates', { record }, encrypted)
 export const preparePrint = (record, templateId) => request.post('/print/prepare', { record, templateId }, encrypted)
 export const recordPrintEvent = (value, dto) => request.post(`/print/executions/${id(value)}/events`, dto, encrypted)
+export const printSources = query => request.get('/print/sources/page', params(query))
+export const printSourceOptions = () => request.get('/print/sources/options', encrypted)
+export function resolvePrintSource(sourceCode) {
+  if (!/^[a-z][\w-]{0,79}$/i.test(String(sourceCode || '')))
+    throw new Error('打印来源编码无效')
+  return request.get(`/print/sources/resolve/${encodeURIComponent(sourceCode)}`, encrypted)
+}
+export const printSourceDetail = value => request.get(`/print/sources/${id(value)}`, encrypted)
+export const createPrintSource = dto => request.post('/print/sources', dto, encrypted)
+export const updatePrintSource = (value, dto) => request.put(`/print/sources/${id(value)}`, dto, encrypted)
+export const changePrintSourceStatus = (value, dto) => request.put(`/print/sources/${id(value)}/status`, dto, encrypted)
+export const deletePrintSource = (value, revision) => request.delete(`/print/sources/${id(value)}`, params({ expectedRevision: revision }))
 
 export function loadPrintFile(fileId, { signal } = {}) {
   if (!/^[\w-]{1,128}$/.test(String(fileId)))

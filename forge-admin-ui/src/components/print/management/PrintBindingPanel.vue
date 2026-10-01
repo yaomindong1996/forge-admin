@@ -34,19 +34,28 @@ const SCENE_META = {
   },
 }
 
-const sceneMeta = computed(() => SCENE_META[store.scene] || {
-  where: '对应运行场景',
-  tip: '绑定后随应用发布生效。',
-})
-
 const sceneLabel = computed(() => labelOf(store.scene))
 
 const currentName = computed(() => store.row?.templateName || store.name || '当前模板')
+const standalone = computed(() => Boolean(store.row?.source?.businessSourceId))
+const sceneMeta = computed(() => {
+  const meta = SCENE_META[store.scene] || {
+    where: '对应运行场景',
+    tip: '绑定后随应用发布生效。',
+  }
+  return standalone.value
+    ? { ...meta, tip: '绑定会固定当前发布版本；重新发布模板后可手动升级绑定版本。' }
+    : meta
+})
 
 const binding = computed(() => store.bindings.find(item =>
   String(item.templateId) === String(store.row?.id)
   && item.scene === store.scene
   && isEnabled(item)))
+const bindingVersionOutdated = computed(() => standalone.value
+  && binding.value
+  && store.row?.publishedVersionId
+  && String(binding.value.templateVersionId || '') !== String(store.row.publishedVersionId))
 
 const enabledBindings = computed(() => store.bindings.filter(isEnabled))
 
@@ -157,12 +166,24 @@ watch(() => store.row?.id, () => run(() => store.loadBindings()), { immediate: t
           <NTag size="small" type="success" :bordered="false">
             已绑定「{{ sceneLabel }}」
           </NTag>
+          <NTag v-if="standalone && binding.templateVersionId" size="small" :bordered="false">
+            固定版本 #{{ binding.templateVersionId }}
+          </NTag>
           <NTag v-if="binding.isDefault" size="small" type="info" :bordered="false">
             默认模板
           </NTag>
           <span v-else class="binding-panel__muted">同场景有多个模板时，默认模板会优先选用</span>
         </div>
         <NSpace v-if="props.canManage" :size="8" wrap>
+          <NButton
+            v-if="bindingVersionOutdated"
+            size="small"
+            type="primary"
+            :disabled="busy"
+            @click="run(() => store.bind(Boolean(binding.isDefault)))"
+          >
+            升级到最新发布版本
+          </NButton>
           <NButton
             v-if="!binding.isDefault"
             size="small"
@@ -180,10 +201,17 @@ watch(() => store.row?.id, () => run(() => store.loadBindings()), { immediate: t
 
       <template v-else>
         <p class="binding-panel__hint">
-          尚未绑定到「{{ sceneLabel }}」。绑定后，运行页对应位置会出现「打印」。
+          {{ standalone && !store.row?.publishedVersionId
+            ? '请先发布模板版本，再绑定到业务场景。'
+            : `尚未绑定到「${sceneLabel}」。绑定后，运行页对应位置会出现「打印」。` }}
         </p>
         <NSpace v-if="props.canManage" :size="8" wrap>
-          <NButton size="small" type="primary" :disabled="busy" @click="run(() => store.bind(true))">
+          <NButton
+            size="small"
+            type="primary"
+            :disabled="busy || (standalone && !store.row?.publishedVersionId)"
+            @click="run(() => store.bind(true))"
+          >
             绑定到此场景
           </NButton>
         </NSpace>

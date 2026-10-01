@@ -5,7 +5,11 @@ package com.mdframe.forge.plugin.print.enums;
  */
 public enum PrintSourceType {
 
-    LOWCODE, CODE;
+    LOWCODE,
+    CODE,
+    SERVICE,
+    DATASET,
+    API;
 
     public String getCode() {
         return name();
@@ -13,5 +17,9 @@ public enum PrintSourceType {
 
     public boolean matches(String value) {
         return getCode().equals(value);
+    }
+
+    public boolean isStandalone() {
+        return this == SERVICE || this == DATASET || this == API;
     }
 }

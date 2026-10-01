@@ -43,15 +43,24 @@ class PrintResourceContractTest {
     }
 
     @Test
-    void seedsMatchEnumsAndNeverGrantRolesOrReportPhysicalSuccess() throws Exception {
-        String sql = Files.readString(migrationDirectory().resolve("V1.0.172__add_native_print_resources.sql"))
-                + Files.readString(migrationDirectory().resolve("V1.0.180__add_print_pdf_downloaded_result.sql"));
+    void seedsMatchEnumsAndMenuRepairOnlyInheritsExistingRoles() throws Exception {
+        String permissionSql = Files.readString(migrationDirectory().resolve("V1.0.172__add_native_print_resources.sql"))
+                + Files.readString(migrationDirectory().resolve("V1.0.180__add_print_pdf_downloaded_result.sql"))
+                + Files.readString(migrationDirectory().resolve("V1.0.204__add_standalone_print_sources.sql"));
+        String menuRepairSql = Files.readString(
+                migrationDirectory().resolve("V1.0.205__repair_print_center_menu_hierarchy.sql"));
+        String sql = permissionSql + menuRepairSql;
         for (Class<? extends Enum<?>> type : List.of(PrintDesignStatus.class, PrintExecutionResult.class, PrintScene.class, PrintSourceType.class, PrintDataMode.class)) {
             for (Enum<?> value : type.getEnumConstants()) {
                 assertThat(sql).contains("'" + value.name() + "'");
             }
         }
-        assertThat(sql).contains("print:template:view", "print:template:manage", "print:template:publish", "print:execute").doesNotContain("INSERT INTO sys_role_resource", "${", "'SUCCESS'");
+        assertThat(permissionSql)
+                .contains("print:template:view", "print:template:manage", "print:template:publish", "print:execute")
+                .doesNotContain("INSERT INTO sys_role_resource", "${", "'SUCCESS'");
+        assertThat(menuRepairSql)
+                .contains("只继承现有打印权限", "INNER JOIN sys_resource", "WHERE NOT EXISTS")
+                .doesNotContain("tenant_id = 0", "${", "'SUCCESS'");
         for (String statement : sql.split(";")) {
             if (statement.contains("INSERT INTO")) {
                 assertThat(statement).contains("NOT EXISTS", "SELECT 1");
@@ -82,13 +91,34 @@ class PrintResourceContractTest {
                 "V1.0.172__add_native_print_resources.sql",
                 "V1.0.173__add_native_print_hidden_routes.sql",
                 "V1.0.174__support_print_workspace_page_identity.sql",
-                "V1.0.180__add_print_pdf_downloaded_result.sql"
+                "V1.0.180__add_print_pdf_downloaded_result.sql",
+                "V1.0.204__add_standalone_print_sources.sql",
+                "V1.0.205__repair_print_center_menu_hierarchy.sql"
         ).doesNotContain(
                 "V1.0.168__add_native_print_tables.sql",
                 "V1.0.169__add_native_print_resources.sql",
                 "V1.0.170__add_native_print_hidden_routes.sql",
                 "V1.0.171__support_print_workspace_page_identity.sql"
         );
+    }
+
+    @Test
+    void printCenterIsIndependentAndKeepsApplicationOverviewVisible() throws Exception {
+        String sql = Files.readString(
+                migrationDirectory().resolve("V1.0.205__repair_print_center_menu_hierarchy.sql"));
+
+        assertThat(sql).contains(
+                "SELECT 1, '打印中心', 0, 1, 7",
+                "resource_name = '应用总览'",
+                "path = '/app-center'",
+                "'业务数据源' resource_name",
+                "'/print/sources' path",
+                "resource_name = '打印模板'",
+                "path = '/print/templates'",
+                "'场景绑定'",
+                "'/print/bindings'",
+                "path IN ('/print/designer', '/print/preview')"
+        ).doesNotContain("tenant_id = 0", "${");
     }
 
     private static int flywayChecksum(Path migration) throws Exception {

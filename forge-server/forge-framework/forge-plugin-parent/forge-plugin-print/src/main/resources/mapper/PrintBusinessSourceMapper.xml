@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mdframe.forge.plugin.print.mapper.PrintBusinessSourceMapper">
+    <resultMap id="Row" type="com.mdframe.forge.plugin.print.entity.PrintBusinessSource">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="source_code" property="sourceCode"/>
+        <result column="source_name" property="sourceName"/>
+        <result column="source_type" property="sourceType"/>
+        <result column="provider_code" property="providerCode"/>
+        <result column="dataset_id" property="datasetId"/>
+        <result column="object_code" property="objectCode"/>
+        <result column="parameter_schema_json" property="parameterSchemaJson"/>
+        <result column="mapping_json" property="mappingJson"/>
+        <result column="catalog_json" property="catalogJson"/>
+        <result column="catalog_hash" property="catalogHash"/>
+        <result column="source_revision" property="sourceRevision"/>
+        <result column="status" property="status"/>
+        <result column="del_flag" property="delFlag"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="create_dept" property="createDept"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Columns">
+        id, tenant_id, source_code, source_name, source_type, provider_code, dataset_id, object_code,
+        parameter_schema_json, mapping_json, catalog_json, catalog_hash, source_revision, status, del_flag,
+        create_by, create_time, create_dept, update_by, update_time
+    </sql>
+
+    <sql id="Filters">
+        tenant_id = #{tenantId} AND del_flag = 0
+        <if test="sourceName != null and sourceName != ''">
+            AND source_name LIKE CONCAT('%', #{sourceName}, '%')
+        </if>
+        <if test="sourceType != null and sourceType != ''">
+            AND source_type = #{sourceType}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_print_business_source (
+            tenant_id, source_code, source_name, source_type, provider_code, dataset_id, object_code,
+            parameter_schema_json, mapping_json, catalog_json, catalog_hash, source_revision, status, del_flag,
+            create_by, create_time, create_dept, update_by, update_time
+        ) VALUES (
+            #{tenantId}, #{sourceCode}, #{sourceName}, #{sourceType}, #{providerCode}, #{datasetId}, #{objectCode},
+            #{parameterSchemaJson}, #{mappingJson}, #{catalogJson}, #{catalogHash}, #{sourceRevision}, #{status},
+            #{delFlag}, #{createBy}, #{createTime}, #{createDept}, #{updateBy}, #{updateTime}
+        )
+    </insert>
+
+    <select id="selectScoped" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_business_source
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+    </select>
+
+    <select id="lockScoped" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_business_source
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0 FOR UPDATE
+    </select>
+
+    <select id="selectByCode" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_business_source
+        WHERE tenant_id = #{tenantId} AND source_code = #{sourceCode} AND del_flag = 0
+    </select>
+
+    <select id="selectPage" resultMap="Row">
+        SELECT <include refid="Columns"/> FROM sys_print_business_source
+        WHERE <include refid="Filters"/>
+        ORDER BY update_time DESC, id DESC LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*) FROM sys_print_business_source
+        WHERE <include refid="Filters"/>
+    </select>
+
+    <select id="countTemplateReferences" resultType="long">
+        SELECT COUNT(*) FROM sys_print_template
+        WHERE tenant_id = #{tenantId} AND business_source_id = #{id} AND del_flag = 0
+    </select>
+
+    <update id="updateSource">
+        UPDATE sys_print_business_source
+        SET source_name = #{row.sourceName}, provider_code = #{row.providerCode}, dataset_id = #{row.datasetId},
+            object_code = #{row.objectCode}, parameter_schema_json = #{row.parameterSchemaJson},
+            mapping_json = #{row.mappingJson}, catalog_json = #{row.catalogJson}, catalog_hash = #{row.catalogHash},
+            source_revision = source_revision + 1, update_by = #{row.updateBy}, update_time = NOW()
+        WHERE tenant_id = #{row.tenantId} AND id = #{row.id} AND del_flag = 0
+          AND source_revision = #{expectedRevision}
+    </update>
+
+    <update id="changeStatus">
+        UPDATE sys_print_business_source
+        SET status = #{status}, source_revision = source_revision + 1, update_by = #{actor}, update_time = NOW()
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+          AND source_revision = #{expectedRevision} AND #{status} IN (0, 1)
+    </update>
+
+    <update id="softDelete">
+        UPDATE sys_print_business_source
+        SET del_flag = id, source_revision = source_revision + 1, update_by = #{actor}, update_time = NOW()
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND del_flag = 0
+          AND source_revision = #{expectedRevision}
+    </update>
+</mapper>

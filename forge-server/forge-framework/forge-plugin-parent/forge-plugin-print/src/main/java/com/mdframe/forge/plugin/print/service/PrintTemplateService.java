@@ -31,21 +31,24 @@ public class PrintTemplateService {
 
     private final PrintDocumentAccess documents;
 
-    public PrintTemplateVO.Page page(Long applicationId, int pageNum, int pageSize, String pageId) {
+    public PrintTemplateVO.Page page(Long applicationId, Long businessSourceId,
+                                     int pageNum, int pageSize, String pageId) {
         var actor = identity.require(PrintDesignAction.VIEW.permission());
-        if (applicationId == null || applicationId < 1 || pageNum < 1 || pageSize < 1 || pageSize > 100) {
-            throw PrintFailure.of(400, "PRINT_INVALID_REQUEST", "应用或分页参数无效");
-        }
-        if (pageId != null && !pageId.isBlank() && !pageId.matches("[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}")) {
-            throw PrintFailure.of(400, "PRINT_INVALID_REQUEST", "页面标识无效");
+        validatePage(applicationId, businessSourceId, pageNum, pageSize, pageId);
+        String scopedPageId = pageId == null || pageId.isBlank() ? null : pageId;
+        long offset = (long) (pageNum - 1) * pageSize;
+        if (businessSourceId != null) {
+            // 列模板只确认来源在本租户存在；对接业务/数据集是否配齐在设计与取数时再校验。
+            access.requireBusinessSource(actor, businessSourceId);
+            return standalonePage(actor, businessSourceId, pageNum, pageSize, offset);
         }
         registry.application().authorize(actor, applicationId, PrintDesignAction.VIEW);
-        String scopedPageId = pageId == null || pageId.isBlank() ? null : pageId;
-        return new PrintTemplateVO.Page(templates.selectApplication(actor.tenantId(), applicationId, scopedPageId, (long) (pageNum - 1) * pageSize, pageSize).stream().map(row -> PrintTemplateVO.from(row, false)).toList(), templates.countApplication(actor.tenantId(), applicationId, scopedPageId), pageNum, pageSize);
+        return applicationPage(actor, applicationId, scopedPageId, pageNum, pageSize, offset);
     }
 
     public PrintTemplateVO detail(Long id) {
-        return PrintTemplateVO.from(access.open(identity.require(PrintDesignAction.VIEW.permission()), id, PrintDesignAction.VIEW, false).row(), true);
+        var actor = identity.require(PrintDesignAction.VIEW.permission());
+        return PrintTemplateVO.from(access.open(actor, id, PrintDesignAction.VIEW, false).row(), true);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -61,6 +64,8 @@ public class PrintTemplateService {
     private PrintTemplateVO insert(PrintActor actor, PrintSourceRequest source, String code, String name, String json) {
         var row = PrintAudit.create(new PrintTemplate(), actor);
         row.setApplicationId(source.applicationId());
+        row.setBusinessSourceId(source.businessSourceId());
+        row.setSourceCode(source.sourceCode());
         row.setSourceType(source.sourceType().getCode());
         row.setSourceKey(source.key());
         row.setPageId(source.pageId());
@@ -105,7 +110,8 @@ public class PrintTemplateService {
         access.revision(current.row(), dto.expectedRevision());
         var document = protocol.validate(current.row().getDraftSchema());
         documents.design(current.source(), current.provider(), document);
-        return insert(actor, current.source().source(), dto.templateCode(), dto.templateName(), document.canonicalJson());
+        return insert(actor, current.source().source(), dto.templateCode(), dto.templateName(),
+                document.canonicalJson());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -115,7 +121,9 @@ public class PrintTemplateService {
         var current = access.open(actor, id, PrintDesignAction.MANAGE, true);
         access.revision(current.row(), dto.expectedRevision());
         var status = EnableStatus.ENABLED.matches(dto.status()) ? EnableStatus.ENABLED : EnableStatus.DISABLED;
-        access.changed(templates.changeStatus(actor.tenantId(), id, dto.expectedRevision(), status.getCode(), actor.userId()));
+        int changed = templates.changeStatus(actor.tenantId(), id, dto.expectedRevision(),
+                status.getCode(), actor.userId());
+        access.changed(changed);
         return PrintTemplateVO.from(templates.selectScoped(actor.tenantId(), id), true);
     }
 
@@ -124,10 +132,50 @@ public class PrintTemplateService {
         var actor = identity.require(PrintDesignAction.MANAGE.permission());
         var current = access.open(actor, id, PrintDesignAction.MANAGE, true);
         access.revision(current.row(), revision);
-        registry.application().assertTemplateUnreferenced(actor, current.row().getApplicationId(), id);
+        if (!current.source().source().sourceType().isStandalone()) {
+            registry.application().assertTemplateUnreferenced(actor, current.row().getApplicationId(), id);
+        }
         if (bindings.countTemplateReferences(actor.tenantId(), id) > 0) {
             throw PrintFailure.of(409, "PRINT_TEMPLATE_REFERENCED", "请先移除此模板的来源绑定");
         }
         access.changed(templates.softDelete(actor.tenantId(), id, revision, actor.userId()));
+    }
+
+    private void validatePage(Long applicationId, Long businessSourceId,
+                              int pageNum, int pageSize, String pageId) {
+        boolean hasApplication = applicationId != null && applicationId > 0;
+        boolean hasBusinessSource = businessSourceId != null && businessSourceId > 0;
+        if (hasApplication == hasBusinessSource || pageNum < 1 || pageSize < 1 || pageSize > 100) {
+            throw PrintFailure.of(400, "PRINT_INVALID_REQUEST", "打印来源或分页参数无效");
+        }
+        if (hasBusinessSource && pageId != null && !pageId.isBlank()) {
+            throw PrintFailure.of(400, "PRINT_INVALID_REQUEST", "独立打印来源不支持页面筛选");
+        }
+        if (pageId != null && !pageId.isBlank()
+                && !pageId.matches("[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}")) {
+            throw PrintFailure.of(400, "PRINT_INVALID_REQUEST", "页面标识无效");
+        }
+    }
+
+    private PrintTemplateVO.Page standalonePage(PrintActor actor, Long businessSourceId,
+                                                 int pageNum, int pageSize, long offset) {
+        var records = templates.selectBusinessSource(
+                        actor.tenantId(), businessSourceId, offset, pageSize)
+                .stream()
+                .map(row -> PrintTemplateVO.from(row, false))
+                .toList();
+        long total = templates.countBusinessSource(actor.tenantId(), businessSourceId);
+        return new PrintTemplateVO.Page(records, total, pageNum, pageSize);
+    }
+
+    private PrintTemplateVO.Page applicationPage(PrintActor actor, Long applicationId, String pageId,
+                                                  int pageNum, int pageSize, long offset) {
+        var records = templates.selectApplication(
+                        actor.tenantId(), applicationId, pageId, offset, pageSize)
+                .stream()
+                .map(row -> PrintTemplateVO.from(row, false))
+                .toList();
+        long total = templates.countApplication(actor.tenantId(), applicationId, pageId);
+        return new PrintTemplateVO.Page(records, total, pageNum, pageSize);
     }
 }

@@ -5,6 +5,7 @@ import com.mdframe.forge.plugin.print.entity.PrintBinding;
 import com.mdframe.forge.plugin.print.enums.*;
 import com.mdframe.forge.plugin.print.mapper.PrintBindingMapper;
 import com.mdframe.forge.plugin.print.mapper.PrintTemplateMapper;
+import com.mdframe.forge.plugin.print.mapper.PrintTemplateVersionMapper;
 import com.mdframe.forge.plugin.print.spi.*;
 import com.mdframe.forge.starter.core.enums.EnableStatus;
 import lombok.RequiredArgsConstructor;
@@ -25,23 +26,45 @@ public class PrintBindingService {
 
     private final PrintTemplateMapper templates;
 
-    public record Binding(Long id, Long templateId, String templateName, PrintScene scene, boolean isDefault, Integer sortOrder, Integer status, Long bindingRevision) {
+    private final PrintTemplateVersionMapper versions;
+
+    public record Binding(Long id, Long templateId, Long templateVersionId, String templateName,
+                          PrintScene scene, boolean isDefault, Integer sortOrder, Integer status,
+                          Long bindingRevision) {
 
         static Binding from(PrintBinding row, String templateName) {
-            return new Binding(row.getId(), row.getTemplateId(), templateName, PrintScene.valueOf(row.getScene()), Boolean.TRUE.equals(row.getIsDefault()), row.getSortOrder(), row.getStatus(), row.getBindingRevision());
+            return new Binding(row.getId(), row.getTemplateId(), row.getTemplateVersionId(),
+                    templateName, PrintScene.valueOf(row.getScene()),
+                    Boolean.TRUE.equals(row.getIsDefault()), row.getSortOrder(), row.getStatus(),
+                    row.getBindingRevision());
         }
     }
 
     public List<Binding> list(PrintBindingQueryDTO dto) {
         identity.validate(dto);
         var actor = identity.require(PrintDesignAction.VIEW.permission());
-        access.source(actor, dto.source(), PrintDesignAction.VIEW, false);
+        // 列绑定只核对来源身份；业务 Provider 是否可取数在保存/运行时再校验。
+        PrintSourceRequest source = viewSource(actor, dto.source());
         var rows = dto.scene() == null
-                ? bindings.selectBySource(actor.tenantId(), dto.applicationId(), dto.source().key())
-                : bindings.selectSource(actor.tenantId(), dto.applicationId(), dto.source().key(), dto.scene().getCode());
+                ? bindings.selectBySource(actor.tenantId(), source.applicationId(),
+                source.businessSourceId(), source.key())
+                : bindings.selectSource(actor.tenantId(), source.applicationId(),
+                source.businessSourceId(), source.key(), dto.scene().getCode());
         return rows.stream()
                 .map(row -> Binding.from(row, templateName(actor.tenantId(), row.getTemplateId())))
                 .toList();
+    }
+
+    private PrintSourceRequest viewSource(PrintActor actor, PrintSourceRequest requested) {
+        if (requested.sourceType() != null && requested.sourceType().isStandalone()) {
+            PrintSourceRequest canonical = access.requireBusinessSource(actor, requested.businessSourceId());
+            if (!canonical.equals(requested)) {
+                throw PrintFailure.of(403, "PRINT_ACCESS_DENIED",
+                        "打印来源身份与登记信息不一致，请刷新页面后重试");
+            }
+            return canonical;
+        }
+        return access.source(actor, requested, PrintDesignAction.VIEW, false).source();
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -52,10 +75,17 @@ public class PrintBindingService {
         if (!template.source().source().sameAs(dto.source())) {
             throw PrintFailure.denied();
         }
+        if (EnableStatus.ENABLED.matches(dto.status())
+                && !EnableStatus.ENABLED.matches(template.row().getStatus())) {
+            throw PrintFailure.of(409, "PRINT_TEMPLATE_DISABLED", "停用模板不能创建启用绑定");
+        }
+        var source = template.source().source();
+        Long versionId = bindingVersion(actor.tenantId(), source, dto);
         var row = dto.id() == null
-                ? bindings.selectUnique(actor.tenantId(), dto.source().applicationId(), dto.source().key(), dto.templateId(), dto.scene().getCode())
+                ? bindings.selectUnique(actor.tenantId(), source.applicationId(), source.businessSourceId(),
+                source.key(), dto.templateId(), dto.scene().getCode())
                 : bindings.selectScoped(actor.tenantId(), dto.id());
-        if (dto.id() != null && (row == null || !row.getApplicationId().equals(dto.source().applicationId()) || !row.getSourceKey().equals(dto.source().key()) || !row.getTemplateId().equals(dto.templateId()) || !dto.scene().matches(row.getScene()))) {
+        if (dto.id() != null && !matches(row, source, dto)) {
             throw PrintFailure.denied();
         }
         if (dto.id() != null && !Objects.equals(row.getBindingRevision(), dto.expectedRevision())) {
@@ -63,25 +93,31 @@ public class PrintBindingService {
         }
         boolean makeDefault = dto.isDefault() && EnableStatus.ENABLED.matches(dto.status());
         if (makeDefault && (row == null || !Boolean.TRUE.equals(row.getIsDefault()))) {
-            bindings.clearDefault(actor.tenantId(), dto.source().applicationId(), dto.source().key(), dto.scene().getCode(), actor.userId());
+            bindings.clearDefault(actor.tenantId(), source.applicationId(), source.businessSourceId(),
+                    source.key(), dto.scene().getCode(), actor.userId());
         }
         boolean create = row == null;
         if (create) {
             row = PrintAudit.create(new PrintBinding(), actor);
-            row.setApplicationId(dto.source().applicationId());
-            row.setSourceType(dto.source().sourceType().getCode());
-            row.setSourceKey(dto.source().key());
-            row.setPageId(dto.source().pageId());
-            row.setFormKey(dto.source().formKey());
-            row.setObjectCode(dto.source().objectCode());
+            row.setApplicationId(source.applicationId());
+            row.setBusinessSourceId(source.businessSourceId());
+            row.setSourceCode(source.sourceCode());
+            row.setSourceType(source.sourceType().getCode());
+            row.setSourceKey(source.key());
+            row.setPageId(source.pageId());
+            row.setFormKey(source.formKey());
+            row.setObjectCode(source.objectCode());
             row.setTemplateId(dto.templateId());
             row.setScene(dto.scene().getCode());
             row.setBindingRevision(1L);
             row.setDelFlag(0L);
         }
+        row.setTemplateVersionId(versionId);
         row.setIsDefault(makeDefault);
         row.setSortOrder(dto.sortOrder());
-        row.setStatus(EnableStatus.ENABLED.matches(dto.status()) ? EnableStatus.ENABLED.getCode() : EnableStatus.DISABLED.getCode());
+        row.setStatus(EnableStatus.ENABLED.matches(dto.status())
+                ? EnableStatus.ENABLED.getCode()
+                : EnableStatus.DISABLED.getCode());
         row.setUpdateBy(actor.userId());
         try {
             if (create) {
@@ -96,6 +132,26 @@ public class PrintBindingService {
         }
         var saved = bindings.selectScoped(actor.tenantId(), row.getId());
         return Binding.from(saved, templateName(actor.tenantId(), saved.getTemplateId()));
+    }
+
+    private Long bindingVersion(Long tenantId, PrintSourceRequest source, PrintBindingSaveDTO dto) {
+        if (!source.sourceType().isStandalone()) {
+            return null;
+        }
+        var version = versions.selectScoped(tenantId, dto.templateId(), dto.templateVersionId());
+        if (version == null) {
+            throw PrintFailure.of(400, "PRINT_VERSION_INVALID", "请选择此模板已经发布的固定版本");
+        }
+        return version.getId();
+    }
+
+    private boolean matches(PrintBinding row, PrintSourceRequest source, PrintBindingSaveDTO dto) {
+        return row != null
+                && Objects.equals(row.getApplicationId(), source.applicationId())
+                && Objects.equals(row.getBusinessSourceId(), source.businessSourceId())
+                && Objects.equals(row.getSourceKey(), source.key())
+                && Objects.equals(row.getTemplateId(), dto.templateId())
+                && dto.scene().matches(row.getScene());
     }
 
     private String templateName(Long tenantId, Long templateId) {

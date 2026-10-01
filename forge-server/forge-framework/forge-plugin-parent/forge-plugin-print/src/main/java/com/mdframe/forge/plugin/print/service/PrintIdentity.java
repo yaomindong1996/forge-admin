@@ -17,7 +17,8 @@ public class PrintIdentity {
     public PrintActor require(String permission) {
         PrintActor actor = current();
         if (!SessionHelper.hasPermission(permission)) {
-            throw PrintFailure.denied();
+            throw PrintFailure.of(403, "PRINT_ACCESS_DENIED",
+                    "缺少权限「" + permission + "」，请在角色里勾选打印相关权限后重新登录");
         }
         return actor;
     }

@@ -99,15 +99,21 @@ public class PrintDataProjector {
         if (value == null) {
             return null;
         }
-        if (value instanceof String text) {
+        // 数据集/JDBC 常返回时间等非 JSON 标量；先收敛成打印允许的 String/Number/Boolean
+        Object normalized = normalizeScalar(value);
+        if (normalized instanceof String text) {
             if (text.length() > 100000) {
                 throw limit();
             }
-        } else if (value instanceof Number number) {
+            value = text;
+        } else if (normalized instanceof Number number) {
             if (number.toString().length() > 100 || !Double.isFinite(number.doubleValue())) {
                 throw limit();
             }
-        } else if (!(value instanceof Boolean)) {
+            value = number;
+        } else if (normalized instanceof Boolean bool) {
+            value = bool;
+        } else {
             throw limit();
         }
         if ("IMAGE".equals(type)) {
@@ -115,6 +121,24 @@ public class PrintDataProjector {
                 throw limit();
             }
             documents.image(aliases.getOrDefault(text, text), files);
+        }
+        return value;
+    }
+
+    private Object normalizeScalar(Object value) {
+        if (value instanceof String || value instanceof Number || value instanceof Boolean) {
+            return value;
+        }
+        if (value instanceof Character character) {
+            return String.valueOf(character);
+        }
+        if (value instanceof Enum<?> enumerated) {
+            return enumerated.name();
+        }
+        if (value instanceof java.time.temporal.TemporalAccessor
+                || value instanceof java.util.Date
+                || value instanceof Calendar) {
+            return String.valueOf(value);
         }
         return value;
     }
