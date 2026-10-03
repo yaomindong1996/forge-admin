@@ -3,8 +3,7 @@ import { useStorage } from '@vueuse/core'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import SlideVerify from 'vue3-slide-verify'
 import mainApi from '@/api'
-import loginCarouselImage from '@/assets/images/login-carousel-platform.png'
-import defaultLogoUrl from '@/assets/images/logo_text.png'
+import defaultLogoUrl from '@/assets/images/logo.png'
 import { useAppStore, useAuthStore, usePermissionStore, useTenantStore, useUserStore } from '@/store'
 import { lStorage } from '@/utils'
 import { loadRuntimeCryptoConfig } from '@/utils/crypto/crypto-config'
@@ -958,7 +957,7 @@ export function applyLoginPagePart1() {
     sendResetCode, sendSmsCode, setSocialTenantMap, startResetCountdown, startSmsCountdown, submitResetPassword, syncSelectedTenantToStorage, toggleQrcodePopover,
     authStore, userStore, appStore, router, route, userClient, LOGIN_TENANT_STORAGE_KEY, SOCIAL_TENANT_MAP_KEY,
     LOGIN_TENANT_SELECTION_REQUIRED, tenantOptions, selectedTenantId, showWorkspaceModal, lastUsedTenantId, skipTenantContextRefresh, tenantConfigApplying, brandLogoUrl,
-    loginCarouselImage, loginConfig, selectedTenantOption, tenantSelectOptions, showTenantSelect, brandSystemName, loginSubtitle, copyrightInfo, loginInfo,
+    loginConfig, selectedTenantOption, tenantSelectOptions, showTenantSelect, brandSystemName, loginSubtitle, copyrightInfo, loginInfo,
     captchaImage, captchaExpires, captchaType, captchaEnabled, groupQrcodeEnabled, activeCaptchaTab, groupQrcodeImage, groupQrcodeName,
     groupQrcodeHint, qrcodePopoverVisible, qrcodePreviewVisible, resetPasswordChannels, canResetPassword, showResetForm, resetSending, resetSubmitting,
     resetCountdown, resetTimer, resetForm, resetSubtitle, resetAccountLabel, resetAccountPlaceholder, resetAccountValid, slideVerifyRef,

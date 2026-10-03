@@ -19,6 +19,9 @@
       </div>
     </section>
 
+    <!-- 社区入口前移，二维码按需展开，不占用业务内容高度 -->
+    <HomeCommunityEntry />
+
     <!-- 业务搭建导航 -->
     <HomeBuildPath />
 
@@ -109,36 +112,6 @@
         </section>
       </aside>
     </section>
-    <!-- 社区帮助放在业务工作区之后，保留二维码预览 -->
-    <section class="dashboard-pane support-pane home-support-pane">
-      <div class="support-copy">
-        <span>社区与支持</span>
-        <strong>低代码配置、流程审批与插件扩展问题，可扫码联系维护者协助排查。</strong>
-      </div>
-      <div class="support-qrs">
-        <n-image
-          class="support-qr"
-          :src="wechatGroupQr"
-          :preview-src="wechatGroupQr"
-          object-fit="contain"
-          alt="ForgeAdmin 维护者微信二维码"
-        />
-        <n-image
-          class="support-qr"
-          :src="wechatGroupQrAlt"
-          :preview-src="wechatGroupQrAlt"
-          object-fit="contain"
-          alt="ForgeAdmin 维护者微信二维码"
-        />
-        <n-image
-          class="support-qr"
-          :src="wechatSupportQr"
-          :preview-src="wechatSupportQr"
-          object-fit="contain"
-          alt="ForgeAdmin 维护支持二维码"
-        />
-      </div>
-    </section>
   </div>
 </template>
 
@@ -148,15 +121,13 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { businessApplicationWorkbench } from '@/api/business-application'
 import flowApi from '@/api/flow'
-import wechatGroupQrAlt from '@/assets/images/forge-wechat-group1.png'
-import wechatGroupQr from '@/assets/images/forge-wechat-group.png'
-import wechatSupportQr from '@/assets/images/forge-wechat-support.png'
 import WorkspaceIllustration from '@/components/common/WorkspaceIllustration.vue'
 import { useUserStore } from '@/store'
 import { useNoticeStore } from '@/stores/system/noticeStore'
 import { request } from '@/utils'
 import HomeApprovalCenter from './components/HomeApprovalCenter.vue'
 import HomeBuildPath from './components/HomeBuildPath.vue'
+import HomeCommunityEntry from './components/HomeCommunityEntry.vue'
 import HomeNoticePanel from './components/HomeNoticePanel.vue'
 import HomeQuickEntries from './components/HomeQuickEntries.vue'
 import HomeTodoList from './components/HomeTodoList.vue'

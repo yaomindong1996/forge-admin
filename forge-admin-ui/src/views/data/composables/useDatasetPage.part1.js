@@ -346,10 +346,10 @@ export function applyDatasetPagePart1() {
     {
       prop: 'datasetName',
       label: '数据集资产',
-      width: 310,
+      width: 250,
       render: row => h('div', { class: 'asset-name-card' }, [
         h('div', { class: 'asset-name-row' }, [
-          h('div', { class: 'asset-name' }, row.datasetName),
+          h('div', { class: 'asset-name', title: row.description || row.datasetName }, row.datasetName),
           h(DictTag, {
             options: datasetTypeOptions.value,
             value: row.datasetType,
@@ -359,13 +359,12 @@ export function applyDatasetPagePart1() {
           }),
         ]),
         h('div', { class: 'asset-code' }, row.datasetCode),
-        h('div', { class: 'asset-desc' }, row.description || '暂无描述'),
       ]),
     },
     {
       prop: 'categoryName',
       label: '业务分类',
-      width: 180,
+      width: 130,
       render: row => h('div', { class: 'asset-category' }, [
         h('div', { class: 'asset-category-name' }, row.categoryName || '未分类'),
         h('div', { class: 'asset-category-code' }, row.categoryCode || '暂未归档'),
@@ -374,8 +373,8 @@ export function applyDatasetPagePart1() {
     {
       prop: 'connectionId',
       label: '数据来源',
-      width: 260,
-      render: row => h('div', { class: 'asset-source' }, [
+      width: 190,
+      render: row => h('div', { class: 'asset-source', title: `最大返回 ${row.maxRows ?? '-'} 行` }, [
         h('div', { class: 'asset-source-name' }, row.connectionName || getConnectionName(row.connectionId)),
         h('div', { class: 'asset-source-detail' }, row.datasetType === 'TABLE'
           ? `表：${row.tableName || '-'}`
@@ -384,42 +383,30 @@ export function applyDatasetPagePart1() {
     },
     {
       prop: 'publishStatus',
-      label: '发布状态',
-      width: 110,
-      render: row => h(DictTag, {
-        dictType: 'data_dataset_publish_status',
-        value: String(row.publishStatus),
-        size: 'small',
-      }),
+      label: '状态',
+      width: 100,
+      render: row => h('div', { class: 'asset-status' }, [
+        h(DictTag, { dictType: 'data_dataset_publish_status', value: String(row.publishStatus), size: 'small' }),
+        h(DictTag, { dictType: 'sys_enable_disable', value: String(row.status), size: 'small' }),
+      ]),
     },
     {
       prop: 'accessMode',
       label: '访问权限',
-      width: 110,
+      width: 90,
       render: row => h(DictTag, {
         dictType: 'data_dataset_access_mode',
         value: row.accessMode,
         size: 'small',
       }),
     },
-    {
-      prop: 'status',
-      label: '可用状态',
-      width: 110,
-      render: row => h(DictTag, {
-        dictType: 'sys_enable_disable',
-        value: String(row.status),
-        size: 'small',
-      }),
-    },
-    { prop: 'maxRows', label: '最大行数', width: 100 },
-    { prop: 'updateTime', label: '更新时间', width: 170 },
+    { prop: 'updateTime', label: '更新时间', width: 150, render: row => formatDatasetDate(row.updateTime) },
     {
       prop: 'action',
       label: '操作',
-      width: 320,
+      width: 160,
       fixed: 'right',
-      maxActionButtons: 3,
+      maxActionButtons: 2,
       actions: [
         { label: '编辑', key: 'edit', type: 'primary', visible: row => row.publishStatus !== 1, onClick: handleEdit },
         { label: '查看', key: 'view', type: 'primary', visible: row => row.publishStatus === 1, onClick: handleViewDataset },
