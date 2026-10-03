@@ -132,7 +132,7 @@ class BusinessBindingApplicationTargetTest {
     private static class StubApplicationService extends BusinessApplicationService {
 
         StubApplicationService() {
-            super(null, null, null, null);
+            super(null, null, null, null, null);
         }
 
         @Override
@@ -142,6 +142,11 @@ class BusinessBindingApplicationTargetTest {
             application.setTenantId(1L);
             application.setApplicationCode("crm_center");
             return application;
+        }
+
+        @Override
+        public void markCompositionChanged(Long applicationId) {
+            // no-op for unit stub: avoid ServiceImpl.baseMapper NPE
         }
     }
 

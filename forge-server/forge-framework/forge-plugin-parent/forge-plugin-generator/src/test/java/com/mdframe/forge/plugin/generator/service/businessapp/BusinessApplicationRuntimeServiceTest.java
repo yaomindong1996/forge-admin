@@ -414,7 +414,7 @@ class BusinessApplicationRuntimeServiceTest {
         private int detailCalls;
 
         StubApplicationService(BusinessApplicationVO application) {
-            super(null, null, null, null);
+            super(null, null, null, null, null);
             this.application = application;
         }
 

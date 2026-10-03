@@ -279,4 +279,14 @@
           AND status = 0
     </update>
 
+    <update id="disableAndDetachByApplicationId">
+        UPDATE ai_business_app
+        SET status = 0,
+            application_id = NULL,
+            update_time = NOW()
+        WHERE tenant_id = #{tenantId}
+          AND del_flag = '0'
+          AND application_id = #{applicationId}
+    </update>
+
 </mapper>

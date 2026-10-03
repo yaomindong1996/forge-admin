@@ -753,7 +753,7 @@ function toggleApplication(application) {
 function removeApplication(application) {
   confirmAction({
     title: '删除应用',
-    content: `确定删除“${application.applicationName || application.applicationCode}”吗？业务对象不会被删除；存在启用入口时后端会阻止操作。`,
+    content: `确定删除“${application.applicationName || application.applicationCode}”吗？业务对象不会被删除；其下访问入口会自动停用并脱离本应用。`,
     positiveText: '删除',
     async onConfirm() {
       await deleteBusinessApplication(application.id)

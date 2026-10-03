@@ -561,7 +561,7 @@ class BusinessApplicationFormDataServiceTest {
         private int requireCalls;
 
         StubApplicationService(AiBusinessApplication application) {
-            super(null, null, null, null);
+            super(null, null, null, null, null);
             this.application = application;
         }
 

@@ -8,9 +8,11 @@ import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessApplicationDTO
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessApplicationDistributionDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessApplicationPortalConfigDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessApplicationQueryDTO;
+import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApp;
 import com.mdframe.forge.plugin.generator.mapper.BusinessAppMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessApplicationMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessApplicationObjectMapper;
+import com.mdframe.forge.plugin.generator.service.MenuRegisterAdapter;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationCreateVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
@@ -496,39 +498,78 @@ class BusinessApplicationServiceTest {
     }
 
     @Test
-    @DisplayName("active access entries block application deletion")
-    void activeEntriesBlockDeletion() throws Exception {
+    @DisplayName("deleting application disables menus and detaches active entries")
+    void deleteDisablesAndDetachesActiveEntries() throws Exception {
         AiBusinessApplication existing = applicationEntity();
-        AtomicBoolean detached = new AtomicBoolean();
+        AiBusinessApp activeEntry = new AiBusinessApp();
+        activeEntry.setId(11L);
+        activeEntry.setStatus(1);
+        activeEntry.setOptions("{\"adminMenu\":{\"menuResourceId\":\"88\"}}");
+        AtomicBoolean disabledDetached = new AtomicBoolean();
+        AtomicBoolean compositionDeleted = new AtomicBoolean();
+        AtomicBoolean applicationDeleted = new AtomicBoolean();
+        AtomicReference<Long> disabledMenuId = new AtomicReference<>();
         BusinessApplicationMapper applicationMapper = proxy(BusinessApplicationMapper.class, (method, args) -> {
             if ("selectEntityById".equals(method)) {
                 return existing;
             }
+            if ("deleteById".equals(method)) {
+                applicationDeleted.set(true);
+                return 1;
+            }
+            return defaultValue(method, args);
+        });
+        BusinessApplicationObjectMapper objectMapper = proxy(BusinessApplicationObjectMapper.class, (method, args) -> {
+            if ("logicDeleteByApplicationId".equals(method)) {
+                compositionDeleted.set(true);
+                return 2;
+            }
             return defaultValue(method, args);
         });
         BusinessAppMapper appMapper = proxy(BusinessAppMapper.class, (method, args) -> {
-            if ("countActiveByApplicationId".equals(method)) {
-                return 1L;
+            if ("selectByApplicationId".equals(method)) {
+                return List.of(activeEntry);
             }
-            if ("detachDisabledByApplicationId".equals(method)) {
-                detached.set(true);
+            if ("disableAndDetachByApplicationId".equals(method)) {
+                disabledDetached.set(true);
+                return 1;
             }
             return defaultValue(method, args);
         });
-        BusinessApplicationService service = service(applicationMapper,
-                proxy(BusinessApplicationObjectMapper.class, BusinessApplicationServiceTest::defaultValue), appMapper);
+        MenuRegisterAdapter menus = new MenuRegisterAdapter() {
+            @Override
+            public Long registerMenu(String menuName, Long parentId, String configKey, Integer sort) {
+                return null;
+            }
 
-        BusinessException error = assertThrows(BusinessException.class, () -> service.delete(existing.getId()));
+            @Override
+            public void updateMenu(Long menuResourceId, String menuName, Long parentId, Integer sort) {
+            }
 
-        assertTrue(error.getMessage().contains("启用的访问入口"));
-        assertFalse(detached.get());
+            @Override
+            public void deleteMenu(Long menuResourceId) {
+            }
+
+            @Override
+            public void disableMenu(Long menuResourceId) {
+                disabledMenuId.set(menuResourceId);
+            }
+        };
+        BusinessApplicationService service = service(applicationMapper, objectMapper, appMapper, menus);
+
+        service.delete(existing.getId());
+
+        assertEquals(88L, disabledMenuId.get());
+        assertTrue(disabledDetached.get());
+        assertTrue(compositionDeleted.get());
+        assertTrue(applicationDeleted.get());
     }
 
     @Test
-    @DisplayName("deleting application detaches disabled entries and only deletes composition")
-    void deleteDetachesDisabledEntriesAndComposition() throws Exception {
+    @DisplayName("deleting application detaches entries and only deletes composition")
+    void deleteDetachesEntriesAndComposition() throws Exception {
         AiBusinessApplication existing = applicationEntity();
-        AtomicBoolean detached = new AtomicBoolean();
+        AtomicBoolean disabledDetached = new AtomicBoolean();
         AtomicBoolean compositionDeleted = new AtomicBoolean();
         AtomicBoolean applicationDeleted = new AtomicBoolean();
         BusinessApplicationMapper applicationMapper = proxy(BusinessApplicationMapper.class, (method, args) -> {
@@ -549,11 +590,11 @@ class BusinessApplicationServiceTest {
             return defaultValue(method, args);
         });
         BusinessAppMapper appMapper = proxy(BusinessAppMapper.class, (method, args) -> {
-            if ("countActiveByApplicationId".equals(method)) {
-                return 0L;
+            if ("selectByApplicationId".equals(method)) {
+                return List.of();
             }
-            if ("detachDisabledByApplicationId".equals(method)) {
-                detached.set(true);
+            if ("disableAndDetachByApplicationId".equals(method)) {
+                disabledDetached.set(true);
                 return 3;
             }
             return defaultValue(method, args);
@@ -562,7 +603,7 @@ class BusinessApplicationServiceTest {
 
         service.delete(existing.getId());
 
-        assertTrue(detached.get());
+        assertTrue(disabledDetached.get());
         assertTrue(compositionDeleted.get());
         assertTrue(applicationDeleted.get());
     }
@@ -570,8 +611,28 @@ class BusinessApplicationServiceTest {
     private BusinessApplicationService service(BusinessApplicationMapper applicationMapper,
                                                BusinessApplicationObjectMapper objectMapper,
                                                BusinessAppMapper appMapper) throws Exception {
+        return service(applicationMapper, objectMapper, appMapper, new MenuRegisterAdapter() {
+            @Override
+            public Long registerMenu(String menuName, Long parentId, String configKey, Integer sort) {
+                return null;
+            }
+
+            @Override
+            public void updateMenu(Long menuResourceId, String menuName, Long parentId, Integer sort) {
+            }
+
+            @Override
+            public void deleteMenu(Long menuResourceId) {
+            }
+        });
+    }
+
+    private BusinessApplicationService service(BusinessApplicationMapper applicationMapper,
+                                               BusinessApplicationObjectMapper objectMapper,
+                                               BusinessAppMapper appMapper,
+                                               MenuRegisterAdapter menuRegisterAdapter) throws Exception {
         BusinessApplicationService service = new BusinessApplicationService(
-                new ExistingSuiteService(), objectMapper, appMapper, new BusinessNamingService());
+                new ExistingSuiteService(), objectMapper, appMapper, new BusinessNamingService(), menuRegisterAdapter);
         setBaseMapper(service, applicationMapper);
         return service;
     }
@@ -635,7 +696,8 @@ class BusinessApplicationServiceTest {
             case "countByApplicationCode", "countByPortalSlug", "countByApplicationId",
                     "countActiveByApplicationId", "countActiveDistributionRoles" -> 0L;
             case "insert", "updateById", "deleteById", "detachDisabledByApplicationId",
-                    "logicDeleteByApplicationId", "insertBatch" -> 1;
+                    "disableAndDetachByApplicationId", "logicDeleteByApplicationId", "insertBatch" -> 1;
+            case "selectByApplicationId" -> List.of();
             default -> null;
         };
     }

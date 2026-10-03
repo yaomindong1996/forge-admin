@@ -262,7 +262,7 @@ class BusinessApplicationObjectServiceTest {
         private int changedCalls;
 
         StubApplicationService(AiBusinessApplication application) {
-            super(null, null, null, null);
+            super(null, null, null, null, null);
             this.application = application;
         }
 

@@ -129,7 +129,7 @@ class BusinessApplicationWorkspaceServiceTest {
         private final BusinessApplicationVO application;
 
         StubApplicationService(BusinessApplicationVO application) {
-            super(null, null, null, null);
+            super(null, null, null, null, null);
             this.application = application;
         }
 

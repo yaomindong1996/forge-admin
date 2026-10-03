@@ -12,9 +12,11 @@ import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessApplicationAiA
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessApplicationDistributionDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessApplicationPortalConfigDTO;
 import com.mdframe.forge.plugin.generator.dto.businessapp.BusinessApplicationQueryDTO;
+import com.mdframe.forge.plugin.generator.domain.entity.AiBusinessApp;
 import com.mdframe.forge.plugin.generator.mapper.BusinessAppMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessApplicationMapper;
 import com.mdframe.forge.plugin.generator.mapper.BusinessApplicationObjectMapper;
+import com.mdframe.forge.plugin.generator.service.MenuRegisterAdapter;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationCreateVO;
 import com.mdframe.forge.plugin.generator.vo.businessapp.BusinessApplicationVO;
 import com.mdframe.forge.starter.core.exception.BusinessException;
@@ -64,6 +66,7 @@ public class BusinessApplicationService extends ServiceImpl<BusinessApplicationM
     private final BusinessApplicationObjectMapper applicationObjectMapper;
     private final BusinessAppMapper businessAppMapper;
     private final BusinessNamingService namingService;
+    private final MenuRegisterAdapter menuRegisterAdapter;
 
     public Page<BusinessApplicationVO> page(Integer pageNum, Integer pageSize, BusinessApplicationQueryDTO query) {
         Page<BusinessApplicationVO> page = new Page<>(normalizePageNum(pageNum), normalizePageSize(pageSize));
@@ -373,12 +376,51 @@ public class BusinessApplicationService extends ServiceImpl<BusinessApplicationM
     public void delete(Long id) {
         AiBusinessApplication application = requireEntity(id);
         Long tenantId = resolveTenantId();
-        if (businessAppMapper.countActiveByApplicationId(tenantId, application.getId()) > 0) {
-            throw new BusinessException("业务应用存在启用的访问入口，请先停用或迁移访问入口");
+        // 删除应用时自动停用其下访问入口、禁用管理端菜单，并拆开归属，避免手工逐个停入口
+        List<AiBusinessApp> entries = businessAppMapper.selectByApplicationId(tenantId, application.getId());
+        for (AiBusinessApp entry : entries) {
+            disableEntryManagementMenu(entry);
         }
-        businessAppMapper.detachDisabledByApplicationId(tenantId, application.getId());
+        businessAppMapper.disableAndDetachByApplicationId(tenantId, application.getId());
         applicationObjectMapper.logicDeleteByApplicationId(tenantId, application.getId());
         removeById(application.getId());
+    }
+
+    private void disableEntryManagementMenu(AiBusinessApp entry) {
+        if (entry == null || menuRegisterAdapter == null) {
+            return;
+        }
+        Long menuResourceId = readEntryMenuResourceId(entry.getOptions());
+        if (menuResourceId != null) {
+            menuRegisterAdapter.disableMenu(menuResourceId);
+        }
+    }
+
+    private Long readEntryMenuResourceId(String optionsJson) {
+        JSONObject options = parseJsonObject(optionsJson);
+        JSONObject adminMenu = options.getJSONObject("adminMenu");
+        Object raw = null;
+        if (adminMenu != null) {
+            raw = adminMenu.get("menuResourceId");
+        }
+        if (raw == null) {
+            raw = options.get("menuResourceId");
+        }
+        if (raw == null) {
+            return null;
+        }
+        if (raw instanceof Number number) {
+            return number.longValue();
+        }
+        String text = StringUtils.trimToNull(String.valueOf(raw));
+        if (text == null) {
+            return null;
+        }
+        try {
+            return Long.valueOf(text);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     public AiBusinessApplication requireEntity(Long id) {

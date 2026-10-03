@@ -58,4 +58,8 @@ public interface BusinessAppMapper extends BaseMapper<AiBusinessApp> {
 
     int detachDisabledByApplicationId(@Param("tenantId") Long tenantId,
                                       @Param("applicationId") Long applicationId);
+
+    /** 删除应用时停用并拆开其下全部访问入口。 */
+    int disableAndDetachByApplicationId(@Param("tenantId") Long tenantId,
+                                        @Param("applicationId") Long applicationId);
 }
