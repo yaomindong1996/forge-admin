@@ -16,7 +16,7 @@
       <div class="header-left">
         <div class="title-row">
           <div class="title-icon">
-            <i class="i-material-symbols:device-hub" />
+            <WorkspaceIllustration artwork="workflow" size="card" />
           </div>
           <h2 class="page-title">
             流程模型
@@ -90,117 +90,37 @@
       <n-spin :show="loading" class="model-list-spin">
         <div class="model-list-body">
           <div v-if="dataSource.length > 0" class="model-grid">
-            <div
+            <FlowModelCard
               v-for="item in dataSource"
               :key="item.id"
-              class="model-card"
-              :class="{ 'model-card-sortable': sortMode }"
-              :draggable="sortMode"
-              @dragstart="handleDragStart(item)"
-              @dragover.prevent
-              @drop="handleDrop(item)"
-            >
-              <div class="card-header">
-                <div class="card-title-block">
-                  <div class="card-title-row">
-                    <div class="card-title-icon-box">
-                      <i class="i-lucide:git-merge card-title-icon" />
-                    </div>
-                    <div class="card-title-main">
-                      <div class="card-title">
-                        {{ item.modelName }}
-                      </div>
-                      <div v-if="sortMode" class="card-sort-hint">
-                        拖动调整顺序
-                      </div>
-                      <div class="card-key">
-                        {{ item.modelKey }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <span class="status-tag" :class="statusClass(item.status)">
-                  {{ getLabel('flow_model_status', item.status) }}
-                </span>
-              </div>
-              <div class="card-body">
-                <div class="card-tags">
-                  <span class="designer-type-badge" :class="designerTypeClass(item.designerType)">
-                    {{ designerTypeLabel(item.designerType) }}
-                  </span>
-                  <span v-if="getCategoryDisplayName(item)" class="category-badge">
-                    {{ getCategoryDisplayName(item) }}
-                  </span>
-                </div>
-                <div class="card-binding" :class="{ empty: !item.businessBindings?.length }">
-                  <i class="i-lucide:link-2" />
-                  <span>{{ formatBusinessBindings(item) }}</span>
-                </div>
-                <div class="card-desc">
-                  {{ item.description || '暂无描述' }}
-                </div>
-              </div>
-              <div class="card-footer">
-                <div class="card-metadata">
-                  <div class="meta-item">
-                    <i class="i-lucide:calendar" />
-                    {{ formatDate(item.updateTime) || '未更新' }}
-                  </div>
-                  <div class="meta-item">
-                    <i class="i-lucide:git-commit" />
-                    v{{ item.version || 1 }}
-                  </div>
-                </div>
-                <div class="card-actions">
-                  <button
-                    type="button"
-                    class="card-action-link"
-                    @click.stop="handleDesign(item)"
-                  >
-                    编辑
-                  </button>
-                  <template v-if="item.status === 0 || item.status === 1">
-                    <span class="card-action-separator" />
-                    <button
-                      v-if="item.status === 0"
-                      type="button"
-                      class="card-action-link"
-                      :disabled="isModelActionLocked(item, 'deploy')"
-                      @click.stop="handleDeploy(item)"
-                    >
-                      发布
-                    </button>
-                    <button
-                      v-else
-                      type="button"
-                      class="card-action-link"
-                      @click.stop="handleViewInstances(item)"
-                    >
-                      实例
-                    </button>
-                  </template>
-                  <span class="card-action-separator" />
-                  <n-dropdown
-                    trigger="click"
-                    :options="getActionOptions(item)"
-                    :disabled="isModelActionBusy(item)"
-                    @select="key => handleActionSelect(key, item)"
-                  >
-                    <button type="button" class="card-more-action" aria-label="更多操作" @click.stop>
-                      <i class="i-lucide:more-horizontal" />
-                    </button>
-                  </n-dropdown>
-                </div>
-              </div>
-            </div>
+              :item="item"
+              :status-label="getLabel('flow_model_status', item.status)"
+              :status-class="statusClass(item.status)"
+              :designer-label="designerTypeLabel(item.designerType)"
+              :designer-class="designerTypeClass(item.designerType)"
+              :category-label="getCategoryDisplayName(item)"
+              :binding-label="formatBusinessBindings(item)"
+              :update-label="formatDate(item.updateTime)"
+              :action-options="getActionOptions(item)"
+              :sort-mode="sortMode"
+              :deploy-disabled="isModelActionLocked(item, 'deploy')"
+              :busy="isModelActionBusy(item)"
+              @design="handleDesign"
+              @deploy="handleDeploy"
+              @instances="handleViewInstances"
+              @action="handleActionSelect"
+              @drag-start="handleDragStart"
+              @drop="handleDrop"
+            />
           </div>
 
           <!-- 加载占位：首次加载无数据时撑开高度，保证 loading 可见 -->
           <div v-else-if="loading" class="model-list-loading" />
 
           <!-- 空状态 -->
-          <n-empty
+          <IllustratedEmpty
             v-else
+            artwork="workflow"
             description="暂无流程模型，点击「新增模型」开始设计"
             class="empty-state"
           >
@@ -212,7 +132,7 @@
                 新增模型
               </n-button>
             </template>
-          </n-empty>
+          </IllustratedEmpty>
         </div>
       </n-spin>
 
@@ -241,7 +161,7 @@
         :mask-closable="false"
       >
         <n-form
-          ref="formRef"
+          :ref="bindFormRef"
           :model="formData"
           :rules="rules"
           label-placement="left"
@@ -359,7 +279,7 @@
           </div>
           <AiForm
             v-else-if="startTestBusinessFormActive && startTestFormSchema.length"
-            ref="startTestFormRef"
+            :ref="bindStartTestFormRef"
             v-model:value="startTestFormData"
             :schema="startTestFormSchema"
             :grid-cols="startTestBusinessFormLayout.gridCols"
@@ -372,7 +292,7 @@
           />
           <FlowFormCreateRenderer
             v-else-if="showStartTestModal && startTestFormSchema.length"
-            ref="startTestFormRef"
+            :ref="bindStartTestFormRef"
             v-model="startTestFormData"
             :schema="startTestFormSchema"
           />
@@ -463,8 +383,8 @@
 </template>
 
 <script>
-import { flowModelLocalComponents } from './flowModelLocalComponents'
 import { useFlowModel } from './composables/useFlowModel'
+import { flowModelLocalComponents } from './flowModelLocalComponents'
 
 export default {
   name: 'FlowModel',
@@ -472,7 +392,13 @@ export default {
     ...flowModelLocalComponents,
   },
   setup() {
-    return useFlowModel()
+    const model = useFlowModel()
+    // Options API 壳用回调显式连接 composable 的表单引用，保留原有校验入口。
+    return {
+      ...model,
+      bindFormRef: (instance) => { model.formRef.value = instance },
+      bindStartTestFormRef: (instance) => { model.startTestFormRef.value = instance },
+    }
   },
 }
 </script>

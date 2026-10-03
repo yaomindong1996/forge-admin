@@ -1,8 +1,9 @@
 <script setup>
-import { NAlert, NButton, NCard, NDropdown, NEmpty, NModal, NPagination, NSelect, NSpace, NSpin, NTag } from 'naive-ui'
+import { NAlert, NButton, NCard, NDropdown, NModal, NPagination, NSelect, NSpace, NSpin, NTag } from 'naive-ui'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import * as api from '@/api/print'
+import IllustratedEmpty from '@/components/common/IllustratedEmpty.vue'
 import DictTag from '@/components/DictTag.vue'
 import { newPrintTemplateCode } from '@/components/print/id'
 import { hasPrintPermission } from '@/components/print/management/printPermissions'
@@ -302,7 +303,7 @@ async function refresh() {
     <NAlert v-if="store.error" type="error" class="print-list-alert">
       {{ store.error }}
     </NAlert>
-    <NEmpty v-if="!hasContext" description="请选择业务来源" />
+    <IllustratedEmpty v-if="!hasContext" description="请选择业务来源" />
     <template v-else>
       <div v-if="lockSource" class="print-list-actions">
         <NButton :disabled="!hasContext || busy" @click="refresh">
@@ -323,7 +324,7 @@ async function refresh() {
         <p>勾选场景后重新发布应用，即可供业务用户使用。</p>
       </div>
       <NSpin :show="store.listing">
-        <NEmpty v-if="!store.items.length && !store.listing" description="暂无打印模板" />
+        <IllustratedEmpty v-if="!store.items.length && !store.listing" description="暂无打印模板" />
         <div v-else class="print-card-grid" role="list" aria-label="打印模板">
           <article
             v-for="row in store.items"

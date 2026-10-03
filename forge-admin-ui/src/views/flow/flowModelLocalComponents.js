@@ -10,9 +10,12 @@ import {
 import { NIcon, NModal, NSpin, NTreeSelect } from 'naive-ui'
 import { defineAsyncComponent, h } from 'vue'
 import AiForm from '@/components/ai-form/AiForm.vue'
+import IllustratedEmpty from '@/components/common/IllustratedEmpty.vue'
 import UserSelectPicker from '@/components/common/UserSelectPicker.vue'
+import WorkspaceIllustration from '@/components/common/WorkspaceIllustration.vue'
 import FlowModelStats from '@/components/flow/FlowModelStats.vue'
 import DesignerAsyncLoader from '@/views/app-center/components/designer/DesignerAsyncLoader.vue'
+import FlowModelCard from './components/FlowModelCard.vue'
 
 function createAsyncLoader(title, description, { overlay = false } = {}) {
   return {
@@ -68,7 +71,10 @@ export const flowModelLocalComponents = {
   TrashOutline,
   AiForm,
   UserSelectPicker,
+  IllustratedEmpty,
+  WorkspaceIllustration,
   FlowModelStats,
+  FlowModelCard,
   DesignerAsyncLoader,
   FlowDesignPage,
   FlowFormCreateRenderer,

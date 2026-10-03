@@ -23,7 +23,7 @@
 
       <div class="stat-card deployed" :class="{ active: isActive(1) }" @click="$emit('filter', 1)">
         <div class="stat-icon deployed">
-          <i class="i-material-symbols:rocket-launch" />
+          <i class="i-lucide:git-branch" />
         </div>
         <div class="stat-content">
           <span class="stat-label">已部署</span>

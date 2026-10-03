@@ -2,13 +2,13 @@
 import {
   NAlert,
   NButton,
-  NEmpty,
   NModal,
   NSpin,
   NTag,
 } from 'naive-ui'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import IllustratedEmpty from '@/components/common/IllustratedEmpty.vue'
 import MasterDetailWorkspace from '@/components/common/MasterDetailWorkspace.vue'
 import { hasPrintPermission } from '@/components/print/management/printPermissions'
 import PrintTemplateList from '@/components/print/management/PrintTemplateList.vue'
@@ -205,7 +205,7 @@ async function toggleSource() {
               />
             </div>
           </template>
-          <NEmpty v-else description="左侧选择一个业务，或点「新增」登记可打印业务" />
+          <IllustratedEmpty v-else description="左侧选择一个业务，或点「新增」登记可打印业务" />
         </NSpin>
       </div>
     </MasterDetailWorkspace>

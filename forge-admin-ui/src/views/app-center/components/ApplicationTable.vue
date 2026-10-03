@@ -38,25 +38,29 @@
         </span>
       </header>
 
-      <div class="application-meta-row">
-        <span class="application-badge" :title="application.suiteCode">
-          {{ application.suiteName || application.suiteCode || '未分组' }}
-        </span>
-        <span class="application-badge">{{ application.pageCount || 0 }} 页</span>
-        <span
-          class="application-version"
-          :class="{ warning: isUnpublishedApplication(application), empty: !application.lastPublishVersion }"
-        >
-          <i class="i-lucide:git-branch" />
-          <span v-if="isUnpublishedApplication(application)" class="problem-text">有变更未发布</span>
-          <span v-else-if="application.lastPublishVersion">已发布 v{{ application.lastPublishVersion }}</span>
-          <span v-else>尚未发布</span>
-        </span>
-      </div>
+      <!-- 小幅插画只占正文右侧，业务图标和标题仍取真实应用配置。 -->
+      <div class="application-card-body">
+        <WorkspaceIllustration artwork="application" size="card" class="application-artwork" />
+        <div class="application-meta-row">
+          <span class="application-badge" :title="application.suiteCode">
+            {{ application.suiteName || application.suiteCode || '未分组' }}
+          </span>
+          <span class="application-badge">{{ application.pageCount || 0 }} 页</span>
+          <span
+            class="application-version"
+            :class="{ warning: isUnpublishedApplication(application), empty: !application.lastPublishVersion }"
+          >
+            <i class="i-lucide:git-branch" />
+            <span v-if="isUnpublishedApplication(application)" class="problem-text">有变更未发布</span>
+            <span v-else-if="application.lastPublishVersion">已发布 v{{ application.lastPublishVersion }}</span>
+            <span v-else>尚未发布</span>
+          </span>
+        </div>
 
-      <p v-if="application.description" class="application-description">
-        {{ application.description }}
-      </p>
+        <p class="application-description">
+          {{ application.description || '暂无应用说明' }}
+        </p>
+      </div>
 
       <footer class="application-card-foot">
         <span class="application-date">
@@ -102,6 +106,7 @@
 </template>
 
 <script setup>
+import WorkspaceIllustration from '@/components/common/WorkspaceIllustration.vue'
 import DictTag from '@/components/DictTag.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
 
@@ -112,7 +117,7 @@ defineProps({
   },
 })
 
-const emit = defineEmits(['enter', 'run', 'edit', 'code', 'publish', 'export-config', 'toggle', 'delete'])
+const emit = defineEmits(['enter', 'run', 'edit', 'code', 'publish', 'exportConfig', 'toggle', 'delete'])
 
 function actionOptions(application) {
   const isDraft = isDraftApplication(application)
@@ -154,7 +159,7 @@ function handleAction(key, application) {
     emit('edit', application)
   }
   else if (key === 'export-config') {
-    emit('export-config', application)
+    emit('exportConfig', application)
   }
   else if (key === 'toggle') {
     emit('toggle', application)
@@ -225,6 +230,20 @@ function formatDate(value) {
   padding: 14px 14px 10px;
 }
 
+.application-card-body {
+  position: relative;
+  flex: 1;
+  min-height: 70px;
+  padding-right: 76px;
+}
+
+.application-artwork {
+  position: absolute;
+  top: 0;
+  right: 12px;
+  opacity: 0.82;
+}
+
 .application-icon {
   display: inline-flex;
   align-items: center;
@@ -239,8 +258,8 @@ function formatDate(value) {
 }
 
 .application-icon.is-draft {
-  color: #b45309;
-  background: #fff7e6;
+  color: var(--primary-color, #1677ff);
+  background: color-mix(in srgb, var(--primary-color, #1677ff) 6%, transparent);
 }
 
 .application-icon.is-changed {
@@ -249,8 +268,8 @@ function formatDate(value) {
 }
 
 .application-icon.is-published {
-  color: #15803d;
-  background: #edf9f0;
+  color: var(--primary-color, #1677ff);
+  background: color-mix(in srgb, var(--primary-color, #1677ff) 6%, transparent);
 }
 
 .application-copy {
@@ -352,6 +371,7 @@ function formatDate(value) {
 
 .application-description {
   display: -webkit-box;
+  white-space: normal;
   margin: 0;
   padding: 0 14px 8px;
   overflow: hidden;
@@ -380,40 +400,15 @@ function formatDate(value) {
 }
 
 .application-card-foot {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   min-height: 36px;
   min-width: 0;
-  border-top: 1px solid var(--n-primary-color, var(--primary-color, #165dff));
-  background: var(--n-primary-color, var(--primary-color, #165dff));
+  border-top: 1px solid var(--border-light, #e5e7eb);
+  background: var(--bg-secondary, #f7f8fa);
   padding: 8px 14px;
-  opacity: 0;
-  pointer-events: none;
-  visibility: hidden;
-}
-
-.application-card:hover .application-card-foot,
-.application-card:focus-visible .application-card-foot,
-.application-card:focus-within .application-card-foot {
-  opacity: 1;
-  pointer-events: auto;
-  visibility: visible;
-}
-
-.application-card:hover .application-date,
-.application-card:focus-visible .application-date,
-.application-card:focus-within .application-date,
-.application-card:hover .application-date i,
-.application-card:focus-visible .application-date i,
-.application-card:focus-within .application-date i {
-  color: rgb(255 255 255 / 86%);
 }
 
 .application-actions {
@@ -445,7 +440,7 @@ function formatDate(value) {
 
 .application-action-link {
   height: 20px;
-  color: #fff;
+  color: var(--primary-color, #1677ff);
   font-size: 12px;
   font-weight: 500;
   line-height: 20px;
@@ -456,51 +451,65 @@ function formatDate(value) {
 .application-more-action:hover,
 .application-action-link:focus-visible,
 .application-more-action:focus-visible {
-  color: rgb(255 255 255 / 76%);
+  color: var(--primary-color-hover, #4096ff);
 }
 
 .application-action-separator {
   width: 1px;
   height: 12px;
-  background: rgb(255 255 255 / 32%);
+  background: var(--border-light, #e5e7eb);
 }
 
 .application-more-action {
   width: 18px;
   height: 20px;
-  color: #fff;
+  color: var(--text-tertiary, #86909c);
   font-size: 14px;
   padding: 0;
 }
 
-:global(.dark) .application-icon {
+html.dark .application-icon {
   color: #aab2bf;
   background: #2a2d34;
 }
 
-:global(.dark) .application-icon.is-draft {
-  color: #f0b45e;
-  background: #3b3020;
+html.dark .application-icon.is-draft {
+  color: var(--primary-color, #7aa7ff);
+  background: #213251;
 }
 
-:global(.dark) .application-icon.is-changed {
+html.dark .application-icon.is-changed {
   color: #7aa7ff;
   background: #213251;
 }
 
-:global(.dark) .application-icon.is-published {
-  color: #76cb91;
-  background: #203a2a;
+html.dark .application-icon.is-published {
+  color: var(--primary-color, #7aa7ff);
+  background: #213251;
 }
 
-:global(.dark) .application-card {
+html.dark .application-card-foot {
+  background: #24272e;
+  border-color: #303540;
+}
+
+html.dark .application-card {
   background: #1e1e22;
   border-color: #303540;
 }
 
-:global(.dark) .application-card:hover,
-:global(.dark) .application-card:focus-visible,
-:global(.dark) .application-card:focus-within {
+html.dark .application-action-link {
+  color: #8caeff;
+}
+
+html.dark .application-action-link:hover,
+html.dark .application-action-link:focus-visible {
+  color: #b9cfff;
+}
+
+html.dark .application-card:hover,
+html.dark .application-card:focus-visible,
+html.dark .application-card:focus-within {
   border-color: var(--n-primary-color, var(--primary-color, #4080ff));
   box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
 }

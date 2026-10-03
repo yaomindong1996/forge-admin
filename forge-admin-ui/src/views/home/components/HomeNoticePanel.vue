@@ -17,7 +17,7 @@
         </NButton>
       </div>
       <div v-else-if="!noticeStore.notices.length" class="notice-empty">
-        暂无公告
+        <IllustratedEmpty artwork="welcome" description="暂无公告" compact />
       </div>
       <div v-else class="home-notice-list">
         <button
@@ -46,6 +46,7 @@
 import { NBadge, NButton, NSpin } from 'naive-ui'
 import { watch } from 'vue'
 import { useRouter } from 'vue-router'
+import IllustratedEmpty from '@/components/common/IllustratedEmpty.vue'
 import DictTag from '@/components/DictTag.vue'
 import { useNoticeStore } from '@/stores/system/noticeStore'
 

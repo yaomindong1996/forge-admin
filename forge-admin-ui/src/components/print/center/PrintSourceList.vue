@@ -1,6 +1,7 @@
 <script setup>
-import { NButton, NEmpty, NInput, NScrollbar, NSelect, NSpin } from 'naive-ui'
+import { NButton, NInput, NScrollbar, NSelect, NSpin } from 'naive-ui'
 import { computed } from 'vue'
+import IllustratedEmpty from '@/components/common/IllustratedEmpty.vue'
 import { usePrintCenterStore } from '@/stores/print/printCenterStore'
 
 defineProps({ canManage: Boolean })
@@ -75,9 +76,9 @@ function iconOf(type) {
               {{ Number(item.status) === 1 ? '启用' : '停用' }}
             </span>
           </button>
-          <NEmpty
+          <IllustratedEmpty
             v-if="!store.loading && !store.sources.length"
-            size="small"
+            compact
             description="暂无可打印业务"
           />
         </div>

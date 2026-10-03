@@ -2,9 +2,7 @@
   <article class="app-card">
     <div class="app-icon">
       <IconRenderer v-if="app.icon" :icon="app.icon" :size="22" />
-      <n-icon v-else>
-        <AppsOutline />
-      </n-icon>
+      <WorkspaceIllustration v-else artwork="application" size="card" />
     </div>
     <div class="app-main">
       <div class="app-title-line">
@@ -46,7 +44,8 @@
 </template>
 
 <script setup>
-import { AppsOutline, EllipsisVertical, OpenOutline } from '@vicons/ionicons5'
+import { EllipsisVertical, OpenOutline } from '@vicons/ionicons5'
+import WorkspaceIllustration from '@/components/common/WorkspaceIllustration.vue'
 import DictTag from '@/components/DictTag.vue'
 import IconRenderer from '@/components/IconRenderer.vue'
 
@@ -139,9 +138,9 @@ function handleMoreSelect(key, app) {
   gap: 12px 14px;
   align-items: start;
   min-height: 156px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--border-light, #e5e7eb);
+  border-radius: 4px;
+  background: var(--bg-primary, #fff);
   padding: 14px;
   transition:
     border-color 180ms ease,
@@ -149,8 +148,8 @@ function handleMoreSelect(key, app) {
 }
 
 .app-card:hover {
-  border-color: #16a34a;
-  box-shadow: 0 10px 24px rgb(15 23 42 / 8%);
+  border-color: var(--primary-color, #1677ff);
+  box-shadow: 0 2px 6px rgb(15 23 42 / 6%);
 }
 
 .app-icon {
@@ -159,9 +158,14 @@ function handleMoreSelect(key, app) {
   height: 42px;
   place-items: center;
   border-radius: 8px;
-  background: #ecfdf5;
-  color: #16a34a;
+  background: var(--bg-secondary, #f7f8fa);
+  color: var(--primary-color, #1677ff);
   font-size: 22px;
+}
+
+.app-icon :deep(.workspace-illustration) {
+  width: 38px;
+  height: 38px;
 }
 
 .app-main {
@@ -179,7 +183,7 @@ function handleMoreSelect(key, app) {
   min-width: 0;
   margin: 0;
   overflow: hidden;
-  color: #111827;
+  color: var(--text-primary, #1d2129);
   font-size: 16px;
   font-weight: 650;
   line-height: 1.35;
@@ -222,8 +226,8 @@ function handleMoreSelect(key, app) {
 }
 
 .binding-chip {
-  background: #ecfdf5;
-  color: #15803d;
+  background: var(--bg-secondary, #f7f8fa);
+  color: var(--text-secondary, #4e5969);
 }
 
 .app-actions {
