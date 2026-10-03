@@ -432,6 +432,26 @@ button:focus-visible,
   }
 }
 
+/* 左侧轮播固定首屏，右侧内容多时独立滚动，避免指示器落到视口之外。 */
+@media (min-width: 960px) {
+  .login-card {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .login-form-wrapper {
+    height: 100dvh;
+    min-height: 0;
+    box-sizing: border-box;
+    overflow-y: auto;
+    justify-content: flex-start;
+  }
+  .login-form {
+    flex-shrink: 0;
+    margin-block: auto;
+  }
+}
+
 :global(.dark) .login-container {
   color: #e2e8f0;
   background: #101827;

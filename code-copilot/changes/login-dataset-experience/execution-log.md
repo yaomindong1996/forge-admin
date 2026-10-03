@@ -39,3 +39,27 @@
 - 隔离预览不替代真实后端端到端验收，数据集发布/权限写入仍需测试账号联调。
 - 关闭临时浏览器标签与预览服务，恢复临时视口设置。
 - 只提交本轮文件，保留用户 .DS_Store 修改；分支 codex/workbench-illustrations，本轮不推送。
+
+## 2026-10-03：轮播指示器首屏可见性修正
+
+- 起点：894f6c77，只有用户 .DS_Store 修改；该提交已按用户要求推送 main。
+- 修正前实测 1366×600：品牌区被右侧表单撑到 704px 高，指示器 top=618.77px，箭头 bottom=650.77px，均超出首屏。
+- 左侧改为固定 100dvh 的四行布局，箭头/指示器独立于 NCarousel 裁切区域；右侧桌面表单独立滚动。
+- NCarousel 与控制行使用同一 currentIndex；指示器增大点击区域、提高对比度，选中项改为白色短条。
+- 不改变认证、后端协议与数据集，保留移动端隐藏品牌区和减少动态效果设置。
+
+验证命令（Node v20.19.0，forge-admin-ui 目录）：
+
+```bash
+node_modules/.bin/vitest run src/views/login/__tests__/login-experience.spec.js src/views/login/__tests__/reset-password-channel.spec.js
+node_modules/.bin/eslint src/views/login/components/LoginBrandPanel.vue src/views/login/__tests__/login-experience.spec.js
+node --max-old-space-size=8192 node_modules/vite/bin/vite.js build
+git diff --check
+```
+
+- 6 项单测通过，包含真实 Naive UI 自动轮播推进、索引同步、箭头首尾循环与二维码原有行为。
+- 定向 ESLint 与 diff 检查通过；生产构建成功，耗时37.33秒，原有混合导入与构建耗时警告不阻断。
+- 浏览器：1366×600 品牌区/pageHeight=600，控制行 bottom=550.41；右侧 scrollHeight=704、scrollTop=104.5，滚动不影响左侧控件位置。
+- 1280×720 控制行 bottom=662.41；1440×900 bottom=822.41，均完整处于视口内。
+- 375×812：左品牌区 display=none，页面宽度=375，无横向溢出。
+- 临时预览仅使用真实组件与隔离数据，不连接业务后端；恢复视口并关闭本轮标签、预览服务 PID=67677 后提交，不自动推送。

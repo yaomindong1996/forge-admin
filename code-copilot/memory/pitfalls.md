@@ -38,6 +38,7 @@
 
 ### [前端 / 构建 / 路由](pitfalls/frontend.md)（48）
 
+- 登录品牌轮播指示器不能跟随表单撑高的 Grid 行定位
 - uni-app 微信小程序不能直接复用 H5 Teleport 和动态 component 递归
 - 门户富列表禁止嵌套 ListPageGridDesigner
 - Vitest 结构测试读取源码时 new URL 不能内联字面量路径
