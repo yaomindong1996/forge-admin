@@ -17,146 +17,21 @@
           <em>{{ metric.desc }}</em>
         </button>
       </div>
-
-      <div class="guide-pane">
-        <div class="guide-head">
-          <span>业务搭建路径</span>
-          <button type="button" class="text-link" @click="goTo('/app-center')">
-            进入应用中心
-            <i class="i-material-symbols:chevron-right-rounded" />
-          </button>
-        </div>
-        <div class="guide-list">
-          <button
-            v-for="(step, index) in guideSteps"
-            :key="step.title"
-            type="button"
-            class="guide-item"
-            @click="goTo(step.path)"
-          >
-            <span class="guide-index">{{ String(index + 1).padStart(2, '0') }}</span>
-            <span class="guide-icon"><i :class="step.icon" /></span>
-            <span class="guide-text">
-              <strong>{{ step.title }}</strong>
-              <em>{{ step.desc }}</em>
-            </span>
-          </button>
-        </div>
-      </div>
     </section>
 
-    <section class="dashboard-pane support-pane top-support-pane">
-      <div class="support-copy">
-        <span>社区与支持</span>
-        <strong>低代码配置、流程审批与插件扩展问题，可扫码联系维护者协助排查。</strong>
-      </div>
-      <div class="support-qrs">
-        <n-image
-          class="support-qr"
-          :src="wechatGroupQr"
-          :preview-src="wechatGroupQr"
-          object-fit="contain"
-          alt="ForgeAdmin 维护者微信二维码"
-        />
-        <n-image
-          class="support-qr"
-          :src="wechatGroupQrAlt"
-          :preview-src="wechatGroupQrAlt"
-          object-fit="contain"
-          alt="ForgeAdmin 维护者微信二维码"
-        />
-        <n-image
-          class="support-qr"
-          :src="wechatSupportQr"
-          :preview-src="wechatSupportQr"
-          object-fit="contain"
-          alt="ForgeAdmin 维护支持二维码"
-        />
-      </div>
-    </section>
+    <!-- 业务搭建导航 -->
+    <HomeBuildPath />
 
     <section class="workspace-grid">
       <div class="main-column">
-        <section class="dashboard-pane flow-pane">
-          <div class="dashboard-header">
-            <div>
-              <h2>审批中心</h2>
-              <p>按当前角色聚合流程任务，待办优先处理。</p>
-            </div>
-            <button type="button" class="text-link" @click="goTo('/flow/todo')">
-              查看全部
-              <i class="i-material-symbols:chevron-right-rounded" />
-            </button>
-          </div>
-
-          <div class="flow-grid">
-            <button
-              v-for="item in flowTiles"
-              :key="item.title"
-              type="button"
-              class="flow-tile"
-              @click="goTo(item.path)"
-            >
-              <span class="flow-icon"><i :class="item.icon" /></span>
-              <span class="flow-title">{{ item.title }}</span>
-              <strong>{{ item.value }}</strong>
-              <em>{{ item.desc }}</em>
-            </button>
-          </div>
-        </section>
-
-        <section class="dashboard-pane todo-pane">
-          <div class="dashboard-header">
-            <div>
-              <h2>待办任务</h2>
-              <p>展示最近需要处理的审批事项。</p>
-            </div>
-            <button type="button" class="text-link" @click="goTo('/flow/todo')">
-              全部待办
-              <i class="i-material-symbols:chevron-right-rounded" />
-            </button>
-          </div>
-
-          <n-spin :show="todoLoading">
-            <div v-if="todoList.length === 0" class="empty-state">
-              <WorkspaceIllustration artwork="workflow" size="small" />
-              <strong>暂无待办任务</strong>
-              <span>所有审批任务已处理完毕。</span>
-            </div>
-            <div v-else class="todo-list">
-              <article
-                v-for="task in todoList"
-                :key="task.taskId || task.id"
-                class="todo-item"
-                @click="openTodoTask(task)"
-              >
-                <span class="todo-status" :class="task.status === 0 && !task.assignee ? 'candidate' : 'active'">
-                  {{ task.status === 0 && !task.assignee ? '待签收' : '待处理' }}
-                </span>
-                <div class="todo-main">
-                  <div class="todo-title-row">
-                    <strong>{{ task.title || task.processTitle || task.taskName || '-' }}</strong>
-                    <span v-if="task.priority >= 2" class="priority-tag" :class="getPriorityClass(task.priority)">
-                      {{ getPriorityText(task.priority) }}
-                    </span>
-                  </div>
-                  <div class="todo-meta">
-                    <span>节点：{{ task.taskName || '-' }}</span>
-                    <span>发起人：{{ task.startUserName || '-' }}</span>
-                    <span v-if="task.startDeptName">部门：{{ task.startDeptName }}</span>
-                  </div>
-                </div>
-                <div class="todo-side">
-                  <span>{{ formatTime(task.createTime) }}</span>
-                  <button type="button" @click.stop="openTodoTask(task)">
-                    处理
-                    <i class="i-material-symbols:chevron-right-rounded" />
-                  </button>
-                </div>
-              </article>
-            </div>
-          </n-spin>
-        </section>
+        <!-- 审批概览与待办优先展示，数据仍由首页请求加载 -->
+        <HomeApprovalCenter
+          :todo-count="todoCount"
+          :done-count="doneCount"
+          :started-count="startedCount"
+          :pending-started="pendingStarted"
+        />
+        <HomeTodoList :tasks="todoList" :loading="todoLoading" @open="openTodoTask" />
 
         <section class="app-row">
           <div class="dashboard-pane app-pane">
@@ -206,27 +81,8 @@
       </div>
 
       <aside class="side-column">
+        <HomeQuickEntries />
         <HomeNoticePanel />
-        <section class="dashboard-pane quick-pane">
-          <div class="dashboard-header compact">
-            <div>
-              <h2>快捷入口</h2>
-              <p>高频管理功能。</p>
-            </div>
-          </div>
-          <div class="quick-list">
-            <button
-              v-for="item in quickLinks"
-              :key="item.path"
-              type="button"
-              class="quick-item"
-              @click="goTo(item.path)"
-            >
-              <span><i :class="item.icon" /></span>
-              <strong>{{ item.title }}</strong>
-            </button>
-          </div>
-        </section>
 
         <section class="dashboard-pane system-pane">
           <div class="dashboard-header compact">
@@ -253,6 +109,36 @@
         </section>
       </aside>
     </section>
+    <!-- 社区帮助放在业务工作区之后，保留二维码预览 -->
+    <section class="dashboard-pane support-pane home-support-pane">
+      <div class="support-copy">
+        <span>社区与支持</span>
+        <strong>低代码配置、流程审批与插件扩展问题，可扫码联系维护者协助排查。</strong>
+      </div>
+      <div class="support-qrs">
+        <n-image
+          class="support-qr"
+          :src="wechatGroupQr"
+          :preview-src="wechatGroupQr"
+          object-fit="contain"
+          alt="ForgeAdmin 维护者微信二维码"
+        />
+        <n-image
+          class="support-qr"
+          :src="wechatGroupQrAlt"
+          :preview-src="wechatGroupQrAlt"
+          object-fit="contain"
+          alt="ForgeAdmin 维护者微信二维码"
+        />
+        <n-image
+          class="support-qr"
+          :src="wechatSupportQr"
+          :preview-src="wechatSupportQr"
+          object-fit="contain"
+          alt="ForgeAdmin 维护支持二维码"
+        />
+      </div>
+    </section>
   </div>
 </template>
 
@@ -269,7 +155,11 @@ import WorkspaceIllustration from '@/components/common/WorkspaceIllustration.vue
 import { useUserStore } from '@/store'
 import { useNoticeStore } from '@/stores/system/noticeStore'
 import { request } from '@/utils'
+import HomeApprovalCenter from './components/HomeApprovalCenter.vue'
+import HomeBuildPath from './components/HomeBuildPath.vue'
 import HomeNoticePanel from './components/HomeNoticePanel.vue'
+import HomeQuickEntries from './components/HomeQuickEntries.vue'
+import HomeTodoList from './components/HomeTodoList.vue'
 import HomeWelcomeProfile from './components/HomeWelcomeProfile.vue'
 
 const router = useRouter()
@@ -305,22 +195,6 @@ const topMetrics = computed(() => [
   { label: '待办任务', value: todoCount.value, desc: '需要处理的审批', path: '/flow/todo' },
 ])
 
-const flowTiles = computed(() => [
-  { title: '我发起的', value: startedCount.value, desc: `${pendingStarted.value} 个审批中`, path: '/flow/started', icon: 'i-material-symbols:rocket-launch-rounded' },
-  { title: '我的待办', value: todoCount.value, desc: '待签收 / 待处理', path: '/flow/todo', icon: 'i-material-symbols:pending-actions-rounded' },
-  { title: '我的已办', value: doneCount.value, desc: '已处理任务', path: '/flow/done', icon: 'i-material-symbols:task-alt-rounded' },
-  { title: '发起流程', value: '发起', desc: '选择流程模板', path: '/flow/template', icon: 'i-material-symbols:add-task-rounded' },
-  { title: '抄送我的', value: '查看', desc: '关注流转信息', path: '/flow/cc', icon: 'i-material-symbols:forward-to-inbox-rounded' },
-  { title: '流程监控', value: '监控', desc: '运行状态追踪', path: '/flow/monitor', icon: 'i-material-symbols:monitor-heart-rounded' },
-])
-
-const guideSteps = [
-  { title: '创建应用', desc: '定义业务系统入口', path: '/app-center', icon: 'i-material-symbols:add-box-rounded' },
-  { title: '设计对象', desc: '配置表单、列表和字段', path: '/ai/lowcode-apps', icon: 'i-material-symbols:edit-document-rounded' },
-  { title: '编排流程', desc: '绑定审批与状态流转', path: '/flow/model', icon: 'i-material-symbols:account-tree-rounded' },
-  { title: '发布授权', desc: '菜单发布并配置权限', path: '/system/menu', icon: 'i-material-symbols:shield-person-rounded' },
-]
-
 const appShortcuts = computed(() => distributedApplications.value.map(application => ({
   id: application.id,
   title: application.applicationName || application.applicationCode || '未命名应用',
@@ -328,15 +202,6 @@ const appShortcuts = computed(() => distributedApplications.value.map(applicatio
   path: `/app/${encodeURIComponent(application.portalSlug || application.applicationCode)}`,
   icon: application.icon || 'i-material-symbols:apps-rounded',
 })))
-
-const quickLinks = [
-  { title: '用户管理', icon: 'i-material-symbols:person-rounded', path: '/system/user' },
-  { title: '角色管理', icon: 'i-material-symbols:admin-panel-settings-rounded', path: '/system/role' },
-  { title: '组织管理', icon: 'i-material-symbols:account-tree-rounded', path: '/system/org' },
-  { title: '菜单管理', icon: 'i-material-symbols:menu-open-rounded', path: '/system/menu' },
-  { title: '岗位管理', icon: 'i-material-symbols:badge-rounded', path: '/system/post' },
-  { title: '文件中心', icon: 'i-material-symbols:folder-open-rounded', path: '/system/file-list' },
-]
 
 const systemMetrics = computed(() => {
   const userBase = Math.max(totalUserCount.value, 1)
@@ -456,40 +321,6 @@ function openTodoTask(task) {
       t: Date.now(),
     },
   })
-}
-
-function formatTime(time) {
-  if (!time)
-    return '-'
-  const date = new Date(time)
-  const now = new Date()
-  const diff = now - date
-  const minute = 60 * 1000
-  const hour = 60 * minute
-  const day = 24 * hour
-
-  if (diff < minute)
-    return '刚刚'
-  if (diff < hour)
-    return `${Math.floor(diff / minute)}分钟前`
-  if (diff < day)
-    return `${Math.floor(diff / hour)}小时前`
-  if (diff < 7 * day)
-    return `${Math.floor(diff / day)}天前`
-  return String(time).split(' ')[0]
-}
-
-function getPriorityClass(priority) {
-  if (priority >= 3)
-    return 'urgent'
-  if (priority === 2)
-    return 'high'
-  return ''
-}
-
-function getPriorityText(priority) {
-  const textMap = { 0: '低', 1: '普通', 2: '高', 3: '紧急' }
-  return textMap[priority] || '普通'
 }
 
 function initVisitChart() {

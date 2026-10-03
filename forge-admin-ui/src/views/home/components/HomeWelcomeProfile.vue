@@ -34,7 +34,8 @@ defineProps({ title: { type: String, required: true } })
 }
 
 .home-welcome-profile :deep(.workspace-illustration) {
-  width: clamp(110px, 36%, 200px);
+  width: clamp(110px, 32%, 160px);
+  height: 112px;
 }
 
 .home-welcome-kicker {
@@ -60,7 +61,7 @@ p {
 
 .home-welcome-caption {
   display: block;
-  margin-top: 12px;
+  margin-top: 8px;
   color: var(--home-muted, var(--text-tertiary, #86909c));
   font-size: 11px;
 }
