@@ -93,7 +93,9 @@ class PrintResourceContractTest {
                 "V1.0.174__support_print_workspace_page_identity.sql",
                 "V1.0.180__add_print_pdf_downloaded_result.sql",
                 "V1.0.204__add_standalone_print_sources.sql",
-                "V1.0.205__repair_print_center_menu_hierarchy.sql"
+                "V1.0.205__repair_print_center_menu_hierarchy.sql",
+                "V1.0.206__unify_print_center_workspace_menu.sql",
+                "V1.0.207__move_print_center_under_platform.sql"
         ).doesNotContain(
                 "V1.0.168__add_native_print_tables.sql",
                 "V1.0.169__add_native_print_resources.sql",
@@ -118,6 +120,21 @@ class PrintResourceContractTest {
                 "'场景绑定'",
                 "'/print/bindings'",
                 "path IN ('/print/designer', '/print/preview')"
+        ).doesNotContain("tenant_id = 0", "${");
+    }
+
+    @Test
+    void printCenterMovesUnderPlatformManagement() throws Exception {
+        String sql = Files.readString(
+                migrationDirectory().resolve("V1.0.207__move_print_center_under_platform.sql"));
+
+        assertThat(sql).contains(
+                "resource_name = '平台管理'",
+                "resource_name = '打印中心'",
+                "parent_id = @platform_dir_id",
+                "path = '/platform/print'",
+                "INSERT INTO sys_role_resource",
+                "existing.resource_id = @print_center_dir_id"
         ).doesNotContain("tenant_id = 0", "${");
     }
 
