@@ -92,8 +92,13 @@ function useRouteSuspense(curRoute) {
   return curRoute?.meta?.layout === 'app-portal' || isApplicationRuntimeRoute(curRoute)
 }
 
+/** 同步加载的布局（不在 glob 里，但必须按名称认作合法，否则会回退到默认工作台） */
+const SYNC_LAYOUTS = new Set(['empty', 'app-portal'])
+
 function normalizeLayoutName(name) {
   const layoutName = normalizeLayout(name)
+  if (SYNC_LAYOUTS.has(layoutName))
+    return layoutName
   return layoutModules[`./layouts/${layoutName}/index.vue`] ? layoutName : defaultLayout
 }
 
@@ -118,7 +123,10 @@ const appStore = useAppStore()
 const permissionStore = usePermissionStore()
 const userStore = useUserStore()
 const isSystemRoute = computed(() => route.path.startsWith('/system/'))
-const showLayoutSetting = computed(() => layoutSettingVisible && !['app-portal', 'business-workbench'].includes(route.meta?.layout || appStore.layout))
+const showLayoutSetting = computed(() => {
+  const layoutName = route.meta?.layout || appStore.layout
+  return layoutSettingVisible && !['app-portal', 'business-workbench', 'empty'].includes(layoutName)
+})
 
 // 监听布局变化，及时更新布局组件
 watch(() => route.meta?.layout || appStore.layout, (layoutName) => {
